@@ -1646,9 +1646,10 @@ const PROFILE_KEY_PREFIX='boekhouden-user-profile-v1-';
 const SUPABASE_URL='https://vuwfyhtejsxhdfyvkkeq.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_miAZ6CBZShVcmmNwlnEDgA_aGw1X4aP';
 const EDGE_BASE=SUPABASE_URL+'/functions/v1';
+const AUTH_REDIRECT_URL=(location.hostname==='boekuna-boekhouding.onrender.com'||location.hostname==='kwinest-boekhouding.onrender.com')?'https://boekuna-boekhouding.onrender.com/':(location.origin+'/');
 const DOCUMENT_PROCESSOR_URL='https://kwinest-docprocessor.onrender.com';
 let supabaseClient=null,cloudSaveTimer=null,cloudVersion=1,cloudSyncStatus='saved';
-const TEST_MODE_NO_AUTH=true;
+const TEST_MODE_NO_AUTH=false;
 const TEST_USER={id:'kwinest-local-test',email:'',testMode:true};
 const TEST_PROFILE={};
 let currentUser=null,pendingMfaUser=null,pendingMfaFactorId=null,pendingMfaEnrollId=null;
@@ -1996,11 +1997,72 @@ function showAuth(mode='login'){
  if(register){const loginEmail=document.querySelector('#authForm input[name="email"]'),companyEmail=document.querySelector('#authForm input[name="companyEmail"]');if(loginEmail&&companyEmail)loginEmail.addEventListener('blur',()=>{if(!companyEmail.value)companyEmail.value=loginEmail.value})}
 }
 function forgotPasswordDialog(){modal('Wachtwoord herstellen',`<form id="forgotForm" class="form-grid"><div class="field full"><label>E-mailadres</label><input name="email" type="email" required autocomplete="email" placeholder="naam@bedrijf.nl"></div></form><div class="help" style="margin-top:10px">Je ontvangt een beveiligde herstel-link. Open die link om een nieuw wachtwoord te kiezen.</div>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="sendPasswordReset()">Stuur herstel-link</button>`)}
-async function sendPasswordReset(){const f=document.getElementById('forgotForm');if(!f?.reportValidity())return;const email=String(new FormData(f).get('email')||'').trim().toLowerCase();try{const sb=await getSupabase();const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin});if(error)throw error;closeModal();toast('Herstel-link verstuurd als dit account bestaat')}catch(err){toast(err?.message||'Herstel-link kon niet worden verstuurd')}}
+async function sendPasswordReset(){
+ const f=document.getElementById('forgotForm');
+ if(!f?.reportValidity())return;
+ const email=String(new FormData(f).get('email')||'').trim().toLowerCase();
+ try{
+  const sb=await getSupabase();
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:AUTH_REDIRECT_URL+'?login=1'});
+  if(error)throw error;
+  closeModal();
+  toast('Herstel-link verstuurd. Gebruik altijd de nieuwste e-mail.');
+ }catch(err){
+  const msg=String(err?.message||'');
+  toast(/rate limit/i.test(msg)?'Te veel herstelmails aangevraagd. Wacht even en probeer opnieuw.':(msg||'Herstel-link kon niet worden verstuurd'));
+ }
+}
 function showResetPassword(){modal('Nieuw wachtwoord instellen',`<form id="resetPasswordForm" class="form-grid"><div class="field full"><label>Nieuw wachtwoord</label><input name="password" type="password" minlength="8" required autocomplete="new-password"></div><div class="field full"><label>Herhaal wachtwoord</label><input name="confirm" type="password" minlength="8" required autocomplete="new-password"></div></form>`,`<button class="btn primary" onclick="updateRecoveredPassword()">Wachtwoord opslaan</button>`)}
 async function updateRecoveredPassword(){const f=document.getElementById('resetPasswordForm');if(!f?.reportValidity())return;const d=new FormData(f),password=String(d.get('password')||''),confirm=String(d.get('confirm')||'');if(password!==confirm)return toast('De wachtwoorden zijn niet gelijk');try{const sb=await getSupabase();const {error}=await sb.auth.updateUser({password});if(error)throw error;closeModal();toast('Wachtwoord gewijzigd');const {data:{user}}=await sb.auth.getUser();if(user){await hydrateCloudAccount(user);enterApp()}}catch(err){toast(err?.message||'Wachtwoord kon niet worden gewijzigd')}}
-async function registerUser(e){e.preventDefault();const f=e.currentTarget;if(!f.reportValidity())return;const d=new FormData(f),email=String(d.get('email')||'').trim().toLowerCase(),pw=String(d.get('password')||''),confirmPw=String(d.get('confirm')||'');if(pw.length<8)return authError('Gebruik minimaal 8 tekens voor je wachtwoord.');if(pw!==confirmPw)return authError('De wachtwoorden zijn niet gelijk.');const company={...structuredClone(DEFAULT.company),name:String(d.get('companyName')||'').trim(),tradeName:String(d.get('tradeName')||'').trim(),contactName:String(d.get('contactName')||'').trim(),email:String(d.get('companyEmail')||email).trim().toLowerCase(),phone:String(d.get('phone')||'').trim(),website:String(d.get('website')||'').trim(),address:String(d.get('address')||'').trim(),postal:String(d.get('postal')||'').trim().toUpperCase(),city:String(d.get('city')||'').trim(),country:String(d.get('country')||'Nederland').trim(),kvk:String(d.get('kvk')||'').trim(),vat:String(d.get('vat')||'').trim().toUpperCase(),iban:String(d.get('iban')||'').replace(/\s/g,'').toUpperCase(),bic:String(d.get('bic')||'').replace(/\s/g,'').toUpperCase(),bankAccountName:String(d.get('bankAccountName')||'').trim(),peppolId:String(d.get('peppolId')||'').trim(),invoicePrefix:String(d.get('invoicePrefix')||'2026-').trim(),paymentDays:Number(d.get('paymentDays')||14),kor:String(d.get('kor'))==='true',profileCreatedAt:new Date().toISOString(),profileUpdatedAt:new Date().toISOString()};if(!profileEssentialsComplete(company))return authError('Vul alle verplichte bedrijfsgegevens in.');try{const sb=await getSupabase();const {data,error}=await sb.auth.signUp({email,password:pw,options:{data:{company},emailRedirectTo:location.origin}});if(error)throw error;if(data.session&&data.user){await hydrateCloudAccount(data.user);state.company={...state.company,...company};logEvent('Bedrijfsprofiel aangemaakt tijdens registratie',company.name,'profile','company');saveProfileData(company);save();enterApp();toast('Cloudaccount en bedrijfsprofiel aangemaakt')}else{showAuth('login');toast('Account aangemaakt. Controleer je e-mail om je account te bevestigen en log daarna in.')}}catch(err){authError(err?.message==='User already registered'?'Er bestaat al een account met dit e-mailadres.':(err?.message||'Account aanmaken is mislukt.'))}}
-async function loginUser(e){e.preventDefault();const d=new FormData(e.currentTarget),email=String(d.get('email')||'').trim().toLowerCase(),pw=String(d.get('password')||'');try{const sb=await getSupabase();let {data,error}=await sb.auth.signInWithPassword({email,password:pw});if(error&&/invalid login credentials/i.test(error.message||'')){const legacyUser=legacyUserForEmail(email);if(legacyUser){const hash=await hashPassword(pw,legacyUser.salt);if(hash===legacyUser.passwordHash){const legacy=legacySnapshotForEmail(email),company=legacy?.company||{};const created=await sb.auth.signUp({email,password:pw,options:{data:{company},emailRedirectTo:location.origin}});if(created.error)throw created.error;if(!created.data.session){showAuth('login');toast('Je oude account is omgezet. Bevestig je e-mailadres en log daarna opnieuw in.');return}data=created.data;error=null}}}if(error)throw error;if(!data?.user)throw new Error('Inloggen is mislukt.');if(await requireMfaForUser(data.user))return;await hydrateCloudAccount(data.user);enterApp()}catch(err){authError(/invalid login credentials/i.test(err?.message||'')?'E-mailadres of wachtwoord is onjuist.':(err?.message||'Inloggen is mislukt.'))}}
+async function registerUser(e){e.preventDefault();const f=e.currentTarget;if(!f.reportValidity())return;const d=new FormData(f),email=String(d.get('email')||'').trim().toLowerCase(),pw=String(d.get('password')||''),confirmPw=String(d.get('confirm')||'');if(pw.length<8)return authError('Gebruik minimaal 8 tekens voor je wachtwoord.');if(pw!==confirmPw)return authError('De wachtwoorden zijn niet gelijk.');const company={...structuredClone(DEFAULT.company),name:String(d.get('companyName')||'').trim(),tradeName:String(d.get('tradeName')||'').trim(),contactName:String(d.get('contactName')||'').trim(),email:String(d.get('companyEmail')||email).trim().toLowerCase(),phone:String(d.get('phone')||'').trim(),website:String(d.get('website')||'').trim(),address:String(d.get('address')||'').trim(),postal:String(d.get('postal')||'').trim().toUpperCase(),city:String(d.get('city')||'').trim(),country:String(d.get('country')||'Nederland').trim(),kvk:String(d.get('kvk')||'').trim(),vat:String(d.get('vat')||'').trim().toUpperCase(),iban:String(d.get('iban')||'').replace(/\s/g,'').toUpperCase(),bic:String(d.get('bic')||'').replace(/\s/g,'').toUpperCase(),bankAccountName:String(d.get('bankAccountName')||'').trim(),peppolId:String(d.get('peppolId')||'').trim(),invoicePrefix:String(d.get('invoicePrefix')||'2026-').trim(),paymentDays:Number(d.get('paymentDays')||14),kor:String(d.get('kor'))==='true',profileCreatedAt:new Date().toISOString(),profileUpdatedAt:new Date().toISOString()};if(!profileEssentialsComplete(company))return authError('Vul alle verplichte bedrijfsgegevens in.');try{const sb=await getSupabase();const {data,error}=await sb.auth.signUp({email,password:pw,options:{data:{company},emailRedirectTo:AUTH_REDIRECT_URL}});if(error)throw error;if(data.session&&data.user){await hydrateCloudAccount(data.user);state.company={...state.company,...company};logEvent('Bedrijfsprofiel aangemaakt tijdens registratie',company.name,'profile','company');saveProfileData(company);save();enterApp();toast('Cloudaccount en bedrijfsprofiel aangemaakt')}else{showAuth('login');toast('Account aangemaakt. Controleer je e-mail om je account te bevestigen en log daarna in.')}}catch(err){authError(err?.message==='User already registered'?'Er bestaat al een account met dit e-mailadres.':(err?.message||'Account aanmaken is mislukt.'))}}
+async function loginUser(e){
+ e.preventDefault();
+ const d=new FormData(e.currentTarget);
+ const email=String(d.get('email')||'').trim().toLowerCase();
+ const pw=String(d.get('password')||'');
+ try{
+  const sb=await getSupabase();
+  let {data,error}=await sb.auth.signInWithPassword({email,password:pw});
+
+  if(error&&/invalid login credentials/i.test(error.message||'')){
+   const legacyUser=legacyUserForEmail(email);
+   if(legacyUser){
+    const hash=await hashPassword(pw,legacyUser.salt);
+    if(hash===legacyUser.passwordHash){
+     const legacy=legacySnapshotForEmail(email),company=legacy?.company||{};
+     const created=await sb.auth.signUp({email,password:pw,options:{data:{company},emailRedirectTo:AUTH_REDIRECT_URL}});
+     if(created.error)throw created.error;
+     if(!created.data.session){
+      showAuth('login');
+      toast('Je oude account is omgezet. Bevestig je e-mailadres en log daarna opnieuw in.');
+      return;
+     }
+     data=created.data;
+     error=null;
+    }
+   }
+  }
+
+  if(error)throw error;
+  if(!data?.user)throw new Error('Inloggen is mislukt.');
+  if(await requireMfaForUser(data.user))return;
+  await hydrateCloudAccount(data.user);
+  enterApp();
+ }catch(err){
+  const msg=String(err?.message||'');
+  if(/invalid login credentials/i.test(msg)){
+   authError('E-mailadres of wachtwoord is onjuist. Gebruik “Wachtwoord vergeten?” als je het wachtwoord niet meer weet.');
+  }else if(/email not confirmed/i.test(msg)){
+   authError('Je e-mailadres is nog niet bevestigd. Open de bevestigingsmail van Boekuna.');
+  }else if(/rate limit|too many requests/i.test(msg)){
+   authError('Te veel inlogpogingen in korte tijd. Wacht even en probeer daarna opnieuw.');
+  }else if(/failed to fetch|network/i.test(msg)){
+   authError('Geen verbinding met Supabase Auth. Controleer je internetverbinding en probeer opnieuw.');
+  }else{
+   authError(msg||'Inloggen is mislukt.');
+  }
+ }
+}
 function enterApp(){document.getElementById('authRoot').innerHTML='';document.getElementById('mainApp').style.display='grid';const av=document.getElementById('accountAvatar');if(av)av.textContent=(currentUser?.email||'A').slice(0,2).toUpperCase();const needsProfile=!profileEssentialsComplete(state.company);page=needsProfile?'profile':'dashboard';search='';document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page===page));document.getElementById('pageTitle').textContent=PAGE_TITLES[page];render();if(needsProfile)toast('Maak eerst je bedrijfsprofiel compleet')}
 async function logoutUser(){try{await syncCloudStateNow();const sb=await getSupabase();await sb.auth.signOut()}catch(e){console.warn(e)}currentUser=null;state=structuredClone(DEFAULT);closeModal();showLanding()}
 async function requireMfaForUser(user){const sb=await getSupabase();const {data,error}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();if(error)throw error;if(data?.nextLevel==='aal2'&&data?.currentLevel!=='aal2'){pendingMfaUser=user;await showMfaLoginChallenge();return true}return false}
@@ -2012,7 +2074,60 @@ async function startMfaEnrollment(){try{const sb=await getSupabase();const exist
 async function cancelMfaEnrollment(){try{if(pendingMfaEnrollId){const sb=await getSupabase();await sb.auth.mfa.unenroll({factorId:pendingMfaEnrollId})}}catch(e){}pendingMfaEnrollId=null;closeModal()}
 async function verifyMfaEnrollment(){const f=document.getElementById('mfaEnrollForm');if(!f?.reportValidity()||!pendingMfaEnrollId)return;const code=String(new FormData(f).get('code')||'').trim();try{const sb=await getSupabase();const challenge=await sb.auth.mfa.challenge({factorId:pendingMfaEnrollId});if(challenge.error)throw challenge.error;const verify=await sb.auth.mfa.verify({factorId:pendingMfaEnrollId,challengeId:challenge.data.id,code});if(verify.error)throw verify.error;pendingMfaEnrollId=null;closeModal();toast('Tweestapsverificatie is actief');accountMenu()}catch(e){toast('De code is niet geldig. Probeer een nieuwe code uit je authenticator-app.')}}
 async function disableMfa(factorId){if(!confirm('Tweestapsverificatie uitschakelen? Je account is daarna alleen met je wachtwoord beveiligd.'))return;try{const sb=await getSupabase();const {error}=await sb.auth.mfa.unenroll({factorId});if(error)throw error;await sb.auth.refreshSession();closeModal();toast('Tweestapsverificatie is uitgeschakeld')}catch(e){toast(e?.message||'Tweestapsverificatie kon niet worden uitgeschakeld')}}
-async function initAuth(){document.getElementById('mainApp').style.display='none';const wantsLogin=new URL(location.href).searchParams.get('login')==='1';if(TEST_MODE_NO_AUTH){currentUser={...TEST_USER};state=load();state.company={...state.company,...TEST_PROFILE,emailTemplate:{...DEFAULT_EMAIL_TEMPLATE,...(state.company?.emailTemplate||{})},invoiceDesign:{...DEFAULT_INVOICE_DESIGN,...(state.company?.invoiceDesign||{})}};if(!Array.isArray(state.contacts)||!state.contacts.length)state.contacts=structuredClone(DEMO_CUSTOMERS);saveProfileData(state.company);localStorage.setItem(userDataKey(),JSON.stringify(state));if(wantsLogin)showAuth('login');else showLanding();setCloudSyncStatus('saved');return}try{const sb=await getSupabase();const {data:{session}}=await sb.auth.getSession();if(wantsLogin){showAuth('login')}else if(session?.user){if(!(await requireMfaForUser(session.user))){await hydrateCloudAccount(session.user);enterApp()}}else showLanding();sb.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY'){setTimeout(showResetPassword,0);return}if(event==='SIGNED_OUT'&&!session){currentUser=null;state=structuredClone(DEFAULT);showLanding()}})}catch(e){console.error(e);showLanding()}}
+async function initAuth(){
+ document.getElementById('mainApp').style.display='none';
+ const wantsLogin=new URL(location.href).searchParams.get('login')==='1';
+ try{
+  const sb=await getSupabase();
+  const {data:{session},error:sessionError}=await sb.auth.getSession();
+  if(sessionError)throw sessionError;
+
+  if(session?.user){
+   if(!(await requireMfaForUser(session.user))){
+    await hydrateCloudAccount(session.user);
+    enterApp();
+   }
+  }else if(wantsLogin){
+   showAuth('login');
+  }else{
+   showLanding();
+  }
+
+  sb.auth.onAuthStateChange((event,nextSession)=>{
+   if(event==='PASSWORD_RECOVERY'){
+    setTimeout(showResetPassword,0);
+    return;
+   }
+   if(event==='SIGNED_IN'&&nextSession?.user){
+    setTimeout(async()=>{
+     try{
+      if(!(await requireMfaForUser(nextSession.user))){
+       await hydrateCloudAccount(nextSession.user);
+       enterApp();
+      }
+     }catch(err){
+      console.error('Auth sign-in hydration failed',err);
+      authError('Inloggen gelukt, maar je administratie kon niet worden geladen. Probeer opnieuw.');
+     }
+    },0);
+    return;
+   }
+   if(event==='SIGNED_OUT'&&!nextSession){
+    currentUser=null;
+    state=structuredClone(DEFAULT);
+    showLanding();
+   }
+  });
+ }catch(e){
+  console.error('Supabase auth init failed',e);
+  if(wantsLogin){
+   showAuth('login');
+   authError('Supabase Auth kon niet worden gestart. Vernieuw de pagina en probeer opnieuw.');
+  }else{
+   showLanding();
+  }
+ }
+}
 function invoiceSign(i){return i?.kind==='credit'?-1:1}
 function invoiceNet(i){const raw=i.importedTotals?.net!=null?Math.abs(Number(i.importedTotals.net)):i.lines.reduce((s,l)=>s+Number(l.qty)*Number(l.unit),0);return raw*invoiceSign(i)}
 function invoiceVat(i){const raw=i.importedTotals?.vat!=null?Math.abs(Number(i.importedTotals.vat)):i.lines.reduce((s,l)=>s+(Number(l.qty)*Number(l.unit)*(Number(l.vat)||0)/100),0);return raw*invoiceSign(i)}
