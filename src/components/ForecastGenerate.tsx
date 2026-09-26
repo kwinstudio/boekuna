@@ -1,0 +1,3 @@
+"use client";
+import { useState } from "react";
+export function ForecastGenerate(){const [busy,setBusy]=useState(false);const [message,setMessage]=useState("");async function run(){setBusy(true);const r=await fetch("/api/forecast/generate",{method:"POST"});const d=await r.json().catch(()=>({}));setMessage(r.ok?`Forecast gemaakt voor ${d.days} dagen.`:(d.error||"Mislukt"));setBusy(false);if(r.ok)location.reload();}return <div><button className="btn btn-primary" disabled={busy} onClick={run}>{busy?"Berekenen…":"Forecast 7 dagen"}</button>{message&&<div className="small muted" style={{marginTop:6}}>{message}</div>}</div>}
