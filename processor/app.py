@@ -349,3 +349,79 @@ async def extract(file: UploadFile = File(...)) -> JSONResponse:
 
     result.update({"ok": True, "filename": filename, "mimeType": mime, "size": len(data), "sha256": digest})
     return JSONResponse(result)
+
+
+def _test_pdf(pages: list[str]) -> bytes:
+    doc = fitz.open()
+    try:
+        for value in pages:
+            page = doc.new_page(width=595, height=842)
+            y = 60
+            for line in value.splitlines():
+                page.insert_text((50, y), line, fontsize=11, fontname="helv")
+                y += 18
+        return doc.tobytes()
+    finally:
+        doc.close()
+
+
+def _test_scan_pdf(value: str) -> bytes:
+    try:
+        from PIL import ImageFont
+        font = ImageFont.truetype("DejaVuSans.ttf", 34)
+    except Exception:
+        font = None
+    image = Image.new("RGB", (1240, 1754), "white")
+    from PIL import ImageDraw
+    ImageDraw.Draw(image).multiline_text((80, 90), value, fill="black", font=font, spacing=18)
+    buf = io.BytesIO()
+    image.save(buf, format="PDF", resolution=150.0)
+    return buf.getvalue()
+
+
+@app.get("/self-test")
+def self_test(token: str = "") -> dict[str, Any]:
+    if not os.getenv("SELFTEST_TOKEN") or token != os.getenv("SELFTEST_TOKEN"):
+        raise HTTPException(404, "Not found")
+
+    fixtures = {
+        "normal": _test_pdf(["Sligro Food Group B.V.\nFactuurnummer INV-2026-1001\nFactuurdatum 24-09-2026\nSubtotaal 200,00\nBTW 21% 42,00\nTotaal 242,00"]),
+        "mixed_vat": _test_pdf(["Food Supplier B.V.\nFactuurnummer MIX-2026-22\nBTW 9% 9,00\nBTW 21% 21,00\nTotaal 230,00"]),
+        "multipage": _test_pdf(["MultiPage B.V.\nFactuurnummer MP-2026-77\nPagina 1 van 2", "Pagina 2 van 2\nSubtotaal 750,00\nBTW 157,50\nTotaal 907,50"]),
+        "supplier_customer": _test_pdf(["LEVERANCIER\nAlpha Office B.V.\nFACTUUR AAN\nKwinest\nFactuurnummer ALPHA-88\nTotaal 121,00"]),
+        "credit": _test_pdf(["Beta Supplies B.V.\nCREDITNOTA\nCreditfactuur CR-2026-09\nTotaal credit 121,00"]),
+        "dutch_money": _test_pdf(["Gamma Services B.V.\nFactuurnummer NL-124995\nSubtotaal 1.033,02\nBTW 216,93\nTotaal te betalen 1.249,95"]),
+        "missing": _test_pdf(["Onbekende Dienstverlener\nFactuur\nOmschrijving Advieswerkzaamheden\nTotaal 99,00"]),
+        "scan": _test_scan_pdf("Scan Supplier B.V.\nKvK 99887766\nFACTUUR\nFactuurnummer SCAN-2026-15\nFactuurdatum 23-09-2026\nSubtotaal 300,00\nBTW 21% 63,00\nTotaal 363,00"),
+    }
+
+    results: dict[str, Any] = {}
+    for name, blob in fixtures.items():
+        result = extract_pdf(blob)
+        text = result["text"]
+        if name == "normal":
+            ok = "INV-2026-1001" in text and "242,00" in text
+        elif name == "mixed_vat":
+            ok = "9%" in text and "21%" in text and "230,00" in text
+        elif name == "multipage":
+            ok = result["pageCount"] == 2 and "907,50" in text
+        elif name == "supplier_customer":
+            ok = "Alpha Office" in text and "Kwinest" in text
+        elif name == "credit":
+            ok = result["documentTypeHint"] == "credit_invoice" and "CR-2026-09" in text
+        elif name == "dutch_money":
+            ok = "1.249,95" in text
+        elif name == "missing":
+            ok = "99,00" in text and "KvK" not in text
+        else:
+            compact = re.sub(r"[^A-Z0-9]", "", text.upper())
+            ok = result["ocrUsed"] and "SCAN" in compact and "363" in compact
+        results[name] = {
+            "ok": bool(ok),
+            "pageCount": result.get("pageCount"),
+            "ocrUsed": result.get("ocrUsed"),
+            "ocrPages": result.get("ocrPages"),
+            "documentTypeHint": result.get("documentTypeHint"),
+            "textPreview": text[:240],
+        }
+    return {"ok": all(v["ok"] for v in results.values()), "cases": results}
