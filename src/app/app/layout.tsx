@@ -1,0 +1,2 @@
+import { requireSession } from "@/lib/auth";import { query } from "@/lib/db";import { AppShell } from "@/components/AppShell";
+export default async function ProtectedLayout({children}:{children:React.ReactNode}){const session=await requireSession();const result=await query<{name:string}>(`select name from organisations where id=$1`,[session.organisationId]);return <AppShell session={session} orgName={result.rows[0]?.name||"Organisatie"}>{children}</AppShell>;}
