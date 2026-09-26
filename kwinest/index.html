@@ -1312,6 +1312,20 @@ html,body,#authRoot,.marketing,.main,.content{background:#F8FAFC!important;color
   .bookuna-reveal{opacity:1!important}
 }
 
+
+/* Boekuna tiny-text cleanup v4 */
+@media (min-width:901px){
+  /* Older preview/marketing components still used on some routes */
+  .marketing :where(.feature-chip,.marketing-proof,.promo-bar-inner,.promo-bar button,.root-drop-menu a,.ns-proof,.ns-checks,.ns-shortcut,.ns-feature-copy a,.ns-solution a,.ns-trust-card p,.fh-trust-card a,.fh-link a,.kz-benefit a,.kz-support-card a,.kz-doc-title,.kz-alert strong){font-size:13px!important}
+  .marketing :where(.root-drop-menu span,.fh-kicker,.fh-stat span,.fh-number em,.fh-link small,.ns-heading small,.ns-audience-card small,.kz-doc-grid b,.kz-alert small,.kz-alert em){font-size:12px!important}
+  .marketing :where(.ns-solution p,.ns-audience-card p){font-size:15px!important;line-height:1.65!important}
+
+  /* Product previews: intentionally compact, but no longer unreadably tiny */
+  .marketing :where(.product-mini-item,.product-mini-new,.product-mini-hero small,.product-mini-hero p,.product-mini-card span,.fh-ui-nav span,.fh-ui-main-head i,.fh-ui-banner small,.fh-ui-card small,.ns-laptop-nav span,.ns-head i,.ns-banner small,.ns-kpi span,.ns-phone-top,.ns-phone-card small,.ns-phone-tabs div,.ns-doc-summary div,.ns-attn-row small,.ns-attn-row em,.kz-doc-grid div){font-size:10px!important}
+  .marketing :where(.product-mini-card b,.fh-ui-banner p,.fh-ui-card b,.ns-banner p,.ns-kpi b,.ns-attn-row strong){font-size:12px!important}
+  .marketing .ns-laptop-nav b{font-size:13px!important}
+}
+
 </style>
 </head>
 <body>
