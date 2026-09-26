@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#10251f" />
+<meta name="theme-color" content="#2E6F40" />
 <title>Kwinest — slim boekhouden voor ondernemers</title>
 <meta name="description" content="Kwinest helpt ondernemers met facturen, bonnen, kosten, btw, bankregels en rapportages in één rustige boekhoudomgeving." />
 <style>
@@ -126,6 +126,72 @@
 .back-to-site{border:0;background:transparent;padding:0 0 18px;color:#4e665d;font-weight:800;font-size:11px}
 @media(max-width:900px){.marketing-links{display:none}.marketing-hero{grid-template-columns:1fr;padding-top:58px}.product-window{transform:none;max-width:620px}.feature-grid{grid-template-columns:repeat(2,1fr)}.marketing-band-inner{grid-template-columns:1fr;gap:32px}.marketing-cta-box{align-items:flex-start;flex-direction:column}}
 @media(max-width:620px){.marketing-nav-inner{height:66px;padding:0 15px}.marketing-actions .mk-btn:first-child{display:none}.marketing-hero{padding:50px 15px 54px;gap:38px}.marketing-hero h1{font-size:44px}.marketing-hero p{font-size:15px}.product-window-body{grid-template-columns:80px 1fr}.product-mini-nav{padding:14px 6px}.product-mini-cards{grid-template-columns:1fr}.product-mini-card:nth-child(n+3){display:none}.marketing-section{padding:58px 15px}.feature-grid{grid-template-columns:1fr}.marketing-band-inner{padding:58px 15px}.marketing-cta{padding:54px 15px 64px}.marketing-cta-box{padding:30px 24px}.marketing-cta-box h2{font-size:29px}.marketing-footer-inner{padding:24px 15px 34px;align-items:flex-start;flex-direction:column}}
+
+/* Kwinest Winter Berry palette */
+:root{
+  --paper:#FFFFFF;
+  --card:#FFFFFF;
+  --nav:#2E6F40;
+  --nav2:#2E6F40;
+  --accent:#8E0A1E;
+  --accent-ink:#FFFFFF;
+  --line:rgba(46,111,64,.16);
+  --shadow:0 12px 38px rgba(46,111,64,.08);
+}
+html,body,.marketing{background:#FFFFFF}
+body{color:#14201d}
+.sidebar{background:linear-gradient(180deg,#2E6F40,#2E6F40 76%,#245A34)}
+.nav-item.active{background:rgba(255,255,255,.14)}
+.nav-item.active .icon-wrap,.demo-pill strong{color:#FFFFFF}
+.demo-pill{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.10);color:#FFFFFF}
+.topbar{background:rgba(255,255,255,.92)}
+.btn.primary,.mk-btn.primary{background:#2E6F40;color:#FFFFFF;border-color:#2E6F40}
+.btn.primary:hover,.mk-btn.primary:hover{background:#245A34;border-color:#245A34}
+.btn.accent,.mk-btn.accent{background:#8E0A1E;color:#FFFFFF;border-color:#8E0A1E}
+.hero-strip,.marketing-band,.value-card.dark,.promo-card-inner{background:linear-gradient(135deg,#2E6F40,#245A34)}
+.hero-strip:after{background:rgba(173,216,230,.18)}
+.brandmark{background:#8E0A1E;color:#FFFFFF}
+.marketing-logo .brandmark{background:#8E0A1E;color:#FFFFFF}
+.marketing-nav{background:rgba(255,255,255,.94);border-bottom-color:rgba(46,111,64,.16)}
+.marketing-link.active{color:#8E0A1E}
+.marketing-eyebrow{border-color:rgba(46,111,64,.18);background:#FFFFFF;color:#2E6F40}
+.marketing-eyebrow:before{background:#8E0A1E}
+.marketing-hero:before{background:radial-gradient(circle,rgba(173,216,230,.42),rgba(173,216,230,0) 68%)}
+.marketing-proof span:before{background:#ADD8E6;color:#2E6F40}
+.product-window{border-color:rgba(46,111,64,.18);box-shadow:0 28px 80px rgba(46,111,64,.13)}
+.product-mini-nav{background:#2E6F40}
+.product-mini-item.active{background:rgba(255,255,255,.16)}
+.product-mini-hero{background:#2E6F40}
+.product-mini-main{background:#FFFFFF}
+.product-mini-card,.trust-card,.feature-card,.audience-card,.value-card,.faq-item,.price-card,.deep-panel{border-color:rgba(46,111,64,.16)}
+.feature-icon{background:rgba(173,216,230,.42);color:#2E6F40}
+.audience-card:after{background:rgba(173,216,230,.46)}
+.deep-panel.dark{background:#2E6F40;border-color:#2E6F40}
+.deep-panel.dark .deep-item{border-color:rgba(255,255,255,.18)}
+.promo-bar{background:#8E0A1E;color:#FFFFFF;border-bottom-color:rgba(255,255,255,.14)}
+.promo-bar button{color:#FFFFFF}
+.hero-promo{background:#2E6F40;color:#FFFFFF}
+.hero-promo b{background:#8E0A1E;color:#FFFFFF}
+.price-pill{background:#8E0A1E;color:#FFFFFF}
+.price-card.featured{border-color:#2E6F40;box-shadow:0 20px 55px rgba(46,111,64,.13)}
+.pricing-wrap{background:rgba(173,216,230,.18);border-color:rgba(46,111,64,.14)}
+.promo-note{border-color:rgba(142,10,30,.18);background:rgba(173,216,230,.22);color:#2E5B3A}
+.usage-rule{background:rgba(173,216,230,.18);border-color:rgba(46,111,64,.15)}
+.marketing-cta-box{background:linear-gradient(135deg,#ADD8E6,#FFFFFF);border:1px solid rgba(46,111,64,.14)}
+.marketing-cta-box p{color:#395c49}
+.compare-icon.good{background:#ADD8E6;color:#2E6F40}
+.compare-icon.bad{background:rgba(142,10,30,.10);color:#8E0A1E}
+.auth-root{background:linear-gradient(135deg,#2E6F40,#245A34)}
+.auth-side{background:linear-gradient(155deg,#2E6F40,#245A34)}
+.auth-check{background:#ADD8E6;color:#2E6F40}
+.auth-field input:focus,.field input:focus,.field select:focus,.field textarea:focus{border-color:#2E6F40;box-shadow:0 0 0 3px rgba(46,111,64,.10)}
+.filter-btn.active{background:#2E6F40;border-color:#2E6F40}
+.progress span,.bar.sales,.forecast-track span{background:#2E6F40}
+.badge.good{background:rgba(46,111,64,.10);color:#2E6F40}
+.badge.info{background:rgba(173,216,230,.38);color:#23566a}
+.badge.bad{background:rgba(142,10,30,.10);color:#8E0A1E}
+.notice.info{background:rgba(173,216,230,.20);border-color:rgba(173,216,230,.55)}
+.link-btn{color:#2E6F40}
 </style>
 </head>
 <body>
