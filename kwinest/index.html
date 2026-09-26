@@ -81,7 +81,7 @@
 </main>
 </div>
 <div id="modalRoot"></div><div class="toast-wrap" id="toastRoot"></div>
-<input class="hidden" type="file" id="invoicePdfFile" accept="application/pdf,.pdf" />
+<input class="hidden" type="file" id="invoicePdfFile" accept="application/pdf,.pdf,image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" />
 <script>
 const USERS_KEY='boekhouden-local-users-v1';
 const SESSION_KEY='boekhouden-local-session-v1';
@@ -365,7 +365,7 @@ function saveHour(){const f=document.getElementById('hourForm');if(!f.reportVali
 function newMileage(){modal('Rit registreren',`<form id="mileForm" class="form-grid"><div class="field"><label>Datum</label><input type="date" name="date" value="${today()}" required></div><div class="field"><label>Kilometers</label><input type="number" step="0.1" min="0" name="km" required></div><div class="field"><label>Van</label><input name="from" required></div><div class="field"><label>Naar</label><input name="to" required></div><div class="field full"><label>Zakelijk doel</label><input name="purpose" required></div></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="saveMileage()">Opslaan</button>`)}
 function saveMileage(){const f=document.getElementById('mileForm');if(!f.reportValidity())return;const d=new FormData(f);state.mileage.unshift({id:uid('m'),date:d.get('date'),km:Number(d.get('km')),from:d.get('from'),to:d.get('to'),purpose:d.get('purpose')});save();closeModal();render();toast('Rit geregistreerd')}
 function showLegal(){modal('Fiscale spelregels in deze MVP',`<div class="legal-list"><div class="legal-item"><strong>Facturen</strong><p>De app ondersteunt volledige naam en adresgegevens, btw-id, KVK-nummer, unieke opeenvolgende factuurnummers, factuur- en leverdatum, omschrijving, bedragen en btw. Bij buitenlandse transacties, verlegging en bijzondere regelingen zijn extra regels mogelijk.</p></div><div class="legal-item"><strong>Bewaarplicht</strong><p>Basisgegevens van de administratie moeten in beginsel 7 jaar bewaard blijven. Voor bepaalde gegevens over onroerende zaken en het éénloketsysteem geldt 10 jaar.</p></div><div class="legal-item"><strong>Btw</strong><p>De MVP ondersteunt 21%, 9% en 0% en kan een indicatief saldo berekenen. Vrijstellingen en bijzondere regelingen vragen altijd om de juiste fiscale behandeling.</p></div><div class="legal-item"><strong>KOR</strong><p>De KOR kan als instelling worden gemarkeerd. Gebruik dit alleen als de onderneming daadwerkelijk deelneemt; dan gelden andere btw-regels.</p></div></div>`)}
-function showSecurity(){modal('Privacy & productie',`<div class="legal-list"><div class="legal-item"><strong>Cloudaccounts</strong><p>Actief via Supabase Auth. Wachtwoorden worden niet door deze app zelf opgeslagen; sessies lopen via Supabase.</p></div><div class="legal-item"><strong>Databasebeveiliging</strong><p>Bedrijfsprofiel, administratie en documentmetadata hebben Row Level Security: een ingelogde gebruiker krijgt alleen zijn eigen data.</p></div><div class="legal-item"><strong>Privé-documentopslag</strong><p>PDF’s, bonnen en uploads staan in een niet-openbare bucket en zijn gekoppeld aan de eigen gebruikers-ID.</p></div><div class="legal-item"><strong>Herstel & verwijdering</strong><p>Back-upexport, wachtwoordherstel en definitieve accountverwijdering zijn aanwezig. Accountverwijdering wist ook privé-documenten.</p></div><div class="legal-item"><strong>Nog extern te activeren</strong><p>Transactionele e-mail, AI-factuurcontrole, PSD2-bankkoppeling en Peppol vereisen nog hun eigen providerconfiguratie voordat deze onderdelen als productie-klaar gelden.</p></div></div>`)}
+function showSecurity(){modal('Privacy & productie',`<div class="legal-list"><div class="legal-item"><strong>Cloudaccounts</strong><p>Actief via Supabase Auth. Wachtwoorden worden niet door deze app zelf opgeslagen; sessies lopen via Supabase.</p></div><div class="legal-item"><strong>Databasebeveiliging</strong><p>Bedrijfsprofiel, administratie en documentmetadata hebben Row Level Security: een ingelogde gebruiker krijgt alleen zijn eigen data.</p></div><div class="legal-item"><strong>Privé-documentopslag</strong><p>PDF’s, bonnen en uploads staan in een niet-openbare bucket en zijn gekoppeld aan de eigen gebruikers-ID.</p></div><div class="legal-item"><strong>Herstel & verwijdering</strong><p>Back-upexport, wachtwoordherstel en definitieve accountverwijdering zijn aanwezig. Accountverwijdering wist ook privé-documenten.</p></div><div class="legal-item"><strong>Nog extern te activeren</strong><p>Gratis factuurherkenning (PDF-tekst + Nederlandse OCR + boekhoudcontroles) werkt zonder provider. Alleen optionele extra AI-controle, transactionele e-mail, PSD2-bankkoppeling en Peppol vragen later een externe provider.</p></div></div>`)}
 function copyVat(q){const invs=state.invoices.filter(i=>i.status!=='draft'&&inQuarter(i.issueDate,q)),exps=state.expenses.filter(e=>inQuarter(e.date,q)),out=invs.reduce((s,i)=>s+invoiceVat(i),0),input=exps.reduce((s,e)=>s+expenseVat(e),0);navigator.clipboard.writeText(`Btw-overzicht Q${q} 2026\nVerschuldigde btw: ${money(out)}\nVoorbelasting: ${money(input)}\nSaldo: ${money(out-input)}\nLet op: indicatief overzicht; niet ingediend.`);toast('Btw-overzicht gekopieerd')}
 let pendingUploadKind='auto',pendingPdfImport=null,pdfLibPromise=null;
 function triggerInvoiceUpload(kind='auto'){pendingUploadKind=kind;const el=document.getElementById('invoicePdfFile');el.value='';el.click()}
@@ -446,6 +446,15 @@ async function ocrPdfPages(structure,onProgress){
   const out=[];
   for(let k=0;k<unique.length;k++){const p=unique[k];onProgress?.(`Scanpagina ${p} van ${structure.numPages} wordt gelezen…`);const pg=await structure.pdf.getPage(p),vp=pg.getViewport({scale:2.35}),canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});canvas.width=Math.ceil(vp.width);canvas.height=Math.ceil(vp.height);await pg.render({canvasContext:ctx,viewport:vp}).promise;const res=await worker.recognize(canvas);out.push(normalizeInvoiceText(res.data?.text||''));canvas.width=1;canvas.height=1}
   return out.join('\n\n')
+ }finally{await worker.terminate()}
+}
+async function ocrImageFile(file,onProgress){
+ const T=await loadOcrLib(),worker=await T.createWorker(['nld','eng'],1,{logger:m=>{if(m.status==='recognizing text'&&onProgress)onProgress(`OCR: ${Math.round((m.progress||0)*100)}%`)}});
+ try{
+  if(worker.setParameters)await worker.setParameters({preserve_interword_spaces:'1'});
+  onProgress?.('Foto wordt lokaal gelezen…');
+  const res=await worker.recognize(file);
+  return normalizeInvoiceText(res.data?.text||'')
  }finally{await worker.terminate()}
 }
 function parseMoneyValue(v){const n=parseSignedMoneyValue(v);return n==null?null:Math.abs(n)}
@@ -583,6 +592,46 @@ function parseInvoicePdf(text,fileName,forced='auto'){
  const parsed={type,fileName,...ids,invoiceNumber:number,issueDate:issueDate||'',dueDate:dueDate||'',net:tot.net??'',vatAmount:tot.vat??'',gross:tot.gross??'',vatRate:rate??'',mixedRates:uniqueRates.length>1&&new Set(uniqueRates).size>1,paymentReference,description:lineItems[0]?.desc||`Geïmporteerd uit ${fileName}`,category:'Inkoop',status:paid?'paid':'sent',text:normalized,sourceQuality:'pdf-text',selfBilling,adjustments:tot.adjustments||[],payout:tot.payout??'',adjustmentParty,lineItems,fieldConfidence:{party:contact.partyConfidence||20,invoiceNumber:number?90:20,issueDate:issueDate?85:20,net:tot.net!=null?92:20,vatAmount:tot.vat!=null?92:20,gross:tot.gross!=null?95:20}};parsed.confidenceScore=scoreParsedInvoice(parsed);return parsed
 }
 function mergeParsed(primary,secondary){if(!secondary)return primary;const out={...primary};for(const k of ['party','email','vatId','kvk','phone','address','postal','city','iban','invoiceNumber','issueDate','dueDate','net','vatAmount','gross','vatRate','paymentReference']){const p=primary?.[k],s=secondary?.[k];if((p===''||p==null||primary.fieldConfidence?.[k]<75)&&s!==''&&s!=null)out[k]=s}out.text=[primary?.text,secondary?.text].filter(Boolean).join('\n\n--- OCR ---\n');out.sourceQuality=primary?.sourceQuality==='embedded-xml'?'embedded-xml':secondary?.sourceQuality==='ocr'?'pdf-text+ocr':primary?.sourceQuality||secondary?.sourceQuality;out.mixedRates=primary?.mixedRates||secondary?.mixedRates;out.fieldConfidence={...(secondary?.fieldConfidence||{}),...(primary?.fieldConfidence||{})};out.adjustments=(primary?.adjustments?.length?primary.adjustments:secondary?.adjustments)||[];out.payout=primary?.payout!==''&&primary?.payout!=null?primary.payout:secondary?.payout??'';out.selfBilling=primary?.selfBilling||secondary?.selfBilling;out.status=primary?.status==='paid'||secondary?.status==='paid'?'paid':(primary?.status||secondary?.status||'sent');out.lineItems=primary?.lineItems?.length?primary.lineItems:(secondary?.lineItems||[]);out.adjustmentParty=primary?.adjustmentParty||secondary?.adjustmentParty||'Factoringkosten';out.confidenceScore=Math.max(scoreParsedInvoice(out),primary?.confidenceScore||0,secondary?.confidenceScore||0);return out}
+function nearlyEqualAmount(a,b){
+ if(a===''||a==null||b===''||b==null)return false;
+ const x=Number(a),y=Number(b);if(!Number.isFinite(x)||!Number.isFinite(y))return false;
+ return Math.abs(x-y)<=Math.max(.08,Math.max(Math.abs(x),Math.abs(y))*.003)
+}
+function freeInvoiceConsensus(pdfParsed,ocrParsed){
+ if(!ocrParsed){const one=applyRecognitionQuality({...pdfParsed,sourceQuality:pdfParsed?.sourceQuality||'pdf-text'});one.freeRecognition=true;return one}
+ if(!pdfParsed){const one=applyRecognitionQuality({...ocrParsed,sourceQuality:'image-ocr'});one.freeRecognition=true;return one}
+ const p=applyRecognitionQuality({...pdfParsed}),o=applyRecognitionQuality({...ocrParsed});
+ const pBad=Number(p.recognitionBad||0)*3+Number(p.recognitionWarn||0),oBad=Number(o.recognitionBad||0)*3+Number(o.recognitionWarn||0);
+ let out=mergeParsed(p,o),disagreements=[];
+ const amountFields=['net','vatAmount','gross'];
+ const allAmountsAgree=amountFields.every(k=>(p[k]===''||p[k]==null||o[k]===''||o[k]==null)||nearlyEqualAmount(p[k],o[k]));
+ if(!allAmountsAgree){
+  const preferred=oBad<pBad?o:p;
+  for(const k of amountFields)if(preferred[k]!==''&&preferred[k]!=null)out[k]=preferred[k];
+  if(preferred.vatRate!==''&&preferred.vatRate!=null)out.vatRate=preferred.vatRate;
+  disagreements.push('PDF-tekst en OCR lazen verschillende bedragen; de intern meest consistente set is gekozen.');
+ }
+ for(const k of ['invoiceNumber','issueDate','dueDate']){
+  if(p[k]&&o[k]&&String(p[k]).toLowerCase()!==String(o[k]).toLowerCase()){
+   const pc=Number(p.fieldConfidence?.[k]||0),oc=Number(o.fieldConfidence?.[k]||0);
+   if(oc>pc+5)out[k]=o[k];
+   disagreements.push(`${k==='invoiceNumber'?'Factuurnummer':k==='issueDate'?'Factuurdatum':'Vervaldatum'} verschilt tussen PDF-tekst en OCR.`);
+  }
+ }
+ if(p.party&&o.party&&p.party.toLowerCase()!==o.party.toLowerCase()){
+  if(Number(o.fieldConfidence?.party||0)>Number(p.fieldConfidence?.party||0)+8)out.party=o.party;
+  disagreements.push('Bedrijfsnaam verschilt tussen PDF-tekst en OCR.');
+ }
+ out.sourceQuality='free-smart-scan';out.freeRecognition=true;out.localDisagreements=disagreements;
+ out=applyRecognitionQuality(out);
+ if(disagreements.length){out.recognitionWarn=Number(out.recognitionWarn||0)+1;out.needsManualReview=true;out.confidenceScore=Math.min(Number(out.confidenceScore||0),82)}
+ return out
+}
+let invoiceAiConfiguredCache=null;
+async function invoiceAiConfigured(){
+ if(invoiceAiConfiguredCache!==null)return invoiceAiConfiguredCache;
+ try{const r=await fetch(EDGE_BASE+'/analyze-invoice',{method:'GET',cache:'no-store'}),j=await r.json();invoiceAiConfiguredCache=!!(r.ok&&j.configured);return invoiceAiConfiguredCache}catch(e){invoiceAiConfiguredCache=false;return false}
+}
 async function fileToBase64(file){const buf=new Uint8Array(await file.arrayBuffer());let bin='';const chunk=0x8000;for(let i=0;i<buf.length;i+=chunk)bin+=String.fromCharCode(...buf.subarray(i,i+chunk));return btoa(bin)}
 function compactLocalGuess(d){return {type:d?.type||'',party:d?.party||'',invoiceNumber:d?.invoiceNumber||'',issueDate:d?.issueDate||'',dueDate:d?.dueDate||'',net:d?.net??'',vatAmount:d?.vatAmount??'',gross:d?.gross??'',vatRate:d?.vatRate??'',selfBilling:!!d?.selfBilling,payout:d?.payout??'',adjustments:d?.adjustments||[],lineItems:d?.lineItems||[]}}
 function mergeAIParsed(local,ai,forced='auto'){
@@ -606,32 +655,62 @@ async function analyzeInvoiceWithAI(file,extractedText,localGuess){
 }
 function setImportProgress(title,msg,sub=''){modal(title,`<div class="empty"><strong>${esc(msg)}</strong>${esc(sub)}</div><div class="progress" style="margin:0 28px 28px"><span style="width:100%;animation:pulse 1.1s ease-in-out infinite"></span></div>`)}
 async function handleInvoicePdfFile(e){
- const file=e.target.files?.[0];if(!file)return;if(file.type&&file.type!=='application/pdf'&&!/\.pdf$/i.test(file.name))return toast('Kies een PDF-factuur');
- setImportProgress('PDF-factuur analyseren','Factuurstructuur wordt gelezen…','Eerst lezen we de PDF lokaal; daarna volgt een aparte AI-controle.');
- let structure=null,parsed=null,ocrText='';
+ const file=e.target.files?.[0];if(!file)return;
+ const isPdf=file.type==='application/pdf'||/\.pdf$/i.test(file.name),isImage=/^image\/(jpeg|png|webp)$/i.test(file.type)||/\.(jpe?g|png|webp)$/i.test(file.name);
+ if(!isPdf&&!isImage)return toast('Kies een PDF, JPG, PNG of WebP factuur');
+ setImportProgress('Factuur analyseren','Gratis slimme herkenning gestart…','PDF-tekst, Nederlandse OCR en boekhoudcontroles werken zonder betaalde AI-provider.');
+ let structure=null,parsed=null,ocrText='',textParsed=null,ocrParsed=null;
  try{
-  structure=await readPdfStructure(file);parsed=findEmbeddedInvoice(structure,pendingUploadKind);
-  if(!parsed){parsed=applyRecognitionQuality(parseInvoicePdf(structure.text,file.name,pendingUploadKind));const needsOcr=parsed.confidenceScore<88||parsed.recognitionBad>0||parsed.recognitionWarn>0||(parsed.fieldConfidence?.party||0)<80||!parsed.party||!parsed.invoiceNumber||parsed.gross===''||structure.text.length<220;
-   if(needsOcr){setImportProgress('PDF-factuur analyseren','Extra OCR-controle gestart…','Scans en moeilijke layouts worden eerst naar tekst omgezet.');try{ocrText=await ocrPdfPages(structure,msg=>{const strong=document.querySelector('#modalRoot .empty strong');if(strong)strong.textContent=msg});const op=applyRecognitionQuality(parseInvoicePdf(ocrText,file.name,pendingUploadKind));op.sourceQuality='ocr';parsed=applyRecognitionQuality(mergeParsed(parsed,op))}catch(ocrErr){console.warn('OCR failed',ocrErr)}}
+  if(isImage){
+   ocrText=await ocrImageFile(file,msg=>{const strong=document.querySelector('#modalRoot .empty strong');if(strong)strong.textContent=msg});
+   ocrParsed=applyRecognitionQuality(parseInvoicePdf(ocrText,file.name,pendingUploadKind));ocrParsed.sourceQuality='image-ocr';
+   parsed=freeInvoiceConsensus(null,ocrParsed);
+  }else{
+   structure=await readPdfStructure(file);parsed=findEmbeddedInvoice(structure,pendingUploadKind);
+   if(parsed){parsed=applyRecognitionQuality(parsed)}
+   else{
+    textParsed=applyRecognitionQuality(parseInvoicePdf(structure.text,file.name,pendingUploadKind));
+    const needsOcr=structure.numPages<=3||textParsed.confidenceScore<92||textParsed.recognitionBad>0||textParsed.recognitionWarn>0||(textParsed.fieldConfidence?.party||0)<88||!textParsed.party||!textParsed.invoiceNumber||textParsed.gross===''||structure.text.length<260;
+    if(needsOcr){
+     setImportProgress('Factuur analyseren','Gratis OCR-controle gestart…','We lezen de scan nogmaals in het Nederlands en Engels en vergelijken beide uitkomsten.');
+     try{
+      ocrText=await ocrPdfPages(structure,msg=>{const strong=document.querySelector('#modalRoot .empty strong');if(strong)strong.textContent=msg});
+      ocrParsed=applyRecognitionQuality(parseInvoicePdf(ocrText,file.name,pendingUploadKind));ocrParsed.sourceQuality='ocr';
+     }catch(ocrErr){console.warn('OCR failed',ocrErr)}
+    }
+    parsed=freeInvoiceConsensus(textParsed,ocrParsed);
+   }
   }
- }catch(err){console.warn(err);parsed={type:pendingUploadKind==='auto'?'purchase':pendingUploadKind,fileName:file.name,party:'',email:'',vatId:'',kvk:'',phone:'',address:'',postal:'',city:'',invoiceNumber:file.name.replace(/\.pdf$/i,''),issueDate:'',dueDate:'',net:'',vatAmount:'',gross:'',vatRate:'',description:`Geïmporteerd uit ${file.name}`,category:'Inkoop',status:'sent',text:'',sourceQuality:'manual',confidenceScore:0,fieldConfidence:{}}}
+ }catch(err){
+  console.warn(err);parsed={type:pendingUploadKind==='auto'?'purchase':pendingUploadKind,fileName:file.name,party:'',email:'',vatId:'',kvk:'',phone:'',address:'',postal:'',city:'',invoiceNumber:file.name.replace(/\.(pdf|jpe?g|png|webp)$/i,''),issueDate:'',dueDate:'',net:'',vatAmount:'',gross:'',vatRate:'',description:`Geïmporteerd uit ${file.name}`,category:'Inkoop',status:'sent',text:'',sourceQuality:'manual',confidenceScore:0,fieldConfidence:{},freeRecognition:true}
+ }
  try{
-  setImportProgress('AI-controle van factuur','AI leest de volledige factuur opnieuw…','We controleren klant/leverancier, factuurnummer, bedragen, btw, factuurregels en eventuele factoring/verrekening.');
-  const extracted=[structure?.text||'',ocrText||'',parsed?.text||''].filter(Boolean).join('\n\n---\n\n');const ai=await analyzeInvoiceWithAI(file,extracted,parsed);parsed=applyRecognitionQuality(mergeAIParsed(parsed,ai,pendingUploadKind));if(shouldRunSecondInvoicePass(parsed)){setImportProgress('Tweede AI-controle','Onzekere velden worden opnieuw gecontroleerd…','Alleen de velden met een conflict worden opnieuw beoordeeld aan de hand van de originele factuur.');const verifyBody={forcedType:pendingUploadKind||'auto',fileName:file.name,company:state.company||{},extractedText:extracted.slice(0,30000),localGuess:compactLocalGuess(parsed),pdfBase64:file.size<=2600000?await fileToBase64(file):'',testMode:TEST_MODE_NO_AUTH,reviewMode:'verify',issues:(parsed.recognitionChecks||[]).filter(x=>x.level!=='good')};const verifyRes=await fetch(EDGE_BASE+'/analyze-invoice',{method:'POST',headers:await apiAuthHeaders({'content-type':'application/json'}),body:JSON.stringify(verifyBody)});const verifyJson=await verifyRes.json().catch(()=>({}));if(verifyRes.ok&&verifyJson.ok){const a=verifyJson.data||{};const verified={...a,sourceQuality:verifyBody.pdfBase64?'ai-pdf':'ai-text',aiModel:verifyJson.model||'',confidenceScore:Number(a.confidence||0),fieldConfidence:a.fieldConfidence||{},warnings:a.warnings||[]};parsed=applyRecognitionQuality(mergeAIParsed(parsed,verified,pendingUploadKind));parsed.secondAIPass=true}}
- }catch(aiErr){console.warn('AI invoice review failed',aiErr);parsed.aiError=aiErr?.message||'AI-controle niet beschikbaar'}
+  if(await invoiceAiConfigured()){
+   setImportProgress('Extra AI-controle','De gratis scan is klaar; AI controleert alleen de twijfelpunten…','Deze stap wordt alleen gebruikt als later een AI-provider is gekoppeld.');
+   const extracted=[structure?.text||'',ocrText||'',parsed?.text||''].filter(Boolean).join('\n\n---\n\n');
+   const ai=await analyzeInvoiceWithAI(file,extracted,parsed);parsed=applyRecognitionQuality(mergeAIParsed(parsed,ai,pendingUploadKind));
+   if(shouldRunSecondInvoicePass(parsed)){
+    const verifyBody={forcedType:pendingUploadKind||'auto',fileName:file.name,company:state.company||{},extractedText:extracted.slice(0,30000),localGuess:compactLocalGuess(parsed),pdfBase64:isPdf&&file.size<=2600000?await fileToBase64(file):'',testMode:TEST_MODE_NO_AUTH,reviewMode:'verify',issues:(parsed.recognitionChecks||[]).filter(x=>x.level!=='good')};
+    const verifyRes=await fetch(EDGE_BASE+'/analyze-invoice',{method:'POST',headers:await apiAuthHeaders({'content-type':'application/json'}),body:JSON.stringify(verifyBody)}),verifyJson=await verifyRes.json().catch(()=>({}));
+    if(verifyRes.ok&&verifyJson.ok){const a=verifyJson.data||{},verified={...a,sourceQuality:verifyBody.pdfBase64?'ai-pdf':'ai-text',aiModel:verifyJson.model||'',confidenceScore:Number(a.confidence||0),fieldConfidence:a.fieldConfidence||{},warnings:a.warnings||[]};parsed=applyRecognitionQuality(mergeAIParsed(parsed,verified,pendingUploadKind));parsed.secondAIPass=true}
+   }
+  }else{parsed.freeRecognition=true}
+ }catch(aiErr){console.warn('Optional AI review failed',aiErr);parsed.optionalAiError=aiErr?.message||'Extra AI-controle niet beschikbaar';parsed.freeRecognition=true}
  parsed=applyRecognitionQuality(parsed);pendingPdfImport={file,parsed};showPdfImportReview(parsed)
 }
 function confidenceLabel(n){return n>=90?['Zeer hoge herkenning','good']:n>=75?['Goede herkenning','good']:n>=55?['Controle nodig','warn']:['Handmatige controle vereist','bad']}
 function showPdfImportReview(d){
- const [label,cls]=confidenceLabel(d.confidenceScore||0),source=d.sourceQuality==='ai-pdf'?'AI-controle van originele PDF + lokale parser':d.sourceQuality==='ai-text'?'AI-controle van PDF/OCR-tekst + lokale parser':d.sourceQuality==='embedded-xml'?'E-factuurgegevens (UBL/XML)':d.sourceQuality==='pdf-text+ocr'?'PDF-tekst + OCR':d.sourceQuality==='ocr'?'OCR':d.sourceQuality==='pdf-text'?'PDF-tekst':'Handmatige invoer';
+ const [label,cls]=confidenceLabel(d.confidenceScore||0),source=d.sourceQuality==='ai-pdf'?'AI-controle van originele PDF + gratis scan':d.sourceQuality==='ai-text'?'AI-controle van PDF/OCR-tekst + gratis scan':d.sourceQuality==='embedded-xml'?'E-factuurgegevens (UBL/XML)':d.sourceQuality==='free-smart-scan'?'Gratis slimme scan · PDF-tekst + Nederlandse OCR + rekencontrole':d.sourceQuality==='image-ocr'?'Gratis slimme scan · Nederlandse OCR op foto/scan':d.sourceQuality==='pdf-text+ocr'?'PDF-tekst + OCR':d.sourceQuality==='ocr'?'OCR':d.sourceQuality==='pdf-text'?'PDF-tekst':'Handmatige invoer';
  const warn=d.mixedRates?`<div class="notice warn" style="margin-bottom:12px"><strong>Meerdere btw-tarieven gevonden.</strong> Controleer het btw-bedrag en tarief extra goed.</div>`:'';
- const aiNotice=d.sourceQuality?.startsWith('ai-')?`<div class="notice info" style="margin-bottom:12px"><strong>AI-controle voltooid${d.aiModel?` · ${esc(d.aiModel)}`:''}.</strong>${d.reasoningSummary?`<br>${esc(d.reasoningSummary)}`:''}</div>`:d.aiError?`<div class="notice warn" style="margin-bottom:12px"><strong>AI-controle kon niet worden uitgevoerd.</strong><br>${esc(d.aiError)}. De lokale PDF/OCR-herkenning staat hieronder; controleer alles handmatig.</div>`:'';
+ const freeNotice=d.freeRecognition&&!d.sourceQuality?.startsWith('ai-')?`<div class="notice info" style="margin-bottom:12px"><strong>Gratis slimme factuurherkenning actief.</strong><br>Geen betaalde AI of API-key nodig. Kwinest vergelijkt PDF-tekst met Nederlandse OCR en controleert daarna bedragen, btw, factuurregels, self-billing en factoring.</div>`:'';
+ const localDiff=(d.localDisagreements||[]).length?`<div class="notice warn" style="margin-bottom:12px"><strong>PDF en OCR waren het niet overal eens.</strong><br>${d.localDisagreements.map(x=>`• ${esc(x)}`).join('<br>')}</div>`:'';
+ const aiNotice=d.sourceQuality?.startsWith('ai-')?`<div class="notice info" style="margin-bottom:12px"><strong>Extra AI-controle voltooid${d.aiModel?` · ${esc(d.aiModel)}`:''}.</strong>${d.reasoningSummary?`<br>${esc(d.reasoningSummary)}`:''}</div>`:'';
  const aiWarnings=(d.aiWarnings||[]).length?`<div class="notice warn" style="margin-bottom:12px"><strong>AI-controlepunten</strong><br>${d.aiWarnings.map(x=>`• ${esc(x)}`).join('<br>')}</div>`:'';
  const self=d.selfBilling?`<div class="notice info" style="margin-bottom:12px"><strong>Self-billing herkend.</strong> Op deze factuur staat dat hij door de afnemer is uitgereikt. Bij inkomsten gebruiken we daarom het <b>Aan:</b>-blok als klant en het oorspronkelijke factuurbedrag als omzet.</div>`:'';
  const adj=(d.adjustments||[]).reduce((s,a)=>s+Number(a.gross||0),0),factor=adj>0?`<div class="notice info" style="margin-bottom:12px"><strong>Factoring/inhouding apart herkend.</strong><br>Factuurbedrag: <b>${money(d.gross)}</b> · factoringkosten: <b>${money(adj)}</b>${d.payout!==''?` · netto uitbetaald: <b>${money(d.payout)}</b>`:''}. De netto uitbetaling wordt <b>niet</b> als omzet gebruikt.</div>`:'';
  const itemPreview=(d.lineItems||[]).length?`<div class="notice" style="margin-bottom:12px"><strong>Factuurregel${d.lineItems.length>1?'s':''} herkend:</strong><br>${d.lineItems.map(x=>`${esc(x.desc)} · ${num(x.qty)} × ${money(x.unit)} = ${money(x.total)}`).join('<br>')}</div>`:'';
  const checks=(d.recognitionChecks||[]),checkHtml=checks.length?`<div class="invoice-check" style="margin-bottom:12px"><div class="invoice-check-head"><strong>Automatische boekhoudcontrole</strong><span class="badge ${d.recognitionBad?'bad':d.recognitionWarn?'warn':'good'}">${d.recognitionBad?`${d.recognitionBad} fout${d.recognitionBad===1?'':'en'}`:d.recognitionWarn?`${d.recognitionWarn} controlepunt${d.recognitionWarn===1?'':'en'}`:'Alles sluit aan'}</span></div><div class="invoice-check-list">${checks.map(c=>`<div class="invoice-check-item"><span class="check-icon ${c.level==='good'?'check-ok':c.level==='warn'?'check-warn':'check-bad'}">${c.level==='good'?'✓':c.level==='warn'?'!':'×'}</span><div><strong>${esc(c.title)}</strong><div class="muted">${esc(c.detail||'')}</div></div></div>`).join('')}</div></div>`:'';
- modal('PDF-factuur controleren',`<div class="notice ${cls==='bad'?'warn':'info'}" style="margin-bottom:12px"><strong>${label} · ${Math.round(d.confidenceScore||0)}%</strong><br>Bron: ${esc(source)}. Controleer de gegevens vóór boeken.</div>${checkHtml}${aiNotice}${aiWarnings}${self}${factor}${itemPreview}${warn}<form id="pdfImportForm" class="form-grid">
+ modal('Factuur controleren',`<div class="notice ${cls==='bad'?'warn':'info'}" style="margin-bottom:12px"><strong>${label} · ${Math.round(d.confidenceScore||0)}%</strong><br>Bron: ${esc(source)}. Controleer de gegevens vóór boeken.</div>${checkHtml}${freeNotice}${localDiff}${aiNotice}${aiWarnings}${self}${factor}${itemPreview}${warn}<form id="pdfImportForm" class="form-grid">
  <div class="field"><label>Boekingstype</label><select name="type"><option value="sale" ${d.type==='sale'?'selected':''}>Inkomsten / verkoopfactuur</option><option value="purchase" ${d.type==='purchase'?'selected':''}>Kosten / inkoopfactuur</option></select></div><div class="field"><label>Relatie / bedrijfsnaam</label><input name="party" value="${esc(d.party)}" required></div>
  <div class="field"><label>E-mail relatie</label><input name="email" type="email" value="${esc(d.email)}"></div><div class="field"><label>Telefoon</label><input name="phone" value="${esc(d.phone)}"></div>
  <div class="field"><label>Btw-id relatie</label><input name="vatId" value="${esc(d.vatId)}"></div><div class="field"><label>KVK relatie</label><input name="kvk" value="${esc(d.kvk)}"></div>
