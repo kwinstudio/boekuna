@@ -94,10 +94,10 @@ function sharedFooter(){
     </div>
   </footer>`;
 }
-document.addEventListener('DOMContentLoaded',()=>{ensureBookunaFavicon();const h=document.getElementById('siteHeader');if(h)h.innerHTML=sharedHeader(document.body.dataset.page||'');const f=document.getElementById('siteFooter');if(f)f.innerHTML=sharedFooter()});
+document.addEventListener('DOMContentLoaded',()=>{ensureBookunaFavicon();const h=document.getElementById('siteHeader');if(h)h.innerHTML=sharedHeader(document.body.dataset.page||'');const f=document.getElementById('siteFooter');if(f)f.innerHTML=sharedFooter();initSharedInteractions()});
 document.addEventListener('click',e=>{const m=document.getElementById('mobileMenu');if(m&&m.classList.contains('open')&&!e.target.closest('.mobile-menu')&&!e.target.closest('.mobile-toggle'))m.classList.remove('open')});
 
-(function(){
+function initSharedInteractions(){
  const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
  const header=document.querySelector('.site-header');
  const btn=document.createElement('button');
@@ -114,4 +114,5 @@ document.addEventListener('click',e=>{const m=document.getElementById('mobileMen
    const a=e.target.closest('a');
    if(a){menu.classList.remove('open');const t=document.querySelector('.mobile-toggle');if(t)t.setAttribute('aria-expanded','false')}
  });
-})();
+})()
+};
