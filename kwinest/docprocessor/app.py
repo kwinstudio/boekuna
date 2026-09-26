@@ -23,7 +23,9 @@ try:
 except Exception:
     RapidOCR = None
 
-APP_ORIGIN = os.getenv("APP_ORIGIN", "https://kwinest-boekhouding.onrender.com")
+APP_ORIGIN = os.getenv("APP_ORIGIN", "https://boekuna-boekhouding.onrender.com").rstrip("/")
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://vuwfyhtejsxhdfyvkkeq.supabase.co").rstrip("/")
+SUPABASE_PUBLISHABLE_KEY = os.getenv("SUPABASE_PUBLISHABLE_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 MAX_BYTES = int(os.getenv("MAX_FILE_BYTES", str(15 * 1024 * 1024)))
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6-sol")
@@ -681,14 +683,42 @@ def overall_confidence(r:ExtractionResult)->float:
     base=sum(vals)/len(vals)
     return max(0,min(1,base-len(r.warnings)*.025))
 
+def require_authenticated_user(request: Request) -> dict:
+    auth_header = (request.headers.get("authorization") or "").strip()
+    if not auth_header.lower().startswith("bearer "):
+        raise HTTPException(401, "Authentication required")
+    if not SUPABASE_PUBLISHABLE_KEY:
+        raise HTTPException(503, "Authentication verifier is not configured")
+    try:
+        resp = requests.get(
+            f"{SUPABASE_URL}/auth/v1/user",
+            headers={
+                "Authorization": auth_header,
+                "apikey": SUPABASE_PUBLISHABLE_KEY,
+            },
+            timeout=10,
+        )
+    except requests.RequestException:
+        raise HTTPException(503, "Authentication service unavailable")
+    if resp.status_code != 200:
+        raise HTTPException(401, "Invalid or expired session")
+    try:
+        user = resp.json()
+    except Exception:
+        raise HTTPException(401, "Invalid session response")
+    if not user.get("id"):
+        raise HTTPException(401, "Invalid session")
+    return user
+
 @app.get("/health")
 def health():
-    return {"ok":True,"service":"kwinest-document-processor","aiConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"version":"2.0"}
+    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"authRequired":True,"version":"2.1"}
 
 @app.post("/analyze")
 async def analyze(request:Request,file:UploadFile=File(...),company_json:str=Form("{}"),existing_json:str=Form("[]"),ocr_text:str=Form("")):
-    origin=request.headers.get("origin")
+    origin=(request.headers.get("origin") or "").rstrip("/")
     if origin!=APP_ORIGIN: raise HTTPException(403,"Origin not allowed")
+    require_authenticated_user(request)
     if not allow_request(request): raise HTTPException(429,"Te veel documentverwerkingen. Probeer het over enkele minuten opnieuw.")
     raw=await file.read(MAX_BYTES+1)
     if len(raw)>MAX_BYTES:raise HTTPException(413,"Bestand is te groot. Maximum is 15 MB.")
