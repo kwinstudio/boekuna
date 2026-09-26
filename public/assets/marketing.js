@@ -83,7 +83,10 @@ function sharedFooter(){
         <h4>Resources</h4>
         <a href="/hoe-het-werkt/">Product tour</a>
         <a href="/faq/">FAQ</a>
-        <a href="/veiligheid/">Veiligheid & privacy</a>
+        <a href="/veiligheid/">Veiligheid & security</a>
+        <a href="/privacy/">Privacybeleid</a>
+        <a href="/voorwaarden/">Voorwaarden</a>
+        <a href="/contact/">Contact</a>
         <a href="/over/">Over Boekuna</a>
       </nav>
     </div>
