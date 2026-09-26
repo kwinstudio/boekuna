@@ -628,16 +628,15 @@ html,body,#authRoot,.marketing,.main,.content{background:#F8FAFC!important;color
 }
 
 /* Homepage layout pass: closer to Nostradamus' section rhythm */
-.kz-hero{max-width:1200px;margin:auto;padding:72px 22px 24px;text-align:left}
+.kz-hero{max-width:1200px;margin:auto;padding:58px 22px 18px;text-align:left}
 .kz-overline{font-size:12px;font-weight:850;color:#65737b;margin-bottom:12px}
 .kz-hero h1{font-size:clamp(52px,7vw,86px);line-height:.92;letter-spacing:-.075em;margin:0 0 20px;max-width:900px}
 .kz-hero h1 span{display:block;color:#00A8C6}
 .kz-hero-copy{max-width:760px;font-size:16px;line-height:1.72;color:#63727a;margin:0}
 .kz-hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
-.kz-tabs{max-width:1200px;margin:36px auto 14px;padding:0 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.kz-tabs{max-width:1200px;margin:20px auto 12px;padding:0 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .kz-tab{border:1px solid #D8E5E9;background:#fff;border-radius:12px;padding:13px 15px;font-size:11px;font-weight:850;text-align:center}
-.kz-tab:first-child{background:#202B33;color:#fff;border-color:#202B33}
-.kz-product-stage{max-width:1200px;margin:0 auto 58px;padding:0 22px}
+.kz-product-stage{max-width:1200px;margin:0 auto 44px;padding:0 22px}
 .kz-product-shell{height:min(57vw,650px);min-height:470px;border-radius:24px;background:linear-gradient(135deg,#EAF8FB,#F1F5FF);position:relative;overflow:hidden}
 .kz-browser{position:absolute;left:7%;right:17%;top:10%;bottom:12%;background:#fff;border:1px solid #D8E5E9;border-radius:18px;box-shadow:0 28px 70px rgba(27,63,75,.17);display:grid;grid-template-columns:138px 1fr;overflow:hidden}
 .kz-browser-nav{background:#202B33;color:#9eacb2;padding:21px 11px}.kz-browser-nav b{display:block;color:#fff;margin:0 9px 20px;font-size:12px}.kz-browser-nav span{display:block;padding:9px 8px;border-radius:8px;font-size:8px}.kz-browser-nav .active{background:#32414a;color:#fff}
@@ -844,6 +843,45 @@ html,body,#authRoot,.marketing,.main,.content{background:#F8FAFC!important;color
 }
 .marketing .marketing-footer{
   background:#20292E!important;
+}
+
+/* Final homepage UI bugfix */
+.kz-tab{
+  background:#FFFFFF!important;
+  color:#34434B!important;
+  border:1px solid #D8E5E9!important;
+  box-shadow:none!important;
+}
+.kz-tab.active{
+  background:#20292E!important;
+  color:#FFFFFF!important;
+  border-color:#20292E!important;
+  box-shadow:0 8px 20px rgba(32,41,46,.12)!important;
+}
+@media (hover:hover) and (pointer:fine){
+  .kz-tab:hover:not(.active){
+    background:#F1F8EE!important;
+    color:#20292E!important;
+    border-color:#D8E9D2!important;
+  }
+}
+.kz-product-shell{
+  border:1px solid #E1E8E9;
+}
+.kz-browser{
+  border-color:#D8E5E9!important;
+}
+.kz-browser-main{
+  background:#F8FAFA!important;
+}
+.kz-browser-banner,
+.kz-browser-card{
+  background:#FFFFFF!important;
+}
+@media(max-width:620px){
+  .kz-hero{padding:34px 15px 10px!important}
+  .kz-tabs{margin:14px auto 10px!important;padding:0 15px!important;gap:6px!important}
+  .kz-product-stage{margin-bottom:34px!important;padding:0 15px!important}
 }
 </style>
 </head>
