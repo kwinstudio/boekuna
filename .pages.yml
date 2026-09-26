@@ -1,0 +1,45 @@
+media:
+  input: assets/images
+  output: /assets/images
+
+content:
+  - name: site
+    label: Website teksten
+    type: file
+    path: data/site.json
+    format: json
+    fields:
+      - { name: brand, label: Merknaam, type: string }
+      - { name: heroEyebrow, label: Hero label, type: string }
+      - { name: heroTitle, label: Hero titel, type: string }
+      - { name: heroText, label: Hero tekst, type: text }
+      - { name: heroPrimaryCta, label: Primaire CTA, type: string }
+      - { name: heroSecondaryCta, label: Secundaire CTA, type: string }
+      - { name: trustLine, label: Vertrouwensregel, type: string }
+      - { name: featuredTitle, label: Uitgelichte DJ's titel, type: string }
+      - { name: featuredText, label: Uitgelichte DJ's tekst, type: text }
+      - { name: vibesTitle, label: Sfeer sectie titel, type: string }
+      - { name: vibesText, label: Sfeer sectie tekst, type: text }
+      - { name: howTitle, label: Hoe het werkt titel, type: string }
+      - { name: djCtaTitle, label: DJ CTA titel, type: string }
+      - { name: djCtaText, label: DJ CTA tekst, type: text }
+      - { name: footerText, label: Footer tekst, type: string }
+
+  - name: djs
+    label: DJ demo-profielen
+    type: file
+    path: data/djs.json
+    format: json
+    list: true
+    fields:
+      - { name: name, label: DJ naam, type: string }
+      - { name: city, label: Plaats, type: string }
+      - name: genres
+        label: Genres
+        type: string
+        list: true
+      - { name: price, label: Vanafprijs, type: number }
+      - { name: rating, label: Rating, type: number }
+      - { name: reviews, label: Aantal reviews, type: number }
+      - { name: badge, label: Badge, type: string }
+      - { name: image, label: Afbeelding URL, type: string }
