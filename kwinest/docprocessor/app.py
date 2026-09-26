@@ -435,6 +435,19 @@ def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tu
     conf=.95 if idx is not None and name else (.68 if name else .25)
     return data,conf
 
+def receipt_merchant_name(lines:list[str], company:dict)->str|None:
+    own_names=[norm_text(str(company.get(k) or "")).lower() for k in ("name","tradeName")]
+    skip=re.compile(r"^(?:bon|kassabon|receipt|factuur|invoice|datum|date|tijd|time|totaal|total|subtotaal|subtotal|btw|vat|pin|cash|contant|wisselgeld|change|bedankt|thank you|www\.|https?://)",re.I)
+    for line in lines[:18]:
+        cand=norm_text(line)
+        low=cand.lower()
+        if not (2<=len(cand)<=90):continue
+        if skip.search(cand) or "@" in cand or re.fullmatch(r"[\d\s€$£.,:+*/#-]+",cand):continue
+        if re.search(r"\b\d{4}\s?[A-Z]{2}\b|\b\d{2}[:.]\d{2}\b|\b(?:kvk|btw|vat|iban|tel|phone)\b",cand,re.I):continue
+        if any(o and o in low for o in own_names):continue
+        return cand
+    return None
+
 def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     text=doc.get("text") or ""; lines=[norm_text(x) for x in text.splitlines() if norm_text(x)]
     low=text.lower()
@@ -446,6 +459,9 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     else: dtype="purchase_invoice"
     if re.search(r"creditnota|credit note|creditfactuur|credit invoice",low): dtype="credit_invoice"
     if re.search(r"\bbon\b|receipt|kassabon",low) and not re.search(r"factuur|invoice",low): dtype="receipt"
+    if dtype=="receipt" and not supplier.get("name"):
+        merchant=receipt_merchant_name(lines,company)
+        if merchant:supplier["name"]=merchant;sconf=max(sconf,.72)
     # if role extraction guessed own party, try to avoid assigning it as counterparty
     if supplier_own and dtype=="purchase_invoice": supplier={k:None for k in supplier}
     if customer_own and dtype=="sales_invoice": customer={k:None for k in customer}
@@ -455,6 +471,12 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     if invno_raw:
         m=re.search(r"([A-Z0-9][A-Z0-9._\-/]{1,50})",invno_raw,re.I); invoice_no=m.group(1) if m else None
     inv_date,inv_date_conf=labeled_date(lines,["factuurdatum","invoice date","date of invoice","document date"])
+    if not inv_date and dtype=="receipt":
+        for line in lines[:30]:
+            d=norm_date(line)
+            if d:
+                inv_date,inv_date_conf=d,.76
+                break
     due_date,due_conf=labeled_date(lines,["vervaldatum","due date","betaal voor","pay before","payment due"])
     order_raw,_=line_after_label(lines,["bestelnummer","ordernummer","order number","purchase order","po number"]); order_no=order_raw[:60] if order_raw else None
     ref_raw,_=line_after_label(lines,["betalingskenmerk","payment reference","payment ref","kenmerk"]); payref=ref_raw[:80] if ref_raw else None
@@ -566,6 +588,7 @@ def validate_result(r:ExtractionResult,company:dict)->ExtractionResult:
     if own_matches(r.customer.model_dump(),company) and r.documentType=="sales_invoice":w.append("Klant lijkt het eigen bedrijf te zijn; controleer leverancier vs. klant.");r.confidence["customerName"]=min(r.confidence.get("customerName",.5),.4)
     if not r.invoice.invoiceNumber and r.documentType in {"purchase_invoice","sales_invoice","credit_invoice"}:w.append("Factuurnummer niet betrouwbaar gevonden.")
     if not r.supplier.name and r.documentType in {"purchase_invoice","credit_invoice"}:w.append("Leverancier niet betrouwbaar gevonden.")
+    if not r.supplier.name and r.documentType=="receipt":w.append("Winkel/leverancier op de bon niet betrouwbaar gevonden.")
     if a.total is None:w.append("Totaalbedrag niet betrouwbaar gevonden.")
     # VAT line consistency
     if a.vatLines:
