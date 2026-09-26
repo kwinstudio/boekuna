@@ -86,3 +86,44 @@ a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid rgb
  .page-hero p,.section-head p,.card p,.feature-row span,.trust span,.faq p{color:#43545C}
  .site-backtop{right:14px;bottom:14px}
 }
+
+/* Final color correction — closer to Nostradamus visual balance */
+:root{
+  --bg:#FFFFFF;
+  --surface:#FFFFFF;
+  --surface2:#F1F8EE;
+  --ink:#20292E;
+  --muted:#66747A;
+  --line:#E1E8E9;
+  --nav:#20292E;
+  --primary:#08A9C5;
+  --primary2:#078DA7;
+  --soft:#EAF7F9;
+  --mint:#F1F8EE;
+  --pink:#F4DCE8;
+  --lilac:#EAE5F5;
+  --peach:#F8E7DD;
+  --good:#43A36F;
+}
+body{background:#FFFFFF!important;color:#20292E!important}
+.site-header{background:rgba(255,255,255,.98)!important;border-color:#E1E8E9!important}
+.logo-mark{background:#08A9C5!important;color:#fff!important}
+.btn.primary,.tag{background:#08A9C5!important;border-color:#08A9C5!important;color:#fff!important}
+.btn.primary:hover{background:#078DA7!important;border-color:#078DA7!important}
+.nav-item:hover,.nav-link:hover,.dropdown-menu a:hover{background:#F1F8EE!important;color:#20292E!important}
+.eyebrow,.card a,.feature-row .n,.ns-feature-copy a,.ns-solution a{color:#078DA7!important}
+.eyebrow:before{background:#08A9C5!important}
+.card-icon{background:#EAF7F9!important;color:#078DA7!important}
+.interface-showcase,.ns-feature-visual{
+  background:linear-gradient(135deg,#F1F8EE 0%,#EAF7F9 100%)!important
+}
+.device-head em,.ns-head i{background:#08A9C5!important}
+.phone-card,.ns-phone-card{
+  background:#08A9C5!important
+}
+.ns-audience-card:nth-child(1){background:#F1F8EE!important}
+.ns-audience-card:nth-child(2){background:#EAE5F5!important}
+.ns-audience-card:nth-child(3){background:#F8E7DD!important}
+.price.popular{border-color:#08A9C5!important}
+.notice{background:#F1F8EE!important;border-color:#D8E9D2!important;color:#49624F!important}
+.footer{background:#20292E!important}
