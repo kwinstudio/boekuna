@@ -26,3 +26,5 @@ jobs:
         run: node tests/accounting-integrity.test.mjs
       - name: Production source safety
         run: node tests/source-safety.test.mjs
+      - name: Python syntax safety
+        run: python -m py_compile kwinest/docprocessor/app.py
