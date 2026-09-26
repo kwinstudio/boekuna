@@ -195,3 +195,26 @@ body{background:#FFFFFF!important;color:#20292E!important}
   .device-kpi span{font-size:8px!important}
   .device-kpi b{font-size:11px!important}
 }
+
+/* Boekuna shared transparent logo */
+.logo-icon{
+  display:block;
+  width:38px;
+  height:38px;
+  min-width:38px;
+  max-width:38px;
+  object-fit:contain;
+  object-position:center;
+  margin:0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+}
+.footer .logo-icon{
+  background:transparent;
+}
+@media(max-width:620px){
+  .logo-icon{width:34px;height:34px;min-width:34px;max-width:34px}
+}
