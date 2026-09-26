@@ -20,5 +20,9 @@ assert.ok(html.includes("function bankFingerprint(t)"),"Bank fingerprint dedupli
 assert.ok(html.includes("function txInvoiceEvidence(t,i)"),"Confidence-based invoice matching is required");
 assert.ok(html.includes("async function reserveFinalInvoiceNumber"),"Server-side invoice number reservation is required");
 assert.ok(html.includes("function saveCreditDraft"),"Partial credit flow is required");
+assert.ok(html.includes("function invoiceDiscountAmount(i)"),"Invoice discount calculation is required");
+assert.ok(html.includes('name="discountType"'),"Invoice discount controls are required");
+assert.ok(html.includes('minlength="12"'),"New/reset passwords must require at least 12 characters");
+assert.ok(html.includes("headers:await apiAuthHeaders(),body:fd"),"Document processor requests must carry the Supabase session");
 
 console.log("Boekuna source safety tests: PASS");
