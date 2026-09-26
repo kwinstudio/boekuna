@@ -127,3 +127,32 @@ body{background:#FFFFFF!important;color:#20292E!important}
 .price.popular{border-color:#08A9C5!important}
 .notice{background:#F1F8EE!important;border-color:#D8E9D2!important;color:#49624F!important}
 .footer{background:#20292E!important}
+
+/* Definitive desktop surface hierarchy */
+@media (min-width:901px){
+  body{background:#FFFFFF!important}
+  .page-hero,
+  .section{
+    background:#FFFFFF!important;
+  }
+  .section.alt{
+    background:#F7FAF8!important;
+    border-color:#E5ECE8!important;
+  }
+  .interface-showcase,
+  .editorial-media.light{
+    background:#F3F8F5!important;
+    border:1px solid #E2EAE6!important;
+  }
+  .card,
+  .trust,
+  .price,
+  .faq details{
+    background:#FFFFFF!important;
+    border-color:#E1E8E5!important;
+  }
+  .callout,
+  .footer{
+    background:#20292E!important;
+  }
+}
