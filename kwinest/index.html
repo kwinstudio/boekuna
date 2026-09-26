@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#356267" />
+<meta name="theme-color" content="#16352B" />
 <title>Kwinest — slim boekhouden voor ondernemers</title>
 <meta name="description" content="Kwinest helpt ondernemers met facturen, bonnen, kosten, btw, bankregels en rapportages in één rustige boekhoudomgeving." />
 <style>
@@ -255,6 +255,96 @@ html,body,#authRoot,.marketing,.main,.content{background:#effefb!important;color
 .badge.info{background:rgba(194,242,242,.45)!important;color:#41737c!important}
 .notice.info{background:rgba(194,242,242,.28)!important;border-color:rgba(65,115,124,.25)!important}
 .compare-icon.bad{background:rgba(65,115,124,.12)!important;color:#41737c!important}
+
+/* FINAL Kwinest Baobab-inspired palette */
+:root{
+  --ink:#18211D;
+  --muted:#6F746F;
+  --line:rgba(22,53,43,.14);
+  --paper:#F4F2F0;
+  --card:#FFFFFF;
+  --nav:#16352B;
+  --nav2:#214739;
+  --accent:#E6B75D;
+  --accent-ink:#16352B;
+  --good:#305947;
+  --warn:#B97A18;
+  --info:#305947;
+  --shadow:0 14px 40px rgba(22,53,43,.10);
+}
+
+/* Surfaces */
+html,body,#authRoot,.marketing,.main,.content{background:#F4F2F0!important;color:#18211D}
+.marketing section:not(.marketing-band):not(.promo-card):not(.marketing-cta){background:#F4F2F0}
+.marketing-nav,.topbar{background:rgba(244,242,240,.96)!important;border-color:rgba(22,53,43,.12)!important}
+.card,.mini-kpi,.product-window,.product-mini-card,.trust-card,.faq-item,.price-card,.hero-stat,.deep-panel,.auth-shell,.auth-form-wrap{background:#FFFFFF!important;border-color:rgba(22,53,43,.13)!important}
+
+/* Primary dark brand surfaces */
+.sidebar,.marketing-band,.value-card.dark,.hero-strip,.auth-side{background:#16352B!important;color:#FFFFFF!important}
+.promo-card-inner{background:linear-gradient(135deg,#16352B,#214739)!important;color:#FFFFFF!important}
+.product-mini-nav,.product-mini-hero{background:#16352B!important;color:#FFFFFF!important}
+.product-mini-item.active{background:#305947!important;color:#FFFFFF!important}
+.deep-panel.dark{background:#214739!important;border-color:#214739!important;color:#FFFFFF!important}
+
+/* Gold is reserved for action + promo */
+.brandmark,.marketing-logo .brandmark,.price-pill,.hero-promo b{background:#E6B75D!important;color:#16352B!important}
+.btn.primary,.mk-btn.primary{background:#E6B75D!important;border-color:#E6B75D!important;color:#16352B!important}
+.btn.primary:hover,.mk-btn.primary:hover{background:#D8A84D!important;border-color:#D8A84D!important;color:#16352B!important}
+.btn.accent,.mk-btn.accent{background:#FFFFFF!important;border-color:#FFFFFF!important;color:#16352B!important}
+.promo-bar{background:#16352B!important;color:#FFFFFF!important}
+.promo-bar button{color:#E6B75D!important}
+.hero-promo{background:#214739!important;color:#FFFFFF!important}
+
+/* Secondary brand green */
+.marketing-link.active,.link-btn{color:#16352B!important}
+.filter-btn.active{background:#214739!important;border-color:#214739!important;color:#FFFFFF!important}
+.progress span,.bar.sales,.forecast-track span{background:#305947!important}
+.price-card.featured{border:2px solid #214739!important;box-shadow:0 22px 60px rgba(22,53,43,.13)!important}
+.marketing-eyebrow{background:#FFFFFF!important;border-color:rgba(22,53,43,.14)!important;color:#305947!important}
+.marketing-eyebrow:before{background:#E6B75D!important}
+
+/* Warm supporting cards */
+.feature-grid .feature-card:nth-child(3n+1),
+.audience-grid .audience-card:nth-child(3n+1){background:#F9ECD4!important}
+.feature-grid .feature-card:nth-child(3n+2),
+.audience-grid .audience-card:nth-child(3n+2){background:#E2E3D8!important}
+.feature-grid .feature-card:nth-child(3n),
+.audience-grid .audience-card:nth-child(3n){background:#F4E2D5!important}
+.feature-icon{background:rgba(230,183,93,.28)!important;color:#16352B!important}
+.audience-card:after{background:rgba(230,183,93,.18)!important}
+
+/* Soft informational surfaces */
+.pricing-wrap{background:#F9ECD4!important;border-color:rgba(22,53,43,.10)!important}
+.promo-note,.usage-rule,.notice.info{background:#E2E3D8!important;border-color:rgba(22,53,43,.12)!important;color:#305947!important}
+.marketing-proof span:before,.compare-icon.good,.auth-check{background:#E6B75D!important;color:#16352B!important}
+.compare-icon.bad{background:#F4E2D5!important;color:#8A3F21!important}
+
+/* CTA and decorative areas */
+.marketing-cta-box{background:linear-gradient(135deg,#F9ECD4,#E2E3D8)!important;border:1px solid rgba(22,53,43,.12)!important}
+.marketing-cta-box p{color:#4F5E56!important}
+.marketing-hero:before{background:radial-gradient(circle,rgba(230,183,93,.20),rgba(230,183,93,0) 68%)!important}
+.product-window{box-shadow:0 28px 80px rgba(22,53,43,.14)!important}
+.product-mini-main{background:#F4F2F0!important}
+.product-mini-card:nth-child(1){background:#F9ECD4!important}
+.product-mini-card:nth-child(2){background:#E2E3D8!important}
+.product-mini-card:nth-child(3){background:#F4E2D5!important}
+
+/* App-specific balance */
+.sidebar .brandmark{background:#E6B75D!important;color:#16352B!important}
+.nav-item.active{background:#305947!important;color:#FFFFFF!important}
+.nav-item:hover{background:rgba(255,255,255,.09)!important}
+.demo-pill{background:rgba(230,183,93,.10)!important;border-color:rgba(230,183,93,.28)!important;color:#F4F2F0!important}
+.demo-pill strong{color:#E6B75D!important}
+.badge.good{background:#E2E3D8!important;color:#305947!important}
+.badge.info{background:#F9ECD4!important;color:#214739!important}
+.badge.warn{background:#F9ECD4!important;color:#8A661D!important}
+.badge.bad{background:#F4E2D5!important;color:#8A3F21!important}
+.auth-root{background:linear-gradient(135deg,#16352B,#214739)!important}
+.auth-field input:focus,.field input:focus,.field select:focus,.field textarea:focus{border-color:#305947!important;box-shadow:0 0 0 3px rgba(48,89,71,.10)!important}
+
+/* Keep tables and forms bright/readable */
+.table th,.table tbody tr:hover,.dropzone,.customer-preview,.soft-panel{background:#FAF8F5!important}
+.field input,.field select,.field textarea,.auth-field input{background:#FFFFFF!important;color:#18211D!important}
 </style>
 </head>
 <body>
