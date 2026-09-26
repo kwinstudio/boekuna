@@ -10,6 +10,11 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ValidationError, field_validator
 from PIL import Image, ImageOps
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+except Exception:
+    pass
 from docx import Document as DocxDocument
 from openpyxl import load_workbook
 
@@ -331,8 +336,11 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
 
 def extract_image(raw:bytes) -> dict[str,Any]:
     if not RapidOCR: raise HTTPException(503,"OCR-engine is niet beschikbaar op de server.")
-    img=Image.open(io.BytesIO(raw)).convert("RGB")
-    img=ImageOps.exif_transpose(img)
+    try:
+        img=Image.open(io.BytesIO(raw))
+        img=ImageOps.exif_transpose(img).convert("RGB")
+    except Exception as exc:
+        raise HTTPException(415,f"Deze foto kon niet worden geopend ({type(exc).__name__}). Gebruik een normale foto of exporteer hem als JPG/PNG.")
     ocr=RapidOCR(); result,_=ocr(img)
     lines=[]; confs=[]; layout=[]
     for row in result or []:
@@ -374,7 +382,7 @@ def extract_csv(raw:bytes)->dict[str,Any]:
 def extract_document(filename:str,content_type:str,raw:bytes)->dict[str,Any]:
     ext=Path(filename).suffix.lower(); c=(content_type or "").lower()
     if raw[:4]==b"%PDF" or ext==".pdf" or c=="application/pdf": return extract_pdf(raw)
-    if ext in {".png",".jpg",".jpeg",".webp",".tif",".tiff"} or c.startswith("image/"): return extract_image(raw)
+    if ext in {".png",".jpg",".jpeg",".webp",".heic",".heif",".tif",".tiff",".bmp",".gif"} or c.startswith("image/"): return extract_image(raw)
     if ext==".docx" or c=="application/vnd.openxmlformats-officedocument.wordprocessingml.document": return extract_docx(raw)
     if ext==".xlsx" or c=="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": return extract_xlsx(raw)
     if ext==".csv" or c in {"text/csv","application/csv"}: return extract_csv(raw)
