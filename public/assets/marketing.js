@@ -114,5 +114,4 @@ function initSharedInteractions(){
    const a=e.target.closest('a');
    if(a){menu.classList.remove('open');const t=document.querySelector('.mobile-toggle');if(t)t.setAttribute('aria-expanded','false')}
  });
-})()
-};
+}
