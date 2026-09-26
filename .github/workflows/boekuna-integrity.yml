@@ -1,0 +1,28 @@
+name: Boekuna integrity tests
+
+on:
+  push:
+    branches:
+      - kwinest-hosting
+  pull_request:
+    paths:
+      - "kwinest/**"
+      - "tests/**"
+      - ".github/workflows/boekuna-integrity.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Accounting integrity
+        run: node tests/accounting-integrity.test.mjs
+      - name: Production source safety
+        run: node tests/source-safety.test.mjs
