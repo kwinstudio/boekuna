@@ -454,6 +454,48 @@ html,body,#authRoot,.marketing,.main,.content{background:#F8FAFC!important;color
 .marketing .marketing-footer{background:#11151b!important;color:#fff!important;border:0!important}.marketing .marketing-footer-inner{max-width:1240px!important;padding:38px 26px 46px!important;color:#aeb2ba!important}.marketing .marketing-footer-inner strong{color:#fff!important}
 @media(max-width:900px){.marketing .marketing-links{display:none!important}.marketing-mobile-toggle{display:block}.fh-hero-lead{grid-template-columns:1fr}.fh-hero-actions{justify-content:flex-start}.fh-stats{grid-template-columns:1fr 1fr}.fh-numbered,.fh-links{grid-template-columns:1fr}.fh-trust{grid-template-columns:1fr}.fh-cta-box{grid-template-columns:1fr}.fh-ui{grid-template-columns:100px 1fr}}
 @media(max-width:620px){.marketing .marketing-nav-inner{height:66px!important;padding:0 15px!important}.marketing .marketing-actions .mk-btn{display:none!important}.fh-hero,.fh-section,.fh-cta{padding-left:15px;padding-right:15px}.fh-hero{padding-top:52px}.fh-hero h1{font-size:52px}.fh-hero-lead p{font-size:15px}.fh-media{height:470px;margin-left:15px;margin-right:15px;border-radius:18px}.fh-ui{inset:10% 6%;grid-template-columns:72px 1fr}.fh-ui-main{padding:16px}.fh-ui-cards{grid-template-columns:1fr}.fh-ui-card:nth-child(n+2){display:none}.fh-stats{grid-template-columns:1fr;padding-left:15px;padding-right:15px}.fh-cta-box{padding:28px}}
+
+/* Contrast hotfix: dark trust section must override legacy palette rules */
+.marketing .fh-section.fh-dark,
+.marketing section.fh-section.fh-dark{
+  background:#11151B!important;
+  color:#FFFFFF!important;
+}
+.marketing .fh-section.fh-dark .fh-inner,
+.marketing .fh-section.fh-dark .fh-heading,
+.marketing .fh-section.fh-dark .fh-trust{
+  background:transparent!important;
+  color:#FFFFFF!important;
+}
+.marketing .fh-section.fh-dark .fh-kicker{
+  color:#D9E2FF!important;
+}
+.marketing .fh-section.fh-dark .fh-kicker:before{
+  background:#5B8DEF!important;
+}
+.marketing .fh-section.fh-dark .fh-heading h2,
+.marketing .fh-section.fh-dark .fh-trust-card h3{
+  color:#FFFFFF!important;
+}
+.marketing .fh-section.fh-dark .fh-heading p,
+.marketing .fh-section.fh-dark .fh-trust-card p{
+  color:#D1D5DB!important;
+}
+.marketing .fh-section.fh-dark .fh-trust-card{
+  background:rgba(255,255,255,.055)!important;
+  border:1px solid rgba(255,255,255,.18)!important;
+  box-shadow:none!important;
+}
+.marketing .fh-section.fh-dark .fh-trust-card a{
+  color:#FFFFFF!important;
+  text-decoration-color:rgba(255,255,255,.75)!important;
+}
+@media(max-width:620px){
+  .marketing .fh-section.fh-dark .fh-heading h2{font-size:43px!important;line-height:.98!important}
+  .marketing .fh-section.fh-dark .fh-heading p{font-size:15px!important;line-height:1.65!important}
+  .marketing .fh-section.fh-dark .fh-trust-card h3{font-size:25px!important}
+  .marketing .fh-section.fh-dark .fh-trust-card p{font-size:13px!important}
+}
 </style>
 </head>
 <body>
