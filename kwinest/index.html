@@ -662,89 +662,75 @@ html,body,#authRoot,.marketing,.main,.content{background:#F8FAFC!important;color
 @media(max-width:900px){.kz-tabs{grid-template-columns:1fr 1fr}.kz-benefit,.kz-benefit.reverse{grid-template-columns:1fr}.kz-benefit.reverse .kz-benefit-copy{order:0}.kz-solutions-grid,.kz-reason-grid,.kz-audience-grid{grid-template-columns:1fr 1fr}.kz-apps-inner,.kz-plan-inner{grid-template-columns:1fr}.kz-trust-items,.kz-facts{grid-template-columns:1fr 1fr}.kz-final-box{grid-template-columns:1fr}}
 @media(max-width:620px){.kz-hero,.kz-product-stage,.kz-section-inner,.kz-benefit,.kz-reasons,.kz-audience,.kz-plan-inner,.kz-support,.kz-final{padding-left:15px;padding-right:15px}.kz-hero{padding-top:48px}.kz-hero h1{font-size:49px}.kz-tabs{grid-template-columns:1fr 1fr;padding-left:15px;padding-right:15px}.kz-product-shell{height:500px;min-height:500px}.kz-browser{left:4%;right:4%;top:6%;bottom:29%;grid-template-columns:78px 1fr}.kz-browser-main{padding:13px}.kz-phone{min-width:138px;width:40%;right:5%;bottom:2%}.kz-browser-cards{grid-template-columns:1fr}.kz-browser-card:nth-child(n+2){display:none}.kz-trust-items,.kz-solutions-grid,.kz-reason-grid,.kz-audience-grid,.kz-facts,.kz-support-grid{grid-template-columns:1fr}.kz-apps{padding:65px 0}.kz-apps-inner{padding-left:15px;padding-right:15px}.kz-app-phone{width:135px}.kz-final-box{padding:28px}}
 
-/* Visibility + interaction polish */
-.marketing a,.marketing button{transition:background-color .18s ease,color .18s ease,border-color .18s ease,transform .18s ease,box-shadow .18s ease}
+/* Visibility and interaction polish */
+.marketing a,.marketing button,.marketing summary{
+  -webkit-tap-highlight-color:transparent
+}
+.marketing a,.marketing button{
+  transition:background-color .18s ease,color .18s ease,border-color .18s ease,transform .18s ease,box-shadow .18s ease
+}
 .marketing a:focus-visible,.marketing button:focus-visible,.marketing summary:focus-visible{
   outline:3px solid rgba(0,168,198,.32)!important;
-  outline-offset:3px!important;
+  outline-offset:3px!important
 }
 .kz-hero-copy,.kz-benefit p,.kz-heading p,.kz-solution p,.kz-reason p,.kz-audience-card p,.kz-plan p,.kz-support-card p{
-  color:#526169!important;
+  color:#4E5E66!important
 }
 .kz-tab{
-  cursor:pointer;
-  color:#34434b;
-  min-height:46px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  cursor:pointer;min-height:46px;color:#34434B;
+  display:flex;align-items:center;justify-content:center
 }
 .kz-tab.active{
-  background:#202B33!important;
-  color:#fff!important;
-  border-color:#202B33!important;
-  box-shadow:0 8px 20px rgba(32,43,51,.12);
+  background:#202B33!important;color:#fff!important;border-color:#202B33!important;
+  box-shadow:0 8px 20px rgba(32,43,51,.12)
 }
-.kz-product-shell{transition:background .28s ease}
-.kz-browser-banner,.kz-browser-card,.kz-phone-hero{transition:transform .22s ease,opacity .22s ease,background .22s ease}
+.kz-product-shell{transition:background .25s ease}
+.kz-browser-banner,.kz-browser-card,.kz-phone-hero{
+  transition:opacity .16s ease,transform .16s ease,background .16s ease
+}
 .kz-product-shell.is-changing .kz-browser-banner,
 .kz-product-shell.is-changing .kz-browser-card,
-.kz-product-shell.is-changing .kz-phone-hero{opacity:.45;transform:translateY(4px)}
-.kz-browser-nav span{cursor:default}
+.kz-product-shell.is-changing .kz-phone-hero{opacity:.45;transform:translateY(3px)}
 .kz-browser-nav span.active{background:#32414A!important;color:#fff!important}
-.kz-browser-banner h3{color:#202B33!important}
-.kz-browser-banner p{color:#596970!important}
-.kz-browser-card b{color:#202B33!important}
-.kz-trust-title{color:#202B33!important}
-.kz-trust-item{color:#44545c!important}
-.kz-solution,.kz-reason,.kz-support-card,.kz-audience-card{
-  transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;
+.kz-browser-banner h3,.kz-browser-card b,.kz-trust-title{color:#202B33!important}
+.kz-browser-banner p,.kz-trust-item{color:#4E5E66!important}
+.kz-preview-link{
+  display:inline-flex;margin-top:13px;color:#008FAA;font-size:10px;font-weight:850;
+  text-decoration:none
 }
-.kz-solution:has(a:focus-visible),.kz-support-card:has(a:focus-visible){border-color:#00A8C6}
-.kz-interactive-link{position:relative}
-.kz-interactive-link::after{content:"";position:absolute;left:0;bottom:-3px;width:0;height:1px;background:currentColor;transition:width .18s ease}
-.kz-interactive-link:hover::after,.kz-interactive-link:focus-visible::after{width:100%}
+.kz-preview-link:hover{text-decoration:underline;text-underline-offset:3px}
 .kz-status{
-  display:inline-flex;align-items:center;gap:7px;margin-top:14px;
-  padding:8px 10px;border-radius:999px;background:#EAF8FB;color:#2A606B;
-  font-size:10px;font-weight:800
+  display:inline-flex;align-items:center;gap:7px;margin-top:14px;padding:8px 10px;
+  border-radius:999px;background:#EAF8FB;color:#285F6A;font-size:10px;font-weight:850
 }
-.kz-status-dot{width:7px;height:7px;border-radius:50%;background:#00A8C6}
-.kz-scroll{
-  opacity:0;
-  transform:translateY(18px);
-  transition:opacity .5s ease,transform .5s ease;
+.kz-status:before{content:"";width:7px;height:7px;border-radius:50%;background:#00A8C6}
+.kz-solution,.kz-reason,.kz-support-card,.kz-audience-card{
+  transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease
 }
-.kz-scroll.in-view{opacity:1;transform:none}
 .kz-backtop{
-  position:fixed;right:20px;bottom:20px;z-index:120;
-  width:44px;height:44px;border-radius:50%;border:1px solid #D8E5E9;
-  background:#fff;color:#202B33;box-shadow:0 12px 30px rgba(32,43,51,.14);
-  display:grid;place-items:center;font-size:18px;font-weight:900;
-  opacity:0;pointer-events:none;transform:translateY(8px);
-  transition:opacity .18s ease,transform .18s ease,background .18s ease,color .18s ease;
+  position:fixed;right:20px;bottom:20px;z-index:120;width:44px;height:44px;border-radius:50%;
+  border:1px solid #D8E5E9;background:#fff;color:#202B33;box-shadow:0 12px 30px rgba(32,43,51,.14);
+  display:grid;place-items:center;font-size:18px;font-weight:900;opacity:0;pointer-events:none;
+  transform:translateY(8px);transition:opacity .18s ease,transform .18s ease,background .18s ease,color .18s ease
 }
 .kz-backtop.show{opacity:1;pointer-events:auto;transform:none}
 .kz-backtop:hover{background:#202B33;color:#fff}
+.marketing-nav.scrolled{box-shadow:0 10px 30px rgba(24,64,76,.08)}
 @media (hover:hover) and (pointer:fine){
   .kz-solution:hover,.kz-reason:hover,.kz-support-card:hover,.kz-audience-card:hover{
-    transform:translateY(-4px);
-    box-shadow:0 14px 34px rgba(24,64,76,.09);
+    transform:translateY(-4px);box-shadow:0 14px 34px rgba(24,64,76,.09)
   }
   .kz-tab:hover:not(.active){background:#EAF8FB;border-color:#BFDDE3}
 }
 @media(prefers-reduced-motion:reduce){
-  .marketing *{scroll-behavior:auto!important;transition:none!important;animation:none!important}
-  .kz-scroll{opacity:1!important;transform:none!important}
+  .marketing *{transition:none!important;animation:none!important}
 }
 @media(max-width:620px){
-  .kz-hero-copy{color:#47575f!important}
+  .kz-hero-copy{color:#43545C!important}
   .kz-tab{font-size:10px;padding:11px 8px}
   .kz-browser-banner p{font-size:9px!important}
-  .kz-browser-card b{font-size:10px!important}
-  .kz-phone-hero small{font-size:7px!important}
   .marketing-mobile-menu a,.marketing-mobile-menu summary{color:#202B33!important}
-  .marketing-mobile-sub a{color:#526169!important}
+  .marketing-mobile-sub a{color:#4E5E66!important}
   .kz-backtop{right:14px;bottom:14px}
 }
 </style>
@@ -920,13 +906,56 @@ function showLanding(){
  const page=new URL(location.href).searchParams.get('page')||lastMarketingPage||'home';
  showMarketingPage(['home','features','how','pricing','faq'].includes(page)?page:'home');
 }
+
+function initKwinestMarketingInteractions(){
+ const productData={
+  facturen:{nav:'Facturen',title:'Facturen',action:'+ Nieuwe factuur',kicker:'Verkoop',heading:'Facturen maken en betalingen volgen.',text:'Maak verkoopfacturen, creditnota’s en houd bij wat nog openstaat.',c1:['Openstaand','In beeld'],c2:['PDF','Direct klaar'],c3:['Status','Te volgen'],phone:['Facturen','Nieuwe factuur','Maken · PDF · volgen'],href:'/facturen/',link:'Bekijk Facturen →'},
+  scanner:{nav:'Kosten',title:'Slimme scanner',action:'+ Document',kicker:'Documentherkenning',heading:'Van PDF of bonfoto naar controle.',text:'Laat leverancier, datum, bedragen en btw voorbereiden voordat jij de boeking bevestigt.',c1:['Bron','PDF + foto'],c2:['OCR','Beschikbaar'],c3:['Controle','Altijd eerst'],phone:['Scanner','Bon scannen','Foto · herkennen · controleren'],href:'/scanner/',link:'Bekijk Slimme scanner →'},
+  btw:{nav:'Btw',title:'Btw & bank',action:'Importeer CSV',kicker:'Controle',heading:'Btw en bankregels bij elkaar.',text:'Importeer transacties, koppel betalingen en volg je indicatieve btw-positie per kwartaal.',c1:['Bank','CSV import'],c2:['BTW','9% + 21%'],c3:['Matching','Te controleren'],phone:['Btw & bank','Kwartaalcheck','Bank · btw · matching'],href:'/btw-bank/',link:'Bekijk Btw & bank →'},
+  rapportages:{nav:'Rapportages',title:'Rapportages',action:'Bekijk periode',kicker:'Inzicht',heading:'Zie hoe je onderneming ervoor staat.',text:'Volg omzet, kosten, resultaat en openstaande posten vanuit dezelfde administratie.',c1:['Omzet','Actueel'],c2:['Kosten','In beeld'],c3:['Resultaat','Te volgen'],phone:['Rapportages','Mijn maand','Omzet · kosten · resultaat'],href:'/rapportages/',link:'Bekijk Rapportages →'}
+ };
+ const q=id=>document.getElementById(id);
+ const shell=q('kzProductShell');
+ const tabs=[...document.querySelectorAll('[data-kz-tab]')];
+ const navItems=[...document.querySelectorAll('#kzBrowserNav span')];
+ const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ const setText=(id,value)=>{const el=q(id);if(el)el.textContent=value};
+ function setProduct(key){
+  const d=productData[key];if(!d)return;
+  if(shell)shell.classList.add('is-changing');
+  tabs.forEach(t=>{const on=t.dataset.kzTab===key;t.classList.toggle('active',on);t.setAttribute('aria-pressed',String(on))});
+  navItems.forEach(n=>n.classList.toggle('active',n.textContent.trim()===d.nav));
+  const apply=()=>{
+   setText('kzPreviewTitle',d.title);setText('kzPreviewAction',d.action);setText('kzPreviewKicker',d.kicker);
+   setText('kzPreviewHeading',d.heading);setText('kzPreviewText',d.text);
+   setText('kzCard1Label',d.c1[0]);setText('kzCard1Value',d.c1[1]);
+   setText('kzCard2Label',d.c2[0]);setText('kzCard2Value',d.c2[1]);
+   setText('kzCard3Label',d.c3[0]);setText('kzCard3Value',d.c3[1]);
+   setText('kzPhoneKicker',d.phone[0]);setText('kzPhoneTitle',d.phone[1]);setText('kzPhoneText',d.phone[2]);
+   const link=q('kzPreviewLink');if(link){link.href=d.href;link.textContent=d.link}
+   if(shell)shell.classList.remove('is-changing');
+  };
+  if(reduced)apply();else setTimeout(apply,100);
+ }
+ tabs.forEach(t=>t.addEventListener('click',()=>setProduct(t.dataset.kzTab)));
+ setProduct('facturen');
+
+ const nav=document.querySelector('.marketing-nav');
+ const top=q('kzBackTop');
+ const onScroll=()=>{
+  if(nav)nav.classList.toggle('scrolled',window.scrollY>12);
+  if(top)top.classList.toggle('show',window.scrollY>650);
+ };
+ window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+ if(top)top.addEventListener('click',()=>window.scrollTo({top:0,behavior:reduced?'auto':'smooth'}));
+}
 function showMarketingPage(page='home'){
  lastMarketingPage=page;
  document.getElementById('mainApp').style.display='none';
  const nav=marketingNav(page),footer=marketingFooter();
  let body='';
  if(page==='home'){
-  body="<main>\n<section class=\"kz-hero\">\n  <div class=\"kz-overline\">Voor ondernemers die grip willen op hun administratie</div>\n  <h1>Grip op je cijfers,<span>rust in je bedrijf.</span></h1>\n  <p class=\"kz-hero-copy\">Kwinest geeft je alles wat je nodig hebt om facturen, bonnetjes, kosten, bankregels, btw en rapportages overzichtelijk te beheren. Slimme documentherkenning vermindert handmatig werk, terwijl jij controle houdt over iedere boeking.</p>\n  <div class=\"kz-hero-actions\"><a class=\"mk-btn primary\" href=\"/hoe-het-werkt/\">Bekijk de software</a><a class=\"mk-btn\" href=\"/functies/\">Ontdek de mogelijkheden</a></div><div class=\"kz-status\"><span class=\"kz-status-dot\"></span>Responsive op desktop en mobiel</div>\n</section>\n\n<section class=\"kz-tabs\">\n  <a class=\"kz-tab\" href=\"/facturen/\">Facturen</a>\n  <a class=\"kz-tab\" href=\"/scanner/\">Slimme scanner</a>\n  <a class=\"kz-tab\" href=\"/btw-bank/\">Btw & bank</a>\n  <a class=\"kz-tab\" href=\"/rapportages/\">Rapportages</a>\n</section>\n\n<section class=\"kz-product-stage\">\n  <div class=\"kz-product-shell\" id=\"kzProductShell\">\n    <div class=\"kz-browser\">\n      <div class=\"kz-browser-nav\" id=\"kzBrowserNav\"><b>Kwinest</b><span>Dashboard</span><span class=\"active\">Facturen</span><span>Kosten</span><span>Bank & kas</span><span>Btw</span><span>Rapportages</span></div>\n      <div class=\"kz-browser-main\"><div class=\"kz-browser-head\"><strong id=\"kzPreviewTitle\">Facturen</strong><i id=\"kzPreviewAction\">+ Nieuwe factuur</i></div><div class=\"kz-browser-banner\"><small id=\"kzPreviewKicker\">Verkoop</small><h3 id=\"kzPreviewHeading\">Facturen maken en betalingen volgen.</h3><p id=\"kzPreviewText\">Maak verkoopfacturen, creditnota’s en houd bij wat nog openstaat.</p></div><div class=\"kz-browser-cards\"><div class=\"kz-browser-card\"><span id=\"kzCard1Label\">Openstaand</span><b id=\"kzCard1Value\">In beeld</b></div><div class=\"kz-browser-card\"><span id=\"kzCard2Label\">PDF</span><b id=\"kzCard2Value\">Direct klaar</b></div><div class=\"kz-browser-card\"><span id=\"kzCard3Label\">Status</span><b id=\"kzCard3Value\">Te volgen</b></div></div><a id=\"kzPreviewLink\" class=\"kz-interactive-link\" href=\"/facturen/\" style=\"display:inline-flex;margin-top:12px;color:#008FAA;font-size:10px;font-weight:850\">Bekijk Facturen →</a></div>\n    </div>\n    <div class=\"kz-phone\"><div class=\"kz-phone-inner\"><div class=\"kz-phone-header\"><span>Kwinest</span><span>•••</span></div><div class=\"kz-phone-hero\"><small id=\"kzPhoneKicker\">Facturen</small><b id=\"kzPhoneTitle\">Nieuwe factuur</b><small id=\"kzPhoneText\">Maken · PDF · volgen</small></div><div class=\"kz-phone-row\"></div><div class=\"kz-phone-row\"></div><div class=\"kz-phone-row\"></div></div></div>\n  </div>\n</section>\n\n<section class=\\"kz-trust-strip kz-scroll\\">\n  <div class=\"kz-trust-inner\"><div class=\"kz-trust-title\">Alles wat je administratie nodig heeft, samen in één omgeving</div><div class=\"kz-trust-items\"><div class=\"kz-trust-item\">Verkoopfacturen</div><div class=\"kz-trust-item\">Inkoop & kosten</div><div class=\"kz-trust-item\">Documentherkenning</div><div class=\"kz-trust-item\">Bank & btw</div><div class=\"kz-trust-item\">Rapportages</div></div></div>\n</section>\n\n<section class=\\"kz-benefit kz-scroll\\">\n  <div class=\\"kz-benefit-copy kz-scroll\\"><span class=\\"kz-benefit-label kz-scroll\\">Minder administratie</span><h2>Bespaar iedere week kostbare tijd.</h2><p>Laat terugkerend invoerwerk niet je agenda bepalen. Upload facturen of fotografeer bonnetjes en laat Kwinest de belangrijkste gegevens voorbereiden. Jij controleert en boekt pas als alles klopt.</p><a href=\"/scanner/\">Slimmer documenten verwerken →</a></div>\n  <div class=\"kz-visual\"><div class=\"kz-doc-card\"><div class=\"kz-doc-title\"><strong>Leveranciersfactuur</strong><span>Gelezen</span></div><div class=\"kz-line s\"></div><div class=\"kz-line m\"></div><div class=\"kz-line\"></div><div class=\"kz-doc-grid\"><div>Leverancier<b>Herkend</b></div><div>BTW<b>21%</b></div><div>Totaal<b>€242,00</b></div></div></div></div>\n</section>\n\n<section class=\\"kz-benefit reverse kz-scroll\\">\n  <div class=\\"kz-benefit-copy kz-scroll\\"><span class=\\"kz-benefit-label kz-scroll\\">Meer grip</span><h2>Stuur op wat aandacht nodig heeft.</h2><p>Zie sneller welke facturen nog openstaan, welke bankregels nog gekoppeld moeten worden en waar je administratie om controle vraagt. Zo werk je gedurende de maand bij in plaats van alles achteraf op te ruimen.</p><a href=\"/rapportages/\">Bekijk rapportages & controle →</a></div>\n  <div class=\"kz-visual\"><div class=\"kz-alerts\"><div class=\"kz-alert\"><span class=\"kz-alert-icon\"></span><div><strong>Factuur staat nog open</strong><small>Betaaltermijn nadert</small></div><em>Bekijken</em></div><div class=\"kz-alert\"><span class=\"kz-alert-icon\"></span><div><strong>Bankregel te koppelen</strong><small>Nieuwe transactie gevonden</small></div><em>Koppelen</em></div><div class=\"kz-alert\"><span class=\"kz-alert-icon\"></span><div><strong>Btw-overzicht bijgewerkt</strong><small>Kwartaalcontrole beschikbaar</small></div><em>Openen</em></div></div></div>\n</section>\n\n<section class=\\"kz-solutions-section kz-scroll\\"><div class=\"kz-section-inner\">\n  <div class=\"kz-heading\"><small>Oplossingen</small><h2>Wat Kwinest jou te bieden heeft.</h2><p>De onderdelen werken samen binnen dezelfde administratie. Daardoor hoef je minder informatie opnieuw in te voeren en blijft duidelijk waar je cijfers vandaan komen.</p></div>\n  <div class=\"kz-solutions-grid\">\n    <div class=\"kz-solution\"><small>Verkoop</small><h3>Facturen maken</h3><p>Maak verkoopfacturen en creditnota’s, genereer PDF’s en volg betalingen.</p><a href=\"/facturen/\">Lees meer →</a></div>\n    <div class=\"kz-solution\"><small>Automatisering</small><h3>Slimme scanner</h3><p>Verwerk PDF’s, scans en bonfoto’s en controleer de herkende gegevens.</p><a href=\"/scanner/\">Lees meer →</a></div>\n    <div class=\"kz-solution\"><small>Inkoop</small><h3>Kosten beheren</h3><p>Boek zakelijke kosten, beheer leveranciers en bewaar documenten bij de boeking.</p><a href=\"/functies/\">Lees meer →</a></div>\n    <div class=\"kz-solution\"><small>Betalingen</small><h3>Bank & kas</h3><p>Importeer bankregels via CSV en koppel transacties aan facturen of kosten.</p><a href=\"/btw-bank/\">Lees meer →</a></div>\n    <div class=\"kz-solution\"><small>Controle</small><h3>Btw-overzicht</h3><p>Bekijk omzet tegen 9% en 21%, voorbelasting en je indicatieve kwartaalpositie.</p><a href=\"/btw-bank/\">Lees meer →</a></div>\n    <div class=\"kz-solution\"><small>Inzicht</small><h3>Rapportages</h3><p>Volg omzet, kosten, resultaat en openstaande posten vanuit dezelfde gegevens.</p><a href=\"/rapportages/\">Lees meer →</a></div>\n  </div>\n</div></section>\n\n<section class=\\"kz-reasons kz-scroll\\">\n  <div class=\"kz-heading\"><small>Waarom Kwinest</small><h2>Waarom ondernemers voor deze manier van werken kiezen.</h2><p>Geen verzonnen klantquotes: dit zijn de principes waarop Kwinest is gebouwd.</p></div>\n  <div class=\"kz-reason-grid\"><div class=\"kz-reason\"><strong>Alles op één centrale plek</strong><p>Facturen, kosten, documenten, bank en rapportages gebruiken dezelfde administratie.</p></div><div class=\"kz-reason\"><strong>Automatiseren mét controle</strong><p>Herkenning helpt je sneller werken, maar jij bepaalt wat uiteindelijk wordt opgeslagen.</p></div><div class=\"kz-reason\"><strong>Duidelijk over wat nog niet live is</strong><p>Bankkoppeling, Peppol en directe btw-aangifte worden pas als functie getoond wanneer ze echt werken.</p></div></div>\n</section>\n\n<section class=\\"kz-apps kz-scroll\\">\n  <div class=\\"kz-apps-inner kz-scroll\\"><div><span class=\"kz-app-label\">Op desktop & mobiel</span><h2>Je administratie altijd bij de hand.</h2><p>Werk op je computer en pak onderweg je telefoon. Fotografeer een bon, controleer een document of bekijk welke acties nog openstaan.</p><div class=\"kz-hero-actions\"><a class=\"mk-btn\" href=\"/hoe-het-werkt/\" style=\"background:#fff;color:#202B33;border-color:#fff\">Bekijk de product tour</a></div></div><div class=\"kz-app-phones\"><div class=\"kz-app-phone\"><div class=\"kz-app-screen\"><div></div><div></div><div></div><div></div></div></div><div class=\"kz-app-phone\"><div class=\"kz-app-screen\"><div></div><div></div><div></div><div></div></div></div></div></div>\n</section>\n\n<section class=\\"kz-audience kz-scroll\\">\n  <div class=\"kz-heading\"><small>Voor ondernemers</small><h2>Meer weten over jouw manier van werken?</h2><p>Dezelfde boekhouding kan per ondernemer heel anders gebruikt worden.</p></div>\n  <div class=\\"kz-audience-grid kz-scroll\\"><a class=\\"kz-audience-card kz-scroll\\" href=\"/voor-ondernemers/#zzp\"><small>ZZP & freelance</small><h3>Minder administratie naast je echte werk.</h3><p>Factureer, verwerk kosten en houd btw in beeld zonder losse tools.</p></a><a class=\\"kz-audience-card kz-scroll\\" href=\"/voor-ondernemers/#klein-bedrijf\"><small>Kleine bedrijven</small><h3>Structuur terwijl je bedrijf groeit.</h3><p>Houd relaties, documenten en betalingen bij elkaar.</p></a><a class=\\"kz-audience-card kz-scroll\\" href=\"/voor-ondernemers/#veel-documenten\"><small>Veel facturen & bonnen</small><h3>Minder handmatig invoeren.</h3><p>Gebruik slimme verwerking wanneer de documentenstroom groter wordt.</p></a></div>\n</section>\n\n<section class=\\"kz-plan kz-scroll\\">\n  <div class=\\"kz-plan-inner kz-scroll\\"><div><h2>Budget en gebruik op elkaar afgestemd.</h2><p>De kern van Kwinest blijft hetzelfde. Je kiest vooral hoeveel documenten je per maand slim wilt laten verwerken. Handmatige facturen, relaties beheren en rapportages bekijken tellen niet als scanverwerking.</p><div class=\"kz-hero-actions\"><a class=\"mk-btn primary\" href=\"/prijzen/\">Bekijk alle prijzen</a></div></div><div><div class=\"kz-price-big\">€9,95 <span>/ maand</span></div><p>Vanaf 25 slimme documentverwerkingen per maand.</p></div></div>\n</section>\n\n<section class=\\"kz-facts kz-scroll\\">\n  <div class=\"kz-fact\"><strong>9% + 21%</strong><span>Nederlandse btw-tarieven in de dagelijkse administratie.</span></div>\n  <div class=\"kz-fact\"><strong>PDF + OCR</strong><span>Digitale facturen, scans en bonfoto’s verwerken.</span></div>\n  <div class=\"kz-fact\"><strong>25 / 100 / 300</strong><span>Bundels op basis van slimme documentverwerkingen.</span></div>\n  <div class=\"kz-fact\"><strong>1 administratie</strong><span>Facturen, kosten, bank, btw en rapportage bij elkaar.</span></div>\n</section>\n\n<section class=\\"kz-support kz-scroll\\">\n  <div class=\"kz-heading\"><small>Wat je verder krijgt</small><h2>Gebouwd rondom controle en duidelijkheid.</h2></div>\n  <div class=\\"kz-support-grid kz-scroll\\"><div class=\\"kz-support-card kz-scroll\\"><h3>Controle vóór boeken</h3><p>Herkende gegevens gaan eerst naar een controlescherm.</p><a href=\"/hoe-het-werkt/\">Zo werkt het →</a></div><div class=\\"kz-support-card kz-scroll\\"><h3>Back-up & audit</h3><p>Functies voor back-up, herstel en administratieve historie zijn onderdeel van de omgeving.</p><a href=\"/veiligheid/\">Veiligheid & privacy →</a></div><div class=\\"kz-support-card kz-scroll\\"><h3>Transparante roadmap</h3><p>We maken duidelijk onderscheid tussen functies die werken en koppelingen die nog gebouwd worden.</p><a href=\"/veiligheid/\">Bekijk productstatus →</a></div></div>\n</section>\n\n<section class=\\"kz-final kz-scroll\\"><div class=\\"kz-final-box kz-scroll\\"><div><h2>Benieuwd of Kwinest bij jouw bedrijf past?</h2><p>Bekijk de software en ontdek hoe facturen, documenten, btw en inzicht in één omgeving samenkomen.</p></div><a class=\"mk-btn\" href=\"/hoe-het-werkt/\">Bekijk de software</a></div></section>\n<button class=\"kz-backtop\" id=\"kzBackTop\" type=\"button\" aria-label=\"Terug naar boven\">↑</button></main>";
+  body="<main>\n<section class=\"kz-hero\">\n  <div class=\"kz-overline\">Voor ondernemers die grip willen op hun administratie</div>\n  <h1>Grip op je cijfers,<span>rust in je bedrijf.</span></h1>\n  <p class=\"kz-hero-copy\">Kwinest geeft je alles wat je nodig hebt om facturen, bonnetjes, kosten, bankregels, btw en rapportages overzichtelijk te beheren. Slimme documentherkenning vermindert handmatig werk, terwijl jij controle houdt over iedere boeking.</p>\n  <div class=\"kz-hero-actions\"><a class=\"mk-btn primary\" href=\"/hoe-het-werkt/\">Bekijk de software</a><a class=\"mk-btn\" href=\"/functies/\">Ontdek de mogelijkheden</a></div><div class=\"kz-status\">Goed bruikbaar op desktop en mobiel</div>\n</section>\n\n<section class=\"kz-tabs\" aria-label=\"Bekijk Kwinest onderdelen\">\n  <button class=\"kz-tab active\" type=\"button\" data-kz-tab=\"facturen\" aria-pressed=\"true\">Facturen</button>\n  <button class=\"kz-tab\" type=\"button\" data-kz-tab=\"scanner\" aria-pressed=\"false\">Slimme scanner</button>\n  <button class=\"kz-tab\" type=\"button\" data-kz-tab=\"btw\" aria-pressed=\"false\">Btw & bank</button>\n  <button class=\"kz-tab\" type=\"button\" data-kz-tab=\"rapportages\" aria-pressed=\"false\">Rapportages</button>\n</section>\n\n<section class=\"kz-product-stage\">\n  <div class=\"kz-product-shell\" id=\"kzProductShell\">\n    <div class=\"kz-browser\">\n      <div class=\"kz-browser-nav\" id=\"kzBrowserNav\"><b>Kwinest</b><span>Dashboard</span><span class=\"active\">Facturen</span><span>Kosten</span><span>Bank & kas</span><span>Btw</span><span>Rapportages</span></div>\n      <div class=\"kz-browser-main\"><div class=\"kz-browser-head\"><strong id=\"kzPreviewTitle\">Facturen</strong><i id=\"kzPreviewAction\">+ Nieuwe factuur</i></div><div class=\"kz-browser-banner\"><small id=\"kzPreviewKicker\">Verkoop</small><h3 id=\"kzPreviewHeading\">Facturen maken en betalingen volgen.</h3><p id=\"kzPreviewText\">Maak verkoopfacturen, creditnota’s en houd bij wat nog openstaat.</p></div><div class=\"kz-browser-cards\"><div class=\"kz-browser-card\"><span id=\"kzCard1Label\">Openstaand</span><b id=\"kzCard1Value\">In beeld</b></div><div class=\"kz-browser-card\"><span id=\"kzCard2Label\">PDF</span><b id=\"kzCard2Value\">Direct klaar</b></div><div class=\"kz-browser-card\"><span id=\"kzCard3Label\">Status</span><b id=\"kzCard3Value\">Te volgen</b></div></div><a id=\"kzPreviewLink\" class=\"kz-preview-link\" href=\"/facturen/\">Bekijk Facturen →</a></div>\n    </div>\n    <div class=\"kz-phone\"><div class=\"kz-phone-inner\"><div class=\"kz-phone-header\"><span>Kwinest</span><span>•••</span></div><div class=\"kz-phone-hero\"><small id=\"kzPhoneKicker\">Facturen</small><b id=\"kzPhoneTitle\">Nieuwe factuur</b><small id=\"kzPhoneText\">Maken · PDF · volgen</small></div><div class=\"kz-phone-row\"></div><div class=\"kz-phone-row\"></div><div class=\"kz-phone-row\"></div></div></div>\n  </div>\n</section>\n\n<section class=\"kz-trust-strip\">\n  <div class=\"kz-trust-inner\"><div class=\"kz-trust-title\">Alles wat je administratie nodig heeft, samen in één omgeving</div><div class=\"kz-trust-items\"><div class=\"kz-trust-item\">Verkoopfacturen</div><div class=\"kz-trust-item\">Inkoop & kosten</div><div class=\"kz-trust-item\">Documentherkenning</div><div class=\"kz-trust-item\">Bank & btw</div><div class=\"kz-trust-item\">Rapportages</div></div></div>\n</section>\n\n<section class=\"kz-benefit\">\n  <div class=\"kz-benefit-copy\"><span class=\"kz-benefit-label\">Minder administratie</span><h2>Bespaar iedere week kostbare tijd.</h2><p>Laat terugkerend invoerwerk niet je agenda bepalen. Upload facturen of fotografeer bonnetjes en laat Kwinest de belangrijkste gegevens voorbereiden. Jij controleert en boekt pas als alles klopt.</p><a href=\"/scanner/\">Slimmer documenten verwerken →</a></div>\n  <div class=\"kz-visual\"><div class=\"kz-doc-card\"><div class=\"kz-doc-title\"><strong>Leveranciersfactuur</strong><span>Gelezen</span></div><div class=\"kz-line s\"></div><div class=\"kz-line m\"></div><div class=\"kz-line\"></div><div class=\"kz-doc-grid\"><div>Leverancier<b>Herkend</b></div><div>BTW<b>21%</b></div><div>Totaal<b>€242,00</b></div></div></div></div>\n</section>\n\n<section class=\"kz-benefit reverse\">\n  <div class=\"kz-benefit-copy\"><span class=\"kz-benefit-label\">Meer grip</span><h2>Stuur op wat aandacht nodig heeft.</h2><p>Zie sneller welke facturen nog openstaan, welke bankregels nog gekoppeld moeten worden en waar je administratie om controle vraagt. Zo werk je gedurende de maand bij in plaats van alles achteraf op te ruimen.</p><a href=\"/rapportages/\">Bekijk rapportages & controle →</a></div>\n  <div class=\"kz-visual\"><div class=\"kz-alerts\"><div class=\"kz-alert\"><span class=\"kz-alert-icon\"></span><div><strong>Factuur staat nog open</strong><small>Betaaltermijn nadert</small></div><em>Bekijken</em></div><div class=\"kz-alert\"><span class=\"kz-alert-icon\"></span><div><strong>Bankregel te koppelen</strong><small>Nieuwe transactie gevonden</small></div><em>Koppelen</em></div><div class=\"kz-alert\"><span class=\"kz-alert-icon\"></span><div><strong>Btw-overzicht bijgewerkt</strong><small>Kwartaalcontrole beschikbaar</small></div><em>Openen</em></div></div></div>\n</section>\n\n<section class=\"kz-solutions-section\"><div class=\"kz-section-inner\">\n  <div class=\"kz-heading\"><small>Oplossingen</small><h2>Wat Kwinest jou te bieden heeft.</h2><p>De onderdelen werken samen binnen dezelfde administratie. Daardoor hoef je minder informatie opnieuw in te voeren en blijft duidelijk waar je cijfers vandaan komen.</p></div>\n  <div class=\"kz-solutions-grid\">\n    <div class=\"kz-solution\"><small>Verkoop</small><h3>Facturen maken</h3><p>Maak verkoopfacturen en creditnota’s, genereer PDF’s en volg betalingen.</p><a href=\"/facturen/\">Lees meer →</a></div>\n    <div class=\"kz-solution\"><small>Automatisering</small><h3>Slimme scanner</h3><p>Verwerk PDF’s, scans en bonfoto’s en controleer de herkende gegevens.</p><a href=\"/scanner/\">Lees meer →</a></div>\n    <div class=\"kz-solution\"><small>Inkoop</small><h3>Kosten beheren</h3><p>Boek zakelijke kosten, beheer leveranciers en bewaar documenten bij de boeking.</p><a href=\"/functies/\">Lees meer →</a></div>\n    <div class=\"kz-solution\"><small>Betalingen</small><h3>Bank & kas</h3><p>Importeer bankregels via CSV en koppel transacties aan facturen of kosten.</p><a href=\"/btw-bank/\">Lees meer →</a></div>\n    <div class=\"kz-solution\"><small>Controle</small><h3>Btw-overzicht</h3><p>Bekijk omzet tegen 9% en 21%, voorbelasting en je indicatieve kwartaalpositie.</p><a href=\"/btw-bank/\">Lees meer →</a></div>\n    <div class=\"kz-solution\"><small>Inzicht</small><h3>Rapportages</h3><p>Volg omzet, kosten, resultaat en openstaande posten vanuit dezelfde gegevens.</p><a href=\"/rapportages/\">Lees meer →</a></div>\n  </div>\n</div></section>\n\n<section class=\"kz-reasons\">\n  <div class=\"kz-heading\"><small>Waarom Kwinest</small><h2>Waarom ondernemers voor deze manier van werken kiezen.</h2><p>Geen verzonnen klantquotes: dit zijn de principes waarop Kwinest is gebouwd.</p></div>\n  <div class=\"kz-reason-grid\"><div class=\"kz-reason\"><strong>Alles op één centrale plek</strong><p>Facturen, kosten, documenten, bank en rapportages gebruiken dezelfde administratie.</p></div><div class=\"kz-reason\"><strong>Automatiseren mét controle</strong><p>Herkenning helpt je sneller werken, maar jij bepaalt wat uiteindelijk wordt opgeslagen.</p></div><div class=\"kz-reason\"><strong>Duidelijk over wat nog niet live is</strong><p>Bankkoppeling, Peppol en directe btw-aangifte worden pas als functie getoond wanneer ze echt werken.</p></div></div>\n</section>\n\n<section class=\"kz-apps\">\n  <div class=\"kz-apps-inner\"><div><span class=\"kz-app-label\">Op desktop & mobiel</span><h2>Je administratie altijd bij de hand.</h2><p>Werk op je computer en pak onderweg je telefoon. Fotografeer een bon, controleer een document of bekijk welke acties nog openstaan.</p><div class=\"kz-hero-actions\"><a class=\"mk-btn\" href=\"/hoe-het-werkt/\" style=\"background:#fff;color:#202B33;border-color:#fff\">Bekijk de product tour</a></div></div><div class=\"kz-app-phones\"><div class=\"kz-app-phone\"><div class=\"kz-app-screen\"><div></div><div></div><div></div><div></div></div></div><div class=\"kz-app-phone\"><div class=\"kz-app-screen\"><div></div><div></div><div></div><div></div></div></div></div></div>\n</section>\n\n<section class=\"kz-audience\">\n  <div class=\"kz-heading\"><small>Voor ondernemers</small><h2>Meer weten over jouw manier van werken?</h2><p>Dezelfde boekhouding kan per ondernemer heel anders gebruikt worden.</p></div>\n  <div class=\"kz-audience-grid\"><a class=\"kz-audience-card\" href=\"/voor-ondernemers/#zzp\"><small>ZZP & freelance</small><h3>Minder administratie naast je echte werk.</h3><p>Factureer, verwerk kosten en houd btw in beeld zonder losse tools.</p></a><a class=\"kz-audience-card\" href=\"/voor-ondernemers/#klein-bedrijf\"><small>Kleine bedrijven</small><h3>Structuur terwijl je bedrijf groeit.</h3><p>Houd relaties, documenten en betalingen bij elkaar.</p></a><a class=\"kz-audience-card\" href=\"/voor-ondernemers/#veel-documenten\"><small>Veel facturen & bonnen</small><h3>Minder handmatig invoeren.</h3><p>Gebruik slimme verwerking wanneer de documentenstroom groter wordt.</p></a></div>\n</section>\n\n<section class=\"kz-plan\">\n  <div class=\"kz-plan-inner\"><div><h2>Budget en gebruik op elkaar afgestemd.</h2><p>De kern van Kwinest blijft hetzelfde. Je kiest vooral hoeveel documenten je per maand slim wilt laten verwerken. Handmatige facturen, relaties beheren en rapportages bekijken tellen niet als scanverwerking.</p><div class=\"kz-hero-actions\"><a class=\"mk-btn primary\" href=\"/prijzen/\">Bekijk alle prijzen</a></div></div><div><div class=\"kz-price-big\">€9,95 <span>/ maand</span></div><p>Vanaf 25 slimme documentverwerkingen per maand.</p></div></div>\n</section>\n\n<section class=\"kz-facts\">\n  <div class=\"kz-fact\"><strong>9% + 21%</strong><span>Nederlandse btw-tarieven in de dagelijkse administratie.</span></div>\n  <div class=\"kz-fact\"><strong>PDF + OCR</strong><span>Digitale facturen, scans en bonfoto’s verwerken.</span></div>\n  <div class=\"kz-fact\"><strong>25 / 100 / 300</strong><span>Bundels op basis van slimme documentverwerkingen.</span></div>\n  <div class=\"kz-fact\"><strong>1 administratie</strong><span>Facturen, kosten, bank, btw en rapportage bij elkaar.</span></div>\n</section>\n\n<section class=\"kz-support\">\n  <div class=\"kz-heading\"><small>Wat je verder krijgt</small><h2>Gebouwd rondom controle en duidelijkheid.</h2></div>\n  <div class=\"kz-support-grid\"><div class=\"kz-support-card\"><h3>Controle vóór boeken</h3><p>Herkende gegevens gaan eerst naar een controlescherm.</p><a href=\"/hoe-het-werkt/\">Zo werkt het →</a></div><div class=\"kz-support-card\"><h3>Back-up & audit</h3><p>Functies voor back-up, herstel en administratieve historie zijn onderdeel van de omgeving.</p><a href=\"/veiligheid/\">Veiligheid & privacy →</a></div><div class=\"kz-support-card\"><h3>Transparante roadmap</h3><p>We maken duidelijk onderscheid tussen functies die werken en koppelingen die nog gebouwd worden.</p><a href=\"/veiligheid/\">Bekijk productstatus →</a></div></div>\n</section>\n\n<section class=\"kz-final\"><div class=\"kz-final-box\"><div><h2>Benieuwd of Kwinest bij jouw bedrijf past?</h2><p>Bekijk de software en ontdek hoe facturen, documenten, btw en inzicht in één omgeving samenkomen.</p></div><a class=\"mk-btn\" href=\"/hoe-het-werkt/\">Bekijk de software</a></div></section>\n<button class=\"kz-backtop\" id=\"kzBackTop\" type=\"button\" aria-label=\"Terug naar boven\">↑</button></main>";
  }else if(page==='features'){
   body=`<main><section class="marketing-page-hero"><span class="marketing-eyebrow">Functies</span><h1>Alles wat je dagelijks nodig hebt voor je administratie.</h1><p>Van verkoopfactuur tot kassabon en van bankregel tot btw-overzicht. Kwinest houdt de belangrijkste administratieve taken in één duidelijke omgeving.</p></section><section class="marketing-section" style="padding-top:24px"><div class="feature-grid">
    <article class="feature-card"><div class="feature-icon">01</div><h3>Facturen & creditfacturen</h3><p>Maak professionele facturen, leg betalingen vast en maak gekoppelde creditfacturen.</p></article>
@@ -964,56 +993,7 @@ function showMarketingPage(page='home'){
   </div></section><section class="marketing-cta"><div class="marketing-cta-box"><div><h2>Bekijk welk volume bij je past.</h2><p>Bundels beginnen bij 25 slimme verwerkingen per maand.</p></div><button class="mk-btn primary" onclick="location.href='/prijzen/'">Bekijk prijzen</button></div></section></main>`;
  }
  document.getElementById('authRoot').innerHTML=`<div class="marketing">${nav}${body}${footer}</div>`;
- if(page==='home'){
-   const productData={
-     facturen:{nav:'Facturen',title:'Facturen',action:'+ Nieuwe factuur',kicker:'Verkoop',heading:'Facturen maken en betalingen volgen.',text:'Maak verkoopfacturen, creditnota’s en houd bij wat nog openstaat.',c1:['Openstaand','In beeld'],c2:['PDF','Direct klaar'],c3:['Status','Te volgen'],phone:['Facturen','Nieuwe factuur','Maken · PDF · volgen'],href:'/facturen/',link:'Bekijk Facturen →'},
-     scanner:{nav:'Kosten',title:'Slimme scanner',action:'+ Document',kicker:'Documentherkenning',heading:'Van PDF of bonfoto naar controle.',text:'Laat leverancier, datum, bedragen en btw voorbereiden voordat jij de boeking bevestigt.',c1:['Bron','PDF + foto'],c2:['OCR','Beschikbaar'],c3:['Controle','Altijd eerst'],phone:['Scanner','Bon scannen','Foto · herkennen · controleren'],href:'/scanner/',link:'Bekijk Slimme scanner →'},
-     btw:{nav:'Btw',title:'Btw & bank',action:'Importeer CSV',kicker:'Controle',heading:'Btw en bankregels bij elkaar.',text:'Importeer transacties, koppel betalingen en volg je indicatieve btw-positie per kwartaal.',c1:['Bank','CSV import'],c2:['BTW','9% + 21%'],c3:['Matching','Te controleren'],phone:['Btw & bank','Kwartaalcheck','Bank · btw · matching'],href:'/btw-bank/',link:'Bekijk Btw & bank →'},
-     rapportages:{nav:'Rapportages',title:'Rapportages',action:'Bekijk periode',kicker:'Inzicht',heading:'Zie hoe je onderneming ervoor staat.',text:'Volg omzet, kosten, resultaat en openstaande posten vanuit dezelfde administratie.',c1:['Omzet','Actueel'],c2:['Kosten','In beeld'],c3:['Resultaat','Te volgen'],phone:['Rapportages','Mijn maand','Omzet · kosten · resultaat'],href:'/rapportages/',link:'Bekijk Rapportages →'}
-   };
-   const q=id=>document.getElementById(id);
-   const shell=q('kzProductShell');
-   const navItems=[...document.querySelectorAll('#kzBrowserNav span')];
-   const tabs=[...document.querySelectorAll('[data-kz-tab]')];
-   function setProduct(key){
-     const d=productData[key]; if(!d)return;
-     shell?.classList.add('is-changing');
-     tabs.forEach(t=>{const on=t.dataset.kzTab===key;t.classList.toggle('active',on);t.setAttribute('aria-pressed',String(on))});
-     navItems.forEach(n=>n.classList.toggle('active',n.textContent.trim()===d.nav));
-     setTimeout(()=>{
-       if(q('kzPreviewTitle'))q('kzPreviewTitle').textContent=d.title;
-       if(q('kzPreviewAction'))q('kzPreviewAction').textContent=d.action;
-       if(q('kzPreviewKicker'))q('kzPreviewKicker').textContent=d.kicker;
-       if(q('kzPreviewHeading'))q('kzPreviewHeading').textContent=d.heading;
-       if(q('kzPreviewText'))q('kzPreviewText').textContent=d.text;
-       if(q('kzCard1Label'))q('kzCard1Label').textContent=d.c1[0];
-       if(q('kzCard1Value'))q('kzCard1Value').textContent=d.c1[1];
-       if(q('kzCard2Label'))q('kzCard2Label').textContent=d.c2[0];
-       if(q('kzCard2Value'))q('kzCard2Value').textContent=d.c2[1];
-       if(q('kzCard3Label'))q('kzCard3Label').textContent=d.c3[0];
-       if(q('kzCard3Value'))q('kzCard3Value').textContent=d.c3[1];
-       if(q('kzPhoneKicker'))q('kzPhoneKicker').textContent=d.phone[0];
-       if(q('kzPhoneTitle'))q('kzPhoneTitle').textContent=d.phone[1];
-       if(q('kzPhoneText'))q('kzPhoneText').textContent=d.phone[2];
-       if(q('kzPreviewLink')){q('kzPreviewLink').href=d.href;q('kzPreviewLink').textContent=d.link}
-       shell?.classList.remove('is-changing');
-     },120);
-   }
-   tabs.forEach(t=>t.addEventListener('click',()=>setProduct(t.dataset.kzTab)));
-   setProduct('facturen');
-
-   const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-   const reveal=[...document.querySelectorAll('.kz-scroll')];
-   if(reduced||!('IntersectionObserver' in window)){reveal.forEach(el=>el.classList.add('in-view'))}
-   else{
-     const io=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in-view');io.unobserve(e.target)}}),{threshold:.12});
-     reveal.forEach(el=>io.observe(el));
-   }
-   const topBtn=q('kzBackTop');
-   const syncTop=()=>topBtn?.classList.toggle('show',window.scrollY>650);
-   window.addEventListener('scroll',syncTop,{passive:true});syncTop();
-   topBtn?.addEventListener('click',()=>window.scrollTo({top:0,behavior:reduced?'auto':'smooth'}));
- }
+ if(page==='home')initKwinestMarketingInteractions();
  window.scrollTo({top:0,behavior:'instant'});
 }
 function showAuth(mode='login'){
