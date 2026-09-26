@@ -23,6 +23,9 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 MAX_BYTES = int(os.getenv("MAX_FILE_BYTES", str(15 * 1024 * 1024)))
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6-sol")
 REQUEST_TIMEOUT = float(os.getenv("AI_TIMEOUT_SECONDS", "55"))
+RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "600"))
+RATE_LIMIT_MAX = int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "20"))
+_REQUEST_TIMES: dict[str, list[float]] = {}
 
 app = FastAPI(title="Kwinest Document Processor", version="2.0")
 app.add_middleware(
@@ -234,6 +237,48 @@ def own_matches(block:dict, company:dict)->bool:
     bname=norm_text(str(block.get("name") or "")).lower()
     return bool((cvat and bvat==cvat) or (ckvk and bkvk==ckvk) or (cname and bname and (cname in bname or bname in cname)))
 
+def allow_request(request: Request) -> bool:
+    now=time.time()
+    forwarded=(request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    ip=forwarded or (request.client.host if request.client else "unknown")
+    recent=[t for t in _REQUEST_TIMES.get(ip,[]) if now-t<RATE_LIMIT_WINDOW]
+    if len(recent)>=RATE_LIMIT_MAX:
+        _REQUEST_TIMES[ip]=recent
+        return False
+    recent.append(now)
+    _REQUEST_TIMES[ip]=recent
+    if len(_REQUEST_TIMES)>5000:
+        cutoff=now-RATE_LIMIT_WINDOW
+        for key in list(_REQUEST_TIMES.keys())[:2500]:
+            kept=[t for t in _REQUEST_TIMES.get(key,[]) if t>=cutoff]
+            if kept:_REQUEST_TIMES[key]=kept
+            else:_REQUEST_TIMES.pop(key,None)
+    return True
+
+def best_vat_pair(rate: float, vals: list[float]) -> tuple[float|None,float|None]:
+    nums=[abs(float(v)) for v in vals if _finite(v)]
+    if not nums:return None,None
+    if rate==0:
+        return (max(nums),0.0)
+    if len(nums)==1:
+        return None,nums[0]
+    best=None
+    for i,base in enumerate(nums):
+        for j,tax in enumerate(nums):
+            if i==j:continue
+            expected=base*rate/100
+            err=abs(expected-tax)
+            rel=err/max(.05,expected)
+            # Prefer arithmetically consistent pairs; totals/gross amounts score poorly as tax.
+            score=rel+(0.002*j)
+            if best is None or score<best[0]:best=(score,base,tax)
+    if best and best[0]<=.12:
+        return best[1],best[2]
+    # Fallback: on a VAT row the smallest positive monetary value is usually the tax.
+    tax=min(nums)
+    base=tax*100/rate if rate else None
+    return base,tax
+
 # ----------------------------- document extraction -----------------------------
 def extract_pdf(raw:bytes) -> dict[str,Any]:
     doc=fitz.open(stream=raw,filetype="pdf")
@@ -437,16 +482,15 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         rm=re.search(r"\b(0|9|21)\s*%",l)
         if not rm: continue
         vals=money_tokens(l); rate=float(rm.group(1))
-        if len(vals)>=2:
-            # choose last as tax, preceding as taxable unless obvious total line
-            vat_lines.append(VatLine(rate=rate,taxableAmount=abs(vals[-2]),vatAmount=abs(vals[-1])))
-        elif len(vals)==1 and rate>0:
-            vat_lines.append(VatLine(rate=rate,taxableAmount=None,vatAmount=abs(vals[-1])))
-    # de-dup same rate/value
+        taxable,tax=best_vat_pair(rate,vals)
+        if tax is not None:
+            vat_lines.append(VatLine(rate=rate,taxableAmount=round(taxable,2) if taxable is not None else None,vatAmount=round(tax,2)))
+    # De-duplicate repeated VAT summaries. Prefer rows with a taxable base.
     unique=[]; seen=set()
-    for v in vat_lines:
-        key=(v.rate,round(v.taxableAmount or -1,2),round(v.vatAmount or -1,2))
-        if key not in seen:seen.add(key);unique.append(v)
+    for v in sorted(vat_lines,key=lambda x:(x.taxableAmount is None,)):
+        key=(v.rate,round(v.vatAmount or 0,2))
+        if key not in seen:
+            seen.add(key);unique.append(v)
     vat_lines=unique[:8]
 
     iban=None
@@ -497,7 +541,11 @@ def validate_result(r:ExtractionResult,company:dict)->ExtractionResult:
     a=r.amounts
     tol=max(.05,abs(a.total or 0)*.002)
     if a.subtotal is not None and a.vatTotal is not None and a.total is not None:
-        expected=a.subtotal+a.vatTotal+(a.shipping or 0)-(a.discount or 0)
+        # Some invoices show subtotal after discount/shipping, others before. Accept the equation that best matches.
+        candidates=[a.subtotal+a.vatTotal]
+        if a.shipping is not None or a.discount is not None:
+            candidates.append(a.subtotal+a.vatTotal+(a.shipping or 0)-(a.discount or 0))
+        expected=min(candidates,key=lambda x:abs(x-a.total))
         if abs(expected-a.total)>tol:
             w.append(f"Bedragen sluiten niet aan: berekend {expected:.2f}, totaal {a.total:.2f}.")
             for key in ("subtotal","vatTotal","total"):r.confidence[key]=min(r.confidence.get(key,.5),.65)
@@ -609,7 +657,8 @@ def health():
 @app.post("/analyze")
 async def analyze(request:Request,file:UploadFile=File(...),company_json:str=Form("{}"),existing_json:str=Form("[]"),ocr_text:str=Form("")):
     origin=request.headers.get("origin")
-    if origin and origin!=APP_ORIGIN: raise HTTPException(403,"Origin not allowed")
+    if origin!=APP_ORIGIN: raise HTTPException(403,"Origin not allowed")
+    if not allow_request(request): raise HTTPException(429,"Te veel documentverwerkingen. Probeer het over enkele minuten opnieuw.")
     raw=await file.read(MAX_BYTES+1)
     if len(raw)>MAX_BYTES:raise HTTPException(413,"Bestand is te groot. Maximum is 15 MB.")
     if not raw:raise HTTPException(400,"Bestand is leeg.")
@@ -628,7 +677,14 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
     result=validate_result(result,company)
     # duplicate scoring against client-provided invoice index; server does not silently save anything
     dup=[]
-    sup=(result.supplier.name or "").lower().strip(); no=(result.invoice.invoiceNumber or "").lower().strip(); dt=result.invoice.invoiceDate; total=result.amounts.total
+    if result.documentType=="sales_invoice":
+        counterparty=result.customer.name
+    elif result.documentType=="credit_invoice":
+        if own_matches(result.supplier.model_dump(),company):counterparty=result.customer.name
+        else:counterparty=result.supplier.name
+    else:
+        counterparty=result.supplier.name
+    sup=(counterparty or "").lower().strip(); no=(result.invoice.invoiceNumber or "").lower().strip(); dt=result.invoice.invoiceDate; total=result.amounts.total
     for row in existing if isinstance(existing,list) else []:
         score=0; reasons=[]
         if no and no==str(row.get("invoiceNumber") or row.get("number") or "").lower().strip():score+=.5;reasons.append("factuurnummer")
