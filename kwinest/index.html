@@ -461,7 +461,7 @@ function buildProcessorExistingIndex(){
 async function extractDocumentServer(file,onProgress){
  if(file.size>15*1024*1024)throw new Error('Bestand is groter dan 15 MB. Verklein het bestand en probeer opnieuw.');
  onProgress?.('Document veilig naar documentprocessor v2 sturen…');
- const fd=new FormData();fd.append('file',file,file.name);fd.append('company_json',JSON.stringify(state.company||{}));fd.append('existing_json',JSON.stringify(buildProcessorExistingIndex()));
+ const fd=new FormData();fd.append('file',file,file.name);const c=state.company||{};fd.append('company_json',JSON.stringify({name:c.name||'',tradeName:c.tradeName||'',kvk:c.kvk||'',vat:c.vat||''}));fd.append('existing_json',JSON.stringify(buildProcessorExistingIndex()));
  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),120000);
  try{
   const r=await fetch(DOCUMENT_PROCESSOR_URL+'/analyze',{method:'POST',body:fd,signal:ctrl.signal});
@@ -697,7 +697,7 @@ async function handleInvoicePdfFile(e){
   if(structure.analysis){const serverCandidate=processorAnalysisToCandidate(structure.analysis,serverText,pendingUploadKind);parsed=applyRecognitionQuality(mergeAIParsed(parsed,serverCandidate,pendingUploadKind));parsed.sourceQuality=serverCandidate.sourceQuality;parsed.aiModel=serverCandidate.aiModel;parsed.aiWarnings=[...(parsed.aiWarnings||[]),...(serverCandidate.warnings||[])];if(structure.duplicateCandidates?.length&&!parsed.duplicateCandidate)parsed.duplicateCandidate={type:'server',label:'Bestaande factuur met overeenkomstige kenmerken'};}
   const pageConfs=(structure.pages||[]).map(p=>Number(p.ocrConfidence)).filter(Number.isFinite),avgOcr=pageConfs.length?pageConfs.reduce((a,b)=>a+b,0)/pageConfs.length:null;
   parsed.processor={kind:structure.kind,pageCount:structure.pageCount,ocrUsed:!!structure.ocrUsed,ocrPages:structure.ocrPages||[],ocrConfidence:avgOcr,tables:Number(structure.tableCount||(structure.tables||[]).length),warnings:structure.warnings||[],documentTypeHint:structure.documentTypeHint||''};
-  parsed.sha256=structure.sha256||'';parsed.pageCount=structure.pageCount??null;parsed.text=serverText;parsed.sourceQuality=structure.ocrUsed?'server-ocr':'server-document';parsed.documentType=classifyDocumentType(parsed,structure.documentTypeHint||'');parsed.isCredit=parsed.documentType==='credit_invoice'||!!parsed.isCredit;if(parsed.isCredit)parsed.status='credit';
+  parsed.sha256=structure.sha256||'';parsed.pageCount=structure.pageCount??null;parsed.text=serverText;if(!String(parsed.sourceQuality||'').startsWith('processor-v2'))parsed.sourceQuality=structure.ocrUsed?'server-ocr':'server-document';parsed.documentType=classifyDocumentType(parsed,structure.documentTypeHint||'');parsed.isCredit=parsed.documentType==='credit_invoice'||!!parsed.isCredit;if(parsed.isCredit)parsed.status='credit';
   parsed=applyRecognitionQuality(parsed);
  }catch(err){
   processorError=err?.message||'Documentverwerking mislukt';console.warn('Document processor',err);
