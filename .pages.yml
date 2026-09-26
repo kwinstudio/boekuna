@@ -26,20 +26,31 @@ content:
       - { name: footerText, label: Footer tekst, type: string }
 
   - name: djs
-    label: DJ demo-profielen
+    label: DJ profielen
     type: file
     path: data/djs.json
     format: json
     list: true
     fields:
+      - { name: id, label: Unieke ID, type: string }
       - { name: name, label: DJ naam, type: string }
       - { name: city, label: Plaats, type: string }
+      - { name: tagline, label: Korte omschrijving, type: string }
+      - { name: bio, label: Bio, type: text }
       - name: genres
         label: Genres
+        type: string
+        list: true
+      - name: eventTypes
+        label: Type evenementen
         type: string
         list: true
       - { name: price, label: Vanafprijs, type: number }
       - { name: rating, label: Rating, type: number }
       - { name: reviews, label: Aantal reviews, type: number }
       - { name: badge, label: Badge, type: string }
-      - { name: image, label: Afbeelding URL, type: string }
+      - { name: image, label: Hoofdfoto URL, type: string }
+      - { name: experience, label: Ervaring, type: string }
+      - { name: availability, label: Beschikbaarheid, type: string }
+      - { name: equipment, label: Apparatuur, type: string }
+      - { name: languages, label: Talen, type: string }
