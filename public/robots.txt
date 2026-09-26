@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://kwinest-boekhouding.onrender.com/sitemap.xml
