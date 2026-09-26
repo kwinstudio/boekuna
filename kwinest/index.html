@@ -1417,6 +1417,111 @@ img.bookuna-logo-icon,
   outline:none!important;
 }
 
+
+/* Boekuna marketing footer v2 */
+.marketing .marketing-footer.marketing-footer-v2{
+  background:#F4F8F6!important;
+  color:#202B33!important;
+  border-top:1px solid #DCE8E3!important;
+}
+.marketing .marketing-footer-grid{
+  max-width:1200px;
+  margin:auto;
+  padding:54px 22px 42px;
+  display:grid;
+  grid-template-columns:minmax(280px,1.35fr) repeat(3,minmax(145px,.72fr));
+  gap:48px;
+}
+.marketing .marketing-footer-brand{min-width:0}
+.marketing .marketing-footer-logo{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  width:max-content;
+  margin-bottom:18px;
+  color:#202B33!important;
+  font-size:22px;
+  letter-spacing:-.04em;
+}
+.marketing .marketing-footer-logo strong{color:#202B33!important}
+.marketing .marketing-footer-logo-mark{
+  width:42px;
+  height:42px;
+  flex:0 0 42px;
+  background-image:var(--boekuna-master-icon);
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:contain;
+}
+.marketing .marketing-footer-brand p{
+  max-width:390px;
+  margin:0;
+  color:#61706B!important;
+  font-size:14px!important;
+  line-height:1.7!important;
+}
+.marketing .marketing-footer-cta{
+  display:inline-flex;
+  margin-top:18px;
+  color:#087F96!important;
+  font-size:13px!important;
+  font-weight:850;
+}
+.marketing .marketing-footer-cta:hover{text-decoration:underline;text-underline-offset:4px}
+.marketing .marketing-footer-col{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:10px;
+}
+.marketing .marketing-footer-col h4{
+  margin:3px 0 7px;
+  color:#202B33!important;
+  font-size:13px!important;
+}
+.marketing .marketing-footer-col a{
+  color:#61706B!important;
+  font-size:13px!important;
+  line-height:1.45;
+  padding:2px 0;
+  transition:color .16s ease,transform .16s ease;
+}
+@media(hover:hover) and (pointer:fine){
+  .marketing .marketing-footer-col a:hover{color:#087F96!important;transform:translateX(2px)}
+}
+.marketing .marketing-footer-bottom{
+  max-width:1200px;
+  margin:auto;
+  padding:20px 22px 26px;
+  border-top:1px solid #DCE8E3;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  flex-wrap:wrap;
+  color:#76837E!important;
+  font-size:11px!important;
+}
+.marketing .marketing-footer-status{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  color:#4F625B!important;
+  font-weight:750;
+}
+.marketing .marketing-footer-status i{
+  width:8px;height:8px;border-radius:50%;background:#08A9C5;flex:0 0 8px;
+}
+@media(max-width:900px){
+  .marketing .marketing-footer-grid{grid-template-columns:1.2fr 1fr 1fr;gap:34px 28px}
+  .marketing .marketing-footer-brand{grid-column:1/-1}
+}
+@media(max-width:620px){
+  .marketing .marketing-footer-grid{grid-template-columns:1fr 1fr;padding:40px 15px 30px;gap:32px 20px}
+  .marketing .marketing-footer-brand{grid-column:1/-1}
+  .marketing .marketing-footer-bottom{padding:18px 15px 24px;align-items:flex-start;flex-direction:column;gap:8px}
+}
+
 </style>
 </head>
 <body>
@@ -1581,7 +1686,42 @@ function marketingNav(page){
  </div>`;
 }
 function marketingFooter(){
- return `<footer class="marketing-footer"><div class="marketing-footer-inner"><div><strong>Boekuna</strong><br><span>Boekhouden voor ondernemers die minder willen overtypen en meer grip willen op hun administratie.</span></div><div style="display:flex;gap:8px;flex-wrap:wrap"><a class="mk-btn" href="/functies/">Oplossingen</a><a class="mk-btn" href="/prijzen/">Prijzen</a><a class="mk-btn" href="/faq/">FAQ</a><a class="mk-btn primary" href="/?login=1">Inloggen</a></div></div></footer>`;
+ return `<footer class="marketing-footer marketing-footer-v2">
+   <div class="marketing-footer-grid">
+     <div class="marketing-footer-brand">
+       <a class="marketing-footer-logo" href="/"><span class="marketing-footer-logo-mark" aria-hidden="true"></span><strong>Boekuna</strong></a>
+       <p>Boekhouden voor ondernemers die minder willen overtypen, sneller willen controleren en meer grip willen op hun administratie.</p>
+       <a class="marketing-footer-cta" href="/hoe-het-werkt/">Bekijk hoe Boekuna werkt →</a>
+     </div>
+     <nav class="marketing-footer-col" aria-label="Oplossingen">
+       <h4>Oplossingen</h4>
+       <a href="/functies/">Alle functies</a>
+       <a href="/scanner/">Slimme scanner</a>
+       <a href="/facturen/">Facturen</a>
+       <a href="/btw-bank/">Btw & bank</a>
+       <a href="/rapportages/">Rapportages</a>
+     </nav>
+     <nav class="marketing-footer-col" aria-label="Voor ondernemers">
+       <h4>Voor ondernemers</h4>
+       <a href="/voor-ondernemers/#zzp">ZZP & freelance</a>
+       <a href="/voor-ondernemers/#klein-bedrijf">Kleine bedrijven</a>
+       <a href="/voor-ondernemers/#veel-documenten">Veel documenten</a>
+       <a href="/prijzen/">Prijzen</a>
+     </nav>
+     <nav class="marketing-footer-col" aria-label="Resources">
+       <h4>Resources</h4>
+       <a href="/hoe-het-werkt/">Product tour</a>
+       <a href="/faq/">FAQ</a>
+       <a href="/veiligheid/">Veiligheid & privacy</a>
+       <a href="/over/">Over Boekuna</a>
+     </nav>
+   </div>
+   <div class="marketing-footer-bottom">
+     <span>© 2026 Boekuna</span>
+     <span class="marketing-footer-status"><i aria-hidden="true"></i> Product in actieve ontwikkeling</span>
+     <span>Functionaliteit en prijzen kunnen vóór publieke lancering nog wijzigen.</span>
+   </div>
+ </footer>`;
 }
 function goMarketingPage(page='home',push=true){
  lastMarketingPage=page;
