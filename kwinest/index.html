@@ -76,6 +76,26 @@
 .marketing-band h2{font-size:clamp(32px,4vw,52px);line-height:1.03;letter-spacing:-.055em;margin:0}.marketing-band p{color:#aac0b8;font-size:14px;line-height:1.7}
 .steps{display:grid;gap:10px}.step{display:grid;grid-template-columns:42px 1fr;gap:13px;padding:17px;border:1px solid rgba(255,255,255,.1);border-radius:15px;background:rgba(255,255,255,.035)}.step-num{width:34px;height:34px;border-radius:10px;background:var(--accent);color:#17220c;display:grid;place-items:center;font-size:11px;font-weight:900}.step strong{display:block;font-size:13px;margin:2px 0 4px}.step span{font-size:11px;color:#9eb4ac;line-height:1.5}
 .marketing-cta{max-width:1180px;margin:0 auto;padding:72px 22px 86px}.marketing-cta-box{background:linear-gradient(135deg,#eaf8c8,#d6ff6b);border-radius:25px;padding:50px;display:flex;justify-content:space-between;align-items:center;gap:30px;overflow:hidden;position:relative}.marketing-cta-box:after{content:"";position:absolute;width:260px;height:260px;border:1px solid rgba(23,34,12,.1);border-radius:50%;right:-80px;top:-120px}.marketing-cta-box h2{font-size:34px;letter-spacing:-.05em;line-height:1.05;margin:0 0 8px;max-width:650px}.marketing-cta-box p{margin:0;color:#425126;font-size:13px}
+
+.marketing-trust{max-width:1180px;margin:-20px auto 0;padding:0 22px 42px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.trust-card{background:#fff;border:1px solid #e1e7e4;border-radius:15px;padding:16px}.trust-card strong{display:block;font-size:13px;margin-bottom:5px}.trust-card span{font-size:10px;color:#6d7974;line-height:1.5}
+.pricing-wrap{background:#eef2ef;border-top:1px solid #e0e6e3;border-bottom:1px solid #e0e6e3}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.price-card{background:#fff;border:1px solid #dce4e0;border-radius:20px;padding:26px;position:relative;display:flex;flex-direction:column;min-height:430px}
+.price-card.featured{border:1.5px solid #17392f;box-shadow:0 20px 55px rgba(16,37,31,.11)}
+.price-pill{position:absolute;right:18px;top:18px;background:var(--accent);color:#17220c;border-radius:999px;padding:6px 9px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}
+.price-card h3{font-size:20px;margin:0 0 6px;letter-spacing:-.035em}.price-for{color:#697670;font-size:11px;line-height:1.5;min-height:34px}
+.price{display:flex;align-items:flex-end;gap:6px;margin:22px 0 6px}.price strong{font-size:43px;line-height:1;letter-spacing:-.06em}.price span{font-size:11px;color:#71807a;padding-bottom:5px}
+.price-vat{font-size:9px;color:#89938f;margin-bottom:20px}.price-divider{height:1px;background:#e6ebe8;margin:0 0 18px}
+.price-list{display:grid;gap:11px;margin-bottom:24px;flex:1}.price-list div{display:flex;gap:8px;font-size:11px;line-height:1.45}.price-list div:before{content:"✓";color:#456713;font-weight:900}
+.price-card .mk-btn{width:100%;justify-content:center}
+.feature-deep{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;align-items:stretch;margin-top:16px}
+.deep-panel{border-radius:20px;padding:28px;border:1px solid #e0e6e3;background:#fff}.deep-panel.dark{background:#10251f;color:#fff;border-color:#10251f}.deep-panel h3{font-size:25px;letter-spacing:-.04em;margin:0 0 12px}.deep-panel p{font-size:12px;line-height:1.7;color:#6b7873}.deep-panel.dark p{color:#aac0b8}
+.deep-list{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:22px}.deep-item{border:1px solid #e4e9e6;border-radius:12px;padding:12px;font-size:10px;line-height:1.45}.dark .deep-item{border-color:rgba(255,255,255,.1);background:rgba(255,255,255,.035);color:#c3d5cf}
+.faq-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.faq-item{background:#fff;border:1px solid #e0e6e3;border-radius:16px;padding:20px}.faq-item strong{display:block;font-size:13px;margin-bottom:7px}.faq-item p{font-size:11px;color:#697670;line-height:1.6;margin:0}
+.pricing-note{margin-top:16px;font-size:10px;color:#78847f;line-height:1.6;text-align:center}
+@media(max-width:900px){.marketing-trust{grid-template-columns:repeat(2,1fr)}.pricing-grid{grid-template-columns:1fr}.feature-deep{grid-template-columns:1fr}.faq-grid{grid-template-columns:1fr}}
+@media(max-width:620px){.marketing-trust{grid-template-columns:1fr;padding:0 15px 34px}.deep-list{grid-template-columns:1fr}.price-card{min-height:0}}
 .marketing-footer{border-top:1px solid #e1e6e3}.marketing-footer-inner{max-width:1180px;margin:auto;padding:28px 22px 42px;display:flex;align-items:center;justify-content:space-between;gap:20px;color:#77827e;font-size:10px}
 .back-to-site{border:0;background:transparent;padding:0 0 18px;color:#4e665d;font-weight:800;font-size:11px}
 @media(max-width:900px){.marketing-links{display:none}.marketing-hero{grid-template-columns:1fr;padding-top:58px}.product-window{transform:none;max-width:620px}.feature-grid{grid-template-columns:repeat(2,1fr)}.marketing-band-inner{grid-template-columns:1fr;gap:32px}.marketing-cta-box{align-items:flex-start;flex-direction:column}}
@@ -222,17 +242,17 @@ function showLanding(){
  document.getElementById('authRoot').innerHTML=`<div class="marketing">
   <nav class="marketing-nav"><div class="marketing-nav-inner">
    <button class="marketing-logo" onclick="window.scrollTo({top:0,behavior:'smooth'})" style="border:0;background:transparent;padding:0"><span class="brandmark">K</span><span>Kwinest</span></button>
-   <div class="marketing-links"><a href="#mogelijkheden">Mogelijkheden</a><a href="#werkwijze">Zo werkt het</a><a href="#start">Starten</a></div>
-   <div class="marketing-actions"><button class="mk-btn" onclick="document.getElementById('mogelijkheden')?.scrollIntoView({behavior:'smooth'})">Bekijk functies</button><button class="mk-btn primary" onclick="showAuth('login')">Inloggen</button></div>
+   <div class="marketing-links"><a href="#mogelijkheden">Functies</a><a href="#werkwijze">Zo werkt het</a><a href="#prijzen">Prijzen</a><a href="#faq">FAQ</a></div>
+   <div class="marketing-actions"><button class="mk-btn" onclick="document.getElementById('prijzen')?.scrollIntoView({behavior:'smooth'})">Bekijk prijzen</button><button class="mk-btn primary" onclick="showAuth('login')">Inloggen</button></div>
   </div></nav>
   <main>
    <section class="marketing-hero">
     <div>
-     <span class="marketing-eyebrow">Boekhouden voor ondernemers</span>
-     <h1>Meer grip op je administratie. Minder gedoe.</h1>
-     <p>Kwinest brengt facturen, bonnen, kosten, btw, bankregels en rapportages samen in één rustige omgeving. Upload een document of maak een foto van een bon en controleer de herkende gegevens voordat je ze boekt.</p>
-     <div class="marketing-hero-actions"><button class="mk-btn primary" onclick="showAuth('login')">Inloggen</button><button class="mk-btn" onclick="document.getElementById('mogelijkheden')?.scrollIntoView({behavior:'smooth'})">Ontdek Kwinest</button></div>
-     <div class="marketing-proof"><span>Facturen & kosten</span><span>Bonnen en PDF herkennen</span><span>Btw-overzicht</span><span>Rapportages</span></div>
+     <span class="marketing-eyebrow">Slim boekhouden voor ondernemers</span>
+     <h1>Je administratie geregeld zonder boekhoudchaos.</h1>
+     <p>Kwinest brengt facturen, bonnen, kosten, btw, bankregels, documenten en rapportages samen in één rustige omgeving. Upload een factuur of maak een foto van een bon; Kwinest helpt de gegevens herkennen en jij controleert vóór er iets wordt geboekt.</p>
+     <div class="marketing-hero-actions"><button class="mk-btn primary" onclick="showAuth('login')">Inloggen</button><button class="mk-btn" onclick="document.getElementById('prijzen')?.scrollIntoView({behavior:'smooth'})">Vanaf €9,95 p/m</button></div>
+     <div class="marketing-proof"><span>Facturen & creditnota’s</span><span>Bonnen en PDF herkennen</span><span>Btw-overzicht</span><span>Rapportages</span></div>
     </div>
     <div class="product-window" aria-label="Voorbeeld van de Kwinest omgeving">
      <div class="product-window-top"><i class="product-dot"></i><i class="product-dot"></i><i class="product-dot"></i></div>
@@ -242,21 +262,60 @@ function showLanding(){
      </div>
     </div>
    </section>
+
+   <section class="marketing-trust">
+    <div class="trust-card"><strong>Controle vóór boeken</strong><span>Herkende gegevens worden eerst aan jou getoond voordat ze in de administratie komen.</span></div>
+    <div class="trust-card"><strong>PDF én foto</strong><span>Upload facturen, scans en bonnetjes of kies direct een foto vanaf je telefoon.</span></div>
+    <div class="trust-card"><strong>Alles op één plek</strong><span>Facturen, kosten, relaties, bankregels, btw en documenten in dezelfde omgeving.</span></div>
+    <div class="trust-card"><strong>Voor Nederlandse ondernemers</strong><span>Met Nederlandse btw-tarieven, KVK-, IBAN- en factuurgegevens als uitgangspunt.</span></div>
+   </section>
+
    <section class="marketing-section" id="mogelijkheden">
-    <div class="marketing-section-head"><h2>Van bon tot btw-overzicht in dezelfde omgeving.</h2><p>Kwinest is gemaakt om dagelijkse administratie sneller en overzichtelijker te maken, zonder dat je voor iedere handeling naar een andere tool hoeft.</p></div>
+    <div class="marketing-section-head"><span class="marketing-eyebrow">Mogelijkheden</span><h2 style="margin-top:16px">Van eerste bon tot compleet financieel overzicht.</h2><p>De belangrijkste dagelijkse boekhoudtaken zitten bij elkaar, zodat je minder tijd kwijt bent aan losse bestanden en handmatig overtypen.</p></div>
     <div class="feature-grid">
-     <article class="feature-card"><div class="feature-icon">01</div><h3>Professionele facturen</h3><p>Maak verkoopfacturen, creditfacturen en PDF’s met je eigen bedrijfsgegevens, betaaltermijn en btw.</p></article>
-     <article class="feature-card"><div class="feature-icon">02</div><h3>Bonnen fotograferen</h3><p>Kies een foto of gebruik je camera. Kwinest leest waar mogelijk winkel, datum, btw en totaalbedrag uit.</p></article>
-     <article class="feature-card"><div class="feature-icon">03</div><h3>Slimme documentherkenning</h3><p>Verwerk PDF-facturen, scans en meerdere bestandsformaten. Gegevens worden eerst aan je getoond ter controle.</p></article>
-     <article class="feature-card"><div class="feature-icon">04</div><h3>Kosten en leveranciers</h3><p>Boek zakelijke kosten, koppel leveranciers en houd de originele documenten bij je administratie.</p></article>
-     <article class="feature-card"><div class="feature-icon">05</div><h3>Bank & btw</h3><p>Importeer bankregels via CSV, koppel transacties en bekijk je indicatieve btw-positie per kwartaal.</p></article>
-     <article class="feature-card"><div class="feature-icon">06</div><h3>Rapportages en controle</h3><p>Zie omzet, kosten, openstaande posten en aandachtspunten zonder door losse spreadsheets te zoeken.</p></article>
+     <article class="feature-card"><div class="feature-icon">01</div><h3>Professionele facturen</h3><p>Maak verkoopfacturen, creditfacturen en A4-PDF’s met je eigen bedrijfsgegevens, logo, betaaltermijn en btw.</p></article>
+     <article class="feature-card"><div class="feature-icon">02</div><h3>Bonnen fotograferen</h3><p>Kies een foto of gebruik je camera. Ook iPhone HEIC/HEIF wordt ondersteund bij het uitlezen.</p></article>
+     <article class="feature-card"><div class="feature-icon">03</div><h3>Slimme documentherkenning</h3><p>Verwerk digitale PDF’s, scans, meerdere pagina’s, Word, Excel en andere ondersteunde documenten.</p></article>
+     <article class="feature-card"><div class="feature-icon">04</div><h3>Kosten en leveranciers</h3><p>Boek zakelijke kosten, bewaar de originele documenten en koppel ze aan de juiste leverancier.</p></article>
+     <article class="feature-card"><div class="feature-icon">05</div><h3>Bank & matching</h3><p>Importeer bankregels via CSV en koppel transacties aan facturen of kosten vanuit één overzicht.</p></article>
+     <article class="feature-card"><div class="feature-icon">06</div><h3>Btw per kwartaal</h3><p>Bekijk omzet op 9% en 21%, voorbelasting en een indicatie van het te betalen of terug te vragen bedrag.</p></article>
+     <article class="feature-card"><div class="feature-icon">07</div><h3>Rapportages</h3><p>Volg omzet, kosten, resultaat, openstaande posten en genereer een helder boekhoudrapport.</p></article>
+     <article class="feature-card"><div class="feature-icon">08</div><h3>Controlecentrum</h3><p>Zie dubbele factuurnummers, open bankregels, achterstallige facturen en andere aandachtspunten sneller.</p></article>
+     <article class="feature-card"><div class="feature-icon">09</div><h3>Back-up & auditlog</h3><p>Exporteer je administratie, houd mutaties bij en herstel gegevens vanuit een back-up wanneer nodig.</p></article>
+    </div>
+    <div class="feature-deep">
+      <div class="deep-panel dark"><h3>Documenten niet blind automatisch boeken.</h3><p>Automatisering is handig, maar bedragen en btw moeten kloppen. Daarom is de kern van Kwinest: herkennen, controleren en dán pas opslaan.</p><div class="deep-list"><div class="deep-item">Factuurnummer & datum</div><div class="deep-item">Leverancier of klant</div><div class="deep-item">Excl. btw, btw en totaal</div><div class="deep-item">9% / 21% en gemengde btw</div><div class="deep-item">Creditfacturen</div><div class="deep-item">Dubbele documenten signaleren</div></div></div>
+      <div class="deep-panel"><h3>Gemaakt voor dagelijks gebruik.</h3><p>Geen boekhoudscherm vol vakjargon als dat niet nodig is. Je ziet wat er binnenkomt, wat openstaat en wat aandacht nodig heeft.</p><div class="deep-list"><div class="deep-item">Dashboard met acties</div><div class="deep-item">Relaties centraal</div><div class="deep-item">Openstaande posten</div><div class="deep-item">Betalingen registreren</div><div class="deep-item">Uren & ritten</div><div class="deep-item">Documentarchief</div></div></div>
     </div>
    </section>
-   <section class="marketing-band" id="werkwijze"><div class="marketing-band-inner"><div><span class="marketing-eyebrow" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:#c8d8d2">Zo werkt het</span><h2 style="margin-top:18px">Administratie die je stap voor stap begeleidt.</h2><p>Kwinest automatiseert waar het kan, maar laat financiële gegevens niet blind verdwijnen in je boekhouding.</p></div><div class="steps"><div class="step"><div class="step-num">1</div><div><strong>Voeg een factuur, bon of transactie toe</strong><span>Upload een document, kies een foto of maak zelf een boeking.</span></div></div><div class="step"><div class="step-num">2</div><div><strong>Kwinest helpt de gegevens structureren</strong><span>Documenten worden uitgelezen en bedragen, datums en btw worden waar mogelijk herkend.</span></div></div><div class="step"><div class="step-num">3</div><div><strong>Jij controleert vóór het opslaan</strong><span>Pas gegevens aan wanneer nodig en boek pas als alles klopt.</span></div></div></div></div></section>
-   <section class="marketing-cta" id="start"><div class="marketing-cta-box"><div><h2>Je administratie overzichtelijker maken?</h2><p>Log in om Kwinest te openen en verder te werken aan je administratie.</p></div><button class="mk-btn primary" onclick="showAuth('login')">Naar inloggen</button></div></section>
+
+   <section class="marketing-band" id="werkwijze"><div class="marketing-band-inner"><div><span class="marketing-eyebrow" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:#c8d8d2">Zo werkt het</span><h2 style="margin-top:18px">Van document naar boeking in drie duidelijke stappen.</h2><p>Kwinest neemt repetitief werk uit handen, maar jij houdt controle over financiële gegevens.</p></div><div class="steps"><div class="step"><div class="step-num">1</div><div><strong>Upload of fotografeer</strong><span>Voeg een PDF, scan of bonfoto toe. Bankregels kun je via CSV importeren.</span></div></div><div class="step"><div class="step-num">2</div><div><strong>Kwinest leest en controleert</strong><span>Waar mogelijk worden leverancier, factuurnummer, datums, btw en bedragen voor je voorbereid.</span></div></div><div class="step"><div class="step-num">3</div><div><strong>Jij controleert en slaat op</strong><span>Corrigeer waar nodig en boek alleen wanneer de gegevens volgens jou kloppen.</span></div></div></div></div></section>
+
+   <div class="pricing-wrap" id="prijzen"><section class="marketing-section">
+    <div class="marketing-section-head"><span class="marketing-eyebrow">Introductieprijzen</span><h2 style="margin-top:16px">Kies hoeveel automatisering je nodig hebt.</h2><p>Heldere pakketten voor zelfstandigen en kleine ondernemingen. Prijzen zijn per maand en exclusief btw.</p></div>
+    <div class="pricing-grid">
+      <article class="price-card"><h3>Solo</h3><div class="price-for">Voor starters die vooral facturen, kosten en btw overzichtelijk willen houden.</div><div class="price"><strong>€9,95</strong><span>/ maand</span></div><div class="price-vat">excl. btw</div><div class="price-divider"></div><div class="price-list"><div>Facturen en creditfacturen</div><div>Kosten en leveranciers</div><div>Btw-overzicht</div><div>Relaties</div><div>Bank CSV import</div><div>Rapportages</div></div><button class="mk-btn" onclick="showAuth('login')">Inloggen</button></article>
+      <article class="price-card featured"><span class="price-pill">Aanbevolen</span><h3>Slim</h3><div class="price-for">Voor ondernemers die documenten en bonnetjes sneller willen verwerken.</div><div class="price"><strong>€19,95</strong><span>/ maand</span></div><div class="price-vat">excl. btw</div><div class="price-divider"></div><div class="price-list"><div>Alles van Solo</div><div>PDF-facturen slim uitlezen</div><div>Bonnen fotograferen</div><div>OCR voor scans en foto’s</div><div>Documentcontrole vóór boeken</div><div>Controlecentrum en auditlog</div></div><button class="mk-btn primary" onclick="showAuth('login')">Inloggen</button></article>
+      <article class="price-card"><h3>Compleet</h3><div class="price-for">Voor ondernemers die de volledige Kwinest-omgeving willen gebruiken.</div><div class="price"><strong>€29,95</strong><span>/ maand</span></div><div class="price-vat">excl. btw</div><div class="price-divider"></div><div class="price-list"><div>Alles van Slim</div><div>Uren- en rittenregistratie</div><div>Uitgebreide rapportages</div><div>Versiegeschiedenis en herstel</div><div>Documentarchief</div><div>Nieuwe automatiseringen zodra beschikbaar</div></div><button class="mk-btn" onclick="showAuth('login')">Inloggen</button></article>
+    </div>
+    <div class="pricing-note">Bankkoppeling via PSD2, Peppol en rechtstreeks indienen bij de Belastingdienst zijn nog niet onderdeel van de huidige versie. Kwinest toont alleen functies als beschikbaar wanneer ze daadwerkelijk zijn aangesloten.</div>
+   </section></div>
+
+   <section class="marketing-section" id="faq">
+    <div class="marketing-section-head"><span class="marketing-eyebrow">Veelgestelde vragen</span><h2 style="margin-top:16px">Voor je begint.</h2></div>
+    <div class="faq-grid">
+      <div class="faq-item"><strong>Kan ik een kassabon met mijn telefoon fotograferen?</strong><p>Ja. Je kunt direct je camera openen of een bestaande foto kiezen. De scanner ondersteunt gangbare fotoformaten en ook HEIC/HEIF van iPhone.</p></div>
+      <div class="faq-item"><strong>Boekt Kwinest automatisch zonder dat ik iets controleer?</strong><p>Nee. Bij financiële documenten krijg je eerst een controlescherm te zien. Jij bepaalt wat uiteindelijk wordt opgeslagen.</p></div>
+      <div class="faq-item"><strong>Kan ik PDF-facturen uploaden?</strong><p>Ja. Digitale PDF’s, scans en meerpagina-documenten kunnen worden verwerkt. Waar nodig wordt OCR gebruikt.</p></div>
+      <div class="faq-item"><strong>Kan Kwinest mijn btw-aangifte al rechtstreeks indienen?</strong><p>Nog niet. De huidige versie maakt een indicatief btw-overzicht. De officiële aangifte dien je nog via de Belastingdienst of ondersteunde aangiftesoftware in.</p></div>
+      <div class="faq-item"><strong>Heeft Kwinest al een live bankkoppeling?</strong><p>Nog niet. Je kunt banktransacties nu via CSV importeren en vervolgens koppelen aan facturen of kosten.</p></div>
+      <div class="faq-item"><strong>Kan ik mijn administratie exporteren?</strong><p>Ja. Er zijn back-up- en exportfuncties aanwezig, waaronder een administratieback-up en auditlog-export.</p></div>
+    </div>
+   </section>
+
+   <section class="marketing-cta" id="start"><div class="marketing-cta-box"><div><h2>Begin met een rustigere administratie.</h2><p>Bekijk Kwinest vanaf €9,95 per maand en houd facturen, kosten, documenten en btw bij elkaar.</p></div><button class="mk-btn primary" onclick="showAuth('login')">Naar inloggen</button></div></section>
   </main>
-  <footer class="marketing-footer"><div class="marketing-footer-inner"><div><strong style="color:#263832">Kwinest</strong> · Boekhouden voor ondernemers</div><button class="mk-btn" onclick="showAuth('login')">Inloggen</button></div></footer>
+  <footer class="marketing-footer"><div class="marketing-footer-inner"><div><strong style="color:#263832">Kwinest</strong> · Slim boekhouden voor ondernemers · vanaf €9,95 p/m excl. btw</div><button class="mk-btn" onclick="showAuth('login')">Inloggen</button></div></footer>
  </div>`;
  window.scrollTo({top:0,behavior:'instant'});
 }
