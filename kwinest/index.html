@@ -883,6 +883,100 @@ html,body,#authRoot,.marketing,.main,.content{background:#F8FAFC!important;color
   .kz-tabs{margin:14px auto 10px!important;padding:0 15px!important;gap:6px!important}
   .kz-product-stage{margin-bottom:34px!important;padding:0 15px!important}
 }
+
+/* Definitive desktop background hierarchy */
+@media (min-width:901px){
+  .marketing,
+  .marketing main{
+    background:#FFFFFF!important;
+  }
+
+  /* Core white canvas */
+  .kz-hero,
+  .kz-tabs,
+  .kz-product-stage,
+  .kz-benefit,
+  .kz-reasons,
+  .kz-audience,
+  .kz-facts,
+  .kz-support,
+  .kz-final{
+    background:#FFFFFF!important;
+  }
+
+  /* One single supporting surface tone */
+  .kz-product-shell,
+  .kz-visual{
+    background:#F3F8F5!important;
+    border-color:#E2EAE6!important;
+  }
+
+  .kz-trust-strip,
+  .kz-solutions-section,
+  .kz-plan{
+    background:#F7FAF8!important;
+    border-color:#E5ECE8!important;
+  }
+
+  /* Cards stay clean instead of adding another page background */
+  .kz-solution,
+  .kz-reason,
+  .kz-support-card{
+    background:#FFFFFF!important;
+    border-color:#E1E8E5!important;
+  }
+
+  /* Only selected cards get very soft variation */
+  .kz-solution:nth-child(2),
+  .kz-solution:nth-child(5){
+    background:#F0F7F3!important;
+  }
+
+  .kz-audience-card:nth-child(1){
+    background:#EDF7F2!important;
+  }
+  .kz-audience-card:nth-child(2){
+    background:#F3F2F8!important;
+  }
+  .kz-audience-card:nth-child(3){
+    background:#FAF2ED!important;
+  }
+
+  /* Dark contrast section remains intentional */
+  .kz-apps{
+    background:#20292E!important;
+  }
+
+  /* Remove accidental grey strips around the main preview */
+  .kz-tabs,
+  .kz-product-stage{
+    box-shadow:none!important;
+  }
+
+  .kz-tabs{
+    margin-top:18px!important;
+    margin-bottom:12px!important;
+  }
+
+  .kz-product-stage{
+    margin-top:0!important;
+  }
+
+  /* Browser mockup */
+  .kz-browser-main{
+    background:#F8FAF9!important;
+  }
+  .kz-browser-banner,
+  .kz-browser-card{
+    background:#FFFFFF!important;
+    border-color:#E2E9E6!important;
+  }
+
+  /* Keep CTA visually separate without introducing another gradient */
+  .kz-final-box{
+    background:#08A9C5!important;
+  }
+}
 </style>
 </head>
 <body>
