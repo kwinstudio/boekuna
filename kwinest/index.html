@@ -2076,13 +2076,19 @@ async function verifyMfaEnrollment(){const f=document.getElementById('mfaEnrollF
 async function disableMfa(factorId){if(!confirm('Tweestapsverificatie uitschakelen? Je account is daarna alleen met je wachtwoord beveiligd.'))return;try{const sb=await getSupabase();const {error}=await sb.auth.mfa.unenroll({factorId});if(error)throw error;await sb.auth.refreshSession();closeModal();toast('Tweestapsverificatie is uitgeschakeld')}catch(e){toast(e?.message||'Tweestapsverificatie kon niet worden uitgeschakeld')}}
 async function initAuth(){
  document.getElementById('mainApp').style.display='none';
- const wantsLogin=new URL(location.href).searchParams.get('login')==='1';
+ const url=new URL(location.href);
+ const wantsLogin=url.searchParams.get('login')==='1';
+ const hashParams=new URLSearchParams((location.hash||'').replace(/^#/,''));
+ const isRecovery=hashParams.get('type')==='recovery';
  try{
   const sb=await getSupabase();
   const {data:{session},error:sessionError}=await sb.auth.getSession();
   if(sessionError)throw sessionError;
 
-  if(session?.user){
+  if(isRecovery&&session?.user){
+   currentUser={id:session.user.id,email:session.user.email||'',supabaseUser:session.user};
+   showResetPassword();
+  }else if(session?.user){
    if(!(await requireMfaForUser(session.user))){
     await hydrateCloudAccount(session.user);
     enterApp();
@@ -2095,10 +2101,13 @@ async function initAuth(){
 
   sb.auth.onAuthStateChange((event,nextSession)=>{
    if(event==='PASSWORD_RECOVERY'){
-    setTimeout(showResetPassword,0);
+    setTimeout(()=>{
+     if(nextSession?.user)currentUser={id:nextSession.user.id,email:nextSession.user.email||'',supabaseUser:nextSession.user};
+     showResetPassword();
+    },0);
     return;
    }
-   if(event==='SIGNED_IN'&&nextSession?.user){
+   if(event==='SIGNED_IN'&&nextSession?.user&&!isRecovery){
     setTimeout(async()=>{
      try{
       if(!(await requireMfaForUser(nextSession.user))){
@@ -2120,9 +2129,9 @@ async function initAuth(){
   });
  }catch(e){
   console.error('Supabase auth init failed',e);
-  if(wantsLogin){
+  if(wantsLogin||isRecovery){
    showAuth('login');
-   authError('Supabase Auth kon niet worden gestart. Vernieuw de pagina en probeer opnieuw.');
+   authError(isRecovery?'De herstel-link kon niet worden verwerkt. Vraag een nieuwe herstel-link aan.':'Supabase Auth kon niet worden gestart. Vernieuw de pagina en probeer opnieuw.');
   }else{
    showLanding();
   }
