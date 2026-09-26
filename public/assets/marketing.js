@@ -1,4 +1,10 @@
-function toggleMenu(){document.getElementById('mobileMenu')?.classList.toggle('open')}
+function toggleMenu(){
+ const menu=document.getElementById('mobileMenu');
+ const btn=document.querySelector('.mobile-toggle');
+ if(!menu)return;
+ const open=menu.classList.toggle('open');
+ if(btn)btn.setAttribute('aria-expanded',String(open));
+}
 function sharedHeader(active=''){
   return `
   <div class="promo">Kwinest helpt ondernemers facturen, documenten, btw en inzicht bij elkaar te houden.</div>
@@ -25,7 +31,7 @@ function sharedHeader(active=''){
         <a href="/over/"><strong>Over Kwinest</strong><span>Waarom dit product wordt gebouwd.</span></a>
       </div></div>
     </div>
-    <div class="nav-actions"><a class="btn" href="/hoe-het-werkt/">Bekijk software</a><a class="btn primary" href="/?login=1">Inloggen</a><button class="mobile-toggle" onclick="toggleMenu()" aria-label="Menu">☰</button></div>
+    <div class="nav-actions"><a class="btn" href="/hoe-het-werkt/">Bekijk software</a><a class="btn primary" href="/?login=1">Inloggen</a><button class="mobile-toggle" onclick="toggleMenu()" aria-label="Menu" aria-expanded="false" aria-controls="mobileMenu">☰</button></div>
   </nav>
   <div class="mobile-menu" id="mobileMenu">
     <details><summary>Oplossingen</summary><div class="mobile-sub"><a href="/functies/">Alle oplossingen</a><a href="/scanner/">Slimme scanner</a><a href="/facturen/">Facturen</a><a href="/btw-bank/">Btw & bank</a><a href="/rapportages/">Rapportages</a></div></details>
@@ -45,3 +51,22 @@ function sharedFooter(){
 }
 document.addEventListener('DOMContentLoaded',()=>{const h=document.getElementById('siteHeader');if(h)h.innerHTML=sharedHeader(document.body.dataset.page||'');const f=document.getElementById('siteFooter');if(f)f.innerHTML=sharedFooter()});
 document.addEventListener('click',e=>{const m=document.getElementById('mobileMenu');if(m&&m.classList.contains('open')&&!e.target.closest('.mobile-menu')&&!e.target.closest('.mobile-toggle'))m.classList.remove('open')});
+
+(function(){
+ const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ const header=document.querySelector('.site-header');
+ const btn=document.createElement('button');
+ btn.type='button';btn.className='site-backtop';btn.setAttribute('aria-label','Terug naar boven');btn.textContent='↑';
+ document.body.appendChild(btn);
+ const sync=()=>{
+  if(header)header.classList.toggle('has-shadow',window.scrollY>12);
+  btn.classList.toggle('show',window.scrollY>650);
+ };
+ window.addEventListener('scroll',sync,{passive:true});sync();
+ btn.addEventListener('click',()=>window.scrollTo({top:0,behavior:reduced?'auto':'smooth'}));
+ const menu=document.getElementById('mobileMenu');
+ if(menu)menu.addEventListener('click',e=>{
+   const a=e.target.closest('a');
+   if(a){menu.classList.remove('open');const t=document.querySelector('.mobile-toggle');if(t)t.setAttribute('aria-expanded','false')}
+ });
+})();
