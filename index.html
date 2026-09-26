@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Vind, vergelijk en boek DJ's op stijl, locatie, budget en beschikbaarheid.">
+  <title>DJ APP — Vind en boek jouw DJ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="Home"><span class="brand-mark">D</span><span id="brandText">DJ APP</span></a>
+    <nav class="desktop-nav">
+      <a href="#discover">Ontdekken</a>
+      <a href="#how">Hoe het werkt</a>
+      <a href="#for-djs">Voor DJ's</a>
+    </nav>
+    <div class="header-actions">
+      <button class="ghost-btn" type="button">Inloggen</button>
+      <button class="pill-btn" type="button">Aanmelden</button>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero section-shell">
+      <div class="hero-copy">
+        <span class="eyebrow" id="heroEyebrow"></span>
+        <h1 id="heroTitle"></h1>
+        <p id="heroText" class="hero-text"></p>
+
+        <form class="search-card" id="searchForm">
+          <label><span>Waar?</span><input id="locationInput" type="text" placeholder="Bijv. Rotterdam"></label>
+          <label><span>Welke stijl?</span>
+            <select id="genreInput">
+              <option value="">Alle genres</option>
+              <option>House</option><option>Groovy</option><option>Disco</option>
+              <option>Open format</option><option>Urban</option><option>Pop</option><option>Tech House</option>
+            </select>
+          </label>
+          <label><span>Budget tot</span>
+            <select id="budgetInput">
+              <option value="">Elk budget</option><option value="500">€500</option>
+              <option value="750">€750</option><option value="1000">€1.000</option>
+            </select>
+          </label>
+          <button class="search-btn" type="submit">Zoeken</button>
+        </form>
+
+        <div class="hero-links">
+          <a class="primary-link" href="#discover" id="heroPrimaryCta"></a>
+          <a class="secondary-link" href="#for-djs" id="heroSecondaryCta"></a>
+        </div>
+        <p class="trust-line" id="trustLine"></p>
+      </div>
+
+      <div class="hero-visual" aria-hidden="true">
+        <div class="glow one"></div><div class="glow two"></div>
+        <div class="visual-card main-card">
+          <img src="https://images.unsplash.com/photo-1571266028243-d220c9c3b2d2?auto=format&fit=crop&w=1400&q=90" alt="">
+          <div class="visual-overlay"><span class="status-dot"></span><div><strong>Beschikbaar</strong><span>komend weekend</span></div></div>
+        </div>
+        <div class="mini-card mini-top"><span>Match op vibe</span><strong>Warm · Groovy · Vocal</strong></div>
+        <div class="mini-card mini-bottom"><span>Vanaf</span><strong>€450</strong><small>boekingsaanvraag</small></div>
+      </div>
+    </section>
+
+    <section class="strip section-shell">
+      <div><strong>01</strong><span>Vergelijk profielen</span></div>
+      <div><strong>02</strong><span>Bekijk video's & reviews</span></div>
+      <div><strong>03</strong><span>Check beschikbaarheid</span></div>
+      <div><strong>04</strong><span>Boek via één plek</span></div>
+    </section>
+
+    <section id="discover" class="content-section section-shell">
+      <div class="section-heading">
+        <div><span class="eyebrow">Discover</span><h2 id="featuredTitle"></h2></div>
+        <p id="featuredText"></p>
+      </div>
+      <div id="resultsNotice" class="results-notice" hidden></div>
+      <div id="djGrid" class="dj-grid"></div>
+    </section>
+
+    <section class="content-section section-shell">
+      <div class="section-heading">
+        <div><span class="eyebrow">Find your vibe</span><h2 id="vibesTitle"></h2></div>
+        <p id="vibesText"></p>
+      </div>
+      <div class="vibe-grid">
+        <button data-genre="House" class="vibe-card"><span>01</span><strong>House all night</strong><small>Warm, groovy en energiek</small></button>
+        <button data-genre="Open format" class="vibe-card"><span>02</span><strong>Everybody knows it</strong><small>Open format, pop en classics</small></button>
+        <button data-genre="Disco" class="vibe-card"><span>03</span><strong>Feel-good disco</strong><small>Funky, kleurrijk en dansbaar</small></button>
+        <button data-genre="Tech House" class="vibe-card"><span>04</span><strong>Club energy</strong><small>Steviger, strak en laat</small></button>
+      </div>
+    </section>
+
+    <section id="how" class="content-section how section-shell">
+      <div class="how-intro"><span class="eyebrow">Simple by design</span><h2 id="howTitle"></h2><p>Van eerste zoekopdracht tot boekingsaanvraag in een duidelijke flow.</p></div>
+      <div class="steps">
+        <article><span>1</span><h3>Zoek</h3><p>Filter op locatie, muziekstijl, budget en beschikbaarheid.</p></article>
+        <article><span>2</span><h3>Vergelijk</h3><p>Bekijk foto's, video's, ervaring en reviews van DJ's.</p></article>
+        <article><span>3</span><h3>Vraag aan</h3><p>Stuur een boekingsaanvraag en houd communicatie op één plek.</p></article>
+        <article><span>4</span><h3>Boek</h3><p>Werk toe naar veilige betaling, duidelijke afspraken en een review.</p></article>
+      </div>
+    </section>
+
+    <section id="for-djs" class="dj-cta section-shell">
+      <div class="dj-cta-panel">
+        <div>
+          <span class="eyebrow">For DJs</span>
+          <h2 id="djCtaTitle"></h2><p id="djCtaText"></p>
+          <div class="cta-actions"><button class="light-btn" type="button">Maak DJ-profiel</button><button class="text-btn" type="button">Bekijk voordelen →</button></div>
+        </div>
+        <div class="profile-mockup">
+          <div class="profile-top"><div class="avatar"></div><div><b>Jouw DJ-naam</b><span>House · Rotterdam</span></div></div>
+          <div class="profile-stat"><span>Profielweergaven</span><b>1.284</b></div>
+          <div class="profile-stat"><span>Nieuwe aanvragen</span><b>12</b></div>
+          <div class="profile-stat"><span>Beschikbaarheid</span><b class="green">Up-to-date</b></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer section-shell">
+    <div><a class="brand" href="#top"><span class="brand-mark">D</span><span id="footerBrand">DJ APP</span></a><p id="footerText"></p></div>
+    <div class="footer-links"><a href="#discover">DJ's vinden</a><a href="#for-djs">Voor DJ's</a><a href="#">Privacy</a><a href="#">Voorwaarden</a></div>
+    <small>© <span id="year"></span> DJ APP · MVP</small>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
