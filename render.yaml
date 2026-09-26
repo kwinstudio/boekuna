@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: workforce-os
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm install --no-audit --no-fund && npm run lint && npm run typecheck && npm test && npm run db:migrate && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: workforce-os-postgres
+          property: connectionString
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: APP_URL
+        sync: false
+      - key: DEMO_ADMIN_EMAIL
+        sync: false
+      - key: DEMO_ADMIN_PASSWORD
+        sync: false
+      - key: SEED_DEMO
+        value: "false"
+
+databases:
+  - name: workforce-os-postgres
+    plan: free
+    region: frankfurt
+    postgresMajorVersion: "18"
+    databaseName: wfm
+    user: wfm
+    ipAllowList: []
