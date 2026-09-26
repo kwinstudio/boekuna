@@ -520,7 +520,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         if valid_iban(x): iban=re.sub(r"\s+","",x).upper();break
 
     paid=bool(re.search(r"\b(reeds betaald|already paid|paid via|voldaan|betaald)\b",low))
-    status="credit" if dtype=="credit_invoice" else ("paid" if paid else "open")
+    status="credit" if dtype=="credit_invoice" else ("paid" if (paid or dtype=="receipt") else "open")
     if due_date and status=="open":
         try:
             if date.fromisoformat(due_date)<date.today():status="overdue"
