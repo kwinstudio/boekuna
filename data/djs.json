@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Nova House",
+    "city": "Rotterdam",
+    "genres": ["House", "Groovy", "Disco"],
+    "price": 450,
+    "rating": 4.9,
+    "reviews": 18,
+    "badge": "Demo profiel",
+    "image": "https://images.unsplash.com/photo-1571266028243-d220c9c3b2d2?auto=format&fit=crop&w=1200&q=85"
+  },
+  {
+    "name": "Milo Ray",
+    "city": "Amsterdam",
+    "genres": ["Open format", "Urban", "Pop"],
+    "price": 575,
+    "rating": 4.8,
+    "reviews": 26,
+    "badge": "Demo profiel",
+    "image": "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=85"
+  },
+  {
+    "name": "Luna Vale",
+    "city": "Utrecht",
+    "genres": ["House", "Vocal", "Funky"],
+    "price": 500,
+    "rating": 5,
+    "reviews": 11,
+    "badge": "Demo profiel",
+    "image": "https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?auto=format&fit=crop&w=1200&q=85"
+  },
+  {
+    "name": "Jax Motion",
+    "city": "Den Haag",
+    "genres": ["Tech House", "House", "Club"],
+    "price": 625,
+    "rating": 4.7,
+    "reviews": 31,
+    "badge": "Demo profiel",
+    "image": "https://images.unsplash.com/photo-1506157786151-b8491531f063?auto=format&fit=crop&w=1200&q=85"
+  }
+]
