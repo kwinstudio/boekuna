@@ -63,3 +63,26 @@ body{background:#FFFFFF;color:#202B33}
 .price.popular{border-color:#00A8C6}
 .notice{background:#EAF8FB;border-color:#CDEBF1;color:#3A6A74}
 .footer{background:#202B33}
+
+/* Cross-site visibility and interaction polish */
+a,button,summary{-webkit-tap-highlight-color:transparent}
+a,button{transition:background-color .18s ease,color .18s ease,border-color .18s ease,transform .18s ease,box-shadow .18s ease}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid rgba(0,168,198,.32);outline-offset:3px}
+.page-hero p,.section-head p,.card p,.feature-row span,.trust span,.faq p{color:#4E5E66}
+.site-header.has-shadow{box-shadow:0 10px 30px rgba(24,64,76,.08)}
+.site-backtop{
+ position:fixed;right:20px;bottom:20px;z-index:120;width:44px;height:44px;border-radius:50%;
+ border:1px solid #D8E5E9;background:#fff;color:#202B33;box-shadow:0 12px 30px rgba(32,43,51,.14);
+ display:grid;place-items:center;font-size:18px;font-weight:900;opacity:0;pointer-events:none;transform:translateY(8px);
+ transition:opacity .18s ease,transform .18s ease,background .18s ease,color .18s ease
+}
+.site-backtop.show{opacity:1;pointer-events:auto;transform:none}
+.site-backtop:hover{background:#202B33;color:#fff}
+@media (hover:hover) and (pointer:fine){
+ .card:hover,.trust:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(24,64,76,.08)}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+@media(max-width:620px){
+ .page-hero p,.section-head p,.card p,.feature-row span,.trust span,.faq p{color:#43545C}
+ .site-backtop{right:14px;bottom:14px}
+}
