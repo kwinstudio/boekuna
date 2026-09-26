@@ -1,0 +1,645 @@
+import base64, csv, hashlib, io, json, math, os, re, tempfile, time
+from datetime import datetime, date
+from pathlib import Path
+from typing import Any, Literal
+
+import fitz
+import pdfplumber
+import requests
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field, ValidationError, field_validator
+from PIL import Image, ImageOps
+from docx import Document as DocxDocument
+from openpyxl import load_workbook
+
+try:
+    from rapidocr_onnxruntime import RapidOCR
+except Exception:
+    RapidOCR = None
+
+APP_ORIGIN = os.getenv("APP_ORIGIN", "https://kwinest-boekhouding.onrender.com")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+MAX_BYTES = int(os.getenv("MAX_FILE_BYTES", str(15 * 1024 * 1024)))
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6-sol")
+REQUEST_TIMEOUT = float(os.getenv("AI_TIMEOUT_SECONDS", "55"))
+
+app = FastAPI(title="Kwinest Document Processor", version="2.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[APP_ORIGIN],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"]
+)
+
+# ----------------------------- schema -----------------------------
+class Supplier(BaseModel):
+    name: str | None = None
+    address: str | None = None
+    postalCode: str | None = None
+    city: str | None = None
+    country: str | None = None
+    kvk: str | None = None
+    vatNumber: str | None = None
+    iban: str | None = None
+    email: str | None = None
+
+class Customer(BaseModel):
+    name: str | None = None
+    address: str | None = None
+    postalCode: str | None = None
+    city: str | None = None
+    country: str | None = None
+    kvk: str | None = None
+    vatNumber: str | None = None
+    email: str | None = None
+
+class InvoiceMeta(BaseModel):
+    invoiceNumber: str | None = None
+    invoiceDate: str | None = None
+    dueDate: str | None = None
+    paymentTermDays: int | None = None
+    orderNumber: str | None = None
+    paymentReference: str | None = None
+    description: str | None = None
+
+class VatLine(BaseModel):
+    rate: float
+    taxableAmount: float | None = None
+    vatAmount: float | None = None
+
+class Amounts(BaseModel):
+    subtotal: float | None = None
+    vatLines: list[VatLine] = Field(default_factory=list)
+    vatTotal: float | None = None
+    total: float | None = None
+    discount: float | None = None
+    shipping: float | None = None
+    currency: str = "EUR"
+
+class LineItem(BaseModel):
+    description: str | None = None
+    quantity: float | None = None
+    unitPrice: float | None = None
+    vatRate: float | None = None
+    lineTotal: float | None = None
+
+class ExtractionResult(BaseModel):
+    documentType: Literal["purchase_invoice", "sales_invoice", "credit_invoice", "receipt", "bank_document", "other"] = "other"
+    originalFileName: str
+    pageCount: int = 1
+    supplier: Supplier = Field(default_factory=Supplier)
+    customer: Customer = Field(default_factory=Customer)
+    invoice: InvoiceMeta = Field(default_factory=InvoiceMeta)
+    amounts: Amounts = Field(default_factory=Amounts)
+    status: Literal["draft", "open", "paid", "overdue", "cancelled", "credit", "unknown"] = "unknown"
+    lineItems: list[LineItem] = Field(default_factory=list)
+    confidence: dict[str, float] = Field(default_factory=dict)
+    warnings: list[str] = Field(default_factory=list)
+    processing: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("confidence")
+    @classmethod
+    def clamp_confidence(cls, v):
+        return {str(k): max(0.0, min(1.0, float(val))) for k, val in (v or {}).items() if _finite(val)}
+
+# ----------------------------- helpers -----------------------------
+MONEY_RE = re.compile(r"(?<!\w)(?:EUR|€|EURO)?\s*[-+]?\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|(?<!\w)(?:EUR|€|EURO)?\s*[-+]?\d+(?:[.,]\d{2})(?!\w)", re.I)
+DATE_RES = [
+    re.compile(r"\b(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})\b"),
+    re.compile(r"\b(\d{1,2})[-/.](\d{1,2})[-/.](20\d{2})\b"),
+]
+MONTHS = {"januari":1,"februari":2,"maart":3,"april":4,"mei":5,"juni":6,"juli":7,"augustus":8,"september":9,"oktober":10,"november":11,"december":12,
+          "january":1,"february":2,"march":3,"april":4,"may":5,"june":6,"july":7,"august":8,"september":9,"october":10,"november":11,"december":12}
+
+def _finite(x):
+    try: return math.isfinite(float(x))
+    except Exception: return False
+
+def norm_text(s: str) -> str:
+    return re.sub(r"[ \t]+", " ", (s or "").replace("\u00a0", " ")).strip()
+
+def norm_money(v: Any) -> float | None:
+    if v is None: return None
+    s = str(v).strip().replace("€", "").replace("EUR", "").replace("euro", "").replace(" ", "")
+    s = re.sub(r"[^0-9,\.\-+]", "", s)
+    if not s: return None
+    if "," in s and "." in s:
+        if s.rfind(",") > s.rfind("."):
+            s = s.replace(".", "").replace(",", ".")
+        else:
+            s = s.replace(",", "")
+    elif "," in s:
+        parts = s.split(",")
+        if len(parts[-1]) == 2:
+            s = "".join(parts[:-1]).replace(".", "") + "." + parts[-1]
+        else:
+            s = s.replace(",", "")
+    elif s.count(".") > 1:
+        parts = s.split(".")
+        if len(parts[-1]) == 2:
+            s = "".join(parts[:-1]) + "." + parts[-1]
+        else:
+            s = "".join(parts)
+    try:
+        n = float(s)
+        return n if math.isfinite(n) else None
+    except Exception:
+        return None
+
+def money_tokens(line: str) -> list[float]:
+    out=[]
+    for m in MONEY_RE.finditer(line or ""):
+        n=norm_money(m.group(0))
+        if n is not None and abs(n)<1e9: out.append(n)
+    return out
+
+def norm_date(s: str) -> str | None:
+    if not s: return None
+    st = norm_text(s).lower()
+    m=DATE_RES[0].search(st)
+    if m:
+        try: return date(int(m[1]),int(m[2]),int(m[3])).isoformat()
+        except Exception: pass
+    m=DATE_RES[1].search(st)
+    if m:
+        try: return date(int(m[3]),int(m[2]),int(m[1])).isoformat()
+        except Exception: pass
+    m=re.search(r"\b(\d{1,2})\s+("+"|".join(MONTHS)+r")\s+(20\d{2})\b", st)
+    if m:
+        try: return date(int(m[3]),MONTHS[m[2]],int(m[1])).isoformat()
+        except Exception: pass
+    return None
+
+def line_after_label(lines:list[str], labels:list[str], max_ahead=2) -> tuple[str|None,int|None]:
+    low_labels=[x.lower() for x in labels]
+    for i,line in enumerate(lines):
+        low=line.lower()
+        for lab in low_labels:
+            pos=low.find(lab)
+            if pos>=0:
+                rest=line[pos+len(lab):].lstrip(" :#.-")
+                if rest: return rest,i
+                for j in range(i+1,min(len(lines),i+1+max_ahead)):
+                    if lines[j].strip(): return lines[j].strip(),j
+    return None,None
+
+def labeled_amount(lines:list[str], labels:list[str], exclude:list[str]=[]) -> tuple[float|None,float]:
+    candidates=[]
+    for i,line in enumerate(lines):
+        low=line.lower()
+        if any(x in low for x in exclude): continue
+        for rank,lab in enumerate(labels):
+            if lab in low:
+                vals=money_tokens(line)
+                if not vals and i+1<len(lines): vals=money_tokens(lines[i+1])
+                if vals:
+                    score=0.98-rank*0.015 + (0.01 if i>len(lines)*.5 else 0)
+                    candidates.append((vals[-1],min(score,.99)))
+    return max(candidates,key=lambda x:x[1]) if candidates else (None,0.0)
+
+def labeled_date(lines:list[str], labels:list[str]) -> tuple[str|None,float]:
+    for rank,lab in enumerate(labels):
+        for i,line in enumerate(lines):
+            if lab in line.lower():
+                for j in range(i,min(len(lines),i+3)):
+                    d=norm_date(lines[j])
+                    if d: return d,max(.7,.96-rank*.03)
+    return None,0.0
+
+def valid_iban(v:str|None)->bool:
+    if not v:return False
+    s=re.sub(r"\s+","",v).upper()
+    if not re.fullmatch(r"[A-Z]{2}\d{2}[A-Z0-9]{10,30}",s):return False
+    rearr=s[4:]+s[:4]
+    digits="".join(str(ord(c)-55) if c.isalpha() else c for c in rearr)
+    try:return int(digits)%97==1
+    except Exception:return False
+
+def vat_plausible(v:str|None)->bool:
+    if not v:return False
+    s=re.sub(r"[\s.\-]","",v).upper()
+    return bool(re.fullmatch(r"NL\d{9}B\d{2}",s) or re.fullmatch(r"[A-Z]{2}[A-Z0-9]{6,14}",s))
+
+def kvk_plausible(v:str|None)->bool:
+    return bool(v and re.fullmatch(r"\d{8}",re.sub(r"\D","",v)))
+
+def own_matches(block:dict, company:dict)->bool:
+    cvat=re.sub(r"\s+","",str(company.get("vat") or company.get("vatNumber") or "")).upper()
+    ckvk=re.sub(r"\D","",str(company.get("kvk") or ""))
+    cname=norm_text(str(company.get("name") or company.get("tradeName") or "")).lower()
+    bvat=re.sub(r"\s+","",str(block.get("vatNumber") or "")).upper()
+    bkvk=re.sub(r"\D","",str(block.get("kvk") or ""))
+    bname=norm_text(str(block.get("name") or "")).lower()
+    return bool((cvat and bvat==cvat) or (ckvk and bkvk==ckvk) or (cname and bname and (cname in bname or bname in cname)))
+
+# ----------------------------- document extraction -----------------------------
+def extract_pdf(raw:bytes) -> dict[str,Any]:
+    doc=fitz.open(stream=raw,filetype="pdf")
+    if doc.page_count>50: raise HTTPException(400,"PDF bevat meer dan 50 pagina's.")
+    pages=[]; all_text=[]; layout=[]; tables=[]; ocr_pages=[]
+    # pdfplumber is separate because its table finder is useful on vector PDFs
+    plumber=None
+    try: plumber=pdfplumber.open(io.BytesIO(raw))
+    except Exception: plumber=None
+    ocr_engine=RapidOCR() if RapidOCR else None
+    for idx in range(doc.page_count):
+        page=doc[idx]
+        words=page.get_text("words", sort=True)
+        blocks=page.get_text("blocks", sort=True)
+        text=page.get_text("text", sort=True) or ""
+        text=norm_text(text.replace("\r","\n")).replace(" \n","\n")
+        page_layout=[{"x0":round(w[0],1),"y0":round(w[1],1),"x1":round(w[2],1),"y1":round(w[3],1),"text":norm_text(w[4])} for w in words if norm_text(w[4])]
+        page_tables=[]
+        if plumber and idx<len(plumber.pages):
+            try:
+                for table in plumber.pages[idx].extract_tables() or []:
+                    clean=[[norm_text(c or "") for c in row] for row in table if row]
+                    if clean: page_tables.append(clean)
+            except Exception: pass
+        printable=len(re.sub(r"\s+","",text))
+        used_ocr=False; ocr_conf=None
+        if printable < 80 and ocr_engine:
+            pix=page.get_pixmap(matrix=fitz.Matrix(2.2,2.2), alpha=False)
+            img=Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
+            try:
+                result,_=ocr_engine(img)
+                if result:
+                    ocr_lines=[]; confs=[]
+                    for row in result:
+                        if len(row)>=3:
+                            txt=norm_text(row[1]); conf=float(row[2])
+                            if txt: ocr_lines.append(txt); confs.append(conf)
+                    ocr_text="\n".join(ocr_lines)
+                    if len(re.sub(r"\s+","",ocr_text))>printable:
+                        text=ocr_text; used_ocr=True; ocr_conf=sum(confs)/len(confs) if confs else None; ocr_pages.append(idx+1)
+            except Exception: pass
+        pages.append({"page":idx+1,"text":text,"charCount":len(text),"ocr":used_ocr,"ocrConfidence":ocr_conf,"tables":page_tables})
+        all_text.append(f"--- PAGE {idx+1} ---\n{text}")
+        layout.append({"page":idx+1,"words":page_layout[:2500]})
+        if page_tables: tables.extend([{"page":idx+1,"rows":t} for t in page_tables])
+    if plumber:
+        try: plumber.close()
+        except Exception: pass
+    return {"kind":"pdf","pageCount":doc.page_count,"pages":pages,"text":"\n\n".join(all_text),"layout":layout,"tables":tables,"ocrPages":ocr_pages}
+
+def extract_image(raw:bytes) -> dict[str,Any]:
+    if not RapidOCR: raise HTTPException(503,"OCR-engine is niet beschikbaar op de server.")
+    img=Image.open(io.BytesIO(raw)).convert("RGB")
+    img=ImageOps.exif_transpose(img)
+    ocr=RapidOCR(); result,_=ocr(img)
+    lines=[]; confs=[]; layout=[]
+    for row in result or []:
+        box,txt,conf=row[0],norm_text(row[1]),float(row[2])
+        if txt:
+            lines.append(txt); confs.append(conf); layout.append({"box":box,"text":txt,"confidence":conf})
+    text="\n".join(lines)
+    return {"kind":"image","pageCount":1,"pages":[{"page":1,"text":text,"charCount":len(text),"ocr":True,"ocrConfidence":sum(confs)/len(confs) if confs else None,"tables":[]}],"text":text,"layout":[{"page":1,"words":layout}],"tables":[],"ocrPages":[1]}
+
+def extract_docx(raw:bytes)->dict[str,Any]:
+    doc=DocxDocument(io.BytesIO(raw)); chunks=[]; tables=[]
+    for p in doc.paragraphs:
+        if norm_text(p.text):chunks.append(norm_text(p.text))
+    for t in doc.tables:
+        rows=[[norm_text(c.text) for c in r.cells] for r in t.rows];tables.append({"page":1,"rows":rows});chunks.extend(" | ".join(r) for r in rows)
+    text="\n".join(chunks)
+    return {"kind":"docx","pageCount":1,"pages":[{"page":1,"text":text,"charCount":len(text),"ocr":False,"tables":tables}],"text":text,"layout":[],"tables":tables,"ocrPages":[]}
+
+def extract_xlsx(raw:bytes)->dict[str,Any]:
+    wb=load_workbook(io.BytesIO(raw),data_only=True,read_only=True); lines=[]; tables=[]
+    for ws in wb.worksheets:
+        rows=[]
+        for row in ws.iter_rows(values_only=True):
+            vals=["" if v is None else str(v) for v in row]
+            if any(vals): rows.append(vals); lines.append(" | ".join(vals))
+        if rows: tables.append({"sheet":ws.title,"rows":rows[:1000]})
+    text="\n".join(lines)
+    return {"kind":"xlsx","pageCount":len(wb.worksheets),"pages":[],"text":text,"layout":[],"tables":tables,"ocrPages":[]}
+
+def extract_csv(raw:bytes)->dict[str,Any]:
+    text=raw.decode("utf-8-sig",errors="replace")
+    sniffer=csv.Sniffer()
+    try: dialect=sniffer.sniff(text[:4000],delimiters=",;\t|")
+    except Exception: dialect=csv.excel
+    rows=[row for row in csv.reader(io.StringIO(text),dialect) if any(c.strip() for c in row)]
+    joined="\n".join(" | ".join(row) for row in rows)
+    return {"kind":"csv","pageCount":1,"pages":[],"text":joined,"layout":[],"tables":[{"sheet":"CSV","rows":rows[:5000]}],"ocrPages":[]}
+
+def extract_document(filename:str,content_type:str,raw:bytes)->dict[str,Any]:
+    ext=Path(filename).suffix.lower(); c=(content_type or "").lower()
+    if raw[:4]==b"%PDF" or ext==".pdf" or c=="application/pdf": return extract_pdf(raw)
+    if ext in {".png",".jpg",".jpeg",".webp",".tif",".tiff"} or c.startswith("image/"): return extract_image(raw)
+    if ext==".docx" or c=="application/vnd.openxmlformats-officedocument.wordprocessingml.document": return extract_docx(raw)
+    if ext==".xlsx" or c=="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": return extract_xlsx(raw)
+    if ext==".csv" or c in {"text/csv","application/csv"}: return extract_csv(raw)
+    raise HTTPException(415,"Dit bestandstype wordt nog niet ondersteund door de documentprocessor.")
+
+# ----------------------------- deterministic invoice parser -----------------------------
+def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tuple[dict,float]:
+    idx=None; matched_label=None
+    for i,line in enumerate(lines[:120]):
+        low=line.lower().strip()
+        for lab in labels:
+            lab=lab.lower().strip()
+            if low==lab or low.startswith(lab+':') or low.startswith(lab+' -'):
+                idx=i; matched_label=lab; break
+        if idx is not None: break
+    block=lines[idx:idx+12] if idx is not None else lines[:18]
+    block=[x for x in block if x and not re.match(r"^-{2,}\s*page\s+\d+\s*-{2,}$",x,re.I)]
+    joined="\n".join(block)
+    emails=re.findall(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}",joined,re.I)
+    vats=[re.sub(r"\s+","",x).upper() for x in re.findall(r"\b[A-Z]{2}\s?[A-Z0-9]{6,14}\b",joined,re.I)]
+    nl_vats=[x for x in vats if re.fullmatch(r"NL\d{9}B\d{2}",x)]
+    kvks=re.findall(r"(?:kvk|k\.v\.k\.|coc|chamber of commerce)(?:\s*(?:nr|nummer|number|no))?\s*[:#-]?\s*(\d{8})",joined,re.I)
+    ibans=[re.sub(r"\s+","",x).upper() for x in re.findall(r"\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]){11,30}\b",joined,re.I)]
+    postal=re.search(r"\b([1-9]\d{3})\s*([A-Z]{2})\b(?:\s+([^\n,;|]{2,50}))?",joined,re.I)
+    address_re=re.compile(r"\b\d+[A-Z-]*\b.*(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|place)|(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|place)[^\n]*\b\d+[A-Z-]*\b",re.I)
+    address=next((x for x in block if address_re.search(x)),None)
+    own_names=[norm_text(str(company.get(k) or "")).lower() for k in ("name","tradeName")]
+    field_only=re.compile(r"^(?:leverancier|supplier|vendor|seller|from|factuur aan|bill to|sold to|customer|klant|debiteur|factuur|invoice|datum|date|totaal|total|btw|vat|kvk|iban|omschrijving|description|pagina|page)(?:\s*[:#-].*)?$",re.I)
+    name=None
+    # Strongest signal: value on the same line as the role label.
+    if idx is not None and matched_label:
+        line=lines[idx]
+        pos=line.lower().find(matched_label)
+        remainder=line[pos+len(matched_label):].lstrip(" :#.-")
+        if 2<=len(remainder)<=100 and not field_only.match(remainder) and not address_re.search(remainder) and not re.match(r"^\d",remainder):
+            name=remainder
+    if not name and idx is not None:
+        # Many invoices print a heading like "Leverancier" below the actual company name.
+        for back in range(max(0,idx-3),idx):
+            cand=lines[back].strip()
+            if 2<=len(cand)<=100 and not field_only.match(cand) and not address_re.search(cand) and not re.match(r"^\d",cand) and "@" not in cand and not re.fullmatch(r"(?:B\.?V\.?|N\.?V\.?|VOF|CV|LLC|LTD\.?|INC\.?)",cand,re.I):
+                if not re.match(r"^-{2,}\s*page\s+\d+",cand,re.I) and not re.search(r"factuur|invoice|creditnota|receipt",cand,re.I) and not any(o and o in cand.lower() for o in own_names):
+                    name=cand;break
+    if not name:
+        for rawline in block:
+            cand=re.sub(r"^(?:leverancier|supplier|vendor|seller|from|factuur aan|bill to|sold to|customer|klant|debiteur)\s*[:#-]?\s*","",rawline,flags=re.I).strip()
+            if not (2<=len(cand)<=100): continue
+            if field_only.match(cand) or address_re.search(cand) or re.match(r"^\d",cand) or "@" in cand: continue
+            if re.match(r"^-{2,}\s*page\s+\d+",cand,re.I): continue
+            if re.match(r"^(?:factuurdatum|factuurnummer|factuurnr|invoice date|invoice number|vervaldatum|due date|subtotaal|totaal|btw|vat|kvk|iban)\b",cand,re.I): continue
+            if re.fullmatch(r"(?:B\.?V\.?|N\.?V\.?|VOF|CV|LLC|LTD\.?|INC\.?)",cand,re.I): continue
+            if re.fullmatch(r"(?:onvolledige\s+)?(?:factuur|invoice|creditnota|receipt)",cand,re.I): continue
+            if re.search(r"\b(?:kvk|btw|vat|iban|factuurnr|factuurnummer|invoice no|invoice number)\b",cand,re.I): continue
+            if any(o and o in cand.lower() for o in own_names): continue
+            name=cand;break
+    data={"name":name,"address":address,"postalCode":f"{postal[1]} {postal[2].upper()}" if postal else None,"city":postal[3].strip() if postal and postal[3] else None,"country":"Nederland" if postal else None,
+          "kvk":kvks[0] if kvks else None,"vatNumber":nl_vats[0] if nl_vats else None,"iban":next((x for x in ibans if valid_iban(x)),None),"email":emails[0] if emails else None}
+    conf=.95 if idx is not None and name else (.68 if name else .25)
+    return data,conf
+
+def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
+    text=doc.get("text") or ""; lines=[norm_text(x) for x in text.splitlines() if norm_text(x)]
+    low=text.lower()
+    self_billing=bool(re.search(r"factuur\s+uitgereikt\s+door\s+afnemer|self[- ]?billing|self[- ]?billed",low))
+    supplier,sconf=contact_block(lines,["leverancier","supplier","vendor","seller","from:"],company,"supplier")
+    customer,cconf=contact_block(lines,["factuur aan","factureren aan","bill to","sold to","customer","klant","debiteur"],company,"customer")
+    supplier_own=own_matches(supplier,company); customer_own=own_matches(customer,company)
+    if self_billing or supplier_own and not customer_own: dtype="sales_invoice"
+    else: dtype="purchase_invoice"
+    if re.search(r"creditnota|credit note|creditfactuur|credit invoice",low): dtype="credit_invoice"
+    if re.search(r"\bbon\b|receipt|kassabon",low) and not re.search(r"factuur|invoice",low): dtype="receipt"
+    # if role extraction guessed own party, try to avoid assigning it as counterparty
+    if supplier_own and dtype=="purchase_invoice": supplier={k:None for k in supplier}
+    if customer_own and dtype=="sales_invoice": customer={k:None for k in customer}
+
+    invno_raw,idx=line_after_label(lines,["factuurnummer","factuurnr","factuur nr","invoice number","invoice no","invoice #","document number"])
+    invoice_no=None
+    if invno_raw:
+        m=re.search(r"([A-Z0-9][A-Z0-9._\-/]{1,50})",invno_raw,re.I); invoice_no=m.group(1) if m else None
+    inv_date,inv_date_conf=labeled_date(lines,["factuurdatum","invoice date","date of invoice","document date"])
+    due_date,due_conf=labeled_date(lines,["vervaldatum","due date","betaal voor","pay before","payment due"])
+    order_raw,_=line_after_label(lines,["bestelnummer","ordernummer","order number","purchase order","po number"]); order_no=order_raw[:60] if order_raw else None
+    ref_raw,_=line_after_label(lines,["betalingskenmerk","payment reference","payment ref","kenmerk"]); payref=ref_raw[:80] if ref_raw else None
+
+    total,total_conf=labeled_amount(lines,["totaal te betalen","te voldoen","amount due","balance due","grand total","totaal incl. btw","total incl. vat","invoice total","factuurbedrag","factuurtotaal"],["subtotaal","subtotal","excl"])
+    subtotal,sub_conf=labeled_amount(lines,["totaal excl. btw","bedrag excl. btw","total excl. vat","tax exclusive","net amount","subtotaal","subtotal"])
+    vat_total,vat_conf=labeled_amount(lines,["totaal btw","btw totaal","vat total","tax amount","btw-bedrag","btw bedrag"],["btw nr","btw-id","vat id"])
+    discount,disc_conf=labeled_amount(lines,["korting","discount"])
+    shipping,ship_conf=labeled_amount(lines,["verzendkosten","shipping","freight"])
+    if total is None:
+        cands=[]
+        for i,l in enumerate(lines):
+            if re.search(r"\b(totaal|total|te betalen|amount due)\b",l,re.I) and not re.search(r"subtotaal|subtotal|excl|btw|vat",l,re.I):
+                vals=money_tokens(l)
+                if vals:cands.append((abs(vals[-1]),.72+(i/len(lines) if lines else 0)*.08))
+        if cands: total,total_conf=max(cands,key=lambda x:x[1])
+    if subtotal is not None and vat_total is None and total is not None:
+        candidate=round(total-subtotal,2)
+        if candidate>=0 and candidate<=max(total*.3,1): vat_total,vat_conf=candidate,.75
+    if total is None and subtotal is not None and vat_total is not None: total,total_conf=round(subtotal+vat_total,2),.76
+    if subtotal is None and total is not None and vat_total is not None: subtotal,sub_conf=round(total-vat_total,2),.76
+
+    vat_lines=[]
+    for i,l in enumerate(lines):
+        rm=re.search(r"\b(0|9|21)\s*%",l)
+        if not rm: continue
+        vals=money_tokens(l); rate=float(rm.group(1))
+        if len(vals)>=2:
+            # choose last as tax, preceding as taxable unless obvious total line
+            vat_lines.append(VatLine(rate=rate,taxableAmount=abs(vals[-2]),vatAmount=abs(vals[-1])))
+        elif len(vals)==1 and rate>0:
+            vat_lines.append(VatLine(rate=rate,taxableAmount=None,vatAmount=abs(vals[-1])))
+    # de-dup same rate/value
+    unique=[]; seen=set()
+    for v in vat_lines:
+        key=(v.rate,round(v.taxableAmount or -1,2),round(v.vatAmount or -1,2))
+        if key not in seen:seen.add(key);unique.append(v)
+    vat_lines=unique[:8]
+
+    iban=None
+    for x in re.findall(r"\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]){11,30}\b",text,re.I):
+        if valid_iban(x): iban=re.sub(r"\s+","",x).upper();break
+
+    paid=bool(re.search(r"\b(reeds betaald|already paid|paid via|voldaan|betaald)\b",low))
+    status="credit" if dtype=="credit_invoice" else ("paid" if paid else "open")
+    if due_date and status=="open":
+        try:
+            if date.fromisoformat(due_date)<date.today():status="overdue"
+        except Exception: pass
+
+    term=None
+    if inv_date and due_date:
+        try: term=(date.fromisoformat(due_date)-date.fromisoformat(inv_date)).days
+        except Exception: pass
+    if term is None:
+        m=re.search(r"(?:betalingstermijn|payment term)[^\d]{0,20}(\d{1,3})\s*(?:dagen|days)",text,re.I)
+        if m:term=int(m.group(1))
+
+    confidence={
+        "supplierName":sconf if supplier.get("name") else .15,
+        "customerName":cconf if customer.get("name") else .15,
+        "invoiceNumber":.92 if invoice_no else .15,
+        "invoiceDate":inv_date_conf,
+        "dueDate":due_conf if due_date else .25,
+        "subtotal":sub_conf,
+        "vatTotal":vat_conf,
+        "total":total_conf,
+        "iban":.9 if iban else .1,
+    }
+    if doc.get("ocrPages"):
+        for k in list(confidence): confidence[k]*=.9
+    result=ExtractionResult(
+        documentType=dtype,originalFileName=filename,pageCount=doc.get("pageCount",1),
+        supplier=Supplier(**supplier),customer=Customer(**customer),
+        invoice=InvoiceMeta(invoiceNumber=invoice_no,invoiceDate=inv_date,dueDate=due_date,paymentTermDays=term,orderNumber=order_no,paymentReference=payref),
+        amounts=Amounts(subtotal=abs(subtotal) if subtotal is not None else None,vatLines=vat_lines,vatTotal=abs(vat_total) if vat_total is not None else None,total=abs(total) if total is not None else None,discount=abs(discount) if discount is not None else None,shipping=abs(shipping) if shipping is not None else None,currency="EUR"),
+        status=status,lineItems=[],confidence=confidence,warnings=[],
+        processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":"RapidOCR" if doc.get("ocrPages") else None,"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind")}
+    )
+    return validate_result(result,company)
+
+# ----------------------------- validation -----------------------------
+def validate_result(r:ExtractionResult,company:dict)->ExtractionResult:
+    w=list(r.warnings or [])
+    a=r.amounts
+    tol=max(.05,abs(a.total or 0)*.002)
+    if a.subtotal is not None and a.vatTotal is not None and a.total is not None:
+        expected=a.subtotal+a.vatTotal+(a.shipping or 0)-(a.discount or 0)
+        if abs(expected-a.total)>tol:
+            w.append(f"Bedragen sluiten niet aan: berekend {expected:.2f}, totaal {a.total:.2f}.")
+            for key in ("subtotal","vatTotal","total"):r.confidence[key]=min(r.confidence.get(key,.5),.65)
+    if r.invoice.invoiceDate:
+        try: date.fromisoformat(r.invoice.invoiceDate)
+        except Exception: w.append("Factuurdatum is ongeldig.");r.invoice.invoiceDate=None;r.confidence["invoiceDate"]=.1
+    if r.invoice.dueDate:
+        try:
+            dd=date.fromisoformat(r.invoice.dueDate)
+            if r.invoice.invoiceDate and dd<date.fromisoformat(r.invoice.invoiceDate):w.append("Vervaldatum ligt vóór factuurdatum.");r.confidence["dueDate"]=min(r.confidence.get("dueDate",.5),.45)
+        except Exception:w.append("Vervaldatum is ongeldig.");r.invoice.dueDate=None;r.confidence["dueDate"]=.1
+    if r.supplier.iban and not valid_iban(r.supplier.iban):w.append("IBAN van leverancier heeft geen geldige checksum.");r.supplier.iban=None;r.confidence["iban"]=.1
+    if r.supplier.kvk and not kvk_plausible(r.supplier.kvk):w.append("KVK-nummer heeft geen plausibel Nederlands formaat.");r.confidence["supplierKvk"]=.35
+    if r.supplier.vatNumber and not vat_plausible(r.supplier.vatNumber):w.append("BTW-nummer van leverancier heeft geen plausibel formaat.");r.confidence["supplierVatNumber"]=.35
+    if a.total is not None and a.total<0 and r.documentType!="credit_invoice":w.append("Negatief totaal gevonden op document dat niet als creditfactuur is herkend.")
+    if r.documentType!="credit_invoice" and a.total is not None:a.total=abs(a.total)
+    if own_matches(r.supplier.model_dump(),company) and r.documentType=="purchase_invoice":w.append("Leverancier lijkt het eigen bedrijf te zijn; controleer leverancier vs. klant.");r.confidence["supplierName"]=min(r.confidence.get("supplierName",.5),.4)
+    if own_matches(r.customer.model_dump(),company) and r.documentType=="sales_invoice":w.append("Klant lijkt het eigen bedrijf te zijn; controleer leverancier vs. klant.");r.confidence["customerName"]=min(r.confidence.get("customerName",.5),.4)
+    if not r.invoice.invoiceNumber and r.documentType in {"purchase_invoice","sales_invoice","credit_invoice"}:w.append("Factuurnummer niet betrouwbaar gevonden.")
+    if not r.supplier.name and r.documentType in {"purchase_invoice","credit_invoice"}:w.append("Leverancier niet betrouwbaar gevonden.")
+    if a.total is None:w.append("Totaalbedrag niet betrouwbaar gevonden.")
+    # VAT line consistency
+    if a.vatLines:
+        known=sum(v.vatAmount or 0 for v in a.vatLines)
+        if a.vatTotal is not None and known and abs(known-a.vatTotal)>max(.05,a.vatTotal*.01):w.append("Som van btw-regels wijkt af van totaal btw.")
+        for v in a.vatLines:
+            if v.rate not in {0,9,21} and not (0<=v.rate<=30):w.append(f"Ongebruikelijk btw-tarief: {v.rate}%.")
+            if v.taxableAmount is not None and v.vatAmount is not None and v.rate>0:
+                expected=v.taxableAmount*v.rate/100
+                if abs(expected-v.vatAmount)>max(.05,expected*.02):w.append(f"Btw-regel {v.rate:g}% sluit rekenkundig niet aan.")
+    # normalize warning uniqueness
+    r.warnings=list(dict.fromkeys(w))
+    return r
+
+# ----------------------------- AI structured review -----------------------------
+def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult)->ExtractionResult|None:
+    if not OPENAI_API_KEY:return None
+    compact_layout=[]
+    for p in doc.get("layout",[])[:10]: compact_layout.append({"page":p.get("page"),"words":p.get("words",[])[:900]})
+    context={
+        "fileName":filename,"pageCount":doc.get("pageCount"),"company":company,"heuristic":heuristic.model_dump(),
+        "text":(doc.get("text") or "")[:70000],"tables":doc.get("tables",[])[:20],"layout":compact_layout,
+    }
+    schema={
+      "documentType":"purchase_invoice|sales_invoice|credit_invoice|receipt|bank_document|other",
+      "originalFileName":"string","pageCount":"integer",
+      "supplier":{"name":None,"address":None,"postalCode":None,"city":None,"country":None,"kvk":None,"vatNumber":None,"iban":None,"email":None},
+      "customer":{"name":None,"address":None,"postalCode":None,"city":None,"country":None,"kvk":None,"vatNumber":None,"email":None},
+      "invoice":{"invoiceNumber":None,"invoiceDate":None,"dueDate":None,"paymentTermDays":None,"orderNumber":None,"paymentReference":None,"description":None},
+      "amounts":{"subtotal":None,"vatLines":[{"rate":21,"taxableAmount":None,"vatAmount":None}],"vatTotal":None,"total":None,"discount":None,"shipping":None,"currency":"EUR"},
+      "status":"draft|open|paid|overdue|cancelled|credit|unknown","lineItems":[{"description":None,"quantity":None,"unitPrice":None,"vatRate":None,"lineTotal":None}],"confidence":{},"warnings":[],"processing":{}
+    }
+    instructions=(
+        "You extract accounting documents for a Dutch bookkeeping application. Return ONLY a JSON object matching the supplied shape. "
+        "Never invent a value. Use null when not explicit or strongly supported. Distinguish supplier and customer. The user's own company is context only. "
+        "For self-billing, determine the commercial supplier/customer roles from the document, not page position. "
+        "Interpret Dutch money formats correctly: 1.234,56 = 1234.56. Keep invoice total separate from factoring fees, commission, withholding and payout. "
+        "For VAT, preserve separate 0/9/21 percent lines. Dates must be YYYY-MM-DD. Do not turn headers or total rows into line items. "
+        "Confidence values are 0..1 and must reflect visible evidence, OCR quality and arithmetic consistency; do not make all confidence values high. "
+        "If the heuristic result conflicts with the document, prefer the document and add a warning explaining the conflict."
+    )
+    payload={"model":OPENAI_MODEL,"input":[{"role":"system","content":[{"type":"input_text","text":instructions}]},{"role":"user","content":[{"type":"input_text","text":"Target JSON shape:\n"+json.dumps(schema)+"\n\nDocument context:\n"+json.dumps(context,ensure_ascii=False)}]}],"max_output_tokens":7000,"reasoning":{"effort":"medium"}}
+    try:
+        resp=requests.post("https://api.openai.com/v1/responses",headers={"Authorization":f"Bearer {OPENAI_API_KEY}","Content-Type":"application/json"},json=payload,timeout=REQUEST_TIMEOUT)
+        if resp.status_code>=400: return None
+        body=resp.json();txt=body.get("output_text") or ""
+        if not txt:
+            for item in body.get("output",[]):
+                if item.get("type")=="message":
+                    for c in item.get("content",[]):
+                        if c.get("type")=="output_text":txt+=c.get("text","")
+        txt=txt.strip()
+        if txt.startswith("```"):txt=re.sub(r"^```(?:json)?|```$","",txt,flags=re.I).strip()
+        a,b=txt.find("{"),txt.rfind("}")
+        if a>=0 and b>a:txt=txt[a:b+1]
+        data=json.loads(txt)
+        data["originalFileName"]=filename;data["pageCount"]=doc.get("pageCount",1)
+        result=ExtractionResult.model_validate(data)
+        result.processing={**heuristic.processing,"ai":True,"aiModel":OPENAI_MODEL}
+        return validate_result(result,company)
+    except Exception:
+        return None
+
+def reconcile(primary:ExtractionResult,heuristic:ExtractionResult)->ExtractionResult:
+    # AI is primary when present, but deterministic parser may fill only missing low-risk fields.
+    p=primary.model_copy(deep=True); h=heuristic
+    simple=[("supplier","name"),("supplier","address"),("supplier","postalCode"),("supplier","city"),("supplier","kvk"),("supplier","vatNumber"),("supplier","iban"),("supplier","email"),("customer","name"),("invoice","invoiceNumber"),("invoice","invoiceDate"),("invoice","dueDate"),("invoice","paymentReference")]
+    for obj,field in simple:
+        po=getattr(p,obj); ho=getattr(h,obj); pv=getattr(po,field); hv=getattr(ho,field)
+        confkey={"name":"supplierName" if obj=="supplier" else "customerName","invoiceNumber":"invoiceNumber","invoiceDate":"invoiceDate","dueDate":"dueDate","iban":"iban"}.get(field,field)
+        if (pv is None or pv=="") and hv not in (None,"") and h.confidence.get(confkey,0)>=.8:setattr(po,field,hv);p.confidence[confkey]=h.confidence.get(confkey,.8)
+    for field,key in [("subtotal","subtotal"),("vatTotal","vatTotal"),("total","total")]:
+        if getattr(p.amounts,field) is None and getattr(h.amounts,field) is not None and h.confidence.get(key,0)>=.8:setattr(p.amounts,field,getattr(h.amounts,field));p.confidence[key]=h.confidence.get(key,.8)
+    if not p.amounts.vatLines and h.amounts.vatLines:p.amounts.vatLines=h.amounts.vatLines
+    return p
+
+# ----------------------------- duplicate candidate + response -----------------------------
+def overall_confidence(r:ExtractionResult)->float:
+    critical=["supplierName","invoiceNumber","invoiceDate","subtotal","vatTotal","total"]
+    vals=[r.confidence.get(k,0) for k in critical if k in r.confidence]
+    if not vals:return .2
+    base=sum(vals)/len(vals)
+    return max(0,min(1,base-len(r.warnings)*.025))
+
+@app.get("/health")
+def health():
+    return {"ok":True,"service":"kwinest-document-processor","aiConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"version":"2.0"}
+
+@app.post("/analyze")
+async def analyze(request:Request,file:UploadFile=File(...),company_json:str=Form("{}"),existing_json:str=Form("[]"),ocr_text:str=Form("")):
+    origin=request.headers.get("origin")
+    if origin and origin!=APP_ORIGIN: raise HTTPException(403,"Origin not allowed")
+    raw=await file.read(MAX_BYTES+1)
+    if len(raw)>MAX_BYTES:raise HTTPException(413,"Bestand is te groot. Maximum is 15 MB.")
+    if not raw:raise HTTPException(400,"Bestand is leeg.")
+    try: company=json.loads(company_json or "{}")
+    except Exception: company={}
+    try: existing=json.loads(existing_json or "[]")
+    except Exception: existing=[]
+    started=time.time()
+    doc=extract_document(file.filename or "document",file.content_type or "",raw)
+    if ocr_text and len((doc.get("text") or "").replace(" ","")) < 250:
+        doc["text"] = (doc.get("text") or "") + "\n\n--- CLIENT OCR ---\n" + ocr_text[:70000]
+        doc.setdefault("processingHints", {})["clientOcrUsed"] = True
+    heur=heuristic_extract(doc,file.filename or "document",company)
+    ai=ai_extract(doc,file.filename or "document",company,heur)
+    result=reconcile(ai,heur) if ai else heur
+    result=validate_result(result,company)
+    # duplicate scoring against client-provided invoice index; server does not silently save anything
+    dup=[]
+    sup=(result.supplier.name or "").lower().strip(); no=(result.invoice.invoiceNumber or "").lower().strip(); dt=result.invoice.invoiceDate; total=result.amounts.total
+    for row in existing if isinstance(existing,list) else []:
+        score=0; reasons=[]
+        if no and no==str(row.get("invoiceNumber") or row.get("number") or "").lower().strip():score+=.5;reasons.append("factuurnummer")
+        rn=str(row.get("supplier") or row.get("party") or "").lower().strip()
+        if sup and rn and (sup==rn or sup in rn or rn in sup):score+=.2;reasons.append("leverancier")
+        if dt and dt==row.get("invoiceDate"):score+=.15;reasons.append("datum")
+        try:
+            if total is not None and abs(float(row.get("total"))-total)<=.05:score+=.15;reasons.append("totaal")
+        except Exception:pass
+        if score>=.65:dup.append({"id":row.get("id"),"score":round(score,2),"reasons":reasons})
+    if dup:result.warnings.append("Mogelijk bestaat deze factuur al.")
+    processing={**result.processing,"ai":bool(ai),"durationMs":round((time.time()-started)*1000),"pages":doc.get("pageCount"),"tablesFound":len(doc.get("tables",[])),"duplicateCandidates":dup,"overallConfidence":round(overall_confidence(result),3)}
+    result.processing=processing
+    return {"ok":True,"data":result.model_dump(),"preview":{"text":(doc.get("text") or "")[:20000],"pages":doc.get("pages",[])[:50]},"duplicateCandidates":dup}
