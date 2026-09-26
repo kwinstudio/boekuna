@@ -90,7 +90,7 @@ const PROFILE_KEY_PREFIX='boekhouden-user-profile-v1-';
 const SUPABASE_URL='https://vuwfyhtejsxhdfyvkkeq.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_miAZ6CBZShVcmmNwlnEDgA_aGw1X4aP';
 const EDGE_BASE=SUPABASE_URL+'/functions/v1';
-const DOCUMENT_PROCESSOR_URL='https://kwinest-document-processor.onrender.com';
+const DOCUMENT_PROCESSOR_URL='https://kwinest-docprocessor.onrender.com';
 let supabaseClient=null,cloudSaveTimer=null,cloudVersion=1,cloudSyncStatus='saved';
 const TEST_MODE_NO_AUTH=true;
 const TEST_USER={id:'kwinest-local-test',email:'K.Phetmanee@gmail.com',testMode:true};
@@ -452,10 +452,41 @@ async function ocrPdfPages(structure,onProgress){
 
 async function fileSha256(file){const buf=await file.arrayBuffer(),hash=await crypto.subtle.digest('SHA-256',buf);return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('')}
 function processorTablesToText(tables){return (tables||[]).slice(0,25).map((x,ti)=>`TABEL ${ti+1}${x.page!=null?` · pagina ${x.page}`:''}\n${(x.table||[]).slice(0,120).map(r=>(r||[]).join(' | ')).join('\n')}`).join('\n\n')}
+function buildProcessorExistingIndex(){
+ const rows=[];
+ for(const i of state.invoices||[]){const c=state.contacts.find(x=>x.id===i.customerId);rows.push({id:i.id,invoiceNumber:i.number||'',supplier:c?.name||'',party:c?.name||'',invoiceDate:i.issueDate||'',total:Math.abs(Number(invoiceGross(i)||0))})}
+ for(const e of state.expenses||[]){rows.push({id:e.id,invoiceNumber:e.invoiceNumber||'',supplier:e.vendor||'',party:e.vendor||'',invoiceDate:e.date||'',total:Math.abs(Number(expenseGross(e)||0))})}
+ return rows.slice(0,1500)
+}
 async function extractDocumentServer(file,onProgress){
  if(file.size>15*1024*1024)throw new Error('Bestand is groter dan 15 MB. Verklein het bestand en probeer opnieuw.');
- onProgress?.('Document veilig naar de verwerkingsserver sturen…');const fd=new FormData();fd.append('file',file,file.name);const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),90000);
- try{const r=await fetch(DOCUMENT_PROCESSOR_URL+'/extract',{method:'POST',body:fd,headers:{'x-kwinest-test-mode':'1'},signal:ctrl.signal});let j={};try{j=await r.json()}catch(e){}if(!r.ok||!j.ok)throw new Error(j.detail||j.error||`Documentverwerking mislukt (${r.status})`);return j}catch(e){if(e?.name==='AbortError')throw new Error('Documentverwerking duurde te lang. Probeer het opnieuw met een kleiner bestand.');throw e}finally{clearTimeout(timer)}
+ onProgress?.('Document veilig naar documentprocessor v2 sturen…');
+ const fd=new FormData();fd.append('file',file,file.name);fd.append('company_json',JSON.stringify(state.company||{}));fd.append('existing_json',JSON.stringify(buildProcessorExistingIndex()));
+ const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),120000);
+ try{
+  const r=await fetch(DOCUMENT_PROCESSOR_URL+'/analyze',{method:'POST',body:fd,signal:ctrl.signal});
+  let j={};try{j=await r.json()}catch(e){}
+  if(!r.ok||!j.ok)throw new Error(j.detail||j.error||`Documentverwerking mislukt (${r.status})`);
+  const d=j.data||{},p=d.processing||{},preview=j.preview||{},pages=Array.isArray(preview.pages)?preview.pages:[];
+  return {ok:true,kind:p.sourceKind||((file.name.split('.').pop()||'').toLowerCase()),pageCount:Number(d.pageCount||p.pages||1),text:String(preview.text||''),pages,tables:[],tableCount:Number(p.tablesFound||0),ocrUsed:Array.isArray(p.ocrPages)&&p.ocrPages.length>0,ocrPages:Array.isArray(p.ocrPages)?p.ocrPages:[],warnings:Array.isArray(d.warnings)?d.warnings:[],documentTypeHint:d.documentType||'',analysis:d,duplicateCandidates:Array.isArray(j.duplicateCandidates)?j.duplicateCandidates:[],sha256:await fileSha256(file)}
+ }catch(e){
+  if(e?.name==='AbortError')throw new Error('Documentverwerking duurde te lang. Probeer het opnieuw met een kleiner bestand.');
+  throw e
+ }finally{clearTimeout(timer)}
+}
+function processorAnalysisToCandidate(raw,text,forced='auto'){
+ const a=raw&&typeof raw==='object'?raw:{},supplier=a.supplier||{},customer=a.customer||{},inv=a.invoice||{},amounts=a.amounts||{},proc=a.processing||{},conf=a.confidence||{};
+ let documentType=a.documentType==='sales_invoice'?'sale_invoice':(a.documentType||'other');
+ const norm=x=>String(x||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+ const ownParty=o=>{const cv=norm(state.company?.vat),ov=norm(o?.vatNumber),ck=norm(state.company?.kvk),ok=norm(o?.kvk),cn=norm(state.company?.name||state.company?.tradeName),on=norm(o?.name);return !!((cv&&ov&&cv===ov)||(ck&&ok&&ck===ok)||(cn&&on&&(cn===on||cn.includes(on)||on.includes(cn))))};
+ let type=forced!=='auto'?forced:(documentType==='sale_invoice'?'sale':'purchase');
+ if(forced==='auto'&&documentType==='credit_invoice'){if(ownParty(supplier))type='sale';else if(ownParty(customer))type='purchase'}
+ const party=type==='sale'?customer:supplier,vatLines=Array.isArray(amounts.vatLines)?amounts.vatLines:[],rates=[...new Set(vatLines.map(v=>Number(v?.rate)).filter(Number.isFinite))],vatRate=rates.length===1?rates[0]:null;
+ const statusMap={open:'sent',overdue:'sent',unknown:'sent',draft:'draft',paid:'paid',cancelled:'cancelled',credit:'credit'};
+ const fc={party:Number(type==='sale'?conf.customerName:conf.supplierName)||0,invoiceNumber:Number(conf.invoiceNumber)||0,issueDate:Number(conf.invoiceDate)||0,net:Number(conf.subtotal)||0,vatAmount:Number(conf.vatTotal)||0,gross:Number(conf.total)||0};
+ for(const k of Object.keys(fc))fc[k]=Math.max(0,Math.min(100,fc[k]<=1?fc[k]*100:fc[k]));
+ const confVals=Object.values(conf).map(Number).filter(Number.isFinite),overall=Number(proc.overallConfidence);const confidenceScore=Math.max(0,Math.min(100,Number.isFinite(overall)?overall*100:(confVals.length?confVals.reduce((x,y)=>x+y,0)/confVals.length*100:0)));
+ return {type,documentType,isCredit:documentType==='credit_invoice',party:party.name||'',email:party.email||'',phone:party.phone||'',vatId:party.vatNumber||'',kvk:party.kvk||'',address:party.address||'',postal:party.postalCode||'',city:party.city||'',country:party.country||'',iban:party.iban||'',invoiceNumber:inv.invoiceNumber||'',issueDate:inv.invoiceDate||'',dueDate:inv.dueDate||'',paymentTermDays:inv.paymentTermDays??null,orderNumber:inv.orderNumber||'',paymentReference:inv.paymentReference||'',description:inv.description||'',currency:amounts.currency||'EUR',net:amounts.subtotal??null,vatAmount:amounts.vatTotal??null,gross:amounts.total??null,discount:amounts.discount??null,shipping:amounts.shipping??null,vatRate,mixedRates:rates.length>1,vatLines:vatLines.map(v=>({rate:v.rate,taxableAmount:v.taxableAmount,vatAmount:v.vatAmount})),lineItems:(a.lineItems||[]).map(v=>({desc:v.description||'',qty:v.quantity??1,unit:v.unitPrice??0,vat:v.vatRate??vatRate??0,total:v.lineTotal??null})).filter(v=>v.desc),status:statusMap[a.status]||'sent',fieldConfidence:fc,confidenceScore,warnings:Array.isArray(a.warnings)?a.warnings:[],sourceQuality:proc.ai?'processor-v2-ai':'processor-v2',aiModel:proc.aiModel||'',text:String(text||''),processorRaw:a}
 }
 function ibanValid(v){const iban=String(v||'').replace(/\s/g,'').toUpperCase();if(!iban)return null;if(!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(iban))return false;const moved=iban.slice(4)+iban.slice(0,4),digits=[...moved].map(c=>/[A-Z]/.test(c)?String(c.charCodeAt(0)-55):c).join('');let rem=0;for(const ch of digits)rem=(rem*10+Number(ch))%97;return rem===1}
 function plausibleKvk(v){const x=String(v||'').replace(/\D/g,'');return !x||/^\d{8}$/.test(x)}
@@ -663,8 +694,9 @@ async function handleInvoicePdfFile(e){
   const tableText=processorTablesToText(structure.tables),serverText=[structure.text,tableText].filter(Boolean).join('\n\n--- TABELSTRUCTUUR ---\n\n');
   if(ext==='pdf'&&file.size<9*1024*1024){try{browserStructure=await readPdfStructure(file);parsed=findEmbeddedInvoice(browserStructure,pendingUploadKind)}catch(err){console.warn('Embedded PDF check',err)}}
   if(!parsed)parsed=parseInvoicePdf(serverText,file.name,pendingUploadKind);
+  if(structure.analysis){const serverCandidate=processorAnalysisToCandidate(structure.analysis,serverText,pendingUploadKind);parsed=applyRecognitionQuality(mergeAIParsed(parsed,serverCandidate,pendingUploadKind));parsed.sourceQuality=serverCandidate.sourceQuality;parsed.aiModel=serverCandidate.aiModel;parsed.aiWarnings=[...(parsed.aiWarnings||[]),...(serverCandidate.warnings||[])];if(structure.duplicateCandidates?.length&&!parsed.duplicateCandidate)parsed.duplicateCandidate={type:'server',label:'Bestaande factuur met overeenkomstige kenmerken'};}
   const pageConfs=(structure.pages||[]).map(p=>Number(p.ocrConfidence)).filter(Number.isFinite),avgOcr=pageConfs.length?pageConfs.reduce((a,b)=>a+b,0)/pageConfs.length:null;
-  parsed.processor={kind:structure.kind,pageCount:structure.pageCount,ocrUsed:!!structure.ocrUsed,ocrPages:structure.ocrPages||[],ocrConfidence:avgOcr,tables:(structure.tables||[]).length,warnings:structure.warnings||[],documentTypeHint:structure.documentTypeHint||''};
+  parsed.processor={kind:structure.kind,pageCount:structure.pageCount,ocrUsed:!!structure.ocrUsed,ocrPages:structure.ocrPages||[],ocrConfidence:avgOcr,tables:Number(structure.tableCount||(structure.tables||[]).length),warnings:structure.warnings||[],documentTypeHint:structure.documentTypeHint||''};
   parsed.sha256=structure.sha256||'';parsed.pageCount=structure.pageCount??null;parsed.text=serverText;parsed.sourceQuality=structure.ocrUsed?'server-ocr':'server-document';parsed.documentType=classifyDocumentType(parsed,structure.documentTypeHint||'');parsed.isCredit=parsed.documentType==='credit_invoice'||!!parsed.isCredit;if(parsed.isCredit)parsed.status='credit';
   parsed=applyRecognitionQuality(parsed);
  }catch(err){
