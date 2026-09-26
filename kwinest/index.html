@@ -1210,6 +1210,108 @@ html,body,#authRoot,.marketing,.main,.content{background:#F8FAFC!important;color
   .marketing .fh-trust-card p,.marketing .fh-cta-box p{font-size:14px!important}
 }
 
+
+/* Boekuna readability + interaction v3 */
+@media (min-width:821px){
+  /* General application: no important supporting text should feel microscopic on a laptop */
+  .nav-item{font-size:14px!important}
+  .nav-group{font-size:12px!important}
+  .brand small{font-size:13px!important}
+  .metric-head,.metric-sub{font-size:13px!important}
+  .badge{font-size:12px!important}
+  .section-head p,.page-head p{font-size:14px!important}
+  .table th{font-size:12px!important}
+  .table td{font-size:14px!important;line-height:1.5!important}
+  .field label{font-size:12px!important}
+  .help{font-size:13px!important}
+  .notice{font-size:13px!important}
+  .filter-btn{font-size:13px!important}
+  .action-text strong{font-size:14px!important}
+  .action-text span{font-size:13px!important}
+  .legal-item p{font-size:13px!important}
+  .customer-preview{font-size:13px!important}
+  .invoice-check-item{font-size:13px!important}
+  .auth-help,.auth-checkline,.auth-note,.auth-error{font-size:13px!important}
+  .auth-field label{font-size:13px!important}
+}
+
+@media (min-width:901px){
+  /* Public Boekuna site: normal copy >= 14px, secondary labels >= 12px */
+  .marketing{font-size:16px!important}
+  .marketing :where(.marketing-page-hero p,.marketing-band p,.marketing-cta-box p,.feature-card p,.deep-panel p,.faq-item p,.usage-caption,.audience-card p,.value-card p,.promo-card p,.fh-number p,.fh-link p,.fh-trust-card p,.fh-cta-box p,.kz-hero-copy,.kz-heading p,.kz-solution p,.kz-reason p,.kz-apps p,.kz-audience-card p,.kz-plan p,.kz-support-card p,.kz-workflow-meta p,.kz-compare-copy p,.kz-compare-item){font-size:15px!important;line-height:1.68!important}
+  .marketing :where(.marketing-proof,.pricing-note,.usage-rule,.deep-item,.feature-summary div,.compare-row,.promo-note,.kz-status,.kz-solution-extra,.kz-workflow-tab span,.kz-workflow-box b,.kz-compare-flow-row strong){font-size:13px!important;line-height:1.55!important}
+  .marketing :where(.marketing-eyebrow,.kz-overline,.kz-heading small,.kz-solution small,.kz-app-label,.kz-audience-card small,.kz-workflow-meta small,.kz-workflow-box span,.price-pill,.price-vat,.feature-summary span,.hero-stat span,.audience-kicker){font-size:12px!important}
+  .marketing .price-for,.marketing .price span,.marketing .price-list div{font-size:14px!important}
+  .marketing .faq-item strong{font-size:16px!important}
+  .marketing .step strong{font-size:15px!important}
+  .marketing .step span{font-size:14px!important}
+  .marketing .trust-card span{font-size:13px!important}
+  .marketing .marketing-footer-inner{font-size:13px!important}
+
+  /* Even the product mockups remain legible on a laptop */
+  .marketing :where(.kz-browser-nav span,.kz-browser-banner p,.kz-preview-link,.kz-phone-header,.kz-phone-hero small,.product-mini-brand,.product-mini-item,.product-mini-new,.product-mini-hero small,.product-mini-hero p,.product-mini-card span,.fh-ui-nav span,.fh-ui-main-head i,.fh-ui-banner small,.fh-ui-banner p,.fh-ui-card small,.fh-link small){font-size:11px!important}
+  .marketing :where(.kz-browser-card span,.kz-browser-banner small,.kz-browser-head i,.kz-compare-flow-row small,.kz-compare-flow-row em){font-size:11px!important}
+}
+
+/* Stronger, calmer interaction language */
+.marketing .mk-btn,
+.marketing .marketing-link,
+.marketing .root-drop>button,
+.marketing .kz-tab,
+.marketing .kz-workflow-tab,
+.marketing .kz-compare-switch button,
+.marketing .kz-solution-more{
+  transition:transform .18s ease,box-shadow .18s ease,background-color .18s ease,border-color .18s ease,color .18s ease!important
+}
+.marketing .mk-btn:active,
+.marketing .kz-tab:active,
+.marketing .kz-workflow-tab:active,
+.marketing .kz-compare-switch button:active{transform:translateY(1px) scale(.985)!important}
+.marketing .mk-btn:focus-visible,
+.marketing a:focus-visible,
+.marketing button:focus-visible,
+.faq-item:focus-visible{outline:3px solid rgba(8,169,197,.28)!important;outline-offset:3px!important}
+
+.bookuna-hover-card{
+  position:relative;
+  transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease,background-color .22s ease!important;
+  will-change:transform
+}
+@media (hover:hover) and (pointer:fine){
+  .bookuna-hover-card:hover{
+    transform:translateY(-5px);
+    border-color:#BED7D1!important;
+    box-shadow:0 18px 42px rgba(30,73,78,.10)!important
+  }
+  .marketing .mk-btn:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(32,41,46,.12)}
+  .marketing .marketing-link:hover{color:#078DA7!important}
+}
+
+/* FAQ becomes a real accordion */
+.faq-item{cursor:pointer;position:relative;padding-right:52px!important;transition:border-color .2s ease,box-shadow .2s ease,background .2s ease!important}
+.faq-item strong{position:relative;padding-right:10px}
+.faq-item strong:after{
+  content:"+";
+  position:absolute;right:-28px;top:-3px;
+  width:28px;height:28px;border-radius:50%;
+  display:grid;place-items:center;
+  background:#F1F6F4;color:#356267;
+  font-size:18px;line-height:1;
+  transition:transform .22s ease,background .22s ease
+}
+.faq-item p{max-height:0;opacity:0;overflow:hidden;margin:0!important;transition:max-height .28s ease,opacity .2s ease,margin-top .2s ease}
+.faq-item.open{border-color:#BED7D1!important;background:#FBFDFC!important;box-shadow:0 12px 30px rgba(30,73,78,.07)}
+.faq-item.open strong:after{content:"−";transform:rotate(180deg);background:#E5F6F7}
+.faq-item.open p{max-height:260px;opacity:1;margin-top:10px!important}
+
+/* Scroll reveal for all marketing pages, not just the homepage */
+.bookuna-reveal{opacity:0;transform:translateY(14px);transition:opacity .48s ease,transform .48s ease}
+.bookuna-reveal.bookuna-in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){
+  .bookuna-hover-card,.bookuna-reveal{transition:none!important;transform:none!important}
+  .bookuna-reveal{opacity:1!important}
+}
+
 </style>
 </head>
 <body>
@@ -1476,6 +1578,36 @@ function initBoekunaMarketingInteractions(){
   reveals.forEach(el=>observer.observe(el));
  }
 
+ /* Boekuna universal interactions v3 */
+ const hoverCards=[...document.querySelectorAll('.feature-card,.price-card,.deep-panel,.trust-card,.audience-card,.value-card,.promo-card,.kz-solution,.kz-reason,.kz-audience-card,.kz-support-card,.kz-workflow-stage,.kz-compare-copy,.kz-compare-visual')];
+ hoverCards.forEach(card=>card.classList.add('bookuna-hover-card'));
+
+ const faqItems=[...document.querySelectorAll('.faq-item')];
+ faqItems.forEach((item,index)=>{
+   item.setAttribute('role','button');
+   item.setAttribute('tabindex','0');
+   item.setAttribute('aria-expanded','false');
+   const toggle=()=>{
+     const willOpen=!item.classList.contains('open');
+     faqItems.forEach(other=>{other.classList.remove('open');other.setAttribute('aria-expanded','false')});
+     if(willOpen){item.classList.add('open');item.setAttribute('aria-expanded','true')}
+   };
+   item.addEventListener('click',toggle);
+   item.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle()}});
+   if(index===0){item.classList.add('open');item.setAttribute('aria-expanded','true')}
+ });
+
+ const universalReveal=[...document.querySelectorAll('.marketing section,.marketing .marketing-cta-box')];
+ universalReveal.forEach(el=>el.classList.add('bookuna-reveal'));
+ if(reduced||!('IntersectionObserver' in window)){
+   universalReveal.forEach(el=>el.classList.add('bookuna-in'));
+ }else{
+   const universalObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{
+     if(entry.isIntersecting){entry.target.classList.add('bookuna-in');universalObserver.unobserve(entry.target)}
+   }),{threshold:.08,rootMargin:'0px 0px -30px 0px'});
+   universalReveal.forEach(el=>universalObserver.observe(el));
+ }
+
  const progress=q('kzProgress');
  const updateProgress=()=>{
   if(!progress)return;
@@ -1529,7 +1661,7 @@ function showMarketingPage(page='home'){
   </div></section><section class="marketing-cta"><div class="marketing-cta-box"><div><h2>Bekijk welk volume bij je past.</h2><p>Bundels beginnen bij 25 slimme verwerkingen per maand.</p></div><button class="mk-btn primary" onclick="location.href='/prijzen/'">Bekijk prijzen</button></div></section></main>`;
  }
  document.getElementById('authRoot').innerHTML=`<div class="marketing">${nav}${body}${footer}</div>`;
- if(page==='home')initBoekunaMarketingInteractions();
+ initBoekunaMarketingInteractions();
  window.scrollTo({top:0,behavior:'instant'});
 }
 function showAuth(mode='login'){
