@@ -156,3 +156,42 @@ body{background:#FFFFFF!important;color:#20292E!important}
     background:#20292E!important;
   }
 }
+
+/* Boekuna desktop readability */
+@media (min-width:901px){
+  .promo{font-size:12px!important}
+  .logo{font-size:21px!important}
+  .nav-item,.nav-link{font-size:14px!important}
+  .dropdown-menu strong{font-size:13px!important}
+  .dropdown-menu span{font-size:12px!important;line-height:1.5!important}
+  .btn{font-size:13px!important}
+
+  .breadcrumbs{font-size:12px!important}
+  .eyebrow{font-size:12px!important}
+  .page-hero p{font-size:18px!important}
+  .section-head p{font-size:16px!important}
+  .card h3{font-size:21px!important}
+  .card p{font-size:14px!important}
+  .card a{font-size:13px!important}
+  .feature-row strong{font-size:15px!important}
+  .feature-row span{font-size:13px!important}
+  .trust strong{font-size:14px!important}
+  .trust span{font-size:12px!important}
+  .faq summary{font-size:15px!important}
+  .faq p{font-size:13px!important}
+  .notice{font-size:13px!important}
+  .footer-brand p{font-size:13px!important}
+  .footer h4{font-size:13px!important}
+  .footer a{font-size:12px!important}
+  .footer-bottom{font-size:11px!important}
+
+  .device-nav b{font-size:12px!important}
+  .device-nav span{font-size:9px!important}
+  .device-head strong{font-size:15px!important}
+  .device-head em{font-size:9px!important}
+  .device-banner small{font-size:8px!important}
+  .device-banner h3{font-size:23px!important}
+  .device-banner p{font-size:10px!important}
+  .device-kpi span{font-size:8px!important}
+  .device-kpi b{font-size:11px!important}
+}
