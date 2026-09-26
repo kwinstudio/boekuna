@@ -593,7 +593,7 @@ function authError(msg){const el=document.getElementById('authError');if(el){el.
 function profileEssentialsComplete(company){return !!(company&&company.name&&company.email&&company.phone&&company.address&&company.postal&&company.city&&company.kvk&&company.iban)}
 let lastMarketingPage='home';
 function marketingNav(page){
- return \`<div class="promo-bar"><div class="promo-bar-inner"><span>Kwinest · boekhoudsoftware in actieve ontwikkeling</span><a href="/veiligheid/" style="color:inherit;text-decoration:underline">Bekijk productiestatus →</a></div></div><nav class="marketing-nav"><div class="marketing-nav-inner">
+ return `<div class="promo-bar"><div class="promo-bar-inner"><span>Kwinest · boekhoudsoftware in actieve ontwikkeling</span><a href="/veiligheid/" style="color:inherit;text-decoration:underline">Bekijk productiestatus →</a></div></div><nav class="marketing-nav"><div class="marketing-nav-inner">
   <a class="marketing-logo" href="/"><span class="brandmark">K</span><span>Kwinest</span></a>
   <div class="marketing-links">
    <div class="root-drop"><button>Product ▾</button><div class="root-drop-menu"><a href="/functies/">Alle functies<span>Overzicht van de complete boekhoudomgeving.</span></a><a href="/scanner/">Slimme scanner<span>PDF's, scans en bonfoto's uitlezen.</span></a><a href="/facturen/">Facturen<span>Verkoopfacturen, creditnota's en betalingen.</span></a><a href="/btw-bank/">Btw & bank<span>Btw-overzicht, CSV-import en matching.</span></a><a href="/rapportages/">Rapportages<span>Omzet, kosten en controle.</span></a></div></div>
@@ -606,7 +606,7 @@ function marketingNav(page){
    <details><summary>Product</summary><div class="marketing-mobile-sub"><a href="/functies/">Alle functies</a><a href="/scanner/">Slimme scanner</a><a href="/facturen/">Facturen</a><a href="/btw-bank/">Btw & bank</a><a href="/rapportages/">Rapportages</a></div></details>
    <details><summary>Kwinest</summary><div class="marketing-mobile-sub"><a href="/hoe-het-werkt/">Zo werkt het</a><a href="/veiligheid/">Veiligheid & privacy</a><a href="/over/">Over Kwinest</a><a href="/faq/">FAQ</a></div></details>
    <a href="/prijzen/">Prijzen</a><a href="/?login=1">Inloggen</a>
- </div>\`;
+ </div>`;
 }
 function marketingFooter(){
  return `<footer class="marketing-footer"><div class="marketing-footer-inner"><div><strong style="color:#26364d">Kwinest</strong> · Boekhouden voor ondernemers</div><div style="display:flex;gap:8px;flex-wrap:wrap"><a class="mk-btn" href="/functies/">Functies</a><a class="mk-btn" href="/veiligheid/">Veiligheid</a><a class="mk-btn" href="/prijzen/">Prijzen</a><a class="mk-btn primary" href="/?login=1">Inloggen</a></div></div></footer>`;
@@ -630,7 +630,7 @@ function showMarketingPage(page='home'){
  const nav=marketingNav(page),footer=marketingFooter();
  let body='';
  if(page==='home'){
-  body=\`<main>
+  body=`<main>
    <section class="fh-hero">
     <span class="fh-kicker">Boekhouden voor ondernemers</span>
     <h1>Meer overzicht. Minder administratief gedoe.</h1>
@@ -650,8 +650,8 @@ function showMarketingPage(page='home'){
    <section class="fh-section white"><div class="fh-inner"><div class="fh-heading"><span class="fh-kicker">Voor wie</span><h2>Voor ondernemers die zelf overzicht willen houden.</h2></div><div class="fh-links"><div class="fh-link"><small>ZZP</small><h3>Factureren en kosten bijhouden.</h3><p>Voor zelfstandigen die hun administratie compact willen houden en veel zelf doen.</p></div><div class="fh-link"><small>Klein bedrijf</small><h3>Meer documenten, dezelfde workflow.</h3><p>Relaties, leveranciers, documenten en betalingen blijven bij elkaar terwijl je groeit.</p></div><div class="fh-link"><small>Veel bonnetjes</small><h3>Minder overtypen.</h3><p>Voor ondernemers met regelmatige inkoopbonnen en PDF-facturen.</p></div></div></div></section>
 
    <section class="fh-cta"><div class="fh-cta-box"><div><h2>Bekijk wat Kwinest nu al kan.</h2><p>Ga door de functies, prijzen en productiestatus voordat je besluit of Kwinest bij je administratie past.</p></div><a class="mk-btn" href="/functies/">Alle functies</a></div></section>
-  </main>\`;
- } }else if(page==='features'){
+  </main>`;
+ }else if(page==='features'){
   body=`<main><section class="marketing-page-hero"><span class="marketing-eyebrow">Functies</span><h1>Alles wat je dagelijks nodig hebt voor je administratie.</h1><p>Van verkoopfactuur tot kassabon en van bankregel tot btw-overzicht. Kwinest houdt de belangrijkste administratieve taken in één duidelijke omgeving.</p></section><section class="marketing-section" style="padding-top:24px"><div class="feature-grid">
    <article class="feature-card"><div class="feature-icon">01</div><h3>Facturen & creditfacturen</h3><p>Maak professionele facturen, leg betalingen vast en maak gekoppelde creditfacturen.</p></article>
    <article class="feature-card"><div class="feature-icon">02</div><h3>Bonnen fotograferen</h3><p>Gebruik je camera of fotobibliotheek. Ook HEIC/HEIF van iPhone wordt ondersteund.</p></article>
