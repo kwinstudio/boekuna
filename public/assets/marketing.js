@@ -57,12 +57,42 @@ function sharedHeader(active=''){
   </div></header>`;
 }
 function sharedFooter(){
-  return `<footer class="footer"><div class="footer-inner">
-    <div class="footer-brand"><a class="logo" href="/"><img class="logo-icon" src="${BOOKUNA_ICON}" alt="" aria-hidden="true"><span>Boekuna</span></a><p>Boekhoudsoftware voor ondernemers die minder willen overtypen, sneller willen controleren en meer grip willen op hun administratie.</p></div>
-    <div><h4>Oplossingen</h4><a href="/functies/">Alle oplossingen</a><a href="/scanner/">Scanner</a><a href="/facturen/">Facturen</a><a href="/btw-bank/">Btw & bank</a><a href="/rapportages/">Rapportages</a></div>
-    <div><h4>Voor ondernemers</h4><a href="/voor-ondernemers/#zzp">ZZP & freelance</a><a href="/voor-ondernemers/#klein-bedrijf">Kleine bedrijven</a><a href="/voor-ondernemers/#veel-documenten">Veel documenten</a><a href="/prijzen/">Prijzen</a></div>
-    <div><h4>Resources</h4><a href="/hoe-het-werkt/">Product tour</a><a href="/faq/">FAQ</a><a href="/veiligheid/">Veiligheid & privacy</a><a href="/over/">Over Boekuna</a></div>
-  </div><div class="footer-bottom">Boekuna · Boekhoudsoftware in actieve ontwikkeling. Functionaliteit en prijzen kunnen vóór publieke lancering nog wijzigen.</div></footer>`;
+  return `<footer class="footer footer-v2">
+    <div class="footer-inner footer-grid">
+      <div class="footer-brand">
+        <a class="logo footer-logo" href="/"><img class="logo-icon" src="${BOOKUNA_ICON}" alt="" aria-hidden="true"><span>Boekuna</span></a>
+        <p>Boekhoudsoftware voor ondernemers die minder willen overtypen, sneller willen controleren en meer grip willen op hun administratie.</p>
+        <a class="footer-cta" href="/hoe-het-werkt/">Bekijk hoe Boekuna werkt →</a>
+      </div>
+      <nav class="footer-col" aria-label="Oplossingen">
+        <h4>Oplossingen</h4>
+        <a href="/functies/">Alle functies</a>
+        <a href="/scanner/">Slimme scanner</a>
+        <a href="/facturen/">Facturen</a>
+        <a href="/btw-bank/">Btw & bank</a>
+        <a href="/rapportages/">Rapportages</a>
+      </nav>
+      <nav class="footer-col" aria-label="Voor ondernemers">
+        <h4>Voor ondernemers</h4>
+        <a href="/voor-ondernemers/#zzp">ZZP & freelance</a>
+        <a href="/voor-ondernemers/#klein-bedrijf">Kleine bedrijven</a>
+        <a href="/voor-ondernemers/#veel-documenten">Veel documenten</a>
+        <a href="/prijzen/">Prijzen</a>
+      </nav>
+      <nav class="footer-col" aria-label="Resources">
+        <h4>Resources</h4>
+        <a href="/hoe-het-werkt/">Product tour</a>
+        <a href="/faq/">FAQ</a>
+        <a href="/veiligheid/">Veiligheid & privacy</a>
+        <a href="/over/">Over Boekuna</a>
+      </nav>
+    </div>
+    <div class="footer-bottom footer-bottom-v2">
+      <span>© 2026 Boekuna</span>
+      <span class="footer-status"><i aria-hidden="true"></i> Product in actieve ontwikkeling</span>
+      <span>Functionaliteit en prijzen kunnen vóór publieke lancering nog wijzigen.</span>
+    </div>
+  </footer>`;
 }
 document.addEventListener('DOMContentLoaded',()=>{ensureBookunaFavicon();const h=document.getElementById('siteHeader');if(h)h.innerHTML=sharedHeader(document.body.dataset.page||'');const f=document.getElementById('siteFooter');if(f)f.innerHTML=sharedFooter()});
 document.addEventListener('click',e=>{const m=document.getElementById('mobileMenu');if(m&&m.classList.contains('open')&&!e.target.closest('.mobile-menu')&&!e.target.closest('.mobile-toggle'))m.classList.remove('open')});
