@@ -337,3 +337,56 @@ body{background:#FFFFFF!important;color:#20292E!important}
     gap:8px;
   }
 }
+
+/* Boekuna footer balance v3 */
+.footer.footer-v2{
+  background:#F7FAF8!important;
+  border-top:1px solid #D5E0DB!important;
+}
+.footer-v2 .footer-grid{
+  gap:38px!important;
+}
+.footer-v2 .footer-logo{
+  font-size:20px!important;
+  margin-bottom:16px!important;
+}
+.footer-v2 .footer-logo .logo-icon{
+  width:34px!important;
+  height:34px!important;
+  min-width:34px!important;
+  max-width:34px!important;
+}
+.footer-v2 .footer-brand p{
+  color:#465650!important;
+  font-size:14px!important;
+  line-height:1.65!important;
+  max-width:360px!important;
+}
+.footer-v2 .footer-cta{
+  color:#156D7E!important;
+  font-size:13.5px!important;
+}
+.footer-v2 .footer-col h4{
+  color:#1E2B30!important;
+  font-size:14px!important;
+  font-weight:850!important;
+}
+.footer-v2 .footer-col a{
+  color:#44545A!important;
+  font-size:13.5px!important;
+  font-weight:650!important;
+}
+.footer-v2 .footer-col a:hover{
+  color:#087F96!important;
+}
+.footer-v2 .footer-bottom-v2{
+  color:#56645F!important;
+  font-size:11.5px!important;
+  border-top-color:#D5E0DB!important;
+}
+.footer-v2 .footer-status{
+  color:#3F514B!important;
+}
+.footer-v2 .footer-status i{
+  background:#6A8D83!important;
+}
