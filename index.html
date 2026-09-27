@@ -145,7 +145,7 @@ function overlapsForEmployee(employeeId,shift){return weekShifts().some(function
 function eligibleEmployee(e,s){return !!e&&e.status==="active"&&isAvailableForShift(e,s)&&!overlapsForEmployee(e.id,s)}
 function shiftHasWarning(s){if(!s.employeeId)return false;let e=state.employees.find(function(x){return x.id===s.employeeId});return !eligibleEmployee(e,s)||employeeWeekHours(s.employeeId)>e.hours}
 function filteredRosterList(){
- ensureRosterState();return state.rosters.filter(function(r){let dep=rosterFilterDepartment==="all"||r.department===rosterFilterDepartment;let date=!rosterFilterDate||(rosterFilterDate>=r.start&&rosterFilterDate<=r.end);return dep&&date}).sort(function(a,b){return a.start.localeCompare(b.start)})
+ ensureRosterState();let current=monday(dateOff(0));return state.rosters.filter(function(r){let dep=rosterFilterDepartment==="all"||r.department===rosterFilterDepartment;let date=!rosterFilterDate||(rosterFilterDate>=r.start&&rosterFilterDate<=r.end);let range=!!rosterFilterDate||r.end>=current;return dep&&date&&range}).sort(function(a,b){return a.start.localeCompare(b.start)})
 }
 function planning(a){ensureRosterState();a.classList.add("wr-page");if(rosterScreen==="detail"&&currentRoster())renderRosterDetail(a);else renderRosterList(a)}
 function renderRosterList(a){
