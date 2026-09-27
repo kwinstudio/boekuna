@@ -67,6 +67,12 @@ assert.ok(!html.includes("page=needsProfile?'profile':'dashboard'"),"Profile com
 assert.ok(!html.includes("Maak eerst je bedrijfsprofiel compleet voordat je een abonnement activeert."),"Accounting profile must not gate Stripe checkout");
 assert.ok(html.includes("url.searchParams.get('register')==='1'"),"Registration must be directly addressable from the launch URL");
 assert.ok(html.includes("showAuth('register')"),"Login must offer a route to create an account");
+assert.ok(html.includes("function legacyUserForEmail(email)"),"Legacy local-account lookup must remain available");
+assert.ok(html.includes("legacySnapshotForEmail(user.email)"),"Existing local administrations must remain migratable to cloud accounts");
+assert.ok(html.includes("const hash=await hashPassword(pw,legacyUser.salt)"),"Legacy password verification must remain in the login migration path");
+assert.ok(html.includes("async function requireMfaForUser(user)"),"MFA assurance-level gate must remain available");
+assert.ok(html.includes("if(await requireMfaForUser(data.user))return;"),"Password login must still invoke the MFA gate before hydration");
+assert.ok(html.includes("showMfaLoginChallenge()"),"MFA-enabled accounts must still render an authenticator challenge");
 assert.ok(!html.includes("publieke registratie nog niet geactiveerd"),"Launch source must not claim public registration is disabled");
 assert.ok(!html.includes('id="globalSearch"'),"The misleading cross-app global search must stay removed");
 assert.ok(!html.includes('placeholder="Zoeken…"'),"Dead generic search placeholders must not return on non-search pages");
