@@ -30,6 +30,34 @@ assert.ok(html.includes("const register=mode==='register';"),"Public registratio
 assert.ok(html.includes("const wantsRegister=url.searchParams.get('register')==='1';"),"Registration must be directly addressable from the launch URL");
 assert.ok(html.includes("showAuth('register')"),"Login must offer a route to create an account");
 assert.ok(!html.includes("publieke registratie nog niet geactiveerd"),"Launch source must not claim public registration is disabled");
+assert.ok(!html.includes('id="globalSearch"'),"The misleading cross-app global search must stay removed");
+assert.ok(!html.includes("search='te laat'"),"Invoice overdue filtering must never fall back to free-text search");
+assert.ok(html.includes("const LIST_STATE_KEY='boekuna-list-state-v1';"),"Contextual list state must be session-persisted");
+assert.ok(html.includes("function getListRows(name)"),"All contextual lists must share one search/filter/sort pipeline");
+assert.ok(html.includes("function listToolbar(name,extraHtml=''"),"Relevant lists must use the shared ListToolbar");
+assert.ok(html.includes("function invoiceListStatusMatch(i,status)"),"Invoice status filters must use business status logic");
+assert.ok(html.includes("invoiceEffectiveStatus(i)==='overdue'"),"Overdue invoice filtering must use invoiceEffectiveStatus");
+assert.ok(html.includes("function listNormalize(v)"),"List search must share normalized case/accent-insensitive matching");
+assert.ok(html.includes("setTimeout(()=>{listPageState(name).query=String(value||'').trim();persistListState();render();focusListSearch(name,pos)},180)"),"List search must debounce while typing");
+assert.ok(html.includes('aria-label="Zoekopdracht wissen"'),"Search clear controls must be accessible");
+for(const placeholder of [
+  "Zoek op factuurnummer, klant of bedrag",
+  "Zoek op leverancier, factuurnummer of bedrag",
+  "Zoek in transacties",
+  "Zoek op naam, e-mail of plaats",
+  "Zoek op bestand, leverancier of factuurnummer",
+  "Zoek rekening, referentie of omschrijving"
+]){
+  assert.ok(html.includes(placeholder),`Missing contextual search placeholder: ${placeholder}`);
+}
+assert.ok(html.includes("source -> search -> filters -> sort")||html.includes("rows=rows.filter(item=>listMatchesFilters(name,item));"),"List pipeline must filter before sorting");
+assert.ok(html.includes("return rows.slice().sort((a,b)=>listSortCompare(name,a,b))"),"List sorting must work on a copy instead of mutating source data");
+assert.ok(html.includes("function clearListFilters(name)"),"Shared filter reset behavior is required");
+assert.ok(html.includes("listState[name].query=keepQuery;listState[name].sort=keepSort"),"Clearing filters must preserve search and sort");
+assert.ok(html.includes("role=\"dialog\" aria-modal=\"true\""),"Filter/sort dialogs must expose dialog semantics");
+assert.ok(html.includes("if(e.key==='Tab')"),"Dialogs must trap keyboard focus");
+assert.ok(html.includes("state.hours.slice().sort"),"Hours must default to newest date first");
+assert.ok(html.includes("state.mileage.slice().sort"),"Mileage must default to newest date first");
 assert.ok(html.includes("fetchWithAuthRetry(DOCUMENT_PROCESSOR_URL+'/analyze'"),"Document processor requests must use authenticated retry");
 assert.ok(html.includes("async function fetchWithAuthRetry"),"Authenticated processor requests must refresh and retry expired sessions");
 assert.ok(html.includes('id="boekuna-upload-bootstrap"'),"Upload bootstrap must exist independently of the main app initialization");
