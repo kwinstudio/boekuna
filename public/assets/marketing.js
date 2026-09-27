@@ -36,7 +36,7 @@ function sharedHeader(active=''){
       <div class="dropdown"><button class="nav-item">Voor ondernemers ▾</button><div class="dropdown-menu">
         <a href="/voor-ondernemers/#zzp"><strong>ZZP & freelance</strong><span>Minder administratie naast je echte werk.</span></a>
         <a href="/voor-ondernemers/#klein-bedrijf"><strong>Kleine bedrijven</strong><span>Meer documenten, één administratie.</span></a>
-        <a href="/voor-ondernemers/#veel-documenten"><strong>Veel facturen & bonnen</strong><span>Sneller verwerken en controleren.</span></a>
+        <a href="/voor-ondernemers/#veel-documenten"><strong>Groeiende administratie</strong><span>Meer overzicht en controle naarmate je bedrijf groeit.</span></a>
       </div></div>
       <a class="nav-link" href="/prijzen/">Prijzen</a>
       <div class="dropdown"><button class="nav-item">Resources ▾</button><div class="dropdown-menu">
@@ -50,7 +50,7 @@ function sharedHeader(active=''){
   </nav>
   <div class="mobile-menu" id="mobileMenu">
     <details><summary>Oplossingen</summary><div class="mobile-sub"><a href="/functies/">Alle oplossingen</a><a href="/scanner/">Slimme scanner</a><a href="/facturen/">Facturen</a><a href="/btw-bank/">Btw & bank</a><a href="/rapportages/">Rapportages</a></div></details>
-    <details><summary>Voor ondernemers</summary><div class="mobile-sub"><a href="/voor-ondernemers/#zzp">ZZP & freelance</a><a href="/voor-ondernemers/#klein-bedrijf">Kleine bedrijven</a><a href="/voor-ondernemers/#veel-documenten">Veel facturen & bonnen</a></div></details>
+    <details><summary>Voor ondernemers</summary><div class="mobile-sub"><a href="/voor-ondernemers/#zzp">ZZP & freelance</a><a href="/voor-ondernemers/#klein-bedrijf">Kleine bedrijven</a><a href="/voor-ondernemers/#veel-documenten">Groeiende administratie</a></div></details>
     <a href="/prijzen/">Prijzen</a>
     <details><summary>Resources</summary><div class="mobile-sub"><a href="/hoe-het-werkt/">Product tour</a><a href="/faq/">FAQ</a><a href="/veiligheid/">Veiligheid & privacy</a><a href="/over/">Over Boekuna</a></div></details>
     <a href="/?login=1">Inloggen</a>
@@ -76,7 +76,7 @@ function sharedFooter(){
         <h4>Voor ondernemers</h4>
         <a href="/voor-ondernemers/#zzp">ZZP & freelance</a>
         <a href="/voor-ondernemers/#klein-bedrijf">Kleine bedrijven</a>
-        <a href="/voor-ondernemers/#veel-documenten">Veel documenten</a>
+        <a href="/voor-ondernemers/#veel-documenten">Groeiende administratie</a>
         <a href="/prijzen/">Prijzen</a>
       </nav>
       <nav class="footer-col" aria-label="Resources">
