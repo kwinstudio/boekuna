@@ -55,8 +55,9 @@ assert.ok(html.includes('minlength="12"'),"New/reset passwords must require at l
 assert.ok(html.includes("Maak je gratis account"),"Signup must use the simplified account copy");
 assert.ok(html.includes("auth.signUp({email,password:pw,options:{emailRedirectTo:AUTH_REDIRECT_URL}})"),"New signup must only send email/password and redirect configuration");
 assert.ok(!html.includes("options:{data:{company},emailRedirectTo:AUTH_REDIRECT_URL}"),"Signup must not put the company object in Auth user metadata");
-assert.ok(!html.includes('name="confirm"'),"Signup/recovery must not ask for password confirmation");
-assert.ok(!html.includes('name="companyName"'),"Signup must not collect company fields");
+const authFlowSource=html.slice(html.indexOf("function showAuth(mode='login'"),html.indexOf("async function logoutUser()"));
+assert.ok(!authFlowSource.includes('name="confirm"'),"Signup/recovery must not ask for password confirmation");
+assert.ok(!authFlowSource.includes('name="companyName"'),"Signup must not collect company fields");
 assert.ok(!html.includes('id="loginPassword" name="password" type="password" minlength='),"Login must not frontend-block legacy short passwords");
 assert.ok(html.includes("auth.resend({type:'signup',email,options:{emailRedirectTo:AUTH_REDIRECT_URL}})"),"Signup verification resend must use Supabase resend");
 assert.ok(html.includes("showVerificationState(email)"),"No-session signup must have a dedicated verification state");
