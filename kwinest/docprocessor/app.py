@@ -40,6 +40,7 @@ APP_ORIGIN = os.getenv("APP_ORIGIN", "https://boekuna-boekhouding.onrender.com")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://vuwfyhtejsxhdfyvkkeq.supabase.co").rstrip("/")
 SUPABASE_PUBLISHABLE_KEY = os.getenv("SUPABASE_PUBLISHABLE_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_RESPONSES_URL = os.getenv("OPENAI_RESPONSES_URL", "https://api.openai.com/v1/responses")
 MAX_BYTES = int(os.getenv("MAX_FILE_BYTES", str(15 * 1024 * 1024)))
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6-sol")
 REQUEST_TIMEOUT = float(os.getenv("AI_TIMEOUT_SECONDS", "55"))
@@ -269,16 +270,17 @@ def own_matches(block:dict, company:dict)->bool:
     bname=norm_text(str(block.get("name") or "")).lower()
     return bool((cvat and bvat==cvat) or (ckvk and bkvk==ckvk) or (cname and bname and (cname in bname or bname in cname)))
 
-def allow_request(request: Request) -> bool:
+def allow_request(request: Request, key_override: str | None = None) -> bool:
     now=time.time()
     forwarded=(request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
     ip=forwarded or (request.client.host if request.client else "unknown")
-    recent=[t for t in _REQUEST_TIMES.get(ip,[]) if now-t<RATE_LIMIT_WINDOW]
+    key=key_override or ip
+    recent=[t for t in _REQUEST_TIMES.get(key,[]) if now-t<RATE_LIMIT_WINDOW]
     if len(recent)>=RATE_LIMIT_MAX:
-        _REQUEST_TIMES[ip]=recent
+        _REQUEST_TIMES[key]=recent
         return False
     recent.append(now)
-    _REQUEST_TIMES[ip]=recent
+    _REQUEST_TIMES[key]=recent
     if len(_REQUEST_TIMES)>5000:
         cutoff=now-RATE_LIMIT_WINDOW
         for key in list(_REQUEST_TIMES.keys())[:2500]:
@@ -979,14 +981,39 @@ def validate_result(r:ExtractionResult,company:dict)->ExtractionResult:
     return r
 
 # ----------------------------- AI structured review -----------------------------
-def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult)->ExtractionResult|None:
+def verification_attachment(raw:bytes|None,content_type:str,filename:str)->dict[str,str]|None:
+    if not raw:return None
+    c=(content_type or "").lower()
+    ext=Path(filename or "").suffix.lower()
+    if raw[:4]==b"%PDF" or c=="application/pdf" or ext==".pdf":
+        if len(raw)>12*1024*1024:return None
+        return {"kind":"file","mime":"application/pdf","name":filename or "document.pdf","base64":base64.b64encode(raw).decode("ascii")}
+    if c in {"image/jpeg","image/png","image/webp","image/gif"} or ext in {".jpg",".jpeg",".png",".webp",".gif"}:
+        if len(raw)>12*1024*1024:return None
+        mime=c if c.startswith("image/") else ("image/jpeg" if ext in {".jpg",".jpeg"} else f"image/{ext.lstrip('.')}")
+        return {"kind":"image","mime":mime,"name":filename or "document-image","base64":base64.b64encode(raw).decode("ascii")}
+    if c.startswith("image/") or ext in {".heic",".heif",".tif",".tiff",".bmp"}:
+        try:
+            img=Image.open(io.BytesIO(raw))
+            img=prepare_ocr_image(img)
+            buf=io.BytesIO();img.save(buf,format="JPEG",quality=92,optimize=True)
+            converted=buf.getvalue()
+            if len(converted)>12*1024*1024:return None
+            return {"kind":"image","mime":"image/jpeg","name":Path(filename or "document").stem+".jpg","base64":base64.b64encode(converted).decode("ascii")}
+        except Exception:
+            return None
+    return None
+
+def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult,independent:bool=False,raw:bytes|None=None,content_type:str="")->ExtractionResult|None:
     if not OPENAI_API_KEY:return None
     compact_layout=[]
     for p in doc.get("layout",[])[:10]: compact_layout.append({"page":p.get("page"),"words":p.get("words",[])[:900]})
     context={
-        "fileName":filename,"pageCount":doc.get("pageCount"),"company":company,"heuristic":heuristic.model_dump(),
+        "fileName":filename,"pageCount":doc.get("pageCount"),"company":company,
         "text":(doc.get("text") or "")[:70000],"financialText":(doc.get("financialText") or "")[:12000],"tables":doc.get("tables",[])[:20],"layout":compact_layout,
     }
+    if not independent:
+        context["heuristic"]=heuristic.model_dump()
     schema={
       "documentType":"purchase_invoice|sales_invoice|credit_invoice|receipt|bank_document|other",
       "originalFileName":"string","pageCount":"integer",
@@ -996,20 +1023,36 @@ def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult)->E
       "amounts":{"subtotal":None,"vatLines":[{"rate":21,"taxableAmount":None,"vatAmount":None}],"vatTotal":None,"total":None,"settlementAmount":None,"discount":None,"shipping":None,"currency":"EUR"},
       "status":"draft|open|paid|overdue|cancelled|credit|unknown","lineItems":[{"description":None,"quantity":None,"unitPrice":None,"vatRate":None,"lineTotal":None}],"adjustments":[{"type":"factoring_fee","description":None,"subtotal":None,"vatTotal":None,"total":None,"vatRate":21,"direction":"deduction","counterparty":None}],"confidence":{},"warnings":[],"processing":{}
     }
+    independence=(
+        "This is an INDEPENDENT SECOND VERIFICATION. Determine every field again from the original source and extracted source text. "
+        "You are deliberately not given PASS 1 values. Do not try to confirm a previous answer. "
+        if independent else
+        "This is the primary structured extraction. The deterministic heuristic is only a weak hint and visible source evidence wins. "
+    )
     instructions=(
         "You extract accounting documents for a Dutch bookkeeping application. Return ONLY a JSON object matching the supplied shape. "
+        +independence+
         "Never invent a value. Use null when not explicit or strongly supported. Distinguish supplier and customer. The user's own company is context only. "
         "For self-billing, determine the commercial supplier/customer roles from the document, not page position. "
         "Interpret Dutch money formats correctly: 1.234,56 = 1234.56. Keep the commercial invoice subtotal/VAT/total strictly separate from factoring fees, commission, platform fees, withholding and payout. "
         "Put each fee/correction in adjustments. Put the final amount actually paid/settled in amounts.settlementAmount; never use settlementAmount as amounts.total. "
         "For VAT, preserve separate 0/9/21 percent lines. Dates must be YYYY-MM-DD. Do not turn headers or total rows into line items. "
         "Confidence values are 0..1 and must reflect visible evidence, OCR quality and arithmetic consistency; do not make all confidence values high. "
-        "If the heuristic result conflicts with the document, prefer the document and add a warning explaining the conflict."
+        "If evidence is ambiguous, keep the value empty and add a warning instead of guessing."
     )
-    payload={"model":OPENAI_MODEL,"input":[{"role":"system","content":[{"type":"input_text","text":instructions}]},{"role":"user","content":[{"type":"input_text","text":"Target JSON shape:\n"+json.dumps(schema)+"\n\nDocument context:\n"+json.dumps(context,ensure_ascii=False)}]}],"max_output_tokens":7000,"reasoning":{"effort":"medium"}}
+    content=[{"type":"input_text","text":"Target JSON shape:\n"+json.dumps(schema)+"\n\nDocument context:\n"+json.dumps(context,ensure_ascii=False)}]
+    if independent:
+        attachment=verification_attachment(raw,content_type,filename)
+        if attachment:
+            data_url=f"data:{attachment['mime']};base64,{attachment['base64']}"
+            if attachment["kind"]=="image":
+                content.append({"type":"input_image","image_url":data_url,"detail":"high"})
+            else:
+                content.append({"type":"input_file","filename":attachment["name"],"file_data":data_url})
+    payload={"model":OPENAI_MODEL,"input":[{"role":"system","content":[{"type":"input_text","text":instructions}]},{"role":"user","content":content}],"max_output_tokens":7000,"reasoning":{"effort":"medium" if independent else "medium"},"store":False}
     try:
-        resp=requests.post("https://api.openai.com/v1/responses",headers={"Authorization":f"Bearer {OPENAI_API_KEY}","Content-Type":"application/json"},json=payload,timeout=REQUEST_TIMEOUT)
-        if resp.status_code>=400: return None
+        resp=requests.post(OPENAI_RESPONSES_URL,headers={"Authorization":f"Bearer {OPENAI_API_KEY}","Content-Type":"application/json"},json=payload,timeout=REQUEST_TIMEOUT)
+        if resp.status_code>=400:return None
         body=resp.json();txt=body.get("output_text") or ""
         if not txt:
             for item in body.get("output",[]):
@@ -1023,7 +1066,7 @@ def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult)->E
         data=json.loads(txt)
         data["originalFileName"]=filename;data["pageCount"]=doc.get("pageCount",1)
         result=ExtractionResult.model_validate(data)
-        result.processing={**heuristic.processing,"ai":True,"aiModel":OPENAI_MODEL}
+        result.processing={**heuristic.processing,"ai":True,"aiModel":OPENAI_MODEL,"aiUsage":body.get("usage") or None,"independentVerification":bool(independent)}
         return validate_result(result,company)
     except Exception:
         return None
@@ -1179,14 +1222,39 @@ def record_billing_usage(request: Request) -> dict | None:
 
 @app.get("/health")
 def health():
-    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"ocrGeneration":RAPIDOCR_GENERATION,"ocrModel":OCR_MODEL_NAME,"authRequired":True,"billingQuota":True,"version":"2.8"}
+    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"verificationConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"ocrGeneration":RAPIDOCR_GENERATION,"ocrModel":OCR_MODEL_NAME,"authRequired":True,"billingQuota":True,"version":"2.9"}
+
+@app.post("/verify")
+async def verify_document(request:Request,file:UploadFile=File(...),company_json:str=Form("{}")):
+    origin=(request.headers.get("origin") or "").rstrip("/")
+    if origin!=APP_ORIGIN: raise HTTPException(403,"Origin not allowed")
+    user=require_authenticated_user(request)
+    if not allow_request(request,f"verify:{user.get('id','unknown')}"): raise HTTPException(429,"Te veel extra controles. Probeer het later opnieuw.")
+    if not OPENAI_API_KEY:raise HTTPException(503,"Extra controle is tijdelijk niet beschikbaar.")
+    raw=await file.read(MAX_BYTES+1)
+    if len(raw)>MAX_BYTES:raise HTTPException(413,"Bestand is te groot. Maximum is 15 MB.")
+    if not raw:raise HTTPException(400,"Bestand is leeg.")
+    try:company=json.loads(company_json or "{}")
+    except Exception:company={}
+    started=time.time()
+    try:
+        doc=extract_document(file.filename or "document",file.content_type or "",raw)
+    except HTTPException:raise
+    except Exception as exc:raise HTTPException(422,f"Document kon niet opnieuw worden gelezen ({type(exc).__name__}).")
+    heur=heuristic_extract(doc,file.filename or "document",company)
+    ai=ai_extract(doc,file.filename or "document",company,heur,independent=True,raw=raw,content_type=file.content_type or "")
+    if not ai:raise HTTPException(503,"Onafhankelijke extra controle kon niet worden uitgevoerd.")
+    result=reconcile(ai,heur)
+    result=validate_result(result,company)
+    result.processing={**result.processing,"verificationMode":"independent","durationMs":round((time.time()-started)*1000),"pages":doc.get("pageCount"),"tablesFound":len(doc.get("tables",[])),"overallConfidence":round(overall_confidence(result),3)}
+    return {"ok":True,"data":result.model_dump()}
 
 @app.post("/analyze")
 async def analyze(request:Request,file:UploadFile=File(...),company_json:str=Form("{}"),existing_json:str=Form("[]"),ocr_text:str=Form("")):
     origin=(request.headers.get("origin") or "").rstrip("/")
     if origin!=APP_ORIGIN: raise HTTPException(403,"Origin not allowed")
-    require_authenticated_user(request)
-    if not allow_request(request): raise HTTPException(429,"Te veel documentverwerkingen. Probeer het over enkele minuten opnieuw.")
+    user=require_authenticated_user(request)
+    if not allow_request(request,f"user:{user.get('id','unknown')}"): raise HTTPException(429,"Te veel documentverwerkingen. Probeer het over enkele minuten opnieuw.")
     quota=billing_quota_status(request)
     if quota and quota.get("allowed") is False:
         raise HTTPException(402,f"Je maandelijkse limiet van {quota.get('monthly_limit',0)} slimme documentverwerkingen is bereikt. Upgrade je abonnement of wacht tot de volgende maand.")
