@@ -1872,7 +1872,8 @@ const TEST_MODE_NO_AUTH=false;
 const TEST_USER={id:'kwinest-local-test',email:'',testMode:true};
 const TEST_PROFILE={};
 let currentUser=null,pendingMfaUser=null,pendingMfaFactorId=null,pendingMfaEnrollId=null;
-let billingSnapshot=null,billingBusy=false,billingLoadedAt=0;\nlet emailConnectionSnapshot=null,emailConnectionLoadedAt=0;
+let billingSnapshot=null,billingBusy=false,billingLoadedAt=0;
+let emailConnectionSnapshot=null,emailConnectionLoadedAt=0;
 async function getSupabase(){if(!supabaseClient){const mod=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');supabaseClient=mod.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}return supabaseClient}
 async function getApiAccessToken(forceRefresh=false){
  if(TEST_MODE_NO_AUTH)return '';
