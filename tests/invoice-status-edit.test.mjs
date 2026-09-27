@@ -64,7 +64,7 @@ async function editDraftAndSave(id,status){
   await page.locator('#invoiceForm').waitFor();
   if(status)await page.locator('#invoiceForm [name="status"]').selectOption(status);
   await page.evaluate(()=>reviewInvoice());
-  await page.getByRole('heading',{name:'Laatste controle vóór opslaan'}).waitFor();
+  await page.getByRole('heading',{name:status==='draft'?'Concept opslaan':'Laatste controle vóór opslaan'}).waitFor();
   await page.evaluate(()=>finalSaveInvoice());
   await page.waitForTimeout(20);
 }
