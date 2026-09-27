@@ -147,3 +147,127 @@ def derive_single_rate_amounts(
     out["anchorField"] = anchor_field
     out["used"] = bool(out["derivedFields"])
     return out
+
+
+def enforce_single_rate_consistency(
+    *,
+    rate: float | None,
+    subtotal: float | None,
+    vat_total: float | None,
+    total: float | None,
+    subtotal_conf: float = 0.0,
+    vat_conf: float = 0.0,
+    total_conf: float = 0.0,
+    allow: bool = True,
+) -> dict[str, Any]:
+    """
+    Final accounting guardrail. For a single 9%/21% VAT rate without adjustments,
+    an arithmetically impossible trio may not survive merely because OCR/AI gave it
+    a high confidence score. Prefer an explicit high-confidence total, then net,
+    then VAT as anchor and reconstruct the other two values.
+    """
+    out = {
+        "subtotal": subtotal,
+        "vatTotal": vat_total,
+        "total": total,
+        "subtotalConfidence": float(subtotal_conf or 0),
+        "vatConfidence": float(vat_conf or 0),
+        "totalConfidence": float(total_conf or 0),
+        "correctedFields": [],
+        "anchorField": None,
+        "used": False,
+        "reason": None,
+        "rate": rate,
+    }
+    if not allow or rate not in (9, 21):
+        return out
+
+    vals = {
+        "subtotal": subtotal,
+        "vatTotal": vat_total,
+        "total": total,
+    }
+    confs = {
+        "subtotal": float(subtotal_conf or 0),
+        "vatTotal": float(vat_conf or 0),
+        "total": float(total_conf or 0),
+    }
+    present = {k: abs(float(v)) for k, v in vals.items() if v is not None and _finite(v)}
+    if len(present) < 2:
+        return out
+
+    r = float(rate) / 100.0
+    tol_money = max(0.05, abs(float(total or 0)) * 0.002)
+
+    # Check both accounting equations, not just subtotal + VAT = total.
+    sum_ok = True
+    if all(k in present for k in ("subtotal", "vatTotal", "total")):
+        sum_ok = abs((present["subtotal"] + present["vatTotal"]) - present["total"]) <= tol_money
+
+    rate_ok = True
+    if "subtotal" in present and "vatTotal" in present:
+        expected_vat = present["subtotal"] * r
+        rate_ok = abs(expected_vat - present["vatTotal"]) <= max(0.05, abs(expected_vat) * 0.02)
+    elif "subtotal" in present and "total" in present:
+        expected_total = present["subtotal"] * (1.0 + r)
+        rate_ok = abs(expected_total - present["total"]) <= max(0.05, abs(expected_total) * 0.002)
+    elif "vatTotal" in present and "total" in present:
+        expected_vat = present["total"] * r / (1.0 + r)
+        rate_ok = abs(expected_vat - present["vatTotal"]) <= max(0.05, abs(expected_vat) * 0.02)
+
+    if sum_ok and rate_ok:
+        return out
+
+    # Total is the preferred receipt anchor when reliable because it is what was
+    # actually paid. Otherwise use a reliable net amount, then VAT amount.
+    if "total" in present and confs["total"] >= 0.90:
+        anchor_field = "total"
+    elif "subtotal" in present and confs["subtotal"] >= 0.92:
+        anchor_field = "subtotal"
+    elif "vatTotal" in present and confs["vatTotal"] >= 0.94:
+        anchor_field = "vatTotal"
+    else:
+        # Not enough certainty to auto-correct. Flag only.
+        out["reason"] = "inconsistent_single_rate_amounts"
+        return out
+
+    anchor = present[anchor_field]
+    if anchor_field == "total":
+        new_total = round(anchor, 2)
+        new_subtotal = round(new_total / (1.0 + r), 2)
+        new_vat = round(new_total - new_subtotal, 2)
+    elif anchor_field == "subtotal":
+        new_subtotal = round(anchor, 2)
+        new_vat = round(new_subtotal * r, 2)
+        new_total = round(new_subtotal + new_vat, 2)
+    else:
+        new_vat = round(anchor, 2)
+        new_subtotal = round(new_vat / r, 2)
+        new_total = round(new_subtotal + new_vat, 2)
+
+    replacements = {
+        "subtotal": new_subtotal,
+        "vatTotal": new_vat,
+        "total": new_total,
+    }
+    conf_key = {
+        "subtotal": "subtotalConfidence",
+        "vatTotal": "vatConfidence",
+        "total": "totalConfidence",
+    }
+    anchor_conf = confs[anchor_field]
+    derived_conf = min(0.98, max(0.88, anchor_conf * 0.97))
+    for field, value in replacements.items():
+        old = vals[field]
+        out[field] = value
+        if field != anchor_field:
+            if old is None or not _finite(old) or abs(abs(float(old)) - value) > max(0.05, abs(value) * 0.002):
+                out["correctedFields"].append(field)
+            out[conf_key[field]] = derived_conf
+        else:
+            out[conf_key[field]] = max(confs[field], anchor_conf)
+
+    out["anchorField"] = anchor_field
+    out["used"] = True
+    out["reason"] = "vat_rate_arithmetic_conflict"
+    return out
