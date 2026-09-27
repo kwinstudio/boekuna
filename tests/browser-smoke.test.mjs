@@ -128,8 +128,10 @@ try{
   assert.notEqual(await page.locator('.mobile-menu').evaluate(el=>getComputedStyle(el).display),'none');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'Mobile page must not create global horizontal overflow');
   await page.locator('#mobileMenu').click();
+  assert.ok(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open')),'Mobile menu must set the sidebar open state');
+  await page.waitForTimeout(260);
   const sidebarLeft=await page.locator('#sidebar').evaluate(el=>Math.round(el.getBoundingClientRect().left));
-  assert.equal(sidebarLeft,0,'Mobile menu must open the sidebar');
+  assert.ok(Math.abs(sidebarLeft)<=1,'Mobile menu must finish opening the sidebar');
   await page.evaluate(()=>newContact());
   const modalBox=await page.locator('.modal').boundingBox();
   assert.ok(modalBox && modalBox.width<=390.5,'Mobile modal must fit viewport width');
