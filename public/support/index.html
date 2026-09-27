@@ -1,0 +1,22 @@
+<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#23354D"><title>Support | Boekuna</title><meta name="description" content="Neem contact op met Boekuna support voor hulp met je account, documenten of administratie."><link rel="canonical" href="https://boekuna-boekhouding.onrender.com/support/"><meta property="og:title" content="Support | Boekuna"><meta property="og:url" content="https://boekuna-boekhouding.onrender.com/support/"><meta property="og:type" content="website"><link rel="stylesheet" href="/assets/marketing.css"></head><body data-page="support"><div id="siteHeader"></div><main>
+<section class="page-hero"><div class="breadcrumbs"><a href="/">Home</a> / Support</div><span class="eyebrow">Support</span><h1>Hulp nodig met Boekuna?</h1><p>Stuur hieronder een supportverzoek. Vermeld nooit wachtwoorden, herstelcodes of volledige betaalkaartgegevens.</p></section>
+<section class="section"><div class="inner" style="max-width:760px"><div class="card"><form id="supportForm" class="form-grid">
+<div class="field full"><label>E-mailadres</label><input name="email" type="email" autocomplete="email" required maxlength="320"></div>
+<div class="field full"><label>Onderwerp</label><input name="subject" required minlength="2" maxlength="120" placeholder="Waar kunnen we mee helpen?"></div>
+<div class="field full"><label>Bericht</label><textarea name="message" required minlength="10" maxlength="4000" style="min-height:180px" placeholder="Beschrijf wat er gebeurt en wat je al hebt geprobeerd."></textarea></div>
+<div class="hidden" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
+<div class="field full"><button class="btn primary" id="supportSubmit" type="submit">Verstuur supportverzoek</button><div class="help" id="supportStatus" role="status" aria-live="polite" style="margin-top:10px"></div></div>
+</form></div>
+<div class="grid-3" style="margin-top:18px"><div class="card"><h3>Account verwijderen</h3><p>Je kunt je account in Boekuna definitief verwijderen na herauthenticatie.</p><a href="/account-verwijderen/">Bekijk stappen →</a></div><div class="card"><h3>Privacyvraag</h3><p>Gebruik hetzelfde formulier en zet “Privacy” in het onderwerp.</p></div><div class="card"><h3>Storingen</h3><p>Vermeld apparaat, browser/appversie en het tijdstip waarop het probleem optrad.</p></div></div></div></section>
+</main><div id="siteFooter"></div><script src="/assets/marketing.js"></script><script>
+const SUPABASE_URL='https://vuwfyhtejsxhdfyvkkeq.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_miAZ6CBZShVcmmNwlnEDgA_aGw1X4aP';
+const form=document.getElementById('supportForm'),statusEl=document.getElementById('supportStatus'),btn=document.getElementById('supportSubmit');
+form.addEventListener('submit',async e=>{e.preventDefault();if(!form.reportValidity())return;const fd=new FormData(form);if(String(fd.get('website')||''))return;btn.disabled=true;btn.textContent='Versturen…';statusEl.textContent='';try{
+ const payload={email:String(fd.get('email')||'').trim(),subject:String(fd.get('subject')||'').trim(),message:String(fd.get('message')||'').trim(),source:'store-support',user_agent:navigator.userAgent.slice(0,500)};
+ const r=await fetch(SUPABASE_URL+'/rest/v1/support_requests',{method:'POST',headers:{apikey:SUPABASE_PUBLISHABLE_KEY,Authorization:'Bearer '+SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(payload)});
+ if(!r.ok)throw new Error('Supportverzoek kon niet worden opgeslagen');
+ form.reset();statusEl.textContent='Dank je. Je supportverzoek is ontvangen.';btn.textContent='Verstuurd';
+}catch(err){statusEl.textContent='Versturen is niet gelukt. Probeer het later opnieuw.';btn.disabled=false;btn.textContent='Verstuur supportverzoek';}
+});
+</script></body></html>
