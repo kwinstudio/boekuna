@@ -1068,6 +1068,38 @@ def overall_confidence(r:ExtractionResult)->float:
     base=sum(vals)/len(vals)
     return max(0,min(1,base-len(r.warnings)*.025))
 
+def deterministic_fast_path_ready(doc:dict,r:ExtractionResult)->bool:
+    """Skip a paid/slow AI round only when deterministic extraction is already strong."""
+    if not OPENAI_API_KEY:
+        return False
+    if doc.get("kind")!="pdf":
+        return False
+    if doc.get("ocrPages"):
+        return False
+    if len(re.sub(r"\s+","",doc.get("text") or ""))<320:
+        return False
+    if r.documentType not in {"purchase_invoice","sales_invoice","credit_invoice","receipt"}:
+        return False
+    if r.warnings:
+        return False
+    if r.amounts.total is None or r.amounts.subtotal is None:
+        return False
+    if r.documentType!="receipt" and not r.invoice.invoiceNumber:
+        return False
+    if not r.invoice.invoiceDate:
+        return False
+    if overall_confidence(r)<.90:
+        return False
+    # Multi-block documents are only fast-pathed when all blocks reconcile.
+    blocks=(r.processing or {}).get("financialBlocks") or {}
+    if r.adjustments and not blocks.get("verified"):
+        return False
+    if r.amounts.vatTotal is not None:
+        expected=float(r.amounts.subtotal)+float(r.amounts.vatTotal)
+        if abs(expected-float(r.amounts.total))>max(.08,abs(float(r.amounts.total))*.003):
+            return False
+    return True
+
 def require_authenticated_user(request: Request) -> dict:
     auth_header = (request.headers.get("authorization") or "").strip()
     if not auth_header.lower().startswith("bearer "):
@@ -1097,7 +1129,7 @@ def require_authenticated_user(request: Request) -> dict:
 
 @app.get("/health")
 def health():
-    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"ocrGeneration":RAPIDOCR_GENERATION,"ocrModel":OCR_MODEL_NAME,"authRequired":True,"version":"2.6"}
+    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"ocrGeneration":RAPIDOCR_GENERATION,"ocrModel":OCR_MODEL_NAME,"authRequired":True,"version":"2.7"}
 
 @app.post("/analyze")
 async def analyze(request:Request,file:UploadFile=File(...),company_json:str=Form("{}"),existing_json:str=Form("[]"),ocr_text:str=Form("")):
@@ -1123,7 +1155,8 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
         doc["text"] = (doc.get("text") or "") + "\n\n--- CLIENT OCR ---\n" + ocr_text[:70000]
         doc.setdefault("processingHints", {})["clientOcrUsed"] = True
     heur=heuristic_extract(doc,file.filename or "document",company)
-    ai=ai_extract(doc,file.filename or "document",company,heur)
+    fast_path=deterministic_fast_path_ready(doc,heur)
+    ai=None if fast_path else ai_extract(doc,file.filename or "document",company,heur)
     result=reconcile(ai,heur) if ai else heur
     result=validate_result(result,company)
     # duplicate scoring against client-provided invoice index; server does not silently save anything
@@ -1147,6 +1180,6 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
         except Exception:pass
         if score>=.65:dup.append({"id":row.get("id"),"score":round(score,2),"reasons":reasons})
     if dup:result.warnings.append("Mogelijk bestaat deze factuur al.")
-    processing={**result.processing,"ai":bool(ai),"durationMs":round((time.time()-started)*1000),"pages":doc.get("pageCount"),"tablesFound":len(doc.get("tables",[])),"duplicateCandidates":dup,"overallConfidence":round(overall_confidence(result),3)}
+    processing={**result.processing,"ai":bool(ai),"fastPath":"deterministic" if fast_path else None,"durationMs":round((time.time()-started)*1000),"pages":doc.get("pageCount"),"tablesFound":len(doc.get("tables",[])),"duplicateCandidates":dup,"overallConfidence":round(overall_confidence(result),3)}
     result.processing=processing
     return {"ok":True,"data":result.model_dump(),"preview":{"text":(doc.get("text") or "")[:30000],"pages":doc.get("pages",[])[:50],"tables":doc.get("tables",[])[:20]},"duplicateCandidates":dup}
