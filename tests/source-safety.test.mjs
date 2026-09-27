@@ -65,7 +65,7 @@ assert.ok(html.includes("function mapAuthError(err,context='auth')"),"Auth error
 assert.ok(html.includes("page='dashboard'"),"Authenticated users must enter on the dashboard");
 assert.ok(!html.includes("page=needsProfile?'profile':'dashboard'"),"Profile completeness must not gate dashboard access");
 assert.ok(!html.includes("Maak eerst je bedrijfsprofiel compleet voordat je een abonnement activeert."),"Accounting profile must not gate Stripe checkout");
-assert.ok(html.includes("const wantsRegister=url.searchParams.get('register')==='1';"),"Registration must be directly addressable from the launch URL");
+assert.ok(html.includes("url.searchParams.get('register')==='1'"),"Registration must be directly addressable from the launch URL");
 assert.ok(html.includes("showAuth('register')"),"Login must offer a route to create an account");
 assert.ok(!html.includes("publieke registratie nog niet geactiveerd"),"Launch source must not claim public registration is disabled");
 assert.ok(!html.includes('id="globalSearch"'),"The misleading cross-app global search must stay removed");
