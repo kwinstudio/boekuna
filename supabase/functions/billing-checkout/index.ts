@@ -21,6 +21,15 @@ async function userAndAdmin(req:Request){
   const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
   return {user:data.user,admin};
 }
+function addCalendarMonthsUnix(months:number){
+  const now=new Date();
+  const y=now.getUTCFullYear(),m=now.getUTCMonth(),d=now.getUTCDate();
+  const targetMonth=m+months;
+  const first=new Date(Date.UTC(y,targetMonth,1,now.getUTCHours(),now.getUTCMinutes(),now.getUTCSeconds()));
+  const lastDay=new Date(Date.UTC(first.getUTCFullYear(),first.getUTCMonth()+1,0)).getUTCDate();
+  first.setUTCDate(Math.min(d,lastDay));
+  return Math.floor(first.getTime()/1000);
+}
 async function stripePost(path:string,params:URLSearchParams){
   const key=Deno.env.get("STRIPE_SECRET_KEY")||"";
   if(!key)throw new Error("STRIPE_NOT_CONFIGURED");
@@ -39,15 +48,15 @@ Deno.serve(async(req:Request)=>{
   const plan=String(input.plan||"");
   const config={
     boekuna:{name:"Boekuna",amount:995,limit:100},
-    pro:{name:"Boekuna Pro",amount:2000,limit:300}
+    pro:{name:"Boekuna Unlimited",amount:1995,limit:null}
   } as const;
-  if(!(plan in config))return json({ok:false,error:"Kies Boekuna of Boekuna Pro."},400);
+  if(!(plan in config))return json({ok:false,error:"Kies Boekuna of Unlimited."},400);
 
   const {data:account}=await admin.from("billing_accounts")
     .select("stripe_customer_id,stripe_subscription_id,status,plan")
     .eq("user_id",user.id).maybeSingle();
-  if(account&&["trialing","active"].includes(String(account.status||""))){
-    return json({ok:false,error:"Je hebt al een actief abonnement. Beheer of wijzig dit via Abonnement in Boekuna.",code:"ACTIVE_SUBSCRIPTION"},409);
+  if(account&&["trialing","active","past_due","unpaid","paused","incomplete"].includes(String(account.status||""))){
+    return json({ok:false,error:"Er bestaat al een Stripe-abonnement voor dit account. Beheer of herstel dit via Abonnement in Boekuna.",code:"EXISTING_SUBSCRIPTION"},409);
   }
 
   const {data:offer,error:offerError}=await admin.rpc("reserve_founding_offer",{p_user_id:user.id});
@@ -73,7 +82,8 @@ Deno.serve(async(req:Request)=>{
   p.set("line_items[0][price_data][tax_behavior]","exclusive");
   p.set("line_items[0][price_data][recurring][interval]","month");
   p.set("line_items[0][price_data][product_data][name]",chosen.name);
-  p.set("line_items[0][price_data][product_data][description]",chosen.limit+" slimme documentverwerkingen per maand");
+  p.set("line_items[0][price_data][product_data][description]",chosen.limit===null?"Onbeperkte slimme documentverwerkingen per maand":chosen.limit+" slimme documentverwerkingen per maand");
+  p.set("line_items[0][price_data][product_data][tax_code]","txcd_10103001");
   p.set("line_items[0][quantity]","1");
   p.set("metadata[user_id]",user.id);
   p.set("metadata[plan]",plan);
@@ -84,8 +94,8 @@ Deno.serve(async(req:Request)=>{
     p.set("subscription_data[metadata][founder_number]",String(founderNumber));
   }
   if(trialEligible){
-    p.set("subscription_data[trial_period_days]","90");
-    p.set("custom_text[submit][message]","Eerste 100-aanbod: vandaag €0. Na 90 dagen loopt "+chosen.name+" automatisch door voor €"+(chosen.amount/100).toFixed(2).replace(".",",")+" per maand, plus toepasselijke btw. Maandelijks opzegbaar.");
+    p.set("subscription_data[trial_end]",String(addCalendarMonthsUnix(3)));
+    p.set("custom_text[submit][message]","Eerste 100-aanbod: de eerste 3 kalendermaanden €0. Daarna loopt "+chosen.name+" automatisch door voor €"+(chosen.amount/100).toFixed(2).replace(".",",")+" per maand, exclusief toepasselijke btw. Maandelijks opzegbaar.");
   }else{
     p.set("custom_text[submit][message]",chosen.name+" loopt maandelijks door en is maandelijks opzegbaar. Toepasselijke btw wordt in Checkout berekend.");
   }
