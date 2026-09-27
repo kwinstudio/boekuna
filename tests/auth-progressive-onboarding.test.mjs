@@ -173,7 +173,7 @@ try{
   await page.getByRole('button',{name:'Bedrijfsgegevens invullen'}).click();
   await page.locator('#pageTitle').filter({hasText:'Bedrijfsgegevens'}).waitFor();
   assert.equal(await page.evaluate(()=>state.invoices.length),1,'Progressive gate must not duplicate invoice');
-  assert.equal(await page.evaluate(id=>state.invoices[0].id===id),true,draftId);
+  assert.equal(await page.evaluate(id=>state.invoices[0].id===id,draftId),true,'Progressive gate must preserve invoice identity');
 
   // Profile fields are optional at HTML level; fill only those required for standard finalization.
   for(const name of ['name','address','postal','city','kvk','vat'])assert.equal(await page.locator(`#profileForm [name="${name}"]`).getAttribute('required'),null);
