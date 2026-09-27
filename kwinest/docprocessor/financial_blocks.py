@@ -8,7 +8,8 @@ MONEY_RE = re.compile(
     re.I,
 )
 NET_RE = re.compile(
-    r"\b(?:bedrag\s*excl\.?\s*(?:btw|vat)|totaal\s*excl\.?\s*(?:btw|vat)|"
+    r"\b(?:bedrag\s*excl\.?\s*(?:(?:0|9|21)(?:[.,]0+)?\s*%\s*)?(?:btw|vat)|"
+    r"totaal\s*excl\.?\s*(?:(?:0|9|21)(?:[.,]0+)?\s*%\s*)?(?:btw|vat)|"
     r"total\s*excl\.?\s*vat|tax\s*exclusive|net\s*amount|subtotaal|subtotal)\b",
     re.I,
 )
