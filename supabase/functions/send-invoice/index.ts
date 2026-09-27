@@ -3,6 +3,9 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
 
 const ALLOWED_ORIGIN="https://boekuna-boekhouding.onrender.com";
+const SUPABASE_URL=Deno.env.get("SUPABASE_URL")!;
+const SERVICE_KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const admin=createClient(SUPABASE_URL,SERVICE_KEY,{auth:{persistSession:false}});
 const cors={"access-control-allow-origin":ALLOWED_ORIGIN,"access-control-allow-methods":"GET,POST,OPTIONS","access-control-allow-headers":"authorization,apikey,content-type","vary":"Origin"};
 const j=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,"content-type":"application/json","cache-control":"no-store"}});
 const safe=(v:any,n=500)=>String(v??"").slice(0,n);
@@ -105,23 +108,157 @@ function htmlMail(data:any){
   const esc=(s:any)=>safe(s,12000).replace(/[&<>"']/g,(x)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[x]||x));
   return `<!doctype html><html><body style="margin:0;background:#f2f4f3;font-family:Arial,sans-serif;color:#1c2924"><div style="padding:30px 14px"><div style="max-width:640px;margin:auto;background:#fff;border:1px solid #e0e6e3;border-radius:16px;overflow:hidden"><div style="height:7px;background:${accent}"></div><div style="padding:30px"><div style="font-size:12px;color:${accent};font-weight:700;text-transform:uppercase">${esc(company?.emailTemplate?.senderName||company.tradeName||company.name||"Administratie")}</div><h1 style="font-size:22px;margin:7px 0 22px">${esc(subject)}</h1><div style="font-size:15px;line-height:1.7">${esc(message).replace(/\n/g,"<br>")}</div><div style="margin-top:24px;border:1px solid #e1e7e4;border-radius:12px;padding:16px"><b>${esc(invoice.number)}</b><div style="margin-top:8px">Klant: ${esc(customer.name)}</div><div>Bedrag: <b>${esc(money(c.gross))}</b></div><div>Vervaldatum: ${esc(dateNL(invoice.dueDate))}</div></div></div></div></div></body></html>`;
 }
+
+function bytesToBase64(bytes:Uint8Array){
+  let binary="";
+  const chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));
+  return btoa(binary);
+}
+function utf8Base64(value:string){return bytesToBase64(new TextEncoder().encode(value))}
+function base64Url(value:string){return utf8Base64(value).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
+function encodedHeader(value:string){return "=?UTF-8?B?"+utf8Base64(value)+"?="}
+async function integrationSecret(name:string){
+  const env=Deno.env.get(name);if(env)return env;
+  const {data}=await admin.rpc("get_integration_secret",{p_name:name.toLowerCase()});
+  return typeof data==="string"&&data?data:null;
+}
+async function mailboxConnection(userId:string){
+  const {data,error}=await admin.rpc("get_email_connection_secret",{p_user_id:userId});
+  if(error)throw error;
+  const row=Array.isArray(data)?data[0]:data;
+  return row&&row.status==="connected"&&row.refresh_token?row:null;
+}
+async function providerCredentials(provider:string){
+  if(provider==="google")return {clientId:await integrationSecret("GOOGLE_MAIL_CLIENT_ID"),clientSecret:await integrationSecret("GOOGLE_MAIL_CLIENT_SECRET")};
+  if(provider==="microsoft")return {clientId:await integrationSecret("MICROSOFT_MAIL_CLIENT_ID"),clientSecret:await integrationSecret("MICROSOFT_MAIL_CLIENT_SECRET")};
+  return {clientId:null,clientSecret:null};
+}
+async function refreshMailboxToken(conn:any,userId:string){
+  const cfg=await providerCredentials(conn.provider);
+  if(!cfg.clientId||!cfg.clientSecret)throw new Error("MAIL_PROVIDER_NOT_CONFIGURED");
+  let endpoint="",scope="";
+  if(conn.provider==="google")endpoint="https://oauth2.googleapis.com/token";
+  else if(conn.provider==="microsoft"){endpoint="https://login.microsoftonline.com/common/oauth2/v2.0/token";scope="openid profile email offline_access User.Read Mail.Send";}
+  else throw new Error("MAIL_PROVIDER_UNSUPPORTED");
+  const body=new URLSearchParams({client_id:cfg.clientId,client_secret:cfg.clientSecret,refresh_token:conn.refresh_token,grant_type:"refresh_token"});
+  if(scope)body.set("scope",scope);
+  const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body});
+  const out=await r.json().catch(()=>({}));
+  if(!r.ok||!out.access_token){
+    await admin.from("email_connections").update({status:"error",last_error:"Herautorisatie nodig",updated_at:new Date().toISOString()}).eq("user_id",userId);
+    throw new Error("MAILBOX_REAUTH_REQUIRED");
+  }
+  if(out.refresh_token&&out.refresh_token!==conn.refresh_token){
+    await admin.rpc("set_email_connection_secret",{p_user_id:userId,p_provider:conn.provider,p_email:conn.email,p_refresh_token:out.refresh_token,p_scopes:conn.scopes||[]});
+    conn.refresh_token=out.refresh_token;
+  }
+  return out.access_token as string;
+}
+function buildMime(opts:{from:string;senderName:string;to:string;cc?:string;subject:string;text:string;html:string;filename:string;pdf:Uint8Array}){
+  const mixed="mix_"+crypto.randomUUID().replace(/-/g,"");
+  const alt="alt_"+crypto.randomUUID().replace(/-/g,"");
+  const lines=[
+    "From: "+encodedHeader(opts.senderName)+" <"+opts.from+">",
+    "To: "+opts.to,
+    ...(opts.cc?["Cc: "+opts.cc]:[]),
+    "Subject: "+encodedHeader(opts.subject),
+    "Date: "+new Date().toUTCString(),
+    "MIME-Version: 1.0",
+    'Content-Type: multipart/mixed; boundary="'+mixed+'"',
+    "",
+    "--"+mixed,
+    'Content-Type: multipart/alternative; boundary="'+alt+'"',
+    "",
+    "--"+alt,
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    utf8Base64(opts.text),
+    "--"+alt,
+    'Content-Type: text/html; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    utf8Base64(opts.html),
+    "--"+alt+"--",
+    "--"+mixed,
+    'Content-Type: application/pdf; name="'+opts.filename+'"',
+    "Content-Transfer-Encoding: base64",
+    'Content-Disposition: attachment; filename="'+opts.filename+'"',
+    "",
+    bytesToBase64(opts.pdf).replace(/(.{76})/g,"$1\r\n"),
+    "--"+mixed+"--",
+    ""
+  ];
+  return lines.join("\r\n");
+}
+async function sendFromMailbox(conn:any,userId:string,data:any,to:string,subject:string,message:string,pdf:Uint8Array,sender:string){
+  const accessToken=await refreshMailboxToken(conn,userId);
+  const companyReply=email(data.company?.email);
+  const cc=data.ccSelf&&companyReply&&companyReply!==to&&companyReply!==conn.email?companyReply:"";
+  const filename=(data.invoice?.kind==="credit"?"Creditfactuur":"Factuur")+"-"+safe(data.invoice?.number,80).replace(/[^a-zA-Z0-9._-]/g,"-")+".pdf";
+  const mime=buildMime({from:conn.email,senderName:sender,to,cc,subject,text:message,html:htmlMail({...data,subject,message}),filename,pdf});
+  if(conn.provider==="google"){
+    const r=await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send",{method:"POST",headers:{Authorization:"Bearer "+accessToken,"content-type":"application/json"},body:JSON.stringify({raw:base64Url(mime)})});
+    const out=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(out?.error?.message||"GMAIL_SEND_FAILED");
+    return {id:out.id||"",provider:"google",from:conn.email};
+  }
+  if(conn.provider==="microsoft"){
+    const r=await fetch("https://graph.microsoft.com/v1.0/me/sendMail",{method:"POST",headers:{Authorization:"Bearer "+accessToken,"content-type":"text/plain"},body:utf8Base64(mime)});
+    if(!r.ok){const out=await r.json().catch(()=>({}));throw new Error(out?.error?.message||"MICROSOFT_SEND_FAILED")}
+    return {id:"",provider:"microsoft",from:conn.email};
+  }
+  throw new Error("MAIL_PROVIDER_UNSUPPORTED");
+}
+async function resendConfig(){
+  return {apiKey:await integrationSecret("RESEND_API_KEY"),fromEmail:await integrationSecret("INVOICE_FROM_EMAIL")};
+}
+
 Deno.serve(async(req:Request)=>{
   const origin=req.headers.get("origin")||"";
   if(origin && origin!==ALLOWED_ORIGIN)return j({ok:false,error:"ORIGIN_NOT_ALLOWED"},403);
   if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
-  if(req.method==="GET")return j({ok:true,configured:!!(Deno.env.get("RESEND_API_KEY")&&Deno.env.get("INVOICE_FROM_EMAIL")),provider:"resend"});
-  if(req.method!=="POST")return j({ok:false,error:"METHOD_NOT_ALLOWED"},405);
   const auth=await userFrom(req);if(!auth)return j({ok:false,error:"UNAUTHORIZED"},401);
+
+  if(req.method==="GET"){
+    let conn:any=null;try{conn=await mailboxConnection(auth.user.id)}catch{}
+    if(conn){
+      const cfg=await providerCredentials(conn.provider);
+      return j({ok:true,configured:!!(cfg.clientId&&cfg.clientSecret),provider:conn.provider,ownMailbox:true,email:conn.email,status:conn.status});
+    }
+    const fallback=await resendConfig();
+    return j({ok:true,configured:!!(fallback.apiKey&&fallback.fromEmail),provider:"resend",ownMailbox:false,email:""});
+  }
+
+  if(req.method!=="POST")return j({ok:false,error:"METHOD_NOT_ALLOWED"},405);
   if(!(await quota(auth.token,"invoice_email")))return j({ok:false,error:"E-mailquotum bereikt. Probeer het later opnieuw."},429);
-  if(!Deno.env.get("RESEND_API_KEY")||!Deno.env.get("INVOICE_FROM_EMAIL"))return j({ok:false,error:"EMAIL_NOT_CONFIGURED"},503);
+
   const data=await req.json().catch(()=>null);if(!data)return j({ok:false,error:"INVALID_JSON"},400);
   const to=email(data.to||data.customer?.email);if(!to)return j({ok:false,error:"Ongeldig e-mailadres."},400);if(/@example\.com$/i.test(to))return j({ok:false,error:"Dit is een demo-e-mailadres. Vul een echt klantadres in."},400);
   const subject=safe(data.subject,240).replace(/[\r\n]/g," ").trim(),message=safe(data.message,12000).trim();if(!subject||!message)return j({ok:false,error:"Onderwerp en bericht zijn verplicht."},400);
   const pdf=await pdfBytes(data);const sender=safe(data.company?.emailTemplate?.senderName||data.company?.tradeName||data.company?.name||"Administratie",100).replace(/[<>\r\n"]/g," ");
-  const fromAddr=Deno.env.get("INVOICE_FROM_EMAIL")!;const from=fromAddr.includes("<")?fromAddr:`${sender} <${fromAddr}>`;
-  const payload:any={from,to:[to],subject,text:message,html:htmlMail({...data,subject,message}),attachments:[{filename:`${data.invoice?.kind==="credit"?"Creditfactuur":"Factuur"}-${safe(data.invoice?.number,80).replace(/[^a-zA-Z0-9._-]/g,"-")}.pdf`,content:btoa(String.fromCharCode(...pdf)),content_type:"application/pdf"}]};
+
+  let conn:any=null;try{conn=await mailboxConnection(auth.user.id)}catch(e){console.error("mailbox connection",e)}
+  if(conn){
+    try{
+      const sent=await sendFromMailbox(conn,auth.user.id,data,to,subject,message,pdf,sender);
+      return j({ok:true,id:sent.id||"",sentAt:new Date().toISOString(),provider:sent.provider,from:sent.from,ownMailbox:true});
+    }catch(e){
+      const code=e instanceof Error?e.message:"MAILBOX_SEND_FAILED";
+      console.error("own mailbox send failed",code);
+      if(code==="MAILBOX_REAUTH_REQUIRED")return j({ok:false,error:"Je e-mailverbinding is verlopen. Koppel je mailbox opnieuw bij Instellingen.",code},409);
+      if(code==="MAIL_PROVIDER_NOT_CONFIGURED")return j({ok:false,error:"Deze e-mailprovider is nog niet volledig geconfigureerd door Boekuna.",code},503);
+      return j({ok:false,error:"Versturen vanuit je eigen mailbox is mislukt. Controleer de koppeling bij Instellingen.",code},502);
+    }
+  }
+
+  const fallback=await resendConfig();
+  if(!fallback.apiKey||!fallback.fromEmail)return j({ok:false,error:"Koppel eerst je eigen Gmail/Outlook bij Instellingen of configureer de Boekuna-afzender.",code:"EMAIL_NOT_CONFIGURED"},503);
+  const fromAddr=fallback.fromEmail;const from=fromAddr.includes("<")?fromAddr:sender+" <"+fromAddr+">";
+  const payload:any={from,to:[to],subject,text:message,html:htmlMail({...data,subject,message}),attachments:[{filename:(data.invoice?.kind==="credit"?"Creditfactuur":"Factuur")+"-"+safe(data.invoice?.number,80).replace(/[^a-zA-Z0-9._-]/g,"-")+".pdf",content:bytesToBase64(pdf),content_type:"application/pdf"}]};
   const reply=email(data.company?.email);if(reply)payload.reply_to=reply;if(data.ccSelf&&reply&&reply!==to)payload.cc=[reply];
-  const h:any={"content-type":"application/json",Authorization:"Bearer "+Deno.env.get("RESEND_API_KEY")};if(data.requestId)h["Idempotency-Key"]=safe(data.requestId,200);
+  const h:any={"content-type":"application/json",Authorization:"Bearer "+fallback.apiKey};if(data.requestId)h["Idempotency-Key"]=safe(data.requestId,200);
   const rr=await fetch("https://api.resend.com/emails",{method:"POST",headers:h,body:JSON.stringify(payload)});const out=await rr.json().catch(()=>({}));if(!rr.ok)return j({ok:false,error:out.message||"EMAIL_SEND_FAILED"},rr.status);
-  return j({ok:true,id:out.id||"",sentAt:new Date().toISOString()});
+  return j({ok:true,id:out.id||"",sentAt:new Date().toISOString(),provider:"resend",from:fromAddr,ownMailbox:false});
 });
