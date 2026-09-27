@@ -27,5 +27,11 @@ assert.ok(html.includes("function invoiceDiscountAmount(i)"),"Invoice discount c
 assert.ok(html.includes('name="discountType"'),"Invoice discount controls are required");
 assert.ok(html.includes('minlength="12"'),"New/reset passwords must require at least 12 characters");
 assert.ok(html.includes("headers:await apiAuthHeaders(),body:fd"),"Document processor requests must carry the Supabase session");
+assert.ok(html.includes('id="boekuna-upload-bootstrap"'),"Upload bootstrap must exist independently of the main app initialization");
+assert.ok(html.includes("input.dataset.uploadBound='true'"),"Upload controls must be explicitly bound after the main script");
+for(const id of ["invoicePdfFile","receiptPhotoFile","receiptCameraFile"]){
+  assert.ok(html.includes(`['${id}'`),`${id} must be registered in the isolated upload bootstrap`);
+}
+assert.ok(html.includes("async function startSelectedDocumentUpload"),"Selected documents must enter one shared, user-visible upload pipeline");
 
 console.log("Boekuna source safety tests: PASS");
