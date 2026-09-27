@@ -26,7 +26,9 @@ assert.ok(checkout.includes('reserve_founding_offer'),'Founding 100 allocation m
 assert.ok(checkout.includes('{CHECKOUT_SESSION_ID}'),'Checkout success must carry a server-verifiable session reference');
 assert.ok(checkout.includes('expires_at'),'Abandoned Founding checkout sessions must expire');
 assert.ok(portal.includes('/billing_portal/sessions'),'Paid users need Stripe Customer Portal management');
-assert.ok(webhook.includes('/events/'),'Webhook events must be authenticated against Stripe before processing');
+assert.ok(webhook.includes('verifyStripeSignature'),'Webhook events must verify the Stripe signature before processing');
+assert.ok(webhook.includes('stripe-signature'),'Webhook must require the Stripe-Signature header');
+assert.ok(webhook.includes('ageSeconds > 300'),'Webhook signature verification must reject replayed events outside the tolerance window');
 assert.ok(webhook.includes('billing_events'),'Webhook handling must be idempotent');
 assert.ok(webhook.includes('checkout.session.completed'),'Checkout completion must activate billing state');
 assert.ok(webhook.includes('customer.subscription.updated'),'Subscription changes must sync back to Boekuna');
