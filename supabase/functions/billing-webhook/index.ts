@@ -15,6 +15,9 @@ function normalizedStatus(v:any){
  const s=String(v||"");
  return ["trialing","active","past_due","canceled","incomplete","incomplete_expired","unpaid","paused"].includes(s)?s:"incomplete";
 }
+function periodEnd(subscription:any){
+ return ts(subscription?.items?.data?.[0]?.current_period_end||subscription?.current_period_end)
+}
 
 Deno.serve(async(req:Request)=>{
  if(req.method!=="POST")return json({ok:false,error:"Method not allowed"},405);
@@ -66,7 +69,7 @@ Deno.serve(async(req:Request)=>{
         status:normalizedStatus(sub.status),
         founder_number:founderNumber,
         trial_end:ts(sub.trial_end),
-        current_period_end:ts(sub.current_period_end),
+        current_period_end:periodEnd(sub),
         cancel_at_period_end:!!sub.cancel_at_period_end,
         updated_at:new Date().toISOString()
       };
@@ -90,7 +93,7 @@ Deno.serve(async(req:Request)=>{
         status:normalizedStatus(obj.status),
         founder_number:founderNumber,
         trial_end:ts(obj.trial_end),
-        current_period_end:ts(obj.current_period_end),
+        current_period_end:periodEnd(obj),
         cancel_at_period_end:!!obj.cancel_at_period_end,
         updated_at:new Date().toISOString()
       };
@@ -111,7 +114,7 @@ Deno.serve(async(req:Request)=>{
           status:normalizedStatus(sub.status),
           founder_number:Number(sub?.metadata?.founder_number||account?.founder_number||0)||null,
           trial_end:ts(sub.trial_end),
-          current_period_end:ts(sub.current_period_end),
+          current_period_end:periodEnd(sub),
           cancel_at_period_end:!!sub.cancel_at_period_end,
           updated_at:new Date().toISOString()
         },{onConflict:"user_id"});
