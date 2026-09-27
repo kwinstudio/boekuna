@@ -41,7 +41,10 @@ assert.ok(!financialFlow.includes("reviewMode:'verify'"),"PASS 2 must never bloc
 assert.ok(financialFlow.includes("showPdfImportReview(parsed)"),"PASS 1 must still open the normal review screen");
 
 assert.ok(!html.includes("add(!state.invoices.some(i=>i.number===draft.number),'Uniek factuurnummer'"),"Invoice edit validation must not flag its own number as a duplicate");
-assert.ok(html.includes("invoiceChecks({...i,customer:c,paymentDays:i.paymentDays||0},i.id)"),"Existing invoice validation must explicitly exclude its own identity");
+assert.ok(html.includes("function invoiceDraftChecks(draft,excludeId=editingInvoiceId||'')"),"Draft invoice validation must be separate");
+assert.ok(html.includes("function invoiceFinalChecks(draft,excludeId=editingInvoiceId||'')"),"Final invoice validation must be separate");
+assert.ok(html.includes("function invoiceSendChecks(draft,excludeId='')"),"Send validation must be separate");
+assert.ok(html.includes("invoiceSendChecks(draft,i.id)"),"Existing invoice send validation must explicitly exclude its own identity");
 assert.ok(html.includes("function saveCreditDraft"),"Partial credit flow is required");
 assert.ok(html.includes("function correctExpense(id)"),"Booked expenses must use a correction entry instead of hard delete");
 assert.ok(!html.includes("state.expenses=state.expenses.filter(x=>x.id!==id)"),"Booked expenses must not be hard deleted");
@@ -49,7 +52,18 @@ assert.ok(html.includes("actorId:String(currentUser?.id||'')"),"Financial audit 
 assert.ok(html.includes("function invoiceDiscountAmount(i)"),"Invoice discount calculation is required");
 assert.ok(html.includes('name="discountType"'),"Invoice discount controls are required");
 assert.ok(html.includes('minlength="12"'),"New/reset passwords must require at least 12 characters");
-assert.ok(html.includes("const register=mode==='register';"),"Public registration mode must not be hard-disabled");
+assert.ok(html.includes("Maak je gratis account"),"Signup must use the simplified account copy");
+assert.ok(html.includes("auth.signUp({email,password:pw,options:{emailRedirectTo:AUTH_REDIRECT_URL}})"),"New signup must only send email/password and redirect configuration");
+assert.ok(!html.includes("options:{data:{company},emailRedirectTo:AUTH_REDIRECT_URL}"),"Signup must not put the company object in Auth user metadata");
+assert.ok(!html.includes('name="confirm"'),"Signup/recovery must not ask for password confirmation");
+assert.ok(!html.includes('name="companyName"'),"Signup must not collect company fields");
+assert.ok(!html.includes('id="loginPassword" name="password" type="password" minlength='),"Login must not frontend-block legacy short passwords");
+assert.ok(html.includes("auth.resend({type:'signup',email,options:{emailRedirectTo:AUTH_REDIRECT_URL}})"),"Signup verification resend must use Supabase resend");
+assert.ok(html.includes("showVerificationState(email)"),"No-session signup must have a dedicated verification state");
+assert.ok(html.includes("function mapAuthError(err,context='auth')"),"Auth errors must be mapped centrally");
+assert.ok(html.includes("page='dashboard'"),"Authenticated users must enter on the dashboard");
+assert.ok(!html.includes("page=needsProfile?'profile':'dashboard'"),"Profile completeness must not gate dashboard access");
+assert.ok(!html.includes("Maak eerst je bedrijfsprofiel compleet voordat je een abonnement activeert."),"Accounting profile must not gate Stripe checkout");
 assert.ok(html.includes("const wantsRegister=url.searchParams.get('register')==='1';"),"Registration must be directly addressable from the launch URL");
 assert.ok(html.includes("showAuth('register')"),"Login must offer a route to create an account");
 assert.ok(!html.includes("publieke registratie nog niet geactiveerd"),"Launch source must not claim public registration is disabled");
@@ -134,6 +148,12 @@ assert.ok(analyzeInvoiceEdge.includes("!ALLOWED_ORIGINS.has(origin)"),"Invoice a
 assert.ok(html.includes("function showUploadError(err,file=null)"),"Upload errors must render a user-facing explanation");
 assert.ok(html.includes("function uploadErrorInfo(err)"),"Upload errors must be translated centrally");
 assert.ok(html.includes("function startSubscription(plan)"),"Paid plans must start through the authenticated subscription flow");
+assert.ok(!html.slice(html.indexOf("async function startSubscription(plan)"),html.indexOf("async function openBillingPortal")).includes("profileEssentialsComplete"),"Subscription must not require a complete accounting profile");
+assert.ok(html.includes("requirementsFor('invoice-finalize'"),"Invoice finalization must use function-specific company requirements");
+assert.ok(html.includes("progressiveInvoiceProfileGate"),"Missing finalization data must use the progressive profile gate");
+assert.ok(html.includes("AUTH_RETURN_INTENT_KEY"),"Progressive invoice return intent must survive navigation");
+assert.ok(html.includes("resumeReturnIntentAfterProfile"),"Saving company details must return users to their draft invoice");
+assert.ok(!html.includes("if(!profileEssentialsComplete(state.company))issues.push({severity:'bad'"),"Incomplete company data must not be a global red health error");
 assert.ok(html.includes("EDGE_BASE+'/billing-checkout'"),"Checkout must be created server-side");
 assert.ok(html.includes("EDGE_BASE+'/billing-portal'"),"Paid customers need subscription management");
 assert.ok(html.includes("function renderBillingCard()"),"Settings must expose current plan and monthly usage");
