@@ -9,6 +9,7 @@ const portal=read('supabase/functions/billing-portal/index.ts');
 const webhook=read('supabase/functions/billing-webhook/index.ts');
 const sync=read('supabase/functions/billing-sync/index.ts');
 const migration=read('supabase/migrations/20260927_boekuna_subscription_billing.sql');
+const unlimitedMigration=read('supabase/migrations/20260927_align_unlimited_plan_quota.sql');
 const pricing=read('public/prijzen/index.html');
 const privacy=read('public/privacy/index.html');
 const terms=read('public/voorwaarden/index.html');
@@ -17,9 +18,8 @@ for(const file of [checkout,portal,webhook,sync,html]){
   assert.ok(!/sk_(?:live|test)_[A-Za-z0-9]+/.test(file),'Stripe secret key must never be committed or exposed client-side');
 }
 assert.ok(checkout.includes('amount:995'),'Boekuna monthly price must be €9.95');
-assert.ok(checkout.includes('amount:2000'),'Boekuna Pro monthly price must be €20');
-assert.ok(checkout.includes('trial_period_days'),'Founding offer must use a Stripe subscription trial');
-assert.ok(checkout.includes('"90"'),'Founding trial must be 90 days');
+assert.ok(checkout.includes('amount:1995'),'Unlimited monthly price must be €19.95');
+assert.ok(checkout.includes('addCalendarMonthsUnix(3)'),'Founding offer must end after 3 calendar months');
 assert.ok(checkout.includes('payment_method_collection'),'Checkout must collect a payment method before a free trial');
 assert.ok(checkout.includes('tax_behavior]","exclusive'),'Public ex-VAT prices must be tax-exclusive in Checkout');
 assert.ok(checkout.includes('reserve_founding_offer'),'Founding 100 allocation must be server-side');
@@ -32,7 +32,8 @@ assert.ok(webhook.includes('checkout.session.completed'),'Checkout completion mu
 assert.ok(webhook.includes('customer.subscription.updated'),'Subscription changes must sync back to Boekuna');
 assert.ok(sync.includes('/checkout/sessions/'),'Successful checkout must be directly syncable even before webhook delivery');
 assert.ok(sync.includes('client_reference_id'),'Billing sync must verify checkout ownership');
-assert.ok(migration.includes("when 'pro' then 300"),'Pro quota must be 300');
+assert.ok(unlimitedMigration.includes("when 'pro' then null"),"Unlimited must have no monthly smart-document quota");
+assert.ok(unlimitedMigration.includes("v_limit is null or v_used < v_limit"),"Unlimited quota check must remain allowed without a limit");
 assert.ok(migration.includes("when 'boekuna' then 100"),'Boekuna quota must be 100');
 assert.ok(migration.includes('else 10'),'Free quota must be 10');
 assert.ok(migration.includes('between 1 and 100'),'Founding offer must be capped at 100');
@@ -44,8 +45,8 @@ assert.ok(html.includes("startSubscription('boekuna')"),'Frontend must offer Boe
 assert.ok(html.includes("startSubscription('pro')"),'Frontend must offer Pro checkout');
 assert.ok(html.includes('Beheer abonnement'),'Paid users must be able to reach subscription management');
 assert.ok(html.includes("Number(err?.status||0)===402"),'Client fallback must not bypass a quota rejection');
-for(const value of ['Gratis','€9,95','€20','90 dagen'])assert.ok(pricing.includes(value),`Pricing missing ${value}`);
-for(const legacy of ['€19,95','€29,95','Eerste 30 dagen'])assert.ok(!pricing.includes(legacy),`Legacy pricing/promo still present: ${legacy}`);
+for(const value of ['Gratis','€9,95','€19,95','3 kalendermaanden'])assert.ok(pricing.includes(value),`Pricing missing ${value}`);
+for(const legacy of ['€29,95','Eerste 30 dagen'])assert.ok(!pricing.includes(legacy),`Legacy pricing/promo still present: ${legacy}`);
 assert.ok(privacy.includes('Stripe'),'Privacy policy must disclose Stripe');
 assert.ok(terms.includes('Founding 100'),'Terms must document the Founding 100 trial');
 assert.ok(terms.includes('maandelijks door'),'Terms must explain recurring billing');
