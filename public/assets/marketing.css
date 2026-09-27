@@ -903,3 +903,57 @@ body{background:#FFFFFF!important;color:#20292E!important}
  .mk-form-card{padding:20px}
  .plan-table th,.plan-table td{padding:13px 14px}
 }
+
+
+/* Boekuna public form polish v4 */
+.mk-form-card{
+  padding:32px;
+  border-radius:24px;
+  background:#fff;
+  border:1px solid #DDE7E3;
+  box-shadow:0 22px 60px rgba(24,49,57,.07);
+}
+.mk-form-card h3{font-size:26px;line-height:1.15;margin:0 0 8px;letter-spacing:-.04em}
+.mk-form-card>p{font-size:14px;line-height:1.6;margin:0 0 24px;color:#667770}
+.mk-form-card .form-grid{gap:20px 16px}
+.mk-form-card .field{gap:8px}
+.mk-form-card .field label{font-size:13px;font-weight:800;color:#26363A}
+.mk-form-card .field input,
+.mk-form-card .field select,
+.mk-form-card .field textarea{
+  min-height:48px;
+  padding:13px 14px;
+  border:1px solid #CFDDD7;
+  border-radius:12px;
+  background:#fff;
+  color:#202B33;
+  font-size:15px;
+  line-height:1.45;
+  box-shadow:0 1px 0 rgba(26,46,40,.02);
+}
+.mk-form-card .field textarea{min-height:170px}
+.mk-form-card .field select{appearance:auto}
+.mk-form-card .field input:focus,
+.mk-form-card .field select:focus,
+.mk-form-card .field textarea:focus{
+  border-color:#08A9C5;
+  box-shadow:0 0 0 4px rgba(8,169,197,.12);
+}
+.mk-form-card .field-help{font-size:12px;line-height:1.55;color:#6C7C76}
+.mk-form-card .form-actions{padding-top:2px}
+.mk-form-card .form-actions .btn{min-height:46px;padding:0 18px}
+.mk-form-card .form-status{margin-top:10px;min-height:20px;font-size:13px}
+.mk-form-note{font-size:12px;line-height:1.6;padding:14px 15px;margin-top:18px}
+.mk-support-side h2{font-size:clamp(34px,4vw,48px);line-height:1.05}
+.mk-support-point{padding:16px 0}
+.mk-support-point strong{font-size:14px}
+.mk-support-point span{display:block;margin-top:4px;font-size:12px;line-height:1.55}
+@media(max-width:700px){
+  .mk-form-card{padding:20px}
+  .mk-form-card h3{font-size:23px}
+  .mk-form-card .field input,
+  .mk-form-card .field select,
+  .mk-form-card .field textarea{font-size:16px}
+  .mk-form-card .form-actions{display:grid;grid-template-columns:1fr}
+  .mk-form-card .form-actions .btn{justify-content:center;width:100%}
+}
