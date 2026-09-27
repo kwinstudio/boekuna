@@ -6,7 +6,7 @@ const ALLOWED_ORIGIN="https://boekuna-boekhouding.onrender.com";
 const cors={"access-control-allow-origin":ALLOWED_ORIGIN,"access-control-allow-methods":"GET,POST,OPTIONS","access-control-allow-headers":"authorization,apikey,content-type","vary":"Origin"};
 const j=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,"content-type":"application/json","cache-control":"no-store"}});
 const safe=(v:any,n=500)=>String(v??"").slice(0,n);
-const email=(v:any)=>{const s=safe(v,240).trim();return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(s)?s:""};
+const email=(v:any)=>{const s=safe(v,240).trim();return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)?s:""};
 const num=(v:any)=>Number.isFinite(Number(v))?Number(v):0;
 const money=(v:any)=>new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(num(v));
 const dateNL=(v:any)=>{if(!v)return "—";try{return new Intl.DateTimeFormat("nl-NL",{day:"2-digit",month:"2-digit",year:"numeric"}).format(new Date(String(v)+"T12:00:00"))}catch{return safe(v,40)}};
@@ -36,8 +36,17 @@ function discountAmount(invoice:any){
   if(type==="fixed")return roundMoney(Math.min(base,value));
   return 0;
 }
-function discountFactor(invoice:any){const base=discountBase(invoice);return base>0?roundMoney((base-discountAmount(invoice))/base):1}
-function discountedLineNet(invoice:any,l:any){return roundMoney(lineNet(l)*discountFactor(invoice))}
+function allocateDiscountCents(amounts,discountCents){
+ const total=amounts.reduce((sum,value)=>sum+value,0),discount=Math.min(Math.max(0,discountCents),Math.max(0,total));
+ if(!discount||total<=0)return amounts.slice();
+ const target=total-discount,parts=amounts.map((value,index)=>{const scaled=value*target/total;return {index,cents:Math.floor(scaled),remainder:scaled-Math.floor(scaled)}});
+ let remainder=target-parts.reduce((sum,part)=>sum+part.cents,0);
+ const order=parts.slice().sort((a,b)=>b.remainder-a.remainder||a.index-b.index);
+ for(let index=0;index<remainder;index++)order[index%order.length].cents++;
+ return parts.map(part=>part.cents);
+}
+function discountFactor(invoice:any){const base=discountBase(invoice);return base>0?(base-discountAmount(invoice))/base:1}
+function discountedLineNet(invoice:any,l:any){const lines=Array.isArray(invoice?.lines)?invoice.lines:[],index=lines.indexOf(l);if(index<0)return roundMoney(lineNet(l)*discountFactor(invoice));return allocateDiscountCents(lines.map((line:any)=>toCents(lineNet(line))),toCents(discountAmount(invoice)))[index]/100}
 function discountedLineVat(invoice:any,l:any){return zeroVatTreatment(taxTreatment(invoice))?0:roundMoney(discountedLineNet(invoice,l)*num(l?.vat)/100)}
 function calc(invoice:any){
   const sign=invoice?.kind==="credit"?-1:1;
@@ -79,7 +88,7 @@ async function pdfBytes(data:any){
   }
   y-=10; page.drawLine({start:{x:330,y:y+8},end:{x:549,y:y+8},thickness:.7,color:rgb(.85,.88,.86)});
   text(c.discount>0?"Subtotaal na korting":"Subtotaal",330,y,9,regular,muted); text(money(c.net),470,y,9,bold); y-=20;
-  if(c.discount>0){text("Factuurkorting",330,y,9,regular,muted); text("− "+money(c.discount),470,y,9,bold); y-=20;}
+  if(c.discount>0){text("Korting (inbegrepen)",330,y,9,regular,muted); text(money(c.discount),470,y,9,bold); y-=20;}
   text(zeroVatTreatment(taxTreatment(invoice))?"Btw ("+taxTreatment(invoice)+")":"Btw",330,y,9,regular,muted); text(money(c.vat),470,y,9,bold); y-=24;
   text(invoice.kind==="credit"?"Totaal credit":"Totaal",330,y,11,bold,ink); text(money(c.gross),470,y,11,bold,ink); y-=38;
   if(company?.invoiceDesign?.showPaymentBlock!==false){
@@ -94,7 +103,7 @@ function htmlMail(data:any){
   const {company={},customer={},invoice={},subject="",message=""}=data;const c=calc(invoice);
   const accent=String(company?.emailTemplate?.accentColor||"#17382f");
   const esc=(s:any)=>safe(s,12000).replace(/[&<>"']/g,(x)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[x]||x));
-  return `<!doctype html><html><body style="margin:0;background:#f2f4f3;font-family:Arial,sans-serif;color:#1c2924"><div style="padding:30px 14px"><div style="max-width:640px;margin:auto;background:#fff;border:1px solid #e0e6e3;border-radius:16px;overflow:hidden"><div style="height:7px;background:${accent}"></div><div style="padding:30px"><div style="font-size:12px;color:${accent};font-weight:700;text-transform:uppercase">${esc(company?.emailTemplate?.senderName||company.tradeName||company.name||"Administratie")}</div><h1 style="font-size:22px;margin:7px 0 22px">${esc(subject)}</h1><div style="font-size:15px;line-height:1.7">${esc(message).replace(/\\n/g,"<br>")}</div><div style="margin-top:24px;border:1px solid #e1e7e4;border-radius:12px;padding:16px"><b>${esc(invoice.number)}</b><div style="margin-top:8px">Klant: ${esc(customer.name)}</div><div>Bedrag: <b>${esc(money(c.gross))}</b></div><div>Vervaldatum: ${esc(dateNL(invoice.dueDate))}</div></div></div></div></div></body></html>`;
+  return `<!doctype html><html><body style="margin:0;background:#f2f4f3;font-family:Arial,sans-serif;color:#1c2924"><div style="padding:30px 14px"><div style="max-width:640px;margin:auto;background:#fff;border:1px solid #e0e6e3;border-radius:16px;overflow:hidden"><div style="height:7px;background:${accent}"></div><div style="padding:30px"><div style="font-size:12px;color:${accent};font-weight:700;text-transform:uppercase">${esc(company?.emailTemplate?.senderName||company.tradeName||company.name||"Administratie")}</div><h1 style="font-size:22px;margin:7px 0 22px">${esc(subject)}</h1><div style="font-size:15px;line-height:1.7">${esc(message).replace(/\n/g,"<br>")}</div><div style="margin-top:24px;border:1px solid #e1e7e4;border-radius:12px;padding:16px"><b>${esc(invoice.number)}</b><div style="margin-top:8px">Klant: ${esc(customer.name)}</div><div>Bedrag: <b>${esc(money(c.gross))}</b></div><div>Vervaldatum: ${esc(dateNL(invoice.dueDate))}</div></div></div></div></div></body></html>`;
 }
 Deno.serve(async(req:Request)=>{
   const origin=req.headers.get("origin")||"";
@@ -106,9 +115,9 @@ Deno.serve(async(req:Request)=>{
   if(!(await quota(auth.token,"invoice_email")))return j({ok:false,error:"E-mailquotum bereikt. Probeer het later opnieuw."},429);
   if(!Deno.env.get("RESEND_API_KEY")||!Deno.env.get("INVOICE_FROM_EMAIL"))return j({ok:false,error:"EMAIL_NOT_CONFIGURED"},503);
   const data=await req.json().catch(()=>null);if(!data)return j({ok:false,error:"INVALID_JSON"},400);
-  const to=email(data.to||data.customer?.email);if(!to)return j({ok:false,error:"Ongeldig e-mailadres."},400);if(/@example\\.com$/i.test(to))return j({ok:false,error:"Dit is een demo-e-mailadres. Vul een echt klantadres in."},400);
-  const subject=safe(data.subject,240).replace(/[\\r\\n]/g," ").trim(),message=safe(data.message,12000).trim();if(!subject||!message)return j({ok:false,error:"Onderwerp en bericht zijn verplicht."},400);
-  const pdf=await pdfBytes(data);const sender=safe(data.company?.emailTemplate?.senderName||data.company?.tradeName||data.company?.name||"Administratie",100).replace(/[<>\\r\\n"]/g," ");
+  const to=email(data.to||data.customer?.email);if(!to)return j({ok:false,error:"Ongeldig e-mailadres."},400);if(/@example\.com$/i.test(to))return j({ok:false,error:"Dit is een demo-e-mailadres. Vul een echt klantadres in."},400);
+  const subject=safe(data.subject,240).replace(/[\r\n]/g," ").trim(),message=safe(data.message,12000).trim();if(!subject||!message)return j({ok:false,error:"Onderwerp en bericht zijn verplicht."},400);
+  const pdf=await pdfBytes(data);const sender=safe(data.company?.emailTemplate?.senderName||data.company?.tradeName||data.company?.name||"Administratie",100).replace(/[<>\r\n"]/g," ");
   const fromAddr=Deno.env.get("INVOICE_FROM_EMAIL")!;const from=fromAddr.includes("<")?fromAddr:`${sender} <${fromAddr}>`;
   const payload:any={from,to:[to],subject,text:message,html:htmlMail({...data,subject,message}),attachments:[{filename:`${data.invoice?.kind==="credit"?"Creditfactuur":"Factuur"}-${safe(data.invoice?.number,80).replace(/[^a-zA-Z0-9._-]/g,"-")}.pdf`,content:btoa(String.fromCharCode(...pdf)),content_type:"application/pdf"}]};
   const reply=email(data.company?.email);if(reply)payload.reply_to=reply;if(data.ccSelf&&reply&&reply!==to)payload.cc=[reply];

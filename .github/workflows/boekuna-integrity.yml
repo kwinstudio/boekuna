@@ -8,6 +8,7 @@ on:
     paths:
       - "kwinest/**"
       - "tests/**"
+      - "supabase/functions/send-invoice/**"
       - ".github/workflows/boekuna-integrity.yml"
 
 permissions:
@@ -26,5 +27,11 @@ jobs:
         run: node tests/accounting-integrity.test.mjs
       - name: Production source safety
         run: node tests/source-safety.test.mjs
+      - name: Install invoice test dependencies
+        run: npm ci --prefix tests --ignore-scripts
+      - name: Production calculation regression tests
+        run: node tests/production-integrity.test.mjs
+      - name: Invoice PDF and email parity
+        run: node tests/invoice-delivery.test.mjs
       - name: Python syntax safety
         run: python -m py_compile kwinest/docprocessor/app.py
