@@ -65,11 +65,16 @@ const privacy=fs.readFileSync(new URL("../public/privacy/index.html",import.meta
 const support=fs.readFileSync(new URL("../public/support/index.html",import.meta.url),"utf8");
 const deletion=fs.readFileSync(new URL("../public/account-verwijderen/index.html",import.meta.url),"utf8");
 const deleteAccountEdge=fs.readFileSync(new URL("../supabase/functions/delete-account/index.ts",import.meta.url),"utf8");
+const analyzeInvoiceEdge=fs.readFileSync(new URL("../supabase/functions/analyze-invoice/index.ts",import.meta.url),"utf8");
 assert.ok(privacy.includes("Boekuna is een product van Kwinest"),"Privacy policy must identify the product/operator");
 assert.ok(support.includes("support_requests"),"Public support form must submit to the support intake");
 assert.ok(deletion.includes("Online verwijderingsverzoek"),"Account deletion web resource must allow an external deletion request");
 assert.ok(deleteAccountEdge.includes('admin.rpc("delete_email_connection_secret"'),"Account deletion must remove connected mailbox credentials from Vault before deleting the user");
 assert.ok(deleteAccountEdge.indexOf('admin.rpc("delete_email_connection_secret"')<deleteAccountEdge.indexOf('admin.auth.admin.deleteUser(userId)'),"Mailbox credentials must be removed before the auth user is deleted");
+for(const origin of ["https://boekuna-boekhouding.onrender.com","https://boekuna.nl","https://www.boekuna.nl"]){
+  assert.ok(analyzeInvoiceEdge.includes(origin),`Invoice analysis CORS must allow production origin: ${origin}`);
+}
+assert.ok(analyzeInvoiceEdge.includes("!ALLOWED_ORIGINS.has(origin)"),"Invoice analysis must reject untrusted origins");
 assert.ok(html.includes("function showUploadError(err,file=null)"),"Upload errors must render a user-facing explanation");
 assert.ok(html.includes("function uploadErrorInfo(err)"),"Upload errors must be translated centrally");
 assert.ok(html.includes("function startSubscription(plan)"),"Paid plans must start through the authenticated subscription flow");
