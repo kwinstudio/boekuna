@@ -3,6 +3,7 @@ name: Boekuna integrity tests
 on:
   push:
     branches:
+      - main
       - kwinest-hosting
   pull_request:
     paths:
