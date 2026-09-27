@@ -52,7 +52,7 @@ alter table public.billing_events enable row level security;
 revoke all on public.billing_events from anon, authenticated;
 
 create or replace function public.billing_plan_limit(p_plan text)
-returns integer language sql immutable as $$
+returns integer language sql immutable set search_path=public as $
   select case p_plan when 'pro' then 300 when 'boekuna' then 100 else 10 end
 $$;
 
@@ -144,10 +144,20 @@ begin
   return query select true,v_next;
 end $$;
 
+revoke all on function public.billing_effective_plan(uuid) from public,anon,authenticated;
+grant execute on function public.billing_effective_plan(uuid) to service_role;
+
+revoke all on function public.check_document_quota() from public,anon;
+grant execute on function public.check_document_quota() to authenticated,service_role;
+
+revoke all on function public.record_document_usage() from public,anon;
+grant execute on function public.record_document_usage() to authenticated,service_role;
+
+revoke all on function public.get_billing_summary() from public,anon;
+grant execute on function public.get_billing_summary() to authenticated,service_role;
+
 revoke all on function public.reserve_founding_offer(uuid) from public,anon,authenticated;
 grant execute on function public.reserve_founding_offer(uuid) to service_role;
-grant execute on function public.check_document_quota() to authenticated;
-grant execute on function public.record_document_usage() to authenticated;
-grant execute on function public.get_billing_summary() to authenticated;
-grant execute on function public.billing_effective_plan(uuid) to service_role;
+
+revoke all on function public.billing_plan_limit(text) from public,anon,authenticated;
 grant execute on function public.billing_plan_limit(text) to service_role;
