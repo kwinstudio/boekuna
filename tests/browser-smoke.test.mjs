@@ -142,6 +142,9 @@ try{
   assert.ok(response && response.ok(),'Live Render build must answer successfully');
   await live.getByRole('heading',{name:'Inloggen'}).waitFor({timeout:15000});
   assert.match(await live.title(),/Boekuna/);
+  await live.goto('https://boekuna-boekhouding.onrender.com/?register=1',{waitUntil:'domcontentloaded',timeout:45000});
+  await live.getByRole('heading',{name:'Account + bedrijfsprofiel'}).waitFor({timeout:15000});
+  assert.equal(await live.locator('#authForm input[name="password"]').getAttribute('minlength'),'12');
   await live.close();
 
   assert.deepEqual(pageErrors,[],'Browser page errors: '+pageErrors.join(' | '));
