@@ -55,7 +55,7 @@ try{
 
   // Daily-use browser flow on the exact production UI source, with auth/network isolated.
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
-  await page.getByRole('heading',{name:'Dashboard'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
   assert.equal(await page.locator('.mobile-menu').evaluate(el=>getComputedStyle(el).display),'none');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'Desktop page must not create global horizontal overflow');
 
@@ -124,7 +124,7 @@ try{
   // Mobile viewport: navigation, modal sizing and no page-level horizontal overflow.
   await page.setViewportSize({width:390,height:844});
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
-  await page.getByRole('heading',{name:'Dashboard'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
   assert.notEqual(await page.locator('.mobile-menu').evaluate(el=>getComputedStyle(el).display),'none');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'Mobile page must not create global horizontal overflow');
   await page.locator('#mobileMenu').click();
