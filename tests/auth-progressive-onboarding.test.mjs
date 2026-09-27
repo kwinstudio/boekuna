@@ -189,12 +189,12 @@ try{
   await page.locator('#invoiceForm').waitFor();
   await page.waitForFunction(()=>document.querySelector('#invoiceForm [name="status"]')?.value==='sent');
   assert.equal(await page.locator('#invoiceForm [name="status"]').inputValue(),'sent');
-  assert.equal(await page.evaluate(id=>editingInvoiceId===id),true,draftId);
+  assert.equal(await page.evaluate(id=>editingInvoiceId===id,draftId),true,'Returned editor must preserve draft identity');
   await page.evaluate(()=>reviewInvoice());
   await page.getByRole('heading',{name:'Laatste controle vóór opslaan'}).waitFor();
   await page.evaluate(()=>finalSaveInvoice());
-  assert.equal(await page.evaluate(id=>state.invoices.find(i=>i.id===id)?.status), 'sent', draftId);
-  assert.ok(await page.evaluate(id=>!state.invoices.find(i=>i.id===id).number.startsWith('CONCEPT-')), 'Finalized invoice must receive a final number');
+  assert.equal(await page.evaluate(id=>state.invoices.find(i=>i.id===id)?.status,draftId), 'sent', 'Finalized returned draft must keep intended status');
+  assert.ok(await page.evaluate(id=>!state.invoices.find(i=>i.id===id).number.startsWith('CONCEPT-'),draftId), 'Finalized invoice must receive a final number');
 
   // Subscription has no bookkeeping-profile requirement.
   await page.evaluate(()=>{state.company={...structuredClone(DEFAULT.company)}});
