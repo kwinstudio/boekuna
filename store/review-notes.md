@@ -19,11 +19,16 @@
 - External PSD2/Peppol capabilities must not be described as active unless the production integration is actually enabled.
 - If transactional email is not production-configured at submission time, do not expose a broken send action in the submitted mobile build.
 
-## Monetization for first store release
+## Monetization
 
-Recommended launch configuration: **free download, no in-app purchase and no external purchase CTA inside the mobile app**.
+The web version of Boekuna now has three entitlement levels:
 
-If paid digital access/subscriptions are enabled later, re-review Apple App Review Guideline 3.1 and Google Play Payments requirements before releasing that version.
+- Gratis — 10 smart document analyses/month.
+- Boekuna — €9.95/month excl. VAT, 100 analyses/month.
+- Boekuna Pro — €20/month excl. VAT, 300 analyses/month.
+- The first 100 successful paid-plan activations can receive a 90-day Stripe trial before monthly renewal.
+
+**Native store warning:** web Stripe Checkout must not simply be exposed as an external purchase flow inside the submitted iOS/Android app unless the applicable store rules explicitly allow it. Before native submission, choose the compliant native purchase/entitlement route (for example StoreKit / Google Play Billing where required), hide non-compliant external purchase CTAs from that build, and re-test entitlement sync.
 
 ## Reviewer credentials
 
