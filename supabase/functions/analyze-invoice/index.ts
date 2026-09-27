@@ -50,6 +50,34 @@ async function storedDocumentInput(req:Request,clientRef:string){
  return {fileName:safe(meta.name||"document",160),mimeType:safe(meta.mime_type||blob.type||"application/octet-stream",120).toLowerCase(),base64:bytesToBase64(bytes)};
 }
 
+function adminDb(){
+ return createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false,autoRefreshToken:false}});
+}
+async function claimVerificationJob(req:Request,data:any){
+ if(data?.reviewMode!=="verify"||!data?.clientRef)return {kind:"none"} as any;
+ const auth=await authUser(req);if(!auth)return {kind:"none"} as any;
+ const userId=auth.user.id,documentRef=safe(data.clientRef,240),version=Math.max(1,Number(data.verificationVersion||1)||1),admin=adminDb(),now=new Date();
+ const fresh={user_id:userId,document_ref:documentRef,verification_version:version,status:"running",attempts:1,started_at:now.toISOString(),updated_at:now.toISOString()};
+ const {data:inserted,error:insertError}=await admin.from("document_verification_jobs").insert(fresh).select("*").maybeSingle();
+ if(!insertError&&inserted)return {kind:"run",userId,documentRef,version,attempts:1};
+ if(insertError?.code!=="23505")throw insertError;
+ const {data:existing,error:readError}=await admin.from("document_verification_jobs").select("*").eq("user_id",userId).eq("document_ref",documentRef).eq("verification_version",version).maybeSingle();
+ if(readError||!existing)throw readError||new Error("VERIFICATION_JOB_NOT_FOUND");
+ if(existing.status==="completed"&&existing.result)return {kind:"cached",result:existing.result};
+ const updatedAt=Date.parse(existing.updated_at||existing.started_at||"")||0,stale=Date.now()-updatedAt>2*60*1000,attempts=Number(existing.attempts||0);
+ if(existing.status==="running"&&!stale)return {kind:"in_progress"};
+ if(attempts>=2)return {kind:"exhausted"};
+ const next=attempts+1;
+ const {data:claimed,error:claimError}=await admin.from("document_verification_jobs").update({status:"running",attempts:next,last_error:null,started_at:now.toISOString(),updated_at:now.toISOString()}).eq("user_id",userId).eq("document_ref",documentRef).eq("verification_version",version).eq("attempts",attempts).select("*").maybeSingle();
+ if(claimError)throw claimError;
+ return claimed?{kind:"run",userId,documentRef,version,attempts:next}:{kind:"in_progress"}
+}
+async function finishVerificationJob(claim:any,result:any,errorMessage=""){
+ if(!claim||claim.kind!=="run")return;
+ const admin=adminDb(),now=new Date().toISOString();
+ await admin.from("document_verification_jobs").update(errorMessage?{status:"failed",last_error:safe(errorMessage,500),updated_at:now}:{status:"completed",result,last_error:null,completed_at:now,updated_at:now}).eq("user_id",claim.userId).eq("document_ref",claim.documentRef).eq("verification_version",claim.version).eq("attempts",claim.attempts);
+}
+
 async function allowRequest(req:Request,body:any){
   const user=await authUser(req);
   if(user){
@@ -117,6 +145,12 @@ Deno.serve(async(req:Request)=>{
   if(verify&&!openaiKey)return j(req,{ok:false,error:"INDEPENDENT_REVIEW_PROVIDER_NOT_CONFIGURED"},503);
   if(!openaiKey&&!gatewayKey)return j(req,{ok:false,error:"AI_PROVIDER_NOT_CONFIGURED"},503);
 
+  let verificationClaim:any={kind:"none"};
+  try{verificationClaim=await claimVerificationJob(req,data)}catch(e){return j(req,{ok:false,error:"VERIFICATION_JOB_ERROR"},503)}
+  if(verificationClaim.kind==="cached")return j(req,verificationClaim.result);
+  if(verificationClaim.kind==="in_progress")return j(req,{ok:false,error:"VERIFICATION_IN_PROGRESS"},409);
+  if(verificationClaim.kind==="exhausted")return j(req,{ok:false,error:"VERIFICATION_RETRY_LIMIT"},503);
+
   const content:any[]=[{type:"input_text",text:promptFor(data)}];
   const stored=verify&&data.clientRef?await storedDocumentInput(req,safe(data.clientRef,240)):null;
   const raw=String(stored?.base64||data.fileBase64||data.pdfBase64||"");
@@ -139,13 +173,26 @@ Deno.serve(async(req:Request)=>{
   const key=direct?openaiKey!:gatewayKey!;
   const model=direct?"gpt-5.6-sol":"openai/gpt-5.6-sol";
   const payload={model,input:[{role:"user",content}],reasoning:{effort:verify?"medium":"low"},text:{format:{type:"json_schema",name:"invoice_extraction",schema:outputSchema,strict:true}},max_output_tokens:5000,store:false};
-  const rr=await fetch(endpoint,{method:"POST",headers:{Authorization:"Bearer "+key,"content-type":"application/json"},body:JSON.stringify(payload)});
-  const out=await rr.json().catch(()=>({}));
-  if(!rr.ok)return j(req,{ok:false,error:out?.error?.message||out?.message||"AI_SERVICE_ERROR"},rr.status);
+  let rr:Response,out:any;
+  try{
+    rr=await fetch(endpoint,{method:"POST",headers:{Authorization:"Bearer "+key,"content-type":"application/json"},body:JSON.stringify(payload)});
+    out=await rr.json().catch(()=>({}));
+  }catch(e){
+    await finishVerificationJob(verificationClaim,null,"AI_PROVIDER_UNREACHABLE");
+    return j(req,{ok:false,error:"AI_PROVIDER_UNREACHABLE"},503);
+  }
+  if(!rr.ok){
+    const message=out?.error?.message||out?.message||"AI_SERVICE_ERROR";
+    await finishVerificationJob(verificationClaim,null,message);
+    return j(req,{ok:false,error:message},rr.status);
+  }
   try{
     const parsed=parseJson(outputText(out));
-    return j(req,{ok:true,model,data:parsed,usage:out.usage||null,pass:data.reviewMode==="verify"?"verify":"extract"});
+    const response={ok:true,model,data:parsed,usage:out.usage||null,pass:data.reviewMode==="verify"?"verify":"extract"};
+    await finishVerificationJob(verificationClaim,response);
+    return j(req,response);
   }catch(e){
+    await finishVerificationJob(verificationClaim,null,"AI_RESPONSE_INVALID");
     return j(req,{ok:false,error:"AI_RESPONSE_INVALID"},502);
   }
 });
