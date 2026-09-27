@@ -1791,6 +1791,42 @@ img.bookuna-logo-icon,
 
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
+
+<style id="boekuna-list-toolbar-styles">
+.list-toolbar{margin:0 0 16px;padding:12px;border:1px solid var(--line);border-radius:15px;background:#fff;box-shadow:0 1px 0 rgba(16,37,31,.02)}
+.list-toolbar-main{display:flex;align-items:center;gap:10px;min-width:0}
+.list-search-box{height:42px;min-width:260px;max-width:440px;flex:1;display:flex;align-items:center;gap:8px;border:1px solid #dfe5e2;border-radius:11px;padding:0 8px 0 11px;background:#fff;color:var(--muted)}
+.list-search-box:focus-within{border-color:#8aa69a;box-shadow:0 0 0 3px rgba(24,54,45,.07)}
+.list-search-box input{min-width:0;width:100%;border:0;outline:0;background:transparent;color:var(--ink);font-size:13px}
+.list-search-clear{width:30px;height:30px;flex:0 0 30px;border:0;border-radius:8px;background:transparent;color:#66736e;font-size:18px;line-height:1}
+.list-search-clear:hover{background:#f0f3f1}
+.list-toolbar-quick{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.list-toolbar-actions{display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap}
+.list-toolbar-actions .btn{white-space:nowrap}
+.list-filter-chips{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid #eef1ef}
+.list-filter-chip{border:1px solid #dce4e0;background:#f7f9f8;color:#53625d;border-radius:999px;padding:6px 9px;font-size:10px;font-weight:750;display:inline-flex;align-items:center;gap:6px}
+.list-filter-chip:hover{border-color:#b9c8c1;background:#fff}
+.list-clear-filters{border:0;background:transparent;color:#356267;font-size:10px;font-weight:800;padding:6px 4px}
+.list-dialog-options{display:grid;gap:10px}
+.list-sort-option{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:12px}
+.list-sort-option input{width:auto}
+.list-toolbar button:focus-visible,.list-toolbar input:focus-visible,.list-sort-option:focus-within{outline:3px solid rgba(53,98,103,.22);outline-offset:2px}
+@media(max-width:980px){
+ .list-toolbar-main{flex-wrap:wrap}
+ .list-search-box{max-width:none;flex:1 1 320px}
+ .list-toolbar-actions{margin-left:0}
+}
+@media(max-width:700px){
+ .list-toolbar{padding:10px}
+ .list-toolbar-main{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+ .list-search-box{grid-column:1/-1;width:100%;min-width:0;max-width:none}
+ .list-toolbar-quick{display:none}
+ .list-toolbar-actions{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;margin:0}
+ .list-toolbar-actions .btn{width:100%;justify-content:center;min-height:42px}
+ .list-toolbar-actions .list-extra-action{grid-column:1/-1}
+ .list-filter-chips{margin-top:9px}
+}
+</style>
 </head>
 <body>
 <script>
@@ -1848,7 +1884,7 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
 <main class="main">
   <header class="topbar">
     <div class="top-left"><button class="mobile-menu" id="mobileMenu" aria-label="Menu openen"><svg class="icon"><use href="#i-menu"/></svg></button><div class="page-title" id="pageTitle">Dashboard</div></div>
-    <div class="top-actions"><div class="search"><svg class="icon"><use href="#i-search"/></svg><input id="globalSearch" placeholder="Zoeken…" aria-label="Zoeken" /></div><button class="btn primary" id="quickNew"><svg class="icon"><use href="#i-plus"/></svg><span>Nieuw</span></button><span class="badge good" id="cloudSyncBadge" title="Cloudsyncstatus">Cloud opgeslagen</span><button class="avatar" id="accountAvatar" onclick="accountMenu()" aria-label="Account">A</button></div>
+    <div class="top-actions"><button class="btn primary" id="quickNew"><svg class="icon"><use href="#i-plus"/></svg><span>Nieuw</span></button><span class="badge good" id="cloudSyncBadge" title="Cloudsyncstatus">Cloud opgeslagen</span><button class="avatar" id="accountAvatar" onclick="accountMenu()" aria-label="Account">A</button></div>
   </header>
   <div class="content" id="content"></div>
 </main>
@@ -2046,7 +2082,11 @@ const DEMO_CUSTOMERS=[
 const DEFAULT_EMAIL_TEMPLATE={senderName:'',accentColor:'#17382f',subjectInvoice:'Factuur {{factuurnummer}} van {{bedrijfsnaam}}',subjectCredit:'Creditfactuur {{factuurnummer}} van {{bedrijfsnaam}}',bodyInvoice:'Goedendag {{contactpersoon}},\n\nIn de bijlage vindt u factuur {{factuurnummer}} van {{bedrijfsnaam}} voor {{bedrag}}.\n\nWij verzoeken u het bedrag uiterlijk {{vervaldatum}} over te maken onder vermelding van betalingskenmerk {{betaalkenmerk}}.\n\nHeeft u vragen over deze factuur? U kunt reageren op deze e-mail.\n\nMet vriendelijke groet,\n{{bedrijfsnaam}}',bodyCredit:'Goedendag {{contactpersoon}},\n\nIn de bijlage vindt u creditfactuur {{factuurnummer}} van {{bedrijfsnaam}} voor {{bedrag}}. Deze credit wordt verrekend of, waar van toepassing, terugbetaald.\n\nHeeft u vragen over deze creditfactuur? U kunt reageren op deze e-mail.\n\nMet vriendelijke groet,\n{{bedrijfsnaam}}',footerText:'',showSummary:true,showPaymentCard:true};
 const DEFAULT_INVOICE_DESIGN={layout:'modern',accentColor:'#17382f',logoDataUrl:'',showPaymentBlock:true,showVatBreakdown:true,showContactDetails:true,footerText:'Bedankt voor uw vertrouwen.'};
 const DEFAULT={meta:{nextInvoice:1,taxReservePct:30},company:{name:'',tradeName:'',contactName:'',kvk:'',vat:'',iban:'',bic:'',bankAccountName:'',email:'',phone:'',website:'',address:'',postal:'',city:'',country:'Nederland',invoicePrefix:(new Date().getFullYear()+'-'),paymentDays:14,kor:false,peppolId:'',emailTemplate:structuredClone(DEFAULT_EMAIL_TEMPLATE),invoiceDesign:structuredClone(DEFAULT_INVOICE_DESIGN)},contacts:[],services:[],invoices:[],expenses:[],transactions:[],hours:[],mileage:[],documents:[],bookings:[],plannedCash:[],settlements:[],audit:[]};
-let state=structuredClone(DEFAULT);let page='dashboard';let search='';let pendingInvoiceDraft=null,pendingPdfImport=null,pendingUploadKind='auto',editingInvoiceId=null;
+let state=structuredClone(DEFAULT);let page='dashboard';let pendingInvoiceDraft=null,pendingPdfImport=null,pendingUploadKind='auto',editingInvoiceId=null;
+const LIST_STATE_KEY='boekuna-list-state-v1';
+const LIST_DEFAULTS={"invoices":{"query":"","filters":{"status":"all","customer":"all","period":"all","type":"all"},"sort":"issue-desc"},"expenses":{"query":"","filters":{"period":"all","category":"all","docType":"all"},"sort":"date-desc"},"bank":{"query":"","filters":{"status":"all","direction":"all","period":"all"},"sort":"date-desc"},"contacts":{"query":"","filters":{"type":"all"},"sort":"name-asc"},"services":{"query":"","filters":{"status":"all"},"sort":"name-asc"},"documents":{"query":"","filters":{"linked":"all","type":"all","period":"all"},"sort":"date-desc"},"bookings":{"query":"","filters":{"status":"all","time":"all","period":"all","from":"","to":""},"sort":"upcoming"},"ledger":{"query":"","filters":{},"sort":"date-desc"}};
+const LIST_UI={"invoices":{"placeholder":"Zoek op factuurnummer, klant of bedrag","entity":"facturen","empty":"Je hebt nog geen facturen gemaakt.","sorts":[["issue-desc","Nieuwste factuurdatum"],["issue-asc","Oudste factuurdatum"],["due-asc","Vervaldatum eerst"],["amount-desc","Bedrag hoog → laag"],["amount-asc","Bedrag laag → hoog"],["customer-asc","Klant A–Z"]]},"expenses":{"placeholder":"Zoek op leverancier, factuurnummer of bedrag","entity":"kosten","empty":"Je hebt nog geen kosten geboekt.","sorts":[["date-desc","Nieuwste datum"],["date-asc","Oudste datum"],["vendor-asc","Leverancier A–Z"],["amount-desc","Bedrag hoog → laag"],["amount-asc","Bedrag laag → hoog"]]},"bank":{"placeholder":"Zoek in transacties","entity":"transacties","empty":"Je hebt nog geen banktransacties.","sorts":[["date-desc","Nieuwste datum"],["date-asc","Oudste datum"],["amount-desc","Bedrag hoog → laag"],["amount-asc","Bedrag laag → hoog"]]},"contacts":{"placeholder":"Zoek op naam, e-mail of plaats","entity":"relaties","empty":"Je hebt nog geen relaties toegevoegd.","sorts":[["name-asc","Naam A–Z"],["name-desc","Naam Z–A"]]},"services":{"placeholder":"Zoek diensten","entity":"diensten","empty":"Je hebt nog geen diensten toegevoegd.","sorts":[["name-asc","Naam A–Z"],["name-desc","Naam Z–A"],["price-asc","Prijs laag → hoog"],["price-desc","Prijs hoog → laag"]]},"documents":{"placeholder":"Zoek op bestand, leverancier of factuurnummer","entity":"documenten","empty":"Je hebt nog geen documenten geüpload.","sorts":[["date-desc","Nieuwste datum"],["date-asc","Oudste datum"],["name-asc","Naam A–Z"]]},"bookings":{"placeholder":"Zoek op klant of dienst","entity":"boekingen","empty":"Je hebt nog geen boekingen.","sorts":[["upcoming","Eerstvolgende afspraak"],["newest","Nieuwste"],["oldest","Oudste"],["customer-asc","Klant A–Z"]]},"ledger":{"placeholder":"Zoek rekening, referentie of omschrijving","entity":"boekingsregels","empty":"Nog geen boekingsregels.","sorts":[["date-desc","Nieuwste eerst"]]}};
+let listState=loadListState();let listSearchTimer=null,modalReturnFocus=null;
 function readCurrentUser(){try{const id=localStorage.getItem(SESSION_KEY);if(!id)return null;return getUsers().find(u=>u.id===id)||null}catch(e){return null}}
 function getUsers(){try{return JSON.parse(localStorage.getItem(USERS_KEY))||[]}catch(e){return []}}
 function saveUsers(users){localStorage.setItem(USERS_KEY,JSON.stringify(users))}
@@ -2434,7 +2474,7 @@ async function loginUser(e){
   }
  }
 }
-function enterApp(){document.getElementById('authRoot').innerHTML='';document.getElementById('mainApp').style.display='grid';const av=document.getElementById('accountAvatar');if(av)av.textContent=(currentUser?.email||'A').slice(0,2).toUpperCase();const needsProfile=!profileEssentialsComplete(state.company);page=needsProfile?'profile':'dashboard';search='';document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page===page));document.getElementById('pageTitle').textContent=PAGE_TITLES[page];render();if(needsProfile)toast('Maak eerst je bedrijfsprofiel compleet');void loadBillingSummary().catch(()=>null);void handleBillingReturnAndPlan();void handleMailboxReturn()}
+function enterApp(){document.getElementById('authRoot').innerHTML='';document.getElementById('mainApp').style.display='grid';const av=document.getElementById('accountAvatar');if(av)av.textContent=(currentUser?.email||'A').slice(0,2).toUpperCase();const needsProfile=!profileEssentialsComplete(state.company);page=needsProfile?'profile':'dashboard';document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page===page));document.getElementById('pageTitle').textContent=PAGE_TITLES[page];render();if(needsProfile)toast('Maak eerst je bedrijfsprofiel compleet');void loadBillingSummary().catch(()=>null);void handleBillingReturnAndPlan();void handleMailboxReturn()}
 async function logoutUser(){try{await syncCloudStateNow();const sb=await getSupabase();await sb.auth.signOut()}catch(e){console.warn(e)}currentUser=null;state=structuredClone(DEFAULT);closeModal();showLanding()}
 async function requireMfaForUser(user){const sb=await getSupabase();const {data,error}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();if(error)throw error;if(data?.nextLevel==='aal2'&&data?.currentLevel!=='aal2'){pendingMfaUser=user;await showMfaLoginChallenge();return true}return false}
 async function showMfaLoginChallenge(){const sb=await getSupabase();const {data,error}=await sb.auth.mfa.listFactors();if(error)throw error;const factor=(data?.totp||[]).find(x=>x.status==='verified');if(!factor)throw new Error('Tweestapsverificatie is geactiveerd maar er is geen geldige authenticator gevonden.');pendingMfaFactorId=factor.id;document.getElementById('mainApp').style.display='none';document.getElementById('authRoot').innerHTML=`<div class="auth-root"><div class="auth-shell" style="grid-template-columns:1fr"><section class="auth-form-wrap" style="min-height:520px"><div class="auth-form"><div class="eyebrow">Extra beveiliging</div><h2>Tweestapsverificatie</h2><p>Open je authenticator-app en vul de huidige 6-cijferige code in.</p><div class="auth-error" id="authError"></div><form onsubmit="verifyMfaLogin(event)"><div class="auth-field"><label>Authenticator-code</label><input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required autofocus></div><button class="btn primary auth-submit" type="submit">Controleren</button></form><div class="auth-switch"><button onclick="cancelMfaLogin()">Terug naar inloggen</button></div></div></section></div></div>`}
@@ -2551,9 +2591,336 @@ function currentQuarter(){return Math.min(4,Math.ceil((new Date().getMonth()+1)/
 function getContact(id){return state.contacts.find(c=>c.id===id)||{name:'Onbekende relatie',email:'',address:'',postal:'',city:''}}
 function icon(id){return `<svg class="icon"><use href="#${id}"/></svg>`}
 function statusBadge(s){const map={paid:['Betaald','good'],partial:['Deels betaald','warn'],sent:['Openstaand','info'],draft:['Concept',''],overdue:['Te laat','bad'],cancelled:['Geannuleerd',''],credit:['Credit','info'],matched:['Gekoppeld','good'],unmatched:['Te verwerken','warn']};const x=map[s]||[s,''];return `<span class="badge ${x[1]}">${x[0]}</span>`}
+function defaultListState(name){return structuredClone(LIST_DEFAULTS[name]||{query:'',filters:{},sort:''})}
+function loadListState(){
+  try{
+    const raw=JSON.parse(sessionStorage.getItem(LIST_STATE_KEY)||'{}'),out={};
+    for(const name of Object.keys(LIST_DEFAULTS)){
+      const d=defaultListState(name),saved=raw?.[name]||{};
+      out[name]={...d,...saved,filters:{...d.filters,...(saved.filters||{})}};
+    }
+    return out
+  }catch(_){
+    const out={};for(const name of Object.keys(LIST_DEFAULTS))out[name]=defaultListState(name);return out
+  }
+}
+function persistListState(){try{sessionStorage.setItem(LIST_STATE_KEY,JSON.stringify(listState))}catch(_){}}
+function listPageState(name=page){if(!listState[name])listState[name]=defaultListState(name);return listState[name]}
+function listNormalize(v){return String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/\s+/g,' ')}
+function listAmountText(v){
+  const n=Number(v);if(!Number.isFinite(n))return '';
+  const compact=String(Math.round(n*100)/100),fixed=n.toFixed(2);
+  return [compact,fixed,fixed.replace('.',','),money(n)].join(' ')
+}
+function listPeriodMatch(dateValue,period='all',from='',to=''){
+  const d=String(dateValue||'').slice(0,10);if(!d||period==='all')return period==='all';
+  if(period==='custom')return (!from||d>=from)&&(!to||d<=to);
+  const now=new Date(),year=String(now.getFullYear()),month=String(now.getMonth()+1).padStart(2,'0');
+  if(period==='year')return d.startsWith(year+'-');
+  if(period==='month')return d.startsWith(year+'-'+month);
+  if(period==='quarter'){const m=Number(d.slice(5,7)),q=Math.floor(now.getMonth()/3)+1;return d.startsWith(year+'-')&&Math.floor((m-1)/3)+1===q}
+  return true
+}
+function listLinkedDocumentInfo(d){
+  if(d?.linkedType==='invoice'){
+    const i=state.invoices.find(x=>x.id===d.linkedId);if(i)return {party:getContact(i.customerId).name||'',number:i.number||''}
+  }
+  if(d?.linkedType==='expense'){
+    const e=state.expenses.find(x=>x.id===d.linkedId);if(e)return {party:e.vendor||'',number:e.invoiceNumber||''}
+  }
+  return {party:'',number:''}
+}
+function listTransactionLinkText(t){
+  if(t?.matchType==='invoice'){
+    const i=state.invoices.find(x=>x.id===t.matchId);if(i)return [i.number,getContact(i.customerId).name].filter(Boolean).join(' ')
+  }
+  if(t?.matchType==='expense'){
+    const e=state.expenses.find(x=>x.id===t.matchId);if(e)return [e.invoiceNumber,e.vendor].filter(Boolean).join(' ')
+  }
+  if(t?.matchType==='settlement'){
+    const st=state.settlements.find(x=>x.id===t.matchId);if(st)return [st.reference,st.party].filter(Boolean).join(' ')
+  }
+  return t?.matchId||''
+}
+function expenseListType(e){
+  const t=String(e?.documentType||'').toLowerCase(),src=String(e?.source||'').toLowerCase();
+  if(t==='receipt'||src.includes('receipt'))return 'receipt';
+  if(t.includes('invoice')||src.includes('document-import'))return 'invoice';
+  return 'manual'
+}
+function listSearchHaystack(name,item){
+  if(name==='invoices'){
+    const c=getContact(item.customerId);return [item.number,c.name,item.paymentReference,listAmountText(invoiceGross(item)),listAmountText(invoiceNet(item))].join(' ')
+  }
+  if(name==='expenses')return [item.vendor,item.invoiceNumber,item.notes,item.category,listAmountText(item.exVat),listAmountText(expenseGross(item))].join(' ');
+  if(name==='bank')return [item.description,listAmountText(item.amount),listTransactionLinkText(item)].join(' ');
+  if(name==='contacts')return [item.name,item.contactPerson,item.email,item.city,item.vat].join(' ');
+  if(name==='services')return [item.name,item.description,item.unitLabel].join(' ');
+  if(name==='documents'){const x=listLinkedDocumentInfo(item);return [item.name,item.type,x.party,x.number].join(' ')}
+  if(name==='bookings')return [getContact(item.customerId).name,item.service].join(' ');
+  return ''
+}
+function invoiceListStatusMatch(i,status){
+  if(status==='all')return true;
+  if(status==='draft')return i.status==='draft';
+  if(status==='overdue')return invoiceEffectiveStatus(i)==='overdue';
+  if(status==='paid')return i.status!=='draft'&&invoiceEffectiveStatus(i)==='paid';
+  if(status==='open')return i.status!=='draft'&&invoiceOutstanding(i)>.02;
+  return true
+}
+function listMatchesFilters(name,item){
+  const f=listPageState(name).filters||{};
+  if(name==='invoices'){
+    if(!invoiceListStatusMatch(item,f.status))return false;
+    if(f.customer!=='all'&&item.customerId!==f.customer)return false;
+    if(!listPeriodMatch(item.issueDate,f.period))return false;
+    if(f.type==='invoice'&&item.kind==='credit')return false;
+    if(f.type==='credit'&&item.kind!=='credit')return false;
+    return true
+  }
+  if(name==='expenses'){
+    if(!listPeriodMatch(item.date,f.period))return false;
+    if(f.category!=='all'&&String(item.category||'')!==f.category)return false;
+    if(f.docType!=='all'&&expenseListType(item)!==f.docType)return false;
+    return true
+  }
+  if(name==='bank'){
+    if(f.status==='unmatched'&&item.status!=='unmatched')return false;
+    if(f.status==='matched'&&item.status!=='matched')return false;
+    if(f.direction==='income'&&Number(item.amount||0)<=0)return false;
+    if(f.direction==='expense'&&Number(item.amount||0)>=0)return false;
+    if(!listPeriodMatch(item.date,f.period))return false;
+    return true
+  }
+  if(name==='contacts')return f.type==='all'||item.type===f.type;
+  if(name==='services')return f.status==='all'||(f.status==='active'?item.active!==false:item.active===false);
+  if(name==='documents'){
+    if(f.linked==='linked'&&!item.linkedId)return false;
+    if(f.linked==='unlinked'&&item.linkedId)return false;
+    if(f.type!=='all'&&String(item.type||'')!==f.type)return false;
+    if(!listPeriodMatch(item.date,f.period))return false;
+    return true
+  }
+  if(name==='bookings'){
+    if(f.status!=='all'&&item.status!==f.status)return false;
+    const upcoming=String(item.date||'')>=today();
+    if(f.time==='upcoming'&&!upcoming)return false;
+    if(f.time==='past'&&upcoming)return false;
+    if(!listPeriodMatch(item.date,f.period,f.from,f.to))return false;
+    return true
+  }
+  return true
+}
+function listSortCompare(name,a,b){
+  const sort=listPageState(name).sort||LIST_DEFAULTS[name]?.sort||'';
+  const text=(x,y)=>String(x||'').localeCompare(String(y||''),'nl',{sensitivity:'base'});
+  if(name==='invoices'){
+    if(sort==='issue-asc')return text(a.issueDate,b.issueDate);
+    if(sort==='due-asc')return text(a.dueDate,b.dueDate);
+    if(sort==='amount-desc')return invoiceGross(b)-invoiceGross(a);
+    if(sort==='amount-asc')return invoiceGross(a)-invoiceGross(b);
+    if(sort==='customer-asc')return text(getContact(a.customerId).name,getContact(b.customerId).name);
+    return text(b.issueDate,a.issueDate)
+  }
+  if(name==='expenses'){
+    if(sort==='date-asc')return text(a.date,b.date);
+    if(sort==='vendor-asc')return text(a.vendor,b.vendor);
+    if(sort==='amount-desc')return expenseGross(b)-expenseGross(a);
+    if(sort==='amount-asc')return expenseGross(a)-expenseGross(b);
+    return text(b.date,a.date)
+  }
+  if(name==='bank'){
+    if(sort==='date-asc')return text(a.date,b.date);
+    if(sort==='amount-desc')return Number(b.amount||0)-Number(a.amount||0);
+    if(sort==='amount-asc')return Number(a.amount||0)-Number(b.amount||0);
+    return text(b.date,a.date)
+  }
+  if(name==='contacts')return sort==='name-desc'?text(b.name,a.name):text(a.name,b.name);
+  if(name==='services'){
+    if(sort==='name-desc')return text(b.name,a.name);
+    if(sort==='price-asc')return Number(a.price||0)-Number(b.price||0);
+    if(sort==='price-desc')return Number(b.price||0)-Number(a.price||0);
+    return text(a.name,b.name)
+  }
+  if(name==='documents'){
+    if(sort==='date-asc')return text(a.date,b.date);
+    if(sort==='name-asc')return text(a.name,b.name);
+    return text(b.date,a.date)
+  }
+  if(name==='bookings'){
+    const av=String(a.date||'')+'T'+String(a.time||'00:00'),bv=String(b.date||'')+'T'+String(b.time||'00:00');
+    if(sort==='newest')return text(bv,av);
+    if(sort==='oldest')return text(av,bv);
+    if(sort==='customer-asc')return text(getContact(a.customerId).name,getContact(b.customerId).name);
+    const now=new Date(),ad=new Date(av),bd=new Date(bv),af=ad>=now,bf=bd>=now;
+    if(af!==bf)return af?-1:1;
+    return af?ad-bd:bd-ad
+  }
+  return 0
+}
+function listSource(name){
+  return ({
+    invoices:state.invoices,expenses:state.expenses,bank:state.transactions,contacts:state.contacts,
+    services:state.services,documents:state.documents,bookings:state.bookings
+  })[name]||[]
+}
+function getListRows(name){
+  const s=listPageState(name),q=listNormalize(s.query);
+  let rows=listSource(name).slice();
+  if(q)rows=rows.filter(item=>listNormalize(listSearchHaystack(name,item)).includes(q));
+  rows=rows.filter(item=>listMatchesFilters(name,item));
+  return rows.slice().sort((a,b)=>listSortCompare(name,a,b))
+}
+function listPeriodOptions(includeCustom=false){
+  const x=[['all','Alle periodes'],['month','Deze maand'],['quarter','Dit kwartaal'],['year','Dit jaar']];
+  if(includeCustom)x.push(['custom','Aangepaste periode']);
+  return x
+}
+function listFilterFields(name){
+  if(name==='invoices')return [
+    {key:'status',label:'Status',options:[['all','Alle'],['draft','Concept'],['open','Openstaand'],['overdue','Verlopen'],['paid','Betaald']]},
+    {key:'customer',label:'Klant',options:[['all','Alle klanten'],...state.contacts.filter(c=>c.type==='customer').slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),'nl',{sensitivity:'base'})).map(c=>[c.id,c.name])]},
+    {key:'period',label:'Periode',options:listPeriodOptions(false)},
+    {key:'type',label:'Type',options:[['all','Alle types'],['invoice','Factuur'],['credit','Creditfactuur']]}
+  ];
+  if(name==='expenses')return [
+    {key:'period',label:'Periode',options:listPeriodOptions(false)},
+    {key:'category',label:'Categorie',options:[['all','Alle categorieën'],...[...new Set(state.expenses.map(e=>String(e.category||'')).filter(Boolean))].sort().map(v=>[v,v])]},
+    {key:'docType',label:'Documenttype',options:[['all','Alle types'],['invoice','Inkoopfactuur'],['receipt','Bon'],['manual','Handmatig']]}
+  ];
+  if(name==='bank')return [
+    {key:'status',label:'Status',options:[['all','Alle'],['unmatched','Te verwerken'],['matched','Gekoppeld']]},
+    {key:'direction',label:'Richting',options:[['all','Inkomsten + uitgaven'],['income','Inkomsten'],['expense','Uitgaven']]},
+    {key:'period',label:'Periode',options:listPeriodOptions(false)}
+  ];
+  if(name==='contacts')return [{key:'type',label:'Type',options:[['all','Alle'],['customer','Klanten'],['supplier','Leveranciers']]}];
+  if(name==='services')return [{key:'status',label:'Status',options:[['all','Alle'],['active','Actief'],['inactive','Inactief']]}];
+  if(name==='documents')return [
+    {key:'linked',label:'Koppeling',options:[['all','Alle'],['linked','Gekoppeld'],['unlinked','Niet gekoppeld']]},
+    {key:'type',label:'Documenttype',options:[['all','Alle types'],...[...new Set(state.documents.map(d=>String(d.type||'')).filter(Boolean))].sort().map(v=>[v,v])]},
+    {key:'period',label:'Periode',options:listPeriodOptions(false)}
+  ];
+  if(name==='bookings')return [
+    {key:'status',label:'Status',options:[['all','Alle'],['planned','Gepland'],['confirmed','Bevestigd'],['completed','Voltooid'],['cancelled','Geannuleerd'],['no-show','No-show']]},
+    {key:'time',label:'Moment',options:[['all','Alles'],['upcoming','Aankomend'],['past','Afgelopen']]},
+    {key:'period',label:'Periode',options:listPeriodOptions(true)},
+    {key:'from',label:'Vanaf',type:'date'},
+    {key:'to',label:'Tot en met',type:'date'}
+  ];
+  return []
+}
+function listQuickFilters(name){
+  if(name==='invoices')return {key:'status',options:[['all','Alle'],['draft','Concept'],['open','Openstaand'],['overdue','Verlopen'],['paid','Betaald']]};
+  if(name==='bank')return {key:'status',options:[['all','Alle'],['unmatched','Te verwerken'],['matched','Gekoppeld']]};
+  if(name==='contacts')return {key:'type',options:[['all','Alle'],['customer','Klanten'],['supplier','Leveranciers']]};
+  if(name==='services')return {key:'status',options:[['all','Alle'],['active','Actief'],['inactive','Inactief']]};
+  if(name==='bookings')return {key:'status',options:[['all','Alle'],['planned','Gepland'],['confirmed','Bevestigd'],['completed','Voltooid'],['no-show','No-show']]};
+  return null
+}
+function activeListFilterCount(name){
+  const f=listPageState(name).filters||{},d=LIST_DEFAULTS[name]?.filters||{};
+  let n=0;
+  for(const k of Object.keys(d)){
+    if((k==='from'||k==='to'))continue;
+    if(String(f[k]??d[k])!==String(d[k]))n++
+  }
+  return n
+}
+function listHasActiveFilters(name){return activeListFilterCount(name)>0}
+function listFilterValueLabel(name,key,value){
+  const field=listFilterFields(name).find(x=>x.key===key);
+  const option=field?.options?.find(x=>String(x[0])===String(value));
+  if(option)return option[1];
+  if((key==='from'||key==='to')&&value)return (key==='from'?'Vanaf ':'Tot ')+dateNL(value);
+  return String(value||'')
+}
+function listFilterChipEntries(name){
+  const f=listPageState(name).filters||{},d=LIST_DEFAULTS[name]?.filters||{},out=[];
+  for(const k of Object.keys(d)){
+    if(k==='from'||k==='to')continue;
+    if(String(f[k]??d[k])!==String(d[k]))out.push({key:k,label:listFilterValueLabel(name,k,f[k])})
+  }
+  return out
+}
+function listToolbar(name,extraHtml=''){
+  const s=listPageState(name),ui=LIST_UI[name]||{},count=activeListFilterCount(name),quick=listQuickFilters(name),fields=listFilterFields(name),sorts=ui.sorts||[];
+  const q=String(s.query||''),chips=listFilterChipEntries(name);
+  const quickHtml=quick?'<div class="list-toolbar-quick" aria-label="Snelle filters">'+quick.options.map(([value,label])=>'<button type="button" class="filter-btn '+(String(s.filters?.[quick.key])===String(value)?'active':'')+'" data-list-quick-key="'+esc(quick.key)+'" data-list-quick-value="'+esc(value)+'">'+esc(label)+'</button>').join('')+'</div>':'';
+  const filterButton=fields.length?'<button type="button" class="btn" data-list-open-filters aria-haspopup="dialog" aria-expanded="false">'+icon('i-filter')+' Filters'+(count?' ('+count+')':'')+'</button>':'';
+  const sortButton=sorts.length>1?'<button type="button" class="btn" data-list-open-sort aria-haspopup="dialog" aria-expanded="false">Sorteren</button>':'';
+  const chipsHtml=chips.length?'<div class="list-filter-chips" aria-label="Actieve filters">'+chips.map(x=>'<button type="button" class="list-filter-chip" data-list-clear-filter="'+esc(x.key)+'">'+esc(x.label)+' <span aria-hidden="true">×</span></button>').join('')+'<button type="button" class="list-clear-filters" data-list-clear-filters>Filters wissen</button></div>':'';
+  return '<div class="list-toolbar" data-list-page="'+esc(name)+'"><div class="list-toolbar-main"><label class="list-search-box">'+icon('i-search')+'<span class="hidden">Zoeken</span><input data-list-search aria-label="'+esc(ui.placeholder||'Zoeken')+'" placeholder="'+esc(ui.placeholder||'Zoeken')+'" value="'+esc(q)+'"><button type="button" class="list-search-clear '+(q?'':'hidden')+'" data-list-clear-search aria-label="Zoekopdracht wissen">×</button></label>'+quickHtml+'<div class="list-toolbar-actions">'+filterButton+sortButton+(extraHtml?'<span class="list-extra-action">'+extraHtml+'</span>':'')+'</div></div>'+chipsHtml+'</div>'
+}
+function listFilterFormHtml(name){
+  const s=listPageState(name),fields=listFilterFields(name);
+  return '<form id="listFilterForm" class="form-grid">'+fields.map(field=>{
+    const value=String(s.filters?.[field.key]??'');
+    if(field.type==='date')return '<div class="field"><label>'+esc(field.label)+'</label><input type="date" name="'+esc(field.key)+'" value="'+esc(value)+'"></div>';
+    return '<div class="field"><label>'+esc(field.label)+'</label><select name="'+esc(field.key)+'">'+(field.options||[]).map(([v,l])=>'<option value="'+esc(v)+'" '+(String(v)===value?'selected':'')+'>'+esc(l)+'</option>').join('')+'</select></div>'
+  }).join('')+'</form>'
+}
+function clearListFilters(name){
+  const keepQuery=listPageState(name).query,keepSort=listPageState(name).sort;
+  listState[name]=defaultListState(name);listState[name].query=keepQuery;listState[name].sort=keepSort;persistListState()
+}
+function clearOneListFilter(name,key){
+  const d=LIST_DEFAULTS[name]?.filters||{},s=listPageState(name);
+  if(Object.prototype.hasOwnProperty.call(d,key))s.filters[key]=d[key];
+  if(key==='period'&&name==='bookings'){s.filters.from='';s.filters.to=''}
+  persistListState()
+}
+function openListFilters(name,trigger=null){
+  if(trigger)modalReturnFocus=trigger;
+  const count=activeListFilterCount(name);
+  modal('Filters',listFilterFormHtml(name),'<button type="button" class="btn" id="listFilterReset" '+(count?'':'disabled')+'>Filters wissen</button><button type="submit" form="listFilterForm" class="btn primary">Toepassen</button>');
+  const form=document.getElementById('listFilterForm');
+  form?.addEventListener('submit',e=>{
+    e.preventDefault();const data=new FormData(form),s=listPageState(name);
+    for(const field of listFilterFields(name))s.filters[field.key]=String(data.get(field.key)||'');
+    if(name==='bookings'&&s.filters.period!=='custom'){s.filters.from='';s.filters.to=''}
+    persistListState();closeModal();render()
+  });
+  document.getElementById('listFilterReset')?.addEventListener('click',()=>{clearListFilters(name);closeModal();render()})
+}
+function openListSort(name,trigger=null){
+  if(trigger)modalReturnFocus=trigger;
+  const s=listPageState(name),sorts=LIST_UI[name]?.sorts||[];
+  const body='<form id="listSortForm" class="list-dialog-options">'+sorts.map(([value,label])=>'<label class="list-sort-option"><input type="radio" name="sort" value="'+esc(value)+'" '+(s.sort===value?'checked':'')+'><span>'+esc(label)+'</span></label>').join('')+'</form>';
+  modal('Sorteren',body,'<button type="submit" form="listSortForm" class="btn primary">Toepassen</button>');
+  document.getElementById('listSortForm')?.addEventListener('submit',e=>{e.preventDefault();const data=new FormData(e.currentTarget);s.sort=String(data.get('sort')||LIST_DEFAULTS[name]?.sort||'');persistListState();closeModal();render()})
+}
+function focusListSearch(name,pos=null){
+  requestAnimationFrame(()=>{const el=document.querySelector('[data-list-page="'+CSS.escape(name)+'"] [data-list-search]');if(!el)return;el.focus();const p=pos==null?el.value.length:Math.min(pos,el.value.length);try{el.setSelectionRange(p,p)}catch(_){}})
+}
+function wireListToolbar(){
+  document.querySelectorAll('[data-list-page]').forEach(toolbar=>{
+    const name=toolbar.dataset.listPage,input=toolbar.querySelector('[data-list-search]');
+    input?.addEventListener('input',e=>{
+      const value=e.target.value,pos=e.target.selectionStart;clearTimeout(listSearchTimer);
+      listSearchTimer=setTimeout(()=>{listPageState(name).query=String(value||'').trim();persistListState();render();focusListSearch(name,pos)},180)
+    });
+    input?.addEventListener('keydown',e=>{
+      if(e.key==='Escape'&&String(e.currentTarget.value||'')){e.preventDefault();e.stopPropagation();clearTimeout(listSearchTimer);listPageState(name).query='';persistListState();render();focusListSearch(name,0)}
+    });
+    toolbar.querySelector('[data-list-clear-search]')?.addEventListener('click',()=>{clearTimeout(listSearchTimer);listPageState(name).query='';persistListState();render();focusListSearch(name,0)});
+    toolbar.querySelectorAll('[data-list-quick-key]').forEach(btn=>btn.addEventListener('click',()=>{listPageState(name).filters[btn.dataset.listQuickKey]=btn.dataset.listQuickValue;persistListState();render()}));
+    toolbar.querySelector('[data-list-open-filters]')?.addEventListener('click',e=>{e.currentTarget.setAttribute('aria-expanded','true');openListFilters(name,e.currentTarget)});
+    toolbar.querySelector('[data-list-open-sort]')?.addEventListener('click',e=>{e.currentTarget.setAttribute('aria-expanded','true');openListSort(name,e.currentTarget)});
+    toolbar.querySelector('[data-list-clear-filters]')?.addEventListener('click',()=>{clearListFilters(name);render()});
+    toolbar.querySelectorAll('[data-list-clear-filter]').forEach(btn=>btn.addEventListener('click',()=>{clearOneListFilter(name,btn.dataset.listClearFilter);render()}))
+  })
+}
+function listEmptyHtml(name,ctaHtml=''){
+  const source=listSource(name),s=listPageState(name),ui=LIST_UI[name]||{},q=String(s.query||'').trim(),filtered=listHasActiveFilters(name);
+  if(source.length===0)return '<div class="empty"><strong>'+esc(ui.empty||('Nog geen '+(ui.entity||'gegevens')+'.'))+'</strong>'+(ctaHtml?'<div style="margin-top:12px">'+ctaHtml+'</div>':'')+'</div>';
+  if(q&&filtered)return '<div class="empty"><strong>Geen resultaten voor “'+esc(q)+'” binnen deze filters.</strong><div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="btn small" data-list-clear-search>Zoekopdracht wissen</button><button type="button" class="btn small" data-list-clear-filters>Filters wissen</button></div></div>';
+  if(q)return '<div class="empty"><strong>Geen '+esc(ui.entity||'resultaten')+' gevonden voor “'+esc(q)+'”.</strong><div style="margin-top:12px"><button type="button" class="btn small" data-list-clear-search>Zoekopdracht wissen</button></div></div>';
+  if(filtered)return '<div class="empty"><strong>Geen '+esc(ui.entity||'resultaten')+' binnen deze filters.</strong><div style="margin-top:12px"><button type="button" class="btn small" data-list-clear-filters>Filters wissen</button></div></div>';
+  return '<div class="empty"><strong>Geen '+esc(ui.entity||'resultaten')+' gevonden.</strong></div>'
+}
 function toast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;document.getElementById('toastRoot').appendChild(el);setTimeout(()=>el.remove(),2600)}
-function modal(title,body,foot='',wide=false){document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal ${wide?'wide':''}"><div class="modal-head"><h3>${title}</h3><button class="modal-close" onclick="closeModal()" aria-label="Sluiten">×</button></div><div class="modal-body">${body}</div>${foot?`<div class="modal-foot">${foot}</div>`:''}</div></div>`}
-function closeModal(){document.getElementById('modalRoot').innerHTML=''}
+function modal(title,body,foot='',wide=false){const active=document.activeElement;if(active&&active!==document.body)modalReturnFocus=active;document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal ${wide?'wide':''}" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-head"><h3 id="modalTitle">${title}</h3><button class="modal-close" onclick="closeModal()" aria-label="Sluiten">×</button></div><div class="modal-body">${body}</div>${foot?`<div class="modal-foot">${foot}</div>`:''}</div></div>`;requestAnimationFrame(()=>{const root=document.getElementById('modalRoot');const first=root.querySelector('.modal-body input:not([type=hidden]),.modal-body select,.modal-body textarea,.modal-body button,.modal-close');first?.focus()})}
+function closeModal(){document.getElementById('modalRoot').innerHTML='';const el=modalReturnFocus;modalReturnFocus=null;if(el?.setAttribute)el.setAttribute('aria-expanded','false');if(el?.isConnected)setTimeout(()=>el.focus(),0)}
 function download(name,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
 async function navigate(p){
  const paidFeature={control:'Controlecentrum',cashflow:'Cashflow vooruitblik'}[p];
@@ -2683,7 +3050,7 @@ async function handleMailboxReturn(){
  await refreshEmailConnectionCard(true);
 }
 function renderSettings(){return `<div class="page-head"><div><h1>Instellingen</h1><p>Belastinginstellingen, standaardwaarden en databeheer.</p></div><button class="btn" onclick="navigate('profile')">Mijn gegevens beheren</button></div><div class="settings-section"><div class="settings-tabs"><button class="filter-btn active">Bedrijf</button><button class="filter-btn" onclick="showLegal()">Fiscale spelregels</button><button class="filter-btn" onclick="showSecurity()">Privacy & productie</button></div>${renderBillingCard()}${renderEmailConnectionSettings()}<div class="card"><div class="section-head"><div><h2>Bedrijfsprofiel</h2><p>Deze gegevens komen terug op facturen.</p></div></div><form id="companyForm" class="form-grid"><div class="field"><label>Bedrijfsnaam</label><input name="name" value="${esc(state.company.name)}" required></div><div class="field"><label>KVK-nummer</label><input name="kvk" value="${esc(state.company.kvk)}" required></div><div class="field"><label>Btw-identificatienummer</label><input name="vat" value="${esc(state.company.vat)}"></div><div class="field"><label>IBAN</label><input name="iban" value="${esc(state.company.iban)}"></div><div class="field full"><label>Adres</label><input name="address" value="${esc(state.company.address)}"></div><div class="field"><label>Postcode</label><input name="postal" value="${esc(state.company.postal)}"></div><div class="field"><label>Plaats</label><input name="city" value="${esc(state.company.city)}"></div><div class="field"><label>E-mail</label><input name="email" type="email" value="${esc(state.company.email)}"></div><div class="field"><label>Telefoon</label><input name="phone" value="${esc(state.company.phone)}"></div><div class="field"><label>E-factuur / Peppol ID (optioneel)</label><input name="peppolId" value="${esc(state.company.peppolId||'')}" placeholder="Bijv. 0106:KVKNUMMER"></div><div class="field"><label>Factuurprefix</label><input name="invoicePrefix" value="${esc(state.company.invoicePrefix)}"></div><div class="field"><label>Betaaltermijn</label><input name="paymentDays" type="number" min="0" value="${state.company.paymentDays}"></div><div class="field full"><div style="display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);padding:12px;border-radius:12px"><div><strong style="font-size:12px">Kleineondernemersregeling (KOR)</strong><div class="help">Alleen inschakelen als je daadwerkelijk voor de KOR bent geregistreerd.</div></div><button type="button" class="toggle ${state.company.kor?'on':''}" id="korToggle"><span></span></button></div></div><div class="field full"><button class="btn primary" type="submit" style="justify-self:start">Instellingen opslaan</button></div></form></div>${renderBrandingSettings()}<div class="card" style="margin-top:16px"><div class="section-head"><div><h2>Data & back-up</h2><p>Exporteer, herstel of verwijder je gegevens. Cloudopslag is actief. Back-ups blijven beschikbaar als extra herstelmogelijkheid.</p></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="exportBackup()">${icon('i-download')} Back-up downloaden</button><button class="btn" onclick="exportAuditCSV()">${icon('i-download')} Auditlog CSV</button><button class="btn" onclick="openVersionHistory()">Versiegeschiedenis</button><label class="btn">${icon('i-upload')} Back-up importeren<input type="file" id="backupFile" accept="application/json,.json" class="hidden"></label><button class="btn danger" onclick="resetDemo()">Administratie wissen</button>${hasConflictBackup()?`<button class="btn" onclick="restoreConflictDialog()">Sync-herstelkopie</button>`:''}<button class="btn danger" onclick="deleteAccountDialog()">Account verwijderen</button></div></div><div class="card" style="margin-top:16px"><div class="section-head"><div><h2>Productiestatus</h2><p>Controleer welke externe koppelingen nog nodig zijn vóór App Store/Play Store.</p></div></div><div class="action-list"><div class="action-row"><div class="action-text"><strong>Cloudaccounts & database</strong><span>Supabase Auth + database met RLS per gebruiker</span></div><span class="badge good">Actief</span></div><div class="action-row"><div class="action-text"><strong>Documentopslag</strong><span>Privé Supabase Storage met gebruikersgebonden toegang</span></div><span class="badge good">Actief</span></div><div class="action-row"><div class="action-text"><strong>E-mail & AI</strong><span>Server-endpoints zijn voorbereid; providerstatus kan live worden gecontroleerd</span></div><button class="btn small" onclick="checkIntegrations()">Controleer</button></div><div class="action-row"><div class="action-text"><strong>Bank / PSD2 & Peppol</strong><span>Externe gecertificeerde providers nodig</span></div><span class="badge warn">Nog koppelen</span></div></div></div></div>`}
-function wirePage(){if(page==='settings'){void refreshBillingCard();void refreshEmailConnectionCard();}const csv=document.getElementById('csvFile');if(csv)csv.addEventListener('change',handleCSV);const doc=document.getElementById('docFile');if(doc)doc.addEventListener('change',handleSmartDocumentUpload);const archive=document.getElementById('archiveFile');if(archive)archive.addEventListener('change',handleGenericDocuments);const q=document.getElementById('vatQuarter');if(q)q.addEventListener('change',()=>{sessionStorage.setItem('vatQ',q.value);render()});const vy=document.getElementById('vatYear');if(vy)vy.addEventListener('change',()=>{sessionStorage.setItem('vatYear',vy.value);render()});const rf=document.getElementById('reportFrom'),rt=document.getElementById('reportTo');if(rf)rf.addEventListener('change',()=>{sessionStorage.setItem('reportFrom',rf.value);render()});if(rt)rt.addEventListener('change',()=>{sessionStorage.setItem('reportTo',rt.value);render()});const pf=document.getElementById('profileForm');if(pf)pf.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(pf),keys=['name','tradeName','contactName','email','phone','website','address','postal','city','country','kvk','vat','iban','bic','bankAccountName','peppolId','invoicePrefix'];for(const k of keys)state.company[k]=String(f.get(k)||'').trim();state.company.paymentDays=Number(f.get('paymentDays')||14);state.company.profileUpdatedAt=new Date().toISOString();saveProfileData(state.company);save();logEvent('Eigen gegevens bijgewerkt',state.company.name||'Bedrijfsprofiel','profile','company');toast('Gegevens opgeslagen en onthouden');render()});const cf=document.getElementById('companyForm');if(cf)cf.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(cf);['name','kvk','vat','iban','address','postal','city','email','phone','peppolId','invoicePrefix'].forEach(k=>state.company[k]=f.get(k));state.company.paymentDays=Number(f.get('paymentDays'));saveProfileData(state.company);save();toast('Instellingen opgeslagen');render()});const et=document.getElementById('emailTemplateForm');if(et)et.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(et);state.company.emailTemplate={...DEFAULT_EMAIL_TEMPLATE,senderName:String(f.get('senderName')||'').trim(),accentColor:String(f.get('accentColor')||'#17382f'),subjectInvoice:String(f.get('subjectInvoice')||'').trim(),subjectCredit:String(f.get('subjectCredit')||'').trim(),bodyInvoice:String(f.get('bodyInvoice')||'').trim(),bodyCredit:String(f.get('bodyCredit')||'').trim(),footerText:String(f.get('footerText')||'').trim(),showSummary:f.get('showSummary')==='on',showPaymentCard:f.get('showPaymentCard')==='on'};saveProfileData(state.company);save();logEvent('E-mailsjabloon bijgewerkt','Factuurmails','settings','email-template');toast('E-mailsjabloon opgeslagen');render()});const idf=document.getElementById('invoiceDesignForm');if(idf)idf.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(idf),current={...DEFAULT_INVOICE_DESIGN,...(state.company.invoiceDesign||{})};state.company.invoiceDesign={...current,layout:String(f.get('layout')||'modern'),accentColor:String(f.get('accentColor')||'#17382f'),footerText:String(f.get('footerText')||'').trim(),showPaymentBlock:f.get('showPaymentBlock')==='on',showVatBreakdown:f.get('showVatBreakdown')==='on',showContactDetails:f.get('showContactDetails')==='on'};saveProfileData(state.company);save();logEvent('Factuurlayout bijgewerkt',state.company.invoiceDesign.layout,'settings','invoice-design');toast('Factuurlayout opgeslagen');render()});const ilf=document.getElementById('invoiceLogoFile');if(ilf)ilf.addEventListener('change',e=>handleInvoiceLogoFile(e.target.files?.[0]));const kt=document.getElementById('korToggle');if(kt)kt.addEventListener('click',()=>{state.company.kor=!state.company.kor;save();render()});const bf=document.getElementById('backupFile');if(bf)bf.addEventListener('change',importBackup)}
+function wirePage(){if(page==='settings'){void refreshBillingCard();void refreshEmailConnectionCard();}const csv=document.getElementById('csvFile');if(csv)csv.addEventListener('change',handleCSV);const doc=document.getElementById('docFile');if(doc)doc.addEventListener('change',handleSmartDocumentUpload);const archive=document.getElementById('archiveFile');if(archive)archive.addEventListener('change',handleGenericDocuments);const q=document.getElementById('vatQuarter');if(q)q.addEventListener('change',()=>{sessionStorage.setItem('vatQ',q.value);render()});const vy=document.getElementById('vatYear');if(vy)vy.addEventListener('change',()=>{sessionStorage.setItem('vatYear',vy.value);render()});const rf=document.getElementById('reportFrom'),rt=document.getElementById('reportTo');if(rf)rf.addEventListener('change',()=>{sessionStorage.setItem('reportFrom',rf.value);render()});if(rt)rt.addEventListener('change',()=>{sessionStorage.setItem('reportTo',rt.value);render()});const pf=document.getElementById('profileForm');if(pf)pf.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(pf),keys=['name','tradeName','contactName','email','phone','website','address','postal','city','country','kvk','vat','iban','bic','bankAccountName','peppolId','invoicePrefix'];for(const k of keys)state.company[k]=String(f.get(k)||'').trim();state.company.paymentDays=Number(f.get('paymentDays')||14);state.company.profileUpdatedAt=new Date().toISOString();saveProfileData(state.company);save();logEvent('Eigen gegevens bijgewerkt',state.company.name||'Bedrijfsprofiel','profile','company');toast('Gegevens opgeslagen en onthouden');render()});const cf=document.getElementById('companyForm');if(cf)cf.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(cf);['name','kvk','vat','iban','address','postal','city','email','phone','peppolId','invoicePrefix'].forEach(k=>state.company[k]=f.get(k));state.company.paymentDays=Number(f.get('paymentDays'));saveProfileData(state.company);save();toast('Instellingen opgeslagen');render()});const et=document.getElementById('emailTemplateForm');if(et)et.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(et);state.company.emailTemplate={...DEFAULT_EMAIL_TEMPLATE,senderName:String(f.get('senderName')||'').trim(),accentColor:String(f.get('accentColor')||'#17382f'),subjectInvoice:String(f.get('subjectInvoice')||'').trim(),subjectCredit:String(f.get('subjectCredit')||'').trim(),bodyInvoice:String(f.get('bodyInvoice')||'').trim(),bodyCredit:String(f.get('bodyCredit')||'').trim(),footerText:String(f.get('footerText')||'').trim(),showSummary:f.get('showSummary')==='on',showPaymentCard:f.get('showPaymentCard')==='on'};saveProfileData(state.company);save();logEvent('E-mailsjabloon bijgewerkt','Factuurmails','settings','email-template');toast('E-mailsjabloon opgeslagen');render()});const idf=document.getElementById('invoiceDesignForm');if(idf)idf.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(idf),current={...DEFAULT_INVOICE_DESIGN,...(state.company.invoiceDesign||{})};state.company.invoiceDesign={...current,layout:String(f.get('layout')||'modern'),accentColor:String(f.get('accentColor')||'#17382f'),footerText:String(f.get('footerText')||'').trim(),showPaymentBlock:f.get('showPaymentBlock')==='on',showVatBreakdown:f.get('showVatBreakdown')==='on',showContactDetails:f.get('showContactDetails')==='on'};saveProfileData(state.company);save();logEvent('Factuurlayout bijgewerkt',state.company.invoiceDesign.layout,'settings','invoice-design');toast('Factuurlayout opgeslagen');render()});const ilf=document.getElementById('invoiceLogoFile');if(ilf)ilf.addEventListener('change',e=>handleInvoiceLogoFile(e.target.files?.[0]));const kt=document.getElementById('korToggle');if(kt)kt.addEventListener('click',()=>{state.company.kor=!state.company.kor;save();render()});const bf=document.getElementById('backupFile');if(bf)bf.addEventListener('change',importBackup);wireListToolbar()}
 function quickMenu(){modal('Nieuwe boeking',`<div class="grid grid-2"><button class="card" style="text-align:left" onclick="closeModal();triggerInvoiceUpload('auto')"><strong>Factuur / document scannen</strong><div class="help">PDF, foto, Word, Excel of CSV via de slimme scanner</div></button><button class="card" style="text-align:left" onclick="closeModal();newInvoice()"><strong>Verkoopfactuur</strong><div class="help">Factureer een klant</div></button><button class="card" style="text-align:left" onclick="closeModal();triggerReceiptPhoto()"><strong>Bon uit Foto’s kiezen</strong><div class="help">Kies een bestaande foto uit je fotobibliotheek, ook HEIC/HEIF</div></button><button class="card" style="text-align:left" onclick="closeModal();triggerReceiptCamera()"><strong>Bon met camera</strong><div class="help">Maak direct een nieuwe foto; OCR leest winkel, datum, btw en totaal uit</div></button><button class="card" style="text-align:left" onclick="closeModal();newExpense()"><strong>Kosten handmatig</strong><div class="help">Boek een kostenpost zonder document</div></button><button class="card" style="text-align:left" onclick="closeModal();newTransaction()"><strong>Banktransactie</strong><div class="help">Voeg handmatig een bankregel toe</div></button><button class="card" style="text-align:left" onclick="closeModal();newContact()"><strong>Relatie</strong><div class="help">Klant of leverancier</div></button><button class="card" style="text-align:left" onclick="closeModal();newService()"><strong>Dienst</strong><div class="help">Sla een eigen dienst, tarief en btw op voor facturen</div></button><button class="card" style="text-align:left" onclick="closeModal();newBooking()"><strong>Boeking / afspraak</strong><div class="help">Koppel afspraak aan klant en factuur</div></button><button class="card" style="text-align:left" onclick="closeModal();newSettlement()"><strong>Gemengde afrekening</strong><div class="help">Omzet + kosten + netto uitbetaling in één document</div></button></div>`)}
 function nextInvoiceNumber(){const next=String(state.meta.nextInvoice||1).padStart(4,'0');return (state.company.invoicePrefix||((new Date().getFullYear())+'-'))+next}
 function conceptNumber(kind='invoice'){return `CONCEPT-${kind==='credit'?'CR-':''}${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`}
@@ -3438,7 +3805,7 @@ function printReport(){const {from,to}=reportRange(),invs=state.invoices.filter(
 async function deleteStoredFile(id){if(!id||!currentUser)return;if(TEST_MODE_NO_AUTH){await deleteLegacyStoredFile(id);return}try{const sb=await getSupabase();const {data:meta,error}=await sb.from('documents').select('storage_path').eq('user_id',currentUser.id).eq('client_ref',id).maybeSingle();if(error)throw error;if(meta?.storage_path)await sb.storage.from('kwinest-documents').remove([meta.storage_path]);await sb.from('documents').delete().eq('user_id',currentUser.id).eq('client_ref',id)}catch(e){console.warn(e)}}
 function deleteAccountDialog(){modal('Account definitief verwijderen',`<div class="notice warn" style="margin-bottom:14px"><strong>Dit kan niet ongedaan worden gemaakt.</strong> Je cloudaccount, administratie, bedrijfsprofiel en alle privé-documenten worden definitief verwijderd.</div><form id="deleteAccountForm" class="form-grid"><div class="field full"><label>Wachtwoord *</label><input name="password" type="password" required></div><div class="field full"><label>Typ VERWIJDER *</label><input name="confirm" required autocomplete="off"></div></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn danger" onclick="deleteAccountNow()">Definitief verwijderen</button>`)}
 async function deleteAccountNow(){const f=document.getElementById('deleteAccountForm');if(!f?.reportValidity()||!currentUser)return;const d=new FormData(f),password=String(d.get('password')||'');if(String(d.get('confirm')||'').trim().toUpperCase()!=='VERWIJDER')return toast('Typ VERWIJDER om te bevestigen');try{const sb=await getSupabase();const {error:reauthError}=await sb.auth.signInWithPassword({email:currentUser.email,password});if(reauthError)throw new Error('Wachtwoord is niet correct');const {error}=await sb.functions.invoke('delete-account',{body:{confirm:true}});if(error)throw error;const old=currentUser;localStorage.removeItem(DATA_KEY_PREFIX+old.id);localStorage.removeItem(PROFILE_KEY_PREFIX+old.id);const legacy=getUsers().find(u=>String(u.email||'').toLowerCase()===String(old.email||'').toLowerCase());if(legacy){localStorage.removeItem(DATA_KEY_PREFIX+legacy.id);localStorage.removeItem(PROFILE_KEY_PREFIX+legacy.id);saveUsers(getUsers().filter(u=>u.id!==legacy.id))}currentUser=null;state=structuredClone(DEFAULT);closeModal();showAuth('login');toast('Account en cloudgegevens definitief verwijderd')}catch(err){toast(err?.message||'Account kon niet worden verwijderd')}}
-document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>b.dataset.page&&navigate(b.dataset.page)));document.getElementById('mobileMenu').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));document.getElementById('quickNew').addEventListener('click',quickMenu);document.getElementById('globalSearch').addEventListener('input',e=>{search=e.target.value;render()});window.addEventListener('popstate',()=>{if(document.getElementById('mainApp').style.display==='none')showLanding()});window.addEventListener('online',()=>{if(TEST_MODE_NO_AUTH){setCloudSyncStatus('saved');return}setCloudSyncStatus('saving');syncCloudStateNow().catch(()=>setCloudSyncStatus('error'))});window.addEventListener('offline',()=>setCloudSyncStatus(TEST_MODE_NO_AUTH?'saved':'offline'));initAuth();
+document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>b.dataset.page&&navigate(b.dataset.page)));document.getElementById('mobileMenu').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));document.getElementById('quickNew').addEventListener('click',quickMenu);window.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('modalRoot')?.firstElementChild){e.preventDefault();closeModal()}});window.addEventListener('popstate',()=>{if(document.getElementById('mainApp').style.display==='none')showLanding()});window.addEventListener('online',()=>{if(TEST_MODE_NO_AUTH){setCloudSyncStatus('saved');return}setCloudSyncStatus('saving');syncCloudStateNow().catch(()=>setCloudSyncStatus('error'))});window.addEventListener('offline',()=>setCloudSyncStatus(TEST_MODE_NO_AUTH?'saved':'offline'));initAuth();
 </script>
 <script id="boekuna-upload-bootstrap">
 (function(){
