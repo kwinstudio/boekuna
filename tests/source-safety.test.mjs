@@ -20,6 +20,15 @@ assert.ok(html.includes("function bankFingerprint(t)"),"Bank fingerprint dedupli
 assert.ok(html.includes("function txInvoiceEvidence(t,i)"),"Confidence-based invoice matching is required");
 assert.ok(html.includes("async function reserveFinalInvoiceNumber"),"Server-side invoice number reservation is required");
 assert.ok(html.includes("function invoiceNumberAvailable(number,excludeId='')"),"Invoice uniqueness checks must support excluding the invoice being edited");
+assert.ok(html.includes("function runDocumentVerification(id)"),"Independent document verification worker is required");
+assert.ok(html.includes("status:fileSaved?(verificationNeeded?'pending':'verified')"),"Document verification state must persist after the original is safely stored");
+assert.ok(html.includes("if(v.status==='needs_review')toast('Extra controle: controleer '+doc.name+' nog even')"),"Users should only be proactively notified for relevant verification differences");
+assert.ok(html.includes("DOCUMENT_VERIFICATION_MAX_ATTEMPTS=2"),"Background verification retries must be finite");
+assert.ok(html.includes("PASS 2 may not silently mutate")===false,"Production source must not contain test-only verification mutation text");
+const financialFlow=html.slice(html.indexOf("async function processFinancialDocument"),html.indexOf("function confidenceLabel"));
+assert.ok(!financialFlow.includes("reviewMode:'verify'"),"PASS 2 must never block the first review screen");
+assert.ok(financialFlow.includes("showPdfImportReview(parsed)"),"PASS 1 must still open the normal review screen");
+
 assert.ok(!html.includes("add(!state.invoices.some(i=>i.number===draft.number),'Uniek factuurnummer'"),"Invoice edit validation must not flag its own number as a duplicate");
 assert.ok(html.includes("invoiceChecks({...i,customer:c,paymentDays:i.paymentDays||0},i.id)"),"Existing invoice validation must explicitly exclude its own identity");
 assert.ok(html.includes("function saveCreditDraft"),"Partial credit flow is required");
