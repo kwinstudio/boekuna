@@ -1975,6 +1975,27 @@ async function handleBillingReturnAndPlan(){
   await startSubscription(plan)
  }
 }
+async function checkFallbackBillingAllowance(){
+ if(TEST_MODE_NO_AUTH)return null;
+ const sb=await getSupabase();
+ const {data,error}=await sb.rpc('check_document_quota');
+ if(error){console.warn('Fallback quota check',error);return null}
+ const q=Array.isArray(data)?(data[0]||null):data;
+ if(q?.allowed===false)throw createUploadError('402',`Je maandelijkse limiet van ${Number(q.monthly_limit||0)} slimme documentverwerkingen is bereikt.`,402);
+ return q
+}
+async function recordFallbackSmartUsage(){
+ if(TEST_MODE_NO_AUTH)return null;
+ const sb=await getSupabase();
+ const {data,error}=await sb.rpc('record_document_usage');
+ if(error){console.warn('Fallback usage registration',error);return null}
+ const u=Array.isArray(data)?(data[0]||null):data;
+ if(u){
+  billingSnapshot={...(billingSnapshot||{}),plan:u.plan||billingSnapshot?.plan||'free',status:billingSnapshot?.status||'free',monthly_limit:Number(u.monthly_limit||10),used:Number(u.used||0),remaining:Number(u.remaining||0)};
+  billingLoadedAt=Date.now()
+ }
+ return u
+}
 function setCloudSyncStatus(status='saved'){cloudSyncStatus=status;const el=document.getElementById('cloudSyncBadge');if(!el)return;if(TEST_MODE_NO_AUTH){el.className='badge info';el.textContent='Testmodus · lokaal';el.title='Tijdelijke testmodus zonder login; gegevens worden op dit apparaat bewaard.';return}const map={saved:['good','Cloud opgeslagen'],saving:['warn','Cloud opslaan…'],offline:['warn','Wacht op verbinding'],conflict:['bad','Syncconflict'],error:['bad','Syncfout']},v=map[status]||map.saved;el.className=`badge ${v[0]}`;el.textContent=v[1]}
 const PAGE_TITLES={dashboard:'Dashboard',invoices:'Facturen',expenses:'Inkoop & kosten',bank:'Bank & kas',vat:'Btw-overzicht',reports:'Rapportages',ledger:'Grootboek',control:'Controlecentrum',cashflow:'Cashflow',bookings:'Boekingen',contacts:'Relaties',hours:'Uren & ritten',documents:'Documenten',profile:'Mijn gegevens',settings:'Instellingen'};
 const uid=(p='id')=>p+'-'+Math.random().toString(36).slice(2,9);
@@ -3106,6 +3127,7 @@ async function processFinancialDocument(file,preStructure=null){
  }catch(err){
   processorError=err?.message||'Documentverwerking mislukt';console.warn('Document processor',err);
   if(Number(err?.status||0)===402||String(err?.code||'')==='402')throw err;
+  await checkFallbackBillingAllowance();
   if(isPhoto&&!['heic','heif'].includes(ext)){
    try{
     setImportProgress('Document verwerken','Lokale OCR gebruiken…','De serververwerking was niet beschikbaar; de foto wordt veilig in je browser gelezen.',44,3);
@@ -3141,6 +3163,7 @@ async function processFinancialDocument(file,preStructure=null){
   }
  }catch(aiErr){console.warn('AI invoice review failed',aiErr);parsed.aiError=aiErr?.message||'AI-controle niet beschikbaar'}
  parsed=applyRecognitionQuality(parsed);parsed.documentType=classifyDocumentType(parsed,structure?.documentTypeHint||parsed.documentType||'');parsed.isCredit=parsed.documentType==='credit_invoice'||!!parsed.isCredit;if(parsed.isCredit)parsed.status='credit';
+ if(!serverProc.billing&&processorError)await recordFallbackSmartUsage();
  const duplicate=duplicateInvoiceCandidate(parsed,structure?.sha256||parsed.sha256||'');if(duplicate)parsed.duplicateCandidate=duplicate;
  setImportProgress('Document verwerken','Klaar voor controle','De gegevens zijn genormaliseerd en gecontroleerd. Het controlescherm wordt geopend.',98,6);
  const previewUrl=(ext==='pdf'||String(file.type||'').toLowerCase().startsWith('image/')||['jpg','jpeg','png','webp','heic','heif','tif','tiff','bmp','gif'].includes(ext))?URL.createObjectURL(file):null;pendingPdfImport={file,parsed,previewUrl,sha256:structure?.sha256||parsed.sha256||''};requestAnimationFrame(()=>showPdfImportReview(parsed))
