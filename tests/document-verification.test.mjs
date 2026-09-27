@@ -47,6 +47,22 @@ function aiPayload(overrides={}){
   };
 }
 
+function processorPayload({vatAmount=21,gross=121,vatRate=21}={}){
+  return {
+    ok:true,processor:true,model:'gpt-5.6-sol',pass:'verify',usage:{input_tokens:5000,output_tokens:500},
+    data:{
+      documentType:'purchase_invoice',originalFileName:'verified.pdf',pageCount:1,
+      supplier:{name:'Voorbeeld Leverancier BV',address:null,postalCode:null,city:null,country:'Nederland',kvk:null,vatNumber:null,iban:null,email:null},
+      customer:{name:null,address:null,postalCode:null,city:null,country:null,kvk:null,vatNumber:null,iban:null,email:null},
+      invoice:{invoiceNumber:'INK-100',invoiceDate:'2026-09-27',dueDate:null,paymentTermDays:null,orderNumber:null,paymentReference:null,description:'Consultancy september'},
+      amounts:{subtotal:100,vatLines:[{rate:vatRate,taxableAmount:100,vatAmount}],vatTotal:vatAmount,total:gross,settlementAmount:null,discount:null,shipping:null,currency:'EUR'},
+      status:'open',lineItems:[{description:'Consultancy september',quantity:1,unitPrice:100,vatRate,lineTotal:100}],adjustments:[],
+      confidence:{supplierName:.95,invoiceNumber:.95,invoiceDate:.95,subtotal:.98,vatTotal:.98,total:.98},
+      warnings:[],processing:{ai:true,aiModel:'gpt-5.6-sol',overallConfidence:.94,independentVerification:true}
+    }
+  };
+}
+
 async function installMock(queue){
   await page.evaluate(queue=>{
     window.__verificationFetchCount=0;
@@ -88,7 +104,7 @@ try{
 
   // Agreement: independent pass only updates verification metadata, never bookkeeping values.
   await putDoc('agree',pendingVerification(base));
-  await installMock([{status:200,body:aiPayload()}]);
+  await installMock([{status:200,body:processorPayload()}]);
   const expenseBefore=await page.evaluate(()=>structuredClone(state.expenses[0]));
   await page.evaluate(()=>runDocumentVerification('agree'));
   await page.waitForFunction(()=>state.documents.find(d=>d.id==='agree')?.verification?.status==='verified');
@@ -102,7 +118,7 @@ try{
 
   // Relevant financial disagreement: store both values and flag, never choose one automatically.
   await putDoc('mismatch',pendingVerification(base));
-  await installMock([{status:200,body:aiPayload({vatAmount:12,gross:112,vatRate:12})}]);
+  await installMock([{status:200,body:processorPayload({vatAmount:12,gross:112,vatRate:12})}]);
   await page.evaluate(()=>runDocumentVerification('mismatch'));
   await page.waitForFunction(()=>state.documents.find(d=>d.id==='mismatch')?.verification?.status==='needs_review');
   const mismatch=await page.evaluate(()=>structuredClone(state.documents.find(d=>d.id==='mismatch').verification));
