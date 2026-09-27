@@ -1789,8 +1789,8 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
 </div>
 <div id="modalRoot"></div><div class="toast-wrap" id="toastRoot"></div>
 <input class="hidden" type="file" id="invoicePdfFile" accept="application/pdf,.pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif,.docx,.xlsx,.csv,text/csv" />
-<input class="hidden" type="file" id="receiptPhotoFile" accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif" onchange="handleReceiptPhoto(event)" />
-<input class="hidden" type="file" id="receiptCameraFile" accept="image/*" capture="environment" onchange="handleReceiptPhoto(event)" />
+<input class="hidden" type="file" id="receiptPhotoFile" accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif" />
+<input class="hidden" type="file" id="receiptCameraFile" accept="image/*" capture="environment" />
 <script>
 const USERS_KEY='boekhouden-local-users-v1';
 const SESSION_KEY='boekhouden-local-session-v1';
@@ -2535,21 +2535,23 @@ async function handleSmartDocumentUpload(e){
   logEvent('Document slim geüpload',`${file.name} · ${dt}`,'document',docId);save();closeModal();toast(fileSaved?'Document uitgelezen en veilig opgeslagen':'Document uitgelezen; opslag van het originele bestand mislukte');render()
  }catch(err){console.warn(err);closeModal();toast(err?.message||'Document kon niet worden uitgelezen')}
 }
-async function handleReceiptPhoto(e){
- const input=e?.target,file=input?.files?.[0];
- if(!file){toast('Geen bonbestand geselecteerd');return}
- pendingUploadKind='purchase';
- setImportProgress('Bon verwerken','Bestand ontvangen…',`${file.name} · ${Math.max(1,Math.round(file.size/1024))} KB`);
+async function startSelectedDocumentUpload(input,kind='auto'){
+ const file=input?.files?.[0];
+ if(!file){toast('Geen bestand geselecteerd');return}
+ pendingUploadKind=kind;
+ const label=kind==='purchase'?'Bon verwerken':'Document verwerken';
+ setImportProgress(label,'Bestand ontvangen…',`${file.name} · ${Math.max(1,Math.round(file.size/1024))} KB`);
  try{
   await processFinancialDocument(file)
  }catch(err){
-  console.error('Receipt upload failed',err);
+  console.error('Document upload failed',err);
   closeModal();
-  toast(err?.message||'Bon uploaden is mislukt. Probeer het opnieuw.')
+  toast(err?.message||'Document uploaden is mislukt. Probeer het opnieuw.')
  }finally{
   if(input)input.value=''
  }
 }
+async function handleReceiptPhoto(e){return startSelectedDocumentUpload(e?.target,'purchase')}
 async function handleGenericDocuments(e){const files=[...e.target.files];let n=0;for(const f of files){const id=uid('file');try{await putStoredFile(id,f);state.documents.unshift({id:uid('d'),fileId:id,name:f.name,type:'Upload',date:today(),size:f.size});n++}catch(err){console.warn(err);state.documents.unshift({id:uid('d'),name:f.name,type:'Upload',date:today()})}}save();toast(`${n} bestand(en) ${TEST_MODE_NO_AUTH?'lokaal':'veilig in de cloud'} opgeslagen`);render()}
 async function loadPdfLib(){
  if(!pdfLibPromise)pdfLibPromise=import('https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/build/pdf.min.mjs').then(m=>{m.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/build/pdf.worker.min.mjs';return m});
@@ -3004,7 +3006,31 @@ function printReport(){const {from,to}=reportRange(),invs=state.invoices.filter(
 async function deleteStoredFile(id){if(!id||!currentUser)return;if(TEST_MODE_NO_AUTH){await deleteLegacyStoredFile(id);return}try{const sb=await getSupabase();const {data:meta,error}=await sb.from('documents').select('storage_path').eq('user_id',currentUser.id).eq('client_ref',id).maybeSingle();if(error)throw error;if(meta?.storage_path)await sb.storage.from('kwinest-documents').remove([meta.storage_path]);await sb.from('documents').delete().eq('user_id',currentUser.id).eq('client_ref',id)}catch(e){console.warn(e)}}
 function deleteAccountDialog(){modal('Account definitief verwijderen',`<div class="notice warn" style="margin-bottom:14px"><strong>Dit kan niet ongedaan worden gemaakt.</strong> Je cloudaccount, administratie, bedrijfsprofiel en alle privé-documenten worden definitief verwijderd.</div><form id="deleteAccountForm" class="form-grid"><div class="field full"><label>Wachtwoord *</label><input name="password" type="password" required></div><div class="field full"><label>Typ VERWIJDER *</label><input name="confirm" required autocomplete="off"></div></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn danger" onclick="deleteAccountNow()">Definitief verwijderen</button>`)}
 async function deleteAccountNow(){const f=document.getElementById('deleteAccountForm');if(!f?.reportValidity()||!currentUser)return;const d=new FormData(f),password=String(d.get('password')||'');if(String(d.get('confirm')||'').trim().toUpperCase()!=='VERWIJDER')return toast('Typ VERWIJDER om te bevestigen');try{const sb=await getSupabase();const {error:reauthError}=await sb.auth.signInWithPassword({email:currentUser.email,password});if(reauthError)throw new Error('Wachtwoord is niet correct');const {error}=await sb.functions.invoke('delete-account',{body:{confirm:true}});if(error)throw error;const old=currentUser;localStorage.removeItem(DATA_KEY_PREFIX+old.id);localStorage.removeItem(PROFILE_KEY_PREFIX+old.id);const legacy=getUsers().find(u=>String(u.email||'').toLowerCase()===String(old.email||'').toLowerCase());if(legacy){localStorage.removeItem(DATA_KEY_PREFIX+legacy.id);localStorage.removeItem(PROFILE_KEY_PREFIX+legacy.id);saveUsers(getUsers().filter(u=>u.id!==legacy.id))}currentUser=null;state=structuredClone(DEFAULT);closeModal();showAuth('login');toast('Account en cloudgegevens definitief verwijderd')}catch(err){toast(err?.message||'Account kon niet worden verwijderd')}}
-document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>b.dataset.page&&navigate(b.dataset.page)));document.getElementById('mobileMenu').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));document.getElementById('quickNew').addEventListener('click',quickMenu);document.getElementById('globalSearch').addEventListener('input',e=>{search=e.target.value;render()});document.getElementById('invoicePdfFile')?.addEventListener('change',handleInvoicePdfFile);window.addEventListener('popstate',()=>{if(document.getElementById('mainApp').style.display==='none')showLanding()});window.addEventListener('online',()=>{if(TEST_MODE_NO_AUTH){setCloudSyncStatus('saved');return}setCloudSyncStatus('saving');syncCloudStateNow().catch(()=>setCloudSyncStatus('error'))});window.addEventListener('offline',()=>setCloudSyncStatus(TEST_MODE_NO_AUTH?'saved':'offline'));initAuth();
+document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>b.dataset.page&&navigate(b.dataset.page)));document.getElementById('mobileMenu').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));document.getElementById('quickNew').addEventListener('click',quickMenu);document.getElementById('globalSearch').addEventListener('input',e=>{search=e.target.value;render()});window.addEventListener('popstate',()=>{if(document.getElementById('mainApp').style.display==='none')showLanding()});window.addEventListener('online',()=>{if(TEST_MODE_NO_AUTH){setCloudSyncStatus('saved');return}setCloudSyncStatus('saving');syncCloudStateNow().catch(()=>setCloudSyncStatus('error'))});window.addEventListener('offline',()=>setCloudSyncStatus(TEST_MODE_NO_AUTH?'saved':'offline'));initAuth();
+</script>
+<script id="boekuna-upload-bootstrap">
+(function(){
+ const configs=[
+  ['invoicePdfFile','auto'],
+  ['receiptPhotoFile','purchase'],
+  ['receiptCameraFile','purchase']
+ ];
+ for(const [id,kind] of configs){
+  const input=document.getElementById(id);
+  if(!input)continue;
+  input.onchange=function(){
+   try{
+    if(typeof window.startSelectedDocumentUpload!=='function')throw new Error('De documentscanner kon niet worden gestart. Vernieuw Boekuna en probeer opnieuw.');
+    void window.startSelectedDocumentUpload(input,kind);
+   }catch(err){
+    console.error('Upload bootstrap failed',err);
+    if(typeof window.toast==='function')window.toast(err?.message||'Upload kon niet starten');
+    else window.alert(err?.message||'Upload kon niet starten');
+   }
+  };
+  input.dataset.uploadBound='true';
+ }
+})();
 </script>
 </body>
 </html>
