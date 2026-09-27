@@ -35,5 +35,7 @@ jobs:
         run: node tests/invoice-delivery.test.mjs
       - name: Receipt VAT arithmetic
         run: python tests/receipt-math.test.py
+      - name: Invoice financial block regressions
+        run: python tests/financial-blocks.test.py
       - name: Python syntax safety
-        run: python -m py_compile kwinest/docprocessor/app.py kwinest/docprocessor/receipt_math.py
+        run: python -m py_compile kwinest/docprocessor/app.py kwinest/docprocessor/receipt_math.py kwinest/docprocessor/financial_blocks.py
