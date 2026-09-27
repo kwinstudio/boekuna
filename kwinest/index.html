@@ -2933,8 +2933,7 @@ function download(name,text,type='application/json'){const a=document.createElem
 async function navigate(p){
  const paidFeature={control:'Controlecentrum',cashflow:'Cashflow vooruitblik'}[p];
  if(paidFeature&&!(await requireBoekunaSmartLayer(paidFeature)))return;
- page=p;search='';
- const searchEl=document.getElementById('globalSearch');if(searchEl)searchEl.value='';
+ page=p;
  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page===p));
  document.getElementById('pageTitle').textContent=PAGE_TITLES[p];
  document.getElementById('sidebar').classList.remove('open');
