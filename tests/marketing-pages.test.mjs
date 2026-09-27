@@ -47,8 +47,11 @@ assert.ok(deletion.includes('id="deleteRequestForm"'),'Account deletion web form
 assert.ok(deletion.includes('pattern="VERWIJDER"'),'Deletion request requires explicit confirmation');
 
 const pricing=fs.readFileSync(path.join(publicDir,'prijzen','index.html'),'utf8');
-for(const price of ['€9,95','€19,95','€29,95']) assert.ok(pricing.includes(price),`Missing introduction price ${price}`);
-assert.ok(pricing.includes('Automatische abonnementbetaling'), 'Pricing must disclose checkout status');
+for(const price of ['€0','€9,95','€20']) assert.ok(pricing.includes(price),`Missing current price ${price}`);
+for(const oldPrice of ['€19,95','€29,95']) assert.ok(!pricing.includes(oldPrice),`Legacy price must be removed: ${oldPrice}`);
+assert.ok(pricing.includes('Founding 100'),'Pricing must explain the Founding 100 offer');
+assert.ok(pricing.includes('90 dagen'),'Founding offer must be 90 days');
+assert.ok(pricing.includes('Stripe Checkout'),'Paid subscriptions must explain the Stripe checkout flow');
 
 const privacy=fs.readFileSync(path.join(publicDir,'privacy','index.html'),'utf8');
 assert.ok(privacy.includes('Row Level Security'),'Privacy page must retain account-isolation disclosure');
