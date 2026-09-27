@@ -31,6 +31,7 @@ assert.ok(html.includes("const wantsRegister=url.searchParams.get('register')===
 assert.ok(html.includes("showAuth('register')"),"Login must offer a route to create an account");
 assert.ok(!html.includes("publieke registratie nog niet geactiveerd"),"Launch source must not claim public registration is disabled");
 assert.ok(!html.includes('id="globalSearch"'),"The misleading cross-app global search must stay removed");
+assert.ok(!html.includes('placeholder="Zoeken…"'),"Dead generic search placeholders must not return on non-search pages");
 assert.ok(!html.includes("search='te laat'"),"Invoice overdue filtering must never fall back to free-text search");
 assert.ok(html.includes("const LIST_STATE_KEY='boekuna-list-state-v1';"),"Contextual list state must be session-persisted");
 assert.ok(html.includes("function getListRows(name)"),"All contextual lists must share one search/filter/sort pipeline");
