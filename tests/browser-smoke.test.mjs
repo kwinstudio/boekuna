@@ -44,14 +44,16 @@ page.on('pageerror',e=>pageErrors.push(String(e)));
 try{
   // Registration + login rendering without touching real Auth.
   await page.goto(base+'/auth?register=1',{waitUntil:'domcontentloaded'});
-  await page.getByRole('heading',{name:'Account + bedrijfsprofiel'}).waitFor();
+  await page.getByRole('heading',{name:'Maak je gratis account'}).waitFor();
   assert.equal(await page.locator('#authForm input[name="password"]').getAttribute('minlength'),'12');
-  assert.equal(await page.locator('#authForm input[name="confirm"]').getAttribute('minlength'),'12');
-  assert.ok(await page.locator('#authForm input[name="companyName"]').count(),'Registration must collect company data');
+  assert.equal(await page.locator('#authForm input[name="confirm"]').count(),0,'Registration must not ask for password confirmation');
+  assert.equal(await page.locator('#authForm input[name="companyName"]').count(),0,'Registration must not collect company data');
+  assert.equal(await page.locator('#authForm input').count(),2,'Registration must contain only email and password inputs');
 
   await page.goto(base+'/auth?login=1',{waitUntil:'domcontentloaded'});
   await page.getByRole('heading',{name:'Inloggen'}).waitFor();
-  assert.ok(await page.getByText('Nog geen account? Account aanmaken').count(),'Login must expose registration');
+  assert.equal(await page.locator('#loginPassword').getAttribute('minlength'),null,'Login must not block legacy short passwords');
+  assert.ok(await page.getByText('Nog geen account? Gratis starten').count(),'Login must expose registration');
 
   // Daily-use browser flow on the exact production UI source, with auth/network isolated.
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
@@ -143,8 +145,9 @@ try{
   await live.getByRole('heading',{name:'Inloggen'}).waitFor({timeout:15000});
   assert.match(await live.title(),/Boekuna/);
   await live.goto('https://boekuna-boekhouding.onrender.com/?register=1',{waitUntil:'domcontentloaded',timeout:45000});
-  await live.getByRole('heading',{name:'Account + bedrijfsprofiel'}).waitFor({timeout:15000});
+  await live.getByRole('heading',{name:'Maak je gratis account'}).waitFor({timeout:15000});
   assert.equal(await live.locator('#authForm input[name="password"]').getAttribute('minlength'),'12');
+  assert.equal(await live.locator('#authForm input').count(),2,'Live signup must remain email + password only');
   await live.close();
 
   assert.deepEqual(pageErrors,[],'Browser page errors: '+pageErrors.join(' | '));
