@@ -153,7 +153,7 @@ def parse_financial_blocks(raw_lines: list[str]) -> dict[str, Any]:
             gross = net + vat
         if gross is None:
             continue
-        context = " ".join(lines[max(0, i - 5): min(len(lines), (gross_index if gross_index >= 0 else i) + 3)])
+        context = " ".join(lines[max(0, i - 5): min(len(lines), (gross_index if gross_index >= 0 else i) + 1)])
         is_adjustment = bool(net < 0 or gross < 0 or ADJUSTMENT_RE.search(context))
         sections.append({
             "subtotal": abs(float(net)),
