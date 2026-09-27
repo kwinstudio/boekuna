@@ -1127,9 +1127,59 @@ def require_authenticated_user(request: Request) -> dict:
         raise HTTPException(401, "Invalid session")
     return user
 
+def billing_quota_status(request: Request) -> dict | None:
+    """Check monthly smart-document allowance without consuming it."""
+    auth_header = (request.headers.get("authorization") or "").strip()
+    if not SUPABASE_PUBLISHABLE_KEY or not auth_header:
+        return None
+    try:
+        resp = requests.post(
+            f"{SUPABASE_URL}/rest/v1/rpc/check_document_quota",
+            headers={
+                "Authorization": auth_header,
+                "apikey": SUPABASE_PUBLISHABLE_KEY,
+                "Content-Type": "application/json",
+            },
+            json={},
+            timeout=8,
+        )
+        if resp.status_code >= 400:
+            return None
+        data = resp.json()
+        if isinstance(data, list):
+            return data[0] if data else None
+        return data if isinstance(data, dict) else None
+    except Exception:
+        return None
+
+def record_billing_usage(request: Request) -> dict | None:
+    """Consume one monthly smart-document unit after successful processing."""
+    auth_header = (request.headers.get("authorization") or "").strip()
+    if not SUPABASE_PUBLISHABLE_KEY or not auth_header:
+        return None
+    try:
+        resp = requests.post(
+            f"{SUPABASE_URL}/rest/v1/rpc/record_document_usage",
+            headers={
+                "Authorization": auth_header,
+                "apikey": SUPABASE_PUBLISHABLE_KEY,
+                "Content-Type": "application/json",
+            },
+            json={},
+            timeout=8,
+        )
+        if resp.status_code >= 400:
+            return None
+        data = resp.json()
+        if isinstance(data, list):
+            return data[0] if data else None
+        return data if isinstance(data, dict) else None
+    except Exception:
+        return None
+
 @app.get("/health")
 def health():
-    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"ocrGeneration":RAPIDOCR_GENERATION,"ocrModel":OCR_MODEL_NAME,"authRequired":True,"version":"2.7"}
+    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"ocrGeneration":RAPIDOCR_GENERATION,"ocrModel":OCR_MODEL_NAME,"authRequired":True,"billingQuota":True,"version":"2.8"}
 
 @app.post("/analyze")
 async def analyze(request:Request,file:UploadFile=File(...),company_json:str=Form("{}"),existing_json:str=Form("[]"),ocr_text:str=Form("")):
@@ -1137,6 +1187,9 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
     if origin!=APP_ORIGIN: raise HTTPException(403,"Origin not allowed")
     require_authenticated_user(request)
     if not allow_request(request): raise HTTPException(429,"Te veel documentverwerkingen. Probeer het over enkele minuten opnieuw.")
+    quota=billing_quota_status(request)
+    if quota and quota.get("allowed") is False:
+        raise HTTPException(402,f"Je maandelijkse limiet van {quota.get('monthly_limit',0)} slimme documentverwerkingen is bereikt. Upgrade je abonnement of wacht tot de volgende maand.")
     raw=await file.read(MAX_BYTES+1)
     if len(raw)>MAX_BYTES:raise HTTPException(413,"Bestand is te groot. Maximum is 15 MB.")
     if not raw:raise HTTPException(400,"Bestand is leeg.")
@@ -1181,5 +1234,8 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
         if score>=.65:dup.append({"id":row.get("id"),"score":round(score,2),"reasons":reasons})
     if dup:result.warnings.append("Mogelijk bestaat deze factuur al.")
     processing={**result.processing,"ai":bool(ai),"fastPath":"deterministic" if fast_path else None,"durationMs":round((time.time()-started)*1000),"pages":doc.get("pageCount"),"tablesFound":len(doc.get("tables",[])),"duplicateCandidates":dup,"overallConfidence":round(overall_confidence(result),3)}
+    usage=record_billing_usage(request)
+    if usage:
+        processing["billing"]={"plan":usage.get("plan"),"monthlyLimit":usage.get("monthly_limit"),"used":usage.get("used"),"remaining":usage.get("remaining")}
     result.processing=processing
     return {"ok":True,"data":result.model_dump(),"preview":{"text":(doc.get("text") or "")[:30000],"pages":doc.get("pages",[])[:50],"tables":doc.get("tables",[])[:20]},"duplicateCandidates":dup}
