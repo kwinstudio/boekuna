@@ -25,7 +25,7 @@ assert.ok(html.includes("status:fileSaved?(verificationNeeded?'pending':'verifie
 assert.ok(html.includes("if(v.status==='needs_review')toast('Extra controle: controleer '+doc.name+' nog even')"),"Users should only be proactively notified for relevant verification differences");
 assert.ok(html.includes("DOCUMENT_VERIFICATION_MAX_ATTEMPTS=2"),"Background verification retries must be finite");
 assert.ok(html.includes("PASS 2 may not silently mutate")===false,"Production source must not contain test-only verification mutation text");
-const financialFlow=html.slice(html.indexOf("async function processFinancialDocument"),html.indexOf("function confidenceLabel"));
+const financialFlow=html.slice(html.indexOf("async function processFinancialDocument"),html.indexOf("const DOCUMENT_VERIFICATION_VERSION"));
 assert.ok(!financialFlow.includes("reviewMode:'verify'"),"PASS 2 must never block the first review screen");
 assert.ok(financialFlow.includes("showPdfImportReview(parsed)"),"PASS 1 must still open the normal review screen");
 
