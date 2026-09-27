@@ -66,7 +66,7 @@ async function config(provider: "google" | "microsoft") {
   };
 }
 function callbackUrl(provider: string) {
-  return SUPABASE_URL + "/functions/v1/email-connection?callback=" + encodeURIComponent(provider);
+  return "https://boekuna.nl/oauth/" + encodeURIComponent(provider) + "/callback";
 }
 function oauthErrorRedirect(returnUrl: string, code: string) {
   const u = new URL(returnUrl);
