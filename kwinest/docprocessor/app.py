@@ -9,7 +9,8 @@ import requests
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ValidationError, field_validator
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageEnhance, ImageFilter
+import numpy as np
 try:
     from pillow_heif import register_heif_opener
     register_heif_opener()
@@ -18,10 +19,20 @@ except Exception:
 from docx import Document as DocxDocument
 from openpyxl import load_workbook
 
+RAPIDOCR_GENERATION = "none"
 try:
-    from rapidocr_onnxruntime import RapidOCR
+    from rapidocr import RapidOCR
+    RAPIDOCR_GENERATION = "v3"
 except Exception:
-    RapidOCR = None
+    try:
+        from rapidocr_onnxruntime import RapidOCR
+        RAPIDOCR_GENERATION = "legacy"
+    except Exception:
+        RapidOCR = None
+
+_OCR_ENGINE = None
+_OCR_ENGINE_ERROR = None
+OCR_MODEL_NAME = "PP-OCRv6-small" if RAPIDOCR_GENERATION == "v3" else ("RapidOCR legacy" if RAPIDOCR_GENERATION == "legacy" else None)
 
 APP_ORIGIN = os.getenv("APP_ORIGIN", "https://boekuna-boekhouding.onrender.com").rstrip("/")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://vuwfyhtejsxhdfyvkkeq.supabase.co").rstrip("/")
@@ -287,6 +298,136 @@ def best_vat_pair(rate: float, vals: list[float]) -> tuple[float|None,float|None
     return base,tax
 
 # ----------------------------- document extraction -----------------------------
+def get_ocr_engine():
+    global _OCR_ENGINE, _OCR_ENGINE_ERROR
+    if _OCR_ENGINE is not None:
+        return _OCR_ENGINE
+    if RapidOCR is None:
+        return None
+    try:
+        if RAPIDOCR_GENERATION == "v3":
+            # RapidOCR 3.9.x ships the PP-OCRv6 small ONNX models in the wheel.
+            # This keeps Boekuna free/lightweight while using current PaddleOCR-derived models.
+            _OCR_ENGINE = RapidOCR(params={
+                "Global.text_score": 0.30,
+                "Global.max_side_len": 2600,
+                "Global.min_side_len": 30,
+                "Global.use_preprocess_img": True,
+                "Global.log_level": "warning",
+            })
+        else:
+            _OCR_ENGINE = RapidOCR()
+        _OCR_ENGINE_ERROR = None
+    except Exception as exc:
+        _OCR_ENGINE_ERROR = f"{type(exc).__name__}: {exc}"
+        _OCR_ENGINE = None
+    return _OCR_ENGINE
+
+def prepare_ocr_image(img: Image.Image) -> Image.Image:
+    img = ImageOps.exif_transpose(img).convert("RGB")
+    w,h = img.size
+    longest=max(w,h)
+    if longest < 1800:
+        scale=min(2.2,1800/max(1,longest))
+        img=img.resize((max(1,int(w*scale)),max(1,int(h*scale))),Image.Resampling.LANCZOS)
+    elif longest > 4200:
+        scale=4200/longest
+        img=img.resize((max(1,int(w*scale)),max(1,int(h*scale))),Image.Resampling.LANCZOS)
+    return img
+
+def enhanced_receipt_variant(img: Image.Image) -> Image.Image:
+    gray=ImageOps.autocontrast(ImageOps.grayscale(img), cutoff=1)
+    gray=ImageEnhance.Contrast(gray).enhance(1.28)
+    gray=gray.filter(ImageFilter.UnsharpMask(radius=1.2, percent=135, threshold=3))
+    return gray.convert("RGB")
+
+def _legacy_ocr_rows(result: Any) -> list[dict[str,Any]]:
+    rows=[]
+    legacy=result
+    if isinstance(result,tuple) and len(result)>=1:
+        legacy=result[0]
+    for row in legacy or []:
+        if not isinstance(row,(list,tuple)) or len(row)<3:
+            continue
+        try:
+            box=row[0]
+            txt=norm_text(str(row[1]))
+            conf=float(row[2])
+        except Exception:
+            continue
+        if txt:
+            rows.append({"box":box,"text":txt,"confidence":conf})
+    return rows
+
+def ocr_rows(engine: Any, img: Image.Image) -> list[dict[str,Any]]:
+    result=engine(np.asarray(img))
+    txts=getattr(result,"txts",None)
+    scores=getattr(result,"scores",None)
+    boxes=getattr(result,"boxes",None)
+    if txts is None or scores is None:
+        return _legacy_ocr_rows(result)
+    rows=[]
+    boxes_list=boxes.tolist() if hasattr(boxes,"tolist") else (list(boxes) if boxes is not None else [])
+    for i,txt in enumerate(txts or []):
+        clean=norm_text(str(txt or ""))
+        if not clean:
+            continue
+        try: conf=float(scores[i])
+        except Exception: conf=0.0
+        box=boxes_list[i] if i<len(boxes_list) else None
+        rows.append({"box":box,"text":clean,"confidence":conf})
+    def pos(row):
+        box=row.get("box") or []
+        try:
+            xs=[float(p[0]) for p in box]; ys=[float(p[1]) for p in box]
+            return (min(ys),min(xs))
+        except Exception:
+            return (1e9,1e9)
+    rows.sort(key=pos)
+    return rows
+
+def ocr_candidate_score(rows:list[dict[str,Any]]) -> float:
+    if not rows:
+        return -1.0
+    text="\n".join(r["text"] for r in rows)
+    confs=[float(r.get("confidence") or 0) for r in rows]
+    avg=sum(confs)/len(confs) if confs else 0
+    printable=len(re.sub(r"\s+","",text))
+    money_count=len(MONEY_RE.findall(text))
+    keyword_count=len(re.findall(r"\b(?:totaal|total|btw|vat|datum|date|pin|eur|euro|subtotal|subtotaal)\b",text,re.I))
+    return avg*100 + min(printable,1600)/35 + min(money_count,14)*4 + min(keyword_count,10)*3
+
+def run_best_ocr(img:Image.Image) -> dict[str,Any]:
+    engine=get_ocr_engine()
+    if not engine:
+        raise RuntimeError(_OCR_ENGINE_ERROR or "OCR-engine is niet beschikbaar")
+    primary=prepare_ocr_image(img)
+    rows1=ocr_rows(engine,primary)
+    score1=ocr_candidate_score(rows1)
+    text1="\n".join(r["text"] for r in rows1)
+    conf1=sum(float(r.get("confidence") or 0) for r in rows1)/len(rows1) if rows1 else 0
+    money1=len(MONEY_RE.findall(text1))
+    keywords1=bool(re.search(r"\b(?:totaal|total|te betalen|amount due)\b",text1,re.I))
+    best_rows,best_score,best_variant=rows1,score1,"normalized-color"
+    # A second pass is only run when the first pass looks weak. This avoids doubling
+    # CPU on clear receipts but helps low contrast, shadows and thermal paper.
+    if conf1 < .90 or len(re.sub(r"\s+","",text1)) < 220 or money1 < 2 or not keywords1:
+        rows2=ocr_rows(engine,enhanced_receipt_variant(primary))
+        score2=ocr_candidate_score(rows2)
+        if score2 > best_score + .5:
+            best_rows,best_score,best_variant=rows2,score2,"enhanced-grayscale"
+    text="\n".join(r["text"] for r in best_rows)
+    confs=[float(r.get("confidence") or 0) for r in best_rows]
+    return {
+        "text":text,
+        "rows":best_rows,
+        "confidence":sum(confs)/len(confs) if confs else None,
+        "variant":best_variant,
+        "qualityScore":round(best_score,2),
+        "engine":"RapidOCR 3 / ONNX" if RAPIDOCR_GENERATION=="v3" else "RapidOCR legacy",
+        "model":OCR_MODEL_NAME,
+    }
+
 def extract_pdf(raw:bytes) -> dict[str,Any]:
     doc=fitz.open(stream=raw,filetype="pdf")
     if doc.page_count>50: raise HTTPException(400,"PDF bevat meer dan 50 pagina's.")
@@ -295,7 +436,7 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
     plumber=None
     try: plumber=pdfplumber.open(io.BytesIO(raw))
     except Exception: plumber=None
-    ocr_engine=RapidOCR() if RapidOCR else None
+    ocr_engine=get_ocr_engine()
     for idx in range(doc.page_count):
         page=doc[idx]
         words=page.get_text("words", sort=True)
@@ -317,25 +458,20 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
             pix=page.get_pixmap(matrix=fitz.Matrix(2.45,2.45), alpha=False)
             img=Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
             try:
-                result,_=ocr_engine(img)
-                if result:
-                    ocr_lines=[]; confs=[]
-                    for row in result:
-                        if len(row)>=3:
-                            txt=norm_text(row[1]); conf=float(row[2])
-                            if txt: ocr_lines.append(txt); confs.append(conf)
-                    ocr_text="\n".join(ocr_lines)
-                    ocr_printable=len(re.sub(r"\s+","",ocr_text))
-                    if ocr_printable > max(printable + 30, int(printable * 1.12)):
-                        text=ocr_text
-                        used_ocr=True
-                    elif ocr_printable >= 120 and printable < 260:
-                        text=(text+"\n--- OCR LAYER ---\n"+ocr_text).strip()
-                        used_ocr=True
-                    if used_ocr:
-                        ocr_conf=sum(confs)/len(confs) if confs else None
-                        ocr_pages.append(idx+1)
-            except Exception: pass
+                best=run_best_ocr(img)
+                ocr_text=best["text"]
+                ocr_printable=len(re.sub(r"\s+","",ocr_text))
+                if ocr_printable > max(printable + 30, int(printable * 1.12)):
+                    text=ocr_text
+                    used_ocr=True
+                elif ocr_printable >= 120 and printable < 260:
+                    text=(text+"\n--- OCR LAYER ---\n"+ocr_text).strip()
+                    used_ocr=True
+                if used_ocr:
+                    ocr_conf=best.get("confidence")
+                    ocr_pages.append(idx+1)
+            except Exception:
+                pass
         pages.append({"page":idx+1,"text":text,"charCount":len(text),"ocr":used_ocr,"ocrConfidence":ocr_conf,"tables":page_tables})
         all_text.append(f"--- PAGE {idx+1} ---\n{text}")
         layout.append({"page":idx+1,"words":page_layout[:2500]})
@@ -343,33 +479,30 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
     if plumber:
         try: plumber.close()
         except Exception: pass
-    return {"kind":"pdf","pageCount":doc.page_count,"pages":pages,"text":"\n\n".join(all_text),"layout":layout,"tables":tables,"ocrPages":ocr_pages}
+    return {"kind":"pdf","pageCount":doc.page_count,"pages":pages,"text":"\n\n".join(all_text),"layout":layout,"tables":tables,"ocrPages":ocr_pages,"ocrEngine":"RapidOCR 3 / ONNX" if ocr_pages and RAPIDOCR_GENERATION=="v3" else ("RapidOCR legacy" if ocr_pages else None),"ocrModel":OCR_MODEL_NAME if ocr_pages else None}
 
 def extract_image(raw:bytes) -> dict[str,Any]:
-    if not RapidOCR: raise HTTPException(503,"OCR-engine is niet beschikbaar op de server.")
+    if not RapidOCR:
+        raise HTTPException(503,"OCR-engine is niet beschikbaar op de server.")
     try:
         img=Image.open(io.BytesIO(raw))
-        img=ImageOps.exif_transpose(img).convert("RGB")
-        w,h=img.size
-        longest=max(w,h)
-        if longest < 1600:
-            scale=min(2.0,1600/max(1,longest))
-            img=img.resize((max(1,int(w*scale)),max(1,int(h*scale))),Image.Resampling.LANCZOS)
-        elif longest > 4200:
-            scale=4200/longest
-            img=img.resize((max(1,int(w*scale)),max(1,int(h*scale))),Image.Resampling.LANCZOS)
-        gray=ImageOps.autocontrast(ImageOps.grayscale(img))
-        img=gray.convert("RGB")
     except Exception as exc:
         raise HTTPException(415,f"Deze foto kon niet worden geopend ({type(exc).__name__}). Gebruik een normale foto of exporteer hem als JPG/PNG.")
-    ocr=RapidOCR(); result,_=ocr(img)
-    lines=[]; confs=[]; layout=[]
-    for row in result or []:
-        box,txt,conf=row[0],norm_text(row[1]),float(row[2])
-        if txt:
-            lines.append(txt); confs.append(conf); layout.append({"box":box,"text":txt,"confidence":conf})
-    text="\n".join(lines)
-    return {"kind":"image","pageCount":1,"pages":[{"page":1,"text":text,"charCount":len(text),"ocr":True,"ocrConfidence":sum(confs)/len(confs) if confs else None,"tables":[]}],"text":text,"layout":[{"page":1,"words":layout}],"tables":[],"ocrPages":[1]}
+    try:
+        best=run_best_ocr(img)
+    except Exception as exc:
+        raise HTTPException(503,f"OCR kon niet worden gestart ({type(exc).__name__}). Probeer het opnieuw.")
+    text=best["text"]
+    layout=best["rows"]
+    if len(re.sub(r"\s+","",text))<12:
+        raise HTTPException(422,"Er is te weinig leesbare tekst op deze bon gevonden. Maak een scherpere foto met de volledige bon in beeld.")
+    return {
+        "kind":"image","pageCount":1,
+        "pages":[{"page":1,"text":text,"charCount":len(text),"ocr":True,"ocrConfidence":best.get("confidence"),"tables":[]}],
+        "text":text,"layout":[{"page":1,"words":layout}],"tables":[],"ocrPages":[1],
+        "ocrEngine":best.get("engine"),"ocrModel":best.get("model"),
+        "processingHints":{"ocrVariant":best.get("variant"),"ocrQualityScore":best.get("qualityScore")}
+    }
 
 def extract_docx(raw:bytes)->dict[str,Any]:
     doc=DocxDocument(io.BytesIO(raw)); chunks=[]; tables=[]
@@ -590,7 +723,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         invoice=InvoiceMeta(invoiceNumber=invoice_no,invoiceDate=inv_date,dueDate=due_date,paymentTermDays=term,orderNumber=order_no,paymentReference=payref),
         amounts=Amounts(subtotal=abs(subtotal) if subtotal is not None else None,vatLines=vat_lines,vatTotal=abs(vat_total) if vat_total is not None else None,total=abs(total) if total is not None else None,discount=abs(discount) if discount is not None else None,shipping=abs(shipping) if shipping is not None else None,currency="EUR"),
         status=status,lineItems=[],confidence=confidence,warnings=[],
-        processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":"RapidOCR" if doc.get("ocrPages") else None,"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind")}
+        processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind")}
     )
     return validate_result(result,company)
 
@@ -739,7 +872,7 @@ def require_authenticated_user(request: Request) -> dict:
 
 @app.get("/health")
 def health():
-    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"authRequired":True,"version":"2.2"}
+    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"ocrGeneration":RAPIDOCR_GENERATION,"ocrModel":OCR_MODEL_NAME,"authRequired":True,"version":"2.3"}
 
 @app.post("/analyze")
 async def analyze(request:Request,file:UploadFile=File(...),company_json:str=Form("{}"),existing_json:str=Form("[]"),ocr_text:str=Form("")):
