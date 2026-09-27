@@ -1807,7 +1807,27 @@ const TEST_USER={id:'kwinest-local-test',email:'',testMode:true};
 const TEST_PROFILE={};
 let currentUser=null,pendingMfaUser=null,pendingMfaFactorId=null,pendingMfaEnrollId=null;
 async function getSupabase(){if(!supabaseClient){const mod=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');supabaseClient=mod.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}return supabaseClient}
-async function apiAuthHeaders(extra={}){if(TEST_MODE_NO_AUTH)return {...extra,'x-kwinest-test-mode':'1'};const sb=await getSupabase(),{data:{session}}=await sb.auth.getSession();if(!session?.access_token)throw new Error('Je sessie is verlopen. Log opnieuw in.');return {...extra,Authorization:`Bearer ${session.access_token}`}}
+async function getApiAccessToken(forceRefresh=false){
+ if(TEST_MODE_NO_AUTH)return '';
+ const sb=await getSupabase();let {data:{session}}=await sb.auth.getSession();
+ const expiresAt=Number(session?.expires_at||0)*1000,almostExpired=!!expiresAt&&expiresAt-Date.now()<90000;
+ if(forceRefresh||!session?.access_token||almostExpired){
+  const {data,error}=await sb.auth.refreshSession();
+  if(!error&&data?.session)session=data.session;
+ }
+ if(!session?.access_token)throw new Error('Je sessie is verlopen. Log opnieuw in.');
+ return session.access_token
+}
+async function apiAuthHeaders(extra={},forceRefresh=false){if(TEST_MODE_NO_AUTH)return {...extra,'x-kwinest-test-mode':'1'};const token=await getApiAccessToken(forceRefresh);return {...extra,Authorization:`Bearer ${token}`}}
+async function fetchWithAuthRetry(url,options={}){
+ const first={...options,headers:await apiAuthHeaders(options.headers||{})};
+ let res=await fetch(url,first);
+ if(res.status===401){
+  const retry={...options,headers:await apiAuthHeaders(options.headers||{},true)};
+  res=await fetch(url,retry)
+ }
+ return res
+}
 function setCloudSyncStatus(status='saved'){cloudSyncStatus=status;const el=document.getElementById('cloudSyncBadge');if(!el)return;if(TEST_MODE_NO_AUTH){el.className='badge info';el.textContent='Testmodus · lokaal';el.title='Tijdelijke testmodus zonder login; gegevens worden op dit apparaat bewaard.';return}const map={saved:['good','Cloud opgeslagen'],saving:['warn','Cloud opslaan…'],offline:['warn','Wacht op verbinding'],conflict:['bad','Syncconflict'],error:['bad','Syncfout']},v=map[status]||map.saved;el.className=`badge ${v[0]}`;el.textContent=v[1]}
 const PAGE_TITLES={dashboard:'Dashboard',invoices:'Facturen',expenses:'Inkoop & kosten',bank:'Bank & kas',vat:'Btw-overzicht',reports:'Rapportages',ledger:'Grootboek',control:'Controlecentrum',cashflow:'Cashflow',bookings:'Boekingen',contacts:'Relaties',hours:'Uren & ritten',documents:'Documenten',profile:'Mijn gegevens',settings:'Instellingen'};
 const uid=(p='id')=>p+'-'+Math.random().toString(36).slice(2,9);
@@ -2525,6 +2545,14 @@ async function loadPdfLib(){
 }
 let ocrLibPromise=null;
 async function loadOcrLib(){if(!ocrLibPromise)ocrLibPromise=import('https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/tesseract.esm.min.js');return ocrLibPromise}
+async function ocrImageFile(file,onProgress){
+ const T=await loadOcrLib(),worker=await T.createWorker(['nld','eng'],1,{logger:m=>{if(m.status==='recognizing text'&&onProgress)onProgress(`OCR: ${Math.round((m.progress||0)*100)}%`)}});
+ try{
+  if(worker.setParameters)await worker.setParameters({preserve_interword_spaces:'1'});
+  const res=await worker.recognize(file);
+  return normalizeInvoiceText(res.data?.text||'')
+ }finally{await worker.terminate()}
+}
 function normalizeInvoiceText(s){return String(s||'').replace(/\u00a0/g,' ').replace(/[‐‑‒–—]/g,'-').replace(/[“”]/g,'"').replace(/[’]/g,"'").replace(/[ \t]+/g,' ').replace(/\n[ \t]+/g,'\n').trim()}
 function groupPdfTextItems(items){
  const clean=items.filter(x=>x.str&&x.str.trim()).map(x=>({s:normalizeInvoiceText(x.str),x:Number(x.transform?.[4]||0),y:Number(x.transform?.[5]||0),w:Number(x.width||0)}));
@@ -2608,11 +2636,14 @@ async function extractDocumentServer(file,onProgress){
  const fd=new FormData();fd.append('file',file,file.name);const c=state.company||{};fd.append('company_json',JSON.stringify({name:c.name||'',tradeName:c.tradeName||'',kvk:c.kvk||'',vat:c.vat||''}));fd.append('existing_json',JSON.stringify(buildProcessorExistingIndex()));
  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),120000);
  try{
-  const r=await fetch(DOCUMENT_PROCESSOR_URL+'/analyze',{method:'POST',headers:await apiAuthHeaders(),body:fd,signal:ctrl.signal});
+  const r=await fetchWithAuthRetry(DOCUMENT_PROCESSOR_URL+'/analyze',{method:'POST',body:fd,signal:ctrl.signal});
   let j={};try{j=await r.json()}catch(e){}
-  if(!r.ok||!j.ok)throw new Error(j.detail||j.error||`Documentverwerking mislukt (${r.status})`);
-  const d=j.data||{},p=d.processing||{},preview=j.preview||{},pages=Array.isArray(preview.pages)?preview.pages:[];
-  return {ok:true,kind:p.sourceKind||((file.name.split('.').pop()||'').toLowerCase()),pageCount:Number(d.pageCount||p.pages||1),text:String(preview.text||''),pages,tables:[],tableCount:Number(p.tablesFound||0),ocrUsed:Array.isArray(p.ocrPages)&&p.ocrPages.length>0,ocrPages:Array.isArray(p.ocrPages)?p.ocrPages:[],warnings:Array.isArray(d.warnings)?d.warnings:[],documentTypeHint:d.documentType||'',analysis:d,duplicateCandidates:Array.isArray(j.duplicateCandidates)?j.duplicateCandidates:[],sha256:await fileSha256(file)}
+  if(!r.ok||!j.ok){
+   const detail=Array.isArray(j.detail)?j.detail.map(x=>x?.msg||'ongeldige upload').join(', '):(j.detail||j.error);
+   throw new Error(detail||`Documentverwerking mislukt (${r.status})`)
+  }
+  const d=j.data||{},p=d.processing||{},preview=j.preview||{},pages=Array.isArray(preview.pages)?preview.pages:[],tables=Array.isArray(preview.tables)?preview.tables:[];
+  return {ok:true,kind:p.sourceKind||((file.name.split('.').pop()||'').toLowerCase()),pageCount:Number(d.pageCount||p.pages||1),text:String(preview.text||''),pages,tables,tableCount:Number(p.tablesFound||tables.length||0),ocrUsed:Array.isArray(p.ocrPages)&&p.ocrPages.length>0,ocrPages:Array.isArray(p.ocrPages)?p.ocrPages:[],warnings:Array.isArray(d.warnings)?d.warnings:[],documentTypeHint:d.documentType||'',analysis:d,duplicateCandidates:Array.isArray(j.duplicateCandidates)?j.duplicateCandidates:[],sha256:await fileSha256(file)}
  }catch(e){
   if(e?.name==='AbortError')throw new Error('Documentverwerking duurde te lang. Probeer het opnieuw met een kleiner bestand.');
   throw e
@@ -2846,13 +2877,22 @@ async function processFinancialDocument(file,preStructure=null){
   parsed=applyRecognitionQuality(parsed);
  }catch(err){
   processorError=err?.message||'Documentverwerking mislukt';console.warn('Document processor',err);
-  if(ext!=='pdf'){closeModal();toast(processorError);return}
-  try{
-   setImportProgress('Document verwerken','3. Lokale fallback…','Serververwerking was niet beschikbaar; de PDF wordt lokaal gelezen.');browserStructure=browserStructure||await readPdfStructure(file);parsed=findEmbeddedInvoice(browserStructure,pendingUploadKind)||applyRecognitionQuality(parseInvoicePdf(browserStructure.text,file.name,pendingUploadKind));
-   const needsOcr=parsed.confidenceScore<88||parsed.recognitionBad>0||parsed.recognitionWarn>0||!parsed.party||!parsed.invoiceNumber||parsed.gross===''||browserStructure.text.length<220;
-   if(needsOcr){ocrText=await ocrPdfPages(browserStructure,msg=>{const strong=document.querySelector('#modalRoot .empty strong');if(strong)strong.textContent=msg});const op=applyRecognitionQuality(parseInvoicePdf(ocrText,file.name,pendingUploadKind));op.sourceQuality='ocr';parsed=applyRecognitionQuality(mergeParsed(parsed,op))}
-   parsed.processor={kind:'pdf',pageCount:browserStructure.numPages,ocrUsed:!!ocrText,ocrPages:[],ocrConfidence:null,tables:0,warnings:[processorError]};parsed.pageCount=browserStructure.numPages;parsed.sourceQuality=ocrText?'pdf-text+ocr':'pdf-text';
-  }catch(localErr){closeModal();toast('Deze PDF kon niet betrouwbaar worden uitgelezen. Controleer of het bestand niet beschadigd is.');return}
+  if(isPhoto&&!['heic','heif'].includes(ext)){
+   try{
+    setImportProgress('Document verwerken','3. Lokale OCR-fallback…','De serververwerking was niet beschikbaar; de foto wordt lokaal gelezen.');
+    ocrText=await ocrImageFile(file,msg=>{const strong=document.querySelector('#modalRoot .empty strong');if(strong)strong.textContent=msg});
+    parsed=applyRecognitionQuality(parseInvoicePdf(ocrText,file.name,pendingUploadKind));
+    parsed.processor={kind:'image',pageCount:1,ocrUsed:true,ocrPages:[1],ocrConfidence:null,tables:0,warnings:[processorError]};
+    parsed.pageCount=1;parsed.sourceQuality='ocr';parsed.text=ocrText
+   }catch(localErr){console.warn('Local image OCR',localErr);closeModal();toast(processorError);return}
+  }else if(ext==='pdf'){
+   try{
+    setImportProgress('Document verwerken','3. Lokale fallback…','Serververwerking was niet beschikbaar; de PDF wordt lokaal gelezen.');browserStructure=browserStructure||await readPdfStructure(file);parsed=findEmbeddedInvoice(browserStructure,pendingUploadKind)||applyRecognitionQuality(parseInvoicePdf(browserStructure.text,file.name,pendingUploadKind));
+    const needsOcr=parsed.confidenceScore<88||parsed.recognitionBad>0||parsed.recognitionWarn>0||!parsed.party||!parsed.invoiceNumber||parsed.gross===''||browserStructure.text.length<220;
+    if(needsOcr){ocrText=await ocrPdfPages(browserStructure,msg=>{const strong=document.querySelector('#modalRoot .empty strong');if(strong)strong.textContent=msg});const op=applyRecognitionQuality(parseInvoicePdf(ocrText,file.name,pendingUploadKind));op.sourceQuality='ocr';parsed=applyRecognitionQuality(mergeParsed(parsed,op))}
+    parsed.processor={kind:'pdf',pageCount:browserStructure.numPages,ocrUsed:!!ocrText,ocrPages:[],ocrConfidence:null,tables:0,warnings:[processorError]};parsed.pageCount=browserStructure.numPages;parsed.sourceQuality=ocrText?'pdf-text+ocr':'pdf-text';
+   }catch(localErr){closeModal();toast('Deze PDF kon niet betrouwbaar worden uitgelezen. Controleer of het bestand niet beschadigd is.');return}
+  }else{closeModal();toast(processorError);return}
  }
  setImportProgress('Document verwerken','4. Factuurgegevens herkennen…','Leverancier/klant, factuurnummer, datums, bedragen en btw worden gekoppeld.');
  const extracted=[structure?.text||'',processorTablesToText(structure?.tables||[]),ocrText||'',parsed?.text||''].filter(Boolean).join('\n\n---\n\n');
