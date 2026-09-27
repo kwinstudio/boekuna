@@ -59,10 +59,11 @@ Deno.serve(async(req:Request)=>{
 
   const p=new URLSearchParams();
   p.set("mode","subscription");
-  p.set("success_url",APP_URL+"/?login=1&billing=success");
+  p.set("success_url",APP_URL+"/?login=1&billing=success&session_id={CHECKOUT_SESSION_ID}");
   p.set("cancel_url",APP_URL+"/?login=1&billing=cancelled");
   p.set("client_reference_id",user.id);
   p.set("locale","nl");
+  p.set("expires_at",String(Math.floor(Date.now()/1000)+3600));
   p.set("payment_method_collection","always");
   p.set("billing_address_collection","required");
   p.set("tax_id_collection[enabled]","true");
