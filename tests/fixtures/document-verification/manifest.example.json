@@ -1,0 +1,20 @@
+{
+  "notes": "Kopieer dit bestand naar manifest.json nadat de geanonimiseerde testset is gelabeld. Vul per document de ground truth, PASS 1, onafhankelijke PASS 2 en door Boekuna gemarkeerde velden in.",
+  "requiredCategories": [
+    "digitale Nederlandse PDF",
+    "gescande PDF",
+    "scherpe bonfoto",
+    "slechte bonfoto",
+    "scheve foto",
+    "lange kassabon",
+    "21% btw",
+    "9% btw",
+    "0% btw",
+    "meerdere btw-tarieven",
+    "creditnota",
+    "korting",
+    "buitenlandse factuur",
+    "veel factuurregels"
+  ],
+  "documents": []
+}
