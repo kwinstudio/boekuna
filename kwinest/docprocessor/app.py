@@ -19,6 +19,7 @@ except Exception:
 from docx import Document as DocxDocument
 from openpyxl import load_workbook
 from receipt_math import detect_vat_rates, has_complex_adjustments, derive_single_rate_amounts, enforce_single_rate_consistency
+from financial_blocks import parse_financial_blocks
 
 RAPIDOCR_GENERATION = "none"
 try:
@@ -91,11 +92,22 @@ class VatLine(BaseModel):
     taxableAmount: float | None = None
     vatAmount: float | None = None
 
+class Adjustment(BaseModel):
+    type: str = "other_fee"
+    description: str | None = None
+    subtotal: float | None = None
+    vatTotal: float | None = None
+    total: float | None = None
+    vatRate: float | None = None
+    direction: Literal["deduction", "addition"] = "deduction"
+    counterparty: str | None = None
+
 class Amounts(BaseModel):
     subtotal: float | None = None
     vatLines: list[VatLine] = Field(default_factory=list)
     vatTotal: float | None = None
     total: float | None = None
+    settlementAmount: float | None = None
     discount: float | None = None
     shipping: float | None = None
     currency: str = "EUR"
@@ -117,6 +129,7 @@ class ExtractionResult(BaseModel):
     amounts: Amounts = Field(default_factory=Amounts)
     status: Literal["draft", "open", "paid", "overdue", "cancelled", "credit", "unknown"] = "unknown"
     lineItems: list[LineItem] = Field(default_factory=list)
+    adjustments: list[Adjustment] = Field(default_factory=list)
     confidence: dict[str, float] = Field(default_factory=dict)
     warnings: list[str] = Field(default_factory=list)
     processing: dict[str, Any] = Field(default_factory=dict)
@@ -746,6 +759,17 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     if total is None and subtotal is not None and vat_total is not None: total,total_conf=round(subtotal+vat_total,2),.76
     if subtotal is None and total is not None and vat_total is not None: subtotal,sub_conf=round(total-vat_total,2),.76
 
+    financial_structure=parse_financial_blocks(amount_lines)
+    structured_primary=financial_structure.get("primary") or {}
+    if structured_primary:
+        subtotal=structured_primary.get("subtotal")
+        vat_total=structured_primary.get("vatTotal")
+        total=structured_primary.get("total")
+        section_conf=.995 if financial_structure.get("verified") else .92
+        sub_conf=max(sub_conf,section_conf)
+        vat_conf=max(vat_conf,section_conf)
+        total_conf=max(total_conf,section_conf)
+
     vat_lines=[]
     for i,l in enumerate(amount_lines):
         rm=re.search(r"\b(0|9|21)(?:[.,]0+)?\s*%",l)
@@ -761,6 +785,12 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         if key not in seen:
             seen.add(key);unique.append(v)
     vat_lines=unique[:8]
+    structured_rate=structured_primary.get("vatRate") if structured_primary else None
+    if not vat_lines and structured_rate in (0,9,21) and subtotal is not None and vat_total is not None:
+        vat_lines=[VatLine(rate=float(structured_rate),taxableAmount=round(float(subtotal),2),vatAmount=round(float(vat_total),2))]
+
+    structured_adjustments=[Adjustment(**a) for a in financial_structure.get("adjustments",[])]
+    settlement_amount=financial_structure.get("settlementAmount")
 
     # Arithmetic recovery: if exactly one taxable VAT rate is unambiguous and one
     # amount is a strong anchor, calculate the other amounts rather than trusting
@@ -825,9 +855,9 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         documentType=dtype,originalFileName=filename,pageCount=doc.get("pageCount",1),
         supplier=Supplier(**supplier),customer=Customer(**customer),
         invoice=InvoiceMeta(invoiceNumber=invoice_no,invoiceDate=inv_date,dueDate=due_date,paymentTermDays=term,orderNumber=order_no,paymentReference=payref),
-        amounts=Amounts(subtotal=abs(subtotal) if subtotal is not None else None,vatLines=vat_lines,vatTotal=abs(vat_total) if vat_total is not None else None,total=abs(total) if total is not None else None,discount=abs(discount) if discount is not None else None,shipping=abs(shipping) if shipping is not None else None,currency="EUR"),
-        status=status,lineItems=[],confidence=confidence,warnings=derivation_warnings,
-        processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"mixedRates":len(detected_rates)>1}}
+        amounts=Amounts(subtotal=abs(subtotal) if subtotal is not None else None,vatLines=vat_lines,vatTotal=abs(vat_total) if vat_total is not None else None,total=abs(total) if total is not None else None,settlementAmount=abs(settlement_amount) if settlement_amount is not None else None,discount=abs(discount) if discount is not None else None,shipping=abs(shipping) if shipping is not None else None,currency="EUR"),
+        status=status,lineItems=[],adjustments=structured_adjustments,confidence=confidence,warnings=derivation_warnings,
+        processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"financialBlocks":{"verified":bool(financial_structure.get("verified")),"primaryArithmeticOk":bool(financial_structure.get("primaryArithmeticOk")),"adjustmentArithmeticOk":bool(financial_structure.get("adjustmentArithmeticOk")),"settlementArithmeticOk":bool(financial_structure.get("settlementArithmeticOk")),"adjustmentTotal":financial_structure.get("adjustmentTotal"),"settlementSource":financial_structure.get("settlementSource")},"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"mixedRates":len(detected_rates)>1}}
     )
     return validate_result(result,company)
 
@@ -910,6 +940,31 @@ def validate_result(r:ExtractionResult,company:dict)->ExtractionResult:
     if not r.supplier.name and r.documentType in {"purchase_invoice","credit_invoice"}:w.append("Leverancier niet betrouwbaar gevonden.")
     if not r.supplier.name and r.documentType=="receipt":w.append("Winkel/leverancier op de bon niet betrouwbaar gevonden.")
     if a.total is None:w.append("Totaalbedrag niet betrouwbaar gevonden.")
+
+    # Separate costs/corrections must reconcile independently from the invoice.
+    adjustment_total=0.0
+    for adj in r.adjustments or []:
+        if adj.total is None:
+            continue
+        subtotal_adj=abs(float(adj.subtotal or 0))
+        vat_adj=abs(float(adj.vatTotal or 0))
+        total_adj=abs(float(adj.total or 0))
+        adjustment_total+=total_adj if adj.direction=="deduction" else -total_adj
+        if abs((subtotal_adj+vat_adj)-total_adj)>max(.05,total_adj*.004):
+            w.append(f"Kostenblok '{adj.type}' sluit niet aan: excl. + btw is niet gelijk aan totaal.")
+        if adj.vatRate in {9,21} and adj.subtotal is not None and adj.vatTotal is not None:
+            expected_adj=subtotal_adj*float(adj.vatRate)/100
+            if abs(expected_adj-vat_adj)>max(.05,expected_adj*.02):
+                w.append(f"Kostenblok '{adj.type}' heeft een btw-bedrag dat niet past bij {adj.vatRate:g}%.")
+
+    if a.settlementAmount is not None and a.total is not None and r.adjustments:
+        expected_settlement=round(float(a.total)-adjustment_total,2)
+        if abs(expected_settlement-float(a.settlementAmount))>max(.08,abs(float(a.total))*.003):
+            w.append(f"Uitbetaling sluit niet aan: factuur {a.total:.2f} minus/plus correcties = {expected_settlement:.2f}, maar uitbetaling is {a.settlementAmount:.2f}.")
+            r.confidence["settlementAmount"]=min(r.confidence.get("settlementAmount",.5),.55)
+        else:
+            r.confidence["settlementAmount"]=max(r.confidence.get("settlementAmount",0),.98)
+
     # VAT line consistency
     if a.vatLines:
         known=sum(v.vatAmount or 0 for v in a.vatLines)
@@ -938,14 +993,15 @@ def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult)->E
       "supplier":{"name":None,"address":None,"postalCode":None,"city":None,"country":None,"kvk":None,"vatNumber":None,"iban":None,"email":None},
       "customer":{"name":None,"address":None,"postalCode":None,"city":None,"country":None,"kvk":None,"vatNumber":None,"email":None},
       "invoice":{"invoiceNumber":None,"invoiceDate":None,"dueDate":None,"paymentTermDays":None,"orderNumber":None,"paymentReference":None,"description":None},
-      "amounts":{"subtotal":None,"vatLines":[{"rate":21,"taxableAmount":None,"vatAmount":None}],"vatTotal":None,"total":None,"discount":None,"shipping":None,"currency":"EUR"},
-      "status":"draft|open|paid|overdue|cancelled|credit|unknown","lineItems":[{"description":None,"quantity":None,"unitPrice":None,"vatRate":None,"lineTotal":None}],"confidence":{},"warnings":[],"processing":{}
+      "amounts":{"subtotal":None,"vatLines":[{"rate":21,"taxableAmount":None,"vatAmount":None}],"vatTotal":None,"total":None,"settlementAmount":None,"discount":None,"shipping":None,"currency":"EUR"},
+      "status":"draft|open|paid|overdue|cancelled|credit|unknown","lineItems":[{"description":None,"quantity":None,"unitPrice":None,"vatRate":None,"lineTotal":None}],"adjustments":[{"type":"factoring_fee","description":None,"subtotal":None,"vatTotal":None,"total":None,"vatRate":21,"direction":"deduction","counterparty":None}],"confidence":{},"warnings":[],"processing":{}
     }
     instructions=(
         "You extract accounting documents for a Dutch bookkeeping application. Return ONLY a JSON object matching the supplied shape. "
         "Never invent a value. Use null when not explicit or strongly supported. Distinguish supplier and customer. The user's own company is context only. "
         "For self-billing, determine the commercial supplier/customer roles from the document, not page position. "
-        "Interpret Dutch money formats correctly: 1.234,56 = 1234.56. Keep invoice total separate from factoring fees, commission, withholding and payout. "
+        "Interpret Dutch money formats correctly: 1.234,56 = 1234.56. Keep the commercial invoice subtotal/VAT/total strictly separate from factoring fees, commission, platform fees, withholding and payout. "
+        "Put each fee/correction in adjustments. Put the final amount actually paid/settled in amounts.settlementAmount; never use settlementAmount as amounts.total. "
         "For VAT, preserve separate 0/9/21 percent lines. Dates must be YYYY-MM-DD. Do not turn headers or total rows into line items. "
         "Confidence values are 0..1 and must reflect visible evidence, OCR quality and arithmetic consistency; do not make all confidence values high. "
         "If the heuristic result conflicts with the document, prefer the document and add a warning explaining the conflict."
@@ -983,6 +1039,25 @@ def reconcile(primary:ExtractionResult,heuristic:ExtractionResult)->ExtractionRe
     for field,key in [("subtotal","subtotal"),("vatTotal","vatTotal"),("total","total")]:
         if getattr(p.amounts,field) is None and getattr(h.amounts,field) is not None and h.confidence.get(key,0)>=.8:setattr(p.amounts,field,getattr(h.amounts,field));p.confidence[key]=h.confidence.get(key,.8)
     if not p.amounts.vatLines and h.amounts.vatLines:p.amounts.vatLines=h.amounts.vatLines
+
+    hblocks=(h.processing or {}).get("financialBlocks") or {}
+    if hblocks.get("verified") and h.adjustments:
+        # A deterministic, arithmetically verified multi-block document is more
+        # reliable for money separation than a flat AI/OCR total.
+        for field,key in [("subtotal","subtotal"),("vatTotal","vatTotal"),("total","total")]:
+            hv=getattr(h.amounts,field)
+            if hv is not None:
+                setattr(p.amounts,field,hv)
+                p.confidence[key]=max(p.confidence.get(key,0),h.confidence.get(key,.98))
+        p.amounts.settlementAmount=h.amounts.settlementAmount
+        p.adjustments=h.adjustments
+        if h.amounts.vatLines:p.amounts.vatLines=h.amounts.vatLines
+        p.processing={**(p.processing or {}),"financialBlocks":hblocks,"moneyStructureSource":"deterministic-section-parser"}
+    else:
+        if p.amounts.settlementAmount is None and h.amounts.settlementAmount is not None:
+            p.amounts.settlementAmount=h.amounts.settlementAmount
+        if not p.adjustments and h.adjustments:
+            p.adjustments=h.adjustments
     return p
 
 # ----------------------------- duplicate candidate + response -----------------------------
@@ -1022,7 +1097,7 @@ def require_authenticated_user(request: Request) -> dict:
 
 @app.get("/health")
 def health():
-    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"ocrGeneration":RAPIDOCR_GENERATION,"ocrModel":OCR_MODEL_NAME,"authRequired":True,"version":"2.5"}
+    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"ocrGeneration":RAPIDOCR_GENERATION,"ocrModel":OCR_MODEL_NAME,"authRequired":True,"version":"2.6"}
 
 @app.post("/analyze")
 async def analyze(request:Request,file:UploadFile=File(...),company_json:str=Form("{}"),existing_json:str=Form("[]"),ocr_text:str=Form("")):
