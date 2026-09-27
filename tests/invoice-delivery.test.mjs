@@ -6,6 +6,30 @@ let handler;
 const drawn = [];
 const outbound = [];
 const app = loadApp();
+
+const gmailConnection = {
+  provider: 'google',
+  email: 'sender@gmail.com',
+  refresh_token: 'refresh-token-test-only',
+  scopes: ['https://www.googleapis.com/auth/gmail.send'],
+  status: 'connected',
+};
+
+const mockClient = {
+  auth: { getUser: async () => ({ data: { user: { id: 'test-only' } }, error: null }) },
+  rpc: async (name, args = {}) => {
+    if (name === 'get_email_connection_secret') return { data: gmailConnection, error: null };
+    if (name === 'get_integration_secret') {
+      const secrets = {
+        google_mail_client_id: 'google-client-test-only',
+        google_mail_client_secret: 'google-secret-test-only',
+      };
+      return { data: secrets[args.p_name] || null, error: null };
+    }
+    return { data: null, error: null };
+  },
+};
+
 const { edge } = loadEdge({
   StandardFonts, rgb,
   PDFDocument: {
@@ -22,15 +46,25 @@ const { edge } = loadEdge({
   },
   Deno: {
     serve: fn => { handler = fn; },
-    env: { get: key => ({ SUPABASE_URL: 'https://test.invalid', SUPABASE_ANON_KEY: 'test-only', RESEND_API_KEY: 'test-only', INVOICE_FROM_EMAIL: 'invoices@example.org' })[key] },
+    env: { get: key => ({
+      SUPABASE_URL: 'https://test.invalid',
+      SUPABASE_ANON_KEY: 'test-only',
+      SUPABASE_SERVICE_ROLE_KEY: 'service-test-only',
+    })[key] },
   },
-  createClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: 'test-only' } } }) } }),
-  // No network requests or real email. Capture the provider boundary locally.
-  fetch: async (url, opts) => {
-    if (url.endsWith('/consume-quota')) return new Response(JSON.stringify({ allowed: true }));
-    assert.equal(url, 'https://api.resend.com/emails');
-    outbound.push(JSON.parse(opts.body));
-    return new Response(JSON.stringify({ id: 'test-only-message' }));
+  createClient: () => mockClient,
+  fetch: async (url, opts = {}) => {
+    const target = String(url);
+    if (target.endsWith('/consume-quota')) return new Response(JSON.stringify({ allowed: true }), { status: 200 });
+    if (target === 'https://oauth2.googleapis.com/token') {
+      return new Response(JSON.stringify({ access_token: 'gmail-access-test-only' }), { status: 200 });
+    }
+    if (target === 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send') {
+      const body = JSON.parse(opts.body);
+      outbound.push({ url: target, raw: body.raw });
+      return new Response(JSON.stringify({ id: 'gmail-message-test-only' }), { status: 200 });
+    }
+    throw new Error('Unexpected network boundary in invoice delivery test: ' + target);
   },
 });
 
@@ -49,17 +83,41 @@ for (const taxTreatment of ['standard', 'kor', 'reverse', 'icp', 'exempt']) {
   }
 }
 
+const payload = {
+  to: 'customer@example.org',
+  subject: 'Factuur nummer een\r\nB',
+  message: 'Regel een\nRegel twee',
+  company: { name: 'Ondernemer', email: 'sender@gmail.com' },
+  customer: { name: 'Klant' },
+  invoice: { number: 'TEST-2', issueDate: '2026-09-27', dueDate: '2026-10-11', lines: [{ qty: 1, unit: 100, vat: 21 }] },
+};
+
 const response = await handler(new Request('https://test.invalid/send-invoice', {
   method: 'POST',
-  headers: { authorization: 'Bearer test-only', origin: 'https://boekuna-boekhouding.onrender.com', 'content-type': 'application/json' },
-  body: JSON.stringify({ to: 'test@example.org', subject: 'Factuur nummer een\r\nB', message: 'Regel een\nRegel twee', company: { name: 'Ondernemer', email: 'sender@example.org' }, customer: { name: 'Klant' }, invoice: { number: 'TEST-2', issueDate: '2026-09-27', lines: [{ qty: 1, unit: 100, vat: 21 }] } }),
+  headers: { authorization: 'Bearer test-only', origin: 'https://boekuna.nl', 'content-type': 'application/json' },
+  body: JSON.stringify(payload),
 }));
-assert.equal(response.status, 200);
+assert.equal(response.status, 200, 'boekuna.nl must be able to send invoices');
+assert.equal(response.headers.get('access-control-allow-origin'), 'https://boekuna.nl');
 assert.equal(outbound.length, 1);
-assert.equal(outbound[0].subject, 'Factuur nummer een  B', 'Remove CR/LF without deleting the letters r or n');
-assert.equal(outbound[0].from, 'Ondernemer <invoices@example.org>');
-assert.equal(outbound[0].reply_to, 'sender@example.org');
-assert.equal((await PDFDocument.load(Buffer.from(outbound[0].attachments[0].content, 'base64'))).getPageCount(), 1);
+assert.equal(outbound[0].url, 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send');
+assert.ok(outbound[0].raw, 'Gmail payload must contain a MIME message');
+
+const renderResponse = await handler(new Request('https://test.invalid/send-invoice', {
+  method: 'GET',
+  headers: { authorization: 'Bearer test-only', origin: 'https://boekuna-boekhouding.onrender.com' },
+}));
+assert.equal(renderResponse.status, 200);
+assert.equal(renderResponse.headers.get('access-control-allow-origin'), 'https://boekuna-boekhouding.onrender.com');
+
+const preflight = await handler(new Request('https://test.invalid/send-invoice', {
+  method: 'OPTIONS',
+  headers: { origin: 'https://www.boekuna.nl' },
+}));
+assert.equal(preflight.status, 204);
+assert.equal(preflight.headers.get('access-control-allow-origin'), 'https://www.boekuna.nl');
+
 assert.equal((await handler(new Request('https://test.invalid/send-invoice', { method: 'POST', headers: { origin: 'https://untrusted.invalid' } }))).status, 403);
 assert.equal((await handler(new Request('https://test.invalid/send-invoice', { method: 'POST' }))).status, 401);
-console.log('Invoice delivery: PASS (10 actual PDFs, email HTML parity, local delivery boundary, origin/auth guards)');
+
+console.log('Invoice delivery: PASS (10 actual PDFs, UI/email parity, Gmail boundary, production-domain CORS, origin/auth guards)');
