@@ -33,6 +33,23 @@ async function authUser(req:Request){
   const {data,error}=await sb.auth.getUser();
   return !error&&data.user?{user:data.user,token:h.slice(7)}:null;
 }
+function bytesToBase64(bytes:Uint8Array){
+ let bin="";const chunk=0x8000;
+ for(let i=0;i<bytes.length;i+=chunk)bin+=String.fromCharCode(...bytes.subarray(i,i+chunk));
+ return btoa(bin);
+}
+async function storedDocumentInput(req:Request,clientRef:string){
+ if(!clientRef)return null;
+ const user=await authUser(req);if(!user)return null;
+ const sb=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_ANON_KEY")!,{global:{headers:{Authorization:"Bearer "+user.token}},auth:{persistSession:false,autoRefreshToken:false}});
+ const {data:meta,error}=await sb.from("documents").select("storage_path,name,mime_type").eq("user_id",user.user.id).eq("client_ref",clientRef).maybeSingle();
+ if(error||!meta?.storage_path)return null;
+ const {data:blob,error:downloadError}=await sb.storage.from("kwinest-documents").download(meta.storage_path);
+ if(downloadError||!blob)return null;
+ const bytes=new Uint8Array(await blob.arrayBuffer());
+ return {fileName:safe(meta.name||"document",160),mimeType:safe(meta.mime_type||blob.type||"application/octet-stream",120).toLowerCase(),base64:bytesToBase64(bytes)};
+}
+
 async function allowRequest(req:Request,body:any){
   const user=await authUser(req);
   if(user){
@@ -101,16 +118,19 @@ Deno.serve(async(req:Request)=>{
   if(!openaiKey&&!gatewayKey)return j(req,{ok:false,error:"AI_PROVIDER_NOT_CONFIGURED"},503);
 
   const content:any[]=[{type:"input_text",text:promptFor(data)}];
-  const raw=String(data.fileBase64||data.pdfBase64||"");
-  const mime=safe(data.mimeType||(data.pdfBase64?"application/pdf":""),120).toLowerCase();
-  if(raw && raw.length<3800000){
+  const stored=verify&&data.clientRef?await storedDocumentInput(req,safe(data.clientRef,240)):null;
+  const raw=String(stored?.base64||data.fileBase64||data.pdfBase64||"");
+  const mime=safe(stored?.mimeType||data.mimeType||(data.pdfBase64?"application/pdf":""),120).toLowerCase();
+  const sourceName=safe(stored?.fileName||data.fileName||"document",160);
+  if(raw){
     const dataPrefix=/^data:[^;]+;base64,/i.exec(raw)?.[0]||"";
     const b64=dataPrefix?raw.slice(dataPrefix.length):raw;
     const supportedImages=new Set(["image/png","image/jpeg","image/webp","image/gif"]);
+    const supportedFiles=new Set(["application/pdf","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","text/csv","application/csv","text/plain"]);
     if(supportedImages.has(mime)){
       content.push({type:"input_image",image_url:`data:${mime};base64,${b64}`,detail:"high"});
-    }else if(mime){
-      content.push({type:"input_file",filename:safe(data.fileName||"document",160),file_data:`data:${mime};base64,${b64}`});
+    }else if(supportedFiles.has(mime)){
+      content.push({type:"input_file",filename:sourceName,file_data:`data:${mime};base64,${b64}`});
     }
   }
 
