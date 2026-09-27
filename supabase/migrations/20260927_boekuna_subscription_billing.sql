@@ -16,9 +16,7 @@ create table if not exists public.billing_accounts (
 );
 alter table public.billing_accounts enable row level security;
 revoke all on public.billing_accounts from anon, authenticated;
-grant select on public.billing_accounts to authenticated;
 drop policy if exists "billing_accounts_select_own" on public.billing_accounts;
-create policy "billing_accounts_select_own" on public.billing_accounts for select to authenticated using (auth.uid() = user_id);
 
 create table if not exists public.billing_usage_monthly (
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -30,9 +28,7 @@ create table if not exists public.billing_usage_monthly (
 );
 alter table public.billing_usage_monthly enable row level security;
 revoke all on public.billing_usage_monthly from anon, authenticated;
-grant select on public.billing_usage_monthly to authenticated;
 drop policy if exists "billing_usage_select_own" on public.billing_usage_monthly;
-create policy "billing_usage_select_own" on public.billing_usage_monthly for select to authenticated using (auth.uid() = user_id);
 
 create table if not exists public.founding_offer_claims (
   user_id uuid primary key references auth.users(id) on delete cascade,
