@@ -187,6 +187,7 @@ try{
 
   // Return to the same draft with original intended final status.
   await page.locator('#invoiceForm').waitFor();
+  await page.waitForFunction(()=>document.querySelector('#invoiceForm [name="status"]')?.value==='sent');
   assert.equal(await page.locator('#invoiceForm [name="status"]').inputValue(),'sent');
   assert.equal(await page.evaluate(id=>editingInvoiceId===id),true,draftId);
   await page.evaluate(()=>reviewInvoice());
