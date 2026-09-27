@@ -37,6 +37,10 @@ assert.ok(html.includes("async function startSelectedDocumentUpload"),"Selected 
 assert.ok(html.includes("pendingPdfImport=null"),"Document import state must be declared before cleanup/use");
 assert.ok(html.includes("pendingUploadKind='auto'"),"Upload mode state must be declared explicitly");
 assert.ok(html.includes("function setImportProgress(title,msg,sub='',percent=10,step=1)"),"Upload progress must expose real staged percentages");
+assert.ok(html.includes('id="importProgressMessage"'),"Upload progress must use the compact loading state");
+assert.ok(html.includes("const browserStructurePromise="),"PDF client inspection should start in parallel with server processing");
+assert.ok(html.includes("serverReviewed=!!serverProc.ai||serverProc.fastPath==='deterministic'"),"Frontend must not repeat a completed server AI/deterministic review");
+assert.ok(!html.includes("steps=['Ontvangen','Valideren','Uitlezen / OCR','Herkennen','Controleren','Klaar']"),"Legacy six-step loading grid must stay removed");
 assert.ok(html.includes("function showUploadError(err,file=null)"),"Upload errors must render a user-facing explanation");
 assert.ok(html.includes("function uploadErrorInfo(err)"),"Upload errors must be translated centrally");
 for(const code of ["400","401","403","408","413","415","422","429","500","502","503","504","NETWORK_ERROR","TIMEOUT","OCR_FAILED","PDF_READ_FAILED"]){
