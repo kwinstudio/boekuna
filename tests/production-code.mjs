@@ -42,6 +42,7 @@ export function loadEdge(overrides = {}) {
   const bindings = {
     Response, Request, Intl, console, btoa,
     fetch: async () => { throw new Error('Network disabled in production code tests'); },
+    createClient: () => ({}),
     Deno: { serve: () => {}, env: { get: () => undefined } }, ...overrides,
   };
   // Keep pdf-lib and the function in one JS realm: its validators use instanceof.
