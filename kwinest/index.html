@@ -3108,7 +3108,7 @@ function companyRequirementsForInvoice(draft,mode='final'){
 }
 function requirementsFor(action,draft=null){
  if(action==='subscription')return [];
- if(action==='document-upload')return [requirement('Ingelogd',!!currentUser,'Log opnieuw in.')];
+ if(action==='document-upload')return [requirement('Ingelogd',!!currentUser,'Log opnieuw in.')].filter(x=>!x.ok);
  if(action==='invoice-finalize'||action==='invoice-send')return companyRequirementsForInvoice(draft,action==='invoice-send'?'send':'final').filter(x=>!x.ok);
  return []
 }
