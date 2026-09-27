@@ -53,7 +53,7 @@ async function createDraft({label,status='draft'}={}){
   await page.evaluate(()=>{updateInvoiceCustomer();calcInvoiceForm();updateInvoiceCheck()});
   const conceptNumber=await page.locator('#invoiceForm [name="number"]').inputValue();
   await page.evaluate(()=>reviewInvoice());
-  await page.getByRole('heading',{name:'Laatste controle vóór opslaan'}).waitFor();
+  await page.getByRole('heading',{name:status==='draft'?'Concept opslaan':'Laatste controle vóór opslaan'}).waitFor();
   await page.evaluate(()=>finalSaveInvoice());
   await page.waitForTimeout(20);
   return {conceptNumber,id:await page.evaluate(()=>state.invoices[0].id),number:await page.evaluate(()=>state.invoices[0].number)};
