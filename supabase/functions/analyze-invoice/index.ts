@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+const DOCUMENT_PROCESSOR_URL=(Deno.env.get("DOCUMENT_PROCESSOR_URL")||"https://kwinest-docprocessor.onrender.com").replace(/\/$/,"");
 const ALLOWED_ORIGINS = new Set([
   "https://boekuna-boekhouding.onrender.com",
   "https://boekuna.nl",
@@ -81,6 +82,7 @@ async function finishVerificationJob(claim:any,result:any,errorMessage=""){
 async function allowRequest(req:Request,body:any){
   const user=await authUser(req);
   if(user){
+    if(body?.reviewMode==="verify")return {ok:true,kind:"user"};
     const q=await fetch(Deno.env.get("SUPABASE_URL")!+"/functions/v1/consume-quota",{method:"POST",headers:{Authorization:"Bearer "+user.token,"content-type":"application/json"},body:JSON.stringify({feature:"invoice_ai"})});
     const o=await q.json().catch(()=>({}));
     return {ok:!!(q.ok&&o.allowed),kind:"user"};
@@ -139,23 +141,55 @@ Deno.serve(async(req:Request)=>{
   const allowed=await allowRequest(req,data);
   if(!allowed.ok)return j(req,{ok:false,error:allowed.kind==="none"?"UNAUTHORIZED":"AI_RATE_LIMIT"},allowed.kind==="none"?401:429);
 
-  const openaiKey=Deno.env.get("OPENAI_API_KEY");
-  const gatewayKey=Deno.env.get("AI_GATEWAY_API_KEY");
   const verify=data.reviewMode==="verify";
-  if(verify&&!openaiKey)return j(req,{ok:false,error:"INDEPENDENT_REVIEW_PROVIDER_NOT_CONFIGURED"},503);
-  if(!openaiKey&&!gatewayKey)return j(req,{ok:false,error:"AI_PROVIDER_NOT_CONFIGURED"},503);
-
   let verificationClaim:any={kind:"none"};
   try{verificationClaim=await claimVerificationJob(req,data)}catch(e){return j(req,{ok:false,error:"VERIFICATION_JOB_ERROR"},503)}
   if(verificationClaim.kind==="cached")return j(req,verificationClaim.result);
   if(verificationClaim.kind==="in_progress")return j(req,{ok:false,error:"VERIFICATION_IN_PROGRESS"},409);
   if(verificationClaim.kind==="exhausted")return j(req,{ok:false,error:"VERIFICATION_RETRY_LIMIT"},503);
 
+  if(verify){
+    const stored=data.clientRef?await storedDocumentInput(req,safe(data.clientRef,240)):null;
+    if(!stored){
+      await finishVerificationJob(verificationClaim,null,"ORIGINAL_DOCUMENT_NOT_AVAILABLE");
+      return j(req,{ok:false,error:"ORIGINAL_DOCUMENT_NOT_AVAILABLE"},422);
+    }
+    try{
+      const bytes=Uint8Array.from(atob(stored.base64),c=>c.charCodeAt(0));
+      const form=new FormData();
+      form.append("file",new Blob([bytes],{type:stored.mimeType||"application/octet-stream"}),stored.fileName||"document");
+      form.append("company_json",JSON.stringify(data.company||{}));
+      const auth=req.headers.get("authorization")||"";
+      const rr=await fetch(DOCUMENT_PROCESSOR_URL+"/verify",{
+        method:"POST",
+        headers:{Authorization:auth,Origin:"https://boekuna-boekhouding.onrender.com"},
+        body:form,
+        signal:AbortSignal.timeout(70000)
+      });
+      const out=await rr.json().catch(()=>({}));
+      if(!rr.ok||!out?.ok){
+        const message=out?.detail||out?.error||"DOCUMENT_VERIFICATION_SERVICE_ERROR";
+        await finishVerificationJob(verificationClaim,null,String(message));
+        return j(req,{ok:false,error:message},rr.status>=400?rr.status:503);
+      }
+      const processing=out?.data?.processing||{};
+      const response={ok:true,processor:true,model:processing.aiModel||"gpt-5.6-sol",data:out.data,usage:processing.aiUsage||null,pass:"verify"};
+      await finishVerificationJob(verificationClaim,response);
+      return j(req,response);
+    }catch(e){
+      const message=e instanceof Error?e.message:"DOCUMENT_VERIFICATION_SERVICE_UNREACHABLE";
+      await finishVerificationJob(verificationClaim,null,message);
+      return j(req,{ok:false,error:"DOCUMENT_VERIFICATION_SERVICE_UNREACHABLE"},503);
+    }
+  }
+
+  const openaiKey=Deno.env.get("OPENAI_API_KEY");
+  const gatewayKey=Deno.env.get("AI_GATEWAY_API_KEY");
+  if(!openaiKey&&!gatewayKey)return j(req,{ok:false,error:"AI_PROVIDER_NOT_CONFIGURED"},503);
   const content:any[]=[{type:"input_text",text:promptFor(data)}];
-  const stored=verify&&data.clientRef?await storedDocumentInput(req,safe(data.clientRef,240)):null;
-  const raw=String(stored?.base64||data.fileBase64||data.pdfBase64||"");
-  const mime=safe(stored?.mimeType||data.mimeType||(data.pdfBase64?"application/pdf":""),120).toLowerCase();
-  const sourceName=safe(stored?.fileName||data.fileName||"document",160);
+  const raw=String(data.fileBase64||data.pdfBase64||"");
+  const mime=safe(data.mimeType||(data.pdfBase64?"application/pdf":""),120).toLowerCase();
+  const sourceName=safe(data.fileName||"document",160);
   if(raw){
     const dataPrefix=/^data:[^;]+;base64,/i.exec(raw)?.[0]||"";
     const b64=dataPrefix?raw.slice(dataPrefix.length):raw;
@@ -167,7 +201,6 @@ Deno.serve(async(req:Request)=>{
       content.push({type:"input_file",filename:sourceName,file_data:`data:${mime};base64,${b64}`});
     }
   }
-
   const direct=!!openaiKey;
   const endpoint=direct?(Deno.env.get("OPENAI_RESPONSES_URL")||"https://api.openai.com/v1/responses"):"https://ai-gateway.vercel.sh/v1/responses";
   const key=direct?openaiKey!:gatewayKey!;
