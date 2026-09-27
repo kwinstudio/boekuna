@@ -55,11 +55,18 @@ Examples: email, subject, message and browser user-agent when a support/privacy/
 Purpose: customer support, privacy requests, account deletion.
 Linked to user: potentially via supplied email.
 
+### Subscription / payment account data
+Examples: selected plan, subscription status, monthly usage count, trial dates, Stripe customer/subscription identifiers and billing address/tax ID entered in Stripe Checkout.
+Purpose: subscription activation, entitlement/usage limits, billing support and subscription management.
+Linked to user: Yes.
+Payment card details: processed by Stripe and not stored directly in the Boekuna application database.
+
 ## Service providers / processors
 
 - Supabase: authentication, PostgreSQL database, private storage and server functions.
 - Render: web app/document processor hosting.
 - OpenAI or another configured AI provider: only when an AI-assisted document function is actually invoked.
+- Stripe: web subscription checkout, recurring billing, payment-method management and customer billing portal.
 - Configured transactional email provider: only when email delivery is used.
 
 These providers are not used by Boekuna for advertising tracking.
@@ -73,7 +80,7 @@ Use these as the baseline and re-check them against the final Android binary/SDK
 - Can users request account deletion? **Yes — in app and via the public deletion URL.**
 - Does the app sell user data? **No.**
 - Ads? **No.**
-- Data collected: Personal info; Financial info; Files and docs/User content; App/user identifiers; support/diagnostic data where applicable.
+- Data collected: Personal info; Financial info; Files and docs/User content; App/user identifiers; subscription/billing account data; support/diagnostic data where applicable.
 - Purposes: App functionality; Account management; Security/fraud prevention; Customer support.
 - Sharing: disclose processing by service providers according to Google Play's current definition and the final SDK/network behavior. Do not mark a category as “not shared” until checked against the final app bundle and Google’s current service-provider exceptions.
 
@@ -93,6 +100,10 @@ Primary purposes:
 - Security / Fraud Prevention where available in the questionnaire
 
 Tracking: **No**.
+
+### Billing note for native store builds
+
+The web product can use Stripe for web subscriptions. Before shipping a native iOS or Android build, verify the exact purchase flow against the then-current App Store / Google Play billing rules. Do not expose a web Stripe purchase CTA inside a native store build unless that flow is explicitly permitted for that build/jurisdiction. If StoreKit or Google Play Billing is used, update this privacy/data-safety mapping for the final SDK and transaction data actually present.
 
 ## Account deletion
 
