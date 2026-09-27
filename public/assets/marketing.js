@@ -86,14 +86,16 @@ function sharedFooter(){
         <a href="/veiligheid/">Veiligheid & security</a>
         <a href="/privacy/">Privacybeleid</a>
         <a href="/voorwaarden/">Voorwaarden</a>
+        <a href="/support/">Support</a>
+        <a href="/account-verwijderen/">Account verwijderen</a>
         <a href="/contact/">Contact</a>
         <a href="/over/">Over Boekuna</a>
       </nav>
     </div>
     <div class="footer-bottom footer-bottom-v2">
       <span>© 2026 Boekuna</span>
-      <span class="footer-status"><i aria-hidden="true"></i> Product in actieve ontwikkeling</span>
-      <span>Functionaliteit en prijzen kunnen vóór publieke lancering nog wijzigen.</span>
+      <span class="footer-status"><i aria-hidden="true"></i> Beveiligde cloudomgeving</span>
+      <span><a href="/privacy/">Privacy</a> · <a href="/support/">Support</a></span>
     </div>
   </footer>`;
 }
