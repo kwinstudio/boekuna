@@ -1,0 +1,29 @@
+{
+  "status": "submission-metadata-ready",
+  "locale": "nl-NL",
+  "app_name": "Boekuna",
+  "package_name_proposed": "nl.boekuna.app",
+  "category": "Finance",
+  "short_description": "Facturen, bonnen, btw en administratie in één duidelijke app voor ondernemers.",
+  "full_description": "Boekhouden hoeft niet ingewikkeld te voelen. Boekuna brengt facturen, bonnen, btw en je dagelijkse administratie samen in één duidelijke omgeving.\n\nVOOR ONDERNEMERS\nBoekuna is gemaakt voor zzp’ers, freelancers en kleine ondernemers die grip willen houden op hun administratie zonder steeds gegevens over te typen.\n\nWAT JE KUNT DOEN\n• Verkoopfacturen maken en openstaande bedragen volgen\n• Inkoopfacturen en bonnen uploaden\n• Documenten laten uitlezen met OCR\n• Bedragen en btw automatisch laten controleren\n• Factoringkosten en andere correcties apart herkennen\n• Klanten en leveranciers beheren\n• Bankregels via beschikbare importfuncties verwerken\n• Btw-overzichten, omzet, kosten en resultaat bekijken\n• Back-ups en exports maken\n• Je account en gekoppelde gegevens verwijderen\n\nCONTROLE VOOR BOEKEN\nEen scan of herkenning kan fouten maken. Daarom toont Boekuna de gevonden gegevens eerst in een controlescherm. Rekenkundige controles helpen onlogische btw- of totaalbedragen te signaleren voordat je opslaat.\n\nPRIVACY EN BEVEILIGING\nAccount- en administratieve gegevens worden in een beveiligde cloudomgeving opgeslagen. Privédocumenten zijn per gebruiker afgeschermd. Boekuna verkoopt persoonsgegevens niet voor advertentiedoeleinden.\n\nBoekuna dient btw-aangiften niet automatisch in bij de Belastingdienst en is geen vervanging voor persoonlijk fiscaal advies.",
+  "privacy_policy_url": "https://boekuna-boekhouding.onrender.com/privacy/",
+  "support_url": "https://boekuna-boekhouding.onrender.com/support/",
+  "account_deletion_url": "https://boekuna-boekhouding.onrender.com/account-verwijderen/",
+  "website": "https://boekuna-boekhouding.onrender.com/",
+  "ads": false,
+  "contains_in_app_purchases_at_launch": false,
+  "target_audience": "18+ business users; app content itself contains no adult material",
+  "content_rating_expected": "General/low maturity; complete the Play content-rating questionnaire truthfully",
+  "required_graphics": {
+    "app_icon": "512x512 PNG",
+    "feature_graphic": "1024x500 JPG or 24-bit PNG",
+    "phone_screenshots": "at least 2; 320-3840 px per side within Play ratio rules"
+  },
+  "required_before_submit": [
+    "Confirm the final package name in the Android build.",
+    "Build an Android App Bundle (.aab) targeting Android 16 / API 36 or higher for a new submission after 31 August 2026.",
+    "Upload final phone screenshots from the production mobile build.",
+    "Complete Data safety and account-deletion declarations using store/privacy-data-safety.md.",
+    "Provide app-access instructions and a working review/test login if Play review cannot access the app without authentication."
+  ]
+}
