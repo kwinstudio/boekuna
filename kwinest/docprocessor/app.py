@@ -791,4 +791,4 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
     if dup:result.warnings.append("Mogelijk bestaat deze factuur al.")
     processing={**result.processing,"ai":bool(ai),"durationMs":round((time.time()-started)*1000),"pages":doc.get("pageCount"),"tablesFound":len(doc.get("tables",[])),"duplicateCandidates":dup,"overallConfidence":round(overall_confidence(result),3)}
     result.processing=processing
-    return {"ok":True,"data":result.model_dump(),"preview":{"text":(doc.get("text") or "")[:20000],"pages":doc.get("pages",[])[:50]},"duplicateCandidates":dup}
+    return {"ok":True,"data":result.model_dump(),"preview":{"text":(doc.get("text") or "")[:30000],"pages":doc.get("pages",[])[:50],"tables":doc.get("tables",[])[:20]},"duplicateCandidates":dup}
