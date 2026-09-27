@@ -38,6 +38,8 @@ jobs:
         run: node tests/browser-smoke.test.mjs
       - name: Contextual list controls
         run: node tests/list-controls.test.mjs
+      - name: Invoice status edit regression
+        run: node tests/invoice-status-edit.test.mjs
       - name: Production calculation regression tests
         run: node tests/production-integrity.test.mjs
       - name: Invoice PDF and email parity
