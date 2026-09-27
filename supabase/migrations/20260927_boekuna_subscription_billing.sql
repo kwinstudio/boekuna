@@ -135,8 +135,14 @@ begin
     update public.founding_offer_claims set reserved_until=now()+interval '24 hours',updated_at=now() where user_id=p_user_id;
     return query select true,v_existing.founder_number; return;
   end if;
-  select coalesce(max(f.founder_number),0)+1 into v_next from public.founding_offer_claims f;
-  if v_next>100 then return query select false,null::integer; return; end if;
+  select slot into v_next
+  from generate_series(1,100) as slot
+  where not exists (
+    select 1 from public.founding_offer_claims f where f.founder_number=slot
+  )
+  order by slot
+  limit 1;
+  if v_next is null then return query select false,null::integer; return; end if;
   insert into public.founding_offer_claims(user_id,founder_number,status,reserved_until)
   values(p_user_id,v_next,'reserved',now()+interval '24 hours');
   return query select true,v_next;
