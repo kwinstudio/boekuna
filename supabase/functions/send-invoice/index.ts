@@ -223,42 +223,34 @@ Deno.serve(async(req:Request)=>{
 
   if(req.method==="GET"){
     let conn:any=null;try{conn=await mailboxConnection(auth.user.id)}catch{}
-    if(conn){
-      const cfg=await providerCredentials(conn.provider);
-      return j({ok:true,configured:!!(cfg.clientId&&cfg.clientSecret),provider:conn.provider,ownMailbox:true,email:conn.email,status:conn.status});
+    if(conn?.provider==="google"){
+      const cfg=await providerCredentials("google");
+      return j({ok:true,configured:!!(cfg.clientId&&cfg.clientSecret),provider:"google",ownMailbox:true,email:conn.email,status:conn.status});
     }
-    const fallback=await resendConfig();
-    return j({ok:true,configured:!!(fallback.apiKey&&fallback.fromEmail),provider:"resend",ownMailbox:false,email:""});
+    return j({ok:true,configured:false,provider:"google",ownMailbox:false,email:""});
   }
 
   if(req.method!=="POST")return j({ok:false,error:"METHOD_NOT_ALLOWED"},405);
   if(!(await quota(auth.token,"invoice_email")))return j({ok:false,error:"E-mailquotum bereikt. Probeer het later opnieuw."},429);
+
+  let conn:any=null;try{conn=await mailboxConnection(auth.user.id)}catch(e){console.error("mailbox connection",e)}
+  if(!conn||conn.provider!=="google"){
+    return j({ok:false,error:"Koppel eerst je eigen Gmail bij Instellingen. Facturen worden alleen vanuit de Gmail van de ondernemer verzonden.",code:"GMAIL_NOT_CONNECTED"},409);
+  }
 
   const data=await req.json().catch(()=>null);if(!data)return j({ok:false,error:"INVALID_JSON"},400);
   const to=email(data.to||data.customer?.email);if(!to)return j({ok:false,error:"Ongeldig e-mailadres."},400);if(/@example\.com$/i.test(to))return j({ok:false,error:"Dit is een demo-e-mailadres. Vul een echt klantadres in."},400);
   const subject=safe(data.subject,240).replace(/[\r\n]/g," ").trim(),message=safe(data.message,12000).trim();if(!subject||!message)return j({ok:false,error:"Onderwerp en bericht zijn verplicht."},400);
   const pdf=await pdfBytes(data);const sender=safe(data.company?.emailTemplate?.senderName||data.company?.tradeName||data.company?.name||"Administratie",100).replace(/[<>\r\n"]/g," ");
 
-  let conn:any=null;try{conn=await mailboxConnection(auth.user.id)}catch(e){console.error("mailbox connection",e)}
-  if(conn){
-    try{
-      const sent=await sendFromMailbox(conn,auth.user.id,data,to,subject,message,pdf,sender);
-      return j({ok:true,id:sent.id||"",sentAt:new Date().toISOString(),provider:sent.provider,from:sent.from,ownMailbox:true});
-    }catch(e){
-      const code=e instanceof Error?e.message:"MAILBOX_SEND_FAILED";
-      console.error("own mailbox send failed",code);
-      if(code==="MAILBOX_REAUTH_REQUIRED")return j({ok:false,error:"Je e-mailverbinding is verlopen. Koppel je mailbox opnieuw bij Instellingen.",code},409);
-      if(code==="MAIL_PROVIDER_NOT_CONFIGURED")return j({ok:false,error:"Deze e-mailprovider is nog niet volledig geconfigureerd door Boekuna.",code},503);
-      return j({ok:false,error:"Versturen vanuit je eigen mailbox is mislukt. Controleer de koppeling bij Instellingen.",code},502);
-    }
+  try{
+    const sent=await sendFromMailbox(conn,auth.user.id,data,to,subject,message,pdf,sender);
+    return j({ok:true,id:sent.id||"",sentAt:new Date().toISOString(),provider:"google",from:sent.from,ownMailbox:true});
+  }catch(e){
+    const code=e instanceof Error?e.message:"MAILBOX_SEND_FAILED";
+    console.error("gmail send failed",code);
+    if(code==="MAILBOX_REAUTH_REQUIRED")return j({ok:false,error:"Je Gmail-koppeling is verlopen. Koppel Gmail opnieuw bij Instellingen.",code},409);
+    if(code==="MAIL_PROVIDER_NOT_CONFIGURED")return j({ok:false,error:"De Gmail-koppeling is nog niet volledig geconfigureerd door Boekuna.",code},503);
+    return j({ok:false,error:"Versturen vanuit je eigen Gmail is mislukt. Controleer de Gmail-koppeling bij Instellingen.",code},502);
   }
-
-  const fallback=await resendConfig();
-  if(!fallback.apiKey||!fallback.fromEmail)return j({ok:false,error:"Koppel eerst je eigen Gmail/Outlook bij Instellingen of configureer de Boekuna-afzender.",code:"EMAIL_NOT_CONFIGURED"},503);
-  const fromAddr=fallback.fromEmail;const from=fromAddr.includes("<")?fromAddr:sender+" <"+fromAddr+">";
-  const payload:any={from,to:[to],subject,text:message,html:htmlMail({...data,subject,message}),attachments:[{filename:(data.invoice?.kind==="credit"?"Creditfactuur":"Factuur")+"-"+safe(data.invoice?.number,80).replace(/[^a-zA-Z0-9._-]/g,"-")+".pdf",content:bytesToBase64(pdf),content_type:"application/pdf"}]};
-  const reply=email(data.company?.email);if(reply)payload.reply_to=reply;if(data.ccSelf&&reply&&reply!==to)payload.cc=[reply];
-  const h:any={"content-type":"application/json",Authorization:"Bearer "+fallback.apiKey};if(data.requestId)h["Idempotency-Key"]=safe(data.requestId,200);
-  const rr=await fetch("https://api.resend.com/emails",{method:"POST",headers:h,body:JSON.stringify(payload)});const out=await rr.json().catch(()=>({}));if(!rr.ok)return j({ok:false,error:out.message||"EMAIL_SEND_FAILED"},rr.status);
-  return j({ok:true,id:out.id||"",sentAt:new Date().toISOString(),provider:"resend",from:fromAddr,ownMailbox:false});
 });
