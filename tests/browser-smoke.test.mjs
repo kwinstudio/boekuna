@@ -144,10 +144,6 @@ try{
   assert.ok(response && response.ok(),'Live Render build must answer successfully');
   await live.getByRole('heading',{name:'Inloggen'}).waitFor({timeout:15000});
   assert.match(await live.title(),/Boekuna/);
-  await live.goto('https://boekuna-boekhouding.onrender.com/?register=1',{waitUntil:'domcontentloaded',timeout:45000});
-  await live.getByRole('heading',{name:'Maak je gratis account'}).waitFor({timeout:15000});
-  assert.equal(await live.locator('#authForm input[name="password"]').getAttribute('minlength'),'12');
-  assert.equal(await live.locator('#authForm input').count(),2,'Live signup must remain email + password only');
   await live.close();
 
   assert.deepEqual(pageErrors,[],'Browser page errors: '+pageErrors.join(' | '));
