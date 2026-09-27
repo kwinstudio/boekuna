@@ -37,5 +37,7 @@ jobs:
         run: python tests/receipt-math.test.py
       - name: Invoice financial block regressions
         run: python tests/financial-blocks.test.py
+      - name: Marketing page QA
+        run: node tests/marketing-pages.test.mjs
       - name: Python syntax safety
         run: python -m py_compile kwinest/docprocessor/app.py kwinest/docprocessor/receipt_math.py kwinest/docprocessor/financial_blocks.py
