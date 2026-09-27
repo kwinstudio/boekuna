@@ -1911,7 +1911,7 @@ function renderBillingCard(){
  const b=billingSnapshot;
  if(!b)return `<div class="card" id="billingCard" style="margin-bottom:16px"><div class="section-head"><div><h2>Abonnement</h2><p>Je abonnement en slimme documentverwerkingen.</p></div><span class="badge">Laden…</span></div><div class="help">Abonnementsstatus ophalen…</div></div>`;
  const plan=String(b.plan||'free'),status=String(b.status||'free'),limit=Number(b.monthly_limit||10),used=Number(b.used||0),isUnlimited=plan==='pro',remaining=isUnlimited?null:Math.max(0,Number(b.remaining??limit-used)),pct=isUnlimited?0:Math.min(100,Math.round((used/Math.max(1,limit))*100));
- const paid=plan!=='free'&&['trialing','active','past_due','unpaid','paused'].includes(status);
+ const paid=plan!=='free'&&['trialing','active','past_due','unpaid','paused','incomplete'].includes(status);
  const trial=status==='trialing'&&b.trial_end;
  const founder=b.founder_number?`Founding 100 · #${Number(b.founder_number)}`:'';
  const statusClass=['active','trialing'].includes(status)?'good':['past_due','unpaid','paused'].includes(status)?'warn':'';
