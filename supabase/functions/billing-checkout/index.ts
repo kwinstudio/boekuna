@@ -2,13 +2,25 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const APP_URL=(Deno.env.get("APP_URL")||"https://boekuna-boekhouding.onrender.com").replace(/\/$/,"");
-const corsHeaders={
-  "Access-Control-Allow-Origin":APP_URL,
-  "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods":"GET,POST,OPTIONS",
-  "Content-Type":"application/json"
-};
-function json(data:unknown,status=200){return new Response(JSON.stringify(data),{status,headers:corsHeaders})}
+const ALLOWED_ORIGINS=new Set([
+  APP_URL,
+  "https://boekuna-boekhouding.onrender.com",
+  "https://boekuna.nl",
+  "https://www.boekuna.nl",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000"
+]);
+function corsHeaders(req:Request){
+  const origin=req.headers.get("origin")||"";
+  return {
+    "Access-Control-Allow-Origin":ALLOWED_ORIGINS.has(origin)?origin:APP_URL,
+    "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods":"GET,POST,OPTIONS",
+    "Content-Type":"application/json",
+    "Vary":"Origin"
+  };
+}
+function json(req:Request,data:unknown,status=200){return new Response(JSON.stringify(data),{status,headers:corsHeaders(req)})}
 async function userAndAdmin(req:Request){
   const auth=req.headers.get("Authorization")||"";
   if(!auth.startsWith("Bearer "))throw new Error("UNAUTHORIZED");
@@ -40,8 +52,10 @@ async function stripePost(path:string,params:URLSearchParams){
 }
 
 Deno.serve(async(req:Request)=>{
- if(req.method==="OPTIONS")return new Response(null,{status:204,headers:corsHeaders});
- if(req.method!=="POST")return json({ok:false,error:"Method not allowed"},405);
+ const origin=req.headers.get("origin")||"";
+ if(origin&&!ALLOWED_ORIGINS.has(origin))return json(req,{ok:false,error:"ORIGIN_NOT_ALLOWED"},403);
+ if(req.method==="OPTIONS")return new Response(null,{status:204,headers:corsHeaders(req)});
+ if(req.method!=="POST")return json(req,{ok:false,error:"Method not allowed"},405);
  try{
   const {user,admin}=await userAndAdmin(req);
   const input=await req.json().catch(()=>({}));
@@ -50,13 +64,13 @@ Deno.serve(async(req:Request)=>{
     boekuna:{name:"Boekuna",amount:995,limit:100},
     pro:{name:"Boekuna Unlimited",amount:1995,limit:null}
   } as const;
-  if(!(plan in config))return json({ok:false,error:"Kies Boekuna of Unlimited."},400);
+  if(!(plan in config))return json(req,{ok:false,error:"Kies Boekuna of Unlimited."},400);
 
   const {data:account}=await admin.from("billing_accounts")
     .select("stripe_customer_id,stripe_subscription_id,status,plan")
     .eq("user_id",user.id).maybeSingle();
   if(account&&["trialing","active","past_due","unpaid","paused","incomplete"].includes(String(account.status||""))){
-    return json({ok:false,error:"Er bestaat al een Stripe-abonnement voor dit account. Beheer of herstel dit via Abonnement in Boekuna.",code:"EXISTING_SUBSCRIPTION"},409);
+    return json(req,{ok:false,error:"Er bestaat al een Stripe-abonnement voor dit account. Beheer of herstel dit via Abonnement in Boekuna.",code:"EXISTING_SUBSCRIPTION"},409);
   }
 
   const {data:offer,error:offerError}=await admin.rpc("reserve_founding_offer",{p_user_id:user.id});
@@ -107,11 +121,11 @@ Deno.serve(async(req:Request)=>{
   if(founderNumber){
     await admin.from("founding_offer_claims").update({checkout_session_id:session.id,updated_at:new Date().toISOString()}).eq("user_id",user.id);
   }
-  return json({ok:true,url:session.url,trialEligible,founderNumber,plan});
+  return json(req,{ok:true,url:session.url,trialEligible,founderNumber,plan});
  }catch(e){
   const m=String(e?.message||e);
-  if(m==="UNAUTHORIZED")return json({ok:false,error:"Je sessie is verlopen. Log opnieuw in."},401);
-  if(m==="STRIPE_NOT_CONFIGURED")return json({ok:false,error:"Betalingen zijn technisch voorbereid maar Stripe is nog niet met een geheime productiesleutel verbonden.",code:"STRIPE_NOT_CONFIGURED"},503);
-  return json({ok:false,error:m.replace(/^STRIPE:/,"").replace(/^OFFER:/,"")||"Checkout kon niet worden gestart."},500);
+  if(m==="UNAUTHORIZED")return json(req,{ok:false,error:"Je sessie is verlopen. Log opnieuw in."},401);
+  if(m==="STRIPE_NOT_CONFIGURED")return json(req,{ok:false,error:"Betalingen zijn technisch voorbereid maar Stripe is nog niet met een geheime productiesleutel verbonden.",code:"STRIPE_NOT_CONFIGURED"},503);
+  return json(req,{ok:false,error:m.replace(/^STRIPE:/,"").replace(/^OFFER:/,"")||"Checkout kon niet worden gestart."},500);
  }
 });
