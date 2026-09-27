@@ -2333,7 +2333,7 @@ function showMarketingPage(page='home'){
 }
 function showAuth(mode='login'){
  document.getElementById('mainApp').style.display='none';
- const register=false;
+ const register=mode==='register';
  const registerFields=`<div class="auth-register-grid">
  <div class="auth-section-title">Account</div>
  <div class="auth-field"><label>Login e-mailadres *</label><input name="email" type="email" autocomplete="email" required placeholder="naam@bedrijf.nl"></div>
@@ -2449,6 +2449,7 @@ async function initAuth(){
  document.getElementById('mainApp').style.display='none';
  const url=new URL(location.href);
  const wantsLogin=url.searchParams.get('login')==='1';
+ const wantsRegister=url.searchParams.get('register')==='1';
  const hashParams=new URLSearchParams((location.hash||'').replace(/^#/,''));
  const isRecovery=hashParams.get('type')==='recovery';
  try{
@@ -2464,6 +2465,8 @@ async function initAuth(){
     await hydrateCloudAccount(session.user);
     enterApp();
    }
+  }else if(wantsRegister){
+   showAuth('register');
   }else if(wantsRegister){
    showAuth('register');
   }else if(wantsLogin){
