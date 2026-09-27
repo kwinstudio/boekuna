@@ -2,12 +2,26 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
 
-const ALLOWED_ORIGIN="https://boekuna-boekhouding.onrender.com";
+const ALLOWED_ORIGINS=new Set([
+  "https://boekuna-boekhouding.onrender.com",
+  "https://boekuna.nl",
+  "https://www.boekuna.nl",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000"
+]);
 const SUPABASE_URL=Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const admin=createClient(SUPABASE_URL,SERVICE_KEY,{auth:{persistSession:false}});
-const cors={"access-control-allow-origin":ALLOWED_ORIGIN,"access-control-allow-methods":"GET,POST,OPTIONS","access-control-allow-headers":"authorization,apikey,content-type","vary":"Origin"};
-const j=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,"content-type":"application/json","cache-control":"no-store"}});
+const cors=(req:Request)=>{
+  const origin=req.headers.get("origin")||"";
+  return {
+    "access-control-allow-origin":ALLOWED_ORIGINS.has(origin)?origin:"https://boekuna-boekhouding.onrender.com",
+    "access-control-allow-methods":"GET,POST,OPTIONS",
+    "access-control-allow-headers":"authorization,apikey,content-type",
+    "vary":"Origin"
+  };
+};
+const j=(req:Request,body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors(req),"content-type":"application/json","cache-control":"no-store"}});
 const safe=(v:any,n=500)=>String(v??"").slice(0,n);
 const email=(v:any)=>{const s=safe(v,240).trim();return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)?s:""};
 const num=(v:any)=>Number.isFinite(Number(v))?Number(v):0;
@@ -217,40 +231,40 @@ async function resendConfig(){
 
 Deno.serve(async(req:Request)=>{
   const origin=req.headers.get("origin")||"";
-  if(origin && origin!==ALLOWED_ORIGIN)return j({ok:false,error:"ORIGIN_NOT_ALLOWED"},403);
-  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
-  const auth=await userFrom(req);if(!auth)return j({ok:false,error:"UNAUTHORIZED"},401);
+  if(origin && !ALLOWED_ORIGINS.has(origin))return j(req,{ok:false,error:"ORIGIN_NOT_ALLOWED"},403);
+  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors(req)});
+  const auth=await userFrom(req);if(!auth)return j(req,{ok:false,error:"UNAUTHORIZED"},401);
 
   if(req.method==="GET"){
     let conn:any=null;try{conn=await mailboxConnection(auth.user.id)}catch{}
     if(conn?.provider==="google"){
       const cfg=await providerCredentials("google");
-      return j({ok:true,configured:!!(cfg.clientId&&cfg.clientSecret),provider:"google",ownMailbox:true,email:conn.email,status:conn.status});
+      return j(req,{ok:true,configured:!!(cfg.clientId&&cfg.clientSecret),provider:"google",ownMailbox:true,email:conn.email,status:conn.status});
     }
-    return j({ok:true,configured:false,provider:"google",ownMailbox:false,email:""});
+    return j(req,{ok:true,configured:false,provider:"google",ownMailbox:false,email:""});
   }
 
-  if(req.method!=="POST")return j({ok:false,error:"METHOD_NOT_ALLOWED"},405);
-  if(!(await quota(auth.token,"invoice_email")))return j({ok:false,error:"E-mailquotum bereikt. Probeer het later opnieuw."},429);
+  if(req.method!=="POST")return j(req,{ok:false,error:"METHOD_NOT_ALLOWED"},405);
+  if(!(await quota(auth.token,"invoice_email")))return j(req,{ok:false,error:"E-mailquotum bereikt. Probeer het later opnieuw."},429);
 
   let conn:any=null;try{conn=await mailboxConnection(auth.user.id)}catch(e){console.error("mailbox connection",e)}
   if(!conn||conn.provider!=="google"){
-    return j({ok:false,error:"Koppel eerst je eigen Gmail bij Instellingen. Facturen worden alleen vanuit de Gmail van de ondernemer verzonden.",code:"GMAIL_NOT_CONNECTED"},409);
+    return j(req,{ok:false,error:"Koppel eerst je eigen Gmail bij Instellingen. Facturen worden alleen vanuit de Gmail van de ondernemer verzonden.",code:"GMAIL_NOT_CONNECTED"},409);
   }
 
-  const data=await req.json().catch(()=>null);if(!data)return j({ok:false,error:"INVALID_JSON"},400);
-  const to=email(data.to||data.customer?.email);if(!to)return j({ok:false,error:"Ongeldig e-mailadres."},400);if(/@example\.com$/i.test(to))return j({ok:false,error:"Dit is een demo-e-mailadres. Vul een echt klantadres in."},400);
-  const subject=safe(data.subject,240).replace(/[\r\n]/g," ").trim(),message=safe(data.message,12000).trim();if(!subject||!message)return j({ok:false,error:"Onderwerp en bericht zijn verplicht."},400);
+  const data=await req.json().catch(()=>null);if(!data)return j(req,{ok:false,error:"INVALID_JSON"},400);
+  const to=email(data.to||data.customer?.email);if(!to)return j(req,{ok:false,error:"Ongeldig e-mailadres."},400);if(/@example\.com$/i.test(to))return j(req,{ok:false,error:"Dit is een demo-e-mailadres. Vul een echt klantadres in."},400);
+  const subject=safe(data.subject,240).replace(/[\r\n]/g," ").trim(),message=safe(data.message,12000).trim();if(!subject||!message)return j(req,{ok:false,error:"Onderwerp en bericht zijn verplicht."},400);
   const pdf=await pdfBytes(data);const sender=safe(data.company?.emailTemplate?.senderName||data.company?.tradeName||data.company?.name||"Administratie",100).replace(/[<>\r\n"]/g," ");
 
   try{
     const sent=await sendFromMailbox(conn,auth.user.id,data,to,subject,message,pdf,sender);
-    return j({ok:true,id:sent.id||"",sentAt:new Date().toISOString(),provider:"google",from:sent.from,ownMailbox:true});
+    return j(req,{ok:true,id:sent.id||"",sentAt:new Date().toISOString(),provider:"google",from:sent.from,ownMailbox:true});
   }catch(e){
     const code=e instanceof Error?e.message:"MAILBOX_SEND_FAILED";
     console.error("gmail send failed",code);
-    if(code==="MAILBOX_REAUTH_REQUIRED")return j({ok:false,error:"Je Gmail-koppeling is verlopen. Koppel Gmail opnieuw bij Instellingen.",code},409);
-    if(code==="MAIL_PROVIDER_NOT_CONFIGURED")return j({ok:false,error:"De Gmail-koppeling is nog niet volledig geconfigureerd door Boekuna.",code},503);
-    return j({ok:false,error:"Versturen vanuit je eigen Gmail is mislukt. Controleer de Gmail-koppeling bij Instellingen.",code},502);
+    if(code==="MAILBOX_REAUTH_REQUIRED")return j(req,{ok:false,error:"Je Gmail-koppeling is verlopen. Koppel Gmail opnieuw bij Instellingen.",code},409);
+    if(code==="MAIL_PROVIDER_NOT_CONFIGURED")return j(req,{ok:false,error:"De Gmail-koppeling is nog niet volledig geconfigureerd door Boekuna.",code},503);
+    return j(req,{ok:false,error:"Versturen vanuit je eigen Gmail is mislukt. Controleer de Gmail-koppeling bij Instellingen.",code},502);
   }
 });
