@@ -40,6 +40,12 @@ assert.ok(html.includes("function setImportProgress(title,msg,sub='',percent=10,
 assert.ok(html.includes('id="importProgressMessage"'),"Upload progress must use the compact loading state");
 assert.ok(html.includes("const browserStructurePromise="),"PDF client inspection should start in parallel with server processing");
 assert.ok(html.includes("serverReviewed=!!serverProc.ai||serverProc.fastPath==='deterministic'"),"Frontend must not repeat a completed server AI/deterministic review");
+assert.ok(html.includes("function setDocumentReviewStep(step)"),"Mobile document review must have explicit step navigation");
+for(const step of [1,2,3,4])assert.ok(html.includes(`data-review-step="${step}"`),`Mobile document review step ${step} must exist`);
+assert.ok(html.includes("Stap 1 van 4 · Document"),"Mobile review must start with document inspection");
+assert.ok(html.includes("<summary>Technische details</summary>"),"Technical OCR/AI details must stay collapsed in the main mobile flow");
+assert.ok(html.includes("mobile-review-actions"),"Mobile review must provide dedicated previous/next/save actions");
+assert.ok(html.includes("bad?.closest('[data-review-step]')"),"Invalid mobile review fields must route users back to the correct step");
 assert.ok(!html.includes("steps=['Ontvangen','Valideren','Uitlezen / OCR','Herkennen','Controleren','Klaar']"),"Legacy six-step loading grid must stay removed");
 assert.ok(html.includes("function showUploadError(err,file=null)"),"Upload errors must render a user-facing explanation");
 assert.ok(html.includes("function uploadErrorInfo(err)"),"Upload errors must be translated centrally");
