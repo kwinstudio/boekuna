@@ -26,6 +26,10 @@ assert.ok(html.includes("actorId:String(currentUser?.id||'')"),"Financial audit 
 assert.ok(html.includes("function invoiceDiscountAmount(i)"),"Invoice discount calculation is required");
 assert.ok(html.includes('name="discountType"'),"Invoice discount controls are required");
 assert.ok(html.includes('minlength="12"'),"New/reset passwords must require at least 12 characters");
+assert.ok(html.includes("const register=mode==='register';"),"Public registration mode must not be hard-disabled");
+assert.ok(html.includes("const wantsRegister=url.searchParams.get('register')==='1';"),"Registration must be directly addressable from the launch URL");
+assert.ok(html.includes("showAuth('register')"),"Login must offer a route to create an account");
+assert.ok(!html.includes("publieke registratie nog niet geactiveerd"),"Launch source must not claim public registration is disabled");
 assert.ok(html.includes("fetchWithAuthRetry(DOCUMENT_PROCESSOR_URL+'/analyze'"),"Document processor requests must use authenticated retry");
 assert.ok(html.includes("async function fetchWithAuthRetry"),"Authenticated processor requests must refresh and retry expired sessions");
 assert.ok(html.includes('id="boekuna-upload-bootstrap"'),"Upload bootstrap must exist independently of the main app initialization");
