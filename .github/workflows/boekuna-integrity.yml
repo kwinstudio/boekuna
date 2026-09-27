@@ -33,5 +33,7 @@ jobs:
         run: node tests/production-integrity.test.mjs
       - name: Invoice PDF and email parity
         run: node tests/invoice-delivery.test.mjs
+      - name: Receipt VAT arithmetic
+        run: python tests/receipt-math.test.py
       - name: Python syntax safety
-        run: python -m py_compile kwinest/docprocessor/app.py
+        run: python -m py_compile kwinest/docprocessor/app.py kwinest/docprocessor/receipt_math.py
