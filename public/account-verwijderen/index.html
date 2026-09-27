@@ -1,5 +1,31 @@
-<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#23354D"><title>Account verwijderen | Boekuna</title><meta name="description" content="Hoe je een Boekuna-account en bijbehorende cloudgegevens definitief verwijdert."><link rel="canonical" href="https://boekuna-boekhouding.onrender.com/account-verwijderen/"><link rel="stylesheet" href="/assets/marketing.css"></head><body data-page="account-verwijderen"><div id="siteHeader"></div><main>
-<section class="page-hero"><div class="breadcrumbs"><a href="/">Home</a> / Account verwijderen</div><span class="eyebrow">Account & data</span><h1>Je account definitief verwijderen.</h1><p>Log in op Boekuna, open je account-/instellingenmenu en kies de functie voor definitief verwijderen. Boekuna vraagt om herauthenticatie en een expliciete bevestiging voordat de verwijdering wordt uitgevoerd.</p></section>
-<section class="section"><div class="grid-3"><div class="card"><h3>1. Maak eerst een export</h3><p>Download vóór verwijdering een JSON-back-up en gewenste CSV-exports wanneer je de administratie wilt bewaren.</p></div><div class="card"><h3>2. Bevestig verwijdering</h3><p>De app vereist opnieuw je wachtwoord en de expliciete bevestiging “VERWIJDER”.</p></div><div class="card"><h3>3. Cloudgegevens verwijderen</h3><p>De verwijderfunctie is ontworpen om privé-documenten en het Auth-account te verwijderen; gekoppelde databaserijen zijn via cascade-relaties aan het account gekoppeld.</p></div></div></section>
-<section class="section"><div class="notice warn"><strong>Definitief betekent definitief.</strong> Voer dit alleen uit nadat je de benodigde administratie hebt geëxporteerd.</div></section>
-</main><div id="siteFooter"></div><script src="/assets/marketing.js"></script></body></html>
+<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#23354D"><title>Account verwijderen | Boekuna</title><meta name="description" content="Verwijder je Boekuna-account in de app of dien online een verzoek in om je account en bijbehorende gegevens te verwijderen."><link rel="canonical" href="https://boekuna-boekhouding.onrender.com/account-verwijderen/"><link rel="stylesheet" href="/assets/marketing.css"></head><body data-page="account-verwijderen"><div id="siteHeader"></div><main>
+<section class="page-hero"><div class="breadcrumbs"><a href="/">Home</a> / Account verwijderen</div><span class="eyebrow">Account & data</span><h1>Je Boekuna-account verwijderen.</h1><p>Je kunt je account rechtstreeks in de app verwijderen. Heb je geen toegang meer tot de app, dan kun je hieronder een verwijderingsverzoek indienen.</p></section>
+
+<section class="section"><div class="inner"><div class="grid-3">
+<div class="card"><h3>In de app</h3><p>Log in, open Instellingen en kies <strong>Account verwijderen</strong>. Na herauthenticatie en expliciete bevestiging wordt de verwijdering gestart.</p></div>
+<div class="card"><h3>Maak eerst een export</h3><p>Download een back-up en benodigde exports voordat je je account verwijdert. Accountverwijdering is definitief.</p></div>
+<div class="card"><h3>Wat wordt verwijderd?</h3><p>Het account, privé-documenten en bijbehorende accountdata worden verwijderd. Gegevens die wettelijk of voor beveiliging/fraudepreventie moeten worden bewaard, kunnen alleen zolang als noodzakelijk worden behouden.</p></div>
+</div></div></section>
+
+<section class="section alt"><div class="inner" style="max-width:760px"><div class="section-head"><h2>Online verwijderingsverzoek</h2><p>Gebruik dit formulier als je de app niet meer hebt of niet kunt inloggen. Gebruik hetzelfde e-mailadres als voor je Boekuna-account zodat het verzoek kan worden geverifieerd.</p></div><div class="card"><form id="deleteRequestForm" class="form-grid">
+<div class="field full"><label>E-mailadres van je Boekuna-account</label><input name="email" type="email" autocomplete="email" required maxlength="320"></div>
+<div class="field full"><label>Bevestiging</label><input name="confirm" required pattern="VERWIJDER" placeholder="Typ VERWIJDER"></div>
+<div class="field full"><label>Toelichting (optioneel)</label><textarea name="message" maxlength="2000" style="min-height:120px" placeholder="Bijvoorbeeld: ik heb geen toegang meer tot de app."></textarea></div>
+<div class="hidden" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
+<div class="field full"><button class="btn danger" id="deleteSubmit" type="submit">Verzoek tot accountverwijdering indienen</button><div class="help" id="deleteStatus" role="status" aria-live="polite" style="margin-top:10px"></div></div>
+</form></div></div></section>
+
+<section class="section"><div class="inner"><div class="notice warn"><strong>Let op:</strong> verwijder je administratie alleen nadat je de gegevens hebt geëxporteerd die je vanwege fiscale of andere wettelijke bewaarplichten zelf moet bewaren.</div></div></section>
+</main><div id="siteFooter"></div><script src="/assets/marketing.js"></script><script>
+const SUPABASE_URL='https://vuwfyhtejsxhdfyvkkeq.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_miAZ6CBZShVcmmNwlnEDgA_aGw1X4aP';
+const form=document.getElementById('deleteRequestForm'),statusEl=document.getElementById('deleteStatus'),btn=document.getElementById('deleteSubmit');
+form.addEventListener('submit',async e=>{e.preventDefault();if(!form.reportValidity())return;const fd=new FormData(form);if(String(fd.get('website')||''))return;btn.disabled=true;btn.textContent='Verzoek indienen…';statusEl.textContent='';try{
+ const email=String(fd.get('email')||'').trim(),extra=String(fd.get('message')||'').trim();
+ const payload={email,subject:'Account deletion request',message:'Verzoek om Boekuna-account en gekoppelde gebruikersgegevens te verwijderen.'+(extra?'\n\nToelichting: '+extra:''),source:'privacy',user_agent:navigator.userAgent.slice(0,500)};
+ const r=await fetch(SUPABASE_URL+'/rest/v1/support_requests',{method:'POST',headers:{apikey:SUPABASE_PUBLISHABLE_KEY,Authorization:'Bearer '+SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(payload)});
+ if(!r.ok)throw new Error('Verzoek kon niet worden opgeslagen');
+ form.reset();statusEl.textContent='Je verwijderingsverzoek is ontvangen. Boekuna kan eerst om verificatie van het account vragen.';btn.textContent='Verzoek ontvangen';
+}catch(err){statusEl.textContent='Indienen is niet gelukt. Probeer het later opnieuw.';btn.disabled=false;btn.textContent='Verzoek tot accountverwijdering indienen';}
+});
+</script></body></html>
