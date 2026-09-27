@@ -3057,7 +3057,7 @@ function setDocumentReviewStep(step){
  const n=Math.max(1,Math.min(4,Number(step)||1));flow.dataset.step=String(n);
  flow.querySelectorAll('[data-review-step]').forEach(el=>el.classList.toggle('active',Number(el.dataset.reviewStep)===n));
  const label=document.getElementById('mobileReviewStepLabel'),titles=['Document','Bedragen','Relatie','Opslaan'];
- if(label)label.textContent=\`Stap \${n} van 4 · \${titles[n-1]}\`;
+ if(label)label.textContent=`Stap ${n} van 4 · ${titles[n-1]}`;
  const prev=document.getElementById('mobileReviewPrev'),next=document.getElementById('mobileReviewNext'),save=document.getElementById('mobileReviewSave');
  if(prev)prev.style.display=n===1?'none':'inline-flex';
  if(next)next.style.display=n===4?'none':'inline-flex';
@@ -3066,29 +3066,29 @@ function setDocumentReviewStep(step){
 }
 function showPdfImportReview(d){
  const [label,cls]=confidenceLabel(d.confidenceScore||0),source=d.sourceQuality==='processor-v2-ai'?'Documentprocessor v2 + AI':d.sourceQuality==='processor-v2'?'Documentprocessor v2':d.sourceQuality==='ai-pdf'?'AI + originele PDF':d.sourceQuality==='ai-text'?'AI + geëxtraheerde documenttekst':d.sourceQuality==='embedded-xml'?'E-factuurgegevens (UBL/XML)':d.sourceQuality==='server-ocr'?'Serverextractie + OCR':d.sourceQuality==='server-document'?'Serverextractie · tekst + layout + tabellen':d.sourceQuality==='pdf-text+ocr'?'Lokale PDF-tekst + OCR':d.sourceQuality==='ocr'?'OCR':d.sourceQuality==='pdf-text'?'PDF-tekst':'Handmatige invoer';
- const dup=d.duplicateCandidate?\`<div class="notice warn review-important"><strong>Mogelijk duplicaat.</strong><br>\${esc(d.duplicateCandidate.label)} lijkt op dit document.</div>\`:'';
- const warn=d.mixedRates?\`<div class="notice warn review-important"><strong>Meerdere btw-tarieven.</strong> Controleer de btw-regels afzonderlijk.</div>\`:'';
- const aiNotice=d.sourceQuality?.startsWith('ai-')?\`<div class="notice info"><strong>AI-controle voltooid\${d.aiModel?\` · \${esc(d.aiModel)}\`:''}.</strong>\${d.reasoningSummary?\`<br>\${esc(d.reasoningSummary)}\`:''}</div>\`:d.aiError?\`<div class="notice warn"><strong>AI-controle niet actief.</strong><br>\${esc(d.aiError)}. Serverextractie, OCR en rekencontrole blijven actief.</div>\`:'';
- const proc=d.processor?\`<div class="notice"><strong>Documentverwerking</strong><br>\${d.processor.pageCount?\`\${d.processor.pageCount} pagina\${d.processor.pageCount===1?'':'’s'} · \`:''}\${d.processor.ocrUsed?\`OCR gebruikt\${d.processor.ocrConfidence!=null?\` (\${Math.round(d.processor.ocrConfidence*100)}%)\`:''}\`:'digitale tekstlaag'}\${d.processor.tables?\` · \${d.processor.tables} tabel\${d.processor.tables===1?'':'len'}\`:''}</div>\`:'';
- const aiWarnings=(d.aiWarnings||[]).length?\`<div class="notice warn"><strong>Controlepunten</strong><br>\${[...new Set(d.aiWarnings)].map(x=>\`• \${esc(x)}\`).join('<br>')}</div>\`:'';
- const self=d.selfBilling?\`<div class="notice info"><strong>Self-billing herkend.</strong> De afnemer heeft de factuur uitgereikt.</div>\`:'';
+ const dup=d.duplicateCandidate?`<div class="notice warn review-important"><strong>Mogelijk duplicaat.</strong><br>${esc(d.duplicateCandidate.label)} lijkt op dit document.</div>`:'';
+ const warn=d.mixedRates?`<div class="notice warn review-important"><strong>Meerdere btw-tarieven.</strong> Controleer de btw-regels afzonderlijk.</div>`:'';
+ const aiNotice=d.sourceQuality?.startsWith('ai-')?`<div class="notice info"><strong>AI-controle voltooid${d.aiModel?` · ${esc(d.aiModel)}`:''}.</strong>${d.reasoningSummary?`<br>${esc(d.reasoningSummary)}`:''}</div>`:d.aiError?`<div class="notice warn"><strong>AI-controle niet actief.</strong><br>${esc(d.aiError)}. Serverextractie, OCR en rekencontrole blijven actief.</div>`:'';
+ const proc=d.processor?`<div class="notice"><strong>Documentverwerking</strong><br>${d.processor.pageCount?`${d.processor.pageCount} pagina${d.processor.pageCount===1?'':'’s'} · `:''}${d.processor.ocrUsed?`OCR gebruikt${d.processor.ocrConfidence!=null?` (${Math.round(d.processor.ocrConfidence*100)}%)`:''}`:'digitale tekstlaag'}${d.processor.tables?` · ${d.processor.tables} tabel${d.processor.tables===1?'':'len'}`:''}</div>`:'';
+ const aiWarnings=(d.aiWarnings||[]).length?`<div class="notice warn"><strong>Controlepunten</strong><br>${[...new Set(d.aiWarnings)].map(x=>`• ${esc(x)}`).join('<br>')}</div>`:'';
+ const self=d.selfBilling?`<div class="notice info"><strong>Self-billing herkend.</strong> De afnemer heeft de factuur uitgereikt.</div>`:'';
  const adj=(d.adjustments||[]).reduce((sum,a)=>sum+Number(a.gross||0),0);
- const adjRows=(d.adjustments||[]).map(a=>{const al=a.type==='factoring_fee'?'Factoringkosten':a.type==='commission'?'Commissie':a.type==='platform_fee'?'Platformkosten':a.type==='payment_fee'?'Betaalkosten':a.type==='service_fee'?'Servicekosten':'Kosten/correctie';return \`<div class="review-money-row"><span>\${esc(al)}\${a.vatRate!=null?\` · \${num(a.vatRate)}%\`:''}</span><strong>− \${money(a.gross)}</strong><small>Excl. \${money(a.net)} · btw \${money(a.vat)}</small></div>\`}).join('');
- const factor=adj>0?\`<div class="review-settlement-card"><div class="review-money-row"><span>Factuurtotaal</span><strong>\${money(d.gross)}</strong></div>\${adjRows}<div class="review-money-row total"><span>Netto uitbetaald</span><strong>\${d.payout!==''&&d.payout!=null?money(d.payout):'—'}</strong></div></div>\`:'';
- const itemPreview=(d.lineItems||[]).length?\`<div class="notice"><strong>Factuurregels (\${d.lineItems.length})</strong><br>\${d.lineItems.slice(0,8).map(x=>\`\${esc(x.desc)} · \${num(x.qty)} × \${money(x.unit)} = \${money(x.total??Number(x.qty||0)*Number(x.unit||0))}\`).join('<br>')}\${d.lineItems.length>8?'<br>…':''}</div>\`:'';
- const vatPreview=(d.vatLines||[]).length?\`<div class="notice"><strong>Btw-regels</strong><br>\${d.vatLines.map(v=>\`\${num(v.rate)}% · grondslag \${v.taxableAmount!=null?money(v.taxableAmount):'—'} · btw \${v.vatAmount!=null?money(v.vatAmount):'—'}\`).join('<br>')}</div>\`:'';
+ const adjRows=(d.adjustments||[]).map(a=>{const al=a.type==='factoring_fee'?'Factoringkosten':a.type==='commission'?'Commissie':a.type==='platform_fee'?'Platformkosten':a.type==='payment_fee'?'Betaalkosten':a.type==='service_fee'?'Servicekosten':'Kosten/correctie';return `<div class="review-money-row"><span>${esc(al)}${a.vatRate!=null?` · ${num(a.vatRate)}%`:''}</span><strong>− ${money(a.gross)}</strong><small>Excl. ${money(a.net)} · btw ${money(a.vat)}</small></div>`}).join('');
+ const factor=adj>0?`<div class="review-settlement-card"><div class="review-money-row"><span>Factuurtotaal</span><strong>${money(d.gross)}</strong></div>${adjRows}<div class="review-money-row total"><span>Netto uitbetaald</span><strong>${d.payout!==''&&d.payout!=null?money(d.payout):'—'}</strong></div></div>`:'';
+ const itemPreview=(d.lineItems||[]).length?`<div class="notice"><strong>Factuurregels (${d.lineItems.length})</strong><br>${d.lineItems.slice(0,8).map(x=>`${esc(x.desc)} · ${num(x.qty)} × ${money(x.unit)} = ${money(x.total??Number(x.qty||0)*Number(x.unit||0))}`).join('<br>')}${d.lineItems.length>8?'<br>…':''}</div>`:'';
+ const vatPreview=(d.vatLines||[]).length?`<div class="notice"><strong>Btw-regels</strong><br>${d.vatLines.map(v=>`${num(v.rate)}% · grondslag ${v.taxableAmount!=null?money(v.taxableAmount):'—'} · btw ${v.vatAmount!=null?money(v.vatAmount):'—'}`).join('<br>')}</div>`:'';
  const checks=(d.recognitionChecks||[]);
- const checkHtml=checks.length?\`<div class="review-check-summary">\${checks.map(c=>\`<div class="review-check-line"><span class="check-icon \${c.level==='good'?'check-ok':c.level==='warn'?'check-warn':'check-bad'}">\${c.level==='good'?'✓':c.level==='warn'?'!':'×'}</span><div><strong>\${esc(c.title)}</strong><span>\${esc(c.detail||'')}</span></div></div>\`).join('')}</div>\`:'';
- const preview=pendingPdfImport?.previewUrl?(pendingPdfImport.file.type==='application/pdf'||/\.pdf$/i.test(pendingPdfImport.file.name)?\`<iframe src="\${esc(pendingPdfImport.previewUrl)}" title="Factuurpreview" class="document-review-preview-frame"></iframe>\`:\`<img src="\${esc(pendingPdfImport.previewUrl)}" alt="Documentpreview" class="document-review-preview-image">\`):\`<div class="notice">Voor dit bestandstype is geen visuele preview beschikbaar.</div>\`;
+ const checkHtml=checks.length?`<div class="review-check-summary">${checks.map(c=>`<div class="review-check-line"><span class="check-icon ${c.level==='good'?'check-ok':c.level==='warn'?'check-warn':'check-bad'}">${c.level==='good'?'✓':c.level==='warn'?'!':'×'}</span><div><strong>${esc(c.title)}</strong><span>${esc(c.detail||'')}</span></div></div>`).join('')}</div>`:'';
+ const preview=pendingPdfImport?.previewUrl?(pendingPdfImport.file.type==='application/pdf'||/\.pdf$/i.test(pendingPdfImport.file.name)?`<iframe src="${esc(pendingPdfImport.previewUrl)}" title="Factuurpreview" class="document-review-preview-frame"></iframe>`:`<img src="${esc(pendingPdfImport.previewUrl)}" alt="Documentpreview" class="document-review-preview-image">`):`<div class="notice">Voor dit bestandstype is geen visuele preview beschikbaar.</div>`;
 
  const technical=[proc,aiNotice,aiWarnings,self,vatPreview,itemPreview].filter(Boolean).join('');
 
- const body=\`<div class="document-review-flow" data-step="1">
+ const body=`<div class="document-review-flow" data-step="1">
   <div class="mobile-review-progress"><span id="mobileReviewStepLabel">Stap 1 van 4 · Document</span><div><i></i><i></i><i></i><i></i></div></div>
 
   <section class="review-step review-step-preview active" data-review-step="1">
-   <div class="review-step-head"><div><span class="review-kicker">Document</span><h4>Bekijk de factuur</h4></div><span class="review-confidence \${cls}">\${Math.round(d.confidenceScore||0)}% herkend</span></div>
-   <div class="review-preview-shell">\${preview}</div>
+   <div class="review-step-head"><div><span class="review-kicker">Document</span><h4>Bekijk de factuur</h4></div><span class="review-confidence ${cls}">${Math.round(d.confidenceScore||0)}% herkend</span></div>
+   <div class="review-preview-shell">${preview}</div>
    <div class="mobile-review-hint">Controleer vooral de naam, datum en bedragen. Daarna vergelijken we ze met de herkenning.</div>
   </section>
 
@@ -3096,64 +3096,64 @@ function showPdfImportReview(d){
    <form id="pdfImportForm">
     <section class="review-step" data-review-step="2">
      <div class="review-step-head"><div><span class="review-kicker">Bedragen</span><h4>Klopt dit met de factuur?</h4></div><button type="button" class="link-btn mobile-only-review" onclick="setDocumentReviewStep(1)">Bekijk factuur</button></div>
-     \${dup}\${warn}
+     ${dup}${warn}
      <div class="review-amount-card">
-      <div class="review-amount-primary"><span>Excl. btw</span><strong>\${d.net!==''&&d.net!=null?money(d.net):'—'}</strong></div>
-      <div class="review-amount-primary"><span>Btw</span><strong>\${d.vatAmount!==''&&d.vatAmount!=null?money(d.vatAmount):'—'}</strong></div>
-      <div class="review-amount-primary emphasis"><span>Incl. btw</span><strong>\${d.gross!==''&&d.gross!=null?money(d.gross):'—'}</strong></div>
+      <div class="review-amount-primary"><span>Excl. btw</span><strong>${d.net!==''&&d.net!=null?money(d.net):'—'}</strong></div>
+      <div class="review-amount-primary"><span>Btw</span><strong>${d.vatAmount!==''&&d.vatAmount!=null?money(d.vatAmount):'—'}</strong></div>
+      <div class="review-amount-primary emphasis"><span>Incl. btw</span><strong>${d.gross!==''&&d.gross!=null?money(d.gross):'—'}</strong></div>
      </div>
-     \${factor}\${checkHtml}
+     ${factor}${checkHtml}
      <div class="form-grid review-step-grid">
-      <div class="field"><label>Valuta</label><input name="currency" value="\${esc(d.currency||'EUR')}" maxlength="3"></div>
-      <div class="field"><label>Btw-tarief</label><select name="vatRate"><option value="" \${d.vatRate===''||d.vatRate==null?'selected':''}>Gemengd / controleer</option><option value="21" \${Number(d.vatRate)===21?'selected':''}>21%</option><option value="9" \${Number(d.vatRate)===9?'selected':''}>9%</option><option value="0" \${Number(d.vatRate)===0?'selected':''}>0% / vrij / verlegd</option></select></div>
-      <div class="field"><label>Bedrag excl. btw \${fieldConfidenceBadge(d,'net')}</label><input type="number" step="0.01" min="0" name="net" value="\${d.net!==''&&d.net!=null?Number(d.net).toFixed(2):''}" required></div>
-      <div class="field"><label>Btw-bedrag \${fieldConfidenceBadge(d,'vatAmount')}</label><input type="number" step="0.01" min="0" name="vatAmount" value="\${d.vatAmount!==''&&d.vatAmount!=null?Number(d.vatAmount).toFixed(2):''}"></div>
-      <div class="field"><label>Totaal incl. btw \${fieldConfidenceBadge(d,'gross')}</label><input type="number" step="0.01" min="0" name="gross" value="\${d.gross!==''&&d.gross!=null?Number(d.gross).toFixed(2):''}" required></div>
-      \${d.payout!==''&&d.payout!=null?\`<div class="field"><label>Netto uitbetaald \${fieldConfidenceBadge(d,'payout')}</label><input type="number" step="0.01" min="0" name="payout" value="\${Number(d.payout).toFixed(2)}" readonly><div class="help">Na kosten/verrekening; niet het factuurtotaal.</div></div>\`:''}
+      <div class="field"><label>Valuta</label><input name="currency" value="${esc(d.currency||'EUR')}" maxlength="3"></div>
+      <div class="field"><label>Btw-tarief</label><select name="vatRate"><option value="" ${d.vatRate===''||d.vatRate==null?'selected':''}>Gemengd / controleer</option><option value="21" ${Number(d.vatRate)===21?'selected':''}>21%</option><option value="9" ${Number(d.vatRate)===9?'selected':''}>9%</option><option value="0" ${Number(d.vatRate)===0?'selected':''}>0% / vrij / verlegd</option></select></div>
+      <div class="field"><label>Bedrag excl. btw ${fieldConfidenceBadge(d,'net')}</label><input type="number" step="0.01" min="0" name="net" value="${d.net!==''&&d.net!=null?Number(d.net).toFixed(2):''}" required></div>
+      <div class="field"><label>Btw-bedrag ${fieldConfidenceBadge(d,'vatAmount')}</label><input type="number" step="0.01" min="0" name="vatAmount" value="${d.vatAmount!==''&&d.vatAmount!=null?Number(d.vatAmount).toFixed(2):''}"></div>
+      <div class="field"><label>Totaal incl. btw ${fieldConfidenceBadge(d,'gross')}</label><input type="number" step="0.01" min="0" name="gross" value="${d.gross!==''&&d.gross!=null?Number(d.gross).toFixed(2):''}" required></div>
+      ${d.payout!==''&&d.payout!=null?`<div class="field"><label>Netto uitbetaald ${fieldConfidenceBadge(d,'payout')}</label><input type="number" step="0.01" min="0" name="payout" value="${Number(d.payout).toFixed(2)}" readonly><div class="help">Na kosten/verrekening; niet het factuurtotaal.</div></div>`:''}
      </div>
     </section>
 
     <section class="review-step" data-review-step="3">
      <div class="review-step-head"><div><span class="review-kicker">Relatie</span><h4>Wie hoort bij dit document?</h4></div></div>
      <div class="form-grid review-step-grid">
-      <div class="field full"><label>Relatie / bedrijfsnaam \${fieldConfidenceBadge(d,'party')}</label><input name="party" value="\${esc(d.party)}" required></div>
-      <div class="field full"><label>Adres</label><input name="address" value="\${esc(d.address)}"></div>
-      <div class="field"><label>Postcode</label><input name="postal" value="\${esc(d.postal)}"></div>
-      <div class="field"><label>Plaats</label><input name="city" value="\${esc(d.city)}"></div>
+      <div class="field full"><label>Relatie / bedrijfsnaam ${fieldConfidenceBadge(d,'party')}</label><input name="party" value="${esc(d.party)}" required></div>
+      <div class="field full"><label>Adres</label><input name="address" value="${esc(d.address)}"></div>
+      <div class="field"><label>Postcode</label><input name="postal" value="${esc(d.postal)}"></div>
+      <div class="field"><label>Plaats</label><input name="city" value="${esc(d.city)}"></div>
      </div>
      <details class="review-details"><summary>Meer relatiegegevens</summary><div class="form-grid review-step-grid" style="margin-top:12px">
-      <div class="field"><label>E-mail</label><input name="email" type="email" value="\${esc(d.email)}"></div>
-      <div class="field"><label>Telefoon</label><input name="phone" value="\${esc(d.phone)}"></div>
-      <div class="field"><label>Btw-id</label><input name="vatId" value="\${esc(d.vatId)}"></div>
-      <div class="field"><label>KVK</label><input name="kvk" value="\${esc(d.kvk)}"></div>
+      <div class="field"><label>E-mail</label><input name="email" type="email" value="${esc(d.email)}"></div>
+      <div class="field"><label>Telefoon</label><input name="phone" value="${esc(d.phone)}"></div>
+      <div class="field"><label>Btw-id</label><input name="vatId" value="${esc(d.vatId)}"></div>
+      <div class="field"><label>KVK</label><input name="kvk" value="${esc(d.kvk)}"></div>
      </div></details>
     </section>
 
     <section class="review-step" data-review-step="4">
      <div class="review-step-head"><div><span class="review-kicker">Opslaan</span><h4>Laatste controle</h4></div></div>
-     <div class="review-save-summary"><span>\${esc(d.party||'Relatie')}</span><strong>\${d.gross!==''&&d.gross!=null?money(d.gross):'—'}</strong><small>\${d.issueDate?dateNL(d.issueDate):'Datum controleren'} · \${d.documentType==='sale_invoice'?'Verkoopfactuur':d.documentType==='purchase_invoice'?'Inkoopfactuur':d.documentType==='credit_invoice'?'Creditfactuur':d.documentType==='receipt'?'Bon':'Document'}</small></div>
+     <div class="review-save-summary"><span>${esc(d.party||'Relatie')}</span><strong>${d.gross!==''&&d.gross!=null?money(d.gross):'—'}</strong><small>${d.issueDate?dateNL(d.issueDate):'Datum controleren'} · ${d.documentType==='sale_invoice'?'Verkoopfactuur':d.documentType==='purchase_invoice'?'Inkoopfactuur':d.documentType==='credit_invoice'?'Creditfactuur':d.documentType==='receipt'?'Bon':'Document'}</small></div>
      <div class="form-grid review-step-grid">
-      <div class="field"><label>Documenttype</label><select name="documentType"><option value="purchase_invoice" \${d.documentType==='purchase_invoice'?'selected':''}>Inkoopfactuur</option><option value="sale_invoice" \${d.documentType==='sale_invoice'?'selected':''}>Verkoopfactuur</option><option value="credit_invoice" \${d.documentType==='credit_invoice'?'selected':''}>Creditfactuur</option><option value="receipt" \${d.documentType==='receipt'?'selected':''}>Bon</option><option value="bank_document" \${d.documentType==='bank_document'?'selected':''}>Bankdocument</option><option value="other" \${d.documentType==='other'?'selected':''}>Overig</option></select></div>
-      <div class="field"><label>Boekingstype</label><select name="type"><option value="sale" \${d.type==='sale'?'selected':''}>Inkomsten / verkoop</option><option value="purchase" \${d.type==='purchase'?'selected':''}>Kosten / inkoop</option></select></div>
-      <div class="field"><label>\${d.documentType==='receipt'?'Bonnummer / referentie':'Factuurnummer'} \${fieldConfidenceBadge(d,'invoiceNumber')}</label><input name="invoiceNumber" value="\${esc(d.invoiceNumber)}" placeholder="\${d.documentType==='receipt'?'Optioneel bij bon':'Verplicht bij factuur'}"></div>
-      <div class="field"><label>Factuurdatum \${fieldConfidenceBadge(d,'issueDate')}</label><input type="date" name="issueDate" value="\${esc(d.issueDate)}" required></div>
-      <div class="field"><label>Vervaldatum</label><input type="date" name="dueDate" value="\${esc(d.dueDate)}"></div>
-      <div class="field"><label>Betaaltermijn</label><input type="number" min="0" max="365" name="paymentTermDays" value="\${d.paymentTermDays!=null?esc(d.paymentTermDays):''}"></div>
-      <div class="field"><label>Order-/bestelnummer</label><input name="orderNumber" value="\${esc(d.orderNumber||'')}"></div>
-      <div class="field"><label>Betalingskenmerk</label><input name="paymentReference" value="\${esc(d.paymentReference)}"></div>
-      <div class="field"><label>Status</label><select name="status"><option value="draft" \${d.status==='draft'?'selected':''}>Concept</option><option value="sent" \${!['draft','paid','cancelled','credit'].includes(d.status)?'selected':d.status==='sent'?'selected':''}>Openstaand</option><option value="paid" \${d.status==='paid'?'selected':''}>Betaald</option><option value="overdue" \${(d.status==='sent'&&d.dueDate&&d.dueDate<today())?'selected':''}>Te laat (automatisch)</option><option value="cancelled" \${d.status==='cancelled'?'selected':''}>Geannuleerd</option><option value="credit" \${d.isCredit||d.status==='credit'?'selected':''}>Credit</option></select></div>
+      <div class="field"><label>Documenttype</label><select name="documentType"><option value="purchase_invoice" ${d.documentType==='purchase_invoice'?'selected':''}>Inkoopfactuur</option><option value="sale_invoice" ${d.documentType==='sale_invoice'?'selected':''}>Verkoopfactuur</option><option value="credit_invoice" ${d.documentType==='credit_invoice'?'selected':''}>Creditfactuur</option><option value="receipt" ${d.documentType==='receipt'?'selected':''}>Bon</option><option value="bank_document" ${d.documentType==='bank_document'?'selected':''}>Bankdocument</option><option value="other" ${d.documentType==='other'?'selected':''}>Overig</option></select></div>
+      <div class="field"><label>Boekingstype</label><select name="type"><option value="sale" ${d.type==='sale'?'selected':''}>Inkomsten / verkoop</option><option value="purchase" ${d.type==='purchase'?'selected':''}>Kosten / inkoop</option></select></div>
+      <div class="field"><label>${d.documentType==='receipt'?'Bonnummer / referentie':'Factuurnummer'} ${fieldConfidenceBadge(d,'invoiceNumber')}</label><input name="invoiceNumber" value="${esc(d.invoiceNumber)}" placeholder="${d.documentType==='receipt'?'Optioneel bij bon':'Verplicht bij factuur'}"></div>
+      <div class="field"><label>Factuurdatum ${fieldConfidenceBadge(d,'issueDate')}</label><input type="date" name="issueDate" value="${esc(d.issueDate)}" required></div>
+      <div class="field"><label>Vervaldatum</label><input type="date" name="dueDate" value="${esc(d.dueDate)}"></div>
+      <div class="field"><label>Betaaltermijn</label><input type="number" min="0" max="365" name="paymentTermDays" value="${d.paymentTermDays!=null?esc(d.paymentTermDays):''}"></div>
+      <div class="field"><label>Order-/bestelnummer</label><input name="orderNumber" value="${esc(d.orderNumber||'')}"></div>
+      <div class="field"><label>Betalingskenmerk</label><input name="paymentReference" value="${esc(d.paymentReference)}"></div>
+      <div class="field"><label>Status</label><select name="status"><option value="draft" ${d.status==='draft'?'selected':''}>Concept</option><option value="sent" ${!['draft','paid','cancelled','credit'].includes(d.status)?'selected':d.status==='sent'?'selected':''}>Openstaand</option><option value="paid" ${d.status==='paid'?'selected':''}>Betaald</option><option value="overdue" ${(d.status==='sent'&&d.dueDate&&d.dueDate<today())?'selected':''}>Te laat (automatisch)</option><option value="cancelled" ${d.status==='cancelled'?'selected':''}>Geannuleerd</option><option value="credit" ${d.isCredit||d.status==='credit'?'selected':''}>Credit</option></select></div>
       <div class="field"><label>Kostencategorie (inkoop)</label><select name="category"><option>Inkoop</option><option>Bank- & factoringkosten</option><option>Kantoor</option><option>Software</option><option>Reiskosten</option><option>Marketing</option><option>Representatie</option><option>Huisvesting</option><option>Overig</option></select></div>
-      <div class="field full"><label>Omschrijving</label><input name="description" value="\${esc(d.description)}"></div>
+      <div class="field full"><label>Omschrijving</label><input name="description" value="${esc(d.description)}"></div>
      </div>
-     \${adj>0?\`<label class="review-checkbox"><input type="checkbox" name="bookAdjustments" checked> <span>Boek gedetecteerde kosten (\${money(adj)}) apart</span></label>\`:''}
-     \${d.duplicateCandidate?\`<label class="review-checkbox warn"><input type="checkbox" name="confirmDuplicate"> <span>Ik heb gecontroleerd dat dit geen duplicaat is.</span></label>\`:''}
-     <details class="review-details review-technical"><summary>Technische details</summary><div class="review-technical-body"><div class="notice \${cls==='bad'?'warn':'info'}"><strong>\${label} · \${Math.round(d.confidenceScore||0)}%</strong><br>Bron: \${esc(source)}</div>\${technical}<details><summary>Uitgelezen documenttekst</summary><pre>\${esc((d.text||'Geen tekst beschikbaar').slice(0,18000))}</pre></details></div></details>
+     ${adj>0?`<label class="review-checkbox"><input type="checkbox" name="bookAdjustments" checked> <span>Boek gedetecteerde kosten (${money(adj)}) apart</span></label>`:''}
+     ${d.duplicateCandidate?`<label class="review-checkbox warn"><input type="checkbox" name="confirmDuplicate"> <span>Ik heb gecontroleerd dat dit geen duplicaat is.</span></label>`:''}
+     <details class="review-details review-technical"><summary>Technische details</summary><div class="review-technical-body"><div class="notice ${cls==='bad'?'warn':'info'}"><strong>${label} · ${Math.round(d.confidenceScore||0)}%</strong><br>Bron: ${esc(source)}</div>${technical}<details><summary>Uitgelezen documenttekst</summary><pre>${esc((d.text||'Geen tekst beschikbaar').slice(0,18000))}</pre></details></div></details>
     </section>
    </form>
   </div>
- </div>\`;
+ </div>`;
 
- const foot=\`<div class="desktop-review-actions"><button class="btn" onclick="cleanupPendingImport();closeModal()">Annuleren</button><button class="btn primary" onclick="savePdfInvoiceImport()">Gecontroleerd & opslaan</button></div><div class="mobile-review-actions"><button class="btn" id="mobileReviewPrev" style="display:none" onclick="setDocumentReviewStep(Number(document.querySelector('.document-review-flow')?.dataset.step||1)-1)">Vorige</button><button class="btn primary" id="mobileReviewNext" onclick="setDocumentReviewStep(Number(document.querySelector('.document-review-flow')?.dataset.step||1)+1)">Volgende</button><button class="btn primary" id="mobileReviewSave" style="display:none" onclick="savePdfInvoiceImport()">Opslaan</button></div>\`;
+ const foot=`<div class="desktop-review-actions"><button class="btn" onclick="cleanupPendingImport();closeModal()">Annuleren</button><button class="btn primary" onclick="savePdfInvoiceImport()">Gecontroleerd & opslaan</button></div><div class="mobile-review-actions"><button class="btn" id="mobileReviewPrev" style="display:none" onclick="setDocumentReviewStep(Number(document.querySelector('.document-review-flow')?.dataset.step||1)-1)">Vorige</button><button class="btn primary" id="mobileReviewNext" onclick="setDocumentReviewStep(Number(document.querySelector('.document-review-flow')?.dataset.step||1)+1)">Volgende</button><button class="btn primary" id="mobileReviewSave" style="display:none" onclick="savePdfInvoiceImport()">Opslaan</button></div>`;
  modal('Document controleren',body,foot,true);
  requestAnimationFrame(()=>setDocumentReviewStep(1));
 }
