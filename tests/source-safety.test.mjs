@@ -34,5 +34,7 @@ for(const id of ["invoicePdfFile","receiptPhotoFile","receiptCameraFile"]){
   assert.ok(html.includes(`['${id}'`),`${id} must be registered in the isolated upload bootstrap`);
 }
 assert.ok(html.includes("async function startSelectedDocumentUpload"),"Selected documents must enter one shared, user-visible upload pipeline");
+assert.ok(html.includes("pendingPdfImport=null"),"Document import state must be declared before cleanup/use");
+assert.ok(html.includes("pendingUploadKind='auto'"),"Upload mode state must be declared explicitly");
 
 console.log("Boekuna source safety tests: PASS");
