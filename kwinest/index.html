@@ -2794,7 +2794,152 @@ async function restoreCloudVersion(id){try{const sb=await getSupabase();const {d
 function restoreConflictDialog(){const k=conflictBackupKey(),raw=k?localStorage.getItem(k):null;if(!raw)return toast('Geen herstelkopie gevonden');let info={};try{info=JSON.parse(raw)}catch(e){}modal('Lokale herstelkopie',`<div class="notice warn"><strong>Gebruik dit alleen als jouw lokale versie de juiste is.</strong> De huidige cloudversie wordt dan vervangen door de bewaarde lokale administratie.</div><div class="legal-item" style="margin-top:12px"><strong>Herstelkopie</strong><p>${info.savedAt?`Bewaard op ${new Date(info.savedAt).toLocaleString('nl-NL')}`:'Lokale conflictversie beschikbaar'}</p></div>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn danger" onclick="restoreConflictBackup()">Lokale versie terugzetten</button>`)}
 async function restoreConflictBackup(){const k=conflictBackupKey(),raw=k?localStorage.getItem(k):null;if(!raw)return;try{const payload=JSON.parse(raw),restored=normalizeState(payload.state||payload);state=restored;localStorage.removeItem(k);localStorage.setItem(userDataKey(),JSON.stringify(state));await syncCloudStateNow();closeModal();render();toast('Lokale herstelkopie is teruggezet en naar de cloud gesynchroniseerd')}catch(e){toast('Herstelkopie kon niet worden teruggezet')}}
 async function checkIntegrations(){try{const r=await fetch(EDGE_BASE+'/status',{cache:'no-store'}),j=await r.json();const cloudConfigured=!!SUPABASE_URL&&!!SUPABASE_PUBLISHABLE_KEY;modal('Productiestatus',`<div class="legal-list"><div class="legal-item"><strong>Cloudaccounts & database</strong><p>${cloudConfigured?'Actief · Supabase Auth, RLS en multi-device synchronisatie.':'Cloudomgeving ontbreekt.'}</p></div><div class="legal-item"><strong>Privé-documentopslag</strong><p>${cloudConfigured?'Actief · gebruikersgebonden Supabase Storage.':'Documentopslag ontbreekt.'}</p></div><div class="legal-item"><strong>Factuurmail</strong><p>${j.emailConfigured?'Actief · runtime mailconfiguratie gevonden.':'Nog niet actief · Resend is voorbereid, maar een geverifieerd afzenderdomein + runtime key ontbreken nog.'}</p></div><div class="legal-item"><strong>AI-factuurcontrole</strong><p>${j.aiAuthPresent?'Gateway-authenticatie aanwezig; billing/provider moet nog succesvol worden geactiveerd.':'Nog niet actief · AI Gateway-authenticatie ontbreekt.'}</p></div><div class="legal-item"><strong>Bank / PSD2</strong><p>Nog niet gekoppeld · CSV en handmatige matching werken wel.</p></div><div class="legal-item"><strong>Peppol</strong><p>Nog niet gekoppeld · Peppol-ID en e-factuurdata zijn voorbereid.</p></div></div>`)}catch(e){toast('Status kon niet worden geladen')}}
-function printReport(){const {from,to}=reportRange(),invs=state.invoices.filter(i=>i.status!=='draft'&&inRange(i.issueDate,from,to)),exps=state.expenses.filter(e=>inRange(e.date,from,to)),sales=invs.reduce((s,i)=>s+invoiceNet(i),0),vatOut=invs.reduce((s,i)=>s+invoiceVat(i),0),costs=exps.reduce((s,e)=>s+Number(e.exVat),0),vatIn=exps.reduce((s,e)=>s+expenseVat(e),0),profit=sales-costs,open=state.invoices.filter(i=>i.status!=='draft'&&i.kind!=='credit').reduce((s,i)=>s+invoiceOutstanding(i),0),company=state.company,cats={};exps.forEach(e=>cats[e.category]=(cats[e.category]||0)+Number(e.exVat));const w=window.open('','_blank');if(!w)return toast('Pop-up geblokkeerd; sta pop-ups toe voor PDF');const rows=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="r">${money(v)}</td></tr>`).join('');w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Boekhoudrapport ${from} - ${to}</title><style>@page{size:A4;margin:16mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#14201d;margin:0;font-size:10.5pt}h1{font-size:24pt;margin:0 0 4px}h2{font-size:13pt;margin:22px 0 8px}p{margin:3px 0}.muted{color:#68736f}.head{display:flex;justify-content:space-between;gap:24px;border-bottom:2px solid #14201d;padding-bottom:14px}.brand{text-align:right;font-size:9.5pt}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:18px 0}.k{border:1px solid #dfe5e2;border-radius:8px;padding:10px}.k span{display:block;color:#68736f;font-size:8pt;text-transform:uppercase}.k b{display:block;font-size:14pt;margin-top:4px}.tbl{width:100%;border-collapse:collapse}.tbl th,.tbl td{padding:7px 6px;border-bottom:1px solid #e4e9e6;text-align:left}.tbl th{font-size:8pt;text-transform:uppercase;color:#68736f}.r{text-align:right!important}.summary{width:100%;max-width:360px;margin-left:auto}.summary div{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #e4e9e6}.summary .total{font-size:12pt;font-weight:700;border-top:2px solid #14201d}.footer{margin-top:28px;padding-top:10px;border-top:1px solid #dfe5e2;color:#68736f;font-size:8pt}.pagebreak{break-before:page}@media print{button{display:none}}</style></head><body><div class="head"><div><h1>Boekhoudrapport</h1><p class="muted">${dateNL(from)} – ${dateNL(to)}</p></div><div class="brand"><b>${esc(company.name||'Bedrijf')}</b><br>${esc(company.address||'')} ${esc(company.postal||'')} ${esc(company.city||'')}<br>${company.kvk?`KVK ${esc(company.kvk)}<br>`:''}${company.vat?`BTW ${esc(company.vat)}<br>`:''}${company.iban?`IBAN ${esc(company.iban)}`:''}</div></div><div class="kpis"><div class="k"><span>Omzet excl. btw</span><b>${money(sales)}</b></div><div class="k"><span>Kosten excl. btw</span><b>${money(costs)}</b></div><div class="k"><span>Resultaat</span><b>${money(profit)}</b></div><div class="k"><span>Openstaand</span><b>${money(open)}</b></div></div><h2>Winst & verlies</h2><div class="summary"><div><span>Omzet excl. btw</span><b>${money(sales)}</b></div><div><span>Kosten excl. btw</span><b>− ${money(costs)}</b></div><div class="total"><span>Resultaat</span><b>${money(profit)}</b></div></div><h2>Btw-overzicht periode</h2><div class="summary"><div><span>Verschuldigde btw</span><b>${money(vatOut)}</b></div><div><span>Voorbelasting</span><b>− ${money(vatIn)}</b></div><div class="total"><span>Saldo</span><b>${money(vatOut-vatIn)}</b></div></div><h2>Kosten per categorie</h2><table class="tbl"><thead><tr><th>Categorie</th><th class="r">Excl. btw</th></tr></thead><tbody>${rows||'<tr><td colspan="2">Geen kosten in deze periode</td></tr>'}</tbody></table><div class="pagebreak"></div><h2>Verkoopfacturen</h2><table class="tbl"><thead><tr><th>Nr.</th><th>Klant</th><th>Datum</th><th>Status</th><th class="r">Excl.</th><th class="r">Btw</th><th class="r">Incl.</th></tr></thead><tbody>${invs.map(i=>`<tr><td>${esc(i.number)}</td><td>${esc(getContact(i.customerId).name)}</td><td>${dateNL(i.issueDate)}</td><td>${invoiceEffectiveStatus(i)}</td><td class="r">${money(invoiceNet(i))}</td><td class="r">${money(invoiceVat(i))}</td><td class="r">${money(invoiceGross(i))}</td></tr>`).join('')||'<tr><td colspan="7">Geen verkoopfacturen</td></tr>'}</tbody></table><h2>Inkoop & kosten</h2><table class="tbl"><thead><tr><th>Datum</th><th>Leverancier</th><th>Categorie</th><th class="r">Excl.</th><th class="r">Btw</th><th class="r">Incl.</th></tr></thead><tbody>${exps.map(e=>`<tr><td>${dateNL(e.date)}</td><td>${esc(e.vendor)}</td><td>${esc(e.category)}</td><td class="r">${money(e.exVat)}</td><td class="r">${money(expenseVat(e))}</td><td class="r">${money(expenseGross(e))}</td></tr>`).join('')||'<tr><td colspan="6">Geen kosten</td></tr>'}</tbody></table><div class="footer">Gegenereerd op ${new Date().toLocaleString('nl-NL')}. Controleer de administratie vóór formele aangiften of jaarstukken.</div><script>window.onload=()=>window.print()<\/script></body></html>`);w.document.close()}
+function printReport(){const {from,to}=reportRange(),invs=state.invoices.filter(i=>i.status!=='draft'&&inRange(i.issueDate,from,to)),exps=state.expenses.filter(e=>inRange(e.date,from,to)),sales=invs.reduce((s,i)=>s+invoiceNet(i),0),vatOut=invs.reduce((s,i)=>s+invoiceVat(i),0),costs=exps.reduce((s,e)=>s+Number(e.exVat),0),vatIn=exps.reduce((s,e)=>s+expenseVat(e),0),profit=sales-costs,open=state.invoices.filter(i=>i.status!=='draft'&&i.kind!=='credit').reduce((s,i)=>s+invoiceOutstanding(i),0),company=state.company,cats={};exps.forEach(e=>cats[e.category]=(cats[e.category]||0)+Number(e.exVat));const w=window.open('','_blank');if(!w)return toast('Pop-up geblokkeerd; sta pop-ups toe voor PDF');const rows=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="r">${money(v)}</td></tr>`).join('');w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Boekhoudrapport ${from} - ${to}</title><style>@page{size:A4;margin:16mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#14201d;margin:0;font-size:10.5pt}h1{font-size:24pt;margin:0 0 4px}h2{font-size:13pt;margin:22px 0 8px}p{margin:3px 0}.muted{color:#68736f}.head{display:flex;justify-content:space-between;gap:24px;border-bottom:2px solid #14201d;padding-bottom:14px}.brand{text-align:right;font-size:9.5pt}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:18px 0}.k{border:1px solid #dfe5e2;border-radius:8px;padding:10px}.k span{display:block;color:#68736f;font-size:8pt;text-transform:uppercase}.k b{display:block;font-size:14pt;margin-top:4px}.tbl{width:100%;border-collapse:collapse}.tbl th,.tbl td{padding:7px 6px;border-bottom:1px solid #e4e9e6;text-align:left}.tbl th{font-size:8pt;text-transform:uppercase;color:#68736f}.r{text-align:right!important}.summary{width:100%;max-width:360px;margin-left:auto}.summary div{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #e4e9e6}.summary .total{font-size:12pt;font-weight:700;border-top:2px solid #14201d}.footer{margin-top:28px;padding-top:10px;border-top:1px solid #dfe5e2;color:#68736f;font-size:8pt}.pagebreak{break-before:page}@media print{button{display:none}}
+/* Boekuna app contrast + restrained branding v1
+   Brand mark stays on real brand surfaces. Functional controls use functional icons. */
+#mainApp .sidebar{
+  background:#233852!important;
+  color:#F7FAFC!important;
+  border-right:1px solid rgba(255,255,255,.11)!important;
+  box-shadow:10px 0 30px rgba(22,39,59,.10)!important;
+}
+#mainApp .sidebar .brand{
+  color:#FFFFFF!important;
+  padding-bottom:20px!important;
+  margin-bottom:6px!important;
+  border-bottom:1px solid rgba(255,255,255,.12)!important;
+}
+#mainApp .sidebar .brand img.bookuna-logo-icon{
+  filter:brightness(0) invert(1)!important;
+  opacity:.96!important;
+}
+#mainApp .sidebar .brand small{
+  color:#B9CBD9!important;
+}
+#mainApp .sidebar .nav-group{
+  color:#8FC3BE!important;
+  font-size:10.5px!important;
+  letter-spacing:.13em!important;
+}
+#mainApp .sidebar .nav-item{
+  color:#DCE6EE!important;
+  font-weight:650!important;
+}
+#mainApp .sidebar .nav-item svg.icon{
+  color:#AFC3D3!important;
+}
+#mainApp .sidebar .nav-item:hover{
+  background:rgba(255,255,255,.085)!important;
+  color:#FFFFFF!important;
+}
+#mainApp .sidebar .nav-item:hover svg.icon{
+  color:#FFFFFF!important;
+}
+#mainApp .sidebar .nav-item.active{
+  background:#F5F8FB!important;
+  color:#20364F!important;
+  box-shadow:0 5px 16px rgba(8,24,42,.16)!important;
+}
+#mainApp .sidebar .nav-item.active svg.icon{
+  color:#20364F!important;
+}
+#mainApp .sidebar .demo-pill{
+  background:rgba(255,255,255,.07)!important;
+  border-color:rgba(255,255,255,.14)!important;
+  color:#C8D8E3!important;
+}
+#mainApp .sidebar .demo-pill strong{
+  color:#FFFFFF!important;
+}
+
+/* Restore the real SVG UI icons instead of repeating the Boekuna brand mark. */
+#mainApp svg.icon,
+.auth-root svg.icon{
+  background-image:none!important;
+  background-color:transparent!important;
+  color:currentColor!important;
+  stroke:currentColor!important;
+  fill:none!important;
+}
+#mainApp svg.icon use,
+#mainApp svg.icon path,
+#mainApp svg.icon line,
+#mainApp svg.icon circle,
+#mainApp svg.icon rect,
+#mainApp svg.icon polyline,
+#mainApp svg.icon polygon,
+.auth-root svg.icon use,
+.auth-root svg.icon path,
+.auth-root svg.icon line,
+.auth-root svg.icon circle,
+.auth-root svg.icon rect,
+.auth-root svg.icon polyline,
+.auth-root svg.icon polygon{
+  display:inline!important;
+}
+
+/* Three-dot/remove controls are controls, not brand placements. */
+#mainApp .icon-btn{
+  background-image:none!important;
+  color:#50636E!important;
+  font-size:16px!important;
+  border-radius:9px!important;
+}
+#mainApp .icon-btn:hover{
+  background-color:#EEF3F6!important;
+  color:#20364F!important;
+}
+#mainApp .icon-btn>*{
+  visibility:visible!important;
+}
+
+/* Status dots should remain simple status dots. */
+#mainApp .action-dot{
+  width:9px!important;
+  height:9px!important;
+  flex:0 0 9px!important;
+  border-radius:50%!important;
+  background-image:none!important;
+  color:inherit!important;
+}
+
+/* Login checkmarks are checks, not logos. */
+.auth-root .auth-check{
+  width:24px!important;
+  height:24px!important;
+  min-width:24px!important;
+  border-radius:8px!important;
+  background-image:none!important;
+  background-color:#E7F4F1!important;
+  color:#235D5D!important;
+  font-size:14px!important;
+}
+
+/* Marketing feature numbers/checks stay informational instead of becoming repeated logos. */
+.marketing .feature-icon{
+  background-image:none!important;
+  background-color:#EAF4F4!important;
+  color:#356267!important;
+  border-radius:10px!important;
+  font-size:12px!important;
+  font-weight:850!important;
+}
+.marketing .check-icon{
+  background-image:none!important;
+  color:#356267!important;
+  border-radius:50%!important;
+  font-size:12px!important;
+}
+
+/* Keep the actual Boekuna mark only on intentional branding surfaces. */
+.sidebar .brand img.bookuna-logo-icon,
+.auth-side .brand img.bookuna-logo-icon,
+.marketing-logo img.bookuna-logo-icon,
+.marketing-footer-logo-mark{
+  background-image:none;
+}
+
+</style></head><body><div class="head"><div><h1>Boekhoudrapport</h1><p class="muted">${dateNL(from)} – ${dateNL(to)}</p></div><div class="brand"><b>${esc(company.name||'Bedrijf')}</b><br>${esc(company.address||'')} ${esc(company.postal||'')} ${esc(company.city||'')}<br>${company.kvk?`KVK ${esc(company.kvk)}<br>`:''}${company.vat?`BTW ${esc(company.vat)}<br>`:''}${company.iban?`IBAN ${esc(company.iban)}`:''}</div></div><div class="kpis"><div class="k"><span>Omzet excl. btw</span><b>${money(sales)}</b></div><div class="k"><span>Kosten excl. btw</span><b>${money(costs)}</b></div><div class="k"><span>Resultaat</span><b>${money(profit)}</b></div><div class="k"><span>Openstaand</span><b>${money(open)}</b></div></div><h2>Winst & verlies</h2><div class="summary"><div><span>Omzet excl. btw</span><b>${money(sales)}</b></div><div><span>Kosten excl. btw</span><b>− ${money(costs)}</b></div><div class="total"><span>Resultaat</span><b>${money(profit)}</b></div></div><h2>Btw-overzicht periode</h2><div class="summary"><div><span>Verschuldigde btw</span><b>${money(vatOut)}</b></div><div><span>Voorbelasting</span><b>− ${money(vatIn)}</b></div><div class="total"><span>Saldo</span><b>${money(vatOut-vatIn)}</b></div></div><h2>Kosten per categorie</h2><table class="tbl"><thead><tr><th>Categorie</th><th class="r">Excl. btw</th></tr></thead><tbody>${rows||'<tr><td colspan="2">Geen kosten in deze periode</td></tr>'}</tbody></table><div class="pagebreak"></div><h2>Verkoopfacturen</h2><table class="tbl"><thead><tr><th>Nr.</th><th>Klant</th><th>Datum</th><th>Status</th><th class="r">Excl.</th><th class="r">Btw</th><th class="r">Incl.</th></tr></thead><tbody>${invs.map(i=>`<tr><td>${esc(i.number)}</td><td>${esc(getContact(i.customerId).name)}</td><td>${dateNL(i.issueDate)}</td><td>${invoiceEffectiveStatus(i)}</td><td class="r">${money(invoiceNet(i))}</td><td class="r">${money(invoiceVat(i))}</td><td class="r">${money(invoiceGross(i))}</td></tr>`).join('')||'<tr><td colspan="7">Geen verkoopfacturen</td></tr>'}</tbody></table><h2>Inkoop & kosten</h2><table class="tbl"><thead><tr><th>Datum</th><th>Leverancier</th><th>Categorie</th><th class="r">Excl.</th><th class="r">Btw</th><th class="r">Incl.</th></tr></thead><tbody>${exps.map(e=>`<tr><td>${dateNL(e.date)}</td><td>${esc(e.vendor)}</td><td>${esc(e.category)}</td><td class="r">${money(e.exVat)}</td><td class="r">${money(expenseVat(e))}</td><td class="r">${money(expenseGross(e))}</td></tr>`).join('')||'<tr><td colspan="6">Geen kosten</td></tr>'}</tbody></table><div class="footer">Gegenereerd op ${new Date().toLocaleString('nl-NL')}. Controleer de administratie vóór formele aangiften of jaarstukken.</div><script>window.onload=()=>window.print()<\/script></body></html>`);w.document.close()}
 async function deleteStoredFile(id){if(!id||!currentUser)return;if(TEST_MODE_NO_AUTH){await deleteLegacyStoredFile(id);return}try{const sb=await getSupabase();const {data:meta,error}=await sb.from('documents').select('storage_path').eq('user_id',currentUser.id).eq('client_ref',id).maybeSingle();if(error)throw error;if(meta?.storage_path)await sb.storage.from('kwinest-documents').remove([meta.storage_path]);await sb.from('documents').delete().eq('user_id',currentUser.id).eq('client_ref',id)}catch(e){console.warn(e)}}
 function deleteAccountDialog(){modal('Account definitief verwijderen',`<div class="notice warn" style="margin-bottom:14px"><strong>Dit kan niet ongedaan worden gemaakt.</strong> Je cloudaccount, administratie, bedrijfsprofiel en alle privé-documenten worden definitief verwijderd.</div><form id="deleteAccountForm" class="form-grid"><div class="field full"><label>Wachtwoord *</label><input name="password" type="password" required></div><div class="field full"><label>Typ VERWIJDER *</label><input name="confirm" required autocomplete="off"></div></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn danger" onclick="deleteAccountNow()">Definitief verwijderen</button>`)}
 async function deleteAccountNow(){const f=document.getElementById('deleteAccountForm');if(!f?.reportValidity()||!currentUser)return;const d=new FormData(f),password=String(d.get('password')||'');if(String(d.get('confirm')||'').trim().toUpperCase()!=='VERWIJDER')return toast('Typ VERWIJDER om te bevestigen');try{const sb=await getSupabase();const {error:reauthError}=await sb.auth.signInWithPassword({email:currentUser.email,password});if(reauthError)throw new Error('Wachtwoord is niet correct');const {error}=await sb.functions.invoke('delete-account',{body:{confirm:true}});if(error)throw error;const old=currentUser;localStorage.removeItem(DATA_KEY_PREFIX+old.id);localStorage.removeItem(PROFILE_KEY_PREFIX+old.id);const legacy=getUsers().find(u=>String(u.email||'').toLowerCase()===String(old.email||'').toLowerCase());if(legacy){localStorage.removeItem(DATA_KEY_PREFIX+legacy.id);localStorage.removeItem(PROFILE_KEY_PREFIX+legacy.id);saveUsers(getUsers().filter(u=>u.id!==legacy.id))}currentUser=null;state=structuredClone(DEFAULT);closeModal();showAuth('login');toast('Account en cloudgegevens definitief verwijderd')}catch(err){toast(err?.message||'Account kon niet worden verwijderd')}}
