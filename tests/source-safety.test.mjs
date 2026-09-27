@@ -19,6 +19,9 @@ assert.ok(html.includes("function validateJournalEntry(entry)"),"Journal validat
 assert.ok(html.includes("function bankFingerprint(t)"),"Bank fingerprint deduplication is required");
 assert.ok(html.includes("function txInvoiceEvidence(t,i)"),"Confidence-based invoice matching is required");
 assert.ok(html.includes("async function reserveFinalInvoiceNumber"),"Server-side invoice number reservation is required");
+assert.ok(html.includes("function invoiceNumberAvailable(number,excludeId='')"),"Invoice uniqueness checks must support excluding the invoice being edited");
+assert.ok(!html.includes("add(!state.invoices.some(i=>i.number===draft.number),'Uniek factuurnummer'"),"Invoice edit validation must not flag its own number as a duplicate");
+assert.ok(html.includes("invoiceChecks({...i,customer:c,paymentDays:i.paymentDays||0},i.id)"),"Existing invoice validation must explicitly exclude its own identity");
 assert.ok(html.includes("function saveCreditDraft"),"Partial credit flow is required");
 assert.ok(html.includes("function correctExpense(id)"),"Booked expenses must use a correction entry instead of hard delete");
 assert.ok(!html.includes("state.expenses=state.expenses.filter(x=>x.id!==id)"),"Booked expenses must not be hard deleted");
