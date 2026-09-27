@@ -1,0 +1,21 @@
+{
+  "name": "Boekuna",
+  "short_name": "Boekuna",
+  "description": "Boekhouden voor ondernemers: facturen, bonnen, btw en administratie.",
+  "lang": "nl-NL",
+  "start_url": "/?login=1&app=1",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F7F9FB",
+  "theme_color": "#23354D",
+  "categories": ["finance", "business", "productivity"],
+  "icons": [
+    {
+      "src": "/assets/boekuna-app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
