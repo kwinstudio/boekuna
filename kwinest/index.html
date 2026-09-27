@@ -1958,15 +1958,26 @@ async function openBillingPortal(){
  }catch(err){console.error('Billing portal',err);toast(err?.message||'Abonnementbeheer kon niet worden geopend.')}
  finally{billingBusy=false}
 }
+async function syncBillingFromStripe(sessionId=''){
+ const res=await fetchWithAuthRetry(EDGE_BASE+'/billing-sync',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({session_id:sessionId||''})});
+ const body=await res.json().catch(()=>({}));
+ if(!res.ok)throw new Error(body?.error||'Abonnementsstatus kon niet worden gesynchroniseerd.');
+ billingSnapshot=null;billingLoadedAt=0;
+ await loadBillingSummary(true);
+ return body
+}
 async function handleBillingReturnAndPlan(){
- const u=new URL(location.href),billing=u.searchParams.get('billing'),plan=u.searchParams.get('plan');
+ const u=new URL(location.href),billing=u.searchParams.get('billing'),plan=u.searchParams.get('plan'),sessionId=u.searchParams.get('session_id')||'';
  if(billing){
-  u.searchParams.delete('billing');
+  u.searchParams.delete('billing');u.searchParams.delete('session_id');
   history.replaceState({},'',u.pathname+(u.search?'?'+u.searchParams.toString():'')+u.hash);
-  await loadBillingSummary(true).catch(()=>null);
-  if(billing==='success')toast('Abonnement bevestigd. Je status wordt bijgewerkt zodra Stripe de betaling heeft verwerkt.');
-  else if(billing==='cancelled')toast('Checkout geannuleerd. Er is niets gewijzigd.');
-  else if(billing==='portal-return')toast('Abonnementsstatus bijgewerkt.');
+  if(billing==='success'){
+   try{await syncBillingFromStripe(sessionId);toast('Abonnement bevestigd. Je plan is bijgewerkt.')}catch(err){console.warn('Billing success sync',err);await loadBillingSummary(true).catch(()=>null);toast('Checkout is afgerond. Je abonnementsstatus wordt nog bijgewerkt.')}
+  }else if(billing==='cancelled'){
+   await loadBillingSummary(true).catch(()=>null);toast('Checkout geannuleerd. Er is niets gewijzigd.')
+  }else if(billing==='portal-return'){
+   try{await syncBillingFromStripe();toast('Abonnementsstatus bijgewerkt.')}catch(err){console.warn('Billing portal sync',err);await loadBillingSummary(true).catch(()=>null)}
+  }
   if(page==='settings')render()
  }
  if(plan&&['boekuna','pro'].includes(plan)){
