@@ -63,4 +63,40 @@ assert detect_vat_rates(["BTW 21"]) == [21.0]
 assert has_complex_adjustments("Totaal 20,00 incl. statiegeld 0,15") is True
 assert has_complex_adjustments("Totaal 121,00 BTW 21%") is False
 
+
+
+# Regression: impossible screenshot case must be corrected even when OCR/AI
+# confidence is high, because 316.34 is not 21% of 7.96.
+from receipt_math import enforce_single_rate_consistency
+r = enforce_single_rate_consistency(
+    rate=21,
+    subtotal=7.96,
+    vat_total=316.34,
+    total=324.30,
+    subtotal_conf=.76,
+    vat_conf=.97,
+    total_conf=.99,
+)
+assert r["used"] is True
+assert r["anchorField"] == "total"
+approx(r["subtotal"], 268.02)
+approx(r["vatTotal"], 56.28)
+approx(r["total"], 324.30)
+assert set(r["correctedFields"]) == {"subtotal", "vatTotal"}
+
+# A mathematically correct 21% trio must remain unchanged.
+r = enforce_single_rate_consistency(
+    rate=21,
+    subtotal=268.02,
+    vat_total=56.28,
+    total=324.30,
+    subtotal_conf=.95,
+    vat_conf=.95,
+    total_conf=.99,
+)
+assert r["used"] is False
+approx(r["subtotal"], 268.02)
+approx(r["vatTotal"], 56.28)
+approx(r["total"], 324.30)
+
 print("Receipt VAT arithmetic tests: PASS")
