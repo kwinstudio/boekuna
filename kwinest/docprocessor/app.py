@@ -18,6 +18,7 @@ except Exception:
     pass
 from docx import Document as DocxDocument
 from openpyxl import load_workbook
+from receipt_math import detect_vat_rates, has_complex_adjustments, derive_single_rate_amounts
 
 RAPIDOCR_GENERATION = "none"
 try:
@@ -397,6 +398,48 @@ def ocr_candidate_score(rows:list[dict[str,Any]]) -> float:
     keyword_count=len(re.findall(r"\b(?:totaal|total|btw|vat|datum|date|pin|eur|euro|subtotal|subtotaal)\b",text,re.I))
     return avg*100 + min(printable,1600)/35 + min(money_count,14)*4 + min(keyword_count,10)*3
 
+FINANCIAL_FOCUS_RE=re.compile(r"\b(?:totaal|total|te betalen|amount due|subtotaal|subtotal|btw|vat|tax|incl\.?|excl\.?|9\s*%|21\s*%)\b",re.I)
+
+def _ocr_row_bounds(row:dict[str,Any])->tuple[float,float,float,float]|None:
+    box=row.get("box") or []
+    try:
+        xs=[float(p[0]) for p in box];ys=[float(p[1]) for p in box]
+        if not xs or not ys:return None
+        return min(xs),min(ys),max(xs),max(ys)
+    except Exception:
+        return None
+
+def targeted_financial_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any)->dict[str,Any]:
+    """Re-scan only the financial band after the first full-page OCR."""
+    bounds=[]
+    for row in rows or []:
+        txt=str(row.get("text") or "")
+        if FINANCIAL_FOCUS_RE.search(txt) or (money_tokens(txt) and re.search(r"\b(?:eur|euro|€)\b",txt,re.I)):
+            b=_ocr_row_bounds(row)
+            if b:bounds.append(b)
+    if not bounds:
+        return {"text":"","rows":[],"confidence":None,"used":False}
+    w,h=img.size
+    y0=max(0,int(min(b[1] for b in bounds)-h*.07))
+    y1=min(h,int(max(b[3] for b in bounds)+h*.10))
+    if y1-y0<max(180,int(h*.10)):
+        mid=(y0+y1)//2
+        half=max(160,int(h*.12))
+        y0=max(0,mid-half);y1=min(h,mid+half)
+    # If nearly the whole receipt was selected, a focused pass adds no value.
+    if y1-y0>h*.88:
+        return {"text":"","rows":[],"confidence":None,"used":False}
+    crop=img.crop((0,y0,w,y1))
+    if crop.height<720:
+        scale=min(2.0,720/max(1,crop.height))
+        crop=crop.resize((max(1,int(crop.width*scale)),max(1,int(crop.height*scale))),Image.Resampling.LANCZOS)
+    focus_rows=ocr_rows(engine,enhanced_receipt_variant(crop))
+    text="\n".join(r["text"] for r in focus_rows)
+    if len(MONEY_RE.findall(text))<1:
+        return {"text":"","rows":[],"confidence":None,"used":False}
+    confs=[float(r.get("confidence") or 0) for r in focus_rows]
+    return {"text":text,"rows":focus_rows,"confidence":sum(confs)/len(confs) if confs else None,"used":True}
+
 def run_best_ocr(img:Image.Image) -> dict[str,Any]:
     engine=get_ocr_engine()
     if not engine:
@@ -418,12 +461,16 @@ def run_best_ocr(img:Image.Image) -> dict[str,Any]:
             best_rows,best_score,best_variant=rows2,score2,"enhanced-grayscale"
     text="\n".join(r["text"] for r in best_rows)
     confs=[float(r.get("confidence") or 0) for r in best_rows]
+    focus=targeted_financial_ocr(primary,best_rows,engine)
     return {
         "text":text,
         "rows":best_rows,
         "confidence":sum(confs)/len(confs) if confs else None,
         "variant":best_variant,
         "qualityScore":round(best_score,2),
+        "financialText":focus.get("text") or "",
+        "financialFocusUsed":bool(focus.get("used")),
+        "financialConfidence":focus.get("confidence"),
         "engine":"RapidOCR 3 / ONNX" if RAPIDOCR_GENERATION=="v3" else "RapidOCR legacy",
         "model":OCR_MODEL_NAME,
     }
@@ -499,9 +546,9 @@ def extract_image(raw:bytes) -> dict[str,Any]:
     return {
         "kind":"image","pageCount":1,
         "pages":[{"page":1,"text":text,"charCount":len(text),"ocr":True,"ocrConfidence":best.get("confidence"),"tables":[]}],
-        "text":text,"layout":[{"page":1,"words":layout}],"tables":[],"ocrPages":[1],
+        "text":text,"financialText":best.get("financialText") or "","layout":[{"page":1,"words":layout}],"tables":[],"ocrPages":[1],
         "ocrEngine":best.get("engine"),"ocrModel":best.get("model"),
-        "processingHints":{"ocrVariant":best.get("variant"),"ocrQualityScore":best.get("qualityScore")}
+        "processingHints":{"ocrVariant":best.get("variant"),"ocrQualityScore":best.get("qualityScore"),"financialFocusUsed":bool(best.get("financialFocusUsed")),"financialConfidence":best.get("financialConfidence")}
     }
 
 def extract_docx(raw:bytes)->dict[str,Any]:
@@ -610,6 +657,26 @@ def receipt_merchant_name(lines:list[str], company:dict)->str|None:
         return cand
     return None
 
+def strong_total_anchor(lines:list[str])->tuple[float|None,float]:
+    """Find a receipt total that is explicitly labelled, avoiding VAT/subtotal rows."""
+    candidates=[]
+    for i,line in enumerate(lines or []):
+        low=line.lower()
+        if not re.search(r"\b(?:totaal|total|te betalen|amount due|grand total)\b",low,re.I):
+            continue
+        if re.search(r"\b(?:subtotaal|subtotal|btw|vat|tax|excl|korting|discount)\b",low,re.I):
+            continue
+        vals=money_tokens(line)
+        if not vals:
+            continue
+        score=.955
+        if re.search(r"\b(?:te betalen|amount due|grand total)\b",low,re.I):score=.985
+        elif re.match(r"^\s*(?:totaal|total)\b",low,re.I):score=.975
+        if "€" in line or re.search(r"\b(?:eur|euro)\b",low,re.I):score=min(.99,score+.005)
+        if i>=max(0,len(lines)-12):score=min(.99,score+.005)
+        candidates.append((abs(vals[-1]),score))
+    return max(candidates,key=lambda x:x[1]) if candidates else (None,0.0)
+
 def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     text=doc.get("text") or ""
     table_lines=[]
@@ -620,6 +687,13 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     if table_lines:
         text=(text+"\n\n--- STRUCTURED TABLES ---\n"+"\n".join(table_lines)).strip()
     lines=[norm_text(x) for x in text.splitlines() if norm_text(x)]
+    financial_text=norm_text(doc.get("financialText") or "").replace(" \n","\n")
+    financial_lines=[norm_text(x) for x in financial_text.splitlines() if norm_text(x)]
+    amount_lines=[];seen_amount_lines=set()
+    for line in financial_lines+lines:
+        key=line.lower()
+        if key not in seen_amount_lines:
+            seen_amount_lines.add(key);amount_lines.append(line)
     low=text.lower()
     self_billing=bool(re.search(r"factuur\s+uitgereikt\s+door\s+afnemer|self[- ]?billing|self[- ]?billed",low))
     supplier,sconf=contact_block(lines,["leverancier","supplier","vendor","seller","from:"],company,"supplier")
@@ -651,14 +725,17 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     order_raw,_=line_after_label(lines,["bestelnummer","ordernummer","order number","purchase order","po number"]); order_no=order_raw[:60] if order_raw else None
     ref_raw,_=line_after_label(lines,["betalingskenmerk","payment reference","payment ref","kenmerk"]); payref=ref_raw[:80] if ref_raw else None
 
-    total,total_conf=labeled_amount(lines,["totaal te betalen","te voldoen","amount due","balance due","grand total","totaal incl. btw","total incl. vat","invoice total","factuurbedrag","factuurtotaal"],["subtotaal","subtotal","excl"])
-    subtotal,sub_conf=labeled_amount(lines,["totaal excl. btw","bedrag excl. btw","total excl. vat","tax exclusive","net amount","subtotaal","subtotal"])
-    vat_total,vat_conf=labeled_amount(lines,["totaal btw","btw totaal","vat total","tax amount","btw-bedrag","btw bedrag"],["btw nr","btw-id","vat id"])
-    discount,disc_conf=labeled_amount(lines,["korting","discount"])
-    shipping,ship_conf=labeled_amount(lines,["verzendkosten","shipping","freight"])
+    total,total_conf=labeled_amount(amount_lines,["totaal te betalen","te voldoen","amount due","balance due","grand total","totaal incl. btw","total incl. vat","invoice total","factuurbedrag","factuurtotaal"],["subtotaal","subtotal","excl"])
+    subtotal,sub_conf=labeled_amount(amount_lines,["totaal excl. btw","bedrag excl. btw","total excl. vat","tax exclusive","net amount","subtotaal","subtotal"])
+    vat_total,vat_conf=labeled_amount(amount_lines,["totaal btw","btw totaal","vat total","tax amount","btw-bedrag","btw bedrag"],["btw nr","btw-id","vat id"])
+    discount,disc_conf=labeled_amount(amount_lines,["korting","discount"])
+    shipping,ship_conf=labeled_amount(amount_lines,["verzendkosten","shipping","freight"])
+    strong_total,strong_total_conf=strong_total_anchor(amount_lines)
+    if strong_total is not None and strong_total_conf>total_conf:
+        total,total_conf=strong_total,strong_total_conf
     if total is None:
         cands=[]
-        for i,l in enumerate(lines):
+        for i,l in enumerate(amount_lines):
             if re.search(r"\b(totaal|total|te betalen|amount due)\b",l,re.I) and not re.search(r"subtotaal|subtotal|excl|btw|vat",l,re.I):
                 vals=money_tokens(l)
                 if vals:cands.append((abs(vals[-1]),.72+(i/len(lines) if lines else 0)*.08))
@@ -670,8 +747,8 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     if subtotal is None and total is not None and vat_total is not None: subtotal,sub_conf=round(total-vat_total,2),.76
 
     vat_lines=[]
-    for i,l in enumerate(lines):
-        rm=re.search(r"\b(0|9|21)\s*%",l)
+    for i,l in enumerate(amount_lines):
+        rm=re.search(r"\b(0|9|21)(?:[.,]0+)?\s*%",l)
         if not rm: continue
         vals=money_tokens(l); rate=float(rm.group(1))
         taxable,tax=best_vat_pair(rate,vals)
@@ -684,6 +761,24 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         if key not in seen:
             seen.add(key);unique.append(v)
     vat_lines=unique[:8]
+
+    # Arithmetic recovery: if exactly one taxable VAT rate is unambiguous and one
+    # amount is a strong anchor, calculate the other amounts rather than trusting
+    # weaker OCR reads. Never do this for mixed VAT or adjustment-heavy receipts.
+    detected_rates=detect_vat_rates(amount_lines)
+    derivation=derive_single_rate_amounts(
+        rate=detected_rates[0] if len(detected_rates)==1 else None,
+        subtotal=subtotal,vat_total=vat_total,total=total,
+        subtotal_conf=sub_conf,vat_conf=vat_conf,total_conf=total_conf,
+        allow=(len(detected_rates)==1 and not has_complex_adjustments(financial_text or "\n".join(amount_lines))),
+    )
+    if derivation.get("used") or derivation.get("conflicts"):
+        subtotal=derivation.get("subtotal")
+        vat_total=derivation.get("vatTotal")
+        total=derivation.get("total")
+        sub_conf=derivation.get("subtotalConfidence",sub_conf)
+        vat_conf=derivation.get("vatConfidence",vat_conf)
+        total_conf=derivation.get("totalConfidence",total_conf)
 
     iban=None
     for x in re.findall(r"\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]){11,30}\b",text,re.I):
@@ -717,13 +812,22 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     }
     if doc.get("ocrPages"):
         for k in list(confidence): confidence[k]*=.9
+    if derivation.get("used") and derivation.get("anchorField"):
+        anchor_key={"subtotal":"subtotal","vatTotal":"vatTotal","total":"total"}.get(derivation["anchorField"])
+        anchor_conf=confidence.get(anchor_key,0) if anchor_key else 0
+        for field in derivation.get("derivedFields",[]):
+            if field in confidence:
+                confidence[field]=max(confidence[field],max(.70,min(.98,anchor_conf*.985)))
+    derivation_warnings=[]
+    for conflict in derivation.get("conflicts",[]):
+        derivation_warnings.append(f"Rekenkundige controle wijkt af voor {conflict['field']}: gelezen {conflict['read']:.2f}, berekend {conflict['calculated']:.2f}.")
     result=ExtractionResult(
         documentType=dtype,originalFileName=filename,pageCount=doc.get("pageCount",1),
         supplier=Supplier(**supplier),customer=Customer(**customer),
         invoice=InvoiceMeta(invoiceNumber=invoice_no,invoiceDate=inv_date,dueDate=due_date,paymentTermDays=term,orderNumber=order_no,paymentReference=payref),
         amounts=Amounts(subtotal=abs(subtotal) if subtotal is not None else None,vatLines=vat_lines,vatTotal=abs(vat_total) if vat_total is not None else None,total=abs(total) if total is not None else None,discount=abs(discount) if discount is not None else None,shipping=abs(shipping) if shipping is not None else None,currency="EUR"),
-        status=status,lineItems=[],confidence=confidence,warnings=[],
-        processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind")}
+        status=status,lineItems=[],confidence=confidence,warnings=derivation_warnings,
+        processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"mixedRates":len(detected_rates)>1}}
     )
     return validate_result(result,company)
 
@@ -780,7 +884,7 @@ def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult)->E
     for p in doc.get("layout",[])[:10]: compact_layout.append({"page":p.get("page"),"words":p.get("words",[])[:900]})
     context={
         "fileName":filename,"pageCount":doc.get("pageCount"),"company":company,"heuristic":heuristic.model_dump(),
-        "text":(doc.get("text") or "")[:70000],"tables":doc.get("tables",[])[:20],"layout":compact_layout,
+        "text":(doc.get("text") or "")[:70000],"financialText":(doc.get("financialText") or "")[:12000],"tables":doc.get("tables",[])[:20],"layout":compact_layout,
     }
     schema={
       "documentType":"purchase_invoice|sales_invoice|credit_invoice|receipt|bank_document|other",
@@ -872,7 +976,7 @@ def require_authenticated_user(request: Request) -> dict:
 
 @app.get("/health")
 def health():
-    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"ocrGeneration":RAPIDOCR_GENERATION,"ocrModel":OCR_MODEL_NAME,"authRequired":True,"version":"2.3"}
+    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"ocrGeneration":RAPIDOCR_GENERATION,"ocrModel":OCR_MODEL_NAME,"authRequired":True,"version":"2.4"}
 
 @app.post("/analyze")
 async def analyze(request:Request,file:UploadFile=File(...),company_json:str=Form("{}"),existing_json:str=Form("[]"),ocr_text:str=Form("")):
