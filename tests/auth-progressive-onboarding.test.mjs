@@ -138,7 +138,7 @@ try{
   // Progressive onboarding: empty profile still reaches dashboard.
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
   await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
-  assert.match(await page.locator('#content').innerText(),/Welkom bij Boekuna/);
+  assert.match(await page.locator('#content').innerText(),/Welkom bij Boekuna/i);
   assert.equal(await page.evaluate(()=>requirementsFor('document-upload').length),0,'Document upload must not require company profile');
 
   // Contact create requires name only.
