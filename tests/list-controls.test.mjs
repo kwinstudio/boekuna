@@ -53,7 +53,7 @@ state.expenses=[
 ];
 state.transactions=[
  {id:'t-new',date:iso(now),description:'Stripe payout september',amount:300,status:'unmatched'},
- {id:'t-jansen',date:iso(issueRecent),description:'Betaling Jansen',amount:121,status:'matched',matchType:'invoice',matchId:'i-overdue'},
+ {id:'t-jansen',date:iso(issueRecent),description:'Deelbetaling open factuur',amount:121,status:'matched',matchType:'invoice',matchId:'i-open'},
  {id:'t-adobe',date:iso(older),description:'Adobe Creative Cloud',amount:-25,status:'matched',matchType:'expense',matchId:'e-adobe'}
 ];
 state.documents=[
