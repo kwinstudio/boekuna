@@ -157,6 +157,11 @@ try{
   assert.ok(rows.every(x=>!x.includes(String(new Date().getFullYear()-1)+'-0099')),'Period + status must exclude previous year');
 
   await page.locator('[data-list-clear-filters]').click();
+  await page.getByRole('button',{name:'Betaald'}).click();
+  rows=await visibleRowTexts();
+  assert.equal(rows.length,1,'Paid quick filter must return fully paid invoices');
+  assert.match(rows[0],/0003/);
+  await page.locator('[data-list-clear-filters]').click();
   await setSort('amount-desc');
   rows=await visibleRowTexts();
   assert.match(rows[0],/0099/,'Amount high→low must put largest invoice first');
@@ -192,6 +197,11 @@ try{
   rows=await visibleRowTexts();
   assert.equal(rows.length,1);
   assert.match(rows[0],/Jansen BV/);
+  await clearSearch();
+  await search('Alpha Supply');
+  rows=await visibleRowTexts();
+  assert.equal(rows.length,1,'Supplier search must search supplier names');
+  assert.match(rows[0],/Alpha Supply/);
   await clearSearch();
   await page.getByRole('button',{name:'Klanten'}).click();
   rows=await visibleRowTexts();
