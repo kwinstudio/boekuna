@@ -1725,6 +1725,8 @@ img.bookuna-logo-icon,
   #mainApp .sidebar.open{left:0!important}
 }
 
+
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -2540,13 +2542,12 @@ async function startSelectedDocumentUpload(input,kind='auto'){
  if(!file){toast('Geen bestand geselecteerd');return}
  pendingUploadKind=kind;
  const label=kind==='purchase'?'Bon verwerken':'Document verwerken';
- setImportProgress(label,'Bestand ontvangen…',`${file.name} · ${Math.max(1,Math.round(file.size/1024))} KB`);
+ setImportProgress(label,'Bestand ontvangen…',`${file.name} · ${Math.max(1,Math.round(file.size/1024))} KB`,5,1);
  try{
   await processFinancialDocument(file)
  }catch(err){
   console.error('Document upload failed',err);
-  closeModal();
-  toast(err?.message||'Document uploaden is mislukt. Probeer het opnieuw.')
+  showUploadError(err,file)
  }finally{
   if(input)input.value=''
  }
@@ -2645,7 +2646,7 @@ function buildProcessorExistingIndex(){
  return rows.slice(0,1500)
 }
 async function extractDocumentServer(file,onProgress){
- if(file.size>15*1024*1024)throw new Error('Bestand is groter dan 15 MB. Verklein het bestand en probeer opnieuw.');
+ if(file.size>15*1024*1024)throw createUploadError('FILE_TOO_LARGE','Bestand is groter dan 15 MB.',413);
  onProgress?.('Document veilig naar documentprocessor v2 sturen…');
  const fd=new FormData();fd.append('file',file,file.name);const c=state.company||{};fd.append('company_json',JSON.stringify({name:c.name||'',tradeName:c.tradeName||'',kvk:c.kvk||'',vat:c.vat||''}));fd.append('existing_json',JSON.stringify(buildProcessorExistingIndex()));
  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),120000);
@@ -2654,12 +2655,12 @@ async function extractDocumentServer(file,onProgress){
   let j={};try{j=await r.json()}catch(e){}
   if(!r.ok||!j.ok){
    const detail=Array.isArray(j.detail)?j.detail.map(x=>x?.msg||'ongeldige upload').join(', '):(j.detail||j.error);
-   throw new Error(detail||`Documentverwerking mislukt (${r.status})`)
+   throw createUploadError(String(r.status),detail||`Documentverwerking mislukt (${r.status})`,r.status)
   }
   const d=j.data||{},p=d.processing||{},preview=j.preview||{},pages=Array.isArray(preview.pages)?preview.pages:[],tables=Array.isArray(preview.tables)?preview.tables:[];
   return {ok:true,kind:p.sourceKind||((file.name.split('.').pop()||'').toLowerCase()),pageCount:Number(d.pageCount||p.pages||1),text:String(preview.text||''),pages,tables,tableCount:Number(p.tablesFound||tables.length||0),ocrUsed:Array.isArray(p.ocrPages)&&p.ocrPages.length>0,ocrPages:Array.isArray(p.ocrPages)?p.ocrPages:[],warnings:Array.isArray(d.warnings)?d.warnings:[],documentTypeHint:d.documentType||'',analysis:d,duplicateCandidates:Array.isArray(j.duplicateCandidates)?j.duplicateCandidates:[],sha256:await fileSha256(file)}
  }catch(e){
-  if(e?.name==='AbortError')throw new Error('Documentverwerking duurde te lang. Probeer het opnieuw met een kleiner bestand.');
+  if(e?.name==='AbortError')throw createUploadError('TIMEOUT','Documentverwerking duurde langer dan 120 seconden.',408);
   throw e
  }finally{clearTimeout(timer)}
 }
@@ -2870,17 +2871,78 @@ async function analyzeInvoiceWithAI(file,extractedText,localGuess){
  if(!res.ok||!json.ok)throw new Error(json.error||`AI-controle mislukt (${res.status})`);
  const a=json.data||{};return {...a,sourceQuality:pdfBase64?'ai-pdf':'ai-text',aiModel:json.model||'',confidenceScore:Number(a.confidence||0),fieldConfidence:a.fieldConfidence||{},warnings:a.warnings||[]}
 }
-function setImportProgress(title,msg,sub=''){modal(title,`<div class="empty"><strong>${esc(msg)}</strong>${esc(sub)}</div><div class="progress" style="margin:0 28px 28px"><span style="width:100%;animation:pulse 1.1s ease-in-out infinite"></span></div>`)}
+const UPLOAD_ERROR_CODES={
+ '400':['Ongeldige aanvraag','Het bestand of de meegestuurde gegevens zijn niet geldig.','Kies het bestand opnieuw. Blijft dit gebeuren, probeer een ander bestand of exporteer de factuur opnieuw.'],
+ '401':['Sessie verlopen','Je inlogsessie is niet meer geldig.','Vernieuw Boekuna en log opnieuw in. De upload wordt daarna opnieuw gestart.'],
+ '403':['Geen toegang','De scanner weigert deze aanvraag vanwege toegangs- of beveiligingsregels.','Controleer of je bent ingelogd en Boekuna via de officiële website gebruikt.'],
+ '404':['Scanner niet gevonden','De uploadroute of scanner is tijdelijk niet bereikbaar.','Vernieuw de pagina en probeer opnieuw.'],
+ '405':['Methode niet toegestaan','De scanner ontving een type aanvraag dat hier niet is toegestaan.','Vernieuw Boekuna. Als dit blijft terugkomen, is een technische update nodig.'],
+ '408':['Time-out','De verwerking duurde te lang en is afgebroken.','Probeer opnieuw met een kleiner bestand of een scherpere scan.'],
+ '409':['Conflict','Deze verwerking botst met bestaande gegevens of een lopende actie.','Controleer of het document al is toegevoegd en probeer daarna opnieuw.'],
+ '410':['Niet meer beschikbaar','De aangeroepen uploadroute is niet meer beschikbaar.','Vernieuw Boekuna zodat de nieuwste scanner wordt geladen.'],
+ '413':['Bestand te groot','Het document is groter dan de maximale uploadgrootte.','Verklein of comprimeer het bestand en probeer opnieuw.'],
+ '415':['Bestandstype niet ondersteund','Dit bestandstype kan niet betrouwbaar door de scanner worden verwerkt.','Gebruik PDF, JPG/JPEG, PNG, WebP, HEIC/HEIF, TIFF, BMP, GIF, DOCX, XLSX of CSV.'],
+ '422':['Document niet verwerkbaar','Het bestand is ontvangen, maar de scanner kan de inhoud of structuur niet betrouwbaar verwerken.','Controleer of het bestand niet beschadigd is. Maak bij een bon eventueel een nieuwe, scherpe foto.'],
+ '423':['Tijdelijk vergrendeld','Het document of de verwerking is tijdelijk geblokkeerd.','Wacht kort en probeer opnieuw.'],
+ '425':['Te vroeg opnieuw geprobeerd','De server wil deze aanvraag nog niet verwerken.','Wacht enkele seconden en probeer opnieuw.'],
+ '429':['Te veel aanvragen','Er zijn te veel uploads kort na elkaar uitgevoerd.','Wacht even en probeer daarna opnieuw.'],
+ '431':['Aanvraag te groot','De meegestuurde aanvraaggegevens zijn te groot.','Probeer een kleiner document of vernieuw de pagina.'],
+ '451':['Geblokkeerd','De aanvraag kan door een beleids- of toegangsbeperking niet worden verwerkt.','Controleer de bron en het bestand en neem contact op als dit bij normale facturen blijft gebeuren.'],
+ '500':['Interne scannerfout','Er ging iets mis in de documentprocessor.','Probeer opnieuw. Blijft de fout terugkomen, dan moet de serverlog worden gecontroleerd.'],
+ '501':['Functie niet beschikbaar','De server ondersteunt deze verwerking op dit moment niet.','Gebruik een ondersteund bestandstype of probeer later opnieuw.'],
+ '502':['Scanner-gateway fout','Een achterliggende scanner- of AI-service gaf geen geldige reactie.','Probeer opnieuw; meestal is dit tijdelijk.'],
+ '503':['Scanner tijdelijk niet beschikbaar','De documentprocessor is tijdelijk niet beschikbaar of wordt opnieuw gestart.','Wacht een minuut en probeer opnieuw.'],
+ '504':['Scanner-time-out','Een achterliggende dienst reageerde niet op tijd.','Probeer opnieuw met een kleiner bestand of wacht kort.'],
+ '505':['Protocol niet ondersteund','De server en aanvraag gebruiken niet dezelfde HTTP-versie.','Vernieuw de pagina; als dit blijft gebeuren is een technische update nodig.'],
+ '507':['Onvoldoende opslag','De server kan het document tijdelijk niet opslaan.','Probeer later opnieuw.'],
+ '508':['Verwerkingslus','De server is tijdens de verwerking in een interne lus terechtgekomen.','Probeer opnieuw; als dit terugkomt is serveronderzoek nodig.'],
+ '511':['Netwerkauthenticatie vereist','Het netwerk blokkeert de verbinding totdat opnieuw is geauthenticeerd.','Controleer je wifi/internetverbinding en probeer opnieuw.'],
+ NETWORK_ERROR:['Netwerkfout','Boekuna kon geen verbinding maken met de scanner.','Controleer je internetverbinding en probeer opnieuw.'],
+ TIMEOUT:['Time-out','De scanner deed langer over de verwerking dan toegestaan.','Probeer opnieuw met een kleiner bestand of een scherpere scan.'],
+ FILE_TOO_LARGE:['Bestand te groot','Het bestand overschrijdt de uploadlimiet van 15 MB.','Comprimeer of verklein het document en probeer opnieuw.'],
+ UNSUPPORTED_FILE:['Bestandstype niet ondersteund','Boekuna herkent dit bestandstype niet als ondersteund document.','Gebruik PDF, een ondersteunde afbeelding, Word, Excel of CSV.'],
+ OCR_FAILED:['OCR kon de bon niet lezen','De lokale tekstherkenning kon geen bruikbare tekst uit de foto halen.','Maak een nieuwe foto: recht van boven, voldoende licht, scherp en zonder afgesneden randen.'],
+ PDF_READ_FAILED:['PDF kon niet worden gelezen','Zowel de server als de lokale PDF-lezer konden het document niet betrouwbaar uitlezen.','Download/exporteer de PDF opnieuw of upload een scherpe afbeelding van de factuur.'],
+ SESSION_EXPIRED:['Sessie verlopen','Je login is verlopen voordat de upload kon starten.','Log opnieuw in en probeer de upload opnieuw.'],
+ UNKNOWN:['Onbekende uploadfout','Er is een onverwachte fout opgetreden.','Probeer opnieuw. Noteer de foutcode als het probleem terugkomt.']
+};
+function createUploadError(code,message='',status=null){const e=new Error(message||String(code||'Uploadfout'));e.code=String(code||'UNKNOWN');e.status=status??(Number.isFinite(Number(code))?Number(code):null);return e}
+function uploadErrorInfo(err){
+ const rawCode=String(err?.code||'').trim(),status=Number(err?.status||0)||Number((String(err?.message||'').match(/\((\d{3})\)/)||[])[1]||0);
+ let code=rawCode|| (status?String(status):'');
+ if(err?.name==='AbortError')code='TIMEOUT';
+ if(!code&&err instanceof TypeError)code='NETWORK_ERROR';
+ if(!code)code='UNKNOWN';
+ let info=UPLOAD_ERROR_CODES[code];
+ if(!info&&status>=400&&status<500)info=['Aanvraagfout',`De scanner heeft de upload geweigerd (HTTP ${status}).`,'Controleer het bestand, je sessie en probeer opnieuw.'];
+ if(!info&&status>=500&&status<600)info=['Serverfout',`De scanner heeft een serverfout teruggegeven (HTTP ${status}).`,'Wacht kort en probeer opnieuw. Als het blijft gebeuren moet de serverlog worden gecontroleerd.'];
+ if(!info)info=UPLOAD_ERROR_CODES.UNKNOWN;
+ return {code:status?String(status):code,title:info[0],explanation:info[1],action:info[2],detail:String(err?.message||'').trim()}
+}
+function uploadErrorCatalogHtml(){
+ const keys=['400','401','403','404','405','408','409','410','413','415','422','423','425','429','431','451','500','501','502','503','504','505','507','508','511','NETWORK_ERROR','TIMEOUT','FILE_TOO_LARGE','UNSUPPORTED_FILE','OCR_FAILED','PDF_READ_FAILED','SESSION_EXPIRED'];
+ return keys.map(k=>{const x=UPLOAD_ERROR_CODES[k];return `<div style="display:grid;grid-template-columns:92px 1fr;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)"><strong>${esc(k)}</strong><span><b>${esc(x[0])}</b> — ${esc(x[1])}</span></div>`}).join('')
+}
+function showUploadError(err,file=null){
+ const x=uploadErrorInfo(err),fileInfo=file?`<div class="help" style="margin-top:6px">${esc(file.name)} · ${Math.max(1,Math.round(file.size/1024))} KB</div>`:'';
+ const technical=x.detail&&x.detail!==x.explanation?`<details style="margin-top:14px"><summary>Technische details</summary><div class="notice" style="margin-top:8px;word-break:break-word">${esc(x.detail)}</div></details>`:'';
+ modal('Upload niet gelukt',`<div class="notice warn"><strong>Foutcode ${esc(x.code)} · ${esc(x.title)}</strong><p style="margin:8px 0 0">${esc(x.explanation)}</p>${fileInfo}</div><div class="card" style="margin-top:14px"><strong>Wat kun je doen?</strong><p style="margin:6px 0 0">${esc(x.action)}</p></div>${technical}<details style="margin-top:14px"><summary>Uitleg van mogelijke upload-foutcodes</summary><div style="margin-top:8px;max-height:300px;overflow:auto">${uploadErrorCatalogHtml()}</div></details>`,`<button class="btn" onclick="closeModal()">Sluiten</button>`)
+}
+function setImportProgress(title,msg,sub='',percent=10,step=1){
+ const pct=Math.max(1,Math.min(100,Number(percent)||10)),steps=['Ontvangen','Valideren','Uitlezen / OCR','Herkennen','Controleren','Klaar'];
+ const stepHtml=steps.map((label,i)=>`<div style="display:flex;align-items:center;gap:7px;color:${i<step?'var(--text)':'var(--muted)'}"><span style="width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);font-size:12px;font-weight:800">${i+1}</span><span>${label}</span></div>`).join('');
+ modal(title,`<div style="padding:8px 4px 2px"><div style="display:flex;align-items:center;gap:14px"><div aria-hidden="true" style="width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite"></div><div><strong style="display:block;font-size:17px">${esc(msg)}</strong><div class="help" style="margin-top:4px">${esc(sub)}</div></div><div style="margin-left:auto;font-weight:800">${pct}%</div></div><div class="progress" style="margin:18px 0 16px"><span style="width:${pct}%;transition:width .3s ease"></span></div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">${stepHtml}</div><div class="help" style="margin-top:16px">Laat dit scherm open. Een scan of foto kan door OCR wat langer duren.</div></div>`);
+}
 async function handleInvoicePdfFile(e){return processFinancialDocument(e.target.files?.[0])}
 async function processFinancialDocument(file,preStructure=null){
  cleanupPendingImport();if(!file)return;
- const ext=(file.name.split('.').pop()||'').toLowerCase(),isPhoto=String(file.type||'').toLowerCase().startsWith('image/')||['jpg','jpeg','png','webp','heic','heif','tif','tiff','bmp','gif'].includes(ext),allowed=['pdf','docx','xlsx','csv'];if(!isPhoto&&!allowed.includes(ext))return toast('Ondersteund: PDF, foto’s (ook HEIC/HEIF), Word, Excel en CSV');
- setImportProgress('Document verwerken','1. Uploaden…','Bestand wordt gevalideerd en veilig verwerkt.');
+ const ext=(file.name.split('.').pop()||'').toLowerCase(),isPhoto=String(file.type||'').toLowerCase().startsWith('image/')||['jpg','jpeg','png','webp','heic','heif','tif','tiff','bmp','gif'].includes(ext),allowed=['pdf','docx','xlsx','csv'];if(!isPhoto&&!allowed.includes(ext))throw createUploadError('UNSUPPORTED_FILE',`Niet ondersteund bestandstype: .${ext||'onbekend'}`,415);
+ setImportProgress('Document verwerken','Bestand valideren…','Bestandstype, grootte en veiligheid worden gecontroleerd.',12,2);
  let structure=null,browserStructure=null,parsed=null,ocrText='',processorError='';
  try{
-  setImportProgress('Document verwerken','2. Document analyseren…','Bestandstype, pagina’s en documentstructuur worden gecontroleerd.');
+  setImportProgress('Document verwerken','Document analyseren…','Pagina’s, tekstlagen, tabellen en documentstructuur worden gecontroleerd.',28,2);
   structure=preStructure||await extractDocumentServer(file,msg=>{const strong=document.querySelector('#modalRoot .empty strong');if(strong)strong.textContent=msg});
-  setImportProgress('Document verwerken','3. Tekst uitlezen…',structure.ocrUsed?'Scan gedetecteerd: OCR is automatisch gebruikt.':'Digitale tekstlaag en tabellen zijn uitgelezen.');
+  setImportProgress('Document verwerken','Tekst uitlezen…',structure.ocrUsed?'Scan gedetecteerd: OCR wordt gebruikt.':'Digitale tekstlaag en tabellen zijn uitgelezen.',48,3);
   const tableText=processorTablesToText(structure.tables),serverText=[structure.text,tableText].filter(Boolean).join('\n\n--- TABELSTRUCTUUR ---\n\n');
   if(ext==='pdf'&&file.size<9*1024*1024){try{browserStructure=await readPdfStructure(file);parsed=findEmbeddedInvoice(browserStructure,pendingUploadKind)}catch(err){console.warn('Embedded PDF check',err)}}
   if(!parsed)parsed=parseInvoicePdf(serverText,file.name,pendingUploadKind);
@@ -2893,32 +2955,32 @@ async function processFinancialDocument(file,preStructure=null){
   processorError=err?.message||'Documentverwerking mislukt';console.warn('Document processor',err);
   if(isPhoto&&!['heic','heif'].includes(ext)){
    try{
-    setImportProgress('Document verwerken','3. Lokale OCR-fallback…','De serververwerking was niet beschikbaar; de foto wordt lokaal gelezen.');
+    setImportProgress('Document verwerken','Lokale OCR gebruiken…','De serververwerking was niet beschikbaar; de foto wordt veilig in je browser gelezen.',44,3);
     ocrText=await ocrImageFile(file,msg=>{const strong=document.querySelector('#modalRoot .empty strong');if(strong)strong.textContent=msg});
     parsed=applyRecognitionQuality(parseInvoicePdf(ocrText,file.name,pendingUploadKind));
     parsed.processor={kind:'image',pageCount:1,ocrUsed:true,ocrPages:[1],ocrConfidence:null,tables:0,warnings:[processorError]};
     parsed.pageCount=1;parsed.sourceQuality='ocr';parsed.text=ocrText
-   }catch(localErr){console.warn('Local image OCR',localErr);closeModal();toast(processorError);return}
+   }catch(localErr){console.warn('Local image OCR',localErr);throw createUploadError('OCR_FAILED',localErr?.message||processorError)}
   }else if(ext==='pdf'){
    try{
-    setImportProgress('Document verwerken','3. Lokale fallback…','Serververwerking was niet beschikbaar; de PDF wordt lokaal gelezen.');browserStructure=browserStructure||await readPdfStructure(file);parsed=findEmbeddedInvoice(browserStructure,pendingUploadKind)||applyRecognitionQuality(parseInvoicePdf(browserStructure.text,file.name,pendingUploadKind));
+    setImportProgress('Document verwerken','PDF lokaal uitlezen…','De serververwerking was niet beschikbaar; Boekuna probeert de PDF in je browser uit te lezen.',44,3);browserStructure=browserStructure||await readPdfStructure(file);parsed=findEmbeddedInvoice(browserStructure,pendingUploadKind)||applyRecognitionQuality(parseInvoicePdf(browserStructure.text,file.name,pendingUploadKind));
     const needsOcr=parsed.confidenceScore<88||parsed.recognitionBad>0||parsed.recognitionWarn>0||!parsed.party||!parsed.invoiceNumber||parsed.gross===''||browserStructure.text.length<220;
     if(needsOcr){ocrText=await ocrPdfPages(browserStructure,msg=>{const strong=document.querySelector('#modalRoot .empty strong');if(strong)strong.textContent=msg});const op=applyRecognitionQuality(parseInvoicePdf(ocrText,file.name,pendingUploadKind));op.sourceQuality='ocr';parsed=applyRecognitionQuality(mergeParsed(parsed,op))}
     parsed.processor={kind:'pdf',pageCount:browserStructure.numPages,ocrUsed:!!ocrText,ocrPages:[],ocrConfidence:null,tables:0,warnings:[processorError]};parsed.pageCount=browserStructure.numPages;parsed.sourceQuality=ocrText?'pdf-text+ocr':'pdf-text';
-   }catch(localErr){closeModal();toast('Deze PDF kon niet betrouwbaar worden uitgelezen. Controleer of het bestand niet beschadigd is.');return}
-  }else{closeModal();toast(processorError);return}
+   }catch(localErr){throw createUploadError('PDF_READ_FAILED',localErr?.message||'Deze PDF kon niet betrouwbaar worden uitgelezen.')}
+  }else{throw err}
  }
- setImportProgress('Document verwerken','4. Factuurgegevens herkennen…','Leverancier/klant, factuurnummer, datums, bedragen en btw worden gekoppeld.');
+ setImportProgress('Document verwerken','Factuurgegevens herkennen…','Leverancier/klant, factuurnummer, datums, bedragen en btw worden gekoppeld.',66,4);
  const extracted=[structure?.text||'',processorTablesToText(structure?.tables||[]),ocrText||'',parsed?.text||''].filter(Boolean).join('\n\n---\n\n');
  try{
   const ai=await analyzeInvoiceWithAI(file,extracted,parsed);parsed=applyRecognitionQuality(mergeAIParsed(parsed,ai,pendingUploadKind));
   if(shouldRunSecondInvoicePass(parsed)){
-   setImportProgress('Document verwerken','5. Bedragen controleren…','Onzekere velden krijgen een tweede onafhankelijke AI-controle.');const verifyBody={forcedType:pendingUploadKind||'auto',fileName:file.name,company:state.company||{},extractedText:extracted.slice(0,30000),localGuess:compactLocalGuess(parsed),pdfBase64:file.size<=2600000&&ext==='pdf'?await fileToBase64(file):'',testMode:TEST_MODE_NO_AUTH,reviewMode:'verify',issues:(parsed.recognitionChecks||[]).filter(x=>x.level!=='good')};const verifyRes=await fetch(EDGE_BASE+'/analyze-invoice',{method:'POST',headers:await apiAuthHeaders({'content-type':'application/json'}),body:JSON.stringify(verifyBody)});const verifyJson=await verifyRes.json().catch(()=>({}));if(verifyRes.ok&&verifyJson.ok){const a=normalizeAiCandidate(verifyJson.data||{});const verified={...a,sourceQuality:verifyBody.pdfBase64?'ai-pdf':'ai-text',aiModel:verifyJson.model||'',confidenceScore:Number(a.confidenceScore||0),fieldConfidence:a.fieldConfidence||{},warnings:a.warnings||[]};parsed=applyRecognitionQuality(mergeAIParsed(parsed,verified,pendingUploadKind));parsed.secondAIPass=true}
+   setImportProgress('Document verwerken','Bedragen controleren…','Onzekere velden krijgen een tweede onafhankelijke controle.',84,5);const verifyBody={forcedType:pendingUploadKind||'auto',fileName:file.name,company:state.company||{},extractedText:extracted.slice(0,30000),localGuess:compactLocalGuess(parsed),pdfBase64:file.size<=2600000&&ext==='pdf'?await fileToBase64(file):'',testMode:TEST_MODE_NO_AUTH,reviewMode:'verify',issues:(parsed.recognitionChecks||[]).filter(x=>x.level!=='good')};const verifyRes=await fetch(EDGE_BASE+'/analyze-invoice',{method:'POST',headers:await apiAuthHeaders({'content-type':'application/json'}),body:JSON.stringify(verifyBody)});const verifyJson=await verifyRes.json().catch(()=>({}));if(verifyRes.ok&&verifyJson.ok){const a=normalizeAiCandidate(verifyJson.data||{});const verified={...a,sourceQuality:verifyBody.pdfBase64?'ai-pdf':'ai-text',aiModel:verifyJson.model||'',confidenceScore:Number(a.confidenceScore||0),fieldConfidence:a.fieldConfidence||{},warnings:a.warnings||[]};parsed=applyRecognitionQuality(mergeAIParsed(parsed,verified,pendingUploadKind));parsed.secondAIPass=true}
   }
  }catch(aiErr){console.warn('AI invoice review failed',aiErr);parsed.aiError=aiErr?.message||'AI-controle niet beschikbaar'}
  parsed=applyRecognitionQuality(parsed);parsed.documentType=classifyDocumentType(parsed,structure?.documentTypeHint||parsed.documentType||'');parsed.isCredit=parsed.documentType==='credit_invoice'||!!parsed.isCredit;if(parsed.isCredit)parsed.status='credit';
  const duplicate=duplicateInvoiceCandidate(parsed,structure?.sha256||parsed.sha256||'');if(duplicate)parsed.duplicateCandidate=duplicate;
- setImportProgress('Document verwerken','6. Klaar voor controle','De gegevens zijn genormaliseerd en gecontroleerd.');
+ setImportProgress('Document verwerken','Klaar voor controle','De gegevens zijn genormaliseerd en gecontroleerd. Het controlescherm wordt geopend.',98,6);
  const previewUrl=(ext==='pdf'||String(file.type||'').toLowerCase().startsWith('image/')||['jpg','jpeg','png','webp','heic','heif','tif','tiff','bmp','gif'].includes(ext))?URL.createObjectURL(file):null;pendingPdfImport={file,parsed,previewUrl,sha256:structure?.sha256||parsed.sha256||''};setTimeout(()=>showPdfImportReview(parsed),80)
 }
 function confidenceLabel(n){return n>=90?['Zeer hoge herkenning','good']:n>=75?['Goede herkenning','good']:n>=55?['Controle nodig','warn']:['Handmatige controle vereist','bad']}
