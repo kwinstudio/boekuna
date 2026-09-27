@@ -36,5 +36,11 @@ for(const id of ["invoicePdfFile","receiptPhotoFile","receiptCameraFile"]){
 assert.ok(html.includes("async function startSelectedDocumentUpload"),"Selected documents must enter one shared, user-visible upload pipeline");
 assert.ok(html.includes("pendingPdfImport=null"),"Document import state must be declared before cleanup/use");
 assert.ok(html.includes("pendingUploadKind='auto'"),"Upload mode state must be declared explicitly");
+assert.ok(html.includes("function setImportProgress(title,msg,sub='',percent=10,step=1)"),"Upload progress must expose real staged percentages");
+assert.ok(html.includes("function showUploadError(err,file=null)"),"Upload errors must render a user-facing explanation");
+assert.ok(html.includes("function uploadErrorInfo(err)"),"Upload errors must be translated centrally");
+for(const code of ["400","401","403","408","413","415","422","429","500","502","503","504","NETWORK_ERROR","TIMEOUT","OCR_FAILED","PDF_READ_FAILED"]){
+  assert.ok(html.includes(`'${code}':[`)||html.includes(` ${code}:[`),`Upload error code ${code} must have an explanation`);
+}
 
 console.log("Boekuna source safety tests: PASS");
