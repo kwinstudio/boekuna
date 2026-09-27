@@ -36,6 +36,8 @@ jobs:
         run: ./tests/node_modules/.bin/playwright install --with-deps chromium
       - name: Browser pre-launch smoke
         run: node tests/browser-smoke.test.mjs
+      - name: Auth and progressive onboarding
+        run: node tests/auth-progressive-onboarding.test.mjs
       - name: Contextual list controls
         run: node tests/list-controls.test.mjs
       - name: Invoice status edit regression
