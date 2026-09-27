@@ -1704,7 +1704,7 @@ async function migrateLegacyFilesToCloud(){if(!currentUser||!Array.isArray(state
 function clearLegacyLocalAccount(email){const u=legacyUserForEmail(email);if(!u)return;localStorage.removeItem(DATA_KEY_PREFIX+u.id);localStorage.removeItem(PROFILE_KEY_PREFIX+u.id);saveUsers(getUsers().filter(x=>x.id!==u.id));if(localStorage.getItem(SESSION_KEY)===u.id)localStorage.removeItem(SESSION_KEY)}
 async function hydrateCloudAccount(user){currentUser={id:user.id,email:user.email||'',supabaseUser:user};state=load();const sb=await getSupabase();const [{data:profileRow,error:profileErr},{data:ledgerRow,error:ledgerErr}]=await Promise.all([sb.from('profiles').select('company').eq('user_id',user.id).maybeSingle(),sb.from('ledger_state').select('state,version').eq('user_id',user.id).maybeSingle()]);if(profileErr)throw profileErr;if(ledgerErr)throw ledgerErr;cloudVersion=Number(ledgerRow?.version||1);const cloudState=ledgerRow?.state&&Object.keys(ledgerRow.state).length?ledgerRow.state:null;const legacy=!cloudState?legacySnapshotForEmail(user.email):null;state=normalizeState(cloudState||legacy||{});if(profileRow?.company)state.company={...state.company,...profileRow.company};localStorage.setItem(userDataKey(),JSON.stringify(state));localStorage.setItem(userProfileKey(),JSON.stringify(state.company||{}));if(!cloudState){await syncCloudProfile(state.company);await syncCloudStateNow();if(legacy){const moved=await migrateLegacyFilesToCloud();clearLegacyLocalAccount(user.email);toast(`Je bestaande administratie is naar de cloud gekopieerd${moved?` · ${moved} document(en) meegenomen`:''}`)}}setCloudSyncStatus('saved')}
 function logEvent(action,detail='',entityType='',entityId='',oldValue=null,newValue=null){if(!Array.isArray(state.audit))state.audit=[];state.audit.unshift({id:uid('a'),at:new Date().toISOString(),actorId:String(currentUser?.id||''),actorEmail:String(currentUser?.email||''),action:String(action||''),detail:String(detail||''),entityType:String(entityType||''),entityId:String(entityId||''),oldValue:oldValue==null?null:structuredClone(oldValue),newValue:newValue==null?null:structuredClone(newValue)});state.audit=state.audit.slice(0,1000)}
-function invoiceEffectiveStatus(i){if(!i)return 'draft';if(i.status==='cancelled')return 'cancelled';if(i.status==='draft')return 'draft';const paid=invoicePaidAmount(i),out=invoiceOutstanding(i);if(out<=0.02&&Math.abs(invoiceGross(i))>0)return 'paid';if(paid>0&&out>0.02)return 'partial';if(i.dueDate&&i.dueDate<today())return 'overdue';return i.status||'sent'}
+function invoiceEffectiveStatus(i){if(!i)return 'draft';if(i.status==='cancelled')return 'cancelled';if(i.status==='draft')return 'draft';const paid=invoicePaidAmount(i),out=invoiceOutstanding(i);if(toCents(out)===0&&Math.abs(invoiceGross(i))>0)return 'paid';if(paid>0&&toCents(out)>0)return 'partial';if(i.dueDate&&i.dueDate<today())return 'overdue';return i.status||'sent'}
 function daysUntil(d){if(!d)return 9999;const a=new Date(today()+'T12:00:00'),b=new Date(d+'T12:00:00');return Math.ceil((b-a)/86400000)}
 function cashBalance(){return state.transactions.reduce((s,t)=>s+Number(t.amount||0),0)}
 function quarterVatPosition(){const q=currentQuarter(),year=currentBookYear(),out=state.invoices.filter(i=>i.status!=='draft'&&inQuarter(i.issueDate,q,year)).reduce((s,i)=>roundMoney(s+invoiceVat(i)),0),input=state.expenses.filter(e=>inQuarter(e.date,q,year)).reduce((s,e)=>roundMoney(s+expenseVat(e)),0);return roundMoney(out-input)}
@@ -2143,8 +2143,17 @@ function roundMoney(v){return fromCents(toCents(v))}
 function lineNetAmount(l){return roundMoney(Number(l?.qty||0)*Number(l?.unit||0))}
 function invoiceDiscountBase(i){return roundMoney((i?.lines||[]).reduce((s,l)=>roundMoney(s+lineNetAmount(l)),0))}
 function invoiceDiscountAmount(i){const base=Math.max(0,invoiceDiscountBase(i)),type=String(i?.discountType||'none'),value=Math.max(0,Number(i?.discountValue||0));if(type==='percent')return roundMoney(Math.min(base,base*Math.min(100,value)/100));if(type==='fixed')return roundMoney(Math.min(base,value));return 0}
-function invoiceDiscountFactor(i){const base=invoiceDiscountBase(i);return base>0?roundMoney((base-invoiceDiscountAmount(i))/base):1}
-function discountedLineNet(i,l){return roundMoney(lineNetAmount(l)*invoiceDiscountFactor(i))}
+function allocateDiscountCents(amounts,discountCents){
+ const total=amounts.reduce((sum,value)=>sum+value,0),discount=Math.min(Math.max(0,discountCents),Math.max(0,total));
+ if(!discount||total<=0)return amounts.slice();
+ const target=total-discount,parts=amounts.map((value,index)=>{const scaled=value*target/total;return {index,cents:Math.floor(scaled),remainder:scaled-Math.floor(scaled)}});
+ let remainder=target-parts.reduce((sum,part)=>sum+part.cents,0);
+ const order=parts.slice().sort((a,b)=>b.remainder-a.remainder||a.index-b.index);
+ for(let index=0;index<remainder;index++)order[index%order.length].cents++;
+ return parts.map(part=>part.cents);
+}
+function invoiceDiscountFactor(i){const base=invoiceDiscountBase(i);return base>0?(base-invoiceDiscountAmount(i))/base:1}
+function discountedLineNet(i,l){const lines=i?.lines||[],index=lines.indexOf(l);if(index<0)return roundMoney(lineNetAmount(l)*invoiceDiscountFactor(i));return fromCents(allocateDiscountCents(lines.map(line=>toCents(lineNetAmount(line))),toCents(invoiceDiscountAmount(i)))[index])}
 function discountedLineVat(i,l){return roundMoney(discountedLineNet(i,l)*Number(l?.vat||0)/100)}
 function lineVatAmount(l){return roundMoney(lineNetAmount(l)*Number(l?.vat||0)/100)}
 function invoiceSign(i){return i?.kind==='credit'?-1:1}
