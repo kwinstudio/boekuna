@@ -48,6 +48,36 @@ supabaseClient={auth:{
 showForgotPassword();
 `);
 
+const mfaHtml=replaceLast(original,'initAuth();',`
+window.__hydratedBeforeMfa=false;
+supabaseClient={auth:{
+ signInWithPassword:async({email})=>({data:{user:{id:'mfa-user',email}},error:null}),
+ signOut:async()=>({error:null}),
+ mfa:{
+  getAuthenticatorAssuranceLevel:async()=>({data:{currentLevel:'aal1',nextLevel:'aal2'},error:null}),
+  listFactors:async()=>({data:{totp:[{id:'factor-1',status:'verified'}]},error:null})
+ }
+}};
+hydrateCloudAccount=async()=>{window.__hydratedBeforeMfa=true};
+showAuth('login');
+`);
+
+const legacyHtml=replaceLast(original,'initAuth();',`
+window.__legacySignupArgs=null;
+supabaseClient={auth:{
+ signInWithPassword:async()=>({data:{user:null},error:{message:'Invalid login credentials'}}),
+ signUp:async args=>{window.__legacySignupArgs=args;return {data:{user:{id:'cloud-legacy',email:args.email},session:{access_token:'test'}},error:null}},
+ mfa:{getAuthenticatorAssuranceLevel:async()=>({data:{currentLevel:'aal1',nextLevel:'aal1'},error:null})}
+}};
+hydrateCloudAccount=async user=>{currentUser={id:user.id,email:user.email||'',supabaseUser:user};state=structuredClone(DEFAULT)};
+(async()=>{
+ const email='legacy@example.test',password='kort123',salt=randomSalt(),passwordHash=await hashPassword(password,salt);
+ saveUsers([{id:'legacy-local',email,salt,passwordHash}]);
+ localStorage.setItem(DATA_KEY_PREFIX+'legacy-local',JSON.stringify({...structuredClone(DEFAULT),meta:{...DEFAULT.meta}}));
+ showAuth('login',email);
+})();
+`);
+
 let appHtml=original.replace('const TEST_MODE_NO_AUTH=false;','const TEST_MODE_NO_AUTH=true;');
 appHtml=replaceLast(appHtml,'initAuth();',String.raw`
 currentUser=TEST_USER;
@@ -60,7 +90,7 @@ enterApp();
 const server=http.createServer((req,res)=>{
   if(req.url?.startsWith('/manifest.webmanifest')){res.writeHead(200,{'content-type':'application/manifest+json'});return res.end('{}')}
   const path=(req.url||'').split('?')[0];
-  const body=path==='/signup-flow'?signupHtml:path==='/confirm'?confirmHtml:path==='/expired'?expiredHtml:path==='/reset'?resetHtml:path==='/app'?appHtml:uiHtml;
+  const body=path==='/signup-flow'?signupHtml:path==='/confirm'?confirmHtml:path==='/expired'?expiredHtml:path==='/reset'?resetHtml:path==='/mfa'?mfaHtml:path==='/legacy'?legacyHtml:path==='/app'?appHtml:uiHtml;
   res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});res.end(body);
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -108,6 +138,28 @@ try{
   await page.getByRole('heading',{name:'Inloggen'}).waitFor();
   assert.equal(await page.locator('#loginPassword').getAttribute('minlength'),null);
   assert.equal(await page.locator('#loginPassword').getAttribute('autocomplete'),'current-password');
+
+  // MFA-enabled accounts must still stop at the authenticator challenge before hydration.
+  await page.goto(base+'/mfa',{waitUntil:'domcontentloaded'});
+  await page.getByRole('heading',{name:'Inloggen'}).waitFor();
+  await page.locator('#loginEmail').fill('mfa@example.test');
+  await page.locator('#loginPassword').fill('bestaand-wachtwoord');
+  await page.getByRole('button',{name:'Inloggen'}).click();
+  await page.getByRole('heading',{name:'Tweestapsverificatie'}).waitFor();
+  assert.equal(await page.locator('input[autocomplete="one-time-code"]').count(),1);
+  assert.equal(await page.evaluate(()=>window.__hydratedBeforeMfa),false,'MFA must challenge before account hydration');
+
+  // A valid legacy password shorter than 12 characters must still reach the existing migration path.
+  await page.goto(base+'/legacy',{waitUntil:'domcontentloaded'});
+  await page.getByRole('heading',{name:'Inloggen'}).waitFor();
+  assert.equal(await page.locator('#loginPassword').getAttribute('minlength'),null);
+  await page.locator('#loginPassword').fill('kort123');
+  await page.getByRole('button',{name:'Inloggen'}).click();
+  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  const legacySignup=await page.evaluate(()=>window.__legacySignupArgs);
+  assert.equal(legacySignup.email,'legacy@example.test');
+  assert.equal(legacySignup.password,'kort123');
+  assert.equal(legacySignup.options.data,undefined,'Legacy migration must not reintroduce company metadata');
 
   // Successful confirmation session enters dashboard even with empty company profile.
   await page.goto(base+'/confirm#type=signup',{waitUntil:'domcontentloaded'});
