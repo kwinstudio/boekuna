@@ -18,7 +18,7 @@ except Exception:
     pass
 from docx import Document as DocxDocument
 from openpyxl import load_workbook
-from receipt_math import detect_vat_rates, has_complex_adjustments, derive_single_rate_amounts
+from receipt_math import detect_vat_rates, has_complex_adjustments, derive_single_rate_amounts, enforce_single_rate_consistency
 
 RAPIDOCR_GENERATION = "none"
 try:
@@ -835,6 +835,52 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
 def validate_result(r:ExtractionResult,company:dict)->ExtractionResult:
     w=list(r.warnings or [])
     a=r.amounts
+
+    # Final accounting guardrail after OCR + AI reconciliation. Confidence can never
+    # overrule VAT mathematics. For one unambiguous 9%/21% rate and no adjustments,
+    # correct impossible amount combinations from the strongest accounting anchor.
+    positive_rates=sorted({float(v.rate) for v in (a.vatLines or []) if v.rate in {9,21}})
+    deriv_meta=(r.processing or {}).get("amountDerivation") or {}
+    meta_rate=deriv_meta.get("rate")
+    if len(positive_rates)==1:
+        guard_rate=positive_rates[0]
+    elif not positive_rates and meta_rate in (9,21) and not deriv_meta.get("mixedRates"):
+        guard_rate=float(meta_rate)
+    else:
+        guard_rate=None
+    guard_allowed=bool(
+        guard_rate in (9,21)
+        and not deriv_meta.get("mixedRates")
+        and a.discount is None
+        and a.shipping is None
+    )
+    guard=enforce_single_rate_consistency(
+        rate=guard_rate,
+        subtotal=a.subtotal,vat_total=a.vatTotal,total=a.total,
+        subtotal_conf=r.confidence.get("subtotal",0),
+        vat_conf=r.confidence.get("vatTotal",0),
+        total_conf=r.confidence.get("total",0),
+        allow=guard_allowed,
+    )
+    if guard.get("used"):
+        a.subtotal=guard.get("subtotal")
+        a.vatTotal=guard.get("vatTotal")
+        a.total=guard.get("total")
+        r.confidence["subtotal"]=guard.get("subtotalConfidence",r.confidence.get("subtotal",0))
+        r.confidence["vatTotal"]=guard.get("vatConfidence",r.confidence.get("vatTotal",0))
+        r.confidence["total"]=guard.get("totalConfidence",r.confidence.get("total",0))
+        r.processing={**(r.processing or {}),"finalAmountGuard":{
+            "used":True,"rate":guard_rate,"anchorField":guard.get("anchorField"),
+            "correctedFields":guard.get("correctedFields",[]),"reason":guard.get("reason")
+        }}
+        corrected=", ".join(guard.get("correctedFields",[]))
+        if corrected:
+            w.append(f"Bedragen automatisch herberekend op basis van {guard_rate:g}% btw en het betrouwbare {guard.get('anchorField')} bedrag ({corrected}).")
+    elif guard.get("reason")=="inconsistent_single_rate_amounts":
+        w.append(f"Bedragen zijn niet rekenkundig consistent met {guard_rate:g}% btw; controleer deze bedragen handmatig.")
+        for key in ("subtotal","vatTotal","total"):
+            r.confidence[key]=min(r.confidence.get(key,.5),.65)
+
     tol=max(.05,abs(a.total or 0)*.002)
     if a.subtotal is not None and a.vatTotal is not None and a.total is not None:
         # Some invoices show subtotal after discount/shipping, others before. Accept the equation that best matches.
@@ -976,7 +1022,7 @@ def require_authenticated_user(request: Request) -> dict:
 
 @app.get("/health")
 def health():
-    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"ocrGeneration":RAPIDOCR_GENERATION,"ocrModel":OCR_MODEL_NAME,"authRequired":True,"version":"2.4"}
+    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"ocrGeneration":RAPIDOCR_GENERATION,"ocrModel":OCR_MODEL_NAME,"authRequired":True,"version":"2.5"}
 
 @app.post("/analyze")
 async def analyze(request:Request,file:UploadFile=File(...),company_json:str=Form("{}"),existing_json:str=Form("[]"),ocr_text:str=Form("")):
