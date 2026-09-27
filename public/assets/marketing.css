@@ -853,3 +853,53 @@ body{background:#FFFFFF!important;color:#20292E!important}
  .mk-legal-nav{margin-bottom:6px}.mk-legal-content h2{font-size:28px}
  .mk-form-card{padding:20px;border-radius:18px}
 }
+
+
+/* Boekuna marketing forms + pricing comparison */
+.hidden{display:none!important}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 16px}
+.field{display:flex;flex-direction:column;gap:7px;min-width:0}
+.field.full{grid-column:1/-1}
+.field label{font-size:12px;font-weight:800;color:#26363A;line-height:1.35}
+.field input,.field select,.field textarea{
+ width:100%;box-sizing:border-box;border:1px solid #D7E2DE;background:#FFFFFF;color:#202B33;
+ border-radius:12px;padding:12px 13px;font:inherit;font-size:14px;line-height:1.45;outline:none;
+ transition:border-color .16s ease,box-shadow .16s ease,background .16s ease
+}
+.field textarea{resize:vertical;min-height:150px}
+.field input::placeholder,.field textarea::placeholder{color:#91A09B}
+.field input:hover,.field select:hover,.field textarea:hover{border-color:#BDCCC6}
+.field input:focus,.field select:focus,.field textarea:focus{
+ border-color:#08A9C5;box-shadow:0 0 0 4px rgba(8,169,197,.11);background:#FCFFFF
+}
+.field input:invalid:not(:placeholder-shown),.field textarea:invalid:not(:placeholder-shown){border-color:#D9A49E}
+.field-help,.form-help,.help{font-size:11px;line-height:1.55;color:#71807B}
+.form-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.form-status{min-height:18px;font-size:12px;line-height:1.45;color:#667770}
+.form-status.success{color:#27704B}
+.form-status.error{color:#A64036}
+.btn.danger{background:#FFF6F4;border-color:#F0C9C3;color:#A1372F}
+.btn.danger:hover{background:#FDECE8;border-color:#E9B4AB}
+.btn:disabled{opacity:.62;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+.mk-form-card{overflow:hidden}
+.mk-form-card .form-grid{margin-top:4px}
+.mk-form-card .btn{min-height:42px}
+.mk-form-note{margin-top:14px;padding:12px 14px;border-radius:12px;background:#F3F8F5;color:#576A62;font-size:11px;line-height:1.55;border:1px solid #E0EAE5}
+
+.plan-table-wrap{overflow:auto;border:1px solid #DDE7E3;border-radius:18px;background:#fff}
+.plan-table{width:100%;border-collapse:collapse;min-width:720px}
+.plan-table th,.plan-table td{padding:15px 18px;border-bottom:1px solid #E7EEEB;text-align:left;font-size:12px;vertical-align:middle}
+.plan-table th{background:#F6FAF8;color:#53665E;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.plan-table th:first-child,.plan-table td:first-child{width:38%;font-weight:800;color:#26363A}
+.plan-table td:not(:first-child),.plan-table th:not(:first-child){text-align:center}
+.plan-table tr:last-child td{border-bottom:0}
+.plan-yes{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border-radius:999px;background:#ECF7F0;color:#26714A;font-weight:900}
+.plan-muted{color:#8A9893}
+.plan-highlight{font-weight:850;color:#078DA7}
+
+@media(max-width:700px){
+ .form-grid{grid-template-columns:1fr;gap:15px}
+ .field.full{grid-column:auto}
+ .mk-form-card{padding:20px}
+ .plan-table th,.plan-table td{padding:13px 14px}
+}
