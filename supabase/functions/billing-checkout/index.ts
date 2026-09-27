@@ -69,6 +69,7 @@ Deno.serve(async(req:Request)=>{
   p.set("automatic_tax[enabled]","true");
   p.set("line_items[0][price_data][currency]","eur");
   p.set("line_items[0][price_data][unit_amount]",String(chosen.amount));
+  p.set("line_items[0][price_data][tax_behavior]","exclusive");
   p.set("line_items[0][price_data][recurring][interval]","month");
   p.set("line_items[0][price_data][product_data][name]",chosen.name);
   p.set("line_items[0][price_data][product_data][description]",chosen.limit+" slimme documentverwerkingen per maand");
