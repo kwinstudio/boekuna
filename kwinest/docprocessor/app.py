@@ -312,8 +312,9 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
             except Exception: pass
         printable=len(re.sub(r"\s+","",text))
         used_ocr=False; ocr_conf=None
-        if printable < 80 and ocr_engine:
-            pix=page.get_pixmap(matrix=fitz.Matrix(2.2,2.2), alpha=False)
+        sparse_text=printable < 180 or (len(words) < 35 and not page_tables)
+        if sparse_text and ocr_engine:
+            pix=page.get_pixmap(matrix=fitz.Matrix(2.45,2.45), alpha=False)
             img=Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
             try:
                 result,_=ocr_engine(img)
@@ -324,8 +325,16 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
                             txt=norm_text(row[1]); conf=float(row[2])
                             if txt: ocr_lines.append(txt); confs.append(conf)
                     ocr_text="\n".join(ocr_lines)
-                    if len(re.sub(r"\s+","",ocr_text))>printable:
-                        text=ocr_text; used_ocr=True; ocr_conf=sum(confs)/len(confs) if confs else None; ocr_pages.append(idx+1)
+                    ocr_printable=len(re.sub(r"\s+","",ocr_text))
+                    if ocr_printable > max(printable + 30, int(printable * 1.12)):
+                        text=ocr_text
+                        used_ocr=True
+                    elif ocr_printable >= 120 and printable < 260:
+                        text=(text+"\n--- OCR LAYER ---\n"+ocr_text).strip()
+                        used_ocr=True
+                    if used_ocr:
+                        ocr_conf=sum(confs)/len(confs) if confs else None
+                        ocr_pages.append(idx+1)
             except Exception: pass
         pages.append({"page":idx+1,"text":text,"charCount":len(text),"ocr":used_ocr,"ocrConfidence":ocr_conf,"tables":page_tables})
         all_text.append(f"--- PAGE {idx+1} ---\n{text}")
@@ -341,6 +350,16 @@ def extract_image(raw:bytes) -> dict[str,Any]:
     try:
         img=Image.open(io.BytesIO(raw))
         img=ImageOps.exif_transpose(img).convert("RGB")
+        w,h=img.size
+        longest=max(w,h)
+        if longest < 1600:
+            scale=min(2.0,1600/max(1,longest))
+            img=img.resize((max(1,int(w*scale)),max(1,int(h*scale))),Image.Resampling.LANCZOS)
+        elif longest > 4200:
+            scale=4200/longest
+            img=img.resize((max(1,int(w*scale)),max(1,int(h*scale))),Image.Resampling.LANCZOS)
+        gray=ImageOps.autocontrast(ImageOps.grayscale(img))
+        img=gray.convert("RGB")
     except Exception as exc:
         raise HTTPException(415,f"Deze foto kon niet worden geopend ({type(exc).__name__}). Gebruik een normale foto of exporteer hem als JPG/PNG.")
     ocr=RapidOCR(); result,_=ocr(img)
@@ -459,7 +478,15 @@ def receipt_merchant_name(lines:list[str], company:dict)->str|None:
     return None
 
 def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
-    text=doc.get("text") or ""; lines=[norm_text(x) for x in text.splitlines() if norm_text(x)]
+    text=doc.get("text") or ""
+    table_lines=[]
+    for table in doc.get("tables",[])[:30]:
+        for row in (table.get("rows") or [])[:160]:
+            line=" | ".join(norm_text(str(cell or "")) for cell in row)
+            if norm_text(line): table_lines.append(line)
+    if table_lines:
+        text=(text+"\n\n--- STRUCTURED TABLES ---\n"+"\n".join(table_lines)).strip()
+    lines=[norm_text(x) for x in text.splitlines() if norm_text(x)]
     low=text.lower()
     self_billing=bool(re.search(r"factuur\s+uitgereikt\s+door\s+afnemer|self[- ]?billing|self[- ]?billed",low))
     supplier,sconf=contact_block(lines,["leverancier","supplier","vendor","seller","from:"],company,"supplier")
@@ -712,7 +739,7 @@ def require_authenticated_user(request: Request) -> dict:
 
 @app.get("/health")
 def health():
-    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"authRequired":True,"version":"2.1"}
+    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"authRequired":True,"version":"2.2"}
 
 @app.post("/analyze")
 async def analyze(request:Request,file:UploadFile=File(...),company_json:str=Form("{}"),existing_json:str=Form("[]"),ocr_text:str=Form("")):
@@ -728,8 +755,13 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
     try: existing=json.loads(existing_json or "[]")
     except Exception: existing=[]
     started=time.time()
-    doc=extract_document(file.filename or "document",file.content_type or "",raw)
-    if ocr_text and len((doc.get("text") or "").replace(" ","")) < 250:
+    try:
+        doc=extract_document(file.filename or "document",file.content_type or "",raw)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(422,f"Document kon niet worden verwerkt ({type(exc).__name__}). Controleer of het bestand geldig en niet beschadigd is.")
+    if ocr_text and len((doc.get("text") or "").replace(" ","")) < 320:
         doc["text"] = (doc.get("text") or "") + "\n\n--- CLIENT OCR ---\n" + ocr_text[:70000]
         doc.setdefault("processingHints", {})["clientOcrUsed"] = True
     heur=heuristic_extract(doc,file.filename or "document",company)
