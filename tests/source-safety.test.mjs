@@ -2,6 +2,7 @@ import fs from "node:fs";
 import assert from "node:assert/strict";
 
 const html=fs.readFileSync(new URL("../kwinest/index.html",import.meta.url),"utf8");
+const invoiceAi=fs.readFileSync(new URL("../supabase/functions/analyze-invoice/index.ts",import.meta.url),"utf8");
 const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(Boolean);
 
 assert.ok(scripts.length>=1,"Expected inline JavaScript");
@@ -21,6 +22,11 @@ assert.ok(html.includes("function txInvoiceEvidence(t,i)"),"Confidence-based inv
 assert.ok(html.includes("async function reserveFinalInvoiceNumber"),"Server-side invoice number reservation is required");
 assert.ok(html.includes("function invoiceNumberAvailable(number,excludeId='')"),"Invoice uniqueness checks must support excluding the invoice being edited");
 assert.ok(html.includes("function runDocumentVerification(id)"),"Independent document verification worker is required");
+assert.ok(invoiceAi.includes("DIT IS EEN ONAFHANKELIJKE TWEEDE CONTROLE."),"PASS 2 must use an explicitly independent verification prompt");
+assert.ok(invoiceAi.includes('const priorHint=verify?"":'),"PASS 1 values must not be included as hints during PASS 2");
+assert.ok(invoiceAi.includes('if(verify&&!openaiKey)return j(req,{ok:false,error:"INDEPENDENT_REVIEW_PROVIDER_NOT_CONFIGURED"},503);'),"PASS 2 must fail closed instead of silently adding an unreviewed provider");
+assert.ok(invoiceAi.includes("storedDocumentInput(req,safe(data.clientRef,240))"),"PASS 2 must retrieve the saved original under the authenticated user's RLS");
+assert.ok(invoiceAi.includes("store:false"),"OpenAI Responses must disable response storage for document analysis");
 assert.ok(html.includes("status:fileSaved?(verificationNeeded?'pending':'verified')"),"Document verification state must persist after the original is safely stored");
 assert.ok(html.includes("if(v.status==='needs_review')toast('Extra controle: controleer '+doc.name+' nog even')"),"Users should only be proactively notified for relevant verification differences");
 assert.ok(html.includes("DOCUMENT_VERIFICATION_MAX_ATTEMPTS=2"),"Background verification retries must be finite");
