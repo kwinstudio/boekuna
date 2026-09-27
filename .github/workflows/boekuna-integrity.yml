@@ -40,6 +40,8 @@ jobs:
         run: node tests/list-controls.test.mjs
       - name: Invoice status edit regression
         run: node tests/invoice-status-edit.test.mjs
+      - name: Two-pass document verification
+        run: node tests/document-verification.test.mjs
       - name: Production calculation regression tests
         run: node tests/production-integrity.test.mjs
       - name: Invoice PDF and email parity
