@@ -47,6 +47,26 @@ assert.ok(html.includes("<summary>Technische details</summary>"),"Technical OCR/
 assert.ok(html.includes("mobile-review-actions"),"Mobile review must provide dedicated previous/next/save actions");
 assert.ok(html.includes("bad?.closest('[data-review-step]')"),"Invalid mobile review fields must route users back to the correct step");
 assert.ok(!html.includes("steps=['Ontvangen','Valideren','Uitlezen / OCR','Herkennen','Controleren','Klaar']"),"Legacy six-step loading grid must stay removed");
+assert.ok(html.includes('rel="manifest" href="/manifest.webmanifest"'),"Store/mobile build must expose the web app manifest");
+for(const required of [
+  "../public/manifest.webmanifest",
+  "../public/privacy/index.html",
+  "../public/support/index.html",
+  "../public/account-verwijderen/index.html",
+  "../store/app-store-connect.nl-NL.json",
+  "../store/google-play.nl-NL.json",
+  "../store/privacy-data-safety.md",
+  "../store/review-notes.md",
+  "../store/STORE_RELEASE_CHECKLIST.md"
+]){
+  assert.ok(fs.existsSync(new URL(required,import.meta.url)),`Store launch file missing: ${required}`);
+}
+const privacy=fs.readFileSync(new URL("../public/privacy/index.html",import.meta.url),"utf8");
+const support=fs.readFileSync(new URL("../public/support/index.html",import.meta.url),"utf8");
+const deletion=fs.readFileSync(new URL("../public/account-verwijderen/index.html",import.meta.url),"utf8");
+assert.ok(privacy.includes("Boekuna is een product van Kwinest"),"Privacy policy must identify the product/operator");
+assert.ok(support.includes("support_requests"),"Public support form must submit to the support intake");
+assert.ok(deletion.includes("Online verwijderingsverzoek"),"Account deletion web resource must allow an external deletion request");
 assert.ok(html.includes("function showUploadError(err,file=null)"),"Upload errors must render a user-facing explanation");
 assert.ok(html.includes("function uploadErrorInfo(err)"),"Upload errors must be translated centrally");
 for(const code of ["400","401","403","408","413","415","422","429","500","502","503","504","NETWORK_ERROR","TIMEOUT","OCR_FAILED","PDF_READ_FAILED"]){
