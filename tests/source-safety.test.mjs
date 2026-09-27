@@ -26,7 +26,8 @@ assert.ok(html.includes("actorId:String(currentUser?.id||'')"),"Financial audit 
 assert.ok(html.includes("function invoiceDiscountAmount(i)"),"Invoice discount calculation is required");
 assert.ok(html.includes('name="discountType"'),"Invoice discount controls are required");
 assert.ok(html.includes('minlength="12"'),"New/reset passwords must require at least 12 characters");
-assert.ok(html.includes("headers:await apiAuthHeaders(),body:fd"),"Document processor requests must carry the Supabase session");
+assert.ok(html.includes("fetchWithAuthRetry(DOCUMENT_PROCESSOR_URL+'/analyze'"),"Document processor requests must use authenticated retry");
+assert.ok(html.includes("async function fetchWithAuthRetry"),"Authenticated processor requests must refresh and retry expired sessions");
 assert.ok(html.includes('id="boekuna-upload-bootstrap"'),"Upload bootstrap must exist independently of the main app initialization");
 assert.ok(html.includes("input.dataset.uploadBound='true'"),"Upload controls must be explicitly bound after the main script");
 for(const id of ["invoicePdfFile","receiptPhotoFile","receiptCameraFile"]){
