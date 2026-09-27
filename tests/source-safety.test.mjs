@@ -69,7 +69,13 @@ assert.ok(support.includes("support_requests"),"Public support form must submit 
 assert.ok(deletion.includes("Online verwijderingsverzoek"),"Account deletion web resource must allow an external deletion request");
 assert.ok(html.includes("function showUploadError(err,file=null)"),"Upload errors must render a user-facing explanation");
 assert.ok(html.includes("function uploadErrorInfo(err)"),"Upload errors must be translated centrally");
-for(const code of ["400","401","403","408","413","415","422","429","500","502","503","504","NETWORK_ERROR","TIMEOUT","OCR_FAILED","PDF_READ_FAILED"]){
+assert.ok(html.includes("function startSubscription(plan)"),"Paid plans must start through the authenticated subscription flow");
+assert.ok(html.includes("EDGE_BASE+'/billing-checkout'"),"Checkout must be created server-side");
+assert.ok(html.includes("EDGE_BASE+'/billing-portal'"),"Paid customers need subscription management");
+assert.ok(html.includes("function renderBillingCard()"),"Settings must expose current plan and monthly usage");
+assert.ok(html.includes("Number(err?.status||0)===402"),"Quota errors must not fall back to local OCR and bypass billing limits");
+assert.ok(!/sk_(?:live|test)_[A-Za-z0-9]+/.test(html),"Stripe secret keys must never be present in the browser source");
+for(const code of ["400","401","402","403","408","413","415","422","429","500","502","503","504","NETWORK_ERROR","TIMEOUT","OCR_FAILED","PDF_READ_FAILED"]){
   assert.ok(html.includes(`'${code}':[`)||html.includes(` ${code}:[`),`Upload error code ${code} must have an explanation`);
 }
 
