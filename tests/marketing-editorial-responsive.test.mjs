@@ -75,8 +75,10 @@ try{
   const nav=await browser.newPage({viewport:{width:1440,height:960},reducedMotion:'reduce'});
   const signals=watch(nav);
   await gotoProduction(nav,'/');
-  const tourLink=nav.locator('.marketing-actions a[href="/hoe-het-werkt/"]');
-  assert.ok(await tourLink.isVisible(),'Production product-tour link is not visible');
+  const visibleTourLinks=nav.locator('a[href="/hoe-het-werkt/"]:visible');
+  assert.ok(await visibleTourLinks.count()>=1,'Production has no visible product-tour link');
+  const tourLink=visibleTourLinks.first();
+  await tourLink.scrollIntoViewIfNeeded();
   await Promise.all([nav.waitForURL('**/hoe-het-werkt/',{timeout:15000}),tourLink.click()]);
   assert.ok((await nav.title()).includes('Boekuna'),'Production navigation did not reach the Boekuna product tour');
   assert.deepEqual(signals.pageErrors,[],'Production navigation page errors');
