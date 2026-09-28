@@ -560,6 +560,36 @@ def table_vat_groups(doc:dict)->list[VatLine]:
                 groups[rate]=VatLine(rate=rate,taxableAmount=round(base,2),vatAmount=round(tax,2))
     return [groups[k] for k in sorted(groups)]
 
+
+def explicit_vat_groups(lines:list[str])->list[VatLine]:
+    """Parse only explicit VAT summary rows with a stated taxable base."""
+    groups={}
+    base_label=re.compile(r"\b(?:belastbaar|taxable|grondslag|maatstaf|tax\s*base|base\s*amount)\b",re.I)
+    for raw in lines or []:
+        line=norm_text(raw)
+        rm=re.search(r"\b(0|9|21)(?:[.,]0+)?\s*%",line,re.I)
+        if not rm or not base_label.search(line):
+            continue
+        rate=float(rm.group(1))
+        vals=[abs(v) for v in money_tokens(line)]
+        if rate==0 and vals:
+            groups[rate]=VatLine(rate=rate,taxableAmount=round(vals[0],2),vatAmount=0.0)
+            continue
+        best=None
+        for i,base in enumerate(vals):
+            for j,tax in enumerate(vals):
+                if i==j:continue
+                expected=rounded_vat_cents(base,rate); actual=money_cents(tax)
+                if expected is None or actual is None or abs(expected-actual)>1:
+                    continue
+                score=(base, -j)
+                if best is None or score>best[0]:
+                    best=(score,base,tax)
+        if best:
+            _,base,tax=best
+            groups[rate]=VatLine(rate=rate,taxableAmount=round(base,2),vatAmount=round(tax,2))
+    return [groups[k] for k in sorted(groups)]
+
 def allow_request(request: Request, key_override: str | None = None) -> bool:
     now=time.time()
     forwarded=(request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
@@ -1117,7 +1147,11 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         vat_line_source="validated-primary-totals"
     elif len(rate_candidates)>1:
         vat_lines=table_vat_groups(doc)
-        vat_line_source="explicit-vat-table" if vat_lines else "review-required-mixed-vat"
+        if vat_lines:
+            vat_line_source="explicit-vat-table"
+        else:
+            vat_lines=explicit_vat_groups(amount_lines)
+            vat_line_source="explicit-vat-text" if vat_lines else "review-required-mixed-vat"
 
     structured_adjustments=[Adjustment(**a) for a in financial_structure.get("adjustments",[])]
     settlement_amount=financial_structure.get("settlementAmount")
@@ -1192,7 +1226,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         "iban":.9 if iban else .1,
         "documentType":.99 if self_billing else (.94 if factoring_sale else (.90 if (supplier_own or customer_own) else .76)),
         "paymentStatus":.98 if paid else (.78 if status in {"open","overdue"} else .55),
-        "vatLines":.99 if vat_line_source=="validated-primary-totals" else (.92 if vat_line_source=="explicit-vat-table" else (.35 if len(detected_rates)>1 else .20)),
+        "vatLines":.99 if vat_line_source=="validated-primary-totals" else (.95 if vat_line_source=="explicit-vat-text" else (.92 if vat_line_source=="explicit-vat-table" else (.35 if len(detected_rates)>1 else .20))),
         "adjustments":.98 if structured_adjustments and financial_structure.get("adjustmentArithmeticOk") else (.45 if structured_adjustments else .80),
         "settlementAmount":.98 if settlement_amount is not None and financial_structure.get("settlementArithmeticOk") else (.25 if settlement_amount is None else .55),
     }
