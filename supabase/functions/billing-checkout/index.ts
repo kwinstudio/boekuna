@@ -62,7 +62,7 @@ Deno.serve(async(req:Request)=>{
   const {data:account}=await admin.from("billing_accounts")
     .select("stripe_customer_id,stripe_subscription_id,status,plan")
     .eq("user_id",user.id).maybeSingle();
-  if(account&&["trialing","active","past_due","unpaid","paused","incomplete"].includes(String(account.status||""))){
+  if(account?.stripe_subscription_id&&["trialing","active","past_due","unpaid","paused","incomplete"].includes(String(account.status||""))){
     return json(req,{ok:false,error:"Er bestaat al een Stripe-abonnement voor dit account. Beheer of herstel dit via Abonnement in Boekuna.",code:"EXISTING_SUBSCRIPTION"},409);
   }
 
