@@ -95,11 +95,13 @@ try{
 
   // Conditional gate: a clean deterministic document should not consume PASS 2.
   const gate=await page.evaluate(()=>({
-    strong:shouldQueueDocumentVerification({recognitionBad:0,recognitionWarn:0,confidenceScore:96,mixedRates:false,fieldConfidence:{party:95,gross:98},processor:{ocrUsed:false}}),
-    weak:shouldQueueDocumentVerification({recognitionBad:0,recognitionWarn:1,confidenceScore:82,mixedRates:false,fieldConfidence:{party:75,gross:85},processor:{ocrUsed:true,ocrConfidence:.71}})
+    strong:shouldQueueDocumentVerification({recognitionBad:0,recognitionWarn:0,confidenceScore:96,mixedRates:false,fieldConfidence:{party:95,gross:98,vatLines:99,description:92},processor:{ocrUsed:false}}),
+    weak:shouldQueueDocumentVerification({recognitionBad:0,recognitionWarn:1,confidenceScore:82,mixedRates:false,fieldConfidence:{party:75,gross:85},processor:{ocrUsed:true,ocrConfidence:.71}}),
+    weakVatLines:shouldQueueDocumentVerification({recognitionBad:0,recognitionWarn:0,confidenceScore:96,mixedRates:false,fieldConfidence:{party:95,gross:98,vatLines:55,description:92},processor:{ocrUsed:false}})
   }));
   assert.equal(gate.strong,false,'Strong deterministic documents must skip the paid second AI pass');
   assert.equal(gate.weak,true,'Uncertain/OCR documents must queue independent verification');
+  assert.equal(gate.weakVatLines,true,'Weak VAT-group confidence must queue independent verification');
 
   const base={party:'Voorbeeld Leverancier BV',issueDate:'2026-09-27',description:'Consultancy september',net:100,vatAmount:21,gross:121,vatRate:21,vatLines:[{rate:21,taxableAmount:100,vatAmount:21}],invoiceNumber:'INK-100',currency:'EUR',mixedRates:false};
 
