@@ -168,7 +168,7 @@ def test_corrupt_image_is_rejected_safely():
 
 def test_supported_raster_decoders_keep_contract_without_running_ocr():
     old_run = processor.run_best_ocr
-    processor.run_best_ocr = lambda img: {
+    processor.run_best_ocr = lambda img, **kwargs: {
         "text": "BOEKUNA TEST BON Totaal EUR 12,10",
         "rows": [{"box": [[0,0],[10,0],[10,10],[0,10]], "text": "BOEKUNA TEST BON", "confidence": 0.99}],
         "confidence": 0.99,
