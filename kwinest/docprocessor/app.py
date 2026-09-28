@@ -1,4 +1,4 @@
-import base64, csv, hashlib, io, json, math, os, re, tempfile, time
+import base64, csv, hashlib, io, json, logging, math, os, re, tempfile, time
 from datetime import datetime, date
 from pathlib import Path
 from typing import Any, Literal
@@ -36,7 +36,24 @@ _OCR_ENGINE = None
 _OCR_ENGINE_ERROR = None
 OCR_MODEL_NAME = "PP-OCRv6-small" if RAPIDOCR_GENERATION == "v3" else ("RapidOCR legacy" if RAPIDOCR_GENERATION == "legacy" else None)
 
-APP_ORIGIN = os.getenv("APP_ORIGIN", "https://boekuna-boekhouding.onrender.com").rstrip("/")
+DEFAULT_APP_ORIGINS = {
+    "https://boekuna-boekhouding.onrender.com",
+    "https://kwinest-boekhouding.onrender.com",
+    "https://boekuna.nl",
+    "https://www.boekuna.nl",
+    "https://boekuna-qa-staging.onrender.com",
+    "https://boekuna-render-link-qa.onrender.com",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+}
+_legacy_origin = os.getenv("APP_ORIGIN", "").strip().rstrip("/")
+_extra_origins = {
+    value.strip().rstrip("/")
+    for value in os.getenv("APP_ORIGINS", "").split(",")
+    if value.strip()
+}
+ALLOWED_ORIGINS = frozenset(DEFAULT_APP_ORIGINS | _extra_origins | ({_legacy_origin} if _legacy_origin else set()))
+logger = logging.getLogger("boekuna.document_processor")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://vuwfyhtejsxhdfyvkkeq.supabase.co").rstrip("/")
 SUPABASE_PUBLISHABLE_KEY = os.getenv("SUPABASE_PUBLISHABLE_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -51,11 +68,18 @@ _REQUEST_TIMES: dict[str, list[float]] = {}
 app = FastAPI(title="Kwinest Document Processor", version="2.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[APP_ORIGIN],
+    allow_origins=sorted(ALLOWED_ORIGINS),
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"]
 )
+
+def require_allowed_origin(request: Request) -> str:
+    origin = (request.headers.get("origin") or "").rstrip("/")
+    if origin not in ALLOWED_ORIGINS:
+        logger.warning("document_request_rejected reason=origin_not_allowed origin=%s path=%s", origin[:200] or "<missing>", request.url.path)
+        raise HTTPException(403, "Origin not allowed")
+    return origin
 
 # ----------------------------- schema -----------------------------
 class Supplier(BaseModel):
@@ -1231,8 +1255,7 @@ def health():
 
 @app.post("/verify")
 async def verify_document(request:Request,file:UploadFile=File(...),company_json:str=Form("{}")):
-    origin=(request.headers.get("origin") or "").rstrip("/")
-    if origin!=APP_ORIGIN: raise HTTPException(403,"Origin not allowed")
+    require_allowed_origin(request)
     user=require_authenticated_user(request)
     if not allow_request(request,f"verify:{user.get('id','unknown')}"): raise HTTPException(429,"Te veel extra controles. Probeer het later opnieuw.")
     quota=billing_quota_status(request)
@@ -1259,8 +1282,7 @@ async def verify_document(request:Request,file:UploadFile=File(...),company_json
 
 @app.post("/analyze")
 async def analyze(request:Request,file:UploadFile=File(...),company_json:str=Form("{}"),existing_json:str=Form("[]"),ocr_text:str=Form("")):
-    origin=(request.headers.get("origin") or "").rstrip("/")
-    if origin!=APP_ORIGIN: raise HTTPException(403,"Origin not allowed")
+    require_allowed_origin(request)
     user=require_authenticated_user(request)
     if not allow_request(request,f"user:{user.get('id','unknown')}"): raise HTTPException(429,"Te veel documentverwerkingen. Probeer het over enkele minuten opnieuw.")
     quota=billing_quota_status(request)
@@ -1269,6 +1291,7 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
     raw=await file.read(MAX_BYTES+1)
     if len(raw)>MAX_BYTES:raise HTTPException(413,"Bestand is te groot. Maximum is 15 MB.")
     if not raw:raise HTTPException(400,"Bestand is leeg.")
+    logger.info("document_analysis_started mime=%s bytes=%d", (file.content_type or "application/octet-stream")[:120], len(raw))
     try: company=json.loads(company_json or "{}")
     except Exception: company={}
     try: existing=json.loads(existing_json or "[]")
@@ -1276,9 +1299,19 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
     started=time.time()
     try:
         doc=extract_document(file.filename or "document",file.content_type or "",raw)
-    except HTTPException:
+        logger.info(
+            "document_analysis_extracted kind=%s pages=%s ocr_pages=%d tables=%d duration_ms=%d",
+            doc.get("kind"),
+            doc.get("pageCount"),
+            len(doc.get("ocrPages") or []),
+            len(doc.get("tables") or []),
+            round((time.time()-started)*1000),
+        )
+    except HTTPException as exc:
+        logger.warning("document_analysis_rejected status=%s error_type=HTTPException", exc.status_code)
         raise
     except Exception as exc:
+        logger.exception("document_analysis_failed error_type=%s", type(exc).__name__)
         raise HTTPException(422,f"Document kon niet worden verwerkt ({type(exc).__name__}). Controleer of het bestand geldig en niet beschadigd is.")
     if ocr_text and len((doc.get("text") or "").replace(" ","")) < 320:
         doc["text"] = (doc.get("text") or "") + "\n\n--- CLIENT OCR ---\n" + ocr_text[:70000]
