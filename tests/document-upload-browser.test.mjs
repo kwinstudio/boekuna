@@ -74,6 +74,22 @@ issue30ProcessorPayload.data.processing={sourceKind:'pdf',pages:1,ocrPages:[],ta
 issue30ProcessorPayload.preview={text:'Originele 9% + 21% mixed-VAT fixture\nIBAN NL00ZZZZ0000000002',pages:[{page:1,ocrConfidence:null}],tables:[]};
 issue30ProcessorPayload.duplicateCandidates=[];
 
+const selfBillingProcessorPayload=structuredClone(processorPayload);
+selfBillingProcessorPayload.data.originalFileName='self-billing-23003.pdf';
+selfBillingProcessorPayload.data.documentType='sales_invoice';
+selfBillingProcessorPayload.data.selfBilling=true;
+selfBillingProcessorPayload.data.supplier={name:'QA PDF BV',address:'Teststraat 1',postalCode:'3011 AA',city:'Rotterdam',country:'Nederland',kvk:'12345678',vatNumber:'NL123456789B01',iban:'NL91ABNA0417164300',email:'qa-pdf@example.test'};
+selfBillingProcessorPayload.data.customer={name:'Restaurant Company Europe',address:'',postalCode:'',city:'',country:'Nederland',kvk:null,vatNumber:null,email:''};
+selfBillingProcessorPayload.data.invoice={invoiceNumber:'Y41829623003',invoiceDate:'2023-05-03',dueDate:null,paymentTermDays:null,description:'Uren tarief'};
+selfBillingProcessorPayload.data.amounts={subtotal:155,vatLines:[{rate:21,taxableAmount:155,vatAmount:32.55}],vatTotal:32.55,total:187.55,settlementAmount:180.97,currency:'EUR'};
+selfBillingProcessorPayload.data.status='paid';
+selfBillingProcessorPayload.data.lineItems=[];
+selfBillingProcessorPayload.data.adjustments=[{type:'factoring_fee',description:'Factoring',subtotal:5.44,vatTotal:1.14,total:6.58,vatRate:21,direction:'deduction',counterparty:'Payday / ABN AMRO'}];
+selfBillingProcessorPayload.data.confidence={supplierName:.99,customerName:.99,invoiceNumber:.99,invoiceDate:.99,subtotal:.99,vatTotal:.99,total:.99,vatLines:.99,selfBilling:.99,settlementAmount:.99,adjustments:.99};
+selfBillingProcessorPayload.data.processing={sourceKind:'pdf',pages:1,ocrPages:[],tablesFound:0,fastPath:'deterministic',overallConfidence:.99,selfBilling:true,selfBillingEvidence:'explicit-source-text',financialBlocks:{verified:true,adjustmentArithmeticOk:true,settlementArithmeticOk:true}};
+selfBillingProcessorPayload.preview={text:'Normale lokale tekst zonder self-billing marker',pages:[{page:1,ocrConfidence:null}],tables:[]};
+selfBillingProcessorPayload.duplicateCandidates=[];
+
 let processorResponse=processorPayload;
 let appOrigin='';
 let processorMode='success';
@@ -439,6 +455,82 @@ try{
     await page.close();
   }
 
+  // QA-DOC-SELF-001: explicit processor self-billing must survive the
+  // processor mapper, review candidate, save, persistence and reopen.
+  {
+    processorMode='success';
+    processorResponse=selfBillingProcessorPayload;
+    processorMethods=[];
+    processorOrigins=[];
+    const page=await newAppPage();
+    const errors=[];
+    page.on('pageerror',e=>errors.push(String(e)));
+    page.on('dialog',dialog=>dialog.accept());
+
+    await page.locator('#invoicePdfFile').setInputFiles({
+      name:'self-billing-23003.pdf',
+      mimeType:'application/pdf',
+      buffer:Buffer.from('%PDF-1.7\n% Boekuna self-billing browser QA\n')
+    });
+
+    await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:15000});
+    const review=await page.evaluate(()=>({
+      type:pendingPdfImport?.parsed?.type,
+      documentType:pendingPdfImport?.parsed?.documentType,
+      party:pendingPdfImport?.parsed?.party,
+      invoiceNumber:pendingPdfImport?.parsed?.invoiceNumber,
+      selfBilling:pendingPdfImport?.parsed?.selfBilling,
+      gross:pendingPdfImport?.parsed?.gross,
+      payout:pendingPdfImport?.parsed?.payout
+    }));
+    assert.equal(review.type,'sale');
+    assert.equal(review.documentType,'sale_invoice');
+    assert.equal(review.party,'Restaurant Company Europe');
+    assert.equal(review.invoiceNumber,'Y41829623003');
+    assert.equal(review.selfBilling,true,'Processor selfBilling=true must reach the review candidate');
+    assert.equal(review.gross,187.55);
+    assert.equal(review.payout,180.97);
+
+    await page.evaluate(()=>savePdfInvoiceImport());
+    const saved=await page.evaluate(()=>{
+      const invoice=state.invoices.find(i=>i.number==='Y41829623003');
+      const persisted=JSON.parse(localStorage.getItem(userDataKey())||'{}').invoices?.find(i=>i.number==='Y41829623003');
+      return {
+        memory:invoice?{selfBilling:invoice.selfBilling,gross:invoiceGross(invoice),payout:invoice.payout,kind:invoice.kind}:null,
+        persisted:persisted?{selfBilling:persisted.selfBilling,payout:persisted.payout,kind:persisted.kind}:null
+      }
+    });
+    assert.equal(saved.memory?.selfBilling,true,'Saved invoice must retain selfBilling=true');
+    assert.equal(saved.persisted?.selfBilling,true,'Persisted invoice JSON must retain selfBilling=true');
+    assert.equal(saved.memory?.gross,187.55);
+    assert.equal(saved.memory?.payout,180.97);
+
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>state?.invoices?.some(i=>i.number==='Y41829623003'));
+    const reopened=await page.evaluate(()=>{
+      const invoice=state.invoices.find(i=>i.number==='Y41829623003');
+      return {selfBilling:invoice?.selfBilling,gross:invoice?invoiceGross(invoice):null,payout:invoice?.payout}
+    });
+    assert.equal(reopened.selfBilling,true,'Reopen must preserve explicit selfBilling=true');
+    assert.equal(reopened.gross,187.55);
+    assert.equal(reopened.payout,180.97);
+
+    const mapperSafety=await page.evaluate(()=>{
+      const normal=processorAnalysisToCandidate({
+        documentType:'sales_invoice',selfBilling:false,
+        supplier:{name:'QA PDF BV'},customer:{name:'Normale Klant B.V.'},
+        invoice:{invoiceNumber:'NORMAL-SALE-1',invoiceDate:'2026-09-28'},
+        amounts:{subtotal:100,vatTotal:21,total:121,vatLines:[{rate:21,taxableAmount:100,vatAmount:21}],currency:'EUR'},
+        processing:{fastPath:'deterministic',selfBilling:false},confidence:{}
+      },'Normale verkoopfactuur','auto');
+      return {selfBilling:normal.selfBilling,type:normal.type,party:normal.party}
+    });
+    assert.deepEqual(mapperSafety,{selfBilling:false,type:'sale',party:'Normale Klant B.V.'},
+      'Normal sales direction must not imply self-billing');
+    assert.deepEqual(errors,[],'Self-billing browser errors: '+errors.join(' | '));
+    await page.close();
+  }
+
   // QA-PDF-03: a temporary processor failure must reach the local PDF.js fallback
   // without the historical "Can't find variable: pdfLibPromise" browser crash.
   {
@@ -481,7 +573,7 @@ try{
     await page.close();
   }
 
-  console.log('PDF browser regressions: PASS (QA-PDF-02 single-rate upload/save; QA-DOC-REL-001 mixed 9%+21% merge/review/save/reopen/UI/CSV; issue #30 original mixed-VAT invalid-IBAN save regression; single 0/9/21 VAT regressions; QA-PDF-03 processor-outage fallback)');
+  console.log('PDF browser regressions: PASS (QA-PDF-02 single-rate upload/save; QA-DOC-REL-001 mixed 9%+21% merge/review/save/reopen/UI/CSV; issue #30 original mixed-VAT invalid-IBAN save regression; QA-DOC-SELF-001 processor self-billing review/save/reopen; single 0/9/21 VAT regressions; QA-PDF-03 processor-outage fallback)');
 }finally{
   await browser.close();
   await new Promise(resolve=>appServer.close(resolve));
