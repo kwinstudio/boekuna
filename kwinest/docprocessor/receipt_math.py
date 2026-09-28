@@ -79,10 +79,11 @@ def derive_single_rate_amounts(
     replace_below: float = 0.88,
 ) -> dict[str, Any]:
     """
-    Derive only MISSING values from explicit evidence.
+    Candidate-stage arithmetic recovery for one unambiguous VAT rate.
 
-    Existing monetary values are never replaced merely because OCR/AI confidence
-    is lower. If explicit values conflict, preserve them and require review.
+    Missing or explicitly low-confidence OCR candidates may be reconstructed
+    from one strong anchor + VAT rate. High-confidence conflicting reads are
+    never overwritten; they remain conflicts requiring review.
     """
     out = {
         "subtotal": subtotal,
@@ -101,74 +102,69 @@ def derive_single_rate_amounts(
         return out
 
     values = {
-        "subtotal": subtotal,
-        "vatTotal": vat_total,
-        "total": total,
+        "subtotal": (subtotal, float(subtotal_conf or 0)),
+        "vatTotal": (vat_total, float(vat_conf or 0)),
+        "total": (total, float(total_conf or 0)),
     }
-    present = {k: abs(float(v)) for k, v in values.items() if v is not None and _finite(v)}
-    missing = [k for k in values if k not in present]
-
-    # Never rewrite three explicit printed amounts. Only signal a conflict.
-    if not missing:
-        sum_ok = _cents(present["subtotal"]) + _cents(present["vatTotal"]) == _cents(present["total"])
-        expected_vat = _rate_expected(present["subtotal"], float(rate))
-        rate_ok = abs((_cents(expected_vat) or 0) - (_cents(present["vatTotal"]) or 0)) <= 1
-        if not (sum_ok and rate_ok):
-            out["conflicts"].append({
-                "field": "amounts",
-                "read": {
-                    "subtotal": present["subtotal"],
-                    "vatTotal": present["vatTotal"],
-                    "total": present["total"],
-                },
-                "calculated": {
-                    "vatTotal": expected_vat,
-                    "total": round(present["subtotal"] + present["vatTotal"], 2),
-                },
-                "confidence": min(float(subtotal_conf or 0), float(vat_conf or 0), float(total_conf or 0)),
-            })
+    candidates = [
+        (conf, field, abs(float(value)))
+        for field, (value, conf) in values.items()
+        if value is not None and _finite(value) and conf >= anchor_threshold and float(value) >= 0
+    ]
+    if not candidates:
         return out
 
-    if len(missing) != 1:
-        return out
+    candidates.sort(reverse=True)
+    anchor_conf, anchor_field, anchor_value = candidates[0]
+    r = Decimal(str(rate)) / Decimal("100")
+    av = Decimal(str(anchor_value))
 
-    target = missing[0]
-    confs = {
-        "subtotal": float(subtotal_conf or 0),
-        "vatTotal": float(vat_conf or 0),
-        "total": float(total_conf or 0),
-    }
-    anchors = [k for k in present if confs[k] >= max(0.70, anchor_threshold - 0.20)]
-    if not anchors:
-        return out
-
-    if target == "total" and "subtotal" in present and "vatTotal" in present:
-        derived = round(present["subtotal"] + present["vatTotal"], 2)
-        source_conf = min(confs["subtotal"], confs["vatTotal"])
-        out["total"] = derived
-        out["totalConfidence"] = min(.97, max(.75, source_conf * .97))
-        out["anchorField"] = "subtotal+vatTotal"
-    elif target == "vatTotal" and "subtotal" in present and "total" in present:
-        derived = round(present["total"] - present["subtotal"], 2)
-        if derived < 0:
-            return out
-        source_conf = min(confs["subtotal"], confs["total"])
-        out["vatTotal"] = derived
-        out["vatConfidence"] = min(.97, max(.75, source_conf * .97))
-        out["anchorField"] = "subtotal+total"
-    elif target == "subtotal" and "vatTotal" in present and "total" in present:
-        derived = round(present["total"] - present["vatTotal"], 2)
-        if derived < 0:
-            return out
-        source_conf = min(confs["vatTotal"], confs["total"])
-        out["subtotal"] = derived
-        out["subtotalConfidence"] = min(.97, max(.75, source_conf * .97))
-        out["anchorField"] = "vatTotal+total"
+    if anchor_field == "total":
+        expected_total = _round_money(av)
+        expected_subtotal = _round_money(av / (Decimal("1") + r))
+        expected_vat = round(expected_total - expected_subtotal, 2)
+    elif anchor_field == "subtotal":
+        expected_subtotal = _round_money(av)
+        expected_vat = _round_money(av * r)
+        expected_total = round(expected_subtotal + expected_vat, 2)
     else:
-        return out
+        expected_vat = _round_money(av)
+        expected_subtotal = _round_money(av / r)
+        expected_total = round(expected_subtotal + expected_vat, 2)
 
-    out["derivedFields"].append(target)
-    out["used"] = True
+    expected = {
+        "subtotal": expected_subtotal,
+        "vatTotal": expected_vat,
+        "total": expected_total,
+    }
+    conf_key = {
+        "subtotal": "subtotalConfidence",
+        "vatTotal": "vatConfidence",
+        "total": "totalConfidence",
+    }
+    derived_conf = min(.98, max(.80, anchor_conf * .97))
+
+    for field, exp in expected.items():
+        cur, cur_conf = values[field]
+        if field == anchor_field:
+            out[field] = round(anchor_value, 2)
+            continue
+        if cur is None or not _finite(cur) or cur_conf < replace_below:
+            out[field] = exp
+            out[conf_key[field]] = derived_conf
+            out["derivedFields"].append(field)
+        elif _money_equal(abs(float(cur)), exp):
+            out[field] = round(abs(float(cur)), 2)
+        else:
+            out["conflicts"].append({
+                "field": field,
+                "read": round(abs(float(cur)), 2),
+                "calculated": exp,
+                "confidence": float(cur_conf),
+            })
+
+    out["anchorField"] = anchor_field
+    out["used"] = bool(out["derivedFields"])
     return out
 
 
