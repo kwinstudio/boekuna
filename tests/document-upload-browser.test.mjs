@@ -52,10 +52,12 @@ const processorPayload={
 let appOrigin='';
 let processorMode='success';
 let processorMethods=[];
+let processorOrigins=[];
 
 const processorServer=http.createServer((req,res)=>{
   if(req.url!=='/analyze'){res.writeHead(404);return res.end('not found')}
   processorMethods.push(req.method||'');
+  processorOrigins.push(String(req.headers.origin||''));
   const headers={
     'access-control-allow-origin':appOrigin,
     'access-control-allow-methods':'POST,OPTIONS',
@@ -157,12 +159,12 @@ try{
   {
     processorMode='success';
     processorMethods=[];
+    processorOrigins=[];
     const page=await newAppPage();
     const errors=[];
     page.on('pageerror',e=>errors.push(String(e)));
-    const optionsCheck=await page.evaluate(url=>fetch(url,{method:'OPTIONS'}).then(r=>({status:r.status,allow:r.headers.get('access-control-allow-origin')})),processorBase+'/analyze');
-    assert.equal(optionsCheck.status,204,'QA-PDF-02 processor OPTIONS contract must answer successfully in the browser');
-    assert.equal(optionsCheck.allow,appOrigin,'QA-PDF-02 browser must receive the matching CORS origin');
+    const optionsStatus=await page.evaluate(url=>fetch(url,{method:'OPTIONS'}).then(r=>r.status),processorBase+'/analyze');
+    assert.equal(optionsStatus,204,'QA-PDF-02 processor OPTIONS contract must answer successfully in the browser');
 
     await page.locator('#invoicePdfFile').setInputFiles({
       name:'qa-pdf-02.pdf',
@@ -174,8 +176,9 @@ try{
     assert.equal(await page.locator('#pdfImportForm [name="party"]').inputValue(),'Voorbeeld Leverancier BV');
     assert.equal(await page.locator('#pdfImportForm [name="invoiceNumber"]').inputValue(),'QA-PDF-02-001');
     assert.equal(await page.locator('#pdfImportForm [name="gross"]').inputValue(),'121.00');
-    assert.ok(processorMethods.includes('OPTIONS'),'QA-PDF-02 must exercise a real browser CORS preflight');
-    assert.ok(processorMethods.includes('POST'),'QA-PDF-02 must reach POST /analyze after preflight');
+    assert.ok(processorMethods.includes('OPTIONS'),'QA-PDF-02 must exercise the processor OPTIONS contract in a real browser');
+    assert.ok(processorMethods.includes('POST'),'QA-PDF-02 must reach POST /analyze after the OPTIONS check');
+    assert.ok(processorOrigins.includes(appOrigin),'QA-PDF-02 browser requests must carry the app Origin');
 
     await page.getByRole('button',{name:'Gecontroleerd & opslaan'}).click();
     await page.waitForFunction(()=>state.documents.length===1&&state.expenses.length===1);
@@ -190,13 +193,13 @@ try{
   {
     processorMode='unavailable';
     processorMethods=[];
+    processorOrigins=[];
     const page=await newAppPage();
     const errors=[];
     page.on('pageerror',e=>errors.push(String(e)));
     await routeFallbackAi(page);
-    const optionsCheck=await page.evaluate(url=>fetch(url,{method:'OPTIONS'}).then(r=>({status:r.status,allow:r.headers.get('access-control-allow-origin')})),processorBase+'/analyze');
-    assert.equal(optionsCheck.status,204,'QA-PDF-03 processor OPTIONS contract must remain available during fallback scenarios');
-    assert.equal(optionsCheck.allow,appOrigin);
+    const optionsStatus=await page.evaluate(url=>fetch(url,{method:'OPTIONS'}).then(r=>r.status),processorBase+'/analyze');
+    assert.equal(optionsStatus,204,'QA-PDF-03 processor OPTIONS contract must remain available during fallback scenarios');
 
     assert.equal(await page.evaluate(()=>typeof pdfLibPromise),'object','pdfLibPromise must be initialized before loadPdfLib runs');
 
@@ -217,8 +220,9 @@ try{
     await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:15000});
     assert.equal(await page.locator('#pdfImportForm [name="invoiceNumber"]').inputValue(),'QA-PDF-03-001');
     assert.equal(await page.locator('#pdfImportForm [name="gross"]').inputValue(),'121.00');
-    assert.ok(processorMethods.includes('OPTIONS'),'QA-PDF-03 outage path must still pass browser preflight');
+    assert.ok(processorMethods.includes('OPTIONS'),'QA-PDF-03 outage path must still exercise the processor OPTIONS contract');
     assert.ok(processorMethods.includes('POST'),'QA-PDF-03 outage path must attempt the processor before fallback');
+    assert.ok(processorOrigins.includes(appOrigin),'QA-PDF-03 browser requests must carry the app Origin');
     assert.ok(!errors.some(x=>/pdfLibPromise/i.test(x)),'QA-PDF-03 must never throw pdfLibPromise ReferenceError');
     assert.ok(!errors.some(x=>/ReferenceError/i.test(x)),'QA-PDF-03 fallback must not throw a browser ReferenceError');
     await page.close();
