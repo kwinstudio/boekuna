@@ -58,6 +58,7 @@ Totaal €6.80
             "invoiceNumber": "CHECK-1DFC85046B", "invoiceDate": "2026-09-02",
             "dueDate": "2026-09-16", "subtotal": 5.63, "vatTotal": 1.17,
             "total": 6.80, "status": "overdue", "settlement": None,
+            "descriptionContains": "Moped ride",
         },
     },
     {
@@ -74,17 +75,25 @@ Subtotaal €3.26 €0.69
 Totaal betaald €3.95
 Het totaalbedrag is online betaald.
 """,
-        "tables": [{"page": 1, "rows": [
-            ["21%", "€3.26", "€0.69", "€3.95"],
-            ["Subtotaal", "€3.26", "€0.69"],
-            ["Totaal betaald", "", "", "€3.95"],
-        ]}],
+        "tables": [
+            {"page": 1, "rows": [
+                ["ZENDINGSNUMMER", "ONTVANGER", "BESTEMMING", "SERVICES"],
+                ["3SDFC1046004001", "Ontvanger", "Nederland", "Bezorging bij de ontvanger thuis, E-mailnotificatie"],
+            ]},
+            {"page": 1, "rows": [
+                ["BTW-TARIEF", "PRIJS (EXCL. BTW)", "BTW", "TOTAAL (INCL. BTW)"],
+                ["21%", "€3.26", "€0.69", "€3.95"],
+                ["Subtotaal", "€3.26", "€0.69", ""],
+                ["Totaal betaald", "", "", "€3.95"],
+            ]},
+        ],
         "layout": layout((120, 420, "DHL Parcel (e-Commerce) B.V."), (170, 20, "Bonstorm .com")),
         "expected": {
             "documentType": "purchase_invoice", "supplier": "DHL Parcel (e-Commerce) B.V.",
             "invoiceNumber": "13268012", "invoiceDate": "2023-02-24",
             "dueDate": None, "subtotal": 3.26, "vatTotal": 0.69,
             "total": 3.95, "status": "paid", "settlement": None,
+            "descriptionContains": "Bezorging bij de ontvanger thuis",
         },
     },
     {
@@ -117,6 +126,7 @@ Bedragen op deze factuur zijn reeds betaald via Payday van ABN Amro.
             "dueDate": None, "subtotal": 155.00, "vatTotal": 32.55,
             "total": 187.55, "status": "paid", "settlement": 180.97,
             "adjustment": (5.44, 1.14, 6.58),
+            "descriptionContains": "Uren tarief",
         },
     },
     {
@@ -206,6 +216,7 @@ Totaal bedrag € 324,30
             "invoiceNumber": "6a8c33d331c3e", "invoiceDate": "2026-08-24",
             "subtotal": 287.12, "vatTotal": 60.30, "total": 347.42,
             "status": "open", "settlement": 324.30, "adjustment": (19.11, 4.01, 23.12),
+            "descriptionContains": "Werkzaamheden",
         },
     },
     {
@@ -264,6 +275,10 @@ class DocumentProcessorRegressionTests(unittest.TestCase):
                 self.assertMoney(result.amounts.total, exp["total"])
                 self.assertEqual(result.status, exp["status"])
                 self.assertMoney(result.amounts.settlementAmount, exp.get("settlement"))
+                if exp.get("descriptionContains"):
+                    self.assertIsNotNone(result.invoice.description)
+                    self.assertIn(exp["descriptionContains"], result.invoice.description)
+                    self.assertGreaterEqual(result.confidence.get("description", 0), .80)
 
                 # Core accounting invariant: invoice total remains invoice total,
                 # even when a separate payout/settlement exists.
