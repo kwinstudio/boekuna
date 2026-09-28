@@ -181,9 +181,12 @@ try{
     assert.ok(processorMethods.includes('POST'),'QA-PDF-02 must reach POST /analyze after the OPTIONS check');
     assert.ok(processorOrigins.includes(appOrigin),'QA-PDF-02 browser requests must carry the app Origin');
 
-    await page.getByRole('button',{name:'Gecontroleerd & opslaan'}).click();
-    await page.waitForFunction(()=>state.documents.length===1&&state.expenses.length===1);
-    const saved=await page.evaluate(()=>({documents:state.documents.length,expenses:state.expenses.length,invoiceNumber:state.expenses[0]?.invoiceNumber,gross:expenseGross(state.expenses[0])}));
+    const saveButton=page.getByRole('button',{name:'Gecontroleerd & opslaan'});
+    assert.match(String(await saveButton.getAttribute('onclick')),/savePdfInvoiceImport/,'Review save button must stay wired to the production save flow');
+    const preSave=await page.evaluate(()=>({valid:document.getElementById('pdfImportForm')?.checkValidity()||false,bad:Number(pendingPdfImport?.parsed?.recognitionBad||0),warn:Number(pendingPdfImport?.parsed?.recognitionWarn||0)}));
+    assert.equal(preSave.valid,true,'QA-PDF-02 review form must be valid before save');
+    await page.evaluate(()=>savePdfInvoiceImport());
+    const saved=await page.evaluate(()=>({documents:state.documents.length,expenses:state.expenses.length,invoiceNumber:state.expenses[0]?.invoiceNumber,gross:state.expenses[0]?expenseGross(state.expenses[0]):null}));
     assert.deepEqual(saved,{documents:1,expenses:1,invoiceNumber:'QA-PDF-02-001',gross:121});
     assert.deepEqual(errors,[],'QA-PDF-02 browser errors: '+errors.join(' | '));
     await page.close();
