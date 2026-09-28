@@ -1225,7 +1225,7 @@ def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult,ind
         provider_code=None;provider_message=""
         try:
             upstream=resp.json()
-            provider_code=safe_log_value((upstream.get("error") or {}).get("code") or upstream.get("code"),120)
+            provider_code=sanitize_log_value((upstream.get("error") or {}).get("code") or upstream.get("code"),120)
             provider_message=sanitize_log_value((upstream.get("error") or {}).get("message") or upstream.get("message"),300)
         except Exception:
             upstream=None
