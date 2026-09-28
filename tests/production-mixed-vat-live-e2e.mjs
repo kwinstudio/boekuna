@@ -33,7 +33,9 @@ const liveResponse=await fetch(ORIGIN+'/?qa='+Date.now(),{redirect:'follow'});
 assert.equal(liveResponse.status,200,'Production homepage must return 200');
 const liveHtml=await liveResponse.text();
 assert.ok(liveHtml.includes('Optioneel. Corrigeer of laat leeg als de herkenning niet betrouwbaar is.'),
-  'Production HTML must contain the f17c43b review-safe IBAN UI');
+  'Production HTML must contain the review-safe IBAN UI');
+assert.ok(liveHtml.includes("if(processorAuthoritative&&k==='iban'){out[k]=v||'';continue}"),
+  'Production HTML must contain the 1d2bf115 authoritative IBAN clear fix');
 assert.ok(liveHtml.includes('/assets/product/boekuna-document-review-mobile.webp'),
   'Production HTML must contain the real mobile document-review capture');
 
