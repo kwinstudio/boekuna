@@ -42,7 +42,7 @@ try{
     const overflow=await page.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth,bw:document.body.scrollWidth}));
     assert.ok(overflow.sw<=overflow.vw+1&&overflow.bw<=overflow.vw+1,`Horizontal overflow at ${width}px: ${JSON.stringify(overflow)}`);
     assert.equal(await page.locator('.product-proof').count(),0,`Legacy product-proof must not render at ${width}px`);
-    assert.ok(await page.locator('.product-crop').count()>=4,`Targeted product crops missing at ${width}px`);
+    assert.equal(await page.locator('.product-crop').count(),3,`Homepage must render exactly three static desktop/detail crop containers at ${width}px`);
     assert.equal(await page.locator('.product-mobile').count(),2,`Exactly two mobile product compositions expected at ${width}px`);
     if(width<=620){
       const mobileWidths=await page.locator('.product-mobile').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().width));
@@ -67,6 +67,9 @@ try{
   assert.ok(desktopProof&&desktopProof.width<=820.5,'Dashboard proof must stay compact on desktop');
   assert.ok(actionProof&&actionProof.width<=620.5,'Action-center proof must stay compact on desktop');
   assert.equal(await page.locator('[data-kz-tab]').count(),3,'Homepage must expose only three compact product tabs');
+  assert.equal(await page.locator('[data-kz-tab="rapportages"]').count(),0,'Rapportages must stay off the compact homepage tabset');
+  assert.equal(await page.locator('.kz-workflow .product-mobile').count(),1,'Workflow must use one real mobile Documents capture');
+  assert.equal(await page.locator('.kz-hero-product-proof').count(),0,'Former full-width desktop hero proof must stay removed');
   await page.close();
 
   console.log('Editorial marketing screenshot responsive QA: PASS (320, 360, 390, 430, 768, 1024, 1440 + keyboard tabs)');
