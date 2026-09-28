@@ -108,22 +108,69 @@ Deno.serve(async (req: Request) => {
     const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
 
-    const { data: already } = await admin
-      .from("billing_events")
-      .select("stripe_event_id")
-      .eq("stripe_event_id", event.id)
-      .maybeSingle();
-
-    if (already) return json({ ok: true, duplicate: true });
-
     const type = String(event.type || "");
     const obj = event?.data?.object || {};
+    const eventCreated = Number(event?.created || 0);
+    const startedAt = new Date().toISOString();
 
-    async function resolveUserId() {
-      const metaUser = String(obj?.metadata?.user_id || obj?.client_reference_id || "");
+    // Atomically claim the Stripe event before side effects. Failed/stale claims
+    // can be retried; processed or currently-processing duplicates are ignored.
+    let claimed = false;
+    const { error: claimInsertError } = await admin.from("billing_events").insert({
+      stripe_event_id: event.id,
+      event_type: type,
+      event_created: eventCreated,
+      status: "processing",
+      attempts: 1,
+      processing_started_at: startedAt,
+      processed_at: null,
+      completed_at: null,
+      last_error: null,
+    });
+
+    if (!claimInsertError) {
+      claimed = true;
+    } else if (claimInsertError.code === "23505") {
+      const { data: existingEvent, error: existingEventError } = await admin
+        .from("billing_events")
+        .select("status,attempts,processing_started_at")
+        .eq("stripe_event_id", event.id)
+        .maybeSingle();
+      if (existingEventError) throw existingEventError;
+      if (existingEvent?.status === "processed") return json({ ok: true, duplicate: true });
+
+      const startedMs = Date.parse(String(existingEvent?.processing_started_at || "")) || 0;
+      const stale = existingEvent?.status === "processing" && startedMs > 0 && Date.now() - startedMs > 10 * 60 * 1000;
+      const retryable = existingEvent?.status === "failed" || stale;
+      if (!retryable) return json({ ok: true, duplicate: true, processing: true });
+
+      const previousAttempts = Math.max(1, Number(existingEvent?.attempts || 1));
+      const { data: reclaimed, error: reclaimError } = await admin
+        .from("billing_events")
+        .update({
+          status: "processing",
+          attempts: Math.min(25, previousAttempts + 1),
+          processing_started_at: startedAt,
+          completed_at: null,
+          last_error: null,
+        })
+        .eq("stripe_event_id", event.id)
+        .eq("status", String(existingEvent?.status || "failed"))
+        .eq("attempts", previousAttempts)
+        .select("stripe_event_id")
+        .maybeSingle();
+      if (reclaimError) throw reclaimError;
+      if (!reclaimed) return json({ ok: true, duplicate: true, processing: true });
+      claimed = true;
+    } else {
+      throw claimInsertError;
+    }
+
+    async function resolveUserId(source: any) {
+      const metaUser = String(source?.metadata?.user_id || source?.client_reference_id || "");
       if (metaUser) return metaUser;
 
-      const subId = String(obj?.subscription || obj?.id || "");
+      const subId = String(source?.subscription || source?.id || "");
       if (subId.startsWith("sub_")) {
         const { data } = await admin
           .from("billing_accounts")
@@ -133,7 +180,7 @@ Deno.serve(async (req: Request) => {
         if (data?.user_id) return String(data.user_id);
       }
 
-      const cust = String(obj?.customer || "");
+      const cust = String(source?.customer || "");
       if (cust) {
         const { data } = await admin
           .from("billing_accounts")
@@ -142,128 +189,92 @@ Deno.serve(async (req: Request) => {
           .maybeSingle();
         if (data?.user_id) return String(data.user_id);
       }
-
       return "";
     }
 
-    if (type === "checkout.session.completed") {
-      const userId = String(obj.client_reference_id || obj?.metadata?.user_id || "");
-      const subId = String(obj.subscription || "");
+    async function applySubscription(sub: any, userId: string) {
+      if (!userId || !sub?.id) return false;
+      const metadataOwner = String(sub?.metadata?.user_id || "");
+      if (metadataOwner && metadataOwner !== userId) throw new Error("STRIPE_OWNER_MISMATCH");
 
-      if (userId && subId) {
-        const sub = await stripeGet("/subscriptions/" + encodeURIComponent(subId));
-        const plan = String(sub?.metadata?.plan || obj?.metadata?.plan || "boekuna");
-        const founderNumber = Number(sub?.metadata?.founder_number || obj?.metadata?.founder_number || 0) || null;
+      const { data: existing, error: existingError } = await admin
+        .from("billing_accounts")
+        .select("plan")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (existingError) throw existingError;
 
-        const row = {
-          user_id: userId,
-          stripe_customer_id: String(obj.customer || sub.customer || "") || null,
-          stripe_subscription_id: subId,
-          plan: plan === "pro" ? "pro" : "boekuna",
-          status: normalizedStatus(sub.status),
-          founder_number: founderNumber,
-          trial_end: ts(sub.trial_end),
-          current_period_end: periodEnd(sub),
-          cancel_at_period_end: !!sub.cancel_at_period_end,
-          updated_at: new Date().toISOString(),
-        };
-
-        const { error } = await admin.from("billing_accounts").upsert(row, { onConflict: "user_id" });
-        if (error) throw error;
-
-        if (founderNumber) {
-          await admin
-            .from("founding_offer_claims")
-            .update({
-              status: "activated",
-              activated_at: new Date().toISOString(),
-              reserved_until: null,
-              checkout_session_id: String(obj.id || ""),
-              updated_at: new Date().toISOString(),
-            })
-            .eq("user_id", userId);
-        }
-      }
-    } else if (
-      ["customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"].includes(type)
-    ) {
-      const userId = await resolveUserId();
-
-      if (userId) {
-        const plan = String(obj?.metadata?.plan || "");
-        const existing = await admin
-          .from("billing_accounts")
-          .select("plan,founder_number")
-          .eq("user_id", userId)
-          .maybeSingle();
-
-        const currentPlan =
-          plan === "pro"
-            ? "pro"
-            : plan === "boekuna"
-              ? "boekuna"
-              : String(existing.data?.plan || "boekuna");
-
-        const founderNumber =
-          Number(obj?.metadata?.founder_number || existing.data?.founder_number || 0) || null;
-
-        const row = {
-          user_id: userId,
-          stripe_customer_id: String(obj.customer || "") || null,
-          stripe_subscription_id: String(obj.id || "") || null,
-          plan: currentPlan,
-          status: normalizedStatus(obj.status),
-          founder_number: founderNumber,
-          trial_end: ts(obj.trial_end),
-          current_period_end: periodEnd(obj),
-          cancel_at_period_end: !!obj.cancel_at_period_end,
-          updated_at: new Date().toISOString(),
-        };
-
-        const { error } = await admin.from("billing_accounts").upsert(row, { onConflict: "user_id" });
-        if (error) throw error;
-      }
-    } else if (["invoice.paid", "invoice.payment_failed"].includes(type)) {
-      const subId = String(obj.subscription || obj?.parent?.subscription_details?.subscription || "");
-
-      if (subId) {
-        const sub = await stripeGet("/subscriptions/" + encodeURIComponent(subId));
-        const { data: account } = await admin
-          .from("billing_accounts")
-          .select("user_id,plan,founder_number")
-          .eq("stripe_subscription_id", subId)
-          .maybeSingle();
-
-        const userId = String(sub?.metadata?.user_id || account?.user_id || "");
-
-        if (userId) {
-          const { error } = await admin.from("billing_accounts").upsert(
-            {
-              user_id: userId,
-              stripe_customer_id: String(sub.customer || "") || null,
-              stripe_subscription_id: subId,
-              plan: String(sub?.metadata?.plan || account?.plan || "boekuna") === "pro" ? "pro" : "boekuna",
-              status: normalizedStatus(sub.status),
-              founder_number: Number(sub?.metadata?.founder_number || account?.founder_number || 0) || null,
-              trial_end: ts(sub.trial_end),
-              current_period_end: periodEnd(sub),
-              cancel_at_period_end: !!sub.cancel_at_period_end,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: "user_id" },
-          );
-          if (error) throw error;
-        }
-      }
+      const rawPlan = String(sub?.metadata?.plan || existing?.plan || "boekuna");
+      const plan = rawPlan === "pro" ? "pro" : "boekuna";
+      const { data: applied, error: applyError } = await admin.rpc("apply_stripe_subscription_state", {
+        p_user_id: userId,
+        p_stripe_customer_id: String(sub?.customer || ""),
+        p_stripe_subscription_id: String(sub?.id || ""),
+        p_plan: plan,
+        p_status: normalizedStatus(sub?.status),
+        p_current_period_end: periodEnd(sub),
+        p_cancel_at_period_end: !!sub?.cancel_at_period_end,
+        p_event_created: eventCreated,
+        p_event_id: String(event.id),
+      });
+      if (applyError) throw applyError;
+      return applied === true;
     }
 
-    const { error: eventError } = await admin
-      .from("billing_events")
-      .insert({ stripe_event_id: event.id, event_type: type });
+    try {
+      if (type === "checkout.session.completed") {
+        const userId = String(obj?.client_reference_id || obj?.metadata?.user_id || "");
+        const subId = String(obj?.subscription || "");
+        if (userId && subId) {
+          const sub = await stripeGet("/subscriptions/" + encodeURIComponent(subId));
+          await applySubscription(sub, userId);
+        }
+      } else if (["customer.subscription.created", "customer.subscription.updated"].includes(type)) {
+        const userId = await resolveUserId(obj);
+        if (userId && obj?.id) {
+          // Stripe doesn't guarantee webhook ordering. Re-read the current
+          // subscription and persist that current server-side truth.
+          const currentSub = await stripeGet("/subscriptions/" + encodeURIComponent(String(obj.id)));
+          await applySubscription(currentSub, userId);
+        }
+      } else if (type === "customer.subscription.deleted") {
+        const userId = await resolveUserId(obj);
+        if (userId) await applySubscription(obj, userId);
+      } else if (["invoice.paid", "invoice.payment_failed"].includes(type)) {
+        const subId = String(obj?.subscription || obj?.parent?.subscription_details?.subscription || "");
+        if (subId) {
+          const sub = await stripeGet("/subscriptions/" + encodeURIComponent(subId));
+          const userId = String(sub?.metadata?.user_id || await resolveUserId({ subscription: subId, customer: sub?.customer }));
+          if (userId) await applySubscription(sub, userId);
+        }
+      }
 
-    if (eventError && eventError.code !== "23505") throw eventError;
+      const finishedAt = new Date().toISOString();
+      const { error: processedError } = await admin
+        .from("billing_events")
+        .update({
+          status: "processed",
+          processed_at: finishedAt,
+          completed_at: finishedAt,
+          last_error: null,
+        })
+        .eq("stripe_event_id", event.id);
+      if (processedError) throw processedError;
 
-    return json({ ok: true });
+      return json({ ok: true });
+    } catch (processingError) {
+      if (claimed) {
+        await admin
+          .from("billing_events")
+          .update({
+            status: "failed",
+            completed_at: new Date().toISOString(),
+            last_error: String((processingError as any)?.message || processingError).slice(0, 1000),
+          })
+          .eq("stripe_event_id", event.id);
+      }
+      throw processingError;
+    }
   } catch (e) {
     return json({ ok: false, error: String((e as any)?.message || e) }, 500);
   }
