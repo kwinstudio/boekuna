@@ -53,8 +53,8 @@ const pdfBytes=await makeSelfBillingPdf();
 
 // Pull the actual currently deployed application HTML. This makes the client
 // half of the test production-source based rather than branch-source based.
-const liveAppRes=await fetch(ORIGIN+'/app?qa-self='+Date.now(),{redirect:'follow'});
-assert.equal(liveAppRes.status,200,'Production /app must return HTTP 200');
+const liveAppRes=await fetch(ORIGIN+'/?qa-self='+Date.now(),{redirect:'follow'});
+assert.equal(liveAppRes.status,200,'Production root HTML must return HTTP 200');
 const liveSource=await liveAppRes.text();
 assert.ok(liveSource.includes("selfBilling:!!a.selfBilling||!!proc.selfBilling"),
   'Production client must include processor -> candidate selfBilling mapping');
