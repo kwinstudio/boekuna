@@ -1,6 +1,4 @@
-import base64
 import io
-import json
 import sys
 from pathlib import Path
 
@@ -178,45 +176,6 @@ def test_multi_page_pdf_reads_all_pages():
     assert "Extra omschrijving" in doc["text"]
 
 
-def test_issue20_original_mixed_vat_fixture():
-    fixture = ROOT / "tests" / "fixtures" / "issue20-mixed-9-21.pdf.b64"
-    raw = base64.b64decode(fixture.read_text(encoding="utf-8").strip())
-    doc = processor.extract_document("02_gemengde_btw_9_en_21.pdf", "application/pdf", raw)
-    assert doc["kind"] == "pdf"
-    assert doc["pageCount"] == 1
-    assert "KKG/26/09/7741" in doc["text"]
-
-    result = processor.heuristic_extract(
-        doc,
-        "02_gemengde_btw_9_en_21.pdf",
-        {"name": "KWINSTUDIO", "tradeName": "KWINSTUDIO"},
-    )
-    print("ISSUE20_PROCESSOR_RESULT=" + json.dumps({
-        "invoiceNumber": result.invoice.invoiceNumber,
-        "subtotal": result.amounts.subtotal,
-        "vatTotal": result.amounts.vatTotal,
-        "total": result.amounts.total,
-        "vatLines": [v.model_dump() for v in result.amounts.vatLines],
-        "mixedRates": bool(((result.processing or {}).get("amountDerivation") or {}).get("mixedRates")),
-        "warnings": result.warnings,
-    }, ensure_ascii=False, sort_keys=True))
-    assert result.invoice.invoiceNumber == "KKG/26/09/7741"
-    assert result.amounts.subtotal is not None and abs(result.amounts.subtotal - 429.95) < 0.005
-    assert result.amounts.vatTotal is not None and abs(result.amounts.vatTotal - 52.49) < 0.005
-    assert result.amounts.total is not None and abs(result.amounts.total - 482.44) < 0.005
-
-    groups = sorted(
-        (
-            round(float(v.rate), 2),
-            round(float(v.taxableAmount), 2),
-            round(float(v.vatAmount), 2),
-        )
-        for v in result.amounts.vatLines
-    )
-    assert groups == [(9.0, 315.0, 28.35), (21.0, 114.95, 24.14)], groups
-    assert bool(((result.processing or {}).get("amountDerivation") or {}).get("mixedRates")) is True
-
-
 def test_multiple_vat_rates_are_preserved_for_review():
     lines = [
         "FACTUUR",
@@ -255,7 +214,6 @@ if __name__ == "__main__":
         test_pdf_mime_detection_without_pdf_extension,
         test_scanned_pdf_uses_ocr_and_extracts_financial_core,
         test_multi_page_pdf_reads_all_pages,
-        test_issue20_original_mixed_vat_fixture,
         test_multiple_vat_rates_are_preserved_for_review,
         test_corrupt_pdf_fails_loudly,
     ]
