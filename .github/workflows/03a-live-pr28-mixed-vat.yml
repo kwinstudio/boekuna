@@ -1,0 +1,35 @@
+name: 03A live PR28 mixed VAT retest
+
+on:
+  push:
+    branches:
+      - 03a/live-pr28-mixed-vat
+    paths:
+      - "tests/qa-live-pr28-mixed-vat.mjs"
+      - ".github/workflows/03a-live-pr28-mixed-vat.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  live-retest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BOOKUNA_MARKETING_CAPTURE_EMAIL: ${{ secrets.BOOKUNA_MARKETING_CAPTURE_EMAIL }}
+      BOOKUNA_MARKETING_CAPTURE_PASSWORD: ${{ secrets.BOOKUNA_MARKETING_CAPTURE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install live QA browser dependency
+        run: |
+          npm ci --prefix tests --ignore-scripts
+          npm install --prefix tests --no-save playwright@1.56.1
+          ./tests/node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Run live production mixed VAT retest
+        run: node tests/qa-live-pr28-mixed-vat.mjs
