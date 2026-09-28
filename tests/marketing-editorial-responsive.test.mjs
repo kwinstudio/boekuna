@@ -21,6 +21,13 @@ const server=http.createServer((req,res)=>{
       return fs.createReadStream(file).pipe(res);
     }
   }
+  if(pathname!=='/'){
+    const staticIndex=path.join(root,'public',pathname,'index.html');
+    if(staticIndex.startsWith(path.join(root,'public'))&&fs.existsSync(staticIndex)){
+      res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});
+      return fs.createReadStream(staticIndex).pipe(res);
+    }
+  }
   res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});
   res.end(html);
 });
@@ -147,9 +154,9 @@ try{
   // FAQ uses native buttons, aria-expanded and content-height-safe accordion.
   {
     const page=await browser.newPage({viewport:{width:768,height:900},reducedMotion:'reduce'});
-    await page.goto(base+'/?page=faq',{waitUntil:'domcontentloaded'});
-    const first=page.locator('.faq-toggle').first();
-    const second=page.locator('.faq-toggle').nth(1);
+    await page.goto(base+'/faq/',{waitUntil:'domcontentloaded'});
+    const first=page.locator('.mk-faq-toggle').first();
+    const second=page.locator('.mk-faq-toggle').nth(1);
     assert.equal(await first.evaluate(el=>el.tagName),'BUTTON','FAQ trigger must be a native button');
     assert.equal(await first.getAttribute('aria-expanded'),'true','First FAQ item opens by default');
     await second.focus();await page.keyboard.press('Enter');
