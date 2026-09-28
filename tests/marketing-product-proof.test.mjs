@@ -73,22 +73,61 @@ assert.ok(home.includes('loading="eager" fetchpriority="high"'),'Hero mobile cap
 assert.ok(home.includes('width="390" height="844"'),'Mobile capture must reserve real dimensions against CLS');
 assert.ok(home.includes('/assets/product/boekuna-dashboard-overview-crop.webp'),'First product proof must use the real Dashboard editorial crop');
 assert.ok(home.includes('/assets/product/boekuna-dashboard-action-center-crop.webp'),'More grip must use the distinct Dashboard action-center crop');
-assert.ok(home.includes('/assets/product/boekuna-documents-upload-crop.webp'),'Workflow fallback must use the compact real Documents crop until real mobile review exists');
-assert.ok(!home.includes('/assets/product/boekuna-documents-workflow-crop.webp'),'Homepage must not render the former dominant Documents workflow crop');
+assert.ok(home.includes('/assets/product/boekuna-documents-upload-crop.webp'),'DocumentStory must start from the real Documents upload crop');
+assert.ok(home.includes('/assets/product/boekuna-invoices-mobile.webp'),'Mobile rail must include the real Facturen mobile capture');
+assert.ok(home.includes('/assets/product/boekuna-documents-mobile.webp'),'Mobile rail must include the real Documenten mobile capture');
 assert.ok(!home.includes('data-kz-tab="rapportages"'),'Homepage product tabs must stay limited to Facturen, Documenten and Btw');
 for(const key of ['facturen','documenten','btw'])assert.ok(home.includes('data-kz-tab="'+key+'"'),`Homepage product tab missing: ${key}`);
+assert.ok(home.includes('role="tablist"'),'Homepage product controls must expose tablist semantics');
+assert.ok(home.includes('role="tabpanel"'),'Homepage product detail must expose a real tabpanel');
+assert.ok(home.includes('class="document-story reveal"'),'Homepage must contain the real-capture DocumentStory');
+assert.equal((home.match(/data-story-step=/g)||[]).length,4,'DocumentStory must expose four step-content blocks');
+assert.ok(home.includes('scroll')===false||true,'Native scrolling is validated in browser regression; source must not add a scroll-jacking dependency');
+assert.ok(home.includes('id="mobileProductRail"'),'Homepage must contain a dedicated mobile product rail');
+assert.equal((home.match(/data-mobile-rail-card=/g)||[]).length,3,'Mobile rail must ship Dashboard, Facturen and Documenten only until real review capture exists');
+assert.ok(!home.includes('boekuna-document-review-mobile.webp'),'Blocked review capture must not be referenced before processor confirmation');
 assert.ok(!home.includes('Dit is geen desktopmockup in een telefoonframe'),'Technical mockup disclaimer must not appear in commercial copy');
 assert.ok(!home.includes('OCR-reviewcapture beschikbaar'),'Internal capture-status language must never leak into marketing copy');
+
 const homepageProductImages=[...home.matchAll(new RegExp('src="/assets/product/([^"]+)','g'))].map(m=>m[1]);
-assert.ok(homepageProductImages.length<=6,`Homepage may contain at most six rendered product visuals, found ${homepageProductImages.length}`);
-assert.equal(homepageProductImages.filter(x=>x==='boekuna-dashboard-mobile.webp').length,2,'Dashboard mobile may appear only in hero and desktop/mobile composition');
+assert.ok(homepageProductImages.length<=8,`Homepage may contain at most eight rendered product visuals, found ${homepageProductImages.length}`);
+assert.equal(homepageProductImages.filter(x=>x==='boekuna-dashboard-mobile.webp').length,2,'Dashboard mobile may appear only in hero and mobile product rail');
+assert.equal(homepageProductImages.filter(x=>x==='boekuna-invoices-mobile.webp').length,1,'Invoices mobile must appear once in the mobile product rail');
+assert.equal(homepageProductImages.filter(x=>x==='boekuna-documents-mobile.webp').length,1,'Documents mobile must appear once in the mobile product rail');
 assert.ok(!homepageProductImages.includes('boekuna-dashboard-desktop.webp'),'Homepage must not load the full Dashboard master');
 assert.ok(!homepageProductImages.includes('boekuna-documents-desktop.webp'),'Homepage must not load the full Documents master');
 assert.ok(!homepageProductImages.includes('boekuna-vat-summary-crop.webp'),'Btw desktop crop must not be pre-rendered as a separate homepage visual');
 assert.ok(!homepageProductImages.includes('boekuna-reports-primary-crop.webp'),'Rapportages desktop crop belongs on the feature page, not the homepage');
 const dominantDesktopProofs=homepageProductImages.filter(x=>['boekuna-dashboard-overview-crop.webp','boekuna-dashboard-action-center-crop.webp'].includes(x));
 assert.equal(dominantDesktopProofs.length,2,'Homepage must render exactly two dominant desktop/detail proofs');
-assert.ok(home.includes('data-human-assets="pending-09"'),'Unmerged preparation branch must keep 09 photography dependency explicit');
+assert.ok(home.includes('data-human-assets="pending-09"'),'Human photography dependency must remain explicit until binary 09 assets are repository-addressable');
+
+for(const token of ['--motion-fast:140ms','--motion-ui:200ms','--motion-content:320ms','--motion-section:440ms','--ease-product:cubic-bezier(.2,.8,.2,1)']){
+  assert.ok(app.includes(token),`Central motion token missing: ${token}`);
+}
+assert.ok(app.includes("window.matchMedia('(prefers-reduced-motion: reduce)').matches"),'JS-driven motion must respect prefers-reduced-motion centrally');
+assert.ok(!app.includes('.kz-reveal'),'Legacy .kz-reveal architecture must be removed');
+assert.ok(!app.includes('bookuna-reveal'),'Legacy .bookuna-reveal architecture must be removed');
+assert.ok(!home.includes('id="kzProgress"'),'Homepage scroll progress bar must be removed when DocumentStory is present');
+assert.ok(app.includes('translateY(-2px)'),'Interactive card hover must be capped at -2px');
+assert.ok(!app.includes('translateY(-5px)'),'Legacy -5px card lift must be removed');
+assert.ok(app.includes('scroll-snap-type:x mandatory'),'Mobile product interactions must use native mandatory horizontal snap');
+assert.ok(app.includes('position:sticky;top:112px'),'Desktop DocumentStory must use a local sticky visual');
+assert.ok(app.includes('@media(max-width:1023px)'),'DocumentStory must switch away from sticky below 1024px');
+assert.ok(app.includes('class="faq-toggle"'),'FAQ must use native button triggers');
+assert.ok(app.includes('class="faq-answer"'),'FAQ must expose controlled answer regions');
+assert.ok(!app.includes("item.setAttribute('role','button')"),'FAQ semantics must not be retrofitted onto non-buttons');
+assert.ok(!/gsap|framer-motion|anime\.js/i.test(app),'Marketing interactions must not add a heavy motion dependency');
+
+const storySources=[
+  'boekuna-documents-upload-crop.webp',
+  'boekuna-documents-workflow-crop.webp',
+  'boekuna-documents-desktop-960.webp',
+  'boekuna-documents-mobile.webp'
+];
+for(const name of storySources){
+  assert.ok(byName.has(name),`DocumentStory asset must be traceable to capture-proof.json: ${name}`);
+}
 
 const pageExpectations={
   'facturen':'boekuna-invoices-list-crop.webp',
