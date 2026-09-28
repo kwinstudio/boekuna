@@ -11,14 +11,14 @@ Voor ieder document wordt **vóór** de OCR-run handmatig ground truth vastgeleg
 - Een PASS 1/PASS 2-verschil is op zichzelf **geen** bewijs dat een fout is ontdekt.
 - Een financiële PASS 1-fout telt pas als gedetecteerd wanneer de uiteindelijke validation/reviewlaag het relevante veld of de financiële inconsistentie expliciet markeert.
 - Meet afzonderlijk of PASS 2 een PASS 1-fout herstelt én of PASS 2 nieuwe fouten introduceert.
-- Meet false confidence: foutieve velden die als hoog vertrouwen zijn aangemerkt.
+- Meet false confidence: foutieve velden die als hoog vertrouwen zijn aangemerkt.\n- Een correct btw-totaal maakt een foutieve btw-uitsplitsing niet correct. Rate groups worden apart tegen ground truth vergeleken, omdat verborgen foutieve `vatLines` later exports, mixed-rate berekeningen of historische reconstructie kunnen besmetten.
 - Ground truth moet zelf financieel consistent zijn; netto + btw moet exact op centniveau gelijk zijn aan totaal. Regel- en btw-sommen worden alleen als harde invariant gecontroleerd wanneer `groundTruth.validation` dat expliciet vereist. Leg `vatRounding` vast als `per_line`, `per_rate_group` of `document_printed`, zodat een legitiem afrondingsverschil van bijvoorbeeld één cent niet als OCR-fout wordt aangemerkt.
 
 ## Verplichte uitkomsten
 
 De benchmark rapporteert minimaal:
 
-- per kernveld: correct, fout, ontbrekend, accuracy en correctiepercentage;
+- per kernveld: correct, fout, ontbrekend, accuracy en correctiepercentage;\n- btw-uitsplitsing (`vatLines`) afzonderlijk: correct, fout, ontbrekend, accuracy en correctiepercentage;
 - per document: volledig correct, kleine correctie, belangrijke financiële correctie of onbruikbaar;
 - percentage volledig correcte documenten;
 - percentage documenten met handmatige correctie;
