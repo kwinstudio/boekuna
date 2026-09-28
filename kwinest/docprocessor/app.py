@@ -489,7 +489,7 @@ def layout_fragments(doc:dict,max_y:float=330.0)->list[dict[str,Any]]:
                 if txt:out.append({"text":txt,"x0":float(current[0].get("x0") or 0),"y0":g["y"]})
     return sorted(out,key=lambda x:(x["y0"],x["x0"]))
 
-LEGAL_ENTITY_RE=re.compile(r"([A-ZÀ-ÖØ-Ý][A-Za-zÀ-ÖØ-öø-ÿ0-9&'()., -]{1,80}?\b(?:B\.?\s*V\.?|N\.?\s*V\.?|V\.?\s*O\.?\s*F\.?|LTD\.?|LLC|GMBH))\b",re.I)
+LEGAL_ENTITY_RE=re.compile(r"([A-ZÀ-ÖØ-Ý][A-Za-zÀ-ÖØ-öø-ÿ0-9&'()., -]{1,80}?\b(?:B\.?\s*V\.?|N\.?\s*V\.?|V\.?\s*O\.?\s*F\.?|LTD\.?|LLC|GMBH))(?![A-Za-z0-9])",re.I)
 
 def layout_legal_entity_name(doc:dict,company:dict)->str|None:
     candidates=[]
