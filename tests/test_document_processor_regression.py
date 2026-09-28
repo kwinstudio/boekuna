@@ -186,6 +186,72 @@ Bedragen op deze factuur zijn reeds betaald via Payday van ABN Amro.
         },
     },
     {
+        "id": "solid-health-9-percent",
+        "file": "solid-health-22486.pdf",
+        "text": """--- PAGE 1 ---
+Factuur 22486
+Datum 24-11-2025
+Leverancier: Solid Health Club
+Product / Dienst
+Solid tennis - MAAND (2025-12-03 - 2026-01-02)
+Totaal exclusief BTW
+27.52
+BTW 9% - 9.00% BTW
+2.48
+Totaal inclusief BTW
+30.00
+Te voldoen in EUR
+30.00
+""",
+        "tables": [{"page": 1, "rows": [
+            ["Aantal", "Product / Dienst", "Prijs (excl BTW)", "BTW", "BTW-bedrag", "Totaal (inclusief BTW)"],
+            ["1.00", "Solid tennis - MAAND (2025-12-03 - 2026-01-02)", "27.52", "9.00%", "2.48", "30.00"],
+        ]}],
+        "layout": [],
+        "expected": {
+            "documentType": "purchase_invoice", "supplier": "Solid Health Club",
+            "invoiceNumber": "22486", "invoiceDate": "2025-11-24",
+            "subtotal": 27.52, "vatTotal": 2.48, "total": 30.00,
+            "status": "overdue", "settlement": None, "vatRate": 9,
+            "descriptionContains": "Solid tennis",
+        },
+    },
+    {
+        "id": "adidas-credit-note-discount",
+        "file": "adidas-credit-note.pdf",
+        "text": """--- PAGE 1 ---
+Creditnota
+Leverancier: adidas Benelux B.V.
+Creditnota nummer : NLADCN0002140543
+Creditnota datum : 21.06.2024
+Bestelnummer : ANT_ZL_ANLA1S8XI1
+Factuurnummer : NLADIN0007717692
+Factuurdatum : 11.06.2024
+Productnaam
+X_PLRPHASE - Sneakers laag - core black
+Subtotaal voor korting
+119,95
+Kortingen
+-60,00
+Totaal
+59,95
+inclusief 21,00% BTW (Netto Bedrag 49,55)
+10,40
+""",
+        "tables": [{"page": 1, "rows": [
+            ["Productnaam", "Aantal", "Prijs per eenheid netto", "Prijs per eenheid bruto", "Totaalprijs"],
+            ["X_PLRPHASE - Sneakers laag - core black", "1", "99,13", "119,95", "119,95"],
+        ]}],
+        "layout": [],
+        "expected": {
+            "documentType": "credit_invoice", "supplier": "adidas Benelux B.V.",
+            "invoiceNumber": "NLADCN0002140543", "invoiceDate": "2024-06-21",
+            "subtotal": 49.55, "vatTotal": 10.40, "total": 59.95,
+            "status": "credit", "settlement": None, "vatRate": 21,
+            "descriptionContains": "X_PLRPHASE",
+        },
+    },
+    {
         "id": "reddende-engel-august",
         "file": "reddende-engel-august.pdf",
         "text": """--- PAGE 1 ---
@@ -303,7 +369,7 @@ class DocumentProcessorRegressionTests(unittest.TestCase):
                 # from validated primary totals, never arbitrary product-row pairs.
                 self.assertEqual(len(result.amounts.vatLines), 1)
                 vat_group = result.amounts.vatLines[0]
-                self.assertEqual(vat_group.rate, 21)
+                self.assertEqual(vat_group.rate, exp.get("vatRate", 21))
                 self.assertMoney(vat_group.taxableAmount, exp["subtotal"])
                 self.assertMoney(vat_group.vatAmount, exp["vatTotal"])
                 self.assertGreaterEqual(result.confidence.get("vatLines", 0), .95)
@@ -311,6 +377,51 @@ class DocumentProcessorRegressionTests(unittest.TestCase):
     def test_negative_currency_sign_before_euro_is_preserved(self):
         self.assertEqual(app.money_tokens("-€ 24,00"), [-24.0])
         self.assertEqual(app.money_tokens("€ -5,44"), [-5.44])
+
+    def test_explicit_zero_percent_vat_is_not_confused_with_missing_vat(self):
+        doc = {
+            "kind": "pdf",
+            "pageCount": 1,
+            "text": """--- PAGE 1 ---
+FACTUUR
+Leverancier: Voorbeeld Export B.V.
+Factuurnummer: ZERO-1
+Factuurdatum: 28-09-2026
+Omschrijving: Expliciete 0%-test
+Totaal exclusief BTW € 100,00
+BTW 0% € 0,00
+Totaal inclusief BTW € 100,00
+""",
+            "tables": [],
+            "layout": [],
+            "ocrPages": [],
+            "warnings": [],
+        }
+        result = app.heuristic_extract(doc, "zero-percent.pdf", COMPANY)
+        self.assertMoney(result.amounts.subtotal, 100.00)
+        self.assertMoney(result.amounts.vatTotal, 0.00)
+        self.assertMoney(result.amounts.total, 100.00)
+        self.assertEqual(len(result.amounts.vatLines), 1)
+        self.assertEqual(result.amounts.vatLines[0].rate, 0)
+        self.assertMoney(result.amounts.vatLines[0].taxableAmount, 100.00)
+        self.assertMoney(result.amounts.vatLines[0].vatAmount, 0.00)
+
+    def test_line_rounded_vat_may_differ_one_cent_from_printed_aggregate(self):
+        # Real-layout regression: line VAT sums to 60.29 while the document's
+        # printed aggregate VAT is 60.30. The aggregate is the invoice truth.
+        line_vat_cents = sum(app.money_cents(v) for v in (54.90, 10.43, -5.04))
+        self.assertEqual(line_vat_cents, 6029)
+        result = next(
+            app.heuristic_extract({
+                "kind": "pdf", "pageCount": 1, "text": f["text"],
+                "tables": f.get("tables", []), "layout": f.get("layout", []),
+                "ocrPages": [], "warnings": [],
+            }, f["file"], COMPANY)
+            for f in FIXTURES if f["id"] == "reddende-engel-august"
+        )
+        self.assertMoney(result.amounts.vatTotal, 60.30)
+        self.assertMoney(result.amounts.vatLines[0].vatAmount, 60.30)
+        self.assertGreaterEqual(result.confidence.get("vatLines", 0), .95)
 
     def test_explicit_conflicting_amounts_are_not_silently_rewritten(self):
         result = app.enforce_single_rate_consistency(
