@@ -322,5 +322,32 @@ class DocumentProcessorRegressionTests(unittest.TestCase):
         self.assertEqual(result["total"], 130.00)
 
 
+    def test_mixed_vat_without_explicit_groups_requires_review(self):
+        doc = {
+            "kind": "pdf",
+            "pageCount": 1,
+            "text": """--- PAGE 1 ---
+FACTUUR
+Leverancier: Voorbeeld Leverancier B.V.
+Factuurnummer: MIX-REVIEW-1
+Factuurdatum: 28-09-2026
+Omschrijving Product A 9% en Product B 21%
+Subtotaal € 200,00
+Totaal BTW € 30,00
+Totaal te betalen € 230,00
+""",
+            "tables": [],
+            "layout": [],
+            "ocrPages": [],
+            "warnings": [],
+        }
+        result = app.heuristic_extract(doc, "mixed-review.pdf", COMPANY)
+        self.assertTrue(result.processing["amountDerivation"]["mixedRates"])
+        self.assertEqual(result.amounts.vatLines, [])
+        self.assertLessEqual(result.confidence.get("vatLines", 1), .35)
+        self.assertTrue(any("Meerdere btw-tarieven" in w for w in result.warnings))
+        self.assertLess(app.overall_confidence(result), .50)
+
+
 if __name__ == "__main__":
     unittest.main()
