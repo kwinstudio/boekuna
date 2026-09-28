@@ -1,0 +1,79 @@
+name: PR55 remote Render preview QA
+
+on:
+  push:
+    branches:
+      - 02a/recover-marketing-no-screenshots-20260929
+    paths:
+      - ".github/workflows/pr55-remote-preview-qa.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  remote-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Playwright
+        run: |
+          mkdir -p /tmp/pr55qa
+          npm install --prefix /tmp/pr55qa --no-save playwright@1.56.1
+          /tmp/pr55qa/node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Verify deployed Render preview
+        env:
+          PREVIEW_ORIGIN: https://boekuna-pr55-marketing-preview.onrender.com
+        run: |
+          node <<'NODE'
+          const fs=require('node:fs');
+          const path=require('node:path');
+          const {chromium}=require('/tmp/pr55qa/node_modules/playwright');
+          const assert=require('node:assert/strict');
+
+          (async()=>{
+            const origin=process.env.PREVIEW_ORIGIN;
+            const routes=['/','/functies/','/facturen/','/scanner/','/btw-bank/','/rapportages/','/hoe-het-werkt/','/voor-ondernemers/'];
+            const widths=[390,1440];
+            const out='/tmp/pr55-remote-evidence';
+            fs.mkdirSync(out,{recursive:true});
+            const browser=await chromium.launch({headless:true});
+            try{
+              for(const route of routes){
+                for(const width of widths){
+                  const page=await browser.newPage({viewport:{width,height:width===390?844:900},reducedMotion:'reduce',hasTouch:width===390});
+                  const errors=[];
+                  page.on('pageerror',e=>errors.push(String(e)));
+                  const response=await page.goto(origin+route,{waitUntil:'domcontentloaded',timeout:45000});
+                  assert.ok(response&&response.ok(),route+' '+width+': HTTP '+(response&&response.status()));
+                  await page.waitForTimeout(1200);
+                  await page.evaluate(()=>document.fonts&&document.fonts.ready);
+                  const x=await page.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth,bw:document.body.scrollWidth}));
+                  assert.ok(x.sw<=x.vw+1&&x.bw<=x.vw+1,route+' '+width+': horizontal overflow '+JSON.stringify(x));
+                  assert.equal(await page.locator('img[src*="/assets/product/"]').count(),0,route+' '+width+': product screenshot rendered');
+                  assert.equal(await page.locator('.product-proof,.product-crop,.product-mobile,.mk-window').count(),0,route+' '+width+': legacy screenshot/fake UI rendered');
+                  assert.ok(await page.locator('h1').count()===1,route+' '+width+': expected one h1');
+                  assert.deepEqual(errors,[],route+' '+width+': page errors '+errors.join(' | '));
+                  const slug=route==='/'?'home':route.replaceAll('/','');
+                  await page.screenshot({path:path.join(out,slug+'-'+width+'.png'),fullPage:true});
+                  await page.close();
+                }
+              }
+            }finally{
+              await browser.close();
+            }
+            console.log('Remote Render preview QA: PASS');
+          })().catch(err=>{console.error(err);process.exit(1)});
+          NODE
+
+      - name: Upload remote preview evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr55-remote-preview-evidence
+          path: /tmp/pr55-remote-evidence/*.png
+          if-no-files-found: error
+          retention-days: 7
