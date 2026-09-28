@@ -38,7 +38,9 @@ try{
     assert.equal(await page.locator('.product-mobile').count(),1,`Exactly one production mobile proof expected at ${width}px`);
     const review=page.locator('img[src*="boekuna-document-review-mobile.webp"]');
     assert.equal(await review.count(),1,`Homepage real review capture missing at ${width}px`);
-    assert.ok(await review.evaluate(el=>el.complete&&el.naturalWidth===390&&el.naturalHeight===844),`Homepage real review capture failed at ${width}px`);
+    await review.scrollIntoViewIfNeeded();
+    await page.waitForFunction(()=>{const el=document.querySelector('img[src*="boekuna-document-review-mobile.webp"]');return !!el&&el.complete&&el.naturalWidth===390&&el.naturalHeight===844},{timeout:15000});
+    assert.ok(await review.evaluate(el=>el.complete&&el.naturalWidth===390&&el.naturalHeight===844),`Homepage real review capture failed after scroll at ${width}px`);
     assert.deepEqual(signals.pageErrors,[],`Production homepage page errors at ${width}px: ${signals.pageErrors.join(' | ')}`);
     assert.deepEqual(signals.consoleErrors,[],`Production homepage console errors at ${width}px: ${signals.consoleErrors.join(' | ')}`);
     assert.deepEqual(signals.httpFailures,[],`Production homepage HTTP failures at ${width}px: ${signals.httpFailures.join(' | ')}`);
