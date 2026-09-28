@@ -3554,7 +3554,7 @@ function extractPartyIdentifiers(text,type,partyBlock){
  const extractVats=s=>[...String(s).matchAll(/\bNL\s?\d{9}\s?B\s?\d{2}\b/ig)].map(m=>m[0].replace(/\s/g,''));
  const extractKvks=s=>[...String(s).matchAll(/(?:kvk|k\.v\.k\.|chamber of commerce|coc)(?:\s*(?:nr|nummer|number|no))?\s*[:#-]?\s*(\d{8})/ig)].map(m=>m[1]);
  const extractPhones=s=>[...String(s).matchAll(/(?:\+31|0)[ \t-]?(?:\d[ \t-]?){8,10}/g)].map(m=>m[0]);
- const extractIbans=s=>[...String(s).matchAll(/\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]){11,30}\b/g)].map(m=>m[0].replace(/\s/g,''));
+ const extractIbans=s=>[...String(s).matchAll(/\b[A-Z]{2}\d{2}(?:[ \\t]?[A-Z0-9]){11,30}\b/g)].map(m=>m[0].replace(/[ \\t]/g,''));
  const ownEmail=String(state.company.email||'').toLowerCase(),ownVat=String(state.company.vat||'').replace(/\s/g,'').toUpperCase(),ownKvk=String(state.company.kvk||'').replace(/\D/g,''),ownIban=String(state.company.iban||'').replace(/\s/g,'').toUpperCase();
  const scopedEmails=extractEmails(scope),scopedVats=extractVats(scope),scopedKvks=extractKvks(scope),scopedPhones=extractPhones(scope),scopedIbans=extractIbans(scope);
  const allEmails=extractEmails(text),vats=extractVats(text),kvks=extractKvks(text),phones=extractPhones(text),ibans=extractIbans(text);
