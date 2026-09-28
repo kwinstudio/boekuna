@@ -120,12 +120,14 @@ function initSharedInteractions(){
    const toggle=item.querySelector('.mk-faq-toggle'),answer=item.querySelector('.mk-faq-answer');
    if(!toggle||!answer)return;
    const setOpen=open=>{item.classList.toggle('open',open);toggle.setAttribute('aria-expanded',String(open));answer.setAttribute('aria-hidden',String(!open))};
+   setOpen(item.classList.contains('open'));
    toggle.addEventListener('click',()=>{
      const willOpen=toggle.getAttribute('aria-expanded')!=='true';
      faqItems.forEach(other=>{const b=other.querySelector('.mk-faq-toggle'),a=other.querySelector('.mk-faq-answer');if(b&&a){other.classList.remove('open');b.setAttribute('aria-expanded','false');a.setAttribute('aria-hidden','true')}});
      setOpen(willOpen);
    });
  });
+ if(faqItems.length)document.documentElement.classList.add('faq-enhanced');
  const menu=document.getElementById('mobileMenu');
  if(menu)menu.addEventListener('click',e=>{
    const a=e.target.closest('a');
