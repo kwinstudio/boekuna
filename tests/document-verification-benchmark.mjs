@@ -104,7 +104,14 @@ function arithmeticIssues(snapshot) {
     issues.push("net_plus_vat_mismatch");
   }
 
-  if (Array.isArray(snapshot.lineItems) && snapshot.lineItems.length) {
+  // Line-level sums are only hard invariants when the labeled document explicitly
+  // says they should be. Discounts, fees and document-level adjustments can make
+  // a raw line sum differ from the financial subtotal without being an OCR error.
+  if (
+    snapshot.validation?.requireLineItemSum === true &&
+    Array.isArray(snapshot.lineItems) &&
+    snapshot.lineItems.length
+  ) {
     let sum = 0n;
     let complete = true;
     for (const line of snapshot.lineItems) {
@@ -118,7 +125,15 @@ function arithmeticIssues(snapshot) {
     if (complete && net !== null && sum !== net) issues.push("line_sum_mismatch");
   }
 
-  if (Array.isArray(snapshot.vatLines) && snapshot.vatLines.length) {
+  // VAT may legally/document-wise be rounded per line or after aggregation per
+  // VAT-rate group. Only enforce exact sum(vatLines) == vatTotal when the ground
+  // truth declares that this document uses a per-line/group representation where
+  // the printed VAT lines are expected to reconcile exactly.
+  if (
+    snapshot.validation?.requireVatLineSum === true &&
+    Array.isArray(snapshot.vatLines) &&
+    snapshot.vatLines.length
+  ) {
     let sum = 0n;
     let complete = true;
     for (const line of snapshot.vatLines) {
