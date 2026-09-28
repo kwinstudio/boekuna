@@ -122,6 +122,10 @@ try{
   const uploadError=await page.locator('.modal').innerText();
   assert.match(uploadError,/Bestand te groot/);
   assert.match(uploadError,/Verklein of comprimeer/);
+  assert.equal(await page.locator('.modal a[href="mailto:support@boekuna.nl"]').count(),1,'Upload error must offer the official support email');
+  await page.evaluate(()=>{closeModal();navigate('settings')});
+  await page.getByRole('heading',{name:'Instellingen'}).waitFor();
+  assert.equal(await page.locator('a[href="mailto:support@boekuna.nl"]').count(),1,'Settings must expose the official support email');
 
   // Mobile viewport: navigation, modal sizing and no page-level horizontal overflow.
   await page.setViewportSize({width:390,height:844});
