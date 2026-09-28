@@ -146,6 +146,13 @@ try{
   assert.equal(vatPersistence.mixedBad.ok,false,'A mixed VAT split that does not reconcile must be blocked');
   assert.equal(vatPersistence.zeroRateConflict.ok,false,'0% may not be stored when the confirmed VAT amount is non-zero');
 
+  // Final save validation is exact in currency minor units; large invoices may not hide a one-cent mismatch.
+  const schemaCentCheck=await page.evaluate(()=>validateCandidateSchema({
+    type:'purchase',party:'Voorbeeld Leverancier BV',documentType:'purchase_invoice',invoiceNumber:'BIG-1',issueDate:'2026-09-27',
+    net:10000,vatAmount:2100,gross:12100.01,dueDate:'',iban:'',kvk:'',vatId:''
+  }));
+  assert.ok(schemaCentCheck.some(x=>/cent-exact/.test(x)),'A €0.01 mismatch on a large invoice must block final save');
+
   // Relevant financial disagreement: store both values and flag, never choose one automatically.
   await putDoc('mismatch',pendingVerification(base));
   await installMock([{status:200,body:processorPayload({vatAmount:12,gross:112,vatRate:12})}]);
