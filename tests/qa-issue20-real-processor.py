@@ -33,6 +33,17 @@ assert doc["pageCount"] == 1
 assert "KKG/26/09/7741" in (doc.get("text") or "")
 assert result.documentType == "purchase_invoice", result.documentType
 assert "KeukenKern" in (result.supplier.name or ""), result.supplier.name
+print("PROCESSOR_RESULT", json.dumps({
+    "supplier": result.supplier.name,
+    "invoiceNumber": result.invoice.invoiceNumber,
+    "subtotal": result.amounts.subtotal,
+    "vatTotal": result.amounts.vatTotal,
+    "total": result.amounts.total,
+    "vatLines": [v.model_dump() for v in result.amounts.vatLines],
+    "processing": result.processing,
+    "warnings": result.warnings,
+    "confidence": result.confidence,
+}, ensure_ascii=False, default=str))
 assert cents(result.amounts.subtotal) == 42995, result.amounts.subtotal
 assert cents(result.amounts.vatTotal) == 5249, result.amounts.vatTotal
 assert cents(result.amounts.total) == 48244, result.amounts.total
