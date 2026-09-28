@@ -150,6 +150,40 @@ function arithmeticIssues(snapshot) {
   return issues;
 }
 
+function normalizedVatLines(value) {
+  if (!Array.isArray(value)) return null;
+  const rows = [];
+  for (const line of value) {
+    const rate = decimalParts(line?.rate, 3);
+    const vatAmount = decimalParts(line?.vatAmount, 2);
+    const taxableAmount = missing(line?.taxableAmount)
+      ? null
+      : decimalParts(line?.taxableAmount, 2);
+    if (rate === null || vatAmount === null || (!missing(line?.taxableAmount) && taxableAmount === null)) {
+      return null;
+    }
+    rows.push({
+      rate: rate.toString(),
+      taxableAmount: taxableAmount === null ? null : taxableAmount.toString(),
+      vatAmount: vatAmount.toString(),
+    });
+  }
+  return rows.sort((a, b) =>
+    a.rate.localeCompare(b.rate) ||
+    String(a.taxableAmount).localeCompare(String(b.taxableAmount)) ||
+    a.vatAmount.localeCompare(b.vatAmount)
+  );
+}
+
+function vatBreakdownStatus(value, truth) {
+  if (!Array.isArray(truth)) return null;
+  if (!Array.isArray(value) || value.length === 0) return truth.length ? "missing" : "correct";
+  const a = normalizedVatLines(value);
+  const b = normalizedVatLines(truth);
+  if (!a || !b) return "wrong";
+  return JSON.stringify(a) === JSON.stringify(b) ? "correct" : "wrong";
+}
+
 function timingStats(values) {
   if (!values.length) return null;
   const sorted = [...values].sort((a, b) => a - b);
@@ -164,6 +198,7 @@ function timingStats(values) {
 }
 
 const perField = {};
+const vatBreakdown = { correct: 0, wrong: 0, missing: 0, total: 0 };
 const documentsDetail = [];
 let pass1ImportantFieldErrors = 0;
 let detectedFinancialErrors = 0;
@@ -251,6 +286,32 @@ for (const doc of manifest.documents) {
     };
   }
 
+  const pass1VatBreakdown = vatBreakdownStatus(pass1.vatLines, truth.vatLines);
+  const pass2VatBreakdown = pass2 ? vatBreakdownStatus(pass2.vatLines, truth.vatLines) : null;
+  if (pass1VatBreakdown) {
+    vatBreakdown[pass1VatBreakdown]++;
+    vatBreakdown.total++;
+    if (pass1VatBreakdown !== "correct") {
+      financialCorrections++;
+      const caught =
+        reviewFlags.has("vatLines") ||
+        reviewFlags.has("mixedRates") ||
+        reviewFlags.has("financial") ||
+        reviewFlags.has("cross_validation");
+      if (caught) detectedFinancialErrors++;
+      else silentFinancialErrors++;
+      if (pass2 && pass2VatBreakdown === "correct") pass2Fixes++;
+    } else if (pass2 && pass2VatBreakdown !== "correct") {
+      pass2IntroducedErrors++;
+      const caught =
+        reviewFlags.has("vatLines") ||
+        reviewFlags.has("mixedRates") ||
+        reviewFlags.has("financial") ||
+        reviewFlags.has("cross_validation");
+      if (!caught) pass2IntroducedSilentErrors++;
+    }
+  }
+
   let category = "fully_correct";
   if (doc.unusable === true) category = "unusable";
   else if (financialCorrections > 0) category = "important_financial_correction";
@@ -263,6 +324,11 @@ for (const doc of manifest.documents) {
     importantCorrections,
     pass1ArithmeticIssues: arithmeticIssues(pass1),
     pass2ArithmeticIssues: pass2 ? arithmeticIssues(pass2) : [],
+    vatBreakdown: {
+      pass1: pass1VatBreakdown,
+      pass2: pass2VatBreakdown,
+      flagged: reviewFlags.has("vatLines") || reviewFlags.has("mixedRates"),
+    },
     fields,
   });
 
@@ -308,6 +374,11 @@ const output = {
   generatedAt: new Date().toISOString(),
   documents: documentsDetail.length,
   perField: perFieldOutput,
+  vatBreakdown: {
+    ...vatBreakdown,
+    accuracyPct: pct(vatBreakdown.correct, vatBreakdown.total),
+    correctionPct: pct(vatBreakdown.wrong + vatBreakdown.missing, vatBreakdown.total),
+  },
   documentOutcome: {
     ...categories,
     fullyCorrectPct: pct(categories.fully_correct, documentsDetail.length),
