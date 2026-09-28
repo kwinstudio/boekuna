@@ -237,26 +237,46 @@ try{
     await page.evaluate(()=>savePdfInvoiceImport());
     const saved=await page.evaluate(()=>{
       const e=state.expenses[0];
-      return {vatRate:e?.vatRate,mixedRates:e?.mixedRates,vatLines:e?.vatLines,vatAmount:e?.vatAmount,gross:e?expenseGross(e):null}
+      const raw=JSON.parse(localStorage.getItem(userDataKey())||'{}')?.expenses?.[0];
+      return {
+        inMemory:{vatRate:e?.vatRate,mixedRates:e?.mixedRates,vatLines:e?.vatLines,vatAmount:e?.vatAmount,gross:e?expenseGross(e):null},
+        persisted:{vatRate:raw?.vatRate,mixedRates:raw?.mixedRates,vatLines:raw?.vatLines,vatAmount:raw?.vatAmount,gross:raw?.gross}
+      }
     });
-    assert.equal(saved.vatRate,null,'Mixed expense persistence must not contain an authoritative scalar VAT rate');
-    assert.equal(saved.mixedRates,true,'Mixed expense persistence must preserve mixedRates');
-    assert.deepEqual(saved.vatLines.map(v=>Number(v.rate)),[9,21],'Saved trusted VAT groups must preserve 9% and 21%');
-    assert.equal(saved.vatAmount,30);
-    assert.equal(saved.gross,230);
+    assert.equal(saved.inMemory.vatRate,null,'Mixed expense state must not contain an authoritative scalar VAT rate');
+    assert.equal(saved.inMemory.mixedRates,true,'Mixed expense state must preserve mixedRates');
+    assert.deepEqual(saved.inMemory.vatLines.map(v=>Number(v.rate)),[9,21],'Saved trusted VAT groups must preserve 9% and 21%');
+    assert.equal(saved.inMemory.vatAmount,30);
+    assert.equal(saved.inMemory.gross,230);
+    assert.equal(saved.persisted.vatRate,null,'Persisted JSON must store null for mixed authoritative vatRate');
+    assert.equal(saved.persisted.mixedRates,true,'Persisted JSON must store mixedRates=true');
+    assert.deepEqual(saved.persisted.vatLines.map(v=>Number(v.rate)),[9,21],'Persisted JSON must retain both trusted VAT groups');
 
     const reopened=await page.evaluate(()=>{
-      const stale={...state.expenses[0],vatRate:21,mixedRates:true};
-      state.expenses[0]=stale;
-      state=normalizeState(JSON.parse(JSON.stringify(state)));
+      const persisted=JSON.parse(localStorage.getItem(userDataKey())||'{}');
+      state=normalizeState(persisted);
       navigate('expenses');
       const e=state.expenses[0];
       return {vatRate:e.vatRate,mixedRates:e.mixedRates,label:expenseVatRateLabel(e),rates:expenseVatRates(e)}
     });
-    assert.equal(reopened.vatRate,null,'Reopen normalization must scrub a legacy stale 21% scalar from mixed persisted data');
+    assert.equal(reopened.vatRate,null,'Reopen from persisted state must keep mixed vatRate null');
     assert.equal(reopened.mixedRates,true);
     assert.equal(reopened.label,'Gemengd');
     assert.deepEqual(reopened.rates,[9,21]);
+
+    const legacyReopened=await page.evaluate(()=>{
+      const persisted=JSON.parse(localStorage.getItem(userDataKey())||'{}');
+      persisted.expenses[0].vatRate=21;
+      persisted.expenses[0].mixedRates=true;
+      state=normalizeState(persisted);
+      navigate('expenses');
+      const e=state.expenses[0];
+      return {vatRate:e.vatRate,mixedRates:e.mixedRates,label:expenseVatRateLabel(e),rates:expenseVatRates(e)}
+    });
+    assert.equal(legacyReopened.vatRate,null,'Reopen normalization must scrub a legacy stale 21% scalar from mixed persisted data');
+    assert.equal(legacyReopened.mixedRates,true);
+    assert.equal(legacyReopened.label,'Gemengd');
+    assert.deepEqual(legacyReopened.rates,[9,21]);
 
     const listVat=String(await page.locator('table tbody tr').first().locator('td').nth(5).textContent()).trim();
     assert.equal(listVat,'Gemengd','Expense list must never render mixed VAT as 21%');
@@ -280,6 +300,23 @@ try{
     assert.match(csvRow[5],/9%:/,'CSV must preserve the 9% VAT-group breakdown');
     assert.match(csvRow[5],/21%:/,'CSV must preserve the 21% VAT-group breakdown');
     assert.deepEqual(errors,[],'QA-DOC-REL-001 browser errors: '+errors.join(' | '));
+
+    const mergeSemantics=await page.evaluate(()=>{
+      const localMixed={type:'purchase',documentType:'purchase_invoice',party:'Local Parser',invoiceNumber:'LOCAL-MIXED',issueDate:'2026-09-28',net:200,vatAmount:30,gross:230,vatRate:21,mixedRates:true,vatLines:[{rate:21,taxableAmount:100,vatAmount:21},{rate:9,taxableAmount:100,vatAmount:9}],fieldConfidence:{}};
+      const processorMixed={sourceQuality:'processor-v2',type:'purchase',documentType:'purchase_invoice',party:'Processor',invoiceNumber:'MIXED',issueDate:'2026-09-28',net:200,vatAmount:30,gross:230,vatRate:null,mixedRates:true,vatLines:[{rate:9,taxableAmount:100,vatAmount:9},{rate:21,taxableAmount:100,vatAmount:21}],fieldConfidence:{}};
+      const processorMerged=mergeAIParsed(localMixed,processorMixed,'purchase');
+      const laterAi={type:'purchase',documentType:'purchase_invoice',party:'Later AI',invoiceNumber:'MIXED',issueDate:'2026-09-28',net:200,vatAmount:30,gross:230,vatRate:21,mixedRates:false,vatLines:[{rate:21,taxableAmount:200,vatAmount:30}],fieldConfidence:{}};
+      const afterLaterAi=mergeAIParsed(processorMerged,laterAi,'purchase');
+      const fallbackExpense=normalizeExpenseVatSemantics({exVat:200,vatRate:21,mixedRates:true,vatAmount:null,gross:null,vatLines:processorMixed.vatLines,taxTreatment:'standard'});
+      return {
+        processor:{vatRate:processorMerged.vatRate,mixedRates:processorMerged.mixedRates,rates:processorMerged.vatLines.map(v=>Number(v.rate))},
+        later:{vatRate:afterLaterAi.vatRate,mixedRates:afterLaterAi.mixedRates,rates:afterLaterAi.vatLines.map(v=>Number(v.rate)),sourceQuality:afterLaterAi.sourceQuality},
+        fallback:{vat:expenseVat(fallbackExpense),gross:expenseGross(fallbackExpense),label:expenseVatRateLabel(fallbackExpense)}
+      }
+    });
+    assert.deepEqual(mergeSemantics.processor,{vatRate:null,mixedRates:true,rates:[9,21]},'Processor mixed VAT must override stale local scalar semantics');
+    assert.deepEqual(mergeSemantics.later,{vatRate:null,mixedRates:true,rates:[9,21],sourceQuality:'processor-v2'},'Later non-authoritative AI must not overwrite trusted processor VAT groups');
+    assert.deepEqual(mergeSemantics.fallback,{vat:30,gross:230,label:'Gemengd'},'Mixed VAT totals must fall back to trusted VAT groups when scalar VAT amount is absent');
 
     const singleRates=await page.evaluate(()=>{
       return [0,9,21].map(rate=>{
