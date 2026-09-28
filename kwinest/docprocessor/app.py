@@ -1308,60 +1308,81 @@ def deterministic_fast_path_ready(doc:dict,r:ExtractionResult)->bool:
     return True
 
 def require_authenticated_user(request: Request) -> dict:
+    set_processing_meta(request,stage="auth")
     auth_header = (request.headers.get("authorization") or "").strip()
     if not auth_header.lower().startswith("bearer "):
-        raise HTTPException(401, "Authentication required")
+        raise BoekunaDocumentError("AUTH_SESSION_EXPIRED",status=401,internal_code="AUTH_HEADER_MISSING")
     if not SUPABASE_PUBLISHABLE_KEY:
-        raise HTTPException(503, "Authentication verifier is not configured")
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="AUTH_VERIFIER_NOT_CONFIGURED")
     try:
         resp = requests.get(
             f"{SUPABASE_URL}/auth/v1/user",
-            headers={
-                "Authorization": auth_header,
-                "apikey": SUPABASE_PUBLISHABLE_KEY,
-            },
+            headers={"Authorization":auth_header,"apikey":SUPABASE_PUBLISHABLE_KEY},
             timeout=10,
         )
-    except requests.RequestException:
-        raise HTTPException(503, "Authentication service unavailable")
+    except requests.Timeout as exc:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="AUTH_SERVICE_TIMEOUT",internal_error=exc)
+    except requests.RequestException as exc:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="AUTH_SERVICE_UNAVAILABLE",internal_error=exc)
     if resp.status_code != 200:
-        raise HTTPException(401, "Invalid or expired session")
+        raise BoekunaDocumentError("AUTH_SESSION_EXPIRED",status=401,internal_code="AUTH_SESSION_INVALID",provider="supabase_auth",provider_status=resp.status_code)
     try:
         user = resp.json()
-    except Exception:
-        raise HTTPException(401, "Invalid session response")
+    except Exception as exc:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="AUTH_RESPONSE_INVALID",internal_error=exc,provider="supabase_auth",provider_status=resp.status_code)
     if not user.get("id"):
-        raise HTTPException(401, "Invalid session")
+        raise BoekunaDocumentError("AUTH_SESSION_EXPIRED",status=401,internal_code="AUTH_USER_MISSING")
+    set_processing_meta(request,user_ref=str(user.get("id"))[:80])
     return user
 
+def rpc_access_check(request:Request) -> bool:
+    auth_header=(request.headers.get("authorization") or "").strip()
+    if not SUPABASE_PUBLISHABLE_KEY or not auth_header:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="ACCESS_CHECK_NOT_CONFIGURED")
+    set_processing_meta(request,stage="entitlement")
+    try:
+        resp=requests.post(
+            f"{SUPABASE_URL}/rest/v1/rpc/can_operate_bookkeeping",
+            headers={"Authorization":auth_header,"apikey":SUPABASE_PUBLISHABLE_KEY,"Content-Type":"application/json"},
+            json={},timeout=8,
+        )
+    except requests.Timeout as exc:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="ACCESS_CHECK_TIMEOUT",internal_error=exc)
+    except requests.RequestException as exc:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="ACCESS_CHECK_UNAVAILABLE",internal_error=exc)
+    if resp.status_code>=400:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="ACCESS_CHECK_FAILED",provider="supabase_rest",provider_status=resp.status_code)
+    try:
+        return resp.json() is True
+    except Exception as exc:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="ACCESS_CHECK_RESPONSE_INVALID",internal_error=exc)
+
 def billing_quota_status(request: Request) -> dict:
-    """Check server-side entitlement and monthly smart-document allowance."""
+    """Check the monthly smart-document allowance after access-state validation."""
     auth_header = (request.headers.get("authorization") or "").strip()
     if not SUPABASE_PUBLISHABLE_KEY or not auth_header:
-        raise HTTPException(503, "Entitlementcontrole is tijdelijk niet beschikbaar")
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="QUOTA_CHECK_NOT_CONFIGURED")
+    set_processing_meta(request,stage="quota")
     try:
         resp = requests.post(
             f"{SUPABASE_URL}/rest/v1/rpc/check_document_quota",
-            headers={
-                "Authorization": auth_header,
-                "apikey": SUPABASE_PUBLISHABLE_KEY,
-                "Content-Type": "application/json",
-            },
-            json={},
-            timeout=8,
+            headers={"Authorization":auth_header,"apikey":SUPABASE_PUBLISHABLE_KEY,"Content-Type":"application/json"},
+            json={},timeout=8,
         )
-    except requests.RequestException:
-        raise HTTPException(503, "Entitlementcontrole is tijdelijk niet beschikbaar")
+    except requests.Timeout as exc:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="QUOTA_CHECK_TIMEOUT",internal_error=exc)
+    except requests.RequestException as exc:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="QUOTA_CHECK_UNAVAILABLE",internal_error=exc)
     if resp.status_code >= 400:
-        raise HTTPException(503, "Entitlementcontrole is tijdelijk niet beschikbaar")
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="QUOTA_CHECK_FAILED",provider="supabase_rest",provider_status=resp.status_code)
     try:
         data = resp.json()
-    except Exception:
-        raise HTTPException(503, "Entitlementcontrole gaf geen geldige status terug")
+    except Exception as exc:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="QUOTA_RESPONSE_INVALID",internal_error=exc)
     if isinstance(data, list):
         data = data[0] if data else None
     if not isinstance(data, dict):
-        raise HTTPException(503, "Entitlementcontrole gaf geen geldige status terug")
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="QUOTA_RESPONSE_INVALID_SHAPE")
     return data
 
 def record_billing_usage(request: Request) -> dict | None:
