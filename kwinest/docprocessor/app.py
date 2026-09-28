@@ -1170,11 +1170,11 @@ def require_authenticated_user(request: Request) -> dict:
         raise HTTPException(401, "Invalid session")
     return user
 
-def billing_quota_status(request: Request) -> dict | None:
-    """Check monthly smart-document allowance without consuming it."""
+def billing_quota_status(request: Request) -> dict:
+    """Check server-side entitlement and monthly smart-document allowance."""
     auth_header = (request.headers.get("authorization") or "").strip()
     if not SUPABASE_PUBLISHABLE_KEY or not auth_header:
-        return None
+        raise HTTPException(503, "Entitlementcontrole is tijdelijk niet beschikbaar")
     try:
         resp = requests.post(
             f"{SUPABASE_URL}/rest/v1/rpc/check_document_quota",
@@ -1186,14 +1186,19 @@ def billing_quota_status(request: Request) -> dict | None:
             json={},
             timeout=8,
         )
-        if resp.status_code >= 400:
-            return None
+    except requests.RequestException:
+        raise HTTPException(503, "Entitlementcontrole is tijdelijk niet beschikbaar")
+    if resp.status_code >= 400:
+        raise HTTPException(503, "Entitlementcontrole is tijdelijk niet beschikbaar")
+    try:
         data = resp.json()
-        if isinstance(data, list):
-            return data[0] if data else None
-        return data if isinstance(data, dict) else None
     except Exception:
-        return None
+        raise HTTPException(503, "Entitlementcontrole gaf geen geldige status terug")
+    if isinstance(data, list):
+        data = data[0] if data else None
+    if not isinstance(data, dict):
+        raise HTTPException(503, "Entitlementcontrole gaf geen geldige status terug")
+    return data
 
 def record_billing_usage(request: Request) -> dict | None:
     """Consume one monthly smart-document unit after successful processing."""
@@ -1230,6 +1235,9 @@ async def verify_document(request:Request,file:UploadFile=File(...),company_json
     if origin!=APP_ORIGIN: raise HTTPException(403,"Origin not allowed")
     user=require_authenticated_user(request)
     if not allow_request(request,f"verify:{user.get('id','unknown')}"): raise HTTPException(429,"Te veel extra controles. Probeer het later opnieuw.")
+    quota=billing_quota_status(request)
+    if quota.get("allowed") is False:
+        raise HTTPException(402,"Je account staat in read-only of heeft geen ruimte voor deze documentcontrole.")
     if not OPENAI_API_KEY:raise HTTPException(503,"Extra controle is tijdelijk niet beschikbaar.")
     raw=await file.read(MAX_BYTES+1)
     if len(raw)>MAX_BYTES:raise HTTPException(413,"Bestand is te groot. Maximum is 15 MB.")
@@ -1256,7 +1264,7 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
     user=require_authenticated_user(request)
     if not allow_request(request,f"user:{user.get('id','unknown')}"): raise HTTPException(429,"Te veel documentverwerkingen. Probeer het over enkele minuten opnieuw.")
     quota=billing_quota_status(request)
-    if quota and quota.get("allowed") is False:
+    if quota.get("allowed") is False:
         raise HTTPException(402,f"Je maandelijkse limiet van {quota.get('monthly_limit',0)} slimme documentverwerkingen is bereikt. Upgrade je abonnement of wacht tot de volgende maand.")
     raw=await file.read(MAX_BYTES+1)
     if len(raw)>MAX_BYTES:raise HTTPException(413,"Bestand is te groot. Maximum is 15 MB.")
