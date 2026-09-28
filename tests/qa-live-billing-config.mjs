@@ -21,7 +21,7 @@ try{
   await page.locator('#authForm button[type="submit"]').click();
   await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor({timeout:60000});
 
-  const result=await page.evaluate(async()=>{
+  const result=await page.evaluate(async(targetSha)=>{
     const summary=await loadBillingSummary(true);
     const post=async(path,body)=>{
       const res=await fetch(EDGE_BASE+path,{
@@ -48,7 +48,7 @@ try{
     const portal=await post('/billing-portal',{});
 
     return {
-      targetSha:TARGET_SHA,
+      targetSha,
       summary:{
         plan:summary?.plan||null,
         status:summary?.status||null,
@@ -81,7 +81,7 @@ try{
         hasUrl:!!portal?.json?.url
       }
     };
-  });
+  },TARGET_SHA);
 
   console.log('LIVE_BILLING_SMOKE '+JSON.stringify(result));
 
