@@ -82,7 +82,6 @@ assert.ok(home.includes('role="tablist"'),'Homepage product controls must expose
 assert.ok(home.includes('role="tabpanel"'),'Homepage product detail must expose a real tabpanel');
 assert.ok(home.includes('class="document-story reveal"'),'Homepage must contain the real-capture DocumentStory');
 assert.equal((home.match(/data-story-step=/g)||[]).length,4,'DocumentStory must expose four step-content blocks');
-assert.ok(home.includes('scroll')===false||true,'Native scrolling is validated in browser regression; source must not add a scroll-jacking dependency');
 assert.ok(home.includes('id="mobileProductRail"'),'Homepage must contain a dedicated mobile product rail');
 assert.equal((home.match(/data-mobile-rail-card=/g)||[]).length,3,'Mobile rail must ship Dashboard, Facturen and Documenten only until real review capture exists');
 assert.ok(!home.includes('boekuna-document-review-mobile.webp'),'Blocked review capture must not be referenced before processor confirmation');
