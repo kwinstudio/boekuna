@@ -102,7 +102,8 @@ PUBLIC_ERROR_SPECS = {
 class BoekunaDocumentError(Exception):
     def __init__(self, code:str, *, status:int|None=None, context:dict[str,Any]|None=None,
                  state:str="no_changes", internal_code:str|None=None, internal_error:Any=None,
-                 provider:str|None=None, provider_status:int|None=None, provider_code:str|None=None):
+                 provider:str|None=None, provider_status:int|None=None, provider_code:str|None=None,
+                 provider_request_id:str|None=None):
         super().__init__(code)
         self.code=code if code in PUBLIC_ERROR_SPECS else "UNKNOWN"
         spec=PUBLIC_ERROR_SPECS[self.code]
@@ -114,6 +115,7 @@ class BoekunaDocumentError(Exception):
         self.provider=provider
         self.provider_status=provider_status
         self.provider_code=provider_code
+        self.provider_request_id=provider_request_id
 
 def new_reference_id() -> str:
     alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -154,6 +156,7 @@ def public_error_response(request:Request, exc:BoekunaDocumentError) -> JSONResp
         "provider":exc.provider,
         "provider_status":exc.provider_status,
         "provider_code":exc.provider_code,
+        "provider_request_id":exc.provider_request_id,
         "internal_error":sanitize_log_value(exc.internal_error),
     }
     logger.error(json.dumps({k:v for k,v in log_event.items() if v not in (None,"")}, ensure_ascii=False))
