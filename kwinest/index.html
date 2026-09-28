@@ -1910,9 +1910,9 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
 </main>
 </div>
 <div id="modalRoot"></div><div class="toast-wrap" id="toastRoot"></div>
-<input class="hidden" type="file" id="invoicePdfFile" accept="application/pdf,.pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif,.docx,.xlsx,.csv,text/csv" />
-<input class="hidden" type="file" id="receiptPhotoFile" accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif" />
-<input class="hidden" type="file" id="receiptCameraFile" accept="image/*" capture="environment" />
+<input class="hidden" type="file" id="invoicePdfFile" accept="application/pdf,.pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,text/csv,application/csv,.csv" />
+<input class="hidden" type="file" id="receiptPhotoFile" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif" />
+<input class="hidden" type="file" id="receiptCameraFile" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif" capture="environment" />
 <script>
 const USERS_KEY='boekhouden-local-users-v1';
 const SESSION_KEY='boekhouden-local-session-v1';
@@ -1927,6 +1927,7 @@ const DOCUMENT_MAX_SIZE_MB=15;
 const DOCUMENT_MAX_SIZE_BYTES=DOCUMENT_MAX_SIZE_MB*1024*1024;
 const DOCUMENT_UPLOAD_EXTENSIONS=['pdf','jpg','jpeg','png','webp','heic','heif','tif','tiff','bmp','gif','docx','xlsx','csv'];
 const DOCUMENT_IMAGE_EXTENSIONS=['jpg','jpeg','png','webp','heic','heif','tif','tiff','bmp','gif'];
+const DOCUMENT_IMAGE_MIME_TYPES=['image/jpeg','image/png','image/webp','image/heic','image/heif','image/tiff','image/bmp','image/gif'];
 const SUPPORT_EMAIL='support@boekuna.nl';
 const SUPPORT_MAILTO='mailto:'+SUPPORT_EMAIL;
 let supabaseClient=null,cloudSaveTimer=null,cloudVersion=1,cloudSyncStatus='saved';
@@ -3317,7 +3318,7 @@ async function getStoredFile(id){if(!currentUser)return null;if(TEST_MODE_NO_AUT
 async function openStoredDocument(id){try{const row=await getStoredFile(id);if(!row?.blob)return toast('Bestand niet gevonden in de cloud');const url=URL.createObjectURL(row.blob),a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}catch(e){console.warn(e);toast('Bestand kon niet worden geopend')}}
 async function handleSmartDocumentUpload(e){
  const file=e.target.files?.[0];if(!file)return;
- const ext=(file.name.split('.').pop()||'').toLowerCase(),isPhoto=String(file.type||'').toLowerCase().startsWith('image/')||['jpg','jpeg','png','webp','heic','heif','tif','tiff','bmp','gif'].includes(ext),allowed=['pdf','docx','xlsx','csv'];
+ const ext=(file.name.split('.').pop()||'').toLowerCase(),isPhoto=DOCUMENT_IMAGE_MIME_TYPES.includes(String(file.type||'').toLowerCase())||DOCUMENT_IMAGE_EXTENSIONS.includes(ext),allowed=['pdf','docx','xlsx','csv'];
  if(!isPhoto&&!allowed.includes(ext))return toast('Ondersteund voor slim uitlezen: PDF, foto (ook HEIC/HEIF), Word, Excel en CSV');
  setImportProgress('Document verwerken','1. Document uitlezen…','Dezelfde documentprocessor controleert tekst, tabellen, OCR en documenttype.');
  try{
@@ -3747,7 +3748,7 @@ function setImportProgress(title,msg,sub='',percent=10,step=1){
 async function handleInvoicePdfFile(e){return processFinancialDocument(e.target.files?.[0])}
 async function processFinancialDocument(file,preStructure=null){
  cleanupPendingImport();if(!file)return;const pass1Started=performance.now();
- const ext=(file.name.split('.').pop()||'').toLowerCase(),isPhoto=String(file.type||'').toLowerCase().startsWith('image/')||DOCUMENT_IMAGE_EXTENSIONS.includes(ext);if(!DOCUMENT_UPLOAD_EXTENSIONS.includes(ext)&&!isPhoto)throw createUploadError('DOCUMENT_UNSUPPORTED_TYPE','',415,{context:{supported_extensions:DOCUMENT_UPLOAD_EXTENSIONS},state:'not_saved'});
+ const ext=(file.name.split('.').pop()||'').toLowerCase(),isPhoto=DOCUMENT_IMAGE_MIME_TYPES.includes(String(file.type||'').toLowerCase())||DOCUMENT_IMAGE_EXTENSIONS.includes(ext);if(!DOCUMENT_UPLOAD_EXTENSIONS.includes(ext)&&!isPhoto)throw createUploadError('DOCUMENT_UNSUPPORTED_TYPE','',415,{context:{supported_extensions:DOCUMENT_UPLOAD_EXTENSIONS},state:'not_saved'});
  setImportProgress('Document verwerken','Bestand valideren…','Bestandstype, grootte en veiligheid worden gecontroleerd.',12,2);
  let structure=null,browserStructure=null,parsed=null,ocrText='',processorError='';
  const browserStructurePromise=ext==='pdf'&&file.size<9*1024*1024?readPdfStructure(file).catch(err=>{console.warn('Parallel PDF inspection',err);return null}):null;
@@ -3799,7 +3800,7 @@ async function processFinancialDocument(file,preStructure=null){
  if(!serverProc.billing&&processorError)await recordFallbackSmartUsage();
  const duplicate=duplicateInvoiceCandidate(parsed,structure?.sha256||parsed.sha256||'');if(duplicate)parsed.duplicateCandidate=duplicate;parsed.pass1DurationMs=Math.round(performance.now()-pass1Started);
  setImportProgress('Document verwerken','Klaar voor controle','De gegevens zijn genormaliseerd en gecontroleerd. Het controlescherm wordt geopend.',98,6);
- const previewUrl=(ext==='pdf'||String(file.type||'').toLowerCase().startsWith('image/')||['jpg','jpeg','png','webp','heic','heif','tif','tiff','bmp','gif'].includes(ext))?URL.createObjectURL(file):null;pendingPdfImport={file,parsed,previewUrl,sha256:structure?.sha256||parsed.sha256||''};requestAnimationFrame(()=>showPdfImportReview(parsed))
+ const previewUrl=(ext==='pdf'||DOCUMENT_IMAGE_MIME_TYPES.includes(String(file.type||'').toLowerCase())||DOCUMENT_IMAGE_EXTENSIONS.includes(ext))?URL.createObjectURL(file):null;pendingPdfImport={file,parsed,previewUrl,sha256:structure?.sha256||parsed.sha256||''};requestAnimationFrame(()=>showPdfImportReview(parsed))
 }
 const DOCUMENT_VERIFICATION_VERSION=1;
 const DOCUMENT_VERIFICATION_MAX_ATTEMPTS=2;
