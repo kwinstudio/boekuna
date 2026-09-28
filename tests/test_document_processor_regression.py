@@ -417,6 +417,25 @@ class DocumentProcessorRegressionTests(unittest.TestCase):
             debug,
         )
 
+        # AI is interpretive help only. Even if an upstream model repeats the
+        # previously observed wrong mixed-rate totals, deterministic evidence wins.
+        ai = result.model_copy(deep=True)
+        ai.amounts.subtotal = 454.09
+        ai.amounts.vatTotal = 28.35
+        ai.amounts.total = 482.44
+        ai.amounts.vatLines = []
+        ai.confidence.update({"subtotal": .99, "vatTotal": .99, "total": .99, "vatLines": .20})
+        reconciled = app.validate_result(app.reconcile(ai, result), COMPANY)
+        self.assertMoney(reconciled.amounts.subtotal, 429.95)
+        self.assertMoney(reconciled.amounts.vatTotal, 52.49)
+        self.assertMoney(reconciled.amounts.total, 482.44)
+        reconciled_lines = sorted(reconciled.amounts.vatLines, key=lambda v: float(v.rate))
+        self.assertEqual([float(v.rate) for v in reconciled_lines], [9.0, 21.0])
+        self.assertMoney(reconciled_lines[0].taxableAmount, 315.00)
+        self.assertMoney(reconciled_lines[0].vatAmount, 28.35)
+        self.assertMoney(reconciled_lines[1].taxableAmount, 114.95)
+        self.assertMoney(reconciled_lines[1].vatAmount, 24.14)
+
     def test_negative_currency_sign_before_euro_is_preserved(self):
         self.assertEqual(app.money_tokens("-€ 24,00"), [-24.0])
         self.assertEqual(app.money_tokens("€ -5,44"), [-5.44])
