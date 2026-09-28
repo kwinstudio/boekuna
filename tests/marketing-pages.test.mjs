@@ -58,6 +58,17 @@ assert.ok(visualJs.includes('[data-bv-stepper]'),'Document process stepper must 
 const sharedMarketing=fs.readFileSync(path.join(publicDir,'assets','marketing.js'),'utf8');
 assert.ok(sharedMarketing.includes('mailto:support@boekuna.nl'),'Public footer must expose the official support email');
 
+const rootMarketing=fs.readFileSync(path.join(root,'kwinest','index.html'),'utf8');
+for(const stale of ['FOUNDING 100','3 kalendermaanden gratis','betaald plan activeren']){
+  assert.ok(!rootMarketing.includes(stale),'Root marketing must not reintroduce stale paid-trial copy: '+stale);
+}
+
+
+const faq=fs.readFileSync(path.join(publicDir,'faq','index.html'),'utf8');
+assert.ok(faq.includes('Hoe werken betalingen en Early Access?'),'FAQ must explain current Early Access semantics');
+assert.ok(faq.includes('zonder betaalkaart of Stripe-abonnement'),'FAQ must not imply a required card or automatic Stripe trial');
+for(const stale of ['3 kalendermaanden','betaald plan activeren']) assert.ok(!faq.includes(stale),'FAQ contains stale paid-trial copy: '+stale);
+
 const contact=fs.readFileSync(path.join(publicDir,'contact','index.html'),'utf8');
 assert.ok(contact.includes('mailto:support@boekuna.nl'),'Contact page must expose the official support email');
 

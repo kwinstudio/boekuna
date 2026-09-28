@@ -8,6 +8,7 @@ on:
   pull_request:
     paths:
       - "kwinest/**"
+      - "public/**"
       - "tests/**"
       - "supabase/functions/send-invoice/**"
       - "supabase/functions/consume-quota/**"
@@ -68,7 +69,7 @@ jobs:
         run: python tests/financial-blocks.test.py
       - name: Marketing page QA
         run: node tests/marketing-pages.test.mjs
-      - name: Real marketing product screenshots
+      - name: Screenshot-free marketing product proof
         run: node tests/marketing-product-proof.test.mjs
       - name: Editorial marketing responsive screenshots
         run: node tests/marketing-editorial-responsive.test.mjs
