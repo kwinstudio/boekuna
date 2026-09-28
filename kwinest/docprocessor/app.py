@@ -1018,6 +1018,61 @@ def receipt_merchant_name(lines:list[str], company:dict)->str|None:
         return cand
     return None
 
+
+DESCRIPTION_LABEL_RE=re.compile(r"\b(?:omschrijving|beschrijving|description|dienst|service)\b",re.I)
+DESCRIPTION_SUMMARY_RE=re.compile(
+    r"^\s*(?:bedrag\s+excl|totaal\s+excl|subtotaal|subtotal|btw|vat|tax|"
+    r"factuurbedrag|factuurtotaal|invoice\s+total|totaal|total|factoring|"
+    r"eindbedrag|grand\s+total|amount\s+due)\b",re.I
+)
+DESCRIPTION_HEADER_WORDS_RE=re.compile(
+    r"\b(?:aantal|qty|quantity|btw|vat|totaal|total|week|datum|date|"
+    r"eenheid|unit|tarief|rate|prijs|price|excl|incl)\b",re.I
+)
+
+def extract_description(doc:dict,lines:list[str])->tuple[str|None,float,str|None]:
+    # Prefer the first description cell below a recognized table header.
+    for table in (doc.get("tables") or [])[:30]:
+        rows=(table.get("rows") or [])[:180]
+        header_index=None;description_col=None
+        for ri,row in enumerate(rows[:30]):
+            cells=[norm_text(str(cell or "")) for cell in row]
+            for ci,cell in enumerate(cells):
+                if DESCRIPTION_LABEL_RE.search(cell):
+                    header_index=ri;description_col=ci;break
+            if header_index is not None:break
+        if header_index is None or description_col is None:
+            continue
+        for row in rows[header_index+1:header_index+8]:
+            cells=[norm_text(str(cell or "")) for cell in row]
+            if description_col>=len(cells):continue
+            cand=cells[description_col].strip()
+            if not cand or DESCRIPTION_SUMMARY_RE.search(cand):continue
+            if len(re.sub(r"[^A-Za-zÀ-ÖØ-öø-ÿ]","",cand))<3:continue
+            return cand[:500],.96,"table"
+
+    # Text fallback: find a description heading and then the first meaningful
+    # following line. Avoid returning the column headings themselves.
+    for i,line in enumerate(lines[:220]):
+        m=DESCRIPTION_LABEL_RE.search(line)
+        if not m:continue
+        rest=norm_text(line[m.end():]).lstrip(" :#.-|")
+        if rest and len(DESCRIPTION_HEADER_WORDS_RE.findall(rest))<=1 and not DESCRIPTION_SUMMARY_RE.search(rest):
+            if len(re.sub(r"[^A-Za-zÀ-ÖØ-öø-ÿ]","",rest))>=3:
+                return rest[:500],.88,"label-inline"
+        for j in range(i+1,min(len(lines),i+7)):
+            cand=norm_text(lines[j])
+            if not cand or DESCRIPTION_SUMMARY_RE.search(cand):break
+            # Skip a second header row but accept actual service/product rows.
+            if len(DESCRIPTION_HEADER_WORDS_RE.findall(cand))>=3 and not money_tokens(cand):
+                continue
+            if len(re.sub(r"[^A-Za-zÀ-ÖØ-öø-ÿ]","",cand))<3:
+                continue
+            cleaned=re.sub(r"\s+\d+(?:[.,]\d+)?\s+(?:(?:0|9|21)(?:[.,]0+)?\s*%\s+)?€.*$","",cand,flags=re.I).strip()
+            if cleaned and len(re.sub(r"[^A-Za-zÀ-ÖØ-öø-ÿ]","",cleaned))>=3:
+                return cleaned[:500],.82,"text-after-header"
+    return None,.20,None
+
 def strong_total_anchor(lines:list[str])->tuple[float|None,float]:
     """Find a receipt total that is explicitly labelled, avoiding VAT/subtotal rows."""
     candidates=[]
@@ -1086,8 +1141,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     invoice_no=None
     if invno_raw:
         m=re.search(r"([A-Z0-9][A-Z0-9._\-/]{1,50})",invno_raw,re.I); invoice_no=m.group(1) if m else None
-    description_raw,_=line_after_label(lines,["omschrijving","description","dienst","service"],max_ahead=1)
-    description=norm_text(description_raw or "")[:240] or None
+    description,description_conf,description_source=extract_description(doc,lines)
     inv_date,inv_date_conf=labeled_date(lines,["factuurdatum","invoice date","date of invoice","document date"])
     if not inv_date:
         inv_date,inv_date_conf=generic_invoice_date(lines)
@@ -1220,6 +1274,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         "invoiceNumber":.92 if invoice_no else .15,
         "invoiceDate":inv_date_conf,
         "dueDate":due_conf if due_date else .25,
+        "description":description_conf,
         "subtotal":sub_conf,
         "vatTotal":vat_conf,
         "total":total_conf,
@@ -1250,7 +1305,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         invoice=InvoiceMeta(invoiceNumber=invoice_no,invoiceDate=inv_date,dueDate=due_date,paymentTermDays=term,orderNumber=order_no,paymentReference=payref,description=description),
         amounts=Amounts(subtotal=abs(subtotal) if subtotal is not None else None,vatLines=vat_lines,vatTotal=abs(vat_total) if vat_total is not None else None,total=abs(total) if total is not None else None,settlementAmount=abs(settlement_amount) if settlement_amount is not None else None,discount=abs(discount) if discount is not None else None,shipping=abs(shipping) if shipping is not None else None,currency="EUR"),
         status=status,lineItems=[],adjustments=structured_adjustments,confidence=confidence,warnings=derivation_warnings,
-        processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"financialBlocks":{"verified":bool(financial_structure.get("verified")),"primaryArithmeticOk":bool(financial_structure.get("primaryArithmeticOk")),"adjustmentArithmeticOk":bool(financial_structure.get("adjustmentArithmeticOk")),"settlementArithmeticOk":bool(financial_structure.get("settlementArithmeticOk")),"adjustmentTotal":financial_structure.get("adjustmentTotal"),"settlementSource":financial_structure.get("settlementSource")},"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"mixedRates":len(detected_rates)>1},"vatLineSource":vat_line_source,"selfBilling":self_billing,"factoringSaleStructure":factoring_sale}
+        processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"financialBlocks":{"verified":bool(financial_structure.get("verified")),"primaryArithmeticOk":bool(financial_structure.get("primaryArithmeticOk")),"adjustmentArithmeticOk":bool(financial_structure.get("adjustmentArithmeticOk")),"settlementArithmeticOk":bool(financial_structure.get("settlementArithmeticOk")),"adjustmentTotal":financial_structure.get("adjustmentTotal"),"settlementSource":financial_structure.get("settlementSource")},"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"mixedRates":len(detected_rates)>1},"vatLineSource":vat_line_source,"descriptionSource":description_source,"selfBilling":self_billing,"factoringSaleStructure":factoring_sale}
     )
     return validate_result(result,company)
 
