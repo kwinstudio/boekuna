@@ -3862,7 +3862,7 @@ function openDocumentVerification(id){
   : st==='verified'
    ? (v.method==='deterministic'?'<div class="notice info"><strong>Gecontroleerd.</strong><br>De deterministische document- en rekencontroles waren sterk genoeg; een extra AI-analyse was niet nodig.</div>':'<div class="notice info"><strong>Extra controle voltooid.</strong><br>De belangrijkste financiële gegevens kwamen overeen en de rekencontroles leverden geen kritisch probleem op.</div>')
    : st==='technical_error'
-    ? `<div class="notice"><strong>De basisverwerking blijft geldig.</strong><br>De extra controle kon technisch niet worden afgerond. Er is niets automatisch aangepast.${v.lastError?`<div class="help" style="margin-top:8px">${esc(v.lastError)}</div>`:''}</div>`
+    ? `<div class="notice"><strong>De basisverwerking blijft geldig.</strong><br>De extra controle kon technisch niet worden afgerond. Er is niets automatisch aangepast.${v.lastErrorCode?`<div class="help" style="margin-top:8px">Foutcode: ${esc(v.lastErrorCode)}${v.lastErrorReference?' · Referentie '+esc(v.lastErrorReference):''}</div>`:''}</div>`
     : '<div class="notice info"><strong>De extra controle loopt op de achtergrond.</strong><br>Je hoeft hier niet op te wachten.</div>';
  modal(title,body,`<button class="btn" onclick="closeModal()">Sluiten</button>${d.fileId?`<button class="btn" onclick="openStoredDocument('${d.fileId}')">Open origineel</button>`:''}${st==='technical_error'&&Number(v.attempts||0)<Number(v.maxAttempts||DOCUMENT_VERIFICATION_MAX_ATTEMPTS)?`<button class="btn primary" onclick="retryDocumentVerification('${d.id}')">Opnieuw proberen</button>`:''}`,true)
 }
@@ -3875,18 +3875,18 @@ async function runDocumentVerification(id){
  if(v.nextRetryAt&&Date.now()<Number(v.nextRetryAt))return;
  documentVerificationInFlight.add(id);const started=performance.now();
  try{
-  v.status='running';v.attempts=Number(v.attempts||0)+1;v.startedAt=new Date().toISOString();delete v.lastError;save();
+  v.status='running';v.attempts=Number(v.attempts||0)+1;v.startedAt=new Date().toISOString();delete v.lastError;delete v.lastErrorCode;delete v.lastErrorReference;save();
   const body={reviewMode:'verify',verificationVersion:DOCUMENT_VERIFICATION_VERSION,clientRef:doc.fileId,fileName:doc.name,company:state.company||{},extractedText:String(v.sourceText||'').slice(0,30000),testMode:TEST_MODE_NO_AUTH};
   const res=await fetch(EDGE_BASE+'/analyze-invoice',{method:'POST',headers:await apiAuthHeaders({'content-type':'application/json'}),body:JSON.stringify(body)});
-  const json=await res.json().catch(()=>({}));if(!res.ok||!json.ok)throw new Error(json.error||`Extra controle mislukt (${res.status})`);
+  const json=await res.json().catch(()=>({}));if(!res.ok||!json.ok){const publicError=json?.error&&typeof json.error==='object'?json.error:{};throw createUploadError(String(publicError.code||fallbackDocumentCode(res.status)),'',res.status,publicError)};
   const secondCandidate=json.processor?processorAnalysisToCandidate(json.data||{},String(v.sourceText||''),'auto'):normalizeAiCandidate(json.data||{}),second=applyRecognitionQuality(secondCandidate),pass2=verificationSnapshot(second),diffs=documentVerificationDifferences(v.pass1||{},pass2,second),financialIssues=(second.recognitionChecks||[]).filter(x=>x.level==='bad');
-  v.status=diffs.length||financialIssues.length?'needs_review':'verified';v.checkedAt=new Date().toISOString();v.durationMs=Math.round(performance.now()-started);v.model=json.model||'';v.usage=json.usage||null;v.pass2=pass2;v.differences=diffs;v.financialIssues=financialIssues;v.warnings=second.warnings||[];delete v.nextRetryAt;delete v.lastError;
+  v.status=diffs.length||financialIssues.length?'needs_review':'verified';v.checkedAt=new Date().toISOString();v.durationMs=Math.round(performance.now()-started);v.model=json.model||'';v.usage=json.usage||null;v.pass2=pass2;v.differences=diffs;v.financialIssues=financialIssues;v.warnings=second.warnings||[];delete v.nextRetryAt;delete v.lastError;delete v.lastErrorCode;delete v.lastErrorReference;
   logEvent(v.status==='needs_review'?'Extra documentcontrole: controle nodig':'Extra documentcontrole voltooid',doc.name,'document',doc.id,null,{status:v.status,differences:diffs.map(x=>x.field)});
   await persistDocumentVerification();
   if(page==='documents')render();
   if(v.status==='needs_review')toast('Extra controle: controleer '+doc.name+' nog even')
  }catch(err){
-  v.status='technical_error';v.lastError=String(err?.message||'Extra controle niet beschikbaar').slice(0,500);v.lastAttemptAt=new Date().toISOString();
+  v.status='technical_error';v.lastError='Extra controle niet beschikbaar';v.lastErrorCode=String(err?.code||fallbackDocumentCode(err?.status)||'UNKNOWN');v.lastErrorReference=String(err?.referenceId||'');v.lastAttemptAt=new Date().toISOString();
   if(Number(v.attempts||0)<Number(v.maxAttempts||DOCUMENT_VERIFICATION_MAX_ATTEMPTS)){v.nextRetryAt=Date.now()+5*60*1000;scheduleDocumentVerification(id,5*60*1000)}
   await persistDocumentVerification();if(page==='documents')render()
  }finally{documentVerificationInFlight.delete(id)}
@@ -3896,7 +3896,7 @@ async function resumePendingDocumentVerifications(){
  for(const d of docs.slice(0,3))await runDocumentVerification(d.id)
 }
 function retryDocumentVerification(id){
- const d=state.documents.find(x=>x.id===id);if(!d?.verification)return;d.verification.status='pending';d.verification.attempts=0;delete d.verification.nextRetryAt;delete d.verification.lastError;save();closeModal();if(page==='documents')render();scheduleDocumentVerification(id,50)
+ const d=state.documents.find(x=>x.id===id);if(!d?.verification)return;d.verification.status='pending';d.verification.attempts=0;delete d.verification.nextRetryAt;delete d.verification.lastError;delete d.verification.lastErrorCode;delete d.verification.lastErrorReference;save();closeModal();if(page==='documents')render();scheduleDocumentVerification(id,50)
 }
 function confidenceLabel(n){return n>=90?['Hoog vertrouwen','good']:n>=75?['Redelijk vertrouwen','good']:n>=55?['Controle aanbevolen','warn']:['Controle nodig','bad']}
 function setDocumentReviewStep(step){
