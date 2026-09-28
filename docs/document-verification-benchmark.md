@@ -12,7 +12,7 @@ Voor ieder document wordt **vóór** de OCR-run handmatig ground truth vastgeleg
 - Een financiële PASS 1-fout telt pas als gedetecteerd wanneer de uiteindelijke validation/reviewlaag het relevante veld of de financiële inconsistentie expliciet markeert.
 - Meet afzonderlijk of PASS 2 een PASS 1-fout herstelt én of PASS 2 nieuwe fouten introduceert.
 - Meet false confidence: foutieve velden die als hoog vertrouwen zijn aangemerkt.
-- Ground truth moet zelf financieel consistent zijn; de benchmark faalt als netto + btw niet gelijk is aan totaal of aangeleverde regel-/btw-sommen niet aansluiten.
+- Ground truth moet zelf financieel consistent zijn; netto + btw moet exact op centniveau gelijk zijn aan totaal. Regel- en btw-sommen worden alleen als harde invariant gecontroleerd wanneer `groundTruth.validation` dat expliciet vereist. Leg `vatRounding` vast als `per_line`, `per_rate_group` of `document_printed`, zodat een legitiem afrondingsverschil van bijvoorbeeld één cent niet als OCR-fout wordt aangemerkt.
 
 ## Verplichte uitkomsten
 
