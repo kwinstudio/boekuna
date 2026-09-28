@@ -4,6 +4,7 @@ python-multipart==0.0.20
 pymupdf==1.25.5
 pdfplumber==0.11.6
 Pillow==11.2.1
+numpy==2.5.3
 pillow-heif==1.8.0
 rapidocr==3.9.2
 onnxruntime==1.30.0
