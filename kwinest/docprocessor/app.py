@@ -598,6 +598,154 @@ def explicit_vat_groups(lines:list[str])->list[VatLine]:
             groups[rate]=VatLine(rate=rate,taxableAmount=round(base,2),vatAmount=round(tax,2))
     return [groups[k] for k in sorted(groups)]
 
+
+def explicit_net_total(lines:list[str])->tuple[float|None,float]:
+    """Return a document-level net total only from an explicitly labelled summary row."""
+    patterns=(
+        re.compile(r"^\s*(?:netto|net\s*(?:amount|total))\b",re.I),
+        re.compile(r"^\s*(?:totaal|bedrag)\s*(?:excl\.?|exclusief)\s*(?:btw|vat)\b",re.I),
+        re.compile(r"^\s*(?:total|amount)\s*(?:excl\.?|exclusive(?:\s+of)?)\s*(?:vat|tax)\b",re.I),
+    )
+    for i,line in enumerate(lines or []):
+        low=line.lower()
+        if re.search(r"\b(?:uitbetaling|payout|settlement|factoring|commissie|commission)\b",low):
+            continue
+        if not any(p.search(line) for p in patterns):
+            continue
+        vals=money_tokens(line)
+        if not vals and i+1<len(lines):
+            vals=money_tokens(lines[i+1])
+        if vals:
+            return abs(float(vals[-1])),.99
+    return None,0.0
+
+
+def explicit_rate_vat_amounts(lines:list[str])->dict[float,float]:
+    """Read one unambiguous printed VAT amount per rate from VAT summary rows."""
+    found:dict[float,set[int]]={}
+    for raw in lines or []:
+        line=norm_text(raw)
+        if not re.search(r"\b(?:btw|vat|tax)\b",line,re.I):
+            continue
+        rm=re.search(r"\b(0|9|21)(?:[.,]0+)?\s*%",line,re.I)
+        if not rm:
+            continue
+        vals=money_tokens(line)
+        # A summary such as "BTW laag 9% EUR 28,35" contains one money value.
+        # Rows with base + VAT + gross remain ambiguous and are handled by the
+        # explicit-base/table parsers instead.
+        if len(vals)!=1:
+            continue
+        rate=float(rm.group(1))
+        found.setdefault(rate,set()).add(abs(money_cents(vals[0]) or 0))
+    out={}
+    for rate,values in found.items():
+        if len(values)==1:
+            out[rate]=next(iter(values))/100
+    return out
+
+
+def table_taxable_bases_by_rate(doc:dict)->dict[float,float]:
+    """Aggregate line net amounts by an explicitly labelled VAT-rate column.
+
+    This is intentionally stricter than guessing from product-row money tokens:
+    a table must expose both a VAT/rate column and a line-amount/net column.
+    """
+    totals:dict[float,int]={}
+    matched_rows=0
+    for table in (doc.get("tables") or [])[:30]:
+        rows=(table.get("rows") or [])[:240]
+        header_i=None;rate_col=None;amount_col=None
+        for ri,row in enumerate(rows[:35]):
+            cells=[norm_text(str(c or "")) for c in row]
+            candidate_rate=None;candidate_amount=None
+            for ci,cell in enumerate(cells):
+                low=cell.lower()
+                if candidate_rate is None and re.search(r"\b(?:btw|vat|tax)(?:\s*(?:tarief|rate))?\b",low):
+                    if not re.search(r"\b(?:bedrag|amount|totaal|total)\b",low):
+                        candidate_rate=ci
+                if re.search(r"\b(?:bedrag|amount|line\s*total|regelbedrag|netto)\b",low) and not re.search(r"\b(?:btw|vat|tax)\b",low):
+                    candidate_amount=ci
+                elif re.search(r"\b(?:totaal|total)\s*(?:excl\.?|exclusief|exclusive)\b",low) and not re.search(r"\b(?:btw|vat|tax)\s*(?:bedrag|amount)\b",low):
+                    candidate_amount=ci
+            if candidate_rate is not None and candidate_amount is not None:
+                header_i=ri;rate_col=candidate_rate;amount_col=candidate_amount;break
+        if header_i is None:
+            continue
+        table_totals:dict[float,int]={}
+        table_rows=0
+        for row in rows[header_i+1:]:
+            cells=[norm_text(str(c or "")) for c in row]
+            if max(rate_col,amount_col)>=len(cells):
+                continue
+            rate_match=re.fullmatch(r"\s*(0|9|21)(?:[.,]0+)?\s*%\s*",cells[rate_col],re.I)
+            if not rate_match:
+                continue
+            vals=money_tokens(cells[amount_col])
+            if len(vals)!=1:
+                continue
+            rate=float(rate_match.group(1))
+            cents=money_cents(vals[0])
+            if cents is None:
+                continue
+            table_totals[rate]=table_totals.get(rate,0)+cents
+            table_rows+=1
+        if table_rows:
+            # Multiple independent item tables may occur; accumulate them only
+            # when they expose the same explicit semantics.
+            for rate,cents in table_totals.items():
+                totals[rate]=totals.get(rate,0)+cents
+            matched_rows+=table_rows
+    if matched_rows<2 or len(totals)<2:
+        return {}
+    return {rate:cents/100 for rate,cents in sorted(totals.items())}
+
+
+def validated_mixed_vat_groups(doc:dict,lines:list[str],gross:float|None)->dict[str,Any]:
+    """Build trusted mixed VAT groups from line-table bases + printed VAT summaries.
+
+    The result is accepted only when all groups and the document totals reconcile
+    at currency-minor-unit precision. If any evidence is missing or ambiguous,
+    return an unresolved result and let the review flow handle it.
+    """
+    bases=table_taxable_bases_by_rate(doc)
+    taxes=explicit_rate_vat_amounts(lines)
+    if len(bases)<2 or set(bases)!=set(taxes):
+        return {"verified":False,"vatLines":[]}
+    groups=[]
+    for rate in sorted(bases):
+        base=round(float(bases[rate]),2)
+        tax=round(float(taxes[rate]),2)
+        expected=rounded_vat_cents(base,rate)
+        actual=money_cents(tax)
+        if expected is None or actual is None:
+            return {"verified":False,"vatLines":[]}
+        if rate==0:
+            if actual!=0:return {"verified":False,"vatLines":[]}
+        elif abs(expected-actual)>1:
+            return {"verified":False,"vatLines":[]}
+        groups.append(VatLine(rate=rate,taxableAmount=base,vatAmount=tax))
+    subtotal_cents=sum(money_cents(v.taxableAmount) or 0 for v in groups)
+    vat_cents=sum(money_cents(v.vatAmount) or 0 for v in groups)
+    explicit_net,net_conf=explicit_net_total(lines)
+    if explicit_net is not None and money_cents(explicit_net)!=subtotal_cents:
+        return {"verified":False,"vatLines":[]}
+    gross_cents=money_cents(gross)
+    if gross_cents is not None and subtotal_cents+vat_cents!=gross_cents:
+        return {"verified":False,"vatLines":[]}
+    if explicit_net is None and gross_cents is None:
+        return {"verified":False,"vatLines":[]}
+    return {
+        "verified":True,
+        "vatLines":groups,
+        "subtotal":subtotal_cents/100,
+        "vatTotal":vat_cents/100,
+        "total":gross_cents/100 if gross_cents is not None else (subtotal_cents+vat_cents)/100,
+        "netAnchorConfidence":net_conf,
+        "source":"line-table-plus-explicit-rate-vat",
+    }
+
+
 def allow_request(request: Request, key_override: str | None = None) -> bool:
     now=time.time()
     forwarded=(request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
