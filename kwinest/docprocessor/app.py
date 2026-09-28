@@ -1166,8 +1166,8 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     order_raw,_=line_after_label(lines,["bestelnummer","ordernummer","order number","purchase order","po number"]); order_no=order_raw[:60] if order_raw else None
     ref_raw,_=line_after_label(lines,["betalingskenmerk","payment reference","payment ref","kenmerk"]); payref=ref_raw[:80] if ref_raw else None
 
-    total,total_conf=labeled_amount(amount_lines,["totaal te betalen","te voldoen","amount due","balance due","grand total","totaal incl. btw","total incl. vat","invoice total","factuurbedrag","factuurtotaal"],["subtotaal","subtotal","excl"])
-    subtotal,sub_conf=labeled_amount(amount_lines,["totaal excl. btw","bedrag excl. btw","total excl. vat","tax exclusive","net amount","subtotaal","subtotal"])
+    total,total_conf=labeled_amount(amount_lines,["totaal te betalen","te voldoen","amount due","balance due","grand total","totaal incl. btw","totaal inclusief btw","total incl. vat","invoice total","factuurbedrag","factuurtotaal"],["subtotaal","subtotal","excl"])
+    subtotal,sub_conf=labeled_amount(amount_lines,["totaal excl. btw","totaal exclusief btw","bedrag excl. btw","bedrag exclusief btw","total excl. vat","tax exclusive","net amount","netto bedrag","subtotaal","subtotal"])
     vat_total,vat_conf=labeled_amount(amount_lines,["totaal btw","btw totaal","vat total","tax amount","btw-bedrag","btw bedrag"],["btw nr","btw-id","vat id"])
     discount,disc_conf=labeled_amount(amount_lines,["korting","discount"])
     shipping,ship_conf=labeled_amount(amount_lines,["verzendkosten","shipping","freight"])
