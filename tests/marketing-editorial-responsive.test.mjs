@@ -5,6 +5,8 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const root=process.cwd();
+const qaDir=path.join(root,'tests','artifacts','marketing-qa');
+fs.mkdirSync(qaDir,{recursive:true});
 const sourcePath=path.join(root,'kwinest','index.html');
 let home=fs.readFileSync(sourcePath,'utf8');
 const boot=home.lastIndexOf('initAuth();');
@@ -55,6 +57,7 @@ try{
     assert.ok(reveal.every(x=>x.opacity==='1'&&x.transform==='none'),'home '+width+': reduced-motion visuals must remain visible');
     assert.ok(await page.locator('a[href="/?register=1"]').count()>=1,'home '+width+': registration CTA regression');
     assert.deepEqual(errors,[],'home '+width+': page errors '+errors.join(' | '));
+    if(width===390||width===1440) await page.screenshot({path:path.join(qaDir,'home-'+width+'.png'),fullPage:true});
     if(width<=430){
       const heights=await page.locator('[data-bv-stepper] [data-bv-step]').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().height));
       assert.ok(heights.every(h=>h>=44),'home '+width+': documentflow touch target below 44px: '+heights.join(','));
@@ -108,6 +111,7 @@ try{
       assert.equal(await page.locator('img[src*="/assets/product/"]').count(),0,slug+': screenshot must not render');
       assert.equal(await page.locator('.product-crop,.product-mobile,.mk-window').count(),0,slug+': legacy product/mockup block remains');
       assert.deepEqual(errors,[],slug+' '+width+': page errors '+errors.join(' | '));
+      await page.screenshot({path:path.join(qaDir,slug+'-'+width+'.png'),fullPage:true});
       await page.close();
     }
   }

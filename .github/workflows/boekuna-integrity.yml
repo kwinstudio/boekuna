@@ -74,6 +74,14 @@ jobs:
       - name: Editorial marketing responsive screenshots
         run: node tests/marketing-editorial-responsive.test.mjs
 
+      - name: Upload marketing browser evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: marketing-browser-evidence
+          path: tests/artifacts/marketing-qa/*.png
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Billing subscription regressions
         run: node tests/billing-source.test.mjs
       - name: Python syntax safety
