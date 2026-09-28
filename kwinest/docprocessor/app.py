@@ -628,8 +628,12 @@ def run_best_ocr(img:Image.Image) -> dict[str,Any]:
     }
 
 def extract_pdf(raw:bytes) -> dict[str,Any]:
-    doc=fitz.open(stream=raw,filetype="pdf")
-    if doc.page_count>50: raise HTTPException(400,"PDF bevat meer dan 50 pagina's.")
+    try:
+        doc=fitz.open(stream=raw,filetype="pdf")
+    except Exception as exc:
+        raise BoekunaDocumentError("DOCUMENT_PDF_UNREADABLE",status=422,internal_code="PDF_OPEN_FAILED",internal_error=exc)
+    if doc.page_count>50:
+        raise BoekunaDocumentError("INVALID_REQUEST",status=400,context={"max_pages":50},internal_code="PDF_PAGE_LIMIT_EXCEEDED")
     pages=[]; all_text=[]; layout=[]; tables=[]; ocr_pages=[]; warnings=[]; sparse_pages=[]
     # pdfplumber is separate because its table finder is useful on vector PDFs
     plumber=None
@@ -688,25 +692,25 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
     combined_text="\n\n".join(all_text)
     if sparse_pages and len(re.sub(r"\s+","",combined_text)) < 40:
         if not ocr_engine:
-            raise HTTPException(503,"Deze PDF lijkt gescand, maar OCR is tijdelijk niet beschikbaar.")
-        raise HTTPException(422,"Deze gescande PDF kon niet betrouwbaar worden uitgelezen.")
+            raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="OCR_ENGINE_UNAVAILABLE")
+        raise BoekunaDocumentError("DOCUMENT_PDF_UNREADABLE",status=422,internal_code="PDF_OCR_UNREADABLE")
     return {"kind":"pdf","pageCount":doc.page_count,"pages":pages,"text":combined_text,"layout":layout,"tables":tables,"ocrPages":ocr_pages,"ocrEngine":"RapidOCR 3 / ONNX" if ocr_pages and RAPIDOCR_GENERATION=="v3" else ("RapidOCR legacy" if ocr_pages else None),"ocrModel":OCR_MODEL_NAME if ocr_pages else None,"warnings":warnings}
 
 def extract_image(raw:bytes) -> dict[str,Any]:
     if not RapidOCR:
-        raise HTTPException(503,"OCR-engine is niet beschikbaar op de server.")
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="OCR_ENGINE_UNAVAILABLE")
     try:
         img=Image.open(io.BytesIO(raw))
     except Exception as exc:
-        raise HTTPException(415,f"Deze foto kon niet worden geopend ({type(exc).__name__}). Gebruik een normale foto of exporteer hem als JPG/PNG.")
+        raise BoekunaDocumentError("DOCUMENT_IMAGE_UNREADABLE",status=422,internal_code="IMAGE_DECODE_FAILED",internal_error=exc)
     try:
         best=run_best_ocr(img)
     except Exception as exc:
-        raise HTTPException(503,f"OCR kon niet worden gestart ({type(exc).__name__}). Probeer het opnieuw.")
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="OCR_EXECUTION_FAILED",internal_error=exc)
     text=best["text"]
     layout=best["rows"]
     if len(re.sub(r"\s+","",text))<12:
-        raise HTTPException(422,"Er is te weinig leesbare tekst op deze bon gevonden. Maak een scherpere foto met de volledige bon in beeld.")
+        raise BoekunaDocumentError("DOCUMENT_IMAGE_UNREADABLE",status=422,internal_code="IMAGE_OCR_UNREADABLE")
     return {
         "kind":"image","pageCount":1,
         "pages":[{"page":1,"text":text,"charCount":len(text),"ocr":True,"ocrConfidence":best.get("confidence"),"tables":[]}],
@@ -746,12 +750,21 @@ def extract_csv(raw:bytes)->dict[str,Any]:
 
 def extract_document(filename:str,content_type:str,raw:bytes)->dict[str,Any]:
     ext=Path(filename).suffix.lower(); c=(content_type or "").lower()
-    if raw[:4]==b"%PDF" or ext==".pdf" or c=="application/pdf": return extract_pdf(raw)
-    if ext in {".png",".jpg",".jpeg",".webp",".heic",".heif",".tif",".tiff",".bmp",".gif"} or c.startswith("image/"): return extract_image(raw)
-    if ext==".docx" or c=="application/vnd.openxmlformats-officedocument.wordprocessingml.document": return extract_docx(raw)
-    if ext==".xlsx" or c=="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": return extract_xlsx(raw)
-    if ext==".csv" or c in {"text/csv","application/csv"}: return extract_csv(raw)
-    raise HTTPException(415,"Dit bestandstype wordt nog niet ondersteund door de documentprocessor.")
+    try:
+        if raw[:4]==b"%PDF" or ext==".pdf" or c=="application/pdf": return extract_pdf(raw)
+        if ext in {".png",".jpg",".jpeg",".webp",".heic",".heif",".tif",".tiff",".bmp",".gif"} or c.startswith("image/"): return extract_image(raw)
+        if ext==".docx" or c=="application/vnd.openxmlformats-officedocument.wordprocessingml.document": return extract_docx(raw)
+        if ext==".xlsx" or c=="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": return extract_xlsx(raw)
+        if ext==".csv" or c in {"text/csv","application/csv"}: return extract_csv(raw)
+    except BoekunaDocumentError:
+        raise
+    except Exception as exc:
+        raise BoekunaDocumentError("INVALID_REQUEST",status=422,internal_code=f"DOCUMENT_DECODE_FAILED_{ext or 'UNKNOWN'}",internal_error=exc)
+    raise BoekunaDocumentError(
+        "DOCUMENT_UNSUPPORTED_TYPE",status=415,
+        context={"supported_extensions":list(SUPPORTED_DOCUMENT_EXTENSIONS),"supported_mime_types":list(SUPPORTED_DOCUMENT_MIME_TYPES)},
+        internal_code="DOCUMENT_TYPE_UNSUPPORTED",
+    )
 
 # ----------------------------- deterministic invoice parser -----------------------------
 def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tuple[dict,float]:
