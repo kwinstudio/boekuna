@@ -1656,6 +1656,30 @@ def verification_attachment(raw:bytes|None,content_type:str,filename:str)->dict[
             return None
     return None
 
+def ai_provider_rate_limit_delay(resp:Any, provider_code:str|None, provider_message:str) -> float|None:
+    """Return a bounded retry delay for transient OpenAI TPM/RPM rate limits only."""
+    if int(getattr(resp,"status_code",0) or 0) != 429:
+        return None
+    message=str(provider_message or "")
+    code=str(provider_code or "").lower()
+    if code not in {"rate_limit_exceeded","rate_limit_error"} and "rate limit" not in message.lower():
+        return None
+    delay=None
+    retry_after=(getattr(resp,"headers",{}) or {}).get("retry-after")
+    if retry_after:
+        try:
+            delay=float(retry_after)
+        except (TypeError,ValueError):
+            delay=None
+    if delay is None:
+        match=re.search(r"try again in\s*([0-9]+(?:\.[0-9]+)?)s",message,re.I)
+        if match:
+            delay=float(match.group(1))
+    if delay is None:
+        delay=5.0
+    # Small cushion avoids retrying at the exact rolling-window boundary.
+    return max(.5,min(15.0,delay+.5))
+
 def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult,independent:bool=False,raw:bytes|None=None,content_type:str="")->tuple[ExtractionResult|None,dict[str,Any]|None]:
     if not OPENAI_API_KEY:return None,{"internal_code":"AI_PROVIDER_NOT_CONFIGURED","provider":"openai"}
     compact_layout=[]
@@ -1702,14 +1726,17 @@ def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult,ind
             else:
                 content.append({"type":"input_file","filename":attachment["name"],"file_data":data_url})
     payload={"model":OPENAI_MODEL,"input":[{"role":"system","content":[{"type":"input_text","text":instructions}]},{"role":"user","content":content}],"max_output_tokens":7000,"reasoning":{"effort":"medium" if independent else "medium"},"store":False}
-    try:
-        resp=requests.post(OPENAI_RESPONSES_URL,headers={"Authorization":f"Bearer {OPENAI_API_KEY}","Content-Type":"application/json"},json=payload,timeout=REQUEST_TIMEOUT)
-    except requests.Timeout as exc:
-        return None,{"internal_code":"AI_PROVIDER_TIMEOUT","provider":"openai","internal_error":exc}
-    except requests.RequestException as exc:
-        return None,{"internal_code":"AI_PROVIDER_UNAVAILABLE","provider":"openai","internal_error":exc}
-    request_id=resp.headers.get("x-request-id") or resp.headers.get("openai-request-id")
-    if resp.status_code>=400:
+    resp=None;request_id=None
+    for attempt in range(2):
+        try:
+            resp=requests.post(OPENAI_RESPONSES_URL,headers={"Authorization":f"Bearer {OPENAI_API_KEY}","Content-Type":"application/json"},json=payload,timeout=REQUEST_TIMEOUT)
+        except requests.Timeout as exc:
+            return None,{"internal_code":"AI_PROVIDER_TIMEOUT","provider":"openai","internal_error":exc}
+        except requests.RequestException as exc:
+            return None,{"internal_code":"AI_PROVIDER_UNAVAILABLE","provider":"openai","internal_error":exc}
+        request_id=resp.headers.get("x-request-id") or resp.headers.get("openai-request-id")
+        if resp.status_code<400:
+            break
         provider_code=None;provider_message=""
         try:
             upstream=resp.json()
@@ -1717,6 +1744,15 @@ def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult,ind
             provider_message=sanitize_log_value((upstream.get("error") or {}).get("message") or upstream.get("message"),300)
         except Exception:
             upstream=None
+        retry_delay=ai_provider_rate_limit_delay(resp,provider_code,provider_message)
+        if retry_delay is not None and attempt==0:
+            logger.warning(json.dumps({
+                "event":"ai_provider_rate_limit_retry","provider":"openai","provider_status":resp.status_code,
+                "provider_code":provider_code,"delay_seconds":round(retry_delay,3),
+                "provider_request_id":sanitize_log_value(request_id,120),
+            },ensure_ascii=False))
+            time.sleep(retry_delay)
+            continue
         return None,{
             "internal_code":"AI_PROVIDER_HTTP_ERROR","provider":"openai","provider_status":resp.status_code,
             "provider_code":provider_code,"provider_request_id":sanitize_log_value(request_id,120),"internal_error":provider_message,
