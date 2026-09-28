@@ -1,6 +1,12 @@
 name: 03A live PR28 mixed VAT retest
 
 on:
+  pull_request:
+    branches:
+      - 02d/fix-issue-26-mixed-vat-processor
+    paths:
+      - "tests/qa-live-pr28-mixed-vat.mjs"
+      - ".github/workflows/03a-live-pr28-mixed-vat.yml"
   push:
     branches:
       - 03a/live-pr28-mixed-vat
