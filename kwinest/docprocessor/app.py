@@ -517,7 +517,7 @@ def run_best_ocr(img:Image.Image) -> dict[str,Any]:
 def extract_pdf(raw:bytes) -> dict[str,Any]:
     doc=fitz.open(stream=raw,filetype="pdf")
     if doc.page_count>50: raise HTTPException(400,"PDF bevat meer dan 50 pagina's.")
-    pages=[]; all_text=[]; layout=[]; tables=[]; ocr_pages=[]
+    pages=[]; all_text=[]; layout=[]; tables=[]; ocr_pages=[]; warnings=[]; sparse_pages=[]
     # pdfplumber is separate because its table finder is useful on vector PDFs
     plumber=None
     try: plumber=pdfplumber.open(io.BytesIO(raw))
@@ -540,24 +540,31 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
         printable=len(re.sub(r"\s+","",text))
         used_ocr=False; ocr_conf=None
         sparse_text=printable < 180 or (len(words) < 35 and not page_tables)
-        if sparse_text and ocr_engine:
-            pix=page.get_pixmap(matrix=fitz.Matrix(2.45,2.45), alpha=False)
-            img=Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
-            try:
-                best=run_best_ocr(img)
-                ocr_text=best["text"]
-                ocr_printable=len(re.sub(r"\s+","",ocr_text))
-                if ocr_printable > max(printable + 30, int(printable * 1.12)):
-                    text=ocr_text
-                    used_ocr=True
-                elif ocr_printable >= 120 and printable < 260:
-                    text=(text+"\n--- OCR LAYER ---\n"+ocr_text).strip()
-                    used_ocr=True
-                if used_ocr:
-                    ocr_conf=best.get("confidence")
-                    ocr_pages.append(idx+1)
-            except Exception:
-                pass
+        if sparse_text:
+            sparse_pages.append(idx+1)
+            if not ocr_engine:
+                warnings.append(f"Pagina {idx+1} bevat weinig digitale tekst; OCR-engine is niet beschikbaar.")
+            else:
+                pix=page.get_pixmap(matrix=fitz.Matrix(2.45,2.45), alpha=False)
+                img=Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
+                try:
+                    best=run_best_ocr(img)
+                    ocr_text=best["text"]
+                    ocr_printable=len(re.sub(r"\s+","",ocr_text))
+                    if ocr_printable > max(printable + 30, int(printable * 1.12)):
+                        text=ocr_text
+                        used_ocr=True
+                    elif ocr_printable >= 120 and printable < 260:
+                        text=(text+"\n--- OCR LAYER ---\n"+ocr_text).strip()
+                        used_ocr=True
+                    if used_ocr:
+                        ocr_conf=best.get("confidence")
+                        ocr_pages.append(idx+1)
+                    elif printable < 40:
+                        warnings.append(f"Pagina {idx+1} kon niet betrouwbaar met OCR worden gelezen.")
+                except Exception as exc:
+                    logger.warning("pdf_ocr_failed page=%d error_type=%s", idx+1, type(exc).__name__)
+                    warnings.append(f"Pagina {idx+1} kon niet met OCR worden verwerkt.")
         pages.append({"page":idx+1,"text":text,"charCount":len(text),"ocr":used_ocr,"ocrConfidence":ocr_conf,"tables":page_tables})
         all_text.append(f"--- PAGE {idx+1} ---\n{text}")
         layout.append({"page":idx+1,"words":page_layout[:2500]})
@@ -565,7 +572,12 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
     if plumber:
         try: plumber.close()
         except Exception: pass
-    return {"kind":"pdf","pageCount":doc.page_count,"pages":pages,"text":"\n\n".join(all_text),"layout":layout,"tables":tables,"ocrPages":ocr_pages,"ocrEngine":"RapidOCR 3 / ONNX" if ocr_pages and RAPIDOCR_GENERATION=="v3" else ("RapidOCR legacy" if ocr_pages else None),"ocrModel":OCR_MODEL_NAME if ocr_pages else None}
+    combined_text="\n\n".join(all_text)
+    if sparse_pages and len(re.sub(r"\s+","",combined_text)) < 40:
+        if not ocr_engine:
+            raise HTTPException(503,"Deze PDF lijkt gescand, maar OCR is tijdelijk niet beschikbaar.")
+        raise HTTPException(422,"Deze gescande PDF kon niet betrouwbaar worden uitgelezen.")
+    return {"kind":"pdf","pageCount":doc.page_count,"pages":pages,"text":combined_text,"layout":layout,"tables":tables,"ocrPages":ocr_pages,"ocrEngine":"RapidOCR 3 / ONNX" if ocr_pages and RAPIDOCR_GENERATION=="v3" else ("RapidOCR legacy" if ocr_pages else None),"ocrModel":OCR_MODEL_NAME if ocr_pages else None,"warnings":warnings}
 
 def extract_image(raw:bytes) -> dict[str,Any]:
     if not RapidOCR:
@@ -753,6 +765,8 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     invoice_no=None
     if invno_raw:
         m=re.search(r"([A-Z0-9][A-Z0-9._\-/]{1,50})",invno_raw,re.I); invoice_no=m.group(1) if m else None
+    description_raw,_=line_after_label(lines,["omschrijving","description","dienst","service"],max_ahead=1)
+    description=norm_text(description_raw or "")[:240] or None
     inv_date,inv_date_conf=labeled_date(lines,["factuurdatum","invoice date","date of invoice","document date"])
     if not inv_date and dtype=="receipt":
         for line in lines[:30]:
@@ -880,7 +894,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     result=ExtractionResult(
         documentType=dtype,originalFileName=filename,pageCount=doc.get("pageCount",1),
         supplier=Supplier(**supplier),customer=Customer(**customer),
-        invoice=InvoiceMeta(invoiceNumber=invoice_no,invoiceDate=inv_date,dueDate=due_date,paymentTermDays=term,orderNumber=order_no,paymentReference=payref),
+        invoice=InvoiceMeta(invoiceNumber=invoice_no,invoiceDate=inv_date,dueDate=due_date,paymentTermDays=term,orderNumber=order_no,paymentReference=payref,description=description),
         amounts=Amounts(subtotal=abs(subtotal) if subtotal is not None else None,vatLines=vat_lines,vatTotal=abs(vat_total) if vat_total is not None else None,total=abs(total) if total is not None else None,settlementAmount=abs(settlement_amount) if settlement_amount is not None else None,discount=abs(discount) if discount is not None else None,shipping=abs(shipping) if shipping is not None else None,currency="EUR"),
         status=status,lineItems=[],adjustments=structured_adjustments,confidence=confidence,warnings=derivation_warnings,
         processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"financialBlocks":{"verified":bool(financial_structure.get("verified")),"primaryArithmeticOk":bool(financial_structure.get("primaryArithmeticOk")),"adjustmentArithmeticOk":bool(financial_structure.get("adjustmentArithmeticOk")),"settlementArithmeticOk":bool(financial_structure.get("settlementArithmeticOk")),"adjustmentTotal":financial_structure.get("adjustmentTotal"),"settlementSource":financial_structure.get("settlementSource")},"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"mixedRates":len(detected_rates)>1}}
