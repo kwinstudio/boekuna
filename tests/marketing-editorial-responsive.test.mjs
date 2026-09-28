@@ -75,18 +75,20 @@ try{
   const nav=await browser.newPage({viewport:{width:1440,height:960},reducedMotion:'reduce'});
   const signals=watch(nav);
   await gotoProduction(nav,'/');
-  const visibleTourLinks=nav.locator('a[href="/hoe-het-werkt/"]:visible');
-  assert.ok(await visibleTourLinks.count()>=1,'Production has no visible product-tour link');
-  const tourLink=visibleTourLinks.first();
-  await tourLink.scrollIntoViewIfNeeded();
-  await Promise.all([nav.waitForURL('**/hoe-het-werkt/',{timeout:15000}),tourLink.click()]);
-  assert.ok((await nav.title()).includes('Boekuna'),'Production navigation did not reach the Boekuna product tour');
+  const primaryCta=nav.locator('a[href="/?register=1"]:visible').first();
+  assert.ok(await primaryCta.count()===1,'Production primary registration CTA is not visible');
+  await primaryCta.scrollIntoViewIfNeeded();
+  await Promise.all([
+    nav.waitForURL(url=>new URL(url).searchParams.get('register')==='1',{timeout:15000}),
+    primaryCta.click()
+  ]);
+  assert.equal(new URL(nav.url()).searchParams.get('register'),'1','Production primary CTA did not navigate to registration');
   assert.deepEqual(signals.pageErrors,[],'Production navigation page errors');
   assert.deepEqual(signals.consoleErrors,[],'Production navigation console errors');
   assert.deepEqual(signals.httpFailures,[],'Production navigation HTTP failures');
   await nav.close();
 
-  console.log('PRODUCTION marketing browser verification: PASS (homepage 320/360/390/430/768/1024/1440; Scanner + Product tour 390/1440; real captures, console, HTTP, overflow, navigation)');
+  console.log('PRODUCTION marketing browser verification: PASS (homepage 320/360/390/430/768/1024/1440; Scanner + Product tour 390/1440; real captures, console, HTTP, overflow, primary CTA navigation)');
 }finally{
   await browser.close();
 }
