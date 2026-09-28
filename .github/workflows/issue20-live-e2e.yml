@@ -8,6 +8,13 @@ on:
       - "tests/issue20-live-e2e.mjs"
       - "tests/fixtures/issue20-mixed-9-21.pdf.b64"
       - ".github/workflows/issue20-live-e2e.yml"
+  pull_request:
+    branches:
+      - 02a/fix-issue-20-mixed-vat
+    paths:
+      - "tests/issue20-live-e2e.mjs"
+      - "tests/fixtures/issue20-mixed-9-21.pdf.b64"
+      - ".github/workflows/issue20-live-e2e.yml"
 
 permissions:
   contents: read
