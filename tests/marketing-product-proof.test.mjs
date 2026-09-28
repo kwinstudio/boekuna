@@ -73,7 +73,7 @@ assert.ok(home.includes('loading="eager" fetchpriority="high"'),'Hero mobile cap
 assert.ok(home.includes('width="390" height="844"'),'Mobile capture must reserve real dimensions against CLS');
 assert.ok(home.includes('/assets/product/boekuna-dashboard-overview-crop.webp'),'First product proof must use the real Dashboard editorial crop');
 assert.ok(home.includes('/assets/product/boekuna-dashboard-action-center-crop.webp'),'More grip must use the distinct Dashboard action-center crop');
-assert.ok(home.includes('/assets/product/boekuna-documents-upload-crop.webp'),'Workflow fallback must use the compact real Documents crop until real mobile review exists');
+assert.ok(home.includes('/assets/product/boekuna-documents-mobile.webp'),'Workflow fallback must use the real responsive Documents capture until real mobile review exists');
 assert.ok(!home.includes('/assets/product/boekuna-documents-workflow-crop.webp'),'Homepage must not render the former dominant Documents workflow crop');
 assert.ok(!home.includes('data-kz-tab="rapportages"'),'Homepage product tabs must stay limited to Facturen, Documenten and Btw');
 for(const key of ['facturen','documenten','btw'])assert.ok(home.includes('data-kz-tab="'+key+'"'),`Homepage product tab missing: ${key}`);
@@ -86,6 +86,9 @@ assert.ok(!homepageProductImages.includes('boekuna-dashboard-desktop.webp'),'Hom
 assert.ok(!homepageProductImages.includes('boekuna-documents-desktop.webp'),'Homepage must not load the full Documents master');
 assert.ok(!homepageProductImages.includes('boekuna-vat-summary-crop.webp'),'Btw desktop crop must not be pre-rendered as a separate homepage visual');
 assert.ok(!homepageProductImages.includes('boekuna-reports-primary-crop.webp'),'Rapportages desktop crop belongs on the feature page, not the homepage');
+const dominantDesktopProofs=homepageProductImages.filter(x=>['boekuna-dashboard-overview-crop.webp','boekuna-dashboard-action-center-crop.webp'].includes(x));
+assert.equal(dominantDesktopProofs.length,2,'Homepage must render exactly two dominant desktop/detail proofs');
+assert.ok(home.includes('data-human-assets="pending-09"'),'Unmerged preparation branch must keep 09 photography dependency explicit');
 
 const pageExpectations={
   'facturen':'boekuna-invoices-list-crop.webp',
