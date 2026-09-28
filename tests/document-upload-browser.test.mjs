@@ -160,6 +160,9 @@ try{
     const page=await newAppPage();
     const errors=[];
     page.on('pageerror',e=>errors.push(String(e)));
+    const optionsCheck=await page.evaluate(url=>fetch(url,{method:'OPTIONS'}).then(r=>({status:r.status,allow:r.headers.get('access-control-allow-origin')})),processorBase+'/analyze');
+    assert.equal(optionsCheck.status,204,'QA-PDF-02 processor OPTIONS contract must answer successfully in the browser');
+    assert.equal(optionsCheck.allow,appOrigin,'QA-PDF-02 browser must receive the matching CORS origin');
 
     await page.locator('#invoicePdfFile').setInputFiles({
       name:'qa-pdf-02.pdf',
@@ -191,6 +194,9 @@ try{
     const errors=[];
     page.on('pageerror',e=>errors.push(String(e)));
     await routeFallbackAi(page);
+    const optionsCheck=await page.evaluate(url=>fetch(url,{method:'OPTIONS'}).then(r=>({status:r.status,allow:r.headers.get('access-control-allow-origin')})),processorBase+'/analyze');
+    assert.equal(optionsCheck.status,204,'QA-PDF-03 processor OPTIONS contract must remain available during fallback scenarios');
+    assert.equal(optionsCheck.allow,appOrigin);
 
     assert.equal(await page.evaluate(()=>typeof pdfLibPromise),'object','pdfLibPromise must be initialized before loadPdfLib runs');
 
