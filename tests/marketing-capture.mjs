@@ -319,6 +319,16 @@ try{
   assertSafeVisibleText(await page.locator('body').innerText(),'dashboard-mobile');
   assets.push(await saveWebp(page,'boekuna-dashboard-mobile.webp',{quality:86}));
 
+  await page.evaluate(()=>navigate('invoices'));
+  await page.waitForTimeout(180);
+  assertSafeVisibleText(await page.locator('body').innerText(),'invoices-mobile');
+  assets.push(await saveWebp(page,'boekuna-invoices-mobile.webp',{quality:86}));
+
+  await page.evaluate(()=>navigate('documents'));
+  await page.waitForTimeout(180);
+  assertSafeVisibleText(await page.locator('body').innerText(),'documents-mobile');
+  assets.push(await saveWebp(page,'boekuna-documents-mobile.webp',{quality:86}));
+
   // Editorial crops: pixels are only removed from the unchanged real master captures.
   // Coordinates are tied to the stable 1440×960 QA viewport above.
   assets.push(await saveDerivedCrop('boekuna-dashboard-desktop.webp','boekuna-dashboard-overview-crop.webp',{left:170,top:0,width:1270,height:715},1120));

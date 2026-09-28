@@ -21,6 +21,8 @@ const required=[
   ['boekuna-company-settings-desktop.webp',1440,960],
   ['boekuna-reports-desktop.webp',1440,960],
   ['boekuna-dashboard-mobile.webp',390,844],
+  ['boekuna-invoices-mobile.webp',390,844],
+  ['boekuna-documents-mobile.webp',390,844],
   ['boekuna-dashboard-overview-crop.webp',1120,631,'boekuna-dashboard-desktop.webp'],
   ['boekuna-dashboard-action-center-crop.webp',650,488,'boekuna-dashboard-desktop.webp'],
   ['boekuna-invoices-list-crop.webp',760,468,'boekuna-invoices-desktop.webp'],

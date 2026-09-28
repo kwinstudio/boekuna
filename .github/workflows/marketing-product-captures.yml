@@ -53,7 +53,9 @@ jobs:
             boekuna-services-desktop.webp \
             boekuna-company-settings-desktop.webp \
             boekuna-reports-desktop.webp \
-            boekuna-dashboard-mobile.webp; do
+            boekuna-dashboard-mobile.webp \
+            boekuna-invoices-mobile.webp \
+            boekuna-documents-mobile.webp; do
             test -s "public/assets/product/$f" || { echo "Missing $f"; exit 1; }
           done
           test -s public/assets/product/capture-proof.json
