@@ -1,5 +1,6 @@
-import base64, csv, hashlib, io, json, logging, math, os, re, secrets, tempfile, time
+import base64, csv, hashlib, io, json, logging, math, os, platform, re, secrets, tempfile, time
 from datetime import datetime, date
+from importlib.metadata import PackageNotFoundError, version as package_version
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any, Literal
@@ -29,15 +30,31 @@ try:
     from rapidocr import RapidOCR
     RAPIDOCR_GENERATION = "v3"
 except Exception:
-    try:
-        from rapidocr_onnxruntime import RapidOCR
-        RAPIDOCR_GENERATION = "legacy"
-    except Exception:
-        RapidOCR = None
+    RapidOCR = None
 
 _OCR_ENGINE = None
 _OCR_ENGINE_ERROR = None
-OCR_MODEL_NAME = "PP-OCRv6-small" if RAPIDOCR_GENERATION == "v3" else ("RapidOCR legacy" if RAPIDOCR_GENERATION == "legacy" else None)
+OCR_MODEL_NAME = "PP-OCRv6-small"
+PROCESSOR_VERSION = "3.1.0"
+PROCESSOR_REVISION = (os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or "unknown")[:64]
+
+def installed_package_version(name: str) -> str | None:
+    try:
+        return package_version(name)
+    except PackageNotFoundError:
+        return None
+
+RAPIDOCR_VERSION = installed_package_version("rapidocr")
+ONNXRUNTIME_VERSION = installed_package_version("onnxruntime")
+PYTHON_RUNTIME = platform.python_version()
+
+def ocr_stack_info() -> dict[str, Any]:
+    return {
+        "engine":"RapidOCR",
+        "version":RAPIDOCR_VERSION,
+        "model":OCR_MODEL_NAME,
+        "runtime":{"engine":"ONNX Runtime","version":ONNXRUNTIME_VERSION},
+    }
 
 DEFAULT_APP_ORIGINS = {
     "https://boekuna-boekhouding.onrender.com",
@@ -63,6 +80,10 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_RESPONSES_URL = os.getenv("OPENAI_RESPONSES_URL", "https://api.openai.com/v1/responses")
 MAX_BYTES = int(os.getenv("MAX_FILE_BYTES", str(15 * 1024 * 1024)))
 MAX_SIZE_MB = max(1, MAX_BYTES // 1024 // 1024)
+MAX_PDF_PAGES = int(os.getenv("MAX_PDF_PAGES", "50"))
+MAX_IMAGE_PIXELS = int(os.getenv("MAX_IMAGE_PIXELS", "40000000"))
+MAX_IMAGE_SIDE = int(os.getenv("MAX_IMAGE_SIDE", "12000"))
+Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 SUPPORTED_IMAGE_EXTENSIONS = frozenset({".jpg",".jpeg",".png",".webp",".heic",".heif",".tif",".tiff",".bmp",".gif"})
 SUPPORTED_IMAGE_MIME_TYPES = frozenset({"image/jpeg","image/png","image/webp","image/heic","image/heif","image/tiff","image/bmp","image/gif"})
 SUPPORTED_DOCUMENT_EXTENSIONS = (".pdf",".jpg",".jpeg",".png",".webp",".heic",".heif",".tif",".tiff",".bmp",".gif",".docx",".xlsx",".csv")
@@ -83,7 +104,7 @@ app.add_middleware(
     allow_origins=sorted(ALLOWED_ORIGINS),
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"]
+    allow_headers=["Authorization", "Content-Type"]
 )
 
 PUBLIC_ERROR_SPECS = {
@@ -798,18 +819,15 @@ def get_ocr_engine():
     if RapidOCR is None:
         return None
     try:
-        if RAPIDOCR_GENERATION == "v3":
-            # RapidOCR 3.9.x ships the PP-OCRv6 small ONNX models in the wheel.
-            # This keeps Boekuna free/lightweight while using current PaddleOCR-derived models.
-            _OCR_ENGINE = RapidOCR(params={
-                "Global.text_score": 0.30,
-                "Global.max_side_len": 2600,
-                "Global.min_side_len": 30,
-                "Global.use_preprocess_img": True,
-                "Global.log_level": "warning",
-            })
-        else:
-            _OCR_ENGINE = RapidOCR()
+        # RapidOCR 3.9.x defaults to PP-OCRv6 small detection/recognition models
+        # and uses the explicitly pinned ONNX Runtime CPU backend.
+        _OCR_ENGINE = RapidOCR(params={
+            "Global.text_score": 0.30,
+            "Global.max_side_len": 2600,
+            "Global.min_side_len": 30,
+            "Global.use_preprocess_img": True,
+            "Global.log_level": "warning",
+        })
         _OCR_ENGINE_ERROR = None
     except Exception as exc:
         _OCR_ENGINE_ERROR = f"{type(exc).__name__}: {exc}"
@@ -834,31 +852,15 @@ def enhanced_receipt_variant(img: Image.Image) -> Image.Image:
     gray=gray.filter(ImageFilter.UnsharpMask(radius=1.2, percent=135, threshold=3))
     return gray.convert("RGB")
 
-def _legacy_ocr_rows(result: Any) -> list[dict[str,Any]]:
-    rows=[]
-    legacy=result
-    if isinstance(result,tuple) and len(result)>=1:
-        legacy=result[0]
-    for row in legacy or []:
-        if not isinstance(row,(list,tuple)) or len(row)<3:
-            continue
-        try:
-            box=row[0]
-            txt=norm_text(str(row[1]))
-            conf=float(row[2])
-        except Exception:
-            continue
-        if txt:
-            rows.append({"box":box,"text":txt,"confidence":conf})
-    return rows
-
 def ocr_rows(engine: Any, img: Image.Image) -> list[dict[str,Any]]:
     result=engine(np.asarray(img))
     txts=getattr(result,"txts",None)
     scores=getattr(result,"scores",None)
     boxes=getattr(result,"boxes",None)
+    if txts is None and scores is None and boxes is None:
+        return []
     if txts is None or scores is None:
-        return _legacy_ocr_rows(result)
+        raise RuntimeError("RapidOCR output contract is ongeldig")
     rows=[]
     boxes_list=boxes.tolist() if hasattr(boxes,"tolist") else (list(boxes) if boxes is not None else [])
     for i,txt in enumerate(txts or []):
@@ -963,7 +965,7 @@ def run_best_ocr(img:Image.Image) -> dict[str,Any]:
         "financialText":focus.get("text") or "",
         "financialFocusUsed":bool(focus.get("used")),
         "financialConfidence":focus.get("confidence"),
-        "engine":"RapidOCR 3 / ONNX" if RAPIDOCR_GENERATION=="v3" else "RapidOCR legacy",
+        "engine":"RapidOCR 3 / ONNX",
         "model":OCR_MODEL_NAME,
     }
 
@@ -972,8 +974,8 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
         doc=fitz.open(stream=raw,filetype="pdf")
     except Exception as exc:
         raise BoekunaDocumentError("DOCUMENT_PDF_UNREADABLE",status=422,internal_code="PDF_OPEN_FAILED",internal_error=exc)
-    if doc.page_count>50:
-        raise BoekunaDocumentError("INVALID_REQUEST",status=400,context={"max_pages":50},internal_code="PDF_PAGE_LIMIT_EXCEEDED")
+    if doc.page_count>MAX_PDF_PAGES:
+        raise BoekunaDocumentError("INVALID_REQUEST",status=400,context={"max_pages":MAX_PDF_PAGES},internal_code="PDF_PAGE_LIMIT_EXCEEDED")
     pages=[]; all_text=[]; layout=[]; tables=[]; ocr_pages=[]; warnings=[]; sparse_pages=[]
     # pdfplumber is separate because its table finder is useful on vector PDFs
     plumber=None
@@ -1002,6 +1004,14 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
             if not ocr_engine:
                 warnings.append(f"Pagina {idx+1} bevat weinig digitale tekst; OCR-engine is niet beschikbaar.")
             else:
+                render_w=max(1,int(float(page.rect.width)*2.45))
+                render_h=max(1,int(float(page.rect.height)*2.45))
+                if render_w*render_h>MAX_IMAGE_PIXELS or max(render_w,render_h)>MAX_IMAGE_SIDE:
+                    raise BoekunaDocumentError(
+                        "DOCUMENT_TOO_LARGE",status=413,
+                        context={"max_image_pixels":MAX_IMAGE_PIXELS,"max_image_side":MAX_IMAGE_SIDE},
+                        internal_code="PDF_RASTER_DIMENSION_LIMIT",
+                    )
                 pix=page.get_pixmap(matrix=fitz.Matrix(2.45,2.45), alpha=False)
                 img=Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
                 try:
@@ -1034,13 +1044,27 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
         if not ocr_engine:
             raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="OCR_ENGINE_UNAVAILABLE")
         raise BoekunaDocumentError("DOCUMENT_PDF_UNREADABLE",status=422,internal_code="PDF_OCR_UNREADABLE")
-    return {"kind":"pdf","pageCount":doc.page_count,"pages":pages,"text":combined_text,"layout":layout,"tables":tables,"ocrPages":ocr_pages,"ocrEngine":"RapidOCR 3 / ONNX" if ocr_pages and RAPIDOCR_GENERATION=="v3" else ("RapidOCR legacy" if ocr_pages else None),"ocrModel":OCR_MODEL_NAME if ocr_pages else None,"warnings":warnings}
+    return {"kind":"pdf","pageCount":doc.page_count,"pages":pages,"text":combined_text,"layout":layout,"tables":tables,"ocrPages":ocr_pages,"ocrEngine":"RapidOCR 3 / ONNX" if ocr_pages else None,"ocrModel":OCR_MODEL_NAME if ocr_pages else None,"warnings":warnings}
 
 def extract_image(raw:bytes) -> dict[str,Any]:
     if not RapidOCR:
         raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="OCR_ENGINE_UNAVAILABLE")
     try:
         img=Image.open(io.BytesIO(raw))
+        width,height=img.size
+        if width<1 or height<1:
+            raise BoekunaDocumentError("DOCUMENT_IMAGE_UNREADABLE",status=422,internal_code="IMAGE_EMPTY_DIMENSIONS")
+        if width*height>MAX_IMAGE_PIXELS or max(width,height)>MAX_IMAGE_SIDE:
+            raise BoekunaDocumentError(
+                "DOCUMENT_TOO_LARGE",status=413,
+                context={"max_image_pixels":MAX_IMAGE_PIXELS,"max_image_side":MAX_IMAGE_SIDE},
+                internal_code="IMAGE_DIMENSION_LIMIT",
+            )
+        img.load()
+    except BoekunaDocumentError:
+        raise
+    except Image.DecompressionBombError as exc:
+        raise BoekunaDocumentError("DOCUMENT_TOO_LARGE",status=413,internal_code="IMAGE_DECOMPRESSION_BOMB",internal_error=type(exc).__name__)
     except Exception as exc:
         raise BoekunaDocumentError("DOCUMENT_IMAGE_UNREADABLE",status=422,internal_code="IMAGE_DECODE_FAILED",internal_error=exc)
     try:
@@ -1089,9 +1113,24 @@ def extract_csv(raw:bytes)->dict[str,Any]:
     return {"kind":"csv","pageCount":1,"pages":[],"text":joined,"layout":[],"tables":[{"sheet":"CSV","rows":rows[:5000]}],"ocrPages":[]}
 
 def extract_document(filename:str,content_type:str,raw:bytes)->dict[str,Any]:
-    ext=Path(filename).suffix.lower(); c=(content_type or "").lower()
+    ext=Path(filename).suffix.lower(); c=(content_type or "").lower().split(";",1)[0].strip()
+    generic_mime=c in {"","application/octet-stream","binary/octet-stream"}
+    extension_mimes={
+        ".pdf":{"application/pdf"},
+        ".jpg":{"image/jpeg"},".jpeg":{"image/jpeg"},".png":{"image/png"},".webp":{"image/webp"},
+        ".heic":{"image/heic","image/heif"},".heif":{"image/heic","image/heif"},
+        ".tif":{"image/tiff"},".tiff":{"image/tiff"},".bmp":{"image/bmp"},".gif":{"image/gif"},
+        ".docx":{"application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+        ".xlsx":{"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
+        ".csv":{"text/csv","application/csv"},
+    }
+    if ext in extension_mimes and not generic_mime and c not in extension_mimes[ext]:
+        raise BoekunaDocumentError("DOCUMENT_UNSUPPORTED_TYPE",status=415,internal_code="MIME_EXTENSION_MISMATCH")
+    pdf_magic=b"%PDF-" in raw[:1024]
+    if pdf_magic and ext in SUPPORTED_IMAGE_EXTENSIONS:
+        raise BoekunaDocumentError("DOCUMENT_UNSUPPORTED_TYPE",status=415,internal_code="PDF_IMAGE_EXTENSION_MISMATCH")
     try:
-        if raw[:4]==b"%PDF" or ext==".pdf" or c=="application/pdf": return extract_pdf(raw)
+        if pdf_magic or ext==".pdf" or c=="application/pdf": return extract_pdf(raw)
         if ext in SUPPORTED_IMAGE_EXTENSIONS or c in SUPPORTED_IMAGE_MIME_TYPES: return extract_image(raw)
         if ext==".docx" or c=="application/vnd.openxmlformats-officedocument.wordprocessingml.document": return extract_docx(raw)
         if ext==".xlsx" or c=="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": return extract_xlsx(raw)
@@ -2058,13 +2097,35 @@ def health():
         "ocrAvailable":bool(RapidOCR),
         "ocrGeneration":RAPIDOCR_GENERATION,
         "ocrModel":OCR_MODEL_NAME,
+        "ocr":ocr_stack_info(),
+        "pythonRuntime":PYTHON_RUNTIME,
         "authRequired":True,
         "billingQuota":True,
-        "version":"3.0",
-        "limits":{"maxSizeMb":MAX_SIZE_MB,"maxPdfPages":50},
+        "version":PROCESSOR_VERSION,
+        "revision":PROCESSOR_REVISION,
+        "limits":{"maxSizeMb":MAX_SIZE_MB,"maxPdfPages":MAX_PDF_PAGES,"maxImagePixels":MAX_IMAGE_PIXELS,"maxImageSide":MAX_IMAGE_SIDE},
         "supportedExtensions":list(SUPPORTED_DOCUMENT_EXTENSIONS),
         "supportedMimeTypes":list(SUPPORTED_DOCUMENT_MIME_TYPES),
     }
+
+@app.get("/ready")
+def ready():
+    started=time.perf_counter()
+    engine=get_ocr_engine()
+    payload={
+        "ok":bool(engine),
+        "ready":bool(engine),
+        "service":"boekuna-document-processor",
+        "version":PROCESSOR_VERSION,
+        "revision":PROCESSOR_REVISION,
+        "pythonRuntime":PYTHON_RUNTIME,
+        "ocr":ocr_stack_info(),
+        "initializationMs":round((time.perf_counter()-started)*1000,2),
+    }
+    if not engine:
+        payload["error"]={"code":"OCR_NOT_READY"}
+        return JSONResponse(status_code=503,content=payload)
+    return payload
 
 @app.post("/verify")
 async def verify_document(request:Request,file:UploadFile=File(...),company_json:str=Form("{}")):
@@ -2163,9 +2224,19 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
     started=time.time()
     set_processing_meta(request,stage="extract")
     doc=extract_document(file.filename or "document",file.content_type or "",raw)
+    ocr_confs=[
+        float(page.get("ocrConfidence"))
+        for page in (doc.get("pages") or [])
+        if page.get("ocrConfidence") is not None
+    ]
     logger.info(json.dumps({
         "event":"document_analysis_extracted","kind":doc.get("kind"),"pages":doc.get("pageCount"),
-        "ocr_pages":len(doc.get("ocrPages") or []),"tables":len(doc.get("tables") or []),
+        "ocr_used":bool(doc.get("ocrPages")),"ocr_pages":len(doc.get("ocrPages") or []),
+        "ocr_confidence":round(sum(ocr_confs)/len(ocr_confs),4) if ocr_confs else None,
+        "ocr_engine":doc.get("ocrEngine"),"ocr_model":doc.get("ocrModel"),
+        "rapidocr_version":RAPIDOCR_VERSION,"onnxruntime_version":ONNXRUNTIME_VERSION,
+        "processor_version":PROCESSOR_VERSION,"processor_revision":PROCESSOR_REVISION,
+        "tables":len(doc.get("tables") or []),
         "duration_ms":round((time.time()-started)*1000),
     }))
     if ocr_text and len((doc.get("text") or "").replace(" ","")) < 320:
