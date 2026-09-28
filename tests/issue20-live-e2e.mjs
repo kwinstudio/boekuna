@@ -59,6 +59,15 @@ const accessToken=await captureAccessToken();
   });
   const json=await response.json().catch(()=>({}));
   assert.ok(response.ok&&json.ok,'Live document processor /analyze failed: '+JSON.stringify({status:response.status,error:json?.error}));
+  console.log('ISSUE20_LIVE_PROCESSOR_RESULT='+JSON.stringify({
+    invoiceNumber:json.data?.invoice?.invoiceNumber??null,
+    subtotal:json.data?.amounts?.subtotal??null,
+    vatTotal:json.data?.amounts?.vatTotal??null,
+    total:json.data?.amounts?.total??null,
+    vatLines:canonical(json.data?.amounts?.vatLines),
+    mixedRates:Boolean(json.data?.processing?.amountDerivation?.mixedRates),
+    warnings:json.data?.warnings||[]
+  }));
   assert.equal(json.data?.invoice?.invoiceNumber,'KKG/26/09/7741','Live processor must identify the original invoice number');
   assertMixedGroundTruth({
     subtotal:json.data?.amounts?.subtotal,
