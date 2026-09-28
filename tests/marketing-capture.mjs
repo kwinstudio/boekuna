@@ -226,6 +226,18 @@ const base='http://127.0.0.1:'+port;
 const pdfPath=await makeDemoPdf();
 const browser=await chromium.launch({headless:true});
 const context=await browser.newContext({viewport:{width:1440,height:960},deviceScaleFactor:1,reducedMotion:'reduce'});
+const useTrustedCaptureOrigin=!!(CAPTURE_EMAIL&&CAPTURE_PASSWORD);
+const captureBase=useTrustedCaptureOrigin?CAPTURE_ORIGIN:base;
+if(useTrustedCaptureOrigin){
+  // Serve the unchanged Boekuna capture copy at the real trusted app origin inside
+  // Playwright so the browser's own CORS origin matches production exactly.
+  await context.route(CAPTURE_ORIGIN+'/app',async route=>route.fulfill({
+    status:200,
+    contentType:'text/html; charset=utf-8',
+    body:appHtml,
+    headers:{'cache-control':'no-store'}
+  }));
+}
 const page=await context.newPage();
 const pageErrors=[];
 page.on('pageerror',e=>{const msg=String(e);pageErrors.push(msg);console.error('[capture-pageerror]',msg)});
@@ -241,7 +253,7 @@ async function openAppPage(name){
 }
 
 try{
-  await page.goto(base+'/app',{waitUntil:'domcontentloaded',timeout:45000});
+  await page.goto(captureBase+'/app',{waitUntil:'domcontentloaded',timeout:45000});
   await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
   await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important} .toast-wrap{display:none!important}'});
 
@@ -280,7 +292,7 @@ try{
   if(accessToken){
     await context.route('https://kwinest-docprocessor.onrender.com/**',async route=>{
       const req=route.request();
-      const headers={...req.headers(),origin:CAPTURE_ORIGIN};
+      const headers={...req.headers()};
       if(req.method()!=='OPTIONS')headers.authorization='Bearer '+accessToken;
       await route.continue({headers});
     });
