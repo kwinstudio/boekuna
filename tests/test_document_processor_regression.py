@@ -1,3 +1,4 @@
+import base64
 import sys
 import unittest
 from pathlib import Path
@@ -373,6 +374,48 @@ class DocumentProcessorRegressionTests(unittest.TestCase):
                 self.assertMoney(vat_group.taxableAmount, exp["subtotal"])
                 self.assertMoney(vat_group.vatAmount, exp["vatTotal"])
                 self.assertGreaterEqual(result.confidence.get("vatLines", 0), .95)
+
+    def test_original_mixed_vat_9_and_21_fixture_is_cent_exact(self):
+        fixture_path = Path(__file__).resolve().parent / "fixtures" / "02_gemengde_btw_9_en_21.pdf.b64"
+        raw = base64.b64decode(fixture_path.read_text().strip())
+        doc = app.extract_document("02_gemengde_btw_9_en_21.pdf", "application/pdf", raw)
+        result = app.validate_result(
+            app.heuristic_extract(doc, "02_gemengde_btw_9_en_21.pdf", COMPANY),
+            COMPANY,
+        )
+        debug = {
+            "text": doc.get("text"),
+            "tables": doc.get("tables"),
+            "invoiceNumber": result.invoice.invoiceNumber,
+            "subtotal": result.amounts.subtotal,
+            "vatTotal": result.amounts.vatTotal,
+            "total": result.amounts.total,
+            "vatLines": [v.model_dump() for v in result.amounts.vatLines],
+            "processing": result.processing,
+            "warnings": result.warnings,
+        }
+        self.assertEqual(result.invoice.invoiceNumber, "KKG/26/09/7741", debug)
+        self.assertMoney(result.amounts.subtotal, 429.95)
+        self.assertMoney(result.amounts.vatTotal, 52.49)
+        self.assertMoney(result.amounts.total, 482.44)
+        self.assertTrue(result.processing["amountDerivation"]["mixedRates"], debug)
+        self.assertEqual(len(result.amounts.vatLines), 2, debug)
+        lines = sorted(result.amounts.vatLines, key=lambda v: float(v.rate))
+        self.assertEqual([float(v.rate) for v in lines], [9.0, 21.0], debug)
+        self.assertMoney(lines[0].taxableAmount, 315.00)
+        self.assertMoney(lines[0].vatAmount, 28.35)
+        self.assertMoney(lines[1].taxableAmount, 114.95)
+        self.assertMoney(lines[1].vatAmount, 24.14)
+        self.assertEqual(
+            sum(app.money_cents(v.taxableAmount) for v in lines),
+            app.money_cents(result.amounts.subtotal),
+            debug,
+        )
+        self.assertEqual(
+            sum(app.money_cents(v.vatAmount) for v in lines),
+            app.money_cents(result.amounts.vatTotal),
+            debug,
+        )
 
     def test_negative_currency_sign_before_euro_is_preserved(self):
         self.assertEqual(app.money_tokens("-€ 24,00"), [-24.0])
