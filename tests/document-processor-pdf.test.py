@@ -1,5 +1,6 @@
 import io
 import sys
+import time
 from pathlib import Path
 
 import fitz
@@ -132,7 +133,10 @@ def test_trusted_origin_contract():
 
 def test_digital_pdf_prefers_embedded_text():
     raw = vector_pdf(invoice_lines())
+    started = time.perf_counter()
     doc = processor.extract_document("digitale-factuur.pdf", "application/pdf", raw)
+    elapsed_ms = (time.perf_counter() - started) * 1000
+    print(f"PERF digital_pdf_ms={elapsed_ms:.2f} bytes={len(raw)}")
     assert doc["kind"] == "pdf"
     assert doc["pageCount"] == 1
     assert doc["ocrPages"] == [], "A clear digital PDF must not pay the OCR cost"
@@ -152,7 +156,11 @@ def test_pdf_mime_detection_without_pdf_extension():
 
 def test_scanned_pdf_uses_ocr_and_extracts_financial_core():
     raw = scanned_pdf(invoice_lines(number="SCAN-2026-2001"))
+    started = time.perf_counter()
     doc = processor.extract_document("scan-factuur.pdf", "application/pdf", raw)
+    elapsed_ms = (time.perf_counter() - started) * 1000
+    page_conf = next((p.get("ocrConfidence") for p in doc.get("pages", []) if p.get("ocrConfidence") is not None), None)
+    print(f"PERF scanned_pdf_ms={elapsed_ms:.2f} bytes={len(raw)} ocr_confidence={float(page_conf or 0):.4f}")
     assert doc["kind"] == "pdf"
     assert doc["pageCount"] == 1
     assert doc["ocrPages"] == [1], "An image-only PDF must use OCR"
@@ -168,7 +176,10 @@ def test_multi_page_pdf_reads_all_pages():
         "Extra omschrijving: implementatie, controle en oplevering.",
     ]
     raw = vector_pdf(lines, pages=2)
+    started = time.perf_counter()
     doc = processor.extract_document("meer-pagina-factuur.pdf", "application/pdf", raw)
+    elapsed_ms = (time.perf_counter() - started) * 1000
+    print(f"PERF multipage_digital_pdf_ms={elapsed_ms:.2f} bytes={len(raw)} pages={doc.get('pageCount')}")
     assert doc["pageCount"] == 2
     assert "--- PAGE 1 ---" in doc["text"]
     assert "--- PAGE 2 ---" in doc["text"]
