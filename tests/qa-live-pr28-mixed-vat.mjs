@@ -159,6 +159,7 @@ try{
     body:directVerifyForm
   });
   const directVerifyJson=await directVerifyResponse.json();
+  console.log('LIVE_PASS2_DIRECT_RAW '+JSON.stringify({status:directVerifyResponse.status,body:directVerifyJson}));
   assert.equal(directVerifyResponse.status,200,'direct live PASS2 /verify status');
   assert.equal(directVerifyJson?.ok,true,'direct live PASS2 /verify ok');
   const raw2=directVerifyJson.data||{},raw2Lines=canon(raw2?.amounts?.vatLines);
