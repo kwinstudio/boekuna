@@ -1432,30 +1432,74 @@ def record_billing_usage(request: Request) -> dict | None:
 
 @app.get("/health")
 def health():
-    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"verificationConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"ocrGeneration":RAPIDOCR_GENERATION,"ocrModel":OCR_MODEL_NAME,"authRequired":True,"billingQuota":True,"version":"2.9"}
+    return {
+        "ok":True,
+        "service":"boekuna-document-processor",
+        "aiConfigured":bool(OPENAI_API_KEY),
+        "verificationConfigured":bool(OPENAI_API_KEY),
+        "ocrAvailable":bool(RapidOCR),
+        "ocrGeneration":RAPIDOCR_GENERATION,
+        "ocrModel":OCR_MODEL_NAME,
+        "authRequired":True,
+        "billingQuota":True,
+        "version":"3.0",
+        "limits":{"maxSizeMb":MAX_SIZE_MB,"maxPdfPages":50},
+        "supportedExtensions":list(SUPPORTED_DOCUMENT_EXTENSIONS),
+        "supportedMimeTypes":list(SUPPORTED_DOCUMENT_MIME_TYPES),
+    }
 
 @app.post("/verify")
 async def verify_document(request:Request,file:UploadFile=File(...),company_json:str=Form("{}")):
     require_allowed_origin(request)
     user=require_authenticated_user(request)
-    if not allow_request(request,f"verify:{user.get('id','unknown')}"): raise HTTPException(429,"Te veel extra controles. Probeer het later opnieuw.")
+    set_processing_meta(
+        request,stage="rate_limit",
+        file_mime=(file.content_type or "application/octet-stream")[:120],
+        file_ext=Path(file.filename or "").suffix.lower(),
+    )
+    if not allow_request(request,f"verify:{user.get('id','unknown')}"):
+        raise BoekunaDocumentError("RATE_LIMITED",status=429,internal_code="VERIFY_RATE_LIMIT")
+    if not rpc_access_check(request):
+        raise BoekunaDocumentError("ACCOUNT_READ_ONLY",status=403,internal_code="ENTITLEMENT_READ_ONLY")
     quota=billing_quota_status(request)
     if quota.get("allowed") is False:
-        raise HTTPException(402,"Je account staat in read-only of heeft geen ruimte voor deze documentcontrole.")
-    if not OPENAI_API_KEY:raise HTTPException(503,"Extra controle is tijdelijk niet beschikbaar.")
+        raise BoekunaDocumentError(
+            "DOCUMENT_LIMIT_REACHED",status=429,internal_code="DOCUMENT_MONTHLY_LIMIT",
+            context={"monthly_limit":quota.get("monthly_limit"),"remaining":quota.get("remaining")},
+        )
+    if not OPENAI_API_KEY:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="AI_PROVIDER_NOT_CONFIGURED")
+    set_processing_meta(request,stage="receive")
     raw=await file.read(MAX_BYTES+1)
-    if len(raw)>MAX_BYTES:raise HTTPException(413,"Bestand is te groot. Maximum is 15 MB.")
-    if not raw:raise HTTPException(400,"Bestand is leeg.")
-    try:company=json.loads(company_json or "{}")
-    except Exception:company={}
-    started=time.time()
+    set_processing_meta(request,file_size=len(raw))
+    if len(raw)>MAX_BYTES:
+        raise BoekunaDocumentError("DOCUMENT_TOO_LARGE",status=413,context={"max_size_mb":MAX_SIZE_MB},internal_code="FILE_SIZE_LIMIT")
+    if not raw:
+        raise BoekunaDocumentError("INVALID_REQUEST",status=400,internal_code="EMPTY_FILE")
     try:
-        doc=extract_document(file.filename or "document",file.content_type or "",raw)
-    except HTTPException:raise
-    except Exception as exc:raise HTTPException(422,f"Document kon niet opnieuw worden gelezen ({type(exc).__name__}).")
+        company=json.loads(company_json or "{}")
+    except Exception:
+        company={}
+    started=time.time()
+    set_processing_meta(request,stage="extract")
+    doc=extract_document(file.filename or "document",file.content_type or "",raw)
     heur=heuristic_extract(doc,file.filename or "document",company)
-    ai=ai_extract(doc,file.filename or "document",company,heur,independent=True,raw=raw,content_type=file.content_type or "")
-    if not ai:raise HTTPException(503,"Onafhankelijke extra controle kon niet worden uitgevoerd.")
+    set_processing_meta(request,stage="ai_verify")
+    ai,ai_failure=ai_extract(doc,file.filename or "document",company,heur,independent=True,raw=raw,content_type=file.content_type or "")
+    if not ai:
+        failure=ai_failure or {"internal_code":"AI_VERIFICATION_UNAVAILABLE","provider":"openai"}
+        is_timeout=failure.get("internal_code")=="AI_PROVIDER_TIMEOUT"
+        raise BoekunaDocumentError(
+            "PROCESSING_TIMEOUT" if is_timeout else "PROCESSOR_UNAVAILABLE",
+            status=504 if is_timeout else 503,
+            internal_code=str(failure.get("internal_code") or "AI_VERIFICATION_UNAVAILABLE"),
+            internal_error=failure.get("internal_error"),
+            provider=failure.get("provider"),
+            provider_status=failure.get("provider_status"),
+            provider_code=failure.get("provider_code"),
+            provider_request_id=failure.get("provider_request_id"),
+            state="stored_unprocessed",
+        )
     result=reconcile(ai,heur)
     result=validate_result(result,company)
     result.processing={**result.processing,"verificationMode":"independent","durationMs":round((time.time()-started)*1000),"pages":doc.get("pageCount"),"tablesFound":len(doc.get("tables",[])),"overallConfidence":round(overall_confidence(result),3)}
@@ -1465,44 +1509,81 @@ async def verify_document(request:Request,file:UploadFile=File(...),company_json
 async def analyze(request:Request,file:UploadFile=File(...),company_json:str=Form("{}"),existing_json:str=Form("[]"),ocr_text:str=Form("")):
     require_allowed_origin(request)
     user=require_authenticated_user(request)
-    if not allow_request(request,f"user:{user.get('id','unknown')}"): raise HTTPException(429,"Te veel documentverwerkingen. Probeer het over enkele minuten opnieuw.")
+    set_processing_meta(
+        request,stage="rate_limit",
+        file_mime=(file.content_type or "application/octet-stream")[:120],
+        file_ext=Path(file.filename or "").suffix.lower(),
+    )
+    if not allow_request(request,f"user:{user.get('id','unknown')}"):
+        raise BoekunaDocumentError("RATE_LIMITED",status=429,internal_code="DOCUMENT_PROCESSOR_RATE_LIMIT")
+    if not rpc_access_check(request):
+        raise BoekunaDocumentError("ACCOUNT_READ_ONLY",status=403,internal_code="ENTITLEMENT_READ_ONLY")
     quota=billing_quota_status(request)
     if quota.get("allowed") is False:
-        raise HTTPException(402,f"Je maandelijkse limiet van {quota.get('monthly_limit',0)} slimme documentverwerkingen is bereikt. Upgrade je abonnement of wacht tot de volgende maand.")
-    raw=await file.read(MAX_BYTES+1)
-    if len(raw)>MAX_BYTES:raise HTTPException(413,"Bestand is te groot. Maximum is 15 MB.")
-    if not raw:raise HTTPException(400,"Bestand is leeg.")
-    logger.info("document_analysis_started mime=%s bytes=%d", (file.content_type or "application/octet-stream")[:120], len(raw))
-    try: company=json.loads(company_json or "{}")
-    except Exception: company={}
-    try: existing=json.loads(existing_json or "[]")
-    except Exception: existing=[]
-    started=time.time()
-    try:
-        doc=extract_document(file.filename or "document",file.content_type or "",raw)
-        logger.info(
-            "document_analysis_extracted kind=%s pages=%s ocr_pages=%d tables=%d duration_ms=%d",
-            doc.get("kind"),
-            doc.get("pageCount"),
-            len(doc.get("ocrPages") or []),
-            len(doc.get("tables") or []),
-            round((time.time()-started)*1000),
+        raise BoekunaDocumentError(
+            "DOCUMENT_LIMIT_REACHED",status=429,internal_code="DOCUMENT_MONTHLY_LIMIT",
+            context={"monthly_limit":quota.get("monthly_limit"),"remaining":quota.get("remaining")},
         )
-    except HTTPException as exc:
-        logger.warning("document_analysis_rejected status=%s error_type=HTTPException", exc.status_code)
-        raise
-    except Exception as exc:
-        logger.exception("document_analysis_failed error_type=%s", type(exc).__name__)
-        raise HTTPException(422,f"Document kon niet worden verwerkt ({type(exc).__name__}). Controleer of het bestand geldig en niet beschadigd is.")
+    set_processing_meta(request,stage="receive")
+    raw=await file.read(MAX_BYTES+1)
+    set_processing_meta(request,file_size=len(raw))
+    if len(raw)>MAX_BYTES:
+        raise BoekunaDocumentError("DOCUMENT_TOO_LARGE",status=413,context={"max_size_mb":MAX_SIZE_MB},internal_code="FILE_SIZE_LIMIT")
+    if not raw:
+        raise BoekunaDocumentError("INVALID_REQUEST",status=400,internal_code="EMPTY_FILE")
+    logger.info(
+        json.dumps({
+            "event":"document_analysis_started","route":request.url.path,
+            "file_mime":(file.content_type or "application/octet-stream")[:120],
+            "file_ext":Path(file.filename or "").suffix.lower(),"file_size":len(raw),
+        })
+    )
+    try:
+        company=json.loads(company_json or "{}")
+    except Exception:
+        company={}
+    try:
+        existing=json.loads(existing_json or "[]")
+    except Exception:
+        existing=[]
+    started=time.time()
+    set_processing_meta(request,stage="extract")
+    doc=extract_document(file.filename or "document",file.content_type or "",raw)
+    logger.info(json.dumps({
+        "event":"document_analysis_extracted","kind":doc.get("kind"),"pages":doc.get("pageCount"),
+        "ocr_pages":len(doc.get("ocrPages") or []),"tables":len(doc.get("tables") or []),
+        "duration_ms":round((time.time()-started)*1000),
+    }))
     if ocr_text and len((doc.get("text") or "").replace(" ","")) < 320:
         doc["text"] = (doc.get("text") or "") + "\n\n--- CLIENT OCR ---\n" + ocr_text[:70000]
         doc.setdefault("processingHints", {})["clientOcrUsed"] = True
     heur=heuristic_extract(doc,file.filename or "document",company)
     fast_path=deterministic_fast_path_ready(doc,heur)
-    ai=None if fast_path else ai_extract(doc,file.filename or "document",company,heur)
+    ai_failure=None
+    if fast_path:
+        ai=None
+    else:
+        set_processing_meta(request,stage="ai_extract")
+        ai,ai_failure=ai_extract(doc,file.filename or "document",company,heur)
     result=reconcile(ai,heur) if ai else heur
+    if ai_failure:
+        degraded_ref=new_reference_id()
+        logger.warning(json.dumps({
+            "event":"document_ai_degraded","reference_id":degraded_ref,
+            "timestamp":datetime.utcnow().isoformat(timespec="milliseconds")+"Z",
+            "route":request.url.path,"stage":"ai_extract",
+            "internal_code":ai_failure.get("internal_code"),
+            "provider":ai_failure.get("provider"),
+            "provider_status":ai_failure.get("provider_status"),
+            "provider_code":ai_failure.get("provider_code"),
+            "provider_request_id":ai_failure.get("provider_request_id"),
+            "internal_error":sanitize_log_value(ai_failure.get("internal_error")),
+            "user_ref":str(user.get("id"))[:80],
+            "file_mime":(file.content_type or "application/octet-stream")[:120],
+            "file_ext":Path(file.filename or "").suffix.lower(),"file_size":len(raw),
+        }))
+        result.warnings.append("Extra AI-controle was tijdelijk niet beschikbaar; controleer onzekere velden handmatig.")
     result=validate_result(result,company)
-    # duplicate scoring against client-provided invoice index; server does not silently save anything
     dup=[]
     if result.documentType=="sales_invoice":
         counterparty=result.customer.name
@@ -1524,6 +1605,8 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
         if score>=.65:dup.append({"id":row.get("id"),"score":round(score,2),"reasons":reasons})
     if dup:result.warnings.append("Mogelijk bestaat deze factuur al.")
     processing={**result.processing,"ai":bool(ai),"fastPath":"deterministic" if fast_path else None,"durationMs":round((time.time()-started)*1000),"pages":doc.get("pageCount"),"tablesFound":len(doc.get("tables",[])),"duplicateCandidates":dup,"overallConfidence":round(overall_confidence(result),3)}
+    if ai_failure:
+        processing["aiStatus"]="degraded"
     usage=record_billing_usage(request)
     if usage:
         processing["billing"]={"plan":usage.get("plan"),"monthlyLimit":usage.get("monthly_limit"),"used":usage.get("used"),"remaining":usage.get("remaining")}
