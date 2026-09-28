@@ -79,12 +79,33 @@ try{
   });
   assert.equal(entitlement.allowed,true,'dedicated QA account must have live smart-document entitlement');
 
+  // Self-heal residue from an interrupted prior QA attempt before taking the
+  // baseline snapshot. This account is dedicated to automated production QA.
+  const stale=await page.evaluate(invoice=>{
+    const expenseIds=state.expenses.filter(e=>String(e.invoiceNumber||'')===invoice).map(e=>e.id);
+    const docs=state.documents.filter(d=>String(d.name||'').includes('02_gemengde_btw_9_en_21')||(d.linkedType==='expense'&&expenseIds.includes(d.linkedId)));
+    return {expenseIds,docs:docs.map(d=>({id:d.id,fileId:d.fileId||null}))};
+  },INVOICE);
+  for(const doc of stale.docs){
+    if(doc.fileId)await page.evaluate(id=>deleteStoredFile(id),doc.fileId);
+  }
+  if(stale.expenseIds.length||stale.docs.length){
+    await page.evaluate(({invoice,expenseIds,docIds})=>{
+      state.expenses=state.expenses.filter(e=>!expenseIds.includes(e.id)&&String(e.invoiceNumber||'')!==invoice);
+      state.documents=state.documents.filter(d=>!docIds.includes(d.id));
+      localStorage.setItem(userDataKey(),JSON.stringify(state));
+    },{invoice:INVOICE,expenseIds:stale.expenseIds,docIds:stale.docs.map(d=>d.id)});
+    await page.evaluate(()=>syncCloudStateNow());
+    await page.reload({waitUntil:'domcontentloaded',timeout:60000});
+    await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor({timeout:60000});
+  }
+
   originalState=await page.evaluate(()=>structuredClone(state));
   const preexisting=await page.evaluate(invoice=>({
     expenses:state.expenses.filter(e=>String(e.invoiceNumber||'')===invoice).length,
     documents:state.documents.filter(d=>String(d.name||'').includes('02_gemengde_btw_9_en_21')).length
   }),INVOICE);
-  assert.deepEqual(preexisting,{expenses:0,documents:0},'dedicated QA account must start without this fixture');
+  assert.deepEqual(preexisting,{expenses:0,documents:0},'dedicated QA baseline must not contain this fixture');
 
   await page.evaluate(()=>navigate('documents'));
   await page.locator('#pageTitle').filter({hasText:'Documenten'}).waitFor();
