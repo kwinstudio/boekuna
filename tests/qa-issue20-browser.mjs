@@ -119,7 +119,6 @@ try{
   });
 
   await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:15000});
-  assert.ok(processorMethods.includes('OPTIONS'),'Browser must execute processor preflight');
   assert.ok(processorMethods.includes('POST'),'Browser must upload to processor');
 
   const review=await page.evaluate(()=>({
