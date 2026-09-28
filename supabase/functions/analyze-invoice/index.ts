@@ -82,6 +82,10 @@ async function finishVerificationJob(claim:any,result:any,errorMessage=""){
 async function allowRequest(req:Request,body:any){
   const user=await authUser(req);
   if(user){
+    const sb=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_ANON_KEY")!,{global:{headers:{Authorization:"Bearer "+user.token}},auth:{persistSession:false,autoRefreshToken:false}});
+    const {data:canOperate,error:entitlementError}=await sb.rpc("can_operate_bookkeeping");
+    if(entitlementError)return {ok:false,kind:"entitlement_error"};
+    if(canOperate!==true)return {ok:false,kind:"read_only"};
     if(body?.reviewMode==="verify")return {ok:true,kind:"user"};
     const q=await fetch(Deno.env.get("SUPABASE_URL")!+"/functions/v1/consume-quota",{method:"POST",headers:{Authorization:"Bearer "+user.token,"content-type":"application/json"},body:JSON.stringify({feature:"invoice_ai"})});
     const o=await q.json().catch(()=>({}));
@@ -139,7 +143,12 @@ Deno.serve(async(req:Request)=>{
   const data=await req.json().catch(()=>null);
   if(!data)return j(req,{ok:false,error:"INVALID_JSON"},400);
   const allowed=await allowRequest(req,data);
-  if(!allowed.ok)return j(req,{ok:false,error:allowed.kind==="none"?"UNAUTHORIZED":"AI_RATE_LIMIT"},allowed.kind==="none"?401:429);
+  if(!allowed.ok){
+    if(allowed.kind==="none")return j(req,{ok:false,error:"UNAUTHORIZED"},401);
+    if(allowed.kind==="read_only")return j(req,{ok:false,error:"ACCOUNT_READ_ONLY"},402);
+    if(allowed.kind==="entitlement_error")return j(req,{ok:false,error:"ENTITLEMENT_CHECK_FAILED"},503);
+    return j(req,{ok:false,error:"AI_RATE_LIMIT"},429);
+  }
 
   const verify=data.reviewMode==="verify";
   let verificationClaim:any={kind:"none"};
