@@ -1858,8 +1858,6 @@ img.bookuna-logo-icon,
  .list-filter-chips{margin-top:9px}
 }
 </style>
-<link rel="stylesheet" href="/assets/marketing-visuals.css?v=20260928a">
-<script src="/assets/marketing-visuals.js?v=20260928a" defer></script>
 </head>
 <body>
 <script>
@@ -2281,6 +2279,18 @@ function showLanding(){
  showMarketingPage('home');
 }
 
+function ensureMarketingVisualAssets(){
+ if(!document.querySelector('link[data-bookuna-marketing-visuals]')){
+  const link=document.createElement('link');
+  link.rel='stylesheet';link.href='/assets/marketing-visuals.css?v=20260928a';link.dataset.bookunaMarketingVisuals='1';
+  document.head.appendChild(link);
+ }
+ if(!document.querySelector('script[data-bookuna-marketing-visuals]')){
+  const script=document.createElement('script');
+  script.src='/assets/marketing-visuals.js?v=20260928a';script.defer=true;script.dataset.bookunaMarketingVisuals='1';
+  document.head.appendChild(script);
+ }
+}
 function initBoekunaMarketingInteractions(){
  const q=id=>document.getElementById(id);
  const reduced=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -2343,6 +2353,7 @@ function initBoekunaMarketingInteractions(){
  if(compareBtns.length)renderCompare('without');
 }
 function showMarketingPage(page='home'){
+ ensureMarketingVisualAssets();
  lastMarketingPage=page;
  document.getElementById('mainApp').style.display='none';
  const nav=marketingNav(page),footer=marketingFooter();
