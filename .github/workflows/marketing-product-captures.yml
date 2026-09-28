@@ -20,6 +20,10 @@ jobs:
   capture:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      BOOKUNA_MARKETING_CAPTURE_EMAIL: ${{ secrets.BOOKUNA_MARKETING_CAPTURE_EMAIL }}
+      BOOKUNA_MARKETING_CAPTURE_PASSWORD: ${{ secrets.BOOKUNA_MARKETING_CAPTURE_PASSWORD }}
+      BOOKUNA_MARKETING_CAPTURE_ORIGIN: https://boekuna-boekhouding.onrender.com
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,10 +44,20 @@ jobs:
 
       - name: Verify required assets
         run: |
-          for f in             boekuna-dashboard-desktop.webp             boekuna-document-review-desktop.webp             boekuna-invoices-desktop.webp             boekuna-documents-desktop.webp             boekuna-vat-desktop.webp             boekuna-contacts-desktop.webp             boekuna-services-desktop.webp             boekuna-company-settings-desktop.webp             boekuna-dashboard-mobile.webp             boekuna-document-review-mobile.webp; do
+          for f in \
+            boekuna-dashboard-desktop.webp \
+            boekuna-invoices-desktop.webp \
+            boekuna-documents-desktop.webp \
+            boekuna-vat-desktop.webp \
+            boekuna-contacts-desktop.webp \
+            boekuna-services-desktop.webp \
+            boekuna-company-settings-desktop.webp \
+            boekuna-reports-desktop.webp \
+            boekuna-dashboard-mobile.webp; do
             test -s "public/assets/product/$f" || { echo "Missing $f"; exit 1; }
           done
           test -s public/assets/product/capture-proof.json
+          node -e "const p=require('./public/assets/product/capture-proof.json'); if(p.processorStatus==='real-processor-confirmed'){for(const f of ['boekuna-document-review-desktop.webp','boekuna-document-review-mobile.webp'])require('fs').accessSync('./public/assets/product/'+f)} else {console.log('Processor review assets pending dedicated QA/demo auth secrets.')}"
 
       - name: Commit generated product screenshots
         run: |
