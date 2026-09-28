@@ -1,5 +1,5 @@
 {
-  "notes": "Gebruik uitsluitend geanonimiseerde/synthetische fixtures in Git. Ground truth wordt handmatig vastgesteld vóór de OCR-run. Geldvelden worden als decimale strings opgeslagen zodat de benchmark exact op eurocenten kan vergelijken.",
+  "notes": "Gebruik uitsluitend geanonimiseerde/synthetische fixtures in Git. Ground truth wordt handmatig vastgesteld vóór de OCR-run. Geldvelden worden als decimale strings opgeslagen zodat de benchmark exact op eurocenten kan vergelijken. Zet groundTruth.validation.vatRounding expliciet op per_line, per_rate_group of document_printed. requireVatLineSum mag alleen true zijn wanneer de afgedrukte btw-regels volgens die documentmethode exact tot het btw-totaal moeten optellen.",
   "thresholds": {
     "highConfidence": 90
   },
@@ -24,7 +24,10 @@
   "documents": [
     {
       "id": "example-only-remove-before-run",
-      "categoryTags": ["digitale Nederlandse PDF", "21% btw"],
+      "categoryTags": [
+        "digitale Nederlandse PDF",
+        "21% btw"
+      ],
       "groundTruth": {
         "party": "Voorbeeld Leverancier B.V.",
         "issueDate": "2026-09-01",
@@ -34,11 +37,21 @@
         "vatAmount": "21.00",
         "gross": "121.00",
         "lineItems": [
-          {"total": "100.00"}
+          {
+            "total": "100.00"
+          }
         ],
         "vatLines": [
-          {"rate": "21", "vatAmount": "21.00"}
-        ]
+          {
+            "rate": "21",
+            "vatAmount": "21.00"
+          }
+        ],
+        "validation": {
+          "vatRounding": "per_rate_group",
+          "requireLineItemSum": true,
+          "requireVatLineSum": true
+        }
       },
       "pass1": {
         "party": null,
