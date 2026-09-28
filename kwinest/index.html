@@ -4033,10 +4033,12 @@ function showPdfImportReview(d){
 }
 
 function trustedVatLinesForImport(parsed,net,vat,rate){
- const mixed=!!parsed?.mixedRates,lines=canonicalFinancialVatLines(parsed?.vatLines);
+ const mixed=!!parsed?.mixedRates,lines=canonicalFinancialVatLines(parsed?.vatLines),r=Number(rate),netC=financialMoneyCents(net),vatC=financialMoneyCents(vat);
  if(!mixed){
-  if(!Number.isFinite(Number(rate))||financialMoneyCents(net)==null||financialMoneyCents(vat)==null)return {ok:true,lines:[]};
-  return {ok:true,lines:[{rate:Number(rate),taxableAmount:roundMoney(Number(net)),vatAmount:roundMoney(Number(vat))}]}
+  if(netC==null||vatC==null)return {ok:true,lines:[]};
+  if(![0,9,21].includes(r))return {ok:false,lines:[],reason:'Het btw-tarief is niet betrouwbaar genoeg om de btw-verdeling op te slaan.'};
+  if(r===0&&vatC!==0)return {ok:false,lines:[],reason:'Er staat btw op het document, maar het gekozen btw-tarief is 0%. Controleer het btw-tarief.'};
+  return {ok:true,lines:[{rate:r,taxableAmount:roundMoney(Number(net)),vatAmount:roundMoney(Number(vat))}]}
  }
  if(lines.length<2)return {ok:false,lines:[],reason:'Meerdere btw-tarieven zijn herkend, maar de btw-verdeling is niet betrouwbaar genoeg om op te slaan.'};
  const taxableCents=lines.reduce((sum,x)=>sum+(financialMoneyCents(x.taxableAmount)||0),0),vatCents=lines.reduce((sum,x)=>sum+(financialMoneyCents(x.vatAmount)||0),0);
