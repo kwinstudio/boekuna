@@ -1,4 +1,4 @@
-import base64, csv, hashlib, io, json, logging, math, os, re, tempfile, time
+import base64, csv, hashlib, io, json, logging, math, os, re, secrets, tempfile, time
 from datetime import datetime, date
 from pathlib import Path
 from typing import Any, Literal
@@ -7,7 +7,9 @@ import fitz
 import pdfplumber
 import requests
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
 from PIL import Image, ImageOps, ImageEnhance, ImageFilter
 import numpy as np
@@ -59,6 +61,13 @@ SUPABASE_PUBLISHABLE_KEY = os.getenv("SUPABASE_PUBLISHABLE_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_RESPONSES_URL = os.getenv("OPENAI_RESPONSES_URL", "https://api.openai.com/v1/responses")
 MAX_BYTES = int(os.getenv("MAX_FILE_BYTES", str(15 * 1024 * 1024)))
+MAX_SIZE_MB = max(1, MAX_BYTES // 1024 // 1024)
+SUPPORTED_DOCUMENT_EXTENSIONS = (".pdf",".jpg",".jpeg",".png",".webp",".heic",".heif",".tif",".tiff",".bmp",".gif",".docx",".xlsx",".csv")
+SUPPORTED_DOCUMENT_MIME_TYPES = (
+    "application/pdf","image/jpeg","image/png","image/webp","image/heic","image/heif","image/tiff","image/bmp","image/gif",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","text/csv","application/csv",
+)
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6-sol")
 REQUEST_TIMEOUT = float(os.getenv("AI_TIMEOUT_SECONDS", "55"))
 RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "600"))
@@ -74,11 +83,115 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+PUBLIC_ERROR_SPECS = {
+    "DOCUMENT_PDF_UNREADABLE": {"category":"document","retryable":False,"status":422},
+    "DOCUMENT_IMAGE_UNREADABLE": {"category":"document","retryable":False,"status":422},
+    "DOCUMENT_UNSUPPORTED_TYPE": {"category":"document","retryable":False,"status":415},
+    "DOCUMENT_TOO_LARGE": {"category":"document","retryable":False,"status":413},
+    "AUTH_SESSION_EXPIRED": {"category":"auth","retryable":False,"status":401},
+    "DOCUMENT_LIMIT_REACHED": {"category":"entitlement","retryable":False,"status":429},
+    "ACCOUNT_READ_ONLY": {"category":"entitlement","retryable":False,"status":403},
+    "RATE_LIMITED": {"category":"temporary","retryable":True,"status":429},
+    "PROCESSING_TIMEOUT": {"category":"temporary","retryable":True,"status":504},
+    "PROCESSOR_UNAVAILABLE": {"category":"temporary","retryable":True,"status":503},
+    "PERMISSION_DENIED": {"category":"permission","retryable":False,"status":403},
+    "INVALID_REQUEST": {"category":"request","retryable":False,"status":400},
+    "UNKNOWN": {"category":"temporary","retryable":True,"status":500},
+}
+
+class BoekunaDocumentError(Exception):
+    def __init__(self, code:str, *, status:int|None=None, context:dict[str,Any]|None=None,
+                 state:str="no_changes", internal_code:str|None=None, internal_error:Any=None,
+                 provider:str|None=None, provider_status:int|None=None, provider_code:str|None=None):
+        super().__init__(code)
+        self.code=code if code in PUBLIC_ERROR_SPECS else "UNKNOWN"
+        spec=PUBLIC_ERROR_SPECS[self.code]
+        self.status=int(status or spec["status"])
+        self.context=dict(context or {})
+        self.state=state if state in {"not_saved","stored_unprocessed","no_changes","unknown_state"} else "unknown_state"
+        self.internal_code=internal_code or self.code
+        self.internal_error=internal_error
+        self.provider=provider
+        self.provider_status=provider_status
+        self.provider_code=provider_code
+
+def new_reference_id() -> str:
+    alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    return "BK-"+"".join(secrets.choice(alphabet) for _ in range(6))
+
+def sanitize_log_value(value:Any, limit:int=500) -> str:
+    text=str(value or "")
+    text=re.sub(r"(?i)bearer\s+[A-Za-z0-9._~+\-/=]+","Bearer [REDACTED]",text)
+    text=re.sub(r"(?i)\b(?:sk|sb_secret|sb_publishable)_[A-Za-z0-9_-]+\b","[REDACTED_KEY]",text)
+    text=re.sub(r"(?i)(authorization|api[_-]?key|token|secret)\s*[:=]\s*[^\s,;]+",r"\1=[REDACTED]",text)
+    return text[:limit]
+
+def set_processing_meta(request:Request, **values:Any) -> None:
+    current=dict(getattr(request.state,"processing_meta",{}) or {})
+    for key,value in values.items():
+        if value is not None: current[key]=value
+    request.state.processing_meta=current
+
+def public_error_response(request:Request, exc:BoekunaDocumentError) -> JSONResponse:
+    spec=PUBLIC_ERROR_SPECS[exc.code]
+    reference_id=new_reference_id()
+    meta=dict(getattr(request.state,"processing_meta",{}) or {})
+    log_event={
+        "event":"document_processing_error",
+        "reference_id":reference_id,
+        "timestamp":datetime.utcnow().isoformat(timespec="milliseconds")+"Z",
+        "route":request.url.path,
+        "stage":meta.get("stage","unknown"),
+        "internal_code":exc.internal_code,
+        "public_code":exc.code,
+        "http_status":exc.status,
+        "retryable":bool(spec["retryable"]),
+        "processing_state":exc.state,
+        "user_ref":meta.get("user_ref"),
+        "file_mime":meta.get("file_mime"),
+        "file_ext":meta.get("file_ext"),
+        "file_size":meta.get("file_size"),
+        "provider":exc.provider,
+        "provider_status":exc.provider_status,
+        "provider_code":exc.provider_code,
+        "internal_error":sanitize_log_value(exc.internal_error),
+    }
+    logger.error(json.dumps({k:v for k,v in log_event.items() if v not in (None,"")}, ensure_ascii=False))
+    return JSONResponse(
+        status_code=exc.status,
+        content={"ok":False,"error":{
+            "code":exc.code,
+            "category":spec["category"],
+            "retryable":bool(spec["retryable"]),
+            "reference_id":reference_id,
+            "context":exc.context,
+            "state":exc.state,
+        }},
+    )
+
+@app.exception_handler(BoekunaDocumentError)
+async def boekuna_document_error_handler(request:Request, exc:BoekunaDocumentError):
+    return public_error_response(request,exc)
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_error_handler(request:Request, exc:RequestValidationError):
+    return public_error_response(request,BoekunaDocumentError("INVALID_REQUEST",status=422,internal_code="REQUEST_VALIDATION_FAILED",internal_error=type(exc).__name__))
+
+@app.exception_handler(HTTPException)
+async def safe_http_error_handler(request:Request, exc:HTTPException):
+    status=int(exc.status_code or 500)
+    code={400:"INVALID_REQUEST",401:"AUTH_SESSION_EXPIRED",403:"PERMISSION_DENIED",413:"DOCUMENT_TOO_LARGE",415:"DOCUMENT_UNSUPPORTED_TYPE",429:"RATE_LIMITED",504:"PROCESSING_TIMEOUT"}.get(status,"PROCESSOR_UNAVAILABLE" if status>=500 else "INVALID_REQUEST")
+    context={"max_size_mb":MAX_SIZE_MB} if code=="DOCUMENT_TOO_LARGE" else {}
+    return public_error_response(request,BoekunaDocumentError(code,status=status,context=context,internal_code="LEGACY_HTTP_EXCEPTION",internal_error=type(exc.detail).__name__))
+
+@app.exception_handler(Exception)
+async def unexpected_document_error_handler(request:Request, exc:Exception):
+    return public_error_response(request,BoekunaDocumentError("UNKNOWN",status=500,state="unknown_state",internal_code=type(exc).__name__,internal_error=exc))
+
 def require_allowed_origin(request: Request) -> str:
     origin = (request.headers.get("origin") or "").rstrip("/")
     if origin not in ALLOWED_ORIGINS:
-        logger.warning("document_request_rejected reason=origin_not_allowed origin=%s path=%s", origin[:200] or "<missing>", request.url.path)
-        raise HTTPException(403, "Origin not allowed")
+        raise BoekunaDocumentError("PERMISSION_DENIED",status=403,internal_code="ORIGIN_NOT_ALLOWED",internal_error=origin[:200])
     return origin
 
 # ----------------------------- schema -----------------------------
