@@ -401,6 +401,7 @@ try{
     assert.equal(await ibanInput.count(),1,'Supplier IBAN must be exposed in review so it can be corrected or removed');
     assert.equal(await ibanInput.inputValue(),'','Untrusted fixture IBAN must start empty');
     await page.evaluate(()=>setDocumentReviewStep(3));
+    await page.locator('.review-step[data-review-step="3"] details.review-details').evaluate(el=>{el.open=true});
     await ibanInput.fill('NL91ABNA0417164300');
     await ibanInput.fill('');
     await page.evaluate(()=>savePdfInvoiceImport());
