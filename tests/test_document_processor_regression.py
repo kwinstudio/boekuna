@@ -212,7 +212,7 @@ Te voldoen in EUR
             "documentType": "purchase_invoice", "supplier": "Solid Health Club",
             "invoiceNumber": "22486", "invoiceDate": "2025-11-24",
             "subtotal": 27.52, "vatTotal": 2.48, "total": 30.00,
-            "status": "overdue", "settlement": None, "vatRate": 9,
+            "status": "open", "settlement": None, "vatRate": 9,
             "descriptionContains": "Solid tennis",
         },
     },
