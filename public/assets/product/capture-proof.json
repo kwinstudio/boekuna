@@ -1,6 +1,9 @@
 {
-  "generatedAt": "2026-09-28T10:20:11.603Z",
+  "generatedAt": "2026-09-28T13:21:36.725Z",
   "source": "kwinest/index.html",
+  "sourceCommit": "ad11e742f5a53ba683c77ba3eec1438ce454e9af",
+  "sourceRef": "main",
+  "workflowRunId": "36427978115",
   "viewportDesktop": "1440x960",
   "viewportMobile": "390x844",
   "demoDataset": "permanent-fictive-marketing-v1",
@@ -103,6 +106,12 @@
       "width": 390,
       "height": 844,
       "size": 40582
+    },
+    {
+      "name": "boekuna-vat-mobile.webp",
+      "width": 390,
+      "height": 844,
+      "size": 23882
     },
     {
       "name": "boekuna-dashboard-overview-crop.webp",
