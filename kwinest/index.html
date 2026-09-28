@@ -800,9 +800,6 @@ html,body,#authRoot,.marketing,.main,.content{background:#F8FAFC!important;color
   border-radius:999px;background:#EAF8FB;color:#285F6A;font-size:10px;font-weight:850
 }
 .kz-status:before{content:"";width:7px;height:7px;border-radius:50%;background:#00A8C6}
-.kz-solution,.kz-reason,.kz-support-card,.kz-audience-card{
-  transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease
-}
 .kz-backtop{
   position:fixed;right:20px;bottom:20px;z-index:120;width:44px;height:44px;border-radius:50%;
   border:1px solid #D8E5E9;background:#fff;color:#202B33;box-shadow:0 12px 30px rgba(32,43,51,.14);
@@ -813,9 +810,6 @@ html,body,#authRoot,.marketing,.main,.content{background:#F8FAFC!important;color
 .kz-backtop:hover{background:#202B33;color:#fff}
 .marketing-nav.scrolled{box-shadow:0 10px 30px rgba(24,64,76,.08)}
 @media (hover:hover) and (pointer:fine){
-  .kz-solution:hover,.kz-reason:hover,.kz-support-card:hover,.kz-audience-card:hover{
-    transform:translateY(-4px);box-shadow:0 14px 34px rgba(24,64,76,.09)
-  }
   .kz-tab:hover:not(.active){background:#EAF8FB;border-color:#BFDDE3}
 }
 @media(prefers-reduced-motion:reduce){
@@ -2473,6 +2467,7 @@ function initBoekunaMarketingInteractions(){
  const panel=q('kzProductPanel');
  const tabs=[...document.querySelectorAll('[data-kz-tab]')];
  let activeProduct='facturen';
+ let productSwapToken=0;
  function applyProduct(key){
   const d=productData[key];if(!d)return;
   activeProduct=key;
@@ -2496,13 +2491,23 @@ function initBoekunaMarketingInteractions(){
   }
  }
  function setProduct(key,{focus=false}={}){
-  const d=productData[key];if(!d||key===activeProduct&&q('kzProductImage')?.src.includes(d.src))return;
+  const d=productData[key];if(!d)return;
+  const token=++productSwapToken;
   const target=tabs.find(t=>t.dataset.kzTab===key);
   if(focus&&target)target.focus();
+  if(key===activeProduct&&q('kzProductImage')?.getAttribute('src')===d.src){
+   if(shell)shell.classList.remove('is-changing');
+   return;
+  }
   if(reduceMotion){applyProduct(key);return}
   if(shell)shell.classList.add('is-changing');
   const preloader=new Image();
-  const finish=()=>applyProduct(key);
+  let settled=false;
+  const finish=()=>{
+   if(settled)return;
+   settled=true;
+   if(token===productSwapToken)applyProduct(key);
+  };
   preloader.onload=finish;preloader.onerror=finish;preloader.src=d.src;
   if(preloader.complete)finish();
  }
@@ -2577,7 +2582,7 @@ function initBoekunaMarketingInteractions(){
  storySteps.forEach((step,index)=>step.addEventListener('click',()=>setStory(index,{scrollStep:!storyIsDesktop()})));
  if(storySteps.length){
   applyStory(0);
-  if(storyIsDesktop()&&'IntersectionObserver' in window&&!reduceMotion){
+  if(storyIsDesktop()&&'IntersectionObserver' in window){
    const storyObserver=new IntersectionObserver(entries=>{
     const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];
     if(!visible)return;
