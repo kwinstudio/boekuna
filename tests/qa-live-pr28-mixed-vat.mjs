@@ -204,7 +204,7 @@ try{
     const e=state.expenses.find(x=>x.id===expenseId),d=state.documents.find(x=>x.id===docId);
     return {
       expense:{
-        invoiceNumber:e?.invoiceNumber||'',net:e?.exVat??null,vatAmount:e?.vatAmount??null,gross:e?expenseGross(e):null,
+        invoiceNumber:e?.invoiceNumber||'',vendor:e?.vendor||'',net:e?.exVat??null,vatAmount:e?.vatAmount??null,gross:e?expenseGross(e):null,
         mixedRates:!!e?.mixedRates,vatRate:e?.vatRate??null,vatLines:e?.vatLines||[]
       },
       verification:structuredClone(d?.verification||{})
@@ -235,7 +235,7 @@ try{
     const d=state.documents.find(x=>x.linkedType==='expense'&&x.linkedId===e?.id);
     return {
       expense:{
-        invoiceNumber:e?.invoiceNumber||'',net:e?.exVat??null,vatAmount:e?.vatAmount??null,gross:e?expenseGross(e):null,
+        invoiceNumber:e?.invoiceNumber||'',vendor:e?.vendor||'',net:e?.exVat??null,vatAmount:e?.vatAmount??null,gross:e?expenseGross(e):null,
         mixedRates:!!e?.mixedRates,vatRate:e?.vatRate??null,vatLines:e?.vatLines||[]
       },
       verification:structuredClone(d?.verification||{}),
@@ -265,8 +265,8 @@ try{
     try{exportExpensesCSV()}finally{download=original}
     return captured;
   });
-  const csvRow=String(csv?.data||'').split('\n').find(x=>x.includes('KKG/26/09/7741'))||'';
-  assert.ok(csvRow,'CSV must contain imported invoice');
+  const csvRow=String(csv?.data||'').split('\n').find(x=>x.includes(saved.expense.vendor))||'';
+  assert.ok(csvRow,'CSV must contain imported expense');
   assert.match(csvRow,/"Gemengd"/,'CSV mixed VAT scalar column');
   assert.doesNotMatch(csvRow,/;"21";/,'CSV must not export stale scalar 21');
   assert.match(csvRow,/9%: €\s*315,00 grondslag \/ €\s*28,35 btw/,'CSV 9% group');
