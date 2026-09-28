@@ -151,9 +151,10 @@ try{
   assert.equal(String(await vatSelect.locator('option:checked').textContent()).trim(),'Gemengd / controleer');
 
   // The validation fixture intentionally uses a non-bankable NL00ZZZZ IBAN.
-  // Clear only that unrelated invalid identifier during human review.
-  const iban=page.locator('#pdfImportForm [name="iban"]');
-  if(await iban.count())await iban.fill('');
+  // The current review UI warns about it but exposes no editable IBAN field.
+  // Clear only this unrelated fixture identifier in pending review state so
+  // issue #20 can be isolated without changing any VAT data.
+  await page.evaluate(()=>{ if(pendingPdfImport?.parsed) pendingPdfImport.parsed.iban=''; });
 
   const preSaveDiag=await page.evaluate(()=>{
     const f=document.getElementById('pdfImportForm'),fd=new FormData(f),d=Object.fromEntries(fd.entries());
