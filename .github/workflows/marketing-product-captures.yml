@@ -55,11 +55,12 @@ jobs:
             boekuna-reports-desktop.webp \
             boekuna-dashboard-mobile.webp \
             boekuna-invoices-mobile.webp \
-            boekuna-documents-mobile.webp; do
+            boekuna-documents-mobile.webp \
+            boekuna-vat-mobile.webp; do
             test -s "public/assets/product/$f" || { echo "Missing $f"; exit 1; }
           done
           test -s public/assets/product/capture-proof.json
-          node -e "const p=require('./public/assets/product/capture-proof.json'); if(p.processorStatus==='real-processor-confirmed'){for(const f of ['boekuna-document-review-desktop.webp','boekuna-document-review-mobile.webp'])require('fs').accessSync('./public/assets/product/'+f)} else {console.log('Processor review assets pending dedicated QA/demo auth secrets.')}"
+          node -e "const p=require('./public/assets/product/capture-proof.json'); if(!p.sourceCommit||!p.sourceRef)throw new Error('Missing capture build provenance'); if(p.viewportMobile!=='390x844')throw new Error('Unexpected mobile viewport'); if(p.demoDataset!=='permanent-fictive-marketing-v1')throw new Error('Unexpected demo dataset'); if(p.processorStatus==='real-processor-confirmed'){for(const f of ['boekuna-document-review-desktop.webp','boekuna-document-review-mobile.webp'])require('fs').accessSync('./public/assets/product/'+f)} else {console.log('Processor review assets pending dedicated QA/demo auth secrets.')}"
 
       - name: Commit generated product screenshots
         run: |

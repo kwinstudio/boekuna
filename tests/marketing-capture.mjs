@@ -11,6 +11,9 @@ const source=fs.readFileSync(path.join(root,'kwinest','index.html'),'utf8');
 const CAPTURE_ORIGIN=process.env.BOOKUNA_MARKETING_CAPTURE_ORIGIN||'https://boekuna-boekhouding.onrender.com';
 const CAPTURE_EMAIL=process.env.BOOKUNA_MARKETING_CAPTURE_EMAIL||'';
 const CAPTURE_PASSWORD=process.env.BOOKUNA_MARKETING_CAPTURE_PASSWORD||'';
+const SOURCE_COMMIT=process.env.GITHUB_SHA||'local';
+const SOURCE_REF=process.env.GITHUB_REF_NAME||'local';
+const WORKFLOW_RUN_ID=process.env.GITHUB_RUN_ID||null;
 const outDir=path.join(root,'public','assets','product');
 const tmpDir=path.join(root,'tests','.marketing-capture-tmp');
 fs.mkdirSync(outDir,{recursive:true});
@@ -329,6 +332,11 @@ try{
   assertSafeVisibleText(await page.locator('body').innerText(),'documents-mobile');
   assets.push(await saveWebp(page,'boekuna-documents-mobile.webp',{quality:86}));
 
+  await page.evaluate(()=>navigate('vat'));
+  await page.waitForTimeout(180);
+  assertSafeVisibleText(await page.locator('body').innerText(),'vat-mobile');
+  assets.push(await saveWebp(page,'boekuna-vat-mobile.webp',{quality:86}));
+
   // Editorial crops: pixels are only removed from the unchanged real master captures.
   // Coordinates are tied to the stable 1440×960 QA viewport above.
   assets.push(await saveDerivedCrop('boekuna-dashboard-desktop.webp','boekuna-dashboard-overview-crop.webp',{left:170,top:0,width:1270,height:715},1120));
@@ -347,6 +355,9 @@ try{
   const proof={
     generatedAt:new Date().toISOString(),
     source:'kwinest/index.html',
+    sourceCommit:SOURCE_COMMIT,
+    sourceRef:SOURCE_REF,
+    workflowRunId:WORKFLOW_RUN_ID,
     viewportDesktop:'1440x960',
     viewportMobile:'390x844',
     demoDataset:'permanent-fictive-marketing-v1',
