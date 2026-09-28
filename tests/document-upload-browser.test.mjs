@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
+const issue20MixedPdf=Buffer.from(fs.readFileSync(new URL('./fixtures/issue20-mixed-9-21.pdf.b64',import.meta.url),'utf8').trim(),'base64');
 
 function replaceLast(source,needle,replacement){
   const i=source.lastIndexOf(needle);
@@ -50,14 +51,17 @@ const processorPayload={
 };
 
 const mixedProcessorPayload=structuredClone(processorPayload);
-mixedProcessorPayload.data.originalFileName='qa-mixed-vat.pdf';
-mixedProcessorPayload.data.invoice.invoiceNumber='QA-MIXED-001';
-mixedProcessorPayload.data.invoice.description='Gemengde btw 9 en 21';
-mixedProcessorPayload.data.amounts={subtotal:200,vatLines:[{rate:9,taxableAmount:100,vatAmount:9},{rate:21,taxableAmount:100,vatAmount:21}],vatTotal:30,total:230,currency:'EUR'};
+mixedProcessorPayload.data.originalFileName='02_gemengde_btw_9_en_21.pdf';
+mixedProcessorPayload.data.supplier={name:'KeukenKern Groothandel B.V.',address:'Industriehof 7',postalCode:'3542 AD',city:'Utrecht',country:'Nederland',kvk:'77112233',vatNumber:'NL000000002B00',email:null};
+mixedProcessorPayload.data.invoice={invoiceNumber:'KKG/26/09/7741',invoiceDate:'2026-09-05',dueDate:'2026-09-19',paymentTermDays:14,description:'Koffiebonen house blend / premium theeselectie / keramische cappuccinokop / bar mat zwart'};
+mixedProcessorPayload.data.amounts={subtotal:429.95,vatLines:[{rate:9,taxableAmount:315,vatAmount:28.35},{rate:21,taxableAmount:114.95,vatAmount:24.14}],vatTotal:52.49,total:482.44,currency:'EUR'};
 mixedProcessorPayload.data.lineItems=[
-  {description:'Dienst laag tarief',quantity:1,unitPrice:100,vatRate:9,lineTotal:100},
-  {description:'Dienst hoog tarief',quantity:1,unitPrice:100,vatRate:21,lineTotal:100}
+  {description:'Koffiebonen house blend 10 kg',quantity:1,unitPrice:240,vatRate:9,lineTotal:240},
+  {description:'Premium theeselectie',quantity:5,unitPrice:15,vatRate:9,lineTotal:75},
+  {description:'Keramische cappuccinokop',quantity:6,unitPrice:15,vatRate:21,lineTotal:90},
+  {description:'Bar mat zwart 60 cm',quantity:1,unitPrice:24.95,vatRate:21,lineTotal:24.95}
 ];
+mixedProcessorPayload.preview={text:'Synthetische factuur voor software-validatie - geen betalingsverplichting.\nKeukenKern Groothandel B.V.\nNummer KKG/26/09/7741\nNetto EUR 429,95\nBTW laag 9% EUR 28,35\nBTW hoog 21% EUR 24,14\nFactuurtotaal EUR 482,44',pages:[{page:1,ocrConfidence:null}],tables:[]};
 
 let processorResponse=processorPayload;
 let appOrigin='';
@@ -98,9 +102,15 @@ let appHtml=original
   .replace("const DOCUMENT_PROCESSOR_URL='https://kwinest-docprocessor.onrender.com';",`const DOCUMENT_PROCESSOR_URL='${processorBase}';`);
 appHtml=replaceLast(appHtml,'initAuth();',`
 currentUser=TEST_USER;
-state=structuredClone(DEFAULT);
-for(const key of ['contacts','services','invoices','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])state[key]=[];
-state.company={...state.company,name:'QA PDF BV',tradeName:'Boekuna PDF QA',contactName:'QA',email:'qa-pdf@example.test',phone:'0100000000',address:'Teststraat 1',postal:'3011AA',city:'Rotterdam',country:'Nederland',kvk:'12345678',vat:'NL123456789B01',iban:'NL91ABNA0417164300',invoicePrefix:'2026-',paymentDays:14,kor:false};
+const stored=localStorage.getItem(userDataKey());
+if(stored){
+  state=normalizeState(JSON.parse(stored));
+}else{
+  state=structuredClone(DEFAULT);
+  for(const key of ['contacts','services','invoices','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])state[key]=[];
+  state.company={...state.company,name:'QA PDF BV',tradeName:'Boekuna PDF QA',contactName:'QA',email:'qa-pdf@example.test',phone:'0100000000',address:'Teststraat 1',postal:'3011AA',city:'Rotterdam',country:'Nederland',kvk:'12345678',vat:'NL123456789B01',iban:'NL91ABNA0417164300',invoicePrefix:'2026-',paymentDays:14,kor:false};
+  localStorage.setItem(userDataKey(),JSON.stringify(state));
+}
 enterApp();
 `);
 
@@ -217,9 +227,9 @@ try{
     page.on('dialog',dialog=>dialog.accept());
 
     await page.locator('#invoicePdfFile').setInputFiles({
-      name:'qa-mixed-vat.pdf',
+      name:'02_gemengde_btw_9_en_21.pdf',
       mimeType:'application/pdf',
-      buffer:Buffer.from('%PDF-1.7\n% Boekuna mixed VAT browser QA\n')
+      buffer:issue20MixedPdf
     });
 
     await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:15000});
@@ -246,23 +256,26 @@ try{
     assert.equal(saved.inMemory.vatRate,null,'Mixed expense state must not contain an authoritative scalar VAT rate');
     assert.equal(saved.inMemory.mixedRates,true,'Mixed expense state must preserve mixedRates');
     assert.deepEqual(saved.inMemory.vatLines.map(v=>Number(v.rate)),[9,21],'Saved trusted VAT groups must preserve 9% and 21%');
-    assert.equal(saved.inMemory.vatAmount,30);
-    assert.equal(saved.inMemory.gross,230);
+    assert.equal(saved.inMemory.vatAmount,52.49);
+    assert.equal(saved.inMemory.gross,482.44);
     assert.equal(saved.persisted.vatRate,null,'Persisted JSON must store null for mixed authoritative vatRate');
     assert.equal(saved.persisted.mixedRates,true,'Persisted JSON must store mixedRates=true');
     assert.deepEqual(saved.persisted.vatLines.map(v=>Number(v.rate)),[9,21],'Persisted JSON must retain both trusted VAT groups');
 
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>state?.expenses?.some(e=>e.invoiceNumber==='KKG/26/09/7741'));
     const reopened=await page.evaluate(()=>{
-      const persisted=JSON.parse(localStorage.getItem(userDataKey())||'{}');
-      state=normalizeState(persisted);
       navigate('expenses');
-      const e=state.expenses[0];
-      return {vatRate:e.vatRate,mixedRates:e.mixedRates,label:expenseVatRateLabel(e),rates:expenseVatRates(e)}
+      const e=state.expenses.find(x=>x.invoiceNumber==='KKG/26/09/7741');
+      return {vatRate:e.vatRate,mixedRates:e.mixedRates,label:expenseVatRateLabel(e),rates:expenseVatRates(e),vatLines:e.vatLines,vatAmount:e.vatAmount,gross:expenseGross(e)}
     });
     assert.equal(reopened.vatRate,null,'Reopen from persisted state must keep mixed vatRate null');
     assert.equal(reopened.mixedRates,true);
     assert.equal(reopened.label,'Gemengd');
     assert.deepEqual(reopened.rates,[9,21]);
+    assert.deepEqual(reopened.vatLines,[{rate:9,taxableAmount:315,vatAmount:28.35},{rate:21,taxableAmount:114.95,vatAmount:24.14}]);
+    assert.equal(reopened.vatAmount,52.49);
+    assert.equal(reopened.gross,482.44);
 
     const legacyReopened=await page.evaluate(()=>{
       const persisted=JSON.parse(localStorage.getItem(userDataKey())||'{}');
