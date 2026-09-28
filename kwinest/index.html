@@ -2315,33 +2315,21 @@ function showLanding(){
  showMarketingPage(['home','features','how','pricing','faq'].includes(page)?page:'home');
 }
 
-function initBoekunaMarketingInteractions(){
- const productData={
-  facturen:{src:'/assets/product/boekuna-invoices-list-crop.webp',alt:'Echt Boekuna Facturen-overzicht met heading, toolbar, KPI-rij en eerste facturen',caption:'Facturen · echte lijst, filters en statussen',href:'/facturen/',link:'Bekijk Facturen →'},
-  documenten:{src:'/assets/product/boekuna-documents-upload-crop.webp',alt:'Echt Boekuna Documenten-overzicht met uploadacties, uploadzone en documentstatussen',caption:'Documenten · upload, lijst en echte controlestatussen',href:'/scanner/',link:'Bekijk documentverwerking →'},
-  btw:{src:'/assets/product/boekuna-vat-summary-crop.webp',alt:'Echt Boekuna btw-overzicht met kwartaalkeuze, KPI’s, berekening en controlelijst',caption:'Btw · kwartaalpositie en controle-informatie',href:'/btw-bank/',link:'Bekijk Btw & bank →'},
-  rapportages:{src:'/assets/product/boekuna-reports-primary-crop.webp',alt:'Echt Boekuna Rapportages-scherm met omzet, kosten, resultaat en primair periodeoverzicht',caption:'Rapportages · primair inzicht uit dezelfde administratie',href:'/rapportages/',link:'Bekijk Rapportages →'}
- };
- const q=id=>document.getElementById(id);
- const shell=q('kzProductShell');
- const tabs=[...document.querySelectorAll('[data-kz-tab]')];
- const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
- const setText=(id,value)=>{const el=q(id);if(el)el.textContent=value};
- function setProduct(key){
-  const d=productData[key];if(!d)return;
-  if(shell)shell.classList.add('is-changing');
-  tabs.forEach(t=>{const on=t.dataset.kzTab===key;t.classList.toggle('active',on);t.setAttribute('aria-pressed',String(on))});
-  const apply=()=>{
-   const img=q('kzProductImage');
-   if(img){img.src=d.src;img.alt=d.alt;img.width=760;img.height=468}
-   setText('kzProductCaption',d.caption);
-   const link=q('kzPreviewLink');if(link){link.href=d.href;link.textContent=d.link}
-   if(shell)shell.classList.remove('is-changing');
-  };
-  if(reduced)apply();else setTimeout(apply,100);
+function ensureMarketingVisualAssets(){
+ if(!document.querySelector('link[data-bookuna-marketing-visuals]')){
+  const link=document.createElement('link');
+  link.rel='stylesheet';link.href='/assets/marketing-visuals.css?v=20260928a';link.dataset.bookunaMarketingVisuals='1';
+  document.head.appendChild(link);
  }
- tabs.forEach(t=>t.addEventListener('click',()=>setProduct(t.dataset.kzTab)));
- setProduct('facturen');
+ if(!document.querySelector('script[data-bookuna-marketing-visuals]')){
+  const script=document.createElement('script');
+  script.src='/assets/marketing-visuals.js?v=20260928a';script.defer=true;script.dataset.bookunaMarketingVisuals='1';
+  document.head.appendChild(script);
+ }
+}
+function initBoekunaMarketingInteractions(){
+ const q=id=>document.getElementById(id);
+ const reduced=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
  const nav=document.querySelector('.marketing-nav');
  const top=q('kzBackTop');
@@ -2351,97 +2339,145 @@ function initBoekunaMarketingInteractions(){
  };
  window.addEventListener('scroll',onScroll,{passive:true});onScroll();
  if(top)top.addEventListener('click',()=>window.scrollTo({top:0,behavior:reduced?'auto':'smooth'}));
- const flowData={
-  upload:{k:'Stap 1 · Aanleveren',t:'Begin met het document dat je al hebt.',p:'Sleep een PDF in Boekuna of maak op mobiel een foto van je bon. Het originele document blijft gekoppeld aan de administratie.',boxes:[['Bron','PDF of foto'],['Status','Klaar voor analyse'],['Controle','Nog niet geboekt']]},
-  recognize:{k:'Stap 2 · Herkennen',t:'Boekuna zet de belangrijkste gegevens voor je klaar.',p:'De scanner probeert onder meer leverancier, datum, bedragen en btw te herkennen. Bij scans en foto’s kan OCR worden gebruikt.',boxes:[['Leverancier','Herkend'],['BTW','Geanalyseerd'],['Bedrag','Voorstel klaar']]},
-  check:{k:'Stap 3 · Controleren',t:'Jij beslist of de gegevens kloppen.',p:'Controleer de herkende velden, pas waar nodig iets aan en bekijk waarschuwingen voordat je verdergaat.',boxes:[['Velden','Controleerbaar'],['Waarschuwing','Zichtbaar'],['Boeking','Nog concept']]},
-  save:{k:'Stap 4 · Verwerken',t:'Pas na jouw akkoord komt het in de administratie.',p:'Na bevestiging blijft de boeking verbonden met het originele document en kan de informatie terugkomen in btw, kosten en rapportages.',boxes:[['Document','Gekoppeld'],['Boeking','Opgeslagen'],['Overzicht','Bijgewerkt']]}
- };
- const flowTabs=[...document.querySelectorAll('[data-flow]')];
- function setFlow(key){
-  const d=flowData[key];if(!d)return;
-  flowTabs.forEach(b=>{const on=b.dataset.flow===key;b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on))});
-  setText('flowKicker',d.k);setText('flowTitle',d.t);setText('flowText',d.p);
-  d.boxes.forEach((box,i)=>{setText('flowBox'+(i+1)+'Label',box[0]);setText('flowBox'+(i+1)+'Value',box[1])});
- }
- flowTabs.forEach(b=>b.addEventListener('click',()=>setFlow(b.dataset.flow)));
 
- const compareData={
-  without:{title:'Informatie staat verspreid.',text:'Bonnen, facturen, bankregels en btw-informatie zitten vaak op verschillende plekken. Daardoor ontstaat extra zoek- en controlewerk.',items:['Bonnetjes terugzoeken','Bedragen opnieuw invoeren','Openstaande acties zelf onthouden'],flow:[['Mailbox','Factuur binnengekomen','Zoeken'],['Bonfoto','Los op telefoon','Bewaren'],['Spreadsheet','Handmatig overzicht','Bijwerken']]},
-  with:{title:'Eén administratie met duidelijke aandachtspunten.',text:'Documenten, facturen, bankregels en rapportages gebruiken dezelfde administratie. Daardoor hoef je minder terug te zoeken en zie je eerder wat nog moet gebeuren.',items:['Documenten aan boekingen gekoppeld','Gegevens voorbereid voor controle','Openstaande acties in beeld'],flow:[['Document','Gegevens voorbereid','Controleren'],['Boeking','Document gekoppeld','Opslaan'],['Overzicht','Administratie bijgewerkt','Bekijken']]}
- };
- const compareBtns=[...document.querySelectorAll('[data-compare]')];
- function setCompare(key){
-  const d=compareData[key];if(!d)return;
-  compareBtns.forEach(b=>b.classList.toggle('active',b.dataset.compare===key));
-  setText('compareTitle',d.title);setText('compareText',d.text);
-  const list=q('compareList');if(list)list.innerHTML=d.items.map(x=>'<div class="kz-compare-item">'+x+'</div>').join('');
-  const flow=q('compareFlow');if(flow)flow.innerHTML=d.flow.map(x=>'<div class="kz-compare-flow-row"><i></i><div><strong>'+x[0]+'</strong><small>'+x[1]+'</small></div><em>'+x[2]+'</em></div>').join('');
+ const conceptTabs=[...document.querySelectorAll('[data-concept-tab]')];
+ const conceptPanels=[...document.querySelectorAll('[data-concept-panel]')];
+ function setConcept(key,{focus=false}={}){
+  conceptTabs.forEach(tab=>{
+   const on=tab.dataset.conceptTab===key;
+   tab.setAttribute('aria-selected',String(on));tab.tabIndex=on?0:-1;
+   if(on&&focus)tab.focus();
+  });
+  conceptPanels.forEach(panel=>{panel.hidden=panel.dataset.conceptPanel!==key});
  }
- compareBtns.forEach(b=>b.addEventListener('click',()=>setCompare(b.dataset.compare)));
-
- document.querySelectorAll('.kz-solution-more').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-   const card=btn.closest('.kz-solution');if(!card)return;
-   const open=card.classList.toggle('expanded');
-   btn.setAttribute('aria-expanded',String(open));
-   btn.textContent=open?'Minder tonen −':'Wat lost dit op? +';
+ conceptTabs.forEach((tab,index)=>{
+  tab.addEventListener('click',()=>setConcept(tab.dataset.conceptTab));
+  tab.addEventListener('keydown',event=>{
+   if(event.key!=='ArrowLeft'&&event.key!=='ArrowRight')return;
+   event.preventDefault();
+   const dir=event.key==='ArrowRight'?1:-1;
+   const next=conceptTabs[(index+dir+conceptTabs.length)%conceptTabs.length];
+   setConcept(next.dataset.conceptTab,{focus:true});
   });
  });
+ if(conceptTabs.length)setConcept(conceptTabs[0].dataset.conceptTab);
 
- const reveals=[...document.querySelectorAll('.kz-reveal')];
- if(reduced||!('IntersectionObserver' in window)){reveals.forEach(el=>el.classList.add('in-view'))}
- else{
-  const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in-view');observer.unobserve(e.target)}}),{threshold:.12});
-  reveals.forEach(el=>observer.observe(el));
- }
-
- /* Boekuna universal interactions v3 */
- const hoverCards=[...document.querySelectorAll('.feature-card,.price-card,.deep-panel,.trust-card,.audience-card,.value-card,.promo-card,.kz-solution,.kz-reason,.kz-audience-card,.kz-support-card,.kz-workflow-stage,.kz-compare-copy,.kz-compare-visual')];
- hoverCards.forEach(card=>card.classList.add('bookuna-hover-card'));
-
- const faqItems=[...document.querySelectorAll('.faq-item')];
- faqItems.forEach((item,index)=>{
-   item.setAttribute('role','button');
-   item.setAttribute('tabindex','0');
-   item.setAttribute('aria-expanded','false');
-   const toggle=()=>{
-     const willOpen=!item.classList.contains('open');
-     faqItems.forEach(other=>{other.classList.remove('open');other.setAttribute('aria-expanded','false')});
-     if(willOpen){item.classList.add('open');item.setAttribute('aria-expanded','true')}
-   };
-   item.addEventListener('click',toggle);
-   item.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle()}});
-   if(index===0){item.classList.add('open');item.setAttribute('aria-expanded','true')}
- });
-
- const universalReveal=[...document.querySelectorAll('.marketing section,.marketing .marketing-cta-box')];
- universalReveal.forEach(el=>el.classList.add('bookuna-reveal'));
- if(reduced||!('IntersectionObserver' in window)){
-   universalReveal.forEach(el=>el.classList.add('bookuna-in'));
- }else{
-   const universalObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{
-     if(entry.isIntersecting){entry.target.classList.add('bookuna-in');universalObserver.unobserve(entry.target)}
-   }),{threshold:.08,rootMargin:'0px 0px -30px 0px'});
-   universalReveal.forEach(el=>universalObserver.observe(el));
- }
-
- const progress=q('kzProgress');
- const updateProgress=()=>{
-  if(!progress)return;
-  const max=Math.max(1,document.documentElement.scrollHeight-window.innerHeight);
-  progress.style.width=Math.min(100,Math.max(0,(window.scrollY/max)*100))+'%';
+ const compareData={
+  without:{
+   title:'Informatie staat verspreid.',
+   text:'Bonnen, facturen en bankinformatie vragen losse handelingen en extra terugzoekwerk.',
+   items:['Bronnen op verschillende plekken','Meer handmatig terugzoeken','Acties zelf onthouden'],
+   flow:[['Binnen','mail, foto, bestand'],['Zoeken','waar stond het ook alweer?'],['Bijhouden','losse handelingen']]
+  },
+  with:{
+   title:'Eén rustige administratieve lijn.',
+   text:'Boekuna brengt documenten, facturen en controle samen zodat duidelijker wordt wat al gedaan is en wat nog aandacht vraagt.',
+   items:['Bron en administratie bij elkaar','Controle vóór definitieve verwerking','Aandachtspunten zichtbaar houden'],
+   flow:[['Aanleveren','document of factuur'],['Controleren','jij beslist'],['Bijhouden','één administratie']]
+  }
  };
- window.addEventListener('scroll',updateProgress,{passive:true});updateProgress();
-
+ const compareBtns=[...document.querySelectorAll('[data-compare]')];
+ function renderCompare(key){
+  const d=compareData[key];if(!d)return;
+  compareBtns.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.compare===key)));
+  const title=q('compareTitle'),text=q('compareText'),list=q('compareList'),flow=q('compareFlow');
+  if(title)title.textContent=d.title;if(text)text.textContent=d.text;
+  if(list)list.innerHTML=d.items.map(x=>'<div>'+x+'</div>').join('');
+  if(flow)flow.innerHTML=d.flow.map(x=>'<div class="bv-compare-row"><i></i><div><strong>'+x[0]+'</strong><small>'+x[1]+'</small></div></div>').join('');
+ }
+ compareBtns.forEach(b=>b.addEventListener('click',()=>renderCompare(b.dataset.compare)));
+ if(compareBtns.length)renderCompare('without');
 }
 function showMarketingPage(page='home'){
+ ensureMarketingVisualAssets();
  lastMarketingPage=page;
  document.getElementById('mainApp').style.display='none';
  const nav=marketingNav(page),footer=marketingFooter();
  let body='';
  if(page==='home'){
-  body="<main><div class=\"kz-progress\" id=\"kzProgress\" aria-hidden=\"true\"></div>\n<section class=\"kz-hero\">\n  <div class=\"kz-overline\">Voor ondernemers die grip willen op hun administratie</div>\n  <h1>Je bent ondernemer.<span>Geen boekhouder.</span></h1>\n  <p class=\"kz-hero-copy\">Boekhouden zonder boekhoudtaal. Upload je bonnen en facturen, controleer wat Boekuna herkent en houd eenvoudig zicht op inkomsten, uitgaven, winst en btw.</p>\n  <div class=\"kz-hero-actions\"><a class=\"mk-btn primary\" href=\"/?register=1\">Probeer Boekuna</a><a class=\"mk-btn\" href=\"/hoe-het-werkt/\">Bekijk hoe het werkt</a></div><div class=\"kz-status\">Upload → Boekuna herkent → jij controleert → klaar</div>\n</section>\n\n<section class=\"kz-hero-product-proof kz-reveal\">\n  <figure class=\"product-proof\"><img src=\"/assets/product/boekuna-dashboard-overview-crop.webp\" width=\"1120\" height=\"631\" alt=\"Echt Boekuna Dashboard met Dashboardheading, KPI’s, omzet- en kostengrafiek en Actiecentrum\" loading=\"eager\" fetchpriority=\"high\" decoding=\"async\"><figcaption>Echte Boekuna-interface</figcaption></figure>\n</section>\n\n<section class=\"kz-tabs\" aria-label=\"Bekijk echte Boekuna schermen\">\n  <button class=\"kz-tab active\" type=\"button\" data-kz-tab=\"facturen\" aria-pressed=\"true\">Facturen</button>\n  <button class=\"kz-tab\" type=\"button\" data-kz-tab=\"documenten\" aria-pressed=\"false\">Documenten</button>\n  <button class=\"kz-tab\" type=\"button\" data-kz-tab=\"btw\" aria-pressed=\"false\">Btw</button>\n  <button class=\"kz-tab\" type=\"button\" data-kz-tab=\"rapportages\" aria-pressed=\"false\">Rapportages</button>\n</section>\n\n<section class=\"kz-product-stage\">\n  <figure class=\"product-crop\" id=\"kzProductShell\" style=\"--product-max:760px\">\n    <img id=\"kzProductImage\" src=\"/assets/product/boekuna-invoices-list-crop.webp\" width=\"760\" height=\"468\" alt=\"Echt Boekuna Facturen-overzicht met heading, toolbar, KPI-rij en eerste facturen\" loading=\"lazy\" decoding=\"async\">\n    <figcaption><span id=\"kzProductCaption\">Facturen · echte lijst, filters en statussen</span><a id=\"kzPreviewLink\" class=\"kz-preview-link\" href=\"/facturen/\">Bekijk Facturen →</a></figcaption>\n  </figure>\n</section>\n\n<section class=\"kz-trust-strip kz-reveal\">\n  <div class=\"kz-trust-inner\"><div class=\"kz-trust-title\">Alles wat je administratie nodig heeft, samen in één omgeving</div><div class=\"kz-trust-items\"><div class=\"kz-trust-item\">Verkoopfacturen</div><div class=\"kz-trust-item\">Inkoop & kosten</div><div class=\"kz-trust-item\">Documentherkenning</div><div class=\"kz-trust-item\">Bank & btw</div><div class=\"kz-trust-item\">Rapportages</div></div></div>\n</section>\n\n<section class=\"kz-workflow kz-reveal\">\n  <div class=\"kz-workflow-inner\">\n    <div class=\"kz-heading\"><small>Werkelijke productflow</small><h2>Van document naar gecontroleerde administratie.</h2><p>Je start in Documenten, opent daarna de echte <strong>Document controleren</strong>-flow en slaat pas op wanneer alles klopt. Het originele bewijsstuk blijft onderdeel van dezelfde administratie.</p></div>\n    <div class=\"kz-real-workflow-proof\">\n      <div class=\"kz-real-workflow-copy\">\n        <div class=\"kz-real-workflow-step\"><strong>1. Document</strong><span>Upload een ondersteund bestand en houd het originele bewijsstuk bij de administratie.</span></div>\n        <div class=\"kz-real-workflow-step\"><strong>2. Bedragen</strong><span>Controleer herkende financiële velden en rekenchecks vóór opslaan.</span></div>\n        <div class=\"kz-real-workflow-step\"><strong>3. Relatie</strong><span>Controleer welke klant of leverancier bij het document hoort.</span></div>\n        <div class=\"kz-real-workflow-step\"><strong>4. Opslaan</strong><span>Pas na jouw controle wordt de boeking aan de administratie gekoppeld.</span></div>\n      </div>\n      <figure class=\"product-crop editorial-panel kz-review-proof\" style=\"--product-max:390px\" aria-label=\"Echte mobiele Boekuna reviewflow\"><img src=\"/assets/product/boekuna-document-review-mobile.webp\" width=\"390\" height=\"844\" alt=\"Echte Boekuna mobiele Document controleren-flow met het originele document en herkende gegevens\" loading=\"lazy\" decoding=\"async\"></figure>\n    </div>\n  </div>\n</section>\n\n<section class=\"kz-benefit kz-benefit-copy-only kz-reveal\">\n  <div class=\"kz-benefit-copy\"><span class=\"kz-benefit-label\">Minder administratie</span><h2>Bespaar iedere week kostbare tijd.</h2><p>Laat terugkerend invoerwerk niet je agenda bepalen. Upload facturen of bonnetjes, controleer leverancier, bedragen, btw en relatie en boek pas wanneer alles klopt.</p><a href=\"/scanner/\">Slimmer documenten verwerken →</a></div>\n</section>\n\n<section class=\"kz-benefit reverse\">\n  <div class=\"kz-benefit-copy\"><span class=\"kz-benefit-label\">Meer grip</span><h2>Stuur op wat aandacht nodig heeft.</h2><p>Omzet en kosten, open bankregels, achterstallige facturen en btw-controle komen samen op één plek. Zo werk je gedurende de maand bij in plaats van alles achteraf op te ruimen.</p><a href=\"/rapportages/\">Bekijk rapportages & controle →</a></div>\n  <figure class=\"product-crop editorial-panel\" style=\"--product-max:650px\"><img src=\"/assets/product/boekuna-dashboard-action-center-crop.webp\" width=\"650\" height=\"488\" alt=\"Gerichte crop uit het echte Boekuna Dashboard met omzet- en kostengrafiek en Actiecentrum\" loading=\"lazy\" decoding=\"async\"></figure>\n</section>\n\n<section class=\"kz-compare kz-reveal\">\n  <div class=\"kz-heading\"><small>Verschil in je werkdag</small><h2>Van losse administratie naar één duidelijke flow.</h2><p>Wissel tussen beide situaties om te zien waar Boekuna vooral rust en structuur toevoegt.</p></div>\n  <div class=\"kz-compare-switch\" role=\"group\" aria-label=\"Vergelijk administratie\">\n    <button type=\"button\" class=\"active\" data-compare=\"without\">Zonder Boekuna</button>\n    <button type=\"button\" data-compare=\"with\">Met Boekuna</button>\n  </div>\n  <div class=\"kz-compare-panel\" aria-live=\"polite\">\n    <div class=\"kz-compare-copy\"><h3 id=\"compareTitle\">Informatie staat verspreid.</h3><p id=\"compareText\">Bonnen, facturen, bankregels en btw-informatie zitten vaak op verschillende plekken. Daardoor ontstaat extra zoek- en controlewerk.</p><div class=\"kz-compare-list\" id=\"compareList\"><div class=\"kz-compare-item\">Bonnetjes terugzoeken</div><div class=\"kz-compare-item\">Bedragen opnieuw invoeren</div><div class=\"kz-compare-item\">Openstaande acties zelf onthouden</div></div></div>\n    <div class=\"kz-compare-visual\"><div class=\"kz-compare-flow\" id=\"compareFlow\"><div class=\"kz-compare-flow-row\"><i></i><div><strong>Mailbox</strong><small>Factuur binnengekomen</small></div><em>Zoeken</em></div><div class=\"kz-compare-flow-row\"><i></i><div><strong>Bonfoto</strong><small>Los op telefoon</small></div><em>Bewaren</em></div><div class=\"kz-compare-flow-row\"><i></i><div><strong>Spreadsheet</strong><small>Handmatig overzicht</small></div><em>Bijwerken</em></div></div></div>\n  </div>\n</section>\n\n<section class=\"kz-solutions-section kz-reveal\"><div class=\"kz-section-inner\">\n  <div class=\"kz-heading\"><small>Oplossingen</small><h2>Wat Boekuna jou te bieden heeft.</h2><p>De onderdelen werken samen binnen dezelfde administratie. Daardoor hoef je minder informatie opnieuw in te voeren en blijft duidelijk waar je cijfers vandaan komen.</p></div>\n  <div class=\"kz-solutions-grid\">\n    <div class=\"kz-solution\"><small>Verkoop</small><h3>Facturen maken</h3><p>Maak verkoopfacturen en creditnota’s, genereer PDF’s en volg betalingen.</p><a href=\"/facturen/\">Lees meer →</a><button class=\"kz-solution-more\" type=\"button\" aria-expanded=\"false\">Wat lost dit op? +</button><div class=\"kz-solution-extra\">Van klantgegevens tot PDF en betalingsstatus in dezelfde workflow.</div></div>\n    <div class=\"kz-solution\"><small>Automatisering</small><h3>Slimme scanner</h3><p>Verwerk PDF’s, scans en bonfoto’s en controleer de herkende gegevens.</p><a href=\"/scanner/\">Lees meer →</a><button class=\"kz-solution-more\" type=\"button\" aria-expanded=\"false\">Wat lost dit op? +</button><div class=\"kz-solution-extra\">Vooral handig als je veel PDF-facturen of bonfoto’s moet verwerken.</div></div>\n    <div class=\"kz-solution\"><small>Inkoop</small><h3>Kosten beheren</h3><p>Boek zakelijke kosten, beheer leveranciers en bewaar documenten bij de boeking.</p><a href=\"/functies/\">Lees meer →</a><button class=\"kz-solution-more\" type=\"button\" aria-expanded=\"false\">Wat lost dit op? +</button><div class=\"kz-solution-extra\">Document, leverancier en zakelijke uitgave blijven aan elkaar gekoppeld.</div></div>\n    <div class=\"kz-solution\"><small>Betalingen</small><h3>Bank & kas</h3><p>Importeer bankregels via CSV en koppel transacties aan facturen of kosten.</p><a href=\"/btw-bank/\">Lees meer →</a><button class=\"kz-solution-more\" type=\"button\" aria-expanded=\"false\">Wat lost dit op? +</button><div class=\"kz-solution-extra\">Gebruik geïmporteerde transacties om betalingen en kosten sneller terug te vinden.</div></div>\n    <div class=\"kz-solution\"><small>Controle</small><h3>Btw-overzicht</h3><p>Bekijk omzet tegen 9% en 21%, voorbelasting en je indicatieve kwartaalpositie.</p><a href=\"/btw-bank/\">Lees meer →</a><button class=\"kz-solution-more\" type=\"button\" aria-expanded=\"false\">Wat lost dit op? +</button><div class=\"kz-solution-extra\">Gebruik het overzicht als controlehulp gedurende het kwartaal.</div></div>\n    <div class=\"kz-solution\"><small>Inzicht</small><h3>Rapportages</h3><p>Volg omzet, kosten, resultaat en openstaande posten vanuit dezelfde gegevens.</p><a href=\"/rapportages/\">Lees meer →</a><button class=\"kz-solution-more\" type=\"button\" aria-expanded=\"false\">Wat lost dit op? +</button><div class=\"kz-solution-extra\">Gebruik dezelfde brongegevens voor omzet, kosten, resultaat en openstaande posten.</div></div>\n  </div>\n</div></section>\n\n<section class=\"kz-reasons kz-reveal\">\n  <div class=\"kz-heading\"><small>Waarom Boekuna</small><h2>Waarom ondernemers voor deze manier van werken kiezen.</h2><p>Geen verzonnen klantquotes: dit zijn de principes waarop Boekuna is gebouwd.</p></div>\n  <div class=\"kz-reason-grid\"><div class=\"kz-reason\"><strong>Alles op één centrale plek</strong><p>Facturen, kosten, documenten, bank en rapportages gebruiken dezelfde administratie.</p></div><div class=\"kz-reason\"><strong>Automatiseren mét controle</strong><p>Herkenning helpt je sneller werken, maar jij bepaalt wat uiteindelijk wordt opgeslagen.</p></div><div class=\"kz-reason\"><strong>Duidelijk over wat nog niet live is</strong><p>Bankkoppeling, Peppol en directe btw-aangifte worden pas als functie getoond wanneer ze echt werken.</p></div></div>\n</section>\n\n<section class=\"kz-apps kz-reveal\">\n  <div class=\"kz-apps-inner\"><div><span class=\"kz-app-label\">Op desktop & mobiel</span><h2>Werk ook onderweg verder in dezelfde administratie.</h2><p>Bekijk je Dashboard, controleer documenten en houd aandachtspunten bij vanuit dezelfde Boekuna-administratie, ook op mobiel.</p><div class=\"kz-hero-actions\"><a class=\"mk-btn\" href=\"/hoe-het-werkt/\" style=\"background:#fff;color:#202B33;border-color:#fff\">Bekijk de product tour</a></div></div><div class=\"kz-mobile-proof-grid\"><figure class=\"product-mobile\"><img src=\"/assets/product/boekuna-dashboard-mobile.webp\" width=\"390\" height=\"844\" alt=\"Echte responsive Boekuna Dashboard-interface op mobiel\" loading=\"lazy\" decoding=\"async\"></figure></div></div>\n</section>\n\n<section class=\"kz-audience kz-reveal\">\n  <div class=\"kz-heading\"><small>Voor ondernemers</small><h2>Meer weten over jouw manier van werken?</h2><p>Dezelfde boekhouding kan per ondernemer heel anders gebruikt worden.</p></div>\n  <div class=\"kz-audience-grid\"><a class=\"kz-audience-card\" href=\"/voor-ondernemers/#zzp\"><small>ZZP & freelance</small><h3>Minder administratie naast je echte werk.</h3><p>Factureer, verwerk kosten en houd btw in beeld zonder losse tools.</p></a><a class=\"kz-audience-card\" href=\"/voor-ondernemers/#klein-bedrijf\"><small>Kleine bedrijven</small><h3>Structuur terwijl je bedrijf groeit.</h3><p>Houd relaties, documenten en betalingen bij elkaar.</p></a><a class=\"kz-audience-card\" href=\"/voor-ondernemers/#veel-documenten\"><small>Veel facturen & bonnen</small><h3>Minder handmatig invoeren.</h3><p>Gebruik slimme verwerking wanneer de documentenstroom groter wordt.</p></a></div>\n</section>\n\n<section class=\"kz-plan kz-reveal\">\n  <div class=\"kz-plan-inner\"><div><h2>Gratis beginnen. Eenvoudig doorgroeien.</h2><p>Begin gratis met je basisadministratie. Met Boekuna voor €9,95 krijg je de slimme controlelaag voor minder handmatig uitzoekwerk, meer overzicht en herstelpunten. Unlimited kost €19,95 en haalt daarnaast de maandlimiet van slimme documentchecks weg. De eerste 100 klanten met een betaald plan krijgen hun eerste 3 kalendermaanden gratis.</p><div class=\"kz-hero-actions\"><a class=\"mk-btn primary\" href=\"/prijzen/\">Bekijk abonnementen</a></div></div><div><div class=\"kz-price-big\">€0 <span>om te starten</span></div><p>Daarna alleen upgraden als je meer slimme documenten nodig hebt.</p></div></div>\n</section>\n\n<section class=\"kz-facts kz-reveal\">\n  <div class=\"kz-fact\"><strong>9% + 21%</strong><span>Nederlandse btw-tarieven in de dagelijkse administratie.</span></div>\n  <div class=\"kz-fact\"><strong>PDF + OCR</strong><span>Digitale facturen, scans en bonfoto’s verwerken.</span></div>\n  <div class=\"kz-fact\"><strong>Basis / Slim / Maximaal</strong><span>Begin zelf en upgrade voor meer controle, inzicht en gemak.</span></div>\n  <div class=\"kz-fact\"><strong>1 administratie</strong><span>Facturen, kosten, bank, btw en rapportage bij elkaar.</span></div>\n</section>\n\n<section class=\"kz-support kz-reveal\">\n  <div class=\"kz-heading\"><small>Wat je verder krijgt</small><h2>Gebouwd rondom controle en duidelijkheid.</h2></div>\n  <div class=\"kz-support-grid\"><div class=\"kz-support-card\"><h3>Controle vóór boeken</h3><p>Herkende gegevens gaan eerst naar een controlescherm.</p><a href=\"/hoe-het-werkt/\">Zo werkt het →</a></div><div class=\"kz-support-card\"><h3>Back-up & audit</h3><p>Functies voor back-up, herstel en administratieve historie zijn onderdeel van de omgeving.</p><a href=\"/veiligheid/\">Veiligheid & privacy →</a></div><div class=\"kz-support-card\"><h3>Transparante roadmap</h3><p>We maken duidelijk onderscheid tussen functies die werken en koppelingen die nog gebouwd worden.</p><a href=\"/veiligheid/\">Bekijk productstatus →</a></div></div>\n</section>\n\n<section class=\"kz-final kz-reveal\"><div class=\"kz-final-box\"><div><h2>Benieuwd of Boekuna bij jouw bedrijf past?</h2><p>Bekijk de software en ontdek hoe facturen, documenten, btw en inzicht in één omgeving samenkomen.</p></div><a class=\"mk-btn\" href=\"/hoe-het-werkt/\">Bekijk de software</a></div></section>\n<button class=\"kz-backtop\" id=\"kzBackTop\" type=\"button\" aria-label=\"Terug naar boven\">↑</button></main>";
+  body=`<main>
+<section class="bv-home-hero">
+  <div class="bv-home-copy">
+    <div class="kz-overline">Voor ondernemers die grip willen op hun administratie</div>
+    <h1>Boekhouden zonder <span>boekhoudtaal.</span></h1>
+    <p>Bonnen, facturen, bankregels en btw horen bij ondernemen. Boekuna helpt je ze in een begrijpelijke volgorde bij te houden: aanleveren, controleren en verder.</p>
+    <div class="bv-home-actions"><a class="mk-btn primary" href="/?register=1">Probeer Boekuna</a><a class="mk-btn" href="/hoe-het-werkt/">Bekijk hoe het werkt</a></div>
+    <div class="bv-home-promise">Geen blind automatiseren: jij houdt controle.</div>
+  </div>
+  <div class="bv bv-hero" data-bv-reveal role="img" aria-label="Abstracte Boekuna-procesillustratie: document naar controle en overzicht; geen productinterface">
+    <div class="bv-flow-line" aria-hidden="true"></div>
+    <div class="bv-hero-source"><div class="bv-hero-paper"><div class="bv-paper-mark"><strong>Bon / factuur</strong><span>bron</span></div><div class="bv-paper-lines"><i></i><i></i><i></i><i></i></div></div></div>
+    <div class="bv-hero-core" data-bv-pulse><div><b>Boekuna</b><small>begrijpelijk</small></div></div>
+    <div class="bv-hero-result"><div class="bv-result-stack"><div class="bv-result-row"><span class="bv-dot"></span><span>Controleren</span><em>eerst</em></div><div class="bv-result-row"><span class="bv-dot"></span><span>Bijhouden</span><em>rustig</em></div><div class="bv-result-row"><span class="bv-dot"></span><span>Overzicht</span><em>daarna</em></div></div></div>
+  </div>
+</section>
+
+<section class="bv-home-strip"><div class="bv-home-strip-inner">
+  <div class="bv-home-strip-item"><strong>Normale taal</strong>Geen onnodig boekhoudjargon.</div>
+  <div class="bv-home-strip-item"><strong>Controle voorop</strong>Herkenning blijft een voorstel.</div>
+  <div class="bv-home-strip-item"><strong>Één administratie</strong>Belangrijke onderdelen bij elkaar.</div>
+  <div class="bv-home-strip-item"><strong>Voor Nederlandse ondernemers</strong>Gebouwd rond de dagelijkse praktijk.</div>
+</div></section>
+
+<section class="bv-home-section" aria-labelledby="homeConceptTitle">
+  <div class="bv-home-head"><small>Van taak naar duidelijkheid</small><h2 id="homeConceptTitle">Begrijp wat er gebeurt, zonder eerst software te moeten ontcijferen.</h2><p>Kies een onderdeel. De visualisaties hieronder leggen het principe uit; ze zijn bewust geen nagebouwde Boekuna-schermen.</p></div>
+  <div class="bv-concept-tabs" role="tablist" aria-label="Administratieve onderdelen">
+    <button type="button" role="tab" data-concept-tab="facturen" aria-selected="true" aria-controls="concept-facturen">Facturen</button>
+    <button type="button" role="tab" data-concept-tab="documenten" aria-selected="false" aria-controls="concept-documenten" tabindex="-1">Documenten</button>
+    <button type="button" role="tab" data-concept-tab="btw" aria-selected="false" aria-controls="concept-btw" tabindex="-1">Btw</button>
+  </div>
+  <div class="bv-concept-panel" id="concept-facturen" role="tabpanel" data-concept-panel="facturen">
+    <div class="bv bv-invoice" data-bv-reveal><div class="bv-paper-stack" aria-hidden="true"><div class="bv-paper-card"><strong>Factuur</strong><small>concept</small><div class="line"></div><div class="line short"></div><div class="total"><span>regels</span><b>controle</b></div></div><div class="bv-paper-card"><strong>Factuur</strong><small>verstuurd</small><div class="line"></div><div class="line short"></div><div class="total"><span>status</span><b>volgen</b></div></div><div class="bv-paper-card"><strong>Factuur</strong><small>betaald</small><div class="line"></div><div class="line short"></div><div class="total"><span>bewijs</span><b>bewaard</b></div></div></div><div class="bv-concept-copy"><span class="bv-kicker">Facturen</span><h3>Van maken naar betaald.</h3><p>Een factuur heeft een duidelijke lifecycle. Boekuna helpt je die stappen bij elkaar te houden zonder dat je zelf een boekhoudsysteem hoeft te bedenken.</p><div class="bv-status-row"><span>Maken</span><span>Versturen</span><span>Volgen</span></div></div></div>
+  </div>
+  <div class="bv-concept-panel" id="concept-documenten" role="tabpanel" data-concept-panel="documenten" hidden>
+    <div class="bv bv-orbit" data-bv-reveal><div class="bv-orbit-ring" aria-hidden="true"></div><div class="bv-orbit-core"><div><strong>Document</strong><small>bronbewijs</small></div></div><div class="bv-orbit-node n1">Aanleveren</div><div class="bv-orbit-node n2">Herkennen</div><div class="bv-orbit-node n3">Controleren</div><div class="bv-orbit-node n4">Bewaren</div></div>
+  </div>
+  <div class="bv-concept-panel" id="concept-btw" role="tabpanel" data-concept-panel="btw" hidden>
+    <div class="bv bv-vat" data-bv-reveal><div class="bv-equation"><div class="bv-eq-node"><small>Basis</small><strong>Omzet</strong></div><div class="bv-eq-op">→</div><div class="bv-eq-node"><small>Berekening</small><strong>Btw</strong></div><div class="bv-eq-op">−</div><div class="bv-eq-node"><small>Kosten</small><strong>Voorbelasting</strong></div><div class="bv-eq-op">=</div><div class="bv-eq-node result"><small>Uitkomst</small><strong>Indicatieve positie</strong></div></div><div class="bv-vat-caption">Geen fictieve cijfers — alleen de samenhang.</div></div>
+  </div>
+</section>
+
+<section class="bv-home-section alt"><div class="bv-home-inner">
+  <div class="bv-home-head"><small>Documenten & scanner</small><h2>Van “ik heb een bon” naar “ik heb het gecontroleerd”.</h2><p>Een documentflow hoort begrijpelijk te zijn voordat hij slim is. Klik of swipe door de vier stappen.</p></div>
+  <div class="bv bv-stepper" data-bv-stepper data-step="1" data-bv-reveal>
+    <div class="bv-stepper-nav"><button type="button" data-bv-step="1" aria-pressed="true"><strong>1 · Uploaden</strong><small>bron aanleveren</small></button><button type="button" data-bv-step="2" aria-pressed="false"><strong>2 · Herkennen</strong><small>gegevens voorbereiden</small></button><button type="button" data-bv-step="3" aria-pressed="false"><strong>3 · Controleren</strong><small>jij beslist</small></button><button type="button" data-bv-step="4" aria-pressed="false"><strong>4 · Klaar</strong><small>bewijs gekoppeld</small></button></div>
+    <div class="bv-stepper-stage"><div class="bv-stepper-canvas"><div class="bv-step-main"><div class="bv-step-symbol" aria-hidden="true"></div><div class="bv-step-copy"><span class="bv-kicker">Documentflow</span><strong data-bv-step-title>Aanleveren</strong><span data-bv-step-copy>Een document, PDF of bonfoto komt binnen als bron.</span></div></div><div class="bv-step-path" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div class="bv-note">Illustratieve procesflow — geen app-interface.</div></div></div>
+  </div>
+</div></section>
+
+<section class="bv-home-section"><div class="bv-home-split">
+  <div class="bv-home-copy-block"><span class="bv-kicker">Minder administratie</span><h2>Eén vaste lijn door je maand.</h2><p>In plaats van losse taken op losse plekken draait de administratie steeds om dezelfde logica: binnenkrijgen, controleren, bijhouden en terugkijken.</p><a href="/functies/">Bekijk alle functies →</a></div>
+  <div class="bv bv-timeline" data-bv-reveal role="img" aria-label="Illustratieve administratieve lifecycle"><div class="bv-timeline-track"><div class="bv-time-step"><i></i><small>01</small><strong>Binnen</strong><span>Documenten en facturen verzamelen.</span></div><div class="bv-time-step"><i></i><small>02</small><strong>Controleren</strong><span>Eerst kijken wat aandacht vraagt.</span></div><div class="bv-time-step"><i></i><small>03</small><strong>Bijhouden</strong><span>Administratie actueel houden.</span></div><div class="bv-time-step"><i></i><small>04</small><strong>Overzicht</strong><span>Periode en btw in context.</span></div></div></div>
+</div></section>
+
+<section class="bv-home-section alt"><div class="bv-home-inner"><div class="bv-home-split">
+  <div class="bv bv-orbit" data-bv-reveal role="img" aria-label="Abstracte samenhang binnen één administratie"><div class="bv-orbit-ring" aria-hidden="true"></div><div class="bv-orbit-core"><div><strong>Boekuna</strong><small>één administratie</small></div></div><div class="bv-orbit-node n1">Relaties</div><div class="bv-orbit-node n2">Facturen</div><div class="bv-orbit-node n3">Documenten</div><div class="bv-orbit-node n4">Btw & inzicht</div></div>
+  <div class="bv-home-copy-block"><span class="bv-kicker">Meer grip</span><h2>Niet méér informatie. Betere samenhang.</h2><p>Grip ontstaat wanneer je kunt zien hoe onderdelen met elkaar samenhangen en wat nog aandacht vraagt, zonder dat ieder onderdeel een apart systeem wordt.</p><a href="/hoe-het-werkt/">Bekijk de werkwijze →</a></div>
+</div></div></section>
+
+<section class="bv-home-section"><div class="bv-home-split">
+  <div class="bv-home-copy-block"><span class="bv-kicker">Desktop & mobiel</span><h2>Dezelfde logica, ook als je onderweg werkt.</h2><p>Responsive betekent hier niet “een desktop kleiner maken”. De belangrijkste handelingen blijven op mobiel kort, verticaal en duidelijk.</p></div>
+  <div class="bv bv-mobile" data-bv-reveal role="img" aria-label="Branded verticale compositie die mobiel werken verbeeldt; geen telefoonscherm"><div class="bv-mobile-rail"><div class="bv-mobile-band"><i></i><strong>Aanleveren</strong><small>kort</small></div><div class="bv-mobile-band"><i></i><strong>Controleren</strong><small>duidelijk</small></div><div class="bv-mobile-band"><i></i><strong>Doorgaan</strong><small>zonder ruis</small></div></div><div class="bv-mobile-copy"><span class="bv-kicker">Verticale flow</span><h3>Eén taak tegelijk.</h3><p>Geen neptelefoon of appmockup, maar de ontwerpprincipes die mobiel belangrijk maken.</p></div></div>
+</div></section>
+
+<section class="bv-home-section alt"><div class="bv-home-inner">
+  <div class="bv-home-head"><small>Voor en na</small><h2>Van losse handelingen naar een vaste administratieve lijn.</h2></div>
+  <div class="bv-compare-switch"><button type="button" data-compare="without" aria-pressed="true">Zonder Boekuna</button><button type="button" data-compare="with" aria-pressed="false">Met Boekuna</button></div>
+  <div class="bv-compare"><div class="bv-compare-copy"><h3 id="compareTitle">Informatie staat verspreid.</h3><p id="compareText">Bonnen, facturen en bankinformatie vragen losse handelingen en extra terugzoekwerk.</p><div class="bv-compare-list" id="compareList"></div></div><div class="bv-compare-visual"><div class="bv-compare-flow" id="compareFlow"></div></div></div>
+</div></section>
+
+<section class="bv-home-section">
+  <div class="bv-home-head"><small>Voor wie Boekuna is</small><h2>Voor ondernemers die hun administratie zelf willen begrijpen.</h2></div>
+  <div class="bv-home-grid">
+    <article class="bv-home-card"><small>ZZP & freelance</small><h3>Werk doen. Administratie bijhouden.</h3><p>Voor zelfstandigen die geen apart boekhoudvak willen leren om hun basisadministratie te begrijpen.</p><a href="/voor-ondernemers/#zzp">Lees meer →</a></article>
+    <article class="bv-home-card"><small>Klein bedrijf</small><h3>Meer beweging, dezelfde rust.</h3><p>Voor kleine bedrijven die facturen, documenten en btw overzichtelijk bij elkaar willen houden.</p><a href="/voor-ondernemers/#klein-bedrijf">Lees meer →</a></article>
+    <article class="bv-home-card"><small>Veel documenten</small><h3>Minder terugzoeken.</h3><p>Voor ondernemers bij wie bonnetjes, facturen en bewijsstukken snel over meerdere plekken verspreid raken.</p><a href="/voor-ondernemers/#veel-documenten">Lees meer →</a></article>
+  </div>
+</section>
+
+<section class="bv-home-cta"><div class="bv-home-cta-box"><div><h2>Boekhouden hoeft niet ingewikkeld te voelen.</h2><p>Begin gratis en ontdek of de rustige Boekuna-werkwijze bij jouw administratie past.</p></div><a class="mk-btn" href="/?register=1">Probeer Boekuna</a></div></section>
+<button class="kz-backtop" id="kzBackTop" type="button" aria-label="Terug naar boven">↑</button>
+</main>`;
  }else if(page==='features'){
   body=`<main><section class="marketing-page-hero"><span class="marketing-eyebrow">Functies</span><h1>Alles wat je dagelijks nodig hebt voor je administratie.</h1><p>Van verkoopfactuur tot kassabon en van bankregel tot btw-overzicht. Boekuna houdt de belangrijkste administratieve taken in één duidelijke omgeving.</p></section><section class="marketing-section" style="padding-top:24px"><div class="feature-grid">
    <article class="feature-card"><div class="feature-icon">01</div><h3>Facturen & creditfacturen</h3><p>Maak professionele facturen, leg betalingen vast en maak gekoppelde creditfacturen.</p></article>
