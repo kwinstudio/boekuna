@@ -265,6 +265,10 @@ class LineItem(BaseModel):
 
 class ExtractionResult(BaseModel):
     documentType: Literal["purchase_invoice", "sales_invoice", "credit_invoice", "receipt", "bank_document", "other"] = "other"
+    # True means the source explicitly identifies the document as self-billing.
+    # False means no explicit self-billing evidence was detected; it is never
+    # inferred merely because the user's own company is the supplier.
+    selfBilling: bool = False
     originalFileName: str
     pageCount: int = 1
     supplier: Supplier = Field(default_factory=Supplier)
@@ -1299,6 +1303,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         "total":total_conf,
         "iban":.9 if iban else .1,
         "documentType":.99 if self_billing else (.94 if factoring_sale else (.90 if (supplier_own or customer_own) else .76)),
+        "selfBilling":.99 if self_billing else .50,
         "paymentStatus":.98 if paid else (.78 if status in {"open","overdue"} else .55),
         "vatLines":.99 if vat_line_source=="validated-primary-totals" else (.95 if vat_line_source=="explicit-vat-text" else (.92 if vat_line_source=="explicit-vat-table" else (.35 if len(detected_rates)>1 else .20))),
         "adjustments":.98 if structured_adjustments and financial_structure.get("adjustmentArithmeticOk") else (.45 if structured_adjustments else .80),
@@ -1319,12 +1324,12 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         else:
             derivation_warnings.append(f"Rekenkundige controle wijkt af voor {conflict['field']}: gelezen {conflict['read']:.2f}, berekend {conflict['calculated']:.2f}.")
     result=ExtractionResult(
-        documentType=dtype,originalFileName=filename,pageCount=doc.get("pageCount",1),
+        documentType=dtype,selfBilling=self_billing,originalFileName=filename,pageCount=doc.get("pageCount",1),
         supplier=Supplier(**supplier),customer=Customer(**customer),
         invoice=InvoiceMeta(invoiceNumber=invoice_no,invoiceDate=inv_date,dueDate=due_date,paymentTermDays=term,orderNumber=order_no,paymentReference=payref,description=description),
         amounts=Amounts(subtotal=abs(subtotal) if subtotal is not None else None,vatLines=vat_lines,vatTotal=abs(vat_total) if vat_total is not None else None,total=abs(total) if total is not None else None,settlementAmount=abs(settlement_amount) if settlement_amount is not None else None,discount=abs(discount) if discount is not None else None,shipping=abs(shipping) if shipping is not None else None,currency="EUR"),
         status=status,lineItems=[],adjustments=structured_adjustments,confidence=confidence,warnings=derivation_warnings,
-        processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"financialBlocks":{"verified":bool(financial_structure.get("verified")),"primaryArithmeticOk":bool(financial_structure.get("primaryArithmeticOk")),"adjustmentArithmeticOk":bool(financial_structure.get("adjustmentArithmeticOk")),"settlementArithmeticOk":bool(financial_structure.get("settlementArithmeticOk")),"adjustmentTotal":financial_structure.get("adjustmentTotal"),"settlementSource":financial_structure.get("settlementSource")},"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"mixedRates":len(detected_rates)>1},"vatLineSource":vat_line_source,"descriptionSource":description_source,"selfBilling":self_billing,"factoringSaleStructure":factoring_sale}
+        processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"financialBlocks":{"verified":bool(financial_structure.get("verified")),"primaryArithmeticOk":bool(financial_structure.get("primaryArithmeticOk")),"adjustmentArithmeticOk":bool(financial_structure.get("adjustmentArithmeticOk")),"settlementArithmeticOk":bool(financial_structure.get("settlementArithmeticOk")),"adjustmentTotal":financial_structure.get("adjustmentTotal"),"settlementSource":financial_structure.get("settlementSource")},"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"mixedRates":len(detected_rates)>1},"vatLineSource":vat_line_source,"descriptionSource":description_source,"selfBilling":self_billing,"selfBillingEvidence":"explicit-source-text" if self_billing else None,"factoringSaleStructure":factoring_sale}
     )
     return validate_result(result,company)
 
@@ -1499,6 +1504,7 @@ def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult,ind
         context["heuristic"]=heuristic.model_dump()
     schema={
       "documentType":"purchase_invoice|sales_invoice|credit_invoice|receipt|bank_document|other",
+      "selfBilling":False,
       "originalFileName":"string","pageCount":"integer",
       "supplier":{"name":None,"address":None,"postalCode":None,"city":None,"country":None,"kvk":None,"vatNumber":None,"iban":None,"email":None},
       "customer":{"name":None,"address":None,"postalCode":None,"city":None,"country":None,"kvk":None,"vatNumber":None,"email":None},
@@ -1516,6 +1522,7 @@ def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult,ind
         "You extract accounting documents for a Dutch bookkeeping application. Return ONLY a JSON object matching the supplied shape. "
         +independence+
         "Never invent a value. Use null when not explicit or strongly supported. Distinguish supplier and customer. The user's own company is context only. "
+        "Set selfBilling=true ONLY when the source explicitly states self-billing or an equivalent statement such as 'factuur uitgereikt door afnemer'; never infer it merely because the user's own company is the supplier. "
         "For self-billing, determine the commercial supplier/customer roles from the document, not page position. "
         "Interpret Dutch money formats correctly: 1.234,56 = 1234.56. Keep the commercial invoice subtotal/VAT/total strictly separate from factoring fees, commission, platform fees, withholding and payout. "
         "Put each fee/correction in adjustments. Put the final amount actually paid/settled in amounts.settlementAmount; never use settlementAmount as amounts.total. "
@@ -1574,6 +1581,16 @@ def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult,ind
 def reconcile(primary:ExtractionResult,heuristic:ExtractionResult)->ExtractionResult:
     # AI is interpretive help, not authority over deterministic financial proof.
     p=primary.model_copy(deep=True); h=heuristic
+    # Self-billing is an accounting semantic that requires explicit source
+    # evidence. The deterministic source-text detector is authoritative:
+    # AI may not promote a normal sales invoice to self-billing by inference.
+    p.selfBilling=bool(h.selfBilling)
+    p.confidence["selfBilling"]=h.confidence.get("selfBilling",.99 if h.selfBilling else .50)
+    p.processing={
+        **(p.processing or {}),
+        "selfBilling":p.selfBilling,
+        "selfBillingEvidence":(h.processing or {}).get("selfBillingEvidence") if p.selfBilling else None,
+    }
     simple=[
         ("supplier","name"),("supplier","address"),("supplier","postalCode"),("supplier","city"),
         ("supplier","kvk"),("supplier","vatNumber"),("supplier","iban"),("supplier","email"),
