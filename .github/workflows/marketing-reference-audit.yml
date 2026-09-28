@@ -1,0 +1,83 @@
+name: Marketing reference visual audit
+
+on:
+  push:
+    branches:
+      - marketing/moneybird-inspired-rebuild-20260929
+    paths:
+      - ".github/workflows/marketing-reference-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Playwright
+        run: |
+          mkdir -p /tmp/marketing-audit
+          npm install --prefix /tmp/marketing-audit --no-save playwright@1.56.1
+          /tmp/marketing-audit/node_modules/.bin/playwright install --with-deps chromium
+      - name: Capture current references
+        run: |
+          node <<'NODE'
+          const fs=require('node:fs');
+          const path=require('node:path');
+          const {chromium}=require('/tmp/marketing-audit/node_modules/playwright');
+          const targets=[
+            ['moneybird-home','https://www.moneybird.nl/'],
+            ['moneybird-inkoop','https://www.moneybird.nl/functies/inkoopfacturen/'],
+            ['moneybird-prijzen','https://www.moneybird.nl/prijzen/'],
+            ['boekuna-domain-home','https://boekuna.nl/'],
+            ['boekuna-render-home','https://boekuna-boekhouding.onrender.com/'],
+            ['boekuna-functies','https://boekuna-boekhouding.onrender.com/functies/'],
+            ['boekuna-scanner','https://boekuna-boekhouding.onrender.com/scanner/'],
+            ['boekuna-prijzen','https://boekuna-boekhouding.onrender.com/prijzen/']
+          ];
+          (async()=>{
+            const out='/tmp/marketing-reference-audit';
+            fs.mkdirSync(out,{recursive:true});
+            const browser=await chromium.launch({headless:true});
+            const report=[];
+            try{
+              for(const [name,url] of targets){
+                for(const width of [390,1440]){
+                  const page=await browser.newPage({viewport:{width,height:width===390?844:960},hasTouch:width===390,reducedMotion:'reduce'});
+                  const errors=[]; page.on('pageerror',e=>errors.push(String(e)));
+                  let response=null,error=null;
+                  try{
+                    response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:45000});
+                    await page.waitForTimeout(1800);
+                    await page.evaluate(()=>document.fonts&&document.fonts.ready);
+                    const metrics=await page.evaluate(()=>({
+                      title:document.title,
+                      h1:[...document.querySelectorAll('h1')].map(x=>x.textContent.trim()).slice(0,3),
+                      h2:[...document.querySelectorAll('h2')].map(x=>x.textContent.trim()).slice(0,12),
+                      images:[...document.images].map(i=>({alt:i.alt,src:i.currentSrc||i.src,nw:i.naturalWidth,nh:i.naturalHeight})).slice(0,30),
+                      links:[...document.querySelectorAll('a')].map(a=>a.textContent.trim()).filter(Boolean).slice(0,50),
+                      vw:innerWidth,sw:document.documentElement.scrollWidth,
+                      bodyBg:getComputedStyle(document.body).backgroundColor,
+                      bodyColor:getComputedStyle(document.body).color
+                    }));
+                    await page.screenshot({path:path.join(out,name+'-'+width+'.png'),fullPage:true});
+                    report.push({name,url,width,status:response&&response.status(),errors,metrics});
+                  }catch(e){error=String(e);report.push({name,url,width,status:response&&response.status(),errors,error})}
+                  await page.close();
+                }
+              }
+            }finally{await browser.close()}
+            fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(report,null,2));
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - name: Upload reference audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: marketing-reference-audit
+          path: /tmp/marketing-reference-audit/*
+          if-no-files-found: error
+          retention-days: 7
