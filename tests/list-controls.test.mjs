@@ -57,9 +57,9 @@ state.transactions=[
  {id:'t-adobe',date:iso(older),description:'Adobe Creative Cloud',amount:-25,status:'matched',matchType:'expense',matchId:'e-adobe'}
 ];
 state.documents=[
- {id:'d-invoice',name:'factuur-jansen.pdf',type:'Inkoopfactuur',date:iso(issueRecent),linkedType:'invoice',linkedId:'i-overdue',fileId:'f1'},
- {id:'d-receipt',name:'bon-lunch.jpg',type:'Bon',date:iso(issueOlder),linkedType:'expense',linkedId:'e-lunch',fileId:'f2'},
- {id:'d-loose',name:'los-document.pdf',type:'Upload',date:iso(older)}
+ {id:'d-invoice',name:'factuur-jansen.pdf',type:'Inkoopfactuur',date:iso(issueRecent),linkedType:'invoice',linkedId:'i-overdue',fileId:'f1',verification:{status:'verified'}},
+ {id:'d-receipt',name:'bon-lunch.jpg',type:'Bon',date:iso(issueOlder),linkedType:'expense',linkedId:'e-lunch',fileId:'f2',verification:{status:'needs_review'}},
+ {id:'d-loose',name:'los-document.pdf',type:'Upload',date:iso(older),verification:{status:'technical_error'}}
 ];
 state.bookings=[
  {id:'b-future',date:iso(future),time:'10:00',customerId:'c-jansen',service:'Advies',status:'confirmed',duration:60,price:100,vat:21,deposit:0},
@@ -211,6 +211,9 @@ try{
   assert.equal(rows.length,1);
   assert.match(rows[0],/Alpha Supply/);
   await page.getByRole('button',{name:'Alle'}).click();
+  await setSort('name-desc');
+  rows=await visibleRowTexts();
+  assert.match(rows[0],/Zeta Studio/,'Contacts Z–A sort must put Zeta first');
 
   // BANK — search, matching status, direction, newest first.
   await go('bank');
@@ -256,6 +259,14 @@ try{
   assert.equal(rows.length,1);
   assert.match(rows[0],/bon-lunch/);
   await page.locator('[data-list-clear-filters]').click();
+  await applyFilters({status:'needs_review'});
+  rows=await visibleRowTexts();
+  assert.equal(rows.length,1,'Document control status filter must isolate review-needed documents');
+  assert.match(rows[0],/bon-lunch/);
+  await page.locator('[data-list-clear-filters]').click();
+  await setSort('name-desc');
+  rows=await visibleRowTexts();
+  assert.match(rows[0],/los-document/,'Documents Z–A sort must put los-document first');
 
   // EXPENSES — vendor/invoice/amount search and sort.
   await go('expenses');
@@ -269,6 +280,14 @@ try{
   assert.equal(rows.length,1,'Expense gross amount must be searchable');
   assert.match(rows[0],/Adobe/);
   await clearSearch();
+  await applyFilters({vendor:'Adobe Nederland'});
+  rows=await visibleRowTexts();
+  assert.equal(rows.length,1,'Supplier filter must isolate one expense vendor');
+  assert.match(rows[0],/Adobe/);
+  await page.locator('[data-list-clear-filters]').click();
+  await setSort('vendor-desc');
+  rows=await visibleRowTexts();
+  assert.match(rows[0],/Lunchbar/,'Supplier Z–A sort must put Lunchbar first');
   await setSort('amount-desc');
   rows=await visibleRowTexts();
   assert.match(rows[0],/Adobe/);
