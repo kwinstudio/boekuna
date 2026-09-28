@@ -147,7 +147,7 @@ try{
   // FAQ uses native buttons, aria-expanded and content-height-safe accordion.
   {
     const page=await browser.newPage({viewport:{width:768,height:900},reducedMotion:'reduce'});
-    await page.goto(base+'/faq/',{waitUntil:'domcontentloaded'});
+    await page.goto(base+'/?page=faq',{waitUntil:'domcontentloaded'});
     const first=page.locator('.faq-toggle').first();
     const second=page.locator('.faq-toggle').nth(1);
     assert.equal(await first.evaluate(el=>el.tagName),'BUTTON','FAQ trigger must be a native button');
