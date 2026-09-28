@@ -15,7 +15,7 @@ const newReferenceId=()=>{
 };
 const sanitize=(value:any,n=400)=>String(value??"")
   .replace(/Bearer\s+[A-Za-z0-9._~+\-/=]+/gi,"Bearer [REDACTED]")
-  .replace(/\b(?:sk|sb_secret|sb_publishable)_[A-Za-z0-9_-]+\b/gi,"[REDACTED_KEY]")
+  .replace(/\b(?:sk(?:[-_](?:live|test|proj))?|sb_secret|sb_publishable)[-_][A-Za-z0-9_-]+\b/gi,"[REDACTED_KEY]")
   .slice(0,n);
 const fail=(code:string,status:number,internal:any={})=>{
   const spec=ERROR_META[code]||ERROR_META.UNKNOWN,reference_id=newReferenceId();
