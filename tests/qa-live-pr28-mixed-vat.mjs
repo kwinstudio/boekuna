@@ -45,6 +45,7 @@ const health=await healthResponse.json();
 assert.equal(healthResponse.status,200,'production processor health HTTP');
 assert.equal(health.ok,true,'production processor health ok');
 assert.equal(health.version,'3.0','production processor version');
+console.log('LIVE_HEALTH '+JSON.stringify({status:healthResponse.status,health}));
 
 const browser=await chromium.launch({headless:true});
 const context=await browser.newContext({viewport:{width:1440,height:1000}});
@@ -112,6 +113,16 @@ try{
   ]);
   assert.equal(!!raw1?.processing?.amountDerivation?.mixedRates,true,'PASS1 processor mixedRates');
   assert.notEqual(cents(raw1?.amounts?.subtotal),45409,'PASS1 must not regress to old wrong net');
+  console.log('LIVE_PASS1 '+JSON.stringify({
+    status:analyzeResponse.status(),
+    invoiceNumber:raw1?.invoice?.invoiceNumber,
+    net:raw1?.amounts?.subtotal,
+    vatAmount:raw1?.amounts?.vatTotal,
+    gross:raw1?.amounts?.total,
+    mixedRates:!!raw1?.processing?.amountDerivation?.mixedRates,
+    vatLines:raw1Lines,
+    vatLineSource:raw1?.processing?.vatLineSource||null
+  }));
 
   await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:30000});
   const review=await page.evaluate(()=>({
@@ -130,6 +141,42 @@ try{
   assertTruth('review',review);
   assert.equal(review.selected,'','review VAT select must have no scalar value');
   assert.equal(review.selectedText,'Gemengd / controleer','review mixed VAT label');
+  console.log('LIVE_REVIEW '+JSON.stringify({
+    invoiceNumber:review.invoiceNumber,net:review.net,vatAmount:review.vatAmount,gross:review.gross,
+    mixedRates:review.mixedRates,vatRate:review.vatRate,vatLines:canon(review.vatLines),
+    selectedText:review.selectedText,ibanPresent:!!review.iban,schemaErrors:review.schemaErrors
+  }));
+
+  // Independent live PASS2 call against the deployed production /verify endpoint
+  // using the exact same original PDF bytes and the authenticated QA session.
+  const accessToken=await page.evaluate(()=>getApiAccessToken());
+  const directVerifyForm=new FormData();
+  directVerifyForm.append('file',new Blob([pdfBytes],{type:'application/pdf'}),'02_gemengde_btw_9_en_21.pdf');
+  directVerifyForm.append('company_json',JSON.stringify(await page.evaluate(()=>state.company||{})));
+  const directVerifyResponse=await fetch(PROCESSOR+'/verify',{
+    method:'POST',
+    headers:{Authorization:'Bearer '+accessToken,Origin:APP_ORIGIN},
+    body:directVerifyForm
+  });
+  const directVerifyJson=await directVerifyResponse.json();
+  assert.equal(directVerifyResponse.status,200,'direct live PASS2 /verify status');
+  assert.equal(directVerifyJson?.ok,true,'direct live PASS2 /verify ok');
+  const raw2=directVerifyJson.data||{},raw2Lines=canon(raw2?.amounts?.vatLines);
+  assert.equal(raw2?.invoice?.invoiceNumber,INVOICE,'PASS2 processor invoice number');
+  assert.equal(cents(raw2?.amounts?.subtotal),42995,'PASS2 processor net');
+  assert.equal(cents(raw2?.amounts?.vatTotal),5249,'PASS2 processor VAT total');
+  assert.equal(cents(raw2?.amounts?.total),48244,'PASS2 processor gross');
+  assert.deepEqual(raw2Lines,raw1Lines,'PASS2 processor must preserve deterministic VAT groups');
+  assert.equal(!!raw2?.processing?.amountDerivation?.mixedRates,true,'PASS2 processor mixedRates');
+  assert.notEqual(cents(raw2?.amounts?.subtotal),45409,'PASS2 must not regress to old wrong net');
+  console.log('LIVE_PASS2_DIRECT '+JSON.stringify({
+    status:directVerifyResponse.status,
+    invoiceNumber:raw2?.invoice?.invoiceNumber,
+    net:raw2?.amounts?.subtotal,vatAmount:raw2?.amounts?.vatTotal,gross:raw2?.amounts?.total,
+    mixedRates:!!raw2?.processing?.amountDerivation?.mixedRates,vatLines:raw2Lines,
+    vatLineSource:raw2?.processing?.vatLineSource||null
+  }));
+
   assert.deepEqual(review.schemaErrors,[],'review candidate must be saveable without hidden invalid fields');
 
   const verifyResponsePromise=page.waitForResponse(r=>{
