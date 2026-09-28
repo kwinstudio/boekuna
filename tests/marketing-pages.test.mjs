@@ -38,9 +38,16 @@ for(const cls of ['.mk-hero','.mk-section','.mk-card','.mk-banner','.mk-support-
 assert.ok(css.includes('@media(max-width:700px)'), 'Marketing pages need mobile breakpoint');
 assert.ok(css.includes('.how-hero'), 'Product tour styling must remain present');
 
+const sharedMarketing=fs.readFileSync(path.join(publicDir,'assets','marketing.js'),'utf8');
+assert.ok(sharedMarketing.includes('mailto:support@boekuna.nl'),'Public footer must expose the official support email');
+
+const contact=fs.readFileSync(path.join(publicDir,'contact','index.html'),'utf8');
+assert.ok(contact.includes('mailto:support@boekuna.nl'),'Contact page must expose the official support email');
+
 const support=fs.readFileSync(path.join(publicDir,'support','index.html'),'utf8');
 assert.ok(support.includes('id="supportForm"'),'Support form must remain functional');
 assert.ok(support.includes("support_requests"),'Support form must submit to support_requests');
+assert.ok(support.includes('mailto:support@boekuna.nl'),'Support page and failure fallback must expose the official support email');
 
 const deletion=fs.readFileSync(path.join(publicDir,'account-verwijderen','index.html'),'utf8');
 assert.ok(deletion.includes('id="deleteRequestForm"'),'Account deletion web form must remain functional');
