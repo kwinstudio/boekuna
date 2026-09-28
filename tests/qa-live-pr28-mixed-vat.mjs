@@ -4,13 +4,12 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const ROOT=path.resolve(path.dirname(new URL(import.meta.url).pathname),'..');
-const SOURCE=fs.readFileSync(path.join(ROOT,'kwinest','index.html'),'utf8');
 const FIXTURE=path.join(ROOT,'tests','fixtures','02_gemengde_btw_9_en_21.pdf.b64');
 const APP_ORIGIN='https://boekuna-boekhouding.onrender.com';
 const PROCESSOR='https://kwinest-docprocessor.onrender.com';
 const EMAIL=process.env.BOOKUNA_MARKETING_CAPTURE_EMAIL||'';
 const PASSWORD=process.env.BOOKUNA_MARKETING_CAPTURE_PASSWORD||'';
-const TARGET_SHA='2d24917808852ad99daf61f9af9acbe8977ffc41';
+const TARGET_SHA='7b9de3b37c1d84e01b15ec704a5420eece5b4bfd';
 const INVOICE='KKG/26/09/7741';
 
 assert.ok(EMAIL&&PASSWORD,'Dedicated production QA credentials are required');
@@ -59,17 +58,8 @@ let testExpenseId=null;
 let testDocId=null;
 let liveResult=null;
 
-await context.route(APP_ORIGIN+'/app*',async route=>{
-  await route.fulfill({
-    status:200,
-    contentType:'text/html; charset=utf-8',
-    body:SOURCE,
-    headers:{'cache-control':'no-store'}
-  });
-});
-
 try{
-  await page.goto(APP_ORIGIN+'/app?login=1',{waitUntil:'domcontentloaded',timeout:60000});
+  await page.goto(APP_ORIGIN+'/app?login=1&qa='+Date.now(),{waitUntil:'domcontentloaded',timeout:60000});
   await page.locator('#loginEmail').waitFor({timeout:30000});
   await page.locator('#loginEmail').fill(EMAIL);
   await page.locator('#loginPassword').fill(PASSWORD);
