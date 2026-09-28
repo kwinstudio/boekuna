@@ -30,7 +30,7 @@ ADJUSTMENT_RE = re.compile(
     re.I,
 )
 SETTLEMENT_RE = re.compile(
-    r"\b(?:eindbedrag|netto\s*uitbetaling|netto\s*bedrag|uitbetaald|"
+    r"\b(?:eindbedrag|netto\s*uitbetaling|uitbetaald|"
     r"payout|net\s*payout|amount\s*paid|settlement\s*amount)\b",
     re.I,
 )
