@@ -1019,7 +1019,7 @@ def receipt_merchant_name(lines:list[str], company:dict)->str|None:
     return None
 
 
-DESCRIPTION_LABEL_RE=re.compile(r"\b(?:omschrijving|beschrijving|description|diensten?|services?)\b",re.I)
+DESCRIPTION_LABEL_RE=re.compile(r"\b(?:omschrijving|beschrijving|description|diensten?|services?|productnaam|product\s*name)\b",re.I)
 DESCRIPTION_SUMMARY_RE=re.compile(
     r"^\s*(?:bedrag\s+excl|totaal\s+excl|subtotaal|subtotal|btw|vat|tax|"
     r"factuurbedrag|factuurtotaal|invoice\s+total|totaal|total|factoring|"
@@ -1137,12 +1137,18 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     if supplier_own and dtype=="purchase_invoice": supplier={k:None for k in supplier}
     if customer_own and dtype=="sales_invoice": customer={k:None for k in customer}
 
-    invno_raw,idx=line_after_label(lines,["factuurnummer","factuurnr","factuur nr","invoice number","invoice no","invoice #","document number"])
+    invoice_number_labels=["factuurnummer","factuurnr","factuur nr","invoice number","invoice no","invoice #","document number"]
+    if dtype=="credit_invoice":
+        invoice_number_labels=["creditnota nummer","creditnotanummer","creditnota nr","credit note number","credit note no","credit number"]+invoice_number_labels
+    invno_raw,idx=line_after_label(lines,invoice_number_labels)
     invoice_no=None
     if invno_raw:
         m=re.search(r"([A-Z0-9][A-Z0-9._\-/]{1,50})",invno_raw,re.I); invoice_no=m.group(1) if m else None
     description,description_conf,description_source=extract_description(doc,lines)
-    inv_date,inv_date_conf=labeled_date(lines,["factuurdatum","invoice date","date of invoice","document date"])
+    invoice_date_labels=["factuurdatum","invoice date","date of invoice","document date"]
+    if dtype=="credit_invoice":
+        invoice_date_labels=["creditnota datum","creditdatum","credit note date","credit date"]+invoice_date_labels
+    inv_date,inv_date_conf=labeled_date(lines,invoice_date_labels)
     if not inv_date:
         inv_date,inv_date_conf=generic_invoice_date(lines)
     if not inv_date and dtype=="receipt":
