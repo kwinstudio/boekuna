@@ -1418,6 +1418,10 @@ def validate_result(r:ExtractionResult,company:dict)->ExtractionResult:
             r.confidence["settlementAmount"]=max(r.confidence.get("settlementAmount",0),.98)
 
     # VAT groups are persisted financial subdata and must reconcile independently.
+    mixed_rates=bool(((r.processing or {}).get("amountDerivation") or {}).get("mixedRates"))
+    if mixed_rates and not a.vatLines:
+        w.append("Meerdere btw-tarieven gevonden, maar de btw-groepen konden niet betrouwbaar worden vastgesteld; handmatige controle is vereist.")
+        r.confidence["vatLines"]=min(r.confidence.get("vatLines",.35),.35)
     if a.vatLines:
         known_cents=sum((money_cents(v.vatAmount) or 0) for v in a.vatLines if v.vatAmount is not None)
         if a.vatTotal is not None and known_cents!=money_cents(a.vatTotal):
@@ -1582,10 +1586,29 @@ def reconcile(primary:ExtractionResult,heuristic:ExtractionResult)->ExtractionRe
 
 # ----------------------------- duplicate candidate + response -----------------------------
 def overall_confidence(r:ExtractionResult)->float:
-    critical=["supplierName","invoiceNumber","invoiceDate","subtotal","vatTotal","total"]
-    vals=[r.confidence.get(k,0) for k in critical if k in r.confidence]
+    # Overall confidence is a safety summary, not a replacement for field-level
+    # confidence. One weak critical field must cap the headline score.
+    party_key="customerName" if r.documentType=="sales_invoice" else "supplierName"
+    critical=[party_key,"invoiceDate","subtotal","vatTotal","total","documentType","paymentStatus","description"]
+    if r.documentType not in {"receipt","bank_document","other"}:
+        critical.append("invoiceNumber")
+    mixed_rates=bool(((r.processing or {}).get("amountDerivation") or {}).get("mixedRates"))
+    if r.amounts.vatLines or mixed_rates:
+        critical.append("vatLines")
+    if r.adjustments:
+        critical.append("adjustments")
+    if r.amounts.settlementAmount is not None:
+        critical.append("settlementAmount")
+    vals=[float(r.confidence.get(k,0) or 0) for k in critical]
     if not vals:return .2
     base=sum(vals)/len(vals)
+    weakest=min(vals)
+    if weakest<.50:
+        base=min(base,.49)
+    elif weakest<.70:
+        base=min(base,.69)
+    elif weakest<.80:
+        base=min(base,.79)
     return max(0,min(1,base-len(r.warnings)*.025))
 
 def deterministic_fast_path_ready(doc:dict,r:ExtractionResult)->bool:
