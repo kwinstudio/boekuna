@@ -38,7 +38,7 @@ try{
     await page.goto(base+'/',{waitUntil:'domcontentloaded'});
     const hero=page.locator('.kz-hero-product-proof .product-proof img');
     await hero.waitFor();
-    await page.waitForFunction(()=>[...document.images].filter(i=>i.src.includes('/assets/product/')).every(i=>i.complete&&i.naturalWidth>0));
+    await page.waitForFunction(()=>{const i=document.querySelector('.kz-hero-product-proof img');return !!i&&i.complete&&i.naturalWidth>0});
     const overflow=await page.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth,bw:document.body.scrollWidth}));
     assert.ok(overflow.sw<=overflow.vw+1&&overflow.bw<=overflow.vw+1,`Horizontal overflow at ${width}px: ${JSON.stringify(overflow)}`);
     assert.equal(await page.locator('.product-proof').count(),1,`Exactly one product-proof expected at ${width}px`);
