@@ -110,11 +110,17 @@ def _amount_on_or_after(lines: list[str], i: int, max_ahead: int = 1, *, prefer_
 
 
 def _net_amount(lines: list[str], i: int) -> float | None:
-    vals = money_tokens(lines[i])
+    line = lines[i]
+    match = NET_RE.search(line)
+    if match:
+        # Read values AFTER the net label. This handles both a summary row with
+        # net + VAT columns and a factoring row that contains an earlier basis
+        # amount before "Bedrag excl. BTW".
+        after = money_tokens(line[match.start():])
+        if after:
+            return after[0]
+    vals = money_tokens(line)
     if vals:
-        # Summary rows such as "Subtotaal € 3,26 € 0,69" contain net then VAT.
-        if len(vals) > 1 and re.search(r"\\b(?:subtotaal|subtotal|bedrag\\s*excl|totaal\\s*excl)\\b", lines[i], re.I):
-            return vals[0]
         return vals[-1]
     return _amount_on_or_after(lines, i, 1)
 
