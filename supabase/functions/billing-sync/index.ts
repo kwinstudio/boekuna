@@ -77,37 +77,28 @@ Deno.serve(async(req:Request)=>{
   const owner=String(sub?.metadata?.user_id||session?.client_reference_id||"");
   if(owner&&owner!==user.id)return json(req,{ok:false,error:"Dit abonnement hoort niet bij dit account."},403);
 
-  const {data:existing}=await admin.from("billing_accounts")
-    .select("plan,founder_number").eq("user_id",user.id).maybeSingle();
+  const {data:existing,error:existingError}=await admin.from("billing_accounts")
+    .select("plan").eq("user_id",user.id).maybeSingle();
+  if(existingError)throw existingError;
   const planRaw=String(sub?.metadata?.plan||session?.metadata?.plan||existing?.plan||"boekuna");
   const plan=planRaw==="pro"?"pro":"boekuna";
-  const founderNumber=Number(sub?.metadata?.founder_number||session?.metadata?.founder_number||existing?.founder_number||0)||null;
-  const row={
-    user_id:user.id,
-    stripe_customer_id:String(session?.customer||sub?.customer||"")||null,
-    stripe_subscription_id:String(sub.id),
-    plan,
-    status:normalizedStatus(sub.status),
-    founder_number:founderNumber,
-    trial_end:ts(sub.trial_end),
-    current_period_end:periodEnd(sub),
-    cancel_at_period_end:!!sub.cancel_at_period_end,
-    updated_at:new Date().toISOString()
-  };
-  const {error:upsertError}=await admin.from("billing_accounts").upsert(row,{onConflict:"user_id"});
-  if(upsertError)throw upsertError;
+  const status=normalizedStatus(sub.status);
+  const watermark=Math.floor(Date.now()/1000);
+  const syncId="sync:"+String(session?.id||sub.id)+":"+String(watermark);
+  const {data:applied,error:applyError}=await admin.rpc("apply_stripe_subscription_state",{
+    p_user_id:user.id,
+    p_stripe_customer_id:String(session?.customer||sub?.customer||""),
+    p_stripe_subscription_id:String(sub.id),
+    p_plan:plan,
+    p_status:status,
+    p_current_period_end:periodEnd(sub),
+    p_cancel_at_period_end:!!sub.cancel_at_period_end,
+    p_event_created:watermark,
+    p_event_id:syncId
+  });
+  if(applyError)throw applyError;
 
-  if(session&&founderNumber){
-    await admin.from("founding_offer_claims").update({
-      status:"activated",
-      activated_at:new Date().toISOString(),
-      reserved_until:null,
-      checkout_session_id:String(session.id||""),
-      updated_at:new Date().toISOString()
-    }).eq("user_id",user.id).eq("founder_number",founderNumber);
-  }
-
-  return json(req,{ok:true,synced:true,plan,status:row.status,founderNumber,trialEnd:row.trial_end,currentPeriodEnd:row.current_period_end,cancelAtPeriodEnd:row.cancel_at_period_end});
+  return json(req,{ok:true,synced:true,applied:applied===true,plan,status,currentPeriodEnd:periodEnd(sub),cancelAtPeriodEnd:!!sub.cancel_at_period_end});
  }catch(e){
   const m=String(e?.message||e);
   if(m==="UNAUTHORIZED")return json(req,{ok:false,error:"Je sessie is verlopen. Log opnieuw in."},401);
