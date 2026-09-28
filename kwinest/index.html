@@ -1940,7 +1940,7 @@ const DOCUMENT_IMAGE_EXTENSIONS=['jpg','jpeg','png','webp','heic','heif','tif','
 const DOCUMENT_IMAGE_MIME_TYPES=['image/jpeg','image/png','image/webp','image/heic','image/heif','image/tiff','image/bmp','image/gif'];
 const SUPPORT_EMAIL='support@boekuna.nl';
 const SUPPORT_MAILTO='mailto:'+SUPPORT_EMAIL;
-let supabaseClient=null,cloudSaveTimer=null,cloudVersion=1,cloudSyncStatus='saved';
+let supabaseClient=null,cloudSaveTimer=null,cloudVersion=1,cloudSyncStatus='saved',cloudSyncTail=Promise.resolve();
 const TEST_MODE_NO_AUTH=false;
 const TEST_USER={id:'kwinest-local-test',email:'',testMode:true};
 const TEST_PROFILE={};
@@ -2157,7 +2157,38 @@ function normalizeState(x){
 function load(){try{if(!currentUser)return structuredClone(DEFAULT);const raw=JSON.parse(localStorage.getItem(userDataKey()));return normalizeState(raw)}catch(e){return structuredClone(DEFAULT)}}
 function save(){if(!currentUser)return;localStorage.setItem(userDataKey(),JSON.stringify(state));if(TEST_MODE_NO_AUTH){setCloudSyncStatus('saved');return}queueCloudSave()}
 function queueCloudSave(){if(TEST_MODE_NO_AUTH){setCloudSyncStatus('saved');return}clearTimeout(cloudSaveTimer);setCloudSyncStatus(navigator.onLine?'saving':'offline');cloudSaveTimer=setTimeout(()=>syncCloudStateNow().catch(err=>{console.warn('Cloudsync mislukt',err);setCloudSyncStatus(navigator.onLine?'error':'offline')}),350)}
-async function syncCloudStateNow(){if(!currentUser)return;if(TEST_MODE_NO_AUTH){localStorage.setItem(userDataKey(),JSON.stringify(state));setCloudSyncStatus('saved');return}clearTimeout(cloudSaveTimer);if(!navigator.onLine){setCloudSyncStatus('offline');return}setCloudSyncStatus('saving');const sb=await getSupabase();let {data,error}=await sb.rpc('save_ledger_state',{p_expected_version:cloudVersion,p_state:state});if(error)throw error;if(data==null){const {data:remote,error:remoteErr}=await sb.from('ledger_state').select('state,version').eq('user_id',currentUser.id).maybeSingle();if(remoteErr)throw remoteErr;if(!remote){const {error:insertErr}=await sb.from('ledger_state').insert({user_id:currentUser.id,state,version:1});if(insertErr)throw insertErr;cloudVersion=1;setCloudSyncStatus('saved');return}setCloudSyncStatus('conflict');const conflictKey=conflictBackupKey();if(conflictKey)localStorage.setItem(conflictKey,JSON.stringify({savedAt:new Date().toISOString(),state}));toast('Syncconflict: je lokale wijziging is veilig als herstelkopie bewaard.');state=normalizeState(remote.state||{});cloudVersion=Number(remote.version||1);localStorage.setItem(userDataKey(),JSON.stringify(state));render();return}cloudVersion=Number(data);setCloudSyncStatus('saved')}
+async function performCloudStateSync(requestedUserId){
+ if(!currentUser||currentUser.id!==requestedUserId)return;
+ if(!navigator.onLine){setCloudSyncStatus('offline');return}
+ setCloudSyncStatus('saving');
+ const sb=await getSupabase(),snapshot=structuredClone(state),expectedVersion=cloudVersion;
+ let {data,error}=await sb.rpc('save_ledger_state',{p_expected_version:expectedVersion,p_state:snapshot});
+ if(error)throw error;
+ if(data==null){
+  const {data:remote,error:remoteErr}=await sb.from('ledger_state').select('state,version').eq('user_id',requestedUserId).maybeSingle();
+  if(remoteErr)throw remoteErr;
+  if(!remote){
+   const {error:insertErr}=await sb.from('ledger_state').insert({user_id:requestedUserId,state:snapshot,version:1});
+   if(insertErr)throw insertErr;
+   cloudVersion=1;setCloudSyncStatus('saved');return
+  }
+  setCloudSyncStatus('conflict');
+  const conflictKey=conflictBackupKey();if(conflictKey)localStorage.setItem(conflictKey,JSON.stringify({savedAt:new Date().toISOString(),state:snapshot}));
+  toast('Syncconflict: je lokale wijziging is veilig als herstelkopie bewaard.');
+  state=normalizeState(remote.state||{});cloudVersion=Number(remote.version||1);localStorage.setItem(userDataKey(),JSON.stringify(state));render();return
+ }
+ cloudVersion=Number(data);setCloudSyncStatus('saved')
+}
+function syncCloudStateNow(){
+ if(!currentUser)return Promise.resolve();
+ if(TEST_MODE_NO_AUTH){localStorage.setItem(userDataKey(),JSON.stringify(state));setCloudSyncStatus('saved');return Promise.resolve()}
+ clearTimeout(cloudSaveTimer);cloudSaveTimer=null;
+ if(!navigator.onLine){setCloudSyncStatus('offline');return Promise.resolve()}
+ const requestedUserId=currentUser.id;
+ const run=cloudSyncTail.then(()=>performCloudStateSync(requestedUserId));
+ cloudSyncTail=run.catch(()=>{});
+ return run
+}
 async function syncCloudProfile(profile){if(!currentUser||TEST_MODE_NO_AUTH)return;const sb=await getSupabase();const {error}=await sb.from('profiles').upsert({user_id:currentUser.id,company:profile||{}},{onConflict:'user_id'});if(error)throw error}
 function legacySnapshotForEmail(email){try{const u=getUsers().find(x=>String(x.email||'').toLowerCase()===String(email||'').toLowerCase());if(!u)return null;const raw=JSON.parse(localStorage.getItem(DATA_KEY_PREFIX+u.id)||'null'),profile=JSON.parse(localStorage.getItem(PROFILE_KEY_PREFIX+u.id)||'{}');if(!raw&&!Object.keys(profile||{}).length)return null;const base=structuredClone(DEFAULT),v=raw&&raw.meta?raw:{};const out={...base,...v,meta:{...base.meta,...(v.meta||{})},company:{...base.company,...(v.company||{}),...(profile||{})}};for(const k of ['contacts','services','invoices','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])if(!Array.isArray(out[k]))out[k]=[];return out}catch(e){return null}}
 function legacyUserForEmail(email){return getUsers().find(x=>String(x.email||'').toLowerCase()===String(email||'').toLowerCase())||null}
