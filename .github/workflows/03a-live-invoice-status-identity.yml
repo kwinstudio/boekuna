@@ -1,0 +1,32 @@
+name: 03A live invoice status identity
+
+on:
+  push:
+    branches:
+      - 03a/live-invoice-status-identity
+    paths:
+      - "tests/qa-live-invoice-status-identity.mjs"
+      - ".github/workflows/03a-live-invoice-status-identity.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  live-retest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BOOKUNA_MARKETING_CAPTURE_EMAIL: ${{ secrets.BOOKUNA_MARKETING_CAPTURE_EMAIL }}
+      BOOKUNA_MARKETING_CAPTURE_PASSWORD: ${{ secrets.BOOKUNA_MARKETING_CAPTURE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install browser QA dependency
+        run: |
+          npm ci --prefix tests --ignore-scripts
+          npm install --prefix tests --no-save playwright@1.56.1
+          ./tests/node_modules/.bin/playwright install --with-deps chromium
+      - name: Run production invoice status identity retest
+        run: node tests/qa-live-invoice-status-identity.mjs
