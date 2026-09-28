@@ -320,17 +320,17 @@ try{
       const localMixed={type:'purchase',documentType:'purchase_invoice',party:'Local Parser',invoiceNumber:'LOCAL-MIXED',issueDate:'2026-09-28',net:200,vatAmount:30,gross:230,iban:'NL00ZZZZ0000000002',vatRate:21,mixedRates:true,vatLines:[{rate:21,taxableAmount:100,vatAmount:21},{rate:9,taxableAmount:100,vatAmount:9}],fieldConfidence:{}};
       const processorMixed={sourceQuality:'processor-v2',type:'purchase',documentType:'purchase_invoice',party:'Processor',invoiceNumber:'MIXED',issueDate:'2026-09-28',net:200,vatAmount:30,gross:230,iban:'',vatRate:null,mixedRates:true,vatLines:[{rate:9,taxableAmount:100,vatAmount:9},{rate:21,taxableAmount:100,vatAmount:21}],fieldConfidence:{}};
       const processorMerged=mergeAIParsed(localMixed,processorMixed,'purchase');
-      const laterAi={type:'purchase',documentType:'purchase_invoice',party:'Later AI',invoiceNumber:'MIXED',issueDate:'2026-09-28',net:200,vatAmount:30,gross:230,vatRate:21,mixedRates:false,vatLines:[{rate:21,taxableAmount:200,vatAmount:30}],fieldConfidence:{}};
+      const laterAi={type:'purchase',documentType:'purchase_invoice',party:'Later AI',invoiceNumber:'MIXED',issueDate:'2026-09-28',net:200,vatAmount:30,gross:230,iban:'NL00ZZZZ0000000002',vatRate:21,mixedRates:false,vatLines:[{rate:21,taxableAmount:200,vatAmount:30}],fieldConfidence:{}};
       const afterLaterAi=mergeAIParsed(processorMerged,laterAi,'purchase');
       const fallbackExpense=normalizeExpenseVatSemantics({exVat:200,vatRate:21,mixedRates:true,vatAmount:null,gross:null,vatLines:processorMixed.vatLines,taxTreatment:'standard'});
       return {
         processor:{iban:processorMerged.iban,vatRate:processorMerged.vatRate,mixedRates:processorMerged.mixedRates,rates:processorMerged.vatLines.map(v=>Number(v.rate))},
-        later:{vatRate:afterLaterAi.vatRate,mixedRates:afterLaterAi.mixedRates,rates:afterLaterAi.vatLines.map(v=>Number(v.rate)),sourceQuality:afterLaterAi.sourceQuality},
+        later:{iban:afterLaterAi.iban,vatRate:afterLaterAi.vatRate,mixedRates:afterLaterAi.mixedRates,rates:afterLaterAi.vatLines.map(v=>Number(v.rate)),sourceQuality:afterLaterAi.sourceQuality},
         fallback:{vat:expenseVat(fallbackExpense),gross:expenseGross(fallbackExpense),label:expenseVatRateLabel(fallbackExpense)}
       }
     });
     assert.deepEqual(mergeSemantics.processor,{iban:'',vatRate:null,mixedRates:true,rates:[9,21]},'Authoritative processor must clear an invalid stale local IBAN while preserving mixed VAT semantics');
-    assert.deepEqual(mergeSemantics.later,{vatRate:null,mixedRates:true,rates:[9,21],sourceQuality:'processor-v2'},'Later non-authoritative AI must not overwrite trusted processor VAT groups');
+    assert.deepEqual(mergeSemantics.later,{iban:'',vatRate:null,mixedRates:true,rates:[9,21],sourceQuality:'processor-v2'},'Later non-authoritative AI must not reintroduce an invalid IBAN or overwrite trusted processor VAT groups');
     assert.deepEqual(mergeSemantics.fallback,{vat:30,gross:230,label:'Gemengd'},'Mixed VAT totals must fall back to trusted VAT groups when scalar VAT amount is absent');
 
     const singleRates=await page.evaluate(()=>{
