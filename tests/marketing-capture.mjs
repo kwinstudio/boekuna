@@ -228,7 +228,9 @@ const browser=await chromium.launch({headless:true});
 const context=await browser.newContext({viewport:{width:1440,height:960},deviceScaleFactor:1,reducedMotion:'reduce'});
 const page=await context.newPage();
 const pageErrors=[];
-page.on('pageerror',e=>pageErrors.push(String(e)));
+page.on('pageerror',e=>{const msg=String(e);pageErrors.push(msg);console.error('[capture-pageerror]',msg)});
+page.on('requestfailed',req=>console.error('[capture-requestfailed]',req.method(),req.url(),req.failure()?.errorText||''));
+page.on('console',msg=>{if(msg.type()==='error')console.error('[capture-console]',msg.text())});
 await page.addInitScript(()=>{localStorage.clear();sessionStorage.clear()});
 
 const assets=[];
@@ -284,10 +286,26 @@ try{
     });
     await openAppPage('documents');
     await page.evaluate(()=>{pendingUploadKind='purchase'});
-    page.on('response',res=>{if(res.url().includes('kwinest-docprocessor.onrender.com/analyze'))processorResponse={status:res.status(),ok:res.ok(),url:res.url()}});
+    const processorResponsePromise=page.waitForResponse(res=>res.url().includes('kwinest-docprocessor.onrender.com/analyze')&&res.request().method()==='POST',{timeout:150000});
     await page.locator('#docFile').setInputFiles(pdfPath);
-    await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:150000});
-    assert.ok(processorResponse&&processorResponse.ok,'Real document processor did not return a successful response: '+JSON.stringify(processorResponse));
+    const liveProcessorResponse=await processorResponsePromise;
+    processorResponse={status:liveProcessorResponse.status(),ok:liveProcessorResponse.ok(),url:liveProcessorResponse.url()};
+    assert.ok(processorResponse.ok,'Real document processor did not return a successful response: '+JSON.stringify(processorResponse));
+    try{
+      await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:15000});
+    }catch(err){
+      const diag=await page.evaluate(()=>({
+        modalTitle:document.querySelector('.modal h2,.modal h3')?.textContent?.trim()||'',
+        modalText:document.querySelector('.modal')?.innerText?.slice(0,1800)||'',
+        progressTitle:document.querySelector('#importProgressTitle')?.textContent?.trim()||'',
+        progressMessage:document.querySelector('#importProgressMessage')?.textContent?.trim()||'',
+        pending:!!pendingPdfImport,
+        pendingSourceQuality:pendingPdfImport?.parsed?.sourceQuality||'',
+        pendingHasProcessor:!!pendingPdfImport?.parsed?.processor
+      }));
+      console.error('[capture-review-diagnostic]',JSON.stringify(diag));
+      throw err;
+    }
     parsed=await page.evaluate(()=>({
       sourceQuality:pendingPdfImport?.parsed?.sourceQuality||'',
       processor:pendingPdfImport?.parsed?.processor||null,
