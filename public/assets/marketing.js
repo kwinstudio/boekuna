@@ -115,6 +115,17 @@ function initSharedInteractions(){
  };
  window.addEventListener('scroll',sync,{passive:true});sync();
  btn.addEventListener('click',()=>window.scrollTo({top:0,behavior:reduced?'auto':'smooth'}));
+ const faqItems=[...document.querySelectorAll('.mk-faq-item')];
+ faqItems.forEach(item=>{
+   const toggle=item.querySelector('.mk-faq-toggle'),answer=item.querySelector('.mk-faq-answer');
+   if(!toggle||!answer)return;
+   const setOpen=open=>{item.classList.toggle('open',open);toggle.setAttribute('aria-expanded',String(open));answer.setAttribute('aria-hidden',String(!open))};
+   toggle.addEventListener('click',()=>{
+     const willOpen=toggle.getAttribute('aria-expanded')!=='true';
+     faqItems.forEach(other=>{const b=other.querySelector('.mk-faq-toggle'),a=other.querySelector('.mk-faq-answer');if(b&&a){other.classList.remove('open');b.setAttribute('aria-expanded','false');a.setAttribute('aria-hidden','true')}});
+     setOpen(willOpen);
+   });
+ });
  const menu=document.getElementById('mobileMenu');
  if(menu)menu.addEventListener('click',e=>{
    const a=e.target.closest('a');
