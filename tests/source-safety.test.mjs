@@ -40,6 +40,12 @@ for(const origin of [
 assert.ok(processor.includes("allow_origins=sorted(ALLOWED_ORIGINS)"),"Document processor preflight must use the explicit trusted origin set");
 assert.ok(processor.includes("origin not in ALLOWED_ORIGINS"),"Document processor route auth must use the same explicit trusted origin set");
 assert.ok(!processor.includes('allow_origins=["*"]'),"Document processor must never use wildcard CORS origins");
+assert.ok(processor.includes("SUPPORTED_IMAGE_MIME_TYPES"),"Processor must publish an explicit supported image MIME allowlist");
+assert.ok(processor.includes("ext in SUPPORTED_IMAGE_EXTENSIONS or c in SUPPORTED_IMAGE_MIME_TYPES"),"Processor extraction must use the explicit image allowlist instead of accepting arbitrary image/* types");
+assert.ok(html.includes("const DOCUMENT_IMAGE_MIME_TYPES="),"Frontend must share an explicit image MIME allowlist");
+assert.ok(!html.includes('id="receiptPhotoFile" accept="image/*'),"Receipt picker must not advertise unsupported arbitrary image types");
+assert.ok(!html.includes('id="receiptCameraFile" accept="image/*'),"Camera picker must use the same production image allowlist");
+assert.ok(html.includes("DOCUMENT_IMAGE_MIME_TYPES.includes(String(file.type||'').toLowerCase())"),"Frontend validation must enforce the explicit supported MIME allowlist");
 assert.ok(processor.includes('if not independent:'),"Independent PASS 2 must omit the primary heuristic answer from model context");
 assert.ok(processor.includes('This is an INDEPENDENT SECOND VERIFICATION.'),"PASS 2 must use an explicitly independent verification instruction");
 assert.ok(processor.includes('"store":False'),"OpenAI Responses must disable response storage for document analysis");
