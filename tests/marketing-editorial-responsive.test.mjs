@@ -106,6 +106,21 @@ try{
     await page.close();
   }
 
+  // Regression QA-03A-002: latest Producttab intent must win when preload responses complete out of order.
+  {
+    const page=await browser.newPage({viewport:{width:1440,height:960},reducedMotion:'no-preference'});
+    await page.route('**/boekuna-documents-upload-crop.webp',async route=>{await new Promise(r=>setTimeout(r,260));await route.continue()});
+    await page.route('**/boekuna-vat-summary-crop.webp',async route=>{await new Promise(r=>setTimeout(r,30));await route.continue()});
+    await page.goto(base+'/',{waitUntil:'domcontentloaded'});
+    await page.locator('#kz-tab-documenten').click();
+    await page.locator('#kz-tab-btw').click();
+    await page.waitForTimeout(420);
+    assert.equal(await page.locator('#kz-tab-btw').getAttribute('aria-selected'),'true','Stale Documents preload must not overwrite newer Btw intent');
+    assert.equal(await page.locator('#kz-tab-documenten').getAttribute('aria-selected'),'false','Older Documents request must remain stale');
+    assert.ok((await page.locator('#kzProductImage').getAttribute('src'))?.includes('boekuna-vat-summary-crop.webp'),'Final product screenshot must match latest Btw tab');
+    await page.close();
+  }
+
   // Mouse: only genuinely interactive cards receive hover motion, capped at 2px.
   {
     const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'no-preference'});
@@ -114,6 +129,10 @@ try{
     const staticCard=page.locator('.kz-reason').first();
     assert.equal(await interactive.evaluate(el=>el.classList.contains('bookuna-hover-card')),true,'Interactive linked card must receive hover affordance');
     assert.equal(await staticCard.evaluate(el=>el.classList.contains('bookuna-hover-card')),false,'Non-interactive card must not receive hover affordance');
+    await staticCard.hover();
+    await page.waitForTimeout(220);
+    const staticTransform=await staticCard.evaluate(el=>getComputedStyle(el).transform);
+    assert.ok(staticTransform==='none'||staticTransform==='matrix(1, 0, 0, 1, 0, 0)',`Static reason card must not move on hover; got ${staticTransform}`);
     await interactive.hover();
     await page.waitForTimeout(220);
     const transform=await interactive.evaluate(el=>getComputedStyle(el).transform);
@@ -134,6 +153,19 @@ try{
     assert.equal(await page.locator('#documentStoryProgressLabel').textContent(),'4 / 4','DocumentStory progress must follow active scroll step');
     const src=await page.locator('#documentStoryImage').getAttribute('src');
     assert.ok(src.includes('boekuna-documents-desktop-960.webp'),'Final story step must use a real Documents capture');
+    await page.close();
+  }
+
+  // Regression QA-03A-001: reduced motion suppresses animation, never DocumentStory scroll-state updates.
+  {
+    const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'});
+    await page.goto(base+'/',{waitUntil:'domcontentloaded'});
+    const steps=page.locator('.document-story-step');
+    await steps.nth(3).scrollIntoViewIfNeeded();
+    await page.waitForFunction(()=>document.querySelectorAll('.document-story-step')[3]?.getAttribute('aria-current')==='step',{timeout:3000});
+    assert.equal(await page.locator('#documentStoryProgressLabel').textContent(),'4 / 4','Reduced-motion natural scroll must still update DocumentStory progress');
+    assert.equal(await steps.nth(0).getAttribute('aria-current'),'false','Reduced-motion scroll must clear stale first-step state');
+    assert.equal(await steps.nth(3).getAttribute('aria-current'),'step','Reduced-motion scroll must activate the visible final step');
     await page.close();
   }
 
@@ -181,6 +213,23 @@ try{
     assert.equal(await first.getAttribute('aria-expanded'),'false','Accordion must close previous item');
     const answer=page.locator('#'+await second.getAttribute('aria-controls'));
     assert.equal(await answer.getAttribute('aria-hidden'),'false','FAQ answer state must be exposed to assistive technology');
+    await page.close();
+  }
+
+  // Regression QA-03A-004: production FAQ remains readable when JavaScript is unavailable.
+  {
+    const page=await browser.newPage({viewport:{width:768,height:900},javaScriptEnabled:false});
+    await page.goto(base+'/faq/',{waitUntil:'domcontentloaded'});
+    const answers=page.locator('.mk-faq-answer');
+    assert.equal(await answers.count(),15,'Production FAQ regression expects all 15 answers');
+    const states=await answers.evaluateAll(nodes=>nodes.map(el=>({
+      height:el.getBoundingClientRect().height,
+      opacity:getComputedStyle(el).opacity,
+      ariaHidden:el.getAttribute('aria-hidden')
+    })));
+    assert.ok(states.every(s=>s.height>0&&s.opacity==='1'),`All FAQ answers must remain visible without JS: ${JSON.stringify(states)}`);
+    assert.ok(states.every(s=>s.ariaHidden===null),'Static FAQ answers must not be aria-hidden before JS enhancement');
+    assert.equal(await page.locator('html.faq-enhanced').count(),0,'No-JS page must not enter enhanced accordion mode');
     await page.close();
   }
 
