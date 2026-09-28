@@ -62,7 +62,7 @@ mixedProcessorPayload.data.lineItems=[
 
 const issue30ProcessorPayload=structuredClone(processorPayload);
 issue30ProcessorPayload.data.originalFileName='02_gemengde_btw_9_en_21.pdf';
-issue30ProcessorPayload.data.supplier={name:'Originele mixed-VAT fixture leverancier',address:'Teststraat 9',postalCode:'3011 AA',city:'Rotterdam',country:'Nederland',kvk:'87654321',vatNumber:'NL987654321B01',iban:'NL00DEMO0000000000',email:'facturen@example.test'};
+issue30ProcessorPayload.data.supplier={name:'Originele mixed-VAT fixture leverancier',address:'Teststraat 9',postalCode:'3011 AA',city:'Rotterdam',country:'Nederland',kvk:'87654321',vatNumber:'NL987654321B01',iban:'NL00ZZZZ0000000002',email:'facturen@example.test'};
 issue30ProcessorPayload.data.invoice={invoiceNumber:'KKG/26/09/7741',invoiceDate:'2026-09-28',dueDate:null,paymentTermDays:null,description:'Originele mixed-VAT fixture'};
 issue30ProcessorPayload.data.amounts={subtotal:429.95,vatLines:[{rate:9,taxableAmount:315,vatAmount:28.35},{rate:21,taxableAmount:114.95,vatAmount:24.14}],vatTotal:52.49,total:482.44,currency:'EUR'};
 issue30ProcessorPayload.data.status='open';
@@ -71,7 +71,7 @@ issue30ProcessorPayload.data.adjustments=[];
 issue30ProcessorPayload.data.confidence={supplierName:.99,iban:.99,invoiceNumber:.99,invoiceDate:.99,subtotal:.99,vatTotal:.99,total:.99,vatLines:.99};
 issue30ProcessorPayload.data.warnings=[];
 issue30ProcessorPayload.data.processing={sourceKind:'pdf',pages:1,ocrPages:[],tablesFound:2,fastPath:'deterministic',overallConfidence:.99,vatGroupSource:'validated-mixed-rate-groups'};
-issue30ProcessorPayload.preview={text:'Originele 9% + 21% mixed-VAT fixture',pages:[{page:1,ocrConfidence:null}],tables:[]};
+issue30ProcessorPayload.preview={text:'Originele 9% + 21% mixed-VAT fixture\nIBAN NL00ZZZZ0000000002',pages:[{page:1,ocrConfidence:null}],tables:[]};
 issue30ProcessorPayload.duplicateCandidates=[];
 
 let processorResponse=processorPayload;
@@ -317,19 +317,19 @@ try{
     assert.deepEqual(errors,[],'QA-DOC-REL-001 browser errors: '+errors.join(' | '));
 
     const mergeSemantics=await page.evaluate(()=>{
-      const localMixed={type:'purchase',documentType:'purchase_invoice',party:'Local Parser',invoiceNumber:'LOCAL-MIXED',issueDate:'2026-09-28',net:200,vatAmount:30,gross:230,vatRate:21,mixedRates:true,vatLines:[{rate:21,taxableAmount:100,vatAmount:21},{rate:9,taxableAmount:100,vatAmount:9}],fieldConfidence:{}};
-      const processorMixed={sourceQuality:'processor-v2',type:'purchase',documentType:'purchase_invoice',party:'Processor',invoiceNumber:'MIXED',issueDate:'2026-09-28',net:200,vatAmount:30,gross:230,vatRate:null,mixedRates:true,vatLines:[{rate:9,taxableAmount:100,vatAmount:9},{rate:21,taxableAmount:100,vatAmount:21}],fieldConfidence:{}};
+      const localMixed={type:'purchase',documentType:'purchase_invoice',party:'Local Parser',invoiceNumber:'LOCAL-MIXED',issueDate:'2026-09-28',net:200,vatAmount:30,gross:230,iban:'NL00ZZZZ0000000002',vatRate:21,mixedRates:true,vatLines:[{rate:21,taxableAmount:100,vatAmount:21},{rate:9,taxableAmount:100,vatAmount:9}],fieldConfidence:{}};
+      const processorMixed={sourceQuality:'processor-v2',type:'purchase',documentType:'purchase_invoice',party:'Processor',invoiceNumber:'MIXED',issueDate:'2026-09-28',net:200,vatAmount:30,gross:230,iban:'',vatRate:null,mixedRates:true,vatLines:[{rate:9,taxableAmount:100,vatAmount:9},{rate:21,taxableAmount:100,vatAmount:21}],fieldConfidence:{}};
       const processorMerged=mergeAIParsed(localMixed,processorMixed,'purchase');
       const laterAi={type:'purchase',documentType:'purchase_invoice',party:'Later AI',invoiceNumber:'MIXED',issueDate:'2026-09-28',net:200,vatAmount:30,gross:230,vatRate:21,mixedRates:false,vatLines:[{rate:21,taxableAmount:200,vatAmount:30}],fieldConfidence:{}};
       const afterLaterAi=mergeAIParsed(processorMerged,laterAi,'purchase');
       const fallbackExpense=normalizeExpenseVatSemantics({exVat:200,vatRate:21,mixedRates:true,vatAmount:null,gross:null,vatLines:processorMixed.vatLines,taxTreatment:'standard'});
       return {
-        processor:{vatRate:processorMerged.vatRate,mixedRates:processorMerged.mixedRates,rates:processorMerged.vatLines.map(v=>Number(v.rate))},
+        processor:{iban:processorMerged.iban,vatRate:processorMerged.vatRate,mixedRates:processorMerged.mixedRates,rates:processorMerged.vatLines.map(v=>Number(v.rate))},
         later:{vatRate:afterLaterAi.vatRate,mixedRates:afterLaterAi.mixedRates,rates:afterLaterAi.vatLines.map(v=>Number(v.rate)),sourceQuality:afterLaterAi.sourceQuality},
         fallback:{vat:expenseVat(fallbackExpense),gross:expenseGross(fallbackExpense),label:expenseVatRateLabel(fallbackExpense)}
       }
     });
-    assert.deepEqual(mergeSemantics.processor,{vatRate:null,mixedRates:true,rates:[9,21]},'Processor mixed VAT must override stale local scalar semantics');
+    assert.deepEqual(mergeSemantics.processor,{iban:'',vatRate:null,mixedRates:true,rates:[9,21]},'Authoritative processor must clear an invalid stale local IBAN while preserving mixed VAT semantics');
     assert.deepEqual(mergeSemantics.later,{vatRate:null,mixedRates:true,rates:[9,21],sourceQuality:'processor-v2'},'Later non-authoritative AI must not overwrite trusted processor VAT groups');
     assert.deepEqual(mergeSemantics.fallback,{vat:30,gross:230,label:'Gemengd'},'Mixed VAT totals must fall back to trusted VAT groups when scalar VAT amount is absent');
 
