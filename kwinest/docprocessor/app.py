@@ -1168,8 +1168,8 @@ def verification_attachment(raw:bytes|None,content_type:str,filename:str)->dict[
             return None
     return None
 
-def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult,independent:bool=False,raw:bytes|None=None,content_type:str="")->ExtractionResult|None:
-    if not OPENAI_API_KEY:return None
+def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult,independent:bool=False,raw:bytes|None=None,content_type:str="")->tuple[ExtractionResult|None,dict[str,Any]|None]:
+    if not OPENAI_API_KEY:return None,{"internal_code":"AI_PROVIDER_NOT_CONFIGURED","provider":"openai"}
     compact_layout=[]
     for p in doc.get("layout",[])[:10]: compact_layout.append({"page":p.get("page"),"words":p.get("words",[])[:900]})
     context={
@@ -1216,13 +1216,30 @@ def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult,ind
     payload={"model":OPENAI_MODEL,"input":[{"role":"system","content":[{"type":"input_text","text":instructions}]},{"role":"user","content":content}],"max_output_tokens":7000,"reasoning":{"effort":"medium" if independent else "medium"},"store":False}
     try:
         resp=requests.post(OPENAI_RESPONSES_URL,headers={"Authorization":f"Bearer {OPENAI_API_KEY}","Content-Type":"application/json"},json=payload,timeout=REQUEST_TIMEOUT)
-        if resp.status_code>=400:return None
+    except requests.Timeout as exc:
+        return None,{"internal_code":"AI_PROVIDER_TIMEOUT","provider":"openai","internal_error":exc}
+    except requests.RequestException as exc:
+        return None,{"internal_code":"AI_PROVIDER_UNAVAILABLE","provider":"openai","internal_error":exc}
+    request_id=resp.headers.get("x-request-id") or resp.headers.get("openai-request-id")
+    if resp.status_code>=400:
+        provider_code=None;provider_message=""
+        try:
+            upstream=resp.json()
+            provider_code=safe_log_value((upstream.get("error") or {}).get("code") or upstream.get("code"),120)
+            provider_message=sanitize_log_value((upstream.get("error") or {}).get("message") or upstream.get("message"),300)
+        except Exception:
+            upstream=None
+        return None,{
+            "internal_code":"AI_PROVIDER_HTTP_ERROR","provider":"openai","provider_status":resp.status_code,
+            "provider_code":provider_code,"provider_request_id":sanitize_log_value(request_id,120),"internal_error":provider_message,
+        }
+    try:
         body=resp.json();txt=body.get("output_text") or ""
         if not txt:
             for item in body.get("output",[]):
                 if item.get("type")=="message":
-                    for c in item.get("content",[]):
-                        if c.get("type")=="output_text":txt+=c.get("text","")
+                    for part in item.get("content",[]):
+                        if part.get("type")=="output_text":txt+=part.get("text","")
         txt=txt.strip()
         if txt.startswith("```"):txt=re.sub(r"^```(?:json)?|```$","",txt,flags=re.I).strip()
         a,b=txt.find("{"),txt.rfind("}")
@@ -1231,9 +1248,9 @@ def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult,ind
         data["originalFileName"]=filename;data["pageCount"]=doc.get("pageCount",1)
         result=ExtractionResult.model_validate(data)
         result.processing={**heuristic.processing,"ai":True,"aiModel":OPENAI_MODEL,"aiUsage":body.get("usage") or None,"independentVerification":bool(independent)}
-        return validate_result(result,company)
-    except Exception:
-        return None
+        return validate_result(result,company),None
+    except Exception as exc:
+        return None,{"internal_code":"AI_RESPONSE_INVALID","provider":"openai","provider_status":resp.status_code,"provider_request_id":sanitize_log_value(request_id,120),"internal_error":exc}
 
 def reconcile(primary:ExtractionResult,heuristic:ExtractionResult)->ExtractionResult:
     # AI is primary when present, but deterministic parser may fill only missing low-risk fields.
