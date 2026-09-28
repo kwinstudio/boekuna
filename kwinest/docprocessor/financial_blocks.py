@@ -10,7 +10,7 @@ MONEY_RE = re.compile(
 )
 NET_RE = re.compile(
     r"\b(?:bedrag\s*excl\.?\s*(?:(?:0|9|21)(?:[.,]0+)?\s*%\s*)?(?:btw|vat)|"
-    r"totaal\s*excl\.?\s*(?:(?:0|9|21)(?:[.,]0+)?\s*%\s*)?(?:btw|vat)|"
+    r"totaal\s*(?:excl\.?|exclusief)\s*(?:(?:0|9|21)(?:[.,]0+)?\s*%\s*)?(?:btw|vat)|"
     r"total\s*excl\.?\s*vat|tax\s*exclusive|net\s*amount|subtotaal|subtotal)\b",
     re.I,
 )
@@ -18,7 +18,7 @@ VAT_RE = re.compile(r"\b(?:btw|vat|tax)\b", re.I)
 VAT_ID_RE = re.compile(r"\b(?:btw[- ]?(?:nummer|nr|id)|vat\s*(?:id|number))\b", re.I)
 MAIN_GROSS_RE = re.compile(
     r"\b(?:factuurbedrag|factuurtotaal|invoice\s*(?:amount|total)|"
-    r"totaal\s*incl\.?\s*(?:btw|vat)|grand\s*total|total\s*due|"
+    r"totaal\s*(?:incl\.?|inclusief)\s*(?:btw|vat)|grand\s*total|total\s*due|"
     r"totaal\s*betaald|total\s*paid|paid\s*total)\b",
     re.I,
 )
