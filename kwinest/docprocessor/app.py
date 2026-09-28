@@ -1144,6 +1144,11 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     invoice_no=None
     if invno_raw:
         m=re.search(r"([A-Z0-9][A-Z0-9._\-/]{1,50})",invno_raw,re.I); invoice_no=m.group(1) if m else None
+    if not invoice_no and dtype!="credit_invoice":
+        for line in lines[:24]:
+            m=re.match(r"^\s*(?:factuur|invoice)\s+([A-Z0-9][A-Z0-9._\-/]{1,50})\s*$",line,re.I)
+            if m and re.search(r"\d",m.group(1)):
+                invoice_no=m.group(1);break
     description,description_conf,description_source=extract_description(doc,lines)
     invoice_date_labels=["factuurdatum","invoice date","date of invoice","document date"]
     if dtype=="credit_invoice":
