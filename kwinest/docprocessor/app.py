@@ -430,15 +430,15 @@ def kvk_plausible(v:str|None)->bool:
     return bool(v and re.fullmatch(r"\d{8}",re.sub(r"\D","",v)))
 
 def own_matches(block:dict, company:dict)->bool:
-    cvat=re.sub(r"[\\s.\\-]","",str(company.get("vat") or company.get("vatNumber") or "")).upper()
-    ckvk=re.sub(r"\\D","",str(company.get("kvk") or ""))
-    ciban=re.sub(r"\\s+","",str(company.get("iban") or "")).upper()
+    cvat=re.sub(r"[\s.\-]","",str(company.get("vat") or company.get("vatNumber") or "")).upper()
+    ckvk=re.sub(r"\D","",str(company.get("kvk") or ""))
+    ciban=re.sub(r"\s+","",str(company.get("iban") or "")).upper()
     cemail=norm_text(str(company.get("email") or "")).lower()
     cnames=[norm_text(str(company.get(k) or "")).lower() for k in ("name","tradeName","contactName")]
     cnames=[x for x in cnames if len(x)>=3]
-    bvat=re.sub(r"[\\s.\\-]","",str(block.get("vatNumber") or "")).upper()
-    bkvk=re.sub(r"\\D","",str(block.get("kvk") or ""))
-    biban=re.sub(r"\\s+","",str(block.get("iban") or "")).upper()
+    bvat=re.sub(r"[\s.\-]","",str(block.get("vatNumber") or "")).upper()
+    bkvk=re.sub(r"\D","",str(block.get("kvk") or ""))
+    biban=re.sub(r"\s+","",str(block.get("iban") or "")).upper()
     bemail=norm_text(str(block.get("email") or "")).lower()
     bname=norm_text(str(block.get("name") or "")).lower()
     name_match=any(
@@ -455,8 +455,8 @@ def own_matches(block:dict, company:dict)->bool:
 
 def _clean_party_candidate(value:str)->str:
     cand=norm_text(value or "").strip(" |:#.-")
-    cand=re.sub(r"^(?:leverancier|supplier|vendor|seller|from|van|factuur\\s+aan|factureren\\s+aan|bill\\s+to|sold\\s+to|customer|klant|debiteur|aan|to|verzender|sender)\\s*[:#-]?\\s*","",cand,flags=re.I)
-    cand=re.split(r"\\b(?:factuurnummer|factuurnr|invoice\\s+(?:number|no)|factuurdatum|invoice\\s+date|vervaldatum|due\\s+date|betalingskenmerk|payment\\s+reference|kvk\\s*(?:nummer|nr)?|btw[- ]?(?:nummer|nr|id)|vat\\s*(?:number|id))\\b",cand,maxsplit=1,flags=re.I)[0]
+    cand=re.sub(r"^(?:leverancier|supplier|vendor|seller|from|van|factuur\s+aan|factureren\s+aan|bill\s+to|sold\s+to|customer|klant|debiteur|aan|to|verzender|sender)\s*[:#-]?\s*","",cand,flags=re.I)
+    cand=re.split(r"\b(?:factuurnummer|factuurnr|invoice\s+(?:number|no)|factuurdatum|invoice\s+date|vervaldatum|due\s+date|betalingskenmerk|payment\s+reference|kvk\s*(?:nummer|nr)?|btw[- ]?(?:nummer|nr|id)|vat\s*(?:number|id))\b",cand,maxsplit=1,flags=re.I)[0]
     return cand.strip(" |:#.-")
 
 def layout_fragments(doc:dict,max_y:float=330.0)->list[dict[str,Any]]:
@@ -489,7 +489,7 @@ def layout_fragments(doc:dict,max_y:float=330.0)->list[dict[str,Any]]:
                 if txt:out.append({"text":txt,"x0":float(current[0].get("x0") or 0),"y0":g["y"]})
     return sorted(out,key=lambda x:(x["y0"],x["x0"]))
 
-LEGAL_ENTITY_RE=re.compile(r"([A-ZÀ-ÖØ-Ý][A-Za-zÀ-ÖØ-öø-ÿ0-9&'()., -]{1,80}?\\b(?:B\\.?\\s*V\\.?|N\\.?\\s*V\\.?|V\\.?\\s*O\\.?\\s*F\\.?|LTD\\.?|LLC|GMBH))\\b",re.I)
+LEGAL_ENTITY_RE=re.compile(r"([A-ZÀ-ÖØ-Ý][A-Za-zÀ-ÖØ-öø-ÿ0-9&'()., -]{1,80}?\b(?:B\.?\s*V\.?|N\.?\s*V\.?|V\.?\s*O\.?\s*F\.?|LTD\.?|LLC|GMBH))\b",re.I)
 
 def layout_legal_entity_name(doc:dict,company:dict)->str|None:
     candidates=[]
@@ -521,9 +521,9 @@ def layout_own_party_name(doc:dict,company:dict)->str|None:
 def generic_invoice_date(lines:list[str])->tuple[str|None,float]:
     for line in lines[:45]:
         low=line.lower()
-        if re.search(r"\\b(?:omschrijving|description|week|aantal|quantity)\\b",low):
+        if re.search(r"\b(?:omschrijving|description|week|aantal|quantity)\b",low):
             continue
-        anchored=bool(re.match(r"^\\s*(?:datum|date)\\s*[:#-]?",low) or re.search(r"\\bfactuurnummer\\b.*\\bdatum\\b",low))
+        anchored=bool(re.match(r"^\s*(?:datum|date)\s*[:#-]?",low) or re.search(r"\bfactuurnummer\b.*\bdatum\b",low))
         if not anchored:
             continue
         d=norm_date(line)
@@ -536,7 +536,7 @@ def table_vat_groups(doc:dict)->list[VatLine]:
         for row in (table.get("rows") or [])[:220]:
             cells=[norm_text(str(c or "")) for c in row]
             joined=" | ".join(cells)
-            rm=re.search(r"\\b(0|9|21)(?:[.,]0+)?\\s*%",joined,re.I)
+            rm=re.search(r"\b(0|9|21)(?:[.,]0+)?\s*%",joined,re.I)
             if not rm:continue
             rate=float(rm.group(1))
             vals=[]
@@ -930,45 +930,45 @@ def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tu
                 idx=i;matched_label=lab;break
         if idx is not None:break
     block=lines[idx:idx+12] if idx is not None else lines[:18]
-    block=[x for x in block if x and not re.match(r"^-{2,}\\s*page\\s+\\d+\\s*-{2,}$",x,re.I)]
-    joined="\\n".join(block)
-    emails=re.findall(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}",joined,re.I)
-    vats=[re.sub(r"\\s+","",x).upper() for x in re.findall(r"\\b[A-Z]{2}\\s?[A-Z0-9]{6,14}\\b",joined,re.I)]
-    nl_vats=[x for x in vats if re.fullmatch(r"NL\\d{9}B\\d{2}",x)]
-    kvks=re.findall(r"(?:kvk|k\\.v\\.k\\.|coc|chamber of commerce)(?:\\s*(?:nr|nummer|number|no))?\\s*[:#-]?\\s*(\\d{8})",joined,re.I)
-    ibans=[re.sub(r"\\s+","",x).upper() for x in re.findall(r"\\b[A-Z]{2}\\d{2}(?:[ \\t]?[A-Z0-9]){11,30}\\b",joined,re.I)]
-    postal=re.search(r"\\b([1-9]\\d{3})\\s*([A-Z]{2})\\b(?:\\s+([^\\n,;|]{2,50}))?",joined,re.I)
-    address_re=re.compile(r"\\b\\d+[A-Z-]*\\b.*(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|place)|(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|place)[^\\n]*\\b\\d+[A-Z-]*\\b",re.I)
+    block=[x for x in block if x and not re.match(r"^-{2,}\s*page\s+\d+\s*-{2,}$",x,re.I)]
+    joined="\n".join(block)
+    emails=re.findall(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}",joined,re.I)
+    vats=[re.sub(r"\s+","",x).upper() for x in re.findall(r"\b[A-Z]{2}\s?[A-Z0-9]{6,14}\b",joined,re.I)]
+    nl_vats=[x for x in vats if re.fullmatch(r"NL\d{9}B\d{2}",x)]
+    kvks=re.findall(r"(?:kvk|k\.v\.k\.|coc|chamber of commerce)(?:\s*(?:nr|nummer|number|no))?\s*[:#-]?\s*(\d{8})",joined,re.I)
+    ibans=[re.sub(r"\s+","",x).upper() for x in re.findall(r"\b[A-Z]{2}\d{2}(?:[ \t]?[A-Z0-9]){11,30}\b",joined,re.I)]
+    postal=re.search(r"\b([1-9]\d{3})\s*([A-Z]{2})\b(?:\s+([^\n,;|]{2,50}))?",joined,re.I)
+    address_re=re.compile(r"\b\d+[A-Z-]*\b.*(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|place)|(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|place)[^\n]*\b\d+[A-Z-]*\b",re.I)
     address=next((x for x in block if address_re.search(x)),None)
-    field_only=re.compile(r"^(?:leverancier|supplier|vendor|seller|from|van|factuur aan|factureren aan|bill to|sold to|customer|klant|debiteur|aan|to|verzender|sender|factuur|invoice|datum|date|totaal|total|btw|vat|kvk|iban|omschrijving|description|pagina|page)(?:\\s*[:#-].*)?$",re.I)
+    field_only=re.compile(r"^(?:leverancier|supplier|vendor|seller|from|van|factuur aan|factureren aan|bill to|sold to|customer|klant|debiteur|aan|to|verzender|sender|factuur|invoice|datum|date|totaal|total|btw|vat|kvk|iban|omschrijving|description|pagina|page)(?:\s*[:#-].*)?$",re.I)
     name=None
     if idx is not None and matched_label:
         line=lines[idx]
         pos=line.lower().find(matched_label)
         remainder=_clean_party_candidate(line[pos+len(matched_label):])
-        if 2<=len(remainder)<=100 and not field_only.match(remainder) and not address_re.search(remainder) and not re.match(r"^\\d",remainder):
+        if 2<=len(remainder)<=100 and not field_only.match(remainder) and not address_re.search(remainder) and not re.match(r"^\d",remainder):
             name=remainder
     if not name and idx is not None:
         for j in range(idx+1,min(len(lines),idx+7)):
             cand=_clean_party_candidate(lines[j])
             if not (2<=len(cand)<=100):continue
-            if field_only.match(cand) or address_re.search(cand) or re.match(r"^\\d",cand) or "@" in cand:continue
-            if re.search(r"\\b(?:kvk|btw|vat|iban)\\b",cand,re.I):continue
+            if field_only.match(cand) or address_re.search(cand) or re.match(r"^\d",cand) or "@" in cand:continue
+            if re.search(r"\b(?:kvk|btw|vat|iban)\b",cand,re.I):continue
             name=cand;break
     if not name and idx is not None:
         for back in range(max(0,idx-3),idx):
             cand=_clean_party_candidate(lines[back])
-            if 2<=len(cand)<=100 and not field_only.match(cand) and not address_re.search(cand) and not re.match(r"^\\d",cand) and "@" not in cand:
+            if 2<=len(cand)<=100 and not field_only.match(cand) and not address_re.search(cand) and not re.match(r"^\d",cand) and "@" not in cand:
                 if not re.search(r"factuur|invoice|creditnota|receipt",cand,re.I):
                     name=cand;break
     if not name:
         for rawline in block:
             cand=_clean_party_candidate(rawline)
             if not (2<=len(cand)<=100):continue
-            if field_only.match(cand) or address_re.search(cand) or re.match(r"^\\d",cand) or "@" in cand:continue
-            if re.match(r"^-{2,}\\s*page\\s+\\d+",cand,re.I):continue
-            if re.search(r"\\b(?:kvk|btw|vat|iban|factuurnr|factuurnummer|invoice no|invoice number)\\b",cand,re.I):continue
-            if re.search(r"\\b(?:factuur|invoice|creditnota|receipt)\\b",cand,re.I):continue
+            if field_only.match(cand) or address_re.search(cand) or re.match(r"^\d",cand) or "@" in cand:continue
+            if re.match(r"^-{2,}\s*page\s+\d+",cand,re.I):continue
+            if re.search(r"\b(?:kvk|btw|vat|iban|factuurnr|factuurnummer|invoice no|invoice number)\b",cand,re.I):continue
+            if re.search(r"\b(?:factuur|invoice|creditnota|receipt)\b",cand,re.I):continue
             name=cand;break
     data={"name":name,"address":address,"postalCode":f"{postal[1]} {postal[2].upper()}" if postal else None,"city":postal[3].strip() if postal and postal[3] else None,"country":"Nederland" if postal else None,
           "kvk":kvks[0] if kvks else None,"vatNumber":nl_vats[0] if nl_vats else None,"iban":next((x for x in ibans if valid_iban(x)),None),"email":emails[0] if emails else None}
@@ -1162,7 +1162,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         vat_line_source="validated-primary-totals"
 
     iban=None
-    for x in re.findall(r"\b[A-Z]{2}\d{2}(?:[ \\t]?[A-Z0-9]){11,30}\b",text,re.I):
+    for x in re.findall(r"\b[A-Z]{2}\d{2}(?:[ \t]?[A-Z0-9]){11,30}\b",text,re.I):
         if valid_iban(x): iban=re.sub(r"\s+","",x).upper();break
 
     paid=bool(re.search(r"\b(reeds betaald|already paid|paid via|voldaan|betaald|totaal betaald|total paid|betaalbevestiging)\b",low))
