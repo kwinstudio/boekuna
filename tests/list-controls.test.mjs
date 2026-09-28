@@ -300,6 +300,8 @@ try{
   rows=await visibleRowTexts();
   assert.equal(rows.length,1);
   assert.match(rows[0],/Zomeractie/);
+  await page.evaluate(()=>{state.services=[];render()});
+  assert.match(await page.locator('.empty').innerText(),/Je hebt nog geen diensten toegevoegd/,'True empty state must differ from no-results state');
 
   await go('bookings');
   const bookingCards=await page.locator('.booking-card').allInnerTexts();
