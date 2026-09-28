@@ -116,6 +116,125 @@ try{
   assert.match(await popup.locator('body').innerText(),/36,30/,'Printable invoice must show the same gross total');
   await popup.close();
 
+  // P1 regression: invoice status transitions must preserve identity and only
+  // reserve a final number on the first definitive transition.
+  await page.evaluate(()=>{
+    state.invoices=[];
+    state.audit=[];
+    state.meta.nextInvoice=50;
+    save();
+  });
+  const invoiceQaCustomerId=await page.evaluate(()=>state.contacts[0].id);
+  const makeDraft=async (label,status='draft')=>page.evaluate(({label,status,customerId})=>({
+    number:'CONCEPT-'+label,
+    customerId,
+    customer:getContact(customerId),
+    issueDate:today(),
+    supplyDate:today(),
+    dueDate:today(),
+    paymentDays:0,
+    status,
+    taxTreatment:'standard',
+    reference:'',
+    paymentReference:'CONCEPT-'+label,
+    discountType:'none',
+    discountValue:0,
+    notes:'',
+    lines:[{desc:'QA '+label,qty:1,unitLabel:'uur',unit:100,vat:21}]
+  }),{label,status,customerId:invoiceQaCustomerId});
+  const snap=()=>page.evaluate(()=>({count:state.invoices.length,next:Number(state.meta.nextInvoice||0),invoices:state.invoices.map(i=>({id:i.id,number:i.number,status:i.status,numberFinalized:!!i.numberFinalized}))}));
+
+  // Concept -> Verzonden.
+  let qaDraft=await makeDraft('A');
+  await page.evaluate(d=>{editingInvoiceId=null;pendingInvoiceDraft=d},qaDraft);
+  await page.evaluate(()=>finalSaveInvoice());
+  let qaSnap=await snap();
+  const qaAId=qaSnap.invoices[0].id;
+  const qaABefore={...qaSnap.invoices[0],count:qaSnap.count,next:qaSnap.next};
+  await page.evaluate(id=>{const i=state.invoices.find(x=>x.id===id);editingInvoiceId=id;pendingInvoiceDraft={...structuredClone(i),customer:getContact(i.customerId),paymentDays:i.paymentDays||0,status:'sent'}},qaAId);
+  await page.evaluate(()=>finalSaveInvoice());
+  qaSnap=await snap();
+  const qaA=qaSnap.invoices.find(i=>i.id===qaAId);
+  assert.equal(qaA.id,qaABefore.id,'Concept -> Verzonden must preserve invoice ID');
+  assert.notEqual(qaA.number,qaABefore.number,'First definitive transition must replace concept number');
+  assert.equal(qaA.status,'sent');
+  assert.equal(qaSnap.count,qaABefore.count,'Concept -> Verzonden must not create a duplicate record');
+  assert.equal(qaSnap.next,qaABefore.next+1,'Concept -> Verzonden must reserve exactly one number');
+
+  // Concept -> Betaald directly.
+  qaDraft=await makeDraft('B');
+  await page.evaluate(d=>{editingInvoiceId=null;pendingInvoiceDraft=d},qaDraft);
+  await page.evaluate(()=>finalSaveInvoice());
+  qaSnap=await snap();
+  const qaBId=qaSnap.invoices.find(i=>i.number==='CONCEPT-B').id;
+  const qaBBefore={...qaSnap.invoices.find(i=>i.id===qaBId),count:qaSnap.count,next:qaSnap.next};
+  await page.evaluate(id=>{const i=state.invoices.find(x=>x.id===id);editingInvoiceId=id;pendingInvoiceDraft={...structuredClone(i),customer:getContact(i.customerId),paymentDays:i.paymentDays||0,status:'paid'}},qaBId);
+  await page.evaluate(()=>finalSaveInvoice());
+  qaSnap=await snap();
+  const qaB=qaSnap.invoices.find(i=>i.id===qaBId);
+  assert.equal(qaB.id,qaBBefore.id,'Concept -> Betaald must preserve invoice ID');
+  assert.notEqual(qaB.number,qaBBefore.number,'Concept -> Betaald must reserve one final number');
+  assert.equal(qaB.status,'paid');
+  assert.equal(qaSnap.count,qaBBefore.count,'Concept -> Betaald must not create a duplicate record');
+  assert.equal(qaSnap.next,qaBBefore.next+1,'Concept -> Betaald must reserve exactly one number');
+
+  // Verzonden -> Betaald through the real payment modal; number/sequence stay unchanged.
+  const qaANumber=qaA.number,qaPaymentNext=qaSnap.next,qaPaymentCount=qaSnap.count;
+  await page.evaluate(id=>registerPayment(id),qaAId);
+  await page.locator('#paymentForm [name="amount"]').fill('121');
+  await page.evaluate(id=>savePayment(id),qaAId);
+  qaSnap=await snap();
+  const qaAPaid=qaSnap.invoices.find(i=>i.id===qaAId);
+  assert.equal(qaAPaid.status,'paid');
+  assert.equal(qaAPaid.number,qaANumber,'Payment flow must preserve the final invoice number');
+  assert.equal(qaSnap.next,qaPaymentNext,'Payment flow must not reserve a new invoice number');
+  assert.equal(qaSnap.count,qaPaymentCount,'Payment flow must not duplicate the invoice');
+
+  // Re-saving an unchanged concept preserves ID/number and consumes no sequence.
+  qaDraft=await makeDraft('C');
+  await page.evaluate(d=>{editingInvoiceId=null;pendingInvoiceDraft=d},qaDraft);
+  await page.evaluate(()=>finalSaveInvoice());
+  qaSnap=await snap();
+  const qaCId=qaSnap.invoices.find(i=>i.number==='CONCEPT-C').id;
+  const qaCBefore={...qaSnap.invoices.find(i=>i.id===qaCId),count:qaSnap.count,next:qaSnap.next};
+  await page.evaluate(id=>{const i=state.invoices.find(x=>x.id===id);editingInvoiceId=id;pendingInvoiceDraft={...structuredClone(i),customer:getContact(i.customerId),paymentDays:i.paymentDays||0,status:'draft'}},qaCId);
+  await page.evaluate(()=>finalSaveInvoice());
+  qaSnap=await snap();
+  const qaCResaved=qaSnap.invoices.find(i=>i.id===qaCId);
+  assert.equal(qaCResaved.id,qaCBefore.id);
+  assert.equal(qaCResaved.number,qaCBefore.number);
+  assert.equal(qaSnap.next,qaCBefore.next,'Concept resave must not reserve an invoice number');
+  assert.equal(qaSnap.count,qaCBefore.count,'Concept resave must not duplicate the record');
+
+  // Two concepts finalized sequentially receive distinct numbers exactly once.
+  qaDraft=await makeDraft('D');
+  await page.evaluate(d=>{editingInvoiceId=null;pendingInvoiceDraft=d},qaDraft);
+  await page.evaluate(()=>finalSaveInvoice());
+  qaSnap=await snap();
+  const qaDId=qaSnap.invoices.find(i=>i.number==='CONCEPT-D').id;
+  const qaTwoBeforeNext=qaSnap.next,qaTwoBeforeCount=qaSnap.count;
+  await page.evaluate(id=>{const i=state.invoices.find(x=>x.id===id);editingInvoiceId=id;pendingInvoiceDraft={...structuredClone(i),customer:getContact(i.customerId),paymentDays:i.paymentDays||0,status:'sent'}},qaCId);
+  await page.evaluate(()=>finalSaveInvoice());
+  await page.evaluate(id=>{const i=state.invoices.find(x=>x.id===id);editingInvoiceId=id;pendingInvoiceDraft={...structuredClone(i),customer:getContact(i.customerId),paymentDays:i.paymentDays||0,status:'sent'}},qaDId);
+  await page.evaluate(()=>finalSaveInvoice());
+  qaSnap=await snap();
+  const qaC=qaSnap.invoices.find(i=>i.id===qaCId),qaD=qaSnap.invoices.find(i=>i.id===qaDId);
+  assert.notEqual(qaC.number,qaD.number,'Sequential finalization must produce distinct invoice numbers');
+  assert.equal(qaSnap.next,qaTwoBeforeNext+2,'Two finalizations must consume exactly two sequence values');
+  assert.equal(qaSnap.count,qaTwoBeforeCount,'Sequential finalization must not duplicate records');
+
+  // Negative uniqueness: own number is allowed for the same ID; another record is rejected.
+  const duplicateCheck=await page.evaluate(({sameId,otherId,number})=>{
+    const same=invoiceNumberAvailable(number,sameId);
+    const other=invoiceNumberAvailable(number,otherId);
+    const candidate={...structuredClone(state.invoices.find(x=>x.id===otherId)),number,customer:getContact(state.invoices.find(x=>x.id===otherId).customerId),status:'draft'};
+    const errors=invoiceDraftChecks(candidate,otherId).errors.map(x=>x.label);
+    return {same,other,errors};
+  },{sameId:qaCId,otherId:qaDId,number:qaC.number});
+  assert.equal(duplicateCheck.same,true,'An invoice must not conflict with its own number');
+  assert.equal(duplicateCheck.other,false,'A different invoice must conflict with the same number');
+  assert.ok(duplicateCheck.errors.includes('Uniek factuurnummer'),'Duplicate candidate must be rejected by invoice validation');
+
   await page.evaluate(()=>setImportProgress('Document verwerken','Document analyseren…','qa.pdf',48,3));
   assert.match(await page.locator('.modal').innerText(),/48%/);
   await page.evaluate(()=>showUploadError(createUploadError('413','Bestand groter dan limiet',413)));
