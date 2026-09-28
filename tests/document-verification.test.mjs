@@ -103,6 +103,9 @@ try{
   assert.equal(gate.weak,true,'Uncertain/OCR documents must queue independent verification');
   assert.equal(gate.weakVatLines,true,'Weak VAT-group confidence must queue independent verification');
 
+  const cents=await page.evaluate(()=>[financialMoneyCents('1.005'),financialMoneyCents('-1.005'),financialMoneyCents('12100.01')]);
+  assert.deepEqual(cents,[101,-101,1210001],'Money conversion must use deterministic half-up minor units');
+
   const base={party:'Voorbeeld Leverancier BV',issueDate:'2026-09-27',description:'Consultancy september',net:100,vatAmount:21,gross:121,vatRate:21,vatLines:[{rate:21,taxableAmount:100,vatAmount:21}],invoiceNumber:'INK-100',currency:'EUR',mixedRates:false};
 
   // Agreement: independent pass only updates verification metadata, never bookkeeping values.
