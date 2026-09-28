@@ -727,6 +727,27 @@ html,body,#authRoot,.marketing,.main,.content{background:#F8FAFC!important;color
 @media(max-width:900px){.kz-tabs{grid-template-columns:1fr 1fr}.kz-benefit,.kz-benefit.reverse{grid-template-columns:1fr}.kz-benefit.reverse .kz-benefit-copy{order:0}.kz-solutions-grid,.kz-reason-grid,.kz-audience-grid{grid-template-columns:1fr 1fr}.kz-apps-inner,.kz-plan-inner{grid-template-columns:1fr}.kz-trust-items,.kz-facts{grid-template-columns:1fr 1fr}.kz-final-box{grid-template-columns:1fr}}
 @media(max-width:620px){.kz-hero,.kz-product-stage,.kz-section-inner,.kz-benefit,.kz-reasons,.kz-audience,.kz-plan-inner,.kz-support,.kz-final{padding-left:15px;padding-right:15px}.kz-hero{padding-top:48px}.kz-hero h1{font-size:49px}.kz-tabs{grid-template-columns:1fr 1fr;padding-left:15px;padding-right:15px}.kz-product-shell{height:500px;min-height:500px}.kz-browser{left:4%;right:4%;top:6%;bottom:29%;grid-template-columns:78px 1fr}.kz-browser-main{padding:13px}.kz-phone{min-width:138px;width:40%;right:5%;bottom:2%}.kz-browser-cards{grid-template-columns:1fr}.kz-browser-card:nth-child(n+2){display:none}.kz-trust-items,.kz-solutions-grid,.kz-reason-grid,.kz-audience-grid,.kz-facts,.kz-support-grid{grid-template-columns:1fr}.kz-apps{padding:65px 0}.kz-apps-inner{padding-left:15px;padding-right:15px}.kz-app-phone{width:135px}.kz-final-box{padding:28px}}
 
+/* Real ProductScreenshot pattern — the screenshot is always the source of truth. */
+.product-screenshot{margin:0;background:#F6F9F8;border:1px solid #E1E8E5;border-radius:20px;padding:8px;box-shadow:0 20px 60px rgba(20,43,51,.11);overflow:hidden}
+.product-screenshot picture{display:block}
+.product-screenshot img{display:block;width:100%;height:auto;aspect-ratio:3/2;object-fit:contain;border-radius:13px;background:#fff}
+.product-screenshot figcaption{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 8px 4px;color:#5C6B72;font-size:10px;line-height:1.5}
+.product-screenshot.mobile{width:min(390px,100%);margin-inline:auto;background:#10161A;border-color:#10161A;border-radius:30px;padding:7px}
+.product-screenshot.mobile img{aspect-ratio:390/844;border-radius:23px}
+.product-screenshot.mobile figcaption{color:#D3DBDE}
+.kz-hero-product-proof{max-width:1200px;margin:20px auto 34px;padding:0 22px}
+.kz-product-stage .product-screenshot{transition:opacity .16s ease,transform .16s ease}
+.kz-product-stage .product-screenshot.is-changing{opacity:.5;transform:translateY(3px)}
+.kz-real-workflow-proof{display:grid;grid-template-columns:.75fr 1.25fr;gap:30px;align-items:center}
+.kz-real-workflow-copy{display:grid;gap:11px}
+.kz-real-workflow-step{border-left:2px solid #D8E5E9;padding:5px 0 5px 13px}
+.kz-real-workflow-step strong{display:block;font-size:12px;color:#20292E}
+.kz-real-workflow-step span{display:block;margin-top:3px;font-size:10px;line-height:1.5;color:#617078}
+.kz-mobile-proof-grid{display:grid;grid-template-columns:minmax(0,390px);justify-content:center}
+.kz-benefit .product-screenshot{width:100%}
+@media(max-width:900px){.kz-real-workflow-proof{grid-template-columns:1fr}.kz-hero-product-proof{padding:0 15px}}
+@media(max-width:620px){.product-screenshot{padding:5px;border-radius:15px}.product-screenshot img{border-radius:10px}.product-screenshot figcaption{align-items:flex-start;flex-direction:column;padding:8px 5px 3px}.kz-hero-product-proof{margin-top:12px;margin-bottom:26px;padding:0 15px}}
+
 /* Visibility and interaction polish */
 .marketing a,.marketing button,.marketing summary{
   -webkit-tap-highlight-color:transparent
@@ -2238,29 +2259,25 @@ function showLanding(){
 
 function initBoekunaMarketingInteractions(){
  const productData={
-  facturen:{nav:'Facturen',title:'Facturen',action:'+ Nieuwe factuur',kicker:'Verkoop',heading:'Facturen maken en betalingen volgen.',text:'Maak verkoopfacturen, creditnota’s en houd bij wat nog openstaat.',c1:['Openstaand','In beeld'],c2:['PDF','Direct klaar'],c3:['Status','Te volgen'],phone:['Facturen','Nieuwe factuur','Maken · PDF · volgen'],href:'/facturen/',link:'Bekijk Facturen →'},
-  scanner:{nav:'Kosten',title:'Slimme scanner',action:'+ Document',kicker:'Documentherkenning',heading:'Van PDF of bonfoto naar controle.',text:'Laat leverancier, datum, bedragen en btw voorbereiden voordat jij de boeking bevestigt.',c1:['Bron','PDF + foto'],c2:['OCR','Beschikbaar'],c3:['Controle','Altijd eerst'],phone:['Scanner','Bon scannen','Foto · herkennen · controleren'],href:'/scanner/',link:'Bekijk Slimme scanner →'},
-  btw:{nav:'Btw',title:'Btw & bank',action:'Importeer CSV',kicker:'Controle',heading:'Btw en bankregels bij elkaar.',text:'Importeer transacties, koppel betalingen en volg je indicatieve btw-positie per kwartaal.',c1:['Bank','CSV import'],c2:['BTW','9% + 21%'],c3:['Matching','Te controleren'],phone:['Btw & bank','Kwartaalcheck','Bank · btw · matching'],href:'/btw-bank/',link:'Bekijk Btw & bank →'},
-  rapportages:{nav:'Rapportages',title:'Rapportages',action:'Bekijk periode',kicker:'Inzicht',heading:'Zie hoe je onderneming ervoor staat.',text:'Volg omzet, kosten, resultaat en openstaande posten vanuit dezelfde administratie.',c1:['Omzet','Actueel'],c2:['Kosten','In beeld'],c3:['Resultaat','Te volgen'],phone:['Rapportages','Mijn maand','Omzet · kosten · resultaat'],href:'/rapportages/',link:'Bekijk Rapportages →'}
+  facturen:{src:'/assets/product/boekuna-invoices-desktop.webp',src960:'/assets/product/boekuna-invoices-desktop-960.webp',alt:'Echt Boekuna Facturen-overzicht met demo-facturen, statussen en zoek- en filterbalk',caption:'Facturen · echte Boekuna-interface',href:'/facturen/',link:'Bekijk Facturen →'},
+  documenten:{src:'/assets/product/boekuna-documents-desktop.webp',src960:'/assets/product/boekuna-documents-desktop-960.webp',alt:'Echt Boekuna Documenten-overzicht met opgeslagen documenten en controlestatussen',caption:'Documenten · echte opslag- en controlestatussen',href:'/scanner/',link:'Bekijk documentverwerking →'},
+  btw:{src:'/assets/product/boekuna-vat-desktop.webp',src960:'/assets/product/boekuna-vat-desktop-960.webp',alt:'Echt Boekuna btw-overzicht met kwartaalpositie en controlelijst',caption:'Btw · indicatief overzicht uit dezelfde demo-administratie',href:'/btw-bank/',link:'Bekijk Btw & bank →'},
+  rapportages:{src:'/assets/product/boekuna-reports-desktop.webp',src960:'/assets/product/boekuna-reports-desktop-960.webp',alt:'Echt Boekuna Rapportages-scherm met omzet, kosten en resultaat',caption:'Rapportages · echte Boekuna-interface',href:'/rapportages/',link:'Bekijk Rapportages →'}
  };
  const q=id=>document.getElementById(id);
  const shell=q('kzProductShell');
  const tabs=[...document.querySelectorAll('[data-kz-tab]')];
- const navItems=[...document.querySelectorAll('#kzBrowserNav span')];
  const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
  const setText=(id,value)=>{const el=q(id);if(el)el.textContent=value};
  function setProduct(key){
   const d=productData[key];if(!d)return;
   if(shell)shell.classList.add('is-changing');
   tabs.forEach(t=>{const on=t.dataset.kzTab===key;t.classList.toggle('active',on);t.setAttribute('aria-pressed',String(on))});
-  navItems.forEach(n=>n.classList.toggle('active',n.textContent.trim()===d.nav));
   const apply=()=>{
-   setText('kzPreviewTitle',d.title);setText('kzPreviewAction',d.action);setText('kzPreviewKicker',d.kicker);
-   setText('kzPreviewHeading',d.heading);setText('kzPreviewText',d.text);
-   setText('kzCard1Label',d.c1[0]);setText('kzCard1Value',d.c1[1]);
-   setText('kzCard2Label',d.c2[0]);setText('kzCard2Value',d.c2[1]);
-   setText('kzCard3Label',d.c3[0]);setText('kzCard3Value',d.c3[1]);
-   setText('kzPhoneKicker',d.phone[0]);setText('kzPhoneTitle',d.phone[1]);setText('kzPhoneText',d.phone[2]);
+   const img=q('kzProductImage'),source=q('kzProductSource');
+   if(img){img.src=d.src;img.alt=d.alt}
+   if(source)source.srcset=d.src960;
+   setText('kzProductCaption',d.caption);
    const link=q('kzPreviewLink');if(link){link.href=d.href;link.textContent=d.link}
    if(shell)shell.classList.remove('is-changing');
   };
