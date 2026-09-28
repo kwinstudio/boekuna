@@ -24,10 +24,44 @@ assert.ok(html.includes("async function reserveFinalInvoiceNumber"),"Server-side
 assert.ok(html.includes("function invoiceNumberAvailable(number,excludeId='')"),"Invoice uniqueness checks must support excluding the invoice being edited");
 assert.ok(html.includes("function runDocumentVerification(id)"),"Independent document verification worker is required");
 assert.ok(invoiceAi.includes('DOCUMENT_PROCESSOR_URL+"/verify"'),"PASS 2 must route through the configured document processor verification endpoint");
-assert.ok(invoiceAi.includes('if(body?.reviewMode==="verify")return {ok:true,kind:"user"};'),"PASS 2 must not consume a second user smart-document quota unit");
+assert.ok(/if\(body\?\.reviewMode==="verify"\)return \{ok:true,kind:"user"(?:,user)?\};/.test(invoiceAi),"PASS 2 must not consume a second user smart-document quota unit");
 assert.ok(invoiceAi.includes("storedDocumentInput(req,safe(data.clientRef,240))"),"PASS 2 must retrieve the saved original under the authenticated user's RLS");
 assert.ok(invoiceAi.includes("claimVerificationJob(req,data)"),"PASS 2 must claim an idempotent server-side job before provider work");
 assert.ok(processor.includes('@app.post("/verify")'),"The document processor must expose a dedicated independent verification endpoint");
+for(const origin of [
+  "https://boekuna-boekhouding.onrender.com",
+  "https://kwinest-boekhouding.onrender.com",
+  "https://boekuna.nl",
+  "https://www.boekuna.nl",
+  "https://boekuna-qa-staging.onrender.com"
+]){
+  assert.ok(processor.includes(origin),`Document processor CORS must allow the trusted app origin: ${origin}`);
+}
+assert.ok(processor.includes("allow_origins=sorted(ALLOWED_ORIGINS)"),"Document processor preflight must use the explicit trusted origin set");
+assert.ok(processor.includes("origin not in ALLOWED_ORIGINS"),"Document processor route auth must use the same explicit trusted origin set");
+assert.ok(!processor.includes('allow_origins=["*"]'),"Document processor must never use wildcard CORS origins");
+assert.ok(processor.includes("SUPPORTED_IMAGE_MIME_TYPES"),"Processor must publish an explicit supported image MIME allowlist");
+assert.ok(processor.includes("ext in SUPPORTED_IMAGE_EXTENSIONS or c in SUPPORTED_IMAGE_MIME_TYPES"),"Processor extraction must use the explicit image allowlist instead of accepting arbitrary image/* types");
+assert.ok(html.includes("const DOCUMENT_IMAGE_MIME_TYPES="),"Frontend must share an explicit image MIME allowlist");
+assert.ok(!html.includes('id="receiptPhotoFile" accept="image/*'),"Receipt picker must not advertise unsupported arbitrary image types");
+assert.ok(!html.includes('id="receiptCameraFile" accept="image/*'),"Camera picker must use the same production image allowlist");
+assert.ok(html.includes("DOCUMENT_IMAGE_MIME_TYPES.includes(String(file.type||'').toLowerCase())"),"Frontend validation must enforce the explicit supported MIME allowlist");
+const frontendImageMimeMatch=html.match(/const DOCUMENT_IMAGE_MIME_TYPES=\[([^\]]+)\]/);
+const processorImageMimeMatch=processor.match(/SUPPORTED_IMAGE_MIME_TYPES = frozenset\(\{([^}]+)\}\)/);
+assert.ok(frontendImageMimeMatch&&processorImageMimeMatch,"Frontend and processor image MIME allowlists must be statically readable for drift checks");
+const parseQuotedSet=s=>new Set([...s.matchAll(/["']([^"']+)["']/g)].map(m=>m[1]));
+const frontendImageMimes=parseQuotedSet(frontendImageMimeMatch[1]);
+const processorImageMimes=parseQuotedSet(processorImageMimeMatch[1]);
+assert.deepEqual([...frontendImageMimes].sort(),[...processorImageMimes].sort(),"Frontend and processor image MIME allowlists must remain identical");
+const frontendExtMatch=html.match(/const DOCUMENT_UPLOAD_EXTENSIONS=\[([^\]]+)\]/);
+const processorExtMatch=processor.match(/SUPPORTED_DOCUMENT_EXTENSIONS = \(([^)]+)\)/);
+assert.ok(frontendExtMatch&&processorExtMatch,"Document extension allowlists must be statically readable for drift checks");
+const frontendExts=parseQuotedSet(frontendExtMatch[1]);
+const processorExts=new Set([...parseQuotedSet(processorExtMatch[1])].map(x=>x.replace(/^\./,'')));
+assert.deepEqual([...frontendExts].sort(),[...processorExts].sort(),"Frontend and processor document extension allowlists must remain identical");
+assert.match(html,/const DOCUMENT_MAX_SIZE_MB=15;/,"Frontend max-size fallback must stay centralized");
+assert.match(processor,/MAX_BYTES = int\(os\.getenv\("MAX_FILE_BYTES", str\(15 \* 1024 \* 1024\)\)\)/,"Processor default max size must match the frontend fallback");
+
 assert.ok(processor.includes('if not independent:'),"Independent PASS 2 must omit the primary heuristic answer from model context");
 assert.ok(processor.includes('This is an INDEPENDENT SECOND VERIFICATION.'),"PASS 2 must use an explicitly independent verification instruction");
 assert.ok(processor.includes('"store":False'),"OpenAI Responses must disable response storage for document analysis");
@@ -164,10 +198,24 @@ assert.ok(!html.includes("if(!profileEssentialsComplete(state.company))issues.pu
 assert.ok(html.includes("EDGE_BASE+'/billing-checkout'"),"Checkout must be created server-side");
 assert.ok(html.includes("EDGE_BASE+'/billing-portal'"),"Paid customers need subscription management");
 assert.ok(html.includes("function renderBillingCard()"),"Settings must expose current plan and monthly usage");
-assert.ok(html.includes("Number(err?.status||0)===402"),"Quota errors must not fall back to local OCR and bypass billing limits");
+assert.ok(html.includes("if(!['PROCESSOR_UNAVAILABLE','PROCESSING_TIMEOUT','UNKNOWN'].includes(code))throw err;"),"Only temporary processor failures may fall back to local document parsing");
 assert.ok(!/sk_(?:live|test)_[A-Za-z0-9]+/.test(html),"Stripe secret keys must never be present in the browser source");
-for(const code of ["400","401","402","403","408","413","415","422","429","500","502","503","504","NETWORK_ERROR","TIMEOUT","OCR_FAILED","PDF_READ_FAILED"]){
-  assert.ok(html.includes(`'${code}':[`)||html.includes(` ${code}:[`),`Upload error code ${code} must have an explanation`);
+for(const code of ["DOCUMENT_PDF_UNREADABLE","DOCUMENT_IMAGE_UNREADABLE","DOCUMENT_UNSUPPORTED_TYPE","DOCUMENT_TOO_LARGE","AUTH_SESSION_EXPIRED","DOCUMENT_LIMIT_REACHED","ACCOUNT_READ_ONLY","RATE_LIMITED","PROCESSING_TIMEOUT","PROCESSOR_UNAVAILABLE","PERMISSION_DENIED","INVALID_REQUEST","UNKNOWN"]){
+  assert.ok(html.includes(`${code}:[`)||html.includes(`'${code}':[`),`Stable document error code ${code} must have an explanation`);
 }
+assert.ok(html.includes("publicError.code||fallbackDocumentCode(r.status)"),"Document processor frontend adapter must prefer public error.code");
+assert.ok(html.includes("return {code,title:info[0]"),"Upload product behavior must retain the stable code instead of replacing it with HTTP status");
+assert.ok(!html.includes("j.detail||j.error"),"Frontend must not interpret raw processor detail strings");
+assert.ok(!html.includes("json.error||`AI-controle mislukt"),"Frontend must not render raw AI provider errors");
+assert.ok(analyzeInvoiceEdge.includes("PUBLIC_ERROR_CODES"),"AI edge route must enforce a public error-code allowlist");
+assert.ok(analyzeInvoiceEdge.includes("reference_id"),"AI edge errors must include a support reference id");
+assert.ok(analyzeInvoiceEdge.includes("provider_request_id"),"AI edge logs must preserve provider request ids internally");
+assert.ok(!analyzeInvoiceEdge.includes("return j(req,{ok:false,error:message}"),"AI edge route must never return a raw provider message");
+assert.ok(!analyzeInvoiceEdge.includes("out?.detail||out?.error"),"Verification proxy must never forward raw processor detail strings");
+assert.ok(processor.includes("class BoekunaDocumentError"),"Processor must centralize safe document failures");
+assert.ok(processor.includes("public_error_response"),"Processor must use one public error response builder");
+assert.ok(processor.includes('"reference_id":reference_id'),"Processor failures must include a reference id");
+assert.ok(!processor.includes('f"Deze foto kon niet worden geopend ({type(exc).__name__})'),"Image decoder exception types must never be returned publicly");
+assert.ok(!processor.includes('f"Document kon niet worden verwerkt ({type(exc).__name__})'),"Document library exception types must never be returned publicly");
 
 console.log("Boekuna source safety tests: PASS");

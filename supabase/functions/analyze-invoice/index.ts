@@ -4,6 +4,9 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const DOCUMENT_PROCESSOR_URL=(Deno.env.get("DOCUMENT_PROCESSOR_URL")||"https://kwinest-docprocessor.onrender.com").replace(/\/$/,"");
 const ALLOWED_ORIGINS = new Set([
   "https://boekuna-boekhouding.onrender.com",
+  "https://kwinest-boekhouding.onrender.com",
+  "https://boekuna-qa-staging.onrender.com",
+  "https://boekuna-render-link-qa.onrender.com",
   "https://boekuna.nl",
   "https://www.boekuna.nl",
   "http://localhost:3000",
@@ -23,6 +26,60 @@ const safe=(v:any,n=1000)=>String(v??"").slice(0,n);
 const parseJson=(t:string)=>{let raw=String(t||"").trim();if(raw.startsWith("\`\`\`"))raw=raw.replace(/^\`\`\`(?:json)?/i,"").replace(/\`\`\`$/,"").trim();const a=raw.indexOf("{"),b=raw.lastIndexOf("}");if(a>=0&&b>a)raw=raw.slice(a,b+1);return JSON.parse(raw)};
 const outputText=(x:any)=>{if(typeof x?.output_text==="string")return x.output_text;for(const item of x?.output||[])if(item?.type==="message")for(const c of item.content||[])if(c?.type==="output_text"&&c.text)return c.text;return ""};
 
+const PUBLIC_ERRORS:any={
+  DOCUMENT_PDF_UNREADABLE:{category:"document",retryable:false},
+  DOCUMENT_IMAGE_UNREADABLE:{category:"document",retryable:false},
+  DOCUMENT_UNSUPPORTED_TYPE:{category:"document",retryable:false},
+  DOCUMENT_TOO_LARGE:{category:"document",retryable:false},
+  AUTH_SESSION_EXPIRED:{category:"auth",retryable:false},
+  DOCUMENT_LIMIT_REACHED:{category:"entitlement",retryable:false},
+  ACCOUNT_READ_ONLY:{category:"entitlement",retryable:false},
+  RATE_LIMITED:{category:"temporary",retryable:true},
+  PROCESSING_TIMEOUT:{category:"temporary",retryable:true},
+  PROCESSOR_UNAVAILABLE:{category:"temporary",retryable:true},
+  PERMISSION_DENIED:{category:"permission",retryable:false},
+  INVALID_REQUEST:{category:"request",retryable:false},
+  UNKNOWN:{category:"temporary",retryable:true},
+};
+const PUBLIC_ERROR_CODES=new Set(Object.keys(PUBLIC_ERRORS));
+const newReferenceId=()=>{
+  const alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",bytes=crypto.getRandomValues(new Uint8Array(6));
+  return "BK-"+Array.from(bytes,b=>alphabet[b%alphabet.length]).join("");
+};
+const sanitizeLog=(value:any,n=500)=>String(value??"")
+  .replace(/Bearer\s+[A-Za-z0-9._~+\-/=]+/gi,"Bearer [REDACTED]")
+  .replace(/\b(?:sk(?:[-_](?:live|test|proj))?|sb_secret|sb_publishable)[-_][A-Za-z0-9_-]+\b/gi,"[REDACTED_KEY]")
+  .replace(/(authorization|api[_-]?key|token|secret)\s*[:=]\s*[^\s,;]+/gi,"$1=[REDACTED]")
+  .slice(0,n);
+const safePublicContext=(value:any)=>{
+  const out:any={};if(!value||typeof value!=="object")return out;
+  for(const k of ["max_size_mb","max_pages","monthly_limit","remaining","retry_after_seconds","supported_extensions","supported_mime_types"]){
+    if(value[k]!==undefined)out[k]=value[k];
+  }
+  return out;
+};
+const fail=(req:Request,code:string,status:number,internal:any={})=>{
+  if(!PUBLIC_ERROR_CODES.has(code))code="UNKNOWN";
+  const spec=PUBLIC_ERRORS[code],reference_id=String(internal.reference_id||newReferenceId()).slice(0,32);
+  console.error(JSON.stringify({
+    event:"document_ai_error",reference_id,timestamp:new Date().toISOString(),route:"analyze-invoice",
+    stage:internal.stage||"unknown",internal_code:internal.internal_code||code,public_code:code,
+    http_status:status,retryable:spec.retryable,processing_state:internal.state||"no_changes",
+    user_ref:internal.user_ref||null,file_mime:internal.file_mime||null,file_ext:internal.file_ext||null,file_size:internal.file_size||null,
+    provider:internal.provider||null,provider_status:internal.provider_status??null,
+    provider_code:sanitizeLog(internal.provider_code,120)||null,provider_request_id:sanitizeLog(internal.provider_request_id,120)||null,
+    internal_error:sanitizeLog(internal.internal_error)||null,
+  }));
+  return j(req,{ok:false,error:{
+    code,category:spec.category,retryable:spec.retryable,reference_id,
+    context:safePublicContext(internal.context),state:internal.state||"no_changes"
+  }},status);
+};
+const upstreamPublicCode=(out:any,fallback="PROCESSOR_UNAVAILABLE")=>{
+  const code=String(out?.error?.code||"");
+  return PUBLIC_ERROR_CODES.has(code)?code:fallback;
+};
+
 async function sha256(value:string){
   const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
@@ -40,15 +97,21 @@ function bytesToBase64(bytes:Uint8Array){
  return btoa(bin);
 }
 async function storedDocumentInput(req:Request,clientRef:string){
- if(!clientRef)return null;
- const user=await authUser(req);if(!user)return null;
+ if(!clientRef)return {ok:false,kind:"missing",internal_code:"CLIENT_REF_MISSING"} as any;
+ const user=await authUser(req);if(!user)return {ok:false,kind:"auth",internal_code:"AUTH_SESSION_INVALID"} as any;
  const sb=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_ANON_KEY")!,{global:{headers:{Authorization:"Bearer "+user.token}},auth:{persistSession:false,autoRefreshToken:false}});
  const {data:meta,error}=await sb.from("documents").select("storage_path,name,mime_type").eq("user_id",user.user.id).eq("client_ref",clientRef).maybeSingle();
- if(error||!meta?.storage_path)return null;
+ if(error)return {ok:false,kind:"unavailable",state:"unknown_state",internal_code:"DOCUMENT_METADATA_READ_FAILED",internal_error:error.message} as any;
+ if(!meta?.storage_path)return {ok:false,kind:"missing",state:"unknown_state",internal_code:"ORIGINAL_DOCUMENT_NOT_FOUND"} as any;
  const {data:blob,error:downloadError}=await sb.storage.from("kwinest-documents").download(meta.storage_path);
- if(downloadError||!blob)return null;
- const bytes=new Uint8Array(await blob.arrayBuffer());
- return {fileName:safe(meta.name||"document",160),mimeType:safe(meta.mime_type||blob.type||"application/octet-stream",120).toLowerCase(),base64:bytesToBase64(bytes)};
+ if(downloadError)return {ok:false,kind:"unavailable",state:"stored_unprocessed",internal_code:"DOCUMENT_STORAGE_DOWNLOAD_FAILED",internal_error:downloadError.message} as any;
+ if(!blob)return {ok:false,kind:"unavailable",state:"stored_unprocessed",internal_code:"DOCUMENT_STORAGE_EMPTY_RESPONSE"} as any;
+ try{
+   const bytes=new Uint8Array(await blob.arrayBuffer());
+   return {ok:true,fileName:safe(meta.name||"document",160),mimeType:safe(meta.mime_type||blob.type||"application/octet-stream",120).toLowerCase(),base64:bytesToBase64(bytes)};
+ }catch(e){
+   return {ok:false,kind:"unavailable",state:"stored_unprocessed",internal_code:"DOCUMENT_STORAGE_READ_FAILED",internal_error:e} as any;
+ }
 }
 
 function adminDb(){
@@ -84,12 +147,21 @@ async function allowRequest(req:Request,body:any){
   if(user){
     const sb=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_ANON_KEY")!,{global:{headers:{Authorization:"Bearer "+user.token}},auth:{persistSession:false,autoRefreshToken:false}});
     const {data:canOperate,error:entitlementError}=await sb.rpc("can_operate_bookkeeping");
-    if(entitlementError)return {ok:false,kind:"entitlement_error"};
-    if(canOperate!==true)return {ok:false,kind:"read_only"};
-    if(body?.reviewMode==="verify")return {ok:true,kind:"user"};
-    const q=await fetch(Deno.env.get("SUPABASE_URL")!+"/functions/v1/consume-quota",{method:"POST",headers:{Authorization:"Bearer "+user.token,"content-type":"application/json"},body:JSON.stringify({feature:"invoice_ai"})});
-    const o=await q.json().catch(()=>({}));
-    return {ok:!!(q.ok&&o.allowed),kind:"user"};
+    if(entitlementError)return {ok:false,kind:"unavailable",user};
+    if(canOperate!==true)return {ok:false,kind:"read_only",user};
+    if(body?.reviewMode==="verify")return {ok:true,kind:"user",user};
+    try{
+      const q=await fetch(Deno.env.get("SUPABASE_URL")!+"/functions/v1/consume-quota",{method:"POST",headers:{Authorization:"Bearer "+user.token,"content-type":"application/json"},body:JSON.stringify({feature:"invoice_ai"}),signal:AbortSignal.timeout(12000)});
+      const o=await q.json().catch(()=>({}));
+      if(q.ok&&o?.allowed===true)return {ok:true,kind:"user",user};
+      const code=String(o?.error?.code||"");
+      if(code==="ACCOUNT_READ_ONLY")return {ok:false,kind:"read_only",user};
+      if(code==="RATE_LIMITED")return {ok:false,kind:"rate_limited",user,upstream:o?.error};
+      if(code==="AUTH_SESSION_EXPIRED")return {ok:false,kind:"auth_expired",user};
+      return {ok:false,kind:"unavailable",user,upstream:o?.error};
+    }catch(e){
+      return {ok:false,kind:e instanceof DOMException&&e.name==="TimeoutError"?"timeout":"unavailable",user,internal_error:e};
+    }
   }
   const origin=req.headers.get("origin")||"";
   const test=req.headers.get("x-kwinest-test-mode")==="1" && body?.testMode===true;
@@ -98,7 +170,8 @@ async function allowRequest(req:Request,body:any){
   const hash=await sha256(ip+"|kwinest-invoice-ai");
   const admin=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false,autoRefreshToken:false}});
   const {data,error}=await admin.rpc("consume_anonymous_ai_quota",{p_client_hash:hash});
-  return {ok:!error&&data===true,kind:"test"};
+  if(error)return {ok:false,kind:"unavailable",internal_error:error.message};
+  return {ok:data===true,kind:data===true?"test":"rate_limited"};
 }
 
 function promptFor(data:any){
@@ -136,32 +209,49 @@ Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors(req)});
   const configured=!!(Deno.env.get("OPENAI_API_KEY")||Deno.env.get("AI_GATEWAY_API_KEY"));
   if(req.method==="GET")return j(req,{ok:true,service:"invoice-ai-review",configured,model:"gpt-5.6-sol"});
-  if(req.method!=="POST")return j(req,{ok:false,error:"METHOD_NOT_ALLOWED"},405);
+  if(req.method!=="POST")return fail(req,"INVALID_REQUEST",405,{stage:"request",internal_code:"METHOD_NOT_ALLOWED"});
   const origin=req.headers.get("origin")||"";
-  if(origin && !ALLOWED_ORIGINS.has(origin))return j(req,{ok:false,error:"ORIGIN_NOT_ALLOWED"},403);
+  if(origin && !ALLOWED_ORIGINS.has(origin))return fail(req,"PERMISSION_DENIED",403,{stage:"request",internal_code:"ORIGIN_NOT_ALLOWED",internal_error:origin});
 
   const data=await req.json().catch(()=>null);
-  if(!data)return j(req,{ok:false,error:"INVALID_JSON"},400);
+  if(!data)return fail(req,"INVALID_REQUEST",400,{stage:"request",internal_code:"INVALID_JSON"});
+  const sourceName=safe(data.fileName||"document",160);
+  const mime=safe(data.mimeType||(data.pdfBase64?"application/pdf":""),120).toLowerCase();
+  const fileExt=(sourceName.match(/\.[A-Za-z0-9]+$/)?.[0]||"").toLowerCase();
+  const common={file_mime:mime||null,file_ext:fileExt||null,file_size:Number(data.fileSize||0)||null};
+
   const allowed=await allowRequest(req,data);
+  const userRef=allowed?.user?.user?.id?String(allowed.user.user.id):null;
   if(!allowed.ok){
-    if(allowed.kind==="none")return j(req,{ok:false,error:"UNAUTHORIZED"},401);
-    if(allowed.kind==="read_only")return j(req,{ok:false,error:"ACCOUNT_READ_ONLY"},402);
-    if(allowed.kind==="entitlement_error")return j(req,{ok:false,error:"ENTITLEMENT_CHECK_FAILED"},503);
-    return j(req,{ok:false,error:"AI_RATE_LIMIT"},429);
+    if(allowed.kind==="none"||allowed.kind==="auth_expired")return fail(req,"AUTH_SESSION_EXPIRED",401,{...common,stage:"auth",internal_code:"AUTH_SESSION_INVALID",user_ref:userRef});
+    if(allowed.kind==="read_only")return fail(req,"ACCOUNT_READ_ONLY",403,{...common,stage:"entitlement",internal_code:"ENTITLEMENT_READ_ONLY",user_ref:userRef});
+    if(allowed.kind==="rate_limited")return fail(req,"RATE_LIMITED",429,{...common,stage:"rate_limit",internal_code:"AI_RATE_LIMIT",user_ref:userRef,context:allowed?.upstream?.context||{}});
+    if(allowed.kind==="timeout")return fail(req,"PROCESSING_TIMEOUT",504,{...common,stage:"rate_limit",internal_code:"QUOTA_CHECK_TIMEOUT",internal_error:allowed.internal_error,user_ref:userRef});
+    return fail(req,"PROCESSOR_UNAVAILABLE",503,{...common,stage:"entitlement",internal_code:"ENTITLEMENT_OR_QUOTA_UNAVAILABLE",internal_error:allowed.internal_error,user_ref:userRef});
   }
 
   const verify=data.reviewMode==="verify";
   let verificationClaim:any={kind:"none"};
-  try{verificationClaim=await claimVerificationJob(req,data)}catch(e){return j(req,{ok:false,error:"VERIFICATION_JOB_ERROR"},503)}
+  try{
+    verificationClaim=await claimVerificationJob(req,data);
+  }catch(e){
+    return fail(req,"PROCESSOR_UNAVAILABLE",503,{...common,stage:"verification_job",internal_code:"VERIFICATION_JOB_ERROR",internal_error:e,user_ref:userRef,state:"unknown_state"});
+  }
   if(verificationClaim.kind==="cached")return j(req,verificationClaim.result);
-  if(verificationClaim.kind==="in_progress")return j(req,{ok:false,error:"VERIFICATION_IN_PROGRESS"},409);
-  if(verificationClaim.kind==="exhausted")return j(req,{ok:false,error:"VERIFICATION_RETRY_LIMIT"},503);
+  if(verificationClaim.kind==="in_progress")return fail(req,"RATE_LIMITED",409,{...common,stage:"verification_job",internal_code:"VERIFICATION_IN_PROGRESS",user_ref:userRef,state:"stored_unprocessed",context:{retry_after_seconds:15}});
+  if(verificationClaim.kind==="exhausted")return fail(req,"PROCESSOR_UNAVAILABLE",503,{...common,stage:"verification_job",internal_code:"VERIFICATION_RETRY_LIMIT",user_ref:userRef,state:"stored_unprocessed"});
 
   if(verify){
-    const stored=data.clientRef?await storedDocumentInput(req,safe(data.clientRef,240)):null;
-    if(!stored){
-      await finishVerificationJob(verificationClaim,null,"ORIGINAL_DOCUMENT_NOT_AVAILABLE");
-      return j(req,{ok:false,error:"ORIGINAL_DOCUMENT_NOT_AVAILABLE"},422);
+    const stored=await storedDocumentInput(req,safe(data.clientRef,240));
+    if(!stored?.ok){
+      const ref=newReferenceId(),missing=stored?.kind==="missing",auth=stored?.kind==="auth";
+      const publicCode=auth?"AUTH_SESSION_EXPIRED":(missing?"INVALID_REQUEST":"PROCESSOR_UNAVAILABLE");
+      const status=auth?401:(missing?422:503);
+      await finishVerificationJob(verificationClaim,null,publicCode+"|"+ref);
+      return fail(req,publicCode,status,{
+        ...common,stage:"storage",internal_code:stored?.internal_code||"ORIGINAL_DOCUMENT_UNAVAILABLE",
+        internal_error:stored?.internal_error,user_ref:userRef,state:String(stored?.state||"unknown_state"),reference_id:ref
+      });
     }
     try{
       const bytes=Uint8Array.from(atob(stored.base64),c=>c.charCodeAt(0));
@@ -177,56 +267,72 @@ Deno.serve(async(req:Request)=>{
       });
       const out=await rr.json().catch(()=>({}));
       if(!rr.ok||!out?.ok){
-        const message=out?.detail||out?.error||"DOCUMENT_VERIFICATION_SERVICE_ERROR";
-        await finishVerificationJob(verificationClaim,null,String(message));
-        return j(req,{ok:false,error:message},rr.status>=400?rr.status:503);
+        const code=upstreamPublicCode(out);
+        const ref=String(out?.error?.reference_id||newReferenceId());
+        await finishVerificationJob(verificationClaim,null,code+"|"+ref);
+        return fail(req,code,rr.status>=400?rr.status:503,{
+          ...common,stage:"processor_verify",internal_code:"DOCUMENT_PROCESSOR_"+code,user_ref:userRef,state:"stored_unprocessed",
+          reference_id:ref,context:out?.error?.context||{},provider_status:rr.status
+        });
       }
       const processing=out?.data?.processing||{};
       const response={ok:true,processor:true,model:processing.aiModel||"gpt-5.6-sol",data:out.data,usage:processing.aiUsage||null,pass:"verify"};
       await finishVerificationJob(verificationClaim,response);
       return j(req,response);
     }catch(e){
-      const message=e instanceof Error?e.message:"DOCUMENT_VERIFICATION_SERVICE_UNREACHABLE";
-      await finishVerificationJob(verificationClaim,null,message);
-      return j(req,{ok:false,error:"DOCUMENT_VERIFICATION_SERVICE_UNREACHABLE"},503);
+      const isTimeout=e instanceof DOMException&&e.name==="TimeoutError";
+      const ref=newReferenceId();
+      await finishVerificationJob(verificationClaim,null,(isTimeout?"PROCESSING_TIMEOUT":"PROCESSOR_UNAVAILABLE")+"|"+ref);
+      return fail(req,isTimeout?"PROCESSING_TIMEOUT":"PROCESSOR_UNAVAILABLE",isTimeout?504:503,{
+        ...common,stage:"processor_verify",internal_code:isTimeout?"DOCUMENT_PROCESSOR_TIMEOUT":"DOCUMENT_PROCESSOR_UNREACHABLE",
+        internal_error:e,user_ref:userRef,state:"stored_unprocessed",reference_id:ref
+      });
     }
   }
 
   const openaiKey=Deno.env.get("OPENAI_API_KEY");
   const gatewayKey=Deno.env.get("AI_GATEWAY_API_KEY");
-  if(!openaiKey&&!gatewayKey)return j(req,{ok:false,error:"AI_PROVIDER_NOT_CONFIGURED"},503);
+  if(!openaiKey&&!gatewayKey)return fail(req,"PROCESSOR_UNAVAILABLE",503,{...common,stage:"ai_provider",internal_code:"AI_PROVIDER_NOT_CONFIGURED",user_ref:userRef});
   const content:any[]=[{type:"input_text",text:promptFor(data)}];
   const raw=String(data.fileBase64||data.pdfBase64||"");
-  const mime=safe(data.mimeType||(data.pdfBase64?"application/pdf":""),120).toLowerCase();
-  const sourceName=safe(data.fileName||"document",160);
   if(raw){
     const dataPrefix=/^data:[^;]+;base64,/i.exec(raw)?.[0]||"";
     const b64=dataPrefix?raw.slice(dataPrefix.length):raw;
     const supportedImages=new Set(["image/png","image/jpeg","image/webp","image/gif"]);
     const supportedFiles=new Set(["application/pdf","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","text/csv","application/csv","text/plain"]);
-    if(supportedImages.has(mime)){
-      content.push({type:"input_image",image_url:`data:${mime};base64,${b64}`,detail:"high"});
-    }else if(supportedFiles.has(mime)){
-      content.push({type:"input_file",filename:sourceName,file_data:`data:${mime};base64,${b64}`});
-    }
+    if(supportedImages.has(mime))content.push({type:"input_image",image_url:`data:${mime};base64,${b64}`,detail:"high"});
+    else if(supportedFiles.has(mime))content.push({type:"input_file",filename:sourceName,file_data:`data:${mime};base64,${b64}`});
   }
   const direct=!!openaiKey;
   const endpoint=direct?(Deno.env.get("OPENAI_RESPONSES_URL")||"https://api.openai.com/v1/responses"):"https://ai-gateway.vercel.sh/v1/responses";
   const key=direct?openaiKey!:gatewayKey!;
   const model=direct?"gpt-5.6-sol":"openai/gpt-5.6-sol";
+  const provider=direct?"openai":"vercel_ai_gateway";
   const payload={model,input:[{role:"user",content}],reasoning:{effort:verify?"medium":"low"},text:{format:{type:"json_schema",name:"invoice_extraction",schema:outputSchema,strict:true}},max_output_tokens:5000,store:false};
   let rr:Response,out:any;
   try{
-    rr=await fetch(endpoint,{method:"POST",headers:{Authorization:"Bearer "+key,"content-type":"application/json"},body:JSON.stringify(payload)});
+    rr=await fetch(endpoint,{method:"POST",headers:{Authorization:"Bearer "+key,"content-type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(65000)});
     out=await rr.json().catch(()=>({}));
   }catch(e){
-    await finishVerificationJob(verificationClaim,null,"AI_PROVIDER_UNREACHABLE");
-    return j(req,{ok:false,error:"AI_PROVIDER_UNREACHABLE"},503);
+    const isTimeout=e instanceof DOMException&&e.name==="TimeoutError";
+    const ref=newReferenceId();
+    await finishVerificationJob(verificationClaim,null,(isTimeout?"PROCESSING_TIMEOUT":"PROCESSOR_UNAVAILABLE")+"|"+ref);
+    return fail(req,isTimeout?"PROCESSING_TIMEOUT":"PROCESSOR_UNAVAILABLE",isTimeout?504:503,{
+      ...common,stage:"ai_provider",internal_code:isTimeout?"AI_PROVIDER_TIMEOUT":"AI_PROVIDER_UNREACHABLE",
+      internal_error:e,user_ref:userRef,provider,state:"no_changes",reference_id:ref
+    });
   }
   if(!rr.ok){
-    const message=out?.error?.message||out?.message||"AI_SERVICE_ERROR";
-    await finishVerificationJob(verificationClaim,null,message);
-    return j(req,{ok:false,error:message},rr.status);
+    const providerCode=safe(out?.error?.code||out?.code,120);
+    const providerMessage=sanitizeLog(out?.error?.message||out?.message,300);
+    const providerRequestId=rr.headers.get("x-request-id")||rr.headers.get("openai-request-id")||"";
+    const isTimeout=[408,504].includes(rr.status);
+    const ref=newReferenceId();
+    await finishVerificationJob(verificationClaim,null,(isTimeout?"PROCESSING_TIMEOUT":"PROCESSOR_UNAVAILABLE")+"|"+ref);
+    return fail(req,isTimeout?"PROCESSING_TIMEOUT":"PROCESSOR_UNAVAILABLE",isTimeout?504:503,{
+      ...common,stage:"ai_provider",internal_code:"AI_PROVIDER_HTTP_ERROR",internal_error:providerMessage,user_ref:userRef,
+      provider,provider_status:rr.status,provider_code:providerCode,provider_request_id:providerRequestId,reference_id:ref
+    });
   }
   try{
     const parsed=parseJson(outputText(out));
@@ -234,7 +340,11 @@ Deno.serve(async(req:Request)=>{
     await finishVerificationJob(verificationClaim,response);
     return j(req,response);
   }catch(e){
-    await finishVerificationJob(verificationClaim,null,"AI_RESPONSE_INVALID");
-    return j(req,{ok:false,error:"AI_RESPONSE_INVALID"},502);
+    const ref=newReferenceId();
+    await finishVerificationJob(verificationClaim,null,"PROCESSOR_UNAVAILABLE|"+ref);
+    return fail(req,"PROCESSOR_UNAVAILABLE",502,{
+      ...common,stage:"ai_response",internal_code:"AI_RESPONSE_INVALID",internal_error:e,user_ref:userRef,
+      provider,provider_status:rr.status,provider_request_id:rr.headers.get("x-request-id")||"",reference_id:ref
+    });
   }
 });

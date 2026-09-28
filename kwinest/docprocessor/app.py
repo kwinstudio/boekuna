@@ -1,4 +1,4 @@
-import base64, csv, hashlib, io, json, math, os, re, tempfile, time
+import base64, csv, hashlib, io, json, logging, math, os, re, secrets, tempfile, time
 from datetime import datetime, date
 from pathlib import Path
 from typing import Any, Literal
@@ -7,7 +7,9 @@ import fitz
 import pdfplumber
 import requests
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
 from PIL import Image, ImageOps, ImageEnhance, ImageFilter
 import numpy as np
@@ -36,12 +38,38 @@ _OCR_ENGINE = None
 _OCR_ENGINE_ERROR = None
 OCR_MODEL_NAME = "PP-OCRv6-small" if RAPIDOCR_GENERATION == "v3" else ("RapidOCR legacy" if RAPIDOCR_GENERATION == "legacy" else None)
 
-APP_ORIGIN = os.getenv("APP_ORIGIN", "https://boekuna-boekhouding.onrender.com").rstrip("/")
+DEFAULT_APP_ORIGINS = {
+    "https://boekuna-boekhouding.onrender.com",
+    "https://kwinest-boekhouding.onrender.com",
+    "https://boekuna.nl",
+    "https://www.boekuna.nl",
+    "https://boekuna-qa-staging.onrender.com",
+    "https://boekuna-render-link-qa.onrender.com",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+}
+_legacy_origin = os.getenv("APP_ORIGIN", "").strip().rstrip("/")
+_extra_origins = {
+    value.strip().rstrip("/")
+    for value in os.getenv("APP_ORIGINS", "").split(",")
+    if value.strip()
+}
+ALLOWED_ORIGINS = frozenset(DEFAULT_APP_ORIGINS | _extra_origins | ({_legacy_origin} if _legacy_origin else set()))
+logger = logging.getLogger("boekuna.document_processor")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://vuwfyhtejsxhdfyvkkeq.supabase.co").rstrip("/")
 SUPABASE_PUBLISHABLE_KEY = os.getenv("SUPABASE_PUBLISHABLE_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_RESPONSES_URL = os.getenv("OPENAI_RESPONSES_URL", "https://api.openai.com/v1/responses")
 MAX_BYTES = int(os.getenv("MAX_FILE_BYTES", str(15 * 1024 * 1024)))
+MAX_SIZE_MB = max(1, MAX_BYTES // 1024 // 1024)
+SUPPORTED_IMAGE_EXTENSIONS = frozenset({".jpg",".jpeg",".png",".webp",".heic",".heif",".tif",".tiff",".bmp",".gif"})
+SUPPORTED_IMAGE_MIME_TYPES = frozenset({"image/jpeg","image/png","image/webp","image/heic","image/heif","image/tiff","image/bmp","image/gif"})
+SUPPORTED_DOCUMENT_EXTENSIONS = (".pdf",".jpg",".jpeg",".png",".webp",".heic",".heif",".tif",".tiff",".bmp",".gif",".docx",".xlsx",".csv")
+SUPPORTED_DOCUMENT_MIME_TYPES = (
+    "application/pdf","image/jpeg","image/png","image/webp","image/heic","image/heif","image/tiff","image/bmp","image/gif",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","text/csv","application/csv",
+)
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6-sol")
 REQUEST_TIMEOUT = float(os.getenv("AI_TIMEOUT_SECONDS", "55"))
 RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "600"))
@@ -51,11 +79,125 @@ _REQUEST_TIMES: dict[str, list[float]] = {}
 app = FastAPI(title="Kwinest Document Processor", version="2.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[APP_ORIGIN],
+    allow_origins=sorted(ALLOWED_ORIGINS),
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"]
 )
+
+PUBLIC_ERROR_SPECS = {
+    "DOCUMENT_PDF_UNREADABLE": {"category":"document","retryable":False,"status":422},
+    "DOCUMENT_IMAGE_UNREADABLE": {"category":"document","retryable":False,"status":422},
+    "DOCUMENT_UNSUPPORTED_TYPE": {"category":"document","retryable":False,"status":415},
+    "DOCUMENT_TOO_LARGE": {"category":"document","retryable":False,"status":413},
+    "AUTH_SESSION_EXPIRED": {"category":"auth","retryable":False,"status":401},
+    "DOCUMENT_LIMIT_REACHED": {"category":"entitlement","retryable":False,"status":429},
+    "ACCOUNT_READ_ONLY": {"category":"entitlement","retryable":False,"status":403},
+    "RATE_LIMITED": {"category":"temporary","retryable":True,"status":429},
+    "PROCESSING_TIMEOUT": {"category":"temporary","retryable":True,"status":504},
+    "PROCESSOR_UNAVAILABLE": {"category":"temporary","retryable":True,"status":503},
+    "PERMISSION_DENIED": {"category":"permission","retryable":False,"status":403},
+    "INVALID_REQUEST": {"category":"request","retryable":False,"status":400},
+    "UNKNOWN": {"category":"temporary","retryable":True,"status":500},
+}
+
+class BoekunaDocumentError(Exception):
+    def __init__(self, code:str, *, status:int|None=None, context:dict[str,Any]|None=None,
+                 state:str="no_changes", internal_code:str|None=None, internal_error:Any=None,
+                 provider:str|None=None, provider_status:int|None=None, provider_code:str|None=None,
+                 provider_request_id:str|None=None):
+        super().__init__(code)
+        self.code=code if code in PUBLIC_ERROR_SPECS else "UNKNOWN"
+        spec=PUBLIC_ERROR_SPECS[self.code]
+        self.status=int(status or spec["status"])
+        self.context=dict(context or {})
+        self.state=state if state in {"not_saved","stored_unprocessed","no_changes","unknown_state"} else "unknown_state"
+        self.internal_code=internal_code or self.code
+        self.internal_error=internal_error
+        self.provider=provider
+        self.provider_status=provider_status
+        self.provider_code=provider_code
+        self.provider_request_id=provider_request_id
+
+def new_reference_id() -> str:
+    alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    return "BK-"+"".join(secrets.choice(alphabet) for _ in range(6))
+
+def sanitize_log_value(value:Any, limit:int=500) -> str:
+    text=str(value or "")
+    text=re.sub(r"(?i)bearer\s+[A-Za-z0-9._~+\-/=]+","Bearer [REDACTED]",text)
+    text=re.sub(r"(?i)\b(?:sk[-_][A-Za-z0-9_-]+|sb_(?:secret|publishable)_[A-Za-z0-9_-]+)\b","[REDACTED_KEY]",text)
+    text=re.sub(r"(?i)(authorization|api[_-]?key|token|secret)\s*[:=]\s*[^\s,;]+",r"\1=[REDACTED]",text)
+    return text[:limit]
+
+def set_processing_meta(request:Request, **values:Any) -> None:
+    current=dict(getattr(request.state,"processing_meta",{}) or {})
+    for key,value in values.items():
+        if value is not None: current[key]=value
+    request.state.processing_meta=current
+
+def public_error_response(request:Request, exc:BoekunaDocumentError) -> JSONResponse:
+    spec=PUBLIC_ERROR_SPECS[exc.code]
+    reference_id=new_reference_id()
+    meta=dict(getattr(request.state,"processing_meta",{}) or {})
+    log_event={
+        "event":"document_processing_error",
+        "reference_id":reference_id,
+        "timestamp":datetime.utcnow().isoformat(timespec="milliseconds")+"Z",
+        "route":request.url.path,
+        "stage":meta.get("stage","unknown"),
+        "internal_code":exc.internal_code,
+        "public_code":exc.code,
+        "http_status":exc.status,
+        "retryable":bool(spec["retryable"]),
+        "processing_state":exc.state,
+        "user_ref":meta.get("user_ref"),
+        "file_mime":meta.get("file_mime"),
+        "file_ext":meta.get("file_ext"),
+        "file_size":meta.get("file_size"),
+        "provider":exc.provider,
+        "provider_status":exc.provider_status,
+        "provider_code":exc.provider_code,
+        "provider_request_id":exc.provider_request_id,
+        "internal_error":sanitize_log_value(exc.internal_error),
+    }
+    logger.error(json.dumps({k:v for k,v in log_event.items() if v not in (None,"")}, ensure_ascii=False))
+    return JSONResponse(
+        status_code=exc.status,
+        content={"ok":False,"error":{
+            "code":exc.code,
+            "category":spec["category"],
+            "retryable":bool(spec["retryable"]),
+            "reference_id":reference_id,
+            "context":exc.context,
+            "state":exc.state,
+        }},
+    )
+
+@app.exception_handler(BoekunaDocumentError)
+async def boekuna_document_error_handler(request:Request, exc:BoekunaDocumentError):
+    return public_error_response(request,exc)
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_error_handler(request:Request, exc:RequestValidationError):
+    return public_error_response(request,BoekunaDocumentError("INVALID_REQUEST",status=422,internal_code="REQUEST_VALIDATION_FAILED",internal_error=type(exc).__name__))
+
+@app.exception_handler(HTTPException)
+async def safe_http_error_handler(request:Request, exc:HTTPException):
+    status=int(exc.status_code or 500)
+    code={400:"INVALID_REQUEST",401:"AUTH_SESSION_EXPIRED",403:"PERMISSION_DENIED",413:"DOCUMENT_TOO_LARGE",415:"DOCUMENT_UNSUPPORTED_TYPE",429:"RATE_LIMITED",504:"PROCESSING_TIMEOUT"}.get(status,"PROCESSOR_UNAVAILABLE" if status>=500 else "INVALID_REQUEST")
+    context={"max_size_mb":MAX_SIZE_MB} if code=="DOCUMENT_TOO_LARGE" else {}
+    return public_error_response(request,BoekunaDocumentError(code,status=status,context=context,internal_code="LEGACY_HTTP_EXCEPTION",internal_error=type(exc.detail).__name__))
+
+@app.exception_handler(Exception)
+async def unexpected_document_error_handler(request:Request, exc:Exception):
+    return public_error_response(request,BoekunaDocumentError("UNKNOWN",status=500,state="unknown_state",internal_code=type(exc).__name__,internal_error=exc))
+
+def require_allowed_origin(request: Request) -> str:
+    origin = (request.headers.get("origin") or "").rstrip("/")
+    if origin not in ALLOWED_ORIGINS:
+        raise BoekunaDocumentError("PERMISSION_DENIED",status=403,internal_code="ORIGIN_NOT_ALLOWED",internal_error=origin[:200])
+    return origin
 
 # ----------------------------- schema -----------------------------
 class Supplier(BaseModel):
@@ -491,9 +633,13 @@ def run_best_ocr(img:Image.Image) -> dict[str,Any]:
     }
 
 def extract_pdf(raw:bytes) -> dict[str,Any]:
-    doc=fitz.open(stream=raw,filetype="pdf")
-    if doc.page_count>50: raise HTTPException(400,"PDF bevat meer dan 50 pagina's.")
-    pages=[]; all_text=[]; layout=[]; tables=[]; ocr_pages=[]
+    try:
+        doc=fitz.open(stream=raw,filetype="pdf")
+    except Exception as exc:
+        raise BoekunaDocumentError("DOCUMENT_PDF_UNREADABLE",status=422,internal_code="PDF_OPEN_FAILED",internal_error=exc)
+    if doc.page_count>50:
+        raise BoekunaDocumentError("INVALID_REQUEST",status=400,context={"max_pages":50},internal_code="PDF_PAGE_LIMIT_EXCEEDED")
+    pages=[]; all_text=[]; layout=[]; tables=[]; ocr_pages=[]; warnings=[]; sparse_pages=[]
     # pdfplumber is separate because its table finder is useful on vector PDFs
     plumber=None
     try: plumber=pdfplumber.open(io.BytesIO(raw))
@@ -516,24 +662,31 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
         printable=len(re.sub(r"\s+","",text))
         used_ocr=False; ocr_conf=None
         sparse_text=printable < 180 or (len(words) < 35 and not page_tables)
-        if sparse_text and ocr_engine:
-            pix=page.get_pixmap(matrix=fitz.Matrix(2.45,2.45), alpha=False)
-            img=Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
-            try:
-                best=run_best_ocr(img)
-                ocr_text=best["text"]
-                ocr_printable=len(re.sub(r"\s+","",ocr_text))
-                if ocr_printable > max(printable + 30, int(printable * 1.12)):
-                    text=ocr_text
-                    used_ocr=True
-                elif ocr_printable >= 120 and printable < 260:
-                    text=(text+"\n--- OCR LAYER ---\n"+ocr_text).strip()
-                    used_ocr=True
-                if used_ocr:
-                    ocr_conf=best.get("confidence")
-                    ocr_pages.append(idx+1)
-            except Exception:
-                pass
+        if sparse_text:
+            sparse_pages.append(idx+1)
+            if not ocr_engine:
+                warnings.append(f"Pagina {idx+1} bevat weinig digitale tekst; OCR-engine is niet beschikbaar.")
+            else:
+                pix=page.get_pixmap(matrix=fitz.Matrix(2.45,2.45), alpha=False)
+                img=Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
+                try:
+                    best=run_best_ocr(img)
+                    ocr_text=best["text"]
+                    ocr_printable=len(re.sub(r"\s+","",ocr_text))
+                    if ocr_printable > max(printable + 30, int(printable * 1.12)):
+                        text=ocr_text
+                        used_ocr=True
+                    elif ocr_printable >= 120 and printable < 260:
+                        text=(text+"\n--- OCR LAYER ---\n"+ocr_text).strip()
+                        used_ocr=True
+                    if used_ocr:
+                        ocr_conf=best.get("confidence")
+                        ocr_pages.append(idx+1)
+                    elif printable < 40:
+                        warnings.append(f"Pagina {idx+1} kon niet betrouwbaar met OCR worden gelezen.")
+                except Exception as exc:
+                    logger.warning("pdf_ocr_failed page=%d error_type=%s", idx+1, type(exc).__name__)
+                    warnings.append(f"Pagina {idx+1} kon niet met OCR worden verwerkt.")
         pages.append({"page":idx+1,"text":text,"charCount":len(text),"ocr":used_ocr,"ocrConfidence":ocr_conf,"tables":page_tables})
         all_text.append(f"--- PAGE {idx+1} ---\n{text}")
         layout.append({"page":idx+1,"words":page_layout[:2500]})
@@ -541,23 +694,28 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
     if plumber:
         try: plumber.close()
         except Exception: pass
-    return {"kind":"pdf","pageCount":doc.page_count,"pages":pages,"text":"\n\n".join(all_text),"layout":layout,"tables":tables,"ocrPages":ocr_pages,"ocrEngine":"RapidOCR 3 / ONNX" if ocr_pages and RAPIDOCR_GENERATION=="v3" else ("RapidOCR legacy" if ocr_pages else None),"ocrModel":OCR_MODEL_NAME if ocr_pages else None}
+    combined_text="\n\n".join(all_text)
+    if sparse_pages and len(re.sub(r"\s+","",combined_text)) < 40:
+        if not ocr_engine:
+            raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="OCR_ENGINE_UNAVAILABLE")
+        raise BoekunaDocumentError("DOCUMENT_PDF_UNREADABLE",status=422,internal_code="PDF_OCR_UNREADABLE")
+    return {"kind":"pdf","pageCount":doc.page_count,"pages":pages,"text":combined_text,"layout":layout,"tables":tables,"ocrPages":ocr_pages,"ocrEngine":"RapidOCR 3 / ONNX" if ocr_pages and RAPIDOCR_GENERATION=="v3" else ("RapidOCR legacy" if ocr_pages else None),"ocrModel":OCR_MODEL_NAME if ocr_pages else None,"warnings":warnings}
 
 def extract_image(raw:bytes) -> dict[str,Any]:
     if not RapidOCR:
-        raise HTTPException(503,"OCR-engine is niet beschikbaar op de server.")
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="OCR_ENGINE_UNAVAILABLE")
     try:
         img=Image.open(io.BytesIO(raw))
     except Exception as exc:
-        raise HTTPException(415,f"Deze foto kon niet worden geopend ({type(exc).__name__}). Gebruik een normale foto of exporteer hem als JPG/PNG.")
+        raise BoekunaDocumentError("DOCUMENT_IMAGE_UNREADABLE",status=422,internal_code="IMAGE_DECODE_FAILED",internal_error=exc)
     try:
         best=run_best_ocr(img)
     except Exception as exc:
-        raise HTTPException(503,f"OCR kon niet worden gestart ({type(exc).__name__}). Probeer het opnieuw.")
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="OCR_EXECUTION_FAILED",internal_error=exc)
     text=best["text"]
     layout=best["rows"]
     if len(re.sub(r"\s+","",text))<12:
-        raise HTTPException(422,"Er is te weinig leesbare tekst op deze bon gevonden. Maak een scherpere foto met de volledige bon in beeld.")
+        raise BoekunaDocumentError("DOCUMENT_IMAGE_UNREADABLE",status=422,internal_code="IMAGE_OCR_UNREADABLE")
     return {
         "kind":"image","pageCount":1,
         "pages":[{"page":1,"text":text,"charCount":len(text),"ocr":True,"ocrConfidence":best.get("confidence"),"tables":[]}],
@@ -597,12 +755,21 @@ def extract_csv(raw:bytes)->dict[str,Any]:
 
 def extract_document(filename:str,content_type:str,raw:bytes)->dict[str,Any]:
     ext=Path(filename).suffix.lower(); c=(content_type or "").lower()
-    if raw[:4]==b"%PDF" or ext==".pdf" or c=="application/pdf": return extract_pdf(raw)
-    if ext in {".png",".jpg",".jpeg",".webp",".heic",".heif",".tif",".tiff",".bmp",".gif"} or c.startswith("image/"): return extract_image(raw)
-    if ext==".docx" or c=="application/vnd.openxmlformats-officedocument.wordprocessingml.document": return extract_docx(raw)
-    if ext==".xlsx" or c=="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": return extract_xlsx(raw)
-    if ext==".csv" or c in {"text/csv","application/csv"}: return extract_csv(raw)
-    raise HTTPException(415,"Dit bestandstype wordt nog niet ondersteund door de documentprocessor.")
+    try:
+        if raw[:4]==b"%PDF" or ext==".pdf" or c=="application/pdf": return extract_pdf(raw)
+        if ext in SUPPORTED_IMAGE_EXTENSIONS or c in SUPPORTED_IMAGE_MIME_TYPES: return extract_image(raw)
+        if ext==".docx" or c=="application/vnd.openxmlformats-officedocument.wordprocessingml.document": return extract_docx(raw)
+        if ext==".xlsx" or c=="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": return extract_xlsx(raw)
+        if ext==".csv" or c in {"text/csv","application/csv"}: return extract_csv(raw)
+    except BoekunaDocumentError:
+        raise
+    except Exception as exc:
+        raise BoekunaDocumentError("INVALID_REQUEST",status=422,internal_code=f"DOCUMENT_DECODE_FAILED_{ext or 'UNKNOWN'}",internal_error=exc)
+    raise BoekunaDocumentError(
+        "DOCUMENT_UNSUPPORTED_TYPE",status=415,
+        context={"supported_extensions":list(SUPPORTED_DOCUMENT_EXTENSIONS),"supported_mime_types":list(SUPPORTED_DOCUMENT_MIME_TYPES)},
+        internal_code="DOCUMENT_TYPE_UNSUPPORTED",
+    )
 
 # ----------------------------- deterministic invoice parser -----------------------------
 def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tuple[dict,float]:
@@ -729,6 +896,8 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     invoice_no=None
     if invno_raw:
         m=re.search(r"([A-Z0-9][A-Z0-9._\-/]{1,50})",invno_raw,re.I); invoice_no=m.group(1) if m else None
+    description_raw,_=line_after_label(lines,["omschrijving","description","dienst","service"],max_ahead=1)
+    description=norm_text(description_raw or "")[:240] or None
     inv_date,inv_date_conf=labeled_date(lines,["factuurdatum","invoice date","date of invoice","document date"])
     if not inv_date and dtype=="receipt":
         for line in lines[:30]:
@@ -856,7 +1025,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     result=ExtractionResult(
         documentType=dtype,originalFileName=filename,pageCount=doc.get("pageCount",1),
         supplier=Supplier(**supplier),customer=Customer(**customer),
-        invoice=InvoiceMeta(invoiceNumber=invoice_no,invoiceDate=inv_date,dueDate=due_date,paymentTermDays=term,orderNumber=order_no,paymentReference=payref),
+        invoice=InvoiceMeta(invoiceNumber=invoice_no,invoiceDate=inv_date,dueDate=due_date,paymentTermDays=term,orderNumber=order_no,paymentReference=payref,description=description),
         amounts=Amounts(subtotal=abs(subtotal) if subtotal is not None else None,vatLines=vat_lines,vatTotal=abs(vat_total) if vat_total is not None else None,total=abs(total) if total is not None else None,settlementAmount=abs(settlement_amount) if settlement_amount is not None else None,discount=abs(discount) if discount is not None else None,shipping=abs(shipping) if shipping is not None else None,currency="EUR"),
         status=status,lineItems=[],adjustments=structured_adjustments,confidence=confidence,warnings=derivation_warnings,
         processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"financialBlocks":{"verified":bool(financial_structure.get("verified")),"primaryArithmeticOk":bool(financial_structure.get("primaryArithmeticOk")),"adjustmentArithmeticOk":bool(financial_structure.get("adjustmentArithmeticOk")),"settlementArithmeticOk":bool(financial_structure.get("settlementArithmeticOk")),"adjustmentTotal":financial_structure.get("adjustmentTotal"),"settlementSource":financial_structure.get("settlementSource")},"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"mixedRates":len(detected_rates)>1}}
@@ -992,7 +1161,7 @@ def verification_attachment(raw:bytes|None,content_type:str,filename:str)->dict[
         if len(raw)>12*1024*1024:return None
         mime=c if c.startswith("image/") else ("image/jpeg" if ext in {".jpg",".jpeg"} else f"image/{ext.lstrip('.')}")
         return {"kind":"image","mime":mime,"name":filename or "document-image","base64":base64.b64encode(raw).decode("ascii")}
-    if c.startswith("image/") or ext in {".heic",".heif",".tif",".tiff",".bmp"}:
+    if c in SUPPORTED_IMAGE_MIME_TYPES or ext in {".heic",".heif",".tif",".tiff",".bmp"}:
         try:
             img=Image.open(io.BytesIO(raw))
             img=prepare_ocr_image(img)
@@ -1004,8 +1173,8 @@ def verification_attachment(raw:bytes|None,content_type:str,filename:str)->dict[
             return None
     return None
 
-def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult,independent:bool=False,raw:bytes|None=None,content_type:str="")->ExtractionResult|None:
-    if not OPENAI_API_KEY:return None
+def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult,independent:bool=False,raw:bytes|None=None,content_type:str="")->tuple[ExtractionResult|None,dict[str,Any]|None]:
+    if not OPENAI_API_KEY:return None,{"internal_code":"AI_PROVIDER_NOT_CONFIGURED","provider":"openai"}
     compact_layout=[]
     for p in doc.get("layout",[])[:10]: compact_layout.append({"page":p.get("page"),"words":p.get("words",[])[:900]})
     context={
@@ -1052,13 +1221,30 @@ def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult,ind
     payload={"model":OPENAI_MODEL,"input":[{"role":"system","content":[{"type":"input_text","text":instructions}]},{"role":"user","content":content}],"max_output_tokens":7000,"reasoning":{"effort":"medium" if independent else "medium"},"store":False}
     try:
         resp=requests.post(OPENAI_RESPONSES_URL,headers={"Authorization":f"Bearer {OPENAI_API_KEY}","Content-Type":"application/json"},json=payload,timeout=REQUEST_TIMEOUT)
-        if resp.status_code>=400:return None
+    except requests.Timeout as exc:
+        return None,{"internal_code":"AI_PROVIDER_TIMEOUT","provider":"openai","internal_error":exc}
+    except requests.RequestException as exc:
+        return None,{"internal_code":"AI_PROVIDER_UNAVAILABLE","provider":"openai","internal_error":exc}
+    request_id=resp.headers.get("x-request-id") or resp.headers.get("openai-request-id")
+    if resp.status_code>=400:
+        provider_code=None;provider_message=""
+        try:
+            upstream=resp.json()
+            provider_code=sanitize_log_value((upstream.get("error") or {}).get("code") or upstream.get("code"),120)
+            provider_message=sanitize_log_value((upstream.get("error") or {}).get("message") or upstream.get("message"),300)
+        except Exception:
+            upstream=None
+        return None,{
+            "internal_code":"AI_PROVIDER_HTTP_ERROR","provider":"openai","provider_status":resp.status_code,
+            "provider_code":provider_code,"provider_request_id":sanitize_log_value(request_id,120),"internal_error":provider_message,
+        }
+    try:
         body=resp.json();txt=body.get("output_text") or ""
         if not txt:
             for item in body.get("output",[]):
                 if item.get("type")=="message":
-                    for c in item.get("content",[]):
-                        if c.get("type")=="output_text":txt+=c.get("text","")
+                    for part in item.get("content",[]):
+                        if part.get("type")=="output_text":txt+=part.get("text","")
         txt=txt.strip()
         if txt.startswith("```"):txt=re.sub(r"^```(?:json)?|```$","",txt,flags=re.I).strip()
         a,b=txt.find("{"),txt.rfind("}")
@@ -1067,9 +1253,9 @@ def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult,ind
         data["originalFileName"]=filename;data["pageCount"]=doc.get("pageCount",1)
         result=ExtractionResult.model_validate(data)
         result.processing={**heuristic.processing,"ai":True,"aiModel":OPENAI_MODEL,"aiUsage":body.get("usage") or None,"independentVerification":bool(independent)}
-        return validate_result(result,company)
-    except Exception:
-        return None
+        return validate_result(result,company),None
+    except Exception as exc:
+        return None,{"internal_code":"AI_RESPONSE_INVALID","provider":"openai","provider_status":resp.status_code,"provider_request_id":sanitize_log_value(request_id,120),"internal_error":exc}
 
 def reconcile(primary:ExtractionResult,heuristic:ExtractionResult)->ExtractionResult:
     # AI is primary when present, but deterministic parser may fill only missing low-risk fields.
@@ -1144,114 +1330,183 @@ def deterministic_fast_path_ready(doc:dict,r:ExtractionResult)->bool:
     return True
 
 def require_authenticated_user(request: Request) -> dict:
+    set_processing_meta(request,stage="auth")
     auth_header = (request.headers.get("authorization") or "").strip()
     if not auth_header.lower().startswith("bearer "):
-        raise HTTPException(401, "Authentication required")
+        raise BoekunaDocumentError("AUTH_SESSION_EXPIRED",status=401,internal_code="AUTH_HEADER_MISSING")
     if not SUPABASE_PUBLISHABLE_KEY:
-        raise HTTPException(503, "Authentication verifier is not configured")
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="AUTH_VERIFIER_NOT_CONFIGURED")
     try:
         resp = requests.get(
             f"{SUPABASE_URL}/auth/v1/user",
-            headers={
-                "Authorization": auth_header,
-                "apikey": SUPABASE_PUBLISHABLE_KEY,
-            },
+            headers={"Authorization":auth_header,"apikey":SUPABASE_PUBLISHABLE_KEY},
             timeout=10,
         )
-    except requests.RequestException:
-        raise HTTPException(503, "Authentication service unavailable")
+    except requests.Timeout as exc:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="AUTH_SERVICE_TIMEOUT",internal_error=exc)
+    except requests.RequestException as exc:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="AUTH_SERVICE_UNAVAILABLE",internal_error=exc)
     if resp.status_code != 200:
-        raise HTTPException(401, "Invalid or expired session")
+        raise BoekunaDocumentError("AUTH_SESSION_EXPIRED",status=401,internal_code="AUTH_SESSION_INVALID",provider="supabase_auth",provider_status=resp.status_code)
     try:
         user = resp.json()
-    except Exception:
-        raise HTTPException(401, "Invalid session response")
+    except Exception as exc:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="AUTH_RESPONSE_INVALID",internal_error=exc,provider="supabase_auth",provider_status=resp.status_code)
     if not user.get("id"):
-        raise HTTPException(401, "Invalid session")
+        raise BoekunaDocumentError("AUTH_SESSION_EXPIRED",status=401,internal_code="AUTH_USER_MISSING")
+    set_processing_meta(request,user_ref=str(user.get("id"))[:80])
     return user
 
+def rpc_access_check(request:Request) -> bool:
+    auth_header=(request.headers.get("authorization") or "").strip()
+    if not SUPABASE_PUBLISHABLE_KEY or not auth_header:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="ACCESS_CHECK_NOT_CONFIGURED")
+    set_processing_meta(request,stage="entitlement")
+    try:
+        resp=requests.post(
+            f"{SUPABASE_URL}/rest/v1/rpc/can_operate_bookkeeping",
+            headers={"Authorization":auth_header,"apikey":SUPABASE_PUBLISHABLE_KEY,"Content-Type":"application/json"},
+            json={},timeout=8,
+        )
+    except requests.Timeout as exc:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="ACCESS_CHECK_TIMEOUT",internal_error=exc)
+    except requests.RequestException as exc:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="ACCESS_CHECK_UNAVAILABLE",internal_error=exc)
+    if resp.status_code>=400:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="ACCESS_CHECK_FAILED",provider="supabase_rest",provider_status=resp.status_code)
+    try:
+        return resp.json() is True
+    except Exception as exc:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="ACCESS_CHECK_RESPONSE_INVALID",internal_error=exc)
+
 def billing_quota_status(request: Request) -> dict:
-    """Check server-side entitlement and monthly smart-document allowance."""
+    """Check the monthly smart-document allowance after access-state validation."""
     auth_header = (request.headers.get("authorization") or "").strip()
     if not SUPABASE_PUBLISHABLE_KEY or not auth_header:
-        raise HTTPException(503, "Entitlementcontrole is tijdelijk niet beschikbaar")
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="QUOTA_CHECK_NOT_CONFIGURED")
+    set_processing_meta(request,stage="quota")
     try:
         resp = requests.post(
             f"{SUPABASE_URL}/rest/v1/rpc/check_document_quota",
-            headers={
-                "Authorization": auth_header,
-                "apikey": SUPABASE_PUBLISHABLE_KEY,
-                "Content-Type": "application/json",
-            },
-            json={},
-            timeout=8,
+            headers={"Authorization":auth_header,"apikey":SUPABASE_PUBLISHABLE_KEY,"Content-Type":"application/json"},
+            json={},timeout=8,
         )
-    except requests.RequestException:
-        raise HTTPException(503, "Entitlementcontrole is tijdelijk niet beschikbaar")
+    except requests.Timeout as exc:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="QUOTA_CHECK_TIMEOUT",internal_error=exc)
+    except requests.RequestException as exc:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="QUOTA_CHECK_UNAVAILABLE",internal_error=exc)
     if resp.status_code >= 400:
-        raise HTTPException(503, "Entitlementcontrole is tijdelijk niet beschikbaar")
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="QUOTA_CHECK_FAILED",provider="supabase_rest",provider_status=resp.status_code)
     try:
         data = resp.json()
-    except Exception:
-        raise HTTPException(503, "Entitlementcontrole gaf geen geldige status terug")
+    except Exception as exc:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="QUOTA_RESPONSE_INVALID",internal_error=exc)
     if isinstance(data, list):
         data = data[0] if data else None
     if not isinstance(data, dict):
-        raise HTTPException(503, "Entitlementcontrole gaf geen geldige status terug")
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="QUOTA_RESPONSE_INVALID_SHAPE")
     return data
 
 def record_billing_usage(request: Request) -> dict | None:
     """Consume one monthly smart-document unit after successful processing."""
     auth_header = (request.headers.get("authorization") or "").strip()
     if not SUPABASE_PUBLISHABLE_KEY or not auth_header:
+        logger.error(json.dumps({"event":"document_usage_record_failed","reference_id":new_reference_id(),"internal_code":"USAGE_RECORD_NOT_CONFIGURED"}))
         return None
     try:
         resp = requests.post(
             f"{SUPABASE_URL}/rest/v1/rpc/record_document_usage",
-            headers={
-                "Authorization": auth_header,
-                "apikey": SUPABASE_PUBLISHABLE_KEY,
-                "Content-Type": "application/json",
-            },
-            json={},
-            timeout=8,
+            headers={"Authorization":auth_header,"apikey":SUPABASE_PUBLISHABLE_KEY,"Content-Type":"application/json"},
+            json={},timeout=8,
         )
         if resp.status_code >= 400:
+            logger.error(json.dumps({
+                "event":"document_usage_record_failed","reference_id":new_reference_id(),
+                "internal_code":"USAGE_RECORD_HTTP_ERROR","provider":"supabase_rest","provider_status":resp.status_code,
+                "user_ref":(getattr(request.state,"processing_meta",{}) or {}).get("user_ref"),
+            }))
             return None
         data = resp.json()
         if isinstance(data, list):
             return data[0] if data else None
-        return data if isinstance(data, dict) else None
-    except Exception:
+        if isinstance(data, dict):
+            return data
+        logger.error(json.dumps({"event":"document_usage_record_failed","reference_id":new_reference_id(),"internal_code":"USAGE_RECORD_INVALID_SHAPE"}))
+        return None
+    except Exception as exc:
+        logger.error(json.dumps({
+            "event":"document_usage_record_failed","reference_id":new_reference_id(),
+            "internal_code":"USAGE_RECORD_EXCEPTION","internal_error":sanitize_log_value(exc),
+            "user_ref":(getattr(request.state,"processing_meta",{}) or {}).get("user_ref"),
+        }))
         return None
 
 @app.get("/health")
 def health():
-    return {"ok":True,"service":"boekuna-document-processor","aiConfigured":bool(OPENAI_API_KEY),"verificationConfigured":bool(OPENAI_API_KEY),"ocrAvailable":bool(RapidOCR),"ocrGeneration":RAPIDOCR_GENERATION,"ocrModel":OCR_MODEL_NAME,"authRequired":True,"billingQuota":True,"version":"2.9"}
+    return {
+        "ok":True,
+        "service":"boekuna-document-processor",
+        "aiConfigured":bool(OPENAI_API_KEY),
+        "verificationConfigured":bool(OPENAI_API_KEY),
+        "ocrAvailable":bool(RapidOCR),
+        "ocrGeneration":RAPIDOCR_GENERATION,
+        "ocrModel":OCR_MODEL_NAME,
+        "authRequired":True,
+        "billingQuota":True,
+        "version":"3.0",
+        "limits":{"maxSizeMb":MAX_SIZE_MB,"maxPdfPages":50},
+        "supportedExtensions":list(SUPPORTED_DOCUMENT_EXTENSIONS),
+        "supportedMimeTypes":list(SUPPORTED_DOCUMENT_MIME_TYPES),
+    }
 
 @app.post("/verify")
 async def verify_document(request:Request,file:UploadFile=File(...),company_json:str=Form("{}")):
-    origin=(request.headers.get("origin") or "").rstrip("/")
-    if origin!=APP_ORIGIN: raise HTTPException(403,"Origin not allowed")
+    require_allowed_origin(request)
     user=require_authenticated_user(request)
-    if not allow_request(request,f"verify:{user.get('id','unknown')}"): raise HTTPException(429,"Te veel extra controles. Probeer het later opnieuw.")
-    quota=billing_quota_status(request)
-    if quota.get("allowed") is False:
-        raise HTTPException(402,"Je account staat in read-only of heeft geen ruimte voor deze documentcontrole.")
-    if not OPENAI_API_KEY:raise HTTPException(503,"Extra controle is tijdelijk niet beschikbaar.")
+    set_processing_meta(
+        request,stage="rate_limit",
+        file_mime=(file.content_type or "application/octet-stream")[:120],
+        file_ext=Path(file.filename or "").suffix.lower(),
+    )
+    if not allow_request(request,f"verify:{user.get('id','unknown')}"):
+        raise BoekunaDocumentError("RATE_LIMITED",status=429,internal_code="VERIFY_RATE_LIMIT")
+    if not rpc_access_check(request):
+        raise BoekunaDocumentError("ACCOUNT_READ_ONLY",status=403,internal_code="ENTITLEMENT_READ_ONLY")
+    # PASS 2 is an integrity check of an already accepted document and never consumes
+    # or requires a second monthly smart-document quota unit.
+    if not OPENAI_API_KEY:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="AI_PROVIDER_NOT_CONFIGURED")
+    set_processing_meta(request,stage="receive")
     raw=await file.read(MAX_BYTES+1)
-    if len(raw)>MAX_BYTES:raise HTTPException(413,"Bestand is te groot. Maximum is 15 MB.")
-    if not raw:raise HTTPException(400,"Bestand is leeg.")
-    try:company=json.loads(company_json or "{}")
-    except Exception:company={}
-    started=time.time()
+    set_processing_meta(request,file_size=len(raw))
+    if len(raw)>MAX_BYTES:
+        raise BoekunaDocumentError("DOCUMENT_TOO_LARGE",status=413,context={"max_size_mb":MAX_SIZE_MB},internal_code="FILE_SIZE_LIMIT")
+    if not raw:
+        raise BoekunaDocumentError("INVALID_REQUEST",status=400,internal_code="EMPTY_FILE")
     try:
-        doc=extract_document(file.filename or "document",file.content_type or "",raw)
-    except HTTPException:raise
-    except Exception as exc:raise HTTPException(422,f"Document kon niet opnieuw worden gelezen ({type(exc).__name__}).")
+        company=json.loads(company_json or "{}")
+    except Exception:
+        company={}
+    started=time.time()
+    set_processing_meta(request,stage="extract")
+    doc=extract_document(file.filename or "document",file.content_type or "",raw)
     heur=heuristic_extract(doc,file.filename or "document",company)
-    ai=ai_extract(doc,file.filename or "document",company,heur,independent=True,raw=raw,content_type=file.content_type or "")
-    if not ai:raise HTTPException(503,"Onafhankelijke extra controle kon niet worden uitgevoerd.")
+    set_processing_meta(request,stage="ai_verify")
+    ai,ai_failure=ai_extract(doc,file.filename or "document",company,heur,independent=True,raw=raw,content_type=file.content_type or "")
+    if not ai:
+        failure=ai_failure or {"internal_code":"AI_VERIFICATION_UNAVAILABLE","provider":"openai"}
+        is_timeout=failure.get("internal_code")=="AI_PROVIDER_TIMEOUT"
+        raise BoekunaDocumentError(
+            "PROCESSING_TIMEOUT" if is_timeout else "PROCESSOR_UNAVAILABLE",
+            status=504 if is_timeout else 503,
+            internal_code=str(failure.get("internal_code") or "AI_VERIFICATION_UNAVAILABLE"),
+            internal_error=failure.get("internal_error"),
+            provider=failure.get("provider"),
+            provider_status=failure.get("provider_status"),
+            provider_code=failure.get("provider_code"),
+            provider_request_id=failure.get("provider_request_id"),
+            state="stored_unprocessed",
+        )
     result=reconcile(ai,heur)
     result=validate_result(result,company)
     result.processing={**result.processing,"verificationMode":"independent","durationMs":round((time.time()-started)*1000),"pages":doc.get("pageCount"),"tablesFound":len(doc.get("tables",[])),"overallConfidence":round(overall_confidence(result),3)}
@@ -1259,36 +1514,83 @@ async def verify_document(request:Request,file:UploadFile=File(...),company_json
 
 @app.post("/analyze")
 async def analyze(request:Request,file:UploadFile=File(...),company_json:str=Form("{}"),existing_json:str=Form("[]"),ocr_text:str=Form("")):
-    origin=(request.headers.get("origin") or "").rstrip("/")
-    if origin!=APP_ORIGIN: raise HTTPException(403,"Origin not allowed")
+    require_allowed_origin(request)
     user=require_authenticated_user(request)
-    if not allow_request(request,f"user:{user.get('id','unknown')}"): raise HTTPException(429,"Te veel documentverwerkingen. Probeer het over enkele minuten opnieuw.")
+    set_processing_meta(
+        request,stage="rate_limit",
+        file_mime=(file.content_type or "application/octet-stream")[:120],
+        file_ext=Path(file.filename or "").suffix.lower(),
+    )
+    if not allow_request(request,f"user:{user.get('id','unknown')}"):
+        raise BoekunaDocumentError("RATE_LIMITED",status=429,internal_code="DOCUMENT_PROCESSOR_RATE_LIMIT")
+    if not rpc_access_check(request):
+        raise BoekunaDocumentError("ACCOUNT_READ_ONLY",status=403,internal_code="ENTITLEMENT_READ_ONLY")
     quota=billing_quota_status(request)
     if quota.get("allowed") is False:
-        raise HTTPException(402,f"Je maandelijkse limiet van {quota.get('monthly_limit',0)} slimme documentverwerkingen is bereikt. Upgrade je abonnement of wacht tot de volgende maand.")
+        raise BoekunaDocumentError(
+            "DOCUMENT_LIMIT_REACHED",status=429,internal_code="DOCUMENT_MONTHLY_LIMIT",
+            context={"monthly_limit":quota.get("monthly_limit"),"remaining":quota.get("remaining")},
+        )
+    set_processing_meta(request,stage="receive")
     raw=await file.read(MAX_BYTES+1)
-    if len(raw)>MAX_BYTES:raise HTTPException(413,"Bestand is te groot. Maximum is 15 MB.")
-    if not raw:raise HTTPException(400,"Bestand is leeg.")
-    try: company=json.loads(company_json or "{}")
-    except Exception: company={}
-    try: existing=json.loads(existing_json or "[]")
-    except Exception: existing=[]
-    started=time.time()
+    set_processing_meta(request,file_size=len(raw))
+    if len(raw)>MAX_BYTES:
+        raise BoekunaDocumentError("DOCUMENT_TOO_LARGE",status=413,context={"max_size_mb":MAX_SIZE_MB},internal_code="FILE_SIZE_LIMIT")
+    if not raw:
+        raise BoekunaDocumentError("INVALID_REQUEST",status=400,internal_code="EMPTY_FILE")
+    logger.info(
+        json.dumps({
+            "event":"document_analysis_started","route":request.url.path,
+            "file_mime":(file.content_type or "application/octet-stream")[:120],
+            "file_ext":Path(file.filename or "").suffix.lower(),"file_size":len(raw),
+        })
+    )
     try:
-        doc=extract_document(file.filename or "document",file.content_type or "",raw)
-    except HTTPException:
-        raise
-    except Exception as exc:
-        raise HTTPException(422,f"Document kon niet worden verwerkt ({type(exc).__name__}). Controleer of het bestand geldig en niet beschadigd is.")
+        company=json.loads(company_json or "{}")
+    except Exception:
+        company={}
+    try:
+        existing=json.loads(existing_json or "[]")
+    except Exception:
+        existing=[]
+    started=time.time()
+    set_processing_meta(request,stage="extract")
+    doc=extract_document(file.filename or "document",file.content_type or "",raw)
+    logger.info(json.dumps({
+        "event":"document_analysis_extracted","kind":doc.get("kind"),"pages":doc.get("pageCount"),
+        "ocr_pages":len(doc.get("ocrPages") or []),"tables":len(doc.get("tables") or []),
+        "duration_ms":round((time.time()-started)*1000),
+    }))
     if ocr_text and len((doc.get("text") or "").replace(" ","")) < 320:
         doc["text"] = (doc.get("text") or "") + "\n\n--- CLIENT OCR ---\n" + ocr_text[:70000]
         doc.setdefault("processingHints", {})["clientOcrUsed"] = True
     heur=heuristic_extract(doc,file.filename or "document",company)
     fast_path=deterministic_fast_path_ready(doc,heur)
-    ai=None if fast_path else ai_extract(doc,file.filename or "document",company,heur)
+    ai_failure=None
+    if fast_path:
+        ai=None
+    else:
+        set_processing_meta(request,stage="ai_extract")
+        ai,ai_failure=ai_extract(doc,file.filename or "document",company,heur)
     result=reconcile(ai,heur) if ai else heur
+    if ai_failure:
+        degraded_ref=new_reference_id()
+        logger.warning(json.dumps({
+            "event":"document_ai_degraded","reference_id":degraded_ref,
+            "timestamp":datetime.utcnow().isoformat(timespec="milliseconds")+"Z",
+            "route":request.url.path,"stage":"ai_extract",
+            "internal_code":ai_failure.get("internal_code"),
+            "provider":ai_failure.get("provider"),
+            "provider_status":ai_failure.get("provider_status"),
+            "provider_code":ai_failure.get("provider_code"),
+            "provider_request_id":ai_failure.get("provider_request_id"),
+            "internal_error":sanitize_log_value(ai_failure.get("internal_error")),
+            "user_ref":str(user.get("id"))[:80],
+            "file_mime":(file.content_type or "application/octet-stream")[:120],
+            "file_ext":Path(file.filename or "").suffix.lower(),"file_size":len(raw),
+        }))
+        result.warnings.append("Extra AI-controle was tijdelijk niet beschikbaar; controleer onzekere velden handmatig.")
     result=validate_result(result,company)
-    # duplicate scoring against client-provided invoice index; server does not silently save anything
     dup=[]
     if result.documentType=="sales_invoice":
         counterparty=result.customer.name
@@ -1310,6 +1612,8 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
         if score>=.65:dup.append({"id":row.get("id"),"score":round(score,2),"reasons":reasons})
     if dup:result.warnings.append("Mogelijk bestaat deze factuur al.")
     processing={**result.processing,"ai":bool(ai),"fastPath":"deterministic" if fast_path else None,"durationMs":round((time.time()-started)*1000),"pages":doc.get("pageCount"),"tablesFound":len(doc.get("tables",[])),"duplicateCandidates":dup,"overallConfidence":round(overall_confidence(result),3)}
+    if ai_failure:
+        processing["aiStatus"]="degraded"
     usage=record_billing_usage(request)
     if usage:
         processing["billing"]={"plan":usage.get("plan"),"monthlyLimit":usage.get("monthly_limit"),"used":usage.get("used"),"remaining":usage.get("remaining")}
