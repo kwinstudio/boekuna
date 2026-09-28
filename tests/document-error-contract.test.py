@@ -240,6 +240,49 @@ def test_ai_timeout_503_and_malformed_response_are_explicit():
         processor.requests.post = old_post
 
 
+def test_ai_rate_limit_retries_once_and_recovers():
+    doc, heur = minimal_ai_case()
+    old_key = processor.OPENAI_API_KEY
+    old_post = processor.requests.post
+    old_sleep = processor.time.sleep
+    processor.OPENAI_API_KEY = "test-key"
+    calls = []
+    sleeps = []
+    success_payload = {
+        "output_text": json.dumps(heur.model_dump()),
+        "usage": {"input_tokens": 100, "output_tokens": 50, "total_tokens": 150},
+    }
+    responses = [
+        FakeAIResponse(
+            429,
+            {"error": {
+                "code": "rate_limit_exceeded",
+                "message": "Rate limit reached. Please try again in 0.01s.",
+            }},
+            {"x-request-id": "req-rate-1", "retry-after": "0"},
+        ),
+        FakeAIResponse(200, success_payload, {"x-request-id": "req-rate-2"}),
+    ]
+    try:
+        def staged_post(*args, **kwargs):
+            calls.append(1)
+            return responses.pop(0)
+
+        processor.requests.post = staged_post
+        processor.time.sleep = lambda delay: sleeps.append(delay)
+        result, failure = processor.ai_extract(doc, "error-test.pdf", {}, heur, independent=True)
+        assert failure is None
+        assert result is not None
+        assert len(calls) == 2
+        assert len(sleeps) == 1
+        assert .5 <= sleeps[0] <= 15
+        assert result.processing["independentVerification"] is True
+    finally:
+        processor.OPENAI_API_KEY = old_key
+        processor.requests.post = old_post
+        processor.time.sleep = old_sleep
+
+
 def test_verify_rejects_oversized_file_before_processing():
     old_auth = processor.require_authenticated_user
     old_allow = processor.allow_request
@@ -277,6 +320,7 @@ if __name__ == "__main__":
         test_safe_context_for_file_limits_and_types,
         test_library_failures_are_mapped_without_exception_text,
         test_ai_timeout_503_and_malformed_response_are_explicit,
+        test_ai_rate_limit_retries_once_and_recovers,
         test_verify_rejects_oversized_file_before_processing,
     ]
     for test in tests:
