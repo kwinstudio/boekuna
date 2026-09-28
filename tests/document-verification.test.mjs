@@ -47,7 +47,8 @@ function aiPayload(overrides={}){
   };
 }
 
-function processorPayload({vatAmount=21,gross=121,vatRate=21}={}){
+function processorPayload({net=100,vatAmount=21,gross=121,vatRate=21,vatLines=null,mixedRates=false}={}){
+  const groups=vatLines??[{rate:vatRate,taxableAmount:net,vatAmount}];
   return {
     ok:true,processor:true,model:'gpt-5.6-sol',pass:'verify',usage:{input_tokens:5000,output_tokens:500},
     data:{
@@ -55,10 +56,10 @@ function processorPayload({vatAmount=21,gross=121,vatRate=21}={}){
       supplier:{name:'Voorbeeld Leverancier BV',address:null,postalCode:null,city:null,country:'Nederland',kvk:null,vatNumber:null,iban:null,email:null},
       customer:{name:null,address:null,postalCode:null,city:null,country:null,kvk:null,vatNumber:null,iban:null,email:null},
       invoice:{invoiceNumber:'INK-100',invoiceDate:'2026-09-27',dueDate:null,paymentTermDays:null,orderNumber:null,paymentReference:null,description:'Consultancy september'},
-      amounts:{subtotal:100,vatLines:[{rate:vatRate,taxableAmount:100,vatAmount}],vatTotal:vatAmount,total:gross,settlementAmount:null,discount:null,shipping:null,currency:'EUR'},
-      status:'open',lineItems:[{description:'Consultancy september',quantity:1,unitPrice:100,vatRate,lineTotal:100}],adjustments:[],
-      confidence:{supplierName:.95,invoiceNumber:.95,invoiceDate:.95,subtotal:.98,vatTotal:.98,total:.98},
-      warnings:[],processing:{ai:true,aiModel:'gpt-5.6-sol',overallConfidence:.94,independentVerification:true}
+      amounts:{subtotal:net,vatLines:groups,vatTotal:vatAmount,total:gross,settlementAmount:null,discount:null,shipping:null,currency:'EUR'},
+      status:'open',lineItems:[{description:'Consultancy september',quantity:1,unitPrice:net,vatRate,lineTotal:net}],adjustments:[],
+      confidence:{supplierName:.95,invoiceNumber:.95,invoiceDate:.95,description:.95,subtotal:.98,vatTotal:.98,total:.98,vatLines:.98},
+      warnings:[],processing:{ai:true,aiModel:'gpt-5.6-sol',overallConfidence:.94,independentVerification:true,amountDerivation:{mixedRates}}
     }
   };
 }
@@ -94,13 +95,18 @@ try{
 
   // Conditional gate: a clean deterministic document should not consume PASS 2.
   const gate=await page.evaluate(()=>({
-    strong:shouldQueueDocumentVerification({recognitionBad:0,recognitionWarn:0,confidenceScore:96,mixedRates:false,fieldConfidence:{party:95,gross:98},processor:{ocrUsed:false}}),
-    weak:shouldQueueDocumentVerification({recognitionBad:0,recognitionWarn:1,confidenceScore:82,mixedRates:false,fieldConfidence:{party:75,gross:85},processor:{ocrUsed:true,ocrConfidence:.71}})
+    strong:shouldQueueDocumentVerification({recognitionBad:0,recognitionWarn:0,confidenceScore:96,mixedRates:false,fieldConfidence:{party:95,gross:98,vatLines:99,description:92},processor:{ocrUsed:false}}),
+    weak:shouldQueueDocumentVerification({recognitionBad:0,recognitionWarn:1,confidenceScore:82,mixedRates:false,fieldConfidence:{party:75,gross:85},processor:{ocrUsed:true,ocrConfidence:.71}}),
+    weakVatLines:shouldQueueDocumentVerification({recognitionBad:0,recognitionWarn:0,confidenceScore:96,mixedRates:false,fieldConfidence:{party:95,gross:98,vatLines:55,description:92},processor:{ocrUsed:false}})
   }));
   assert.equal(gate.strong,false,'Strong deterministic documents must skip the paid second AI pass');
   assert.equal(gate.weak,true,'Uncertain/OCR documents must queue independent verification');
+  assert.equal(gate.weakVatLines,true,'Weak VAT-group confidence must queue independent verification');
 
-  const base={party:'Voorbeeld Leverancier BV',issueDate:'2026-09-27',description:'Consultancy september',net:100,vatAmount:21,gross:121,vatRate:21,invoiceNumber:'INK-100',currency:'EUR',mixedRates:false};
+  const cents=await page.evaluate(()=>[financialMoneyCents('1.005'),financialMoneyCents('-1.005'),financialMoneyCents('12100.01')]);
+  assert.deepEqual(cents,[101,-101,1210001],'Money conversion must use deterministic half-up minor units');
+
+  const base={party:'Voorbeeld Leverancier BV',issueDate:'2026-09-27',description:'Consultancy september',net:100,vatAmount:21,gross:121,vatRate:21,vatLines:[{rate:21,taxableAmount:100,vatAmount:21}],invoiceNumber:'INK-100',currency:'EUR',mixedRates:false};
 
   // Agreement: independent pass only updates verification metadata, never bookkeeping values.
   await putDoc('agree',pendingVerification(base));
@@ -115,6 +121,49 @@ try{
   assert.deepEqual(agree.differences,[]);
   assert.deepEqual(expenseAfter,expenseBefore,'PASS 2 may not silently mutate the saved financial record');
   assert.equal(await page.evaluate(()=>window.__verificationFetchCount),1);
+
+  // One cent is a real financial difference. Percentage-based tolerances may not hide it.
+  await putDoc('one-cent',pendingVerification(base));
+  await installMock([{status:200,body:processorPayload({vatAmount:21.01,gross:121.01,vatLines:[{rate:21,taxableAmount:100,vatAmount:21.01}]})}]);
+  await page.evaluate(()=>runDocumentVerification('one-cent'));
+  await page.waitForFunction(()=>state.documents.find(d=>d.id==='one-cent')?.verification?.status==='needs_review');
+  const oneCent=await page.evaluate(()=>structuredClone(state.documents.find(d=>d.id==='one-cent').verification));
+  assert.ok(oneCent.differences.some(x=>x.field==='vatAmount'&&x.current===21&&x.alternative===21.01),'A one-cent VAT difference must be surfaced');
+  assert.ok(oneCent.differences.some(x=>x.field==='gross'&&x.current===121&&x.alternative===121.01),'A one-cent gross difference must be surfaced');
+
+  // VAT substructure is financial truth too: equal top-level totals may not hide a wrong VAT breakdown.
+  await putDoc('vat-lines',pendingVerification(base));
+  await installMock([{status:200,body:processorPayload({vatLines:[{rate:21,taxableAmount:90,vatAmount:21}]})}]);
+  await page.evaluate(()=>runDocumentVerification('vat-lines'));
+  await page.waitForFunction(()=>state.documents.find(d=>d.id==='vat-lines')?.verification?.status==='needs_review');
+  const vatLinesMismatch=await page.evaluate(()=>structuredClone(state.documents.find(d=>d.id==='vat-lines').verification));
+  assert.ok(vatLinesMismatch.differences.some(x=>x.field==='vatLines'),'PASS 2 must compare VAT groups, not just headline VAT');
+
+  // Persistence guard: single-rate groups are rebuilt from user-confirmed totals; mixed-rate groups must reconcile exactly.
+  const vatPersistence=await page.evaluate(()=>({
+    single:trustedVatLinesForImport({mixedRates:false,vatLines:[{rate:21,taxableAmount:3.63,vatAmount:4.39}]},100,21,21),
+    mixedGood:trustedVatLinesForImport({mixedRates:true,vatLines:[{rate:9,taxableAmount:100,vatAmount:9},{rate:21,taxableAmount:100,vatAmount:21}]},200,30,0),
+    mixedBad:trustedVatLinesForImport({mixedRates:true,vatLines:[{rate:9,taxableAmount:100,vatAmount:9},{rate:21,taxableAmount:90,vatAmount:21}]},200,30,0),
+    zeroRateConflict:trustedVatLinesForImport({mixedRates:false,vatLines:[]},100,21,0)
+  }));
+  assert.deepEqual(vatPersistence.single,{ok:true,lines:[{rate:21,taxableAmount:100,vatAmount:21}]},'Single-rate VAT groups must come from confirmed headline values');
+  assert.equal(vatPersistence.mixedGood.ok,true,'A cent-exact mixed VAT split may be persisted');
+  assert.equal(vatPersistence.mixedBad.ok,false,'A mixed VAT split that does not reconcile must be blocked');
+  assert.equal(vatPersistence.zeroRateConflict.ok,false,'0% may not be stored when the confirmed VAT amount is non-zero');
+
+  // Final save validation is exact in currency minor units; large invoices may not hide a one-cent mismatch.
+  const schemaCentCheck=await page.evaluate(()=>validateCandidateSchema({
+    type:'purchase',party:'Voorbeeld Leverancier BV',documentType:'purchase_invoice',invoiceNumber:'BIG-1',issueDate:'2026-09-27',
+    net:10000,vatAmount:2100,gross:12100.01,dueDate:'',iban:'',kvk:'',vatId:''
+  }));
+  assert.ok(schemaCentCheck.some(x=>/cent-exact/.test(x)),'A €0.01 mismatch on a large invoice must block final save');
+
+  const settlementChecks=await page.evaluate(()=>invoiceRecognitionChecks({
+    type:'sale',party:'Klant BV',documentType:'sale_invoice',invoiceNumber:'SET-1',issueDate:'2026-09-27',
+    net:10000,vatAmount:2100,gross:12100,vatRate:21,payout:12000,
+    adjustments:[{type:'factoring_fee',gross:100.01}],lineItems:[],mixedRates:false
+  }));
+  assert.ok(settlementChecks.some(x=>x.code==='factoring'&&x.level==='warn'),'A one-cent settlement mismatch may not be marked as reconciled');
 
   // Relevant financial disagreement: store both values and flag, never choose one automatically.
   await putDoc('mismatch',pendingVerification(base));
@@ -164,7 +213,7 @@ try{
   assert.match(body,/€\s*12,00|12,00/);
 
   assert.deepEqual(errors,[],'Browser page errors: '+errors.join(' | '));
-  console.log('Document verification regression: PASS (conditional non-blocking PASS2, immutable bookkeeping, discrepancies, finite retries, mobile status)');
+  console.log('Document verification regression: PASS (cent-exact PASS2, VAT-group comparison, trusted persistence, immutable bookkeeping, discrepancies, finite retries, mobile status)');
 }finally{
   await browser.close();
   await new Promise(resolve=>server.close(resolve));

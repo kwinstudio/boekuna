@@ -3494,7 +3494,7 @@ function processorAnalysisToCandidate(raw,text,forced='auto'){
  const adjustments=Array.isArray(a.adjustments)?a.adjustments.map(x=>({type:x?.type||'other_fee',description:x?.description||'',net:x?.subtotal??null,vat:x?.vatTotal??null,gross:x?.total??null,vatRate:x?.vatRate??null,direction:x?.direction||'deduction',counterparty:x?.counterparty||''})).filter(x=>Number(x.gross||0)>0):[];
  const payout=amounts.settlementAmount??null,adjustmentParty=adjustments.find(x=>x.counterparty)?.counterparty||'Factoringkosten';
  const statusMap={open:'sent',overdue:'sent',unknown:'sent',draft:'draft',paid:'paid',cancelled:'cancelled',credit:'credit'};
- const fc={party:Number(type==='sale'?conf.customerName:conf.supplierName)||0,invoiceNumber:Number(conf.invoiceNumber)||0,issueDate:Number(conf.invoiceDate)||0,net:Number(conf.subtotal)||0,vatAmount:Number(conf.vatTotal)||0,gross:Number(conf.total)||0,payout:Number(conf.settlementAmount)||0};
+ const fc={party:Number(type==='sale'?conf.customerName:conf.supplierName)||0,invoiceNumber:Number(conf.invoiceNumber)||0,issueDate:Number(conf.invoiceDate)||0,description:Number(conf.description)||0,net:Number(conf.subtotal)||0,vatAmount:Number(conf.vatTotal)||0,gross:Number(conf.total)||0,vatLines:Number(conf.vatLines)||0,payout:Number(conf.settlementAmount)||0};
  for(const k of Object.keys(fc))fc[k]=Math.max(0,Math.min(100,fc[k]<=1?fc[k]*100:fc[k]));
  const confVals=Object.values(conf).map(Number).filter(Number.isFinite),overall=Number(proc.overallConfidence);const confidenceScore=Math.max(0,Math.min(100,Number.isFinite(overall)?overall*100:(confVals.length?confVals.reduce((x,y)=>x+y,0)/confVals.length*100:0)));
  return {type,documentType,isCredit:documentType==='credit_invoice',party:party.name||'',email:party.email||'',phone:party.phone||'',vatId:party.vatNumber||'',kvk:party.kvk||'',address:party.address||'',postal:party.postalCode||'',city:party.city||'',country:party.country||'',iban:party.iban||'',invoiceNumber:inv.invoiceNumber||'',issueDate:inv.invoiceDate||'',dueDate:inv.dueDate||'',paymentTermDays:inv.paymentTermDays??null,orderNumber:inv.orderNumber||'',paymentReference:inv.paymentReference||'',description:inv.description||'',currency:amounts.currency||'EUR',net:amounts.subtotal??null,vatAmount:amounts.vatTotal??null,gross:amounts.total??null,payout,adjustments,adjustmentParty,discount:amounts.discount??null,shipping:amounts.shipping??null,vatRate,mixedRates:rates.length>1,vatLines:vatLines.map(v=>({rate:v.rate,taxableAmount:v.taxableAmount,vatAmount:v.vatAmount})),lineItems:(a.lineItems||[]).map(v=>({desc:v.description||'',qty:v.quantity??1,unit:v.unitPrice??0,vat:v.vatRate??vatRate??0,total:v.lineTotal??null})).filter(v=>v.desc),status:statusMap[a.status]||'sent',fieldConfidence:fc,confidenceScore,warnings:Array.isArray(a.warnings)?a.warnings:[],sourceQuality:proc.ai?'processor-v2-ai':'processor-v2',aiModel:proc.aiModel||'',text:String(text||''),processorRaw:a}
@@ -3627,13 +3627,13 @@ function invoiceRecognitionChecks(d){
  if(!d?.invoiceNumber&&d?.documentType!=='receipt')add('bad','invoiceNumber','Factuurnummer ontbreekt','Controleer het factuurnummer op het originele document.');
  if(!d?.issueDate)add('bad','issueDate',d?.documentType==='receipt'?'Bondatum ontbreekt':'Factuurdatum ontbreekt',d?.documentType==='receipt'?'De datum op de bon kon niet betrouwbaar worden vastgesteld.':'De factuurdatum kon niet betrouwbaar worden vastgesteld.');
  if(gross==null||!Number.isFinite(gross)||gross<=0)add('bad','gross',d?.documentType==='receipt'?'Bonbedrag ontbreekt':'Factuurbedrag ontbreekt',d?.documentType==='receipt'?'Het totaalbedrag op de bon is niet betrouwbaar herkend.':'Het totaalbedrag incl. btw is niet betrouwbaar herkend.');
- if(net!=null&&vat!=null&&gross!=null){const tol=Math.max(.08,Math.abs(gross)*.002);const diff=Math.abs((net+vat)-gross);if(diff>tol)add('bad','arithmetic','Bedragen zijn niet in balans',`Excl. btw + btw wijkt ${money(diff)} af van het factuurtotaal.`);else add('good','arithmetic','Bedragen sluiten aan','Excl. btw + btw is gelijk aan het factuurtotaal.');}
+ if(net!=null&&vat!=null&&gross!=null){const netC=financialMoneyCents(net),vatC=financialMoneyCents(vat),grossC=financialMoneyCents(gross),diffC=Math.abs((netC??0)+(vatC??0)-(grossC??0));if(netC==null||vatC==null||grossC==null||netC+vatC!==grossC)add('bad','arithmetic','Bedragen zijn niet in balans',`Excl. btw + btw wijkt ${money(diffC/100)} af van het factuurtotaal.`);else add('good','arithmetic','Bedragen sluiten aan','Excl. btw + btw is cent-exact gelijk aan het factuurtotaal.');}
  if(net!=null&&vat!=null&&net>0&&rate!=null&&!d?.mixedRates){const implied=vat/net*100;const tolerance=rate===21?1.2:rate===9?.7:.5;if(Math.abs(implied-rate)>tolerance)add('warn','vatRate','Btw-tarief verdient controle',`Herkenning zegt ${rate}%, maar de bedragen komen uit op ongeveer ${implied.toFixed(1)}%.`);else add('good','vatRate','Btw-controle klopt',`${rate}% sluit aan op de herkende bedragen.`)}
  if(d?.mixedRates)add('warn','mixedRates','Meerdere btw-tarieven','Controleer de btw-regels afzonderlijk; één gemiddeld percentage mag niet worden gebruikt.');
  if(d?.issueDate&&d?.dueDate&&d.dueDate<d.issueDate)add('bad','dates','Vervaldatum ligt vóór factuurdatum','Controleer beide datums.');
  const ownVat=String(state.company?.vat||'').replace(/\s/g,'').toUpperCase(),relVat=String(d?.vatId||'').replace(/\s/g,'').toUpperCase();if(ownVat&&relVat&&ownVat===relVat)add('warn','ownParty','Eigen btw-id bij relatie gevonden','Waarschijnlijk is het verkeerde bedrijfsblok als klant/leverancier gekozen.');
  const items=Array.isArray(d?.lineItems)?d.lineItems:[];if(items.length&&net!=null){const itemNet=items.reduce((sum,x)=>sum+Number(x.qty||0)*Number(x.unit||0),0),tol=Math.max(.08,Math.abs(net)*.004);if(Math.abs(itemNet-net)>tol)add('warn','lines','Factuurregels sluiten niet aan',`Som van herkende regels (${money(itemNet)}) wijkt af van excl. btw (${money(net)}).`);else add('good','lines','Factuurregels sluiten aan',`${items.length} factuurregel${items.length===1?'':'s'} gecontroleerd.`)}
- const payout=d?.payout===''||d?.payout==null?null:Number(d.payout),adj=(d?.adjustments||[]).reduce((sum,x)=>sum+Math.abs(Number(x.gross||0)),0);if(payout!=null&&gross!=null&&payout>gross+.08)add('bad','payout','Uitbetaling groter dan factuur','Netto uitbetaling kan niet hoger zijn dan het factuurtotaal zonder aparte verklaring.');if(payout!=null&&gross!=null&&payout<gross-.08){const gap=gross-payout;if(adj&&Math.abs(gap-adj)<=Math.max(.08,gross*.004))add('good','factoring','Factoring/verrekening sluit aan',`Factuur ${money(gross)} − kosten ${money(adj)} = uitbetaling ${money(payout)}.`);else add('warn','factoring','Verschil met uitbetaling',`Er zit ${money(gap)} tussen factuur en uitbetaling. Controleer factoring, commissie of verrekening.`)}
+ const payout=d?.payout===''||d?.payout==null?null:Number(d.payout),payoutC=financialMoneyCents(payout),grossPayoutC=financialMoneyCents(gross),adjC=(d?.adjustments||[]).reduce((sum,x)=>sum+Math.abs(financialMoneyCents(x.gross)||0),0),adj=adjC/100;if(payoutC!=null&&grossPayoutC!=null&&payoutC>grossPayoutC)add('bad','payout','Uitbetaling groter dan factuur','Netto uitbetaling kan niet hoger zijn dan het factuurtotaal zonder aparte verklaring.');if(payoutC!=null&&grossPayoutC!=null&&payoutC<grossPayoutC){const gapC=grossPayoutC-payoutC,gap=gapC/100;if(adjC&&gapC===adjC)add('good','factoring','Factoring/verrekening sluit aan',`Factuur ${money(gross)} − kosten ${money(adj)} = uitbetaling ${money(payout)}.`);else add('warn','factoring','Verschil met uitbetaling',`Er zit ${money(gap)} tussen factuur en uitbetaling. Controleer factoring, commissie of verrekening.`)}
  const ibanOk=ibanValid(d?.iban);if(ibanOk===false)add('warn','iban','IBAN-formaat klopt niet','Controleer het herkende IBAN op het originele document.');else if(ibanOk===true)add('good','iban','IBAN-formaat geldig','De IBAN-controle (mod 97) is geslaagd.');
  if(!plausibleKvk(d?.kvk))add('warn','kvk','KVK-nummer lijkt ongeldig','Een Nederlands KVK-nummer heeft 8 cijfers.');
  if(!plausibleVat(d?.vatId))add('warn','vatNumber','Btw-nummer lijkt ongeldig','Controleer het btw-nummer op het originele document.');
@@ -3672,7 +3672,7 @@ function normalizeAiCandidate(raw){
 }
 function extractVatLines(lines){const out=[];for(let i=0;i<lines.length;i++){const line=String(lines[i]);const m=line.match(/\b(?:btw|vat|tax)\s*(0|9|21)\s*%/i);if(!m)continue;const rate=Number(m[1]),vals=moneyTokensSigned(line).map(Math.abs);let vatAmount=vals.length?vals[vals.length-1]:null,taxableAmount=null;if(vals.length>=2)taxableAmount=vals[vals.length-2];if(vatAmount==null&&i+1<lines.length){const n=moneyTokensSigned(lines[i+1]).map(Math.abs);if(n.length)vatAmount=n[n.length-1]}if(vatAmount!=null&&!out.some(x=>x.rate===rate&&Math.abs((x.vatAmount||0)-vatAmount)<.01))out.push({rate,taxableAmount,vatAmount})}return out}
 function classifyDocumentType(parsed,hint=''){if(parsed?.isCredit||hint==='credit_invoice')return 'credit_invoice';if(hint==='receipt')return 'receipt';if(hint==='bank_document')return 'bank_document';if(parsed?.type==='sale')return 'sale_invoice';if(parsed?.type==='purchase')return 'purchase_invoice';return hint==='invoice'?'purchase_invoice':(hint||'other')}
-function validateCandidateSchema(d){const errors=[];if(!['sale','purchase'].includes(d?.type))errors.push('Boekingstype ontbreekt.');if(!String(d?.party||'').trim())errors.push('Relatie ontbreekt.');if(!['receipt','other'].includes(d?.documentType)&&!String(d?.invoiceNumber||'').trim())errors.push('Factuurnummer ontbreekt.');if(!/^\d{4}-\d{2}-\d{2}$/.test(String(d?.issueDate||'')))errors.push('Factuurdatum is ongeldig.');const gross=Number(d?.gross),net=Number(d?.net),vat=Number(d?.vatAmount||0);if(!Number.isFinite(gross)||gross<=0)errors.push('Factuurtotaal is ongeldig.');if(!Number.isFinite(net)||net<0)errors.push('Bedrag excl. btw is ongeldig.');if(Number.isFinite(net)&&Number.isFinite(gross)&&Math.abs((net+vat)-gross)>Math.max(.08,Math.abs(gross)*.002))errors.push('Excl. btw + btw sluit niet aan op totaal.');if(d?.dueDate&&d?.issueDate&&d.dueDate<d.issueDate)errors.push('Vervaldatum ligt vóór factuurdatum.');if(ibanValid(d?.iban)===false)errors.push('IBAN-formaat is ongeldig.');if(!plausibleKvk(d?.kvk))errors.push('KVK-nummer heeft geen plausibel formaat.');if(!plausibleVat(d?.vatId))errors.push('Btw-nummer heeft geen plausibel formaat.');return errors}
+function validateCandidateSchema(d){const errors=[];if(!['sale','purchase'].includes(d?.type))errors.push('Boekingstype ontbreekt.');if(!String(d?.party||'').trim())errors.push('Relatie ontbreekt.');if(!['receipt','other'].includes(d?.documentType)&&!String(d?.invoiceNumber||'').trim())errors.push('Factuurnummer ontbreekt.');if(!/^\d{4}-\d{2}-\d{2}$/.test(String(d?.issueDate||'')))errors.push('Factuurdatum is ongeldig.');const gross=Number(d?.gross),net=Number(d?.net),vat=Number(d?.vatAmount||0),grossC=financialMoneyCents(gross),netC=financialMoneyCents(net),vatC=financialMoneyCents(vat);if(!Number.isFinite(gross)||gross<=0)errors.push('Factuurtotaal is ongeldig.');if(!Number.isFinite(net)||net<0)errors.push('Bedrag excl. btw is ongeldig.');if(netC!=null&&vatC!=null&&grossC!=null&&netC+vatC!==grossC)errors.push('Excl. btw + btw sluit niet cent-exact aan op totaal.');if(d?.dueDate&&d?.issueDate&&d.dueDate<d.issueDate)errors.push('Vervaldatum ligt vóór factuurdatum.');if(ibanValid(d?.iban)===false)errors.push('IBAN-formaat is ongeldig.');if(!plausibleKvk(d?.kvk))errors.push('KVK-nummer heeft geen plausibel formaat.');if(!plausibleVat(d?.vatId))errors.push('Btw-nummer heeft geen plausibel formaat.');return errors}
 function mergeAIParsed(local,ai,forced='auto'){
  if(!ai)return local;ai=normalizeAiCandidate(ai);const out={...local};
  const fields=['party','email','phone','vatId','kvk','address','postal','city','country','iban','invoiceNumber','issueDate','dueDate','paymentReference','description','orderNumber','paymentTermDays','currency','net','vatAmount','gross','vatRate','payout','discount','shipping'];
@@ -3823,12 +3823,30 @@ function documentVerificationReasons(d){
  if(d.processor?.ocrUsed&&(d.processor.ocrConfidence==null||Number(d.processor.ocrConfidence)<.86))reasons.push('ocr-quality');
  if(Number(d.fieldConfidence?.party||0)>0&&Number(d.fieldConfidence.party)<80)reasons.push('party-confidence');
  if(Number(d.fieldConfidence?.gross||0)>0&&Number(d.fieldConfidence.gross)<88)reasons.push('gross-confidence');
+ if(Number(d.fieldConfidence?.vatLines||0)>0&&Number(d.fieldConfidence.vatLines)<90)reasons.push('vat-lines-confidence');
+ if(Number(d.fieldConfidence?.description||0)>0&&Number(d.fieldConfidence.description)<80)reasons.push('description-confidence');
  return [...new Set(reasons)]
 }
 function shouldQueueDocumentVerification(d){return documentVerificationReasons(d).length>0}
+function financialMoneyCents(v){
+ if(v===''||v==null)return null;
+ let s=String(v).trim().replace(',','.');if(!/^[+-]?\d+(?:\.\d+)?$/.test(s)){const n=Number(v);if(!Number.isFinite(n))return null;s=n.toFixed(6)}
+ let sign=1;if(s[0]==='-'||s[0]==='+'){if(s[0]==='-')sign=-1;s=s.slice(1)}
+ const [wholeRaw='0',fractionRaw='']=s.split('.'),whole=wholeRaw.replace(/^0+(?=\d)/,'')||'0',fraction=(fractionRaw+'000').slice(0,3);
+ if(!/^\d+$/.test(whole)||!/^\d{3}$/.test(fraction))return null;
+ let cents=BigInt(whole)*100n+BigInt(fraction.slice(0,2));if(Number(fraction[2])>=5)cents+=1n;cents*=BigInt(sign);
+ const out=Number(cents);return Number.isSafeInteger(out)?out:null
+}
+function canonicalFinancialVatLines(lines){
+ return (Array.isArray(lines)?lines:[]).map(v=>({
+  rate:Number(v?.rate),
+  taxableAmount:financialMoneyCents(v?.taxableAmount)==null?null:roundMoney(Number(v.taxableAmount)),
+  vatAmount:financialMoneyCents(v?.vatAmount)==null?null:roundMoney(Number(v.vatAmount))
+ })).filter(v=>Number.isFinite(v.rate)&&v.taxableAmount!=null&&v.vatAmount!=null).sort((a,b)=>a.rate-b.rate||financialMoneyCents(a.taxableAmount)-financialMoneyCents(b.taxableAmount)||financialMoneyCents(a.vatAmount)-financialMoneyCents(b.vatAmount))
+}
 function verificationSnapshot(d){
- const num=v=>v===''||v==null||!Number.isFinite(Number(v))?null:roundMoney(Number(v));
- return {party:String(d?.party||'').trim(),issueDate:String(d?.issueDate||''),description:String(d?.description||'').trim(),net:num(d?.net),vatAmount:num(d?.vatAmount),gross:num(d?.gross),vatRate:num(d?.vatRate),invoiceNumber:String(d?.invoiceNumber||'').trim(),currency:String(d?.currency||'EUR').trim().toUpperCase(),mixedRates:!!d?.mixedRates}
+ const num=v=>financialMoneyCents(v)==null?null:roundMoney(Number(v));
+ return {party:String(d?.party||'').trim(),issueDate:String(d?.issueDate||''),description:String(d?.description||'').trim(),net:num(d?.net),vatAmount:num(d?.vatAmount),gross:num(d?.gross),vatRate:num(d?.vatRate),vatLines:canonicalFinancialVatLines(d?.vatLines),invoiceNumber:String(d?.invoiceNumber||'').trim(),currency:String(d?.currency||'EUR').trim().toUpperCase(),mixedRates:!!d?.mixedRates}
 }
 function verificationComparableText(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
 function verificationTextSame(a,b,loose=false){
@@ -3836,8 +3854,11 @@ function verificationTextSame(a,b,loose=false){
  return loose&&Math.min(x.length,y.length)>=4&&(x.includes(y)||y.includes(x))
 }
 function verificationMoneySame(a,b){
- if(a==null&&b==null)return true;if(a==null||b==null)return false;
- const x=Number(a),y=Number(b),tol=Math.max(.05,Math.max(Math.abs(x),Math.abs(y))*.002);return Math.abs(x-y)<=tol
+ const x=financialMoneyCents(a),y=financialMoneyCents(b);return x===y
+}
+function verificationVatLinesSame(a,b){
+ const x=canonicalFinancialVatLines(a),y=canonicalFinancialVatLines(b);if(x.length!==y.length)return false;
+ return x.every((v,i)=>Number(v.rate)===Number(y[i].rate)&&verificationMoneySame(v.taxableAmount,y[i].taxableAmount)&&verificationMoneySame(v.vatAmount,y[i].vatAmount))
 }
 function documentVerificationDifferences(pass1,pass2,pass2Candidate=null){
  const diffs=[],add=(field,label,current,alternative)=>diffs.push({field,label,current,alternative});
@@ -3848,6 +3869,7 @@ function documentVerificationDifferences(pass1,pass2,pass2Candidate=null){
  for(const [field,label] of [['net','Bedrag excl. btw'],['vatAmount','Btw-bedrag'],['gross','Totaal incl. btw']])if(!verificationMoneySame(pass1[field],pass2[field]))add(field,label,pass1[field],pass2[field]);
  if(!pass1.mixedRates&&!pass2.mixedRates&&!verificationMoneySame(pass1.vatRate,pass2.vatRate))add('vatRate','Btw-tarief',pass1.vatRate,pass2.vatRate);
  if(!!pass1.mixedRates!==!!pass2.mixedRates)add('mixedRates','Meerdere btw-tarieven',pass1.mixedRates?'Ja':'Nee',pass2.mixedRates?'Ja':'Nee');
+ if(!verificationVatLinesSame(pass1.vatLines,pass2.vatLines))add('vatLines','Btw-verdeling',pass1.vatLines||[],pass2.vatLines||[]);
  if(pass1.invoiceNumber&&!verificationTextSame(pass1.invoiceNumber,pass2.invoiceNumber))add('invoiceNumber','Factuurnummer',pass1.invoiceNumber,pass2.invoiceNumber);
  return diffs
 }
@@ -3855,6 +3877,7 @@ function verificationValueText(field,v){
  if(v==null||v==='')return 'Niet gevonden';
  if(['net','vatAmount','gross'].includes(field))return money(Number(v));
  if(field==='vatRate')return num(Number(v))+'%';
+ if(field==='vatLines'){const lines=canonicalFinancialVatLines(v);return lines.length?lines.map(x=>`${num(x.rate)}%: ${money(x.taxableAmount)} grondslag · ${money(x.vatAmount)} btw`).join(' | '):'Geen betrouwbare btw-verdeling'}
  return String(v)
 }
 function documentVerificationBadge(d){
@@ -4016,6 +4039,19 @@ function showPdfImportReview(d){
  requestAnimationFrame(()=>setDocumentReviewStep(1));
 }
 
+function trustedVatLinesForImport(parsed,net,vat,rate){
+ const mixed=!!parsed?.mixedRates,lines=canonicalFinancialVatLines(parsed?.vatLines),r=Number(rate),netC=financialMoneyCents(net),vatC=financialMoneyCents(vat);
+ if(!mixed){
+  if(netC==null||vatC==null)return {ok:true,lines:[]};
+  if(![0,9,21].includes(r))return {ok:false,lines:[],reason:'Het btw-tarief is niet betrouwbaar genoeg om de btw-verdeling op te slaan.'};
+  if(r===0&&vatC!==0)return {ok:false,lines:[],reason:'Er staat btw op het document, maar het gekozen btw-tarief is 0%. Controleer het btw-tarief.'};
+  return {ok:true,lines:[{rate:r,taxableAmount:roundMoney(Number(net)),vatAmount:roundMoney(Number(vat))}]}
+ }
+ if(lines.length<2)return {ok:false,lines:[],reason:'Meerdere btw-tarieven zijn herkend, maar de btw-verdeling is niet betrouwbaar genoeg om op te slaan.'};
+ const taxableCents=lines.reduce((sum,x)=>sum+(financialMoneyCents(x.taxableAmount)||0),0),vatCents=lines.reduce((sum,x)=>sum+(financialMoneyCents(x.vatAmount)||0),0);
+ if(taxableCents!==financialMoneyCents(net)||vatCents!==financialMoneyCents(vat))return {ok:false,lines:[],reason:'De btw-verdeling sluit niet cent-exact aan op de gecontroleerde netto- en btw-totalen.'};
+ return {ok:true,lines}
+}
 function findOrCreateContact(type,data){
  const name=(data.party||'').trim(),vat=(data.vatId||'').replace(/\s/g,'').toLowerCase(),email=(data.email||'').trim().toLowerCase(),norm=name.toLowerCase().replace(/[^a-z0-9]/g,'');
  let c=state.contacts.find(x=>vat&&String(x.vat||'').replace(/\s/g,'').toLowerCase()===vat)||state.contacts.find(x=>email&&String(x.email||'').toLowerCase()===email)||state.contacts.find(x=>String(x.name||'').toLowerCase().replace(/[^a-z0-9]/g,'')===norm);
@@ -4027,20 +4063,21 @@ async function savePdfInvoiceImport(){
  if(!pendingPdfImport)return;const f=document.getElementById('pdfImportForm');if(!f)return;if(!f.checkValidity()){const bad=f.querySelector(':invalid'),step=Number(bad?.closest('[data-review-step]')?.dataset.reviewStep||4);setDocumentReviewStep(step);requestAnimationFrame(()=>bad?.reportValidity());return}const fd=new FormData(f),d=Object.fromEntries(fd.entries()),type=d.type,docType=d.documentType||'purchase_invoice',statusRaw=d.status||'sent',isCredit=statusRaw==='credit'||docType==='credit_invoice';if(docType==='receipt'&&!String(d.invoiceNumber||'').trim())d.invoiceNumber=`BON-${String(d.issueDate||today()).replace(/-/g,'')}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
  if(pendingPdfImport.parsed?.duplicateCandidate&&d.confirmDuplicate!=='on')return toast('Mogelijk duplicaat: controleer de waarschuwing en bevestig expliciet als dit toch een nieuwe factuur is.');
  let rate=d.vatRate===''?0:Number(d.vatRate||0),net=Math.abs(Number(d.net||0)),vat=Math.abs(Number(d.vatAmount||0)),gross=Math.abs(Number(d.gross||0));if(!gross||!Number.isFinite(net))return toast('Controleer bedrag excl. btw en factuurbedrag');if(!vat&&gross>=net)vat=Math.max(0,gross-net);
- const candidate={...pendingPdfImport.parsed,...d,type,documentType:docType,isCredit,net,vatAmount:vat,gross,vatRate:rate,status:statusRaw==='overdue'?'sent':statusRaw};const schemaErrors=validateCandidateSchema(candidate);if(schemaErrors.length){toast(schemaErrors[0]);return}if(pendingPdfImport.parsed?.recognitionBad>0&&!confirm('De herkenning bevat kritieke controlepunten. Heb je alle gemarkeerde velden handmatig gecontroleerd en gecorrigeerd?'))return;
+ const vatLineResult=trustedVatLinesForImport(pendingPdfImport.parsed,net,vat,rate);if(!vatLineResult.ok)return toast(vatLineResult.reason);const trustedVatLines=vatLineResult.lines;
+ const candidate={...pendingPdfImport.parsed,...d,type,documentType:docType,isCredit,net,vatAmount:vat,gross,vatRate:rate,vatLines:trustedVatLines,status:statusRaw==='overdue'?'sent':statusRaw};const schemaErrors=validateCandidateSchema(candidate);if(schemaErrors.length){toast(schemaErrors[0]);return}if(pendingPdfImport.parsed?.recognitionBad>0&&!confirm('De herkenning bevat kritieke controlepunten. Heb je alle gemarkeerde velden handmatig gecontroleerd en gecorrigeerd?'))return;
  const dup=duplicateInvoiceCandidate(candidate,pendingPdfImport.sha256||pendingPdfImport.parsed?.sha256||'');if(dup&&d.confirmDuplicate!=='on')return toast(`Mogelijk duplicaat: ${dup.label}`);
  const contact=findOrCreateContact(type==='sale'?'customer':'supplier',d),fileId=uid('file'),docId=uid('d');let fileSaved=true;try{await putStoredFile(fileId,pendingPdfImport.file)}catch(err){fileSaved=false;console.warn(err)}let linkedId;
  const normalStatus=statusRaw==='overdue'?'sent':(statusRaw==='credit'?'sent':statusRaw),currency=String(d.currency||'EUR').toUpperCase().slice(0,3),paymentTermDays=d.paymentTermDays===''?null:Number(d.paymentTermDays),orderNumber=String(d.orderNumber||'');
  if(type==='sale'){
   const number=d.invoiceNumber.trim();if(state.invoices.some(i=>String(i.number||'').trim().toLowerCase()===number.toLowerCase())){if(fileSaved)await deleteStoredFile(fileId);return toast(`Factuurnummer ${number} bestaat al. De factuur is niet dubbel opgeslagen.`)}
   const parsedItems=pendingPdfImport.parsed?.lineItems||[],itemNet=parsedItems.reduce((s,x)=>s+Number(x.qty||0)*Number(x.unit||0),0),lines=parsedItems.length&&Math.abs(itemNet-net)<Math.max(.08,net*.004)?parsedItems.map(x=>({desc:x.desc,qty:Number(x.qty),unit:Number(x.unit),vat:Number(x.vat??rate),unitLabel:x.unitLabel||'stuk'})):[{desc:d.description||`Factuur ${number}`,qty:1,unit:net,vat:rate,unitLabel:'stuk'}];
-  linkedId=uid('i');state.invoices.unshift({id:linkedId,number,kind:isCredit?'credit':'invoice',customerId:contact.id,issueDate:d.issueDate,supplyDate:d.issueDate,dueDate:d.dueDate||d.issueDate,status:normalStatus,currency,paymentTermDays,taxTreatment:state.company.kor?'kor':'standard',reference:orderNumber,paymentReference:d.paymentReference||number,notes:d.description||'',lines,vatLines:pendingPdfImport.parsed?.vatLines||[],importedTotals:{net,vat,gross},source:'document-import',documentId:docId,importConfidence:pendingPdfImport.parsed?.confidenceScore||0,selfBilling:!!pendingPdfImport.parsed?.selfBilling,payout:pendingPdfImport.parsed?.payout??null,adjustments:pendingPdfImport.parsed?.adjustments||[],documentType:docType,pageCount:pendingPdfImport.parsed?.pageCount??null});
+  linkedId=uid('i');state.invoices.unshift({id:linkedId,number,kind:isCredit?'credit':'invoice',customerId:contact.id,issueDate:d.issueDate,supplyDate:d.issueDate,dueDate:d.dueDate||d.issueDate,status:normalStatus,currency,paymentTermDays,taxTreatment:state.company.kor?'kor':'standard',reference:orderNumber,paymentReference:d.paymentReference||number,notes:d.description||'',lines,vatLines:trustedVatLines,importedTotals:{net,vat,gross},source:'document-import',documentId:docId,importConfidence:pendingPdfImport.parsed?.confidenceScore||0,selfBilling:!!pendingPdfImport.parsed?.selfBilling,payout:pendingPdfImport.parsed?.payout??null,adjustments:pendingPdfImport.parsed?.adjustments||[],documentType:docType,pageCount:pendingPdfImport.parsed?.pageCount??null});
   if(d.bookAdjustments==='on'&&!isCredit&&(pendingPdfImport.parsed?.adjustments||[]).length){const vendor=pendingPdfImport.parsed.adjustmentParty||'Factoringkosten';findOrCreateContact('supplier',{party:vendor,email:'',phone:'',vatId:'',kvk:'',address:'',postal:'',city:''});for(const a of pendingPdfImport.parsed.adjustments){if(Number(a.gross||0)<=0)continue;state.expenses.unshift({id:uid('e'),vendor,date:d.issueDate,status:'paid',category:'Bank- & factoringkosten',exVat:Number(a.net||0),vatRate:Number(a.vatRate??rate??0),taxTreatment:state.company.kor?'kor':'standard',vatAmount:Number(a.vat||0),gross:Number(a.gross||0),notes:`Factoringkosten bij factuur ${number}`,paymentMethod:'Verrekend',invoiceNumber:`${number} / factoring`,paymentReference:d.paymentReference||'',source:'document-import-adjustment',documentId:docId})}}
  }else{
   if(state.expenses.some(e=>String(e.invoiceNumber||'').trim().toLowerCase()===String(d.invoiceNumber||'').trim().toLowerCase()&&String(e.vendor||'').trim().toLowerCase()===contact.name.trim().toLowerCase())){if(fileSaved)await deleteStoredFile(fileId);return toast('Deze inkoopfactuur lijkt al te bestaan en is niet dubbel opgeslagen.')}
-  linkedId=uid('e');const sign=isCredit?-1:1;state.expenses.unshift({id:linkedId,vendor:contact.name,date:d.issueDate,dueDate:d.dueDate||'',status:normalStatus,kind:isCredit?'credit':'invoice',currency,paymentTermDays,orderNumber,category:d.category||'Inkoop',exVat:sign*net,vatRate:rate,taxTreatment:state.company.kor?'kor':'standard',vatAmount:sign*vat,gross:sign*gross,vatLines:pendingPdfImport.parsed?.vatLines||[],notes:d.description||`Factuur ${d.invoiceNumber}`,paymentMethod:'Bank',invoiceNumber:d.invoiceNumber,paymentReference:d.paymentReference||'',source:'document-import',documentId:docId,importConfidence:pendingPdfImport.parsed?.confidenceScore||0,documentType:docType,pageCount:pendingPdfImport.parsed?.pageCount??null})
+  linkedId=uid('e');const sign=isCredit?-1:1;state.expenses.unshift({id:linkedId,vendor:contact.name,date:d.issueDate,dueDate:d.dueDate||'',status:normalStatus,kind:isCredit?'credit':'invoice',currency,paymentTermDays,orderNumber,category:d.category||'Inkoop',exVat:sign*net,vatRate:rate,taxTreatment:state.company.kor?'kor':'standard',vatAmount:sign*vat,gross:sign*gross,vatLines:trustedVatLines,notes:d.description||`Factuur ${d.invoiceNumber}`,paymentMethod:'Bank',invoiceNumber:d.invoiceNumber,paymentReference:d.paymentReference||'',source:'document-import',documentId:docId,importConfidence:pendingPdfImport.parsed?.confidenceScore||0,documentType:docType,pageCount:pendingPdfImport.parsed?.pageCount??null})
  }
- const verificationCandidate={...candidate,party:contact.name,invoiceNumber:d.invoiceNumber,issueDate:d.issueDate,description:d.description||'',net,vatAmount:vat,gross,vatRate:rate,currency,mixedRates:!!pendingPdfImport.parsed?.mixedRates};
+ const verificationCandidate={...candidate,party:contact.name,invoiceNumber:d.invoiceNumber,issueDate:d.issueDate,description:d.description||'',net,vatAmount:vat,gross,vatRate:rate,vatLines:trustedVatLines,currency,mixedRates:!!pendingPdfImport.parsed?.mixedRates};
  const verificationNeeded=fileSaved&&shouldQueueDocumentVerification(pendingPdfImport.parsed),verification={
   version:DOCUMENT_VERIFICATION_VERSION,
   key:pendingPdfImport.sha256||pendingPdfImport.parsed?.sha256||docId,
