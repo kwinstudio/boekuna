@@ -75,3 +75,9 @@ jobs:
         run: node tests/billing-source.test.mjs
       - name: Python syntax safety
         run: python -m py_compile kwinest/docprocessor/app.py kwinest/docprocessor/receipt_math.py kwinest/docprocessor/financial_blocks.py
+      - name: 03A live production PR28 mixed VAT retest
+        if: github.event_name == 'pull_request' && github.head_ref == '03a/live-pr28-mixed-vat'
+        env:
+          BOOKUNA_MARKETING_CAPTURE_EMAIL: ${{ secrets.BOOKUNA_MARKETING_CAPTURE_EMAIL }}
+          BOOKUNA_MARKETING_CAPTURE_PASSWORD: ${{ secrets.BOOKUNA_MARKETING_CAPTURE_PASSWORD }}
+        run: node tests/qa-live-pr28-mixed-vat.mjs
