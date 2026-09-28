@@ -170,6 +170,59 @@ def _counterparty(text: str) -> str | None:
     return None
 
 
+def _inclusive_vat_primary(lines: list[str]) -> dict[str, Any] | None:
+    """Read explicit inclusive-VAT summaries such as 'incl. 21% VAT (Net amount X) Y'.
+
+    This is stronger than a pre-discount subtotal because the printed net and VAT
+    belong to the final gross amount after discounts/returns.
+    """
+    net_label = re.compile(r"\b(?:netto\s*bedrag|net\s*amount)\b", re.I)
+    for i, line in enumerate(lines):
+        if not VAT_RE.search(line) or not re.search(r"\b(?:inclusief|including|incl\.?)\b", line, re.I):
+            continue
+        label = net_label.search(line)
+        if not label:
+            continue
+        after = money_tokens(line[label.start():])
+        if not after:
+            continue
+        net = abs(float(after[0]))
+        rate = _rate_from(line) or _infer_rate(net, None)
+        vat = abs(float(after[1])) if len(after) > 1 else None
+        if vat is None:
+            for j in range(i + 1, min(len(lines), i + 3)):
+                vals = money_tokens(lines[j])
+                if vals and not (NET_RE.search(lines[j]) or MAIN_GROSS_RE.search(lines[j]) or PLAIN_TOTAL_RE.search(lines[j])):
+                    vat = abs(float(vals[-1]))
+                    break
+        if vat is None:
+            continue
+        gross = None
+        expected_cents = (_cents(net) or 0) + (_cents(vat) or 0)
+        for j in range(i - 1, max(-1, i - 7), -1):
+            if MAIN_GROSS_RE.search(lines[j]) or PLAIN_TOTAL_RE.search(lines[j]):
+                candidate = _amount_on_or_after(lines, j, 0)
+                if candidate is not None and _cents(abs(float(candidate))) == expected_cents:
+                    gross = abs(float(candidate))
+                    break
+        if gross is None:
+            gross = expected_cents / 100
+        return {
+            "subtotal": round(net, 2),
+            "vatTotal": round(vat, 2),
+            "total": round(gross, 2),
+            "vatRate": rate or _infer_rate(net, vat),
+            "context": " ".join(lines[max(0, i - 6): min(len(lines), i + 3)]),
+            "start": i,
+            "end": i,
+            "isAdjustment": False,
+            "type": None,
+            "counterparty": None,
+            "source": "explicit-inclusive-vat-summary",
+        }
+    return None
+
+
 def _infer_rate(net: float | None, vat: float | None) -> float | None:
     cn, cv = _cents(net), _cents(vat)
     if not cn or cv is None or cn <= 0:
@@ -231,8 +284,9 @@ def parse_financial_blocks(raw_lines: list[str]) -> dict[str, Any]:
             "counterparty": _counterparty(context),
         })
 
+    explicit_inclusive = _inclusive_vat_primary(lines)
     normal = [s for s in sections if not s["isAdjustment"] and s["total"] > 0]
-    primary = sorted(normal, key=lambda s: (-s["total"], s["start"]))[0] if normal else None
+    primary = explicit_inclusive or (sorted(normal, key=lambda s: (-s["total"], s["start"]))[0] if normal else None)
 
     # 2) Factor/commission sections sometimes only show fee incl. + "waarvan
     # BTW", followed by a payout. Keep the fee separate from invoice total.
