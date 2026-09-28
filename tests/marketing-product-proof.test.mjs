@@ -79,7 +79,7 @@ assert.ok(!home.includes('data-kz-tab="rapportages"'),'Homepage product tabs mus
 for(const key of ['facturen','documenten','btw'])assert.ok(home.includes('data-kz-tab="'+key+'"'),`Homepage product tab missing: ${key}`);
 assert.ok(!home.includes('Dit is geen desktopmockup in een telefoonframe'),'Technical mockup disclaimer must not appear in commercial copy');
 assert.ok(!home.includes('OCR-reviewcapture beschikbaar'),'Internal capture-status language must never leak into marketing copy');
-const homepageProductImages=[...home.matchAll(/src="\\/assets\\/product\\/([^"]+)/g)].map(m=>m[1]);
+const homepageProductImages=[...home.matchAll(new RegExp('src="/assets/product/([^"]+)','g'))].map(m=>m[1]);
 assert.ok(homepageProductImages.length<=6,`Homepage may contain at most six rendered product visuals, found ${homepageProductImages.length}`);
 assert.equal(homepageProductImages.filter(x=>x==='boekuna-dashboard-mobile.webp').length,2,'Dashboard mobile may appear only in hero and desktop/mobile composition');
 assert.ok(!homepageProductImages.includes('boekuna-dashboard-desktop.webp'),'Homepage must not load the full Dashboard master');
