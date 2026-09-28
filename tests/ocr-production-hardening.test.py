@@ -5,6 +5,11 @@ import sys
 import time
 from pathlib import Path
 
+try:
+    import resource
+except ImportError:
+    resource = None
+
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from fastapi.responses import JSONResponse
@@ -14,6 +19,13 @@ PROCESSOR_DIR = ROOT / "kwinest" / "docprocessor"
 sys.path.insert(0, str(PROCESSOR_DIR))
 
 import app as processor  # noqa: E402
+
+
+def _rss_mb():
+    if resource is None:
+        return None
+    raw = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    return raw / (1024 * 1024) if sys.platform == "darwin" else raw / 1024
 
 
 def _png_bytes(size=(64, 64)):
@@ -183,9 +195,11 @@ def test_health_and_ready_expose_safe_exact_runtime_metadata():
     assert health["ocr"]["runtime"]["version"] == "1.30.0"
     assert "OPENAI_API_KEY" not in json.dumps(health)
 
+    rss_before = _rss_mb()
     started = time.perf_counter()
     ready = processor.ready()
     cold_ms = (time.perf_counter() - started) * 1000
+    rss_after_init = _rss_mb()
     if isinstance(ready, JSONResponse):
         raise AssertionError("OCR readiness failed: " + ready.body.decode("utf-8", errors="replace"))
     assert ready["ok"] is True and ready["ready"] is True
@@ -198,7 +212,51 @@ def test_health_and_ready_expose_safe_exact_runtime_metadata():
     blank_rows = processor.ocr_rows(engine, Image.new("RGB", (640, 360), "white"))
     infer_ms = (time.perf_counter() - infer_started) * 1000
     assert isinstance(blank_rows, list)
-    print(f"PERF ocr_cold_ready_ms={cold_ms:.2f} ocr_warm_lookup_ms={warm_ms:.2f} blank_inference_ms={infer_ms:.2f}")
+    memory_text = (
+        f" rss_before_mb={rss_before:.2f} rss_after_init_mb={rss_after_init:.2f}"
+        if rss_before is not None and rss_after_init is not None else ""
+    )
+    print(f"PERF ocr_cold_ready_ms={cold_ms:.2f} ocr_warm_lookup_ms={warm_ms:.2f} blank_inference_ms={infer_ms:.2f}{memory_text}")
+
+
+def test_high_resolution_receipt_stays_within_guard_and_runs_real_ppocrv6():
+    image = Image.new("RGB", (3200, 4600), "white")
+    draw = ImageDraw.Draw(image)
+    try:
+        font = ImageFont.truetype("DejaVuSans.ttf", 92)
+        heading = ImageFont.truetype("DejaVuSans-Bold.ttf", 108)
+    except Exception:
+        font = ImageFont.load_default()
+        heading = font
+    lines = [
+        ("BOEKUNA QA HOGE RESOLUTIE", heading),
+        ("KASSABON", heading),
+        ("Datum 29-09-2026", font),
+        ("Subtotaal EUR 100,00", font),
+        ("BTW 21% EUR 21,00", font),
+        ("Totaal EUR 121,00", heading),
+        ("PIN EUR 121,00", font),
+    ]
+    y = 180
+    for line, line_font in lines:
+        draw.text((180, y), line, fill="black", font=line_font)
+        y += 330
+    rss_before = _rss_mb()
+    started = time.perf_counter()
+    result = processor.run_best_ocr(image)
+    elapsed_ms = (time.perf_counter() - started) * 1000
+    rss_after = _rss_mb()
+    assert "121" in result["text"]
+    assert result["model"] == "PP-OCRv6-small"
+    memory_text = (
+        f" rss_before_mb={rss_before:.2f} rss_after_mb={rss_after:.2f}"
+        if rss_before is not None and rss_after is not None else ""
+    )
+    print(
+        f"PERF high_res_receipt_ms={elapsed_ms:.2f} "
+        f"confidence={float(result.get('confidence') or 0):.4f} "
+        f"chars={len(result['text'])}{memory_text}"
+    )
 
 
 def test_synthetic_receipt_image_runs_real_ppocrv6():
@@ -251,6 +309,7 @@ if __name__ == "__main__":
         test_corrupt_image_is_rejected_safely,
         test_supported_raster_decoders_keep_contract_without_running_ocr,
         test_health_and_ready_expose_safe_exact_runtime_metadata,
+        test_high_resolution_receipt_stays_within_guard_and_runs_real_ppocrv6,
         test_synthetic_receipt_image_runs_real_ppocrv6,
     ]
     for test in tests:
