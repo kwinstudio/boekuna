@@ -158,6 +158,13 @@ try{
   }));
   assert.ok(schemaCentCheck.some(x=>/cent-exact/.test(x)),'A €0.01 mismatch on a large invoice must block final save');
 
+  const settlementChecks=await page.evaluate(()=>invoiceRecognitionChecks({
+    type:'sale',party:'Klant BV',documentType:'sale_invoice',invoiceNumber:'SET-1',issueDate:'2026-09-27',
+    net:10000,vatAmount:2100,gross:12100,vatRate:21,payout:12000,
+    adjustments:[{type:'factoring_fee',gross:100.01}],lineItems:[],mixedRates:false
+  }));
+  assert.ok(settlementChecks.some(x=>x.code==='factoring'&&x.level==='warn'),'A one-cent settlement mismatch may not be marked as reconciled');
+
   // Relevant financial disagreement: store both values and flag, never choose one automatically.
   await putDoc('mismatch',pendingVerification(base));
   await installMock([{status:200,body:processorPayload({vatAmount:12,gross:112,vatRate:12})}]);
