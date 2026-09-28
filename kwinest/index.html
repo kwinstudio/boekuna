@@ -3702,12 +3702,12 @@ const UPLOAD_ERROR_CODES={
 };
 function createUploadError(code,message='',status=null,meta={}){
  const safeCode=String(code||'UNKNOWN'),e=new Error(message||safeCode);
- e.code=safeCode;e.status=status??null;e.category=String(meta?.category||'');e.retryable=!!meta?.retryable;
+ e.publicCode=safeCode;e.code=safeCode;e.status=status??null;e.category=String(meta?.category||'');e.retryable=!!meta?.retryable;
  e.referenceId=String(meta?.reference_id||'');e.context=meta?.context&&typeof meta.context==='object'?meta.context:{};
  e.processingState=String(meta?.state||'unknown_state');return e
 }
 function uploadErrorInfo(err){
- let code=String(err?.code||'').trim();
+ let code=String(err?.publicCode||err?.code||'').trim();
  const status=Number(err?.status||0);
  if(err?.name==='AbortError')code='PROCESSING_TIMEOUT';
  if(!code&&err instanceof TypeError)code='PROCESSOR_UNAVAILABLE';
@@ -3765,7 +3765,7 @@ async function processFinancialDocument(file,preStructure=null){
   parsed=applyRecognitionQuality(parsed);
  }catch(err){
   processorError=err?.message||'Documentverwerking mislukt';console.warn('Document processor',err);
-  const code=String(err?.code||'UNKNOWN');
+  const code=String(err?.publicCode||err?.code||'UNKNOWN');
   if(!['PROCESSOR_UNAVAILABLE','PROCESSING_TIMEOUT','UNKNOWN'].includes(code))throw err;
   await checkFallbackBillingAllowance();
   if(isPhoto&&!['heic','heif'].includes(ext)){
@@ -3886,7 +3886,7 @@ async function runDocumentVerification(id){
   if(page==='documents')render();
   if(v.status==='needs_review')toast('Extra controle: controleer '+doc.name+' nog even')
  }catch(err){
-  v.status='technical_error';v.lastError='Extra controle niet beschikbaar';v.lastErrorCode=String(err?.code||fallbackDocumentCode(err?.status)||'UNKNOWN');v.lastErrorReference=String(err?.referenceId||'');v.lastAttemptAt=new Date().toISOString();
+  v.status='technical_error';v.lastError='Extra controle niet beschikbaar';v.lastErrorCode=String(err?.publicCode||err?.code||fallbackDocumentCode(err?.status)||'UNKNOWN');v.lastErrorReference=String(err?.referenceId||'');v.lastAttemptAt=new Date().toISOString();
   if(Number(v.attempts||0)<Number(v.maxAttempts||DOCUMENT_VERIFICATION_MAX_ATTEMPTS)){v.nextRetryAt=Date.now()+5*60*1000;scheduleDocumentVerification(id,5*60*1000)}
   await persistDocumentVerification();if(page==='documents')render()
  }finally{documentVerificationInFlight.delete(id)}
