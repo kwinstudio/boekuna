@@ -1019,7 +1019,7 @@ def receipt_merchant_name(lines:list[str], company:dict)->str|None:
     return None
 
 
-DESCRIPTION_LABEL_RE=re.compile(r"\b(?:omschrijving|beschrijving|description|dienst|service)\b",re.I)
+DESCRIPTION_LABEL_RE=re.compile(r"\b(?:omschrijving|beschrijving|description|diensten?|services?)\b",re.I)
 DESCRIPTION_SUMMARY_RE=re.compile(
     r"^\s*(?:bedrag\s+excl|totaal\s+excl|subtotaal|subtotal|btw|vat|tax|"
     r"factuurbedrag|factuurtotaal|invoice\s+total|totaal|total|factoring|"
