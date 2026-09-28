@@ -123,6 +123,7 @@ Bedragen op deze factuur zijn reeds betaald via Payday van ABN Amro.
         "expected": {
             "documentType": "sales_invoice", "supplier": "Eigen Studio",
             "invoiceNumber": "Y41829623003", "invoiceDate": "2023-05-03",
+            "selfBilling": True,
             "dueDate": None, "subtotal": 155.00, "vatTotal": 32.55,
             "total": 187.55, "status": "paid", "settlement": 180.97,
             "adjustment": (5.44, 1.14, 6.58),
@@ -153,6 +154,7 @@ Bedragen op deze factuur zijn reeds betaald via Payday van ABN Amro.
         "expected": {
             "documentType": "sales_invoice", "supplier": "Eigen Studio",
             "invoiceNumber": "Y41829626002", "invoiceDate": "2026-01-13",
+            "selfBilling": True,
             "subtotal": 134.38, "vatTotal": 28.22, "total": 162.60,
             "status": "paid", "settlement": 153.16, "adjustment": (7.80, 1.64, 9.44),
         },
@@ -181,6 +183,7 @@ Bedragen op deze factuur zijn reeds betaald via Payday van ABN Amro.
         "expected": {
             "documentType": "sales_invoice", "supplier": "Eigen Studio",
             "invoiceNumber": "Y41829626009", "invoiceDate": "2026-02-16",
+            "selfBilling": True,
             "subtotal": 166.63, "vatTotal": 34.99, "total": 201.62,
             "status": "paid", "settlement": 189.91, "adjustment": (9.68, 2.03, 11.71),
         },
@@ -331,6 +334,8 @@ class DocumentProcessorRegressionTests(unittest.TestCase):
                 result = app.heuristic_extract(doc, fixture["file"], COMPANY)
                 exp = fixture["expected"]
                 self.assertEqual(result.documentType, exp["documentType"])
+                self.assertEqual(result.selfBilling, exp.get("selfBilling", False))
+                self.assertEqual(result.model_dump()["selfBilling"], exp.get("selfBilling", False))
                 self.assertEqual(result.supplier.name, exp["supplier"])
                 self.assertEqual(result.invoice.invoiceNumber, exp["invoiceNumber"])
                 self.assertEqual(result.invoice.invoiceDate, exp["invoiceDate"])
@@ -373,6 +378,71 @@ class DocumentProcessorRegressionTests(unittest.TestCase):
                 self.assertMoney(vat_group.taxableAmount, exp["subtotal"])
                 self.assertMoney(vat_group.vatAmount, exp["vatTotal"])
                 self.assertGreaterEqual(result.confidence.get("vatLines", 0), .95)
+
+    def test_sales_direction_does_not_imply_self_billing(self):
+        doc = {
+            "kind": "pdf",
+            "pageCount": 1,
+            "text": """--- PAGE 1 ---
+FACTUUR
+Van:
+Eigen Studio
+BTW-nummer : NL123456789B01 | KVK: 12345678
+Aan:
+Normale Klant B.V.
+Factuurnummer: NORMAL-SALE-1
+Factuurdatum: 28-09-2026
+Omschrijving: Normale verkoopdienst
+Subtotaal € 100,00
+BTW 21% € 21,00
+Totaal € 121,00
+""",
+            "tables": [],
+            "layout": layout((52, 35, "Eigen Studio"), (144, 35, "Normale Klant B.V.")),
+            "ocrPages": [],
+            "warnings": [],
+        }
+        result = app.heuristic_extract(doc, "normal-sale.pdf", COMPANY)
+        self.assertEqual(result.documentType, "sales_invoice")
+        self.assertFalse(result.selfBilling)
+        self.assertIsNone(result.processing.get("selfBillingEvidence"))
+
+    def test_reconcile_never_infers_self_billing_from_ai(self):
+        normal_doc = {
+            "kind": "pdf", "pageCount": 1,
+            "text": """--- PAGE 1 ---
+FACTUUR
+Van:
+Eigen Studio
+Aan:
+Normale Klant B.V.
+Factuurnummer: NORMAL-SALE-2
+Factuurdatum: 28-09-2026
+Subtotaal € 100,00
+BTW 21% € 21,00
+Totaal € 121,00
+""",
+            "tables": [], "layout": layout((52, 35, "Eigen Studio"), (144, 35, "Normale Klant B.V.")),
+            "ocrPages": [], "warnings": [],
+        }
+        deterministic = app.heuristic_extract(normal_doc, "normal-sale-2.pdf", COMPANY)
+        ai = deterministic.model_copy(deep=True)
+        ai.selfBilling = True
+        reconciled = app.reconcile(ai, deterministic)
+        self.assertFalse(reconciled.selfBilling)
+
+        fixture = next(f for f in FIXTURES if f["id"] == "self-billing-payday-23003")
+        selfbilling_doc = {
+            "kind": "pdf", "pageCount": 1, "text": fixture["text"],
+            "tables": fixture.get("tables", []), "layout": fixture.get("layout", []),
+            "ocrPages": [], "warnings": [],
+        }
+        deterministic = app.heuristic_extract(selfbilling_doc, fixture["file"], COMPANY)
+        ai = deterministic.model_copy(deep=True)
+        ai.selfBilling = False
+        reconciled = app.reconcile(ai, deterministic)
+        self.assertTrue(reconciled.selfBilling)
+        self.assertEqual(reconciled.processing.get("selfBillingEvidence"), "explicit-source-text")
 
     def test_negative_currency_sign_before_euro_is_preserved(self):
         self.assertEqual(app.money_tokens("-€ 24,00"), [-24.0])
