@@ -4024,7 +4024,7 @@ function showPdfImportReview(d){
      ${factor}${checkHtml}
      <div class="form-grid review-step-grid">
       <div class="field"><label>Valuta</label><input name="currency" value="${esc(d.currency||'EUR')}" maxlength="3"></div>
-      <div class="field"><label>Btw-tarief</label><select name="vatRate"><option value="" ${d.vatRate===''||d.vatRate==null?'selected':''}>Gemengd / controleer</option><option value="21" ${Number(d.vatRate)===21?'selected':''}>21%</option><option value="9" ${Number(d.vatRate)===9?'selected':''}>9%</option><option value="0" ${Number(d.vatRate)===0?'selected':''}>0% / vrij / verlegd</option></select></div>
+      <div class="field"><label>Btw-tarief</label><select name="vatRate"><option value="" ${d.vatRate===''||d.vatRate==null?'selected':''}>Gemengd / controleer</option><option value="21" ${Number(d.vatRate)===21?'selected':''}>21%</option><option value="9" ${Number(d.vatRate)===9?'selected':''}>9%</option><option value="0" ${d.vatRate!==''&&d.vatRate!=null&&Number(d.vatRate)===0?'selected':''}>0% / vrij / verlegd</option></select></div>
       <div class="field"><label>Bedrag excl. btw ${fieldConfidenceBadge(d,'net')}</label><input type="number" step="0.01" min="0" name="net" value="${d.net!==''&&d.net!=null?Number(d.net).toFixed(2):''}" required></div>
       <div class="field"><label>Btw-bedrag ${fieldConfidenceBadge(d,'vatAmount')}</label><input type="number" step="0.01" min="0" name="vatAmount" value="${d.vatAmount!==''&&d.vatAmount!=null?Number(d.vatAmount).toFixed(2):''}"></div>
       <div class="field"><label>Totaal incl. btw ${fieldConfidenceBadge(d,'gross')}</label><input type="number" step="0.01" min="0" name="gross" value="${d.gross!==''&&d.gross!=null?Number(d.gross).toFixed(2):''}" required></div>
