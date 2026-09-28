@@ -21,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
+      # Dedicated fictive capture credentials are supplied only through repository Actions secrets.
       BOOKUNA_MARKETING_CAPTURE_EMAIL: ${{ secrets.BOOKUNA_MARKETING_CAPTURE_EMAIL }}
       BOOKUNA_MARKETING_CAPTURE_PASSWORD: ${{ secrets.BOOKUNA_MARKETING_CAPTURE_PASSWORD }}
       BOOKUNA_MARKETING_CAPTURE_ORIGIN: https://boekuna-boekhouding.onrender.com
