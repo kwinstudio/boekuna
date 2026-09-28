@@ -182,7 +182,7 @@ try{
   assert.equal(review.directMapped,true,'Production processorAnalysisToCandidate must map top-level selfBilling=true');
   assert.equal(review.parsed.selfBilling,true,'Production review candidate must retain selfBilling=true');
   assert.equal(review.parsed.type,'sale');
-  assert.equal(review.parsed.documentType,'sales_invoice');
+  assert.equal(review.parsed.documentType,'sale_invoice','Client intentionally normalizes processor sales_invoice to internal sale_invoice');
   assert.equal(review.parsed.invoiceNumber,'QA-SELF-20260928-001');
   assert.equal(cents(review.parsed.net),10000);
   assert.equal(cents(review.parsed.vatAmount),2100);
