@@ -8,6 +8,9 @@ import sharp from 'sharp';
 
 const root=path.resolve(path.dirname(new URL(import.meta.url).pathname),'..');
 const source=fs.readFileSync(path.join(root,'kwinest','index.html'),'utf8');
+const CAPTURE_ORIGIN=process.env.BOOKUNA_MARKETING_CAPTURE_ORIGIN||'https://boekuna-boekhouding.onrender.com';
+const CAPTURE_EMAIL=process.env.BOOKUNA_MARKETING_CAPTURE_EMAIL||'';
+const CAPTURE_PASSWORD=process.env.BOOKUNA_MARKETING_CAPTURE_PASSWORD||'';
 const outDir=path.join(root,'public','assets','product');
 const tmpDir=path.join(root,'tests','.marketing-capture-tmp');
 fs.mkdirSync(outDir,{recursive:true});
@@ -169,6 +172,21 @@ async function saveWebp(page,name,{quality=84,resizeWidth=null,clip=null}={}){
   return {name,width:meta.width,height:meta.height,size:fs.statSync(target).size};
 }
 
+async function marketingCaptureAccessToken(){
+  if(!CAPTURE_EMAIL||!CAPTURE_PASSWORD)return '';
+  const url=(source.match(/const SUPABASE_URL='([^']+)'/)||[])[1];
+  const key=(source.match(/const SUPABASE_PUBLISHABLE_KEY='([^']+)'/)||[])[1];
+  assert.ok(url&&key,'Supabase public auth configuration must exist in the current frontend source');
+  const response=await fetch(url+'/auth/v1/token?grant_type=password',{
+    method:'POST',
+    headers:{apikey:key,'content-type':'application/json'},
+    body:JSON.stringify({email:CAPTURE_EMAIL,password:CAPTURE_PASSWORD})
+  });
+  const json=await response.json().catch(()=>({}));
+  assert.ok(response.ok&&json.access_token,'Dedicated marketing capture account could not authenticate');
+  return json.access_token;
+}
+
 function assertSafeVisibleText(text,label){
   const forbidden=[
     /@(gmail|hotmail|outlook|icloud|yahoo)\./i,
@@ -227,50 +245,65 @@ try{
   await openAppPage('profile');
   assets.push(await saveWebp(page,'boekuna-company-settings-desktop.webp'));
 
-  // Real processor capture. The workflow fails if the live processor itself does not return 2xx.
-  await openAppPage('documents');
-  await page.evaluate(()=>{pendingUploadKind='purchase'});
-  let processorResponse=null;
-  page.on('response',res=>{if(res.url().includes('kwinest-docprocessor.onrender.com/analyze'))processorResponse={status:res.status(),ok:res.ok(),url:res.url()}});
-  await page.locator('#docFile').setInputFiles(pdfPath);
-  await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:150000});
-  assert.ok(processorResponse&&processorResponse.ok,'Real document processor did not return a successful response: '+JSON.stringify(processorResponse));
-  const parsed=await page.evaluate(()=>({
-    sourceQuality:pendingPdfImport?.parsed?.sourceQuality||'',
-    processor:pendingPdfImport?.parsed?.processor||null,
-    party:pendingPdfImport?.parsed?.party||'',
-    invoiceNumber:pendingPdfImport?.parsed?.invoiceNumber||'',
-    gross:pendingPdfImport?.parsed?.gross??null
-  }));
-  assert.ok(parsed.processor,'Document review must contain processor metadata');
-  assert.ok(parsed.party&&parsed.invoiceNumber,'Processor result must contain recognizable demo invoice fields');
+  await openAppPage('reports');
+  assets.push(await saveWebp(page,'boekuna-reports-desktop.webp'));
+  assets.push(await saveWebp(page,'boekuna-reports-desktop-960.webp',{resizeWidth:960}));
 
-  await page.evaluate(()=>setDocumentReviewStep(2));
-  await page.waitForTimeout(120);
-  assertSafeVisibleText(await page.locator('.modal').innerText(),'document-review-desktop');
-  assets.push(await saveWebp(page,'boekuna-document-review-desktop.webp'));
-  assets.push(await saveWebp(page,'boekuna-document-review-desktop-960.webp',{resizeWidth:960}));
+  // The normal marketing captures do not depend on processor credentials.
+  // The review captures run only with the dedicated fictive QA/demo account.
+  let processorResponse=null,parsed=null,processorStatus='blocked-no-dedicated-account';
+  const accessToken=await marketingCaptureAccessToken();
+  if(accessToken){
+    await context.route('https://kwinest-docprocessor.onrender.com/**',async route=>{
+      const req=route.request();
+      const headers={...req.headers(),origin:CAPTURE_ORIGIN};
+      if(req.method()!=='OPTIONS')headers.authorization='Bearer '+accessToken;
+      await route.continue({headers});
+    });
+    await openAppPage('documents');
+    await page.evaluate(()=>{pendingUploadKind='purchase'});
+    page.on('response',res=>{if(res.url().includes('kwinest-docprocessor.onrender.com/analyze'))processorResponse={status:res.status(),ok:res.ok(),url:res.url()}});
+    await page.locator('#docFile').setInputFiles(pdfPath);
+    await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:150000});
+    assert.ok(processorResponse&&processorResponse.ok,'Real document processor did not return a successful response: '+JSON.stringify(processorResponse));
+    parsed=await page.evaluate(()=>({
+      sourceQuality:pendingPdfImport?.parsed?.sourceQuality||'',
+      processor:pendingPdfImport?.parsed?.processor||null,
+      party:pendingPdfImport?.parsed?.party||'',
+      invoiceNumber:pendingPdfImport?.parsed?.invoiceNumber||'',
+      gross:pendingPdfImport?.parsed?.gross??null
+    }));
+    assert.ok(parsed.processor,'Document review must contain processor metadata');
+    assert.ok(parsed.party&&parsed.invoiceNumber,'Processor result must contain recognizable demo invoice fields');
+    processorStatus='real-processor-confirmed';
 
-  await page.evaluate(()=>setDocumentReviewStep(1));
-  assets.push(await saveWebp(page,'boekuna-document-review-step-document-desktop.webp'));
+    await page.evaluate(()=>setDocumentReviewStep(2));
+    await page.waitForTimeout(120);
+    assertSafeVisibleText(await page.locator('.modal').innerText(),'document-review-desktop');
+    assets.push(await saveWebp(page,'boekuna-document-review-desktop.webp'));
+    assets.push(await saveWebp(page,'boekuna-document-review-desktop-960.webp',{resizeWidth:960}));
 
-  for(const [step,name] of [[2,'amounts'],[3,'relation'],[4,'save']]){
-    await page.evaluate(step=>setDocumentReviewStep(step),step);
-    await page.locator('[data-review-step="'+step+'"]').evaluate(el=>el.scrollIntoView({block:'start'}));
-    await page.waitForTimeout(100);
-    assets.push(await saveWebp(page,'boekuna-document-review-step-'+name+'-desktop.webp'));
+    await page.evaluate(()=>setDocumentReviewStep(1));
+    assets.push(await saveWebp(page,'boekuna-document-review-step-document-desktop.webp'));
+    for(const [step,name] of [[2,'amounts'],[3,'relation'],[4,'save']]){
+      await page.evaluate(step=>setDocumentReviewStep(step),step);
+      await page.locator('[data-review-step="'+step+'"]').evaluate(el=>el.scrollIntoView({block:'start'}));
+      await page.waitForTimeout(100);
+      assets.push(await saveWebp(page,'boekuna-document-review-step-'+name+'-desktop.webp'));
+    }
+
+    await page.setViewportSize({width:390,height:844});
+    await page.evaluate(()=>setDocumentReviewStep(1));
+    await page.waitForTimeout(120);
+    assets.push(await saveWebp(page,'boekuna-document-review-mobile.webp',{quality:86}));
+    await page.evaluate(()=>setDocumentReviewStep(2));
+    await page.waitForTimeout(120);
+    assets.push(await saveWebp(page,'boekuna-document-review-amounts-mobile.webp',{quality:86}));
+    await page.evaluate(()=>{cleanupPendingImport();closeModal()});
   }
 
-  // Mobile captures use the same current build and the exact same processor result.
   await page.setViewportSize({width:390,height:844});
-  await page.evaluate(()=>setDocumentReviewStep(1));
-  await page.waitForTimeout(120);
-  assets.push(await saveWebp(page,'boekuna-document-review-mobile.webp',{quality:86}));
-  await page.evaluate(()=>setDocumentReviewStep(2));
-  await page.waitForTimeout(120);
-  assets.push(await saveWebp(page,'boekuna-document-review-amounts-mobile.webp',{quality:86}));
-
-  await page.evaluate(()=>{cleanupPendingImport();closeModal();navigate('dashboard')});
+  await page.evaluate(()=>navigate('dashboard'));
   await page.waitForTimeout(180);
   assertSafeVisibleText(await page.locator('body').innerText(),'dashboard-mobile');
   assets.push(await saveWebp(page,'boekuna-dashboard-mobile.webp',{quality:86}));
@@ -282,8 +315,10 @@ try{
     source:'kwinest/index.html',
     viewportDesktop:'1440x960',
     viewportMobile:'390x844',
+    demoDataset:'permanent-fictive-marketing-v1',
+    processorStatus,
     processor:processorResponse,
-    processorResult:{sourceQuality:parsed.sourceQuality,party:parsed.party,invoiceNumber:parsed.invoiceNumber,gross:parsed.gross},
+    processorResult:parsed?{sourceQuality:parsed.sourceQuality,party:parsed.party,invoiceNumber:parsed.invoiceNumber,gross:parsed.gross}:null,
     assets
   };
   fs.writeFileSync(path.join(outDir,'capture-proof.json'),JSON.stringify(proof,null,2)+'\n');
