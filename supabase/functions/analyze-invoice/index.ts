@@ -4,6 +4,9 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const DOCUMENT_PROCESSOR_URL=(Deno.env.get("DOCUMENT_PROCESSOR_URL")||"https://kwinest-docprocessor.onrender.com").replace(/\/$/,"");
 const ALLOWED_ORIGINS = new Set([
   "https://boekuna-boekhouding.onrender.com",
+  "https://kwinest-boekhouding.onrender.com",
+  "https://boekuna-qa-staging.onrender.com",
+  "https://boekuna-render-link-qa.onrender.com",
   "https://boekuna.nl",
   "https://www.boekuna.nl",
   "http://localhost:3000",
@@ -22,6 +25,60 @@ const j=(req:Request,body:any,status=200)=>new Response(JSON.stringify(body),{st
 const safe=(v:any,n=1000)=>String(v??"").slice(0,n);
 const parseJson=(t:string)=>{let raw=String(t||"").trim();if(raw.startsWith("\`\`\`"))raw=raw.replace(/^\`\`\`(?:json)?/i,"").replace(/\`\`\`$/,"").trim();const a=raw.indexOf("{"),b=raw.lastIndexOf("}");if(a>=0&&b>a)raw=raw.slice(a,b+1);return JSON.parse(raw)};
 const outputText=(x:any)=>{if(typeof x?.output_text==="string")return x.output_text;for(const item of x?.output||[])if(item?.type==="message")for(const c of item.content||[])if(c?.type==="output_text"&&c.text)return c.text;return ""};
+
+const PUBLIC_ERRORS:any={
+  DOCUMENT_PDF_UNREADABLE:{category:"document",retryable:false},
+  DOCUMENT_IMAGE_UNREADABLE:{category:"document",retryable:false},
+  DOCUMENT_UNSUPPORTED_TYPE:{category:"document",retryable:false},
+  DOCUMENT_TOO_LARGE:{category:"document",retryable:false},
+  AUTH_SESSION_EXPIRED:{category:"auth",retryable:false},
+  DOCUMENT_LIMIT_REACHED:{category:"entitlement",retryable:false},
+  ACCOUNT_READ_ONLY:{category:"entitlement",retryable:false},
+  RATE_LIMITED:{category:"temporary",retryable:true},
+  PROCESSING_TIMEOUT:{category:"temporary",retryable:true},
+  PROCESSOR_UNAVAILABLE:{category:"temporary",retryable:true},
+  PERMISSION_DENIED:{category:"permission",retryable:false},
+  INVALID_REQUEST:{category:"request",retryable:false},
+  UNKNOWN:{category:"temporary",retryable:true},
+};
+const PUBLIC_ERROR_CODES=new Set(Object.keys(PUBLIC_ERRORS));
+const newReferenceId=()=>{
+  const alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",bytes=crypto.getRandomValues(new Uint8Array(6));
+  return "BK-"+Array.from(bytes,b=>alphabet[b%alphabet.length]).join("");
+};
+const sanitizeLog=(value:any,n=500)=>String(value??"")
+  .replace(/Bearer\s+[A-Za-z0-9._~+\-/=]+/gi,"Bearer [REDACTED]")
+  .replace(/\b(?:sk|sb_secret|sb_publishable)_[A-Za-z0-9_-]+\b/gi,"[REDACTED_KEY]")
+  .replace(/(authorization|api[_-]?key|token|secret)\s*[:=]\s*[^\s,;]+/gi,"$1=[REDACTED]")
+  .slice(0,n);
+const safePublicContext=(value:any)=>{
+  const out:any={};if(!value||typeof value!=="object")return out;
+  for(const k of ["max_size_mb","max_pages","monthly_limit","remaining","retry_after_seconds","supported_extensions","supported_mime_types"]){
+    if(value[k]!==undefined)out[k]=value[k];
+  }
+  return out;
+};
+const fail=(req:Request,code:string,status:number,internal:any={})=>{
+  if(!PUBLIC_ERROR_CODES.has(code))code="UNKNOWN";
+  const spec=PUBLIC_ERRORS[code],reference_id=String(internal.reference_id||newReferenceId()).slice(0,32);
+  console.error(JSON.stringify({
+    event:"document_ai_error",reference_id,timestamp:new Date().toISOString(),route:"analyze-invoice",
+    stage:internal.stage||"unknown",internal_code:internal.internal_code||code,public_code:code,
+    http_status:status,retryable:spec.retryable,processing_state:internal.state||"no_changes",
+    user_ref:internal.user_ref||null,file_mime:internal.file_mime||null,file_ext:internal.file_ext||null,file_size:internal.file_size||null,
+    provider:internal.provider||null,provider_status:internal.provider_status??null,
+    provider_code:sanitizeLog(internal.provider_code,120)||null,provider_request_id:sanitizeLog(internal.provider_request_id,120)||null,
+    internal_error:sanitizeLog(internal.internal_error)||null,
+  }));
+  return j(req,{ok:false,error:{
+    code,category:spec.category,retryable:spec.retryable,reference_id,
+    context:safePublicContext(internal.context),state:internal.state||"no_changes"
+  }},status);
+};
+const upstreamPublicCode=(out:any,fallback="PROCESSOR_UNAVAILABLE")=>{
+  const code=String(out?.error?.code||"");
+  return PUBLIC_ERROR_CODES.has(code)?code:fallback;
+};
 
 async function sha256(value:string){
   const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value));
