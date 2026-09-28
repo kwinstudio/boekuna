@@ -2605,7 +2605,14 @@ function expenseVatRateValue(e){
 function expenseVatRateLabel(e){if(expenseHasMixedVat(e))return 'Gemengd';const r=expenseVatRateValue(e);return r==null?'—':num(r)+'%'}
 function expenseVatRateExport(e){if(expenseHasMixedVat(e))return 'Gemengd';const r=expenseVatRateValue(e);return r==null?'':String(r)}
 function expenseVatBreakdownLabel(e){const lines=canonicalFinancialVatLines(e?.vatLines);return lines.map(v=>`${num(v.rate)}%: ${money(v.taxableAmount)} grondslag / ${money(v.vatAmount)} btw`).join(' · ')}
-function expenseVat(e){if(expenseTaxTreatment(e)==='kor'||expenseTaxTreatment(e)==='exempt')return 0;if(e?.vatAmount!=null)return roundMoney(e.vatAmount);const lines=canonicalFinancialVatLines(e?.vatLines);if(expenseHasMixedVat(e)&&lines.length)return roundMoney(lines.reduce((sum,v)=>sum+Number(v.vatAmount||0),0));return roundMoney(Number(e?.exVat||0)*Number(expenseVatRateValue(e)||0)/100)}
+function expenseVat(e){
+ if(expenseTaxTreatment(e)==='kor'||expenseTaxTreatment(e)==='exempt')return 0;
+ if(e?.vatAmount!=null)return roundMoney(e.vatAmount);
+ const lines=Array.isArray(e?.vatLines)?e.vatLines:[],rates=[...new Set(lines.map(v=>Number(v?.rate)).filter(Number.isFinite))],mixed=!!e?.mixedRates||rates.length>1;
+ if(mixed&&lines.length){const amounts=lines.map(v=>Number(v?.vatAmount));if(amounts.every(Number.isFinite))return roundMoney(amounts.reduce((sum,v)=>sum+v,0))}
+ const scalar=e?.vatRate!==''&&e?.vatRate!=null&&Number.isFinite(Number(e.vatRate))?Number(e.vatRate):(rates.length===1?rates[0]:0);
+ return roundMoney(Number(e?.exVat||0)*scalar/100)
+}
 function expenseGross(e){return e?.gross!=null?roundMoney(e.gross):roundMoney(Number(e?.exVat||0)+expenseVat(e))}
 function currentBookYear(){return new Date().getFullYear()}
 function availableBookYears(){const years=new Set([currentBookYear()]);[...(state.invoices||[]).map(x=>x.issueDate),...(state.expenses||[]).map(x=>x.date),...(state.transactions||[]).map(x=>x.date)].forEach(v=>{const y=Number(String(v||'').slice(0,4));if(y>=2000&&y<=2100)years.add(y)});return [...years].sort((a,b)=>b-a)}
