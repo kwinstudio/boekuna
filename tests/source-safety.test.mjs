@@ -24,7 +24,7 @@ assert.ok(html.includes("async function reserveFinalInvoiceNumber"),"Server-side
 assert.ok(html.includes("function invoiceNumberAvailable(number,excludeId='')"),"Invoice uniqueness checks must support excluding the invoice being edited");
 assert.ok(html.includes("function runDocumentVerification(id)"),"Independent document verification worker is required");
 assert.ok(invoiceAi.includes('DOCUMENT_PROCESSOR_URL+"/verify"'),"PASS 2 must route through the configured document processor verification endpoint");
-assert.ok(invoiceAi.includes('if(body?.reviewMode==="verify")return {ok:true,kind:"user"};'),"PASS 2 must not consume a second user smart-document quota unit");
+assert.ok(/if\(body\?\.reviewMode==="verify"\)return \{ok:true,kind:"user"(?:,user)?\};/.test(invoiceAi),"PASS 2 must not consume a second user smart-document quota unit");
 assert.ok(invoiceAi.includes("storedDocumentInput(req,safe(data.clientRef,240))"),"PASS 2 must retrieve the saved original under the authenticated user's RLS");
 assert.ok(invoiceAi.includes("claimVerificationJob(req,data)"),"PASS 2 must claim an idempotent server-side job before provider work");
 assert.ok(processor.includes('@app.post("/verify")'),"The document processor must expose a dedicated independent verification endpoint");
