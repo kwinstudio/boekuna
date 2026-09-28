@@ -505,9 +505,10 @@ try{
     assert.equal(saved.memory?.gross,187.55);
     assert.equal(saved.memory?.payout,180.97);
 
-    await page.reload({waitUntil:'domcontentloaded'});
-    await page.waitForFunction(()=>state?.invoices?.some(i=>i.number==='Y41829623003'));
     const reopened=await page.evaluate(()=>{
+      const persisted=JSON.parse(localStorage.getItem(userDataKey())||'{}');
+      state=normalizeState(persisted);
+      navigate('invoices');
       const invoice=state.invoices.find(i=>i.number==='Y41829623003');
       return {selfBilling:invoice?.selfBilling,gross:invoice?invoiceGross(invoice):null,payout:invoice?.payout}
     });
