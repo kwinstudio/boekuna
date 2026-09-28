@@ -1,15 +1,24 @@
 {
-  "generatedAt": "2026-09-28T13:21:36.725Z",
+  "generatedAt": "2026-09-28T14:12:18.531Z",
   "source": "kwinest/index.html",
-  "sourceCommit": "ad11e742f5a53ba683c77ba3eec1438ce454e9af",
+  "sourceCommit": "bb34dfd95bcf145087e9fc52d5a7966c30ad7ff4",
   "sourceRef": "main",
-  "workflowRunId": "36427978115",
+  "workflowRunId": "36434030845",
   "viewportDesktop": "1440x960",
   "viewportMobile": "390x844",
   "demoDataset": "permanent-fictive-marketing-v1",
-  "processorStatus": "blocked-no-dedicated-account",
-  "processor": null,
-  "processorResult": null,
+  "processorStatus": "real-processor-confirmed",
+  "processor": {
+    "status": 200,
+    "ok": true,
+    "url": "https://kwinest-docprocessor.onrender.com/analyze"
+  },
+  "processorResult": {
+    "sourceQuality": "processor-v2",
+    "party": "ATLAS OFFICE DEMO B.V.",
+    "invoiceNumber": "DEMO-INK-2026-014",
+    "gross": 242
+  },
   "assets": [
     {
       "name": "boekuna-dashboard-desktop.webp",
@@ -88,6 +97,54 @@
       "width": 960,
       "height": 640,
       "size": 45638
+    },
+    {
+      "name": "boekuna-document-review-desktop.webp",
+      "width": 1440,
+      "height": 960,
+      "size": 64090
+    },
+    {
+      "name": "boekuna-document-review-desktop-960.webp",
+      "width": 960,
+      "height": 640,
+      "size": 33930
+    },
+    {
+      "name": "boekuna-document-review-step-document-desktop.webp",
+      "width": 1440,
+      "height": 960,
+      "size": 64090
+    },
+    {
+      "name": "boekuna-document-review-step-amounts-desktop.webp",
+      "width": 1440,
+      "height": 960,
+      "size": 63172
+    },
+    {
+      "name": "boekuna-document-review-step-relation-desktop.webp",
+      "width": 1440,
+      "height": 960,
+      "size": 64538
+    },
+    {
+      "name": "boekuna-document-review-step-save-desktop.webp",
+      "width": 1440,
+      "height": 960,
+      "size": 64904
+    },
+    {
+      "name": "boekuna-document-review-mobile.webp",
+      "width": 390,
+      "height": 844,
+      "size": 12968
+    },
+    {
+      "name": "boekuna-document-review-amounts-mobile.webp",
+      "width": 390,
+      "height": 844,
+      "size": 23532
     },
     {
       "name": "boekuna-dashboard-mobile.webp",
