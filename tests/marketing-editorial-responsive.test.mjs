@@ -36,14 +36,18 @@ try{
     const errors=[];
     page.on('pageerror',e=>errors.push(String(e)));
     await page.goto(base+'/',{waitUntil:'domcontentloaded'});
-    const hero=page.locator('.kz-hero-product-proof .product-proof img');
+    const hero=page.locator('.kz-hero-visual .product-mobile img');
     await hero.waitFor();
-    await page.waitForFunction(()=>{const i=document.querySelector('.kz-hero-product-proof img');return !!i&&i.complete&&i.naturalWidth>0});
+    await page.waitForFunction(()=>{const i=document.querySelector('.kz-hero-visual .product-mobile img');return !!i&&i.complete&&i.naturalWidth>0});
     const overflow=await page.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth,bw:document.body.scrollWidth}));
     assert.ok(overflow.sw<=overflow.vw+1&&overflow.bw<=overflow.vw+1,`Horizontal overflow at ${width}px: ${JSON.stringify(overflow)}`);
-    assert.equal(await page.locator('.product-proof').count(),1,`Exactly one product-proof expected at ${width}px`);
-    assert.ok(await page.locator('.product-crop').count()>=3,`Editorial product crops missing at ${width}px`);
-    assert.equal(await page.locator('.product-mobile').count(),1,`Exactly one mobile proof expected at ${width}px`);
+    assert.equal(await page.locator('.product-proof').count(),0,`Legacy product-proof must not render at ${width}px`);
+    assert.ok(await page.locator('.product-crop').count()>=4,`Targeted product crops missing at ${width}px`);
+    assert.equal(await page.locator('.product-mobile').count(),2,`Exactly two mobile product compositions expected at ${width}px`);
+    if(width<=620){
+      const mobileWidths=await page.locator('.product-mobile').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().width));
+      assert.ok(mobileWidths.every(w=>w<=280.5),`Mobile product shot too wide at ${width}px: ${mobileWidths.join(', ')}`);
+    }
     assert.deepEqual(errors,[],`Homepage page errors at ${width}px: ${errors.join(' | ')}`);
     await page.close();
   }
@@ -59,7 +63,12 @@ try{
   assert.ok(await img.evaluate(el=>el.naturalWidth>0&&el.naturalHeight>0),'Switched real product crop must load');
   await page.close();
 
-  console.log('Editorial marketing screenshot responsive QA: PASS (320, 360, 390, 430, 768, 1024, 1440 + keyboard tabs)');
+  const desktopProof=await page.locator('.kz-dashboard-proof').boundingBox();
+  const actionProof=await page.locator('.kz-action-proof').boundingBox();
+  assert.ok(desktopProof&&desktopProof.width<=820.5,'Dashboard proof must stay compact on desktop');
+  assert.ok(actionProof&&actionProof.width<=620.5,'Action-center proof must stay compact on desktop');
+  assert.equal(await page.locator('[data-kz-tab]').count(),3,'Homepage must expose only three compact product tabs');
+    console.log('Editorial marketing screenshot responsive QA: PASS (320, 360, 390, 430, 768, 1024, 1440 + keyboard tabs)');
 }finally{
   await browser.close();
   await new Promise(resolve=>server.close(resolve));
