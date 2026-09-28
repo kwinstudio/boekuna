@@ -2618,7 +2618,7 @@ function documentListStatus(d){
   if(st==='verified')return 'verified';
   if(st==='needs_review')return 'needs_review';
   if(st==='technical_error')return 'error';
-  return 'other'
+  return 'stored'
 }
 function listSearchHaystack(name,item){
   if(name==='invoices'){
@@ -2777,7 +2777,7 @@ function listFilterFields(name){
   if(name==='documents')return [
     {key:'linked',label:'Koppeling',options:[['all','Alle'],['linked','Gekoppeld'],['unlinked','Niet gekoppeld']]},
     {key:'type',label:'Documenttype',options:[['all','Alle types'],...[...new Set(state.documents.map(d=>String(d.type||'')).filter(Boolean))].sort().map(v=>[v,v])]},
-    {key:'status',label:'Controlestatus',options:[['all','Alle statussen'],['processing','Controle bezig'],['needs_review','Controle nodig'],['verified','Gecontroleerd'],['error','Controle niet beschikbaar']]},
+    {key:'status',label:'Controlestatus',options:[['all','Alle statussen'],['processing','Controle bezig'],['needs_review','Controle nodig'],['verified','Gecontroleerd'],['stored','Opgeslagen / geen extra controle'],['error','Controle niet beschikbaar']]},
     {key:'period',label:'Periode',options:listPeriodOptions(false)}
   ];
   if(name==='bookings')return [
