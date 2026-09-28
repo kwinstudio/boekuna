@@ -107,6 +107,14 @@ enterApp();
 `;
 
 let appHtml=source.replace('const TEST_MODE_NO_AUTH=false;','const TEST_MODE_NO_AUTH=true;');
+if(CAPTURE_EMAIL&&CAPTURE_PASSWORD){
+  // Processor-backed marketing captures must prove the production processor result itself.
+  // Disable only the capture copy's redundant browser PDF.js inspection so CDN/parser
+  // availability cannot block the real processor response from reaching the real review UI.
+  const parallelPdfInspection="const browserStructurePromise=ext==='pdf'&&file.size<9*1024*1024?readPdfStructure(file).catch(err=>{console.warn('Parallel PDF inspection',err);return null}):null;";
+  assert.ok(appHtml.includes(parallelPdfInspection),'Capture source must contain the parallel PDF inspection hook');
+  appHtml=appHtml.replace(parallelPdfInspection,'const browserStructurePromise=null;');
+}
 appHtml=replaceLast(appHtml,'initAuth();',marketingSeed);
 
 const server=http.createServer((req,res)=>{
