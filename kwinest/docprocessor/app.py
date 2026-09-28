@@ -62,6 +62,8 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_RESPONSES_URL = os.getenv("OPENAI_RESPONSES_URL", "https://api.openai.com/v1/responses")
 MAX_BYTES = int(os.getenv("MAX_FILE_BYTES", str(15 * 1024 * 1024)))
 MAX_SIZE_MB = max(1, MAX_BYTES // 1024 // 1024)
+SUPPORTED_IMAGE_EXTENSIONS = frozenset({".jpg",".jpeg",".png",".webp",".heic",".heif",".tif",".tiff",".bmp",".gif"})
+SUPPORTED_IMAGE_MIME_TYPES = frozenset({"image/jpeg","image/png","image/webp","image/heic","image/heif","image/tiff","image/bmp","image/gif"})
 SUPPORTED_DOCUMENT_EXTENSIONS = (".pdf",".jpg",".jpeg",".png",".webp",".heic",".heif",".tif",".tiff",".bmp",".gif",".docx",".xlsx",".csv")
 SUPPORTED_DOCUMENT_MIME_TYPES = (
     "application/pdf","image/jpeg","image/png","image/webp","image/heic","image/heif","image/tiff","image/bmp","image/gif",
@@ -755,7 +757,7 @@ def extract_document(filename:str,content_type:str,raw:bytes)->dict[str,Any]:
     ext=Path(filename).suffix.lower(); c=(content_type or "").lower()
     try:
         if raw[:4]==b"%PDF" or ext==".pdf" or c=="application/pdf": return extract_pdf(raw)
-        if ext in {".png",".jpg",".jpeg",".webp",".heic",".heif",".tif",".tiff",".bmp",".gif"} or c.startswith("image/"): return extract_image(raw)
+        if ext in SUPPORTED_IMAGE_EXTENSIONS or c in SUPPORTED_IMAGE_MIME_TYPES: return extract_image(raw)
         if ext==".docx" or c=="application/vnd.openxmlformats-officedocument.wordprocessingml.document": return extract_docx(raw)
         if ext==".xlsx" or c=="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": return extract_xlsx(raw)
         if ext==".csv" or c in {"text/csv","application/csv"}: return extract_csv(raw)
@@ -1159,7 +1161,7 @@ def verification_attachment(raw:bytes|None,content_type:str,filename:str)->dict[
         if len(raw)>12*1024*1024:return None
         mime=c if c.startswith("image/") else ("image/jpeg" if ext in {".jpg",".jpeg"} else f"image/{ext.lstrip('.')}")
         return {"kind":"image","mime":mime,"name":filename or "document-image","base64":base64.b64encode(raw).decode("ascii")}
-    if c.startswith("image/") or ext in {".heic",".heif",".tif",".tiff",".bmp"}:
+    if c in SUPPORTED_IMAGE_MIME_TYPES or ext in {".heic",".heif",".tif",".tiff",".bmp"}:
         try:
             img=Image.open(io.BytesIO(raw))
             img=prepare_ocr_image(img)
@@ -1461,12 +1463,8 @@ async def verify_document(request:Request,file:UploadFile=File(...),company_json
         raise BoekunaDocumentError("RATE_LIMITED",status=429,internal_code="VERIFY_RATE_LIMIT")
     if not rpc_access_check(request):
         raise BoekunaDocumentError("ACCOUNT_READ_ONLY",status=403,internal_code="ENTITLEMENT_READ_ONLY")
-    quota=billing_quota_status(request)
-    if quota.get("allowed") is False:
-        raise BoekunaDocumentError(
-            "DOCUMENT_LIMIT_REACHED",status=429,internal_code="DOCUMENT_MONTHLY_LIMIT",
-            context={"monthly_limit":quota.get("monthly_limit"),"remaining":quota.get("remaining")},
-        )
+    # PASS 2 is an integrity check of an already accepted document and never consumes
+    # or requires a second monthly smart-document quota unit.
     if not OPENAI_API_KEY:
         raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="AI_PROVIDER_NOT_CONFIGURED")
     set_processing_meta(request,stage="receive")
