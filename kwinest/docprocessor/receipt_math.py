@@ -3,13 +3,13 @@ import re
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any
 
-VAT_PERCENT_RE = re.compile(r"(?<!\\d)(0|9|21)(?:[.,]0+)?\\s*%", re.I)
-VAT_LABEL_RE = re.compile(r"\\b(?:btw|vat|tax)\\b", re.I)
+VAT_PERCENT_RE = re.compile(r"(?<!\d)(0|9|21)(?:[.,]0+)?\s*%", re.I)
+VAT_LABEL_RE = re.compile(r"\b(?:btw|vat|tax)\b", re.I)
 COMPLEX_ADJUSTMENT_RE = re.compile(
-    r"\\b(?:statiegeld|deposit|fooi|tip|service\\s*(?:charge|kosten)?|"
+    r"\b(?:statiegeld|deposit|fooi|tip|service\s*(?:charge|kosten)?|"
     r"korting|discount|coupon|voucher|retour|refund|afrond(?:ing)?|rounding|"
-    r"factoring(?:kosten)?|commissie|commission|platformkosten|platform\\s*fee|"
-    r"inhouding|deduction|verrekening)\\b",
+    r"factoring(?:kosten)?|commissie|commission|platformkosten|platform\s*fee|"
+    r"inhouding|deduction|verrekening)\b",
     re.I,
 )
 
@@ -26,7 +26,7 @@ def detect_vat_rates(lines: list[str]) -> list[float]:
         for m in VAT_PERCENT_RE.finditer(line):
             rates.add(float(m.group(1)))
         if VAT_LABEL_RE.search(line):
-            for m in re.finditer(r"\\b(?:btw|vat|tax)(?:\\s+tarief)?\\s*[:=\\-]?\\s*(0|9|21)(?!\\d)", low, re.I):
+            for m in re.finditer(r"\b(?:btw|vat|tax)(?:\s+tarief)?\s*[:=\-]?\s*(0|9|21)(?!\d)", low, re.I):
                 rates.add(float(m.group(1)))
     return sorted(rates)
 
