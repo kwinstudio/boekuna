@@ -104,6 +104,17 @@ Deno.serve(async (req: Request) => {
     const eventId = String(event?.id || "");
     if (!/^evt_/.test(eventId)) return json({ ok: false, error: "Invalid Stripe event" }, 400);
 
+    // A valid signature alone is not enough: never mix test- and live-mode
+    // Stripe events in the same billing state.
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") || "";
+    const expectedLivemode = stripeKey.includes("_live_") ? true : stripeKey.includes("_test_") ? false : null;
+    if (typeof event?.livemode !== "boolean") {
+      return json({ ok: false, error: "Stripe event environment missing" }, 400);
+    }
+    if (expectedLivemode !== null && event.livemode !== expectedLivemode) {
+      return json({ ok: false, error: "Stripe event environment mismatch" }, 400);
+    }
+
     const url = Deno.env.get("SUPABASE_URL")!;
     const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
