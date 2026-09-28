@@ -101,16 +101,16 @@ async function storedDocumentInput(req:Request,clientRef:string){
  const user=await authUser(req);if(!user)return {ok:false,kind:"auth",internal_code:"AUTH_SESSION_INVALID"} as any;
  const sb=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_ANON_KEY")!,{global:{headers:{Authorization:"Bearer "+user.token}},auth:{persistSession:false,autoRefreshToken:false}});
  const {data:meta,error}=await sb.from("documents").select("storage_path,name,mime_type").eq("user_id",user.user.id).eq("client_ref",clientRef).maybeSingle();
- if(error)return {ok:false,kind:"unavailable",internal_code:"DOCUMENT_METADATA_READ_FAILED",internal_error:error.message} as any;
- if(!meta?.storage_path)return {ok:false,kind:"missing",internal_code:"ORIGINAL_DOCUMENT_NOT_FOUND"} as any;
+ if(error)return {ok:false,kind:"unavailable",state:"unknown_state",internal_code:"DOCUMENT_METADATA_READ_FAILED",internal_error:error.message} as any;
+ if(!meta?.storage_path)return {ok:false,kind:"missing",state:"unknown_state",internal_code:"ORIGINAL_DOCUMENT_NOT_FOUND"} as any;
  const {data:blob,error:downloadError}=await sb.storage.from("kwinest-documents").download(meta.storage_path);
- if(downloadError)return {ok:false,kind:"unavailable",internal_code:"DOCUMENT_STORAGE_DOWNLOAD_FAILED",internal_error:downloadError.message} as any;
- if(!blob)return {ok:false,kind:"unavailable",internal_code:"DOCUMENT_STORAGE_EMPTY_RESPONSE"} as any;
+ if(downloadError)return {ok:false,kind:"unavailable",state:"stored_unprocessed",internal_code:"DOCUMENT_STORAGE_DOWNLOAD_FAILED",internal_error:downloadError.message} as any;
+ if(!blob)return {ok:false,kind:"unavailable",state:"stored_unprocessed",internal_code:"DOCUMENT_STORAGE_EMPTY_RESPONSE"} as any;
  try{
    const bytes=new Uint8Array(await blob.arrayBuffer());
    return {ok:true,fileName:safe(meta.name||"document",160),mimeType:safe(meta.mime_type||blob.type||"application/octet-stream",120).toLowerCase(),base64:bytesToBase64(bytes)};
  }catch(e){
-   return {ok:false,kind:"unavailable",internal_code:"DOCUMENT_STORAGE_READ_FAILED",internal_error:e} as any;
+   return {ok:false,kind:"unavailable",state:"stored_unprocessed",internal_code:"DOCUMENT_STORAGE_READ_FAILED",internal_error:e} as any;
  }
 }
 
@@ -250,7 +250,7 @@ Deno.serve(async(req:Request)=>{
       await finishVerificationJob(verificationClaim,null,publicCode+"|"+ref);
       return fail(req,publicCode,status,{
         ...common,stage:"storage",internal_code:stored?.internal_code||"ORIGINAL_DOCUMENT_UNAVAILABLE",
-        internal_error:stored?.internal_error,user_ref:userRef,state:missing?"unknown_state":"stored_unprocessed",reference_id:ref
+        internal_error:stored?.internal_error,user_ref:userRef,state:String(stored?.state||"unknown_state"),reference_id:ref
       });
     }
     try{
