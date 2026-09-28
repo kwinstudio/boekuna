@@ -1,5 +1,6 @@
 import base64, csv, hashlib, io, json, logging, math, os, re, secrets, tempfile, time
 from datetime import datetime, date
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any, Literal
 
@@ -328,10 +329,35 @@ def norm_money(v: Any) -> float | None:
 
 def money_tokens(line: str) -> list[float]:
     out=[]
-    for m in MONEY_RE.finditer(line or ""):
+    raw=line or ""
+    for m in MONEY_RE.finditer(raw):
         n=norm_money(m.group(0))
+        # PyMuPDF frequently yields negative currency as "-€ 24,00". Preserve
+        # the sign even when the regex starts at the currency symbol.
+        if n is not None and m.start()>0 and raw[m.start()-1]=="-" and n>0:
+            n=-n
         if n is not None and abs(n)<1e9: out.append(n)
     return out
+
+def money_cents(v:Any)->int|None:
+    if v is None:return None
+    try:
+        d=Decimal(str(v)).quantize(Decimal("0.01"),rounding=ROUND_HALF_UP)
+        return int(d*100)
+    except (InvalidOperation,ValueError,TypeError):
+        return None
+
+def money_equal(a:Any,b:Any)->bool:
+    ca,cb=money_cents(a),money_cents(b)
+    return ca is not None and cb is not None and ca==cb
+
+def rounded_vat_cents(base:Any,rate:Any)->int|None:
+    cb=money_cents(base)
+    if cb is None:return None
+    try:
+        return int((Decimal(cb)*Decimal(str(rate))/Decimal("100")).quantize(Decimal("1"),rounding=ROUND_HALF_UP))
+    except (InvalidOperation,ValueError,TypeError):
+        return None
 
 def norm_date(s: str) -> str | None:
     if not s: return None
@@ -404,13 +430,135 @@ def kvk_plausible(v:str|None)->bool:
     return bool(v and re.fullmatch(r"\d{8}",re.sub(r"\D","",v)))
 
 def own_matches(block:dict, company:dict)->bool:
-    cvat=re.sub(r"\s+","",str(company.get("vat") or company.get("vatNumber") or "")).upper()
-    ckvk=re.sub(r"\D","",str(company.get("kvk") or ""))
-    cname=norm_text(str(company.get("name") or company.get("tradeName") or "")).lower()
-    bvat=re.sub(r"\s+","",str(block.get("vatNumber") or "")).upper()
-    bkvk=re.sub(r"\D","",str(block.get("kvk") or ""))
+    cvat=re.sub(r"[\\s.\\-]","",str(company.get("vat") or company.get("vatNumber") or "")).upper()
+    ckvk=re.sub(r"\\D","",str(company.get("kvk") or ""))
+    ciban=re.sub(r"\\s+","",str(company.get("iban") or "")).upper()
+    cemail=norm_text(str(company.get("email") or "")).lower()
+    cnames=[norm_text(str(company.get(k) or "")).lower() for k in ("name","tradeName","contactName")]
+    cnames=[x for x in cnames if len(x)>=3]
+    bvat=re.sub(r"[\\s.\\-]","",str(block.get("vatNumber") or "")).upper()
+    bkvk=re.sub(r"\\D","",str(block.get("kvk") or ""))
+    biban=re.sub(r"\\s+","",str(block.get("iban") or "")).upper()
+    bemail=norm_text(str(block.get("email") or "")).lower()
     bname=norm_text(str(block.get("name") or "")).lower()
-    return bool((cvat and bvat==cvat) or (ckvk and bkvk==ckvk) or (cname and bname and (cname in bname or bname in cname)))
+    name_match=any(
+        n==bname or (len(n)>=5 and len(bname)>=5 and (n in bname or bname in n))
+        for n in cnames if bname
+    )
+    return bool(
+        (cvat and bvat and bvat==cvat)
+        or (ckvk and bkvk and bkvk==ckvk)
+        or (ciban and biban and biban==ciban)
+        or (cemail and bemail and bemail==cemail)
+        or name_match
+    )
+
+def _clean_party_candidate(value:str)->str:
+    cand=norm_text(value or "").strip(" |:#.-")
+    cand=re.sub(r"^(?:leverancier|supplier|vendor|seller|from|van|factuur\\s+aan|factureren\\s+aan|bill\\s+to|sold\\s+to|customer|klant|debiteur|aan|to|verzender|sender)\\s*[:#-]?\\s*","",cand,flags=re.I)
+    cand=re.split(r"\\b(?:factuurnummer|factuurnr|invoice\\s+(?:number|no)|factuurdatum|invoice\\s+date|vervaldatum|due\\s+date|betalingskenmerk|payment\\s+reference|kvk\\s*(?:nummer|nr)?|btw[- ]?(?:nummer|nr|id)|vat\\s*(?:number|id))\\b",cand,maxsplit=1,flags=re.I)[0]
+    return cand.strip(" |:#.-")
+
+def layout_fragments(doc:dict,max_y:float=330.0)->list[dict[str,Any]]:
+    out=[]
+    for page in (doc.get("layout") or [])[:2]:
+        words=[w for w in (page.get("words") or []) if norm_text(str(w.get("text") or "")) and float(w.get("y0") or 0)<=max_y]
+        words.sort(key=lambda w:(float(w.get("y0") or 0),float(w.get("x0") or 0)))
+        line_groups=[]
+        for w in words:
+            y=float(w.get("y0") or 0)
+            target=None
+            for g in reversed(line_groups[-4:]):
+                if abs(g["y"]-y)<=3.5:
+                    target=g;break
+            if target is None:
+                target={"y":y,"words":[]};line_groups.append(target)
+            target["words"].append(w)
+        for g in line_groups:
+            row=sorted(g["words"],key=lambda w:float(w.get("x0") or 0))
+            current=[];last_x1=None
+            for w in row:
+                x0=float(w.get("x0") or 0);x1=float(w.get("x1") or x0)
+                if current and last_x1 is not None and x0-last_x1>55:
+                    txt=norm_text(" ".join(str(x.get("text") or "") for x in current))
+                    if txt:out.append({"text":txt,"x0":float(current[0].get("x0") or 0),"y0":g["y"]})
+                    current=[]
+                current.append(w);last_x1=x1
+            if current:
+                txt=norm_text(" ".join(str(x.get("text") or "") for x in current))
+                if txt:out.append({"text":txt,"x0":float(current[0].get("x0") or 0),"y0":g["y"]})
+    return sorted(out,key=lambda x:(x["y0"],x["x0"]))
+
+LEGAL_ENTITY_RE=re.compile(r"([A-ZÀ-ÖØ-Ý][A-Za-zÀ-ÖØ-öø-ÿ0-9&'().,\\- ]{1,80}?\\b(?:B\\.?\\s*V\\.?|N\\.?\\s*V\\.?|V\\.?\\s*O\\.?\\s*F\\.?|LTD\\.?|LLC|GMBH))\\b",re.I)
+
+def layout_legal_entity_name(doc:dict,company:dict)->str|None:
+    candidates=[]
+    for frag in layout_fragments(doc):
+        for m in LEGAL_ENTITY_RE.finditer(frag["text"]):
+            name=_clean_party_candidate(m.group(1))
+            if len(name)<3 or own_matches({"name":name},company):continue
+            score=1.0-(min(float(frag["y0"]),330.0)/3300.0)
+            candidates.append((score,name))
+    if candidates:
+        candidates.sort(reverse=True)
+        return candidates[0][1]
+    return None
+
+def layout_own_party_name(doc:dict,company:dict)->str|None:
+    names=[norm_text(str(company.get(k) or "")) for k in ("name","tradeName","contactName")]
+    names=[n for n in names if len(n)>=3]
+    emails=[norm_text(str(company.get("email") or "")).lower()]
+    for frag in layout_fragments(doc):
+        low=frag["text"].lower()
+        for n in names:
+            nl=n.lower()
+            if nl==low or (len(nl)>=5 and nl in low):
+                return n
+        if emails[0] and emails[0] in low:
+            return next((n for n in names if n),None)
+    return None
+
+def generic_invoice_date(lines:list[str])->tuple[str|None,float]:
+    for line in lines[:45]:
+        low=line.lower()
+        if re.search(r"\\b(?:omschrijving|description|week|aantal|quantity)\\b",low):
+            continue
+        anchored=bool(re.match(r"^\\s*(?:datum|date)\\s*[:#-]?",low) or re.search(r"\\bfactuurnummer\\b.*\\bdatum\\b",low))
+        if not anchored:
+            continue
+        d=norm_date(line)
+        if d:return d,.90
+    return None,0.0
+
+def table_vat_groups(doc:dict)->list[VatLine]:
+    groups={}
+    for table in (doc.get("tables") or [])[:30]:
+        for row in (table.get("rows") or [])[:220]:
+            cells=[norm_text(str(c or "")) for c in row]
+            joined=" | ".join(cells)
+            rm=re.search(r"\\b(0|9|21)(?:[.,]0+)?\\s*%",joined,re.I)
+            if not rm:continue
+            rate=float(rm.group(1))
+            vals=[]
+            for cell in cells:
+                vals.extend(money_tokens(cell))
+            vals=[abs(v) for v in vals]
+            if rate==0 and vals:
+                groups[rate]=VatLine(rate=rate,taxableAmount=round(vals[0],2),vatAmount=0.0)
+                continue
+            best=None
+            for i,base in enumerate(vals):
+                for j,tax in enumerate(vals):
+                    if i==j:continue
+                    ec=rounded_vat_cents(base,rate);tc=money_cents(tax)
+                    if ec is None or tc is None or abs(ec-tc)>1:continue
+                    gross_match=any(k not in (i,j) and money_cents(vals[k])==(money_cents(base) or 0)+(money_cents(tax) or 0) for k in range(len(vals)))
+                    score=(1 if gross_match else 0,base)
+                    if best is None or score>best[0]:best=(score,base,tax)
+            if best:
+                _,base,tax=best
+                groups[rate]=VatLine(rate=rate,taxableAmount=round(base,2),vatAmount=round(tax,2))
+    return [groups[k] for k in sorted(groups)]
 
 def allow_request(request: Request, key_override: str | None = None) -> bool:
     now=time.time()
@@ -773,57 +921,58 @@ def extract_document(filename:str,content_type:str,raw:bytes)->dict[str,Any]:
 
 # ----------------------------- deterministic invoice parser -----------------------------
 def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tuple[dict,float]:
-    idx=None; matched_label=None
+    idx=None;matched_label=None
     for i,line in enumerate(lines[:120]):
         low=line.lower().strip()
         for lab in labels:
-            lab=lab.lower().strip()
-            if low==lab or low.startswith(lab+':') or low.startswith(lab+' -'):
-                idx=i; matched_label=lab; break
-        if idx is not None: break
+            lab=lab.lower().strip().rstrip(":")
+            if low==lab or low.startswith(lab+":") or low.startswith(lab+" -"):
+                idx=i;matched_label=lab;break
+        if idx is not None:break
     block=lines[idx:idx+12] if idx is not None else lines[:18]
-    block=[x for x in block if x and not re.match(r"^-{2,}\s*page\s+\d+\s*-{2,}$",x,re.I)]
-    joined="\n".join(block)
-    emails=re.findall(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}",joined,re.I)
-    vats=[re.sub(r"\s+","",x).upper() for x in re.findall(r"\b[A-Z]{2}\s?[A-Z0-9]{6,14}\b",joined,re.I)]
-    nl_vats=[x for x in vats if re.fullmatch(r"NL\d{9}B\d{2}",x)]
-    kvks=re.findall(r"(?:kvk|k\.v\.k\.|coc|chamber of commerce)(?:\s*(?:nr|nummer|number|no))?\s*[:#-]?\s*(\d{8})",joined,re.I)
-    ibans=[re.sub(r"\s+","",x).upper() for x in re.findall(r"\b[A-Z]{2}\d{2}(?:[ \\t]?[A-Z0-9]){11,30}\b",joined,re.I)]
-    postal=re.search(r"\b([1-9]\d{3})\s*([A-Z]{2})\b(?:\s+([^\n,;|]{2,50}))?",joined,re.I)
-    address_re=re.compile(r"\b\d+[A-Z-]*\b.*(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|place)|(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|place)[^\n]*\b\d+[A-Z-]*\b",re.I)
+    block=[x for x in block if x and not re.match(r"^-{2,}\\s*page\\s+\\d+\\s*-{2,}$",x,re.I)]
+    joined="\\n".join(block)
+    emails=re.findall(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}",joined,re.I)
+    vats=[re.sub(r"\\s+","",x).upper() for x in re.findall(r"\\b[A-Z]{2}\\s?[A-Z0-9]{6,14}\\b",joined,re.I)]
+    nl_vats=[x for x in vats if re.fullmatch(r"NL\\d{9}B\\d{2}",x)]
+    kvks=re.findall(r"(?:kvk|k\\.v\\.k\\.|coc|chamber of commerce)(?:\\s*(?:nr|nummer|number|no))?\\s*[:#-]?\\s*(\\d{8})",joined,re.I)
+    ibans=[re.sub(r"\\s+","",x).upper() for x in re.findall(r"\\b[A-Z]{2}\\d{2}(?:[ \\t]?[A-Z0-9]){11,30}\\b",joined,re.I)]
+    postal=re.search(r"\\b([1-9]\\d{3})\\s*([A-Z]{2})\\b(?:\\s+([^\\n,;|]{2,50}))?",joined,re.I)
+    address_re=re.compile(r"\\b\\d+[A-Z-]*\\b.*(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|place)|(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|place)[^\\n]*\\b\\d+[A-Z-]*\\b",re.I)
     address=next((x for x in block if address_re.search(x)),None)
-    own_names=[norm_text(str(company.get(k) or "")).lower() for k in ("name","tradeName")]
-    field_only=re.compile(r"^(?:leverancier|supplier|vendor|seller|from|factuur aan|bill to|sold to|customer|klant|debiteur|factuur|invoice|datum|date|totaal|total|btw|vat|kvk|iban|omschrijving|description|pagina|page)(?:\s*[:#-].*)?$",re.I)
+    field_only=re.compile(r"^(?:leverancier|supplier|vendor|seller|from|van|factuur aan|factureren aan|bill to|sold to|customer|klant|debiteur|aan|to|verzender|sender|factuur|invoice|datum|date|totaal|total|btw|vat|kvk|iban|omschrijving|description|pagina|page)(?:\\s*[:#-].*)?$",re.I)
     name=None
-    # Strongest signal: value on the same line as the role label.
     if idx is not None and matched_label:
         line=lines[idx]
         pos=line.lower().find(matched_label)
-        remainder=line[pos+len(matched_label):].lstrip(" :#.-")
-        if 2<=len(remainder)<=100 and not field_only.match(remainder) and not address_re.search(remainder) and not re.match(r"^\d",remainder):
+        remainder=_clean_party_candidate(line[pos+len(matched_label):])
+        if 2<=len(remainder)<=100 and not field_only.match(remainder) and not address_re.search(remainder) and not re.match(r"^\\d",remainder):
             name=remainder
     if not name and idx is not None:
-        # Many invoices print a heading like "Leverancier" below the actual company name.
+        for j in range(idx+1,min(len(lines),idx+7)):
+            cand=_clean_party_candidate(lines[j])
+            if not (2<=len(cand)<=100):continue
+            if field_only.match(cand) or address_re.search(cand) or re.match(r"^\\d",cand) or "@" in cand:continue
+            if re.search(r"\\b(?:kvk|btw|vat|iban)\\b",cand,re.I):continue
+            name=cand;break
+    if not name and idx is not None:
         for back in range(max(0,idx-3),idx):
-            cand=lines[back].strip()
-            if 2<=len(cand)<=100 and not field_only.match(cand) and not address_re.search(cand) and not re.match(r"^\d",cand) and "@" not in cand and not re.fullmatch(r"(?:B\.?V\.?|N\.?V\.?|VOF|CV|LLC|LTD\.?|INC\.?)",cand,re.I):
-                if not re.match(r"^-{2,}\s*page\s+\d+",cand,re.I) and not re.search(r"factuur|invoice|creditnota|receipt",cand,re.I) and not any(o and o in cand.lower() for o in own_names):
+            cand=_clean_party_candidate(lines[back])
+            if 2<=len(cand)<=100 and not field_only.match(cand) and not address_re.search(cand) and not re.match(r"^\\d",cand) and "@" not in cand:
+                if not re.search(r"factuur|invoice|creditnota|receipt",cand,re.I):
                     name=cand;break
     if not name:
         for rawline in block:
-            cand=re.sub(r"^(?:leverancier|supplier|vendor|seller|from|factuur aan|bill to|sold to|customer|klant|debiteur)\s*[:#-]?\s*","",rawline,flags=re.I).strip()
-            if not (2<=len(cand)<=100): continue
-            if field_only.match(cand) or address_re.search(cand) or re.match(r"^\d",cand) or "@" in cand: continue
-            if re.match(r"^-{2,}\s*page\s+\d+",cand,re.I): continue
-            if re.match(r"^(?:factuurdatum|factuurnummer|factuurnr|invoice date|invoice number|vervaldatum|due date|subtotaal|totaal|btw|vat|kvk|iban)\b",cand,re.I): continue
-            if re.fullmatch(r"(?:B\.?V\.?|N\.?V\.?|VOF|CV|LLC|LTD\.?|INC\.?)",cand,re.I): continue
-            if re.fullmatch(r"(?:onvolledige\s+)?(?:factuur|invoice|creditnota|receipt)",cand,re.I): continue
-            if re.search(r"\b(?:kvk|btw|vat|iban|factuurnr|factuurnummer|invoice no|invoice number)\b",cand,re.I): continue
-            if any(o and o in cand.lower() for o in own_names): continue
+            cand=_clean_party_candidate(rawline)
+            if not (2<=len(cand)<=100):continue
+            if field_only.match(cand) or address_re.search(cand) or re.match(r"^\\d",cand) or "@" in cand:continue
+            if re.match(r"^-{2,}\\s*page\\s+\\d+",cand,re.I):continue
+            if re.search(r"\\b(?:kvk|btw|vat|iban|factuurnr|factuurnummer|invoice no|invoice number)\\b",cand,re.I):continue
+            if re.search(r"\\b(?:factuur|invoice|creditnota|receipt)\\b",cand,re.I):continue
             name=cand;break
     data={"name":name,"address":address,"postalCode":f"{postal[1]} {postal[2].upper()}" if postal else None,"city":postal[3].strip() if postal and postal[3] else None,"country":"Nederland" if postal else None,
           "kvk":kvks[0] if kvks else None,"vatNumber":nl_vats[0] if nl_vats else None,"iban":next((x for x in ibans if valid_iban(x)),None),"email":emails[0] if emails else None}
-    conf=.95 if idx is not None and name else (.68 if name else .25)
+    conf=.97 if idx is not None and name else (.62 if name else .20)
     return data,conf
 
 def receipt_merchant_name(lines:list[str], company:dict)->str|None:
@@ -878,11 +1027,22 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
             seen_amount_lines.add(key);amount_lines.append(line)
     low=text.lower()
     self_billing=bool(re.search(r"factuur\s+uitgereikt\s+door\s+afnemer|self[- ]?billing|self[- ]?billed",low))
-    supplier,sconf=contact_block(lines,["leverancier","supplier","vendor","seller","from:"],company,"supplier")
-    customer,cconf=contact_block(lines,["factuur aan","factureren aan","bill to","sold to","customer","klant","debiteur"],company,"customer")
+    supplier,sconf=contact_block(lines,["leverancier","supplier","vendor","seller","from","van"],company,"supplier")
+    customer,cconf=contact_block(lines,["factuur aan","factureren aan","bill to","sold to","customer","klant","debiteur","aan","to","verzender","sender"],company,"customer")
+    legal_entity=layout_legal_entity_name(doc,company)
+    own_layout=layout_own_party_name(doc,company)
     supplier_own=own_matches(supplier,company); customer_own=own_matches(customer,company)
-    if self_billing or supplier_own and not customer_own: dtype="sales_invoice"
+    if self_billing or (supplier_own and not customer_own): dtype="sales_invoice"
     else: dtype="purchase_invoice"
+    if self_billing and own_layout and not supplier_own:
+        supplier["name"]=own_layout;sconf=max(sconf,.96);supplier_own=True
+    if dtype=="purchase_invoice":
+        if legal_entity and (not supplier.get("name") or supplier_own or sconf<.85):
+            supplier["name"]=legal_entity;sconf=max(sconf,.94);supplier_own=False
+        if own_layout and (not customer.get("name") or not own_matches(customer,company)):
+            customer["name"]=own_layout;cconf=max(cconf,.90);customer_own=True
+    elif dtype=="sales_invoice" and legal_entity and (not customer.get("name") or customer_own):
+        customer["name"]=legal_entity;cconf=max(cconf,.90);customer_own=False
     if re.search(r"creditnota|credit note|creditfactuur|credit invoice",low): dtype="credit_invoice"
     if re.search(r"\bbon\b|receipt|kassabon",low) and not re.search(r"factuur|invoice",low): dtype="receipt"
     if dtype=="receipt" and not supplier.get("name"):
@@ -899,13 +1059,15 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     description_raw,_=line_after_label(lines,["omschrijving","description","dienst","service"],max_ahead=1)
     description=norm_text(description_raw or "")[:240] or None
     inv_date,inv_date_conf=labeled_date(lines,["factuurdatum","invoice date","date of invoice","document date"])
+    if not inv_date:
+        inv_date,inv_date_conf=generic_invoice_date(lines)
     if not inv_date and dtype=="receipt":
         for line in lines[:30]:
             d=norm_date(line)
             if d:
                 inv_date,inv_date_conf=d,.76
                 break
-    due_date,due_conf=labeled_date(lines,["vervaldatum","due date","betaal voor","pay before","payment due"])
+    due_date,due_conf=labeled_date(lines,["vervaldatum","due date","betalen voor","betaal voor","pay before","payment due"])
     order_raw,_=line_after_label(lines,["bestelnummer","ordernummer","order number","purchase order","po number"]); order_no=order_raw[:60] if order_raw else None
     ref_raw,_=line_after_label(lines,["betalingskenmerk","payment reference","payment ref","kenmerk"]); payref=ref_raw[:80] if ref_raw else None
 
@@ -941,32 +1103,43 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         vat_conf=max(vat_conf,section_conf)
         total_conf=max(total_conf,section_conf)
 
-    vat_lines=[]
-    for i,l in enumerate(amount_lines):
-        rm=re.search(r"\b(0|9|21)(?:[.,]0+)?\s*%",l)
-        if not rm: continue
-        vals=money_tokens(l); rate=float(rm.group(1))
-        taxable,tax=best_vat_pair(rate,vals)
-        if tax is not None:
-            vat_lines.append(VatLine(rate=rate,taxableAmount=round(taxable,2) if taxable is not None else None,vatAmount=round(tax,2)))
-    # De-duplicate repeated VAT summaries. Prefer rows with a taxable base.
-    unique=[]; seen=set()
-    for v in sorted(vat_lines,key=lambda x:(x.taxableAmount is None,)):
-        key=(v.rate,round(v.vatAmount or 0,2))
-        if key not in seen:
-            seen.add(key);unique.append(v)
-    vat_lines=unique[:8]
+    detected_rates=detect_vat_rates(amount_lines)
     structured_rate=structured_primary.get("vatRate") if structured_primary else None
-    if not vat_lines and structured_rate in (0,9,21) and subtotal is not None and vat_total is not None:
-        vat_lines=[VatLine(rate=float(structured_rate),taxableAmount=round(float(subtotal),2),vatAmount=round(float(vat_total),2))]
+    rate_candidates=detected_rates or ([float(structured_rate)] if structured_rate in (0,9,21) else [])
+    vat_lines=[]
+    vat_line_source=None
+    # For a single-rate document the trusted VAT group is reconstructed from the
+    # printed/validated top-level net and VAT totals. Never infer it from arbitrary
+    # money tokens on product rows.
+    if len(rate_candidates)==1 and subtotal is not None and vat_total is not None:
+        rate=float(rate_candidates[0])
+        vat_lines=[VatLine(rate=rate,taxableAmount=round(float(subtotal),2),vatAmount=round(float(vat_total),2))]
+        vat_line_source="validated-primary-totals"
+    elif len(rate_candidates)>1:
+        vat_lines=table_vat_groups(doc)
+        vat_line_source="explicit-vat-table" if vat_lines else "review-required-mixed-vat"
 
     structured_adjustments=[Adjustment(**a) for a in financial_structure.get("adjustments",[])]
     settlement_amount=financial_structure.get("settlementAmount")
 
-    # Arithmetic recovery: if exactly one taxable VAT rate is unambiguous and one
+    # A document that deducts factoring costs from an invoice total and exposes a
+    # net payout is a sales/receivable settlement structure, not a purchase just
+    # because the intermediary's logo is top-left.
+    factoring_sale=bool(
+        any(a.type=="factoring_fee" for a in structured_adjustments)
+        and settlement_amount is not None
+        and own_layout
+    )
+    if factoring_sale and dtype=="purchase_invoice":
+        counterparty_name=legal_entity or supplier.get("name")
+        supplier={**supplier,"name":own_layout}
+        customer={**customer,"name":counterparty_name}
+        sconf=max(sconf,.92);cconf=max(cconf,.88 if counterparty_name else cconf)
+        dtype="sales_invoice"
+
+    # Arithmetic recovery: derive only missing values. Explicit printed amounts
     # amount is a strong anchor, calculate the other amounts rather than trusting
     # weaker OCR reads. Never do this for mixed VAT or adjustment-heavy receipts.
-    detected_rates=detect_vat_rates(amount_lines)
     derivation=derive_single_rate_amounts(
         rate=detected_rates[0] if len(detected_rates)==1 else None,
         subtotal=subtotal,vat_total=vat_total,total=total,
@@ -985,7 +1158,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     for x in re.findall(r"\b[A-Z]{2}\d{2}(?:[ \\t]?[A-Z0-9]){11,30}\b",text,re.I):
         if valid_iban(x): iban=re.sub(r"\s+","",x).upper();break
 
-    paid=bool(re.search(r"\b(reeds betaald|already paid|paid via|voldaan|betaald)\b",low))
+    paid=bool(re.search(r"\b(reeds betaald|already paid|paid via|voldaan|betaald|totaal betaald|total paid|betaalbevestiging)\b",low))
     status="credit" if dtype=="credit_invoice" else ("paid" if (paid or dtype=="receipt") else "open")
     if due_date and status=="open":
         try:
@@ -1010,6 +1183,11 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         "vatTotal":vat_conf,
         "total":total_conf,
         "iban":.9 if iban else .1,
+        "documentType":.99 if self_billing else (.94 if factoring_sale else (.90 if (supplier_own or customer_own) else .76)),
+        "paymentStatus":.98 if paid else (.78 if status in {"open","overdue"} else .55),
+        "vatLines":.99 if vat_line_source=="validated-primary-totals" else (.92 if vat_line_source=="explicit-vat-table" else (.35 if len(detected_rates)>1 else .20)),
+        "adjustments":.98 if structured_adjustments and financial_structure.get("adjustmentArithmeticOk") else (.45 if structured_adjustments else .80),
+        "settlementAmount":.98 if settlement_amount is not None and financial_structure.get("settlementArithmeticOk") else (.25 if settlement_amount is None else .55),
     }
     if doc.get("ocrPages"):
         for k in list(confidence): confidence[k]*=.9
@@ -1021,14 +1199,17 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
                 confidence[field]=max(confidence[field],max(.70,min(.98,anchor_conf*.985)))
     derivation_warnings=[]
     for conflict in derivation.get("conflicts",[]):
-        derivation_warnings.append(f"Rekenkundige controle wijkt af voor {conflict['field']}: gelezen {conflict['read']:.2f}, berekend {conflict['calculated']:.2f}.")
+        if isinstance(conflict.get("read"),dict):
+            derivation_warnings.append("Expliciete bedragen spreken elkaar rekenkundig tegen; controleer netto, btw en totaal.")
+        else:
+            derivation_warnings.append(f"Rekenkundige controle wijkt af voor {conflict['field']}: gelezen {conflict['read']:.2f}, berekend {conflict['calculated']:.2f}.")
     result=ExtractionResult(
         documentType=dtype,originalFileName=filename,pageCount=doc.get("pageCount",1),
         supplier=Supplier(**supplier),customer=Customer(**customer),
         invoice=InvoiceMeta(invoiceNumber=invoice_no,invoiceDate=inv_date,dueDate=due_date,paymentTermDays=term,orderNumber=order_no,paymentReference=payref,description=description),
         amounts=Amounts(subtotal=abs(subtotal) if subtotal is not None else None,vatLines=vat_lines,vatTotal=abs(vat_total) if vat_total is not None else None,total=abs(total) if total is not None else None,settlementAmount=abs(settlement_amount) if settlement_amount is not None else None,discount=abs(discount) if discount is not None else None,shipping=abs(shipping) if shipping is not None else None,currency="EUR"),
         status=status,lineItems=[],adjustments=structured_adjustments,confidence=confidence,warnings=derivation_warnings,
-        processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"financialBlocks":{"verified":bool(financial_structure.get("verified")),"primaryArithmeticOk":bool(financial_structure.get("primaryArithmeticOk")),"adjustmentArithmeticOk":bool(financial_structure.get("adjustmentArithmeticOk")),"settlementArithmeticOk":bool(financial_structure.get("settlementArithmeticOk")),"adjustmentTotal":financial_structure.get("adjustmentTotal"),"settlementSource":financial_structure.get("settlementSource")},"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"mixedRates":len(detected_rates)>1}}
+        processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"financialBlocks":{"verified":bool(financial_structure.get("verified")),"primaryArithmeticOk":bool(financial_structure.get("primaryArithmeticOk")),"adjustmentArithmeticOk":bool(financial_structure.get("adjustmentArithmeticOk")),"settlementArithmeticOk":bool(financial_structure.get("settlementArithmeticOk")),"adjustmentTotal":financial_structure.get("adjustmentTotal"),"settlementSource":financial_structure.get("settlementSource")},"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"mixedRates":len(detected_rates)>1},"vatLineSource":vat_line_source,"selfBilling":self_billing,"factoringSaleStructure":factoring_sale}
     )
     return validate_result(result,company)
 
@@ -1082,15 +1263,14 @@ def validate_result(r:ExtractionResult,company:dict)->ExtractionResult:
         for key in ("subtotal","vatTotal","total"):
             r.confidence[key]=min(r.confidence.get(key,.5),.65)
 
-    tol=max(.05,abs(a.total or 0)*.002)
     if a.subtotal is not None and a.vatTotal is not None and a.total is not None:
-        # Some invoices show subtotal after discount/shipping, others before. Accept the equation that best matches.
-        candidates=[a.subtotal+a.vatTotal]
+        candidates=[money_cents(a.subtotal)+money_cents(a.vatTotal)]
         if a.shipping is not None or a.discount is not None:
-            candidates.append(a.subtotal+a.vatTotal+(a.shipping or 0)-(a.discount or 0))
-        expected=min(candidates,key=lambda x:abs(x-a.total))
-        if abs(expected-a.total)>tol:
-            w.append(f"Bedragen sluiten niet aan: berekend {expected:.2f}, totaal {a.total:.2f}.")
+            candidates.append(money_cents(a.subtotal)+money_cents(a.vatTotal)+(money_cents(a.shipping) or 0)-(money_cents(a.discount) or 0))
+        total_cents=money_cents(a.total)
+        if total_cents is None or all(expected!=total_cents for expected in candidates):
+            expected=(candidates[0] or 0)/100
+            w.append(f"Bedragen sluiten niet cent-exact aan: berekend {expected:.2f}, totaal {a.total:.2f}.")
             for key in ("subtotal","vatTotal","total"):r.confidence[key]=min(r.confidence.get(key,.5),.65)
     if r.invoice.invoiceDate:
         try: date.fromisoformat(r.invoice.invoiceDate)
@@ -1112,39 +1292,54 @@ def validate_result(r:ExtractionResult,company:dict)->ExtractionResult:
     if not r.supplier.name and r.documentType=="receipt":w.append("Winkel/leverancier op de bon niet betrouwbaar gevonden.")
     if a.total is None:w.append("Totaalbedrag niet betrouwbaar gevonden.")
 
-    # Separate costs/corrections must reconcile independently from the invoice.
-    adjustment_total=0.0
+    # Separate costs/corrections reconcile at currency minor-unit precision.
+    adjustment_cents=0
     for adj in r.adjustments or []:
         if adj.total is None:
             continue
-        subtotal_adj=abs(float(adj.subtotal or 0))
-        vat_adj=abs(float(adj.vatTotal or 0))
-        total_adj=abs(float(adj.total or 0))
-        adjustment_total+=total_adj if adj.direction=="deduction" else -total_adj
-        if abs((subtotal_adj+vat_adj)-total_adj)>max(.05,total_adj*.004):
-            w.append(f"Kostenblok '{adj.type}' sluit niet aan: excl. + btw is niet gelijk aan totaal.")
+        subtotal_adj=money_cents(abs(float(adj.subtotal or 0))) or 0
+        vat_adj=money_cents(abs(float(adj.vatTotal or 0))) or 0
+        total_adj=money_cents(abs(float(adj.total or 0))) or 0
+        adjustment_cents+=total_adj if adj.direction=="deduction" else -total_adj
+        if subtotal_adj+vat_adj!=total_adj:
+            w.append(f"Kostenblok '{adj.type}' sluit niet cent-exact aan: excl. + btw is niet gelijk aan totaal.")
+            r.confidence["adjustments"]=min(r.confidence.get("adjustments",.5),.55)
         if adj.vatRate in {9,21} and adj.subtotal is not None and adj.vatTotal is not None:
-            expected_adj=subtotal_adj*float(adj.vatRate)/100
-            if abs(expected_adj-vat_adj)>max(.05,expected_adj*.02):
+            expected_adj=rounded_vat_cents(abs(float(adj.subtotal)),float(adj.vatRate))
+            if expected_adj is not None and abs(expected_adj-vat_adj)>1:
                 w.append(f"Kostenblok '{adj.type}' heeft een btw-bedrag dat niet past bij {adj.vatRate:g}%.")
+                r.confidence["adjustments"]=min(r.confidence.get("adjustments",.5),.55)
 
     if a.settlementAmount is not None and a.total is not None and r.adjustments:
-        expected_settlement=round(float(a.total)-adjustment_total,2)
-        if abs(expected_settlement-float(a.settlementAmount))>max(.08,abs(float(a.total))*.003):
-            w.append(f"Uitbetaling sluit niet aan: factuur {a.total:.2f} minus/plus correcties = {expected_settlement:.2f}, maar uitbetaling is {a.settlementAmount:.2f}.")
+        total_cents=money_cents(a.total)
+        settlement_cents=money_cents(a.settlementAmount)
+        expected_cents=(total_cents-adjustment_cents) if total_cents is not None else None
+        if expected_cents is None or settlement_cents!=expected_cents:
+            expected_settlement=(expected_cents or 0)/100
+            w.append(f"Uitbetaling sluit niet cent-exact aan: factuur {a.total:.2f} minus/plus correcties = {expected_settlement:.2f}, maar uitbetaling is {a.settlementAmount:.2f}.")
             r.confidence["settlementAmount"]=min(r.confidence.get("settlementAmount",.5),.55)
         else:
             r.confidence["settlementAmount"]=max(r.confidence.get("settlementAmount",0),.98)
 
-    # VAT line consistency
+    # VAT groups are persisted financial subdata and must reconcile independently.
     if a.vatLines:
-        known=sum(v.vatAmount or 0 for v in a.vatLines)
-        if a.vatTotal is not None and known and abs(known-a.vatTotal)>max(.05,a.vatTotal*.01):w.append("Som van btw-regels wijkt af van totaal btw.")
+        known_cents=sum((money_cents(v.vatAmount) or 0) for v in a.vatLines if v.vatAmount is not None)
+        if a.vatTotal is not None and known_cents!=money_cents(a.vatTotal):
+            w.append("Som van btw-groepen wijkt cent-exact af van totaal btw.")
+            r.confidence["vatLines"]=min(r.confidence.get("vatLines",.5),.55)
         for v in a.vatLines:
-            if v.rate not in {0,9,21} and not (0<=v.rate<=30):w.append(f"Ongebruikelijk btw-tarief: {v.rate}%.")
+            if v.rate not in {0,9,21} and not (0<=v.rate<=30):
+                w.append(f"Ongebruikelijk btw-tarief: {v.rate}%.")
+                r.confidence["vatLines"]=min(r.confidence.get("vatLines",.5),.55)
             if v.taxableAmount is not None and v.vatAmount is not None and v.rate>0:
-                expected=v.taxableAmount*v.rate/100
-                if abs(expected-v.vatAmount)>max(.05,expected*.02):w.append(f"Btw-regel {v.rate:g}% sluit rekenkundig niet aan.")
+                expected=rounded_vat_cents(v.taxableAmount,v.rate)
+                actual=money_cents(v.vatAmount)
+                # One cent is allowed for a printed VAT group because documents may
+                # aggregate line-rounded VAT; the group total itself is never rewritten.
+                if expected is not None and actual is not None and abs(expected-actual)>1:
+                    w.append(f"Btw-groep {v.rate:g}% sluit niet aan op de belastbare grondslag.")
+                    r.confidence["vatLines"]=min(r.confidence.get("vatLines",.5),.55)
+    # normalize warning uniqueness
     # normalize warning uniqueness
     r.warnings=list(dict.fromkeys(w))
     return r
@@ -1324,8 +1519,8 @@ def deterministic_fast_path_ready(doc:dict,r:ExtractionResult)->bool:
     if r.adjustments and not blocks.get("verified"):
         return False
     if r.amounts.vatTotal is not None:
-        expected=float(r.amounts.subtotal)+float(r.amounts.vatTotal)
-        if abs(expected-float(r.amounts.total))>max(.08,abs(float(r.amounts.total))*.003):
+        s=money_cents(r.amounts.subtotal);v=money_cents(r.amounts.vatTotal);t=money_cents(r.amounts.total)
+        if s is None or v is None or t is None or s+v!=t:
             return False
     return True
 
