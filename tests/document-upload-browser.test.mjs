@@ -49,6 +49,17 @@ const processorPayload={
   duplicateCandidates:[]
 };
 
+const mixedProcessorPayload=structuredClone(processorPayload);
+mixedProcessorPayload.data.originalFileName='qa-mixed-vat.pdf';
+mixedProcessorPayload.data.invoice.invoiceNumber='QA-MIXED-001';
+mixedProcessorPayload.data.invoice.description='Gemengde btw 9 en 21';
+mixedProcessorPayload.data.amounts={subtotal:200,vatLines:[{rate:9,taxableAmount:100,vatAmount:9},{rate:21,taxableAmount:100,vatAmount:21}],vatTotal:30,total:230,currency:'EUR'};
+mixedProcessorPayload.data.lineItems=[
+  {description:'Dienst laag tarief',quantity:1,unitPrice:100,vatRate:9,lineTotal:100},
+  {description:'Dienst hoog tarief',quantity:1,unitPrice:100,vatRate:21,lineTotal:100}
+];
+
+let processorResponse=processorPayload;
 let appOrigin='';
 let processorMode='success';
 let processorMethods=[];
@@ -72,7 +83,7 @@ const processorServer=http.createServer((req,res)=>{
     assert.ok(bytes>0,'Browser processor POST must contain multipart upload bytes');
     if(processorMode==='success'){
       res.writeHead(200,{...headers,'content-type':'application/json'});
-      return res.end(JSON.stringify(processorPayload));
+      return res.end(JSON.stringify(processorResponse));
     }
     res.writeHead(503,{...headers,'content-type':'application/json'});
     res.end(JSON.stringify({ok:false,error:{code:'PROCESSOR_UNAVAILABLE',category:'temporary',retryable:true,state:'no_changes',reference_id:'BK-QAPDF'}}));
@@ -158,6 +169,7 @@ try{
   // reach the real review UI, then save the resulting bookkeeping/document state.
   {
     processorMode='success';
+    processorResponse=processorPayload;
     processorMethods=[];
     processorOrigins=[];
     const page=await newAppPage();
@@ -192,10 +204,107 @@ try{
     await page.close();
   }
 
+  // QA-DOC-REL-001: authoritative mixed 9% + 21% VAT must clear the local stale 21% scalar
+  // through processor merge, review, save, persistence/reopen, list, detail modal and CSV export.
+  {
+    processorMode='success';
+    processorResponse=mixedProcessorPayload;
+    processorMethods=[];
+    processorOrigins=[];
+    const page=await newAppPage();
+    const errors=[];
+    page.on('pageerror',e=>errors.push(String(e)));
+    page.on('dialog',dialog=>dialog.accept());
+
+    await page.locator('#invoicePdfFile').setInputFiles({
+      name:'qa-mixed-vat.pdf',
+      mimeType:'application/pdf',
+      buffer:Buffer.from('%PDF-1.7\n% Boekuna mixed VAT browser QA\n')
+    });
+
+    await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:15000});
+    const review=await page.evaluate(()=>({
+      vatRate:pendingPdfImport?.parsed?.vatRate,
+      mixedRates:pendingPdfImport?.parsed?.mixedRates,
+      vatLines:pendingPdfImport?.parsed?.vatLines,
+      selected:document.querySelector('#pdfImportForm [name="vatRate"]')?.value
+    }));
+    assert.equal(review.vatRate,null,'Mixed processor result must explicitly clear the local 21% scalar before review');
+    assert.equal(review.mixedRates,true,'Mixed processor result must remain marked mixed');
+    assert.deepEqual(review.vatLines.map(v=>Number(v.rate)),[9,21],'Trusted processor VAT groups must reach review intact');
+    assert.equal(review.selected,'','Mixed review must show Gemengd / controleer instead of a scalar rate');
+
+    await page.evaluate(()=>savePdfInvoiceImport());
+    const saved=await page.evaluate(()=>{
+      const e=state.expenses[0];
+      return {vatRate:e?.vatRate,mixedRates:e?.mixedRates,vatLines:e?.vatLines,vatAmount:e?.vatAmount,gross:e?expenseGross(e):null}
+    });
+    assert.equal(saved.vatRate,null,'Mixed expense persistence must not contain an authoritative scalar VAT rate');
+    assert.equal(saved.mixedRates,true,'Mixed expense persistence must preserve mixedRates');
+    assert.deepEqual(saved.vatLines.map(v=>Number(v.rate)),[9,21],'Saved trusted VAT groups must preserve 9% and 21%');
+    assert.equal(saved.vatAmount,30);
+    assert.equal(saved.gross,230);
+
+    const reopened=await page.evaluate(()=>{
+      const stale={...state.expenses[0],vatRate:21,mixedRates:true};
+      state.expenses[0]=stale;
+      state=normalizeState(JSON.parse(JSON.stringify(state)));
+      navigate('expenses');
+      const e=state.expenses[0];
+      return {vatRate:e.vatRate,mixedRates:e.mixedRates,label:expenseVatRateLabel(e),rates:expenseVatRates(e)}
+    });
+    assert.equal(reopened.vatRate,null,'Reopen normalization must scrub a legacy stale 21% scalar from mixed persisted data');
+    assert.equal(reopened.mixedRates,true);
+    assert.equal(reopened.label,'Gemengd');
+    assert.deepEqual(reopened.rates,[9,21]);
+
+    const listVat=String(await page.locator('table tbody tr').first().locator('td').nth(5).textContent()).trim();
+    assert.equal(listVat,'Gemengd','Expense list must never render mixed VAT as 21%');
+
+    await page.evaluate(()=>expenseActions(state.expenses[0].id));
+    const modalText=await page.locator('.modal').textContent();
+    assert.match(modalText,/Gemengd btw/,'Expense detail modal must label the booking as mixed VAT');
+    assert.match(modalText,/9%:/,'Expense detail modal must expose the 9% trusted group');
+    assert.match(modalText,/21%:/,'Expense detail modal must expose the 21% trusted group');
+    await page.getByRole('button',{name:'Sluiten'}).click();
+
+    const csv=await page.evaluate(()=>{
+      const originalDownload=download;
+      let capture=null;
+      download=(name,data,mime)=>{capture={name,data,mime}};
+      try{exportExpensesCSV()}finally{download=originalDownload}
+      return capture
+    });
+    const csvRow=csv.data.split('\n')[1].split(';');
+    assert.equal(csvRow[4],'"Gemengd"','CSV scalar VAT-rate column must export Gemengd for mixed VAT');
+    assert.match(csvRow[5],/9%:/,'CSV must preserve the 9% VAT-group breakdown');
+    assert.match(csvRow[5],/21%:/,'CSV must preserve the 21% VAT-group breakdown');
+    assert.deepEqual(errors,[],'QA-DOC-REL-001 browser errors: '+errors.join(' | '));
+
+    const singleRates=await page.evaluate(()=>{
+      return [0,9,21].map(rate=>{
+        const vat=rate===0?0:rate,net=100,gross=net+vat;
+        const local={type:'purchase',documentType:'purchase_invoice',party:'Local Parser',invoiceNumber:'LOCAL',issueDate:'2026-09-28',net,vatAmount:vat,gross,vatRate:21,mixedRates:false,vatLines:[{rate:21,taxableAmount:net,vatAmount:21}],fieldConfidence:{}};
+        const authoritative={sourceQuality:'processor-v2',type:'purchase',documentType:'purchase_invoice',party:'Processor',invoiceNumber:'SINGLE-'+rate,issueDate:'2026-09-28',net,vatAmount:vat,gross,vatRate:rate,mixedRates:false,vatLines:[{rate,taxableAmount:net,vatAmount:vat}],fieldConfidence:{}};
+        const merged=mergeAIParsed(local,authoritative,'purchase');
+        const expense=normalizeExpenseVatSemantics({vatRate:merged.vatRate,mixedRates:merged.mixedRates,vatLines:merged.vatLines});
+        return {rate,mergedRate:merged.vatRate,mixed:merged.mixedRates,label:expenseVatRateLabel(expense),exportRate:expenseVatRateExport(expense)}
+      })
+    });
+    assert.deepEqual(singleRates,[
+      {rate:0,mergedRate:0,mixed:false,label:'0%',exportRate:'0'},
+      {rate:9,mergedRate:9,mixed:false,label:'9%',exportRate:'9'},
+      {rate:21,mergedRate:21,mixed:false,label:'21%',exportRate:'21'}
+    ],'Authoritative single-rate 0%, 9% and 21% semantics must remain unchanged');
+
+    await page.close();
+  }
+
   // QA-PDF-03: a temporary processor failure must reach the local PDF.js fallback
   // without the historical "Can't find variable: pdfLibPromise" browser crash.
   {
     processorMode='unavailable';
+    processorResponse=processorPayload;
     processorMethods=[];
     processorOrigins=[];
     const page=await newAppPage();
@@ -233,7 +342,7 @@ try{
     await page.close();
   }
 
-  console.log('PDF browser regressions: PASS (QA-PDF-02 preflight/upload/review/save; QA-PDF-03 processor-outage/PDF.js fallback/no ReferenceError)');
+  console.log('PDF browser regressions: PASS (QA-PDF-02 single-rate upload/save; QA-DOC-REL-001 mixed 9%+21% merge/review/save/reopen/UI/CSV; single 0/9/21 VAT regressions; QA-PDF-03 processor-outage fallback)');
 }finally{
   await browser.close();
   await new Promise(resolve=>appServer.close(resolve));
