@@ -3360,6 +3360,7 @@ async function startSelectedDocumentUpload(input,kind='auto'){
 }
 async function handleReceiptPhoto(e){return startSelectedDocumentUpload(e?.target,'purchase')}
 async function handleGenericDocuments(e){const files=[...e.target.files];let n=0;for(const f of files){const id=uid('file');try{await putStoredFile(id,f);state.documents.unshift({id:uid('d'),fileId:id,name:f.name,type:'Upload',date:today(),size:f.size});n++}catch(err){console.warn(err);state.documents.unshift({id:uid('d'),name:f.name,type:'Upload',date:today()})}}save();toast(`${n} bestand(en) ${TEST_MODE_NO_AUTH?'lokaal':'veilig in de cloud'} opgeslagen`);render()}
+let pdfLibPromise=null;
 async function loadPdfLib(){
  if(!pdfLibPromise)pdfLibPromise=import('https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/build/pdf.min.mjs').then(m=>{m.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/build/pdf.worker.min.mjs';return m});
  return pdfLibPromise
