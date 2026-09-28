@@ -163,6 +163,7 @@ try{
     const page=await newAppPage();
     const errors=[];
     page.on('pageerror',e=>errors.push(String(e)));
+    page.on('dialog',dialog=>dialog.accept());
     const optionsStatus=await page.evaluate(url=>fetch(url,{method:'OPTIONS'}).then(r=>r.status),processorBase+'/analyze');
     assert.equal(optionsStatus,204,'QA-PDF-02 processor OPTIONS contract must answer successfully in the browser');
 
@@ -197,6 +198,7 @@ try{
     const page=await newAppPage();
     const errors=[];
     page.on('pageerror',e=>errors.push(String(e)));
+    page.on('dialog',dialog=>dialog.accept());
     await routeFallbackAi(page);
     const optionsStatus=await page.evaluate(url=>fetch(url,{method:'OPTIONS'}).then(r=>r.status),processorBase+'/analyze');
     assert.equal(optionsStatus,204,'QA-PDF-03 processor OPTIONS contract must remain available during fallback scenarios');
