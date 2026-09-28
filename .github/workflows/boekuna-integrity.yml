@@ -10,6 +10,8 @@ on:
       - "kwinest/**"
       - "tests/**"
       - "supabase/functions/send-invoice/**"
+      - "supabase/functions/analyze-invoice/**"
+      - "supabase/functions/consume-quota/**"
       - ".github/workflows/boekuna-integrity.yml"
 
 permissions:
@@ -52,6 +54,8 @@ jobs:
         run: pip install --disable-pip-version-check -r kwinest/docprocessor/requirements.txt
       - name: PDF document processor regression
         run: python tests/document-processor-pdf.test.py
+      - name: Document error contract regression
+        run: python tests/document-error-contract.test.py
       - name: Receipt VAT arithmetic
         run: python tests/receipt-math.test.py
       - name: Invoice financial block regressions
