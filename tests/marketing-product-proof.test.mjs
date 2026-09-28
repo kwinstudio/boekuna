@@ -71,6 +71,11 @@ assert.ok(app.includes('/assets/product/boekuna-dashboard-action-center-crop.web
 assert.ok(app.includes('/assets/product/boekuna-documents-workflow-crop.webp'),'Workflow must use its own real Documents crop');
 assert.ok(app.includes('/assets/product/boekuna-dashboard-mobile.webp'),'Homepage must use the real responsive mobile Dashboard capture');
 assert.ok(!app.includes('Dit is geen desktopmockup in een telefoonframe'),'Technical mockup disclaimer must not appear in commercial copy');
+assert.ok(!app.includes('OCR-reviewcapture beschikbaar'),'Internal capture-status language must never leak into marketing copy');
+const homepageProductImages=[...app.matchAll(/src=\\"\/assets\/product\/([^\\"]+)/g)].map(m=>m[1]);
+assert.ok(homepageProductImages.length<=6,`Homepage may contain at most six product visuals, found ${homepageProductImages.length}`);
+assert.ok(!homepageProductImages.includes('boekuna-dashboard-desktop.webp'),'Homepage must not load the full Dashboard master');
+assert.ok(!homepageProductImages.includes('boekuna-documents-desktop.webp'),'Homepage must not load the full Documents master');
 
 const pageExpectations={
   'facturen':'boekuna-invoices-list-crop.webp',
@@ -78,7 +83,8 @@ const pageExpectations={
   'btw-bank':'boekuna-vat-summary-crop.webp',
   'functies':'boekuna-dashboard-overview-crop.webp',
   'voor-ondernemers':'boekuna-dashboard-overview-crop.webp',
-  'rapportages':'boekuna-reports-primary-crop.webp'
+  'rapportages':'boekuna-reports-primary-crop.webp',
+  'hoe-het-werkt':'boekuna-documents-workflow-crop.webp'
 };
 for(const [slug,asset] of Object.entries(pageExpectations)){
   const html=fs.readFileSync(path.join(root,'public',slug,'index.html'),'utf8');
@@ -89,6 +95,16 @@ for(const [slug,asset] of Object.entries(pageExpectations)){
 }
 const scanner=fs.readFileSync(path.join(root,'public','scanner','index.html'),'utf8');
 assert.ok(!scanner.includes('mk-product-demo'),'Scanner page must not render fake financial product cards');
+
+const how=fs.readFileSync(path.join(root,'public','hoe-het-werkt','index.html'),'utf8');
+for(const fake of ['how-hero-demo','how-demo-','how-flow-mini','how-equation','how-mobile-steps','how-result-grid','how-settlement']){
+  assert.ok(!how.includes(fake),`Product tour must not render reconstructed product UI: ${fake}`);
+}
+assert.ok(how.includes('boekuna-company-settings-group-crop.webp'),'Progressive onboarding must use the real company-settings crop');
+
+const features=fs.readFileSync(path.join(root,'public','functies','index.html'),'utf8');
+assert.ok(features.includes('boekuna-contacts-list-crop.webp'),'Features page must show the real Relations crop');
+assert.ok(features.includes('boekuna-services-list-crop.webp'),'Features page must show the real Services crop');
 
 const reviewDesktop=path.join(productDir,'boekuna-document-review-desktop.webp');
 const reviewMobile=path.join(productDir,'boekuna-document-review-mobile.webp');
