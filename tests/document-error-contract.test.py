@@ -1,4 +1,5 @@
 import asyncio
+import io
 import json
 import logging
 import re
@@ -170,12 +171,113 @@ def test_library_failures_are_mapped_without_exception_text():
         raise AssertionError("Corrupt image must fail")
 
 
+
+
+class FakeAIResponse:
+    def __init__(self, status_code, payload, headers=None):
+        self.status_code = status_code
+        self._payload = payload
+        self.headers = headers or {"x-request-id": "req-test"}
+
+    def json(self):
+        return self._payload
+
+
+def minimal_ai_case():
+    doc = {
+        "kind": "pdf",
+        "pageCount": 1,
+        "text": """--- PAGE 1 ---
+FACTUUR
+Leverancier: Voorbeeld Leverancier B.V.
+Factuurnummer: ERR-1
+Factuurdatum: 28-09-2026
+Omschrijving: Testdienst
+Subtotaal € 100,00
+BTW 21% € 21,00
+Totaal € 121,00
+""",
+        "tables": [],
+        "layout": [],
+        "ocrPages": [],
+        "warnings": [],
+    }
+    heur = processor.heuristic_extract(doc, "error-test.pdf", {})
+    return doc, heur
+
+
+def test_ai_timeout_503_and_malformed_response_are_explicit():
+    doc, heur = minimal_ai_case()
+    old_key = processor.OPENAI_API_KEY
+    old_post = processor.requests.post
+    processor.OPENAI_API_KEY = "test-key"
+    try:
+        def timeout_post(*args, **kwargs):
+            raise processor.requests.Timeout("upstream timed out")
+
+        processor.requests.post = timeout_post
+        result, failure = processor.ai_extract(doc, "error-test.pdf", {}, heur)
+        assert result is None
+        assert failure["internal_code"] == "AI_PROVIDER_TIMEOUT"
+
+        processor.requests.post = lambda *args, **kwargs: FakeAIResponse(
+            503, {"error": {"code": "service_unavailable", "message": "temporary"}}
+        )
+        result, failure = processor.ai_extract(doc, "error-test.pdf", {}, heur)
+        assert result is None
+        assert failure["internal_code"] == "AI_PROVIDER_HTTP_ERROR"
+        assert failure["provider_status"] == 503
+        assert failure["provider_code"] == "service_unavailable"
+
+        processor.requests.post = lambda *args, **kwargs: FakeAIResponse(
+            200, {"output_text": "not-json"}
+        )
+        result, failure = processor.ai_extract(doc, "error-test.pdf", {}, heur)
+        assert result is None
+        assert failure["internal_code"] == "AI_RESPONSE_INVALID"
+    finally:
+        processor.OPENAI_API_KEY = old_key
+        processor.requests.post = old_post
+
+
+def test_verify_rejects_oversized_file_before_processing():
+    old_auth = processor.require_authenticated_user
+    old_allow = processor.allow_request
+    old_access = processor.rpc_access_check
+    old_key = processor.OPENAI_API_KEY
+    processor.require_authenticated_user = lambda request: {"id": "qa-user"}
+    processor.allow_request = lambda request, key_override=None: True
+    processor.rpc_access_check = lambda request: True
+    processor.OPENAI_API_KEY = "test-key"
+    try:
+        upload = processor.UploadFile(
+            filename="too-large.pdf",
+            file=io.BytesIO(b"x" * (processor.MAX_BYTES + 1)),
+            headers={"content-type": "application/pdf"},
+        )
+        try:
+            asyncio.run(processor.verify_document(request("/verify"), upload, "{}"))
+        except processor.BoekunaDocumentError as exc:
+            assert exc.code == "DOCUMENT_TOO_LARGE"
+            assert exc.status == 413
+            assert exc.context["max_size_mb"] == processor.MAX_SIZE_MB
+        else:
+            raise AssertionError("Oversized verification upload must fail before extraction")
+    finally:
+        processor.require_authenticated_user = old_auth
+        processor.allow_request = old_allow
+        processor.rpc_access_check = old_access
+        processor.OPENAI_API_KEY = old_key
+
+
 if __name__ == "__main__":
     tests = [
         test_public_server_error_never_leaks_internal_details,
         test_unexpected_exception_is_wrapped_as_unknown,
         test_safe_context_for_file_limits_and_types,
         test_library_failures_are_mapped_without_exception_text,
+        test_ai_timeout_503_and_malformed_response_are_explicit,
+        test_verify_rejects_oversized_file_before_processing,
     ]
     for test in tests:
         test()

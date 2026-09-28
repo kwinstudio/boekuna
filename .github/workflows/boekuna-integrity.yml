@@ -56,6 +56,8 @@ jobs:
         run: pip install --disable-pip-version-check -r kwinest/docprocessor/requirements.txt
       - name: PDF document processor regression
         run: python tests/document-processor-pdf.test.py
+      - name: Real Dutch document regressions
+        run: python tests/test_document_processor_regression.py
       - name: Document error contract regression
         run: python tests/document-error-contract.test.py
       - name: Receipt VAT arithmetic
