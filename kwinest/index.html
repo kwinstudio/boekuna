@@ -3711,7 +3711,20 @@ function mergeAIParsed(local,ai,forced='auto'){
  const rawAi=ai,processorAuthoritative=String(rawAi?.sourceQuality||'').startsWith('processor-v2')||!!rawAi?.processorRaw,localProcessorAuthoritative=String(local?.sourceQuality||'').startsWith('processor-v2');
  ai=normalizeAiCandidate(ai);const out={...local};
  const fields=['party','email','phone','vatId','kvk','address','postal','city','country','iban','invoiceNumber','issueDate','dueDate','paymentReference','description','orderNumber','paymentTermDays','currency','net','vatAmount','gross','payout','discount','shipping'];
- for(const k of fields){const v=ai[k];if(processorAuthoritative&&k==='iban'){out[k]=v||'';continue}if(v!==''&&v!==null&&v!==undefined)out[k]=v}
+ for(const k of fields){
+  const v=ai[k];
+  if(k==='iban'){
+   const trustedAiIban=ibanValid(v)===true?String(v||'').replace(/\\s/g,'').toUpperCase():'';
+   if(processorAuthoritative){out[k]=trustedAiIban;continue}
+   if(localProcessorAuthoritative){
+    out[k]=ibanValid(local?.iban)===true?String(local.iban||'').replace(/\\s/g,'').toUpperCase():'';
+    continue
+   }
+   if(trustedAiIban)out[k]=trustedAiIban;
+   continue
+  }
+  if(v!==''&&v!==null&&v!==undefined)out[k]=v
+ }
  out.type=forced!=='auto'?forced:(ai.type&&ai.type!=='unknown'?ai.type:(local?.type||'purchase'));out.documentType=ai.documentType||local?.documentType||classifyDocumentType(out);out.isCredit=!!ai.isCredit||!!local?.isCredit||out.documentType==='credit_invoice';
  out.selfBilling=!!ai.selfBilling||!!local?.selfBilling;out.status=ai.status||local?.status||'sent';
  const aiVatRates=[...new Set((ai.vatLines||[]).map(v=>Number(v?.rate)).filter(Number.isFinite))],aiMixed=!!ai.mixedRates||aiVatRates.length>1;
