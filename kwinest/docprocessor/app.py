@@ -126,7 +126,7 @@ def new_reference_id() -> str:
 def sanitize_log_value(value:Any, limit:int=500) -> str:
     text=str(value or "")
     text=re.sub(r"(?i)bearer\s+[A-Za-z0-9._~+\-/=]+","Bearer [REDACTED]",text)
-    text=re.sub(r"(?i)\b(?:sk|sb_secret|sb_publishable)_[A-Za-z0-9_-]+\b","[REDACTED_KEY]",text)
+    text=re.sub(r"(?i)\b(?:sk[-_][A-Za-z0-9_-]+|sb_(?:secret|publishable)_[A-Za-z0-9_-]+)\b","[REDACTED_KEY]",text)
     text=re.sub(r"(?i)(authorization|api[_-]?key|token|secret)\s*[:=]\s*[^\s,;]+",r"\1=[REDACTED]",text)
     return text[:limit]
 
