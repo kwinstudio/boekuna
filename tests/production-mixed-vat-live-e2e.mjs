@@ -79,6 +79,47 @@ let authoritative;
   }));
 }
 
+let verification;
+{
+  const form=new FormData();
+  form.append('file',new Blob([mixedPdf],{type:'application/pdf'}),'02_gemengde_btw_9_en_21.pdf');
+  form.append('company_json',JSON.stringify({name:'KWINSTUDIO',tradeName:'KWINSTUDIO',country:'Nederland'}));
+  const res=await fetch('https://kwinest-docprocessor.onrender.com/verify',{
+    method:'POST',
+    headers:{Authorization:'Bearer '+token,Origin:ORIGIN},
+    body:form,
+    signal:AbortSignal.timeout(180000)
+  });
+  verification=await res.json().catch(()=>({}));
+  assert.ok(res.ok&&verification.ok,'Live independent verification failed: '+JSON.stringify({status:res.status,error:verification?.error}));
+  assert.equal(verification.data?.invoice?.invoiceNumber,'KKG/26/09/7741');
+  assertGroundTruth({
+    subtotal:verification.data?.amounts?.subtotal,
+    vatTotal:verification.data?.amounts?.vatTotal,
+    total:verification.data?.amounts?.total,
+    vatLines:verification.data?.amounts?.vatLines
+  });
+  assert.equal(Boolean(verification.data?.processing?.independentVerification),true,
+    'Live /verify must prove an independent verification pass');
+  assert.equal(verification.data?.processing?.verificationMode,'independent',
+    'Live /verify must identify independent verification mode');
+  assert.equal(
+    Boolean(verification.data?.processing?.amountDerivation?.mixedRates) ||
+    new Set((verification.data?.amounts?.vatLines||[]).map(v=>Number(v.rate))).size>1,
+    true,
+    'Live /verify must preserve mixed 9% + 21% VAT semantics'
+  );
+  console.log('03C_LIVE_VERIFY_RESULT='+JSON.stringify({
+    invoiceNumber:verification.data?.invoice?.invoiceNumber,
+    subtotal:verification.data?.amounts?.subtotal,
+    vatTotal:verification.data?.amounts?.vatTotal,
+    total:verification.data?.amounts?.total,
+    vatLines:canonical(verification.data?.amounts?.vatLines),
+    independentVerification:Boolean(verification.data?.processing?.independentVerification),
+    verificationMode:verification.data?.processing?.verificationMode
+  }));
+}
+
 let appHtml=source.replace('const TEST_MODE_NO_AUTH=false;','const TEST_MODE_NO_AUTH=true;');
 const parallelPdfInspection="const browserStructurePromise=ext==='pdf'&&file.size<9*1024*1024?readPdfStructure(file).catch(err=>{console.warn('Parallel PDF inspection',err);return null}):null;";
 assert.ok(appHtml.includes(parallelPdfInspection),'Parallel PDF inspection hook missing');
