@@ -43,7 +43,7 @@ try{
         vw:innerWidth,
         title:document.title,
         broken:[...document.images].filter(i=>i.complete&&i.naturalWidth===0).map(i=>i.currentSrc||i.src),
-        srcs:[...document.images].map(i=>i.currentSrc||i.src),
+        srcs:[...document.images].flatMap(i=>[i.src,i.currentSrc].filter(Boolean)),
         sourceSets:[...document.querySelectorAll('source')].map(s=>s.srcset),
         heroCtas:[...document.querySelectorAll('a')].filter(a=>/Probeer Boekuna|Bekijk hoe het werkt|Bekijk de software|Open Boekuna/.test(a.textContent||'')).map(a=>({text:a.textContent.trim(),href:a.getAttribute('href')}))
       }));
