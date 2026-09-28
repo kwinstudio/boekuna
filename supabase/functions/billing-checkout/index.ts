@@ -33,6 +33,10 @@ async function userAndAdmin(req:Request){
   const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
   return {user:data.user,admin};
 }
+async function shortSha256(value:string){
+  const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value));
+  return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,"0")).join("").slice(0,24);
+}
 async function stripePost(path:string,params:URLSearchParams,idempotencyKey?:string){
   const key=Deno.env.get("STRIPE_SECRET_KEY")||"";
   if(!key)throw new Error("STRIPE_NOT_CONFIGURED");
@@ -68,13 +72,18 @@ Deno.serve(async(req:Request)=>{
 
   const chosen=config[plan as keyof typeof config];
 
+  // Keep all request parameters deterministic inside the idempotency bucket.
+  // A stable expiry prevents harmless double-clicks from producing a different
+  // Stripe payload a few seconds apart.
+  const checkoutBucket=Math.floor(Date.now()/(10*60*1000));
+  const stableExpiresAt=checkoutBucket*(10*60)+3600;
   const p=new URLSearchParams();
   p.set("mode","subscription");
   p.set("success_url",APP_URL+"/?login=1&billing=success&session_id={CHECKOUT_SESSION_ID}");
   p.set("cancel_url",APP_URL+"/?login=1&billing=cancelled");
   p.set("client_reference_id",user.id);
   p.set("locale","nl");
-  p.set("expires_at",String(Math.floor(Date.now()/1000)+3600));
+  p.set("expires_at",String(stableExpiresAt));
   p.set("payment_method_collection","always");
   p.set("billing_address_collection","required");
   p.set("tax_id_collection[enabled]","true");
@@ -96,9 +105,10 @@ Deno.serve(async(req:Request)=>{
   else if(user.email)p.set("customer_email",user.email);
 
   // Server-side dedupe for double-clicks, refreshes and concurrent requests.
-  // The 10-minute bucket keeps retries stable without blocking a genuinely new attempt later.
-  const checkoutBucket=Math.floor(Date.now()/(10*60*1000));
-  const idempotencyKey="boekuna-checkout:"+user.id+":"+plan+":"+checkoutBucket;
+  // Include a fingerprint of the complete, deterministic Stripe payload so a
+  // later code/config change can never reuse an old key with different params.
+  const payloadFingerprint=await shortSha256(p.toString());
+  const idempotencyKey="boekuna-checkout:"+user.id+":"+plan+":"+checkoutBucket+":"+payloadFingerprint;
   const session=await stripePost("/checkout/sessions",p,idempotencyKey);
   if(!session?.url)throw new Error("STRIPE:Geen checkout-URL ontvangen");
   return json(req,{ok:true,url:session.url,plan});

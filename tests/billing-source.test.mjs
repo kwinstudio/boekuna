@@ -28,6 +28,9 @@ assert.ok(checkout.includes('{CHECKOUT_SESSION_ID}'),'Checkout success must carr
 assert.ok(checkout.includes('mode","subscription'),'Checkout must explicitly create paid subscriptions');
 assert.ok(checkout.includes('Idempotency-Key'),'Checkout must use Stripe idempotency for concurrent/double-click retries');
 assert.ok(checkout.includes('boekuna-checkout:'),'Checkout idempotency key must be scoped to Boekuna user and plan');
+assert.ok(checkout.includes('const stableExpiresAt=checkoutBucket*(10*60)+3600'),'Checkout expiry must stay stable inside the idempotency bucket');
+assert.ok(checkout.includes('const payloadFingerprint=await shortSha256(p.toString())'),'Checkout idempotency must fingerprint the actual deterministic Stripe payload');
+assert.ok(checkout.includes('":"+payloadFingerprint'),'Checkout idempotency key must change when Checkout parameters change');
 assert.ok(checkout.includes('account?.stripe_subscription_id&&['),'Only a real Stripe subscription id may block a fresh checkout');
 for(const legacy of ['addCalendarMonthsUnix','reserve_founding_offer','subscription_data[trial_end]','founder_number','Eerste 100-aanbod']){
   assert.ok(!checkout.includes(legacy),`Checkout must not contain legacy automatic-trial behavior: ${legacy}`);
