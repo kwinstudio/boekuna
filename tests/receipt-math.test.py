@@ -65,8 +65,9 @@ assert has_complex_adjustments("Totaal 121,00 BTW 21%") is False
 
 
 
-# Regression: impossible screenshot case must be corrected even when OCR/AI
-# confidence is high, because 316.34 is not 21% of 7.96.
+# Regression: an impossible trio must NOT be silently rewritten. The old
+# behaviour could mistake a settlement amount for the invoice total and then
+# manufacture new net/VAT values. Preserve the reads and require review.
 from receipt_math import enforce_single_rate_consistency
 r = enforce_single_rate_consistency(
     rate=21,
@@ -77,12 +78,11 @@ r = enforce_single_rate_consistency(
     vat_conf=.97,
     total_conf=.99,
 )
-assert r["used"] is True
-assert r["anchorField"] == "total"
-approx(r["subtotal"], 268.02)
-approx(r["vatTotal"], 56.28)
+assert r["used"] is False
+assert r["reason"] == "inconsistent_single_rate_amounts"
+approx(r["subtotal"], 7.96)
+approx(r["vatTotal"], 316.34)
 approx(r["total"], 324.30)
-assert set(r["correctedFields"]) == {"subtotal", "vatTotal"}
 
 # A mathematically correct 21% trio must remain unchanged.
 r = enforce_single_rate_consistency(
