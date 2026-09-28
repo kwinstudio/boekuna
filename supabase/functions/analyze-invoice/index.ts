@@ -48,7 +48,7 @@ const newReferenceId=()=>{
 };
 const sanitizeLog=(value:any,n=500)=>String(value??"")
   .replace(/Bearer\s+[A-Za-z0-9._~+\-/=]+/gi,"Bearer [REDACTED]")
-  .replace(/\b(?:sk|sb_secret|sb_publishable)_[A-Za-z0-9_-]+\b/gi,"[REDACTED_KEY]")
+  .replace(/\b(?:sk(?:[-_](?:live|test|proj))?|sb_secret|sb_publishable)[-_][A-Za-z0-9_-]+\b/gi,"[REDACTED_KEY]")
   .replace(/(authorization|api[_-]?key|token|secret)\s*[:=]\s*[^\s,;]+/gi,"$1=[REDACTED]")
   .slice(0,n);
 const safePublicContext=(value:any)=>{
