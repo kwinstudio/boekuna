@@ -1,10 +1,13 @@
 {
-  "notes": "Kopieer dit bestand naar manifest.json nadat de geanonimiseerde testset is gelabeld. Vul per document de ground truth, PASS 1, onafhankelijke PASS 2 en door Boekuna gemarkeerde velden in.",
+  "notes": "Gebruik uitsluitend geanonimiseerde/synthetische fixtures in Git. Ground truth wordt handmatig vastgesteld vóór de OCR-run. Geldvelden worden als decimale strings opgeslagen zodat de benchmark exact op eurocenten kan vergelijken.",
+  "thresholds": {
+    "highConfidence": 90
+  },
   "requiredCategories": [
     "digitale Nederlandse PDF",
     "gescande PDF",
     "scherpe bonfoto",
-    "slechte bonfoto",
+    "matige belichting",
     "scheve foto",
     "lange kassabon",
     "21% btw",
@@ -13,8 +16,70 @@
     "meerdere btw-tarieven",
     "creditnota",
     "korting",
-    "buitenlandse factuur",
     "veel factuurregels"
   ],
-  "documents": []
+  "optionalCategories": [
+    "buitenlandse factuur indien binnen launchscope"
+  ],
+  "documents": [
+    {
+      "id": "example-only-remove-before-run",
+      "categoryTags": ["digitale Nederlandse PDF", "21% btw"],
+      "groundTruth": {
+        "party": "Voorbeeld Leverancier B.V.",
+        "issueDate": "2026-09-01",
+        "description": "Voorbeeld dienst",
+        "net": "100.00",
+        "vatRate": "21",
+        "vatAmount": "21.00",
+        "gross": "121.00",
+        "lineItems": [
+          {"total": "100.00"}
+        ],
+        "vatLines": [
+          {"rate": "21", "vatAmount": "21.00"}
+        ]
+      },
+      "pass1": {
+        "party": null,
+        "issueDate": null,
+        "description": null,
+        "net": null,
+        "vatRate": null,
+        "vatAmount": null,
+        "gross": null,
+        "lineItems": [],
+        "vatLines": []
+      },
+      "pass1FieldConfidence": {
+        "party": 0,
+        "issueDate": 0,
+        "description": 0,
+        "net": 0,
+        "vatRate": 0,
+        "vatAmount": 0,
+        "gross": 0
+      },
+      "pass2": null,
+      "reviewFlaggedFields": [],
+      "financialIssues": [],
+      "timings": {
+        "uploadMs": null,
+        "pass1Ms": null,
+        "pass2Ms": null,
+        "totalReviewMs": null
+      },
+      "unusable": false
+    }
+  ],
+  "failureCases": [
+    {
+      "id": "provider-timeout",
+      "type": "timeout",
+      "noGuess": null,
+      "reviewable": null,
+      "flowSurvives": null,
+      "notes": ""
+    }
+  ]
 }
