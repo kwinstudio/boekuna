@@ -598,6 +598,154 @@ def explicit_vat_groups(lines:list[str])->list[VatLine]:
             groups[rate]=VatLine(rate=rate,taxableAmount=round(base,2),vatAmount=round(tax,2))
     return [groups[k] for k in sorted(groups)]
 
+
+def explicit_net_total(lines:list[str])->tuple[float|None,float]:
+    """Return a document-level net total only from an explicitly labelled summary row."""
+    patterns=(
+        re.compile(r"^\s*(?:netto|net\s*(?:amount|total))\b",re.I),
+        re.compile(r"^\s*(?:totaal|bedrag)\s*(?:excl\.?|exclusief)\s*(?:btw|vat)\b",re.I),
+        re.compile(r"^\s*(?:total|amount)\s*(?:excl\.?|exclusive(?:\s+of)?)\s*(?:vat|tax)\b",re.I),
+    )
+    for i,line in enumerate(lines or []):
+        low=line.lower()
+        if re.search(r"\b(?:uitbetaling|payout|settlement|factoring|commissie|commission)\b",low):
+            continue
+        if not any(p.search(line) for p in patterns):
+            continue
+        vals=money_tokens(line)
+        if not vals and i+1<len(lines):
+            vals=money_tokens(lines[i+1])
+        if vals:
+            return abs(float(vals[-1])),.99
+    return None,0.0
+
+
+def explicit_rate_vat_amounts(lines:list[str])->dict[float,float]:
+    """Read one unambiguous printed VAT amount per rate from VAT summary rows."""
+    found:dict[float,set[int]]={}
+    for raw in lines or []:
+        line=norm_text(raw)
+        if not re.search(r"\b(?:btw|vat|tax)\b",line,re.I):
+            continue
+        rm=re.search(r"\b(0|9|21)(?:[.,]0+)?\s*%",line,re.I)
+        if not rm:
+            continue
+        vals=money_tokens(line)
+        # A summary such as "BTW laag 9% EUR 28,35" contains one money value.
+        # Rows with base + VAT + gross remain ambiguous and are handled by the
+        # explicit-base/table parsers instead.
+        if len(vals)!=1:
+            continue
+        rate=float(rm.group(1))
+        found.setdefault(rate,set()).add(abs(money_cents(vals[0]) or 0))
+    out={}
+    for rate,values in found.items():
+        if len(values)==1:
+            out[rate]=next(iter(values))/100
+    return out
+
+
+def table_taxable_bases_by_rate(doc:dict)->dict[float,float]:
+    """Aggregate line net amounts by an explicitly labelled VAT-rate column.
+
+    This is intentionally stricter than guessing from product-row money tokens:
+    a table must expose both a VAT/rate column and a line-amount/net column.
+    """
+    totals:dict[float,int]={}
+    matched_rows=0
+    for table in (doc.get("tables") or [])[:30]:
+        rows=(table.get("rows") or [])[:240]
+        header_i=None;rate_col=None;amount_col=None
+        for ri,row in enumerate(rows[:35]):
+            cells=[norm_text(str(c or "")) for c in row]
+            candidate_rate=None;candidate_amount=None
+            for ci,cell in enumerate(cells):
+                low=cell.lower()
+                if candidate_rate is None and re.search(r"\b(?:btw|vat|tax)(?:\s*(?:tarief|rate))?\b",low):
+                    if not re.search(r"\b(?:bedrag|amount|totaal|total)\b",low):
+                        candidate_rate=ci
+                if re.search(r"\b(?:bedrag|amount|line\s*total|regelbedrag|netto)\b",low) and not re.search(r"\b(?:btw|vat|tax)\b",low):
+                    candidate_amount=ci
+                elif re.search(r"\b(?:totaal|total)\s*(?:excl\.?|exclusief|exclusive)\b",low) and not re.search(r"\b(?:btw|vat|tax)\s*(?:bedrag|amount)\b",low):
+                    candidate_amount=ci
+            if candidate_rate is not None and candidate_amount is not None:
+                header_i=ri;rate_col=candidate_rate;amount_col=candidate_amount;break
+        if header_i is None:
+            continue
+        table_totals:dict[float,int]={}
+        table_rows=0
+        for row in rows[header_i+1:]:
+            cells=[norm_text(str(c or "")) for c in row]
+            if max(rate_col,amount_col)>=len(cells):
+                continue
+            rate_match=re.fullmatch(r"\s*(0|9|21)(?:[.,]0+)?\s*%\s*",cells[rate_col],re.I)
+            if not rate_match:
+                continue
+            vals=money_tokens(cells[amount_col])
+            if len(vals)!=1:
+                continue
+            rate=float(rate_match.group(1))
+            cents=money_cents(vals[0])
+            if cents is None:
+                continue
+            table_totals[rate]=table_totals.get(rate,0)+cents
+            table_rows+=1
+        if table_rows:
+            # Multiple independent item tables may occur; accumulate them only
+            # when they expose the same explicit semantics.
+            for rate,cents in table_totals.items():
+                totals[rate]=totals.get(rate,0)+cents
+            matched_rows+=table_rows
+    if matched_rows<2 or len(totals)<2:
+        return {}
+    return {rate:cents/100 for rate,cents in sorted(totals.items())}
+
+
+def validated_mixed_vat_groups(doc:dict,lines:list[str],gross:float|None)->dict[str,Any]:
+    """Build trusted mixed VAT groups from line-table bases + printed VAT summaries.
+
+    The result is accepted only when all groups and the document totals reconcile
+    at currency-minor-unit precision. If any evidence is missing or ambiguous,
+    return an unresolved result and let the review flow handle it.
+    """
+    bases=table_taxable_bases_by_rate(doc)
+    taxes=explicit_rate_vat_amounts(lines)
+    if len(bases)<2 or set(bases)!=set(taxes):
+        return {"verified":False,"vatLines":[]}
+    groups=[]
+    for rate in sorted(bases):
+        base=round(float(bases[rate]),2)
+        tax=round(float(taxes[rate]),2)
+        expected=rounded_vat_cents(base,rate)
+        actual=money_cents(tax)
+        if expected is None or actual is None:
+            return {"verified":False,"vatLines":[]}
+        if rate==0:
+            if actual!=0:return {"verified":False,"vatLines":[]}
+        elif abs(expected-actual)>1:
+            return {"verified":False,"vatLines":[]}
+        groups.append(VatLine(rate=rate,taxableAmount=base,vatAmount=tax))
+    subtotal_cents=sum(money_cents(v.taxableAmount) or 0 for v in groups)
+    vat_cents=sum(money_cents(v.vatAmount) or 0 for v in groups)
+    explicit_net,net_conf=explicit_net_total(lines)
+    if explicit_net is not None and money_cents(explicit_net)!=subtotal_cents:
+        return {"verified":False,"vatLines":[]}
+    gross_cents=money_cents(gross)
+    if gross_cents is not None and subtotal_cents+vat_cents!=gross_cents:
+        return {"verified":False,"vatLines":[]}
+    if explicit_net is None and gross_cents is None:
+        return {"verified":False,"vatLines":[]}
+    return {
+        "verified":True,
+        "vatLines":groups,
+        "subtotal":subtotal_cents/100,
+        "vatTotal":vat_cents/100,
+        "total":gross_cents/100 if gross_cents is not None else (subtotal_cents+vat_cents)/100,
+        "netAnchorConfidence":net_conf,
+        "source":"line-table-plus-explicit-rate-vat",
+    }
+
+
 def allow_request(request: Request, key_override: str | None = None) -> bool:
     now=time.time()
     forwarded=(request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
@@ -1145,7 +1293,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     if supplier_own and dtype=="purchase_invoice": supplier={k:None for k in supplier}
     if customer_own and dtype=="sales_invoice": customer={k:None for k in customer}
 
-    invoice_number_labels=["factuurnummer","factuurnr","factuur nr","invoice number","invoice no","invoice #","document number"]
+    invoice_number_labels=["factuurnummer","factuurnr","factuur nr","factuur aan nummer","factuur aan nr","invoice number","invoice no","invoice #","document number"]
     if dtype=="credit_invoice":
         invoice_number_labels=["creditnota nummer","creditnotanummer","creditnota nr","credit note number","credit note no","credit number"]+invoice_number_labels
     invno_raw,idx=line_after_label(lines,invoice_number_labels)
@@ -1214,6 +1362,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     # For a single-rate document the trusted VAT group is reconstructed from the
     # printed/validated top-level net and VAT totals. Never infer it from arbitrary
     # money tokens on product rows.
+    mixed_vat_evidence={"verified":False,"vatLines":[]}
     if len(rate_candidates)==1 and subtotal is not None and vat_total is not None:
         rate=float(rate_candidates[0])
         vat_lines=[VatLine(rate=rate,taxableAmount=round(float(subtotal),2),vatAmount=round(float(vat_total),2))]
@@ -1224,7 +1373,20 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
             vat_line_source="explicit-vat-table"
         else:
             vat_lines=explicit_vat_groups(amount_lines)
-            vat_line_source="explicit-vat-text" if vat_lines else "review-required-mixed-vat"
+            vat_line_source="explicit-vat-text" if vat_lines else None
+        if not vat_lines:
+            mixed_vat_evidence=validated_mixed_vat_groups(doc,amount_lines,total)
+            if mixed_vat_evidence.get("verified"):
+                vat_lines=[v.model_copy(deep=True) for v in mixed_vat_evidence["vatLines"]]
+                subtotal=mixed_vat_evidence["subtotal"]
+                vat_total=mixed_vat_evidence["vatTotal"]
+                total=mixed_vat_evidence["total"]
+                sub_conf=max(sub_conf,.99)
+                vat_conf=max(vat_conf,.99)
+                total_conf=max(total_conf,.99)
+                vat_line_source="validated-mixed-rate-groups"
+            else:
+                vat_line_source="review-required-mixed-vat"
 
     structured_adjustments=[Adjustment(**a) for a in financial_structure.get("adjustments",[])]
     settlement_amount=financial_structure.get("settlementAmount")
@@ -1300,7 +1462,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         "iban":.9 if iban else .1,
         "documentType":.99 if self_billing else (.94 if factoring_sale else (.90 if (supplier_own or customer_own) else .76)),
         "paymentStatus":.98 if paid else (.78 if status in {"open","overdue"} else .55),
-        "vatLines":.99 if vat_line_source=="validated-primary-totals" else (.95 if vat_line_source=="explicit-vat-text" else (.92 if vat_line_source=="explicit-vat-table" else (.35 if len(detected_rates)>1 else .20))),
+        "vatLines":.99 if vat_line_source in {"validated-primary-totals","validated-mixed-rate-groups"} else (.95 if vat_line_source=="explicit-vat-text" else (.92 if vat_line_source=="explicit-vat-table" else (.35 if len(detected_rates)>1 else .20))),
         "adjustments":.98 if structured_adjustments and financial_structure.get("adjustmentArithmeticOk") else (.45 if structured_adjustments else .80),
         "settlementAmount":.98 if settlement_amount is not None and financial_structure.get("settlementArithmeticOk") else (.25 if settlement_amount is None else .55),
     }
@@ -1324,7 +1486,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         invoice=InvoiceMeta(invoiceNumber=invoice_no,invoiceDate=inv_date,dueDate=due_date,paymentTermDays=term,orderNumber=order_no,paymentReference=payref,description=description),
         amounts=Amounts(subtotal=abs(subtotal) if subtotal is not None else None,vatLines=vat_lines,vatTotal=abs(vat_total) if vat_total is not None else None,total=abs(total) if total is not None else None,settlementAmount=abs(settlement_amount) if settlement_amount is not None else None,discount=abs(discount) if discount is not None else None,shipping=abs(shipping) if shipping is not None else None,currency="EUR"),
         status=status,lineItems=[],adjustments=structured_adjustments,confidence=confidence,warnings=derivation_warnings,
-        processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"financialBlocks":{"verified":bool(financial_structure.get("verified")),"primaryArithmeticOk":bool(financial_structure.get("primaryArithmeticOk")),"adjustmentArithmeticOk":bool(financial_structure.get("adjustmentArithmeticOk")),"settlementArithmeticOk":bool(financial_structure.get("settlementArithmeticOk")),"adjustmentTotal":financial_structure.get("adjustmentTotal"),"settlementSource":financial_structure.get("settlementSource")},"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"mixedRates":len(detected_rates)>1},"vatLineSource":vat_line_source,"descriptionSource":description_source,"selfBilling":self_billing,"factoringSaleStructure":factoring_sale}
+        processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"financialBlocks":{"verified":bool(financial_structure.get("verified")),"primaryArithmeticOk":bool(financial_structure.get("primaryArithmeticOk")),"adjustmentArithmeticOk":bool(financial_structure.get("adjustmentArithmeticOk")),"settlementArithmeticOk":bool(financial_structure.get("settlementArithmeticOk")),"adjustmentTotal":financial_structure.get("adjustmentTotal"),"settlementSource":financial_structure.get("settlementSource")},"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"mixedRates":len(detected_rates)>1},"mixedVatEvidence":{"verified":bool(mixed_vat_evidence.get("verified")),"source":mixed_vat_evidence.get("source")},"vatLineSource":vat_line_source,"descriptionSource":description_source,"selfBilling":self_billing,"factoringSaleStructure":factoring_sale}
     )
     return validate_result(result,company)
 
@@ -1443,8 +1605,15 @@ def validate_result(r:ExtractionResult,company:dict)->ExtractionResult:
         r.confidence["vatLines"]=min(r.confidence.get("vatLines",.35),.35)
     if a.vatLines:
         known_cents=sum((money_cents(v.vatAmount) or 0) for v in a.vatLines if v.vatAmount is not None)
+        taxable_cents=sum((money_cents(v.taxableAmount) or 0) for v in a.vatLines if v.taxableAmount is not None)
         if a.vatTotal is not None and known_cents!=money_cents(a.vatTotal):
             w.append("Som van btw-groepen wijkt cent-exact af van totaal btw.")
+            r.confidence["vatLines"]=min(r.confidence.get("vatLines",.5),.55)
+        if mixed_rates and len({float(v.rate) for v in a.vatLines})<2:
+            w.append("Document bevat meerdere btw-tarieven, maar de opgeslagen btw-groepen dekken niet alle tarieven.")
+            r.confidence["vatLines"]=min(r.confidence.get("vatLines",.5),.55)
+        if mixed_rates and a.subtotal is not None and taxable_cents!=money_cents(a.subtotal):
+            w.append("Som van belastbare grondslagen wijkt cent-exact af van netto totaal.")
             r.confidence["vatLines"]=min(r.confidence.get("vatLines",.5),.55)
         for v in a.vatLines:
             if v.rate not in {0,9,21} and not (0<=v.rate<=30):
@@ -1593,24 +1762,44 @@ def reconcile(primary:ExtractionResult,heuristic:ExtractionResult)->ExtractionRe
         if getattr(p.amounts,field) is None and getattr(h.amounts,field) is not None and h.confidence.get(key,0)>=.8:
             setattr(p.amounts,field,getattr(h.amounts,field));p.confidence[key]=h.confidence.get(key,.8)
 
-    # If deterministic extraction has a proven VAT-group source and the AI agrees
-    # on the primary money trio, always keep the deterministic VAT groups. This
-    # prevents plausible-looking AI/OCR vatLines from replacing validated truth.
+    # A fully reconciled mixed-rate structure is deterministic financial proof:
+    # explicit line-table bases + explicit per-rate VAT summaries + document
+    # totals all agree cent-exactly. AI may not override that structure.
+    h_mixed=(h.processing or {}).get("mixedVatEvidence") or {}
     h_vat_source=(h.processing or {}).get("vatLineSource")
-    money_agrees=all(
-        getattr(p.amounts,field) is not None
-        and getattr(h.amounts,field) is not None
-        and money_cents(getattr(p.amounts,field))==money_cents(getattr(h.amounts,field))
-        for field in ("subtotal","vatTotal","total")
-    )
-    trusted_vat_source=h_vat_source in {"validated-primary-totals","explicit-vat-table","explicit-vat-text"}
-    if trusted_vat_source and h.amounts.vatLines and money_agrees:
+    if h_mixed.get("verified") and h_vat_source=="validated-mixed-rate-groups" and len(h.amounts.vatLines)>=2:
+        for field,key in [("subtotal","subtotal"),("vatTotal","vatTotal"),("total","total")]:
+            hv=getattr(h.amounts,field)
+            if hv is not None:
+                setattr(p.amounts,field,hv)
+                p.confidence[key]=max(p.confidence.get(key,0),h.confidence.get(key,.99))
         p.amounts.vatLines=[v.model_copy(deep=True) for v in h.amounts.vatLines]
-        p.confidence["vatLines"]=max(p.confidence.get("vatLines",0),h.confidence.get("vatLines",.9))
-        p.processing={**(p.processing or {}),"vatLineSource":h_vat_source,"vatGroupSource":"deterministic-validated"}
-    elif not p.amounts.vatLines and h.amounts.vatLines:
-        p.amounts.vatLines=[v.model_copy(deep=True) for v in h.amounts.vatLines]
-        p.confidence["vatLines"]=h.confidence.get("vatLines",p.confidence.get("vatLines",.8))
+        p.confidence["vatLines"]=max(p.confidence.get("vatLines",0),h.confidence.get("vatLines",.99))
+        p.processing={
+            **(p.processing or {}),
+            "amountDerivation":{**((p.processing or {}).get("amountDerivation") or {}),"mixedRates":True},
+            "mixedVatEvidence":h_mixed,
+            "vatLineSource":h_vat_source,
+            "vatGroupSource":"deterministic-validated",
+        }
+    else:
+        # Other trusted VAT-group sources replace AI groups only when the primary
+        # money trio agrees, preventing plausible-looking AI/OCR subdata from
+        # replacing validated truth.
+        money_agrees=all(
+            getattr(p.amounts,field) is not None
+            and getattr(h.amounts,field) is not None
+            and money_cents(getattr(p.amounts,field))==money_cents(getattr(h.amounts,field))
+            for field in ("subtotal","vatTotal","total")
+        )
+        trusted_vat_source=h_vat_source in {"validated-primary-totals","explicit-vat-table","explicit-vat-text"}
+        if trusted_vat_source and h.amounts.vatLines and money_agrees:
+            p.amounts.vatLines=[v.model_copy(deep=True) for v in h.amounts.vatLines]
+            p.confidence["vatLines"]=max(p.confidence.get("vatLines",0),h.confidence.get("vatLines",.9))
+            p.processing={**(p.processing or {}),"vatLineSource":h_vat_source,"vatGroupSource":"deterministic-validated"}
+        elif not p.amounts.vatLines and h.amounts.vatLines:
+            p.amounts.vatLines=[v.model_copy(deep=True) for v in h.amounts.vatLines]
+            p.confidence["vatLines"]=h.confidence.get("vatLines",p.confidence.get("vatLines",.8))
 
     hblocks=(h.processing or {}).get("financialBlocks") or {}
     if hblocks.get("verified") and h.adjustments:
