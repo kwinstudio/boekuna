@@ -10,7 +10,7 @@ const APP_URL=APP_ORIGIN+'/index.html';
 const PROCESSOR='https://kwinest-docprocessor.onrender.com';
 const EMAIL=process.env.BOOKUNA_MARKETING_CAPTURE_EMAIL||'';
 const PASSWORD=process.env.BOOKUNA_MARKETING_CAPTURE_PASSWORD||'';
-const TARGET_SHA='18341f41fc7c4366dddc3c35d1cc991bbaeb4123';
+const TARGET_SHA='28561d1e6e94372b41e0471b2d4da027e79d5901';
 const INVOICE='KKG/26/09/7741';
 
 assert.ok(EMAIL&&PASSWORD,'Dedicated production QA credentials are required');
