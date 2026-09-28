@@ -176,10 +176,24 @@ assert.ok(!html.includes("if(!profileEssentialsComplete(state.company))issues.pu
 assert.ok(html.includes("EDGE_BASE+'/billing-checkout'"),"Checkout must be created server-side");
 assert.ok(html.includes("EDGE_BASE+'/billing-portal'"),"Paid customers need subscription management");
 assert.ok(html.includes("function renderBillingCard()"),"Settings must expose current plan and monthly usage");
-assert.ok(html.includes("Number(err?.status||0)===402"),"Quota errors must not fall back to local OCR and bypass billing limits");
+assert.ok(html.includes("if(!['PROCESSOR_UNAVAILABLE','PROCESSING_TIMEOUT','UNKNOWN'].includes(code))throw err;"),"Only temporary processor failures may fall back to local document parsing");
 assert.ok(!/sk_(?:live|test)_[A-Za-z0-9]+/.test(html),"Stripe secret keys must never be present in the browser source");
-for(const code of ["400","401","402","403","408","413","415","422","429","500","502","503","504","NETWORK_ERROR","TIMEOUT","OCR_FAILED","PDF_READ_FAILED"]){
-  assert.ok(html.includes(`'${code}':[`)||html.includes(` ${code}:[`),`Upload error code ${code} must have an explanation`);
+for(const code of ["DOCUMENT_PDF_UNREADABLE","DOCUMENT_IMAGE_UNREADABLE","DOCUMENT_UNSUPPORTED_TYPE","DOCUMENT_TOO_LARGE","AUTH_SESSION_EXPIRED","DOCUMENT_LIMIT_REACHED","ACCOUNT_READ_ONLY","RATE_LIMITED","PROCESSING_TIMEOUT","PROCESSOR_UNAVAILABLE","PERMISSION_DENIED","INVALID_REQUEST","UNKNOWN"]){
+  assert.ok(html.includes(`${code}:[`)||html.includes(`'${code}':[`),`Stable document error code ${code} must have an explanation`);
 }
+assert.ok(html.includes("publicError.code||fallbackDocumentCode(r.status)"),"Document processor frontend adapter must prefer public error.code");
+assert.ok(html.includes("return {code,title:info[0]"),"Upload product behavior must retain the stable code instead of replacing it with HTTP status");
+assert.ok(!html.includes("j.detail||j.error"),"Frontend must not interpret raw processor detail strings");
+assert.ok(!html.includes("json.error||`AI-controle mislukt"),"Frontend must not render raw AI provider errors");
+assert.ok(analyzeInvoiceEdge.includes("PUBLIC_ERROR_CODES"),"AI edge route must enforce a public error-code allowlist");
+assert.ok(analyzeInvoiceEdge.includes("reference_id"),"AI edge errors must include a support reference id");
+assert.ok(analyzeInvoiceEdge.includes("provider_request_id"),"AI edge logs must preserve provider request ids internally");
+assert.ok(!analyzeInvoiceEdge.includes("return j(req,{ok:false,error:message}"),"AI edge route must never return a raw provider message");
+assert.ok(!analyzeInvoiceEdge.includes("out?.detail||out?.error"),"Verification proxy must never forward raw processor detail strings");
+assert.ok(processor.includes("class BoekunaDocumentError"),"Processor must centralize safe document failures");
+assert.ok(processor.includes("public_error_response"),"Processor must use one public error response builder");
+assert.ok(processor.includes('"reference_id":reference_id'),"Processor failures must include a reference id");
+assert.ok(!processor.includes('f"Deze foto kon niet worden geopend ({type(exc).__name__})'),"Image decoder exception types must never be returned publicly");
+assert.ok(!processor.includes('f"Document kon niet worden verwerkt ({type(exc).__name__})'),"Document library exception types must never be returned publicly");
 
 console.log("Boekuna source safety tests: PASS");
