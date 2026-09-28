@@ -1411,25 +1411,34 @@ def record_billing_usage(request: Request) -> dict | None:
     """Consume one monthly smart-document unit after successful processing."""
     auth_header = (request.headers.get("authorization") or "").strip()
     if not SUPABASE_PUBLISHABLE_KEY or not auth_header:
+        logger.error(json.dumps({"event":"document_usage_record_failed","reference_id":new_reference_id(),"internal_code":"USAGE_RECORD_NOT_CONFIGURED"}))
         return None
     try:
         resp = requests.post(
             f"{SUPABASE_URL}/rest/v1/rpc/record_document_usage",
-            headers={
-                "Authorization": auth_header,
-                "apikey": SUPABASE_PUBLISHABLE_KEY,
-                "Content-Type": "application/json",
-            },
-            json={},
-            timeout=8,
+            headers={"Authorization":auth_header,"apikey":SUPABASE_PUBLISHABLE_KEY,"Content-Type":"application/json"},
+            json={},timeout=8,
         )
         if resp.status_code >= 400:
+            logger.error(json.dumps({
+                "event":"document_usage_record_failed","reference_id":new_reference_id(),
+                "internal_code":"USAGE_RECORD_HTTP_ERROR","provider":"supabase_rest","provider_status":resp.status_code,
+                "user_ref":(getattr(request.state,"processing_meta",{}) or {}).get("user_ref"),
+            }))
             return None
         data = resp.json()
         if isinstance(data, list):
             return data[0] if data else None
-        return data if isinstance(data, dict) else None
-    except Exception:
+        if isinstance(data, dict):
+            return data
+        logger.error(json.dumps({"event":"document_usage_record_failed","reference_id":new_reference_id(),"internal_code":"USAGE_RECORD_INVALID_SHAPE"}))
+        return None
+    except Exception as exc:
+        logger.error(json.dumps({
+            "event":"document_usage_record_failed","reference_id":new_reference_id(),
+            "internal_code":"USAGE_RECORD_EXCEPTION","internal_error":sanitize_log_value(exc),
+            "user_ref":(getattr(request.state,"processing_meta",{}) or {}).get("user_ref"),
+        }))
         return None
 
 @app.get("/health")
