@@ -61,14 +61,15 @@ try{
   assert.equal(await docsTab.getAttribute('aria-pressed'),'true','Keyboard activation must update active product tab');
   const img=page.locator('#kzProductImage');
   assert.ok(await img.evaluate(el=>el.naturalWidth>0&&el.naturalHeight>0),'Switched real product crop must load');
-  await page.close();
 
   const desktopProof=await page.locator('.kz-dashboard-proof').boundingBox();
   const actionProof=await page.locator('.kz-action-proof').boundingBox();
   assert.ok(desktopProof&&desktopProof.width<=820.5,'Dashboard proof must stay compact on desktop');
   assert.ok(actionProof&&actionProof.width<=620.5,'Action-center proof must stay compact on desktop');
   assert.equal(await page.locator('[data-kz-tab]').count(),3,'Homepage must expose only three compact product tabs');
-    console.log('Editorial marketing screenshot responsive QA: PASS (320, 360, 390, 430, 768, 1024, 1440 + keyboard tabs)');
+  await page.close();
+
+  console.log('Editorial marketing screenshot responsive QA: PASS (320, 360, 390, 430, 768, 1024, 1440 + keyboard tabs)');
 }finally{
   await browser.close();
   await new Promise(resolve=>server.close(resolve));
