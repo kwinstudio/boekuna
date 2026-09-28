@@ -1154,6 +1154,13 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         vat_conf=derivation.get("vatConfidence",vat_conf)
         total_conf=derivation.get("totalConfidence",total_conf)
 
+    # Build the single-rate group only after candidate arithmetic recovery so a
+    # missing top-level amount cannot leave an otherwise verified VAT group empty.
+    if not vat_lines and len(rate_candidates)==1 and subtotal is not None and vat_total is not None:
+        rate=float(rate_candidates[0])
+        vat_lines=[VatLine(rate=rate,taxableAmount=round(float(subtotal),2),vatAmount=round(float(vat_total),2))]
+        vat_line_source="validated-primary-totals"
+
     iban=None
     for x in re.findall(r"\b[A-Z]{2}\d{2}(?:[ \\t]?[A-Z0-9]){11,30}\b",text,re.I):
         if valid_iban(x): iban=re.sub(r"\s+","",x).upper();break
