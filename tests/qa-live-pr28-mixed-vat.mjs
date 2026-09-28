@@ -60,6 +60,13 @@ let liveResult=null;
 
 try{
   await page.goto(APP_ORIGIN+'/?login=1&qa='+Date.now(),{waitUntil:'domcontentloaded',timeout:60000});
+  const sourceProbe=await page.evaluate(()=>({
+    schemaHasIbanHardBlock:/IBAN-formaat is ongeldig/.test(validateCandidateSchema.toString()),
+    schemaHasOptionalComment:/IBAN is optional/.test(validateCandidateSchema.toString()),
+    mergeHasTrustedAiIban:/trustedAiIban/.test(mergeAIParsed.toString()),
+    relationHelp:String(document.documentElement.innerHTML).includes('Corrigeer of laat leeg als de herkenning niet betrouwbaar is.')
+  }));
+  console.log('LIVE_APP_SOURCE_PROBE '+JSON.stringify(sourceProbe));
   await page.locator('#loginEmail').waitFor({timeout:30000});
   await page.locator('#loginEmail').fill(EMAIL);
   await page.locator('#loginPassword').fill(PASSWORD);
