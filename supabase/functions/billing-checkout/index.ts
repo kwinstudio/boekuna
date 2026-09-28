@@ -33,10 +33,12 @@ async function userAndAdmin(req:Request){
   const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
   return {user:data.user,admin};
 }
-async function stripePost(path:string,params:URLSearchParams){
+async function stripePost(path:string,params:URLSearchParams,idempotencyKey?:string){
   const key=Deno.env.get("STRIPE_SECRET_KEY")||"";
   if(!key)throw new Error("STRIPE_NOT_CONFIGURED");
-  const r=await fetch("https://api.stripe.com/v1"+path,{method:"POST",headers:{Authorization:"Bearer "+key,"Content-Type":"application/x-www-form-urlencoded"},body:params});
+  const headers:Record<string,string>={Authorization:"Bearer "+key,"Content-Type":"application/x-www-form-urlencoded"};
+  if(idempotencyKey)headers["Idempotency-Key"]=idempotencyKey;
+  const r=await fetch("https://api.stripe.com/v1"+path,{method:"POST",headers,body:params});
   const body=await r.json().catch(()=>({}));
   if(!r.ok)throw new Error("STRIPE:"+String(body?.error?.message||"Stripe request failed"));
   return body;
@@ -93,7 +95,11 @@ Deno.serve(async(req:Request)=>{
   if(account?.stripe_customer_id)p.set("customer",String(account.stripe_customer_id));
   else if(user.email)p.set("customer_email",user.email);
 
-  const session=await stripePost("/checkout/sessions",p);
+  // Server-side dedupe for double-clicks, refreshes and concurrent requests.
+  // The 10-minute bucket keeps retries stable without blocking a genuinely new attempt later.
+  const checkoutBucket=Math.floor(Date.now()/(10*60*1000));
+  const idempotencyKey="boekuna-checkout:"+user.id+":"+plan+":"+checkoutBucket;
+  const session=await stripePost("/checkout/sessions",p,idempotencyKey);
   if(!session?.url)throw new Error("STRIPE:Geen checkout-URL ontvangen");
   return json(req,{ok:true,url:session.url,plan});
  }catch(e){
