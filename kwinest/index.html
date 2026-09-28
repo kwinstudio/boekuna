@@ -3823,6 +3823,8 @@ function documentVerificationReasons(d){
  if(d.processor?.ocrUsed&&(d.processor.ocrConfidence==null||Number(d.processor.ocrConfidence)<.86))reasons.push('ocr-quality');
  if(Number(d.fieldConfidence?.party||0)>0&&Number(d.fieldConfidence.party)<80)reasons.push('party-confidence');
  if(Number(d.fieldConfidence?.gross||0)>0&&Number(d.fieldConfidence.gross)<88)reasons.push('gross-confidence');
+ if(Number(d.fieldConfidence?.vatLines||0)>0&&Number(d.fieldConfidence.vatLines)<90)reasons.push('vat-lines-confidence');
+ if(Number(d.fieldConfidence?.description||0)>0&&Number(d.fieldConfidence.description)<80)reasons.push('description-confidence');
  return [...new Set(reasons)]
 }
 function shouldQueueDocumentVerification(d){return documentVerificationReasons(d).length>0}
