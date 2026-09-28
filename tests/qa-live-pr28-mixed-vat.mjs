@@ -59,7 +59,7 @@ let testDocId=null;
 let liveResult=null;
 
 try{
-  await page.goto(APP_ORIGIN+'/app?login=1&qa='+Date.now(),{waitUntil:'domcontentloaded',timeout:60000});
+  await page.goto(APP_ORIGIN+'/?login=1&qa='+Date.now(),{waitUntil:'domcontentloaded',timeout:60000});
   await page.locator('#loginEmail').waitFor({timeout:30000});
   await page.locator('#loginEmail').fill(EMAIL);
   await page.locator('#loginPassword').fill(PASSWORD);
