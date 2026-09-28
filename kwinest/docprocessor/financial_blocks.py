@@ -4,46 +4,46 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any
 
 MONEY_RE = re.compile(
-    r"(?<!\\w)(?:EUR|€|EURO)?\\s*[-+]?\\d{1,3}(?:[.\\s]\\d{3})*(?:,\\d{2})"
-    r"|(?<!\\w)(?:EUR|€|EURO)?\\s*[-+]?\\d+(?:[.,]\\d{2})(?!\\w)",
+    r"(?<!\w)(?:EUR|€|EURO)?\s*[-+]?\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})"
+    r"|(?<!\w)(?:EUR|€|EURO)?\s*[-+]?\d+(?:[.,]\d{2})(?!\w)",
     re.I,
 )
 NET_RE = re.compile(
-    r"\\b(?:bedrag\\s*excl\\.?\\s*(?:(?:0|9|21)(?:[.,]0+)?\\s*%\\s*)?(?:btw|vat)|"
-    r"totaal\\s*excl\\.?\\s*(?:(?:0|9|21)(?:[.,]0+)?\\s*%\\s*)?(?:btw|vat)|"
-    r"total\\s*excl\\.?\\s*vat|tax\\s*exclusive|net\\s*amount|subtotaal|subtotal)\\b",
+    r"\b(?:bedrag\s*excl\.?\s*(?:(?:0|9|21)(?:[.,]0+)?\s*%\s*)?(?:btw|vat)|"
+    r"totaal\s*excl\.?\s*(?:(?:0|9|21)(?:[.,]0+)?\s*%\s*)?(?:btw|vat)|"
+    r"total\s*excl\.?\s*vat|tax\s*exclusive|net\s*amount|subtotaal|subtotal)\b",
     re.I,
 )
-VAT_RE = re.compile(r"\\b(?:btw|vat|tax)\\b", re.I)
-VAT_ID_RE = re.compile(r"\\b(?:btw[- ]?(?:nummer|nr|id)|vat\\s*(?:id|number))\\b", re.I)
+VAT_RE = re.compile(r"\b(?:btw|vat|tax)\b", re.I)
+VAT_ID_RE = re.compile(r"\b(?:btw[- ]?(?:nummer|nr|id)|vat\s*(?:id|number))\b", re.I)
 MAIN_GROSS_RE = re.compile(
-    r"\\b(?:factuurbedrag|factuurtotaal|invoice\\s*(?:amount|total)|"
-    r"totaal\\s*incl\\.?\\s*(?:btw|vat)|grand\\s*total|total\\s*due|"
-    r"totaal\\s*betaald|total\\s*paid|paid\\s*total)\\b",
+    r"\b(?:factuurbedrag|factuurtotaal|invoice\s*(?:amount|total)|"
+    r"totaal\s*incl\.?\s*(?:btw|vat)|grand\s*total|total\s*due|"
+    r"totaal\s*betaald|total\s*paid|paid\s*total)\b",
     re.I,
 )
-PLAIN_TOTAL_RE = re.compile(r"^\\s*(?:totaal|total)\\s*(?:€|EUR|[-+]?\\d)", re.I)
+PLAIN_TOTAL_RE = re.compile(r"^\s*(?:totaal|total)\s*(?:€|EUR|[-+]?\d)", re.I)
 ADJUSTMENT_RE = re.compile(
-    r"\\b(?:factoring(?:kosten)?|factorfee|commissie|commission|platformkosten|"
-    r"platform\\s*fee|payment\\s*fee|servicekosten|service\\s*fee|inhouding|"
-    r"deduction|verrekening|settlement\\s*fee)\\b",
+    r"\b(?:factoring(?:kosten)?|factorfee|commissie|commission|platformkosten|"
+    r"platform\s*fee|payment\s*fee|servicekosten|service\s*fee|inhouding|"
+    r"deduction|verrekening|settlement\s*fee)\b",
     re.I,
 )
 SETTLEMENT_RE = re.compile(
-    r"\\b(?:eindbedrag|netto\\s*uitbetaling|netto\\s*bedrag|uitbetaald|"
-    r"payout|net\\s*payout|amount\\s*paid|settlement\\s*amount)\\b",
+    r"\b(?:eindbedrag|netto\s*uitbetaling|netto\s*bedrag|uitbetaald|"
+    r"payout|net\s*payout|amount\s*paid|settlement\s*amount)\b",
     re.I,
 )
-GENERIC_TOTAL_AMOUNT_RE = re.compile(r"^\\s*(?:totaal\\s*bedrag|total\\s*amount)\\b", re.I)
+GENERIC_TOTAL_AMOUNT_RE = re.compile(r"^\s*(?:totaal\s*bedrag|total\s*amount)\b", re.I)
 
 
 def _norm(s: Any) -> str:
-    return re.sub(r"[ \\t]+", " ", str(s or "").replace("\\u00a0", " ")).strip()
+    return re.sub(r"[ \t]+", " ", str(s or "").replace("\u00a0", " ")).strip()
 
 
 def _money(v: str) -> float | None:
     s = str(v or "").strip().replace("€", "").replace("EUR", "").replace("euro", "").replace(" ", "")
-    s = re.sub(r"[^0-9,.+\\-]", "", s)
+    s = re.sub(r"[^0-9,.+\-]", "", s)
     if not s:
         return None
     if "," in s and "." in s:
@@ -88,7 +88,7 @@ def _money_equal(a: Any, b: Any) -> bool:
 def money_tokens(line: str) -> list[float]:
     # Percentages such as 5.50% are not monetary amounts.
     raw = str(line or "")
-    clean = re.sub(r"(?<!\\d)\\d+(?:[.,]\\d+)?\\s*%", " ", raw)
+    clean = re.sub(r"(?<!\d)\d+(?:[.,]\d+)?\s*%", " ", raw)
     out = []
     for m in MONEY_RE.finditer(clean):
         n = _money(m.group(0))
@@ -138,7 +138,7 @@ def _vat_amount_from_line(line: str) -> float | None:
 
 
 def _rate_from(text: str) -> float | None:
-    m = re.search(r"\\b(0|9|21)(?:[.,]0+)?\\s*%", text or "", re.I)
+    m = re.search(r"\b(0|9|21)(?:[.,]0+)?\s*%", text or "", re.I)
     return float(m.group(1)) if m else None
 
 
@@ -254,11 +254,11 @@ def parse_financial_blocks(raw_lines: list[str]) -> dict[str, Any]:
                 rate = _rate_from(item)
             vals = money_tokens(item)
             if VAT_RE.search(item) and not VAT_ID_RE.search(item) and vals:
-                if re.search(r"\\b(?:waarvan|of which|vat|btw|tax)\\b", item, re.I):
+                if re.search(r"\b(?:waarvan|of which|vat|btw|tax)\b", item, re.I):
                     fee_vat = abs(vals[-1])
                     continue
             if off > 0 and vals and fee_gross is None:
-                if "%" in item or re.search(r"\\b(?:kosten|fee|commissie|commission|inhouding|deduction|over\\s+het\\s+totaal\\s+bedrag)\\b", item, re.I):
+                if "%" in item or re.search(r"\b(?:kosten|fee|commissie|commission|inhouding|deduction|over\s+het\s+totaal\s+bedrag)\b", item, re.I):
                     fee_gross = abs(vals[-1])
                     fee_line = item
         if fee_gross is not None:
