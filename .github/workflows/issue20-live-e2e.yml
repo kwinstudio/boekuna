@@ -1,0 +1,34 @@
+name: 03A issue20 live processor retest
+
+on:
+  push:
+    branches:
+      - 03a/retest-issue-20-d0e06f7
+    paths:
+      - "tests/issue20-live-e2e.mjs"
+      - "tests/fixtures/issue20-mixed-9-21.pdf.b64"
+      - ".github/workflows/issue20-live-e2e.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  retest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      BOOKUNA_MARKETING_CAPTURE_EMAIL: ${{ secrets.BOOKUNA_MARKETING_CAPTURE_EMAIL }}
+      BOOKUNA_MARKETING_CAPTURE_PASSWORD: ${{ secrets.BOOKUNA_MARKETING_CAPTURE_PASSWORD }}
+      BOOKUNA_MARKETING_CAPTURE_ORIGIN: https://boekuna-boekhouding.onrender.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install QA browser dependencies
+        run: |
+          npm ci --prefix tests --ignore-scripts
+          npm install --prefix tests --no-save playwright@1.56.1
+          ./tests/node_modules/.bin/playwright install --with-deps chromium
+      - name: Live mixed VAT issue 20 retest
+        run: node tests/issue20-live-e2e.mjs
