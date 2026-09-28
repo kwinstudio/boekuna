@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 import fitz
-from fastapi import HTTPException, Request
+from fastapi import Request
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -122,8 +122,10 @@ def test_trusted_origin_contract():
 
     try:
         processor.require_allowed_origin(request_with_origin("https://attacker.example"))
-    except HTTPException as exc:
-        assert exc.status_code == 403
+    except processor.BoekunaDocumentError as exc:
+        assert exc.status == 403
+        assert exc.code == "PERMISSION_DENIED"
+        assert exc.internal_code == "ORIGIN_NOT_ALLOWED"
     else:
         raise AssertionError("Untrusted origins must be rejected")
 
