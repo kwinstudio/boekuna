@@ -5,9 +5,21 @@ This repository contains the subscription code. Never commit Stripe secret keys.
 ## Web plans
 
 - Gratis: €0/month, 10 smart document analyses/month.
-- Boekuna: €9.95/month excl. VAT, 100 analyses/month.
-- Boekuna Pro: €20/month excl. VAT, 300 analyses/month.
-- Founding 100: first 100 successful paid-plan activations get a 90-day free trial, once per Boekuna account.
+- Boekuna: €9.95/month excl. VAT, 100 smart document analyses/month.
+- Unlimited: €19.95/month excl. VAT, no monthly smart-document quota.
+
+## Early Access is not a Stripe trial
+
+Boekuna Early Access is a separate server-side entitlement:
+
+- at most the first 100 eligible, verified users after the launch gate opens;
+- 90 days of the normal Boekuna plan;
+- no payment card and no Stripe subscription are created;
+- no automatic charge or automatic paid conversion at expiry;
+- without a paid entitlement, expiry becomes read-only;
+- a later paid Stripe subscription does not reset the original Early Access dates.
+
+Do not configure Stripe trial days or Founding-100 trial logic to implement Early Access.
 
 ## Required Supabase Edge Function secrets
 
@@ -17,6 +29,8 @@ Set securely in the Supabase project environment:
 - APP_URL — optional; defaults to https://boekuna-boekhouding.onrender.com
 
 Do not put either value in frontend code or Git.
+
+Production evidence on 2026-09-28 confirmed that `billing-checkout` can create a hosted Stripe Checkout session in **live** mode. That proves the live secret is configured; it does not by itself prove the full paid lifecycle.
 
 ## Stripe webhook
 
@@ -33,31 +47,34 @@ Subscribe at minimum to:
 - invoice.paid
 - invoice.payment_failed
 
-The webhook retrieves each incoming event from Stripe by event ID using the account secret before processing it, and billing_events provides idempotency.
+The webhook retrieves each incoming event from Stripe by event ID using the account secret before processing it, rejects test/live environment mismatches, and uses `billing_events` for idempotent processing.
 
 ## Customer Portal
 
-Activate/configure Stripe Customer Portal for the production account so customers can update billing/payment details and cancel subscriptions. The app creates authenticated portal sessions through the billing-portal Edge Function.
+Activate/configure Stripe Customer Portal for the production account so customers can update billing/payment details and cancel subscriptions. The app creates authenticated portal sessions through the `billing-portal` Edge Function.
 
 ## Tax
 
-Web prices are presented excluding VAT. Checkout uses tax_behavior=exclusive, tax ID collection and Stripe automatic tax. Before enabling live sales, configure the correct Stripe Tax registrations/settings for the legal seller.
+Web prices are presented excluding VAT. Checkout uses `tax_behavior=exclusive`, tax ID collection and Stripe automatic tax. Before enabling live sales, verify the correct Stripe Tax registrations/settings for the legal seller.
 
-## Production smoke test
+## Release smoke test
 
-Use Stripe test mode first:
+Configuration-only checks may create a Checkout Session but must **not** complete a live payment automatically.
 
-1. Login with a dedicated Boekuna test account.
-2. Start Boekuna checkout.
-3. Confirm a Founding 100 reservation gets a 90-day trial.
-4. Confirm checkout.session.completed creates/updates billing_accounts.
-5. Confirm Settings shows plan, trial date, founder number and usage.
-6. Process one document and verify monthly usage increases by exactly 1.
-7. Reach/force the quota and verify HTTP 402 prevents both server processing and local scanner fallback.
-8. Open Customer Portal and test cancellation.
-9. Trigger invoice.payment_failed and confirm status is reflected.
-10. Repeat with a non-founding account and confirm there is no trial.
-11. Only after test mode passes, set the production live secret and production webhook.
+Before public launch, perform one controlled live paid lifecycle with an explicitly authorized real payment method:
+
+1. Login with a dedicated QA account that is not an internal/demo grant.
+2. Start Boekuna Checkout and confirm the hosted Checkout shows the expected plan and VAT behavior.
+3. Complete the live payment only with explicit human authorization.
+4. Confirm `checkout.session.completed` and subscription events are processed.
+5. Confirm `billing_accounts` contains the Stripe customer/subscription, correct plan, active status and period end.
+6. Confirm Boekuna shows `paid` entitlement.
+7. Open Customer Portal and verify subscription management.
+8. Cancel at period end and verify the webhook/sync state returns to Boekuna.
+9. Test payment-failure handling in a safe Stripe test environment or another controlled procedure; do not create unnecessary live debt.
+10. Clean up the QA subscription and retain release evidence.
+
+For repeatable automated billing tests, use a separate Stripe **test-mode** environment. Never mix test-mode Stripe events with production live billing state.
 
 ## Native apps
 

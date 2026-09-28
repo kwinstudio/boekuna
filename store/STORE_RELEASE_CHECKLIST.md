@@ -13,7 +13,7 @@
 - [x] No advertising/tracking claim in launch metadata
 - [x] Store-ready web manifest / mobile-web metadata
 - [x] Web subscription schema, quota logic and Stripe Checkout/Portal endpoints
-- [ ] Stripe live secret configured securely in Supabase Edge Function secrets
+- [x] Stripe live secret configured securely in Supabase Edge Function secrets — verified by live-mode hosted Checkout session creation on 2026-09-28
 - [ ] Stripe production webhook registered and tested
 - [ ] Stripe Customer Portal activated/configured
 - [ ] Stripe Tax/VAT configuration verified for the legal seller
