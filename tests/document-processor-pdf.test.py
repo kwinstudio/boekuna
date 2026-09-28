@@ -1,5 +1,6 @@
 import base64
 import io
+import json
 import sys
 from pathlib import Path
 
@@ -190,6 +191,15 @@ def test_issue20_original_mixed_vat_fixture():
         "02_gemengde_btw_9_en_21.pdf",
         {"name": "KWINSTUDIO", "tradeName": "KWINSTUDIO"},
     )
+    print("ISSUE20_PROCESSOR_RESULT=" + json.dumps({
+        "invoiceNumber": result.invoice.invoiceNumber,
+        "subtotal": result.amounts.subtotal,
+        "vatTotal": result.amounts.vatTotal,
+        "total": result.amounts.total,
+        "vatLines": [v.model_dump() for v in result.amounts.vatLines],
+        "mixedRates": bool(((result.processing or {}).get("amountDerivation") or {}).get("mixedRates")),
+        "warnings": result.warnings,
+    }, ensure_ascii=False, sort_keys=True))
     assert result.invoice.invoiceNumber == "KKG/26/09/7741"
     assert result.amounts.subtotal is not None and abs(result.amounts.subtotal - 429.95) < 0.005
     assert result.amounts.vatTotal is not None and abs(result.amounts.vatTotal - 52.49) < 0.005
