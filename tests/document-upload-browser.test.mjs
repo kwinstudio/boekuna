@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
+const originalMixedVatFixture=Buffer.from(fs.readFileSync(new URL('./fixtures/02_gemengde_btw_9_en_21.pdf.b64',import.meta.url),'utf8').trim(),'base64');
 
 function replaceLast(source,needle,replacement){
   const i=source.lastIndexOf(needle);
@@ -58,6 +59,20 @@ mixedProcessorPayload.data.lineItems=[
   {description:'Dienst laag tarief',quantity:1,unitPrice:100,vatRate:9,lineTotal:100},
   {description:'Dienst hoog tarief',quantity:1,unitPrice:100,vatRate:21,lineTotal:100}
 ];
+
+const issue30ProcessorPayload=structuredClone(processorPayload);
+issue30ProcessorPayload.data.originalFileName='02_gemengde_btw_9_en_21.pdf';
+issue30ProcessorPayload.data.supplier={name:'Originele mixed-VAT fixture leverancier',address:'Teststraat 9',postalCode:'3011 AA',city:'Rotterdam',country:'Nederland',kvk:'87654321',vatNumber:'NL987654321B01',iban:'NL00DEMO0000000000',email:'facturen@example.test'};
+issue30ProcessorPayload.data.invoice={invoiceNumber:'KKG/26/09/7741',invoiceDate:'2026-09-28',dueDate:null,paymentTermDays:null,description:'Originele mixed-VAT fixture'};
+issue30ProcessorPayload.data.amounts={subtotal:429.95,vatLines:[{rate:9,taxableAmount:315,vatAmount:28.35},{rate:21,taxableAmount:114.95,vatAmount:24.14}],vatTotal:52.49,total:482.44,currency:'EUR'};
+issue30ProcessorPayload.data.status='open';
+issue30ProcessorPayload.data.lineItems=[];
+issue30ProcessorPayload.data.adjustments=[];
+issue30ProcessorPayload.data.confidence={supplierName:.99,iban:.99,invoiceNumber:.99,invoiceDate:.99,subtotal:.99,vatTotal:.99,total:.99,vatLines:.99};
+issue30ProcessorPayload.data.warnings=[];
+issue30ProcessorPayload.data.processing={sourceKind:'pdf',pages:1,ocrPages:[],tablesFound:2,fastPath:'deterministic',overallConfidence:.99,vatGroupSource:'validated-mixed-rate-groups'};
+issue30ProcessorPayload.preview={text:'Originele 9% + 21% mixed-VAT fixture',pages:[{page:1,ocrConfidence:null}],tables:[]};
+issue30ProcessorPayload.duplicateCandidates=[];
 
 let processorResponse=processorPayload;
 let appOrigin='';
@@ -337,6 +352,90 @@ try{
     await page.close();
   }
 
+  // ISSUE-30: the original mixed-VAT fixture must save even when the processor
+  // returns its intentionally non-bankable fictitious supplier IBAN. The IBAN
+  // is not trusted as a definitive value, stays editable/optional in review,
+  // and the already-correct mixed VAT semantics must remain untouched.
+  {
+    processorMode='success';
+    processorResponse=issue30ProcessorPayload;
+    processorMethods=[];
+    processorOrigins=[];
+    const page=await newAppPage();
+    const errors=[];
+    page.on('pageerror',e=>errors.push(String(e)));
+    page.on('dialog',dialog=>dialog.accept());
+
+    await page.locator('#invoicePdfFile').setInputFiles({
+      name:'02_gemengde_btw_9_en_21.pdf',
+      mimeType:'application/pdf',
+      buffer:originalMixedVatFixture
+    });
+
+    await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:15000});
+    const review=await page.evaluate(()=>({
+      invoiceNumber:pendingPdfImport?.parsed?.invoiceNumber,
+      net:pendingPdfImport?.parsed?.net,
+      vatAmount:pendingPdfImport?.parsed?.vatAmount,
+      gross:pendingPdfImport?.parsed?.gross,
+      iban:pendingPdfImport?.parsed?.iban,
+      ibanErrors:validateCandidateSchema(pendingPdfImport?.parsed||{}).filter(x=>/IBAN/i.test(x)),
+      vatRate:pendingPdfImport?.parsed?.vatRate,
+      mixedRates:pendingPdfImport?.parsed?.mixedRates,
+      vatLines:pendingPdfImport?.parsed?.vatLines
+    }));
+    assert.equal(review.invoiceNumber,'KKG/26/09/7741');
+    assert.equal(review.net,429.95);
+    assert.equal(review.vatAmount,52.49);
+    assert.equal(review.gross,482.44);
+    assert.equal(review.iban,'','Invalid processor IBAN must be cleared before it can become a hidden save blocker');
+    assert.deepEqual(review.ibanErrors,[],'Untrusted extracted IBAN must not block review/save');
+    assert.equal(review.vatRate,null,'Issue #30 fix must not reintroduce a scalar VAT rate');
+    assert.equal(review.mixedRates,true);
+    assert.deepEqual(review.vatLines,[
+      {rate:9,taxableAmount:315,vatAmount:28.35},
+      {rate:21,taxableAmount:114.95,vatAmount:24.14}
+    ]);
+
+    const ibanInput=page.locator('#pdfImportForm [name="iban"]');
+    assert.equal(await ibanInput.count(),1,'Supplier IBAN must be exposed in review so it can be corrected or removed');
+    assert.equal(await ibanInput.inputValue(),'','Untrusted fixture IBAN must start empty');
+    await ibanInput.fill('');
+    await page.evaluate(()=>savePdfInvoiceImport());
+
+    const saved=await page.evaluate(()=>{
+      const e=state.expenses[0];
+      const supplier=state.contacts.find(c=>c.id===e?.supplierId)||state.contacts.find(c=>c.name===e?.vendor);
+      return {
+        documents:state.documents.length,
+        expenses:state.expenses.length,
+        invoiceNumber:e?.invoiceNumber,
+        net:e?.exVat,
+        vatAmount:e?.vatAmount,
+        gross:e?.gross,
+        vatRate:e?.vatRate,
+        mixedRates:e?.mixedRates,
+        vatLines:e?.vatLines,
+        supplierIban:supplier?.iban||''
+      }
+    });
+    assert.equal(saved.documents,1);
+    assert.equal(saved.expenses,1);
+    assert.equal(saved.invoiceNumber,'KKG/26/09/7741');
+    assert.equal(saved.net,429.95);
+    assert.equal(saved.vatAmount,52.49);
+    assert.equal(saved.gross,482.44);
+    assert.equal(saved.vatRate,null);
+    assert.equal(saved.mixedRates,true);
+    assert.deepEqual(saved.vatLines,[
+      {rate:9,taxableAmount:315,vatAmount:28.35},
+      {rate:21,taxableAmount:114.95,vatAmount:24.14}
+    ]);
+    assert.equal(saved.supplierIban,'','Invalid fictitious supplier IBAN must not be persisted');
+    assert.deepEqual(errors,[],'Issue #30 browser errors: '+errors.join(' | '));
+    await page.close();
+  }
+
   // QA-PDF-03: a temporary processor failure must reach the local PDF.js fallback
   // without the historical "Can't find variable: pdfLibPromise" browser crash.
   {
@@ -379,7 +478,7 @@ try{
     await page.close();
   }
 
-  console.log('PDF browser regressions: PASS (QA-PDF-02 single-rate upload/save; QA-DOC-REL-001 mixed 9%+21% merge/review/save/reopen/UI/CSV; single 0/9/21 VAT regressions; QA-PDF-03 processor-outage fallback)');
+  console.log('PDF browser regressions: PASS (QA-PDF-02 single-rate upload/save; QA-DOC-REL-001 mixed 9%+21% merge/review/save/reopen/UI/CSV; issue #30 original mixed-VAT invalid-IBAN save regression; single 0/9/21 VAT regressions; QA-PDF-03 processor-outage fallback)');
 }finally{
   await browser.close();
   await new Promise(resolve=>appServer.close(resolve));
