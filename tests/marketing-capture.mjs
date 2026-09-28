@@ -323,7 +323,7 @@ try{
   // Coordinates are tied to the stable 1440×960 QA viewport above.
   assets.push(await saveDerivedCrop('boekuna-dashboard-desktop.webp','boekuna-dashboard-overview-crop.webp',{left:170,top:0,width:1270,height:715},1120));
   assets.push(await saveDerivedCrop('boekuna-dashboard-desktop.webp','boekuna-dashboard-action-center-crop.webp',{left:500,top:270,width:880,height:660},650));
-  assets.push(await saveDerivedCrop('boekuna-invoices-desktop.webp','boekuna-invoices-list-crop.webp',{left:250,top:70,width:1170,height:735},760));
+  assets.push(await saveDerivedCrop('boekuna-invoices-desktop.webp','boekuna-invoices-list-crop.webp',{left:250,top:70,width:1170,height:720},760));
   assets.push(await saveDerivedCrop('boekuna-documents-desktop.webp','boekuna-documents-upload-crop.webp',{left:250,top:70,width:1170,height:720},760));
   assets.push(await saveDerivedCrop('boekuna-documents-desktop.webp','boekuna-documents-workflow-crop.webp',{left:330,top:235,width:1040,height:650},680));
   assets.push(await saveDerivedCrop('boekuna-vat-desktop.webp','boekuna-vat-summary-crop.webp',{left:250,top:70,width:1170,height:720},760));
