@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 const migration=fs.readFileSync(new URL('../supabase/migrations/20260928000656_early_access_entitlement_state_machine.sql',import.meta.url),'utf8');
 const checkout=fs.readFileSync(new URL('../supabase/functions/billing-checkout/index.ts',import.meta.url),'utf8');
 const webhook=fs.readFileSync(new URL('../supabase/functions/billing-webhook/index.ts',import.meta.url),'utf8');
+const launchGate=fs.readFileSync(new URL('../supabase/migrations/20260928003129_gate_early_access_until_launch.sql',import.meta.url),'utf8');
 
 function entitlement({paidActive=false,paidPeriodEnd=0,claim=false,eaEndsAt=0,now=1}){
   if(paidActive&&paidPeriodEnd>now)return 'paid';
@@ -31,6 +32,10 @@ assert.ok(!migration.includes('update public.early_access_claims\n    set starte
 assert.ok(migration.includes('if v_next = 100 then'),'Claim 100 must close campaign');
 assert.ok(migration.includes('set is_open=false'),'Campaign must become closed');
 assert.ok(migration.includes('pg_advisory_xact_lock'),'Concurrent claims must not allocate the same slot');
+assert.ok(launchGate.includes('set is_open=false'),'Pre-launch must not consume real Early Access slots');
+assert.ok(launchGate.includes('v_user.created_at < v_campaign_start'),'Only accounts created after campaign opening may receive a new claim');
+assert.ok(launchGate.includes('private.set_early_access_campaign_open'),'Campaign opening must be a server-controlled launch action');
+assert.ok(launchGate.includes("grant execute on function private.set_early_access_campaign_open(boolean) to service_role"),'Only service role may open/close the campaign');
 
 // Stripe remains independent from EA.
 assert.ok(!checkout.includes('trial_end'),'Explicit paid checkout must not create a Stripe trial');
