@@ -788,7 +788,7 @@ def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tu
     vats=[re.sub(r"\s+","",x).upper() for x in re.findall(r"\b[A-Z]{2}\s?[A-Z0-9]{6,14}\b",joined,re.I)]
     nl_vats=[x for x in vats if re.fullmatch(r"NL\d{9}B\d{2}",x)]
     kvks=re.findall(r"(?:kvk|k\.v\.k\.|coc|chamber of commerce)(?:\s*(?:nr|nummer|number|no))?\s*[:#-]?\s*(\d{8})",joined,re.I)
-    ibans=[re.sub(r"\s+","",x).upper() for x in re.findall(r"\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]){11,30}\b",joined,re.I)]
+    ibans=[re.sub(r"\s+","",x).upper() for x in re.findall(r"\b[A-Z]{2}\d{2}(?:[ \\t]?[A-Z0-9]){11,30}\b",joined,re.I)]
     postal=re.search(r"\b([1-9]\d{3})\s*([A-Z]{2})\b(?:\s+([^\n,;|]{2,50}))?",joined,re.I)
     address_re=re.compile(r"\b\d+[A-Z-]*\b.*(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|place)|(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|place)[^\n]*\b\d+[A-Z-]*\b",re.I)
     address=next((x for x in block if address_re.search(x)),None)
@@ -982,7 +982,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         total_conf=derivation.get("totalConfidence",total_conf)
 
     iban=None
-    for x in re.findall(r"\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]){11,30}\b",text,re.I):
+    for x in re.findall(r"\b[A-Z]{2}\d{2}(?:[ \\t]?[A-Z0-9]){11,30}\b",text,re.I):
         if valid_iban(x): iban=re.sub(r"\s+","",x).upper();break
 
     paid=bool(re.search(r"\b(reeds betaald|already paid|paid via|voldaan|betaald)\b",low))
