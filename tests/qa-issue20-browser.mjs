@@ -155,8 +155,27 @@ try{
   const iban=page.locator('#pdfImportForm [name="iban"]');
   if(await iban.count())await iban.fill('');
 
+  const preSaveDiag=await page.evaluate(()=>{
+    const f=document.getElementById('pdfImportForm'),fd=new FormData(f),d=Object.fromEntries(fd.entries());
+    const reviewedRate=d.vatRate===''?null:Number(d.vatRate),net=Math.abs(Number(d.net||0)),vat=Math.abs(Number(d.vatAmount||0)),gross=Math.abs(Number(d.gross||0));
+    const vatResult=trustedVatLinesForImport(pendingPdfImport.parsed,net,vat,reviewedRate);
+    const trustedVatRates=[...new Set((vatResult.lines||[]).map(v=>Number(v.rate)).filter(Number.isFinite))],mixedRates=!!pendingPdfImport.parsed?.mixedRates||trustedVatRates.length>1,rate=mixedRates?null:(reviewedRate==null?(trustedVatRates.length===1?trustedVatRates[0]:0):reviewedRate);
+    const candidate={...pendingPdfImport.parsed,...d,type:d.type,documentType:d.documentType||'purchase_invoice',net,vatAmount:vat,gross,vatRate:rate,mixedRates,vatLines:vatResult.lines};
+    return {valid:f.checkValidity(),form:d,vatResult,schemaErrors:validateCandidateSchema(candidate),recognitionBad:pendingPdfImport.parsed?.recognitionBad||0,duplicate:pendingPdfImport.parsed?.duplicateCandidate||null};
+  });
+  console.log('PRESAVE_DIAG',JSON.stringify(preSaveDiag));
   await page.evaluate(()=>savePdfInvoiceImport());
-  await page.waitForFunction(()=>state.expenses.length===1&&state.documents.length===1);
+  await page.waitForTimeout(600);
+  const postSaveDiag=await page.evaluate(()=>({
+    expenses:state.expenses.length,
+    documents:state.documents.length,
+    toast:[...document.querySelectorAll('.toast')].map(x=>x.textContent).filter(Boolean),
+    modal:document.querySelector('.modal')?.innerText||'',
+    pending:!!pendingPdfImport
+  }));
+  console.log('POSTSAVE_DIAG',JSON.stringify(postSaveDiag));
+  assert.equal(postSaveDiag.expenses,1,'Save must create one expense; diagnostics above show blocker');
+  assert.equal(postSaveDiag.documents,1,'Save must create one document; diagnostics above show blocker');
 
   const saved=await page.evaluate(()=>({
     expense:structuredClone(state.expenses[0]),
