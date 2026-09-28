@@ -454,10 +454,10 @@ def own_matches(block:dict, company:dict)->bool:
     )
 
 def _clean_party_candidate(value:str)->str:
-    cand=norm_text(value or "").strip(" |:#.-")
+    cand=norm_text(value or "").strip(" |:#-")
     cand=re.sub(r"^(?:leverancier|supplier|vendor|seller|from|van|factuur\s+aan|factureren\s+aan|bill\s+to|sold\s+to|customer|klant|debiteur|aan|to|verzender|sender)\s*[:#-]?\s*","",cand,flags=re.I)
     cand=re.split(r"\b(?:factuurnummer|factuurnr|invoice\s+(?:number|no)|factuurdatum|invoice\s+date|vervaldatum|due\s+date|betalingskenmerk|payment\s+reference|kvk\s*(?:nummer|nr)?|btw[- ]?(?:nummer|nr|id)|vat\s*(?:number|id))\b",cand,maxsplit=1,flags=re.I)[0]
-    return cand.strip(" |:#.-")
+    return cand.strip(" |:#-")
 
 def layout_fragments(doc:dict,max_y:float=330.0)->list[dict[str,Any]]:
     out=[]
