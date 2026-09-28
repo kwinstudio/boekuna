@@ -46,6 +46,22 @@ assert.ok(html.includes("const DOCUMENT_IMAGE_MIME_TYPES="),"Frontend must share
 assert.ok(!html.includes('id="receiptPhotoFile" accept="image/*'),"Receipt picker must not advertise unsupported arbitrary image types");
 assert.ok(!html.includes('id="receiptCameraFile" accept="image/*'),"Camera picker must use the same production image allowlist");
 assert.ok(html.includes("DOCUMENT_IMAGE_MIME_TYPES.includes(String(file.type||'').toLowerCase())"),"Frontend validation must enforce the explicit supported MIME allowlist");
+const frontendImageMimeMatch=html.match(/const DOCUMENT_IMAGE_MIME_TYPES=\[([^\]]+)\]/);
+const processorImageMimeMatch=processor.match(/SUPPORTED_IMAGE_MIME_TYPES = frozenset\(\{([^}]+)\}\)/);
+assert.ok(frontendImageMimeMatch&&processorImageMimeMatch,"Frontend and processor image MIME allowlists must be statically readable for drift checks");
+const parseQuotedSet=s=>new Set([...s.matchAll(/["']([^"']+)["']/g)].map(m=>m[1]));
+const frontendImageMimes=parseQuotedSet(frontendImageMimeMatch[1]);
+const processorImageMimes=parseQuotedSet(processorImageMimeMatch[1]);
+assert.deepEqual([...frontendImageMimes].sort(),[...processorImageMimes].sort(),"Frontend and processor image MIME allowlists must remain identical");
+const frontendExtMatch=html.match(/const DOCUMENT_UPLOAD_EXTENSIONS=\[([^\]]+)\]/);
+const processorExtMatch=processor.match(/SUPPORTED_DOCUMENT_EXTENSIONS = \(([^)]+)\)/);
+assert.ok(frontendExtMatch&&processorExtMatch,"Document extension allowlists must be statically readable for drift checks");
+const frontendExts=parseQuotedSet(frontendExtMatch[1]);
+const processorExts=new Set([...parseQuotedSet(processorExtMatch[1])].map(x=>x.replace(/^\./,'')));
+assert.deepEqual([...frontendExts].sort(),[...processorExts].sort(),"Frontend and processor document extension allowlists must remain identical");
+assert.match(html,/const DOCUMENT_MAX_SIZE_MB=15;/,"Frontend max-size fallback must stay centralized");
+assert.match(processor,/MAX_BYTES = int\(os\.getenv\("MAX_FILE_BYTES", str\(15 \* 1024 \* 1024\)\)\)/,"Processor default max size must match the frontend fallback");
+
 assert.ok(processor.includes('if not independent:'),"Independent PASS 2 must omit the primary heuristic answer from model context");
 assert.ok(processor.includes('This is an INDEPENDENT SECOND VERIFICATION.'),"PASS 2 must use an explicitly independent verification instruction");
 assert.ok(processor.includes('"store":False'),"OpenAI Responses must disable response storage for document analysis");
