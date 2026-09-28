@@ -286,7 +286,7 @@ try{
     assert.match(modalText,/Gemengd btw/,'Expense detail modal must label the booking as mixed VAT');
     assert.match(modalText,/9%:/,'Expense detail modal must expose the 9% trusted group');
     assert.match(modalText,/21%:/,'Expense detail modal must expose the 21% trusted group');
-    await page.locator('.modal').getByRole('button',{name:'Sluiten'}).click();
+    await page.evaluate(()=>closeModal());
 
     const csv=await page.evaluate(()=>{
       const originalDownload=download;
