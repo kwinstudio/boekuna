@@ -62,22 +62,29 @@ for(const fake of [
 ]){
   assert.ok(!app.includes(fake),`Homepage still renders fake product UI: ${fake}`);
 }
-assert.ok(app.includes('class=\\"product-proof\\"'),'Homepage must use the semantic product-proof variant');
+assert.ok(!app.includes('class=\\"kz-hero-product-proof'),'Homepage must not render the former desktop Dashboard hero proof');
 assert.ok(app.includes('class=\\"product-crop'),'Homepage must use semantic product-crop variants');
-assert.ok(app.includes('class=\\"product-mobile\\"'),'Homepage must use the semantic product-mobile variant');
+assert.ok(app.includes('class=\\"product-mobile'),'Homepage must use semantic product-mobile variants');
 assert.ok(!app.includes('class=\\"product-screenshot'),'Legacy universal screenshot presentation must not be rendered on the homepage');
-assert.ok(app.includes('/assets/product/boekuna-dashboard-overview-crop.webp'),'Homepage primary proof must use the real Dashboard editorial crop');
-assert.ok(app.includes('loading=\\"eager\\" fetchpriority=\\"high\\"'),'Primary screenshot must not be lazy loaded');
-assert.ok(app.includes('width=\\"1120\\" height=\\"631\\"'),'Primary crop must reserve dimensions against CLS');
-assert.ok(app.includes('/assets/product/boekuna-dashboard-action-center-crop.webp'),'More grip must use a distinct Dashboard detail crop');
-assert.ok(app.includes('/assets/product/boekuna-documents-workflow-crop.webp'),'Workflow must use its own real Documents crop');
-assert.ok(app.includes('/assets/product/boekuna-dashboard-mobile.webp'),'Homepage must use the real responsive mobile Dashboard capture');
+assert.ok(app.includes('/assets/product/boekuna-dashboard-mobile.webp'),'Hero/mobile product compositions must use the real responsive Dashboard capture');
+assert.ok(app.includes('loading=\\"eager\\" fetchpriority=\\"high\\"'),'Hero mobile capture must not be lazy loaded');
+assert.ok(app.includes('width=\\"390\\" height=\\"844\\"'),'Mobile capture must reserve real dimensions against CLS');
+assert.ok(app.includes('/assets/product/boekuna-dashboard-overview-crop.webp'),'First product proof must use the real Dashboard editorial crop');
+assert.ok(app.includes('/assets/product/boekuna-dashboard-action-center-crop.webp'),'More grip must use the distinct Dashboard action-center crop');
+assert.ok(app.includes('/assets/product/boekuna-documents-upload-crop.webp'),'Workflow fallback must use the compact real Documents crop until real mobile review exists');
+assert.ok(!app.includes('/assets/product/boekuna-documents-workflow-crop.webp\\" width=\\"680\\" height=\\"425\\" alt=\\"Gerichte crop'),'Homepage must not render the former dominant Documents workflow crop');
+assert.ok(!app.includes('data-kz-tab=\\"rapportages\\"'),'Homepage product tabs must stay limited to Facturen, Documenten and Btw');
+for(const key of ['facturen','documenten','btw'])assert.ok(app.includes('data-kz-tab=\\"'+key+'\\"'),`Homepage product tab missing: ${key}`);
 assert.ok(!app.includes('Dit is geen desktopmockup in een telefoonframe'),'Technical mockup disclaimer must not appear in commercial copy');
 assert.ok(!app.includes('OCR-reviewcapture beschikbaar'),'Internal capture-status language must never leak into marketing copy');
-const homepageProductImages=[...app.matchAll(/src=\\"\/assets\/product\/([^\\"]+)/g)].map(m=>m[1]);
-assert.ok(homepageProductImages.length<=6,`Homepage may contain at most six product visuals, found ${homepageProductImages.length}`);
+const homeStart=app.indexOf("if(page==='home'){"),homeEnd=app.indexOf("}else if(page==='features')",homeStart),home=app.slice(homeStart,homeEnd);
+const homepageProductImages=[...home.matchAll(/src="\\/assets\\/product\\/([^"]+)/g)].map(m=>m[1]);
+assert.ok(homepageProductImages.length<=6,`Homepage may contain at most six rendered product visuals, found ${homepageProductImages.length}`);
+assert.equal(homepageProductImages.filter(x=>x==='boekuna-dashboard-mobile.webp').length,2,'Dashboard mobile may appear only in hero and desktop/mobile composition');
 assert.ok(!homepageProductImages.includes('boekuna-dashboard-desktop.webp'),'Homepage must not load the full Dashboard master');
 assert.ok(!homepageProductImages.includes('boekuna-documents-desktop.webp'),'Homepage must not load the full Documents master');
+assert.ok(!homepageProductImages.includes('boekuna-vat-summary-crop.webp'),'Btw desktop crop must not be pre-rendered as a separate homepage visual');
+assert.ok(!homepageProductImages.includes('boekuna-reports-primary-crop.webp'),'Rapportages desktop crop belongs on the feature page, not the homepage');
 
 const pageExpectations={
   'facturen':'boekuna-invoices-list-crop.webp',
