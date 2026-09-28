@@ -87,9 +87,15 @@ let appHtml=original
   .replace("const DOCUMENT_PROCESSOR_URL='https://kwinest-docprocessor.onrender.com';",`const DOCUMENT_PROCESSOR_URL='${processorBase}';`);
 appHtml=replaceLast(appHtml,'initAuth();',`
 currentUser=TEST_USER;
-state=structuredClone(DEFAULT);
-for(const key of ['contacts','services','invoices','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])state[key]=[];
-state.company={...state.company,name:'QA PDF BV',tradeName:'Boekuna PDF QA',contactName:'QA',email:'qa-pdf@example.test',phone:'0100000000',address:'Teststraat 1',postal:'3011AA',city:'Rotterdam',country:'Nederland',kvk:'12345678',vat:'NL123456789B01',iban:'NL91ABNA0417164300',invoicePrefix:'2026-',paymentDays:14,kor:false};
+const stored=localStorage.getItem(userDataKey());
+if(stored){
+  state=normalizeState(JSON.parse(stored));
+}else{
+  state=structuredClone(DEFAULT);
+  for(const key of ['contacts','services','invoices','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])state[key]=[];
+  state.company={...state.company,name:'QA PDF BV',tradeName:'Boekuna PDF QA',contactName:'QA',email:'qa-pdf@example.test',phone:'0100000000',address:'Teststraat 1',postal:'3011AA',city:'Rotterdam',country:'Nederland',kvk:'12345678',vat:'NL123456789B01',iban:'NL91ABNA0417164300',invoicePrefix:'2026-',paymentDays:14,kor:false};
+  localStorage.setItem(userDataKey(),JSON.stringify(state));
+}
 enterApp();
 `);
 
@@ -186,8 +192,43 @@ try{
     const preSave=await page.evaluate(()=>({valid:document.getElementById('pdfImportForm')?.checkValidity()||false,bad:Number(pendingPdfImport?.parsed?.recognitionBad||0),warn:Number(pendingPdfImport?.parsed?.recognitionWarn||0)}));
     assert.equal(preSave.valid,true,'QA-PDF-02 review form must be valid before save');
     await page.evaluate(()=>savePdfInvoiceImport());
-    const saved=await page.evaluate(()=>({documents:state.documents.length,expenses:state.expenses.length,invoiceNumber:state.expenses[0]?.invoiceNumber,gross:state.expenses[0]?expenseGross(state.expenses[0]):null}));
-    assert.deepEqual(saved,{documents:1,expenses:1,invoiceNumber:'QA-PDF-02-001',gross:121});
+    const saved=await page.evaluate(()=>({
+      documents:state.documents.length,
+      expenses:state.expenses.length,
+      invoiceNumber:state.expenses[0]?.invoiceNumber,
+      exVat:state.expenses[0]?.exVat,
+      vatAmount:state.expenses[0]?.vatAmount,
+      gross:state.expenses[0]?expenseGross(state.expenses[0]):null,
+      vatLines:state.expenses[0]?.vatLines,
+      linkedId:state.documents[0]?.linkedId,
+      verificationPass1:state.documents[0]?.verification?.pass1
+    }));
+    assert.deepEqual(saved,{
+      documents:1,expenses:1,invoiceNumber:'QA-PDF-02-001',exVat:100,vatAmount:21,gross:121,
+      vatLines:[{rate:21,taxableAmount:100,vatAmount:21}],
+      linkedId:saved.linkedId,
+      verificationPass1:saved.verificationPass1
+    });
+    assert.equal(saved.verificationPass1?.net,100);
+    assert.equal(saved.verificationPass1?.vatAmount,21);
+    assert.equal(saved.verificationPass1?.gross,121);
+
+    // Independent 03A persistence check: a full browser reload must restore
+    // the exact confirmed financial snapshot, not recalculate or rewrite it.
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>state?.expenses?.length===1&&state?.documents?.length===1);
+    const reopened=await page.evaluate(()=>({
+      documents:state.documents.length,
+      expenses:state.expenses.length,
+      invoiceNumber:state.expenses[0]?.invoiceNumber,
+      exVat:state.expenses[0]?.exVat,
+      vatAmount:state.expenses[0]?.vatAmount,
+      gross:state.expenses[0]?expenseGross(state.expenses[0]):null,
+      vatLines:state.expenses[0]?.vatLines,
+      linkedId:state.documents[0]?.linkedId,
+      verificationPass1:state.documents[0]?.verification?.pass1
+    }));
+    assert.deepEqual(reopened,saved,'Saved document financial data must be byte-for-byte equivalent after browser reopen');
     assert.deepEqual(errors,[],'QA-PDF-02 browser errors: '+errors.join(' | '));
     await page.close();
   }
