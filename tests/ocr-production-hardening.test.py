@@ -115,6 +115,18 @@ def test_ocr_singleton_reuses_one_model_instance():
         processor._OCR_ENGINE_ERROR = old_error
 
 
+def test_ocr_working_resolution_caps_high_resolution_input():
+    img = Image.new("RGB", (3200, 4600), "white")
+    prepared = processor.prepare_ocr_image(img)
+    try:
+        assert max(prepared.size) == processor.OCR_WORKING_MAX_SIDE == 1800
+        assert prepared.size[0] < img.size[0]
+        assert prepared.size[1] < img.size[1]
+    finally:
+        prepared.close()
+        img.close()
+
+
 def test_image_dimension_limit_is_checked_before_ocr():
     raw = _png_bytes((20, 20))
     old_limit = processor.MAX_IMAGE_PIXELS
@@ -241,21 +253,28 @@ def test_high_resolution_receipt_stays_within_guard_and_runs_real_ppocrv6():
     for line, line_font in lines:
         draw.text((180, y), line, fill="black", font=line_font)
         y += 330
+    encoded = io.BytesIO()
+    image.save(encoded, format="JPEG", quality=92)
+    raw = encoded.getvalue()
+    image.close()
+    del image
     rss_before = _rss_mb()
     started = time.perf_counter()
-    result = processor.run_best_ocr(image)
+    doc = processor.extract_document("high-res-receipt.jpg", "image/jpeg", raw)
     elapsed_ms = (time.perf_counter() - started) * 1000
     rss_after = _rss_mb()
-    assert "121" in result["text"]
-    assert result["model"] == "PP-OCRv6-small"
+    page = doc["pages"][0]
+    assert "121" in doc["text"]
+    assert doc["ocrModel"] == "PP-OCRv6-small"
+    assert doc["processingHints"]["ocrVariant"] in {"normalized-color", "enhanced-grayscale"}
     memory_text = (
         f" rss_before_mb={rss_before:.2f} rss_after_mb={rss_after:.2f}"
         if rss_before is not None and rss_after is not None else ""
     )
     print(
         f"PERF high_res_receipt_ms={elapsed_ms:.2f} "
-        f"confidence={float(result.get('confidence') or 0):.4f} "
-        f"chars={len(result['text'])}{memory_text}"
+        f"confidence={float(page.get('ocrConfidence') or 0):.4f} "
+        f"chars={len(doc['text'])}{memory_text}"
     )
 
 
@@ -304,6 +323,7 @@ if __name__ == "__main__":
         test_v3_adapter_maps_boxes_text_and_confidence_in_reading_order,
         test_v3_adapter_accepts_empty_result_but_rejects_malformed_contract,
         test_ocr_singleton_reuses_one_model_instance,
+        test_ocr_working_resolution_caps_high_resolution_input,
         test_image_dimension_limit_is_checked_before_ocr,
         test_mime_extension_mismatch_is_rejected,
         test_corrupt_image_is_rejected_safely,
