@@ -56,6 +56,10 @@ jobs:
         run: pip install --disable-pip-version-check -r kwinest/docprocessor/requirements.txt
       - name: PDF document processor regression
         run: python tests/document-processor-pdf.test.py
+      - name: 03A issue 20 real mixed processor
+        run: python tests/qa-issue20-real-processor.py
+      - name: 03A issue 20 browser E2E
+        run: node tests/qa-issue20-browser.mjs
       - name: Real Dutch document regressions
         run: python tests/test_document_processor_regression.py
       - name: Document error contract regression
