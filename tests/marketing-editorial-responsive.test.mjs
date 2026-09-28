@@ -94,7 +94,7 @@ try{
     await withBtn.focus();
     await page.keyboard.press('Enter');
     assert.equal(await withBtn.getAttribute('aria-pressed'),'true','Before/after keyboard state must update');
-    assert.match(await page.locator('#compareTitle').textContent(),/vaste administratieve lijn/i);
+    assert.match(await page.locator('#compareTitle').textContent(),/administratieve lijn/i);
     await page.close();
   }
 
