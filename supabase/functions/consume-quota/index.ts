@@ -16,7 +16,13 @@ const newReferenceId=()=>{
 const sanitize=(value:any,n=400)=>String(value??"")
   .replace(/Bearer\s+[A-Za-z0-9._~+\-/=]+/gi,"Bearer [REDACTED]")
   .replace(/\b(?:sk(?:[-_](?:live|test|proj))?|sb_secret|sb_publishable)[-_][A-Za-z0-9_-]+\b/gi,"[REDACTED_KEY]")
+  .replace(/(authorization|api[_-]?key|token|secret)\s*[:=]\s*[^\s,;]+/gi,"$1=[REDACTED]")
   .slice(0,n);
+const safeContext=(value:any)=>{
+  const out:any={};if(!value||typeof value!=="object")return out;
+  for(const k of ["retry_after_seconds","monthly_limit","remaining"])if(value[k]!==undefined)out[k]=value[k];
+  return out;
+};
 const fail=(code:string,status:number,internal:any={})=>{
   const spec=ERROR_META[code]||ERROR_META.UNKNOWN,reference_id=newReferenceId();
   console.error(JSON.stringify({
@@ -25,7 +31,7 @@ const fail=(code:string,status:number,internal:any={})=>{
     provider_status:internal.provider_status??null,provider_code:sanitize(internal.provider_code,120)||null,
     internal_error:sanitize(internal.internal_error)||null,user_ref:internal.user_ref||null,
   }));
-  return new Response(JSON.stringify({ok:false,error:{code,category:spec.category,retryable:spec.retryable,reference_id,context:internal.context||{},state:"no_changes"}}),{
+  return new Response(JSON.stringify({ok:false,error:{code,category:spec.category,retryable:spec.retryable,reference_id,context:safeContext(internal.context),state:"no_changes"}}),{
     status,headers:{"content-type":"application/json","cache-control":"no-store"}
   });
 };
