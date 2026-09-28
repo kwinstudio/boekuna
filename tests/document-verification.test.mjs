@@ -138,11 +138,13 @@ try{
   const vatPersistence=await page.evaluate(()=>({
     single:trustedVatLinesForImport({mixedRates:false,vatLines:[{rate:21,taxableAmount:3.63,vatAmount:4.39}]},100,21,21),
     mixedGood:trustedVatLinesForImport({mixedRates:true,vatLines:[{rate:9,taxableAmount:100,vatAmount:9},{rate:21,taxableAmount:100,vatAmount:21}]},200,30,0),
-    mixedBad:trustedVatLinesForImport({mixedRates:true,vatLines:[{rate:9,taxableAmount:100,vatAmount:9},{rate:21,taxableAmount:90,vatAmount:21}]},200,30,0)
+    mixedBad:trustedVatLinesForImport({mixedRates:true,vatLines:[{rate:9,taxableAmount:100,vatAmount:9},{rate:21,taxableAmount:90,vatAmount:21}]},200,30,0),
+    zeroRateConflict:trustedVatLinesForImport({mixedRates:false,vatLines:[]},100,21,0)
   }));
   assert.deepEqual(vatPersistence.single,{ok:true,lines:[{rate:21,taxableAmount:100,vatAmount:21}]},'Single-rate VAT groups must come from confirmed headline values');
   assert.equal(vatPersistence.mixedGood.ok,true,'A cent-exact mixed VAT split may be persisted');
   assert.equal(vatPersistence.mixedBad.ok,false,'A mixed VAT split that does not reconcile must be blocked');
+  assert.equal(vatPersistence.zeroRateConflict.ok,false,'0% may not be stored when the confirmed VAT amount is non-zero');
 
   // Relevant financial disagreement: store both values and flag, never choose one automatically.
   await putDoc('mismatch',pendingVerification(base));
