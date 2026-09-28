@@ -172,6 +172,17 @@ async function saveWebp(page,name,{quality=84,resizeWidth=null,clip=null}={}){
   return {name,width:meta.width,height:meta.height,size:fs.statSync(target).size};
 }
 
+async function saveDerivedCrop(masterName,name,extract,resizeWidth,{quality=86}={}){
+  const sourcePath=path.join(outDir,masterName);
+  const target=path.join(outDir,name);
+  let img=sharp(sourcePath).extract(extract);
+  if(resizeWidth)img=img.resize({width:resizeWidth,withoutEnlargement:true});
+  await img.webp({quality,smartSubsample:true}).toFile(target);
+  const meta=await sharp(target).metadata();
+  assert.ok((meta.width||0)>0&&(meta.height||0)>0,name+' must be a valid derived WebP');
+  return {name,width:meta.width,height:meta.height,size:fs.statSync(target).size,derivedFrom:masterName,extract};
+}
+
 async function marketingCaptureAccessToken(){
   if(!CAPTURE_EMAIL||!CAPTURE_PASSWORD)return '';
   const url=(source.match(/const SUPABASE_URL='([^']+)'/)||[])[1];
@@ -307,6 +318,19 @@ try{
   await page.waitForTimeout(180);
   assertSafeVisibleText(await page.locator('body').innerText(),'dashboard-mobile');
   assets.push(await saveWebp(page,'boekuna-dashboard-mobile.webp',{quality:86}));
+
+  // Editorial crops: pixels are only removed from the unchanged real master captures.
+  // Coordinates are tied to the stable 1440×960 QA viewport above.
+  assets.push(await saveDerivedCrop('boekuna-dashboard-desktop.webp','boekuna-dashboard-overview-crop.webp',{left:170,top:0,width:1270,height:715},1120));
+  assets.push(await saveDerivedCrop('boekuna-dashboard-desktop.webp','boekuna-dashboard-action-center-crop.webp',{left:500,top:270,width:880,height:660},650));
+  assets.push(await saveDerivedCrop('boekuna-invoices-desktop.webp','boekuna-invoices-list-crop.webp',{left:250,top:70,width:1170,height:720},760));
+  assets.push(await saveDerivedCrop('boekuna-documents-desktop.webp','boekuna-documents-upload-crop.webp',{left:250,top:70,width:1170,height:720},760));
+  assets.push(await saveDerivedCrop('boekuna-documents-desktop.webp','boekuna-documents-workflow-crop.webp',{left:330,top:235,width:1040,height:650},680));
+  assets.push(await saveDerivedCrop('boekuna-vat-desktop.webp','boekuna-vat-summary-crop.webp',{left:250,top:70,width:1170,height:720},760));
+  assets.push(await saveDerivedCrop('boekuna-reports-desktop.webp','boekuna-reports-primary-crop.webp',{left:250,top:70,width:1170,height:720},760));
+  assets.push(await saveDerivedCrop('boekuna-contacts-desktop.webp','boekuna-contacts-list-crop.webp',{left:250,top:70,width:1170,height:650},760));
+  assets.push(await saveDerivedCrop('boekuna-services-desktop.webp','boekuna-services-list-crop.webp',{left:250,top:70,width:1170,height:650},760));
+  assets.push(await saveDerivedCrop('boekuna-company-settings-desktop.webp','boekuna-company-settings-group-crop.webp',{left:250,top:70,width:1170,height:820},760));
 
   assert.deepEqual(pageErrors,[],'Browser page errors: '+pageErrors.join(' | '));
 

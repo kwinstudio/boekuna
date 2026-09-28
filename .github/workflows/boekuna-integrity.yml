@@ -10,8 +10,8 @@ on:
       - "kwinest/**"
       - "tests/**"
       - "supabase/functions/send-invoice/**"
-      - "supabase/functions/analyze-invoice/**"
       - "supabase/functions/consume-quota/**"
+      - "supabase/functions/analyze-invoice/**"
       - ".github/workflows/boekuna-integrity.yml"
 
 permissions:
@@ -64,6 +64,8 @@ jobs:
         run: node tests/marketing-pages.test.mjs
       - name: Real marketing product screenshots
         run: node tests/marketing-product-proof.test.mjs
+      - name: Editorial marketing responsive screenshots
+        run: node tests/marketing-editorial-responsive.test.mjs
 
       - name: Billing subscription regressions
         run: node tests/billing-source.test.mjs
