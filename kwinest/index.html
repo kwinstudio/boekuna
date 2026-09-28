@@ -1857,7 +1857,7 @@ img.bookuna-logo-icon,
 .kz-workflow-inner{max-width:1200px;margin:auto;padding:0 22px}
 .kz-workflow-combo{display:grid;grid-template-columns:minmax(260px,.8fr) minmax(0,1.2fr);gap:64px;align-items:center}
 .kz-workflow-media{min-height:500px;border-radius:24px;background:#EEF5F1;display:grid;place-items:center;padding:30px}
-.kz-workflow-media .product-mobile{width:min(280px,100%);margin:0}
+.kz-workflow-doc-proof{width:min(520px,100%);margin:0;box-shadow:0 5px 18px rgba(20,43,51,.035)}
 .kz-human-benefit{padding-top:92px;padding-bottom:92px}
 .kz-human-benefit .kz-benefit-copy{max-width:620px}
 .kz-more-grip{padding-top:92px;padding-bottom:92px}
@@ -1903,7 +1903,7 @@ img.bookuna-logo-icon,
   .kz-product-stage-compact .product-crop{width:100%;max-width:100%}
   .kz-workflow{padding:62px 0}
   .kz-workflow-media{min-height:390px;padding:20px}
-  .kz-workflow-media .product-mobile,.kz-mobile-composition .product-mobile{width:min(280px,100%)}
+  .kz-workflow-doc-proof{width:100%;max-width:520px}.kz-mobile-composition .product-mobile{width:min(280px,100%)}
   .kz-human-benefit,.kz-more-grip{padding-top:64px;padding-bottom:64px}
   .kz-mobile-composition{min-height:auto;padding:8px 0 26px}
 }
@@ -2538,8 +2538,8 @@ function showMarketingPage(page='home'){
         <div class="kz-real-workflow-step"><strong>4. Opslaan</strong><span>Pas na jouw controle wordt de boeking aan de administratie gekoppeld.</span></div>
       </div>
       <div class="kz-workflow-media">
-        <!-- 09 receipt-scanning human photo slot pending. -->
-        <figure class="product-mobile"><img src="/assets/product/boekuna-documents-mobile.webp" width="390" height="844" alt="Echte Boekuna Documenten-interface op mobiel met uploadacties en documentstatussen" loading="lazy" decoding="async"></figure>
+        <!-- 09 receipt-scanning human photo slot pending. Until the real mobile OCR review exists, use only this compact real Documents crop. -->
+        <figure class="product-crop kz-workflow-doc-proof" style="--product-max:520px"><img src="/assets/product/boekuna-documents-upload-crop.webp" width="760" height="468" alt="Gerichte crop uit het echte Boekuna Documenten-overzicht met uploadacties en documentstatussen" loading="lazy" decoding="async"></figure>
       </div>
     </div>
   </div>
