@@ -532,12 +532,20 @@ def generic_invoice_date(lines:list[str])->tuple[str|None,float]:
 
 def table_vat_groups(doc:dict)->list[VatLine]:
     groups={}
+    summary_terms=re.compile(r"\b(?:belastbaar|taxable|grondslag|maatstaf|tax\s*base|btw\s*(?:grondslag|basis|bedrag)|vat\s*(?:base|amount)|tax\s*(?:base|amount))\b",re.I)
+    summary_prefix=re.compile(r"^\s*(?:(?:btw|vat|tax)\s*(?:tarief\s*)?(?:0|9|21)(?:[.,]0+)?\s*%|(?:0|9|21)(?:[.,]0+)?\s*%\s*(?:btw|vat|tax))\b",re.I)
     for table in (doc.get("tables") or [])[:30]:
         for row in (table.get("rows") or [])[:220]:
             cells=[norm_text(str(c or "")) for c in row]
             joined=" | ".join(cells)
             rm=re.search(r"\b(0|9|21)(?:[.,]0+)?\s*%",joined,re.I)
             if not rm:continue
+            # A product/service row with a VAT percentage is not a VAT summary.
+            # Persisting the last line item per rate would create silently wrong
+            # taxable bases on mixed-rate invoices. Ambiguous tables therefore
+            # fall back to explicit text summaries or manual review.
+            if not (summary_terms.search(joined) or summary_prefix.search(joined)):
+                continue
             rate=float(rm.group(1))
             vals=[]
             for cell in cells:
