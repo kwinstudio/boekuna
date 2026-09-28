@@ -1,0 +1,58 @@
+name: Boekuna real product marketing captures
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "tests/marketing-capture.mjs"
+      - ".github/workflows/marketing-product-captures.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: boekuna-marketing-product-captures
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install capture dependencies
+        run: |
+          npm ci --prefix tests --ignore-scripts
+          npm install --prefix tests --no-save playwright@1.56.1 sharp@0.33.5
+          ./tests/node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Capture real Boekuna product UI
+        run: node tests/marketing-capture.mjs
+
+      - name: Verify required assets
+        run: |
+          for f in             boekuna-dashboard-desktop.webp             boekuna-document-review-desktop.webp             boekuna-invoices-desktop.webp             boekuna-documents-desktop.webp             boekuna-vat-desktop.webp             boekuna-contacts-desktop.webp             boekuna-services-desktop.webp             boekuna-company-settings-desktop.webp             boekuna-dashboard-mobile.webp             boekuna-document-review-mobile.webp; do
+            test -s "public/assets/product/$f" || { echo "Missing $f"; exit 1; }
+          done
+          test -s public/assets/product/capture-proof.json
+
+      - name: Commit generated product screenshots
+        run: |
+          if git diff --quiet -- public/assets/product/ && [ -z "$(git ls-files --others --exclude-standard public/assets/product/)" ]; then
+            echo "No screenshot changes."
+            exit 0
+          fi
+          git config user.name "boekuna-qa-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/assets/product/
+          git commit -m "Add real Boekuna product marketing screenshots [skip ci]"
+          git push origin HEAD:main
