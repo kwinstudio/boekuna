@@ -1605,8 +1605,15 @@ def validate_result(r:ExtractionResult,company:dict)->ExtractionResult:
         r.confidence["vatLines"]=min(r.confidence.get("vatLines",.35),.35)
     if a.vatLines:
         known_cents=sum((money_cents(v.vatAmount) or 0) for v in a.vatLines if v.vatAmount is not None)
+        taxable_cents=sum((money_cents(v.taxableAmount) or 0) for v in a.vatLines if v.taxableAmount is not None)
         if a.vatTotal is not None and known_cents!=money_cents(a.vatTotal):
             w.append("Som van btw-groepen wijkt cent-exact af van totaal btw.")
+            r.confidence["vatLines"]=min(r.confidence.get("vatLines",.5),.55)
+        if mixed_rates and len({float(v.rate) for v in a.vatLines})<2:
+            w.append("Document bevat meerdere btw-tarieven, maar de opgeslagen btw-groepen dekken niet alle tarieven.")
+            r.confidence["vatLines"]=min(r.confidence.get("vatLines",.5),.55)
+        if mixed_rates and a.subtotal is not None and taxable_cents!=money_cents(a.subtotal):
+            w.append("Som van belastbare grondslagen wijkt cent-exact af van netto totaal.")
             r.confidence["vatLines"]=min(r.confidence.get("vatLines",.5),.55)
         for v in a.vatLines:
             if v.rate not in {0,9,21} and not (0<=v.rate<=30):
@@ -1755,24 +1762,44 @@ def reconcile(primary:ExtractionResult,heuristic:ExtractionResult)->ExtractionRe
         if getattr(p.amounts,field) is None and getattr(h.amounts,field) is not None and h.confidence.get(key,0)>=.8:
             setattr(p.amounts,field,getattr(h.amounts,field));p.confidence[key]=h.confidence.get(key,.8)
 
-    # If deterministic extraction has a proven VAT-group source and the AI agrees
-    # on the primary money trio, always keep the deterministic VAT groups. This
-    # prevents plausible-looking AI/OCR vatLines from replacing validated truth.
+    # A fully reconciled mixed-rate structure is deterministic financial proof:
+    # explicit line-table bases + explicit per-rate VAT summaries + document
+    # totals all agree cent-exactly. AI may not override that structure.
+    h_mixed=(h.processing or {}).get("mixedVatEvidence") or {}
     h_vat_source=(h.processing or {}).get("vatLineSource")
-    money_agrees=all(
-        getattr(p.amounts,field) is not None
-        and getattr(h.amounts,field) is not None
-        and money_cents(getattr(p.amounts,field))==money_cents(getattr(h.amounts,field))
-        for field in ("subtotal","vatTotal","total")
-    )
-    trusted_vat_source=h_vat_source in {"validated-primary-totals","explicit-vat-table","explicit-vat-text"}
-    if trusted_vat_source and h.amounts.vatLines and money_agrees:
+    if h_mixed.get("verified") and h_vat_source=="validated-mixed-rate-groups" and len(h.amounts.vatLines)>=2:
+        for field,key in [("subtotal","subtotal"),("vatTotal","vatTotal"),("total","total")]:
+            hv=getattr(h.amounts,field)
+            if hv is not None:
+                setattr(p.amounts,field,hv)
+                p.confidence[key]=max(p.confidence.get(key,0),h.confidence.get(key,.99))
         p.amounts.vatLines=[v.model_copy(deep=True) for v in h.amounts.vatLines]
-        p.confidence["vatLines"]=max(p.confidence.get("vatLines",0),h.confidence.get("vatLines",.9))
-        p.processing={**(p.processing or {}),"vatLineSource":h_vat_source,"vatGroupSource":"deterministic-validated"}
-    elif not p.amounts.vatLines and h.amounts.vatLines:
-        p.amounts.vatLines=[v.model_copy(deep=True) for v in h.amounts.vatLines]
-        p.confidence["vatLines"]=h.confidence.get("vatLines",p.confidence.get("vatLines",.8))
+        p.confidence["vatLines"]=max(p.confidence.get("vatLines",0),h.confidence.get("vatLines",.99))
+        p.processing={
+            **(p.processing or {}),
+            "amountDerivation":{**((p.processing or {}).get("amountDerivation") or {}),"mixedRates":True},
+            "mixedVatEvidence":h_mixed,
+            "vatLineSource":h_vat_source,
+            "vatGroupSource":"deterministic-validated",
+        }
+    else:
+        # Other trusted VAT-group sources replace AI groups only when the primary
+        # money trio agrees, preventing plausible-looking AI/OCR subdata from
+        # replacing validated truth.
+        money_agrees=all(
+            getattr(p.amounts,field) is not None
+            and getattr(h.amounts,field) is not None
+            and money_cents(getattr(p.amounts,field))==money_cents(getattr(h.amounts,field))
+            for field in ("subtotal","vatTotal","total")
+        )
+        trusted_vat_source=h_vat_source in {"validated-primary-totals","explicit-vat-table","explicit-vat-text"}
+        if trusted_vat_source and h.amounts.vatLines and money_agrees:
+            p.amounts.vatLines=[v.model_copy(deep=True) for v in h.amounts.vatLines]
+            p.confidence["vatLines"]=max(p.confidence.get("vatLines",0),h.confidence.get("vatLines",.9))
+            p.processing={**(p.processing or {}),"vatLineSource":h_vat_source,"vatGroupSource":"deterministic-validated"}
+        elif not p.amounts.vatLines and h.amounts.vatLines:
+            p.amounts.vatLines=[v.model_copy(deep=True) for v in h.amounts.vatLines]
+            p.confidence["vatLines"]=h.confidence.get("vatLines",p.confidence.get("vatLines",.8))
 
     hblocks=(h.processing or {}).get("financialBlocks") or {}
     if hblocks.get("verified") and h.adjustments:
