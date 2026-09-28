@@ -83,6 +83,7 @@ MAX_SIZE_MB = max(1, MAX_BYTES // 1024 // 1024)
 MAX_PDF_PAGES = int(os.getenv("MAX_PDF_PAGES", "50"))
 MAX_IMAGE_PIXELS = int(os.getenv("MAX_IMAGE_PIXELS", "40000000"))
 MAX_IMAGE_SIDE = int(os.getenv("MAX_IMAGE_SIDE", "12000"))
+OCR_WORKING_MAX_SIDE = int(os.getenv("OCR_WORKING_MAX_SIDE", "1800"))
 Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 SUPPORTED_IMAGE_EXTENSIONS = frozenset({".jpg",".jpeg",".png",".webp",".heic",".heif",".tif",".tiff",".bmp",".gif"})
 SUPPORTED_IMAGE_MIME_TYPES = frozenset({"image/jpeg","image/png","image/webp","image/heic","image/heif","image/tiff","image/bmp","image/gif"})
@@ -823,7 +824,7 @@ def get_ocr_engine():
         # and uses the explicitly pinned ONNX Runtime CPU backend.
         _OCR_ENGINE = RapidOCR(params={
             "Global.text_score": 0.30,
-            "Global.max_side_len": 2600,
+            "Global.max_side_len": OCR_WORKING_MAX_SIDE,
             "Global.min_side_len": 30,
             "Global.use_preprocess_img": True,
             "Global.log_level": "warning",
@@ -835,16 +836,24 @@ def get_ocr_engine():
     return _OCR_ENGINE
 
 def prepare_ocr_image(img: Image.Image) -> Image.Image:
-    img = ImageOps.exif_transpose(img).convert("RGB")
-    w,h = img.size
+    oriented = ImageOps.exif_transpose(img)
+    rgb = oriented.convert("RGB")
+    if oriented is not img:
+        try: oriented.close()
+        except Exception: pass
+    w,h = rgb.size
     longest=max(w,h)
-    if longest < 1800:
-        scale=min(2.2,1800/max(1,longest))
-        img=img.resize((max(1,int(w*scale)),max(1,int(h*scale))),Image.Resampling.LANCZOS)
-    elif longest > 4200:
-        scale=4200/longest
-        img=img.resize((max(1,int(w*scale)),max(1,int(h*scale))),Image.Resampling.LANCZOS)
-    return img
+    if longest < OCR_WORKING_MAX_SIDE:
+        scale=min(2.2,OCR_WORKING_MAX_SIDE/max(1,longest))
+        resized=rgb.resize((max(1,int(w*scale)),max(1,int(h*scale))),Image.Resampling.LANCZOS)
+        rgb.close()
+        return resized
+    if longest > OCR_WORKING_MAX_SIDE:
+        scale=OCR_WORKING_MAX_SIDE/longest
+        resized=rgb.resize((max(1,int(w*scale)),max(1,int(h*scale))),Image.Resampling.LANCZOS)
+        rgb.close()
+        return resized
+    return rgb
 
 def enhanced_receipt_variant(img: Image.Image) -> Image.Image:
     gray=ImageOps.autocontrast(ImageOps.grayscale(img), cutoff=1)
@@ -853,7 +862,11 @@ def enhanced_receipt_variant(img: Image.Image) -> Image.Image:
     return gray.convert("RGB")
 
 def ocr_rows(engine: Any, img: Image.Image) -> list[dict[str,Any]]:
-    result=engine(np.asarray(img))
+    arr=np.asarray(img)
+    try:
+        result=engine(arr)
+    finally:
+        del arr
     txts=getattr(result,"txts",None)
     scores=getattr(result,"scores",None)
     boxes=getattr(result,"boxes",None)
@@ -927,47 +940,61 @@ def targeted_financial_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any)-
     if crop.height<720:
         scale=min(2.0,720/max(1,crop.height))
         crop=crop.resize((max(1,int(crop.width*scale)),max(1,int(crop.height*scale))),Image.Resampling.LANCZOS)
-    focus_rows=ocr_rows(engine,enhanced_receipt_variant(crop))
+    enhanced=enhanced_receipt_variant(crop)
+    try:
+        focus_rows=ocr_rows(engine,enhanced)
+    finally:
+        enhanced.close()
+        crop.close()
     text="\n".join(r["text"] for r in focus_rows)
     if len(MONEY_RE.findall(text))<1:
         return {"text":"","rows":[],"confidence":None,"used":False}
     confs=[float(r.get("confidence") or 0) for r in focus_rows]
     return {"text":text,"rows":focus_rows,"confidence":sum(confs)/len(confs) if confs else None,"used":True}
 
-def run_best_ocr(img:Image.Image) -> dict[str,Any]:
+def run_best_ocr(img:Image.Image, *, already_prepared:bool=False) -> dict[str,Any]:
     engine=get_ocr_engine()
     if not engine:
         raise RuntimeError(_OCR_ENGINE_ERROR or "OCR-engine is niet beschikbaar")
-    primary=prepare_ocr_image(img)
-    rows1=ocr_rows(engine,primary)
-    score1=ocr_candidate_score(rows1)
-    text1="\n".join(r["text"] for r in rows1)
-    conf1=sum(float(r.get("confidence") or 0) for r in rows1)/len(rows1) if rows1 else 0
-    money1=len(MONEY_RE.findall(text1))
-    keywords1=bool(re.search(r"\b(?:totaal|total|te betalen|amount due)\b",text1,re.I))
-    best_rows,best_score,best_variant=rows1,score1,"normalized-color"
-    # A second pass is only run when the first pass looks weak. This avoids doubling
-    # CPU on clear receipts but helps low contrast, shadows and thermal paper.
-    if conf1 < .90 or len(re.sub(r"\s+","",text1)) < 220 or money1 < 2 or not keywords1:
-        rows2=ocr_rows(engine,enhanced_receipt_variant(primary))
-        score2=ocr_candidate_score(rows2)
-        if score2 > best_score + .5:
-            best_rows,best_score,best_variant=rows2,score2,"enhanced-grayscale"
-    text="\n".join(r["text"] for r in best_rows)
-    confs=[float(r.get("confidence") or 0) for r in best_rows]
-    focus=targeted_financial_ocr(primary,best_rows,engine)
-    return {
-        "text":text,
-        "rows":best_rows,
-        "confidence":sum(confs)/len(confs) if confs else None,
-        "variant":best_variant,
-        "qualityScore":round(best_score,2),
-        "financialText":focus.get("text") or "",
-        "financialFocusUsed":bool(focus.get("used")),
-        "financialConfidence":focus.get("confidence"),
-        "engine":"RapidOCR 3 / ONNX",
-        "model":OCR_MODEL_NAME,
-    }
+    primary=img if already_prepared else prepare_ocr_image(img)
+    owns_primary=not already_prepared
+    try:
+        rows1=ocr_rows(engine,primary)
+        score1=ocr_candidate_score(rows1)
+        text1="\n".join(r["text"] for r in rows1)
+        conf1=sum(float(r.get("confidence") or 0) for r in rows1)/len(rows1) if rows1 else 0
+        money1=len(MONEY_RE.findall(text1))
+        keywords1=bool(re.search(r"\b(?:totaal|total|te betalen|amount due)\b",text1,re.I))
+        best_rows,best_score,best_variant=rows1,score1,"normalized-color"
+        # A second pass is only run when the first pass looks weak. This avoids doubling
+        # CPU on clear receipts but helps low contrast, shadows and thermal paper.
+        if conf1 < .90 or len(re.sub(r"\s+","",text1)) < 220 or money1 < 2 or not keywords1:
+            enhanced=enhanced_receipt_variant(primary)
+            try:
+                rows2=ocr_rows(engine,enhanced)
+            finally:
+                enhanced.close()
+            score2=ocr_candidate_score(rows2)
+            if score2 > best_score + .5:
+                best_rows,best_score,best_variant=rows2,score2,"enhanced-grayscale"
+        text="\n".join(r["text"] for r in best_rows)
+        confs=[float(r.get("confidence") or 0) for r in best_rows]
+        focus=targeted_financial_ocr(primary,best_rows,engine)
+        return {
+            "text":text,
+            "rows":best_rows,
+            "confidence":sum(confs)/len(confs) if confs else None,
+            "variant":best_variant,
+            "qualityScore":round(best_score,2),
+            "financialText":focus.get("text") or "",
+            "financialFocusUsed":bool(focus.get("used")),
+            "financialConfidence":focus.get("confidence"),
+            "engine":"RapidOCR 3 / ONNX",
+            "model":OCR_MODEL_NAME,
+        }
+    finally:
+        if owns_primary:
+            primary.close()
 
 def extract_pdf(raw:bytes) -> dict[str,Any]:
     try:
@@ -1013,9 +1040,12 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
                         internal_code="PDF_RASTER_DIMENSION_LIMIT",
                     )
                 pix=page.get_pixmap(matrix=fitz.Matrix(2.45,2.45), alpha=False)
-                img=Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
+                with Image.open(io.BytesIO(pix.tobytes("png"))) as decoded:
+                    img=decoded.convert("RGB")
+                prepared=prepare_ocr_image(img)
+                img.close()
                 try:
-                    best=run_best_ocr(img)
+                    best=run_best_ocr(prepared,already_prepared=True)
                     ocr_text=best["text"]
                     ocr_printable=len(re.sub(r"\s+","",ocr_text))
                     if ocr_printable > max(printable + 30, int(printable * 1.12)):
@@ -1032,6 +1062,8 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
                 except Exception as exc:
                     logger.warning("pdf_ocr_failed page=%d error_type=%s", idx+1, type(exc).__name__)
                     warnings.append(f"Pagina {idx+1} kon niet met OCR worden verwerkt.")
+                finally:
+                    prepared.close()
         pages.append({"page":idx+1,"text":text,"charCount":len(text),"ocr":used_ocr,"ocrConfidence":ocr_conf,"tables":page_tables})
         all_text.append(f"--- PAGE {idx+1} ---\n{text}")
         layout.append({"page":idx+1,"words":page_layout[:2500]})
@@ -1067,10 +1099,14 @@ def extract_image(raw:bytes) -> dict[str,Any]:
         raise BoekunaDocumentError("DOCUMENT_TOO_LARGE",status=413,internal_code="IMAGE_DECOMPRESSION_BOMB",internal_error=type(exc).__name__)
     except Exception as exc:
         raise BoekunaDocumentError("DOCUMENT_IMAGE_UNREADABLE",status=422,internal_code="IMAGE_DECODE_FAILED",internal_error=exc)
+    prepared=prepare_ocr_image(img)
+    img.close()
     try:
-        best=run_best_ocr(img)
+        best=run_best_ocr(prepared,already_prepared=True)
     except Exception as exc:
         raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="OCR_EXECUTION_FAILED",internal_error=exc)
+    finally:
+        prepared.close()
     text=best["text"]
     layout=best["rows"]
     if len(re.sub(r"\s+","",text))<12:
@@ -2103,7 +2139,7 @@ def health():
         "billingQuota":True,
         "version":PROCESSOR_VERSION,
         "revision":PROCESSOR_REVISION,
-        "limits":{"maxSizeMb":MAX_SIZE_MB,"maxPdfPages":MAX_PDF_PAGES,"maxImagePixels":MAX_IMAGE_PIXELS,"maxImageSide":MAX_IMAGE_SIDE},
+        "limits":{"maxSizeMb":MAX_SIZE_MB,"maxPdfPages":MAX_PDF_PAGES,"maxImagePixels":MAX_IMAGE_PIXELS,"maxImageSide":MAX_IMAGE_SIDE,"ocrWorkingMaxSide":OCR_WORKING_MAX_SIDE},
         "supportedExtensions":list(SUPPORTED_DOCUMENT_EXTENSIONS),
         "supportedMimeTypes":list(SUPPORTED_DOCUMENT_MIME_TYPES),
     }
