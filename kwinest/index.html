@@ -1075,45 +1075,91 @@ html,body,#authRoot,.marketing,.main,.content{background:#F8FAFC!important;color
   }
 }
 
-/* Interaction layer */
-.kz-progress{
-  position:fixed;left:0;top:0;height:3px;width:0;z-index:200;
-  background:#08A9C5;transition:width .08s linear;pointer-events:none
+/* Interaction architecture v4 */
+:root{
+  --motion-fast:140ms;
+  --motion-ui:200ms;
+  --motion-content:320ms;
+  --motion-section:440ms;
+  --ease-product:cubic-bezier(.2,.8,.2,1);
 }
-.kz-reveal{opacity:0;transform:translateY(18px);transition:opacity .5s ease,transform .5s ease}
-.kz-reveal.in-view{opacity:1;transform:none}
+.reveal{
+  opacity:0;
+  transform:translateY(14px);
+  transition:opacity var(--motion-section) var(--ease-product),transform var(--motion-section) var(--ease-product)
+}
+.reveal.is-visible{opacity:1;transform:none}
 
-.kz-workflow{background:#F7FAF8;border-top:1px solid #E5ECE8;border-bottom:1px solid #E5ECE8;padding:84px 0}
-.kz-workflow-inner{max-width:1200px;margin:auto;padding:0 22px}
-.kz-workflow-grid{display:grid;grid-template-columns:.78fr 1.22fr;gap:32px;align-items:stretch}
-.kz-workflow-tabs{display:grid;gap:8px}
-.kz-workflow-tab{
-  width:100%;text-align:left;background:#fff;border:1px solid #E1E8E5;border-radius:14px;
-  padding:16px 17px;cursor:pointer;color:#20292E
+#kzProductShell{
+  aspect-ratio:760/468;
+  overflow:hidden;
+  display:grid;
+  place-items:center;
+  background:#fff
 }
-.kz-workflow-tab strong{display:block;font-size:13px}
-.kz-workflow-tab span{display:block;margin-top:4px;color:#65747A;font-size:10px;line-height:1.5}
-.kz-workflow-tab.active{background:#20292E;color:#fff;border-color:#20292E;box-shadow:0 10px 25px rgba(32,41,46,.1)}
-.kz-workflow-tab.active span{color:#C8D0D3}
-.kz-workflow-stage{
-  background:#fff;border:1px solid #E1E8E5;border-radius:20px;min-height:390px;padding:30px;
-  display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;position:relative
+#kzProductShell img{
+  width:100%;height:100%;object-fit:cover;
+  transition:opacity var(--motion-content) var(--ease-product),transform var(--motion-content) var(--ease-product)
 }
-.kz-workflow-stage:after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;right:-80px;top:-80px;background:#F1F8EE}
-.kz-workflow-meta{position:relative;z-index:1}
-.kz-workflow-meta small{color:#078DA7;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.09em}
-.kz-workflow-meta h3{font-size:34px;line-height:1.05;letter-spacing:-.05em;margin:10px 0 10px}
-.kz-workflow-meta p{max-width:600px;color:#526169;font-size:12px;line-height:1.7}
-.kz-workflow-preview{position:relative;z-index:1;margin-top:24px;display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
-.kz-workflow-box{border:1px solid #E1E8E5;background:#F8FAF9;border-radius:12px;padding:13px}
-.kz-workflow-box span{display:block;color:#819096;font-size:7px;text-transform:uppercase}
-.kz-workflow-box b{display:block;margin-top:7px;font-size:10px;color:#20292E}
+#kzProductShell.is-changing img{opacity:0;transform:translateY(6px)}
+
+.document-story{
+  background:#F7FAF8;border-top:1px solid #E5ECE8;border-bottom:1px solid #E5ECE8;
+  padding:92px 0
+}
+.document-story-inner{max-width:1200px;margin:auto;padding:0 22px}
+.document-story-grid{
+  display:grid;grid-template-columns:minmax(280px,.78fr) minmax(0,1.22fr);
+  gap:60px;align-items:start;margin-top:32px
+}
+.document-story-steps{display:grid;gap:0}
+.document-story-step{
+  min-height:42vh;width:100%;border:0;border-left:2px solid #DCE7E2;background:transparent;
+  text-align:left;padding:34px 26px;color:#20292E;display:flex;align-items:center;cursor:pointer
+}
+.document-story-step>span{display:block}
+.document-story-step small{
+  display:block;color:#078DA7;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.09em;
+  margin-bottom:8px
+}
+.document-story-step strong{display:block;font-size:26px;line-height:1.08;letter-spacing:-.035em}
+.document-story-step p{margin:10px 0 0;color:#607078;font-size:14px;line-height:1.65;max-width:440px}
+.document-story-step.is-active{border-left-color:#078DA7;background:rgba(255,255,255,.65)}
+.document-story-step:focus-visible{outline:3px solid rgba(7,141,167,.24);outline-offset:3px;border-radius:12px}
+.document-story-visual{position:sticky;top:112px}
+.document-story-frame{
+  position:relative;aspect-ratio:760/468;border:1px solid #DFE7E3;border-radius:20px;background:#fff;
+  overflow:hidden;box-shadow:0 8px 24px rgba(20,43,51,.055)
+}
+.document-story-frame img{
+  width:100%;height:100%;object-fit:contain;display:block;
+  transition:opacity var(--motion-content) var(--ease-product),transform var(--motion-content) var(--ease-product)
+}
+.document-story-frame.is-changing img{opacity:.16;transform:translateY(6px)}
+.document-story-caption{margin:12px 2px 0;color:#66767C;font-size:12px;line-height:1.55}
+.document-story-progress{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;margin:0 0 14px}
+.document-story-progress-track{height:3px;border-radius:999px;background:#DDE8E3;overflow:hidden}
+.document-story-progress-track span{
+  display:block;height:100%;width:25%;background:#078DA7;
+  transition:width var(--motion-content) var(--ease-product)
+}
+.document-story-progress-label{font-size:11px;font-weight:850;color:#526169;min-width:42px;text-align:right}
 
 .kz-compare{max-width:1200px;margin:auto;padding:84px 22px}
 .kz-compare-switch{display:inline-flex;background:#F1F5F3;border:1px solid #E1E8E5;border-radius:12px;padding:4px;gap:4px;margin-bottom:24px}
-.kz-compare-switch button{border:0;background:transparent;border-radius:9px;padding:10px 14px;font-size:11px;font-weight:850;cursor:pointer;color:#526169}
+.kz-compare-switch button{
+  border:0;background:transparent;border-radius:9px;padding:10px 14px;min-height:44px;
+  font-size:11px;font-weight:850;cursor:pointer;color:#526169
+}
 .kz-compare-switch button.active{background:#20292E;color:#fff}
-.kz-compare-panel{display:grid;grid-template-columns:.8fr 1.2fr;gap:24px;align-items:stretch}
+.kz-compare-panel{
+  min-height:340px;display:grid;grid-template-columns:.8fr 1.2fr;gap:24px;align-items:stretch
+}
+.kz-compare-copy,.kz-compare-visual{
+  transition:opacity 220ms var(--ease-product),transform 220ms var(--ease-product),background-color 300ms var(--ease-product)
+}
+.kz-compare-panel.is-changing .kz-compare-copy,
+.kz-compare-panel.is-changing .kz-compare-visual{opacity:.2;transform:translateY(4px)}
 .kz-compare-copy{border:1px solid #E1E8E5;background:#fff;border-radius:18px;padding:26px}
 .kz-compare-copy h3{font-size:28px;letter-spacing:-.045em;margin:0 0 10px}
 .kz-compare-copy p{font-size:12px;line-height:1.7;color:#526169}
@@ -1127,30 +1173,79 @@ html,body,#authRoot,.marketing,.main,.content{background:#F8FAFC!important;color
 .kz-compare-flow-row strong{font-size:11px}.kz-compare-flow-row small{display:block;font-size:8px;color:#829096;margin-top:3px}
 .kz-compare-flow-row em{font-style:normal;color:#078DA7;font-size:8px}
 
+.kz-mobile-product-section{padding:88px 0;background:#20292E;color:#fff}
+.kz-mobile-product-inner{max-width:1100px;margin:auto;padding:0 22px}
+.kz-mobile-product-head{max-width:660px;margin-bottom:26px}
+.kz-mobile-product-head p{color:#C4CED1;line-height:1.65}
+.kz-mobile-rail-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.kz-mobile-rail-tabs button{
+  min-height:44px;border:1px solid rgba(255,255,255,.18);background:transparent;color:#DDE5E7;
+  border-radius:999px;padding:9px 15px;font-weight:800;font-size:12px
+}
+.kz-mobile-rail-tabs button[aria-selected="true"]{background:#fff;color:#20292E;border-color:#fff}
+.kz-mobile-rail{
+  display:flex;overflow-x:auto;gap:18px;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;
+  scrollbar-width:none;padding:4px 0 14px
+}
+.kz-mobile-rail::-webkit-scrollbar{display:none}
+.kz-mobile-rail-card{
+  flex:0 0 min(100%,340px);scroll-snap-align:center;display:grid;justify-items:center;gap:12px;
+  border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:20px;background:rgba(255,255,255,.035)
+}
+.kz-mobile-rail-card figure{margin:0;width:min(270px,100%)}
+.kz-mobile-rail-card figcaption{font-size:12px;font-weight:800;color:#E7ECEE}
+.kz-mobile-rail-card img{display:block;width:100%;height:auto}
+
 .kz-solution-more{
-  margin-top:14px;border:0;background:transparent;padding:0;color:#078DA7;font-size:10px;font-weight:850;cursor:pointer
+  margin-top:14px;border:0;background:transparent;padding:0;min-height:44px;color:#078DA7;font-size:10px;font-weight:850;cursor:pointer
 }
 .kz-solution-extra{
-  max-height:0;overflow:hidden;opacity:0;transition:max-height .25s ease,opacity .2s ease,margin-top .2s ease;
+  display:grid;grid-template-rows:0fr;overflow:hidden;opacity:0;
+  transition:grid-template-rows var(--motion-content) var(--ease-product),opacity var(--motion-ui) var(--ease-product),margin-top var(--motion-ui) var(--ease-product);
   color:#526169;font-size:10px;line-height:1.55
 }
-.kz-solution.expanded .kz-solution-extra{max-height:100px;opacity:1;margin-top:10px}
-.kz-solution.expanded{border-color:#BFDCD4!important;box-shadow:0 12px 30px rgba(24,64,76,.07)}
+.kz-solution-extra::before{content:"";min-height:0}
+.kz-solution.expanded .kz-solution-extra{grid-template-rows:1fr;opacity:1;margin-top:10px}
+.kz-solution.expanded{border-color:#BFDCD4!important;box-shadow:0 8px 22px rgba(24,64,76,.055)}
 
+@media(max-width:1023px){
+  .document-story{padding:70px 0}
+  .document-story-grid{grid-template-columns:1fr;gap:22px}
+  .document-story-visual{position:static;top:auto;order:2}
+  .document-story-steps{
+    display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;
+    scrollbar-width:none;padding-bottom:6px
+  }
+  .document-story-steps::-webkit-scrollbar{display:none}
+  .document-story-step{
+    flex:0 0 min(86vw,420px);min-height:0;scroll-snap-align:center;border:1px solid #DDE7E2;
+    border-radius:16px;background:#fff;padding:20px;align-items:flex-start
+  }
+  .document-story-step.is-active{border-color:#8DBDB5;box-shadow:0 5px 16px rgba(20,43,51,.05)}
+  .document-story-frame{aspect-ratio:390/844;max-width:390px;margin:auto}
+}
 @media(max-width:900px){
-  .kz-workflow-grid,.kz-compare-panel{grid-template-columns:1fr}
+  .kz-compare-panel{grid-template-columns:1fr;min-height:0}
 }
 @media(max-width:620px){
-  .kz-workflow-inner,.kz-compare{padding-left:15px;padding-right:15px}
-  .kz-workflow{padding:64px 0}
-  .kz-workflow-preview{grid-template-columns:1fr}
-  .kz-workflow-box:nth-child(n+3){display:none}
-  .kz-workflow-meta h3{font-size:29px}
+  .document-story-inner,.kz-compare,.kz-mobile-product-inner{padding-left:15px;padding-right:15px}
+  .document-story{padding:58px 0}
+  .document-story-step{flex-basis:calc(100vw - 44px);padding:18px}
+  .document-story-step strong{font-size:22px}
+  .document-story-step p{font-size:13px}
   .kz-compare{padding-top:64px;padding-bottom:64px}
+  .kz-mobile-product-section{padding:64px 0}
+  .kz-mobile-rail-card{flex-basis:100%;padding:16px}
 }
 @media(prefers-reduced-motion:reduce){
-  .kz-reveal{opacity:1!important;transform:none!important}
+  html{scroll-behavior:auto!important}
+  .reveal{opacity:1!important;transform:none!important}
+  .reveal,#kzProductShell img,.document-story-frame img,.document-story-progress-track span,
+  .kz-compare-copy,.kz-compare-visual,.bookuna-hover-card,.faq-answer,.faq-toggle::after{
+    transition:none!important;animation:none!important
+  }
 }
+
 
 /* Boekuna desktop readability pass */
 @media (min-width:901px){
@@ -1350,64 +1445,65 @@ html,body,#authRoot,.marketing,.main,.content{background:#F8FAFC!important;color
   .marketing :where(.kz-browser-card span,.kz-browser-banner small,.kz-browser-head i,.kz-compare-flow-row small,.kz-compare-flow-row em){font-size:11px!important}
 }
 
-/* Stronger, calmer interaction language */
+/* Interaction affordances v4 */
 .marketing .mk-btn,
 .marketing .marketing-link,
 .marketing .root-drop>button,
 .marketing .kz-tab,
-.marketing .kz-workflow-tab,
 .marketing .kz-compare-switch button,
-.marketing .kz-solution-more{
-  transition:transform .18s ease,box-shadow .18s ease,background-color .18s ease,border-color .18s ease,color .18s ease!important
+.marketing .kz-solution-more,
+.marketing .kz-mobile-rail-tabs button{
+  transition:transform var(--motion-fast) var(--ease-product),box-shadow var(--motion-fast) var(--ease-product),
+    background-color var(--motion-ui) var(--ease-product),border-color var(--motion-ui) var(--ease-product),
+    color var(--motion-ui) var(--ease-product)!important
 }
 .marketing .mk-btn:active,
 .marketing .kz-tab:active,
-.marketing .kz-workflow-tab:active,
-.marketing .kz-compare-switch button:active{transform:translateY(1px) scale(.985)!important}
+.marketing .kz-compare-switch button:active,
+.marketing .kz-mobile-rail-tabs button:active{transform:translateY(1px)!important}
 .marketing .mk-btn:focus-visible,
 .marketing a:focus-visible,
-.marketing button:focus-visible,
-.faq-item:focus-visible{outline:3px solid rgba(8,169,197,.28)!important;outline-offset:3px!important}
-
+.marketing button:focus-visible{
+  outline:3px solid rgba(7,141,167,.24)!important;outline-offset:3px!important
+}
 .bookuna-hover-card{
   position:relative;
-  transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease,background-color .22s ease!important;
-  will-change:transform
+  transition:transform var(--motion-ui) var(--ease-product),box-shadow var(--motion-ui) var(--ease-product),
+    border-color var(--motion-ui) var(--ease-product)!important
 }
 @media (hover:hover) and (pointer:fine){
   .bookuna-hover-card:hover{
-    transform:translateY(-5px);
+    transform:translateY(-2px);
     border-color:#BED7D1!important;
-    box-shadow:0 18px 42px rgba(30,73,78,.10)!important
+    box-shadow:0 8px 22px rgba(30,73,78,.065)!important
   }
-  .marketing .mk-btn:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(32,41,46,.12)}
+  .marketing .mk-btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(32,41,46,.09)}
   .marketing .marketing-link:hover{color:#078DA7!important}
 }
 
-/* FAQ becomes a real accordion */
-.faq-item{cursor:pointer;position:relative;padding-right:52px!important;transition:border-color .2s ease,box-shadow .2s ease,background .2s ease!important}
-.faq-item strong{position:relative;padding-right:10px}
-.faq-item strong:after{
+/* Semantic FAQ accordion */
+.faq-item{position:relative!important;padding:0!important;overflow:hidden}
+.faq-item h2{margin:0;font-size:inherit}
+.faq-toggle{
+  width:100%;min-height:56px;border:0;background:transparent;color:inherit;text-align:left;
+  padding:20px 58px 20px 20px;font-weight:800;position:relative;cursor:pointer
+}
+.faq-toggle::after{
   content:"+";
-  position:absolute;right:-28px;top:-3px;
-  width:28px;height:28px;border-radius:50%;
-  display:grid;place-items:center;
-  background:#F1F6F4;color:#356267;
-  font-size:18px;line-height:1;
-  transition:transform .22s ease,background .22s ease
+  position:absolute;right:18px;top:50%;transform:translateY(-50%);
+  width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
+  background:#F1F6F4;color:#356267;font-size:18px;line-height:1;
+  transition:transform var(--motion-ui) var(--ease-product),background-color var(--motion-ui) var(--ease-product)
 }
-.faq-item p{max-height:0;opacity:0;overflow:hidden;margin:0!important;transition:max-height .28s ease,opacity .2s ease,margin-top .2s ease}
-.faq-item.open{border-color:#BED7D1!important;background:#FBFDFC!important;box-shadow:0 12px 30px rgba(30,73,78,.07)}
-.faq-item.open strong:after{content:"−";transform:rotate(180deg);background:#E5F6F7}
-.faq-item.open p{max-height:260px;opacity:1;margin-top:10px!important}
-
-/* Scroll reveal for all marketing pages, not just the homepage */
-.bookuna-reveal{opacity:0;transform:translateY(14px);transition:opacity .48s ease,transform .48s ease}
-.bookuna-reveal.bookuna-in{opacity:1;transform:none}
-@media(prefers-reduced-motion:reduce){
-  .bookuna-hover-card,.bookuna-reveal{transition:none!important;transform:none!important}
-  .bookuna-reveal{opacity:1!important}
+.faq-item.open .faq-toggle::after{content:"−";background:#E5F6F7}
+.faq-answer{
+  display:grid;grid-template-rows:0fr;opacity:0;
+  transition:grid-template-rows var(--motion-content) var(--ease-product),opacity var(--motion-ui) var(--ease-product)
 }
+.faq-answer>div{overflow:hidden}
+.faq-answer p{margin:0!important;padding:0 20px 20px!important}
+.faq-item.open{border-color:#BED7D1!important;background:#FBFDFC!important;box-shadow:0 8px 22px rgba(30,73,78,.05)}
+.faq-item.open .faq-answer{grid-template-rows:1fr;opacity:1}
 
 
 /* Boekuna tiny-text cleanup v4 */
@@ -1971,7 +2067,7 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
 <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></symbol>
 <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></symbol>
 </svg>
-<div id="authRoot"></div>
+<div id="authRoot"></div><noscript><main style="max-width:920px;margin:48px auto;padding:0 20px;font-family:Inter,system-ui,sans-serif;color:#14201d"><h1>Boekuna — boekhouden zonder ingewikkelde boekhoudtaal.</h1><p>Beheer facturen, documenten, kosten, bank, btw en rapportages in één administratie. Financiële documenten worden pas verwerkt nadat je de gegevens hebt gecontroleerd.</p><p><a href="/functies/">Bekijk functies</a> · <a href="/prijzen/">Bekijk prijzen</a> · <a href="/faq/">Veelgestelde vragen</a></p></main></noscript>
 <div class="app" id="mainApp" style="display:none">
 <aside class="sidebar" id="sidebar">
   <div class="brand"><img class="bookuna-logo-icon" src="data:image/png;base64,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" alt="" aria-hidden="true"><div>Boekuna<small>Boekhouden voor ondernemers</small></div></div>
@@ -2363,31 +2459,62 @@ function showLanding(){
 }
 
 function initBoekunaMarketingInteractions(){
+ const q=id=>document.getElementById(id);
+ const reduceMotion=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+ const setText=(id,value)=>{const el=q(id);if(el)el.textContent=value};
  const productData={
   facturen:{src:'/assets/product/boekuna-invoices-list-crop.webp',alt:'Echt Boekuna Facturen-overzicht met heading, toolbar, KPI-rij en eerste facturen',caption:'Facturen · echte lijst, filters en statussen',href:'/facturen/',link:'Bekijk Facturen →'},
   documenten:{src:'/assets/product/boekuna-documents-upload-crop.webp',alt:'Echt Boekuna Documenten-overzicht met uploadacties, uploadzone en documentstatussen',caption:'Documenten · upload, lijst en echte controlestatussen',href:'/scanner/',link:'Bekijk documentverwerking →'},
   btw:{src:'/assets/product/boekuna-vat-summary-crop.webp',alt:'Echt Boekuna btw-overzicht met kwartaalkeuze, KPI’s, berekening en controlelijst',caption:'Btw · kwartaalpositie en controle-informatie',href:'/btw-bank/',link:'Bekijk Btw & bank →'}
  };
- const q=id=>document.getElementById(id);
  const shell=q('kzProductShell');
+ const panel=q('kzProductPanel');
  const tabs=[...document.querySelectorAll('[data-kz-tab]')];
- const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
- const setText=(id,value)=>{const el=q(id);if(el)el.textContent=value};
- function setProduct(key){
+ let activeProduct='facturen';
+ function applyProduct(key){
   const d=productData[key];if(!d)return;
-  if(shell)shell.classList.add('is-changing');
-  tabs.forEach(t=>{const on=t.dataset.kzTab===key;t.classList.toggle('active',on);t.setAttribute('aria-pressed',String(on))});
-  const apply=()=>{
-   const img=q('kzProductImage');
-   if(img){img.src=d.src;img.alt=d.alt;img.width=760;img.height=468}
-   setText('kzProductCaption',d.caption);
-   const link=q('kzPreviewLink');if(link){link.href=d.href;link.textContent=d.link}
-   if(shell)shell.classList.remove('is-changing');
-  };
-  if(reduced)apply();else setTimeout(apply,100);
+  activeProduct=key;
+  tabs.forEach(t=>{
+   const on=t.dataset.kzTab===key;
+   t.classList.toggle('active',on);
+   t.setAttribute('aria-selected',String(on));
+   t.tabIndex=on?0:-1;
+  });
+  const img=q('kzProductImage');
+  if(img){img.src=d.src;img.alt=d.alt;img.width=760;img.height=468}
+  if(panel){
+   const active=tabs.find(t=>t.dataset.kzTab===key);
+   if(active?.id)panel.setAttribute('aria-labelledby',active.id);
+  }
+  setText('kzProductCaption',d.caption);
+  const link=q('kzPreviewLink');if(link){link.href=d.href;link.textContent=d.link}
+  if(shell){
+   if(reduceMotion)shell.classList.remove('is-changing');
+   else requestAnimationFrame(()=>shell.classList.remove('is-changing'));
+  }
  }
- tabs.forEach(t=>t.addEventListener('click',()=>setProduct(t.dataset.kzTab)));
- setProduct('facturen');
+ function setProduct(key,{focus=false}={}){
+  const d=productData[key];if(!d||key===activeProduct&&q('kzProductImage')?.src.includes(d.src))return;
+  const target=tabs.find(t=>t.dataset.kzTab===key);
+  if(focus&&target)target.focus();
+  if(reduceMotion){applyProduct(key);return}
+  if(shell)shell.classList.add('is-changing');
+  const preloader=new Image();
+  const finish=()=>applyProduct(key);
+  preloader.onload=finish;preloader.onerror=finish;preloader.src=d.src;
+  if(preloader.complete)finish();
+ }
+ tabs.forEach((tab,index)=>{
+  tab.addEventListener('click',()=>setProduct(tab.dataset.kzTab));
+  tab.addEventListener('keydown',event=>{
+   if(event.key!=='ArrowLeft'&&event.key!=='ArrowRight')return;
+   event.preventDefault();
+   const dir=event.key==='ArrowRight'?1:-1;
+   const next=tabs[(index+dir+tabs.length)%tabs.length];
+   setProduct(next.dataset.kzTab,{focus:true});
+  });
+ });
+ if(tabs.length)applyProduct('facturen');
 
  const nav=document.querySelector('.marketing-nav');
  const top=q('kzBackTop');
@@ -2396,35 +2523,110 @@ function initBoekunaMarketingInteractions(){
   if(top)top.classList.toggle('show',window.scrollY>650);
  };
  window.addEventListener('scroll',onScroll,{passive:true});onScroll();
- if(top)top.addEventListener('click',()=>window.scrollTo({top:0,behavior:reduced?'auto':'smooth'}));
- const flowData={
-  upload:{k:'Stap 1 · Aanleveren',t:'Begin met het document dat je al hebt.',p:'Sleep een PDF in Boekuna of maak op mobiel een foto van je bon. Het originele document blijft gekoppeld aan de administratie.',boxes:[['Bron','PDF of foto'],['Status','Klaar voor analyse'],['Controle','Nog niet geboekt']]},
-  recognize:{k:'Stap 2 · Herkennen',t:'Boekuna zet de belangrijkste gegevens voor je klaar.',p:'De scanner probeert onder meer leverancier, datum, bedragen en btw te herkennen. Bij scans en foto’s kan OCR worden gebruikt.',boxes:[['Leverancier','Herkend'],['BTW','Geanalyseerd'],['Bedrag','Voorstel klaar']]},
-  check:{k:'Stap 3 · Controleren',t:'Jij beslist of de gegevens kloppen.',p:'Controleer de herkende velden, pas waar nodig iets aan en bekijk waarschuwingen voordat je verdergaat.',boxes:[['Velden','Controleerbaar'],['Waarschuwing','Zichtbaar'],['Boeking','Nog concept']]},
-  save:{k:'Stap 4 · Verwerken',t:'Pas na jouw akkoord komt het in de administratie.',p:'Na bevestiging blijft de boeking verbonden met het originele document en kan de informatie terugkomen in btw, kosten en rapportages.',boxes:[['Document','Gekoppeld'],['Boeking','Opgeslagen'],['Overzicht','Bijgewerkt']]}
- };
- const flowTabs=[...document.querySelectorAll('[data-flow]')];
- function setFlow(key){
-  const d=flowData[key];if(!d)return;
-  flowTabs.forEach(b=>{const on=b.dataset.flow===key;b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on))});
-  setText('flowKicker',d.k);setText('flowTitle',d.t);setText('flowText',d.p);
-  d.boxes.forEach((box,i)=>{setText('flowBox'+(i+1)+'Label',box[0]);setText('flowBox'+(i+1)+'Value',box[1])});
+ if(top)top.addEventListener('click',()=>window.scrollTo({top:0,behavior:reduceMotion?'auto':'smooth'}));
+
+ const storyData=[
+  {key:'upload',title:'Document aanleveren',description:'Upload een PDF of voeg een bonfoto toe. Het bewijsstuk komt eerst in Documenten terecht.',desktopSrc:'/assets/product/boekuna-documents-upload-crop.webp',mobileSrc:'/assets/product/boekuna-documents-mobile.webp',desktopWidth:760,desktopHeight:468,mobileWidth:390,mobileHeight:844,alt:'Echt Boekuna Documenten-overzicht met uploadacties, uploadzone en documentstatussen'},
+  {key:'overview',title:'In je documentenoverzicht',description:'Je ziet het document terug tussen de andere bewijsstukken en kunt vanuit daar verder met de controle.',desktopSrc:'/assets/product/boekuna-documents-workflow-crop.webp',mobileSrc:'/assets/product/boekuna-documents-mobile.webp',desktopWidth:680,desktopHeight:425,mobileWidth:390,mobileHeight:844,alt:'Gerichte crop uit het echte Boekuna Documenten-overzicht met documentstatussen'},
+  {key:'check',title:'Open voor controle',description:'Controleer de herkende gegevens voordat je iets definitief verwerkt. De interface blijft altijd leidend; Boekuna boekt niet stil op de achtergrond.',desktopSrc:'/assets/product/boekuna-documents-workflow-crop.webp',mobileSrc:'/assets/product/boekuna-documents-mobile.webp',desktopWidth:680,desktopHeight:425,mobileWidth:390,mobileHeight:844,alt:'Gerichte crop uit het echte Boekuna Documenten-overzicht waar documenten klaarstaan voor verdere controle'},
+  {key:'linked',title:'Bewijsstuk blijft gekoppeld',description:'Na verwerking blijft het originele document onderdeel van dezelfde administratie zodat je later kunt terugvinden waar een boeking vandaan komt.',desktopSrc:'/assets/product/boekuna-documents-desktop-960.webp',mobileSrc:'/assets/product/boekuna-documents-mobile.webp',desktopWidth:960,desktopHeight:640,mobileWidth:390,mobileHeight:844,alt:'Echt Boekuna Documenten-scherm met de administratie en documentstatussen'}
+ ];
+ const storySteps=[...document.querySelectorAll('[data-story-step]')];
+ const storyImg=q('documentStoryImage');
+ const storyFrame=q('documentStoryFrame');
+ const storyCaption=q('documentStoryCaption');
+ const storyProgress=q('documentStoryProgress');
+ const storyProgressLabel=q('documentStoryProgressLabel');
+ let activeStory=0;
+ let storySwapToken=0;
+ const storyIsDesktop=()=>window.innerWidth>=1024;
+ function applyStory(index){
+  index=Math.max(0,Math.min(storyData.length-1,index));
+  const data=storyData[index];activeStory=index;
+  storySteps.forEach((step,i)=>{
+   const on=i===index;step.classList.toggle('is-active',on);step.setAttribute('aria-current',on?'step':'false')
+  });
+  if(storyProgress)storyProgress.style.width=((index+1)/storyData.length*100)+'%';
+  if(storyProgressLabel)storyProgressLabel.textContent=(index+1)+' / '+storyData.length;
+  if(storyCaption)storyCaption.textContent=data.title;
+  if(!storyImg)return;
+  const desktop=storyIsDesktop();
+  storyImg.src=desktop?data.desktopSrc:data.mobileSrc;
+  storyImg.alt=data.alt;
+  storyImg.width=desktop?data.desktopWidth:data.mobileWidth;
+  storyImg.height=desktop?data.desktopHeight:data.mobileHeight;
+  if(storyFrame){
+   if(reduceMotion)storyFrame.classList.remove('is-changing');
+   else requestAnimationFrame(()=>storyFrame.classList.remove('is-changing'));
+  }
  }
- flowTabs.forEach(b=>b.addEventListener('click',()=>setFlow(b.dataset.flow)));
+ function setStory(index,{scrollStep=false}={}){
+  index=Math.max(0,Math.min(storyData.length-1,index));
+  if(index===activeStory&&storyImg?.getAttribute('src')){if(scrollStep&&storySteps[index])storySteps[index].scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'nearest',inline:'center'});return}
+  const token=++storySwapToken;
+  const data=storyData[index];
+  const src=storyIsDesktop()?data.desktopSrc:data.mobileSrc;
+  if(storyFrame&&!reduceMotion)storyFrame.classList.add('is-changing');
+  const preloader=new Image();
+  const finish=()=>{if(token===storySwapToken)applyStory(index)};
+  preloader.onload=finish;preloader.onerror=finish;preloader.src=src;if(preloader.complete)finish();
+  if(scrollStep&&storySteps[index])storySteps[index].scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'nearest',inline:'center'});
+ }
+ storySteps.forEach((step,index)=>step.addEventListener('click',()=>setStory(index,{scrollStep:!storyIsDesktop()})));
+ if(storySteps.length){
+  applyStory(0);
+  if(storyIsDesktop()&&'IntersectionObserver' in window&&!reduceMotion){
+   const storyObserver=new IntersectionObserver(entries=>{
+    const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];
+    if(!visible)return;
+    const index=storySteps.indexOf(visible.target);if(index>=0)setStory(index);
+   },{threshold:[.25,.5,.75],rootMargin:'-30% 0px -38% 0px'});
+   storySteps.forEach(step=>storyObserver.observe(step));
+  }
+  const storyRail=document.querySelector('.document-story-steps');
+  if(storyRail){
+   let storyRailTick=0;
+   storyRail.addEventListener('scroll',()=>{
+    if(storyIsDesktop()||storyRailTick)return;
+    storyRailTick=requestAnimationFrame(()=>{
+     storyRailTick=0;
+     const railRect=storyRail.getBoundingClientRect();
+     const center=railRect.left+railRect.width/2;
+     let best=0,bestDistance=Infinity;
+     storySteps.forEach((step,i)=>{const r=step.getBoundingClientRect();const d=Math.abs((r.left+r.width/2)-center);if(d<bestDistance){best=i;bestDistance=d}});
+     if(best!==activeStory)setStory(best);
+    });
+   },{passive:true});
+  }
+  let wasDesktop=storyIsDesktop();
+  window.addEventListener('resize',()=>{
+   const now=storyIsDesktop();if(now!==wasDesktop){wasDesktop=now;applyStory(activeStory)}
+  },{passive:true});
+ }
 
  const compareData={
   without:{title:'Informatie staat verspreid.',text:'Bonnen, facturen, bankregels en btw-informatie zitten vaak op verschillende plekken. Daardoor ontstaat extra zoek- en controlewerk.',items:['Bonnetjes terugzoeken','Bedragen opnieuw invoeren','Openstaande acties zelf onthouden'],flow:[['Mailbox','Factuur binnengekomen','Zoeken'],['Bonfoto','Los op telefoon','Bewaren'],['Spreadsheet','Handmatig overzicht','Bijwerken']]},
   with:{title:'Eén administratie met duidelijke aandachtspunten.',text:'Documenten, facturen, bankregels en rapportages gebruiken dezelfde administratie. Daardoor hoef je minder terug te zoeken en zie je eerder wat nog moet gebeuren.',items:['Documenten aan boekingen gekoppeld','Gegevens voorbereid voor controle','Openstaande acties in beeld'],flow:[['Document','Gegevens voorbereid','Controleren'],['Boeking','Document gekoppeld','Opslaan'],['Overzicht','Administratie bijgewerkt','Bekijken']]}
  };
  const compareBtns=[...document.querySelectorAll('[data-compare]')];
- function setCompare(key){
-  const d=compareData[key];if(!d)return;
-  compareBtns.forEach(b=>b.classList.toggle('active',b.dataset.compare===key));
+ const comparePanel=q('comparePanel');
+ let activeCompare='without';
+ function applyCompare(key){
+  const d=compareData[key];if(!d)return;activeCompare=key;
+  compareBtns.forEach(b=>{const on=b.dataset.compare===key;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on))});
   setText('compareTitle',d.title);setText('compareText',d.text);
   const list=q('compareList');if(list)list.innerHTML=d.items.map(x=>'<div class="kz-compare-item">'+x+'</div>').join('');
   const flow=q('compareFlow');if(flow)flow.innerHTML=d.flow.map(x=>'<div class="kz-compare-flow-row"><i></i><div><strong>'+x[0]+'</strong><small>'+x[1]+'</small></div><em>'+x[2]+'</em></div>').join('');
+  if(comparePanel){if(reduceMotion)comparePanel.classList.remove('is-changing');else requestAnimationFrame(()=>comparePanel.classList.remove('is-changing'))}
+ }
+ function setCompare(key){
+  if(key===activeCompare)return;
+  if(reduceMotion){applyCompare(key);return}
+  if(comparePanel)comparePanel.classList.add('is-changing');
+  window.setTimeout(()=>applyCompare(key),110);
  }
  compareBtns.forEach(b=>b.addEventListener('click',()=>setCompare(b.dataset.compare)));
+ applyCompare('without');
 
  document.querySelectorAll('.kz-solution-more').forEach(btn=>{
   btn.addEventListener('click',()=>{
@@ -2435,61 +2637,78 @@ function initBoekunaMarketingInteractions(){
   });
  });
 
- const reveals=[...document.querySelectorAll('.kz-reveal')];
- if(reduced||!('IntersectionObserver' in window)){reveals.forEach(el=>el.classList.add('in-view'))}
+ const rail=q('mobileProductRail');
+ const railTabs=[...document.querySelectorAll('[data-mobile-rail-target]')];
+ const railCards=[...document.querySelectorAll('[data-mobile-rail-card]')];
+ function setRailIndex(index,{scroll=false}={}){
+  index=Math.max(0,Math.min(railCards.length-1,index));
+  railTabs.forEach((button,i)=>{const on=i===index;button.setAttribute('aria-selected',String(on));button.tabIndex=on?0:-1});
+  if(scroll&&railCards[index])railCards[index].scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'nearest',inline:'center'});
+ }
+ railTabs.forEach((button,index)=>{
+  button.addEventListener('click',()=>setRailIndex(index,{scroll:true}));
+  button.addEventListener('keydown',event=>{
+   if(event.key!=='ArrowLeft'&&event.key!=='ArrowRight')return;
+   event.preventDefault();const dir=event.key==='ArrowRight'?1:-1;
+   const next=(index+dir+railTabs.length)%railTabs.length;railTabs[next].focus();setRailIndex(next,{scroll:true});
+  });
+ });
+ if(rail&&railCards.length){
+  let railTick=0;
+  rail.addEventListener('scroll',()=>{
+   if(railTick)return;
+   railTick=requestAnimationFrame(()=>{
+    railTick=0;const rr=rail.getBoundingClientRect();const center=rr.left+rr.width/2;
+    let best=0,distance=Infinity;
+    railCards.forEach((card,i)=>{const r=card.getBoundingClientRect();const d=Math.abs((r.left+r.width/2)-center);if(d<distance){best=i;distance=d}});
+    setRailIndex(best);
+   });
+  },{passive:true});
+  setRailIndex(0);
+ }
+
+ const reveals=[...document.querySelectorAll('.reveal')];
+ if(reduceMotion||!('IntersectionObserver' in window)){reveals.forEach(el=>el.classList.add('is-visible'))}
  else{
-  const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in-view');observer.unobserve(e.target)}}),{threshold:.12});
+  const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{
+   if(entry.isIntersecting){entry.target.classList.add('is-visible');observer.unobserve(entry.target)}
+  }),{threshold:.1,rootMargin:'0px 0px -32px 0px'});
   reveals.forEach(el=>observer.observe(el));
  }
 
- /* Boekuna universal interactions v3 */
- const hoverCards=[...document.querySelectorAll('.feature-card,.price-card,.deep-panel,.trust-card,.audience-card,.value-card,.promo-card,.kz-solution,.kz-reason,.kz-audience-card,.kz-support-card,.kz-workflow-stage,.kz-compare-copy,.kz-compare-visual')];
- hoverCards.forEach(card=>card.classList.add('bookuna-hover-card'));
+ document.querySelectorAll('.marketing a[class*="-card"]').forEach(card=>card.classList.add('bookuna-hover-card'));
 
  const faqItems=[...document.querySelectorAll('.faq-item')];
  faqItems.forEach((item,index)=>{
-   item.setAttribute('role','button');
-   item.setAttribute('tabindex','0');
-   item.setAttribute('aria-expanded','false');
-   const toggle=()=>{
-     const willOpen=!item.classList.contains('open');
-     faqItems.forEach(other=>{other.classList.remove('open');other.setAttribute('aria-expanded','false')});
-     if(willOpen){item.classList.add('open');item.setAttribute('aria-expanded','true')}
-   };
-   item.addEventListener('click',toggle);
-   item.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle()}});
-   if(index===0){item.classList.add('open');item.setAttribute('aria-expanded','true')}
+  const button=item.querySelector('.faq-toggle');
+  const answer=item.querySelector('.faq-answer');
+  if(!button||!answer)return;
+  const setOpen=open=>{
+   item.classList.toggle('open',open);
+   button.setAttribute('aria-expanded',String(open));
+   answer.setAttribute('aria-hidden',String(!open));
+  };
+  button.addEventListener('click',()=>{
+   const willOpen=button.getAttribute('aria-expanded')!=='true';
+   faqItems.forEach(other=>{
+    const b=other.querySelector('.faq-toggle'),a=other.querySelector('.faq-answer');
+    if(b&&a){other.classList.remove('open');b.setAttribute('aria-expanded','false');a.setAttribute('aria-hidden','true')}
+   });
+   setOpen(willOpen);
+  });
+  setOpen(index===0);
  });
-
- const universalReveal=[...document.querySelectorAll('.marketing section,.marketing .marketing-cta-box')];
- universalReveal.forEach(el=>el.classList.add('bookuna-reveal'));
- if(reduced||!('IntersectionObserver' in window)){
-   universalReveal.forEach(el=>el.classList.add('bookuna-in'));
- }else{
-   const universalObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{
-     if(entry.isIntersecting){entry.target.classList.add('bookuna-in');universalObserver.unobserve(entry.target)}
-   }),{threshold:.08,rootMargin:'0px 0px -30px 0px'});
-   universalReveal.forEach(el=>universalObserver.observe(el));
- }
-
- const progress=q('kzProgress');
- const updateProgress=()=>{
-  if(!progress)return;
-  const max=Math.max(1,document.documentElement.scrollHeight-window.innerHeight);
-  progress.style.width=Math.min(100,Math.max(0,(window.scrollY/max)*100))+'%';
- };
- window.addEventListener('scroll',updateProgress,{passive:true});updateProgress();
-
 }
+
 function showMarketingPage(page='home'){
  lastMarketingPage=page;
  document.getElementById('mainApp').style.display='none';
  const nav=marketingNav(page),footer=marketingFooter();
  let body='';
  if(page==='home'){
-  body=`<main><div class="kz-progress" id="kzProgress" aria-hidden="true"></div>
+  body=`<main>
 
-<section class="kz-hero kz-hero-split kz-reveal" data-human-assets="pending-09">
+<section class="kz-hero kz-hero-split reveal" data-human-assets="pending-09">
   <div class="kz-hero-content">
     <div class="kz-overline">Voor ondernemers die grip willen op hun administratie</div>
     <h1>Je bent ondernemer.<span>Geen boekhouder.</span></h1>
@@ -2503,83 +2722,105 @@ function showMarketingPage(page='home'){
   </div>
 </section>
 
-<section class="kz-trust-strip kz-reveal">
+<section class="kz-trust-strip">
   <div class="kz-trust-inner"><div class="kz-trust-title">Alles wat je administratie nodig heeft, samen in één omgeving</div><div class="kz-trust-items"><div class="kz-trust-item">Verkoopfacturen</div><div class="kz-trust-item">Inkoop & kosten</div><div class="kz-trust-item">Documentherkenning</div><div class="kz-trust-item">Bank & btw</div><div class="kz-trust-item">Rapportages</div></div></div>
 </section>
 
-<section class="kz-first-proof kz-reveal">
+<section class="kz-first-proof reveal">
   <div class="kz-first-proof-copy"><span class="kz-benefit-label">Dashboard</span><h2>In één oogopslag zien wat aandacht nodig heeft.</h2><p>De belangrijkste cijfers en aandachtspunten staan bij elkaar, zodat je niet eerst door meerdere schermen hoeft te zoeken.</p></div>
   <figure class="product-crop kz-dashboard-proof" style="--product-max:800px"><img src="/assets/product/boekuna-dashboard-overview-crop.webp" width="1120" height="631" alt="Echt Boekuna Dashboard met KPI’s, omzet- en kostengrafiek en Actiecentrum" loading="lazy" decoding="async"></figure>
 </section>
 
-<section class="kz-compact-products kz-reveal">
+<section class="kz-compact-products reveal">
   <div class="kz-heading kz-compact-products-head"><small>Dagelijkse kern</small><h2>Drie taken die je steeds opnieuw doet.</h2><p>De homepage laat alleen gerichte productdetails zien. De uitgebreidere desktopschermen blijven beschikbaar op de functiepagina’s.</p></div>
-  <div class="kz-tabs kz-tabs-compact" aria-label="Bekijk echte Boekuna productdetails">
-    <button class="kz-tab active" type="button" data-kz-tab="facturen" aria-pressed="true">Facturen</button>
-    <button class="kz-tab" type="button" data-kz-tab="documenten" aria-pressed="false">Documenten</button>
-    <button class="kz-tab" type="button" data-kz-tab="btw" aria-pressed="false">Btw</button>
+  <div class="kz-tabs kz-tabs-compact" role="tablist" aria-label="Bekijk echte Boekuna productdetails">
+    <button class="kz-tab active" id="kz-tab-facturen" type="button" role="tab" data-kz-tab="facturen" aria-selected="true" aria-controls="kzProductPanel" tabindex="0">Facturen</button>
+    <button class="kz-tab" id="kz-tab-documenten" type="button" role="tab" data-kz-tab="documenten" aria-selected="false" aria-controls="kzProductPanel" tabindex="-1">Documenten</button>
+    <button class="kz-tab" id="kz-tab-btw" type="button" role="tab" data-kz-tab="btw" aria-selected="false" aria-controls="kzProductPanel" tabindex="-1">Btw</button>
   </div>
-  <div class="kz-product-stage kz-product-stage-compact">
+  <div class="kz-product-stage kz-product-stage-compact" id="kzProductPanel" role="tabpanel" aria-labelledby="kz-tab-facturen">
     <figure class="product-crop" id="kzProductShell" style="--product-max:660px">
       <img id="kzProductImage" src="/assets/product/boekuna-invoices-list-crop.webp" width="760" height="468" alt="Echt Boekuna Facturen-overzicht met heading, toolbar, KPI-rij en eerste facturen" loading="lazy" decoding="async">
     </figure>
+    <span id="kzProductCaption" class="sr-only">Facturen · echte lijst, filters en statussen</span>
     <a id="kzPreviewLink" class="kz-preview-link kz-product-detail-link" href="/facturen/">Bekijk Facturen →</a>
   </div>
 </section>
 
-<section class="kz-workflow kz-reveal" data-human-assets="pending-09">
-  <div class="kz-workflow-inner">
-    <div class="kz-heading"><small>Werkelijke productflow</small><h2>Van document naar gecontroleerde administratie.</h2><p>Je start met het bewijsstuk, controleert wat Boekuna herkent en slaat pas op wanneer alles klopt. Het originele document blijft gekoppeld aan dezelfde administratie.</p></div>
-    <div class="kz-workflow-combo">
-      <div class="kz-real-workflow-copy">
-        <div class="kz-real-workflow-step"><strong>1. Document</strong><span>Upload een ondersteund bestand en houd het originele bewijsstuk bij de administratie.</span></div>
-        <div class="kz-real-workflow-step"><strong>2. Bedragen</strong><span>Controleer herkende financiële velden en rekenchecks vóór opslaan.</span></div>
-        <div class="kz-real-workflow-step"><strong>3. Relatie</strong><span>Controleer welke klant of leverancier bij het document hoort.</span></div>
-        <div class="kz-real-workflow-step"><strong>4. Opslaan</strong><span>Pas na jouw controle wordt de boeking aan de administratie gekoppeld.</span></div>
+<section class="document-story reveal" aria-labelledby="documentStoryTitle">
+  <div class="document-story-inner">
+    <div class="kz-heading">
+      <small>Werkelijke productflow</small>
+      <h2 id="documentStoryTitle">Van document naar gecontroleerde administratie.</h2>
+      <p>Vier duidelijke stappen, zonder scroll-jacking en zonder nagebouwde product-UI. Waar nog geen aparte echte reviewcapture bestaat, blijft de vorige echte Documents-state zichtbaar.</p>
+    </div>
+    <div class="document-story-grid">
+      <div class="document-story-steps" aria-label="Documentflow in vier stappen">
+        <button class="document-story-step is-active" type="button" data-story-step="upload" aria-current="step"><span><small>Stap 1</small><strong>Document aanleveren</strong><p>Upload een PDF of voeg een bonfoto toe. Het bewijsstuk komt eerst in Documenten terecht.</p></span></button>
+        <button class="document-story-step" type="button" data-story-step="overview" aria-current="false"><span><small>Stap 2</small><strong>In je documentenoverzicht</strong><p>Je ziet het document terug tussen de andere bewijsstukken en kunt vanuit daar verder met de controle.</p></span></button>
+        <button class="document-story-step" type="button" data-story-step="check" aria-current="false"><span><small>Stap 3</small><strong>Open voor controle</strong><p>Controleer de herkende gegevens voordat je iets definitief verwerkt. Boekuna boekt niet stil op de achtergrond.</p></span></button>
+        <button class="document-story-step" type="button" data-story-step="linked" aria-current="false"><span><small>Stap 4</small><strong>Bewijsstuk blijft gekoppeld</strong><p>Na verwerking blijft het originele document onderdeel van dezelfde administratie zodat je de herkomst later kunt terugvinden.</p></span></button>
       </div>
-      <div class="kz-workflow-media">
-        <!-- 09 receipt-scanning human photo slot pending. Until the real mobile OCR review exists, use only this compact real Documents crop. -->
-        <figure class="product-crop kz-workflow-doc-proof" style="--product-max:520px"><img src="/assets/product/boekuna-documents-upload-crop.webp" width="760" height="468" alt="Gerichte crop uit het echte Boekuna Documenten-overzicht met uploadacties en documentstatussen" loading="lazy" decoding="async"></figure>
+      <div class="document-story-visual">
+        <div class="document-story-progress" aria-hidden="true">
+          <div class="document-story-progress-track"><span id="documentStoryProgress"></span></div>
+          <div class="document-story-progress-label" id="documentStoryProgressLabel">1 / 4</div>
+        </div>
+        <figure>
+          <div class="document-story-frame" id="documentStoryFrame">
+            <img id="documentStoryImage" src="/assets/product/boekuna-documents-upload-crop.webp" width="760" height="468" alt="Echt Boekuna Documenten-overzicht met uploadacties, uploadzone en documentstatussen" loading="lazy" decoding="async">
+          </div>
+          <figcaption class="document-story-caption" id="documentStoryCaption">Document aanleveren</figcaption>
+        </figure>
       </div>
     </div>
   </div>
 </section>
 
-<section class="kz-benefit kz-benefit-copy-only kz-human-benefit kz-reveal" data-human-assets="pending-09">
+<section class="kz-benefit kz-benefit-copy-only kz-human-benefit reveal" data-human-assets="pending-09">
   <!-- 09 human editorial image for this result-led section pending. -->
   <div class="kz-benefit-copy"><span class="kz-benefit-label">Minder administratie</span><h2>Bespaar iedere week kostbare tijd.</h2><p>Laat terugkerend invoerwerk niet je agenda bepalen. Upload facturen of bonnetjes, controleer leverancier, bedragen, btw en relatie en boek pas wanneer alles klopt.</p><a href="/scanner/">Slimmer documenten verwerken →</a></div>
 </section>
 
-<section class="kz-benefit reverse kz-more-grip kz-reveal">
+<section class="kz-benefit reverse kz-more-grip reveal">
   <div class="kz-benefit-copy"><span class="kz-benefit-label">Meer grip</span><h2>Stuur op wat aandacht nodig heeft.</h2><p>Omzet en kosten, open bankregels, achterstallige facturen en btw-controle komen samen op één plek. Zo werk je gedurende de maand bij in plaats van alles achteraf op te ruimen.</p><a href="/rapportages/">Bekijk rapportages & controle →</a></div>
   <figure class="product-crop kz-action-proof" style="--product-max:600px"><img src="/assets/product/boekuna-dashboard-action-center-crop.webp" width="650" height="488" alt="Gerichte crop uit het echte Boekuna Dashboard met omzet- en kostengrafiek en Actiecentrum" loading="lazy" decoding="async"></figure>
 </section>
 
-<section class="kz-apps kz-reveal">
-  <div class="kz-apps-inner kz-apps-product-first">
-    <div class="kz-mobile-composition"><figure class="product-mobile"><img src="/assets/product/boekuna-dashboard-mobile.webp" width="390" height="844" alt="Echte responsive Boekuna Dashboard-interface op mobiel" loading="lazy" decoding="async"></figure></div>
-    <div><span class="kz-app-label">Op desktop & mobiel</span><h2>Werk ook onderweg verder in dezelfde administratie.</h2><p>Bekijk je Dashboard en houd aandachtspunten bij vanuit dezelfde Boekuna-administratie, ook op mobiel.</p><div class="kz-hero-actions"><a class="mk-btn" href="/hoe-het-werkt/" style="background:#fff;color:#202B33;border-color:#fff">Bekijk de product tour</a></div></div>
+<section class="kz-mobile-product-section reveal" aria-labelledby="mobileProductTitle">
+  <div class="kz-mobile-product-inner">
+    <div class="kz-mobile-product-head"><span class="kz-app-label">Op desktop & mobiel</span><h2 id="mobileProductTitle">Je administratie blijft herkenbaar op mobiel.</h2><p>Swipe door drie echte Boekuna-schermen. Er start niets automatisch; tik op een onderdeel of swipe zelf.</p></div>
+    <div class="kz-mobile-rail-tabs" role="tablist" aria-label="Mobiele Boekuna-schermen">
+      <button type="button" role="tab" data-mobile-rail-target="dashboard" aria-selected="true" aria-controls="mobile-card-dashboard" tabindex="0">Dashboard</button>
+      <button type="button" role="tab" data-mobile-rail-target="facturen" aria-selected="false" aria-controls="mobile-card-facturen" tabindex="-1">Facturen</button>
+      <button type="button" role="tab" data-mobile-rail-target="documenten" aria-selected="false" aria-controls="mobile-card-documenten" tabindex="-1">Documenten</button>
+    </div>
+    <div class="kz-mobile-rail" id="mobileProductRail">
+      <article class="kz-mobile-rail-card" id="mobile-card-dashboard" data-mobile-rail-card="dashboard"><figure class="product-mobile"><img src="/assets/product/boekuna-dashboard-mobile.webp" width="390" height="844" alt="Echte responsive Boekuna Dashboard-interface op mobiel" loading="lazy" decoding="async"><figcaption>Dashboard</figcaption></figure></article>
+      <article class="kz-mobile-rail-card" id="mobile-card-facturen" data-mobile-rail-card="facturen"><figure class="product-mobile"><img src="/assets/product/boekuna-invoices-mobile.webp" width="390" height="844" alt="Echt Boekuna Facturen-overzicht op mobiel" loading="lazy" decoding="async"><figcaption>Facturen</figcaption></figure></article>
+      <article class="kz-mobile-rail-card" id="mobile-card-documenten" data-mobile-rail-card="documenten"><figure class="product-mobile"><img src="/assets/product/boekuna-documents-mobile.webp" width="390" height="844" alt="Echt Boekuna Documenten-overzicht op mobiel" loading="lazy" decoding="async"><figcaption>Documenten</figcaption></figure></article>
+    </div>
   </div>
 </section>
 
-<section class="kz-reasons kz-reveal" data-human-assets="optional-09">
+<section class="kz-reasons" data-human-assets="optional-09">
   <div class="kz-heading"><small>Waarom Boekuna</small><h2>Waarom ondernemers voor deze manier van werken kiezen.</h2><p>Geen verzonnen klantquotes: dit zijn de principes waarop Boekuna is gebouwd.</p></div>
   <div class="kz-reason-grid"><div class="kz-reason"><strong>Alles op één centrale plek</strong><p>Facturen, kosten, documenten, bank en rapportages gebruiken dezelfde administratie.</p></div><div class="kz-reason"><strong>Automatiseren mét controle</strong><p>Herkenning helpt je sneller werken, maar jij bepaalt wat uiteindelijk wordt opgeslagen.</p></div><div class="kz-reason"><strong>Duidelijk over wat nog niet live is</strong><p>Bankkoppeling, Peppol en directe btw-aangifte worden pas als functie getoond wanneer ze echt werken.</p></div></div>
 </section>
 
-<section class="kz-compare kz-reveal">
+<section class="kz-compare reveal">
   <div class="kz-heading"><small>Verschil in je werkdag</small><h2>Van losse administratie naar één duidelijke flow.</h2><p>Wissel tussen beide situaties om te zien waar Boekuna vooral rust en structuur toevoegt.</p></div>
   <div class="kz-compare-switch" role="group" aria-label="Vergelijk administratie">
-    <button type="button" class="active" data-compare="without">Zonder Boekuna</button>
-    <button type="button" data-compare="with">Met Boekuna</button>
+    <button type="button" class="active" data-compare="without" aria-pressed="true">Zonder Boekuna</button>
+    <button type="button" data-compare="with" aria-pressed="false">Met Boekuna</button>
   </div>
-  <div class="kz-compare-panel" aria-live="polite">
+  <div class="kz-compare-panel" id="comparePanel" aria-live="polite">
     <div class="kz-compare-copy"><h3 id="compareTitle">Informatie staat verspreid.</h3><p id="compareText">Bonnen, facturen, bankregels en btw-informatie zitten vaak op verschillende plekken. Daardoor ontstaat extra zoek- en controlewerk.</p><div class="kz-compare-list" id="compareList"><div class="kz-compare-item">Bonnetjes terugzoeken</div><div class="kz-compare-item">Bedragen opnieuw invoeren</div><div class="kz-compare-item">Openstaande acties zelf onthouden</div></div></div>
     <div class="kz-compare-visual"><div class="kz-compare-flow" id="compareFlow"><div class="kz-compare-flow-row"><i></i><div><strong>Mailbox</strong><small>Factuur binnengekomen</small></div><em>Zoeken</em></div><div class="kz-compare-flow-row"><i></i><div><strong>Bonfoto</strong><small>Los op telefoon</small></div><em>Bewaren</em></div><div class="kz-compare-flow-row"><i></i><div><strong>Spreadsheet</strong><small>Handmatig overzicht</small></div><em>Bijwerken</em></div></div></div>
   </div>
 </section>
 
-<section class="kz-solutions-section kz-reveal"><div class="kz-section-inner">
+<section class="kz-solutions-section"><div class="kz-section-inner">
   <div class="kz-heading"><small>Oplossingen</small><h2>Wat Boekuna jou te bieden heeft.</h2><p>De onderdelen werken samen binnen dezelfde administratie. Daardoor hoef je minder informatie opnieuw in te voeren en blijft duidelijk waar je cijfers vandaan komen.</p></div>
   <div class="kz-solutions-grid">
     <div class="kz-solution"><small>Verkoop</small><h3>Facturen maken</h3><p>Maak verkoopfacturen en creditnota’s, genereer PDF’s en volg betalingen.</p><a href="/facturen/">Lees meer →</a><button class="kz-solution-more" type="button" aria-expanded="false">Wat lost dit op? +</button><div class="kz-solution-extra">Van klantgegevens tot PDF en betalingsstatus in dezelfde workflow.</div></div>
@@ -2591,28 +2832,28 @@ function showMarketingPage(page='home'){
   </div>
 </div></section>
 
-<section class="kz-audience kz-reveal">
+<section class="kz-audience">
   <div class="kz-heading"><small>Voor ondernemers</small><h2>Meer weten over jouw manier van werken?</h2><p>Dezelfde boekhouding kan per ondernemer heel anders gebruikt worden.</p></div>
   <div class="kz-audience-grid"><a class="kz-audience-card" href="/voor-ondernemers/#zzp"><small>ZZP & freelance</small><h3>Minder administratie naast je echte werk.</h3><p>Factureer, verwerk kosten en houd btw in beeld zonder losse tools.</p></a><a class="kz-audience-card" href="/voor-ondernemers/#klein-bedrijf"><small>Kleine bedrijven</small><h3>Structuur terwijl je bedrijf groeit.</h3><p>Houd relaties, documenten en betalingen bij elkaar.</p></a><a class="kz-audience-card" href="/voor-ondernemers/#veel-documenten"><small>Veel facturen & bonnen</small><h3>Minder handmatig invoeren.</h3><p>Gebruik slimme verwerking wanneer de documentenstroom groter wordt.</p></a></div>
 </section>
 
-<section class="kz-plan kz-reveal">
+<section class="kz-plan">
   <div class="kz-plan-inner"><div><h2>Gratis beginnen. Eenvoudig doorgroeien.</h2><p>Begin gratis met je basisadministratie. Met Boekuna voor €9,95 krijg je de slimme controlelaag voor minder handmatig uitzoekwerk, meer overzicht en herstelpunten. Unlimited kost €19,95 en haalt daarnaast de maandlimiet van slimme documentchecks weg. De eerste 100 klanten met een betaald plan krijgen hun eerste 3 kalendermaanden gratis.</p><div class="kz-hero-actions"><a class="mk-btn primary" href="/prijzen/">Bekijk abonnementen</a></div></div><div><div class="kz-price-big">€0 <span>om te starten</span></div><p>Daarna alleen upgraden als je meer slimme documenten nodig hebt.</p></div></div>
 </section>
 
-<section class="kz-facts kz-reveal">
+<section class="kz-facts">
   <div class="kz-fact"><strong>9% + 21%</strong><span>Nederlandse btw-tarieven in de dagelijkse administratie.</span></div>
   <div class="kz-fact"><strong>PDF + OCR</strong><span>Digitale facturen, scans en bonfoto’s verwerken.</span></div>
   <div class="kz-fact"><strong>Basis / Slim / Maximaal</strong><span>Begin zelf en upgrade voor meer controle, inzicht en gemak.</span></div>
   <div class="kz-fact"><strong>1 administratie</strong><span>Facturen, kosten, bank, btw en rapportage bij elkaar.</span></div>
 </section>
 
-<section class="kz-support kz-reveal">
+<section class="kz-support">
   <div class="kz-heading"><small>Wat je verder krijgt</small><h2>Gebouwd rondom controle en duidelijkheid.</h2></div>
   <div class="kz-support-grid"><div class="kz-support-card"><h3>Controle vóór boeken</h3><p>Herkende gegevens gaan eerst naar een controlescherm.</p><a href="/hoe-het-werkt/">Zo werkt het →</a></div><div class="kz-support-card"><h3>Back-up & audit</h3><p>Functies voor back-up, herstel en administratieve historie zijn onderdeel van de omgeving.</p><a href="/veiligheid/">Veiligheid & privacy →</a></div><div class="kz-support-card"><h3>Transparante roadmap</h3><p>We maken duidelijk onderscheid tussen functies die werken en koppelingen die nog gebouwd worden.</p><a href="/veiligheid/">Bekijk productstatus →</a></div></div>
 </section>
 
-<section class="kz-final kz-reveal"><div class="kz-final-box"><div><h2>Benieuwd of Boekuna bij jouw bedrijf past?</h2><p>Bekijk de software en ontdek hoe facturen, documenten, btw en inzicht in één omgeving samenkomen.</p></div><a class="mk-btn" href="/hoe-het-werkt/">Bekijk de software</a></div></section>
+<section class="kz-final reveal"><div class="kz-final-box"><div><h2>Benieuwd of Boekuna bij jouw bedrijf past?</h2><p>Bekijk de software en ontdek hoe facturen, documenten, btw en inzicht in één omgeving samenkomen.</p></div><a class="mk-btn" href="/hoe-het-werkt/">Bekijk de software</a></div></section>
 <button class="kz-backtop" id="kzBackTop" type="button" aria-label="Terug naar boven">↑</button></main>`;
   }else if(page==='features'){
   body=`<main><section class="marketing-page-hero"><span class="marketing-eyebrow">Functies</span><h1>Alles wat je dagelijks nodig hebt voor je administratie.</h1><p>Van verkoopfactuur tot kassabon en van bankregel tot btw-overzicht. Boekuna houdt de belangrijkste administratieve taken in één duidelijke omgeving.</p></section><section class="marketing-section" style="padding-top:24px"><div class="feature-grid">
@@ -2639,14 +2880,14 @@ function showMarketingPage(page='home'){
    <div class="pricing-note">Betaalde abonnementen worden via Stripe Checkout geactiveerd en zijn maandelijks opzegbaar. PSD2-bankkoppeling, Peppol en rechtstreeks indienen bij de Belastingdienst zijn nog niet actief.</div>
   </section></div><section class="marketing-cta"><div class="marketing-cta-box"><div><h2>Betaal voor minder administratiegedoe, niet voor een scan-knop.</h2><p>Boekuna van €9,95 is bedoeld voor ondernemers die sneller willen controleren, vooruitkijken en herstellen als er iets misgaat.</p></div><button class="mk-btn primary" onclick="location.href='/?register=1&plan=boekuna'">Start met Boekuna</button></div></section></main>`; }else{
   body=`<main><section class="marketing-page-hero"><span class="marketing-eyebrow">FAQ</span><h1>Veelgestelde vragen over Boekuna.</h1><p>Korte antwoorden over scannen, boekhouden, prijzen en wat de huidige versie wel en nog niet doet.</p></section><section class="marketing-section" style="padding-top:24px"><div class="faq-grid">
-   <div class="faq-item"><strong>Wat telt als één slimme verwerking?</strong><p>Eén document of één foto dat door de scanner wordt geanalyseerd. Eén PDF-factuur = één verwerking; één bonfoto = één verwerking.</p></div>
-   <div class="faq-item"><strong>Tellen handmatige facturen mee?</strong><p>Nee. Handmatig facturen maken, kosten invoeren, relaties beheren en rapportages bekijken gebruiken geen slimme verwerking.</p></div>
-   <div class="faq-item"><strong>Kan ik een kassabon met mijn telefoon fotograferen?</strong><p>Ja. Gebruik de camera of kies een bestaande foto. Gangbare formaten en HEIC/HEIF worden ondersteund.</p></div>
-   <div class="faq-item"><strong>Boekt Boekuna automatisch?</strong><p>Niet zonder jouw controle. Financiële documenten gaan eerst naar een controlescherm.</p></div>
-   <div class="faq-item"><strong>Kan ik PDF-facturen uploaden?</strong><p>Ja. Digitale PDF’s, scans en meerpagina-documenten worden ondersteund; waar nodig wordt OCR gebruikt.</p></div>
-   <div class="faq-item"><strong>Is er al een live bankkoppeling?</strong><p>Nog niet. Bankregels kunnen momenteel via CSV worden geïmporteerd en gekoppeld.</p></div>
-   <div class="faq-item"><strong>Kan Boekuna btw-aangifte rechtstreeks indienen?</strong><p>Nog niet. Boekuna toont een indicatief btw-overzicht; de officiële aangifte blijft extern.</p></div>
-   <div class="faq-item"><strong>Kan ik mijn administratie exporteren?</strong><p>Ja. Back-up- en auditlog-export zijn aanwezig.</p></div>
+   <div class="faq-item"><h2><button class="faq-toggle" id="faq-q-1" type="button" aria-expanded="true" aria-controls="faq-a-1">Wat telt als één slimme verwerking?</button></h2><div class="faq-answer" id="faq-a-1" role="region" aria-labelledby="faq-q-1" aria-hidden="false"><div><p>Eén document of één foto dat door de scanner wordt geanalyseerd. Eén PDF-factuur = één verwerking; één bonfoto = één verwerking.</p></div></div></div>
+   <div class="faq-item"><h2><button class="faq-toggle" id="faq-q-2" type="button" aria-expanded="false" aria-controls="faq-a-2">Tellen handmatige facturen mee?</button></h2><div class="faq-answer" id="faq-a-2" role="region" aria-labelledby="faq-q-2" aria-hidden="true"><div><p>Nee. Handmatig facturen maken, kosten invoeren, relaties beheren en rapportages bekijken gebruiken geen slimme verwerking.</p></div></div></div>
+   <div class="faq-item"><h2><button class="faq-toggle" id="faq-q-3" type="button" aria-expanded="false" aria-controls="faq-a-3">Kan ik een kassabon met mijn telefoon fotograferen?</button></h2><div class="faq-answer" id="faq-a-3" role="region" aria-labelledby="faq-q-3" aria-hidden="true"><div><p>Ja. Gebruik de camera of kies een bestaande foto. Gangbare formaten en HEIC/HEIF worden ondersteund.</p></div></div></div>
+   <div class="faq-item"><h2><button class="faq-toggle" id="faq-q-4" type="button" aria-expanded="false" aria-controls="faq-a-4">Boekt Boekuna automatisch?</button></h2><div class="faq-answer" id="faq-a-4" role="region" aria-labelledby="faq-q-4" aria-hidden="true"><div><p>Niet zonder jouw controle. Financiële documenten gaan eerst naar een controlescherm.</p></div></div></div>
+   <div class="faq-item"><h2><button class="faq-toggle" id="faq-q-5" type="button" aria-expanded="false" aria-controls="faq-a-5">Kan ik PDF-facturen uploaden?</button></h2><div class="faq-answer" id="faq-a-5" role="region" aria-labelledby="faq-q-5" aria-hidden="true"><div><p>Ja. Digitale PDF’s, scans en meerpagina-documenten worden ondersteund; waar nodig wordt OCR gebruikt.</p></div></div></div>
+   <div class="faq-item"><h2><button class="faq-toggle" id="faq-q-6" type="button" aria-expanded="false" aria-controls="faq-a-6">Is er al een live bankkoppeling?</button></h2><div class="faq-answer" id="faq-a-6" role="region" aria-labelledby="faq-q-6" aria-hidden="true"><div><p>Nog niet. Bankregels kunnen momenteel via CSV worden geïmporteerd en gekoppeld.</p></div></div></div>
+   <div class="faq-item"><h2><button class="faq-toggle" id="faq-q-7" type="button" aria-expanded="false" aria-controls="faq-a-7">Kan Boekuna btw-aangifte rechtstreeks indienen?</button></h2><div class="faq-answer" id="faq-a-7" role="region" aria-labelledby="faq-q-7" aria-hidden="true"><div><p>Nog niet. Boekuna toont een indicatief btw-overzicht; de officiële aangifte blijft extern.</p></div></div></div>
+   <div class="faq-item"><h2><button class="faq-toggle" id="faq-q-8" type="button" aria-expanded="false" aria-controls="faq-a-8">Kan ik mijn administratie exporteren?</button></h2><div class="faq-answer" id="faq-a-8" role="region" aria-labelledby="faq-q-8" aria-hidden="true"><div><p>Ja. Back-up- en auditlog-export zijn aanwezig.</p></div></div></div>
   </div></section><section class="marketing-cta"><div class="marketing-cta-box"><div><h2>Kies het plan dat past bij hoe je wilt boekhouden.</h2><p>Begin gratis en upgrade zodra je meer controle, inzicht en automatisering wilt.</p></div><button class="mk-btn primary" onclick="location.href='/prijzen/'">Bekijk prijzen</button></div></section></main>`;
  }
  document.getElementById('authRoot').innerHTML=`<div class="marketing">${nav}${body}${footer}</div>`;
