@@ -1,0 +1,96 @@
+{
+  "generatedAt": "2026-09-28T02:17:19.681Z",
+  "source": "kwinest/index.html",
+  "viewportDesktop": "1440x960",
+  "viewportMobile": "390x844",
+  "demoDataset": "permanent-fictive-marketing-v1",
+  "processorStatus": "blocked-no-dedicated-account",
+  "processor": null,
+  "processorResult": null,
+  "assets": [
+    {
+      "name": "boekuna-dashboard-desktop.webp",
+      "width": 1440,
+      "height": 960,
+      "size": 94880
+    },
+    {
+      "name": "boekuna-dashboard-desktop-960.webp",
+      "width": 960,
+      "height": 640,
+      "size": 50948
+    },
+    {
+      "name": "boekuna-invoices-desktop.webp",
+      "width": 1440,
+      "height": 960,
+      "size": 82880
+    },
+    {
+      "name": "boekuna-invoices-desktop-960.webp",
+      "width": 960,
+      "height": 640,
+      "size": 44296
+    },
+    {
+      "name": "boekuna-documents-desktop.webp",
+      "width": 1440,
+      "height": 960,
+      "size": 96532
+    },
+    {
+      "name": "boekuna-documents-desktop-960.webp",
+      "width": 960,
+      "height": 640,
+      "size": 50430
+    },
+    {
+      "name": "boekuna-vat-desktop.webp",
+      "width": 1440,
+      "height": 960,
+      "size": 66618
+    },
+    {
+      "name": "boekuna-vat-desktop-960.webp",
+      "width": 960,
+      "height": 640,
+      "size": 35414
+    },
+    {
+      "name": "boekuna-contacts-desktop.webp",
+      "width": 1440,
+      "height": 960,
+      "size": 75272
+    },
+    {
+      "name": "boekuna-services-desktop.webp",
+      "width": 1440,
+      "height": 960,
+      "size": 64368
+    },
+    {
+      "name": "boekuna-company-settings-desktop.webp",
+      "width": 1440,
+      "height": 960,
+      "size": 95628
+    },
+    {
+      "name": "boekuna-reports-desktop.webp",
+      "width": 1440,
+      "height": 960,
+      "size": 87118
+    },
+    {
+      "name": "boekuna-reports-desktop-960.webp",
+      "width": 960,
+      "height": 640,
+      "size": 45638
+    },
+    {
+      "name": "boekuna-dashboard-mobile.webp",
+      "width": 390,
+      "height": 844,
+      "size": 29378
+    }
+  ]
+}
