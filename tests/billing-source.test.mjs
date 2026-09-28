@@ -25,6 +25,8 @@ assert.ok(checkout.includes('amount:995'),'Boekuna monthly price must be €9.95
 assert.ok(checkout.includes('amount:1995'),'Unlimited monthly price must be €19.95');
 assert.ok(checkout.includes('{CHECKOUT_SESSION_ID}'),'Checkout success must carry a server-verifiable session reference');
 assert.ok(checkout.includes('mode","subscription'),'Checkout must explicitly create paid subscriptions');
+assert.ok(checkout.includes('Idempotency-Key'),'Checkout must use Stripe idempotency for concurrent/double-click retries');
+assert.ok(checkout.includes('boekuna-checkout:'),'Checkout idempotency key must be scoped to Boekuna user and plan');
 for(const legacy of ['addCalendarMonthsUnix','reserve_founding_offer','subscription_data[trial_end]','founder_number','Eerste 100-aanbod']){
   assert.ok(!checkout.includes(legacy),`Checkout must not contain legacy automatic-trial behavior: ${legacy}`);
 }
@@ -32,6 +34,7 @@ for(const legacy of ['addCalendarMonthsUnix','reserve_founding_offer','subscript
 assert.ok(portal.includes('/billing_portal/sessions'),'Paid users need Stripe Customer Portal management');
 assert.ok(webhook.includes('verifyStripeSignature'),'Webhook events must verify the Stripe signature before processing');
 assert.ok(webhook.includes('stripe-signature'),'Webhook must require the Stripe-Signature header');
+assert.ok(webhook.includes('Stripe event environment mismatch'),'Webhook must reject test/live environment mismatches');
 assert.ok(webhook.includes('ageSeconds > 300'),'Webhook signature verification must reject replayed events outside the tolerance window');
 assert.ok(webhook.includes('status: "processing"'),'Webhook must claim an event before side effects');
 assert.ok(webhook.includes('status: "processed"'),'Webhook must mark completed events');
