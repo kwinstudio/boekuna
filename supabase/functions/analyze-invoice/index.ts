@@ -97,15 +97,21 @@ function bytesToBase64(bytes:Uint8Array){
  return btoa(bin);
 }
 async function storedDocumentInput(req:Request,clientRef:string){
- if(!clientRef)return null;
- const user=await authUser(req);if(!user)return null;
+ if(!clientRef)return {ok:false,kind:"missing",internal_code:"CLIENT_REF_MISSING"} as any;
+ const user=await authUser(req);if(!user)return {ok:false,kind:"auth",internal_code:"AUTH_SESSION_INVALID"} as any;
  const sb=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_ANON_KEY")!,{global:{headers:{Authorization:"Bearer "+user.token}},auth:{persistSession:false,autoRefreshToken:false}});
  const {data:meta,error}=await sb.from("documents").select("storage_path,name,mime_type").eq("user_id",user.user.id).eq("client_ref",clientRef).maybeSingle();
- if(error||!meta?.storage_path)return null;
+ if(error)return {ok:false,kind:"unavailable",internal_code:"DOCUMENT_METADATA_READ_FAILED",internal_error:error.message} as any;
+ if(!meta?.storage_path)return {ok:false,kind:"missing",internal_code:"ORIGINAL_DOCUMENT_NOT_FOUND"} as any;
  const {data:blob,error:downloadError}=await sb.storage.from("kwinest-documents").download(meta.storage_path);
- if(downloadError||!blob)return null;
- const bytes=new Uint8Array(await blob.arrayBuffer());
- return {fileName:safe(meta.name||"document",160),mimeType:safe(meta.mime_type||blob.type||"application/octet-stream",120).toLowerCase(),base64:bytesToBase64(bytes)};
+ if(downloadError)return {ok:false,kind:"unavailable",internal_code:"DOCUMENT_STORAGE_DOWNLOAD_FAILED",internal_error:downloadError.message} as any;
+ if(!blob)return {ok:false,kind:"unavailable",internal_code:"DOCUMENT_STORAGE_EMPTY_RESPONSE"} as any;
+ try{
+   const bytes=new Uint8Array(await blob.arrayBuffer());
+   return {ok:true,fileName:safe(meta.name||"document",160),mimeType:safe(meta.mime_type||blob.type||"application/octet-stream",120).toLowerCase(),base64:bytesToBase64(bytes)};
+ }catch(e){
+   return {ok:false,kind:"unavailable",internal_code:"DOCUMENT_STORAGE_READ_FAILED",internal_error:e} as any;
+ }
 }
 
 function adminDb(){
@@ -236,11 +242,16 @@ Deno.serve(async(req:Request)=>{
   if(verificationClaim.kind==="exhausted")return fail(req,"PROCESSOR_UNAVAILABLE",503,{...common,stage:"verification_job",internal_code:"VERIFICATION_RETRY_LIMIT",user_ref:userRef,state:"stored_unprocessed"});
 
   if(verify){
-    const stored=data.clientRef?await storedDocumentInput(req,safe(data.clientRef,240)):null;
-    if(!stored){
-      const ref=newReferenceId();
-      await finishVerificationJob(verificationClaim,null,"ORIGINAL_DOCUMENT_NOT_AVAILABLE|"+ref);
-      return fail(req,"INVALID_REQUEST",422,{...common,stage:"storage",internal_code:"ORIGINAL_DOCUMENT_NOT_AVAILABLE",user_ref:userRef,state:"unknown_state",reference_id:ref});
+    const stored=await storedDocumentInput(req,safe(data.clientRef,240));
+    if(!stored?.ok){
+      const ref=newReferenceId(),missing=stored?.kind==="missing",auth=stored?.kind==="auth";
+      const publicCode=auth?"AUTH_SESSION_EXPIRED":(missing?"INVALID_REQUEST":"PROCESSOR_UNAVAILABLE");
+      const status=auth?401:(missing?422:503);
+      await finishVerificationJob(verificationClaim,null,publicCode+"|"+ref);
+      return fail(req,publicCode,status,{
+        ...common,stage:"storage",internal_code:stored?.internal_code||"ORIGINAL_DOCUMENT_UNAVAILABLE",
+        internal_error:stored?.internal_error,user_ref:userRef,state:missing?"unknown_state":"stored_unprocessed",reference_id:ref
+      });
     }
     try{
       const bytes=Uint8Array.from(atob(stored.base64),c=>c.charCodeAt(0));
