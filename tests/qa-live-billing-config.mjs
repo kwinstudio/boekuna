@@ -4,7 +4,7 @@ import { chromium } from 'playwright';
 const APP_ORIGIN='https://boekuna-boekhouding.onrender.com';
 const EMAIL=process.env.BOOKUNA_MARKETING_CAPTURE_EMAIL||'';
 const PASSWORD=process.env.BOOKUNA_MARKETING_CAPTURE_PASSWORD||'';
-const TARGET_SHA='28561d1e6e94372b41e0471b2d4da027e79d5901';
+const TARGET_SHA='8b80ee77786db9cd1001f6cdcda885d00aaef789';
 
 assert.ok(EMAIL&&PASSWORD,'Dedicated production QA credentials are required');
 
