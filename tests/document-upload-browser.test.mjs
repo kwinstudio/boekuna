@@ -129,10 +129,9 @@ try{
     });
 
     await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:15000});
-    const modalText=await page.locator('.modal').innerText();
-    assert.match(modalText,/Voorbeeld Leverancier BV/);
-    assert.match(modalText,/QA-PDF-02-001/);
-    assert.match(modalText,/121,00/);
+    assert.equal(await page.locator('#pdfImportForm [name="party"]').inputValue(),'Voorbeeld Leverancier BV');
+    assert.equal(await page.locator('#pdfImportForm [name="invoiceNumber"]').inputValue(),'QA-PDF-02-001');
+    assert.equal(await page.locator('#pdfImportForm [name="gross"]').inputValue(),'121.00');
     assert.ok(methods.includes('OPTIONS'),'QA-PDF-02 must exercise browser CORS preflight');
     assert.ok(methods.includes('POST'),'QA-PDF-02 must reach POST /analyze after preflight');
 
@@ -189,9 +188,8 @@ try{
     });
 
     await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:15000});
-    const review=await page.locator('.modal').innerText();
-    assert.match(review,/QA-PDF-03-001/);
-    assert.match(review,/121,00/);
+    assert.equal(await page.locator('#pdfImportForm [name="invoiceNumber"]').inputValue(),'QA-PDF-03-001');
+    assert.equal(await page.locator('#pdfImportForm [name="gross"]').inputValue(),'121.00');
     assert.ok(!errors.some(x=>/pdfLibPromise/i.test(x)),'QA-PDF-03 must never throw pdfLibPromise ReferenceError');
     assert.ok(!errors.some(x=>/ReferenceError/i.test(x)),'QA-PDF-03 fallback must not throw a browser ReferenceError');
     await page.close();
