@@ -1985,7 +1985,7 @@ function renderBillingCard(){
      <a class="btn" href="/prijzen/" target="_blank" rel="noopener">Prijzen</a>
    </div></div>
    ${b.cancel_at_period_end?`<div class="notice warn" style="margin-top:14px"><strong>Opzegging gepland.</strong> Je betaalde toegang loopt door tot het einde van de huidige betaalperiode. Daarna valt je toegang terug op je oorspronkelijke Early Access-periode als die nog loopt; anders op de toepasselijke niet-betaalde status.</div>`:''}
- </div>
+ </div>`
 }
 async function refreshBillingCard(force=false){
  try{await loadBillingSummary(force);const el=document.getElementById('billingCard');if(el)el.outerHTML=renderBillingCard()}catch(err){console.warn('Billing summary',err);const el=document.getElementById('billingCard');if(el)el.innerHTML='<div class="section-head"><div><h2>Abonnement</h2><p>Status kon niet worden geladen.</p></div></div><button class="btn small" onclick="refreshBillingCard(true)">Opnieuw proberen</button>'}
