@@ -3674,70 +3674,71 @@ function mergeAIParsed(local,ai,forced='auto'){
 }
 async function analyzeInvoiceWithAI(file,extractedText,localGuess){
  const MAX_RAW=2600000;let pdfBase64='';if(file.size<=MAX_RAW){try{pdfBase64=await fileToBase64(file)}catch(e){console.warn('PDF base64',e)}}
- const body={forcedType:pendingUploadKind||'auto',fileName:file.name,company:state.company||{},extractedText:String(extractedText||'').slice(0,30000),localGuess:compactLocalGuess(localGuess),pdfBase64,testMode:TEST_MODE_NO_AUTH,reviewMode:'extract'};
+ const body={forcedType:pendingUploadKind||'auto',fileName:file.name,fileSize:file.size,mimeType:file.type||'',company:state.company||{},extractedText:String(extractedText||'').slice(0,30000),localGuess:compactLocalGuess(localGuess),pdfBase64,testMode:TEST_MODE_NO_AUTH,reviewMode:'extract'};
  let res=await fetch(EDGE_BASE+'/analyze-invoice',{method:'POST',headers:await apiAuthHeaders({'content-type':'application/json'}),body:JSON.stringify(body)});
  if(res.status===413&&pdfBase64){body.pdfBase64='';res=await fetch(EDGE_BASE+'/analyze-invoice',{method:'POST',headers:await apiAuthHeaders({'content-type':'application/json'}),body:JSON.stringify(body)})}
  let json={};try{json=await res.json()}catch(e){}
- if(!res.ok||!json.ok)throw new Error(json.error||`AI-controle mislukt (${res.status})`);
+ if(!res.ok||!json.ok){
+  const publicError=json?.error&&typeof json.error==='object'?json.error:{};
+  throw createUploadError(String(publicError.code||fallbackDocumentCode(res.status)),'',res.status,publicError)
+ }
  const a=json.data||{};return {...a,sourceQuality:pdfBase64?'ai-pdf':'ai-text',aiModel:json.model||'',confidenceScore:Number(a.confidence||0),fieldConfidence:a.fieldConfidence||{},warnings:a.warnings||[]}
 }
 const UPLOAD_ERROR_CODES={
- '400':['Ongeldige aanvraag','Het bestand of de meegestuurde gegevens zijn niet geldig.','Kies het bestand opnieuw. Blijft dit gebeuren, probeer een ander bestand of exporteer de factuur opnieuw.'],
- '402':['Abonnementslimiet bereikt','Je maandelijkse aantal slimme documentverwerkingen is opgebruikt. Je bestaande administratie blijft gewoon beschikbaar.','Ga naar Instellingen → Abonnement om te upgraden, of wacht tot je nieuwe maandperiode begint.'],
- '401':['Sessie verlopen','Je inlogsessie is niet meer geldig.','Vernieuw Boekuna en log opnieuw in. De upload wordt daarna opnieuw gestart.'],
- '403':['Geen toegang','De scanner weigert deze aanvraag vanwege toegangs- of beveiligingsregels.','Controleer of je bent ingelogd en Boekuna via de officiële website gebruikt.'],
- '404':['Scanner niet gevonden','De uploadroute of scanner is tijdelijk niet bereikbaar.','Vernieuw de pagina en probeer opnieuw.'],
- '405':['Methode niet toegestaan','De scanner ontving een type aanvraag dat hier niet is toegestaan.','Vernieuw Boekuna. Als dit blijft terugkomen, is een technische update nodig.'],
- '408':['Time-out','De verwerking duurde te lang en is afgebroken.','Probeer opnieuw met een kleiner bestand of een scherpere scan.'],
- '409':['Conflict','Deze verwerking botst met bestaande gegevens of een lopende actie.','Controleer of het document al is toegevoegd en probeer daarna opnieuw.'],
- '410':['Niet meer beschikbaar','De aangeroepen uploadroute is niet meer beschikbaar.','Vernieuw Boekuna zodat de nieuwste scanner wordt geladen.'],
- '413':['Bestand te groot','Het document is groter dan de maximale uploadgrootte.','Verklein of comprimeer het bestand en probeer opnieuw.'],
- '415':['Bestandstype niet ondersteund','Dit bestandstype kan niet betrouwbaar door de scanner worden verwerkt.','Gebruik PDF, JPG/JPEG, PNG, WebP, HEIC/HEIF, TIFF, BMP, GIF, DOCX, XLSX of CSV.'],
- '422':['Document niet verwerkbaar','Het bestand is ontvangen, maar de scanner kan de inhoud of structuur niet betrouwbaar verwerken.','Controleer of het bestand niet beschadigd is. Maak bij een bon eventueel een nieuwe, scherpe foto.'],
- '423':['Tijdelijk vergrendeld','Het document of de verwerking is tijdelijk geblokkeerd.','Wacht kort en probeer opnieuw.'],
- '425':['Te vroeg opnieuw geprobeerd','De server wil deze aanvraag nog niet verwerken.','Wacht enkele seconden en probeer opnieuw.'],
- '429':['Te veel aanvragen','Er zijn te veel uploads kort na elkaar uitgevoerd.','Wacht even en probeer daarna opnieuw.'],
- '431':['Aanvraag te groot','De meegestuurde aanvraaggegevens zijn te groot.','Probeer een kleiner document of vernieuw de pagina.'],
- '451':['Geblokkeerd','De aanvraag kan door een beleids- of toegangsbeperking niet worden verwerkt.','Controleer de bron en het bestand en neem contact op als dit bij normale facturen blijft gebeuren.'],
- '500':['Interne scannerfout','Er ging iets mis in de documentprocessor.','Probeer opnieuw. Blijft de fout terugkomen, dan moet de serverlog worden gecontroleerd.'],
- '501':['Functie niet beschikbaar','De server ondersteunt deze verwerking op dit moment niet.','Gebruik een ondersteund bestandstype of probeer later opnieuw.'],
- '502':['Scanner-gateway fout','Een achterliggende scanner- of AI-service gaf geen geldige reactie.','Probeer opnieuw; meestal is dit tijdelijk.'],
- '503':['Scanner tijdelijk niet beschikbaar','De documentprocessor is tijdelijk niet beschikbaar of wordt opnieuw gestart.','Wacht een minuut en probeer opnieuw.'],
- '504':['Scanner-time-out','Een achterliggende dienst reageerde niet op tijd.','Probeer opnieuw met een kleiner bestand of wacht kort.'],
- '505':['Protocol niet ondersteund','De server en aanvraag gebruiken niet dezelfde HTTP-versie.','Vernieuw de pagina; als dit blijft gebeuren is een technische update nodig.'],
- '507':['Onvoldoende opslag','De server kan het document tijdelijk niet opslaan.','Probeer later opnieuw.'],
- '508':['Verwerkingslus','De server is tijdens de verwerking in een interne lus terechtgekomen.','Probeer opnieuw; als dit terugkomt is serveronderzoek nodig.'],
- '511':['Netwerkauthenticatie vereist','Het netwerk blokkeert de verbinding totdat opnieuw is geauthenticeerd.','Controleer je wifi/internetverbinding en probeer opnieuw.'],
- NETWORK_ERROR:['Netwerkfout','Boekuna kon geen verbinding maken met de scanner.','Controleer je internetverbinding en probeer opnieuw.'],
- TIMEOUT:['Time-out','De scanner deed langer over de verwerking dan toegestaan.','Probeer opnieuw met een kleiner bestand of een scherpere scan.'],
- FILE_TOO_LARGE:['Bestand te groot','Het bestand overschrijdt de uploadlimiet van 15 MB.','Comprimeer of verklein het document en probeer opnieuw.'],
- UNSUPPORTED_FILE:['Bestandstype niet ondersteund','Boekuna herkent dit bestandstype niet als ondersteund document.','Gebruik PDF, een ondersteunde afbeelding, Word, Excel of CSV.'],
- OCR_FAILED:['OCR kon de bon niet lezen','De lokale tekstherkenning kon geen bruikbare tekst uit de foto halen.','Maak een nieuwe foto: recht van boven, voldoende licht, scherp en zonder afgesneden randen.'],
- PDF_READ_FAILED:['PDF kon niet worden gelezen','Zowel de server als de lokale PDF-lezer konden het document niet betrouwbaar uitlezen.','Download/exporteer de PDF opnieuw of upload een scherpe afbeelding van de factuur.'],
- SESSION_EXPIRED:['Sessie verlopen','Je login is verlopen voordat de upload kon starten.','Log opnieuw in en probeer de upload opnieuw.'],
- UNKNOWN:['Onbekende uploadfout','Er is een onverwachte fout opgetreden.','Probeer opnieuw. Noteer de foutcode als het probleem terugkomt.']
+ DOCUMENT_PDF_UNREADABLE:['PDF kon niet worden gelezen','Boekuna kon deze PDF niet betrouwbaar uitlezen.','Exporteer/download de PDF opnieuw of upload een scherpe afbeelding van de factuur.'],
+ DOCUMENT_IMAGE_UNREADABLE:['Afbeelding kon niet worden gelezen','Boekuna kon onvoldoende betrouwbare tekst uit deze afbeelding halen.','Maak een nieuwe foto: recht van boven, voldoende licht, scherp en zonder afgesneden randen.'],
+ DOCUMENT_UNSUPPORTED_TYPE:['Bestandstype niet ondersteund','Dit bestandstype hoort niet bij de ondersteunde documentformaten.','Gebruik een ondersteund documenttype en probeer opnieuw.'],
+ DOCUMENT_TOO_LARGE:['Bestand te groot','Het document is groter dan de toegestane uploadgrootte.','Verklein of comprimeer het bestand en probeer opnieuw.'],
+ AUTH_SESSION_EXPIRED:['Sessie verlopen','Je inlogsessie is niet meer geldig.','Log opnieuw in en start de upload opnieuw.'],
+ DOCUMENT_LIMIT_REACHED:['Documentlimiet bereikt','Je maandelijkse aantal slimme documentverwerkingen is opgebruikt.','Ga naar Instellingen → Abonnement om je limiet te bekijken of wacht tot de nieuwe maandperiode.'],
+ ACCOUNT_READ_ONLY:['Account is read-only','Je account kan momenteel geen nieuwe boekhoudkundige wijzigingen uitvoeren.','Open je abonnementsstatus om je toegang te herstellen.'],
+ RATE_LIMITED:['Te veel aanvragen','Er zijn te veel verwerkingen kort na elkaar gestart.','Wacht even en probeer daarna opnieuw.'],
+ PROCESSING_TIMEOUT:['Verwerking duurde te lang','De documentverwerking heeft de maximale verwerkingstijd bereikt.','Probeer opnieuw. Een kleiner bestand of scherpere scan kan helpen.'],
+ PROCESSOR_UNAVAILABLE:['Scanner tijdelijk niet beschikbaar','De documentverwerking is tijdelijk niet beschikbaar.','Probeer het later opnieuw. Je hoeft geen providernaam of technische fout te controleren.'],
+ PERMISSION_DENIED:['Geen toegang','Deze aanvraag is door de toegangs- of beveiligingscontrole geweigerd.','Controleer of je bent ingelogd en Boekuna via de officiële website gebruikt.'],
+ INVALID_REQUEST:['Ongeldige aanvraag','Het bestand of de aanvraag kon niet geldig worden verwerkt.','Selecteer het document opnieuw. Blijft dit gebeuren, exporteer het bestand opnieuw.'],
+ UNKNOWN:['Onbekende verwerkingsfout','Er is een onverwachte fout opgetreden.','Probeer opnieuw en vermeld de supportreferentie als het probleem terugkomt.'],
+ NETWORK_ERROR:['Netwerkfout','Boekuna kon geen verbinding maken met de scanner.','Controleer je internetverbinding en probeer opnieuw.']
 };
-function createUploadError(code,message='',status=null){const e=new Error(message||String(code||'Uploadfout'));e.code=String(code||'UNKNOWN');e.status=status??(Number.isFinite(Number(code))?Number(code):null);return e}
+function createUploadError(code,message='',status=null,meta={}){
+ const safeCode=String(code||'UNKNOWN'),e=new Error(message||safeCode);
+ e.code=safeCode;e.status=status??null;e.category=String(meta?.category||'');e.retryable=!!meta?.retryable;
+ e.referenceId=String(meta?.reference_id||'');e.context=meta?.context&&typeof meta.context==='object'?meta.context:{};
+ e.processingState=String(meta?.state||'unknown_state');return e
+}
 function uploadErrorInfo(err){
- const rawCode=String(err?.code||'').trim(),status=Number(err?.status||0)||Number((String(err?.message||'').match(/\((\d{3})\)/)||[])[1]||0);
- let code=rawCode|| (status?String(status):'');
- if(err?.name==='AbortError')code='TIMEOUT';
- if(!code&&err instanceof TypeError)code='NETWORK_ERROR';
- if(!code)code='UNKNOWN';
- let info=UPLOAD_ERROR_CODES[code];
- if(!info&&status>=400&&status<500)info=['Aanvraagfout',`De scanner heeft de upload geweigerd (HTTP ${status}).`,'Controleer het bestand, je sessie en probeer opnieuw.'];
- if(!info&&status>=500&&status<600)info=['Serverfout',`De scanner heeft een serverfout teruggegeven (HTTP ${status}).`,'Wacht kort en probeer opnieuw. Als het blijft gebeuren moet de serverlog worden gecontroleerd.'];
- if(!info)info=UPLOAD_ERROR_CODES.UNKNOWN;
- return {code:status?String(status):code,title:info[0],explanation:info[1],action:info[2],detail:String(err?.message||'').trim()}
+ let code=String(err?.code||'').trim();
+ const status=Number(err?.status||0);
+ if(err?.name==='AbortError')code='PROCESSING_TIMEOUT';
+ if(!code&&err instanceof TypeError)code='PROCESSOR_UNAVAILABLE';
+ if(!code)code=fallbackDocumentCode(status);
+ if(!UPLOAD_ERROR_CODES[code])code='UNKNOWN';
+ let info=UPLOAD_ERROR_CODES[code],explanation=info[1],action=info[2];
+ const ctx=err?.context&&typeof err.context==='object'?err.context:{};
+ if(code==='DOCUMENT_TOO_LARGE'&&Number(ctx.max_size_mb)>0)explanation=`Het document is groter dan maximaal ${Number(ctx.max_size_mb)} MB.`;
+ if(code==='DOCUMENT_LIMIT_REACHED'&&Number(ctx.monthly_limit)>=0)explanation=`Je maandelijkse documentlimiet van ${Number(ctx.monthly_limit)} verwerkingen is bereikt.`;
+ if(code==='DOCUMENT_UNSUPPORTED_TYPE'&&Array.isArray(ctx.supported_extensions)&&ctx.supported_extensions.length)action='Gebruik '+ctx.supported_extensions.join(', ')+' en probeer opnieuw.';
+ return {code,title:info[0],explanation,action,status,referenceId:String(err?.referenceId||''),state:String(err?.processingState||'unknown_state')}
+}
+function uploadSafetyText(state){
+ return ({
+  not_saved:'Het originele bestand is niet door deze verwerking opgeslagen.',
+  stored_unprocessed:'Het originele bestand is opgeslagen, maar deze verwerking is niet afgerond.',
+  no_changes:'Deze mislukte verwerking heeft geen boekhoudkundige wijzigingen opgeslagen.',
+  unknown_state:'Controleer Documenten voordat je opnieuw uploadt om een dubbele verwerking te voorkomen.'
+ })[state]||'Controleer Documenten voordat je opnieuw uploadt.'
 }
 function uploadErrorCatalogHtml(){
- const keys=['400','401','402','403','404','405','408','409','410','413','415','422','423','425','429','431','451','500','501','502','503','504','505','507','508','511','NETWORK_ERROR','TIMEOUT','FILE_TOO_LARGE','UNSUPPORTED_FILE','OCR_FAILED','PDF_READ_FAILED','SESSION_EXPIRED'];
- return keys.map(k=>{const x=UPLOAD_ERROR_CODES[k];return `<div style="display:grid;grid-template-columns:92px 1fr;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)"><strong>${esc(k)}</strong><span><b>${esc(x[0])}</b> — ${esc(x[1])}</span></div>`}).join('')
+ const keys=['DOCUMENT_PDF_UNREADABLE','DOCUMENT_IMAGE_UNREADABLE','DOCUMENT_UNSUPPORTED_TYPE','DOCUMENT_TOO_LARGE','AUTH_SESSION_EXPIRED','DOCUMENT_LIMIT_REACHED','ACCOUNT_READ_ONLY','RATE_LIMITED','PROCESSING_TIMEOUT','PROCESSOR_UNAVAILABLE','PERMISSION_DENIED','INVALID_REQUEST','UNKNOWN'];
+ return keys.map(k=>{const x=UPLOAD_ERROR_CODES[k];return `<div style="display:grid;grid-template-columns:190px 1fr;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)"><strong>${esc(k)}</strong><span><b>${esc(x[0])}</b> — ${esc(x[1])}</span></div>`}).join('')
 }
 function showUploadError(err,file=null){
- const x=uploadErrorInfo(err),fileInfo=file?`<div class="help" style="margin-top:6px">${esc(file.name)} · ${Math.max(1,Math.round(file.size/1024))} KB</div>`:'';
- const technical=x.detail&&x.detail!==x.explanation?`<details style="margin-top:14px"><summary>Technische details</summary><div class="notice" style="margin-top:8px;word-break:break-word">${esc(x.detail)}</div></details>`:'';
- modal('Upload niet gelukt',`<div class="notice warn"><strong>Foutcode ${esc(x.code)} · ${esc(x.title)}</strong><p style="margin:8px 0 0">${esc(x.explanation)}</p>${fileInfo}</div><div class="card" style="margin-top:14px"><strong>Wat kun je doen?</strong><p style="margin:6px 0 0">${esc(x.action)}</p><p class="help" style="margin-top:10px">Blijft dit gebeuren? Neem contact op via <a href="${SUPPORT_MAILTO}">${SUPPORT_EMAIL}</a> en vermeld foutcode ${esc(x.code)}.</p></div>${technical}<details style="margin-top:14px"><summary>Uitleg van mogelijke upload-foutcodes</summary><div style="margin-top:8px;max-height:300px;overflow:auto">${uploadErrorCatalogHtml()}</div></details>`,`<button class="btn" onclick="closeModal()">Sluiten</button>`)
+ const x=uploadErrorInfo(err);
+ if(x.code==='ACCOUNT_READ_ONLY'){closeModal();void requireBoekunaSmartLayer('Documentverwerking');return}
+ const fileInfo=file?`<div class="help" style="margin-top:6px">${esc(file.name)} · ${Math.max(1,Math.round(file.size/1024))} KB</div>`:'';
+ const ref=x.referenceId?`<p class="help" style="margin-top:10px">Supportreferentie: <strong>${esc(x.referenceId)}</strong></p>`:'';
+ const safety=`<div class="notice info" style="margin-top:12px">${esc(uploadSafetyText(x.state))}</div>`;
+ modal('Upload niet gelukt',`<div class="notice warn"><strong>${esc(x.code)} · ${esc(x.title)}</strong><p style="margin:8px 0 0">${esc(x.explanation)}</p>${fileInfo}</div><div class="card" style="margin-top:14px"><strong>Wat kun je doen?</strong><p style="margin:6px 0 0">${esc(x.action)}</p>${ref}<p class="help" style="margin-top:10px">Blijft dit gebeuren? Neem contact op via <a href="${SUPPORT_MAILTO}">${SUPPORT_EMAIL}</a>.</p></div>${safety}<details style="margin-top:14px"><summary>Uitleg van foutcodes</summary><div style="margin-top:8px;max-height:300px;overflow:auto">${uploadErrorCatalogHtml()}</div></details>`,`<button class="btn" onclick="closeModal()">Sluiten</button>`)
 }
 function setImportProgress(title,msg,sub='',percent=10,step=1){
  const pct=Math.max(1,Math.min(100,Number(percent)||10));
