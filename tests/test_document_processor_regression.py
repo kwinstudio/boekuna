@@ -322,6 +322,36 @@ class DocumentProcessorRegressionTests(unittest.TestCase):
         self.assertEqual(result["total"], 130.00)
 
 
+    def test_ai_cannot_replace_validated_single_rate_vat_group(self):
+        doc = {
+            "kind": "pdf",
+            "pageCount": 1,
+            "text": """--- PAGE 1 ---
+FACTUUR
+Leverancier: Voorbeeld Leverancier B.V.
+Factuurnummer: VAT-GROUP-1
+Factuurdatum: 28-09-2026
+Omschrijving: Testdienst
+Subtotaal € 100,00
+BTW 21% € 21,00
+Totaal € 121,00
+""",
+            "tables": [],
+            "layout": [],
+            "ocrPages": [],
+            "warnings": [],
+        }
+        deterministic = app.heuristic_extract(doc, "vat-group.pdf", COMPANY)
+        ai = deterministic.model_copy(deep=True)
+        ai.amounts.vatLines = [app.VatLine(rate=21, taxableAmount=121.00, vatAmount=100.00)]
+        ai.confidence["vatLines"] = .99
+        reconciled = app.reconcile(ai, deterministic)
+        self.assertEqual(len(reconciled.amounts.vatLines), 1)
+        self.assertMoney(reconciled.amounts.vatLines[0].taxableAmount, 100.00)
+        self.assertMoney(reconciled.amounts.vatLines[0].vatAmount, 21.00)
+        self.assertEqual(reconciled.processing.get("vatGroupSource"), "deterministic-validated")
+
+
     def test_mixed_vat_without_explicit_groups_requires_review(self):
         doc = {
             "kind": "pdf",
