@@ -237,7 +237,7 @@ try{
 
   await page.evaluate(()=>setImportProgress('Document verwerken','Document analyseren…','qa.pdf',48,3));
   assert.match(await page.locator('.modal').innerText(),/48%/);
-  await page.evaluate(()=>showUploadError(createUploadError('413','Bestand groter dan limiet',413)));
+  await page.evaluate(()=>showUploadError(createUploadError('DOCUMENT_TOO_LARGE','',413,{context:{max_size_mb:15},state:'not_saved'})));
   const uploadError=await page.locator('.modal').innerText();
   assert.match(uploadError,/Bestand te groot/);
   assert.match(uploadError,/Verklein of comprimeer/);
