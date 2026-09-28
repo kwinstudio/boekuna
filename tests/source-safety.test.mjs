@@ -28,6 +28,18 @@ assert.ok(invoiceAi.includes('if(body?.reviewMode==="verify")return {ok:true,kin
 assert.ok(invoiceAi.includes("storedDocumentInput(req,safe(data.clientRef,240))"),"PASS 2 must retrieve the saved original under the authenticated user's RLS");
 assert.ok(invoiceAi.includes("claimVerificationJob(req,data)"),"PASS 2 must claim an idempotent server-side job before provider work");
 assert.ok(processor.includes('@app.post("/verify")'),"The document processor must expose a dedicated independent verification endpoint");
+for(const origin of [
+  "https://boekuna-boekhouding.onrender.com",
+  "https://kwinest-boekhouding.onrender.com",
+  "https://boekuna.nl",
+  "https://www.boekuna.nl",
+  "https://boekuna-qa-staging.onrender.com"
+]){
+  assert.ok(processor.includes(origin),`Document processor CORS must allow the trusted app origin: ${origin}`);
+}
+assert.ok(processor.includes("allow_origins=sorted(ALLOWED_ORIGINS)"),"Document processor preflight must use the explicit trusted origin set");
+assert.ok(processor.includes("origin not in ALLOWED_ORIGINS"),"Document processor route auth must use the same explicit trusted origin set");
+assert.ok(!processor.includes('allow_origins=["*"]'),"Document processor must never use wildcard CORS origins");
 assert.ok(processor.includes('if not independent:'),"Independent PASS 2 must omit the primary heuristic answer from model context");
 assert.ok(processor.includes('This is an INDEPENDENT SECOND VERIFICATION.'),"PASS 2 must use an explicitly independent verification instruction");
 assert.ok(processor.includes('"store":False'),"OpenAI Responses must disable response storage for document analysis");
