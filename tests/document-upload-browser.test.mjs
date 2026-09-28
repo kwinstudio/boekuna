@@ -11,25 +11,6 @@ function replaceLast(source,needle,replacement){
   return source.slice(0,i)+replacement+source.slice(i+needle.length);
 }
 
-let appHtml=original.replace('const TEST_MODE_NO_AUTH=false;','const TEST_MODE_NO_AUTH=true;');
-appHtml=replaceLast(appHtml,'initAuth();',`
-currentUser=TEST_USER;
-state=structuredClone(DEFAULT);
-for(const key of ['contacts','services','invoices','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])state[key]=[];
-state.company={...state.company,name:'QA PDF BV',tradeName:'Boekuna PDF QA',contactName:'QA',email:'qa-pdf@example.test',phone:'0100000000',address:'Teststraat 1',postal:'3011AA',city:'Rotterdam',country:'Nederland',kvk:'12345678',vat:'NL123456789B01',iban:'NL91ABNA0417164300',invoicePrefix:'2026-',paymentDays:14,kor:false};
-enterApp();
-`);
-
-const server=http.createServer((req,res)=>{
-  if(req.url?.startsWith('/manifest.webmanifest')){res.writeHead(200,{'content-type':'application/manifest+json'});return res.end('{}')}
-  res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});
-  res.end(appHtml);
-});
-await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-const {port}=server.address();
-const base=`http://127.0.0.1:${port}`;
-const origin=new URL(base).origin;
-
 const invoiceLines=[
   'FACTUUR',
   'Leverancier: Voorbeeld Leverancier BV',
@@ -46,36 +27,6 @@ const invoiceLines=[
   'Totaal te betalen: EUR 121,00',
   'Betalingskenmerk: QA-PDF-03-001'
 ];
-
-const pdfModule=`
-export const GlobalWorkerOptions={workerSrc:''};
-const lines=${JSON.stringify(invoiceLines)};
-const items=lines.map((str,i)=>({str,transform:[1,0,0,1,40,800-i*28],width:Math.max(80,str.length*6)}));
-export function getDocument(){
-  return {promise:Promise.resolve({
-    numPages:1,
-    getPage:async()=>({
-      getTextContent:async()=>({items}),
-      getViewport:()=>({width:595,height:842}),
-      render:()=>({promise:Promise.resolve()})
-    }),
-    getAttachments:async()=>null
-  })};
-}
-`;
-
-function corsHeaders(extra={}){
-  return {'access-control-allow-origin':origin,'access-control-allow-methods':'POST,OPTIONS','access-control-allow-headers':'*',...extra};
-}
-
-async function routePdfJs(page){
-  await page.route('https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/build/pdf.min.mjs',route=>route.fulfill({
-    status:200,
-    contentType:'text/javascript; charset=utf-8',
-    headers:{'access-control-allow-origin':'*'},
-    body:pdfModule
-  }));
-}
 
 const processorPayload={
   ok:true,
@@ -98,6 +49,98 @@ const processorPayload={
   duplicateCandidates:[]
 };
 
+let appOrigin='';
+let processorMode='success';
+let processorMethods=[];
+
+const processorServer=http.createServer((req,res)=>{
+  if(req.url!=='/analyze'){res.writeHead(404);return res.end('not found')}
+  processorMethods.push(req.method||'');
+  const headers={
+    'access-control-allow-origin':appOrigin,
+    'access-control-allow-methods':'POST,OPTIONS',
+    'access-control-allow-headers':'*',
+    'vary':'Origin'
+  };
+  if(req.method==='OPTIONS'){res.writeHead(204,headers);return res.end()}
+  if(req.method!=='POST'){res.writeHead(405,headers);return res.end()}
+  let bytes=0;
+  req.on('data',chunk=>{bytes+=chunk.length});
+  req.on('end',()=>{
+    assert.ok(bytes>0,'Browser processor POST must contain multipart upload bytes');
+    if(processorMode==='success'){
+      res.writeHead(200,{...headers,'content-type':'application/json'});
+      return res.end(JSON.stringify(processorPayload));
+    }
+    res.writeHead(503,{...headers,'content-type':'application/json'});
+    res.end(JSON.stringify({ok:false,error:{code:'PROCESSOR_UNAVAILABLE',category:'temporary',retryable:true,state:'no_changes',reference_id:'BK-QAPDF'}}));
+  });
+});
+await new Promise(resolve=>processorServer.listen(0,'127.0.0.1',resolve));
+const processorPort=processorServer.address().port;
+const processorBase=`http://127.0.0.1:${processorPort}`;
+
+let appHtml=original
+  .replace('const TEST_MODE_NO_AUTH=false;','const TEST_MODE_NO_AUTH=true;')
+  .replace("const DOCUMENT_PROCESSOR_URL='https://kwinest-docprocessor.onrender.com';",`const DOCUMENT_PROCESSOR_URL='${processorBase}';`);
+appHtml=replaceLast(appHtml,'initAuth();',`
+currentUser=TEST_USER;
+state=structuredClone(DEFAULT);
+for(const key of ['contacts','services','invoices','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])state[key]=[];
+state.company={...state.company,name:'QA PDF BV',tradeName:'Boekuna PDF QA',contactName:'QA',email:'qa-pdf@example.test',phone:'0100000000',address:'Teststraat 1',postal:'3011AA',city:'Rotterdam',country:'Nederland',kvk:'12345678',vat:'NL123456789B01',iban:'NL91ABNA0417164300',invoicePrefix:'2026-',paymentDays:14,kor:false};
+enterApp();
+`);
+
+const appServer=http.createServer((req,res)=>{
+  if(req.url?.startsWith('/manifest.webmanifest')){res.writeHead(200,{'content-type':'application/manifest+json'});return res.end('{}')}
+  res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});
+  res.end(appHtml);
+});
+await new Promise(resolve=>appServer.listen(0,'127.0.0.1',resolve));
+const appPort=appServer.address().port;
+const base=`http://127.0.0.1:${appPort}`;
+appOrigin=new URL(base).origin;
+
+const pdfModule=`
+export const GlobalWorkerOptions={workerSrc:''};
+const lines=${JSON.stringify(invoiceLines)};
+const items=lines.map((str,i)=>({str,transform:[1,0,0,1,40,800-i*28],width:Math.max(80,str.length*6)}));
+export function getDocument(){
+  return {promise:Promise.resolve({
+    numPages:1,
+    getPage:async()=>({
+      getTextContent:async()=>({items}),
+      getViewport:()=>({width:595,height:842}),
+      render:()=>({promise:Promise.resolve()})
+    }),
+    getAttachments:async()=>null
+  })};
+}
+`;
+
+async function routePdfJs(page){
+  await page.route('https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/build/pdf.min.mjs',route=>route.fulfill({
+    status:200,
+    contentType:'text/javascript; charset=utf-8',
+    headers:{'access-control-allow-origin':'*'},
+    body:pdfModule
+  }));
+}
+
+async function routeFallbackAi(page){
+  await page.route('https://vuwfyhtejsxhdfyvkkeq.supabase.co/functions/v1/analyze-invoice',async route=>{
+    const method=route.request().method();
+    const headers={'access-control-allow-origin':appOrigin,'access-control-allow-methods':'POST,OPTIONS','access-control-allow-headers':'*'};
+    if(method==='OPTIONS')return route.fulfill({status:204,headers});
+    return route.fulfill({
+      status:503,
+      contentType:'application/json',
+      headers,
+      body:JSON.stringify({ok:false,error:{code:'PROCESSOR_UNAVAILABLE',category:'temporary',retryable:true,state:'no_changes'}})
+    });
+  });
+}
+
 const browser=await chromium.launch({headless:true});
 
 async function newAppPage(){
@@ -109,18 +152,14 @@ async function newAppPage(){
 }
 
 try{
-  // QA-PDF-02: real browser upload path must survive CORS preflight -> processor POST -> review -> save.
+  // QA-PDF-02: the actual browser must perform CORS preflight, POST the PDF,
+  // reach the real review UI, then save the resulting bookkeeping/document state.
   {
+    processorMode='success';
+    processorMethods=[];
     const page=await newAppPage();
     const errors=[];
-    const methods=[];
     page.on('pageerror',e=>errors.push(String(e)));
-    await page.route('https://kwinest-docprocessor.onrender.com/analyze',async route=>{
-      const method=route.request().method();
-      methods.push(method);
-      if(method==='OPTIONS')return route.fulfill({status:204,headers:corsHeaders()});
-      return route.fulfill({status:200,contentType:'application/json',headers:corsHeaders(),body:JSON.stringify(processorPayload)});
-    });
 
     await page.locator('#invoicePdfFile').setInputFiles({
       name:'qa-pdf-02.pdf',
@@ -132,8 +171,8 @@ try{
     assert.equal(await page.locator('#pdfImportForm [name="party"]').inputValue(),'Voorbeeld Leverancier BV');
     assert.equal(await page.locator('#pdfImportForm [name="invoiceNumber"]').inputValue(),'QA-PDF-02-001');
     assert.equal(await page.locator('#pdfImportForm [name="gross"]').inputValue(),'121.00');
-    assert.ok(methods.includes('OPTIONS'),'QA-PDF-02 must exercise browser CORS preflight');
-    assert.ok(methods.includes('POST'),'QA-PDF-02 must reach POST /analyze after preflight');
+    assert.ok(processorMethods.includes('OPTIONS'),'QA-PDF-02 must exercise a real browser CORS preflight');
+    assert.ok(processorMethods.includes('POST'),'QA-PDF-02 must reach POST /analyze after preflight');
 
     await page.getByRole('button',{name:'Gecontroleerd & opslaan'}).click();
     await page.waitForFunction(()=>state.documents.length===1&&state.expenses.length===1);
@@ -143,35 +182,17 @@ try{
     await page.close();
   }
 
-  // QA-PDF-03: processor outage must use the browser PDF parser without the historical
-  // "Can't find variable: pdfLibPromise" crash and still reach the real review UI.
+  // QA-PDF-03: a temporary processor failure must reach the local PDF.js fallback
+  // without the historical "Can't find variable: pdfLibPromise" browser crash.
   {
+    processorMode='unavailable';
+    processorMethods=[];
     const page=await newAppPage();
     const errors=[];
     page.on('pageerror',e=>errors.push(String(e)));
+    await routeFallbackAi(page);
 
     assert.equal(await page.evaluate(()=>typeof pdfLibPromise),'object','pdfLibPromise must be initialized before loadPdfLib runs');
-
-    await page.route('https://kwinest-docprocessor.onrender.com/analyze',async route=>{
-      const method=route.request().method();
-      if(method==='OPTIONS')return route.fulfill({status:204,headers:corsHeaders()});
-      return route.fulfill({
-        status:503,
-        contentType:'application/json',
-        headers:corsHeaders(),
-        body:JSON.stringify({ok:false,error:{code:'PROCESSOR_UNAVAILABLE',category:'temporary',retryable:true,state:'no_changes',reference_id:'BK-QAPDF'}})
-      });
-    });
-    await page.route('https://vuwfyhtejsxhdfyvkkeq.supabase.co/functions/v1/analyze-invoice',async route=>{
-      const method=route.request().method();
-      if(method==='OPTIONS')return route.fulfill({status:204,headers:corsHeaders()});
-      return route.fulfill({
-        status:503,
-        contentType:'application/json',
-        headers:corsHeaders(),
-        body:JSON.stringify({ok:false,error:{code:'PROCESSOR_UNAVAILABLE',category:'temporary',retryable:true,state:'no_changes'}})
-      });
-    });
 
     const direct=await page.evaluate(async()=>{
       const f=new File([new Uint8Array([37,80,68,70,45,49,46,55])],'qa-loader.pdf',{type:'application/pdf'});
@@ -190,13 +211,16 @@ try{
     await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:15000});
     assert.equal(await page.locator('#pdfImportForm [name="invoiceNumber"]').inputValue(),'QA-PDF-03-001');
     assert.equal(await page.locator('#pdfImportForm [name="gross"]').inputValue(),'121.00');
+    assert.ok(processorMethods.includes('OPTIONS'),'QA-PDF-03 outage path must still pass browser preflight');
+    assert.ok(processorMethods.includes('POST'),'QA-PDF-03 outage path must attempt the processor before fallback');
     assert.ok(!errors.some(x=>/pdfLibPromise/i.test(x)),'QA-PDF-03 must never throw pdfLibPromise ReferenceError');
     assert.ok(!errors.some(x=>/ReferenceError/i.test(x)),'QA-PDF-03 fallback must not throw a browser ReferenceError');
     await page.close();
   }
 
-  console.log('PDF browser regressions: PASS (QA-PDF-02 preflight/upload/review/save; QA-PDF-03 PDF.js fallback/no ReferenceError)');
+  console.log('PDF browser regressions: PASS (QA-PDF-02 preflight/upload/review/save; QA-PDF-03 processor-outage/PDF.js fallback/no ReferenceError)');
 }finally{
   await browser.close();
-  await new Promise(resolve=>server.close(resolve));
+  await new Promise(resolve=>appServer.close(resolve));
+  await new Promise(resolve=>processorServer.close(resolve));
 }
