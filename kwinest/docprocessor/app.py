@@ -1553,35 +1553,71 @@ def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult,ind
         return None,{"internal_code":"AI_RESPONSE_INVALID","provider":"openai","provider_status":resp.status_code,"provider_request_id":sanitize_log_value(request_id,120),"internal_error":exc}
 
 def reconcile(primary:ExtractionResult,heuristic:ExtractionResult)->ExtractionResult:
-    # AI is primary when present, but deterministic parser may fill only missing low-risk fields.
+    # AI is interpretive help, not authority over deterministic financial proof.
     p=primary.model_copy(deep=True); h=heuristic
-    simple=[("supplier","name"),("supplier","address"),("supplier","postalCode"),("supplier","city"),("supplier","kvk"),("supplier","vatNumber"),("supplier","iban"),("supplier","email"),("customer","name"),("invoice","invoiceNumber"),("invoice","invoiceDate"),("invoice","dueDate"),("invoice","paymentReference")]
+    simple=[
+        ("supplier","name"),("supplier","address"),("supplier","postalCode"),("supplier","city"),
+        ("supplier","kvk"),("supplier","vatNumber"),("supplier","iban"),("supplier","email"),
+        ("customer","name"),("invoice","invoiceNumber"),("invoice","invoiceDate"),
+        ("invoice","dueDate"),("invoice","paymentReference"),("invoice","description"),
+    ]
     for obj,field in simple:
         po=getattr(p,obj); ho=getattr(h,obj); pv=getattr(po,field); hv=getattr(ho,field)
-        confkey={"name":"supplierName" if obj=="supplier" else "customerName","invoiceNumber":"invoiceNumber","invoiceDate":"invoiceDate","dueDate":"dueDate","iban":"iban"}.get(field,field)
-        if (pv is None or pv=="") and hv not in (None,"") and h.confidence.get(confkey,0)>=.8:setattr(po,field,hv);p.confidence[confkey]=h.confidence.get(confkey,.8)
+        confkey={
+            "name":"supplierName" if obj=="supplier" else "customerName",
+            "invoiceNumber":"invoiceNumber","invoiceDate":"invoiceDate","dueDate":"dueDate",
+            "iban":"iban","description":"description",
+        }.get(field,field)
+        if (pv is None or pv=="") and hv not in (None,"") and h.confidence.get(confkey,0)>=.8:
+            setattr(po,field,hv);p.confidence[confkey]=h.confidence.get(confkey,.8)
     for field,key in [("subtotal","subtotal"),("vatTotal","vatTotal"),("total","total")]:
-        if getattr(p.amounts,field) is None and getattr(h.amounts,field) is not None and h.confidence.get(key,0)>=.8:setattr(p.amounts,field,getattr(h.amounts,field));p.confidence[key]=h.confidence.get(key,.8)
-    if not p.amounts.vatLines and h.amounts.vatLines:p.amounts.vatLines=h.amounts.vatLines
+        if getattr(p.amounts,field) is None and getattr(h.amounts,field) is not None and h.confidence.get(key,0)>=.8:
+            setattr(p.amounts,field,getattr(h.amounts,field));p.confidence[key]=h.confidence.get(key,.8)
+
+    # If deterministic extraction has a proven VAT-group source and the AI agrees
+    # on the primary money trio, always keep the deterministic VAT groups. This
+    # prevents plausible-looking AI/OCR vatLines from replacing validated truth.
+    h_vat_source=(h.processing or {}).get("vatLineSource")
+    money_agrees=all(
+        getattr(p.amounts,field) is not None
+        and getattr(h.amounts,field) is not None
+        and money_cents(getattr(p.amounts,field))==money_cents(getattr(h.amounts,field))
+        for field in ("subtotal","vatTotal","total")
+    )
+    trusted_vat_source=h_vat_source in {"validated-primary-totals","explicit-vat-table","explicit-vat-text"}
+    if trusted_vat_source and h.amounts.vatLines and money_agrees:
+        p.amounts.vatLines=[v.model_copy(deep=True) for v in h.amounts.vatLines]
+        p.confidence["vatLines"]=max(p.confidence.get("vatLines",0),h.confidence.get("vatLines",.9))
+        p.processing={**(p.processing or {}),"vatLineSource":h_vat_source,"vatGroupSource":"deterministic-validated"}
+    elif not p.amounts.vatLines and h.amounts.vatLines:
+        p.amounts.vatLines=[v.model_copy(deep=True) for v in h.amounts.vatLines]
+        p.confidence["vatLines"]=h.confidence.get("vatLines",p.confidence.get("vatLines",.8))
 
     hblocks=(h.processing or {}).get("financialBlocks") or {}
     if hblocks.get("verified") and h.adjustments:
         # A deterministic, arithmetically verified multi-block document is more
-        # reliable for money separation than a flat AI/OCR total.
+        # reliable for invoice-vs-fee-vs-settlement separation than flat AI output.
         for field,key in [("subtotal","subtotal"),("vatTotal","vatTotal"),("total","total")]:
             hv=getattr(h.amounts,field)
             if hv is not None:
                 setattr(p.amounts,field,hv)
                 p.confidence[key]=max(p.confidence.get(key,0),h.confidence.get(key,.98))
         p.amounts.settlementAmount=h.amounts.settlementAmount
-        p.adjustments=h.adjustments
-        if h.amounts.vatLines:p.amounts.vatLines=h.amounts.vatLines
+        p.adjustments=[a.model_copy(deep=True) for a in h.adjustments]
+        p.confidence["adjustments"]=max(p.confidence.get("adjustments",0),h.confidence.get("adjustments",.98))
+        if h.amounts.settlementAmount is not None:
+            p.confidence["settlementAmount"]=max(p.confidence.get("settlementAmount",0),h.confidence.get("settlementAmount",.98))
+        if h.amounts.vatLines:
+            p.amounts.vatLines=[v.model_copy(deep=True) for v in h.amounts.vatLines]
+            p.confidence["vatLines"]=max(p.confidence.get("vatLines",0),h.confidence.get("vatLines",.98))
         p.processing={**(p.processing or {}),"financialBlocks":hblocks,"moneyStructureSource":"deterministic-section-parser"}
     else:
         if p.amounts.settlementAmount is None and h.amounts.settlementAmount is not None:
             p.amounts.settlementAmount=h.amounts.settlementAmount
+            p.confidence["settlementAmount"]=h.confidence.get("settlementAmount",p.confidence.get("settlementAmount",.8))
         if not p.adjustments and h.adjustments:
-            p.adjustments=h.adjustments
+            p.adjustments=[a.model_copy(deep=True) for a in h.adjustments]
+            p.confidence["adjustments"]=h.confidence.get("adjustments",p.confidence.get("adjustments",.8))
     return p
 
 # ----------------------------- duplicate candidate + response -----------------------------
