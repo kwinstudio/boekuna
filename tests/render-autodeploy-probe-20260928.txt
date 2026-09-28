@@ -1,0 +1,3 @@
+Boekuna Render auto-deploy probe.
+Non-functional QA marker; tests/ is not part of the static-site publish output.
+Date: 2026-09-28
