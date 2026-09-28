@@ -150,6 +150,11 @@ try{
   assert.equal(await vatSelect.inputValue(),'');
   assert.equal(String(await vatSelect.locator('option:checked').textContent()).trim(),'Gemengd / controleer');
 
+  // The validation fixture intentionally uses a non-bankable NL00ZZZZ IBAN.
+  // Clear only that unrelated invalid identifier during human review.
+  const iban=page.locator('#pdfImportForm [name="iban"]');
+  if(await iban.count())await iban.fill('');
+
   await page.evaluate(()=>savePdfInvoiceImport());
   await page.waitForFunction(()=>state.expenses.length===1&&state.documents.length===1);
 
