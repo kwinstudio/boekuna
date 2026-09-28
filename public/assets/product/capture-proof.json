@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-28T02:47:36.028Z",
+  "generatedAt": "2026-09-28T10:20:11.603Z",
   "source": "kwinest/index.html",
   "viewportDesktop": "1440x960",
   "viewportMobile": "390x844",
@@ -91,6 +91,18 @@
       "width": 390,
       "height": 844,
       "size": 29378
+    },
+    {
+      "name": "boekuna-invoices-mobile.webp",
+      "width": 390,
+      "height": 844,
+      "size": 31452
+    },
+    {
+      "name": "boekuna-documents-mobile.webp",
+      "width": 390,
+      "height": 844,
+      "size": 40582
     },
     {
       "name": "boekuna-dashboard-overview-crop.webp",
