@@ -23,6 +23,8 @@ const required=[
   ['boekuna-dashboard-mobile.webp',390,844],
   ['boekuna-invoices-mobile.webp',390,844],
   ['boekuna-documents-mobile.webp',390,844],
+  ['boekuna-document-review-desktop-960.webp',960,640],
+  ['boekuna-document-review-mobile.webp',390,844],
   ['boekuna-dashboard-overview-crop.webp',1120,631,'boekuna-dashboard-desktop.webp'],
   ['boekuna-dashboard-action-center-crop.webp',650,488,'boekuna-dashboard-desktop.webp'],
   ['boekuna-invoices-list-crop.webp',760,468,'boekuna-invoices-desktop.webp'],
@@ -70,7 +72,7 @@ assert.ok(app.includes('/assets/product/boekuna-dashboard-overview-crop.webp'),'
 assert.ok(app.includes('loading=\\"eager\\" fetchpriority=\\"high\\"'),'Primary screenshot must not be lazy loaded');
 assert.ok(app.includes('width=\\"1120\\" height=\\"631\\"'),'Primary crop must reserve dimensions against CLS');
 assert.ok(app.includes('/assets/product/boekuna-dashboard-action-center-crop.webp'),'More grip must use a distinct Dashboard detail crop');
-assert.ok(app.includes('/assets/product/boekuna-documents-workflow-crop.webp'),'Workflow must use its own real Documents crop');
+assert.ok(app.includes('/assets/product/boekuna-document-review-mobile.webp'),'Homepage workflow must use the real mobile Document controleren capture');
 assert.ok(app.includes('/assets/product/boekuna-dashboard-mobile.webp'),'Homepage must use the real responsive mobile Dashboard capture');
 assert.ok(!app.includes('Dit is geen desktopmockup in een telefoonframe'),'Technical mockup disclaimer must not appear in commercial copy');
 assert.ok(!app.includes('OCR-reviewcapture beschikbaar'),'Internal capture-status language must never leak into marketing copy');
@@ -81,12 +83,12 @@ assert.ok(!homepageProductImages.includes('boekuna-documents-desktop.webp'),'Hom
 
 const pageExpectations={
   'facturen':'boekuna-invoices-list-crop.webp',
-  'scanner':'boekuna-documents-upload-crop.webp',
+  'scanner':'boekuna-document-review-desktop-960.webp',
   'btw-bank':'boekuna-vat-summary-crop.webp',
   'functies':'boekuna-dashboard-overview-crop.webp',
   'voor-ondernemers':'boekuna-dashboard-overview-crop.webp',
   'rapportages':'boekuna-reports-primary-crop.webp',
-  'hoe-het-werkt':'boekuna-documents-workflow-crop.webp'
+  'hoe-het-werkt':'boekuna-document-review-desktop-960.webp'
 };
 for(const [slug,asset] of Object.entries(pageExpectations)){
   const html=fs.readFileSync(path.join(root,'public',slug,'index.html'),'utf8');
@@ -97,24 +99,24 @@ for(const [slug,asset] of Object.entries(pageExpectations)){
 }
 const scanner=fs.readFileSync(path.join(root,'public','scanner','index.html'),'utf8');
 assert.ok(!scanner.includes('mk-product-demo'),'Scanner page must not render fake financial product cards');
+assert.ok(scanner.includes('boekuna-document-review-mobile.webp'),'Scanner mobile breakpoint must use the real mobile review capture');
+assert.ok(scanner.includes('uitlezen → controleren → opslaan'),'Scanner must describe the real review workflow without automation overclaiming');
 
 const how=fs.readFileSync(path.join(root,'public','hoe-het-werkt','index.html'),'utf8');
 for(const fake of ['how-hero-demo','how-demo-','how-flow-mini','how-equation','how-mobile-steps','how-result-grid','how-settlement']){
   assert.ok(!how.includes(fake),`Product tour must not render reconstructed product UI: ${fake}`);
 }
 assert.ok(how.includes('boekuna-company-settings-group-crop.webp'),'Progressive onboarding must use the real company-settings crop');
+assert.ok(how.includes('boekuna-document-review-mobile.webp'),'Product tour must use the real mobile Document controleren capture at the mobile breakpoint');
 
 const features=fs.readFileSync(path.join(root,'public','functies','index.html'),'utf8');
 assert.ok(features.includes('boekuna-contacts-list-crop.webp'),'Features page must show the real Relations crop');
 assert.ok(features.includes('boekuna-services-list-crop.webp'),'Features page must show the real Services crop');
 
 const reviewDesktop=path.join(productDir,'boekuna-document-review-desktop.webp');
+const reviewDesktop960=path.join(productDir,'boekuna-document-review-desktop-960.webp');
 const reviewMobile=path.join(productDir,'boekuna-document-review-mobile.webp');
-if(fs.existsSync(reviewDesktop)||fs.existsSync(reviewMobile)){
-  assert.equal(proof.processorStatus,'real-processor-confirmed','Document-review screenshots are allowed only after real processor confirmation');
-  assert.ok(fs.existsSync(reviewDesktop)&&fs.existsSync(reviewMobile),'Desktop and mobile review captures must ship together');
-}else{
-  assert.equal(proof.processorStatus,'blocked-no-dedicated-account','Missing review assets must remain explicitly blocked, never faked');
-}
+assert.equal(proof.processorStatus,'real-processor-confirmed','Marketing review UI requires a confirmed real document-processor run');
+assert.ok(fs.existsSync(reviewDesktop)&&fs.existsSync(reviewDesktop960)&&fs.existsSync(reviewMobile),'Real desktop and mobile review captures must ship together');
 
 console.log(`Marketing product proof QA: PASS (${required.length} verified real captures; processor=${proof.processorStatus})`);
