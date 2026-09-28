@@ -75,3 +75,5 @@ jobs:
         run: node tests/billing-source.test.mjs
       - name: Python syntax safety
         run: python -m py_compile kwinest/docprocessor/app.py kwinest/docprocessor/receipt_math.py kwinest/docprocessor/financial_blocks.py
+      - name: 03C production marketing smoke
+        run: node tests/production-marketing-smoke.test.mjs
