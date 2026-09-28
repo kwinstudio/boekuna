@@ -106,6 +106,23 @@ try{
     await page.close();
   }
 
+  // Mouse: only genuinely interactive cards receive hover motion, capped at 2px.
+  {
+    const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'no-preference'});
+    await page.goto(base+'/',{waitUntil:'domcontentloaded'});
+    const interactive=page.locator('.kz-audience-card').first();
+    const staticCard=page.locator('.kz-reason').first();
+    assert.equal(await interactive.evaluate(el=>el.classList.contains('bookuna-hover-card')),true,'Interactive linked card must receive hover affordance');
+    assert.equal(await staticCard.evaluate(el=>el.classList.contains('bookuna-hover-card')),false,'Non-interactive card must not receive hover affordance');
+    await interactive.hover();
+    await page.waitForTimeout(220);
+    const transform=await interactive.evaluate(el=>getComputedStyle(el).transform);
+    const translateY=transform==='none'?0:Number((transform.match(/matrix\\([^,]+,[^,]+,[^,]+,[^,]+,[^,]+, ([^)]+)\\)/)||[])[1]||0);
+    assert.ok(translateY>=-2.1&&translateY<=0,`Interactive hover lift must stay within 2px; got ${transform}`);
+    assert.equal(await page.locator('#kzProductPanel img').count(),1,'Product screenshot transitions must keep exactly one layout image');
+    await page.close();
+  }
+
   // Sticky DocumentStory responds to native scroll without intercepting it.
   {
     const page=await browser.newPage({viewport:{width:1440,height:900}});
