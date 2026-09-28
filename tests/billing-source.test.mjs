@@ -13,6 +13,7 @@ const analyze=read('supabase/functions/analyze-invoice/index.ts');
 const migration=read('supabase/migrations/20260927_boekuna_subscription_billing.sql');
 const unlimitedMigration=read('supabase/migrations/20260927_align_unlimited_plan_quota.sql');
 const earlyAccessMigration=read('supabase/migrations/20260928000656_early_access_entitlement_state_machine.sql');
+const activeBillingGuardMigration=read('supabase/migrations/20260928012515_guard_active_billing_stripe_identity.sql');
 const pricing=read('public/prijzen/index.html');
 const privacy=read('public/privacy/index.html');
 const terms=read('public/voorwaarden/index.html');
@@ -65,6 +66,7 @@ assert.ok(earlyAccessMigration.includes('early_access_identities'),'EA identity 
 assert.ok(earlyAccessMigration.includes('public.can_operate_bookkeeping()'),'Read-only must be enforced server-side');
 assert.ok(earlyAccessMigration.includes('as restrictive for update to authenticated'),'Read-only RLS must guard direct update paths');
 assert.ok(earlyAccessMigration.includes('last_stripe_event_created'),'Out-of-order Stripe events must be guarded by a monotonic watermark');
+assert.ok(activeBillingGuardMigration.includes('billing_active_requires_stripe_identity'),'Active billing rows must require real Stripe identity and period data');
 
 assert.ok(consume.includes('can_operate_bookkeeping'),'Quota edge function must block expired read-only users server-side');
 assert.ok(consume.includes('ACCOUNT_READ_ONLY'),'Quota edge function needs an explicit read-only result');
