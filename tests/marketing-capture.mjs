@@ -158,7 +158,8 @@ async function makeDemoPdf(){
 }
 
 async function saveWebp(page,name,{quality=84,resizeWidth=null,clip=null}={}){
-  const png=await page.screenshot({type:'png',fullPage:false,clip});
+  const shotOptions={type:'png',fullPage:false};if(clip)shotOptions.clip=clip;
+  const png=await page.screenshot(shotOptions);
   let img=sharp(png);
   if(resizeWidth)img=img.resize({width:resizeWidth,withoutEnlargement:true});
   const target=path.join(outDir,name);
