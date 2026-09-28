@@ -1923,6 +1923,10 @@ const SUPABASE_PUBLISHABLE_KEY='sb_publishable_miAZ6CBZShVcmmNwlnEDgA_aGw1X4aP';
 const EDGE_BASE=SUPABASE_URL+'/functions/v1';
 const AUTH_REDIRECT_URL=(location.hostname==='boekuna-boekhouding.onrender.com'||location.hostname==='kwinest-boekhouding.onrender.com')?'https://boekuna-boekhouding.onrender.com/':(location.origin+'/');
 const DOCUMENT_PROCESSOR_URL='https://kwinest-docprocessor.onrender.com';
+const DOCUMENT_MAX_SIZE_MB=15;
+const DOCUMENT_MAX_SIZE_BYTES=DOCUMENT_MAX_SIZE_MB*1024*1024;
+const DOCUMENT_UPLOAD_EXTENSIONS=['pdf','jpg','jpeg','png','webp','heic','heif','tif','tiff','bmp','gif','docx','xlsx','csv'];
+const DOCUMENT_IMAGE_EXTENSIONS=['jpg','jpeg','png','webp','heic','heif','tif','tiff','bmp','gif'];
 const SUPPORT_EMAIL='support@boekuna.nl';
 const SUPPORT_MAILTO='mailto:'+SUPPORT_EMAIL;
 let supabaseClient=null,cloudSaveTimer=null,cloudVersion=1,cloudSyncStatus='saved';
@@ -2074,7 +2078,11 @@ async function checkFallbackBillingAllowance(){
  const {data,error}=await sb.rpc('check_document_quota');
  if(error){console.warn('Fallback quota check',error);return null}
  const q=Array.isArray(data)?(data[0]||null):data;
- if(q?.allowed===false)throw createUploadError('402',`Je maandelijkse limiet van ${Number(q.monthly_limit||0)} slimme documentverwerkingen is bereikt.`,402);
+ if(q?.allowed===false){
+  const b=await loadBillingSummary(true).catch(()=>billingSnapshot);
+  const code=String(b?.entitlement_status||'')==='expired_read_only'?'ACCOUNT_READ_ONLY':'DOCUMENT_LIMIT_REACHED';
+  throw createUploadError(code,'',code==='ACCOUNT_READ_ONLY'?403:429,{context:{monthly_limit:q.monthly_limit,remaining:q.remaining},state:'no_changes'});
+ }
  return q
 }
 async function recordFallbackSmartUsage(){
@@ -3433,22 +3441,34 @@ function buildProcessorExistingIndex(){
  for(const e of state.expenses||[]){rows.push({id:e.id,invoiceNumber:e.invoiceNumber||'',supplier:e.vendor||'',party:e.vendor||'',invoiceDate:e.date||'',total:Math.abs(Number(expenseGross(e)||0))})}
  return rows.slice(0,1500)
 }
+function fallbackDocumentCode(status){
+ const s=Number(status||0);
+ if(s===401)return 'AUTH_SESSION_EXPIRED';
+ if(s===403)return 'PERMISSION_DENIED';
+ if(s===413)return 'DOCUMENT_TOO_LARGE';
+ if(s===415)return 'DOCUMENT_UNSUPPORTED_TYPE';
+ if(s===429)return 'RATE_LIMITED';
+ if(s===504)return 'PROCESSING_TIMEOUT';
+ if(s>=500)return 'PROCESSOR_UNAVAILABLE';
+ return 'INVALID_REQUEST'
+}
 async function extractDocumentServer(file,onProgress){
- if(file.size>15*1024*1024)throw createUploadError('FILE_TOO_LARGE','Bestand is groter dan 15 MB.',413);
+ if(file.size>DOCUMENT_MAX_SIZE_BYTES)throw createUploadError('DOCUMENT_TOO_LARGE','',413,{context:{max_size_mb:DOCUMENT_MAX_SIZE_MB},state:'not_saved'});
  onProgress?.('Document veilig naar documentprocessor v2 sturen…');
- const fd=new FormData();fd.append('file',file,file.name);const c=state.company||{};fd.append('company_json',JSON.stringify({name:c.name||'',tradeName:c.tradeName||'',kvk:c.kvk||'',vat:c.vat||''}));fd.append('existing_json',JSON.stringify(buildProcessorExistingIndex()));
+ const fd=new FormData();fd.append('file',file,file.name);const company=state.company||{};fd.append('company_json',JSON.stringify({name:company.name||'',tradeName:company.tradeName||'',kvk:company.kvk||'',vat:company.vat||''}));fd.append('existing_json',JSON.stringify(buildProcessorExistingIndex()));
  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),120000);
  try{
   const r=await fetchWithAuthRetry(DOCUMENT_PROCESSOR_URL+'/analyze',{method:'POST',body:fd,signal:ctrl.signal});
   let j={};try{j=await r.json()}catch(e){}
   if(!r.ok||!j.ok){
-   const detail=Array.isArray(j.detail)?j.detail.map(x=>x?.msg||'ongeldige upload').join(', '):(j.detail||j.error);
-   throw createUploadError(String(r.status),detail||`Documentverwerking mislukt (${r.status})`,r.status)
+   const publicError=j?.error&&typeof j.error==='object'?j.error:{};
+   throw createUploadError(String(publicError.code||fallbackDocumentCode(r.status)),'',r.status,publicError)
   }
   const d=j.data||{},p=d.processing||{},preview=j.preview||{},pages=Array.isArray(preview.pages)?preview.pages:[],tables=Array.isArray(preview.tables)?preview.tables:[];
   return {ok:true,kind:p.sourceKind||((file.name.split('.').pop()||'').toLowerCase()),pageCount:Number(d.pageCount||p.pages||1),text:String(preview.text||''),pages,tables,tableCount:Number(p.tablesFound||tables.length||0),ocrUsed:Array.isArray(p.ocrPages)&&p.ocrPages.length>0,ocrPages:Array.isArray(p.ocrPages)?p.ocrPages:[],warnings:Array.isArray(d.warnings)?d.warnings:[],documentTypeHint:d.documentType||'',analysis:d,duplicateCandidates:Array.isArray(j.duplicateCandidates)?j.duplicateCandidates:[],sha256:await fileSha256(file)}
  }catch(e){
-  if(e?.name==='AbortError')throw createUploadError('TIMEOUT','Documentverwerking duurde langer dan 120 seconden.',408);
+  if(e?.name==='AbortError')throw createUploadError('PROCESSING_TIMEOUT','',504,{category:'temporary',retryable:true,state:'no_changes'});
+  if(e instanceof TypeError)throw createUploadError('PROCESSOR_UNAVAILABLE','',503,{category:'temporary',retryable:true,state:'no_changes'});
   throw e
  }finally{clearTimeout(timer)}
 }
@@ -3726,7 +3746,7 @@ function setImportProgress(title,msg,sub='',percent=10,step=1){
 async function handleInvoicePdfFile(e){return processFinancialDocument(e.target.files?.[0])}
 async function processFinancialDocument(file,preStructure=null){
  cleanupPendingImport();if(!file)return;const pass1Started=performance.now();
- const ext=(file.name.split('.').pop()||'').toLowerCase(),isPhoto=String(file.type||'').toLowerCase().startsWith('image/')||['jpg','jpeg','png','webp','heic','heif','tif','tiff','bmp','gif'].includes(ext),allowed=['pdf','docx','xlsx','csv'];if(!isPhoto&&!allowed.includes(ext))throw createUploadError('UNSUPPORTED_FILE',`Niet ondersteund bestandstype: .${ext||'onbekend'}`,415);
+ const ext=(file.name.split('.').pop()||'').toLowerCase(),isPhoto=String(file.type||'').toLowerCase().startsWith('image/')||DOCUMENT_IMAGE_EXTENSIONS.includes(ext);if(!DOCUMENT_UPLOAD_EXTENSIONS.includes(ext)&&!isPhoto)throw createUploadError('DOCUMENT_UNSUPPORTED_TYPE','',415,{context:{supported_extensions:DOCUMENT_UPLOAD_EXTENSIONS},state:'not_saved'});
  setImportProgress('Document verwerken','Bestand valideren…','Bestandstype, grootte en veiligheid worden gecontroleerd.',12,2);
  let structure=null,browserStructure=null,parsed=null,ocrText='',processorError='';
  const browserStructurePromise=ext==='pdf'&&file.size<9*1024*1024?readPdfStructure(file).catch(err=>{console.warn('Parallel PDF inspection',err);return null}):null;
@@ -3744,7 +3764,8 @@ async function processFinancialDocument(file,preStructure=null){
   parsed=applyRecognitionQuality(parsed);
  }catch(err){
   processorError=err?.message||'Documentverwerking mislukt';console.warn('Document processor',err);
-  if(Number(err?.status||0)===402||String(err?.code||'')==='402')throw err;
+  const code=String(err?.code||'UNKNOWN');
+  if(!['PROCESSOR_UNAVAILABLE','PROCESSING_TIMEOUT','UNKNOWN'].includes(code))throw err;
   await checkFallbackBillingAllowance();
   if(isPhoto&&!['heic','heif'].includes(ext)){
    try{
@@ -3753,14 +3774,14 @@ async function processFinancialDocument(file,preStructure=null){
     parsed=applyRecognitionQuality(parseInvoicePdf(ocrText,file.name,pendingUploadKind));
     parsed.processor={kind:'image',pageCount:1,ocrUsed:true,ocrPages:[1],ocrConfidence:null,tables:0,warnings:[processorError]};
     parsed.pageCount=1;parsed.sourceQuality='ocr';parsed.text=ocrText
-   }catch(localErr){console.warn('Local image OCR',localErr);throw createUploadError('OCR_FAILED',localErr?.message||processorError)}
+   }catch(localErr){console.warn('Local image OCR',localErr);throw createUploadError('DOCUMENT_IMAGE_UNREADABLE','',422,{state:'not_saved'})}
   }else if(ext==='pdf'){
    try{
     setImportProgress('Document verwerken','PDF lokaal uitlezen…','De serververwerking was niet beschikbaar; Boekuna probeert de PDF in je browser uit te lezen.',44,3);browserStructure=browserStructure||await readPdfStructure(file);parsed=findEmbeddedInvoice(browserStructure,pendingUploadKind)||applyRecognitionQuality(parseInvoicePdf(browserStructure.text,file.name,pendingUploadKind));
     const needsOcr=parsed.confidenceScore<88||parsed.recognitionBad>0||parsed.recognitionWarn>0||!parsed.party||!parsed.invoiceNumber||parsed.gross===''||browserStructure.text.length<220;
     if(needsOcr){ocrText=await ocrPdfPages(browserStructure,msg=>{const strong=document.getElementById('importProgressMessage');if(strong)strong.textContent=msg});const op=applyRecognitionQuality(parseInvoicePdf(ocrText,file.name,pendingUploadKind));op.sourceQuality='ocr';parsed=applyRecognitionQuality(mergeParsed(parsed,op))}
     parsed.processor={kind:'pdf',pageCount:browserStructure.numPages,ocrUsed:!!ocrText,ocrPages:[],ocrConfidence:null,tables:0,warnings:[processorError]};parsed.pageCount=browserStructure.numPages;parsed.sourceQuality=ocrText?'pdf-text+ocr':'pdf-text';
-   }catch(localErr){throw createUploadError('PDF_READ_FAILED',localErr?.message||'Deze PDF kon niet betrouwbaar worden uitgelezen.')}
+   }catch(localErr){throw createUploadError('DOCUMENT_PDF_UNREADABLE','',422,{state:'not_saved'})}
   }else{throw err}
  }
  setImportProgress('Document verwerken','Gegevens controleren…','Bedragen, btw en documentgegevens worden samengevoegd.',66,4);
