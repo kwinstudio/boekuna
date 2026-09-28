@@ -1902,6 +1902,8 @@ const SUPABASE_PUBLISHABLE_KEY='sb_publishable_miAZ6CBZShVcmmNwlnEDgA_aGw1X4aP';
 const EDGE_BASE=SUPABASE_URL+'/functions/v1';
 const AUTH_REDIRECT_URL=(location.hostname==='boekuna-boekhouding.onrender.com'||location.hostname==='kwinest-boekhouding.onrender.com')?'https://boekuna-boekhouding.onrender.com/':(location.origin+'/');
 const DOCUMENT_PROCESSOR_URL='https://kwinest-docprocessor.onrender.com';
+const SUPPORT_EMAIL='support@boekuna.nl';
+const SUPPORT_MAILTO='mailto:'+SUPPORT_EMAIL;
 let supabaseClient=null,cloudSaveTimer=null,cloudVersion=1,cloudSyncStatus='saved';
 const TEST_MODE_NO_AUTH=false;
 const TEST_USER={id:'kwinest-local-test',email:'',testMode:true};
@@ -2091,8 +2093,8 @@ const DEFAULT_INVOICE_DESIGN={layout:'modern',accentColor:'#17382f',logoDataUrl:
 const DEFAULT={meta:{nextInvoice:1,taxReservePct:30},company:{name:'',tradeName:'',contactName:'',kvk:'',vat:'',iban:'',bic:'',bankAccountName:'',email:'',phone:'',website:'',address:'',postal:'',city:'',country:'Nederland',invoicePrefix:(new Date().getFullYear()+'-'),paymentDays:14,kor:false,peppolId:'',emailTemplate:structuredClone(DEFAULT_EMAIL_TEMPLATE),invoiceDesign:structuredClone(DEFAULT_INVOICE_DESIGN)},contacts:[],services:[],invoices:[],expenses:[],transactions:[],hours:[],mileage:[],documents:[],bookings:[],plannedCash:[],settlements:[],audit:[]};
 let state=structuredClone(DEFAULT);let page='dashboard';let pendingInvoiceDraft=null,pendingPdfImport=null,pendingUploadKind='auto',editingInvoiceId=null;let documentVerificationInFlight=new Set();
 const LIST_STATE_KEY='boekuna-list-state-v1';
-const LIST_DEFAULTS={"invoices":{"query":"","filters":{"status":"all","customer":"all","period":"all","type":"all"},"sort":"issue-desc"},"expenses":{"query":"","filters":{"period":"all","category":"all","docType":"all"},"sort":"date-desc"},"bank":{"query":"","filters":{"status":"all","direction":"all","period":"all"},"sort":"date-desc"},"contacts":{"query":"","filters":{"type":"all"},"sort":"name-asc"},"services":{"query":"","filters":{"status":"all"},"sort":"name-asc"},"documents":{"query":"","filters":{"linked":"all","type":"all","period":"all"},"sort":"date-desc"},"bookings":{"query":"","filters":{"status":"all","time":"all","period":"all","from":"","to":""},"sort":"upcoming"},"ledger":{"query":"","filters":{},"sort":"date-desc"}};
-const LIST_UI={"invoices":{"placeholder":"Zoek op factuurnummer, klant of bedrag","entity":"facturen","empty":"Je hebt nog geen facturen gemaakt.","sorts":[["issue-desc","Nieuwste factuurdatum"],["issue-asc","Oudste factuurdatum"],["due-asc","Vervaldatum eerst"],["amount-desc","Bedrag hoog → laag"],["amount-asc","Bedrag laag → hoog"],["customer-asc","Klant A–Z"]]},"expenses":{"placeholder":"Zoek op leverancier, factuurnummer of bedrag","entity":"kosten","empty":"Je hebt nog geen kosten geboekt.","sorts":[["date-desc","Nieuwste datum"],["date-asc","Oudste datum"],["vendor-asc","Leverancier A–Z"],["amount-desc","Bedrag hoog → laag"],["amount-asc","Bedrag laag → hoog"]]},"bank":{"placeholder":"Zoek in transacties","entity":"transacties","empty":"Je hebt nog geen banktransacties.","sorts":[["date-desc","Nieuwste datum"],["date-asc","Oudste datum"],["amount-desc","Bedrag hoog → laag"],["amount-asc","Bedrag laag → hoog"]]},"contacts":{"placeholder":"Zoek op naam, e-mail of plaats","entity":"relaties","empty":"Je hebt nog geen relaties toegevoegd.","sorts":[["name-asc","Naam A–Z"],["name-desc","Naam Z–A"]]},"services":{"placeholder":"Zoek diensten","entity":"diensten","empty":"Je hebt nog geen diensten toegevoegd.","sorts":[["name-asc","Naam A–Z"],["name-desc","Naam Z–A"],["price-asc","Prijs laag → hoog"],["price-desc","Prijs hoog → laag"]]},"documents":{"placeholder":"Zoek op bestand, leverancier of factuurnummer","entity":"documenten","empty":"Je hebt nog geen documenten geüpload.","sorts":[["date-desc","Nieuwste datum"],["date-asc","Oudste datum"],["name-asc","Naam A–Z"]]},"bookings":{"placeholder":"Zoek op klant of dienst","entity":"boekingen","empty":"Je hebt nog geen boekingen.","sorts":[["upcoming","Eerstvolgende afspraak"],["newest","Nieuwste"],["oldest","Oudste"],["customer-asc","Klant A–Z"]]},"ledger":{"placeholder":"Zoek rekening, referentie of omschrijving","entity":"boekingsregels","empty":"Nog geen boekingsregels.","sorts":[["date-desc","Nieuwste eerst"]]}};
+const LIST_DEFAULTS={"invoices":{"query":"","filters":{"status":"all","customer":"all","period":"all","type":"all"},"sort":"issue-desc"},"expenses":{"query":"","filters":{"vendor":"all","period":"all","category":"all","docType":"all"},"sort":"date-desc"},"bank":{"query":"","filters":{"status":"all","direction":"all","period":"all"},"sort":"date-desc"},"contacts":{"query":"","filters":{"type":"all"},"sort":"name-asc"},"services":{"query":"","filters":{"status":"all"},"sort":"name-asc"},"documents":{"query":"","filters":{"linked":"all","type":"all","status":"all","period":"all"},"sort":"date-desc"},"bookings":{"query":"","filters":{"status":"all","time":"all","period":"all","from":"","to":""},"sort":"upcoming"},"ledger":{"query":"","filters":{},"sort":"date-desc"}};
+const LIST_UI={"invoices":{"placeholder":"Zoek op factuurnummer, klant of bedrag","entity":"facturen","empty":"Je hebt nog geen facturen gemaakt.","sorts":[["issue-desc","Nieuwste factuurdatum"],["issue-asc","Oudste factuurdatum"],["due-asc","Vervaldatum eerst"],["amount-desc","Bedrag hoog → laag"],["amount-asc","Bedrag laag → hoog"],["customer-asc","Klant A–Z"],["customer-desc","Klant Z–A"]]},"expenses":{"placeholder":"Zoek op leverancier, factuurnummer of bedrag","entity":"kosten","empty":"Je hebt nog geen kosten geboekt.","sorts":[["date-desc","Nieuwste datum"],["date-asc","Oudste datum"],["vendor-asc","Leverancier A–Z"],["vendor-desc","Leverancier Z–A"],["amount-desc","Bedrag hoog → laag"],["amount-asc","Bedrag laag → hoog"]]},"bank":{"placeholder":"Zoek in transacties","entity":"transacties","empty":"Je hebt nog geen banktransacties.","sorts":[["date-desc","Nieuwste datum"],["date-asc","Oudste datum"],["amount-desc","Bedrag hoog → laag"],["amount-asc","Bedrag laag → hoog"]]},"contacts":{"placeholder":"Zoek op naam, e-mail of plaats","entity":"relaties","empty":"Je hebt nog geen relaties toegevoegd.","sorts":[["name-asc","Naam A–Z"],["name-desc","Naam Z–A"]]},"services":{"placeholder":"Zoek diensten","entity":"diensten","empty":"Je hebt nog geen diensten toegevoegd.","sorts":[["name-asc","Naam A–Z"],["name-desc","Naam Z–A"],["price-asc","Prijs laag → hoog"],["price-desc","Prijs hoog → laag"]]},"documents":{"placeholder":"Zoek op bestand, leverancier of factuurnummer","entity":"documenten","empty":"Je hebt nog geen documenten geüpload.","sorts":[["date-desc","Nieuwste datum"],["date-asc","Oudste datum"],["name-asc","Naam A–Z"],["name-desc","Naam Z–A"]]},"bookings":{"placeholder":"Zoek op klant of dienst","entity":"boekingen","empty":"Je hebt nog geen boekingen.","sorts":[["upcoming","Eerstvolgende afspraak"],["newest","Nieuwste"],["oldest","Oudste"],["customer-asc","Klant A–Z"]]},"ledger":{"placeholder":"Zoek rekening, referentie of omschrijving","entity":"boekingsregels","empty":"Nog geen boekingsregels.","sorts":[["date-desc","Nieuwste eerst"]]}};
 let listState=loadListState();let listSearchTimer=null,modalReturnFocus=null;
 function readCurrentUser(){try{const id=localStorage.getItem(SESSION_KEY);if(!id)return null;return getUsers().find(u=>u.id===id)||null}catch(e){return null}}
 function getUsers(){try{return JSON.parse(localStorage.getItem(USERS_KEY))||[]}catch(e){return []}}
@@ -2208,6 +2210,7 @@ function marketingFooter(){
        <a href="/privacy/">Privacybeleid</a>
        <a href="/voorwaarden/">Voorwaarden</a>
        <a href="/support/">Support</a>
+       <a href="${SUPPORT_MAILTO}">${SUPPORT_EMAIL}</a>
        <a href="/account-verwijderen/">Account verwijderen</a>
        <a href="/over/">Over Boekuna</a>
      </nav>
@@ -2215,7 +2218,7 @@ function marketingFooter(){
    <div class="marketing-footer-bottom">
      <span>© 2026 Boekuna</span>
      <span class="marketing-footer-status"><i aria-hidden="true"></i> Beveiligde cloudomgeving</span>
-     <span><a href="/privacy/">Privacy</a> · <a href="/support/">Support</a></span>
+     <span><a href="/privacy/">Privacy</a> · <a href="/support/">Support</a> · <a href="${SUPPORT_MAILTO}">${SUPPORT_EMAIL}</a></span>
    </div>
  </footer>`;
 }
@@ -2609,6 +2612,14 @@ function expenseListType(e){
   if(t.includes('invoice')||src.includes('document-import'))return 'invoice';
   return 'manual'
 }
+function documentListStatus(d){
+  const st=String(d?.verification?.status||d?.verificationStatus||'');
+  if(st==='pending'||st==='running')return 'processing';
+  if(st==='verified')return 'verified';
+  if(st==='needs_review')return 'needs_review';
+  if(st==='technical_error')return 'error';
+  return 'other'
+}
 function listSearchHaystack(name,item){
   if(name==='invoices'){
     const c=getContact(item.customerId);return [item.number,c.name,item.paymentReference,listAmountText(invoiceGross(item)),listAmountText(invoiceNet(item))].join(' ')
@@ -2640,6 +2651,7 @@ function listMatchesFilters(name,item){
     return true
   }
   if(name==='expenses'){
+    if(f.vendor!=='all'&&String(item.vendor||'')!==f.vendor)return false;
     if(!listPeriodMatch(item.date,f.period))return false;
     if(f.category!=='all'&&String(item.category||'')!==f.category)return false;
     if(f.docType!=='all'&&expenseListType(item)!==f.docType)return false;
@@ -2659,6 +2671,7 @@ function listMatchesFilters(name,item){
     if(f.linked==='linked'&&!item.linkedId)return false;
     if(f.linked==='unlinked'&&item.linkedId)return false;
     if(f.type!=='all'&&String(item.type||'')!==f.type)return false;
+    if(f.status!=='all'&&documentListStatus(item)!==f.status)return false;
     if(!listPeriodMatch(item.date,f.period))return false;
     return true
   }
@@ -2681,11 +2694,13 @@ function listSortCompare(name,a,b){
     if(sort==='amount-desc')return invoiceGross(b)-invoiceGross(a);
     if(sort==='amount-asc')return invoiceGross(a)-invoiceGross(b);
     if(sort==='customer-asc')return text(getContact(a.customerId).name,getContact(b.customerId).name);
+    if(sort==='customer-desc')return text(getContact(b.customerId).name,getContact(a.customerId).name);
     return text(b.issueDate,a.issueDate)
   }
   if(name==='expenses'){
     if(sort==='date-asc')return text(a.date,b.date);
     if(sort==='vendor-asc')return text(a.vendor,b.vendor);
+    if(sort==='vendor-desc')return text(b.vendor,a.vendor);
     if(sort==='amount-desc')return expenseGross(b)-expenseGross(a);
     if(sort==='amount-asc')return expenseGross(a)-expenseGross(b);
     return text(b.date,a.date)
@@ -2706,6 +2721,7 @@ function listSortCompare(name,a,b){
   if(name==='documents'){
     if(sort==='date-asc')return text(a.date,b.date);
     if(sort==='name-asc')return text(a.name,b.name);
+    if(sort==='name-desc')return text(b.name,a.name);
     return text(b.date,a.date)
   }
   if(name==='bookings'){
@@ -2746,6 +2762,7 @@ function listFilterFields(name){
     {key:'type',label:'Type',options:[['all','Alle types'],['invoice','Factuur'],['credit','Creditfactuur']]}
   ];
   if(name==='expenses')return [
+    {key:'vendor',label:'Leverancier',options:[['all','Alle leveranciers'],...[...new Set(state.expenses.map(e=>String(e.vendor||'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'nl',{sensitivity:'base'})).map(v=>[v,v])]},
     {key:'period',label:'Periode',options:listPeriodOptions(false)},
     {key:'category',label:'Categorie',options:[['all','Alle categorieën'],...[...new Set(state.expenses.map(e=>String(e.category||'')).filter(Boolean))].sort().map(v=>[v,v])]},
     {key:'docType',label:'Documenttype',options:[['all','Alle types'],['invoice','Inkoopfactuur'],['receipt','Bon'],['manual','Handmatig']]}
@@ -2760,6 +2777,7 @@ function listFilterFields(name){
   if(name==='documents')return [
     {key:'linked',label:'Koppeling',options:[['all','Alle'],['linked','Gekoppeld'],['unlinked','Niet gekoppeld']]},
     {key:'type',label:'Documenttype',options:[['all','Alle types'],...[...new Set(state.documents.map(d=>String(d.type||'')).filter(Boolean))].sort().map(v=>[v,v])]},
+    {key:'status',label:'Controlestatus',options:[['all','Alle statussen'],['processing','Controle bezig'],['needs_review','Controle nodig'],['verified','Gecontroleerd'],['error','Controle niet beschikbaar']]},
     {key:'period',label:'Periode',options:listPeriodOptions(false)}
   ];
   if(name==='bookings')return [
@@ -3076,6 +3094,7 @@ function renderSettings(){
  <div class="settings-section"><div class="settings-tabs"><button class="filter-btn active" onclick="navigate('profile')">Bedrijfsgegevens</button><button class="filter-btn" onclick="showLegal()">Fiscale spelregels</button><button class="filter-btn" onclick="showSecurity()">Privacy & productie</button></div>
  <div class="card" style="margin-bottom:16px"><div class="section-head"><div><h2>Bedrijfsgegevens</h2><p>Je hoeft dit niet vooraf compleet te maken. Boekuna vraagt gegevens pas wanneer een functie ze nodig heeft.</p></div><span class="badge ${missing.length?'warn':'good'}">${missing.length?missing.length+' basisvelden ontbreken':'Factuurbasis compleet'}</span></div><button class="btn primary" onclick="navigate('profile')">Bedrijfsgegevens openen</button></div>
  ${renderBillingCard()}${renderEmailConnectionSettings()}${renderBrandingSettings()}
+ <div class="card" style="margin-top:16px"><div class="section-head"><div><h2>Hulp & support</h2><p>Kom je er niet uit? Neem rechtstreeks contact op met Boekuna Support.</p></div></div><a class="btn" href="${SUPPORT_MAILTO}">${SUPPORT_EMAIL}</a></div>
  <div class="card" style="margin-top:16px"><div class="section-head"><div><h2>Data & back-up</h2><p>Exporteer, herstel of verwijder je gegevens.</p></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="exportBackup()">${icon('i-download')} Back-up downloaden</button><button class="btn" onclick="exportAuditCSV()">${icon('i-download')} Auditlog CSV</button><button class="btn" onclick="openVersionHistory()">Versiegeschiedenis</button><label class="btn">${icon('i-upload')} Back-up importeren<input type="file" id="backupFile" accept="application/json,.json" class="hidden"></label><button class="btn danger" onclick="resetDemo()">Administratie wissen</button>${hasConflictBackup()?`<button class="btn" onclick="restoreConflictDialog()">Sync-herstelkopie</button>`:''}<button class="btn danger" onclick="deleteAccountDialog()">Account verwijderen</button></div></div>
  <div class="card" style="margin-top:16px"><div class="section-head"><div><h2>Productiestatus</h2><p>Externe koppelingen voor productie.</p></div></div><div class="action-list"><div class="action-row"><div class="action-text"><strong>Cloudaccounts & database</strong><span>Supabase Auth + RLS per gebruiker</span></div><span class="badge good">Actief</span></div><div class="action-row"><div class="action-text"><strong>Documentopslag</strong><span>Privé Supabase Storage</span></div><span class="badge good">Actief</span></div><div class="action-row"><div class="action-text"><strong>E-mail & AI</strong><span>Controleer live providerstatus</span></div><button class="btn small" onclick="checkIntegrations()">Controleer</button></div></div></div>
  </div>`
@@ -3681,7 +3700,7 @@ function uploadErrorCatalogHtml(){
 function showUploadError(err,file=null){
  const x=uploadErrorInfo(err),fileInfo=file?`<div class="help" style="margin-top:6px">${esc(file.name)} · ${Math.max(1,Math.round(file.size/1024))} KB</div>`:'';
  const technical=x.detail&&x.detail!==x.explanation?`<details style="margin-top:14px"><summary>Technische details</summary><div class="notice" style="margin-top:8px;word-break:break-word">${esc(x.detail)}</div></details>`:'';
- modal('Upload niet gelukt',`<div class="notice warn"><strong>Foutcode ${esc(x.code)} · ${esc(x.title)}</strong><p style="margin:8px 0 0">${esc(x.explanation)}</p>${fileInfo}</div><div class="card" style="margin-top:14px"><strong>Wat kun je doen?</strong><p style="margin:6px 0 0">${esc(x.action)}</p></div>${technical}<details style="margin-top:14px"><summary>Uitleg van mogelijke upload-foutcodes</summary><div style="margin-top:8px;max-height:300px;overflow:auto">${uploadErrorCatalogHtml()}</div></details>`,`<button class="btn" onclick="closeModal()">Sluiten</button>`)
+ modal('Upload niet gelukt',`<div class="notice warn"><strong>Foutcode ${esc(x.code)} · ${esc(x.title)}</strong><p style="margin:8px 0 0">${esc(x.explanation)}</p>${fileInfo}</div><div class="card" style="margin-top:14px"><strong>Wat kun je doen?</strong><p style="margin:6px 0 0">${esc(x.action)}</p><p class="help" style="margin-top:10px">Blijft dit gebeuren? Neem contact op via <a href="${SUPPORT_MAILTO}">${SUPPORT_EMAIL}</a> en vermeld foutcode ${esc(x.code)}.</p></div>${technical}<details style="margin-top:14px"><summary>Uitleg van mogelijke upload-foutcodes</summary><div style="margin-top:8px;max-height:300px;overflow:auto">${uploadErrorCatalogHtml()}</div></details>`,`<button class="btn" onclick="closeModal()">Sluiten</button>`)
 }
 function setImportProgress(title,msg,sub='',percent=10,step=1){
  const pct=Math.max(1,Math.min(100,Number(percent)||10));
