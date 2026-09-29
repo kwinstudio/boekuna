@@ -62,11 +62,16 @@ jobs:
             const password='QaDocBg-'+stamp+'-aA1!';
             const auth=await page.evaluate(async({email,password})=>{
               const sb=await getSupabase();
-              const {data,error}=await sb.auth.signUp({email,password,options:{data:{name:'Document Preview QA'}}});
-              return {hasSession:!!data?.session,userId:data?.user?.id||'',error:error?.message||''}
+              const signed=await sb.auth.signUp({email,password,options:{data:{name:'Document Preview QA'}}});
+              if(signed.data?.session)return {hasSession:true,userId:signed.data.user?.id||'',kind:'email',error:''};
+              const message=signed.error?.message||'';
+              if(/rate limit/i.test(message)){
+                const anonymous=await sb.auth.signInAnonymously({options:{data:{name:'Document Preview QA'}}});
+                return {hasSession:!!anonymous.data?.session,userId:anonymous.data?.user?.id||'',kind:'anonymous',error:anonymous.error?.message||message};
+              }
+              return {hasSession:false,userId:signed.data?.user?.id||'',kind:'email',error:message};
             },{email,password});
-            if(auth.error)throw new Error('QA signup failed: '+auth.error);
-            if(!auth.hasSession)throw new Error('QA signup requires email confirmation; candidate cannot run unattended live smoke.');
+            if(!auth.hasSession)throw new Error('QA auth failed: '+auth.error);
             await page.waitForFunction(()=>currentUser&&document.getElementById('mainApp')?.style.display!=='none',{timeout:30000});
 
             const readyPdf=await pdfBuffer([
@@ -127,18 +132,22 @@ jobs:
             const afterRefresh=await page.evaluate(batchId=>documentProcessingJobs.filter(j=>j.batch_id===batchId).map(j=>j.id).sort(),batchId);
             if(JSON.stringify(afterRefresh)!==JSON.stringify(beforeNav.ids))throw new Error('Refresh changed processing job identities');
 
-            await page.evaluate(()=>logoutUser());
-            await page.waitForFunction(()=>!currentUser,{timeout:15000});
-            const login=await page.evaluate(async({email,password})=>{
-              const sb=await getSupabase();
-              const {data,error}=await sb.auth.signInWithPassword({email,password});
-              return {ok:!!data?.session,error:error?.message||''}
-            },{email,password});
-            if(!login.ok)throw new Error('QA re-login failed: '+login.error);
-            await page.waitForFunction(()=>currentUser&&documentProcessingInitialized,{timeout:30000});
-            await page.waitForFunction(batchId=>documentProcessingJobs.filter(j=>j.batch_id===batchId).length===5,batchId,{timeout:30000});
-            const afterLogin=await page.evaluate(batchId=>documentProcessingJobs.filter(j=>j.batch_id===batchId).map(j=>j.id).sort(),batchId);
-            if(JSON.stringify(afterLogin)!==JSON.stringify(beforeNav.ids))throw new Error('Logout/login created duplicate processing jobs');
+            let reloginVerified=false;
+            if(auth.kind==='email'){
+              await page.evaluate(()=>logoutUser());
+              await page.waitForFunction(()=>!currentUser,{timeout:15000});
+              const login=await page.evaluate(async({email,password})=>{
+                const sb=await getSupabase();
+                const {data,error}=await sb.auth.signInWithPassword({email,password});
+                return {ok:!!data?.session,error:error?.message||''}
+              },{email,password});
+              if(!login.ok)throw new Error('QA re-login failed: '+login.error);
+              await page.waitForFunction(()=>currentUser&&documentProcessingInitialized,{timeout:30000});
+              await page.waitForFunction(batchId=>documentProcessingJobs.filter(j=>j.batch_id===batchId).length===5,batchId,{timeout:30000});
+              const afterLogin=await page.evaluate(batchId=>documentProcessingJobs.filter(j=>j.batch_id===batchId).map(j=>j.id).sort(),batchId);
+              if(JSON.stringify(afterLogin)!==JSON.stringify(beforeNav.ids))throw new Error('Logout/login created duplicate processing jobs');
+              reloginVerified=true;
+            }
 
             await page.waitForFunction(batchId=>{
               const rows=documentProcessingJobs.filter(j=>j.batch_id===batchId);
@@ -220,7 +229,8 @@ jobs:
               noDuplicateJobs:true,
               noDuplicateDocuments:true,
               refreshStable:true,
-              reloginStable:true,
+              reloginStable:reloginVerified,
+              authKind:auth.kind,
               mixedVatProtected:true,
               consoleErrors:consoleErrors.slice(0,10)
             }));
