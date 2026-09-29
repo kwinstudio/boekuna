@@ -196,6 +196,24 @@ async function newAppPage(){
 }
 
 try{
+  // QA-OCR-BETA-001: only the explicitly allowlisted authenticated account
+  // routes to the PP-OCRv6 beta processor; every other account stays stable.
+  {
+    const page=await newAppPage();
+    const routing=await page.evaluate(betaUserId=>{
+      const previous=currentUser;
+      currentUser={...TEST_USER,id:betaUserId};
+      const beta=activeDocumentProcessorUrl();
+      currentUser=TEST_USER;
+      const stable=activeDocumentProcessorUrl();
+      currentUser=previous;
+      return {beta,stable};
+    },'d0323018-5346-475b-9c93-073d5d4fbab7');
+    assert.equal(routing.beta,'https://boekuna-pr58-ocr-staging.onrender.com','Allowlisted account must use the PP-OCRv6 beta processor');
+    assert.equal(routing.stable,processorBase,'Non-beta accounts must stay on the stable processor');
+    await page.close();
+  }
+
   // QA-PDF-02: the actual browser must perform CORS preflight, POST the PDF,
   // reach the real review UI, then save the resulting bookkeeping/document state.
   {
