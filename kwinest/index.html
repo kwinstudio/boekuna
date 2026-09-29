@@ -4085,7 +4085,7 @@ function canonicalFinancialVatLines(lines){
 }
 function verificationSnapshot(d){
  const num=v=>financialMoneyCents(v)==null?null:roundMoney(Number(v));
- return {party:String(d?.party||'').trim(),issueDate:String(d?.issueDate||''),description:String(d?.description||'').trim(),net:num(d?.net),vatAmount:num(d?.vatAmount),gross:num(d?.gross),vatRate:num(d?.vatRate),vatLines:canonicalFinancialVatLines(d?.vatLines),invoiceNumber:String(d?.invoiceNumber||'').trim(),currency:String(d?.currency||'EUR').trim().toUpperCase(),mixedRates:!!d?.mixedRates}
+ return {party:String(d?.party||'').trim(),issueDate:String(d?.issueDate||''),description:String(d?.description||'').trim(),net:num(d?.net),vatAmount:num(d?.vatAmount),gross:num(d?.gross),vatRate:num(d?.vatRate),vatLines:canonicalFinancialVatLines(d?.vatLines),invoiceNumber:String(d?.invoiceNumber||'').trim(),currency:String(d?.currency||'EUR').trim().toUpperCase(),mixedRates:!!d?.mixedRates,fieldProvenance:structuredClone(d?.fieldProvenance||{})}
 }
 function verificationComparableText(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
 function verificationTextSame(a,b,loose=false){
@@ -4127,11 +4127,12 @@ function documentVerificationBadge(d){
  if(st==='technical_error')return '<span class="badge">Extra controle niet beschikbaar</span>';
  return `<span class="badge ${d?.fileId?'good':''}">${d?.analyzed?'Uitgelezen · ':''}${d?.fileId?'Bestand opgeslagen':'Metadata'}</span>`
 }
+function verificationStoredLabel(v,field){const p=v?.pass1?.fieldProvenance?.[field];if(p?.source==='user'&&p?.confirmed)return 'Door jou bevestigd';if(p?.source==='calculated')return 'Door Boekuna berekend';return 'Opgeslagen'}
 function openDocumentVerification(id){
  const d=state.documents.find(x=>x.id===id);if(!d)return;const v=d.verification||{},diffs=Array.isArray(v.differences)?v.differences:[],st=v.status||'';
  const title=st==='needs_review'?'Controle nodig':st==='verified'?'Extra controle voltooid':st==='technical_error'?'Extra controle niet beschikbaar':'Extra controle bezig';
  const body=st==='needs_review'
-  ? `<div class="notice warn"><strong>We raden aan dit document nog even te controleren.</strong><br>Boekuna heeft bij de onafhankelijke extra controle relevante verschillen gevonden. De opgeslagen boeking is niet automatisch aangepast.</div><div class="legal-list" style="margin-top:12px">${diffs.map(x=>`<div class="legal-item"><strong>${esc(x.label)}</strong><p>Opgeslagen: <b>${esc(verificationValueText(x.field,x.current))}</b><br>Extra controle: <b>${esc(verificationValueText(x.field,x.alternative))}</b></p></div>`).join('')}${(v.financialIssues||[]).map(x=>`<div class="legal-item"><strong>${esc(x.title||'Financiële controle')}</strong><p>${esc(x.detail||'Controleer dit onderdeel op het originele document.')}</p></div>`).join('')}</div>`
+  ? `<div class="notice warn"><strong>We raden aan dit document nog even te controleren.</strong><br>Boekuna heeft bij de onafhankelijke extra controle relevante verschillen gevonden. De opgeslagen boeking is niet automatisch aangepast.</div><div class="legal-list" style="margin-top:12px">${diffs.map(x=>`<div class="legal-item"><strong>${esc(x.label)}</strong><p>${esc(verificationStoredLabel(v,x.field))}: <b>${esc(verificationValueText(x.field,x.current))}</b><br>Extra controle: <b>${esc(verificationValueText(x.field,x.alternative))}</b></p></div>`).join('')}${(v.financialIssues||[]).map(x=>`<div class="legal-item"><strong>${esc(x.title||'Financiële controle')}</strong><p>${esc(x.detail||'Controleer dit onderdeel op het originele document.')}</p></div>`).join('')}</div>`
   : st==='verified'
    ? (v.method==='deterministic'?'<div class="notice info"><strong>Gecontroleerd.</strong><br>De deterministische document- en rekencontroles waren sterk genoeg; een extra AI-analyse was niet nodig.</div>':'<div class="notice info"><strong>Extra controle voltooid.</strong><br>De belangrijkste financiële gegevens kwamen overeen en de rekencontroles leverden geen kritisch probleem op.</div>')
    : st==='technical_error'
@@ -4198,7 +4199,7 @@ function showPdfImportReview(d){
  const factor=adj>0?`<div class="review-settlement-card"><div class="review-money-row"><span>Factuurtotaal</span><strong>${money(d.gross)}</strong></div>${adjRows}<div class="review-money-row total"><span>Netto uitbetaald</span><strong>${d.payout!==''&&d.payout!=null?money(d.payout):'—'}</strong></div></div>`:'';
  const itemPreview=(d.lineItems||[]).length?`<div class="notice"><strong>Factuurregels (${d.lineItems.length})</strong><br>${d.lineItems.slice(0,8).map(x=>`${esc(x.desc)} · ${num(x.qty)} × ${money(x.unit)} = ${money(x.total??Number(x.qty||0)*Number(x.unit||0))}`).join('<br>')}${d.lineItems.length>8?'<br>…':''}</div>`:'';
  const vatPreview=(d.vatLines||[]).length?`<div class="notice"><strong>Btw-regels</strong><br>${d.vatLines.map(v=>`${num(v.rate)}% · grondslag ${v.taxableAmount!=null?money(v.taxableAmount):'—'} · btw ${v.vatAmount!=null?money(v.vatAmount):'—'}`).join('<br>')}</div>`:'';
- const checks=(d.recognitionChecks||[]);
+ const checks=(d.recognitionChecks||[]).filter(c=>!['arithmetic','vatRate','mixedRates'].includes(c.code));
  const checkHtml=checks.length?`<div class="review-check-summary">${checks.map(c=>`<div class="review-check-line"><span class="check-icon ${c.level==='good'?'check-ok':c.level==='warn'?'check-warn':'check-bad'}">${c.level==='good'?'✓':c.level==='warn'?'!':'×'}</span><div><strong>${esc(c.title)}</strong><span>${esc(c.detail||'')}</span></div></div>`).join('')}</div>`:'';
  const preview=pendingPdfImport?.previewUrl?(pendingPdfImport.file.type==='application/pdf'||/\.pdf$/i.test(pendingPdfImport.file.name)?`<iframe src="${esc(pendingPdfImport.previewUrl)}" title="Factuurpreview" class="document-review-preview-frame"></iframe>`:`<img src="${esc(pendingPdfImport.previewUrl)}" alt="Documentpreview" class="document-review-preview-image">`):`<div class="notice">Voor dit bestandstype is geen visuele preview beschikbaar.</div>`;
 
