@@ -336,6 +336,7 @@ try{
     assert.deepEqual(review.vatLines.map(v=>Number(v.rate)),[9,21],'Trusted processor VAT groups must reach review intact');
     assert.equal(review.selected,'','Mixed review must show Gemengd / controleer instead of a scalar rate');
     assert.equal(await page.locator('#pdfImportForm [name="vatRate"]').isDisabled(),true,'Mixed VAT must disable the scalar rate control');
+    await page.locator('#financialCorrectionPanel').filter({hasText:/meerdere btw-tarieven/i}).waitFor();
     assert.match(String(await page.locator('#financialCorrectionPanel').textContent()),/meerdere btw-tarieven/i);
     assert.equal(await page.getByRole('button',{name:'Gebruik deze bedragen'}).count(),0,'Mixed VAT must never offer single-rate autocorrection');
 
