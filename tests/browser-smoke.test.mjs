@@ -539,8 +539,9 @@ try{
     for(const key of ['contacts','services','invoices','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])state[key]=[];
     state.company={...state.company,name:'Live QA Test BV',tradeName:'Boekuna Live QA',contactName:'QA',email:'qa@example.test',phone:'0101234567',address:'Teststraat 1',postal:'3011AA',city:'Rotterdam',country:'Nederland',kvk:'12345678',vat:'NL123456789B01',iban:'NL91ABNA0417164300',invoicePrefix:'LIVE-',paymentDays:14,kor:false};
     const customer={id:'live-customer',type:'customer',name:'Live QA Klant BV',contactPerson:'Quinten',email:'klant@example.test',address:'Klantstraat 2',postal:'3012BB',city:'Rotterdam',phone:'',kvk:'',vat:''};
+    const issued=new Date();issued.setDate(issued.getDate()-20);
     const due=new Date();due.setDate(due.getDate()-5);
-    const invoice={id:'live-final',number:'LIVE-0001',numberManaged:true,numberFinalized:true,customerId:customer.id,issueDate:today(),supplyDate:today(),dueDate:due.toISOString().slice(0,10),paymentDays:14,status:'sent',taxTreatment:'standard',reference:'',paymentReference:'LIVE-0001',discountType:'none',discountValue:0,notes:'',lines:[{desc:'Live QA advies',qty:1,unitLabel:'uur',unit:100,vat:21}],payments:[],reminderCount:0};
+    const invoice={id:'live-final',number:'LIVE-0001',numberManaged:true,numberFinalized:true,customerId:customer.id,issueDate:issued.toISOString().slice(0,10),supplyDate:issued.toISOString().slice(0,10),dueDate:due.toISOString().slice(0,10),paymentDays:14,status:'sent',taxTreatment:'standard',reference:'',paymentReference:'LIVE-0001',discountType:'none',discountValue:0,notes:'',lines:[{desc:'Live QA advies',qty:1,unitLabel:'uur',unit:100,vat:21}],payments:[],reminderCount:0};
     const draft={...structuredClone(invoice),id:'live-draft',number:'CONCEPT-LIVE',numberFinalized:false,status:'draft',paymentReference:'CONCEPT-LIVE'};
     state.contacts=[customer];
     state.invoices=[invoice,draft];
