@@ -202,3 +202,106 @@ a,button,input,select,textarea{transition-duration:180ms!important;transition-ti
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+
+/* Final Calm Control marketing collision overrides.
+   The legacy homepage contains historical !important declarations; these
+   selectors intentionally win without rewriting its structure. */
+.marketing .mk-btn.primary,
+.marketing .marketing-actions .mk-btn.primary,
+.marketing .kz-hero-actions .mk-btn.primary{
+  background:var(--brand-primary)!important;
+  border-color:var(--brand-primary)!important;
+  color:#FFFFFF!important;
+}
+.marketing .mk-btn.primary:hover,
+.marketing .marketing-actions .mk-btn.primary:hover,
+.marketing .kz-hero-actions .mk-btn.primary:hover{
+  background:var(--brand-primary-hover)!important;
+  border-color:var(--brand-primary-hover)!important;
+}
+.marketing .kz-hero h1 span{color:var(--brand-secondary)!important}
+.marketing .kz-tab.active{
+  background:var(--brand-primary)!important;
+  border-color:var(--brand-primary)!important;
+  color:#FFFFFF!important;
+}
+.marketing .kz-tab:hover:not(.active){
+  background:var(--brand-primary-soft)!important;
+  border-color:#CFE0DA!important;
+}
+.marketing .kz-product-shell,
+.marketing .kz-visual{
+  background:#F1F4EF!important;
+  border-color:var(--border-default)!important;
+}
+.marketing .kz-browser-head i,
+.marketing .kz-phone-hero,
+.marketing .kz-status:before,
+.marketing .kz-app-screen div:first-child{
+  background:var(--brand-secondary)!important;
+}
+.marketing .kz-doc-title span,
+.marketing .kz-benefit-label,
+.marketing .kz-benefit a,
+.marketing .kz-heading small,
+.marketing .kz-solution a,
+.marketing .kz-support-card a,
+.marketing .kz-preview-link{
+  color:var(--brand-secondary)!important;
+}
+.marketing .kz-trust-item{border-left-color:var(--brand-secondary)!important}
+.marketing .kz-status{
+  background:var(--brand-primary-soft)!important;
+  color:#385E57!important;
+}
+.marketing .kz-apps{background:var(--brand-primary)!important}
+.marketing .kz-app-label{color:#B9E1D9!important}
+.marketing .kz-final-box{background:var(--brand-primary)!important}
+.marketing .kz-final-box .mk-btn{
+  background:#FFFFFF!important;
+  border-color:#FFFFFF!important;
+  color:var(--brand-primary)!important;
+}
+.marketing .marketing-footer{background:var(--brand-primary)!important}
+.marketing .marketing-footer-v2{background:#F5F4EF!important}
+.marketing .promo-bar{
+  background:var(--brand-primary)!important;
+  color:#FFFFFF!important;
+  border-bottom-color:var(--brand-primary)!important;
+}
+.marketing .hero-promo{
+  background:var(--brand-primary-soft)!important;
+  color:var(--brand-primary)!important;
+  border-color:#CFE0DA!important;
+}
+.marketing .hero-promo b,
+.marketing .price-pill{
+  background:var(--brand-secondary)!important;
+  color:#FFFFFF!important;
+}
+.marketing .marketing-eyebrow{
+  background:#FFFFFF!important;
+  border-color:var(--border-default)!important;
+  color:var(--brand-secondary)!important;
+}
+.marketing .marketing-eyebrow:before{background:var(--brand-secondary)!important}
+.marketing .marketing-hero:before{
+  background:radial-gradient(circle,rgba(43,115,108,.12),rgba(43,115,108,0) 68%)!important;
+}
+.marketing .marketing-proof span:before,
+.marketing .compare-icon.good,
+.marketing .auth-check{
+  background:var(--brand-primary-soft)!important;
+  color:var(--brand-secondary)!important;
+}
+.marketing .feature-icon{
+  background:var(--brand-primary-soft)!important;
+  color:var(--brand-secondary)!important;
+}
+.marketing .price-card.featured{
+  border-color:var(--brand-secondary)!important;
+  box-shadow:0 20px 54px rgba(18,59,58,.10)!important;
+}
+.marketing .link-btn,
+.marketing .marketing-link.active{color:var(--brand-secondary)!important}
