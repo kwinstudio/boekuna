@@ -54,8 +54,8 @@ for select
 to authenticated
 using ((((select auth.jwt())->>'aal') = 'aal2') or not (select private.current_user_has_verified_mfa()));
 
+revoke all on public.document_processing_jobs from anon, authenticated;
 grant select on public.document_processing_jobs to authenticated;
-revoke insert, update, delete on public.document_processing_jobs from anon, authenticated;
 
 do $$
 begin
