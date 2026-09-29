@@ -1,11 +1,6 @@
 name: Document background preview smoke
 
 on:
-  push:
-    branches:
-      - feature/document-background-processing
-    paths:
-      - ".github/workflows/document-background-preview-smoke.yml"
   pull_request:
     paths:
       - ".github/workflows/document-background-preview-smoke.yml"
