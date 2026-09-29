@@ -4060,7 +4060,7 @@ async function processFinancialDocument(file,preStructure=null){
  const extracted=[structure?.text||'',processorTablesToText(structure?.tables||[]),ocrText||'',parsed?.text||''].filter(Boolean).join('\n\n---\n\n');
  const serverProc=structure?.analysis?.processing||{},serverReviewed=serverProc.reviewComplete===true||!!serverProc.ai||serverProc.fastPath==='deterministic';
  try{
-  if(!serverReviewed){
+  if(EXTERNAL_AI_REVIEW_ENABLED&&!serverReviewed){
    const ai=await analyzeInvoiceWithAI(file,extracted,parsed);parsed=applyRecognitionQuality(mergeAIParsed(parsed,ai,pendingUploadKind));
   }else{
    parsed.clientAiSkipped=true;
@@ -4072,6 +4072,7 @@ async function processFinancialDocument(file,preStructure=null){
  setImportProgress('Document verwerken','Klaar voor controle','De gegevens zijn genormaliseerd en gecontroleerd. Het controlescherm wordt geopend.',98,6);
  const previewUrl=(ext==='pdf'||DOCUMENT_IMAGE_MIME_TYPES.includes(String(file.type||'').toLowerCase())||DOCUMENT_IMAGE_EXTENSIONS.includes(ext))?URL.createObjectURL(file):null;pendingPdfImport={file,parsed,previewUrl,sha256:structure?.sha256||parsed.sha256||''};requestAnimationFrame(()=>showPdfImportReview(parsed))
 }
+const EXTERNAL_AI_REVIEW_ENABLED=false;
 const DOCUMENT_VERIFICATION_VERSION=1;
 const DOCUMENT_VERIFICATION_MAX_ATTEMPTS=2;
 function documentVerificationReasons(d){
@@ -4087,7 +4088,7 @@ function documentVerificationReasons(d){
  if(Number(d.fieldConfidence?.description||0)>0&&Number(d.fieldConfidence.description)<70)reasons.push('description-confidence');
  return [...new Set(reasons)]
 }
-function shouldQueueDocumentVerification(d){return documentVerificationReasons(d).length>0}
+function shouldQueueDocumentVerification(d){return EXTERNAL_AI_REVIEW_ENABLED&&documentVerificationReasons(d).length>0}
 function financialMoneyCents(v){
  if(v===''||v==null)return null;
  let s=String(v).trim().replace(',','.');if(!/^[+-]?\d+(?:\.\d+)?$/.test(s)){const n=Number(v);if(!Number.isFinite(n))return null;s=n.toFixed(6)}
@@ -4153,7 +4154,9 @@ function openDocumentVerification(id){
  const d=state.documents.find(x=>x.id===id);if(!d)return;const v=d.verification||{},diffs=Array.isArray(v.differences)?v.differences:[],st=v.status||'';
  const title=st==='needs_review'?'Controle nodig':st==='verified'?'Extra controle voltooid':st==='technical_error'?'Extra controle niet beschikbaar':'Extra controle bezig';
  const body=st==='needs_review'
-  ? `<div class="notice warn"><strong>We raden aan dit document nog even te controleren.</strong><br>Boekuna heeft bij de onafhankelijke extra controle relevante verschillen gevonden. De opgeslagen boeking is niet automatisch aangepast.</div><div class="legal-list" style="margin-top:12px">${diffs.map(x=>`<div class="legal-item"><strong>${esc(x.label)}</strong><p>${esc(verificationStoredLabel(v,x.field))}: <b>${esc(verificationValueText(x.field,x.current))}</b><br>Extra controle: <b>${esc(verificationValueText(x.field,x.alternative))}</b></p></div>`).join('')}${(v.financialIssues||[]).map(x=>`<div class="legal-item"><strong>${esc(x.title||'Financiële controle')}</strong><p>${esc(x.detail||'Controleer dit onderdeel op het originele document.')}</p></div>`).join('')}</div>`
+  ? (v.method==='manual-review'
+     ? `<div class="notice warn"><strong>Handmatige controle nodig.</strong><br>De extra AI-controle staat tijdelijk uit. De basisherkenning bevat één of meer onzekerheden; controleer deze gegevens aan de hand van het originele document.</div>`
+     : `<div class="notice warn"><strong>We raden aan dit document nog even te controleren.</strong><br>Boekuna heeft bij de onafhankelijke extra controle relevante verschillen gevonden. De opgeslagen boeking is niet automatisch aangepast.</div><div class="legal-list" style="margin-top:12px">${diffs.map(x=>`<div class="legal-item"><strong>${esc(x.label)}</strong><p>${esc(verificationStoredLabel(v,x.field))}: <b>${esc(verificationValueText(x.field,x.current))}</b><br>Extra controle: <b>${esc(verificationValueText(x.field,x.alternative))}</b></p></div>`).join('')}${(v.financialIssues||[]).map(x=>`<div class="legal-item"><strong>${esc(x.title||'Financiële controle')}</strong><p>${esc(x.detail||'Controleer dit onderdeel op het originele document.')}</p></div>`).join('')}</div>`)
   : st==='verified'
    ? (v.method==='deterministic'?'<div class="notice info"><strong>Gecontroleerd.</strong><br>De deterministische document- en rekencontroles waren sterk genoeg; een extra AI-analyse was niet nodig.</div>':'<div class="notice info"><strong>Extra controle voltooid.</strong><br>De belangrijkste financiële gegevens kwamen overeen en de rekencontroles leverden geen kritisch probleem op.</div>')
    : st==='technical_error'
@@ -4347,13 +4350,13 @@ async function savePdfInvoiceImport(){
   linkedId=uid('e');const sign=isCredit?-1:1;state.expenses.unshift({id:linkedId,vendor:contact.name,date:d.issueDate,dueDate:d.dueDate||'',status:normalStatus,kind:isCredit?'credit':'invoice',currency,paymentTermDays,orderNumber,category:d.category||'Inkoop',exVat:sign*net,vatRate:rate,mixedRates,taxTreatment:state.company.kor?'kor':'standard',vatAmount:sign*vat,gross:sign*gross,vatLines:trustedVatLines,notes:d.description||`Factuur ${d.invoiceNumber}`,paymentMethod:'Bank',invoiceNumber:d.invoiceNumber,paymentReference:d.paymentReference||'',source:'document-import',documentId:docId,importConfidence:pendingPdfImport.parsed?.confidenceScore||0,documentType:docType,pageCount:pendingPdfImport.parsed?.pageCount??null,fieldProvenance:financialFieldProvenance,financialCorrectionEvents})
  }
  const verificationCandidate={...candidate,party:contact.name,invoiceNumber:d.invoiceNumber,issueDate:d.issueDate,description:d.description||'',net,vatAmount:vat,gross,vatRate:rate,vatLines:trustedVatLines,currency,mixedRates};
- const verificationNeeded=fileSaved&&shouldQueueDocumentVerification(pendingPdfImport.parsed),verification={
+ const verificationReasons=documentVerificationReasons(pendingPdfImport.parsed),verificationNeeded=fileSaved&&EXTERNAL_AI_REVIEW_ENABLED&&verificationReasons.length>0,manualReviewNeeded=fileSaved&&!EXTERNAL_AI_REVIEW_ENABLED&&verificationReasons.length>0,verification={
   version:DOCUMENT_VERIFICATION_VERSION,
   key:pendingPdfImport.sha256||pendingPdfImport.parsed?.sha256||docId,
-  status:fileSaved?(verificationNeeded?'pending':'verified'):'technical_error',
-  method:verificationNeeded?'independent-ai':'deterministic',
+  status:fileSaved?(verificationNeeded?'pending':(manualReviewNeeded?'needs_review':'verified')):'technical_error',
+  method:verificationNeeded?'independent-ai':(manualReviewNeeded?'manual-review':'deterministic'),
   attempts:0,maxAttempts:DOCUMENT_VERIFICATION_MAX_ATTEMPTS,
-  reasons:documentVerificationReasons(pendingPdfImport.parsed),
+  reasons:verificationReasons,
   pass1:verificationSnapshot(verificationCandidate),
   pass1DurationMs:Number(pendingPdfImport.parsed?.pass1DurationMs||0),
   sourceText:String(pendingPdfImport.parsed?.text||'').slice(0,20000),
