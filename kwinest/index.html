@@ -3224,7 +3224,7 @@ function validateCreditLimit(i){if(i?.kind!=='credit'||!i.creditFor)return {ok:t
 async function ensureFinalInvoiceNumber(i){if(!i?.numberManaged||i.numberFinalized)return i?.number||'';const creditCheck=validateCreditLimit(i);if(!creditCheck.ok)throw new Error(creditCheck.message);const old=String(i.number||''),number=await reserveFinalInvoiceNumber(i.issueDate);if(state.invoices.some(x=>x.id!==i.id&&x.number===number))throw new Error('Het gereserveerde factuurnummer bestaat al. Probeer opnieuw.');i.number=number;i.numberFinalized=true;if(!i.paymentReference||i.paymentReference===old||isManagedDraftNumber(i.paymentReference))i.paymentReference=number;logEvent('Definitief factuurnummer toegewezen',number,'invoice',i.id);save();await syncCloudStateNow();const persisted=state.invoices.find(x=>x.id===i.id);if(!persisted||persisted.number!==number)throw new Error('Syncconflict tijdens finaliseren. De wijziging is als herstelkopie bewaard; controleer de factuur vóór verzending.');return number}
 function treatmentLabel(v){return ({standard:'Binnenland · normale btw',reverse:'Btw verlegd',icp:'EU · intracommunautair / 0%',exempt:'Btw-vrijgesteld',kor:'KOR · geen btw'})[v]||'Binnenland · normale btw'}
 function treatmentNote(v){return ({reverse:'Btw verlegd',icp:'Intracommunautaire levering/dienst · 0% btw',exempt:'Btw-vrijstelling van toepassing',kor:'Kleineondernemersregeling (KOR) · geen btw in rekening gebracht'})[v]||''}
-function newInvoice(preserveEdit=false){if(!preserveEdit)editingInvoiceId=null;const number=conceptNumber('invoice'),due=new Date();due.setDate(due.getDate()+Number(state.company.paymentDays||14));const dueStr=due.toISOString().slice(0,10),customers=state.contacts.filter(c=>c.type==='customer'),defaultTreatment=state.company.kor?'kor':'standard';modal('Nieuwe verkoopfactuur',`<form id="invoiceForm" novalidate><div class="notice info" style="margin-bottom:16px"><strong>Factuurcontrole actief.</strong> Vul de factuur zo compleet mogelijk in. Voor opslaan controleren we verplichte gegevens, klantgegevens, datums, btw-behandeling, regels en totalen.</div><div class="form-grid"><div class="field"><label>Concept-ID</label><input name="number" value="${esc(number)}" required readonly><div class="help">Het definitieve factuurnummer wordt server-side toegewezen zodra de factuur definitief wordt of wordt verzonden.</div></div><div class="field"><label>Status</label><select name="status"><option value="draft" selected>Concept</option><option value="sent">Verzonden (handmatig)</option><option value="paid">Betaald</option></select></div><div class="field"><label>Klant *</label><select name="customerId" id="invoiceCustomer" required><option value="">Kies klant</option>${customers.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}<option value="__new__">+ Nieuwe klant invoeren</option></select><div id="customerPreview" class="customer-preview">${customers.length?'Kies een klant om de factuurgegevens te controleren.':'Nog geen klanten. Kies “Nieuwe klant invoeren”.'}</div></div><div class="field"><label>Btw-behandeling *</label><select name="taxTreatment" id="taxTreatment"><option value="standard" ${defaultTreatment==='standard'?'selected':''}>Binnenland · normale btw</option><option value="reverse">Btw verlegd</option><option value="icp">EU · intracommunautair / 0%</option><option value="exempt">Btw-vrijgesteld</option><option value="kor" ${defaultTreatment==='kor'?'selected':''}>KOR · geen btw</option></select><div class="help">Kies alleen een bijzondere behandeling als die echt van toepassing is.</div></div><div class="field"><label>Factuurdatum *</label><input name="issueDate" type="date" value="${today()}" required></div><div class="field"><label>Leverdatum / prestatiedatum *</label><input name="supplyDate" type="date" value="${today()}" required></div><div class="field"><label>Vervaldatum *</label><input name="dueDate" type="date" value="${dueStr}" required></div><div class="field"><label>Betaaltermijn</label><input name="paymentDays" type="number" min="0" step="1" value="${Number(state.company.paymentDays||14)}"></div><div class="field"><label>Klantreferentie / PO</label><input name="reference" placeholder="Bijv. PO-2026-103"></div><div class="field"><label>Betalingskenmerk</label><input name="paymentReference" value="${esc(number)}"></div></div><div id="newCustomerFields" class="card hidden" style="margin-top:14px;background:#effefb"><div class="section-head"><div><h2>Nieuwe klantgegevens</h2><p>Deze klant wordt tegelijk met de factuur opgeslagen.</p></div></div><div class="form-grid"><div class="field"><label>Juridische / handelsnaam *</label><input name="newCustomerName"></div><div class="field"><label>Contactpersoon</label><input name="newCustomerContact"></div><div class="field"><label>E-mail</label><input type="email" name="newCustomerEmail"></div><div class="field"><label>Telefoon</label><input name="newCustomerPhone"></div><div class="field"><label>KVK-nummer</label><input name="newCustomerKvk"></div><div class="field"><label>Btw-id</label><input name="newCustomerVat" placeholder="NL123456789B01"></div><div class="field full"><label>Straat + huisnummer</label><input name="newCustomerAddress"></div><div class="field"><label>Postcode</label><input name="newCustomerPostal"></div><div class="field"><label>Plaats</label><input name="newCustomerCity"></div></div></div><div class="divider"></div><div class="section-head"><div><h2>Factuurregels</h2><p>Kies een opgeslagen dienst of voeg zelf een vrije factuurregel toe. Alles blijft per factuur aanpasbaar.</p></div><button type="button" class="btn small" onclick="addInvoiceLine()">+ Vrije regel</button></div><div class="card" style="margin-bottom:14px;background:#f7faf8"><div style="display:grid;grid-template-columns:minmax(220px,1fr) auto auto;gap:8px;align-items:end"><div class="field"><label>Opgeslagen dienst</label><select id="invoiceServiceSelect"><option value="">Kies een dienst…</option>${state.services.filter(s=>s.active!==false).map(s=>`<option value="${esc(s.id)}">${esc(s.name)} · ${money(s.price)} / ${esc(s.unitLabel||'stuk')}</option>`).join('')}</select></div><button type="button" class="btn primary" onclick="addSelectedServiceToInvoice()">Dienst toevoegen</button><button type="button" class="btn" onclick="closeModal();navigate('services')">Diensten beheren</button></div>${state.services.length?'':`<div class="help" style="margin-top:8px">Nog geen diensten opgeslagen. Je kunt hieronder gewoon handmatig factureren of eerst je dienstenlijst maken.</div>`}</div><div id="invoiceLines"><div class="line-item" style="grid-template-columns:minmax(190px,1.6fr) 74px 80px 110px 100px 36px"><div class="field"><label>Omschrijving *</label><input data-k="desc" required placeholder="Bijv. 4 uur advies – september"></div><div class="field"><label>Aantal *</label><input data-k="qty" type="number" step="0.01" min="0.01" value="1" required></div><div class="field"><label>Eenheid</label><input data-k="unitLabel" value="stuk" placeholder="uur/stuk"></div><div class="field"><label>Eenheidsprijs *</label><input data-k="unit" type="number" step="0.01" min="0" value="0" required></div><div class="field"><label>Btw *</label><select data-k="vat"><option value="21">21%</option><option value="9">9%</option><option value="0">0%</option></select></div><button type="button" class="icon-btn" onclick="this.parentElement.remove();calcInvoiceForm();updateInvoiceCheck()">×</button></div></div><div class="card" style="margin-top:16px;background:#f7faf8"><div class="section-head"><div><h2>Factuurkorting</h2><p>Optioneel. De korting wordt proportioneel over de factuurregels verdeeld vóór de btw-berekening.</p></div></div><div class="form-grid"><div class="field"><label>Type korting</label><select name="discountType"><option value="none">Geen korting</option><option value="percent">Percentage</option><option value="fixed">Vast bedrag</option></select></div><div class="field"><label>Waarde</label><input name="discountValue" type="number" min="0" step="0.01" value="0"><div class="help">Bij percentage: 10 = 10%. Bij vast bedrag: 10 = €10.</div></div></div></div><div class="grid grid-2" style="margin-top:16px"><div class="field"><label>Factuurnotitie</label><textarea name="notes" placeholder="Bijv. bedankt voor de samenwerking, projectnaam of aanvullende afspraak."></textarea></div><div><div class="total-box" id="formTotals"></div></div></div><div id="invoiceCheck" class="invoice-check"></div></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="reviewInvoice()">Controleer factuur</button>`,true);wireInvoiceForm();calcInvoiceForm();updateInvoiceCustomer();updateTaxTreatment()}
+function newInvoice(preserveEdit=false){if(!preserveEdit)editingInvoiceId=null;const number=conceptNumber('invoice'),due=new Date();due.setDate(due.getDate()+Number(state.company.paymentDays||14));const dueStr=due.toISOString().slice(0,10),customers=state.contacts.filter(c=>c.type==='customer'),defaultTreatment=state.company.kor?'kor':'standard';modal('Nieuwe verkoopfactuur',`<form id="invoiceForm" novalidate><div class="notice info" style="margin-bottom:16px"><strong>Factuurcontrole actief.</strong> Vul de factuur zo compleet mogelijk in. Voor opslaan controleren we verplichte gegevens, klantgegevens, datums, btw-behandeling, regels en totalen.</div><div class="form-grid"><div class="field"><label>Concept-ID</label><input name="number" value="${esc(number)}" required readonly><div class="help">Het definitieve factuurnummer wordt server-side toegewezen zodra de factuur definitief wordt of wordt verzonden.</div></div><div class="field"><label>Status</label><select name="status"><option value="draft" selected>Concept</option><option value="sent">Definitief / openstaand</option><option value="paid">Betaald</option></select></div><div class="field"><label>Klant *</label><select name="customerId" id="invoiceCustomer" required><option value="">Kies klant</option>${customers.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}<option value="__new__">+ Nieuwe klant invoeren</option></select><div id="customerPreview" class="customer-preview">${customers.length?'Kies een klant om de factuurgegevens te controleren.':'Nog geen klanten. Kies “Nieuwe klant invoeren”.'}</div></div><div class="field"><label>Btw-behandeling *</label><select name="taxTreatment" id="taxTreatment"><option value="standard" ${defaultTreatment==='standard'?'selected':''}>Binnenland · normale btw</option><option value="reverse">Btw verlegd</option><option value="icp">EU · intracommunautair / 0%</option><option value="exempt">Btw-vrijgesteld</option><option value="kor" ${defaultTreatment==='kor'?'selected':''}>KOR · geen btw</option></select><div class="help">Kies alleen een bijzondere behandeling als die echt van toepassing is.</div></div><div class="field"><label>Factuurdatum *</label><input name="issueDate" type="date" value="${today()}" required></div><div class="field"><label>Leverdatum / prestatiedatum *</label><input name="supplyDate" type="date" value="${today()}" required></div><div class="field"><label>Vervaldatum *</label><input name="dueDate" type="date" value="${dueStr}" required></div><div class="field"><label>Betaaltermijn</label><input name="paymentDays" type="number" min="0" step="1" value="${Number(state.company.paymentDays||14)}"></div><div class="field"><label>Klantreferentie / PO</label><input name="reference" placeholder="Bijv. PO-2026-103"></div><div class="field"><label>Betalingskenmerk</label><input name="paymentReference" value="${esc(number)}"></div></div><div id="newCustomerFields" class="card hidden" style="margin-top:14px;background:#effefb"><div class="section-head"><div><h2>Nieuwe klantgegevens</h2><p>Deze klant wordt tegelijk met de factuur opgeslagen.</p></div></div><div class="form-grid"><div class="field"><label>Juridische / handelsnaam *</label><input name="newCustomerName"></div><div class="field"><label>Contactpersoon</label><input name="newCustomerContact"></div><div class="field"><label>E-mail</label><input type="email" name="newCustomerEmail"></div><div class="field"><label>Telefoon</label><input name="newCustomerPhone"></div><div class="field"><label>KVK-nummer</label><input name="newCustomerKvk"></div><div class="field"><label>Btw-id</label><input name="newCustomerVat" placeholder="NL123456789B01"></div><div class="field full"><label>Straat + huisnummer</label><input name="newCustomerAddress"></div><div class="field"><label>Postcode</label><input name="newCustomerPostal"></div><div class="field"><label>Plaats</label><input name="newCustomerCity"></div></div></div><div class="divider"></div><div class="section-head"><div><h2>Factuurregels</h2><p>Kies een opgeslagen dienst of voeg zelf een vrije factuurregel toe. Alles blijft per factuur aanpasbaar.</p></div><button type="button" class="btn small" onclick="addInvoiceLine()">+ Vrije regel</button></div><div class="card" style="margin-bottom:14px;background:#f7faf8"><div style="display:grid;grid-template-columns:minmax(220px,1fr) auto auto;gap:8px;align-items:end"><div class="field"><label>Opgeslagen dienst</label><select id="invoiceServiceSelect"><option value="">Kies een dienst…</option>${state.services.filter(s=>s.active!==false).map(s=>`<option value="${esc(s.id)}">${esc(s.name)} · ${money(s.price)} / ${esc(s.unitLabel||'stuk')}</option>`).join('')}</select></div><button type="button" class="btn primary" onclick="addSelectedServiceToInvoice()">Dienst toevoegen</button><button type="button" class="btn" onclick="closeModal();navigate('services')">Diensten beheren</button></div>${state.services.length?'':`<div class="help" style="margin-top:8px">Nog geen diensten opgeslagen. Je kunt hieronder gewoon handmatig factureren of eerst je dienstenlijst maken.</div>`}</div><div id="invoiceLines"><div class="line-item" style="grid-template-columns:minmax(190px,1.6fr) 74px 80px 110px 100px 36px"><div class="field"><label>Omschrijving *</label><input data-k="desc" required placeholder="Bijv. 4 uur advies – september"></div><div class="field"><label>Aantal *</label><input data-k="qty" type="number" step="0.01" min="0.01" value="1" required></div><div class="field"><label>Eenheid</label><input data-k="unitLabel" value="stuk" placeholder="uur/stuk"></div><div class="field"><label>Eenheidsprijs *</label><input data-k="unit" type="number" step="0.01" min="0" value="0" required></div><div class="field"><label>Btw *</label><select data-k="vat"><option value="21">21%</option><option value="9">9%</option><option value="0">0%</option></select></div><button type="button" class="icon-btn" onclick="this.parentElement.remove();calcInvoiceForm();updateInvoiceCheck()">×</button></div></div><div class="card" style="margin-top:16px;background:#f7faf8"><div class="section-head"><div><h2>Factuurkorting</h2><p>Optioneel. De korting wordt proportioneel over de factuurregels verdeeld vóór de btw-berekening.</p></div></div><div class="form-grid"><div class="field"><label>Type korting</label><select name="discountType"><option value="none">Geen korting</option><option value="percent">Percentage</option><option value="fixed">Vast bedrag</option></select></div><div class="field"><label>Waarde</label><input name="discountValue" type="number" min="0" step="0.01" value="0"><div class="help">Bij percentage: 10 = 10%. Bij vast bedrag: 10 = €10.</div></div></div></div><div class="grid grid-2" style="margin-top:16px"><div class="field"><label>Factuurnotitie</label><textarea name="notes" placeholder="Bijv. bedankt voor de samenwerking, projectnaam of aanvullende afspraak."></textarea></div><div><div class="total-box" id="formTotals"></div></div></div><div id="invoiceCheck" class="invoice-check"></div></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="reviewInvoice()">Controleer factuur</button>`,true);wireInvoiceForm();calcInvoiceForm();updateInvoiceCustomer();updateTaxTreatment()}
 function wireInvoiceForm(){const f=document.getElementById('invoiceForm');if(!f)return;f.querySelectorAll('input,select,textarea').forEach(x=>{x.addEventListener('input',()=>{x.classList.remove('field-error');calcInvoiceForm();updateInvoiceCheck()});x.addEventListener('change',()=>{x.classList.remove('field-error');calcInvoiceForm();updateInvoiceCheck()})});document.getElementById('invoiceCustomer')?.addEventListener('change',updateInvoiceCustomer);document.getElementById('taxTreatment')?.addEventListener('change',updateTaxTreatment);const issue=f.elements.issueDate,due=f.elements.dueDate,days=f.elements.paymentDays;issue?.addEventListener('change',()=>{if(issue.value&&days.value!==''){const d=new Date(issue.value+'T12:00:00');d.setDate(d.getDate()+Number(days.value||0));due.value=d.toISOString().slice(0,10);updateInvoiceCheck()}});days?.addEventListener('input',()=>{if(issue.value&&days.value!==''){const d=new Date(issue.value+'T12:00:00');d.setDate(d.getDate()+Number(days.value||0));due.value=d.toISOString().slice(0,10);updateInvoiceCheck()}})}
 function updateInvoiceCustomer(){const f=document.getElementById('invoiceForm');if(!f)return;const id=f.elements.customerId.value,box=document.getElementById('newCustomerFields'),prev=document.getElementById('customerPreview');box?.classList.toggle('hidden',id!=='__new__');if(id==='__new__'){prev.innerHTML='<strong>Nieuwe klant</strong><br>Vul minimaal de naam in. Adresgegevens kun je later aanvullen; voor een definitieve factuur zijn ze wel nodig.'}else if(id){const c=getContact(id);prev.innerHTML=`<strong>${esc(c.name)}</strong>${c.contactPerson?` · ${esc(c.contactPerson)}`:''}<br>${esc(c.address||'Adres ontbreekt')}<br>${esc([c.postal,c.city].filter(Boolean).join(' ')||'Postcode/plaats ontbreekt')}<br>${c.kvk?`KVK ${esc(c.kvk)} · `:''}${c.vat?`Btw-id ${esc(c.vat)}`:'Btw-id niet ingevuld'}${c.email?`<br>${esc(c.email)}`:''}`}else prev.textContent='Kies een klant om de factuurgegevens te controleren.';updateInvoiceCheck()}
 function updateTaxTreatment(){const f=document.getElementById('invoiceForm');if(!f)return;const tr=f.elements.taxTreatment.value,zero=['reverse','icp','exempt','kor'].includes(tr);if(zero){document.querySelectorAll('#invoiceLines [data-k=vat]').forEach(x=>x.value='0')}document.querySelectorAll('#invoiceLines [data-k=vat]').forEach(x=>x.disabled=zero);calcInvoiceForm();updateInvoiceCheck()}
@@ -4571,8 +4571,8 @@ async function savePdfInvoiceImport(){
  const confirmedFinancialFields=Object.entries(financialFieldProvenance).filter(([,p])=>p?.source==='user'&&p?.confirmed).map(([k])=>k);if(confirmedFinancialFields.length)logEvent('Documentvelden bevestigd',confirmedFinancialFields.join(', '),'document',docId,null,{fields:confirmedFinancialFields});
   const recalculatedFields=[...new Set(financialCorrectionEvents.filter(e=>e?.type==='financial_recalculation_applied').flatMap(e=>e.fields||[]))];if(recalculatedFields.length)logEvent('Financiële correctie toegepast',recalculatedFields.join(', '),'document',docId,null,{fields:recalculatedFields});save();const queuedVerification=verification.status==='pending',multiSession=documentProcessingSession?.items?.length>1?documentProcessingSession:null,reviewedItem=multiSession?.reviewingItemId?multiSession.items.find(x=>x.id===multiSession.reviewingItemId):null;cleanupPendingImport();if(reviewedItem){reviewedItem.reviewed=true;reviewedItem.result=null;multiSession.reviewingItemId=null}toast(type==='sale'?`Factuur opgeslagen en ${contact.name} staat bij klanten`:(docType==='receipt'?`Bon opgeslagen als kosten bij ${contact.name}`:`Inkoopfactuur opgeslagen en ${contact.name} staat bij leveranciers`));if(queuedVerification)scheduleDocumentVerification(docId);if(multiSession){const next=multiSession.items.find(x=>x.state==='completed'&&x.result&&!x.reviewed);if(next){openProcessedDocumentReview(next.id);return}const pendingWork=multiSession.items.some(x=>!['completed','failed'].includes(x.state)||x.state==='failed');if(pendingWork){renderDocumentProcessingExperience();return}}closeModal();navigate(type==='sale'?'invoices':'expenses')
 }
-function openReminder(id){const i=state.invoices.find(x=>x.id===id);if(!i||i.kind==='credit')return toast('Voor een creditfactuur stuur je geen betalingsherinnering');const c=getContact(i.customerId),days=Math.max(0,-daysUntil(i.dueDate));const subject=`Herinnering factuur ${i.number} · ${state.company.name||'uw leverancier'}`,message=`Beste ${c.contactPerson||c.name||'klant'},\n\nVolgens onze administratie staat op factuur ${i.number} nog ${money(invoiceOutstanding(i))} open. De vervaldatum was ${dateNL(i.dueDate)}${days?` (${days} dag${days===1?'':'en'} geleden)`:''}.\n\nWil je controleren of de betaling inmiddels is verwerkt? Je kunt het bedrag overmaken naar ${state.company.iban||'[IBAN]'} onder vermelding van ${i.paymentReference||i.number}.\n\nAls je al hebt betaald, kun je deze herinnering als niet verzonden beschouwen.\n\nMet vriendelijke groet,\n${state.company.name||''}`;modal('Betalingsherinnering',`<div class="notice info" style="margin-bottom:14px"><strong>${esc(i.number)}</strong> · ${money(invoiceOutstanding(i))} open · vervaldatum ${dateNL(i.dueDate)}</div><form id="reminderForm" class="form-grid"><div class="field full"><label>Ontvanger</label><input name="to" type="email" value="${esc(c.email||'')}" required></div><div class="field full"><label>Onderwerp</label><input name="subject" value="${esc(subject)}" required></div><div class="field full"><label>Bericht</label><textarea name="message" style="min-height:220px">${esc(message)}</textarea></div></form><div class="help" style="margin-top:10px">Echte verzending gebruikt dezelfde mailprovider als ‘Verstuur factuur’. Als die nog niet gekoppeld is, wordt niets als verzonden gemarkeerd.</div>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="sendReminder('${id}')">Verstuur herinnering</button>`,true)}
-async function sendReminder(id){const f=document.getElementById('reminderForm');if(!f?.reportValidity())return;const i=state.invoices.find(x=>x.id===id),c=getContact(i.customerId),fd=new FormData(f),payload=buildInvoiceMailPayload(i,c,{to:String(fd.get('to')),subject:String(fd.get('subject')),message:String(fd.get('message')),copyToSelf:false});const btn=[...document.querySelectorAll('.modal-foot .btn')].find(x=>x.textContent.includes('Verstuur'));if(btn){btn.disabled=true;btn.textContent='Versturen…'}try{const r=await fetch(EDGE_BASE+'/send-invoice',{method:'POST',headers:await apiAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify(payload)}),j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw new Error(j.error||'Verzenden mislukt');i.lastReminderAt=new Date().toISOString();i.reminderCount=Number(i.reminderCount||0)+1;logEvent('Betalingsherinnering verzonden',`${i.number} naar ${fd.get('to')}`,'invoice',i.id);save();closeModal();toast('Herinnering verzonden');render()}catch(e){toast(e.message||'Herinnering kon niet worden verzonden');if(btn){btn.disabled=false;btn.textContent='Verstuur herinnering'}}}
+function openReminder(id){const i=state.invoices.find(x=>x.id===id);if(!i||i.kind==='credit')return toast('Voor een creditfactuur stuur je geen betalingsherinnering');const c=getContact(i.customerId),days=Math.max(0,-daysUntil(i.dueDate));const subject=`Herinnering factuur ${i.number} · ${state.company.name||'uw leverancier'}`,message=`Beste ${c.contactPerson||c.name||'klant'},\n\nVolgens onze administratie staat op factuur ${i.number} nog ${money(invoiceOutstanding(i))} open. De vervaldatum was ${dateNL(i.dueDate)}${days?` (${days} dag${days===1?'':'en'} geleden)`:''}.\n\nWil je controleren of de betaling inmiddels is verwerkt? Je kunt het bedrag overmaken naar ${state.company.iban||'[IBAN]'} onder vermelding van ${i.paymentReference||i.number}.\n\nAls je al hebt betaald, kun je deze herinnering als niet verzonden beschouwen.\n\nMet vriendelijke groet,\n${state.company.name||''}`;modal('Betalingsherinnering',`<div class="notice info" style="margin-bottom:14px"><strong>${esc(i.number)}</strong> · ${money(invoiceOutstanding(i))} open · vervaldatum ${dateNL(i.dueDate)}</div><form id="reminderForm" class="form-grid"><div class="field full"><label>Ontvanger</label><input name="to" type="email" value="${esc(c.email||'')}" required></div><div class="field full"><label>Onderwerp</label><input name="subject" value="${esc(subject)}" required></div><div class="field full"><label>Bericht</label><textarea name="message" style="min-height:220px">${esc(message)}</textarea></div></form><div class="help" style="margin-top:10px">Boekuna opent je eigen e-mailapp. Wij krijgen geen toegang tot Gmail, Outlook of je inbox.</div>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="sendReminder('${id}')">Verstuur herinnering</button>`,true)}
+async function sendReminder(id){if(typeof window.prepareReminderHandoffFromForm==='function')return window.prepareReminderHandoffFromForm(id);return toast('De betalingsherinnering kon niet worden voorbereid. Vernieuw Boekuna en probeer opnieuw.')}
 function newPlannedCash(){modal('Geplande cashflow',`<form id="planCashForm" class="form-grid"><div class="field"><label>Type</label><select name="type"><option value="out">Uitgave</option><option value="in">Inkomst</option></select></div><div class="field"><label>Datum</label><input name="date" type="date" value="${today()}" required></div><div class="field full"><label>Omschrijving</label><input name="description" placeholder="Bijv. huur oktober / verwacht project" required></div><div class="field full"><label>Bedrag incl. btw / cashbedrag</label><input name="amount" type="number" min="0.01" step="0.01" required></div></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="savePlannedCash()">Toevoegen</button>`)}
 function savePlannedCash(){const f=document.getElementById('planCashForm');if(!f?.reportValidity())return;const d=new FormData(f),x={id:uid('pc'),type:d.get('type'),date:d.get('date'),description:String(d.get('description')||''),amount:Number(d.get('amount')||0)};state.plannedCash.push(x);logEvent('Cashflowplanning toegevoegd',`${x.description} · ${money(x.amount)}`,'plannedCash',x.id);save();closeModal();render();toast('Planning toegevoegd')}
 function deletePlannedCash(id){state.plannedCash=state.plannedCash.filter(x=>x.id!==id);logEvent('Cashflowplanning verwijderd',id,'plannedCash',id);save();render()}
@@ -4966,6 +4966,533 @@ document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=
   window.confirmInvoiceShareSent=confirmInvoiceShareSent;
   window.openInvoiceEmailShare=openInvoiceEmailShare;
   window.openSendInvoice=openInvoiceEmailShare;
+})();
+</script>
+<script id="boekuna-unified-email-handoff-v2">
+(function(){
+  'use strict';
+
+  var handoff=null;
+  var handoffBusy=false;
+  var confirmBusy=false;
+
+  function cleanHeader(value,max){
+    return String(value==null?'':value).replace(/[\r\n]+/g,' ').trim().slice(0,max||240);
+  }
+
+  function cleanBody(value){
+    return String(value==null?'':value).replace(/\r\n?/g,'\n').trim().slice(0,12000);
+  }
+
+  function validEmail(value){
+    if(typeof window.isInvoiceShareEmail==='function')return window.isInvoiceShareEmail(value);
+    var email=String(value==null?'':value).trim();
+    return email.length<=240 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !/[\r\n]/.test(email);
+  }
+
+  function likelyMobile(){
+    try{
+      if(navigator.userAgentData&&typeof navigator.userAgentData.mobile==='boolean')return navigator.userAgentData.mobile;
+    }catch(_err){}
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(String(navigator.userAgent||''));
+  }
+
+  function contactGreeting(customer){
+    var name=String(customer&&((customer.contactPerson||customer.name))||'').trim();
+    return name?'Goedendag '+name+',':'Goedendag,';
+  }
+
+  function configuredInvoiceBody(invoice,customer){
+    var configured=state.company&&state.company.emailTemplate&&state.company.emailTemplate.bodyInvoice;
+    if(configured&&configured!==DEFAULT_EMAIL_TEMPLATE.bodyInvoice){
+      return cleanBody(defaultInvoiceEmailMessage(invoice,customer));
+    }
+    var lines=[
+      contactGreeting(customer),
+      '',
+      'Hierbij ontvangt u factuur '+String(invoice.number||'')+' voor '+money(invoiceGross(invoice))+'.',
+      '',
+      'Factuurdatum: '+dateNL(invoice.issueDate),
+      'Vervaldatum: '+dateNL(invoice.dueDate),
+      'Bedrag: '+money(invoiceGross(invoice))
+    ];
+    if(state.company&&state.company.iban){
+      var payment='U kunt het bedrag overmaken naar '+state.company.iban;
+      if(invoice.paymentReference||invoice.number)payment+=' onder vermelding van '+String(invoice.paymentReference||invoice.number);
+      payment+='.';
+      lines.push('',payment);
+    }
+    lines.push('','De factuur vindt u als PDF bij deze e-mail.','','Heeft u vragen over de factuur? Neem dan gerust contact met ons op.','','Met vriendelijke groet','',String((state.company&&state.company.tradeName)||(state.company&&state.company.name)||''));
+    if(state.company&&state.company.email)lines.push(String(state.company.email));
+    if(state.company&&state.company.phone)lines.push(String(state.company.phone));
+    return cleanBody(lines.filter(function(v,idx,arr){return v!==''||idx===0||arr[idx-1]!=='';}).join('\n'));
+  }
+
+  function invoiceSubject(invoice,customer){
+    return cleanHeader(invoiceMailSubject(invoice,customer),240);
+  }
+
+  function invoiceBody(invoice,customer){
+    if(invoice&&invoice.kind==='credit')return cleanBody(defaultInvoiceEmailMessage(invoice,customer));
+    return configuredInvoiceBody(invoice,customer);
+  }
+
+  function reminderSubject(invoice){
+    var second=Number(invoice.reminderCount||0)>=1;
+    return cleanHeader((second?'Tweede herinnering factuur ':'Herinnering factuur ')+String(invoice.number||'')+' · '+String((state.company&&state.company.tradeName)||(state.company&&state.company.name)||'uw leverancier'),240);
+  }
+
+  function reminderBody(invoice,customer){
+    var second=Number(invoice.reminderCount||0)>=1;
+    var open=money(invoiceOutstanding(invoice));
+    var lines=[contactGreeting(customer),''];
+    if(second){
+      lines.push('Volgens onze administratie staat factuur '+String(invoice.number||'')+' nog steeds open. Het openstaande bedrag is '+open+'.');
+      lines.push('','De vervaldatum was '+dateNL(invoice.dueDate)+'. Wilt u controleren of de betaling inmiddels is verwerkt?');
+    }else{
+      lines.push('Volgens onze administratie staat factuur '+String(invoice.number||'')+' van '+open+' nog open.');
+      lines.push('','De vervaldatum was '+dateNL(invoice.dueDate)+'.');
+      lines.push('','Het kan natuurlijk zijn dat uw betaling en deze herinnering elkaar hebben gekruist. Als u inmiddels heeft betaald, kunt u deze e-mail als niet verzonden beschouwen.');
+    }
+    if(state.company&&state.company.iban){
+      var payment='U kunt het openstaande bedrag overmaken naar '+state.company.iban;
+      if(invoice.paymentReference||invoice.number)payment+=' onder vermelding van '+String(invoice.paymentReference||invoice.number);
+      payment+='.';
+      lines.push('',payment);
+    }
+    lines.push('','De factuur is voor het gemak opnieuw toegevoegd.','','Met vriendelijke groet','',String((state.company&&state.company.tradeName)||(state.company&&state.company.name)||''));
+    return cleanBody(lines.join('\n'));
+  }
+
+  function followUpSubject(invoice){
+    return cleanHeader('Follow-up factuur '+String(invoice.number||'')+' · '+String((state.company&&state.company.tradeName)||(state.company&&state.company.name)||'uw leverancier'),240);
+  }
+
+  function followUpBody(invoice,customer){
+    var lines=[
+      contactGreeting(customer),
+      '',
+      'Ik stuur u hierbij een korte follow-up over factuur '+String(invoice.number||'')+' voor '+money(invoiceOutstanding(invoice)||invoiceGross(invoice))+'.',
+      '',
+      'De vervaldatum is '+dateNL(invoice.dueDate)+'. Als u vragen heeft over de factuur, laat het gerust weten.',
+      '',
+      'Met vriendelijke groet',
+      '',
+      String((state.company&&state.company.tradeName)||(state.company&&state.company.name)||'')
+    ];
+    return cleanBody(lines.join('\n'));
+  }
+
+  function buildGmailComposeUrl(to,subject,body){
+    if(!validEmail(to))throw new Error('Ongeldig e-mailadres.');
+    return 'https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(String(to).trim())+
+      '&su='+encodeURIComponent(cleanHeader(subject,240))+
+      '&body='+encodeURIComponent(cleanBody(body));
+  }
+
+  function handoffTitle(mode){
+    if(mode==='payment_reminder')return 'Betalingsherinnering';
+    if(mode==='follow_up')return 'Follow-up sturen';
+    return 'Factuur versturen';
+  }
+
+  function showValidationErrors(title,errors,customer){
+    var rows=(errors||[]).map(function(item){
+      return '<div class="legal-item"><strong>'+esc(item.label||'Controle')+'</strong><p>'+esc(item.msg||'Controleer dit veld.')+'</p></div>';
+    }).join('');
+    var footer='<button class="btn" onclick="closeModal()">Sluiten</button>';
+    if(customer&&customer.id)footer+='<button class="btn primary" onclick="closeModal();editContact(\''+customer.id+'\')">Klantgegevens openen</button>';
+    modal(title,'<div class="notice warn"><strong>Controleer eerst de ontbrekende gegevens.</strong></div><div class="legal-list" style="margin-top:12px">'+rows+'</div>',footer,true);
+  }
+
+  function openComposer(options){
+    handoff={
+      mode:options.mode,
+      invoiceId:options.invoice.id,
+      customerId:options.customer.id,
+      to:String(options.to||options.customer.email||'').trim(),
+      subject:cleanHeader(options.subject,240),
+      body:cleanBody(options.body),
+      attachPdf:options.attachPdf!==false,
+      file:null,
+      confirmed:false
+    };
+    var attachControl='';
+    if(options.mode!=='invoice'){
+      attachControl='<label style="display:flex;gap:9px;align-items:flex-start"><input type="checkbox" name="attachPdf" '+(handoff.attachPdf?'checked':'')+' style="margin-top:3px"><span><strong>Factuur als PDF toevoegen</strong><span class="help" style="display:block">Op mobiel kan de PDF direct worden gedeeld. Op desktop wordt hij klaargezet om handmatig toe te voegen.</span></span></label>';
+    }
+    modal(
+      handoffTitle(options.mode),
+      '<form id="emailHandoffForm" class="form-grid">'+
+        '<div class="field full"><label>Aan</label><input name="to" type="email" value="'+esc(handoff.to)+'" required maxlength="240"></div>'+
+        '<div class="field full"><label>Onderwerp</label><input name="subject" value="'+esc(handoff.subject)+'" required maxlength="240"></div>'+
+        '<div class="field full"><label>Bericht</label><textarea name="message" style="min-height:260px" maxlength="12000" required>'+esc(handoff.body)+'</textarea></div>'+
+        (options.mode==='invoice'?'<div class="notice info full"><strong>De definitieve factuur-PDF wordt klaargezet.</strong><br>Boekuna krijgt geen toegang tot uw mailbox.</div>':'<div class="field full">'+attachControl+'</div>')+
+      '</form>',
+      '<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="prepareEmailHandoffFromComposer()">Verder naar e-mailapp</button>',
+      true
+    );
+  }
+
+  function readComposer(){
+    var form=document.getElementById('emailHandoffForm');
+    if(!form||!form.reportValidity())return null;
+    var fd=new FormData(form);
+    var to=String(fd.get('to')||'').trim();
+    var subject=cleanHeader(fd.get('subject'),240);
+    var body=cleanBody(fd.get('message'));
+    if(!validEmail(to)){toast('Vul een geldig e-mailadres in.');return null;}
+    if(!subject||!body){toast('Onderwerp en bericht zijn verplicht.');return null;}
+    return {
+      to:to,
+      subject:subject,
+      body:body,
+      attachPdf:handoff&&handoff.mode==='invoice'?true:!!(form.elements.attachPdf&&form.elements.attachPdf.checked)
+    };
+  }
+
+  async function prepareEmailHandoffFromComposer(){
+    if(!handoff||handoffBusy)return;
+    var values=readComposer();
+    if(!values)return;
+    handoff.to=values.to;
+    handoff.subject=values.subject;
+    handoff.body=values.body;
+    handoff.attachPdf=values.attachPdf;
+    handoffBusy=true;
+    modal(
+      'E-mail voorbereiden…',
+      '<div aria-busy="true"><div class="notice info"><strong>Factuur controleren en e-mail voorbereiden…</strong><br>'+(handoff.attachPdf?'De definitieve PDF wordt nu klaargezet.':'Daarna kiest u zelf de e-mailapp.')+'</div><div class="processing-progress" style="margin-top:15px"><div class="processing-indeterminate" role="progressbar" aria-label="E-mail wordt voorbereid"></div></div></div>',
+      '<button class="btn primary" disabled>Even geduld…</button>'
+    );
+    try{
+      var invoice=state.invoices.find(function(item){return item.id===handoff.invoiceId;});
+      var customer=getContact(handoff.customerId);
+      if(!invoice||invoice.status==='draft'||(invoice.numberManaged&&!invoice.numberFinalized))throw new Error('De factuur is nog niet definitief.');
+      if(handoff.attachPdf&&!handoff.file)handoff.file=await window.fetchInvoiceSharePdf(invoice,customer);
+      showDeliveryOptions();
+    }catch(err){
+      modal(
+        'E-mail kon niet worden voorbereid',
+        '<div class="notice warn"><strong>'+esc(err&&err.message?err.message:'De e-mail kon niet worden voorbereid.')+'</strong><br>Er is niets als verzonden gemarkeerd.</div>',
+        '<button class="btn" onclick="reopenEmailHandoffComposer()">Terug</button><button class="btn primary" onclick="prepareEmailHandoffFromComposer()">Opnieuw proberen</button>'
+      );
+    }finally{
+      handoffBusy=false;
+    }
+  }
+
+  function deliverySummary(){
+    var attachment=handoff&&handoff.file?'<div class="help" style="margin-top:8px"><strong>PDF:</strong> '+esc(handoff.file.name)+'</div>':'';
+    return '<div class="review-card"><div class="eyebrow">Aan</div><strong>'+esc(handoff.to)+'</strong><div class="eyebrow" style="margin-top:12px">Onderwerp</div><strong>'+esc(handoff.subject)+'</strong><div class="eyebrow" style="margin-top:12px">Bericht</div><div class="help" style="white-space:pre-wrap;max-height:210px;overflow:auto">'+esc(handoff.body)+'</div>'+attachment+'</div>';
+  }
+
+  function showDeliveryOptions(){
+    if(!handoff)return;
+    var nativePossible=!!(handoff.file&&typeof window.canNativeShareInvoiceFile==='function'&&window.canNativeShareInvoiceFile(handoff.file));
+    var mobile=likelyMobile();
+    var buttons='<button class="btn" onclick="reopenEmailHandoffComposer()">Terug aanpassen</button>';
+    if(!mobile)buttons+='<button class="btn" onclick="openEmailHandoffGmail()">Gmail in browser</button>';
+    if(nativePossible)buttons+='<button class="btn" onclick="shareEmailHandoffPdf()">PDF delen als bijlage</button>';
+    if(mobile&&nativePossible)buttons+='<button class="btn primary" onclick="shareEmailHandoffPdf()">Delen via e-mailapp</button>';
+    else buttons+='<button class="btn primary" onclick="openEmailHandoffMailApp()">Open e-mailapp</button>';
+    var note=handoff.file
+      ?'<div class="notice info" style="margin-bottom:12px"><strong>De PDF is klaar.</strong><br>Op desktop vult “Open e-mailapp” ontvanger, onderwerp en bericht in. Voeg de klaargezette PDF daarna als bijlage toe. “PDF delen als bijlage” kan de bijlage automatisch meenemen, maar Outlook vult daarbij Aan en Onderwerp niet altijd in.</div>'
+      :'<div class="notice info" style="margin-bottom:12px"><strong>Kies uw e-mailapp.</strong><br>Ontvanger, onderwerp en bericht worden veilig klaargezet.</div>';
+    modal('Kies hoe u wilt versturen',note+deliverySummary()+'<div class="help" style="margin-top:12px">Boekuna krijgt geen toegang tot Gmail, Outlook of uw inbox.</div>',buttons,true);
+  }
+
+  function reopenEmailHandoffComposer(){
+    if(!handoff)return;
+    var invoice=state.invoices.find(function(item){return item.id===handoff.invoiceId;});
+    var customer=getContact(handoff.customerId);
+    if(!invoice||!customer)return;
+    openComposer({mode:handoff.mode,invoice:invoice,customer:customer,to:handoff.to,subject:handoff.subject,body:handoff.body,attachPdf:handoff.attachPdf});
+  }
+
+  function emailHandoffMailtoUrl(){
+    if(!handoff)throw new Error('Geen e-mail voorbereid.');
+    return window.buildInvoiceMailto(handoff.to,handoff.subject,handoff.body);
+  }
+
+  function recordStart(channel){
+    if(!handoff)return;
+    var invoice=state.invoices.find(function(item){return item.id===handoff.invoiceId;});
+    if(!invoice)return;
+    logEvent('E-mailhandoff gestart',String(invoice.number||'')+' · '+handoff.mode+' · '+channel,'invoice',invoice.id);
+    save();
+  }
+
+  function openEmailHandoffMailApp(){
+    if(!handoff)return;
+    if(handoff.file)window.downloadInvoiceShareFile(handoff.file);
+    var uri=emailHandoffMailtoUrl();
+    window.__boekunaLastMailto=uri;
+    recordStart('mailto');
+    window.location.href=uri;
+    setTimeout(function(){showEmailHandoffConfirmation('mailto');},450);
+  }
+
+  function openEmailHandoffGmail(){
+    if(!handoff)return;
+    if(handoff.file)window.downloadInvoiceShareFile(handoff.file);
+    var url=buildGmailComposeUrl(handoff.to,handoff.subject,handoff.body);
+    window.__boekunaLastGmailUrl=url;
+    recordStart('gmail_web');
+    var popup=window.open(url,'_blank','noopener,noreferrer');
+    if(!popup){
+      toast('Gmail kon niet in een nieuw venster openen. De standaard e-mailapp wordt geopend.');
+      window.location.href=emailHandoffMailtoUrl();
+      setTimeout(function(){showEmailHandoffConfirmation('mailto');},450);
+      return;
+    }
+    setTimeout(function(){showEmailHandoffConfirmation('gmail_web');},450);
+  }
+
+  async function shareEmailHandoffPdf(){
+    if(!handoff||handoffBusy||!handoff.file)return;
+    if(!window.canNativeShareInvoiceFile(handoff.file)){
+      toast('Deze browser kan de PDF niet direct delen. Gebruik Open e-mailapp.');
+      return;
+    }
+    handoffBusy=true;
+    try{
+      await navigator.share({title:handoff.subject,text:handoff.body,files:[handoff.file]});
+      recordStart('native_share');
+      showEmailHandoffConfirmation('native_share');
+    }catch(err){
+      if(err&&err.name==='AbortError'){
+        toast('Delen geannuleerd');
+        showDeliveryOptions();
+      }else{
+        console.warn('Email handoff share failed',err&&err.name?err.name:'SHARE_FAILED');
+        toast('Delen lukte niet. Gebruik Open e-mailapp.');
+        showDeliveryOptions();
+      }
+    }finally{
+      handoffBusy=false;
+    }
+  }
+
+  function showEmailHandoffConfirmation(channel){
+    if(!handoff)return;
+    var noun=handoff.mode==='payment_reminder'?'herinnering':handoff.mode==='follow_up'?'follow-up':'factuur';
+    modal(
+      'Hebt u de e-mail verzonden?',
+      '<div class="notice info"><strong>Boekuna kan niet zien of u in uw e-mailapp op Verzenden hebt gedrukt.</strong><br>Bevestig dit alleen als de '+noun+' echt is verstuurd.</div>',
+      '<button class="btn" onclick="emailHandoffNotSent()">Nee, nog niet</button><button class="btn primary" onclick="confirmEmailHandoff(\''+channel+'\')">Ja, markeer als verzonden</button>'
+    );
+  }
+
+  function emailHandoffNotSent(){
+    closeModal();
+    toast('E-mail niet als verzonden gemarkeerd');
+  }
+
+  function confirmEmailHandoff(channel){
+    if(!handoff||confirmBusy||handoff.confirmed)return;
+    confirmBusy=true;
+    try{
+      var invoice=state.invoices.find(function(item){return item.id===handoff.invoiceId;});
+      if(!invoice)return;
+      var at=new Date().toISOString();
+      var entry={sentAt:at,to:handoff.to,subject:handoff.subject,provider:'manual-email-app',channel:channel,confirmedByUser:true};
+      if(handoff.mode==='payment_reminder'){
+        invoice.lastReminderAt=at;
+        invoice.lastReminderTo=handoff.to;
+        invoice.reminderCount=Number(invoice.reminderCount||0)+1;
+        invoice.reminderHistory=(invoice.reminderHistory||[]).concat([entry]);
+        logEvent('Betalingsherinnering verzending bevestigd',String(invoice.number||'')+' · '+channel,'invoice',invoice.id);
+      }else if(handoff.mode==='follow_up'){
+        invoice.lastFollowUpAt=at;
+        invoice.followUpHistory=(invoice.followUpHistory||[]).concat([entry]);
+        logEvent('Factuur follow-up verzending bevestigd',String(invoice.number||'')+' · '+channel,'invoice',invoice.id);
+      }else{
+        invoice.lastSentAt=at;
+        invoice.lastSentTo=handoff.to;
+        invoice.lastShareChannel=channel;
+        invoice.sendHistory=(invoice.sendHistory||[]).concat([entry]);
+        logEvent('Factuur verzending bevestigd',String(invoice.number||'')+' · '+channel,'invoice',invoice.id);
+      }
+      handoff.confirmed=true;
+      save();
+      closeModal();
+      render();
+      toast('Verzending bevestigd.');
+    }finally{
+      confirmBusy=false;
+    }
+  }
+
+  async function copyEmailHandoffValue(kind){
+    if(!handoff)return;
+    var value=kind==='to'?handoff.to:kind==='subject'?handoff.subject:handoff.body;
+    try{
+      await navigator.clipboard.writeText(value);
+      toast(kind==='to'?'E-mailadres gekopieerd':kind==='subject'?'Onderwerp gekopieerd':'Bericht gekopieerd');
+    }catch(_err){
+      toast('Kopiëren lukte niet.');
+    }
+  }
+
+  function finalInvoiceSendChecks(invoice,customer){
+    var draft=Object.assign({},invoice,{customer:customer,paymentDays:invoice.paymentDays||0});
+    return invoiceSendChecks(draft,invoice.id);
+  }
+
+  function openInvoiceComposer(id){
+    var invoice=state.invoices.find(function(item){return item.id===id;});
+    if(!invoice)return;
+    var customer=getContact(invoice.customerId);
+    if(invoice.status==='draft'||(invoice.numberManaged&&!invoice.numberFinalized)){
+      showDraftSendPrompt(id);
+      return;
+    }
+    var checks=finalInvoiceSendChecks(invoice,customer);
+    if(checks.errors.length){showValidationErrors('Factuur nog niet klaar voor verzending',checks.errors,customer);return;}
+    if(!validEmail(customer.email)){
+      showValidationErrors('Controleer het e-mailadres',[{label:'Klant-e-mail',msg:'Vul een geldig klant-e-mailadres in voordat u de e-mailapp opent.'}],customer);
+      return;
+    }
+    openComposer({mode:'invoice',invoice:invoice,customer:customer,to:customer.email,subject:invoiceSubject(invoice,customer),body:invoiceBody(invoice,customer),attachPdf:true});
+  }
+
+  function showDraftSendPrompt(id){
+    var invoice=state.invoices.find(function(item){return item.id===id;});
+    if(!invoice)return;
+    if(invoice.kind==='credit'){
+      modal('Maak de creditfactuur eerst definitief','<div class="notice warn"><strong>Deze creditfactuur is nog een concept.</strong><br>Maak de creditfactuur eerst definitief voordat u haar deelt.</div>','<button class="btn" onclick="closeModal()">Sluiten</button>');
+      return;
+    }
+    modal(
+      'Deze factuur is nog een concept',
+      '<div class="notice info"><strong>Om deze factuur te versturen maken we hem eerst definitief.</strong><br>Boekuna kent het definitieve factuurnummer toe, slaat de factuur veilig op en maakt daarna de PDF.</div><div class="help" style="margin-top:10px">Als u daarna de e-mailapp sluit zonder te verzenden, blijft de factuur definitief maar wordt hij niet als verzonden gemarkeerd.</div>',
+      '<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="finalizeDraftAndSend(\''+id+'\')">Definitief maken en versturen</button>'
+    );
+  }
+
+  async function finalizeDraftAndSend(id){
+    if(handoffBusy)return;
+    var invoice=state.invoices.find(function(item){return item.id===id;});
+    if(!invoice||invoice.status!=='draft')return openInvoiceComposer(id);
+    var customer=getContact(invoice.customerId);
+    var draft=Object.assign({},structuredClone(invoice),{customer:customer,paymentDays:invoice.paymentDays||0,status:'sent'});
+    var checks=invoiceSendChecks(draft,id);
+    var missing=requirementsFor('invoice-finalize',draft);
+    if(missing.length){
+      showValidationErrors('Uw factuur is bijna klaar',missing.map(function(item){return {label:item.label||'Bedrijfsgegevens',msg:item.msg||'Vul de ontbrekende bedrijfsgegevens aan.'};}),customer);
+      return;
+    }
+    if(checks.errors.length){showValidationErrors('Factuur nog niet klaar voor verzending',checks.errors,customer);return;}
+    handoffBusy=true;
+    modal('Factuur definitief maken…','<div aria-busy="true"><div class="notice info"><strong>Factuur controleren en definitief opslaan…</strong><br>Daarna wordt de e-mailcomposer geopend.</div><div class="processing-progress" style="margin-top:15px"><div class="processing-indeterminate" role="progressbar" aria-label="Factuur wordt definitief gemaakt"></div></div></div>','<button class="btn primary" disabled>Even geduld…</button>');
+    try{
+      editingInvoiceId=id;
+      pendingInvoiceDraft=draft;
+      await finalSaveInvoice();
+      var finalized=state.invoices.find(function(item){return item.id===id;});
+      if(!finalized||finalized.status==='draft'||(finalized.numberManaged&&!finalized.numberFinalized)){
+        throw new Error('De factuur kon niet veilig definitief worden opgeslagen.');
+      }
+      openInvoiceComposer(id);
+    }catch(err){
+      modal('Factuur kon niet definitief worden gemaakt','<div class="notice warn"><strong>'+esc(err&&err.message?err.message:'De factuur kon niet worden opgeslagen.')+'</strong><br>Er is geen e-mail als verzonden gemarkeerd.</div>','<button class="btn" onclick="closeModal()">Sluiten</button><button class="btn primary" onclick="finalizeDraftAndSend(\''+id+'\')">Opnieuw proberen</button>');
+    }finally{
+      handoffBusy=false;
+    }
+  }
+
+  function openReminder(id){
+    var invoice=state.invoices.find(function(item){return item.id===id;});
+    if(!invoice)return;
+    if(invoice.kind==='credit'){toast('Voor een creditfactuur stuurt u geen betalingsherinnering.');return;}
+    if(invoice.status==='draft'){toast('Maak de factuur eerst definitief voordat u een herinnering stuurt.');return;}
+    if(invoice.status==='cancelled'){toast('Voor een geannuleerde factuur stuurt u geen betalingsherinnering.');return;}
+    if(invoiceEffectiveStatus(invoice)==='paid'||toCents(invoiceOutstanding(invoice))<=0){toast('Deze factuur is volledig betaald.');return;}
+    var customer=getContact(invoice.customerId);
+    if(invoice.dueDate&&invoice.dueDate>=today()){
+      modal(
+        'Factuur is nog niet vervallen',
+        '<div class="notice info"><strong>De vervaldatum is '+esc(dateNL(invoice.dueDate))+'.</strong><br>Wilt u toch contact opnemen, maak dan een gewone follow-up in plaats van een betalingsherinnering.</div>',
+        '<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="openFollowUp(\''+id+'\')">Follow-up maken</button>'
+      );
+      return;
+    }
+    if(!validEmail(customer.email)){showValidationErrors('Controleer het e-mailadres',[{label:'Klant-e-mail',msg:'Vul een geldig klant-e-mailadres in.'}],customer);return;}
+    openComposer({mode:'payment_reminder',invoice:invoice,customer:customer,to:customer.email,subject:reminderSubject(invoice),body:reminderBody(invoice,customer),attachPdf:true});
+  }
+
+  function openFollowUp(id){
+    var invoice=state.invoices.find(function(item){return item.id===id;});
+    if(!invoice||invoice.status==='draft'||invoice.kind==='credit')return toast('Maak de factuur eerst definitief voordat u een follow-up stuurt.');
+    var customer=getContact(invoice.customerId);
+    if(!validEmail(customer.email)){showValidationErrors('Controleer het e-mailadres',[{label:'Klant-e-mail',msg:'Vul een geldig klant-e-mailadres in.'}],customer);return;}
+    openComposer({mode:'follow_up',invoice:invoice,customer:customer,to:customer.email,subject:followUpSubject(invoice),body:followUpBody(invoice,customer),attachPdf:true});
+  }
+
+  async function prepareReminderHandoffFromForm(id){
+    if(document.getElementById('emailHandoffForm'))return prepareEmailHandoffFromComposer();
+    return openReminder(id);
+  }
+
+  function invoiceActions(id){
+    var invoice=state.invoices.find(function(item){return item.id===id;});
+    if(!invoice)return;
+    var customer=getContact(invoice.customerId);
+    var final=invoice.status!=='draft';
+    var paid=invoiceEffectiveStatus(invoice)==='paid';
+    var delivery=invoice.lastSentAt
+      ?'<div class="notice good"><strong>Verzonden bevestigd</strong><br>'+esc(dateNL(String(invoice.lastSentAt).slice(0,10)))+(invoice.lastReminderAt?' · herinnering bevestigd '+esc(dateNL(String(invoice.lastReminderAt).slice(0,10))):'')+'</div>'
+      :(final?'<div class="notice warn"><strong>Nog niet als verzonden bevestigd.</strong><br>De factuur is definitief, maar er is nog geen bevestigde e-mailverzending vastgelegd.</div>':'');
+    var rows='';
+    if(invoice.status==='draft'){
+      rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();editInvoice(\''+id+'\')"><div class="action-text"><strong>Concept bewerken</strong><span>Pas klant, datums, diensten, prijzen, btw en notities aan</span></div></button>';
+    }else{
+      rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="duplicateInvoiceAsDraft(\''+id+'\')"><div class="action-text"><strong>Nieuwe versie als concept</strong><span>Gebruik deze factuur als basis zonder de originele administratie te overschrijven</span></div></button>';
+    }
+    rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();viewInvoice(\''+id+'\')"><div class="action-text"><strong>Bekijken / PDF</strong><span>Controleer de factuur of sla hem als PDF op</span></div></button>';
+    if(invoice.status==='draft'&&invoice.kind!=='credit'){
+      rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();openSendInvoice(\''+id+'\')"><div class="action-text"><strong>Definitief maken en versturen</strong><span>'+(customer.email?'Naar '+esc(customer.email):'Voeg het e-mailadres van de klant toe')+'</span></div></button>';
+    }else if(final){
+      rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();openSendInvoice(\''+id+'\')"><div class="action-text"><strong>'+(invoice.lastSentAt?'Opnieuw versturen':'Versturen via e-mail')+'</strong><span>'+(customer.email?'Naar '+esc(customer.email):'Voeg het e-mailadres van de klant toe')+'</span></div></button>';
+    }
+    if(final&&invoice.kind!=='credit'){
+      if(!paid)rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();openReminder(\''+id+'\')"><div class="action-text"><strong>Betalingsherinnering</strong><span>Maak een nette opvolgmail en voeg de factuur opnieuw toe</span></div></button>';
+      rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();openFollowUp(\''+id+'\')"><div class="action-text"><strong>Follow-up sturen</strong><span>Stuur een vrij aanpasbare opvolgmail</span></div></button>';
+      if(!paid)rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();registerPayment(\''+id+'\')"><div class="action-text"><strong>Betaling registreren</strong><span>'+esc(money(invoiceOutstanding(invoice)))+' staat nog open; deelbetaling mogelijk</span></div></button>';
+      rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="createCreditNote(\''+id+'\')"><div class="action-text"><strong>Creditfactuur maken</strong><span>Corrigeer een definitieve factuur zonder de historie te overschrijven</span></div></button>';
+    }
+    if(invoice.status==='draft')rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="deleteInvoice(\''+id+'\')"><div class="action-text"><strong style="color:var(--bad)">Concept verwijderen</strong><span>Alleen conceptfacturen kunnen hard worden verwijderd</span></div></button>';
+    modal(esc(invoice.number),delivery+'<div class="action-list" style="margin-top:12px">'+rows+'</div>');
+  }
+
+  window.buildGmailComposeUrl=buildGmailComposeUrl;
+  window.prepareEmailHandoffFromComposer=prepareEmailHandoffFromComposer;
+  window.reopenEmailHandoffComposer=reopenEmailHandoffComposer;
+  window.emailHandoffMailtoUrl=emailHandoffMailtoUrl;
+  window.openEmailHandoffMailApp=openEmailHandoffMailApp;
+  window.openEmailHandoffGmail=openEmailHandoffGmail;
+  window.shareEmailHandoffPdf=shareEmailHandoffPdf;
+  window.showEmailHandoffConfirmation=showEmailHandoffConfirmation;
+  window.emailHandoffNotSent=emailHandoffNotSent;
+  window.confirmEmailHandoff=confirmEmailHandoff;
+  window.copyEmailHandoffValue=copyEmailHandoffValue;
+  window.finalizeDraftAndSend=finalizeDraftAndSend;
+  window.prepareReminderHandoffFromForm=prepareReminderHandoffFromForm;
+  window.openFollowUp=openFollowUp;
+  window.openReminder=openReminder;
+  window.sendReminder=prepareReminderHandoffFromForm;
+  window.invoiceActions=invoiceActions;
+  window.openInvoiceEmailShare=openInvoiceComposer;
+  window.openSendInvoice=openInvoiceComposer;
+  window.__boekunaEmailHandoffTestState=function(){
+    if(!TEST_MODE_NO_AUTH||!handoff)return null;
+    return {
+      mode:handoff.mode,to:handoff.to,subject:handoff.subject,body:handoff.body,attachPdf:handoff.attachPdf,
+      file:handoff.file?{name:handoff.file.name,type:handoff.file.type,size:handoff.file.size}:null,
+      confirmed:handoff.confirmed
+    };
+  };
 })();
 </script>
 <script id="boekuna-upload-bootstrap">

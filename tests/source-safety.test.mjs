@@ -281,4 +281,26 @@ assert.ok(brandSymbol.includes('fill="#1C6461"'),"Final approved Boekuna B mark 
 assert.ok(!brandSymbol.includes("M18,22 H30 A12,12"),"Legacy offset-frame symbol must not return");
 assert.ok(brandManifest.includes("/assets/boekuna-app-icon-maskable-512.png"),"PWA manifest must expose a maskable final-logo icon");
 assert.ok(brandMarketing.includes("/assets/boekuna-og-1200x630.png"),"Public metadata must use the final-logo social preview");
+const unifiedEmailModule=html.slice(html.indexOf('<script id="boekuna-unified-email-handoff-v2">'),html.indexOf('</script>',html.indexOf('<script id="boekuna-unified-email-handoff-v2">')));
+assert.ok(unifiedEmailModule.length>1000,"Unified email handoff module must be present");
+assert.ok(unifiedEmailModule.includes("function prepareEmailHandoffFromComposer()"),"Invoice/reminder/follow-up must share one handoff preparation flow");
+assert.ok(unifiedEmailModule.includes("function finalizeDraftAndSend(id)"),"Draft invoice must support finalize + send in one action");
+assert.ok(unifiedEmailModule.includes("window.openSendInvoice=openInvoiceComposer"),"Unified composer must override the legacy native-share global send alias");
+assert.ok(unifiedEmailModule.includes("Definitief maken en versturen"),"Draft send CTA must be explicit");
+assert.ok(html.includes('<option value="sent">Definitief / openstaand</option>'),"Invoice editor must not label finalization as already sent");
+assert.ok(unifiedEmailModule.includes("function buildGmailComposeUrl(to,subject,body)"),"Desktop Gmail web compose route must exist");
+assert.ok(unifiedEmailModule.includes("window.buildInvoiceMailto(handoff.to,handoff.subject,handoff.body)"),"Desktop default email route must prefill recipient, subject and body through mailto");
+assert.ok(unifiedEmailModule.includes("window.downloadInvoiceShareFile(handoff.file)"),"Desktop handoff must explicitly prepare the PDF for manual attachment");
+assert.ok(unifiedEmailModule.includes("navigator.share({title:handoff.subject,text:handoff.body,files:[handoff.file]})"),"Native file share must remain available as the attachment-first route");
+assert.ok(unifiedEmailModule.includes("invoice.reminderCount=Number(invoice.reminderCount||0)+1"),"Reminder count must be recorded on explicit confirmation");
+assert.ok(unifiedEmailModule.includes("invoice.reminderHistory=(invoice.reminderHistory||[]).concat([entry])"),"Reminder confirmations need auditable delivery metadata");
+assert.ok(unifiedEmailModule.includes("if(!handoff||confirmBusy||handoff.confirmed)return"),"Duplicate delivery confirmation must be guarded");
+assert.ok(unifiedEmailModule.includes("if(invoiceEffectiveStatus(invoice)==='paid'||toCents(invoiceOutstanding(invoice))<=0)"),"Paid invoices must not accept payment reminders");
+assert.ok(unifiedEmailModule.includes("Factuur is nog niet vervallen"),"Pre-due reminder flow must redirect to a normal follow-up");
+assert.ok(!unifiedEmailModule.includes("email-connection"),"Unified handoff must not revive mailbox OAuth");
+assert.ok(!unifiedEmailModule.includes("gmail.googleapis.com"),"Unified handoff must not call Gmail send APIs");
+const reminderDelegate=html.slice(html.indexOf("async function sendReminder(id)"),html.indexOf("function newPlannedCash"));
+assert.ok(!reminderDelegate.includes("fetch(EDGE_BASE+'/send-invoice'"),"Legacy payment reminder must not directly call the disabled mailbox send route");
+assert.ok(reminderDelegate.includes("prepareReminderHandoffFromForm"),"Legacy reminder entrypoint must delegate to the unified handoff");
+
 console.log("Boekuna source safety tests: PASS");
