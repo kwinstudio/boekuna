@@ -3450,7 +3450,7 @@ const DOCUMENT_PROCESSING_TRANSITIONS=Object.freeze({
 });
 let documentProcessingSession=null,activeDocumentTransfers=0,documentProcessingRenderPending=false;
 function createDocumentProcessingItem(file,kind='auto'){
- return {id:uid('proc'),file,kind,state:'selected',uploaded:false,uploadLoaded:0,uploadTotal:Number(file?.size||0),uploadPercent:null,uploadAttempt:0,processingPhase:'read',processorComplete:false,longWait:false,longWaitTimer:null,error:null,result:null,message:'Bestand voorbereiden…',subtext:'',reviewed:false,startedAt:null,completedAt:null,transferActive:false}
+ return {id:uid('proc'),file,kind,state:'selected',uploaded:false,uploadLoaded:0,uploadTotal:Number(file?.size||0),uploadPercent:null,uploadAttempt:0,processingPhase:'read',processorComplete:false,financial:null,longWait:false,longWaitTimer:null,error:null,result:null,message:'Bestand voorbereiden…',subtext:'',reviewed:false,startedAt:null,completedAt:null,transferActive:false,sourceInputId:''}
 }
 function documentProcessingTransition(item,next){
  if(!item||item.state===next)return;
@@ -3514,11 +3514,11 @@ function documentProcessingDetailedHtml(item){
  let error='';
  if(item.state==='failed'){
   const retry=item.error?.retryable!==false?'<button class="btn small primary" onclick="retryDocumentProcessingItem(\''+item.id+'\')">Opnieuw proberen</button>':'';
-  error='<div class="processing-error"><strong>Document kon niet worden verwerkt</strong><p>'+esc(documentProcessingSubtext(item))+'</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px">'+retry+'<button class="btn small" onclick="closeModal()">Ander document kiezen</button></div></div>'
+  error='<div class="processing-error"><strong>Document kon niet worden verwerkt</strong><p>'+esc(documentProcessingSubtext(item))+'</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px">'+retry+'<button class="btn small" onclick="chooseAnotherDocumentProcessingItem(\''+item.id+'\')">Ander document kiezen</button></div></div>'
  }
  const skeleton=item.state==='preparing_review'?'<div class="processing-review-skeleton" aria-hidden="true"><div></div><div></div><div></div><div></div></div>':'';
  const scan=['uploading','processing','preparing_review'].includes(item.state)?'<div class="processing-scanline"></div>':'';
- return '<div class="processing-shell"><div class="processing-document" aria-hidden="true"><div class="processing-doc-mark">Document</div><div class="processing-doc-line"></div><div class="processing-doc-line medium"></div><div class="processing-doc-line short"></div><div class="processing-doc-total"><span>Totaal</span><span>€ —</span></div>'+scan+'</div><div class="processing-copy"><div class="processing-eyebrow">'+(item.state==='completed'?'Verwerking afgerond':'Veilige documentverwerking')+'</div><h4 class="processing-title">'+(item.state==='completed'?'Document verwerkt':'Document wordt verwerkt')+'</h4><div class="processing-file" title="'+esc(item.file.name)+'">'+esc(item.file.name)+'</div><div class="processing-status" role="status" aria-live="polite" aria-atomic="true">'+esc(documentProcessingStatus(item))+'</div><div class="processing-subtext">'+esc(documentProcessingSubtext(item))+'</div>'+progress+'<div class="processing-steps">'+processingStepHtml(item,'upload','Bestand uploaden')+processingStepHtml(item,'read','Document lezen & gegevens herkennen')+processingStepHtml(item,'validate','Bedragen & btw controleren')+processingStepHtml(item,'review','Controle voorbereiden')+'</div>'+skeleton+error+'</div></div>'
+ return '<div class="processing-shell"><div class="processing-document" aria-hidden="true"><div class="processing-doc-mark">Document</div><div class="processing-doc-line"></div><div class="processing-doc-line medium"></div><div class="processing-doc-line short"></div><div class="processing-doc-total"><span>Totaal</span><span>€ —</span></div>'+scan+'</div><div class="processing-copy"><div class="processing-eyebrow">'+(item.state==='completed'?'Verwerking afgerond':'Veilige documentverwerking')+'</div><h4 class="processing-title">'+(item.state==='completed'?'Document verwerkt':'Document wordt verwerkt')+'</h4><div class="processing-file" title="'+esc(item.file.name)+'">'+esc(item.file.name)+'</div><div class="processing-status" role="status" aria-live="polite" aria-atomic="true">'+esc(documentProcessingStatus(item))+'</div><div class="processing-subtext">'+esc(documentProcessingSubtext(item))+'</div>'+progress+'<div class="processing-steps">'+processingStepHtml(item,'upload',item.uploaded?'Bestand ontvangen':'Bestand uploaden')+processingStepHtml(item,'read','Document lezen & gegevens herkennen')+processingStepHtml(item,'validate',item.financial===false?'Document controleren':'Bedragen & btw controleren')+processingStepHtml(item,'review','Controle voorbereiden')+'</div>'+skeleton+error+'</div></div>'
 }
 function documentProcessingQueueRow(item){
  const icon=item.state==='completed'?'✓':item.state==='failed'?'!':item.state==='selected'?'○':'●';
@@ -3586,7 +3586,8 @@ async function processDocumentQueueItem(item,smart=false){
   if(smart){
    const structure=await extractDocumentServer(item.file,function(msg){setDocumentProcessingMessage(item,msg)},item);
    const dt=structure.analysis?.documentType||structure.documentTypeHint||'other';
-   if(['purchase_invoice','sales_invoice','credit_invoice','receipt'].includes(dt)){
+   item.financial=['purchase_invoice','sales_invoice','credit_invoice','receipt'].includes(dt);
+   if(item.financial){
     pendingUploadKind=item.kind='auto';pending=await processFinancialDocument(item.file,structure,{processingItem:item,openReview:false})
    }else{
     item.processorComplete=true;documentProcessingTransition(item,'preparing_review');
@@ -3597,7 +3598,7 @@ async function processDocumentQueueItem(item,smart=false){
     logEvent('Document slim geüpload',item.file.name+' · '+dt,'document',docId);save();render()
    }
   }else{
-   pendingUploadKind=item.kind;pending=await processFinancialDocument(item.file,null,{processingItem:item,openReview:false})
+   item.financial=true;pendingUploadKind=item.kind;pending=await processFinancialDocument(item.file,null,{processingItem:item,openReview:false})
   }
   item.result=pending;documentProcessingTransition(item,'completed');setDocumentProcessingMessage(item,pending?'Klaar voor controle':'Gereed',pending?'Controleer de herkende gegevens voordat je opslaat.':'Het document is verwerkt en opgeslagen.');return item
  }catch(err){
@@ -3609,7 +3610,7 @@ async function processDocumentQueueItem(item,smart=false){
 async function startDocumentProcessingQueue(files,kind='auto',options={}){
  const list=[...files].filter(Boolean);if(!list.length){toast('Geen bestand geselecteerd');return}if(list.length>DOCUMENT_PROCESSING_MAX_FILES){toast('Kies maximaal '+DOCUMENT_PROCESSING_MAX_FILES+' documenten tegelijk.');return}
  if(documentProcessingSession)cleanupDocumentProcessingSession();
- documentProcessingSession={id:uid('batch'),items:list.map(function(file){return createDocumentProcessingItem(file,kind)}),smart:!!options.smart,reviewingItemId:null,startedAt:Date.now()};
+ documentProcessingSession={id:uid('batch'),items:list.map(function(file){const item=createDocumentProcessingItem(file,kind);item.sourceInputId=String(options.sourceInputId||'');return item}),smart:!!options.smart,reviewingItemId:null,startedAt:Date.now()};
  renderDocumentProcessingExperience();
  const work=[...documentProcessingSession.items];
  const worker=async function(){while(work.length){const item=work.shift();if(item)await processDocumentQueueItem(item,documentProcessingSession.smart)}};
@@ -3617,6 +3618,13 @@ async function startDocumentProcessingQueue(files,kind='auto',options={}){
  scheduleDocumentProcessingRender();
  const s=documentProcessingSession;if(!s)return;
  if(s.items.length===1){const item=s.items[0];if(item.state==='completed'&&item.result){pendingPdfImport=item.result;item.result=null;item.reviewed=true;s.reviewingItemId=item.id;showPdfImportReview(pendingPdfImport.parsed)}}
+}
+function chooseAnotherDocumentProcessingItem(id){
+ const s=documentProcessingSession,item=s?.items.find(function(x){return x.id===id}),sourceId=item?.sourceInputId||'',smart=!!s?.smart,kind=item?.kind||'auto';
+ closeModal();
+ if(sourceId){const input=document.getElementById(sourceId);if(input){input.value='';input.click();return}}
+ if(smart){const input=document.getElementById('docFile');if(input){input.value='';input.click();return}}
+ triggerInvoiceUpload(kind)
 }
 async function retryDocumentProcessingItem(id){
  const s=documentProcessingSession,item=s?.items.find(function(x){return x.id===id});if(!item||item.state!=='failed')return;
@@ -3646,13 +3654,13 @@ async function openStoredDocument(id){try{const row=await getStoredFile(id);if(!
 async function handleSmartDocumentUpload(e){
  const files=[...(e?.target?.files||[])];if(!files.length)return;
  if(e?.target)e.target.value='';
- return startDocumentProcessingQueue(files,'auto',{smart:true})
+ return startDocumentProcessingQueue(files,'auto',{smart:true,sourceInputId:e?.target?.id||'docFile'})
 }
 async function startSelectedDocumentUpload(input,kind='auto'){
  const files=[...(input?.files||[])];
  if(input)input.value='';
  if(!files.length){toast('Geen bestand geselecteerd');return}
- return startDocumentProcessingQueue(files,kind,{smart:false})
+ return startDocumentProcessingQueue(files,kind,{smart:false,sourceInputId:input?.id||''})
 }
 async function handleReceiptPhoto(e){return startSelectedDocumentUpload(e?.target,'purchase')}
 async function handleGenericDocuments(e){const files=[...e.target.files];let n=0;for(const f of files){const id=uid('file');try{await putStoredFile(id,f);state.documents.unshift({id:uid('d'),fileId:id,name:f.name,type:'Upload',date:today(),size:f.size});n++}catch(err){console.warn(err);state.documents.unshift({id:uid('d'),name:f.name,type:'Upload',date:today()})}}save();toast(`${n} bestand(en) ${TEST_MODE_NO_AUTH?'lokaal':'veilig in de cloud'} opgeslagen`);render()}
