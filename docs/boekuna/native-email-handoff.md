@@ -45,3 +45,18 @@ Invoice delivery, payment reminders and follow-ups now share one user-controlled
 - Reminder count/history and first-send metadata are written only after the user explicitly confirms that the email was sent.
 - Cancelling after draft finalization leaves the invoice definitive/open and unsent; the reserved invoice number is never rolled back or reused.
 - Payment reminders are blocked for drafts, credits, cancelled/paid invoices and zero outstanding balances. Before the due date, Boekuna offers a normal follow-up instead.
+
+
+## Gmail / iPhone compose fix — 29 September 2026
+
+A physical iPhone test showed that Gmail's native share target correctly attached the PDF but left **Aan** empty, used the PDF filename as the subject, and flattened the intended message layout. This is an app-level interpretation of Web Share metadata, so BOEKUNA no longer treats attachment-first sharing as a fully prefilled Gmail compose route.
+
+The handoff now separates three user choices on mobile:
+
+- **Gmail openen** — recipient, human-readable subject and plain-text body are encoded into Gmail compose; the prepared PDF is downloaded once for manual attachment.
+- **PDF delen als bijlage** — keeps the working native share route so Outlook/other apps can receive the PDF directly, while clearly warning that the receiving app controls recipient and subject mapping.
+- **Andere e-mailapp openen** — uses the safe mailto route for recipient, subject and body and prepares the PDF for manual attachment.
+
+Prepared PDFs survive a return to the BOEKUNA composer, so changing only mail text does not trigger a second authoritative PDF render. Download state is also retained to prevent repeated Gmail clicks from downloading the same PDF again in one handoff.
+
+No Gmail API, Gmail mailbox OAuth, SMTP or server-side delivery was introduced.
