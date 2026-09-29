@@ -13,6 +13,8 @@ on:
       - "supabase/functions/consume-quota/**"
       - "supabase/functions/analyze-invoice/**"
       - "supabase/migrations/**"
+      - "scripts/**"
+      - "docs/production-recovery.md"
       - ".github/workflows/boekuna-integrity.yml"
 
 permissions:
@@ -36,6 +38,16 @@ jobs:
         run: node tests/accounting-integrity.test.mjs
       - name: Production source safety
         run: node tests/source-safety.test.mjs
+      - name: Recovery PowerShell syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("scripts/backup-production.ps1", [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
       - name: Tenant isolation regression
         run: node tests/tenant-isolation.test.mjs
       - name: Smart financial correction
