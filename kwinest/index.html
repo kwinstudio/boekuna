@@ -3654,7 +3654,7 @@ function cancelDocumentReview(){
  cleanupPendingImport();closeModal()
 }
 
-window.addEventListener('beforeunload',function(e){if(activeDocumentTransfers>0){e.preventDefault();e.returnValue=''}});
+window.addEventListener('beforeunload',function(e){const receiptPending=!!documentProcessingSession?.persistent&&(documentProcessingSession.items||[]).some(x=>x.uploaded&&!x.receivedPersisted&&x.state!=='failed');if(activeDocumentTransfers>0||receiptPending){e.preventDefault();e.returnValue=''}});
 
 const PERSISTENT_DOCUMENT_TERMINAL=new Set(['ready','review_required','failed']);
 let documentProcessingJobs=[],documentProcessingChannel=null,documentProcessingPollTimer=null,documentProcessingInitialized=false,documentProcessingConnectivityLost=!navigator.onLine;
@@ -3717,12 +3717,20 @@ function persistentDocumentCardHtml(job,compact=false){
  const st=persistentDocumentJobStatus(job),name=persistentDocumentName(job);
  return '<div class="document-processing-card" data-state="'+esc(job.state)+'"><span class="document-processing-card-icon" aria-hidden="true">'+persistentDocumentStatusIcon(job)+'</span><div class="document-processing-card-main"><strong title="'+esc(name)+'">'+esc(name)+'</strong><span><b>'+esc(st.label)+'</b>'+(st.detail?' · '+esc(st.detail):'')+'</span></div><div class="document-processing-card-actions">'+persistentDocumentActionHtml(job,compact)+'</div></div>'
 }
+function localPersistentProcessingItems(){
+ const items=documentProcessingSession?.items||[];
+ return items.filter(item=>{
+  if(['selected','uploading','uploaded'].includes(item.state))return true;
+  if(item.state==='queued'&&item.receivedPersisted)return !documentProcessingJobs.some(job=>String(job.client_ref||'')===String(item.clientRef||''));
+  return false
+ })
+}
 function localUploadCardHtml(item){
  const pct=item.uploadPercent==null?'':(' '+item.uploadPercent+'%'),status=item.state==='uploading'?'Uploaden'+pct:'Wacht';
  return '<div class="document-processing-card" data-state="'+esc(item.state)+'"><span class="document-processing-card-icon" aria-hidden="true">'+(item.state==='uploading'?'<span class="document-status-spinner"></span>':'○')+'</span><div class="document-processing-card-main"><strong title="'+esc(item.file?.name||'Document')+'">'+esc(item.file?.name||'Document')+'</strong><span><b>'+status+'</b></span></div><div></div></div>'
 }
 function renderDocumentProcessingBoard(){
- const local=(documentProcessingSession?.items||[]).filter(x=>['selected','uploading','uploaded'].includes(x.state));
+ const local=localPersistentProcessingItems();
  const activeBatches=persistentDocumentActiveBatchIds(),attention=documentProcessingJobs.filter(j=>['review_required','failed'].includes(String(j.state||''))),sessionBatch=documentProcessingSession?.persistent?String(documentProcessingSession.id||''):'';
  let jobs=activeBatches.size?documentProcessingJobs.filter(j=>activeBatches.has(String(j.batch_id||''))):(sessionBatch?documentProcessingJobs.filter(j=>String(j.batch_id||'')===sessionBatch):attention.slice(0,20));
  if(!local.length&&!jobs.length)return '';
@@ -3731,14 +3739,14 @@ function renderDocumentProcessingBoard(){
  const receivedAll=!!documentProcessingSession?.allReceived||(!local.length&&jobs.length>0);
  const summary=jobs.length?(terminal+' van '+jobs.length+' afgerond'):(local.length+' uploaden');
  const completion=jobs.length&&terminal===jobs.length?(review||failed?('Verwerking afgerond · '+ready+' klaar'+(review?' · '+review+' controle nodig':'')+(failed?' · '+failed+' niet verwerkt':'')):('✓ '+ready+' documenten verwerkt')):'';
- return '<section class="document-processing-board" aria-live="polite" aria-busy="'+((local.length||jobs.some(j=>!persistentDocumentIsTerminal(j)))?'true':'false')+'"><div class="document-processing-board-head"><div><h2>'+total+' document'+(total===1?'':'en')+'</h2><p>'+(completion||'Ieder document wordt onafhankelijk verwerkt. Eén probleem blokkeert de rest niet.')+'</p></div><span class="document-processing-summary">'+esc(summary)+'</span></div><div class="document-processing-list">'+local.map(localUploadCardHtml).join('')+jobs.map(j=>persistentDocumentCardHtml(j)).join('')+'</div>'+(receivedAll?'<div class="document-processing-received"><strong>Je documenten zijn ontvangen.</strong> Je kunt ondertussen verder werken.</div>':'')+(documentProcessingConnectivityLost&&jobs.length?'<div class="document-processing-reconnect"><strong>Verbinding onderbroken.</strong> Je documenten zijn ontvangen. We halen de status opnieuw op zodra de verbinding terug is.</div>':'')+'</section>'
+ return '<section class="document-processing-board" aria-live="polite" aria-busy="'+((local.length||jobs.some(j=>!persistentDocumentIsTerminal(j)))?'true':'false')+'"><div class="document-processing-board-head"><div><h2>'+total+' document'+(total===1?'':'en')+'</h2><p>'+(completion||'Ieder document wordt onafhankelijk verwerkt. Eén probleem blokkeert de rest niet.')+'</p></div><span class="document-processing-summary">'+esc(summary)+'</span></div><div class="document-processing-list">'+local.map(localUploadCardHtml).join('')+jobs.map(j=>persistentDocumentCardHtml(j)).join('')+'</div>'+(receivedAll?'<div class="document-processing-received"><strong>Je documenten zijn ontvangen.</strong> Je kunt ondertussen verder werken.</div>':'')+(documentProcessingConnectivityLost&&(jobs.length||local.some(x=>x.receivedPersisted))?'<div class="document-processing-reconnect"><strong>Verbinding onderbroken.</strong> Je documenten zijn ontvangen. We halen de status opnieuw op zodra de verbinding terug is.</div>':'')+'</section>'
 }
 function updateLocalDocumentFromJob(job){
- const ref=String(job?.client_ref||''),doc=state.documents.find(x=>String(x.fileId||'')===ref);
- if(!doc||!persistentDocumentIsTerminal(job))return false;
- const analysis=job?.result?.analysis||{},proc=analysis?.processing||{},nextType=analysis.documentType==='receipt'?'Bon':analysis.documentType==='bank_document'?'Bankdocument':String(analysis.documentType||'').includes('invoice')?'Factuur':'Document';
- let changed=false;
- const patch={type:nextType,analyzed:job.state!=='failed',processingState:job.state,pageCount:Number(analysis.pageCount||proc.pages||doc.pageCount||0)||null,ocrUsed:Array.isArray(proc.ocrPages)&&proc.ocrPages.length>0};
+ const ref=String(job?.client_ref||'');let doc=state.documents.find(x=>String(x.fileId||'')===ref),changed=false;
+ if(!doc){doc={id:uid('d'),fileId:ref,name:persistentDocumentName(job),type:'Document',date:String(job?.created_at||today()).slice(0,10),size:Number(job?.size_bytes||0),source:'background-upload',analyzed:false,processingState:String(job?.state||'queued')};state.documents.unshift(doc);changed=true}
+ const analysis=job?.result?.analysis||{},proc=analysis?.processing||{};
+ const terminal=persistentDocumentIsTerminal(job),nextType=analysis.documentType==='receipt'?'Bon':analysis.documentType==='bank_document'?'Bankdocument':String(analysis.documentType||'').includes('invoice')?'Factuur':doc.type||'Document';
+ const patch=terminal?{name:persistentDocumentName(job),size:Number(job?.size_bytes||doc.size||0),type:nextType,analyzed:job.state!=='failed',processingState:job.state,pageCount:Number(analysis.pageCount||proc.pages||doc.pageCount||0)||null,ocrUsed:Array.isArray(proc.ocrPages)&&proc.ocrPages.length>0}:{name:persistentDocumentName(job),size:Number(job?.size_bytes||doc.size||0),processingState:String(job?.state||'queued')};
  for(const [k,v] of Object.entries(patch)){if(doc[k]!==v){doc[k]=v;changed=true}}
  return changed
 }
@@ -3809,7 +3817,7 @@ async function initDocumentBackgroundProcessing(){
 }
 function renderGlobalDocumentIndicator(){
  const button=document.getElementById('documentProcessingGlobal'),textEl=document.getElementById('documentProcessingGlobalText'),badge=document.getElementById('documentAttentionBadge');
- const global=persistentDocumentGlobalJobs(),local=(documentProcessingSession?.items||[]).filter(x=>['selected','uploading','uploaded'].includes(x.state));
+ const global=persistentDocumentGlobalJobs(),local=localPersistentProcessingItems();
  if(button&&textEl){
   if(global.length||local.length){
    const done=global.filter(persistentDocumentIsTerminal).length,total=global.length+local.length;
@@ -3857,7 +3865,7 @@ async function persistSelectedDocument(item,batchId){
  if(!state.documents.some(d=>String(d.fileId||'')===clientRef)){
   state.documents.unshift({id:uid('d'),fileId:clientRef,name:item.file.name,type:'Document',date:today(),size:item.file.size,source:'background-upload',analyzed:false,processingState:'queued'});save()
  }
- item.documentId=row.id;
+ item.documentId=row.id;item.receivedPersisted=true;
  documentProcessingTransition(item,'queued');setDocumentProcessingMessage(item,'Wacht','Bestand ontvangen. Verwerking start automatisch.');
  const company=state.company||{};
  const queued=await invokeDocumentProcessing('enqueue',{client_ref:clientRef,batch_id:batchId,kind:item.kind||'auto',company:{name:company.name||'',tradeName:company.tradeName||'',kvk:company.kvk||'',vat:company.vat||''}});
@@ -3870,9 +3878,9 @@ async function startPersistentDocumentProcessingQueue(files,kind='auto',options=
  const batchId='batch-'+(crypto.randomUUID?crypto.randomUUID():uid('bg'));
  const session=documentProcessingSession={id:batchId,items:list.map(file=>{const item=createDocumentProcessingItem(file,kind);item.sourceInputId=String(options.sourceInputId||'');return item}),smart:!!options.smart,reviewingItemId:null,startedAt:Date.now(),persistent:true,allReceived:false,modalHidden:false};
  if(page!=='documents')await navigate('documents');else render();renderGlobalDocumentIndicator();
- const work=[...session.items],worker=async()=>{while(work.length){const item=work.shift();if(!item)continue;try{await persistSelectedDocument(item,batchId)}catch(err){console.error('Persistent upload failed',err);item.error=err;if(!['failed'].includes(item.state)){try{documentProcessingTransition(item,'failed')}catch{item.state='failed';scheduleDocumentProcessingRender()}}}}};
+ const work=[...session.items],worker=async()=>{while(work.length){const item=work.shift();if(!item)continue;try{await persistSelectedDocument(item,batchId)}catch(err){console.error('Persistent upload failed',err);item.error=err;if(item.receivedPersisted){item.state='queued';documentProcessingConnectivityLost=documentProcessingConnectivityLost||!navigator.onLine||String(err?.code||'')==='NETWORK_ERROR';setDocumentProcessingMessage(item,'Wacht','Bestand ontvangen. De verwerking wordt hervat zodra de verbinding beschikbaar is.');setTimeout(()=>{if(currentUser)invokeDocumentProcessing('resume').then(()=>fetchDocumentProcessingJobs()).catch(()=>{})},5000)}else if(!['failed'].includes(item.state)){try{documentProcessingTransition(item,'failed')}catch{item.state='failed';scheduleDocumentProcessingRender()}}}}};
  await Promise.all(Array.from({length:Math.min(DOCUMENT_PROCESSING_MAX_PARALLEL,list.length)},()=>worker()));
- session.allReceived=session.items.every(x=>x.uploaded||x.state==='failed');
+ session.allReceived=session.items.every(x=>x.receivedPersisted||x.state==='failed');
  if(session.items.some(x=>x.uploaded))toast('Je documenten zijn ontvangen. Je kunt ondertussen verder werken.');
  await fetchDocumentProcessingJobs().catch(()=>{});
  scheduleDocumentProcessingRender();renderGlobalDocumentIndicator();
