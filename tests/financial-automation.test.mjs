@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {performance} from 'node:perf_hooks';
 import {validateIban,validateBic,analyzeOcrIban} from '../supabase/functions/financial-automation/lib/iban-bic.mjs';
 import {parseCamt053,parseMt940,secureXmlPreflight,attachTransactionFingerprints,statementSummary} from '../supabase/functions/financial-automation/lib/bank-import.mjs';
@@ -36,13 +37,38 @@ const ledger={contacts:[{id:'c1',name:'Acme BV',iban:'NL69INGB0123456789'}],invo
 const high=matchTransactionAgainstLedger({amount_cents:12100,booking_date:'2026-09-29',description:'2026-001 PAY-001',counterparty_name:'Acme BV',counterparty_iban:'NL69INGB0123456789',bank_reference:'PAY-001'},ledger);assert.equal(high.state,'exact/high-confidence');assert.ok(high.score>=80);assert.equal(invoiceOutstandingCents(ledger.invoices[0],[]),12100);
 const partial=matchTransactionAgainstLedger({amount_cents:5000,booking_date:'2026-09-29',description:'PAY-001',counterparty_name:'Acme BV'},ledger);assert.equal(partial.state,'suggested');assert.ok(partial.best.evidence.includes('partial_amount'));
 const invoice121={id:'pay-i',kind:'invoice',status:'sent',lines:[{qty:1,unit:100,vat:21}],payments:[]};
-assert.equal(invoiceOutstandingCents({...invoice121,payments:[{id:'m1',amount:50}]},[]),7100);
-assert.equal(invoiceOutstandingCents(invoice121,[{serverTransactionId:'bt-only',status:'matched',matchType:'invoice',matchId:'pay-i',amount_cents:5000}]),7100);
-assert.equal(invoiceOutstandingCents({...invoice121,payments:[{id:'m1',amount:50,bankTransactionId:'bt-1'}]},[{serverTransactionId:'bt-1',status:'matched',matchType:'invoice',matchId:'pay-i',amount_cents:5000}]),7100);
-assert.equal(invoiceOutstandingCents({...invoice121,payments:[{id:'m1',amount:50}]},[{serverTransactionId:'bt-2',status:'matched',matchType:'invoice',matchId:'pay-i',amount_cents:5000}]),2100);
-assert.equal(invoiceOutstandingCents({...invoice121,payments:[{id:'m1',amount:25},{id:'m2',amount:25}]},[]),7100);
-assert.equal(invoiceOutstandingCents({...invoice121,payments:[{id:'m1',amount:121}]},[]),0);assert.equal(invoiceOutstandingCents({...invoice121,payments:[{id:'m1',amount:150}]},[]),0);
-const credit121={id:'pay-cr',kind:'credit',status:'sent',lines:[{qty:1,unit:100,vat:21}],payments:[{id:'refund',amount:50,bankTransactionId:'bt-cr'}]};assert.equal(invoiceOutstandingCents(credit121,[{serverTransactionId:'bt-cr',status:'matched',matchType:'invoice',matchId:'pay-cr',amount_cents:-5000}]),7100);
+const matched=(id,amountCents=5000,fp='')=>({serverTransactionId:id,sourceFingerprint:fp||undefined,status:'matched',matchType:'invoice',matchId:'pay-i',amount_cents:amountCents});
+
+// #66 authoritative payment-identity matrix. Amount/date/name are never dedupe keys.
+assert.equal(invoiceOutstandingCents({...invoice121,payments:[{id:'m1',amount:50}]},[]),7100,'1 manual-only €50');
+assert.equal(invoiceOutstandingCents(invoice121,[matched('bt-only')]),7100,'2 bank-only €50');
+assert.equal(invoiceOutstandingCents({...invoice121,payments:[{id:'m1',amount:50,bankTransactionId:'bt-1'}]},[matched('bt-1')]),7100,'3 explicit bank id collapses manual+bank');
+assert.equal(invoiceOutstandingCents({...invoice121,payments:[{id:'m1',amount:50,bankTransactionFingerprint:'economic-fp'}]},[matched('bt-1',5000,'economic-fp')]),7100,'4 shared transaction fingerprint collapses manual+bank even when bank also has id');
+assert.equal(invoiceOutstandingCents({...invoice121,payments:[{id:'m1',amount:50}]},[matched('bt-2')]),2100,'5 unlinked same-amount manual and bank are separate economic events');
+assert.equal(invoiceOutstandingCents(invoice121,[matched('bt-a',5000,'fp-a'),matched('bt-b',5000,'fp-b')]),2100,'6 distinct ids/fingerprints both count');
+assert.equal(invoiceOutstandingCents(invoice121,[matched('bt-a',5000,'same-economic-fp'),matched('bt-b',5000,'same-economic-fp')]),7100,'7 bank mirrors sharing fingerprint count once');
+assert.equal(invoiceOutstandingCents(invoice121,[matched('bt-same'),matched('bt-same')]),7100,'8 bank mirrors sharing server id count once');
+assert.equal(invoiceOutstandingCents({...invoice121,payments:[{id:'m1',amount:50,bankTransactionFingerprint:'linked-fp'}]},[matched('bt-linked',5000,'linked-fp'),matched('bt-extra',2000,'second-fp')]),5100,'9 linked €50 plus separate €20 bank payment');
+assert.equal(invoiceOutstandingCents({...invoice121,payments:[{id:'m1',amount:25},{id:'m2',amount:25}]},[]),7100,'10 multiple manual partial payments');
+assert.equal(invoiceOutstandingCents({...invoice121,payments:[{id:'m1',amount:121}]},[]),0,'11 full payment');
+assert.equal(invoiceOutstandingCents({...invoice121,payments:[{id:'m1',amount:120.99}]},[]),1,'12 €120.99 leaves one cent');
+assert.equal(invoiceOutstandingCents({...invoice121,payments:[{id:'m1',amount:150}]},[]),0,'13 overpayment is floored at zero');
+
+const credit121={id:'pay-cr',kind:'credit',status:'sent',lines:[{qty:1,unit:100,vat:21}],payments:[{id:'refund',amount:50,bankTransactionFingerprint:'refund-fp'}]};
+assert.equal(invoiceOutstandingCents(credit121,[{serverTransactionId:'bt-cr',sourceFingerprint:'refund-fp',status:'matched',matchType:'invoice',matchId:'pay-cr',amount_cents:-5000}]),7100,'14 credit-note/refund uses the same explicit identity rules without sign inversion');
+
+const reopened=JSON.parse(JSON.stringify([matched('bt-reopen',5000,'persisted-fp')]));
+assert.equal(invoiceOutstandingCents({...invoice121,payments:[{id:'m-reopen',amount:50,bankTransactionFingerprint:'persisted-fp'}]},reopened),7100,'15 reopen/persisted mirror keeps fingerprint identity stable');
+
+const automationIndex=fs.readFileSync(new URL('../supabase/functions/financial-automation/index.ts',import.meta.url),'utf8');
+assert.ok(automationIndex.includes('payment.bankTransactionId=tx.id;payment.bankTransactionFingerprint=tx.transaction_fingerprint'),'match_confirm must persist both explicit bank identities on a linked manual payment');
+assert.ok(automationIndex.includes('if(tx.status==="matched")throw new Error("MATCH_ALREADY_CONFIRMED")'),'16 repeated match_confirm must not create a second economic representation');
+assert.ok(automationIndex.includes('p_expected_version:l.version'),'17 match_confirm must send the ledger version into the atomic commit');
+assert.ok(automationIndex.includes('if(newVersion==null)throw new Error("LEDGER_VERSION_CONFLICT")'),'17 stale ledger version must fail instead of overwriting newer state');
+const migrationDir=new URL('../supabase/migrations/',import.meta.url);
+const atomicMatchMigration=fs.readdirSync(migrationDir).map(name=>({name,body:fs.readFileSync(new URL(name,migrationDir),'utf8')})).find(x=>x.body.includes('commit_financial_bank_match'));
+assert.ok(atomicMatchMigration,'Atomic bank-match migration must exist');
+assert.ok(atomicMatchMigration.body.includes('version=p_expected_version'),'Atomic bank-match RPC must compare the expected ledger version before update');
 const ambLedger={contacts:[{id:'a',name:'Alpha'},{id:'b',name:'Beta'}],invoices:[{id:'a1',customerId:'a',status:'sent',lines:[{qty:1,unit:100,vat:0}]},{id:'b1',customerId:'b',status:'sent',lines:[{qty:1,unit:100,vat:0}]}],expenses:[],transactions:[]};assert.equal(matchTransactionAgainstLedger({amount_cents:10000,description:'generic'},ambLedger).state,'ambiguous');assert.equal(matchTransactionAgainstLedger({amount_cents:999999,description:'none'},ledger).state,'unmatched');
 
 assert.equal(compareDuplicateFingerprint({document_sha256:'c'.repeat(64)},{document_sha256:'c'.repeat(64)}).state,'exact_duplicate');
