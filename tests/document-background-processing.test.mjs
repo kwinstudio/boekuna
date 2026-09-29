@@ -27,7 +27,7 @@ assert.match(worker,/\.eq\("user_id",a\.user\.id\)/,'Worker actions must enforce
 assert.match(worker,/mfa\.getAuthenticatorAssuranceLevel\(\)/,'Worker mutations must enforce the existing MFA boundary');
 assert.match(worker,/MFA_REQUIRED/,'Worker must reject mutation when enrolled MFA is not satisfied');
 assert.match(worker,/const PROCESSING_CONCURRENCY=1/,'Server queue must serialize heavy document processing on the current processor capacity');
-assert.match(worker,/EdgeRuntime\.waitUntil\(triggerNext\(authHeader\)\)/,'Every completed attempt must continue the persistent queue');
+assert.match(worker,/EdgeRuntime\.waitUntil\(triggerNext\(authHeader,jobId\)\)/,'Every completed attempt must continue the persistent queue with the owned job capability');
 assert.match(worker,/repairMissingJobs/,'Resume must recover received documents that missed job creation');
 assert.match(worker,/async function backgroundActor/,'Background queue continuation must have a stateless ownership path');
 assert.match(worker,/from\("document_processing_jobs"\).*eq\("id",jobId\)/s,'Background queue continuation must re-authorize through the owned job row');
