@@ -146,16 +146,16 @@ try{
 
   const helperContract=await page.evaluate(()=>({
     valid:isInvoiceShareEmail('klant+facturen@example.nl'),
-    invalid:isInvoiceShareEmail('klant@example.nl\\r\\nBcc:evil@example.nl'),
+    invalid:isInvoiceShareEmail('klant@example.nl\r\nBcc:evil@example.nl'),
     filename:invoiceShareFilename(
-      {kind:'invoice',number:'2026/0041\\r\\nBcc:evil'},
+      {kind:'invoice',number:'2026/0041\r\nBcc:evil'},
       {name:'Jänsen / ../ Bouw B.V.'}
     ),
     creditFilename:invoiceShareFilename({kind:'credit',number:'CR/2026-7'},{name:'Café Noord'}),
     mailto:buildInvoiceMailto(
       'klant+facturen@example.nl',
-      'Factuur 2026/0041\\r\\nBcc:evil@example.nl',
-      'Regel één\\nBedrag € 121,00'
+      'Factuur 2026/0041\r\nBcc:evil@example.nl',
+      'Regel één\nBedrag € 121,00'
     ),
     creditSubject:invoiceMailSubject(
       {kind:'credit',number:'CR-7',dueDate:'2026-10-13',paymentReference:'CR-7',lines:[{qty:1,unit:100,vat:21}]},
@@ -164,9 +164,9 @@ try{
   }));
   assert.equal(helperContract.valid,true);
   assert.equal(helperContract.invalid,false,'CRLF/header-injected recipient must be rejected');
-  assert.match(helperContract.filename,/^Factuur-2026-0041-Bcc-evil-Jansen-Bouw-B\\.V\\.pdf$/);
-  assert.match(helperContract.creditFilename,/^Creditnota-CR-2026-7-Cafe-Noord\\.pdf$/);
-  assert.ok(!/[\\r\\n/]/.test(helperContract.filename),'Filename must be path/header safe');
+  assert.match(helperContract.filename,/^Factuur-2026-0041-Bcc-evil-Jansen-Bouw-B\.V\.pdf$/);
+  assert.match(helperContract.creditFilename,/^Creditnota-CR-2026-7-Cafe-Noord\.pdf$/);
+  assert.ok(!/[\r\n/]/.test(helperContract.filename),'Filename must be path/header safe');
   assert.ok(helperContract.mailto.startsWith('mailto:klant%2Bfacturen%40example.nl?subject='));
   assert.ok(!/[\\r\\n]/.test(helperContract.mailto),'mailto URI must not contain raw CR/LF');
   assert.match(helperContract.mailto,/%E2%82%AC/,'Euro sign must be URI encoded');
@@ -182,7 +182,7 @@ try{
     invoice:state.invoices.find(x=>x.id===id)
   }),invoiceId);
   assert.equal(shareState.call.files[0].type,'application/pdf');
-  assert.match(shareState.call.files[0].name,/^Factuur-2026-\d{4}-QA-Klant-BV\\.pdf$/);
+  assert.match(shareState.call.files[0].name,/^Factuur-2026-\d{4}-QA-Klant-BV\.pdf$/);
   assert.match(shareState.call.title,/^Factuur /);
   assert.match(shareState.call.text,/QA Test BV|Boekuna QA/);
   assert.equal(shareState.invoice.lastSentAt,undefined,'Opening native share must not mark the invoice sent');
@@ -204,7 +204,7 @@ try{
   const fallbackDownload=page.waitForEvent('download');
   await page.evaluate(id=>openSendInvoice(id),invoiceId);
   const fallbackFile=await fallbackDownload;
-  assert.match(fallbackFile.suggestedFilename(),/^Factuur-2026-\d{4}-QA-Klant-BV\\.pdf$/);
+  assert.match(fallbackFile.suggestedFilename(),/^Factuur-2026-\d{4}-QA-Klant-BV\.pdf$/);
   await page.getByRole('heading',{name:'Factuur klaar om te versturen'}).waitFor();
   const fallbackText=await page.locator('.modal').innerText();
   assert.match(fallbackText,/Voeg de PDF handmatig als bijlage toe/);
