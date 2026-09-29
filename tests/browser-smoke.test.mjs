@@ -164,11 +164,11 @@ try{
   }));
   assert.equal(helperContract.valid,true);
   assert.equal(helperContract.invalid,false,'CRLF/header-injected recipient must be rejected');
-  assert.match(helperContract.filename,/^Factuur-2026-0041-Bcc-evil-Jansen-Bouw-B\.V\.pdf$/);
+  assert.match(helperContract.filename,/^Factuur-2026-0041-Bcc-evil-Jansen-Bouw-BV\.pdf$/);
   assert.match(helperContract.creditFilename,/^Creditnota-CR-2026-7-Cafe-Noord\.pdf$/);
   assert.ok(!/[\r\n/]/.test(helperContract.filename),'Filename must be path/header safe');
   assert.ok(helperContract.mailto.startsWith('mailto:klant%2Bfacturen%40example.nl?subject='));
-  assert.ok(!/[\\r\\n]/.test(helperContract.mailto),'mailto URI must not contain raw CR/LF');
+  assert.ok(!/[\r\n]/.test(helperContract.mailto),'mailto URI must not contain raw CR/LF');
   assert.match(helperContract.mailto,/%E2%82%AC/,'Euro sign must be URI encoded');
   assert.match(helperContract.creditSubject,/^Creditfactuur CR-7/,'Credit notes need credit-specific copy');
 
