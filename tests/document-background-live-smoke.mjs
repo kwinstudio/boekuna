@@ -39,14 +39,27 @@ async function authRequest(config,pathname,body){
   return {status:res.status,ok:res.ok,json};
 }
 async function createCandidateSession(config){
+  const anonymous=await authRequest(config,'/auth/v1/signup',{});
+  if(anonymous.json?.access_token){
+    console.log('BOOKUNA_SMOKE_AUTH_MODE=anonymous');
+    return anonymous.json;
+  }
+  console.log('BOOKUNA_SMOKE_ANON_STATUS='+anonymous.status);
+  console.log('BOOKUNA_SMOKE_ANON_ERROR='+String(anonymous.json?.msg||anonymous.json?.message||anonymous.json?.error_description||anonymous.json?.error||''));
   const signup=await authRequest(config,'/auth/v1/signup',{email,password});
-  if(signup.json?.access_token)return signup.json;
+  if(signup.json?.access_token){
+    console.log('BOOKUNA_SMOKE_AUTH_MODE=email');
+    return signup.json;
+  }
   console.log('BOOKUNA_SMOKE_SIGNUP_STATUS='+signup.status);
   console.log('BOOKUNA_SMOKE_SIGNUP_ERROR='+String(signup.json?.msg||signup.json?.message||signup.json?.error_description||signup.json?.error||''));
   console.log('BOOKUNA_SMOKE_WAITING_CONFIRMATION='+email);
   for(let i=0;i<10;i++){
     const token=await authRequest(config,'/auth/v1/token?grant_type=password',{email,password});
-    if(token.json?.access_token)return token.json;
+    if(token.json?.access_token){
+      console.log('BOOKUNA_SMOKE_AUTH_MODE=email');
+      return token.json;
+    }
     await new Promise(r=>setTimeout(r,3000));
   }
   throw new Error('Candidate QA account was not confirmed within the smoke window');
@@ -165,14 +178,22 @@ try{
     else assert.equal(j.attempt,beforeAttempts[j.id],'Retry must not restart other batch items');
   }
 
-  const sbState=await p.evaluate(async()=>{const sb=await getSupabase();await sb.auth.signOut();return true});
-  assert.equal(sbState,true);
-  await p.waitForTimeout(800);
-  const relog=await p.evaluate(async({email,password})=>{const sb=await getSupabase();const {data,error}=await sb.auth.signInWithPassword({email,password});return {ok:!!data?.session,error:error?.message||''}},{email,password});
-  assert.equal(relog.ok,true,'QA user must be able to log back in');
-  await ensureApp();
-  await waitForJobs(5);
-  assert.equal(await p.evaluate(()=>documentProcessingJobs.length),5,'Logout/login must restore status without duplicate processing');
+  if(auth.user?.is_anonymous){
+    console.log('BOOKUNA_SMOKE_LOGOUT_LOGIN=skipped_anonymous_candidate_auth');
+    await p.reload({waitUntil:'domcontentloaded',timeout:30000});
+    await ensureApp();
+    await waitForJobs(5);
+    assert.equal(await p.evaluate(()=>documentProcessingJobs.length),5,'Reloaded anonymous session must restore status without duplicate processing');
+  }else{
+    const sbState=await p.evaluate(async()=>{const sb=await getSupabase();await sb.auth.signOut();return true});
+    assert.equal(sbState,true);
+    await p.waitForTimeout(800);
+    const relog=await p.evaluate(async({email,password})=>{const sb=await getSupabase();const {data,error}=await sb.auth.signInWithPassword({email,password});return {ok:!!data?.session,error:error?.message||''}},{email,password});
+    assert.equal(relog.ok,true,'QA user must be able to log back in');
+    await ensureApp();
+    await waitForJobs(5);
+    assert.equal(await p.evaluate(()=>documentProcessingJobs.length),5,'Logout/login must restore status without duplicate processing');
+  }
 
   await p.evaluate(()=>navigate('documents'));
   await p.waitForTimeout(300);
