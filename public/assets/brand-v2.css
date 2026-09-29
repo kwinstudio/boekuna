@@ -1,0 +1,204 @@
+/* BOEKUNA Brand Identity v2 — Calm Control
+   Approved 2026-09-29. Presentation-only layer: no business logic. */
+:root{
+  --brand-primary:#123B3A;
+  --brand-primary-hover:#0C302F;
+  --brand-primary-active:#082725;
+  --brand-primary-soft:#E7F0EE;
+  --brand-secondary:#2B736C;
+  --brand-secondary-soft:#E9F3F0;
+  --bg-canvas:#F8F7F3;
+  --bg-surface:#FFFFFF;
+  --bg-surface-secondary:#F3F0E8;
+  --bg-elevated:#FFFFFF;
+  --text-primary:#16201F;
+  --text-secondary:#4B5B57;
+  --text-muted:#6A7773;
+  --text-inverse:#FFFFFF;
+  --border-default:#DDE5E1;
+  --border-strong:#B9C9C3;
+  --divider:#E7ECE9;
+  --success:#0F7B57;
+  --success-soft:#E7F5EF;
+  --warning:#A86600;
+  --warning-soft:#FFF3DA;
+  --error:#C23B3B;
+  --error-soft:#FBEAEA;
+  --info:#2E5FB8;
+  --info-soft:#EAF0FB;
+  --radius-sm:8px;
+  --radius-md:12px;
+  --radius-lg:16px;
+  --radius-xl:24px;
+  --shadow-sm:0 1px 2px rgba(18,59,58,.05);
+  --shadow-md:0 12px 32px rgba(18,59,58,.08);
+  --shadow-overlay:0 28px 80px rgba(9,31,30,.18);
+  --font-sans:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+
+  /* Backward-compatible aliases used by the current app and marketing surfaces. */
+  --bg:var(--bg-canvas);
+  --surface:var(--bg-surface);
+  --surface2:var(--bg-surface-secondary);
+  --paper:var(--bg-canvas);
+  --card:var(--bg-surface);
+  --ink:var(--text-primary);
+  --muted:var(--text-secondary);
+  --line:var(--border-default);
+  --nav:var(--brand-primary);
+  --nav2:var(--brand-primary-active);
+  --primary:var(--brand-primary);
+  --primary2:var(--brand-secondary);
+  --accent:var(--brand-secondary);
+  --accent-ink:#FFFFFF;
+  --soft:var(--brand-primary-soft);
+  --good:var(--success);
+  --bad:var(--error);
+  --warn:var(--warning);
+  --radius:var(--radius-lg);
+  --shadow:var(--shadow-md);
+  --font:var(--font-sans);
+  --sans:var(--font-sans);
+}
+html[data-theme="dark"]{
+  --bg-canvas:#0E1716;
+  --bg-surface:#14201F;
+  --bg-surface-secondary:#192725;
+  --bg-elevated:#1E2D2B;
+  --text-primary:#F5F7F5;
+  --text-secondary:#C0CCC8;
+  --text-muted:#91A29D;
+  --text-inverse:#10201E;
+  --border-default:#2B3B38;
+  --border-strong:#40534E;
+  --divider:#253531;
+  --brand-primary:#77B8AD;
+  --brand-primary-hover:#8BC6BC;
+  --brand-primary-active:#A0D3CB;
+  --brand-primary-soft:#1C3531;
+  --brand-secondary:#8EC9BF;
+  --brand-secondary-soft:#1A302D;
+}
+html,body{font-family:var(--font-sans)!important}
+body{color:var(--text-primary)!important}
+.money,.metric-value,.usage,.amount,.price-big,[data-money],.table td{font-variant-numeric:tabular-nums lining-nums}
+
+/* Logo assets */
+.bookuna-logo-icon,.logo-icon{display:block!important;object-fit:contain!important;background:transparent!important;border:0!important;box-shadow:none!important}
+.sidebar .bookuna-logo-icon{width:34px!important;height:34px!important;min-width:34px!important}
+.auth-side .bookuna-logo-icon,.marketing-logo .bookuna-logo-icon,.logo .logo-icon{width:36px!important;height:36px!important;min-width:36px!important}
+.footer .logo-icon,.marketing-footer-logo .bookuna-logo-icon{width:34px!important;height:34px!important}
+
+/* App shell */
+#mainApp{background:var(--bg-canvas)!important;color:var(--text-primary)!important}
+#mainApp .sidebar{background:var(--brand-primary)!important;color:var(--text-inverse)!important}
+#mainApp .brand{color:#FFFFFF!important}
+#mainApp .brand small{color:#B9C9C3!important}
+#mainApp .nav-group{color:#8FB0A9!important}
+#mainApp .nav-item{color:#C7D7D2!important}
+#mainApp .nav-item:hover{background:rgba(255,255,255,.07)!important;color:#FFFFFF!important}
+#mainApp .nav-item.active{background:#245551!important;color:#FFFFFF!important}
+#mainApp .nav-item.active .icon-wrap{color:#D7ECE7!important}
+#mainApp .topbar{background:rgba(248,247,243,.92)!important;border-color:var(--border-default)!important}
+#mainApp .content{color:var(--text-primary)!important}
+#mainApp .card,#mainApp .table-card,#mainApp .mini-kpi,#mainApp .modal,#mainApp .list-toolbar{
+  background:var(--bg-surface)!important;border-color:var(--border-default)!important;box-shadow:var(--shadow-sm)!important
+}
+#mainApp .hero-strip{background:var(--brand-primary)!important;color:#FFFFFF!important}
+#mainApp .hero-strip:after{background:rgba(185,225,217,.10)!important}
+#mainApp .hero-strip p{color:#C6D8D3!important}
+#mainApp .table th{background:#F1F4F1!important;color:var(--text-muted)!important;border-color:var(--border-default)!important}
+#mainApp .table td{border-color:var(--divider)!important}
+#mainApp .table tbody tr:hover{background:#FAFBF8!important}
+#mainApp .chart .bar.sales,#mainApp .legend-dot{background:var(--brand-secondary)!important}
+#mainApp .bar.costs,#mainApp .legend-dot.cost{background:#B9C9C3!important}
+#mainApp .progress span{background:var(--brand-secondary)!important}
+
+/* Buttons + forms */
+.btn{border-color:var(--border-default)!important;border-radius:var(--radius-md)!important;box-shadow:none!important}
+.btn.primary,#mainApp .btn.primary,.search-btn,.form-submit{
+  background:var(--brand-primary)!important;border-color:var(--brand-primary)!important;color:#FFFFFF!important
+}
+.btn.primary:hover,#mainApp .btn.primary:hover,.search-btn:hover,.form-submit:hover{
+  background:var(--brand-primary-hover)!important;border-color:var(--brand-primary-hover)!important
+}
+.btn.primary:active,#mainApp .btn.primary:active{background:var(--brand-primary-active)!important}
+.btn.accent{background:var(--brand-secondary)!important;border-color:var(--brand-secondary)!important;color:#FFFFFF!important}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{
+  outline:3px solid rgba(43,115,108,.28)!important;outline-offset:3px!important
+}
+.field input,.field select,.field textarea,.auth-field input,.auth-field select,.auth-field textarea,.list-search{
+  border-color:var(--border-default)!important;background:#FFFFFF!important;color:var(--text-primary)!important
+}
+.field input:focus,.field select:focus,.field textarea:focus,.auth-field input:focus,.auth-field select:focus,.auth-field textarea:focus{
+  border-color:var(--brand-secondary)!important;box-shadow:0 0 0 3px rgba(43,115,108,.12)!important
+}
+.field input[readonly],.field textarea[readonly],[aria-readonly="true"]{
+  background:#F3F4F1!important;border-color:#D7DEDA!important;color:#596963!important
+}
+button:disabled,.btn:disabled,[aria-disabled="true"]{opacity:.48!important;box-shadow:none!important;transform:none!important}
+
+/* Financial states: never rely on colour alone. */
+.badge.good,.success-box{background:var(--success-soft)!important;color:var(--success)!important;border-color:#C8E6D9!important}
+.badge.warn,.notice.warn{background:var(--warning-soft)!important;color:#745000!important;border-color:#EAD49C!important}
+.badge.bad,.btn.danger{color:var(--error)!important}
+.badge.bad{background:var(--error-soft)!important}
+.badge.info,.notice.info{background:var(--info-soft)!important;color:var(--info)!important;border-color:#CFDCF4!important}
+.action-dot{background:var(--brand-secondary)!important}
+
+/* Authentication */
+.auth-root{background:var(--brand-primary)!important}
+.auth-root:before,.auth-root:after{background:rgba(185,225,217,.09)!important}
+.auth-shell{box-shadow:var(--shadow-overlay)!important}
+.auth-side{background:var(--brand-primary)!important;color:#FFFFFF!important}
+.auth-side p,.auth-side .muted{color:#C5D5D0!important}
+
+/* Shared public marketing */
+body:not(#mainApp){background:#FFFFFF}
+.promo,.promo-bar{background:var(--brand-primary)!important;color:#FFFFFF!important}
+.site-header,.marketing-nav{background:rgba(255,255,255,.97)!important;border-color:var(--border-default)!important}
+.logo,.marketing-logo{color:var(--text-primary)!important}
+.nav-item,.nav-link{color:var(--text-secondary)!important}
+.nav-item:hover,.nav-link:hover,.dropdown-menu a:hover{background:var(--brand-primary-soft)!important;color:var(--text-primary)!important}
+.dropdown-menu{border-color:var(--border-default)!important;box-shadow:var(--shadow-md)!important}
+.eyebrow,.card a,.feature-row .n,.ns-feature-copy a,.ns-solution a,.how-principle>span,.how-inline-link{
+  color:var(--brand-secondary)!important
+}
+.eyebrow:before{background:var(--brand-secondary)!important}
+.card-icon,.feature-row .n,.how-flow-number,.how-upload-icon{
+  background:var(--brand-primary-soft)!important;color:var(--brand-secondary)!important
+}
+.section.alt,.mk-section.alt{background:#F7F7F2!important;border-color:var(--border-default)!important}
+.card,.trust,.price,.faq details,.mk-card,.mk-stat,.mk-window,.mk-flow-step{
+  border-color:var(--border-default)!important;box-shadow:none!important
+}
+.callout,.footer:not(.footer-v2),.marketing-band,.value-card.dark,.deep-panel.dark,.how-use-section{
+  background:var(--brand-primary)!important
+}
+.footer.footer-v2,.marketing-footer.marketing-footer-v2{
+  background:#F5F4EF!important;border-color:var(--border-default)!important;color:var(--text-primary)!important
+}
+.footer-v2 .footer-cta,.footer-v2 .footer-col a:hover,.marketing-footer-cta{color:var(--brand-secondary)!important}
+.interface-showcase,.ns-feature-visual,.editorial-media.light,.how-control-panel{
+  background:#F1F4EF!important;border-color:var(--border-default)!important
+}
+.device-head em,.ns-head i,.how-use-icon,.how-demo-review button{
+  background:var(--brand-secondary)!important;color:#FFFFFF!important
+}
+.phone-card,.ns-phone-card{background:var(--brand-secondary)!important}
+.price.popular{border-color:var(--brand-secondary)!important;box-shadow:0 12px 36px rgba(18,59,58,.08)!important}
+.notice{background:var(--brand-primary-soft)!important;border-color:#CFE0DA!important;color:#385E57!important}
+
+/* Calm Control visual signature: quiet framing, no gratuitous gradients. */
+.mk-banner,.promo-card-inner{background:var(--brand-primary)!important;color:#FFFFFF!important}
+.product-proof,.product-crop,.product-mobile{border-color:var(--border-default)!important;box-shadow:0 14px 38px rgba(18,59,58,.07)!important}
+.editorial-ui-nav,.how-demo-toolbar{background:var(--brand-primary)!important}
+.editorial-ui-nav span:first-of-type{background:rgba(255,255,255,.09)!important}
+.how-demo-badge{background:var(--success-soft)!important;color:var(--success)!important}
+.how-equation{background:#F0F5F1!important;border-color:#D8E4DE!important}
+.how-mobile-steps .active{background:var(--brand-primary)!important}
+
+/* Motion */
+a,button,input,select,textarea{transition-duration:180ms!important;transition-timing-function:cubic-bezier(.2,.8,.2,1)!important}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
