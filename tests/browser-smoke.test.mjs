@@ -426,6 +426,116 @@ try{
   assert.match(await live.title(),/Boekuna/);
   await live.close();
 
+  // Live deployed-source smoke on the custom domain. This uses only local in-page
+  // test state and a mocked PDF response; it does not bypass server auth or touch customer data.
+  const production=await browser.newPage({viewport:{width:390,height:844}});
+  const productionErrors=[];
+  production.on('pageerror',e=>productionErrors.push(String(e)));
+  const productionResponse=await production.goto('https://boekuna.nl/?login=1',{waitUntil:'domcontentloaded',timeout:45000});
+  assert.ok(productionResponse && productionResponse.ok(),'boekuna.nl must answer successfully after deploy');
+  await production.getByRole('heading',{name:'Inloggen'}).waitFor({timeout:15000});
+  assert.match(await production.title(),/Boekuna/);
+
+  await production.evaluate(()=>{
+    currentUser=TEST_USER;
+    state=structuredClone(DEFAULT);
+    for(const key of ['contacts','services','invoices','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])state[key]=[];
+    state.company={...state.company,name:'Live QA Test BV',tradeName:'Boekuna Live QA',contactName:'QA',email:'qa@example.test',phone:'0101234567',address:'Teststraat 1',postal:'3011AA',city:'Rotterdam',country:'Nederland',kvk:'12345678',vat:'NL123456789B01',iban:'NL91ABNA0417164300',invoicePrefix:'LIVE-',paymentDays:14,kor:false};
+    state.contacts=[{id:'live-customer',type:'customer',name:'Live QA Klant BV',contactPerson:'Sophie',email:'klant@example.test',phone:'',address:'Klantstraat 2',postal:'3012BB',city:'Rotterdam',country:'Nederland',kvk:'87654321',vat:'NL987654321B01'}];
+    state.invoices=[{
+      id:'live-invoice',number:'LIVE-2026-0001',numberManaged:true,numberFinalized:true,status:'sent',kind:'invoice',
+      customerId:'live-customer',issueDate:'2026-09-29',supplyDate:'2026-09-29',dueDate:'2026-10-13',paymentDays:14,
+      taxTreatment:'standard',reference:'',paymentReference:'LIVE-2026-0001',discountType:'none',discountValue:0,notes:'',
+      lines:[{desc:'Live frontend smoke',qty:1,unitLabel:'stuk',unit:100,vat:21}],payments:[]
+    }];
+    apiAuthHeaders=async(extra={})=>extra;
+    const originalFetch=window.fetch.bind(window);
+    window.fetch=async (input,init={})=>{
+      const target=String(input);
+      if(target.includes('/send-invoice')&&init?.method==='POST'){
+        const body=JSON.parse(String(init.body||'{}'));
+        if(body.action==='render_pdf'){
+          return new Response(new Uint8Array([0x25,0x50,0x44,0x46,0x2d,0x31,0x2e,0x37,0x0a,0x25,0x51,0x41,0x0a]),{status:200,headers:{'content-type':'application/pdf'}});
+        }
+      }
+      return originalFetch(input,init);
+    };
+    window.__liveShareCalls=[];
+    Object.defineProperty(navigator,'canShare',{configurable:true,value:data=>!!data?.files?.length});
+    Object.defineProperty(navigator,'share',{configurable:true,value:async data=>{
+      window.__liveShareCalls.push({title:data.title,text:data.text,files:data.files.map(file=>({name:file.name,type:file.type,size:file.size}))});
+    }});
+    enterApp();
+    navigate('settings');
+  });
+  await production.getByRole('heading',{name:'Instellingen'}).waitFor();
+  assert.equal(await production.getByText('Gmail koppelen',{exact:true}).count(),0,'Deployed settings must not expose Gmail connection');
+  assert.ok(await production.getByText('Geen koppeling nodig',{exact:true}).count(),'Deployed settings must show no-mailbox-connection state');
+  assert.ok((await production.locator('body').innerText()).includes('Boekuna vraagt geen toegang tot Gmail, Outlook of je inbox'));
+
+  const before=await production.evaluate(()=>({gross:invoiceGross(state.invoices[0]),status:state.invoices[0].status,lastSentAt:state.invoices[0].lastSentAt||null}));
+  await production.evaluate(()=>viewInvoice('live-invoice'));
+  assert.equal(await production.getByRole('button',{name:'Versturen via e-mail'}).count(),1,'Deployed invoice must expose native email handoff CTA');
+  await production.evaluate(()=>closeModal());
+
+  await production.evaluate(()=>openSendInvoice('live-invoice'));
+  await production.getByRole('heading',{name:'Factuur klaar om te delen'}).waitFor();
+  await production.getByRole('button',{name:'Kies je e-mailapp'}).click();
+  await production.getByRole('heading',{name:'Heb je de factuur verzonden?'}).waitFor();
+  const nativeState=await production.evaluate(()=>({lastSentAt:state.invoices[0].lastSentAt||null,call:window.__liveShareCalls.at(-1)}));
+  assert.equal(nativeState.lastSentAt,null,'Live native handoff must not auto-record sent metadata');
+  assert.equal(nativeState.call.files[0].type,'application/pdf');
+  assert.match(nativeState.call.files[0].name,/^Factuur-LIVE-2026-0001-Live-QA-Klant-BV\.pdf$/);
+  await production.getByRole('button',{name:'Nee, nog niet'}).click();
+
+  await production.evaluate(()=>{
+    Object.defineProperty(navigator,'share',{configurable:true,value:async()=>{throw new DOMException('cancelled','AbortError')}});
+  });
+  await production.evaluate(()=>openSendInvoice('live-invoice'));
+  await production.getByRole('heading',{name:'Factuur klaar om te delen'}).waitFor();
+  await production.getByRole('button',{name:'Kies je e-mailapp'}).click();
+  await production.locator('.toast').filter({hasText:'Delen geannuleerd'}).waitFor();
+  assert.equal(await production.evaluate(()=>state.invoices[0].lastSentAt||null),null,'Live cancelled share must leave delivery metadata unchanged');
+
+  await production.evaluate(()=>{Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>false})});
+  const liveDownloadPromise=production.waitForEvent('download');
+  await production.evaluate(()=>openSendInvoice('live-invoice'));
+  const liveDownload=await liveDownloadPromise;
+  assert.match(liveDownload.suggestedFilename(),/^Factuur-LIVE-2026-0001-Live-QA-Klant-BV\.pdf$/);
+  await production.getByRole('heading',{name:'Factuur klaar om te versturen'}).waitFor();
+  const liveFallbackText=await production.locator('.modal').innerText();
+  assert.match(liveFallbackText,/Voeg de PDF handmatig als bijlage toe/);
+  assert.match(liveFallbackText,/geen toegang tot je mailbox/i);
+  assert.equal(await production.evaluate(()=>state.invoices[0].lastSentAt||null),null,'Live fallback must not auto-record sent metadata');
+  await production.evaluate(()=>closeModal());
+
+  await production.evaluate(()=>{
+    Object.defineProperty(navigator,'canShare',{configurable:true,value:data=>!!data?.files?.length});
+    Object.defineProperty(navigator,'share',{configurable:true,value:async data=>{window.__liveShareCalls.push({title:data.title,text:data.text,files:data.files.map(file=>({name:file.name,type:file.type,size:file.size}))})}});
+  });
+  await production.evaluate(()=>openSendInvoice('live-invoice'));
+  await production.getByRole('heading',{name:'Factuur klaar om te delen'}).waitFor();
+  await production.getByRole('button',{name:'Kies je e-mailapp'}).click();
+  await production.getByRole('heading',{name:'Heb je de factuur verzonden?'}).waitFor();
+  await production.getByRole('button',{name:'Ja, markeer als verzonden'}).click();
+  const after=await production.evaluate(()=>({
+    gross:invoiceGross(state.invoices[0]),status:state.invoices[0].status,lastSentAt:state.invoices[0].lastSentAt||null,
+    history:state.invoices[0].sendHistory||[],
+    mailto:buildInvoiceMailto('klant+facturen@example.nl','Factuur LIVE\r\nBcc:evil@example.nl','Regel één\nBedrag € 121,00')
+  }));
+  assert.equal(after.gross,before.gross,'Live handoff must not alter invoice financial values');
+  assert.equal(after.status,before.status,'Manual sent confirmation must not alter financial invoice status');
+  assert.ok(after.lastSentAt,'Explicit live confirmation must record delivery metadata');
+  assert.equal(after.history.at(-1).confirmedByUser,true);
+  assert.ok(!/[\r\n]/.test(after.mailto),'Live mailto helper must not emit raw header line breaks');
+  assert.match(after.mailto,/%E2%82%AC/,'Live mailto helper must encode the euro sign');
+
+  await production.evaluate(()=>viewInvoice('live-invoice'));
+  await production.getByRole('heading',{name:'Factuur LIVE-2026-0001'}).waitFor();
+  assert.equal(await production.evaluate(()=>invoiceGross(state.invoices[0])),before.gross,'Reopened live-source invoice must retain authoritative value');
+  await production.close();
+  assert.deepEqual(productionErrors,[],'Live boekuna.nl page errors: '+productionErrors.join(' | '));
+
   assert.deepEqual(pageErrors,[],'Browser page errors: '+pageErrors.join(' | '));
   console.log('Boekuna browser smoke: PASS (auth, CRUD, invoice integrity, native email share/fallback/cancel/confirmation, responsive layout, live availability)');
 }finally{
