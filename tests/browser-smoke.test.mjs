@@ -71,11 +71,14 @@ try{
   await page.getByRole('heading',{name:'Inloggen'}).waitFor();
   assert.equal(await page.locator('#loginPassword').getAttribute('minlength'),null,'Login must not block legacy short passwords');
   assert.ok(await page.getByText('Nog geen account? Gratis starten').count(),'Login must expose registration');
+  assert.equal(await page.locator('.auth-root').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(18, 59, 58)','Login must use Calm Control brand primary');
   await page.screenshot({path:'tests/artifacts/brand-login-1440.png',fullPage:true});
 
   // Daily-use browser flow on the exact production UI source, with auth/network isolated.
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
   await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await page.waitForFunction(()=>getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim()==='#123B3A');
+  assert.equal(await page.locator('#mainApp .sidebar').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(18, 59, 58)','Sidebar must use Calm Control brand primary');
   assert.equal(await page.locator('.mobile-menu').evaluate(el=>getComputedStyle(el).display),'none');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'Desktop page must not create global horizontal overflow');
   await page.screenshot({path:'tests/artifacts/brand-dashboard-1440.png',fullPage:true});
