@@ -186,8 +186,9 @@ try{
   assert.match(shareState.call.title,/^Factuur /);
   assert.match(shareState.call.text,/QA Test BV|Boekuna QA/);
   assert.equal(shareState.invoice.lastSentAt,undefined,'Opening native share must not mark the invoice sent');
-  await page.getByRole('button',{name:'Nee, nog niet'}).click();
-  assert.equal(await page.evaluate(id=>state.invoices.find(x=>x.id===id).lastSentAt),undefined);
+  assert.equal(await page.getByRole('button',{name:'Nee, nog niet'}).count(),1,'Confirmation must expose an explicit not-sent action');
+  await page.evaluate(()=>invoiceShareNotSent());
+  assert.equal(await page.evaluate(()=>state.invoices[0]?.lastSentAt),undefined,'Declining confirmation must not record delivery');
 
   await page.evaluate(()=>{
     Object.defineProperty(navigator,'share',{configurable:true,value:async ()=>{
@@ -196,20 +197,22 @@ try{
   });
   await page.evaluate(()=>sharePreparedInvoice());
   await page.locator('.toast').filter({hasText:'Delen geannuleerd'}).waitFor();
-  assert.equal(await page.evaluate(id=>state.invoices.find(x=>x.id===id).lastSentAt),undefined,'Cancelled share must leave invoice unchanged');
+  assert.equal(await page.evaluate(()=>state.invoices[0]?.lastSentAt),undefined,'Cancelled share must leave invoice unchanged');
 
   await page.evaluate(()=>{
     Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>false});
   });
   const fallbackDownload=page.waitForEvent('download');
-  await page.evaluate(id=>openSendInvoice(id),invoiceId);
+  const shareInvoiceId=await page.evaluate(()=>state.invoices[0]?.id);
+  assert.ok(shareInvoiceId,'Share QA invoice must remain present');
+  await page.evaluate(id=>openSendInvoice(id),shareInvoiceId);
   const fallbackFile=await fallbackDownload;
   assert.match(fallbackFile.suggestedFilename(),/^Factuur-2026-\d{4}-QA-Klant-BV\.pdf$/);
   await page.getByRole('heading',{name:'Factuur klaar om te versturen'}).waitFor();
   const fallbackText=await page.locator('.modal').innerText();
   assert.match(fallbackText,/Voeg de PDF handmatig als bijlage toe/);
   assert.match(fallbackText,/geen toegang tot je mailbox/i);
-  assert.equal(await page.evaluate(id=>state.invoices.find(x=>x.id===id).lastSentAt),undefined,'Fallback download must not mark sent');
+  assert.equal(await page.evaluate(()=>state.invoices[0]?.lastSentAt),undefined,'Fallback download must not mark sent');
   await page.evaluate(()=>closeModal());
 
   await page.evaluate(()=>{
@@ -220,12 +223,13 @@ try{
   });
   await page.evaluate(()=>sharePreparedInvoice());
   await page.getByRole('heading',{name:'Heb je de factuur verzonden?'}).waitFor();
-  const statusBeforeConfirm=await page.evaluate(id=>state.invoices.find(x=>x.id===id).status,invoiceId);
-  await page.getByRole('button',{name:'Ja, markeer als verzonden'}).click();
-  shareState=await page.evaluate(id=>{
-    const invoice=state.invoices.find(x=>x.id===id);
+  const statusBeforeConfirm=await page.evaluate(()=>state.invoices[0]?.status);
+  assert.equal(await page.getByRole('button',{name:'Ja, markeer als verzonden'}).count(),1,'Confirmation must expose an explicit sent action');
+  await page.evaluate(()=>confirmInvoiceShareSent(state.invoices[0].id,'native_share'));
+  shareState=await page.evaluate(()=>{
+    const invoice=state.invoices[0];
     return {status:invoice.status,lastSentAt:invoice.lastSentAt,lastSentTo:invoice.lastSentTo,lastShareChannel:invoice.lastShareChannel,history:invoice.sendHistory||[],audit:state.audit||[]};
-  },invoiceId);
+  });
   assert.equal(shareState.status,statusBeforeConfirm,'Manual delivery confirmation must not change financial invoice status');
   assert.ok(shareState.lastSentAt,'Explicit user confirmation must record delivery time');
   assert.equal(shareState.lastSentTo,'klant@example.test');
@@ -237,7 +241,7 @@ try{
 
   for(const width of [320,360,390,430,768,1024,1280,1440]){
     await page.setViewportSize({width,height:900});
-    await page.evaluate(id=>showInvoiceShareConfirmation(id,'native_share'),invoiceId);
+    await page.evaluate(()=>showInvoiceShareConfirmation(state.invoices[0].id,'native_share'));
     const box=await page.locator('.modal').boundingBox();
     assert.ok(box&&box.width<=width+0.5,'Share confirmation modal must fit '+width+'px');
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'Share flow must not overflow at '+width+'px');
