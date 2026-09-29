@@ -1,5 +1,3 @@
--- Prevent duplicate paid PASS 2 calls across browsers/devices.
--- Verification jobs are service-role only; originals remain governed by documents/storage RLS.
 alter table public.documents
   add constraint documents_user_client_ref_key unique (user_id, client_ref);
 
@@ -23,6 +21,5 @@ create table public.document_verification_jobs (
 
 alter table public.document_verification_jobs enable row level security;
 revoke all on table public.document_verification_jobs from anon, authenticated;
-
 create index document_verification_jobs_status_idx
   on public.document_verification_jobs(status, updated_at);

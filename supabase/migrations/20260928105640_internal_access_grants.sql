@@ -1,3 +1,4 @@
+
 create table if not exists public.internal_access_grants (
   user_id uuid primary key references auth.users(id) on delete cascade,
   plan text not null check (plan in ('boekuna','pro')),
