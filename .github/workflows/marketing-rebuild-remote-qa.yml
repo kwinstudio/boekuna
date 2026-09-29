@@ -1,0 +1,72 @@
+name: Marketing rebuild remote browser QA
+
+on:
+  push:
+    branches:
+      - marketing/moneybird-inspired-rebuild-20260929
+    paths:
+      - ".github/workflows/marketing-rebuild-remote-qa.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install browsers
+        run: |
+          mkdir -p /tmp/rebuild-qa
+          npm install --prefix /tmp/rebuild-qa --no-save playwright@1.56.1
+          /tmp/rebuild-qa/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Verify real Render preview
+        env:
+          PREVIEW_ORIGIN: https://boekuna-moneybird-rebuild-preview.onrender.com
+        run: |
+          node <<'NODE'
+          const fs=require('node:fs');
+          const path=require('node:path');
+          const assert=require('node:assert/strict');
+          const {chromium,webkit}=require('/tmp/rebuild-qa/node_modules/playwright');
+          const origin=process.env.PREVIEW_ORIGIN;
+          const out='/tmp/rebuild-remote-evidence';fs.mkdirSync(out,{recursive:true});
+          async function check(engine,name,routes,widths,shots){
+            const browser=await engine.launch({headless:true});
+            try{
+              for(const route of routes)for(const width of widths){
+                const page=await browser.newPage({viewport:{width,height:width===390?844:960},reducedMotion:'reduce',hasTouch:width===390});
+                const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+                const res=await page.goto(origin+route,{waitUntil:'domcontentloaded',timeout:45000});
+                assert.ok(res&&res.ok(),name+' '+route+' '+width+' HTTP '+(res&&res.status()));
+                await page.waitForTimeout(900);
+                const metrics=await page.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth,bw:document.body.scrollWidth,h1:document.querySelectorAll('h1').length}));
+                assert.ok(metrics.sw<=metrics.vw+1&&metrics.bw<=metrics.vw+1,name+' '+route+' '+width+' overflow '+JSON.stringify(metrics));
+                assert.equal(metrics.h1,1,name+' '+route+' '+width+' must expose one h1');
+                assert.deepEqual(errors,[],name+' '+route+' '+width+' errors '+errors.join(' | '));
+                if(route==='/'&&width===390){
+                  assert.equal(await page.locator('.rb-photo img').count(),2,'Homepage must show two editorial context images');
+                  assert.equal(await page.locator('.rb-product img').count(),6,'Homepage must show six real product images');
+                  assert.equal(await page.locator('.kz-browser,.kz-phone,.mk-window').count(),0,'Homepage must not render fake UI frames');
+                }
+                if(shots)await page.screenshot({path:path.join(out,name+'-'+(route==='/'?'home':route.replaceAll('/',''))+'-'+width+'.png'),fullPage:true});
+                await page.close();
+              }
+            }finally{await browser.close();}
+          }
+          (async()=>{
+            await check(chromium,'chromium',['/','/functies/','/scanner/','/facturen/','/prijzen/','/voor-ondernemers/','/privacy/'],[390,1440],true);
+            await check(webkit,'webkit',['/','/scanner/','/prijzen/'],[390,1440],true);
+            console.log('Remote Chromium + WebKit preview QA: PASS');
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - name: Upload remote browser evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: marketing-rebuild-remote-evidence
+          path: /tmp/rebuild-remote-evidence/*.png
+          if-no-files-found: error
+          retention-days: 7
