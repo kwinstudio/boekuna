@@ -473,6 +473,7 @@ try{
     assert.equal(await vat.getAttribute('inputmode'),'decimal');
     assert.equal(await gross.getAttribute('inputmode'),'decimal');
     assert.equal(await panel.getAttribute('aria-live'),'polite');
+    await panel.filter({hasText:/Btw verdient controle|Bevestig wat je op het document ziet|Nog te weinig betrouwbare gegevens/}).waitFor();
     const initialPanel=String(await panel.textContent());
     assert.match(initialPanel,/Btw verdient controle|Bevestig wat je op het document ziet|Nog te weinig betrouwbare gegevens/,'Recognition may explain the deterministic mismatch before confirmation, but must not make it applicable');
     assert.equal(await page.getByRole('button',{name:'Gebruik deze bedragen'}).count(),0,'Recognition alone must not silently offer an applicable correction');
@@ -527,11 +528,11 @@ try{
     assert.doesNotMatch(staleFinancialChecks,/Btw-tarief verdient controle|Bedragen sluiten aan|Meerdere btw-tarieven/,'Static recognition checks must not contradict the live financial consistency panel');
 
     if((process.env.BOOKUNA_BROWSER||'chromium')==='chromium'){
-      fs.mkdirSync('tests/.artifacts',{recursive:true});
+      fs.mkdirSync('tests/artifacts',{recursive:true});
       await page.setViewportSize({width:390,height:844});
-      await page.screenshot({path:'tests/.artifacts/smart-financial-correction-mobile.png',fullPage:true});
+      await page.screenshot({path:'tests/artifacts/smart-financial-correction-mobile.png',fullPage:true});
       await page.setViewportSize({width:1440,height:1000});
-      await page.screenshot({path:'tests/.artifacts/smart-financial-correction-desktop.png',fullPage:true});
+      await page.screenshot({path:'tests/artifacts/smart-financial-correction-desktop.png',fullPage:true});
     }
 
     // Mobile-first responsive and overflow checks on the actual review UI.
