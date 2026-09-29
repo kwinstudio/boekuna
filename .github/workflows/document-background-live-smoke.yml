@@ -1,0 +1,32 @@
+name: Document background live smoke
+on:
+  push:
+    branches:
+      - qa/document-bg-live-smoke
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install test dependencies
+        run: |
+          npm ci --prefix tests --ignore-scripts
+          npm install --prefix tests --no-save playwright@1.56.1
+          ./tests/node_modules/.bin/playwright install --with-deps chromium
+      - name: Run deployed document background smoke
+        env:
+          BOOKUNA_PREVIEW_URL: https://boekuna-pr6-de1c73cb.onrender.com
+        run: node tests/document-background-live-smoke.mjs
+      - name: Upload smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: document-background-live-smoke
+          path: tests/artifacts/document-background-live-smoke.png
+          if-no-files-found: ignore
