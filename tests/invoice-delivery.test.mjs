@@ -83,6 +83,42 @@ for (const taxTreatment of ['standard', 'kor', 'reverse', 'icp', 'exempt']) {
   }
 }
 
+const nativeSharePayload = {
+  action: 'render_pdf',
+  company: { name: 'Müller & Zonen B.V.', iban: 'NL91ABNA0417164300' },
+  customer: { name: 'Jänsen / Bouw B.V.' },
+  invoice: {
+    id: 'share-fixture',
+    number: '2026/0041',
+    numberManaged: true,
+    numberFinalized: true,
+    status: 'sent',
+    kind: 'invoice',
+    issueDate: '2026-09-29',
+    dueDate: '2026-10-13',
+    lines: [{ qty: 1, unit: 100, vat: 21, desc: 'Advies' }],
+    payments: [],
+  },
+};
+const shareResponse = await handler(new Request('https://test.invalid/send-invoice', {
+  method: 'POST',
+  headers: { authorization: 'Bearer test-only', origin: 'https://boekuna.nl', 'content-type': 'application/json' },
+  body: JSON.stringify(nativeSharePayload),
+}));
+assert.equal(shareResponse.status, 200, 'authenticated PDF handoff must not require a mailbox connection');
+assert.equal(shareResponse.headers.get('content-type'), 'application/pdf');
+assert.match(shareResponse.headers.get('content-disposition') || '', /Factuur-2026-0041-Jansen-Bouw-B\.V\.pdf/);
+assert.equal(outbound.length, 0, 'render_pdf must not send an email');
+assert.equal((await PDFDocument.load(await shareResponse.arrayBuffer())).getPageCount(), 1);
+
+const draftShareResponse = await handler(new Request('https://test.invalid/send-invoice', {
+  method: 'POST',
+  headers: { authorization: 'Bearer test-only', origin: 'https://boekuna.nl', 'content-type': 'application/json' },
+  body: JSON.stringify({ ...nativeSharePayload, invoice: { ...nativeSharePayload.invoice, status: 'draft', numberFinalized: false } }),
+}));
+assert.equal(draftShareResponse.status, 409, 'draft invoices must not be rendered for email-app handoff');
+assert.equal(outbound.length, 0, 'rejected handoff must not cross a mail-provider boundary');
+
 const payload = {
   to: 'customer@example.org',
   subject: 'Factuur nummer een\r\nB',
@@ -120,4 +156,4 @@ assert.equal(preflight.headers.get('access-control-allow-origin'), 'https://www.
 assert.equal((await handler(new Request('https://test.invalid/send-invoice', { method: 'POST', headers: { origin: 'https://untrusted.invalid' } }))).status, 403);
 assert.equal((await handler(new Request('https://test.invalid/send-invoice', { method: 'POST' }))).status, 401);
 
-console.log('Invoice delivery: PASS (10 actual PDFs, UI/email parity, Gmail boundary, production-domain CORS, origin/auth guards)');
+console.log('Invoice delivery: PASS (authoritative PDF handoff, 10 actual PDFs, UI/email parity, Gmail boundary, production-domain CORS, origin/auth guards)');
