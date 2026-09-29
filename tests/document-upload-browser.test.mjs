@@ -249,21 +249,16 @@ try{
     await page.close();
   }
 
-  // QA-OCR-BETA-001: only the explicitly allowlisted authenticated account
-  // routes to the PP-OCRv6 beta processor; every other account stays stable.
+  // QA-OCR-PROMOTION-001: after the real canary, every account uses the
+  // production local-first processor and the staging router is gone.
   {
     const page=await newAppPage();
-    const routing=await page.evaluate(betaUserId=>{
-      const previous=currentUser;
-      currentUser={...TEST_USER,id:betaUserId};
-      const beta=activeDocumentProcessorUrl();
-      currentUser=TEST_USER;
-      const stable=activeDocumentProcessorUrl();
-      currentUser=previous;
-      return {beta,stable};
-    },'d0323018-5346-475b-9c93-073d5d4fbab7');
-    assert.equal(routing.beta,'https://boekuna-pr58-ocr-staging.onrender.com','Allowlisted account must use the PP-OCRv6 beta processor');
-    assert.equal(routing.stable,processorBase,'Non-beta accounts must stay on the stable processor');
+    const routing=await page.evaluate(()=>({
+      production:DOCUMENT_PROCESSOR_URL,
+      betaType:typeof DOCUMENT_PROCESSOR_BETA_URL
+    }));
+    assert.equal(routing.production,processorBase,'All accounts must use the production OCR processor');
+    assert.equal(routing.betaType,'undefined','Retired OCR beta router must not remain in production source');
     await page.close();
   }
 
