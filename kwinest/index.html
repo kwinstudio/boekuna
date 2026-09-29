@@ -3067,7 +3067,7 @@ function listEmptyHtml(name,ctaHtml=''){
 }
 function toast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;document.getElementById('toastRoot').appendChild(el);setTimeout(()=>el.remove(),2600)}
 function modal(title,body,foot='',wide=false){const active=document.activeElement;if(active&&active!==document.body)modalReturnFocus=active;document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal ${wide?'wide':''}" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-head"><h3 id="modalTitle">${title}</h3><button class="modal-close" onclick="closeModal()" aria-label="Sluiten">×</button></div><div class="modal-body">${body}</div>${foot?`<div class="modal-foot">${foot}</div>`:''}</div></div>`;requestAnimationFrame(()=>{const root=document.getElementById('modalRoot');const first=root.querySelector('.modal-body input:not([type=hidden]),.modal-body select,.modal-body textarea,.modal-body button,.modal-close');first?.focus()})}
-function closeModal(){document.getElementById('modalRoot').innerHTML='';const el=modalReturnFocus;modalReturnFocus=null;if(el?.setAttribute)el.setAttribute('aria-expanded','false');if(el?.isConnected)setTimeout(()=>el.focus(),0)}
+function closeModal(){if(documentProcessingSession)cleanupDocumentProcessingSession();document.getElementById('modalRoot').innerHTML='';const el=modalReturnFocus;modalReturnFocus=null;if(el?.setAttribute)el.setAttribute('aria-expanded','false');if(el?.isConnected)setTimeout(()=>el.focus(),0)}
 function download(name,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
 async function navigate(p){
  const paidFeature={control:'Controlecentrum',cashflow:'Cashflow vooruitblik'}[p];
@@ -3477,6 +3477,11 @@ function startDocumentLongWait(item){
 function finishActiveTransfer(item){
  if(item?.transferActive){item.transferActive=false;activeDocumentTransfers=Math.max(0,activeDocumentTransfers-1)}
 }
+function cleanupDocumentProcessingSession(){
+ const session=documentProcessingSession;if(!session)return;
+ for(const item of session.items||[]){if(item.longWaitTimer)clearTimeout(item.longWaitTimer);item.longWaitTimer=null;const url=item.result?.previewUrl;if(url){try{URL.revokeObjectURL(url)}catch(e){}}}
+ documentProcessingSession=null
+}
 function formatDocumentBytes(value){
  const n=Math.max(0,Number(value||0));if(n<1024)return n+' B';if(n<1024*1024)return (n/1024).toFixed(n<10240?1:0)+' KB';return (n/(1024*1024)).toFixed(n<10*1024*1024?1:0)+' MB'
 }
@@ -3609,6 +3614,7 @@ async function processDocumentQueueItem(item,smart=false){
 }
 async function startDocumentProcessingQueue(files,kind='auto',options={}){
  const list=[...files].filter(Boolean);if(!list.length){toast('Geen bestand geselecteerd');return}if(list.length>DOCUMENT_PROCESSING_MAX_FILES){toast('Kies maximaal '+DOCUMENT_PROCESSING_MAX_FILES+' documenten tegelijk.');return}
+ if(documentProcessingSession)cleanupDocumentProcessingSession();
  documentProcessingSession={id:uid('batch'),items:list.map(function(file){return createDocumentProcessingItem(file,kind)}),smart:!!options.smart,reviewingItemId:null,startedAt:Date.now()};
  renderDocumentProcessingExperience();
  const work=[...documentProcessingSession.items];
