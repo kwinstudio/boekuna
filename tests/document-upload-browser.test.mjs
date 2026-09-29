@@ -477,6 +477,8 @@ try{
     const initialPanel=String(await panel.textContent());
     assert.match(initialPanel,/Btw verdient controle|Bevestig wat je op het document ziet|Nog te weinig betrouwbare gegevens/,'Recognition may explain the deterministic mismatch before confirmation, but must not make it applicable');
     assert.equal(await page.getByRole('button',{name:'Gebruik deze bedragen'}).count(),0,'Recognition alone must not silently offer an applicable correction');
+    const deterministicProcessorPosts=()=>processorMethods.filter(method=>method==='POST').length;
+    const processorPostsBeforeCorrection=deterministicProcessorPosts();
 
     // The final save boundary must not silently accept a recognized 21% rate that
     // conflicts with the cent-exact amounts, nor derive a missing VAT value.
@@ -524,6 +526,7 @@ try{
     assert.equal(String(await page.locator('[data-financial-badge="gross"]').textContent()).trim(),'Bevestigd');
     assert.equal(String(await page.locator('[data-financial-badge="vatRate"]').textContent()).trim(),'Bevestigd');
     assert.match(String(await panel.textContent()),/Bedragen kloppen/);
+    assert.equal(deterministicProcessorPosts(),processorPostsBeforeCorrection,'Deterministic financial correction must not trigger OCR or AI reprocessing');
     const staleFinancialChecks=String(await page.locator('.review-check-summary').allTextContents());
     assert.doesNotMatch(staleFinancialChecks,/Btw-tarief verdient controle|Bedragen sluiten aan|Meerdere btw-tarieven/,'Static recognition checks must not contradict the live financial consistency panel');
 
