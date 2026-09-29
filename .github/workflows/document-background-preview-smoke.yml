@@ -26,7 +26,7 @@ jobs:
           node-version: "22"
       - name: Install live smoke dependencies
         run: |
-          npm install --prefix tests --no-save playwright@1.56.1 pdf-lib@1.17.1
+          npm install --prefix tests --no-save playwright@1.56.1 pdf-lib@1.17.1 @supabase/supabase-js@2 esbuild@0.25.10
           ./tests/node_modules/.bin/playwright install --with-deps chromium
       - name: Live candidate document smoke
         run: |
@@ -36,10 +36,14 @@ jobs:
           import { createRequire } from 'node:module';
           const require=createRequire(import.meta.url);
           const { PDFDocument, StandardFonts }=require('./tests/node_modules/pdf-lib');
+          const esbuild=require('./tests/node_modules/esbuild');
+          const supabaseEntry=require.resolve('./tests/node_modules/@supabase/supabase-js');
+          const supabaseBundle=await esbuild.build({entryPoints:[supabaseEntry],bundle:true,format:'esm',platform:'browser',write:false,target:'es2022'});
 
           const preview=process.env.PREVIEW_URL;
           const browser=await chromium.launch({headless:true});
           const page=await browser.newPage({viewport:{width:1280,height:900}});
+          await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm',route=>route.fulfill({status:200,contentType:'application/javascript; charset=utf-8',body:supabaseBundle.outputFiles[0].text}));
           const consoleErrors=[];
           page.on('pageerror',e=>consoleErrors.push(String(e)));
           page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
