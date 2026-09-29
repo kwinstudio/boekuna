@@ -1946,7 +1946,7 @@ img.bookuna-logo-icon,
 }
 </style>
 <link rel="stylesheet" href="/assets/brand-v2.css?v=20260929a" />
-<link rel="stylesheet" href="/assets/document-background-processing.css?v=20260929a" />\n</head>
+</head>
 <body>
 <script src="/assets/financial-correction.js?v=20260929a"></script>
 <script>
@@ -3093,7 +3093,7 @@ function listEmptyHtml(name,ctaHtml=''){
 }
 function toast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;document.getElementById('toastRoot').appendChild(el);setTimeout(()=>el.remove(),2600)}
 function modal(title,body,foot='',wide=false){const active=document.activeElement;if(active&&active!==document.body)modalReturnFocus=active;document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal ${wide?'wide':''}" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-head"><h3 id="modalTitle">${title}</h3><button class="modal-close" onclick="closeModal()" aria-label="Sluiten">×</button></div><div class="modal-body">${body}</div>${foot?`<div class="modal-foot">${foot}</div>`:''}</div></div>`;requestAnimationFrame(()=>{const root=document.getElementById('modalRoot');const first=root.querySelector('.modal-body input:not([type=hidden]),.modal-body select,.modal-body textarea,.modal-body button,.modal-close');first?.focus()})}
-function closeModal(){if(documentProcessingSession&&activeDocumentTransfers>0)documentProcessingSession.modalHidden=true;else if(documentProcessingSession)cleanupDocumentProcessingSession();document.getElementById('modalRoot').innerHTML='';const el=modalReturnFocus;modalReturnFocus=null;if(el?.setAttribute)el.setAttribute('aria-expanded','false');if(el?.isConnected)setTimeout(()=>el.focus(),0)}
+function closeModal(){if(documentProcessingSession&&!documentProcessingSession.persistent&&activeDocumentTransfers>0)documentProcessingSession.modalHidden=true;else if(documentProcessingSession&&!documentProcessingSession.persistent)cleanupDocumentProcessingSession();document.getElementById('modalRoot').innerHTML='';const el=modalReturnFocus;modalReturnFocus=null;if(el?.setAttribute)el.setAttribute('aria-expanded','false');if(el?.isConnected)setTimeout(()=>el.focus(),0)}
 function download(name,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
 async function navigate(p){
  const paidFeature={control:'Controlecentrum',cashflow:'Cashflow vooruitblik'}[p];
@@ -3552,6 +3552,7 @@ function scheduleDocumentProcessingRender(){
 }
 function renderDocumentProcessingExperience(){
  if(!documentProcessingSession||documentProcessingSession.modalHidden)return;
+ if(documentProcessingSession.persistent){if(page==='documents'&&document.getElementById('content'))render();renderGlobalDocumentIndicator();return}
  if(documentProcessingSession.reviewingItemId&&document.getElementById('pdfImportForm'))return;
  const html=documentProcessingExperienceHtml(),existing=document.getElementById('documentProcessingExperience');
  const total=documentProcessingSession.items.length,title=total>1?total+' documenten verwerken':'Document verwerken';
@@ -3722,8 +3723,8 @@ function localUploadCardHtml(item){
 }
 function renderDocumentProcessingBoard(){
  const local=(documentProcessingSession?.items||[]).filter(x=>['selected','uploading','uploaded'].includes(x.state));
- const activeBatches=persistentDocumentActiveBatchIds(),attention=documentProcessingJobs.filter(j=>['review_required','failed'].includes(String(j.state||'')));
- let jobs=activeBatches.size?documentProcessingJobs.filter(j=>activeBatches.has(String(j.batch_id||''))):attention.slice(0,20);
+ const activeBatches=persistentDocumentActiveBatchIds(),attention=documentProcessingJobs.filter(j=>['review_required','failed'].includes(String(j.state||''))),sessionBatch=documentProcessingSession?.persistent?String(documentProcessingSession.id||''):'';
+ let jobs=activeBatches.size?documentProcessingJobs.filter(j=>activeBatches.has(String(j.batch_id||''))):(sessionBatch?documentProcessingJobs.filter(j=>String(j.batch_id||'')===sessionBatch):attention.slice(0,20));
  if(!local.length&&!jobs.length)return '';
  jobs=[...jobs].sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
  const terminal=jobs.filter(persistentDocumentIsTerminal).length,total=local.length+jobs.length,ready=jobs.filter(j=>j.state==='ready').length,review=jobs.filter(j=>j.state==='review_required').length,failed=jobs.filter(j=>j.state==='failed').length;
@@ -3849,7 +3850,7 @@ async function persistSelectedDocument(item,batchId){
  const {data:existing}=await sb.from('documents').select('id,client_ref,storage_path').eq('user_id',currentUser.id).eq('client_ref',clientRef).maybeSingle();
  let row=existing;
  if(!row){
-  const inserted=await sb.from('documents').insert({user_id:currentUser.id,client_ref:clientRef,name:item.file.name,kind:'document',mime_type:item.file.type||'application/octet-stream',storage_path:path,metadata:{size:item.file.size,batch_id:batchId,processing:true}}).select('id,client_ref,storage_path').single();
+  const inserted=await sb.from('documents').insert({user_id:currentUser.id,client_ref:clientRef,name:item.file.name,kind:'document',mime_type:item.file.type||'application/octet-stream',storage_path:path,metadata:{size:item.file.size,batch_id:batchId,processing:true,requested_kind:item.kind||'auto',company_context:{name:state.company?.name||'',tradeName:state.company?.tradeName||'',kvk:state.company?.kvk||'',vat:state.company?.vat||''}}}).select('id,client_ref,storage_path').single();
   if(inserted.error){await sb.storage.from('kwinest-documents').remove([path]);throw inserted.error}
   row=inserted.data
  }
@@ -3868,7 +3869,7 @@ async function startPersistentDocumentProcessingQueue(files,kind='auto',options=
  if(documentProcessingSession)cleanupDocumentProcessingSession();
  const batchId='batch-'+(crypto.randomUUID?crypto.randomUUID():uid('bg'));
  const session=documentProcessingSession={id:batchId,items:list.map(file=>{const item=createDocumentProcessingItem(file,kind);item.sourceInputId=String(options.sourceInputId||'');return item}),smart:!!options.smart,reviewingItemId:null,startedAt:Date.now(),persistent:true,allReceived:false,modalHidden:false};
- renderDocumentProcessingExperience();renderGlobalDocumentIndicator();
+ if(page!=='documents')await navigate('documents');else render();renderGlobalDocumentIndicator();
  const work=[...session.items],worker=async()=>{while(work.length){const item=work.shift();if(!item)continue;try{await persistSelectedDocument(item,batchId)}catch(err){console.error('Persistent upload failed',err);item.error=err;if(!['failed'].includes(item.state)){try{documentProcessingTransition(item,'failed')}catch{item.state='failed';scheduleDocumentProcessingRender()}}}}};
  await Promise.all(Array.from({length:Math.min(DOCUMENT_PROCESSING_MAX_PARALLEL,list.length)},()=>worker()));
  session.allReceived=session.items.every(x=>x.uploaded||x.state==='failed');
