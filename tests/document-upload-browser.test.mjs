@@ -526,6 +526,7 @@ try{
     assert.equal(String(await page.locator('[data-financial-badge="gross"]').textContent()).trim(),'Bevestigd');
     assert.equal(String(await page.locator('[data-financial-badge="vatRate"]').textContent()).trim(),'Bevestigd');
     assert.match(String(await panel.textContent()),/Bedragen kloppen/);
+    assert.equal(await page.locator('#toastRoot .toast').filter({hasText:/btw-tarief past niet|Vul het btw-bedrag|cent-exact gelijk|Kies en bevestig het btw-tarief/i}).count(),0,'Resolved financial errors must not remain visibly stale after applying the deterministic correction');
     assert.equal(deterministicProcessorPosts(),processorPostsBeforeCorrection,'Deterministic financial correction must not trigger OCR or AI reprocessing');
     const staleFinancialChecks=String(await page.locator('.review-check-summary').allTextContents());
     assert.doesNotMatch(staleFinancialChecks,/Btw-tarief verdient controle|Bedragen sluiten aan|Meerdere btw-tarieven/,'Static recognition checks must not contradict the live financial consistency panel');
