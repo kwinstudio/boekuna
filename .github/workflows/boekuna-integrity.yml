@@ -63,6 +63,10 @@ jobs:
         run: pip install --disable-pip-version-check -r kwinest/docprocessor/requirements.txt
       - name: OCR production hardening
         run: python tests/ocr-production-hardening.test.py
+      - name: Legacy vs PP-OCRv6 A/B benchmark
+        run: |
+          pip install --disable-pip-version-check --no-deps rapidocr-onnxruntime==1.4.4
+          python tests/ocr-ab-benchmark.py
       - name: PDF document processor regression
         run: python tests/document-processor-pdf.test.py
       - name: Real Dutch document regressions
