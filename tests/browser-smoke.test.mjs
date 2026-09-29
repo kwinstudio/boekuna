@@ -198,6 +198,64 @@ try{
   assert.match(helperContract.gmail,/^https:\/\/mail\.google\.com\/mail\/\?view=cm&fs=1&to=/);
   assert.ok(!/[\r\n]/.test(helperContract.gmail),'Gmail compose URL must not contain raw CR/LF');
 
+  // Physical iPhone/Gmail regression: native file sharing may attach the PDF but
+  // Gmail is allowed to ignore the intended recipient/subject. The dedicated
+  // Gmail compose path must therefore carry those fields explicitly.
+  const physicalGmailFixture=await page.evaluate(()=>{
+    const previousCompany=structuredClone(state.company);
+    state.company={
+      ...state.company,
+      name:'Kwin Phetmanee',
+      tradeName:'Kwin Phetmanee',
+      contactName:'Kwin Phetmanee',
+      email:'k.phetmanee@gmail.com',
+      phone:'+31636052860',
+      iban:'NL96INGB0751841897',
+      emailTemplate:{
+        ...state.company.emailTemplate,
+        subjectInvoice:DEFAULT_EMAIL_TEMPLATE.subjectInvoice,
+        bodyInvoice:DEFAULT_EMAIL_TEMPLATE.bodyInvoice
+      }
+    };
+    const customer={id:'gmail-physical-customer',type:'customer',name:'Kwin Phetmanee',contactPerson:'Kwin Phetmanee',email:'customer@example.com',address:'Teststraat 8',postal:'3011AA',city:'Rotterdam'};
+    const invoice={
+      id:'gmail-physical-invoice',number:'2026-0008',numberManaged:true,numberFinalized:true,customerId:customer.id,
+      issueDate:'2026-09-29',supplyDate:'2026-09-29',dueDate:'2026-10-13',paymentDays:14,
+      status:'sent',taxTreatment:'standard',reference:'',paymentReference:'2026-0008',
+      discountType:'none',discountValue:0,notes:'',
+      lines:[{desc:'Werkzaamheden',qty:1,unitLabel:'stuk',unit:250,vat:21}],payments:[]
+    };
+    state.contacts.push(customer);
+    state.invoices.push(invoice);
+    save();
+    return {invoiceId:invoice.id,customerId:customer.id,previousCompany};
+  });
+  await page.evaluate(id=>openSendInvoice(id),physicalGmailFixture.invoiceId);
+  await page.getByRole('heading',{name:'Factuur versturen'}).waitFor();
+  const physicalTo=await page.locator('#emailHandoffForm [name="to"]').inputValue();
+  const physicalSubject=await page.locator('#emailHandoffForm [name="subject"]').inputValue();
+  const physicalBody=await page.locator('#emailHandoffForm [name="message"]').inputValue();
+  assert.equal(physicalTo,'customer@example.com');
+  assert.equal(physicalSubject,'Factuur 2026-0008 · Kwin Phetmanee');
+  assert.notEqual(physicalSubject,'Factuur-2026-0008-Kwin-Phetmanee');
+  assert.match(physicalBody,/^Goedendag Kwin Phetmanee,\n\n/);
+  assert.match(physicalBody,/Hierbij ontvangt u factuur 2026-0008 voor € 302,50\./);
+  assert.match(physicalBody,/Factuurdatum: 29 september 2026\nVervaldatum: 13 oktober 2026\nBedrag: € 302,50/);
+  assert.match(physicalBody,/NL96INGB0751841897 onder vermelding van 2026-0008/);
+  assert.match(physicalBody,/Met vriendelijke groet\nKwin Phetmanee\nk\.phetmanee@gmail\.com\n\+31636052860$/);
+  const physicalGmailUrl=await page.evaluate(({to,subject,body})=>buildGmailComposeUrl(to,subject,body),{to:physicalTo,subject:physicalSubject,body:physicalBody});
+  const parsedPhysicalGmail=new URL(physicalGmailUrl);
+  assert.equal(parsedPhysicalGmail.searchParams.get('to'),'customer@example.com');
+  assert.equal(parsedPhysicalGmail.searchParams.get('su'),'Factuur 2026-0008 · Kwin Phetmanee');
+  assert.equal(parsedPhysicalGmail.searchParams.get('body'),physicalBody,'Gmail compose must retain the exact plain-text newlines');
+  await page.evaluate(fixture=>{
+    state.invoices=state.invoices.filter(x=>x.id!==fixture.invoiceId);
+    state.contacts=state.contacts.filter(x=>x.id!==fixture.customerId);
+    state.company=fixture.previousCompany;
+    save();
+    closeModal();
+  },physicalGmailFixture);
+
   await page.evaluate(id=>openSendInvoice(id),invoiceId);
   const firstEmailModal=await page.locator('.modal').innerText();
   assert.match(firstEmailModal,/Factuur versturen/,'Expected invoice composer after openSendInvoice; got: '+firstEmailModal.slice(0,500));
@@ -219,6 +277,74 @@ try{
   assert.match(unified.file.name,/^Factuur-2026-\d{4}-QA-Klant-BV\.pdf$/);
   assert.equal(await page.evaluate(()=>window.__pdfRenderCalls),1,'Invoice composer must render the PDF exactly once');
   assert.equal(await page.evaluate(id=>state.invoices.find(x=>x.id===id)?.lastSentAt,invoiceId),undefined);
+
+  // Mobile choice must expose Gmail compose separately from attachment-first share.
+  await page.evaluate(()=>{
+    Object.defineProperty(navigator,'userAgentData',{configurable:true,value:{mobile:true}});
+    showDeliveryOptions();
+  });
+  const mobileHandoffText=await page.locator('.modal').innerText();
+  assert.match(mobileHandoffText,/Gmail openen/);
+  assert.match(mobileHandoffText,/PDF delen als bijlage/);
+  assert.match(mobileHandoffText,/Andere e-mailapp openen/);
+  assert.match(mobileHandoffText,/ontvangende app bepaalt zelf Aan en Onderwerp/);
+  assert.equal(await page.getByRole('button',{name:'Gmail openen'}).evaluate(el=>el.classList.contains('primary')),true,'Gmail must be the primary explicit mobile compose option');
+  await page.evaluate(()=>{
+    Object.defineProperty(navigator,'userAgentData',{configurable:true,value:{mobile:false}});
+    showDeliveryOptions();
+    window.__emailDownloadCalls=0;
+    window.__gmailOpenCalls=[];
+    window.__realDownloadInvoiceShareFile=window.downloadInvoiceShareFile;
+    window.__realWindowOpen=window.open;
+    window.downloadInvoiceShareFile=function(file){window.__emailDownloadCalls++;return !!file;};
+    window.open=function(url){window.__gmailOpenCalls.push(String(url));return {closed:false};};
+  });
+
+  // Dedicated Gmail route downloads/prepares the PDF once, but fills To/Subject/Body
+  // through Gmail compose instead of relying on native share field mapping.
+  await page.evaluate(()=>openEmailHandoffGmail());
+  await page.getByRole('heading',{name:'Hebt u de e-mail verzonden?'}).waitFor();
+  let gmailRouteState=await page.evaluate(id=>{
+    const invoice=state.invoices.find(x=>x.id===id);
+    return {
+      url:window.__boekunaLastGmailUrl,
+      opens:window.__gmailOpenCalls.slice(),
+      downloads:window.__emailDownloadCalls,
+      handoff:window.__boekunaEmailHandoffTestState(),
+      lastSentAt:invoice.lastSentAt
+    };
+  },invoiceId);
+  const gmailRouteUrl=new URL(gmailRouteState.url);
+  assert.equal(gmailRouteUrl.searchParams.get('to'),'klant@example.test');
+  assert.match(gmailRouteUrl.searchParams.get('su'),/^Factuur /);
+  assert.match(gmailRouteUrl.searchParams.get('body'),/\n\n/,'Gmail body must contain real paragraph breaks');
+  assert.equal(gmailRouteState.opens.length,1,'One Gmail click must open only one compose target');
+  assert.equal(gmailRouteState.downloads,1,'Gmail route must prepare/download the PDF once');
+  assert.equal(gmailRouteState.handoff.fileDownloaded,true);
+  assert.equal(gmailRouteState.lastSentAt,undefined,'Opening Gmail is not delivery');
+  await page.evaluate(()=>emailHandoffNotSent());
+
+  // Back to composer must preserve the prepared PDF; editing mail text alone may not
+  // trigger another server render or another PDF download.
+  await page.evaluate(()=>reopenEmailHandoffComposer());
+  await page.locator('#emailHandoffForm [name="message"]').fill((await page.locator('#emailHandoffForm [name="message"]').inputValue())+'\n\nExtra controlezin.');
+  await page.evaluate(()=>prepareEmailHandoffFromComposer());
+  assert.equal(await page.evaluate(()=>window.__pdfRenderCalls),1,'Returning to the composer must reuse the prepared PDF');
+  await page.evaluate(()=>openEmailHandoffGmail());
+  await page.getByRole('heading',{name:'Hebt u de e-mail verzonden?'}).waitFor();
+  gmailRouteState=await page.evaluate(()=>({
+    opens:window.__gmailOpenCalls.slice(),
+    downloads:window.__emailDownloadCalls,
+    handoff:window.__boekunaEmailHandoffTestState()
+  }));
+  assert.equal(gmailRouteState.opens.length,2);
+  assert.equal(gmailRouteState.downloads,1,'Reopening Gmail within the same handoff must not download the PDF twice');
+  assert.equal(gmailRouteState.handoff.fileDownloaded,true);
+  await page.evaluate(()=>{
+    emailHandoffNotSent();
+    window.open=window.__realWindowOpen;
+    window.downloadInvoiceShareFile=window.__realDownloadInvoiceShareFile;
+  });
 
   const desktopMailto=await page.evaluate(()=>emailHandoffMailtoUrl());
   assert.match(desktopMailto,/^mailto:klant%40example\.test\?subject=/);

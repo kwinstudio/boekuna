@@ -289,6 +289,16 @@ assert.ok(unifiedEmailModule.includes("window.openSendInvoice=openInvoiceCompose
 assert.ok(unifiedEmailModule.includes("Definitief maken en versturen"),"Draft send CTA must be explicit");
 assert.ok(html.includes('<option value="sent">Definitief / openstaand</option>'),"Invoice editor must not label finalization as already sent");
 assert.ok(unifiedEmailModule.includes("function buildGmailComposeUrl(to,subject,body)"),"Desktop Gmail web compose route must exist");
+assert.ok(html.includes("subjectInvoice:'Factuur {{factuurnummer}} · {{bedrijfsnaam}}'"),"Default invoice subject must be human-readable and not filename-like");
+assert.ok(unifiedEmailModule.includes("Gmail openen"),"Mobile handoff must expose an explicit Gmail compose option");
+assert.ok(unifiedEmailModule.includes("Andere e-mailapp openen"),"Mobile handoff must preserve a separate mailto route");
+assert.ok(unifiedEmailModule.includes("PDF delen als bijlage"),"Attachment-first native sharing must remain available");
+assert.ok(unifiedEmailModule.includes("de ontvangende app bepaalt zelf Aan en Onderwerp"),"Native share UX must disclose recipient/subject mapping limits");
+assert.ok(unifiedEmailModule.includes("file:options.file||null"),"Returning to the composer must preserve the already prepared PDF");
+assert.ok(unifiedEmailModule.includes("function ensureEmailHandoffPdfDownloaded()"),"Gmail/mailto PDF preparation must be idempotent");
+assert.ok(unifiedEmailModule.includes("fileDownloaded:!!options.fileDownloaded"),"Download state must survive composer round-trips");
+assert.ok(unifiedEmailModule.includes("new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'long',year:'numeric'})"),"Email dates must use readable Dutch long-month formatting");
+assert.ok(unifiedEmailModule.includes("joinEmailSections"),"Email body must use one plain-text section formatter");
 assert.ok(unifiedEmailModule.includes("window.buildInvoiceMailto(handoff.to,handoff.subject,handoff.body)"),"Desktop default email route must prefill recipient, subject and body through mailto");
 assert.ok(unifiedEmailModule.includes("window.downloadInvoiceShareFile(handoff.file)"),"Desktop handoff must explicitly prepare the PDF for manual attachment");
 assert.ok(unifiedEmailModule.includes("navigator.share({title:handoff.subject,text:handoff.body,files:[handoff.file]})"),"Native file share must remain available as the attachment-first route");
