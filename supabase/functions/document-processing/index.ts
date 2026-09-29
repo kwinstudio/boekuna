@@ -163,6 +163,18 @@ async function retry(req:Request,a:{user:any,auth:string},body:any){
   run(job.id,a.auth);
   return out(req,{ok:true,job:reset},202);
 }
+async function resolveReview(req:Request,a:{user:any,auth:string},body:any){
+  const sb=admin(),jobId=clean(body.job_id,80);
+  const {data:job}=await sb.from("document_processing_jobs").select("id,state").eq("id",jobId).eq("user_id",a.user.id).maybeSingle();
+  if(!job)return out(req,{ok:false,error:{code:"JOB_NOT_FOUND"}},404);
+  if(job.state!=="review_required")return out(req,{ok:false,error:{code:"JOB_NOT_REVIEWABLE",state:job.state}},409);
+  const at=new Date().toISOString();
+  const {data:resolved,error}=await sb.from("document_processing_jobs").update({
+    state:"ready",phase:"complete",review_fields:[],review_message:null,resolved_at:at,updated_at:at
+  }).eq("id",jobId).eq("user_id",a.user.id).eq("state","review_required").select("*").maybeSingle();
+  if(error||!resolved)return out(req,{ok:false,error:{code:"JOB_RESOLVE_FAILED"}},409);
+  return out(req,{ok:true,job:resolved});
+}
 async function resume(req:Request,a:{user:any,auth:string}){
   const sb=admin(),threshold=new Date(Date.now()-STALE_MS).toISOString();
   const {data:queued}=await sb.from("document_processing_jobs").select("*").eq("user_id",a.user.id).eq("state","queued").lt("attempt",3).limit(3);
@@ -185,6 +197,7 @@ Deno.serve(async(req:Request)=>{
     const body=await jsonBody(req),action=clean(body.action||"enqueue",40);
     if(action==="enqueue")return await enqueue(req,a,body);
     if(action==="retry")return await retry(req,a,body);
+    if(action==="resolve")return await resolveReview(req,a,body);
     if(action==="resume")return await resume(req,a);
     return out(req,{ok:false,error:{code:"INVALID_ACTION"}},400);
   }catch(err:any){
