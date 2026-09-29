@@ -78,6 +78,20 @@ def test_v3_adapter_maps_boxes_text_and_confidence_in_reading_order():
     assert rows[1]["box"][0] == [10.0, 90.0]
 
 
+def test_v3_adapter_preserves_dutch_unicode():
+    output = FakeOutput(
+        np.asarray([[[5, 5], [180, 5], [180, 35], [5, 35]]], dtype=float),
+        ("Café vóór € 12,10",),
+        (0.98,),
+    )
+    rows = processor.ocr_rows(lambda _: output, Image.new("RGB", (220, 60), "white"))
+    assert rows == [{
+        "box": [[5.0, 5.0], [180.0, 5.0], [180.0, 35.0], [5.0, 35.0]],
+        "text": "Café vóór € 12,10",
+        "confidence": 0.98,
+    }]
+
+
 def test_v3_adapter_accepts_empty_result_but_rejects_malformed_contract():
     empty = FakeOutput(None, None, None)
     assert processor.ocr_rows(lambda _: empty, Image.new("RGB", (40, 40), "white")) == []
@@ -132,6 +146,33 @@ def test_ocr_working_resolution_caps_high_resolution_input():
     finally:
         prepared.close()
         img.close()
+
+
+def test_exif_orientation_and_landscape_are_normalized_before_ocr():
+    portrait_source = Image.new("RGB", (1200, 600), "white")
+    exif = portrait_source.getexif()
+    exif[274] = 6
+    encoded = io.BytesIO()
+    portrait_source.save(encoded, format="JPEG", exif=exif)
+    portrait_source.close()
+
+    decoded = Image.open(io.BytesIO(encoded.getvalue()))
+    prepared = processor.prepare_ocr_image(decoded)
+    try:
+        assert prepared.height > prepared.width
+        assert max(prepared.size) == processor.OCR_WORKING_MAX_SIDE
+    finally:
+        prepared.close()
+        decoded.close()
+
+    landscape = Image.new("RGB", (1200, 600), "white")
+    prepared_landscape = processor.prepare_ocr_image(landscape)
+    try:
+        assert prepared_landscape.width > prepared_landscape.height
+        assert max(prepared_landscape.size) == processor.OCR_WORKING_MAX_SIDE
+    finally:
+        prepared_landscape.close()
+        landscape.close()
 
 
 def test_image_dimension_limit_is_checked_before_ocr():
@@ -190,6 +231,7 @@ def test_supported_raster_decoders_keep_contract_without_running_ocr():
     try:
         for fmt, name, mime in [
             ("JPEG", "bon.jpg", "image/jpeg"),
+            ("JPEG", "bon.jpeg", "image/jpeg"),
             ("PNG", "bon.png", "image/png"),
             ("WEBP", "bon.webp", "image/webp"),
         ]:
@@ -220,7 +262,12 @@ def test_health_and_ready_expose_safe_exact_runtime_metadata():
     cold_ms = (time.perf_counter() - started) * 1000
     rss_after_init = _rss_mb()
     if isinstance(ready, JSONResponse):
-        raise AssertionError("OCR readiness failed: " + ready.body.decode("utf-8", errors="replace"))
+        raise AssertionError(
+            "OCR readiness failed: "
+            + ready.body.decode("utf-8", errors="replace")
+            + " internal="
+            + str(processor._OCR_ENGINE_ERROR)
+        )
     assert ready["ok"] is True and ready["ready"] is True
     assert ready["ocr"]["version"] == "3.9.2"
 
@@ -328,9 +375,11 @@ if __name__ == "__main__":
         test_required_stack_is_pinned_and_legacy_runtime_is_absent,
         test_runtime_metadata_matches_pinned_stack,
         test_v3_adapter_maps_boxes_text_and_confidence_in_reading_order,
+        test_v3_adapter_preserves_dutch_unicode,
         test_v3_adapter_accepts_empty_result_but_rejects_malformed_contract,
         test_ocr_singleton_reuses_one_model_instance,
         test_ocr_working_resolution_caps_high_resolution_input,
+        test_exif_orientation_and_landscape_are_normalized_before_ocr,
         test_image_dimension_limit_is_checked_before_ocr,
         test_mime_extension_mismatch_is_rejected,
         test_corrupt_image_is_rejected_safely,
