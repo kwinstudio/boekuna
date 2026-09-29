@@ -42,6 +42,10 @@ assert.match(original,/documentProcessingSession\.persistent\)\{if\(page==='docu
 assert.match(original,/sessionBatch=documentProcessingSession\?\.persistent/,'Current completed batch must remain visible on the Documents screen');
 assert.match(original,/!documentProcessingSession\.persistent.*cleanupDocumentProcessingSession/s,'Closing unrelated modals must not destroy persistent processing UI state');
 assert.match(original,/setTimeout\(\(\)=>\{documentProcessingPollTimer=null;fetchDocumentProcessingJobs\(\).*15000/s,'Fallback polling must be bounded and non-aggressive');
+assert.match(original,/item\.documentId=row\.id;item\.receivedPersisted=true/,'A file is only safely received after storage and the persistent document row exist');
+assert.match(original,/session\.items\.every\(x=>x\.receivedPersisted\|\|x\.state==='failed'\)/,'Batch received copy must use the durable receipt boundary');
+assert.match(original,/function localPersistentProcessingItems\(\)/,'Received items without a visible job must stay on screen');
+assert.match(original,/if\(!doc\)\{doc=\{id:uid\('d'\).*source:'background-upload'/s,'Another browser must reconstruct missing local document metadata from persistent jobs');
 
 let appHtml=original.replace('const TEST_MODE_NO_AUTH=false;','const TEST_MODE_NO_AUTH=true;');
 appHtml=replaceLast(appHtml,'initAuth();',`
@@ -81,6 +85,25 @@ try{
   assert.equal(transitionResult.invalid,true,'Invalid READY -> processing transition must be rejected');
   assert.equal(transitionResult.retryState,'failed');
   assert.equal(transitionResult.afterRetry,'queued');
+
+  await page.evaluate(()=>{
+    const file=new File(['received'],'received-without-job.pdf',{type:'application/pdf'});
+    documentProcessingJobs=[];
+    documentProcessingSession={id:'batch-received-gap',persistent:true,allReceived:true,modalHidden:true,items:[{id:'proc-gap',file,clientRef:'ref-gap',state:'queued',uploaded:true,receivedPersisted:true,uploadPercent:100,uploadLoaded:file.size,uploadTotal:file.size}]};
+    page='documents';render();
+  });
+  assert.match(await page.locator('.document-processing-board').innerText(),/received-without-job\.pdf/);
+  assert.match(await page.locator('.document-processing-board').innerText(),/Wacht/);
+  assert.match(await page.locator('.document-processing-board').innerText(),/Je documenten zijn ontvangen/);
+  assert.equal(await page.locator('#documentProcessingGlobal').evaluate(el=>!el.classList.contains('hidden')),true,'Received item awaiting job recovery must remain globally visible');
+
+  await page.evaluate(()=>{
+    state.documents=[];
+    const now=new Date().toISOString();
+    applyDocumentProcessingJobs([{id:'reconstruct-job',document_id:'doc-reconstruct',client_ref:'ref-reconstruct',batch_id:'batch-old',file_name:'cross-device.pdf',mime_type:'application/pdf',size_bytes:900,requested_kind:'auto',state:'ready',phase:'complete',attempt:1,max_attempts:3,result:{analysis:{documentType:'other',processing:{sourceKind:'pdf',pages:1,ocrPages:[]}}},review_fields:[],review_message:null,error_code:null,error_retryable:false,created_at:now,updated_at:now}],{initial:true});
+  });
+  assert.equal(await page.evaluate(()=>state.documents.some(d=>d.fileId==='ref-reconstruct'&&d.name==='cross-device.pdf')),true,'Persistent jobs must restore document visibility on another browser');
+  documentProcessingSession=null;
   const supportedBatchSizes=await page.evaluate(()=>{
     const result={};
     for(const n of [1,2,5,10]){
