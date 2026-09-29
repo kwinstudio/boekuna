@@ -3457,7 +3457,7 @@ const DOCUMENT_PROCESSING_TRANSITIONS=Object.freeze({
 });
 let documentProcessingSession=null,activeDocumentTransfers=0,documentProcessingRenderPending=false;
 function createDocumentProcessingItem(file,kind='auto'){
- return {id:uid('proc'),file,kind,state:'selected',uploaded:false,uploadLoaded:0,uploadTotal:Number(file?.size||0),uploadPercent:null,uploadAttempt:0,processorComplete:false,longWait:false,longWaitTimer:null,error:null,result:null,message:'Bestand voorbereiden…',subtext:'',reviewed:false,startedAt:null,completedAt:null,transferActive:false}
+ return {id:uid('proc'),file,kind,state:'selected',uploaded:false,uploadLoaded:0,uploadTotal:Number(file?.size||0),uploadPercent:null,uploadAttempt:0,processingPhase:'read',processorComplete:false,longWait:false,longWaitTimer:null,error:null,result:null,message:'Bestand voorbereiden…',subtext:'',reviewed:false,startedAt:null,completedAt:null,transferActive:false}
 }
 function documentProcessingTransition(item,next){
  if(!item||item.state===next)return;
@@ -3487,8 +3487,8 @@ function formatDocumentBytes(value){
 }
 function documentProcessingStepState(item,key){
  if(key==='upload')return item.uploaded?'done':item.state==='uploading'?'active':'pending';
- if(key==='read')return item.processorComplete?'done':item.uploaded&&['processing','preparing_review'].includes(item.state)?'active':'pending';
- if(key==='validate')return item.processorComplete?'done':'pending';
+ if(key==='read')return item.processorComplete||item.processingPhase==='validate'?'done':item.uploaded&&['processing','preparing_review'].includes(item.state)?'active':'pending';
+ if(key==='validate')return item.processorComplete?'done':item.processingPhase==='validate'&&['processing','preparing_review'].includes(item.state)?'active':'pending';
  if(key==='review')return item.state==='completed'?'done':item.state==='preparing_review'?'active':'pending';
  return 'pending'
 }
@@ -3550,6 +3550,7 @@ function scheduleDocumentProcessingRender(){
 }
 function renderDocumentProcessingExperience(){
  if(!documentProcessingSession)return;
+ if(documentProcessingSession.reviewingItemId&&document.getElementById('pdfImportForm'))return;
  const html=documentProcessingExperienceHtml(),existing=document.getElementById('documentProcessingExperience');
  if(existing){existing.outerHTML=html;return}
  const total=documentProcessingSession.items.length,title=total>1?total+' documenten verwerken':'Document verwerken';
@@ -3582,11 +3583,11 @@ async function documentProcessorXhrOnce(fd,item,forceRefresh=false){
 }
 async function documentProcessorXhr(fd,item){
  let res=await documentProcessorXhrOnce(fd,item,false);
- if(res.status===401){if(item){item.uploaded=false;item.uploadPercent=0;setDocumentProcessingMessage(item,'Sessie vernieuwen…','De vorige overdracht wordt opnieuw gestart na het vernieuwen van je sessie.')}res=await documentProcessorXhrOnce(fd,item,true)}
+ if(res.status===401){if(item){if(item.longWaitTimer)clearTimeout(item.longWaitTimer);item.longWaitTimer=null;item.longWait=false;item.uploaded=false;item.uploadPercent=0;item.processingPhase='read';setDocumentProcessingMessage(item,'Sessie vernieuwen…','De vorige overdracht wordt opnieuw gestart na het vernieuwen van je sessie.')}res=await documentProcessorXhrOnce(fd,item,true)}
  return res
 }
 async function processDocumentQueueItem(item,smart=false){
- item.startedAt=Date.now();item.error=null;item.longWait=false;item.processorComplete=false;item.uploaded=false;item.uploadPercent=0;
+ item.startedAt=Date.now();item.error=null;item.longWait=false;item.processingPhase='read';item.processorComplete=false;item.uploaded=false;item.uploadPercent=0;
  try{
   let pending=null;
   if(smart){
@@ -3626,7 +3627,8 @@ async function startDocumentProcessingQueue(files,kind='auto',options={}){
 }
 async function retryDocumentProcessingItem(id){
  const s=documentProcessingSession,item=s?.items.find(function(x){return x.id===id});if(!item||item.state!=='failed')return;
- item.state='selected';item.error=null;item.uploaded=false;item.uploadPercent=0;item.uploadLoaded=0;item.processorComplete=false;item.longWait=false;item.completedAt=null;s.reviewingItemId=null;scheduleDocumentProcessingRender();
+ const active=s.items.filter(x=>x.id!==item.id&&['uploading','processing','preparing_review'].includes(x.state)).length;if(active>=DOCUMENT_PROCESSING_MAX_PARALLEL){toast('Er worden al '+DOCUMENT_PROCESSING_MAX_PARALLEL+' documenten verwerkt. Probeer opnieuw zodra er één klaar is.');return}
+ item.state='selected';item.error=null;item.uploaded=false;item.uploadPercent=0;item.uploadLoaded=0;item.processingPhase='read';item.processorComplete=false;item.longWait=false;item.completedAt=null;s.reviewingItemId=null;scheduleDocumentProcessingRender();
  await processDocumentQueueItem(item,s.smart);
  if(s.items.length===1&&item.state==='completed'&&item.result){pendingPdfImport=item.result;item.result=null;item.reviewed=true;s.reviewingItemId=item.id;showPdfImportReview(pendingPdfImport.parsed)}
 }
@@ -4259,6 +4261,7 @@ async function processFinancialDocument(file,preStructure=null,options={}){
  try{
   progress('Document lezen…','Tekst en bedragen worden gecontroleerd.');
   structure=preStructure||await extractDocumentServer(file,msg=>progress(msg),processingItem);
+  if(processingItem){processingItem.processingPhase='validate';scheduleDocumentProcessingRender()}
   progress('Gegevens herkennen…',structure.ocrUsed?'De scan is gelezen; herkende gegevens worden gecontroleerd.':'De digitale tekstlaag en tabellen zijn uitgelezen.');
   const tableText=processorTablesToText(structure.tables),serverText=[structure.text,tableText].filter(Boolean).join('\n\n--- TABELSTRUCTUUR ---\n\n');
   if(browserStructurePromise){try{browserStructure=await browserStructurePromise;if(browserStructure)parsed=findEmbeddedInvoice(browserStructure,pendingUploadKind)}catch(err){console.warn('Embedded PDF check',err)}}
@@ -4305,7 +4308,8 @@ async function processFinancialDocument(file,preStructure=null,options={}){
  const duplicate=duplicateInvoiceCandidate(parsed,structure?.sha256||parsed.sha256||'');if(duplicate)parsed.duplicateCandidate=duplicate;parsed.pass1DurationMs=Math.round(performance.now()-pass1Started);
  if(processingItem){processingItem.processorComplete=true;if(processingItem.state==='processing')documentProcessingTransition(processingItem,'preparing_review')}
  progress('Je controle wordt voorbereid…','Bij twijfel laten we het straks aan jou zien.');
- const previewUrl=(ext==='pdf'||DOCUMENT_IMAGE_MIME_TYPES.includes(String(file.type||'').toLowerCase())||DOCUMENT_IMAGE_EXTENSIONS.includes(ext))?URL.createObjectURL(file):null;
+ const processingStillVisible=!processingItem||documentProcessingSession?.items?.includes(processingItem);
+ const previewUrl=processingStillVisible&&(ext==='pdf'||DOCUMENT_IMAGE_MIME_TYPES.includes(String(file.type||'').toLowerCase())||DOCUMENT_IMAGE_EXTENSIONS.includes(ext))?URL.createObjectURL(file):null;
  const prepared={file,parsed,previewUrl,sha256:structure?.sha256||parsed.sha256||''};
  if(openReview){pendingPdfImport=prepared;requestAnimationFrame(()=>showPdfImportReview(parsed))}
  return prepared
