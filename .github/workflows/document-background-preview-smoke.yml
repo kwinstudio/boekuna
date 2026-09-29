@@ -58,7 +58,7 @@ jobs:
             await page.waitForFunction(()=>typeof getSupabase==='function',{timeout:30000});
 
             const stamp=Date.now();
-            const email='document-bg-smoke-'+stamp+'@example.com';
+            const email='document-bg-smoke-'+stamp+'@boekuna.nl';
             const password='QaDocBg-'+stamp+'-aA1!';
             const auth=await page.evaluate(async({email,password})=>{
               const sb=await getSupabase();
