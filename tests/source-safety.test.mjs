@@ -4,6 +4,8 @@ import assert from "node:assert/strict";
 const html=fs.readFileSync(new URL("../kwinest/index.html",import.meta.url),"utf8");
 const invoiceAi=fs.readFileSync(new URL("../supabase/functions/analyze-invoice/index.ts",import.meta.url),"utf8");
 const processor=fs.readFileSync(new URL("../kwinest/docprocessor/app.py",import.meta.url),"utf8");
+const sendInvoice=fs.readFileSync(new URL("../supabase/functions/send-invoice/index.ts",import.meta.url),"utf8");
+const emailConnection=fs.readFileSync(new URL("../supabase/functions/email-connection/index.ts",import.meta.url),"utf8");
 const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(Boolean);
 
 assert.ok(scripts.length>=1,"Expected inline JavaScript");
@@ -83,7 +85,7 @@ assert.ok(!html.includes("add(!state.invoices.some(i=>i.number===draft.number),'
 assert.ok(html.includes("function invoiceDraftChecks(draft,excludeId=editingInvoiceId||'')"),"Draft invoice validation must be separate");
 assert.ok(html.includes("function invoiceFinalChecks(draft,excludeId=editingInvoiceId||'')"),"Final invoice validation must be separate");
 assert.ok(html.includes("function invoiceSendChecks(draft,excludeId='')"),"Send validation must be separate");
-assert.ok(html.includes("invoiceSendChecks(draft,i.id)"),"Existing invoice send validation must explicitly exclude its own identity");
+assert.ok(html.includes("invoiceSendChecks(draft,invoice.id)"),"Native invoice send validation must explicitly exclude its own identity");
 assert.ok(html.includes("function saveCreditDraft"),"Partial credit flow is required");
 assert.ok(html.includes("function correctExpense(id)"),"Booked expenses must use a correction entry instead of hard delete");
 assert.ok(!html.includes("state.expenses=state.expenses.filter(x=>x.id!==id)"),"Booked expenses must not be hard deleted");
@@ -243,5 +245,33 @@ assert.ok(processor.includes("public_error_response"),"Processor must use one pu
 assert.ok(processor.includes('"reference_id":reference_id'),"Processor failures must include a reference id");
 assert.ok(!processor.includes('f"Deze foto kon niet worden geopend ({type(exc).__name__})'),"Image decoder exception types must never be returned publicly");
 assert.ok(!processor.includes('f"Document kon niet worden verwerkt ({type(exc).__name__})'),"Document library exception types must never be returned publicly");
+
+
+assert.ok(html.includes('id="boekuna-native-email-share"'),"Native invoice email-app handoff module must be present");
+assert.ok(html.includes("navigator.share({title:prepared.subject,text:prepared.body,files:[prepared.file]})"),"Native handoff must use Web Share with the PDF file");
+assert.ok(html.includes("navigator.canShare({files:[file]})"),"Native handoff must feature-detect file sharing");
+assert.ok(html.includes("new File([buffer],invoiceShareFilename(invoice,customer),{type:'application/pdf'})"),"Shared invoice must be an application/pdf File");
+assert.ok(html.includes("Voeg de PDF handmatig als bijlage toe"),"Desktop fallback must truthfully require manual attachment");
+assert.ok(html.includes("Heb je de factuur verzonden?"),"Handoff must require explicit delivery confirmation");
+assert.ok(html.includes("Ja, markeer als verzonden"),"Manual sent confirmation action must be explicit");
+assert.ok(!html.includes("if(i.status==='draft')i.status='sent'"),"Opening/sending through an email app must never auto-mutate financial invoice status");
+assert.ok(!html.includes("Gmail koppelen"),"Mailbox connection CTA must be absent from the user-visible app");
+assert.ok(html.includes("Geen koppeling nodig"),"Settings must explain that no mailbox connection is required");
+assert.ok(html.includes("Boekuna vraagt geen toegang tot Gmail, Outlook of je inbox"),"Settings must state the mailbox privacy boundary");
+const nativeEmailModule=html.slice(html.indexOf('<script id="boekuna-native-email-share">'),html.indexOf('</script>',html.indexOf('<script id="boekuna-native-email-share">')));
+assert.ok(!nativeEmailModule.includes("email-connection"),"Native invoice handoff must not call the mailbox OAuth endpoint");
+assert.ok(!nativeEmailModule.includes("google_mail_client"),"Native invoice handoff must not depend on Gmail client credentials");
+assert.ok(sendInvoice.includes('data.action==="render_pdf"'),"Invoice edge route must expose authenticated PDF rendering");
+assert.ok(sendInvoice.includes('"content-type":"application/pdf"'),"PDF handoff must return application/pdf");
+assert.ok(sendInvoice.includes("MAILBOX_SEND_DISABLED"),"Direct provider mailbox sending must be disabled");
+const sendHandler=sendInvoice.slice(sendInvoice.indexOf("Deno.serve"));
+assert.ok(sendHandler.indexOf("MAILBOX_SEND_DISABLED")<sendHandler.indexOf("mailboxConnection(auth.user.id)"),"Disabled mailbox boundary must execute before retained deprecated mailbox implementation");
+assert.ok(emailConnection.includes("MAILBOX_CONNECTION_DISABLED"),"New mailbox OAuth connections must be disabled server-side");
+assert.ok(!emailConnection.includes('scope: "openid email https://www.googleapis.com/auth/gmail.send"'),"Disabled mailbox connection route must no longer initiate Gmail send scope");
+if(html.includes("async function loginWithGoogle()")){
+  const googleLogin=html.slice(html.indexOf("async function loginWithGoogle()"),html.indexOf("async function registerUser(e)"));
+  assert.ok(googleLogin.includes("scopes:'openid email profile'"),"Google account login must use identity-only scopes");
+  assert.ok(!googleLogin.includes("gmail.send"),"Google account login must never request Gmail send permission");
+}
 
 console.log("Boekuna source safety tests: PASS");

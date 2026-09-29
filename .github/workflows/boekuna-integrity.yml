@@ -10,6 +10,7 @@ on:
       - "kwinest/**"
       - "tests/**"
       - "supabase/functions/send-invoice/**"
+      - "supabase/functions/email-connection/**"
       - "supabase/functions/consume-quota/**"
       - "supabase/functions/analyze-invoice/**"
       - "supabase/migrations/**"
@@ -60,6 +61,8 @@ jobs:
         run: ./tests/node_modules/.bin/playwright install --with-deps chromium webkit
       - name: Browser pre-launch smoke
         run: node tests/browser-smoke.test.mjs
+      - name: WebKit native email and app smoke
+        run: BOOKUNA_BROWSER=webkit node tests/browser-smoke.test.mjs
       - name: PDF browser regressions
         run: node tests/document-upload-browser.test.mjs
       - name: WebKit document review regressions

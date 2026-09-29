@@ -210,52 +210,11 @@ Deno.serve(async (req: Request) => {
   }
 
   if (action === "start") {
-    const provider = String(body?.provider || "") as "google" | "microsoft";
-    if (provider !== "google" && provider !== "microsoft") return json(req, { ok: false, error: "INVALID_PROVIDER" }, 400);
-
-    const cfg = await config(provider);
-    if (!cfg.clientId || !cfg.clientSecret) {
-      return json(req, { ok: false, error: "PROVIDER_NOT_CONFIGURED", provider }, 503);
-    }
-
-    const state = crypto.randomUUID() + "-" + crypto.randomUUID();
-    const returnUrl = safeReturnUrl(body?.returnUrl);
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    const { error } = await admin.from("email_oauth_states").insert({
-      state,
-      user_id: user.id,
-      provider,
-      return_url: returnUrl,
-      expires_at: expiresAt
-    });
-    if (error) return json(req, { ok: false, error: "OAUTH_STATE_FAILED" }, 500);
-
-    let authorizationUrl = "";
-    if (provider === "google") {
-      const q = new URLSearchParams({
-        client_id: cfg.clientId,
-        redirect_uri: callbackUrl(provider),
-        response_type: "code",
-        scope: "openid email https://www.googleapis.com/auth/gmail.send",
-        access_type: "offline",
-        prompt: "consent",
-        include_granted_scopes: "true",
-        state
-      });
-      authorizationUrl = "https://accounts.google.com/o/oauth2/v2/auth?" + q.toString();
-    } else {
-      const q = new URLSearchParams({
-        client_id: cfg.clientId,
-        redirect_uri: callbackUrl(provider),
-        response_type: "code",
-        response_mode: "query",
-        scope: "openid profile email offline_access User.Read Mail.Send",
-        state
-      });
-      authorizationUrl = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?" + q.toString();
-    }
-
-    return json(req, { ok: true, authorizationUrl });
+    return json(req, {
+      ok: false,
+      error: "MAILBOX_CONNECTION_DISABLED",
+      message: "Een mailboxkoppeling is niet meer nodig. Gebruik de eigen e-mailapp voor facturen."
+    }, 410);
   }
 
   return json(req, { ok: false, error: "UNKNOWN_ACTION" }, 400);

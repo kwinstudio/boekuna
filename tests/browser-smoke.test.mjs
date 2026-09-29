@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
 
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
 const financialCorrectionSource=fs.readFileSync(new URL('../public/assets/financial-correction.js',import.meta.url),'utf8');
@@ -53,7 +53,8 @@ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const {port}=server.address();
 const base=`http://127.0.0.1:${port}`;
 
-const browser=await chromium.launch({headless:true});
+const browserType=(process.env.BOOKUNA_BROWSER||'chromium')==='webkit'?webkit:chromium;
+const browser=await browserType.launch({headless:true});
 const page=await browser.newPage({viewport:{width:1440,height:1000}});
 const pageErrors=[];
 page.on('pageerror',e=>pageErrors.push(String(e)));
@@ -137,6 +138,136 @@ try{
   await popup.waitForLoadState('domcontentloaded');
   assert.match(await popup.locator('body').innerText(),/36,30/,'Printable invoice must show the same gross total');
   await popup.close();
+
+  // Native e-mail app handoff: the production helper must share the authoritative
+  // PDF without claiming successful delivery before explicit confirmation.
+  await page.evaluate(()=>{
+    const originalFetch=window.fetch.bind(window);
+    window.fetch=async (input,init={})=>{
+      const target=String(input);
+      if(target.includes('/send-invoice')&&init?.method==='POST'){
+        const body=JSON.parse(String(init.body||'{}'));
+        if(body.action==='render_pdf'){
+          return new Response(new Uint8Array([0x25,0x50,0x44,0x46,0x2d,0x31,0x2e,0x37,0x0a,0x25,0x51,0x41,0x0a]),{
+            status:200,headers:{'content-type':'application/pdf'}
+          });
+        }
+      }
+      return originalFetch(input,init);
+    };
+    window.__invoiceShareCalls=[];
+    Object.defineProperty(navigator,'canShare',{configurable:true,value:data=>!!data?.files?.length});
+    Object.defineProperty(navigator,'share',{configurable:true,value:async data=>{
+      window.__invoiceShareCalls.push({
+        title:data.title,text:data.text,
+        files:data.files.map(file=>({name:file.name,type:file.type,size:file.size}))
+      });
+    }});
+  });
+
+  const helperContract=await page.evaluate(()=>({
+    valid:isInvoiceShareEmail('klant+facturen@example.nl'),
+    invalid:isInvoiceShareEmail('klant@example.nl\r\nBcc:evil@example.nl'),
+    filename:invoiceShareFilename(
+      {kind:'invoice',number:'2026/0041\r\nBcc:evil'},
+      {name:'Jänsen / ../ Bouw B.V.'}
+    ),
+    creditFilename:invoiceShareFilename({kind:'credit',number:'CR/2026-7'},{name:'Café Noord'}),
+    mailto:buildInvoiceMailto(
+      'klant+facturen@example.nl',
+      'Factuur 2026/0041\r\nBcc:evil@example.nl',
+      'Regel één\nBedrag € 121,00'
+    ),
+    creditSubject:invoiceMailSubject(
+      {kind:'credit',number:'CR-7',dueDate:'2026-10-13',paymentReference:'CR-7',lines:[{qty:1,unit:100,vat:21}]},
+      {name:'Café Noord',contactPerson:''}
+    )
+  }));
+  assert.equal(helperContract.valid,true);
+  assert.equal(helperContract.invalid,false,'CRLF/header-injected recipient must be rejected');
+  assert.match(helperContract.filename,/^Factuur-2026-0041-Bcc-evil-Jansen-Bouw-BV\.pdf$/);
+  assert.match(helperContract.creditFilename,/^Creditnota-CR-2026-7-Cafe-Noord\.pdf$/);
+  assert.ok(!/[\r\n/]/.test(helperContract.filename),'Filename must be path/header safe');
+  assert.ok(helperContract.mailto.startsWith('mailto:klant%2Bfacturen%40example.nl?subject='));
+  assert.ok(!/[\r\n]/.test(helperContract.mailto),'mailto URI must not contain raw CR/LF');
+  assert.match(helperContract.mailto,/%E2%82%AC/,'Euro sign must be URI encoded');
+  assert.match(helperContract.creditSubject,/^Creditfactuur CR-7/,'Credit notes need credit-specific copy');
+
+  await page.evaluate(id=>openSendInvoice(id),invoiceId);
+  if((await page.evaluate(()=>window.__invoiceShareCalls.length))===0){
+    await page.getByRole('button',{name:'Kies je e-mailapp'}).click();
+  }
+  await page.getByRole('heading',{name:'Heb je de factuur verzonden?'}).waitFor();
+  let shareState=await page.evaluate(id=>({
+    call:window.__invoiceShareCalls.at(-1),
+    invoice:state.invoices.find(x=>x.id===id)
+  }),invoiceId);
+  assert.equal(shareState.call.files[0].type,'application/pdf');
+  assert.match(shareState.call.files[0].name,/^Factuur-2026-\d{4}-QA-Klant-BV\.pdf$/);
+  assert.match(shareState.call.title,/^Factuur /);
+  assert.match(shareState.call.text,/QA Test BV|Boekuna QA/);
+  assert.equal(shareState.invoice.lastSentAt,undefined,'Opening native share must not mark the invoice sent');
+  assert.equal(await page.getByRole('button',{name:'Nee, nog niet'}).count(),1,'Confirmation must expose an explicit not-sent action');
+  await page.evaluate(()=>invoiceShareNotSent());
+  assert.equal(await page.evaluate(()=>state.invoices[0]?.lastSentAt),undefined,'Declining confirmation must not record delivery');
+
+  await page.evaluate(()=>{
+    Object.defineProperty(navigator,'share',{configurable:true,value:async ()=>{
+      throw new DOMException('cancelled','AbortError');
+    }});
+  });
+  await page.evaluate(()=>sharePreparedInvoice());
+  await page.locator('.toast').filter({hasText:'Delen geannuleerd'}).waitFor();
+  assert.equal(await page.evaluate(()=>state.invoices[0]?.lastSentAt),undefined,'Cancelled share must leave invoice unchanged');
+
+  await page.evaluate(()=>{
+    Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>false});
+  });
+  const fallbackDownload=page.waitForEvent('download');
+  const shareInvoiceId=await page.evaluate(()=>state.invoices[0]?.id);
+  assert.ok(shareInvoiceId,'Share QA invoice must remain present');
+  await page.evaluate(id=>openSendInvoice(id),shareInvoiceId);
+  const fallbackFile=await fallbackDownload;
+  assert.match(fallbackFile.suggestedFilename(),/^Factuur-2026-\d{4}-QA-Klant-BV\.pdf$/);
+  await page.getByRole('heading',{name:'Factuur klaar om te versturen'}).waitFor();
+  const fallbackText=await page.locator('.modal').innerText();
+  assert.match(fallbackText,/Voeg de PDF handmatig als bijlage toe/);
+  assert.match(fallbackText,/geen toegang tot je mailbox/i);
+  assert.equal(await page.evaluate(()=>state.invoices[0]?.lastSentAt),undefined,'Fallback download must not mark sent');
+  await page.evaluate(()=>closeModal());
+
+  await page.evaluate(()=>{
+    Object.defineProperty(navigator,'canShare',{configurable:true,value:data=>!!data?.files?.length});
+    Object.defineProperty(navigator,'share',{configurable:true,value:async data=>{
+      window.__invoiceShareCalls.push({title:data.title,text:data.text,files:data.files.map(file=>({name:file.name,type:file.type,size:file.size}))});
+    }});
+  });
+  await page.evaluate(()=>sharePreparedInvoice());
+  await page.getByRole('heading',{name:'Heb je de factuur verzonden?'}).waitFor();
+  const statusBeforeConfirm=await page.evaluate(()=>state.invoices[0]?.status);
+  assert.equal(await page.getByRole('button',{name:'Ja, markeer als verzonden'}).count(),1,'Confirmation must expose an explicit sent action');
+  await page.evaluate(()=>confirmInvoiceShareSent(state.invoices[0].id,'native_share'));
+  shareState=await page.evaluate(()=>{
+    const invoice=state.invoices[0];
+    return {status:invoice.status,lastSentAt:invoice.lastSentAt,lastSentTo:invoice.lastSentTo,lastShareChannel:invoice.lastShareChannel,history:invoice.sendHistory||[],audit:state.audit||[]};
+  });
+  assert.equal(shareState.status,statusBeforeConfirm,'Manual delivery confirmation must not change financial invoice status');
+  assert.ok(shareState.lastSentAt,'Explicit user confirmation must record delivery time');
+  assert.equal(shareState.lastSentTo,'klant@example.test');
+  assert.equal(shareState.lastShareChannel,'native_share');
+  assert.equal(shareState.history.at(-1).confirmedByUser,true);
+  assert.equal(shareState.history.at(-1).provider,'manual-email-app');
+  assert.ok(shareState.audit.some(e=>e.action==='Factuur verzending bevestigd'));
+  assert.ok(!JSON.stringify(shareState.audit).includes('Regel één'),'Audit trail must not contain complete email body');
+
+  for(const width of [320,360,375,390,393,430,768,1024,1280,1440]){
+    await page.setViewportSize({width,height:900});
+    await page.evaluate(()=>showInvoiceShareConfirmation(state.invoices[0].id,'native_share'));
+    const box=await page.locator('.modal').boundingBox();
+    assert.ok(box&&box.width<=width+0.5,'Share confirmation modal must fit '+width+'px');
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'Share flow must not overflow at '+width+'px');
+    await page.evaluate(()=>closeModal());
+  }
 
   // P1 regression: invoice status transitions must preserve identity and only
   // reserve a final number on the first definitive transition.
@@ -296,7 +427,7 @@ try{
   await live.close();
 
   assert.deepEqual(pageErrors,[],'Browser page errors: '+pageErrors.join(' | '));
-  console.log('Boekuna browser smoke: PASS (registration, login, desktop CRUD, invoice validation/calculation/numbering/export/print, loading/errors, mobile layout, live availability)');
+  console.log('Boekuna browser smoke: PASS (auth, CRUD, invoice integrity, native email share/fallback/cancel/confirmation, responsive layout, live availability)');
 }finally{
   await browser.close();
   await new Promise(resolve=>server.close(resolve));
