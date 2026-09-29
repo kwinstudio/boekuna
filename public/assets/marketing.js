@@ -6,10 +6,10 @@ function ensureBookunaFavicon(){
   icon.rel='icon'; icon.type='image/svg+xml'; icon.href='/assets/boekuna-favicon.svg'; icon.dataset.bookunaFavicon='1';
   document.head.appendChild(icon);
   const shortcut=document.createElement('link');
-  shortcut.rel='shortcut icon'; shortcut.type='image/svg+xml'; shortcut.href='/assets/boekuna-favicon.svg';
+  shortcut.rel='shortcut icon'; shortcut.href='/favicon.ico';
   document.head.appendChild(shortcut);
   const apple=document.createElement('link');
-  apple.rel='apple-touch-icon'; apple.href='/assets/boekuna-app-icon.svg';
+  apple.rel='apple-touch-icon'; apple.sizes='180x180'; apple.href='/assets/boekuna-app-icon-180.png';
   document.head.appendChild(apple);
   let og=document.querySelector('meta[property="og:image"]');
   if(!og){og=document.createElement('meta');og.setAttribute('property','og:image');document.head.appendChild(og);}
