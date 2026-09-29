@@ -55,6 +55,15 @@ async function actor(req:Request){
   return {user:data.user,auth,mfaRequired};
 }
 function admin(){return createClient(URL,SERVICE,{auth:{persistSession:false,autoRefreshToken:false}})}
+async function backgroundActor(req:Request,jobIdRaw:unknown){
+  const auth=req.headers.get("authorization")||"";
+  const jobId=clean(jobIdRaw,80);
+  if(!auth.startsWith("Bearer ")||!jobId)return null;
+  const userClient=createClient(URL,ANON,{global:{headers:{Authorization:auth}},auth:{persistSession:false,autoRefreshToken:false}});
+  const {data,error}=await userClient.from("document_processing_jobs").select("id,user_id").eq("id",jobId).maybeSingle();
+  if(error||!data?.user_id)return null;
+  return {user:{id:data.user_id},auth,mfaRequired:false};
+}
 function confidence(raw:unknown){
   const n=Number(raw);
   if(!Number.isFinite(n))return null;
@@ -111,7 +120,7 @@ async function processJob(jobId:string,authHeader:string){
     const timer=setTimeout(()=>controller.abort(),125000);
     let response:Response;
     try{
-      response=await fetch(PROCESSOR+"/analyze",{method:"POST",headers:{Authorization:authHeader,Origin:APP_ORIGIN},body:form,signal:controller.signal});
+      response=await fetch(PROCESSOR+"/analyze",{method:"POST",headers:{Authorization:authHeader,Origin:APP_ORIGIN,"X-Boekuna-Processing-Job":jobId},body:form,signal:controller.signal});
     }finally{clearTimeout(timer)}
     const payload=await response.json().catch(()=>({}));
     if(!response.ok||!payload?.ok){
@@ -132,7 +141,7 @@ async function processJob(jobId:string,authHeader:string){
     const isAbort=err?.name==="AbortError";
     await markFailed(sb,jobId,isAbort?"PROCESSING_TIMEOUT":clean(err?.code||"PROCESSOR_UNAVAILABLE",80),Number(err?.status||503),"");
   }finally{
-    EdgeRuntime.waitUntil(triggerNext(authHeader));
+    EdgeRuntime.waitUntil(triggerNext(authHeader,jobId));
   }
 }
 function run(jobId:string,auth:string){EdgeRuntime.waitUntil(processJob(jobId,auth))}
@@ -145,12 +154,12 @@ async function kickUser(userId:string,authHeader:string){
   for(const job of queued||[])run(job.id,authHeader);
   return queued?.length||0;
 }
-async function triggerNext(authHeader:string){
+async function triggerNext(authHeader:string,jobId:string){
   try{
     await fetch(URL+"/functions/v1/document-processing",{
       method:"POST",
       headers:{Authorization:authHeader,apikey:ANON,"content-type":"application/json"},
-      body:JSON.stringify({action:"run_next"})
+      body:JSON.stringify({action:"run_next",job_id:jobId})
     });
   }catch(_){}
 }
@@ -246,15 +255,19 @@ Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors(req)});
   if(req.method!=="POST")return out(req,{ok:false,error:{code:"METHOD_NOT_ALLOWED"}},405);
   if(!URL||!ANON||!SERVICE)return out(req,{ok:false,error:{code:"SERVER_NOT_CONFIGURED"}},503);
-  const a=await actor(req);
-  if(!a)return out(req,{ok:false,error:{code:"AUTH_SESSION_EXPIRED"}},401);
-  if(a.mfaRequired)return out(req,{ok:false,error:{code:"MFA_REQUIRED"}},403);
   try{
     const body=await jsonBody(req),action=clean(body.action||"enqueue",40);
+    if(action==="run_next"){
+      const a=await backgroundActor(req,body.job_id);
+      if(!a)return out(req,{ok:false,error:{code:"AUTH_SESSION_EXPIRED"}},401);
+      const started=await kickUser(a.user.id,a.auth);return out(req,{ok:true,started});
+    }
+    const a=await actor(req);
+    if(!a)return out(req,{ok:false,error:{code:"AUTH_SESSION_EXPIRED"}},401);
+    if(a.mfaRequired)return out(req,{ok:false,error:{code:"MFA_REQUIRED"}},403);
     if(action==="enqueue")return await enqueue(req,a,body);
     if(action==="retry")return await retry(req,a,body);
     if(action==="resolve"||action==="resolve_review")return await resolveReview(req,a,body);
-    if(action==="run_next"){const started=await kickUser(a.user.id,a.auth);return out(req,{ok:true,started});}
     if(action==="resume")return await resume(req,a);
     return out(req,{ok:false,error:{code:"INVALID_ACTION"}},400);
   }catch(err:any){
