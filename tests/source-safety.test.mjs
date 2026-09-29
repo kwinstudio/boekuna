@@ -264,7 +264,8 @@ assert.ok(!nativeEmailModule.includes("google_mail_client"),"Native invoice hand
 assert.ok(sendInvoice.includes('data.action==="render_pdf"'),"Invoice edge route must expose authenticated PDF rendering");
 assert.ok(sendInvoice.includes('"content-type":"application/pdf"'),"PDF handoff must return application/pdf");
 assert.ok(sendInvoice.includes("MAILBOX_SEND_DISABLED"),"Direct provider mailbox sending must be disabled");
-assert.ok(sendInvoice.indexOf("MAILBOX_SEND_DISABLED")<sendInvoice.indexOf("gmail.googleapis.com"),"Disabled mailbox boundary must execute before retained deprecated Gmail implementation");
+const sendHandler=sendInvoice.slice(sendInvoice.indexOf("Deno.serve"));
+assert.ok(sendHandler.indexOf("MAILBOX_SEND_DISABLED")<sendHandler.indexOf("mailboxConnection(auth.user.id)"),"Disabled mailbox boundary must execute before retained deprecated mailbox implementation");
 assert.ok(emailConnection.includes("MAILBOX_CONNECTION_DISABLED"),"New mailbox OAuth connections must be disabled server-side");
 assert.ok(!emailConnection.includes('scope: "openid email https://www.googleapis.com/auth/gmail.send"'),"Disabled mailbox connection route must no longer initiate Gmail send scope");
 if(html.includes("async function loginWithGoogle()")){
