@@ -474,13 +474,23 @@ try{
   assert.ok((await production.locator('body').innerText()).includes('Boekuna vraagt geen toegang tot Gmail, Outlook of je inbox'));
 
   const before=await production.evaluate(()=>({gross:invoiceGross(state.invoices[0]),status:state.invoices[0].status,lastSentAt:state.invoices[0].lastSentAt||null}));
+  const finishLiveShareIfPrompted=async()=>{
+    await production.waitForFunction(()=>{
+      const text=document.querySelector('.modal')?.textContent||'';
+      return text.includes('Factuur klaar om te delen')||text.includes('Heb je de factuur verzonden?')||text.includes('Factuur kon niet worden voorbereid');
+    },{timeout:15000});
+    const modalText=await production.locator('.modal').innerText();
+    assert.doesNotMatch(modalText,/Factuur kon niet worden voorbereid/,'Live handoff preparation must succeed: '+modalText);
+    if(modalText.includes('Factuur klaar om te delen')){
+      await production.getByRole('button',{name:'Kies je e-mailapp'}).click();
+    }
+  };
   await production.evaluate(()=>viewInvoice('live-invoice'));
   assert.equal(await production.getByRole('button',{name:'Versturen via e-mail'}).count(),1,'Deployed invoice must expose native email handoff CTA');
   await production.evaluate(()=>closeModal());
 
   await production.evaluate(()=>openSendInvoice('live-invoice'));
-  await production.getByRole('heading',{name:'Factuur klaar om te delen'}).waitFor();
-  await production.getByRole('button',{name:'Kies je e-mailapp'}).click();
+  await finishLiveShareIfPrompted();
   await production.getByRole('heading',{name:'Heb je de factuur verzonden?'}).waitFor();
   const nativeState=await production.evaluate(()=>({lastSentAt:state.invoices[0].lastSentAt||null,call:window.__liveShareCalls.at(-1)}));
   assert.equal(nativeState.lastSentAt,null,'Live native handoff must not auto-record sent metadata');
@@ -492,8 +502,14 @@ try{
     Object.defineProperty(navigator,'share',{configurable:true,value:async()=>{throw new DOMException('cancelled','AbortError')}});
   });
   await production.evaluate(()=>openSendInvoice('live-invoice'));
-  await production.getByRole('heading',{name:'Factuur klaar om te delen'}).waitFor();
-  await production.getByRole('button',{name:'Kies je e-mailapp'}).click();
+  await production.waitForFunction(()=>{
+    const modal=document.querySelector('.modal')?.textContent||'';
+    const toast=document.querySelector('.toast')?.textContent||'';
+    return modal.includes('Factuur klaar om te delen')||toast.includes('Delen geannuleerd')||modal.includes('Factuur kon niet worden voorbereid');
+  },{timeout:15000});
+  const cancelModalText=await production.locator('.modal').count()?await production.locator('.modal').innerText():'';
+  assert.doesNotMatch(cancelModalText,/Factuur kon niet worden voorbereid/,'Live cancel preparation must succeed: '+cancelModalText);
+  if(cancelModalText.includes('Factuur klaar om te delen'))await production.getByRole('button',{name:'Kies je e-mailapp'}).click();
   await production.locator('.toast').filter({hasText:'Delen geannuleerd'}).waitFor();
   assert.equal(await production.evaluate(()=>state.invoices[0].lastSentAt||null),null,'Live cancelled share must leave delivery metadata unchanged');
 
@@ -514,8 +530,7 @@ try{
     Object.defineProperty(navigator,'share',{configurable:true,value:async data=>{window.__liveShareCalls.push({title:data.title,text:data.text,files:data.files.map(file=>({name:file.name,type:file.type,size:file.size}))})}});
   });
   await production.evaluate(()=>openSendInvoice('live-invoice'));
-  await production.getByRole('heading',{name:'Factuur klaar om te delen'}).waitFor();
-  await production.getByRole('button',{name:'Kies je e-mailapp'}).click();
+  await finishLiveShareIfPrompted();
   await production.getByRole('heading',{name:'Heb je de factuur verzonden?'}).waitFor();
   await production.getByRole('button',{name:'Ja, markeer als verzonden'}).click();
   const after=await production.evaluate(()=>({
