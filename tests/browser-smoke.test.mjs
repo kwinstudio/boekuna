@@ -1,10 +1,12 @@
 import fs from 'node:fs';
 import http from 'node:http';
+import path from 'node:path';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
 const financialCorrectionSource=fs.readFileSync(new URL('../public/assets/financial-correction.js',import.meta.url),'utf8');
+fs.mkdirSync('tests/artifacts',{recursive:true});
 
 function replaceLast(source,needle,replacement){
   const i=source.lastIndexOf(needle);
@@ -27,10 +29,23 @@ state.company={...state.company,name:'QA Test BV',tradeName:'Boekuna QA',contact
 enterApp();
 `);
 
+const mime={'.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.ico':'image/x-icon','.webmanifest':'application/manifest+json'};
+const publicRoot=new URL('../public/',import.meta.url);
 const server=http.createServer((req,res)=>{
-  if(req.url?.startsWith('/assets/financial-correction.js')){res.writeHead(200,{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store'});return res.end(financialCorrectionSource)}
-  if(req.url?.startsWith('/manifest.webmanifest')){res.writeHead(200,{'content-type':'application/manifest+json'});return res.end('{}')}
-  const body=req.url?.startsWith('/auth')?authHtml:appHtml;
+  const pathname=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);
+  if(pathname.startsWith('/assets/')||pathname==='/favicon.ico'){
+    const relative=pathname.replace(/^\//,'');
+    const file=new URL(relative,publicRoot);
+    try{
+      if(fs.existsSync(file)){
+        const ext=path.extname(file.pathname);
+        res.writeHead(200,{'content-type':mime[ext]||'application/octet-stream','cache-control':'no-store'});
+        return fs.createReadStream(file).pipe(res);
+      }
+    }catch{}
+  }
+  if(pathname==='/manifest.webmanifest'){res.writeHead(200,{'content-type':'application/manifest+json'});return res.end('{}')}
+  const body=pathname.startsWith('/auth')?authHtml:appHtml;
   res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});
   res.end(body);
 });
@@ -56,12 +71,17 @@ try{
   await page.getByRole('heading',{name:'Inloggen'}).waitFor();
   assert.equal(await page.locator('#loginPassword').getAttribute('minlength'),null,'Login must not block legacy short passwords');
   assert.ok(await page.getByText('Nog geen account? Gratis starten').count(),'Login must expose registration');
+  assert.equal(await page.locator('.auth-root').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(18, 59, 58)','Login must use Calm Control brand primary');
+  await page.screenshot({path:'tests/artifacts/brand-login-1440.png',fullPage:true});
 
   // Daily-use browser flow on the exact production UI source, with auth/network isolated.
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
   await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await page.waitForFunction(()=>getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim()==='#123B3A');
+  assert.equal(await page.locator('#mainApp .sidebar').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(18, 59, 58)','Sidebar must use Calm Control brand primary');
   assert.equal(await page.locator('.mobile-menu').evaluate(el=>getComputedStyle(el).display),'none');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'Desktop page must not create global horizontal overflow');
+  await page.screenshot({path:'tests/artifacts/brand-dashboard-1440.png',fullPage:true});
 
   await page.evaluate(()=>newContact());
   await page.locator('#contactForm [name="name"]').fill('QA Klant BV');
@@ -257,6 +277,7 @@ try{
   await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
   assert.notEqual(await page.locator('.mobile-menu').evaluate(el=>getComputedStyle(el).display),'none');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'Mobile page must not create global horizontal overflow');
+  await page.screenshot({path:'tests/artifacts/brand-dashboard-390.png',fullPage:true});
   await page.locator('#mobileMenu').click();
   assert.ok(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open')),'Mobile menu must set the sidebar open state');
   await page.waitForTimeout(260);

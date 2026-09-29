@@ -114,6 +114,14 @@ jobs:
       - name: Editorial marketing responsive screenshots
         run: node tests/marketing-editorial-responsive.test.mjs
 
+      - name: Upload brand visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boekuna-brand-v2-visual
+          path: tests/artifacts/brand-*.png
+          if-no-files-found: error
+
       - name: Retired First 100 regression
         run: node tests/early-access-entitlement.test.mjs
       - name: Billing subscription regressions

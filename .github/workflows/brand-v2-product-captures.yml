@@ -1,0 +1,54 @@
+name: BOEKUNA brand v2 product captures
+
+on:
+  push:
+    branches:
+      - brand/boekuna-identity-v2
+    paths:
+      - "kwinest/index.html"
+      - "public/assets/brand-v2.css"
+      - "public/assets/boekuna-*.svg"
+      - "tests/marketing-capture.mjs"
+      - ".github/workflows/brand-v2-product-captures.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: boekuna-brand-v2-product-captures
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: brand/boekuna-identity-v2
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install capture dependencies
+        run: |
+          npm ci --prefix tests --ignore-scripts
+          npm install --prefix tests --no-save playwright@1.56.1 sharp@0.33.5
+          ./tests/node_modules/.bin/playwright install --with-deps chromium
+      - name: Generate branch-safe fictive product captures
+        env:
+          BOOKUNA_MARKETING_CAPTURE_EMAIL: ""
+          BOOKUNA_MARKETING_CAPTURE_PASSWORD: ""
+        run: node tests/marketing-capture.mjs
+      - name: Commit regenerated captures to brand branch
+        run: |
+          if git diff --quiet -- public/assets/product/ && [ -z "$(git ls-files --others --exclude-standard public/assets/product/)" ]; then
+            echo "No product capture changes."
+            exit 0
+          fi
+          git config user.name "boekuna-brand-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/assets/product/
+          git commit -m "brand: regenerate Calm Control product captures [skip ci]"
+          git push origin HEAD:brand/boekuna-identity-v2

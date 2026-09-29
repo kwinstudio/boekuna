@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-09-29T09:37:00.367Z",
+  "generatedAt": "2026-09-29T16:51:01.079Z",
   "source": "kwinest/index.html",
-  "sourceCommit": "8c7b05e8fce8c92ea2f883cca9a19fd944106a71",
-  "sourceRef": "main",
-  "workflowRunId": "36550119776",
+  "sourceCommit": "36ff5d715dbc9aea602576694ed1fcc58f63ac84",
+  "sourceRef": "brand/boekuna-identity-v2",
+  "workflowRunId": "36600618274",
   "viewportDesktop": "1440x960",
   "viewportMobile": "390x844",
   "demoDataset": "permanent-fictive-marketing-v1",
@@ -24,79 +24,233 @@
       "name": "boekuna-dashboard-desktop.webp",
       "width": 1440,
       "height": 960,
-      "size": 94880
+      "size": 96722
     },
     {
       "name": "boekuna-dashboard-desktop-960.webp",
       "width": 960,
       "height": 640,
-      "size": 50948
+      "size": 51806
     },
     {
       "name": "boekuna-invoices-desktop.webp",
       "width": 1440,
       "height": 960,
-      "size": 82256
+      "size": 84598
     },
     {
       "name": "boekuna-invoices-desktop-960.webp",
       "width": 960,
       "height": 640,
-      "size": 44320
+      "size": 45900
     },
     {
       "name": "boekuna-documents-desktop.webp",
       "width": 1440,
       "height": 960,
-      "size": 96544
+      "size": 98762
     },
     {
       "name": "boekuna-documents-desktop-960.webp",
       "width": 960,
       "height": 640,
-      "size": 50368
+      "size": 52878
     },
     {
       "name": "boekuna-vat-desktop.webp",
       "width": 1440,
       "height": 960,
-      "size": 66618
+      "size": 68058
     },
     {
       "name": "boekuna-vat-desktop-960.webp",
       "width": 960,
       "height": 640,
-      "size": 35414
+      "size": 36794
     },
     {
       "name": "boekuna-contacts-desktop.webp",
       "width": 1440,
       "height": 960,
-      "size": 75272
+      "size": 76770
     },
     {
       "name": "boekuna-services-desktop.webp",
       "width": 1440,
       "height": 960,
-      "size": 64368
+      "size": 66046
     },
     {
       "name": "boekuna-company-settings-desktop.webp",
       "width": 1440,
       "height": 960,
-      "size": 95628
+      "size": 96778
     },
     {
       "name": "boekuna-reports-desktop.webp",
       "width": 1440,
       "height": 960,
-      "size": 87154
+      "size": 89458
     },
     {
       "name": "boekuna-reports-desktop-960.webp",
       "width": 960,
       "height": 640,
-      "size": 45644
+      "size": 47048
+    },
+    {
+      "name": "boekuna-dashboard-mobile.webp",
+      "width": 390,
+      "height": 844,
+      "size": 29986
+    },
+    {
+      "name": "boekuna-invoices-mobile.webp",
+      "width": 390,
+      "height": 844,
+      "size": 31878
+    },
+    {
+      "name": "boekuna-documents-mobile.webp",
+      "width": 390,
+      "height": 844,
+      "size": 41894
+    },
+    {
+      "name": "boekuna-vat-mobile.webp",
+      "width": 390,
+      "height": 844,
+      "size": 24710
+    },
+    {
+      "name": "boekuna-dashboard-overview-crop.webp",
+      "width": 1120,
+      "height": 631,
+      "size": 46816,
+      "derivedFrom": "boekuna-dashboard-desktop.webp",
+      "extract": {
+        "left": 170,
+        "top": 0,
+        "width": 1270,
+        "height": 715
+      }
+    },
+    {
+      "name": "boekuna-dashboard-action-center-crop.webp",
+      "width": 650,
+      "height": 488,
+      "size": 28166,
+      "derivedFrom": "boekuna-dashboard-desktop.webp",
+      "extract": {
+        "left": 500,
+        "top": 270,
+        "width": 880,
+        "height": 660
+      }
+    },
+    {
+      "name": "boekuna-invoices-list-crop.webp",
+      "width": 760,
+      "height": 468,
+      "size": 30842,
+      "derivedFrom": "boekuna-invoices-desktop.webp",
+      "extract": {
+        "left": 250,
+        "top": 70,
+        "width": 1170,
+        "height": 720
+      }
+    },
+    {
+      "name": "boekuna-documents-upload-crop.webp",
+      "width": 760,
+      "height": 468,
+      "size": 35526,
+      "derivedFrom": "boekuna-documents-desktop.webp",
+      "extract": {
+        "left": 250,
+        "top": 70,
+        "width": 1170,
+        "height": 720
+      }
+    },
+    {
+      "name": "boekuna-documents-workflow-crop.webp",
+      "width": 680,
+      "height": 425,
+      "size": 27810,
+      "derivedFrom": "boekuna-documents-desktop.webp",
+      "extract": {
+        "left": 330,
+        "top": 235,
+        "width": 1040,
+        "height": 650
+      }
+    },
+    {
+      "name": "boekuna-vat-summary-crop.webp",
+      "width": 760,
+      "height": 468,
+      "size": 23092,
+      "derivedFrom": "boekuna-vat-desktop.webp",
+      "extract": {
+        "left": 250,
+        "top": 70,
+        "width": 1170,
+        "height": 720
+      }
+    },
+    {
+      "name": "boekuna-reports-primary-crop.webp",
+      "width": 760,
+      "height": 468,
+      "size": 27478,
+      "derivedFrom": "boekuna-reports-desktop.webp",
+      "extract": {
+        "left": 250,
+        "top": 70,
+        "width": 1170,
+        "height": 720
+      }
+    },
+    {
+      "name": "boekuna-contacts-list-crop.webp",
+      "width": 760,
+      "height": 422,
+      "size": 27062,
+      "derivedFrom": "boekuna-contacts-desktop.webp",
+      "extract": {
+        "left": 250,
+        "top": 70,
+        "width": 1170,
+        "height": 650
+      }
+    },
+    {
+      "name": "boekuna-services-list-crop.webp",
+      "width": 760,
+      "height": 422,
+      "size": 22190,
+      "derivedFrom": "boekuna-services-desktop.webp",
+      "extract": {
+        "left": 250,
+        "top": 70,
+        "width": 1170,
+        "height": 650
+      }
+    },
+    {
+      "name": "boekuna-company-settings-group-crop.webp",
+      "width": 760,
+      "height": 533,
+      "size": 34730,
+      "derivedFrom": "boekuna-company-settings-desktop.webp",
+      "extract": {
+        "left": 250,
+        "top": 70,
+        "width": 1170,
+        "height": 820
+      }
     },
     {
       "name": "boekuna-document-review-desktop.webp",
@@ -145,160 +299,12 @@
       "width": 390,
       "height": 844,
       "size": 21972
-    },
-    {
-      "name": "boekuna-dashboard-mobile.webp",
-      "width": 390,
-      "height": 844,
-      "size": 29378
-    },
-    {
-      "name": "boekuna-invoices-mobile.webp",
-      "width": 390,
-      "height": 844,
-      "size": 31526
-    },
-    {
-      "name": "boekuna-documents-mobile.webp",
-      "width": 390,
-      "height": 844,
-      "size": 40582
-    },
-    {
-      "name": "boekuna-vat-mobile.webp",
-      "width": 390,
-      "height": 844,
-      "size": 23882
-    },
-    {
-      "name": "boekuna-dashboard-overview-crop.webp",
-      "width": 1120,
-      "height": 631,
-      "size": 45568,
-      "derivedFrom": "boekuna-dashboard-desktop.webp",
-      "extract": {
-        "left": 170,
-        "top": 0,
-        "width": 1270,
-        "height": 715
-      }
-    },
-    {
-      "name": "boekuna-dashboard-action-center-crop.webp",
-      "width": 650,
-      "height": 488,
-      "size": 27214,
-      "derivedFrom": "boekuna-dashboard-desktop.webp",
-      "extract": {
-        "left": 500,
-        "top": 270,
-        "width": 880,
-        "height": 660
-      }
-    },
-    {
-      "name": "boekuna-invoices-list-crop.webp",
-      "width": 760,
-      "height": 468,
-      "size": 29980,
-      "derivedFrom": "boekuna-invoices-desktop.webp",
-      "extract": {
-        "left": 250,
-        "top": 70,
-        "width": 1170,
-        "height": 720
-      }
-    },
-    {
-      "name": "boekuna-documents-upload-crop.webp",
-      "width": 760,
-      "height": 468,
-      "size": 34338,
-      "derivedFrom": "boekuna-documents-desktop.webp",
-      "extract": {
-        "left": 250,
-        "top": 70,
-        "width": 1170,
-        "height": 720
-      }
-    },
-    {
-      "name": "boekuna-documents-workflow-crop.webp",
-      "width": 680,
-      "height": 425,
-      "size": 27100,
-      "derivedFrom": "boekuna-documents-desktop.webp",
-      "extract": {
-        "left": 330,
-        "top": 235,
-        "width": 1040,
-        "height": 650
-      }
-    },
-    {
-      "name": "boekuna-vat-summary-crop.webp",
-      "width": 760,
-      "height": 468,
-      "size": 22840,
-      "derivedFrom": "boekuna-vat-desktop.webp",
-      "extract": {
-        "left": 250,
-        "top": 70,
-        "width": 1170,
-        "height": 720
-      }
-    },
-    {
-      "name": "boekuna-reports-primary-crop.webp",
-      "width": 760,
-      "height": 468,
-      "size": 27084,
-      "derivedFrom": "boekuna-reports-desktop.webp",
-      "extract": {
-        "left": 250,
-        "top": 70,
-        "width": 1170,
-        "height": 720
-      }
-    },
-    {
-      "name": "boekuna-contacts-list-crop.webp",
-      "width": 760,
-      "height": 422,
-      "size": 26388,
-      "derivedFrom": "boekuna-contacts-desktop.webp",
-      "extract": {
-        "left": 250,
-        "top": 70,
-        "width": 1170,
-        "height": 650
-      }
-    },
-    {
-      "name": "boekuna-services-list-crop.webp",
-      "width": 760,
-      "height": 422,
-      "size": 20520,
-      "derivedFrom": "boekuna-services-desktop.webp",
-      "extract": {
-        "left": 250,
-        "top": 70,
-        "width": 1170,
-        "height": 650
-      }
-    },
-    {
-      "name": "boekuna-company-settings-group-crop.webp",
-      "width": 760,
-      "height": 533,
-      "size": 34140,
-      "derivedFrom": "boekuna-company-settings-desktop.webp",
-      "extract": {
-        "left": 250,
-        "top": 70,
-        "width": 1170,
-        "height": 820
-      }
     }
-  ]
+  ],
+  "reviewCaptureSource": {
+    "sourceRef": "main",
+    "sourceCommit": "8c7b05e8fce8c92ea2f883cca9a19fd944106a71",
+    "workflowRunId": "36550119776",
+    "note": "Verified real-processor document review captures carried forward while brand captures remain branch-specific."
+  }
 }
