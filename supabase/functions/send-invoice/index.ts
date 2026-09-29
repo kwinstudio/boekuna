@@ -28,6 +28,17 @@ const num=(v:any)=>Number.isFinite(Number(v))?Number(v):0;
 const money=(v:any)=>new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(num(v));
 const dateNL=(v:any)=>{if(!v)return "—";try{return new Intl.DateTimeFormat("nl-NL",{day:"2-digit",month:"2-digit",year:"numeric"}).format(new Date(String(v)+"T12:00:00"))}catch{return safe(v,40)}};
 
+function pdfFilename(data:any){
+  const invoice=data?.invoice||{},customer=data?.customer||{};
+  const clean=(value:any,max=72)=>String(value??"")
+    .normalize("NFKD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/\./g,"").replace(/[^a-zA-Z0-9_-]+/g,"-").replace(/^-+|-+$/g,"").replace(/-+/g,"-").slice(0,max);
+  const label=invoice.kind==="credit"?"Creditnota":"Factuur";
+  const number=clean(invoice.number,80)||"zonder-nummer";
+  const party=clean(customer.name,72);
+  return [label,number,party].filter(Boolean).join("-")+".pdf";
+}
+
 async function userFrom(req:Request){
   const auth=req.headers.get("Authorization")||"";
   if(!auth.startsWith("Bearer ")) return null;
@@ -259,15 +270,36 @@ Deno.serve(async(req:Request)=>{
   const auth=await userFrom(req);if(!auth)return j(req,{ok:false,error:"UNAUTHORIZED"},401);
 
   if(req.method==="GET"){
-    let conn:any=null;try{conn=await mailboxConnection(auth.user.id)}catch{}
-    if(conn?.provider==="google"){
-      const cfg=await providerCredentials("google");
-      return j(req,{ok:true,configured:!!(cfg.clientId&&cfg.clientSecret),provider:"google",ownMailbox:true,email:conn.email,status:conn.status});
-    }
-    return j(req,{ok:true,configured:false,provider:"google",ownMailbox:false,email:""});
+    return j(req,{ok:true,configured:false,ownMailbox:false,disabled:true,delivery:"native-email-app"});
   }
 
   if(req.method!=="POST")return j(req,{ok:false,error:"METHOD_NOT_ALLOWED"},405);
+  const data=await req.json().catch(()=>null);if(!data)return j(req,{ok:false,error:"INVALID_JSON"},400);
+
+  if(data.action==="render_pdf"){
+    const invoice=data.invoice||{};
+    if(!invoice.id||!String(invoice.number||"").trim()||invoice.status==="draft"||(invoice.numberManaged&&!invoice.numberFinalized)){
+      return j(req,{ok:false,error:"De factuur moet definitief zijn voordat je haar kunt delen.",code:"INVOICE_NOT_FINAL"},409);
+    }
+    try{
+      const pdf=await pdfBytes(data);
+      return new Response(pdf,{status:200,headers:{
+        ...cors(req),
+        "content-type":"application/pdf",
+        "content-disposition":`attachment; filename="${pdfFilename(data)}"`,
+        "cache-control":"no-store",
+        "x-content-type-options":"nosniff"
+      }});
+    }catch(e){
+      console.error("invoice pdf render failed",e instanceof Error?e.message:"PDF_RENDER_FAILED");
+      return j(req,{ok:false,error:"De definitieve factuur-PDF kon niet worden gemaakt.",code:"PDF_RENDER_FAILED"},500);
+    }
+  }
+
+  // Direct mailbox delivery is deliberately disabled. The supported product
+  // path is authenticated PDF rendering followed by a user-controlled email-app handoff.
+  return j(req,{ok:false,error:"Mailboxverzending is uitgeschakeld. Gebruik Versturen via e-mail in Boekuna.",code:"MAILBOX_SEND_DISABLED"},410);
+
   if(!(await quota(auth.token,"invoice_email")))return j(req,{ok:false,error:"E-mailquotum bereikt. Probeer het later opnieuw."},429);
 
   let conn:any=null;try{conn=await mailboxConnection(auth.user.id)}catch(e){console.error("mailbox connection",e)}
@@ -275,7 +307,6 @@ Deno.serve(async(req:Request)=>{
     return j(req,{ok:false,error:"Koppel eerst je eigen Gmail bij Instellingen. Facturen worden alleen vanuit de Gmail van de ondernemer verzonden.",code:"GMAIL_NOT_CONNECTED"},409);
   }
 
-  const data=await req.json().catch(()=>null);if(!data)return j(req,{ok:false,error:"INVALID_JSON"},400);
   const to=email(data.to||data.customer?.email);if(!to)return j(req,{ok:false,error:"Ongeldig e-mailadres."},400);if(/@example\.com$/i.test(to))return j(req,{ok:false,error:"Dit is een demo-e-mailadres. Vul een echt klantadres in."},400);
   const subject=safe(data.subject,240).replace(/[\r\n]/g," ").trim(),message=safe(data.message,12000).trim();if(!subject||!message)return j(req,{ok:false,error:"Onderwerp en bericht zijn verplicht."},400);
   const pdf=await pdfBytes(data);const sender=safe(data.company?.emailTemplate?.senderName||data.company?.tradeName||data.company?.name||"Administratie",100).replace(/[<>\r\n"]/g," ");
