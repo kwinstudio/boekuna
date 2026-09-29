@@ -80,7 +80,23 @@ function calc(invoice:any){
     ? roundMoney(Math.abs(num(invoice.importedTotals.gross))*sign)
     : roundMoney(net+vat);
   const paid=(Array.isArray(invoice?.payments)?invoice.payments:[]).reduce((s:number,p:any)=>roundMoney(s+Math.abs(roundMoney(p.amount))),0);
-  return {lines,net,vat,gross,paid,outstanding:Math.max(0,roundMoney(Math.abs(gross)-paid)),sign,discount:discountAmount(invoice)};
+  const sourceVatLines=Array.isArray(invoice?.vatLines)?invoice.vatLines:[];
+  let vatGroups:any[]=[];
+  if(sourceVatLines.length){
+    vatGroups=sourceVatLines.map((v:any)=>({
+      rate:num(v.rate),taxable:roundMoney(num(v.taxableAmount??v.net??0)*sign),vat:roundMoney(num(v.vatAmount??v.vat??0)*sign)
+    }));
+  }else if(!zeroVatTreatment(taxTreatment(invoice))){
+    const groups=new Map<number,{rate:number,taxable:number,vat:number}>();
+    for(const line of lines){
+      const rate=num(line?.vat),current=groups.get(rate)||{rate,taxable:0,vat:0};
+      current.taxable=roundMoney(current.taxable+discountedLineNet(invoice,line)*sign);
+      current.vat=roundMoney(current.vat+discountedLineVat(invoice,line)*sign);
+      groups.set(rate,current);
+    }
+    vatGroups=[...groups.values()].sort((a,b)=>a.rate-b.rate);
+  }
+  return {lines,net,vat,gross,paid,outstanding:Math.max(0,roundMoney(Math.abs(gross)-paid)),sign,discount:discountAmount(invoice),vatGroups};
 }
 async function pdfBytes(data:any){
   const {company={},customer={},invoice={}}=data; const c=calc(invoice);
@@ -90,23 +106,28 @@ async function pdfBytes(data:any){
   const accent=rgb(ar,ag,ab), ink=rgb(.09,.14,.12), muted=rgb(.4,.46,.43);
   let page=pdf.addPage([595.28,841.89]); let y=790;
   const text=(t:string,x:number,yy:number,size=10,font=regular,color=ink)=>page.drawText(safe(t,1000),{x,y:yy,size,font,color,maxWidth:500});
+  const tableHeader=()=>{text("Omschrijving",46,y,8,bold,muted);text("Aantal",330,y,8,bold,muted);text("Btw",410,y,8,bold,muted);text("Bedrag",480,y,8,bold,muted);page.drawLine({start:{x:46,y:y-10},end:{x:549,y:y-10},thickness:1,color:accent});y-=30;};
   text(safe(company.tradeName||company.name,120).toUpperCase(),46,y,9,bold,accent); text(invoice.kind==="credit"?"CREDITFACTUUR":"FACTUUR",46,y-34,26,bold,ink);
-  text(safe(invoice.number,80),410,y,12,bold,ink); text(dateNL(invoice.issueDate),410,y-18,9,regular,muted);
+  text(safe(invoice.number,80),410,y,12,bold,ink); text("Factuurdatum "+dateNL(invoice.issueDate),410,y-18,8,regular,muted);text("Vervaldatum "+dateNL(invoice.dueDate),410,y-32,8,regular,muted);
   page.drawLine({start:{x:46,y:y-52},end:{x:549,y:y-52},thickness:1.5,color:accent}); y-=82;
   text("VAN",46,y,7,bold,muted); text(safe(company.name,120),46,y-17,10,bold); text(safe(company.address,120),46,y-34,9); text((safe(company.postal,30)+" "+safe(company.city,80)).trim(),46,y-48,9);
   text("FACTUUR AAN",310,y,7,bold,muted); text(safe(customer.name,120),310,y-17,10,bold); text(safe(customer.address,120),310,y-34,9); text((safe(customer.postal,30)+" "+safe(customer.city,80)).trim(),310,y-48,9);
   y-=90;
-  text("Omschrijving",46,y,8,bold,muted); text("Aantal",330,y,8,bold,muted); text("Btw",410,y,8,bold,muted); text("Bedrag",480,y,8,bold,muted);
-  page.drawLine({start:{x:46,y:y-10},end:{x:549,y:y-10},thickness:1,color:accent}); y-=30;
+  tableHeader();
   for(const l of c.lines){
-    if(y<170){page=pdf.addPage([595.28,841.89]);y=790}
+    if(y<170){page=pdf.addPage([595.28,841.89]);y=790;tableHeader()}
     text(safe(l.desc||"",180),46,y,9,regular); text(String(num(l.qty)),330,y,9); text(zeroVatTreatment(taxTreatment(invoice))?"0%":String(num(l.vat))+"%",410,y,9); text(money(discountedLineNet(invoice,l)*c.sign),480,y,9,bold);
     y-=24;
   }
+  if(y<170+(c.vatGroups?.length||0)*18){page=pdf.addPage([595.28,841.89]);y=790}
   y-=10; page.drawLine({start:{x:330,y:y+8},end:{x:549,y:y+8},thickness:.7,color:rgb(.85,.88,.86)});
   text(c.discount>0?"Subtotaal na korting":"Subtotaal",330,y,9,regular,muted); text(money(c.net),470,y,9,bold); y-=20;
   if(c.discount>0){text("Korting (inbegrepen)",330,y,9,regular,muted); text(money(c.discount),470,y,9,bold); y-=20;}
-  text(zeroVatTreatment(taxTreatment(invoice))?"Btw ("+taxTreatment(invoice)+")":"Btw",330,y,9,regular,muted); text(money(c.vat),470,y,9,bold); y-=24;
+  if(c.vatGroups?.length>1){
+    for(const group of c.vatGroups){text("Btw "+String(num(group.rate))+"% over "+money(group.taxable),330,y,8,regular,muted);text(money(group.vat),470,y,8,bold);y-=18}
+  }else{
+    text(zeroVatTreatment(taxTreatment(invoice))?"Btw ("+taxTreatment(invoice)+")":"Btw",330,y,9,regular,muted); text(money(c.vat),470,y,9,bold); y-=20;
+  }
   text(invoice.kind==="credit"?"Totaal credit":"Totaal",330,y,11,bold,ink); text(money(c.gross),470,y,11,bold,ink); y-=38;
   if(company?.invoiceDesign?.showPaymentBlock!==false){
     page.drawRectangle({x:46,y:y-54,width:503,height:54,color:accent});
@@ -114,6 +135,8 @@ async function pdfBytes(data:any){
     text(invoice.kind==="credit"?"Wordt verrekend of terugbetaald":safe(company.iban,80),58,y-34,10,bold,rgb(1,1,1));
     text("REFERENTIE",330,y-17,7,bold,rgb(1,1,1)); text(safe(invoice.paymentReference||invoice.number,80),330,y-34,10,bold,rgb(1,1,1));
   }
+  const pages=pdf.getPages();
+  pages.forEach((p:any,i:number)=>p.drawText("Pagina "+String(i+1)+" / "+String(pages.length),{x:46,y:28,size:7,font:regular,color:muted}));
   return await pdf.save();
 }
 function htmlMail(data:any){
