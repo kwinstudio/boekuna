@@ -734,7 +734,8 @@ try{
       );
     };
     Object.defineProperty(navigator,'userAgentData',{configurable:true,value:{mobile:true}});
-    Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>true});
+    Object.defineProperty(navigator,'canShare',{configurable:true,value:data=>!!data?.files?.length});
+    Object.defineProperty(navigator,'share',{configurable:true,value:async ()=>{}});
     window.__liveGmailDownloads=0;
     window.__liveGmailOpens=[];
     window.downloadInvoiceShareFile=function(file){
