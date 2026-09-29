@@ -77,6 +77,7 @@ logger = logging.getLogger("boekuna.document_processor")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://vuwfyhtejsxhdfyvkkeq.supabase.co").rstrip("/")
 SUPABASE_PUBLISHABLE_KEY = os.getenv("SUPABASE_PUBLISHABLE_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+EXTERNAL_AI_ENABLED = os.getenv("BOOKUNA_ENABLE_EXTERNAL_AI", "").strip().lower() in {"1", "true", "yes", "on"}
 OPENAI_RESPONSES_URL = os.getenv("OPENAI_RESPONSES_URL", "https://api.openai.com/v1/responses")
 MAX_BYTES = int(os.getenv("MAX_FILE_BYTES", str(15 * 1024 * 1024)))
 MAX_SIZE_MB = max(1, MAX_BYTES // 1024 // 1024)
@@ -1771,6 +1772,8 @@ def ai_provider_rate_limit_delay(resp:Any, provider_code:str|None, provider_mess
     return max(.5,min(15.0,delay+.5))
 
 def ai_extract(doc:dict,filename:str,company:dict,heuristic:ExtractionResult,independent:bool=False,raw:bytes|None=None,content_type:str="")->tuple[ExtractionResult|None,dict[str,Any]|None]:
+    if not EXTERNAL_AI_ENABLED:
+        return None,{"internal_code":"AI_TEMPORARILY_DISABLED","provider":"openai"}
     if not OPENAI_API_KEY:return None,{"internal_code":"AI_PROVIDER_NOT_CONFIGURED","provider":"openai"}
     compact_layout=[]
     for p in doc.get("layout",[])[:10]: compact_layout.append({"page":p.get("page"),"words":p.get("words",[])[:900]})
@@ -2156,8 +2159,9 @@ def health():
     return {
         "ok":True,
         "service":"boekuna-document-processor",
-        "aiConfigured":bool(OPENAI_API_KEY),
-        "verificationConfigured":bool(OPENAI_API_KEY),
+        "aiConfigured":bool(EXTERNAL_AI_ENABLED and OPENAI_API_KEY),
+        "verificationConfigured":bool(EXTERNAL_AI_ENABLED and OPENAI_API_KEY),
+        "externalAiEnabled":EXTERNAL_AI_ENABLED,
         "aiMode":"optional_fallback",
         "aiRequiredForAnalyze":False,
         "explicitVerificationAvailable":bool(OPENAI_API_KEY),
@@ -2221,6 +2225,8 @@ async def verify_document(request:Request,file:UploadFile=File(...),company_json
         raise BoekunaDocumentError("ACCOUNT_READ_ONLY",status=403,internal_code="ENTITLEMENT_READ_ONLY")
     # PASS 2 is an integrity check of an already accepted document and never consumes
     # or requires a second monthly smart-document quota unit.
+    if not EXTERNAL_AI_ENABLED:
+        raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="AI_TEMPORARILY_DISABLED")
     if not OPENAI_API_KEY:
         raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="AI_PROVIDER_NOT_CONFIGURED")
     set_processing_meta(request,stage="receive")
@@ -2323,7 +2329,8 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
         doc.setdefault("processingHints", {})["clientOcrUsed"] = True
     heur=heuristic_extract(doc,file.filename or "document",company)
     ai_reasons=ai_escalation_reasons(doc,heur)
-    ai_requested=bool(ai_reasons)
+    ai_candidate=bool(ai_reasons)
+    ai_requested=bool(ai_candidate and EXTERNAL_AI_ENABLED)
     fast_path=not ai_requested
     ai=None
     ai_failure=None
@@ -2378,7 +2385,8 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
         "aiMode":"optional_fallback",
         "aiRequested":ai_requested,
         "aiReasons":ai_reasons,
-        "aiStatus":"used" if ai else ("unavailable" if ai_failure else "skipped"),
+        "aiStatus":"used" if ai else ("unavailable" if ai_failure else ("disabled" if ai_candidate and not EXTERNAL_AI_ENABLED else "skipped")),
+        "externalAiEnabled":EXTERNAL_AI_ENABLED,
         "reviewComplete":True,
         "fastPath":"deterministic" if fast_path else None,
         "durationMs":round((time.time()-started)*1000),
