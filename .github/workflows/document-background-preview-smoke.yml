@@ -1,0 +1,225 @@
+name: Document background preview smoke
+
+on:
+  push:
+    branches:
+      - feature/document-background-processing
+    paths:
+      - ".github/workflows/document-background-preview-smoke.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  live-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PREVIEW_URL: https://boekuna-pr6-de1c73cb.onrender.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install live smoke dependencies
+        run: |
+          npm install --prefix tests --no-save playwright@1.56.1 pdf-lib@1.17.1
+          ./tests/node_modules/.bin/playwright install --with-deps chromium
+      - name: Live candidate document smoke
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import { chromium } from './tests/node_modules/playwright/index.mjs';
+          import { PDFDocument, StandardFonts } from './tests/node_modules/pdf-lib/es/index.js';
+
+          const preview=process.env.PREVIEW_URL;
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1280,height:900}});
+          const consoleErrors=[];
+          page.on('pageerror',e=>consoleErrors.push(String(e)));
+          page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
+
+          async function pdfBuffer(lines){
+            const pdf=await PDFDocument.create();
+            const p=pdf.addPage([595,842]);
+            const font=await pdf.embedFont(StandardFonts.Helvetica);
+            let y=790;
+            for(const line of lines){p.drawText(line,{x:48,y,size:12,font});y-=24}
+            return Buffer.from(await pdf.save());
+          }
+
+          try{
+            await page.goto(preview,{waitUntil:'domcontentloaded',timeout:60000});
+            await page.waitForFunction(()=>typeof getSupabase==='function',{timeout:30000});
+
+            const stamp=Date.now();
+            const email='document-bg-smoke-'+stamp+'@example.com';
+            const password='QaDocBg-'+stamp+'-aA1!';
+            const auth=await page.evaluate(async({email,password})=>{
+              const sb=await getSupabase();
+              const {data,error}=await sb.auth.signUp({email,password,options:{data:{name:'Document Preview QA'}}});
+              return {hasSession:!!data?.session,userId:data?.user?.id||'',error:error?.message||''}
+            },{email,password});
+            if(auth.error)throw new Error('QA signup failed: '+auth.error);
+            if(!auth.hasSession)throw new Error('QA signup requires email confirmation; candidate cannot run unattended live smoke.');
+            await page.waitForFunction(()=>currentUser&&document.getElementById('mainApp')?.style.display!=='none',{timeout:30000});
+
+            const readyPdf=await pdfBuffer([
+              'FACTUUR',
+              'Leverancier: Smoke Supplier BV',
+              'Factuurnummer: BG-READY-001',
+              'Factuurdatum: 29-09-2026',
+              'Subtotaal EUR 100,00',
+              'BTW 21% EUR 21,00',
+              'Totaal EUR 121,00'
+            ]);
+            const reviewPdf=await pdfBuffer([
+              'FACTUUR',
+              'Leverancier: Review Supplier BV',
+              'Factuurnummer: BG-REVIEW-001',
+              'Totaal EUR 128,66',
+              'Controleer deze factuur handmatig'
+            ]);
+            const mixed=Buffer.from(fs.readFileSync('tests/fixtures/02_gemengde_btw_9_en_21.pdf.b64','utf8').trim(),'base64');
+            const csv=Buffer.from('omschrijving,aantal\nBoekuna live smoke,1\n','utf8');
+            const badJpg=Buffer.from('this-is-not-a-valid-jpeg','utf8');
+
+            await page.locator('#invoicePdfFile').setInputFiles([
+              {name:'Smoke-Ready.pdf',mimeType:'application/pdf',buffer:readyPdf},
+              {name:'Smoke-Review.pdf',mimeType:'application/pdf',buffer:reviewPdf},
+              {name:'Smoke-Mixed-VAT.pdf',mimeType:'application/pdf',buffer:mixed},
+              {name:'Smoke-Info.csv',mimeType:'text/csv',buffer:csv},
+              {name:'Smoke-Failed.jpg',mimeType:'image/jpeg',buffer:badJpg}
+            ]);
+
+            await page.waitForFunction(()=>documentProcessingSession?.persistent&&documentProcessingSession.items.length===5,{timeout:20000});
+            const batchId=await page.evaluate(()=>documentProcessingSession.id);
+            await page.waitForFunction(()=>documentProcessingSession?.allReceived===true,{timeout:120000});
+            await page.waitForFunction(()=>documentProcessingJobs.filter(j=>j.batch_id===documentProcessingSession.id).length===5,{timeout:30000});
+            const receivedText=await page.locator('.document-processing-board').innerText();
+            if(!/documenten zijn ontvangen/i.test(receivedText))throw new Error('Received confirmation missing from Documents view');
+
+            const beforeNav=await page.evaluate(batchId=>({
+              active:documentProcessingJobs.filter(j=>j.batch_id===batchId&&!['ready','review_required','failed'].includes(j.state)).length,
+              ids:documentProcessingJobs.filter(j=>j.batch_id===batchId).map(j=>j.id).sort(),
+              refs:documentProcessingJobs.filter(j=>j.batch_id===batchId).map(j=>j.client_ref).sort()
+            }),batchId);
+            if(beforeNav.active<1)throw new Error('Batch completed before navigation-away background state could be verified.');
+
+            await page.evaluate(()=>navigate('dashboard'));
+            await page.waitForTimeout(250);
+            const dashActive=await page.evaluate(()=>documentProcessingJobs.some(j=>j.batch_id===documentProcessingSession.id&&!['ready','review_required','failed'].includes(j.state)));
+            if(dashActive&&await page.locator('#documentProcessingGlobal:not(.hidden)').count()!==1)throw new Error('Global indicator missing on Dashboard while processing is active');
+
+            await page.evaluate(()=>navigate('contacts'));
+            await page.waitForTimeout(250);
+            const contactsActive=await page.evaluate(()=>documentProcessingJobs.some(j=>j.batch_id===documentProcessingSession.id&&!['ready','review_required','failed'].includes(j.state)));
+            if(contactsActive&&await page.locator('#documentProcessingGlobal:not(.hidden)').count()!==1)throw new Error('Global indicator missing on Relaties while processing is active');
+
+            await page.reload({waitUntil:'domcontentloaded'});
+            await page.waitForFunction(()=>currentUser&&documentProcessingInitialized,{timeout:30000});
+            await page.waitForFunction(batchId=>documentProcessingJobs.filter(j=>j.batch_id===batchId).length===5,batchId,{timeout:30000});
+            const afterRefresh=await page.evaluate(batchId=>documentProcessingJobs.filter(j=>j.batch_id===batchId).map(j=>j.id).sort(),batchId);
+            if(JSON.stringify(afterRefresh)!==JSON.stringify(beforeNav.ids))throw new Error('Refresh changed processing job identities');
+
+            await page.evaluate(()=>logoutUser());
+            await page.waitForFunction(()=>!currentUser,{timeout:15000});
+            const login=await page.evaluate(async({email,password})=>{
+              const sb=await getSupabase();
+              const {data,error}=await sb.auth.signInWithPassword({email,password});
+              return {ok:!!data?.session,error:error?.message||''}
+            },{email,password});
+            if(!login.ok)throw new Error('QA re-login failed: '+login.error);
+            await page.waitForFunction(()=>currentUser&&documentProcessingInitialized,{timeout:30000});
+            await page.waitForFunction(batchId=>documentProcessingJobs.filter(j=>j.batch_id===batchId).length===5,batchId,{timeout:30000});
+            const afterLogin=await page.evaluate(batchId=>documentProcessingJobs.filter(j=>j.batch_id===batchId).map(j=>j.id).sort(),batchId);
+            if(JSON.stringify(afterLogin)!==JSON.stringify(beforeNav.ids))throw new Error('Logout/login created duplicate processing jobs');
+
+            await page.waitForFunction(batchId=>{
+              const rows=documentProcessingJobs.filter(j=>j.batch_id===batchId);
+              return rows.length===5&&rows.every(j=>['ready','review_required','failed'].includes(j.state))
+            },batchId,{timeout:300000});
+
+            const terminal=await page.evaluate(batchId=>{
+              const rows=documentProcessingJobs.filter(j=>j.batch_id===batchId);
+              return {
+                rows:rows.map(j=>({id:j.id,name:j.file_name,state:j.state,attempt:j.attempt,review_fields:j.review_fields,result:j.result,client_ref:j.client_ref})),
+                ready:rows.filter(j=>j.state==='ready').length,
+                review:rows.filter(j=>j.state==='review_required').length,
+                failed:rows.filter(j=>j.state==='failed').length
+              }
+            },batchId);
+            if(terminal.ready<1)throw new Error('Live batch produced no READY document');
+            if(terminal.review<1)throw new Error('Live batch produced no REVIEW_REQUIRED document');
+            if(terminal.failed<1)throw new Error('Live batch produced no FAILED document');
+
+            const mixedJob=terminal.rows.find(j=>j.name==='Smoke-Mixed-VAT.pdf');
+            if(!mixedJob?.result?.analysis)throw new Error('Mixed VAT result missing');
+            const mixedSemantics=await page.evaluate(job=>{
+              const p=processorAnalysisToCandidate(job.result.analysis,'','purchase');
+              return {mixedRates:!!p.mixedRates,vatRate:p.vatRate,vatLines:p.vatLines}
+            },mixedJob);
+            if(!mixedSemantics.mixedRates||mixedSemantics.vatRate!=null||!Array.isArray(mixedSemantics.vatLines)||mixedSemantics.vatLines.length<2)throw new Error('Mixed VAT semantics regressed in live processing');
+
+            const reviewJob=terminal.rows.find(j=>j.state==='review_required');
+            await page.evaluate(id=>openPersistentDocumentReview(id),reviewJob.id);
+            await page.locator('#pdfImportForm').waitFor({timeout:20000});
+            const focused=await page.evaluate(()=>document.activeElement?.getAttribute('name')||'');
+            const focusMap={gross:'gross',vatAmount:'vatAmount',vatRate:'vatRate',vatLines:'vatRate',issueDate:'issueDate',party:'party'};
+            const expectedFocus=(reviewJob.review_fields||[]).map(x=>focusMap[x]).filter(Boolean);
+            if(expectedFocus.length&&!expectedFocus.includes(focused))throw new Error('Review did not focus the first problem field');
+            await page.evaluate(()=>closeModal());
+
+            const failedJob=terminal.rows.find(j=>j.state==='failed');
+            const beforeRetry=Object.fromEntries(terminal.rows.map(j=>[j.id,j.attempt]));
+            await page.evaluate(id=>retryPersistentDocument(id),failedJob.id);
+            await page.waitForFunction(({batchId,id,before})=>{
+              const j=documentProcessingJobs.find(x=>x.id===id);
+              return j&&j.batch_id===batchId&&Number(j.attempt)>Number(before)
+            },{batchId,id:failedJob.id,before:beforeRetry[failedJob.id]},{timeout:120000});
+            await page.waitForFunction(({batchId,id})=>{
+              const j=documentProcessingJobs.find(x=>x.id===id);
+              return j&&j.batch_id===batchId&&['ready','review_required','failed'].includes(j.state)
+            },{batchId,id:failedJob.id},{timeout:180000});
+
+            await page.evaluate(()=>fetchDocumentProcessingJobs());
+            const integrity=await page.evaluate(async({batchId,refs,beforeRetry,failedId})=>{
+              const rows=documentProcessingJobs.filter(j=>j.batch_id===batchId);
+              const otherAttemptsOk=rows.filter(j=>j.id!==failedId).every(j=>Number(j.attempt)===Number(beforeRetry[j.id]));
+              const sb=await getSupabase();
+              const docs=await sb.from('documents').select('id,client_ref').in('client_ref',refs);
+              const counts={};
+              for(const d of docs.data||[])counts[d.client_ref]=(counts[d.client_ref]||0)+1;
+              return {
+                jobCount:rows.length,
+                uniqueJobIds:new Set(rows.map(j=>j.id)).size,
+                otherAttemptsOk,
+                documentCounts:counts
+              }
+            },{batchId,refs:beforeNav.refs,beforeRetry,failedId:failedJob.id});
+            if(integrity.jobCount!==5||integrity.uniqueJobIds!==5)throw new Error('Retry created duplicate processing jobs');
+            if(!integrity.otherAttemptsOk)throw new Error('Retry changed another document attempt');
+            for(const ref of beforeNav.refs)if(integrity.documentCounts[ref]!==1)throw new Error('Expected exactly one persisted document for '+ref);
+
+            await page.evaluate(()=>navigate('documents'));
+            const finalText=await page.locator('.document-processing-board').innerText();
+            if(!/Verwerking afgerond|documenten verwerkt/i.test(finalText))throw new Error('Final batch summary missing');
+
+            console.log(JSON.stringify({
+              status:'LIVE_SMOKE_PASS',
+              batchId,
+              ready:terminal.ready,
+              reviewRequired:terminal.review,
+              failed:terminal.failed,
+              retryJobId:failedJob.id,
+              noDuplicateJobs:true,
+              noDuplicateDocuments:true,
+              refreshStable:true,
+              reloginStable:true,
+              mixedVatProtected:true,
+              consoleErrors:consoleErrors.slice(0,10)
+            }));
+          }finally{
+            await browser.close();
+          }
+          NODE
