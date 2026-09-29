@@ -17,7 +17,8 @@ function replaceLast(source,needle,replacement){
 assert.match(migration,/unique \(user_id, document_id\)/,'One persistent job per user/document is required');
 assert.match(migration,/enable row level security/,'Processing jobs must have RLS enabled');
 assert.match(migration,/auth\.uid\(\)\) = user_id/,'Processing status must be tenant scoped');
-assert.match(migration,/revoke insert, update, delete on public\.document_processing_jobs from anon, authenticated/,'Clients must not mutate jobs directly');
+assert.match(migration,/revoke all on public\.document_processing_jobs from anon, authenticated/,'Client roles must start from zero table privileges');
+assert.match(migration,/grant select on public\.document_processing_jobs to authenticated/,'Only authenticated read access may be restored after the revoke');
 assert.match(migration,/document_processing_jobs_document_id_idx/,'Document foreign key must have a covering index');
 assert.match(migration,/document_processing_jobs_mfa_guard/,'Processing status must preserve the bookkeeping MFA boundary');
 assert.match(migration,/\(\(select auth\.jwt\(\)\)->>'aal'\)/,'MFA policy must use init-plan-safe auth.jwt evaluation');
