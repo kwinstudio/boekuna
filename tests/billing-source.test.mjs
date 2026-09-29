@@ -13,6 +13,7 @@ const analyze=read('supabase/functions/analyze-invoice/index.ts');
 const migration=read('supabase/migrations/20260927111024_add_boekuna_billing_founders_and_monthly_quota.sql');
 const unlimitedMigration=read('supabase/migrations/20260927190619_align_unlimited_plan_quota.sql');
 const retiredOfferMigration=read('supabase/migrations/20260929122626_retire_first_100_early_access.sql');
+const retiredOfferRpcHardening=read('supabase/migrations/20260929123036_reharden_retired_offer_billing_plan_rpc.sql');
 const activeBillingGuardMigration=read('supabase/migrations/20260928012515_guard_active_billing_stripe_identity.sql');
 const pricing=read('public/prijzen/index.html');
 const privacy=read('public/privacy/index.html');
@@ -66,6 +67,8 @@ assert.ok(retiredOfferMigration.includes('drop function if exists public.reserve
 assert.ok(retiredOfferMigration.includes('drop function if exists private.ensure_early_access_claim(uuid)'),'Early Access claim allocator must be removed');
 assert.ok(retiredOfferMigration.includes('null::integer'),'Billing summary must keep founder field null for backwards-compatible API shape');
 assert.ok(retiredOfferMigration.includes('null::timestamptz'),'Billing summary must keep retired Early Access dates null');
+assert.ok(retiredOfferRpcHardening.includes('from public, anon, authenticated'),'Retired-offer billing helper must not be directly executable by clients');
+assert.ok(retiredOfferRpcHardening.includes('to service_role'),'Retired-offer billing helper must remain available to trusted server code');
 assert.ok(activeBillingGuardMigration.includes('billing_active_requires_stripe_identity'),'Active billing rows must require real Stripe identity and period data');
 
 assert.ok(consume.includes('can_operate_bookkeeping'),'Quota edge function must enforce server-side bookkeeping entitlement');
