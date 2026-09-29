@@ -3744,9 +3744,9 @@ function renderDocumentProcessingBoard(){
 function updateLocalDocumentFromJob(job){
  const ref=String(job?.client_ref||'');let doc=state.documents.find(x=>String(x.fileId||'')===ref),changed=false;
  if(!doc){doc={id:uid('d'),fileId:ref,name:persistentDocumentName(job),type:'Document',date:String(job?.created_at||today()).slice(0,10),size:Number(job?.size_bytes||0),source:'background-upload',analyzed:false,processingState:String(job?.state||'queued')};state.documents.unshift(doc);changed=true}
- const analysis=job?.result?.analysis||{},proc=analysis?.processing||{};
- const terminal=persistentDocumentIsTerminal(job),nextType=analysis.documentType==='receipt'?'Bon':analysis.documentType==='bank_document'?'Bankdocument':String(analysis.documentType||'').includes('invoice')?'Factuur':doc.type||'Document';
- const patch=terminal?{name:persistentDocumentName(job),size:Number(job?.size_bytes||doc.size||0),type:nextType,analyzed:job.state!=='failed',processingState:job.state,pageCount:Number(analysis.pageCount||proc.pages||doc.pageCount||0)||null,ocrUsed:Array.isArray(proc.ocrPages)&&proc.ocrPages.length>0}:{name:persistentDocumentName(job),size:Number(job?.size_bytes||doc.size||0),processingState:String(job?.state||'queued')};
+ if(!persistentDocumentIsTerminal(job))return changed;
+ const analysis=job?.result?.analysis||{},proc=analysis?.processing||{},nextType=analysis.documentType==='receipt'?'Bon':analysis.documentType==='bank_document'?'Bankdocument':String(analysis.documentType||'').includes('invoice')?'Factuur':doc.type||'Document';
+ const patch={name:persistentDocumentName(job),size:Number(job?.size_bytes||doc.size||0),type:nextType,analyzed:job.state!=='failed',processingState:job.state,pageCount:Number(analysis.pageCount||proc.pages||doc.pageCount||0)||null,ocrUsed:Array.isArray(proc.ocrPages)&&proc.ocrPages.length>0};
  for(const [k,v] of Object.entries(patch)){if(doc[k]!==v){doc[k]=v;changed=true}}
  return changed
 }
