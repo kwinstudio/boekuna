@@ -49,7 +49,9 @@ async function actor(req:Request){
   const userClient=createClient(URL,ANON,{global:{headers:{Authorization:auth}},auth:{persistSession:false,autoRefreshToken:false}});
   const {data,error}=await userClient.auth.getUser();
   if(error||!data.user)return null;
-  return {user:data.user,auth};
+  const assurance=await userClient.auth.mfa.getAuthenticatorAssuranceLevel();
+  const mfaRequired=!assurance.error&&assurance.data?.nextLevel==="aal2"&&assurance.data?.currentLevel!=="aal2";
+  return {user:data.user,auth,mfaRequired};
 }
 function admin(){return createClient(URL,SERVICE,{auth:{persistSession:false,autoRefreshToken:false}})}
 function confidence(raw:unknown){
@@ -213,6 +215,7 @@ Deno.serve(async(req:Request)=>{
   if(!URL||!ANON||!SERVICE)return out(req,{ok:false,error:{code:"SERVER_NOT_CONFIGURED"}},503);
   const a=await actor(req);
   if(!a)return out(req,{ok:false,error:{code:"AUTH_SESSION_EXPIRED"}},401);
+  if(a.mfaRequired)return out(req,{ok:false,error:{code:"MFA_REQUIRED"}},403);
   try{
     const body=await jsonBody(req),action=clean(body.action||"enqueue",40);
     if(action==="enqueue")return await enqueue(req,a,body);
