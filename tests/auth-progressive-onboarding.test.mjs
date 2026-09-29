@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
+const financialCorrectionSource=fs.readFileSync(new URL('../public/assets/financial-correction.js',import.meta.url),'utf8');
 function replaceLast(source,needle,replacement){const i=source.lastIndexOf(needle);if(i<0)throw new Error('Missing '+needle);return source.slice(0,i)+replacement+source.slice(i+needle.length)}
 
 const uiHtml=replaceLast(original,'initAuth();',`
@@ -88,6 +89,7 @@ enterApp();
 `);
 
 const server=http.createServer((req,res)=>{
+  if(req.url?.startsWith('/assets/financial-correction.js')){res.writeHead(200,{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store'});return res.end(financialCorrectionSource)}
   if(req.url?.startsWith('/manifest.webmanifest')){res.writeHead(200,{'content-type':'application/manifest+json'});return res.end('{}')}
   const path=(req.url||'').split('?')[0];
   const body=path==='/signup-flow'?signupHtml:path==='/confirm'?confirmHtml:path==='/expired'?expiredHtml:path==='/reset'?resetHtml:path==='/mfa'?mfaHtml:path==='/legacy'?legacyHtml:path==='/app'?appHtml:uiHtml;

@@ -8,6 +8,7 @@ import sharp from 'sharp';
 
 const root=path.resolve(path.dirname(new URL(import.meta.url).pathname),'..');
 const source=fs.readFileSync(path.join(root,'kwinest','index.html'),'utf8');
+const financialCorrectionSource=fs.readFileSync(path.join(root,'public','assets','financial-correction.js'),'utf8');
 const CAPTURE_ORIGIN=process.env.BOOKUNA_MARKETING_CAPTURE_ORIGIN||'https://boekuna-boekhouding.onrender.com';
 const CAPTURE_EMAIL=process.env.BOOKUNA_MARKETING_CAPTURE_EMAIL||'';
 const CAPTURE_PASSWORD=process.env.BOOKUNA_MARKETING_CAPTURE_PASSWORD||'';
@@ -118,6 +119,7 @@ if(CAPTURE_EMAIL&&CAPTURE_PASSWORD){
 appHtml=replaceLast(appHtml,'initAuth();',marketingSeed);
 
 const server=http.createServer((req,res)=>{
+  if(req.url?.startsWith('/assets/financial-correction.js')){res.writeHead(200,{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store'});return res.end(financialCorrectionSource)}
   if(req.url?.startsWith('/manifest.webmanifest')){
     res.writeHead(200,{'content-type':'application/manifest+json','cache-control':'no-store'});
     return res.end('{}');

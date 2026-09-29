@@ -35,16 +35,27 @@ jobs:
         run: node tests/accounting-integrity.test.mjs
       - name: Production source safety
         run: node tests/source-safety.test.mjs
+      - name: Smart financial correction
+        run: node tests/smart-financial-correction.test.mjs
       - name: Install invoice test dependencies
         run: npm ci --prefix tests --ignore-scripts
       - name: Install browser QA dependency
         run: npm install --prefix tests --no-save playwright@1.56.1
       - name: Install Chromium for browser QA
-        run: ./tests/node_modules/.bin/playwright install --with-deps chromium
+        run: ./tests/node_modules/.bin/playwright install --with-deps chromium webkit
       - name: Browser pre-launch smoke
         run: node tests/browser-smoke.test.mjs
       - name: PDF browser regressions
         run: node tests/document-upload-browser.test.mjs
+      - name: WebKit document review regressions
+        run: BOOKUNA_BROWSER=webkit node tests/document-upload-browser.test.mjs
+      - name: Upload smart financial correction visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smart-financial-correction-visual
+          path: tests/artifacts/smart-financial-correction-*.png
+          if-no-files-found: ignore
       - name: Auth and progressive onboarding
         run: node tests/auth-progressive-onboarding.test.mjs
       - name: Contextual list controls

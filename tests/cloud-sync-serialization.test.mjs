@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
+const financialCorrectionSource=fs.readFileSync(new URL('../public/assets/financial-correction.js',import.meta.url),'utf8');
 function replaceLast(source,needle,replacement){
   const i=source.lastIndexOf(needle);
   if(i<0)throw new Error('Missing bootstrap marker: '+needle);
@@ -21,7 +22,14 @@ state.documents=[{
   date:'2026-09-28',
   linkedType:'expense',
   linkedId:'expense-sync',
-  verification:{status:'running'}
+  verification:{status:'running'},
+  fieldProvenance:{
+    gross:{source:'user',confirmed:true,confirmedAt:'2026-09-29T09:00:00.000Z'},
+    vatRate:{source:'user',confirmed:true,confirmedAt:'2026-09-29T09:00:00.000Z'},
+    net:{source:'calculated',confirmed:false,derivedFrom:['gross','vatRate']},
+    vatAmount:{source:'calculated',confirmed:false,derivedFrom:['gross','vatRate']}
+  },
+  financialCorrectionEvents:[{type:'financial_recalculation_applied',fields:['net','vatAmount'],at:'2026-09-29T09:00:01.000Z'}]
 }];
 cloudVersion=1;
 window.__remote={version:1,state:null};
@@ -67,6 +75,7 @@ document.getElementById('mainApp').style.display='grid';
 let appHtml=replaceLast(original,'initAuth();',bootstrap);
 
 const server=http.createServer((req,res)=>{
+  if(req.url?.startsWith('/assets/financial-correction.js')){res.writeHead(200,{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store'});return res.end(financialCorrectionSource)}
   if(req.url?.startsWith('/manifest.webmanifest')){
     res.writeHead(200,{'content-type':'application/manifest+json'});
     return res.end('{}');
@@ -110,7 +119,9 @@ try{
       remoteStatus:window.__remote.state?.documents?.[0]?.verification?.status||null,
       remoteVersion:window.__remote.version,
       cloudVersion,
-      calls:structuredClone(window.__rpcCalls)
+      calls:structuredClone(window.__rpcCalls),
+      remoteProvenance:structuredClone(window.__remote.state?.documents?.[0]?.fieldProvenance||{}),
+      remoteCorrectionEvents:structuredClone(window.__remote.state?.documents?.[0]?.financialCorrectionEvents||[])
     };
   });
 
@@ -122,6 +133,9 @@ try{
     {call:1,expected:1,status:'running'},
     {call:2,expected:2,status:'verified'}
   ],'overlapping save requests must be serialized instead of racing on one expected version');
+  assert.equal(result.remoteProvenance.gross?.source,'user','Cloud ledger must preserve user-confirmed provenance');
+  assert.equal(result.remoteProvenance.net?.source,'calculated','Cloud ledger must preserve calculated provenance');
+  assert.deepEqual(result.remoteCorrectionEvents,[{type:'financial_recalculation_applied',fields:['net','vatAmount'],at:'2026-09-29T09:00:01.000Z'}],'Cloud ledger must preserve factual correction events');
   assert.deepEqual(errors,[],'Browser errors: '+errors.join(' | '));
 
   console.log('Cloud sync serialization regression: PASS (running -> verified persists without self-conflict)');

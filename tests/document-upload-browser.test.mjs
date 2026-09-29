@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
 
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
+const financialCorrectionSource=fs.readFileSync(new URL('../public/assets/financial-correction.js',import.meta.url),'utf8');
 const originalMixedVatFixture=Buffer.from(fs.readFileSync(new URL('./fixtures/02_gemengde_btw_9_en_21.pdf.b64',import.meta.url),'utf8').trim(),'base64');
 
 function replaceLast(source,needle,replacement){
@@ -59,6 +60,17 @@ mixedProcessorPayload.data.lineItems=[
   {description:'Dienst laag tarief',quantity:1,unitPrice:100,vatRate:9,lineTotal:100},
   {description:'Dienst hoog tarief',quantity:1,unitPrice:100,vatRate:21,lineTotal:100}
 ];
+
+const correctionProcessorPayload=structuredClone(processorPayload);
+correctionProcessorPayload.data.originalFileName='qa-financial-correction.pdf';
+correctionProcessorPayload.data.invoice.invoiceNumber='QA-CORRECTION-12866';
+correctionProcessorPayload.data.invoice.description='Smart financial correction 128,66';
+correctionProcessorPayload.data.amounts={subtotal:128.66,vatLines:[{rate:21,taxableAmount:128.66,vatAmount:0}],vatTotal:0,total:128.66,currency:'EUR'};
+correctionProcessorPayload.data.lineItems=[];
+correctionProcessorPayload.data.confidence={supplierName:.99,invoiceNumber:.99,invoiceDate:.99,subtotal:.42,vatTotal:.42,total:.99,vatLines:.42};
+correctionProcessorPayload.data.processing={sourceKind:'pdf',pages:1,ocrPages:[1],tablesFound:0,fastPath:'deterministic',overallConfidence:.72};
+correctionProcessorPayload.preview={text:'FACTUUR\nTotaal incl. btw EUR 128,66\nBTW 21%\nExcl. btw EUR 128,66\nBTW EUR 0,00',pages:[{page:1,ocrConfidence:.72}],tables:[]};
+correctionProcessorPayload.duplicateCandidates=[];
 
 const issue30ProcessorPayload=structuredClone(processorPayload);
 issue30ProcessorPayload.data.originalFileName='02_gemengde_btw_9_en_21.pdf';
@@ -136,6 +148,7 @@ enterApp();
 `);
 
 const appServer=http.createServer((req,res)=>{
+  if(req.url?.startsWith('/assets/financial-correction.js')){res.writeHead(200,{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store'});return res.end(financialCorrectionSource)}
   if(req.url?.startsWith('/manifest.webmanifest')){res.writeHead(200,{'content-type':'application/manifest+json'});return res.end('{}')}
   res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});
   res.end(appHtml);
@@ -185,7 +198,8 @@ async function routeFallbackAi(page){
   });
 }
 
-const browser=await chromium.launch({headless:true});
+const browserType=process.env.BOOKUNA_BROWSER==='webkit'?webkit:chromium;
+const browser=await browserType.launch({headless:true});
 
 async function newAppPage(){
   const page=await browser.newPage({viewport:{width:1440,height:1000}});
@@ -321,6 +335,10 @@ try{
     assert.equal(review.mixedRates,true,'Mixed processor result must remain marked mixed');
     assert.deepEqual(review.vatLines.map(v=>Number(v.rate)),[9,21],'Trusted processor VAT groups must reach review intact');
     assert.equal(review.selected,'','Mixed review must show Gemengd / controleer instead of a scalar rate');
+    assert.equal(await page.locator('#pdfImportForm [name="vatRate"]').isDisabled(),true,'Mixed VAT must disable the scalar rate control');
+    await page.locator('#financialCorrectionPanel').filter({hasText:/meerdere btw-tarieven/i}).waitFor();
+    assert.match(String(await page.locator('#financialCorrectionPanel').textContent()),/meerdere btw-tarieven/i);
+    assert.equal(await page.getByRole('button',{name:'Gebruik deze bedragen'}).count(),0,'Mixed VAT must never offer single-rate autocorrection');
 
     await page.evaluate(()=>savePdfInvoiceImport());
     const saved=await page.evaluate(()=>{
@@ -422,6 +440,155 @@ try{
       {rate:21,mergedRate:21,mixed:false,label:'21%',exportRate:'21'}
     ],'Authoritative single-rate 0%, 9% and 21% semantics must remain unchanged');
 
+    await page.close();
+  }
+
+  // QA-FIN-CORR-001: inconsistent low-confidence OCR becomes explicit USER truth,
+  // then deterministic cent-exact correction is proposed, applied and persisted.
+  {
+    processorMode='success';
+    processorResponse=correctionProcessorPayload;
+    processorMethods=[];
+    processorOrigins=[];
+    const page=await newAppPage();
+    const errors=[];
+    page.on('pageerror',e=>errors.push(String(e)));
+    page.on('dialog',dialog=>dialog.accept());
+
+    await page.locator('#invoicePdfFile').setInputFiles({
+      name:'qa-financial-correction.pdf',
+      mimeType:'application/pdf',
+      buffer:Buffer.from('%PDF-1.7\n% Boekuna smart financial correction QA\n')
+    });
+    await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:15000});
+    await page.evaluate(()=>setDocumentReviewStep(2));
+
+    const gross=page.locator('#pdfImportForm [name="gross"]');
+    const rate=page.locator('#pdfImportForm [name="vatRate"]');
+    const net=page.locator('#pdfImportForm [name="net"]');
+    const vat=page.locator('#pdfImportForm [name="vatAmount"]');
+    const panel=page.locator('#financialCorrectionPanel');
+
+    assert.equal(await net.getAttribute('inputmode'),'decimal');
+    assert.equal(await vat.getAttribute('inputmode'),'decimal');
+    assert.equal(await gross.getAttribute('inputmode'),'decimal');
+    assert.equal(await panel.getAttribute('aria-live'),'polite');
+    await panel.filter({hasText:/Btw verdient controle|Bevestig wat je op het document ziet|Nog te weinig betrouwbare gegevens/}).waitFor();
+    const initialPanel=String(await panel.textContent());
+    assert.match(initialPanel,/Btw verdient controle|Bevestig wat je op het document ziet|Nog te weinig betrouwbare gegevens/,'Recognition may explain the deterministic mismatch before confirmation, but must not make it applicable');
+    assert.equal(await page.getByRole('button',{name:'Gebruik deze bedragen'}).count(),0,'Recognition alone must not silently offer an applicable correction');
+    const deterministicProcessorPosts=()=>processorMethods.filter(method=>method==='POST').length;
+    const processorPostsBeforeCorrection=deterministicProcessorPosts();
+
+    // The final save boundary must not silently accept a recognized 21% rate that
+    // conflicts with the cent-exact amounts, nor derive a missing VAT value.
+    await page.evaluate(()=>savePdfInvoiceImport());
+    assert.equal(await page.evaluate(()=>state.expenses.some(x=>x.invoiceNumber==='QA-CORRECTION-12866')),false,'Inconsistent recognized rate must be blocked at save');
+    await page.evaluate(()=>{document.querySelector('#pdfImportForm [name="vatAmount"]').value=''});
+    await page.evaluate(()=>savePdfInvoiceImport());
+    assert.equal(await page.evaluate(()=>state.expenses.some(x=>x.invoiceNumber==='QA-CORRECTION-12866')),false,'Blank VAT must not be silently derived during save');
+    await page.evaluate(()=>{document.querySelector('#pdfImportForm [name="vatAmount"]').value='0.00'});
+
+    // Dutch decimal input must be accepted and normalized without changing value.
+    await gross.fill('128,66');
+    await gross.blur();
+    assert.equal(await gross.inputValue(),'128.66');
+    assert.equal(String(await page.locator('[data-financial-badge="gross"]').textContent()).trim(),'Bevestigd');
+
+    // Confirming the recognized scalar rate makes USER + USER the authoritative anchors.
+    assert.equal(await rate.inputValue(),'21');
+    await page.locator('[data-financial-confirm="vatRate"]').click();
+    await page.getByRole('button',{name:'Gebruik deze bedragen'}).waitFor();
+    assert.match(String(await panel.textContent()),/€\s*106,33/);
+    assert.match(String(await panel.textContent()),/€\s*22,33/);
+    assert.match(String(await panel.textContent()),/€\s*128,66/);
+
+    // "Zelf aanpassen" must not silently mutate any amount.
+    const beforeDismiss=await page.evaluate(()=>({
+      net:document.querySelector('#pdfImportForm [name="net"]')?.value,
+      vat:document.querySelector('#pdfImportForm [name="vatAmount"]')?.value,
+      gross:document.querySelector('#pdfImportForm [name="gross"]')?.value
+    }));
+    await page.getByRole('button',{name:'Zelf aanpassen'}).click();
+    const afterDismiss=await page.evaluate(()=>({
+      net:document.querySelector('#pdfImportForm [name="net"]')?.value,
+      vat:document.querySelector('#pdfImportForm [name="vatAmount"]')?.value,
+      gross:document.querySelector('#pdfImportForm [name="gross"]')?.value
+    }));
+    assert.deepEqual(afterDismiss,beforeDismiss,'Dismiss must never rewrite recognized/user values');
+
+    await page.getByRole('button',{name:'Gebruik deze bedragen'}).click();
+    assert.equal(await net.inputValue(),'106.33');
+    assert.equal(await vat.inputValue(),'22.33');
+    assert.equal(await gross.inputValue(),'128.66');
+    assert.equal(String(await page.locator('[data-financial-badge="net"]').textContent()).trim(),'Berekend');
+    assert.equal(String(await page.locator('[data-financial-badge="vatAmount"]').textContent()).trim(),'Berekend');
+    assert.equal(String(await page.locator('[data-financial-badge="gross"]').textContent()).trim(),'Bevestigd');
+    assert.equal(String(await page.locator('[data-financial-badge="vatRate"]').textContent()).trim(),'Bevestigd');
+    assert.match(String(await panel.textContent()),/Bedragen kloppen/);
+    assert.equal(await page.locator('#toastRoot .toast').filter({hasText:/btw-tarief past niet|Vul het btw-bedrag|cent-exact gelijk|Kies en bevestig het btw-tarief/i}).count(),0,'Resolved financial errors must not remain visibly stale after applying the deterministic correction');
+    assert.equal(deterministicProcessorPosts(),processorPostsBeforeCorrection,'Deterministic financial correction must not trigger OCR or AI reprocessing');
+    const staleFinancialChecks=String(await page.locator('.review-check-summary').allTextContents());
+    assert.doesNotMatch(staleFinancialChecks,/Btw-tarief verdient controle|Bedragen sluiten aan|Meerdere btw-tarieven/,'Static recognition checks must not contradict the live financial consistency panel');
+
+    if((process.env.BOOKUNA_BROWSER||'chromium')==='chromium'){
+      fs.mkdirSync('tests/artifacts',{recursive:true});
+      await page.setViewportSize({width:390,height:844});
+      await page.screenshot({path:'tests/artifacts/smart-financial-correction-mobile.png',fullPage:true});
+      await page.setViewportSize({width:1440,height:1000});
+      await page.screenshot({path:'tests/artifacts/smart-financial-correction-desktop.png',fullPage:true});
+    }
+
+    // Mobile-first responsive and overflow checks on the actual review UI.
+    for(const width of [320,360,375,390,393,430,768]){
+      await page.setViewportSize({width,height:844});
+      const layout=await page.evaluate(()=>({
+        overflow:document.documentElement.scrollWidth-window.innerWidth,
+        panelWidth:document.getElementById('financialCorrectionPanel')?.getBoundingClientRect().width||0,
+        viewport:window.innerWidth
+      }));
+      assert.ok(layout.overflow<=2,'Financial review must not overflow at '+width+'px');
+      assert.ok(layout.panelWidth<=layout.viewport,'Correction panel must fit at '+width+'px');
+    }
+    await page.setViewportSize({width:1440,height:1000});
+
+    await page.evaluate(()=>savePdfInvoiceImport());
+    const saved=await page.evaluate(()=>{
+      const e=state.expenses.find(x=>x.invoiceNumber==='QA-CORRECTION-12866');
+      const doc=state.documents.find(x=>x.linkedId===e?.id);
+      const raw=JSON.parse(localStorage.getItem(userDataKey())||'{}');
+      const persisted=raw.expenses?.find(x=>x.invoiceNumber==='QA-CORRECTION-12866');
+      return {
+        memory:e?{net:e.exVat,vat:e.vatAmount,gross:e.gross,rate:e.vatRate,prov:e.fieldProvenance,events:e.financialCorrectionEvents}:null,
+        document:doc?{prov:doc.fieldProvenance,events:doc.financialCorrectionEvents,pass1Prov:doc.verification?.pass1?.fieldProvenance}:null,
+        persisted:persisted?{net:persisted.exVat,vat:persisted.vatAmount,gross:persisted.gross,rate:persisted.vatRate,prov:persisted.fieldProvenance}:null
+      };
+    });
+    assert.equal(saved.memory?.net,106.33);
+    assert.equal(saved.memory?.vat,22.33);
+    assert.equal(saved.memory?.gross,128.66);
+    assert.equal(saved.memory?.rate,21);
+    assert.equal(saved.memory?.prov?.gross?.source,'user');
+    assert.equal(saved.memory?.prov?.vatRate?.source,'user');
+    assert.equal(saved.memory?.prov?.net?.source,'calculated');
+    assert.equal(saved.memory?.prov?.vatAmount?.source,'calculated');
+    assert.ok(saved.memory?.events?.some(x=>x.type==='financial_recalculation_applied'));
+    assert.deepEqual(saved.persisted?.prov,saved.memory?.prov,'Provenance must survive local persistence');
+    assert.deepEqual(saved.document?.prov,saved.memory?.prov,'Document record must carry the same financial provenance');
+    assert.deepEqual(saved.document?.pass1Prov,saved.memory?.prov,'Second-pass snapshot must retain USER/CALCULATED provenance without replacing it');
+
+    const reopened=await page.evaluate(()=>{
+      state=normalizeState(JSON.parse(localStorage.getItem(userDataKey())||'{}'));
+      const e=state.expenses.find(x=>x.invoiceNumber==='QA-CORRECTION-12866');
+      return {net:e?.exVat,vat:e?.vatAmount,gross:e?.gross,rate:e?.vatRate,prov:e?.fieldProvenance};
+    });
+    assert.equal(reopened.net,106.33);
+    assert.equal(reopened.vat,22.33);
+    assert.equal(reopened.gross,128.66);
+    assert.equal(reopened.rate,21);
+    assert.equal(reopened.prov?.gross?.source,'user');
+    assert.equal(reopened.prov?.net?.source,'calculated');
+    assert.deepEqual(errors,[],'Smart financial correction browser errors: '+errors.join(' | '));
     await page.close();
   }
 
