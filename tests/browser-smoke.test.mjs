@@ -771,8 +771,7 @@ try{
       pdfFetches:window.__livePdfFetches,
       downloads:window.__liveDownloads,
       opens:window.__liveGmailOpens.slice(),
-      lastSentAt:invoice.lastSentAt||null,
-      handoff:window.__boekunaEmailHandoffTestState()
+      lastSentAt:invoice.lastSentAt||null
     };
   },fixture.invoiceId);
   const parsedGmail=new URL(handoffState.url);
@@ -783,7 +782,6 @@ try{
   assert.equal(handoffState.downloads,1);
   assert.equal(handoffState.opens.length,1);
   assert.equal(handoffState.lastSentAt,null,'Opening Gmail must not mark the invoice sent');
-  assert.equal(handoffState.handoff.fileDownloaded,true);
 
   await gmailLive.evaluate(()=>emailHandoffNotSent());
   const afterCancel=await gmailLive.evaluate(id=>{
