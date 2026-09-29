@@ -116,7 +116,7 @@ try{
     applyDocumentProcessingJobs([{id:'reconstruct-job',document_id:'doc-reconstruct',client_ref:'ref-reconstruct',batch_id:'batch-old',file_name:'cross-device.pdf',mime_type:'application/pdf',size_bytes:900,requested_kind:'auto',state:'ready',phase:'complete',attempt:1,max_attempts:3,result:{analysis:{documentType:'other',processing:{sourceKind:'pdf',pages:1,ocrPages:[]}}},review_fields:[],review_message:null,error_code:null,error_retryable:false,created_at:now,updated_at:now}],{initial:true});
   });
   assert.equal(await page.evaluate(()=>state.documents.some(d=>d.fileId==='ref-reconstruct'&&d.name==='cross-device.pdf')),true,'Persistent jobs must restore document visibility on another browser');
-  documentProcessingSession=null;
+  await page.evaluate(()=>{documentProcessingSession=null});
   const supportedBatchSizes=await page.evaluate(()=>{
     const result={};
     for(const n of [1,2,5,10]){
