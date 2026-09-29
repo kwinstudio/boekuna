@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
 
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
 const financialCorrectionSource=fs.readFileSync(new URL('../public/assets/financial-correction.js',import.meta.url),'utf8');
@@ -53,7 +53,8 @@ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const {port}=server.address();
 const base=`http://127.0.0.1:${port}`;
 
-const browser=await chromium.launch({headless:true});
+const browserType=(process.env.BOOKUNA_BROWSER||'chromium')==='webkit'?webkit:chromium;
+const browser=await browserType.launch({headless:true});
 const page=await browser.newPage({viewport:{width:1440,height:1000}});
 const pageErrors=[];
 page.on('pageerror',e=>pageErrors.push(String(e)));
