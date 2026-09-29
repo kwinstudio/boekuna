@@ -155,3 +155,5 @@ console.log("Boekuna accounting integrity tests: PASS");
 
 await import('./financial-automation.test.mjs');
 await import('./financial-permissions.test.mjs');
+
+await import('./pr59-independent-qa.test.mjs');
