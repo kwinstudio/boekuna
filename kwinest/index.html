@@ -3810,6 +3810,7 @@ async function initDocumentBackgroundProcessing(){
  const sb=await getSupabase();
  await fetchDocumentProcessingJobs().catch(err=>console.warn('Documentstatus ophalen',err));
  invokeDocumentProcessing('resume').then(()=>fetchDocumentProcessingJobs()).catch(err=>console.warn('Documentverwerking hervatten',err));
+ if(typeof sb?.channel!=='function'){schedulePersistentDocumentPoll();return}
  documentProcessingChannel=sb.channel('document-processing-'+currentUser.id).on('postgres_changes',{event:'*',schema:'public',table:'document_processing_jobs',filter:'user_id=eq.'+currentUser.id},()=>{fetchDocumentProcessingJobs().catch(()=>{})}).subscribe(function(status){
   if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){documentProcessingConnectivityLost=true;renderGlobalDocumentIndicator();schedulePersistentDocumentPoll()}
   if(status==='SUBSCRIBED'){documentProcessingConnectivityLost=!navigator.onLine;renderGlobalDocumentIndicator()}
