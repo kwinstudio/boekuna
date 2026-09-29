@@ -50,7 +50,7 @@ Do not stretch, rotate, outline, add shadows, recolour arbitrarily, put the mark
 | Surface Secondary | `#F3F0E8` | Warm limestone |
 | Text Primary | `#16201F` | Main text |
 | Text Secondary | `#4B5B57` | Secondary text |
-| Text Muted | `#6A7773` | Muted text |
+| Text Muted | `#65736F` | Muted text |
 | Border Default | `#DDE5E1` | Borders |
 | Border Strong | `#B9C9C3` | Strong borders |
 | Success | `#0F7B57` | Paid / complete |
