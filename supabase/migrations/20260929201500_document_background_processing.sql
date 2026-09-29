@@ -31,6 +31,8 @@ create index if not exists document_processing_jobs_user_updated_idx
   on public.document_processing_jobs(user_id, updated_at desc);
 create index if not exists document_processing_jobs_user_batch_idx
   on public.document_processing_jobs(user_id, batch_id);
+create index if not exists document_processing_jobs_document_id_idx
+  on public.document_processing_jobs(document_id);
 create index if not exists document_processing_jobs_active_idx
   on public.document_processing_jobs(user_id, state)
   where state in ('received','queued','processing','validating');
@@ -43,6 +45,14 @@ on public.document_processing_jobs
 for select
 to authenticated
 using ((select auth.uid()) = user_id);
+
+drop policy if exists "document_processing_jobs_mfa_guard" on public.document_processing_jobs;
+create policy "document_processing_jobs_mfa_guard"
+on public.document_processing_jobs
+as restrictive
+for select
+to authenticated
+using (((select auth.jwt()->>'aal') = 'aal2') or not (select private.current_user_has_verified_mfa()));
 
 grant select on public.document_processing_jobs to authenticated;
 revoke insert, update, delete on public.document_processing_jobs from anon, authenticated;
