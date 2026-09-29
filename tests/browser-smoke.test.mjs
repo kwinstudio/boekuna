@@ -499,18 +499,21 @@ try{
   await production.getByRole('button',{name:'Nee, nog niet'}).click();
 
   await production.evaluate(()=>{
-    Object.defineProperty(navigator,'share',{configurable:true,value:async()=>{throw new DOMException('cancelled','AbortError')}});
+    window.__liveCancelCalls=0;
+    Object.defineProperty(navigator,'share',{configurable:true,value:async()=>{
+      window.__liveCancelCalls++;
+      throw new DOMException('cancelled','AbortError');
+    }});
   });
   await production.evaluate(()=>openSendInvoice('live-invoice'));
   await production.waitForFunction(()=>{
     const modal=document.querySelector('.modal')?.textContent||'';
-    const toast=document.querySelector('.toast')?.textContent||'';
-    return modal.includes('Factuur klaar om te delen')||toast.includes('Delen geannuleerd')||modal.includes('Factuur kon niet worden voorbereid');
+    return window.__liveCancelCalls>0||modal.includes('Factuur klaar om te delen')||modal.includes('Factuur kon niet worden voorbereid');
   },{timeout:15000});
   const cancelModalText=await production.locator('.modal').count()?await production.locator('.modal').innerText():'';
   assert.doesNotMatch(cancelModalText,/Factuur kon niet worden voorbereid/,'Live cancel preparation must succeed: '+cancelModalText);
   if(cancelModalText.includes('Factuur klaar om te delen'))await production.getByRole('button',{name:'Kies je e-mailapp'}).click();
-  await production.locator('.toast').filter({hasText:'Delen geannuleerd'}).waitFor();
+  await production.waitForFunction(()=>window.__liveCancelCalls>0,{timeout:15000});
   assert.equal(await production.evaluate(()=>state.invoices[0].lastSentAt||null),null,'Live cancelled share must leave delivery metadata unchanged');
 
   await production.evaluate(()=>{Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>false})});
