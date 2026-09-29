@@ -37,6 +37,7 @@ try{
     const errors=[];
     page.on('pageerror',e=>errors.push(String(e)));
     await page.goto(base+'/',{waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim()==='#123B3A');
     const hero=page.locator('.kz-hero-product-proof .product-proof img');
     await hero.waitFor();
     await page.waitForFunction(()=>{const i=document.querySelector('.kz-hero-product-proof img');return !!i&&i.complete&&i.naturalWidth>0});
@@ -46,6 +47,8 @@ try{
     assert.ok(await page.locator('.product-crop').count()>=3,`Editorial product crops missing at ${width}px`);
     assert.equal(await page.locator('.product-mobile').count(),1,`Exactly one mobile proof expected at ${width}px`);
     assert.deepEqual(errors,[],`Homepage page errors at ${width}px: ${errors.join(' | ')}`);
+    assert.equal(await page.locator('.kz-hero h1 span').evaluate(el=>getComputedStyle(el).color),'rgb(43, 115, 108)',`Calm Control hero accent missing at ${width}px`);
+    assert.equal(await page.locator('.kz-hero-actions .mk-btn.primary').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(18, 59, 58)',`Calm Control primary CTA missing at ${width}px`);
     if([390,1440,1920].includes(width))await page.screenshot({path:path.join(root,'tests','artifacts',`brand-home-${width}.png`),fullPage:true});
     await page.close();
   }
