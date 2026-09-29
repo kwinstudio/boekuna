@@ -107,7 +107,7 @@ const shareResponse = await handler(new Request('https://test.invalid/send-invoi
 }));
 assert.equal(shareResponse.status, 200, 'authenticated PDF handoff must not require a mailbox connection');
 assert.equal(shareResponse.headers.get('content-type'), 'application/pdf');
-assert.match(shareResponse.headers.get('content-disposition') || '', /Factuur-2026-0041-Jansen-Bouw-B\.V\.pdf/);
+assert.match(shareResponse.headers.get('content-disposition') || '', /Factuur-2026-0041-Jansen-Bouw-BV\.pdf/);
 assert.equal(outbound.length, 0, 'render_pdf must not send an email');
 assert.equal((await PDFDocument.load(await shareResponse.arrayBuffer())).getPageCount(), 1);
 
