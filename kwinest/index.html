@@ -1878,6 +1878,35 @@ img.bookuna-logo-icon,
  .processing-progress progress,.progress span{transition:none!important}
 }
 
+
+.document-processing-global{min-height:36px;max-width:210px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--text);padding:7px 10px;display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
+.document-processing-global:hover{background:#f6f9f8}.document-processing-global.hidden{display:none!important}
+.document-processing-global-spinner,.document-status-spinner{width:14px;height:14px;flex:0 0 14px;border:2px solid rgba(33,94,79,.22);border-top-color:var(--primary);border-radius:50%;animation:spin .85s linear infinite}
+.document-attention-badge{min-width:20px;height:20px;padding:0 6px;margin-left:auto;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:#fff1e8;color:#8d3d16;font-size:10px;font-weight:900;border:1px solid #f0c9b4}
+.document-attention-badge.hidden{display:none!important}
+.document-processing-board{margin:16px 0;padding:16px;border:1px solid var(--line);border-radius:16px;background:#fff}
+.document-processing-board-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:13px}
+.document-processing-board-head h2{margin:0;font-size:17px}.document-processing-board-head p{margin:4px 0 0;color:var(--muted);font-size:12px;line-height:1.45}
+.document-processing-summary{font-size:12px;font-weight:800;color:var(--muted);white-space:nowrap}
+.document-processing-list{display:grid;gap:8px}
+.document-processing-card{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:#fbfcfc;min-width:0}
+.document-processing-card-icon{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);font-size:13px;font-weight:900;color:var(--muted)}
+.document-processing-card[data-state="ready"] .document-processing-card-icon{background:rgba(33,94,79,.09);color:var(--primary);border-color:rgba(33,94,79,.25)}
+.document-processing-card[data-state="review_required"] .document-processing-card-icon{background:#fff8e7;color:#8a6112;border-color:#ecd8a2}
+.document-processing-card[data-state="failed"] .document-processing-card-icon{background:#fff5f2;color:#9f3a25;border-color:#efd2cb}
+.document-processing-card-main{min-width:0}.document-processing-card-main strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.document-processing-card-main span{display:block;color:var(--muted);font-size:12px;margin-top:2px;line-height:1.35}
+.document-processing-card-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.document-processing-received{margin-top:12px;padding:11px 12px;border-radius:11px;background:rgba(33,94,79,.07);color:#244f43;font-size:12px;line-height:1.45}
+.document-processing-reconnect{margin-top:12px;padding:11px 12px;border-radius:11px;background:#fff8e7;color:#715216;font-size:12px;line-height:1.45}
+.document-processing-panel-summary{padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:#f8faf9;margin-bottom:10px;font-size:13px}
+@media(max-width:700px){
+ .document-processing-global{max-width:145px;padding:7px 9px}.document-processing-global #documentProcessingGlobalText{overflow:hidden;text-overflow:ellipsis}
+ .document-processing-board{padding:13px}.document-processing-board-head{display:grid}.document-processing-summary{white-space:normal}
+ .document-processing-card{grid-template-columns:26px minmax(0,1fr)}.document-processing-card-actions{grid-column:2;justify-content:flex-start}
+}
+@media(max-width:390px){.document-processing-global{max-width:118px}.document-processing-global-spinner{width:12px;height:12px;flex-basis:12px}.document-processing-card{padding:10px}}
+@media(prefers-reduced-motion:reduce){.document-processing-global-spinner,.document-status-spinner{animation:none;border-color:rgba(33,94,79,.4);border-top-color:var(--primary)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 
@@ -1966,7 +1995,7 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
   <button class="nav-item" data-page="contacts"><svg class="icon"><use href="#i-users"/></svg>Relaties</button>
   <button class="nav-item" data-page="services"><svg class="icon"><use href="#i-file"/></svg>Diensten</button>
   <button class="nav-item" data-page="hours"><svg class="icon"><use href="#i-clock"/></svg>Uren & ritten</button>
-  <button class="nav-item" data-page="documents"><svg class="icon"><use href="#i-folder"/></svg>Documenten</button>
+  <button class="nav-item" data-page="documents"><svg class="icon"><use href="#i-folder"/></svg><span>Documenten</span><span id="documentAttentionBadge" class="document-attention-badge hidden" aria-label=""></span></button>
   <div class="sidebar-spacer"></div>
   <div class="demo-pill"><strong>Jouw administratie</strong>Je administratie wordt per account veilig in de cloud bewaard en gesynchroniseerd. Nog geen live bank- of Belastingdienst-koppeling.</div>
   <button class="nav-item" data-page="settings"><svg class="icon"><use href="#i-settings"/></svg>Instellingen</button>
@@ -1974,7 +2003,7 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
 <main class="main">
   <header class="topbar">
     <div class="top-left"><button class="mobile-menu" id="mobileMenu" aria-label="Menu openen"><svg class="icon"><use href="#i-menu"/></svg></button><div class="page-title" id="pageTitle">Dashboard</div></div>
-    <div class="top-actions"><button class="btn primary" id="quickNew"><svg class="icon"><use href="#i-plus"/></svg><span>Nieuw</span></button><span class="badge good" id="cloudSyncBadge" title="Cloudsyncstatus">Cloud opgeslagen</span><button class="avatar" id="accountAvatar" onclick="accountMenu()" aria-label="Account">A</button></div>
+    <div class="top-actions"><button class="btn primary" id="quickNew"><svg class="icon"><use href="#i-plus"/></svg><span>Nieuw</span></button><button id="documentProcessingGlobal" class="document-processing-global hidden" type="button" onclick="openGlobalDocumentProcessingPanel()" aria-haspopup="dialog" aria-label="Documentverwerking bekijken"><span class="document-processing-global-spinner" aria-hidden="true"></span><span id="documentProcessingGlobalText">Documenten</span></button><span class="badge good" id="cloudSyncBadge" title="Cloudsyncstatus">Cloud opgeslagen</span><button class="avatar" id="accountAvatar" onclick="accountMenu()" aria-label="Account">A</button></div>
   </header>
   <div class="content" id="content"></div>
 </main>
