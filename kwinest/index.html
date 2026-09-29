@@ -3540,7 +3540,7 @@ function documentProcessingExperienceHtml(){
  const terminal=x=>['completed','ready','review_required','failed'].includes(x.state),total=s.items.length,done=s.items.filter(terminal).length,failed=s.items.filter(x=>x.state==='failed').length,review=s.items.filter(x=>x.state==='review_required').length,active=s.items.find(x=>!terminal(x)&&x.state!=='selected')||s.items.find(x=>x.state==='selected')||s.items[0];
  let overall='',queue='';
  if(total>1){
-  overall='<div class="processing-overall"><div class="processing-overall-head"><strong>'+done+' van '+total+' documenten afgerond</strong><span>'+(review?review+' controle nodig':failed?failed+' niet verwerkt':active&&done<total?'Bezig':'Klaar')+'</span></div><progress max="'+total+'" value="'+done+'" aria-label="'+done+' van '+total+' documenten afgerond">'+done+'/'+total+'</progress></div>';
+  overall='<div class="processing-overall"><div class="processing-overall-head"><strong>'+done+' van '+total+' documenten verwerkt</strong><span>'+(review?review+' controle nodig':failed?failed+' niet verwerkt':active&&done<total?'Bezig':'Klaar')+'</span></div><progress max="'+total+'" value="'+done+'" aria-label="'+done+' van '+total+' documenten afgerond">'+done+'/'+total+'</progress></div>';
   queue='<div class="processing-queue">'+s.items.map(documentProcessingQueueRow).join('')+'</div>'
  }
  const received=s.allReceived?'<div class="document-processing-received"><strong>Je documenten zijn ontvangen.</strong> Je kunt ondertussen verder werken.</div>':'';
