@@ -142,7 +142,9 @@ assert.ok(html.includes("role=\"dialog\" aria-modal=\"true\""),"Filter/sort dial
 assert.ok(html.includes("if(e.key==='Tab')"),"Dialogs must trap keyboard focus");
 assert.ok(html.includes("state.hours.slice().sort"),"Hours must default to newest date first");
 assert.ok(html.includes("state.mileage.slice().sort"),"Mileage must default to newest date first");
-assert.ok(html.includes("fetchWithAuthRetry(DOCUMENT_PROCESSOR_URL+'/analyze'"),"Document processor requests must use authenticated retry against the promoted production processor");
+assert.ok(html.includes("documentProcessorXhr(fd,processingItem)"),"User-selected document uploads must use the progress-aware authenticated XHR path");
+assert.ok(html.includes("xhr.open('POST',DOCUMENT_PROCESSOR_URL+'/analyze',true)"),"Progress-aware uploads must target the promoted production processor");
+assert.ok(html.includes("const headers=await apiAuthHeaders({},forceRefresh)"),"Progress-aware uploads must use account-scoped auth headers");
 assert.ok(!html.includes("DOCUMENT_PROCESSOR_BETA"),"Retired OCR beta routing must not remain in production source");
 assert.ok(!html.includes("boekuna-pr58-ocr-staging.onrender.com"),"Retired OCR staging endpoint must not remain in production source");
 assert.ok(!html.includes("activeDocumentProcessorUrl()"),"All accounts must use the production document processor directly");
@@ -155,7 +157,15 @@ for(const id of ["invoicePdfFile","receiptPhotoFile","receiptCameraFile"]){
 assert.ok(html.includes("async function startSelectedDocumentUpload"),"Selected documents must enter one shared, user-visible upload pipeline");
 assert.ok(html.includes("pendingPdfImport=null"),"Document import state must be declared before cleanup/use");
 assert.ok(html.includes("pendingUploadKind='auto'"),"Upload mode state must be declared explicitly");
-assert.ok(html.includes("function setImportProgress(title,msg,sub='',percent=10,step=1)"),"Upload progress must expose real staged percentages");
+assert.ok(html.includes("function setImportProgress(title,msg,sub='')"),"Unknown-duration processing must be indeterminate rather than time-faked");
+assert.ok(html.includes("xhr.upload.onprogress"),"Document uploads must expose browser-reported byte progress");
+assert.ok(html.includes("DOCUMENT_PROCESSING_TRANSITIONS"),"Document processing must use one explicit state machine");
+assert.ok(html.includes("DOCUMENT_PROCESSING_LONG_WAIT_MS=15000"),"Long-wait UX must have an explicit threshold");
+assert.ok(html.includes("DOCUMENT_PROCESSING_TIMEOUT_MS=120000"),"Document processing must retain a watchdog timeout");
+assert.ok(!financialFlow.includes(",28,2"),"Financial processing must not expose fake 28% progress");
+assert.ok(!financialFlow.includes(",48,3"),"Financial processing must not expose fake 48% progress");
+assert.ok(!financialFlow.includes(",66,4"),"Financial processing must not expose fake 66% progress");
+assert.ok(!financialFlow.includes(",98,6"),"Financial processing must not expose fake 98% progress");
 assert.ok(html.includes('id="importProgressMessage"'),"Upload progress must use the compact loading state");
 assert.ok(html.includes("const browserStructurePromise="),"PDF client inspection should start in parallel with server processing");
 assert.ok(html.includes("serverReviewed=serverProc.reviewComplete===true||!!serverProc.ai||serverProc.fastPath==='deterministic'"),"Frontend must respect the processor's completed local-first AI/no-AI decision");
