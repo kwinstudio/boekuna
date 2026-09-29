@@ -471,7 +471,9 @@ try{
     assert.equal(await vat.getAttribute('inputmode'),'decimal');
     assert.equal(await gross.getAttribute('inputmode'),'decimal');
     assert.equal(await panel.getAttribute('aria-live'),'polite');
-    assert.match(String(await panel.textContent()),/Bevestig wat je op het document ziet/);
+    const initialPanel=String(await panel.textContent());
+    assert.match(initialPanel,/Bevestig wat je op het document ziet|Nog te weinig betrouwbare gegevens/);
+    assert.equal(await page.getByRole('button',{name:'Gebruik deze bedragen'}).count(),0,'Recognition alone must not silently offer an applicable correction');
 
     // Dutch decimal input must be accepted and normalized without changing value.
     await gross.fill('128,66');
