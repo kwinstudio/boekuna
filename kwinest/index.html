@@ -1864,6 +1864,8 @@ img.bookuna-logo-icon,
 @keyframes documentIndeterminate{0%{transform:translateX(0)}100%{transform:translateX(365%)}}
 @keyframes documentShimmer{100%{transform:translateX(100%)}}
 @media(max-width:620px){
+ .modal:has(.processing-experience) .modal-foot{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+ .processing-experience{padding-bottom:max(2px,env(safe-area-inset-bottom))}
  .processing-shell{grid-template-columns:92px minmax(0,1fr);gap:14px;padding:14px;align-items:start}
  .processing-document{min-height:132px;padding:13px 11px}.processing-doc-mark{margin-bottom:8px}.processing-doc-line{height:6px;margin:7px 0}.processing-doc-total{margin-top:15px;padding-top:9px;font-size:12px}
  .processing-title{font-size:18px}.processing-subtext{min-height:0}.processing-scanline{top:12px}
@@ -3492,7 +3494,7 @@ function documentProcessingStatus(item){
  return item.message||'Document wordt gelezen…'
 }
 function documentProcessingSubtext(item){
- if(item.state==='failed'){const x=uploadErrorInfo(item.error);return x.explanation}
+ if(item.state==='failed'){const x=uploadErrorInfo(item.error);if(x.code==='NETWORK_ERROR'&&item.uploaded)return 'De bestandsoverdracht was afgerond, maar de verwerkingsstatus kon niet worden opgehaald. Er is nog niets geboekt.';return x.explanation}
  if(item.longWait)return 'Boekuna is nog bezig. De upload is afgerond; we wachten op de verwerking.';
  if(item.state==='uploading')return 'Je document wordt naar Boekuna verstuurd. Alleen de echte bestandsoverdracht krijgt een percentage.';
  if(item.state==='processing')return item.subtext||'We halen de gegevens uit het document die nodig zijn voor je administratie.';
@@ -4195,7 +4197,7 @@ const UPLOAD_ERROR_CODES={
  PERMISSION_DENIED:['Geen toegang','Deze aanvraag is door de toegangs- of beveiligingscontrole geweigerd.','Controleer of je bent ingelogd en Boekuna via de officiële website gebruikt.'],
  INVALID_REQUEST:['Ongeldige aanvraag','Het bestand of de aanvraag kon niet geldig worden verwerkt.','Selecteer het document opnieuw. Blijft dit gebeuren, exporteer het bestand opnieuw.'],
  UNKNOWN:['Onbekende verwerkingsfout','Er is een onverwachte fout opgetreden.','Probeer opnieuw en vermeld de supportreferentie als het probleem terugkomt.'],
- NETWORK_ERROR:['Netwerkfout','Boekuna kon geen verbinding maken met de scanner.','Controleer je internetverbinding en probeer opnieuw.']
+ NETWORK_ERROR:['Verbinding onderbroken','Boekuna kon de verwerkingsstatus niet betrouwbaar ophalen.','Controleer je internetverbinding en probeer de verwerking opnieuw.']
 };
 function createUploadError(code,message='',status=null,meta={}){
  const safeCode=String(code||'UNKNOWN'),e=new Error(message||safeCode);
