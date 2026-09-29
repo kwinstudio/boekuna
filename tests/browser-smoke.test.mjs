@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import http from 'node:http';
+import path from 'node:path';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
@@ -28,10 +29,23 @@ state.company={...state.company,name:'QA Test BV',tradeName:'Boekuna QA',contact
 enterApp();
 `);
 
+const mime={'.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.ico':'image/x-icon','.webmanifest':'application/manifest+json'};
+const publicRoot=new URL('../public/',import.meta.url);
 const server=http.createServer((req,res)=>{
-  if(req.url?.startsWith('/assets/financial-correction.js')){res.writeHead(200,{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store'});return res.end(financialCorrectionSource)}
-  if(req.url?.startsWith('/manifest.webmanifest')){res.writeHead(200,{'content-type':'application/manifest+json'});return res.end('{}')}
-  const body=req.url?.startsWith('/auth')?authHtml:appHtml;
+  const pathname=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);
+  if(pathname.startsWith('/assets/')||pathname==='/favicon.ico'){
+    const relative=pathname.replace(/^\//,'');
+    const file=new URL(relative,publicRoot);
+    try{
+      if(fs.existsSync(file)){
+        const ext=path.extname(file.pathname);
+        res.writeHead(200,{'content-type':mime[ext]||'application/octet-stream','cache-control':'no-store'});
+        return fs.createReadStream(file).pipe(res);
+      }
+    }catch{}
+  }
+  if(pathname==='/manifest.webmanifest'){res.writeHead(200,{'content-type':'application/manifest+json'});return res.end('{}')}
+  const body=pathname.startsWith('/auth')?authHtml:appHtml;
   res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});
   res.end(body);
 });
