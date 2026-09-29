@@ -35,6 +35,8 @@ jobs:
         run: node tests/accounting-integrity.test.mjs
       - name: Production source safety
         run: node tests/source-safety.test.mjs
+      - name: Smart financial correction
+        run: node tests/smart-financial-correction.test.mjs
       - name: Install invoice test dependencies
         run: npm ci --prefix tests --ignore-scripts
       - name: Install browser QA dependency
