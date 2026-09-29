@@ -3907,10 +3907,11 @@ async function replacePersistentDocument(jobId){
 }
 async function openPersistentDocumentReview(jobId){
  const job=documentProcessingJobs.find(j=>j.id===jobId);if(!job?.result?.analysis)return toast('De verwerkte gegevens zijn nog niet beschikbaar.');
+ const raw=job.result.analysis;if(!['purchase_invoice','sales_invoice','sale_invoice','credit_invoice','receipt','invoice'].includes(String(raw.documentType||'')))return openStoredDocument(job.client_ref);
  try{
   const stored=await getStoredFile(job.client_ref);if(!stored?.blob)throw new Error('DOCUMENT_NOT_FOUND');
   const file=new File([stored.blob],stored.name||persistentDocumentName(job),{type:stored.type||stored.blob.type||'application/octet-stream'});
-  const raw=job.result.analysis,parsed=applyRecognitionQuality(processorAnalysisToCandidate(raw,'',job.requested_kind||'auto')),proc=raw.processing||{};
+  const parsed=applyRecognitionQuality(processorAnalysisToCandidate(raw,'',job.requested_kind||'auto')),proc=raw.processing||{};
   parsed.processor={kind:proc.sourceKind||'',pageCount:Number(raw.pageCount||proc.pages||1),ocrUsed:Array.isArray(proc.ocrPages)&&proc.ocrPages.length>0,ocrPages:Array.isArray(proc.ocrPages)?proc.ocrPages:[],ocrConfidence:null,tables:Number(proc.tablesFound||0),warnings:Array.isArray(raw.warnings)?raw.warnings:[],documentTypeHint:raw.documentType||''};
   parsed.pageCount=parsed.processor.pageCount;parsed.documentType=classifyDocumentType(parsed,raw.documentType||'');parsed.isCredit=parsed.documentType==='credit_invoice'||!!parsed.isCredit;if(parsed.isCredit)parsed.status='credit';
   const ext=(file.name.split('.').pop()||'').toLowerCase(),previewable=ext==='pdf'||DOCUMENT_IMAGE_MIME_TYPES.includes(String(file.type||'').toLowerCase())||DOCUMENT_IMAGE_EXTENSIONS.includes(ext);
