@@ -265,11 +265,11 @@ try{
   const composerBody=await page.locator('#emailHandoffForm [name="message"]').inputValue();
   assert.match(composerBody,/Factuurdatum:/);
   assert.match(composerBody,/Vervaldatum:/);
-  assert.match(composerBody,/De factuur vindt u als PDF bij deze e-mail/);
+  assert.match(composerBody,/De factuur vindt u als PDF in de bijlage/);
   assert.match(composerBody,/QA Test BV|Boekuna QA/);
 
   await page.evaluate(()=>prepareEmailHandoffFromComposer());
-  await page.getByRole('heading',{name:'Kies hoe u wilt versturen'}).waitFor();
+  await page.getByRole('heading',{name:'Hoe wilt u versturen'}).waitFor();
   let unified=await page.evaluate(()=>window.__boekunaEmailHandoffTestState());
   assert.equal(unified.mode,'invoice');
   assert.equal(unified.to,'klant@example.test');
@@ -367,7 +367,7 @@ try{
   });
   await page.evaluate(id=>openSendInvoice(id),invoiceId);
   await page.evaluate(()=>prepareEmailHandoffFromComposer());
-  await page.getByRole('heading',{name:'Kies hoe u wilt versturen'}).waitFor();
+  await page.getByRole('heading',{name:'Hoe wilt u versturen'}).waitFor();
   await page.evaluate(()=>shareEmailHandoffPdf());
   await page.locator('.toast').filter({hasText:'Delen geannuleerd'}).waitFor();
   assert.equal(await page.evaluate(id=>state.invoices.find(x=>x.id===id)?.lastSentAt,invoiceId),undefined,'Cancelled native share must remain unsent');
@@ -439,7 +439,7 @@ try{
   assert.match(await page.locator('#emailHandoffForm [name="subject"]').inputValue(),/^Herinnering factuur /);
   assert.equal(await page.locator('#emailHandoffForm [name="attachPdf"]').isChecked(),true);
   await page.evaluate(()=>prepareEmailHandoffFromComposer());
-  await page.getByRole('heading',{name:'Kies hoe u wilt versturen'}).waitFor();
+  await page.getByRole('heading',{name:'Hoe wilt u versturen'}).waitFor();
   assert.equal(await page.evaluate(()=>window.__mailProviderAttempts),0,'Reminder must never attempt direct provider delivery');
   assert.equal(await page.evaluate(id=>state.invoices.find(x=>x.id===id)?.reminderCount||0,invoiceId),0,'Preparing a reminder must not increment reminderCount');
   await page.evaluate(()=>shareEmailHandoffPdf());
