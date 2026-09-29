@@ -29,27 +29,30 @@ const browser=await chromium.launch({headless:true});
 const context=await browser.newContext({viewport:{width:1280,height:900}});
 const p=await context.newPage();
 
-async function pageAuth(){
-  return await p.evaluate(async({email,password})=>{
-    const sb=await getSupabase();
-    const signed=await sb.auth.signInWithPassword({email,password});
-    if(!signed.error&&signed.data?.session)return {session:true,userId:signed.data.user?.id||'',mode:'signin'};
-    const created=await sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin+'/'}});
-    return {session:!!created.data?.session,userId:created.data?.user?.id||'',mode:'signup',error:created.error?.message||''};
-  },{email,password});
+async function authRequest(config,pathname,body){
+  const res=await fetch(config.url+pathname,{
+    method:'POST',
+    headers:{apikey:config.key,Authorization:'Bearer '+config.key,'content-type':'application/json'},
+    body:JSON.stringify(body)
+  });
+  const json=await res.json().catch(()=>({}));
+  return {status:res.status,ok:res.ok,json};
 }
-async function signInPoll(){
-  for(let i=0;i<36;i++){
-    const result=await p.evaluate(async({email,password})=>{
-      const sb=await getSupabase();
-      const {data,error}=await sb.auth.signInWithPassword({email,password});
-      return {session:!!data?.session,userId:data?.user?.id||'',error:error?.message||''};
-    },{email,password});
-    if(result.session)return result;
-    if(i===0)console.log('BOOKUNA_SMOKE_WAITING_CONFIRMATION='+email);
-    await new Promise(r=>setTimeout(r,5000));
+async function createCandidateSession(config){
+  const signup=await authRequest(config,'/auth/v1/signup',{email,password});
+  if(signup.json?.access_token)return signup.json;
+  console.log('BOOKUNA_SMOKE_SIGNUP_STATUS='+signup.status);
+  console.log('BOOKUNA_SMOKE_WAITING_CONFIRMATION='+email);
+  for(let i=0;i<40;i++){
+    const token=await authRequest(config,'/auth/v1/token?grant_type=password',{email,password});
+    if(token.json?.access_token)return token.json;
+    await new Promise(r=>setTimeout(r,3000));
   }
-  return {session:false};
+  throw new Error('Candidate QA account was not confirmed within the smoke window');
+}
+function authStorageKey(url){
+  const ref=new URL(url).hostname.split('.')[0];
+  return 'sb-'+ref+'-auth-token';
 }
 async function ensureApp(){
   await p.evaluate(async()=>{
@@ -68,16 +71,25 @@ async function terminalSnapshot(){
 
 try{
   await p.goto(preview,{waitUntil:'domcontentloaded',timeout:60000});
-  const target=await p.evaluate(()=>({supabase:SUPABASE_URL,processor:DOCUMENT_PROCESSOR_URL,max:DOCUMENT_PROCESSING_MAX_FILES,parallel:DOCUMENT_PROCESSING_MAX_PARALLEL}));
+  const runtime=await p.evaluate(()=>({supabase:SUPABASE_URL,key:SUPABASE_PUBLISHABLE_KEY,processor:DOCUMENT_PROCESSOR_URL,max:DOCUMENT_PROCESSING_MAX_FILES,parallel:DOCUMENT_PROCESSING_MAX_PARALLEL}));
+  const target={supabase:runtime.supabase,processor:runtime.processor,max:runtime.max,parallel:runtime.parallel};
   assert.equal(target.supabase,'https://ozisiotrzeubwbffnxyr.supabase.co','Preview must target candidate Supabase');
   assert.equal(target.processor,'https://boekuna-pr6-de1c73cb-processor.onrender.com','Preview must target candidate processor');
   assert.equal(target.max,10);
   assert.equal(target.parallel,2);
 
-  let auth=await pageAuth();
-  if(!auth.session)auth=await signInPoll();
-  assert.equal(auth.session,true,'Candidate QA account was not confirmed within the smoke window');
-  console.log('BOOKUNA_SMOKE_AUTH_USER_ID='+auth.userId);
+  const auth=await createCandidateSession({url:runtime.supabase,key:runtime.key});
+  console.log('BOOKUNA_SMOKE_AUTH_USER_ID='+(auth.user?.id||''));
+  const storedSession={
+    access_token:auth.access_token,
+    refresh_token:auth.refresh_token,
+    token_type:auth.token_type||'bearer',
+    expires_in:Number(auth.expires_in||3600),
+    expires_at:Math.floor(Date.now()/1000)+Number(auth.expires_in||3600),
+    user:auth.user
+  };
+  await p.evaluate(({key,value})=>localStorage.setItem(key,value),{key:authStorageKey(runtime.supabase),value:JSON.stringify(storedSession)});
+  await p.reload({waitUntil:'domcontentloaded',timeout:60000});
   await ensureApp();
 
   const input=p.locator('#invoicePdfFile');
