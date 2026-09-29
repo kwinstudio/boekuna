@@ -20,13 +20,9 @@ for(const slug of pages){
   assert.ok(html.includes('id="siteFooter"'),`${slug}: shared footer missing`);
   assert.ok(html.includes('/assets/marketing.css'),`${slug}: shared CSS missing`);
   assert.ok(html.includes('/assets/marketing.js'),`${slug}: shared JS missing`);
-  if(slug==='privacy'){
-    assert.ok(html.includes('https://boekuna.nl/privacy/')||html.includes('https://boekuna-boekhouding.onrender.com/privacy/'),'privacy: canonical must remain explicit while parallel privacy PR is active');
-  }else{
-    assert.ok(html.includes(`https://boekuna.nl/${slug}/`),`${slug}: canonical/public URL must use boekuna.nl`);
-    assert.ok(!html.includes('https://boekuna-boekhouding.onrender.com/'),`${slug}: legacy Render canonical must be removed`);
-    assert.ok(!html.includes('<div class="mk-window">'),`${slug}: fake window preview must not render`);
-  }
+  assert.ok(html.includes(`https://boekuna.nl/${slug}/`),`${slug}: canonical/public URL must use boekuna.nl`);
+  assert.ok(!html.includes('https://boekuna-boekhouding.onrender.com/'),`${slug}: legacy Render canonical must be removed`);
+  assert.ok(!html.includes('<div class="mk-window">'),`${slug}: fake window preview must not render`);
   for(const m of html.matchAll(/href="(\/[^"#?]*)(?:[?#][^"]*)?"/g)){
     const href=m[1];
     if(href==='/'||href==='/index.html')continue;
