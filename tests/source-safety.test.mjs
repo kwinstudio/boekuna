@@ -137,7 +137,11 @@ assert.ok(html.includes("role=\"dialog\" aria-modal=\"true\""),"Filter/sort dial
 assert.ok(html.includes("if(e.key==='Tab')"),"Dialogs must trap keyboard focus");
 assert.ok(html.includes("state.hours.slice().sort"),"Hours must default to newest date first");
 assert.ok(html.includes("state.mileage.slice().sort"),"Mileage must default to newest date first");
-assert.ok(html.includes("fetchWithAuthRetry(DOCUMENT_PROCESSOR_URL+'/analyze'"),"Document processor requests must use authenticated retry");
+assert.ok(html.includes("fetchWithAuthRetry(activeDocumentProcessorUrl()+'/analyze'"),"Document processor requests must use authenticated retry through the account-scoped router");
+assert.ok(html.includes("const DOCUMENT_PROCESSOR_BETA_URL='https://boekuna-pr58-ocr-staging.onrender.com';"),"OCR beta processor endpoint must be explicit");
+assert.ok(html.includes("const DOCUMENT_PROCESSOR_BETA_USER_IDS=new Set(['d0323018-5346-475b-9c93-073d5d4fbab7']);"),"OCR beta must remain restricted to the approved Supabase user id");
+assert.ok(html.includes("function activeDocumentProcessorUrl(){return currentUser?.id&&DOCUMENT_PROCESSOR_BETA_USER_IDS.has(String(currentUser.id))?DOCUMENT_PROCESSOR_BETA_URL:DOCUMENT_PROCESSOR_URL}"),"OCR beta routing must fall back to the stable processor for every non-beta account");
+assert.ok(!html.includes("k.phetmanee@gmail.com"),"OCR beta authorization must not expose the account email in frontend source");
 assert.ok(html.includes("async function fetchWithAuthRetry"),"Authenticated processor requests must refresh and retry expired sessions");
 assert.ok(html.includes('id="boekuna-upload-bootstrap"'),"Upload bootstrap must exist independently of the main app initialization");
 assert.ok(html.includes("input.dataset.uploadBound='true'"),"Upload controls must be explicitly bound after the main script");
