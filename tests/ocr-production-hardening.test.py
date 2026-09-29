@@ -281,6 +281,9 @@ def test_health_and_ready_expose_safe_exact_runtime_metadata():
     assert ready["authVerifierConfigured"] is True
     assert ready["aiConfigured"] is True
     assert ready["verificationConfigured"] is True
+    assert ready["aiMode"] == "optional_fallback"
+    assert ready["aiRequiredForAnalyze"] is False
+    assert ready["explicitVerificationAvailable"] is True
     assert ready["ocr"]["version"] == "3.9.2"
 
     warm_started = time.perf_counter()
@@ -316,7 +319,7 @@ def test_ready_fails_closed_when_auth_verifier_is_not_configured():
     assert payload["error"]["checks"]["authVerifier"] is False
 
 
-def test_ready_fails_closed_when_ai_verifier_is_not_configured():
+def test_ready_stays_green_when_optional_ai_verifier_is_not_configured():
     old_publishable_key = processor.SUPABASE_PUBLISHABLE_KEY
     old_openai_key = processor.OPENAI_API_KEY
     old_get_engine = processor.get_ocr_engine
@@ -329,15 +332,49 @@ def test_ready_fails_closed_when_ai_verifier_is_not_configured():
         processor.SUPABASE_PUBLISHABLE_KEY = old_publishable_key
         processor.OPENAI_API_KEY = old_openai_key
         processor.get_ocr_engine = old_get_engine
-    assert isinstance(response, JSONResponse)
-    assert response.status_code == 503
-    payload = json.loads(response.body)
-    assert payload["ok"] is False and payload["ready"] is False
-    assert payload["authVerifierConfigured"] is True
-    assert payload["aiConfigured"] is False
-    assert payload["verificationConfigured"] is False
-    assert payload["error"]["checks"]["aiVerifier"] is False
+    assert not isinstance(response, JSONResponse)
+    assert response["ok"] is True and response["ready"] is True
+    assert response["authVerifierConfigured"] is True
+    assert response["aiConfigured"] is False
+    assert response["verificationConfigured"] is False
+    assert response["aiMode"] == "optional_fallback"
+    assert response["aiRequiredForAnalyze"] is False
+    assert response["explicitVerificationAvailable"] is False
 
+
+def test_ai_fallback_escalates_only_for_uncertainty_or_conflicts():
+    strong = processor.ExtractionResult(
+        documentType="purchase_invoice",
+        originalFileName="strong.pdf",
+        supplier={"name":"Leverancier BV"},
+        invoice={"invoiceNumber":"INV-2026-001","invoiceDate":"2026-09-29","description":"Zakelijke dienst"},
+        amounts={"subtotal":100.0,"vatTotal":21.0,"total":121.0,"currency":"EUR"},
+        status="open",
+        confidence={
+            "supplierName":.97,"invoiceDate":.98,"invoiceNumber":.98,
+            "subtotal":.99,"vatTotal":.99,"total":.99,
+            "documentType":.98,"paymentStatus":.95,"description":.95,
+        },
+        processing={"amountDerivation":{"mixedRates":False},"financialBlocks":{"verified":True}},
+    )
+    clean_doc={"kind":"pdf","text":"A"*600,"pages":[{"ocr":False}],"ocrPages":[]}
+    assert processor.ai_escalation_reasons(clean_doc,strong) == []
+    assert processor.deterministic_fast_path_ready(clean_doc,strong) is True
+
+    low = strong.model_copy(deep=True)
+    low.confidence["total"] = .45
+    assert "low_overall_confidence" in processor.ai_escalation_reasons(clean_doc,low)
+
+    missing = strong.model_copy(deep=True)
+    missing.invoice.invoiceNumber = None
+    assert any(reason.startswith("missing_critical_fields:") for reason in processor.ai_escalation_reasons(clean_doc,missing))
+
+    conflict = strong.model_copy(deep=True)
+    conflict.warnings = ["Bedragen sluiten niet cent-exact aan."]
+    assert "validation_warning" in processor.ai_escalation_reasons(clean_doc,conflict)
+
+    low_ocr_doc={"kind":"image","text":"A"*600,"pages":[{"ocr":True,"ocrConfidence":.62}],"ocrPages":[1]}
+    assert "low_ocr_confidence" in processor.ai_escalation_reasons(low_ocr_doc,strong)
 
 def test_high_resolution_receipt_stays_within_guard_and_runs_real_ppocrv6():
     image = Image.new("RGB", (3200, 4600), "white")
