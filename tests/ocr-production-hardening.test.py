@@ -109,6 +109,13 @@ def test_ocr_singleton_reuses_one_model_instance():
         second = processor.get_ocr_engine()
         assert first is second
         assert calls["count"] == 1
+        assert first.params["Det.engine_type"] == "onnxruntime"
+        assert first.params["Det.model_type"] == "small"
+        assert first.params["Det.ocr_version"] == "PP-OCRv6"
+        assert first.params["Rec.engine_type"] == "onnxruntime"
+        assert first.params["Rec.lang_type"] == "nl"
+        assert first.params["Rec.model_type"] == "small"
+        assert first.params["Rec.ocr_version"] == "PP-OCRv6"
     finally:
         processor.RapidOCR = old_cls
         processor._OCR_ENGINE = old_engine
