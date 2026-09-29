@@ -32,7 +32,7 @@ function pdfFilename(data:any){
   const invoice=data?.invoice||{},customer=data?.customer||{};
   const clean=(value:any,max=72)=>String(value??"")
     .normalize("NFKD").replace(/[\u0300-\u036f]/g,"")
-    .replace(/[^a-zA-Z0-9._-]+/g,"-").replace(/^-+|-+$/g,"").slice(0,max);
+    .replace(/\./g,"").replace(/[^a-zA-Z0-9_-]+/g,"-").replace(/^-+|-+$/g,"").slice(0,max);
   const label=invoice.kind==="credit"?"Creditnota":"Factuur";
   const number=clean(invoice.number,80)||"zonder-nummer";
   const party=clean(customer.name,72);
