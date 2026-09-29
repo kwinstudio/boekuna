@@ -1978,8 +1978,8 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
 </main>
 </div>
 <div id="modalRoot"></div><div class="toast-wrap" id="toastRoot"></div>
-<input class="hidden" type="file" id="invoicePdfFile" accept="application/pdf,.pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,text/csv,application/csv,.csv" />
-<input class="hidden" type="file" id="receiptPhotoFile" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif" />
+<input class="hidden" type="file" id="invoicePdfFile" multiple accept="application/pdf,.pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,text/csv,application/csv,.csv" />
+<input class="hidden" type="file" id="receiptPhotoFile" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif" />
 <input class="hidden" type="file" id="receiptCameraFile" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif" capture="environment" />
 <script>
 const USERS_KEY='boekhouden-local-users-v1';
@@ -3174,7 +3174,7 @@ function renderHours(){
 }
 function renderDocuments(){
   const list=getListRows('documents');
-  return `<div class="page-head"><div><h1>Documenten</h1><p>Upload bronstukken via dezelfde slimme documentprocessor. Facturen en bonnen worden herkend; andere documenten worden gecontroleerd en veilig opgeslagen.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" onclick="document.getElementById('docFile').click()">${icon('i-upload')} Slim document uploaden</button><button class="btn" onclick="triggerReceiptPhoto()">${icon('i-upload')} Foto kiezen</button><button class="btn" onclick="triggerReceiptCamera()">${icon('i-upload')} Camera</button><button class="btn" onclick="document.getElementById('archiveFile').click()">Alleen archiveren</button></div><input class="hidden" type="file" id="docFile" accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"><input class="hidden" type="file" id="archiveFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"></div><div class="notice info"><strong>Eén herkenningsmethode voor boekhoudstukken.</strong> PDF, foto/scan, Word, Excel en CSV gaan via dezelfde v2-documentprocessor. Op mobiel kun je kiezen uit je fotobibliotheek of direct de camera openen. Ook iPhone HEIC/HEIF-foto’s worden ondersteund. De app boekt nooit stilletjes: financiële gegevens komen eerst in het controlescherm.</div><div style="margin-top:16px">${listToolbar('documents')}</div><div class="card"><div class="dropzone" onclick="document.getElementById('docFile').click()">${icon('i-upload')}<strong>Sleep of kies een document om slim uit te lezen</strong><span>Facturen en bonnen worden herkend met tekstextractie, tabellen en OCR. Niet-financiële documenten worden alleen geanalyseerd en opgeslagen.</span></div><div class="divider"></div><div class="section-head"><div><h2>Bestanden</h2><p>${list.length}${list.length!==state.documents.length?' van '+state.documents.length:''} documenten zichtbaar</p></div></div><div class="table-wrap"><table class="table"><thead><tr><th>Naam</th><th>Type</th><th>Datum</th><th>Gekoppeld aan</th><th>Status</th><th></th></tr></thead><tbody>${list.length?list.map(d=>{const link=listLinkedDocumentInfo(d);return `<tr><td><strong>${esc(d.name)}</strong></td><td>${esc(d.type)}</td><td>${dateNL(d.date)}</td><td>${d.linkedId?esc([link.party,link.number].filter(Boolean).join(' · ')||'Gekoppeld'):'—'}</td><td>${documentVerificationBadge(d)}</td><td class="right">${d.verification?`<button class="link-btn" onclick="openDocumentVerification('${d.id}')">Controle</button> `:''}${d.fileId?`<button class="link-btn" onclick="openStoredDocument('${d.fileId}')">Open</button>`:'—'}</td></tr>`}).join(''):`<tr><td colspan="6">${listEmptyHtml('documents')}</td></tr>`}</tbody></table></div></div>`
+  return `<div class="page-head"><div><h1>Documenten</h1><p>Upload bronstukken via dezelfde slimme documentprocessor. Facturen en bonnen worden herkend; andere documenten worden gecontroleerd en veilig opgeslagen.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" onclick="document.getElementById('docFile').click()">${icon('i-upload')} Slim document uploaden</button><button class="btn" onclick="triggerReceiptPhoto()">${icon('i-upload')} Foto kiezen</button><button class="btn" onclick="triggerReceiptCamera()">${icon('i-upload')} Camera</button><button class="btn" onclick="document.getElementById('archiveFile').click()">Alleen archiveren</button></div><input class="hidden" type="file" id="docFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"><input class="hidden" type="file" id="archiveFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"></div><div class="notice info"><strong>Eén herkenningsmethode voor boekhoudstukken.</strong> PDF, foto/scan, Word, Excel en CSV gaan via dezelfde v2-documentprocessor. Op mobiel kun je kiezen uit je fotobibliotheek of direct de camera openen. Ook iPhone HEIC/HEIF-foto’s worden ondersteund. De app boekt nooit stilletjes: financiële gegevens komen eerst in het controlescherm.</div><div style="margin-top:16px">${listToolbar('documents')}</div><div class="card"><div class="dropzone" onclick="document.getElementById('docFile').click()">${icon('i-upload')}<strong>Sleep of kies een document om slim uit te lezen</strong><span>Facturen en bonnen worden herkend met tekstextractie, tabellen en OCR. Niet-financiële documenten worden alleen geanalyseerd en opgeslagen.</span></div><div class="divider"></div><div class="section-head"><div><h2>Bestanden</h2><p>${list.length}${list.length!==state.documents.length?' van '+state.documents.length:''} documenten zichtbaar</p></div></div><div class="table-wrap"><table class="table"><thead><tr><th>Naam</th><th>Type</th><th>Datum</th><th>Gekoppeld aan</th><th>Status</th><th></th></tr></thead><tbody>${list.length?list.map(d=>{const link=listLinkedDocumentInfo(d);return `<tr><td><strong>${esc(d.name)}</strong></td><td>${esc(d.type)}</td><td>${dateNL(d.date)}</td><td>${d.linkedId?esc([link.party,link.number].filter(Boolean).join(' · ')||'Gekoppeld'):'—'}</td><td>${documentVerificationBadge(d)}</td><td class="right">${d.verification?`<button class="link-btn" onclick="openDocumentVerification('${d.id}')">Controle</button> `:''}${d.fileId?`<button class="link-btn" onclick="openStoredDocument('${d.fileId}')">Open</button>`:'—'}</td></tr>`}).join(''):`<tr><td colspan="6">${listEmptyHtml('documents')}</td></tr>`}</tbody></table></div></div>`
 }
 function profileCompleteness(){const c=state.company||{},fields=[c.name,c.tradeName,c.kvk,c.vat,c.address,c.postal,c.city,c.email,c.phone,c.website,c.iban,c.bankAccountName,c.invoicePrefix];return Math.round(fields.filter(Boolean).length/fields.length*100)}
 function renderProfile(){
@@ -3641,37 +3641,15 @@ async function putStoredFile(id,file){if(!currentUser)throw new Error('Geen test
 async function getStoredFile(id){if(!currentUser)return null;if(TEST_MODE_NO_AUTH)return getLegacyStoredFile(id);const sb=await getSupabase();const {data:meta,error}=await sb.from('documents').select('storage_path,name,mime_type').eq('user_id',currentUser.id).eq('client_ref',id).maybeSingle();if(error)throw error;if(!meta)return null;const {data:blob,error:downloadError}=await sb.storage.from('kwinest-documents').download(meta.storage_path);if(downloadError)throw downloadError;return {id,name:meta.name,type:meta.mime_type,blob}}
 async function openStoredDocument(id){try{const row=await getStoredFile(id);if(!row?.blob)return toast('Bestand niet gevonden in de cloud');const url=URL.createObjectURL(row.blob),a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}catch(e){console.warn(e);toast('Bestand kon niet worden geopend')}}
 async function handleSmartDocumentUpload(e){
- const file=e.target.files?.[0];if(!file)return;
- const ext=(file.name.split('.').pop()||'').toLowerCase(),isPhoto=DOCUMENT_IMAGE_MIME_TYPES.includes(String(file.type||'').toLowerCase())||DOCUMENT_IMAGE_EXTENSIONS.includes(ext),allowed=['pdf','docx','xlsx','csv'];
- if(!isPhoto&&!allowed.includes(ext))return toast('Ondersteund voor slim uitlezen: PDF, foto (ook HEIC/HEIF), Word, Excel en CSV');
- setImportProgress('Document verwerken','1. Document uitlezen…','Dezelfde documentprocessor controleert tekst, tabellen, OCR en documenttype.');
- try{
-  const structure=await extractDocumentServer(file,msg=>{const strong=document.getElementById('importProgressMessage');if(strong)strong.textContent=msg});
-  const dt=structure.analysis?.documentType||structure.documentTypeHint||'other';
-  if(['purchase_invoice','sales_invoice','credit_invoice','receipt'].includes(dt)){
-   pendingUploadKind='auto';
-   return processFinancialDocument(file,structure)
-  }
-  const fileId=uid('file'),docId=uid('d');let fileSaved=true;
-  try{await putStoredFile(fileId,file)}catch(err){fileSaved=false;console.warn(err)}
-  state.documents.unshift({id:docId,fileId:fileSaved?fileId:null,name:file.name,type:dt==='bank_document'?'Bankdocument':'Document',date:today(),size:file.size,source:'smart-upload',pageCount:structure.pageCount??null,ocrUsed:!!structure.ocrUsed,analyzed:true,analysisWarnings:structure.warnings||[]});
-  logEvent('Document slim geüpload',`${file.name} · ${dt}`,'document',docId);save();closeModal();toast(fileSaved?'Document uitgelezen en veilig opgeslagen':'Document uitgelezen; opslag van het originele bestand mislukte');render()
- }catch(err){console.warn(err);closeModal();toast(err?.message||'Document kon niet worden uitgelezen')}
+ const files=[...(e?.target?.files||[])];if(!files.length)return;
+ if(e?.target)e.target.value='';
+ return startDocumentProcessingQueue(files,'auto',{smart:true})
 }
 async function startSelectedDocumentUpload(input,kind='auto'){
- const file=input?.files?.[0];
- if(!file){toast('Geen bestand geselecteerd');return}
- pendingUploadKind=kind;
- const label=kind==='purchase'?'Bon verwerken':'Document verwerken';
- setImportProgress(label,'Bestand ontvangen…',`${file.name} · ${Math.max(1,Math.round(file.size/1024))} KB`,5,1);
- try{
-  await processFinancialDocument(file)
- }catch(err){
-  console.error('Document upload failed',err);
-  showUploadError(err,file)
- }finally{
-  if(input)input.value=''
- }
+ const files=[...(input?.files||[])];
+ if(input)input.value='';
+ if(!files.length){toast('Geen bestand geselecteerd');return}
+ return startDocumentProcessingQueue(files,kind,{smart:false})
 }
 async function handleReceiptPhoto(e){return startSelectedDocumentUpload(e?.target,'purchase')}
 async function handleGenericDocuments(e){const files=[...e.target.files];let n=0;for(const f of files){const id=uid('file');try{await putStoredFile(id,f);state.documents.unshift({id:uid('d'),fileId:id,name:f.name,type:'Upload',date:today(),size:f.size});n++}catch(err){console.warn(err);state.documents.unshift({id:uid('d'),name:f.name,type:'Upload',date:today()})}}save();toast(`${n} bestand(en) ${TEST_MODE_NO_AUTH?'lokaal':'veilig in de cloud'} opgeslagen`);render()}
@@ -4258,9 +4236,8 @@ function showUploadError(err,file=null){
  const safety=`<div class="notice info" style="margin-top:12px">${esc(uploadSafetyText(x.state))}</div>`;
  modal('Upload niet gelukt',`<div class="notice warn"><strong>${esc(x.code)} · ${esc(x.title)}</strong><p style="margin:8px 0 0">${esc(x.explanation)}</p>${fileInfo}</div><div class="card" style="margin-top:14px"><strong>Wat kun je doen?</strong><p style="margin:6px 0 0">${esc(x.action)}</p>${ref}<p class="help" style="margin-top:10px">Blijft dit gebeuren? Neem contact op via <a href="${SUPPORT_MAILTO}">${SUPPORT_EMAIL}</a>.</p></div>${safety}<details style="margin-top:14px"><summary>Uitleg van foutcodes</summary><div style="margin-top:8px;max-height:300px;overflow:auto">${uploadErrorCatalogHtml()}</div></details>`,`<button class="btn" onclick="closeModal()">Sluiten</button>`)
 }
-function setImportProgress(title,msg,sub='',percent=10,step=1){
- const pct=Math.max(1,Math.min(100,Number(percent)||10));
- modal(title,`<div style="padding:10px 2px 4px"><div style="display:flex;align-items:center;gap:12px"><div aria-hidden="true" style="width:26px;height:26px;flex:0 0 26px;border:2px solid var(--line);border-top-color:var(--primary);border-radius:50%;animation:spin .75s linear infinite"></div><div style="min-width:0;flex:1"><strong id="importProgressMessage" style="display:block;font-size:16px;line-height:1.25">${esc(msg)}</strong>${sub?`<div class="help" style="margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(sub)}</div>`:''}</div><span style="font-size:13px;font-weight:700;color:var(--muted)">${pct}%</span></div><div class="progress" style="height:5px;margin:15px 0 3px"><span style="width:${pct}%;transition:width .28s ease"></span></div></div>`);
+function setImportProgress(title,msg,sub=''){
+ modal(title,'<div style="padding:10px 2px 4px" aria-busy="true"><div style="display:flex;align-items:center;gap:12px"><div aria-hidden="true" style="width:26px;height:26px;flex:0 0 26px;border:2px solid var(--line);border-top-color:var(--primary);border-radius:50%;animation:spin .75s linear infinite"></div><div style="min-width:0;flex:1"><strong id="importProgressMessage" role="status" aria-live="polite" style="display:block;font-size:16px;line-height:1.25">'+esc(msg)+'</strong>'+(sub?'<div class="help" style="margin-top:3px">'+esc(sub)+'</div>':'')+'</div></div><div class="processing-progress" style="margin-top:15px"><div class="processing-indeterminate" role="progressbar" aria-label="Documentverwerking bezig"></div></div></div>')
 }
 async function handleInvoicePdfFile(e){return processFinancialDocument(e.target.files?.[0])}
 async function processFinancialDocument(file,preStructure=null){
