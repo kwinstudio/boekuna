@@ -516,6 +516,14 @@ try{
     const staleFinancialChecks=String(await page.locator('.review-check-summary').allTextContents());
     assert.doesNotMatch(staleFinancialChecks,/Btw-tarief verdient controle|Bedragen sluiten aan|Meerdere btw-tarieven/,'Static recognition checks must not contradict the live financial consistency panel');
 
+    if((process.env.BOOKUNA_BROWSER||'chromium')==='chromium'){
+      fs.mkdirSync('tests/.artifacts',{recursive:true});
+      await page.setViewportSize({width:390,height:844});
+      await page.screenshot({path:'tests/.artifacts/smart-financial-correction-mobile.png',fullPage:true});
+      await page.setViewportSize({width:1440,height:1000});
+      await page.screenshot({path:'tests/.artifacts/smart-financial-correction-desktop.png',fullPage:true});
+    }
+
     // Mobile-first responsive and overflow checks on the actual review UI.
     for(const width of [320,360,375,390,393,430,768]){
       await page.setViewportSize({width,height:844});
