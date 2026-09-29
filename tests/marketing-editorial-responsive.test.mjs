@@ -6,6 +6,7 @@ import { chromium } from 'playwright';
 
 const root=process.cwd();
 const sourcePath=path.join(root,'kwinest','index.html');
+fs.mkdirSync(path.join(root,'tests','artifacts'),{recursive:true});
 let html=fs.readFileSync(sourcePath,'utf8');
 const boot=html.lastIndexOf('initAuth();');
 assert.ok(boot>=0,'Homepage bootstrap marker missing');
@@ -45,6 +46,7 @@ try{
     assert.ok(await page.locator('.product-crop').count()>=3,`Editorial product crops missing at ${width}px`);
     assert.equal(await page.locator('.product-mobile').count(),1,`Exactly one mobile proof expected at ${width}px`);
     assert.deepEqual(errors,[],`Homepage page errors at ${width}px: ${errors.join(' | ')}`);
+    if([390,1440,1920].includes(width))await page.screenshot({path:path.join(root,'tests','artifacts',`brand-home-${width}.png`),fullPage:true});
     await page.close();
   }
 
