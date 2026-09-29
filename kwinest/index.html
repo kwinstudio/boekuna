@@ -43,6 +43,7 @@
 .review-details{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0 12px;background:#fff}.review-details>summary{cursor:pointer;font-size:11px;font-weight:800;color:#43554f}.review-technical-body{display:grid;gap:8px;margin-top:10px}.review-technical pre{white-space:pre-wrap;font:10px/1.5 ui-monospace,monospace;background:#f6f8f7;padding:10px;border-radius:9px;max-height:220px;overflow:auto}
 .review-checkbox{display:flex;align-items:flex-start;gap:9px;padding:10px 11px;border:1px solid var(--line);border-radius:11px;margin:8px 0;font-size:10px;line-height:1.4;text-transform:none;letter-spacing:0}.review-checkbox input{width:auto;margin-top:2px}.review-checkbox.warn{border-color:#edd9a6;background:#fffaf0}
 .review-important{margin-bottom:10px}
+.financial-field-tools{display:flex;align-items:center;gap:8px;min-height:22px;margin-top:6px}.financial-field-tools .link-btn{font-size:10px}.financial-provenance-badge{display:inline-flex;align-items:center;border-radius:999px;padding:3px 7px;font-size:9px;font-weight:800;background:#f3f5f4;color:var(--muted);vertical-align:middle}.financial-provenance-badge.good{background:#e8f5ef;color:var(--good)}.financial-provenance-badge.warn{background:#fff4d8;color:var(--warn)}.financial-provenance-badge.bad{background:#fceaea;color:var(--bad)}.financial-correction-panel{border:1px solid var(--line);border-radius:13px;padding:12px;margin:4px 0 14px;background:#f8faf9}.financial-correction-panel.good{border-color:#cfe5da;background:#f2faf6}.financial-correction-panel.warn{border-color:#ead7a8;background:#fffaf0}.financial-correction-panel.bad{border-color:#ebc6c6;background:#fff6f6}.financial-correction-panel h5{font-size:12px;margin:0 0 5px}.financial-correction-panel p{font-size:10px;line-height:1.5;color:var(--muted);margin:0}.financial-correction-values{display:grid;gap:5px;margin:10px 0}.financial-correction-value{display:flex;justify-content:space-between;gap:12px;font-size:11px}.financial-correction-value strong{font-size:12px}.financial-correction-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .mobile-review-progress,.mobile-review-actions,.mobile-only-review,.mobile-review-hint{display:none}
 .desktop-review-actions{display:flex;gap:8px}
 
@@ -1860,6 +1861,7 @@ img.bookuna-logo-icon,
 </style>
 </head>
 <body>
+<script src="/assets/financial-correction.js?v=20260929a"></script>
 <script>
 if(location.hostname==='kwinest-boekhouding.onrender.com'){
   location.replace('https://boekuna-boekhouding.onrender.com'+location.pathname+location.search+location.hash);
@@ -3577,6 +3579,145 @@ function duplicateInvoiceCandidate(d,sha=''){
  return null
 }
 function fieldConfidenceBadge(d,key){const n=Number(d?.fieldConfidence?.[key]||0);if(!n)return '';const cls=n>=90?'good':n>=75?'warn':'bad',label=n>=90?'Hoog vertrouwen':n>=75?'Controleer':'Laag vertrouwen';return `<span class="badge ${cls}" style="margin-left:6px">${label}</span>`}
+const FINANCIAL_REVIEW_FIELDS=['net','vatAmount','gross','vatRate'];
+function ensureFinancialReviewProvenance(d){
+ if(!d||typeof d!=='object')return {};
+ if(!d.fieldProvenance||typeof d.fieldProvenance!=='object')d.fieldProvenance={};
+ for(const key of FINANCIAL_REVIEW_FIELDS){
+  if(d.fieldProvenance[key])continue;
+  const value=key==='vatRate'?d?.vatRate:d?.[key];
+  if(value===''||value==null)continue;
+  d.fieldProvenance[key]={source:'recognition',confirmed:false,confidence:Number(d?.fieldConfidence?.[key]||0),originalConfidence:Number(d?.fieldConfidence?.[key]||0)}
+ }
+ return d.fieldProvenance
+}
+function financialFieldStatus(d,key){
+ const p=ensureFinancialReviewProvenance(d)[key]||{},source=String(p.source||'recognition'),confidence=Number(p.confidence||d?.fieldConfidence?.[key]||0);
+ if(source==='user'&&p.confirmed)return {cls:'good',label:'Bevestigd'};
+ if(source==='calculated')return {cls:'good',label:'Berekend'};
+ if(source==='uncertain')return {cls:'warn',label:'Controle nodig'};
+ if(confidence>=90)return {cls:'good',label:'Herkenning · hoog'};
+ if(confidence>=75)return {cls:'warn',label:'Herkenning · controleer'};
+ return {cls:'bad',label:'Controle nodig'}
+}
+function financialFieldBadge(d,key){const st=financialFieldStatus(d,key);return `<span class="financial-provenance-badge ${st.cls}" data-financial-badge="${key}">${esc(st.label)}</span>`}
+function financialConfirmControl(d,key){
+ const p=ensureFinancialReviewProvenance(d)[key]||{},hide=(p.source==='user'&&p.confirmed)||p.source==='calculated'||(key==='vatRate'&&d?.mixedRates);
+ return `<div class="financial-field-tools"><button type="button" class="link-btn" data-financial-confirm="${key}" ${hide?'style="display:none"':''} onclick="confirmFinancialReviewField('${key}')">Bevestigen</button></div>`
+}
+function financialReviewEvent(type,fields=[]){
+ if(!pendingPdfImport?.parsed)return;
+ const events=Array.isArray(pendingPdfImport.parsed.financialCorrectionEvents)?pendingPdfImport.parsed.financialCorrectionEvents:[];
+ events.push({type,fields:[...new Set(fields)],at:new Date().toISOString()});
+ pendingPdfImport.parsed.financialCorrectionEvents=events.slice(-20)
+}
+function markFinancialReviewFieldUser(key){
+ const d=pendingPdfImport?.parsed;if(!d||!FINANCIAL_REVIEW_FIELDS.includes(key))return;
+ const f=document.getElementById('pdfImportForm'),el=f?.elements.namedItem(key);
+ if(!el||String(el.value??'').trim()==='')return;
+ const provenance=ensureFinancialReviewProvenance(d);
+ for(const other of FINANCIAL_REVIEW_FIELDS){
+  if(other===key)continue;
+  const p=provenance[other];
+  if(p?.source==='calculated'&&Array.isArray(p.derivedFrom)&&p.derivedFrom.includes(key))provenance[other]={...p,source:'uncertain',confirmed:false,staleBecause:key}
+ }
+ provenance[key]={source:'user',confirmed:true,confidence:null,confirmedAt:new Date().toISOString()};
+ financialReviewEvent('document_field_confirmed',[key])
+}
+function financialReviewCentsFromInput(value){const parsed=parseSignedMoneyValue(value);return parsed==null?null:financialMoneyCents(parsed)}
+function readFinancialReviewForm(){
+ const f=document.getElementById('pdfImportForm'),d=pendingPdfImport?.parsed;if(!f||!d)return {invalid:['form']};
+ const readMoney=key=>{const el=f.elements.namedItem(key),raw=String(el?.value??'').trim();if(!raw)return {raw,cents:null,empty:true};const cents=financialReviewCentsFromInput(raw);return {raw,cents,empty:false}};
+ const net=readMoney('net'),vatAmount=readMoney('vatAmount'),gross=readMoney('gross'),rateEl=f.elements.namedItem('vatRate'),rateRaw=String(rateEl?.value??'').trim(),rate=d.mixedRates?null:(rateRaw===''?null:Number(rateRaw)),invalid=[];
+ for(const [key,x] of Object.entries({net,vatAmount,gross})){const el=f.elements.namedItem(key);const bad=!x.empty&&x.cents==null;if(el)el.setAttribute('aria-invalid',bad?'true':'false');if(bad)invalid.push(key)}
+ if(!d.mixedRates&&rateRaw!==''&&!Number.isFinite(rate))invalid.push('vatRate');
+ return {net:net.cents,vatAmount:vatAmount.cents,gross:gross.cents,rate,empty:{net:net.empty,vatAmount:vatAmount.empty,gross:gross.empty},invalid}
+}
+function syncFinancialReviewStateFromForm(markUserKey=null){
+ const d=pendingPdfImport?.parsed,state=readFinancialReviewForm(),f=document.getElementById('pdfImportForm');if(!d||state.invalid?.length)return state;
+ for(const key of ['net','vatAmount','gross']){
+  if(state.empty?.[key])d[key]='';
+  else if(state[key]!=null)d[key]=state[key]/100;
+ }
+ if(!d.mixedRates)d.vatRate=state.rate;
+ if(markUserKey&&String(f?.elements.namedItem(markUserKey)?.value??'').trim()!=='')markFinancialReviewFieldUser(markUserKey);
+ applyRecognitionQuality(d);
+ return state
+}
+function financialReviewProposal(){
+ const d=pendingPdfImport?.parsed,state=readFinancialReviewForm();if(!d)return {status:'insufficient',canApply:false};
+ if(state.invalid?.length)return {status:'invalid',canApply:false,invalid:state.invalid};
+ ensureFinancialReviewProvenance(d);
+ return BookunaFinancialCorrection.buildProposal({net:state.net,vatAmount:state.vatAmount,gross:state.gross,rate:state.rate,mixedRates:!!d.mixedRates,provenance:d.fieldProvenance,validRates:BookunaFinancialCorrection.DEFAULT_RATES})
+}
+function formatFinancialReviewCents(cents){return (Number(cents||0)/100).toFixed(2)}
+function updateFinancialReviewBadges(){
+ const d=pendingPdfImport?.parsed;if(!d)return;
+ for(const key of FINANCIAL_REVIEW_FIELDS){
+  const st=financialFieldStatus(d,key),badge=document.querySelector(`[data-financial-badge="${key}"]`),confirm=document.querySelector(`[data-financial-confirm="${key}"]`);
+  if(badge){badge.className=`financial-provenance-badge ${st.cls}`;badge.textContent=st.label}
+  const p=ensureFinancialReviewProvenance(d)[key]||{};
+  if(confirm)confirm.style.display=((p.source==='user'&&p.confirmed)||p.source==='calculated'||(key==='vatRate'&&d.mixedRates))?'none':''
+ }
+}
+function updateFinancialReviewAmountSummary(){
+ const f=document.getElementById('pdfImportForm');if(!f)return;
+ const keys=['net','vatAmount','gross'],nodes=document.querySelectorAll('.review-amount-primary strong');
+ keys.forEach((key,i)=>{const cents=financialReviewCentsFromInput(f.elements.namedItem(key)?.value);if(nodes[i])nodes[i].textContent=cents==null?'—':money(cents/100)})
+}
+function updateFinancialReviewPanel(){
+ const panel=document.getElementById('financialCorrectionPanel'),d=pendingPdfImport?.parsed;if(!panel||!d)return;
+ updateFinancialReviewBadges();updateFinancialReviewAmountSummary();
+ const p=financialReviewProposal(),state=readFinancialReviewForm();panel.className='financial-correction-panel';
+ if(p.status==='mixed'){panel.classList.add('warn');panel.setAttribute('role','status');panel.innerHTML='<h5>Mogelijk meerdere btw-tarieven</h5><p>Deze factuur bevat meerdere btw-tarieven. Controleer de btw-regels afzonderlijk; Boekuna past geen enkel tarief op het hele totaal toe.</p>';return}
+ if(p.status==='invalid'){panel.classList.add('bad');panel.setAttribute('role','alert');panel.innerHTML='<h5>Controleer de invoer</h5><p>Gebruik een geldig bedrag, bijvoorbeeld 128,66 of 128.66.</p>';return}
+ if(p.status==='conflict'){panel.classList.add('bad');panel.setAttribute('role','alert');panel.innerHTML='<h5>Bedragen kunnen niet samen kloppen</h5><p>Minimaal één door jou bevestigde waarde botst met de andere bevestigde gegevens. Boekuna overschrijft jouw invoer niet automatisch.</p>';return}
+ if(p.status==='needs_confirmation'){panel.classList.add('warn');panel.setAttribute('role','status');panel.innerHTML='<h5>Bevestig wat je op het document ziet</h5><p>De herkenning bevat genoeg aanknopingspunten, maar bij deze inconsistentie kiest Boekuna niet zelf welke waarde leidend is.</p>';return}
+ if(p.status==='insufficient'){panel.classList.add('warn');panel.setAttribute('role','status');panel.innerHTML='<h5>Nog te weinig betrouwbare gegevens</h5><p>Bevestig minimaal twee bedragen, of één bedrag samen met het btw-tarief.</p>';return}
+ if(p.status==='consistent'){
+  panel.classList.add('good');panel.setAttribute('role','status');
+  const net=state.net==null?'—':money(state.net/100),vat=state.vatAmount==null?'—':money(state.vatAmount/100),gross=state.gross==null?'—':money(state.gross/100);
+  panel.innerHTML=`<h5>Bedragen kloppen</h5><p>${net} + ${vat} btw = ${gross}</p>`;return
+ }
+ if(p.status==='proposal'){
+  panel.classList.add('warn');panel.setAttribute('role','status');
+  const c=p.candidate,rateText=c.rate==null?'':` bij ${num(c.rate)}% btw`,suggest=p.suggestedRate!=null?`<p style="margin-top:7px">${num(p.suggestedRate)}% lijkt bij deze bedragen te horen. <button type="button" class="link-btn" onclick="confirmSuggestedFinancialRate(${Number(p.suggestedRate)})">Bevestig ${num(p.suggestedRate)}%</button></p>`:'';
+  panel.innerHTML=`<h5>Boekuna kan de bedragen corrigeren</h5><p>Op basis van de bevestigde en betrouwbare gegevens horen de bedragen${rateText} te zijn:</p><div class="financial-correction-values"><div class="financial-correction-value"><span>Excl. btw</span><strong>${money(c.net/100)}</strong></div><div class="financial-correction-value"><span>Btw${c.rate!=null?' '+num(c.rate)+'%':''}</span><strong>${money(c.vatAmount/100)}</strong></div><div class="financial-correction-value"><span>Incl. btw</span><strong>${money(c.gross/100)}</strong></div></div>${suggest}<div class="financial-correction-actions"><button type="button" class="btn primary" onclick="applyFinancialCorrectionProposal()">Gebruik deze bedragen</button><button type="button" class="btn" onclick="dismissFinancialCorrectionProposal()">Zelf aanpassen</button></div>`;return
+ }
+}
+function confirmFinancialReviewField(key){
+ const f=document.getElementById('pdfImportForm'),el=f?.elements.namedItem(key);if(!el)return;
+ if(key==='vatRate'&&pendingPdfImport?.parsed?.mixedRates)return;
+ const state=syncFinancialReviewStateFromForm(key);if(state.invalid?.includes(key)){el.focus();updateFinancialReviewPanel();return}
+ updateFinancialReviewPanel()
+}
+function confirmSuggestedFinancialRate(rate){
+ const f=document.getElementById('pdfImportForm'),el=f?.elements.namedItem('vatRate');if(!el||pendingPdfImport?.parsed?.mixedRates)return;
+ el.value=String(rate);syncFinancialReviewStateFromForm('vatRate');updateFinancialReviewPanel()
+}
+function applyFinancialCorrectionProposal(){
+ const d=pendingPdfImport?.parsed,f=document.getElementById('pdfImportForm'),p=financialReviewProposal();if(!d||!f||p.status!=='proposal'||!p.canApply)return;
+ const provenance=ensureFinancialReviewProvenance(d),anchors=p.anchors||[];
+ for(const key of p.derivedFields||[]){
+  const cents=p.candidate?.[key];if(cents==null)continue;
+  const input=f.elements.namedItem(key);if(input)input.value=formatFinancialReviewCents(cents);
+  d[key]=cents/100;provenance[key]={source:'calculated',confirmed:false,confidence:null,derivedFrom:[...anchors],calculatedAt:new Date().toISOString()}
+ }
+ financialReviewEvent('financial_recalculation_applied',p.derivedFields||[]);
+ applyRecognitionQuality(d);updateFinancialReviewPanel()
+}
+function dismissFinancialCorrectionProposal(){
+ const f=document.getElementById('pdfImportForm'),p=financialReviewProposal(),key=(p.derivedFields||[])[0]||'net',el=f?.elements.namedItem(key);el?.focus()
+}
+function bindFinancialReviewControls(){
+ const f=document.getElementById('pdfImportForm'),d=pendingPdfImport?.parsed;if(!f||!d)return;
+ for(const key of FINANCIAL_REVIEW_FIELDS){
+  const el=f.elements.namedItem(key);if(!el||el.dataset.financialBound==='1')continue;el.dataset.financialBound='1';
+  const evt=key==='vatRate'?'change':'input';
+  el.addEventListener(evt,()=>{syncFinancialReviewStateFromForm(key);updateFinancialReviewPanel()});
+  if(key!=='vatRate')el.addEventListener('blur',()=>{const cents=financialReviewCentsFromInput(el.value);if(cents!=null)el.value=formatFinancialReviewCents(cents);updateFinancialReviewPanel()})
+ }
+}
 function cleanupPendingImport(){if(pendingPdfImport?.previewUrl){try{URL.revokeObjectURL(pendingPdfImport.previewUrl)}catch(e){}}pendingPdfImport=null}
 
 function parseMoneyValue(v){const n=parseSignedMoneyValue(v);return n==null?null:Math.abs(n)}
@@ -4044,6 +4185,7 @@ function setDocumentReviewStep(step){
  const body=flow.closest('.modal')?.querySelector('.modal-body');if(body)body.scrollTop=0;
 }
 function showPdfImportReview(d){
+ ensureFinancialReviewProvenance(d);
  const [label,cls]=confidenceLabel(d.confidenceScore||0),source=d.sourceQuality==='processor-v2-ai'?'Documentprocessor v2 + AI':d.sourceQuality==='processor-v2'?'Documentprocessor v2':d.sourceQuality==='ai-pdf'?'AI + originele PDF':d.sourceQuality==='ai-text'?'AI + geëxtraheerde documenttekst':d.sourceQuality==='embedded-xml'?'E-factuurgegevens (UBL/XML)':d.sourceQuality==='server-ocr'?'Serverextractie + OCR':d.sourceQuality==='server-document'?'Serverextractie · tekst + layout + tabellen':d.sourceQuality==='pdf-text+ocr'?'Lokale PDF-tekst + OCR':d.sourceQuality==='ocr'?'OCR':d.sourceQuality==='pdf-text'?'PDF-tekst':'Handmatige invoer';
  const dup=d.duplicateCandidate?`<div class="notice warn review-important"><strong>Mogelijk duplicaat.</strong><br>${esc(d.duplicateCandidate.label)} lijkt op dit document.</div>`:'';
  const warn=d.mixedRates?`<div class="notice warn review-important"><strong>Meerdere btw-tarieven.</strong> Controleer de btw-regels afzonderlijk.</div>`:'';
@@ -4084,12 +4226,13 @@ function showPdfImportReview(d){
      ${factor}${checkHtml}
      <div class="form-grid review-step-grid">
       <div class="field"><label>Valuta</label><input name="currency" value="${esc(d.currency||'EUR')}" maxlength="3"></div>
-      <div class="field"><label>Btw-tarief</label><select name="vatRate"><option value="" ${d.vatRate===''||d.vatRate==null?'selected':''}>Gemengd / controleer</option><option value="21" ${Number(d.vatRate)===21?'selected':''}>21%</option><option value="9" ${Number(d.vatRate)===9?'selected':''}>9%</option><option value="0" ${d.vatRate!==''&&d.vatRate!=null&&Number(d.vatRate)===0?'selected':''}>0% / vrij / verlegd</option></select></div>
-      <div class="field"><label>Bedrag excl. btw ${fieldConfidenceBadge(d,'net')}</label><input type="number" step="0.01" min="0" name="net" value="${d.net!==''&&d.net!=null?Number(d.net).toFixed(2):''}" required></div>
-      <div class="field"><label>Btw-bedrag ${fieldConfidenceBadge(d,'vatAmount')}</label><input type="number" step="0.01" min="0" name="vatAmount" value="${d.vatAmount!==''&&d.vatAmount!=null?Number(d.vatAmount).toFixed(2):''}"></div>
-      <div class="field"><label>Totaal incl. btw ${fieldConfidenceBadge(d,'gross')}</label><input type="number" step="0.01" min="0" name="gross" value="${d.gross!==''&&d.gross!=null?Number(d.gross).toFixed(2):''}" required></div>
+      <div class="field"><label>Btw-tarief ${financialFieldBadge(d,'vatRate')}</label><select name="vatRate" aria-describedby="financialCorrectionPanel" ${d.mixedRates?'disabled':''}><option value="" ${d.vatRate===''||d.vatRate==null?'selected':''}>Gemengd / controleer</option><option value="21" ${Number(d.vatRate)===21?'selected':''}>21%</option><option value="9" ${Number(d.vatRate)===9?'selected':''}>9%</option><option value="0" ${d.vatRate!==''&&d.vatRate!=null&&Number(d.vatRate)===0?'selected':''}>0% (fiscale reden apart controleren)</option></select>${financialConfirmControl(d,'vatRate')}</div>
+      <div class="field"><label>Bedrag excl. btw ${financialFieldBadge(d,'net')}</label><input type="text" inputmode="decimal" autocomplete="off" name="net" aria-describedby="financialCorrectionPanel" value="${d.net!==''&&d.net!=null?Number(d.net).toFixed(2):''}" required>${financialConfirmControl(d,'net')}</div>
+      <div class="field"><label>Btw-bedrag ${financialFieldBadge(d,'vatAmount')}</label><input type="text" inputmode="decimal" autocomplete="off" name="vatAmount" aria-describedby="financialCorrectionPanel" value="${d.vatAmount!==''&&d.vatAmount!=null?Number(d.vatAmount).toFixed(2):''}">${financialConfirmControl(d,'vatAmount')}</div>
+      <div class="field"><label>Totaal incl. btw ${financialFieldBadge(d,'gross')}</label><input type="text" inputmode="decimal" autocomplete="off" name="gross" aria-describedby="financialCorrectionPanel" value="${d.gross!==''&&d.gross!=null?Number(d.gross).toFixed(2):''}" required>${financialConfirmControl(d,'gross')}</div>
       ${d.payout!==''&&d.payout!=null?`<div class="field"><label>Netto uitbetaald ${fieldConfidenceBadge(d,'payout')}</label><input type="number" step="0.01" min="0" name="payout" value="${Number(d.payout).toFixed(2)}" readonly><div class="help">Na kosten/verrekening; niet het factuurtotaal.</div></div>`:''}
      </div>
+     <div id="financialCorrectionPanel" class="financial-correction-panel" role="status" aria-live="polite"><h5>Financiële controle</h5><p>Bevestig de bedragen die je op het document ziet.</p></div>
     </section>
 
     <section class="review-step" data-review-step="3">
@@ -4135,7 +4278,7 @@ function showPdfImportReview(d){
 
  const foot=`<div class="desktop-review-actions"><button class="btn" onclick="cleanupPendingImport();closeModal()">Annuleren</button><button class="btn primary" onclick="savePdfInvoiceImport()">Gecontroleerd & opslaan</button></div><div class="mobile-review-actions"><button class="btn" id="mobileReviewPrev" style="display:none" onclick="setDocumentReviewStep(Number(document.querySelector('.document-review-flow')?.dataset.step||1)-1)">Vorige</button><button class="btn primary" id="mobileReviewNext" onclick="setDocumentReviewStep(Number(document.querySelector('.document-review-flow')?.dataset.step||1)+1)">Volgende</button><button class="btn primary" id="mobileReviewSave" style="display:none" onclick="savePdfInvoiceImport()">Opslaan</button></div>`;
  modal('Document controleren',body,foot,true);
- requestAnimationFrame(()=>setDocumentReviewStep(1));
+ requestAnimationFrame(()=>{setDocumentReviewStep(1);bindFinancialReviewControls();updateFinancialReviewPanel()});
 }
 
 function trustedVatLinesForImport(parsed,net,vat,rate){
@@ -4161,7 +4304,9 @@ function findOrCreateContact(type,data){
 async function savePdfInvoiceImport(){
  if(!pendingPdfImport)return;const f=document.getElementById('pdfImportForm');if(!f)return;if(!f.checkValidity()){const bad=f.querySelector(':invalid'),step=Number(bad?.closest('[data-review-step]')?.dataset.reviewStep||4);setDocumentReviewStep(step);requestAnimationFrame(()=>bad?.reportValidity());return}const fd=new FormData(f),d=Object.fromEntries(fd.entries()),type=d.type,docType=d.documentType||'purchase_invoice',statusRaw=d.status||'sent',isCredit=statusRaw==='credit'||docType==='credit_invoice';if(docType==='receipt'&&!String(d.invoiceNumber||'').trim())d.invoiceNumber=`BON-${String(d.issueDate||today()).replace(/-/g,'')}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
  if(pendingPdfImport.parsed?.duplicateCandidate&&d.confirmDuplicate!=='on')return toast('Mogelijk duplicaat: controleer de waarschuwing en bevestig expliciet als dit toch een nieuwe factuur is.');
- let reviewedRate=d.vatRate===''?null:Number(d.vatRate),net=Math.abs(Number(d.net||0)),vat=Math.abs(Number(d.vatAmount||0)),gross=Math.abs(Number(d.gross||0));if(!gross||!Number.isFinite(net))return toast('Controleer bedrag excl. btw en factuurbedrag');if(!vat&&gross>=net)vat=Math.max(0,gross-net);
+ const financialState=syncFinancialReviewStateFromForm();if(financialState.invalid?.length)return toast('Controleer de gemarkeerde bedragen. Gebruik bijvoorbeeld 128,66 of 128.66.');
+ let reviewedRate=pendingPdfImport.parsed?.mixedRates?null:(d.vatRate===''||d.vatRate==null?null:Number(d.vatRate)),parsedNet=parseSignedMoneyValue(d.net),parsedVat=parseSignedMoneyValue(d.vatAmount),parsedGross=parseSignedMoneyValue(d.gross),net=Math.abs(parsedNet??NaN),vat=Math.abs(parsedVat??0),gross=Math.abs(parsedGross??NaN);if(financialMoneyCents(net)==null||financialMoneyCents(vat)==null||financialMoneyCents(gross)==null||gross<=0)return toast('Controleer bedrag excl. btw, btw-bedrag en factuurbedrag');if((d.vatAmount===''||d.vatAmount==null)&&gross>=net)vat=Math.max(0,gross-net);
+ const financialFieldProvenance=structuredClone(ensureFinancialReviewProvenance(pendingPdfImport.parsed)),financialCorrectionEvents=structuredClone(pendingPdfImport.parsed?.financialCorrectionEvents||[]);
   const vatLineResult=trustedVatLinesForImport(pendingPdfImport.parsed,net,vat,reviewedRate);if(!vatLineResult.ok)return toast(vatLineResult.reason);const trustedVatLines=vatLineResult.lines,trustedVatRates=[...new Set(trustedVatLines.map(v=>Number(v.rate)).filter(Number.isFinite))],mixedRates=!!pendingPdfImport.parsed?.mixedRates||trustedVatRates.length>1,rate=mixedRates?null:(reviewedRate==null?(trustedVatRates.length===1?trustedVatRates[0]:0):reviewedRate);
   const candidate={...pendingPdfImport.parsed,...d,type,documentType:docType,isCredit,net,vatAmount:vat,gross,vatRate:rate,mixedRates,vatLines:trustedVatLines,status:statusRaw==='overdue'?'sent':statusRaw};const schemaErrors=validateCandidateSchema(candidate);if(schemaErrors.length){toast(schemaErrors[0]);return}if(pendingPdfImport.parsed?.recognitionBad>0&&!confirm('De herkenning bevat kritieke controlepunten. Heb je alle gemarkeerde velden handmatig gecontroleerd en gecorrigeerd?'))return;
  const dup=duplicateInvoiceCandidate(candidate,pendingPdfImport.sha256||pendingPdfImport.parsed?.sha256||'');if(dup&&d.confirmDuplicate!=='on')return toast(`Mogelijk duplicaat: ${dup.label}`);
@@ -4170,11 +4315,11 @@ async function savePdfInvoiceImport(){
  if(type==='sale'){
   const number=d.invoiceNumber.trim();if(state.invoices.some(i=>String(i.number||'').trim().toLowerCase()===number.toLowerCase())){if(fileSaved)await deleteStoredFile(fileId);return toast(`Factuurnummer ${number} bestaat al. De factuur is niet dubbel opgeslagen.`)}
   const parsedItems=pendingPdfImport.parsed?.lineItems||[],itemNet=parsedItems.reduce((s,x)=>s+Number(x.qty||0)*Number(x.unit||0),0),lines=parsedItems.length&&Math.abs(itemNet-net)<Math.max(.08,net*.004)?parsedItems.map(x=>({desc:x.desc,qty:Number(x.qty),unit:Number(x.unit),vat:Number(x.vat??rate),unitLabel:x.unitLabel||'stuk'})):[{desc:d.description||`Factuur ${number}`,qty:1,unit:net,vat:rate,unitLabel:'stuk'}];
-  linkedId=uid('i');state.invoices.unshift({id:linkedId,number,kind:isCredit?'credit':'invoice',customerId:contact.id,issueDate:d.issueDate,supplyDate:d.issueDate,dueDate:d.dueDate||d.issueDate,status:normalStatus,currency,paymentTermDays,taxTreatment:state.company.kor?'kor':'standard',reference:orderNumber,paymentReference:d.paymentReference||number,notes:d.description||'',lines,vatLines:trustedVatLines,importedTotals:{net,vat,gross},source:'document-import',documentId:docId,importConfidence:pendingPdfImport.parsed?.confidenceScore||0,selfBilling:!!pendingPdfImport.parsed?.selfBilling,payout:pendingPdfImport.parsed?.payout??null,adjustments:pendingPdfImport.parsed?.adjustments||[],documentType:docType,pageCount:pendingPdfImport.parsed?.pageCount??null});
+  linkedId=uid('i');state.invoices.unshift({id:linkedId,number,kind:isCredit?'credit':'invoice',customerId:contact.id,issueDate:d.issueDate,supplyDate:d.issueDate,dueDate:d.dueDate||d.issueDate,status:normalStatus,currency,paymentTermDays,taxTreatment:state.company.kor?'kor':'standard',reference:orderNumber,paymentReference:d.paymentReference||number,notes:d.description||'',lines,vatLines:trustedVatLines,importedTotals:{net,vat,gross},source:'document-import',documentId:docId,importConfidence:pendingPdfImport.parsed?.confidenceScore||0,selfBilling:!!pendingPdfImport.parsed?.selfBilling,payout:pendingPdfImport.parsed?.payout??null,adjustments:pendingPdfImport.parsed?.adjustments||[],documentType:docType,pageCount:pendingPdfImport.parsed?.pageCount??null,fieldProvenance:financialFieldProvenance,financialCorrectionEvents});
   if(d.bookAdjustments==='on'&&!isCredit&&(pendingPdfImport.parsed?.adjustments||[]).length){const vendor=pendingPdfImport.parsed.adjustmentParty||'Factoringkosten';findOrCreateContact('supplier',{party:vendor,email:'',phone:'',vatId:'',kvk:'',address:'',postal:'',city:''});for(const a of pendingPdfImport.parsed.adjustments){if(Number(a.gross||0)<=0)continue;state.expenses.unshift({id:uid('e'),vendor,date:d.issueDate,status:'paid',category:'Bank- & factoringkosten',exVat:Number(a.net||0),vatRate:Number(a.vatRate??rate??0),taxTreatment:state.company.kor?'kor':'standard',vatAmount:Number(a.vat||0),gross:Number(a.gross||0),notes:`Factoringkosten bij factuur ${number}`,paymentMethod:'Verrekend',invoiceNumber:`${number} / factoring`,paymentReference:d.paymentReference||'',source:'document-import-adjustment',documentId:docId})}}
  }else{
   if(state.expenses.some(e=>String(e.invoiceNumber||'').trim().toLowerCase()===String(d.invoiceNumber||'').trim().toLowerCase()&&String(e.vendor||'').trim().toLowerCase()===contact.name.trim().toLowerCase())){if(fileSaved)await deleteStoredFile(fileId);return toast('Deze inkoopfactuur lijkt al te bestaan en is niet dubbel opgeslagen.')}
-  linkedId=uid('e');const sign=isCredit?-1:1;state.expenses.unshift({id:linkedId,vendor:contact.name,date:d.issueDate,dueDate:d.dueDate||'',status:normalStatus,kind:isCredit?'credit':'invoice',currency,paymentTermDays,orderNumber,category:d.category||'Inkoop',exVat:sign*net,vatRate:rate,mixedRates,taxTreatment:state.company.kor?'kor':'standard',vatAmount:sign*vat,gross:sign*gross,vatLines:trustedVatLines,notes:d.description||`Factuur ${d.invoiceNumber}`,paymentMethod:'Bank',invoiceNumber:d.invoiceNumber,paymentReference:d.paymentReference||'',source:'document-import',documentId:docId,importConfidence:pendingPdfImport.parsed?.confidenceScore||0,documentType:docType,pageCount:pendingPdfImport.parsed?.pageCount??null})
+  linkedId=uid('e');const sign=isCredit?-1:1;state.expenses.unshift({id:linkedId,vendor:contact.name,date:d.issueDate,dueDate:d.dueDate||'',status:normalStatus,kind:isCredit?'credit':'invoice',currency,paymentTermDays,orderNumber,category:d.category||'Inkoop',exVat:sign*net,vatRate:rate,mixedRates,taxTreatment:state.company.kor?'kor':'standard',vatAmount:sign*vat,gross:sign*gross,vatLines:trustedVatLines,notes:d.description||`Factuur ${d.invoiceNumber}`,paymentMethod:'Bank',invoiceNumber:d.invoiceNumber,paymentReference:d.paymentReference||'',source:'document-import',documentId:docId,importConfidence:pendingPdfImport.parsed?.confidenceScore||0,documentType:docType,pageCount:pendingPdfImport.parsed?.pageCount??null,fieldProvenance:financialFieldProvenance,financialCorrectionEvents})
  }
  const verificationCandidate={...candidate,party:contact.name,invoiceNumber:d.invoiceNumber,issueDate:d.issueDate,description:d.description||'',net,vatAmount:vat,gross,vatRate:rate,vatLines:trustedVatLines,currency,mixedRates};
  const verificationNeeded=fileSaved&&shouldQueueDocumentVerification(pendingPdfImport.parsed),verification={
@@ -4192,8 +4337,10 @@ async function savePdfInvoiceImport(){
   differences:[],financialIssues:[],
   lastError:fileSaved?'':'Origineel bestand kon niet veilig worden opgeslagen; extra controle is daarom niet gestart.'
  };
- state.documents.unshift({id:docId,fileId:fileSaved?fileId:null,name:pendingPdfImport.file.name,type:docType,date:d.issueDate,linkedType:type==='sale'?'invoice':'expense',linkedId,source:'document-import',size:pendingPdfImport.file.size,sha256:pendingPdfImport.sha256||pendingPdfImport.parsed?.sha256||'',pageCount:pendingPdfImport.parsed?.pageCount??null,ocrUsed:!!pendingPdfImport.parsed?.processor?.ocrUsed,analyzed:true,verification});
- logEvent('Documentfactuur geïmporteerd',`${d.invoiceNumber} · ${contact.name} · ${money(isCredit?-gross:gross)}`,type==='sale'?'invoice':'expense',linkedId);save();const queuedVerification=verification.status==='pending';cleanupPendingImport();closeModal();toast(type==='sale'?`Factuur opgeslagen en ${contact.name} staat bij klanten`:(docType==='receipt'?`Bon opgeslagen als kosten bij ${contact.name}`:`Inkoopfactuur opgeslagen en ${contact.name} staat bij leveranciers`));navigate(type==='sale'?'invoices':'expenses');if(queuedVerification)scheduleDocumentVerification(docId)
+ state.documents.unshift({id:docId,fileId:fileSaved?fileId:null,name:pendingPdfImport.file.name,type:docType,date:d.issueDate,linkedType:type==='sale'?'invoice':'expense',linkedId,source:'document-import',size:pendingPdfImport.file.size,sha256:pendingPdfImport.sha256||pendingPdfImport.parsed?.sha256||'',pageCount:pendingPdfImport.parsed?.pageCount??null,ocrUsed:!!pendingPdfImport.parsed?.processor?.ocrUsed,analyzed:true,fieldProvenance:financialFieldProvenance,financialCorrectionEvents,verification});
+ logEvent('Documentfactuur geïmporteerd',`${d.invoiceNumber} · ${contact.name} · ${money(isCredit?-gross:gross)}`,type==='sale'?'invoice':'expense',linkedId);
+ const confirmedFinancialFields=Object.entries(financialFieldProvenance).filter(([,p])=>p?.source==='user'&&p?.confirmed).map(([k])=>k);if(confirmedFinancialFields.length)logEvent('Documentvelden bevestigd',confirmedFinancialFields.join(', '),'document',docId,null,{fields:confirmedFinancialFields});
+ const recalculatedFields=[...new Set(financialCorrectionEvents.filter(e=>e?.type==='financial_recalculation_applied').flatMap(e=>e.fields||[]))];if(recalculatedFields.length)logEvent('Financiële correctie toegepast',recalculatedFields.join(', '),'document',docId,null,{fields:recalculatedFields});save();const queuedVerification=verification.status==='pending';cleanupPendingImport();closeModal();toast(type==='sale'?`Factuur opgeslagen en ${contact.name} staat bij klanten`:(docType==='receipt'?`Bon opgeslagen als kosten bij ${contact.name}`:`Inkoopfactuur opgeslagen en ${contact.name} staat bij leveranciers`));navigate(type==='sale'?'invoices':'expenses');if(queuedVerification)scheduleDocumentVerification(docId)
 }
 function openReminder(id){const i=state.invoices.find(x=>x.id===id);if(!i||i.kind==='credit')return toast('Voor een creditfactuur stuur je geen betalingsherinnering');const c=getContact(i.customerId),days=Math.max(0,-daysUntil(i.dueDate));const subject=`Herinnering factuur ${i.number} · ${state.company.name||'uw leverancier'}`,message=`Beste ${c.contactPerson||c.name||'klant'},\n\nVolgens onze administratie staat op factuur ${i.number} nog ${money(invoiceOutstanding(i))} open. De vervaldatum was ${dateNL(i.dueDate)}${days?` (${days} dag${days===1?'':'en'} geleden)`:''}.\n\nWil je controleren of de betaling inmiddels is verwerkt? Je kunt het bedrag overmaken naar ${state.company.iban||'[IBAN]'} onder vermelding van ${i.paymentReference||i.number}.\n\nAls je al hebt betaald, kun je deze herinnering als niet verzonden beschouwen.\n\nMet vriendelijke groet,\n${state.company.name||''}`;modal('Betalingsherinnering',`<div class="notice info" style="margin-bottom:14px"><strong>${esc(i.number)}</strong> · ${money(invoiceOutstanding(i))} open · vervaldatum ${dateNL(i.dueDate)}</div><form id="reminderForm" class="form-grid"><div class="field full"><label>Ontvanger</label><input name="to" type="email" value="${esc(c.email||'')}" required></div><div class="field full"><label>Onderwerp</label><input name="subject" value="${esc(subject)}" required></div><div class="field full"><label>Bericht</label><textarea name="message" style="min-height:220px">${esc(message)}</textarea></div></form><div class="help" style="margin-top:10px">Echte verzending gebruikt dezelfde mailprovider als ‘Verstuur factuur’. Als die nog niet gekoppeld is, wordt niets als verzonden gemarkeerd.</div>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="sendReminder('${id}')">Verstuur herinnering</button>`,true)}
 async function sendReminder(id){const f=document.getElementById('reminderForm');if(!f?.reportValidity())return;const i=state.invoices.find(x=>x.id===id),c=getContact(i.customerId),fd=new FormData(f),payload=buildInvoiceMailPayload(i,c,{to:String(fd.get('to')),subject:String(fd.get('subject')),message:String(fd.get('message')),copyToSelf:false});const btn=[...document.querySelectorAll('.modal-foot .btn')].find(x=>x.textContent.includes('Verstuur'));if(btn){btn.disabled=true;btn.textContent='Versturen…'}try{const r=await fetch(EDGE_BASE+'/send-invoice',{method:'POST',headers:await apiAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify(payload)}),j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw new Error(j.error||'Verzenden mislukt');i.lastReminderAt=new Date().toISOString();i.reminderCount=Number(i.reminderCount||0)+1;logEvent('Betalingsherinnering verzonden',`${i.number} naar ${fd.get('to')}`,'invoice',i.id);save();closeModal();toast('Herinnering verzonden');render()}catch(e){toast(e.message||'Herinnering kon niet worden verzonden');if(btn){btn.disabled=false;btn.textContent='Verstuur herinnering'}}}
