@@ -3715,7 +3715,7 @@ function bindFinancialReviewControls(){
   const el=f.elements.namedItem(key);if(!el||el.dataset.financialBound==='1')continue;el.dataset.financialBound='1';
   const evt=key==='vatRate'?'change':'input';
   el.addEventListener(evt,()=>{syncFinancialReviewStateFromForm(key);updateFinancialReviewPanel()});
-  if(key!=='vatRate')el.addEventListener('blur',()=>{const cents=financialReviewCentsFromInput(el.value);if(cents!=null)el.value=formatFinancialReviewCents(cents);updateFinancialReviewPanel()})
+  if(key!=='vatRate')el.addEventListener('blur',event=>{const cents=financialReviewCentsFromInput(el.value);if(cents!=null)el.value=formatFinancialReviewCents(cents);if(event.relatedTarget?.closest?.('.financial-correction-actions'))return;updateFinancialReviewPanel()})
  }
 }
 function cleanupPendingImport(){if(pendingPdfImport?.previewUrl){try{URL.revokeObjectURL(pendingPdfImport.previewUrl)}catch(e){}}pendingPdfImport=null}
