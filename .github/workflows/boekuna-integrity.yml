@@ -77,3 +77,7 @@ jobs:
         run: node tests/billing-source.test.mjs
       - name: Python syntax safety
         run: python -m py_compile kwinest/docprocessor/app.py kwinest/docprocessor/receipt_math.py kwinest/docprocessor/financial_blocks.py
+      - name: 03A PR59 #65-#68 final gate
+        if: always()
+        run: |
+          node -e "const fs=require('fs');const p='tests/.03a-pr59-retest-result.json';if(!fs.existsSync(p))throw new Error('Missing 03A retest result');const r=JSON.parse(fs.readFileSync(p,'utf8'));console.log('03A target findings',JSON.stringify(r.fail));if(r.fail.length)process.exit(1)"
