@@ -2184,7 +2184,7 @@ const DEMO_CUSTOMERS=[
 {id:'demo-customer-09',type:'customer',demo:true,name:'Green Table Demo',contactPerson:'Nora Vos',email:'demo9@example.com',phone:'010 200 00 09',kvk:'DEMO0009',vat:'DEMO-BTW-009',peppolId:'',address:'Marktstraat 90',postal:'3011 JJ',city:'Rotterdam'},
 {id:'demo-customer-10',type:'customer',demo:true,name:'Bright Office Demo B.V.',contactPerson:'Sem Hendriks',email:'demo10@example.com',phone:'010 200 00 10',kvk:'DEMO0010',vat:'DEMO-BTW-010',peppolId:'',address:'Kantoorweg 101',postal:'3051 KK',city:'Rotterdam'}
 ];
-const DEFAULT_EMAIL_TEMPLATE={senderName:'',accentColor:'#17382f',subjectInvoice:'Factuur {{factuurnummer}} van {{bedrijfsnaam}}',subjectCredit:'Creditfactuur {{factuurnummer}} van {{bedrijfsnaam}}',bodyInvoice:'Goedendag {{contactpersoon}},\n\nIn de bijlage vindt u factuur {{factuurnummer}} van {{bedrijfsnaam}} voor {{bedrag}}.\n\nWij verzoeken u het bedrag uiterlijk {{vervaldatum}} over te maken onder vermelding van betalingskenmerk {{betaalkenmerk}}.\n\nHeeft u vragen over deze factuur? U kunt reageren op deze e-mail.\n\nMet vriendelijke groet,\n{{bedrijfsnaam}}',bodyCredit:'Goedendag {{contactpersoon}},\n\nIn de bijlage vindt u creditfactuur {{factuurnummer}} van {{bedrijfsnaam}} voor {{bedrag}}. Deze credit wordt verrekend of, waar van toepassing, terugbetaald.\n\nHeeft u vragen over deze creditfactuur? U kunt reageren op deze e-mail.\n\nMet vriendelijke groet,\n{{bedrijfsnaam}}',footerText:'',showSummary:true,showPaymentCard:true};
+const DEFAULT_EMAIL_TEMPLATE={senderName:'',accentColor:'#17382f',subjectInvoice:'Factuur {{factuurnummer}} · {{bedrijfsnaam}}',subjectCredit:'Creditfactuur {{factuurnummer}} · {{bedrijfsnaam}}',bodyInvoice:'Goedendag {{contactpersoon}},\n\nIn de bijlage vindt u factuur {{factuurnummer}} van {{bedrijfsnaam}} voor {{bedrag}}.\n\nWij verzoeken u het bedrag uiterlijk {{vervaldatum}} over te maken onder vermelding van betalingskenmerk {{betaalkenmerk}}.\n\nHeeft u vragen over deze factuur? U kunt reageren op deze e-mail.\n\nMet vriendelijke groet,\n{{bedrijfsnaam}}',bodyCredit:'Goedendag {{contactpersoon}},\n\nIn de bijlage vindt u creditfactuur {{factuurnummer}} van {{bedrijfsnaam}} voor {{bedrag}}. Deze credit wordt verrekend of, waar van toepassing, terugbetaald.\n\nHeeft u vragen over deze creditfactuur? U kunt reageren op deze e-mail.\n\nMet vriendelijke groet,\n{{bedrijfsnaam}}',footerText:'',showSummary:true,showPaymentCard:true};
 const DEFAULT_INVOICE_DESIGN={layout:'modern',accentColor:'#17382f',logoDataUrl:'',showPaymentBlock:true,showVatBreakdown:true,showContactDetails:true,footerText:'Bedankt voor uw vertrouwen.'};
 const DEFAULT={meta:{nextInvoice:1,taxReservePct:30},company:{name:'',tradeName:'',contactName:'',kvk:'',vat:'',iban:'',bic:'',bankAccountName:'',email:'',phone:'',website:'',address:'',postal:'',city:'',country:'Nederland',invoicePrefix:(new Date().getFullYear()+'-'),paymentDays:14,kor:false,peppolId:'',emailTemplate:structuredClone(DEFAULT_EMAIL_TEMPLATE),invoiceDesign:structuredClone(DEFAULT_INVOICE_DESIGN)},contacts:[],services:[],invoices:[],expenses:[],transactions:[],hours:[],mileage:[],documents:[],bookings:[],plannedCash:[],settlements:[],audit:[]};
 let state=structuredClone(DEFAULT);let page='dashboard';let pendingInvoiceDraft=null,pendingPdfImport=null,pendingUploadKind='auto',editingInvoiceId=null;let documentVerificationInFlight=new Set();
@@ -2204,6 +2204,8 @@ function saveProfileData(profile){if(!currentUser)return;localStorage.setItem(us
 function normalizeState(x){
  const base=structuredClone(DEFAULT),v=x&&x.meta?x:{},profile=loadProfile(),companyRaw={...base.company,...(v.company||{}),...profile};
  companyRaw.emailTemplate={...DEFAULT_EMAIL_TEMPLATE,...(v.company?.emailTemplate||{}),...(profile?.emailTemplate||{})};
+ if(companyRaw.emailTemplate.subjectInvoice==='Factuur {{factuurnummer}} van {{bedrijfsnaam}}')companyRaw.emailTemplate.subjectInvoice=DEFAULT_EMAIL_TEMPLATE.subjectInvoice;
+ if(companyRaw.emailTemplate.subjectCredit==='Creditfactuur {{factuurnummer}} van {{bedrijfsnaam}}')companyRaw.emailTemplate.subjectCredit=DEFAULT_EMAIL_TEMPLATE.subjectCredit;
  companyRaw.invoiceDesign={...DEFAULT_INVOICE_DESIGN,...(v.company?.invoiceDesign||{}),...(profile?.invoiceDesign||{})};
  const out={...base,...v,meta:{...base.meta,...(v.meta||{})},company:companyRaw};
  for(const k of ['contacts','services','invoices','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])if(!Array.isArray(out[k]))out[k]=[];
@@ -5001,95 +5003,40 @@ document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=
     var name=String(customer&&((customer.contactPerson||customer.name))||'').trim();
     return name?'Goedendag '+name+',':'Goedendag,';
   }
-
+  function companyDisplayName(){return String((state.company&&state.company.tradeName)||(state.company&&state.company.name)||'').trim()}
+  function emailSenderName(){return String((state.company&&state.company.contactName)||companyDisplayName()).trim()}
+  function emailDate(value){var raw=String(value||'').trim();if(!raw)return '';var date=new Date(raw+'T12:00:00');if(Number.isNaN(date.getTime()))return dateNL(raw);try{return new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'long',year:'numeric'}).format(date)}catch(_err){return dateNL(raw)}}
+  function joinEmailSections(sections){return cleanBody((sections||[]).map(function(section){if(Array.isArray(section))section=section.filter(Boolean).join('\n');return String(section==null?'':section).trim()}).filter(Boolean).join('\n\n'))}
+  function emailSignatureBlock(){var lines=[],sender=emailSenderName();if(sender)lines.push(sender);if(state.company&&state.company.email)lines.push(String(state.company.email).trim());if(state.company&&state.company.phone)lines.push(String(state.company.phone).trim());return lines.filter(Boolean).join('\n')}
   function configuredInvoiceBody(invoice,customer){
     var configured=state.company&&state.company.emailTemplate&&state.company.emailTemplate.bodyInvoice;
-    if(configured&&configured!==DEFAULT_EMAIL_TEMPLATE.bodyInvoice){
-      return cleanBody(defaultInvoiceEmailMessage(invoice,customer));
-    }
-    var lines=[
-      contactGreeting(customer),
-      '',
-      'Hierbij ontvangt u factuur '+String(invoice.number||'')+' voor '+money(invoiceGross(invoice))+'.',
-      '',
-      'Factuurdatum: '+dateNL(invoice.issueDate),
-      'Vervaldatum: '+dateNL(invoice.dueDate),
-      'Bedrag: '+money(invoiceGross(invoice))
-    ];
-    if(state.company&&state.company.iban){
-      var payment='U kunt het bedrag overmaken naar '+state.company.iban;
-      if(invoice.paymentReference||invoice.number)payment+=' onder vermelding van '+String(invoice.paymentReference||invoice.number);
-      payment+='.';
-      lines.push('',payment);
-    }
-    lines.push('','De factuur vindt u als PDF bij deze e-mail.','','Heeft u vragen over de factuur? Neem dan gerust contact met ons op.','','Met vriendelijke groet','',String((state.company&&state.company.tradeName)||(state.company&&state.company.name)||''));
-    if(state.company&&state.company.email)lines.push(String(state.company.email));
-    if(state.company&&state.company.phone)lines.push(String(state.company.phone));
-    return cleanBody(lines.filter(function(v,idx,arr){return v!==''||idx===0||arr[idx-1]!=='';}).join('\n'));
+    if(configured&&configured!==DEFAULT_EMAIL_TEMPLATE.bodyInvoice)return cleanBody(defaultInvoiceEmailMessage(invoice,customer));
+    var summary=['Factuurdatum: '+emailDate(invoice.issueDate),'Vervaldatum: '+emailDate(invoice.dueDate),'Bedrag: '+money(invoiceGross(invoice))],payment='';
+    if(state.company&&state.company.iban){payment='U kunt het bedrag overmaken naar '+String(state.company.iban).trim();if(invoice.paymentReference||invoice.number)payment+=' onder vermelding van '+String(invoice.paymentReference||invoice.number);payment+='.'}
+    return joinEmailSections([contactGreeting(customer),'Hierbij ontvangt u factuur '+String(invoice.number||'')+' voor '+money(invoiceGross(invoice))+'.',summary,payment,'De factuur vindt u als PDF in de bijlage.','Heeft u vragen over de factuur? Neem dan gerust contact met ons op.',['Met vriendelijke groet',emailSignatureBlock()]])
   }
-
   function invoiceSubject(invoice,customer){
-    return cleanHeader(invoiceMailSubject(invoice,customer),240);
+    var template={...DEFAULT_EMAIL_TEMPLATE,...(state.company&&state.company.emailTemplate||{})};
+    var raw=String(invoice&&invoice.kind==='credit'?template.subjectCredit:template.subjectInvoice||'').trim();
+    var legacy=invoice&&invoice.kind==='credit'?'Creditfactuur {{factuurnummer}} van {{bedrijfsnaam}}':'Factuur {{factuurnummer}} van {{bedrijfsnaam}}';
+    var currentDefault=invoice&&invoice.kind==='credit'?DEFAULT_EMAIL_TEMPLATE.subjectCredit:DEFAULT_EMAIL_TEMPLATE.subjectInvoice;
+    if(raw&&raw!==legacy&&raw!==currentDefault)return cleanHeader(applyTemplate(raw,invoice,customer),240);
+    var label=invoice&&invoice.kind==='credit'?'Creditfactuur':'Factuur',company=companyDisplayName()||String(state.company&&state.company.name||'').trim();
+    return cleanHeader(label+' '+String(invoice&&invoice.number||'')+(company?' · '+company:''),240)
   }
-
-  function invoiceBody(invoice,customer){
-    if(invoice&&invoice.kind==='credit')return cleanBody(defaultInvoiceEmailMessage(invoice,customer));
-    return configuredInvoiceBody(invoice,customer);
-  }
-
-  function reminderSubject(invoice){
-    var second=Number(invoice.reminderCount||0)>=1;
-    return cleanHeader((second?'Tweede herinnering factuur ':'Herinnering factuur ')+String(invoice.number||'')+' · '+String((state.company&&state.company.tradeName)||(state.company&&state.company.name)||'uw leverancier'),240);
-  }
-
+  function invoiceBody(invoice,customer){if(invoice&&invoice.kind==='credit')return cleanBody(defaultInvoiceEmailMessage(invoice,customer));return configuredInvoiceBody(invoice,customer)}
+  function reminderSubject(invoice){var second=Number(invoice.reminderCount||0)>=1,company=companyDisplayName()||String(state.company&&state.company.name||'').trim();return cleanHeader((second?'Tweede herinnering factuur ':'Herinnering factuur ')+String(invoice.number||'')+(company?' · '+company:''),240)}
   function reminderBody(invoice,customer){
-    var second=Number(invoice.reminderCount||0)>=1;
-    var open=money(invoiceOutstanding(invoice));
-    var lines=[contactGreeting(customer),''];
-    if(second){
-      lines.push('Volgens onze administratie staat factuur '+String(invoice.number||'')+' nog steeds open. Het openstaande bedrag is '+open+'.');
-      lines.push('','De vervaldatum was '+dateNL(invoice.dueDate)+'. Wilt u controleren of de betaling inmiddels is verwerkt?');
-    }else{
-      lines.push('Volgens onze administratie staat factuur '+String(invoice.number||'')+' van '+open+' nog open.');
-      lines.push('','De vervaldatum was '+dateNL(invoice.dueDate)+'.');
-      lines.push('','Het kan natuurlijk zijn dat uw betaling en deze herinnering elkaar hebben gekruist. Als u inmiddels heeft betaald, kunt u deze e-mail als niet verzonden beschouwen.');
-    }
-    if(state.company&&state.company.iban){
-      var payment='U kunt het openstaande bedrag overmaken naar '+state.company.iban;
-      if(invoice.paymentReference||invoice.number)payment+=' onder vermelding van '+String(invoice.paymentReference||invoice.number);
-      payment+='.';
-      lines.push('',payment);
-    }
-    lines.push('','De factuur is voor het gemak opnieuw toegevoegd.','','Met vriendelijke groet','',String((state.company&&state.company.tradeName)||(state.company&&state.company.name)||''));
-    return cleanBody(lines.join('\n'));
+    var second=Number(invoice.reminderCount||0)>=1,open=money(invoiceOutstanding(invoice));
+    var intro=second?'Volgens onze administratie staat factuur '+String(invoice.number||'')+' nog steeds open. Het openstaande bedrag is '+open+'.':'Volgens onze administratie staat factuur '+String(invoice.number||'')+' van '+open+' nog open.';
+    var due=second?'De vervaldatum was '+emailDate(invoice.dueDate)+'. Wilt u controleren of de betaling inmiddels is verwerkt?':'De vervaldatum was '+emailDate(invoice.dueDate)+'.';
+    var crossed=second?'':'Het kan natuurlijk zijn dat uw betaling en deze herinnering elkaar hebben gekruist. Als u inmiddels heeft betaald, kunt u deze e-mail als niet verzonden beschouwen.',payment='';
+    if(state.company&&state.company.iban){payment='U kunt het openstaande bedrag overmaken naar '+String(state.company.iban).trim();if(invoice.paymentReference||invoice.number)payment+=' onder vermelding van '+String(invoice.paymentReference||invoice.number);payment+='.'}
+    return joinEmailSections([contactGreeting(customer),intro,due,crossed,payment,'De factuur is voor het gemak opnieuw toegevoegd.',['Met vriendelijke groet',emailSignatureBlock()]])
   }
-
-  function followUpSubject(invoice){
-    return cleanHeader('Follow-up factuur '+String(invoice.number||'')+' · '+String((state.company&&state.company.tradeName)||(state.company&&state.company.name)||'uw leverancier'),240);
-  }
-
-  function followUpBody(invoice,customer){
-    var lines=[
-      contactGreeting(customer),
-      '',
-      'Ik stuur u hierbij een korte follow-up over factuur '+String(invoice.number||'')+' voor '+money(invoiceOutstanding(invoice)||invoiceGross(invoice))+'.',
-      '',
-      'De vervaldatum is '+dateNL(invoice.dueDate)+'. Als u vragen heeft over de factuur, laat het gerust weten.',
-      '',
-      'Met vriendelijke groet',
-      '',
-      String((state.company&&state.company.tradeName)||(state.company&&state.company.name)||'')
-    ];
-    return cleanBody(lines.join('\n'));
-  }
-
-  function buildGmailComposeUrl(to,subject,body){
-    if(!validEmail(to))throw new Error('Ongeldig e-mailadres.');
-    return 'https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(String(to).trim())+
-      '&su='+encodeURIComponent(cleanHeader(subject,240))+
-      '&body='+encodeURIComponent(cleanBody(body));
-  }
-
+  function followUpSubject(invoice){var company=companyDisplayName()||String(state.company&&state.company.name||'').trim();return cleanHeader('Follow-up factuur '+String(invoice.number||'')+(company?' · '+company:''),240)}
+  function followUpBody(invoice,customer){return joinEmailSections([contactGreeting(customer),'Ik stuur u hierbij een korte follow-up over factuur '+String(invoice.number||'')+' voor '+money(invoiceOutstanding(invoice)||invoiceGross(invoice))+'.','De vervaldatum is '+emailDate(invoice.dueDate)+'. Als u vragen heeft over de factuur, laat het gerust weten.',['Met vriendelijke groet',emailSignatureBlock()]])}
+  function buildGmailComposeUrl(to,subject,body){if(!validEmail(to))throw new Error('Ongeldig e-mailadres.');var safeSubject=cleanHeader(subject,240),safeBody=cleanBody(body);if(!safeSubject||!safeBody)throw new Error('Onderwerp en bericht zijn verplicht.');return 'https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(String(to).trim())+'&su='+encodeURIComponent(safeSubject)+'&body='+encodeURIComponent(safeBody)}
   function handoffTitle(mode){
     if(mode==='payment_reminder')return 'Betalingsherinnering';
     if(mode==='follow_up')return 'Follow-up sturen';
@@ -5114,7 +5061,8 @@ document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=
       subject:cleanHeader(options.subject,240),
       body:cleanBody(options.body),
       attachPdf:options.attachPdf!==false,
-      file:null,
+      file:options.file||null,
+      fileDownloaded:!!options.fileDownloaded,
       confirmed:false
     };
     var attachControl='';
@@ -5189,27 +5137,20 @@ document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=
 
   function showDeliveryOptions(){
     if(!handoff)return;
-    var nativePossible=!!(handoff.file&&typeof window.canNativeShareInvoiceFile==='function'&&window.canNativeShareInvoiceFile(handoff.file));
-    var mobile=likelyMobile();
+    var nativePossible=!!(handoff.file&&typeof window.canNativeShareInvoiceFile==='function'&&window.canNativeShareInvoiceFile(handoff.file)),mobile=likelyMobile();
     var buttons='<button class="btn" onclick="reopenEmailHandoffComposer()">Terug aanpassen</button>';
-    if(!mobile)buttons+='<button class="btn" onclick="openEmailHandoffGmail()">Gmail in browser</button>';
-    if(nativePossible)buttons+='<button class="btn" onclick="shareEmailHandoffPdf()">PDF delen als bijlage</button>';
-    if(mobile&&nativePossible)buttons+='<button class="btn primary" onclick="shareEmailHandoffPdf()">Delen via e-mailapp</button>';
-    else buttons+='<button class="btn primary" onclick="openEmailHandoffMailApp()">Open e-mailapp</button>';
-    var note=handoff.file
-      ?'<div class="notice info" style="margin-bottom:12px"><strong>De PDF is klaar.</strong><br>Op desktop vult “Open e-mailapp” ontvanger, onderwerp en bericht in. Voeg de klaargezette PDF daarna als bijlage toe. “PDF delen als bijlage” kan de bijlage automatisch meenemen, maar Outlook vult daarbij Aan en Onderwerp niet altijd in.</div>'
-      :'<div class="notice info" style="margin-bottom:12px"><strong>Kies uw e-mailapp.</strong><br>Ontvanger, onderwerp en bericht worden veilig klaargezet.</div>';
-    modal('Kies hoe u wilt versturen',note+deliverySummary()+'<div class="help" style="margin-top:12px">Boekuna krijgt geen toegang tot Gmail, Outlook of uw inbox.</div>',buttons,true);
+    if(mobile){buttons+='<button class="btn" onclick="openEmailHandoffMailApp()">Andere e-mailapp openen</button>';if(nativePossible)buttons+='<button class="btn" onclick="shareEmailHandoffPdf()">PDF delen als bijlage</button>';buttons+='<button class="btn primary" onclick="openEmailHandoffGmail()">Gmail openen</button>'}
+    else{buttons+='<button class="btn" onclick="openEmailHandoffGmail()">Gmail in browser</button>';if(nativePossible)buttons+='<button class="btn" onclick="shareEmailHandoffPdf()">PDF delen als bijlage</button>';buttons+='<button class="btn primary" onclick="openEmailHandoffMailApp()">Open e-mailapp</button>'}
+    var note=mobile
+      ?'<div class="notice info" style="margin-bottom:12px"><strong>Hoe wilt u de e-mail versturen?</strong><br>Gmail openen vult Aan, Onderwerp en Bericht in; voeg daarna de klaargezette PDF toe. '+(nativePossible?'Met “PDF delen als bijlage” gaat de PDF direct mee, maar de ontvangende app bepaalt zelf Aan en Onderwerp.':'')+'</div>'
+      :'<div class="notice info" style="margin-bottom:12px"><strong>De PDF is klaar.</strong><br>Open e-mailapp en Gmail vullen ontvanger, onderwerp en bericht in. Voeg daarna de klaargezette PDF als bijlage toe. '+(nativePossible?'“PDF delen als bijlage” kan de PDF direct meenemen, maar de ontvangende app bepaalt zelf Aan en Onderwerp.':'')+'</div>';
+    modal('Hoe wilt u versturen?',note+deliverySummary()+'<div class="help" style="margin-top:12px">Boekuna krijgt geen toegang tot Gmail, Outlook of uw inbox.</div>',buttons,true)
   }
-
   function reopenEmailHandoffComposer(){
-    if(!handoff)return;
-    var invoice=state.invoices.find(function(item){return item.id===handoff.invoiceId;});
-    var customer=getContact(handoff.customerId);
-    if(!invoice||!customer)return;
-    openComposer({mode:handoff.mode,invoice:invoice,customer:customer,to:handoff.to,subject:handoff.subject,body:handoff.body,attachPdf:handoff.attachPdf});
+    if(!handoff)return;var previous=handoff,invoice=state.invoices.find(function(item){return item.id===previous.invoiceId;}),customer=getContact(previous.customerId);if(!invoice||!customer)return;
+    openComposer({mode:previous.mode,invoice:invoice,customer:customer,to:previous.to,subject:previous.subject,body:previous.body,attachPdf:previous.attachPdf,file:previous.file,fileDownloaded:previous.fileDownloaded})
   }
-
+  function ensureEmailHandoffPdfDownloaded(){if(!handoff||!handoff.file||handoff.fileDownloaded)return false;var downloaded=window.downloadInvoiceShareFile(handoff.file);if(downloaded)handoff.fileDownloaded=true;return downloaded}
   function emailHandoffMailtoUrl(){
     if(!handoff)throw new Error('Geen e-mail voorbereid.');
     return window.buildInvoiceMailto(handoff.to,handoff.subject,handoff.body);
@@ -5224,35 +5165,19 @@ document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=
   }
 
   function openEmailHandoffMailApp(){
-    if(!handoff)return;
-    if(handoff.file)window.downloadInvoiceShareFile(handoff.file);
-    var uri=emailHandoffMailtoUrl();
-    window.__boekunaLastMailto=uri;
-    recordStart('mailto');
-    window.location.href=uri;
-    setTimeout(function(){showEmailHandoffConfirmation('mailto');},450);
+    if(!handoff||handoffBusy)return;handoffBusy=true;
+    try{if(handoff.file)ensureEmailHandoffPdfDownloaded();var uri=emailHandoffMailtoUrl();window.__boekunaLastMailto=uri;recordStart('mailto');window.location.href=uri;setTimeout(function(){showEmailHandoffConfirmation('mailto');handoffBusy=false;},450)}
+    catch(err){handoffBusy=false;toast(err&&err.message?err.message:'De e-mailapp kon niet worden geopend.')}
   }
-
   function openEmailHandoffGmail(){
-    if(!handoff)return;
-    if(handoff.file)window.downloadInvoiceShareFile(handoff.file);
-    var url=buildGmailComposeUrl(handoff.to,handoff.subject,handoff.body);
-    window.__boekunaLastGmailUrl=url;
-    recordStart('gmail_web');
-    var popup=window.open(url,'_blank','noopener,noreferrer');
-    if(!popup){
-      toast('Gmail kon niet in een nieuw venster openen. De standaard e-mailapp wordt geopend.');
-      window.location.href=emailHandoffMailtoUrl();
-      setTimeout(function(){showEmailHandoffConfirmation('mailto');},450);
-      return;
-    }
-    setTimeout(function(){showEmailHandoffConfirmation('gmail_web');},450);
+    if(!handoff||handoffBusy)return;if(!validEmail(handoff.to)){toast('Vul een geldig e-mailadres in.');return}if(!cleanHeader(handoff.subject,240)||!cleanBody(handoff.body)){toast('Onderwerp en bericht zijn verplicht.');return}handoffBusy=true;
+    try{var downloaded=handoff.file?ensureEmailHandoffPdfDownloaded():false;if(handoff.file)toast(downloaded?'PDF staat klaar. Voeg hem in Gmail via de paperclip toe.':'PDF staat klaar om in Gmail toe te voegen.');var url=buildGmailComposeUrl(handoff.to,handoff.subject,handoff.body);window.__boekunaLastGmailUrl=url;recordStart('gmail_web');var popup=window.open(url,'_blank','noopener,noreferrer');if(!popup){toast('Gmail kon niet openen. De standaard e-mailapp wordt gebruikt.');window.location.href=emailHandoffMailtoUrl();setTimeout(function(){showEmailHandoffConfirmation('mailto');handoffBusy=false;},450);return}setTimeout(function(){showEmailHandoffConfirmation('gmail_web');handoffBusy=false;},450)}
+    catch(err){handoffBusy=false;toast(err&&err.message?err.message:'Gmail kon niet worden geopend.')}
   }
-
   async function shareEmailHandoffPdf(){
     if(!handoff||handoffBusy||!handoff.file)return;
     if(!window.canNativeShareInvoiceFile(handoff.file)){
-      toast('Deze browser kan de PDF niet direct delen. Gebruik Open e-mailapp.');
+      toast('Deze browser kan de PDF niet direct delen. Gebruik Gmail openen of een andere e-mailapp.');
       return;
     }
     handoffBusy=true;
@@ -5266,7 +5191,7 @@ document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=
         showDeliveryOptions();
       }else{
         console.warn('Email handoff share failed',err&&err.name?err.name:'SHARE_FAILED');
-        toast('Delen lukte niet. Gebruik Open e-mailapp.');
+        toast('Delen lukte niet. Gebruik Gmail openen of een andere e-mailapp.');
         showDeliveryOptions();
       }
     }finally{
@@ -5490,6 +5415,7 @@ document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=
     return {
       mode:handoff.mode,to:handoff.to,subject:handoff.subject,body:handoff.body,attachPdf:handoff.attachPdf,
       file:handoff.file?{name:handoff.file.name,type:handoff.file.type,size:handoff.file.size}:null,
+      fileDownloaded:!!handoff.fileDownloaded,
       confirmed:handoff.confirmed
     };
   };
