@@ -399,7 +399,7 @@ try{
         const item=documentProcessingSession.items[0];item.state='processing';item.uploaded=true;item.uploadPercent=100;item.message='Document wordt gelezen…';renderDocumentProcessingExperience()
       });
       await capture('validation',()=>{
-        const item=documentProcessingSession.items[0];item.state='preparing_review';item.processorComplete=true;item.message='Bedragen en btw controleren…';renderDocumentProcessingExperience()
+        const item=documentProcessingSession.items[0];item.state='processing';item.processingPhase='validate';item.processorComplete=false;item.message='Bedragen en btw controleren…';renderDocumentProcessingExperience()
       });
       await capture('long-wait',()=>{
         const item=documentProcessingSession.items[0];item.state='processing';item.processorComplete=false;item.longWait=true;renderDocumentProcessingExperience()
@@ -412,7 +412,7 @@ try{
       });
       await capture('multi',()=>{
         cleanupDocumentProcessingSession();
-        const mk=(name,state)=>{const x=createDocumentProcessingItem(new File([name],name,{type:'application/pdf'}),'purchase');x.state=state;x.uploaded=state!=='selected';x.processorComplete=state==='completed';if(state==='completed')x.result={parsed:{},previewUrl:null};return x};
+        const mk=(name,state)=>{const x=createDocumentProcessingItem(new File([name],name,{type:'application/pdf'}),'purchase');x.state=state;x.uploaded=state!=='selected';x.processorComplete=state==='completed';if(state==='processing')x.message='Document wordt gelezen…';if(state==='completed')x.result={parsed:{},previewUrl:null};return x};
         documentProcessingSession={id:'visual-multi',items:[mk('Albert-Heijn.pdf','completed'),mk('shell-bon.jpg','completed'),mk('makro.pdf','processing'),mk('factuur-04.pdf','selected'),mk('bon-05.jpg','selected')],smart:false,reviewingItemId:null,startedAt:Date.now()};renderDocumentProcessingExperience()
       });
       await page.emulateMedia({reducedMotion:'reduce'});
