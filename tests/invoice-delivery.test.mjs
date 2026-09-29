@@ -110,7 +110,43 @@ assert.ok(longLoaded.getPageCount()>1,'50 lines must paginate');
 assert.ok(drawn.includes('Omschrijving'),'table header must render on continuation pages');
 assert.ok(drawn.includes('Pagina 1 / '+String(longLoaded.getPageCount())));
 
-const payload = {
+const nativeSharePayload = {
+  action: 'render_pdf',
+  company: { name: 'Müller & Zonen B.V.', iban: 'NL91ABNA0417164300' },
+  customer: { name: 'Jänsen / Bouw B.V.' },
+  invoice: {
+    id: 'share-fixture',
+    number: '2026/0041',
+    numberManaged: true,
+    numberFinalized: true,
+    status: 'sent',
+    kind: 'invoice',
+    issueDate: '2026-09-29',
+    dueDate: '2026-10-13',
+    lines: [{ qty: 1, unit: 100, vat: 21, desc: 'Advies' }],
+    payments: [],
+  },
+};
+const shareResponse = await handler(new Request('https://test.invalid/send-invoice', {
+  method: 'POST',
+  headers: { authorization: 'Bearer test-only', origin: 'https://boekuna.nl', 'content-type': 'application/json' },
+  body: JSON.stringify(nativeSharePayload),
+}));
+assert.equal(shareResponse.status, 200, 'authenticated PDF handoff must not require a mailbox connection');
+assert.equal(shareResponse.headers.get('content-type'), 'application/pdf');
+assert.match(shareResponse.headers.get('content-disposition') || '', /Factuur-2026-0041-Jansen-Bouw-BV\.pdf/);
+assert.equal(outbound.length, 0, 'render_pdf must not send an email');
+assert.equal((await PDFDocument.load(await shareResponse.arrayBuffer())).getPageCount(), 1);
+
+const draftShareResponse = await handler(new Request('https://test.invalid/send-invoice', {
+  method: 'POST',
+  headers: { authorization: 'Bearer test-only', origin: 'https://boekuna.nl', 'content-type': 'application/json' },
+  body: JSON.stringify({ ...nativeSharePayload, invoice: { ...nativeSharePayload.invoice, status: 'draft', numberFinalized: false } }),
+}));
+assert.equal(draftShareResponse.status, 409, 'draft invoices must not be rendered for email-app handoff');
+assert.equal(outbound.length, 0, 'rejected handoff must not cross a mail-provider boundary');
+
+const disabledPayload = {
   to: 'customer@example.org',
   subject: 'Factuur nummer een\r\nB',
   message: 'Regel een\nRegel twee',
@@ -118,17 +154,14 @@ const payload = {
   customer: { name: 'Klant' },
   invoice: { number: 'TEST-2', issueDate: '2026-09-27', dueDate: '2026-10-11', lines: [{ qty: 1, unit: 100, vat: 21 }] },
 };
-
-const response = await handler(new Request('https://test.invalid/send-invoice', {
+const disabledResponse = await handler(new Request('https://test.invalid/send-invoice', {
   method: 'POST',
   headers: { authorization: 'Bearer test-only', origin: 'https://boekuna.nl', 'content-type': 'application/json' },
-  body: JSON.stringify(payload),
+  body: JSON.stringify(disabledPayload),
 }));
-assert.equal(response.status, 200, 'boekuna.nl must be able to send invoices');
-assert.equal(response.headers.get('access-control-allow-origin'), 'https://boekuna.nl');
-assert.equal(outbound.length, 1);
-assert.equal(outbound[0].url, 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send');
-assert.ok(outbound[0].raw, 'Gmail payload must contain a MIME message');
+assert.equal(disabledResponse.status, 410, 'direct mailbox invoice delivery must be disabled');
+assert.equal((await disabledResponse.json()).code, 'MAILBOX_SEND_DISABLED');
+assert.equal(outbound.length, 0, 'disabled mailbox delivery must not call Gmail or another mail provider');
 
 const renderResponse = await handler(new Request('https://test.invalid/send-invoice', {
   method: 'GET',
@@ -136,6 +169,7 @@ const renderResponse = await handler(new Request('https://test.invalid/send-invo
 }));
 assert.equal(renderResponse.status, 200);
 assert.equal(renderResponse.headers.get('access-control-allow-origin'), 'https://boekuna-boekhouding.onrender.com');
+assert.equal((await renderResponse.clone().json()).disabled, true);
 
 const preflight = await handler(new Request('https://test.invalid/send-invoice', {
   method: 'OPTIONS',
@@ -147,4 +181,4 @@ assert.equal(preflight.headers.get('access-control-allow-origin'), 'https://www.
 assert.equal((await handler(new Request('https://test.invalid/send-invoice', { method: 'POST', headers: { origin: 'https://untrusted.invalid' } }))).status, 403);
 assert.equal((await handler(new Request('https://test.invalid/send-invoice', { method: 'POST' }))).status, 401);
 
-console.log('Invoice delivery: PASS (10 actual PDFs, UI/email parity, Gmail boundary, production-domain CORS, origin/auth guards)');
+console.log('Invoice delivery: PASS (authoritative PDF handoff, mixed VAT/credit parity, mailbox send disabled, production-domain CORS, origin/auth guards)');
