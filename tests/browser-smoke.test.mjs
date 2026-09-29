@@ -237,12 +237,15 @@ try{
   assert.equal(duplicateCheck.other,false,'A different invoice must conflict with the same number');
   assert.ok(duplicateCheck.errors.includes('Uniek factuurnummer'),'Duplicate candidate must be rejected by invoice validation');
 
-  await page.evaluate(()=>setImportProgress('Document verwerken','Document analyseren…','qa.pdf',48,3));
-  assert.match(await page.locator('.modal').innerText(),/48%/);
+  await page.evaluate(()=>setImportProgress('Document verwerken','Document analyseren…','qa.pdf'));
+  const processingModal=await page.locator('.modal').innerText();
+  assert.doesNotMatch(processingModal,/\b(?:28|48|66|98)%\b/,'Indeterminate processing must never expose staged fake percentages');
+  assert.equal(await page.locator('.processing-indeterminate').count(),1,'Unknown-duration processing must use an indeterminate progress indicator');
   await page.evaluate(()=>showUploadError(createUploadError('DOCUMENT_TOO_LARGE','',413,{context:{max_size_mb:15},state:'not_saved'})));
   const uploadError=await page.locator('.modal').innerText();
   assert.match(uploadError,/Bestand te groot/);
   assert.match(uploadError,/Verklein of comprimeer/);
+  assert.doesNotMatch(uploadError,/DOCUMENT_TOO_LARGE/,'End users must not see internal document error codes');
   assert.equal(await page.locator('.modal a[href="mailto:support@boekuna.nl"]').count(),1,'Upload error must offer the official support email');
   await page.evaluate(()=>{closeModal();navigate('settings')});
   await page.getByRole('heading',{name:'Instellingen'}).waitFor();
