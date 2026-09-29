@@ -1067,3 +1067,15 @@ body{background:#FFFFFF!important;color:#20292E!important}
  .rb-how-grid{grid-template-columns:1fr}.rb-trust-grid{grid-template-columns:1fr}.rb-final{border-radius:0;margin:20px 0 0;padding:44px 20px 54px}
 }
 @media(prefers-reduced-motion:reduce){.rb-home *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* Public-page editorial layer */
+.mk-context-card{align-self:center;background:#f3f8f5;border:1px solid #dde9e4;border-radius:24px;padding:34px;min-height:300px;display:flex;flex-direction:column;justify-content:center}
+.mk-context-label{color:#087f94;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.1em}
+.mk-context-card>strong{font-size:clamp(28px,3vw,42px);line-height:1.06;letter-spacing:-.045em;margin:18px 0 14px}
+.mk-context-card>p,.mk-context-card li,.mk-context-card>small{color:#5c6b71;font-size:12px;line-height:1.65}.mk-context-card ul{margin:8px 0 0;padding:0;list-style:none;display:grid;gap:9px}.mk-context-card li:before{content:"✓";color:#278066;margin-right:8px}
+.mk-context-price{background:#f6f0e9}.mk-context-price>small{margin-top:14px}
+.mk-editorial-band{max-width:1160px;margin:74px auto;padding:0 22px;display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:28px;overflow:hidden;background:#f6f0e9}
+.mk-editorial-band.reverse{background:#edf7f2}.mk-editorial-band figure{margin:0;min-height:450px}.mk-editorial-band img{display:block;width:100%;height:100%;object-fit:cover}
+.mk-editorial-band>div{padding:54px;align-self:center}.mk-editorial-band h2{font-size:clamp(34px,4vw,51px);line-height:1.03;letter-spacing:-.05em;margin:14px 0}
+.mk-editorial-band p{color:#5c6b71;font-size:13px;line-height:1.7}.mk-editorial-band a{display:inline-flex;color:#087f94;font-size:12px;font-weight:850;margin-top:13px}.mk-editorial-band small{display:block;color:#7a8589;font-size:9px;margin-top:18px}
+@media(max-width:760px){.mk-editorial-band{grid-template-columns:1fr;margin:48px 0;border-radius:0;padding:0}.mk-editorial-band figure{min-height:330px}.mk-editorial-band>div{padding:38px 20px 44px}.mk-context-card{min-height:0;padding:28px}}
