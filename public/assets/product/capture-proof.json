@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-09-28T14:12:18.531Z",
+  "generatedAt": "2026-09-29T00:24:20.563Z",
   "source": "kwinest/index.html",
-  "sourceCommit": "bb34dfd95bcf145087e9fc52d5a7966c30ad7ff4",
-  "sourceRef": "main",
-  "workflowRunId": "36434030845",
+  "sourceCommit": "ca5f646fd62deb4a43f116dc8ea234394d24c629",
+  "sourceRef": "marketing/moneybird-inspired-rebuild-20260929",
+  "workflowRunId": "36502783056",
   "viewportDesktop": "1440x960",
   "viewportMobile": "390x844",
   "demoDataset": "permanent-fictive-marketing-v1",
@@ -14,8 +14,8 @@
     "url": "https://kwinest-docprocessor.onrender.com/analyze"
   },
   "processorResult": {
-    "sourceQuality": "processor-v2",
-    "party": "ATLAS OFFICE DEMO B.V.",
+    "sourceQuality": "processor-v2-ai",
+    "party": "Atlas Office Demo B.V.",
     "invoiceNumber": "DEMO-INK-2026-014",
     "gross": 242
   },
@@ -36,25 +36,25 @@
       "name": "boekuna-invoices-desktop.webp",
       "width": 1440,
       "height": 960,
-      "size": 82880
+      "size": 82256
     },
     {
       "name": "boekuna-invoices-desktop-960.webp",
       "width": 960,
       "height": 640,
-      "size": 44296
+      "size": 44320
     },
     {
       "name": "boekuna-documents-desktop.webp",
       "width": 1440,
       "height": 960,
-      "size": 96532
+      "size": 96544
     },
     {
       "name": "boekuna-documents-desktop-960.webp",
       "width": 960,
       "height": 640,
-      "size": 50430
+      "size": 50368
     },
     {
       "name": "boekuna-vat-desktop.webp",
@@ -90,61 +90,61 @@
       "name": "boekuna-reports-desktop.webp",
       "width": 1440,
       "height": 960,
-      "size": 87118
+      "size": 87154
     },
     {
       "name": "boekuna-reports-desktop-960.webp",
       "width": 960,
       "height": 640,
-      "size": 45638
+      "size": 45644
     },
     {
       "name": "boekuna-document-review-desktop.webp",
       "width": 1440,
       "height": 960,
-      "size": 64090
+      "size": 66726
     },
     {
       "name": "boekuna-document-review-desktop-960.webp",
       "width": 960,
       "height": 640,
-      "size": 33930
+      "size": 35550
     },
     {
       "name": "boekuna-document-review-step-document-desktop.webp",
       "width": 1440,
       "height": 960,
-      "size": 64090
+      "size": 66726
     },
     {
       "name": "boekuna-document-review-step-amounts-desktop.webp",
       "width": 1440,
       "height": 960,
-      "size": 63172
+      "size": 63976
     },
     {
       "name": "boekuna-document-review-step-relation-desktop.webp",
       "width": 1440,
       "height": 960,
-      "size": 64538
+      "size": 63126
     },
     {
       "name": "boekuna-document-review-step-save-desktop.webp",
       "width": 1440,
       "height": 960,
-      "size": 64904
+      "size": 64238
     },
     {
       "name": "boekuna-document-review-mobile.webp",
       "width": 390,
       "height": 844,
-      "size": 12968
+      "size": 12926
     },
     {
       "name": "boekuna-document-review-amounts-mobile.webp",
       "width": 390,
       "height": 844,
-      "size": 23532
+      "size": 25710
     },
     {
       "name": "boekuna-dashboard-mobile.webp",
@@ -156,7 +156,7 @@
       "name": "boekuna-invoices-mobile.webp",
       "width": 390,
       "height": 844,
-      "size": 31452
+      "size": 31526
     },
     {
       "name": "boekuna-documents-mobile.webp",
@@ -200,7 +200,7 @@
       "name": "boekuna-invoices-list-crop.webp",
       "width": 760,
       "height": 468,
-      "size": 29826,
+      "size": 29980,
       "derivedFrom": "boekuna-invoices-desktop.webp",
       "extract": {
         "left": 250,
@@ -213,7 +213,7 @@
       "name": "boekuna-documents-upload-crop.webp",
       "width": 760,
       "height": 468,
-      "size": 34344,
+      "size": 34338,
       "derivedFrom": "boekuna-documents-desktop.webp",
       "extract": {
         "left": 250,
@@ -226,7 +226,7 @@
       "name": "boekuna-documents-workflow-crop.webp",
       "width": 680,
       "height": 425,
-      "size": 27102,
+      "size": 27100,
       "derivedFrom": "boekuna-documents-desktop.webp",
       "extract": {
         "left": 330,
@@ -252,7 +252,7 @@
       "name": "boekuna-reports-primary-crop.webp",
       "width": 760,
       "height": 468,
-      "size": 26638,
+      "size": 27084,
       "derivedFrom": "boekuna-reports-desktop.webp",
       "extract": {
         "left": 250,
