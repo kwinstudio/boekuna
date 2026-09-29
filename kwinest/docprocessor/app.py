@@ -83,7 +83,7 @@ MAX_SIZE_MB = max(1, MAX_BYTES // 1024 // 1024)
 MAX_PDF_PAGES = int(os.getenv("MAX_PDF_PAGES", "50"))
 MAX_IMAGE_PIXELS = int(os.getenv("MAX_IMAGE_PIXELS", "40000000"))
 MAX_IMAGE_SIDE = int(os.getenv("MAX_IMAGE_SIDE", "12000"))
-OCR_WORKING_MAX_SIDE = int(os.getenv("OCR_WORKING_MAX_SIDE", "1800"))
+OCR_WORKING_MAX_SIDE = int(os.getenv("OCR_WORKING_MAX_SIDE", "1400"))
 Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 SUPPORTED_IMAGE_EXTENSIONS = frozenset({".jpg",".jpeg",".png",".webp",".heic",".heif",".tif",".tiff",".bmp",".gif"})
 SUPPORTED_IMAGE_MIME_TYPES = frozenset({"image/jpeg","image/png","image/webp","image/heic","image/heif","image/tiff","image/bmp","image/gif"})
@@ -828,6 +828,11 @@ def get_ocr_engine():
             "Global.min_side_len": 30,
             "Global.use_preprocess_img": True,
             "Global.log_level": "warning",
+            "EngineConfig.onnxruntime.intra_op_num_threads": 1,
+            "EngineConfig.onnxruntime.inter_op_num_threads": 1,
+            "EngineConfig.onnxruntime.enable_cpu_mem_arena": False,
+            "Rec.rec_batch_num": 2,
+            "Cls.cls_batch_num": 2,
         })
         _OCR_ENGINE_ERROR = None
     except Exception as exc:
