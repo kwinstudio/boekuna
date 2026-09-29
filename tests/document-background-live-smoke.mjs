@@ -67,7 +67,7 @@ async function terminalSnapshot(){
 }
 
 try{
-  await p.goto(preview,{waitUntil:'networkidle',timeout:60000});
+  await p.goto(preview,{waitUntil:'domcontentloaded',timeout:60000});
   const target=await p.evaluate(()=>({supabase:SUPABASE_URL,processor:DOCUMENT_PROCESSOR_URL,max:DOCUMENT_PROCESSING_MAX_FILES,parallel:DOCUMENT_PROCESSING_MAX_PARALLEL}));
   assert.equal(target.supabase,'https://ozisiotrzeubwbffnxyr.supabase.co','Preview must target candidate Supabase');
   assert.equal(target.processor,'https://boekuna-pr6-de1c73cb-processor.onrender.com','Preview must target candidate processor');
@@ -109,7 +109,7 @@ try{
   await p.waitForFunction(()=>page==='contacts');
   if(afterReceive.active>0)assert.equal(await p.locator('#documentProcessingGlobal').isVisible(),true,'Global indicator must persist across pages');
 
-  await p.reload({waitUntil:'networkidle',timeout:60000});
+  await p.reload({waitUntil:'domcontentloaded',timeout:60000});
   await ensureApp();
   await waitForJobs(5);
   await p.evaluate(()=>navigate('documents'));
