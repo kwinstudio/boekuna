@@ -4247,7 +4247,8 @@ document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=
  }
 });window.addEventListener('popstate',()=>{if(document.getElementById('mainApp').style.display==='none')showLanding()});window.addEventListener('online',()=>{if(TEST_MODE_NO_AUTH){setCloudSyncStatus('saved');void resumePendingDocumentVerifications();return}setCloudSyncStatus('saving');syncCloudStateNow().then(()=>resumePendingDocumentVerifications()).catch(()=>setCloudSyncStatus('error'))});window.addEventListener('offline',()=>setCloudSyncStatus(TEST_MODE_NO_AUTH?'saved':'offline'));initAuth();
 </script>
-<script id="boekuna-native-email-share">\n(function(){
+<script id="boekuna-native-email-share">
+(function(){
   'use strict';
 
   var connectedMailboxSendInvoice=window.openSendInvoice;
@@ -4573,7 +4574,8 @@ document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=
   window.openInvoiceEmailShare=openInvoiceEmailShare;
   window.openConnectedMailboxSendInvoice=connectedMailboxSendInvoice;
   window.openSendInvoice=openInvoiceEmailShare;
-})();\n</script>
+})();
+</script>
 <script id="boekuna-upload-bootstrap">
 (function(){
  const configs=[
