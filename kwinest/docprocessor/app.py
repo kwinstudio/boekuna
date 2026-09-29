@@ -27,7 +27,7 @@ from financial_blocks import parse_financial_blocks
 
 RAPIDOCR_GENERATION = "none"
 try:
-    from rapidocr import RapidOCR
+    from rapidocr import EngineType, LangDet, LangRec, ModelType, OCRVersion, RapidOCR
     RAPIDOCR_GENERATION = "v3"
 except Exception:
     RapidOCR = None
@@ -828,14 +828,14 @@ def get_ocr_engine():
             "Global.min_side_len": 30,
             "Global.use_preprocess_img": True,
             "Global.log_level": "warning",
-            "Det.engine_type": "onnxruntime",
-            "Det.lang_type": "ch",
-            "Det.model_type": "small",
-            "Det.ocr_version": "PP-OCRv6",
-            "Rec.engine_type": "onnxruntime",
-            "Rec.lang_type": "ch",
-            "Rec.model_type": "small",
-            "Rec.ocr_version": "PP-OCRv6",
+            "Det.engine_type": EngineType.ONNXRUNTIME,
+            "Det.lang_type": LangDet.CH,
+            "Det.model_type": ModelType.SMALL,
+            "Det.ocr_version": OCRVersion.PPOCRV6,
+            "Rec.engine_type": EngineType.ONNXRUNTIME,
+            "Rec.lang_type": LangRec.CH,
+            "Rec.model_type": ModelType.SMALL,
+            "Rec.ocr_version": OCRVersion.PPOCRV6,
             "EngineConfig.onnxruntime.intra_op_num_threads": 1,
             "EngineConfig.onnxruntime.inter_op_num_threads": 1,
             "EngineConfig.onnxruntime.enable_cpu_mem_arena": False,
