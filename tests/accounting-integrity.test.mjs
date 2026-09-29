@@ -152,3 +152,6 @@ assert.equal(inQuarter("2027-02-15",1,2027),true,"2027 invoice appears in 2027 Q
 assert.equal(inQuarter("2027-02-15",1,2026),false,"2027 invoice does not appear in 2026");
 
 console.log("Boekuna accounting integrity tests: PASS");
+
+await import('./financial-automation.test.mjs');
+await import('./financial-permissions.test.mjs');
