@@ -33,7 +33,9 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           import { chromium } from './tests/node_modules/playwright/index.mjs';
-          import { PDFDocument, StandardFonts } from './tests/node_modules/pdf-lib/es/index.js';
+          import { createRequire } from 'node:module';
+          const require=createRequire(import.meta.url);
+          const { PDFDocument, StandardFonts }=require('./tests/node_modules/pdf-lib');
 
           const preview=process.env.PREVIEW_URL;
           const browser=await chromium.launch({headless:true});
