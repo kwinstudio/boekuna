@@ -19,6 +19,8 @@ jobs:
     timeout-minutes: 10
     env:
       PREVIEW_URL: https://boekuna-pr6-de1c73cb.onrender.com
+      CANDIDATE_SUPABASE_URL: https://ozisiotrzeubwbffnxyr.supabase.co
+      QA_PREVIEW_REVISION: e4dcefdf78bdef3426d3988466dad6717315115c
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -63,19 +65,18 @@ jobs:
             await page.goto(preview,{waitUntil:'domcontentloaded',timeout:60000});
             await page.waitForFunction(()=>typeof getSupabase==='function',{timeout:30000});
 
-            const stamp=Date.now();
-            const email='document-bg-smoke-'+stamp+'@boekuna.nl';
-            const password='QaDocBg-'+stamp+'-aA1!';
+            const qaResponse=await fetch(process.env.CANDIDATE_SUPABASE_URL+'/functions/v1/document-processing',{
+              method:'POST',
+              headers:{'content-type':'application/json','x-boekuna-qa-revision':process.env.QA_PREVIEW_REVISION},
+              body:JSON.stringify({action:'qa_create_user'})
+            });
+            const qa=await qaResponse.json();
+            if(!qaResponse.ok||!qa.ok)throw new Error('QA bootstrap failed: '+JSON.stringify(qa));
+            const email=qa.email,password=qa.password,qaUserId=qa.user_id;
             const auth=await page.evaluate(async({email,password})=>{
               const sb=await getSupabase();
-              const signed=await sb.auth.signUp({email,password,options:{data:{name:'Document Preview QA'}}});
-              if(signed.data?.session)return {hasSession:true,userId:signed.data.user?.id||'',kind:'email',error:''};
-              const message=signed.error?.message||'';
-              if(/rate limit/i.test(message)){
-                const anonymous=await sb.auth.signInAnonymously({options:{data:{name:'Document Preview QA'}}});
-                return {hasSession:!!anonymous.data?.session,userId:anonymous.data?.user?.id||'',kind:'anonymous',error:anonymous.error?.message||message};
-              }
-              return {hasSession:false,userId:signed.data?.user?.id||'',kind:'email',error:message};
+              const {data,error}=await sb.auth.signInWithPassword({email,password});
+              return {hasSession:!!data?.session,userId:data?.user?.id||'',kind:'email',error:error?.message||''}
             },{email,password});
             if(!auth.hasSession)throw new Error('QA auth failed: '+auth.error);
             await page.waitForFunction(()=>currentUser&&document.getElementById('mainApp')?.style.display!=='none',{timeout:30000});
@@ -241,6 +242,15 @@ jobs:
               consoleErrors:consoleErrors.slice(0,10)
             }));
           }finally{
+            try{
+              if(typeof qaUserId!=='undefined'&&qaUserId){
+                await fetch(process.env.CANDIDATE_SUPABASE_URL+'/functions/v1/document-processing',{
+                  method:'POST',
+                  headers:{'content-type':'application/json','x-boekuna-qa-revision':process.env.QA_PREVIEW_REVISION},
+                  body:JSON.stringify({action:'qa_delete_user',user_id:qaUserId})
+                });
+              }
+            }catch(e){console.warn('QA cleanup failed',String(e))}
             await browser.close();
           }
           NODE
