@@ -441,7 +441,6 @@ try{
     await page.waitForFunction(()=>documentProcessingSession?.items?.[0]?.state==='failed',{timeout:10000});
     assert.equal(await page.evaluate(()=>state.documents.length+state.expenses.length+state.invoices.length),0,'Failed processing must not create document or financial records');
     await page.getByRole('button',{name:'Opnieuw proberen'}).waitFor({timeout:5000});
-    await page.getByRole('button',{name:'Opnieuw proberen'}).waitFor({timeout:5000});
     assert.equal(await page.getByRole('button',{name:'Opnieuw proberen'}).count(),1);
     processorMode='success';
     const retryState=await page.evaluate(async()=>{
