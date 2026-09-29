@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
 
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
 const financialCorrectionSource=fs.readFileSync(new URL('../public/assets/financial-correction.js',import.meta.url),'utf8');
@@ -198,7 +198,8 @@ async function routeFallbackAi(page){
   });
 }
 
-const browser=await chromium.launch({headless:true});
+const browserType=process.env.BOOKUNA_BROWSER==='webkit'?webkit:chromium;
+const browser=await browserType.launch({headless:true});
 
 async function newAppPage(){
   const page=await browser.newPage({viewport:{width:1440,height:1000}});
