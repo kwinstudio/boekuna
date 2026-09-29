@@ -3545,8 +3545,8 @@ function renderDocumentProcessingExperience(){
  if(!documentProcessingSession)return;
  if(documentProcessingSession.reviewingItemId&&document.getElementById('pdfImportForm'))return;
  const html=documentProcessingExperienceHtml(),existing=document.getElementById('documentProcessingExperience');
- if(existing){existing.outerHTML=html;return}
  const total=documentProcessingSession.items.length,title=total>1?total+' documenten verwerken':'Document verwerken';
+ if(existing){existing.outerHTML=html;const titleEl=document.getElementById('modalTitle');if(titleEl)titleEl.textContent=title;return}
  modal(title,html,'<button class="btn" onclick="closeModal()">Sluiten</button>',total>1)
 }
 async function documentProcessorXhrOnce(fd,item,forceRefresh=false){
