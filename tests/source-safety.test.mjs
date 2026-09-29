@@ -4,6 +4,9 @@ import assert from "node:assert/strict";
 const html=fs.readFileSync(new URL("../kwinest/index.html",import.meta.url),"utf8");
 const invoiceAi=fs.readFileSync(new URL("../supabase/functions/analyze-invoice/index.ts",import.meta.url),"utf8");
 const processor=fs.readFileSync(new URL("../kwinest/docprocessor/app.py",import.meta.url),"utf8");
+const brandSymbol=fs.readFileSync(new URL("../public/assets/boekuna-symbol.svg",import.meta.url),"utf8");
+const brandManifest=fs.readFileSync(new URL("../public/manifest.webmanifest",import.meta.url),"utf8");
+const brandMarketing=fs.readFileSync(new URL("../public/assets/marketing.js",import.meta.url),"utf8");
 const sendInvoice=fs.readFileSync(new URL("../supabase/functions/send-invoice/index.ts",import.meta.url),"utf8");
 const emailConnection=fs.readFileSync(new URL("../supabase/functions/email-connection/index.ts",import.meta.url),"utf8");
 const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(Boolean);
@@ -274,4 +277,8 @@ if(html.includes("async function loginWithGoogle()")){
   assert.ok(!googleLogin.includes("gmail.send"),"Google account login must never request Gmail send permission");
 }
 
+assert.ok(brandSymbol.includes('fill="#1C6461"'),"Final approved Boekuna B mark colour must remain #1C6461");
+assert.ok(!brandSymbol.includes("M18,22 H30 A12,12"),"Legacy offset-frame symbol must not return");
+assert.ok(brandManifest.includes("/assets/boekuna-app-icon-maskable-512.png"),"PWA manifest must expose a maskable final-logo icon");
+assert.ok(brandMarketing.includes("/assets/boekuna-og-1200x630.png"),"Public metadata must use the final-logo social preview");
 console.log("Boekuna source safety tests: PASS");

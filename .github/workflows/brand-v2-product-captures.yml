@@ -3,7 +3,7 @@ name: BOEKUNA brand v2 product captures
 on:
   push:
     branches:
-      - brand/boekuna-identity-v2
+      - brand/final-boekuna-logo
     paths:
       - "kwinest/index.html"
       - "public/assets/brand-v2.css"
@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: boekuna-brand-v2-product-captures
+  group: boekuna-final-logo-product-captures
   cancel-in-progress: true
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: brand/boekuna-identity-v2
+          ref: brand/final-boekuna-logo
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -50,5 +50,5 @@ jobs:
           git config user.name "boekuna-brand-bot"
           git config user.email "actions@users.noreply.github.com"
           git add public/assets/product/
-          git commit -m "brand: regenerate Calm Control product captures [skip ci]"
-          git push origin HEAD:brand/boekuna-identity-v2
+          git commit -m "brand: regenerate product captures with final Boekuna logo [skip ci]"
+          git push origin HEAD:brand/final-boekuna-logo

@@ -6,14 +6,14 @@ function ensureBookunaFavicon(){
   icon.rel='icon'; icon.type='image/svg+xml'; icon.href='/assets/boekuna-favicon.svg'; icon.dataset.bookunaFavicon='1';
   document.head.appendChild(icon);
   const shortcut=document.createElement('link');
-  shortcut.rel='shortcut icon'; shortcut.href='/favicon.ico';
+  shortcut.rel='shortcut icon'; shortcut.href='/assets/favicon-32.png';
   document.head.appendChild(shortcut);
   const apple=document.createElement('link');
   apple.rel='apple-touch-icon'; apple.sizes='180x180'; apple.href='/assets/boekuna-app-icon-180.png';
   document.head.appendChild(apple);
   let og=document.querySelector('meta[property="og:image"]');
   if(!og){og=document.createElement('meta');og.setAttribute('property','og:image');document.head.appendChild(og);}
-  og.setAttribute('content','https://boekuna-boekhouding.onrender.com/assets/boekuna-og-template.svg');
+  og.setAttribute('content','https://boekuna-boekhouding.onrender.com/assets/boekuna-og-1200x630.png');
   let twitter=document.querySelector('meta[name="twitter:card"]');
   if(!twitter){twitter=document.createElement('meta');twitter.name='twitter:card';document.head.appendChild(twitter);}
   twitter.content='summary_large_image';
