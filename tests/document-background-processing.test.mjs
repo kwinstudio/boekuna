@@ -87,6 +87,18 @@ try{
   assert.equal(transitionResult.retryState,'failed');
   assert.equal(transitionResult.afterRetry,'queued');
 
+  const nonFinancialOpen=await page.evaluate(async()=>{
+    const old=window.openStoredDocument;let opened='';
+    window.openStoredDocument=async ref=>{opened=ref};
+    documentProcessingJobs=[{id:'non-financial-ready',client_ref:'ref-bank',state:'ready',result:{analysis:{documentType:'bank_document'}}}];
+    await openPersistentDocumentReview('non-financial-ready');
+    window.openStoredDocument=old;
+    return {opened,reviewOpen:!!document.getElementById('pdfImportForm')};
+  });
+  assert.equal(nonFinancialOpen.opened,'ref-bank','Ready non-financial documents must open the original source');
+  assert.equal(nonFinancialOpen.reviewOpen,false,'Non-financial documents must not enter invoice review');
+
+
   await page.evaluate(()=>{
     const file=new File(['received'],'received-without-job.pdf',{type:'application/pdf'});
     documentProcessingJobs=[];
