@@ -3104,7 +3104,7 @@ async function navigate(p){
  document.getElementById('sidebar').classList.remove('open');
  render()
 }
-function render(){const fn={dashboard:renderDashboard,invoices:renderInvoices,expenses:renderExpenses,bank:renderBank,vat:renderVat,reports:renderReports,ledger:renderLedger,control:renderControl,cashflow:renderCashflow,bookings:renderBookings,contacts:renderContacts,services:renderServices,hours:renderHours,documents:renderDocuments,profile:renderProfile,settings:renderSettings}[page]||renderDashboard;document.getElementById('content').innerHTML=fn();wirePage()}
+function render(){const fn={dashboard:renderDashboard,invoices:renderInvoices,expenses:renderExpenses,bank:renderBank,vat:renderVat,reports:renderReports,ledger:renderLedger,control:renderControl,cashflow:renderCashflow,bookings:renderBookings,contacts:renderContacts,services:renderServices,hours:renderHours,documents:renderDocuments,profile:renderProfile,settings:renderSettings}[page]||renderDashboard;document.getElementById('content').innerHTML=fn();wirePage();renderGlobalDocumentIndicator()}
 function renderDashboard(){
  const year=currentBookYear(),inv=state.invoices.filter(i=>i.status!=='draft'&&Number(String(i.issueDate||'').slice(0,4))===year),yearExpenses=state.expenses.filter(e=>Number(String(e.date||'').slice(0,4))===year),sales=inv.reduce((s,i)=>roundMoney(s+invoiceNet(i)),0),costs=yearExpenses.reduce((s,e)=>roundMoney(s+Number(e.exVat||0)),0),profit=roundMoney(sales-costs),open=state.invoices.filter(i=>i.status!=='draft'&&i.kind!=='credit').reduce((s,i)=>roundMoney(s+invoiceOutstanding(i)),0),q=currentQuarter(),salesVat=inv.filter(i=>inQuarter(i.issueDate,q,year)).reduce((s,i)=>roundMoney(s+invoiceVat(i)),0),inputVat=yearExpenses.filter(e=>inQuarter(e.date,q,year)).reduce((s,e)=>roundMoney(s+expenseVat(e)),0),vat=roundMoney(salesVat-inputVat);
  const now=new Date(),chart=Array.from({length:6},(_,idx)=>{const d=new Date(now.getFullYear(),now.getMonth()-(5-idx),1),y=d.getFullYear(),m=d.getMonth()+1,lab=new Intl.DateTimeFormat('nl-NL',{month:'short'}).format(d).replace('.','');const sv=state.invoices.filter(i=>i.status!=='draft'&&Number(String(i.issueDate||'').slice(0,4))===y&&new Date(i.issueDate+'T12:00:00').getMonth()+1===m).reduce((s,i)=>roundMoney(s+invoiceNet(i)),0),co=state.expenses.filter(e=>Number(String(e.date||'').slice(0,4))===y&&new Date(e.date+'T12:00:00').getMonth()+1===m).reduce((s,e)=>roundMoney(s+Number(e.exVat||0)),0);return {lab,sv,co}}),max=Math.max(1,...chart.flatMap(x=>[Math.abs(x.sv),Math.abs(x.co)])),unmatched=state.transactions.filter(t=>t.status==='unmatched').length,overdue=state.invoices.filter(i=>invoiceEffectiveStatus(i)==='overdue').length,isEmpty=!state.invoices.length&&!state.expenses.length&&!state.transactions.length&&!state.contacts.length;
@@ -3200,7 +3200,7 @@ function renderHours(){
 }
 function renderDocuments(){
   const list=getListRows('documents');
-  return `<div class="page-head"><div><h1>Documenten</h1><p>Upload bronstukken via dezelfde slimme documentprocessor. Facturen en bonnen worden herkend; andere documenten worden gecontroleerd en veilig opgeslagen.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" onclick="document.getElementById('docFile').click()">${icon('i-upload')} Slim document uploaden</button><button class="btn" onclick="triggerReceiptPhoto()">${icon('i-upload')} Foto kiezen</button><button class="btn" onclick="triggerReceiptCamera()">${icon('i-upload')} Camera</button><button class="btn" onclick="document.getElementById('archiveFile').click()">Alleen archiveren</button></div><input class="hidden" type="file" id="docFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"><input class="hidden" type="file" id="archiveFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"></div><div class="notice info"><strong>Eén herkenningsmethode voor boekhoudstukken.</strong> PDF, foto/scan, Word, Excel en CSV gaan via dezelfde v2-documentprocessor. Op mobiel kun je kiezen uit je fotobibliotheek of direct de camera openen. Ook iPhone HEIC/HEIF-foto’s worden ondersteund. De app boekt nooit stilletjes: financiële gegevens komen eerst in het controlescherm.</div><div style="margin-top:16px">${listToolbar('documents')}</div><div class="card"><div class="dropzone" onclick="document.getElementById('docFile').click()">${icon('i-upload')}<strong>Sleep of kies een document om slim uit te lezen</strong><span>Facturen en bonnen worden herkend met tekstextractie, tabellen en OCR. Niet-financiële documenten worden alleen geanalyseerd en opgeslagen.</span></div><div class="divider"></div><div class="section-head"><div><h2>Bestanden</h2><p>${list.length}${list.length!==state.documents.length?' van '+state.documents.length:''} documenten zichtbaar</p></div></div><div class="table-wrap"><table class="table"><thead><tr><th>Naam</th><th>Type</th><th>Datum</th><th>Gekoppeld aan</th><th>Status</th><th></th></tr></thead><tbody>${list.length?list.map(d=>{const link=listLinkedDocumentInfo(d);return `<tr><td><strong>${esc(d.name)}</strong></td><td>${esc(d.type)}</td><td>${dateNL(d.date)}</td><td>${d.linkedId?esc([link.party,link.number].filter(Boolean).join(' · ')||'Gekoppeld'):'—'}</td><td>${documentVerificationBadge(d)}</td><td class="right">${d.verification?`<button class="link-btn" onclick="openDocumentVerification('${d.id}')">Controle</button> `:''}${d.fileId?`<button class="link-btn" onclick="openStoredDocument('${d.fileId}')">Open</button>`:'—'}</td></tr>`}).join(''):`<tr><td colspan="6">${listEmptyHtml('documents')}</td></tr>`}</tbody></table></div></div>`
+  return `<div class="page-head"><div><h1>Documenten</h1><p>Upload bronstukken via dezelfde slimme documentprocessor. Facturen en bonnen worden herkend; andere documenten worden gecontroleerd en veilig opgeslagen.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" onclick="document.getElementById('docFile').click()">${icon('i-upload')} Slim document uploaden</button><button class="btn" onclick="triggerReceiptPhoto()">${icon('i-upload')} Foto kiezen</button><button class="btn" onclick="triggerReceiptCamera()">${icon('i-upload')} Camera</button><button class="btn" onclick="document.getElementById('archiveFile').click()">Alleen archiveren</button></div><input class="hidden" type="file" id="docFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"><input class="hidden" type="file" id="archiveFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"></div><div class="notice info"><strong>Upload compleet is niet hetzelfde als verwerking compleet.</strong> Zodra je bestanden veilig zijn ontvangen, kun je verder werken. Boekuna verwerkt ieder document onafhankelijk op de achtergrond en vraagt alleen aandacht bij controle of een echte fout.</div>${renderDocumentProcessingBoard()}<div style="margin-top:16px">${listToolbar('documents')}</div><div class="card"><div class="dropzone" onclick="document.getElementById('docFile').click()">${icon('i-upload')}<strong>Sleep of kies een document om slim uit te lezen</strong><span>Facturen en bonnen worden herkend met tekstextractie, tabellen en OCR. Niet-financiële documenten worden alleen geanalyseerd en opgeslagen.</span></div><div class="divider"></div><div class="section-head"><div><h2>Bestanden</h2><p>${list.length}${list.length!==state.documents.length?' van '+state.documents.length:''} documenten zichtbaar</p></div></div><div class="table-wrap"><table class="table"><thead><tr><th>Naam</th><th>Type</th><th>Datum</th><th>Gekoppeld aan</th><th>Status</th><th></th></tr></thead><tbody>${list.length?list.map(d=>{const link=listLinkedDocumentInfo(d);return `<tr><td><strong>${esc(d.name)}</strong></td><td>${esc(d.type)}</td><td>${dateNL(d.date)}</td><td>${d.linkedId?esc([link.party,link.number].filter(Boolean).join(' · ')||'Gekoppeld'):'—'}</td><td>${documentVerificationBadge(d)}</td><td class="right">${d.verification?`<button class="link-btn" onclick="openDocumentVerification('${d.id}')">Controle</button> `:''}${d.fileId?`<button class="link-btn" onclick="openStoredDocument('${d.fileId}')">Open</button>`:'—'}</td></tr>`}).join(''):`<tr><td colspan="6">${listEmptyHtml('documents')}</td></tr>`}</tbody></table></div></div>`
 }
 function profileCompleteness(){const c=state.company||{},fields=[c.name,c.tradeName,c.kvk,c.vat,c.address,c.postal,c.city,c.email,c.phone,c.website,c.iban,c.bankAccountName,c.invoicePrefix];return Math.round(fields.filter(Boolean).length/fields.length*100)}
 function renderProfile(){
@@ -3442,7 +3442,7 @@ function documentProcessingTransition(item,next){
  const allowed=DOCUMENT_PROCESSING_TRANSITIONS[item.state]||[];
  if(!allowed.includes(next))throw new Error('Ongeldige documentstatus: '+item.state+' → '+next);
  item.state=next;
- if(next==='completed'||next==='failed'){if(item.longWaitTimer)clearTimeout(item.longWaitTimer);item.longWaitTimer=null;item.completedAt=Date.now()}
+ if(['completed','ready','review_required','failed'].includes(next)){if(item.longWaitTimer)clearTimeout(item.longWaitTimer);item.longWaitTimer=null;item.completedAt=Date.now()}
  scheduleDocumentProcessingRender()
 }
 function setDocumentProcessingMessage(item,message,subtext=''){
@@ -3450,7 +3450,7 @@ function setDocumentProcessingMessage(item,message,subtext=''){
 }
 function startDocumentLongWait(item){
  if(!item||item.longWaitTimer)return;
- item.longWaitTimer=setTimeout(function(){if(['processing','preparing_review'].includes(item.state)){item.longWait=true;item.subtext='Dit document vraagt iets meer controle. Boekuna is nog bezig.';scheduleDocumentProcessingRender()}},DOCUMENT_PROCESSING_LONG_WAIT_MS)
+ item.longWaitTimer=setTimeout(function(){if(['processing','validating','preparing_review'].includes(item.state)){item.longWait=true;item.subtext='Dit document vraagt iets meer controle. Boekuna is nog bezig.';scheduleDocumentProcessingRender()}},DOCUMENT_PROCESSING_LONG_WAIT_MS)
 }
 function finishActiveTransfer(item){
  if(item?.transferActive){item.transferActive=false;activeDocumentTransfers=Math.max(0,activeDocumentTransfers-1)}
@@ -3464,27 +3464,37 @@ function formatDocumentBytes(value){
  const n=Math.max(0,Number(value||0));if(n<1024)return n+' B';if(n<1024*1024)return (n/1024).toFixed(n<10240?1:0)+' KB';return (n/(1024*1024)).toFixed(n<10*1024*1024?1:0)+' MB'
 }
 function documentProcessingStepState(item,key){
+ const terminal=['ready','review_required','completed'].includes(item.state);
  if(key==='upload')return item.uploaded?'done':item.state==='uploading'?'active':'pending';
- if(key==='read')return item.processorComplete||item.processingPhase==='validate'?'done':item.uploaded&&['processing','preparing_review'].includes(item.state)?'active':'pending';
- if(key==='validate')return item.processorComplete?'done':item.processingPhase==='validate'&&['processing','preparing_review'].includes(item.state)?'active':'pending';
- if(key==='review')return item.state==='completed'?'done':item.state==='preparing_review'?'active':'pending';
+ if(key==='read')return terminal||['validating','preparing_review'].includes(item.state)||item.processorComplete?'done':item.uploaded&&['queued','processing'].includes(item.state)?'active':'pending';
+ if(key==='validate')return terminal?'done':['validating','preparing_review'].includes(item.state)?'active':'pending';
+ if(key==='review')return ['ready','completed'].includes(item.state)?'done':item.state==='review_required'||item.state==='preparing_review'?'active':'pending';
  return 'pending'
 }
 function documentProcessingStatus(item){
- if(item.state==='failed')return 'Verwerking gestopt';
+ if(item.state==='failed')return 'Kon niet verwerkt worden';
  if(item.state==='selected')return 'Wacht';
- if(item.state==='completed')return item.result?'Klaar voor controle':'Gereed';
- if(item.state==='uploading')return 'Bestand uploaden…';
+ if(item.state==='uploading')return 'Uploaden…';
+ if(item.state==='uploaded'||item.state==='queued')return 'Wacht';
+ if(item.state==='processing')return item.message||'Wordt verwerkt…';
+ if(item.state==='validating')return 'Bedragen controleren…';
  if(item.state==='preparing_review')return 'Je controle wordt voorbereid…';
+ if(item.state==='ready')return 'Klaar';
+ if(item.state==='review_required')return 'Controle nodig';
+ if(item.state==='completed')return item.result?'Klaar voor controle':'Klaar';
  if(item.longWait)return 'Dit document vraagt iets meer controle.';
- return item.message||'Document wordt gelezen…'
+ return item.message||'Wordt verwerkt…'
 }
 function documentProcessingSubtext(item){
- if(item.state==='failed'){const x=uploadErrorInfo(item.error);if(x.code==='NETWORK_ERROR'&&item.uploaded)return 'De bestandsoverdracht was afgerond, maar de verwerkingsstatus kon niet worden opgehaald. Er is nog niets geboekt.';return x.explanation}
- if(item.longWait)return 'Boekuna is nog bezig. De upload is afgerond; we wachten op de verwerking.';
- if(item.state==='uploading')return 'Je document wordt naar Boekuna verstuurd. Alleen de echte bestandsoverdracht krijgt een percentage.';
- if(item.state==='processing')return item.subtext||'We halen de gegevens uit het document die nodig zijn voor je administratie.';
+ if(item.state==='failed'){const x=uploadErrorInfo(item.error);if(x.code==='NETWORK_ERROR'&&item.uploaded)return 'Je document is ontvangen. Alleen de actuele status kon tijdelijk niet worden opgehaald.';return x.explanation}
+ if(item.longWait)return 'Boekuna is nog bezig. Het bestand is ontvangen; je kunt ondertussen verder werken.';
+ if(item.state==='uploading')return 'Alleen de echte bestandsoverdracht krijgt een percentage.';
+ if(item.state==='uploaded'||item.state==='queued')return 'Bestand ontvangen. Verwerking gaat op de achtergrond verder.';
+ if(item.state==='processing')return item.subtext||'Document lezen en gegevens herkennen.';
+ if(item.state==='validating')return 'Bedragen en btw worden gecontroleerd.';
  if(item.state==='preparing_review')return item.subtext||'Bij twijfel laten we het straks aan jou zien.';
+ if(item.state==='ready')return 'De verwerking is afgerond. Je kunt het document openen.';
+ if(item.state==='review_required')return 'De verwerking is gelukt, maar enkele gegevens vragen jouw controle.';
  if(item.state==='completed')return item.result?'De verwerking is klaar. Controleer de herkende gegevens voordat je opslaat.':'Het document is verwerkt en opgeslagen.';
  return item.subtext||''
 }
@@ -3515,21 +3525,25 @@ function updateDocumentUploadProgressDom(item){
  if(percent)percent.textContent=item.uploadPercent==null?'':item.uploadPercent+'%'
 }
 function documentProcessingQueueRow(item){
- const icon=item.state==='completed'?'✓':item.state==='failed'?'!':item.state==='selected'?'○':'●';
+ const terminal=['completed','ready','review_required','failed'].includes(item.state),busy=['uploading','processing','validating','preparing_review'].includes(item.state);
+ const icon=item.state==='ready'||item.state==='completed'?'✓':item.state==='review_required'?'!':item.state==='failed'?'×':item.state==='selected'||item.state==='queued'||item.state==='uploaded'?'○':'';
  let action='';
- if(item.state==='failed'&&item.error?.retryable!==false)action='<button class="btn small" onclick="retryDocumentProcessingItem(\''+item.id+'\')">Opnieuw</button>';
- if(item.state==='completed'&&item.result&&!item.reviewed)action='<button class="btn small primary" onclick="openProcessedDocumentReview(\''+item.id+'\')">Controleer</button>';
- return '<div class="processing-queue-item" data-state="'+item.state+'"><span class="processing-queue-icon" aria-hidden="true">'+icon+'</span><div class="processing-queue-main"><strong title="'+esc(item.file.name)+'">'+esc(item.file.name)+'</strong><span>'+esc(documentProcessingStatus(item))+'</span></div><div class="processing-queue-action">'+action+'</div></div>'
+ if(item.jobId&&item.state==='failed')action='<button class="btn small" onclick="retryPersistentDocument(\''+item.jobId+'\')">Opnieuw</button><button class="btn small" onclick="replacePersistentDocument(\''+item.jobId+'\')">Nieuwe foto</button>';
+ else if(item.jobId&&['ready','review_required'].includes(item.state))action='<button class="btn small '+(item.state==='review_required'?'primary':'')+'" onclick="openPersistentDocumentReview(\''+item.jobId+'\')">'+(item.state==='review_required'?'Controleren':'Openen')+'</button>';
+ else if(item.state==='failed'&&item.error?.retryable!==false)action='<button class="btn small" onclick="retryDocumentProcessingItem(\''+item.id+'\')">Opnieuw</button>';
+ else if(item.state==='completed'&&item.result&&!item.reviewed)action='<button class="btn small primary" onclick="openProcessedDocumentReview(\''+item.id+'\')">Controleer</button>';
+ return '<div class="processing-queue-item" data-state="'+item.state+'"><span class="processing-queue-icon" aria-hidden="true">'+(busy?'<span class="document-status-spinner"></span>':icon)+'</span><div class="processing-queue-main"><strong title="'+esc(item.file?.name||'Document')+'">'+esc(item.file?.name||'Document')+'</strong><span>'+esc(documentProcessingStatus(item))+'</span></div><div class="processing-queue-action">'+action+'</div></div>'
 }
 function documentProcessingExperienceHtml(){
  const s=documentProcessingSession;if(!s)return '';
- const total=s.items.length,done=s.items.filter(function(x){return x.state==='completed'}).length,failed=s.items.filter(function(x){return x.state==='failed'}).length,active=s.items.find(function(x){return !['completed','failed','selected'].includes(x.state)})||s.items.find(function(x){return x.state==='selected'})||s.items[0];
+ const terminal=x=>['completed','ready','review_required','failed'].includes(x.state),total=s.items.length,done=s.items.filter(terminal).length,failed=s.items.filter(x=>x.state==='failed').length,review=s.items.filter(x=>x.state==='review_required').length,active=s.items.find(x=>!terminal(x)&&x.state!=='selected')||s.items.find(x=>x.state==='selected')||s.items[0];
  let overall='',queue='';
  if(total>1){
-  overall='<div class="processing-overall"><div class="processing-overall-head"><strong>'+done+' van '+total+' documenten verwerkt</strong><span>'+(failed?failed+' niet verwerkt':active&&done<total?'Bezig':'Klaar')+'</span></div><progress max="'+total+'" value="'+done+'" aria-label="'+done+' van '+total+' documenten verwerkt">'+done+'/'+total+'</progress></div>';
+  overall='<div class="processing-overall"><div class="processing-overall-head"><strong>'+done+' van '+total+' documenten afgerond</strong><span>'+(review?review+' controle nodig':failed?failed+' niet verwerkt':active&&done<total?'Bezig':'Klaar')+'</span></div><progress max="'+total+'" value="'+done+'" aria-label="'+done+' van '+total+' documenten afgerond">'+done+'/'+total+'</progress></div>';
   queue='<div class="processing-queue">'+s.items.map(documentProcessingQueueRow).join('')+'</div>'
  }
- return '<div id="documentProcessingExperience" class="processing-experience" aria-busy="'+(s.items.some(function(x){return !['completed','failed'].includes(x.state)})?'true':'false')+'">'+overall+(active?documentProcessingDetailedHtml(active):'')+queue+'</div>'
+ const received=s.allReceived?'<div class="document-processing-received"><strong>Je documenten zijn ontvangen.</strong> Je kunt ondertussen verder werken.</div>':'';
+ return '<div id="documentProcessingExperience" class="processing-experience" aria-busy="'+(s.items.some(x=>!terminal(x))?'true':'false')+'">'+overall+(active?documentProcessingDetailedHtml(active):'')+queue+received+'</div>'
 }
 function scheduleDocumentProcessingRender(){
  if(documentProcessingRenderPending)return;documentProcessingRenderPending=true;
