@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { stripTypeScriptTypes } from 'node:module';
 import { invoiceOutstandingCents, matchTransactionAgainstLedger } from '../supabase/functions/financial-automation/lib/matching.mjs';
 import { declaration } from './production-code.mjs';
 
@@ -109,8 +110,9 @@ run('exact payment evidence remains high-confidence',()=>{
 
 // Execute exact production nextLedger + confirm declarations from the target source.
 const source=fs.readFileSync(new URL('../supabase/functions/financial-automation/index.ts',import.meta.url),'utf8');
-const nextLedgerDecl=declaration(source,'nextLedger');
-const confirmDecl=declaration(source,'confirm');
+const executableSource=stripTypeScriptTypes(source.split('\n').filter(l=>!l.startsWith('import ')).join('\n'));
+const nextLedgerDecl=declaration(executableSource,'nextLedger');
+const confirmDecl=declaration(executableSource,'confirm');
 
 const baseLedger={
   invoices:[{...invoice,payments:[{id:'manual-link',amount:50}]}],
