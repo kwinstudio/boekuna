@@ -259,7 +259,9 @@ def test_health_and_ready_expose_safe_exact_runtime_metadata():
 
     rss_before = _rss_mb()
     old_publishable_key = processor.SUPABASE_PUBLISHABLE_KEY
+    old_openai_key = processor.OPENAI_API_KEY
     processor.SUPABASE_PUBLISHABLE_KEY = "sb_publishable_qa_readiness"
+    processor.OPENAI_API_KEY = "sk-proj-qa-readiness"
     try:
         started = time.perf_counter()
         ready = processor.ready()
@@ -267,6 +269,7 @@ def test_health_and_ready_expose_safe_exact_runtime_metadata():
         rss_after_init = _rss_mb()
     finally:
         processor.SUPABASE_PUBLISHABLE_KEY = old_publishable_key
+        processor.OPENAI_API_KEY = old_openai_key
     if isinstance(ready, JSONResponse):
         raise AssertionError(
             "OCR readiness failed: "
@@ -276,6 +279,8 @@ def test_health_and_ready_expose_safe_exact_runtime_metadata():
         )
     assert ready["ok"] is True and ready["ready"] is True
     assert ready["authVerifierConfigured"] is True
+    assert ready["aiConfigured"] is True
+    assert ready["verificationConfigured"] is True
     assert ready["ocr"]["version"] == "3.9.2"
 
     warm_started = time.perf_counter()
@@ -309,6 +314,29 @@ def test_ready_fails_closed_when_auth_verifier_is_not_configured():
     assert payload["authVerifierConfigured"] is False
     assert payload["error"]["code"] == "SERVICE_NOT_READY"
     assert payload["error"]["checks"]["authVerifier"] is False
+
+
+def test_ready_fails_closed_when_ai_verifier_is_not_configured():
+    old_publishable_key = processor.SUPABASE_PUBLISHABLE_KEY
+    old_openai_key = processor.OPENAI_API_KEY
+    old_get_engine = processor.get_ocr_engine
+    processor.SUPABASE_PUBLISHABLE_KEY = "sb_publishable_qa_readiness"
+    processor.OPENAI_API_KEY = ""
+    processor.get_ocr_engine = lambda: object()
+    try:
+        response = processor.ready()
+    finally:
+        processor.SUPABASE_PUBLISHABLE_KEY = old_publishable_key
+        processor.OPENAI_API_KEY = old_openai_key
+        processor.get_ocr_engine = old_get_engine
+    assert isinstance(response, JSONResponse)
+    assert response.status_code == 503
+    payload = json.loads(response.body)
+    assert payload["ok"] is False and payload["ready"] is False
+    assert payload["authVerifierConfigured"] is True
+    assert payload["aiConfigured"] is False
+    assert payload["verificationConfigured"] is False
+    assert payload["error"]["checks"]["aiVerifier"] is False
 
 
 def test_high_resolution_receipt_stays_within_guard_and_runs_real_ppocrv6():

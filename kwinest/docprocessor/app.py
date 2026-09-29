@@ -2165,6 +2165,7 @@ def ready():
     checks={
         "ocr":bool(engine),
         "authVerifier":bool(SUPABASE_PUBLISHABLE_KEY),
+        "aiVerifier":bool(OPENAI_API_KEY),
     }
     is_ready=all(checks.values())
     payload={
@@ -2176,6 +2177,8 @@ def ready():
         "pythonRuntime":PYTHON_RUNTIME,
         "ocr":ocr_stack_info(),
         "authVerifierConfigured":checks["authVerifier"],
+        "aiConfigured":checks["aiVerifier"],
+        "verificationConfigured":checks["aiVerifier"],
         "initializationMs":round((time.perf_counter()-started)*1000,2),
     }
     if not is_ready:
