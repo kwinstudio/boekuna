@@ -196,6 +196,45 @@ async function newAppPage(){
 }
 
 try{
+  // QA-RECEIPT-MOBILE-01: the mobile camera control must preserve the production
+  // image allowlist, request the environment-facing camera and reach review.
+  {
+    processorMode='success';
+    processorResponse=structuredClone(processorPayload);
+    processorResponse.data.documentType='receipt';
+    processorResponse.data.originalFileName='qa-mobile-receipt.png';
+    processorResponse.data.invoice.invoiceNumber=null;
+    processorResponse.data.invoice.description='Mobiele kassabon';
+    processorResponse.data.processing={sourceKind:'image',pages:1,ocrPages:[1],tablesFound:0,fastPath:'deterministic',overallConfidence:.99};
+    processorResponse.preview={text:'BOEKUNA QA BON\\nSubtotaal EUR 100,00\\nBTW 21% EUR 21,00\\nTotaal EUR 121,00',pages:[{page:1,ocrConfidence:.99}],tables:[]};
+    processorMethods=[];
+    processorOrigins=[];
+    const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+    await routePdfJs(page);
+    await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
+    await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+    const camera=page.locator('#receiptCameraFile');
+    assert.equal(await camera.getAttribute('capture'),'environment','Mobile receipt control must request the rear/environment camera');
+    const accepts=String(await camera.getAttribute('accept')||'');
+    assert.match(accepts,/image\/jpeg/);
+    assert.match(accepts,/image\/png/);
+    assert.doesNotMatch(accepts,/image\/\*/);
+    const onePixelPng=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8\/x8AAusB9Y9Z9Z0AAAAASUVORK5CYII=','base64');
+    await camera.setInputFiles({name:'qa-mobile-receipt.png',mimeType:'image/png',buffer:onePixelPng});
+    await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:15000});
+    assert.ok(processorMethods.includes('POST'),'Mobile receipt photo must reach POST /analyze');
+    assert.ok(processorOrigins.includes(appOrigin),'Mobile receipt photo must preserve the app Origin');
+    const mobileReview=await page.evaluate(()=>({
+      width:window.innerWidth,
+      kind:pendingUploadKind,
+      source:pendingPdfImport?.parsed?.processor?.kind,
+      ocrUsed:pendingPdfImport?.parsed?.processor?.ocrUsed,
+      gross:pendingPdfImport?.parsed?.gross
+    }));
+    assert.deepEqual(mobileReview,{width:390,kind:'purchase',source:'image',ocrUsed:true,gross:121});
+    await page.close();
+  }
+
   // QA-PDF-02: the actual browser must perform CORS preflight, POST the PDF,
   // reach the real review UI, then save the resulting bookkeeping/document state.
   {
