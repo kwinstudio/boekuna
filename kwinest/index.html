@@ -3495,7 +3495,7 @@ function documentProcessingStepState(item,key){
 function documentProcessingStatus(item){
  if(item.state==='failed')return 'Verwerking gestopt';
  if(item.state==='completed')return item.result?'Klaar voor controle':'Gereed';
- if(item.state==='uploading')return item.uploadPercent==null?'Bestand uploaden…':'Bestand uploaden… '+item.uploadPercent+'%';
+ if(item.state==='uploading')return 'Bestand uploaden…';
  if(item.state==='preparing_review')return 'Je controle wordt voorbereid…';
  if(item.longWait)return 'Dit document vraagt iets meer controle.';
  return item.message||'Document wordt gelezen…'
