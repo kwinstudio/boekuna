@@ -11,6 +11,7 @@ const ALLOWED=new Set([
   "https://www.boekuna.nl",
   "https://boekuna-boekhouding.onrender.com",
   "https://boekuna-qa-staging.onrender.com",
+  "https://boekuna-pr6-de1c73cb.onrender.com",
   "https://boekuna-document-background-preview.onrender.com",
   "http://localhost:3000",
   "http://127.0.0.1:3000"
