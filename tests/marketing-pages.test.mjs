@@ -63,6 +63,11 @@ assert.ok(pricing.includes('read-only'),'Pricing must explain the post-Early-Acc
 assert.ok(pricing.includes('Stripe Checkout'),'Paid subscriptions must explain the explicit Stripe checkout flow');
 assert.ok(!pricing.includes('Founding 100'),'Legacy Founding 100 checkout-trial copy must be removed');
 assert.ok(!pricing.includes('3 kalendermaanden'),'Legacy three-month Stripe trial copy must be removed');
+const faq=fs.readFileSync(path.join(publicDir,'faq','index.html'),'utf8');
+assert.ok(faq.includes('90 dagen Early Access'),'FAQ must describe the current 90-day Early Access model');
+for(const legacy of ['eerste 3 kalendermaanden €0','3 kalendermaanden gratis','proefperiode loopt 3 kalendermaanden']){
+  assert.ok(!faq.includes(legacy),`FAQ must not revive legacy Stripe-trial copy: ${legacy}`);
+}
 
 const privacy=fs.readFileSync(path.join(publicDir,'privacy','index.html'),'utf8');
 assert.ok(privacy.includes('Row Level Security'),'Privacy page must retain account-isolation disclosure');
