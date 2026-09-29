@@ -49,6 +49,13 @@ jobs:
         run: node tests/document-upload-browser.test.mjs
       - name: WebKit document review regressions
         run: BOOKUNA_BROWSER=webkit node tests/document-upload-browser.test.mjs
+      - name: Upload smart financial correction visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smart-financial-correction-visual
+          path: tests/.artifacts/smart-financial-correction-*.png
+          if-no-files-found: ignore
       - name: Auth and progressive onboarding
         run: node tests/auth-progressive-onboarding.test.mjs
       - name: Contextual list controls
