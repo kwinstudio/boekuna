@@ -279,10 +279,16 @@ try{
   assert.equal(await page.evaluate(id=>state.invoices.find(x=>x.id===id)?.lastSentAt,invoiceId),undefined);
 
   // Mobile choice must expose Gmail compose separately from attachment-first share.
+  // Re-enter through the real composer -> prepare flow; the private chooser is
+  // intentionally not exposed as a window API.
   await page.evaluate(()=>{
     Object.defineProperty(navigator,'userAgentData',{configurable:true,value:{mobile:true}});
-    showDeliveryOptions();
+    reopenEmailHandoffComposer();
   });
+  await page.getByRole('heading',{name:'Factuur versturen'}).waitFor();
+  await page.evaluate(()=>prepareEmailHandoffFromComposer());
+  await page.getByRole('heading',{name:'Hoe wilt u versturen'}).waitFor();
+  assert.equal(await page.evaluate(()=>window.__pdfRenderCalls),1,'Re-entering the composer must reuse the prepared PDF');
   const mobileHandoffText=await page.locator('.modal').innerText();
   assert.match(mobileHandoffText,/Gmail openen/);
   assert.match(mobileHandoffText,/PDF delen als bijlage/);
@@ -291,7 +297,7 @@ try{
   assert.equal(await page.getByRole('button',{name:'Gmail openen'}).evaluate(el=>el.classList.contains('primary')),true,'Gmail must be the primary explicit mobile compose option');
   await page.evaluate(()=>{
     Object.defineProperty(navigator,'userAgentData',{configurable:true,value:{mobile:false}});
-    showDeliveryOptions();
+    reopenEmailHandoffComposer();
     window.__emailDownloadCalls=0;
     window.__gmailOpenCalls=[];
     window.__realDownloadInvoiceShareFile=window.downloadInvoiceShareFile;
@@ -299,6 +305,10 @@ try{
     window.downloadInvoiceShareFile=function(file){window.__emailDownloadCalls++;return !!file;};
     window.open=function(url){window.__gmailOpenCalls.push(String(url));return {closed:false};};
   });
+  await page.getByRole('heading',{name:'Factuur versturen'}).waitFor();
+  await page.evaluate(()=>prepareEmailHandoffFromComposer());
+  await page.getByRole('heading',{name:'Hoe wilt u versturen'}).waitFor();
+  assert.equal(await page.evaluate(()=>window.__pdfRenderCalls),1,'Switching channel choice must not rerender the PDF');
 
   // Dedicated Gmail route downloads/prepares the PDF once, but fills To/Subject/Body
   // through Gmail compose instead of relying on native share field mapping.
