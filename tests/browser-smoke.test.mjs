@@ -239,10 +239,10 @@ try{
   assert.equal(physicalSubject,'Factuur 2026-0008 · Kwin Phetmanee');
   assert.notEqual(physicalSubject,'Factuur-2026-0008-Kwin-Phetmanee');
   assert.match(physicalBody,/^Goedendag Kwin Phetmanee,\n\n/);
-  assert.match(physicalBody,/Hierbij ontvangt u factuur 2026-0008 voor € 302,50\./);
-  assert.match(physicalBody,/Factuurdatum: 29 september 2026\nVervaldatum: 13 oktober 2026\nBedrag: € 302,50/);
+  assert.match(physicalBody,/Hierbij ontvangt u factuur 2026-0008 voor €[ \u00a0]302,50\./);
+  assert.match(physicalBody,/Factuurdatum: 29 september 2026\nVervaldatum: 13 oktober 2026\nBedrag: €[ \u00a0]302,50/);
   assert.match(physicalBody,/NL96INGB0751841897 onder vermelding van 2026-0008/);
-  assert.match(physicalBody,/Met vriendelijke groet\nKwin Phetmanee\nk\.phetmanee@gmail\.com\n\+31636052860$/);
+  assert.match(physicalBody,/Met vriendelijke groet,\nKwin Phetmanee\nk\.phetmanee@gmail\.com\n\+31636052860$/);
   const physicalGmailUrl=await page.evaluate(({to,subject,body})=>buildGmailComposeUrl(to,subject,body),{to:physicalTo,subject:physicalSubject,body:physicalBody});
   const parsedPhysicalGmail=new URL(physicalGmailUrl);
   assert.equal(parsedPhysicalGmail.searchParams.get('to'),'customer@example.com');

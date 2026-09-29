@@ -5013,7 +5013,7 @@ document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=
     if(configured&&configured!==DEFAULT_EMAIL_TEMPLATE.bodyInvoice)return cleanBody(defaultInvoiceEmailMessage(invoice,customer));
     var summary=['Factuurdatum: '+emailDate(invoice.issueDate),'Vervaldatum: '+emailDate(invoice.dueDate),'Bedrag: '+money(invoiceGross(invoice))],payment='';
     if(state.company&&state.company.iban){payment='U kunt het bedrag overmaken naar '+String(state.company.iban).trim();if(invoice.paymentReference||invoice.number)payment+=' onder vermelding van '+String(invoice.paymentReference||invoice.number);payment+='.'}
-    return joinEmailSections([contactGreeting(customer),'Hierbij ontvangt u factuur '+String(invoice.number||'')+' voor '+money(invoiceGross(invoice))+'.',summary,payment,'De factuur vindt u als PDF in de bijlage.','Heeft u vragen over de factuur? Neem dan gerust contact met ons op.',['Met vriendelijke groet',emailSignatureBlock()]])
+    return joinEmailSections([contactGreeting(customer),'Hierbij ontvangt u factuur '+String(invoice.number||'')+' voor '+money(invoiceGross(invoice))+'.',summary,payment,'De factuur vindt u als PDF in de bijlage.','Heeft u vragen over de factuur? Neem dan gerust contact met ons op.',['Met vriendelijke groet,',emailSignatureBlock()]])
   }
   function invoiceSubject(invoice,customer){
     var template={...DEFAULT_EMAIL_TEMPLATE,...(state.company&&state.company.emailTemplate||{})};
@@ -5032,10 +5032,10 @@ document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=
     var due=second?'De vervaldatum was '+emailDate(invoice.dueDate)+'. Wilt u controleren of de betaling inmiddels is verwerkt?':'De vervaldatum was '+emailDate(invoice.dueDate)+'.';
     var crossed=second?'':'Het kan natuurlijk zijn dat uw betaling en deze herinnering elkaar hebben gekruist. Als u inmiddels heeft betaald, kunt u deze e-mail als niet verzonden beschouwen.',payment='';
     if(state.company&&state.company.iban){payment='U kunt het openstaande bedrag overmaken naar '+String(state.company.iban).trim();if(invoice.paymentReference||invoice.number)payment+=' onder vermelding van '+String(invoice.paymentReference||invoice.number);payment+='.'}
-    return joinEmailSections([contactGreeting(customer),intro,due,crossed,payment,'De factuur is voor het gemak opnieuw toegevoegd.',['Met vriendelijke groet',emailSignatureBlock()]])
+    return joinEmailSections([contactGreeting(customer),intro,due,crossed,payment,'De factuur is voor het gemak opnieuw toegevoegd.',['Met vriendelijke groet,',emailSignatureBlock()]])
   }
   function followUpSubject(invoice){var company=companyDisplayName()||String(state.company&&state.company.name||'').trim();return cleanHeader('Follow-up factuur '+String(invoice.number||'')+(company?' · '+company:''),240)}
-  function followUpBody(invoice,customer){return joinEmailSections([contactGreeting(customer),'Ik stuur u hierbij een korte follow-up over factuur '+String(invoice.number||'')+' voor '+money(invoiceOutstanding(invoice)||invoiceGross(invoice))+'.','De vervaldatum is '+emailDate(invoice.dueDate)+'. Als u vragen heeft over de factuur, laat het gerust weten.',['Met vriendelijke groet',emailSignatureBlock()]])}
+  function followUpBody(invoice,customer){return joinEmailSections([contactGreeting(customer),'Ik stuur u hierbij een korte follow-up over factuur '+String(invoice.number||'')+' voor '+money(invoiceOutstanding(invoice)||invoiceGross(invoice))+'.','De vervaldatum is '+emailDate(invoice.dueDate)+'. Als u vragen heeft over de factuur, laat het gerust weten.',['Met vriendelijke groet,',emailSignatureBlock()]])}
   function buildGmailComposeUrl(to,subject,body){if(!validEmail(to))throw new Error('Ongeldig e-mailadres.');var safeSubject=cleanHeader(subject,240),safeBody=cleanBody(body);if(!safeSubject||!safeBody)throw new Error('Onderwerp en bericht zijn verplicht.');return 'https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(String(to).trim())+'&su='+encodeURIComponent(safeSubject)+'&body='+encodeURIComponent(safeBody)}
   function handoffTitle(mode){
     if(mode==='payment_reminder')return 'Betalingsherinnering';
