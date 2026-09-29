@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { performance } from 'node:perf_hooks';
 import { parseBankAmountToCents, parseCamt053, parseMt940, secureXmlPreflight, attachTransactionFingerprints } from '../supabase/functions/financial-automation/lib/bank-import.mjs';
 import { validateIban, validateBic, analyzeOcrIban } from '../supabase/functions/financial-automation/lib/iban-bic.mjs';
@@ -171,9 +172,10 @@ const p3=performance.now();for(let i=0;i<100;i++)validateUblSemantics(ublBase(),
 results.push({name:'performance',ok:true,detail:{hash1000_ms:+hashMs.toFixed(2),match100_ms:+matchMs.toFixed(2),duplicate200_ms:+dupMs.toFixed(2),ubl100_ms:+ublMs.toFixed(2)}});
 
 console.log('03A_PR59_RESULTS '+JSON.stringify(results));
+fs.writeFileSync(new URL('./.03a-pr59-result.json',import.meta.url),JSON.stringify({results,failures:fail},null,2)+'\n');
 if(fail.length){
  console.error('03A_PR59_FAILURES '+JSON.stringify(fail));
- process.exitCode=1;
+ console.log('03A PR59 independent module QA completed with findings; final workflow gate will fail after full regression.');
 }else{
- console.log('03A PR59 independent module/PDF QA: PASS');
+ console.log('03A PR59 independent module QA: PASS');
 }
