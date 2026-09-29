@@ -13,6 +13,7 @@ on:
       - "supabase/functions/email-connection/**"
       - "supabase/functions/consume-quota/**"
       - "supabase/functions/analyze-invoice/**"
+      - "supabase/functions/document-processing/**"
       - "supabase/migrations/**"
       - "scripts/**"
       - "docs/production-recovery.md"
@@ -65,6 +66,8 @@ jobs:
         run: BOOKUNA_BROWSER=webkit node tests/browser-smoke.test.mjs
       - name: PDF browser regressions
         run: node tests/document-upload-browser.test.mjs
+      - name: Document background processing regressions
+        run: node tests/document-background-processing.test.mjs
       - name: WebKit document review regressions
         run: BOOKUNA_BROWSER=webkit node tests/document-upload-browser.test.mjs
       - name: Upload smart financial correction visual evidence

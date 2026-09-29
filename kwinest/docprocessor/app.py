@@ -106,7 +106,7 @@ app.add_middleware(
     allow_origins=sorted(ALLOWED_ORIGINS),
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"]
+    allow_headers=["Authorization", "Content-Type", "X-Boekuna-Processing-Job"]
 )
 
 PUBLIC_ERROR_SPECS = {
@@ -2049,6 +2049,39 @@ def require_authenticated_user(request: Request) -> dict:
         raise BoekunaDocumentError("AUTH_SESSION_EXPIRED",status=401,internal_code="AUTH_HEADER_MISSING")
     if not SUPABASE_PUBLISHABLE_KEY:
         raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="AUTH_VERIFIER_NOT_CONFIGURED")
+
+    processing_job=(request.headers.get("x-boekuna-processing-job") or "").strip()
+    if processing_job:
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}",processing_job):
+            raise BoekunaDocumentError("PERMISSION_DENIED",status=403,internal_code="BACKGROUND_JOB_ID_INVALID")
+        try:
+            resp=requests.get(
+                f"{SUPABASE_URL}/rest/v1/document_processing_jobs",
+                headers={"Authorization":auth_header,"apikey":SUPABASE_PUBLISHABLE_KEY},
+                params={
+                    "select":"user_id",
+                    "id":f"eq.{processing_job}",
+                    "state":"in.(processing,validating)",
+                    "limit":"1",
+                },
+                timeout=10,
+            )
+        except requests.Timeout as exc:
+            raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="BACKGROUND_AUTH_TIMEOUT",internal_error=exc)
+        except requests.RequestException as exc:
+            raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="BACKGROUND_AUTH_UNAVAILABLE",internal_error=exc)
+        if resp.status_code != 200:
+            raise BoekunaDocumentError("AUTH_SESSION_EXPIRED",status=401,internal_code="BACKGROUND_AUTH_INVALID",provider="supabase_rest",provider_status=resp.status_code)
+        try:
+            rows=resp.json()
+        except Exception as exc:
+            raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="BACKGROUND_AUTH_RESPONSE_INVALID",internal_error=exc,provider="supabase_rest",provider_status=resp.status_code)
+        if not isinstance(rows,list) or len(rows)!=1 or not rows[0].get("user_id"):
+            raise BoekunaDocumentError("PERMISSION_DENIED",status=403,internal_code="BACKGROUND_JOB_NOT_OWNED")
+        user={"id":str(rows[0]["user_id"]),"backgroundJobId":processing_job}
+        set_processing_meta(request,user_ref=user["id"][:80],background_job=processing_job)
+        return user
+
     try:
         resp = requests.get(
             f"{SUPABASE_URL}/auth/v1/user",
