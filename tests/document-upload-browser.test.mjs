@@ -472,7 +472,7 @@ try{
     assert.equal(await gross.getAttribute('inputmode'),'decimal');
     assert.equal(await panel.getAttribute('aria-live'),'polite');
     const initialPanel=String(await panel.textContent());
-    assert.match(initialPanel,/Bevestig wat je op het document ziet|Nog te weinig betrouwbare gegevens/);
+    assert.match(initialPanel,/Btw verdient controle|Bevestig wat je op het document ziet|Nog te weinig betrouwbare gegevens/,'Recognition may explain the deterministic mismatch before confirmation, but must not make it applicable');
     assert.equal(await page.getByRole('button',{name:'Gebruik deze bedragen'}).count(),0,'Recognition alone must not silently offer an applicable correction');
 
     // Dutch decimal input must be accepted and normalized without changing value.
