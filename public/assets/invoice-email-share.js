@@ -11,9 +11,9 @@
   function sanitizeInvoiceShareFilenamePart(value,max){
     return String(value==null?'':value)
       .normalize('NFKD').replace(/[\u0300-\u036f]/g,'')
-      .replace(/[^a-zA-Z0-9._-]+/g,'-')
-      .replace(/\.{2,}/g,'.')
-      .replace(/^[.-]+|[.-]+$/g,'')
+      .replace(/\./g,'')
+      .replace(/[^a-zA-Z0-9_-]+/g,'-')
+      .replace(/^-+|-+$/g,'')
       .replace(/-+/g,'-')
       .slice(0,max||80);
   }
