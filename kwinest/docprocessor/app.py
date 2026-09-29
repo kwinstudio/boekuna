@@ -833,7 +833,7 @@ def get_ocr_engine():
             "Det.model_type": "small",
             "Det.ocr_version": "PP-OCRv6",
             "Rec.engine_type": "onnxruntime",
-            "Rec.lang_type": "nl",
+            "Rec.lang_type": "ch",
             "Rec.model_type": "small",
             "Rec.ocr_version": "PP-OCRv6",
             "EngineConfig.onnxruntime.intra_op_num_threads": 1,
