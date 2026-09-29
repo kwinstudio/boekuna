@@ -1,6 +1,6 @@
 # Boekuna — App Store privacy & Google Play Data Safety
 
-Last updated: 27 September 2026
+Last updated: 29 September 2026
 
 ## Public URLs
 
@@ -65,7 +65,7 @@ Payment card details: processed by Stripe and not stored directly in the Boekuna
 
 - Supabase: authentication, PostgreSQL database, private storage and server functions.
 - Render: web app/document processor hosting.
-- OpenAI or another configured AI provider: only when an AI-assisted document function is actually invoked.
+- OpenAI or another configured AI provider: only when an AI-assisted document function is actually invoked. Relevant extracted text is sent for interpretation; an independent second verification may also send the original uploaded document/image when needed. OpenAI Responses requests use `store:false`, but the public notice does not claim Zero Data Retention: standard OpenAI API abuse-monitoring retention can be up to 30 days unless the production project is explicitly approved/configured for a different retention mode. EU-only processing is not claimed unless the production project/endpoint has been verified accordingly.
 - Stripe: web subscription checkout, recurring billing, payment-method management and customer billing portal.
 - Configured transactional email provider: only when email delivery is used.
 
