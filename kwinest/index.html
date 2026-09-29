@@ -3707,7 +3707,7 @@ function persistentDocumentActionHtml(job,compact=false){
  if(state==='ready')parts.push('<button class="btn small" onclick="openPersistentDocumentReview(\''+id+'\')">'+(compact?'Open':'Openen')+'</button>');
  if(state==='review_required')parts.push('<button class="btn small primary" onclick="openPersistentDocumentReview(\''+id+'\')">Controleren</button>');
  if(state==='failed'){
-  if(job.error_retryable!==false)parts.push('<button class="btn small primary" onclick="retryPersistentDocument(\''+id+'\')">Opnieuw proberen</button>');
+  if(Number(job.attempt||0)<Number(job.max_attempts||3))parts.push('<button class="btn small primary" onclick="retryPersistentDocument(\''+id+'\')">Opnieuw proberen</button>');
   parts.push('<button class="btn small" onclick="replacePersistentDocument(\''+id+'\')">Nieuwe foto kiezen</button>');
   parts.push('<button class="btn small" onclick="newExpense()">Handmatig invoeren</button>');
  }
