@@ -477,6 +477,15 @@ try{
     assert.match(initialPanel,/Btw verdient controle|Bevestig wat je op het document ziet|Nog te weinig betrouwbare gegevens/,'Recognition may explain the deterministic mismatch before confirmation, but must not make it applicable');
     assert.equal(await page.getByRole('button',{name:'Gebruik deze bedragen'}).count(),0,'Recognition alone must not silently offer an applicable correction');
 
+    // The final save boundary must not silently accept a recognized 21% rate that
+    // conflicts with the cent-exact amounts, nor derive a missing VAT value.
+    await page.evaluate(()=>savePdfInvoiceImport());
+    assert.equal(await page.evaluate(()=>state.expenses.some(x=>x.invoiceNumber==='QA-CORRECTION-12866')),false,'Inconsistent recognized rate must be blocked at save');
+    await page.evaluate(()=>{document.querySelector('#pdfImportForm [name="vatAmount"]').value=''});
+    await page.evaluate(()=>savePdfInvoiceImport());
+    assert.equal(await page.evaluate(()=>state.expenses.some(x=>x.invoiceNumber==='QA-CORRECTION-12866')),false,'Blank VAT must not be silently derived during save');
+    await page.evaluate(()=>{document.querySelector('#pdfImportForm [name="vatAmount"]').value='0.00'});
+
     // Dutch decimal input must be accepted and normalized without changing value.
     await gross.fill('128,66');
     await gross.blur();
