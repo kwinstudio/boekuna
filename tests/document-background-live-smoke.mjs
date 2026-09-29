@@ -41,9 +41,9 @@ async function authRequest(config,pathname,body){
 async function createCandidateSession(config){
   const signup=await authRequest(config,'/auth/v1/signup',{email,password});
   if(signup.json?.access_token)return signup.json;
-  console.log('BOOKUNA_SMOKE_SIGNUP_STATUS='+signup.status);
+  console.log('BOOKUNA_SMOKE_SIGNUP_STATUS='+signup.status);\n  console.log('BOOKUNA_SMOKE_SIGNUP_ERROR='+String(signup.json?.msg||signup.json?.message||signup.json?.error_description||signup.json?.error||''));
   console.log('BOOKUNA_SMOKE_WAITING_CONFIRMATION='+email);
-  for(let i=0;i<40;i++){
+  for(let i=0;i<10;i++){
     const token=await authRequest(config,'/auth/v1/token?grant_type=password',{email,password});
     if(token.json?.access_token)return token.json;
     await new Promise(r=>setTimeout(r,3000));
@@ -70,7 +70,7 @@ async function terminalSnapshot(){
 }
 
 try{
-  await p.goto(preview,{waitUntil:'domcontentloaded',timeout:60000});
+  await p.goto(preview,{waitUntil:'domcontentloaded',timeout:20000});
   const runtime=await p.evaluate(()=>({supabase:SUPABASE_URL,key:SUPABASE_PUBLISHABLE_KEY,processor:DOCUMENT_PROCESSOR_URL,max:DOCUMENT_PROCESSING_MAX_FILES,parallel:DOCUMENT_PROCESSING_MAX_PARALLEL}));
   const target={supabase:runtime.supabase,processor:runtime.processor,max:runtime.max,parallel:runtime.parallel};
   assert.equal(target.supabase,'https://ozisiotrzeubwbffnxyr.supabase.co','Preview must target candidate Supabase');
@@ -89,7 +89,7 @@ try{
     user:auth.user
   };
   await p.evaluate(({key,value})=>localStorage.setItem(key,value),{key:authStorageKey(runtime.supabase),value:JSON.stringify(storedSession)});
-  await p.reload({waitUntil:'domcontentloaded',timeout:60000});
+  await p.reload({waitUntil:'domcontentloaded',timeout:30000});
   await ensureApp();
 
   const input=p.locator('#invoicePdfFile');
@@ -121,7 +121,7 @@ try{
   await p.waitForFunction(()=>page==='contacts');
   if(afterReceive.active>0)assert.equal(await p.locator('#documentProcessingGlobal').isVisible(),true,'Global indicator must persist across pages');
 
-  await p.reload({waitUntil:'domcontentloaded',timeout:60000});
+  await p.reload({waitUntil:'domcontentloaded',timeout:30000});
   await ensureApp();
   await waitForJobs(5);
   await p.evaluate(()=>navigate('documents'));
