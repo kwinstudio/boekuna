@@ -159,7 +159,7 @@ try{
   assert.equal(await page.getByRole('heading',{name:'Documenten verwerken'}).count(),1);
   assert.match(await page.locator('#modalRoot').innerText(),/3 van 5 afgerond/);
   assert.equal(await page.locator('#modalRoot [role="dialog"]').getAttribute('aria-modal'),'true');
-  await page.getByRole('button',{name:'Sluiten'}).click();
+  await page.locator('#modalRoot .modal-foot').getByRole('button',{name:'Sluiten'}).click();
 
   await page.evaluate(()=>{documentProcessingConnectivityLost=true;page='documents';render()});
   assert.match(await page.locator('.document-processing-board').innerText(),/Verbinding onderbroken/);
