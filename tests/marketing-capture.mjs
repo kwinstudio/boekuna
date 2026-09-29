@@ -118,9 +118,17 @@ if(CAPTURE_EMAIL&&CAPTURE_PASSWORD){
 }
 appHtml=replaceLast(appHtml,'initAuth();',marketingSeed);
 
+const mime={'.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.ico':'image/x-icon','.webp':'image/webp','.json':'application/json'};
 const server=http.createServer((req,res)=>{
-  if(req.url?.startsWith('/assets/financial-correction.js')){res.writeHead(200,{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store'});return res.end(financialCorrectionSource)}
-  if(req.url?.startsWith('/manifest.webmanifest')){
+  const pathname=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);
+  if(pathname.startsWith('/assets/')||pathname==='/favicon.ico'){
+    const file=path.join(root,'public',pathname.replace(/^\//,''));
+    if(file.startsWith(path.join(root,'public'))&&fs.existsSync(file)){
+      res.writeHead(200,{'content-type':mime[path.extname(file)]||'application/octet-stream','cache-control':'no-store'});
+      return fs.createReadStream(file).pipe(res);
+    }
+  }
+  if(pathname==='/manifest.webmanifest'){
     res.writeHead(200,{'content-type':'application/manifest+json','cache-control':'no-store'});
     return res.end('{}');
   }
