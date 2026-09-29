@@ -43,7 +43,7 @@
 .review-details{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0 12px;background:#fff}.review-details>summary{cursor:pointer;font-size:11px;font-weight:800;color:#43554f}.review-technical-body{display:grid;gap:8px;margin-top:10px}.review-technical pre{white-space:pre-wrap;font:10px/1.5 ui-monospace,monospace;background:#f6f8f7;padding:10px;border-radius:9px;max-height:220px;overflow:auto}
 .review-checkbox{display:flex;align-items:flex-start;gap:9px;padding:10px 11px;border:1px solid var(--line);border-radius:11px;margin:8px 0;font-size:10px;line-height:1.4;text-transform:none;letter-spacing:0}.review-checkbox input{width:auto;margin-top:2px}.review-checkbox.warn{border-color:#edd9a6;background:#fffaf0}
 .review-important{margin-bottom:10px}
-.financial-field-tools{display:flex;align-items:center;gap:8px;min-height:22px;margin-top:6px}.financial-field-tools .link-btn{font-size:10px}.financial-provenance-badge{display:inline-flex;align-items:center;border-radius:999px;padding:3px 7px;font-size:9px;font-weight:800;background:#f3f5f4;color:var(--muted);vertical-align:middle}.financial-provenance-badge.good{background:#e8f5ef;color:var(--good)}.financial-provenance-badge.warn{background:#fff4d8;color:var(--warn)}.financial-provenance-badge.bad{background:#fceaea;color:var(--bad)}.financial-correction-panel{border:1px solid var(--line);border-radius:13px;padding:12px;margin:4px 0 14px;background:#f8faf9}.financial-correction-panel.good{border-color:#cfe5da;background:#f2faf6}.financial-correction-panel.warn{border-color:#ead7a8;background:#fffaf0}.financial-correction-panel.bad{border-color:#ebc6c6;background:#fff6f6}.financial-correction-panel h5{font-size:12px;margin:0 0 5px}.financial-correction-panel p{font-size:10px;line-height:1.5;color:var(--muted);margin:0}.financial-correction-values{display:grid;gap:5px;margin:10px 0}.financial-correction-value{display:flex;justify-content:space-between;gap:12px;font-size:11px}.financial-correction-value strong{font-size:12px}.financial-correction-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.financial-field-tools{display:flex;align-items:center;gap:8px;min-height:22px;margin-top:6px}.financial-field-tools .link-btn{font-size:10px;min-height:36px;padding:6px 4px}.financial-provenance-badge{display:inline-flex;align-items:center;border-radius:999px;padding:3px 7px;font-size:9px;font-weight:800;background:#f3f5f4;color:var(--muted);vertical-align:middle}.financial-provenance-badge.good{background:#e8f5ef;color:var(--good)}.financial-provenance-badge.warn{background:#fff4d8;color:var(--warn)}.financial-provenance-badge.bad{background:#fceaea;color:var(--bad)}.financial-correction-panel{border:1px solid var(--line);border-radius:13px;padding:12px;margin:4px 0 14px;background:#f8faf9}.financial-correction-panel.good{border-color:#cfe5da;background:#f2faf6}.financial-correction-panel.warn{border-color:#ead7a8;background:#fffaf0}.financial-correction-panel.bad{border-color:#ebc6c6;background:#fff6f6}.financial-correction-panel h5{font-size:12px;margin:0 0 5px}.financial-correction-panel p{font-size:10px;line-height:1.5;color:var(--muted);margin:0}.financial-correction-values{display:grid;gap:5px;margin:10px 0}.financial-correction-value{display:flex;justify-content:space-between;gap:12px;font-size:11px}.financial-correction-value strong{font-size:12px}.financial-correction-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}@media(max-width:700px){.financial-field-tools .link-btn,.financial-correction-actions .btn{min-height:44px}}
 .mobile-review-progress,.mobile-review-actions,.mobile-only-review,.mobile-review-hint{display:none}
 .desktop-review-actions{display:flex;gap:8px}
 
@@ -4227,10 +4227,10 @@ function showPdfImportReview(d){
      ${factor}${checkHtml}
      <div class="form-grid review-step-grid">
       <div class="field"><label>Valuta</label><input name="currency" value="${esc(d.currency||'EUR')}" maxlength="3"></div>
-      <div class="field"><label>Btw-tarief ${financialFieldBadge(d,'vatRate')}</label><select name="vatRate" aria-describedby="financialCorrectionPanel" ${d.mixedRates?'disabled':''}><option value="" ${d.vatRate===''||d.vatRate==null?'selected':''}>Gemengd / controleer</option><option value="21" ${Number(d.vatRate)===21?'selected':''}>21%</option><option value="9" ${Number(d.vatRate)===9?'selected':''}>9%</option><option value="0" ${d.vatRate!==''&&d.vatRate!=null&&Number(d.vatRate)===0?'selected':''}>0% (fiscale reden apart controleren)</option></select>${financialConfirmControl(d,'vatRate')}</div>
-      <div class="field"><label>Bedrag excl. btw ${financialFieldBadge(d,'net')}</label><input type="text" inputmode="decimal" autocomplete="off" name="net" aria-describedby="financialCorrectionPanel" value="${d.net!==''&&d.net!=null?Number(d.net).toFixed(2):''}" required>${financialConfirmControl(d,'net')}</div>
-      <div class="field"><label>Btw-bedrag ${financialFieldBadge(d,'vatAmount')}</label><input type="text" inputmode="decimal" autocomplete="off" name="vatAmount" aria-describedby="financialCorrectionPanel" value="${d.vatAmount!==''&&d.vatAmount!=null?Number(d.vatAmount).toFixed(2):''}">${financialConfirmControl(d,'vatAmount')}</div>
-      <div class="field"><label>Totaal incl. btw ${financialFieldBadge(d,'gross')}</label><input type="text" inputmode="decimal" autocomplete="off" name="gross" aria-describedby="financialCorrectionPanel" value="${d.gross!==''&&d.gross!=null?Number(d.gross).toFixed(2):''}" required>${financialConfirmControl(d,'gross')}</div>
+      <div class="field"><label for="pdfImportVatRate">Btw-tarief ${financialFieldBadge(d,'vatRate')}</label><select id="pdfImportVatRate" name="vatRate" aria-describedby="financialCorrectionPanel" ${d.mixedRates?'disabled':''}><option value="" ${d.vatRate===''||d.vatRate==null?'selected':''}>Gemengd / controleer</option><option value="21" ${Number(d.vatRate)===21?'selected':''}>21%</option><option value="9" ${Number(d.vatRate)===9?'selected':''}>9%</option><option value="0" ${d.vatRate!==''&&d.vatRate!=null&&Number(d.vatRate)===0?'selected':''}>0% (fiscale reden apart controleren)</option></select>${financialConfirmControl(d,'vatRate')}</div>
+      <div class="field"><label for="pdfImportNet">Bedrag excl. btw ${financialFieldBadge(d,'net')}</label><input id="pdfImportNet" type="text" inputmode="decimal" autocomplete="off" name="net" aria-describedby="financialCorrectionPanel" value="${d.net!==''&&d.net!=null?Number(d.net).toFixed(2):''}" required>${financialConfirmControl(d,'net')}</div>
+      <div class="field"><label for="pdfImportVatAmount">Btw-bedrag ${financialFieldBadge(d,'vatAmount')}</label><input id="pdfImportVatAmount" type="text" inputmode="decimal" autocomplete="off" name="vatAmount" aria-describedby="financialCorrectionPanel" value="${d.vatAmount!==''&&d.vatAmount!=null?Number(d.vatAmount).toFixed(2):''}">${financialConfirmControl(d,'vatAmount')}</div>
+      <div class="field"><label for="pdfImportGross">Totaal incl. btw ${financialFieldBadge(d,'gross')}</label><input id="pdfImportGross" type="text" inputmode="decimal" autocomplete="off" name="gross" aria-describedby="financialCorrectionPanel" value="${d.gross!==''&&d.gross!=null?Number(d.gross).toFixed(2):''}" required>${financialConfirmControl(d,'gross')}</div>
       ${d.payout!==''&&d.payout!=null?`<div class="field"><label>Netto uitbetaald ${fieldConfidenceBadge(d,'payout')}</label><input type="number" step="0.01" min="0" name="payout" value="${Number(d.payout).toFixed(2)}" readonly><div class="help">Na kosten/verrekening; niet het factuurtotaal.</div></div>`:''}
      </div>
      <div id="financialCorrectionPanel" class="financial-correction-panel" role="status" aria-live="polite"><h5>Financiële controle</h5><p>Bevestig de bedragen die je op het document ziet.</p></div>
@@ -4306,7 +4306,7 @@ async function savePdfInvoiceImport(){
  if(!pendingPdfImport)return;const f=document.getElementById('pdfImportForm');if(!f)return;if(!f.checkValidity()){const bad=f.querySelector(':invalid'),step=Number(bad?.closest('[data-review-step]')?.dataset.reviewStep||4);setDocumentReviewStep(step);requestAnimationFrame(()=>bad?.reportValidity());return}const fd=new FormData(f),d=Object.fromEntries(fd.entries()),type=d.type,docType=d.documentType||'purchase_invoice',statusRaw=d.status||'sent',isCredit=statusRaw==='credit'||docType==='credit_invoice';if(docType==='receipt'&&!String(d.invoiceNumber||'').trim())d.invoiceNumber=`BON-${String(d.issueDate||today()).replace(/-/g,'')}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
  if(pendingPdfImport.parsed?.duplicateCandidate&&d.confirmDuplicate!=='on')return toast('Mogelijk duplicaat: controleer de waarschuwing en bevestig expliciet als dit toch een nieuwe factuur is.');
  const financialState=syncFinancialReviewStateFromForm();if(financialState.invalid?.length)return toast('Controleer de gemarkeerde bedragen. Gebruik bijvoorbeeld 128,66 of 128.66.');
- let reviewedRate=pendingPdfImport.parsed?.mixedRates?null:(d.vatRate===''||d.vatRate==null?null:Number(d.vatRate)),parsedNet=parseSignedMoneyValue(d.net),parsedVat=parseSignedMoneyValue(d.vatAmount),parsedGross=parseSignedMoneyValue(d.gross),net=Math.abs(parsedNet??NaN),vat=Math.abs(parsedVat??0),gross=Math.abs(parsedGross??NaN);if(financialMoneyCents(net)==null||financialMoneyCents(vat)==null||financialMoneyCents(gross)==null||gross<=0)return toast('Controleer bedrag excl. btw, btw-bedrag en factuurbedrag');if((d.vatAmount===''||d.vatAmount==null)&&gross>=net)vat=Math.max(0,gross-net);
+ let reviewedRate=pendingPdfImport.parsed?.mixedRates?null:(d.vatRate===''||d.vatRate==null?null:Number(d.vatRate)),parsedNet=parseSignedMoneyValue(d.net),parsedVat=parseSignedMoneyValue(d.vatAmount),parsedGross=parseSignedMoneyValue(d.gross);if(!isCredit&&[parsedNet,parsedVat,parsedGross].some(v=>v!=null&&v<0))return toast('Negatieve bedragen zijn alleen toegestaan voor creditdocumenten.');let net=Math.abs(parsedNet??NaN),vat=Math.abs(parsedVat??0),gross=Math.abs(parsedGross??NaN);if(financialMoneyCents(net)==null||financialMoneyCents(vat)==null||financialMoneyCents(gross)==null||gross<=0)return toast('Controleer bedrag excl. btw, btw-bedrag en factuurbedrag');if((d.vatAmount===''||d.vatAmount==null)&&gross>=net)vat=Math.max(0,gross-net);
  const financialFieldProvenance=structuredClone(ensureFinancialReviewProvenance(pendingPdfImport.parsed)),financialCorrectionEvents=structuredClone(pendingPdfImport.parsed?.financialCorrectionEvents||[]);
   const vatLineResult=trustedVatLinesForImport(pendingPdfImport.parsed,net,vat,reviewedRate);if(!vatLineResult.ok)return toast(vatLineResult.reason);const trustedVatLines=vatLineResult.lines,trustedVatRates=[...new Set(trustedVatLines.map(v=>Number(v.rate)).filter(Number.isFinite))],mixedRates=!!pendingPdfImport.parsed?.mixedRates||trustedVatRates.length>1,rate=mixedRates?null:(reviewedRate==null?(trustedVatRates.length===1?trustedVatRates[0]:0):reviewedRate);
   const candidate={...pendingPdfImport.parsed,...d,type,documentType:docType,isCredit,net,vatAmount:vat,gross,vatRate:rate,mixedRates,vatLines:trustedVatLines,status:statusRaw==='overdue'?'sent':statusRaw};const schemaErrors=validateCandidateSchema(candidate);if(schemaErrors.length){toast(schemaErrors[0]);return}if(pendingPdfImport.parsed?.recognitionBad>0&&!confirm('De herkenning bevat kritieke controlepunten. Heb je alle gemarkeerde velden handmatig gecontroleerd en gecorrigeerd?'))return;
@@ -4423,146 +4423,6 @@ document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=
 })();
 </script>
 
-<style id="boekuna-smart-financial-correction-style">
-.badge.calculated{background:#e9f1ff;color:#315f91}.badge.neutral{background:#f1f3f2;color:#66736e}
-.review-confirm-field{border:0;background:transparent;color:var(--primary);font:inherit;font-size:9px;font-weight:850;padding:2px 4px;margin-left:5px;text-decoration:underline;text-underline-offset:2px}
-.review-confirm-field:disabled{color:var(--good);text-decoration:none;cursor:default}
-.financial-correction-panel{border:1px solid var(--line);border-radius:13px;padding:11px 12px;margin:0 0 12px;background:#f7f9f8}
-.financial-correction-panel.good{background:#f2faf6;border-color:#cfe7da}.financial-correction-panel.warn{background:#fffaf0;border-color:#ecd9a5}.financial-correction-panel.bad{background:#fff5f5;border-color:#ebcaca}.financial-correction-panel.info{background:#f5f8fb;border-color:#d8e1ea}
-.financial-consistency-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.financial-consistency-head strong{font-size:11px}
-.financial-correction-panel>p,.financial-correction-proposal p,.financial-correction-rate p,.financial-correction-conflict p{font-size:10px;line-height:1.45;color:var(--muted);margin:5px 0 0}
-.financial-correction-proposal,.financial-correction-rate,.financial-correction-conflict{border-top:1px solid rgba(0,0,0,.08);margin-top:10px;padding-top:10px}
-.financial-correction-proposal>strong,.financial-correction-rate>strong,.financial-correction-conflict>strong{font-size:11px}
-.financial-correction-row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:10px}.financial-correction-row strong{font-size:11px}
-.financial-correction-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}.financial-correction-actions .btn{min-height:38px}
-@media(max-width:520px){.financial-correction-actions{display:grid;grid-template-columns:1fr}.financial-correction-actions .btn{width:100%;min-height:46px}}
-</style>
-<script id="boekuna-smart-financial-correction">
-(function(){
- const FIELDS=['net','vatAmount','gross','vatRate'],RATES=[0,9,21];
- const originalFieldConfidenceBadge=fieldConfidenceBadge;
- const originalShowPdfImportReview=showPdfImportReview;
- const originalSavePdfInvoiceImport=savePdfInvoiceImport;
- const originalOpenDocumentVerification=openDocumentVerification;
 
- function ensureProvenance(d){
-  if(!d||typeof d!=='object')return {};
-  const current=d.fieldProvenance&&typeof d.fieldProvenance==='object'?d.fieldProvenance:{},next={...current};
-  for(const key of FIELDS){
-   const old=next[key]&&typeof next[key]==='object'?next[key]:null,confidence=Number(d?.fieldConfidence?.[key]||0)||null,present=d?.[key]!==''&&d?.[key]!=null;
-   next[key]=old?{source:String(old.source||'ocr'),confirmed:old.confirmed===true,confidence:old.confidence==null?confidence:Number(old.confidence),dependsOn:Array.isArray(old.dependsOn)?[...old.dependsOn]:[]}:{source:present?'ocr':'unknown',confirmed:false,confidence,dependsOn:[]}
-  }
-  d.fieldProvenance=next;return next
- }
- function cleanProvenance(d){const p=ensureProvenance(d),out={};for(const key of FIELDS){const x=p[key]||{};out[key]={source:String(x.source||'unknown'),confirmed:x.confirmed===true,dependsOn:Array.isArray(x.dependsOn)?[...x.dependsOn]:[]}}return out}
- function isUser(d,key){const p=ensureProvenance(d)[key];return p?.source==='user'&&p.confirmed===true}
- function isTrusted(d,key){const p=ensureProvenance(d)[key];if(p?.source==='user'&&p.confirmed)return true;return p?.source==='ocr'&&Number(p.confidence||d?.fieldConfidence?.[key]||0)>=90}
- function roundRatioCents(cents,multiplier,denominator){
-  if(!Number.isSafeInteger(cents)||!Number.isInteger(multiplier)||!Number.isInteger(denominator)||denominator<=0)return null;
-  let n=BigInt(cents),sign=n<0n?-1n:1n;if(n<0n)n=-n;const num=n*BigInt(multiplier),den=BigInt(denominator);let q=num/den,rem=num%den;if(rem*2n>=den)q+=1n;
-  const out=Number(q*sign);return Number.isSafeInteger(out)?out:null
- }
- function vatFromNetCents(netC,rate){return Number.isInteger(rate)?roundRatioCents(netC,rate,100):null}
- function netFromGrossCents(grossC,rate){return Number.isInteger(rate)?roundRatioCents(grossC,100,100+rate):null}
- function rateMatches(netC,vatC,rate){if(netC==null||vatC==null||rate==null)return true;const expected=vatFromNetCents(netC,rate);return expected!=null&&Math.abs(expected-vatC)<=1}
- function knownRate(netC,vatC){
-  if(!Number.isSafeInteger(netC)||!Number.isSafeInteger(vatC)||netC===0)return null;
-  const matches=RATES.filter(rate=>{const expected=vatFromNetCents(netC,rate);return expected!=null&&Math.abs(expected-vatC)<=1});
-  return matches.length===1?matches[0]:null
- }
- function snapshot(form){
-  const cents={},invalid=[];for(const key of ['net','vatAmount','gross']){const raw=String(form?.elements?.[key]?.value??'').trim();if(!raw){cents[key]=null;continue}const parsed=parseSignedMoneyValue(raw),valueC=parsed==null?null:financialMoneyCents(parsed);if(valueC==null)invalid.push(key);cents[key]=valueC}
-  const rateRaw=String(form?.elements?.vatRate?.value??'').trim(),rate=rateRaw===''?null:Number(rateRaw);if(rateRaw!==''&&!RATES.includes(rate))invalid.push('vatRate');
-  return {cents,rate,invalid,values:{net:cents.net==null?null:cents.net/100,vatAmount:cents.vatAmount==null?null:cents.vatAmount/100,gross:cents.gross==null?null:cents.gross/100,vatRate:rate}}
- }
- function derive(d,values){
-  ensureProvenance(d);const lines=canonicalFinancialVatLines(d?.vatLines),lineRates=[...new Set(lines.map(v=>Number(v.rate)).filter(Number.isFinite))];
-  if(d?.mixedRates||lineRates.length>1)return {status:'mixed',message:'Deze factuur bevat meerdere btw-tarieven. Controleer de btw-regels afzonderlijk.'};
-  const netC=values?.net==null?null:financialMoneyCents(values.net),vatC=values?.vatAmount==null?null:financialMoneyCents(values.vatAmount),grossC=values?.gross==null?null:financialMoneyCents(values.gross),rate=values?.vatRate==null?null:Number(values.vatRate);
-  const user=k=>isUser(d,k),trusted=k=>isTrusted(d,k),present={net:netC!=null,vatAmount:vatC!=null,gross:grossC!=null,vatRate:rate!=null};
-  if(rate!=null&&!RATES.includes(rate))return {status:'invalid',message:'Kies een geldig btw-tarief.'};
-  if(user('net')&&user('vatAmount')&&user('gross')&&netC+vatC!==grossC)return {status:'conflict',message:'De door jou bevestigde bedragen kunnen niet samen kloppen.'};
-  if(user('vatRate')&&user('net')&&user('vatAmount')&&!rateMatches(netC,vatC,rate))return {status:'conflict',message:'Het bevestigde btw-tarief past niet bij de bevestigde netto- en btw-bedragen.'};
-  if(user('vatRate')&&user('net')&&user('gross')){const implied=grossC-netC;if(!rateMatches(netC,implied,rate))return {status:'conflict',message:'Het bevestigde btw-tarief past niet bij de bevestigde netto- en totaalbedragen.'}}
-  if(user('vatRate')&&user('gross')&&user('vatAmount')){const impliedNet=grossC-vatC;if(!rateMatches(impliedNet,vatC,rate))return {status:'conflict',message:'Het bevestigde btw-tarief past niet bij de bevestigde btw- en totaalbedragen.'}}
-  const make=(anchors,proposed,calculated,suggestedRate=null)=>{const current={net:netC,vatAmount:vatC,gross:grossC},changes=calculated.filter(k=>!user(k)&&proposed[k]!=null&&proposed[k]!==current[k]);return {status:changes.length?'proposal':'consistent',anchors,calculated,changes,suggestedRate,values:{net:(proposed.net??netC)/100,vatAmount:(proposed.vatAmount??vatC)/100,gross:(proposed.gross??grossC)/100,vatRate:rate}}};
-  if(user('gross')&&user('vatRate')&&present.gross&&present.vatRate){const n=netFromGrossCents(grossC,rate),v=grossC-n;return make(['gross','vatRate'],{net:n,vatAmount:v,gross:grossC},['net','vatAmount'])}
-  if(user('net')&&user('vatRate')&&present.net&&present.vatRate){const v=vatFromNetCents(netC,rate),g=netC+v;return make(['net','vatRate'],{net:netC,vatAmount:v,gross:g},['vatAmount','gross'])}
-  const pairs=[['net','vatAmount',present.net&&present.vatAmount&&trusted('net')&&trusted('vatAmount')],['net','gross',present.net&&present.gross&&trusted('net')&&trusted('gross')],['vatAmount','gross',present.vatAmount&&present.gross&&trusted('vatAmount')&&trusted('gross')]];
-  for(const pair of pairs){const a=pair[0],b=pair[1],ok=pair[2];if(!ok||!(user(a)||user(b)))continue;
-   if(a==='net'&&b==='vatAmount'){const g=netC+vatC,sr=knownRate(netC,vatC);if(rate!=null&&!rateMatches(netC,vatC,rate)&&user('vatRate'))return {status:'conflict',message:'Het bevestigde btw-tarief past niet bij de bevestigde bedragen.'};return make([a,b],{net:netC,vatAmount:vatC,gross:g},['gross'],rate==null?sr:null)}
-   if(a==='net'&&b==='gross'){const v=grossC-netC,sr=knownRate(netC,v);if(rate!=null&&!rateMatches(netC,v,rate)&&user('vatRate'))return {status:'conflict',message:'Het bevestigde btw-tarief past niet bij de bevestigde bedragen.'};return make([a,b],{net:netC,vatAmount:v,gross:grossC},['vatAmount'],rate==null?sr:null)}
-   if(a==='vatAmount'&&b==='gross'){const n=grossC-vatC,sr=knownRate(n,vatC);if(rate!=null&&!rateMatches(n,vatC,rate)&&user('vatRate'))return {status:'conflict',message:'Het bevestigde btw-tarief past niet bij de bevestigde bedragen.'};return make([a,b],{net:n,vatAmount:vatC,gross:grossC},['net'],rate==null?sr:null)}
-  }
-  if(trusted('gross')&&trusted('vatRate')&&(user('gross')||user('vatRate'))&&present.gross&&present.vatRate){const n=netFromGrossCents(grossC,rate),v=grossC-n;return make(['gross','vatRate'],{net:n,vatAmount:v,gross:grossC},['net','vatAmount'])}
-  if(trusted('net')&&trusted('vatRate')&&(user('net')||user('vatRate'))&&present.net&&present.vatRate){const v=vatFromNetCents(netC,rate),g=netC+v;return make(['net','vatRate'],{net:netC,vatAmount:v,gross:g},['vatAmount','gross'])}
-  if(present.net&&present.vatAmount&&present.gross&&netC+vatC===grossC){const inferred=rate==null?knownRate(netC,vatC):null;if(inferred!=null)return {status:'rate_suggestion',suggestedRate:inferred,message:inferred+'% lijkt bij deze bedragen te horen. Bevestig het btw-tarief om het te gebruiken.'};if(rate==null||rateMatches(netC,vatC,rate))return {status:'consistent'}}
-  return {status:'insufficient'}
- }
- function labelFor(key){return key==='net'?'Excl. btw':key==='vatAmount'?'Btw':key==='gross'?'Incl. btw':'Btw-tarief'}
- function badgeHtml(d,key){const p=ensureProvenance(d)[key];if(p?.source==='user'&&p.confirmed)return '<span class="badge good" data-financial-badge="'+key+'" style="margin-left:6px">Bevestigd</span>';if(p?.source==='calculated')return '<span class="badge calculated" data-financial-badge="'+key+'" style="margin-left:6px">Berekend</span>';const n=Number(d?.fieldConfidence?.[key]||0);if(!n)return '<span class="badge neutral" data-financial-badge="'+key+'" style="margin-left:6px">Controle nodig</span>';return '<span class="badge '+(n>=90?'good':n>=75?'warn':'bad')+'" data-financial-badge="'+key+'" style="margin-left:6px">'+(n>=90?'Hoog vertrouwen':n>=75?'Controleer':'Laag vertrouwen')+'</span>'}
- function updateBadge(d,key){const p=ensureProvenance(d)[key],badge=document.querySelector('[data-financial-badge="'+key+'"]'),n=Number(d?.fieldConfidence?.[key]||0);if(badge){badge.className='badge '+(p?.source==='user'&&p.confirmed?'good':p?.source==='calculated'?'calculated':n>=90?'good':n>=75?'warn':n?'bad':'neutral');badge.textContent=p?.source==='user'&&p.confirmed?'Bevestigd':p?.source==='calculated'?'Berekend':n>=90?'Hoog vertrouwen':n>=75?'Controleer':n?'Laag vertrouwen':'Controle nodig'}const btn=document.querySelector('[data-confirm-financial="'+key+'"]');if(btn){btn.disabled=p?.source==='user'&&p.confirmed;btn.textContent=btn.disabled?'Bevestigd':'Bevestig'}}
- function syncModel(form,d){const s=snapshot(form);if(s.invalid.length)return s;for(const key of ['net','vatAmount','gross'])if(s.cents[key]!=null)d[key]=s.cents[key]/100;d.vatRate=s.rate;return s}
- function confirmField(key){const d=pendingPdfImport?.parsed,form=document.getElementById('pdfImportForm');if(!d||!form)return;const s=snapshot(form);if(s.invalid.includes(key)){toast('Controleer de invoer voor '+labelFor(key)+'.');return}if(key==='vatRate'&&d.mixedRates){toast('Bij gemengde btw gebruikt Boekuna geen enkel btw-tarief voor autocorrectie.');return}syncModel(form,d);const p=ensureProvenance(d);p[key]={source:'user',confirmed:true,confidence:null,dependsOn:[]};d.fieldProvenance=p;updateBadge(d,key);renderPanel()}
- function summary(d,s,proposal){
-  if(s.invalid.length)return {level:'bad',title:'Controleer de invoer',detail:'Gebruik geldige bedragen, bijvoorbeeld 128,66.'};
-  const lines=canonicalFinancialVatLines(d?.vatLines),mixed=!!d?.mixedRates||[...new Set(lines.map(v=>v.rate))].length>1;if(mixed)return {level:'warn',title:'Mogelijk meerdere btw-tarieven',detail:'Deze factuur bevat meerdere btw-tarieven. Controleer de btw-regels afzonderlijk.'};
-  const net=s.cents.net,vat=s.cents.vatAmount,gross=s.cents.gross,rate=s.rate;
-  if(net!=null&&vat!=null&&gross!=null&&net+vat!==gross)return {level:'bad',title:'Bedragen kunnen niet samen kloppen',detail:'Excl. btw + btw is niet gelijk aan het totaal. Controleer minimaal één bedrag.'};
-  if(net!=null&&vat!=null&&rate!=null&&!rateMatches(net,vat,rate)){let expected=null;if(gross!=null){const n=netFromGrossCents(gross,rate);expected=gross-n}else expected=vatFromNetCents(net,rate);return {level:'warn',title:'Btw verdient controle',detail:'De huidige bedragen horen niet bij '+rate+'% btw.'+(expected!=null?' Met '+rate+'% verwachten we ongeveer '+money(expected/100)+' btw.':'')}}
-  if(net!=null&&vat!=null&&gross!=null&&net+vat===gross)return {level:'good',title:'Bedragen kloppen',detail:money(net/100)+' + '+money(vat/100)+' btw = '+money(gross/100)};
-  if(proposal?.status==='proposal')return {level:'info',title:'Boekuna kan de bedragen aanvullen',detail:'Bevestig het voorstel voordat er waarden worden aangepast.'};
-  return {level:'info',title:'Nog niet genoeg bevestigde gegevens',detail:'Bevestig of corrigeer minimaal twee bedragen, of een bedrag en het btw-tarief.'}
- }
- function updateAmountCards(s){const nodes=document.querySelectorAll('.review-amount-primary strong');if(nodes[0])nodes[0].textContent=s.values.net==null?'—':money(s.values.net);if(nodes[1])nodes[1].textContent=s.values.vatAmount==null?'—':money(s.values.vatAmount);if(nodes[2])nodes[2].textContent=s.values.gross==null?'—':money(s.values.gross)}
- function renderPanel(){
-  const d=pendingPdfImport?.parsed,form=document.getElementById('pdfImportForm'),panel=document.getElementById('financialCorrectionPanel');if(!d||!form||!panel)return;
-  const s=snapshot(form);if(!s.invalid.length)syncModel(form,d);const proposal=derive(d,s.values);pendingPdfImport.financialProposal=proposal;const info=summary(d,s,proposal);updateAmountCards(s);
-  let extra='';
-  if(proposal.status==='proposal'){let rows='';for(const key of ['net','vatAmount','gross'])rows+='<div class="financial-correction-row"><span>'+labelFor(key)+'</span><strong>'+money(proposal.values[key])+'</strong></div>';extra='<div class="financial-correction-proposal"><strong>Boekuna kan de bedragen corrigeren</strong><p>Op basis van de bevestigde gegevens horen de bedragen zo bij elkaar:</p>'+rows+(proposal.suggestedRate!=null?'<p>'+proposal.suggestedRate+'% lijkt bij deze bedragen te horen. Bevestig het tarief zelf.</p>':'')+'<div class="financial-correction-actions"><button type="button" class="btn primary" id="applyFinancialCorrection">Gebruik deze bedragen</button><button type="button" class="btn" id="manualFinancialCorrection">Zelf aanpassen</button></div></div>'}
-  else if(proposal.status==='rate_suggestion')extra='<div class="financial-correction-rate"><strong>'+proposal.suggestedRate+'% lijkt bij deze bedragen te horen</strong><p>Bevestig het btw-tarief zelf; Boekuna maakt van een afgeleid percentage geen fiscale waarheid.</p></div>';
-  else if(proposal.status==='conflict')extra='<div class="financial-correction-conflict"><strong>Bevestigde waarden spreken elkaar tegen</strong><p>'+esc(proposal.message||'Controleer minimaal één bevestigd veld.')+'</p></div>';
-  panel.className='financial-correction-panel '+info.level;panel.innerHTML='<div class="financial-consistency-head"><strong>'+esc(info.title)+'</strong><span aria-hidden="true">'+(info.level==='good'?'✓':info.level==='bad'?'×':'!')+'</span></div><p>'+esc(info.detail)+'</p>'+extra;
-  document.getElementById('applyFinancialCorrection')?.addEventListener('click',applyProposal);document.getElementById('manualFinancialCorrection')?.addEventListener('click',()=>form.elements.net?.focus())
- }
- function applyProposal(){
-  const d=pendingPdfImport?.parsed,form=document.getElementById('pdfImportForm'),proposal=pendingPdfImport?.financialProposal;if(!d||!form||proposal?.status!=='proposal')return;
-  const p=ensureProvenance(d),applied=[];for(const key of proposal.calculated||[]){if(isUser(d,key))continue;const value=proposal.values?.[key],el=form.elements[key];if(value==null||!el)continue;el.value=Number(value).toFixed(2);d[key]=value;p[key]={source:'calculated',confirmed:false,confidence:null,dependsOn:[...(proposal.anchors||[])]};applied.push(key);updateBadge(d,key)}
-  d.fieldProvenance=p;if(applied.length)pendingPdfImport.financialCorrectionApplied={fields:applied,anchors:[...(proposal.anchors||[])]};renderPanel()
- }
- function enhanceReview(d){
-  const form=document.getElementById('pdfImportForm');if(!form)return;ensureProvenance(d);
-  for(const key of ['net','vatAmount','gross']){const input=form.elements[key];if(!input)continue;input.type='text';input.inputMode='decimal';input.autocomplete='off';input.removeAttribute('min');input.removeAttribute('step')}
-  const rate=form.elements.vatRate;if(rate){const zero=[...rate.options].find(o=>o.value==='0');if(zero)zero.textContent='0%';if(d.mixedRates)rate.setAttribute('aria-disabled','true')}
-  for(const key of FIELDS){const input=form.elements[key];if(!input)continue;const field=input.closest('.field'),label=field?.querySelector('label');if(!label)continue;if(!input.id)input.id='financialReview-'+key;label.htmlFor=input.id;const oldBadge=label.querySelector('.badge');if(oldBadge)oldBadge.remove();label.insertAdjacentHTML('beforeend',badgeHtml(d,key));if(!field.querySelector('[data-confirm-financial="'+key+'"]'))label.insertAdjacentHTML('afterend','<button type="button" class="review-confirm-field" data-confirm-financial="'+key+'" aria-label="'+esc(labelFor(key))+' bevestigen">Bevestig</button>');updateBadge(d,key)}
-  const rateField=rate?.closest('.field');if(rateField&&!rateField.querySelector('[data-financial-tax-help]')){const help=document.createElement('div');help.className='help';help.dataset.financialTaxHelp='true';help.textContent='0% is alleen een rekenpercentage; vrijstelling, KOR, verlegd en buiten scope blijven aparte fiscale betekenissen.'+(d.mixedRates?' Bij gemengde btw corrigeert Boekuna nooit vanuit één tarief.':'');rateField.appendChild(help)}
-  const grid=form.querySelector('.review-step[data-review-step="2"] .form-grid');if(grid&&!document.getElementById('financialCorrectionPanel')){const panel=document.createElement('div');panel.id='financialCorrectionPanel';panel.className='financial-correction-panel info';panel.setAttribute('role','status');panel.setAttribute('aria-live','polite');grid.before(panel)}
-  for(const key of FIELDS){const input=form.elements[key];if(!input)continue;input.addEventListener('input',renderPanel);input.addEventListener('change',()=>confirmField(key))}
-  form.querySelectorAll('[data-confirm-financial]').forEach(btn=>btn.addEventListener('click',()=>confirmField(btn.dataset.confirmFinancial)));
-  renderPanel()
- }
- function normalizeMoneyInputsForLegacySave(form,s){for(const key of ['net','vatAmount','gross']){const el=form.elements[key];if(el&&s.values[key]!=null)el.value=Number(s.values[key]).toFixed(2)}}
- fieldConfidenceBadge=function(d,key){const p=d?.fieldProvenance?.[key];if(p?.source==='user'&&p.confirmed)return '<span class="badge good" style="margin-left:6px">Bevestigd</span>';if(p?.source==='calculated')return '<span class="badge calculated" style="margin-left:6px">Berekend</span>';return originalFieldConfidenceBadge(d,key)};
- showPdfImportReview=function(d){ensureProvenance(d);originalShowPdfImportReview(d);requestAnimationFrame(()=>enhanceReview(d))};
- savePdfInvoiceImport=async function(){
-  const pending=pendingPdfImport,form=document.getElementById('pdfImportForm');if(!pending||!form)return originalSavePdfInvoiceImport();
-  const s=snapshot(form);if(s.invalid.length)return toast('Controleer de financiële invoer. Gebruik bijvoorbeeld 128,66 of 128.66.');
-  const docType=String(form.elements.documentType?.value||pending.parsed?.documentType||''),status=String(form.elements.status?.value||''),credit=docType==='credit_invoice'||status==='credit';
-  if(s.values.net==null||s.values.vatAmount==null||s.values.gross==null)return toast('Controleer de drie bedragen of gebruik eerst het rekenvoorstel.');
-  if(!credit&&[s.values.net,s.values.vatAmount,s.values.gross].some(v=>v<0))return toast('Negatieve bedragen zijn alleen toegestaan voor creditdocumenten.');
-  const proposal=derive(pending.parsed,s.values);if(proposal.status==='conflict')return toast(proposal.message||'Bevestigde financiële waarden spreken elkaar tegen.');if(proposal.status==='proposal'&&(proposal.changes||[]).length)return toast('Boekuna heeft een rekenvoorstel klaar. Gebruik eerst de voorgestelde bedragen of pas ze zelf aan.');
-  const mixed=proposal.status==='mixed'||pending.parsed?.mixedRates||[...new Set(canonicalFinancialVatLines(pending.parsed?.vatLines).map(v=>v.rate))].length>1;
-  if(!mixed&&s.rate!=null&&!rateMatches(s.cents.net,s.cents.vatAmount,s.rate))return toast('Het btw-tarief past niet bij de gecontroleerde bedragen. Corrigeer het tarief of gebruik het rekenvoorstel.');
-  const provenance=cleanProvenance(pending.parsed),correction=pending.financialCorrectionApplied?structuredClone(pending.financialCorrectionApplied):null,before=new Set(state.documents.map(x=>x.id));normalizeMoneyInputsForLegacySave(form,s);
-  const result=await originalSavePdfInvoiceImport();
-  const doc=state.documents.find(x=>!before.has(x.id));if(!doc)return result;doc.financialProvenance=provenance;doc.financialCorrectionApplied=correction;if(doc.verification){doc.verification.provenance=provenance}
-  const linked=doc.linkedType==='invoice'?state.invoices.find(x=>x.id===doc.linkedId):state.expenses.find(x=>x.id===doc.linkedId);if(linked){linked.financialProvenance=provenance;linked.financialCorrectionApplied=correction}
-  const confirmed=FIELDS.filter(key=>provenance?.[key]?.source==='user'&&provenance?.[key]?.confirmed);if(confirmed.length)logEvent('Documentvelden bevestigd',confirmed.join(', '),'document',doc.id,null,{fields:confirmed});if(correction?.fields?.length)logEvent('Financiële herberekening toegepast',correction.fields.join(', '),'document',doc.id,null,{fields:correction.fields,anchors:correction.anchors||[]});save();return result
- };
- openDocumentVerification=function(id){originalOpenDocumentVerification(id);const d=state.documents.find(x=>x.id===id),v=d?.verification;if(v?.status!=='needs_review')return;const items=[...document.querySelectorAll('.modal .legal-item')],diffs=Array.isArray(v.differences)?v.differences:[];diffs.forEach((diff,i)=>{if(v?.provenance?.[diff.field]?.source==='user'&&v?.provenance?.[diff.field]?.confirmed&&items[i])items[i].innerHTML=items[i].innerHTML.replace('Opgeslagen:','Door jou bevestigd:')})};
- window.showPdfImportReview=showPdfImportReview;window.savePdfInvoiceImport=savePdfInvoiceImport;window.openDocumentVerification=openDocumentVerification;
- window.__boekunaFinancialCorrection={ensureProvenance,cleanProvenance,derive,snapshot,rateMatches,knownRate,vatFromNetCents,netFromGrossCents,roundRatioCents,applyProposal,renderPanel,confirmField,enhanceReview};
-})();
-</script>
 </body>
 </html>
