@@ -66,6 +66,18 @@ jobs:
             await page.goto(preview,{waitUntil:'domcontentloaded',timeout:60000});
             await page.waitForFunction(()=>typeof getSupabase==='function',{timeout:30000});
 
+            const processorUrl=await page.evaluate(()=>DOCUMENT_PROCESSOR_URL);
+            let processorWarm=false;
+            for(let attempt=0;attempt<24;attempt++){
+              try{
+                const response=await fetch(processorUrl+'/openapi.json');
+                if(response.ok){processorWarm=true;break}
+              }catch(_){}
+              await new Promise(r=>setTimeout(r,5000));
+            }
+            if(!processorWarm)throw new Error('Candidate processor did not become ready after cold-start warmup');
+            console.log('BOOKUNA_PROCESSOR_WARM='+processorUrl);
+
             const qaResponse=await fetch(process.env.CANDIDATE_SUPABASE_URL+'/functions/v1/document-processing',{
               method:'POST',
               headers:{'content-type':'application/json','x-boekuna-qa-revision':process.env.QA_PREVIEW_REVISION},
@@ -165,12 +177,13 @@ jobs:
             const terminal=await page.evaluate(batchId=>{
               const rows=documentProcessingJobs.filter(j=>j.batch_id===batchId);
               return {
-                rows:rows.map(j=>({id:j.id,name:j.file_name,state:j.state,attempt:j.attempt,review_fields:j.review_fields,result:j.result,client_ref:j.client_ref})),
+                rows:rows.map(j=>({id:j.id,name:j.file_name,state:j.state,attempt:j.attempt,review_fields:j.review_fields,error_code:j.error_code,error_retryable:j.error_retryable,result:j.result,client_ref:j.client_ref})),
                 ready:rows.filter(j=>j.state==='ready').length,
                 review:rows.filter(j=>j.state==='review_required').length,
                 failed:rows.filter(j=>j.state==='failed').length
               }
             },batchId);
+            console.log('BOOKUNA_TERMINAL_STATES='+JSON.stringify(terminal.rows.map(j=>({name:j.name,state:j.state,attempt:j.attempt,review_fields:j.review_fields,error_code:j.error_code,error_retryable:j.error_retryable}))));
             if(terminal.ready<1)throw new Error('Live batch produced no READY document');
             if(terminal.review<1)throw new Error('Live batch produced no REVIEW_REQUIRED document');
             if(terminal.failed<1)throw new Error('Live batch produced no FAILED document');
