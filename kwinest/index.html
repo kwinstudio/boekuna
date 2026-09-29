@@ -3718,6 +3718,17 @@ function bindFinancialReviewControls(){
   if(key!=='vatRate')el.addEventListener('blur',()=>{const cents=financialReviewCentsFromInput(el.value);if(cents!=null)el.value=formatFinancialReviewCents(cents)})
  }
 }
+function confirmFinancialReviewOnSave(){
+ const d=pendingPdfImport?.parsed,f=document.getElementById('pdfImportForm');if(!d||!f)return;
+ const provenance=ensureFinancialReviewProvenance(d),confirmed=[];
+ for(const key of FINANCIAL_REVIEW_FIELDS){
+  if(key==='vatRate'&&d.mixedRates)continue;
+  const el=f.elements.namedItem(key),value=String(el?.value??'').trim(),p=provenance[key]||{};
+  if(!value||p.source==='calculated'||(p.source==='user'&&p.confirmed))continue;
+  provenance[key]={source:'user',confirmed:true,confidence:null,confirmedAt:new Date().toISOString(),confirmedVia:'review-save'};confirmed.push(key)
+ }
+ if(confirmed.length)financialReviewEvent('document_field_confirmed',confirmed)
+}
 function cleanupPendingImport(){if(pendingPdfImport?.previewUrl){try{URL.revokeObjectURL(pendingPdfImport.previewUrl)}catch(e){}}pendingPdfImport=null}
 
 function parseMoneyValue(v){const n=parseSignedMoneyValue(v);return n==null?null:Math.abs(n)}
@@ -4306,7 +4317,10 @@ async function savePdfInvoiceImport(){
  if(!pendingPdfImport)return;const f=document.getElementById('pdfImportForm');if(!f)return;if(!f.checkValidity()){const bad=f.querySelector(':invalid'),step=Number(bad?.closest('[data-review-step]')?.dataset.reviewStep||4);setDocumentReviewStep(step);requestAnimationFrame(()=>bad?.reportValidity());return}const fd=new FormData(f),d=Object.fromEntries(fd.entries()),type=d.type,docType=d.documentType||'purchase_invoice',statusRaw=d.status||'sent',isCredit=statusRaw==='credit'||docType==='credit_invoice';if(docType==='receipt'&&!String(d.invoiceNumber||'').trim())d.invoiceNumber=`BON-${String(d.issueDate||today()).replace(/-/g,'')}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
  if(pendingPdfImport.parsed?.duplicateCandidate&&d.confirmDuplicate!=='on')return toast('Mogelijk duplicaat: controleer de waarschuwing en bevestig expliciet als dit toch een nieuwe factuur is.');
  const financialState=syncFinancialReviewStateFromForm();if(financialState.invalid?.length)return toast('Controleer de gemarkeerde bedragen. Gebruik bijvoorbeeld 128,66 of 128.66.');
- let reviewedRate=pendingPdfImport.parsed?.mixedRates?null:(d.vatRate===''||d.vatRate==null?null:Number(d.vatRate)),parsedNet=parseSignedMoneyValue(d.net),parsedVat=parseSignedMoneyValue(d.vatAmount),parsedGross=parseSignedMoneyValue(d.gross);if(!isCredit&&[parsedNet,parsedVat,parsedGross].some(v=>v!=null&&v<0))return toast('Negatieve bedragen zijn alleen toegestaan voor creditdocumenten.');let net=Math.abs(parsedNet??NaN),vat=Math.abs(parsedVat??0),gross=Math.abs(parsedGross??NaN);if(financialMoneyCents(net)==null||financialMoneyCents(vat)==null||financialMoneyCents(gross)==null||gross<=0)return toast('Controleer bedrag excl. btw, btw-bedrag en factuurbedrag');if((d.vatAmount===''||d.vatAmount==null)&&gross>=net)vat=Math.max(0,gross-net);
+ let reviewedRate=pendingPdfImport.parsed?.mixedRates?null:(d.vatRate===''||d.vatRate==null?null:Number(d.vatRate)),parsedNet=parseSignedMoneyValue(d.net),parsedVat=parseSignedMoneyValue(d.vatAmount),parsedGross=parseSignedMoneyValue(d.gross);if(d.vatAmount===''||d.vatAmount==null||parsedVat==null)return toast('Vul het btw-bedrag in of gebruik eerst het rekenvoorstel.');if(!isCredit&&[parsedNet,parsedVat,parsedGross].some(v=>v!=null&&v<0))return toast('Negatieve bedragen zijn alleen toegestaan voor creditdocumenten.');
+ const netC=financialMoneyCents(parsedNet),vatC=financialMoneyCents(parsedVat),grossC=financialMoneyCents(parsedGross);if(netC==null||vatC==null||grossC==null||grossC===0)return toast('Controleer bedrag excl. btw, btw-bedrag en factuurbedrag');if(netC+vatC!==grossC)return toast('Bedrag excl. btw + btw moet cent-exact gelijk zijn aan het factuurtotaal.');
+ if(!pendingPdfImport.parsed?.mixedRates){if(reviewedRate==null)return toast('Kies en bevestig het btw-tarief voordat je opslaat.');if(!BookunaFinancialCorrection.candidateFitsRate({net:netC,vatAmount:vatC,gross:grossC},reviewedRate,1))return toast('Het btw-tarief past niet bij de gecontroleerde bedragen. Gebruik het rekenvoorstel of pas de bedragen aan.')}
+ let net=Math.abs(parsedNet),vat=Math.abs(parsedVat),gross=Math.abs(parsedGross);confirmFinancialReviewOnSave();
  const financialFieldProvenance=structuredClone(ensureFinancialReviewProvenance(pendingPdfImport.parsed)),financialCorrectionEvents=structuredClone(pendingPdfImport.parsed?.financialCorrectionEvents||[]);
   const vatLineResult=trustedVatLinesForImport(pendingPdfImport.parsed,net,vat,reviewedRate);if(!vatLineResult.ok)return toast(vatLineResult.reason);const trustedVatLines=vatLineResult.lines,trustedVatRates=[...new Set(trustedVatLines.map(v=>Number(v.rate)).filter(Number.isFinite))],mixedRates=!!pendingPdfImport.parsed?.mixedRates||trustedVatRates.length>1,rate=mixedRates?null:(reviewedRate==null?(trustedVatRates.length===1?trustedVatRates[0]:0):reviewedRate);
   const candidate={...pendingPdfImport.parsed,...d,type,documentType:docType,isCredit,net,vatAmount:vat,gross,vatRate:rate,mixedRates,vatLines:trustedVatLines,status:statusRaw==='overdue'?'sent':statusRaw};const schemaErrors=validateCandidateSchema(candidate);if(schemaErrors.length){toast(schemaErrors[0]);return}if(pendingPdfImport.parsed?.recognitionBad>0&&!confirm('De herkenning bevat kritieke controlepunten. Heb je alle gemarkeerde velden handmatig gecontroleerd en gecorrigeerd?'))return;
