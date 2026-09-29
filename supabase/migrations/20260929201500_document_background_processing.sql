@@ -52,7 +52,7 @@ on public.document_processing_jobs
 as restrictive
 for select
 to authenticated
-using (((select auth.jwt()->>'aal') = 'aal2') or not (select private.current_user_has_verified_mfa()));
+using ((((select auth.jwt())->>'aal') = 'aal2') or not (select private.current_user_has_verified_mfa()));
 
 grant select on public.document_processing_jobs to authenticated;
 revoke insert, update, delete on public.document_processing_jobs from anon, authenticated;
