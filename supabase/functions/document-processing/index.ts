@@ -18,7 +18,7 @@ const ALLOWED=new Set([
 ]);
 const MAX_BODY=64*1024;
 const STALE_MS=10*60*1000;
-const PROCESSING_CONCURRENCY=2;
+const PROCESSING_CONCURRENCY=1;
 const ACTIVE=new Set(["received","queued","processing","validating"]);
 const RETRYABLE_CODES=new Set(["PROCESSOR_UNAVAILABLE","PROCESSING_TIMEOUT","RATE_LIMITED","NETWORK_ERROR","UNKNOWN"]);
 
