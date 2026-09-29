@@ -63,10 +63,6 @@ jobs:
         run: pip install --disable-pip-version-check -r kwinest/docprocessor/requirements.txt
       - name: OCR production hardening
         run: python tests/ocr-production-hardening.test.py
-      - name: Legacy vs PP-OCRv6 A/B benchmark
-        run: |
-          pip install --disable-pip-version-check --no-deps rapidocr-onnxruntime==1.4.4
-          python tests/ocr-ab-benchmark.py
       - name: PDF document processor regression
         run: python tests/document-processor-pdf.test.py
       - name: Real Dutch document regressions
@@ -88,3 +84,20 @@ jobs:
         run: node tests/billing-source.test.mjs
       - name: Python syntax safety
         run: python -m py_compile kwinest/docprocessor/app.py kwinest/docprocessor/receipt_math.py kwinest/docprocessor/financial_blocks.py
+
+  legacy_ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: "kwinest/docprocessor/requirements.txt"
+      - name: Install current OCR stack
+        run: pip install --disable-pip-version-check -r kwinest/docprocessor/requirements.txt
+      - name: Install legacy OCR side-by-side
+        run: pip install --disable-pip-version-check --no-deps rapidocr-onnxruntime==1.4.4
+      - name: Legacy vs PP-OCRv6 A/B benchmark
+        run: python tests/ocr-ab-benchmark.py
