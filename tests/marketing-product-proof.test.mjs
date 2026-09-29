@@ -49,7 +49,7 @@ const homepageProductImages=[...app.matchAll(/src="\/assets\/product\/([^"]+)/g)
 assert.ok(homepageProductImages.length<=6,`Homepage may contain at most six product visuals, found ${homepageProductImages.length}`);
 assert.ok(!homepageProductImages.includes('boekuna-dashboard-desktop.webp'),'Homepage must not load full Dashboard master');
 assert.ok(!homepageProductImages.includes('boekuna-documents-desktop.webp'),'Homepage must not load full Documents master');
-assert.ok(!app.includes('klanttestimonial'),'Homepage must not imply generated editorial people are customers');
+for(const misleading of ['echte klantcase','echte klant','testimonial van']) assert.ok(!app.toLowerCase().includes(misleading),'Generated editorial people must not be presented as real customers: '+misleading);
 assert.ok(app.includes('Editoriale context, geen klanttestimonial.'),'Generated human context must be explicitly framed as editorial');
 
 const pageExpectations={
