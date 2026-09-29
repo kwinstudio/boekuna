@@ -6,6 +6,7 @@ import { chromium } from 'playwright';
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
 const migration=fs.readFileSync(new URL('../supabase/migrations/20260929201500_document_background_processing.sql',import.meta.url),'utf8');
 const worker=fs.readFileSync(new URL('../supabase/functions/document-processing/index.ts',import.meta.url),'utf8');
+const processorSource=fs.readFileSync(new URL('../kwinest/docprocessor/app.py',import.meta.url),'utf8');
 const financialCorrectionSource=fs.readFileSync(new URL('../public/assets/financial-correction.js',import.meta.url),'utf8');
 
 function replaceLast(source,needle,replacement){
@@ -28,6 +29,13 @@ assert.match(worker,/MFA_REQUIRED/,'Worker must reject mutation when enrolled MF
 assert.match(worker,/const PROCESSING_CONCURRENCY=1/,'Server queue must serialize heavy document processing on the current processor capacity');
 assert.match(worker,/EdgeRuntime\.waitUntil\(triggerNext\(authHeader\)\)/,'Every completed attempt must continue the persistent queue');
 assert.match(worker,/repairMissingJobs/,'Resume must recover received documents that missed job creation');
+assert.match(worker,/async function backgroundActor/,'Background queue continuation must have a stateless ownership path');
+assert.match(worker,/from\("document_processing_jobs"\).*eq\("id",jobId\)/s,'Background queue continuation must re-authorize through the owned job row');
+assert.match(worker,/triggerNext\(authHeader,jobId\)/,'Queue continuation must bind the self-call to the completed job');
+assert.match(worker,/JSON\.stringify\(\{action:"run_next",job_id:jobId\}\)/,'run_next must carry the owned job capability');
+assert.match(processorSource,/x-boekuna-processing-job/,'Processor must recognize the background job header');
+assert.match(processorSource,/rest\/v1\/document_processing_jobs/,'Processor background auth must use the RLS-protected processing job');
+assert.match(processorSource,/state":"in\.\(processing,validating\)"/,'Processor must only accept an active background processing job');
 assert.match(worker,/\.eq\("state","queued"\)/,'Job claim must be state guarded for idempotency');
 assert.match(worker,/if\(existing\)/,'Enqueue must reuse an existing document job');
 assert.match(worker,/repairMissingJobs\(a\.user\.id\)/,'Resume must repair received documents that missed job creation');
