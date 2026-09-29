@@ -115,10 +115,14 @@ try{
   assert.equal(await page.locator('.document-processing-board .document-status-spinner').count(),2,'Only real active states should spin');
   assert.equal((await page.locator('#documentAttentionBadge').innerText()).trim(),'2','Review + failure require attention');
   assert.match(await page.locator('#documentProcessingGlobalText').innerText(),/3\/5/);
+  fs.mkdirSync(new URL('./artifacts/',import.meta.url),{recursive:true});
+  await page.screenshot({path:new URL('./artifacts/document-processing-background-mixed.png',import.meta.url).pathname,fullPage:true});
 
-  await page.locator('#documentProcessingGlobal').click();
+  await page.locator('#documentProcessingGlobal').focus();
+  await page.keyboard.press('Enter');
   assert.equal(await page.getByRole('heading',{name:'Documenten verwerken'}).count(),1);
   assert.match(await page.locator('#modalRoot').innerText(),/3 van 5 afgerond/);
+  assert.equal(await page.locator('#modalRoot [role="dialog"]').getAttribute('aria-modal'),'true');
   await page.getByRole('button',{name:'Sluiten'}).click();
 
   await page.evaluate(()=>{documentProcessingConnectivityLost=true;page='documents';render()});
@@ -132,10 +136,12 @@ try{
     page='documents';render();
   });
   assert.match(await page.locator('.document-processing-board').innerText(),/✓ 5 documenten verwerkt/,'A fully successful current batch must remain visible as completed');
+  await page.screenshot({path:new URL('./artifacts/document-processing-background-complete.png',import.meta.url).pathname,fullPage:true});
 
   for(const width of [320,360,375,390,393,430,768,1024,1280,1440,1920]){
     await page.setViewportSize({width,height:900});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),true,'Processing UI overflow at '+width+'px');
+    if(width===390)await page.screenshot({path:new URL('./artifacts/document-processing-background-mobile-390.png',import.meta.url).pathname,fullPage:true});
   }
 
   const reducePage=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
