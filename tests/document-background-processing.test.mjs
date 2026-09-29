@@ -51,6 +51,7 @@ assert.match(original,/documentProcessingSession\.persistent\)\{if\(page==='docu
 assert.match(original,/sessionBatch=documentProcessingSession\?\.persistent/,'Current completed batch must remain visible on the Documents screen');
 assert.match(original,/!documentProcessingSession\.persistent.*cleanupDocumentProcessingSession/s,'Closing unrelated modals must not destroy persistent processing UI state');
 assert.match(original,/setTimeout\(\(\)=>\{documentProcessingPollTimer=null;fetchDocumentProcessingJobs\(\).*15000/s,'Fallback polling must be bounded and non-aggressive');
+assert.match(original,/state==='failed'.*Opnieuw proberen.*Nieuwe foto kiezen.*Handmatig invoeren/s,'Failed cards must expose retry, replacement and manual-entry actions');
 assert.match(original,/item\.documentId=row\.id;item\.receivedPersisted=true/,'A file is only safely received after storage and the persistent document row exist');
 assert.match(original,/session\.items\.every\(x=>x\.receivedPersisted\|\|x\.state==='failed'\)/,'Batch received copy must use the durable receipt boundary');
 assert.match(original,/function localPersistentProcessingItems\(\)/,'Received items without a visible job must stay on screen');
@@ -200,4 +201,10 @@ try{
 }finally{
   await browser.close();
   await new Promise(resolve=>server.close(resolve));
+}
+
+
+if(process.env.GITHUB_ACTIONS==='true'&&process.env.GITHUB_HEAD_REF==='feature/document-background-processing'){
+  const {runDocumentBackgroundLiveSmoke}=await import('./document-background-live-smoke.mjs');
+  await runDocumentBackgroundLiveSmoke();
 }
