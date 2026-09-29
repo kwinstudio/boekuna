@@ -106,6 +106,8 @@ jobs:
       - name: Editorial marketing responsive screenshots
         run: node tests/marketing-editorial-responsive.test.mjs
 
+      - name: Retired First 100 regression
+        run: node tests/early-access-entitlement.test.mjs
       - name: Billing subscription regressions
         run: node tests/billing-source.test.mjs
       - name: Python syntax safety

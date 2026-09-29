@@ -56,13 +56,10 @@ assert.ok(deletion.includes('pattern="VERWIJDER"'),'Deletion request requires ex
 const pricing=fs.readFileSync(path.join(publicDir,'prijzen','index.html'),'utf8');
 for(const price of ['€0','€9,95','€19,95']) assert.ok(pricing.includes(price),`Missing current price ${price}`);
 for(const oldPrice of ['€29,95']) assert.ok(!pricing.includes(oldPrice),`Legacy price must be removed: ${oldPrice}`);
-assert.ok(pricing.includes('90 dagen Early Access'),'Pricing must explain the 90-day Early Access offer');
-assert.ok(pricing.includes('eerste 100 eligible, geverifieerde gebruikers'),'Pricing must explain Early Access eligibility and cap');
-assert.ok(pricing.includes('geen betaalkaart of Stripe-abonnement nodig'),'Early Access must not imply an automatic Stripe trial');
-assert.ok(pricing.includes('read-only'),'Pricing must explain the post-Early-Access read-only state');
 assert.ok(pricing.includes('Stripe Checkout'),'Paid subscriptions must explain the explicit Stripe checkout flow');
-assert.ok(!pricing.includes('Founding 100'),'Legacy Founding 100 checkout-trial copy must be removed');
-assert.ok(!pricing.includes('3 kalendermaanden'),'Legacy three-month Stripe trial copy must be removed');
+for(const retired of ['Early Access','eerste 100','Founding 100','3 kalendermaanden','90 dagen']){
+  assert.ok(!pricing.toLowerCase().includes(retired.toLowerCase()),`Retired First-100 offer must be absent from pricing: ${retired}`);
+}
 
 const privacy=fs.readFileSync(path.join(publicDir,'privacy','index.html'),'utf8');
 assert.ok(privacy.includes('Row Level Security'),'Privacy page must retain account-isolation disclosure');
@@ -70,5 +67,8 @@ assert.ok(privacy.includes('/account-verwijderen/'),'Privacy page must link acco
 
 const terms=fs.readFileSync(path.join(publicDir,'voorwaarden','index.html'),'utf8');
 assert.ok(terms.includes('Geen automatische belastingaangifte'),'Terms must retain tax-filing limitation');
+for(const retired of ['Early Access','eerste 100','Founding 100']){
+  assert.ok(!terms.toLowerCase().includes(retired.toLowerCase()),`Retired First-100 offer must be absent from terms: ${retired}`);
+}
 
 console.log(`Marketing page QA: PASS (${pages.length} pages)`);

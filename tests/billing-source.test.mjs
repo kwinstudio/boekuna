@@ -12,7 +12,8 @@ const consume=read('supabase/functions/consume-quota/index.ts');
 const analyze=read('supabase/functions/analyze-invoice/index.ts');
 const migration=read('supabase/migrations/20260927111024_add_boekuna_billing_founders_and_monthly_quota.sql');
 const unlimitedMigration=read('supabase/migrations/20260927190619_align_unlimited_plan_quota.sql');
-const earlyAccessMigration=read('supabase/migrations/20260928000656_early_access_entitlement_state_machine.sql');
+const retiredOfferMigration=read('supabase/migrations/20260929122626_retire_first_100_early_access.sql');
+const retiredOfferRpcHardening=read('supabase/migrations/20260929123036_reharden_retired_offer_billing_plan_rpc.sql');
 const activeBillingGuardMigration=read('supabase/migrations/20260928012515_guard_active_billing_stripe_identity.sql');
 const pricing=read('public/prijzen/index.html');
 const privacy=read('public/privacy/index.html');
@@ -58,21 +59,19 @@ assert.ok(unlimitedMigration.includes("when 'pro' then null"),'Unlimited must ha
 assert.ok(unlimitedMigration.includes("v_limit is null or v_used < v_limit"),'Unlimited quota check must remain allowed without a limit');
 assert.ok(migration.includes("when 'boekuna' then 100"),'Boekuna quota must be 100');
 assert.ok(migration.includes('else 10'),'Free quota must be 10');
-assert.ok(earlyAccessMigration.includes("then 'early_access_active'"),'EA state must be derived server-side');
-assert.ok(earlyAccessMigration.includes("then 'expired_read_only'"),'Expired EA state must be derived server-side');
-assert.ok(earlyAccessMigration.includes("when 'early_access_active' then 'boekuna'"),'EA must receive normal Boekuna plan entitlements');
-assert.ok(earlyAccessMigration.includes("interval '90 days'"),'EA must last 90 days');
-assert.ok(earlyAccessMigration.includes('claim_number between 1 and 100'),'EA claims must be capped at 100');
-assert.ok(earlyAccessMigration.includes('pg_advisory_xact_lock'),'EA allocation must be serialized against race conditions');
-assert.ok(earlyAccessMigration.includes('on delete set null'),'EA claim must survive Auth account deletion');
-assert.ok(earlyAccessMigration.includes('early_access_identities'),'EA identity must survive re-registration without resetting');
-assert.ok(earlyAccessMigration.includes('public.can_operate_bookkeeping()'),'Read-only must be enforced server-side');
-assert.ok(earlyAccessMigration.includes('as restrictive for update to authenticated'),'Read-only RLS must guard direct update paths');
-assert.ok(earlyAccessMigration.includes('last_stripe_event_created'),'Out-of-order Stripe events must be guarded by a monotonic watermark');
+assert.ok(retiredOfferMigration.includes("else 'free'"),'Retired offer entitlement must resolve non-paid users to free');
+assert.ok(!retiredOfferMigration.includes("then 'early_access_active'"),'Retired offer migration must not grant Early Access');
+assert.ok(!retiredOfferMigration.includes("then 'expired_read_only'"),'Retired offer migration must not create Early Access read-only states');
+assert.ok(retiredOfferMigration.includes('drop trigger if exists on_auth_user_early_access'),'Automatic Early Access allocation trigger must be removed');
+assert.ok(retiredOfferMigration.includes('drop function if exists public.reserve_founding_offer(uuid)'),'Legacy Founding 100 reservation API must be removed');
+assert.ok(retiredOfferMigration.includes('drop function if exists private.ensure_early_access_claim(uuid)'),'Early Access claim allocator must be removed');
+assert.ok(retiredOfferMigration.includes('null::integer'),'Billing summary must keep founder field null for backwards-compatible API shape');
+assert.ok(retiredOfferMigration.includes('null::timestamptz'),'Billing summary must keep retired Early Access dates null');
+assert.ok(retiredOfferRpcHardening.includes('from public, anon, authenticated'),'Retired-offer billing helper must not be directly executable by clients');
+assert.ok(retiredOfferRpcHardening.includes('to service_role'),'Retired-offer billing helper must remain available to trusted server code');
 assert.ok(activeBillingGuardMigration.includes('billing_active_requires_stripe_identity'),'Active billing rows must require real Stripe identity and period data');
 
-assert.ok(consume.includes('can_operate_bookkeeping'),'Quota edge function must block expired read-only users server-side');
-assert.ok(consume.includes('ACCOUNT_READ_ONLY'),'Quota edge function needs an explicit read-only result');
+assert.ok(consume.includes('can_operate_bookkeeping'),'Quota edge function must enforce server-side bookkeeping entitlement');
 assert.ok(analyze.includes('can_operate_bookkeeping'),'Invoice AI must enforce entitlement server-side');
 assert.ok(processor.includes('billing_quota_status(request)'),'Document processor must check server-side plan allowance');
 assert.ok(processor.includes('record_billing_usage(request)'),'Successful smart documents must consume monthly usage');
@@ -80,14 +79,16 @@ assert.ok(processor.includes('record_billing_usage(request)'),'Successful smart 
 assert.ok(html.includes("startSubscription('boekuna')"),'Frontend must offer explicit Boekuna checkout');
 assert.ok(html.includes("startSubscription('pro')"),'Frontend must offer explicit Unlimited checkout');
 assert.ok(html.includes('entitlement_status'),'Frontend must render the server-side entitlement state');
-assert.ok(html.includes('expired_read_only'),'Frontend must recognize read-only state');
-assert.ok(!html.includes('Eerste 100 klanten met een betaald plan: eerste 3 kalendermaanden €0.'),'Legacy trial upsell must be gone');
+for(const retired of ['early_access_active','expired_read_only','FOUNDING 100','Eerste 100','Early Access']){
+  assert.ok(!html.includes(retired),`Retired First-100 state/copy must be absent from app UI: ${retired}`);
+}
 
-for(const value of ['Gratis','€9,95','€19,95','90 dagen Early Access']) assert.ok(pricing.includes(value),`Pricing missing ${value}`);
-for(const legacy of ['Founding 100','3 kalendermaanden gratis','proefperiode loopt 3 kalendermaanden']) assert.ok(!pricing.includes(legacy),`Legacy trial copy still present: ${legacy}`);
+for(const value of ['Gratis','€9,95','€19,95']) assert.ok(pricing.includes(value),`Pricing missing ${value}`);
+for(const retired of ['Founding 100','Eerste 100','Early Access','3 kalendermaanden gratis','90 dagen']){
+  assert.ok(!pricing.toLowerCase().includes(retired.toLowerCase()),`Retired First-100 copy still present: ${retired}`);
+}
 assert.ok(privacy.includes('Stripe'),'Privacy policy must disclose Stripe');
-assert.ok(terms.includes('8a. Early Access'),'Terms must describe Early Access');
-assert.ok(terms.includes('geen Stripe-abonnement'),'Terms must state that Early Access does not create a Stripe subscription');
-assert.ok(terms.includes('geen automatische afschrijving'),'Terms must state that Early Access never auto-charges');
+assert.ok(!terms.includes('Early Access'),'Terms must not describe the retired Early Access offer');
+assert.ok(!terms.includes('eerste 100'),'Terms must not describe the retired First-100 offer');
 
 console.log('Boekuna billing source tests: PASS');

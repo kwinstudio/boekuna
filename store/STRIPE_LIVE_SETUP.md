@@ -8,18 +8,9 @@ This repository contains the subscription code. Never commit Stripe secret keys.
 - Boekuna: €9.95/month excl. VAT, 100 smart document analyses/month.
 - Unlimited: €19.95/month excl. VAT, no monthly smart-document quota.
 
-## Early Access is not a Stripe trial
+## No introductory First-100 offer
 
-Boekuna Early Access is a separate server-side entitlement:
-
-- at most the first 100 eligible, verified users after the launch gate opens;
-- 90 days of the normal Boekuna plan;
-- no payment card and no Stripe subscription are created;
-- no automatic charge or automatic paid conversion at expiry;
-- without a paid entitlement, expiry becomes read-only;
-- a later paid Stripe subscription does not reset the original Early Access dates.
-
-Do not configure Stripe trial days or Founding-100 trial logic to implement Early Access.
+The previous First-100 / Early Access campaign is retired. Production must not allocate free paid-plan periods, Stripe trials, founder slots, or Early Access claims. New users remain on Gratis until they explicitly start a paid subscription.
 
 ## Required Supabase Edge Function secrets
 
