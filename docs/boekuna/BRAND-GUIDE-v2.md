@@ -1,8 +1,8 @@
 # BOEKUNA Brand Guide v2 — Calm Control
 
-Status: approved identity, implementation branch only  
+Status: approved final identity · production asset set  
 Approved: 29 September 2026  
-Source branch: `brand/boekuna-identity-v2`
+Source branch: `brand/final-boekuna-logo`
 
 ## Brand idea
 BOEKUNA is the calm control layer between everyday business input and reliable financial administration.
@@ -13,7 +13,7 @@ BOEKUNA is the calm control layer between everyday business input and reliable f
 Complexity is handled behind the scenes. The user sees what matters, what is certain, and what still needs attention.
 
 ## Logo system
-The symbol consists of two offset rounded control frames around one shared negative control zone. It represents input → control → reliable overview without using bookkeeping clichés.
+The final symbol is the approved stylised **B** mark supplied on 29 September 2026. The production vector is traced from that approved artwork and preserves its silhouette. Default mark colour: `#1C6461`. The diagonal negative space is part of the mark and must remain open.
 
 Production assets:
 - `boekuna-logo-primary.svg`
@@ -23,7 +23,11 @@ Production assets:
 - `boekuna-logo-monochrome.svg`
 - `boekuna-logo-reversed.svg`
 - `boekuna-app-icon.svg`
+- `boekuna-app-icon-maskable.svg`
 - `boekuna-favicon.svg`
+- generated PNG app icons: 180 / 192 / 512 / 1024
+- generated favicon PNGs: 16 / 32 / 48 / 64
+- generated social assets: `boekuna-og-1200x630.png` and `boekuna-social-avatar-1024.png`
 
 ### Clear space
 Keep at least the width of the central negative control zone around the complete logo. Do not allow copy, borders or UI chrome inside this area.
