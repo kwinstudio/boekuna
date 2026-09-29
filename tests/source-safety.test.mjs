@@ -178,6 +178,10 @@ const deletion=fs.readFileSync(new URL("../public/account-verwijderen/index.html
 const deleteAccountEdge=fs.readFileSync(new URL("../supabase/functions/delete-account/index.ts",import.meta.url),"utf8");
 const analyzeInvoiceEdge=fs.readFileSync(new URL("../supabase/functions/analyze-invoice/index.ts",import.meta.url),"utf8");
 assert.ok(privacy.includes("Boekuna is een product van Kwinest"),"Privacy policy must identify the product/operator");
+assert.ok(privacy.includes("originele geüploade document of de originele afbeelding"),"Privacy policy must disclose that independent AI verification can receive the original document/image");
+assert.ok(privacy.includes("maximaal 30 dagen"),"Privacy policy must disclose standard OpenAI API abuse-monitoring retention without claiming ZDR");
+assert.ok(privacy.includes("store:false"),"Privacy policy must distinguish Responses application-state storage from provider retention");
+assert.ok(privacy.includes("niet dat AI-verwerking uitsluitend in de EU plaatsvindt"),"Privacy policy must not imply EU-only processing without verified production residency");
 assert.ok(support.includes("support_requests"),"Public support form must submit to the support intake");
 assert.ok(deletion.includes("Online verwijderingsverzoek"),"Account deletion web resource must allow an external deletion request");
 assert.ok(deleteAccountEdge.includes('admin.rpc("delete_email_connection_secret"'),"Account deletion must remove connected mailbox credentials from Vault before deleting the user");
