@@ -105,8 +105,11 @@ selfBillingProcessorPayload.duplicateCandidates=[];
 let processorResponse=processorPayload;
 let appOrigin='';
 let processorMode='success';
+let processorDelayMs=0;
 let processorMethods=[];
 let processorOrigins=[];
+let processorActive=0;
+let processorMaxActive=0;
 
 const processorServer=http.createServer((req,res)=>{
   if(req.url!=='/analyze'){res.writeHead(404);return res.end('not found')}
@@ -124,12 +127,17 @@ const processorServer=http.createServer((req,res)=>{
   req.on('data',chunk=>{bytes+=chunk.length});
   req.on('end',()=>{
     assert.ok(bytes>0,'Browser processor POST must contain multipart upload bytes');
-    if(processorMode==='success'){
-      res.writeHead(200,{...headers,'content-type':'application/json'});
-      return res.end(JSON.stringify(processorResponse));
-    }
-    res.writeHead(503,{...headers,'content-type':'application/json'});
-    res.end(JSON.stringify({ok:false,error:{code:'PROCESSOR_UNAVAILABLE',category:'temporary',retryable:true,state:'no_changes',reference_id:'BK-QAPDF'}}));
+    processorActive++;processorMaxActive=Math.max(processorMaxActive,processorActive);
+    const respond=()=>{
+      processorActive=Math.max(0,processorActive-1);
+      if(processorMode==='success'){
+        res.writeHead(200,{...headers,'content-type':'application/json'});
+        return res.end(JSON.stringify(processorResponse));
+      }
+      res.writeHead(503,{...headers,'content-type':'application/json'});
+      res.end(JSON.stringify({ok:false,error:{code:'PROCESSOR_UNAVAILABLE',category:'temporary',retryable:true,state:'no_changes',reference_id:'BK-QAPDF'}}));
+    };
+    if(processorDelayMs>0)setTimeout(respond,processorDelayMs);else respond();
   });
 });
 await new Promise(resolve=>processorServer.listen(0,'127.0.0.1',resolve));
