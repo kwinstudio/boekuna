@@ -2149,6 +2149,7 @@ def health():
         "ocr":ocr_stack_info(),
         "pythonRuntime":PYTHON_RUNTIME,
         "authRequired":True,
+        "authVerifierConfigured":bool(SUPABASE_PUBLISHABLE_KEY),
         "billingQuota":True,
         "version":PROCESSOR_VERSION,
         "revision":PROCESSOR_REVISION,
@@ -2161,18 +2162,24 @@ def health():
 def ready():
     started=time.perf_counter()
     engine=get_ocr_engine()
+    checks={
+        "ocr":bool(engine),
+        "authVerifier":bool(SUPABASE_PUBLISHABLE_KEY),
+    }
+    is_ready=all(checks.values())
     payload={
-        "ok":bool(engine),
-        "ready":bool(engine),
+        "ok":is_ready,
+        "ready":is_ready,
         "service":"boekuna-document-processor",
         "version":PROCESSOR_VERSION,
         "revision":PROCESSOR_REVISION,
         "pythonRuntime":PYTHON_RUNTIME,
         "ocr":ocr_stack_info(),
+        "authVerifierConfigured":checks["authVerifier"],
         "initializationMs":round((time.perf_counter()-started)*1000,2),
     }
-    if not engine:
-        payload["error"]={"code":"OCR_NOT_READY"}
+    if not is_ready:
+        payload["error"]={"code":"SERVICE_NOT_READY","checks":checks}
         return JSONResponse(status_code=503,content=payload)
     return payload
 
