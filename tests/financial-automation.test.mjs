@@ -69,6 +69,9 @@ assert.ok(automationIndex.includes('payment.bankTransactionId=tx.id;payment.bank
 assert.ok(automationIndex.includes('if(tx.status==="matched")throw new Error("MATCH_ALREADY_CONFIRMED")'),'16 repeated match_confirm must not create a second economic representation');
 assert.ok(automationIndex.includes('p_expected_version:l.version'),'17 match_confirm must send the ledger version into the atomic commit');
 assert.ok(automationIndex.includes('if(newVersion==null)throw new Error("LEDGER_VERSION_CONFLICT")'),'17 stale ledger version must fail instead of overwriting newer state');
+assert.ok(!automationIndex.includes('peppol-validator'),'Edge worker must not import native peppol-validator/libxmljs2 bindings');
+assert.ok(automationIndex.includes('UBL_XSD_VALIDATOR_UNAVAILABLE'),'UBL validation must explicitly disclose unavailable full XSD validation');
+assert.ok(automationIndex.includes('xsd:{available:false,valid:null'),'UBL response must never claim XSD validity when full XSD validation is unavailable');
 const migrationDir=new URL('../supabase/migrations/',import.meta.url);
 const atomicMatchMigration=fs.readdirSync(migrationDir).map(name=>({name,body:fs.readFileSync(new URL(name,migrationDir),'utf8')})).find(x=>x.body.includes('commit_financial_bank_match'));
 assert.ok(atomicMatchMigration,'Atomic bank-match migration must exist');
