@@ -443,8 +443,15 @@ try{
     assert.equal(await page.evaluate(()=>state.documents.length+state.expenses.length+state.invoices.length),0,'Failed processing must not create document or financial records');
     assert.equal(await page.getByRole('button',{name:'Opnieuw proberen'}).count(),1);
     processorMode='success';
-    await page.getByRole('button',{name:'Opnieuw proberen'}).click();
-    await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:10000});
+    const retryState=await page.evaluate(async()=>{
+      const id=documentProcessingSession.items[0].id;
+      await retryDocumentProcessingItem(id);
+      return {state:documentProcessingSession?.items?.[0]?.state||null,reviewing:documentProcessingSession?.reviewingItemId||null,hasPending:!!pendingPdfImport,modalTitle:document.querySelector('.modal h3')?.textContent||''}
+    });
+    assert.equal(retryState.state,'completed','Retry must complete the same queue item');
+    assert.equal(retryState.hasPending,true,'Successful retry must prepare the review result');
+    assert.match(retryState.modalTitle,/Document controleren/,'Successful single-item retry must open review immediately');
+    await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:5000});
     assert.equal(await page.evaluate(()=>state.documents.length+state.expenses.length+state.invoices.length),0,'Successful retry must still wait for explicit review/save before persistence');
     await page.close();
   }
