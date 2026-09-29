@@ -27,7 +27,7 @@ const server=http.createServer((req,res)=>{
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const base='http://127.0.0.1:'+server.address().port;
 const browser=await chromium.launch({headless:true});
-const viewports=[320,360,390,430,768,1024,1440];
+const viewports=[320,360,390,430,768,1024,1280,1440,1920];
 
 try{
   for(const width of viewports){
@@ -59,7 +59,7 @@ try{
   assert.ok(await img.evaluate(el=>el.naturalWidth>0&&el.naturalHeight>0),'Switched real product crop must load');
   await page.close();
 
-  console.log('Editorial marketing screenshot responsive QA: PASS (320, 360, 390, 430, 768, 1024, 1440 + keyboard tabs)');
+  console.log('Editorial marketing screenshot responsive QA: PASS (320, 360, 390, 430, 768, 1024, 1280, 1440, 1920 + keyboard tabs)');
 }finally{
   await browser.close();
   await new Promise(resolve=>server.close(resolve));
