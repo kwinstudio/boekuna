@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2";
 import {XMLParser,XMLValidator} from "npm:fast-xml-parser@5.11.1";
-import {validateXsd} from "npm:peppol-validator@0.10.0";
+import {validateXsd} from "npm:peppol-validator@0.1.0";
 import {validateIban,validateBic,analyzeOcrIban} from "./lib/iban-bic.mjs";
 import {detectBankFormat,secureXmlPreflight,parseCamt053,parseMt940,sha256Hex as bankSha,attachTransactionFingerprints,statementSummary} from "./lib/bank-import.mjs";
 import {matchTransactionAgainstLedger,invoiceOutstandingCents} from "./lib/matching.mjs";
