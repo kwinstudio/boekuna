@@ -119,7 +119,7 @@ def test_ocr_working_resolution_caps_high_resolution_input():
     img = Image.new("RGB", (3200, 4600), "white")
     prepared = processor.prepare_ocr_image(img)
     try:
-        assert max(prepared.size) == processor.OCR_WORKING_MAX_SIDE == 1800
+        assert max(prepared.size) == processor.OCR_WORKING_MAX_SIDE == 1400
         assert prepared.size[0] < img.size[0]
         assert prepared.size[1] < img.size[1]
     finally:
