@@ -41,7 +41,8 @@ async function authRequest(config,pathname,body){
 async function createCandidateSession(config){
   const signup=await authRequest(config,'/auth/v1/signup',{email,password});
   if(signup.json?.access_token)return signup.json;
-  console.log('BOOKUNA_SMOKE_SIGNUP_STATUS='+signup.status);\n  console.log('BOOKUNA_SMOKE_SIGNUP_ERROR='+String(signup.json?.msg||signup.json?.message||signup.json?.error_description||signup.json?.error||''));
+  console.log('BOOKUNA_SMOKE_SIGNUP_STATUS='+signup.status);
+  console.log('BOOKUNA_SMOKE_SIGNUP_ERROR='+String(signup.json?.msg||signup.json?.message||signup.json?.error_description||signup.json?.error||''));
   console.log('BOOKUNA_SMOKE_WAITING_CONFIRMATION='+email);
   for(let i=0;i<10;i++){
     const token=await authRequest(config,'/auth/v1/token?grant_type=password',{email,password});
