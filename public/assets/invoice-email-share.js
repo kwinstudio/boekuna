@@ -145,7 +145,7 @@
     var at=new Date().toISOString();
     var subject=prepared&&prepared.id===id?prepared.subject:invoiceShareSubject(invoice,customer);
     invoice.lastSentAt=at;
-    invoice.lastSentTo=String(customer.email||'').trim();
+    invoice.lastSentTo=prepared&&prepared.id===id?prepared.to:String(customer.email||'').trim();
     invoice.lastShareChannel=channel;
     invoice.sendHistory=(invoice.sendHistory||[]).concat([{
       sentAt:at,
@@ -168,7 +168,7 @@
       '<div class="notice info"><strong>'+esc(prepared.file.name)+'</strong><br>Kies je e-mailapp in het deelmenu. Boekuna krijgt geen toegang tot je mailbox.</div>'+
       '<div class="help" style="margin-top:12px">Je bepaalt zelf in je e-mailapp of en wanneer je de e-mail verzendt.</div>',
       '<button class="btn" onclick="closeModal()">Annuleren</button>'+
-      '<button class="btn primary" onclick="sharePreparedInvoice()">Kies je e-mailapp</button>'
+      '<button class="btn primary" onclick="sharePreparedInvoice(true)">Kies je e-mailapp</button>'
     );
   }
 
@@ -199,7 +199,7 @@
     setTimeout(function(){showInvoiceShareConfirmation(prepared.id,'mailto');},350);
   }
 
-  async function sharePreparedInvoice(){
+  async function sharePreparedInvoice(fromExplicitUserAction){
     if(!prepared)return;
     if(!canNativeShareInvoiceFile(prepared.file)){
       showInvoiceShareFallback(true);
@@ -216,7 +216,8 @@
         return;
       }
       if(err&&err.name==='NotAllowedError'){
-        showPreparedNativeShareModal();
+        if(fromExplicitUserAction)showInvoiceShareFallback(true);
+        else showPreparedNativeShareModal();
         return;
       }
       console.warn('Native invoice share failed',err&&err.name?err.name:'SHARE_FAILED');
@@ -295,7 +296,7 @@
         body:body
       };
       if(canNativeShareInvoiceFile(file)&&(!navigator.userActivation||navigator.userActivation.isActive)){
-        await sharePreparedInvoice();
+        await sharePreparedInvoice(false);
       }else if(canNativeShareInvoiceFile(file)){
         showPreparedNativeShareModal();
       }else{
