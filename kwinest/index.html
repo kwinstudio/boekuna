@@ -3446,17 +3446,18 @@ function copyVat(q,year=selectedVatYear()){const invs=state.invoices.filter(i=>i
 const DOCUMENT_PROCESSING_LONG_WAIT_MS=15000;
 const DOCUMENT_PROCESSING_TIMEOUT_MS=120000;
 const DOCUMENT_PROCESSING_MAX_PARALLEL=2;
+const DOCUMENT_PROCESSING_MAX_FILES=10;
 const DOCUMENT_PROCESSING_TRANSITIONS=Object.freeze({
  selected:['uploading','failed'],
  uploading:['processing','preparing_review','failed'],
- processing:['preparing_review','failed'],
+ processing:['uploading','preparing_review','failed'],
  preparing_review:['completed','failed'],
  completed:[],
  failed:['uploading']
 });
 let documentProcessingSession=null,activeDocumentTransfers=0,documentProcessingRenderPending=false;
 function createDocumentProcessingItem(file,kind='auto'){
- return {id:uid('proc'),file,kind,state:'selected',uploaded:false,uploadLoaded:0,uploadTotal:Number(file?.size||0),uploadPercent:null,processorComplete:false,longWait:false,longWaitTimer:null,error:null,result:null,message:'Bestand voorbereiden…',subtext:'',reviewed:false,startedAt:null,completedAt:null,transferActive:false}
+ return {id:uid('proc'),file,kind,state:'selected',uploaded:false,uploadLoaded:0,uploadTotal:Number(file?.size||0),uploadPercent:null,uploadAttempt:0,processorComplete:false,longWait:false,longWaitTimer:null,error:null,result:null,message:'Bestand voorbereiden…',subtext:'',reviewed:false,startedAt:null,completedAt:null,transferActive:false}
 }
 function documentProcessingTransition(item,next){
  if(!item||item.state===next)return;
@@ -3555,7 +3556,7 @@ async function documentProcessorXhrOnce(fd,item,forceRefresh=false){
   const xhr=new XMLHttpRequest();let uploadFinished=false;
   xhr.open('POST',activeDocumentProcessorUrl()+'/analyze',true);xhr.timeout=DOCUMENT_PROCESSING_TIMEOUT_MS;
   Object.entries(headers).forEach(function(entry){xhr.setRequestHeader(entry[0],String(entry[1]))});
-  if(item){item.transferActive=true;activeDocumentTransfers++;documentProcessingTransition(item,'uploading');item.uploadPercent=0;item.uploadLoaded=0;item.uploadTotal=Number(item.file?.size||0);setDocumentProcessingMessage(item,'Bestand uploaden…','De bestandsoverdracht is gestart.')}
+  if(item){item.transferActive=true;activeDocumentTransfers++;item.uploadAttempt=Number(item.uploadAttempt||0)+1;documentProcessingTransition(item,'uploading');item.uploaded=false;item.uploadPercent=0;item.uploadLoaded=0;item.uploadTotal=Number(item.file?.size||0);setDocumentProcessingMessage(item,item.uploadAttempt>1?'Upload opnieuw starten…':'Bestand uploaden…',item.uploadAttempt>1?'Je sessie is vernieuwd; de bestandsoverdracht wordt opnieuw gestart.':'De bestandsoverdracht is gestart.')}
   const finishUpload=function(){
    if(uploadFinished)return;uploadFinished=true;
    if(item){finishActiveTransfer(item);item.uploaded=true;item.uploadLoaded=item.uploadTotal;item.uploadPercent=100;if(item.state==='uploading')documentProcessingTransition(item,'processing');setDocumentProcessingMessage(item,'Document wordt gelezen…','We halen de gegevens uit het document die nodig zijn voor je administratie.');startDocumentLongWait(item)}
@@ -3576,7 +3577,7 @@ async function documentProcessorXhrOnce(fd,item,forceRefresh=false){
 }
 async function documentProcessorXhr(fd,item){
  let res=await documentProcessorXhrOnce(fd,item,false);
- if(res.status===401){if(item){item.uploaded=false;item.uploadPercent=0;item.message='Sessie vernieuwen…'}res=await documentProcessorXhrOnce(fd,item,true)}
+ if(res.status===401){if(item){item.uploaded=false;item.uploadPercent=0;setDocumentProcessingMessage(item,'Sessie vernieuwen…','De vorige overdracht wordt opnieuw gestart na het vernieuwen van je sessie.')}res=await documentProcessorXhrOnce(fd,item,true)}
  return res
 }
 async function processDocumentQueueItem(item,smart=false){
@@ -3607,7 +3608,7 @@ async function processDocumentQueueItem(item,smart=false){
  }finally{finishActiveTransfer(item)}
 }
 async function startDocumentProcessingQueue(files,kind='auto',options={}){
- const list=[...files].filter(Boolean);if(!list.length){toast('Geen bestand geselecteerd');return}
+ const list=[...files].filter(Boolean);if(!list.length){toast('Geen bestand geselecteerd');return}if(list.length>DOCUMENT_PROCESSING_MAX_FILES){toast('Kies maximaal '+DOCUMENT_PROCESSING_MAX_FILES+' documenten tegelijk.');return}
  documentProcessingSession={id:uid('batch'),items:list.map(function(file){return createDocumentProcessingItem(file,kind)}),smart:!!options.smart,reviewingItemId:null,startedAt:Date.now()};
  renderDocumentProcessingExperience();
  const work=[...documentProcessingSession.items];
