@@ -20,6 +20,7 @@ create table if not exists public.document_processing_jobs (
   updated_at timestamptz not null default now(),
   started_at timestamptz,
   completed_at timestamptz,
+  resolved_at timestamptz,
   constraint document_processing_jobs_user_document_unique unique (user_id, document_id)
 );
 
