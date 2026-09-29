@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - qa/document-bg-live-smoke
+  pull_request:
 permissions:
   contents: read
 jobs:
