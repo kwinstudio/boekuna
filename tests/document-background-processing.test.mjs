@@ -21,12 +21,18 @@ assert.match(migration,/revoke insert, update, delete on public\.document_proces
 assert.match(worker,/\.eq\("user_id",a\.user\.id\)/,'Worker actions must enforce ownership');
 assert.match(worker,/\.eq\("state","queued"\)/,'Job claim must be state guarded for idempotency');
 assert.match(worker,/if\(existing\)/,'Enqueue must reuse an existing document job');
+assert.match(worker,/repairMissingJobs\(a\.user\.id\)/,'Resume must repair received documents that missed job creation');
+assert.match(worker,/action==="run_next"/,'Background completion must continue the server queue without the scan page');
 assert.match(worker,/if\(!\["failed","review_required"\]\.includes\(job\.state\)\)/,'Retry must target one terminal problem job');
 assert.match(worker,/state:"ready".*review_fields:\[\]/s,'Resolved human review must clear attention state');
 assert.match(original,/fileId=sourceClientRef\|\|uid\('file'\)/,'Review save must reuse an already persisted source');
 assert.match(original,/if\(!sourceClientRef\)\{try\{await putStoredFile/,'Persisted sources must not be uploaded again on save');
 assert.match(original,/mixedRates=!!pendingPdfImport\.parsed\?\.mixedRates\|\|trustedVatRates\.length>1,rate=mixedRates\?null/,'Mixed VAT must never collapse to a scalar rate');
 assert.match(original,/activeDocumentTransfers>0.*beforeunload/s,'Only active browser transfers should trigger unload protection');
+assert.match(original,/if\(page!=='documents'\)await navigate\('documents'\)/,'Persistent upload must use Documents as the primary live processing view');
+assert.match(original,/documentProcessingSession\.persistent\)\{if\(page==='documents'.*renderGlobalDocumentIndicator/s,'Persistent processing must not reopen the blocking processing modal');
+assert.match(original,/sessionBatch=documentProcessingSession\?\.persistent/,'Current completed batch must remain visible on the Documents screen');
+assert.match(original,/!documentProcessingSession\.persistent.*cleanupDocumentProcessingSession/s,'Closing unrelated modals must not destroy persistent processing UI state');
 assert.match(original,/setTimeout\(\(\)=>\{documentProcessingPollTimer=null;fetchDocumentProcessingJobs\(\).*15000/s,'Fallback polling must be bounded and non-aggressive');
 
 let appHtml=original.replace('const TEST_MODE_NO_AUTH=false;','const TEST_MODE_NO_AUTH=true;');
@@ -100,6 +106,14 @@ try{
   await page.evaluate(()=>{documentProcessingConnectivityLost=true;page='documents';render()});
   assert.match(await page.locator('.document-processing-board').innerText(),/Verbinding onderbroken/);
   assert.match(await page.locator('.document-processing-board').innerText(),/documenten zijn ontvangen/i);
+
+  await page.evaluate(()=>{
+    documentProcessingConnectivityLost=false;
+    documentProcessingJobs=documentProcessingJobs.map(job=>({...job,state:'ready',phase:'complete',review_fields:[],review_message:null,error_code:null,error_retryable:false}));
+    documentProcessingSession={id:'batch-qa',items:[],persistent:true,allReceived:true,modalHidden:true};
+    page='documents';render();
+  });
+  assert.match(await page.locator('.document-processing-board').innerText(),/✓ 5 documenten verwerkt/,'A fully successful current batch must remain visible as completed');
 
   for(const width of [320,360,375,390,393,430,768,1024,1280,1440,1920]){
     await page.setViewportSize({width,height:900});
