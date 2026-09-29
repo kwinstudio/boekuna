@@ -61,6 +61,7 @@ jobs:
             return Buffer.from(await pdf.save());
           }
 
+          let qaUserId='';
           try{
             await page.goto(preview,{waitUntil:'domcontentloaded',timeout:60000});
             await page.waitForFunction(()=>typeof getSupabase==='function',{timeout:30000});
@@ -72,7 +73,7 @@ jobs:
             });
             const qa=await qaResponse.json();
             if(!qaResponse.ok||!qa.ok)throw new Error('QA bootstrap failed: '+JSON.stringify(qa));
-            const email=qa.email,password=qa.password,qaUserId=qa.user_id;
+            const email=qa.email,password=qa.password;qaUserId=qa.user_id;
             const auth=await page.evaluate(async({email,password})=>{
               const sb=await getSupabase();
               const {data,error}=await sb.auth.signInWithPassword({email,password});
