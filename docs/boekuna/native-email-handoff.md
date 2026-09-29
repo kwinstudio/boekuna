@@ -31,3 +31,17 @@ De handoff maakt geen tweede financiële berekening. De Edge Function gebruikt d
 Web Share is afhankelijk van browser, OS en ontvangende app. Boekuna kan een PDF, title en tekst aanbieden, maar kan niet garanderen dat elke mail-app ontvanger, onderwerp, body en attachment op ieder platform identiek vooraf invult.
 
 Automatische Chromium/WebKit-tests bewijzen de applicatielogica, bestandmetadata, fallback, annulering en statussemantiek. De uiteindelijke share-targetlijst en concrete Gmail/Outlook/Apple Mail-overname op een fysiek iOS- of Android-toestel moeten op dat toestel worden gecontroleerd.
+
+
+## Unified handoff v2 — 29 September 2026
+
+Invoice delivery, payment reminders and follow-ups now share one user-controlled email handoff.
+
+- A draft invoice can be finalized and moved directly into the email composer. Finalization still uses the existing invoice number reservation, validation, save and cloud-sync path.
+- Desktop defaults to a safe mailto handoff so recipient, subject and body can be prefilled. When a PDF is included, Boekuna prepares/downloads it and explicitly tells the user to attach it.
+- Gmail on desktop has an explicit browser-compose route. This does not use Gmail API or mailbox OAuth.
+- Native Web Share remains available for browsers/devices that support sharing an application/pdf file.
+- Payment reminders no longer call the disabled direct mailbox sender. They render the same authoritative invoice PDF and use the shared handoff.
+- Reminder count/history and first-send metadata are written only after the user explicitly confirms that the email was sent.
+- Cancelling after draft finalization leaves the invoice definitive/open and unsent; the reserved invoice number is never rolled back or reused.
+- Payment reminders are blocked for drafts, credits, cancelled/paid invoices and zero outstanding balances. Before the due date, Boekuna offers a normal follow-up instead.
