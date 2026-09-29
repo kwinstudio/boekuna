@@ -647,6 +647,153 @@ try{
   assert.match(await live.title(),/Boekuna/);
   await live.close();
 
+  // QA-only direct production-domain smoke for the physical iPhone/Gmail regression.
+  // Uses fictive in-memory data and a mocked PDF helper; no authenticated production
+  // customer/invoice records are read or mutated.
+  const gmailLive=await browser.newPage({viewport:{width:390,height:844}});
+  const gmailLiveResponse=await gmailLive.goto('https://boekuna.nl/?login=1',{waitUntil:'domcontentloaded',timeout:45000});
+  assert.ok(gmailLiveResponse && gmailLiveResponse.ok(),'boekuna.nl must answer successfully');
+  await gmailLive.getByRole('heading',{name:'Inloggen'}).waitFor({timeout:15000});
+  assert.match(await gmailLive.title(),/Boekuna/);
+
+  const productionContract=await gmailLive.evaluate(()=>({
+    unified:!!document.querySelector('#boekuna-unified-email-handoff-v2'),
+    gmail:typeof window.buildGmailComposeUrl==='function',
+    send:typeof window.openSendInvoice==='function',
+    noMailboxOauth:!document.documentElement.innerHTML.includes('Gmail koppelen'),
+    defaultSubject:DEFAULT_EMAIL_TEMPLATE.subjectInvoice
+  }));
+  assert.equal(productionContract.unified,true);
+  assert.equal(productionContract.gmail,true);
+  assert.equal(productionContract.send,true);
+  assert.equal(productionContract.noMailboxOauth,true);
+  assert.equal(productionContract.defaultSubject,'Factuur {{factuurnummer}} · {{bedrijfsnaam}}');
+
+  const fixture=await gmailLive.evaluate(()=>{
+    currentUser=TEST_USER;
+    state=structuredClone(DEFAULT);
+    for(const key of ['contacts','services','invoices','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])state[key]=[];
+    state.company={
+      ...state.company,
+      name:'Kwin Phetmanee',
+      tradeName:'Kwin Phetmanee',
+      contactName:'Kwin Phetmanee',
+      email:'k.phetmanee@gmail.com',
+      phone:'+31636052860',
+      address:'Teststraat 1',
+      postal:'3011AA',
+      city:'Rotterdam',
+      country:'Nederland',
+      kvk:'12345678',
+      vat:'NL123456789B01',
+      iban:'NL96INGB0751841897',
+      invoicePrefix:'2026-',
+      paymentDays:14,
+      kor:false,
+      emailTemplate:{...DEFAULT_EMAIL_TEMPLATE},
+      invoiceDesign:{...DEFAULT_INVOICE_DESIGN}
+    };
+    const customer={
+      id:'gmail-live-customer',
+      type:'customer',
+      name:'Kwin Phetmanee',
+      contactPerson:'Kwin Phetmanee',
+      email:'customer@example.com',
+      address:'Klantstraat 2',
+      postal:'3012BB',
+      city:'Rotterdam'
+    };
+    const invoice={
+      id:'gmail-live-invoice',
+      number:'2026-0008',
+      numberManaged:true,
+      numberFinalized:true,
+      customerId:customer.id,
+      issueDate:'2026-09-29',
+      supplyDate:'2026-09-29',
+      dueDate:'2026-10-13',
+      paymentDays:14,
+      status:'sent',
+      taxTreatment:'standard',
+      reference:'',
+      paymentReference:'2026-0008',
+      discountType:'none',
+      discountValue:0,
+      notes:'',
+      lines:[{desc:'Werkzaamheden',qty:1,unitLabel:'stuk',unit:250,vat:21}],
+      payments:[],
+      reminderCount:0
+    };
+    state.contacts=[customer];
+    state.invoices=[invoice];
+    window.__livePdfFetches=0;
+    window.__liveDownloads=0;
+    window.__liveGmailOpens=[];
+    window.fetchInvoiceSharePdf=async function(inv,cust){
+      window.__livePdfFetches++;
+      return new File([new Uint8Array([0x25,0x50,0x44,0x46,0x2d,0x31,0x2e,0x37])],invoiceShareFilename(inv,cust),{type:'application/pdf'});
+    };
+    window.downloadInvoiceShareFile=function(file){if(file){window.__liveDownloads++;return true}return false};
+    window.open=function(url){window.__liveGmailOpens.push(String(url));return {closed:false}};
+    Object.defineProperty(navigator,'canShare',{configurable:true,value:data=>!!data?.files?.length});
+    Object.defineProperty(navigator,'share',{configurable:true,value:async ()=>{}});
+    Object.defineProperty(navigator,'userAgentData',{configurable:true,value:{mobile:true}});
+    return {invoiceId:invoice.id,gross:invoiceGross(invoice)};
+  });
+
+  await gmailLive.evaluate(id=>openSendInvoice(id),fixture.invoiceId);
+  await gmailLive.getByRole('heading',{name:'Factuur versturen'}).waitFor({timeout:10000});
+  const liveTo=await gmailLive.locator('#emailHandoffForm [name="to"]').inputValue();
+  const liveSubject=await gmailLive.locator('#emailHandoffForm [name="subject"]').inputValue();
+  const liveBody=await gmailLive.locator('#emailHandoffForm [name="message"]').inputValue();
+  assert.equal(liveTo,'customer@example.com');
+  assert.equal(liveSubject,'Factuur 2026-0008 · Kwin Phetmanee');
+  assert.notEqual(liveSubject,'Factuur-2026-0008-Kwin-Phetmanee');
+  assert.match(liveBody,/^Goedendag Kwin Phetmanee,\n\n/);
+  assert.match(liveBody,/Factuurdatum: 29 september 2026\nVervaldatum: 13 oktober 2026/);
+  assert.match(liveBody,/Met vriendelijke groet,\nKwin Phetmanee\nk\.phetmanee@gmail\.com\n\+31636052860$/);
+
+  await gmailLive.evaluate(()=>prepareEmailHandoffFromComposer());
+  await gmailLive.getByRole('heading',{name:'Hoe wilt u versturen'}).waitFor({timeout:10000});
+  const chooser=await gmailLive.locator('.modal').innerText();
+  assert.match(chooser,/Gmail openen/);
+  assert.match(chooser,/PDF delen als bijlage/);
+  assert.match(chooser,/Andere e-mailapp openen/);
+  assert.match(chooser,/ontvangende app bepaalt zelf Aan en Onderwerp/);
+  assert.equal(await gmailLive.getByRole('button',{name:'Gmail openen'}).evaluate(el=>el.classList.contains('primary')),true);
+
+  await gmailLive.evaluate(()=>openEmailHandoffGmail());
+  await gmailLive.getByRole('heading',{name:'Hebt u de e-mail verzonden?'}).waitFor({timeout:10000});
+  const handoffState=await gmailLive.evaluate(id=>{
+    const invoice=state.invoices.find(x=>x.id===id);
+    return {
+      url:window.__boekunaLastGmailUrl,
+      pdfFetches:window.__livePdfFetches,
+      downloads:window.__liveDownloads,
+      opens:window.__liveGmailOpens.slice(),
+      lastSentAt:invoice.lastSentAt||null,
+      handoff:window.__boekunaEmailHandoffTestState()
+    };
+  },fixture.invoiceId);
+  const parsedGmail=new URL(handoffState.url);
+  assert.equal(parsedGmail.searchParams.get('to'),'customer@example.com');
+  assert.equal(parsedGmail.searchParams.get('su'),'Factuur 2026-0008 · Kwin Phetmanee');
+  assert.equal(parsedGmail.searchParams.get('body'),liveBody);
+  assert.equal(handoffState.pdfFetches,1);
+  assert.equal(handoffState.downloads,1);
+  assert.equal(handoffState.opens.length,1);
+  assert.equal(handoffState.lastSentAt,null,'Opening Gmail must not mark the invoice sent');
+  assert.equal(handoffState.handoff.fileDownloaded,true);
+
+  await gmailLive.evaluate(()=>emailHandoffNotSent());
+  const afterCancel=await gmailLive.evaluate(id=>{
+    const invoice=state.invoices.find(x=>x.id===id);
+    return {lastSentAt:invoice.lastSentAt||null,sendHistory:(invoice.sendHistory||[]).length};
+  },fixture.invoiceId);
+  assert.equal(afterCancel.lastSentAt,null);
+  assert.equal(afterCancel.sendHistory,0);
+  await gmailLive.close();
+
   assert.deepEqual(pageErrors,[],'Browser page errors: '+pageErrors.join(' | '));
   console.log('Boekuna browser smoke: PASS (auth, CRUD, invoice integrity, native email share/fallback/cancel/confirmation, responsive layout, live availability)');
 }finally{
