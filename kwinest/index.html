@@ -3896,7 +3896,7 @@ async function processFinancialDocument(file,preStructure=null){
  }
  setImportProgress('Document verwerken','Gegevens controleren…','Bedragen, btw en documentgegevens worden samengevoegd.',66,4);
  const extracted=[structure?.text||'',processorTablesToText(structure?.tables||[]),ocrText||'',parsed?.text||''].filter(Boolean).join('\n\n---\n\n');
- const serverProc=structure?.analysis?.processing||{},serverReviewed=!!serverProc.ai||serverProc.fastPath==='deterministic';
+ const serverProc=structure?.analysis?.processing||{},serverReviewed=serverProc.reviewComplete===true||!!serverProc.ai||serverProc.fastPath==='deterministic';
  try{
   if(!serverReviewed){
    const ai=await analyzeInvoiceWithAI(file,extracted,parsed);parsed=applyRecognitionQuality(mergeAIParsed(parsed,ai,pendingUploadKind));
@@ -3916,13 +3916,13 @@ function documentVerificationReasons(d){
  const reasons=[];if(!d)return ['missing-pass1'];
  if(Number(d.recognitionBad||0)>0)reasons.push('critical-check');
  if(Number(d.recognitionWarn||0)>0)reasons.push('warning-check');
- if(Number(d.confidenceScore||0)<90)reasons.push('lower-confidence');
- if(d.mixedRates)reasons.push('mixed-vat');
+ if(Number(d.confidenceScore||0)<82)reasons.push('lower-confidence');
+ if(d.mixedRates&&Number(d.fieldConfidence?.vatLines||0)<85)reasons.push('mixed-vat');
  if(d.processor?.ocrUsed&&(d.processor.ocrConfidence==null||Number(d.processor.ocrConfidence)<.86))reasons.push('ocr-quality');
- if(Number(d.fieldConfidence?.party||0)>0&&Number(d.fieldConfidence.party)<80)reasons.push('party-confidence');
- if(Number(d.fieldConfidence?.gross||0)>0&&Number(d.fieldConfidence.gross)<88)reasons.push('gross-confidence');
- if(Number(d.fieldConfidence?.vatLines||0)>0&&Number(d.fieldConfidence.vatLines)<90)reasons.push('vat-lines-confidence');
- if(Number(d.fieldConfidence?.description||0)>0&&Number(d.fieldConfidence.description)<80)reasons.push('description-confidence');
+ if(Number(d.fieldConfidence?.party||0)>0&&Number(d.fieldConfidence.party)<75)reasons.push('party-confidence');
+ if(Number(d.fieldConfidence?.gross||0)>0&&Number(d.fieldConfidence.gross)<85)reasons.push('gross-confidence');
+ if(Number(d.fieldConfidence?.vatLines||0)>0&&Number(d.fieldConfidence.vatLines)<85)reasons.push('vat-lines-confidence');
+ if(Number(d.fieldConfidence?.description||0)>0&&Number(d.fieldConfidence.description)<70)reasons.push('description-confidence');
  return [...new Set(reasons)]
 }
 function shouldQueueDocumentVerification(d){return documentVerificationReasons(d).length>0}

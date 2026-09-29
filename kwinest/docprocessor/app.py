@@ -35,7 +35,7 @@ except Exception:
 _OCR_ENGINE = None
 _OCR_ENGINE_ERROR = None
 OCR_MODEL_NAME = "PP-OCRv6-small"
-PROCESSOR_VERSION = "3.1.0"
+PROCESSOR_VERSION = "3.2.0"
 PROCESSOR_REVISION = (os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or "unknown")[:64]
 
 def installed_package_version(name: str) -> str | None:
@@ -1992,38 +1992,53 @@ def overall_confidence(r:ExtractionResult)->float:
         base=min(base,.79)
     return max(0,min(1,base-len(r.warnings)*.025))
 
-def deterministic_fast_path_ready(doc:dict,r:ExtractionResult)->bool:
-    """Skip a paid/slow AI round only when deterministic extraction is already strong."""
-    if not OPENAI_API_KEY:
-        return False
-    if doc.get("kind")!="pdf":
-        return False
-    if doc.get("ocrPages"):
-        return False
-    if len(re.sub(r"\s+","",doc.get("text") or ""))<320:
-        return False
-    if r.documentType not in {"purchase_invoice","sales_invoice","credit_invoice","receipt"}:
-        return False
-    if r.warnings:
-        return False
-    if r.amounts.total is None or r.amounts.subtotal is None:
-        return False
-    if r.documentType!="receipt" and not r.invoice.invoiceNumber:
-        return False
+def ai_escalation_reasons(doc:dict,r:ExtractionResult)->list[str]:
+    """Return bounded reasons for optional AI fallback after local extraction/validation."""
+    reasons=[]
+    if overall_confidence(r)<.82:
+        reasons.append("low_overall_confidence")
+
+    party=r.customer.name if r.documentType=="sales_invoice" else r.supplier.name
+    missing=[]
+    if not party:
+        missing.append("counterparty")
     if not r.invoice.invoiceDate:
-        return False
-    if overall_confidence(r)<.90:
-        return False
-    # Multi-block documents are only fast-pathed when all blocks reconcile.
+        missing.append("invoice_date")
+    if r.amounts.total is None:
+        missing.append("total")
+    if r.amounts.subtotal is None and r.documentType not in {"bank_document","other"}:
+        missing.append("subtotal")
+    if r.documentType not in {"receipt","bank_document","other"} and not r.invoice.invoiceNumber:
+        missing.append("invoice_number")
+    if missing:
+        reasons.append("missing_critical_fields:"+",".join(sorted(missing)))
+
+    if r.warnings:
+        reasons.append("validation_warning")
+
     blocks=(r.processing or {}).get("financialBlocks") or {}
     if r.adjustments and not blocks.get("verified"):
-        return False
-    if r.amounts.vatTotal is not None:
-        s=money_cents(r.amounts.subtotal);v=money_cents(r.amounts.vatTotal);t=money_cents(r.amounts.total)
-        if s is None or v is None or t is None or s+v!=t:
-            return False
-    return True
+        reasons.append("unverified_financial_blocks")
 
+    derivation=(r.processing or {}).get("amountDerivation") or {}
+    mixed=bool(derivation.get("mixedRates"))
+    mixed_evidence=(r.processing or {}).get("mixedVatEvidence") or {}
+    if mixed and not mixed_evidence.get("verified"):
+        reasons.append("unverified_mixed_vat")
+
+    ocr_confs=[
+        float(page.get("ocrConfidence"))
+        for page in (doc.get("pages") or [])
+        if page.get("ocrConfidence") is not None
+    ]
+    if ocr_confs and min(ocr_confs)<.78:
+        reasons.append("low_ocr_confidence")
+
+    return list(dict.fromkeys(reasons))
+
+def deterministic_fast_path_ready(doc:dict,r:ExtractionResult)->bool:
+    """Local extraction is authoritative enough to skip the optional AI fallback."""
+    return not ai_escalation_reasons(doc,r)
 def require_authenticated_user(request: Request) -> dict:
     set_processing_meta(request,stage="auth")
     auth_header = (request.headers.get("authorization") or "").strip()
@@ -2143,6 +2158,9 @@ def health():
         "service":"boekuna-document-processor",
         "aiConfigured":bool(OPENAI_API_KEY),
         "verificationConfigured":bool(OPENAI_API_KEY),
+        "aiMode":"optional_fallback",
+        "aiRequiredForAnalyze":False,
+        "explicitVerificationAvailable":bool(OPENAI_API_KEY),
         "ocrAvailable":bool(RapidOCR),
         "ocrGeneration":RAPIDOCR_GENERATION,
         "ocrModel":OCR_MODEL_NAME,
@@ -2165,7 +2183,6 @@ def ready():
     checks={
         "ocr":bool(engine),
         "authVerifier":bool(SUPABASE_PUBLISHABLE_KEY),
-        "aiVerifier":bool(OPENAI_API_KEY),
     }
     is_ready=all(checks.values())
     payload={
@@ -2177,8 +2194,11 @@ def ready():
         "pythonRuntime":PYTHON_RUNTIME,
         "ocr":ocr_stack_info(),
         "authVerifierConfigured":checks["authVerifier"],
-        "aiConfigured":checks["aiVerifier"],
-        "verificationConfigured":checks["aiVerifier"],
+        "aiConfigured":bool(OPENAI_API_KEY),
+        "verificationConfigured":bool(OPENAI_API_KEY),
+        "aiMode":"optional_fallback",
+        "aiRequiredForAnalyze":False,
+        "explicitVerificationAvailable":bool(OPENAI_API_KEY),
         "initializationMs":round((time.perf_counter()-started)*1000,2),
     }
     if not is_ready:
@@ -2302,13 +2322,17 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
         doc["text"] = (doc.get("text") or "") + "\n\n--- CLIENT OCR ---\n" + ocr_text[:70000]
         doc.setdefault("processingHints", {})["clientOcrUsed"] = True
     heur=heuristic_extract(doc,file.filename or "document",company)
-    fast_path=deterministic_fast_path_ready(doc,heur)
+    ai_reasons=ai_escalation_reasons(doc,heur)
+    ai_requested=bool(ai_reasons)
+    fast_path=not ai_requested
+    ai=None
     ai_failure=None
-    if fast_path:
-        ai=None
-    else:
-        set_processing_meta(request,stage="ai_extract")
-        ai,ai_failure=ai_extract(doc,file.filename or "document",company,heur)
+    if ai_requested:
+        if OPENAI_API_KEY:
+            set_processing_meta(request,stage="ai_extract")
+            ai,ai_failure=ai_extract(doc,file.filename or "document",company,heur)
+        else:
+            ai_failure={"internal_code":"AI_PROVIDER_NOT_CONFIGURED","provider":"openai"}
     result=reconcile(ai,heur) if ai else heur
     if ai_failure:
         degraded_ref=new_reference_id()
@@ -2348,9 +2372,21 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
         except Exception:pass
         if score>=.65:dup.append({"id":row.get("id"),"score":round(score,2),"reasons":reasons})
     if dup:result.warnings.append("Mogelijk bestaat deze factuur al.")
-    processing={**result.processing,"ai":bool(ai),"fastPath":"deterministic" if fast_path else None,"durationMs":round((time.time()-started)*1000),"pages":doc.get("pageCount"),"tablesFound":len(doc.get("tables",[])),"duplicateCandidates":dup,"overallConfidence":round(overall_confidence(result),3)}
-    if ai_failure:
-        processing["aiStatus"]="degraded"
+    processing={
+        **result.processing,
+        "ai":bool(ai),
+        "aiMode":"optional_fallback",
+        "aiRequested":ai_requested,
+        "aiReasons":ai_reasons,
+        "aiStatus":"used" if ai else ("unavailable" if ai_failure else "skipped"),
+        "reviewComplete":True,
+        "fastPath":"deterministic" if fast_path else None,
+        "durationMs":round((time.time()-started)*1000),
+        "pages":doc.get("pageCount"),
+        "tablesFound":len(doc.get("tables",[])),
+        "duplicateCandidates":dup,
+        "overallConfidence":round(overall_confidence(result),3),
+    }
     usage=record_billing_usage(request)
     if usage:
         processing["billing"]={"plan":usage.get("plan"),"monthlyLimit":usage.get("monthly_limit"),"used":usage.get("used"),"remaining":usage.get("remaining")}

@@ -6,7 +6,7 @@ This register records the external facts used for the Boekuna document-scanner p
 
 ## OpenAI API
 
-- Purpose in Boekuna: structured document interpretation and independent second verification after local/PDF text extraction and OCR.
+- Purpose in Boekuna: optional fallback for uncertain/conflicting document extraction and explicit independent verification after local/PDF text extraction and OCR. Standard document scanning does not require OpenAI.
 - Data that can be sent: relevant extracted document text; for independent verification, the original uploaded PDF/image can also be sent when supported.
 - Training: OpenAI states that API inputs/outputs are not used to train its models by default unless the customer explicitly opts in.
 - Responses application state: Boekuna sends `store:false`.
@@ -28,6 +28,8 @@ This register records the external facts used for the Boekuna document-scanner p
 ## Boekuna implementation controls
 
 - Local OCR stays in the BOEKUNA document processor; OCR itself does not require an external commercial OCR provider.
+- Ordinary `/analyze` processing is local-first. OpenAI is called only when confidence, critical-field or financial-consistency checks require escalation; provider unavailability does not make the base scanner unavailable.
+- The explicit `/verify` endpoint remains an optional AI-backed second verification and can be unavailable independently from the base scanner.
 - OpenAI requests use `store:false`.
 - Full OCR text/document contents are not intended to be written to application logs.
 - Provider errors are mapped to stable public error codes; raw provider/document content is not returned to end users.
