@@ -257,6 +257,198 @@ try{
     await page.close();
   }
 
+
+  // QA-DOC-PROCESSING-001: truthful state machine, multi-document queue,
+  // responsive layout, reduced motion, long-wait and retry UX.
+  {
+    processorMode='success';
+    processorDelayMs=450;
+    processorResponse=structuredClone(processorPayload);
+    processorMethods=[];
+    processorOrigins=[];
+    processorMaxActive=0;
+    const page=await newAppPage();
+    const errors=[];
+    page.on('pageerror',e=>errors.push(String(e)));
+
+    const stateMachine=await page.evaluate(()=>{
+      const f=new File(['state'],'state-machine.pdf',{type:'application/pdf'});
+      const item=createDocumentProcessingItem(f,'purchase');
+      const states=[item.state];
+      for(const next of ['uploading','processing','preparing_review','completed']){documentProcessingTransition(item,next);states.push(item.state)}
+      let invalid=false;
+      const bad=createDocumentProcessingItem(f,'purchase');
+      try{documentProcessingTransition(bad,'completed')}catch(e){invalid=true}
+      if(item.longWaitTimer)clearTimeout(item.longWaitTimer);
+      return {states,invalid}
+    });
+    assert.deepEqual(stateMachine.states,['selected','uploading','processing','preparing_review','completed']);
+    assert.equal(stateMachine.invalid,true,'Impossible processing state transitions must be rejected');
+
+    const batchFiles=Array.from({length:5},(_,i)=>({
+      name:'qa-batch-'+(i+1)+'.pdf',
+      mimeType:'application/pdf',
+      buffer:Buffer.from('%PDF-1.7\n% Boekuna batch '+(i+1)+'\n')
+    }));
+    await page.locator('#invoicePdfFile').setInputFiles(batchFiles);
+    await page.getByRole('heading',{name:'5 documenten verwerken'}).waitFor({timeout:5000});
+    await page.waitForFunction(()=>documentProcessingSession?.items?.filter(x=>['uploading','processing'].includes(x.state)).length===2,{timeout:5000});
+    const inFlight=await page.evaluate(()=>documentProcessingSession.items.filter(x=>['uploading','processing'].includes(x.state)).length);
+    assert.equal(inFlight,2,'Queue must represent the two documents that are actually processing in parallel');
+    await page.waitForFunction(()=>documentProcessingSession?.items?.every(x=>x.state==='completed'),{timeout:15000});
+    const batch=await page.evaluate(()=>({
+      states:documentProcessingSession.items.map(x=>x.state),
+      uploaded:documentProcessingSession.items.map(x=>x.uploaded),
+      percents:documentProcessingSession.items.map(x=>x.uploadPercent),
+      overallValue:Number(document.querySelector('.processing-overall progress')?.value),
+      overallMax:Number(document.querySelector('.processing-overall progress')?.max),
+      text:document.querySelector('#documentProcessingExperience')?.innerText||''
+    }));
+    assert.deepEqual(batch.states,Array(5).fill('completed'));
+    assert.deepEqual(batch.uploaded,Array(5).fill(true));
+    assert.deepEqual(batch.percents,Array(5).fill(100),'Real upload progress must finish at 100 for completed transfers');
+    assert.equal(batch.overallValue,5);
+    assert.equal(batch.overallMax,5);
+    assert.match(batch.text,/5 van 5 documenten verwerkt/);
+    assert.doesNotMatch(batch.text,/\b(?:28|48|66|98)%\b/,'Processing queue must not surface staged fake percentages');
+    assert.ok(processorMaxActive<=2,'Frontend must not exceed the configured two parallel processor requests');
+    assert.ok(processorMaxActive>=2,'Multi-document processing should use real parallelism when work is available');
+
+    // Production maximum supported by the UI: 10 documents in one batch.
+    await page.evaluate(()=>closeModal());
+    processorDelayMs=0;processorMethods=[];processorMaxActive=0;
+    const maxFiles=Array.from({length:10},(_,i)=>({
+      name:'qa-max-'+(i+1)+'.pdf',
+      mimeType:'application/pdf',
+      buffer:Buffer.from('%PDF-1.7\n% Boekuna max batch '+(i+1)+'\n')
+    }));
+    await page.locator('#invoicePdfFile').setInputFiles(maxFiles);
+    await page.getByRole('heading',{name:'10 documenten verwerken'}).waitFor({timeout:5000});
+    await page.waitForFunction(()=>documentProcessingSession?.items?.every(x=>x.state==='completed'),{timeout:15000});
+    assert.equal(await page.locator('.processing-queue-item[data-state="completed"]').count(),10,'Maximum batch must complete all ten queue items');
+    assert.equal(processorMethods.filter(x=>x==='POST').length,10,'Maximum batch must issue one processor request per document');
+
+    // Long-wait state is event-driven by the threshold, not rotating copy.
+    await page.evaluate(()=>{
+      cleanupDocumentProcessingSession();
+      const file=new File(['slow'],'slow-document.pdf',{type:'application/pdf'});
+      const item=createDocumentProcessingItem(file,'purchase');
+      item.state='processing';item.uploaded=true;item.uploadPercent=100;item.longWait=true;
+      item.message='Document wordt gelezen…';
+      documentProcessingSession={id:'qa-long',items:[item],smart:false,reviewingItemId:null,startedAt:Date.now()-20000};
+      renderDocumentProcessingExperience()
+    });
+    const slowText=await page.locator('#documentProcessingExperience').innerText();
+    assert.match(slowText,/Dit document vraagt iets meer controle/);
+    assert.match(slowText,/upload is afgerond/i);
+    assert.equal(await page.locator('.processing-indeterminate').count(),1,'Unknown processing duration must remain indeterminate');
+
+    // Stalled/failure experience must stop normal processing and expose retry without technical codes.
+    await page.evaluate(()=>{
+      const item=documentProcessingSession.items[0];
+      item.error=createUploadError('PROCESSING_TIMEOUT','',504,{category:'temporary',retryable:true,state:'no_changes'});
+      item.state='failed';item.longWait=false;
+      renderDocumentProcessingExperience()
+    });
+    const failedText=await page.locator('#documentProcessingExperience').innerText();
+    assert.match(failedText,/Document kon niet worden verwerkt/);
+    assert.match(failedText,/Opnieuw proberen/);
+    assert.doesNotMatch(failedText,/PROCESSING_TIMEOUT|HTTP 500|ONNX/i);
+
+    // Responsive checks for every requested width.
+    await page.evaluate(()=>{
+      const item=documentProcessingSession.items[0];
+      item.error=null;item.state='processing';item.uploaded=true;item.message='Document wordt gelezen…';
+      renderDocumentProcessingExperience()
+    });
+    for(const width of [320,360,375,390,393,430,768]){
+      await page.setViewportSize({width,height:844});
+      const layout=await page.evaluate(()=>({
+        overflow:document.documentElement.scrollWidth-window.innerWidth,
+        box:document.querySelector('#documentProcessingExperience')?.getBoundingClientRect(),
+        viewport:window.innerWidth
+      }));
+      assert.ok(layout.overflow<=2,'Processing experience must not overflow at '+width+'px');
+      assert.ok((layout.box?.width||0)<=layout.viewport,'Processing experience must fit viewport at '+width+'px');
+    }
+
+    // Reduced motion preserves state while removing continuous scan/shimmer motion.
+    await page.emulateMedia({reducedMotion:'reduce'});
+    const reduced=await page.evaluate(()=>({
+      scanDisplay:getComputedStyle(document.querySelector('.processing-scanline')).display,
+      busy:document.querySelector('#documentProcessingExperience')?.getAttribute('aria-busy'),
+      role:document.querySelector('.processing-indeterminate')?.getAttribute('role')
+    }));
+    assert.equal(reduced.scanDisplay,'none');
+    assert.equal(reduced.busy,'true');
+    assert.equal(reduced.role,'progressbar');
+    await page.emulateMedia({reducedMotion:'no-preference'});
+
+    if((process.env.BOOKUNA_BROWSER||'chromium')==='chromium'){
+      fs.mkdirSync('tests/artifacts',{recursive:true});
+      const capture=async(name,mutate)=>{
+        await page.setViewportSize({width:390,height:844});
+        await page.evaluate(mutate);
+        await page.screenshot({path:'tests/artifacts/document-processing-'+name+'.png',fullPage:true})
+      };
+      await capture('upload',()=>{
+        cleanupDocumentProcessingSession();const file=new File(['upload'],'upload.pdf',{type:'application/pdf'}),item=createDocumentProcessingItem(file,'purchase');
+        item.state='uploading';item.uploadLoaded=670;item.uploadTotal=1000;item.uploadPercent=67;
+        documentProcessingSession={id:'visual-upload',items:[item],smart:false,reviewingItemId:null,startedAt:Date.now()};renderDocumentProcessingExperience()
+      });
+      await capture('processing',()=>{
+        const item=documentProcessingSession.items[0];item.state='processing';item.uploaded=true;item.uploadPercent=100;item.message='Document wordt gelezen…';renderDocumentProcessingExperience()
+      });
+      await capture('validation',()=>{
+        const item=documentProcessingSession.items[0];item.state='preparing_review';item.processorComplete=true;item.message='Bedragen en btw controleren…';renderDocumentProcessingExperience()
+      });
+      await capture('long-wait',()=>{
+        const item=documentProcessingSession.items[0];item.state='processing';item.processorComplete=false;item.longWait=true;renderDocumentProcessingExperience()
+      });
+      await capture('error',()=>{
+        const item=documentProcessingSession.items[0];item.state='failed';item.longWait=false;item.error=createUploadError('PROCESSING_TIMEOUT','',504,{category:'temporary',retryable:true,state:'no_changes'});renderDocumentProcessingExperience()
+      });
+      await capture('success',()=>{
+        const item=documentProcessingSession.items[0];item.state='completed';item.processorComplete=true;item.error=null;item.result={parsed:{},previewUrl:null};renderDocumentProcessingExperience()
+      });
+      await capture('multi',()=>{
+        cleanupDocumentProcessingSession();
+        const mk=(name,state)=>{const x=createDocumentProcessingItem(new File([name],name,{type:'application/pdf'}),'purchase');x.state=state;x.uploaded=state!=='selected';x.processorComplete=state==='completed';if(state==='completed')x.result={parsed:{},previewUrl:null};return x};
+        documentProcessingSession={id:'visual-multi',items:[mk('Albert-Heijn.pdf','completed'),mk('shell-bon.jpg','completed'),mk('makro.pdf','processing'),mk('factuur-04.pdf','selected'),mk('bon-05.jpg','selected')],smart:false,reviewingItemId:null,startedAt:Date.now()};renderDocumentProcessingExperience()
+      });
+      await page.emulateMedia({reducedMotion:'reduce'});
+      await capture('reduced-motion',()=>{
+        const item=documentProcessingSession.items.find(x=>x.state==='processing')||documentProcessingSession.items[0];item.state='processing';item.uploaded=true;renderDocumentProcessingExperience()
+      });
+      await page.emulateMedia({reducedMotion:'no-preference'});
+    }
+
+    assert.deepEqual(errors,[],'Processing experience browser errors: '+errors.join(' | '));
+    await page.close();
+    processorDelayMs=0;
+  }
+
+  // QA-DOC-PROCESSING-002: an item can fail independently and retry without creating a bookkeeping record.
+  {
+    processorMode='failure';
+    processorDelayMs=0;
+    processorMethods=[];
+    const page=await newAppPage();
+    await page.locator('#invoicePdfFile').setInputFiles({
+      name:'qa-retry.heic',
+      mimeType:'image/heic',
+      buffer:Buffer.from('not-a-real-heic-but-server-contract-is-controlled')
+    });
+    await page.waitForFunction(()=>documentProcessingSession?.items?.[0]?.state==='failed',{timeout:10000});
+    assert.equal(await page.evaluate(()=>state.documents.length+state.expenses.length+state.invoices.length),0,'Failed processing must not create document or financial records');
+    assert.equal(await page.getByRole('button',{name:'Opnieuw proberen'}).count(),1);
+    processorMode='success';
+    await page.getByRole('button',{name:'Opnieuw proberen'}).click();
+    await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:10000});
+    assert.equal(await page.evaluate(()=>state.documents.length+state.expenses.length+state.invoices.length),0,'Successful retry must still wait for explicit review/save before persistence');
+    await page.close();
+  }
+
   // QA-OCR-BETA-001: only the explicitly allowlisted authenticated account
   // routes to the PP-OCRv6 beta processor; every other account stays stable.
   {
