@@ -198,8 +198,40 @@ async function resolveReview(req:Request,a:{user:any,auth:string},body:any){
   if(error||!resolved)return out(req,{ok:false,error:{code:"JOB_RESOLVE_FAILED"}},409);
   return out(req,{ok:true,job:resolved});
 }
+async function repairMissingJobs(userId:string){
+  const sb=admin();
+  const {data:docs,error}=await sb.from("documents")
+    .select("id,user_id,client_ref,name,mime_type,metadata")
+    .eq("user_id",userId)
+    .contains("metadata",{processing:true})
+    .order("created_at",{ascending:true})
+    .limit(20);
+  if(error||!docs?.length)return 0;
+  const ids=docs.map((d:any)=>d.id);
+  const {data:existing}=await sb.from("document_processing_jobs").select("document_id").eq("user_id",userId).in("document_id",ids);
+  const known=new Set((existing||[]).map((x:any)=>String(x.document_id)));
+  const missing=docs.filter((d:any)=>!known.has(String(d.id))).map((doc:any)=>{
+    const meta=doc.metadata&&typeof doc.metadata==="object"?doc.metadata:{};
+    const company=meta.company_context&&typeof meta.company_context==="object"?meta.company_context:{};
+    return {
+      user_id:userId,document_id:doc.id,client_ref:clean(doc.client_ref,120),
+      batch_id:clean(meta.batch_id||("recovered-"+doc.id),120),
+      file_name:clean(doc.name,260)||"document",
+      mime_type:clean(doc.mime_type,160)||"application/octet-stream",
+      size_bytes:Math.max(0,Number(meta.size||0)),
+      requested_kind:clean(meta.requested_kind||"auto",32),
+      state:"queued",phase:"queued",
+      company_context:{name:clean(company.name,160),tradeName:clean(company.tradeName,160),kvk:clean(company.kvk,40),vat:clean(company.vat,40)}
+    };
+  });
+  if(!missing.length)return 0;
+  const {error:insertError}=await sb.from("document_processing_jobs").upsert(missing,{onConflict:"user_id,document_id",ignoreDuplicates:true});
+  if(insertError)return 0;
+  return missing.length;
+}
 async function resume(req:Request,a:{user:any,auth:string}){
   const sb=admin(),threshold=new Date(Date.now()-STALE_MS).toISOString();
+  await repairMissingJobs(a.user.id);
   const {data:queued}=await sb.from("document_processing_jobs").select("*").eq("user_id",a.user.id).eq("state","queued").lt("attempt",3).limit(3);
   const {data:stale}=await sb.from("document_processing_jobs").select("*").eq("user_id",a.user.id).in("state",["processing","validating"]).lt("updated_at",threshold).lt("attempt",3).limit(3);
   for(const job of stale||[]){
@@ -220,7 +252,8 @@ Deno.serve(async(req:Request)=>{
     const body=await jsonBody(req),action=clean(body.action||"enqueue",40);
     if(action==="enqueue")return await enqueue(req,a,body);
     if(action==="retry")return await retry(req,a,body);
-    if(action==="resolve")return await resolveReview(req,a,body);
+    if(action==="resolve"||action==="resolve_review")return await resolveReview(req,a,body);
+    if(action==="run_next"){const started=await kickUser(a.user.id,a.auth);return out(req,{ok:true,started});}
     if(action==="resume")return await resume(req,a);
     return out(req,{ok:false,error:{code:"INVALID_ACTION"}},400);
   }catch(err:any){
