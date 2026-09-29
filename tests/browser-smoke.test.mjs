@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
-const invoiceEmailShareJs=fs.readFileSync(new URL('../public/assets/invoice-email-share.js',import.meta.url),'utf8');
 
 function replaceLast(source,needle,replacement){
   const i=source.lastIndexOf(needle);
@@ -29,7 +28,6 @@ enterApp();
 
 const server=http.createServer((req,res)=>{
   if(req.url?.startsWith('/manifest.webmanifest')){res.writeHead(200,{'content-type':'application/manifest+json'});return res.end('{}')}
-  if(req.url?.startsWith('/assets/invoice-email-share.js')){res.writeHead(200,{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store'});return res.end(invoiceEmailShareJs)}
   const body=req.url?.startsWith('/auth')?authHtml:appHtml;
   res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});
   res.end(body);
