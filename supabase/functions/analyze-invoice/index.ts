@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const DOCUMENT_PROCESSOR_URL=(Deno.env.get("DOCUMENT_PROCESSOR_URL")||"https://kwinest-docprocessor.onrender.com").replace(/\/$/,"");
+const EXTERNAL_AI_ENABLED=["1","true","yes","on"].includes((Deno.env.get("BOOKUNA_ENABLE_EXTERNAL_AI")||"").trim().toLowerCase());
 const ALLOWED_ORIGINS = new Set([
   "https://boekuna-boekhouding.onrender.com",
   "https://kwinest-boekhouding.onrender.com",
@@ -207,7 +208,7 @@ const outputSchema={"type":"object","additionalProperties":false,"properties":{"
 
 Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors(req)});
-  const configured=!!(Deno.env.get("OPENAI_API_KEY")||Deno.env.get("AI_GATEWAY_API_KEY"));
+  const configured=EXTERNAL_AI_ENABLED && !!(Deno.env.get("OPENAI_API_KEY")||Deno.env.get("AI_GATEWAY_API_KEY"));
   if(req.method==="GET")return j(req,{ok:true,service:"invoice-ai-review",configured,model:"gpt-5.6-sol"});
   if(req.method!=="POST")return fail(req,"INVALID_REQUEST",405,{stage:"request",internal_code:"METHOD_NOT_ALLOWED"});
   const origin=req.headers.get("origin")||"";
@@ -219,6 +220,7 @@ Deno.serve(async(req:Request)=>{
   const mime=safe(data.mimeType||(data.pdfBase64?"application/pdf":""),120).toLowerCase();
   const fileExt=(sourceName.match(/\.[A-Za-z0-9]+$/)?.[0]||"").toLowerCase();
   const common={file_mime:mime||null,file_ext:fileExt||null,file_size:Number(data.fileSize||0)||null};
+  if(!EXTERNAL_AI_ENABLED)return fail(req,"PROCESSOR_UNAVAILABLE",503,{...common,stage:"ai_provider",internal_code:"AI_TEMPORARILY_DISABLED",state:data.reviewMode==="verify"?"stored_unprocessed":"no_changes"});
 
   const allowed=await allowRequest(req,data);
   const userRef=allowed?.user?.user?.id?String(allowed.user.user.id):null;
