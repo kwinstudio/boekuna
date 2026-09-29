@@ -71,6 +71,14 @@ jobs:
           name: smart-financial-correction-visual
           path: tests/artifacts/smart-financial-correction-*.png
           if-no-files-found: ignore
+      - name: Upload document processing visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: document-processing-visual
+          path: tests/artifacts/document-processing-*.png
+          if-no-files-found: ignore
+
       - name: Auth and progressive onboarding
         run: node tests/auth-progressive-onboarding.test.mjs
       - name: Contextual list controls
