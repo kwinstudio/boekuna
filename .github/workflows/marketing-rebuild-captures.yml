@@ -1,0 +1,55 @@
+name: Refresh product captures for marketing rebuild
+
+on:
+  push:
+    branches:
+      - marketing/moneybird-inspired-rebuild-20260929
+    paths:
+      - ".github/workflows/marketing-rebuild-captures.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      BOOKUNA_MARKETING_CAPTURE_EMAIL: ${{ secrets.BOOKUNA_MARKETING_CAPTURE_EMAIL }}
+      BOOKUNA_MARKETING_CAPTURE_PASSWORD: ${{ secrets.BOOKUNA_MARKETING_CAPTURE_PASSWORD }}
+      BOOKUNA_MARKETING_CAPTURE_ORIGIN: https://boekuna-boekhouding.onrender.com
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: marketing/moneybird-inspired-rebuild-20260929
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install capture dependencies
+        run: |
+          npm ci --prefix tests --ignore-scripts
+          npm install --prefix tests --no-save playwright@1.56.1 sharp@0.33.5 pdf-lib
+          ./tests/node_modules/.bin/playwright install --with-deps chromium
+      - name: Capture current Boekuna product UI
+        run: node tests/marketing-capture.mjs
+      - name: Verify provenance
+        run: |
+          node - <<'NODE'
+          const p=require('./public/assets/product/capture-proof.json');
+          if(p.sourceRef!=='marketing/moneybird-inspired-rebuild-20260929') throw new Error('Unexpected capture ref '+p.sourceRef);
+          if(p.demoDataset!=='permanent-fictive-marketing-v1') throw new Error('Unexpected demo dataset');
+          if(p.processorStatus!=='real-processor-confirmed') throw new Error('Processor-backed review capture not confirmed');
+          console.log(JSON.stringify({sourceCommit:p.sourceCommit,sourceRef:p.sourceRef,processorStatus:p.processorStatus,assets:p.assets.length},null,2));
+          NODE
+      - name: Commit refreshed captures
+        run: |
+          if git diff --quiet -- public/assets/product/ && [ -z "$(git ls-files --others --exclude-standard public/assets/product/)" ]; then
+            echo "No capture changes."
+            exit 0
+          fi
+          git config user.name "boekuna-qa-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/assets/product/
+          git commit -m "Refresh real product captures for marketing rebuild"
+          git push origin HEAD:marketing/moneybird-inspired-rebuild-20260929
