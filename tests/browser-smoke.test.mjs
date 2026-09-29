@@ -266,7 +266,7 @@ try{
   assert.match(composerBody,/Factuurdatum:/);
   assert.match(composerBody,/Vervaldatum:/);
   assert.match(composerBody,/De factuur vindt u als PDF in de bijlage/);
-  assert.match(composerBody,/QA Test BV|Boekuna QA/);
+  assert.match(composerBody,/Met vriendelijke groet,\nQA\nqa@example\.test\n0101234567$/,'Default email signature must use contact name plus available contact details');
 
   await page.evaluate(()=>prepareEmailHandoffFromComposer());
   await page.getByRole('heading',{name:'Hoe wilt u versturen'}).waitFor();
