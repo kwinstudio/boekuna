@@ -3695,8 +3695,18 @@ function confirmSuggestedFinancialRate(rate){
  const f=document.getElementById('pdfImportForm'),el=f?.elements.namedItem('vatRate');if(!el||pendingPdfImport?.parsed?.mixedRates)return;
  el.value=String(rate);syncFinancialReviewStateFromForm('vatRate');updateFinancialReviewPanel()
 }
+function clearStaleFinancialReviewToasts(){
+ const stale=[
+  'Het btw-tarief past niet bij de gecontroleerde bedragen.',
+  'Vul het btw-bedrag in of gebruik eerst het rekenvoorstel.',
+  'Bedrag excl. btw + btw moet cent-exact gelijk zijn aan het factuurtotaal.',
+  'Kies en bevestig het btw-tarief voordat je opslaat.'
+ ];
+ document.querySelectorAll('#toastRoot .toast').forEach(el=>{const text=String(el.textContent||'');if(stale.some(prefix=>text.startsWith(prefix)))el.remove()})
+}
 function applyFinancialCorrectionProposal(){
  const d=pendingPdfImport?.parsed,f=document.getElementById('pdfImportForm'),p=financialReviewProposal();if(!d||!f||p.status!=='proposal'||!p.canApply)return;
+ clearStaleFinancialReviewToasts();
  const provenance=ensureFinancialReviewProvenance(d),anchors=p.anchors||[];
  for(const key of p.derivedFields||[]){
   const cents=p.candidate?.[key];if(cents==null)continue;
