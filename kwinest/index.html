@@ -3509,7 +3509,7 @@ function processingStepHtml(item,key,label){
 function documentProcessingDetailedHtml(item){
  const uploadKnown=item.state==='uploading'&&item.uploadPercent!=null;
  let progress='';
- if(uploadKnown)progress='<div class="processing-progress"><progress max="100" value="'+item.uploadPercent+'" aria-label="Uploadvoortgang '+esc(item.file.name)+'">'+item.uploadPercent+'%</progress><div class="processing-bytes"><span>'+formatDocumentBytes(item.uploadLoaded)+' van '+formatDocumentBytes(item.uploadTotal)+'</span><strong>'+item.uploadPercent+'%</strong></div></div>';
+ if(uploadKnown)progress='<div class="processing-progress" id="processingUpload-'+item.id+'"><progress max="100" value="'+item.uploadPercent+'" aria-label="Uploadvoortgang '+esc(item.file.name)+'">'+item.uploadPercent+'%</progress><div class="processing-bytes"><span data-processing-bytes>'+formatDocumentBytes(item.uploadLoaded)+' van '+formatDocumentBytes(item.uploadTotal)+'</span><strong data-processing-percent>'+item.uploadPercent+'%</strong></div></div>';
  else if(['processing','preparing_review'].includes(item.state))progress='<div class="processing-progress"><div class="processing-indeterminate" role="progressbar" aria-label="Documentverwerking bezig"></div></div>';
  let error='';
  if(item.state==='failed'){
@@ -3519,6 +3519,14 @@ function documentProcessingDetailedHtml(item){
  const skeleton=item.state==='preparing_review'?'<div class="processing-review-skeleton" aria-hidden="true"><div></div><div></div><div></div><div></div></div>':'';
  const scan=['uploading','processing','preparing_review'].includes(item.state)?'<div class="processing-scanline"></div>':'';
  return '<div class="processing-shell"><div class="processing-document" aria-hidden="true"><div class="processing-doc-mark">Document</div><div class="processing-doc-line"></div><div class="processing-doc-line medium"></div><div class="processing-doc-line short"></div><div class="processing-doc-total"><span>Totaal</span><span>€ —</span></div>'+scan+'</div><div class="processing-copy"><div class="processing-eyebrow">'+(item.state==='completed'?'Verwerking afgerond':'Veilige documentverwerking')+'</div><h4 class="processing-title">'+(item.state==='completed'?'Document verwerkt':'Document wordt verwerkt')+'</h4><div class="processing-file" title="'+esc(item.file.name)+'">'+esc(item.file.name)+'</div><div class="processing-status" role="status" aria-live="polite" aria-atomic="true">'+esc(documentProcessingStatus(item))+'</div><div class="processing-subtext">'+esc(documentProcessingSubtext(item))+'</div>'+progress+'<div class="processing-steps">'+processingStepHtml(item,'upload',item.uploaded?'Bestand ontvangen':'Bestand uploaden')+processingStepHtml(item,'read','Document lezen & gegevens herkennen')+processingStepHtml(item,'validate',item.financial===false?'Document controleren':'Bedragen & btw controleren')+processingStepHtml(item,'review','Controle voorbereiden')+'</div>'+skeleton+error+'</div></div>'
+}
+function updateDocumentUploadProgressDom(item){
+ const root=document.getElementById('processingUpload-'+item.id);
+ if(!root){scheduleDocumentProcessingRender();return}
+ const progress=root.querySelector('progress'),bytes=root.querySelector('[data-processing-bytes]'),percent=root.querySelector('[data-processing-percent]');
+ if(progress&&item.uploadPercent!=null){progress.value=item.uploadPercent;progress.textContent=item.uploadPercent+'%'}
+ if(bytes)bytes.textContent=formatDocumentBytes(item.uploadLoaded)+' van '+formatDocumentBytes(item.uploadTotal);
+ if(percent)percent.textContent=item.uploadPercent==null?'':item.uploadPercent+'%'
 }
 function documentProcessingQueueRow(item){
  const icon=item.state==='completed'?'✓':item.state==='failed'?'!':item.state==='selected'?'○':'●';
@@ -3564,7 +3572,7 @@ async function documentProcessorXhrOnce(fd,item,forceRefresh=false){
    if(!item)return;
    if(e.lengthComputable&&e.total>0){const pct=Math.max(Number(item.uploadPercent||0),Math.min(100,Math.round(e.loaded/e.total*100)));item.uploadPercent=pct;item.uploadLoaded=Math.max(Number(item.uploadLoaded||0),Number(e.loaded||0));item.uploadTotal=Number(e.total||item.uploadTotal||0)}
    else{item.uploadPercent=null;item.uploadLoaded=Math.max(Number(item.uploadLoaded||0),Number(e.loaded||0))}
-   scheduleDocumentProcessingRender()
+   if(e.lengthComputable&&e.total>0)updateDocumentUploadProgressDom(item);else scheduleDocumentProcessingRender()
   };
   xhr.upload.onload=finishUpload;
   xhr.onload=function(){finishUpload();resolve({status:xhr.status,ok:xhr.status>=200&&xhr.status<300,json:async function(){try{return JSON.parse(xhr.responseText||'{}')}catch{return {}}}})};
