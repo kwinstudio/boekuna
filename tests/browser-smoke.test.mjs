@@ -5,6 +5,7 @@ import { chromium } from 'playwright';
 
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
 const financialCorrectionSource=fs.readFileSync(new URL('../public/assets/financial-correction.js',import.meta.url),'utf8');
+fs.mkdirSync('tests/artifacts',{recursive:true});
 
 function replaceLast(source,needle,replacement){
   const i=source.lastIndexOf(needle);
@@ -56,12 +57,14 @@ try{
   await page.getByRole('heading',{name:'Inloggen'}).waitFor();
   assert.equal(await page.locator('#loginPassword').getAttribute('minlength'),null,'Login must not block legacy short passwords');
   assert.ok(await page.getByText('Nog geen account? Gratis starten').count(),'Login must expose registration');
+  await page.screenshot({path:'tests/artifacts/brand-login-1440.png',fullPage:true});
 
   // Daily-use browser flow on the exact production UI source, with auth/network isolated.
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
   await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
   assert.equal(await page.locator('.mobile-menu').evaluate(el=>getComputedStyle(el).display),'none');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'Desktop page must not create global horizontal overflow');
+  await page.screenshot({path:'tests/artifacts/brand-dashboard-1440.png',fullPage:true});
 
   await page.evaluate(()=>newContact());
   await page.locator('#contactForm [name="name"]').fill('QA Klant BV');
@@ -254,6 +257,7 @@ try{
   await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
   assert.notEqual(await page.locator('.mobile-menu').evaluate(el=>getComputedStyle(el).display),'none');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'Mobile page must not create global horizontal overflow');
+  await page.screenshot({path:'tests/artifacts/brand-dashboard-390.png',fullPage:true});
   await page.locator('#mobileMenu').click();
   assert.ok(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open')),'Mobile menu must set the sidebar open state');
   await page.waitForTimeout(260);
