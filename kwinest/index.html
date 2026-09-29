@@ -3756,13 +3756,12 @@ function fallbackDocumentCode(status){
  if(s>=500)return 'PROCESSOR_UNAVAILABLE';
  return 'INVALID_REQUEST'
 }
-async function extractDocumentServer(file,onProgress){
+async function extractDocumentServer(file,onProgress,processingItem=null){
  if(file.size>DOCUMENT_MAX_SIZE_BYTES)throw createUploadError('DOCUMENT_TOO_LARGE','',413,{context:{max_size_mb:DOCUMENT_MAX_SIZE_MB},state:'not_saved'});
- onProgress?.('Document veilig naar documentprocessor v2 sturen…');
+ onProgress?.('Document versturen…');
  const fd=new FormData();fd.append('file',file,file.name);const company=state.company||{};fd.append('company_json',JSON.stringify({name:company.name||'',tradeName:company.tradeName||'',kvk:company.kvk||'',vat:company.vat||''}));fd.append('existing_json',JSON.stringify(buildProcessorExistingIndex()));
- const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),120000);
  try{
-  const r=await fetchWithAuthRetry(activeDocumentProcessorUrl()+'/analyze',{method:'POST',body:fd,signal:ctrl.signal});
+  const r=processingItem?await documentProcessorXhr(fd,processingItem):await fetchWithAuthRetry(activeDocumentProcessorUrl()+'/analyze',{method:'POST',body:fd});
   let j={};try{j=await r.json()}catch(e){}
   if(!r.ok||!j.ok){
    const publicError=j?.error&&typeof j.error==='object'?j.error:{};
@@ -3771,10 +3770,11 @@ async function extractDocumentServer(file,onProgress){
   const d=j.data||{},p=d.processing||{},preview=j.preview||{},pages=Array.isArray(preview.pages)?preview.pages:[],tables=Array.isArray(preview.tables)?preview.tables:[];
   return {ok:true,kind:p.sourceKind||((file.name.split('.').pop()||'').toLowerCase()),pageCount:Number(d.pageCount||p.pages||1),text:String(preview.text||''),pages,tables,tableCount:Number(p.tablesFound||tables.length||0),ocrUsed:Array.isArray(p.ocrPages)&&p.ocrPages.length>0,ocrPages:Array.isArray(p.ocrPages)?p.ocrPages:[],warnings:Array.isArray(d.warnings)?d.warnings:[],documentTypeHint:d.documentType||'',analysis:d,duplicateCandidates:Array.isArray(j.duplicateCandidates)?j.duplicateCandidates:[],sha256:await fileSha256(file)}
  }catch(e){
+  if(e?.publicCode||e?.code)throw e;
   if(e?.name==='AbortError')throw createUploadError('PROCESSING_TIMEOUT','',504,{category:'temporary',retryable:true,state:'no_changes'});
   if(e instanceof TypeError)throw createUploadError('PROCESSOR_UNAVAILABLE','',503,{category:'temporary',retryable:true,state:'no_changes'});
   throw e
- }finally{clearTimeout(timer)}
+ }
 }
 function processorAnalysisToCandidate(raw,text,forced='auto'){
  const a=raw&&typeof raw==='object'?raw:{},supplier=a.supplier||{},customer=a.customer||{},inv=a.invoice||{},amounts=a.amounts||{},proc=a.processing||{},conf=a.confidence||{};
