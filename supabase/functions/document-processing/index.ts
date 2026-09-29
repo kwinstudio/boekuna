@@ -133,7 +133,7 @@ function run(jobId:string,auth:string){EdgeRuntime.waitUntil(processJob(jobId,au
 async function enqueue(req:Request,a:{user:any,auth:string},body:any){
   const sb=admin(),clientRef=clean(body.client_ref,120),batchId=clean(body.batch_id,120),kind=clean(body.kind||"auto",32);
   if(!clientRef||!batchId)return out(req,{ok:false,error:{code:"INVALID_REQUEST"}},400);
-  const {data:doc,error}=await sb.from("documents").select("id,user_id,client_ref").eq("user_id",a.user.id).eq("client_ref",clientRef).maybeSingle();
+  const {data:doc,error}=await sb.from("documents").select("id,user_id,client_ref,name,mime_type,metadata").eq("user_id",a.user.id).eq("client_ref",clientRef).maybeSingle();
   if(error||!doc)return out(req,{ok:false,error:{code:"DOCUMENT_NOT_FOUND"}},404);
   const company=body.company&&typeof body.company==="object"?body.company:{};
   const {data:existing}=await sb.from("document_processing_jobs").select("*").eq("user_id",a.user.id).eq("document_id",doc.id).maybeSingle();
@@ -142,7 +142,7 @@ async function enqueue(req:Request,a:{user:any,auth:string},body:any){
     return out(req,{ok:true,job:existing,idempotent:true});
   }
   const {data:job,error:insertError}=await sb.from("document_processing_jobs").insert({
-    user_id:a.user.id,document_id:doc.id,client_ref:clientRef,batch_id:batchId,requested_kind:kind,state:"queued",phase:"queued",
+    user_id:a.user.id,document_id:doc.id,client_ref:clientRef,batch_id:batchId,file_name:clean(doc.name,260)||"document",mime_type:clean(doc.mime_type,160)||"application/octet-stream",size_bytes:Math.max(0,Number(doc.metadata?.size||0)),requested_kind:kind,state:"queued",phase:"queued",
     company_context:{name:clean(company.name,160),tradeName:clean(company.tradeName,160),kvk:clean(company.kvk,40),vat:clean(company.vat,40)}
   }).select("*").single();
   if(insertError||!job)return out(req,{ok:false,error:{code:"JOB_CREATE_FAILED"}},500);
