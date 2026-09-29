@@ -37,8 +37,10 @@ jobs:
           const require=createRequire(import.meta.url);
           const { PDFDocument, StandardFonts }=require('./tests/node_modules/pdf-lib');
           const esbuild=require('./tests/node_modules/esbuild');
-          const supabaseEntry=require.resolve('./tests/node_modules/@supabase/supabase-js');
-          const supabaseBundle=await esbuild.build({entryPoints:[supabaseEntry],bundle:true,format:'esm',platform:'browser',write:false,target:'es2022'});
+          const supabaseBundle=await esbuild.build({
+            stdin:{contents:"export { createClient } from '@supabase/supabase-js';",resolveDir:process.cwd()+'/tests',sourcefile:'supabase-smoke-entry.js',loader:'js'},
+            bundle:true,format:'esm',platform:'browser',write:false,target:'es2022'
+          });
 
           const preview=process.env.PREVIEW_URL;
           const browser=await chromium.launch({headless:true});
