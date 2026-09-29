@@ -1935,9 +1935,6 @@ const SUPABASE_PUBLISHABLE_KEY='sb_publishable_miAZ6CBZShVcmmNwlnEDgA_aGw1X4aP';
 const EDGE_BASE=SUPABASE_URL+'/functions/v1';
 const AUTH_REDIRECT_URL=(location.hostname==='boekuna-boekhouding.onrender.com'||location.hostname==='kwinest-boekhouding.onrender.com')?'https://boekuna-boekhouding.onrender.com/':(location.origin+'/');
 const DOCUMENT_PROCESSOR_URL='https://kwinest-docprocessor.onrender.com';
-const DOCUMENT_PROCESSOR_BETA_URL='https://boekuna-pr58-ocr-staging.onrender.com';
-const DOCUMENT_PROCESSOR_BETA_USER_IDS=new Set(['d0323018-5346-475b-9c93-073d5d4fbab7']);
-function activeDocumentProcessorUrl(){return currentUser?.id&&DOCUMENT_PROCESSOR_BETA_USER_IDS.has(String(currentUser.id))?DOCUMENT_PROCESSOR_BETA_URL:DOCUMENT_PROCESSOR_URL}
 const DOCUMENT_MAX_SIZE_MB=15;
 const DOCUMENT_MAX_SIZE_BYTES=DOCUMENT_MAX_SIZE_MB*1024*1024;
 const DOCUMENT_UPLOAD_EXTENSIONS=['pdf','jpg','jpeg','png','webp','heic','heif','tif','tiff','bmp','gif','docx','xlsx','csv'];
@@ -3533,7 +3530,7 @@ async function extractDocumentServer(file,onProgress){
  const fd=new FormData();fd.append('file',file,file.name);const company=state.company||{};fd.append('company_json',JSON.stringify({name:company.name||'',tradeName:company.tradeName||'',kvk:company.kvk||'',vat:company.vat||''}));fd.append('existing_json',JSON.stringify(buildProcessorExistingIndex()));
  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),120000);
  try{
-  const r=await fetchWithAuthRetry(activeDocumentProcessorUrl()+'/analyze',{method:'POST',body:fd,signal:ctrl.signal});
+  const r=await fetchWithAuthRetry(DOCUMENT_PROCESSOR_URL+'/analyze',{method:'POST',body:fd,signal:ctrl.signal});
   let j={};try{j=await r.json()}catch(e){}
   if(!r.ok||!j.ok){
    const publicError=j?.error&&typeof j.error==='object'?j.error:{};

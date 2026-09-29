@@ -142,11 +142,10 @@ assert.ok(html.includes("role=\"dialog\" aria-modal=\"true\""),"Filter/sort dial
 assert.ok(html.includes("if(e.key==='Tab')"),"Dialogs must trap keyboard focus");
 assert.ok(html.includes("state.hours.slice().sort"),"Hours must default to newest date first");
 assert.ok(html.includes("state.mileage.slice().sort"),"Mileage must default to newest date first");
-assert.ok(html.includes("fetchWithAuthRetry(activeDocumentProcessorUrl()+'/analyze'"),"Document processor requests must use authenticated retry through the account-scoped router");
-assert.ok(html.includes("const DOCUMENT_PROCESSOR_BETA_URL='https://boekuna-pr58-ocr-staging.onrender.com';"),"OCR beta processor endpoint must be explicit");
-assert.ok(html.includes("const DOCUMENT_PROCESSOR_BETA_USER_IDS=new Set(['d0323018-5346-475b-9c93-073d5d4fbab7']);"),"OCR beta must remain restricted to the approved Supabase user id");
-assert.ok(html.includes("function activeDocumentProcessorUrl(){return currentUser?.id&&DOCUMENT_PROCESSOR_BETA_USER_IDS.has(String(currentUser.id))?DOCUMENT_PROCESSOR_BETA_URL:DOCUMENT_PROCESSOR_URL}"),"OCR beta routing must fall back to the stable processor for every non-beta account");
-assert.ok(!html.includes("k.phetmanee@gmail.com"),"OCR beta authorization must not expose the account email in frontend source");
+assert.ok(html.includes("fetchWithAuthRetry(DOCUMENT_PROCESSOR_URL+'/analyze'"),"Document processor requests must use authenticated retry against the promoted production processor");
+assert.ok(!html.includes("DOCUMENT_PROCESSOR_BETA"),"Retired OCR beta routing must not remain in production source");
+assert.ok(!html.includes("boekuna-pr58-ocr-staging.onrender.com"),"Retired OCR staging endpoint must not remain in production source");
+assert.ok(!html.includes("activeDocumentProcessorUrl()"),"All accounts must use the production document processor directly");
 assert.ok(html.includes("async function fetchWithAuthRetry"),"Authenticated processor requests must refresh and retry expired sessions");
 assert.ok(html.includes('id="boekuna-upload-bootstrap"'),"Upload bootstrap must exist independently of the main app initialization");
 assert.ok(html.includes("input.dataset.uploadBound='true'"),"Upload controls must be explicitly bound after the main script");
@@ -184,16 +183,17 @@ for(const required of [
   assert.ok(fs.existsSync(new URL(required,import.meta.url)),`Store launch file missing: ${required}`);
 }
 const privacy=fs.readFileSync(new URL("../public/privacy/index.html",import.meta.url),"utf8");
+const storePrivacy=fs.readFileSync(new URL("../store/privacy-data-safety.md",import.meta.url),"utf8");
 const support=fs.readFileSync(new URL("../public/support/index.html",import.meta.url),"utf8");
 const deletion=fs.readFileSync(new URL("../public/account-verwijderen/index.html",import.meta.url),"utf8");
 const deleteAccountEdge=fs.readFileSync(new URL("../supabase/functions/delete-account/index.ts",import.meta.url),"utf8");
 const analyzeInvoiceEdge=fs.readFileSync(new URL("../supabase/functions/analyze-invoice/index.ts",import.meta.url),"utf8");
 assert.ok(privacy.includes("Boekuna is een product van Kwinest"),"Privacy policy must identify the product/operator");
-assert.ok(privacy.includes("originele geüploade document of de originele afbeelding"),"Privacy policy must disclose that independent AI verification can receive the original document/image");
-assert.ok(privacy.includes("standaard documentscan kan zonder externe AI-provider"),"Privacy policy must disclose that standard scanning is local-first and AI is optional");
-assert.ok(privacy.includes("maximaal 30 dagen"),"Privacy policy must disclose standard OpenAI API abuse-monitoring retention without claiming ZDR");
-assert.ok(privacy.includes("store:false"),"Privacy policy must distinguish Responses application-state storage from provider retention");
-assert.ok(privacy.includes("niet dat AI-verwerking uitsluitend in de EU plaatsvindt"),"Privacy policy must not imply EU-only processing without verified production residency");
+assert.ok(privacy.includes("momenteel geen externe AI-provider"),"Privacy policy must state that external AI is disabled in the current production document flow");
+assert.ok(privacy.includes("niet naar OpenAI of een andere externe AI-provider gestuurd"),"Privacy policy must state that current production does not send document data to external AI");
+assert.ok(privacy.includes("privacybeleid vóór activering bijgewerkt"),"Privacy policy must require disclosure before any future external-AI reactivation");
+assert.ok(storePrivacy.includes("External AI processing is currently disabled in production"),"Store privacy disclosure must match the production external-AI state");
+assert.ok(storePrivacy.includes("does not send document text, uploaded documents/images or scan results"),"Store privacy disclosure must state that document data is not sent to external AI");
 assert.ok(support.includes("support_requests"),"Public support form must submit to the support intake");
 assert.ok(deletion.includes("Online verwijderingsverzoek"),"Account deletion web resource must allow an external deletion request");
 assert.ok(deleteAccountEdge.includes('admin.rpc("delete_email_connection_secret"'),"Account deletion must remove connected mailbox credentials from Vault before deleting the user");

@@ -65,9 +65,10 @@ Payment card details: processed by Stripe and not stored directly in the Boekuna
 
 - Supabase: authentication, PostgreSQL database, private storage and server functions.
 - Render: web app/document processor hosting.
-- OpenAI or another configured AI provider: only when an AI-assisted document function is actually invoked. Relevant extracted text is sent for interpretation; an independent second verification may also send the original uploaded document/image when needed. OpenAI Responses requests use `store:false`, but the public notice does not claim Zero Data Retention: standard OpenAI API abuse-monitoring retention can be up to 30 days unless the production project is explicitly approved/configured for a different retention mode. EU-only processing is not claimed unless the production project/endpoint has been verified accordingly.
 - Stripe: web subscription checkout, recurring billing, payment-method management and customer billing portal.
 - Configured transactional email provider: only when email delivery is used.
+
+External AI processing is currently disabled in production and is not an active production processor. The standard document flow uses PDF text extraction/OCR, deterministic financial checks and human review in the Boekuna document processor. Current production does not send document text, uploaded documents/images or scan results to OpenAI or another external AI provider. Any future reactivation requires a new privacy/provider review and an updated disclosure before activation.
 
 These providers are not used by Boekuna for advertising tracking.
 
