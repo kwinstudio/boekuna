@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
+const financialCorrectionSource=fs.readFileSync(new URL('../public/assets/financial-correction.js',import.meta.url),'utf8');
 function replaceLast(source,needle,replacement){
   const i=source.lastIndexOf(needle);
   if(i<0)throw new Error('Missing bootstrap marker: '+needle);
@@ -67,6 +68,7 @@ document.getElementById('mainApp').style.display='grid';
 let appHtml=replaceLast(original,'initAuth();',bootstrap);
 
 const server=http.createServer((req,res)=>{
+  if(req.url?.startsWith('/assets/financial-correction.js')){res.writeHead(200,{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store'});return res.end(financialCorrectionSource)}
   if(req.url?.startsWith('/manifest.webmanifest')){
     res.writeHead(200,{'content-type':'application/manifest+json'});
     return res.end('{}');
