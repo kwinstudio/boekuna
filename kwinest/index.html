@@ -3487,7 +3487,7 @@ function documentProcessingStatus(item){
 }
 function documentProcessingSubtext(item){
  if(item.state==='failed'){const x=uploadErrorInfo(item.error);if(x.code==='NETWORK_ERROR'&&item.uploaded)return 'Je document is ontvangen. Alleen de actuele status kon tijdelijk niet worden opgehaald.';return x.explanation}
- if(item.longWait)return 'Dit document vraagt iets meer controle. Boekuna is nog bezig. Het bestand is ontvangen; je kunt ondertussen verder werken.';
+ if(item.longWait)return 'Dit document vraagt iets meer controle. Boekuna is nog bezig. De upload is afgerond; je kunt ondertussen verder werken.';
  if(item.state==='uploading')return 'Alleen de echte bestandsoverdracht krijgt een percentage.';
  if(item.state==='uploaded'||item.state==='queued')return 'Bestand ontvangen. Verwerking gaat op de achtergrond verder.';
  if(item.state==='processing')return item.subtext||'Document lezen en gegevens herkennen.';
