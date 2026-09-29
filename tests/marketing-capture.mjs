@@ -265,6 +265,9 @@ async function openAppPage(name){
 try{
   await page.goto(captureBase+'/app',{waitUntil:'domcontentloaded',timeout:45000});
   await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await page.locator('.sidebar img.bookuna-logo-icon').waitFor();
+  await page.waitForFunction(()=>[...document.querySelectorAll('img.bookuna-logo-icon')].every(img=>img.complete&&img.naturalWidth>0),null,{timeout:10000});
+  assert.equal(await page.locator('.sidebar img.bookuna-logo-icon').evaluate(img=>img.naturalWidth>0),true,'Brand logo assets must be loaded before marketing capture');
   await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important} .toast-wrap{display:none!important}'});
 
   assets.push(await saveWebp(page,'boekuna-dashboard-desktop.webp'));
