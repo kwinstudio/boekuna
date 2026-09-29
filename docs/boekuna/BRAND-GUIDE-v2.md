@@ -3,7 +3,9 @@
 Status: approved final identity · production asset set  
 Approved: 29 September 2026  
 Source branch: `brand/final-boekuna-logo`  
-Implementation PR: `#96`
+Implementation PR: `#96`  
+Product capture refresh: `#97`  
+Capture proof: refreshed final-logo product assets retain previously verified processor-backed review evidence when no dedicated capture account is available.
 
 ## Brand idea
 BOEKUNA is the calm control layer between everyday business input and reliable financial administration.

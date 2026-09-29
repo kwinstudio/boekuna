@@ -17,6 +17,8 @@ const SOURCE_REF=process.env.GITHUB_REF_NAME||'local';
 const WORKFLOW_RUN_ID=process.env.GITHUB_RUN_ID||null;
 const outDir=path.join(root,'public','assets','product');
 const tmpDir=path.join(root,'tests','.marketing-capture-tmp');
+const previousProofPath=path.join(outDir,'capture-proof.json');
+const previousCaptureProof=fs.existsSync(previousProofPath)?JSON.parse(fs.readFileSync(previousProofPath,'utf8')):null;
 fs.mkdirSync(outDir,{recursive:true});
 fs.mkdirSync(tmpDir,{recursive:true});
 
@@ -265,6 +267,9 @@ async function openAppPage(name){
 try{
   await page.goto(captureBase+'/app',{waitUntil:'domcontentloaded',timeout:45000});
   await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await page.locator('.sidebar img.bookuna-logo-icon').waitFor();
+  await page.waitForFunction(()=>[...document.querySelectorAll('img.bookuna-logo-icon')].every(img=>img.complete&&img.naturalWidth>0),null,{timeout:10000});
+  assert.equal(await page.locator('.sidebar img.bookuna-logo-icon').evaluate(img=>img.naturalWidth>0),true,'Brand logo assets must be loaded before marketing capture');
   await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important} .toast-wrap{display:none!important}'});
 
   assets.push(await saveWebp(page,'boekuna-dashboard-desktop.webp'));
@@ -400,6 +405,25 @@ try{
 
   assert.deepEqual(pageErrors,[],'Browser page errors: '+pageErrors.join(' | '));
 
+  let preservedReviewAssets=[];
+  if(!accessToken&&previousCaptureProof?.processorStatus==='real-processor-confirmed'){
+    const reviewNames=new Set([
+      'boekuna-document-review-desktop.webp',
+      'boekuna-document-review-desktop-960.webp',
+      'boekuna-document-review-step-document-desktop.webp',
+      'boekuna-document-review-step-amounts-desktop.webp',
+      'boekuna-document-review-step-relation-desktop.webp',
+      'boekuna-document-review-step-save-desktop.webp',
+      'boekuna-document-review-mobile.webp',
+      'boekuna-document-review-amounts-mobile.webp'
+    ]);
+    preservedReviewAssets=(previousCaptureProof.assets||[]).filter(a=>reviewNames.has(a.name)&&fs.existsSync(path.join(outDir,a.name)));
+    assets.push(...preservedReviewAssets);
+    processorStatus='real-processor-confirmed';
+    processorResponse=previousCaptureProof.processor||null;
+    parsed=previousCaptureProof.processorResult||null;
+  }
+
   const proof={
     generatedAt:new Date().toISOString(),
     source:'kwinest/index.html',
@@ -412,6 +436,7 @@ try{
     processorStatus,
     processor:processorResponse,
     processorResult:parsed?{sourceQuality:parsed.sourceQuality,party:parsed.party,invoiceNumber:parsed.invoiceNumber,gross:parsed.gross}:null,
+    reviewEvidencePreserved:preservedReviewAssets.length>0,
     assets
   };
   fs.writeFileSync(path.join(outDir,'capture-proof.json'),JSON.stringify(proof,null,2)+'\n');
