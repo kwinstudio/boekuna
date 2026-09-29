@@ -4305,6 +4305,7 @@ async function processFinancialDocument(file,preStructure=null,options={}){
  if(openReview){pendingPdfImport=prepared;requestAnimationFrame(()=>showPdfImportReview(parsed))}
  return prepared
 }
+const EXTERNAL_AI_REVIEW_ENABLED=false;
 const DOCUMENT_VERIFICATION_VERSION=1;
 const DOCUMENT_VERIFICATION_MAX_ATTEMPTS=2;
 function documentVerificationReasons(d){
