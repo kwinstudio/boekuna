@@ -54,6 +54,8 @@ jobs:
         run: node tests/production-integrity.test.mjs
       - name: Invoice PDF and email parity
         run: node tests/invoice-delivery.test.mjs
+      - name: 03A PR59 independent PDF QA
+        run: node tests/03a-pr59-pdf.test.mjs
       - name: Install document processor regression dependencies
         run: pip install --disable-pip-version-check -r kwinest/docprocessor/requirements.txt
       - name: PDF document processor regression
