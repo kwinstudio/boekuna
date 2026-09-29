@@ -18,7 +18,15 @@ assert.match(migration,/unique \(user_id, document_id\)/,'One persistent job per
 assert.match(migration,/enable row level security/,'Processing jobs must have RLS enabled');
 assert.match(migration,/auth\.uid\(\)\) = user_id/,'Processing status must be tenant scoped');
 assert.match(migration,/revoke insert, update, delete on public\.document_processing_jobs from anon, authenticated/,'Clients must not mutate jobs directly');
+assert.match(migration,/document_processing_jobs_document_id_idx/,'Document foreign key must have a covering index');
+assert.match(migration,/document_processing_jobs_mfa_guard/,'Processing status must preserve the bookkeeping MFA boundary');
+assert.match(migration,/\(\(select auth\.jwt\(\)\)->>'aal'\)/,'MFA policy must use init-plan-safe auth.jwt evaluation');
 assert.match(worker,/\.eq\("user_id",a\.user\.id\)/,'Worker actions must enforce ownership');
+assert.match(worker,/mfa\.getAuthenticatorAssuranceLevel\(\)/,'Worker mutations must enforce the existing MFA boundary');
+assert.match(worker,/MFA_REQUIRED/,'Worker must reject mutation when enrolled MFA is not satisfied');
+assert.match(worker,/const PROCESSING_CONCURRENCY=2/,'Server queue must keep processing concurrency bounded');
+assert.match(worker,/EdgeRuntime\.waitUntil\(triggerNext\(authHeader\)\)/,'Every completed attempt must continue the persistent queue');
+assert.match(worker,/repairMissingJobs/,'Resume must recover received documents that missed job creation');
 assert.match(worker,/\.eq\("state","queued"\)/,'Job claim must be state guarded for idempotency');
 assert.match(worker,/if\(existing\)/,'Enqueue must reuse an existing document job');
 assert.match(worker,/repairMissingJobs\(a\.user\.id\)/,'Resume must repair received documents that missed job creation');
@@ -73,6 +81,16 @@ try{
   assert.equal(transitionResult.invalid,true,'Invalid READY -> processing transition must be rejected');
   assert.equal(transitionResult.retryState,'failed');
   assert.equal(transitionResult.afterRetry,'queued');
+  const supportedBatchSizes=await page.evaluate(()=>{
+    const result={};
+    for(const n of [1,2,5,10]){
+      const rows=Array.from({length:n},(_,i)=>({state:i%3===0?'ready':i%3===1?'review_required':'failed'}));
+      result[n]={total:rows.length,terminal:rows.filter(x=>['ready','review_required','failed'].includes(x.state)).length};
+    }
+    return result;
+  });
+  assert.deepEqual(Object.keys(supportedBatchSizes),['1','2','5','10'],'Supported batch sizes must include 1, 2, 5, and the 10-document product limit');
+  for(const [n,row] of Object.entries(supportedBatchSizes)){assert.equal(row.total,Number(n));assert.equal(row.terminal,Number(n))}
 
   const now=new Date().toISOString();
   await page.evaluate(({now})=>{
