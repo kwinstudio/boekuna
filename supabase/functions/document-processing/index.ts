@@ -17,6 +17,7 @@ const ALLOWED=new Set([
 ]);
 const MAX_BODY=64*1024;
 const STALE_MS=10*60*1000;
+const PROCESSING_CONCURRENCY=2;
 const ACTIVE=new Set(["received","queued","processing","validating"]);
 const RETRYABLE_CODES=new Set(["PROCESSOR_UNAVAILABLE","PROCESSING_TIMEOUT","RATE_LIMITED","NETWORK_ERROR","UNKNOWN"]);
 
@@ -127,9 +128,29 @@ async function processJob(jobId:string,authHeader:string){
   }catch(err:any){
     const isAbort=err?.name==="AbortError";
     await markFailed(sb,jobId,isAbort?"PROCESSING_TIMEOUT":clean(err?.code||"PROCESSOR_UNAVAILABLE",80),Number(err?.status||503),"");
+  }finally{
+    EdgeRuntime.waitUntil(triggerNext(authHeader));
   }
 }
 function run(jobId:string,auth:string){EdgeRuntime.waitUntil(processJob(jobId,auth))}
+async function kickUser(userId:string,authHeader:string){
+  const sb=admin();
+  const {count}=await sb.from("document_processing_jobs").select("id",{count:"exact",head:true}).eq("user_id",userId).in("state",["processing","validating"]);
+  const slots=Math.max(0,PROCESSING_CONCURRENCY-Number(count||0));
+  if(!slots)return 0;
+  const {data:queued}=await sb.from("document_processing_jobs").select("id").eq("user_id",userId).eq("state","queued").lt("attempt",3).order("created_at",{ascending:true}).limit(slots);
+  for(const job of queued||[])run(job.id,authHeader);
+  return queued?.length||0;
+}
+async function triggerNext(authHeader:string){
+  try{
+    await fetch(URL+"/functions/v1/document-processing",{
+      method:"POST",
+      headers:{Authorization:authHeader,apikey:ANON,"content-type":"application/json"},
+      body:JSON.stringify({action:"run_next"})
+    });
+  }catch(_){}
+}
 async function enqueue(req:Request,a:{user:any,auth:string},body:any){
   const sb=admin(),clientRef=clean(body.client_ref,120),batchId=clean(body.batch_id,120),kind=clean(body.kind||"auto",32);
   if(!clientRef||!batchId)return out(req,{ok:false,error:{code:"INVALID_REQUEST"}},400);
@@ -138,7 +159,7 @@ async function enqueue(req:Request,a:{user:any,auth:string},body:any){
   const company=body.company&&typeof body.company==="object"?body.company:{};
   const {data:existing}=await sb.from("document_processing_jobs").select("*").eq("user_id",a.user.id).eq("document_id",doc.id).maybeSingle();
   if(existing){
-    if(existing.state==="queued")run(existing.id,a.auth);
+    if(existing.state==="queued")await kickUser(a.user.id,a.auth);
     return out(req,{ok:true,job:existing,idempotent:true});
   }
   const {data:job,error:insertError}=await sb.from("document_processing_jobs").insert({
@@ -146,7 +167,7 @@ async function enqueue(req:Request,a:{user:any,auth:string},body:any){
     company_context:{name:clean(company.name,160),tradeName:clean(company.tradeName,160),kvk:clean(company.kvk,40),vat:clean(company.vat,40)}
   }).select("*").single();
   if(insertError||!job)return out(req,{ok:false,error:{code:"JOB_CREATE_FAILED"}},500);
-  run(job.id,a.auth);
+  await kickUser(a.user.id,a.auth);
   return out(req,{ok:true,job},202);
 }
 async function retry(req:Request,a:{user:any,auth:string},body:any){
@@ -160,7 +181,7 @@ async function retry(req:Request,a:{user:any,auth:string},body:any){
     started_at:null,completed_at:null,updated_at:new Date().toISOString()
   }).eq("id",job.id).eq("user_id",a.user.id).select("*").single();
   if(error||!reset)return out(req,{ok:false,error:{code:"JOB_RETRY_FAILED"}},500);
-  run(job.id,a.auth);
+  await kickUser(a.user.id,a.auth);
   return out(req,{ok:true,job:reset},202);
 }
 async function resolveReview(req:Request,a:{user:any,auth:string},body:any){
@@ -180,11 +201,10 @@ async function resume(req:Request,a:{user:any,auth:string}){
   const {data:queued}=await sb.from("document_processing_jobs").select("*").eq("user_id",a.user.id).eq("state","queued").lt("attempt",3).limit(3);
   const {data:stale}=await sb.from("document_processing_jobs").select("*").eq("user_id",a.user.id).in("state",["processing","validating"]).lt("updated_at",threshold).lt("attempt",3).limit(3);
   for(const job of stale||[]){
-    const {data:reset}=await sb.from("document_processing_jobs").update({state:"queued",phase:"queued",updated_at:new Date().toISOString()}).eq("id",job.id).in("state",["processing","validating"]).select("id").maybeSingle();
-    if(reset)run(job.id,a.auth);
+    await sb.from("document_processing_jobs").update({state:"queued",phase:"queued",updated_at:new Date().toISOString()}).eq("id",job.id).in("state",["processing","validating"]);
   }
-  for(const job of queued||[])run(job.id,a.auth);
-  return out(req,{ok:true,resumed:(queued?.length||0)+(stale?.length||0)});
+  const started=await kickUser(a.user.id,a.auth);
+  return out(req,{ok:true,resumed:(queued?.length||0)+(stale?.length||0),started});
 }
 
 Deno.serve(async(req:Request)=>{
