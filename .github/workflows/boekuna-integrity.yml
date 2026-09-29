@@ -31,6 +31,42 @@ jobs:
           python-version: "3.13.15"
           cache: "pip"
           cache-dependency-path: "kwinest/docprocessor/requirements.txt"
+      - name: Render OCR staging health/readiness
+        env:
+          EXPECTED_PROCESSOR_REVISION: "75e3b631575bab2dcdd84db30194335ad1369801"
+        run: |
+          python - <<'PY'
+          import json, os, time, urllib.request
+
+          base = "https://boekuna-pr58-ocr-staging.onrender.com"
+          expected = os.environ["EXPECTED_PROCESSOR_REVISION"]
+          deadline = time.time() + 240
+          last = None
+          while time.time() < deadline:
+              try:
+                  with urllib.request.urlopen(base + "/health", timeout=45) as response:
+                      health = json.load(response)
+                  if health.get("revision") != expected:
+                      last = {"revision": health.get("revision"), "expected": expected}
+                      time.sleep(5)
+                      continue
+                  assert health["ocr"]["version"] == "3.9.2", health
+                  assert health["ocr"]["model"] == "PP-OCRv6-small", health
+                  assert health["ocr"]["runtime"]["version"] == "1.30.0", health
+                  assert health["pythonRuntime"] == "3.13.15", health
+                  with urllib.request.urlopen(base + "/ready", timeout=60) as response:
+                      ready = json.load(response)
+                  assert ready.get("ok") is True and ready.get("ready") is True, ready
+                  assert ready.get("revision") == expected, ready
+                  print("STAGING_HEALTH", json.dumps(health, sort_keys=True))
+                  print("STAGING_READY", json.dumps(ready, sort_keys=True))
+                  break
+              except Exception as exc:
+                  last = repr(exc)
+                  time.sleep(5)
+          else:
+              raise AssertionError(f"Staging did not reach expected ready revision: {last}")
+          PY
       - name: Accounting integrity
         run: node tests/accounting-integrity.test.mjs
       - name: Production source safety
