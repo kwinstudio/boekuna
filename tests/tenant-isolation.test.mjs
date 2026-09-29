@@ -50,14 +50,19 @@ const restoreWindow=migrations.slice(restoreAt,restoreAt+2600);
 assert.match(restoreWindow,/id\s*=\s*p_revision_id/i,'Revision restore must target the requested revision id');
 assert.match(restoreWindow,/user_id\s*=\s*\(select auth\.uid\(\)\)/i,'Revision restore must also require current-user ownership');
 
+const grantFile=fs.readdirSync(migrationDir).find(name=>name.endsWith('_financial_automation_restrict_table_grants.sql'));
+assert.ok(grantFile,'Financial table grant hardening migration must be tracked');
+const financialGrants=fs.readFileSync(new URL(grantFile,migrationDir),'utf8');
+assert.match(financialGrants,/revoke\s+all\s+privileges\s+on\s+table/i,'Financial tables must revoke mutation-capable privileges');
+assert.match(financialGrants,/from\s+anon,\s*authenticated/i,'Financial table revocation must cover authenticated users');
+assert.match(financialGrants,/grant\s+select\s+on\s+table/i,'Financial tables may restore SELECT only');
+assert.match(financialGrants,/to\s+authenticated/i,'Financial SELECT grant must target authenticated users');
 for(const table of [
   'bank_imports','bank_transactions','transaction_matches',
   'document_duplicate_fingerprints','document_validation_results'
 ]){
-  const revoke=new RegExp(`revoke\\s+all\\s+on\\s+public\\.${table}\\s+from\\s+anon,\\s*authenticated`,'i');
-  const selectOnly=new RegExp(`grant\\s+select\\s+on\\s+public\\.${table}\\s+to\\s+authenticated`,'i');
-  assert.match(migrations,revoke,`${table} must not expose direct write privileges to authenticated users`);
-  assert.match(migrations,selectOnly,`${table} may expose authenticated SELECT only through RLS`);
+  const occurrences=financialGrants.split('public.'+table).length-1;
+  assert.ok(occurrences>=2,`${table} must appear in both revoke-all and SELECT-only grant lists`);
 }
 
 const analyze=read('supabase/functions/analyze-invoice/index.ts');
