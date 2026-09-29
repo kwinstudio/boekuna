@@ -511,6 +511,94 @@ try{
   assert.match(await live.title(),/Boekuna/);
   await live.close();
 
+  // QA-only direct production-domain smoke. Uses fictive, in-memory data and
+  // replaces only the PDF fetch helper in this browser page; no customer data
+  // or authenticated production records are touched.
+  const liveCustom=await browser.newPage({viewport:{width:1280,height:800}});
+  const liveCustomResponse=await liveCustom.goto('https://boekuna.nl/?login=1',{waitUntil:'domcontentloaded',timeout:45000});
+  assert.ok(liveCustomResponse && liveCustomResponse.ok(),'boekuna.nl must answer successfully');
+  await liveCustom.getByRole('heading',{name:'Inloggen'}).waitFor({timeout:15000});
+  assert.match(await liveCustom.title(),/Boekuna/);
+
+  const productionContract=await liveCustom.evaluate(()=>({
+    unified:!!document.querySelector('#boekuna-unified-email-handoff-v2'),
+    gmail:typeof window.buildGmailComposeUrl==='function',
+    sendAlias:typeof window.openSendInvoice==='function',
+    reminder:typeof window.openReminder==='function',
+    directMailboxCopy:document.documentElement.innerHTML.includes('Gmail koppelen')
+  }));
+  assert.equal(productionContract.unified,true,'Production must contain unified email handoff v2');
+  assert.equal(productionContract.gmail,true,'Production must expose Gmail browser compose helper');
+  assert.equal(productionContract.sendAlias,true);
+  assert.equal(productionContract.reminder,true);
+  assert.equal(productionContract.directMailboxCopy,false,'Production must not restore Gmail mailbox connection CTA');
+
+  const liveFixture=await liveCustom.evaluate(()=>{
+    currentUser=TEST_USER;
+    state=structuredClone(DEFAULT);
+    for(const key of ['contacts','services','invoices','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])state[key]=[];
+    state.company={...state.company,name:'Live QA Test BV',tradeName:'Boekuna Live QA',contactName:'QA',email:'qa@example.test',phone:'0101234567',address:'Teststraat 1',postal:'3011AA',city:'Rotterdam',country:'Nederland',kvk:'12345678',vat:'NL123456789B01',iban:'NL91ABNA0417164300',invoicePrefix:'LIVE-',paymentDays:14,kor:false};
+    const customer={id:'live-customer',type:'customer',name:'Live QA Klant BV',contactPerson:'Quinten',email:'klant@example.test',address:'Klantstraat 2',postal:'3012BB',city:'Rotterdam',phone:'',kvk:'',vat:''};
+    const due=new Date();due.setDate(due.getDate()-5);
+    const invoice={id:'live-final',number:'LIVE-0001',numberManaged:true,numberFinalized:true,customerId:customer.id,issueDate:today(),supplyDate:today(),dueDate:due.toISOString().slice(0,10),paymentDays:14,status:'sent',taxTreatment:'standard',reference:'',paymentReference:'LIVE-0001',discountType:'none',discountValue:0,notes:'',lines:[{desc:'Live QA advies',qty:1,unitLabel:'uur',unit:100,vat:21}],payments:[],reminderCount:0};
+    const draft={...structuredClone(invoice),id:'live-draft',number:'CONCEPT-LIVE',numberFinalized:false,status:'draft',paymentReference:'CONCEPT-LIVE'};
+    state.contacts=[customer];
+    state.invoices=[invoice,draft];
+    window.fetchInvoiceSharePdf=async function(inv,cust){
+      return new File([new Uint8Array([0x25,0x50,0x44,0x46,0x2d,0x31,0x2e,0x37])],invoiceShareFilename(inv,cust),{type:'application/pdf'});
+    };
+    Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>false});
+    return {invoiceId:invoice.id,draftId:draft.id,gross:invoiceGross(invoice)};
+  });
+
+  await liveCustom.evaluate(id=>openSendInvoice(id),liveFixture.invoiceId);
+  await liveCustom.getByRole('heading',{name:'Factuur versturen'}).waitFor({timeout:10000});
+  assert.equal(await liveCustom.locator('#emailHandoffForm [name="to"]').inputValue(),'klant@example.test');
+  assert.match(await liveCustom.locator('#emailHandoffForm [name="subject"]').inputValue(),/^Factuur LIVE-0001/);
+  const liveBody=await liveCustom.locator('#emailHandoffForm [name="message"]').inputValue();
+  assert.match(liveBody,/Goedendag Quinten,/);
+  assert.match(liveBody,/Factuurdatum:/);
+  assert.match(liveBody,/Vervaldatum:/);
+  await liveCustom.evaluate(()=>prepareEmailHandoffFromComposer());
+  await liveCustom.getByRole('heading',{name:'Kies hoe u wilt versturen'}).waitFor({timeout:10000});
+  const liveMailto=await liveCustom.evaluate(()=>emailHandoffMailtoUrl());
+  assert.match(liveMailto,/^mailto:klant%40example\.test\?subject=/);
+  assert.match(decodeURIComponent(liveMailto),/Factuur LIVE-0001/);
+  const liveGmail=await liveCustom.evaluate(()=>buildGmailComposeUrl('klant@example.test','Factuur LIVE-0001','Bedrag € 121,00'));
+  assert.match(liveGmail,/^https:\/\/mail\.google\.com\/mail\/\?view=cm&fs=1&to=/);
+  await liveCustom.evaluate(()=>closeModal());
+
+  await liveCustom.evaluate(id=>openSendInvoice(id),liveFixture.draftId);
+  await liveCustom.getByRole('heading',{name:'Deze factuur is nog een concept'}).waitFor({timeout:10000});
+  assert.equal(await liveCustom.getByRole('button',{name:'Definitief maken en versturen'}).count(),1,'Production draft must expose direct finalize + send CTA');
+  await liveCustom.evaluate(()=>closeModal());
+
+  await liveCustom.evaluate(id=>openReminder(id),liveFixture.invoiceId);
+  await liveCustom.getByRole('heading',{name:'Betalingsherinnering'}).waitFor({timeout:10000});
+  assert.match(await liveCustom.locator('#emailHandoffForm [name="subject"]').inputValue(),/^Herinnering factuur LIVE-0001/);
+  assert.equal(await liveCustom.locator('#emailHandoffForm [name="attachPdf"]').isChecked(),true);
+  const beforeReminder=await liveCustom.evaluate(id=>{
+    const i=state.invoices.find(x=>x.id===id);
+    return {count:i.reminderCount||0,last:i.lastReminderAt||null,gross:invoiceGross(i)};
+  },liveFixture.invoiceId);
+  await liveCustom.evaluate(()=>prepareEmailHandoffFromComposer());
+  await liveCustom.getByRole('heading',{name:'Kies hoe u wilt versturen'}).waitFor({timeout:10000});
+  const afterPrepare=await liveCustom.evaluate(id=>{
+    const i=state.invoices.find(x=>x.id===id);
+    return {count:i.reminderCount||0,last:i.lastReminderAt||null,gross:invoiceGross(i)};
+  },liveFixture.invoiceId);
+  assert.deepEqual(afterPrepare,beforeReminder,'Preparing production reminder must not mutate reminder or financial state');
+  await liveCustom.evaluate(()=>showEmailHandoffConfirmation('mailto'));
+  await liveCustom.getByRole('heading',{name:'Hebt u de e-mail verzonden?'}).waitFor({timeout:10000});
+  await liveCustom.evaluate(()=>emailHandoffNotSent());
+  const afterCancel=await liveCustom.evaluate(id=>{
+    const i=state.invoices.find(x=>x.id===id);
+    return {count:i.reminderCount||0,last:i.lastReminderAt||null,gross:invoiceGross(i)};
+  },liveFixture.invoiceId);
+  assert.deepEqual(afterCancel,beforeReminder,'Cancelling production reminder confirmation must leave invoice unchanged');
+
+  await liveCustom.close();
+
   assert.deepEqual(pageErrors,[],'Browser page errors: '+pageErrors.join(' | '));
   console.log('Boekuna browser smoke: PASS (auth, CRUD, invoice integrity, native email share/fallback/cancel/confirmation, responsive layout, live availability)');
 }finally{
