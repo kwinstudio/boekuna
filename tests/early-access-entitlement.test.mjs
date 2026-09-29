@@ -1,46 +1,31 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
-const migration=fs.readFileSync(new URL('../supabase/migrations/20260928000656_early_access_entitlement_state_machine.sql',import.meta.url),'utf8');
-const checkout=fs.readFileSync(new URL('../supabase/functions/billing-checkout/index.ts',import.meta.url),'utf8');
-const webhook=fs.readFileSync(new URL('../supabase/functions/billing-webhook/index.ts',import.meta.url),'utf8');
-const launchGate=fs.readFileSync(new URL('../supabase/migrations/20260928003129_gate_early_access_until_launch.sql',import.meta.url),'utf8');
+const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
+const retirement=read('supabase/migrations/20260929122626_retire_first_100_early_access.sql');
+const checkout=read('supabase/functions/billing-checkout/index.ts');
+const pricing=read('public/prijzen/index.html');
+const faq=read('public/faq/index.html');
+const terms=read('public/voorwaarden/index.html');
+const html=read('kwinest/index.html');
 
-function entitlement({paidActive=false,paidPeriodEnd=0,claim=false,eaEndsAt=0,now=1}){
-  if(paidActive&&paidPeriodEnd>now)return 'paid';
-  if(claim&&eaEndsAt>now)return 'early_access_active';
-  if(claim)return 'expired_read_only';
-  return 'free';
+assert.ok(retirement.includes("else 'free'"),'Non-paid users must now resolve to Gratis');
+assert.ok(retirement.includes('drop trigger if exists on_auth_user_early_access'),'Automatic Early Access claim trigger must be retired');
+assert.ok(retirement.includes('drop function if exists private.ensure_early_access_claim(uuid)'),'Early Access claim allocator must be retired');
+assert.ok(retirement.includes('drop function if exists public.reserve_founding_offer(uuid)'),'Legacy Founding 100 reservation API must be retired');
+assert.ok(retirement.includes('drop function if exists public.get_early_access_campaign_status()'),'Public campaign-status API must be retired');
+assert.ok(!retirement.includes("then 'early_access_active'"),'Retirement migration must not create Early Access entitlement');
+assert.ok(!retirement.includes("then 'expired_read_only'"),'Retirement migration must not create Early Access read-only state');
+
+assert.ok(!checkout.includes('trial_end'),'Paid checkout must not create a Stripe trial');
+assert.ok(!checkout.includes('reserve_founding_offer'),'Paid checkout must not allocate founder slots');
+
+for(const [name,content] of [['pricing',pricing],['faq',faq],['terms',terms],['app',html]]){
+  for(const retired of ['Early Access','Founding 100','Eerste 100']){
+    assert.ok(!content.toLowerCase().includes(retired.toLowerCase()),`${name} must not expose retired offer: ${retired}`);
+  }
 }
+assert.ok(!pricing.includes('3 kalendermaanden'),'Pricing must not promise a free introductory period');
+assert.ok(!html.includes('3 kalendermaanden €0'),'App must not promise a free introductory period');
 
-// Required state transitions.
-assert.equal(entitlement({}), 'free');
-assert.equal(entitlement({claim:true,eaEndsAt:91,now:1}), 'early_access_active');
-assert.equal(entitlement({claim:true,eaEndsAt:91,paidActive:true,paidPeriodEnd:31,now:1}), 'paid');
-assert.equal(entitlement({claim:true,eaEndsAt:1,now:2}), 'expired_read_only');
-assert.equal(entitlement({claim:true,eaEndsAt:1,paidActive:true,paidPeriodEnd:31,now:2}), 'paid');
-assert.equal(entitlement({claim:true,eaEndsAt:91,paidActive:false,paidPeriodEnd:0,now:30}), 'early_access_active');
-assert.equal(entitlement({claim:true,eaEndsAt:1,paidActive:false,paidPeriodEnd:0,now:30}), 'expired_read_only');
-assert.equal(entitlement({claim:false,paidActive:false,now:30}), 'free');
-
-// Paid must dominate EA, but ending paid must never reset/restart EA.
-assert.ok(migration.includes("when exists (\n      select 1\n      from public.billing_accounts"),'Paid must be evaluated before Early Access');
-assert.ok(migration.includes("where e.current_user_id=p_user_id\n        and e.ends_at > now()"),'EA validity must use the immutable original end date');
-assert.ok(!migration.includes('update public.early_access_claims\n    set started_at'),'Normal claim flow must not restart existing claim dates');
-
-// Claim #100 closes the campaign and allocation is serialized.
-assert.ok(migration.includes('if v_next = 100 then'),'Claim 100 must close campaign');
-assert.ok(migration.includes('set is_open=false'),'Campaign must become closed');
-assert.ok(migration.includes('pg_advisory_xact_lock'),'Concurrent claims must not allocate the same slot');
-assert.ok(launchGate.includes('set is_open=false'),'Pre-launch must not consume real Early Access slots');
-assert.ok(launchGate.includes('v_user.created_at < v_campaign_start'),'Only accounts created after campaign opening may receive a new claim');
-assert.ok(launchGate.includes('private.set_early_access_campaign_open'),'Campaign opening must be a server-controlled launch action');
-assert.ok(launchGate.includes("grant execute on function private.set_early_access_campaign_open(boolean) to service_role"),'Only service role may open/close the campaign');
-
-// Stripe remains independent from EA.
-assert.ok(!checkout.includes('trial_end'),'Explicit paid checkout must not create a Stripe trial');
-assert.ok(!checkout.includes('reserve_founding_offer'),'Checkout must not allocate EA claims');
-assert.ok(webhook.includes('last_error'),'Webhook failures must remain observable/retryable');
-assert.ok(webhook.includes('apply_stripe_subscription_state'),'Stripe state must be applied through one guarded server-side path');
-
-console.log('Boekuna Early Access entitlement tests: PASS');
+console.log('Retired First 100 offer regression: PASS');
