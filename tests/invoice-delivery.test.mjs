@@ -83,6 +83,33 @@ for (const taxTreatment of ['standard', 'kor', 'reverse', 'icp', 'exempt']) {
   }
 }
 
+
+drawn.length = 0;
+const mixedInvoice = {
+  id: 'mixed', number: 'MIX-1', kind: 'invoice', taxTreatment: 'standard',
+  issueDate: '2026-09-29', dueDate: '2026-10-13',
+  lines: [{ qty: 1, unit: 100, vat: 21, desc: 'Advies' }, { qty: 1, unit: 100, vat: 9, desc: 'Café service' }],
+  vatLines: [{ rate: 9, taxableAmount: 100, vatAmount: 9 }, { rate: 21, taxableAmount: 100, vatAmount: 21 }],
+  payments: []
+};
+const mixedPdf = await edge.pdfBytes({invoice:mixedInvoice,company:{name:'Müller & Zonen B.V.',iban:'NL91ABNA0417164300'},customer:{name:'Café Noord'}});
+assert.equal((await PDFDocument.load(mixedPdf)).getPageCount(),1);
+assert.ok(drawn.includes('Vervaldatum 13-10-2026'));
+assert.ok(drawn.some(x=>x.startsWith('Btw 9% over ')));
+assert.ok(drawn.some(x=>x.startsWith('Btw 21% over ')));
+assert.ok(drawn.includes('Pagina 1 / 1'));
+
+drawn.length = 0;
+const longInvoice = {
+  id:'long',number:'LONG-1',kind:'invoice',taxTreatment:'standard',issueDate:'2026-09-29',dueDate:'2026-10-13',
+  lines:Array.from({length:50},(_,i)=>({qty:1,unit:10+i/100,vat:i%2?9:21,desc:'Regel '+String(i+1)+' - Café service'})),payments:[]
+};
+const longPdf=await edge.pdfBytes({invoice:longInvoice,company:{name:'Testbedrijf',iban:'NL91ABNA0417164300'},customer:{name:'Lange Klantnaam B.V.'}});
+const longLoaded=await PDFDocument.load(longPdf);
+assert.ok(longLoaded.getPageCount()>1,'50 lines must paginate');
+assert.ok(drawn.includes('Omschrijving'),'table header must render on continuation pages');
+assert.ok(drawn.includes('Pagina 1 / '+String(longLoaded.getPageCount())));
+
 const payload = {
   to: 'customer@example.org',
   subject: 'Factuur nummer een\r\nB',
