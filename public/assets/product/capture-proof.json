@@ -1,15 +1,16 @@
 {
-  "generatedAt": "2026-09-29T18:50:03.352Z",
+  "generatedAt": "2026-09-29T18:55:57.167Z",
   "source": "kwinest/index.html",
-  "sourceCommit": "e06f297ab243630089015efa35ba75bf1530eec4",
+  "sourceCommit": "0f338eee13f5cf1aecde3d6371a259b80fde5194",
   "sourceRef": "brand/final-logo-product-captures",
-  "workflowRunId": "36614799290",
+  "workflowRunId": "36615501211",
   "viewportDesktop": "1440x960",
   "viewportMobile": "390x844",
   "demoDataset": "permanent-fictive-marketing-v1",
   "processorStatus": "blocked-no-dedicated-account",
   "processor": null,
   "processorResult": null,
+  "reviewEvidencePreserved": false,
   "assets": [
     {
       "name": "boekuna-dashboard-desktop.webp",
