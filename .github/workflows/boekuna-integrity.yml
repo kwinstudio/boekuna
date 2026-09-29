@@ -12,6 +12,7 @@ on:
       - "supabase/functions/send-invoice/**"
       - "supabase/functions/consume-quota/**"
       - "supabase/functions/analyze-invoice/**"
+      - "supabase/migrations/**"
       - ".github/workflows/boekuna-integrity.yml"
 
 permissions:
