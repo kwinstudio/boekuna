@@ -260,7 +260,9 @@ def test_health_and_ready_expose_safe_exact_runtime_metadata():
     rss_before = _rss_mb()
     old_publishable_key = processor.SUPABASE_PUBLISHABLE_KEY
     old_openai_key = processor.OPENAI_API_KEY
+    old_ai_enabled = processor.EXTERNAL_AI_ENABLED
     processor.SUPABASE_PUBLISHABLE_KEY = "sb_publishable_qa_readiness"
+    processor.EXTERNAL_AI_ENABLED = True
     processor.OPENAI_API_KEY = "sk-proj-qa-readiness"
     try:
         started = time.perf_counter()
@@ -270,6 +272,7 @@ def test_health_and_ready_expose_safe_exact_runtime_metadata():
     finally:
         processor.SUPABASE_PUBLISHABLE_KEY = old_publishable_key
         processor.OPENAI_API_KEY = old_openai_key
+        processor.EXTERNAL_AI_ENABLED = old_ai_enabled
     if isinstance(ready, JSONResponse):
         raise AssertionError(
             "OCR readiness failed: "
@@ -322,19 +325,23 @@ def test_ready_fails_closed_when_auth_verifier_is_not_configured():
 def test_ready_stays_green_when_optional_ai_verifier_is_not_configured():
     old_publishable_key = processor.SUPABASE_PUBLISHABLE_KEY
     old_openai_key = processor.OPENAI_API_KEY
+    old_ai_enabled = processor.EXTERNAL_AI_ENABLED
     old_get_engine = processor.get_ocr_engine
     processor.SUPABASE_PUBLISHABLE_KEY = "sb_publishable_qa_readiness"
-    processor.OPENAI_API_KEY = ""
+    processor.EXTERNAL_AI_ENABLED = False
+    processor.OPENAI_API_KEY = "sk-proj-present-but-disabled"
     processor.get_ocr_engine = lambda: object()
     try:
         response = processor.ready()
     finally:
         processor.SUPABASE_PUBLISHABLE_KEY = old_publishable_key
         processor.OPENAI_API_KEY = old_openai_key
+        processor.EXTERNAL_AI_ENABLED = old_ai_enabled
         processor.get_ocr_engine = old_get_engine
     assert not isinstance(response, JSONResponse)
     assert response["ok"] is True and response["ready"] is True
     assert response["authVerifierConfigured"] is True
+    assert response["externalAiEnabled"] is False
     assert response["aiConfigured"] is False
     assert response["verificationConfigured"] is False
     assert response["aiMode"] == "optional_fallback"

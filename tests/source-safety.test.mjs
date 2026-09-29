@@ -66,7 +66,12 @@ assert.ok(processor.includes('if not independent:'),"Independent PASS 2 must omi
 assert.ok(processor.includes('This is an INDEPENDENT SECOND VERIFICATION.'),"PASS 2 must use an explicitly independent verification instruction");
 assert.ok(processor.includes('"store":False'),"OpenAI Responses must disable response storage for document analysis");
 assert.ok(processor.includes('OPENAI_RESPONSES_URL = os.getenv'),"The OpenAI endpoint must be configurable for approved regional processing");
-assert.ok(html.includes("status:fileSaved?(verificationNeeded?'pending':'verified')"),"Document verification state must persist after the original is safely stored");
+assert.ok(html.includes("const EXTERNAL_AI_REVIEW_ENABLED=false;"),"External AI review must be disabled by default in the client");
+assert.ok(html.includes("manualReviewNeeded=fileSaved&&!EXTERNAL_AI_REVIEW_ENABLED"),"Uncertain documents must fall back to manual review while external AI is disabled");
+assert.ok(html.includes("manualReviewNeeded?'needs_review':'verified'"),"Disabled AI must never make an uncertain document look independently verified");
+assert.ok(processor.includes('EXTERNAL_AI_ENABLED = os.getenv("BOOKUNA_ENABLE_EXTERNAL_AI", "")'),"Processor external AI must be opt-in only");
+assert.ok(invoiceAi.includes('Deno.env.get("BOOKUNA_ENABLE_EXTERNAL_AI")'),"Edge AI review must be opt-in only");
+assert.ok(invoiceAi.includes('internal_code:"AI_TEMPORARILY_DISABLED"'),"Disabled AI endpoint must fail closed without provider calls");
 assert.ok(html.includes("if(v.status==='needs_review')toast('Extra controle: controleer '+doc.name+' nog even')"),"Users should only be proactively notified for relevant verification differences");
 assert.ok(html.includes("DOCUMENT_VERIFICATION_MAX_ATTEMPTS=2"),"Background verification retries must be finite");
 assert.ok(html.includes("PASS 2 may not silently mutate")===false,"Production source must not contain test-only verification mutation text");
@@ -155,8 +160,8 @@ assert.ok(html.includes("function setImportProgress(title,msg,sub='',percent=10,
 assert.ok(html.includes('id="importProgressMessage"'),"Upload progress must use the compact loading state");
 assert.ok(html.includes("const browserStructurePromise="),"PDF client inspection should start in parallel with server processing");
 assert.ok(html.includes("serverReviewed=serverProc.reviewComplete===true||!!serverProc.ai||serverProc.fastPath==='deterministic'"),"Frontend must respect the processor's completed local-first AI/no-AI decision");
-assert.ok(html.includes("confidenceScore||0)<82"),"Post-save independent AI verification must be limited to materially uncertain scans");
-assert.ok(html.includes("d.mixedRates&&Number(d.fieldConfidence?.vatLines||0)<85"),"Mixed VAT alone must not force AI when trusted VAT lines are strong");
+assert.ok(html.includes("confidenceScore||0)<82"),"Uncertain scans must still be identified for manual or future independent verification");
+assert.ok(html.includes("d.mixedRates&&Number(d.fieldConfidence?.vatLines||0)<85"),"Mixed VAT alone must not force review when trusted VAT lines are strong");
 assert.ok(html.includes("function setDocumentReviewStep(step)"),"Mobile document review must have explicit step navigation");
 for(const step of [1,2,3,4])assert.ok(html.includes(`data-review-step="${step}"`),`Mobile document review step ${step} must exist`);
 assert.ok(html.includes("Stap 1 van 4 · Document"),"Mobile review must start with document inspection");

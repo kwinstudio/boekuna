@@ -209,7 +209,9 @@ Totaal € 121,00
 def test_ai_timeout_503_and_malformed_response_are_explicit():
     doc, heur = minimal_ai_case()
     old_key = processor.OPENAI_API_KEY
+    old_enabled = processor.EXTERNAL_AI_ENABLED
     old_post = processor.requests.post
+    processor.EXTERNAL_AI_ENABLED = True
     processor.OPENAI_API_KEY = "test-key"
     try:
         def timeout_post(*args, **kwargs):
@@ -237,14 +239,17 @@ def test_ai_timeout_503_and_malformed_response_are_explicit():
         assert failure["internal_code"] == "AI_RESPONSE_INVALID"
     finally:
         processor.OPENAI_API_KEY = old_key
+        processor.EXTERNAL_AI_ENABLED = old_enabled
         processor.requests.post = old_post
 
 
 def test_ai_rate_limit_retries_once_and_recovers():
     doc, heur = minimal_ai_case()
     old_key = processor.OPENAI_API_KEY
+    old_enabled = processor.EXTERNAL_AI_ENABLED
     old_post = processor.requests.post
     old_sleep = processor.time.sleep
+    processor.EXTERNAL_AI_ENABLED = True
     processor.OPENAI_API_KEY = "test-key"
     calls = []
     sleeps = []
@@ -279,6 +284,7 @@ def test_ai_rate_limit_retries_once_and_recovers():
         assert result.processing["independentVerification"] is True
     finally:
         processor.OPENAI_API_KEY = old_key
+        processor.EXTERNAL_AI_ENABLED = old_enabled
         processor.requests.post = old_post
         processor.time.sleep = old_sleep
 
@@ -288,9 +294,11 @@ def test_verify_rejects_oversized_file_before_processing():
     old_allow = processor.allow_request
     old_access = processor.rpc_access_check
     old_key = processor.OPENAI_API_KEY
+    old_enabled = processor.EXTERNAL_AI_ENABLED
     processor.require_authenticated_user = lambda request: {"id": "qa-user"}
     processor.allow_request = lambda request, key_override=None: True
     processor.rpc_access_check = lambda request: True
+    processor.EXTERNAL_AI_ENABLED = True
     processor.OPENAI_API_KEY = "test-key"
     try:
         upload = processor.UploadFile(
@@ -311,7 +319,26 @@ def test_verify_rejects_oversized_file_before_processing():
         processor.allow_request = old_allow
         processor.rpc_access_check = old_access
         processor.OPENAI_API_KEY = old_key
+        processor.EXTERNAL_AI_ENABLED = old_enabled
 
+
+def test_external_ai_is_disabled_by_default_guard():
+    old_enabled = processor.EXTERNAL_AI_ENABLED
+    old_key = processor.OPENAI_API_KEY
+    try:
+        processor.EXTERNAL_AI_ENABLED = False
+        processor.OPENAI_API_KEY = "test-key-should-not-be-used"
+        doc, heur = minimal_ai_case()
+        result, failure = processor.ai_extract(doc, "disabled.pdf", {}, heur)
+        assert result is None
+        assert failure["internal_code"] == "AI_TEMPORARILY_DISABLED"
+        health = processor.health()
+        assert health["externalAiEnabled"] is False
+        assert health["aiConfigured"] is False
+        assert health["verificationConfigured"] is False
+    finally:
+        processor.EXTERNAL_AI_ENABLED = old_enabled
+        processor.OPENAI_API_KEY = old_key
 
 if __name__ == "__main__":
     tests = [
@@ -322,6 +349,7 @@ if __name__ == "__main__":
         test_ai_timeout_503_and_malformed_response_are_explicit,
         test_ai_rate_limit_retries_once_and_recovers,
         test_verify_rejects_oversized_file_before_processing,
+        test_external_ai_is_disabled_by_default_guard,
     ]
     for test in tests:
         test()

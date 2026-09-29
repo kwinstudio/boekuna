@@ -96,14 +96,25 @@ try{
   await page.goto(`http://127.0.0.1:${port}/app`,{waitUntil:'domcontentloaded'});
 
   // Conditional gate: a clean deterministic document should not consume PASS 2.
-  const gate=await page.evaluate(()=>({
-    strong:shouldQueueDocumentVerification({recognitionBad:0,recognitionWarn:0,confidenceScore:96,mixedRates:false,fieldConfidence:{party:95,gross:98,vatLines:99,description:92},processor:{ocrUsed:false}}),
-    weak:shouldQueueDocumentVerification({recognitionBad:0,recognitionWarn:1,confidenceScore:82,mixedRates:false,fieldConfidence:{party:75,gross:85},processor:{ocrUsed:true,ocrConfidence:.71}}),
-    weakVatLines:shouldQueueDocumentVerification({recognitionBad:0,recognitionWarn:0,confidenceScore:96,mixedRates:false,fieldConfidence:{party:95,gross:98,vatLines:55,description:92},processor:{ocrUsed:false}})
-  }));
-  assert.equal(gate.strong,false,'Strong deterministic documents must skip the paid second AI pass');
-  assert.equal(gate.weak,true,'Uncertain/OCR documents must queue independent verification');
-  assert.equal(gate.weakVatLines,true,'Weak VAT-group confidence must queue independent verification');
+  const gate=await page.evaluate(()=>{
+    const strongDoc={recognitionBad:0,recognitionWarn:0,confidenceScore:96,mixedRates:false,fieldConfidence:{party:95,gross:98,vatLines:99,description:92},processor:{ocrUsed:false}};
+    const weakDoc={recognitionBad:0,recognitionWarn:1,confidenceScore:82,mixedRates:false,fieldConfidence:{party:75,gross:85},processor:{ocrUsed:true,ocrConfidence:.71}};
+    const weakVatDoc={recognitionBad:0,recognitionWarn:0,confidenceScore:96,mixedRates:false,fieldConfidence:{party:95,gross:98,vatLines:55,description:92},processor:{ocrUsed:false}};
+    return {
+      enabled:EXTERNAL_AI_REVIEW_ENABLED,
+      strong:shouldQueueDocumentVerification(strongDoc),
+      weak:shouldQueueDocumentVerification(weakDoc),
+      weakVatLines:shouldQueueDocumentVerification(weakVatDoc),
+      weakReasons:documentVerificationReasons(weakDoc),
+      weakVatReasons:documentVerificationReasons(weakVatDoc)
+    };
+  });
+  assert.equal(gate.enabled,false,'External AI review must be disabled by default');
+  assert.equal(gate.strong,false,'Strong deterministic documents must not queue a second pass');
+  assert.equal(gate.weak,false,'Uncertain/OCR documents must not call external AI while disabled');
+  assert.equal(gate.weakVatLines,false,'Weak VAT-group confidence must not call external AI while disabled');
+  assert.ok(gate.weakReasons.length>0,'Uncertain/OCR documents must still be marked for human review');
+  assert.ok(gate.weakVatReasons.includes('vat-lines-confidence'),'Weak VAT-group confidence must still be surfaced for review');
 
   const cents=await page.evaluate(()=>[financialMoneyCents('1.005'),financialMoneyCents('-1.005'),financialMoneyCents('12100.01')]);
   assert.deepEqual(cents,[101,-101,1210001],'Money conversion must use deterministic half-up minor units');
