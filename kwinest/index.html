@@ -4240,16 +4240,18 @@ function setImportProgress(title,msg,sub=''){
  modal(title,'<div style="padding:10px 2px 4px" aria-busy="true"><div style="display:flex;align-items:center;gap:12px"><div aria-hidden="true" style="width:26px;height:26px;flex:0 0 26px;border:2px solid var(--line);border-top-color:var(--primary);border-radius:50%;animation:spin .75s linear infinite"></div><div style="min-width:0;flex:1"><strong id="importProgressMessage" role="status" aria-live="polite" style="display:block;font-size:16px;line-height:1.25">'+esc(msg)+'</strong>'+(sub?'<div class="help" style="margin-top:3px">'+esc(sub)+'</div>':'')+'</div></div><div class="processing-progress" style="margin-top:15px"><div class="processing-indeterminate" role="progressbar" aria-label="Documentverwerking bezig"></div></div></div>')
 }
 async function handleInvoicePdfFile(e){return processFinancialDocument(e.target.files?.[0])}
-async function processFinancialDocument(file,preStructure=null){
- cleanupPendingImport();if(!file)return;const pass1Started=performance.now();
+async function processFinancialDocument(file,preStructure=null,options={}){
+ const processingItem=options.processingItem||null,openReview=options.openReview!==false;
+ if(openReview)cleanupPendingImport();if(!file)return null;const pass1Started=performance.now();
+ const progress=(msg,sub='')=>processingItem?setDocumentProcessingMessage(processingItem,msg,sub):setImportProgress('Document verwerken',msg,sub);
  const ext=(file.name.split('.').pop()||'').toLowerCase(),isPhoto=DOCUMENT_IMAGE_MIME_TYPES.includes(String(file.type||'').toLowerCase())||DOCUMENT_IMAGE_EXTENSIONS.includes(ext);if(!DOCUMENT_UPLOAD_EXTENSIONS.includes(ext)&&!isPhoto)throw createUploadError('DOCUMENT_UNSUPPORTED_TYPE','',415,{context:{supported_extensions:DOCUMENT_UPLOAD_EXTENSIONS},state:'not_saved'});
- setImportProgress('Document verwerken','Bestand valideren…','Bestandstype, grootte en veiligheid worden gecontroleerd.',12,2);
+ progress('Bestand valideren…','Bestandstype, grootte en veiligheid worden gecontroleerd.');
  let structure=null,browserStructure=null,parsed=null,ocrText='',processorError='';
  const browserStructurePromise=ext==='pdf'&&file.size<9*1024*1024?readPdfStructure(file).catch(err=>{console.warn('Parallel PDF inspection',err);return null}):null;
  try{
-  setImportProgress('Document verwerken','Document analyseren…','Tekst en bedragen worden gecontroleerd.',28,2);
-  structure=preStructure||await extractDocumentServer(file,msg=>{const strong=document.getElementById('importProgressMessage');if(strong)strong.textContent=msg});
-  setImportProgress('Document verwerken','Tekst uitlezen…',structure.ocrUsed?'Scan gedetecteerd: OCR wordt gebruikt.':'Digitale tekstlaag en tabellen zijn uitgelezen.',48,3);
+  progress('Document lezen…','Tekst en bedragen worden gecontroleerd.');
+  structure=preStructure||await extractDocumentServer(file,msg=>progress(msg),processingItem);
+  progress('Gegevens herkennen…',structure.ocrUsed?'De scan is gelezen; herkende gegevens worden gecontroleerd.':'De digitale tekstlaag en tabellen zijn uitgelezen.');
   const tableText=processorTablesToText(structure.tables),serverText=[structure.text,tableText].filter(Boolean).join('\n\n--- TABELSTRUCTUUR ---\n\n');
   if(browserStructurePromise){try{browserStructure=await browserStructurePromise;if(browserStructure)parsed=findEmbeddedInvoice(browserStructure,pendingUploadKind)}catch(err){console.warn('Embedded PDF check',err)}}
   if(!parsed)parsed=parseInvoicePdf(serverText,file.name,pendingUploadKind);
@@ -4265,7 +4267,7 @@ async function processFinancialDocument(file,preStructure=null){
   await checkFallbackBillingAllowance();
   if(isPhoto&&!['heic','heif'].includes(ext)){
    try{
-    setImportProgress('Document verwerken','Lokale OCR gebruiken…','De serververwerking was niet beschikbaar; de foto wordt veilig in je browser gelezen.',44,3);
+    progress('Document lokaal lezen…','De serververwerking was niet beschikbaar; de foto wordt in je browser gelezen.');
     ocrText=await ocrImageFile(file,msg=>{const strong=document.getElementById('importProgressMessage');if(strong)strong.textContent=msg});
     parsed=applyRecognitionQuality(parseInvoicePdf(ocrText,file.name,pendingUploadKind));
     parsed.processor={kind:'image',pageCount:1,ocrUsed:true,ocrPages:[1],ocrConfidence:null,tables:0,warnings:[processorError]};
@@ -4273,14 +4275,14 @@ async function processFinancialDocument(file,preStructure=null){
    }catch(localErr){console.warn('Local image OCR',localErr);throw createUploadError('DOCUMENT_IMAGE_UNREADABLE','',422,{state:'not_saved'})}
   }else if(ext==='pdf'){
    try{
-    setImportProgress('Document verwerken','PDF lokaal uitlezen…','De serververwerking was niet beschikbaar; Boekuna probeert de PDF in je browser uit te lezen.',44,3);browserStructure=browserStructure||await readPdfStructure(file);parsed=findEmbeddedInvoice(browserStructure,pendingUploadKind)||applyRecognitionQuality(parseInvoicePdf(browserStructure.text,file.name,pendingUploadKind));
+    progress('PDF lokaal lezen…','De serververwerking was niet beschikbaar; Boekuna probeert de PDF in je browser uit te lezen.');browserStructure=browserStructure||await readPdfStructure(file);parsed=findEmbeddedInvoice(browserStructure,pendingUploadKind)||applyRecognitionQuality(parseInvoicePdf(browserStructure.text,file.name,pendingUploadKind));
     const needsOcr=parsed.confidenceScore<88||parsed.recognitionBad>0||parsed.recognitionWarn>0||!parsed.party||!parsed.invoiceNumber||parsed.gross===''||browserStructure.text.length<220;
     if(needsOcr){ocrText=await ocrPdfPages(browserStructure,msg=>{const strong=document.getElementById('importProgressMessage');if(strong)strong.textContent=msg});const op=applyRecognitionQuality(parseInvoicePdf(ocrText,file.name,pendingUploadKind));op.sourceQuality='ocr';parsed=applyRecognitionQuality(mergeParsed(parsed,op))}
     parsed.processor={kind:'pdf',pageCount:browserStructure.numPages,ocrUsed:!!ocrText,ocrPages:[],ocrConfidence:null,tables:0,warnings:[processorError]};parsed.pageCount=browserStructure.numPages;parsed.sourceQuality=ocrText?'pdf-text+ocr':'pdf-text';
    }catch(localErr){throw createUploadError('DOCUMENT_PDF_UNREADABLE','',422,{state:'not_saved'})}
   }else{throw err}
  }
- setImportProgress('Document verwerken','Gegevens controleren…','Bedragen, btw en documentgegevens worden samengevoegd.',66,4);
+ progress('Bedragen en btw controleren…','We controleren of bedragen en btw onderling aansluiten.');
  const extracted=[structure?.text||'',processorTablesToText(structure?.tables||[]),ocrText||'',parsed?.text||''].filter(Boolean).join('\n\n---\n\n');
  const serverProc=structure?.analysis?.processing||{},serverReviewed=serverProc.reviewComplete===true||!!serverProc.ai||serverProc.fastPath==='deterministic';
  try{
@@ -4293,8 +4295,12 @@ async function processFinancialDocument(file,preStructure=null){
  parsed=applyRecognitionQuality(parsed);parsed.documentType=classifyDocumentType(parsed,structure?.documentTypeHint||parsed.documentType||'');parsed.isCredit=parsed.documentType==='credit_invoice'||!!parsed.isCredit;if(parsed.isCredit)parsed.status='credit';
  if(!serverProc.billing&&processorError)await recordFallbackSmartUsage();
  const duplicate=duplicateInvoiceCandidate(parsed,structure?.sha256||parsed.sha256||'');if(duplicate)parsed.duplicateCandidate=duplicate;parsed.pass1DurationMs=Math.round(performance.now()-pass1Started);
- setImportProgress('Document verwerken','Klaar voor controle','De gegevens zijn genormaliseerd en gecontroleerd. Het controlescherm wordt geopend.',98,6);
- const previewUrl=(ext==='pdf'||DOCUMENT_IMAGE_MIME_TYPES.includes(String(file.type||'').toLowerCase())||DOCUMENT_IMAGE_EXTENSIONS.includes(ext))?URL.createObjectURL(file):null;pendingPdfImport={file,parsed,previewUrl,sha256:structure?.sha256||parsed.sha256||''};requestAnimationFrame(()=>showPdfImportReview(parsed))
+ if(processingItem){processingItem.processorComplete=true;if(processingItem.state==='processing')documentProcessingTransition(processingItem,'preparing_review')}
+ progress('Je controle wordt voorbereid…','Bij twijfel laten we het straks aan jou zien.');
+ const previewUrl=(ext==='pdf'||DOCUMENT_IMAGE_MIME_TYPES.includes(String(file.type||'').toLowerCase())||DOCUMENT_IMAGE_EXTENSIONS.includes(ext))?URL.createObjectURL(file):null;
+ const prepared={file,parsed,previewUrl,sha256:structure?.sha256||parsed.sha256||''};
+ if(openReview){pendingPdfImport=prepared;requestAnimationFrame(()=>showPdfImportReview(parsed))}
+ return prepared
 }
 const DOCUMENT_VERIFICATION_VERSION=1;
 const DOCUMENT_VERIFICATION_MAX_ATTEMPTS=2;
