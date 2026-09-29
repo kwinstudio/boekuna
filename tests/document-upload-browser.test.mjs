@@ -512,6 +512,8 @@ try{
     assert.equal(String(await page.locator('[data-financial-badge="gross"]').textContent()).trim(),'Bevestigd');
     assert.equal(String(await page.locator('[data-financial-badge="vatRate"]').textContent()).trim(),'Bevestigd');
     assert.match(String(await panel.textContent()),/Bedragen kloppen/);
+    const staleFinancialChecks=String(await page.locator('.review-check-summary').allTextContents());
+    assert.doesNotMatch(staleFinancialChecks,/Btw-tarief verdient controle|Bedragen sluiten aan|Meerdere btw-tarieven/,'Static recognition checks must not contradict the live financial consistency panel');
 
     // Mobile-first responsive and overflow checks on the actual review UI.
     for(const width of [320,360,375,390,393,430,768]){
@@ -534,7 +536,7 @@ try{
       const persisted=raw.expenses?.find(x=>x.invoiceNumber==='QA-CORRECTION-12866');
       return {
         memory:e?{net:e.exVat,vat:e.vatAmount,gross:e.gross,rate:e.vatRate,prov:e.fieldProvenance,events:e.financialCorrectionEvents}:null,
-        document:doc?{prov:doc.fieldProvenance,events:doc.financialCorrectionEvents}:null,
+        document:doc?{prov:doc.fieldProvenance,events:doc.financialCorrectionEvents,pass1Prov:doc.verification?.pass1?.fieldProvenance}:null,
         persisted:persisted?{net:persisted.exVat,vat:persisted.vatAmount,gross:persisted.gross,rate:persisted.vatRate,prov:persisted.fieldProvenance}:null
       };
     });
@@ -549,6 +551,7 @@ try{
     assert.ok(saved.memory?.events?.some(x=>x.type==='financial_recalculation_applied'));
     assert.deepEqual(saved.persisted?.prov,saved.memory?.prov,'Provenance must survive local persistence');
     assert.deepEqual(saved.document?.prov,saved.memory?.prov,'Document record must carry the same financial provenance');
+    assert.deepEqual(saved.document?.pass1Prov,saved.memory?.prov,'Second-pass snapshot must retain USER/CALCULATED provenance without replacing it');
 
     const reopened=await page.evaluate(()=>{
       state=normalizeState(JSON.parse(localStorage.getItem(userDataKey())||'{}'));
