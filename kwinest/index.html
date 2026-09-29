@@ -2227,7 +2227,7 @@ function mapAuthError(err,context='auth'){
 }
 function pendingVerificationEmail(){return String(sessionStorage.getItem(AUTH_PENDING_EMAIL_KEY)||'').trim().toLowerCase()}
 function setPendingVerificationEmail(email=''){if(email)sessionStorage.setItem(AUTH_PENDING_EMAIL_KEY,String(email).trim().toLowerCase());else sessionStorage.removeItem(AUTH_PENDING_EMAIL_KEY)}
-function authShell(body){return `<div class="auth-root"><div class="auth-shell"><section class="auth-side"><div><div class="brand">Boekuna</div><h1>Boekhouden zonder ingewikkelde boekhoudtaal.</h1></div></section><section class="auth-form-wrap"><div class="auth-form">${body}</div></section></div></div>`}
+function authShell(body){return `<div class="auth-root"><div class="auth-shell"><section class="auth-side"><div><div class="brand"><img class="bookuna-logo-icon" src="/assets/boekuna-symbol-reversed.svg" alt="" aria-hidden="true"><span>Boekuna</span></div><h1>Boekhouden. Gewoon helder.</h1></div></section><section class="auth-form-wrap"><div class="auth-form">${body}</div></section></div></div>`}
 function passwordFieldHtml({id='newPassword',name='password',label='Wachtwoord',autofocus=false}={}){
  return `<div class="auth-field"><label for="${id}">${esc(label)}</label><div class="password-wrap"><input id="${id}" name="${name}" type="password" minlength="12" autocomplete="new-password" required ${autofocus?'autofocus':''} aria-describedby="${id}Help" oninput="updateNewPasswordState('${id}')"><button class="password-toggle" type="button" onclick="togglePasswordVisibility('${id}',this)" aria-label="Wachtwoord tonen">Toon</button></div><div class="password-help" id="${id}Help">Gebruik minimaal 12 tekens.</div></div>`
 }
