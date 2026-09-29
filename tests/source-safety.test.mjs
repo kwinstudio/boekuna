@@ -154,7 +154,9 @@ assert.ok(html.includes("pendingUploadKind='auto'"),"Upload mode state must be d
 assert.ok(html.includes("function setImportProgress(title,msg,sub='',percent=10,step=1)"),"Upload progress must expose real staged percentages");
 assert.ok(html.includes('id="importProgressMessage"'),"Upload progress must use the compact loading state");
 assert.ok(html.includes("const browserStructurePromise="),"PDF client inspection should start in parallel with server processing");
-assert.ok(html.includes("serverReviewed=!!serverProc.ai||serverProc.fastPath==='deterministic'"),"Frontend must not repeat a completed server AI/deterministic review");
+assert.ok(html.includes("serverReviewed=serverProc.reviewComplete===true||!!serverProc.ai||serverProc.fastPath==='deterministic'"),"Frontend must respect the processor's completed local-first AI/no-AI decision");
+assert.ok(html.includes("confidenceScore||0)<82"),"Post-save independent AI verification must be limited to materially uncertain scans");
+assert.ok(html.includes("d.mixedRates&&Number(d.fieldConfidence?.vatLines||0)<85"),"Mixed VAT alone must not force AI when trusted VAT lines are strong");
 assert.ok(html.includes("function setDocumentReviewStep(step)"),"Mobile document review must have explicit step navigation");
 for(const step of [1,2,3,4])assert.ok(html.includes(`data-review-step="${step}"`),`Mobile document review step ${step} must exist`);
 assert.ok(html.includes("Stap 1 van 4 · Document"),"Mobile review must start with document inspection");
