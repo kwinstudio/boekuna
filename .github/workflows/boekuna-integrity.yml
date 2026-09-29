@@ -8,6 +8,7 @@ on:
   pull_request:
     paths:
       - "kwinest/**"
+      - "public/**"
       - "tests/**"
       - "supabase/functions/send-invoice/**"
       - "supabase/functions/consume-quota/**"
@@ -68,10 +69,18 @@ jobs:
         run: python tests/financial-blocks.test.py
       - name: Marketing page QA
         run: node tests/marketing-pages.test.mjs
-      - name: Real marketing product screenshots
+      - name: Verified real marketing product proof
         run: node tests/marketing-product-proof.test.mjs
       - name: Editorial marketing responsive screenshots
         run: node tests/marketing-editorial-responsive.test.mjs
+
+      - name: Upload marketing rebuild browser evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: marketing-rebuild-browser-evidence
+          path: tests/artifacts/marketing-rebuild/*.png
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Billing subscription regressions
         run: node tests/billing-source.test.mjs
