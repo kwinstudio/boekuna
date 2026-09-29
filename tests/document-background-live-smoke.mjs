@@ -6,7 +6,7 @@ import { chromium } from 'playwright';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 
 const preview=process.env.BOOKUNA_PREVIEW_URL||'https://boekuna-pr6-de1c73cb.onrender.com';
-const email='document-bg-smoke@boekuna.test';
+const email='document-bg-smoke@example.com';
 const password='Qa!'+crypto.randomBytes(18).toString('hex')+'aA1';
 const artifacts=path.resolve('tests/artifacts');
 fs.mkdirSync(artifacts,{recursive:true});
