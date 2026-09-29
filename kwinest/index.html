@@ -3591,11 +3591,11 @@ async function processDocumentQueueItem(item,smart=false){
   let pending=null;
   if(smart){
    const structure=await extractDocumentServer(item.file,function(msg){setDocumentProcessingMessage(item,msg)},item);
-   item.processorComplete=true;documentProcessingTransition(item,'preparing_review');
    const dt=structure.analysis?.documentType||structure.documentTypeHint||'other';
    if(['purchase_invoice','sales_invoice','credit_invoice','receipt'].includes(dt)){
     pendingUploadKind=item.kind='auto';pending=await processFinancialDocument(item.file,structure,{processingItem:item,openReview:false})
    }else{
+    item.processorComplete=true;documentProcessingTransition(item,'preparing_review');
     setDocumentProcessingMessage(item,'Document opslaan…','De analyse is afgerond. Het originele bestand wordt veilig opgeslagen.');
     const fileId=uid('file'),docId=uid('d');
     try{await putStoredFile(fileId,item.file)}catch(err){console.warn(err);throw createUploadError('PROCESSOR_UNAVAILABLE','',503,{category:'temporary',retryable:true,state:'unknown_state'})}
