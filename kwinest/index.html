@@ -3093,7 +3093,7 @@ function listEmptyHtml(name,ctaHtml=''){
 }
 function toast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;document.getElementById('toastRoot').appendChild(el);setTimeout(()=>el.remove(),2600)}
 function modal(title,body,foot='',wide=false){const active=document.activeElement;if(active&&active!==document.body)modalReturnFocus=active;document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal ${wide?'wide':''}" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-head"><h3 id="modalTitle">${title}</h3><button class="modal-close" onclick="closeModal()" aria-label="Sluiten">×</button></div><div class="modal-body">${body}</div>${foot?`<div class="modal-foot">${foot}</div>`:''}</div></div>`;requestAnimationFrame(()=>{const root=document.getElementById('modalRoot');const first=root.querySelector('.modal-body input:not([type=hidden]),.modal-body select,.modal-body textarea,.modal-body button,.modal-close');first?.focus()})}
-function closeModal(){if(documentProcessingSession)cleanupDocumentProcessingSession();document.getElementById('modalRoot').innerHTML='';const el=modalReturnFocus;modalReturnFocus=null;if(el?.setAttribute)el.setAttribute('aria-expanded','false');if(el?.isConnected)setTimeout(()=>el.focus(),0)}
+function closeModal(){if(documentProcessingSession&&activeDocumentTransfers>0)documentProcessingSession.modalHidden=true;else if(documentProcessingSession)cleanupDocumentProcessingSession();document.getElementById('modalRoot').innerHTML='';const el=modalReturnFocus;modalReturnFocus=null;if(el?.setAttribute)el.setAttribute('aria-expanded','false');if(el?.isConnected)setTimeout(()=>el.focus(),0)}
 function download(name,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
 async function navigate(p){
  const paidFeature={control:'Controlecentrum',cashflow:'Cashflow vooruitblik'}[p];
@@ -3422,11 +3422,16 @@ const DOCUMENT_PROCESSING_MAX_PARALLEL=2;
 const DOCUMENT_PROCESSING_MAX_FILES=10;
 const DOCUMENT_PROCESSING_TRANSITIONS=Object.freeze({
  selected:['uploading','failed'],
- uploading:['processing','preparing_review','failed'],
- processing:['uploading','preparing_review','failed'],
+ uploading:['uploaded','processing','preparing_review','failed'],
+ uploaded:['queued','failed'],
+ queued:['processing','failed'],
+ processing:['uploading','validating','preparing_review','failed'],
+ validating:['ready','review_required','failed'],
  preparing_review:['completed','failed'],
+ ready:[],
+ review_required:['queued','ready'],
  completed:[],
- failed:['uploading']
+ failed:['uploading','queued']
 });
 let documentProcessingSession=null,activeDocumentTransfers=0,documentProcessingRenderPending=false;
 function createDocumentProcessingItem(file,kind='auto'){
@@ -3531,7 +3536,7 @@ function scheduleDocumentProcessingRender(){
  requestAnimationFrame(function(){documentProcessingRenderPending=false;renderDocumentProcessingExperience()})
 }
 function renderDocumentProcessingExperience(){
- if(!documentProcessingSession)return;
+ if(!documentProcessingSession||documentProcessingSession.modalHidden)return;
  if(documentProcessingSession.reviewingItemId&&document.getElementById('pdfImportForm'))return;
  const html=documentProcessingExperienceHtml(),existing=document.getElementById('documentProcessingExperience');
  const total=documentProcessingSession.items.length,title=total>1?total+' documenten verwerken':'Document verwerken';
@@ -3597,6 +3602,7 @@ async function processDocumentQueueItem(item,smart=false){
  }finally{finishActiveTransfer(item)}
 }
 async function startDocumentProcessingQueue(files,kind='auto',options={}){
+ if(!TEST_MODE_NO_AUTH&&currentUser)return startPersistentDocumentProcessingQueue(files,kind,options);
  const list=[...files].filter(Boolean);if(!list.length){toast('Geen bestand geselecteerd');return}if(list.length>DOCUMENT_PROCESSING_MAX_FILES){toast('Kies maximaal '+DOCUMENT_PROCESSING_MAX_FILES+' documenten tegelijk.');return}
  if(documentProcessingSession)cleanupDocumentProcessingSession();
  documentProcessingSession={id:uid('batch'),items:list.map(function(file){const item=createDocumentProcessingItem(file,kind);item.sourceInputId=String(options.sourceInputId||'');return item}),smart:!!options.smart,reviewingItemId:null,startedAt:Date.now()};
@@ -3631,7 +3637,266 @@ function cancelDocumentReview(){
  if(s&&s.items.length>1&&item?.result){pendingPdfImport=null;s.reviewingItemId=null;renderDocumentProcessingExperience();return}
  cleanupPendingImport();closeModal()
 }
+
 window.addEventListener('beforeunload',function(e){if(activeDocumentTransfers>0){e.preventDefault();e.returnValue=''}});
+
+const PERSISTENT_DOCUMENT_TERMINAL=new Set(['ready','review_required','failed']);
+let documentProcessingJobs=[],documentProcessingChannel=null,documentProcessingPollTimer=null,documentProcessingInitialized=false,documentProcessingConnectivityLost=!navigator.onLine;
+let documentProcessingLastSummary={active:0,attention:0,terminal:0},documentReplacementProgress=new Map();
+
+function persistentDocumentIsTerminal(job){return PERSISTENT_DOCUMENT_TERMINAL.has(String(job?.state||''))}
+function persistentDocumentJobStatus(job){
+ const state=String(job?.state||'queued'),phase=String(job?.phase||'queued');
+ if(state==='ready')return {label:'Klaar',detail:'De verwerking is afgerond.',icon:'✓'};
+ if(state==='review_required')return {label:'Controle nodig',detail:String(job?.review_message||'Controleer de gemarkeerde gegevens.'),icon:'!'};
+ if(state==='failed')return {label:'Kon niet verwerkt worden',detail:persistentDocumentErrorMessage(job),icon:'×'};
+ if(state==='validating'||phase==='validate')return {label:'Bedragen controleren',detail:'Bedragen en btw worden gecontroleerd.',icon:'spinner'};
+ if(state==='processing'||phase==='read')return {label:'Wordt verwerkt',detail:'Document lezen en gegevens herkennen.',icon:'spinner'};
+ if(state==='received'||state==='queued')return {label:'Wacht',detail:'Bestand ontvangen. Verwerking start automatisch.',icon:'○'};
+ return {label:'Wacht',detail:'Bestand ontvangen.',icon:'○'}
+}
+function persistentDocumentErrorMessage(job){
+ const code=String(job?.error_code||'');
+ const map={
+  DOCUMENT_IMAGE_UNREADABLE:'Deze afbeelding is onvoldoende leesbaar.',
+  DOCUMENT_PDF_UNREADABLE:'Deze PDF kon niet betrouwbaar worden gelezen.',
+  DOCUMENT_TOO_LARGE:'Dit bestand is te groot.',
+  DOCUMENT_UNSUPPORTED_TYPE:'Dit bestandstype wordt niet ondersteund.',
+  DOCUMENT_NOT_FOUND:'Het originele bestand kon niet worden gevonden.',
+  PROCESSING_TIMEOUT:'De verwerking duurde te lang. Je kunt dit document opnieuw proberen.',
+  PROCESSOR_UNAVAILABLE:'De documentverwerking was tijdelijk niet beschikbaar.',
+  RATE_LIMITED:'De verwerking is tijdelijk druk. Probeer dit document opnieuw.'
+ };
+ return map[code]||'Dit document kon niet worden verwerkt.'
+}
+function persistentDocumentName(job){
+ const local=state.documents.find(x=>String(x.fileId||'')===String(job?.client_ref||''));
+ return local?.name||'Document'
+}
+function persistentDocumentActiveBatchIds(){
+ return new Set(documentProcessingJobs.filter(j=>!persistentDocumentIsTerminal(j)).map(j=>String(j.batch_id||'')).filter(Boolean))
+}
+function persistentDocumentGlobalJobs(){
+ const activeBatches=persistentDocumentActiveBatchIds();
+ if(activeBatches.size)return documentProcessingJobs.filter(j=>activeBatches.has(String(j.batch_id||'')));
+ return []
+}
+function persistentDocumentAttentionCount(){return documentProcessingJobs.filter(j=>['review_required','failed'].includes(String(j.state||''))).length}
+function persistentDocumentStatusIcon(job){
+ const st=persistentDocumentJobStatus(job);
+ return st.icon==='spinner'?'<span class="document-status-spinner" aria-hidden="true"></span>':esc(st.icon)
+}
+function persistentDocumentActionHtml(job,compact=false){
+ const id=esc(job.id),state=String(job.state||''),parts=[];
+ if(state==='ready')parts.push('<button class="btn small" onclick="openPersistentDocumentReview(\''+id+'\')">'+(compact?'Open':'Openen')+'</button>');
+ if(state==='review_required')parts.push('<button class="btn small primary" onclick="openPersistentDocumentReview(\''+id+'\')">Controleren</button>');
+ if(state==='failed'){
+  if(job.error_retryable!==false)parts.push('<button class="btn small primary" onclick="retryPersistentDocument(\''+id+'\')">Opnieuw proberen</button>');
+  parts.push('<button class="btn small" onclick="replacePersistentDocument(\''+id+'\')">Nieuwe foto kiezen</button>');
+  parts.push('<button class="btn small" onclick="newExpense()">Handmatig invoeren</button>');
+ }
+ return parts.join('')
+}
+function persistentDocumentCardHtml(job,compact=false){
+ const st=persistentDocumentJobStatus(job),name=persistentDocumentName(job);
+ return '<div class="document-processing-card" data-state="'+esc(job.state)+'"><span class="document-processing-card-icon" aria-hidden="true">'+persistentDocumentStatusIcon(job)+'</span><div class="document-processing-card-main"><strong title="'+esc(name)+'">'+esc(name)+'</strong><span><b>'+esc(st.label)+'</b>'+(st.detail?' · '+esc(st.detail):'')+'</span></div><div class="document-processing-card-actions">'+persistentDocumentActionHtml(job,compact)+'</div></div>'
+}
+function localUploadCardHtml(item){
+ const pct=item.uploadPercent==null?'':(' '+item.uploadPercent+'%'),status=item.state==='uploading'?'Uploaden'+pct:'Wacht';
+ return '<div class="document-processing-card" data-state="'+esc(item.state)+'"><span class="document-processing-card-icon" aria-hidden="true">'+(item.state==='uploading'?'<span class="document-status-spinner"></span>':'○')+'</span><div class="document-processing-card-main"><strong title="'+esc(item.file?.name||'Document')+'">'+esc(item.file?.name||'Document')+'</strong><span><b>'+status+'</b></span></div><div></div></div>'
+}
+function renderDocumentProcessingBoard(){
+ const local=(documentProcessingSession?.items||[]).filter(x=>['selected','uploading','uploaded'].includes(x.state));
+ const activeBatches=persistentDocumentActiveBatchIds(),attention=documentProcessingJobs.filter(j=>['review_required','failed'].includes(String(j.state||'')));
+ let jobs=activeBatches.size?documentProcessingJobs.filter(j=>activeBatches.has(String(j.batch_id||''))):attention.slice(0,20);
+ if(!local.length&&!jobs.length)return '';
+ jobs=[...jobs].sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
+ const terminal=jobs.filter(persistentDocumentIsTerminal).length,total=local.length+jobs.length,ready=jobs.filter(j=>j.state==='ready').length,review=jobs.filter(j=>j.state==='review_required').length,failed=jobs.filter(j=>j.state==='failed').length;
+ const receivedAll=!!documentProcessingSession?.allReceived||(!local.length&&jobs.length>0);
+ const summary=jobs.length?(terminal+' van '+jobs.length+' afgerond'):(local.length+' uploaden');
+ const completion=jobs.length&&terminal===jobs.length?(review||failed?('Verwerking afgerond · '+ready+' klaar'+(review?' · '+review+' controle nodig':'')+(failed?' · '+failed+' niet verwerkt':'')):('✓ '+ready+' documenten verwerkt')):'';
+ return '<section class="document-processing-board" aria-live="polite" aria-busy="'+((local.length||jobs.some(j=>!persistentDocumentIsTerminal(j)))?'true':'false')+'"><div class="document-processing-board-head"><div><h2>'+total+' document'+(total===1?'':'en')+'</h2><p>'+(completion||'Ieder document wordt onafhankelijk verwerkt. Eén probleem blokkeert de rest niet.')+'</p></div><span class="document-processing-summary">'+esc(summary)+'</span></div><div class="document-processing-list">'+local.map(localUploadCardHtml).join('')+jobs.map(j=>persistentDocumentCardHtml(j)).join('')+'</div>'+(receivedAll?'<div class="document-processing-received"><strong>Je documenten zijn ontvangen.</strong> Je kunt ondertussen verder werken.</div>':'')+(documentProcessingConnectivityLost&&jobs.length?'<div class="document-processing-reconnect"><strong>Verbinding onderbroken.</strong> Je documenten zijn ontvangen. We halen de status opnieuw op zodra de verbinding terug is.</div>':'')+'</section>'
+}
+function updateLocalDocumentFromJob(job){
+ const ref=String(job?.client_ref||''),doc=state.documents.find(x=>String(x.fileId||'')===ref);
+ if(!doc||!persistentDocumentIsTerminal(job))return false;
+ const analysis=job?.result?.analysis||{},proc=analysis?.processing||{},nextType=analysis.documentType==='receipt'?'Bon':analysis.documentType==='bank_document'?'Bankdocument':String(analysis.documentType||'').includes('invoice')?'Factuur':'Document';
+ let changed=false;
+ const patch={type:nextType,analyzed:job.state!=='failed',processingState:job.state,pageCount:Number(analysis.pageCount||proc.pages||doc.pageCount||0)||null,ocrUsed:Array.isArray(proc.ocrPages)&&proc.ocrPages.length>0};
+ for(const [k,v] of Object.entries(patch)){if(doc[k]!==v){doc[k]=v;changed=true}}
+ return changed
+}
+function applyDocumentProcessingJobs(rows,{initial=false}={}){
+ const previous=documentProcessingInitialized?documentProcessingLastSummary:null;
+ documentProcessingJobs=Array.isArray(rows)?rows:[];
+ let localChanged=false;for(const job of documentProcessingJobs)if(updateLocalDocumentFromJob(job))localChanged=true;
+ if(localChanged)save();
+ const active=documentProcessingJobs.filter(j=>!persistentDocumentIsTerminal(j)).length,attention=persistentDocumentAttentionCount(),terminal=documentProcessingJobs.filter(persistentDocumentIsTerminal).length;
+ documentProcessingLastSummary={active,attention,terminal};
+ renderGlobalDocumentIndicator();
+ if(page==='documents'&&document.getElementById('content'))render();
+ if(!initial&&previous&&previous.active>0&&active===0){
+  if(attention)toast('Verwerking afgerond · '+attention+' document'+(attention===1?'':'en')+' vraagt aandacht.');
+  else toast('Je documenten zijn verwerkt.')
+ }
+ documentProcessingInitialized=true;
+ schedulePersistentDocumentPoll()
+}
+function syncPersistentJobsToUploadSession(){
+ const s=documentProcessingSession;if(!s)return;
+ let touched=false;
+ for(const item of s.items||[]){
+  if(!item.clientRef)continue;
+  const job=documentProcessingJobs.find(j=>String(j.client_ref)===String(item.clientRef));if(!job)continue;
+  item.jobId=job.id;item.uploaded=true;
+  const next=String(job.state||'queued');
+  if(item.state!==next){item.state=next;touched=true}
+  item.processingPhase=job.phase==='validate'?'validate':'read';
+  item.processorComplete=['validating','ready','review_required'].includes(next);
+  item.error=next==='failed'?createUploadError(job.error_code||'UNKNOWN','',0,{retryable:job.error_retryable!==false,state:'no_changes'}):null;
+ }
+ if(touched)scheduleDocumentProcessingRender()
+}
+async function fetchDocumentProcessingJobs(){
+ if(TEST_MODE_NO_AUTH||!currentUser)return [];
+ const sb=await getSupabase();
+ const {data,error}=await sb.from('document_processing_jobs').select('id,document_id,client_ref,batch_id,requested_kind,state,phase,attempt,max_attempts,result,review_fields,review_message,error_code,error_reference,error_retryable,created_at,updated_at,completed_at,resolved_at').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(60);
+ if(error)throw error;
+ applyDocumentProcessingJobs(data||[],{initial:!documentProcessingInitialized});syncPersistentJobsToUploadSession();return data||[]
+}
+async function invokeDocumentProcessing(action,payload={}){
+ const response=await fetchWithAuthRetry(EDGE_BASE+'/document-processing',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPABASE_PUBLISHABLE_KEY},body:JSON.stringify({action,...payload})});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok||!data?.ok){const error=new Error(data?.error?.code||'DOCUMENT_PROCESSING_FAILED');error.code=data?.error?.code||'DOCUMENT_PROCESSING_FAILED';error.status=response.status;throw error}
+ return data
+}
+function cleanupDocumentBackgroundProcessing(){
+ if(documentProcessingPollTimer){clearTimeout(documentProcessingPollTimer);documentProcessingPollTimer=null}
+ if(documentProcessingChannel&&supabaseClient){try{supabaseClient.removeChannel(documentProcessingChannel)}catch(e){}}
+ documentProcessingChannel=null;documentProcessingJobs=[];documentProcessingInitialized=false;documentProcessingLastSummary={active:0,attention:0,terminal:0};renderGlobalDocumentIndicator()
+}
+function schedulePersistentDocumentPoll(){
+ if(documentProcessingPollTimer){clearTimeout(documentProcessingPollTimer);documentProcessingPollTimer=null}
+ if(!currentUser||TEST_MODE_NO_AUTH||!documentProcessingJobs.some(j=>!persistentDocumentIsTerminal(j)))return;
+ documentProcessingPollTimer=setTimeout(()=>{documentProcessingPollTimer=null;fetchDocumentProcessingJobs().catch(()=>{});},15000)
+}
+async function initDocumentBackgroundProcessing(){
+ if(TEST_MODE_NO_AUTH||!currentUser)return;
+ cleanupDocumentBackgroundProcessing();
+ const sb=await getSupabase();
+ await fetchDocumentProcessingJobs().catch(err=>console.warn('Documentstatus ophalen',err));
+ invokeDocumentProcessing('resume').then(()=>fetchDocumentProcessingJobs()).catch(err=>console.warn('Documentverwerking hervatten',err));
+ documentProcessingChannel=sb.channel('document-processing-'+currentUser.id).on('postgres_changes',{event:'*',schema:'public',table:'document_processing_jobs',filter:'user_id=eq.'+currentUser.id},()=>{fetchDocumentProcessingJobs().catch(()=>{})}).subscribe(function(status){
+  if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){documentProcessingConnectivityLost=true;renderGlobalDocumentIndicator();schedulePersistentDocumentPoll()}
+  if(status==='SUBSCRIBED'){documentProcessingConnectivityLost=!navigator.onLine;renderGlobalDocumentIndicator()}
+ })
+}
+function renderGlobalDocumentIndicator(){
+ const button=document.getElementById('documentProcessingGlobal'),textEl=document.getElementById('documentProcessingGlobalText'),badge=document.getElementById('documentAttentionBadge');
+ const global=persistentDocumentGlobalJobs(),local=(documentProcessingSession?.items||[]).filter(x=>['selected','uploading','uploaded'].includes(x.state));
+ if(button&&textEl){
+  if(global.length||local.length){
+   const done=global.filter(persistentDocumentIsTerminal).length,total=global.length+local.length;
+   textEl.textContent=local.length&&!global.length?'Documenten uploaden':('Documenten '+done+'/'+total);
+   button.classList.remove('hidden');button.setAttribute('aria-label',local.length?'Documenten worden geüpload':'Documentverwerking bekijken, '+done+' van '+total+' afgerond')
+  }else button.classList.add('hidden')
+ }
+ const attention=persistentDocumentAttentionCount();
+ if(badge){badge.textContent=attention?String(attention):'';badge.classList.toggle('hidden',!attention);badge.setAttribute('aria-label',attention?(attention+' document'+(attention===1?'':'en')+' vraagt aandacht'):'')}
+}
+function openGlobalDocumentProcessingPanel(){
+ const global=persistentDocumentGlobalJobs(),attention=documentProcessingJobs.filter(j=>['review_required','failed'].includes(String(j.state||''))),jobs=global.length?global:attention.slice(0,12);
+ const terminal=jobs.filter(persistentDocumentIsTerminal).length;
+ modal('Documenten verwerken','<div class="document-processing-panel-summary"><strong>'+terminal+' van '+jobs.length+' afgerond</strong><br><span class="help">Je kunt doorwerken terwijl Boekuna de rest verwerkt.</span></div><div class="document-processing-list">'+(jobs.length?jobs.map(j=>persistentDocumentCardHtml(j,true)).join(''):'<div class="empty"><strong>Geen actieve documentverwerking</strong></div>')+'</div>','<button class="btn" onclick="closeModal()">Sluiten</button><button class="btn primary" onclick="closeModal();navigate(\'documents\')">Alles bekijken</button>',true)
+}
+function storageObjectUrl(path){return SUPABASE_URL+'/storage/v1/object/kwinest-documents/'+String(path).split('/').map(encodeURIComponent).join('/')}
+async function uploadPersistentDocumentBlob(file,path,item){
+ const token=await getApiAccessToken();
+ return await new Promise((resolve,reject)=>{
+  const xhr=new XMLHttpRequest();xhr.open('POST',storageObjectUrl(path),true);xhr.timeout=120000;
+  xhr.setRequestHeader('Authorization','Bearer '+token);xhr.setRequestHeader('apikey',SUPABASE_PUBLISHABLE_KEY);xhr.setRequestHeader('Content-Type',file.type||'application/octet-stream');xhr.setRequestHeader('x-upsert','false');
+  item.transferActive=true;activeDocumentTransfers++;
+  const finish=()=>finishActiveTransfer(item);
+  xhr.upload.onprogress=e=>{if(e.lengthComputable&&e.total>0){item.uploadLoaded=e.loaded;item.uploadTotal=e.total;item.uploadPercent=Math.min(100,Math.round(e.loaded/e.total*100));updateDocumentUploadProgressDom(item)}};
+  xhr.onload=()=>{finish();if(xhr.status>=200&&xhr.status<300)resolve(true);else reject(createUploadError(xhr.status===409?'DUPLICATE_UPLOAD':'NETWORK_ERROR','',xhr.status,{retryable:xhr.status>=500,state:'not_saved'}))};
+  xhr.onerror=()=>{finish();reject(createUploadError('NETWORK_ERROR','',0,{retryable:true,state:'not_saved'}))};
+  xhr.ontimeout=()=>{finish();reject(createUploadError('PROCESSING_TIMEOUT','',504,{retryable:true,state:'not_saved'}))};
+  xhr.onabort=()=>{finish();reject(createUploadError('NETWORK_ERROR','',0,{retryable:true,state:'not_saved'}))};
+  xhr.send(file)
+ })
+}
+async function persistSelectedDocument(item,batchId){
+ const sb=await getSupabase(),clientRef=item.clientRef||uid('file');item.clientRef=clientRef;
+ const path=currentUser.id+'/'+clientRef+'-'+safeStorageName(item.file.name);item.storagePath=path;
+ documentProcessingTransition(item,'uploading');setDocumentProcessingMessage(item,'Uploaden…','Je bestand wordt veilig ontvangen.');
+ await uploadPersistentDocumentBlob(item.file,path,item);
+ item.uploaded=true;item.uploadPercent=100;documentProcessingTransition(item,'uploaded');setDocumentProcessingMessage(item,'Bestand ontvangen','Je kunt dit document nu veilig op de achtergrond laten verwerken.');
+ const {data:existing}=await sb.from('documents').select('id,client_ref,storage_path').eq('user_id',currentUser.id).eq('client_ref',clientRef).maybeSingle();
+ let row=existing;
+ if(!row){
+  const inserted=await sb.from('documents').insert({user_id:currentUser.id,client_ref:clientRef,name:item.file.name,kind:'document',mime_type:item.file.type||'application/octet-stream',storage_path:path,metadata:{size:item.file.size,batch_id:batchId,processing:true}}).select('id,client_ref,storage_path').single();
+  if(inserted.error){await sb.storage.from('kwinest-documents').remove([path]);throw inserted.error}
+  row=inserted.data
+ }
+ if(!state.documents.some(d=>String(d.fileId||'')===clientRef)){
+  state.documents.unshift({id:uid('d'),fileId:clientRef,name:item.file.name,type:'Document',date:today(),size:item.file.size,source:'background-upload',analyzed:false,processingState:'queued'});save()
+ }
+ item.documentId=row.id;
+ documentProcessingTransition(item,'queued');setDocumentProcessingMessage(item,'Wacht','Bestand ontvangen. Verwerking start automatisch.');
+ const company=state.company||{};
+ const queued=await invokeDocumentProcessing('enqueue',{client_ref:clientRef,batch_id:batchId,kind:item.kind||'auto',company:{name:company.name||'',tradeName:company.tradeName||'',kvk:company.kvk||'',vat:company.vat||''}});
+ item.jobId=queued.job?.id||'';item.state=queued.job?.state||'queued';scheduleDocumentProcessingRender();renderGlobalDocumentIndicator();
+ return item
+}
+async function startPersistentDocumentProcessingQueue(files,kind='auto',options={}){
+ const list=[...files].filter(Boolean);if(!list.length){toast('Geen bestand geselecteerd');return}if(list.length>DOCUMENT_PROCESSING_MAX_FILES){toast('Kies maximaal '+DOCUMENT_PROCESSING_MAX_FILES+' documenten tegelijk.');return}
+ if(documentProcessingSession)cleanupDocumentProcessingSession();
+ const batchId='batch-'+(crypto.randomUUID?crypto.randomUUID():uid('bg'));
+ const session=documentProcessingSession={id:batchId,items:list.map(file=>{const item=createDocumentProcessingItem(file,kind);item.sourceInputId=String(options.sourceInputId||'');return item}),smart:!!options.smart,reviewingItemId:null,startedAt:Date.now(),persistent:true,allReceived:false,modalHidden:false};
+ renderDocumentProcessingExperience();renderGlobalDocumentIndicator();
+ const work=[...session.items],worker=async()=>{while(work.length){const item=work.shift();if(!item)continue;try{await persistSelectedDocument(item,batchId)}catch(err){console.error('Persistent upload failed',err);item.error=err;if(!['failed'].includes(item.state)){try{documentProcessingTransition(item,'failed')}catch{item.state='failed';scheduleDocumentProcessingRender()}}}}};
+ await Promise.all(Array.from({length:Math.min(DOCUMENT_PROCESSING_MAX_PARALLEL,list.length)},()=>worker()));
+ session.allReceived=session.items.every(x=>x.uploaded||x.state==='failed');
+ if(session.items.some(x=>x.uploaded))toast('Je documenten zijn ontvangen. Je kunt ondertussen verder werken.');
+ await fetchDocumentProcessingJobs().catch(()=>{});
+ scheduleDocumentProcessingRender();renderGlobalDocumentIndicator();
+}
+async function retryPersistentDocument(jobId){
+ try{await invokeDocumentProcessing('retry',{job_id:jobId});toast('Dit document wordt opnieuw verwerkt.');await fetchDocumentProcessingJobs()}catch(err){toast(err?.code==='RETRY_LIMIT_REACHED'?'Maximaal aantal pogingen bereikt.':'Opnieuw verwerken kon niet worden gestart.')}
+}
+async function replacePersistentDocument(jobId){
+ const job=documentProcessingJobs.find(j=>j.id===jobId);if(!job)return;
+ const input=document.createElement('input');input.type='file';input.accept='application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp';
+ input.onchange=async()=>{const file=input.files?.[0];if(!file)return;const fake=createDocumentProcessingItem(file,job.requested_kind||'auto');fake.clientRef=job.client_ref;
+  try{
+   const sb=await getSupabase(),{data:doc,error}=await sb.from('documents').select('id,storage_path').eq('id',job.document_id).eq('user_id',currentUser.id).maybeSingle();if(error||!doc)throw error||new Error('DOCUMENT_NOT_FOUND');
+   const nextPath=currentUser.id+'/'+job.client_ref+'-replacement-'+Date.now()+'-'+safeStorageName(file.name);documentReplacementProgress.set(jobId,0);
+   await uploadPersistentDocumentBlob(file,nextPath,fake);
+   const updated=await sb.from('documents').update({name:file.name,mime_type:file.type||'application/octet-stream',storage_path:nextPath,metadata:{size:file.size,replaced_at:new Date().toISOString()}}).eq('id',job.document_id).eq('user_id',currentUser.id).select('id').maybeSingle();
+   if(updated.error||!updated.data){await sb.storage.from('kwinest-documents').remove([nextPath]);throw updated.error||new Error('UPDATE_FAILED')}
+   if(doc.storage_path)await sb.storage.from('kwinest-documents').remove([doc.storage_path]);
+   const local=state.documents.find(d=>String(d.fileId||'')===String(job.client_ref));if(local){local.name=file.name;local.size=file.size;local.analyzed=false;local.processingState='queued';save()}
+   await invokeDocumentProcessing('retry',{job_id:jobId});toast('Nieuwe foto ontvangen. Dit document wordt opnieuw verwerkt.');await fetchDocumentProcessingJobs()
+  }catch(err){console.error(err);toast('Nieuwe foto kon niet veilig worden vervangen.')}finally{documentReplacementProgress.delete(jobId)}
+ };
+ input.click()
+}
+async function openPersistentDocumentReview(jobId){
+ const job=documentProcessingJobs.find(j=>j.id===jobId);if(!job?.result?.analysis)return toast('De verwerkte gegevens zijn nog niet beschikbaar.');
+ try{
+  const stored=await getStoredFile(job.client_ref);if(!stored?.blob)throw new Error('DOCUMENT_NOT_FOUND');
+  const file=new File([stored.blob],stored.name||persistentDocumentName(job),{type:stored.type||stored.blob.type||'application/octet-stream'});
+  const raw=job.result.analysis,parsed=applyRecognitionQuality(processorAnalysisToCandidate(raw,'',job.requested_kind||'auto')),proc=raw.processing||{};
+  parsed.processor={kind:proc.sourceKind||'',pageCount:Number(raw.pageCount||proc.pages||1),ocrUsed:Array.isArray(proc.ocrPages)&&proc.ocrPages.length>0,ocrPages:Array.isArray(proc.ocrPages)?proc.ocrPages:[],ocrConfidence:null,tables:Number(proc.tablesFound||0),warnings:Array.isArray(raw.warnings)?raw.warnings:[],documentTypeHint:raw.documentType||''};
+  parsed.pageCount=parsed.processor.pageCount;parsed.documentType=classifyDocumentType(parsed,raw.documentType||'');parsed.isCredit=parsed.documentType==='credit_invoice'||!!parsed.isCredit;if(parsed.isCredit)parsed.status='credit';
+  const ext=(file.name.split('.').pop()||'').toLowerCase(),previewable=ext==='pdf'||DOCUMENT_IMAGE_MIME_TYPES.includes(String(file.type||'').toLowerCase())||DOCUMENT_IMAGE_EXTENSIONS.includes(ext);
+  const previewUrl=previewable?URL.createObjectURL(file):null;
+  pendingPdfImport={file,parsed,previewUrl,sha256:'',sourceClientRef:job.client_ref,sourceDocumentId:job.document_id,processingJobId:job.id};
+  pendingUploadKind=job.requested_kind||'auto';showPdfImportReview(parsed);
+  const fields=Array.isArray(job.review_fields)?job.review_fields:[],map={gross:'gross',vatAmount:'vatAmount',vatRate:'vatRate',vatLines:'vatRate',issueDate:'issueDate',party:'party'};
+  requestAnimationFrame(()=>{const name=map[fields[0]];if(!name)return;const el=document.querySelector('#pdfImportForm [name="'+name+'"]');el?.focus();el?.scrollIntoView?.({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})})
+ }catch(err){console.error(err);toast('Document kon niet voor controle worden geopend.')}
+}
 
 function triggerInvoiceUpload(kind='auto'){pendingUploadKind=kind;const el=document.getElementById('invoicePdfFile');el.value='';el.click()}
 function triggerReceiptPhoto(){pendingUploadKind='purchase';const el=document.getElementById('receiptPhotoFile');el.value='';el.click()}
