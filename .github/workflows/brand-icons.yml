@@ -1,0 +1,49 @@
+name: Boekuna app icon assets
+
+on:
+  push:
+    branches:
+      - brand/boekuna-identity-v2
+    paths:
+      - "public/assets/boekuna-app-icon.svg"
+      - "scripts/generate-brand-icons.mjs"
+      - ".github/workflows/brand-icons.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: boekuna-brand-icons-v2
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: brand/boekuna-identity-v2
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install image renderer
+        run: npm install --prefix tests --no-save sharp@0.33.5
+
+      - name: Generate production icon sizes
+        run: node scripts/generate-brand-icons.mjs
+
+      - name: Commit generated app icons
+        run: |
+          if git diff --quiet -- public/assets/boekuna-app-icon-180.png public/assets/boekuna-app-icon-192.png public/assets/boekuna-app-icon-512.png public/assets/boekuna-app-icon-1024.png && [ -z "$(git ls-files --others --exclude-standard public/assets/boekuna-app-icon-512.png public/assets/boekuna-app-icon-1024.png)" ]; then
+            echo "No icon changes."
+            exit 0
+          fi
+          git config user.name "boekuna-brand-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/assets/boekuna-app-icon-180.png public/assets/boekuna-app-icon-192.png public/assets/boekuna-app-icon-512.png public/assets/boekuna-app-icon-1024.png
+          git commit -m "brand: generate approved app icon raster assets [skip ci]"
+          git push origin HEAD:brand/boekuna-identity-v2
