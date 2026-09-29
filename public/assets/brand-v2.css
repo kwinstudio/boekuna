@@ -305,3 +305,12 @@ a,button,input,select,textarea{transition-duration:180ms!important;transition-ti
 }
 .marketing .link-btn,
 .marketing .marketing-link.active{color:var(--brand-secondary)!important}
+
+/* Dark-surface mark treatment */
+#mainApp .sidebar .bookuna-logo-icon{content:url("/assets/boekuna-symbol-reversed.svg")!important}
+.auth-side .brand{display:flex!important;align-items:center!important;gap:12px!important}
+.auth-side .brand .bookuna-logo-icon{
+  content:url("/assets/boekuna-symbol-reversed.svg")!important;
+  width:38px!important;height:38px!important;min-width:38px!important
+}
+.auth-side .brand span{color:#FFFFFF!important}
