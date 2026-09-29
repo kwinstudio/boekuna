@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import {performance} from 'node:perf_hooks';
 import {validateIban,validateBic,analyzeOcrIban} from '../supabase/functions/financial-automation/lib/iban-bic.mjs';
 import {parseCamt053,parseMt940,secureXmlPreflight,attachTransactionFingerprints,statementSummary} from '../supabase/functions/financial-automation/lib/bank-import.mjs';
-import {matchTransactionAgainstLedger,batchMatchTransactions,invoiceOutstandingCents} from '../supabase/functions/financial-automation/lib/matching.mjs';
+import {matchTransactionAgainstLedger,batchMatchTransactions,invoiceGrossCents,invoiceOutstandingCents} from '../supabase/functions/financial-automation/lib/matching.mjs';
 import {compareDuplicateFingerprint,textFingerprint,supplierFingerprint} from '../supabase/functions/financial-automation/lib/duplicates.mjs';
 import {validateUblSemantics} from '../supabase/functions/financial-automation/lib/ubl.mjs';
 
@@ -37,6 +37,10 @@ const ledger={contacts:[{id:'c1',name:'Acme BV',iban:'NL69INGB0123456789'}],invo
 const high=matchTransactionAgainstLedger({amount_cents:12100,booking_date:'2026-09-29',description:'2026-001 PAY-001',counterparty_name:'Acme BV',counterparty_iban:'NL69INGB0123456789',bank_reference:'PAY-001'},ledger);assert.equal(high.state,'exact/high-confidence');assert.ok(high.score>=80);assert.equal(invoiceOutstandingCents(ledger.invoices[0],[]),12100);
 const partial=matchTransactionAgainstLedger({amount_cents:5000,booking_date:'2026-09-29',description:'PAY-001',counterparty_name:'Acme BV'},ledger);assert.equal(partial.state,'suggested');assert.ok(partial.best.evidence.includes('partial_amount'));
 const invoice121={id:'pay-i',kind:'invoice',status:'sent',lines:[{qty:1,unit:100,vat:21}],payments:[]};
+const decimalTrap={id:'decimal-trap',kind:'invoice',status:'sent',lines:[{qty:0.3,unit:3.35,vat:0}],payments:[]};
+assert.equal(invoiceGrossCents(decimalTrap),101,'#79 fractional quantity x decimal unit must round deterministically to 101 cents');
+assert.equal(invoiceOutstandingCents({...decimalTrap,payments:[{id:'decimal-pay',amount:1}]},[]),1,'#79 €1.00 payment must leave exactly one cent outstanding');
+assert.equal(invoiceGrossCents({...decimalTrap,discountType:'fixed',discountValue:0.01}),100,'#79 fixed discount stays integer-cent exact after decimal multiplication');
 const matched=(id,amountCents=5000,fp='')=>({serverTransactionId:id,sourceFingerprint:fp||undefined,status:'matched',matchType:'invoice',matchId:'pay-i',amount_cents:amountCents});
 
 // #66 authoritative payment-identity matrix. Amount/date/name are never dedupe keys.
