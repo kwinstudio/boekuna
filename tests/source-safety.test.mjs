@@ -185,6 +185,7 @@ const deleteAccountEdge=fs.readFileSync(new URL("../supabase/functions/delete-ac
 const analyzeInvoiceEdge=fs.readFileSync(new URL("../supabase/functions/analyze-invoice/index.ts",import.meta.url),"utf8");
 assert.ok(privacy.includes("Boekuna is een product van Kwinest"),"Privacy policy must identify the product/operator");
 assert.ok(privacy.includes("originele geüploade document of de originele afbeelding"),"Privacy policy must disclose that independent AI verification can receive the original document/image");
+assert.ok(privacy.includes("standaard documentscan kan zonder externe AI-provider"),"Privacy policy must disclose that standard scanning is local-first and AI is optional");
 assert.ok(privacy.includes("maximaal 30 dagen"),"Privacy policy must disclose standard OpenAI API abuse-monitoring retention without claiming ZDR");
 assert.ok(privacy.includes("store:false"),"Privacy policy must distinguish Responses application-state storage from provider retention");
 assert.ok(privacy.includes("niet dat AI-verwerking uitsluitend in de EU plaatsvindt"),"Privacy policy must not imply EU-only processing without verified production residency");
