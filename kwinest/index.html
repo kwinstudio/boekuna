@@ -1946,7 +1946,7 @@ img.bookuna-logo-icon,
 }
 </style>
 <link rel="stylesheet" href="/assets/brand-v2.css?v=20260929a" />
-</head>
+<link rel="stylesheet" href="/assets/document-background-processing.css?v=20260929a" />\n</head>
 <body>
 <script src="/assets/financial-correction.js?v=20260929a"></script>
 <script>
@@ -4937,7 +4937,7 @@ document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=
  }
 });window.addEventListener('popstate',()=>{if(document.getElementById('mainApp').style.display==='none')showLanding()});window.addEventListener('online',()=>{documentProcessingConnectivityLost=false;renderGlobalDocumentIndicator();if(TEST_MODE_NO_AUTH){setCloudSyncStatus('saved');void resumePendingDocumentVerifications();return}setCloudSyncStatus('saving');syncCloudStateNow().then(()=>resumePendingDocumentVerifications()).catch(()=>setCloudSyncStatus('error'));invokeDocumentProcessing('resume').then(()=>fetchDocumentProcessingJobs()).catch(()=>{})});window.addEventListener('offline',()=>{documentProcessingConnectivityLost=true;renderGlobalDocumentIndicator();if(page==='documents')render();setCloudSyncStatus(TEST_MODE_NO_AUTH?'saved':'offline')});initAuth();
 </script>
-<script id="boekuna-native-email-share">
+<script src="/assets/document-processing-state.js?v=20260929a"></script>\n<script src="/assets/document-background-processing.js?v=20260929a"></script>\n<script id="boekuna-native-email-share">
 (function(){
   'use strict';
 
