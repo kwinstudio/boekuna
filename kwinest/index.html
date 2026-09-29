@@ -3627,7 +3627,8 @@ async function startDocumentProcessingQueue(files,kind='auto',options={}){
 async function retryDocumentProcessingItem(id){
  const s=documentProcessingSession,item=s?.items.find(function(x){return x.id===id});if(!item||item.state!=='failed')return;
  item.state='selected';item.error=null;item.uploaded=false;item.uploadPercent=0;item.uploadLoaded=0;item.processorComplete=false;item.longWait=false;item.completedAt=null;s.reviewingItemId=null;scheduleDocumentProcessingRender();
- await processDocumentQueueItem(item,s.smart)
+ await processDocumentQueueItem(item,s.smart);
+ if(s.items.length===1&&item.state==='completed'&&item.result){pendingPdfImport=item.result;item.result=null;item.reviewed=true;s.reviewingItemId=item.id;showPdfImportReview(pendingPdfImport.parsed)}
 }
 function openProcessedDocumentReview(id){
  const s=documentProcessingSession,item=s?.items.find(function(x){return x.id===id});if(!item?.result)return;
