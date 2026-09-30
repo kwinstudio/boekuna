@@ -57,8 +57,12 @@ jobs:
       - name: Browser pre-launch smoke
         run: node tests/browser-smoke.test.mjs
       - name: Mobile navigation and dashboard regressions
+        id: mobile_chromium
+        continue-on-error: true
         run: node tests/mobile-app-layout.test.mjs
       - name: WebKit mobile navigation and dashboard regressions
+        id: mobile_webkit
+        continue-on-error: true
         run: BOOKUNA_BROWSER=webkit node tests/mobile-app-layout.test.mjs
       - name: Split generated surface browser smoke
         run: node tests/split-surfaces-browser.test.mjs
@@ -86,6 +90,13 @@ jobs:
         run: node tests/production-integrity.test.mjs
       - name: Invoice PDF and email parity
         run: node tests/invoice-delivery.test.mjs
+      - name: Mobile QA release gate
+        if: always()
+        run: |
+          if [ "${{ steps.mobile_chromium.outcome }}" != "success" ] || [ "${{ steps.mobile_webkit.outcome }}" != "success" ]; then
+            echo "Mobile QA failed: chromium=${{ steps.mobile_chromium.outcome }} webkit=${{ steps.mobile_webkit.outcome }}"
+            exit 1
+          fi
       - name: Upload app visual evidence
         if: always()
         uses: actions/upload-artifact@v4
