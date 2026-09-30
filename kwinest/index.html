@@ -3192,18 +3192,24 @@ function openDashboardAttention(kind,id=''){
  if(kind==='bookings'){const relevant=state.bookings.some(b=>['planned','confirmed'].includes(b.status)&&daysUntil(b.date)>=0&&daysUntil(b.date)<=2&&!b.reminderSent);if(!relevant){render();toast('Dit aandachtspunt is inmiddels bijgewerkt.');return}navigate('bookings')}
 }
 function renderAttentionCenter(openAmount){
- const items=dashboardAttentionItems(),visible=items.slice(0,3),docLoading=!TEST_MODE_NO_AUTH&&!documentProcessingInitialized,docError=documentProcessingConnectivityLost;
+ const items=dashboardAttentionItems(),visible=items.slice(0,3),docLoading=!TEST_MODE_NO_AUTH&&!documentProcessingInitialized&&!documentProcessingFetchError,docError=documentProcessingFetchError||documentProcessingConnectivityLost;
  let body='';
  if(visible.length){
   body='<div class="dashboard-attention-list">'+visible.map(item=>'<button type="button" class="dashboard-attention-item '+item.tone+'" data-attention-key="'+esc(item.key)+'"><span class="dashboard-attention-icon" aria-hidden="true">'+esc(item.icon)+'</span><span class="dashboard-attention-copy"><strong>'+esc(item.title)+'</strong><span>'+esc(item.detail)+'</span></span><span class="dashboard-attention-chevron" aria-hidden="true">›</span></button>').join('')+'</div>';
-  if(docLoading)body+='<div class="dashboard-attention-meta">Documentstatus wordt bijgewerkt…</div>';else if(docError)body+='<div class="dashboard-attention-meta error">Documentstatus kon niet worden vernieuwd. <button class="link-btn" type="button" onclick="fetchDocumentProcessingJobs()">Opnieuw proberen</button></div>'
- }else if(docError)body='<div class="dashboard-attention-state error"><strong>Aandachtspunten konden niet worden vernieuwd.</strong><span>Controleer je verbinding en probeer opnieuw.</span><button class="btn small" type="button" onclick="fetchDocumentProcessingJobs()">Opnieuw proberen</button></div>';
+  if(docLoading)body+='<div class="dashboard-attention-meta">Documentstatus wordt bijgewerkt…</div>';else if(docError)body+='<div class="dashboard-attention-meta error">Documentstatus kon niet worden vernieuwd. <button class="link-btn" type="button" onclick="retryDocumentAttentionFetch()">Opnieuw proberen</button></div>'
+ }else if(docError)body='<div class="dashboard-attention-state error"><strong>Aandachtspunten konden niet worden vernieuwd.</strong><span>Controleer je verbinding en probeer opnieuw.</span><button class="btn small" type="button" onclick="retryDocumentAttentionFetch()">Opnieuw proberen</button></div>';
  else if(docLoading)body='<div class="dashboard-attention-state loading" aria-live="polite"><span class="dashboard-attention-skeleton"></span><strong>Aandachtspunten worden bijgewerkt…</strong></div>';
  else body='<div class="dashboard-attention-state success"><span aria-hidden="true">✓</span><div><strong>Alles bijgewerkt</strong><span>Er zijn momenteel geen acties die je aandacht nodig hebben.</span></div></div>';
  const total=items.length,more=total>3?'<button class="link-btn dashboard-attention-all" type="button" onclick="navigate(\'control\')">Bekijk alle aandachtspunten ('+total+')</button>':'';
  return '<section class="dashboard-attention card" aria-labelledby="dashboardAttentionTitle"><div class="section-head"><div><div class="eyebrow">Vandaag</div><h2 id="dashboardAttentionTitle">Aandacht nodig</h2></div><span class="badge '+(total?'warn':'good')+'">'+(total?total:'Alles bij')+'</span></div>'+body+'<div class="dashboard-attention-footer"><div><span>Openstaand</span><strong>'+money(openAmount)+'</strong></div>'+more+'</div></section>'
 }
 function wireDashboardAttention(){const items=dashboardAttentionItems();document.querySelectorAll('[data-attention-key]').forEach(btn=>{const item=items.find(x=>x.key===btn.dataset.attentionKey);if(item)btn.addEventListener('click',item.action)})}
+async function retryDocumentAttentionFetch(){
+ documentProcessingFetchError=false;
+ if(page==='dashboard'&&document.getElementById('content'))render();
+ try{return await fetchDocumentProcessingJobs()}
+ catch(err){console.warn('Documentstatus opnieuw ophalen',err);return []}
+}
 async function navigate(p){
  const paidFeature={control:'Controlecentrum',cashflow:'Cashflow vooruitblik'}[p];
  if(paidFeature&&!(await requireBoekunaSmartLayer(paidFeature)))return;
@@ -3769,7 +3775,7 @@ function cancelDocumentReview(){
 window.addEventListener('beforeunload',function(e){const receiptPending=!!documentProcessingSession?.persistent&&(documentProcessingSession.items||[]).some(x=>x.uploaded&&!x.receivedPersisted&&x.state!=='failed');if(activeDocumentTransfers>0||receiptPending){e.preventDefault();e.returnValue=''}});
 
 const PERSISTENT_DOCUMENT_TERMINAL=new Set(['ready','review_required','failed']);
-let documentProcessingJobs=[],documentProcessingChannel=null,documentProcessingPollTimer=null,documentProcessingInitialized=false,documentProcessingConnectivityLost=!navigator.onLine;
+let documentProcessingJobs=[],documentProcessingChannel=null,documentProcessingPollTimer=null,documentProcessingInitialized=false,documentProcessingConnectivityLost=!navigator.onLine,documentProcessingFetchError=false;
 let documentProcessingLastSummary={active:0,attention:0,terminal:0},documentReplacementProgress=new Map();
 
 function persistentDocumentIsTerminal(job){return PERSISTENT_DOCUMENT_TERMINAL.has(String(job?.state||''))}
@@ -3895,10 +3901,19 @@ function syncPersistentJobsToUploadSession(){
 }
 async function fetchDocumentProcessingJobs(){
  if(TEST_MODE_NO_AUTH||!currentUser)return [];
- const sb=await getSupabase();
- const {data,error}=await sb.from('document_processing_jobs').select('id,document_id,client_ref,batch_id,file_name,mime_type,size_bytes,requested_kind,state,phase,attempt,max_attempts,result,review_fields,review_message,error_code,error_reference,error_retryable,created_at,updated_at,completed_at,resolved_at').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(60);
- if(error)throw error;
- applyDocumentProcessingJobs(data||[],{initial:!documentProcessingInitialized});syncPersistentJobsToUploadSession();return data||[]
+ try{
+  const sb=await getSupabase();
+  const {data,error}=await sb.from('document_processing_jobs').select('id,document_id,client_ref,batch_id,file_name,mime_type,size_bytes,requested_kind,state,phase,attempt,max_attempts,result,review_fields,review_message,error_code,error_reference,error_retryable,created_at,updated_at,completed_at,resolved_at').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(60);
+  if(error)throw error;
+  documentProcessingFetchError=false;
+  applyDocumentProcessingJobs(data||[],{initial:!documentProcessingInitialized});syncPersistentJobsToUploadSession();
+  if(page==='dashboard'&&document.getElementById('content'))render();
+  return data||[]
+ }catch(err){
+  documentProcessingFetchError=true;
+  if(page==='dashboard'&&document.getElementById('content'))render();
+  throw err
+ }
 }
 async function invokeDocumentProcessing(action,payload={}){
  const response=await fetchWithAuthRetry(EDGE_BASE+'/document-processing',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPABASE_PUBLISHABLE_KEY},body:JSON.stringify({action,...payload})});
@@ -3909,7 +3924,7 @@ async function invokeDocumentProcessing(action,payload={}){
 function cleanupDocumentBackgroundProcessing(){
  if(documentProcessingPollTimer){clearTimeout(documentProcessingPollTimer);documentProcessingPollTimer=null}
  if(documentProcessingChannel&&supabaseClient){try{supabaseClient.removeChannel(documentProcessingChannel)}catch(e){}}
- documentProcessingChannel=null;documentProcessingJobs=[];documentProcessingInitialized=false;documentProcessingLastSummary={active:0,attention:0,terminal:0};renderGlobalDocumentIndicator()
+ documentProcessingChannel=null;documentProcessingJobs=[];documentProcessingInitialized=false;documentProcessingFetchError=false;documentProcessingLastSummary={active:0,attention:0,terminal:0};renderGlobalDocumentIndicator()
 }
 function schedulePersistentDocumentPoll(){
  if(documentProcessingPollTimer){clearTimeout(documentProcessingPollTimer);documentProcessingPollTimer=null}
