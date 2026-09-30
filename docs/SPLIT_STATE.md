@@ -1,7 +1,7 @@
 # BOEKUNA Split State
 
-Last updated: 2026-09-30T02:25:00+02:00
-Checkpoint: 2 — explicit independent build boundaries implemented
+Last updated: 2026-09-30T11:40:00+02:00
+Checkpoint: 6 — app/public origins split; provider-neutral entitlement layer implemented in branch
 Branch: `refactor/split-web-app`
 Base/main SHA: `ba0fd360dd200841714330d42421f6577beea88c`
 Status: IN PROGRESS
@@ -21,8 +21,9 @@ Status: IN PROGRESS
 - Consequence: production root is still the combined app/marketing document even though separate public marketing pages already exist.
 - Shared backend remains Supabase Auth/Postgres/Storage/Edge Functions plus the Render document processor.
 - Billing is server-side Stripe via Supabase Edge Functions; current return URLs use `APP_URL + "/?login=1..."`.
-- Current public marketing CTAs still target same-origin `/?login=1`.
-- Current CI is one broad workflow `.github/workflows/boekuna-integrity.yml`, with app, backend, browser, financial, processor and marketing checks in the same job.
+- Marketing source now targets `https://app.boekuna.nl` for product login/registration actions and `https://boekuna.nl` for public canonical/SEO URLs.
+- Generated app artifact is auth/dashboard-only and no longer contains the legacy marketing runtime.
+- Current CI is still one broad workflow `.github/workflows/boekuna-integrity.yml`, but split-specific characterization/build/origin/provider tests now run before the legacy full suite.
 
 ## Checkpoint 2 evidence
 Implemented:
@@ -45,6 +46,53 @@ Review:
 - no processor changes;
 - marketing homepage was corrected from an initial simplified draft to a preservation extract after review identified avoidable behavior/content drift.
 - remaining temporary coupling: app build currently copies shared `public/assets` wholesale and the legacy `kwinest/index.html` still contains the old marketing flow. This is intentional strangler state and is the next checkpoint target.
+
+## Checkpoints 3–6 evidence
+### App-only generated surface
+- `scripts/build-app.mjs` strips the legacy marketing runtime from the deploy artifact using strict boundary markers.
+- Logged-out product root renders authentication; logged-in flow still enters the existing dashboard/app.
+- App legal/back links point to `https://boekuna.nl`.
+- App artifact adds `noindex,nofollow`.
+- `tests/split-surfaces-browser.test.mjs` browser-smokes generated `dist/marketing` and `dist/app`.
+- Run #824 showed `Split generated surface browser smoke: success` before continuing through the legacy suite.
+
+### Public host boundary
+- Public canonicals, robots and sitemap are moved from the legacy Render host to `https://boekuna.nl`.
+- Marketing login/plan CTAs are moved from same-origin `/?login=1...` to `https://app.boekuna.nl/?login=1...`.
+- Expected TDD red: run #825 failed Marketing page QA on the old canonical expectation; implementation and characterization were then advanced.
+
+### App origin / Edge Functions
+Browser-facing functions now include `https://app.boekuna.nl` while retaining `https://boekuna-boekhouding.onrender.com` for rollback:
+- billing-checkout
+- billing-portal
+- billing-sync
+- email-connection
+- send-invoice
+- analyze-invoice
+- document-processing
+- financial-automation
+
+Billing/document APP_URL defaults now target `https://app.boekuna.nl`.
+Expected TDD red: run #842 failed because checkout did not yet allow the isolated app origin.
+
+### Provider-neutral entitlement boundary
+Branch migration:
+- `supabase/migrations/20260930093553_provider_agnostic_billing_entitlements.sql`
+
+Design:
+- additive `public.billing_entitlements` table;
+- provider-neutral `provider`, `provider_status`, `access_state`, `valid_until` and external refs;
+- service-only generic writer `public.apply_subscription_entitlement(...)`;
+- existing Stripe `billing_accounts` is preserved;
+- existing `public.apply_stripe_subscription_state(...)` remains the Stripe integration boundary and synchronizes generic entitlement state;
+- current Stripe rows are backfilled as provider `stripe`;
+- `private.entitlement_state_for_user` and `public.billing_effective_plan` read provider-neutral entitlement first with legacy Stripe fallback;
+- no destructive drop table/column operation.
+
+Validation:
+- full migration executed against the real production schema inside `BEGIN; ... ROLLBACK;` successfully;
+- no persistent production database change was made.
+- Expected TDD red: run #850 failed because the migration did not exist yet; SQL and billing regression coverage were then added.
 
 ## Deployment evidence
 Production static site:
@@ -101,22 +149,24 @@ Characterization command now enforced by CI:
 - observed result: success in run #809.
 
 ## Blockers
-- No blocker to code/test work.
+- No blocker to repository code/test work.
+- Render cannot create the two requested split preview services because the Hobby workspace is already at its 25-service limit. No existing service was deleted or repurposed.
 - Production DNS/domain cutover has not been attempted.
-- Supabase dashboard auth redirect configuration has not yet been read/changed.
+- Supabase production project is confirmed as `vuwfyhtejsxhdfyvkkeq` (`kwinest`), ACTIVE_HEALTHY.
+- Supabase dashboard Site URL / Redirect URLs still require explicit production configuration for `https://app.boekuna.nl`; the currently available Supabase connector does not expose that Auth URL configuration mutation.
 - Custom-domain ownership on Render has not yet been changed.
 
 ## Known risks
-1. Auth callback/reset links currently assume the existing same-origin combined site.
-2. Stripe checkout/portal return URLs currently use the existing `APP_URL` shape.
-3. Supabase Edge Function CORS allowlists contain the old Render URL and `boekuna.nl`; `app.boekuna.nl` needs explicit verification/addition.
-4. Public canonicals still reference the old Render host and need a controlled SEO cutover to `boekuna.nl`.
-5. PWA start URL currently points to `/?login=1&app=1` and must become app-host aware.
-6. Marketing and app tests are currently coupled into one workflow/job.
-7. Existing open marketing PRs may overlap `public/**`.
+1. Supabase Auth Site URL / exact production redirect allowlist has not yet been changed in the dashboard; signup/reset code already uses `AUTH_REDIRECT_URL`.
+2. Production Edge Functions still run their previously deployed versions until an explicit deployment gate; branch code is not live.
+3. Production Stripe/Edge `APP_URL` secret/config must be verified/set to `https://app.boekuna.nl` at cutover.
+4. PWA manifest is still shared in source and currently uses relative `/?login=1&app=1`; app-host deployment makes it same-origin, but marketing build should eventually stop publishing app-only PWA metadata.
+5. Marketing and app tests are still coupled into one broad workflow/job; CI path isolation remains open.
+6. Existing open marketing PRs overlap `public/**`; rebase/reconciliation is required before merge.
+7. Render preview capacity must be freed before real split-host preview deployment can be created.
 
 ## Rollback state
 No production code/configuration has been changed. Rollback is currently: delete/abandon the split branch. Production remains at the recorded main SHA/deploys.
 
 ## Next exact action
-Checkpoint 3/4 strangler step: make the generated product-app artifact auth/dashboard-only, remove its marketing homepage flow, convert app legal/back links to the public host, and add dedicated browser verification. Keep the legacy source marketing block temporarily for rollback until the app-only artifact is proven.
+Finish the current full CI run on the provider-neutral entitlement head. If green, split CI scopes (marketing/app/backend) without weakening the full release gate. Then perform static build/deploy verification using available capacity or after one obsolete Render preview is removed. Production Edge Function, Auth URL and DNS cutovers remain gated behind full regression + rollback evidence.
