@@ -20,7 +20,7 @@ for(const slug of pages){
   assert.ok(html.includes('id="siteFooter"'),`${slug}: shared footer missing`);
   assert.ok(html.includes('/assets/marketing.css'),`${slug}: shared CSS missing`);
   assert.ok(html.includes('/assets/marketing.js'),`${slug}: shared JS missing`);
-  assert.ok(html.includes(`https://boekuna-boekhouding.onrender.com/${slug}/`),`${slug}: canonical/public URL metadata missing`);
+  assert.ok(html.includes(`https://boekuna.nl/${slug}/`),`${slug}: canonical/public URL metadata missing`);
 
   for(const m of html.matchAll(/href="(\/[^"#?]*)(?:[?#][^"]*)?"/g)){
     const href=m[1];
@@ -40,6 +40,19 @@ assert.ok(css.includes('.how-hero'), 'Product tour styling must remain present')
 
 const sharedMarketing=fs.readFileSync(path.join(publicDir,'assets','marketing.js'),'utf8');
 assert.ok(sharedMarketing.includes('mailto:support@boekuna.nl'),'Public footer must expose the official support email');
+assert.ok(sharedMarketing.includes('https://app.boekuna.nl/?login=1'),'Public navigation login must cross to the product host');
+assert.ok(!sharedMarketing.includes('href="/?login=1"'),'Public navigation must not keep same-origin product login links');
+assert.ok(!sharedMarketing.includes('boekuna-boekhouding.onrender.com'),'Shared marketing runtime must not publish legacy Render metadata');
+
+const publicRoot=fs.readFileSync(path.join(publicDir,'index.html'),'utf8');
+assert.ok(publicRoot.includes('https://boekuna.nl/'),'Marketing root must use the public canonical host');
+assert.ok(publicRoot.includes('https://app.boekuna.nl/?register=1'),'Marketing root registration must cross to the product host');
+
+for(const publicFile of ['robots.txt','sitemap.xml']){
+  const text=fs.readFileSync(path.join(publicDir,publicFile),'utf8');
+  assert.ok(!text.includes('boekuna-boekhouding.onrender.com'),publicFile+' must not advertise the legacy Render host');
+  assert.ok(text.includes('https://boekuna.nl'),publicFile+' must advertise the public host');
+}
 
 const contact=fs.readFileSync(path.join(publicDir,'contact','index.html'),'utf8');
 assert.ok(contact.includes('mailto:support@boekuna.nl'),'Contact page must expose the official support email');
