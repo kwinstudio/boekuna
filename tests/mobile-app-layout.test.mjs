@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
 
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
 fs.mkdirSync('tests/artifacts',{recursive:true});
@@ -71,7 +71,7 @@ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const {port}=server.address();
 const base='http://127.0.0.1:'+port;
 
-const browser=await chromium.launch({headless:true});
+const browserName=(process.env.BOOKUNA_BROWSER||'chromium')==='webkit'?'webkit':'chromium';\nconst browserType=browserName==='webkit'?webkit:chromium;\nconst browser=await browserType.launch({headless:true});
 const page=await browser.newPage({viewport:{width:390,height:844}});
 const pageErrors=[];
 page.on('pageerror',error=>pageErrors.push(String(error)));
@@ -97,7 +97,7 @@ try{
   assert.doesNotMatch(attentionText,/Btw Q\d+ controleren/,'Generic VAT action must not appear');
 
   assert.equal(await page.locator('.dashboard-kpis').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length),2,'390px dashboard KPI layout must be 2x2');
-  await page.screenshot({path:'tests/artifacts/mobile-dashboard-390.png',fullPage:true});
+  await page.screenshot({path:`tests/artifacts/mobile-dashboard-${browserName}-390.png`,fullPage:true});
 
   await page.locator('[data-mobile-page="invoices"]').click();
   await page.locator('#pageTitle').filter({hasText:'Facturen'}).waitFor();
@@ -126,6 +126,46 @@ try{
 
   await page.locator('[data-mobile-page="dashboard"]').click();
   await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+
+  // Independent QA additions: focus containment/return, non-primary active state,
+  // breakpoint cleanup, long-name overflow, and desktop width coverage.
+  await page.locator('[data-mobile-action="more"]').click();
+  await page.waitForFunction(()=>document.activeElement===document.querySelector('#sidebar button:not([disabled])'));
+  assert.ok(await page.evaluate(()=>document.getElementById('sidebar').contains(document.activeElement)),'Drawer must move focus inside itself');
+  await page.keyboard.press('Shift+Tab');
+  assert.equal(await page.evaluate(()=>document.activeElement?.id),'mobileLogoutButton','Shift+Tab from first drawer control must wrap to the last control');
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(()=>document.activeElement?.id==='mobileMenu');
+  assert.equal(await page.locator('#mobileMenu').getAttribute('aria-expanded'),'false','Escape close must restore trigger state');
+
+  await page.evaluate(async()=>{await navigate('settings')});
+  assert.equal(await page.locator('[data-mobile-action="more"]').getAttribute('aria-current'),'page','Non-primary pages must activate Meer');
+  await page.evaluate(async()=>{await navigate('dashboard')});
+
+  await page.setViewportSize({width:820,height:900});
+  await page.locator('[data-mobile-action="more"]').click();
+  assert.ok(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open')),'Drawer must open at 820px');
+  await page.setViewportSize({width:821,height:900});
+  await page.waitForFunction(()=>!document.getElementById('sidebar').classList.contains('open'));
+  assert.equal(await page.locator('#mobileDrawerBackdrop').evaluate(el=>el.classList.contains('open')),false,'Breakpoint transition must clear backdrop');
+  assert.equal(await page.evaluate(()=>document.body.classList.contains('mobile-drawer-open')),false,'Breakpoint transition must restore body scrolling');
+  assert.equal(await page.locator('#appMain').evaluate(el=>el.inert),false,'Breakpoint transition must clear main inert state');
+  assert.equal(await page.locator('#mobileBottomNav').evaluate(el=>el.inert),false,'Breakpoint transition must clear bottom-nav inert state');
+
+  await page.setViewportSize({width:320,height:700});
+  await page.evaluate(()=>{
+    currentUser.supabaseUser.user_metadata.first_name='AlexandertheGreatSupercalifragilisticLongfirstnameWithoutAnyBreaks';
+    page='dashboard';render();
+  });
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'Long first name must not create horizontal overflow at 320px');
+  await page.evaluate(()=>{currentUser.supabaseUser.user_metadata.first_name='Kwin';render()});
+
+  for(const width of [1024,1280]){
+    await page.setViewportSize({width,height:900});
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'No global horizontal overflow at '+width+'px');
+    assert.equal(await page.locator('#mobileBottomNav').evaluate(el=>getComputedStyle(el).display),'none','Desktop bottom nav must be hidden at '+width+'px');
+  }
+  await page.setViewportSize({width:390,height:844});
 
   await page.evaluate(()=>{state.invoices=[];state.transactions=[];state.documents=[];state.contacts=[];state.bookings=[];documentProcessingJobs=[];documentProcessingConnectivityLost=false;documentProcessingInitialized=true;render()});
   await page.getByText('Alles bijgewerkt',{exact:true}).waitFor();
