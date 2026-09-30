@@ -69,6 +69,11 @@ async function nav(name){await page.evaluate(async name=>navigate(name),name);aw
 try{
   await openApp();
 
+  // Global quick-create stays discoverable but must not compete with each page's primary action.
+  const globalQuick=page.locator('#quickNew');
+  assert.ok(await globalQuick.isVisible(),'Global quick-create must remain reachable');
+  assert.equal(await globalQuick.evaluate(el=>el.classList.contains('primary')),false,'Global quick-create must not compete as a second primary CTA');
+
   // Invoice editor: task-first, advanced details available but not permanently dominant.
   await page.evaluate(()=>newInvoice());
   await page.getByRole('heading',{name:'Nieuwe verkoopfactuur'}).waitFor();
