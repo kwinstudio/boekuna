@@ -35,5 +35,12 @@ assert.ok(fs.existsSync(path.join(root,'dist','app','manifest.webmanifest')),'ap
 assert.ok(fs.existsSync(path.join(root,'dist','app','assets','financial-correction.js')),'app build must carry financial correction runtime');
 const appIndex=fs.readFileSync(path.join(root,'dist','app','index.html'),'utf8');
 assert.ok(appIndex.includes('id="mainApp"'),'app artifact must contain product runtime');
+assert.ok(!appIndex.includes('function showLanding'),'app artifact must not contain the legacy marketing homepage flow');
+assert.ok(!appIndex.includes('function marketingNav'),'app artifact must not bundle the legacy marketing navigation runtime');
+assert.ok(!appIndex.includes('function showMarketingPage'),'app artifact must not bundle the legacy marketing page renderer');
+assert.ok(!appIndex.includes("else showLanding();"),'logged-out app root must not fall back to marketing');
+assert.ok(appIndex.includes("else showAuth('login');"),'logged-out app root must render authentication');
+assert.ok(appIndex.includes('https://boekuna.nl/privacy/'),'app auth/legal links must point to the public marketing host');
+assert.ok(appIndex.includes('https://boekuna.nl/voorwaarden/'),'app terms link must point to the public marketing host');
 
 console.log('BOEKUNA split build boundaries: PASS');
