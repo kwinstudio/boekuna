@@ -10,9 +10,9 @@ import {validateUblSemantics} from "./lib/ubl.mjs";
 const URL=Deno.env.get("SUPABASE_URL")!,ANON=Deno.env.get("SUPABASE_ANON_KEY")!,SERVICE=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const admin=createClient(URL,SERVICE,{auth:{persistSession:false,autoRefreshToken:false}});
 const ENABLED=Deno.env.get("FINANCIAL_AUTOMATION_ENABLED")!=="false",MAX_BODY=6*1024*1024,MAX_BANK=5*1024*1024,MAX_UBL=2*1024*1024,MAX_TX=5000,MAX_MATCH=500;
-const ORIGINS=new Set(["https://boekuna-boekhouding.onrender.com","https://kwinest-boekhouding.onrender.com","https://boekuna-qa-staging.onrender.com","https://boekuna.nl","https://www.boekuna.nl","http://localhost:3000","http://127.0.0.1:3000"]);
+const ORIGINS=new Set(["https://app.boekuna.nl","https://boekuna-boekhouding.onrender.com","https://kwinest-boekhouding.onrender.com","https://boekuna-qa-staging.onrender.com","https://boekuna.nl","https://www.boekuna.nl","http://localhost:3000","http://127.0.0.1:3000"]);
 const LIMITS:any={iban_validate:300,bank_preview:60,bank_commit:20,match_suggest:120,match_confirm:240,duplicate_check:120,duplicate_register:120,ubl_validate:60,ubl_validate_store:30};
-function cors(req:Request){const o=req.headers.get("origin")||"";return {"access-control-allow-origin":ORIGINS.has(o)?o:"https://boekuna-boekhouding.onrender.com","access-control-allow-methods":"POST,OPTIONS","access-control-allow-headers":"authorization,apikey,content-type","vary":"Origin"}}
+function cors(req:Request){const o=req.headers.get("origin")||"";return {"access-control-allow-origin":ORIGINS.has(o)?o:"https://app.boekuna.nl","access-control-allow-methods":"POST,OPTIONS","access-control-allow-headers":"authorization,apikey,content-type","vary":"Origin"}}
 function out(req:Request,body:any,status=200){return new Response(JSON.stringify(body),{status,headers:{...cors(req),"content-type":"application/json","cache-control":"no-store"}})}
 function safe(v:any,n=240){return String(v??"").slice(0,n)}
 function fail(req:Request,code:string,status:number,ref:string){return out(req,{ok:false,error:{code,reference_id:ref}},status)}
