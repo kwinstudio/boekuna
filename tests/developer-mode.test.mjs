@@ -86,10 +86,15 @@ assert.ok(processor.includes('record_developer_document_usage'),'Processor must 
 const documentEdge=read('supabase/functions/document-processing/index.ts');
 assert.ok(documentEdge.includes('x-boekuna-dev-session'),'Document-processing Edge CORS must allow the developer ticket header');
 assert.ok(documentEdge.includes('validateDeveloperContext'),'Edge function must server-validate developer context before forwarding it');
+assert.ok(documentEdge.includes('if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors(req)})'),'Document-processing Edge must answer CORS preflight explicitly');
+assert.ok(documentEdge.includes('"authorization,apikey,content-type,x-boekuna-dev-session"'),'CORS must explicitly allow the Developer Mode session header');
+assert.ok(!documentEdge.includes('"Access-Control-Allow-Origin":"*"'),'Document-processing Edge must never wildcard Developer Mode CORS');
+
 assert.ok(documentEdge.includes('check_developer_document_quota'),'Edge validation must use server-side developer entitlement authority');
 assert.ok(documentEdge.includes('processorHeaders["X-Boekuna-Dev-Session"]=jobDeveloper.token'),'Only job-owner-bound Developer Mode context may be forwarded to the processor');
 assert.ok(documentEdge.includes('developer?.userId===String(claimed.user_id)'),'Validated Developer Mode context must be rebound to the claimed processing-job owner before processor forwarding');
 assert.ok(documentEdge.includes('developer?.userId===String(userId)'),'Queued job dispatch must drop Developer Mode context on any user mismatch');
+assert.ok(documentEdge.includes('for(const job of queued||[])run(job.id,authHeader,scopedDeveloper)'),'Queued jobs must receive only user-scoped Developer Mode context');
 assert.ok(documentEdge.includes('triggerNext(authHeader,jobId,jobDeveloper)'),'Background triggerNext must preserve only job-owner-bound validated developer context');
 assert.ok(documentEdge.includes('async function enqueue(req:Request,a:{user:any,auth:string},body:any,developer:DeveloperContext|null=null)'),'Enqueue must receive validated developer context');
 assert.ok(documentEdge.includes('async function retry(req:Request,a:{user:any,auth:string},body:any,developer:DeveloperContext|null=null)'),'Retry must receive validated developer context');
