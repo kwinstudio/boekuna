@@ -16,6 +16,13 @@ const ALLOWED=new Set([
   "http://localhost:3000",
   "http://127.0.0.1:3000"
 ]);
+const PRODUCTION_ORIGINS=new Set([
+  "https://app.boekuna.nl",
+  "https://boekuna.nl",
+  "https://www.boekuna.nl",
+  "https://boekuna-boekhouding.onrender.com",
+  "https://kwinest-boekhouding.onrender.com"
+]);
 const MAX_BODY=64*1024;
 const STALE_MS=10*60*1000;
 const PROCESSING_CONCURRENCY=1;
@@ -27,7 +34,7 @@ function cors(req:Request){
   return {
     "access-control-allow-origin":ALLOWED.has(origin)?origin:APP_ORIGIN,
     "access-control-allow-methods":"POST,OPTIONS",
-    "access-control-allow-headers":"authorization,apikey,content-type",
+    "access-control-allow-headers":"authorization,apikey,content-type,x-boekuna-dev-session",
     "access-control-allow-credentials":"true",
     "vary":"Origin"
   };
@@ -60,9 +67,27 @@ async function backgroundActor(req:Request,jobIdRaw:unknown){
   const jobId=clean(jobIdRaw,80);
   if(!auth.startsWith("Bearer ")||!jobId)return null;
   const userClient=createClient(URL,ANON,{global:{headers:{Authorization:auth}},auth:{persistSession:false,autoRefreshToken:false}});
-  const {data,error}=await userClient.from("document_processing_jobs").select("id,user_id").eq("id",jobId).maybeSingle();
-  if(error||!data?.user_id)return null;
-  return {user:{id:data.user_id},auth,mfaRequired:false};
+  const {data:userData,error:userError}=await userClient.auth.getUser();
+  if(userError||!userData?.user?.id)return null;
+  const {data,error}=await userClient.from("document_processing_jobs").select("id,user_id").eq("id",jobId).eq("user_id",userData.user.id).maybeSingle();
+  if(error||!data?.user_id||data.user_id!==userData.user.id)return null;
+  return {user:userData.user,auth,mfaRequired:false};
+}
+type DeveloperContext={token:string,origin:string,userId:string};
+async function validateDeveloperContext(req:Request,a:{user:any,auth:string}):Promise<DeveloperContext|null>{
+  const token=clean(req.headers.get("x-boekuna-dev-session")||"",512);
+  const origin=(req.headers.get("origin")||"").trim().replace(/\/$/,"");
+  if(!token)return null;
+  if(!origin||!ALLOWED.has(origin)||PRODUCTION_ORIGINS.has(origin))return null;
+  const scoped=createClient(URL,ANON,{
+    global:{headers:{Authorization:a.auth,"X-Boekuna-Dev-Session":token,Origin:origin}},
+    auth:{persistSession:false,autoRefreshToken:false}
+  });
+  const {data,error}=await scoped.rpc("check_developer_document_quota");
+  if(error)return null;
+  const row=Array.isArray(data)?data[0]:data;
+  if(!row?.allowed)return null;
+  return {token,origin,userId:String(a.user.id||"")};
 }
 function confidence(raw:unknown){
   const n=Number(raw);
@@ -96,13 +121,14 @@ async function markFailed(sb:any,jobId:string,code:string,status=500,reference="
     error_retryable:retryable,completed_at:new Date().toISOString(),updated_at:new Date().toISOString()
   }).eq("id",jobId);
 }
-async function processJob(jobId:string,authHeader:string){
+async function processJob(jobId:string,authHeader:string,developer:DeveloperContext|null=null){
   const sb=admin();
   const now=new Date().toISOString();
   const {data:claimed,error:claimError}=await sb.from("document_processing_jobs")
     .update({state:"processing",phase:"read",started_at:now,updated_at:now})
     .eq("id",jobId).eq("state","queued").lt("attempt",3).select("*").maybeSingle();
   if(claimError||!claimed)return;
+  const jobDeveloper=developer?.userId===String(claimed.user_id)?developer:null;
   await sb.from("document_processing_jobs").update({attempt:Number(claimed.attempt||0)+1,updated_at:new Date().toISOString()}).eq("id",jobId);
   try{
     const {data:doc,error:docError}=await sb.from("documents").select("id,user_id,name,mime_type,storage_path").eq("id",claimed.document_id).eq("user_id",claimed.user_id).maybeSingle();
@@ -120,7 +146,9 @@ async function processJob(jobId:string,authHeader:string){
     const timer=setTimeout(()=>controller.abort(),125000);
     let response:Response;
     try{
-      response=await fetch(PROCESSOR+"/analyze",{method:"POST",headers:{Authorization:authHeader,Origin:APP_ORIGIN,"X-Boekuna-Processing-Job":jobId},body:form,signal:controller.signal});
+      const processorHeaders:Record<string,string>={Authorization:authHeader,Origin:jobDeveloper?.origin||APP_ORIGIN,"X-Boekuna-Processing-Job":jobId};
+      if(jobDeveloper?.token)processorHeaders["X-Boekuna-Dev-Session"]=jobDeveloper.token;
+      response=await fetch(PROCESSOR+"/analyze",{method:"POST",headers:processorHeaders,body:form,signal:controller.signal});
     }finally{clearTimeout(timer)}
     const payload=await response.json().catch(()=>({}));
     if(!response.ok||!payload?.ok){
@@ -141,29 +169,35 @@ async function processJob(jobId:string,authHeader:string){
     const isAbort=err?.name==="AbortError";
     await markFailed(sb,jobId,isAbort?"PROCESSING_TIMEOUT":clean(err?.code||"PROCESSOR_UNAVAILABLE",80),Number(err?.status||503),"");
   }finally{
-    EdgeRuntime.waitUntil(triggerNext(authHeader,jobId));
+    EdgeRuntime.waitUntil(triggerNext(authHeader,jobId,jobDeveloper));
   }
 }
-function run(jobId:string,auth:string){EdgeRuntime.waitUntil(processJob(jobId,auth))}
-async function kickUser(userId:string,authHeader:string){
+function run(jobId:string,auth:string,developer:DeveloperContext|null=null){EdgeRuntime.waitUntil(processJob(jobId,auth,developer))}
+async function kickUser(userId:string,authHeader:string,developer:DeveloperContext|null=null){
   const sb=admin();
+  const scopedDeveloper=developer?.userId===String(userId)?developer:null;
   const {count}=await sb.from("document_processing_jobs").select("id",{count:"exact",head:true}).eq("user_id",userId).in("state",["processing","validating"]);
   const slots=Math.max(0,PROCESSING_CONCURRENCY-Number(count||0));
   if(!slots)return 0;
   const {data:queued}=await sb.from("document_processing_jobs").select("id").eq("user_id",userId).eq("state","queued").lt("attempt",3).order("created_at",{ascending:true}).limit(slots);
-  for(const job of queued||[])run(job.id,authHeader);
+  for(const job of queued||[])run(job.id,authHeader,scopedDeveloper);
   return queued?.length||0;
 }
-async function triggerNext(authHeader:string,jobId:string){
+async function triggerNext(authHeader:string,jobId:string,developer:DeveloperContext|null=null){
   try{
+    const headers:Record<string,string>={Authorization:authHeader,apikey:ANON,"content-type":"application/json"};
+    if(developer?.token){
+      headers["X-Boekuna-Dev-Session"]=developer.token;
+      headers.Origin=developer.origin
+    }
     await fetch(URL+"/functions/v1/document-processing",{
       method:"POST",
-      headers:{Authorization:authHeader,apikey:ANON,"content-type":"application/json"},
+      headers,
       body:JSON.stringify({action:"run_next",job_id:jobId})
     });
   }catch(_){}
 }
-async function enqueue(req:Request,a:{user:any,auth:string},body:any){
+async function enqueue(req:Request,a:{user:any,auth:string},body:any,developer:DeveloperContext|null=null){
   const sb=admin(),clientRef=clean(body.client_ref,120),batchId=clean(body.batch_id,120),kind=clean(body.kind||"auto",32);
   if(!clientRef||!batchId)return out(req,{ok:false,error:{code:"INVALID_REQUEST"}},400);
   const {data:doc,error}=await sb.from("documents").select("id,user_id,client_ref,name,mime_type,metadata").eq("user_id",a.user.id).eq("client_ref",clientRef).maybeSingle();
@@ -171,7 +205,7 @@ async function enqueue(req:Request,a:{user:any,auth:string},body:any){
   const company=body.company&&typeof body.company==="object"?body.company:{};
   const {data:existing}=await sb.from("document_processing_jobs").select("*").eq("user_id",a.user.id).eq("document_id",doc.id).maybeSingle();
   if(existing){
-    if(existing.state==="queued")await kickUser(a.user.id,a.auth);
+    if(existing.state==="queued")await kickUser(a.user.id,a.auth,developer);
     return out(req,{ok:true,job:existing,idempotent:true});
   }
   const {data:job,error:insertError}=await sb.from("document_processing_jobs").insert({
@@ -179,10 +213,10 @@ async function enqueue(req:Request,a:{user:any,auth:string},body:any){
     company_context:{name:clean(company.name,160),tradeName:clean(company.tradeName,160),kvk:clean(company.kvk,40),vat:clean(company.vat,40)}
   }).select("*").single();
   if(insertError||!job)return out(req,{ok:false,error:{code:"JOB_CREATE_FAILED"}},500);
-  await kickUser(a.user.id,a.auth);
+  await kickUser(a.user.id,a.auth,developer);
   return out(req,{ok:true,job},202);
 }
-async function retry(req:Request,a:{user:any,auth:string},body:any){
+async function retry(req:Request,a:{user:any,auth:string},body:any,developer:DeveloperContext|null=null){
   const sb=admin(),jobId=clean(body.job_id,80);
   const {data:job}=await sb.from("document_processing_jobs").select("*").eq("id",jobId).eq("user_id",a.user.id).maybeSingle();
   if(!job)return out(req,{ok:false,error:{code:"JOB_NOT_FOUND"}},404);
@@ -193,7 +227,7 @@ async function retry(req:Request,a:{user:any,auth:string},body:any){
     started_at:null,completed_at:null,updated_at:new Date().toISOString()
   }).eq("id",job.id).eq("user_id",a.user.id).select("*").single();
   if(error||!reset)return out(req,{ok:false,error:{code:"JOB_RETRY_FAILED"}},500);
-  await kickUser(a.user.id,a.auth);
+  await kickUser(a.user.id,a.auth,developer);
   return out(req,{ok:true,job:reset},202);
 }
 async function resolveReview(req:Request,a:{user:any,auth:string},body:any){
@@ -239,7 +273,7 @@ async function repairMissingJobs(userId:string){
   if(insertError)return 0;
   return missing.length;
 }
-async function resume(req:Request,a:{user:any,auth:string}){
+async function resume(req:Request,a:{user:any,auth:string},developer:DeveloperContext|null=null){
   const sb=admin(),threshold=new Date(Date.now()-STALE_MS).toISOString();
   await repairMissingJobs(a.user.id);
   const {data:queued}=await sb.from("document_processing_jobs").select("*").eq("user_id",a.user.id).eq("state","queued").lt("attempt",3).limit(3);
@@ -247,7 +281,7 @@ async function resume(req:Request,a:{user:any,auth:string}){
   for(const job of stale||[]){
     await sb.from("document_processing_jobs").update({state:"queued",phase:"queued",updated_at:new Date().toISOString()}).eq("id",job.id).in("state",["processing","validating"]);
   }
-  const started=await kickUser(a.user.id,a.auth);
+  const started=await kickUser(a.user.id,a.auth,developer);
   return out(req,{ok:true,resumed:(queued?.length||0)+(stale?.length||0),started});
 }
 
@@ -260,15 +294,17 @@ Deno.serve(async(req:Request)=>{
     if(action==="run_next"){
       const a=await backgroundActor(req,body.job_id);
       if(!a)return out(req,{ok:false,error:{code:"AUTH_SESSION_EXPIRED"}},401);
-      const started=await kickUser(a.user.id,a.auth);return out(req,{ok:true,started});
+      const developer=await validateDeveloperContext(req,a);
+      const started=await kickUser(a.user.id,a.auth,developer);return out(req,{ok:true,started});
     }
     const a=await actor(req);
     if(!a)return out(req,{ok:false,error:{code:"AUTH_SESSION_EXPIRED"}},401);
     if(a.mfaRequired)return out(req,{ok:false,error:{code:"MFA_REQUIRED"}},403);
-    if(action==="enqueue")return await enqueue(req,a,body);
-    if(action==="retry")return await retry(req,a,body);
+    const developer=await validateDeveloperContext(req,a);
+    if(action==="enqueue")return await enqueue(req,a,body,developer);
+    if(action==="retry")return await retry(req,a,body,developer);
     if(action==="resolve"||action==="resolve_review")return await resolveReview(req,a,body);
-    if(action==="resume")return await resume(req,a);
+    if(action==="resume")return await resume(req,a,developer);
     return out(req,{ok:false,error:{code:"INVALID_ACTION"}},400);
   }catch(err:any){
     const code=clean(err?.message||"INVALID_REQUEST",80);
