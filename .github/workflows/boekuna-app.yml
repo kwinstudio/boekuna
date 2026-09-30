@@ -13,6 +13,7 @@ on:
       - "public/assets/favicon-32.png"
       - "scripts/build-app.mjs"
       - "tests/browser-smoke.test.mjs"
+      - "tests/mobile-app-layout.test.mjs"
       - "tests/document-upload-browser.test.mjs"
       - "tests/document-background-processing.test.mjs"
       - "tests/auth-progressive-onboarding.test.mjs"
@@ -54,6 +55,8 @@ jobs:
         run: ./tests/node_modules/.bin/playwright install --with-deps chromium webkit
       - name: Browser pre-launch smoke
         run: node tests/browser-smoke.test.mjs
+      - name: Mobile navigation and dashboard regressions
+        run: node tests/mobile-app-layout.test.mjs
       - name: Split generated surface browser smoke
         run: node tests/split-surfaces-browser.test.mjs
       - name: WebKit app smoke
@@ -86,4 +89,5 @@ jobs:
           path: |
             tests/artifacts/smart-financial-correction-*.png
             tests/artifacts/document-processing-*.png
+            tests/artifacts/mobile-dashboard-*.png
           if-no-files-found: ignore
