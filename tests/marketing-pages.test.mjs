@@ -85,3 +85,20 @@ for(const retired of ['Early Access','eerste 100','Founding 100']){
 }
 
 console.log(`Marketing page QA: PASS (${pages.length} pages)`);
+
+
+const marketingCssNative=fs.readFileSync(path.join(publicDir,'assets','marketing.css'),'utf8');
+const homepageCssNative=fs.readFileSync(path.join(publicDir,'assets','homepage.css'),'utf8');
+for(const [name,text] of [['marketing.css',marketingCssNative],['homepage.css',homepageCssNative]]){
+  for(const legacy of ['#08A9C5','#00A8C6','#078DA7','#008FAA','#20292E','#202B33']) assert.ok(!text.toUpperCase().includes(legacy.toUpperCase()),name+' still contains legacy visual token '+legacy);
+  assert.equal((text.match(/!important/g)||[]).length,0,name+' must not depend on legacy !important overrides');
+  assert.equal((text.match(/(?:linear|radial)-gradient\(/g)||[]).length,0,name+' must not use decorative gradients');
+}
+assert.ok(marketingCssNative.includes('--brand-primary:#123B3A'),'Marketing CSS must natively define Calm Control primary');
+assert.ok(marketingCssNative.includes('--bg-canvas:#F8F7F3'),'Marketing CSS must natively define Calm Control canvas');
+assert.ok(sharedMarketing.includes('/assets/boekuna-logo-primary.svg'),'Shared marketing must use the official primary logo');
+assert.ok(sharedMarketing.includes('/assets/boekuna-logo-compact.svg'),'Shared marketing must provide the official compact logo');
+assert.ok(!sharedMarketing.includes('/assets/boekuna-symbol.svg'),'Shared marketing must not reconstruct the primary lockup from the symbol');
+assert.ok(sharedMarketing.includes('aria-haspopup="true" aria-expanded="false"'),'Dropdown triggers must expose accessible state');
+assert.ok(!sharedMarketing.includes('>☰<'),'Mobile navigation must not use a glyph as its functional icon');
+console.log('Calm Control native marketing regression: PASS');

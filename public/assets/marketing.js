@@ -1,4 +1,5 @@
-const BOOKUNA_ICON="/assets/boekuna-symbol.svg";
+const BOOKUNA_LOGO="/assets/boekuna-logo-primary.svg";
+const BOOKUNA_LOGO_COMPACT="/assets/boekuna-logo-compact.svg";
 
 function ensureBookunaFavicon(){
   document.querySelectorAll('link[rel="icon"],link[rel="shortcut icon"],link[rel="apple-touch-icon"]').forEach(el=>el.remove());
@@ -24,35 +25,35 @@ function toggleMenu(){
  const btn=document.querySelector('.mobile-toggle');
  if(!menu)return;
  const open=menu.classList.toggle('open');
- if(btn)btn.setAttribute('aria-expanded',String(open));
+ if(btn){btn.setAttribute('aria-expanded',String(open));btn.setAttribute('aria-label',open?'Menu sluiten':'Menu openen');}
 }
 function sharedHeader(active=''){
   return `
   <div class="promo">Boekuna helpt ondernemers facturen, documenten, btw en inzicht bij elkaar te houden.</div>
   <header class="site-header"><nav class="nav">
-    <a class="logo" href="/"><img class="logo-icon" src="${BOOKUNA_ICON}" alt="" aria-hidden="true"><span>Boekuna</span></a>
+    <a class="logo" href="/" aria-label="Boekuna"><img class="logo-lockup logo-lockup-primary" src="${BOOKUNA_LOGO}" alt="Boekuna"><img class="logo-lockup logo-lockup-compact" src="${BOOKUNA_LOGO_COMPACT}" alt="" aria-hidden="true"></a>
     <div class="nav-links">
-      <div class="dropdown"><button class="nav-item">Oplossingen ▾</button><div class="dropdown-menu">
+      <div class="dropdown"><button class="nav-item" type="button" aria-haspopup="true" aria-expanded="false">Oplossingen ▾</button><div class="dropdown-menu">
         <a href="/functies/"><strong>Alle oplossingen</strong><span>Bekijk de complete boekhoudomgeving.</span></a>
         <a href="/scanner/"><strong>Slimme scanner</strong><span>PDF's, scans en bonfoto's uitlezen.</span></a>
         <a href="/facturen/"><strong>Facturen</strong><span>Facturen, creditnota's en betalingen.</span></a>
         <a href="/btw-bank/"><strong>Btw & bank</strong><span>Btw-overzicht, CSV-import en matching.</span></a>
         <a href="/rapportages/"><strong>Rapportages</strong><span>Omzet, kosten, resultaat en controle.</span></a>
       </div></div>
-      <div class="dropdown"><button class="nav-item">Voor ondernemers ▾</button><div class="dropdown-menu">
+      <div class="dropdown"><button class="nav-item" type="button" aria-haspopup="true" aria-expanded="false">Voor ondernemers ▾</button><div class="dropdown-menu">
         <a href="/voor-ondernemers/#zzp"><strong>ZZP & freelance</strong><span>Minder administratie naast je echte werk.</span></a>
         <a href="/voor-ondernemers/#klein-bedrijf"><strong>Kleine bedrijven</strong><span>Meer documenten, één administratie.</span></a>
         <a href="/voor-ondernemers/#veel-documenten"><strong>Groeiende administratie</strong><span>Meer overzicht en controle naarmate je bedrijf groeit.</span></a>
       </div></div>
       <a class="nav-link" href="/prijzen/">Prijzen</a>
-      <div class="dropdown"><button class="nav-item">Resources ▾</button><div class="dropdown-menu">
+      <div class="dropdown"><button class="nav-item" type="button" aria-haspopup="true" aria-expanded="false">Resources ▾</button><div class="dropdown-menu">
         <a href="/hoe-het-werkt/"><strong>Product tour</strong><span>Van document naar gecontroleerde boeking.</span></a>
         <a href="/faq/"><strong>Veelgestelde vragen</strong><span>Antwoorden vóór je begint.</span></a>
         <a href="/veiligheid/"><strong>Veiligheid & privacy</strong><span>Productstatus en gegevensbescherming.</span></a>
         <a href="/over/"><strong>Over Boekuna</strong><span>Waarom dit product wordt gebouwd.</span></a>
       </div></div>
     </div>
-    <div class="nav-actions"><a class="btn" href="/hoe-het-werkt/">Bekijk software</a><a class="btn primary" href="https://app.boekuna.nl/?login=1">Inloggen</a><button class="mobile-toggle" onclick="toggleMenu()" aria-label="Menu" aria-expanded="false" aria-controls="mobileMenu">☰</button></div>
+    <div class="nav-actions"><a class="btn" href="/hoe-het-werkt/">Bekijk software</a><a class="btn primary" href="https://app.boekuna.nl/?login=1">Inloggen</a><button class="mobile-toggle" onclick="toggleMenu()" aria-label="Menu openen" aria-expanded="false" aria-controls="mobileMenu"><span class="mobile-toggle-icon" aria-hidden="true"><i></i><i></i><i></i></span></button></div>
   </nav>
   <div class="mobile-menu" id="mobileMenu">
     <details><summary>Oplossingen</summary><div class="mobile-sub"><a href="/functies/">Alle oplossingen</a><a href="/scanner/">Slimme scanner</a><a href="/facturen/">Facturen</a><a href="/btw-bank/">Btw & bank</a><a href="/rapportages/">Rapportages</a></div></details>
@@ -66,7 +67,7 @@ function sharedFooter(){
   return `<footer class="footer footer-v2">
     <div class="footer-inner footer-grid">
       <div class="footer-brand">
-        <a class="logo footer-logo" href="/"><img class="logo-icon" src="${BOOKUNA_ICON}" alt="" aria-hidden="true"><span>Boekuna</span></a>
+        <a class="logo footer-logo" href="/" aria-label="Boekuna"><img class="logo-lockup logo-lockup-primary" src="${BOOKUNA_LOGO}" alt="Boekuna"></a>
         <p>Boekhoudsoftware voor ondernemers die minder willen overtypen, sneller willen controleren en meer grip willen op hun administratie.</p>
         <a class="footer-cta" href="/hoe-het-werkt/">Bekijk hoe Boekuna werkt →</a>
       </div>
@@ -107,7 +108,14 @@ function sharedFooter(){
   </footer>`;
 }
 document.addEventListener('DOMContentLoaded',()=>{ensureBookunaFavicon();const h=document.getElementById('siteHeader');if(h)h.innerHTML=sharedHeader(document.body.dataset.page||'');const f=document.getElementById('siteFooter');if(f)f.innerHTML=sharedFooter();initSharedInteractions()});
-document.addEventListener('click',e=>{const m=document.getElementById('mobileMenu');if(m&&m.classList.contains('open')&&!e.target.closest('.mobile-menu')&&!e.target.closest('.mobile-toggle'))m.classList.remove('open')});
+document.addEventListener('click',e=>{
+ const m=document.getElementById('mobileMenu');
+ const mobileBtn=document.querySelector('.mobile-toggle');
+ if(m&&m.classList.contains('open')&&!e.target.closest('.mobile-menu')&&!e.target.closest('.mobile-toggle')){
+  m.classList.remove('open');if(mobileBtn){mobileBtn.setAttribute('aria-expanded','false');mobileBtn.setAttribute('aria-label','Menu openen');}
+ }
+ if(!e.target.closest('.dropdown'))document.querySelectorAll('.dropdown.is-open').forEach(drop=>{drop.classList.remove('is-open');const b=drop.querySelector(':scope > .nav-item');if(b)b.setAttribute('aria-expanded','false')});
+});
 
 function initSharedInteractions(){
  const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -122,8 +130,7 @@ function initSharedInteractions(){
  window.addEventListener('scroll',sync,{passive:true});sync();
  btn.addEventListener('click',()=>window.scrollTo({top:0,behavior:reduced?'auto':'smooth'}));
  const menu=document.getElementById('mobileMenu');
- if(menu)menu.addEventListener('click',e=>{
-   const a=e.target.closest('a');
-   if(a){menu.classList.remove('open');const t=document.querySelector('.mobile-toggle');if(t)t.setAttribute('aria-expanded','false')}
- });
+ if(menu)menu.addEventListener('click',e=>{const a=e.target.closest('a');if(a){menu.classList.remove('open');const t=document.querySelector('.mobile-toggle');if(t){t.setAttribute('aria-expanded','false');t.setAttribute('aria-label','Menu openen')}}});
+ document.querySelectorAll('.dropdown').forEach(drop=>{const trigger=drop.querySelector(':scope > .nav-item');if(!trigger)return;trigger.addEventListener('click',()=>{const next=!drop.classList.contains('is-open');document.querySelectorAll('.dropdown.is-open').forEach(other=>{if(other!==drop){other.classList.remove('is-open');const b=other.querySelector(':scope > .nav-item');if(b)b.setAttribute('aria-expanded','false')}});drop.classList.toggle('is-open',next);trigger.setAttribute('aria-expanded',String(next))})});
+ document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;document.querySelectorAll('.dropdown.is-open').forEach(drop=>{drop.classList.remove('is-open');const t=drop.querySelector(':scope > .nav-item');if(t){t.setAttribute('aria-expanded','false');t.focus()}});if(menu&&menu.classList.contains('open')){menu.classList.remove('open');const t=document.querySelector('.mobile-toggle');if(t){t.setAttribute('aria-expanded','false');t.setAttribute('aria-label','Menu openen');t.focus()}}});
 }

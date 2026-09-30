@@ -1,56 +1,56 @@
 /* Extracted from the pre-split BOEKUNA homepage to preserve visual behavior. */
-.marketing{min-height:100vh;background:#effefb;color:#14201d}
+.marketing{min-height:100vh;background:var(--bg-surface);color:var(--text-primary)}
 .marketing *{box-sizing:border-box}
-.mk-btn{border:1px solid #dce3df;background:#fff;color:#14201d;border-radius:12px;padding:10px 15px;font-weight:800;font-size:12px;transition:.18s;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
-.mk-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(16,37,31,.08)}
-.mk-btn.primary{background:#356267;color:#fff;border-color:#356267}
+.mk-btn{border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-primary);border-radius:var(--radius-md);padding:10px 15px;min-height:44px;font-weight:650;font-size:14px;transition:.18s;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.mk-btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-sm)}
+.mk-btn.primary{background:var(--brand-primary);color:#fff;border-color:var(--brand-primary)}
 /* Homepage layout pass: closer to Nostradamus' section rhythm */
 .kz-hero{max-width:1200px;margin:auto;padding:58px 22px 18px;text-align:left}
 .kz-overline{font-size:12px;font-weight:850;color:#65737b;margin-bottom:12px}
-.kz-hero h1{font-size:clamp(52px,7vw,86px);line-height:.92;letter-spacing:-.075em;margin:0 0 20px;max-width:900px}
-.kz-hero h1 span{display:block;color:#00A8C6}
+.kz-hero h1{font-size:clamp(42px,5.2vw,56px);line-height:1.07;letter-spacing:-.045em;margin:0 0 20px;max-width:900px}
+.kz-hero h1 span{display:block;color:var(--brand-secondary)}
 .kz-hero-copy{max-width:760px;font-size:16px;line-height:1.72;color:#63727a;margin:0}
 .kz-hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
 .kz-tabs{max-width:1200px;margin:20px auto 12px;padding:0 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.kz-tab{border:1px solid #D8E5E9;background:#fff;border-radius:12px;padding:13px 15px;font-size:11px;font-weight:850;text-align:center}
+.kz-tab{border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-primary);border-radius:999px;padding:11px 15px;font-size:14px;font-weight:650;text-align:center;cursor:pointer;min-height:44px}
 .kz-product-stage{max-width:1200px;margin:0 auto 44px;padding:0 22px}
-.kz-product-shell{height:min(57vw,650px);min-height:470px;border-radius:24px;background:linear-gradient(135deg,#EAF8FB,#F1F5FF);position:relative;overflow:hidden}
-.kz-browser{position:absolute;left:7%;right:17%;top:10%;bottom:12%;background:#fff;border:1px solid #D8E5E9;border-radius:18px;box-shadow:0 28px 70px rgba(27,63,75,.17);display:grid;grid-template-columns:138px 1fr;overflow:hidden}
-.kz-browser-nav{background:#202B33;color:#9eacb2;padding:21px 11px}.kz-browser-nav b{display:block;color:#fff;margin:0 9px 20px;font-size:12px}.kz-browser-nav span{display:block;padding:9px 8px;border-radius:8px;font-size:8px}.kz-browser-nav .active{background:#32414a;color:#fff}
-.kz-browser-main{padding:23px;background:#f7fafb}.kz-browser-head{display:flex;align-items:center;justify-content:space-between}.kz-browser-head strong{font-size:14px}.kz-browser-head i{font-style:normal;background:#00A8C6;color:#fff;border-radius:8px;padding:7px 10px;font-size:7px}
-.kz-browser-banner{margin-top:16px;background:#fff;border:1px solid #D8E5E9;border-radius:15px;padding:18px}.kz-browser-banner small{font-size:7px;text-transform:uppercase;color:#7b8b92}.kz-browser-banner h3{font-size:22px;letter-spacing:-.045em;margin:7px 0}.kz-browser-banner p{font-size:8px;color:#728188;line-height:1.45}
+.kz-product-shell{height:min(57vw,650px);min-height:470px;border-radius:24px;background:var(--bg-surface-secondary);position:relative;overflow:hidden}
+.kz-browser{position:absolute;left:7%;right:17%;top:10%;bottom:12%;background:#fff;border:1px solid var(--border-default);border-radius:18px;box-shadow:var(--shadow-md);display:grid;grid-template-columns:138px 1fr;overflow:hidden}
+.kz-browser-nav{background:var(--brand-primary);color:#9eacb2;padding:21px 11px}.kz-browser-nav b{display:block;color:#fff;margin:0 9px 20px;font-size:12px}.kz-browser-nav span{display:block;padding:9px 8px;border-radius:8px;font-size:8px}.kz-browser-nav .active{background:#32414a;color:#fff}
+.kz-browser-main{padding:23px;background:#f7fafb}.kz-browser-head{display:flex;align-items:center;justify-content:space-between}.kz-browser-head strong{font-size:14px}.kz-browser-head i{font-style:normal;background:var(--brand-secondary);color:#fff;border-radius:8px;padding:7px 10px;font-size:7px}
+.kz-browser-banner{margin-top:16px;background:#fff;border:1px solid var(--border-default);border-radius:15px;padding:18px}.kz-browser-banner small{font-size:7px;text-transform:uppercase;color:#7b8b92}.kz-browser-banner h3{font-size:22px;letter-spacing:-.045em;margin:7px 0}.kz-browser-banner p{font-size:8px;color:#728188;line-height:1.45}
 .kz-browser-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:10px}.kz-browser-card{background:#fff;border:1px solid #DFE7E9;border-radius:11px;padding:12px}.kz-browser-card span{display:block;font-size:6px;color:#849197;text-transform:uppercase}.kz-browser-card b{display:block;margin-top:8px;font-size:10px}
-.kz-phone{position:absolute;right:4%;bottom:4%;width:24%;min-width:170px;aspect-ratio:.52;background:#10151a;border:7px solid #10151a;border-radius:34px;box-shadow:0 30px 65px rgba(32,43,51,.24);padding:8px}.kz-phone-inner{height:100%;background:#fff;border-radius:24px;padding:13px 10px}.kz-phone-header{display:flex;justify-content:space-between;font-size:8px;font-weight:850}.kz-phone-hero{margin-top:11px;border-radius:13px;padding:13px;background:linear-gradient(135deg,#00A8C6,#5266D6);color:#fff}.kz-phone-hero small{font-size:6px;opacity:.82}.kz-phone-hero b{display:block;font-size:16px;margin:5px 0}.kz-phone-row{height:30px;background:#eff6f7;border-radius:8px;margin-top:7px}
-.kz-trust-strip{background:#fff;border-top:1px solid #D8E5E9;border-bottom:1px solid #D8E5E9;padding:38px 0}.kz-trust-inner{max-width:1200px;margin:auto;padding:0 22px}.kz-trust-title{font-size:12px;font-weight:850;margin-bottom:18px}.kz-trust-items{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.kz-trust-item{font-size:11px;font-weight:800;color:#52636b;border-left:2px solid #00A8C6;padding:5px 0 5px 11px}
-.kz-benefit{max-width:1200px;margin:auto;padding:84px 22px;display:grid;grid-template-columns:.88fr 1.12fr;gap:56px;align-items:center}.kz-benefit.reverse{grid-template-columns:1.12fr .88fr}.kz-benefit.reverse .kz-benefit-copy{order:2}.kz-benefit-label{color:#008FAA;font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:900}.kz-benefit h2{font-size:clamp(36px,4.7vw,58px);line-height:1;letter-spacing:-.06em;margin:12px 0 15px}.kz-benefit p{color:#63727a;font-size:14px;line-height:1.75;margin:0}.kz-benefit a{display:inline-flex;margin-top:20px;font-size:11px;color:#008FAA;font-weight:850}
-.kz-visual{min-height:390px;background:linear-gradient(135deg,#EAF8FB,#F2F4FF);border-radius:22px;padding:34px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-.kz-doc-card{width:min(430px,93%);background:#fff;border:1px solid #D8E5E9;border-radius:17px;padding:21px;box-shadow:0 22px 55px rgba(27,63,75,.12)}.kz-doc-title{display:flex;justify-content:space-between;font-size:11px;font-weight:850}.kz-doc-title span{color:#00A8C6}.kz-line{height:8px;background:#e9eef0;border-radius:999px;margin:10px 0}.kz-line.s{width:55%}.kz-line.m{width:76%}.kz-doc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:17px}.kz-doc-grid div{background:#EAF8FB;border-radius:9px;padding:10px;font-size:7px;color:#5a737b}.kz-doc-grid b{display:block;color:#20333a;margin-top:4px;font-size:9px}
-.kz-alerts{width:min(450px,94%);display:grid;gap:10px}.kz-alert{background:#fff;border:1px solid #D8E5E9;border-radius:13px;padding:14px;display:grid;grid-template-columns:37px 1fr auto;gap:11px;align-items:center}.kz-alert-icon{width:37px;height:37px;border-radius:10px;background:#EAF8FB}.kz-alert strong{font-size:11px}.kz-alert small{display:block;font-size:8px;color:#85939a;margin-top:3px}.kz-alert em{font-style:normal;color:#008FAA;font-size:8px}
-.kz-solutions-section{background:#fff;border-top:1px solid #D8E5E9;border-bottom:1px solid #D8E5E9;padding:84px 0}.kz-section-inner{max-width:1200px;margin:auto;padding:0 22px}.kz-heading{max-width:780px;margin-bottom:36px}.kz-heading small{display:block;color:#008FAA;text-transform:uppercase;letter-spacing:.1em;font-size:10px;font-weight:900;margin-bottom:10px}.kz-heading h2{font-size:clamp(38px,5vw,62px);line-height:1;letter-spacing:-.06em;margin:0 0 13px}.kz-heading p{font-size:14px;color:#63727a;line-height:1.72;margin:0}
-.kz-solutions-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.kz-solution{border:1px solid #D8E5E9;border-radius:18px;padding:23px;min-height:235px;background:#fff}.kz-solution:nth-child(2),.kz-solution:nth-child(5){background:#EAF8FB}.kz-solution h3{font-size:20px;letter-spacing:-.035em;margin:38px 0 9px}.kz-solution p{font-size:11px;line-height:1.65;color:#63727a}.kz-solution a{display:inline-flex;margin-top:15px;color:#008FAA;font-size:10px;font-weight:850}
-.kz-reasons{max-width:1200px;margin:auto;padding:84px 22px}.kz-reason-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.kz-reason{background:#fff;border:1px solid #D8E5E9;border-radius:18px;padding:24px}.kz-reason strong{display:block;font-size:18px;margin-bottom:9px}.kz-reason p{font-size:11px;color:#63727a;line-height:1.65;margin:0}
-.kz-apps{background:#202B33;color:#fff;padding:82px 0}.kz-apps-inner{max-width:1200px;margin:auto;padding:0 22px;display:grid;grid-template-columns:.85fr 1.15fr;gap:44px;align-items:center}.kz-apps h2{font-size:clamp(38px,5vw,60px);line-height:1;letter-spacing:-.06em;margin:10px 0 14px}.kz-apps p{color:#bdc8cc;font-size:14px;line-height:1.7}.kz-app-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:900;color:#8fe3ee}.kz-app-phones{display:flex;justify-content:center;gap:18px}.kz-app-phone{width:185px;aspect-ratio:.54;background:#0e1317;border:6px solid #0e1317;border-radius:32px;padding:7px;transform:rotate(-5deg)}.kz-app-phone:nth-child(2){transform:rotate(5deg) translateY(26px)}.kz-app-screen{height:100%;background:#fff;border-radius:23px;padding:12px}.kz-app-screen div{height:35px;background:#eef5f6;border-radius:8px;margin:7px 0}.kz-app-screen div:first-child{height:95px;background:linear-gradient(135deg,#00A8C6,#5266D6)}
-.kz-audience{max-width:1200px;margin:auto;padding:84px 22px}.kz-audience-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.kz-audience-card{border-radius:20px;padding:26px;min-height:255px}.kz-audience-card:nth-child(1){background:#EAF8FB}.kz-audience-card:nth-child(2){background:#F0F2FF}.kz-audience-card:nth-child(3){background:#FFEADF}.kz-audience-card small{font-size:9px;text-transform:uppercase;letter-spacing:.09em;font-weight:900}.kz-audience-card h3{font-size:25px;letter-spacing:-.045em;margin:48px 0 10px}.kz-audience-card p{font-size:11px;line-height:1.65;color:#53656d}
-.kz-plan{background:#fff;border-top:1px solid #D8E5E9;border-bottom:1px solid #D8E5E9;padding:80px 0}.kz-plan-inner{max-width:1200px;margin:auto;padding:0 22px;display:grid;grid-template-columns:1fr .8fr;gap:50px;align-items:center}.kz-plan h2{font-size:clamp(38px,5vw,60px);line-height:1;letter-spacing:-.06em;margin:0 0 14px}.kz-plan p{font-size:14px;color:#63727a;line-height:1.72}.kz-price-big{font-size:68px;font-weight:900;letter-spacing:-.07em}.kz-price-big span{font-size:16px;color:#63727a;font-weight:700}
+.kz-phone{position:absolute;right:4%;bottom:4%;width:24%;min-width:170px;aspect-ratio:.52;background:#10151a;border:7px solid #10151a;border-radius:34px;box-shadow:var(--shadow-md);padding:8px}.kz-phone-inner{height:100%;background:#fff;border-radius:24px;padding:13px 10px}.kz-phone-header{display:flex;justify-content:space-between;font-size:8px;font-weight:850}.kz-phone-hero{margin-top:11px;border-radius:13px;padding:13px;background:var(--brand-secondary);color:#fff}.kz-phone-hero small{font-size:6px;opacity:.82}.kz-phone-hero b{display:block;font-size:16px;margin:5px 0}.kz-phone-row{height:30px;background:#eff6f7;border-radius:8px;margin-top:7px}
+.kz-trust-strip{background:#fff;border-top:1px solid var(--border-default);border-bottom:1px solid var(--border-default);padding:38px 0}.kz-trust-inner{max-width:1200px;margin:auto;padding:0 22px}.kz-trust-title{font-size:12px;font-weight:850;margin-bottom:18px}.kz-trust-items{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.kz-trust-item{font-size:11px;font-weight:800;color:#52636b;border-left:2px solid var(--brand-secondary);padding:5px 0 5px 11px}
+.kz-benefit{max-width:1200px;margin:auto;padding:84px 22px;display:grid;grid-template-columns:.88fr 1.12fr;gap:56px;align-items:center}.kz-benefit.reverse{grid-template-columns:1.12fr .88fr}.kz-benefit.reverse .kz-benefit-copy{order:2}.kz-benefit-label{color:var(--brand-secondary);font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:900}.kz-benefit h2{font-size:clamp(32px,4vw,44px);line-height:1;letter-spacing:-.06em;margin:12px 0 15px}.kz-benefit p{color:#63727a;font-size:14px;line-height:1.75;margin:0}.kz-benefit a{display:inline-flex;margin-top:20px;font-size:11px;color:var(--brand-secondary);font-weight:850}
+.kz-visual{min-height:390px;background:var(--bg-surface-secondary);border-radius:22px;padding:34px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.kz-doc-card{width:min(430px,93%);background:#fff;border:1px solid var(--border-default);border-radius:17px;padding:21px;box-shadow:var(--shadow-md)}.kz-doc-title{display:flex;justify-content:space-between;font-size:11px;font-weight:850}.kz-doc-title span{color:var(--brand-secondary)}.kz-line{height:8px;background:#e9eef0;border-radius:999px;margin:10px 0}.kz-line.s{width:55%}.kz-line.m{width:76%}.kz-doc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:17px}.kz-doc-grid div{background:var(--brand-primary-soft);border-radius:9px;padding:10px;font-size:7px;color:#5a737b}.kz-doc-grid b{display:block;color:#20333a;margin-top:4px;font-size:9px}
+.kz-alerts{width:min(450px,94%);display:grid;gap:10px}.kz-alert{background:#fff;border:1px solid var(--border-default);border-radius:13px;padding:14px;display:grid;grid-template-columns:37px 1fr auto;gap:11px;align-items:center}.kz-alert-icon{width:37px;height:37px;border-radius:10px;background:var(--brand-primary-soft)}.kz-alert strong{font-size:11px}.kz-alert small{display:block;font-size:8px;color:#85939a;margin-top:3px}.kz-alert em{font-style:normal;color:var(--brand-secondary);font-size:8px}
+.kz-solutions-section{background:#fff;border-top:1px solid var(--border-default);border-bottom:1px solid var(--border-default);padding:84px 0}.kz-section-inner{max-width:1200px;margin:auto;padding:0 22px}.kz-heading{max-width:780px;margin-bottom:36px}.kz-heading small{display:block;color:var(--brand-secondary);text-transform:uppercase;letter-spacing:.1em;font-size:10px;font-weight:900;margin-bottom:10px}.kz-heading h2{font-size:clamp(32px,4vw,44px);line-height:1;letter-spacing:-.06em;margin:0 0 13px}.kz-heading p{font-size:14px;color:#63727a;line-height:1.72;margin:0}
+.kz-solutions-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.kz-solution{border:1px solid var(--border-default);border-radius:18px;padding:23px;min-height:235px;background:#fff}.kz-solution:nth-child(2),.kz-solution:nth-child(5){background:var(--brand-primary-soft)}.kz-solution h3{font-size:20px;letter-spacing:-.035em;margin:38px 0 9px}.kz-solution p{font-size:11px;line-height:1.65;color:#63727a}.kz-solution a{display:inline-flex;margin-top:15px;color:var(--brand-secondary);font-size:10px;font-weight:850}
+.kz-reasons{max-width:1200px;margin:auto;padding:84px 22px}.kz-reason-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.kz-reason{background:#fff;border:1px solid var(--border-default);border-radius:18px;padding:24px}.kz-reason strong{display:block;font-size:18px;margin-bottom:9px}.kz-reason p{font-size:11px;color:#63727a;line-height:1.65;margin:0}
+.kz-apps{background:var(--brand-primary);color:#fff;padding:82px 0}.kz-apps-inner{max-width:1200px;margin:auto;padding:0 22px;display:grid;grid-template-columns:.85fr 1.15fr;gap:44px;align-items:center}.kz-apps h2{font-size:clamp(32px,4vw,44px);line-height:1;letter-spacing:-.06em;margin:10px 0 14px}.kz-apps p{color:#bdc8cc;font-size:14px;line-height:1.7}.kz-app-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:900;color:#8fe3ee}.kz-app-phones{display:flex;justify-content:center;gap:18px}.kz-app-phone{width:185px;aspect-ratio:.54;background:#0e1317;border:6px solid #0e1317;border-radius:32px;padding:7px;transform:rotate(-5deg)}.kz-app-phone:nth-child(2){transform:rotate(5deg) translateY(26px)}.kz-app-screen{height:100%;background:#fff;border-radius:23px;padding:12px}.kz-app-screen div{height:35px;background:#eef5f6;border-radius:8px;margin:7px 0}.kz-app-screen div:first-child{height:95px;background:var(--brand-secondary)}
+.kz-audience{max-width:1200px;margin:auto;padding:84px 22px}.kz-audience-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.kz-audience-card{border-radius:20px;padding:26px;min-height:255px}.kz-audience-card:nth-child(1){background:var(--brand-primary-soft)}.kz-audience-card:nth-child(2){background:#F0F2FF}.kz-audience-card:nth-child(3){background:#FFEADF}.kz-audience-card small{font-size:9px;text-transform:uppercase;letter-spacing:.09em;font-weight:900}.kz-audience-card h3{font-size:25px;letter-spacing:-.045em;margin:48px 0 10px}.kz-audience-card p{font-size:11px;line-height:1.65;color:#53656d}
+.kz-plan{background:#fff;border-top:1px solid var(--border-default);border-bottom:1px solid var(--border-default);padding:80px 0}.kz-plan-inner{max-width:1200px;margin:auto;padding:0 22px;display:grid;grid-template-columns:1fr .8fr;gap:50px;align-items:center}.kz-plan h2{font-size:clamp(32px,4vw,44px);line-height:1;letter-spacing:-.06em;margin:0 0 14px}.kz-plan p{font-size:14px;color:#63727a;line-height:1.72}.kz-price-big{font-size:68px;font-weight:900;letter-spacing:-.07em}.kz-price-big span{font-size:16px;color:#63727a;font-weight:700}
 .kz-facts{max-width:1200px;margin:auto;padding:60px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.kz-fact{border-top:1px solid #aebfc4;padding-top:16px}.kz-fact strong{font-size:26px;display:block;letter-spacing:-.05em}.kz-fact span{font-size:10px;color:#63727a;line-height:1.45}
-.kz-support{max-width:1200px;margin:auto;padding:30px 22px 84px}.kz-support-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.kz-support-card{border:1px solid #D8E5E9;background:#fff;border-radius:17px;padding:22px}.kz-support-card h3{font-size:18px;margin:0 0 8px}.kz-support-card p{font-size:11px;line-height:1.65;color:#63727a}.kz-support-card a{display:inline-flex;margin-top:14px;color:#008FAA;font-size:10px;font-weight:850}
-.kz-final{max-width:1200px;margin:0 auto;padding:0 22px 84px}.kz-final-box{background:linear-gradient(135deg,#00A8C6,#5266D6);border-radius:24px;color:#fff;padding:44px;display:grid;grid-template-columns:1fr auto;gap:28px;align-items:center}.kz-final h2{font-size:clamp(38px,5vw,58px);line-height:1;letter-spacing:-.06em;margin:0 0 10px}.kz-final p{font-size:12px;line-height:1.65;color:#ecf6ff;margin:0}.kz-final .mk-btn{background:#fff!important;color:#202B33!important;border-color:#fff!important}
+.kz-support{max-width:1200px;margin:auto;padding:30px 22px 84px}.kz-support-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.kz-support-card{border:1px solid var(--border-default);background:#fff;border-radius:17px;padding:22px}.kz-support-card h3{font-size:18px;margin:0 0 8px}.kz-support-card p{font-size:11px;line-height:1.65;color:#63727a}.kz-support-card a{display:inline-flex;margin-top:14px;color:var(--brand-secondary);font-size:10px;font-weight:850}
+.kz-final{max-width:1200px;margin:0 auto;padding:0 22px 84px}.kz-final-box{background:var(--brand-primary);border-radius:24px;color:#fff;padding:44px;display:grid;grid-template-columns:1fr auto;gap:28px;align-items:center}.kz-final h2{font-size:clamp(32px,4vw,44px);line-height:1;letter-spacing:-.06em;margin:0 0 10px}.kz-final p{font-size:12px;line-height:1.65;color:#ecf6ff;margin:0}.kz-final .mk-btn{background:#fff;color:var(--text-primary);border-color:#fff}
 @media(max-width:900px){.kz-tabs{grid-template-columns:1fr 1fr}.kz-benefit,.kz-benefit.reverse{grid-template-columns:1fr}.kz-benefit.reverse .kz-benefit-copy{order:0}.kz-solutions-grid,.kz-reason-grid,.kz-audience-grid{grid-template-columns:1fr 1fr}.kz-apps-inner,.kz-plan-inner{grid-template-columns:1fr}.kz-trust-items,.kz-facts{grid-template-columns:1fr 1fr}.kz-final-box{grid-template-columns:1fr}}
 @media(max-width:620px){.kz-hero,.kz-product-stage,.kz-section-inner,.kz-benefit,.kz-reasons,.kz-audience,.kz-plan-inner,.kz-support,.kz-final{padding-left:15px;padding-right:15px}.kz-hero{padding-top:48px}.kz-hero h1{font-size:49px}.kz-tabs{grid-template-columns:1fr 1fr;padding-left:15px;padding-right:15px}.kz-product-shell{height:500px;min-height:500px}.kz-browser{left:4%;right:4%;top:6%;bottom:29%;grid-template-columns:78px 1fr}.kz-browser-main{padding:13px}.kz-phone{min-width:138px;width:40%;right:5%;bottom:2%}.kz-browser-cards{grid-template-columns:1fr}.kz-browser-card:nth-child(n+2){display:none}.kz-trust-items,.kz-solutions-grid,.kz-reason-grid,.kz-audience-grid,.kz-facts,.kz-support-grid{grid-template-columns:1fr}.kz-apps{padding:65px 0}.kz-apps-inner{padding-left:15px;padding-right:15px}.kz-app-phone{width:135px}.kz-final-box{padding:28px}}
 
 /* Editorial real-product presentation: only real app pixels, with semantic variants. */
 .product-proof,.product-crop,.product-mobile{margin:0;position:relative}
-.product-proof{width:min(1120px,100%);margin-inline:auto;border:1px solid #E1E8E5;border-radius:20px;background:#fff;box-shadow:0 18px 52px rgba(20,43,51,.09);overflow:hidden}
+.product-proof{width:min(1120px,100%);margin-inline:auto;border:1px solid var(--border-default);border-radius:20px;background:#fff;box-shadow:var(--shadow-md);overflow:hidden}
 .product-proof img{display:block;width:100%;height:auto;background:#fff}
 .product-proof figcaption{padding:8px 2px 0;background:transparent;color:#69777D;font-size:9px;line-height:1.45}
-.product-crop{--product-max:760px;width:min(var(--product-max),100%);border:1px solid #E1E8E5;border-radius:16px;background:#fff;box-shadow:0 10px 30px rgba(20,43,51,.07);overflow:hidden}
+.product-crop{--product-max:760px;width:min(var(--product-max),100%);border:1px solid var(--border-default);border-radius:16px;background:#fff;box-shadow:var(--shadow-sm);overflow:hidden}
 .product-crop picture{display:block}
 .product-crop img{display:block;width:100%;height:auto;background:#fff}
 .product-crop figcaption{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 2px 0;color:#617078;font-size:9px;line-height:1.45}
 .product-crop.editorial-panel{overflow:visible;border:0;box-shadow:none;background:transparent;isolation:isolate}
 .product-crop.editorial-panel:before{content:"";position:absolute;z-index:-1;inset:-7% -8%;border-radius:20px;background:#F2F6F4}
 .product-crop.bleed-right{transform:translateX(min(70px,5vw))}
-.product-mobile{width:min(310px,100%);margin-inline:auto;border:1px solid #DCE5E1;border-radius:22px;background:#fff;padding:3px;box-shadow:0 12px 34px rgba(20,43,51,.08);overflow:hidden}
+.product-mobile{width:min(310px,100%);margin-inline:auto;border:1px solid #DCE5E1;border-radius:22px;background:#fff;padding:3px;box-shadow:var(--shadow-sm);overflow:hidden}
 .product-mobile img{display:block;width:100%;height:auto;aspect-ratio:390/844;border-radius:18px}
 .kz-hero-product-proof{max-width:1200px;margin:32px auto 44px;padding:0 22px}
 .kz-product-stage{display:flex;justify-content:center}
@@ -58,11 +58,11 @@
 .kz-product-stage .product-crop.is-changing{opacity:.5;transform:translateY(3px)}
 .kz-real-workflow-proof{display:grid;grid-template-columns:minmax(250px,.68fr) minmax(0,1fr);gap:34px;align-items:center}
 .kz-real-workflow-copy{display:grid;gap:11px}
-.kz-real-workflow-step{border-left:2px solid #D8E5E9;padding:5px 0 5px 13px}
-.kz-real-workflow-step strong{display:block;font-size:12px;color:#20292E}
+.kz-real-workflow-step{border-left:2px solid var(--border-default);padding:5px 0 5px 13px}
+.kz-real-workflow-step strong{display:block;font-size:12px;color:var(--text-primary)}
 .kz-real-workflow-step span{display:block;margin-top:3px;font-size:10px;line-height:1.5;color:#617078}
 .kz-workflow{overflow:clip}
-.kz-benefit-copy-only{grid-template-columns:1fr!important}
+.kz-benefit-copy-only{grid-template-columns:1fr}
 .kz-benefit-copy-only .kz-benefit-copy{max-width:720px}
 .kz-benefit.reverse .product-crop{--product-max:650px}
 .kz-mobile-proof-grid{display:grid;grid-template-columns:minmax(0,310px);justify-content:center;transform:translateY(24px)}
@@ -77,19 +77,19 @@
   transition:background-color .18s ease,color .18s ease,border-color .18s ease,transform .18s ease,box-shadow .18s ease
 }
 .marketing a:focus-visible,.marketing button:focus-visible,.marketing summary:focus-visible{
-  outline:3px solid rgba(0,168,198,.32)!important;
-  outline-offset:3px!important
+  outline:3px solid rgba(43,115,108,.32);
+  outline-offset:3px
 }
 .kz-hero-copy,.kz-benefit p,.kz-heading p,.kz-solution p,.kz-reason p,.kz-audience-card p,.kz-plan p,.kz-support-card p{
-  color:#4E5E66!important
+  color:#4E5E66
 }
 .kz-tab{
   cursor:pointer;min-height:46px;color:#34434B;
   display:flex;align-items:center;justify-content:center
 }
 .kz-tab.active{
-  background:#202B33!important;color:#fff!important;border-color:#202B33!important;
-  box-shadow:0 8px 20px rgba(32,43,51,.12)
+  background:var(--brand-primary);color:#fff;border-color:var(--brand-primary);
+  box-shadow:var(--shadow-sm)
 }
 .kz-product-shell{transition:background .25s ease}
 .kz-browser-banner,.kz-browser-card,.kz-phone-hero{
@@ -98,355 +98,110 @@
 .kz-product-shell.is-changing .kz-browser-banner,
 .kz-product-shell.is-changing .kz-browser-card,
 .kz-product-shell.is-changing .kz-phone-hero{opacity:.45;transform:translateY(3px)}
-.kz-browser-nav span.active{background:#32414A!important;color:#fff!important}
-.kz-browser-banner h3,.kz-browser-card b,.kz-trust-title{color:#202B33!important}
-.kz-browser-banner p,.kz-trust-item{color:#4E5E66!important}
+.kz-browser-nav span.active{background:#32414A;color:#fff}
+.kz-browser-banner h3,.kz-browser-card b,.kz-trust-title{color:var(--text-primary)}
+.kz-browser-banner p,.kz-trust-item{color:#4E5E66}
 .kz-preview-link{
-  display:inline-flex;margin-top:13px;color:#008FAA;font-size:10px;font-weight:850;
+  display:inline-flex;margin-top:13px;color:var(--brand-secondary);font-size:10px;font-weight:850;
   text-decoration:none
 }
 .kz-preview-link:hover{text-decoration:underline;text-underline-offset:3px}
 .kz-status{
   display:inline-flex;align-items:center;gap:7px;margin-top:14px;padding:8px 10px;
-  border-radius:999px;background:#EAF8FB;color:#285F6A;font-size:10px;font-weight:850
+  border-radius:999px;background:var(--brand-primary-soft);color:#285F6A;font-size:10px;font-weight:850
 }
-.kz-status:before{content:"";width:7px;height:7px;border-radius:50%;background:#00A8C6}
+.kz-status:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--brand-secondary)}
 .kz-solution,.kz-reason,.kz-support-card,.kz-audience-card{
   transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease
 }
 .kz-backtop{
   position:fixed;right:20px;bottom:20px;z-index:120;width:44px;height:44px;border-radius:50%;
-  border:1px solid #D8E5E9;background:#fff;color:#202B33;box-shadow:0 12px 30px rgba(32,43,51,.14);
+  border:1px solid var(--border-default);background:#fff;color:var(--text-primary);box-shadow:var(--shadow-sm);
   display:grid;place-items:center;font-size:18px;font-weight:900;opacity:0;pointer-events:none;
   transform:translateY(8px);transition:opacity .18s ease,transform .18s ease,background .18s ease,color .18s ease
 }
 .kz-backtop.show{opacity:1;pointer-events:auto;transform:none}
-.kz-backtop:hover{background:#202B33;color:#fff}
-.marketing-nav.scrolled{box-shadow:0 10px 30px rgba(24,64,76,.08)}
+.kz-backtop:hover{background:var(--brand-primary);color:#fff}
+.marketing-nav.scrolled{box-shadow:var(--shadow-sm)}
 @media (hover:hover) and (pointer:fine){
   .kz-solution:hover,.kz-reason:hover,.kz-support-card:hover,.kz-audience-card:hover{
-    transform:translateY(-4px);box-shadow:0 14px 34px rgba(24,64,76,.09)
+    transform:translateY(-4px);box-shadow:var(--shadow-sm)
   }
-  .kz-tab:hover:not(.active){background:#EAF8FB;border-color:#BFDDE3}
+  .kz-tab:hover:not(.active){background:var(--brand-primary-soft);border-color:#BFDDE3}
 }
 @media(prefers-reduced-motion:reduce){
-  .marketing *{transition:none!important;animation:none!important}
+  .marketing *{transition:none;animation:none}
 }
 @media(max-width:620px){
-  .kz-hero-copy{color:#43545C!important}
+  .kz-hero-copy{color:#43545C}
   .kz-tab{font-size:10px;padding:11px 8px}
-  .kz-browser-banner p{font-size:9px!important}
-  .marketing-mobile-menu a,.marketing-mobile-menu summary{color:#202B33!important}
-  .marketing-mobile-sub a{color:#4E5E66!important}
+  .kz-browser-banner p{font-size:9px}
+  .marketing-mobile-menu a,.marketing-mobile-menu summary{color:var(--text-primary)}
+  .marketing-mobile-sub a{color:#4E5E66}
   .kz-backtop{right:14px;bottom:14px}
-}
-
-/* Final homepage palette correction */
-.marketing{
-  background:#FFFFFF!important;
-  color:#20292E!important;
-}
-.marketing .promo-bar{
-  background:#20292E!important;
-  color:#FFFFFF!important;
-}
-.marketing .marketing-nav{
-  background:rgba(255,255,255,.98)!important;
-  border-bottom-color:#E1E8E9!important;
-}
-.marketing .marketing-logo .brandmark{
-  background:#08A9C5!important;
-  color:#FFFFFF!important;
-}
-.marketing .marketing-link,
-.marketing .root-drop>button{
-  color:#536169!important;
-}
-.marketing .marketing-link:hover,
-.marketing .root-drop>button:hover,
-.marketing .root-drop-menu a:hover{
-  background:#F1F8EE!important;
-  color:#20292E!important;
-}
-.marketing .root-drop-menu{
-  border-color:#E1E8E9!important;
-}
-.marketing .mk-btn.primary{
-  background:#08A9C5!important;
-  border-color:#08A9C5!important;
-}
-.marketing .mk-btn.primary:hover{
-  background:#078DA7!important;
-  border-color:#078DA7!important;
-}
-.kz-hero h1 span{
-  color:#08A9C5!important;
-}
-.kz-tab.active{
-  background:#20292E!important;
-  border-color:#20292E!important;
-}
-.kz-tab:hover:not(.active){
-  background:#F1F8EE!important;
-  border-color:#D8E9D2!important;
-}
-.kz-product-shell,
-.kz-visual{
-  background:linear-gradient(135deg,#F1F8EE 0%,#EAF7F9 100%)!important;
-}
-.kz-browser-head i{
-  background:#08A9C5!important;
-}
-.kz-phone-hero{
-  background:#08A9C5!important;
-}
-.kz-doc-title span,
-.kz-benefit-label,
-.kz-benefit a,
-.kz-heading small,
-.kz-solution a,
-.kz-support-card a,
-.kz-preview-link{
-  color:#078DA7!important;
-}
-.kz-trust-item{
-  border-left-color:#08A9C5!important;
-}
-.kz-status{
-  background:#F1F8EE!important;
-  color:#49624F!important;
-}
-.kz-status:before{
-  background:#08A9C5!important;
-}
-.kz-solution:nth-child(2),
-.kz-solution:nth-child(5){
-  background:#F1F8EE!important;
-}
-.kz-apps{
-  background:#20292E!important;
-}
-.kz-app-label{
-  color:#8DDFEA!important;
-}
-.kz-app-screen div:first-child{
-  background:#08A9C5!important;
-}
-.kz-audience-card:nth-child(1){
-  background:#F1F8EE!important;
-}
-.kz-audience-card:nth-child(2){
-  background:#EAE5F5!important;
-}
-.kz-audience-card:nth-child(3){
-  background:#F8E7DD!important;
-}
-.kz-final-box{
-  background:#08A9C5!important;
-}
-.kz-final-box .mk-btn{
-  background:#FFFFFF!important;
-  color:#20292E!important;
-  border-color:#FFFFFF!important;
-}
-.marketing .marketing-footer{
-  background:#20292E!important;
-}
-
-/* Final homepage UI bugfix */
-.kz-tab{
-  background:#FFFFFF!important;
-  color:#34434B!important;
-  border:1px solid #D8E5E9!important;
-  box-shadow:none!important;
-}
-.kz-tab.active{
-  background:#20292E!important;
-  color:#FFFFFF!important;
-  border-color:#20292E!important;
-  box-shadow:0 8px 20px rgba(32,41,46,.12)!important;
-}
-@media (hover:hover) and (pointer:fine){
-  .kz-tab:hover:not(.active){
-    background:#F1F8EE!important;
-    color:#20292E!important;
-    border-color:#D8E9D2!important;
-  }
-}
-.kz-product-shell{
-  border:1px solid #E1E8E9;
-}
-.kz-browser{
-  border-color:#D8E5E9!important;
-}
-.kz-browser-main{
-  background:#F8FAFA!important;
-}
-.kz-browser-banner,
-.kz-browser-card{
-  background:#FFFFFF!important;
-}
-@media(max-width:620px){
-  .kz-hero{padding:34px 15px 10px!important}
-  .kz-tabs{margin:14px auto 10px!important;padding:0 15px!important;gap:6px!important}
-  .kz-product-stage{margin-bottom:34px!important;padding:0 15px!important}
-}
-
-/* Definitive desktop background hierarchy */
-@media (min-width:901px){
-  .marketing,
-  .marketing main{
-    background:#FFFFFF!important;
-  }
-
-  /* Core white canvas */
-  .kz-hero,
-  .kz-tabs,
-  .kz-product-stage,
-  .kz-benefit,
-  .kz-reasons,
-  .kz-audience,
-  .kz-facts,
-  .kz-support,
-  .kz-final{
-    background:#FFFFFF!important;
-  }
-
-  /* One single supporting surface tone */
-  .kz-product-shell,
-  .kz-visual{
-    background:#F3F8F5!important;
-    border-color:#E2EAE6!important;
-  }
-
-  .kz-trust-strip,
-  .kz-solutions-section,
-  .kz-plan{
-    background:#F7FAF8!important;
-    border-color:#E5ECE8!important;
-  }
-
-  /* Cards stay clean instead of adding another page background */
-  .kz-solution,
-  .kz-reason,
-  .kz-support-card{
-    background:#FFFFFF!important;
-    border-color:#E1E8E5!important;
-  }
-
-  /* Only selected cards get very soft variation */
-  .kz-solution:nth-child(2),
-  .kz-solution:nth-child(5){
-    background:#F0F7F3!important;
-  }
-
-  .kz-audience-card:nth-child(1){
-    background:#EDF7F2!important;
-  }
-  .kz-audience-card:nth-child(2){
-    background:#F3F2F8!important;
-  }
-  .kz-audience-card:nth-child(3){
-    background:#FAF2ED!important;
-  }
-
-  /* Dark contrast section remains intentional */
-  .kz-apps{
-    background:#20292E!important;
-  }
-
-  /* Remove accidental grey strips around the main preview */
-  .kz-tabs,
-  .kz-product-stage{
-    box-shadow:none!important;
-  }
-
-  .kz-tabs{
-    margin-top:18px!important;
-    margin-bottom:12px!important;
-  }
-
-  .kz-product-stage{
-    margin-top:0!important;
-  }
-
-  /* Browser mockup */
-  .kz-browser-main{
-    background:#F8FAF9!important;
-  }
-  .kz-browser-banner,
-  .kz-browser-card{
-    background:#FFFFFF!important;
-    border-color:#E2E9E6!important;
-  }
-
-  /* Keep CTA visually separate without introducing another gradient */
-  .kz-final-box{
-    background:#08A9C5!important;
-  }
 }
 
 /* Interaction layer */
 .kz-progress{
   position:fixed;left:0;top:0;height:3px;width:0;z-index:200;
-  background:#08A9C5;transition:width .08s linear;pointer-events:none
+  background:var(--brand-secondary);transition:width .08s linear;pointer-events:none
 }
 .kz-reveal{opacity:0;transform:translateY(18px);transition:opacity .5s ease,transform .5s ease}
 .kz-reveal.in-view{opacity:1;transform:none}
 
-.kz-workflow{background:#F7FAF8;border-top:1px solid #E5ECE8;border-bottom:1px solid #E5ECE8;padding:84px 0}
+.kz-workflow{background:var(--bg-canvas);border-top:1px solid var(--border-default);border-bottom:1px solid var(--border-default);padding:84px 0}
 .kz-workflow-inner{max-width:1200px;margin:auto;padding:0 22px}
 .kz-workflow-grid{display:grid;grid-template-columns:.78fr 1.22fr;gap:32px;align-items:stretch}
 .kz-workflow-tabs{display:grid;gap:8px}
 .kz-workflow-tab{
-  width:100%;text-align:left;background:#fff;border:1px solid #E1E8E5;border-radius:14px;
-  padding:16px 17px;cursor:pointer;color:#20292E
+  width:100%;text-align:left;background:#fff;border:1px solid var(--border-default);border-radius:14px;
+  padding:16px 17px;cursor:pointer;color:var(--text-primary)
 }
 .kz-workflow-tab strong{display:block;font-size:13px}
 .kz-workflow-tab span{display:block;margin-top:4px;color:#65747A;font-size:10px;line-height:1.5}
-.kz-workflow-tab.active{background:#20292E;color:#fff;border-color:#20292E;box-shadow:0 10px 25px rgba(32,41,46,.1)}
+.kz-workflow-tab.active{background:var(--brand-primary);color:#fff;border-color:var(--brand-primary);box-shadow:var(--shadow-sm)}
 .kz-workflow-tab.active span{color:#C8D0D3}
 .kz-workflow-stage{
-  background:#fff;border:1px solid #E1E8E5;border-radius:20px;min-height:390px;padding:30px;
+  background:#fff;border:1px solid var(--border-default);border-radius:20px;min-height:390px;padding:30px;
   display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;position:relative
 }
-.kz-workflow-stage:after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;right:-80px;top:-80px;background:#F1F8EE}
+.kz-workflow-stage:after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;right:-80px;top:-80px;background:var(--bg-surface-secondary)}
 .kz-workflow-meta{position:relative;z-index:1}
-.kz-workflow-meta small{color:#078DA7;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.09em}
+.kz-workflow-meta small{color:var(--brand-secondary);font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.09em}
 .kz-workflow-meta h3{font-size:34px;line-height:1.05;letter-spacing:-.05em;margin:10px 0 10px}
 .kz-workflow-meta p{max-width:600px;color:#526169;font-size:12px;line-height:1.7}
 .kz-workflow-preview{position:relative;z-index:1;margin-top:24px;display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
-.kz-workflow-box{border:1px solid #E1E8E5;background:#F8FAF9;border-radius:12px;padding:13px}
+.kz-workflow-box{border:1px solid var(--border-default);background:var(--bg-canvas);border-radius:12px;padding:13px}
 .kz-workflow-box span{display:block;color:#819096;font-size:7px;text-transform:uppercase}
-.kz-workflow-box b{display:block;margin-top:7px;font-size:10px;color:#20292E}
+.kz-workflow-box b{display:block;margin-top:7px;font-size:10px;color:var(--text-primary)}
 
 .kz-compare{max-width:1200px;margin:auto;padding:84px 22px}
-.kz-compare-switch{display:inline-flex;background:#F1F5F3;border:1px solid #E1E8E5;border-radius:12px;padding:4px;gap:4px;margin-bottom:24px}
+.kz-compare-switch{display:inline-flex;background:#F1F5F3;border:1px solid var(--border-default);border-radius:12px;padding:4px;gap:4px;margin-bottom:24px}
 .kz-compare-switch button{border:0;background:transparent;border-radius:9px;padding:10px 14px;font-size:11px;font-weight:850;cursor:pointer;color:#526169}
-.kz-compare-switch button.active{background:#20292E;color:#fff}
+.kz-compare-switch button.active{background:var(--brand-primary);color:#fff}
 .kz-compare-panel{display:grid;grid-template-columns:.8fr 1.2fr;gap:24px;align-items:stretch}
-.kz-compare-copy{border:1px solid #E1E8E5;background:#fff;border-radius:18px;padding:26px}
+.kz-compare-copy{border:1px solid var(--border-default);background:#fff;border-radius:18px;padding:26px}
 .kz-compare-copy h3{font-size:28px;letter-spacing:-.045em;margin:0 0 10px}
 .kz-compare-copy p{font-size:12px;line-height:1.7;color:#526169}
 .kz-compare-list{display:grid;gap:8px;margin-top:18px}
-.kz-compare-item{display:flex;gap:10px;align-items:flex-start;padding:12px;background:#F8FAF9;border-radius:11px;font-size:11px;color:#425159}
-.kz-compare-item:before{content:"•";font-weight:900;color:#08A9C5}
-.kz-compare-visual{border-radius:20px;background:#F3F8F5;border:1px solid #E2EAE6;padding:28px;display:grid;align-content:center}
+.kz-compare-item{display:flex;gap:10px;align-items:flex-start;padding:12px;background:var(--bg-canvas);border-radius:11px;font-size:11px;color:#425159}
+.kz-compare-item:before{content:"•";font-weight:900;color:var(--brand-secondary)}
+.kz-compare-visual{border-radius:20px;background:var(--bg-surface-secondary);border:1px solid var(--border-default);padding:28px;display:grid;align-content:center}
 .kz-compare-flow{display:grid;gap:10px}
-.kz-compare-flow-row{display:grid;grid-template-columns:40px 1fr auto;gap:11px;align-items:center;background:#fff;border:1px solid #E1E8E5;border-radius:13px;padding:13px}
-.kz-compare-flow-row i{width:40px;height:40px;border-radius:10px;background:#EAF7F9}
+.kz-compare-flow-row{display:grid;grid-template-columns:40px 1fr auto;gap:11px;align-items:center;background:#fff;border:1px solid var(--border-default);border-radius:13px;padding:13px}
+.kz-compare-flow-row i{width:40px;height:40px;border-radius:10px;background:var(--brand-primary-soft)}
 .kz-compare-flow-row strong{font-size:11px}.kz-compare-flow-row small{display:block;font-size:8px;color:#829096;margin-top:3px}
-.kz-compare-flow-row em{font-style:normal;color:#078DA7;font-size:8px}
+.kz-compare-flow-row em{font-style:normal;color:var(--brand-secondary);font-size:8px}
 
 .kz-solution-more{
-  margin-top:14px;border:0;background:transparent;padding:0;color:#078DA7;font-size:10px;font-weight:850;cursor:pointer
+  margin-top:14px;border:0;background:transparent;padding:0;color:var(--brand-secondary);font-size:10px;font-weight:850;cursor:pointer
 }
 .kz-solution-extra{
   max-height:0;overflow:hidden;opacity:0;transition:max-height .25s ease,opacity .2s ease,margin-top .2s ease;
   color:#526169;font-size:10px;line-height:1.55
 }
 .kz-solution.expanded .kz-solution-extra{max-height:100px;opacity:1;margin-top:10px}
-.kz-solution.expanded{border-color:#BFDCD4!important;box-shadow:0 12px 30px rgba(24,64,76,.07)}
+.kz-solution.expanded{border-color:#BFDCD4;box-shadow:var(--shadow-sm)}
 
 @media(max-width:900px){
   .kz-workflow-grid,.kz-compare-panel{grid-template-columns:1fr}
@@ -460,80 +215,57 @@
   .kz-compare{padding-top:64px;padding-bottom:64px}
 }
 @media(prefers-reduced-motion:reduce){
-  .kz-reveal{opacity:1!important;transform:none!important}
+  .kz-reveal{opacity:1;transform:none}
 }
 
 
 /* Keep the Boekuna public site comfortable on laptops too */
 @media (min-width:901px) and (max-width:1600px){
   .marketing p{line-height:1.65}
-  .marketing .marketing-links{font-size:14px!important}
-  .marketing .marketing-proof{font-size:12px!important}
-  .marketing .feature-card p{font-size:14px!important}
-  .marketing .step span{font-size:13px!important}
-  .marketing .trust-card span{font-size:12px!important}
-  .marketing .price-for{font-size:13px!important}
-  .marketing .price span{font-size:13px!important}
-  .marketing .price-list div{font-size:13px!important}
-  .marketing .deep-panel p{font-size:14px!important}
-  .marketing .deep-item{font-size:12px!important}
-  .marketing .faq-item p{font-size:13px!important;line-height:1.65!important}
-  .marketing .pricing-note{font-size:12px!important}
-  .marketing .usage-caption{font-size:13px!important}
-  .marketing .usage-rule{font-size:12px!important}
-  .marketing .feature-summary div{font-size:12px!important}
-  .marketing .feature-summary strong{font-size:14px!important}
-  .marketing .audience-card p{font-size:13px!important}
-  .marketing .value-card p{font-size:14px!important}
-  .marketing .compare-row{font-size:13px!important}
-  .marketing .promo-note{font-size:12px!important}
-  .marketing .promo-card p{font-size:13px!important}
-  .marketing .fh-number p,.marketing .fh-link p{font-size:13px!important}
-  .marketing .fh-link a{font-size:13px!important}
-  .marketing .fh-trust-card p,.marketing .fh-cta-box p{font-size:14px!important}
+  .marketing .marketing-links{font-size:14px}
+  .marketing .marketing-proof{font-size:12px}
+  .marketing .feature-card p{font-size:14px}
+  .marketing .step span{font-size:13px}
+  .marketing .trust-card span{font-size:12px}
+  .marketing .price-for{font-size:13px}
+  .marketing .price span{font-size:13px}
+  .marketing .price-list div{font-size:13px}
+  .marketing .deep-panel p{font-size:14px}
+  .marketing .deep-item{font-size:12px}
+  .marketing .faq-item p{font-size:13px;line-height:1.65}
+  .marketing .pricing-note{font-size:12px}
+  .marketing .usage-caption{font-size:13px}
+  .marketing .usage-rule{font-size:12px}
+  .marketing .feature-summary div{font-size:12px}
+  .marketing .feature-summary strong{font-size:14px}
+  .marketing .audience-card p{font-size:13px}
+  .marketing .value-card p{font-size:14px}
+  .marketing .compare-row{font-size:13px}
+  .marketing .promo-note{font-size:12px}
+  .marketing .promo-card p{font-size:13px}
+  .marketing .fh-number p,.marketing .fh-link p{font-size:13px}
+  .marketing .fh-link a{font-size:13px}
+  .marketing .fh-trust-card p,.marketing .fh-cta-box p{font-size:14px}
 }
 
 
-/* Boekuna readability + interaction v3 */
-@media (min-width:821px){
-  /* General application: no important supporting text should feel microscopic on a laptop */
-  .nav-item{font-size:14px!important}
-  .nav-group{font-size:12px!important}
-  .brand small{font-size:13px!important}
-  .metric-head,.metric-sub{font-size:13px!important}
-  .badge{font-size:12px!important}
-  .section-head p,.page-head p{font-size:14px!important}
-  .table th{font-size:12px!important}
-  .table td{font-size:14px!important;line-height:1.5!important}
-  .field label{font-size:12px!important}
-  .help{font-size:13px!important}
-  .notice{font-size:13px!important}
-  .filter-btn{font-size:13px!important}
-  .action-text strong{font-size:14px!important}
-  .action-text span{font-size:13px!important}
-  .legal-item p{font-size:13px!important}
-  .customer-preview{font-size:13px!important}
-  .invoice-check-item{font-size:13px!important}
-  .auth-help,.auth-checkline,.auth-note,.auth-error{font-size:13px!important}
-  .auth-field label{font-size:13px!important}
-}
-
+/* Public marketing readability + interaction */
 @media (min-width:901px){
   /* Public Boekuna site: normal copy >= 14px, secondary labels >= 12px */
-  .marketing{font-size:16px!important}
-  .marketing :where(.marketing-page-hero p,.marketing-band p,.marketing-cta-box p,.feature-card p,.deep-panel p,.faq-item p,.usage-caption,.audience-card p,.value-card p,.promo-card p,.fh-number p,.fh-link p,.fh-trust-card p,.fh-cta-box p,.kz-hero-copy,.kz-heading p,.kz-solution p,.kz-reason p,.kz-apps p,.kz-audience-card p,.kz-plan p,.kz-support-card p,.kz-workflow-meta p,.kz-compare-copy p,.kz-compare-item){font-size:15px!important;line-height:1.68!important}
-  .marketing :where(.marketing-proof,.pricing-note,.usage-rule,.deep-item,.feature-summary div,.compare-row,.promo-note,.kz-status,.kz-solution-extra,.kz-workflow-tab span,.kz-workflow-box b,.kz-compare-flow-row strong){font-size:13px!important;line-height:1.55!important}
-  .marketing :where(.marketing-eyebrow,.kz-overline,.kz-heading small,.kz-solution small,.kz-app-label,.kz-audience-card small,.kz-workflow-meta small,.kz-workflow-box span,.price-pill,.price-vat,.feature-summary span,.hero-stat span,.audience-kicker){font-size:12px!important}
-  .marketing .price-for,.marketing .price span,.marketing .price-list div{font-size:14px!important}
-  .marketing .faq-item strong{font-size:16px!important}
-  .marketing .step strong{font-size:15px!important}
-  .marketing .step span{font-size:14px!important}
-  .marketing .trust-card span{font-size:13px!important}
-  .marketing .marketing-footer-inner{font-size:13px!important}
+  .marketing{font-size:16px}
+  .marketing :where(.marketing-page-hero p,.marketing-band p,.marketing-cta-box p,.feature-card p,.deep-panel p,.faq-item p,.usage-caption,.audience-card p,.value-card p,.promo-card p,.fh-number p,.fh-link p,.fh-trust-card p,.fh-cta-box p,.kz-hero-copy,.kz-heading p,.kz-solution p,.kz-reason p,.kz-apps p,.kz-audience-card p,.kz-plan p,.kz-support-card p,.kz-workflow-meta p,.kz-compare-copy p,.kz-compare-item){font-size:15px;line-height:1.68}
+  .marketing :where(.marketing-proof,.pricing-note,.usage-rule,.deep-item,.feature-summary div,.compare-row,.promo-note,.kz-status,.kz-solution-extra,.kz-workflow-tab span,.kz-workflow-box b,.kz-compare-flow-row strong){font-size:13px;line-height:1.55}
+  .marketing :where(.marketing-eyebrow,.kz-overline,.kz-heading small,.kz-solution small,.kz-app-label,.kz-audience-card small,.kz-workflow-meta small,.kz-workflow-box span,.price-pill,.price-vat,.feature-summary span,.hero-stat span,.audience-kicker){font-size:12px}
+  .marketing .price-for,.marketing .price span,.marketing .price-list div{font-size:14px}
+  .marketing .faq-item strong{font-size:16px}
+  .marketing .step strong{font-size:15px}
+  .marketing .step span{font-size:14px}
+  .marketing .trust-card span{font-size:13px}
+  .marketing .marketing-footer-inner{font-size:13px}
 
   /* Even the product mockups remain legible on a laptop */
-  .marketing :where(.kz-browser-nav span,.kz-browser-banner p,.kz-preview-link,.kz-phone-header,.kz-phone-hero small,.product-mini-brand,.product-mini-item,.product-mini-new,.product-mini-hero small,.product-mini-hero p,.product-mini-card span,.fh-ui-nav span,.fh-ui-main-head i,.fh-ui-banner small,.fh-ui-banner p,.fh-ui-card small,.fh-link small){font-size:11px!important}
-  .marketing :where(.kz-browser-card span,.kz-browser-banner small,.kz-browser-head i,.kz-compare-flow-row small,.kz-compare-flow-row em){font-size:11px!important}
+  .marketing :where(.kz-browser-nav span,.kz-browser-banner p,.kz-preview-link,.kz-phone-header,.kz-phone-hero small,.product-mini-brand,.product-mini-item,.product-mini-new,.product-mini-hero small,.product-mini-hero p,.product-mini-card span,.fh-ui-nav span,.fh-ui-main-head i,.fh-ui-banner small,.fh-ui-banner p,.fh-ui-card small,.fh-link small){font-size:11px}
+  .marketing :where(.kz-browser-card span,.kz-browser-banner small,.kz-browser-head i,.kz-compare-flow-row small,.kz-compare-flow-row em){font-size:11px}
 }
 
 /* Stronger, calmer interaction language */
@@ -544,70 +276,72 @@
 .marketing .kz-workflow-tab,
 .marketing .kz-compare-switch button,
 .marketing .kz-solution-more{
-  transition:transform .18s ease,box-shadow .18s ease,background-color .18s ease,border-color .18s ease,color .18s ease!important
+  transition:transform .18s ease,box-shadow .18s ease,background-color .18s ease,border-color .18s ease,color .18s ease
 }
 .marketing .mk-btn:active,
 .marketing .kz-tab:active,
 .marketing .kz-workflow-tab:active,
-.marketing .kz-compare-switch button:active{transform:translateY(1px) scale(.985)!important}
+.marketing .kz-compare-switch button:active{transform:translateY(1px) scale(.985)}
 .marketing .mk-btn:focus-visible,
 .marketing a:focus-visible,
 .marketing button:focus-visible,
-.faq-item:focus-visible{outline:3px solid rgba(8,169,197,.28)!important;outline-offset:3px!important}
+.faq-item:focus-visible{outline:3px solid rgba(43,115,108,.28);outline-offset:3px}
 
 .bookuna-hover-card{
   position:relative;
-  transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease,background-color .22s ease!important;
+  transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease,background-color .22s ease;
   will-change:transform
 }
 @media (hover:hover) and (pointer:fine){
   .bookuna-hover-card:hover{
     transform:translateY(-5px);
-    border-color:#BED7D1!important;
-    box-shadow:0 18px 42px rgba(30,73,78,.10)!important
+    border-color:var(--border-strong);
+    box-shadow:var(--shadow-md)
   }
-  .marketing .mk-btn:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(32,41,46,.12)}
-  .marketing .marketing-link:hover{color:#078DA7!important}
+  .marketing .mk-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+  .marketing .marketing-link:hover{color:var(--brand-secondary)}
 }
 
 /* FAQ becomes a real accordion */
-.faq-item{cursor:pointer;position:relative;padding-right:52px!important;transition:border-color .2s ease,box-shadow .2s ease,background .2s ease!important}
+.faq-item{cursor:pointer;position:relative;padding-right:52px;transition:border-color .2s ease,box-shadow .2s ease,background .2s ease}
 .faq-item strong{position:relative;padding-right:10px}
 .faq-item strong:after{
   content:"+";
   position:absolute;right:-28px;top:-3px;
   width:28px;height:28px;border-radius:50%;
   display:grid;place-items:center;
-  background:#F1F6F4;color:#356267;
+  background:#F1F6F4;color:var(--brand-primary);
   font-size:18px;line-height:1;
   transition:transform .22s ease,background .22s ease
 }
-.faq-item p{max-height:0;opacity:0;overflow:hidden;margin:0!important;transition:max-height .28s ease,opacity .2s ease,margin-top .2s ease}
-.faq-item.open{border-color:#BED7D1!important;background:#FBFDFC!important;box-shadow:0 12px 30px rgba(30,73,78,.07)}
+.faq-item p{max-height:0;opacity:0;overflow:hidden;margin:0;transition:max-height .28s ease,opacity .2s ease,margin-top .2s ease}
+.faq-item.open{border-color:var(--border-strong);background:#FBFDFC;box-shadow:var(--shadow-sm)}
 .faq-item.open strong:after{content:"−";transform:rotate(180deg);background:#E5F6F7}
-.faq-item.open p{max-height:260px;opacity:1;margin-top:10px!important}
+.faq-item.open p{max-height:260px;opacity:1;margin-top:10px}
 
 /* Scroll reveal for all marketing pages, not just the homepage */
 .bookuna-reveal{opacity:0;transform:translateY(14px);transition:opacity .48s ease,transform .48s ease}
 .bookuna-reveal.bookuna-in{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){
-  .bookuna-hover-card,.bookuna-reveal{transition:none!important;transform:none!important}
-  .bookuna-reveal{opacity:1!important}
+  .bookuna-hover-card,.bookuna-reveal{transition:none;transform:none}
+  .bookuna-reveal{opacity:1}
 }
 
 
 /* Boekuna tiny-text cleanup v4 */
 @media (min-width:901px){
   /* Older preview/marketing components still used on some routes */
-  .marketing :where(.feature-chip,.marketing-proof,.promo-bar-inner,.promo-bar button,.root-drop-menu a,.ns-proof,.ns-checks,.ns-shortcut,.ns-feature-copy a,.ns-solution a,.ns-trust-card p,.fh-trust-card a,.fh-link a,.kz-benefit a,.kz-support-card a,.kz-doc-title,.kz-alert strong){font-size:13px!important}
-  .marketing :where(.root-drop-menu span,.fh-kicker,.fh-stat span,.fh-number em,.fh-link small,.ns-heading small,.ns-audience-card small,.kz-doc-grid b,.kz-alert small,.kz-alert em){font-size:12px!important}
-  .marketing :where(.ns-solution p,.ns-audience-card p){font-size:15px!important;line-height:1.65!important}
+  .marketing :where(.feature-chip,.marketing-proof,.promo-bar-inner,.promo-bar button,.root-drop-menu a,.ns-proof,.ns-checks,.ns-shortcut,.ns-feature-copy a,.ns-solution a,.ns-trust-card p,.fh-trust-card a,.fh-link a,.kz-benefit a,.kz-support-card a,.kz-doc-title,.kz-alert strong){font-size:13px}
+  .marketing :where(.root-drop-menu span,.fh-kicker,.fh-stat span,.fh-number em,.fh-link small,.ns-heading small,.ns-audience-card small,.kz-doc-grid b,.kz-alert small,.kz-alert em){font-size:12px}
+  .marketing :where(.ns-solution p,.ns-audience-card p){font-size:15px;line-height:1.65}
 
   /* Product previews: intentionally compact, but no longer unreadably tiny */
-  .marketing :where(.product-mini-item,.product-mini-new,.product-mini-hero small,.product-mini-hero p,.product-mini-card span,.fh-ui-nav span,.fh-ui-main-head i,.fh-ui-banner small,.fh-ui-card small,.ns-laptop-nav span,.ns-head i,.ns-banner small,.ns-kpi span,.ns-phone-top,.ns-phone-card small,.ns-phone-tabs div,.ns-doc-summary div,.ns-attn-row small,.ns-attn-row em,.kz-doc-grid div){font-size:10px!important}
-  .marketing :where(.product-mini-card b,.fh-ui-banner p,.fh-ui-card b,.ns-banner p,.ns-kpi b,.ns-attn-row strong){font-size:12px!important}
-  .marketing .ns-laptop-nav b{font-size:13px!important}
+  .marketing :where(.product-mini-item,.product-mini-new,.product-mini-hero small,.product-mini-hero p,.product-mini-card span,.fh-ui-nav span,.fh-ui-main-head i,.fh-ui-banner small,.fh-ui-card small,.ns-laptop-nav span,.ns-head i,.ns-banner small,.ns-kpi span,.ns-phone-top,.ns-phone-card small,.ns-phone-tabs div,.ns-doc-summary div,.ns-attn-row small,.ns-attn-row em,.kz-doc-grid div){font-size:10px}
+  .marketing :where(.product-mini-card b,.fh-ui-banner p,.fh-ui-card b,.ns-banner p,.ns-kpi b,.ns-attn-row strong){font-size:12px}
+  .marketing .ns-laptop-nav b{font-size:13px}
 }
 
 
 
+
+.mk-btn.inverse{background:#fff;color:var(--brand-primary);border-color:#fff}.mk-btn.inverse:hover{background:var(--bg-surface-secondary);border-color:var(--bg-surface-secondary);box-shadow:none}
