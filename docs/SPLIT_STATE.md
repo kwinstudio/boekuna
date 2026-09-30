@@ -1,7 +1,7 @@
 # BOEKUNA Split State
 
-Last updated: 2026-09-30T11:40:00+02:00
-Checkpoint: 6 — app/public origins split; provider-neutral entitlement layer implemented in branch
+Last updated: 2026-09-30T11:55:00+02:00
+Checkpoint: 7 — source split, provider-neutral entitlement and scoped CI verified; preview deployment blocked by Render capacity
 Branch: `refactor/split-web-app`
 Base/main SHA: `ba0fd360dd200841714330d42421f6577beea88c`
 Status: IN PROGRESS
@@ -23,7 +23,11 @@ Status: IN PROGRESS
 - Billing is server-side Stripe via Supabase Edge Functions; current return URLs use `APP_URL + "/?login=1..."`.
 - Marketing source now targets `https://app.boekuna.nl` for product login/registration actions and `https://boekuna.nl` for public canonical/SEO URLs.
 - Generated app artifact is auth/dashboard-only and no longer contains the legacy marketing runtime.
-- Current CI is still one broad workflow `.github/workflows/boekuna-integrity.yml`, but split-specific characterization/build/origin/provider tests now run before the legacy full suite.
+- CI is split into scoped pull-request workflows:
+  - marketing: `.github/workflows/boekuna-marketing.yml`
+  - app: `.github/workflows/boekuna-app.yml`
+  - backend: `.github/workflows/boekuna-backend.yml`
+- The broad `.github/workflows/boekuna-integrity.yml` remains the explicit cross-system/full release gate via `docs/SPLIT_FULL_GATE.md` or manual dispatch.
 
 ## Checkpoint 2 evidence
 Implemented:
@@ -161,12 +165,42 @@ Characterization command now enforced by CI:
 2. Production Edge Functions still run their previously deployed versions until an explicit deployment gate; branch code is not live.
 3. Production Stripe/Edge `APP_URL` secret/config must be verified/set to `https://app.boekuna.nl` at cutover.
 4. PWA manifest is still shared in source and currently uses relative `/?login=1&app=1`; app-host deployment makes it same-origin, but marketing build should eventually stop publishing app-only PWA metadata.
-5. Marketing and app tests are still coupled into one broad workflow/job; CI path isolation remains open.
+5. Scoped CI is implemented and green; the broad integrity workflow is retained only as the explicit full release gate.
 6. Existing open marketing PRs overlap `public/**`; rebase/reconciliation is required before merge.
-7. Render preview capacity must be freed before real split-host preview deployment can be created.
+7. Render preview capacity must be freed before real split-host preview deployment can be created. Workspace currently has 25 services.
+   Safest identified deletion candidates are the two closed PR #70 preview services:
+   - `boekuna-pr70-email-share-preview` (`srv-dath36qd0e5s73c2ufg0`)
+   - `boekuna-pr70-email-share-e2e-preview` (`srv-dath4umk1f9s7388gir0`)
+   PR #70 is closed and unmerged. No deletion has been performed without explicit approval.
 
 ## Rollback state
 No production code/configuration has been changed. Rollback is currently: delete/abandon the split branch. Production remains at the recorded main SHA/deploys.
 
+## Current CI evidence
+Current branch HEAD before this ledger update had all four verification workflows green:
+- `Boekuna integrity tests`: success
+- `Boekuna marketing tests`: success
+- `Boekuna app tests`: success
+- `Boekuna backend tests`: success
+
+Scoped-CI contract:
+- marketing-only changes avoid OCR/billing backend suites;
+- app-only changes avoid marketing visual and OCR backend suites;
+- backend changes avoid marketing/app browser-only suites;
+- explicit full gate still exercises cross-system regression.
+
+PWA/source isolation:
+- marketing build removes the app-only `manifest.webmanifest`;
+- app build carries the PWA manifest;
+- app build copies a narrowed asset allowlist rather than all public marketing assets.
+
+Android follow-on documentation:
+- `docs/ANDROID_RELEASE_NEXT.md` added.
+- Android remains blocked until the web split is production-stable.
+
 ## Next exact action
-Finish the current full CI run on the provider-neutral entitlement head. If green, split CI scopes (marketing/app/backend) without weakening the full release gate. Then perform static build/deploy verification using available capacity or after one obsolete Render preview is removed. Production Edge Function, Auth URL and DNS cutovers remain gated behind full regression + rollback evidence.
+Checkpoint 8 preview deployment: free two Render service slots, then create separate split-branch static previews using:
+- marketing build: `node scripts/build-marketing.mjs`, publish `dist/marketing`
+- app build: `node scripts/build-app.mjs`, publish `dist/app`
+
+Do not deploy production Edge Functions, change Supabase Auth URLs, attach production custom domains or change DNS until both previews are live and smoke-verified.
