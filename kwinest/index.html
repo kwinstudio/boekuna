@@ -1977,7 +1977,7 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
 <div id="authRoot"></div>
 <div class="app" id="mainApp" style="display:none">
 <aside class="sidebar" id="sidebar">
-  <div class="brand"><img class="bookuna-logo-icon" src="/assets/boekuna-symbol.svg" alt="" aria-hidden="true"><div>Boekuna<small>Boekhouden voor ondernemers</small></div></div>
+  <div class="brand mobile-brand-row"><img class="bookuna-logo-icon" src="/assets/boekuna-symbol.svg" alt="" aria-hidden="true"><div>Boekuna<small>Boekhouden voor ondernemers</small></div><button class="mobile-drawer-close" id="mobileDrawerClose" type="button" aria-label="Menu sluiten">×</button></div>
   <div class="nav-group">Overzicht</div>
   <button class="nav-item active" data-page="dashboard"><svg class="icon"><use href="#i-home"/></svg>Dashboard</button>
   <div class="nav-group">Boekhouding</div>
@@ -1999,14 +1999,26 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
   <div class="sidebar-spacer"></div>
   <div class="demo-pill"><strong>Jouw administratie</strong>Je administratie wordt per account veilig in de cloud bewaard en gesynchroniseerd. Nog geen live bank- of Belastingdienst-koppeling.</div>
   <button class="nav-item" data-page="settings"><svg class="icon"><use href="#i-settings"/></svg>Instellingen</button>
+  <div class="mobile-account-section" aria-label="Account">
+    <div class="mobile-account-copy"><span>Account</span><strong id="mobileAccountIdentity">Account</strong></div>
+    <button class="mobile-account-logout" id="mobileLogoutButton" type="button" onclick="logoutUser(this)">Uitloggen</button>
+  </div>
 </aside>
-<main class="main">
+<div class="mobile-drawer-backdrop" id="mobileDrawerBackdrop" aria-hidden="true"></div>
+<main class="main" id="appMain">
   <header class="topbar">
     <div class="top-left"><button class="mobile-menu" id="mobileMenu" aria-label="Menu openen"><svg class="icon"><use href="#i-menu"/></svg></button><div class="page-title" id="pageTitle">Dashboard</div></div>
     <div class="top-actions"><button class="btn primary" id="quickNew"><svg class="icon"><use href="#i-plus"/></svg><span>Nieuw</span></button><button id="documentProcessingGlobal" class="document-processing-global hidden" type="button" onclick="openGlobalDocumentProcessingPanel()" aria-haspopup="dialog" aria-label="Documentverwerking bekijken"><span class="document-processing-global-spinner" aria-hidden="true"></span><span id="documentProcessingGlobalText">Documenten</span></button><span class="badge good" id="cloudSyncBadge" title="Cloudsyncstatus">Cloud opgeslagen</span><button class="avatar" id="accountAvatar" onclick="accountMenu()" aria-label="Account">A</button></div>
   </header>
   <div class="content" id="content"></div>
 </main>
+<nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Hoofdnavigatie">
+  <button class="mobile-bottom-nav-item" type="button" data-mobile-page="dashboard" aria-label="Dashboard"><svg class="icon"><use href="#i-home"/></svg><span>Dashboard</span></button>
+  <button class="mobile-bottom-nav-item" type="button" data-mobile-page="invoices" aria-label="Facturen"><svg class="icon"><use href="#i-file"/></svg><span>Facturen</span></button>
+  <button class="mobile-bottom-nav-item mobile-bottom-nav-scan" type="button" data-mobile-page="documents" aria-label="Scan"><svg class="icon"><use href="#i-upload"/></svg><span>Scan</span><span class="mobile-nav-badge hidden" id="mobileScanBadge" aria-label=""></span></button>
+  <button class="mobile-bottom-nav-item" type="button" data-mobile-page="bank" aria-label="Bank"><svg class="icon"><use href="#i-bank"/></svg><span>Bank</span></button>
+  <button class="mobile-bottom-nav-item" type="button" data-mobile-action="more" aria-label="Meer"><svg class="icon"><use href="#i-more"/></svg><span>Meer</span></button>
+</nav>
 </div>
 <div id="modalRoot"></div><div class="toast-wrap" id="toastRoot"></div>
 <input class="hidden" type="file" id="invoicePdfFile" multiple accept="application/pdf,.pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,text/csv,application/csv,.csv" />
@@ -2648,7 +2660,22 @@ async function loginUser(e){
 function enterApp(){
  document.getElementById('authRoot').innerHTML='';document.getElementById('mainApp').style.display='grid';const av=document.getElementById('accountAvatar');if(av)av.textContent=(currentUser?.email||'A').slice(0,2).toUpperCase();page='dashboard';document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page===page));document.getElementById('pageTitle').textContent=PAGE_TITLES[page];render();void loadBillingSummary().catch(()=>null);void handleBillingReturnAndPlan();void handleMailboxReturn();void initDocumentBackgroundProcessing();setTimeout(()=>void resumePendingDocumentVerifications(),1200)
 }
-async function logoutUser(){cleanupDocumentBackgroundProcessing();try{await syncCloudStateNow();const sb=await getSupabase();await sb.auth.signOut()}catch(e){console.warn(e)}currentUser=null;state=structuredClone(DEFAULT);closeModal();showLanding()}
+async function logoutUser(trigger=null){
+ cleanupDocumentBackgroundProcessing();
+ const button=trigger?.setAttribute?trigger:document.getElementById('mobileLogoutButton'),originalLabel=button?.textContent||'Uitloggen';
+ if(button){button.disabled=true;button.textContent='Uitloggen…'}
+ if(!TEST_MODE_NO_AUTH){
+  try{await syncCloudStateNow()}catch(e){console.warn('Finale cloudsync vóór uitloggen mislukt; uitloggen gaat door.',e)}
+  try{const sb=await getSupabase();await sb.auth.signOut()}catch(e){console.warn('Supabase signOut gaf een fout; lokale sessie wordt alsnog afgesloten.',e)}
+ }
+ currentUser=null;state=structuredClone(DEFAULT);pendingMfaUser=null;pendingMfaFactorId=null;
+ if(typeof setMobileMenuOpen==='function')setMobileMenuOpen(false,{restoreFocus:false});
+ closeModal();
+ const content=document.getElementById('content');if(content)content.innerHTML='';
+ const main=document.getElementById('mainApp');if(main)main.style.display='none';
+ showLanding();
+ if(button?.isConnected){button.disabled=false;button.textContent=originalLabel}
+}
 async function requireMfaForUser(user){const sb=await getSupabase();const {data,error}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();if(error)throw error;if(data?.nextLevel==='aal2'&&data?.currentLevel!=='aal2'){pendingMfaUser=user;await showMfaLoginChallenge();return true}return false}
 async function showMfaLoginChallenge(){const sb=await getSupabase();const {data,error}=await sb.auth.mfa.listFactors();if(error)throw error;const factor=(data?.totp||[]).find(x=>x.status==='verified');if(!factor)throw new Error('Tweestapsverificatie is geactiveerd maar er is geen geldige authenticator gevonden.');pendingMfaFactorId=factor.id;document.getElementById('mainApp').style.display='none';document.getElementById('authRoot').innerHTML=`<div class="auth-root"><div class="auth-shell" style="grid-template-columns:1fr"><section class="auth-form-wrap" style="min-height:520px"><div class="auth-form"><div class="eyebrow">Extra beveiliging</div><h2>Tweestapsverificatie</h2><p>Open je authenticator-app en vul de huidige 6-cijferige code in.</p><div class="auth-error" id="authError"></div><form onsubmit="verifyMfaLogin(event)"><div class="auth-field"><label>Authenticator-code</label><input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required autofocus></div><button class="btn primary auth-submit" type="submit">Controleren</button></form><div class="auth-switch"><button onclick="cancelMfaLogin()">Terug naar inloggen</button></div></div></section></div></div>`}
 async function verifyMfaLogin(e){e.preventDefault();const f=e.currentTarget;if(!f.reportValidity())return;const code=String(new FormData(f).get('code')||'').trim();try{const sb=await getSupabase();const challenge=await sb.auth.mfa.challenge({factorId:pendingMfaFactorId});if(challenge.error)throw challenge.error;const verify=await sb.auth.mfa.verify({factorId:pendingMfaFactorId,challengeId:challenge.data.id,code});if(verify.error)throw verify.error;const user=pendingMfaUser;pendingMfaUser=null;pendingMfaFactorId=null;await hydrateCloudAccount(user);enterApp()}catch(err){authError('De authenticator-code is niet geldig of verlopen.')}}
