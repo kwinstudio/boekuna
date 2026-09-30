@@ -5,18 +5,10 @@ on:
     branches:
       - main
       - kwinest-hosting
+  workflow_dispatch:
   pull_request:
     paths:
-      - "kwinest/**"
-      - "tests/**"
-      - "supabase/functions/send-invoice/**"
-      - "supabase/functions/email-connection/**"
-      - "supabase/functions/consume-quota/**"
-      - "supabase/functions/analyze-invoice/**"
-      - "supabase/functions/document-processing/**"
-      - "supabase/migrations/**"
-      - "scripts/**"
-      - "docs/production-recovery.md"
+      - "docs/SPLIT_FULL_GATE.md"
       - ".github/workflows/boekuna-integrity.yml"
 
 permissions:
