@@ -14,6 +14,7 @@ on:
       - "scripts/build-app.mjs"
       - "tests/browser-smoke.test.mjs"
       - "tests/mobile-app-layout.test.mjs"
+      - "tests/premium-app-simplification.test.mjs"
       - "tests/document-upload-browser.test.mjs"
       - "tests/document-background-processing.test.mjs"
       - "tests/auth-progressive-onboarding.test.mjs"
@@ -64,6 +65,14 @@ jobs:
         id: mobile_webkit
         continue-on-error: true
         run: BOOKUNA_BROWSER=webkit node tests/mobile-app-layout.test.mjs
+      - name: Premium app simplification — Chromium
+        id: premium_chromium
+        continue-on-error: true
+        run: node tests/premium-app-simplification.test.mjs
+      - name: Premium app simplification — WebKit
+        id: premium_webkit
+        continue-on-error: true
+        run: BOOKUNA_BROWSER=webkit node tests/premium-app-simplification.test.mjs
       - name: Split generated surface browser smoke
         run: node tests/split-surfaces-browser.test.mjs
       - name: WebKit app smoke
@@ -97,6 +106,13 @@ jobs:
             echo "Mobile QA failed: chromium=${{ steps.mobile_chromium.outcome }} webkit=${{ steps.mobile_webkit.outcome }}"
             exit 1
           fi
+      - name: Premium simplification QA gate
+        if: always()
+        run: |
+          if [ "${{ steps.premium_chromium.outcome }}" != "success" ] || [ "${{ steps.premium_webkit.outcome }}" != "success" ]; then
+            echo "Premium simplification QA failed: chromium=${{ steps.premium_chromium.outcome }} webkit=${{ steps.premium_webkit.outcome }}"
+            exit 1
+          fi
       - name: Upload app visual evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -106,4 +122,5 @@ jobs:
             tests/artifacts/smart-financial-correction-*.png
             tests/artifacts/document-processing-*.png
             tests/artifacts/mobile-dashboard-*.png
+            tests/artifacts/premium-*.png
           if-no-files-found: ignore
