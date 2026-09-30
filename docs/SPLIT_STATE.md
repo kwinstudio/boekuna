@@ -1,10 +1,10 @@
 # BOEKUNA Split State
 
-Last updated: 2026-09-30T12:36:00+02:00
-Checkpoint: 8 — separate marketing/app Render previews deployed live; manual/browser smoke pending
+Last updated: 2026-09-30T12:48:00+02:00
+Checkpoint: 9 — split previews manually approved; provider-neutral entitlement migration and dual-origin Edge functions live
 Branch: `refactor/split-web-app`
 Base/main SHA: `ba0fd360dd200841714330d42421f6577beea88c`
-Status: IN PROGRESS
+Status: IN PROGRESS — production routing/DNS/Auth cutover not yet performed
 
 ## Completed work
 - Loaded the BOEKUNA embedded split execution contract because the requested Superpowers skill bundle is not installed in this environment.
@@ -97,6 +97,34 @@ Validation:
 - full migration executed against the real production schema inside `BEGIN; ... ROLLBACK;` successfully;
 - no persistent production database change was made.
 - Expected TDD red: run #850 failed because the migration did not exist yet; SQL and billing regression coverage were then added.
+
+
+## Checkpoint 8 manual preview approval
+User manually verified both real Render split previews as good:
+- marketing: `https://boekuna-split-marketing-preview.onrender.com`
+- app: `https://boekuna-split-app-preview.onrender.com`
+
+This closes the real-surface preview gate. Production DNS/custom domains remain unchanged.
+
+## Checkpoint 9 production pre-cutover changes
+Provider-neutral entitlement migration was applied successfully to production Supabase project `vuwfyhtejsxhdfyvkkeq`:
+- production migration history now contains `provider_agnostic_billing_entitlements`;
+- `public.billing_entitlements` exists;
+- backfill parity at verification: 1 qualifying Stripe source row -> 1 Stripe entitlement row;
+- `anon` and `authenticated` have no direct SELECT privilege;
+- `service_role` retains service access.
+
+Browser-facing Edge Functions were deployed from `refactor/split-web-app` while retaining the legacy Render origin for rollback:
+- billing-checkout v15
+- billing-portal v6
+- billing-sync v7
+- email-connection v5
+- send-invoice v14
+- analyze-invoice v17
+- document-processing v3
+- financial-automation v3
+
+Supabase live source verification confirms each of these functions contains both `https://app.boekuna.nl` and `https://boekuna-boekhouding.onrender.com` where applicable. External curl smoke could not run because the execution container could not resolve Supabase DNS; this was not treated as a pass.
 
 ## Deployment evidence
 Production static site:
@@ -222,8 +250,6 @@ Android follow-on documentation:
 - Android remains blocked until the web split is production-stable.
 
 ## Next exact action
-Complete checkpoint 8 real-browser/manual smoke on both live split previews:
-- marketing: verify homepage, navigation, legal/support routes and login/register CTAs cross to `https://app.boekuna.nl`;
-- app: verify logged-out auth shell loads, no legacy marketing homepage appears, legal/back links point to `https://boekuna.nl`, and no obvious missing assets occur.
+Before custom-domain/DNS cutover, add `https://app.boekuna.nl/` to Supabase Auth Redirect URLs while leaving the current Site URL unchanged. This is additive and does not redirect existing production users yet.
 
-After that, prepare checkpoint 9 production pre-cutover in rollback-first order. Do not deploy production Edge Functions, change Supabase Auth URLs, attach production custom domains or change DNS until preview smoke is recorded green.
+Then attach the two Render split services to `boekuna.nl` and `app.boekuna.nl`, update DNS using Render's exact records, and wait for both domains/SSL to be healthy. Only after the app domain is live: switch Supabase Auth Site URL and Edge `APP_URL` to `https://app.boekuna.nl`, then execute full production smoke and retain the legacy Render URL during stabilization.
