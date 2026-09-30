@@ -15,6 +15,7 @@ on:
       - "tests/browser-smoke.test.mjs"
       - "tests/mobile-app-layout.test.mjs"
       - "tests/premium-app-simplification.test.mjs"
+      - "tests/app-wide-premium-simplification-v2.test.mjs"
       - "tests/document-upload-browser.test.mjs"
       - "tests/document-background-processing.test.mjs"
       - "tests/auth-progressive-onboarding.test.mjs"
@@ -73,6 +74,14 @@ jobs:
         id: premium_webkit
         continue-on-error: true
         run: BOOKUNA_BROWSER=webkit node tests/premium-app-simplification.test.mjs
+      - name: App-wide premium simplification v2 — Chromium
+        id: premium_v2_chromium
+        continue-on-error: true
+        run: node tests/app-wide-premium-simplification-v2.test.mjs
+      - name: App-wide premium simplification v2 — WebKit
+        id: premium_v2_webkit
+        continue-on-error: true
+        run: BOOKUNA_BROWSER=webkit node tests/app-wide-premium-simplification-v2.test.mjs
       - name: Split generated surface browser smoke
         run: node tests/split-surfaces-browser.test.mjs
       - name: WebKit app smoke
@@ -113,6 +122,13 @@ jobs:
             echo "Premium simplification QA failed: chromium=${{ steps.premium_chromium.outcome }} webkit=${{ steps.premium_webkit.outcome }}"
             exit 1
           fi
+      - name: App-wide premium simplification v2 QA gate
+        if: always()
+        run: |
+          if [ "${{ steps.premium_v2_chromium.outcome }}" != "success" ] || [ "${{ steps.premium_v2_webkit.outcome }}" != "success" ]; then
+            echo "Premium v2 QA failed: chromium=${{ steps.premium_v2_chromium.outcome }} webkit=${{ steps.premium_v2_webkit.outcome }}"
+            exit 1
+          fi
       - name: Upload app visual evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -123,4 +139,5 @@ jobs:
             tests/artifacts/document-processing-*.png
             tests/artifacts/mobile-dashboard-*.png
             tests/artifacts/premium-*.png
+            tests/artifacts/premium-v2-*.png
           if-no-files-found: ignore
