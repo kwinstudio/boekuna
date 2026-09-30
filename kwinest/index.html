@@ -3934,8 +3934,15 @@ function schedulePersistentDocumentPoll(){
 async function initDocumentBackgroundProcessing(){
  if(TEST_MODE_NO_AUTH||!currentUser)return;
  cleanupDocumentBackgroundProcessing();
- const sb=await getSupabase();
- await fetchDocumentProcessingJobs().catch(err=>console.warn('Documentstatus ophalen',err));
+ let sb=null;
+ try{
+  sb=await getSupabase();
+  await fetchDocumentProcessingJobs()
+ }catch(err){
+  documentProcessingFetchError=true;
+  if(page==='dashboard'&&document.getElementById('content'))render();
+  console.warn('Documentstatus ophalen',err)
+ }
  invokeDocumentProcessing('resume').then(()=>fetchDocumentProcessingJobs()).catch(err=>console.warn('Documentverwerking hervatten',err));
  if(typeof sb?.channel!=='function'){schedulePersistentDocumentPoll();return}
  documentProcessingChannel=sb.channel('document-processing-'+currentUser.id).on('postgres_changes',{event:'*',schema:'public',table:'document_processing_jobs',filter:'user_id=eq.'+currentUser.id},()=>{fetchDocumentProcessingJobs().catch(()=>{})}).subscribe(function(status){
