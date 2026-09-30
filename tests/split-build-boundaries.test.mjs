@@ -21,6 +21,11 @@ assert.ok(fs.existsSync(path.join(root,'dist','marketing','support','index.html'
 assert.ok(fs.existsSync(path.join(root,'dist','marketing','account-verwijderen','index.html')),'marketing build must retain account deletion');
 const marketingIndex=fs.readFileSync(path.join(root,'dist','marketing','index.html'),'utf8');
 assert.ok(marketingIndex.includes('id="siteHeader"'),'marketing root must use the public marketing shell');
+assert.ok(marketingIndex.includes('class="kz-hero"'),'marketing root must preserve the characterized pre-split homepage content');
+assert.ok(marketingIndex.includes('Je bent ondernemer.<span>Geen boekhouder.</span>'),'marketing root must preserve the characterized hero message');
+assert.ok(marketingIndex.includes('https://app.boekuna.nl/?register=1'),'marketing registration CTA must cross to the product host');
+assert.ok(fs.existsSync(path.join(root,'dist','marketing','assets','homepage.css')),'marketing build must carry extracted homepage styles');
+assert.ok(fs.existsSync(path.join(root,'dist','marketing','assets','homepage.js')),'marketing build must carry extracted homepage interactions');
 assert.ok(!marketingIndex.includes('id="mainApp"'),'marketing artifact must not contain authenticated app runtime');
 
 const app=spawnSync(process.execPath,[appScript],{cwd:root,encoding:'utf8'});
