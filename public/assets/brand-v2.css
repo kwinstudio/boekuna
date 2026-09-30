@@ -358,7 +358,7 @@ a,button,input,select,textarea{transition-duration:180ms!important;transition-ti
  #mainApp .main{min-height:100dvh}
  #mainApp .content{padding-bottom:24px!important}
  #mainApp .sidebar{left:0!important;width:min(86vw,320px)!important;max-width:320px!important;transform:translateX(-104%)!important;transition:transform 180ms cubic-bezier(.2,.8,.2,1)!important;box-shadow:none!important;overflow-y:auto!important;padding-bottom:calc(18px + env(safe-area-inset-bottom))!important;z-index:60!important}
- #mainApp .sidebar.open{left:0!important;transform:translateX(0)!important;box-shadow:18px 0 42px rgba(8,39,37,.28)!important}
+ #mainApp .sidebar.open{left:0!important;transform:translateX(0)!important;transition:none!important;box-shadow:18px 0 42px rgba(8,39,37,.28)!important}
  .mobile-brand-row{position:relative;padding-right:46px!important}
  .mobile-drawer-close{display:grid;place-items:center;position:absolute;right:4px;top:-3px;width:38px;height:38px;border:1px solid rgba(255,255,255,.16);border-radius:11px;background:rgba(255,255,255,.07);color:#fff;font-size:24px;line-height:1}
  .mobile-account-section{display:grid;gap:8px;margin:10px 6px 0;padding-top:12px;border-top:1px solid rgba(255,255,255,.12)}
