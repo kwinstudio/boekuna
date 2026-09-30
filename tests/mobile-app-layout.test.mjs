@@ -21,6 +21,8 @@ assert.match(logoutSource,/try\{await syncCloudStateNow\(\)\}catch/,'Final sync 
 assert.match(logoutSource,/try\{const sb=await getSupabase\(\);await sb\.auth\.signOut\(\)\}catch/,'Supabase signOut must be attempted independently');
 assert.match(original,/function dashboardGreeting\(\)/,'Dashboard greeting helper must exist');
 assert.match(original,/function dashboardAttentionItems\(\)/,'Attention Center must use a dedicated source builder');
+assert.match(original,/documentProcessingFetchError=false/,'Document attention must track explicit fetch failures');
+assert.match(original,/async function retryDocumentAttentionFetch\(\)/,'Document attention must expose a safe retry path');
 
 const fixtureBootstrap=[
   "currentUser={...TEST_USER,email:'kwin@example.test',supabaseUser:{user_metadata:{first_name:'Kwin'}}};",
@@ -47,6 +49,17 @@ const logoutBootstrap=[
 ].join('\n');
 const logoutHtml=replaceLast(original,'initAuth();',logoutBootstrap);
 
+const fetchFailureBootstrap=[
+  "currentUser={id:'fetch-test',email:'fetch@example.test',supabaseUser:{user_metadata:{first_name:'Kwin'}}};",
+  "state=structuredClone(DEFAULT);state.company={...state.company,name:'QA Test BV',contactName:'Kwin'};",
+  "window.__docFetchAttempts=0;",
+  "initDocumentBackgroundProcessing=async()=>{};loadBillingSummary=async()=>{};handleBillingReturnAndPlan=async()=>{};handleMailboxReturn=()=>{};resumePendingDocumentVerifications=async()=>{};",
+  "getSupabase=async()=>{const chain={select(){return chain},eq(){return chain},order(){return chain},limit:async()=>{window.__docFetchAttempts++;return window.__docFetchAttempts===1?{data:null,error:new Error('simulated initial document fetch failure')}:{data:[],error:null}}};return {from:()=>chain}};",
+  "enterApp();",
+  "fetchDocumentProcessingJobs().catch(()=>{});"
+].join('\n');
+const fetchFailureHtml=replaceLast(original,'initAuth();',fetchFailureBootstrap);
+
 const mime={'.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.ico':'image/x-icon','.webmanifest':'application/manifest+json'};
 const publicRoot=new URL('../public/',import.meta.url);
 const server=http.createServer((req,res)=>{
@@ -63,7 +76,7 @@ const server=http.createServer((req,res)=>{
     }catch{}
   }
   if(pathname==='/manifest.webmanifest'){res.writeHead(200,{'content-type':'application/manifest+json'});return res.end('{}')}
-  const body=pathname==='/logout'?logoutHtml:appHtml;
+  const body=pathname==='/logout'?logoutHtml:(pathname==='/fetch-failure'?fetchFailureHtml:appHtml);
   res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});
   res.end(body);
 });
@@ -193,6 +206,17 @@ try{
   assert.notEqual(await page.locator('#sidebar').evaluate(el=>getComputedStyle(el).display),'none');
 
   await page.setViewportSize({width:390,height:844});
+  await page.goto(base+'/fetch-failure',{waitUntil:'domcontentloaded'});
+  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await page.getByText('Aandachtspunten konden niet worden vernieuwd.').waitFor();
+  assert.equal(await page.getByText('Er zijn momenteel geen acties die je aandacht nodig hebben.').count(),0,'Initial fetch failure must not look like a clean empty state');
+  assert.equal(await page.evaluate(()=>documentProcessingFetchError),true,'Initial document fetch failure must set explicit error state');
+  await page.getByRole('button',{name:'Opnieuw proberen'}).click();
+  await page.getByText('Alles bijgewerkt',{exact:true}).waitFor();
+  assert.equal(await page.evaluate(()=>window.__docFetchAttempts),2,'Retry must perform a second document fetch');
+  assert.equal(await page.evaluate(()=>documentProcessingFetchError),false,'Successful retry must clear explicit fetch error');
+  assert.equal(await page.evaluate(()=>documentProcessingInitialized),true,'Successful retry must restore initialized document state');
+
   await page.goto(base+'/logout',{waitUntil:'domcontentloaded'});
   await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
   await page.locator('[data-mobile-action="more"]').click();
