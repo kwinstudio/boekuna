@@ -71,7 +71,9 @@ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const {port}=server.address();
 const base='http://127.0.0.1:'+port;
 
-const browserName=(process.env.BOOKUNA_BROWSER||'chromium')==='webkit'?'webkit':'chromium';\nconst browserType=browserName==='webkit'?webkit:chromium;\nconst browser=await browserType.launch({headless:true});
+const browserName=(process.env.BOOKUNA_BROWSER||'chromium')==='webkit'?'webkit':'chromium';
+const browserType=browserName==='webkit'?webkit:chromium;
+const browser=await browserType.launch({headless:true});
 const page=await browser.newPage({viewport:{width:390,height:844}});
 const pageErrors=[];
 page.on('pageerror',error=>pageErrors.push(String(error)));
