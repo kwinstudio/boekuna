@@ -79,6 +79,8 @@ try{
   assert.match(dashboard,/Kosten/);
   assert.match(dashboard,/Resultaat/);
   assert.match(dashboard,/Btw/);
+  const mobileChartHeight=await page.locator('.dashboard-chart-card .chart').evaluate(el=>parseFloat(getComputedStyle(el).height));
+  assert.ok(mobileChartHeight<=190,'Mobile dashboard chart should stay compact (<=190px), got '+mobileChartHeight+'px');
   await page.screenshot({path:`tests/artifacts/premium-dashboard-${browserName}-390.png`,fullPage:true});
 
   await navigateTo('invoices');
