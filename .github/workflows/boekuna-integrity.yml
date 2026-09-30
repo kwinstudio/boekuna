@@ -40,6 +40,8 @@ jobs:
         run: node tests/split-characterization.test.mjs
       - name: Split build boundaries
         run: node tests/split-build-boundaries.test.mjs
+      - name: Split origin boundaries
+        run: node tests/split-origin-boundaries.test.mjs
       - name: Accounting integrity
         run: node tests/accounting-integrity.test.mjs
       - name: Production source safety
