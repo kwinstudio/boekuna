@@ -104,8 +104,8 @@ try{
   const documents=await page.locator('#content').innerText();
   assert.doesNotMatch(documents,/Upload compleet is niet hetzelfde als verwerking compleet\./,'Documents page should not repeat background-processing explanation');
   assert.doesNotMatch(documents,/tekstextractie, tabellen en OCR/,'Documents page should not expose technical OCR explanation in the primary flow');
-  assert.ok(await page.getByRole('button',{name:/Slim document uploaden/}).isVisible());
-  assert.ok(await page.getByRole('button',{name:/Foto kiezen/}).isVisible());
+  assert.ok(await page.getByRole('button',{name:'Upload',exact:true}).isVisible(),'Document upload must remain available');
+  assert.ok(await page.getByRole('button',{name:'Foto',exact:true}).isVisible(),'Document photo import must remain available');
   assert.ok(await page.getByRole('button',{name:/Camera/}).isVisible());
 
   await navigateTo('vat');
