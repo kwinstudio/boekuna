@@ -1,0 +1,89 @@
+name: Boekuna backend tests
+
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - "kwinest/docprocessor/**"
+      - "scripts/backup-production.ps1"
+      - "docs/production-recovery.md"
+      - "tests/accounting-integrity.test.mjs"
+      - "tests/source-safety.test.mjs"
+      - "tests/tenant-isolation.test.mjs"
+      - "tests/invoice-delivery.test.mjs"
+      - "tests/early-access-entitlement.test.mjs"
+      - "tests/billing-source.test.mjs"
+      - "tests/provider-agnostic-entitlement.test.mjs"
+      - "tests/split-origin-boundaries.test.mjs"
+      - "tests/split-ci-scopes.test.mjs"
+      - "tests/ocr-production-hardening.test.py"
+      - "tests/document-processor-pdf.test.py"
+      - "tests/test_document_processor_regression.py"
+      - "tests/document-error-contract.test.py"
+      - "tests/receipt-math.test.py"
+      - "tests/financial-blocks.test.py"
+      - ".github/workflows/boekuna-backend.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13.15"
+          cache: "pip"
+          cache-dependency-path: "kwinest/docprocessor/requirements.txt"
+      - name: CI scope contract
+        run: node tests/split-ci-scopes.test.mjs
+      - name: Split origin boundaries
+        run: node tests/split-origin-boundaries.test.mjs
+      - name: Provider-agnostic entitlement boundary
+        run: node tests/provider-agnostic-entitlement.test.mjs
+      - name: Accounting integrity
+        run: node tests/accounting-integrity.test.mjs
+      - name: Production source safety
+        run: node tests/source-safety.test.mjs
+      - name: Recovery PowerShell syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("scripts/backup-production.ps1", [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+      - name: Tenant isolation regression
+        run: node tests/tenant-isolation.test.mjs
+      - name: Install Node regression dependencies
+        run: npm ci --prefix tests --ignore-scripts
+      - name: Invoice PDF and email parity
+        run: node tests/invoice-delivery.test.mjs
+      - name: Retired First 100 regression
+        run: node tests/early-access-entitlement.test.mjs
+      - name: Billing subscription regressions
+        run: node tests/billing-source.test.mjs
+      - name: Install document processor regression dependencies
+        run: pip install --disable-pip-version-check -r kwinest/docprocessor/requirements.txt
+      - name: OCR production hardening
+        run: python tests/ocr-production-hardening.test.py
+      - name: PDF document processor regression
+        run: python tests/document-processor-pdf.test.py
+      - name: Real Dutch document regressions
+        run: python tests/test_document_processor_regression.py
+      - name: Document error contract regression
+        run: python tests/document-error-contract.test.py
+      - name: Receipt VAT arithmetic
+        run: python tests/receipt-math.test.py
+      - name: Invoice financial block regressions
+        run: python tests/financial-blocks.test.py
+      - name: Python syntax safety
+        run: python -m py_compile kwinest/docprocessor/app.py kwinest/docprocessor/receipt_math.py kwinest/docprocessor/financial_blocks.py
