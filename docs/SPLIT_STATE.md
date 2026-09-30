@@ -1,10 +1,10 @@
 # BOEKUNA Split State
 
-Last updated: 2026-09-30T13:12:00+02:00
-Checkpoint: 10 — production domains live; final Supabase APP_URL and Auth Site URL cutover pending
+Last updated: 2026-09-30T13:22:00+02:00
+Checkpoint: 11 — production split live; initial production smoke green; rollback retained
 Branch: `refactor/split-web-app`
 Base/main SHA: `ba0fd360dd200841714330d42421f6577beea88c`
-Status: IN PROGRESS — production routing/DNS/Auth cutover not yet performed
+Status: PRODUCTION SPLIT LIVE — stabilization/merge cleanup still pending
 
 ## Completed work
 - Loaded the BOEKUNA embedded split execution contract because the requested Superpowers skill bundle is not installed in this environment.
@@ -264,7 +264,29 @@ User confirmed the production custom-domain split is live:
 
 The legacy Render production service was not deleted; only its custom-domain attachment was removed, preserving rollback capability.
 
-## Next exact action
+## Checkpoint 11 production smoke
+User confirmed both final Supabase settings were changed:
+- Edge Function secret `APP_URL=https://app.boekuna.nl`;
+- Supabase Auth Site URL `https://app.boekuna.nl`.
+
+Server-side verification after cutover:
+- Render split marketing service remains active on `refactor/split-web-app`;
+- Render split app service remains active on `refactor/split-web-app`;
+- legacy `boekuna-boekhouding` service remains present with no production custom-domain attachment, preserving rollback;
+- all browser-facing Edge Functions are ACTIVE after the secret change;
+- production provider-neutral migration remains present;
+- billing parity remains 1 billing account -> 1 Stripe entitlement;
+- Auth logs contain a successful password login from referer `https://app.boekuna.nl/` with HTTP 200;
+- Auth `/user` session check from `https://app.boekuna.nl/` returned HTTP 200;
+- document-processing produced successful OPTIONS 204 and POST 200 calls after cutover;
+- targeted cutover-window scans found zero Auth HTTP >=400 and zero Edge Function HTTP >=400.
+
+Runtime limitations / intentionally untriggered actions:
+- external public web fetch from this execution environment could not resolve the new domains; user browser verification and Supabase server logs are the production evidence instead;
+- no real Stripe checkout/portal transaction was created solely for smoke testing; return routing is configuration/source verified via `APP_URL`;
+- no password-reset email was intentionally sent solely for smoke testing; the redirect allowlist and Auth Site URL were configured and normal password login/session are confirmed.
+
+
 Finalize Supabase runtime routing:
 1. set Edge Function secret `APP_URL=https://app.boekuna.nl`;
 2. set Supabase Auth Site URL to `https://app.boekuna.nl`;
