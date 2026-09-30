@@ -45,14 +45,16 @@ assert.equal(parsedManifest.start_url,'/?login=1&app=1',
 
 for(const source of [checkout,portal]){
   assert.ok(source.includes('https://boekuna-boekhouding.onrender.com'),
-    'baseline billing functions must retain the current production fallback');
-  assert.ok(!source.includes('https://app.boekuna.nl'),
-    'baseline characterization expects app.boekuna.nl to be absent before auth/billing cutover work');
+    'billing functions must retain the legacy production origin during the rollback window');
+  assert.ok(source.includes('https://app.boekuna.nl'),
+    'billing functions must allow the isolated product origin');
+  assert.ok(source.includes('Deno.env.get("APP_URL")||"https://app.boekuna.nl"'),
+    'billing APP_URL must default to the isolated product host');
 }
 assert.ok(analyze.includes('"https://boekuna.nl"'),
-  'baseline document API must already allow the public Boekuna origin');
-assert.ok(!analyze.includes('"https://app.boekuna.nl"'),
-  'baseline document API must not yet allow app.boekuna.nl before split networking work');
+  'document API must retain the public Boekuna origin during transition');
+assert.ok(analyze.includes('"https://app.boekuna.nl"'),
+  'document API must allow the isolated product origin');
 
 assert.ok(workflow.includes('node tests/browser-smoke.test.mjs'),
   'baseline workflow must contain app/browser regression');
