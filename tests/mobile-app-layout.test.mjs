@@ -103,11 +103,11 @@ try{
 
   const greeting=await page.locator('.dashboard-greeting h1').innerText();
   assert.match(greeting,/^(Goedemorgen|Goedemiddag|Goedenavond), Kwin$/,'Greeting must use local daypart and first name');
-  assert.equal(await page.locator('.dashboard-greeting p').innerText(),'Je administratie is bijna klaar.');
+  assert.equal(await page.locator('.dashboard-greeting p').count(),0,'Dashboard greeting should not carry generic status copy');
 
   await page.getByRole('heading',{name:'Aandacht nodig'}).waitFor();
   const attentionText=await page.locator('.dashboard-attention').innerText();
-  assert.match(attentionText,/Factuur 2026-0001 is vervallen/);
+  assert.match(attentionText,/Factuur 2026-0001 vervallen/);
   assert.match(attentionText,/1 bankregel koppelen/);
   assert.doesNotMatch(attentionText,/Btw Q\d+ controleren/,'Generic VAT action must not appear');
 
@@ -187,7 +187,7 @@ try{
   await page.getByText('Er zijn momenteel geen acties die je aandacht nodig hebben.').waitFor();
 
   await page.evaluate(()=>{documentProcessingConnectivityLost=true;render()});
-  await page.getByText('Aandachtspunten konden niet worden vernieuwd.').waitFor();
+  await page.getByText('Aandachtspunten niet bijgewerkt').waitFor();
   assert.equal(await page.getByText('Er zijn momenteel geen acties die je aandacht nodig hebben.').count(),0);
 
   await page.evaluate(()=>{state.invoices=[];documentProcessingConnectivityLost=false;render();openDashboardAttention('overdue','stale')});
@@ -208,7 +208,7 @@ try{
   await page.setViewportSize({width:390,height:844});
   await page.goto(base+'/fetch-failure',{waitUntil:'domcontentloaded'});
   await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
-  await page.getByText('Aandachtspunten konden niet worden vernieuwd.').waitFor();
+  await page.getByText('Aandachtspunten niet bijgewerkt').waitFor();
   assert.equal(await page.getByText('Er zijn momenteel geen acties die je aandacht nodig hebben.').count(),0,'Initial fetch failure must not look like a clean empty state');
   assert.equal(await page.evaluate(()=>documentProcessingFetchError),true,'Initial document fetch failure must set explicit error state');
   await page.getByRole('button',{name:'Opnieuw proberen'}).click();
