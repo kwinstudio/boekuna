@@ -1,7 +1,7 @@
 # BOEKUNA Split State
 
 Last updated: 2026-09-30T02:25:00+02:00
-Checkpoint: 0 — inventory / isolation initialized
+Checkpoint: 1 — baseline characterized and verified
 Branch: `refactor/split-web-app`
 Base/main SHA: `ba0fd360dd200841714330d42421f6577beea88c`
 Status: IN PROGRESS
@@ -52,7 +52,31 @@ QA staging:
 Open marketing-related PRs exist, including #69, #55, #18 and #15. Do not overwrite their work; the split branch must rebase/reconcile before any marketing merge.
 
 ## Tests / baseline
-Fresh split-branch baseline execution is still pending. Current workflow definition and production deploy state are captured. Checkpoint 1 will add split characterization coverage and use PR CI for fresh execution evidence.
+Checkpoint 1 baseline is verified with fresh GitHub Actions evidence.
+
+Run #808 — workflow `Boekuna integrity tests`
+- run id: `36650689401`
+- head SHA: `1608cb80f65c82c41a1580d2914753f06e661062`
+- conclusion: `success`
+- completed steps: 44
+- failures: 0
+- skipped: 0
+- includes accounting integrity, source safety, tenant isolation, Chromium/WebKit smoke, PDF/document regressions, auth, financial calculations, OCR/processor, marketing and billing regressions.
+
+Run #809 — workflow `Boekuna integrity tests`
+- run id: `36650818963`
+- head SHA: `5dc560c06d806f30697c3d2bb42a364abec3f00a`
+- split architecture characterization: `success`
+- accounting integrity: `success`
+- source safety: `success`
+- tenant isolation: `success`
+- Chromium smoke: `success`
+- WebKit smoke: `success`
+- remaining full-suite steps were still running when this ledger checkpoint was written.
+
+Characterization command now enforced by CI:
+- `node tests/split-characterization.test.mjs`
+- observed result: success in run #809.
 
 ## Blockers
 - No blocker to code/test work.
@@ -73,4 +97,4 @@ Fresh split-branch baseline execution is still pending. Current workflow definit
 No production code/configuration has been changed. Rollback is currently: delete/abandon the split branch. Production remains at the recorded main SHA/deploys.
 
 ## Next exact action
-Checkpoint 1: add characterization tests for the current host/route/build coupling, open a draft PR, run fresh CI, record pass/fail evidence, then begin the minimal structural split.
+Checkpoint 2: introduce explicit independent build outputs for marketing and product app without changing financial/backend behavior. First create build-boundary tests, then build scripts/outputs. Production Render services remain untouched.
