@@ -3870,7 +3870,7 @@ function applyDocumentProcessingJobs(rows,{initial=false}={}){
  const active=documentProcessingJobs.filter(j=>!persistentDocumentIsTerminal(j)).length,attention=persistentDocumentAttentionCount(),terminal=documentProcessingJobs.filter(persistentDocumentIsTerminal).length;
  documentProcessingLastSummary={active,attention,terminal};
  renderGlobalDocumentIndicator();
- if(page==='documents'&&document.getElementById('content'))render();
+ if((page==='documents'||page==='dashboard')&&document.getElementById('content'))render();
  if(!initial&&previous&&previous.active>0&&active===0){
   if(attention)toast('Verwerking afgerond · '+attention+' document'+(attention===1?'':'en')+' vraagt aandacht.');
   else toast('Je documenten zijn verwerkt.')
@@ -3940,6 +3940,8 @@ function renderGlobalDocumentIndicator(){
  }
  const attention=persistentDocumentAttentionCount();
  if(badge){badge.textContent=attention?String(attention):'';badge.classList.toggle('hidden',!attention);badge.setAttribute('aria-label',attention?(attention+' document'+(attention===1?'':'en')+' vraagt aandacht'):'')}
+ const mobileBadge=document.getElementById('mobileScanBadge');
+ if(mobileBadge){mobileBadge.textContent=attention?String(attention):'';mobileBadge.classList.toggle('hidden',!attention);mobileBadge.setAttribute('aria-label',attention?(attention+' document'+(attention===1?'':'en')+' vraagt aandacht'):'')}
 }
 function openGlobalDocumentProcessingPanel(){
  const global=persistentDocumentGlobalJobs(),attention=documentProcessingJobs.filter(j=>['review_required','failed'].includes(String(j.state||''))),jobs=global.length?global:attention.slice(0,12);
@@ -5047,8 +5049,25 @@ function printReport(){const {from,to}=reportRange(),invs=state.invoices.filter(
 async function deleteStoredFile(id){if(!id||!currentUser)return;if(TEST_MODE_NO_AUTH){await deleteLegacyStoredFile(id);return}try{const sb=await getSupabase();const {data:meta,error}=await sb.from('documents').select('storage_path').eq('user_id',currentUser.id).eq('client_ref',id).maybeSingle();if(error)throw error;if(meta?.storage_path)await sb.storage.from('kwinest-documents').remove([meta.storage_path]);await sb.from('documents').delete().eq('user_id',currentUser.id).eq('client_ref',id)}catch(e){console.warn(e)}}
 function deleteAccountDialog(){modal('Account definitief verwijderen',`<div class="notice warn" style="margin-bottom:14px"><strong>Dit kan niet ongedaan worden gemaakt.</strong> Je cloudaccount, administratie, bedrijfsprofiel en alle privé-documenten worden definitief verwijderd.</div><form id="deleteAccountForm" class="form-grid"><div class="field full"><label>Wachtwoord *</label><input name="password" type="password" required></div><div class="field full"><label>Typ VERWIJDER *</label><input name="confirm" required autocomplete="off"></div></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn danger" onclick="deleteAccountNow()">Definitief verwijderen</button>`)}
 async function deleteAccountNow(){const f=document.getElementById('deleteAccountForm');if(!f?.reportValidity()||!currentUser)return;const d=new FormData(f),password=String(d.get('password')||'');if(String(d.get('confirm')||'').trim().toUpperCase()!=='VERWIJDER')return toast('Typ VERWIJDER om te bevestigen');try{const sb=await getSupabase();const {error:reauthError}=await sb.auth.signInWithPassword({email:currentUser.email,password});if(reauthError)throw new Error('Wachtwoord is niet correct');const {error}=await sb.functions.invoke('delete-account',{body:{confirm:true}});if(error)throw error;const old=currentUser;localStorage.removeItem(DATA_KEY_PREFIX+old.id);localStorage.removeItem(PROFILE_KEY_PREFIX+old.id);const legacy=getUsers().find(u=>String(u.email||'').toLowerCase()===String(old.email||'').toLowerCase());if(legacy){localStorage.removeItem(DATA_KEY_PREFIX+legacy.id);localStorage.removeItem(PROFILE_KEY_PREFIX+legacy.id);saveUsers(getUsers().filter(u=>u.id!==legacy.id))}currentUser=null;state=structuredClone(DEFAULT);closeModal();showAuth('login');toast('Account en cloudgegevens definitief verwijderd')}catch(err){toast(err?.message||'Account kon niet worden verwijderd')}}
-document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>b.dataset.page&&navigate(b.dataset.page)));document.getElementById('mobileMenu').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));document.getElementById('quickNew').addEventListener('click',quickMenu);window.addEventListener('keydown',e=>{
- const root=document.getElementById('modalRoot'),dialog=root?.querySelector('[role="dialog"]');
+document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>b.dataset.page&&navigate(b.dataset.page)));
+document.querySelectorAll('[data-mobile-page]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.mobilePage)));
+document.querySelector('[data-mobile-action="more"]')?.addEventListener('click',()=>setMobileMenuOpen(true));
+document.getElementById('mobileMenu').addEventListener('click',()=>setMobileMenuOpen(!document.getElementById('sidebar').classList.contains('open')));
+document.getElementById('mobileDrawerClose')?.addEventListener('click',()=>setMobileMenuOpen(false));
+document.getElementById('mobileDrawerBackdrop')?.addEventListener('click',()=>setMobileMenuOpen(false));
+document.getElementById('quickNew').addEventListener('click',quickMenu);
+window.matchMedia('(max-width:820px)').addEventListener?.('change',e=>{if(!e.matches)setMobileMenuOpen(false,{restoreFocus:false});syncMobileNavigationState()});
+window.addEventListener('keydown',e=>{
+ const root=document.getElementById('modalRoot'),dialog=root?.querySelector('[role="dialog"]'),sidebar=document.getElementById('sidebar'),drawerOpen=sidebar?.classList.contains('open')&&window.matchMedia('(max-width:820px)').matches;
+ if(!dialog&&drawerOpen){
+  if(e.key==='Escape'){e.preventDefault();setMobileMenuOpen(false);return}
+  if(e.key==='Tab'){
+   const focusable=mobileDrawerFocusable();if(!focusable.length)return;const first=focusable[0],last=focusable[focusable.length-1];
+   if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
+   else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
+  }
+  return
+ }
  if(!dialog)return;
  if(e.key==='Escape'){e.preventDefault();closeModal();return}
  if(e.key==='Tab'){
