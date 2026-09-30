@@ -82,6 +82,9 @@ try{
   const mobileChartHeight=await page.locator('.dashboard-chart-card .chart').evaluate(el=>parseFloat(getComputedStyle(el).height));
   assert.ok(mobileChartHeight<=190,'Mobile dashboard chart should stay compact (<=190px), got '+mobileChartHeight+'px');
   await page.screenshot({path:`tests/artifacts/premium-dashboard-${browserName}-390.png`,fullPage:true});
+  await page.setViewportSize({width:430,height:900});
+  await page.screenshot({path:`tests/artifacts/premium-dashboard-${browserName}-430.png`,fullPage:true});
+  await page.setViewportSize({width:390,height:844});
 
   await navigateTo('invoices');
   const invoices=await page.locator('#content').innerText();
@@ -89,6 +92,7 @@ try{
   assert.doesNotMatch(invoices,/Factuurcheck actief\./,'Invoice page should not carry a permanent invoice-check notice');
   assert.ok(await page.getByRole('button',{name:/Nieuwe factuur/}).isVisible());
   assert.ok(await page.getByRole('button',{name:/Upload PDF/}).isVisible());
+  await page.screenshot({path:`tests/artifacts/premium-invoices-${browserName}-390.png`,fullPage:true});
 
   await navigateTo('expenses');
   assert.ok(await page.getByRole('button',{name:/Kosten boeken/}).isVisible());
@@ -101,6 +105,7 @@ try{
   assert.doesNotMatch(bank,/Bankkoppeling nog niet live\./,'Bank page should not carry permanent PSD2/open-banking explanation');
   assert.ok(await page.getByRole('button',{name:/Bank CSV/}).isVisible());
   assert.ok(await page.getByRole('button',{name:/Transactie/}).isVisible());
+  await page.screenshot({path:`tests/artifacts/premium-bank-${browserName}-390.png`,fullPage:true});
 
   await navigateTo('documents');
   const documents=await page.locator('#content').innerText();
@@ -109,6 +114,7 @@ try{
   assert.ok(await page.getByRole('button',{name:'Upload',exact:true}).isVisible(),'Document upload must remain available');
   assert.ok(await page.getByRole('button',{name:'Foto',exact:true}).isVisible(),'Document photo import must remain available');
   assert.ok(await page.getByRole('button',{name:/Camera/}).isVisible());
+  await page.screenshot({path:`tests/artifacts/premium-documents-${browserName}-390.png`,fullPage:true});
 
   await navigateTo('vat');
   const vat=await page.locator('#content').innerText();
@@ -119,6 +125,7 @@ try{
   const control=await page.locator('#content').innerText();
   assert.doesNotMatch(control,/Eén werklijst voor uitzonderingen/,'Control center should present the worklist without explanatory marketing copy');
   assert.match(control,/Debiteuren|Bank|Boekingen|Uitzonderingen/,'Control center must keep actionable exception categories');
+  await page.screenshot({path:`tests/artifacts/premium-control-${browserName}-390.png`,fullPage:true});
 
   for(const width of [320,390,430,820])await assertNoGlobalOverflow(width);
 
@@ -127,6 +134,18 @@ try{
     assert.equal(await page.locator('#mobileBottomNav').evaluate(el=>getComputedStyle(el).display),'none','Desktop bottom nav must remain hidden at '+width+'px');
     assert.notEqual(await page.locator('#sidebar').evaluate(el=>getComputedStyle(el).display),'none','Desktop sidebar must remain visible at '+width+'px');
     await assertNoGlobalOverflow(width);
+  }
+
+  await page.setViewportSize({width:1280,height:900});
+  for(const target of [
+    ['dashboard','dashboard'],
+    ['invoices','invoices'],
+    ['documents','documents'],
+    ['bank','bank'],
+    ['control','control']
+  ]){
+    await navigateTo(target[0]);
+    await page.screenshot({path:`tests/artifacts/premium-${target[1]}-${browserName}-1280.png`,fullPage:true});
   }
 
   assert.equal(pageErrors.length,0,'Premium simplification browser flow must not produce JS errors: '+pageErrors.join(' | '));
