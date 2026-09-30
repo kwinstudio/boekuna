@@ -1950,6 +1950,17 @@ img.bookuna-logo-icon,
 <body>
 <script src="/assets/financial-correction.js?v=20260929a"></script>
 <script>
+window.BOEKUNA_DEV_MODE_CONFIG=Object.freeze({enabled:false,environment:'production',allowedOrigins:[]});
+window.BOEKUNA_DEV_MODE_READY=new Promise(resolve=>{
+ if(!window.BOEKUNA_DEV_MODE_CONFIG.enabled){resolve(false);return}
+ const script=document.createElement('script');
+ script.src='/assets/developer-mode.js?v=20260930a';
+ script.onload=()=>resolve(true);
+ script.onerror=()=>resolve(false);
+ document.head.appendChild(script)
+});
+</script>
+<script>
 if(location.hostname==='kwinest-boekhouding.onrender.com'){
   location.replace('https://boekuna-boekhouding.onrender.com'+location.pathname+location.search+location.hash);
 }
@@ -2047,9 +2058,39 @@ let currentUser=null,pendingMfaUser=null,pendingMfaFactorId=null,pendingMfaEnrol
 const AUTH_PENDING_EMAIL_KEY='boekuna-auth-pending-email-v1';
 const AUTH_RETURN_INTENT_KEY='boekuna-return-intent-v1';
 let authResendTimer=null,authRecoveryActive=false;
-let billingSnapshot=null,billingBusy=false,billingLoadedAt=0;
+let billingSnapshot=null,billingBusy=false,billingLoadedAt=0,billingSnapshotSource='';
+const DEVELOPER_MODE_TICKET_KEY='boekuna-developer-session-v1';
+function resetBillingCache(){billingSnapshot=null;billingLoadedAt=0;billingSnapshotSource='';billingBusy=false}
+window.addEventListener('boekuna:developer-mode-invalidated',()=>resetBillingCache());
+function purgeDeveloperModeBrowserState(){
+ if(window.BoekunaDeveloperMode?.clear){window.BoekunaDeveloperMode.clear();return}
+ try{sessionStorage.removeItem(DEVELOPER_MODE_TICKET_KEY)}catch(_error){}
+ document.getElementById('boekunaDeveloperModeBadge')?.remove();
+}
+function clearMismatchedDeveloperTicket(nextUserId=''){
+ const userId=String(nextUserId||'').trim();
+ try{
+  const raw=sessionStorage.getItem(DEVELOPER_MODE_TICKET_KEY);
+  if(!raw){if(!userId)purgeDeveloperModeBrowserState();return}
+  if(!userId){purgeDeveloperModeBrowserState();return}
+  let ticket=null;
+  try{ticket=JSON.parse(raw)}catch(_error){purgeDeveloperModeBrowserState();return}
+  if(!ticket||String(ticket.user_id||'')!==userId)purgeDeveloperModeBrowserState()
+ }catch(_error){purgeDeveloperModeBrowserState()}
+}
+function resetAuthScopedClientState(nextUserId=''){
+ resetBillingCache();
+ const userId=String(nextUserId||'').trim();
+ clearMismatchedDeveloperTicket(userId);
+ if(userId)window.BoekunaDeveloperMode?.bindUser?.(userId);
+ else purgeDeveloperModeBrowserState();
+}
+function developerModeRpcRejected(error){
+ const message=[error?.message,error?.details,error?.hint,error?.code].filter(Boolean).join(' ');
+ return /DEVELOPER_MODE_DISABLED|Unauthorized/i.test(message)
+}
 let emailConnectionSnapshot=null,emailConnectionLoadedAt=0;
-async function getSupabase(){if(!supabaseClient){const mod=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');supabaseClient=mod.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}return supabaseClient}
+async function getSupabase(){if(!supabaseClient){const mod=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');const devAwareFetch=(input,init={})=>fetch(input,{...init,headers:window.BoekunaDeveloperMode?.decorateHeaders(init.headers||{})||init.headers});supabaseClient=mod.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true},global:{fetch:devAwareFetch}})}return supabaseClient}
 async function getApiAccessToken(forceRefresh=false){
  if(TEST_MODE_NO_AUTH)return '';
  const sb=await getSupabase();let {data:{session}}=await sb.auth.getSession();
@@ -2077,12 +2118,23 @@ function entitlementStatusLabel(status='free'){return ({free:'Gratis',paid:'Beta
 function billingDate(v){if(!v)return '';try{return new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'long',year:'numeric'}).format(new Date(v))}catch{return ''}}
 async function loadBillingSummary(force=false){
  if(TEST_MODE_NO_AUTH)return null;
- if(!force&&billingSnapshot&&Date.now()-billingLoadedAt<30000)return billingSnapshot;
+ const developerActive=!!currentUser?.id&&window.BoekunaDeveloperMode?.isActive(currentUser.id);
+ if(developerActive)force=true;
+ if(!force&&billingSnapshot&&billingSnapshotSource==='normal'&&Date.now()-billingLoadedAt<30000)return billingSnapshot;
  const sb=await getSupabase();
- const {data,error}=await sb.rpc('get_billing_summary');
+ let billingRpc=developerActive?'get_developer_billing_summary':'get_billing_summary';
+ let {data,error}=await sb.rpc(billingRpc);
+ if(error&&billingRpc==='get_developer_billing_summary'){
+  if(!developerModeRpcRejected(error)){resetBillingCache();throw error}
+  window.BoekunaDeveloperMode?.clear();
+  resetBillingCache();
+  billingRpc='get_billing_summary';
+  ({data,error}=await sb.rpc(billingRpc))
+ }
  if(error)throw error;
  billingSnapshot=Array.isArray(data)?(data[0]||null):data;
  billingLoadedAt=Date.now();
+ billingSnapshotSource=billingRpc==='get_developer_billing_summary'?'developer':'normal';
  return billingSnapshot
 }
 function hasBoekunaSmartLayer(b=billingSnapshot){
@@ -2095,13 +2147,15 @@ function hasBoekunaSmartLayer(b=billingSnapshot){
 async function requireBoekunaSmartLayer(feature='Deze slimme functie'){
  if(TEST_MODE_NO_AUTH)return true;
  try{
-  if(!billingSnapshot||Date.now()-billingLoadedAt>30000)await loadBillingSummary();
+  if(window.BoekunaDeveloperMode?.isActive(currentUser?.id))await loadBillingSummary(true);
+  else if(!billingSnapshot||billingSnapshotSource!=='normal'||Date.now()-billingLoadedAt>30000)await loadBillingSummary();
  }catch(err){console.warn('Plancontrole',err)}
  if(hasBoekunaSmartLayer())return true;
  modal('Onderdeel van Boekuna',`<div class="notice info"><strong>${esc(feature)} hoort bij de slimme controlelaag van Boekuna.</strong><br>Met Boekuna krijg je extra controle, cashflow-inzicht en herstelpunten zodat je minder handmatig hoeft uit te zoeken.</div><div class="legal-item" style="margin-top:12px"><strong>Boekuna · €9,95 p/m excl. btw</strong><p>Betalen start alleen nadat je zelf een Stripe Checkout bevestigt.</p></div>`,`<button class="btn" onclick="closeModal()">Niet nu</button><button class="btn primary" onclick="closeModal();startSubscription('boekuna')">Kies Boekuna</button>`);
  return false
 }
 function renderBillingCard(){
+ if(window.BoekunaDeveloperMode?.isActive(currentUser?.id)&&billingSnapshotSource==='developer')return `<div class="card" id="billingCard" style="margin-bottom:16px"><div class="section-head"><div><h2>Abonnement</h2><p>Tijdelijke QA-context; echte billing blijft ongewijzigd.</p></div><span class="badge warn">DEV MODE · Unlimited</span></div><div class="notice info"><strong>Geen Stripe-betaling nodig in deze preview.</strong> Toegang is tijdelijk, gebonden aan de QA-user en schrijft geen abonnementstatus weg.</div></div>`;
  const b=billingSnapshot;
  if(!b)return `<div class="card" id="billingCard" style="margin-bottom:16px"><div class="section-head"><h2>Abonnement</h2><span class="badge">Laden…</span></div></div>`;
  const plan=String(b.plan||'free'),status=String(b.status||'free'),entitlement=String(b.entitlement_status||((plan!=='free'&&status==='active')?'paid':'free')),limit=b.monthly_limit==null?null:Number(b.monthly_limit),used=Number(b.used||0),isUnlimited=plan==='pro',remaining=isUnlimited?null:Math.max(0,Number(b.remaining??Math.max(0,(limit??0)-used))),pct=isUnlimited?0:Math.min(100,Math.round((used/Math.max(1,limit??1))*100));
@@ -2126,6 +2180,7 @@ async function refreshBillingCard(force=false){
 async function startSubscription(plan){
  if(billingBusy)return;
  if(!['boekuna','pro'].includes(plan))return;
+ if(window.BoekunaDeveloperMode?.isActive(currentUser?.id)){toast('Developer Mode gebruikt geen Stripe Checkout.');return}
  if(!currentUser){location.href='/?login=1&plan='+encodeURIComponent(plan);return}
  billingBusy=true;
  try{
@@ -2139,6 +2194,7 @@ async function startSubscription(plan){
  finally{billingBusy=false}
 }
 async function openBillingPortal(){
+ if(window.BoekunaDeveloperMode?.isActive(currentUser?.id)){toast('Developer Mode heeft geen Stripe-portaal.');return}
  if(billingBusy)return;billingBusy=true;
  try{
   toast('Abonnementbeheer openen…');
@@ -2160,6 +2216,10 @@ async function syncBillingFromStripe(sessionId=''){
 }
 async function handleBillingReturnAndPlan(){
  const u=new URL(location.href),billing=u.searchParams.get('billing'),plan=u.searchParams.get('plan'),sessionId=u.searchParams.get('session_id')||'';
+ if(window.BoekunaDeveloperMode?.isActive(currentUser?.id)){
+  if(billing||plan||sessionId){u.searchParams.delete('billing');u.searchParams.delete('plan');u.searchParams.delete('session_id');history.replaceState({},'',u.pathname+(u.search?'?'+u.searchParams.toString():'')+u.hash)}
+  await loadBillingSummary(true).catch(()=>null);return
+ }
  if(billing){
   u.searchParams.delete('billing');u.searchParams.delete('session_id');
   history.replaceState({},'',u.pathname+(u.search?'?'+u.searchParams.toString():'')+u.hash);
@@ -2181,25 +2241,41 @@ async function handleBillingReturnAndPlan(){
 async function checkFallbackBillingAllowance(){
  if(TEST_MODE_NO_AUTH)return null;
  const sb=await getSupabase();
- const {data,error}=await sb.rpc('check_document_quota');
+ let quotaRpc=window.BoekunaDeveloperMode?.isActive(currentUser?.id)?'check_developer_document_quota':'check_document_quota';
+ let {data,error}=await sb.rpc(quotaRpc);
+ if(error&&quotaRpc==='check_developer_document_quota'){
+  if(!developerModeRpcRejected(error)){resetBillingCache();throw createUploadError('PROCESSOR_UNAVAILABLE','',503,{state:'no_changes'})}
+  window.BoekunaDeveloperMode?.clear();
+  resetBillingCache();
+  quotaRpc='check_document_quota';
+  ({data,error}=await sb.rpc(quotaRpc))
+ }
  if(error){console.warn('Fallback quota check',error);return null}
  const q=Array.isArray(data)?(data[0]||null):data;
  if(q?.allowed===false){
-  const b=await loadBillingSummary(true).catch(()=>billingSnapshot);
-  const code='DOCUMENT_LIMIT_REACHED';
-  throw createUploadError(code,'',429,{context:{monthly_limit:q.monthly_limit,remaining:q.remaining},state:'no_changes'});
+  await loadBillingSummary(true).catch(()=>null);
+  throw createUploadError('DOCUMENT_LIMIT_REACHED','',429,{context:{monthly_limit:q.monthly_limit,remaining:q.remaining},state:'no_changes'});
  }
  return q
 }
 async function recordFallbackSmartUsage(){
  if(TEST_MODE_NO_AUTH)return null;
  const sb=await getSupabase();
- const {data,error}=await sb.rpc('record_document_usage');
+ let usageRpc=window.BoekunaDeveloperMode?.isActive(currentUser?.id)?'record_developer_document_usage':'record_document_usage';
+ let {data,error}=await sb.rpc(usageRpc);
+ if(error&&usageRpc==='record_developer_document_usage'){
+  if(!developerModeRpcRejected(error)){console.warn('Developer usage registration',error);return null}
+  window.BoekunaDeveloperMode?.clear();
+  resetBillingCache();
+  usageRpc='record_document_usage';
+  ({data,error}=await sb.rpc(usageRpc))
+ }
  if(error){console.warn('Fallback usage registration',error);return null}
  const u=Array.isArray(data)?(data[0]||null):data;
  if(u){
-  billingSnapshot={...(billingSnapshot||{}),plan:u.plan||billingSnapshot?.plan||'free',status:billingSnapshot?.status||'free',monthly_limit:Number(u.monthly_limit||10),used:Number(u.used||0),remaining:Number(u.remaining||0)};
-  billingLoadedAt=Date.now()
+  billingSnapshot={...(billingSnapshot||{}),plan:u.plan||billingSnapshot?.plan||'free',status:billingSnapshot?.status||'free',monthly_limit:u.monthly_limit==null?null:Number(u.monthly_limit),used:Number(u.used||0),remaining:u.remaining==null?null:Number(u.remaining)};
+  billingLoadedAt=Date.now();
+  billingSnapshotSource=usageRpc==='record_developer_document_usage'?'developer':'normal'
  }
  return u
 }
@@ -2656,10 +2732,12 @@ async function loginUser(e){
  }catch(err){const context=String(err?.code||'')==='HYDRATION'?'hydration':'login';authError(mapAuthError(err,context));if(/email not confirmed/i.test(String(err?.message||''))){setPendingVerificationEmail(email);const el=document.getElementById('authError');if(el)el.insertAdjacentHTML('beforeend',' <button type="button" class="link-btn" onclick="showVerificationState(pendingVerificationEmail())">Bevestigingsmail opnieuw sturen</button>')}}
 }
 function enterApp(){
- document.getElementById('authRoot').innerHTML='';document.getElementById('mainApp').style.display='grid';const av=document.getElementById('accountAvatar');if(av)av.textContent=(currentUser?.email||'A').slice(0,2).toUpperCase();page='dashboard';document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page===page));document.getElementById('pageTitle').textContent=PAGE_TITLES[page];render();void loadBillingSummary().catch(()=>null);void handleBillingReturnAndPlan();void handleMailboxReturn();void initDocumentBackgroundProcessing();setTimeout(()=>void resumePendingDocumentVerifications(),1200)
+ document.getElementById('authRoot').innerHTML='';document.getElementById('mainApp').style.display='grid';window.BoekunaDeveloperMode?.mountIndicator();const av=document.getElementById('accountAvatar');if(av)av.textContent=(currentUser?.email||'A').slice(0,2).toUpperCase();page='dashboard';document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page===page));document.getElementById('pageTitle').textContent=PAGE_TITLES[page];render();void loadBillingSummary().catch(()=>null);void handleBillingReturnAndPlan();void handleMailboxReturn();void initDocumentBackgroundProcessing();setTimeout(()=>void resumePendingDocumentVerifications(),1200)
 }
 async function logoutUser(trigger=null){
  cleanupDocumentBackgroundProcessing();
+ window.BoekunaDeveloperMode?.clear();
+ resetAuthScopedClientState('');
  const button=trigger?.setAttribute?trigger:document.getElementById('mobileLogoutButton'),originalLabel=button?.textContent||'Uitloggen';
  if(button){button.disabled=true;button.textContent='Uitloggen…'}
  if(!TEST_MODE_NO_AUTH){
@@ -2676,17 +2754,21 @@ async function logoutUser(trigger=null){
 }
 async function requireMfaForUser(user){const sb=await getSupabase();const {data,error}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();if(error)throw error;if(data?.nextLevel==='aal2'&&data?.currentLevel!=='aal2'){pendingMfaUser=user;await showMfaLoginChallenge();return true}return false}
 async function showMfaLoginChallenge(){const sb=await getSupabase();const {data,error}=await sb.auth.mfa.listFactors();if(error)throw error;const factor=(data?.totp||[]).find(x=>x.status==='verified');if(!factor)throw new Error('Tweestapsverificatie is geactiveerd maar er is geen geldige authenticator gevonden.');pendingMfaFactorId=factor.id;document.getElementById('mainApp').style.display='none';document.getElementById('authRoot').innerHTML=`<div class="auth-root"><div class="auth-shell" style="grid-template-columns:1fr"><section class="auth-form-wrap" style="min-height:520px"><div class="auth-form"><div class="eyebrow">Extra beveiliging</div><h2>Tweestapsverificatie</h2><p>Open je authenticator-app en vul de huidige 6-cijferige code in.</p><div class="auth-error" id="authError"></div><form onsubmit="verifyMfaLogin(event)"><div class="auth-field"><label>Authenticator-code</label><input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required autofocus></div><button class="btn primary auth-submit" type="submit">Controleren</button></form><div class="auth-switch"><button onclick="cancelMfaLogin()">Terug naar inloggen</button></div></div></section></div></div>`}
-async function verifyMfaLogin(e){e.preventDefault();const f=e.currentTarget;if(!f.reportValidity())return;const code=String(new FormData(f).get('code')||'').trim();try{const sb=await getSupabase();const challenge=await sb.auth.mfa.challenge({factorId:pendingMfaFactorId});if(challenge.error)throw challenge.error;const verify=await sb.auth.mfa.verify({factorId:pendingMfaFactorId,challengeId:challenge.data.id,code});if(verify.error)throw verify.error;const user=pendingMfaUser;pendingMfaUser=null;pendingMfaFactorId=null;await hydrateCloudAccount(user);enterApp()}catch(err){authError('De authenticator-code is niet geldig of verlopen.')}}
-async function cancelMfaLogin(){try{const sb=await getSupabase();await sb.auth.signOut()}catch(e){}pendingMfaUser=null;pendingMfaFactorId=null;currentUser=null;state=structuredClone(DEFAULT);showAuth('login')}
+async function verifyMfaLogin(e){e.preventDefault();const f=e.currentTarget;if(!f.reportValidity())return;const code=String(new FormData(f).get('code')||'').trim();try{const sb=await getSupabase();const challenge=await sb.auth.mfa.challenge({factorId:pendingMfaFactorId});if(challenge.error)throw challenge.error;const verify=await sb.auth.mfa.verify({factorId:pendingMfaFactorId,challengeId:challenge.data.id,code});if(verify.error)throw verify.error;const user=pendingMfaUser;pendingMfaUser=null;pendingMfaFactorId=null;if(user?.id)resetAuthScopedClientState(user.id);await hydrateCloudAccount(user);enterApp()}catch(err){authError('De authenticator-code is niet geldig of verlopen.')}}
+async function cancelMfaLogin(){try{const sb=await getSupabase();await sb.auth.signOut()}catch(e){}resetAuthScopedClientState('');pendingMfaUser=null;pendingMfaFactorId=null;currentUser=null;state=structuredClone(DEFAULT);showAuth('login')}
 async function accountMenu(){if(!currentUser)return;if(TEST_MODE_NO_AUTH){modal('Testmodus',`<div class="notice info"><strong>Geen login nodig.</strong> Deze tijdelijke versie bewaart wijzigingen alleen op dit apparaat. Cloudsync, 2FA, versiegeschiedenis, AI en echte mailverzending zijn uitgeschakeld zolang deze testmodus actief is.</div>`);return}try{const sb=await getSupabase();const {data,error}=await sb.auth.mfa.listFactors();if(error)throw error;const verified=(data?.totp||[]).find(x=>x.status==='verified');modal('Mijn account',`<div class="account-menu"><div class="account-email"><strong>${esc(currentUser.email)}</strong><span>Cloudaccount</span></div><div class="legal-item"><strong>Tweestapsverificatie</strong><p>${verified?'Actief':'Niet ingeschakeld. Aanbevolen voor financiële data.'}</p></div>${verified?`<button class="btn" style="justify-content:center" onclick="disableMfa('${verified.id}')">Tweestapsverificatie uitschakelen</button>`:`<button class="btn primary" style="justify-content:center" onclick="startMfaEnrollment()">Tweestapsverificatie inschakelen</button>`}<button class="btn danger" style="justify-content:center" onclick="logoutUser()">Uitloggen</button></div>`)}catch(e){toast('Accountbeveiliging kon niet worden geladen')}}
 async function startMfaEnrollment(){try{const sb=await getSupabase();const existing=await sb.auth.mfa.listFactors();for(const factor of (existing.data?.totp||[]).filter(x=>x.status!=='verified')){await sb.auth.mfa.unenroll({factorId:factor.id})}const {data,error}=await sb.auth.mfa.enroll({factorType:'totp',friendlyName:'Boekuna authenticator'});if(error)throw error;pendingMfaEnrollId=data.id;modal('Tweestapsverificatie instellen',`<div style="text-align:center"><p class="muted">Scan deze QR-code met Google Authenticator, Microsoft Authenticator, 1Password of een vergelijkbare app.</p><img src="${esc(data.totp.qr_code)}" alt="QR-code voor authenticator" style="width:220px;max-width:100%;background:white;padding:10px;border-radius:14px;border:1px solid var(--line)"><div class="help" style="margin:12px 0">Lukt scannen niet? Voer deze sleutel handmatig in:<br><strong style="word-break:break-all">${esc(data.totp.secret)}</strong></div></div><form id="mfaEnrollForm" class="form-grid"><div class="field full"><label>6-cijferige code</label><input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></div></form>`,`<button class="btn" onclick="cancelMfaEnrollment()">Annuleren</button><button class="btn primary" onclick="verifyMfaEnrollment()">Inschakelen</button>`)}catch(e){toast(e?.message||'Tweestapsverificatie kon niet worden gestart')}}
 async function cancelMfaEnrollment(){try{if(pendingMfaEnrollId){const sb=await getSupabase();await sb.auth.mfa.unenroll({factorId:pendingMfaEnrollId})}}catch(e){}pendingMfaEnrollId=null;closeModal()}
 async function verifyMfaEnrollment(){const f=document.getElementById('mfaEnrollForm');if(!f?.reportValidity()||!pendingMfaEnrollId)return;const code=String(new FormData(f).get('code')||'').trim();try{const sb=await getSupabase();const challenge=await sb.auth.mfa.challenge({factorId:pendingMfaEnrollId});if(challenge.error)throw challenge.error;const verify=await sb.auth.mfa.verify({factorId:pendingMfaEnrollId,challengeId:challenge.data.id,code});if(verify.error)throw verify.error;pendingMfaEnrollId=null;closeModal();toast('Tweestapsverificatie is actief');accountMenu()}catch(e){toast('De code is niet geldig. Probeer een nieuwe code uit je authenticator-app.')}}
 async function disableMfa(factorId){if(!confirm('Tweestapsverificatie uitschakelen? Je account is daarna alleen met je wachtwoord beveiligd.'))return;try{const sb=await getSupabase();const {error}=await sb.auth.mfa.unenroll({factorId});if(error)throw error;await sb.auth.refreshSession();closeModal();toast('Tweestapsverificatie is uitgeschakeld')}catch(e){toast(e?.message||'Tweestapsverificatie kon niet worden uitgeschakeld')}}
 async function initAuth(){
+ await window.BOEKUNA_DEV_MODE_READY;
  document.getElementById('mainApp').style.display='none';const url=new URL(location.href),wantsLogin=url.searchParams.get('login')==='1',wantsRegister=url.searchParams.get('register')==='1',hashParams=new URLSearchParams((location.hash||'').replace(/^#/,'')),callbackType=hashParams.get('type')||url.searchParams.get('type')||'',callbackError=hashParams.get('error_code')||url.searchParams.get('error_code')||hashParams.get('error')||url.searchParams.get('error')||'',callbackDescription=hashParams.get('error_description')||url.searchParams.get('error_description')||'',isRecovery=callbackType==='recovery';
  try{
-  const sb=await getSupabase();const {data:{session},error:sessionError}=await sb.auth.getSession();if(sessionError)throw sessionError;
+  const sb=await getSupabase();
+  if(window.BoekunaDeveloperMode?.isEnabledHere())await window.BoekunaDeveloperMode.bootstrapInteractive({supabaseClient:sb,supabaseUrl:SUPABASE_URL,publishableKey:SUPABASE_PUBLISHABLE_KEY});
+  const {data:{session},error:sessionError}=await sb.auth.getSession();if(sessionError)throw sessionError;
+   if(session?.user?.id)resetAuthScopedClientState(session.user.id);else resetAuthScopedClientState('');
   if(callbackError&&!session){if(isRecovery||/recover/i.test(callbackDescription))showAuthLinkError('recovery');else showAuthLinkError('confirmation');return}
   if(isRecovery&&session?.user){currentUser={id:session.user.id,email:session.user.email||'',supabaseUser:session.user};showResetPassword()}
   else if(session?.user){
@@ -2695,9 +2777,10 @@ async function initAuth(){
   sb.auth.onAuthStateChange((event,nextSession)=>{
    if(event==='PASSWORD_RECOVERY'){setTimeout(()=>{if(nextSession?.user)currentUser={id:nextSession.user.id,email:nextSession.user.email||'',supabaseUser:nextSession.user};showResetPassword()},0);return}
    if(event==='SIGNED_IN'&&nextSession?.user&&!authRecoveryActive){
+     resetAuthScopedClientState(nextSession.user.id);
     setTimeout(async()=>{try{if(!(await requireMfaForUser(nextSession.user))){await hydrateCloudAccount(nextSession.user);enterApp();if(callbackType==='signup'||callbackType==='email'){setPendingVerificationEmail('');toast('E-mailadres bevestigd. Welkom bij Boekuna.')}}}catch(err){console.error('Auth sign-in hydration failed',err);showAuth('login');authError(mapAuthError(err,'hydration'))}},0);return
    }
-   if(event==='SIGNED_OUT'&&!nextSession){cleanupDocumentBackgroundProcessing();currentUser=null;state=structuredClone(DEFAULT);showLanding()}
+   if(event==='SIGNED_OUT'&&!nextSession){cleanupDocumentBackgroundProcessing();window.BoekunaDeveloperMode?.clear();resetAuthScopedClientState('');currentUser=null;state=structuredClone(DEFAULT);showLanding()}
   })
  }catch(err){console.error('Supabase auth init failed',err);if(isRecovery)showAuthLinkError('recovery');else if(wantsLogin||wantsRegister){showAuth(wantsRegister?'register':'login');authError(mapAuthError(err,'auth'))}else showLanding()}
 }
