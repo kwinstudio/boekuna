@@ -192,7 +192,11 @@ try{
   // Progressive onboarding: empty profile still reaches dashboard.
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
   await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
-  assert.match(await page.locator('#content').innerText(),/Welkom bij Boekuna/i);
+  const emptyDashboard=await page.locator('#content').innerText();
+  assert.match(emptyDashboard,/Begin met Boekuna/i,'Empty onboarding must retain a clear starting point');
+  assert.match(emptyDashboard,/Eerste factuur/i);
+  assert.match(emptyDashboard,/Klant toevoegen/i);
+  assert.match(emptyDashboard,/Bedrijfsgegevens/i);
   assert.equal(await page.evaluate(()=>requirementsFor('document-upload').length),0,'Document upload must not require company profile');
 
   // Contact create requires name only.
