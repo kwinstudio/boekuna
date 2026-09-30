@@ -319,7 +319,8 @@ a,button,input,select,textarea{transition-duration:180ms!important;transition-ti
 /* Mobile app navigation + dashboard attention center */
 .mobile-drawer-close,.mobile-account-section,.mobile-drawer-backdrop,.mobile-bottom-nav{display:none}
 .dashboard-greeting{margin-bottom:16px;padding:4px 2px}
-.dashboard-greeting h1{font-size:clamp(28px,4vw,38px);letter-spacing:-.035em;margin:4px 0 6px;color:var(--text-primary)}
+.dashboard-greeting{min-width:0}
+.dashboard-greeting h1{max-width:100%;min-width:0;font-size:clamp(28px,4vw,38px);letter-spacing:-.035em;margin:4px 0 6px;color:var(--text-primary);overflow-wrap:anywhere;word-break:break-word}
 .dashboard-greeting p{margin:0;color:var(--text-secondary);font-size:15px}
 .dashboard-attention{margin-bottom:16px;border-color:var(--border-default)!important}
 .dashboard-attention .section-head{margin-bottom:12px}
