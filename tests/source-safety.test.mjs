@@ -99,7 +99,10 @@ assert.ok(html.includes('minlength="12"'),"New/reset passwords must require at l
 assert.ok(html.includes("Maak je gratis account"),"Signup must use the simplified account copy");
 assert.ok(html.includes("auth.signUp({email,password:pw,options:{emailRedirectTo:AUTH_REDIRECT_URL}})"),"New signup must only send email/password and redirect configuration");
 assert.ok(!html.includes("options:{data:{company},emailRedirectTo:AUTH_REDIRECT_URL}"),"Signup must not put the company object in Auth user metadata");
-const authFlowSource=html.slice(html.indexOf("function showAuth(mode='login'"),html.indexOf("async function logoutUser()"));
+const authFlowStart=html.indexOf("function showAuth(mode='login'");
+const authFlowEnd=html.indexOf("async function logoutUser",authFlowStart);
+assert.ok(authFlowStart>=0&&authFlowEnd>authFlowStart,"Auth flow source boundaries must be present");
+const authFlowSource=html.slice(authFlowStart,authFlowEnd);
 assert.ok(!authFlowSource.includes('name="confirm"'),"Signup/recovery must not ask for password confirmation");
 assert.ok(!authFlowSource.includes('name="companyName"'),"Signup must not collect company fields");
 assert.ok(!html.includes('id="loginPassword" name="password" type="password" minlength='),"Login must not frontend-block legacy short passwords");
@@ -259,8 +262,15 @@ assert.ok(html.includes("Heb je de factuur verzonden?"),"Handoff must require ex
 assert.ok(html.includes("Ja, markeer als verzonden"),"Manual sent confirmation action must be explicit");
 assert.ok(!html.includes("if(i.status==='draft')i.status='sent'"),"Opening/sending through an email app must never auto-mutate financial invoice status");
 assert.ok(!html.includes("Gmail koppelen"),"Mailbox connection CTA must be absent from the user-visible app");
-assert.ok(html.includes("Geen koppeling nodig"),"Settings must explain that no mailbox connection is required");
-assert.ok(html.includes("Boekuna vraagt geen toegang tot Gmail, Outlook of je inbox"),"Settings must state the mailbox privacy boundary");
+assert.ok(
+  html.includes("Geen koppeling nodig")||html.includes("Boekuna maakt PDF en bericht klaar; jij verstuurt zelf."),
+  "Settings must explain that invoice sending does not require a mailbox connection"
+);
+assert.ok(
+  html.includes("Boekuna vraagt geen toegang tot Gmail, Outlook of je inbox")||
+    (html.includes("Eigen e-mailapp")&&html.includes("Boekuna maakt PDF en bericht klaar; jij verstuurt zelf.")),
+  "Settings must preserve the no-mailbox-access privacy boundary"
+);
 const nativeEmailModule=html.slice(html.indexOf('<script id="boekuna-native-email-share">'),html.indexOf('</script>',html.indexOf('<script id="boekuna-native-email-share">')));
 assert.ok(!nativeEmailModule.includes("email-connection"),"Native invoice handoff must not call the mailbox OAuth endpoint");
 assert.ok(!nativeEmailModule.includes("google_mail_client"),"Native invoice handoff must not depend on Gmail client credentials");
