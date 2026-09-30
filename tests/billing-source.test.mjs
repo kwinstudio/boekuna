@@ -15,6 +15,7 @@ const unlimitedMigration=read('supabase/migrations/20260927190619_align_unlimite
 const retiredOfferMigration=read('supabase/migrations/20260929122626_retire_first_100_early_access.sql');
 const retiredOfferRpcHardening=read('supabase/migrations/20260929123036_reharden_retired_offer_billing_plan_rpc.sql');
 const activeBillingGuardMigration=read('supabase/migrations/20260928012515_guard_active_billing_stripe_identity.sql');
+const providerEntitlementMigration=read('supabase/migrations/20260930093553_provider_agnostic_billing_entitlements.sql');
 const pricing=read('public/prijzen/index.html');
 const privacy=read('public/privacy/index.html');
 const terms=read('public/voorwaarden/index.html');
@@ -70,6 +71,16 @@ assert.ok(retiredOfferMigration.includes('null::timestamptz'),'Billing summary m
 assert.ok(retiredOfferRpcHardening.includes('from public, anon, authenticated'),'Retired-offer billing helper must not be directly executable by clients');
 assert.ok(retiredOfferRpcHardening.includes('to service_role'),'Retired-offer billing helper must remain available to trusted server code');
 assert.ok(activeBillingGuardMigration.includes('billing_active_requires_stripe_identity'),'Active billing rows must require real Stripe identity and period data');
+
+// Provider-agnostic entitlement boundary: Stripe remains the web purchase provider,
+// while product access reads a generic server-managed entitlement layer.
+assert.ok(providerEntitlementMigration.includes('public.billing_entitlements'),'Provider-agnostic billing entitlement table must exist');
+assert.match(providerEntitlementMigration,/perform\s+public\.apply_subscription_entitlement\([\s\S]*?['"]stripe['"]/i,'Stripe must map into the generic entitlement provider field');
+assert.ok(providerEntitlementMigration.includes('public.apply_subscription_entitlement'),'Generic entitlement writer must be service-side');
+assert.ok(providerEntitlementMigration.includes('from public.billing_entitlements e'),'Effective access must read provider-neutral entitlements');
+assert.ok(providerEntitlementMigration.includes('public.apply_stripe_subscription_state'),'Current Stripe state writer must remain supported');
+assert.ok(providerEntitlementMigration.includes("select b.user_id,'stripe'"),'Existing Stripe state must be backfilled safely');
+assert.ok(!/drop\s+table\s+(if\s+exists\s+)?public\.billing_accounts/i.test(providerEntitlementMigration),'Provider migration must preserve legacy Stripe billing state');
 
 assert.ok(consume.includes('can_operate_bookkeeping'),'Quota edge function must enforce server-side bookkeeping entitlement');
 assert.ok(analyze.includes('can_operate_bookkeeping'),'Invoice AI must enforce entitlement server-side');

@@ -16,7 +16,7 @@ const ALLOWED_ORIGINS = new Set([
 const cors = (req: Request) => {
   const origin = req.headers.get("origin") || "";
   return {
-    "access-control-allow-origin": ALLOWED_ORIGINS.has(origin) ? origin : "https://boekuna-boekhouding.onrender.com",
+    "access-control-allow-origin": ALLOWED_ORIGINS.has(origin) ? origin : "https://app.boekuna.nl",
     "access-control-allow-methods": "GET,POST,OPTIONS",
     "access-control-allow-headers": "authorization,apikey,content-type,x-kwinest-test-mode",
     "vary": "Origin"

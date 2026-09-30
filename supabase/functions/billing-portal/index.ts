@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const APP_URL=(Deno.env.get("APP_URL")||"https://boekuna-boekhouding.onrender.com").replace(/\/$/,"");
+const APP_URL=(Deno.env.get("APP_URL")||"https://app.boekuna.nl").replace(/\/$/,"");
 const ALLOWED_ORIGINS=new Set([
   APP_URL,
   "https://boekuna-boekhouding.onrender.com",

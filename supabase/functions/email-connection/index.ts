@@ -17,7 +17,7 @@ const ALLOWED_ORIGINS = new Set([
 function cors(req: Request) {
   const origin = req.headers.get("origin") || "";
   return {
-    "access-control-allow-origin": ALLOWED_ORIGINS.has(origin) ? origin : "https://boekuna-boekhouding.onrender.com",
+    "access-control-allow-origin": ALLOWED_ORIGINS.has(origin) ? origin : "https://app.boekuna.nl",
     "access-control-allow-methods": "GET,POST,OPTIONS",
     "access-control-allow-headers": "authorization,apikey,content-type",
     "vary": "Origin"
@@ -34,7 +34,7 @@ function safeReturnUrl(value: unknown) {
     const u = new URL(String(value || ""));
     if (ALLOWED_ORIGINS.has(u.origin)) return u.origin + "/";
   } catch {}
-  return "https://boekuna-boekhouding.onrender.com/";
+  return "https://app.boekuna.nl/";
 }
 async function userFrom(req: Request) {
   const auth = req.headers.get("authorization") || "";
