@@ -92,7 +92,7 @@ const homepageCssNative=fs.readFileSync(path.join(publicDir,'assets','homepage.c
 for(const [name,text] of [['marketing.css',marketingCssNative],['homepage.css',homepageCssNative]]){
   for(const legacy of ['#08A9C5','#00A8C6','#078DA7','#008FAA','#20292E','#202B33']) assert.ok(!text.toUpperCase().includes(legacy.toUpperCase()),name+' still contains legacy visual token '+legacy);
   assert.equal((text.match(/!important/g)||[]).length,0,name+' must not depend on legacy !important overrides');
-  assert.equal((text.match(/(?:linear|radial)-gradient\\(/g)||[]).length,0,name+' must not use decorative gradients');
+  assert.equal((text.match(/(?:linear|radial)-gradient\(/g)||[]).length,0,name+' must not use decorative gradients');
 }
 assert.ok(marketingCssNative.includes('--brand-primary:#123B3A'),'Marketing CSS must natively define Calm Control primary');
 assert.ok(marketingCssNative.includes('--bg-canvas:#F8F7F3'),'Marketing CSS must natively define Calm Control canvas');
