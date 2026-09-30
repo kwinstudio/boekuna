@@ -9,4 +9,4 @@ Normal pull requests use scoped workflows:
 
 Before production cutover or merge of a high-risk release, update the evidence line below in a dedicated commit. That PR change triggers `.github/workflows/boekuna-integrity.yml`.
 
-Last requested full gate: 2026-09-30 — split architecture pre-cutover baseline.
+Last requested full gate: 2026-09-30 — checkpoint 7 pre-preview source/readiness verification.
