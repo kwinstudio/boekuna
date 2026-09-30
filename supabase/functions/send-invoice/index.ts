@@ -15,7 +15,7 @@ const admin=createClient(SUPABASE_URL,SERVICE_KEY,{auth:{persistSession:false}})
 const cors=(req:Request)=>{
   const origin=req.headers.get("origin")||"";
   return {
-    "access-control-allow-origin":ALLOWED_ORIGINS.has(origin)?origin:"https://boekuna-boekhouding.onrender.com",
+    "access-control-allow-origin":ALLOWED_ORIGINS.has(origin)?origin:"https://app.boekuna.nl",
     "access-control-allow-methods":"GET,POST,OPTIONS",
     "access-control-allow-headers":"authorization,apikey,content-type",
     "vary":"Origin"
