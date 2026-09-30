@@ -21,4 +21,7 @@ fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(path.dirname(target),{recursive:true});
 fs.cpSync(source,target,{recursive:true});
 
+// The PWA manifest belongs to the authenticated product host, not the public site.
+fs.rmSync(path.join(target,'manifest.webmanifest'),{force:true});
+
 console.log('Marketing build complete:',path.relative(root,target));
