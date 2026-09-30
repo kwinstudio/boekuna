@@ -8,6 +8,10 @@ const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),
 assert.ok(original.includes('class="invoice-advanced-options '),'Invoice editor needs progressive disclosure');
 assert.ok(original.includes('settings-disclosure'),'RED: settings needs progressive disclosure');
 assert.ok(original.includes('quick-action-group'),'RED: quick actions need grouping');
+assert.ok(original.includes('<div class="nav-group">Dagelijks</div>'),'RED: sidebar needs daily-use grouping');
+assert.ok(!original.includes('<div class="demo-pill">'),'RED: sidebar must not carry permanent technical status copy');
+assert.ok(original.includes('class="profile-section"'),'RED: company profile needs flatter sections');
+assert.ok(original.includes('class="settings-group"'),'RED: settings needs human task grouping');
 fs.mkdirSync('tests/artifacts',{recursive:true});
 
 function replaceLast(source,needle,replacement){
@@ -111,6 +115,12 @@ try{
   assert.ok(await settings.getByText('E-mailsjabloon',{exact:true}).count());
   assert.ok(await settings.getByText('Factuurlayout',{exact:true}).count());
   await page.screenshot({path:`tests/artifacts/premium-v2-settings-${browserName}-390.png`,fullPage:true});
+
+  assert.ok(await settings.locator('.settings-group').count()>=3,'Settings should be grouped by human task');
+  await nav('profile');
+  assert.ok(await page.locator('#content .profile-section').count()>=5,'Company details should use calm sections instead of a card wall');
+  assert.equal(await page.locator('#content .profile-section.card').count(),0,'Profile sections should not all be cards');
+  await page.screenshot({path:`tests/artifacts/premium-v2-profile-${browserName}-390.png`,fullPage:true});
 
   // Mobile relationship list: prioritize name/type/contact and hide bookkeeping-only columns.
   await nav('contacts');
