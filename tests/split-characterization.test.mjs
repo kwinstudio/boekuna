@@ -30,10 +30,14 @@ assert.ok(app.includes('marketing-hero'),
 assert.ok(app.includes('function enterApp()'),
   'baseline combined document must still contain product-app entry logic');
 
-assert.ok(marketing.includes('href="/?login=1"'),
-  'baseline marketing login CTA must still be same-origin before host split');
-assert.ok(marketing.includes("og.setAttribute('content','https://boekuna-boekhouding.onrender.com/"),
-  'baseline social metadata must still point at the legacy Render host');
+assert.ok(marketing.includes('https://app.boekuna.nl/?login=1'),
+  'marketing login CTA must cross to the isolated product host');
+assert.ok(!marketing.includes('href="/?login=1"'),
+  'marketing runtime must no longer keep same-origin product login links');
+assert.ok(marketing.includes("og.setAttribute('content','https://boekuna.nl/"),
+  'marketing social metadata must publish the public host');
+assert.ok(!marketing.includes('boekuna-boekhouding.onrender.com'),
+  'marketing runtime must not publish the legacy Render host');
 
 const parsedManifest=JSON.parse(manifest);
 assert.equal(parsedManifest.start_url,'/?login=1&app=1',
@@ -59,4 +63,4 @@ assert.equal((workflow.match(/^jobs:/gm)||[]).length,1,
 assert.ok(workflow.includes('jobs:\n  test:'),
   'baseline workflow must still run one broad coupled test job');
 
-console.log('BOEKUNA split characterization baseline: PASS');
+console.log('BOEKUNA split characterization: PASS');
