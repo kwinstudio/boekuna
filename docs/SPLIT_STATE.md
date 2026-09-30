@@ -1,6 +1,6 @@
 # BOEKUNA Split State
 
-Last updated: 2026-09-30T12:48:00+02:00
+Last updated: 2026-09-30T12:55:00+02:00
 Checkpoint: 9 — split previews manually approved; provider-neutral entitlement migration and dual-origin Edge functions live
 Branch: `refactor/split-web-app`
 Base/main SHA: `ba0fd360dd200841714330d42421f6577beea88c`
@@ -248,6 +248,12 @@ PWA/source isolation:
 Android follow-on documentation:
 - `docs/ANDROID_RELEASE_NEXT.md` added.
 - Android remains blocked until the web split is production-stable.
+
+## Supabase Auth redirect preparation
+- User confirmed the manual Supabase Auth URL Configuration step is complete.
+- `https://app.boekuna.nl/` has been added to Redirect URLs.
+- Existing redirect URLs were intentionally retained.
+- Site URL has intentionally not yet been changed.
 
 ## Next exact action
 Before custom-domain/DNS cutover, add `https://app.boekuna.nl/` to Supabase Auth Redirect URLs while leaving the current Site URL unchanged. This is additive and does not redirect existing production users yet.
