@@ -1,7 +1,7 @@
 # BOEKUNA Split State
 
-Last updated: 2026-09-30T12:55:00+02:00
-Checkpoint: 9 — split previews manually approved; provider-neutral entitlement migration and dual-origin Edge functions live
+Last updated: 2026-09-30T13:12:00+02:00
+Checkpoint: 10 — production domains live; final Supabase APP_URL and Auth Site URL cutover pending
 Branch: `refactor/split-web-app`
 Base/main SHA: `ba0fd360dd200841714330d42421f6577beea88c`
 Status: IN PROGRESS — production routing/DNS/Auth cutover not yet performed
@@ -255,7 +255,20 @@ Android follow-on documentation:
 - Existing redirect URLs were intentionally retained.
 - Site URL has intentionally not yet been changed.
 
-## Next exact action
-Before custom-domain/DNS cutover, add `https://app.boekuna.nl/` to Supabase Auth Redirect URLs while leaving the current Site URL unchanged. This is additive and does not redirect existing production users yet.
+## Checkpoint 10 production domain cutover
+User confirmed the production custom-domain split is live:
+- `https://boekuna.nl` serves the marketing surface;
+- `https://app.boekuna.nl` serves the product/login surface;
+- `www.boekuna.nl` is configured as the marketing redirect;
+- Render verification/certificates were issued during the cutover flow.
 
-Then attach the two Render split services to `boekuna.nl` and `app.boekuna.nl`, update DNS using Render's exact records, and wait for both domains/SSL to be healthy. Only after the app domain is live: switch Supabase Auth Site URL and Edge `APP_URL` to `https://app.boekuna.nl`, then execute full production smoke and retain the legacy Render URL during stabilization.
+The legacy Render production service was not deleted; only its custom-domain attachment was removed, preserving rollback capability.
+
+## Next exact action
+Finalize Supabase runtime routing:
+1. set Edge Function secret `APP_URL=https://app.boekuna.nl`;
+2. set Supabase Auth Site URL to `https://app.boekuna.nl`;
+3. retain the new and legacy redirect URLs during stabilization;
+4. run production login/session, password-reset, billing-return, document-processing and marketing-to-app smoke checks.
+
+Do not delete the legacy Render service or remove legacy rollback origins until stabilization is complete.
