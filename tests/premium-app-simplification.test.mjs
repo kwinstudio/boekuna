@@ -90,8 +90,8 @@ try{
 
   await navigateTo('expenses');
   assert.ok(await page.getByRole('button',{name:/Kosten boeken/}).isVisible());
-  assert.ok(await page.getByRole('button',{name:/Factuur uploaden/}).isVisible());
-  assert.ok(await page.getByRole('button',{name:/Foto kiezen/}).isVisible());
+  assert.ok(await page.getByRole('button',{name:'Upload',exact:true}).isVisible(),'Purchase invoice upload must remain available');
+  assert.ok(await page.getByRole('button',{name:'Foto',exact:true}).isVisible(),'Receipt photo import must remain available');
   assert.ok(await page.getByRole('button',{name:/Camera/}).isVisible());
 
   await navigateTo('bank');
