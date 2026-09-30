@@ -388,6 +388,8 @@ a,button,input,select,textarea{transition-duration:180ms!important;transition-ti
  .dashboard-kpis .card{min-width:0;padding:14px!important}
  .dashboard-kpis .metric-value{font-size:clamp(20px,6vw,27px)}
  .dashboard-chart-card,.dashboard-smart-grid,.dashboard-recent{margin-top:14px}
+ .dashboard-chart-card .chart{height:176px;padding-top:12px}
+ .dashboard-chart-card .chart-legend{margin-top:24px}
  .toast-wrap{bottom:calc(82px + env(safe-area-inset-bottom))!important}
 }
 @media(max-width:340px){
