@@ -75,7 +75,7 @@ assert.ok(activeBillingGuardMigration.includes('billing_active_requires_stripe_i
 // Provider-agnostic entitlement boundary: Stripe remains the web purchase provider,
 // while product access reads a generic server-managed entitlement layer.
 assert.ok(providerEntitlementMigration.includes('public.billing_entitlements'),'Provider-agnostic billing entitlement table must exist');
-assert.ok(providerEntitlementMigration.includes("p_provider='stripe'"),'Stripe must map into the generic entitlement provider field');
+assert.match(providerEntitlementMigration,/perform\s+public\.apply_subscription_entitlement\([\s\S]*?['"]stripe['"]/i,'Stripe must map into the generic entitlement provider field');
 assert.ok(providerEntitlementMigration.includes('public.apply_subscription_entitlement'),'Generic entitlement writer must be service-side');
 assert.ok(providerEntitlementMigration.includes('from public.billing_entitlements e'),'Effective access must read provider-neutral entitlements');
 assert.ok(providerEntitlementMigration.includes('public.apply_stripe_subscription_state'),'Current Stripe state writer must remain supported');
