@@ -1,7 +1,7 @@
 # BOEKUNA Split State
 
 Last updated: 2026-09-30T02:25:00+02:00
-Checkpoint: 1 — baseline characterized and verified
+Checkpoint: 2 — explicit independent build boundaries implemented
 Branch: `refactor/split-web-app`
 Base/main SHA: `ba0fd360dd200841714330d42421f6577beea88c`
 Status: IN PROGRESS
@@ -23,6 +23,28 @@ Status: IN PROGRESS
 - Billing is server-side Stripe via Supabase Edge Functions; current return URLs use `APP_URL + "/?login=1..."`.
 - Current public marketing CTAs still target same-origin `/?login=1`.
 - Current CI is one broad workflow `.github/workflows/boekuna-integrity.yml`, with app, backend, browser, financial, processor and marketing checks in the same job.
+
+## Checkpoint 2 evidence
+Implemented:
+- standalone marketing source root at `public/index.html`;
+- existing characterized homepage body/interactions extracted to `public/assets/homepage.css` and `public/assets/homepage.js` rather than redesigned;
+- independent marketing build: `node scripts/build-marketing.mjs` → `dist/marketing`;
+- independent product build: `node scripts/build-app.mjs` → `dist/app`;
+- generated `dist/` ignored from Git;
+- split build boundary contract added to CI.
+
+TDD evidence:
+- run #812 / `36651049200`: expected RED at `Split build boundaries` with `AssertionError: marketing must have an explicit independent build script`.
+- implementation then added.
+- run #816 / `36651165884`: full workflow conclusion `success`, including the split build boundary step.
+- run #819 / `36651562928`: corrected behavior-preserving marketing extraction passed split characterization, split build boundaries, accounting, source safety, tenant isolation, Chromium, WebKit, PDF/document browser checks, auth and production calculation regressions at the time of this checkpoint update.
+
+Review:
+- no database/schema changes;
+- no financial engine changes;
+- no processor changes;
+- marketing homepage was corrected from an initial simplified draft to a preservation extract after review identified avoidable behavior/content drift.
+- remaining temporary coupling: app build currently copies shared `public/assets` wholesale and the legacy `kwinest/index.html` still contains the old marketing flow. This is intentional strangler state and is the next checkpoint target.
 
 ## Deployment evidence
 Production static site:
@@ -97,4 +119,4 @@ Characterization command now enforced by CI:
 No production code/configuration has been changed. Rollback is currently: delete/abandon the split branch. Production remains at the recorded main SHA/deploys.
 
 ## Next exact action
-Checkpoint 2: introduce explicit independent build outputs for marketing and product app without changing financial/backend behavior. First create build-boundary tests, then build scripts/outputs. Production Render services remain untouched.
+Checkpoint 3/4 strangler step: make the generated product-app artifact auth/dashboard-only, remove its marketing homepage flow, convert app legal/back links to the public host, and add dedicated browser verification. Keep the legacy source marketing block temporarily for rollback until the app-only artifact is proven.
