@@ -5,6 +5,9 @@ import assert from 'node:assert/strict';
 import { chromium, webkit } from 'playwright';
 
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
+assert.ok(original.includes('class="invoice-advanced-options"'),'RED: invoice editor needs progressive disclosure');
+assert.ok(original.includes('settings-disclosure'),'RED: settings needs progressive disclosure');
+assert.ok(original.includes('quick-action-group'),'RED: quick actions need grouping');
 fs.mkdirSync('tests/artifacts',{recursive:true});
 
 function replaceLast(source,needle,replacement){
