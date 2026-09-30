@@ -13,6 +13,7 @@ on:
       - "public/assets/favicon-32.png"
       - "scripts/build-app.mjs"
       - "tests/browser-smoke.test.mjs"
+      - "tests/mobile-app-layout.test.mjs"
       - "tests/document-upload-browser.test.mjs"
       - "tests/document-background-processing.test.mjs"
       - "tests/auth-progressive-onboarding.test.mjs"
@@ -20,6 +21,7 @@ on:
       - "tests/invoice-status-edit.test.mjs"
       - "tests/document-verification.test.mjs"
       - "tests/cloud-sync-serialization.test.mjs"
+      - "tests/tenant-isolation.test.mjs"
       - "tests/production-integrity.test.mjs"
       - "tests/invoice-delivery.test.mjs"
       - "tests/smart-financial-correction.test.mjs"
@@ -54,6 +56,14 @@ jobs:
         run: ./tests/node_modules/.bin/playwright install --with-deps chromium webkit
       - name: Browser pre-launch smoke
         run: node tests/browser-smoke.test.mjs
+      - name: Mobile navigation and dashboard regressions
+        id: mobile_chromium
+        continue-on-error: true
+        run: node tests/mobile-app-layout.test.mjs
+      - name: WebKit mobile navigation and dashboard regressions
+        id: mobile_webkit
+        continue-on-error: true
+        run: BOOKUNA_BROWSER=webkit node tests/mobile-app-layout.test.mjs
       - name: Split generated surface browser smoke
         run: node tests/split-surfaces-browser.test.mjs
       - name: WebKit app smoke
@@ -74,10 +84,19 @@ jobs:
         run: node tests/document-verification.test.mjs
       - name: Cloud sync serialization
         run: node tests/cloud-sync-serialization.test.mjs
+      - name: Tenant isolation source regression
+        run: node tests/tenant-isolation.test.mjs
       - name: Production calculation regression tests
         run: node tests/production-integrity.test.mjs
       - name: Invoice PDF and email parity
         run: node tests/invoice-delivery.test.mjs
+      - name: Mobile QA release gate
+        if: always()
+        run: |
+          if [ "${{ steps.mobile_chromium.outcome }}" != "success" ] || [ "${{ steps.mobile_webkit.outcome }}" != "success" ]; then
+            echo "Mobile QA failed: chromium=${{ steps.mobile_chromium.outcome }} webkit=${{ steps.mobile_webkit.outcome }}"
+            exit 1
+          fi
       - name: Upload app visual evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -86,4 +105,5 @@ jobs:
           path: |
             tests/artifacts/smart-financial-correction-*.png
             tests/artifacts/document-processing-*.png
+            tests/artifacts/mobile-dashboard-*.png
           if-no-files-found: ignore
