@@ -106,7 +106,7 @@ app.add_middleware(
     allow_origins=sorted(ALLOWED_ORIGINS),
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Boekuna-Processing-Job"]
+    allow_headers=["Authorization", "Content-Type", "X-Boekuna-Processing-Job", "X-Boekuna-Dev-Session"]
 )
 
 PUBLIC_ERROR_SPECS = {
@@ -2125,18 +2125,46 @@ def rpc_access_check(request:Request) -> bool:
     except Exception as exc:
         raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="ACCESS_CHECK_RESPONSE_INVALID",internal_error=exc)
 
+def developer_session_rejected(resp) -> bool:
+    """True only for an explicit invalid/revoked/expired Developer Mode session."""
+    if getattr(resp, "status_code", 0) not in (400, 401, 403):
+        return False
+    try:
+        payload = resp.json()
+    except Exception:
+        return False
+    if isinstance(payload, dict):
+        text = " ".join(str(payload.get(k, "")) for k in ("message", "error", "details", "hint", "code"))
+    else:
+        text = str(payload)
+    return "DEVELOPER_MODE_DISABLED" in text or "Unauthorized" in text
+
+
 def billing_quota_status(request: Request) -> dict:
     """Check the monthly smart-document allowance after access-state validation."""
     auth_header = (request.headers.get("authorization") or "").strip()
     if not SUPABASE_PUBLISHABLE_KEY or not auth_header:
         raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="QUOTA_CHECK_NOT_CONFIGURED")
     set_processing_meta(request,stage="quota")
+    dev_token=(request.headers.get("x-boekuna-dev-session") or "").strip()
+    origin=(request.headers.get("origin") or "").strip()
+    rpc_name="check_developer_document_quota" if dev_token else "check_document_quota"
+    rpc_headers={"Authorization":auth_header,"apikey":SUPABASE_PUBLISHABLE_KEY,"Content-Type":"application/json"}
+    if dev_token:
+        rpc_headers["X-Boekuna-Dev-Session"]=dev_token
+        rpc_headers["Origin"]=origin
     try:
         resp = requests.post(
-            f"{SUPABASE_URL}/rest/v1/rpc/check_document_quota",
-            headers={"Authorization":auth_header,"apikey":SUPABASE_PUBLISHABLE_KEY,"Content-Type":"application/json"},
+            f"{SUPABASE_URL}/rest/v1/rpc/{rpc_name}",
+            headers=rpc_headers,
             json={},timeout=8,
         )
+        if dev_token and developer_session_rejected(resp):
+            resp=requests.post(
+                f"{SUPABASE_URL}/rest/v1/rpc/check_document_quota",
+                headers={"Authorization":auth_header,"apikey":SUPABASE_PUBLISHABLE_KEY,"Content-Type":"application/json"},
+                json={},timeout=8,
+            )
     except requests.Timeout as exc:
         raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="QUOTA_CHECK_TIMEOUT",internal_error=exc)
     except requests.RequestException as exc:
@@ -2159,12 +2187,25 @@ def record_billing_usage(request: Request) -> dict | None:
     if not SUPABASE_PUBLISHABLE_KEY or not auth_header:
         logger.error(json.dumps({"event":"document_usage_record_failed","reference_id":new_reference_id(),"internal_code":"USAGE_RECORD_NOT_CONFIGURED"}))
         return None
+    dev_token=(request.headers.get("x-boekuna-dev-session") or "").strip()
+    origin=(request.headers.get("origin") or "").strip()
+    rpc_name="record_developer_document_usage" if dev_token else "record_document_usage"
+    rpc_headers={"Authorization":auth_header,"apikey":SUPABASE_PUBLISHABLE_KEY,"Content-Type":"application/json"}
+    if dev_token:
+        rpc_headers["X-Boekuna-Dev-Session"]=dev_token
+        rpc_headers["Origin"]=origin
     try:
         resp = requests.post(
-            f"{SUPABASE_URL}/rest/v1/rpc/record_document_usage",
-            headers={"Authorization":auth_header,"apikey":SUPABASE_PUBLISHABLE_KEY,"Content-Type":"application/json"},
+            f"{SUPABASE_URL}/rest/v1/rpc/{rpc_name}",
+            headers=rpc_headers,
             json={},timeout=8,
         )
+        if dev_token and developer_session_rejected(resp):
+            resp=requests.post(
+                f"{SUPABASE_URL}/rest/v1/rpc/record_document_usage",
+                headers={"Authorization":auth_header,"apikey":SUPABASE_PUBLISHABLE_KEY,"Content-Type":"application/json"},
+                json={},timeout=8,
+            )
         if resp.status_code >= 400:
             logger.error(json.dumps({
                 "event":"document_usage_record_failed","reference_id":new_reference_id(),
