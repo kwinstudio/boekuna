@@ -16,7 +16,7 @@ assert.ok(!full.includes('      - "kwinest/**"'),'full gate must not run on ever
 assert.ok(!full.includes('      - "tests/**"'),'full gate must not run on every test-only PR change');
 
 const marketing=read(marketingPath);
-for(const s of ['"public/**"','scripts/build-marketing.mjs','marketing-pages.test.mjs','marketing-product-proof.test.mjs','marketing-editorial-responsive.test.mjs']){
+for(const s of ['"public/index.html"','"public/*/index.html"','public/assets/marketing.js','scripts/build-marketing.mjs','marketing-pages.test.mjs','marketing-product-proof.test.mjs','marketing-editorial-responsive.test.mjs']){
   assert.ok(marketing.includes(s),'marketing workflow missing '+s);
 }
 assert.ok(!marketing.includes('ocr-production-hardening.test.py'),'marketing workflow must not run OCR backend regression');
