@@ -27,11 +27,11 @@ assert.match(worker,/\.eq\("user_id",a\.user\.id\)/,'Worker actions must enforce
 assert.match(worker,/mfa\.getAuthenticatorAssuranceLevel\(\)/,'Worker mutations must enforce the existing MFA boundary');
 assert.match(worker,/MFA_REQUIRED/,'Worker must reject mutation when enrolled MFA is not satisfied');
 assert.match(worker,/const PROCESSING_CONCURRENCY=1/,'Server queue must serialize heavy document processing on the current processor capacity');
-assert.match(worker,/EdgeRuntime\.waitUntil\(triggerNext\(authHeader,jobId\)\)/,'Every completed attempt must continue the persistent queue with the owned job capability');
+assert.match(worker,/EdgeRuntime\.waitUntil\(triggerNext\(authHeader,jobId,developer\)\)/,'Every completed attempt must continue the persistent queue with the owned job capability and validated developer context');
 assert.match(worker,/repairMissingJobs/,'Resume must recover received documents that missed job creation');
 assert.match(worker,/async function backgroundActor/,'Background queue continuation must have a stateless ownership path');
 assert.match(worker,/from\("document_processing_jobs"\).*eq\("id",jobId\)/s,'Background queue continuation must re-authorize through the owned job row');
-assert.match(worker,/triggerNext\(authHeader,jobId\)/,'Queue continuation must bind the self-call to the completed job');
+assert.match(worker,/triggerNext\(authHeader,jobId,developer\)/,'Queue continuation must bind the self-call to the completed job and validated developer context');
 assert.match(worker,/JSON\.stringify\(\{action:"run_next",job_id:jobId\}\)/,'run_next must carry the owned job capability');
 assert.match(processorSource,/x-boekuna-processing-job/,'Processor must recognize the background job header');
 assert.match(processorSource,/rest\/v1\/document_processing_jobs/,'Processor background auth must use the RLS-protected processing job');
