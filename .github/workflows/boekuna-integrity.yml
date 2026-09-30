@@ -42,6 +42,8 @@ jobs:
         run: node tests/split-build-boundaries.test.mjs
       - name: Split origin boundaries
         run: node tests/split-origin-boundaries.test.mjs
+      - name: Split CI scopes
+        run: node tests/split-ci-scopes.test.mjs
       - name: Provider-agnostic entitlement boundary
         run: node tests/provider-agnostic-entitlement.test.mjs
       - name: Accounting integrity
