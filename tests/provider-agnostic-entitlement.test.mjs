@@ -18,7 +18,7 @@ for(const fragment of [
   'revoke all on table public.billing_entitlements from public,anon,authenticated',
   'grant select,insert,update,delete on table public.billing_entitlements to service_role',
   'create or replace function public.apply_subscription_entitlement',
-  "p_provider='stripe'",
+  "perform public.apply_subscription_entitlement(",
   'from public.billing_entitlements e',
   'private.entitlement_state_for_user',
   'public.billing_effective_plan'
@@ -27,6 +27,7 @@ for(const fragment of [
 }
 
 assert.ok(sql.includes("select b.user_id,'stripe'"),'migration must backfill existing Stripe subscriptions into the generic entitlement layer');
+assert.match(sql,/perform\s+public\.apply_subscription_entitlement\([\s\S]*?['"]stripe['"]/i,'Stripe writer must map Stripe into the generic provider field');
 assert.ok(sql.includes('public.apply_stripe_subscription_state'),'Stripe writer must remain the existing provider integration boundary');
 assert.ok(sql.includes('public.apply_subscription_entitlement'),'Stripe writer must also synchronize the generic entitlement boundary');
 assert.ok(!/drop\s+table\s+(if\s+exists\s+)?public\.billing_accounts/i.test(sql),'migration must not drop legacy Stripe billing state');
