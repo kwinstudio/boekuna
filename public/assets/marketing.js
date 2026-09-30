@@ -13,7 +13,7 @@ function ensureBookunaFavicon(){
   document.head.appendChild(apple);
   let og=document.querySelector('meta[property="og:image"]');
   if(!og){og=document.createElement('meta');og.setAttribute('property','og:image');document.head.appendChild(og);}
-  og.setAttribute('content','https://boekuna-boekhouding.onrender.com/assets/boekuna-og-1200x630.png');
+  og.setAttribute('content','https://boekuna.nl/assets/boekuna-og-1200x630.png');
   let twitter=document.querySelector('meta[name="twitter:card"]');
   if(!twitter){twitter=document.createElement('meta');twitter.name='twitter:card';document.head.appendChild(twitter);}
   twitter.content='summary_large_image';
@@ -52,14 +52,14 @@ function sharedHeader(active=''){
         <a href="/over/"><strong>Over Boekuna</strong><span>Waarom dit product wordt gebouwd.</span></a>
       </div></div>
     </div>
-    <div class="nav-actions"><a class="btn" href="/hoe-het-werkt/">Bekijk software</a><a class="btn primary" href="/?login=1">Inloggen</a><button class="mobile-toggle" onclick="toggleMenu()" aria-label="Menu" aria-expanded="false" aria-controls="mobileMenu">☰</button></div>
+    <div class="nav-actions"><a class="btn" href="/hoe-het-werkt/">Bekijk software</a><a class="btn primary" href="https://app.boekuna.nl/?login=1">Inloggen</a><button class="mobile-toggle" onclick="toggleMenu()" aria-label="Menu" aria-expanded="false" aria-controls="mobileMenu">☰</button></div>
   </nav>
   <div class="mobile-menu" id="mobileMenu">
     <details><summary>Oplossingen</summary><div class="mobile-sub"><a href="/functies/">Alle oplossingen</a><a href="/scanner/">Slimme scanner</a><a href="/facturen/">Facturen</a><a href="/btw-bank/">Btw & bank</a><a href="/rapportages/">Rapportages</a></div></details>
     <details><summary>Voor ondernemers</summary><div class="mobile-sub"><a href="/voor-ondernemers/#zzp">ZZP & freelance</a><a href="/voor-ondernemers/#klein-bedrijf">Kleine bedrijven</a><a href="/voor-ondernemers/#veel-documenten">Groeiende administratie</a></div></details>
     <a href="/prijzen/">Prijzen</a>
     <details><summary>Resources</summary><div class="mobile-sub"><a href="/hoe-het-werkt/">Product tour</a><a href="/faq/">FAQ</a><a href="/veiligheid/">Veiligheid & privacy</a><a href="/over/">Over Boekuna</a></div></details>
-    <a href="/?login=1">Inloggen</a>
+    <a href="https://app.boekuna.nl/?login=1">Inloggen</a>
   </div></header>`;
 }
 function sharedFooter(){
