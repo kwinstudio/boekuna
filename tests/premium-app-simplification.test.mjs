@@ -1,0 +1,147 @@
+import fs from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import { chromium, webkit } from 'playwright';
+
+const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
+fs.mkdirSync('tests/artifacts',{recursive:true});
+
+function replaceLast(source,needle,replacement){
+  const i=source.lastIndexOf(needle);
+  if(i<0)throw new Error('Missing bootstrap marker: '+needle);
+  return source.slice(0,i)+replacement+source.slice(i+needle.length);
+}
+
+const forbiddenPrimaryCopy=[
+  'Jouw administratie',
+  'Werk op uitzonderingen, niet op alles',
+  'Maak facturen, bewaar ze als concept en werk ze later verder af.',
+  'Factuurcheck actief.',
+  'Bankkoppeling nog niet live.',
+  'Upload compleet is niet hetzelfde als verwerking compleet.',
+  'Facturen en bonnen worden herkend met tekstextractie, tabellen en OCR.',
+  'Eén werklijst voor uitzonderingen. Geen eindeloos door alle boekingen bladeren.'
+];
+for(const copy of forbiddenPrimaryCopy)assert.ok(original.includes(copy),'RED guard: expected current verbose copy to exist before simplification: '+copy);
+
+const fixtureBootstrap=[
+  "currentUser={...TEST_USER,email:'kwin@example.test',supabaseUser:{user_metadata:{first_name:'Kwin'}}};",
+  "state=structuredClone(DEFAULT);",
+  "state.company={...state.company,name:'QA Test BV',tradeName:'Boekuna QA',contactName:'Kwin',email:'qa@example.test',address:'Teststraat 1',postal:'3011AA',city:'Rotterdam',country:'Nederland',kvk:'12345678',vat:'NL123456789B01',iban:'NL91ABNA0417164300',kor:false};",
+  "state.contacts=[{id:'c1',type:'customer',name:'QA Klant BV',email:'klant@example.test',address:'Klantstraat 2',postal:'3012BB',city:'Rotterdam'}];",
+  "state.invoices=[{id:'i1',number:'2026-0001',customerId:'c1',status:'sent',kind:'invoice',issueDate:'2026-08-01',dueDate:'2026-08-15',taxTreatment:'standard',payments:[],importedTotals:{net:100,vat:21,gross:121}}];",
+  "state.expenses=[{id:'e1',date:'2026-09-01',vendor:'QA Leverancier',invoiceNumber:'INK-1',category:'Kantoor',paymentMethod:'bank',exVat:50,vatRate:21,notes:''}];",
+  "state.transactions=[{id:'t1',date:'2026-09-01',description:'QA bankregel',amount:-10,status:'unmatched'}];",
+  "state.documents=[];state.bookings=[];",
+  "documentProcessingJobs=[];documentProcessingInitialized=true;documentProcessingConnectivityLost=false;documentProcessingFetchError=false;",
+  "enterApp();"
+].join('\n');
+
+let appHtml=original.replace('const TEST_MODE_NO_AUTH=false;','const TEST_MODE_NO_AUTH=true;');
+appHtml=replaceLast(appHtml,'initAuth();',fixtureBootstrap);
+
+const mime={'.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.ico':'image/x-icon','.webmanifest':'application/manifest+json'};
+const publicRoot=new URL('../public/',import.meta.url);
+const server=http.createServer((req,res)=>{
+  const pathname=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);
+  if(pathname.startsWith('/assets/')||pathname==='/favicon.ico'){
+    const relative=pathname.replace(/^\//,'');
+    const file=new URL(relative,publicRoot);
+    try{
+      if(fs.existsSync(file)){
+        const ext=path.extname(file.pathname);
+        res.writeHead(200,{'content-type':mime[ext]||'application/octet-stream','cache-control':'no-store'});
+        return fs.createReadStream(file).pipe(res);
+      }
+    }catch{}
+  }
+  if(pathname==='/manifest.webmanifest'){res.writeHead(200,{'content-type':'application/manifest+json'});return res.end('{}')}
+  res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});
+  res.end(appHtml);
+});
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+const {port}=server.address();
+const base='http://127.0.0.1:'+port;
+
+const browserName=(process.env.BOOKUNA_BROWSER||'chromium')==='webkit'?'webkit':'chromium';
+const browserType=browserName==='webkit'?webkit:chromium;
+const browser=await browserType.launch({headless:true});
+const page=await browser.newPage({viewport:{width:390,height:844}});
+const pageErrors=[];
+page.on('pageerror',error=>pageErrors.push(String(error)));
+
+async function navigateTo(name){
+  await page.evaluate(async target=>{await navigate(target)},name);
+  await page.waitForTimeout(30);
+}
+async function assertNoGlobalOverflow(width){
+  await page.setViewportSize({width,height:Math.max(700,Math.round(width*1.8))});
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'No global horizontal overflow at '+width+'px');
+}
+
+try{
+  await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
+  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+
+  const dashboard=await page.locator('#content').innerText();
+  assert.match(dashboard,/Jouw administratie/,'RED: current dashboard still contains redundant eyebrow');
+  assert.match(dashboard,/Werk op uitzonderingen, niet op alles/,'RED: current dashboard still contains marketing-like smart card');
+  assert.match(dashboard,/Omzet/);
+  assert.match(dashboard,/Kosten/);
+  assert.match(dashboard,/Resultaat/);
+  assert.match(dashboard,/Btw/);
+  await page.screenshot({path:`tests/artifacts/premium-dashboard-${browserName}-390.png`,fullPage:true});
+
+  await navigateTo('invoices');
+  const invoices=await page.locator('#content').innerText();
+  assert.match(invoices,/Maak facturen, bewaar ze als concept/,'RED: invoice header explanation still present');
+  assert.match(invoices,/Factuurcheck actief\./,'RED: permanent invoice-check notice still present');
+  assert.ok(await page.getByRole('button',{name:/Nieuwe factuur/}).isVisible());
+  assert.ok(await page.getByRole('button',{name:/Upload PDF/}).isVisible());
+
+  await navigateTo('expenses');
+  assert.ok(await page.getByRole('button',{name:/Kosten boeken/}).isVisible());
+  assert.ok(await page.getByRole('button',{name:/Factuur uploaden/}).isVisible());
+  assert.ok(await page.getByRole('button',{name:/Foto kiezen/}).isVisible());
+  assert.ok(await page.getByRole('button',{name:/Camera/}).isVisible());
+
+  await navigateTo('bank');
+  const bank=await page.locator('#content').innerText();
+  assert.match(bank,/Bankkoppeling nog niet live\./,'RED: permanent PSD2/open-banking explanation still present');
+  assert.ok(await page.getByRole('button',{name:/Bank CSV/}).isVisible());
+  assert.ok(await page.getByRole('button',{name:/Transactie/}).isVisible());
+
+  await navigateTo('documents');
+  const documents=await page.locator('#content').innerText();
+  assert.match(documents,/Upload compleet is niet hetzelfde als verwerking compleet\./,'RED: permanent document-processing explanation still present');
+  assert.match(documents,/tekstextractie, tabellen en OCR/,'RED: technical OCR explanation still present');
+  assert.ok(await page.getByRole('button',{name:/Slim document uploaden/}).isVisible());
+  assert.ok(await page.getByRole('button',{name:/Foto kiezen/}).isVisible());
+  assert.ok(await page.getByRole('button',{name:/Camera/}).isVisible());
+
+  await navigateTo('vat');
+  const vat=await page.locator('#content').innerText();
+  assert.match(vat,/geen officiële indiening|niet naar de Belastingdienst/i,'VAT must retain not-submitted meaning');
+  assert.match(vat,/Indicatief/i,'VAT must retain indicative meaning');
+
+  await navigateTo('control');
+  const control=await page.locator('#content').innerText();
+  assert.match(control,/Eén werklijst voor uitzonderingen/,'RED: control center explanation still present');
+  assert.match(control,/Debiteuren|Bank|Boekingen|Uitzonderingen/,'Control center must keep actionable exception categories');
+
+  for(const width of [320,390,430,820])await assertNoGlobalOverflow(width);
+
+  for(const width of [1024,1280,1440]){
+    await page.setViewportSize({width,height:900});
+    assert.equal(await page.locator('#mobileBottomNav').evaluate(el=>getComputedStyle(el).display),'none','Desktop bottom nav must remain hidden at '+width+'px');
+    assert.notEqual(await page.locator('#sidebar').evaluate(el=>getComputedStyle(el).display),'none','Desktop sidebar must remain visible at '+width+'px');
+    await assertNoGlobalOverflow(width);
+  }
+
+  assert.equal(pageErrors.length,0,'Premium simplification browser flow must not produce JS errors: '+pageErrors.join(' | '));
+  console.log('premium app simplification RED baseline confirmed');
+}finally{
+  await browser.close();
+  await new Promise(resolve=>server.close(resolve));
+}
