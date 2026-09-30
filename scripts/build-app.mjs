@@ -8,6 +8,19 @@ const target=path.join(root,'dist','app');
 const appSource=path.join(root,'kwinest','index.html');
 const manifestSource=path.join(root,'public','manifest.webmanifest');
 const assetsSource=path.join(root,'public','assets');
+const appAssets=[
+  'boekuna-app-icon-180.png',
+  'boekuna-app-icon-192.png',
+  'boekuna-app-icon-512.png',
+  'boekuna-app-icon-maskable-512.png',
+  'boekuna-app-icon.svg',
+  'boekuna-favicon.svg',
+  'boekuna-symbol-reversed.svg',
+  'boekuna-symbol.svg',
+  'brand-v2.css',
+  'favicon-32.png',
+  'financial-correction.js'
+];
 
 for(const file of [appSource,manifestSource,assetsSource]){
   if(!fs.existsSync(file))throw new Error('Missing app build source: '+path.relative(root,file));
@@ -88,6 +101,12 @@ fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});
 fs.writeFileSync(path.join(target,'index.html'),appHtml,'utf8');
 fs.copyFileSync(manifestSource,path.join(target,'manifest.webmanifest'));
-fs.cpSync(assetsSource,path.join(target,'assets'),{recursive:true});
+const appAssetsTarget=path.join(target,'assets');
+fs.mkdirSync(appAssetsTarget,{recursive:true});
+for(const asset of appAssets){
+  const sourceFile=path.join(assetsSource,asset);
+  if(!fs.existsSync(sourceFile))throw new Error('Missing app asset: '+asset);
+  fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
+}
 
 console.log('App build complete:',path.relative(root,target));
