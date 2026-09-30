@@ -1,7 +1,7 @@
 # BOEKUNA Split State
 
-Last updated: 2026-09-30T11:55:00+02:00
-Checkpoint: 7 — source split, provider-neutral entitlement and scoped CI verified; preview deployment blocked by Render capacity
+Last updated: 2026-09-30T12:36:00+02:00
+Checkpoint: 8 — separate marketing/app Render previews deployed live; manual/browser smoke pending
 Branch: `refactor/split-web-app`
 Base/main SHA: `ba0fd360dd200841714330d42421f6577beea88c`
 Status: IN PROGRESS
@@ -152,9 +152,36 @@ Characterization command now enforced by CI:
 - `node tests/split-characterization.test.mjs`
 - observed result: success in run #809.
 
+## Preview deployment — checkpoint 8
+Marketing preview:
+- service: `boekuna-split-marketing-preview`
+- service id: `srv-dauebi3ncjis73faapg0`
+- URL: `https://boekuna-split-marketing-preview.onrender.com`
+- branch: `refactor/split-web-app`
+- build: `node scripts/build-marketing.mjs`
+- publish: `dist/marketing`
+- auto-deploy: off
+- deploy: `dep-dauebibncjis73faaqk0`
+- commit: `ee3b8c4525af731cbace56ce76ae5c9cb7912175`
+- Render status: `live`
+
+App preview:
+- service: `boekuna-split-app-preview`
+- service id: `srv-dauebj1srm7s73bubcog`
+- URL: `https://boekuna-split-app-preview.onrender.com`
+- branch: `refactor/split-web-app`
+- build: `node scripts/build-app.mjs`
+- publish: `dist/app`
+- auto-deploy: off
+- deploy: `dep-dauebj9srm7s73bubejg`
+- commit: `ee3b8c4525af731cbace56ce76ae5c9cb7912175`
+- Render status: `live`
+
+Render capacity was freed by deleting the two closed/unmerged PR #70 preview services as explicitly approved by the user. No production service was touched.
+
 ## Blockers
-- No blocker to repository code/test work.
-- Render cannot create the two requested split preview services because the Hobby workspace is already at its 25-service limit. No existing service was deleted or repurposed.
+- No blocker to repository code/test work or split preview deployment.
+- Automated external page fetch from this execution environment cannot resolve/access the Render preview domains, so the final real-browser/manual surface smoke still needs completion before production cutover.
 - Production DNS/domain cutover has not been attempted.
 - Supabase production project is confirmed as `vuwfyhtejsxhdfyvkkeq` (`kwinest`), ACTIVE_HEALTHY.
 - Supabase dashboard Site URL / Redirect URLs still require explicit production configuration for `https://app.boekuna.nl`; the currently available Supabase connector does not expose that Auth URL configuration mutation.
@@ -167,21 +194,17 @@ Characterization command now enforced by CI:
 4. PWA manifest is still shared in source and currently uses relative `/?login=1&app=1`; app-host deployment makes it same-origin, but marketing build should eventually stop publishing app-only PWA metadata.
 5. Scoped CI is implemented and green; the broad integrity workflow is retained only as the explicit full release gate.
 6. Existing open marketing PRs overlap `public/**`; rebase/reconciliation is required before merge.
-7. Render preview capacity must be freed before real split-host preview deployment can be created. Workspace currently has 25 services.
-   Safest identified deletion candidates are the two closed PR #70 preview services:
-   - `boekuna-pr70-email-share-preview` (`srv-dath36qd0e5s73c2ufg0`)
-   - `boekuna-pr70-email-share-e2e-preview` (`srv-dath4umk1f9s7388gir0`)
-   PR #70 is closed and unmerged. No deletion has been performed without explicit approval.
+7. Split previews are now live on Render with auto-deploy disabled. Production remains untouched. Final real-browser/manual preview smoke is still required before any DNS/Auth/Edge cutover.
 
 ## Rollback state
 No production code/configuration has been changed. Rollback is currently: delete/abandon the split branch. Production remains at the recorded main SHA/deploys.
 
 ## Current CI evidence
-Current branch HEAD before this ledger update had all four verification workflows green:
-- `Boekuna integrity tests`: success
-- `Boekuna marketing tests`: success
-- `Boekuna app tests`: success
-- `Boekuna backend tests`: success
+Current branch HEAD `ee3b8c4525af731cbace56ce76ae5c9cb7912175` has all four verification workflows green:
+- `Boekuna integrity tests` run `36701142325` / #869: success, 50/50 steps
+- `Boekuna marketing tests` run `36701142193`: success
+- `Boekuna app tests` run `36701142190`: success, 26/26 steps
+- `Boekuna backend tests` run `36701142341`: success
 
 Scoped-CI contract:
 - marketing-only changes avoid OCR/billing backend suites;
@@ -199,8 +222,8 @@ Android follow-on documentation:
 - Android remains blocked until the web split is production-stable.
 
 ## Next exact action
-Checkpoint 8 preview deployment: free two Render service slots, then create separate split-branch static previews using:
-- marketing build: `node scripts/build-marketing.mjs`, publish `dist/marketing`
-- app build: `node scripts/build-app.mjs`, publish `dist/app`
+Complete checkpoint 8 real-browser/manual smoke on both live split previews:
+- marketing: verify homepage, navigation, legal/support routes and login/register CTAs cross to `https://app.boekuna.nl`;
+- app: verify logged-out auth shell loads, no legacy marketing homepage appears, legal/back links point to `https://boekuna.nl`, and no obvious missing assets occur.
 
-Do not deploy production Edge Functions, change Supabase Auth URLs, attach production custom domains or change DNS until both previews are live and smoke-verified.
+After that, prepare checkpoint 9 production pre-cutover in rollback-first order. Do not deploy production Edge Functions, change Supabase Auth URLs, attach production custom domains or change DNS until preview smoke is recorded green.
