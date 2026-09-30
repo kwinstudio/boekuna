@@ -2004,7 +2004,6 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
     <button class="mobile-account-logout" id="mobileLogoutButton" type="button" onclick="logoutUser(this)">Uitloggen</button>
   </div>
 </aside>
-<div class="mobile-drawer-backdrop" id="mobileDrawerBackdrop" aria-hidden="true"></div>
 <main class="main" id="appMain">
   <header class="topbar">
     <div class="top-left"><button class="mobile-menu" id="mobileMenu" aria-label="Menu openen"><svg class="icon"><use href="#i-menu"/></svg></button><div class="page-title" id="pageTitle">Dashboard</div></div>
@@ -2012,6 +2011,8 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
   </header>
   <div class="content" id="content"></div>
 </main>
+</div>
+<div class="mobile-drawer-backdrop" id="mobileDrawerBackdrop" aria-hidden="true"></div>
 <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Hoofdnavigatie">
   <button class="mobile-bottom-nav-item" type="button" data-mobile-page="dashboard" aria-label="Dashboard"><svg class="icon"><use href="#i-home"/></svg><span>Dashboard</span></button>
   <button class="mobile-bottom-nav-item" type="button" data-mobile-page="invoices" aria-label="Facturen"><svg class="icon"><use href="#i-file"/></svg><span>Facturen</span></button>
@@ -2019,7 +2020,6 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
   <button class="mobile-bottom-nav-item" type="button" data-mobile-page="bank" aria-label="Bank"><svg class="icon"><use href="#i-bank"/></svg><span>Bank</span></button>
   <button class="mobile-bottom-nav-item" type="button" data-mobile-action="more" aria-label="Meer"><svg class="icon"><use href="#i-more"/></svg><span>Meer</span></button>
 </nav>
-</div>
 <div id="modalRoot"></div><div class="toast-wrap" id="toastRoot"></div>
 <input class="hidden" type="file" id="invoicePdfFile" multiple accept="application/pdf,.pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,text/csv,application/csv,.csv" />
 <input class="hidden" type="file" id="receiptPhotoFile" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif" />
