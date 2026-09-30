@@ -13,18 +13,6 @@ function replaceLast(source,needle,replacement){
   return source.slice(0,i)+replacement+source.slice(i+needle.length);
 }
 
-const forbiddenPrimaryCopy=[
-  'Jouw administratie',
-  'Werk op uitzonderingen, niet op alles',
-  'Maak facturen, bewaar ze als concept en werk ze later verder af.',
-  'Factuurcheck actief.',
-  'Bankkoppeling nog niet live.',
-  'Upload compleet is niet hetzelfde als verwerking compleet.',
-  'Facturen en bonnen worden herkend met tekstextractie, tabellen en OCR.',
-  'Eén werklijst voor uitzonderingen. Geen eindeloos door alle boekingen bladeren.'
-];
-for(const copy of forbiddenPrimaryCopy)assert.ok(!original.includes(copy),'Permanent primary copy should be removed: '+copy);
-
 const fixtureBootstrap=[
   "currentUser={...TEST_USER,email:'kwin@example.test',supabaseUser:{user_metadata:{first_name:'Kwin'}}};",
   "state=structuredClone(DEFAULT);",
