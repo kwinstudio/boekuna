@@ -19,6 +19,7 @@ assert.ok(fs.existsSync(path.join(root,'dist','marketing','index.html')),'market
 assert.ok(fs.existsSync(path.join(root,'dist','marketing','privacy','index.html')),'marketing build must retain privacy');
 assert.ok(fs.existsSync(path.join(root,'dist','marketing','support','index.html')),'marketing build must retain support');
 assert.ok(fs.existsSync(path.join(root,'dist','marketing','account-verwijderen','index.html')),'marketing build must retain account deletion');
+assert.ok(!fs.existsSync(path.join(root,'dist','marketing','manifest.webmanifest')),'marketing build must not publish the app-only PWA manifest');
 const marketingIndex=fs.readFileSync(path.join(root,'dist','marketing','index.html'),'utf8');
 assert.ok(marketingIndex.includes('id="siteHeader"'),'marketing root must use the public marketing shell');
 assert.ok(marketingIndex.includes('class="kz-hero"'),'marketing root must preserve the characterized pre-split homepage content');
@@ -33,6 +34,9 @@ assert.equal(app.status,0,'app build failed: '+app.stderr);
 assert.ok(fs.existsSync(path.join(root,'dist','app','index.html')),'app build must produce root index.html');
 assert.ok(fs.existsSync(path.join(root,'dist','app','manifest.webmanifest')),'app build must carry its PWA manifest');
 assert.ok(fs.existsSync(path.join(root,'dist','app','assets','financial-correction.js')),'app build must carry financial correction runtime');
+assert.ok(!fs.existsSync(path.join(root,'dist','app','assets','marketing.js')),'app build must not ship marketing runtime assets');
+assert.ok(!fs.existsSync(path.join(root,'dist','app','assets','homepage.js')),'app build must not ship marketing homepage runtime');
+assert.ok(!fs.existsSync(path.join(root,'dist','app','assets','marketing.css')),'app build must not ship marketing stylesheet');
 const appIndex=fs.readFileSync(path.join(root,'dist','app','index.html'),'utf8');
 assert.ok(appIndex.includes('id="mainApp"'),'app artifact must contain product runtime');
 assert.ok(!appIndex.includes('function showLanding'),'app artifact must not contain the legacy marketing homepage flow');
