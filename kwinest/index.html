@@ -5842,23 +5842,23 @@ window.addEventListener('keydown',e=>{
       :(final?'<div class="notice warn"><strong>Nog niet als verzonden bevestigd.</strong><br>De factuur is definitief, maar er is nog geen bevestigde e-mailverzending vastgelegd.</div>':'');
     var rows='';
     if(invoice.status==='draft'){
-      rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();editInvoice(\''+id+'\')"><div class="action-text"><strong>Concept bewerken</strong><span>Pas klant, datums, diensten, prijzen, btw en notities aan</span></div></button>';
+      rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();editInvoice(\''+id+'\')"><div class="action-text"><strong>Concept bewerken</strong><span>Klant, regels en gegevens aanpassen</span></div></button>';
     }else{
-      rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="duplicateInvoiceAsDraft(\''+id+'\')"><div class="action-text"><strong>Nieuwe versie als concept</strong><span>Gebruik deze factuur als basis zonder de originele administratie te overschrijven</span></div></button>';
+      rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="duplicateInvoiceAsDraft(\''+id+'\')"><div class="action-text"><strong>Nieuwe versie als concept</strong><span>Maak een bewerkbare kopie</span></div></button>';
     }
-    rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();viewInvoice(\''+id+'\')"><div class="action-text"><strong>Bekijken / PDF</strong><span>Controleer de factuur of sla hem als PDF op</span></div></button>';
+    rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();viewInvoice(\''+id+'\')"><div class="action-text"><strong>Bekijken / PDF</strong><span>Open factuur en PDF</span></div></button>';
     if(invoice.status==='draft'&&invoice.kind!=='credit'){
-      rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();openSendInvoice(\''+id+'\')"><div class="action-text"><strong>Definitief maken en versturen</strong><span>'+(customer.email?'Naar '+esc(customer.email):'Voeg het e-mailadres van de klant toe')+'</span></div></button>';
+      rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();openSendInvoice(\''+id+'\')"><div class="action-text"><strong>Definitief maken en versturen</strong><span>'+(customer.email?'Naar '+esc(customer.email):'E-mailadres toevoegen')+'</span></div></button>';
     }else if(final){
-      rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();openSendInvoice(\''+id+'\')"><div class="action-text"><strong>'+(invoice.lastSentAt?'Opnieuw versturen':'Versturen via e-mail')+'</strong><span>'+(customer.email?'Naar '+esc(customer.email):'Voeg het e-mailadres van de klant toe')+'</span></div></button>';
+      rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();openSendInvoice(\''+id+'\')"><div class="action-text"><strong>'+(invoice.lastSentAt?'Opnieuw versturen':'Versturen via e-mail')+'</strong><span>'+(customer.email?'Naar '+esc(customer.email):'E-mailadres toevoegen')+'</span></div></button>';
     }
     if(final&&invoice.kind!=='credit'){
-      if(!paid)rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();openReminder(\''+id+'\')"><div class="action-text"><strong>Betalingsherinnering</strong><span>Maak een nette opvolgmail en voeg de factuur opnieuw toe</span></div></button>';
-      rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();openFollowUp(\''+id+'\')"><div class="action-text"><strong>Follow-up sturen</strong><span>Stuur een vrij aanpasbare opvolgmail</span></div></button>';
-      if(!paid)rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();registerPayment(\''+id+'\')"><div class="action-text"><strong>Betaling registreren</strong><span>'+esc(money(invoiceOutstanding(invoice)))+' staat nog open; deelbetaling mogelijk</span></div></button>';
-      rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="createCreditNote(\''+id+'\')"><div class="action-text"><strong>Creditfactuur maken</strong><span>Corrigeer een definitieve factuur zonder de historie te overschrijven</span></div></button>';
+      if(!paid)rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();openReminder(\''+id+'\')"><div class="action-text"><strong>Betalingsherinnering</strong><span>Herinnering voorbereiden</span></div></button>';
+      rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();openFollowUp(\''+id+'\')"><div class="action-text"><strong>Follow-up sturen</strong><span>Opvolgmail voorbereiden</span></div></button>';
+      if(!paid)rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="closeModal();registerPayment(\''+id+'\')"><div class="action-text"><strong>Betaling registreren</strong><span>'+esc(money(invoiceOutstanding(invoice)))+' open</span></div></button>';
+      rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="createCreditNote(\''+id+'\')"><div class="action-text"><strong>Creditfactuur maken</strong><span>Corrigeer via een creditfactuur</span></div></button>';
     }
-    if(invoice.status==='draft')rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="deleteInvoice(\''+id+'\')"><div class="action-text"><strong style="color:var(--bad)">Concept verwijderen</strong><span>Alleen conceptfacturen kunnen hard worden verwijderd</span></div></button>';
+    if(invoice.status==='draft')rows+='<button class="action-row" style="background:#fff;text-align:left" onclick="deleteInvoice(\''+id+'\')"><div class="action-text"><strong style="color:var(--bad)">Concept verwijderen</strong><span>Verwijder dit concept</span></div></button>';
     modal(esc(invoice.number),delivery+'<div class="action-list" style="margin-top:12px">'+rows+'</div>');
   }
 
