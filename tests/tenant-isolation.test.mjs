@@ -93,6 +93,13 @@ const send=read('supabase/functions/send-invoice/index.ts');
 assert.ok(send.includes('auth.getUser()'),'Invoice email must authenticate the bearer token');
 assert.ok(send.includes('mailboxConnection(auth.user.id)'),'Invoice email mailbox lookup must use the authenticated user');
 
+const developerMode=read('supabase/dev-only/migrations/20260930144500_temporary_developer_mode.sql');
+assert.match(developerMode,/s\.user_id=p_user_id/i,'Developer Mode session must stay bound to the authenticated QA user');
+assert.match(developerMode,/s\.origin=v_origin/i,'Developer Mode session must stay bound to the approved preview origin');
+assert.match(developerMode,/revoke all on table public\.developer_mode_sessions from public,anon,authenticated/i,'Developer Mode tickets must not be readable by app users');
+assert.match(developerMode,/grant execute on function public\.issue_developer_mode_session[\s\S]*to service_role/i,'Only service role may issue Developer Mode tickets');
+assert.ok(!/service_role[^\n]*browser/i.test(developerMode),'Developer Mode must never expose service-role access to the browser');
+
 const deletion=read('supabase/functions/delete-account/index.ts');
 assert.ok(deletion.includes('auth.getUser()'),'Account deletion must authenticate the bearer token');
 assert.ok(deletion.includes('const userId = userData.user.id'),'Account deletion scope must come from the authenticated user');
