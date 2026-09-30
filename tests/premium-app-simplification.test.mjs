@@ -23,7 +23,7 @@ const forbiddenPrimaryCopy=[
   'Facturen en bonnen worden herkend met tekstextractie, tabellen en OCR.',
   'Eén werklijst voor uitzonderingen. Geen eindeloos door alle boekingen bladeren.'
 ];
-for(const copy of forbiddenPrimaryCopy)assert.ok(original.includes(copy),'RED guard: expected current verbose copy to exist before simplification: '+copy);
+for(const copy of forbiddenPrimaryCopy)assert.ok(!original.includes(copy),'Permanent primary copy should be removed: '+copy);
 
 const fixtureBootstrap=[
   "currentUser={...TEST_USER,email:'kwin@example.test',supabaseUser:{user_metadata:{first_name:'Kwin'}}};",
@@ -85,8 +85,8 @@ try{
   await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
 
   const dashboard=await page.locator('#content').innerText();
-  assert.match(dashboard,/Jouw administratie/,'RED: current dashboard still contains redundant eyebrow');
-  assert.match(dashboard,/Werk op uitzonderingen, niet op alles/,'RED: current dashboard still contains marketing-like smart card');
+  assert.doesNotMatch(dashboard,/Jouw administratie/,'Dashboard should not repeat its context as an eyebrow');
+  assert.doesNotMatch(dashboard,/Werk op uitzonderingen, niet op alles/,'Dashboard should not contain marketing-like smart-card copy');
   assert.match(dashboard,/Omzet/);
   assert.match(dashboard,/Kosten/);
   assert.match(dashboard,/Resultaat/);
@@ -95,8 +95,8 @@ try{
 
   await navigateTo('invoices');
   const invoices=await page.locator('#content').innerText();
-  assert.match(invoices,/Maak facturen, bewaar ze als concept/,'RED: invoice header explanation still present');
-  assert.match(invoices,/Factuurcheck actief\./,'RED: permanent invoice-check notice still present');
+  assert.doesNotMatch(invoices,/Maak facturen, bewaar ze als concept/,'Invoice page should not carry a permanent instructional paragraph');
+  assert.doesNotMatch(invoices,/Factuurcheck actief\./,'Invoice page should not carry a permanent invoice-check notice');
   assert.ok(await page.getByRole('button',{name:/Nieuwe factuur/}).isVisible());
   assert.ok(await page.getByRole('button',{name:/Upload PDF/}).isVisible());
 
@@ -108,14 +108,14 @@ try{
 
   await navigateTo('bank');
   const bank=await page.locator('#content').innerText();
-  assert.match(bank,/Bankkoppeling nog niet live\./,'RED: permanent PSD2/open-banking explanation still present');
+  assert.doesNotMatch(bank,/Bankkoppeling nog niet live\./,'Bank page should not carry permanent PSD2/open-banking explanation');
   assert.ok(await page.getByRole('button',{name:/Bank CSV/}).isVisible());
   assert.ok(await page.getByRole('button',{name:/Transactie/}).isVisible());
 
   await navigateTo('documents');
   const documents=await page.locator('#content').innerText();
-  assert.match(documents,/Upload compleet is niet hetzelfde als verwerking compleet\./,'RED: permanent document-processing explanation still present');
-  assert.match(documents,/tekstextractie, tabellen en OCR/,'RED: technical OCR explanation still present');
+  assert.doesNotMatch(documents,/Upload compleet is niet hetzelfde als verwerking compleet\./,'Documents page should not repeat background-processing explanation');
+  assert.doesNotMatch(documents,/tekstextractie, tabellen en OCR/,'Documents page should not expose technical OCR explanation in the primary flow');
   assert.ok(await page.getByRole('button',{name:/Slim document uploaden/}).isVisible());
   assert.ok(await page.getByRole('button',{name:/Foto kiezen/}).isVisible());
   assert.ok(await page.getByRole('button',{name:/Camera/}).isVisible());
@@ -127,7 +127,7 @@ try{
 
   await navigateTo('control');
   const control=await page.locator('#content').innerText();
-  assert.match(control,/Eén werklijst voor uitzonderingen/,'RED: control center explanation still present');
+  assert.doesNotMatch(control,/Eén werklijst voor uitzonderingen/,'Control center should present the worklist without explanatory marketing copy');
   assert.match(control,/Debiteuren|Bank|Boekingen|Uitzonderingen/,'Control center must keep actionable exception categories');
 
   for(const width of [320,390,430,820])await assertNoGlobalOverflow(width);
@@ -140,7 +140,7 @@ try{
   }
 
   assert.equal(pageErrors.length,0,'Premium simplification browser flow must not produce JS errors: '+pageErrors.join(' | '));
-  console.log('premium app simplification RED baseline confirmed');
+  console.log('premium app simplification regression passed');
 }finally{
   await browser.close();
   await new Promise(resolve=>server.close(resolve));
