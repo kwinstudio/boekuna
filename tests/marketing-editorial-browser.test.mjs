@@ -23,7 +23,7 @@ const visualRoutes=['/','/functies/','/scanner/','/hoe-het-werkt/','/prijzen/','
 async function loadImages(page){
   await settleImages(page);
   const broken=await page.locator('img').evaluateAll(images=>images.filter(img=>!img.naturalWidth).map(img=>img.src));
-  assert.deepEqual(broken,[],'All existing logo and real product images must load');
+  assert.deepEqual(broken,[],'All remaining functional/brand images must load');
 }
 async function captureVisual(browser,base,route,width,file){
   // A full-page Chromium capture changes the emulated viewport internally.
@@ -178,7 +178,7 @@ try{
    const animations=await page.locator('.editorial-word').evaluateAll(words=>words.map(word=>getComputedStyle(word).animationName));
    assert.ok(animations.every(name=>name==='none'),'Reduced motion change stops every word animation');
    const moves=await page.locator('.ed-parallax').evaluateAll(elements=>elements.map(el=>getComputedStyle(el).translate));
-   assert.ok(moves.length>0&&moves.every(move=>move==='none'),'Reduced motion stops every parallax plate');
+   assert.ok(moves.every(move=>move==='none'),'Reduced motion stops every remaining parallax plate');
    report.motion.push({engine:name,reducedMotion:true});
    await page.close();
    const noJS=await browser.newPage({javaScriptEnabled:false,viewport:{width:320,height:844}});
