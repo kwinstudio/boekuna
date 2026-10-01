@@ -337,8 +337,8 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | FLOW-001 | FLOW | Verkoopketen klant→dienst→factuur→PDF→verzenden→openstaand | BLOCKED | Requires real authenticated end-to-end sales-chain execution. |
 | FLOW-002 | FLOW | Verkoopketen betaling→bankmatch→betaald | BLOCKED | Requires real authenticated end-to-end sales-chain execution. |
 | FLOW-003 | FLOW | Verkoopketen dashboard→omzet→btw→rapportage→grootboek | BLOCKED | Requires real authenticated end-to-end sales-chain execution. |
-| FLOW-004 | FLOW | Inkoopketen bon→OCR→review→correctie→boeken | NOT_TESTED |  |
-| FLOW-005 | FLOW | Inkoopketen kosten→bankmatch→btw→rapportage→grootboek | NOT_TESTED |  |
+| FLOW-004 | FLOW | Inkoopketen bon→OCR→review→correctie→boeken | BLOCKED | Requires real authenticated purchase/OCR/bank/accounting chain execution. |
+| FLOW-005 | FLOW | Inkoopketen kosten→bankmatch→btw→rapportage→grootboek | BLOCKED | Requires real authenticated purchase/OCR/bank/accounting chain execution. |
 | FLOW-006 | FLOW | Multi-period maanden | NOT_TESTED |  |
 | FLOW-007 | FLOW | Multi-period kwartalen | NOT_TESTED |  |
 | FLOW-008 | FLOW | Multi-period jaren | NOT_TESTED |  |
