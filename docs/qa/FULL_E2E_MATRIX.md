@@ -425,13 +425,13 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | CI-005 | CI | Provider-agnostic entitlement boundary suite | PASS | GitHub Actions run 36883528292 step 9 |
 | CI-006 | CI | Accounting integrity suite | PASS | GitHub Actions run 36883528292 step 10 |
 | CI-007 | CI | Production source safety suite | FAIL | GitHub Actions run 36883528292: source-safety stale contact placeholder assertion |
-| CI-008 | CI | Tenant isolation suite | NOT_TESTED |  |
-| CI-009 | CI | Financial/calculation suites | NOT_TESTED |  |
-| CI-010 | CI | Document processor suites | NOT_TESTED |  |
-| CI-011 | CI | Billing suites | NOT_TESTED |  |
-| CI-012 | CI | Chromium suites | NOT_TESTED |  |
-| CI-013 | CI | WebKit suites | NOT_TESTED |  |
-| CI-014 | CI | Python syntax safety | NOT_TESTED |  |
+| CI-008 | CI | Tenant isolation suite | BLOCKED | Exact-current integrity workflow run 36883528292 skipped this downstream suite after CI-007 failed. |
+| CI-009 | CI | Financial/calculation suites | BLOCKED | Exact-current integrity workflow run 36883528292 skipped this downstream suite after CI-007 failed. |
+| CI-010 | CI | Document processor suites | BLOCKED | Exact-current integrity workflow run 36883528292 skipped this downstream suite after CI-007 failed. |
+| CI-011 | CI | Billing suites | BLOCKED | Exact-current integrity workflow run 36883528292 skipped this downstream suite after CI-007 failed. |
+| CI-012 | CI | Chromium suites | BLOCKED | Exact-current integrity workflow run 36883528292 skipped this downstream suite after CI-007 failed. |
+| CI-013 | CI | WebKit suites | BLOCKED | Exact-current integrity workflow run 36883528292 skipped this downstream suite after CI-007 failed. |
+| CI-014 | CI | Python syntax safety | BLOCKED | Exact-current integrity workflow run 36883528292 skipped this downstream suite after CI-007 failed. |
 
 ## Discovered product surface
 
