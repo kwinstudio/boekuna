@@ -34,6 +34,7 @@ on:
       - "tests/marketing-v2-browser.test.mjs"
       - "tests/helpers/marketing-site.mjs"
       - "tests/split-build-boundaries.test.mjs"
+      - "tests/marketing-app-non-regression.test.mjs"
       - "tests/split-surfaces-browser.test.mjs"
       - "tests/split-ci-scopes.test.mjs"
       - ".github/workflows/boekuna-marketing.yml"
@@ -64,6 +65,8 @@ jobs:
         run: ./tests/node_modules/.bin/playwright install --with-deps chromium webkit
       - name: Build standalone marketing artifact
         run: node scripts/build-marketing.mjs
+      - name: Marketing app artifact non-regression
+        run: node tests/marketing-app-non-regression.test.mjs
       - name: Frozen content and SEO parity
         run: node tests/marketing-content-freeze.test.mjs && node tests/marketing-content-freeze-v2.test.mjs
       - name: Marketing page QA
