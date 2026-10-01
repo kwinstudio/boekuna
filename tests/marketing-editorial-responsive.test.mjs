@@ -1,32 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import http from 'node:http';
+import {spawnSync} from 'node:child_process';
+import {serveMarketing,settleImages} from './helpers/marketing-site.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const root=process.cwd();
-const sourcePath=path.join(root,'kwinest','index.html');
 fs.mkdirSync(path.join(root,'tests','artifacts'),{recursive:true});
-let html=fs.readFileSync(sourcePath,'utf8');
-const boot=html.lastIndexOf('initAuth();');
-assert.ok(boot>=0,'Homepage bootstrap marker missing');
-html=html.slice(0,boot)+'showLanding();'+html.slice(boot+'initAuth();'.length);
-
-const mime={'.webp':'image/webp','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.png':'image/png','.json':'application/json'};
-const server=http.createServer((req,res)=>{
-  const pathname=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);
-  if(pathname.startsWith('/assets/')){
-    const file=path.join(root,'public',pathname);
-    if(file.startsWith(path.join(root,'public'))&&fs.existsSync(file)){
-      res.writeHead(200,{'content-type':mime[path.extname(file)]||'application/octet-stream','cache-control':'no-store'});
-      return fs.createReadStream(file).pipe(res);
-    }
-  }
-  res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});
-  res.end(html);
-});
-await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-const base='http://127.0.0.1:'+server.address().port;
+const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{encoding:'utf8'});
+assert.equal(build.status,0,build.stderr);
+const server=await serveMarketing(path.join(root,'dist','marketing'));
+const base=server.base;
 const browser=await chromium.launch({headless:true});
 const viewports=[320,360,390,430,768,1024,1280,1440,1920];
 
@@ -47,9 +31,12 @@ try{
     assert.ok(await page.locator('.product-crop').count()>=3,`Editorial product crops missing at ${width}px`);
     assert.equal(await page.locator('.product-mobile').count(),1,`Exactly one mobile proof expected at ${width}px`);
     assert.deepEqual(errors,[],`Homepage page errors at ${width}px: ${errors.join(' | ')}`);
-    assert.equal(await page.locator('.kz-hero h1 span').evaluate(el=>getComputedStyle(el).color),'rgb(43, 115, 108)',`Calm Control hero accent missing at ${width}px`);
-    assert.equal(await page.locator('.kz-hero-actions .mk-btn.primary').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(18, 59, 58)',`Calm Control primary CTA missing at ${width}px`);
-    if([390,1440,1920].includes(width))await page.screenshot({path:path.join(root,'tests','artifacts',`brand-home-${width}.png`),fullPage:true});
+    assert.equal(await page.locator('.kz-hero h1 span').evaluate(el=>getComputedStyle(el).color),'rgb(190, 214, 205)',`Readable Calm Control dark-hero accent missing at ${width}px`);
+    assert.equal(await page.locator('.kz-hero-actions .mk-btn.primary').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(248, 247, 243)',`Readable primary CTA on dark brand hero missing at ${width}px`);
+    if([390,1440,1920].includes(width)){
+      await settleImages(page);
+      await page.screenshot({path:path.join(root,'tests','artifacts',`brand-home-${width}.png`),fullPage:true});
+    }
     await page.close();
   }
 
@@ -67,5 +54,5 @@ try{
   console.log('Editorial marketing screenshot responsive QA: PASS (320, 360, 390, 430, 768, 1024, 1280, 1440, 1920 + keyboard tabs)');
 }finally{
   await browser.close();
-  await new Promise(resolve=>server.close(resolve));
+  await server.close();
 }
