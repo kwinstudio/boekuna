@@ -1,0 +1,6 @@
+# BOEKUNA Full Functional E2E Final
+
+Run in progress.
+
+SOURCE_SHA: 7132029b792c8942f18317637ff352461dfe08d5
+STATUS: RUNNING
