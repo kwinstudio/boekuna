@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { chromium, webkit } from 'playwright';
 
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
+assert.match(original,/from\('documents'\)\.delete\(\)\.eq\('user_id',currentUser\.id\)\.eq\('client_ref',id\)/,'Document deletion must stay tenant-scoped');
 fs.mkdirSync('tests/artifacts',{recursive:true});
 
 function replaceLast(source,needle,replacement){
@@ -116,6 +117,31 @@ try{
   assert.equal(await page.locator('#content').getByRole('button',{name:/Camera/}).count(),0,'Documents must expose one upload entry, not a separate camera action');
   assert.ok(await page.locator('.documents-secondary-menu > summary').isVisible(),'Archiveren must remain available as a secondary More action');
   await page.screenshot({path:`tests/artifacts/premium-documents-${browserName}-390.png`,fullPage:true});
+
+  // Safe document deletion: terminal attention states may be removed, active/linked records must not.
+  await page.evaluate(()=>{
+    state.documents=[
+      {id:'d-failed',fileId:'f-failed',name:'failed.pdf',type:'Document',date:'2026-09-10',processingState:'failed'},
+      {id:'d-review',fileId:'f-review',name:'review.pdf',type:'Document',date:'2026-09-11',processingState:'review_required'},
+      {id:'d-processing',fileId:'f-processing',name:'processing.pdf',type:'Document',date:'2026-09-12',processingState:'processing'},
+      {id:'d-linked',fileId:'f-linked',name:'linked.pdf',type:'Document',date:'2026-09-13',processingState:'ready',linkedType:'expense',linkedId:'e1'}
+    ];
+    documentProcessingJobs=[
+      {id:'j-failed',client_ref:'f-failed',state:'failed',attempt:3,max_attempts:3},
+      {id:'j-review',client_ref:'f-review',state:'review_required',attempt:1,max_attempts:3},
+      {id:'j-processing',client_ref:'f-processing',state:'processing',attempt:1,max_attempts:3}
+    ];
+    render();
+  });
+  assert.equal(await page.evaluate(()=>persistentDocumentAttentionCount()),2,'Failed/review documents must count as attention');
+  assert.equal(await page.evaluate(()=>deleteDocumentNow('d-failed')),true,'Failed unlinked document must be deletable');
+  assert.equal(await page.evaluate(()=>state.documents.some(d=>d.id==='d-failed')),false);
+  assert.equal(await page.evaluate(()=>documentProcessingJobs.some(j=>j.client_ref==='f-failed')),false,'Deleting must immediately clear local attention job state');
+  assert.equal(await page.evaluate(()=>deleteDocumentNow('d-review')),true,'Review-required unlinked document must be deletable');
+  assert.equal(await page.evaluate(()=>deleteDocumentNow('d-processing')),false,'Actively processing document must be protected from deletion');
+  assert.equal(await page.evaluate(()=>state.documents.some(d=>d.id==='d-processing')),true);
+  assert.equal(await page.evaluate(()=>deleteDocumentNow('d-linked')),false,'Document linked to definitive bookkeeping must be protected from deletion');
+  assert.equal(await page.evaluate(()=>state.documents.some(d=>d.id==='d-linked')),true);
 
   await navigateTo('vat');
   const vat=await page.locator('#content').innerText();
