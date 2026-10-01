@@ -44,6 +44,8 @@ The keyboard test initializes native file-picker interception before activation 
 
 The final scoped WebKit KVK test proved an existing-contact city was saved empty while the save itself succeeded. A deterministic regression then reproduced the dialog's deferred autofocus stealing an explicitly focused city input. Dialog autofocus now targets only its own still-connected dialog and preserves a field the user already focused. The generated keyboard regression checks entered Rotterdam text, normal initial focus and stale callbacks from replaced dialogs. The original KVK save/persistence assertion is retained; fresh exact-head WebKit CI must confirm the fix.
 
+The subsequent exact-head full gate passed every step and both browsers passed production/preview KVK, but the scoped WebKit UX accessibility check captured the source picker during its existing 150/180ms fade/rise animations. A controlled probe paused those animations at 35ms and reproduced the same four contrast failures (composited contrast 1.04–1.06), then proved zero violations after animation completion. The test now awaits the dialog animations' actual finished promises before running the unchanged complete Axe WCAG A/AA assertions. No accessibility rule, color or product animation was removed; a fresh exact-head full/App review is still required.
+
 `SPLIT_FULL_GATE.md` requests the current complete integrity workflow. This document does not approve its own changes: exact PR HEAD still requires independent QA and remote app/full CI evidence.
 
 ## Release blockers
