@@ -22,7 +22,9 @@ const fixtureBootstrap=[
   "state.invoices=[{id:'i1',number:'2026-0001',customerId:'c1',status:'sent',kind:'invoice',issueDate:'2026-08-01',dueDate:'2026-08-15',taxTreatment:'standard',payments:[],importedTotals:{net:100,vat:21,gross:121}}];",
   "state.expenses=[{id:'e1',date:'2026-09-01',vendor:'QA Leverancier',invoiceNumber:'INK-1',category:'Kantoor',paymentMethod:'bank',exVat:50,vatRate:21,notes:''}];",
   "state.transactions=[{id:'t1',date:'2026-09-01',description:'QA bankregel',amount:-10,status:'unmatched'}];",
-  "state.documents=[];state.bookings=[];",
+  "state.services=[{id:'s1',name:'Consultancy',description:'',price:100,unitLabel:'uur',vat:21,active:true}];",
+  "state.plannedCash=[{id:'pc1',date:'2026-10-15',description:'QA geplande uitgave',type:'out',amount:25}];",
+  "state.documents=[{id:'d1',name:'qa-document.pdf',type:'Upload',date:'2026-09-05',processingState:'ready'}];state.bookings=[];",
   "documentProcessingJobs=[];documentProcessingInitialized=true;documentProcessingConnectivityLost=false;documentProcessingFetchError=false;",
   "enterApp();"
 ].join('\n');
@@ -75,6 +77,26 @@ async function assertNoGlobalOverflow(width,label=''){
     }).filter(x=>x.right>window.innerWidth+2).sort((a,b)=>b.right-a.right).slice(0,12)
   }));
   assert.ok(layout.scrollWidth<=layout.innerWidth+2,'No global horizontal overflow at '+width+'px'+(label?' on '+label:'')+'; '+JSON.stringify(layout));
+}
+
+async function assertMobileStackAccessibility(route,selector){
+  await page.setViewportSize({width:390,height:844});
+  await navigateTo(route);
+  const table=page.locator(selector).first();
+  await table.waitFor();
+  const details=await table.evaluate(el=>{
+    const thead=el.querySelector('thead');
+    const headers=[...el.querySelectorAll('thead th')].map(th=>({id:th.id,scope:th.getAttribute('scope')||'',text:th.textContent.trim()}));
+    const cells=[...el.querySelectorAll('tbody tr td:not([colspan])')].map(td=>({headers:td.getAttribute('headers')||''}));
+    return {theadDisplay:thead?getComputedStyle(thead).display:'missing',headers,cells};
+  });
+  assert.notEqual(details.theadDisplay,'none',route+' mobile table headers must remain in the accessibility tree');
+  assert.ok(details.headers.length>0,route+' mobile table must keep column headers');
+  assert.ok(details.headers.every(header=>header.id&&header.scope==='col'),route+' mobile headers need stable ids and scope=col');
+  assert.ok(details.cells.length>0,route+' accessibility fixture must include at least one data row');
+  const headerIds=new Set(details.headers.map(header=>header.id));
+  assert.ok(details.cells.every(cell=>headerIds.has(cell.headers)),route+' data cells must explicitly reference their column header');
+  assert.equal(await table.getByRole('columnheader').count(),details.headers.length,route+' column headers must remain exposed as accessibility roles');
 }
 
 try{
@@ -150,6 +172,16 @@ try{
   assert.equal(await page.evaluate(()=>state.documents.some(d=>d.id==='d-processing')),true);
   assert.equal(await page.evaluate(()=>deleteDocumentNow('d-linked')),false,'Document linked to definitive bookkeeping must be protected from deletion');
   assert.equal(await page.evaluate(()=>state.documents.some(d=>d.id==='d-linked')),true);
+
+  for(const [route,selector] of [
+    ['dashboard','.mobile-dashboard-invoices'],
+    ['expenses','.mobile-expenses'],
+    ['cashflow','.mobile-cashflow'],
+    ['ledger','.mobile-trial'],
+    ['contacts','.mobile-contacts'],
+    ['services','.mobile-services'],
+    ['documents','.mobile-documents']
+  ])await assertMobileStackAccessibility(route,selector);
 
   await navigateTo('vat');
   const vat=await page.locator('#content').innerText();
