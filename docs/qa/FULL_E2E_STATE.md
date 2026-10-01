@@ -15,29 +15,23 @@ DEPLOY_SHA:
 APP_DEPLOYMENT:
 https://boekuna-split-app-preview.onrender.com — exact SHA live.
 
-STARTED_AT:
-2026-10-01T18:22:00+02:00
-
-LAST_UPDATED:
-2026-10-01T18:22:00+02:00
-
 TOTAL_CHECKPOINTS:
 34
 
 CURRENT_CHECKPOINT:
-5
+6
 
 LAST_COMPLETED_CHECKPOINT:
-4
+5
 
 CURRENT_TEST_ID:
-INV-001
+EXP-001
 
 LAST_COMPLETED_TEST_ID:
-SRV-009
+PAY-008
 
 NEXT_TEST_ID:
-INV-001
+EXP-001
 
 TOTAL_SCENARIOS:
 421
@@ -49,10 +43,10 @@ FAIL:
 1
 
 BLOCKED:
-44
+108
 
 NOT_TESTED:
-367
+303
 
 NOT_APPLICABLE:
 1
@@ -66,12 +60,6 @@ OPEN_P1:
 STATUS:
 RUNNING
 
-## Checkpoint 4 — relations + KVK + services
+## Checkpoint 5 — invoices
 
-Processed without product changes.
-
-- Relation and service CRUD/user-flow scenarios are blocked by absence of an interactive authenticated browser runner.
-- REL-005 is NOT_APPLICABLE because current frozen source has no relation delete/archive/remove action.
-- KVK-009 PASS: deployed Edge Function consumes an atomic service-role-only budget with per-user/global windows.
-- KVK-010 PASS: deployed Edge Function is JWT protected, authenticates a non-anonymous user, enforces MFA assurance when required, restricts origins and keeps KVK credentials/raw upstream responses server-side.
-- KVK search/result/profile UI flow remains BLOCKED until actual authenticated browser execution is available.
+Processed 64 scenarios covering invoice lifecycle, financial fields, PDF, email-app handoff and payment registration. All require authenticated runtime interaction and/or generated download/share evidence and are therefore BLOCKED in this execution environment. They are not counted as PASS from source inspection.

@@ -74,70 +74,70 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | SRV-007 | SRV | Dienst verwijderen indien toegestaan | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
 | SRV-008 | SRV | Dienst gebruiken in factuur | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
 | SRV-009 | SRV | Diensten zoeken/filteren/sorteren | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
-| INV-001 | INV | Nieuwe verkoopfactuur | NOT_TESTED |  |
-| INV-002 | INV | Bestaande klant kiezen | NOT_TESTED |  |
-| INV-003 | INV | Nieuwe klant vanuit factuur indien aanwezig | NOT_TESTED |  |
-| INV-004 | INV | Dienst aan factuur toevoegen | NOT_TESTED |  |
-| INV-005 | INV | Handmatige factuurregel | NOT_TESTED |  |
-| INV-006 | INV | Meerdere factuurregels | NOT_TESTED |  |
-| INV-007 | INV | Aantal en eenheidsprijs | NOT_TESTED |  |
-| INV-008 | INV | 21% btw | NOT_TESTED |  |
-| INV-009 | INV | 9% btw | NOT_TESTED |  |
-| INV-010 | INV | 0%/geen btw waar ondersteund | NOT_TESTED |  |
-| INV-011 | INV | Btw verlegd | NOT_TESTED |  |
-| INV-012 | INV | ICP/EU 0% | NOT_TESTED |  |
-| INV-013 | INV | Btw-vrijgesteld | NOT_TESTED |  |
-| INV-014 | INV | KOR | NOT_TESTED |  |
-| INV-015 | INV | Korting | NOT_TESTED |  |
-| INV-016 | INV | Factuurdatum | NOT_TESTED |  |
-| INV-017 | INV | Lever-/prestatiedatum | NOT_TESTED |  |
-| INV-018 | INV | Vervaldatum/betaaltermijn | NOT_TESTED |  |
-| INV-019 | INV | Concept opslaan | NOT_TESTED |  |
-| INV-020 | INV | Concept refresh/reopen | NOT_TESTED |  |
-| INV-021 | INV | Concept bewerken | NOT_TESTED |  |
-| INV-022 | INV | Definitief maken | NOT_TESTED |  |
-| INV-023 | INV | Definitieve nummerreservering atomair | NOT_TESTED |  |
-| INV-024 | INV | Dubbel factuurnummer voorkomen | NOT_TESTED |  |
-| INV-025 | INV | Factuur dupliceren als concept | NOT_TESTED |  |
-| INV-026 | INV | Creditfactuur | NOT_TESTED |  |
-| INV-027 | INV | Creditlimiet niet hoger dan origineel | NOT_TESTED |  |
-| INV-028 | INV | Factuur verwijderen waar toegestaan | NOT_TESTED |  |
-| INV-029 | INV | Lege regel validatie | NOT_TESTED |  |
-| INV-030 | INV | €0 validatie | NOT_TESTED |  |
-| INV-031 | INV | €0,01 | NOT_TESTED |  |
-| INV-032 | INV | Hoog bedrag | NOT_TESTED |  |
-| INV-033 | INV | Lange omschrijving | NOT_TESTED |  |
-| INV-034 | INV | Double save/double submit | NOT_TESTED |  |
-| INV-035 | INV | Refresh tijdens edit | NOT_TESTED |  |
-| INV-036 | INV | Status open/verlopen/betaald | NOT_TESTED |  |
-| INV-037 | INV | Openstaand bedrag na deelbetaling | NOT_TESTED |  |
-| PDF-001 | PDF | Factuur-PDF bedrijfsgegevens | NOT_TESTED |  |
-| PDF-002 | PDF | Factuur-PDF klantgegevens | NOT_TESTED |  |
-| PDF-003 | PDF | Factuur-PDF nummer/datums | NOT_TESTED |  |
-| PDF-004 | PDF | Factuur-PDF regels en btw | NOT_TESTED |  |
-| PDF-005 | PDF | Factuur-PDF totaal | NOT_TESTED |  |
-| PDF-006 | PDF | Factuur-PDF betaalinformatie | NOT_TESTED |  |
-| PDF-007 | PDF | Factuur-PDF layout modern | NOT_TESTED |  |
-| PDF-008 | PDF | Factuur-PDF layout classic | NOT_TESTED |  |
-| PDF-009 | PDF | Factuur-PDF layout minimal | NOT_TESTED |  |
-| PDF-010 | PDF | Factuur-PDF logo/branding | NOT_TESTED |  |
-| MAIL-001 | MAIL | Verzendflow via eigen e-mailapp/handoff | NOT_TESTED |  |
-| MAIL-002 | MAIL | Onderwerp correct | NOT_TESTED |  |
-| MAIL-003 | MAIL | Body correct | NOT_TESTED |  |
-| MAIL-004 | MAIL | PDF-bijlage voorbereid | NOT_TESTED |  |
-| MAIL-005 | MAIL | Native share waar ondersteund | NOT_TESTED |  |
-| MAIL-006 | MAIL | Desktop mailto/Gmail-web fallback waar ondersteund | NOT_TESTED |  |
-| MAIL-007 | MAIL | Expliciete verzonden-bevestiging | NOT_TESTED |  |
-| MAIL-008 | MAIL | Niet-verzonden pad wijzigt status niet | NOT_TESTED |  |
-| MAIL-009 | MAIL | Verzendstatus/audit | NOT_TESTED |  |
-| PAY-001 | PAY | Volledige betaling registreren | NOT_TESTED |  |
-| PAY-002 | PAY | Deelbetaling registreren | NOT_TESTED |  |
-| PAY-003 | PAY | Meerdere betalingen | NOT_TESTED |  |
-| PAY-004 | PAY | Betaald-status na saldo nul | NOT_TESTED |  |
-| PAY-005 | PAY | Openstaand na deelbetaling | NOT_TESTED |  |
-| PAY-006 | PAY | Betaling verwijderen/corrigeren indien aanwezig | NOT_TESTED |  |
-| PAY-007 | PAY | Betaling downstream dashboard | NOT_TESTED |  |
-| PAY-008 | PAY | Betaling downstream grootboek | NOT_TESTED |  |
+| INV-001 | INV | Nieuwe verkoopfactuur | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-002 | INV | Bestaande klant kiezen | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-003 | INV | Nieuwe klant vanuit factuur indien aanwezig | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-004 | INV | Dienst aan factuur toevoegen | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-005 | INV | Handmatige factuurregel | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-006 | INV | Meerdere factuurregels | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-007 | INV | Aantal en eenheidsprijs | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-008 | INV | 21% btw | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-009 | INV | 9% btw | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-010 | INV | 0%/geen btw waar ondersteund | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-011 | INV | Btw verlegd | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-012 | INV | ICP/EU 0% | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-013 | INV | Btw-vrijgesteld | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-014 | INV | KOR | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-015 | INV | Korting | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-016 | INV | Factuurdatum | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-017 | INV | Lever-/prestatiedatum | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-018 | INV | Vervaldatum/betaaltermijn | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-019 | INV | Concept opslaan | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-020 | INV | Concept refresh/reopen | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-021 | INV | Concept bewerken | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-022 | INV | Definitief maken | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-023 | INV | Definitieve nummerreservering atomair | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-024 | INV | Dubbel factuurnummer voorkomen | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-025 | INV | Factuur dupliceren als concept | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-026 | INV | Creditfactuur | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-027 | INV | Creditlimiet niet hoger dan origineel | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-028 | INV | Factuur verwijderen waar toegestaan | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-029 | INV | Lege regel validatie | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-030 | INV | €0 validatie | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-031 | INV | €0,01 | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-032 | INV | Hoog bedrag | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-033 | INV | Lange omschrijving | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-034 | INV | Double save/double submit | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-035 | INV | Refresh tijdens edit | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-036 | INV | Status open/verlopen/betaald | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| INV-037 | INV | Openstaand bedrag na deelbetaling | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| PDF-001 | PDF | Factuur-PDF bedrijfsgegevens | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| PDF-002 | PDF | Factuur-PDF klantgegevens | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| PDF-003 | PDF | Factuur-PDF nummer/datums | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| PDF-004 | PDF | Factuur-PDF regels en btw | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| PDF-005 | PDF | Factuur-PDF totaal | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| PDF-006 | PDF | Factuur-PDF betaalinformatie | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| PDF-007 | PDF | Factuur-PDF layout modern | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| PDF-008 | PDF | Factuur-PDF layout classic | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| PDF-009 | PDF | Factuur-PDF layout minimal | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| PDF-010 | PDF | Factuur-PDF logo/branding | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| MAIL-001 | MAIL | Verzendflow via eigen e-mailapp/handoff | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| MAIL-002 | MAIL | Onderwerp correct | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| MAIL-003 | MAIL | Body correct | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| MAIL-004 | MAIL | PDF-bijlage voorbereid | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| MAIL-005 | MAIL | Native share waar ondersteund | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| MAIL-006 | MAIL | Desktop mailto/Gmail-web fallback waar ondersteund | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| MAIL-007 | MAIL | Expliciete verzonden-bevestiging | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| MAIL-008 | MAIL | Niet-verzonden pad wijzigt status niet | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| MAIL-009 | MAIL | Verzendstatus/audit | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| PAY-001 | PAY | Volledige betaling registreren | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| PAY-002 | PAY | Deelbetaling registreren | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| PAY-003 | PAY | Meerdere betalingen | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| PAY-004 | PAY | Betaald-status na saldo nul | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| PAY-005 | PAY | Openstaand na deelbetaling | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| PAY-006 | PAY | Betaling verwijderen/corrigeren indien aanwezig | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| PAY-007 | PAY | Betaling downstream dashboard | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
+| PAY-008 | PAY | Betaling downstream grootboek | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
 | EXP-001 | EXP | Handmatige kostenboeking | NOT_TESTED |  |
 | EXP-002 | EXP | Leverancier | NOT_TESTED |  |
 | EXP-003 | EXP | Datum | NOT_TESTED |  |
