@@ -315,17 +315,17 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | EXPORT-008 | EXPORT | Restore zonder stille duplicatie | BLOCKED | Requires browser download/file-content inspection and safe QA restore interaction. |
 | EXPORT-009 | EXPORT | Encoding/headers/decimalen/datums | BLOCKED | Requires browser download/file-content inspection and safe QA restore interaction. |
 | EXPORT-010 | EXPORT | Refresh persistence na restore | BLOCKED | Requires browser download/file-content inspection and safe QA restore interaction. |
-| BILL-001 | BILL | Billing summary server-side | NOT_TESTED |  |
-| BILL-002 | BILL | Checkout test mode | NOT_TESTED |  |
-| BILL-003 | BILL | Checkout success return | NOT_TESTED |  |
-| BILL-004 | BILL | Checkout cancel return | NOT_TESTED |  |
-| BILL-005 | BILL | Entitlement actief | NOT_TESTED |  |
-| BILL-006 | BILL | Portal openen | NOT_TESTED |  |
-| BILL-007 | BILL | Portal return | NOT_TESTED |  |
-| BILL-008 | BILL | Inactive entitlement | NOT_TESTED |  |
-| BILL-009 | BILL | Invalid entitlement | NOT_TESTED |  |
-| BILL-010 | BILL | Provider-agnostic entitlement boundary | NOT_TESTED |  |
-| BILL-011 | BILL | UI kan entitlement niet client-only afdwingen | NOT_TESTED |  |
+| BILL-001 | BILL | Billing summary server-side | BLOCKED | Requires safe test-mode billing session/checkout/portal/entitlement interaction or downstream suite that was skipped after CI-007. |
+| BILL-002 | BILL | Checkout test mode | BLOCKED | Requires safe test-mode billing session/checkout/portal/entitlement interaction or downstream suite that was skipped after CI-007. |
+| BILL-003 | BILL | Checkout success return | BLOCKED | Requires safe test-mode billing session/checkout/portal/entitlement interaction or downstream suite that was skipped after CI-007. |
+| BILL-004 | BILL | Checkout cancel return | BLOCKED | Requires safe test-mode billing session/checkout/portal/entitlement interaction or downstream suite that was skipped after CI-007. |
+| BILL-005 | BILL | Entitlement actief | BLOCKED | Requires safe test-mode billing session/checkout/portal/entitlement interaction or downstream suite that was skipped after CI-007. |
+| BILL-006 | BILL | Portal openen | BLOCKED | Requires safe test-mode billing session/checkout/portal/entitlement interaction or downstream suite that was skipped after CI-007. |
+| BILL-007 | BILL | Portal return | BLOCKED | Requires safe test-mode billing session/checkout/portal/entitlement interaction or downstream suite that was skipped after CI-007. |
+| BILL-008 | BILL | Inactive entitlement | BLOCKED | Requires safe test-mode billing session/checkout/portal/entitlement interaction or downstream suite that was skipped after CI-007. |
+| BILL-009 | BILL | Invalid entitlement | BLOCKED | Requires safe test-mode billing session/checkout/portal/entitlement interaction or downstream suite that was skipped after CI-007. |
+| BILL-010 | BILL | Provider-agnostic entitlement boundary | PASS | Exact-current GitHub Actions run 36883528292 step 9 passed tests/provider-agnostic-entitlement.test.mjs. |
+| BILL-011 | BILL | UI kan entitlement niet client-only afdwingen | BLOCKED | Requires safe test-mode billing session/checkout/portal/entitlement interaction or downstream suite that was skipped after CI-007. |
 | SYNC-001 | SYNC | Cloud state save | NOT_TESTED |  |
 | SYNC-002 | SYNC | Cloud profile save | NOT_TESTED |  |
 | SYNC-003 | SYNC | Optimistic version conflict detectie | NOT_TESTED |  |
