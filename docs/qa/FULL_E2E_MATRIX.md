@@ -326,14 +326,14 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | BILL-009 | BILL | Invalid entitlement | BLOCKED | Requires safe test-mode billing session/checkout/portal/entitlement interaction or downstream suite that was skipped after CI-007. |
 | BILL-010 | BILL | Provider-agnostic entitlement boundary | PASS | Exact-current GitHub Actions run 36883528292 step 9 passed tests/provider-agnostic-entitlement.test.mjs. |
 | BILL-011 | BILL | UI kan entitlement niet client-only afdwingen | BLOCKED | Requires safe test-mode billing session/checkout/portal/entitlement interaction or downstream suite that was skipped after CI-007. |
-| SYNC-001 | SYNC | Cloud state save | NOT_TESTED |  |
-| SYNC-002 | SYNC | Cloud profile save | NOT_TESTED |  |
-| SYNC-003 | SYNC | Optimistic version conflict detectie | NOT_TESTED |  |
-| SYNC-004 | SYNC | Lokale conflictback-up | NOT_TESTED |  |
-| SYNC-005 | SYNC | Remote authoritative restore na conflict | NOT_TESTED |  |
-| SYNC-006 | SYNC | Offline status | NOT_TESTED |  |
-| SYNC-007 | SYNC | Reconnect/retry | NOT_TESTED |  |
-| SYNC-008 | SYNC | Geen cross-user stale state | NOT_TESTED |  |
+| SYNC-001 | SYNC | Cloud state save | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| SYNC-002 | SYNC | Cloud profile save | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| SYNC-003 | SYNC | Optimistic version conflict detectie | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| SYNC-004 | SYNC | Lokale conflictback-up | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| SYNC-005 | SYNC | Remote authoritative restore na conflict | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| SYNC-006 | SYNC | Offline status | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| SYNC-007 | SYNC | Reconnect/retry | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| SYNC-008 | SYNC | Geen cross-user stale state | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
 | FLOW-001 | FLOW | Verkoopketen klant→dienst→factuur→PDF→verzenden→openstaand | BLOCKED | Requires real authenticated end-to-end sales-chain execution. |
 | FLOW-002 | FLOW | Verkoopketen betaling→bankmatch→betaald | BLOCKED | Requires real authenticated end-to-end sales-chain execution. |
 | FLOW-003 | FLOW | Verkoopketen dashboard→omzet→btw→rapportage→grootboek | BLOCKED | Requires real authenticated end-to-end sales-chain execution. |
@@ -344,21 +344,21 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | FLOW-008 | FLOW | Multi-period jaren | BLOCKED | Requires persisted synthetic data across months/quarters/years and rendered historical cross-checks. |
 | FLOW-009 | FLOW | Historische filters | BLOCKED | Requires persisted synthetic data across months/quarters/years and rendered historical cross-checks. |
 | FLOW-010 | FLOW | Cross-feature cent-nauwkeurige consistentie | BLOCKED | Requires persisted synthetic data across months/quarters/years and rendered historical cross-checks. |
-| REC-001 | REC | Refresh tijdens factuuredit | NOT_TESTED |  |
-| REC-002 | REC | Refresh tijdens upload | NOT_TESTED |  |
-| REC-003 | REC | App verlaten tijdens processing | NOT_TESTED |  |
-| REC-004 | REC | Terugkomen tijdens/na processing | NOT_TESTED |  |
-| REC-005 | REC | Network fail simulatie | NOT_TESTED |  |
-| REC-006 | REC | Retry na network fail | NOT_TESTED |  |
-| REC-007 | REC | Double-click create | NOT_TESTED |  |
-| REC-008 | REC | Double-submit form | NOT_TESTED |  |
-| REC-009 | REC | Browser back | NOT_TESTED |  |
-| REC-010 | REC | Browser forward | NOT_TESTED |  |
-| REC-011 | REC | Multiple tabs | NOT_TESTED |  |
-| REC-012 | REC | Expired session midden in flow | NOT_TESTED |  |
-| REC-013 | REC | Duplicate document | NOT_TESTED |  |
-| REC-014 | REC | Duplicate bankimport | NOT_TESTED |  |
-| REC-015 | REC | Syncconflict recovery | NOT_TESTED |  |
+| REC-001 | REC | Refresh tijdens factuuredit | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| REC-002 | REC | Refresh tijdens upload | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| REC-003 | REC | App verlaten tijdens processing | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| REC-004 | REC | Terugkomen tijdens/na processing | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| REC-005 | REC | Network fail simulatie | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| REC-006 | REC | Retry na network fail | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| REC-007 | REC | Double-click create | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| REC-008 | REC | Double-submit form | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| REC-009 | REC | Browser back | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| REC-010 | REC | Browser forward | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| REC-011 | REC | Multiple tabs | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| REC-012 | REC | Expired session midden in flow | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| REC-013 | REC | Duplicate document | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| REC-014 | REC | Duplicate bankimport | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
+| REC-015 | REC | Syncconflict recovery | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
 | BREAK-001 | BREAK | Zeer lange bedrijfsnaam | NOT_TESTED |  |
 | BREAK-002 | BREAK | Zeer lange klantnaam | NOT_TESTED |  |
 | BREAK-003 | BREAK | Unicode | NOT_TESTED |  |
