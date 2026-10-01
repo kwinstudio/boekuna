@@ -29,6 +29,9 @@ on:
       - "tests/marketing-content-freeze.test.mjs"
       - "tests/marketing-editorial-browser.test.mjs"
       - "tests/fixtures/marketing-content-freeze.json"
+      - "tests/fixtures/marketing-content-freeze-v2.json"
+      - "tests/marketing-content-freeze-v2.test.mjs"
+      - "tests/marketing-v2-browser.test.mjs"
       - "tests/helpers/marketing-site.mjs"
       - "tests/split-build-boundaries.test.mjs"
       - "tests/split-surfaces-browser.test.mjs"
@@ -62,7 +65,7 @@ jobs:
       - name: Build standalone marketing artifact
         run: node scripts/build-marketing.mjs
       - name: Frozen content and SEO parity
-        run: node tests/marketing-content-freeze.test.mjs
+        run: node tests/marketing-content-freeze.test.mjs && node tests/marketing-content-freeze-v2.test.mjs
       - name: Marketing page QA
         run: node tests/marketing-pages.test.mjs
       - name: Real marketing product screenshots
@@ -72,7 +75,7 @@ jobs:
       - name: Split generated surface browser smoke
         run: node tests/split-surfaces-browser.test.mjs
       - name: Generated marketing full browser and accessibility gate
-        run: node tests/marketing-editorial-browser.test.mjs
+        run: node tests/marketing-v2-browser.test.mjs
       - name: Upload brand visual evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -84,6 +87,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: boekuna-marketing-editorial
-          path: tests/artifacts/marketing-editorial/
+          name: boekuna-marketing-editorial-v2
+          path: tests/artifacts/marketing-editorial-v2/
           if-no-files-found: error

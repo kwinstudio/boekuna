@@ -5,17 +5,18 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {chromium,webkit} from 'playwright';
-import {routes,widths,slug,serveMarketing,settleImages} from './helpers/marketing-site.mjs';
+import {routes,slug,serveMarketing,settleImages} from './helpers/marketing-site.mjs';
 
 const require=createRequire(import.meta.url);
 const axeSource=fs.readFileSync(require.resolve('axe-core/axe.min.js'),'utf8');
-const evidence='tests/artifacts/marketing-editorial';
+const widths=[320,360,375,390,393,430,640,768,820,1024,1280,1440,1920];
+const evidence='tests/artifacts/marketing-editorial-v2';
 fs.mkdirSync(evidence,{recursive:true});
 const server=await serveMarketing('dist/marketing');
 const engines=process.env.MARKETING_BROWSER==='chromium'?[['chromium',chromium]]:process.env.MARKETING_BROWSER==='webkit'?[['webkit',webkit]]:[['chromium',chromium],['webkit',webkit]];
-const report={routes:routes.length,widths,engines:[],screenshots:[],errors:[],accessibility:[],forms:[],motion:[],checks:0};
+const report={routes:routes.length,widths,engines:[],screenshots:[],errors:[],accessibility:[],forms:[],motion:[],brand:[],checks:0};
 const beforeDir=fs.mkdtempSync(path.join(os.tmpdir(),'boekuna-marketing-before-'));
-const baseline=JSON.parse(fs.readFileSync('tests/fixtures/marketing-content-freeze.json','utf8'));
+const baseline=JSON.parse(fs.readFileSync('tests/fixtures/marketing-content-freeze-v2.json','utf8'));
 execFileSync('tar',['-x','-C',beforeDir],{input:execFileSync('git',['archive',baseline.baseHead,'public'],{maxBuffer:64*1024*1024})});
 const before=await serveMarketing(path.join(beforeDir,'public'));
 const visualRoutes=['/','/functies/','/scanner/','/hoe-het-werkt/','/prijzen/','/faq/','/privacy/','/support/'];
@@ -29,7 +30,7 @@ async function captureVisual(browser,base,route,width,file){
   // A full-page Chromium capture changes the emulated viewport internally.
   // Use a fresh page per breakpoint so subsequent picture source changes
   // cannot inherit a stale compositor surface from an earlier capture.
-  const page=await browser.newPage({viewport:{width,height:width===390?844:960},reducedMotion:'reduce'});
+  const page=await browser.newPage({viewport:{width,height:width<700?844:960},reducedMotion:'reduce'});
   try{
     await page.goto(base+route,{waitUntil:'networkidle'});
     await loadImages(page);
@@ -40,6 +41,8 @@ async function captureVisual(browser,base,route,width,file){
 async function overflow(page,label){
   const sizes=await page.evaluate(()=>({viewport:innerWidth,document:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
   assert.ok(sizes.document<=sizes.viewport+1&&sizes.body<=sizes.viewport+1,label+': horizontal overflow '+JSON.stringify(sizes));
+  const clipped=await page.evaluate(()=>{const h=document.querySelector('h1');if(!h)return [];const hero=h.closest('.ed-opening,.mk-hero,.how-hero,.page-hero');if(!hero)return [];const box=hero.getBoundingClientRect();const walker=document.createTreeWalker(h,NodeFilter.SHOW_TEXT);const failures=[];while(walker.nextNode()){if(!walker.currentNode.textContent.trim())continue;const range=document.createRange();range.selectNodeContents(walker.currentNode);for(const rect of range.getClientRects())if(rect.left<box.left-2||rect.right>box.right+2)failures.push({text:walker.currentNode.textContent,hero:{left:box.left,right:box.right},textBounds:{left:rect.left,right:rect.right}});}return failures;});
+  assert.deepEqual(clipped,[],label+': visible heading text cannot be clipped by the page frame');
   report.checks++;
 }
 async function audit(page,label){
@@ -66,6 +69,8 @@ try{
     assert.equal(await page.locator('h1').count(),1,route+' keeps one h1');
     assert.equal(await page.locator('#mainApp').count(),0,route+' must remain marketing-only');
     await loadImages(page);
+    const brand=await page.evaluate(()=>({primary:getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim(),secondary:getComputedStyle(document.documentElement).getPropertyValue('--brand-secondary').trim(),font:getComputedStyle(document.body).fontFamily,loaded:document.fonts.check('500 20px Inter')}));
+    assert.equal(brand.primary,'#123B3A');assert.equal(brand.secondary,'#2B736C');assert.ok(brand.font.startsWith('Inter'));assert.equal(brand.loaded,true);report.brand.push({engine:name,route,...brand});
     for(const width of widths){
       await page.setViewportSize({width,height:width<700?844:960});
       await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
@@ -118,6 +123,9 @@ try{
    await page.locator('.mobile-toggle').click();
    await page.waitForFunction(()=>document.querySelector('main').inert);
    assert.equal(await page.locator('.mobile-toggle').getAttribute('aria-expanded'),'true');
+   assert.equal(await page.locator('.mobile-toggle-icon i').nth(1).evaluate(el=>getComputedStyle(el).opacity),'0','Open-menu toggle presents a close icon');
+   assert.equal(await page.locator('.mobile-toggle-icon i').first().evaluate(el=>getComputedStyle(el).transitionDuration),'0s','Reduced motion also disables component-specific transitions');
+   assert.notEqual(await page.locator('.mobile-toggle-icon i').first().evaluate(el=>getComputedStyle(el).transform),'none');
    await overflow(page,name+' open menu');
    for(const summary of await page.locator('#mobileMenu summary').all())await summary.press('Enter');
    assert.ok(await page.locator('#mobileMenu a[href="/scanner/"]').isVisible());
@@ -130,6 +138,7 @@ try{
    await page.keyboard.press('Escape');
    await page.waitForFunction(()=>!document.querySelector('main').inert);
    assert.equal(await page.locator('.mobile-toggle').getAttribute('aria-expanded'),'false');
+   assert.equal(await page.locator('.mobile-toggle-icon i').nth(1).evaluate(el=>getComputedStyle(el).opacity),'1','Closed-menu toggle restores the menu icon');
    assert.ok(await page.locator('.mobile-toggle').evaluate(el=>el===document.activeElement));
    await page.setViewportSize({width:1440,height:960});
    await page.locator('.dropdown>.nav-item').first().press('Enter');
@@ -154,6 +163,9 @@ try{
      await page.route('**/rest/v1/support_requests',r=>{posted=r.request().postDataJSON();return r.fulfill({status:success?201:500,body:success?'':'unavailable',contentType:'application/json'});});
      const form=page.locator('#'+formCase.id);
      assert.ok(await form.count(),'Original form remains: '+formCase.id);
+     await form.locator('button[type="submit"]').click();
+     assert.equal(await form.evaluate(element=>element.checkValidity()),false,'Required fields still block an empty request');
+     assert.equal(posted,null,'Invalid form never emits a support/deletion POST');
      for(const field of await form.locator('input:not([type="hidden"]),textarea').all()){
       if(await field.getAttribute('name')==='website')continue;
       const type=await field.getAttribute('type'),name=await field.getAttribute('name'),pattern=await field.getAttribute('pattern');
@@ -161,6 +173,11 @@ try{
       await field.fill(pattern==='VERWIJDER'?'VERWIJDER':type==='email'?'marketing-qa@example.invalid':name==='subject'?'Marketing QA': 'Test van de bestaande formulierfeedback, uitsluitend lokaal onderschept.');
      }
      for(const select of await form.locator('select').all())await select.selectOption({index:1});
+     const trap=form.locator('input[name="website"]');
+     await trap.evaluate(element=>element.value='automated-spam.invalid');
+     await form.locator('button[type="submit"]').click();
+     assert.equal(posted,null,'Existing honeypot blocks the request');
+     await trap.evaluate(element=>element.value='');
      await form.locator('button[type="submit"]').click();
      await page.waitForFunction(()=>Array.from(document.querySelectorAll('.form-status')).some(el=>el.textContent.length>0));
      const status=await page.locator('.form-status').innerText();
@@ -170,6 +187,15 @@ try{
      await page.unroute('**/rest/v1/support_requests');
     }
    }
+   // Short intro runs once per session and yields to user input.
+   await page.evaluate(()=>sessionStorage.removeItem('boekuna:marketing-intro-v2'));
+   await page.emulateMedia({reducedMotion:'no-preference'});
+   await page.goto(server.base+'/',{waitUntil:'domcontentloaded'});
+   assert.equal(await page.locator('.editorial-intro').count(),1,'First-session introduction');
+   await page.keyboard.press('Tab');
+   assert.equal(await page.locator('.editorial-intro').count(),0,'Any keyboard input dismisses the curtain');
+   await page.reload({waitUntil:'domcontentloaded'});
+   assert.equal(await page.locator('.editorial-intro').count(),0,'No repeated introduction on navigation');
    // Runtime preference change, default entrance and no-JS readable content.
    await page.emulateMedia({reducedMotion:'no-preference'});
    await page.goto(server.base+'/',{waitUntil:'networkidle'});
@@ -185,10 +211,11 @@ try{
    await noJS.goto(server.base+'/',{waitUntil:'networkidle'});
    assert.ok(await noJS.locator('h1').isVisible());
    assert.ok(await noJS.locator('.kz-solution h3').first().isVisible());await overflow(noJS,name+' no JS');await noJS.close();
+   for(const width of [320,430,768,1024,1920])await captureVisual(browser,server.base,'/',width,`after-home-${width}-${name}.png`);
 
    // Recreate the immutable before state in the same engine and breakpoints.
    for(const route of visualRoutes){
-    for(const width of [390,1440]){
+    for(const width of (route==='/'?[320,390,430,768,1024,1440,1920]:[390,1440])){
       const file=`before-${slug(route)}-${width}-${name}.png`;
       await captureVisual(browser,before.base,route,width,file);
     }
