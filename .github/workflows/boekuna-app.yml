@@ -35,6 +35,8 @@ on:
       - "tests/invoice-delivery.test.mjs"
       - "tests/smart-financial-correction.test.mjs"
       - "tests/split-build-boundaries.test.mjs"
+      - "tests/marketing-app-non-regression.test.mjs"
+      - "tests/split-surface-non-regression.test.mjs"
       - "tests/split-surfaces-browser.test.mjs"
       - "tests/split-ci-scopes.test.mjs"
       - "tests/kvk-company-lookup-browser.test.mjs"
@@ -49,14 +51,20 @@ permissions:
 jobs:
   app:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
       - name: CI scope contract
         run: node tests/split-ci-scopes.test.mjs
+      - name: Untouched surface artifact non-regression
+        run: node tests/marketing-app-non-regression.test.mjs
+      - name: Both surface boundaries reject real artifact drift
+        run: node tests/split-surface-non-regression.test.mjs
       - name: Split build boundaries
         run: node tests/split-build-boundaries.test.mjs
       - name: Developer Mode source and production guards

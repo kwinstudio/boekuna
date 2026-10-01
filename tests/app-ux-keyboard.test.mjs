@@ -12,6 +12,8 @@ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const name=process.env.BOOKUNA_BROWSER==='webkit'?'webkit':'chromium',browser=await (name==='webkit'?webkit:chromium).launch();
 const page=await browser.newPage({viewport:{width:390,height:844}}),failures=[];
 page.setDefaultTimeout(2000);
+// Keep native file-chooser interception enabled before keyboard activation.
+page.on('filechooser',()=>{});
 async function check(label,run){try{await run()}catch(error){failures.push({label,error:String(error)})}}
 try{
  await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'domcontentloaded'});await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
@@ -19,7 +21,7 @@ try{
   await page.evaluate(()=>navigate('settings'));
   const importer=page.getByRole('button',{name:'Back-up importeren',exact:true});assert.equal(await importer.count(),1,'Importer needs a keyboard-operable button');
   await page.getByRole('button',{name:'Administratie-back-up',exact:true}).focus();await page.keyboard.press('Tab');assert.equal(await importer.evaluate(el=>el===document.activeElement),true);
-  for(const key of ['Enter','Space']){const [chooser]=await Promise.all([page.waitForEvent('filechooser'),page.keyboard.press(key)]);assert.equal(await chooser.element().getAttribute('id'),'backupFile')}
+  for(const key of ['Enter','Space']){const chosen=page.waitForEvent('filechooser');await page.keyboard.press(key);const chooser=await chosen;assert.equal(await chooser.element().getAttribute('id'),'backupFile');await chooser.setFiles([]);assert.equal(await importer.evaluate(el=>el===document.activeElement),true,'Focus must return after cancelling '+key+' file chooser')}
  });
  await check('keyboard attention filter',async()=>{
   await page.evaluate(()=>navigate('control'));const bank=page.getByRole('button',{name:'Bank (174)',exact:true});await bank.focus();await page.keyboard.press('Enter');assert.equal(await bank.evaluate(el=>el===document.activeElement),true);

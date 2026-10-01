@@ -17,9 +17,11 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -30,6 +32,10 @@ jobs:
           cache-dependency-path: "kwinest/docprocessor/requirements.txt"
       - name: Split architecture characterization
         run: node tests/split-characterization.test.mjs
+      - name: Untouched surface artifact non-regression
+        run: node tests/marketing-app-non-regression.test.mjs
+      - name: Both surface boundaries reject real artifact drift
+        run: node tests/split-surface-non-regression.test.mjs
       - name: Split build boundaries
         run: node tests/split-build-boundaries.test.mjs
       - name: Split origin boundaries

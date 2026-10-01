@@ -36,6 +36,12 @@ Local source/math/auth/tenant/billing/export suites, both-browser mobile/premium
 
 After the execution environment reset, Chromium was restored and reran successfully. Local WebKit host-library downloads are blocked by the environment network allowlist; fresh remote WebKit evidence is required.
 
+The incoming shared-surface artifact check previously asserted that an app UX PR must keep its app artifact unchanged. It now builds both surfaces and compares the opposite artifact: marketing remains byte-identical for app changes, and app remains byte-identical for marketing changes. Negative fixture runs prove that shared app-asset drift and combined public-marketing drift still fail. This changes only CI validation, with no public runtime/source change.
+
+One app run timed out before browser execution because the runner took over nine minutes downloading host packages. App and full-gate job budgets are now twenty minutes so dependency setup and the complete suites can finish; tests and failure propagation remain mandatory.
+
+The keyboard test initializes native file-picker interception before activation and cancels each empty selection before testing the next key; it retains Tab, Enter, Space and focus assertions.
+
 `SPLIT_FULL_GATE.md` requests the current complete integrity workflow. This document does not approve its own changes: exact PR HEAD still requires independent QA and remote app/full CI evidence.
 
 ## Release blockers
