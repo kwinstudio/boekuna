@@ -15,12 +15,6 @@ DEPLOY_SHA:
 APP_DEPLOYMENT:
 https://boekuna-split-app-preview.onrender.com — exact SHA live.
 
-SUPABASE:
-vuwfyhtejsxhdfyvkkeq — ACTIVE_HEALTHY.
-
-DOCUMENT_PROCESSOR:
-https://kwinest-docprocessor.onrender.com — source-compatible processor.
-
 STARTED_AT:
 2026-10-01T18:22:00+02:00
 
@@ -31,34 +25,37 @@ TOTAL_CHECKPOINTS:
 34
 
 CURRENT_CHECKPOINT:
-4
+5
 
 LAST_COMPLETED_CHECKPOINT:
-3
+4
 
 CURRENT_TEST_ID:
-REL-001
+INV-001
 
 LAST_COMPLETED_TEST_ID:
-AUTH-018
+SRV-009
 
 NEXT_TEST_ID:
-REL-001
+INV-001
 
 TOTAL_SCENARIOS:
 421
 
 PASS:
-6
+8
 
 FAIL:
 1
 
 BLOCKED:
-18
+44
 
 NOT_TESTED:
-396
+367
+
+NOT_APPLICABLE:
+1
 
 OPEN_P0:
 0
@@ -69,8 +66,12 @@ OPEN_P1:
 STATUS:
 RUNNING
 
-## Checkpoint 3 — authentication + account
+## Checkpoint 4 — relations + KVK + services
 
-Processed. All 18 real-interaction authentication scenarios are BLOCKED in this execution environment because no authenticated browser/computer runner is exposed and the container cannot resolve the deployed host. Static source confirms the flows exist, and Supabase is healthy, but the QA contract explicitly requires actual interaction rather than source inspection, so no browser-dependent item is upgraded to PASS.
+Processed without product changes.
 
-This is a test-environment limitation, not a demonstrated product defect. The audit continues into independently testable domains.
+- Relation and service CRUD/user-flow scenarios are blocked by absence of an interactive authenticated browser runner.
+- REL-005 is NOT_APPLICABLE because current frozen source has no relation delete/archive/remove action.
+- KVK-009 PASS: deployed Edge Function consumes an atomic service-role-only budget with per-user/global windows.
+- KVK-010 PASS: deployed Edge Function is JWT protected, authenticates a non-anonymous user, enforces MFA assurance when required, restricts origins and keeps KVK credentials/raw upstream responses server-side.
+- KVK search/result/profile UI flow remains BLOCKED until actual authenticated browser execution is available.

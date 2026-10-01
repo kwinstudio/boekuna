@@ -45,35 +45,35 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | DASH-004 | DASH | Dashboard doorklik aandacht | NOT_TESTED |  |
 | DASH-005 | DASH | Dashboard lange naam wrapt veilig | NOT_TESTED |  |
 | DASH-006 | DASH | Dashboard lege administratie | NOT_TESTED |  |
-| REL-001 | REL | Klant aanmaken | NOT_TESTED |  |
-| REL-002 | REL | Leverancier aanmaken | NOT_TESTED |  |
-| REL-003 | REL | Relatie bewerken | NOT_TESTED |  |
-| REL-004 | REL | Relatie heropenen/persistence | NOT_TESTED |  |
-| REL-005 | REL | Relatie archiveren/verwijderen indien aanwezig | NOT_TESTED |  |
-| REL-006 | REL | Relatiezoekfunctie naam/contactpersoon/e-mail/plaats/btw-id | NOT_TESTED |  |
-| REL-007 | REL | Relatiefilter klant/leverancier | NOT_TESTED |  |
-| REL-008 | REL | Relaties sorteren A-Z/Z-A | NOT_TESTED |  |
-| REL-009 | REL | Lange bedrijfsnaam | NOT_TESTED |  |
-| REL-010 | REL | Unicode/apostrof/quotes in relatie | NOT_TESTED |  |
-| KVK-001 | KVK | KVK zoeken | NOT_TESTED |  |
-| KVK-002 | KVK | KVK loading state | NOT_TESTED |  |
-| KVK-003 | KVK | KVK resultaat kiezen | NOT_TESTED |  |
-| KVK-004 | KVK | KVK geen resultaat | NOT_TESTED |  |
-| KVK-005 | KVK | KVK provider/error state | NOT_TESTED |  |
-| KVK-006 | KVK | KVK gegevens overnemen | NOT_TESTED |  |
-| KVK-007 | KVK | KVK overgenomen gegevens handmatig wijzigen | NOT_TESTED |  |
-| KVK-008 | KVK | KVK-relatie opslaan | NOT_TESTED |  |
-| KVK-009 | KVK | KVK budget/rate-limit contract | NOT_TESTED |  |
-| KVK-010 | KVK | KVK auth/server-side credential boundary | NOT_TESTED |  |
-| SRV-001 | SRV | Dienst aanmaken | NOT_TESTED |  |
-| SRV-002 | SRV | Dienst prijs | NOT_TESTED |  |
-| SRV-003 | SRV | Dienst btw | NOT_TESTED |  |
-| SRV-004 | SRV | Dienst eenheid/omschrijving | NOT_TESTED |  |
-| SRV-005 | SRV | Dienst bewerken | NOT_TESTED |  |
-| SRV-006 | SRV | Dienst activeren/deactiveren | NOT_TESTED |  |
-| SRV-007 | SRV | Dienst verwijderen indien toegestaan | NOT_TESTED |  |
-| SRV-008 | SRV | Dienst gebruiken in factuur | NOT_TESTED |  |
-| SRV-009 | SRV | Diensten zoeken/filteren/sorteren | NOT_TESTED |  |
+| REL-001 | REL | Klant aanmaken | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
+| REL-002 | REL | Leverancier aanmaken | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
+| REL-003 | REL | Relatie bewerken | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
+| REL-004 | REL | Relatie heropenen/persistence | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
+| REL-005 | REL | Relatie archiveren/verwijderen indien aanwezig | NOT_APPLICABLE | Frozen source exposes no relation delete/archive/remove action. |
+| REL-006 | REL | Relatiezoekfunctie naam/contactpersoon/e-mail/plaats/btw-id | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
+| REL-007 | REL | Relatiefilter klant/leverancier | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
+| REL-008 | REL | Relaties sorteren A-Z/Z-A | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
+| REL-009 | REL | Lange bedrijfsnaam | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
+| REL-010 | REL | Unicode/apostrof/quotes in relatie | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
+| KVK-001 | KVK | KVK zoeken | BLOCKED | Live KVK UI interaction requires authenticated browser. |
+| KVK-002 | KVK | KVK loading state | BLOCKED | Live KVK UI interaction requires authenticated browser. |
+| KVK-003 | KVK | KVK resultaat kiezen | BLOCKED | Live KVK UI interaction requires authenticated browser. |
+| KVK-004 | KVK | KVK geen resultaat | BLOCKED | Live KVK UI interaction requires authenticated browser. |
+| KVK-005 | KVK | KVK provider/error state | BLOCKED | Live KVK UI interaction requires authenticated browser. |
+| KVK-006 | KVK | KVK gegevens overnemen | BLOCKED | Live KVK UI interaction requires authenticated browser. |
+| KVK-007 | KVK | KVK overgenomen gegevens handmatig wijzigen | BLOCKED | Live KVK UI interaction requires authenticated browser. |
+| KVK-008 | KVK | KVK-relatie opslaan | BLOCKED | Live KVK UI interaction requires authenticated browser. |
+| KVK-009 | KVK | KVK budget/rate-limit contract | PASS | Deployed KVK Edge Function v1 calls service-role-only consume_kvk_lookup_budget; production migration enforces atomic per-user/global minute/day/month limits. |
+| KVK-010 | KVK | KVK auth/server-side credential boundary | PASS | Deployed function verify_jwt=true; rejects missing/non-user auth, enforces MFA assurance when required, origin allowlist, no KVK credential/raw response exposed to browser. |
+| SRV-001 | SRV | Dienst aanmaken | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
+| SRV-002 | SRV | Dienst prijs | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
+| SRV-003 | SRV | Dienst btw | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
+| SRV-004 | SRV | Dienst eenheid/omschrijving | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
+| SRV-005 | SRV | Dienst bewerken | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
+| SRV-006 | SRV | Dienst activeren/deactiveren | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
+| SRV-007 | SRV | Dienst verwijderen indien toegestaan | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
+| SRV-008 | SRV | Dienst gebruiken in factuur | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
+| SRV-009 | SRV | Diensten zoeken/filteren/sorteren | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
 | INV-001 | INV | Nieuwe verkoopfactuur | NOT_TESTED |  |
 | INV-002 | INV | Bestaande klant kiezen | NOT_TESTED |  |
 | INV-003 | INV | Nieuwe klant vanuit factuur indien aanwezig | NOT_TESTED |  |
