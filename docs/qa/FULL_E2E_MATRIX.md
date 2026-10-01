@@ -217,17 +217,17 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | VAT-010 | VAT | Afronding cent-nauwkeurig | BLOCKED | Requires booking the deterministic QA truth set and cross-checking rendered VAT values; authenticated data creation unavailable. |
 | VAT-011 | VAT | Onderliggende facturen cross-check | BLOCKED | Requires booking the deterministic QA truth set and cross-checking rendered VAT values; authenticated data creation unavailable. |
 | VAT-012 | VAT | Onderliggende kosten cross-check | BLOCKED | Requires booking the deterministic QA truth set and cross-checking rendered VAT values; authenticated data creation unavailable. |
-| REP-001 | REP | Rapport week indien aanwezig | NOT_TESTED |  |
-| REP-002 | REP | Rapport maand | NOT_TESTED |  |
-| REP-003 | REP | Rapport kwartaal | NOT_TESTED |  |
-| REP-004 | REP | Rapport jaar | NOT_TESTED |  |
-| REP-005 | REP | Rapport custom range | NOT_TESTED |  |
-| REP-006 | REP | Omzet | NOT_TESTED |  |
-| REP-007 | REP | Kosten | NOT_TESTED |  |
-| REP-008 | REP | Winst | NOT_TESTED |  |
-| REP-009 | REP | Overige KPI's | NOT_TESTED |  |
-| REP-010 | REP | Periode over jaargrens | NOT_TESTED |  |
-| REP-011 | REP | Print/PDF/export indien aanwezig | NOT_TESTED |  |
+| REP-001 | REP | Rapport week indien aanwezig | BLOCKED | Requires populated QA ledger and rendered/exported report interaction; no interactive runner available. |
+| REP-002 | REP | Rapport maand | BLOCKED | Requires populated QA ledger and rendered/exported report interaction; no interactive runner available. |
+| REP-003 | REP | Rapport kwartaal | BLOCKED | Requires populated QA ledger and rendered/exported report interaction; no interactive runner available. |
+| REP-004 | REP | Rapport jaar | BLOCKED | Requires populated QA ledger and rendered/exported report interaction; no interactive runner available. |
+| REP-005 | REP | Rapport custom range | BLOCKED | Requires populated QA ledger and rendered/exported report interaction; no interactive runner available. |
+| REP-006 | REP | Omzet | BLOCKED | Requires populated QA ledger and rendered/exported report interaction; no interactive runner available. |
+| REP-007 | REP | Kosten | BLOCKED | Requires populated QA ledger and rendered/exported report interaction; no interactive runner available. |
+| REP-008 | REP | Winst | BLOCKED | Requires populated QA ledger and rendered/exported report interaction; no interactive runner available. |
+| REP-009 | REP | Overige KPI's | BLOCKED | Requires populated QA ledger and rendered/exported report interaction; no interactive runner available. |
+| REP-010 | REP | Periode over jaargrens | BLOCKED | Requires populated QA ledger and rendered/exported report interaction; no interactive runner available. |
+| REP-011 | REP | Print/PDF/export indien aanwezig | BLOCKED | Requires populated QA ledger and rendered/exported report interaction; no interactive runner available. |
 | LED-001 | LED | Grootboek gegenereerd uit factuur | NOT_TESTED |  |
 | LED-002 | LED | Grootboek uit kosten | NOT_TESTED |  |
 | LED-003 | LED | Grootboek btw | NOT_TESTED |  |
