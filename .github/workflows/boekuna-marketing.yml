@@ -68,9 +68,9 @@ jobs:
         run: node tests/marketing-content-freeze.test.mjs && node tests/marketing-content-freeze-v2.test.mjs
       - name: Marketing page QA
         run: node tests/marketing-pages.test.mjs
-      - name: Real marketing product screenshots
+      - name: No content images or product screenshots
         run: node tests/marketing-product-proof.test.mjs
-      - name: Editorial marketing responsive screenshots
+      - name: Image-free marketing responsive QA
         run: node tests/marketing-editorial-responsive.test.mjs
       - name: Split generated surface browser smoke
         run: node tests/split-surfaces-browser.test.mjs
@@ -80,8 +80,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: boekuna-marketing-visual
-          path: tests/artifacts/brand-*.png
+          name: boekuna-marketing-image-free
+          path: tests/artifacts/image-free-*.png
           if-no-files-found: error
       - name: Upload editorial before-after and QA evidence
         if: always()
