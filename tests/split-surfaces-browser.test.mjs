@@ -11,6 +11,9 @@ for(const script of ['build-marketing.mjs','build-app.mjs']){
   assert.equal(r.status,0,script+' failed: '+r.stderr);
 }
 
+const generatedAppHtml=fs.readFileSync(path.join(root,'dist','app','index.html'),'utf8');
+assert.doesNotMatch(generatedAppHtml,/\bshowLanding\s*\(/,'Generated production app must not retain a dead showLanding() call');
+
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.webmanifest':'application/manifest+json'};
 function serve(dir){
   const server=http.createServer((req,res)=>{
@@ -50,6 +53,62 @@ try{
   assert.equal(await app.locator('.marketing-hero').count(),0,'product host must not render marketing hero');
   assert.equal(await app.locator('#mainApp').evaluate(el=>getComputedStyle(el).display),'none','logged-out product app must remain behind auth');
   assert.ok((await app.locator('.back-to-site').getAttribute('onclick')||'').includes('https://boekuna.nl/'));
+
+  const protectedApp=await browser.newPage();
+  const protectedErrors=[];
+  protectedApp.on('pageerror',error=>protectedErrors.push(String(error)));
+  await protectedApp.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm',route=>route.fulfill({
+    status:200,
+    contentType:'text/javascript',
+    body:`
+let session={user:{id:'generated-logout-user',email:'logout@example.test',user_metadata:{first_name:'QA'}},access_token:'test-token',expires_at:4102444800};
+let authListener=()=>{};
+function query(table){
+  const q={
+    select(){return q},eq(){return q},order(){return q},limit(){return q},upsert(){return q},insert(){return q},update(){return q},delete(){return q},
+    maybeSingle:async()=>({data:table==='profiles'?{company:{}}:table==='ledger_state'?{state:{meta:{nextInvoice:1}},version:1}:null,error:null}),
+    single:async()=>({data:null,error:null}),
+    then(resolve){resolve({data:[],error:null})}
+  };
+  return q;
+}
+export function createClient(){
+  return {
+    auth:{
+      getSession:async()=>({data:{session},error:null}),
+      refreshSession:async()=>({data:{session},error:null}),
+      onAuthStateChange:cb=>{authListener=cb;return {data:{subscription:{unsubscribe(){}}}}},
+      signOut:async()=>{window.__generatedSignOutCalled=(window.__generatedSignOutCalled||0)+1;session=null;queueMicrotask(()=>authListener('SIGNED_OUT',null));return {error:null}},
+      mfa:{getAuthenticatorAssuranceLevel:async()=>({data:{currentLevel:'aal1',nextLevel:'aal1'},error:null})}
+    },
+    from:query,
+    rpc:async name=>name==='get_billing_summary'
+      ?{data:{plan:'free',status:'free',entitlement_status:'free'},error:null}
+      :name==='save_ledger_state'?{data:2,error:null}:{data:null,error:null},
+    channel:()=>({on(){return this},subscribe(){return this},unsubscribe(){}}),
+    storage:{from:()=>({remove:async()=>({error:null})})}
+  }
+}
+`
+  }));
+  await protectedApp.goto(urlFor(appServer)+'/',{waitUntil:'domcontentloaded'});
+  await protectedApp.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await protectedApp.evaluate(()=>history.pushState({protected:true},'',location.pathname+'?protected=1'));
+  await protectedApp.evaluate(()=>navigate('settings'));
+  await protectedApp.locator('#settingsLogoutButton').waitFor();
+  await protectedApp.locator('#settingsLogoutButton').click();
+  await protectedApp.waitForFunction(()=>window.__generatedSignOutCalled===1);
+  await protectedApp.locator('#authForm').waitFor();
+  assert.equal(await protectedApp.locator('#mainApp').evaluate(el=>getComputedStyle(el).display),'none','Generated app must hide protected UI after logout');
+  assert.ok(await protectedApp.locator('#authForm').isVisible(),'Generated app must render login UI after logout');
+  assert.equal(await protectedApp.evaluate(()=>window.__generatedSignOutCalled),1,'Generated app logout must execute Supabase signOut exactly once');
+  assert.deepEqual(protectedErrors,[],'Generated app logout must not throw JavaScript errors');
+  await protectedApp.evaluate(()=>history.back());
+  await protectedApp.waitForTimeout(50);
+  assert.equal(await protectedApp.locator('#mainApp').evaluate(el=>getComputedStyle(el).display),'none','Browser Back must not restore protected app UI after logout');
+  assert.ok(await protectedApp.locator('#authForm').isVisible(),'Browser Back must keep login UI visible after logout');
+  assert.deepEqual(protectedErrors,[],'Browser Back after logout must not throw JavaScript errors');
+  await protectedApp.close();
 } finally {
   await browser.close();
   await new Promise(resolve=>marketingServer.close(resolve));

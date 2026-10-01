@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { chromium, webkit } from 'playwright';
 
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
+assert.match(original,/from\('documents'\)\.delete\(\)\.eq\('user_id',currentUser\.id\)\.eq\('client_ref',id\)/,'Document deletion must stay tenant-scoped');
 fs.mkdirSync('tests/artifacts',{recursive:true});
 
 function replaceLast(source,needle,replacement){
@@ -21,7 +22,9 @@ const fixtureBootstrap=[
   "state.invoices=[{id:'i1',number:'2026-0001',customerId:'c1',status:'sent',kind:'invoice',issueDate:'2026-08-01',dueDate:'2026-08-15',taxTreatment:'standard',payments:[],importedTotals:{net:100,vat:21,gross:121}}];",
   "state.expenses=[{id:'e1',date:'2026-09-01',vendor:'QA Leverancier',invoiceNumber:'INK-1',category:'Kantoor',paymentMethod:'bank',exVat:50,vatRate:21,notes:''}];",
   "state.transactions=[{id:'t1',date:'2026-09-01',description:'QA bankregel',amount:-10,status:'unmatched'}];",
-  "state.documents=[];state.bookings=[];",
+  "state.services=[{id:'s1',name:'Consultancy',description:'',price:100,unitLabel:'uur',vat:21,active:true}];",
+  "state.plannedCash=[{id:'pc1',date:'2026-10-15',description:'QA geplande uitgave',type:'out',amount:25}];",
+  "state.documents=[{id:'d1',name:'qa-document.pdf',type:'Upload',date:'2026-09-05',processingState:'ready'}];state.bookings=[];",
   "documentProcessingJobs=[];documentProcessingInitialized=true;documentProcessingConnectivityLost=false;documentProcessingFetchError=false;",
   "enterApp();"
 ].join('\n');
@@ -63,9 +66,43 @@ async function navigateTo(name){
   await page.evaluate(async target=>{await navigate(target)},name);
   await page.waitForTimeout(30);
 }
-async function assertNoGlobalOverflow(width){
+async function assertNoGlobalOverflow(width,label=''){
   await page.setViewportSize({width,height:Math.max(700,Math.round(width*1.8))});
-  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'No global horizontal overflow at '+width+'px');
+  const layout=await page.evaluate(()=>({
+    scrollWidth:document.documentElement.scrollWidth,
+    innerWidth:window.innerWidth,
+    offenders:[...document.querySelectorAll('body *')].map(el=>{
+      const r=el.getBoundingClientRect();
+      return {tag:el.tagName,id:el.id||'',className:typeof el.className==='string'?el.className:'',left:Math.round(r.left),right:Math.round(r.right),width:Math.round(r.width)}
+    }).filter(x=>x.right>window.innerWidth+2).sort((a,b)=>b.right-a.right).slice(0,12)
+  }));
+  assert.ok(layout.scrollWidth<=layout.innerWidth+2,'No global horizontal overflow at '+width+'px'+(label?' on '+label:'')+'; '+JSON.stringify(layout));
+}
+
+async function assertMobileStackAccessibility(route,selector){
+  await page.setViewportSize({width:390,height:844});
+  await navigateTo(route);
+  const table=page.locator(selector).first();
+  await table.waitFor();
+  const details=await table.evaluate(el=>{
+    const thead=el.querySelector('thead');
+    const visible=element=>{const style=getComputedStyle(element);return style.display!=='none'&&style.visibility!=='hidden'};
+    const headers=[...el.querySelectorAll('thead th')].map(th=>({id:th.id,scope:th.getAttribute('scope')||'',text:th.textContent.trim(),visible:visible(th)}));
+    const cells=[...el.querySelectorAll('tbody tr td:not([colspan])')].map(td=>({headers:td.getAttribute('headers')||'',visible:visible(td)}));
+    return {theadDisplay:thead?getComputedStyle(thead).display:'missing',theadAriaHidden:thead?.getAttribute('aria-hidden')||'',headers,cells};
+  });
+  assert.notEqual(details.theadDisplay,'none',route+' mobile table headers must remain in the accessibility tree');
+  assert.notEqual(details.theadAriaHidden,'true',route+' mobile table header group must not be aria-hidden');
+  assert.ok(details.headers.length>0,route+' mobile table must keep column headers');
+  assert.ok(details.headers.every(header=>header.id&&header.scope==='col'),route+' mobile headers need stable ids and scope=col');
+  assert.ok(details.cells.length>0,route+' accessibility fixture must include at least one data row');
+  const headerById=new Map(details.headers.map(header=>[header.id,header]));
+  assert.ok(details.cells.every(cell=>headerById.has(cell.headers)),route+' data cells must explicitly reference their column header');
+  const visibleCells=details.cells.filter(cell=>cell.visible);
+  assert.ok(visibleCells.length>0,route+' accessibility fixture must include at least one visible data cell');
+  assert.ok(visibleCells.every(cell=>headerById.get(cell.headers)?.visible),route+' every visible data cell must reference a non-hidden column header');
+  const exposedHeaderCount=details.headers.filter(header=>header.visible).length;
+  assert.equal(await table.getByRole('columnheader').count(),exposedHeaderCount,route+' non-hidden column headers must remain exposed as accessibility roles');
 }
 
 try{
@@ -97,8 +134,8 @@ try{
   await navigateTo('expenses');
   assert.ok(await page.getByRole('button',{name:/Kosten boeken/}).isVisible());
   assert.ok(await page.getByRole('button',{name:'Upload',exact:true}).isVisible(),'Purchase invoice upload must remain available');
-  assert.ok(await page.getByRole('button',{name:'Foto',exact:true}).isVisible(),'Receipt photo import must remain available');
-  assert.ok(await page.getByRole('button',{name:/Camera/}).isVisible());
+  assert.equal(await page.locator('#content').getByRole('button',{name:'Foto',exact:true}).count(),0,'Receipt photo must not be a separate primary action');
+  assert.equal(await page.locator('#content').getByRole('button',{name:/Camera/}).count(),0,'Camera must not be a separate primary action');
 
   await navigateTo('bank');
   const bank=await page.locator('#content').innerText();
@@ -112,14 +149,63 @@ try{
   assert.doesNotMatch(documents,/Upload compleet is niet hetzelfde als verwerking compleet\./,'Documents page should not repeat background-processing explanation');
   assert.doesNotMatch(documents,/tekstextractie, tabellen en OCR/,'Documents page should not expose technical OCR explanation in the primary flow');
   assert.ok(await page.getByRole('button',{name:'Upload',exact:true}).isVisible(),'Document upload must remain available');
-  assert.ok(await page.getByRole('button',{name:'Foto',exact:true}).isVisible(),'Document photo import must remain available');
-  assert.ok(await page.getByRole('button',{name:/Camera/}).isVisible());
+  assert.equal(await page.locator('#content').getByRole('button',{name:'Foto',exact:true}).count(),0,'Documents must expose one upload entry, not a separate photo action');
+  assert.equal(await page.locator('#content').getByRole('button',{name:/Camera/}).count(),0,'Documents must expose one upload entry, not a separate camera action');
+  assert.ok(await page.locator('.documents-secondary-menu > summary').isVisible(),'Archiveren must remain available as a secondary More action');
   await page.screenshot({path:`tests/artifacts/premium-documents-${browserName}-390.png`,fullPage:true});
+
+  // Safe document deletion: terminal attention states may be removed, active/linked records must not.
+  await page.evaluate(()=>{
+    state.documents=[
+      {id:'d-failed',fileId:'f-failed',name:'failed.pdf',type:'Document',date:'2026-09-10',processingState:'failed'},
+      {id:'d-review',fileId:'f-review',name:'review.pdf',type:'Document',date:'2026-09-11',processingState:'review_required'},
+      {id:'d-processing',fileId:'f-processing',name:'processing.pdf',type:'Document',date:'2026-09-12',processingState:'processing'},
+      {id:'d-linked',fileId:'f-linked',name:'linked.pdf',type:'Document',date:'2026-09-13',processingState:'ready',linkedType:'expense',linkedId:'e1'}
+    ];
+    documentProcessingJobs=[
+      {id:'j-failed',client_ref:'f-failed',state:'failed',attempt:3,max_attempts:3},
+      {id:'j-review',client_ref:'f-review',state:'review_required',attempt:1,max_attempts:3},
+      {id:'j-processing',client_ref:'f-processing',state:'processing',attempt:1,max_attempts:3}
+    ];
+    render();
+  });
+  assert.equal(await page.evaluate(()=>persistentDocumentAttentionCount()),2,'Failed/review documents must count as attention');
+  assert.equal(await page.evaluate(()=>deleteDocumentNow('d-failed')),true,'Failed unlinked document must be deletable');
+  assert.equal(await page.evaluate(()=>state.documents.some(d=>d.id==='d-failed')),false);
+  assert.equal(await page.evaluate(()=>documentProcessingJobs.some(j=>j.client_ref==='f-failed')),false,'Deleting must immediately clear local attention job state');
+  assert.equal(await page.evaluate(()=>deleteDocumentNow('d-review')),true,'Review-required unlinked document must be deletable');
+  assert.equal(await page.evaluate(()=>deleteDocumentNow('d-processing')),false,'Actively processing document must be protected from deletion');
+  assert.equal(await page.evaluate(()=>state.documents.some(d=>d.id==='d-processing')),true);
+  assert.equal(await page.evaluate(()=>deleteDocumentNow('d-linked')),false,'Document linked to definitive bookkeeping must be protected from deletion');
+  assert.equal(await page.evaluate(()=>state.documents.some(d=>d.id==='d-linked')),true);
+
+  for(const [route,selector] of [
+    ['dashboard','.mobile-dashboard-invoices'],
+    ['expenses','.mobile-expenses'],
+    ['cashflow','.mobile-cashflow'],
+    ['ledger','.mobile-trial'],
+    ['contacts','.mobile-contacts'],
+    ['services','.mobile-services'],
+    ['documents','.mobile-documents']
+  ])await assertMobileStackAccessibility(route,selector);
 
   await navigateTo('vat');
   const vat=await page.locator('#content').innerText();
   assert.match(vat,/geen officiële indiening|niet naar de Belastingdienst/i,'VAT must retain not-submitted meaning');
   assert.match(vat,/Indicatief/i,'VAT must retain indicative meaning');
+  const vatPeriod=page.locator('#vatPeriod');
+  assert.ok(await vatPeriod.isVisible(),'VAT period selector must be visible');
+  assert.ok((await vatPeriod.locator('option').allTextContents()).includes('Jaar'),'VAT must expose a full-year option');
+  await vatPeriod.selectOption('year');
+  assert.match(await page.locator('#content').innerText(),/Jaar 2026/,'VAT year view must clearly identify the selected year');
+
+  await navigateTo('reports');
+  const reportText=await page.locator('#content').innerText();
+  for(const label of ['Deze week','Deze maand','Dit kwartaal','Dit jaar','PDF'])assert.match(reportText,new RegExp(label),'Reports toolbar missing '+label);
+  for(const label of ['Deze week','Deze maand','Dit kwartaal','Dit jaar'])assert.ok(await page.getByRole('button',{name:label,exact:true}).isVisible());
+  await page.getByRole('button',{name:'Deze week',exact:true}).click();
+  const reportRange=await page.evaluate(()=>reportRange());
+  assert.ok(reportRange.from<=reportRange.to,'Report period resolver must return an inclusive ordered range');
 
   await navigateTo('control');
   const control=await page.locator('#content').innerText();
@@ -127,7 +213,10 @@ try{
   assert.match(control,/Debiteuren|Bank|Boekingen|Uitzonderingen/,'Control center must keep actionable exception categories');
   await page.screenshot({path:`tests/artifacts/premium-control-${browserName}-390.png`,fullPage:true});
 
-  for(const width of [320,390,430,820])await assertNoGlobalOverflow(width);
+  for(const target of ['dashboard','cashflow','ledger','contacts','services','reports','documents','expenses']){
+    await navigateTo(target);
+    for(const width of [320,360,375,390,393,430,768,820])await assertNoGlobalOverflow(width,target);
+  }
 
   for(const width of [1024,1280,1440]){
     await page.setViewportSize({width,height:900});
