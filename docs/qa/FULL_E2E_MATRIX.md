@@ -264,21 +264,21 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | BOOK-009 | BOOK | Factuur uit boeking | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
 | BOOK-010 | BOOK | Herinnering markeren | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
 | BOOK-011 | BOOK | Zoeken/filteren/sorteren/custom periode | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
-| TIME-001 | TIME | Uur maken | NOT_TESTED |  |
-| TIME-002 | TIME | Uur datum | NOT_TESTED |  |
-| TIME-003 | TIME | Uur duur | NOT_TESTED |  |
-| TIME-004 | TIME | Uur omschrijving/project | NOT_TESTED |  |
-| TIME-005 | TIME | Uur bewerken | NOT_TESTED |  |
-| TIME-006 | TIME | Uur verwijderen | NOT_TESTED |  |
-| TIME-007 | TIME | Uren totaal | NOT_TESTED |  |
-| TIME-008 | TIME | Rit maken | NOT_TESTED |  |
-| TIME-009 | TIME | Rit datum | NOT_TESTED |  |
-| TIME-010 | TIME | Rit afstand | NOT_TESTED |  |
-| TIME-011 | TIME | Rit omschrijving | NOT_TESTED |  |
-| TIME-012 | TIME | Rit bewerken | NOT_TESTED |  |
-| TIME-013 | TIME | Rit verwijderen | NOT_TESTED |  |
-| TIME-014 | TIME | Ritten totaal | NOT_TESTED |  |
-| TIME-015 | TIME | Export/rapportage-impact waar aanwezig | NOT_TESTED |  |
+| TIME-001 | TIME | Uur maken | BLOCKED | Requires authenticated create/edit/delete/total/export interaction. |
+| TIME-002 | TIME | Uur datum | BLOCKED | Requires authenticated create/edit/delete/total/export interaction. |
+| TIME-003 | TIME | Uur duur | BLOCKED | Requires authenticated create/edit/delete/total/export interaction. |
+| TIME-004 | TIME | Uur omschrijving/project | BLOCKED | Requires authenticated create/edit/delete/total/export interaction. |
+| TIME-005 | TIME | Uur bewerken | BLOCKED | Requires authenticated create/edit/delete/total/export interaction. |
+| TIME-006 | TIME | Uur verwijderen | BLOCKED | Requires authenticated create/edit/delete/total/export interaction. |
+| TIME-007 | TIME | Uren totaal | BLOCKED | Requires authenticated create/edit/delete/total/export interaction. |
+| TIME-008 | TIME | Rit maken | BLOCKED | Requires authenticated create/edit/delete/total/export interaction. |
+| TIME-009 | TIME | Rit datum | BLOCKED | Requires authenticated create/edit/delete/total/export interaction. |
+| TIME-010 | TIME | Rit afstand | BLOCKED | Requires authenticated create/edit/delete/total/export interaction. |
+| TIME-011 | TIME | Rit omschrijving | BLOCKED | Requires authenticated create/edit/delete/total/export interaction. |
+| TIME-012 | TIME | Rit bewerken | BLOCKED | Requires authenticated create/edit/delete/total/export interaction. |
+| TIME-013 | TIME | Rit verwijderen | BLOCKED | Requires authenticated create/edit/delete/total/export interaction. |
+| TIME-014 | TIME | Ritten totaal | BLOCKED | Requires authenticated create/edit/delete/total/export interaction. |
+| TIME-015 | TIME | Export/rapportage-impact waar aanwezig | BLOCKED | Requires authenticated create/edit/delete/total/export interaction. |
 | SETTLE-001 | SETTLE | Gemengde afrekening maken | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
 | SETTLE-002 | SETTLE | Omzetcomponent | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
 | SETTLE-003 | SETTLE | Kostencomponent | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
