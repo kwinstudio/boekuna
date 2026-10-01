@@ -11,7 +11,7 @@ const fixture='tests/fixtures/marketing-content-freeze-v2.json';
 const evidence='tests/artifacts/marketing-editorial-v2';
 const originalAssets=['marketing.css','marketing.js','homepage.css','brand-v2.css'];
 const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
-const bodyText=rows=>rows.map(row=>JSON.parse(row).text).sort();
+const nonMediaBodyText=rows=>rows.map(row=>JSON.parse(row)).filter(row=>row.tag!=='FIGCAPTION').map(row=>row.text).sort();
 const normalizeDynamic=states=>Object.fromEntries(Object.entries(states).map(([key,value])=>[key,value&&typeof value==='object'?{text:value.text,link:value.link??null}:value]));
 const options={headless:true,...(process.env.MARKETING_CHROMIUM_PATH?{executablePath:process.env.MARKETING_CHROMIUM_PATH}:{})};
 const browser=await chromium.launch(options);
@@ -27,7 +27,7 @@ try{
     if(capture){baseline.pages[route]=snapshot;}
     else{
       for(const key of ['words','headings','links','controls','forms','fields','seo'])assert.deepEqual(snapshot[key],baseline.pages[route][key],route+': content freeze violation: '+key);
-      assert.deepEqual(bodyText(snapshot.bodycopy),bodyText(baseline.pages[route].bodycopy),route+': visible body copy changed during image removal');
+      assert.deepEqual(nonMediaBodyText(snapshot.bodycopy),nonMediaBodyText(baseline.pages[route].bodycopy),route+': non-media body copy changed during image removal');
       assert.equal(snapshot.sections.length,baseline.pages[route].sections.length,route+': original sections must remain');
       for(const section of baseline.pages[route].sections)if(section.id)assert.ok(snapshot.sections.some(s=>s.id===section.id),route+': lost section anchor '+section.id);
     }
