@@ -1,3 +1,4 @@
+import {serveKvkAsset} from './lib/kvk-browser-assets.mjs';
 import fs from 'node:fs';
 import http from 'node:http';
 import assert from 'node:assert/strict';
@@ -75,6 +76,7 @@ document.getElementById('mainApp').style.display='grid';
 let appHtml=replaceLast(original,'initAuth();',bootstrap);
 
 const server=http.createServer((req,res)=>{
+  if(serveKvkAsset(req,res))return;
   if(req.url?.startsWith('/assets/financial-correction.js')){res.writeHead(200,{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store'});return res.end(financialCorrectionSource)}
   if(req.url?.startsWith('/manifest.webmanifest')){
     res.writeHead(200,{'content-type':'application/manifest+json'});

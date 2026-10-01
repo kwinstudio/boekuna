@@ -7,6 +7,7 @@ on:
       - "public/manifest.webmanifest"
       - "public/assets/financial-correction.js"
       - "public/assets/developer-mode.js"
+      - "public/assets/kvk-company-lookup.*"
       - "public/assets/brand-v2.css"
       - "public/assets/boekuna-app-icon*"
       - "public/assets/boekuna-favicon.svg"
@@ -33,6 +34,10 @@ on:
       - "tests/split-build-boundaries.test.mjs"
       - "tests/split-surfaces-browser.test.mjs"
       - "tests/split-ci-scopes.test.mjs"
+      - "tests/kvk-company-lookup-browser.test.mjs"
+      - "tests/kvk-company-lookup-security.test.mjs"
+      - "tests/lib/kvk-browser-assets.mjs"
+      - "tests/package*.json"
       - ".github/workflows/boekuna-app.yml"
 
 permissions:
@@ -53,6 +58,8 @@ jobs:
         run: node tests/split-build-boundaries.test.mjs
       - name: Developer Mode source and production guards
         run: node tests/developer-mode.test.mjs
+      - name: KVK production artifact and secret guards
+        run: node tests/kvk-company-lookup-security.test.mjs
       - name: Smart financial correction
         run: node tests/smart-financial-correction.test.mjs
       - name: Install app test dependencies
@@ -63,6 +70,14 @@ jobs:
         run: ./tests/node_modules/.bin/playwright install --with-deps chromium webkit
       - name: Browser pre-launch smoke
         run: node tests/browser-smoke.test.mjs
+      - name: KVK generated production flow — Chromium
+        run: node tests/kvk-company-lookup-browser.test.mjs
+      - name: KVK generated production flow — WebKit
+        run: BOOKUNA_BROWSER=webkit node tests/kvk-company-lookup-browser.test.mjs
+      - name: KVK generated isolated preview flow — Chromium
+        run: KVK_BROWSER_PREVIEW=true node tests/kvk-company-lookup-browser.test.mjs
+      - name: KVK generated isolated preview flow — WebKit
+        run: KVK_BROWSER_PREVIEW=true BOOKUNA_BROWSER=webkit node tests/kvk-company-lookup-browser.test.mjs
       - name: Developer Mode browser smoke
         run: node tests/developer-mode-browser.test.mjs
       - name: Developer Mode browser smoke — WebKit
@@ -149,4 +164,5 @@ jobs:
             tests/artifacts/mobile-dashboard-*.png
             tests/artifacts/premium-*.png
             tests/artifacts/premium-v2-*.png
+            tests/artifacts/kvk-*.png
           if-no-files-found: ignore

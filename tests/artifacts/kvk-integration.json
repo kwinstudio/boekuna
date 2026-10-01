@@ -1,0 +1,52 @@
+{
+  "checkedAt": "2026-10-01T12:20:59.957Z",
+  "project": "ozisiotrzeubwbffnxyr",
+  "mode": "official-free-test",
+  "result": "PASS",
+  "searchResultCount": 10,
+  "mainProfile": true,
+  "secondaryProfile": true,
+  "authAndCors": true,
+  "outcomes": [
+    {
+      "action": "search",
+      "status": 401,
+      "latencyMs": 11556
+    },
+    {
+      "action": "search",
+      "status": 403,
+      "latencyMs": 1386
+    },
+    {
+      "action": "search",
+      "status": 400,
+      "latencyMs": 1578
+    },
+    {
+      "action": "profile",
+      "status": 400,
+      "latencyMs": 1209
+    },
+    {
+      "action": "search",
+      "status": 200,
+      "latencyMs": 2436
+    },
+    {
+      "action": "profile",
+      "status": 200,
+      "latencyMs": 1996
+    },
+    {
+      "action": "search",
+      "status": 200,
+      "latencyMs": 1740
+    },
+    {
+      "action": "profile",
+      "status": 200,
+      "latencyMs": 1852
+    }
+  ]
+}

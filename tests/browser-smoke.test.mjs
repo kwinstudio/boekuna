@@ -85,6 +85,9 @@ try{
   await page.screenshot({path:'tests/artifacts/brand-dashboard-1440.png',fullPage:true});
 
   await page.evaluate(()=>newContact());
+  // Wait for the dialog's initial animation-frame focus before filling the
+  // manual name field, so WebKit input does not race that focus transition.
+  await page.waitForFunction(()=>document.activeElement?.matches('#modalRoot .modal-close'));
   await page.locator('#contactForm [name="name"]').fill('QA Klant BV');
   await page.locator('#contactForm [name="email"]').fill('klant@example.test');
   await page.locator('#contactForm [name="address"]').fill('Klantstraat 2');
@@ -94,6 +97,7 @@ try{
   assert.equal(await page.evaluate(()=>state.contacts.length),1);
 
   await page.evaluate(()=>newService());
+  await page.waitForFunction(()=>document.activeElement?.matches('#modalRoot .modal-close'));
   await page.locator('#serviceForm [name="name"]').fill('QA Consultancy');
   await page.locator('#serviceForm [name="price"]').fill('10');
   await page.locator('#serviceForm [name="vat"]').selectOption('21');
@@ -101,6 +105,7 @@ try{
   assert.equal(await page.evaluate(()=>state.services.length),1);
 
   await page.evaluate(()=>newInvoice());
+  await page.waitForFunction(()=>document.activeElement?.matches('#modalRoot .modal-close'));
   await page.evaluate(()=>reviewInvoice());
   await page.locator('.toast').filter({hasText:'punt(en) controleren'}).waitFor();
 

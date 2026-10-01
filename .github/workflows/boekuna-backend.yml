@@ -17,6 +17,9 @@ on:
       - "tests/provider-agnostic-entitlement.test.mjs"
       - "tests/split-origin-boundaries.test.mjs"
       - "tests/split-ci-scopes.test.mjs"
+      - "tests/kvk-company-lookup.test.mjs"
+      - "tests/kvk-company-lookup-security.test.mjs"
+      - "tests/package*.json"
       - "tests/ocr-production-hardening.test.py"
       - "tests/document-processor-pdf.test.py"
       - "tests/test_document_processor_regression.py"
@@ -51,6 +54,8 @@ jobs:
         run: node tests/provider-agnostic-entitlement.test.mjs
       - name: Accounting integrity
         run: node tests/accounting-integrity.test.mjs
+      - name: KVK mocked backend contract and failure guards
+        run: node --test tests/kvk-company-lookup.test.mjs
       - name: Production source safety
         run: node tests/source-safety.test.mjs
       - name: Developer Mode source and production guards
