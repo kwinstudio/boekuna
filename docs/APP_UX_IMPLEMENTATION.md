@@ -38,9 +38,11 @@ After the execution environment reset, Chromium was restored and reran successfu
 
 The incoming shared-surface artifact check previously asserted that an app UX PR must keep its app artifact unchanged. It now builds both surfaces and compares the opposite artifact: marketing remains byte-identical for app changes, and app remains byte-identical for marketing changes. Negative fixture runs prove that shared app-asset drift and combined public-marketing drift still fail. This changes only CI validation, with no public runtime/source change.
 
-One app run timed out before browser execution because the runner took over nine minutes downloading host packages. App and full-gate job budgets are now twenty minutes so dependency setup and the complete suites can finish; tests and failure propagation remain mandatory.
+One app run timed out before browser execution because the runner took over nine minutes downloading host packages. A subsequent full-gate run needed over seventeen minutes for host packages and was cancelled at twenty minutes during WebKit UX checks. App and full-gate job budgets are now thirty minutes so this observed setup time and the complete suites can finish; tests and failure propagation remain mandatory.
 
 The keyboard test initializes native file-picker interception before activation and cancels each empty selection before testing the next key; it retains Tab, Enter, Space and focus assertions.
+
+The final scoped WebKit KVK test proved an existing-contact city was saved empty while the save itself succeeded. A deterministic regression then reproduced the dialog's deferred autofocus stealing an explicitly focused city input. Dialog autofocus now targets only its own still-connected dialog and preserves a field the user already focused. The generated keyboard regression checks entered Rotterdam text, normal initial focus and stale callbacks from replaced dialogs. The original KVK save/persistence assertion is retained; fresh exact-head WebKit CI must confirm the fix.
 
 `SPLIT_FULL_GATE.md` requests the current complete integrity workflow. This document does not approve its own changes: exact PR HEAD still requires independent QA and remote app/full CI evidence.
 

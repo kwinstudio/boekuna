@@ -32,5 +32,27 @@ try{
   while(reached<174){const next=page.getByRole('button',{name:'Volgende',exact:true});await next.focus();await page.keyboard.press('Enter');reached=Math.min(174,reached+25);assert.match(await page.locator('.control-pagination [role="status"]').innerText(),new RegExp('–'+reached+' van 174'));const target=page.getByRole('button',{name:reached===174?'Vorige':'Volgende',exact:true});assert.equal(await target.evaluate(el=>el===document.activeElement),true,'Focus must survive pagination, including the final page')}
   await page.keyboard.press('Enter');assert.match(await page.locator('.control-pagination [role="status"]').innerText(),/126–150 van 174/);assert.equal(await page.getByRole('button',{name:'Vorige',exact:true}).evaluate(el=>el===document.activeElement),true);
  });
- assert.deepEqual(failures,[],JSON.stringify(failures));console.log('App UX keyboard regression: PASS '+name+' (backup file chooser, category and seven-page focus traversal)');
+ await check('dialog initial focus respects field input',async()=>{
+  await page.evaluate(()=>{
+   window.__uxOriginalRAF=window.requestAnimationFrame;window.__uxFocusFrames=[];
+   window.requestAnimationFrame=callback=>{window.__uxFocusFrames.push(callback);return window.__uxFocusFrames.length};
+   state.contacts.push({id:'ux-existing',type:'customer',name:'Bestaande relatie',city:'',customMetadata:'preserve'});
+   editContact('ux-existing');document.querySelector('#contactCity').focus();
+   for(const callback of window.__uxFocusFrames.splice(0))callback(performance.now());
+   window.requestAnimationFrame=window.__uxOriginalRAF;
+  });
+  assert.equal(await page.locator('#contactCity').evaluate(el=>el===document.activeElement),true,'Deferred dialog autofocus must not steal an explicitly focused field');
+  await page.keyboard.type('Rotterdam');assert.equal(await page.locator('#contactCity').inputValue(),'Rotterdam');await page.getByRole('button',{name:'Opslaan',exact:true}).click();
+  const contact=await page.evaluate(()=>state.contacts.find(c=>c.id==='ux-existing'));assert.equal(contact.city,'Rotterdam');assert.equal(contact.customMetadata,'preserve');assert.equal(await page.locator('#contactForm').count(),0);
+  const normal=await page.evaluate(()=>{
+   window.requestAnimationFrame=callback=>{window.__uxFocusFrames.push(callback);return window.__uxFocusFrames.length};
+   newContact();for(const callback of window.__uxFocusFrames.splice(0))callback(performance.now());
+   const initial=document.activeElement.className;
+   newContact();const stale=window.__uxFocusFrames.shift();newContact();stale(performance.now());const before=document.querySelector('#modalRoot .modal').contains(document.activeElement);
+   for(const callback of window.__uxFocusFrames.splice(0))callback(performance.now());
+   window.requestAnimationFrame=window.__uxOriginalRAF;return {initial,before,after:document.activeElement.className};
+  });
+  assert.equal(normal.initial,'modal-close','Normal dialog autofocus remains');assert.equal(normal.before,false,'A removed dialog cannot focus its replacement');assert.equal(normal.after,'modal-close');await page.keyboard.press('Escape');
+ });
+ assert.deepEqual(failures,[],JSON.stringify(failures));console.log('App UX keyboard regression: PASS '+name+' (backup file chooser, category, seven-page focus traversal and dialog field focus)');
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
