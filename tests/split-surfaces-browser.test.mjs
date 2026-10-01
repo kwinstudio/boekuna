@@ -52,7 +52,8 @@ try{
   assert.equal(await app.locator('meta[name="robots"]').getAttribute('content'),'noindex,nofollow');
   assert.equal(await app.locator('.marketing-hero').count(),0,'product host must not render marketing hero');
   assert.equal(await app.locator('#mainApp').evaluate(el=>getComputedStyle(el).display),'none','logged-out product app must remain behind auth');
-  assert.ok((await app.locator('.back-to-site').getAttribute('onclick')||'').includes('https://boekuna.nl/'));
+  assert.equal(await app.locator('.back-to-site').count(),0,'Product login has no marketing exit');
+  assert.ok(await app.locator('#authForm').isVisible(),'Login remains available');
 
   const protectedApp=await browser.newPage();
   const protectedErrors=[];

@@ -9,7 +9,7 @@ const root=process.cwd();
 const baseRef=process.env.BOOKUNA_BASE_REF || (process.env.GITHUB_BASE_REF ? 'origin/'+process.env.GITHUB_BASE_REF : 'origin/main');
 const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'boekuna-app-base-'));
 
-const runBuild=cwd=>execFileSync(process.execPath,['scripts/build-app.mjs'],{cwd,encoding:'utf8',stdio:['ignore','pipe','pipe']});
+const runBuild=(cwd,surface)=>execFileSync(process.execPath,['scripts/build-'+surface+'.mjs'],{cwd,encoding:'utf8',stdio:['ignore','pipe','pipe']});
 const walk=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(entry=>{
   const file=path.join(dir,entry.name);
   return entry.isDirectory()?walk(file):[file];
@@ -23,14 +23,17 @@ try{
   const archive=execFileSync('git',['archive',baseRef],{cwd:root,maxBuffer:64*1024*1024});
   execFileSync('tar',['-x','-C',tmp],{input:archive,maxBuffer:64*1024*1024});
 
-  runBuild(tmp);
-  const base=digestTree(path.join(tmp,'dist','app'));
+  // Shared split tests also trigger this gate for app PRs. Compare the surface
+  // that must remain unchanged; intentional app changes still have app CI.
+  const appChanged=['kwinest/index.html','scripts/build-app.mjs','public/manifest.webmanifest'].some(file=>!fs.readFileSync(path.join(root,file)).equals(fs.readFileSync(path.join(tmp,file))));
+  const surface=appChanged?'marketing':'app';
+  for(const cwd of [tmp,root])for(const target of ['app','marketing'])runBuild(cwd,target);
+  const base=digestTree(path.join(tmp,'dist',surface));
 
-  runBuild(root);
-  const current=digestTree(path.join(root,'dist','app'));
+  const current=digestTree(path.join(root,'dist',surface));
 
-  assert.deepEqual(current,base,'Marketing-only change altered the generated app artifact relative to '+baseRef);
-  console.log('Marketing app non-regression: PASS ('+Object.keys(current).length+' app artifact files byte-identical to '+baseRef+')');
+  assert.deepEqual(current,base,(appChanged?'App change altered the generated marketing':'Marketing-only change altered the generated app')+' artifact relative to '+baseRef);
+  console.log('Split surface non-regression: PASS ('+Object.keys(current).length+' '+surface+' artifact files byte-identical to '+baseRef+'; both builds passed)');
 }finally{
   fs.rmSync(tmp,{recursive:true,force:true});
 }

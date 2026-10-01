@@ -17,9 +17,11 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -30,6 +32,10 @@ jobs:
           cache-dependency-path: "kwinest/docprocessor/requirements.txt"
       - name: Split architecture characterization
         run: node tests/split-characterization.test.mjs
+      - name: Untouched surface artifact non-regression
+        run: node tests/marketing-app-non-regression.test.mjs
+      - name: Both surface boundaries reject real artifact drift
+        run: node tests/split-surface-non-regression.test.mjs
       - name: Split build boundaries
         run: node tests/split-build-boundaries.test.mjs
       - name: Split origin boundaries
@@ -89,6 +95,16 @@ jobs:
           path: tests/artifacts/document-processing-*.png
           if-no-files-found: ignore
 
+      - name: Storage status and conflict-safe retry
+        run: node tests/app-ux-status.test.mjs
+      - name: Generated app UX and plain Dutch · Chromium
+        run: node tests/app-ux-plain-language.test.mjs
+      - name: Generated app UX and plain Dutch · WebKit
+        run: BOOKUNA_BROWSER=webkit node tests/app-ux-plain-language.test.mjs
+      - name: Generated app keyboard workflow · Chromium
+        run: node tests/app-ux-keyboard.test.mjs
+      - name: Generated app keyboard workflow · WebKit
+        run: BOOKUNA_BROWSER=webkit node tests/app-ux-keyboard.test.mjs
       - name: Auth and progressive onboarding
         run: node tests/auth-progressive-onboarding.test.mjs
       - name: Contextual list controls
@@ -138,3 +154,13 @@ jobs:
         run: node tests/billing-source.test.mjs
       - name: Python syntax safety
         run: python -m py_compile kwinest/docprocessor/app.py kwinest/docprocessor/receipt_math.py kwinest/docprocessor/financial_blocks.py
+
+      - name: Upload app UX evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-ux-evidence
+          path: |
+            tests/artifacts/app-ux-*
+            docs/ux-evidence/before-core-screens.zip
+          if-no-files-found: error

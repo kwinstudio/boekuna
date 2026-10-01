@@ -1,0 +1,2434 @@
+[
+  {
+    "screen": "dashboard",
+    "current_copy": "Goedemiddag, Kwin",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "Aandacht nodig",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "!",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "Factuur 2026-0001 vervallen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "›",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "↔",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "Nog niet gekoppeld",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "Openstaand",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "Omzet 2026",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "Kosten 2026",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "Resultaat 2026",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "Btw Q4",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "Indicatief",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "Omzet & kosten",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "Cashflow →",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "mei",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "jun",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "jul",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "aug",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "sep",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "okt",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "Omzet",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "Kosten",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "Recente facturen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "Alle facturen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "FACTUUR\tKLANT\tDATUM\tVERVALDATUM\tSTATUS\tBEDRAG",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "QA Klant BV",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "dashboard",
+    "current_copy": "Te laat",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "invoices",
+    "current_copy": "Facturen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "invoices",
+    "current_copy": "Upload PDF",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "invoices",
+    "current_copy": "Nieuwe factuur",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "invoices",
+    "current_copy": "Filters",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "invoices",
+    "current_copy": "Sorteren",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "invoices",
+    "current_copy": "CSV",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "invoices",
+    "current_copy": "TOTAAL",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "invoices",
+    "current_copy": "OPENSTAAND",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "invoices",
+    "current_copy": "BETAALD",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "invoices",
+    "current_copy": "VERLOPEN",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "invoices",
+    "current_copy": "FACTUURNR.\tKLANT\tFACTUURDATUM\tVERVALDATUM\tSTATUS\tEXCL.\tINCL.",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "expenses",
+    "current_copy": "Inkoop & kosten",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "expenses",
+    "current_copy": "Upload",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "expenses",
+    "current_copy": "Kosten boeken",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "expenses",
+    "current_copy": "Filters",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "expenses",
+    "current_copy": "Sorteren",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "expenses",
+    "current_copy": "CSV",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "expenses",
+    "current_copy": "Kosten excl. btw",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "expenses",
+    "current_copy": "Voorbelasting",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": true,
+    "treatment": "REVIEW_PLAIN_LANGUAGE"
+  },
+  {
+    "screen": "expenses",
+    "current_copy": "Incl. btw",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "expenses",
+    "current_copy": "DATUM\tLEVERANCIER\tFACTUURNR.\tCATEGORIE\tBETAALWIJZE\tBTW\tEXCL.\tINCL.",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "expenses",
+    "current_copy": "INK-1",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "expenses",
+    "current_copy": "Kantoor",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "Documenten",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "Upload",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "Meer",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "Verwerking afgerond · 0 klaar · 1 niet verwerkt",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "×",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "fictief-document.pdf",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "Kon niet verwerkt worden · Dit document kon niet worden verwerkt.",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "Opnieuw proberen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "Nieuwe foto kiezen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "Handmatig invoeren",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "Verwijderen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "Je documenten zijn ontvangen. Je kunt ondertussen verder werken.",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "Filters",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "Sorteren",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "Sleep document hierheen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "of kies bestand",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "Bestanden",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "NAAM\tTYPE\tDATUM\tGEKOPPELD AAN\tSTATUS",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "Document",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "—",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "Mislukt",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "documents",
+    "current_copy": "Open",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bank",
+    "current_copy": "Bank & kas",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bank",
+    "current_copy": "Bank CSV",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bank",
+    "current_copy": "Transactie",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bank",
+    "current_copy": "Filters",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bank",
+    "current_copy": "Sorteren",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bank",
+    "current_copy": "Importsaldo",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bank",
+    "current_copy": "Te verwerken",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bank",
+    "current_copy": "Gekoppeld",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bank",
+    "current_copy": "Transacties",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bank",
+    "current_copy": "Automatisch koppelen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bank",
+    "current_copy": "DATUM\tOMSCHRIJVING\tSTATUS\tBEDRAG",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "control",
+    "current_copy": "Controlecentrum",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "control",
+    "current_copy": "Uitzonderingen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "control",
+    "current_copy": "Herinner",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "control",
+    "current_copy": "Koppel",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "control",
+    "current_copy": "E-factuur readiness",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": true,
+    "treatment": "REVIEW_PLAIN_LANGUAGE"
+  },
+  {
+    "screen": "control",
+    "current_copy": "Activiteit",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "control",
+    "current_copy": "CSV",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Btw-overzicht",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Indicatief · nog niet ingediend",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Q1",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Q2",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Q3",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Q4",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Jaar",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Omzet 21%",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Btw € 0,00",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Omzet 9%",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Voorbelasting",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": true,
+    "treatment": "REVIEW_PLAIN_LANGUAGE"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Btw op kosten",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Per saldo",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Te betalen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Berekening",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Q4 2026",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Verschuldigde btw 21%",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": true,
+    "treatment": "REVIEW_PLAIN_LANGUAGE"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Verschuldigde btw 9%",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": true,
+    "treatment": "REVIEW_PLAIN_LANGUAGE"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Indicatief te betalen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Kopieer overzicht",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Controlelijst",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Bank verwerkt",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Verkoopfacturen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Inkoop",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "vat",
+    "current_copy": "Boekuna verstuurt deze aangifte niet naar de Belastingdienst.",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Rapportages",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Deze week",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Deze maand",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Dit kwartaal",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Dit jaar",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "VAN",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "TOT EN MET",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "PDF",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Omzet excl. btw",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Kosten excl. btw",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Resultaat",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Openstaand",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Winst & verlies",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Omzet",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Creditfacturen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Kosten",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Financiële positie",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Importsaldo",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Debiteuren",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": true,
+    "treatment": "REVIEW_PLAIN_LANGUAGE"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Btw-positie",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Operationeel overzicht · geen formele jaarstukken.",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Kosten per categorie",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Excl. btw",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Kantoor",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Exports",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Verkoopfacturen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "CSV",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Download",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Inkoop & kosten",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Back-up",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "JSON",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "reports",
+    "current_copy": "Auditlog",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "cashflow",
+    "current_copy": "Cashflow & belastingpot",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "cashflow",
+    "current_copy": "Geplande beweging",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "cashflow",
+    "current_copy": "Importsaldo",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "cashflow",
+    "current_copy": "Cashflow",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "cashflow",
+    "current_copy": "Prognose op bekende gegevens",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "cashflow",
+    "current_copy": "Nu",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "cashflow",
+    "current_copy": "Belastingpot",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "cashflow",
+    "current_copy": "Persoonlijke buffer",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "cashflow",
+    "current_copy": "Btw-reserve",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "cashflow",
+    "current_copy": "Winstreserve (30%)",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "cashflow",
+    "current_copy": "Doel",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "cashflow",
+    "current_copy": "RESERVEPERCENTAGE WINST",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "cashflow",
+    "current_copy": "Opslaan",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "cashflow",
+    "current_copy": "Persoonlijke buffer · geen berekende inkomsten- of vennootschapsbelasting.",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "cashflow",
+    "current_copy": "Geplande inkomsten & uitgaven",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "cashflow",
+    "current_copy": "DATUM\tOMSCHRIJVING\tTYPE\tBEDRAG",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "cashflow",
+    "current_copy": "Nog geen planning",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "cashflow",
+    "current_copy": "Toevoegen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "Grootboek",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "Automatisch uit bronboekingen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "Journaal CSV",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": true,
+    "treatment": "REVIEW_PLAIN_LANGUAGE"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "Rapportages",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "Debet",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "Credit",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "Verschil",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "In balans",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "Tussenrekening",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "Proefbalans",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "REKENING\tNAAM\tDEBET\tCREDIT\tSALDO",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "Bank",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "Debiteuren",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": true,
+    "treatment": "REVIEW_PLAIN_LANGUAGE"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "Te betalen btw",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "Te vorderen btw",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "Tussenrekening bank",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "Kantoorkosten",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "Omzet",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "Boekingsregels",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "DATUM\tREFERENTIE\tOMSCHRIJVING\tREKENING\tDEBET\tCREDIT",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "ledger",
+    "current_copy": "Ongekoppelde bankmutaties blijven op rekening 2300 tot ze zijn toegewezen.",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": true,
+    "treatment": "REVIEW_PLAIN_LANGUAGE"
+  },
+  {
+    "screen": "contacts",
+    "current_copy": "Relaties",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "contacts",
+    "current_copy": "Nieuwe relatie",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "contacts",
+    "current_copy": "Filters",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "contacts",
+    "current_copy": "Sorteren",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "contacts",
+    "current_copy": "NAAM\tTYPE\tCONTACTPERSOON\tE-MAIL\tADRES\tBTW-ID",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "contacts",
+    "current_copy": "QA Klant BV",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "contacts",
+    "current_copy": "Klant",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "contacts",
+    "current_copy": "Lange Contactpersoon",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "contacts",
+    "current_copy": "klant@example.test",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "contacts",
+    "current_copy": "Bewerk",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "services",
+    "current_copy": "Diensten",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "services",
+    "current_copy": "Nieuwe dienst",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "services",
+    "current_copy": "Filters",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "services",
+    "current_copy": "Sorteren",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "services",
+    "current_copy": "DIENST\tEENHEID\tBTW\tPRIJS EXCL. BTW\tSTATUS",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "services",
+    "current_copy": "Advies",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "services",
+    "current_copy": "Zakelijk advies",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "services",
+    "current_copy": "Actief",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "services",
+    "current_copy": "Bewerk",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bookings",
+    "current_copy": "Boekingen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bookings",
+    "current_copy": "Nieuwe boeking",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bookings",
+    "current_copy": "Filters",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bookings",
+    "current_copy": "Sorteren",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bookings",
+    "current_copy": "Komende 7 dagen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bookings",
+    "current_copy": "Boekingswaarde",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bookings",
+    "current_copy": "Aanbetalingen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bookings",
+    "current_copy": "No-shows",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bookings",
+    "current_copy": "Afspraken",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "bookings",
+    "current_copy": "Je hebt nog geen boekingen.",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "hours",
+    "current_copy": "Uren & ritten",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "hours",
+    "current_copy": "Rit toevoegen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "hours",
+    "current_copy": "Uren boeken",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "hours",
+    "current_copy": "Uren",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "hours",
+    "current_copy": "Kilometers",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "hours",
+    "current_copy": "DATUM\tPROJECT\tOMSCHRIJVING\tUREN",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "hours",
+    "current_copy": "Ritten",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "hours",
+    "current_copy": "DATUM\tROUTE\tDOEL\tKM",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Instellingen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Bedrijfsgegevens",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Fiscale spelregels",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Privacy & veiligheid",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "BEDRIJF",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Compleet",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Openen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "FACTUREN",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Facturen versturen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Eigen e-mailapp",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Boekuna maakt PDF en bericht klaar; jij verstuurt zelf.",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "E-mailsjabloon",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Afzender & bericht",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Factuurlayout",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Logo, stijl & PDF",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "ACCOUNT & GEGEVENS",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Abonnement",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Laden…",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Account",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Uitloggen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Hulp & support",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "support@boekuna.nl",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Data & back-up",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Back-up",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Auditlog",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Versies",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Importeren",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Administratie wissen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Account verwijderen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Veiligheid & opslag",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "settings",
+    "current_copy": "Actief",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "Bedrijfsgegevens",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "Terug",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "Factuurbasis compleet",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "Bedrijf",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "JURIDISCHE BEDRIJFSNAAM",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "HANDELSNAAM",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "KVK-NUMMER",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "BTW-IDENTIFICATIENUMMER",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "Adres",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "STRAAT + HUISNUMMER",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "POSTCODE",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "PLAATS",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "LAND",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "Contact",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "BEDRIJFSE-MAIL",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "TELEFOON",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "WEBSITE",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "CONTACTPERSOON",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "Betaling",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "IBAN",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "REKENINGHOUDER",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "BIC",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "Facturen",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "FACTUURPREFIX",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "STANDAARD BETAALTERMIJN",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "PEPPOL / E-FACTUUR ID",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "LOGO",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "Optioneel; je kunt dit later toevoegen.",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "Ik ben geregistreerd voor de Kleineondernemersregeling (KOR)",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "profile",
+    "current_copy": "Bedrijfsgegevens opslaan",
+    "context": "generated app, Chromium 390px, fictive fixture",
+    "type": "label/status/action/help",
+    "jargon": false,
+    "treatment": "KEEP_OR_REMOVE_DUPLICATION"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": "← Terug naar Boekuna",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": "Gratis starten",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": "Maak je gratis account",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": "Je kunt Boekuna direct bekijken. Bedrijfsgegevens vul je pas in wanneer je ze nodig hebt.",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": "E-mailadres",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": "Door een account aan te maken ga je akkoord met de",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": "Algemene voorwaarden",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": ". Lees ook onze",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": "privacyverklaring",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": "Account aanmaken",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": "Heb je al een account?",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": "Inloggen",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": "`\n  : `",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": "Welkom terug",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": "Ga verder met je administratie.",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": "Wachtwoord",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": "Toon",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": "Wachtwoord vergeten?",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  },
+  {
+    "screen": "login/signup",
+    "current_copy": "Nog geen account? Gratis starten",
+    "context": "base production auth template",
+    "type": "action/label/help",
+    "jargon": false,
+    "treatment": "KEEP; remove only marketing exit"
+  }
+]

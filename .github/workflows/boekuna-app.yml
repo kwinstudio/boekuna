@@ -17,6 +17,9 @@ on:
       - "tests/browser-smoke.test.mjs"
       - "tests/developer-mode.test.mjs"
       - "tests/developer-mode-browser.test.mjs"
+      - "tests/app-ux-plain-language.test.mjs"
+      - "tests/app-ux-keyboard.test.mjs"
+      - "tests/app-ux-status.test.mjs"
       - "tests/mobile-app-layout.test.mjs"
       - "tests/premium-app-simplification.test.mjs"
       - "tests/app-wide-premium-simplification-v2.test.mjs"
@@ -32,6 +35,8 @@ on:
       - "tests/invoice-delivery.test.mjs"
       - "tests/smart-financial-correction.test.mjs"
       - "tests/split-build-boundaries.test.mjs"
+      - "tests/marketing-app-non-regression.test.mjs"
+      - "tests/split-surface-non-regression.test.mjs"
       - "tests/split-surfaces-browser.test.mjs"
       - "tests/split-ci-scopes.test.mjs"
       - "tests/kvk-company-lookup-browser.test.mjs"
@@ -46,14 +51,20 @@ permissions:
 jobs:
   app:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
       - name: CI scope contract
         run: node tests/split-ci-scopes.test.mjs
+      - name: Untouched surface artifact non-regression
+        run: node tests/marketing-app-non-regression.test.mjs
+      - name: Both surface boundaries reject real artifact drift
+        run: node tests/split-surface-non-regression.test.mjs
       - name: Split build boundaries
         run: node tests/split-build-boundaries.test.mjs
       - name: Developer Mode source and production guards
@@ -116,6 +127,16 @@ jobs:
         run: node tests/document-background-processing.test.mjs
       - name: WebKit document review regressions
         run: BOOKUNA_BROWSER=webkit node tests/document-upload-browser.test.mjs
+      - name: Storage status and conflict-safe retry
+        run: node tests/app-ux-status.test.mjs
+      - name: Generated app UX and plain Dutch · Chromium
+        run: node tests/app-ux-plain-language.test.mjs
+      - name: Generated app UX and plain Dutch · WebKit
+        run: BOOKUNA_BROWSER=webkit node tests/app-ux-plain-language.test.mjs
+      - name: Generated app keyboard workflow · Chromium
+        run: node tests/app-ux-keyboard.test.mjs
+      - name: Generated app keyboard workflow · WebKit
+        run: BOOKUNA_BROWSER=webkit node tests/app-ux-keyboard.test.mjs
       - name: Auth and progressive onboarding
         run: node tests/auth-progressive-onboarding.test.mjs
       - name: Contextual list controls
@@ -166,3 +187,13 @@ jobs:
             tests/artifacts/premium-v2-*.png
             tests/artifacts/kvk-*.png
           if-no-files-found: ignore
+
+      - name: Upload app UX evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-ux-evidence
+          path: |
+            tests/artifacts/app-ux-*
+            docs/ux-evidence/before-core-screens.zip
+          if-no-files-found: error
