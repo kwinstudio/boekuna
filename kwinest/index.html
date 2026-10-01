@@ -1879,7 +1879,7 @@ img.bookuna-logo-icon,
 }
 
 
-.document-processing-global{min-height:36px;max-width:210px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--text);padding:7px 10px;display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
+.document-processing-global{min-height:36px;min-width:0;max-width:210px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--text);padding:7px 10px;display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
 .document-processing-global:hover{background:#f6f9f8}.document-processing-global.hidden{display:none!important}
 .document-processing-global-spinner,.document-status-spinner{width:14px;height:14px;flex:0 0 14px;border:2px solid rgba(33,94,79,.22);border-top-color:var(--primary);border-radius:50%;animation:spin .85s linear infinite}
 .document-attention-badge{min-width:20px;height:20px;padding:0 6px;margin-left:auto;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:#fff1e8;color:#8d3d16;font-size:10px;font-weight:900;border:1px solid #f0c9b4}
@@ -1901,7 +1901,7 @@ img.bookuna-logo-icon,
 .document-processing-reconnect{margin-top:12px;padding:11px 12px;border-radius:11px;background:#fff8e7;color:#715216;font-size:12px;line-height:1.45}
 .document-processing-panel-summary{padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:#f8faf9;margin-bottom:10px;font-size:13px}
 @media(max-width:700px){
- .document-processing-global{max-width:145px;padding:7px 9px}.document-processing-global #documentProcessingGlobalText{overflow:hidden;text-overflow:ellipsis}
+ .top-actions{min-width:0}.document-processing-global{min-width:0;max-width:145px;padding:7px 9px}.document-processing-global #documentProcessingGlobalText{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis}
  .document-processing-board{padding:13px}.document-processing-board-head{display:grid}.document-processing-summary{white-space:normal}
  .document-processing-card{grid-template-columns:26px minmax(0,1fr)}.document-processing-card-actions{grid-column:2;justify-content:flex-start}
 }
