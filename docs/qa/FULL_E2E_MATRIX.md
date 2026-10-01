@@ -406,18 +406,18 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | BROW-004 | BROW | WebKit date controls | BLOCKED | Exact-current WebKit regression did not execute after CI-007 and no live WebKit runner is exposed. |
 | BROW-005 | BROW | WebKit share/email handoff | BLOCKED | Exact-current WebKit regression did not execute after CI-007 and no live WebKit runner is exposed. |
 | BROW-006 | BROW | WebKit session/scrolling | BLOCKED | Exact-current WebKit regression did not execute after CI-007 and no live WebKit runner is exposed. |
-| A11Y-001 | A11Y | Keyboard navigatie | NOT_TESTED |  |
-| A11Y-002 | A11Y | Focus management | NOT_TESTED |  |
-| A11Y-003 | A11Y | Form labels | NOT_TESTED |  |
-| A11Y-004 | A11Y | Button names | NOT_TESTED |  |
-| A11Y-005 | A11Y | Modal semantics/focus trap | NOT_TESTED |  |
-| A11Y-006 | A11Y | Menu semantics | NOT_TESTED |  |
-| A11Y-007 | A11Y | Error associations | NOT_TESTED |  |
-| A11Y-008 | A11Y | ARIA | NOT_TESTED |  |
-| A11Y-009 | A11Y | Mobiele controls | NOT_TESTED |  |
-| A11Y-010 | A11Y | Tabelheaders blijven in accessibility tree | NOT_TESTED |  |
-| A11Y-011 | A11Y | Charts hebben tekstalternatief | NOT_TESTED |  |
-| A11Y-012 | A11Y | Axe automatische scan | NOT_TESTED |  |
+| A11Y-001 | A11Y | Keyboard navigatie | BLOCKED | Requires live keyboard/focus/semantics/axe execution; exact-current browser/accessibility steps did not run after CI-007. |
+| A11Y-002 | A11Y | Focus management | BLOCKED | Requires live keyboard/focus/semantics/axe execution; exact-current browser/accessibility steps did not run after CI-007. |
+| A11Y-003 | A11Y | Form labels | BLOCKED | Requires live keyboard/focus/semantics/axe execution; exact-current browser/accessibility steps did not run after CI-007. |
+| A11Y-004 | A11Y | Button names | BLOCKED | Requires live keyboard/focus/semantics/axe execution; exact-current browser/accessibility steps did not run after CI-007. |
+| A11Y-005 | A11Y | Modal semantics/focus trap | BLOCKED | Requires live keyboard/focus/semantics/axe execution; exact-current browser/accessibility steps did not run after CI-007. |
+| A11Y-006 | A11Y | Menu semantics | BLOCKED | Requires live keyboard/focus/semantics/axe execution; exact-current browser/accessibility steps did not run after CI-007. |
+| A11Y-007 | A11Y | Error associations | BLOCKED | Requires live keyboard/focus/semantics/axe execution; exact-current browser/accessibility steps did not run after CI-007. |
+| A11Y-008 | A11Y | ARIA | BLOCKED | Requires live keyboard/focus/semantics/axe execution; exact-current browser/accessibility steps did not run after CI-007. |
+| A11Y-009 | A11Y | Mobiele controls | BLOCKED | Requires live keyboard/focus/semantics/axe execution; exact-current browser/accessibility steps did not run after CI-007. |
+| A11Y-010 | A11Y | Tabelheaders blijven in accessibility tree | BLOCKED | Requires live keyboard/focus/semantics/axe execution; exact-current browser/accessibility steps did not run after CI-007. |
+| A11Y-011 | A11Y | Charts hebben tekstalternatief | BLOCKED | Requires live keyboard/focus/semantics/axe execution; exact-current browser/accessibility steps did not run after CI-007. |
+| A11Y-012 | A11Y | Axe automatische scan | BLOCKED | Requires live keyboard/focus/semantics/axe execution; exact-current browser/accessibility steps did not run after CI-007. |
 | CI-001 | CI | Split architecture characterization | PASS | GitHub Actions run 36883528292 step 5 |
 | CI-002 | CI | Split build boundaries | PASS | GitHub Actions run 36883528292 step 6 |
 | CI-003 | CI | Split origin boundaries | PASS | GitHub Actions run 36883528292 step 7 |
