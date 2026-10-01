@@ -138,54 +138,54 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | PAY-006 | PAY | Betaling verwijderen/corrigeren indien aanwezig | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
 | PAY-007 | PAY | Betaling downstream dashboard | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
 | PAY-008 | PAY | Betaling downstream grootboek | BLOCKED | Requires authenticated browser interaction and/or downloaded PDF/native handoff evidence; no interactive runner available. |
-| EXP-001 | EXP | Handmatige kostenboeking | NOT_TESTED |  |
-| EXP-002 | EXP | Leverancier | NOT_TESTED |  |
-| EXP-003 | EXP | Datum | NOT_TESTED |  |
-| EXP-004 | EXP | Factuurnummer | NOT_TESTED |  |
-| EXP-005 | EXP | Categorie | NOT_TESTED |  |
-| EXP-006 | EXP | Betaalwijze | NOT_TESTED |  |
-| EXP-007 | EXP | 21% btw | NOT_TESTED |  |
-| EXP-008 | EXP | 9% btw | NOT_TESTED |  |
-| EXP-009 | EXP | Mixed VAT | NOT_TESTED |  |
-| EXP-010 | EXP | Excl/btw/incl cent-nauwkeurig | NOT_TESTED |  |
-| EXP-011 | EXP | Kosten bewerken | NOT_TESTED |  |
-| EXP-012 | EXP | Kosten corrigeren | NOT_TESTED |  |
-| EXP-013 | EXP | Kosten verwijderen | NOT_TESTED |  |
-| EXP-014 | EXP | Kosten heropenen/persistence | NOT_TESTED |  |
-| EXP-015 | EXP | Kosten downstream btw | NOT_TESTED |  |
-| EXP-016 | EXP | Kosten downstream rapportage/grootboek | NOT_TESTED |  |
-| DOC-001 | DOC | JPG upload | NOT_TESTED |  |
-| DOC-002 | DOC | PNG upload | NOT_TESTED |  |
-| DOC-003 | DOC | WEBP/HEIC/TIFF/BMP indien ondersteund | NOT_TESTED |  |
-| DOC-004 | DOC | Digitale PDF | NOT_TESTED |  |
-| DOC-005 | DOC | Scan-PDF | NOT_TESTED |  |
-| DOC-006 | DOC | Multipage PDF | NOT_TESTED |  |
-| DOC-007 | DOC | DOCX/XLSX/CSV generiek document waar ondersteund | NOT_TESTED |  |
-| DOC-008 | DOC | Bon cameracapture | NOT_TESTED |  |
-| DOC-009 | DOC | OCR leverancier | NOT_TESTED |  |
-| DOC-010 | DOC | OCR datum | NOT_TESTED |  |
-| DOC-011 | DOC | OCR documentnummer | NOT_TESTED |  |
-| DOC-012 | DOC | OCR excl/btw/incl | NOT_TESTED |  |
-| DOC-013 | DOC | OCR 21% | NOT_TESTED |  |
-| DOC-014 | DOC | OCR 9% | NOT_TESTED |  |
-| DOC-015 | DOC | OCR mixed VAT niet flattenen | NOT_TESTED |  |
-| DOC-016 | DOC | OCR review | NOT_TESTED |  |
-| DOC-017 | DOC | OCR correctie | NOT_TESTED |  |
-| DOC-018 | DOC | OCR bevestigen/boeken | NOT_TESTED |  |
-| DOC-019 | DOC | Document reopen | NOT_TESTED |  |
-| DOC-020 | DOC | Corrupt bestand | NOT_TESTED |  |
-| DOC-021 | DOC | Unsupported bestand | NOT_TESTED |  |
-| DOC-022 | DOC | Processor error state | NOT_TESTED |  |
-| DOC-023 | DOC | Retry | NOT_TESTED |  |
-| DOC-024 | DOC | Ander bestand kiezen | NOT_TESTED |  |
-| DOC-025 | DOC | Handmatig invoeren fallback | NOT_TESTED |  |
-| DOC-026 | DOC | Batch upload | NOT_TESTED |  |
-| DOC-027 | DOC | Per-document status | NOT_TESTED |  |
-| DOC-028 | DOC | Achtergrondverwerking + navigeren | NOT_TESTED |  |
-| DOC-029 | DOC | Retry per item | NOT_TESTED |  |
-| DOC-030 | DOC | Duplicate document bescherming | NOT_TESTED |  |
-| DOC-031 | DOC | Document verwijderen veilige eligibility | NOT_TESTED |  |
-| DOC-032 | DOC | Document attention status/count | NOT_TESTED |  |
+| EXP-001 | EXP | Handmatige kostenboeking | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| EXP-002 | EXP | Leverancier | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| EXP-003 | EXP | Datum | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| EXP-004 | EXP | Factuurnummer | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| EXP-005 | EXP | Categorie | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| EXP-006 | EXP | Betaalwijze | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| EXP-007 | EXP | 21% btw | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| EXP-008 | EXP | 9% btw | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| EXP-009 | EXP | Mixed VAT | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| EXP-010 | EXP | Excl/btw/incl cent-nauwkeurig | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| EXP-011 | EXP | Kosten bewerken | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| EXP-012 | EXP | Kosten corrigeren | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| EXP-013 | EXP | Kosten verwijderen | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| EXP-014 | EXP | Kosten heropenen/persistence | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| EXP-015 | EXP | Kosten downstream btw | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| EXP-016 | EXP | Kosten downstream rapportage/grootboek | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-001 | DOC | JPG upload | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-002 | DOC | PNG upload | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-003 | DOC | WEBP/HEIC/TIFF/BMP indien ondersteund | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-004 | DOC | Digitale PDF | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-005 | DOC | Scan-PDF | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-006 | DOC | Multipage PDF | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-007 | DOC | DOCX/XLSX/CSV generiek document waar ondersteund | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-008 | DOC | Bon cameracapture | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-009 | DOC | OCR leverancier | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-010 | DOC | OCR datum | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-011 | DOC | OCR documentnummer | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-012 | DOC | OCR excl/btw/incl | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-013 | DOC | OCR 21% | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-014 | DOC | OCR 9% | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-015 | DOC | OCR mixed VAT niet flattenen | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-016 | DOC | OCR review | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-017 | DOC | OCR correctie | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-018 | DOC | OCR bevestigen/boeken | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-019 | DOC | Document reopen | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-020 | DOC | Corrupt bestand | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-021 | DOC | Unsupported bestand | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-022 | DOC | Processor error state | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-023 | DOC | Retry | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-024 | DOC | Ander bestand kiezen | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-025 | DOC | Handmatig invoeren fallback | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-026 | DOC | Batch upload | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-027 | DOC | Per-document status | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-028 | DOC | Achtergrondverwerking + navigeren | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-029 | DOC | Retry per item | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-030 | DOC | Duplicate document bescherming | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-031 | DOC | Document verwijderen veilige eligibility | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
+| DOC-032 | DOC | Document attention status/count | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
 | BANK-001 | BANK | Handmatige inkomende transactie | NOT_TESTED |  |
 | BANK-002 | BANK | Handmatige uitgaande transactie | NOT_TESTED |  |
 | BANK-003 | BANK | Datum/bedrag/omschrijving | NOT_TESTED |  |
