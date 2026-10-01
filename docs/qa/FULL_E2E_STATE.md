@@ -13,15 +13,13 @@ DEPLOY_SHA:
 7132029b792c8942f18317637ff352461dfe08d5
 
 APP_DEPLOYMENT:
-https://boekuna-split-app-preview.onrender.com
-Render deploy: dep-dav7krvlk1mc73f8cg90 (live, exact source SHA)
+https://boekuna-split-app-preview.onrender.com — exact SHA live.
 
 SUPABASE:
-vuwfyhtejsxhdfyvkkeq (kwinest), ACTIVE_HEALTHY
+vuwfyhtejsxhdfyvkkeq — ACTIVE_HEALTHY.
 
 DOCUMENT_PROCESSOR:
-https://kwinest-docprocessor.onrender.com
-Live processor code is source-compatible with frozen baseline.
+https://kwinest-docprocessor.onrender.com — source-compatible processor.
 
 STARTED_AT:
 2026-10-01T18:22:00+02:00
@@ -33,19 +31,19 @@ TOTAL_CHECKPOINTS:
 34
 
 CURRENT_CHECKPOINT:
-3
+4
 
 LAST_COMPLETED_CHECKPOINT:
-2
+3
 
 CURRENT_TEST_ID:
-AUTH-001
+REL-001
 
 LAST_COMPLETED_TEST_ID:
-DATA-012
+AUTH-018
 
 NEXT_TEST_ID:
-AUTH-001
+REL-001
 
 TOTAL_SCENARIOS:
 421
@@ -57,10 +55,10 @@ FAIL:
 1
 
 BLOCKED:
-0
+18
 
 NOT_TESTED:
-414
+396
 
 OPEN_P0:
 0
@@ -71,13 +69,8 @@ OPEN_P1:
 STATUS:
 RUNNING
 
-## Completed checkpoints
+## Checkpoint 3 — authentication + account
 
-- 0 source + environment lock: COMPLETE
-- 1 complete function inventory: COMPLETE
-- 2 safe synthetic test data + expected financial truth: COMPLETE
+Processed. All 18 real-interaction authentication scenarios are BLOCKED in this execution environment because no authenticated browser/computer runner is exposed and the container cannot resolve the deployed host. Static source confirms the flows exist, and Supabase is healthy, but the QA contract explicitly requires actual interaction rather than source inspection, so no browser-dependent item is upgraded to PASS.
 
-Synthetic fixture specification:
-tests/artifacts/full-e2e/TEST_DATA.md
-
-Exact-current CI remains red at FUNC-CI-001; this does not stop safe independent testing of other domains.
+This is a test-environment limitation, not a demonstrated product defect. The audit continues into independently testable domains.

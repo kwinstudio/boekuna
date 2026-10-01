@@ -48,3 +48,7 @@ YES on the exact-current CI run; one confirmatory workflow retry is reserved for
 
 Owner:
 03 — QA/security
+
+## QA execution constraint — interactive browser
+
+The matching app deployment is live, but this execution environment exposes no interactive browser/computer action tool and its container DNS cannot resolve the Render deployment host. Web fetch also cannot access the Render preview. Under the QA contract, source inspection is insufficient for interactive flows, so affected scenarios are marked BLOCKED rather than PASS. This constraint does not stop source/backend/security/CI checks that remain independently testable.

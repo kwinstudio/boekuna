@@ -11,24 +11,24 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 
 | TEST-ID | Domain | Scenario | Status | Evidence / note |
 |---|---|---|---|---|
-| AUTH-001 | AUTH | Registratie met geldig e-mailadres/wachtwoord | NOT_TESTED |  |
-| AUTH-002 | AUTH | Registratie-validatie ongeldig e-mailadres | NOT_TESTED |  |
-| AUTH-003 | AUTH | Registratie-validatie zwak/ongeldig wachtwoord | NOT_TESTED |  |
-| AUTH-004 | AUTH | Login geldig account | NOT_TESTED |  |
-| AUTH-005 | AUTH | Login fout wachtwoord | NOT_TESTED |  |
-| AUTH-006 | AUTH | Login onbekend account | NOT_TESTED |  |
-| AUTH-007 | AUTH | E-mailverificatieflow waar veilig | NOT_TESTED |  |
-| AUTH-008 | AUTH | Wachtwoord vergeten | NOT_TESTED |  |
-| AUTH-009 | AUTH | Wachtwoord reset | NOT_TESTED |  |
-| AUTH-010 | AUTH | MFA enrollment/challenge waar geconfigureerd | NOT_TESTED |  |
-| AUTH-011 | AUTH | Sessie refresh | NOT_TESTED |  |
-| AUTH-012 | AUTH | Reload behoudt veilige sessie | NOT_TESTED |  |
-| AUTH-013 | AUTH | Expired session naar auth | NOT_TESTED |  |
-| AUTH-014 | AUTH | Logout wist protected state | NOT_TESTED |  |
-| AUTH-015 | AUTH | Browser Back na logout herstelt app niet | NOT_TESTED |  |
-| AUTH-016 | AUTH | Browser Forward na logout herstelt app niet | NOT_TESTED |  |
-| AUTH-017 | AUTH | Progressive onboarding | NOT_TESTED |  |
-| AUTH-018 | AUTH | Cloud persistence na herlogin | NOT_TESTED |  |
+| AUTH-001 | AUTH | Registratie met geldig e-mailadres/wachtwoord | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
+| AUTH-002 | AUTH | Registratie-validatie ongeldig e-mailadres | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
+| AUTH-003 | AUTH | Registratie-validatie zwak/ongeldig wachtwoord | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
+| AUTH-004 | AUTH | Login geldig account | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
+| AUTH-005 | AUTH | Login fout wachtwoord | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
+| AUTH-006 | AUTH | Login onbekend account | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
+| AUTH-007 | AUTH | E-mailverificatieflow waar veilig | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
+| AUTH-008 | AUTH | Wachtwoord vergeten | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
+| AUTH-009 | AUTH | Wachtwoord reset | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
+| AUTH-010 | AUTH | MFA enrollment/challenge waar geconfigureerd | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
+| AUTH-011 | AUTH | Sessie refresh | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
+| AUTH-012 | AUTH | Reload behoudt veilige sessie | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
+| AUTH-013 | AUTH | Expired session naar auth | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
+| AUTH-014 | AUTH | Logout wist protected state | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
+| AUTH-015 | AUTH | Browser Back na logout herstelt app niet | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
+| AUTH-016 | AUTH | Browser Forward na logout herstelt app niet | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
+| AUTH-017 | AUTH | Progressive onboarding | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
+| AUTH-018 | AUTH | Cloud persistence na herlogin | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
 | NAV-001 | NAV | Desktop sidebar: alle 15 actuele pagina's bereikbaar | NOT_TESTED |  |
 | NAV-002 | NAV | Mobiele bottom navigation: Dashboard | NOT_TESTED |  |
 | NAV-003 | NAV | Mobiele bottom navigation: Facturen | NOT_TESTED |  |
