@@ -72,7 +72,7 @@ async function assertNoGlobalOverflow(width,label=''){
     offenders:[...document.querySelectorAll('body *')].map(el=>{
       const r=el.getBoundingClientRect();
       return {tag:el.tagName,id:el.id||'',className:typeof el.className==='string'?el.className:'',left:Math.round(r.left),right:Math.round(r.right),width:Math.round(r.width)}
-    }).filter(x=>x.right>window.innerWidth+2||x.left<-2).slice(0,12)
+    }).filter(x=>x.right>window.innerWidth+2).sort((a,b)=>b.right-a.right).slice(0,12)
   }));
   assert.ok(layout.scrollWidth<=layout.innerWidth+2,'No global horizontal overflow at '+width+'px'+(label?' on '+label:'')+'; '+JSON.stringify(layout));
 }
