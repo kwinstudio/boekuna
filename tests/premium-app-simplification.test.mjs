@@ -64,9 +64,17 @@ async function navigateTo(name){
   await page.evaluate(async target=>{await navigate(target)},name);
   await page.waitForTimeout(30);
 }
-async function assertNoGlobalOverflow(width){
+async function assertNoGlobalOverflow(width,label=''){
   await page.setViewportSize({width,height:Math.max(700,Math.round(width*1.8))});
-  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'No global horizontal overflow at '+width+'px');
+  const layout=await page.evaluate(()=>({
+    scrollWidth:document.documentElement.scrollWidth,
+    innerWidth:window.innerWidth,
+    offenders:[...document.querySelectorAll('body *')].map(el=>{
+      const r=el.getBoundingClientRect();
+      return {tag:el.tagName,id:el.id||'',className:typeof el.className==='string'?el.className:'',left:Math.round(r.left),right:Math.round(r.right),width:Math.round(r.width)}
+    }).filter(x=>x.right>window.innerWidth+2||x.left<-2).slice(0,12)
+  }));
+  assert.ok(layout.scrollWidth<=layout.innerWidth+2,'No global horizontal overflow at '+width+'px'+(label?' on '+label:'')+'; '+JSON.stringify(layout));
 }
 
 try{
@@ -169,7 +177,7 @@ try{
 
   for(const target of ['dashboard','cashflow','ledger','contacts','services','reports','documents','expenses']){
     await navigateTo(target);
-    for(const width of [320,360,375,390,393,430,768,820])await assertNoGlobalOverflow(width);
+    for(const width of [320,360,375,390,393,430,768,820])await assertNoGlobalOverflow(width,target);
   }
 
   for(const width of [1024,1280,1440]){
