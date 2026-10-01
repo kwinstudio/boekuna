@@ -186,25 +186,25 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | DOC-030 | DOC | Duplicate document bescherming | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
 | DOC-031 | DOC | Document verwijderen veilige eligibility | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
 | DOC-032 | DOC | Document attention status/count | BLOCKED | Requires safe QA record creation and/or real document upload/processor interaction; current exact-SHA processor/browser steps were skipped after CI-007. |
-| BANK-001 | BANK | Handmatige inkomende transactie | NOT_TESTED |  |
-| BANK-002 | BANK | Handmatige uitgaande transactie | NOT_TESTED |  |
-| BANK-003 | BANK | Datum/bedrag/omschrijving | NOT_TESTED |  |
-| BANK-004 | BANK | CSV-import geldig | NOT_TESTED |  |
-| BANK-005 | BANK | CSV duplicate bescherming | NOT_TESTED |  |
-| BANK-006 | BANK | CSV malformed | NOT_TESTED |  |
-| BANK-007 | BANK | CSV leeg | NOT_TESTED |  |
-| BANK-008 | BANK | CSV unsupported | NOT_TESTED |  |
-| BANK-009 | BANK | CAMT.053 indien werkelijk aanwezig | NOT_TESTED |  |
-| BANK-010 | BANK | MT940 indien werkelijk aanwezig | NOT_TESTED |  |
-| BANK-011 | BANK | Automatch | NOT_TESTED |  |
-| BANK-012 | BANK | Open factuur matchen met inkomend | NOT_TESTED |  |
-| BANK-013 | BANK | Kosten/document matchen met uitgaand | NOT_TESTED |  |
-| BANK-014 | BANK | Verkeerde match corrigeren | NOT_TESTED |  |
-| BANK-015 | BANK | Unmatch | NOT_TESTED |  |
-| BANK-016 | BANK | Rematch | NOT_TESTED |  |
-| BANK-017 | BANK | Geen dubbele boeking na rematch | NOT_TESTED |  |
-| BANK-018 | BANK | Bank zoeken/filteren/sorteren | NOT_TESTED |  |
-| BANK-019 | BANK | Fingerprint/dedupe consistent | NOT_TESTED |  |
+| BANK-001 | BANK | Handmatige inkomende transactie | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
+| BANK-002 | BANK | Handmatige uitgaande transactie | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
+| BANK-003 | BANK | Datum/bedrag/omschrijving | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
+| BANK-004 | BANK | CSV-import geldig | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
+| BANK-005 | BANK | CSV duplicate bescherming | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
+| BANK-006 | BANK | CSV malformed | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
+| BANK-007 | BANK | CSV leeg | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
+| BANK-008 | BANK | CSV unsupported | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
+| BANK-009 | BANK | CAMT.053 indien werkelijk aanwezig | NOT_APPLICABLE | Frozen source/repository contains no CAMT.053 or MT940 parser/reference. |
+| BANK-010 | BANK | MT940 indien werkelijk aanwezig | NOT_APPLICABLE | Frozen source/repository contains no CAMT.053 or MT940 parser/reference. |
+| BANK-011 | BANK | Automatch | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
+| BANK-012 | BANK | Open factuur matchen met inkomend | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
+| BANK-013 | BANK | Kosten/document matchen met uitgaand | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
+| BANK-014 | BANK | Verkeerde match corrigeren | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
+| BANK-015 | BANK | Unmatch | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
+| BANK-016 | BANK | Rematch | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
+| BANK-017 | BANK | Geen dubbele boeking na rematch | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
+| BANK-018 | BANK | Bank zoeken/filteren/sorteren | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
+| BANK-019 | BANK | Fingerprint/dedupe consistent | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
 | VAT-001 | VAT | Btw kwartaal | NOT_TESTED |  |
 | VAT-002 | VAT | Btw jaar | NOT_TESTED |  |
 | VAT-003 | VAT | Jaarselectie bestaande jaren | NOT_TESTED |  |
