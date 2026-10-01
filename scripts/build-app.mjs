@@ -19,7 +19,8 @@ const appAssets=[
   'boekuna-symbol.svg',
   'brand-v2.css',
   'favicon-32.png',
-  'financial-correction.js'
+  'financial-correction.js',
+  'developer-mode.js'
 ];
 
 for(const file of [appSource,manifestSource,assetsSource]){
@@ -27,6 +28,41 @@ for(const file of [appSource,manifestSource,assetsSource]){
 }
 
 let appHtml=fs.readFileSync(appSource,'utf8');
+
+const devFlag=String(process.env.BOEKUNA_DEV_MODE||'').trim().toLowerCase();
+const developerModeEnabled=['1','true','yes','on'].includes(devFlag);
+const deploymentEnvironment=String(process.env.BOEKUNA_DEPLOYMENT_ENV||'production').trim().toLowerCase();
+const developerAllowedOrigins=String(process.env.BOEKUNA_DEV_ALLOWED_ORIGINS||'').split(',').map(v=>v.trim().replace(/\/$/,'')).filter(Boolean);
+const productionOrigins=new Set([
+  'https://app.boekuna.nl',
+  'https://boekuna.nl',
+  'https://www.boekuna.nl',
+  'https://boekuna-boekhouding.onrender.com',
+  'https://kwinest-boekhouding.onrender.com'
+]);
+if(developerModeEnabled){
+  if(!['development','preview','staging'].includes(deploymentEnvironment)){
+    throw new Error('Refusing Developer Mode for production or unknown environment: '+deploymentEnvironment);
+  }
+  if(!developerAllowedOrigins.length||developerAllowedOrigins.some(origin=>productionOrigins.has(origin))){
+    throw new Error('Developer Mode requires an explicit non-production origin allowlist');
+  }
+  const devSupabaseUrl=String(process.env.BOEKUNA_SUPABASE_URL||'').trim().replace(/\/$/,'');
+  const devSupabaseKey=String(process.env.BOEKUNA_SUPABASE_PUBLISHABLE_KEY||'').trim();
+  if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(devSupabaseUrl)||devSupabaseUrl==='https://vuwfyhtejsxhdfyvkkeq.supabase.co'){
+    throw new Error('Developer Mode requires an explicit non-production Supabase project');
+  }
+  if(!devSupabaseKey)throw new Error('Developer Mode requires BOEKUNA_SUPABASE_PUBLISHABLE_KEY');
+  const defaultConfig="window.BOEKUNA_DEV_MODE_CONFIG=Object.freeze({enabled:false,environment:'production',allowedOrigins:[]});";
+  if(!appHtml.includes(defaultConfig))throw new Error('Developer Mode source marker missing');
+  appHtml=appHtml.replace(defaultConfig,
+    "window.BOEKUNA_DEV_MODE_CONFIG=Object.freeze({enabled:true,environment:"+JSON.stringify(deploymentEnvironment)+",allowedOrigins:"+JSON.stringify(developerAllowedOrigins)+"});");
+  const prodUrl="const SUPABASE_URL='https://vuwfyhtejsxhdfyvkkeq.supabase.co';";
+  const prodKey="const SUPABASE_PUBLISHABLE_KEY='sb_publishable_miAZ6CBZShVcmmNwlnEDgA_aGw1X4aP';";
+  if(!appHtml.includes(prodUrl)||!appHtml.includes(prodKey))throw new Error('Supabase source markers changed');
+  appHtml=appHtml.replace(prodUrl,"const SUPABASE_URL="+JSON.stringify(devSupabaseUrl)+";");
+  appHtml=appHtml.replace(prodKey,"const SUPABASE_PUBLISHABLE_KEY="+JSON.stringify(devSupabaseKey)+";");
+}
 
 // Strangler step: keep the legacy combined source available for rollback while
 // producing an app-only deploy artifact. These markers are intentionally strict:
