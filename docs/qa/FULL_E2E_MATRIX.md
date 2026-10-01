@@ -29,22 +29,22 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | AUTH-016 | AUTH | Browser Forward na logout herstelt app niet | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
 | AUTH-017 | AUTH | Progressive onboarding | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
 | AUTH-018 | AUTH | Cloud persistence na herlogin | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
-| NAV-001 | NAV | Desktop sidebar: alle 15 actuele pagina's bereikbaar | NOT_TESTED |  |
+| NAV-001 | NAV | Desktop sidebar: alle 15 actuele pagina's bereikbaar | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
 | NAV-002 | NAV | Mobiele bottom navigation: Dashboard | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
 | NAV-003 | NAV | Mobiele bottom navigation: Facturen | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
 | NAV-004 | NAV | Mobiele bottom navigation: Scan/Documenten | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
 | NAV-005 | NAV | Mobiele bottom navigation: Bank | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
 | NAV-006 | NAV | Mobiele Meer-drawer | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
-| NAV-007 | NAV | Quick New menu | NOT_TESTED |  |
-| NAV-008 | NAV | Accountmenu | NOT_TESTED |  |
-| NAV-009 | NAV | Cloud-syncbadge staten | NOT_TESTED |  |
-| NAV-010 | NAV | Globale documentverwerkingsindicator | NOT_TESTED |  |
-| DASH-001 | DASH | Dashboard laadt zonder fout | NOT_TESTED |  |
-| DASH-002 | DASH | Dashboard KPI's volgen brondata | NOT_TESTED |  |
-| DASH-003 | DASH | Dashboard aandacht-count | NOT_TESTED |  |
-| DASH-004 | DASH | Dashboard doorklik aandacht | NOT_TESTED |  |
-| DASH-005 | DASH | Dashboard lange naam wrapt veilig | NOT_TESTED |  |
-| DASH-006 | DASH | Dashboard lege administratie | NOT_TESTED |  |
+| NAV-007 | NAV | Quick New menu | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
+| NAV-008 | NAV | Accountmenu | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
+| NAV-009 | NAV | Cloud-syncbadge staten | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
+| NAV-010 | NAV | Globale documentverwerkingsindicator | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
+| DASH-001 | DASH | Dashboard laadt zonder fout | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
+| DASH-002 | DASH | Dashboard KPI's volgen brondata | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
+| DASH-003 | DASH | Dashboard aandacht-count | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
+| DASH-004 | DASH | Dashboard doorklik aandacht | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
+| DASH-005 | DASH | Dashboard lange naam wrapt veilig | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
+| DASH-006 | DASH | Dashboard lege administratie | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
 | REL-001 | REL | Klant aanmaken | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
 | REL-002 | REL | Leverancier aanmaken | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
 | REL-003 | REL | Relatie bewerken | BLOCKED | Browser CRUD/interaction required; no interactive runner available. |
@@ -394,12 +394,12 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | MOB-008 | MOB | Touch targets | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
 | MOB-009 | MOB | Dialogs op mobiel | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
 | MOB-010 | MOB | Mobiele tabelsemantiek | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
-| DESK-001 | DESK | 768px kernflows | NOT_TESTED |  |
-| DESK-002 | DESK | 1024px kernflows | NOT_TESTED |  |
-| DESK-003 | DESK | 1280px kernflows | NOT_TESTED |  |
-| DESK-004 | DESK | 1440px kernflows | NOT_TESTED |  |
-| DESK-005 | DESK | Modals/tables/forms/charts/action menus | NOT_TESTED |  |
-| DESK-006 | DESK | Documents/reports desktop | NOT_TESTED |  |
+| DESK-001 | DESK | 768px kernflows | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
+| DESK-002 | DESK | 1024px kernflows | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
+| DESK-003 | DESK | 1280px kernflows | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
+| DESK-004 | DESK | 1440px kernflows | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
+| DESK-005 | DESK | Modals/tables/forms/charts/action menus | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
+| DESK-006 | DESK | Documents/reports desktop | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
 | BROW-001 | BROW | Chromium risicogebaseerde regressie | NOT_TESTED |  |
 | BROW-002 | BROW | WebKit risicogebaseerde regressie | NOT_TESTED |  |
 | BROW-003 | BROW | WebKit uploads | NOT_TESTED |  |
