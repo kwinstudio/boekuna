@@ -236,14 +236,14 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | LED-006 | LED | Debet/credit consistent | BLOCKED | Requires persisted transaction chain and rendered generated journal comparison; QA data cannot be created interactively here. |
 | LED-007 | LED | Zoeken/sorteren | BLOCKED | Requires persisted transaction chain and rendered generated journal comparison; QA data cannot be created interactively here. |
 | LED-008 | LED | Geen dubbele regels na rematch | BLOCKED | Requires persisted transaction chain and rendered generated journal comparison; QA data cannot be created interactively here. |
-| CASH-001 | CASH | Cashflowweergave | NOT_TESTED |  |
-| CASH-002 | CASH | Toekomstige bewegingen | NOT_TESTED |  |
-| CASH-003 | CASH | Geplande kasbeweging maken | NOT_TESTED |  |
-| CASH-004 | CASH | Geplande kasbeweging bewerken indien aanwezig | NOT_TESTED |  |
-| CASH-005 | CASH | Geplande kasbeweging verwijderen | NOT_TESTED |  |
-| CASH-006 | CASH | Persistence | NOT_TESTED |  |
-| CASH-007 | CASH | Effect op prognose | NOT_TESTED |  |
-| CASH-008 | CASH | Recurring cashflow indien aanwezig | NOT_TESTED |  |
+| CASH-001 | CASH | Cashflowweergave | BLOCKED | Requires interactive creation/persistence/projection verification in the running app. |
+| CASH-002 | CASH | Toekomstige bewegingen | BLOCKED | Requires interactive creation/persistence/projection verification in the running app. |
+| CASH-003 | CASH | Geplande kasbeweging maken | BLOCKED | Requires interactive creation/persistence/projection verification in the running app. |
+| CASH-004 | CASH | Geplande kasbeweging bewerken indien aanwezig | NOT_APPLICABLE | Current frozen source exposes create/delete planned cash but no editPlannedCash action. |
+| CASH-005 | CASH | Geplande kasbeweging verwijderen | BLOCKED | Requires interactive creation/persistence/projection verification in the running app. |
+| CASH-006 | CASH | Persistence | BLOCKED | Requires interactive creation/persistence/projection verification in the running app. |
+| CASH-007 | CASH | Effect op prognose | BLOCKED | Requires interactive creation/persistence/projection verification in the running app. |
+| CASH-008 | CASH | Recurring cashflow indien aanwezig | NOT_APPLICABLE | No recurring cashflow implementation is present on the frozen SHA. |
 | CTRL-001 | CTRL | Controlecentrum lijst | NOT_TESTED |  |
 | CTRL-002 | CTRL | Dashboard count ↔ controlecentrum | NOT_TESTED |  |
 | CTRL-003 | CTRL | Filters | NOT_TESTED |  |
