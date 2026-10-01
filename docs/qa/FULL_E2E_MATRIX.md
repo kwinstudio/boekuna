@@ -30,11 +30,11 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | AUTH-017 | AUTH | Progressive onboarding | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
 | AUTH-018 | AUTH | Cloud persistence na herlogin | BLOCKED | Interactive authenticated browser execution unavailable in this runtime; exact-current auth workflow step was skipped after CI-007. |
 | NAV-001 | NAV | Desktop sidebar: alle 15 actuele pagina's bereikbaar | NOT_TESTED |  |
-| NAV-002 | NAV | Mobiele bottom navigation: Dashboard | NOT_TESTED |  |
-| NAV-003 | NAV | Mobiele bottom navigation: Facturen | NOT_TESTED |  |
-| NAV-004 | NAV | Mobiele bottom navigation: Scan/Documenten | NOT_TESTED |  |
-| NAV-005 | NAV | Mobiele bottom navigation: Bank | NOT_TESTED |  |
-| NAV-006 | NAV | Mobiele Meer-drawer | NOT_TESTED |  |
+| NAV-002 | NAV | Mobiele bottom navigation: Dashboard | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
+| NAV-003 | NAV | Mobiele bottom navigation: Facturen | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
+| NAV-004 | NAV | Mobiele bottom navigation: Scan/Documenten | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
+| NAV-005 | NAV | Mobiele bottom navigation: Bank | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
+| NAV-006 | NAV | Mobiele Meer-drawer | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
 | NAV-007 | NAV | Quick New menu | NOT_TESTED |  |
 | NAV-008 | NAV | Accountmenu | NOT_TESTED |  |
 | NAV-009 | NAV | Cloud-syncbadge staten | NOT_TESTED |  |
@@ -384,16 +384,16 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | SEC-010 | SEC | Direct object/RPC boundaries | BLOCKED | Two-account tenant-isolation interaction required; exact-current tenant CI step was skipped after CI-007. Current RLS policies are auth.uid()-scoped, but that is not a two-user E2E PASS. |
 | SEC-011 | SEC | Developer Mode productie fail-closed | PASS | Exact frozen build defaults Developer Mode off; build script refuses production/known production origins and requires isolated non-production Supabase for enablement. |
 | SEC-012 | SEC | Supabase RLS/security advisors | FAIL | Current Supabase security advisors: leaked-password protection disabled; pg_net extension in public schema. RLS core tables are enabled and own-row policies were independently inspected. |
-| MOB-001 | MOB | 320px kernflows | NOT_TESTED |  |
-| MOB-002 | MOB | 360px kernflows | NOT_TESTED |  |
-| MOB-003 | MOB | 375px kernflows | NOT_TESTED |  |
-| MOB-004 | MOB | 390px kernflows | NOT_TESTED |  |
-| MOB-005 | MOB | 393px kernflows | NOT_TESTED |  |
-| MOB-006 | MOB | 430px kernflows | NOT_TESTED |  |
-| MOB-007 | MOB | Geen globale horizontale scroll | NOT_TESTED |  |
-| MOB-008 | MOB | Touch targets | NOT_TESTED |  |
-| MOB-009 | MOB | Dialogs op mobiel | NOT_TESTED |  |
-| MOB-010 | MOB | Mobiele tabelsemantiek | NOT_TESTED |  |
+| MOB-001 | MOB | 320px kernflows | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
+| MOB-002 | MOB | 360px kernflows | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
+| MOB-003 | MOB | 375px kernflows | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
+| MOB-004 | MOB | 390px kernflows | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
+| MOB-005 | MOB | 393px kernflows | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
+| MOB-006 | MOB | 430px kernflows | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
+| MOB-007 | MOB | Geen globale horizontale scroll | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
+| MOB-008 | MOB | Touch targets | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
+| MOB-009 | MOB | Dialogs op mobiel | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
+| MOB-010 | MOB | Mobiele tabelsemantiek | BLOCKED | Requires real mobile browser/touch/layout interaction on the exact deployment; exact-current browser steps were skipped after CI-007. |
 | DESK-001 | DESK | 768px kernflows | NOT_TESTED |  |
 | DESK-002 | DESK | 1024px kernflows | NOT_TESTED |  |
 | DESK-003 | DESK | 1280px kernflows | NOT_TESTED |  |
