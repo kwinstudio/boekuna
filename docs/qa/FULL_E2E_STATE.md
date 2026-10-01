@@ -18,24 +18,18 @@ Render service: boekuna-split-app-preview
 Render deploy: dep-dav7krvlk1mc73f8cg90
 Status: live
 Build: node scripts/build-app.mjs
-Developer Mode: disabled by production-default build
 
 PUBLIC_PRODUCTION_NOTE:
-https://boekuna-boekhouding.onrender.com is currently on ba0fd360dd200841714330d42421f6577beea88c and is NOT used as formal evidence for this frozen SHA.
+https://boekuna-boekhouding.onrender.com remains on ba0fd360dd200841714330d42421f6577beea88c and is not formal evidence for this run.
 
 SUPABASE:
 Production project vuwfyhtejsxhdfyvkkeq (kwinest), ACTIVE_HEALTHY, eu-central-1.
 Latest repository migration 20261001112135_kvk_company_lookup_budget is present in production.
-Relevant active edge functions include auth/account deletion, billing, financial automation, document processing and KVK lookup.
 
 DOCUMENT_PROCESSOR:
 https://kwinest-docprocessor.onrender.com
-Render service: kwinest-docprocessor
-Live deploy SHA: aa7ae7819f893ecad429bd51a8ba5e00b7a4cedb
-Comparison aa7ae781.. -> SOURCE_SHA contains no processor/docprocessor file changes, so the deployed processor code is source-compatible with the frozen baseline.
-
-BROWSER_SUPPORT:
-Chromium + WebKit browser suites are defined in the current app/integrity workflows.
+Live deploy SHA aa7ae7819f893ecad429bd51a8ba5e00b7a4cedb.
+No processor/docprocessor source files changed between that SHA and SOURCE_SHA.
 
 STARTED_AT:
 2026-10-01T18:22:00+02:00
@@ -47,34 +41,34 @@ TOTAL_CHECKPOINTS:
 34
 
 CURRENT_CHECKPOINT:
-1
+2
 
 LAST_COMPLETED_CHECKPOINT:
-0
+1
 
 CURRENT_TEST_ID:
-INVENTORY-001
+DATA-001
 
 LAST_COMPLETED_TEST_ID:
-ENV-LOCK-001
+INVENTORY-421
 
 NEXT_TEST_ID:
-INVENTORY-001
+DATA-001
 
 TOTAL_SCENARIOS:
-0
+421
 
 PASS:
-0
+6
 
 FAIL:
-0
+1
 
 BLOCKED:
 0
 
 NOT_TESTED:
-0
+414
 
 OPEN_P0:
 0
@@ -85,14 +79,11 @@ OPEN_P1:
 STATUS:
 RUNNING
 
-## Checkpoint 0 evidence
+## Completed checkpoints
 
-- Repository: kwinstudio/boekuna
-- Default branch: main
-- main HEAD independently verified through GitHub branch API.
-- Frozen baseline: 7132029b792c8942f18317637ff352461dfe08d5.
-- Matching Render app-only deployment verified live by Render deployment metadata.
-- Production Supabase project discovered and migration state checked.
-- Production document processor discovered; no processor source drift exists between its live deploy SHA and frozen app baseline.
-- Current app and integrity workflows explicitly install/test Chromium and WebKit.
-- Open legacy/draft PRs were inventoried but are outside this BASELINE_MAIN source lock.
+Checkpoint 0 — source + environment lock: COMPLETE.
+Checkpoint 1 — complete function inventory: COMPLETE.
+
+## Exact-current CI observation
+
+GitHub Actions run 36883528292 on SOURCE_SHA fails at Production source safety before most downstream suites execute. The failing assertion requires the retired contact placeholder "Zoek op naam, e-mail of plaats". Current source uses "Zoek op bedrijfsnaam of contactpersoon", while the actual search haystack still includes name, contact person, e-mail, city and VAT ID. This is currently classified as QA/CI regression, not a proven product search failure.
