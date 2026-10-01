@@ -244,15 +244,15 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | CASH-006 | CASH | Persistence | BLOCKED | Requires interactive creation/persistence/projection verification in the running app. |
 | CASH-007 | CASH | Effect op prognose | BLOCKED | Requires interactive creation/persistence/projection verification in the running app. |
 | CASH-008 | CASH | Recurring cashflow indien aanwezig | NOT_APPLICABLE | No recurring cashflow implementation is present on the frozen SHA. |
-| CTRL-001 | CTRL | Controlecentrum lijst | NOT_TESTED |  |
-| CTRL-002 | CTRL | Dashboard count ↔ controlecentrum | NOT_TESTED |  |
-| CTRL-003 | CTRL | Filters | NOT_TESTED |  |
-| CTRL-004 | CTRL | Item openen | NOT_TESTED |  |
-| CTRL-005 | CTRL | Reden zichtbaar | NOT_TESTED |  |
-| CTRL-006 | CTRL | Oplossing uitvoeren | NOT_TESTED |  |
-| CTRL-007 | CTRL | Resolved status | NOT_TESTED |  |
-| CTRL-008 | CTRL | Count update na echte oplossing | NOT_TESTED |  |
-| CTRL-009 | CTRL | Grote lijst | NOT_TESTED |  |
+| CTRL-001 | CTRL | Controlecentrum lijst | BLOCKED | Requires creating/resolving attention conditions and verifying counts through the UI. |
+| CTRL-002 | CTRL | Dashboard count ↔ controlecentrum | BLOCKED | Requires creating/resolving attention conditions and verifying counts through the UI. |
+| CTRL-003 | CTRL | Filters | BLOCKED | Requires creating/resolving attention conditions and verifying counts through the UI. |
+| CTRL-004 | CTRL | Item openen | BLOCKED | Requires creating/resolving attention conditions and verifying counts through the UI. |
+| CTRL-005 | CTRL | Reden zichtbaar | BLOCKED | Requires creating/resolving attention conditions and verifying counts through the UI. |
+| CTRL-006 | CTRL | Oplossing uitvoeren | BLOCKED | Requires creating/resolving attention conditions and verifying counts through the UI. |
+| CTRL-007 | CTRL | Resolved status | BLOCKED | Requires creating/resolving attention conditions and verifying counts through the UI. |
+| CTRL-008 | CTRL | Count update na echte oplossing | BLOCKED | Requires creating/resolving attention conditions and verifying counts through the UI. |
+| CTRL-009 | CTRL | Grote lijst | BLOCKED | Requires creating/resolving attention conditions and verifying counts through the UI. |
 | BOOK-001 | BOOK | Boeking maken | NOT_TESTED |  |
 | BOOK-002 | BOOK | Klant/dienst | NOT_TESTED |  |
 | BOOK-003 | BOOK | Datum/tijd | NOT_TESTED |  |
