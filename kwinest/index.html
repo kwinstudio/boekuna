@@ -1972,9 +1972,12 @@ img.bookuna-logo-icon,
 }
 </style>
 <link rel="stylesheet" href="/assets/brand-v2.css?v=20260929a" />
+<link rel="stylesheet" href="/assets/kvk-company-lookup.css?v=20261001a" />
 </head>
 <body>
 <script src="/assets/financial-correction.js?v=20260929a"></script>
+<script>window.BOEKUNA_KVK_PREVIEW=false;</script>
+<script src="/assets/kvk-company-lookup.js?v=20261001a"></script>
 <script>
 window.BOEKUNA_DEV_MODE_CONFIG=Object.freeze({enabled:false,environment:'production',allowedOrigins:[]});
 window.BOEKUNA_DEV_MODE_READY=new Promise(resolve=>{
@@ -3680,9 +3683,56 @@ function removeDemoCustomers(){
  logEvent('Demo-klanten verwijderd',`${n} demo-klanten`,'contact','demo');
  save();render();toast(`${n} demo-klanten verwijderd`)
 }
-function newContact(editId){const c=editId?state.contacts.find(x=>x.id===editId):null;modal(c?'Relatie bewerken':'Nieuwe relatie',`<form id="contactForm" class="form-grid"><div class="field"><label>Type</label><select name="type"><option value="customer" ${c?.type==='customer'?'selected':''}>Klant</option><option value="supplier" ${c?.type==='supplier'?'selected':''}>Leverancier</option></select></div><div class="field"><label>Juridische / handelsnaam *</label><input name="name" value="${esc(c?.name||'')}" required></div><div class="field"><label>Contactpersoon</label><input name="contactPerson" value="${esc(c?.contactPerson||'')}"></div><div class="field"><label>E-mail</label><input name="email" type="email" value="${esc(c?.email||'')}"></div><div class="field"><label>Telefoon</label><input name="phone" value="${esc(c?.phone||'')}"></div><div class="field"><label>KVK-nummer</label><input name="kvk" value="${esc(c?.kvk||'')}"></div><div class="field"><label>Btw-id</label><input name="vat" value="${esc(c?.vat||'')}"></div><div class="field"><label>E-factuur / Peppol ID</label><input name="peppolId" value="${esc(c?.peppolId||'')}" placeholder="Optioneel"></div><div class="field full"><label>Straat + huisnummer</label><input name="address" value="${esc(c?.address||'')}"></div><div class="field"><label>Postcode</label><input name="postal" value="${esc(c?.postal||'')}"></div><div class="field"><label>Plaats</label><input name="city" value="${esc(c?.city||'')}"></div></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="saveContact('${editId||''}')">Opslaan</button>`)}
+async function requestKvkLookup(body,signal,userId){
+ const sb=await getSupabase(),{data,error}=await sb.auth.getSession();
+ if(error||!data?.session?.access_token||data.session.user.id!==userId||currentUser?.id!==userId)throw Object.assign(new Error(),{code:'UNAUTHORIZED'});
+ const response=await fetch(SUPABASE_URL+'/functions/v1/kvk-company-lookup',{method:'POST',signal,headers:{Authorization:'Bearer '+data.session.access_token,apikey:SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
+ return response.json();
+}
+function contactKvkDuplicate(kvk,excludeId){
+ const normalize=value=>{const n=String(value||'').replace(/[\s-]/g,'');return /^\d{8}$/.test(n)?n:null},number=normalize(kvk);
+ return number?state.contacts.find(c=>c.id!==excludeId&&normalize(c.kvk)===number)||null:null;
+}
+function showContactKvkDuplicate(existing){
+ const warning=document.querySelector('#contactForm .kvk-duplicate');if(!warning)return;
+ warning.replaceChildren();warning.hidden=false;
+ const message=document.createElement('span');message.textContent='Deze relatie bestaat al: '+existing.name+'. Open de bestaande relatie om dubbele gegevens te voorkomen.';
+ const button=document.createElement('button');button.type='button';button.className='btn';button.textContent='Open bestaande relatie';button.addEventListener('click',()=>editContact(existing.id));warning.append(message,button);button.focus();
+}
+function newContact(editId){
+ const c=editId?state.contacts.find(x=>x.id===editId):null;
+ modal(c?'Relatie bewerken':'Nieuwe relatie',`${window.BoekunaKVK?.markup()||''}<form id="contactForm" class="form-grid">
+ <div class="field"><label for="contactType">Type</label><select id="contactType" name="type"><option value="customer" ${c?.type==='customer'?'selected':''}>Klant</option><option value="supplier" ${c?.type==='supplier'?'selected':''}>Leverancier</option></select></div>
+ <div class="field"><label for="contactName">Juridische / handelsnaam *</label><input id="contactName" name="name" value="${esc(c?.name||'')}" required></div>
+ <div class="field"><label for="contactPerson">Contactpersoon</label><input id="contactPerson" name="contactPerson" value="${esc(c?.contactPerson||'')}"></div>
+ <div class="field"><label for="contactEmail">E-mail</label><input id="contactEmail" name="email" type="email" value="${esc(c?.email||'')}"></div>
+ <div class="field"><label for="contactPhone">Telefoon</label><input id="contactPhone" name="phone" value="${esc(c?.phone||'')}"></div>
+ <div class="field"><label for="contactKvk">KVK-nummer</label><input id="contactKvk" name="kvk" value="${esc(c?.kvk||'')}" inputmode="numeric"></div>
+ <div class="field"><label for="contactVat">Btw-id</label><input id="contactVat" name="vat" value="${esc(c?.vat||'')}"></div>
+ <div class="field"><label for="contactPeppol">E-factuur / Peppol ID</label><input id="contactPeppol" name="peppolId" value="${esc(c?.peppolId||'')}" placeholder="Optioneel"></div>
+ <div class="field full"><label for="contactAddress">Straat + huisnummer</label><input id="contactAddress" name="address" value="${esc(c?.address||'')}"></div>
+ <div class="field"><label for="contactPostal">Postcode</label><input id="contactPostal" name="postal" value="${esc(c?.postal||'')}"></div>
+ <div class="field"><label for="contactCity">Plaats</label><input id="contactCity" name="city" value="${esc(c?.city||'')}"></div>
+ <div class="field"><label for="contactCountry">Land <span class="muted">(optioneel)</span></label><input id="contactCountry" name="country" value="${esc(c?.country||'')}"></div>
+ <input type="hidden" name="establishmentNumber" value="${esc(c?.establishmentNumber||'')}">
+ <p class="field full kvk-source" hidden></p><div class="field full kvk-duplicate" role="alert" hidden></div></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="saveContact('${editId||''}')">Opslaan</button>`);
+ const form=document.getElementById('contactForm');
+ form.addEventListener('input',()=>{form.querySelector('.kvk-duplicate').hidden=true});
+ window.BoekunaKVK?.mount({root:document.getElementById('kvkLookup'),form,identity:()=>currentUser?.id,request:requestKvkLookup,
+  subscribe:async callback=>{const sb=await getSupabase();const {data}=sb.auth.onAuthStateChange((_event,session)=>callback(session?.user?.id));return ()=>data?.subscription?.unsubscribe()},
+  onFilled:profile=>{form.dataset.kvkRetrievedAt=profile.retrievedAt;const duplicate=contactKvkDuplicate(profile.kvkNumber,editId);if(duplicate)showContactKvkDuplicate(duplicate);toast('Bedrijfsgegevens ingevuld')}
+ });
+}
 function editContact(id){newContact(id)}
-function saveContact(id){const f=document.getElementById('contactForm');if(!f.reportValidity())return;const d=new FormData(f),obj={id:id||uid('c'),type:d.get('type'),name:String(d.get('name')||'').trim(),contactPerson:String(d.get('contactPerson')||'').trim(),email:String(d.get('email')||'').trim(),phone:String(d.get('phone')||'').trim(),kvk:String(d.get('kvk')||'').trim(),vat:String(d.get('vat')||'').trim(),peppolId:String(d.get('peppolId')||'').trim(),address:String(d.get('address')||'').trim(),postal:String(d.get('postal')||'').trim(),city:String(d.get('city')||'').trim()};if(id){const idx=state.contacts.findIndex(x=>x.id===id);state.contacts[idx]=obj}else state.contacts.push(obj);logEvent(id?'Relatie bijgewerkt':'Relatie aangemaakt',obj.name,'contact',obj.id);save();closeModal();render();toast('Relatie opgeslagen')}
+function saveContact(id){
+ const f=document.getElementById('contactForm');if(!f?.reportValidity())return;
+ const d=new FormData(f),existing=id?state.contacts.find(c=>c.id===id):null,kvk=String(d.get('kvk')||'').trim(),duplicate=contactKvkDuplicate(kvk,id);
+ if(duplicate){showContactKvkDuplicate(duplicate);return}
+ const obj={...existing,id:id||uid('c'),type:d.get('type'),name:String(d.get('name')||'').trim(),contactPerson:String(d.get('contactPerson')||'').trim(),email:String(d.get('email')||'').trim(),phone:String(d.get('phone')||'').trim(),kvk,vat:String(d.get('vat')||'').trim(),peppolId:String(d.get('peppolId')||'').trim(),address:String(d.get('address')||'').trim(),postal:String(d.get('postal')||'').trim(),city:String(d.get('city')||'').trim(),country:String(d.get('country')||'').trim(),establishmentNumber:String(d.get('establishmentNumber')||'').trim()};
+ if(f.dataset.kvkSelectedNumber===kvk){obj.kvkSource='KVK';obj.kvkRetrievedAt=f.dataset.kvkRetrievedAt}else if(existing?.kvk!==kvk){delete obj.kvkSource;delete obj.kvkRetrievedAt;obj.establishmentNumber=''}
+ if(id){const idx=state.contacts.findIndex(x=>x.id===id);if(idx<0)return;state.contacts[idx]=obj}else state.contacts.push(obj);
+ logEvent(id?'Relatie bijgewerkt':'Relatie aangemaakt',obj.name,'contact',obj.id);save();closeModal();render();toast('Relatie opgeslagen');
+}
 function newHour(){modal('Uren boeken',`<form id="hourForm" class="form-grid"><div class="field"><label>Datum</label><input type="date" name="date" value="${today()}" required></div><div class="field"><label>Uren</label><input type="number" step="0.25" min="0" name="hours" required></div><div class="field"><label>Project / klant</label><input name="project" required></div><div class="field"><label>Omschrijving</label><input name="desc"></div></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="saveHour()">Opslaan</button>`)}
 function saveHour(){const f=document.getElementById('hourForm');if(!f.reportValidity())return;const d=new FormData(f);state.hours.unshift({id:uid('h'),date:d.get('date'),hours:Number(d.get('hours')),project:d.get('project'),desc:d.get('desc')});save();closeModal();render();toast('Uren geregistreerd')}
 function newMileage(){modal('Rit registreren',`<form id="mileForm" class="form-grid"><div class="field"><label>Datum</label><input type="date" name="date" value="${today()}" required></div><div class="field"><label>Kilometers</label><input type="number" step="0.1" min="0" name="km" required></div><div class="field"><label>Van</label><input name="from" required></div><div class="field"><label>Naar</label><input name="to" required></div><div class="field full"><label>Zakelijk doel</label><input name="purpose" required></div></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="saveMileage()">Opslaan</button>`)}

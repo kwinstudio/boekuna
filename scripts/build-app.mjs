@@ -20,6 +20,8 @@ const appAssets=[
   'brand-v2.css',
   'favicon-32.png',
   'financial-correction.js',
+  'kvk-company-lookup.js',
+  'kvk-company-lookup.css',
   'developer-mode.js'
 ];
 
@@ -40,6 +42,18 @@ const productionOrigins=new Set([
   'https://boekuna-boekhouding.onrender.com',
   'https://kwinest-boekhouding.onrender.com'
 ]);
+const kvkPreview=process.env.BOEKUNA_KVK_PREVIEW==='true';
+if(kvkPreview){
+  if(developerModeEnabled||!['preview','staging'].includes(deploymentEnvironment))throw new Error('KVK preview requires an isolated preview build without Developer Mode');
+  const previewUrl=String(process.env.BOEKUNA_SUPABASE_URL||'').replace(/\/$/,'');
+  const previewKey=String(process.env.BOEKUNA_SUPABASE_PUBLISHABLE_KEY||'');
+  if(previewUrl!=='https://ozisiotrzeubwbffnxyr.supabase.co'||!previewKey)throw new Error('KVK preview requires the approved isolated Supabase project and publishable key');
+  const marker='window.BOEKUNA_KVK_PREVIEW=false;';
+  if(!appHtml.includes(marker))throw new Error('KVK preview marker missing');
+  appHtml=appHtml.replace(marker,'window.BOEKUNA_KVK_PREVIEW=true;');
+  appHtml=appHtml.replace("const SUPABASE_URL='https://vuwfyhtejsxhdfyvkkeq.supabase.co';",'const SUPABASE_URL='+JSON.stringify(previewUrl)+';');
+  appHtml=appHtml.replace("const SUPABASE_PUBLISHABLE_KEY='sb_publishable_miAZ6CBZShVcmmNwlnEDgA_aGw1X4aP';",'const SUPABASE_PUBLISHABLE_KEY='+JSON.stringify(previewKey)+';');
+}
 if(developerModeEnabled){
   if(!['development','preview','staging'].includes(deploymentEnvironment)){
     throw new Error('Refusing Developer Mode for production or unknown environment: '+deploymentEnvironment);
