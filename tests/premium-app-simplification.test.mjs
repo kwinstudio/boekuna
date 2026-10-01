@@ -97,8 +97,8 @@ try{
   await navigateTo('expenses');
   assert.ok(await page.getByRole('button',{name:/Kosten boeken/}).isVisible());
   assert.ok(await page.getByRole('button',{name:'Upload',exact:true}).isVisible(),'Purchase invoice upload must remain available');
-  assert.ok(await page.getByRole('button',{name:'Foto',exact:true}).isVisible(),'Receipt photo import must remain available');
-  assert.ok(await page.getByRole('button',{name:/Camera/}).isVisible());
+  assert.equal(await page.locator('#content').getByRole('button',{name:'Foto',exact:true}).count(),0,'Receipt photo must not be a separate primary action');
+  assert.equal(await page.locator('#content').getByRole('button',{name:/Camera/}).count(),0,'Camera must not be a separate primary action');
 
   await navigateTo('bank');
   const bank=await page.locator('#content').innerText();
@@ -112,14 +112,28 @@ try{
   assert.doesNotMatch(documents,/Upload compleet is niet hetzelfde als verwerking compleet\./,'Documents page should not repeat background-processing explanation');
   assert.doesNotMatch(documents,/tekstextractie, tabellen en OCR/,'Documents page should not expose technical OCR explanation in the primary flow');
   assert.ok(await page.getByRole('button',{name:'Upload',exact:true}).isVisible(),'Document upload must remain available');
-  assert.ok(await page.getByRole('button',{name:'Foto',exact:true}).isVisible(),'Document photo import must remain available');
-  assert.ok(await page.getByRole('button',{name:/Camera/}).isVisible());
+  assert.equal(await page.locator('#content').getByRole('button',{name:'Foto',exact:true}).count(),0,'Documents must expose one upload entry, not a separate photo action');
+  assert.equal(await page.locator('#content').getByRole('button',{name:/Camera/}).count(),0,'Documents must expose one upload entry, not a separate camera action');
+  assert.ok(await page.locator('.documents-secondary-menu > summary').isVisible(),'Archiveren must remain available as a secondary More action');
   await page.screenshot({path:`tests/artifacts/premium-documents-${browserName}-390.png`,fullPage:true});
 
   await navigateTo('vat');
   const vat=await page.locator('#content').innerText();
   assert.match(vat,/geen officiële indiening|niet naar de Belastingdienst/i,'VAT must retain not-submitted meaning');
   assert.match(vat,/Indicatief/i,'VAT must retain indicative meaning');
+  const vatPeriod=page.locator('#vatPeriod');
+  assert.ok(await vatPeriod.isVisible(),'VAT period selector must be visible');
+  assert.ok((await vatPeriod.locator('option').allTextContents()).includes('Jaar'),'VAT must expose a full-year option');
+  await vatPeriod.selectOption('year');
+  assert.match(await page.locator('#content').innerText(),/Jaar 2026/,'VAT year view must clearly identify the selected year');
+
+  await navigateTo('reports');
+  const reportText=await page.locator('#content').innerText();
+  for(const label of ['Deze week','Deze maand','Dit kwartaal','Dit jaar','PDF'])assert.match(reportText,new RegExp(label),'Reports toolbar missing '+label);
+  for(const label of ['Deze week','Deze maand','Dit kwartaal','Dit jaar'])assert.ok(await page.getByRole('button',{name:label,exact:true}).isVisible());
+  await page.getByRole('button',{name:'Deze week',exact:true}).click();
+  const reportRange=await page.evaluate(()=>reportRange());
+  assert.ok(reportRange.from<=reportRange.to,'Report period resolver must return an inclusive ordered range');
 
   await navigateTo('control');
   const control=await page.locator('#content').innerText();
@@ -127,7 +141,10 @@ try{
   assert.match(control,/Debiteuren|Bank|Boekingen|Uitzonderingen/,'Control center must keep actionable exception categories');
   await page.screenshot({path:`tests/artifacts/premium-control-${browserName}-390.png`,fullPage:true});
 
-  for(const width of [320,390,430,820])await assertNoGlobalOverflow(width);
+  for(const target of ['dashboard','cashflow','ledger','contacts','services','reports','documents','expenses']){
+    await navigateTo(target);
+    for(const width of [320,360,375,390,393,430,768,820])await assertNoGlobalOverflow(width);
+  }
 
   for(const width of [1024,1280,1440]){
     await page.setViewportSize({width,height:900});
