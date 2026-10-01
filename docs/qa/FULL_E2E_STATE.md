@@ -4,11 +4,11 @@ RUN_ID: QA-E2E-20261001
 SOURCE_SHA: 7132029b792c8942f18317637ff352461dfe08d5
 DEPLOY_SHA: 7132029b792c8942f18317637ff352461dfe08d5
 TOTAL_CHECKPOINTS: 34
-CURRENT_CHECKPOINT: 32
-LAST_COMPLETED_CHECKPOINT: 31
-CURRENT_TEST_ID: CONSISTENCY-001
-LAST_COMPLETED_TEST_ID: RETEST-FUNC-CI-001
-NEXT_TEST_ID: CONSISTENCY-001
+CURRENT_CHECKPOINT: 33
+LAST_COMPLETED_CHECKPOINT: 32
+CURRENT_TEST_ID: FINAL-001
+LAST_COMPLETED_TEST_ID: CONSISTENCY-001
+NEXT_TEST_ID: FINAL-001
 TOTAL_SCENARIOS: 421
 PASS: 10
 FAIL: 2
@@ -21,5 +21,5 @@ OPEN_P2: 2
 OPEN_P3: 1
 STATUS: RUNNING
 
-## Checkpoint 31 — finding retest
-FUNC-CI-001 is CONFIRMED by the one permitted retry. Run 36883528292 attempt 2, job 110480215484, failed again at source-safety.test.mjs:143 with the same stale contact-placeholder assertion. No additional retry will be made.
+## Checkpoint 32 — final consistency audit
+PASS. Matrix contains 421 unique TEST-IDs and status counts sum exactly to 421. There are zero NOT_TESTED rows and no duplicate IDs. All durable QA files exist. Checkpoint commits 00–31 are present. Evidence boundaries were rechecked; historical green runs are not counted as current PASS.
