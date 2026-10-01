@@ -85,6 +85,9 @@ try{
   await page.screenshot({path:'tests/artifacts/brand-dashboard-1440.png',fullPage:true});
 
   await page.evaluate(()=>newContact());
+  // Wait for the dialog's initial animation-frame focus before filling the
+  // manual name field, so WebKit input does not race that focus transition.
+  await page.waitForFunction(()=>document.activeElement?.matches('#modalRoot .modal-close'));
   await page.locator('#contactForm [name="name"]').fill('QA Klant BV');
   await page.locator('#contactForm [name="email"]').fill('klant@example.test');
   await page.locator('#contactForm [name="address"]').fill('Klantstraat 2');

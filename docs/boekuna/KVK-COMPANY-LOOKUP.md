@@ -89,7 +89,11 @@ de goedgekeurde testproject-URL en publishable key. Bestaande echte login blijft
 Developer Mode en authenticatiebypass zijn niet ingeschakeld. Een zichtbare badge geeft
 fictieve KVK-testdata aan. Productiehosts weigeren die modus ook in de browser.
 
-Preview: [boekuna-kvk-preview.onrender.com](https://boekuna-kvk-preview.onrender.com).
+Privépreview: [boekuna-kvk-review.kwinyboy.chatgpt.site](https://boekuna-kvk-review.kwinyboy.chatgpt.site).
+Render kon geen extra preview aanmaken door de accountlimiet van 25 services.
+De aparte Sites-preview bewaart eigenaarstoegang; bestaande Render-services zijn niet aangepast.
+De preview bevat de gegenereerde app uit het exacte feature-HEAD, met herkomst in `source-version.json`.
+De testfunctie versie 2 is opgebouwd uit de bijbehorende preview-adapter en runtime.
 De publishable Supabase-key is openbaar; KVK- en signingsecrets blijven server-side.
 
 ## Rate limit en kosten

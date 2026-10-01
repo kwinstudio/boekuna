@@ -14,6 +14,7 @@ Het exacte te beoordelen HEAD staat in de feature-PR. Een wijziging daarna verei
 | SECRET LEAK TEST | Gegenereerde productiebuild bevat geen key/signingsecret, server-KVK-URL, testkey, testdataset of dev-only backend. Sentinel-envtest en onveilige preview-builds: PASS |
 | CHROMIUM | Gegenereerde productieflow PASS: zoeken, toetsenbordselectie, één profiel, editable autofill, type/contact/btw behouden, save/cloud/reopen/reload, invoicecustomer, duplicate/open/edit, handmatig, races/sluiten/accountwissel, cache, productie-testdataweigering |
 | WEBKIT | Dezelfde gegenereerde productieflow PASS |
+| Geïsoleerde preview | Dezelfde gegenereerde flow PASS in Chromium en WebKit; alle vier KVK-browserstappen ook PASS in GitHub Actions op `728c618…` |
 | MOBILE | 320/360/375/390/393/430/768/820/1024/1280/1440 px; dialoog en lange resultnaam zonder horizontale overflow in beide engines |
 | ACCESSIBILITY | Benoemde labels/resultaatknoppen, polite live-status, zichtbare focus, Tab/Shift+Tab/Enter/Escape; axe WCAG A/AA/2.1 AA op KVK en relatieformulier PASS. Labelcontrast is binnen deze modal gecorrigeerd. |
 | Auth regression | Auth/progressive onboarding PASS; tenant-isolation PASS; Developer Mode guards PASS; bestaande authcode blijft intact |
@@ -28,6 +29,10 @@ Het exacte te beoordelen HEAD staat in de feature-PR. Een wijziging daarna verei
   placeholderverwachting `Zoek op naam, e-mail of plaats`. Dezelfde fout is apart
   gereproduceerd op een baseline-export. Dit is geen KVK-regressie; de backendworkflow
   blijft daardoor geen geheel groene releasegate. Geen buiten-scope UI-aanpassing gedaan.
+- De algemene WebKit-smoke op `728c618…` faalde bij handmatige relatie-invoer,
+  terwijl dezelfde volledige test lokaal slaagde. Deze test wacht nu expliciet op
+  de beginfocus van het gewijzigde dialoog voordat hij het naamveld invult.
+  Controleer het uiteindelijke CI-resultaat bij het exacte PR-HEAD; geen volledig groen CI-resultaat veronderstellen.
 - Browsertests gebruiken gecontroleerde Supabase/KVK-fixtures voor fouten, races en opslag.
   De afzonderlijke officiële integratie gebruikt de echte gedeployde auth/backend/API-keten.
   Fixtures zijn geen productie-KVK-data. Screenshotbestanden zijn uitsluitend QA-fixtures.
@@ -57,6 +62,7 @@ De expliciete, opt-in integratierunner leest een private testgebruikerssessie vi
 `KVK_INTEGRATION_SESSION_FILE`, een openbare projectkey via
 `KVK_INTEGRATION_PUBLISHABLE_KEY` en vereist `KVK_RUN_FREE_INTEGRATION=true`.
 Deze runner is hard begrensd op het geïsoleerde project; hij leest of verstuurt geen KVK-key.
+Zijn standaardorigin is de privépreview `https://boekuna-kvk-review.kwinyboy.chatgpt.site`.
 Niet opnemen in CI. Ruwe profielen worden niet opgeslagen.
 
 ## 01 → 03 → 04

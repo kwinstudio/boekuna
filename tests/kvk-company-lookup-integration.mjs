@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 
 if(process.env.KVK_RUN_FREE_INTEGRATION!=='true')throw Error('Set KVK_RUN_FREE_INTEGRATION=true explicitly for the official free test environment');
 const project='https://ozisiotrzeubwbffnxyr.supabase.co';
-const origin=process.env.KVK_INTEGRATION_ORIGIN||'https://boekuna-kvk-preview.onrender.com';
+const origin=process.env.KVK_INTEGRATION_ORIGIN||'https://boekuna-kvk-review.kwinyboy.chatgpt.site';
 const session=JSON.parse(fs.readFileSync(process.env.KVK_INTEGRATION_SESSION_FILE,'utf8'));
 const key=process.env.KVK_INTEGRATION_PUBLISHABLE_KEY;
 assert.ok(session.access_token&&key);
