@@ -14,22 +14,14 @@ DEPLOY_SHA:
 
 APP_DEPLOYMENT:
 https://boekuna-split-app-preview.onrender.com
-Render service: boekuna-split-app-preview
-Render deploy: dep-dav7krvlk1mc73f8cg90
-Status: live
-Build: node scripts/build-app.mjs
-
-PUBLIC_PRODUCTION_NOTE:
-https://boekuna-boekhouding.onrender.com remains on ba0fd360dd200841714330d42421f6577beea88c and is not formal evidence for this run.
+Render deploy: dep-dav7krvlk1mc73f8cg90 (live, exact source SHA)
 
 SUPABASE:
-Production project vuwfyhtejsxhdfyvkkeq (kwinest), ACTIVE_HEALTHY, eu-central-1.
-Latest repository migration 20261001112135_kvk_company_lookup_budget is present in production.
+vuwfyhtejsxhdfyvkkeq (kwinest), ACTIVE_HEALTHY
 
 DOCUMENT_PROCESSOR:
 https://kwinest-docprocessor.onrender.com
-Live deploy SHA aa7ae7819f893ecad429bd51a8ba5e00b7a4cedb.
-No processor/docprocessor source files changed between that SHA and SOURCE_SHA.
+Live processor code is source-compatible with frozen baseline.
 
 STARTED_AT:
 2026-10-01T18:22:00+02:00
@@ -41,19 +33,19 @@ TOTAL_CHECKPOINTS:
 34
 
 CURRENT_CHECKPOINT:
-2
+3
 
 LAST_COMPLETED_CHECKPOINT:
-1
+2
 
 CURRENT_TEST_ID:
-DATA-001
+AUTH-001
 
 LAST_COMPLETED_TEST_ID:
-INVENTORY-421
+DATA-012
 
 NEXT_TEST_ID:
-DATA-001
+AUTH-001
 
 TOTAL_SCENARIOS:
 421
@@ -81,9 +73,11 @@ RUNNING
 
 ## Completed checkpoints
 
-Checkpoint 0 — source + environment lock: COMPLETE.
-Checkpoint 1 — complete function inventory: COMPLETE.
+- 0 source + environment lock: COMPLETE
+- 1 complete function inventory: COMPLETE
+- 2 safe synthetic test data + expected financial truth: COMPLETE
 
-## Exact-current CI observation
+Synthetic fixture specification:
+tests/artifacts/full-e2e/TEST_DATA.md
 
-GitHub Actions run 36883528292 on SOURCE_SHA fails at Production source safety before most downstream suites execute. The failing assertion requires the retired contact placeholder "Zoek op naam, e-mail of plaats". Current source uses "Zoek op bedrijfsnaam of contactpersoon", while the actual search haystack still includes name, contact person, e-mail, city and VAT ID. This is currently classified as QA/CI regression, not a proven product search failure.
+Exact-current CI remains red at FUNC-CI-001; this does not stop safe independent testing of other domains.
