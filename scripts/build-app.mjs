@@ -126,7 +126,7 @@ appHtml=appHtml.replace(
   '<title>Boekuna — je administratie</title>'
 );
 
-for(const forbidden of ['function showLanding','function marketingNav','function showMarketingPage','goMarketingPage(','lastMarketingPage']){
+for(const forbidden of ['showLanding(','function marketingNav','function showMarketingPage','goMarketingPage(','lastMarketingPage']){
   if(appHtml.includes(forbidden))throw new Error('App-only build still contains legacy marketing runtime: '+forbidden);
 }
 if(!appHtml.includes("else if(wantsRegister)showAuth('register');else showAuth('login');")){
