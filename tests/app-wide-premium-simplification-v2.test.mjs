@@ -131,7 +131,8 @@ try{
   await nav('contacts');
   await page.setViewportSize({width:390,height:844});
   const table=page.locator('#content table');
-  assert.equal(await table.locator('th').filter({hasText:'Btw-id'}).evaluate(el=>getComputedStyle(el).display),'none','VAT column should not dominate mobile relationship list');
+  assert.equal(await table.locator('tbody tr td:nth-child(6)').first().evaluate(el=>getComputedStyle(el).display),'none','VAT data should not dominate mobile relationship list');
+  assert.notEqual(await table.locator('th').filter({hasText:'Btw-id'}).evaluate(el=>getComputedStyle(el).display),'none','VAT header must remain programmatically available for table semantics');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'No global overflow at 390px');
 
   for(const width of [320,360,375,390,393,430,768,820]){
