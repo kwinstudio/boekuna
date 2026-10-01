@@ -4,7 +4,9 @@ Frozen source: `7096fa914d511beaa726214639be01888ed4107b`.
 
 All 18 public routes and 6 interactive states are frozen before design changes. Layout, wrappers and section order can change. Existing text, links, controls, images, fields, inline handlers and SEO cannot.
 
-| Route | Headings | Links | FAQ | Forms | Images |
+Totals: 241 headings, 1,113 links, 178 buttons/disclosure summaries, 18 FAQ entries, 3 forms and 82 image/source entries. Counts include the shared header/footer on each route. There are 72 disclosure summaries in total: 54 navigation groups (3 per route) and 18 FAQ entries (3 on pricing and 15 on FAQ). The table's disclosure column includes both.
+
+| Route | Headings | Links | Disclosures | Forms | Images |
 |---|---:|---:|---:|---:|---:|
 | / | 28 | 74 | 3 | 0 | 8 |
 | /functies/ | 21 | 64 | 3 | 0 | 9 |

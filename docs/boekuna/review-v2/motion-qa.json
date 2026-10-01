@@ -1,0 +1,22 @@
+[
+  {
+    "engine": "chromium",
+    "naturalIntroMs": 750,
+    "wordReveal": true,
+    "inViewReveal": true,
+    "parallaxPixels": -0.55,
+    "reducedMotion": true,
+    "menuCloseIcon": true,
+    "escapeFocusReturn": true
+  },
+  {
+    "engine": "webkit",
+    "naturalIntroMs": 650,
+    "wordReveal": true,
+    "inViewReveal": true,
+    "parallaxPixels": -0.56,
+    "reducedMotion": true,
+    "menuCloseIcon": true,
+    "escapeFocusReturn": true
+  }
+]

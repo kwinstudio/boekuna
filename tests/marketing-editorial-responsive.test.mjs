@@ -31,7 +31,7 @@ try{
     assert.ok(await page.locator('.product-crop').count()>=3,`Editorial product crops missing at ${width}px`);
     assert.equal(await page.locator('.product-mobile').count(),1,`Exactly one mobile proof expected at ${width}px`);
     assert.deepEqual(errors,[],`Homepage page errors at ${width}px: ${errors.join(' | ')}`);
-    assert.equal(await page.locator('.kz-hero h1 span').evaluate(el=>getComputedStyle(el).color),'rgb(190, 214, 205)',`Readable Calm Control dark-hero accent missing at ${width}px`);
+    assert.equal(await page.locator('.kz-hero h1 span').evaluate(el=>getComputedStyle(el).color),'rgb(231, 240, 238)',`Original brand soft accent on the dark hero missing at ${width}px`);
     assert.equal(await page.locator('.kz-hero-actions .mk-btn.primary').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(248, 247, 243)',`Readable primary CTA on dark brand hero missing at ${width}px`);
     if([390,1440,1920].includes(width)){
       await settleImages(page);
