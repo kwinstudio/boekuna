@@ -588,6 +588,7 @@
 .editorial-site .ed-opening :is(.ed-hero-heading,.ed-hero-support,.kz-hero-product-proof){grid-column:1}
 .editorial-site .ed-hero-support{max-width:44rem}
 .editorial-site .kz-hero-product-proof{width:100%;max-width:48rem;align-self:end}
+.editorial-site .kz-hero-product-proof>.image-free-proof-note{color:var(--ed-light);border-top-color:rgba(255,255,255,.28)}
 .editorial-site #kzProductShell{width:100%;min-height:12rem;display:flex;flex-direction:column;justify-content:space-between;gap:2rem;padding:2rem;border:1px solid var(--border-default);border-radius:var(--radius-md);background:var(--bg-surface-secondary);color:var(--text-primary)}
 .editorial-site #kzProductShell>span{font-size:clamp(1.4rem,3vw,3rem);line-height:1.08;letter-spacing:-.045em;font-weight:500}
 .editorial-site #kzProductShell .kz-preview-link{margin-top:0;align-self:flex-start}
