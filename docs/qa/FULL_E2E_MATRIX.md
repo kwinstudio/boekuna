@@ -205,18 +205,18 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | BANK-017 | BANK | Geen dubbele boeking na rematch | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
 | BANK-018 | BANK | Bank zoeken/filteren/sorteren | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
 | BANK-019 | BANK | Fingerprint/dedupe consistent | BLOCKED | Requires creating/importing/matching synthetic bank data in the running authenticated app; no interactive runner available. |
-| VAT-001 | VAT | Btw kwartaal | NOT_TESTED |  |
-| VAT-002 | VAT | Btw jaar | NOT_TESTED |  |
-| VAT-003 | VAT | Jaarselectie bestaande jaren | NOT_TESTED |  |
-| VAT-004 | VAT | Verkoop-btw | NOT_TESTED |  |
-| VAT-005 | VAT | Inkoop-btw | NOT_TESTED |  |
-| VAT-006 | VAT | Saldo | NOT_TESTED |  |
-| VAT-007 | VAT | 21% + 9% meerdere tarieven | NOT_TESTED |  |
-| VAT-008 | VAT | Mixed VAT | NOT_TESTED |  |
-| VAT-009 | VAT | KOR/zero-output treatment | NOT_TESTED |  |
-| VAT-010 | VAT | Afronding cent-nauwkeurig | NOT_TESTED |  |
-| VAT-011 | VAT | Onderliggende facturen cross-check | NOT_TESTED |  |
-| VAT-012 | VAT | Onderliggende kosten cross-check | NOT_TESTED |  |
+| VAT-001 | VAT | Btw kwartaal | BLOCKED | Requires booking the deterministic QA truth set and cross-checking rendered VAT values; authenticated data creation unavailable. |
+| VAT-002 | VAT | Btw jaar | BLOCKED | Requires booking the deterministic QA truth set and cross-checking rendered VAT values; authenticated data creation unavailable. |
+| VAT-003 | VAT | Jaarselectie bestaande jaren | BLOCKED | Requires booking the deterministic QA truth set and cross-checking rendered VAT values; authenticated data creation unavailable. |
+| VAT-004 | VAT | Verkoop-btw | BLOCKED | Requires booking the deterministic QA truth set and cross-checking rendered VAT values; authenticated data creation unavailable. |
+| VAT-005 | VAT | Inkoop-btw | BLOCKED | Requires booking the deterministic QA truth set and cross-checking rendered VAT values; authenticated data creation unavailable. |
+| VAT-006 | VAT | Saldo | BLOCKED | Requires booking the deterministic QA truth set and cross-checking rendered VAT values; authenticated data creation unavailable. |
+| VAT-007 | VAT | 21% + 9% meerdere tarieven | BLOCKED | Requires booking the deterministic QA truth set and cross-checking rendered VAT values; authenticated data creation unavailable. |
+| VAT-008 | VAT | Mixed VAT | BLOCKED | Requires booking the deterministic QA truth set and cross-checking rendered VAT values; authenticated data creation unavailable. |
+| VAT-009 | VAT | KOR/zero-output treatment | BLOCKED | Requires booking the deterministic QA truth set and cross-checking rendered VAT values; authenticated data creation unavailable. |
+| VAT-010 | VAT | Afronding cent-nauwkeurig | BLOCKED | Requires booking the deterministic QA truth set and cross-checking rendered VAT values; authenticated data creation unavailable. |
+| VAT-011 | VAT | Onderliggende facturen cross-check | BLOCKED | Requires booking the deterministic QA truth set and cross-checking rendered VAT values; authenticated data creation unavailable. |
+| VAT-012 | VAT | Onderliggende kosten cross-check | BLOCKED | Requires booking the deterministic QA truth set and cross-checking rendered VAT values; authenticated data creation unavailable. |
 | REP-001 | REP | Rapport week indien aanwezig | NOT_TESTED |  |
 | REP-002 | REP | Rapport maand | NOT_TESTED |  |
 | REP-003 | REP | Rapport kwartaal | NOT_TESTED |  |
