@@ -305,16 +305,16 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | SET-018 | SET | Administratie wissen alleen QA-account | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
 | SET-019 | SET | Sync-herstel indien conflict | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
 | SET-020 | SET | Account verwijderen | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
-| EXPORT-001 | EXPORT | Facturen CSV export | NOT_TESTED |  |
-| EXPORT-002 | EXPORT | Kosten CSV export | NOT_TESTED |  |
-| EXPORT-003 | EXPORT | Journal/grootboek CSV export | NOT_TESTED |  |
-| EXPORT-004 | EXPORT | Auditlog CSV export | NOT_TESTED |  |
-| EXPORT-005 | EXPORT | Back-up JSON export | NOT_TESTED |  |
-| EXPORT-006 | EXPORT | Back-up JSON import/restore | NOT_TESTED |  |
-| EXPORT-007 | EXPORT | Invalid backup afgewezen | NOT_TESTED |  |
-| EXPORT-008 | EXPORT | Restore zonder stille duplicatie | NOT_TESTED |  |
-| EXPORT-009 | EXPORT | Encoding/headers/decimalen/datums | NOT_TESTED |  |
-| EXPORT-010 | EXPORT | Refresh persistence na restore | NOT_TESTED |  |
+| EXPORT-001 | EXPORT | Facturen CSV export | BLOCKED | Requires browser download/file-content inspection and safe QA restore interaction. |
+| EXPORT-002 | EXPORT | Kosten CSV export | BLOCKED | Requires browser download/file-content inspection and safe QA restore interaction. |
+| EXPORT-003 | EXPORT | Journal/grootboek CSV export | BLOCKED | Requires browser download/file-content inspection and safe QA restore interaction. |
+| EXPORT-004 | EXPORT | Auditlog CSV export | BLOCKED | Requires browser download/file-content inspection and safe QA restore interaction. |
+| EXPORT-005 | EXPORT | Back-up JSON export | BLOCKED | Requires browser download/file-content inspection and safe QA restore interaction. |
+| EXPORT-006 | EXPORT | Back-up JSON import/restore | BLOCKED | Requires browser download/file-content inspection and safe QA restore interaction. |
+| EXPORT-007 | EXPORT | Invalid backup afgewezen | BLOCKED | Requires browser download/file-content inspection and safe QA restore interaction. |
+| EXPORT-008 | EXPORT | Restore zonder stille duplicatie | BLOCKED | Requires browser download/file-content inspection and safe QA restore interaction. |
+| EXPORT-009 | EXPORT | Encoding/headers/decimalen/datums | BLOCKED | Requires browser download/file-content inspection and safe QA restore interaction. |
+| EXPORT-010 | EXPORT | Refresh persistence na restore | BLOCKED | Requires browser download/file-content inspection and safe QA restore interaction. |
 | BILL-001 | BILL | Billing summary server-side | NOT_TESTED |  |
 | BILL-002 | BILL | Checkout test mode | NOT_TESTED |  |
 | BILL-003 | BILL | Checkout success return | NOT_TESTED |  |
