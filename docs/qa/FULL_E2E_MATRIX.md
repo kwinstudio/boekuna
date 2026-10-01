@@ -400,7 +400,7 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | DESK-004 | DESK | 1440px kernflows | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
 | DESK-005 | DESK | Modals/tables/forms/charts/action menus | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
 | DESK-006 | DESK | Documents/reports desktop | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
-| BROW-001 | BROW | Chromium risicogebaseerde regressie | NOT_TESTED |  |
+| BROW-001 | BROW | Chromium risicogebaseerde regressie | BLOCKED | Exact-current Chromium regression step did not execute after CI-007 and no interactive browser runner is available. |
 | BROW-002 | BROW | WebKit risicogebaseerde regressie | NOT_TESTED |  |
 | BROW-003 | BROW | WebKit uploads | NOT_TESTED |  |
 | BROW-004 | BROW | WebKit date controls | NOT_TESTED |  |
