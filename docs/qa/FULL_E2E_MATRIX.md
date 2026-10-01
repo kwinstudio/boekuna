@@ -372,18 +372,18 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | BREAK-011 | BREAK | Ongeldige datums | BLOCKED | Requires live exploratory browser interaction. |
 | BREAK-012 | BREAK | Snel klikken | BLOCKED | Requires live exploratory browser interaction. |
 | BREAK-013 | BREAK | Navigeren tijdens processing | BLOCKED | Requires live exploratory browser interaction. |
-| SEC-001 | SEC | Tenant A kan facturen B niet lezen | NOT_TESTED |  |
-| SEC-002 | SEC | Tenant A kan relaties B niet lezen | NOT_TESTED |  |
-| SEC-003 | SEC | Tenant A kan kosten B niet lezen | NOT_TESTED |  |
-| SEC-004 | SEC | Tenant A kan documenten B niet lezen | NOT_TESTED |  |
-| SEC-005 | SEC | Tenant A kan bankdata B niet lezen | NOT_TESTED |  |
-| SEC-006 | SEC | Tenant A kan settings B niet lezen | NOT_TESTED |  |
-| SEC-007 | SEC | Tenant A kan exports B niet lezen | NOT_TESTED |  |
-| SEC-008 | SEC | Tenant A kan ledger B niet lezen | NOT_TESTED |  |
-| SEC-009 | SEC | Logout/login switch stale state | NOT_TESTED |  |
-| SEC-010 | SEC | Direct object/RPC boundaries | NOT_TESTED |  |
-| SEC-011 | SEC | Developer Mode productie fail-closed | NOT_TESTED |  |
-| SEC-012 | SEC | Supabase RLS/security advisors | NOT_TESTED |  |
+| SEC-001 | SEC | Tenant A kan facturen B niet lezen | BLOCKED | Two-account tenant-isolation interaction required; exact-current tenant CI step was skipped after CI-007. Current RLS policies are auth.uid()-scoped, but that is not a two-user E2E PASS. |
+| SEC-002 | SEC | Tenant A kan relaties B niet lezen | BLOCKED | Two-account tenant-isolation interaction required; exact-current tenant CI step was skipped after CI-007. Current RLS policies are auth.uid()-scoped, but that is not a two-user E2E PASS. |
+| SEC-003 | SEC | Tenant A kan kosten B niet lezen | BLOCKED | Two-account tenant-isolation interaction required; exact-current tenant CI step was skipped after CI-007. Current RLS policies are auth.uid()-scoped, but that is not a two-user E2E PASS. |
+| SEC-004 | SEC | Tenant A kan documenten B niet lezen | BLOCKED | Two-account tenant-isolation interaction required; exact-current tenant CI step was skipped after CI-007. Current RLS policies are auth.uid()-scoped, but that is not a two-user E2E PASS. |
+| SEC-005 | SEC | Tenant A kan bankdata B niet lezen | BLOCKED | Two-account tenant-isolation interaction required; exact-current tenant CI step was skipped after CI-007. Current RLS policies are auth.uid()-scoped, but that is not a two-user E2E PASS. |
+| SEC-006 | SEC | Tenant A kan settings B niet lezen | BLOCKED | Two-account tenant-isolation interaction required; exact-current tenant CI step was skipped after CI-007. Current RLS policies are auth.uid()-scoped, but that is not a two-user E2E PASS. |
+| SEC-007 | SEC | Tenant A kan exports B niet lezen | BLOCKED | Two-account tenant-isolation interaction required; exact-current tenant CI step was skipped after CI-007. Current RLS policies are auth.uid()-scoped, but that is not a two-user E2E PASS. |
+| SEC-008 | SEC | Tenant A kan ledger B niet lezen | BLOCKED | Two-account tenant-isolation interaction required; exact-current tenant CI step was skipped after CI-007. Current RLS policies are auth.uid()-scoped, but that is not a two-user E2E PASS. |
+| SEC-009 | SEC | Logout/login switch stale state | BLOCKED | Two-account tenant-isolation interaction required; exact-current tenant CI step was skipped after CI-007. Current RLS policies are auth.uid()-scoped, but that is not a two-user E2E PASS. |
+| SEC-010 | SEC | Direct object/RPC boundaries | BLOCKED | Two-account tenant-isolation interaction required; exact-current tenant CI step was skipped after CI-007. Current RLS policies are auth.uid()-scoped, but that is not a two-user E2E PASS. |
+| SEC-011 | SEC | Developer Mode productie fail-closed | PASS | Exact frozen build defaults Developer Mode off; build script refuses production/known production origins and requires isolated non-production Supabase for enablement. |
+| SEC-012 | SEC | Supabase RLS/security advisors | FAIL | Current Supabase security advisors: leaked-password protection disabled; pg_net extension in public schema. RLS core tables are enabled and own-row policies were independently inspected. |
 | MOB-001 | MOB | 320px kernflows | NOT_TESTED |  |
 | MOB-002 | MOB | 360px kernflows | NOT_TESTED |  |
 | MOB-003 | MOB | 375px kernflows | NOT_TESTED |  |
