@@ -339,11 +339,11 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | FLOW-003 | FLOW | Verkoopketen dashboard→omzet→btw→rapportage→grootboek | BLOCKED | Requires real authenticated end-to-end sales-chain execution. |
 | FLOW-004 | FLOW | Inkoopketen bon→OCR→review→correctie→boeken | BLOCKED | Requires real authenticated purchase/OCR/bank/accounting chain execution. |
 | FLOW-005 | FLOW | Inkoopketen kosten→bankmatch→btw→rapportage→grootboek | BLOCKED | Requires real authenticated purchase/OCR/bank/accounting chain execution. |
-| FLOW-006 | FLOW | Multi-period maanden | NOT_TESTED |  |
-| FLOW-007 | FLOW | Multi-period kwartalen | NOT_TESTED |  |
-| FLOW-008 | FLOW | Multi-period jaren | NOT_TESTED |  |
-| FLOW-009 | FLOW | Historische filters | NOT_TESTED |  |
-| FLOW-010 | FLOW | Cross-feature cent-nauwkeurige consistentie | NOT_TESTED |  |
+| FLOW-006 | FLOW | Multi-period maanden | BLOCKED | Requires persisted synthetic data across months/quarters/years and rendered historical cross-checks. |
+| FLOW-007 | FLOW | Multi-period kwartalen | BLOCKED | Requires persisted synthetic data across months/quarters/years and rendered historical cross-checks. |
+| FLOW-008 | FLOW | Multi-period jaren | BLOCKED | Requires persisted synthetic data across months/quarters/years and rendered historical cross-checks. |
+| FLOW-009 | FLOW | Historische filters | BLOCKED | Requires persisted synthetic data across months/quarters/years and rendered historical cross-checks. |
+| FLOW-010 | FLOW | Cross-feature cent-nauwkeurige consistentie | BLOCKED | Requires persisted synthetic data across months/quarters/years and rendered historical cross-checks. |
 | REC-001 | REC | Refresh tijdens factuuredit | NOT_TESTED |  |
 | REC-002 | REC | Refresh tijdens upload | NOT_TESTED |  |
 | REC-003 | REC | App verlaten tijdens processing | NOT_TESTED |  |
