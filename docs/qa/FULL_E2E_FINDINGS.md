@@ -44,7 +44,7 @@ Evidence:
 GitHub Actions run 36883528292; job 110440977379; source-safety assertion at tests/source-safety.test.mjs:143; frozen LIST_UI/listSearchHaystack source inspection.
 
 Reproduced:
-YES on the exact-current CI run; one confirmatory workflow retry is reserved for Checkpoint 31.
+YES — CONFIRMED. GitHub Actions run 36883528292 attempt 2 / job 110480215484 failed again at tests/source-safety.test.mjs:143 with the identical missing-placeholder assertion. No further retry performed.
 
 Owner:
 03 — QA/security
@@ -147,3 +147,10 @@ Owner:
 ## Security-advisor review notes
 
 The advisor also reports RLS-enabled server-managed tables with no policies. That is fail-closed for authenticated/anon roles rather than evidence of exposure; service-role-only access is intentional on the inspected KVK/billing internals. Four authenticated SECURITY DEFINER functions are also linted. Source review shows they derive the acting user from `auth.uid()` and use scoped server-only helpers; no cross-tenant bypass was demonstrated. These warnings are retained as review evidence but not promoted to product findings without an exploit path.
+
+
+## Checkpoint 31 finding retest
+
+FUNC-CI-001: CONFIRMED on the single permitted confirmatory retry. Attempt 2 again passed split boundaries, provider-agnostic entitlement and accounting integrity, then failed Production source safety on the same obsolete contact-search placeholder assertion. Downstream tenant, browser, document and billing steps were skipped again.
+
+FUNC-SEC-001 and FUNC-SEC-002 are configuration/advisor findings and were re-read from the same current Supabase project during Checkpoint 23; they are deterministic current-state findings rather than flaky interaction failures.

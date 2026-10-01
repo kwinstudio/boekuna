@@ -4,11 +4,11 @@ RUN_ID: QA-E2E-20261001
 SOURCE_SHA: 7132029b792c8942f18317637ff352461dfe08d5
 DEPLOY_SHA: 7132029b792c8942f18317637ff352461dfe08d5
 TOTAL_CHECKPOINTS: 34
-CURRENT_CHECKPOINT: 31
-LAST_COMPLETED_CHECKPOINT: 30
-CURRENT_TEST_ID: RETEST-FUNC-CI-001
-LAST_COMPLETED_TEST_ID: GAP-AUDIT
-NEXT_TEST_ID: RETEST-FUNC-CI-001
+CURRENT_CHECKPOINT: 32
+LAST_COMPLETED_CHECKPOINT: 31
+CURRENT_TEST_ID: CONSISTENCY-001
+LAST_COMPLETED_TEST_ID: RETEST-FUNC-CI-001
+NEXT_TEST_ID: CONSISTENCY-001
 TOTAL_SCENARIOS: 421
 PASS: 10
 FAIL: 2
@@ -21,5 +21,5 @@ OPEN_P2: 2
 OPEN_P3: 1
 STATUS: RUNNING
 
-## Checkpoint 30 — coverage gap audit
-Complete. See docs/qa/FULL_E2E_AUTOMATION_GAPS.md. Existing automation is broad, but current fail-fast ordering prevents much of it from producing exact-SHA evidence. Cross-feature sales/purchase chains, billing lifecycle, backup round-trip, multi-period truth, auth/session security and recovery/idempotence are priority automation gaps.
+## Checkpoint 31 — finding retest
+FUNC-CI-001 is CONFIRMED by the one permitted retry. Run 36883528292 attempt 2, job 110480215484, failed again at source-safety.test.mjs:143 with the same stale contact-placeholder assertion. No additional retry will be made.
