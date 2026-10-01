@@ -253,17 +253,17 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | CTRL-007 | CTRL | Resolved status | BLOCKED | Requires creating/resolving attention conditions and verifying counts through the UI. |
 | CTRL-008 | CTRL | Count update na echte oplossing | BLOCKED | Requires creating/resolving attention conditions and verifying counts through the UI. |
 | CTRL-009 | CTRL | Grote lijst | BLOCKED | Requires creating/resolving attention conditions and verifying counts through the UI. |
-| BOOK-001 | BOOK | Boeking maken | NOT_TESTED |  |
-| BOOK-002 | BOOK | Klant/dienst | NOT_TESTED |  |
-| BOOK-003 | BOOK | Datum/tijd | NOT_TESTED |  |
-| BOOK-004 | BOOK | Status gepland/bevestigd | NOT_TESTED |  |
-| BOOK-005 | BOOK | Voltooien | NOT_TESTED |  |
-| BOOK-006 | BOOK | Annuleren/no-show indien aanwezig | NOT_TESTED |  |
-| BOOK-007 | BOOK | Bewerken | NOT_TESTED |  |
-| BOOK-008 | BOOK | Persistence | NOT_TESTED |  |
-| BOOK-009 | BOOK | Factuur uit boeking | NOT_TESTED |  |
-| BOOK-010 | BOOK | Herinnering markeren | NOT_TESTED |  |
-| BOOK-011 | BOOK | Zoeken/filteren/sorteren/custom periode | NOT_TESTED |  |
+| BOOK-001 | BOOK | Boeking maken | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
+| BOOK-002 | BOOK | Klant/dienst | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
+| BOOK-003 | BOOK | Datum/tijd | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
+| BOOK-004 | BOOK | Status gepland/bevestigd | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
+| BOOK-005 | BOOK | Voltooien | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
+| BOOK-006 | BOOK | Annuleren/no-show indien aanwezig | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
+| BOOK-007 | BOOK | Bewerken | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
+| BOOK-008 | BOOK | Persistence | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
+| BOOK-009 | BOOK | Factuur uit boeking | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
+| BOOK-010 | BOOK | Herinnering markeren | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
+| BOOK-011 | BOOK | Zoeken/filteren/sorteren/custom periode | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
 | TIME-001 | TIME | Uur maken | NOT_TESTED |  |
 | TIME-002 | TIME | Uur datum | NOT_TESTED |  |
 | TIME-003 | TIME | Uur duur | NOT_TESTED |  |
@@ -279,12 +279,12 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | TIME-013 | TIME | Rit verwijderen | NOT_TESTED |  |
 | TIME-014 | TIME | Ritten totaal | NOT_TESTED |  |
 | TIME-015 | TIME | Export/rapportage-impact waar aanwezig | NOT_TESTED |  |
-| SETTLE-001 | SETTLE | Gemengde afrekening maken | NOT_TESTED |  |
-| SETTLE-002 | SETTLE | Omzetcomponent | NOT_TESTED |  |
-| SETTLE-003 | SETTLE | Kostencomponent | NOT_TESTED |  |
-| SETTLE-004 | SETTLE | Referentie/partij | NOT_TESTED |  |
-| SETTLE-005 | SETTLE | Bankmatch naar afrekening | NOT_TESTED |  |
-| SETTLE-006 | SETTLE | Grootboek-effect | NOT_TESTED |  |
+| SETTLE-001 | SETTLE | Gemengde afrekening maken | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
+| SETTLE-002 | SETTLE | Omzetcomponent | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
+| SETTLE-003 | SETTLE | Kostencomponent | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
+| SETTLE-004 | SETTLE | Referentie/partij | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
+| SETTLE-005 | SETTLE | Bankmatch naar afrekening | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
+| SETTLE-006 | SETTLE | Grootboek-effect | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
 | SET-001 | SET | Bedrijfsnaam/handelsnaam opslaan | NOT_TESTED |  |
 | SET-002 | SET | KVK/btw-id opslaan | NOT_TESTED |  |
 | SET-003 | SET | Adres/land opslaan | NOT_TESTED |  |
