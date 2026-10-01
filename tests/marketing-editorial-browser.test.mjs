@@ -18,7 +18,7 @@ const beforeDir=fs.mkdtempSync(path.join(os.tmpdir(),'boekuna-marketing-before-'
 const baseline=JSON.parse(fs.readFileSync('tests/fixtures/marketing-content-freeze.json','utf8'));
 execFileSync('tar',['-x','-C',beforeDir],{input:execFileSync('git',['archive',baseline.baseHead,'public'],{maxBuffer:64*1024*1024})});
 const before=await serveMarketing(path.join(beforeDir,'public'));
-const visualRoutes=['/','/functies/','/scanner/','/hoe-het-werkt/','/prijzen/','/faq/','/privacy/','/support/'];
+const visualRoutes=['/','/functies/','/scanner/','/hoe-het-werkt/','/prijzen/','/rapportages/','/faq/','/privacy/','/support/'];
 
 async function loadImages(page){
   await settleImages(page);
