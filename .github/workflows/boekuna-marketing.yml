@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "public/index.html"
+      - "public/404.html"
       - "public/*/index.html"
       - "public/robots.txt"
       - "public/sitemap.xml"
@@ -11,6 +12,9 @@ on:
       - "public/assets/marketing.js"
       - "public/assets/homepage.css"
       - "public/assets/homepage.js"
+      - "public/assets/marketing-editorial.css"
+      - "public/assets/marketing-editorial.js"
+      - "public/assets/marketing-editorial/**"
       - "public/assets/product/**"
       - "public/assets/editorial/**"
       - "public/assets/brand-v2.css"
@@ -22,6 +26,10 @@ on:
       - "tests/marketing-pages.test.mjs"
       - "tests/marketing-product-proof.test.mjs"
       - "tests/marketing-editorial-responsive.test.mjs"
+      - "tests/marketing-content-freeze.test.mjs"
+      - "tests/marketing-editorial-browser.test.mjs"
+      - "tests/fixtures/marketing-content-freeze.json"
+      - "tests/helpers/marketing-site.mjs"
       - "tests/split-build-boundaries.test.mjs"
       - "tests/split-surfaces-browser.test.mjs"
       - "tests/split-ci-scopes.test.mjs"
@@ -33,9 +41,11 @@ permissions:
 jobs:
   marketing:
     runs-on: ubuntu-latest
-    timeout-minutes: 9
+    timeout-minutes: 18
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -46,9 +56,13 @@ jobs:
       - name: Install browser test dependencies
         run: npm ci --prefix tests --ignore-scripts
       - name: Install Playwright
-        run: npm install --prefix tests --no-save playwright@1.56.1
-      - name: Install Chromium
-        run: ./tests/node_modules/.bin/playwright install --with-deps chromium
+        run: npm install --prefix tests --no-save playwright@1.56.1 axe-core@4.10.3
+      - name: Install Chromium and WebKit
+        run: ./tests/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Build standalone marketing artifact
+        run: node scripts/build-marketing.mjs
+      - name: Frozen content and SEO parity
+        run: node tests/marketing-content-freeze.test.mjs
       - name: Marketing page QA
         run: node tests/marketing-pages.test.mjs
       - name: Real marketing product screenshots
@@ -57,10 +71,19 @@ jobs:
         run: node tests/marketing-editorial-responsive.test.mjs
       - name: Split generated surface browser smoke
         run: node tests/split-surfaces-browser.test.mjs
+      - name: Generated marketing full browser and accessibility gate
+        run: node tests/marketing-editorial-browser.test.mjs
       - name: Upload brand visual evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: boekuna-marketing-visual
           path: tests/artifacts/brand-*.png
+          if-no-files-found: error
+      - name: Upload editorial before-after and QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boekuna-marketing-editorial
+          path: tests/artifacts/marketing-editorial/
           if-no-files-found: error

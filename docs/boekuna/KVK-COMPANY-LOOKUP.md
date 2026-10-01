@@ -7,7 +7,8 @@ De onafhankelijke 03-beoordeling en productieactivatie zijn nog niet uitgevoerd.
 
 | Onderdeel | Waarde |
 |---|---|
-| BASE MAIN SHA | `8b4c17859aff07bcce6fbc3f02117074571a1e5c` |
+| BASE MAIN SHA | `7096fa914d511beaa726214639be01888ed4107b` (bijgewerkte main na marketingmerge #113) |
+| Audit/startbasis | `8b4c17859aff07bcce6fbc3f02117074571a1e5c`; de appbron veranderde niet in #113 |
 | BRANCH | `feature/kvk-company-lookup` |
 | HEAD | Exacte review-HEAD staat in het reviewcontract van de feature-PR; controleer `git rev-parse HEAD` |
 | OPEN PR COLLISION CHECK | Oude PR's #15, #18, #55, #57 en #69 hebben geen Relaties-hunks. Marketing-PR #113 wijzigt `kwinest/index.html` niet. Geen actieve cleanup/modularisatie/Relaties-PR gevonden. |
