@@ -285,26 +285,26 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | SETTLE-004 | SETTLE | Referentie/partij | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
 | SETTLE-005 | SETTLE | Bankmatch naar afrekening | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
 | SETTLE-006 | SETTLE | Grootboek-effect | BLOCKED | Requires interactive create/edit/status/persistence/cross-feature verification in the authenticated app. |
-| SET-001 | SET | Bedrijfsnaam/handelsnaam opslaan | NOT_TESTED |  |
-| SET-002 | SET | KVK/btw-id opslaan | NOT_TESTED |  |
-| SET-003 | SET | Adres/land opslaan | NOT_TESTED |  |
-| SET-004 | SET | Contactgegevens opslaan | NOT_TESTED |  |
-| SET-005 | SET | IBAN/rekeninghouder/BIC opslaan | NOT_TESTED |  |
-| SET-006 | SET | Factuurprefix opslaan en toepassen | NOT_TESTED |  |
-| SET-007 | SET | Standaard betaaltermijn toepassen | NOT_TESTED |  |
-| SET-008 | SET | Peppol/e-factuur-ID opslaan | NOT_TESTED |  |
-| SET-009 | SET | KOR toggle en factuur-effect | NOT_TESTED |  |
-| SET-010 | SET | E-mailsjabloon opslaan/preview | NOT_TESTED |  |
-| SET-011 | SET | Factuurlayout opslaan/preview | NOT_TESTED |  |
-| SET-012 | SET | Logo upload/verwijderen | NOT_TESTED |  |
-| SET-013 | SET | Fiscale spelregels openen | NOT_TESTED |  |
-| SET-014 | SET | Privacy & veiligheid openen | NOT_TESTED |  |
-| SET-015 | SET | Support mailto | NOT_TESTED |  |
-| SET-016 | SET | Logout vanuit instellingen | NOT_TESTED |  |
-| SET-017 | SET | Versiegeschiedenis | NOT_TESTED |  |
-| SET-018 | SET | Administratie wissen alleen QA-account | NOT_TESTED |  |
-| SET-019 | SET | Sync-herstel indien conflict | NOT_TESTED |  |
-| SET-020 | SET | Account verwijderen | NOT_TESTED |  |
+| SET-001 | SET | Bedrijfsnaam/handelsnaam opslaan | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-002 | SET | KVK/btw-id opslaan | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-003 | SET | Adres/land opslaan | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-004 | SET | Contactgegevens opslaan | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-005 | SET | IBAN/rekeninghouder/BIC opslaan | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-006 | SET | Factuurprefix opslaan en toepassen | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-007 | SET | Standaard betaaltermijn toepassen | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-008 | SET | Peppol/e-factuur-ID opslaan | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-009 | SET | KOR toggle en factuur-effect | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-010 | SET | E-mailsjabloon opslaan/preview | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-011 | SET | Factuurlayout opslaan/preview | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-012 | SET | Logo upload/verwijderen | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-013 | SET | Fiscale spelregels openen | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-014 | SET | Privacy & veiligheid openen | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-015 | SET | Support mailto | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-016 | SET | Logout vanuit instellingen | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-017 | SET | Versiegeschiedenis | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-018 | SET | Administratie wissen alleen QA-account | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-019 | SET | Sync-herstel indien conflict | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
+| SET-020 | SET | Account verwijderen | BLOCKED | Requires changing safe QA values, saving, refreshing/reopening and verifying downstream effects through the authenticated UI. |
 | EXPORT-001 | EXPORT | Facturen CSV export | NOT_TESTED |  |
 | EXPORT-002 | EXPORT | Kosten CSV export | NOT_TESTED |  |
 | EXPORT-003 | EXPORT | Journal/grootboek CSV export | NOT_TESTED |  |

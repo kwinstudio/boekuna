@@ -4,20 +4,20 @@ RUN_ID: QA-E2E-20261001
 SOURCE_SHA: 7132029b792c8942f18317637ff352461dfe08d5
 DEPLOY_SHA: 7132029b792c8942f18317637ff352461dfe08d5
 TOTAL_CHECKPOINTS: 34
-CURRENT_CHECKPOINT: 15
-LAST_COMPLETED_CHECKPOINT: 14
-CURRENT_TEST_ID: SET-001
-LAST_COMPLETED_TEST_ID: TIME-015
-NEXT_TEST_ID: SET-001
+CURRENT_CHECKPOINT: 16
+LAST_COMPLETED_CHECKPOINT: 15
+CURRENT_TEST_ID: EXPORT-001
+LAST_COMPLETED_TEST_ID: SET-020
+NEXT_TEST_ID: EXPORT-001
 TOTAL_SCENARIOS: 421
 PASS: 8
 FAIL: 1
-BLOCKED: 251
-NOT_TESTED: 156
+BLOCKED: 271
+NOT_TESTED: 136
 NOT_APPLICABLE: 5
 OPEN_P0: 0
 OPEN_P1: 0
 STATUS: RUNNING
 
-## Checkpoint 14 — hours + mileage
-All 15 hours/mileage scenarios were processed and are BLOCKED because actual authenticated create/edit/delete/total/export behavior cannot be exercised in this runtime.
+## Checkpoint 15 — settings
+All 20 settings scenarios were processed. Frozen source exposes business/profile fields, invoice prefix/payment terms, KOR, Peppol ID, e-mail template, invoice layout/logo, fiscal/privacy views, support, logout, version history, wipe/recovery and account deletion. Required save-refresh-reopen/downstream interaction is BLOCKED here.
