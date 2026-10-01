@@ -30,8 +30,9 @@ Het exacte te beoordelen HEAD staat in de feature-PR. Een wijziging daarna verei
   gereproduceerd op een baseline-export. Dit is geen KVK-regressie; de backendworkflow
   blijft daardoor geen geheel groene releasegate. Geen buiten-scope UI-aanpassing gedaan.
 - De algemene WebKit-smoke op `728c618…` faalde bij handmatige relatie-invoer,
-  terwijl dezelfde volledige test lokaal slaagde. Deze test wacht nu expliciet op
-  de beginfocus van het gewijzigde dialoog voordat hij het naamveld invult.
+  terwijl dezelfde volledige test lokaal slaagde. Op `f4a3fde…` slaagde die relatie-invoer,
+  waarna dezelfde timingfout optrad bij de ongewijzigde dienst-invoer. De test wacht nu
+  op de beginfocus van relatie-, dienst- en factuurdialoog voordat hij velden invult.
   Controleer het uiteindelijke CI-resultaat bij het exacte PR-HEAD; geen volledig groen CI-resultaat veronderstellen.
 - Browsertests gebruiken gecontroleerde Supabase/KVK-fixtures voor fouten, races en opslag.
   De afzonderlijke officiële integratie gebruikt de echte gedeployde auth/backend/API-keten.

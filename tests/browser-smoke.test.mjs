@@ -97,6 +97,7 @@ try{
   assert.equal(await page.evaluate(()=>state.contacts.length),1);
 
   await page.evaluate(()=>newService());
+  await page.waitForFunction(()=>document.activeElement?.matches('#modalRoot .modal-close'));
   await page.locator('#serviceForm [name="name"]').fill('QA Consultancy');
   await page.locator('#serviceForm [name="price"]').fill('10');
   await page.locator('#serviceForm [name="vat"]').selectOption('21');
@@ -104,6 +105,7 @@ try{
   assert.equal(await page.evaluate(()=>state.services.length),1);
 
   await page.evaluate(()=>newInvoice());
+  await page.waitForFunction(()=>document.activeElement?.matches('#modalRoot .modal-close'));
   await page.evaluate(()=>reviewInvoice());
   await page.locator('.toast').filter({hasText:'punt(en) controleren'}).waitFor();
 
