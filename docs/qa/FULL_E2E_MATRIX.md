@@ -228,14 +228,14 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | REP-009 | REP | Overige KPI's | BLOCKED | Requires populated QA ledger and rendered/exported report interaction; no interactive runner available. |
 | REP-010 | REP | Periode over jaargrens | BLOCKED | Requires populated QA ledger and rendered/exported report interaction; no interactive runner available. |
 | REP-011 | REP | Print/PDF/export indien aanwezig | BLOCKED | Requires populated QA ledger and rendered/exported report interaction; no interactive runner available. |
-| LED-001 | LED | Grootboek gegenereerd uit factuur | NOT_TESTED |  |
-| LED-002 | LED | Grootboek uit kosten | NOT_TESTED |  |
-| LED-003 | LED | Grootboek btw | NOT_TESTED |  |
-| LED-004 | LED | Grootboek betaling | NOT_TESTED |  |
-| LED-005 | LED | Grootboek bankmatch | NOT_TESTED |  |
-| LED-006 | LED | Debet/credit consistent | NOT_TESTED |  |
-| LED-007 | LED | Zoeken/sorteren | NOT_TESTED |  |
-| LED-008 | LED | Geen dubbele regels na rematch | NOT_TESTED |  |
+| LED-001 | LED | Grootboek gegenereerd uit factuur | BLOCKED | Requires persisted transaction chain and rendered generated journal comparison; QA data cannot be created interactively here. |
+| LED-002 | LED | Grootboek uit kosten | BLOCKED | Requires persisted transaction chain and rendered generated journal comparison; QA data cannot be created interactively here. |
+| LED-003 | LED | Grootboek btw | BLOCKED | Requires persisted transaction chain and rendered generated journal comparison; QA data cannot be created interactively here. |
+| LED-004 | LED | Grootboek betaling | BLOCKED | Requires persisted transaction chain and rendered generated journal comparison; QA data cannot be created interactively here. |
+| LED-005 | LED | Grootboek bankmatch | BLOCKED | Requires persisted transaction chain and rendered generated journal comparison; QA data cannot be created interactively here. |
+| LED-006 | LED | Debet/credit consistent | BLOCKED | Requires persisted transaction chain and rendered generated journal comparison; QA data cannot be created interactively here. |
+| LED-007 | LED | Zoeken/sorteren | BLOCKED | Requires persisted transaction chain and rendered generated journal comparison; QA data cannot be created interactively here. |
+| LED-008 | LED | Geen dubbele regels na rematch | BLOCKED | Requires persisted transaction chain and rendered generated journal comparison; QA data cannot be created interactively here. |
 | CASH-001 | CASH | Cashflowweergave | NOT_TESTED |  |
 | CASH-002 | CASH | Toekomstige bewegingen | NOT_TESTED |  |
 | CASH-003 | CASH | Geplande kasbeweging maken | NOT_TESTED |  |
