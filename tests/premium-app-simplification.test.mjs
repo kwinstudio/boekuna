@@ -86,17 +86,23 @@ async function assertMobileStackAccessibility(route,selector){
   await table.waitFor();
   const details=await table.evaluate(el=>{
     const thead=el.querySelector('thead');
-    const headers=[...el.querySelectorAll('thead th')].map(th=>({id:th.id,scope:th.getAttribute('scope')||'',text:th.textContent.trim()}));
-    const cells=[...el.querySelectorAll('tbody tr td:not([colspan])')].map(td=>({headers:td.getAttribute('headers')||''}));
-    return {theadDisplay:thead?getComputedStyle(thead).display:'missing',headers,cells};
+    const visible=element=>{const style=getComputedStyle(element);return style.display!=='none'&&style.visibility!=='hidden'};
+    const headers=[...el.querySelectorAll('thead th')].map(th=>({id:th.id,scope:th.getAttribute('scope')||'',text:th.textContent.trim(),visible:visible(th)}));
+    const cells=[...el.querySelectorAll('tbody tr td:not([colspan])')].map(td=>({headers:td.getAttribute('headers')||'',visible:visible(td)}));
+    return {theadDisplay:thead?getComputedStyle(thead).display:'missing',theadAriaHidden:thead?.getAttribute('aria-hidden')||'',headers,cells};
   });
   assert.notEqual(details.theadDisplay,'none',route+' mobile table headers must remain in the accessibility tree');
+  assert.notEqual(details.theadAriaHidden,'true',route+' mobile table header group must not be aria-hidden');
   assert.ok(details.headers.length>0,route+' mobile table must keep column headers');
   assert.ok(details.headers.every(header=>header.id&&header.scope==='col'),route+' mobile headers need stable ids and scope=col');
   assert.ok(details.cells.length>0,route+' accessibility fixture must include at least one data row');
-  const headerIds=new Set(details.headers.map(header=>header.id));
-  assert.ok(details.cells.every(cell=>headerIds.has(cell.headers)),route+' data cells must explicitly reference their column header');
-  assert.equal(await table.getByRole('columnheader').count(),details.headers.length,route+' column headers must remain exposed as accessibility roles');
+  const headerById=new Map(details.headers.map(header=>[header.id,header]));
+  assert.ok(details.cells.every(cell=>headerById.has(cell.headers)),route+' data cells must explicitly reference their column header');
+  const visibleCells=details.cells.filter(cell=>cell.visible);
+  assert.ok(visibleCells.length>0,route+' accessibility fixture must include at least one visible data cell');
+  assert.ok(visibleCells.every(cell=>headerById.get(cell.headers)?.visible),route+' every visible data cell must reference a non-hidden column header');
+  const exposedHeaderCount=details.headers.filter(header=>header.visible).length;
+  assert.equal(await table.getByRole('columnheader').count(),exposedHeaderCount,route+' non-hidden column headers must remain exposed as accessibility roles');
 }
 
 try{
