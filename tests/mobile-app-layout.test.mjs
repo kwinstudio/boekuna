@@ -14,7 +14,7 @@ function replaceLast(source,needle,replacement){
 }
 
 assert.equal((original.match(/class="mobile-bottom-nav-item/g)||[]).length,5,'Mobile bottom navigation must contain exactly five destinations');
-for(const label of ['Dashboard','Facturen','Scan','Bank','Meer'])assert.match(original,new RegExp('<span>'+label+'</span>'),'Missing mobile nav label '+label);
+for(const label of ['Dashboard','Facturen','Scan','Bank','Actie nodig'])assert.match(original,new RegExp('<span>'+label+'</span>'),'Missing mobile nav label '+label);
 
 const logoutSource=original.slice(original.indexOf('async function logoutUser'),original.indexOf('async function requireMfaForUser'));
 assert.match(logoutSource,/try\{await syncCloudStateNow\(\)\}catch/,'Final sync must be isolated from logout');
@@ -97,7 +97,7 @@ try{
   assert.equal(pageErrors.length,0,'Mobile dashboard must load without JavaScript errors: '+pageErrors.join(' | '));
 
   const navLabels=await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents();
-  assert.deepEqual(navLabels.map(v=>v.trim()),['Dashboard','Facturen','Scan','Bank','Meer']);
+  assert.deepEqual(navLabels.map(v=>v.trim()),['Dashboard','Facturen','Scan','Bank','Actie nodig']);
   assert.notEqual(await page.locator('#mobileBottomNav').evaluate(el=>getComputedStyle(el).display),'none','Bottom navigation must be visible on mobile');
   assert.equal(await page.locator('[data-mobile-page="dashboard"]').getAttribute('aria-current'),'page');
 
@@ -118,8 +118,8 @@ try{
   await page.locator('#pageTitle').filter({hasText:'Facturen'}).waitFor();
   assert.equal(await page.locator('[data-mobile-page="invoices"]').getAttribute('aria-current'),'page');
 
-  await page.locator('[data-mobile-action="more"]').click();
-  assert.ok(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open')),'Meer must open the full mobile drawer');
+  await page.locator('#mobileMenu').click();
+  assert.ok(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open')),'Menu must open the full mobile drawer');
   assert.equal(await page.locator('#mobileMenu').getAttribute('aria-expanded'),'true');
   assert.equal(await page.locator('#mobileLogoutButton').count(),0,'Logout must not remain in the work/navigation drawer');
   assert.ok(await page.locator('.nav-item[data-page="settings"]').isVisible(),'Settings must remain directly available from the drawer');
@@ -128,11 +128,14 @@ try{
   assert.equal(await page.locator('#pageTitle').innerText(),'Facturen','Backdrop close must preserve current route');
   assert.ok(!(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open'))),'Backdrop must close drawer');
 
-  await page.locator('[data-mobile-action="more"]').click();
+  await page.locator('#mobileMenu').click();
   await page.keyboard.press('Escape');
   assert.ok(!(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open'))),'Escape must close drawer');
 
   await page.locator('[data-mobile-page="documents"]').click();
+  for(const name of ['Maak foto','Fotobibliotheek','Kies bestand'])assert.ok(await page.locator('#modalRoot').getByRole('button',{name,exact:true}).isVisible(),'Scan must open the source picker directly');
+  await page.evaluate(()=>closeModal());
+  await page.evaluate(()=>navigate('documents'));
   await page.locator('#pageTitle').filter({hasText:'Documenten'}).waitFor();
   await page.evaluate(()=>{documentProcessingJobs=[{id:'job-1',client_ref:'doc-1',file_name:'bon.jpg',state:'review_required'}];documentProcessingInitialized=true;renderGlobalDocumentIndicator()});
   assert.equal(await page.locator('#mobileScanBadge').innerText(),'1','Scan badge must reuse persistent document attention count');
@@ -145,7 +148,7 @@ try{
 
   // Independent QA additions: focus containment/return, non-primary active state,
   // breakpoint cleanup, long-name overflow, and desktop width coverage.
-  await page.locator('[data-mobile-action="more"]').click();
+  await page.locator('#mobileMenu').click();
   await page.waitForFunction(()=>document.activeElement===document.querySelector('#sidebar button:not([disabled])'));
   assert.ok(await page.evaluate(()=>document.getElementById('sidebar').contains(document.activeElement)),'Drawer must move focus inside itself');
   await page.keyboard.press('Shift+Tab');
@@ -155,11 +158,13 @@ try{
   assert.equal(await page.locator('#mobileMenu').getAttribute('aria-expanded'),'false','Escape close must restore trigger state');
 
   await page.evaluate(async()=>{await navigate('settings')});
-  assert.equal(await page.locator('[data-mobile-action="more"]').getAttribute('aria-current'),'page','Non-primary pages must activate Meer');
+  assert.equal(await page.locator('#mobileBottomNav [aria-current="page"]').count(),0,'Settings has no misleading primary destination');
+  await page.locator('[data-mobile-page="control"]').click();
+  assert.equal(await page.locator('[data-mobile-page="control"]').getAttribute('aria-current'),'page');
   await page.evaluate(async()=>{await navigate('dashboard')});
 
   await page.setViewportSize({width:820,height:900});
-  await page.locator('[data-mobile-action="more"]').click();
+  await page.locator('#mobileMenu').click();
   assert.ok(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open')),'Drawer must open at 820px');
   await page.setViewportSize({width:821,height:900});
   await page.waitForFunction(()=>!document.getElementById('sidebar').classList.contains('open'));
@@ -220,7 +225,7 @@ try{
 
   await page.goto(base+'/logout',{waitUntil:'domcontentloaded'});
   await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
-  await page.locator('[data-mobile-action="more"]').click();
+  await page.locator('#mobileMenu').click();
   await page.locator('.nav-item[data-page="settings"]').click();
   await page.locator('#settingsLogoutButton').waitFor();
   await page.locator('#settingsLogoutButton').click();
