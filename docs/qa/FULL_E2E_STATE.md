@@ -4,16 +4,16 @@ RUN_ID: QA-E2E-20261001
 SOURCE_SHA: 7132029b792c8942f18317637ff352461dfe08d5
 DEPLOY_SHA: 7132029b792c8942f18317637ff352461dfe08d5
 TOTAL_CHECKPOINTS: 34
-CURRENT_CHECKPOINT: 27
-LAST_COMPLETED_CHECKPOINT: 26
-CURRENT_TEST_ID: BROW-002
-LAST_COMPLETED_TEST_ID: BROW-001
-NEXT_TEST_ID: BROW-002
+CURRENT_CHECKPOINT: 28
+LAST_COMPLETED_CHECKPOINT: 27
+CURRENT_TEST_ID: A11Y-001
+LAST_COMPLETED_TEST_ID: BROW-006
+NEXT_TEST_ID: A11Y-001
 TOTAL_SCENARIOS: 421
 PASS: 10
 FAIL: 2
-BLOCKED: 380
-NOT_TESTED: 24
+BLOCKED: 385
+NOT_TESTED: 19
 NOT_APPLICABLE: 5
 OPEN_P0: 0
 OPEN_P1: 0
@@ -21,4 +21,4 @@ OPEN_P2: 2
 OPEN_P3: 1
 STATUS: RUNNING
 
-Checkpoint 26 processed: exact-current Chromium risk-based regression is BLOCKED because the workflow exited earlier and no live browser runner is exposed.
+Checkpoint 27 processed: WebKit/Safari-like regression, uploads, date controls, share handoff, session and scrolling are BLOCKED because no exact-current WebKit run executed.

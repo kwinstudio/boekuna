@@ -401,11 +401,11 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | DESK-005 | DESK | Modals/tables/forms/charts/action menus | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
 | DESK-006 | DESK | Documents/reports desktop | BLOCKED | Requires exact-deployment desktop browser/layout/state interaction. |
 | BROW-001 | BROW | Chromium risicogebaseerde regressie | BLOCKED | Exact-current Chromium regression step did not execute after CI-007 and no interactive browser runner is available. |
-| BROW-002 | BROW | WebKit risicogebaseerde regressie | NOT_TESTED |  |
-| BROW-003 | BROW | WebKit uploads | NOT_TESTED |  |
-| BROW-004 | BROW | WebKit date controls | NOT_TESTED |  |
-| BROW-005 | BROW | WebKit share/email handoff | NOT_TESTED |  |
-| BROW-006 | BROW | WebKit session/scrolling | NOT_TESTED |  |
+| BROW-002 | BROW | WebKit risicogebaseerde regressie | BLOCKED | Exact-current WebKit regression did not execute after CI-007 and no live WebKit runner is exposed. |
+| BROW-003 | BROW | WebKit uploads | BLOCKED | Exact-current WebKit regression did not execute after CI-007 and no live WebKit runner is exposed. |
+| BROW-004 | BROW | WebKit date controls | BLOCKED | Exact-current WebKit regression did not execute after CI-007 and no live WebKit runner is exposed. |
+| BROW-005 | BROW | WebKit share/email handoff | BLOCKED | Exact-current WebKit regression did not execute after CI-007 and no live WebKit runner is exposed. |
+| BROW-006 | BROW | WebKit session/scrolling | BLOCKED | Exact-current WebKit regression did not execute after CI-007 and no live WebKit runner is exposed. |
 | A11Y-001 | A11Y | Keyboard navigatie | NOT_TESTED |  |
 | A11Y-002 | A11Y | Focus management | NOT_TESTED |  |
 | A11Y-003 | A11Y | Form labels | NOT_TESTED |  |
