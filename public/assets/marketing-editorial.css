@@ -579,3 +579,23 @@
   .editorial-site .ed-parallax{translate:none}
   .editorial-site :is(.mk-btn,.btn):hover{transform:none}
 }
+
+
+/* Image-free marketing content: product screenshots and photography are intentionally absent. */
+.editorial-site .image-free-proof-note{width:min(48rem,100%);border-top:1px solid var(--border-strong);padding:1rem 0 0;font-size:.875rem;line-height:1.6;color:var(--text-secondary)}
+.editorial-site .image-free-proof-note a{display:inline-flex;margin-top:.5rem;color:var(--brand-secondary);font-weight:650}
+.editorial-site .ed-opening{grid-template-columns:minmax(0,1fr);min-height:calc(100svh - 2 * var(--ed-frame))}
+.editorial-site .ed-opening :is(.ed-hero-heading,.ed-hero-support,.kz-hero-product-proof){grid-column:1}
+.editorial-site .ed-hero-support{max-width:44rem}
+.editorial-site .kz-hero-product-proof{width:100%;max-width:48rem;align-self:end}
+.editorial-site .kz-hero-product-proof>.image-free-proof-note{color:var(--ed-light);border-top-color:rgba(255,255,255,.28)}
+.editorial-site #kzProductShell{width:100%;min-height:12rem;display:flex;flex-direction:column;justify-content:space-between;gap:2rem;padding:2rem;border:1px solid var(--border-default);border-radius:var(--radius-md);background:var(--bg-surface-secondary);color:var(--text-primary)}
+.editorial-site #kzProductShell>span{font-size:clamp(1.4rem,3vw,3rem);line-height:1.08;letter-spacing:-.045em;font-weight:500}
+.editorial-site #kzProductShell .kz-preview-link{margin-top:0;align-self:flex-start}
+.editorial-site .kz-real-workflow-proof{grid-template-columns:minmax(0,1fr)}
+.editorial-site .kz-benefit>.kz-benefit-copy:only-child{grid-column:1/-1;order:0;max-width:52rem}
+.editorial-site .kz-apps-inner>:only-child{grid-column:1/-1;max-width:52rem}
+.editorial-site .mk-grid-2>:only-child{grid-column:1/-1;max-width:52rem}
+.editorial-site :is(.mk-hero,.how-hero){grid-template-columns:minmax(0,1fr);min-height:0}
+.editorial-site :is(.mk-hero,.how-hero)>.image-free-proof-note{grid-column:1;color:var(--ed-light);border-top-color:rgba(255,255,255,.28)}
+@media(max-width:700px){.editorial-site #kzProductShell{min-height:9rem;padding:1.25rem}.editorial-site .ed-opening{min-height:0}}

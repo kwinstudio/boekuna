@@ -3,7 +3,7 @@ import path from 'node:path';
 import http from 'node:http';
 
 export const routes=['/','/functies/','/facturen/','/scanner/','/btw-bank/','/rapportages/','/hoe-het-werkt/','/voor-ondernemers/','/prijzen/','/faq/','/over/','/veiligheid/','/privacy/','/voorwaarden/','/support/','/contact/','/account-verwijderen/','/404.html'];
-export const widths=[320,360,390,430,768,1024,1280,1440];
+export const widths=[320,360,375,390,393,430,768,1024,1280,1440,1920];
 export const slug=route=>route==='/'?'home':route.replaceAll('/','').replace('.html','');
 export async function settleImages(page){
   await page.locator('img').evaluateAll(async images=>{
@@ -63,7 +63,7 @@ export async function dynamicStates(page){
     const tab=page.locator('[data-kz-tab="'+key+'"]');
     if(!await tab.count())continue;
     await tab.click();
-    result['product:'+key]=await page.locator('.kz-product-stage').evaluate(el=>({text:el.textContent.replace(/\s+/g,' ').trim(),src:el.querySelector('img').getAttribute('src'),alt:el.querySelector('img').alt,link:el.querySelector('a').getAttribute('href')}));
+    result['product:'+key]=await page.locator('.kz-product-stage').evaluate(el=>({text:el.textContent.replace(/\s+/g,' ').trim(),link:el.querySelector('a')?.getAttribute('href')||null}));
   }
   for(const key of ['without','with']){
     const tab=page.locator('[data-compare="'+key+'"]');

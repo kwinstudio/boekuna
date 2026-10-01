@@ -1,6 +1,6 @@
 # App UX simplification — implementation and release evidence
 
-Base main: `7132029b792c8942f18317637ff352461dfe08d5`, after merged cleanup #116 (`aedb478db4cde4e58e6fa1e9c26867f611d2cc10`). Branch: `ux/app-simplification-plain-language-20261001`.
+Initial baseline: `7132029b792c8942f18317637ff352461dfe08d5`, after merged cleanup #116 (`aedb478db4cde4e58e6fa1e9c26867f611d2cc10`). Current main integrated: `664eddbaaffc14bcb969ec8e3c5ba0011e3a5ee1` (marketing-only PR #117; all 21 imported blobs match main exactly, no UX path overlap). Branch: `ux/app-simplification-plain-language-20261001`.
 
 ## Result
 
@@ -15,6 +15,7 @@ Base main: `7132029b792c8942f18317637ff352461dfe08d5`, after merged cleanup #116
 - VAT adds a summary for all available years and a year drilldown, using existing VAT/rounding helpers. Existing year and quarter detail remains; the prominent copy button is removed while the function remains.
 - Settings groups are Bedrijf, Facturen, Data & import/export, Beveiliging, Account and Geavanceerd. Destructive actions remain separated and keep their existing confirmations.
 - Bottom navigation is Dashboard / Facturen / Scan / Bank / Actie nodig; the top-left drawer remains fully usable. Nieuw uses the same Scan picker.
+- Independent QA found and reproduced a keyboard-inaccessible backup importer and focus loss during attention pagination. The importer now uses a real button wired to the same existing file input; category/pagination focus survives rerender, including disabled boundary buttons. A generated-artifact test first failed on all three keyboard scenarios, then passed after these fixes.
 - Storage status is Opslaan… → Opgeslagen ✓ → hidden after three seconds. Failures remain Niet opgeslagen with retry. Conflict retry opens the existing version choice, avoiding forced overwrite.
 
 ## Scope and preservation
@@ -31,7 +32,9 @@ Existing navigation tests now assert the requested fifth destination and direct 
 
 Before screenshots: `ux-evidence/before-core-screens.zip`. Both workflows upload those plus generated after screenshots/layout JSON as `app-ux-evidence`. The large ledger exceeds WebKit's full-page screenshot height limit; viewport captures are used for that evidence, while overflow assertions still inspect the whole document.
 
-Local source/math/auth/tenant/billing/export suites, both-browser mobile/premium/document upload, production and preview KVK, and six processor/OCR Python suites have been exercised. PowerShell recovery syntax is delegated to the mandatory full remote gate because pwsh is unavailable locally. The unchanged Chromium live legacy Render availability check returns ERR_EMPTY_RESPONSE locally; it remains enabled for CI and is not treated as PASS. Parallel production/preview KVK test builds share dist/app; these were rerun separately to remove the build race.
+Local source/math/auth/tenant/billing/export suites, both-browser mobile/premium/document upload, production and preview KVK, and six processor/OCR Python suites have been exercised. PowerShell recovery syntax is delegated to the mandatory full remote gate because pwsh is unavailable locally. The unchanged Chromium live legacy Render availability check returns ERR_EMPTY_RESPONSE locally; it remains enabled for CI and is not treated as PASS. Parallel production/preview KVK test builds share dist/app; local reruns were isolated. Exact-head app CI still exposed a WebKit duplicate-edit save timeout; the assertion remains intact with additional state/form diagnostics. This failure must be resolved before claiming app CI PASS.
+
+After the execution environment reset, Chromium was restored and reran successfully. Local WebKit host-library downloads are blocked by the environment network allowlist; fresh remote WebKit evidence is required.
 
 `SPLIT_FULL_GATE.md` requests the current complete integrity workflow. This document does not approve its own changes: exact PR HEAD still requires independent QA and remote app/full CI evidence.
 

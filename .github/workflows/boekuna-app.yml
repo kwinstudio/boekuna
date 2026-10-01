@@ -18,6 +18,8 @@ on:
       - "tests/developer-mode.test.mjs"
       - "tests/developer-mode-browser.test.mjs"
       - "tests/app-ux-plain-language.test.mjs"
+      - "tests/app-ux-keyboard.test.mjs"
+      - "tests/app-ux-status.test.mjs"
       - "tests/mobile-app-layout.test.mjs"
       - "tests/premium-app-simplification.test.mjs"
       - "tests/app-wide-premium-simplification-v2.test.mjs"
@@ -123,6 +125,10 @@ jobs:
         run: node tests/app-ux-plain-language.test.mjs
       - name: Generated app UX and plain Dutch · WebKit
         run: BOOKUNA_BROWSER=webkit node tests/app-ux-plain-language.test.mjs
+      - name: Generated app keyboard workflow · Chromium
+        run: node tests/app-ux-keyboard.test.mjs
+      - name: Generated app keyboard workflow · WebKit
+        run: BOOKUNA_BROWSER=webkit node tests/app-ux-keyboard.test.mjs
       - name: Auth and progressive onboarding
         run: node tests/auth-progressive-onboarding.test.mjs
       - name: Contextual list controls

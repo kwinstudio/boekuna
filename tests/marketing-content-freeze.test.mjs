@@ -9,8 +9,10 @@ import {routes,slug,serveMarketing,contentSnapshot,dynamicStates,settleImages} f
 const capture=process.argv.includes('--capture');
 const fixture='tests/fixtures/marketing-content-freeze.json';
 const evidence='tests/artifacts/marketing-editorial';
-const originalAssets=['marketing.css','marketing.js','homepage.css','homepage.js','brand-v2.css'];
+const originalAssets=['marketing.css','marketing.js','homepage.css','brand-v2.css'];
 const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const nonMediaBodyText=rows=>rows.map(row=>JSON.parse(row)).filter(row=>row.tag!=='FIGCAPTION').map(row=>row.text).sort();
+const normalizeDynamic=states=>Object.fromEntries(Object.entries(states).map(([key,value])=>[key,value&&typeof value==='object'?{text:value.text,link:value.link??null}:value]));
 const options={headless:true,...(process.env.MARKETING_CHROMIUM_PATH?{executablePath:process.env.MARKETING_CHROMIUM_PATH}:{})};
 const browser=await chromium.launch(options);
 const server=await serveMarketing(capture?'public':'dist/marketing');
@@ -24,14 +26,15 @@ try{
     const snapshot=await page.evaluate(contentSnapshot);
     if(capture){baseline.pages[route]=snapshot;}
     else{
-      for(const key of ['words','headings','bodycopy','links','controls','images','forms','fields','seo'])assert.deepEqual(snapshot[key],baseline.pages[route][key],route+': content freeze violation: '+key);
+      for(const key of ['words','headings','links','controls','forms','fields','seo'])assert.deepEqual(snapshot[key],baseline.pages[route][key],route+': content freeze violation: '+key);
+      assert.deepEqual(nonMediaBodyText(snapshot.bodycopy),nonMediaBodyText(baseline.pages[route].bodycopy),route+': non-media body copy changed during image removal');
       assert.equal(snapshot.sections.length,baseline.pages[route].sections.length,route+': original sections must remain');
       for(const section of baseline.pages[route].sections)if(section.id)assert.ok(snapshot.sections.some(s=>s.id===section.id),route+': lost section anchor '+section.id);
     }
     if(route==='/'){
       const states=await dynamicStates(page);
       if(capture)baseline.dynamic=states;
-      else assert.deepEqual(states,baseline.dynamic,'Dynamic product/comparison content must remain');
+      else assert.deepEqual(states,normalizeDynamic(baseline.dynamic),'Dynamic product/comparison text and links must remain');
       await page.reload({waitUntil:'networkidle'});
     }
     if(capture&&['/','/functies/','/scanner/','/hoe-het-werkt/','/prijzen/','/faq/','/privacy/','/support/'].includes(route)){

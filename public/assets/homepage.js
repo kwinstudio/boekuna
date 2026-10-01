@@ -1,9 +1,9 @@
 function initBoekunaMarketingInteractions(){
  const productData={
-  facturen:{src:'/assets/product/boekuna-invoices-list-crop.webp',alt:'Echt Boekuna Facturen-overzicht met heading, toolbar, KPI-rij en eerste facturen',caption:'Facturen · echte lijst, filters en statussen',href:'/facturen/',link:'Bekijk Facturen →'},
-  documenten:{src:'/assets/product/boekuna-documents-upload-crop.webp',alt:'Echt Boekuna Documenten-overzicht met uploadacties, uploadzone en documentstatussen',caption:'Documenten · upload, lijst en echte controlestatussen',href:'/scanner/',link:'Bekijk documentverwerking →'},
-  btw:{src:'/assets/product/boekuna-vat-summary-crop.webp',alt:'Echt Boekuna btw-overzicht met kwartaalkeuze, KPI’s, berekening en controlelijst',caption:'Btw · kwartaalpositie en controle-informatie',href:'/btw-bank/',link:'Bekijk Btw & bank →'},
-  rapportages:{src:'/assets/product/boekuna-reports-primary-crop.webp',alt:'Echt Boekuna Rapportages-scherm met omzet, kosten, resultaat en primair periodeoverzicht',caption:'Rapportages · primair inzicht uit dezelfde administratie',href:'/rapportages/',link:'Bekijk Rapportages →'}
+  facturen:{caption:'Facturen · echte lijst, filters en statussen',href:'/facturen/',link:'Bekijk Facturen →'},
+  documenten:{caption:'Documenten · upload, lijst en echte controlestatussen',href:'/scanner/',link:'Bekijk documentverwerking →'},
+  btw:{caption:'Btw · kwartaalpositie en controle-informatie',href:'/btw-bank/',link:'Bekijk Btw & bank →'},
+  rapportages:{caption:'Rapportages · primair inzicht uit dezelfde administratie',href:'/rapportages/',link:'Bekijk Rapportages →'}
  };
  const q=id=>document.getElementById(id);
  const shell=q('kzProductShell');
@@ -15,8 +15,6 @@ function initBoekunaMarketingInteractions(){
   if(shell)shell.classList.add('is-changing');
   tabs.forEach(t=>{const on=t.dataset.kzTab===key;t.classList.toggle('active',on);t.setAttribute('aria-pressed',String(on))});
   const apply=()=>{
-   const img=q('kzProductImage');
-   if(img){img.src=d.src;img.alt=d.alt;img.width=760;img.height=468}
    setText('kzProductCaption',d.caption);
    const link=q('kzPreviewLink');if(link){link.href=d.href;link.textContent=d.link}
    if(shell)shell.classList.remove('is-changing');
