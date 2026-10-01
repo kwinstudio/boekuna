@@ -121,7 +121,8 @@ try{
   await page.locator('[data-mobile-action="more"]').click();
   assert.ok(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open')),'Meer must open the full mobile drawer');
   assert.equal(await page.locator('#mobileMenu').getAttribute('aria-expanded'),'true');
-  assert.ok(await page.locator('#mobileLogoutButton').isVisible(),'Logout must be directly available in the mobile drawer');
+  assert.equal(await page.locator('#mobileLogoutButton').count(),0,'Logout must not remain in the work/navigation drawer');
+  assert.ok(await page.locator('.nav-item[data-page="settings"]').isVisible(),'Settings must remain directly available from the drawer');
 
   await page.locator('#mobileDrawerBackdrop').click({position:{x:380,y:200}});
   assert.equal(await page.locator('#pageTitle').innerText(),'Facturen','Backdrop close must preserve current route');
@@ -148,7 +149,7 @@ try{
   await page.waitForFunction(()=>document.activeElement===document.querySelector('#sidebar button:not([disabled])'));
   assert.ok(await page.evaluate(()=>document.getElementById('sidebar').contains(document.activeElement)),'Drawer must move focus inside itself');
   await page.keyboard.press('Shift+Tab');
-  assert.equal(await page.evaluate(()=>document.activeElement?.id),'mobileLogoutButton','Shift+Tab from first drawer control must wrap to the last control');
+  assert.equal(await page.evaluate(()=>document.activeElement?.dataset?.page),'settings','Shift+Tab from first drawer control must wrap to the last drawer control');
   await page.keyboard.press('Escape');
   await page.waitForFunction(()=>document.activeElement?.id==='mobileMenu');
   assert.equal(await page.locator('#mobileMenu').getAttribute('aria-expanded'),'false','Escape close must restore trigger state');
@@ -220,7 +221,9 @@ try{
   await page.goto(base+'/logout',{waitUntil:'domcontentloaded'});
   await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
   await page.locator('[data-mobile-action="more"]').click();
-  await page.locator('#mobileLogoutButton').click();
+  await page.locator('.nav-item[data-page="settings"]').click();
+  await page.locator('#settingsLogoutButton').waitFor();
+  await page.locator('#settingsLogoutButton').click();
   await page.waitForFunction(()=>window.__signOutCalled===1);
   assert.equal(await page.evaluate(()=>window.__signOutCalled),1,'signOut must run despite sync failure');
   assert.equal(await page.locator('#mainApp').evaluate(el=>getComputedStyle(el).display),'none','Protected app UI must be hidden after logout');
