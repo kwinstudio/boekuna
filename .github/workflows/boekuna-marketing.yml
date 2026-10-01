@@ -34,6 +34,7 @@ on:
       - "tests/marketing-v2-browser.test.mjs"
       - "tests/helpers/marketing-site.mjs"
       - "tests/split-build-boundaries.test.mjs"
+      - "tests/marketing-app-non-regression.test.mjs"
       - "tests/split-surfaces-browser.test.mjs"
       - "tests/split-ci-scopes.test.mjs"
       - ".github/workflows/boekuna-marketing.yml"
@@ -64,13 +65,15 @@ jobs:
         run: ./tests/node_modules/.bin/playwright install --with-deps chromium webkit
       - name: Build standalone marketing artifact
         run: node scripts/build-marketing.mjs
+      - name: Marketing app artifact non-regression
+        run: node tests/marketing-app-non-regression.test.mjs
       - name: Frozen content and SEO parity
         run: node tests/marketing-content-freeze.test.mjs && node tests/marketing-content-freeze-v2.test.mjs
       - name: Marketing page QA
         run: node tests/marketing-pages.test.mjs
-      - name: Real marketing product screenshots
+      - name: No content images or product screenshots
         run: node tests/marketing-product-proof.test.mjs
-      - name: Editorial marketing responsive screenshots
+      - name: Image-free marketing responsive QA
         run: node tests/marketing-editorial-responsive.test.mjs
       - name: Split generated surface browser smoke
         run: node tests/split-surfaces-browser.test.mjs
@@ -80,8 +83,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: boekuna-marketing-visual
-          path: tests/artifacts/brand-*.png
+          name: boekuna-marketing-image-free
+          path: tests/artifacts/image-free-*.png
           if-no-files-found: error
       - name: Upload editorial before-after and QA evidence
         if: always()
