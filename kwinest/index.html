@@ -2034,10 +2034,6 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
   <button class="nav-item" data-page="hours"><svg class="icon"><use href="#i-clock"/></svg>Uren & ritten</button>
   <div class="sidebar-spacer"></div>
   <button class="nav-item" data-page="settings"><svg class="icon"><use href="#i-settings"/></svg>Instellingen</button>
-  <div class="mobile-account-section" aria-label="Account">
-    <div class="mobile-account-copy"><span>Account</span><strong id="mobileAccountIdentity">Account</strong></div>
-    <button class="mobile-account-logout" id="mobileLogoutButton" type="button" onclick="logoutUser(this)">Uitloggen</button>
-  </div>
 </aside>
 <main class="main" id="appMain">
   <header class="topbar">
@@ -2764,7 +2760,7 @@ async function logoutUser(trigger=null){
  cleanupDocumentBackgroundProcessing();
  window.BoekunaDeveloperMode?.clear();
  resetAuthScopedClientState('');
- const button=trigger?.setAttribute?trigger:document.getElementById('mobileLogoutButton'),originalLabel=button?.textContent||'Uitloggen';
+ const button=trigger?.setAttribute?trigger:document.getElementById('settingsLogoutButton'),originalLabel=button?.textContent||'Uitloggen';
  if(button){button.disabled=true;button.textContent='Uitloggen…'}
  if(!TEST_MODE_NO_AUTH){
   try{await syncCloudStateNow()}catch(e){console.warn('Finale cloudsync vóór uitloggen mislukt; uitloggen gaat door.',e)}
@@ -3464,6 +3460,7 @@ function renderSettings(){
  <div class="settings-group"><div class="settings-group-label">Bedrijf</div><div class="card settings-compact"><div class="section-head"><h2>Bedrijfsgegevens</h2><span class="badge ${missing.length?'warn':'good'}">${missing.length?missing.length+' ontbreken':'Compleet'}</span></div><button class="btn primary" onclick="navigate('profile')">Openen</button></div></div>
  <div class="settings-group"><div class="settings-group-label">Facturen</div>${renderEmailConnectionSettings()}${renderBrandingSettings()}</div>
  <div class="settings-group"><div class="settings-group-label">Account & gegevens</div>${renderBillingCard()}
+ <div class="card settings-compact"><div class="section-head"><h2>Account</h2></div><button class="btn danger" id="settingsLogoutButton" type="button" onclick="logoutUser(this)">Uitloggen</button></div>
  <div class="card settings-compact"><div class="section-head"><h2>Hulp & support</h2></div><a class="btn" href="${SUPPORT_MAILTO}">${SUPPORT_EMAIL}</a></div>
  <div class="card settings-compact"><div class="section-head"><h2>Data & back-up</h2></div><div class="settings-actions"><button class="btn" onclick="exportBackup()">${icon('i-download')} Back-up</button><button class="btn" onclick="exportAuditCSV()">${icon('i-download')} Auditlog</button><button class="btn" onclick="openVersionHistory()">Versies</button><label class="btn">${icon('i-upload')} Importeren<input type="file" id="backupFile" accept="application/json,.json" class="hidden"></label><button class="btn danger" onclick="resetDemo()">Administratie wissen</button>${hasConflictBackup()?`<button class="btn" onclick="restoreConflictDialog()">Sync-herstel</button>`:''}<button class="btn danger" onclick="deleteAccountDialog()">Account verwijderen</button></div></div>
  <details class="card secondary-disclosure settings-compact"><summary><span>Veiligheid & opslag</span><span class="badge good">Actief</span></summary><div class="disclosure-body action-list"><div class="action-row"><div class="action-text"><strong>Cloud & database</strong><span>Supabase Auth + RLS</span></div><span class="badge good">Actief</span></div><div class="action-row"><div class="action-text"><strong>Documentopslag</strong><span>Privé opslag</span></div><span class="badge good">Actief</span></div><div class="action-row"><div class="action-text"><strong>Factuurverzending</strong><span>Eigen e-mailapp</span></div><span class="badge good">Actief</span></div></div></details></div>
