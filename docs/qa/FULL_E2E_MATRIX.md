@@ -359,19 +359,19 @@ Status vocabulary: PASS / FAIL / BLOCKED / NOT_TESTED / NOT_APPLICABLE.
 | REC-013 | REC | Duplicate document | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
 | REC-014 | REC | Duplicate bankimport | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
 | REC-015 | REC | Syncconflict recovery | BLOCKED | Requires live browser/session/network state mutation and recovery observation. |
-| BREAK-001 | BREAK | Zeer lange bedrijfsnaam | NOT_TESTED |  |
-| BREAK-002 | BREAK | Zeer lange klantnaam | NOT_TESTED |  |
-| BREAK-003 | BREAK | Unicode | NOT_TESTED |  |
-| BREAK-004 | BREAK | Apostrof | NOT_TESTED |  |
-| BREAK-005 | BREAK | Quotes | NOT_TESTED |  |
-| BREAK-006 | BREAK | Speciale tekens | NOT_TESTED |  |
-| BREAK-007 | BREAK | Zeer groot bedrag | NOT_TESTED |  |
-| BREAK-008 | BREAK | €0,01 | NOT_TESTED |  |
-| BREAK-009 | BREAK | Veel factuurregels | NOT_TESTED |  |
-| BREAK-010 | BREAK | Lege optionele velden | NOT_TESTED |  |
-| BREAK-011 | BREAK | Ongeldige datums | NOT_TESTED |  |
-| BREAK-012 | BREAK | Snel klikken | NOT_TESTED |  |
-| BREAK-013 | BREAK | Navigeren tijdens processing | NOT_TESTED |  |
+| BREAK-001 | BREAK | Zeer lange bedrijfsnaam | BLOCKED | Requires live exploratory browser interaction. |
+| BREAK-002 | BREAK | Zeer lange klantnaam | BLOCKED | Requires live exploratory browser interaction. |
+| BREAK-003 | BREAK | Unicode | BLOCKED | Requires live exploratory browser interaction. |
+| BREAK-004 | BREAK | Apostrof | BLOCKED | Requires live exploratory browser interaction. |
+| BREAK-005 | BREAK | Quotes | BLOCKED | Requires live exploratory browser interaction. |
+| BREAK-006 | BREAK | Speciale tekens | BLOCKED | Requires live exploratory browser interaction. |
+| BREAK-007 | BREAK | Zeer groot bedrag | BLOCKED | Requires live exploratory browser interaction. |
+| BREAK-008 | BREAK | €0,01 | BLOCKED | Requires live exploratory browser interaction. |
+| BREAK-009 | BREAK | Veel factuurregels | BLOCKED | Requires live exploratory browser interaction. |
+| BREAK-010 | BREAK | Lege optionele velden | BLOCKED | Requires live exploratory browser interaction. |
+| BREAK-011 | BREAK | Ongeldige datums | BLOCKED | Requires live exploratory browser interaction. |
+| BREAK-012 | BREAK | Snel klikken | BLOCKED | Requires live exploratory browser interaction. |
+| BREAK-013 | BREAK | Navigeren tijdens processing | BLOCKED | Requires live exploratory browser interaction. |
 | SEC-001 | SEC | Tenant A kan facturen B niet lezen | NOT_TESTED |  |
 | SEC-002 | SEC | Tenant A kan relaties B niet lezen | NOT_TESTED |  |
 | SEC-003 | SEC | Tenant A kan kosten B niet lezen | NOT_TESTED |  |
