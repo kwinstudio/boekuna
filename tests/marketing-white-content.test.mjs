@@ -31,11 +31,10 @@ for(const rel of routeFiles){
 
 const home=fs.readFileSync(path.join(dist,'index.html'),'utf8');
 assert.ok(home.includes('Boekhouden zonder boekhoudtaal'),'Homepage proposition missing');
-assert.ok(home.includes('Je bent ondernemer.'),'Homepage primary message missing');
-assert.ok(home.includes('Geen boekhouder.'),'Homepage primary message second line missing');
-assert.ok(home.includes('Uploaden. Herkennen. Controleren. Klaar.'),'Editorial workflow promise missing');
-assert.equal((home.match(/class="photo-slot /g)||[]).length,3,'Homepage must expose three reusable photo slots');
-assert.ok(home.includes('/assets/boekuna-editorial-workspace-placeholder.svg'),'Original temporary hero media missing');
+assert.ok(home.includes('Boekhouden.<br>Maar dan rustig.'),'Homepage primary message missing');
+assert.ok(home.includes('Gratis beginnen · geen kaart nodig · jij controleert vóór opslag'),'Homepage control promise missing');
+assert.equal((home.match(/class="parity-hero-media"/g)||[]).length,1,'Homepage must expose one primary hero media frame');
+assert.ok(home.includes('/assets/boekuna-editorial-workspace-placeholder.svg'),'First-party hero media missing');
 assert.ok(/width="1200" height="1500"/.test(home),'Hero media intrinsic dimensions missing');
 assert.ok(home.includes('prefers-reduced-motion')===false,'Reduced motion belongs in CSS, not inline homepage scripting');
 
