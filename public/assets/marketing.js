@@ -4,13 +4,13 @@ const BOOKUNA_LOGO_COMPACT="/assets/boekuna-logo-compact.svg";
 function ensureBookunaFavicon(){
   document.querySelectorAll('link[rel="icon"],link[rel="shortcut icon"],link[rel="apple-touch-icon"]').forEach(el=>el.remove());
   const icon=document.createElement('link');
-  icon.rel='icon'; icon.type='image/svg+xml'; icon.href='/assets/boekuna-favicon.svg'; icon.dataset.bookunaFavicon='1';
+  icon.rel='icon';icon.type='image/svg+xml';icon.href='/assets/boekuna-favicon.svg';icon.dataset.bookunaFavicon='1';
   document.head.appendChild(icon);
   const shortcut=document.createElement('link');
-  shortcut.rel='shortcut icon'; shortcut.href='/assets/favicon-32.png';
+  shortcut.rel='shortcut icon';shortcut.href='/assets/favicon-32.png';
   document.head.appendChild(shortcut);
   const apple=document.createElement('link');
-  apple.rel='apple-touch-icon'; apple.sizes='180x180'; apple.href='/assets/boekuna-app-icon-180.png';
+  apple.rel='apple-touch-icon';apple.sizes='180x180';apple.href='/assets/boekuna-app-icon-180.png';
   document.head.appendChild(apple);
   let og=document.querySelector('meta[property="og:image"]');
   if(!og){og=document.createElement('meta');og.setAttribute('property','og:image');document.head.appendChild(og);}
@@ -21,116 +21,159 @@ function ensureBookunaFavicon(){
 }
 
 function toggleMenu(){
- const menu=document.getElementById('mobileMenu');
- const btn=document.querySelector('.mobile-toggle');
- if(!menu)return;
- const open=menu.classList.toggle('open');
- if(btn){btn.setAttribute('aria-expanded',String(open));btn.setAttribute('aria-label',open?'Menu sluiten':'Menu openen');}
+  const menu=document.getElementById('mobileMenu');
+  const btn=document.querySelector('.mobile-toggle');
+  if(!menu)return;
+  const open=menu.classList.toggle('open');
+  if(btn){
+    btn.setAttribute('aria-expanded',String(open));
+    btn.setAttribute('aria-label',open?'Menu sluiten':'Menu openen');
+  }
 }
-function sharedHeader(active=''){
+
+function sharedHeader(){
   return `
-  <div class="promo">Boekuna helpt ondernemers facturen, documenten, btw en inzicht bij elkaar te houden.</div>
-  <header class="site-header"><nav class="nav">
-    <a class="logo" href="/" aria-label="Boekuna"><img class="logo-lockup logo-lockup-primary" src="${BOOKUNA_LOGO}" alt="Boekuna"><img class="logo-lockup logo-lockup-compact" src="${BOOKUNA_LOGO_COMPACT}" alt="" aria-hidden="true"></a>
-    <div class="nav-links">
-      <div class="dropdown"><button class="nav-item" type="button" aria-haspopup="true" aria-expanded="false">Oplossingen ▾</button><div class="dropdown-menu">
-        <a href="/functies/"><strong>Alle oplossingen</strong><span>Bekijk de complete boekhoudomgeving.</span></a>
-        <a href="/scanner/"><strong>Slimme scanner</strong><span>PDF's, scans en bonfoto's uitlezen.</span></a>
-        <a href="/facturen/"><strong>Facturen</strong><span>Facturen, creditnota's en betalingen.</span></a>
-        <a href="/btw-bank/"><strong>Btw & bank</strong><span>Btw-overzicht, CSV-import en matching.</span></a>
-        <a href="/rapportages/"><strong>Rapportages</strong><span>Omzet, kosten, resultaat en controle.</span></a>
-      </div></div>
-      <div class="dropdown"><button class="nav-item" type="button" aria-haspopup="true" aria-expanded="false">Voor ondernemers ▾</button><div class="dropdown-menu">
-        <a href="/voor-ondernemers/#zzp"><strong>ZZP & freelance</strong><span>Minder administratie naast je echte werk.</span></a>
-        <a href="/voor-ondernemers/#klein-bedrijf"><strong>Kleine bedrijven</strong><span>Meer documenten, één administratie.</span></a>
-        <a href="/voor-ondernemers/#veel-documenten"><strong>Groeiende administratie</strong><span>Meer overzicht en controle naarmate je bedrijf groeit.</span></a>
-      </div></div>
-      <a class="nav-link" href="/prijzen/">Prijzen</a>
-      <div class="dropdown"><button class="nav-item" type="button" aria-haspopup="true" aria-expanded="false">Resources ▾</button><div class="dropdown-menu">
-        <a href="/hoe-het-werkt/"><strong>Product tour</strong><span>Van document naar gecontroleerde boeking.</span></a>
-        <a href="/faq/"><strong>Veelgestelde vragen</strong><span>Antwoorden vóór je begint.</span></a>
-        <a href="/veiligheid/"><strong>Veiligheid & privacy</strong><span>Productstatus en gegevensbescherming.</span></a>
-        <a href="/over/"><strong>Over Boekuna</strong><span>Waarom dit product wordt gebouwd.</span></a>
-      </div></div>
+  <header class="site-header">
+    <nav class="nav" aria-label="Hoofdnavigatie">
+      <a class="logo" href="/" aria-label="Boekuna home">
+        <img class="logo-lockup logo-lockup-primary" src="${BOOKUNA_LOGO}" alt="Boekuna">
+        <img class="logo-lockup logo-lockup-compact" src="${BOOKUNA_LOGO_COMPACT}" alt="" aria-hidden="true">
+      </a>
+      <div class="nav-links">
+        <a class="nav-link" href="/functies/">Functies</a>
+        <a class="nav-link" href="/voor-ondernemers/">Voor ondernemers</a>
+        <a class="nav-link" href="/prijzen/">Prijzen</a>
+        <a class="nav-link" href="/over/">Over</a>
+      </div>
+      <div class="nav-actions">
+        <a class="nav-login" href="https://app.boekuna.nl/?login=1">Inloggen</a>
+        <a class="btn primary nav-start" href="https://app.boekuna.nl/?register=1">Gratis starten</a>
+        <button class="mobile-toggle" type="button" onclick="toggleMenu()" aria-label="Menu openen" aria-expanded="false" aria-controls="mobileMenu">
+          <span class="mobile-toggle-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+        </button>
+      </div>
+    </nav>
+    <div class="mobile-menu" id="mobileMenu">
+      <details>
+        <summary>Oplossingen</summary>
+        <div class="mobile-sub">
+          <a href="/functies/">Alle oplossingen</a>
+          <a href="/scanner/">Slimme scanner</a>
+          <a href="/facturen/">Facturen</a>
+          <a href="/btw-bank/">Btw & bank</a>
+          <a href="/rapportages/">Rapportages</a>
+        </div>
+      </details>
+      <details>
+        <summary>Voor ondernemers</summary>
+        <div class="mobile-sub">
+          <a href="/voor-ondernemers/#zzp">ZZP & freelance</a>
+          <a href="/voor-ondernemers/#klein-bedrijf">Kleine bedrijven</a>
+          <a href="/voor-ondernemers/#veel-documenten">Groeiende administratie</a>
+        </div>
+      </details>
+      <details>
+        <summary>Resources</summary>
+        <div class="mobile-sub">
+          <a href="/hoe-het-werkt/">Hoe het werkt</a>
+          <a href="/faq/">FAQ</a>
+          <a href="/veiligheid/">Veiligheid & privacy</a>
+          <a href="/over/">Over Boekuna</a>
+        </div>
+      </details>
+      <div class="mobile-menu-secondary">
+        <a href="/prijzen/">Prijzen</a>
+        <a href="https://app.boekuna.nl/?login=1">Inloggen</a>
+        <a class="mobile-start" href="https://app.boekuna.nl/?register=1">Gratis starten</a>
+      </div>
     </div>
-    <div class="nav-actions"><a class="btn" href="/hoe-het-werkt/">Bekijk software</a><a class="btn primary" href="https://app.boekuna.nl/?login=1">Inloggen</a><button class="mobile-toggle" onclick="toggleMenu()" aria-label="Menu openen" aria-expanded="false" aria-controls="mobileMenu"><span class="mobile-toggle-icon" aria-hidden="true"><i></i><i></i><i></i></span></button></div>
-  </nav>
-  <div class="mobile-menu" id="mobileMenu">
-    <details><summary>Oplossingen</summary><div class="mobile-sub"><a href="/functies/">Alle oplossingen</a><a href="/scanner/">Slimme scanner</a><a href="/facturen/">Facturen</a><a href="/btw-bank/">Btw & bank</a><a href="/rapportages/">Rapportages</a></div></details>
-    <details><summary>Voor ondernemers</summary><div class="mobile-sub"><a href="/voor-ondernemers/#zzp">ZZP & freelance</a><a href="/voor-ondernemers/#klein-bedrijf">Kleine bedrijven</a><a href="/voor-ondernemers/#veel-documenten">Groeiende administratie</a></div></details>
-    <a href="/prijzen/">Prijzen</a>
-    <details><summary>Resources</summary><div class="mobile-sub"><a href="/hoe-het-werkt/">Product tour</a><a href="/faq/">FAQ</a><a href="/veiligheid/">Veiligheid & privacy</a><a href="/over/">Over Boekuna</a></div></details>
-    <a href="https://app.boekuna.nl/?login=1">Inloggen</a>
-  </div></header>`;
+  </header>`;
 }
+
 function sharedFooter(){
   return `<footer class="footer footer-v2">
     <div class="footer-inner footer-grid">
       <div class="footer-brand">
-        <a class="logo footer-logo" href="/" aria-label="Boekuna"><img class="logo-lockup logo-lockup-primary" src="${BOOKUNA_LOGO}" alt="Boekuna"></a>
-        <p>Boekhoudsoftware voor ondernemers die minder willen overtypen, sneller willen controleren en meer grip willen op hun administratie.</p>
-        <a class="footer-cta" href="/hoe-het-werkt/">Bekijk hoe Boekuna werkt →</a>
+        <a class="logo footer-logo" href="/" aria-label="Boekuna home"><img class="logo-lockup logo-lockup-primary" src="${BOOKUNA_LOGO}" alt="Boekuna"></a>
+        <p>Boekhouden zonder boekhoudtaal. Voor ondernemers die hun administratie zelf willen begrijpen.</p>
+        <a class="footer-cta" href="https://app.boekuna.nl/?register=1">Gratis starten →</a>
       </div>
-      <nav class="footer-col" aria-label="Oplossingen">
-        <h4>Oplossingen</h4>
-        <a href="/functies/">Alle functies</a>
+      <nav class="footer-col" aria-label="Product">
+        <h4>Product</h4>
+        <a href="/functies/">Functies</a>
         <a href="/scanner/">Slimme scanner</a>
         <a href="/facturen/">Facturen</a>
         <a href="/btw-bank/">Btw & bank</a>
         <a href="/rapportages/">Rapportages</a>
-      </nav>
-      <nav class="footer-col" aria-label="Voor ondernemers">
-        <h4>Voor ondernemers</h4>
-        <a href="/voor-ondernemers/#zzp">ZZP & freelance</a>
-        <a href="/voor-ondernemers/#klein-bedrijf">Kleine bedrijven</a>
-        <a href="/voor-ondernemers/#veel-documenten">Groeiende administratie</a>
         <a href="/prijzen/">Prijzen</a>
       </nav>
-      <nav class="footer-col" aria-label="Resources">
-        <h4>Resources</h4>
-        <a href="/hoe-het-werkt/">Product tour</a>
+      <nav class="footer-col" aria-label="Ontdekken">
+        <h4>Ontdekken</h4>
+        <a href="/voor-ondernemers/">Voor ondernemers</a>
+        <a href="/hoe-het-werkt/">Hoe het werkt</a>
         <a href="/faq/">FAQ</a>
-        <a href="/veiligheid/">Veiligheid & security</a>
+        <a href="/over/">Over Boekuna</a>
+        <a href="/contact/">Contact</a>
+        <a href="/support/">Support</a>
+      </nav>
+      <nav class="footer-col" aria-label="Vertrouwen">
+        <h4>Vertrouwen</h4>
+        <a href="/veiligheid/">Veiligheid & privacy</a>
         <a href="/privacy/">Privacybeleid</a>
         <a href="/voorwaarden/">Voorwaarden</a>
-        <a href="/support/">Support</a>
-        <a href="mailto:support@boekuna.nl">support@boekuna.nl</a>
         <a href="/account-verwijderen/">Account verwijderen</a>
-        <a href="/contact/">Contact</a>
-        <a href="/over/">Over Boekuna</a>
+        <a href="mailto:support@boekuna.nl">support@boekuna.nl</a>
       </nav>
     </div>
     <div class="footer-bottom footer-bottom-v2">
       <span>© 2026 Boekuna</span>
       <span class="footer-status"><i aria-hidden="true"></i> Beveiligde cloudomgeving</span>
-      <span><a href="/privacy/">Privacy</a> · <a href="/support/">Support</a> · <a href="mailto:support@boekuna.nl">support@boekuna.nl</a></span>
+      <span>Boekuna · Nederland</span>
     </div>
   </footer>`;
 }
-document.addEventListener('DOMContentLoaded',()=>{ensureBookunaFavicon();const h=document.getElementById('siteHeader');if(h)h.innerHTML=sharedHeader(document.body.dataset.page||'');const f=document.getElementById('siteFooter');if(f)f.innerHTML=sharedFooter();initSharedInteractions()});
-document.addEventListener('click',e=>{
- const m=document.getElementById('mobileMenu');
- const mobileBtn=document.querySelector('.mobile-toggle');
- if(m&&m.classList.contains('open')&&!e.target.closest('.mobile-menu')&&!e.target.closest('.mobile-toggle')){
-  m.classList.remove('open');if(mobileBtn){mobileBtn.setAttribute('aria-expanded','false');mobileBtn.setAttribute('aria-label','Menu openen');}
- }
- if(!e.target.closest('.dropdown'))document.querySelectorAll('.dropdown.is-open').forEach(drop=>{drop.classList.remove('is-open');const b=drop.querySelector(':scope > .nav-item');if(b)b.setAttribute('aria-expanded','false')});
+
+document.addEventListener('DOMContentLoaded',()=>{
+  ensureBookunaFavicon();
+  const h=document.getElementById('siteHeader');if(h)h.innerHTML=sharedHeader();
+  const f=document.getElementById('siteFooter');if(f)f.innerHTML=sharedFooter();
+  initSharedInteractions();
+});
+
+document.addEventListener('click',event=>{
+  const menu=document.getElementById('mobileMenu');
+  const mobileBtn=document.querySelector('.mobile-toggle');
+  if(menu&&menu.classList.contains('open')&&!event.target.closest('.mobile-menu')&&!event.target.closest('.mobile-toggle')){
+    menu.classList.remove('open');
+    if(mobileBtn){mobileBtn.setAttribute('aria-expanded','false');mobileBtn.setAttribute('aria-label','Menu openen');}
+  }
 });
 
 function initSharedInteractions(){
- const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
- const header=document.querySelector('.site-header');
- const btn=document.createElement('button');
- btn.type='button';btn.className='site-backtop';btn.setAttribute('aria-label','Terug naar boven');btn.textContent='↑';
- document.body.appendChild(btn);
- const sync=()=>{
-  if(header)header.classList.toggle('has-shadow',window.scrollY>12);
-  btn.classList.toggle('show',window.scrollY>650);
- };
- window.addEventListener('scroll',sync,{passive:true});sync();
- btn.addEventListener('click',()=>window.scrollTo({top:0,behavior:reduced?'auto':'smooth'}));
- const menu=document.getElementById('mobileMenu');
- if(menu)menu.addEventListener('click',e=>{const a=e.target.closest('a');if(a){menu.classList.remove('open');const t=document.querySelector('.mobile-toggle');if(t){t.setAttribute('aria-expanded','false');t.setAttribute('aria-label','Menu openen')}}});
- document.querySelectorAll('.dropdown').forEach(drop=>{const trigger=drop.querySelector(':scope > .nav-item');if(!trigger)return;trigger.addEventListener('click',()=>{const next=!drop.classList.contains('is-open');document.querySelectorAll('.dropdown.is-open').forEach(other=>{if(other!==drop){other.classList.remove('is-open');const b=other.querySelector(':scope > .nav-item');if(b)b.setAttribute('aria-expanded','false')}});drop.classList.toggle('is-open',next);trigger.setAttribute('aria-expanded',String(next))})});
- document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;document.querySelectorAll('.dropdown.is-open').forEach(drop=>{drop.classList.remove('is-open');const t=drop.querySelector(':scope > .nav-item');if(t){t.setAttribute('aria-expanded','false');t.focus()}});if(menu&&menu.classList.contains('open')){menu.classList.remove('open');const t=document.querySelector('.mobile-toggle');if(t){t.setAttribute('aria-expanded','false');t.setAttribute('aria-label','Menu openen');t.focus()}}});
+  const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const header=document.querySelector('.site-header');
+  const btn=document.createElement('button');
+  btn.type='button';btn.className='site-backtop';btn.setAttribute('aria-label','Terug naar boven');btn.textContent='↑';
+  document.body.appendChild(btn);
+  const sync=()=>{
+    if(header)header.classList.toggle('has-shadow',window.scrollY>12);
+    btn.classList.toggle('show',window.scrollY>700);
+  };
+  window.addEventListener('scroll',sync,{passive:true});sync();
+  btn.addEventListener('click',()=>window.scrollTo({top:0,behavior:reduced?'auto':'smooth'}));
+  const menu=document.getElementById('mobileMenu');
+  if(menu)menu.addEventListener('click',event=>{
+    const link=event.target.closest('a');
+    if(link){
+      menu.classList.remove('open');
+      const trigger=document.querySelector('.mobile-toggle');
+      if(trigger){trigger.setAttribute('aria-expanded','false');trigger.setAttribute('aria-label','Menu openen');}
+    }
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.key!=='Escape'||!menu||!menu.classList.contains('open'))return;
+    menu.classList.remove('open');
+    const trigger=document.querySelector('.mobile-toggle');
+    if(trigger){trigger.setAttribute('aria-expanded','false');trigger.setAttribute('aria-label','Menu openen');trigger.focus();}
+  });
 }
