@@ -22,6 +22,8 @@ const appAssets=[
   'financial-correction.js',
   'kvk-company-lookup.js',
   'kvk-company-lookup.css',
+  'mobile-polish-round-2.css',
+  'mobile-polish-round-2.js',
   'developer-mode.js'
 ];
 
