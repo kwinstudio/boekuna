@@ -294,6 +294,13 @@ try{
    await productTrigger.click();
    await page.locator('main').click({position:{x:10,y:10}});
    assert.equal(await productTrigger.getAttribute('aria-expanded'),'false','Outside click closes desktop menu');
+   await page.setViewportSize({width:1101,height:960});
+   await productTrigger.click();
+   const productPanelBox=await page.locator('[data-nav-panel="product"]').boundingBox();
+   assert.ok(productPanelBox&&productPanelBox.x>=0,'Product mega menu must stay inside the 1101px viewport on the left');
+   assert.ok(productPanelBox&&productPanelBox.x+productPanelBox.width<=1102,'Product mega menu must stay inside the 1101px viewport on the right');
+   await page.keyboard.press('Escape');
+   await page.setViewportSize({width:1440,height:960});
    await page.goto(server.base+'/faq/',{waitUntil:'networkidle'});
    for(const detail of await page.locator('.mk-faq-list details').all()){
     if(!await detail.evaluate(el=>el.hasAttribute('open')))await detail.locator('summary').press('Enter');
