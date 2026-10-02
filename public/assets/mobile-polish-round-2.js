@@ -504,11 +504,7 @@
 
     openUploadSourcePicker=function(kind,smart){directNativeUpload(kind||'auto',!!smart)};
     triggerInvoiceUpload=function(kind){directNativeUpload(kind||'auto',false)};
-    openDocumentUpload=function(){
-      if(matchMedia('(max-width:820px)').matches){directNativeUpload('auto',true);return}
-      var input=document.getElementById('docFile');
-      if(input){input.value='';input.click()}
-    };
+    openDocumentUpload=function(){directNativeUpload('auto',true)};
 
     var oldCloseModal=closeModal;
     closeModal=function(){
