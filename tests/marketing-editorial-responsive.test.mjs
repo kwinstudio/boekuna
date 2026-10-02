@@ -10,8 +10,10 @@ fs.mkdirSync(path.join(root,'tests','artifacts'),{recursive:true});
 
 const identityCss=fs.readFileSync(path.join(root,'public','assets','marketing-editorial.css'),'utf8');
 for(const contract of [
-  '--boekuna-lime:#E7FE55',
-  '--boekuna-cyan:#BFE7EC',
+  '--boekuna-amber:#FF9F1C',
+  '--boekuna-honey:#FFBF69',
+  '--boekuna-frozen:#CBF3F0',
+  '--boekuna-sea:#2EC4B6',
   '--boekuna-white:#FFFFFF',
   '--boekuna-black:#111111',
   '--boekuna-soft:#F6F6F3',
@@ -19,7 +21,7 @@ for(const contract of [
 ]){
   assert.ok(identityCss.includes(contract),`Marketing identity contract missing: ${contract}`);
 }
-for(const legacy of ['#123B3A','#102724','#2B736C','#EEF7F3']){
+for(const legacy of ['#123B3A','#102724','#2B736C','#EEF7F3','#E7FE55','#BFE7EC','--boekuna-lime','--boekuna-Frozen Water']){
   assert.equal(identityCss.includes(legacy),false,`Legacy petrol/mint brand token remains: ${legacy}`);
 }
 const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{encoding:'utf8'});
@@ -41,8 +43,9 @@ try{
     await page.waitForFunction(()=>{
       const style=getComputedStyle(document.body);
       return style.getPropertyValue('--boekuna-black').trim()==='#111111'
-        && style.getPropertyValue('--boekuna-lime').trim()==='#E7FE55'
-        && style.getPropertyValue('--boekuna-cyan').trim()==='#BFE7EC';
+        && style.getPropertyValue('--boekuna-amber').trim()==='#FF9F1C'
+        && style.getPropertyValue('--boekuna-frozen').trim()==='#CBF3F0'
+        && style.getPropertyValue('--boekuna-sea').trim()==='#2EC4B6';
     });
     await page.locator(width<=620?'.site-header .logo-lockup-compact':'.site-header .logo-lockup-primary').waitFor({state:'visible'});
     const overflow=await page.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth,bw:document.body.scrollWidth}));
@@ -81,9 +84,9 @@ try{
     }));
     assert.equal(palette.body,'rgb(255, 255, 255)',`White canvas missing at ${width}px`);
     assert.equal(palette.hero,'rgb(17, 17, 17)',`Near-black hero type missing at ${width}px`);
-    assert.equal(palette.ctaBg,'rgb(231, 254, 85)',`Lime primary CTA missing at ${width}px`);
+    assert.equal(palette.ctaBg,'rgb(255, 159, 28)',`Amber primary CTA missing at ${width}px`);
     assert.equal(palette.ctaText,'rgb(17, 17, 17)',`Near-black CTA text missing at ${width}px`);
-    assert.equal(palette.trust,'rgb(191, 231, 236)',`Soft cyan trust band missing at ${width}px`);
+    assert.equal(palette.trust,'rgb(203, 243, 240)',`Soft Frozen Water trust band missing at ${width}px`);
     assert.equal(palette.footer,'rgb(17, 17, 17)',`Near-black footer missing at ${width}px`);
     if([390,1440,1920].includes(width)){
       await settleImages(page);
@@ -103,7 +106,7 @@ try{
   assert.equal(await page.locator('#kzProductImage').count(),0,'Image-free product panel must not recreate a screenshot element');
   await page.close();
 
-  console.log('Image-free marketing responsive QA: PASS (320, 360, 375, 390, 393, 430, 620, 768, 1024, 1280, 1440, 1920 + white/lime/cyan/black palette + keyboard tabs)');
+  console.log('Image-free marketing responsive QA: PASS (320, 360, 375, 390, 393, 430, 620, 768, 1024, 1280, 1440, 1920 + white/lime/Frozen Water/black palette + keyboard tabs)');
 }finally{
   await browser.close();
   await server.close();
