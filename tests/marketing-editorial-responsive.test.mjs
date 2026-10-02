@@ -14,7 +14,7 @@ for(const forbidden of ['data-depth-root','hero-depth-','story-depth-','kz-magne
 }
 const homepageHtml=fs.readFileSync(path.join(root,'public','index.html'),'utf8');
 assert.ok(homepageHtml.includes('/assets/marketing-editorial.css?v=20261002parity'),'Homepage must cache-bust the depth CSS release');
-assert.ok(homepageHtml.includes('/assets/homepage.js?v=20261002parity'),'Homepage must cache-bust the depth interaction JS release');
+assert.ok(homepageHtml.includes('/assets/homepage.js?v=20261002parity'),'Homepage must cache-bust the parity interaction JS release');
 for(const contract of [
   '--boekuna-amber:#FF9F1C',
   '--boekuna-honey:#FFBF69',
@@ -34,7 +34,7 @@ const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{encoding
 assert.equal(build.status,0,build.stderr);
 const builtHomepage=fs.readFileSync(path.join(root,'dist','marketing','index.html'),'utf8');
 assert.ok(builtHomepage.includes('/assets/marketing-editorial.css?v=20261002parity'),'Built homepage must preserve the depth CSS cache key');
-assert.ok(builtHomepage.includes('/assets/homepage.js?v=20261002parity'),'Built homepage must preserve the depth JS cache key');
+assert.ok(builtHomepage.includes('/assets/homepage.js?v=20261002parity'),'Built homepage must preserve the parity JS cache key');
 const server=await serveMarketing(path.join(root,'dist','marketing'));
 const base=server.base;
 const browser=await chromium.launch({headless:true});
