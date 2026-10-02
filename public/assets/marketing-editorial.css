@@ -897,7 +897,7 @@ body.editorial-site{
   color:#666;
   font-size:13px;
 }
-.mk-trustline i{font-style:normal;color:var(--boekuna-sea)}
+.mk-trustline i{font-style:normal;color:#315E59}
 .ed-fact-sheet-wrap{align-self:stretch;display:flex;align-items:flex-end}
 .ed-fact-sheet{
   width:100%;
@@ -906,7 +906,7 @@ body.editorial-site{
   background:var(--boekuna-frozen);
 }
 .ed-fact-heading{display:flex;justify-content:space-between;gap:20px;margin-bottom:50px;font-size:13px}
-.ed-fact-heading span{color:#52706D}
+.ed-fact-heading span{color:#355753}
 .ed-fact-title{font-size:clamp(28px,2.5vw,38px);font-weight:610}
 .ed-fact-list{margin-top:30px;border-top:1px solid rgba(17,17,17,.2)}
 .ed-fact-list>div{padding:14px 0;display:flex;justify-content:space-between;gap:18px;border-bottom:1px solid rgba(17,17,17,.14);font-size:13px}
