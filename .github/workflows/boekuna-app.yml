@@ -8,6 +8,7 @@ on:
       - "public/assets/financial-correction.js"
       - "public/assets/developer-mode.js"
       - "public/assets/kvk-company-lookup.*"
+      - "public/assets/mobile-polish-round-2.*"
       - "public/assets/brand-v2.css"
       - "public/assets/boekuna-app-icon*"
       - "public/assets/boekuna-favicon.svg"
@@ -21,6 +22,7 @@ on:
       - "tests/app-ux-keyboard.test.mjs"
       - "tests/app-ux-status.test.mjs"
       - "tests/mobile-app-layout.test.mjs"
+      - "tests/mobile-polish-round-2.test.mjs"
       - "tests/premium-app-simplification.test.mjs"
       - "tests/app-wide-premium-simplification-v2.test.mjs"
       - "tests/document-upload-browser.test.mjs"
@@ -93,6 +95,10 @@ jobs:
         run: npm install --prefix tests --no-save playwright@1.56.1
       - name: Install Chromium and WebKit
         run: ./tests/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Mobile polish round 2 — Chromium and WebKit
+        run: |
+          node tests/mobile-polish-round-2.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/mobile-polish-round-2.test.mjs
       - name: Invoice native handoff retries — Chromium and WebKit
         run: |
           node tests/invoice-native-retry.test.mjs
@@ -237,4 +243,5 @@ jobs:
             tests/artifacts/financial-presentation/
             tests/artifacts/contextual-resolution/
             tests/artifacts/invoice-missing-email-390.png
+            tests/artifacts/mobile-polish-round-2/
           if-no-files-found: error
