@@ -408,3 +408,36 @@
   border-color:var(--boekuna-black);
 }
 .editorial-site :is(input,select,textarea){border-color:#A8A8A3}
+
+/* Legacy marketing markup uses <b> for numbered flow labels. Keep those
+   labels as compact lime markers with accessible near-black text. */
+.editorial-site .mk-flow-step > b{
+  display:inline-flex;
+  width:max-content;
+  padding:.08em .18em;
+  margin-bottom:20px;
+  background:var(--boekuna-lime);
+  color:var(--boekuna-black);
+  font-size:14px;
+  font-weight:600;
+  letter-spacing:.04em;
+}
+
+/* Higher-specificity legacy dark-card icon rules must not produce white on cyan. */
+.editorial-site .mk-card.dark .mk-card-icon{
+  background:transparent;
+  color:var(--boekuna-black);
+}
+
+/* Selected pricing data may use cyan as a surface, never as low-contrast text. */
+.editorial-site .plan-highlight{
+  background:var(--boekuna-cyan);
+  color:var(--boekuna-black);
+  font-weight:600;
+}
+
+/* WebKit gives "boekhoudsoftware" a few extra pixels at 320px.
+   Fit the long Dutch word by scaling the subpage heading, not by breaking it. */
+@media(max-width:359px){
+  .editorial-site :is(.mk-hero,.how-hero,.page-hero) h1{font-size:36px}
+}
