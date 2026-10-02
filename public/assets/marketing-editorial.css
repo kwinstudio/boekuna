@@ -96,6 +96,8 @@ body.editorial-site{
 }
 .nav{
   width:min(100%,var(--premium-max));
+  max-width:none;
+  height:auto;
   min-height:78px;
   margin:0 auto;
   padding:0 var(--premium-pad);
@@ -284,7 +286,7 @@ body.editorial-site{
   gap:clamp(46px,6vw,110px);
   align-items:center;
 }
-.kz-hero{min-width:0}
+.ed-opening>.kz-hero{min-width:0;max-width:none;margin:0;padding:0;text-align:left}
 .ed-hero-heading{max-width:900px}
 .kz-overline,.eyebrow,.kz-benefit-label,.mk-section-head>.eyebrow,.mk-hero .eyebrow{
   display:block;
@@ -355,6 +357,7 @@ body.editorial-site{
 }
 .kz-trust-inner{
   width:min(100%,var(--premium-max));
+  max-width:none;
   margin:0 auto;
   padding:var(--premium-section) var(--premium-pad);
 }
@@ -390,6 +393,7 @@ body.editorial-site{
 .kz-trust-item{
   min-height:150px;
   padding:24px clamp(8px,2vw,28px) 20px 0;
+  border:0;
   display:flex;
   flex-direction:column;
   justify-content:space-between;
@@ -420,6 +424,9 @@ body.editorial-site{
 }
 .product-story-intro>p{max-width:520px;margin:24px 0 38px;font-size:18px}
 .kz-tabs{
+  max-width:none;
+  margin:0;
+  padding:0;
   display:flex;
   flex-direction:column;
   align-items:stretch;
@@ -450,7 +457,7 @@ body.editorial-site{
 }
 .kz-tab.active{padding-left:12px;color:var(--boekuna-black);font-weight:690}
 .kz-tab.active::after{opacity:1;transform:translateX(0)}
-.kz-product-stage{min-width:0}
+.kz-product-stage{min-width:0;max-width:none;margin:0;padding:0}
 #kzProductShell{
   min-height:clamp(560px,62vw,820px);
   padding:clamp(34px,6vw,72px);
@@ -514,6 +521,7 @@ body.editorial-site{
 }
 .kz-workflow-inner,.kz-section-inner,.kz-compare,.kz-reasons,.kz-audience,.kz-home-faq{
   width:min(100%,var(--premium-max));
+  max-width:none;
   margin:0 auto;
 }
 .kz-heading{max-width:980px}
@@ -544,11 +552,18 @@ body.editorial-site{
   background:var(--boekuna-soft);
 }
 .kz-solutions-grid{
+  display:block;
+  grid-template-columns:none;
+  gap:0;
   margin-top:clamp(50px,7vw,92px);
   border-top:1px solid #CFCFC9;
 }
 .kz-solution{
   display:grid;
+  min-height:0;
+  border:0;
+  border-radius:0;
+  box-shadow:none;
   grid-template-columns:minmax(220px,.75fr) minmax(300px,1fr) auto;
   gap:clamp(20px,4vw,72px);
   align-items:start;
@@ -701,7 +716,7 @@ body.editorial-site{
   grid-template-columns:repeat(3,1fr);
   gap:clamp(30px,5vw,76px);
 }
-.kz-reason{padding-top:20px;border-top:3px solid var(--boekuna-black)}
+.kz-reason{padding:20px 0 0;border:0;border-top:3px solid var(--boekuna-black);border-radius:0;background:transparent;box-shadow:none}
 .kz-reason strong{display:block;margin-bottom:18px;font-size:clamp(22px,2vw,30px);line-height:1.15}
 .kz-reason p{margin:0}
 .kz-audience{
@@ -717,6 +732,7 @@ body.editorial-site{
 }
 .kz-audience-card{
   min-height:360px;
+  border:0;
   padding:32px;
   display:flex;
   flex-direction:column;
@@ -726,6 +742,7 @@ body.editorial-site{
   text-decoration:none;
   transition:transform 220ms var(--premium-ease),box-shadow 220ms var(--premium-ease);
 }
+.kz-audience-card:nth-child(1),.kz-audience-card:nth-child(2),.kz-audience-card:nth-child(3){background:var(--boekuna-white)}
 .kz-audience-card:hover{transform:translateY(-3px);box-shadow:var(--premium-shadow)}
 .kz-audience-card small{margin-bottom:auto;color:#626262;text-transform:uppercase;font-size:11px;font-weight:720;letter-spacing:.1em}
 .kz-audience-card h3{margin:30px 0 12px;font-size:clamp(26px,2.2vw,38px);font-weight:610;line-height:1.05}
@@ -738,6 +755,8 @@ body.editorial-site{
   padding:var(--premium-section) var(--premium-pad);
 }
 .kz-plan-inner{
+  max-width:none;
+  padding:0;
   display:grid;
   grid-template-columns:1.35fr .65fr;
   gap:clamp(40px,8vw,130px);
@@ -1055,6 +1074,7 @@ body.editorial-site{
 }
 .price{
   position:relative;
+  border:0;
   min-width:0;
   min-height:650px;
   padding:clamp(28px,2.4vw,40px);
@@ -1069,6 +1089,9 @@ body.editorial-site{
 .price:hover,.price:focus-within{transform:translateY(-3px);box-shadow:var(--premium-shadow)}
 .price.popular{background:var(--boekuna-frozen)}
 .price .tag{
+  position:static;
+  right:auto;
+  top:auto;
   width:max-content;
   margin-bottom:22px;
   padding:7px 10px;
@@ -1168,6 +1191,7 @@ body.editorial-site{
 }
 .footer-inner{
   width:min(100%,var(--premium-max));
+  max-width:none;
   margin:0 auto;
   padding:clamp(70px,9vw,120px) var(--premium-pad) clamp(58px,7vw,90px);
 }
