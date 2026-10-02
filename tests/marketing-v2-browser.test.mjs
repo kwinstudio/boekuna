@@ -285,7 +285,7 @@ try{
    await page.setViewportSize({width:1440,height:960});
    const desktopTriggers=page.locator('.nav-links [data-nav-trigger]');
    assert.equal(await desktopTriggers.count(),3,'Desktop navigation exposes three grouped menu controls');
-   assert.deepEqual(await desktopTriggers.allTextContents(),['Product','Voor wie','Ondersteuning']);
+   assert.deepEqual((await desktopTriggers.allTextContents()).map(label=>label.replace('⌄','').trim()),['Product','Voor wie','Ondersteuning']);
    assert.equal((await page.locator('.nav-links > a[href="/prijzen/"]').textContent()).trim(),'Prijzen','Pricing remains a direct destination');
    const productTrigger=page.locator('[data-nav-trigger="product"]');
    const audienceTrigger=page.locator('[data-nav-trigger="audience"]');
