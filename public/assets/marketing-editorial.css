@@ -112,8 +112,8 @@ body.editorial-site{
   flex:none;
   text-decoration:none;
 }
-.logo-lockup-primary{width:142px;height:auto}
-.logo-lockup-compact{display:none;width:42px;height:42px}
+.site-header .logo-lockup-primary{display:block;width:142px;height:auto}
+.site-header .logo-lockup-compact{display:none;width:42px;height:42px}
 .nav-links{
   display:flex;
   align-items:center;
