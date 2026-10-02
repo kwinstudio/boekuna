@@ -7,6 +7,21 @@ import { chromium } from 'playwright';
 
 const root=process.cwd();
 fs.mkdirSync(path.join(root,'tests','artifacts'),{recursive:true});
+
+const identityCss=fs.readFileSync(path.join(root,'public','assets','marketing-editorial.css'),'utf8');
+for(const contract of [
+  '--boekuna-lime:#E7FE55',
+  '--boekuna-cyan:#BFE7EC',
+  '--boekuna-white:#FFFFFF',
+  '--boekuna-black:#111111',
+  '--boekuna-soft:#F6F6F3',
+  'URBANIST_ASSET_PENDING'
+]){
+  assert.ok(identityCss.includes(contract),`Marketing identity contract missing: ${contract}`);
+}
+for(const legacy of ['#123B3A','#102724','#2B736C','#EEF7F3']){
+  assert.equal(identityCss.includes(legacy),false,`Legacy petrol/mint brand token remains: ${legacy}`);
+}
 const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{encoding:'utf8'});
 assert.equal(build.status,0,build.stderr);
 const server=await serveMarketing(path.join(root,'dist','marketing'));
@@ -23,8 +38,13 @@ try{
     page.on('pageerror',e=>errors.push(String(e)));
     page.on('request',req=>{if(req.url().includes('/assets/product/'))forbiddenRequests.push(req.url())});
     await page.goto(base+'/',{waitUntil:'domcontentloaded'});
-    await page.waitForFunction(()=>getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim()==='#123B3A');
-    await page.locator('.site-header .logo-lockup-compact').waitFor({state:'attached'});
+    await page.waitForFunction(()=>{
+      const style=getComputedStyle(document.body);
+      return style.getPropertyValue('--boekuna-black').trim()==='#111111'
+        && style.getPropertyValue('--boekuna-lime').trim()==='#E7FE55'
+        && style.getPropertyValue('--boekuna-cyan').trim()==='#BFE7EC';
+    });
+    await page.locator(width<=620?'.site-header .logo-lockup-compact':'.site-header .logo-lockup-primary').waitFor({state:'visible'});
     const overflow=await page.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth,bw:document.body.scrollWidth}));
     assert.ok(overflow.sw<=overflow.vw+1&&overflow.bw<=overflow.vw+1,`Horizontal overflow at ${width}px: ${JSON.stringify(overflow)}`);
     const header=await page.evaluate(()=>{
@@ -51,8 +71,20 @@ try{
     assert.equal(await page.locator('picture').count(),0,`Content picture elements must be absent at ${width}px`);
     assert.deepEqual(forbiddenRequests,[],`Product screenshot requests at ${width}px: ${forbiddenRequests.join(' | ')}`);
     assert.deepEqual(errors,[],`Homepage page errors at ${width}px: ${errors.join(' | ')}`);
-    assert.equal(await page.locator('.kz-hero h1 span').evaluate(el=>getComputedStyle(el).color),'rgb(18, 59, 58)',`Petrol type on white hero missing at ${width}px`);
-    assert.equal(await page.locator('.kz-hero-actions .mk-btn.primary').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(18, 59, 58)',`Petrol primary CTA on white hero missing at ${width}px`);
+    const palette=await page.evaluate(()=>({
+      body:getComputedStyle(document.body).backgroundColor,
+      hero:getComputedStyle(document.querySelector('.kz-hero h1 span')).color,
+      ctaBg:getComputedStyle(document.querySelector('.kz-hero-actions .mk-btn.primary')).backgroundColor,
+      ctaText:getComputedStyle(document.querySelector('.kz-hero-actions .mk-btn.primary')).color,
+      trust:getComputedStyle(document.querySelector('.kz-trust-strip')).backgroundColor,
+      footer:getComputedStyle(document.querySelector('.footer')).backgroundColor
+    }));
+    assert.equal(palette.body,'rgb(255, 255, 255)',`White canvas missing at ${width}px`);
+    assert.equal(palette.hero,'rgb(17, 17, 17)',`Near-black hero type missing at ${width}px`);
+    assert.equal(palette.ctaBg,'rgb(231, 254, 85)',`Lime primary CTA missing at ${width}px`);
+    assert.equal(palette.ctaText,'rgb(17, 17, 17)',`Near-black CTA text missing at ${width}px`);
+    assert.equal(palette.trust,'rgb(191, 231, 236)',`Soft cyan trust band missing at ${width}px`);
+    assert.equal(palette.footer,'rgb(17, 17, 17)',`Near-black footer missing at ${width}px`);
     if([390,1440,1920].includes(width)){
       await settleImages(page);
       await page.screenshot({path:path.join(root,'tests','artifacts',`image-free-home-${width}.png`),fullPage:true});
@@ -71,7 +103,7 @@ try{
   assert.equal(await page.locator('#kzProductImage').count(),0,'Image-free product panel must not recreate a screenshot element');
   await page.close();
 
-  console.log('Image-free marketing responsive QA: PASS (320, 360, 375, 390, 393, 430, 768, 1024, 1280, 1440, 1920 + keyboard tabs)');
+  console.log('Image-free marketing responsive QA: PASS (320, 360, 375, 390, 393, 430, 620, 768, 1024, 1280, 1440, 1920 + white/lime/cyan/black palette + keyboard tabs)');
 }finally{
   await browser.close();
   await server.close();

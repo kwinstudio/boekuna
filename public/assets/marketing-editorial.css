@@ -1,18 +1,20 @@
 /* BOEKUNA public website — White Editorial. Marketing-only presentation. */
 @font-face{font-family:Inter;src:url('/assets/marketing-editorial/InterVariable.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap}
+/* URBANIST_ASSET_PENDING — official target is Urbanist 400/500/600; keep local Inter until the licensed font asset is vendored. */
 :root{
- --brand-primary:#123B3A;--brand-primary-hover:#102724;--brand-primary-active:#102724;--brand-primary-soft:#EEF7F3;--brand-secondary:#2B736C;
- --bg-canvas:#FFFFFF;--bg-surface:#FFFFFF;--bg-surface-secondary:#EEF7F3;--text-primary:#102724;--text-secondary:#344744;--text-muted:#6B7976;--text-inverse:#FFFFFF;
- --border-default:#DCE4E1;--border-strong:#6B7976;--divider:#DCE4E1;--radius-sm:4px;--radius-md:4px;--radius-lg:0;--radius-xl:0;--shadow-sm:none;--shadow-md:none;
- --ed-max:1440px;--ed-gutter:clamp(20px,4.8vw,80px);--ed-space:clamp(64px,7.2vw,112px);--ed-gap:clamp(24px,4vw,64px);--ed-line:#DCE4E1;--ed-ink:#123B3A;--ed-paper:#FFFFFF;
- --ed-small:14px;--ed-body:clamp(17px,1.4vw,19px);--ed-h1:clamp(44px,6.3vw,96px);--ed-h2:clamp(32px,4.1vw,60px);--ed-h3:clamp(25px,2.2vw,34px);
+ --boekuna-lime:#E7FE55;--boekuna-cyan:#BFE7EC;--boekuna-white:#FFFFFF;--boekuna-black:#111111;--boekuna-soft:#F6F6F3;
+ --brand-primary:var(--boekuna-black);--brand-primary-hover:#2B2B2B;--brand-primary-active:#000000;--brand-primary-soft:var(--boekuna-lime);--brand-secondary:var(--boekuna-cyan);
+ --bg-canvas:var(--boekuna-white);--bg-surface:var(--boekuna-white);--bg-surface-secondary:var(--boekuna-soft);--text-primary:var(--boekuna-black);--text-secondary:#3A3A3A;--text-muted:#666666;--text-inverse:var(--boekuna-white);
+ --border-default:#E5E5E2;--border-strong:#A8A8A3;--divider:#E5E5E2;--radius-sm:4px;--radius-md:4px;--radius-lg:0;--radius-xl:0;--shadow-sm:none;--shadow-md:none;
+ --ed-max:1440px;--ed-gutter:clamp(20px,4.8vw,80px);--ed-space:clamp(64px,7.2vw,112px);--ed-gap:clamp(24px,4vw,64px);--ed-line:#E5E5E2;--ed-ink:var(--boekuna-black);--ed-paper:var(--boekuna-white);
+ --ed-small:14px;--ed-body:clamp(16px,1.4vw,19px);--ed-h1:clamp(56px,7vw,96px);--ed-h2:clamp(34px,4vw,56px);--ed-h3:clamp(26px,2.2vw,34px);
  --font-sans:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 }
 .editorial-site{margin:0;background:var(--bg-canvas);color:var(--text-primary);font:var(--ed-body)/1.65 var(--font-sans);-webkit-font-smoothing:antialiased}
 .editorial-site *,.editorial-site *::before,.editorial-site *::after{box-sizing:border-box}
 .editorial-site :is(.marketing,.mk-page,.how-page,main){background:transparent;min-width:0;margin:0;padding:0;overflow:visible;max-width:none}
 .editorial-site :is(h1,h2,h3,h4){color:var(--ed-ink);font-family:inherit;font-weight:500;letter-spacing:-.055em;text-wrap:balance;overflow-wrap:normal;word-break:normal}
-.editorial-site h1{font-size:var(--ed-h1);line-height:1.04;margin:20px 0 0}
+.editorial-site h1{font-size:var(--ed-h1);line-height:1.03;margin:20px 0 0;font-weight:600}
 .editorial-site h2{font-size:var(--ed-h2);line-height:1.1;margin:0 0 24px;max-width:22ch}
 .editorial-site h3{font-size:var(--ed-h3);line-height:1.18;margin:0 0 16px}
 .editorial-site p{font-size:var(--ed-body);line-height:1.7;color:var(--text-secondary);max-width:65ch;margin:0 0 22px}
@@ -31,7 +33,7 @@
 .editorial-site .editorial-skip:focus{top:12px}
 /* Quiet navigation; the explanatory sentence remains present below the navigation. */
 .editorial-site #siteHeader{position:relative;z-index:100;background:white;display:flex;flex-direction:column}
-.editorial-site .promo{order:2;background:white;color:var(--text-secondary);font-size:13px;font-weight:400;line-height:1.5;text-align:left;padding:12px var(--ed-gutter);max-width:var(--ed-max);width:100%;margin:auto;border-top:1px solid var(--ed-line)}
+.editorial-site .promo{order:2;background:var(--boekuna-white);color:var(--text-secondary);font-size:13px;font-weight:400;line-height:1.5;text-align:left;padding:12px var(--ed-gutter);max-width:var(--ed-max);width:100%;margin:auto;border-top:1px solid var(--ed-line)}
 .editorial-site .site-header{background:white;position:relative;top:auto;backdrop-filter:none;border:0;box-shadow:none}
 .editorial-site .nav{height:100px;max-width:var(--ed-max);padding:0 var(--ed-gutter);gap:28px}
 .editorial-site .logo{margin-right:auto;flex-shrink:0}
@@ -45,7 +47,7 @@
 .editorial-site .nav-actions .btn{min-height:44px;padding:10px 16px;font-size:14px;display:inline-flex}
 .editorial-site .nav-actions .btn:first-child{background:var(--brand-primary);color:white}
 .editorial-site .nav-actions .btn.primary{background:transparent;border-color:transparent;color:var(--brand-primary);padding:10px 0}
-.editorial-site .dropdown-menu{display:none;top:100%;width:320px;border:1px solid var(--ed-line);border-radius:4px;padding:12px;box-shadow:0 8px 18px rgba(16,39,36,.08);background:white}
+.editorial-site .dropdown-menu{display:none;top:100%;width:320px;border:1px solid var(--ed-line);border-radius:4px;padding:12px;box-shadow:0 8px 18px rgba(17,17,17,.08);background:white}
 .editorial-site .dropdown:is(:hover,:focus-within) .dropdown-menu{display:none}
 .editorial-site .dropdown.is-open .dropdown-menu{display:grid}
 .editorial-site .dropdown-menu a{padding:12px;min-height:48px;border-radius:0;color:var(--text-primary)}
@@ -76,7 +78,7 @@
 .editorial-site .kz-hero{display:block;padding:0;max-width:none;text-align:left;background:none}
 .editorial-site .ed-hero-heading{margin:0 0 42px}
 .editorial-site .kz-overline{margin-bottom:26px;color:var(--text-secondary)}
-.editorial-site .kz-hero h1{font-size:clamp(44px,7vw,96px);line-height:1.03;letter-spacing:-.065em;font-weight:500;color:var(--brand-primary);max-width:none;margin:0}
+.editorial-site .kz-hero h1{font-size:clamp(56px,7vw,96px);line-height:1.01;letter-spacing:-.045em;font-weight:600;color:var(--brand-primary);max-width:none;margin:0}
 .editorial-site .kz-hero h1>span{display:block;color:var(--brand-primary)}
 .editorial-site .ed-hero-support{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:var(--ed-gap);max-width:none;padding:0}
 .editorial-site .kz-hero-copy{grid-row:1/3;font-size:var(--ed-body);color:var(--text-secondary);margin:0;max-width:54ch}
@@ -288,7 +290,7 @@
 @media(max-width:600px){
  .editorial-site{--ed-gutter:20px;--ed-space:56px;--ed-gap:24px;--ed-body:17px;--ed-h1:44px;--ed-h2:34px;--ed-h3:26px}
  .editorial-site .nav{gap:14px}.editorial-site .logo-lockup-primary{width:126px}.editorial-site .nav-actions{gap:16px}.editorial-site .nav-actions .btn:first-child{display:none}
- .editorial-site .promo{font-size:12px;padding:10px 20px}.editorial-site .kz-hero h1{font-size:clamp(42px,10.8vw,56px);letter-spacing:-.065em;line-height:1.07}
+ .editorial-site .promo{font-size:12px;padding:10px 20px}.editorial-site .kz-hero h1{font-size:clamp(42px,11vw,56px);letter-spacing:-.065em;line-height:1.07}
  .editorial-site :is(.ed-opening,.mk-hero,.how-hero,.page-hero){padding-top:40px}.editorial-site .ed-hero-heading{margin-bottom:28px}.editorial-site .kz-overline{font-size:13px;margin-bottom:22px}
  .editorial-site :is(.kz-hero-actions,.mk-actions,.how-hero-actions){gap:10px}.editorial-site :is(.btn,.mk-btn){font-size:14px;padding:12px 16px}
  .editorial-site :is(.kz-solution,.mk-card,.kz-benefit-copy){grid-template-columns:1fr;padding:28px 0;gap:12px}
@@ -321,3 +323,126 @@
 .editorial-site .mobile-toggle .mobile-toggle-icon i{transition:transform .18s,opacity .18s}
 @media(prefers-reduced-motion:reduce){.editorial-site .mobile-toggle .mobile-toggle-icon i{transition:none}}
 @media(max-width:359px){.editorial-site .how-usage-section h2{font-size:29.5px}}
+
+/* BOEKUNA marketing identity — white / lime / soft cyan / near-black. */
+.editorial-site,
+.editorial-site #siteHeader,
+.editorial-site .site-header,
+.editorial-site .promo,
+.editorial-site .mobile-menu,
+.editorial-site.editorial-menu-open #siteHeader,
+.editorial-site :is(.ed-opening,.mk-hero,.how-hero,.page-hero),
+.editorial-site :is(.kz-workflow,.kz-solutions-section,.kz-reasons,.kz-audience,.kz-support,.kz-benefit,.kz-plan,.kz-compare,.kz-facts,.mk-section,.section,.how-principles,.how-flow-section,.how-smart-section,.how-control-section){
+  background:var(--boekuna-white);
+}
+
+/* Lime is reserved for primary emphasis and focus. */
+.editorial-site :is(.btn.primary,.mk-btn.primary,.btn.dark),
+.editorial-site .nav-actions .btn:first-child{
+  background:var(--boekuna-lime);
+  border-color:var(--boekuna-black);
+  color:var(--boekuna-black);
+}
+.editorial-site :is(.btn.primary,.mk-btn.primary,.btn.dark):hover,
+.editorial-site .nav-actions .btn:first-child:hover{
+  background:var(--boekuna-black);
+  border-color:var(--boekuna-black);
+  color:var(--boekuna-white);
+}
+.editorial-site :is(.btn,.mk-btn):not(.primary):not(.dark){
+  background:transparent;
+  border-color:var(--boekuna-black);
+  color:var(--boekuna-black);
+}
+.editorial-site :is(.btn,.mk-btn):not(.primary):not(.dark):hover{
+  background:var(--boekuna-cyan);
+  color:var(--boekuna-black);
+}
+.editorial-site :focus-visible{outline:3px solid var(--boekuna-black)!important;outline-offset:5px!important}
+
+/* Cyan remains secondary and limited to quiet supporting bands/states. */
+.editorial-site .kz-trust-strip,
+.editorial-site .mk-stat-strip{
+  background:var(--boekuna-cyan);
+}
+.editorial-site .kz-apps{background:var(--boekuna-soft)}
+.editorial-site .price.popular{
+  border-top-color:var(--boekuna-black);
+  background:var(--boekuna-cyan);
+}
+
+/* Workflow numbers use a compact lime marker rather than lime-filled cards. */
+.editorial-site .mk-flow-step .num,
+.editorial-site .how-flow-number{
+  display:inline-flex;
+  width:max-content;
+  padding:.08em .18em;
+  background:var(--boekuna-lime);
+  color:var(--boekuna-black);
+}
+
+/* Strong closing surfaces and footer are neutral near-black. */
+.editorial-site :is(.kz-final-box,.mk-banner,.how-final),
+.editorial-site .footer{
+  background:var(--boekuna-black);
+  color:var(--boekuna-white);
+}
+.editorial-site :is(.kz-final-box,.mk-banner,.how-final) :is(h2,h3,p,.eyebrow){
+  color:var(--boekuna-white);
+}
+.editorial-site :is(.kz-final-box,.mk-banner,.how-final) :is(.btn.primary,.mk-btn.primary){
+  background:var(--boekuna-lime);
+  border-color:var(--boekuna-lime);
+  color:var(--boekuna-black);
+}
+.editorial-site :is(.kz-final-box,.mk-banner,.how-final) :is(.btn.primary,.mk-btn.primary):hover{
+  background:var(--boekuna-cyan);
+  border-color:var(--boekuna-cyan);
+  color:var(--boekuna-black);
+}
+/* Contrast-safe keyboard focus: near-black on light surfaces, white on near-black surfaces. */
+.editorial-site :is(.kz-final-box,.mk-banner,.how-final) :focus-visible,
+.editorial-site .footer :focus-visible{
+  outline-color:var(--boekuna-white)!important;
+}
+.editorial-site .footer,
+.editorial-site .footer-bottom{border-top-color:rgba(255,255,255,.22)}
+.editorial-site .site-backtop{
+  background:var(--boekuna-lime);
+  color:var(--boekuna-black);
+  border-color:var(--boekuna-black);
+}
+.editorial-site :is(input,select,textarea){border-color:#A8A8A3}
+
+/* Legacy marketing markup uses <b> for numbered flow labels. Keep those
+   labels as compact lime markers with accessible near-black text. */
+.editorial-site .mk-flow-step > b{
+  display:inline-flex;
+  width:max-content;
+  padding:.08em .18em;
+  margin-bottom:20px;
+  background:var(--boekuna-lime);
+  color:var(--boekuna-black);
+  font-size:14px;
+  font-weight:600;
+  letter-spacing:.04em;
+}
+
+/* Higher-specificity legacy dark-card icon rules must not produce white on cyan. */
+.editorial-site .mk-card.dark .mk-card-icon{
+  background:transparent;
+  color:var(--boekuna-black);
+}
+
+/* Selected pricing data may use cyan as a surface, never as low-contrast text. */
+.editorial-site .plan-highlight{
+  background:var(--boekuna-cyan);
+  color:var(--boekuna-black);
+  font-weight:600;
+}
+
+/* WebKit gives "boekhoudsoftware" a few extra pixels at 320px.
+   Fit the long Dutch word by scaling the subpage heading, not by breaking it. */
+@media(max-width:359px){
+  .editorial-site :is(.mk-hero,.how-hero,.page-hero) h1{font-size:36px}
+}
