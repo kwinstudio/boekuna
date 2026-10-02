@@ -38,7 +38,15 @@ try{
   }
   const [original,actual]=snapshots;
   for(const key of ['words','headings','bodycopy','links','controls','forms','fields','seo','images']){
-   assert.deepEqual(actual[key],original[key],route+': content/SEO contract '+key);
+   if(key==='seo'&&route!=='/404.html'){
+    const parseMeta=item=>{try{return JSON.parse(item)}catch{return {}}};
+    const actualTheme=actual.seo.meta.filter(item=>parseMeta(item).name==='theme-color').map(item=>parseMeta(item).content);
+    assert.deepEqual(actualTheme,['#FFFFFF'],route+': public theme-color must match the white-first palette');
+    const withoutTheme=seo=>({...seo,meta:seo.meta.filter(item=>parseMeta(item).name!=='theme-color')});
+    assert.deepEqual(withoutTheme(actual.seo),withoutTheme(original.seo),route+': content/SEO contract seo except intentional theme-color migration');
+   }else{
+    assert.deepEqual(actual[key],original[key],route+': content/SEO contract '+key);
+   }
   }
   if(route==='/')assert.deepEqual(actual.dynamic,original.dynamic,'Every original interactive state and destination survives');
   for(const section of original.sections)if(section.id)assert.ok(actual.sections.some(s=>s.id===section.id),route+' lost anchor '+section.id);
