@@ -22,8 +22,8 @@ assert.ok(fs.existsSync(path.join(root,'dist','marketing','account-verwijderen',
 assert.ok(!fs.existsSync(path.join(root,'dist','marketing','manifest.webmanifest')),'marketing build must not publish the app-only PWA manifest');
 const marketingIndex=fs.readFileSync(path.join(root,'dist','marketing','index.html'),'utf8');
 assert.ok(marketingIndex.includes('id="siteHeader"'),'marketing root must use the public marketing shell');
-assert.ok(marketingIndex.includes('class="kz-hero"'),'marketing root must preserve the characterized pre-split homepage content');
-assert.ok(marketingIndex.includes('Je bent ondernemer.<span>Geen boekhouder.</span>'),'marketing root must preserve the characterized hero message');
+assert.ok(marketingIndex.includes('class="parity-hero"'),'marketing root must preserve the approved parity homepage content');
+assert.ok(marketingIndex.includes('Boekhouden.<br>Maar dan rustig.'),'marketing root must preserve the approved parity hero message');
 assert.ok(marketingIndex.includes('https://app.boekuna.nl/?register=1'),'marketing registration CTA must cross to the product host');
 assert.ok(fs.existsSync(path.join(root,'dist','marketing','assets','homepage.css')),'marketing build must carry extracted homepage styles');
 assert.ok(fs.existsSync(path.join(root,'dist','marketing','assets','homepage.js')),'marketing build must carry extracted homepage interactions');
