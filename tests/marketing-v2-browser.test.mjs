@@ -14,7 +14,7 @@ const evidence='tests/artifacts/white-editorial';
 fs.mkdirSync(evidence,{recursive:true});
 const server=await serveMarketing('dist/marketing');
 const engines=process.env.MARKETING_BROWSER==='chromium'?[['chromium',chromium]]:process.env.MARKETING_BROWSER==='webkit'?[['webkit',webkit]]:[['chromium',chromium],['webkit',webkit]];
-const report={routes:routes.length,widths,engines:[],screenshots:[],errors:[],accessibility:[],forms:[],motion:[],brand:[],checks:0};
+const report={routes:routes.length,widths,engines:[],screenshots:[],errors:[],accessibility:[],forms:[],motion:[],brand:[],focus:[],checks:0};
 const beforeDir=fs.mkdtempSync(path.join(os.tmpdir(),'boekuna-marketing-before-'));
 const baseline={baseHead:'71da7f3a939cad6a4c208bf221a70b1a6c5604bf'};
 execFileSync('tar',['-x','-C',beforeDir],{input:execFileSync('git',['archive',baseline.baseHead,'public'],{maxBuffer:64*1024*1024})});
@@ -85,6 +85,68 @@ async function audit(page,label){
   const violations=results.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))}));
   report.accessibility.push({label,violations});
   if(violations.length)report.errors.push({label,violations});
+}
+function cssRgb(value){
+  const match=String(value||'').match(/rgba?\((\d+(?:\.\d+)?)[, ]+(\d+(?:\.\d+)?)[, ]+(\d+(?:\.\d+)?)/);
+  assert.ok(match,'Expected computed RGB color, got '+value);
+  return match.slice(1,4).map(Number);
+}
+function contrastRatio(a,b){
+  const luminance=rgb=>rgb.map(value=>{
+    const channel=value/255;
+    return channel<=.04045?channel/12.92:Math.pow((channel+.055)/1.055,2.4);
+  }).reduce((sum,value,index)=>sum+value*[.2126,.7152,.0722][index],0);
+  const [lighter,darker]=[luminance(a),luminance(b)].sort((x,y)=>y-x);
+  return (lighter+.05)/(darker+.05);
+}
+async function assertKeyboardFocusCases(page,cases,label){
+  const pending=new Map(cases.map(item=>[item.name,item]));
+  await page.evaluate(()=>{if(document.activeElement instanceof HTMLElement)document.activeElement.blur();window.scrollTo(0,0)});
+  for(let step=0;step<260&&pending.size;step++){
+    await page.keyboard.press('Tab');
+    const matched=await page.evaluate(selectors=>{
+      const active=document.activeElement;
+      if(!(active instanceof HTMLElement))return null;
+      for(const [name,selector] of selectors)if(active.matches(selector))return name;
+      return null;
+    },[...pending.values()].map(item=>[item.name,item.selector]));
+    if(!matched)continue;
+    const item=pending.get(matched);
+    const state=await page.evaluate(()=>{
+      const el=document.activeElement;
+      const style=getComputedStyle(el);
+      let parent=el.parentElement,background='rgba(0, 0, 0, 0)';
+      while(parent){
+        const value=getComputedStyle(parent).backgroundColor;
+        if(value!=='transparent'&&value!=='rgba(0, 0, 0, 0)'){
+          background=value;
+          break;
+        }
+        parent=parent.parentElement;
+      }
+      return {
+        focusVisible:el.matches(':focus-visible'),
+        outlineColor:style.outlineColor,
+        outlineStyle:style.outlineStyle,
+        outlineWidth:style.outlineWidth,
+        background
+      };
+    });
+    assert.equal(state.focusVisible,true,label+' '+item.name+': keyboard focus must match :focus-visible');
+    assert.notEqual(state.outlineStyle,'none',label+' '+item.name+': focus outline must be rendered');
+    assert.ok(parseFloat(state.outlineWidth)>=3,label+' '+item.name+': focus outline must remain at least 3px');
+    const ratio=contrastRatio(cssRgb(state.outlineColor),cssRgb(state.background));
+    assert.ok(ratio>=3,label+' '+item.name+': focus contrast '+ratio.toFixed(2)+':1 must be >= 3:1');
+    if(item.surface==='light'){
+      assert.equal(state.outlineColor,'rgb(17, 17, 17)',label+' '+item.name+': light-surface focus must use near-black, not bare lime');
+      assert.notEqual(state.outlineColor,'rgb(231, 254, 85)',label+' '+item.name+': lime cannot be the sole light-surface outline');
+    }else{
+      assert.equal(state.outlineColor,'rgb(255, 255, 255)',label+' '+item.name+': dark-surface focus must use white');
+    }
+    report.focus.push({label,name:item.name,surface:item.surface,...state,contrast:Number(ratio.toFixed(2))});
+    pending.delete(matched);
+  }
+  assert.deepEqual([...pending.keys()],[],label+': all required keyboard-focus targets must be reachable by Tab');
 }
 try{
  for(const [name,type] of engines){
@@ -255,6 +317,26 @@ try{
      await page.unroute('**/rest/v1/support_requests');
     }
    }
+   // Explicit keyboard-focus contrast regression. Axe does not measure this custom outline contrast.
+   for(const width of [320,390,768,1440]){
+    const focusPage=await browser.newPage({viewport:{width,height:width<700?844:960},reducedMotion:'reduce'});
+    await focusPage.goto(server.base+'/',{waitUntil:'networkidle'});
+    const homeCases=[
+      {name:'ordinary link',selector:'.kz-preview-link',surface:'light'},
+      {name:'primary CTA',selector:'.kz-hero-actions .mk-btn.primary',surface:'light'},
+      {name:'secondary CTA',selector:'.kz-hero-actions .mk-btn:not(.primary)',surface:'light'},
+      {name:'closing CTA',selector:'.kz-final-box .mk-btn',surface:'dark'},
+      {name:'footer link',selector:'.footer a:not(.footer-logo)',surface:'dark'}
+    ];
+    if(width<=1100)homeCases.push({name:'mobile menu trigger',selector:'.mobile-toggle',surface:'light'});
+    await assertKeyboardFocusCases(focusPage,homeCases,name+' home focus '+width);
+    await focusPage.goto(server.base+'/contact/',{waitUntil:'networkidle'});
+    await assertKeyboardFocusCases(focusPage,[{name:'form input',selector:'#contactName',surface:'light'}],name+' contact focus '+width);
+    await focusPage.goto(server.base+'/faq/',{waitUntil:'networkidle'});
+    await assertKeyboardFocusCases(focusPage,[{name:'FAQ summary',selector:'.mk-faq-list summary',surface:'light'}],name+' FAQ focus '+width);
+    await focusPage.close();
+   }
+
    // The white site has no blocking intro, scrolling transforms, or word masks.
    await page.emulateMedia({reducedMotion:'no-preference'});
    await page.goto(server.base+'/',{waitUntil:'networkidle'});
