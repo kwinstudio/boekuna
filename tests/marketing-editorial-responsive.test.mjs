@@ -168,7 +168,9 @@ try{
   await workflowControl.click();
   assert.equal(await workflowControl.getAttribute('aria-pressed'),'true','Workflow controls expose active state');
   assert.equal(await motionPage.locator('#kzWorkflowStage').getAttribute('data-step'),'controle','Workflow stage follows selected control');
-  assert.ok((await motionPage.locator('#kzWorkflowStage').innerText()).includes('Controle'),'Workflow stage copy updates with the selected step');
+  const workflowLabel=motionPage.locator('#workflowStageLabel');
+  assert.equal(await workflowLabel.isVisible(),true,'Workflow stage label stays visible after selection');
+  assert.equal((await workflowLabel.textContent()).trim(),'Controle','Workflow stage label updates with the selected step');
   await motionPage.close();
 
   const staticPage=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
