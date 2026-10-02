@@ -74,7 +74,7 @@ assert.ok(pricing.includes('Meest gekozen'),'Boekuna must carry the Meest gekoze
 assert.ok(pricing.includes('Nieuwe pakketten worden binnenkort beschikbaar'),'Pricing must disclose announced-plan availability');
 assert.equal((pricing.match(/href=\"[^\"]*plan=/g)||[]).length,0,'Announced paid plans must not link to checkout/plan routes');
 assert.ok((pricing.match(/Binnenkort beschikbaar/g)||[]).length>=3,'Pricing must show availability copy and three non-transactional paid CTAs');
-assert.ok(pricing.includes('https://app.boekuna.nl/?login=1'),'Gratis CTA must retain the existing product entry flow');
+assert.ok(pricing.includes('https://app.boekuna.nl/?register=1'),'Gratis CTA must use the existing free registration flow');
 for(const retired of ['Early Access','eerste 100','Founding 100','3 kalendermaanden','90 dagen']){
   assert.ok(!pricing.toLowerCase().includes(retired.toLowerCase()),`Retired First-100 offer must be absent from pricing: ${retired}`);
 }
@@ -104,13 +104,13 @@ assert.ok(marketingCssNative.includes('--bg-canvas:#F8F7F3'),'Marketing CSS must
 assert.ok(sharedMarketing.includes('/assets/boekuna-logo-primary.svg'),'Shared marketing must use the official primary logo');
 assert.ok(sharedMarketing.includes('/assets/boekuna-logo-compact.svg'),'Shared marketing must provide the official compact logo');
 assert.ok(!sharedMarketing.includes('/assets/boekuna-symbol.svg'),'Shared marketing must not reconstruct the primary lockup from the symbol');
-assert.ok(sharedMarketing.includes('aria-haspopup="true" aria-expanded="false"'),'Dropdown triggers must expose accessible state');
+for(const label of ['Functies','Voor ondernemers','Prijzen','Over']) assert.ok(sharedMarketing.includes('>'+label+'</a>'),'Premium desktop navigation missing '+label);
 assert.ok(!sharedMarketing.includes('>☰<'),'Mobile navigation must not use a glyph as its functional icon');
 console.log('Calm Control native marketing regression: PASS');
 
 const homePolish=fs.readFileSync(path.join(publicDir,'index.html'),'utf8');
-assert.equal((homePolish.match(/class="photo-slot /g)||[]).length,2,'Homepage must contain exactly two future photo slots');
-assert.equal(/<div class="photo-slot[^>]*>[\s\S]*?<img\b/i.test(homePolish),false,'Empty future photo slots must not contain img elements');
+assert.equal((homePolish.match(/class="photo-slot /g)||[]).length,3,'Homepage must contain exactly three reusable photo slots');
+assert.ok(homePolish.includes('/assets/boekuna-editorial-workspace-placeholder.svg'),'Homepage must include the original temporary hero media');
 for(const label of ['Oplossingen','Voor ondernemers','Resources']) assert.ok(sharedMarketing.includes('<summary>'+label+'</summary>'),'Mobile menu group missing '+label);
 const editorialCss=fs.readFileSync(path.join(publicDir,'assets','marketing-editorial.css'),'utf8');
 for(const token of ['#FF9F1C','#FFBF69','#FFFFFF','#CBF3F0','#2EC4B6','#111111']) assert.ok(editorialCss.includes(token),'Approved palette token missing '+token);
