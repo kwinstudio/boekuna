@@ -1,0 +1,102 @@
+import fs from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {chromium,webkit} from 'playwright';
+
+// Exercise the production build. Only replace authentication/startup with deterministic data;
+// rendering, event wiring, accounting, deletion guards and built assets are production code.
+execFileSync(process.execPath,['scripts/build-app.mjs'],{stdio:'pipe'});
+const builtRoot=path.resolve('dist/app');
+let html=fs.readFileSync(path.join(builtRoot,'index.html'),'utf8').replace('const TEST_MODE_NO_AUTH=false;','const TEST_MODE_NO_AUTH=true;');
+const fixture=`
+currentUser={...TEST_USER,email:'presentation@example.test',supabaseUser:{user_metadata:{first_name:'Kwin'}}};
+state=structuredClone(DEFAULT);
+state.company={...state.company,name:'QA Test BV',contactName:'Kwin',email:'qa@example.test',address:'Teststraat 1',postal:'3011AA',city:'Rotterdam',country:'Nederland',kvk:'12345678',vat:'NL123456789B01',iban:'NL91ABNA0417164300',kor:false};
+const qaDate=today(),qaAmounts=[5,999.99,12500.50,100000.55,1250000,-100000.55];
+state.contacts=qaAmounts.map((_,i)=>({id:'c'+i,type:'customer',name:i%2?'Een zeer lange klantnaam met meerdere woorden en SupercalifragilisticexpialidociousZonderAfbreekpunten':'Kort',email:'klant@example.test'}));
+state.invoices=qaAmounts.map((gross,i)=>({id:'i'+i,number:'2026-'+String(i+1).padStart(4,'0'),customerId:'c'+i,status:i===1?'paid':'sent',kind:gross<0?'credit':'invoice',issueDate:qaDate,dueDate:qaDate,taxTreatment:'standard',payments:i===2?[{id:'p2',amount:100,date:qaDate}]:i===1?[{id:'p1',amount:999.99,date:qaDate}]:[],importedTotals:{net:Math.abs(gross)/1.21,vat:Math.abs(gross)-Math.abs(gross)/1.21,gross:Math.abs(gross)}}));
+state.expenses=qaAmounts.slice(0,5).map((v,i)=>({id:'e'+i,date:qaDate,vendor:state.contacts[i].name,invoiceNumber:'INK-'+i,category:'Kantoor',paymentMethod:'bank',exVat:v/1.21,vatRate:21,notes:'Aanschaf voor project'}));
+state.transactions=qaAmounts.map((amount,i)=>({id:'t'+i,date:qaDate,description:state.contacts[i].name,amount,status:i%2?'matched':'unmatched',matchId:i%2?'i'+i:null,matchType:i%2?'invoice':null}));
+state.plannedCash=qaAmounts.map((amount,i)=>({id:'pc'+i,date:qaDate,description:state.contacts[i].name,type:amount<0?'out':'in',amount:Math.abs(amount)}));
+state.documents=[{id:'d1',fileId:'f1',name:'Een zeer lange documentnaam met meerdere woorden voor veilige opslag.pdf',type:'Upload',date:qaDate,processingState:'ready'},{id:'d2',fileId:'f2',name:'Gekoppelde factuur.pdf',type:'Factuur',date:qaDate,linkedId:'i0',linkedType:'invoice',processingState:'ready'}];
+state.hours=[{id:'h1',date:qaDate,project:state.contacts[1].name,desc:'Overleg over de uitvoering van het project',hours:12.5}];
+state.mileage=[{id:'m1',date:qaDate,from:'Rotterdam',to:'Amsterdam Centrum',purpose:'Klantbezoek bij een lange klantnaam',km:123.5}];
+documentProcessingJobs=[];documentProcessingInitialized=true;documentProcessingConnectivityLost=false;documentProcessingFetchError=false;
+window.__presentationInitialState=JSON.stringify(state);enterApp();`;
+const marker=html.lastIndexOf('initAuth();');assert.ok(marker>0);html=html.slice(0,marker)+fixture+html.slice(marker+'initAuth();'.length);
+const baseSHA='7134e3be64b084bef67373ac3bcac2d41364b2d5';
+let baseHtml=execFileSync('git',['show',baseSHA+':kwinest/index.html'],{encoding:'utf8'}).replace('const TEST_MODE_NO_AUTH=false;','const TEST_MODE_NO_AUTH=true;');
+const baseMarker=baseHtml.lastIndexOf('initAuth();');assert.ok(baseMarker>0);baseHtml=baseHtml.slice(0,baseMarker)+fixture+baseHtml.slice(baseMarker+'initAuth();'.length);
+const financialSnapshot=()=>{const invoices=state.invoices.filter(i=>i.status!=='draft'),sales=invoices.reduce((s,i)=>s+invoiceNet(i),0),costs=state.expenses.reduce((s,e)=>s+Number(e.exVat),0);return {sales,costs,profit:sales-costs,vat:invoices.reduce((s,i)=>s+invoiceVat(i),0)-state.expenses.reduce((s,e)=>s+expenseVat(e),0),invoices:state.invoices.map(i=>[invoiceNet(i),invoiceVat(i),invoiceGross(i),invoiceOutstanding(i),invoicePaidAmount(i),invoiceEffectiveStatus(i)]),expenses:state.expenses.map(e=>[expenseVat(e),expenseGross(e)]),journal:generatedJournal(),ledger:ledgerAccountSummary(journalFlatRows()),cash:cashBalance(),forecast:[forecastAt(30),forecastAt(60),forecastAt(90)]}};
+const server=http.createServer((req,res)=>{
+ const pathname=new URL(req.url,'http://127.0.0.1').pathname;
+ if(pathname==='/baseline'){res.writeHead(200,{'content-type':'text/html; charset=utf-8'});return res.end(baseHtml)}
+ if(pathname==='/'||pathname==='/app'){res.writeHead(200,{'content-type':'text/html; charset=utf-8'});return res.end(html)}
+ const file=path.join(builtRoot,pathname.replace(/^\//,''));
+ if(file.startsWith(builtRoot+path.sep)&&fs.existsSync(file)&&fs.statSync(file).isFile()){res.writeHead(200,{'content-type':{'.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'}[path.extname(file)]||'application/octet-stream'});return fs.createReadStream(file).pipe(res)}
+ res.writeHead(404);res.end();
+});
+await new Promise(r=>server.listen(0,'127.0.0.1',r));
+const browserName=process.env.BOOKUNA_BROWSER==='webkit'?'webkit':'chromium';
+const browser=await ({chromium,webkit}[browserName]).launch({headless:true});
+const page=await browser.newPage({viewport:{width:390,height:900},hasTouch:true});const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+const artifactRoot='tests/artifacts/financial-presentation';fs.mkdirSync(artifactRoot,{recursive:true});
+const widths=[320,360,375,390,393,430,768,1024,1280,1440,1920],routes=['dashboard','invoices','expenses','bank','documents','control','vat','reports','cashflow','ledger','hours','settings'];
+const checks=[];
+try{
+ await page.goto('http://127.0.0.1:'+server.address().port+'/baseline');
+ await page.locator('.dashboard-chart-card').waitFor();
+ const baseFinancial=await page.evaluate(financialSnapshot);
+ await page.goto('http://127.0.0.1:'+server.address().port+'/app');
+ await page.locator('.dashboard-chart-card').waitFor();
+ const initial=await page.evaluate(()=>JSON.stringify(state));
+ const baseline=await page.evaluate(financialSnapshot);
+ assert.deepEqual(baseline,baseFinancial,'Existing financial values and oneoff forecasts equal exact main for the same representative dataset');
+ for(const width of widths){
+  await page.setViewportSize({width,height:900});
+  for(const route of routes){
+   await page.evaluate(async route=>{await navigate(route)},route);
+   if(route==='vat')await page.evaluate(()=>{sessionStorage.setItem('vatYear','all');render()});
+   const layout=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,clipped:[...document.querySelectorAll('#content .money,#content .metric-value,#content .total-line strong,#content .mini-kpi strong')].filter(el=>getComputedStyle(el).display!=='none'&&el.getBoundingClientRect().width>2&&el.scrollWidth>el.clientWidth+2).map(el=>({text:el.textContent,scroll:el.scrollWidth,client:el.clientWidth})),overflow:[...document.querySelectorAll('#content .table-wrap')].filter(el=>el.scrollWidth>el.clientWidth+2).map(el=>({class:el.className,scroll:el.scrollWidth,client:el.clientWidth}))}));
+   assert.ok(layout.scroll<=width+2,route+' global overflow '+width+': '+JSON.stringify(layout));
+   assert.deepEqual(layout.clipped,[],route+' money cannot wrap or clip '+width+': '+JSON.stringify(layout));
+   assert.deepEqual(layout.overflow,[],route+' financial table cannot require horizontal scroll '+width+': '+JSON.stringify(layout));
+   if(['invoices','dashboard','expenses','documents'].includes(route)){
+    const positions=await page.locator('#content .financial-actions .icon-btn').evaluateAll(els=>els.map(el=>Math.round(el.getBoundingClientRect().right)));
+    assert.ok(new Set(positions).size<=1,route+' action anchors must share right edge '+width+': '+positions);
+    if(width<=1100){const offsets=await page.locator('#content .financial-actions').evaluateAll(els=>els.map(el=>Math.round(el.getBoundingClientRect().top-el.closest('tr').getBoundingClientRect().top)));assert.ok(new Set(offsets).size<=1,route+' actions must share vertical row anchor '+width+': '+offsets);}
+   }
+   const semantics=await page.locator('#content table').evaluateAll(tables=>tables.every(table=>[...table.querySelectorAll('th')].every(th=>th.scope==='col'&&getComputedStyle(th).display!=='none')&&[...table.querySelectorAll('tbody td:not([colspan])')].every(td=>td.hasAttribute('headers'))));
+   assert.ok(semantics,route+' accessible table relationships '+width);
+   if([320,390,1440].includes(width)){
+    if(route==='dashboard'){
+     const bars=page.locator('[data-chart-values]');await bars.last().scrollIntoViewIfNeeded();await bars.last().click();
+     const card=await page.locator('.dashboard-chart-card').boundingBox(),tooltip=await page.locator('#dashboardChartValues').boundingBox();
+     assert.ok(tooltip.x>=card.x&&tooltip.x+tooltip.width<=card.x+card.width+1,'Tooltip clamps horizontally to chart');
+     assert.ok(tooltip.y>=card.y&&tooltip.y+tooltip.height<=card.y+card.height+1,'Tooltip floats inside chart card');
+     assert.equal(await page.locator('#dashboardChartValues').evaluate(el=>getComputedStyle(el).position),'absolute');
+     const header=await page.locator('.dashboard-chart-card .section-head').boundingBox();assert.ok(tooltip.y>=header.y+header.height,'Tooltip leaves chart navigation uncovered');
+    }
+    await page.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';scrollTo(0,0)});await page.waitForFunction(()=>scrollY===0);
+    await page.screenshot({path:artifactRoot+'/'+route+'-'+browserName+'-'+width+'.png',fullPage:true});
+   }
+   checks.push({route,width});
+  }
+ }
+ await page.setViewportSize({width:320,height:900});await page.evaluate(()=>{page='dashboard';render()});
+ const bars=page.locator('[data-chart-values]'),tip=page.locator('#dashboardChartValues');
+ await bars.first().scrollIntoViewIfNeeded();await bars.first().hover();assert.equal(await tip.isVisible(),true,'Hover opens floating tooltip');
+ await page.mouse.move(1,800);assert.equal(await tip.isVisible(),false,'Pointer leave dismisses unpinned tooltip');
+ await bars.last().focus();assert.equal(await tip.isVisible(),true,'Keyboard focus opens tooltip');await page.keyboard.press('Escape');assert.equal(await tip.isVisible(),false,'Escape dismisses tooltip');
+ await bars.last().tap();assert.equal(await tip.isVisible(),true,'Touch tap pins tooltip');await page.locator('.dashboard-chart-card h2').click();assert.equal(await tip.isVisible(),false,'Outside chart dismisses tooltip');await bars.last().tap();assert.equal(await tip.isVisible(),true);await page.locator('.dashboard-recent .table-toolbar strong').click();assert.equal(await tip.isVisible(),false,'Outside card dismisses tooltip');
+ await page.evaluate(()=>{page='documents';render()});
+ assert.equal(await page.locator('.page-actions .primary').count(),1);assert.equal(await page.getByRole('button',{name:'Uploaden',exact:true}).count(),1);assert.equal(await page.getByText('Archiveren zonder verwerking',{exact:true}).count(),0);assert.equal(await page.locator('.documents-secondary-menu').count(),0);assert.equal(await page.getByRole('heading',{name:'Bestanden · 2',exact:true}).count(),1);
+ assert.equal(await page.getByRole('button',{name:'Document openen',exact:true}).count(),2);assert.equal(await page.getByRole('button',{name:'Document verwijderen',exact:true}).count(),1,'Linked document stays protected');
+ let dialogCount=0;page.on('dialog',async dialog=>{dialogCount++;await dialog.dismiss()});await page.getByRole('button',{name:'Document verwijderen',exact:true}).click();assert.equal(dialogCount,1,'Delete asks for confirmation');assert.equal(await page.evaluate(()=>state.documents.length),2,'Cancel retains documents');
+ const after=await page.evaluate(financialSnapshot);
+ assert.deepEqual(after,baseline,'Presentation leaves financial truth unchanged');assert.equal(await page.evaluate(()=>JSON.stringify(state)),initial,'Rendering and cancelled deletion preserve state byte for byte');assert.deepEqual(errors,[]);
+ fs.writeFileSync(artifactRoot+'/results-'+browserName+'.json',JSON.stringify({browser:browserName,checks,financialIntegrity:'PASS',baseSHA,baseFinancial,after,errors},null,2));
+ console.log('financial presentation production-build regression: PASS ('+browserName+', '+checks.length+' layouts)');
+}finally{await browser.close();await new Promise(r=>server.close(r))}

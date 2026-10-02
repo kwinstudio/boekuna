@@ -20,6 +20,7 @@ on:
       - "tests/kvk-company-lookup.test.mjs"
       - "tests/kvk-company-lookup-security.test.mjs"
       - "tests/package*.json"
+      - "tests/planned-cash-sql-isolation.test.mjs"
       - "tests/ocr-production-hardening.test.py"
       - "tests/document-processor-pdf.test.py"
       - "tests/test_document_processor_regression.py"
@@ -74,6 +75,8 @@ jobs:
         run: node tests/tenant-isolation.test.mjs
       - name: Install Node regression dependencies
         run: npm ci --prefix tests --ignore-scripts
+      - name: Planned cash migration and two-account PostgreSQL isolation
+        run: node tests/planned-cash-sql-isolation.test.mjs
       - name: Invoice PDF and email parity
         run: node tests/invoice-delivery.test.mjs
       - name: Retired First 100 regression

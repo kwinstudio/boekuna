@@ -33,6 +33,14 @@ on:
       - "tests/tenant-isolation.test.mjs"
       - "tests/production-integrity.test.mjs"
       - "tests/invoice-delivery.test.mjs"
+      - "tests/invoice-persistence.test.mjs"
+      - "tests/invoice-native-retry.test.mjs"
+      - "tests/cashflow-recurrence.test.mjs"
+      - "tests/cashflow-recurrence-browser.test.mjs"
+      - "tests/planned-cash-sql-isolation.test.mjs"
+      - "tests/contextual-resolution-browser.test.mjs"
+      - "tests/financial-presentation.test.mjs"
+      - "supabase/migrations/20261001234000_planned_cash_recurrence.sql"
       - "tests/smart-financial-correction.test.mjs"
       - "tests/split-build-boundaries.test.mjs"
       - "tests/marketing-app-non-regression.test.mjs"
@@ -75,10 +83,32 @@ jobs:
         run: node tests/smart-financial-correction.test.mjs
       - name: Install app test dependencies
         run: npm ci --prefix tests --ignore-scripts
+      - name: Invoice persistence and finalization invariants
+        run: node tests/invoice-persistence.test.mjs
+      - name: Recurrence date and forecast invariants
+        run: node tests/cashflow-recurrence.test.mjs
+      - name: Real local PostgreSQL migration and two-account isolation
+        run: node tests/planned-cash-sql-isolation.test.mjs
       - name: Install Playwright
         run: npm install --prefix tests --no-save playwright@1.56.1
       - name: Install Chromium and WebKit
         run: ./tests/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Invoice native handoff retries — Chromium and WebKit
+        run: |
+          node tests/invoice-native-retry.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/invoice-native-retry.test.mjs
+      - name: Cashflow persistence — Chromium and WebKit
+        run: |
+          node tests/cashflow-recurrence-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/cashflow-recurrence-browser.test.mjs
+      - name: Contextual resolution and safe previews — Chromium and WebKit
+        run: |
+          node tests/contextual-resolution-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/contextual-resolution-browser.test.mjs
+      - name: Financial presentation at every required width — Chromium and WebKit
+        run: |
+          node tests/financial-presentation.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/financial-presentation.test.mjs
       - name: Browser pre-launch smoke
         run: node tests/browser-smoke.test.mjs
       - name: KVK generated production flow — Chromium
@@ -196,4 +226,15 @@ jobs:
           path: |
             tests/artifacts/app-ux-*
             docs/ux-evidence/before-core-screens.zip
+          if-no-files-found: error
+
+      - name: Upload app polish evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-polish-evidence
+          path: |
+            tests/artifacts/financial-presentation/
+            tests/artifacts/contextual-resolution/
+            tests/artifacts/invoice-missing-email-390.png
           if-no-files-found: error

@@ -148,10 +148,11 @@ try{
   const documents=await page.locator('#content').innerText();
   assert.doesNotMatch(documents,/Upload compleet is niet hetzelfde als verwerking compleet\./,'Documents page should not repeat background-processing explanation');
   assert.doesNotMatch(documents,/tekstextractie, tabellen en OCR/,'Documents page should not expose technical OCR explanation in the primary flow');
-  assert.ok(await page.getByRole('button',{name:'Upload',exact:true}).isVisible(),'Document upload must remain available');
+  assert.ok(await page.getByRole('button',{name:'Uploaden',exact:true}).isVisible(),'Document upload must remain available');
   assert.equal(await page.locator('#content').getByRole('button',{name:'Foto',exact:true}).count(),0,'Documents must expose one upload entry, not a separate photo action');
   assert.equal(await page.locator('#content').getByRole('button',{name:/Camera/}).count(),0,'Documents must expose one upload entry, not a separate camera action');
-  assert.ok(await page.locator('.documents-secondary-menu > summary').isVisible(),'Archiveren must remain available as a secondary More action');
+  assert.equal(await page.locator('.documents-secondary-menu > summary').count(),0,'Technical archive action should not appear in normal document controls');
+  assert.equal(await page.locator('#archiveFile').count(),1,'Existing archive upload integration remains available internally');
   await page.screenshot({path:`tests/artifacts/premium-documents-${browserName}-390.png`,fullPage:true});
 
   // Safe document deletion: terminal attention states may be removed, active/linked records must not.
