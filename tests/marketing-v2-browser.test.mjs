@@ -234,6 +234,8 @@ try{
    await page.locator('[data-workflow-step="controle"]').press('Enter');
    assert.equal(await page.locator('[data-workflow-step="controle"]').getAttribute('aria-pressed'),'true',name+' workflow step exposes active state');
    assert.equal(await page.locator('#kzWorkflowStage').getAttribute('data-step'),'controle',name+' workflow stage follows keyboard selection');
+   assert.equal(await page.locator('#workflowStageLabel').isVisible(),true,name+' workflow label stays visible');
+   assert.equal((await page.locator('#workflowStageLabel').textContent()).trim(),'Controle',name+' workflow label follows keyboard selection');
    for(const key of ['documenten','btw','rapportages','facturen']){
     await page.locator('[data-kz-tab="'+key+'"]').press('Enter');
     assert.equal(await page.locator('[data-kz-tab="'+key+'"]').getAttribute('aria-pressed'),'true');
