@@ -23,7 +23,7 @@ for(const rel of routeFiles){
   const html=fs.readFileSync(file,'utf8');
   assert.equal((html.match(/<h1\b/gi)||[]).length,1,rel+': exactly one h1');
   if(rel!=='index.html') assert.ok(/<link rel="canonical" href="https:\/\/boekuna\.nl\//.test(html),rel+': public canonical missing');
-  assert.ok(html.includes('/assets/marketing.js?v=20261002premium'),rel+': premium shared runtime must be cache-busted');
+  assert.ok(html.includes('/assets/marketing.js?v=20261002parity'),rel+': premium shared runtime must be cache-busted');
   assert.ok(html.includes('/assets/marketing-editorial.css?v=20261002parity'),rel+': parity stylesheet must use the current cache key');
   assert.equal(/data-depth-root|hero-depth-|story-depth-|kz-magnetic/.test(html),false,rel+': old 3D/depth markup must be absent');
   assert.equal(/revolut/i.test(html),false,rel+': reference brand must not appear in production HTML');
