@@ -158,6 +158,7 @@ enterApp();
 
 const appServer=http.createServer((req,res)=>{
   if(serveKvkAsset(req,res))return;
+  if(req.url?.startsWith('/assets/brand-v2.css')){res.writeHead(200,{'content-type':'text/css; charset=utf-8','cache-control':'no-store'});return res.end(fs.readFileSync(new URL('../public/assets/brand-v2.css',import.meta.url),'utf8'))}
   if(req.url?.startsWith('/assets/financial-correction.js')){res.writeHead(200,{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store'});return res.end(financialCorrectionSource)}
   if(req.url?.startsWith('/manifest.webmanifest')){res.writeHead(200,{'content-type':'application/manifest+json'});return res.end('{}')}
   res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});
