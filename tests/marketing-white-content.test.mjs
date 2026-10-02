@@ -57,8 +57,10 @@ assert.equal(/(?:linear|radial)-gradient\(/i.test(css),false,'Premium rebuild mu
 assert.equal(/revolut/i.test(css),false,'Reference brand must not appear in production CSS');
 
 const js=fs.readFileSync(path.join(dist,'assets','marketing.js'),'utf8');
-for(const label of ['Functies','Voor ondernemers','Prijzen','Over']) assert.ok(js.includes('>'+label+'</a>'),'Minimal desktop navigation missing '+label);
-for(const group of ['Oplossingen','Voor ondernemers','Resources']) assert.ok(js.includes('<summary>'+group+'</summary>'),'Mobile hierarchy missing '+group);
+for(const label of ['Product','Voor wie','Prijzen','Ondersteuning']) assert.ok(js.includes(label),'Parity desktop navigation missing '+label);
+for(const hook of ['data-nav-trigger="product"','data-nav-trigger="audience"','data-nav-trigger="support"']) assert.ok(js.includes(hook),'Desktop grouped navigation hook missing '+hook);
+for(const destination of ['/facturen/','/scanner/','/btw-bank/','/rapportages/','/functies/','/hoe-het-werkt/','/voor-ondernemers/','/faq/','/support/','/veiligheid/']) assert.ok(js.includes('href="'+destination+'"'),'Shared navigation destination missing '+destination);
+for(const group of ['Product','Voor wie','Ondersteuning']) assert.ok(js.includes('<summary>'+group+'</summary>'),'Mobile hierarchy missing '+group);
 assert.ok(js.includes('https://app.boekuna.nl/?login=1'),'Product login host missing');
 assert.ok(js.includes('https://app.boekuna.nl/?register=1'),'Product registration host missing');
 assert.equal(/revolut/i.test(js),false,'Reference brand must not appear in production JS');
