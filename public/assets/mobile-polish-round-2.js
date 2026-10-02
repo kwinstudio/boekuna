@@ -54,7 +54,7 @@
       +renderBillingCard()
       +'<div class="settings-list">'
       +'<a class="settings-nav-item" href="'+SUPPORT_MAILTO+'"><span class="settings-nav-copy"><strong>Support</strong><span>'+esc(SUPPORT_EMAIL)+'</span></span><span class="settings-nav-chevron" aria-hidden="true">›</span></a>'
-      +'<button type="button" class="settings-nav-item" id="settingsLogoutButton" onclick="logoutUser(this)"><span class="settings-nav-copy"><strong>Uitloggen</strong><span>Beëindig deze sessie op dit apparaat.</span></span><span class="settings-nav-chevron" aria-hidden="true">›</span></button>'
+      +'<button type="button" class="settings-nav-item" id="settingsLogoutButton" aria-label="Uitloggen" onclick="logoutUser(this)"><span class="settings-nav-copy"><strong>Uitloggen</strong><span>Beëindig deze sessie op dit apparaat.</span></span><span class="settings-nav-chevron" aria-hidden="true">›</span></button>'
       +'</div></section>'
       +'<section class="settings-group"><h2 class="settings-group-label">Gevaarzone</h2><div class="settings-danger-group">'
       +'<div class="settings-nav-copy"><strong>Destructieve acties</strong><span>Deze acties hebben extra bevestiging. Bestaande sterke beveiliging blijft van kracht.</span></div>'
