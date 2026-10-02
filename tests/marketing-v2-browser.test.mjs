@@ -283,9 +283,25 @@ try{
    await page.waitForFunction(()=>!document.querySelector('main').inert);
    assert.equal(await page.locator('.mobile-toggle').getAttribute('aria-expanded'),'false');
    await page.setViewportSize({width:1440,height:960});
-   const desktopNav=page.locator('.nav-links .nav-link');
-   assert.equal(await desktopNav.count(),4,'Premium desktop navigation keeps four direct destinations');
-   assert.deepEqual(await desktopNav.allTextContents(),['Functies','Voor ondernemers','Prijzen','Over']);
+   const desktopTriggers=page.locator('.nav-links [data-nav-trigger]');
+   assert.equal(await desktopTriggers.count(),3,'Desktop navigation exposes three grouped menu controls');
+   assert.deepEqual(await desktopTriggers.allTextContents(),['Product','Voor wie','Ondersteuning']);
+   assert.equal((await page.locator('.nav-links > a[href="/prijzen/"]').textContent()).trim(),'Prijzen','Pricing remains a direct destination');
+   const productTrigger=page.locator('[data-nav-trigger="product"]');
+   const audienceTrigger=page.locator('[data-nav-trigger="audience"]');
+   await productTrigger.click();
+   assert.equal(await productTrigger.getAttribute('aria-expanded'),'true','Product menu reports open state');
+   assert.ok(await page.locator('[data-nav-panel="product"]').isVisible(),'Product panel becomes visible');
+   assert.ok(await page.locator('[data-nav-panel="product"] a[href="/scanner/"]').isVisible(),'Product panel exposes Documents destination');
+   await audienceTrigger.click();
+   assert.equal(await productTrigger.getAttribute('aria-expanded'),'false','Opening a second desktop menu closes the first');
+   assert.equal(await audienceTrigger.getAttribute('aria-expanded'),'true','Audience menu reports open state');
+   await page.keyboard.press('Escape');
+   assert.equal(await audienceTrigger.getAttribute('aria-expanded'),'false','Escape closes desktop menu');
+   assert.ok(await audienceTrigger.evaluate(el=>el===document.activeElement),'Escape restores focus to the desktop trigger');
+   await productTrigger.click();
+   await page.locator('main').click({position:{x:10,y:10}});
+   assert.equal(await productTrigger.getAttribute('aria-expanded'),'false','Outside click closes desktop menu');
    await page.goto(server.base+'/faq/',{waitUntil:'networkidle'});
    for(const detail of await page.locator('.mk-faq-list details').all()){
     if(!await detail.evaluate(el=>el.hasAttribute('open')))await detail.locator('summary').press('Enter');
