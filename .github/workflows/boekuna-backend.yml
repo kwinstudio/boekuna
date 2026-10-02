@@ -24,6 +24,7 @@ on:
       - "tests/ocr-production-hardening.test.py"
       - "tests/document-processor-pdf.test.py"
       - "tests/processor-production-origin.test.py"
+      - "tests/processor-memory-regression.test.py"
       - "tests/fixtures/scan-invoice.heic"
       - "tests/test_document_processor_regression.py"
       - "tests/document-error-contract.test.py"
@@ -91,6 +92,8 @@ jobs:
         run: python tests/ocr-production-hardening.test.py
       - name: Production origin HTTP and real image codec regressions
         run: python tests/processor-production-origin.test.py
+      - name: Repeated real OCR memory budget
+        run: python tests/processor-memory-regression.test.py
       - name: PDF document processor regression
         run: python tests/document-processor-pdf.test.py
       - name: Real Dutch document regressions
