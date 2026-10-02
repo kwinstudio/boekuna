@@ -89,6 +89,17 @@ try{
     assert.ok(await page.locator('.hero-depth-stack [data-depth-layer]').count()>=3,`Hero depth stack must expose at least three layers at ${width}px`);
     assert.equal(await page.locator('[data-workflow-step]').count(),4,`Interactive workflow must expose four controls at ${width}px`);
     assert.equal(await page.locator('#kzWorkflowStage').count(),1,`Interactive workflow stage missing at ${width}px`);
+    if(width<=760){
+      const productBounds=await page.evaluate(()=>{
+        const shell=document.getElementById('kzProductShell');
+        const caption=document.getElementById('kzProductCaption');
+        if(!shell||!caption)return null;
+        const s=shell.getBoundingClientRect(),cap=caption.getBoundingClientRect();
+        return {shellLeft:s.left,shellRight:s.right,captionLeft:cap.left,captionRight:cap.right};
+      });
+      assert.ok(productBounds,`Product depth bounds missing at ${width}px`);
+      assert.ok(productBounds.captionLeft>=productBounds.shellLeft-1&&productBounds.captionRight<=productBounds.shellRight+1,`Product caption clips inside depth shell at ${width}px: ${JSON.stringify(productBounds)}`);
+    }
     assert.deepEqual(forbiddenRequests,[],`Product screenshot requests at ${width}px: ${forbiddenRequests.join(' | ')}`);
     assert.deepEqual(errors,[],`Homepage page errors at ${width}px: ${errors.join(' | ')}`);
     const palette=await page.evaluate(()=>({
