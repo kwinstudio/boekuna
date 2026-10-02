@@ -358,7 +358,7 @@
   background:var(--boekuna-cyan);
   color:var(--boekuna-black);
 }
-.editorial-site :focus-visible{outline-color:var(--boekuna-black)}
+.editorial-site :focus-visible{outline:3px solid var(--boekuna-black)!important;outline-offset:5px!important}
 
 /* Cyan remains secondary and limited to quiet supporting bands/states. */
 .editorial-site .kz-trust-strip,
@@ -403,7 +403,7 @@
 /* Contrast-safe keyboard focus: near-black on light surfaces, white on near-black surfaces. */
 .editorial-site :is(.kz-final-box,.mk-banner,.how-final) :focus-visible,
 .editorial-site .footer :focus-visible{
-  outline-color:var(--boekuna-white);
+  outline-color:var(--boekuna-white)!important;
 }
 .editorial-site .footer,
 .editorial-site .footer-bottom{border-top-color:rgba(255,255,255,.22)}
