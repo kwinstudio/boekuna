@@ -241,6 +241,8 @@ for(const code of ["DOCUMENT_PDF_UNREADABLE","DOCUMENT_IMAGE_UNREADABLE","DOCUME
 assert.ok(html.includes("publicError.code||fallbackDocumentCode(r.status)"),"Document processor frontend adapter must prefer public error.code");
 assert.ok(html.includes("return {code,title:info[0]"),"Upload product behavior must retain the stable code instead of replacing it with HTTP status");
 assert.ok(!html.includes("j.detail||j.error"),"Frontend must not interpret raw processor detail strings");
+assert.ok(!html.includes("Documentprocessor v2"),"Document review must not expose stale hardcoded processor version copy");
+assert.ok(html.includes("Boekuna documentherkenning"),"Document review must use version-independent recognition copy");
 assert.ok(!html.includes("json.error||`AI-controle mislukt"),"Frontend must not render raw AI provider errors");
 assert.ok(analyzeInvoiceEdge.includes("PUBLIC_ERROR_CODES"),"AI edge route must enforce a public error-code allowlist");
 assert.ok(analyzeInvoiceEdge.includes("reference_id"),"AI edge errors must include a support reference id");
