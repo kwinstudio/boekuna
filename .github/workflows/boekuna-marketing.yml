@@ -32,6 +32,7 @@ on:
       - "tests/fixtures/marketing-content-freeze-v2.json"
       - "tests/marketing-content-freeze-v2.test.mjs"
       - "tests/marketing-v2-browser.test.mjs"
+      - "tests/marketing-white-content.test.mjs"
       - "tests/helpers/marketing-site.mjs"
       - "tests/split-build-boundaries.test.mjs"
       - "tests/marketing-app-non-regression.test.mjs"
@@ -71,7 +72,7 @@ jobs:
       - name: Both surface boundaries reject real artifact drift
         run: node tests/split-surface-non-regression.test.mjs
       - name: Frozen content and SEO parity
-        run: node tests/marketing-content-freeze.test.mjs && node tests/marketing-content-freeze-v2.test.mjs
+        run: node tests/marketing-white-content.test.mjs
       - name: Marketing page QA
         run: node tests/marketing-pages.test.mjs
       - name: No content images or product screenshots
@@ -93,6 +94,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: boekuna-marketing-editorial-v2
-          path: tests/artifacts/marketing-editorial-v2/
+          name: boekuna-marketing-white-editorial
+          path: tests/artifacts/white-editorial/
           if-no-files-found: error

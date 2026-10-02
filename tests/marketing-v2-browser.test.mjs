@@ -9,22 +9,56 @@ import {routes,slug,serveMarketing,settleImages} from './helpers/marketing-site.
 
 const require=createRequire(import.meta.url);
 const axeSource=fs.readFileSync(require.resolve('axe-core/axe.min.js'),'utf8');
-const widths=[320,360,375,390,393,430,640,768,820,1024,1280,1440,1920];
-const evidence='tests/artifacts/marketing-editorial-v2';
+const widths=[320,360,375,390,393,430,620,640,768,820,1024,1280,1440,1920];
+const evidence='tests/artifacts/white-editorial';
 fs.mkdirSync(evidence,{recursive:true});
 const server=await serveMarketing('dist/marketing');
 const engines=process.env.MARKETING_BROWSER==='chromium'?[['chromium',chromium]]:process.env.MARKETING_BROWSER==='webkit'?[['webkit',webkit]]:[['chromium',chromium],['webkit',webkit]];
 const report={routes:routes.length,widths,engines:[],screenshots:[],errors:[],accessibility:[],forms:[],motion:[],brand:[],checks:0};
 const beforeDir=fs.mkdtempSync(path.join(os.tmpdir(),'boekuna-marketing-before-'));
-const baseline=JSON.parse(fs.readFileSync('tests/fixtures/marketing-content-freeze-v2.json','utf8'));
+const baseline={baseHead:'71da7f3a939cad6a4c208bf221a70b1a6c5604bf'};
 execFileSync('tar',['-x','-C',beforeDir],{input:execFileSync('git',['archive',baseline.baseHead,'public'],{maxBuffer:64*1024*1024})});
 const before=await serveMarketing(path.join(beforeDir,'public'));
-const visualRoutes=['/','/functies/','/scanner/','/hoe-het-werkt/','/prijzen/','/rapportages/','/faq/','/privacy/','/support/'];
+const visualRoutes=routes;
 
 async function loadImages(page){
   await settleImages(page);
   const broken=await page.locator('img').evaluateAll(images=>images.filter(img=>!img.naturalWidth).map(img=>img.src));
   assert.deepEqual(broken,[],'All remaining functional/brand images must load');
+}
+async function assertHeaderBrand(page,label,width){
+  const state=await page.evaluate(()=>{
+    const primary=document.querySelector('.site-header .logo-lockup-primary');
+    const compact=document.querySelector('.site-header .logo-lockup-compact');
+    const logo=document.querySelector('.site-header .logo');
+    const actions=document.querySelector('.site-header .nav-actions');
+    const login=document.querySelector('.site-header .nav-actions a[href*="?login=1"]');
+    const menu=document.querySelector('.site-header .mobile-toggle');
+    const visible=el=>{if(!el)return false;const style=getComputedStyle(el),box=el.getBoundingClientRect();return style.display!=='none'&&style.visibility!=='hidden'&&Number(style.opacity||1)!==0&&box.width>0&&box.height>0};
+    const logoBox=logo?.getBoundingClientRect(),actionsBox=actions?.getBoundingClientRect();
+    return {
+      primaryVisible:visible(primary),
+      compactVisible:visible(compact),
+      compactSrc:compact?.getAttribute('src')||'',
+      loginVisible:visible(login),
+      menuVisible:visible(menu),
+      visibleLogoCount:[primary,compact].filter(visible).length,
+      gap:logoBox&&actionsBox?actionsBox.left-logoBox.right:null
+    };
+  });
+  if(width<=620){
+    assert.equal(state.compactVisible,true,label+': official compact BOEKUNA logo must be visible');
+    assert.ok(state.compactSrc.endsWith('/assets/boekuna-logo-compact.svg'),label+': compact logo must use official asset');
+    assert.equal(state.primaryVisible,false,label+': primary and compact logo must not render together');
+    assert.equal(state.visibleLogoCount,1,label+': exactly one BOEKUNA lockup must be visible');
+    assert.equal(state.loginVisible,true,label+': Inloggen must remain visible');
+    assert.equal(state.menuVisible,true,label+': mobile menu control must remain visible');
+    assert.ok(state.gap===null||state.gap>=8,label+': logo must keep clear space from header actions');
+  }else{
+    assert.equal(state.primaryVisible,true,label+': official primary BOEKUNA logo must remain visible');
+    assert.equal(state.compactVisible,false,label+': compact logo must not duplicate desktop/tablet branding');
+    assert.equal(state.visibleLogoCount,1,label+': exactly one BOEKUNA lockup must be visible');
+  }
 }
 async function captureVisual(browser,base,route,width,file){
   // A full-page Chromium capture changes the emulated viewport internally.
@@ -76,6 +110,7 @@ try{
       await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
       await overflow(page,name+' '+route+' '+width);
       await loadImages(page);
+      await assertHeaderBrand(page,name+' '+route+' '+width,width);
       if([390,1440].includes(width)){
         await audit(page,name+' '+route+' '+width);
         if(visualRoutes.includes(route)){
@@ -126,7 +161,10 @@ try{
    assert.equal(await page.locator('.mobile-toggle-icon i').nth(1).evaluate(el=>getComputedStyle(el).opacity),'0','Open-menu toggle presents a close icon');
    assert.equal(await page.locator('.mobile-toggle-icon i').first().evaluate(el=>getComputedStyle(el).transitionDuration),'0s','Reduced motion also disables component-specific transitions');
    assert.notEqual(await page.locator('.mobile-toggle-icon i').first().evaluate(el=>getComputedStyle(el).transform),'none');
-   await overflow(page,name+' open menu');
+   await assertHeaderBrand(page,name+' open menu 390',390);
+   await overflow(page,name+' open menu 390');
+   await page.screenshot({path:path.join(evidence,`after-home-menu-390-${name}.png`),fullPage:true});
+   report.screenshots.push(`after-home-menu-390-${name}.png`);
    for(const summary of await page.locator('#mobileMenu summary').all())await summary.press('Enter');
    assert.ok(await page.locator('#mobileMenu a[href="/scanner/"]').isVisible());
    const last=page.locator('#mobileMenu a').last();
@@ -140,6 +178,16 @@ try{
    assert.equal(await page.locator('.mobile-toggle').getAttribute('aria-expanded'),'false');
    assert.equal(await page.locator('.mobile-toggle-icon i').nth(1).evaluate(el=>getComputedStyle(el).opacity),'1','Closed-menu toggle restores the menu icon');
    assert.ok(await page.locator('.mobile-toggle').evaluate(el=>el===document.activeElement));
+   await page.setViewportSize({width:320,height:844});
+   await page.locator('.mobile-toggle').click();
+   await page.waitForFunction(()=>document.querySelector('main').inert);
+   await assertHeaderBrand(page,name+' open menu 320',320);
+   await overflow(page,name+' open menu 320');
+   await page.screenshot({path:path.join(evidence,`after-home-menu-320-${name}.png`),fullPage:true});
+   report.screenshots.push(`after-home-menu-320-${name}.png`);
+   await page.keyboard.press('Escape');
+   await page.waitForFunction(()=>!document.querySelector('main').inert);
+   assert.equal(await page.locator('.mobile-toggle').getAttribute('aria-expanded'),'false');
    await page.setViewportSize({width:1440,height:960});
    await page.locator('.dropdown>.nav-item').first().press('Enter');
    assert.equal(await page.locator('.dropdown>.nav-item').first().getAttribute('aria-expanded'),'true');
@@ -187,25 +235,15 @@ try{
      await page.unroute('**/rest/v1/support_requests');
     }
    }
-   // Short intro runs once per session and yields to user input.
-   await page.evaluate(()=>sessionStorage.removeItem('boekuna:marketing-intro-v2'));
-   await page.emulateMedia({reducedMotion:'no-preference'});
-   await page.goto(server.base+'/',{waitUntil:'domcontentloaded'});
-   assert.equal(await page.locator('.editorial-intro').count(),1,'First-session introduction');
-   await page.keyboard.press('Tab');
-   assert.equal(await page.locator('.editorial-intro').count(),0,'Any keyboard input dismisses the curtain');
-   await page.reload({waitUntil:'domcontentloaded'});
-   assert.equal(await page.locator('.editorial-intro').count(),0,'No repeated introduction on navigation');
-   // Runtime preference change, default entrance and no-JS readable content.
+   // The white site has no blocking intro, scrolling transforms, or word masks.
    await page.emulateMedia({reducedMotion:'no-preference'});
    await page.goto(server.base+'/',{waitUntil:'networkidle'});
-   assert.ok(await page.locator('.editorial-word').count()>0,'Clip-mask word reveal initialized');
+   assert.equal(await page.locator('.editorial-intro,.editorial-word,.ed-parallax').count(),0);
+   assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
    await page.emulateMedia({reducedMotion:'reduce'});
-   const animations=await page.locator('.editorial-word').evaluateAll(words=>words.map(word=>getComputedStyle(word).animationName));
-   assert.ok(animations.every(name=>name==='none'),'Reduced motion change stops every word animation');
-   const moves=await page.locator('.ed-parallax').evaluateAll(elements=>elements.map(el=>getComputedStyle(el).translate));
-   assert.ok(moves.every(move=>move==='none'),'Reduced motion stops every remaining parallax plate');
-   report.motion.push({engine:name,reducedMotion:true});
+   const transitions=await page.locator('.mobile-toggle-icon i').evaluateAll(elements=>elements.map(el=>getComputedStyle(el).transitionDuration));
+   assert.ok(transitions.every(value=>value==='0s'));
+   report.motion.push({engine:name,reducedMotion:true,noBlockingIntro:true});
    await page.close();
    const noJS=await browser.newPage({javaScriptEnabled:false,viewport:{width:320,height:844}});
    await noJS.goto(server.base+'/',{waitUntil:'networkidle'});
