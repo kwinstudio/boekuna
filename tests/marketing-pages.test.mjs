@@ -104,15 +104,17 @@ assert.ok(marketingCssNative.includes('--bg-canvas:#F8F7F3'),'Marketing CSS must
 assert.ok(sharedMarketing.includes('/assets/boekuna-logo-primary.svg'),'Shared marketing must use the official primary logo');
 assert.ok(sharedMarketing.includes('/assets/boekuna-logo-compact.svg'),'Shared marketing must provide the official compact logo');
 assert.ok(!sharedMarketing.includes('/assets/boekuna-symbol.svg'),'Shared marketing must not reconstruct the primary lockup from the symbol');
-for(const label of ['Functies','Voor ondernemers','Prijzen','Over']) assert.ok(sharedMarketing.includes('>'+label+'</a>'),'Premium desktop navigation missing '+label);
+for(const label of ['Product','Voor wie','Prijzen','Ondersteuning']) assert.ok(sharedMarketing.includes(label),'Parity desktop navigation missing '+label);
 assert.ok(!sharedMarketing.includes('>☰<'),'Mobile navigation must not use a glyph as its functional icon');
 console.log('Calm Control native marketing regression: PASS');
 
 const homePolish=fs.readFileSync(path.join(publicDir,'index.html'),'utf8');
-assert.equal((homePolish.match(/class="photo-slot /g)||[]).length,3,'Homepage must contain exactly three reusable photo slots');
-assert.ok(homePolish.includes('/assets/boekuna-editorial-workspace-placeholder.svg'),'Homepage must include the original temporary hero media');
-for(const label of ['Oplossingen','Voor ondernemers','Resources']) assert.ok(sharedMarketing.includes('<summary>'+label+'</summary>'),'Mobile menu group missing '+label);
+assert.equal((homePolish.match(/class="parity-hero-media"/g)||[]).length,1,'Homepage must contain one primary parity hero media frame');
+assert.ok(homePolish.includes('/assets/boekuna-editorial-workspace-placeholder.svg'),'Homepage must include first-party hero media');
+assert.equal(/data-depth-root|hero-depth-|story-depth-|kz-magnetic/.test(homePolish),false,'Homepage must not retain the old 3D/depth interaction markup');
+assert.equal((homePolish.match(/data-home-section="/g)||[]).length,15,'Homepage must expose the approved fifteen-section parity architecture');
+for(const label of ['Product','Voor wie','Ondersteuning']) assert.ok(sharedMarketing.includes('<summary>'+label+'</summary>'),'Mobile menu group missing '+label);
 const editorialCss=fs.readFileSync(path.join(publicDir,'assets','marketing-editorial.css'),'utf8');
 for(const token of ['#FF9F1C','#FFBF69','#FFFFFF','#CBF3F0','#2EC4B6','#111111']) assert.ok(editorialCss.includes(token),'Approved palette token missing '+token);
 assert.ok(editorialCss.includes('BOEKUNA_PRICING_POLISH_20261002'),'Pricing/photo-slot release CSS missing');
-console.log('Four-tier pricing + photo-slot marketing contract: PASS');
+console.log('Four-tier pricing + parity homepage marketing contract: PASS');

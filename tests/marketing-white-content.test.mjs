@@ -23,21 +23,36 @@ for(const rel of routeFiles){
   const html=fs.readFileSync(file,'utf8');
   assert.equal((html.match(/<h1\b/gi)||[]).length,1,rel+': exactly one h1');
   if(rel!=='index.html') assert.ok(/<link rel="canonical" href="https:\/\/boekuna\.nl\//.test(html),rel+': public canonical missing');
-  assert.ok(html.includes('/assets/marketing.js?v=20261002premium'),rel+': premium shared runtime must be cache-busted');
-  assert.ok(html.includes('/assets/marketing-editorial.css?v=20261002depth'),rel+': depth stylesheet must use the current cache key');
+  assert.ok(html.includes('/assets/marketing.js?v=20261002parity'),rel+': premium shared runtime must be cache-busted');
+  assert.ok(html.includes('/assets/marketing-editorial.css?v=20261002parity'),rel+': parity stylesheet must use the current cache key');
+  assert.equal(/data-depth-root|hero-depth-|story-depth-|kz-magnetic/.test(html),false,rel+': old 3D/depth markup must be absent');
   assert.equal(/revolut/i.test(html),false,rel+': reference brand must not appear in production HTML');
   assert.equal(/<img[^>]+src=["']https?:\/\//i.test(html),false,rel+': content images must remain first-party');
 }
 
 const home=fs.readFileSync(path.join(dist,'index.html'),'utf8');
 assert.ok(home.includes('Boekhouden zonder boekhoudtaal'),'Homepage proposition missing');
-assert.ok(home.includes('Je bent ondernemer.'),'Homepage primary message missing');
-assert.ok(home.includes('Geen boekhouder.'),'Homepage primary message second line missing');
-assert.ok(home.includes('Uploaden. Herkennen. Controleren. Klaar.'),'Editorial workflow promise missing');
-assert.equal((home.match(/class="photo-slot /g)||[]).length,3,'Homepage must expose three reusable photo slots');
-assert.ok(home.includes('/assets/boekuna-editorial-workspace-placeholder.svg'),'Original temporary hero media missing');
+assert.ok(home.includes('Boekhouden.<br>Maar dan rustig.'),'Homepage primary message missing');
+assert.ok(home.includes('Gratis beginnen · geen kaart nodig · jij controleert vóór opslag'),'Homepage control promise missing');
+assert.equal((home.match(/class="parity-hero-media"/g)||[]).length,1,'Homepage must expose one primary hero media frame');
+assert.ok(home.includes('/assets/boekuna-editorial-workspace-placeholder.svg'),'First-party hero media missing');
 assert.ok(/width="1200" height="1500"/.test(home),'Hero media intrinsic dimensions missing');
 assert.ok(home.includes('prefers-reduced-motion')===false,'Reduced motion belongs in CSS, not inline homepage scripting');
+
+const homeSections=[...home.matchAll(/data-home-section="([^"]+)"/g)].map(match=>match[1]);
+assert.deepEqual(homeSections,[
+  'hero','feature-rail','value','product-stories','audience','mid-cta','vat','documents','bank','demo','support','development','pricing','faq','final-cta'
+],'Homepage must follow the approved parity section order');
+for(const label of ['Facturen','Documenten','Relaties','Btw','Bankimport','Rapportages']){
+  assert.ok(home.includes('>'+label+'</a>')||home.includes('>'+label+'</span>'),'Homepage feature rail missing '+label);
+}
+assert.equal(/data-depth-root|hero-depth-|story-depth-|data-depth-layer/.test(home),false,'Homepage must remove the old 3D/depth markup');
+assert.equal(/<blockquote|class="[^"]*testimonial|klanten beoordelen|sterren|reviews van klanten/i.test(home),false,'Homepage must not fabricate testimonials or customer proof');
+assert.ok(/geen live bankkoppeling|live bankkoppeling[^<]{0,80}(?:niet|nog niet)/i.test(home),'Homepage bank section must state that a live bank connection is not active');
+assert.ok(/direct(?:e)? btw[^<]{0,100}(?:niet|nog niet)|btw[^<]{0,100}direct[^<]{0,100}(?:niet|nog niet)/i.test(home),'Homepage VAT section must state that direct VAT filing is not live');
+for(const value of ['€0','€6,95','€9,95','€14,95']) assert.ok(home.includes(value),'Homepage pricing preview missing '+value);
+assert.ok((home.match(/Binnenkort beschikbaar/g)||[]).length>=3,'Homepage paid pricing preview must stay non-transactional');
+assert.ok(home.includes('/account-verwijderen/'),'Homepage FAQ must link account deletion/privacy control');
 
 const pricing=fs.readFileSync(path.join(dist,'prijzen','index.html'),'utf8');
 for(const value of ['€0','€6,95','€9,95','€14,95']) assert.ok(pricing.includes(value),'Pricing truth missing '+value);
@@ -47,15 +62,24 @@ assert.equal(/href=["'][^"']*plan=/.test(pricing),false,'Marketing pricing must 
 assert.ok(pricing.includes('https://app.boekuna.nl/?register=1'),'Free plan must use registration flow');
 assert.equal(/stripe/i.test(pricing),false,'Public pricing must not introduce Stripe checkout wiring');
 
+const vatBank=fs.readFileSync(path.join(dist,'btw-bank','index.html'),'utf8');
+assert.ok(/live bankkoppeling[^<]{0,120}(?:later|niet|nog niet)/i.test(vatBank),'Btw/bank route must keep live bank connection as a future state');
+assert.ok(/geen automatische aangifteclaim|dient niet rechtstreeks in|directe aangifte[^<]{0,120}(?:later|niet)/i.test(vatBank),'Btw/bank route must not imply direct VAT filing is live');
+
 const css=fs.readFileSync(path.join(dist,'assets','marketing-editorial.css'),'utf8');
 for(const token of ['#FFFFFF','#111111','#FF9F1C','#FFBF69','#CBF3F0','#2EC4B6']) assert.ok(css.includes(token),'Approved palette token missing '+token);
 assert.ok(css.includes('@media(prefers-reduced-motion:reduce)'),'Reduced-motion override missing');
+for(const forbidden of ['data-depth-root','hero-depth-','story-depth-','kz-magnetic','rotateX(','rotateY(','perspective(']){
+  assert.equal(css.includes(forbidden),false,'Calm parity CSS must not retain 3D/depth contract: '+forbidden);
+}
 assert.equal(/(?:linear|radial)-gradient\(/i.test(css),false,'Premium rebuild must not use decorative gradients');
 assert.equal(/revolut/i.test(css),false,'Reference brand must not appear in production CSS');
 
 const js=fs.readFileSync(path.join(dist,'assets','marketing.js'),'utf8');
-for(const label of ['Functies','Voor ondernemers','Prijzen','Over']) assert.ok(js.includes('>'+label+'</a>'),'Minimal desktop navigation missing '+label);
-for(const group of ['Oplossingen','Voor ondernemers','Resources']) assert.ok(js.includes('<summary>'+group+'</summary>'),'Mobile hierarchy missing '+group);
+for(const label of ['Product','Voor wie','Prijzen','Ondersteuning']) assert.ok(js.includes(label),'Parity desktop navigation missing '+label);
+for(const hook of ['data-nav-trigger="product"','data-nav-trigger="audience"','data-nav-trigger="support"']) assert.ok(js.includes(hook),'Desktop grouped navigation hook missing '+hook);
+for(const destination of ['/facturen/','/scanner/','/btw-bank/','/rapportages/','/functies/','/hoe-het-werkt/','/voor-ondernemers/','/faq/','/support/','/veiligheid/']) assert.ok(js.includes('href="'+destination+'"'),'Shared navigation destination missing '+destination);
+for(const group of ['Product','Voor wie','Ondersteuning']) assert.ok(js.includes('<summary>'+group+'</summary>'),'Mobile hierarchy missing '+group);
 assert.ok(js.includes('https://app.boekuna.nl/?login=1'),'Product login host missing');
 assert.ok(js.includes('https://app.boekuna.nl/?register=1'),'Product registration host missing');
 assert.equal(/revolut/i.test(js),false,'Reference brand must not appear in production JS');
