@@ -103,8 +103,28 @@ try{
     assert.equal(await page.locator('h1').count(),1,route+' keeps one h1');
     assert.equal(await page.locator('#mainApp').count(),0,route+' must remain marketing-only');
     await loadImages(page);
-    const brand=await page.evaluate(()=>({primary:getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim(),secondary:getComputedStyle(document.documentElement).getPropertyValue('--brand-secondary').trim(),font:getComputedStyle(document.body).fontFamily,loaded:document.fonts.check('500 20px Inter')}));
-    assert.equal(brand.primary,'#123B3A');assert.equal(brand.secondary,'#2B736C');assert.ok(brand.font.startsWith('Inter'));assert.equal(brand.loaded,true);report.brand.push({engine:name,route,...brand});
+    const brand=await page.evaluate(()=>{
+      const root=getComputedStyle(document.documentElement);
+      return {
+        primary:root.getPropertyValue('--brand-primary').trim(),
+        secondary:root.getPropertyValue('--brand-secondary').trim(),
+        lime:root.getPropertyValue('--boekuna-lime').trim(),
+        cyan:root.getPropertyValue('--boekuna-cyan').trim(),
+        white:root.getPropertyValue('--boekuna-white').trim(),
+        black:root.getPropertyValue('--boekuna-black').trim(),
+        font:getComputedStyle(document.body).fontFamily,
+        loaded:document.fonts.check('500 20px Inter')
+      };
+    });
+    assert.equal(brand.primary,'#111111');
+    assert.equal(brand.secondary,'#BFE7EC');
+    assert.equal(brand.lime,'#E7FE55');
+    assert.equal(brand.cyan,'#BFE7EC');
+    assert.equal(brand.white,'#FFFFFF');
+    assert.equal(brand.black,'#111111');
+    assert.ok(brand.font.startsWith('Inter'));
+    assert.equal(brand.loaded,true);
+    report.brand.push({engine:name,route,...brand});
     for(const width of widths){
       await page.setViewportSize({width,height:width<700?844:960});
       await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
