@@ -1161,7 +1161,8 @@ body.editorial-site{
 .form-status{margin-top:16px}
 
 /* Footer */
-.footer{
+.editorial-site .footer,
+.editorial-site .footer-v2{
   background:var(--boekuna-black);
   color:var(--boekuna-white);
 }
