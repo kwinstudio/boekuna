@@ -52,6 +52,7 @@ assert.ok(/geen live bankkoppeling|live bankkoppeling[^<]{0,80}(?:niet|nog niet)
 assert.ok(/direct(?:e)? btw[^<]{0,100}(?:niet|nog niet)|btw[^<]{0,100}direct[^<]{0,100}(?:niet|nog niet)/i.test(home),'Homepage VAT section must state that direct VAT filing is not live');
 for(const value of ['€0','€6,95','€9,95','€14,95']) assert.ok(home.includes(value),'Homepage pricing preview missing '+value);
 assert.ok((home.match(/Binnenkort beschikbaar/g)||[]).length>=3,'Homepage paid pricing preview must stay non-transactional');
+assert.ok(home.includes('/account-verwijderen/'),'Homepage FAQ must link account deletion/privacy control');
 
 const pricing=fs.readFileSync(path.join(dist,'prijzen','index.html'),'utf8');
 for(const value of ['€0','€6,95','€9,95','€14,95']) assert.ok(pricing.includes(value),'Pricing truth missing '+value);
