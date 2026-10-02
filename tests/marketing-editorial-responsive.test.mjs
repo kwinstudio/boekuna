@@ -21,7 +21,7 @@ for(const contract of [
 ]){
   assert.ok(identityCss.includes(contract),`Marketing identity contract missing: ${contract}`);
 }
-for(const legacy of ['#123B3A','#102724','#2B736C','#EEF7F3','#E7FE55','#BFE7EC','--boekuna-lime','--boekuna-Frozen Water']){
+for(const legacy of ['#123B3A','#102724','#2B736C','#EEF7F3','#E7FE55','#BFE7EC','--boekuna-lime','--boekuna-cyan']){
   assert.equal(identityCss.includes(legacy),false,`Legacy petrol/mint brand token remains: ${legacy}`);
 }
 const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{encoding:'utf8'});
@@ -106,7 +106,7 @@ try{
   assert.equal(await page.locator('#kzProductImage').count(),0,'Image-free product panel must not recreate a screenshot element');
   await page.close();
 
-  console.log('Image-free marketing responsive QA: PASS (320, 360, 375, 390, 393, 430, 620, 768, 1024, 1280, 1440, 1920 + white/lime/Frozen Water/black palette + keyboard tabs)');
+  console.log('Image-free marketing responsive QA: PASS (320, 360, 375, 390, 393, 430, 620, 768, 1024, 1280, 1440, 1920 + white/amber/turquoise/black palette + keyboard tabs)');
 }finally{
   await browser.close();
   await server.close();
