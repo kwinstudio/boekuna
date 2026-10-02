@@ -24,7 +24,7 @@ for(const rel of routeFiles){
   assert.equal((html.match(/<h1\b/gi)||[]).length,1,rel+': exactly one h1');
   if(rel!=='index.html') assert.ok(/<link rel="canonical" href="https:\/\/boekuna\.nl\//.test(html),rel+': public canonical missing');
   assert.ok(html.includes('/assets/marketing.js?v=20261002premium'),rel+': premium shared runtime must be cache-busted');
-  assert.ok(html.includes('/assets/marketing-editorial.css?v=20261002depth'),rel+': depth stylesheet must use the current cache key');
+  assert.ok(html.includes('/assets/marketing-editorial.css?v=20261002depthfix'),rel+': depth stylesheet must use the current cache key');
   assert.equal(/revolut/i.test(html),false,rel+': reference brand must not appear in production HTML');
   assert.equal(/<img[^>]+src=["']https?:\/\//i.test(html),false,rel+': content images must remain first-party');
 }
