@@ -4,6 +4,7 @@ from importlib.metadata import PackageNotFoundError, version as package_version
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import urlsplit
 
 import fitz
 import pdfplumber
@@ -57,6 +58,8 @@ def ocr_stack_info() -> dict[str, Any]:
     }
 
 DEFAULT_APP_ORIGINS = {
+    "https://app.boekuna.nl",
+    "https://boekuna-split-app-preview.onrender.com",
     "https://boekuna-boekhouding.onrender.com",
     "https://kwinest-boekhouding.onrender.com",
     "https://boekuna.nl",
@@ -73,6 +76,12 @@ _extra_origins = {
     if value.strip()
 }
 ALLOWED_ORIGINS = frozenset(DEFAULT_APP_ORIGINS | _extra_origins | ({_legacy_origin} if _legacy_origin else set()))
+for _origin in ALLOWED_ORIGINS:
+    _parsed_origin = urlsplit(_origin)
+    if ("*" in _origin or _parsed_origin.scheme not in {"https", "http"}
+            or not _parsed_origin.hostname or _parsed_origin.username or _parsed_origin.password
+            or _parsed_origin.path or _parsed_origin.query or _parsed_origin.fragment):
+        raise RuntimeError("APP_ORIGIN/APP_ORIGINS must contain exact HTTP(S) origins without wildcards or paths")
 logger = logging.getLogger("boekuna.document_processor")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://vuwfyhtejsxhdfyvkkeq.supabase.co").rstrip("/")
 SUPABASE_PUBLISHABLE_KEY = os.getenv("SUPABASE_PUBLISHABLE_KEY", "")

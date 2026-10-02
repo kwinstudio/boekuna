@@ -132,9 +132,12 @@ try{
   await page.keyboard.press('Escape');
   assert.ok(!(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open'))),'Escape must close drawer');
 
+  const scanChooserEvent=page.waitForEvent('filechooser');
   await page.locator('[data-mobile-page="documents"]').click();
-  for(const name of ['Maak foto','Fotobibliotheek','Kies bestand'])assert.ok(await page.locator('#modalRoot').getByRole('button',{name,exact:true}).isVisible(),'Scan must open the source picker directly');
-  await page.evaluate(()=>closeModal());
+  const scanChooser=await scanChooserEvent;
+  assert.equal(scanChooser.isMultiple(),true,'Scan supports multiple documents');
+  assert.equal(await page.locator('.source-picker').count(),0,'Scan opens the native chooser directly');
+  assert.equal(await page.locator('#invoicePdfFile').getAttribute('capture'),null,'Scan preserves camera, library and files');
   await page.evaluate(()=>navigate('documents'));
   await page.locator('#pageTitle').filter({hasText:'Documenten'}).waitFor();
   await page.evaluate(()=>{documentProcessingJobs=[{id:'job-1',client_ref:'doc-1',file_name:'bon.jpg',state:'review_required'}];documentProcessingInitialized=true;renderGlobalDocumentIndicator()});
