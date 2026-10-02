@@ -99,6 +99,8 @@ try{
       });
       assert.ok(productBounds,`Product depth bounds missing at ${width}px`);
       assert.ok(productBounds.captionLeft>=productBounds.shellLeft-1&&productBounds.captionRight<=productBounds.shellRight+1,`Product caption clips inside depth shell at ${width}px: ${JSON.stringify(productBounds)}`);
+      const captionTransform=await page.locator('#kzProductCaption').evaluate(el=>getComputedStyle(el).transform);
+      assert.equal(captionTransform,'none',`Static mobile caption must not retain a 3D transform at ${width}px`);
     }
     assert.deepEqual(forbiddenRequests,[],`Product screenshot requests at ${width}px: ${forbiddenRequests.join(' | ')}`);
     assert.deepEqual(errors,[],`Homepage page errors at ${width}px: ${errors.join(' | ')}`);
