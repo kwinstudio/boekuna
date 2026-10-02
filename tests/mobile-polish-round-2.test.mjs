@@ -106,14 +106,14 @@ async function nav(route){
   await page.waitForFunction(r=>typeof page!=='undefined'&&page===r,route);
 }
 
-async function shot(name,width=390,height=844){
+async function shot(name,width=390,height=844,fullPage=true){
   const targetHeight=height||(width<700?844:960);
   const current=page.viewportSize();
   if(!current||current.width!==width||current.height!==targetHeight){
     await page.setViewportSize({width,height:targetHeight});
     await page.waitForTimeout(80);
   }
-  await page.screenshot({path:'tests/artifacts/mobile-polish-round-2/'+browserName+'-'+width+'-'+name+'.png',fullPage:true});
+  await page.screenshot({path:'tests/artifacts/mobile-polish-round-2/'+browserName+'-'+width+'-'+name+'.png',fullPage});
 }
 
 async function openRowFor(text){
@@ -164,7 +164,7 @@ try{
   await shot('documents-idle');
   await openRowFor('Document 00.pdf');
   for(const label of ['Bekijken','Bestandsnaam bewerken','Verwijderen'])assert.equal(await page.locator('.row-action-menu').getByRole('menuitem',{name:label,exact:true}).count(),1);
-  await shot('document-menu');
+  await shot('document-menu',390,844,false);
   await page.locator('.row-action-menu').getByRole('menuitem',{name:'Bestandsnaam bewerken',exact:true}).click();
   await page.locator('#documentDisplayName').fill('Nieuw document');
   await page.getByRole('button',{name:'Opslaan',exact:true}).click();
@@ -235,7 +235,7 @@ try{
   await openRowFor('Vrije relatie');
   assert.equal(await page.locator('.row-action-menu').getByRole('menuitem',{name:'Bewerken',exact:true}).count(),1);
   assert.equal(await page.locator('.row-action-menu').getByRole('menuitem',{name:'Verwijderen',exact:true}).count(),1);
-  await shot('relations-menu');
+  await shot('relations-menu',390,844,false);
   await page.keyboard.press('Escape');
 
   await nav('services');
@@ -244,7 +244,7 @@ try{
   assert.equal(await page.locator('.row-action-menu').getByRole('menuitem',{name:'Bewerken',exact:true}).count(),1);
   assert.equal(await page.locator('.row-action-menu').getByRole('menuitem',{name:'Inactief zetten',exact:true}).count(),1);
   assert.equal(await page.locator('.row-action-menu').getByRole('menuitem',{name:'Verwijderen',exact:true}).count(),1);
-  await shot('services-menu');
+  await shot('services-menu',390,844,false);
   await page.keyboard.press('Escape');
 
   // Report date controls may never overflow their content column at mobile widths.
