@@ -461,13 +461,8 @@
 
   function installA4Observer(){
     if(a4ResizeObserver){a4ResizeObserver.disconnect();a4ResizeObserver=null}
-    var preview=document.querySelector('.boekuna-a4-preview');
-    if(!preview)return;
+    if(!document.querySelector('.boekuna-a4-preview'))return;
     sizeInvoiceA4Preview();
-    if(window.ResizeObserver){
-      a4ResizeObserver=new ResizeObserver(function(){sizeInvoiceA4Preview()});
-      a4ResizeObserver.observe(preview);
-    }
   }
 
   function directNativeUpload(kind,smart){
@@ -614,7 +609,7 @@
       }
     });
 
-    window.addEventListener('resize',function(){if(activeRowMenu)closeRowMenu(false)});
+    window.addEventListener('resize',function(){if(activeRowMenu)closeRowMenu(false);if(document.querySelector('.boekuna-a4-preview'))sizeInvoiceA4Preview()});
     window.addEventListener('scroll',function(){if(!activeRowMenu)return;if(performance.now()-Number(activeRowMenu.openedAt||0)<250)return;closeRowMenu(false)},true);
     window.addEventListener('popstate',function(){
       if(!documentPreviewState)return;
