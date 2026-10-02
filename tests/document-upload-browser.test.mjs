@@ -220,8 +220,7 @@ async function newAppPage(){
 }
 
 try{
-  // QA-RECEIPT-MOBILE-01: the mobile camera control must preserve the production
-  // image allowlist, request the environment-facing camera and reach review.
+  // QA-RECEIPT-MOBILE-01: Scan opens one native chooser and selection reaches review.
   {
     processorMode='success';
     processorResponse=structuredClone(processorPayload);
@@ -237,14 +236,21 @@ try{
     await routePdfJs(page);
     await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
     await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
-    const camera=page.locator('#receiptCameraFile');
-    assert.equal(await camera.getAttribute('capture'),'environment','Mobile receipt control must request the rear/environment camera');
+    const camera=page.locator('#invoicePdfFile');
+    assert.equal(await camera.getAttribute('capture'),null,'General Scan keeps camera/library/files available');
+    assert.notEqual(await camera.getAttribute('multiple'),null);
     const accepts=String(await camera.getAttribute('accept')||'');
     assert.match(accepts,/image\/jpeg/);
     assert.match(accepts,/image\/png/);
-    assert.doesNotMatch(accepts,/image\/\*/);
+    assert.match(accepts,/application\/pdf/);
+    assert.match(accepts,/image\/heic/);
+    const chooserEvent=page.waitForEvent('filechooser');
+    await page.locator('[data-mobile-page="documents"]').click();
+    const chooser=await chooserEvent;
+    assert.equal(chooser.isMultiple(),true);
+    assert.equal(await page.locator('.source-picker').count(),0);
     const onePixelPng=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8\/x8AAusB9Y9Z9Z0AAAAASUVORK5CYII=','base64');
-    await camera.setInputFiles({name:'qa-mobile-receipt.png',mimeType:'image/png',buffer:onePixelPng});
+    await chooser.setFiles({name:'qa-mobile-receipt.png',mimeType:'image/png',buffer:onePixelPng});
     await page.getByRole('heading',{name:'Document controleren'}).waitFor({timeout:15000});
     assert.ok(processorMethods.includes('POST'),'Mobile receipt photo must reach POST /analyze');
     assert.ok(processorOrigins.includes(appOrigin),'Mobile receipt photo must preserve the app Origin');
@@ -255,7 +261,7 @@ try{
       ocrUsed:pendingPdfImport?.parsed?.processor?.ocrUsed,
       gross:pendingPdfImport?.parsed?.gross
     }));
-    assert.deepEqual(mobileReview,{width:390,kind:'purchase',source:'image',ocrUsed:true,gross:121});
+    assert.deepEqual(mobileReview,{width:390,kind:'auto',source:'image',ocrUsed:true,gross:121});
     await page.close();
   }
 

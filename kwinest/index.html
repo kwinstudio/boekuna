@@ -1963,9 +1963,7 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
   <button class="mobile-bottom-nav-item" type="button" data-mobile-page="control" aria-label="Actie nodig"><svg class="icon"><use href="#i-check"/></svg><span>Actie nodig</span></button>
 </nav>
 <div id="modalRoot"></div><div class="toast-wrap" id="toastRoot"></div>
-<input class="hidden" type="file" id="invoicePdfFile" multiple accept="application/pdf,.pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,text/csv,application/csv,.csv" />
-<input class="hidden" type="file" id="receiptPhotoFile" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif" />
-<input class="hidden" type="file" id="receiptCameraFile" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif" capture="environment" />
+<input class="hidden" type="file" id="invoicePdfFile" multiple accept="image/*,application/pdf,.pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,text/csv,application/csv,.csv" />
 <script>
 const USERS_KEY='boekhouden-local-users-v1';
 const SESSION_KEY='boekhouden-local-session-v1';
@@ -4445,21 +4443,17 @@ async function openPersistentDocumentReview(jobId){
 }
 
 function triggerInvoiceUpload(kind='auto'){
- if(matchMedia('(max-width:820px)').matches)return openUploadSourcePicker(kind);
- const el=document.getElementById('invoicePdfFile');pendingUploadKind=kind;el.dataset.uploadKind=kind;el.value='';el.click()
+ openUploadSourcePicker(kind)
 }
 function openUploadSourcePicker(kind='auto',smart=false){
- modal('Upload',`<div class="source-picker"><button class="btn" type="button" onclick="chooseUploadSource('receiptCameraFile','${kind}',${smart})">Maak foto</button><button class="btn" type="button" onclick="chooseUploadSource('receiptPhotoFile','${kind}',${smart})">Fotobibliotheek</button><button class="btn" type="button" onclick="chooseUploadSource('invoicePdfFile','${kind}',${smart})">Kies bestand</button></div>`)
-}
-function chooseUploadSource(id,kind='auto',smart=false){
- const input=document.getElementById(id);if(!input)return;closeModal();pendingUploadKind=kind;input.dataset.uploadKind=kind;input.dataset.smartUpload=String(smart);input.value='';input.click()
+ const input=document.getElementById('invoicePdfFile');if(!input)return;
+ pendingUploadKind=kind;input.dataset.uploadKind=kind;input.dataset.smartUpload=String(smart);input.value='';input.click()
 }
 function openDocumentUpload(){
- if(matchMedia('(max-width:820px)').matches)return openUploadSourcePicker('auto',true);
- const input=document.getElementById('docFile');if(input){input.value='';input.click()}
+ openUploadSourcePicker('auto',true)
 }
-function triggerReceiptPhoto(){pendingUploadKind='purchase';const el=document.getElementById('receiptPhotoFile');el.value='';el.click()}
-function triggerReceiptCamera(){pendingUploadKind='purchase';const el=document.getElementById('receiptCameraFile');el.value='';el.click()}
+function triggerReceiptPhoto(){openUploadSourcePicker('purchase')}
+function triggerReceiptCamera(){openUploadSourcePicker('purchase')}
 function safeStorageName(name){return String(name||'bestand').replace(/[^a-zA-Z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,140)||'bestand'}
 async function putStoredFile(id,file){if(!currentUser)throw new Error('Geen testgebruiker actief');if(TEST_MODE_NO_AUTH)return putLegacyStoredFile(id,file);const sb=await getSupabase(),path=`${currentUser.id}/${id}-${safeStorageName(file.name)}`;const {error:uploadError}=await sb.storage.from('kwinest-documents').upload(path,file,{contentType:file.type||'application/octet-stream',upsert:false});if(uploadError)throw uploadError;const {error:rowError}=await sb.from('documents').insert({user_id:currentUser.id,client_ref:id,name:file.name,kind:'document',mime_type:file.type||'application/octet-stream',storage_path:path,metadata:{size:file.size}});if(rowError){await sb.storage.from('kwinest-documents').remove([path]);throw rowError}return path}
 async function getStoredFile(id){if(!currentUser)return null;if(TEST_MODE_NO_AUTH)return getLegacyStoredFile(id);const sb=await getSupabase();const {data:meta,error}=await sb.from('documents').select('storage_path,name,mime_type').eq('user_id',currentUser.id).eq('client_ref',id).maybeSingle();if(error)throw error;if(!meta)return null;const {data:blob,error:downloadError}=await sb.storage.from('kwinest-documents').download(meta.storage_path);if(downloadError)throw downloadError;return {id,name:meta.name,type:meta.mime_type,blob}}
@@ -6343,9 +6337,7 @@ window.addEventListener('keydown',e=>{
 <script id="boekuna-upload-bootstrap">
 (function(){
  const configs=[
-  ['invoicePdfFile','auto'],
-  ['receiptPhotoFile','purchase'],
-  ['receiptCameraFile','purchase']
+  ['invoicePdfFile','auto']
  ];
  for(const [id,kind] of configs){
   const input=document.getElementById(id);

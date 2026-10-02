@@ -159,9 +159,10 @@ assert.ok(!html.includes("activeDocumentProcessorUrl()"),"All accounts must use 
 assert.ok(html.includes("async function fetchWithAuthRetry"),"Authenticated processor requests must refresh and retry expired sessions");
 assert.ok(html.includes('id="boekuna-upload-bootstrap"'),"Upload bootstrap must exist independently of the main app initialization");
 assert.ok(html.includes("input.dataset.uploadBound='true'"),"Upload controls must be explicitly bound after the main script");
-for(const id of ["invoicePdfFile","receiptPhotoFile","receiptCameraFile"]){
+for(const id of ["invoicePdfFile"]){
   assert.ok(html.includes(`['${id}'`),`${id} must be registered in the isolated upload bootstrap`);
 }
+assert.ok(!html.includes('id="receiptCameraFile"')&&!html.includes('id="receiptPhotoFile"'),"Scan must share one native file picker");
 assert.ok(html.includes("async function startSelectedDocumentUpload"),"Selected documents must enter one shared, user-visible upload pipeline");
 assert.ok(html.includes("pendingPdfImport=null"),"Document import state must be declared before cleanup/use");
 assert.ok(html.includes("pendingUploadKind='auto'"),"Upload mode state must be declared explicitly");
