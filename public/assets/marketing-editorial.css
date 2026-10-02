@@ -55,8 +55,19 @@ body.editorial-site{
   outline:3px solid var(--boekuna-black);
   outline-offset:5px;
 }
+.editorial-site .btn:focus-visible,
+.editorial-site .mk-btn:focus-visible,
+.editorial-site .btn.primary:focus-visible,
+.editorial-site .mk-btn.primary:focus-visible,
+.editorial-site .mobile-toggle:focus-visible,
+.editorial-site .nav-login:focus-visible{
+  outline:3px solid var(--boekuna-black);
+  outline-offset:5px;
+}
 .editorial-site .footer :focus-visible,
-.editorial-site .kz-final-box :focus-visible{
+.editorial-site .kz-final-box :focus-visible,
+.editorial-site #kzProductShell :focus-visible,
+.editorial-site .mk-banner :focus-visible{
   outline-color:var(--boekuna-white);
 }
 .editorial-skip{
