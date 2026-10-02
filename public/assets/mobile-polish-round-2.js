@@ -527,7 +527,7 @@
         '<div class="invoice-preview boekuna-a4-preview">'+renderInvoiceA4Pages(i)+'</div>',
         '<button class="btn" aria-label="Factuuracties" aria-haspopup="dialog" onclick="invoiceActions(\''+esc(String(i.id))+'\')">'+icon('i-more')+'</button><button class="btn primary" onclick="closeModal();openSendInvoice(\''+esc(String(i.id))+'\')">Versturen via e-mail</button>',
         true);
-      requestAnimationFrame(installA4Observer);
+      installA4Observer();requestAnimationFrame(sizeInvoiceA4Preview);
     };
 
     requestDocumentDelete=function(id){
