@@ -37,6 +37,7 @@
 .editorial-site .logo{margin-right:auto;flex-shrink:0}
 .editorial-site .logo-lockup-primary{width:148px;height:auto;max-width:100%;filter:none}
 .editorial-site .logo-lockup-compact{display:none}
+@media(max-width:620px){.editorial-site .logo-lockup-compact{display:block;width:104px;height:auto;max-width:100%}}
 .editorial-site .nav-links{gap:6px}
 .editorial-site :is(.nav-item,.nav-link){color:var(--text-primary);font-size:14px;font-weight:500;padding:12px 8px;min-height:44px;border-radius:0;background:transparent}
 .editorial-site :is(.nav-item,.nav-link):hover{background:transparent;text-decoration:underline;text-underline-offset:6px;color:var(--brand-primary)}

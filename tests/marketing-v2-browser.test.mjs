@@ -9,7 +9,7 @@ import {routes,slug,serveMarketing,settleImages} from './helpers/marketing-site.
 
 const require=createRequire(import.meta.url);
 const axeSource=fs.readFileSync(require.resolve('axe-core/axe.min.js'),'utf8');
-const widths=[320,360,375,390,393,430,640,768,820,1024,1280,1440,1920];
+const widths=[320,360,375,390,393,430,620,640,768,820,1024,1280,1440,1920];
 const evidence='tests/artifacts/white-editorial';
 fs.mkdirSync(evidence,{recursive:true});
 const server=await serveMarketing('dist/marketing');
@@ -25,6 +25,40 @@ async function loadImages(page){
   await settleImages(page);
   const broken=await page.locator('img').evaluateAll(images=>images.filter(img=>!img.naturalWidth).map(img=>img.src));
   assert.deepEqual(broken,[],'All remaining functional/brand images must load');
+}
+async function assertHeaderBrand(page,label,width){
+  const state=await page.evaluate(()=>{
+    const primary=document.querySelector('.site-header .logo-lockup-primary');
+    const compact=document.querySelector('.site-header .logo-lockup-compact');
+    const logo=document.querySelector('.site-header .logo');
+    const actions=document.querySelector('.site-header .nav-actions');
+    const login=document.querySelector('.site-header .nav-actions a[href*="?login=1"]');
+    const menu=document.querySelector('.site-header .mobile-toggle');
+    const visible=el=>{if(!el)return false;const style=getComputedStyle(el),box=el.getBoundingClientRect();return style.display!=='none'&&style.visibility!=='hidden'&&Number(style.opacity||1)!==0&&box.width>0&&box.height>0};
+    const logoBox=logo?.getBoundingClientRect(),actionsBox=actions?.getBoundingClientRect();
+    return {
+      primaryVisible:visible(primary),
+      compactVisible:visible(compact),
+      compactSrc:compact?.getAttribute('src')||'',
+      loginVisible:visible(login),
+      menuVisible:visible(menu),
+      visibleLogoCount:[primary,compact].filter(visible).length,
+      gap:logoBox&&actionsBox?actionsBox.left-logoBox.right:null
+    };
+  });
+  if(width<=620){
+    assert.equal(state.compactVisible,true,label+': official compact BOEKUNA logo must be visible');
+    assert.ok(state.compactSrc.endsWith('/assets/boekuna-logo-compact.svg'),label+': compact logo must use official asset');
+    assert.equal(state.primaryVisible,false,label+': primary and compact logo must not render together');
+    assert.equal(state.visibleLogoCount,1,label+': exactly one BOEKUNA lockup must be visible');
+    assert.equal(state.loginVisible,true,label+': Inloggen must remain visible');
+    assert.equal(state.menuVisible,true,label+': mobile menu control must remain visible');
+    assert.ok(state.gap===null||state.gap>=8,label+': logo must keep clear space from header actions');
+  }else{
+    assert.equal(state.primaryVisible,true,label+': official primary BOEKUNA logo must remain visible');
+    assert.equal(state.compactVisible,false,label+': compact logo must not duplicate desktop/tablet branding');
+    assert.equal(state.visibleLogoCount,1,label+': exactly one BOEKUNA lockup must be visible');
+  }
 }
 async function captureVisual(browser,base,route,width,file){
   // A full-page Chromium capture changes the emulated viewport internally.
@@ -76,6 +110,7 @@ try{
       await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
       await overflow(page,name+' '+route+' '+width);
       await loadImages(page);
+      await assertHeaderBrand(page,name+' '+route+' '+width,width);
       if([390,1440].includes(width)){
         await audit(page,name+' '+route+' '+width);
         if(visualRoutes.includes(route)){
@@ -126,7 +161,10 @@ try{
    assert.equal(await page.locator('.mobile-toggle-icon i').nth(1).evaluate(el=>getComputedStyle(el).opacity),'0','Open-menu toggle presents a close icon');
    assert.equal(await page.locator('.mobile-toggle-icon i').first().evaluate(el=>getComputedStyle(el).transitionDuration),'0s','Reduced motion also disables component-specific transitions');
    assert.notEqual(await page.locator('.mobile-toggle-icon i').first().evaluate(el=>getComputedStyle(el).transform),'none');
-   await overflow(page,name+' open menu');
+   await assertHeaderBrand(page,name+' open menu 390',390);
+   await overflow(page,name+' open menu 390');
+   await page.screenshot({path:path.join(evidence,`after-home-menu-390-${name}.png`),fullPage:true});
+   report.screenshots.push(`after-home-menu-390-${name}.png`);
    for(const summary of await page.locator('#mobileMenu summary').all())await summary.press('Enter');
    assert.ok(await page.locator('#mobileMenu a[href="/scanner/"]').isVisible());
    const last=page.locator('#mobileMenu a').last();
@@ -140,6 +178,16 @@ try{
    assert.equal(await page.locator('.mobile-toggle').getAttribute('aria-expanded'),'false');
    assert.equal(await page.locator('.mobile-toggle-icon i').nth(1).evaluate(el=>getComputedStyle(el).opacity),'1','Closed-menu toggle restores the menu icon');
    assert.ok(await page.locator('.mobile-toggle').evaluate(el=>el===document.activeElement));
+   await page.setViewportSize({width:320,height:844});
+   await page.locator('.mobile-toggle').click();
+   await page.waitForFunction(()=>document.querySelector('main').inert);
+   await assertHeaderBrand(page,name+' open menu 320',320);
+   await overflow(page,name+' open menu 320');
+   await page.screenshot({path:path.join(evidence,`after-home-menu-320-${name}.png`),fullPage:true});
+   report.screenshots.push(`after-home-menu-320-${name}.png`);
+   await page.keyboard.press('Escape');
+   await page.waitForFunction(()=>!document.querySelector('main').inert);
+   assert.equal(await page.locator('.mobile-toggle').getAttribute('aria-expanded'),'false');
    await page.setViewportSize({width:1440,height:960});
    await page.locator('.dropdown>.nav-item').first().press('Enter');
    assert.equal(await page.locator('.dropdown>.nav-item').first().getAttribute('aria-expanded'),'true');

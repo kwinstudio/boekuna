@@ -12,7 +12,7 @@ assert.equal(build.status,0,build.stderr);
 const server=await serveMarketing(path.join(root,'dist','marketing'));
 const base=server.base;
 const browser=await chromium.launch({headless:true});
-const viewports=[320,360,375,390,393,430,768,1024,1280,1440,1920];
+const viewports=[320,360,375,390,393,430,620,768,1024,1280,1440,1920];
 
 try{
   for(const width of viewports){
@@ -26,6 +26,26 @@ try{
     await page.waitForFunction(()=>getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim()==='#123B3A');
     const overflow=await page.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth,bw:document.body.scrollWidth}));
     assert.ok(overflow.sw<=overflow.vw+1&&overflow.bw<=overflow.vw+1,`Horizontal overflow at ${width}px: ${JSON.stringify(overflow)}`);
+    const header=await page.evaluate(()=>{
+      const primary=document.querySelector('.site-header .logo-lockup-primary');
+      const compact=document.querySelector('.site-header .logo-lockup-compact');
+      const logo=document.querySelector('.site-header .logo');
+      const actions=document.querySelector('.site-header .nav-actions');
+      const visible=el=>{if(!el)return false;const style=getComputedStyle(el),box=el.getBoundingClientRect();return style.display!=='none'&&style.visibility!=='hidden'&&box.width>0&&box.height>0};
+      const logoBox=logo?.getBoundingClientRect(),actionsBox=actions?.getBoundingClientRect();
+      return {primary:visible(primary),compact:visible(compact),count:[primary,compact].filter(visible).length,gap:logoBox&&actionsBox?actionsBox.left-logoBox.right:null,compactSrc:compact?.getAttribute('src')||''};
+    });
+    if(width<=620){
+      assert.equal(header.compact,true,`Compact BOEKUNA logo missing at ${width}px`);
+      assert.equal(header.primary,false,`Primary logo must not duplicate compact logo at ${width}px`);
+      assert.equal(header.count,1,`Exactly one BOEKUNA logo must be visible at ${width}px`);
+      assert.ok(header.compactSrc.endsWith('/assets/boekuna-logo-compact.svg'),`Wrong mobile logo asset at ${width}px`);
+      assert.ok(header.gap===null||header.gap>=8,`BOEKUNA logo overlaps header actions at ${width}px`);
+    }else{
+      assert.equal(header.primary,true,`Primary BOEKUNA logo missing at ${width}px`);
+      assert.equal(header.compact,false,`Compact logo must stay hidden above 620px at ${width}px`);
+      assert.equal(header.count,1,`Exactly one BOEKUNA logo must be visible at ${width}px`);
+    }
     assert.equal(await page.locator('img[src*="/assets/product/"],source[srcset*="/assets/product/"]').count(),0,`Product screenshots must be absent at ${width}px`);
     assert.equal(await page.locator('picture').count(),0,`Content picture elements must be absent at ${width}px`);
     assert.deepEqual(forbiddenRequests,[],`Product screenshot requests at ${width}px: ${forbiddenRequests.join(' | ')}`);
