@@ -138,8 +138,8 @@ async function assertKeyboardFocusCases(page,cases,label){
     const ratio=contrastRatio(cssRgb(state.outlineColor),cssRgb(state.background));
     assert.ok(ratio>=3,label+' '+item.name+': focus contrast '+ratio.toFixed(2)+':1 must be >= 3:1');
     if(item.surface==='light'){
-      assert.equal(state.outlineColor,'rgb(17, 17, 17)',label+' '+item.name+': light-surface focus must use near-black, not bare lime');
-      assert.notEqual(state.outlineColor,'rgb(231, 254, 85)',label+' '+item.name+': lime cannot be the sole light-surface outline');
+      assert.equal(state.outlineColor,'rgb(17, 17, 17)',label+' '+item.name+': light-surface focus must use near-black, not bare Amber');
+      assert.notEqual(state.outlineColor,'rgb(255, 159, 28)',label+' '+item.name+': Amber cannot be the sole light-surface outline');
     }else{
       assert.equal(state.outlineColor,'rgb(255, 255, 255)',label+' '+item.name+': dark-surface focus must use white');
     }
@@ -170,8 +170,10 @@ try{
       return {
         primary:root.getPropertyValue('--brand-primary').trim(),
         secondary:root.getPropertyValue('--brand-secondary').trim(),
-        lime:root.getPropertyValue('--boekuna-lime').trim(),
-        cyan:root.getPropertyValue('--boekuna-cyan').trim(),
+        amber:root.getPropertyValue('--boekuna-amber').trim(),
+        honey:root.getPropertyValue('--boekuna-honey').trim(),
+        frozen:root.getPropertyValue('--boekuna-frozen').trim(),
+        sea:root.getPropertyValue('--boekuna-sea').trim(),
         white:root.getPropertyValue('--boekuna-white').trim(),
         black:root.getPropertyValue('--boekuna-black').trim(),
         font:getComputedStyle(document.body).fontFamily,
@@ -179,9 +181,11 @@ try{
       };
     });
     assert.equal(brand.primary,'#111111');
-    assert.equal(brand.secondary,'#BFE7EC');
-    assert.equal(brand.lime,'#E7FE55');
-    assert.equal(brand.cyan,'#BFE7EC');
+    assert.equal(brand.secondary,'#2EC4B6');
+    assert.equal(brand.amber,'#FF9F1C');
+    assert.equal(brand.honey,'#FFBF69');
+    assert.equal(brand.frozen,'#CBF3F0');
+    assert.equal(brand.sea,'#2EC4B6');
     assert.equal(brand.white,'#FFFFFF');
     assert.equal(brand.black,'#111111');
     assert.ok(brand.font.startsWith('Inter'));
