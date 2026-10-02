@@ -30,8 +30,8 @@ try{
     assert.equal(await page.locator('picture').count(),0,`Content picture elements must be absent at ${width}px`);
     assert.deepEqual(forbiddenRequests,[],`Product screenshot requests at ${width}px: ${forbiddenRequests.join(' | ')}`);
     assert.deepEqual(errors,[],`Homepage page errors at ${width}px: ${errors.join(' | ')}`);
-    assert.equal(await page.locator('.kz-hero h1 span').evaluate(el=>getComputedStyle(el).color),'rgb(231, 240, 238)',`Original brand soft accent on the dark hero missing at ${width}px`);
-    assert.equal(await page.locator('.kz-hero-actions .mk-btn.primary').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(248, 247, 243)',`Readable primary CTA on dark brand hero missing at ${width}px`);
+    assert.equal(await page.locator('.kz-hero h1 span').evaluate(el=>getComputedStyle(el).color),'rgb(18, 59, 58)',`Petrol type on white hero missing at ${width}px`);
+    assert.equal(await page.locator('.kz-hero-actions .mk-btn.primary').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(18, 59, 58)',`Petrol primary CTA on white hero missing at ${width}px`);
     if([390,1440,1920].includes(width)){
       await settleImages(page);
       await page.screenshot({path:path.join(root,'tests','artifacts',`image-free-home-${width}.png`),fullPage:true});

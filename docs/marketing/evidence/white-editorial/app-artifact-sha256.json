@@ -1,0 +1,22 @@
+{
+  "base": "71da7f3a939cad6a4c208bf221a70b1a6c5604bf",
+  "byteIdentical": true,
+  "files": {
+    "manifest.webmanifest": "7a6cc770d827533adc7ab5f46c463ebb12c814d85e275e854b27204f97b50949",
+    "index.html": "a0a79ab037230aaa46f3b5d6fc0d49e2bdb405b2449962100404fac2d46f66de",
+    "assets/boekuna-app-icon-512.png": "6b90efce426a34ccf18bb8577f333f733266a545acffb660ff16a4bcf16a3694",
+    "assets/boekuna-app-icon.svg": "2ab267ba373dcd636bc30fefacfdb1676ea3a7f006888a7b0446665cf1f642ac",
+    "assets/favicon-32.png": "4a271ae2bddfd966fb9ff568626f71520124faf691e49a875fd5b5f6f16e6574",
+    "assets/kvk-company-lookup.js": "913ca3f31d71c39f19e7164097b7ac622fa59ded05056156c996d9f8c9f48ee8",
+    "assets/boekuna-symbol-reversed.svg": "d533e61b4dab7ceddbcd98c770a83a38e97e56d6e7c8450d7681386a4380d7c9",
+    "assets/kvk-company-lookup.css": "588ae631afb235a90d052097bdb0a0081d295bbc6c5878d5540b508b2db1066c",
+    "assets/boekuna-favicon.svg": "6d07de734832a9847185058b85e7171f6e9ec11b276808bf6f92c39c2ad2cc5c",
+    "assets/developer-mode.js": "0e6aeba3ad1326935a1e5b24928304a80d0908c427e7ab3ba60bcfc516a3727c",
+    "assets/boekuna-app-icon-192.png": "b343534b704ebcc9fd519b37a5cfd02af7e2e0ebede7f9ad215ee4027b8b3417",
+    "assets/brand-v2.css": "7a2fc7bcffe851160517ef072c9a12b4e01c352d3e1a5a1a4c036249f5fc4197",
+    "assets/boekuna-symbol.svg": "d5c0925b5ab831a86203581cafb740f8f1bb36d0767eb82515a795af105070d2",
+    "assets/financial-correction.js": "ab0ea6739932849438fb12c8da3ddd247346155306329bb3ca51a863ec3be8e2",
+    "assets/boekuna-app-icon-maskable-512.png": "bd622f0d58101fc48baf918a5bb7147dc28306aa1d708ead759483e414865c2b",
+    "assets/boekuna-app-icon-180.png": "2d38c57b8b2272fa3464b5cb878ce3e19f7a7b0c5c061f19558c2568811af0fc"
+  }
+}

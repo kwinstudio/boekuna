@@ -10,16 +10,16 @@ import {routes,slug,serveMarketing,settleImages} from './helpers/marketing-site.
 const require=createRequire(import.meta.url);
 const axeSource=fs.readFileSync(require.resolve('axe-core/axe.min.js'),'utf8');
 const widths=[320,360,375,390,393,430,640,768,820,1024,1280,1440,1920];
-const evidence='tests/artifacts/marketing-editorial-v2';
+const evidence='tests/artifacts/white-editorial';
 fs.mkdirSync(evidence,{recursive:true});
 const server=await serveMarketing('dist/marketing');
 const engines=process.env.MARKETING_BROWSER==='chromium'?[['chromium',chromium]]:process.env.MARKETING_BROWSER==='webkit'?[['webkit',webkit]]:[['chromium',chromium],['webkit',webkit]];
 const report={routes:routes.length,widths,engines:[],screenshots:[],errors:[],accessibility:[],forms:[],motion:[],brand:[],checks:0};
 const beforeDir=fs.mkdtempSync(path.join(os.tmpdir(),'boekuna-marketing-before-'));
-const baseline=JSON.parse(fs.readFileSync('tests/fixtures/marketing-content-freeze-v2.json','utf8'));
+const baseline={baseHead:'71da7f3a939cad6a4c208bf221a70b1a6c5604bf'};
 execFileSync('tar',['-x','-C',beforeDir],{input:execFileSync('git',['archive',baseline.baseHead,'public'],{maxBuffer:64*1024*1024})});
 const before=await serveMarketing(path.join(beforeDir,'public'));
-const visualRoutes=['/','/functies/','/scanner/','/hoe-het-werkt/','/prijzen/','/rapportages/','/faq/','/privacy/','/support/'];
+const visualRoutes=routes;
 
 async function loadImages(page){
   await settleImages(page);
@@ -187,25 +187,15 @@ try{
      await page.unroute('**/rest/v1/support_requests');
     }
    }
-   // Short intro runs once per session and yields to user input.
-   await page.evaluate(()=>sessionStorage.removeItem('boekuna:marketing-intro-v2'));
-   await page.emulateMedia({reducedMotion:'no-preference'});
-   await page.goto(server.base+'/',{waitUntil:'domcontentloaded'});
-   assert.equal(await page.locator('.editorial-intro').count(),1,'First-session introduction');
-   await page.keyboard.press('Tab');
-   assert.equal(await page.locator('.editorial-intro').count(),0,'Any keyboard input dismisses the curtain');
-   await page.reload({waitUntil:'domcontentloaded'});
-   assert.equal(await page.locator('.editorial-intro').count(),0,'No repeated introduction on navigation');
-   // Runtime preference change, default entrance and no-JS readable content.
+   // The white site has no blocking intro, scrolling transforms, or word masks.
    await page.emulateMedia({reducedMotion:'no-preference'});
    await page.goto(server.base+'/',{waitUntil:'networkidle'});
-   assert.ok(await page.locator('.editorial-word').count()>0,'Clip-mask word reveal initialized');
+   assert.equal(await page.locator('.editorial-intro,.editorial-word,.ed-parallax').count(),0);
+   assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
    await page.emulateMedia({reducedMotion:'reduce'});
-   const animations=await page.locator('.editorial-word').evaluateAll(words=>words.map(word=>getComputedStyle(word).animationName));
-   assert.ok(animations.every(name=>name==='none'),'Reduced motion change stops every word animation');
-   const moves=await page.locator('.ed-parallax').evaluateAll(elements=>elements.map(el=>getComputedStyle(el).translate));
-   assert.ok(moves.every(move=>move==='none'),'Reduced motion stops every remaining parallax plate');
-   report.motion.push({engine:name,reducedMotion:true});
+   const transitions=await page.locator('.mobile-toggle-icon i').evaluateAll(elements=>elements.map(el=>getComputedStyle(el).transitionDuration));
+   assert.ok(transitions.every(value=>value==='0s'));
+   report.motion.push({engine:name,reducedMotion:true,noBlockingIntro:true});
    await page.close();
    const noJS=await browser.newPage({javaScriptEnabled:false,viewport:{width:320,height:844}});
    await noJS.goto(server.base+'/',{waitUntil:'networkidle'});
