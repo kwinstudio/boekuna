@@ -1881,3 +1881,53 @@ body.editorial-site{
     transition:none!important;
   }
 }
+
+/* Stable interaction plane: pointer target stays fixed while its visual layers move in depth. */
+[data-depth-root],
+#kzProductShell[data-depth-root]{
+  transform:none;
+  perspective:1400px;
+}
+[data-depth-root][data-depth-mode="interactive"]:hover{transform:none}
+@media(prefers-reduced-motion:no-preference){
+  .photo-slot--hero[data-depth-root] .hero-depth-image{
+    transform:perspective(1400px) rotateX(var(--depth-rx)) rotateY(var(--depth-ry)) translate3d(var(--depth-x),var(--depth-y),18px) scale(1.018);
+    will-change:transform;
+  }
+  .photo-slot--hero[data-depth-root] .hero-depth-stack{
+    transform:perspective(1400px) rotateX(var(--depth-rx)) rotateY(var(--depth-ry)) translate3d(var(--depth-x),var(--depth-y),44px);
+    will-change:transform;
+  }
+  #kzProductShell[data-depth-root] .story-depth-cluster{
+    transform:perspective(1500px) rotateX(var(--depth-rx)) rotateY(var(--depth-ry)) translate3d(var(--depth-x),var(--depth-y),0);
+    will-change:transform;
+  }
+  .kz-real-workflow-proof[data-depth-root] .kz-workflow-stage{
+    transform:perspective(1500px) rotateX(var(--depth-rx)) rotateY(var(--depth-ry)) translate3d(var(--depth-x),var(--depth-y),34px);
+    will-change:transform;
+  }
+  .kz-human-story[data-depth-root] .photo-slot--audience{
+    transform:perspective(1400px) rotateX(var(--depth-rx)) rotateY(var(--depth-ry)) translate3d(var(--depth-x),var(--depth-y),0);
+    transition:transform 260ms var(--premium-ease);
+  }
+  .kz-plan-inner[data-depth-root] .kz-price-big{
+    transform:perspective(1200px) rotateX(var(--depth-rx)) rotateY(var(--depth-ry)) translate3d(var(--depth-x),var(--depth-y),0);
+    transition:transform 260ms var(--premium-ease);
+  }
+  .kz-final-box[data-depth-root]>*{
+    transform:translate3d(var(--depth-x),var(--depth-y),26px);
+    transition:transform 260ms var(--premium-ease);
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .photo-slot--hero[data-depth-root] .hero-depth-image,
+  .photo-slot--hero[data-depth-root] .hero-depth-stack,
+  #kzProductShell[data-depth-root] .story-depth-cluster,
+  .kz-real-workflow-proof[data-depth-root] .kz-workflow-stage,
+  .kz-human-story[data-depth-root] .photo-slot--audience,
+  .kz-plan-inner[data-depth-root] .kz-price-big,
+  .kz-final-box[data-depth-root]>*{
+    transform:none!important;
+    will-change:auto!important;
+  }
+}
