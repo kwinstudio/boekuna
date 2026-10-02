@@ -67,9 +67,14 @@ assert.ok(deletion.includes('id="deleteRequestForm"'),'Account deletion web form
 assert.ok(deletion.includes('pattern="VERWIJDER"'),'Deletion request requires explicit confirmation');
 
 const pricing=fs.readFileSync(path.join(publicDir,'prijzen','index.html'),'utf8');
-for(const price of ['€0','€9,95','€19,95']) assert.ok(pricing.includes(price),`Missing current price ${price}`);
-for(const oldPrice of ['€29,95']) assert.ok(!pricing.includes(oldPrice),`Legacy price must be removed: ${oldPrice}`);
-assert.ok(pricing.includes('Stripe Checkout'),'Paid subscriptions must explain the explicit Stripe checkout flow');
+for(const price of ['€0','€6,95','€9,95','€14,95']) assert.ok(pricing.includes(price),`Missing public price ${price}`);
+for(const oldPrice of ['€19,95','€29,95']) assert.ok(!pricing.includes(oldPrice),`Retired public marketing price must be removed: ${oldPrice}`);
+for(const checks of ['10 slimme documentchecks','40 slimme documentchecks','100 slimme documentchecks','Geen maandlimiet']) assert.ok(pricing.includes(checks),`Pricing limit contract missing: ${checks}`);
+assert.ok(pricing.includes('Meest gekozen'),'Boekuna must carry the Meest gekozen label');
+assert.ok(pricing.includes('Nieuwe pakketten worden binnenkort beschikbaar'),'Pricing must disclose announced-plan availability');
+assert.equal((pricing.match(/href=\"[^\"]*plan=/g)||[]).length,0,'Announced paid plans must not link to checkout/plan routes');
+assert.ok((pricing.match(/Binnenkort beschikbaar/g)||[]).length>=3,'Pricing must show availability copy and three non-transactional paid CTAs');
+assert.ok(pricing.includes('https://app.boekuna.nl/?login=1'),'Gratis CTA must retain the existing product entry flow');
 for(const retired of ['Early Access','eerste 100','Founding 100','3 kalendermaanden','90 dagen']){
   assert.ok(!pricing.toLowerCase().includes(retired.toLowerCase()),`Retired First-100 offer must be absent from pricing: ${retired}`);
 }
@@ -102,3 +107,12 @@ assert.ok(!sharedMarketing.includes('/assets/boekuna-symbol.svg'),'Shared market
 assert.ok(sharedMarketing.includes('aria-haspopup="true" aria-expanded="false"'),'Dropdown triggers must expose accessible state');
 assert.ok(!sharedMarketing.includes('>☰<'),'Mobile navigation must not use a glyph as its functional icon');
 console.log('Calm Control native marketing regression: PASS');
+
+const homePolish=fs.readFileSync(path.join(publicDir,'index.html'),'utf8');
+assert.equal((homePolish.match(/class="photo-slot /g)||[]).length,2,'Homepage must contain exactly two future photo slots');
+assert.equal(/<div class="photo-slot[^>]*>[\s\S]*?<img\b/i.test(homePolish),false,'Empty future photo slots must not contain img elements');
+for(const label of ['Oplossingen','Voor ondernemers','Resources']) assert.ok(sharedMarketing.includes('<summary>'+label+'</summary>'),'Mobile menu group missing '+label);
+const editorialCss=fs.readFileSync(path.join(publicDir,'assets','marketing-editorial.css'),'utf8');
+for(const token of ['#FF9F1C','#FFBF69','#FFFFFF','#CBF3F0','#2EC4B6','#111111']) assert.ok(editorialCss.includes(token),'Approved palette token missing '+token);
+assert.ok(editorialCss.includes('BOEKUNA_PRICING_POLISH_20261002'),'Pricing/photo-slot release CSS missing');
+console.log('Four-tier pricing + photo-slot marketing contract: PASS');

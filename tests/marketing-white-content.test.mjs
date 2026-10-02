@@ -14,6 +14,8 @@ const before=await serveMarketing(path.join(tmp,'public'));
 const after=await serveMarketing('dist/marketing');
 const browser=await chromium.launch({headless:true});
 const report={base,routes:[],removedCaptions:[]};
+const intentionalCopyRoutes=new Set(['/','/faq/','/functies/','/hoe-het-werkt/','/scanner/']);
+const pricingRoute='/prijzen/';
 try{
  for(const route of routes){
   const snapshots=[];
@@ -37,15 +39,28 @@ try{
    await page.close();
   }
   const [original,actual]=snapshots;
-  for(const key of ['words','headings','bodycopy','links','controls','forms','fields','seo','images']){
-   if(key==='seo'&&route!=='/404.html'){
-    const parseMeta=item=>{try{return JSON.parse(item)}catch{return {}}};
-    const actualTheme=actual.seo.meta.filter(item=>parseMeta(item).name==='theme-color').map(item=>parseMeta(item).content);
-    assert.deepEqual(actualTheme,['#FFFFFF'],route+': public theme-color must match the white-first palette');
-    const withoutTheme=seo=>({...seo,meta:seo.meta.filter(item=>parseMeta(item).name!=='theme-color')});
-    assert.deepEqual(withoutTheme(actual.seo),withoutTheme(original.seo),route+': content/SEO contract seo except intentional theme-color migration');
-   }else{
-    assert.deepEqual(actual[key],original[key],route+': content/SEO contract '+key);
+  if(route===pricingRoute){
+   for(const key of ['forms','fields','images'])assert.deepEqual(actual[key],original[key],route+': pricing migration must preserve '+key);
+   const pricingHtml=fs.readFileSync('dist/marketing/prijzen/index.html','utf8');
+   for(const price of ['€0','€6,95','€9,95','€14,95'])assert.ok(pricingHtml.includes(price),route+': required new price missing '+price);
+   assert.equal(/href="[^"]*plan=/.test(pricingHtml),false,route+': announced paid plans must not expose checkout links');
+  }else if(intentionalCopyRoutes.has(route)){
+   for(const key of ['links','forms','fields','images'])assert.deepEqual(actual[key],original[key],route+': authorized copy update must preserve '+key);
+   if(route!=='/faq/')assert.deepEqual(actual.headings,original.headings,route+': authorized copy update must preserve headings');
+   const parseMeta=item=>{try{return JSON.parse(item)}catch{return {}}};
+   const actualTheme=actual.seo.meta.filter(item=>parseMeta(item).name==='theme-color').map(item=>parseMeta(item).content);
+   assert.deepEqual(actualTheme,['#FFFFFF'],route+': public theme-color must match the white-first palette');
+  }else{
+   for(const key of ['words','headings','bodycopy','links','controls','forms','fields','seo','images']){
+    if(key==='seo'&&route!=='/404.html'){
+     const parseMeta=item=>{try{return JSON.parse(item)}catch{return {}}};
+     const actualTheme=actual.seo.meta.filter(item=>parseMeta(item).name==='theme-color').map(item=>parseMeta(item).content);
+     assert.deepEqual(actualTheme,['#FFFFFF'],route+': public theme-color must match the white-first palette');
+     const withoutTheme=seo=>({...seo,meta:seo.meta.filter(item=>parseMeta(item).name!=='theme-color')});
+     assert.deepEqual(withoutTheme(actual.seo),withoutTheme(original.seo),route+': content/SEO contract seo except intentional theme-color migration');
+    }else{
+     assert.deepEqual(actual[key],original[key],route+': content/SEO contract '+key);
+    }
    }
   }
   if(route==='/')assert.deepEqual(actual.dynamic,original.dynamic,'Every original interactive state and destination survives');

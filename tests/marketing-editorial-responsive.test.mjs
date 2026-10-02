@@ -72,6 +72,8 @@ try{
     }
     assert.equal(await page.locator('img[src*="/assets/product/"],source[srcset*="/assets/product/"]').count(),0,`Product screenshots must be absent at ${width}px`);
     assert.equal(await page.locator('picture').count(),0,`Content picture elements must be absent at ${width}px`);
+    assert.equal(await page.locator('.photo-slot').count(),2,`Two future photo slots must remain present at ${width}px`);
+    assert.equal(await page.locator('.photo-slot img').count(),0,`Future photo slots must remain empty at ${width}px`);
     assert.deepEqual(forbiddenRequests,[],`Product screenshot requests at ${width}px: ${forbiddenRequests.join(' | ')}`);
     assert.deepEqual(errors,[],`Homepage page errors at ${width}px: ${errors.join(' | ')}`);
     const palette=await page.evaluate(()=>({
@@ -93,6 +95,34 @@ try{
       await page.screenshot({path:path.join(root,'tests','artifacts',`image-free-home-${width}.png`),fullPage:true});
     }
     await page.close();
+  }
+
+  for(const width of [390,430]){
+    const menuPage=await browser.newPage({viewport:{width,height:844},reducedMotion:'reduce'});
+    await menuPage.goto(base+'/',{waitUntil:'domcontentloaded'});
+    await menuPage.locator('.mobile-toggle').click();
+    const metrics=await menuPage.locator('#mobileMenu>details>summary').evaluateAll(nodes=>nodes.map(el=>{const s=getComputedStyle(el);return {fontSize:s.fontSize,fontWeight:s.fontWeight,lineHeight:s.lineHeight,padding:s.padding,borderTop:s.borderTopWidth,borderBottom:s.borderBottomWidth}}));
+    assert.equal(metrics.length,3,'Mobile menu must expose three primary groups');
+    assert.deepEqual(metrics[1],metrics[0],'Voor ondernemers must match Oplossingen typography');
+    assert.deepEqual(metrics[2],metrics[0],'Resources must match Oplossingen typography');
+    await menuPage.screenshot({path:path.join(root,'tests','artifacts',`image-free-menu-${width}.png`),fullPage:true});
+    await menuPage.close();
+  }
+
+  for(const [route,widths] of [['/prijzen/',[390,768,1440]],['/faq/',[390,1440]],['/voor-ondernemers/',[390,1440]]]){
+    for(const width of widths){
+      const evidencePage=await browser.newPage({viewport:{width,height:width<700?844:960},reducedMotion:'reduce'});
+      await evidencePage.goto(base+route,{waitUntil:'domcontentloaded'});
+      const overflow=await evidencePage.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth,bw:document.body.scrollWidth}));
+      assert.ok(overflow.sw<=overflow.vw+1&&overflow.bw<=overflow.vw+1,`Horizontal overflow at ${route} ${width}px: ${JSON.stringify(overflow)}`);
+      if(route==='/prijzen/'){
+        assert.equal(await evidencePage.locator('.pricing-four .price').count(),4,'Pricing must render four plan cards');
+        assert.equal(await evidencePage.locator('.pricing-four a[href*="plan="]').count(),0,'Paid marketing cards must not expose plan checkout links');
+      }
+      const shotSlug=route.replace(/^\//,'').replace(/\/$/,'')||'home';
+      await evidencePage.screenshot({path:path.join(root,'tests','artifacts',`image-free-${shotSlug}-${width}.png`),fullPage:true});
+      await evidencePage.close();
+    }
   }
 
   const page=await browser.newPage({viewport:{width:1440,height:960},reducedMotion:'reduce'});
