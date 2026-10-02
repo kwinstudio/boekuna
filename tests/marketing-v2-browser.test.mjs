@@ -16,7 +16,7 @@ const server=await serveMarketing('dist/marketing');
 const engines=process.env.MARKETING_BROWSER==='chromium'?[['chromium',chromium]]:process.env.MARKETING_BROWSER==='webkit'?[['webkit',webkit]]:[['chromium',chromium],['webkit',webkit]];
 const report={routes:routes.length,widths,engines:[],screenshots:[],errors:[],accessibility:[],forms:[],motion:[],brand:[],focus:[],checks:0};
 const beforeDir=fs.mkdtempSync(path.join(os.tmpdir(),'boekuna-marketing-before-'));
-const baseline={baseHead:'71da7f3a939cad6a4c208bf221a70b1a6c5604bf'};
+const baseline={baseHead:'3478aba296f94b49e00302c9a1441679c9634253'};
 execFileSync('tar',['-x','-C',beforeDir],{input:execFileSync('git',['archive',baseline.baseHead,'public'],{maxBuffer:64*1024*1024})});
 const before=await serveMarketing(path.join(beforeDir,'public'));
 const visualRoutes=routes;
@@ -275,10 +275,9 @@ try{
    await page.waitForFunction(()=>!document.querySelector('main').inert);
    assert.equal(await page.locator('.mobile-toggle').getAttribute('aria-expanded'),'false');
    await page.setViewportSize({width:1440,height:960});
-   await page.locator('.dropdown>.nav-item').first().press('Enter');
-   assert.equal(await page.locator('.dropdown>.nav-item').first().getAttribute('aria-expanded'),'true');
-   await page.keyboard.press('Escape');
-   assert.equal(await page.locator('.dropdown>.nav-item').first().getAttribute('aria-expanded'),'false');
+   const desktopNav=page.locator('.nav-links .nav-link');
+   assert.equal(await desktopNav.count(),4,'Premium desktop navigation keeps four direct destinations');
+   assert.deepEqual(await desktopNav.allTextContents(),['Functies','Voor ondernemers','Prijzen','Over']);
    await page.goto(server.base+'/faq/',{waitUntil:'networkidle'});
    for(const detail of await page.locator('.mk-faq-list details').all()){
     if(!await detail.evaluate(el=>el.hasAttribute('open')))await detail.locator('summary').press('Enter');
@@ -326,7 +325,7 @@ try{
     const focusPage=await browser.newPage({viewport:{width,height:width<700?844:960},reducedMotion:'reduce'});
     await focusPage.goto(server.base+'/',{waitUntil:'networkidle'});
     const homeCases=[
-      {name:'ordinary link',selector:'.kz-preview-link',surface:'light'},
+      {name:'ordinary link',selector:'.kz-preview-link',surface:'dark'},
       {name:'primary CTA',selector:'.kz-hero-actions .mk-btn.primary',surface:'light'},
       {name:'secondary CTA',selector:'.kz-hero-actions .mk-btn:not(.primary)',surface:'light'},
       {name:'closing CTA',selector:'.kz-final-box .mk-btn',surface:'dark'},
