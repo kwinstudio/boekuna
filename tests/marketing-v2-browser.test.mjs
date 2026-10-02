@@ -225,28 +225,20 @@ try{
     await page.close();
    }
 
-   // Product tabs, solution disclosures, compare states and real FAQ controls.
+   // Homepage parity structure and guided demo.
    const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
    await page.goto(server.base+'/',{waitUntil:'networkidle'});
-   assert.ok(await page.locator('[data-depth-root]').count()>=4,name+' homepage exposes premium depth roots');
-   assert.equal(await page.locator('.photo-slot--hero[data-depth-root]').getAttribute('data-depth-mode'),'static',name+' reduced motion keeps hero depth static');
-   assert.equal(await page.locator('[data-workflow-step]').count(),4,name+' homepage exposes four interactive workflow steps');
-   await page.locator('[data-workflow-step="controle"]').press('Enter');
-   assert.equal(await page.locator('[data-workflow-step="controle"]').getAttribute('aria-pressed'),'true',name+' workflow step exposes active state');
-   assert.equal(await page.locator('#kzWorkflowStage').getAttribute('data-step'),'controle',name+' workflow stage follows keyboard selection');
-   assert.equal(await page.locator('#workflowStageLabel').isVisible(),true,name+' workflow label stays visible');
-   assert.equal((await page.locator('#workflowStageLabel').textContent()).trim(),'Controle',name+' workflow label follows keyboard selection');
-   for(const key of ['documenten','btw','rapportages','facturen']){
-    await page.locator('[data-kz-tab="'+key+'"]').press('Enter');
-    assert.equal(await page.locator('[data-kz-tab="'+key+'"]').getAttribute('aria-pressed'),'true');
-    await loadImages(page);await overflow(page,name+' product '+key);
+   assert.equal(await page.locator('[data-home-section]').count(),15,name+' homepage exposes all parity sections');
+   assert.equal(await page.locator('[data-depth-root],.kz-magnetic').count(),0,name+' homepage must not retain 3D or magnetic interaction hooks');
+   assert.equal(await page.locator('[data-demo-step]').count(),4,name+' homepage exposes four guided demo controls');
+   for(const key of ['recognize','check','save','upload']){
+    const control=page.locator('[data-demo-step="'+key+'"]');
+    await control.press('Enter');
+    assert.equal(await control.getAttribute('aria-pressed'),'true',name+' guided demo exposes active state');
+    assert.equal(await page.locator('#boekunaDemoStage').getAttribute('data-demo-state'),key,name+' guided demo stage follows keyboard selection');
+    assert.equal(await page.locator('#demoTitle').isVisible(),true,name+' guided demo title stays visible');
+    await overflow(page,name+' guided demo '+key);
    }
-   for(const button of await page.locator('.kz-solution-more').all()){
-    await button.press('Enter');assert.equal(await button.getAttribute('aria-expanded'),'true');
-    assert.ok(await button.locator('..').locator('.kz-solution-extra').isVisible());
-    await button.press('Enter');assert.equal(await button.getAttribute('aria-expanded'),'false');
-   }
-   for(const mode of ['with','without']){await page.locator('[data-compare="'+mode+'"]').press('Enter');await overflow(page,name+' compare '+mode);}
 
    // Complete mobile nav, expanded groups, focus wrapping and Escape.
    await page.locator('.mobile-toggle').click();
@@ -349,10 +341,10 @@ try{
     const focusPage=await browser.newPage({viewport:{width,height:width<700?844:960},reducedMotion:'reduce'});
     await focusPage.goto(server.base+'/',{waitUntil:'networkidle'});
     const homeCases=[
-      {name:'ordinary link',selector:'.kz-preview-link',surface:'dark'},
-      {name:'primary CTA',selector:'.kz-hero-actions .mk-btn.primary',surface:'light'},
-      {name:'secondary CTA',selector:'.kz-hero-actions .mk-btn:not(.primary)',surface:'light'},
-      {name:'closing CTA',selector:'.kz-final-box .mk-btn',surface:'dark'},
+      {name:'ordinary link',selector:'.parity-story .parity-text-link',surface:'light'},
+      {name:'primary CTA',selector:'.parity-hero .parity-btn--primary',surface:'light'},
+      {name:'secondary CTA',selector:'.parity-hero .parity-btn--secondary',surface:'light'},
+      {name:'closing CTA',selector:'.parity-final-cta .parity-btn',surface:'dark'},
       {name:'footer link',selector:'.footer a:not(.footer-logo)',surface:'dark'}
     ];
     if(width<=1100)homeCases.push({name:'mobile menu trigger',selector:'.mobile-toggle',surface:'light'});
@@ -364,26 +356,22 @@ try{
     await focusPage.close();
    }
 
-   // The white site has no blocking intro, scrolling transforms, or word masks.
+   // Calm site: no blocking intro, pointer depth, magnetic motion or word masks.
    await page.emulateMedia({reducedMotion:'no-preference'});
    await page.goto(server.base+'/',{waitUntil:'networkidle'});
-   const depthHero=page.locator('.photo-slot--hero[data-depth-root]');
-   await depthHero.hover({position:{x:260,y:140}});
-   await page.waitForTimeout(40);
-   assert.equal(await depthHero.getAttribute('data-depth-mode'),'interactive',name+' desktop hero enables pointer depth');
-   const depthVars=await depthHero.evaluate(el=>({rx:el.style.getPropertyValue('--depth-rx'),ry:el.style.getPropertyValue('--depth-ry')}));
-   assert.ok(depthVars.rx&&depthVars.ry&&depthVars.rx!=='0deg'&&depthVars.ry!=='0deg',name+' pointer depth updates 3D variables');
-   assert.equal(await page.locator('.editorial-intro,.editorial-word,.ed-parallax').count(),0);
+   assert.equal(await page.locator('[data-depth-root],.kz-magnetic,.editorial-intro,.editorial-word,.ed-parallax').count(),0);
    assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
    await page.emulateMedia({reducedMotion:'reduce'});
    const transitions=await page.locator('.mobile-toggle-icon i').evaluateAll(elements=>elements.map(el=>getComputedStyle(el).transitionDuration));
    assert.ok(transitions.every(value=>value==='0s'));
-   report.motion.push({engine:name,reducedMotion:true,noBlockingIntro:true});
+   const demoTransition=await page.locator('#boekunaDemoStage').evaluate(el=>getComputedStyle(el).transitionDuration);
+   assert.equal(demoTransition,'0s','Reduced motion disables guided-demo transitions');
+   report.motion.push({engine:name,reducedMotion:true,noBlockingIntro:true,noDepthMotion:true});
    await page.close();
    const noJS=await browser.newPage({javaScriptEnabled:false,viewport:{width:320,height:844}});
    await noJS.goto(server.base+'/',{waitUntil:'networkidle'});
    assert.ok(await noJS.locator('h1').isVisible());
-   assert.ok(await noJS.locator('.kz-solution h3').first().isVisible());await overflow(noJS,name+' no JS');await noJS.close();
+   assert.ok(await noJS.locator('.parity-story h3').first().isVisible());await overflow(noJS,name+' no JS');await noJS.close();
    for(const width of [320,430,768,1024,1920])await captureVisual(browser,server.base,'/',width,`after-home-${width}-${name}.png`);
 
    // Recreate the immutable before state in the same engine and breakpoints.
