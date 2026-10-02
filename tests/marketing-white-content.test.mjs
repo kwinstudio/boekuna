@@ -24,7 +24,8 @@ for(const rel of routeFiles){
   assert.equal((html.match(/<h1\b/gi)||[]).length,1,rel+': exactly one h1');
   if(rel!=='index.html') assert.ok(/<link rel="canonical" href="https:\/\/boekuna\.nl\//.test(html),rel+': public canonical missing');
   assert.ok(html.includes('/assets/marketing.js?v=20261002premium'),rel+': premium shared runtime must be cache-busted');
-  assert.ok(html.includes('/assets/marketing-editorial.css?v=20261002parity'),rel+': depth stylesheet must use the current cache key');
+  assert.ok(html.includes('/assets/marketing-editorial.css?v=20261002parity'),rel+': parity stylesheet must use the current cache key');
+  assert.equal(/data-depth-root|hero-depth-|story-depth-|kz-magnetic/.test(html),false,rel+': old 3D/depth markup must be absent');
   assert.equal(/revolut/i.test(html),false,rel+': reference brand must not appear in production HTML');
   assert.equal(/<img[^>]+src=["']https?:\/\//i.test(html),false,rel+': content images must remain first-party');
 }
@@ -59,6 +60,10 @@ assert.ok((pricing.match(/Binnenkort beschikbaar/g)||[]).length>=3,'Paid plans m
 assert.equal(/href=["'][^"']*plan=/.test(pricing),false,'Marketing pricing must not expose paid checkout plan links');
 assert.ok(pricing.includes('https://app.boekuna.nl/?register=1'),'Free plan must use registration flow');
 assert.equal(/stripe/i.test(pricing),false,'Public pricing must not introduce Stripe checkout wiring');
+
+const vatBank=fs.readFileSync(path.join(dist,'btw-bank','index.html'),'utf8');
+assert.ok(/live bankkoppeling[^<]{0,120}(?:later|niet|nog niet)/i.test(vatBank),'Btw/bank route must keep live bank connection as a future state');
+assert.ok(/geen automatische aangifteclaim|dient niet rechtstreeks in|directe aangifte[^<]{0,120}(?:later|niet)/i.test(vatBank),'Btw/bank route must not imply direct VAT filing is live');
 
 const css=fs.readFileSync(path.join(dist,'assets','marketing-editorial.css'),'utf8');
 for(const token of ['#FFFFFF','#111111','#FF9F1C','#FFBF69','#CBF3F0','#2EC4B6']) assert.ok(css.includes(token),'Approved palette token missing '+token);
