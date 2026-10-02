@@ -322,39 +322,49 @@
 @media(prefers-reduced-motion:reduce){.editorial-site .mobile-toggle .mobile-toggle-icon i{transition:none}}
 @media(max-width:359px){.editorial-site .how-usage-section h2{font-size:29.5px}}
 
-
-/* BOEKUNA palette preview — MP072 inspired, marketing-only. */
+/* BOEKUNA palette preview — Urbanist-inspired lime/cyan direction, marketing-only. */
 :root{
-  --mp-palladian:#EEE9DF;
-  --mp-oatmeal:#C9C1B1;
-  --mp-blue-fantastic:#2C3B4D;
-  --mp-burning-flame:#FFB162;
-  --mp-truffle-trouble:#A35139;
-  --mp-abyssal:#1B2632;
+  --ref-lime:#E7FE55;
+  --ref-cyan:#BFE7EC;
+  --ref-white:#FFFFFF;
+  --ref-black:#111111;
+  --ref-soft:#F6F6F3;
 }
 .editorial-site{
-  --brand-primary:var(--mp-abyssal);
-  --brand-primary-hover:var(--mp-blue-fantastic);
-  --brand-primary-active:var(--mp-blue-fantastic);
-  --brand-primary-soft:var(--mp-palladian);
-  --brand-secondary:var(--mp-truffle-trouble);
-  --bg-canvas:var(--mp-palladian);
-  --bg-surface:#FFFFFF;
-  --bg-surface-secondary:var(--mp-oatmeal);
-  --text-primary:var(--mp-abyssal);
-  --text-secondary:var(--mp-blue-fantastic);
-  --text-muted:var(--mp-blue-fantastic);
-  --text-inverse:#FFFFFF;
-  --border-default:var(--mp-oatmeal);
-  --border-strong:var(--mp-blue-fantastic);
-  --divider:var(--mp-oatmeal);
-  --ed-line:var(--mp-oatmeal);
-  --ed-ink:var(--mp-abyssal);
-  --ed-paper:var(--mp-palladian);
-  background:var(--mp-palladian);
+  --brand-primary:var(--ref-black);
+  --brand-primary-hover:#2B2B2B;
+  --brand-primary-active:#000000;
+  --brand-primary-soft:var(--ref-lime);
+  --brand-secondary:var(--ref-cyan);
+  --bg-canvas:var(--ref-white);
+  --bg-surface:var(--ref-white);
+  --bg-surface-secondary:var(--ref-soft);
+  --text-primary:var(--ref-black);
+  --text-secondary:#3A3A3A;
+  --text-muted:#666666;
+  --text-inverse:var(--ref-white);
+  --border-default:#E5E5E2;
+  --border-strong:#B7B7B2;
+  --divider:#E5E5E2;
+  --ed-line:#E5E5E2;
+  --ed-ink:var(--ref-black);
+  --ed-paper:var(--ref-white);
+  background:var(--ref-white);
 }
 
-/* Light editorial canvas */
+/* Typography direction from the reference: geometric, open, medium-weight headings.
+   Inter remains the local font asset for this preview; no external font dependency is introduced. */
+.editorial-site :is(h1,h2,h3,h4){
+  font-weight:600;
+  letter-spacing:-.045em;
+}
+.editorial-site h1{line-height:1.01}
+.editorial-site h2{line-height:1.06}
+.editorial-site p{letter-spacing:-.012em}
+.editorial-site :is(.nav-item,.nav-link,.btn,.mk-btn){font-weight:600}
+
+/* White-first editorial surfaces. */
+.editorial-site,
 .editorial-site #siteHeader,
 .editorial-site .site-header,
 .editorial-site .promo,
@@ -362,104 +372,108 @@
 .editorial-site.editorial-menu-open #siteHeader,
 .editorial-site :is(.ed-opening,.mk-hero,.how-hero,.page-hero),
 .editorial-site :is(.kz-workflow,.kz-solutions-section,.kz-reasons,.kz-audience,.kz-support,.kz-benefit,.kz-plan,.kz-compare,.kz-facts,.mk-section,.section,.how-principles,.how-flow-section,.how-smart-section,.how-control-section){
-  background:var(--mp-palladian);
-}
-.editorial-site .dropdown-menu,
-.editorial-site :is(input,select,textarea),
-.editorial-site .mk-form-card .field :is(input,select,textarea),
-.editorial-site .price,
-.editorial-site .plan-table{
-  background:#FFFFFF;
+  background:var(--ref-white);
 }
 
-/* Warm neutral bands */
-.editorial-site :is(.kz-trust-strip,.kz-apps,.mk-stat-strip,.price.popular,.notice),
-.editorial-site .dropdown-menu a:hover{
-  background:var(--mp-oatmeal);
-}
-.editorial-site .notice.warn{
-  background:var(--mp-burning-flame);
-  color:var(--mp-abyssal);
-  border-color:var(--mp-truffle-trouble);
+/* Very light grey only for quiet separation. */
+.editorial-site :is(.kz-trust-strip,.kz-apps,.mk-stat-strip,.price.popular,.notice){
+  background:var(--ref-soft);
 }
 
-/* Primary actions use the orange from the reference palette. */
+/* Primary lime: important CTA and highlighted states only. */
 .editorial-site :is(.btn.primary,.mk-btn.primary,.btn.dark),
 .editorial-site .nav-actions .btn:first-child{
-  background:var(--mp-burning-flame);
-  border-color:var(--mp-burning-flame);
-  color:var(--mp-abyssal);
+  background:var(--ref-lime);
+  border-color:var(--ref-black);
+  color:var(--ref-black);
 }
 .editorial-site :is(.btn.primary,.mk-btn.primary,.btn.dark):hover,
 .editorial-site .nav-actions .btn:first-child:hover{
-  background:var(--mp-truffle-trouble);
-  border-color:var(--mp-truffle-trouble);
-  color:#FFFFFF;
+  background:var(--ref-black);
+  border-color:var(--ref-black);
+  color:var(--ref-white);
 }
 .editorial-site :is(.btn,.mk-btn):not(.primary):not(.dark){
-  border-color:var(--mp-abyssal);
-  color:var(--mp-abyssal);
   background:transparent;
+  border-color:var(--ref-black);
+  color:var(--ref-black);
 }
 .editorial-site :is(.btn,.mk-btn):not(.primary):not(.dark):hover{
-  background:var(--mp-oatmeal);
-  color:var(--mp-abyssal);
+  background:var(--ref-cyan);
+  color:var(--ref-black);
 }
 
-/* Warm editorial accents, kept secondary to the dark navy hierarchy. */
-.editorial-site :is(.eyebrow,.kz-benefit-label,.kz-app-label,.how-flow-tag,.breadcrumbs a,.tag,.mk-tag){
-  color:var(--mp-truffle-trouble);
+/* Cyan as secondary section/accent, never competing with primary CTA. */
+.editorial-site :is(.eyebrow,.kz-benefit-label,.kz-app-label,.how-flow-tag,.tag,.mk-tag){
+  color:var(--ref-black);
 }
-.editorial-site .kz-tab.active,
-.editorial-site .kz-compare-switch button.active{
-  border-bottom-color:var(--mp-truffle-trouble);
-  color:var(--mp-truffle-trouble);
+.editorial-site :is(.kz-tabs,.kz-compare-switch) button.active{
+  border-bottom-color:var(--ref-black);
+  color:var(--ref-black);
 }
-.editorial-site :focus-visible{
-  outline-color:var(--mp-burning-flame);
+.editorial-site .kz-trust-strip{
+  background:var(--ref-cyan);
+}
+.editorial-site .mk-stat-strip{
+  background:var(--ref-cyan);
+}
+.editorial-site .kz-apps{
+  background:var(--ref-soft);
 }
 
-/* One strong blue editorial moment before the darker footer. */
+/* Strong graphic closing block: black with lime/cyan accents. */
 .editorial-site :is(.kz-final-box,.mk-banner,.how-final){
-  background:var(--mp-blue-fantastic);
-  color:#FFFFFF;
+  background:var(--ref-black);
+  color:var(--ref-white);
 }
 .editorial-site :is(.kz-final-box,.mk-banner,.how-final) :is(h2,h3,p,.eyebrow){
-  color:#FFFFFF;
+  color:var(--ref-white);
 }
 .editorial-site :is(.kz-final-box,.mk-banner,.how-final) :is(.btn.primary,.mk-btn.primary){
-  background:var(--mp-burning-flame);
-  border-color:var(--mp-burning-flame);
-  color:var(--mp-abyssal);
+  background:var(--ref-lime);
+  border-color:var(--ref-lime);
+  color:var(--ref-black);
 }
 .editorial-site :is(.kz-final-box,.mk-banner,.how-final) :is(.btn.primary,.mk-btn.primary):hover{
-  background:var(--mp-truffle-trouble);
-  border-color:var(--mp-truffle-trouble);
-  color:#FFFFFF;
+  background:var(--ref-cyan);
+  border-color:var(--ref-cyan);
+  color:var(--ref-black);
 }
 
-/* Deep footer anchor. */
+/* Footer stays graphically neutral and high-contrast. */
 .editorial-site .footer{
-  background:var(--mp-abyssal);
-  color:#FFFFFF;
-  border-top-color:rgba(238,233,223,.24);
+  background:var(--ref-black);
+  color:var(--ref-white);
+  border-top-color:rgba(255,255,255,.22);
 }
 .editorial-site .footer-bottom{
-  border-top-color:rgba(238,233,223,.24);
+  border-top-color:rgba(255,255,255,.22);
 }
 
-/* Small highlight details. */
+/* Selected editorial details use the two bright colors sparingly. */
 .editorial-site .mk-flow-step .num,
 .editorial-site .how-flow-number{
-  color:var(--mp-truffle-trouble);
+  color:var(--ref-black);
 }
-.editorial-site .kz-price-big{
-  color:var(--mp-abyssal);
+.editorial-site .mk-flow-step:nth-child(odd) .num,
+.editorial-site .how-flow-card:nth-child(odd) .how-flow-number{
+  background:var(--ref-lime);
+  display:inline-flex;
+  width:max-content;
+  padding:.08em .18em;
 }
 .editorial-site .price.popular{
-  border-top-color:var(--mp-truffle-trouble);
+  border-top-color:var(--ref-black);
+  background:var(--ref-cyan);
 }
 .editorial-site .site-backtop{
-  background:var(--mp-burning-flame);
-  color:var(--mp-abyssal);
+  background:var(--ref-lime);
+  color:var(--ref-black);
+  border-color:var(--ref-black);
+}
+.editorial-site :focus-visible{
+  outline-color:var(--ref-lime);
+}
+.editorial-site :is(input,select,textarea){
+  border-color:#A8A8A3;
 }
