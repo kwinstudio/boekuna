@@ -2,9 +2,9 @@
 @font-face{font-family:Inter;src:url('/assets/marketing-editorial/InterVariable.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap}
 /* URBANIST_ASSET_PENDING — official target is Urbanist 400/500/600; keep local Inter until the licensed font asset is vendored. */
 :root{
- --boekuna-lime:#E7FE55;--boekuna-cyan:#BFE7EC;--boekuna-white:#FFFFFF;--boekuna-black:#111111;--boekuna-soft:#F6F6F3;
- --brand-primary:var(--boekuna-black);--brand-primary-hover:#2B2B2B;--brand-primary-active:#000000;--brand-primary-soft:var(--boekuna-lime);--brand-secondary:var(--boekuna-cyan);
- --bg-canvas:var(--boekuna-white);--bg-surface:var(--boekuna-white);--bg-surface-secondary:var(--boekuna-soft);--text-primary:var(--boekuna-black);--text-secondary:#3A3A3A;--text-muted:#666666;--text-inverse:var(--boekuna-white);
+ --boekuna-amber:#FF9F1C;--boekuna-honey:#FFBF69;--boekuna-frozen:#CBF3F0;--boekuna-sea:#2EC4B6;--boekuna-white:#FFFFFF;--boekuna-black:#111111;--boekuna-soft:#F6F6F3;
+ --brand-primary:var(--boekuna-black);--brand-primary-hover:#2B2B2B;--brand-primary-active:#000000;--brand-primary-soft:var(--boekuna-frozen);--brand-secondary:var(--boekuna-sea);
+ --bg-canvas:var(--boekuna-white);--bg-surface:var(--boekuna-white);--bg-surface-secondary:var(--boekuna-frozen);--text-primary:var(--boekuna-black);--text-secondary:#3A3A3A;--text-muted:#666666;--text-inverse:var(--boekuna-white);
  --border-default:#E5E5E2;--border-strong:#A8A8A3;--divider:#E5E5E2;--radius-sm:4px;--radius-md:4px;--radius-lg:0;--radius-xl:0;--shadow-sm:none;--shadow-md:none;
  --ed-max:1440px;--ed-gutter:clamp(20px,4.8vw,80px);--ed-space:clamp(64px,7.2vw,112px);--ed-gap:clamp(24px,4vw,64px);--ed-line:#E5E5E2;--ed-ink:var(--boekuna-black);--ed-paper:var(--boekuna-white);
  --ed-small:14px;--ed-body:clamp(16px,1.4vw,19px);--ed-h1:clamp(56px,7vw,96px);--ed-h2:clamp(34px,4vw,56px);--ed-h3:clamp(26px,2.2vw,34px);
@@ -336,18 +336,18 @@
   background:var(--boekuna-white);
 }
 
-/* Lime is reserved for primary emphasis and focus. */
+/* Amber is reserved for primary conversion emphasis; focus remains contrast-safe black/white. */
 .editorial-site :is(.btn.primary,.mk-btn.primary,.btn.dark),
 .editorial-site .nav-actions .btn:first-child{
-  background:var(--boekuna-lime);
+  background:var(--boekuna-amber);
   border-color:var(--boekuna-black);
   color:var(--boekuna-black);
 }
 .editorial-site :is(.btn.primary,.mk-btn.primary,.btn.dark):hover,
 .editorial-site .nav-actions .btn:first-child:hover{
-  background:var(--boekuna-black);
+  background:var(--boekuna-honey);
   border-color:var(--boekuna-black);
-  color:var(--boekuna-white);
+  color:var(--boekuna-black);
 }
 .editorial-site :is(.btn,.mk-btn):not(.primary):not(.dark){
   background:transparent;
@@ -355,29 +355,29 @@
   color:var(--boekuna-black);
 }
 .editorial-site :is(.btn,.mk-btn):not(.primary):not(.dark):hover{
-  background:var(--boekuna-cyan);
+  background:var(--boekuna-frozen);
   color:var(--boekuna-black);
 }
 .editorial-site :focus-visible{outline:3px solid var(--boekuna-black)!important;outline-offset:5px!important}
 
-/* Cyan remains secondary and limited to quiet supporting bands/states. */
+/* Frozen Water is the main secondary surface; Sea Green stays a smaller supporting accent. */
 .editorial-site .kz-trust-strip,
 .editorial-site .mk-stat-strip{
-  background:var(--boekuna-cyan);
+  background:var(--boekuna-frozen);
 }
 .editorial-site .kz-apps{background:var(--boekuna-soft)}
 .editorial-site .price.popular{
-  border-top-color:var(--boekuna-black);
-  background:var(--boekuna-cyan);
+  border-top-color:var(--boekuna-sea);
+  background:var(--boekuna-frozen);
 }
 
-/* Workflow numbers use a compact lime marker rather than lime-filled cards. */
+/* Workflow numbers use compact Amber markers rather than Amber-filled cards. */
 .editorial-site .mk-flow-step .num,
 .editorial-site .how-flow-number{
   display:inline-flex;
   width:max-content;
   padding:.08em .18em;
-  background:var(--boekuna-lime);
+  background:var(--boekuna-amber);
   color:var(--boekuna-black);
 }
 
@@ -391,13 +391,13 @@
   color:var(--boekuna-white);
 }
 .editorial-site :is(.kz-final-box,.mk-banner,.how-final) :is(.btn.primary,.mk-btn.primary){
-  background:var(--boekuna-lime);
-  border-color:var(--boekuna-lime);
+  background:var(--boekuna-amber);
+  border-color:var(--boekuna-amber);
   color:var(--boekuna-black);
 }
 .editorial-site :is(.kz-final-box,.mk-banner,.how-final) :is(.btn.primary,.mk-btn.primary):hover{
-  background:var(--boekuna-cyan);
-  border-color:var(--boekuna-cyan);
+  background:var(--boekuna-honey);
+  border-color:var(--boekuna-honey);
   color:var(--boekuna-black);
 }
 /* Contrast-safe keyboard focus: near-black on light surfaces, white on near-black surfaces. */
@@ -408,35 +408,35 @@
 .editorial-site .footer,
 .editorial-site .footer-bottom{border-top-color:rgba(255,255,255,.22)}
 .editorial-site .site-backtop{
-  background:var(--boekuna-lime);
+  background:var(--boekuna-amber);
   color:var(--boekuna-black);
   border-color:var(--boekuna-black);
 }
 .editorial-site :is(input,select,textarea){border-color:#A8A8A3}
 
 /* Legacy marketing markup uses <b> for numbered flow labels. Keep those
-   labels as compact lime markers with accessible near-black text. */
+   labels as compact Amber markers with accessible near-black text. */
 .editorial-site .mk-flow-step > b{
   display:inline-flex;
   width:max-content;
   padding:.08em .18em;
   margin-bottom:20px;
-  background:var(--boekuna-lime);
+  background:var(--boekuna-amber);
   color:var(--boekuna-black);
   font-size:14px;
   font-weight:600;
   letter-spacing:.04em;
 }
 
-/* Higher-specificity legacy dark-card icon rules must not produce white on cyan. */
+/* Higher-specificity legacy dark-card icon rules must keep dark text on light brand surfaces. */
 .editorial-site .mk-card.dark .mk-card-icon{
   background:transparent;
   color:var(--boekuna-black);
 }
 
-/* Selected pricing data may use cyan as a surface, never as low-contrast text. */
+/* Selected pricing data may use Sea Green as a surface, always with near-black text. */
 .editorial-site .plan-highlight{
-  background:var(--boekuna-cyan);
+  background:var(--boekuna-sea);
   color:var(--boekuna-black);
   font-weight:600;
 }
@@ -445,4 +445,26 @@
    Fit the long Dutch word by scaling the subpage heading, not by breaking it. */
 @media(max-width:359px){
   .editorial-site :is(.mk-hero,.how-hero,.page-hero) h1{font-size:36px}
+}
+
+
+/* BOEKUNA 60/30/10 marketing palette contract.
+   White is dominant; Frozen Water is the main secondary surface;
+   Amber is the primary conversion accent. Sea Green and Honey Bronze
+   stay deliberately smaller supporting accents. */
+.editorial-site .kz-tab.active,
+.editorial-site .kz-compare-switch button.active{
+  border-bottom-color:var(--boekuna-sea);
+  color:var(--boekuna-black);
+}
+.editorial-site .kz-preview-link,
+.editorial-site :is(.kz-solution>a,.ed-card-body a,.mk-card a,.how-inline-link,.how-use-grid a){
+  color:var(--boekuna-black);
+  text-decoration-color:var(--boekuna-sea);
+}
+.editorial-site .kz-preview-link:hover,
+.editorial-site :is(.kz-solution>a,.ed-card-body a,.mk-card a,.how-inline-link,.how-use-grid a):hover{
+  text-decoration:underline;
+  text-decoration-color:var(--boekuna-sea);
+  text-underline-offset:5px;
 }
