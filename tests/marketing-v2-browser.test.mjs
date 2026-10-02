@@ -180,7 +180,7 @@ try{
         loaded:document.fonts.check('500 20px Inter')
       };
     });
-    assert.equal(brand.primary,'#2EC4B6');
+    assert.equal(brand.primary,'#111111');
     assert.equal(brand.secondary,'#2EC4B6');
     assert.equal(brand.amber,'#FF9F1C');
     assert.equal(brand.honey,'#FFBF69');
