@@ -47,7 +47,7 @@ function sharedHeader(){
               <small>Dagelijks</small>
               <a href="/facturen/"><strong>Facturen</strong><span>Maken, versturen en volgen</span></a>
               <a href="/scanner/"><strong>Documenten</strong><span>Uploaden, herkennen en controleren</span></a>
-              <a href="/functies/#relaties"><strong>Relaties</strong><span>Klanten en leveranciers bij elkaar</span></a>
+              <a href="/functies/"><strong>Relaties</strong><span>Klanten en leveranciers bij elkaar</span></a>
             </div>
             <div class="nav-menu-column">
               <small>Inzicht</small>
@@ -101,7 +101,7 @@ function sharedHeader(){
         <div class="mobile-sub">
           <a href="/facturen/">Facturen</a>
           <a href="/scanner/">Documenten</a>
-          <a href="/functies/#relaties">Relaties</a>
+          <a href="/functies/">Relaties</a>
           <a href="/btw-bank/">Btw & bank</a>
           <a href="/rapportages/">Rapportages</a>
           <a href="/functies/">Alle functies</a>
