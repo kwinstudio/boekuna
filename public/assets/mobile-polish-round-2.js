@@ -154,13 +154,17 @@
       var cell=cells[cells.length-1];
       if(!cell)return;
       cell.classList.add('row-action-anchor');
+      var persistentReview=cell.querySelector('button[onclick*="openPersistentDocumentReview"]');
       var eligibility=documentDeleteEligibility(d);
       var items=[];
       if(d.verification)items.push({label:'Controle',action:function(){openDocumentVerification(d.id)}});
       items.push({label:'Bekijken',disabled:!d.fileId,reason:d.fileId?'':'Geen opgeslagen bestand beschikbaar.',action:function(){openDocumentPreview(d.id)}});
       items.push({label:'Bestandsnaam bewerken',action:function(){openDocumentRename(d.id)}});
       items.push({label:'Verwijderen',danger:true,disabled:!eligibility.allowed,reason:eligibility.reason,action:function(){requestDocumentDelete(d.id)}});
-      cell.replaceChildren(moreButton('Documentacties voor '+(d.name||'document'),items));
+      var menuButton=moreButton('Documentacties voor '+(d.name||'document'),items);
+      cell.replaceChildren();
+      if(persistentReview){cell.appendChild(persistentReview);cell.appendChild(document.createTextNode(' '))}
+      cell.appendChild(menuButton);
     });
   }
 
