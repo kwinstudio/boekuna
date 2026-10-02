@@ -10,19 +10,32 @@ BOEKUNA uses a white-first editorial system: calm, premium, minimal and digital.
 
 | Role | Token | Value |
 | --- | --- | --- |
-| Primary emphasis | `--boekuna-lime` | `#E7FE55` |
-| Secondary support | `--boekuna-cyan` | `#BFE7EC` |
+| Primary conversion accent | `--boekuna-amber` | `#FF9F1C` |
+| Warm support / hover | `--boekuna-honey` | `#FFBF69` |
+| Main secondary surface | `--boekuna-frozen` | `#CBF3F0` |
+| Strong secondary accent | `--boekuna-sea` | `#2EC4B6` |
 | Canvas / surfaces | `--boekuna-white` | `#FFFFFF` |
 | Typography / strong surfaces | `--boekuna-black` | `#111111` |
 | Quiet separator | `--boekuna-soft` | `#F6F6F3` |
 
-Hierarchy:
-- White is the dominant canvas (target roughly 70–80%).
-- Near-black is the default typography, rule and footer color.
-- Lime is reserved for primary CTA, focus and small high-attention markers.
-- Cyan is secondary and used for quiet supporting bands or selected states.
-- Do not use lime or cyan as normal body text.
+## 60 / 30 / 10 color contract
+
+The ratio is a visual hierarchy rather than a mathematical pixel quota.
+
+- **60%+ dominant:** White `#FFFFFF` for the hero, navigation, content canvas, forms, FAQ, legal and most reading surfaces.
+- **~30% secondary family:** Frozen Water `#CBF3F0` is the main supporting surface; Light Sea Green `#2EC4B6` is a smaller selected-state/rule accent.
+- **~10% accent family:** Amber Glow `#FF9F1C` is the primary CTA/high-attention color; Honey Bronze `#FFBF69` is a softer warm hover/support accent.
+- Near-black `#111111` is a functional neutral for headings, body copy, borders, footer and accessibility. It does not count as a competing brand accent.
+- Keep each viewport visually limited to roughly 2–3 dominant colors at once.
+- Do not use Amber, Honey, Frozen Water or Sea Green as ordinary body text on white.
 - No gradients, glow, glassmorphism, decorative photos, screenshots, fake UI or device mockups.
+
+Contrast guidance with near-black text:
+- Amber Glow / `#111111`: about 9.2:1.
+- Honey Bronze / `#111111`: about 11.6:1.
+- Frozen Water / `#111111`: about 15.8:1.
+- Light Sea Green / `#111111`: about 8.7:1.
+- Do not use white body text on these brand colors; their contrast against white is insufficient for normal text.
 
 ## Typography
 
@@ -56,13 +69,15 @@ Use compact but readable line-height and moderate negative tracking. Avoid 800/9
 ## Composition and color rules
 
 - Header and mobile menu remain white with near-black text.
-- Primary CTA: lime background, near-black text/border; hover becomes near-black with white text.
-- Secondary CTA: white/transparent, near-black border/text; hover may use soft cyan.
-- Trust/stat support bands may use soft cyan.
-- Workflow step numbers may use compact lime markers; do not fill whole cards lime.
-- Recommended pricing treatment may use cyan; lime stays limited to CTA/small accents.
-- Closing CTA and footer use near-black with white text; lime is a small emphasis only.
-- Forms remain white with neutral borders; focus uses lime. Existing semantic success/error colors may remain for accessibility.
+- Primary CTA: Amber Glow background with near-black text/border; hover may use Honey Bronze while retaining near-black text.
+- Secondary CTA: white/transparent with near-black border/text; hover may use Frozen Water.
+- Trust/stat support bands use Frozen Water as the main secondary surface.
+- Light Sea Green is reserved for smaller selected states, rules and compact accents, not long-form text.
+- Workflow step numbers may use compact Amber markers; do not fill whole cards Amber.
+- Recommended pricing treatment may use Frozen Water with a Sea Green rule/accent.
+- Closing CTA and footer use near-black with white text; Amber is a small emphasis only.
+- Forms remain white with neutral borders. Keyboard focus stays near-black on light surfaces and white on dark surfaces; brand color alone must never be the focus indicator.
+- Existing semantic success/error colors may remain when required for meaning and accessibility.
 
 ## Responsive and accessibility contract
 
@@ -76,7 +91,10 @@ Required:
 - visible keyboard focus;
 - reduced motion respected;
 - no blocking Axe violations;
-- lime never used as ordinary text on white.
+- normal text contrast of at least 4.5:1;
+- UI/focus contrast of at least 3:1 against the adjacent surface;
+- color is never the only status/validation indicator;
+- Amber, Honey, Frozen Water and Sea Green are never used as ordinary body text on white.
 
 ## Maintenance boundaries
 
