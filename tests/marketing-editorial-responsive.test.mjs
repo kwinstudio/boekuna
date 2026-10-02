@@ -81,9 +81,8 @@ try{
     }
     assert.equal(await page.locator('img[src*="/assets/product/"],source[srcset*="/assets/product/"]').count(),0,`Product screenshots must be absent at ${width}px`);
     assert.equal(await page.locator('picture').count(),0,`Content picture elements must be absent at ${width}px`);
-    assert.equal(await page.locator('.photo-slot').count(),3,`Three reusable photo slots must remain present at ${width}px`);
-    assert.equal(await page.locator('.photo-slot img').count(),1,`Only the original hero placeholder may render an image at ${width}px`);
-    const heroMedia=page.locator('.photo-slot--hero img');
+    assert.equal(await page.locator('.parity-hero-media img').count(),1,`Homepage must render one first-party hero image at ${width}px`);
+    const heroMedia=page.locator('.parity-hero-media img');
     assert.equal(await heroMedia.getAttribute('src'),'/assets/boekuna-editorial-workspace-placeholder.svg',`Original hero media missing at ${width}px`);
     assert.equal(await heroMedia.getAttribute('width'),'1200',`Hero intrinsic width missing at ${width}px`);
     assert.equal(await heroMedia.getAttribute('height'),'1500',`Hero intrinsic height missing at ${width}px`);
@@ -92,10 +91,10 @@ try{
     assert.deepEqual(errors,[],`Homepage page errors at ${width}px: ${errors.join(' | ')}`);
     const palette=await page.evaluate(()=>({
       body:getComputedStyle(document.body).backgroundColor,
-      hero:getComputedStyle(document.querySelector('.kz-hero h1 span')).color,
-      ctaBg:getComputedStyle(document.querySelector('.kz-hero-actions .mk-btn.primary')).backgroundColor,
-      ctaText:getComputedStyle(document.querySelector('.kz-hero-actions .mk-btn.primary')).color,
-      trust:getComputedStyle(document.querySelector('.kz-trust-strip')).backgroundColor,
+      hero:getComputedStyle(document.querySelector('.parity-hero h1')).color,
+      ctaBg:getComputedStyle(document.querySelector('.parity-btn--primary')).backgroundColor,
+      ctaText:getComputedStyle(document.querySelector('.parity-btn--primary')).color,
+      trust:getComputedStyle(document.querySelector('.parity-value')).backgroundColor,
       footer:getComputedStyle(document.querySelector('.footer')).backgroundColor
     }));
     assert.equal(palette.body,'rgb(255, 255, 255)',`White canvas missing at ${width}px`);
@@ -117,8 +116,8 @@ try{
     await menuPage.locator('.mobile-toggle').click();
     const metrics=await menuPage.locator('#mobileMenu>details>summary').evaluateAll(nodes=>nodes.map(el=>{const s=getComputedStyle(el);return {fontSize:s.fontSize,fontWeight:s.fontWeight,lineHeight:s.lineHeight,padding:s.padding,borderTop:s.borderTopWidth,borderBottom:s.borderBottomWidth}}));
     assert.equal(metrics.length,3,'Mobile menu must expose three primary groups');
-    assert.deepEqual(metrics[1],metrics[0],'Voor ondernemers must match Oplossingen typography');
-    assert.deepEqual(metrics[2],metrics[0],'Resources must match Oplossingen typography');
+    assert.deepEqual(metrics[1],metrics[0],'Voor wie must match Product typography');
+    assert.deepEqual(metrics[2],metrics[0],'Ondersteuning must match Product typography');
     await menuPage.screenshot({path:path.join(root,'tests','artifacts',`image-free-menu-${width}.png`),fullPage:true});
     await menuPage.close();
   }
@@ -141,13 +140,13 @@ try{
 
   const page=await browser.newPage({viewport:{width:1440,height:960},reducedMotion:'reduce'});
   await page.goto(base+'/',{waitUntil:'domcontentloaded'});
-  const docsTab=page.locator('[data-kz-tab="documenten"]');
-  await docsTab.focus();
+  assert.equal(await page.locator('[data-home-section]').count(),15,'Homepage must expose all fifteen parity sections');
+  const demoControl=page.locator('[data-demo-step="check"]');
+  await demoControl.focus();
   await page.keyboard.press('Enter');
-  await page.waitForFunction(()=>document.getElementById('kzProductCaption')?.textContent?.includes('Documenten'));
-  assert.equal(await docsTab.getAttribute('aria-pressed'),'true','Keyboard activation must update active product tab');
-  assert.equal(await page.locator('#kzPreviewLink').getAttribute('href'),'/scanner/','Image-free product tab must retain its destination');
-  assert.equal(await page.locator('#kzProductImage').count(),0,'Image-free product panel must not recreate a screenshot element');
+  assert.equal(await demoControl.getAttribute('aria-pressed'),'true','Keyboard activation must update active demo step');
+  assert.equal(await page.locator('#boekunaDemoStage').getAttribute('data-demo-state'),'check','Guided demo stage follows the selected step');
+  assert.ok((await page.locator('#demoTitle').textContent()).includes('laatste woord'),'Guided demo copy follows the selected step');
   await page.close();
 
   console.log('Marketing responsive QA: PASS (320, 360, 375, 390, 393, 430, 620, 768, 1024, 1280, 1440, 1920 + calm BOEKUNA palette + keyboard controls)');
