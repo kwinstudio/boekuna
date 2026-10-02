@@ -3198,7 +3198,7 @@ function navigateWithFilter(target,key,value){
 }
 function dashboardAttentionItems(){
  const items=[],overdue=state.invoices.filter(i=>invoiceEffectiveStatus(i)==='overdue'),unmatched=state.transactions.filter(t=>t.status==='unmatched');
- const jobs=(documentProcessingJobs||[]).filter(j=>['review_required','failed'].includes(String(j.state||''))),jobRefs=new Set(jobs.map(j=>String(j.client_ref||'')).filter(Boolean)),localReview=state.documents.filter(d=>d?.verification?.status==='needs_review'&&!jobRefs.has(String(d.fileId||''))),failed=jobs.filter(j=>String(j.state||'')==='failed'),review=jobs.filter(j=>String(j.state||'')==='review_required'),health=dataHealthIssues(),upcoming=state.bookings.filter(b=>['planned','confirmed'].includes(b.status)&&daysUntil(b.date)>=0&&daysUntil(b.date)<=2&&!b.reminderSent);
+ const jobs=(documentProcessingJobs||[]).filter(j=>(persistentDocumentNeedsReview(j)||j.state==='failed')),jobRefs=new Set(jobs.map(j=>String(j.client_ref||'')).filter(Boolean)),localReview=state.documents.filter(d=>d?.verification?.status==='needs_review'&&!jobRefs.has(String(d.fileId||''))),failed=jobs.filter(j=>String(j.state||'')==='failed'),review=jobs.filter(persistentDocumentNeedsReview),health=dataHealthIssues(),upcoming=state.bookings.filter(b=>['planned','confirmed'].includes(b.status)&&daysUntil(b.date)>=0&&daysUntil(b.date)<=2&&!b.reminderSent);
  const additional=attentionRows().filter(row=>row.category==='contacts');if(additional.length)items.push({key:'contacts',priority:3,tone:'review',icon:'✓',title:additional.length+' klanten aanvullen',detail:'Gegevens ontbreken',action:()=>openAttentionCategory('contacts')});
  if(overdue.length)items.push({key:'overdue',priority:1,tone:'urgent',icon:'!',title:overdue.length===1?'Factuur '+overdue[0].number+' vervallen':overdue.length+' facturen vervallen',detail:overdue.length===1?money(invoiceOutstanding(overdue[0]))+' open':'Betalingen opvolgen',action:()=>openDashboardAttention('overdue',overdue.length===1?overdue[0].id:'')});
  if(attentionRows().some(row=>row.category==='documents')){const total=attentionRows().filter(row=>row.category==='documents').length;items.push({key:'documents',priority:failed.length?1:2,tone:failed.length?'urgent':'review',icon:failed.length?'!':'✓',title:total===1?'1 document controleren':total+' documenten controleren',detail:failed.length?(failed.length+' mislukt'):'Controle nodig',action:()=>openDashboardAttention('documents',total===1?(failed[0]?.id||review[0]?.id||localReview[0]?.id||''):'')})}
@@ -3330,8 +3330,8 @@ function attentionRows(){
  const rows=[],add=(key,category,title,detail,action,label)=>rows.push({key,category,title,detail,action,label});
  state.invoices.filter(i=>invoiceEffectiveStatus(i)==='overdue').forEach(i=>add('invoice-'+i.id,'overdue',i.number+' · '+getContact(i.customerId).name,money(invoiceOutstanding(i))+' open · vervallen '+dateNL(i.dueDate),()=>viewInvoice(i.id),'Bekijk'));
  state.transactions.filter(t=>t.status==='unmatched').forEach(t=>add('bank-'+t.id,'bank',t.description,dateNL(t.date)+' · '+money(t.amount)+' · nog niet gekoppeld',()=>openBankAttention(t.id),'Koppelen'));
- const jobs=(documentProcessingJobs||[]).filter(j=>['failed','review_required'].includes(j.state)),refs=new Set(jobs.map(j=>String(j.client_ref||'')));
- jobs.forEach(j=>add('job-'+j.id,'documents',persistentDocumentName(j),j.state==='failed'?'Verwerking mislukt · opnieuw proberen of ander bestand kiezen':'Controleer de herkende gegevens',()=>j.state==='review_required'?openPersistentDocumentReview(j.id):openFailedDocumentAttention(j.id),'Open'));
+ const jobs=(documentProcessingJobs||[]).filter(j=>(persistentDocumentNeedsReview(j)||j.state==='failed')),refs=new Set(jobs.map(j=>String(j.client_ref||'')));
+ jobs.forEach(j=>add('job-'+j.id,'documents',persistentDocumentName(j),j.state==='failed'?'Verwerking mislukt · opnieuw proberen of ander bestand kiezen':'Controleer de herkende gegevens',()=>persistentDocumentNeedsReview(j)?openPersistentDocumentReview(j.id):openFailedDocumentAttention(j.id),'Open'));
  state.documents.filter(d=>!refs.has(String(d.fileId||''))&&(d.verification?.status==='needs_review'||(!d.linkedId&&d.type==='Upload'))).forEach(d=>add('document-'+d.id,'documents',d.name,d.verification?.status==='needs_review'?'Controleer de herkende gegevens':'Nog niet aan een boeking gekoppeld',()=>d.verification?.status==='needs_review'?openDocumentVerification(d.id):openDocumentLinkResolution(d.id),'Controleren'));
  state.bookings.filter(b=>['planned','confirmed'].includes(b.status)&&daysUntil(b.date)>=0&&daysUntil(b.date)<=2&&!b.reminderSent).forEach(b=>add('booking-'+b.id,'bookings',b.title||b.description||b.service||'Afspraak',dateNL(b.date)+' · herinnering nog niet verstuurd',()=>openBookingAttention(b.id),'Open'));
  state.contacts.filter(c=>c.type==='customer'&&(!c.email||!c.address||!c.postal||!c.city)).forEach(c=>add('contact-'+c.id,'contacts',c.name,'Klantgegevens aanvullen',()=>editContact(c.id),'Aanvullen'));
@@ -3529,7 +3529,7 @@ function removePersistentDocumentByJob(jobId){
 }
 function renderDocuments(){
   const list=getListRows('documents');
-  return `<div class="page-head"><div><h1>Documenten</h1></div><div class="page-actions"><button class="btn primary" onclick="openDocumentUpload()">${icon('i-upload')} Uploaden</button></div><input class="hidden" type="file" id="docFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"><input class="hidden" type="file" id="archiveFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"></div>${renderDocumentProcessingBoard()}<div class="documents-toolbar">${listToolbar('documents')}</div><div class="card documents-workspace"><button type="button" class="dropzone premium-dropzone" onclick="document.getElementById('docFile').click()">${icon('i-upload')}<strong>Sleep document hierheen</strong><span>of kies bestand</span></button><div class="divider"></div><div class="section-head"><div><h2>Bestanden · ${list.length}${list.length!==state.documents.length?' van '+state.documents.length:''}</h2></div></div><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-documents"><thead><tr><th>Naam</th><th>Type</th><th>Datum</th><th>Gekoppeld aan</th><th>Status</th><th></th></tr></thead><tbody>${list.length?list.map(d=>{const link=listLinkedDocumentInfo(d);return `<tr><td><strong>${esc(d.name)}</strong></td><td>${esc(d.type)}</td><td>${dateNL(d.date)}</td><td>${d.linkedId?esc([link.party,link.number].filter(Boolean).join(' · ')||'Gekoppeld'):'—'}</td><td>${documentVerificationBadge(d)}</td><td class="right financial-actions">${d.verification?`<button class="link-btn" onclick="openDocumentVerification('${d.id}')">Controle</button> `:''}${d.fileId?`<button class="icon-btn" aria-label="Document openen" title="Document openen" onclick="openStoredDocument('${d.fileId}')">${icon('i-eye')}</button>`:'—'} ${documentDeleteActionHtml(d)}</td></tr>`}).join(''):`<tr><td colspan="6">${listEmptyHtml('documents')}</td></tr>`}</tbody></table></div></div>`
+  return `<div class="page-head"><div><h1>Documenten</h1></div><div class="page-actions"><button class="btn primary" onclick="openDocumentUpload()">${icon('i-upload')} Uploaden</button></div><input class="hidden" type="file" id="docFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"><input class="hidden" type="file" id="archiveFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"></div>${renderDocumentProcessingBoard()}<div class="documents-toolbar">${listToolbar('documents')}</div><div class="card documents-workspace"><button type="button" class="dropzone premium-dropzone" onclick="document.getElementById('docFile').click()">${icon('i-upload')}<strong>Sleep document hierheen</strong><span>of kies bestand</span></button><div class="divider"></div><div class="section-head"><div><h2>Bestanden · ${list.length}${list.length!==state.documents.length?' van '+state.documents.length:''}</h2></div></div><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-documents"><thead><tr><th>Naam</th><th>Type</th><th>Datum</th><th>Gekoppeld aan</th><th>Status</th><th></th></tr></thead><tbody>${list.length?list.map(d=>{const link=listLinkedDocumentInfo(d);return `<tr><td><strong>${esc(d.name)}</strong></td><td>${esc(d.type)}</td><td>${dateNL(d.date)}</td><td>${d.linkedId?esc([link.party,link.number].filter(Boolean).join(' · ')||'Gekoppeld'):'—'}</td><td>${documentVerificationBadge(d)}</td><td class="right financial-actions">${persistentDocumentReviewActionForFile(d)}${d.verification?`<button class="link-btn" onclick="openDocumentVerification('${d.id}')">Controle</button> `:''}${d.fileId?`<button class="icon-btn" aria-label="Document openen" title="Document openen" onclick="openStoredDocument('${d.fileId}')">${icon('i-eye')}</button>`:'—'} ${documentDeleteActionHtml(d)}</td></tr>`}).join(''):`<tr><td colspan="6">${listEmptyHtml('documents')}</td></tr>`}</tbody></table></div></div>`
 }
 function profileCompleteness(){const c=state.company||{},fields=[c.name,c.tradeName,c.kvk,c.vat,c.address,c.postal,c.city,c.email,c.phone,c.website,c.iban,c.bankAccountName,c.invoicePrefix];return Math.round(fields.filter(Boolean).length/fields.length*100)}
 function renderProfile(){
@@ -4160,6 +4160,17 @@ let documentProcessingJobs=[],documentProcessingChannel=null,documentProcessingP
 let documentProcessingLastSummary={active:0,attention:0,terminal:0},documentReplacementProgress=new Map();
 
 function persistentDocumentIsTerminal(job){return PERSISTENT_DOCUMENT_TERMINAL.has(String(job?.state||''))}
+function persistentDocumentNeedsReview(job){
+ if(job?.state==='review_required')return true;
+ if(job?.state!=='ready'||job.resolved_at)return false;
+ const type=String(job?.result?.analysis?.documentType||'');
+ if(!['purchase_invoice','sales_invoice','sale_invoice','credit_invoice','receipt','invoice'].includes(type))return false;
+ return !state.documents.some(d=>String(d.fileId||'')===String(job.client_ref||'')&&d.linkedId)
+}
+function persistentDocumentReviewActionForFile(d){
+ const job=documentProcessingJobs.find(j=>String(j.client_ref||'')===String(d.fileId||'')&&persistentDocumentNeedsReview(j));
+ return job?'<button class="link-btn" onclick="openPersistentDocumentReview('+esc(JSON.stringify(String(job.id)))+')">Controleren</button> ':''
+}
 function persistentDocumentJobStatus(job){
  const state=String(job?.state||'queued'),phase=String(job?.phase||'queued');
  if(state==='ready')return {label:'Klaar',detail:'De verwerking is afgerond.',icon:'✓'};
@@ -4196,14 +4207,14 @@ function persistentDocumentGlobalJobs(){
  if(activeBatches.size)return documentProcessingJobs.filter(j=>activeBatches.has(String(j.batch_id||'')));
  return []
 }
-function persistentDocumentAttentionCount(){return documentProcessingJobs.filter(j=>['review_required','failed'].includes(String(j.state||''))).length}
+function persistentDocumentAttentionCount(){return documentProcessingJobs.filter(j=>(persistentDocumentNeedsReview(j)||j.state==='failed')).length}
 function persistentDocumentStatusIcon(job){
  const st=persistentDocumentJobStatus(job);
  return st.icon==='spinner'?'<span class="document-status-spinner" aria-hidden="true"></span>':esc(st.icon)
 }
 function persistentDocumentActionHtml(job,compact=false){
  const id=esc(JSON.stringify(String(job.id))),state=String(job.state||'');
- if(state==='ready')return '<button class="btn small" onclick="openPersistentDocumentReview('+id+')">'+(compact?'Open':'Openen')+'</button>';
+ if(state==='ready')return '<button class="btn small'+(persistentDocumentNeedsReview(job)?' primary':'')+'" onclick="openPersistentDocumentReview('+id+')">'+(persistentDocumentNeedsReview(job)?'Controleren':compact?'Open':'Openen')+'</button>';
  const more='<button class="icon-btn" type="button" aria-label="Documentacties" aria-haspopup="dialog" onclick="openDocumentActions('+id+')">'+icon('i-more')+'</button>';
  if(state==='review_required')return '<button class="btn small primary" onclick="openPersistentDocumentReview('+id+')">Controleren</button>'+more;
  if(state==='failed')return (Number(job.attempt||0)<Number(job.max_attempts||3)?'<button class="btn small primary" onclick="retryPersistentDocument('+id+')">Opnieuw proberen</button>':'<span class="help">Geen pogingen meer</span>')+more;
@@ -4232,7 +4243,7 @@ function localUploadCardHtml(item){
 }
 function renderDocumentProcessingBoard(){
  const local=localPersistentProcessingItems();
- const activeBatches=persistentDocumentActiveBatchIds(),attention=documentProcessingJobs.filter(j=>['review_required','failed'].includes(String(j.state||''))),sessionBatch=documentProcessingSession?.persistent?String(documentProcessingSession.id||''):'';
+ const activeBatches=persistentDocumentActiveBatchIds(),attention=documentProcessingJobs.filter(j=>(persistentDocumentNeedsReview(j)||j.state==='failed')),sessionBatch=documentProcessingSession?.persistent?String(documentProcessingSession.id||''):'';
  let jobs=activeBatches.size?documentProcessingJobs.filter(j=>activeBatches.has(String(j.batch_id||''))):(sessionBatch?documentProcessingJobs.filter(j=>String(j.batch_id||'')===sessionBatch):attention.slice(0,20));
  if(!local.length&&!jobs.length)return '';
  jobs=[...jobs].sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
@@ -4347,7 +4358,7 @@ function renderGlobalDocumentIndicator(){
  if(mobileBadge){mobileBadge.textContent=attention?String(attention):'';mobileBadge.classList.toggle('hidden',!attention);mobileBadge.setAttribute('aria-label',attention?(attention+' document'+(attention===1?'':'en')+' vraagt aandacht'):'')}
 }
 function openGlobalDocumentProcessingPanel(){
- const global=persistentDocumentGlobalJobs(),attention=documentProcessingJobs.filter(j=>['review_required','failed'].includes(String(j.state||''))),jobs=global.length?global:attention.slice(0,12);
+ const global=persistentDocumentGlobalJobs(),attention=documentProcessingJobs.filter(j=>(persistentDocumentNeedsReview(j)||j.state==='failed')),jobs=global.length?global:attention.slice(0,12);
  const terminal=jobs.filter(persistentDocumentIsTerminal).length;
  modal('Documenten verwerken','<div class="document-processing-panel-summary"><strong>'+terminal+' van '+jobs.length+' afgerond</strong><br><span class="help">Je kunt doorwerken terwijl Boekuna de rest verwerkt.</span></div><div class="document-processing-list">'+(jobs.length?jobs.map(j=>persistentDocumentCardHtml(j,true)).join(''):'<div class="empty"><strong>Geen actieve documentverwerking</strong></div>')+'</div>','<button class="btn" onclick="closeModal()">Sluiten</button><button class="btn primary" onclick="closeModal();navigate(\'documents\')">Alles bekijken</button>',true)
 }
@@ -6355,9 +6366,9 @@ window.addEventListener('keydown',e=>{
  }
 })();
 </script>
+
+
 <script src="/assets/mobile-polish-round-2.js"></script>
-
-
 
 </body>
 </html>

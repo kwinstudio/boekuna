@@ -1,4 +1,4 @@
-import base64, csv, hashlib, io, json, logging, math, os, platform, re, secrets, tempfile, time
+import base64, ctypes, gc, csv, hashlib, io, json, logging, math, os, platform, re, secrets, tempfile, time
 from datetime import datetime, date
 from importlib.metadata import PackageNotFoundError, version as package_version
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
@@ -823,6 +823,22 @@ def best_vat_pair(rate: float, vals: list[float]) -> tuple[float|None,float|None
     return base,tax
 
 # ----------------------------- document extraction -----------------------------
+def release_document_memory() -> None:
+    """Release decoder/NumPy cycles and glibc's freed arenas between uploads.
+
+    Linux keeps large native allocations mapped after Pillow/ONNX frees them.
+    On the 512 MB service this retained memory can kill the next HEIC decode.
+    Other allocators/platforms safely keep their normal collection behavior.
+    """
+    fitz.TOOLS.store_shrink(100)
+    gc.collect()
+    try:
+        trim = getattr(ctypes.CDLL(None), "malloc_trim", None)
+        if trim is not None:
+            trim(0)
+    except (OSError, AttributeError):
+        pass
+
 def get_ocr_engine():
     global _OCR_ENGINE, _OCR_ENGINE_ERROR
     if _OCR_ENGINE is not None:
@@ -1024,82 +1040,89 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
         doc=fitz.open(stream=raw,filetype="pdf")
     except Exception as exc:
         raise BoekunaDocumentError("DOCUMENT_PDF_UNREADABLE",status=422,internal_code="PDF_OPEN_FAILED",internal_error=exc)
-    if doc.page_count>MAX_PDF_PAGES:
-        raise BoekunaDocumentError("INVALID_REQUEST",status=400,context={"max_pages":MAX_PDF_PAGES},internal_code="PDF_PAGE_LIMIT_EXCEEDED")
-    pages=[]; all_text=[]; layout=[]; tables=[]; ocr_pages=[]; warnings=[]; sparse_pages=[]
-    # pdfplumber is separate because its table finder is useful on vector PDFs
     plumber=None
-    try: plumber=pdfplumber.open(io.BytesIO(raw))
-    except Exception: plumber=None
-    ocr_engine=get_ocr_engine()
-    for idx in range(doc.page_count):
-        page=doc[idx]
-        words=page.get_text("words", sort=True)
-        blocks=page.get_text("blocks", sort=True)
-        text=page.get_text("text", sort=True) or ""
-        text=norm_text(text.replace("\r","\n")).replace(" \n","\n")
-        page_layout=[{"x0":round(w[0],1),"y0":round(w[1],1),"x1":round(w[2],1),"y1":round(w[3],1),"text":norm_text(w[4])} for w in words if norm_text(w[4])]
-        page_tables=[]
-        if plumber and idx<len(plumber.pages):
-            try:
-                for table in plumber.pages[idx].extract_tables() or []:
-                    clean=[[norm_text(c or "") for c in row] for row in table if row]
-                    if clean: page_tables.append(clean)
-            except Exception: pass
-        printable=len(re.sub(r"\s+","",text))
-        used_ocr=False; ocr_conf=None
-        sparse_text=printable < 180 or (len(words) < 35 and not page_tables)
-        if sparse_text:
-            sparse_pages.append(idx+1)
-            if not ocr_engine:
-                warnings.append(f"Pagina {idx+1} bevat weinig digitale tekst; OCR-engine is niet beschikbaar.")
-            else:
-                render_w=max(1,int(float(page.rect.width)*2.45))
-                render_h=max(1,int(float(page.rect.height)*2.45))
-                if render_w*render_h>MAX_IMAGE_PIXELS or max(render_w,render_h)>MAX_IMAGE_SIDE:
-                    raise BoekunaDocumentError(
-                        "DOCUMENT_TOO_LARGE",status=413,
-                        context={"max_image_pixels":MAX_IMAGE_PIXELS,"max_image_side":MAX_IMAGE_SIDE},
-                        internal_code="PDF_RASTER_DIMENSION_LIMIT",
-                    )
-                pix=page.get_pixmap(matrix=fitz.Matrix(2.45,2.45), alpha=False)
-                with Image.open(io.BytesIO(pix.tobytes("png"))) as decoded:
-                    img=decoded.convert("RGB")
-                prepared=prepare_ocr_image(img)
-                img.close()
+    try:
+        if doc.page_count>MAX_PDF_PAGES:
+            raise BoekunaDocumentError("INVALID_REQUEST",status=400,context={"max_pages":MAX_PDF_PAGES},internal_code="PDF_PAGE_LIMIT_EXCEEDED")
+        pages=[]; all_text=[]; layout=[]; tables=[]; ocr_pages=[]; warnings=[]; sparse_pages=[]
+        # pdfplumber is separate because its table finder is useful on vector PDFs
+        try: plumber=pdfplumber.open(io.BytesIO(raw))
+        except Exception: plumber=None
+        ocr_engine=get_ocr_engine()
+        for idx in range(doc.page_count):
+            page=doc[idx]
+            words=page.get_text("words", sort=True)
+            blocks=page.get_text("blocks", sort=True)
+            text=page.get_text("text", sort=True) or ""
+            text=norm_text(text.replace("\r","\n")).replace(" \n","\n")
+            page_layout=[{"x0":round(w[0],1),"y0":round(w[1],1),"x1":round(w[2],1),"y1":round(w[3],1),"text":norm_text(w[4])} for w in words if norm_text(w[4])]
+            page_tables=[]
+            if words and plumber and idx<len(plumber.pages):
                 try:
-                    best=run_best_ocr(prepared,already_prepared=True)
-                    ocr_text=best["text"]
-                    ocr_printable=len(re.sub(r"\s+","",ocr_text))
-                    if ocr_printable > max(printable + 30, int(printable * 1.12)):
-                        text=ocr_text
-                        used_ocr=True
-                    elif ocr_printable >= 120 and printable < 260:
-                        text=(text+"\n--- OCR LAYER ---\n"+ocr_text).strip()
-                        used_ocr=True
-                    if used_ocr:
-                        ocr_conf=best.get("confidence")
-                        ocr_pages.append(idx+1)
-                    elif printable < 40:
-                        warnings.append(f"Pagina {idx+1} kon niet betrouwbaar met OCR worden gelezen.")
-                except Exception as exc:
-                    logger.warning("pdf_ocr_failed page=%d error_type=%s", idx+1, type(exc).__name__)
-                    warnings.append(f"Pagina {idx+1} kon niet met OCR worden verwerkt.")
-                finally:
-                    prepared.close()
-        pages.append({"page":idx+1,"text":text,"charCount":len(text),"ocr":used_ocr,"ocrConfidence":ocr_conf,"tables":page_tables})
-        all_text.append(f"--- PAGE {idx+1} ---\n{text}")
-        layout.append({"page":idx+1,"words":page_layout[:2500]})
-        if page_tables: tables.extend([{"page":idx+1,"rows":t} for t in page_tables])
-    if plumber:
-        try: plumber.close()
-        except Exception: pass
-    combined_text="\n\n".join(all_text)
-    if sparse_pages and len(re.sub(r"\s+","",combined_text)) < 40:
-        if not ocr_engine:
-            raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="OCR_ENGINE_UNAVAILABLE")
-        raise BoekunaDocumentError("DOCUMENT_PDF_UNREADABLE",status=422,internal_code="PDF_OCR_UNREADABLE")
-    return {"kind":"pdf","pageCount":doc.page_count,"pages":pages,"text":combined_text,"layout":layout,"tables":tables,"ocrPages":ocr_pages,"ocrEngine":"RapidOCR 3 / ONNX" if ocr_pages else None,"ocrModel":OCR_MODEL_NAME if ocr_pages else None,"warnings":warnings}
+                    for table in plumber.pages[idx].extract_tables() or []:
+                        clean=[[norm_text(c or "") for c in row] for row in table if row]
+                        if clean: page_tables.append(clean)
+                except Exception: pass
+            printable=len(re.sub(r"\s+","",text))
+            used_ocr=False; ocr_conf=None
+            sparse_text=printable < 180 or (len(words) < 35 and not page_tables)
+            if sparse_text:
+                sparse_pages.append(idx+1)
+                if not ocr_engine:
+                    warnings.append(f"Pagina {idx+1} bevat weinig digitale tekst; OCR-engine is niet beschikbaar.")
+                else:
+                    render_w=max(1,int(float(page.rect.width)*2.45))
+                    render_h=max(1,int(float(page.rect.height)*2.45))
+                    if render_w*render_h>MAX_IMAGE_PIXELS or max(render_w,render_h)>MAX_IMAGE_SIDE:
+                        raise BoekunaDocumentError(
+                            "DOCUMENT_TOO_LARGE",status=413,
+                            context={"max_image_pixels":MAX_IMAGE_PIXELS,"max_image_side":MAX_IMAGE_SIDE},
+                            internal_code="PDF_RASTER_DIMENSION_LIMIT",
+                        )
+                    # Rasterize directly at the OCR working size; avoid simultaneous
+                    # full-resolution pixmap, PNG buffer and decoded image copies.
+                    scale=min(2.45,OCR_WORKING_MAX_SIDE/max(float(page.rect.width),float(page.rect.height)))
+                    pix=page.get_pixmap(matrix=fitz.Matrix(scale,scale), alpha=False, colorspace=fitz.csRGB)
+                    img=Image.frombytes("RGB",(pix.width,pix.height),pix.samples)
+                    del pix
+                    prepared=prepare_ocr_image(img)
+                    img.close()
+                    release_document_memory()
+                    try:
+                        best=run_best_ocr(prepared,already_prepared=True)
+                        ocr_text=best["text"]
+                        ocr_printable=len(re.sub(r"\s+","",ocr_text))
+                        if ocr_printable > max(printable + 30, int(printable * 1.12)):
+                            text=ocr_text
+                            used_ocr=True
+                        elif ocr_printable >= 120 and printable < 260:
+                            text=(text+"\n--- OCR LAYER ---\n"+ocr_text).strip()
+                            used_ocr=True
+                        if used_ocr:
+                            ocr_conf=best.get("confidence")
+                            ocr_pages.append(idx+1)
+                        elif printable < 40:
+                            warnings.append(f"Pagina {idx+1} kon niet betrouwbaar met OCR worden gelezen.")
+                    except Exception as exc:
+                        logger.warning("pdf_ocr_failed page=%d error_type=%s", idx+1, type(exc).__name__)
+                        warnings.append(f"Pagina {idx+1} kon niet met OCR worden verwerkt.")
+                    finally:
+                        prepared.close()
+            pages.append({"page":idx+1,"text":text,"charCount":len(text),"ocr":used_ocr,"ocrConfidence":ocr_conf,"tables":page_tables})
+            all_text.append(f"--- PAGE {idx+1} ---\n{text}")
+            layout.append({"page":idx+1,"words":page_layout[:2500]})
+            if page_tables: tables.extend([{"page":idx+1,"rows":t} for t in page_tables])
+        combined_text="\n\n".join(all_text)
+        if sparse_pages and len(re.sub(r"\s+","",combined_text)) < 40:
+            if not ocr_engine:
+                raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="OCR_ENGINE_UNAVAILABLE")
+            raise BoekunaDocumentError("DOCUMENT_PDF_UNREADABLE",status=422,internal_code="PDF_OCR_UNREADABLE")
+        return {"kind":"pdf","pageCount":doc.page_count,"pages":pages,"text":combined_text,"layout":layout,"tables":tables,"ocrPages":ocr_pages,"ocrEngine":"RapidOCR 3 / ONNX" if ocr_pages else None,"ocrModel":OCR_MODEL_NAME if ocr_pages else None,"warnings":warnings}
+    finally:
+        if plumber:
+            try: plumber.close()
+            except Exception: pass
+        doc.close()
 
 def extract_image(raw:bytes) -> dict[str,Any]:
     if not RapidOCR:
@@ -1124,6 +1147,7 @@ def extract_image(raw:bytes) -> dict[str,Any]:
         raise BoekunaDocumentError("DOCUMENT_IMAGE_UNREADABLE",status=422,internal_code="IMAGE_DECODE_FAILED",internal_error=exc)
     prepared=prepare_ocr_image(img)
     img.close()
+    release_document_memory()
     try:
         best=run_best_ocr(prepared,already_prepared=True)
     except Exception as exc:
@@ -1171,7 +1195,14 @@ def extract_csv(raw:bytes)->dict[str,Any]:
     joined="\n".join(" | ".join(row) for row in rows)
     return {"kind":"csv","pageCount":1,"pages":[],"text":joined,"layout":[],"tables":[{"sheet":"CSV","rows":rows[:5000]}],"ocrPages":[]}
 
-def extract_document(filename:str,content_type:str,raw:bytes)->dict[str,Any]:
+def extract_document(filename:str,content_type:str,raw:bytes) -> dict[str,Any]:
+    release_document_memory()
+    try:
+        return _extract_document(filename,content_type,raw)
+    finally:
+        release_document_memory()
+
+def _extract_document(filename:str,content_type:str,raw:bytes)->dict[str,Any]:
     ext=Path(filename).suffix.lower(); c=(content_type or "").lower().split(";",1)[0].strip()
     generic_mime=c in {"","application/octet-stream","binary/octet-stream"}
     extension_mimes={
