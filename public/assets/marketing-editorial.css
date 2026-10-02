@@ -1427,6 +1427,16 @@ body.editorial-site{
 #kzProductShell[data-story="rapportages"] .story-depth-card--one{height:48%;transform:translateZ(54px) rotate(-2deg)}
 #kzProductShell[data-story="rapportages"] .story-depth-card--two{width:27%;height:44%;transform:translateZ(92px) rotate(2deg) translateX(-70px)}
 #kzProductShell .story-number,#kzProductCaption,#kzProductShell .kz-preview-link{z-index:4!important;transform:translateZ(126px)}
+#kzProductShell[data-depth-mode="static"] .story-number,
+#kzProductShell[data-depth-mode="static"] #kzProductCaption,
+#kzProductShell[data-depth-mode="static"] .kz-preview-link{
+  transform:none;
+}
+@media(max-width:899px){
+  #kzProductShell .story-number,
+  #kzProductCaption,
+  #kzProductShell .kz-preview-link{transform:none}
+}
 #kzProductShell.is-changing{opacity:.78}
 
 .kz-real-workflow-proof{
