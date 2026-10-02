@@ -26,6 +26,7 @@ on:
       - "tests/premium-app-simplification.test.mjs"
       - "tests/app-wide-premium-simplification-v2.test.mjs"
       - "tests/document-upload-browser.test.mjs"
+      - "tests/scan-native-picker.test.mjs"
       - "tests/document-background-processing.test.mjs"
       - "tests/auth-progressive-onboarding.test.mjs"
       - "tests/list-controls.test.mjs"
@@ -157,6 +158,8 @@ jobs:
         run: node tests/split-surfaces-browser.test.mjs
       - name: WebKit app smoke
         run: BOOKUNA_BROWSER=webkit node tests/browser-smoke.test.mjs
+      - name: Single native Scan picker regression
+        run: node tests/scan-native-picker.test.mjs
       - name: Document browser regressions
         run: node tests/document-upload-browser.test.mjs
       - name: Document background processing regressions

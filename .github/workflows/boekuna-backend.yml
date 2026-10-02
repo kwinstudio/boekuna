@@ -23,6 +23,8 @@ on:
       - "tests/planned-cash-sql-isolation.test.mjs"
       - "tests/ocr-production-hardening.test.py"
       - "tests/document-processor-pdf.test.py"
+      - "tests/processor-production-origin.test.py"
+      - "tests/fixtures/scan-invoice.heic"
       - "tests/test_document_processor_regression.py"
       - "tests/document-error-contract.test.py"
       - "tests/developer-mode-document-chain.test.py"
@@ -84,9 +86,11 @@ jobs:
       - name: Billing subscription regressions
         run: node tests/billing-source.test.mjs
       - name: Install document processor regression dependencies
-        run: pip install --disable-pip-version-check -r kwinest/docprocessor/requirements.txt
+        run: pip install --disable-pip-version-check -r kwinest/docprocessor/requirements.txt httpx==0.28.1
       - name: OCR production hardening
         run: python tests/ocr-production-hardening.test.py
+      - name: Production origin HTTP and real image codec regressions
+        run: python tests/processor-production-origin.test.py
       - name: PDF document processor regression
         run: python tests/document-processor-pdf.test.py
       - name: Real Dutch document regressions
@@ -120,7 +124,7 @@ jobs:
       - name: Developer Mode source and production guards
         run: node tests/developer-mode.test.mjs
       - name: Install document processor dependencies
-        run: pip install --disable-pip-version-check -r kwinest/docprocessor/requirements.txt
+        run: pip install --disable-pip-version-check -r kwinest/docprocessor/requirements.txt httpx==0.28.1
       - name: Developer Mode document quota and usage routing
         run: python tests/developer-mode-document-chain.test.py
       - name: Python syntax safety
