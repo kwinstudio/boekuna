@@ -4131,7 +4131,7 @@ async function startDocumentProcessingQueue(files,kind='auto',options={}){
 function chooseAnotherDocumentProcessingItem(id){
  const s=documentProcessingSession,item=s?.items.find(function(x){return x.id===id}),sourceId=item?.sourceInputId||'',smart=!!s?.smart,kind=item?.kind||'auto';
  closeModal();
- if(sourceId){const input=document.getElementById(sourceId);if(input){input.value='';input.click();return}}
+ if(sourceId){const input=document.getElementById(sourceId);if(input){pendingUploadKind=kind;input.dataset.uploadKind=kind;input.dataset.smartUpload=String(smart);input.value='';input.click();return}}
  if(smart){const input=document.getElementById('docFile');if(input){input.value='';input.click();return}}
  triggerInvoiceUpload(kind)
 }
