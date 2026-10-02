@@ -44,7 +44,7 @@ try{
         && style.getPropertyValue('--boekuna-lime').trim()==='#E7FE55'
         && style.getPropertyValue('--boekuna-cyan').trim()==='#BFE7EC';
     });
-    await page.locator('.site-header .logo-lockup-compact').waitFor({state:'attached'});
+    await page.locator(width<=620?'.site-header .logo-lockup-compact':'.site-header .logo-lockup-primary').waitFor({state:'visible'});
     const overflow=await page.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth,bw:document.body.scrollWidth}));
     assert.ok(overflow.sw<=overflow.vw+1&&overflow.bw<=overflow.vw+1,`Horizontal overflow at ${width}px: ${JSON.stringify(overflow)}`);
     const header=await page.evaluate(()=>{
