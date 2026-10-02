@@ -10,7 +10,7 @@ fs.mkdirSync(path.join(root,'tests','artifacts'),{recursive:true});
 
 const identityCss=fs.readFileSync(path.join(root,'public','assets','marketing-editorial.css'),'utf8');
 const homepageHtml=fs.readFileSync(path.join(root,'public','index.html'),'utf8');
-assert.ok(homepageHtml.includes('/assets/marketing-editorial.css?v=20261002depth'),'Homepage must cache-bust the depth CSS release');
+assert.ok(homepageHtml.includes('/assets/marketing-editorial.css?v=20261002depthfix'),'Homepage must cache-bust the depth CSS release');
 assert.ok(homepageHtml.includes('/assets/homepage.js?v=20261002depth'),'Homepage must cache-bust the depth interaction JS release');
 for(const contract of [
   '--boekuna-amber:#FF9F1C',
@@ -30,7 +30,7 @@ for(const legacy of ['#123B3A','#102724','#2B736C','#EEF7F3','#E7FE55','#BFE7EC'
 const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{encoding:'utf8'});
 assert.equal(build.status,0,build.stderr);
 const builtHomepage=fs.readFileSync(path.join(root,'dist','marketing','index.html'),'utf8');
-assert.ok(builtHomepage.includes('/assets/marketing-editorial.css?v=20261002depth'),'Built homepage must preserve the depth CSS cache key');
+assert.ok(builtHomepage.includes('/assets/marketing-editorial.css?v=20261002depthfix'),'Built homepage must preserve the depth CSS cache key');
 assert.ok(builtHomepage.includes('/assets/homepage.js?v=20261002depth'),'Built homepage must preserve the depth JS cache key');
 const server=await serveMarketing(path.join(root,'dist','marketing'));
 const base=server.base;
