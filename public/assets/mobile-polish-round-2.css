@@ -73,11 +73,13 @@
   justify-content:flex-end;
   align-items:center;
   gap:8px!important;
-  min-width:196px;
+  min-width:0;
+  white-space:nowrap;
 }
 .planned-cash-actions .btn{
   min-height:40px;
-  padding:8px 12px;
+  padding:8px 10px;
+  flex:0 0 auto;
 }
 .planned-cash-actions .danger-outline{
   color:#9c2f2f;
