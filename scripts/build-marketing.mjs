@@ -27,6 +27,11 @@ fs.rmSync(path.join(target,'manifest.webmanifest'),{force:true});
 // Product captures remain in source for QA/evidence, but are not part of the public marketing artifact.
 fs.rmSync(path.join(target,'assets','product'),{recursive:true,force:true});
 
+// App-only polish assets are copied by build-app and must not drift the public marketing artifact.
+for(const asset of ['mobile-polish-round-2.css','mobile-polish-round-2.js']){
+  fs.rmSync(path.join(target,'assets',asset),{force:true});
+}
+
 const textExtensions=new Set(['.html','.css','.js']);
 const stack=[target];
 while(stack.length){

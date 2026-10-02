@@ -163,7 +163,8 @@ try{
   assert.match(await page.locator('.document-processing-board').innerText(),/Kon niet verwerkt worden/);
   assert.equal(await page.locator('.document-processing-board .document-status-spinner').count(),2,'Only real active states should spin');
   assert.equal((await page.locator('#documentAttentionBadge').innerText()).trim(),'3','Unbooked ready financial document, flagged review and failure require attention');
-  assert.match(await page.locator('#documentProcessingGlobalText').innerText(),/3\/5/);
+  assert.equal((await page.locator('#documentProcessingGlobalText').innerText()).trim(),'','Header processing indicator remains spinner-only');
+  assert.equal(await page.locator('#documentProcessingGlobal').getAttribute('aria-label'),'Documenten worden verwerkt');
   fs.mkdirSync(new URL('./artifacts/',import.meta.url),{recursive:true});
   await page.screenshot({path:new URL('./artifacts/document-processing-background-mixed.png',import.meta.url).pathname,fullPage:true});
 

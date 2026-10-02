@@ -114,7 +114,10 @@ try{
   return {selected:selected.data,insertDenied:!!inserted.error,updateDenied:!!updated.error,deleteDenied:!!deleted.error,transferDenied:!!transferred.error,bUnchanged,ownId:own.data.state.plannedCash[0].id,aHidden:aHidden.data};
  });
  assert.deepEqual(isolation,{selected:null,insertDenied:true,updateDenied:true,deleteDenied:true,transferDenied:true,bUnchanged:true,ownId:'b-private',aHidden:null});
- await page.evaluate(async id=>{deletePlannedCash(id);await syncCloudStateNow()},id);
+ await page.evaluate(id=>deletePlannedCash(id),id);
+ await page.getByRole('heading',{name:'Wil je dit verwijderen?',exact:true}).waitFor();
+ await page.getByRole('button',{name:'Bevestig verwijderen',exact:true}).click();
+ await page.evaluate(()=>syncCloudStateNow());
  assert.equal(await page.evaluate(()=>state.plannedCash.length),1);
  assert.equal(await page.evaluate(()=>window.__db['account-a'].state.plannedCash.length),1);
  assert.equal(await page.evaluate(()=>forecastAt(30)),baseline.forecast);

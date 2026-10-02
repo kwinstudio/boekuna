@@ -1881,6 +1881,7 @@ img.bookuna-logo-icon,
 </style>
 <link rel="stylesheet" href="/assets/brand-v2.css?v=20260929a" />
 <link rel="stylesheet" href="/assets/kvk-company-lookup.css?v=20261001a" />
+  <link rel="stylesheet" href="/assets/mobile-polish-round-2.css">
 </head>
 <body>
 <script src="/assets/financial-correction.js?v=20260929a"></script>
@@ -1949,7 +1950,7 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
 <main class="main" id="appMain">
   <header class="topbar">
     <div class="top-left"><button class="mobile-menu" id="mobileMenu" aria-label="Menu openen"><svg class="icon"><use href="#i-menu"/></svg></button><div class="page-title" id="pageTitle">Dashboard</div></div>
-    <div class="top-actions"><button class="btn" id="quickNew"><svg class="icon"><use href="#i-plus"/></svg><span>Nieuw</span></button><button id="documentProcessingGlobal" class="document-processing-global hidden" type="button" onclick="openGlobalDocumentProcessingPanel()" aria-haspopup="dialog" aria-label="Documentverwerking bekijken"><span class="document-processing-global-spinner" aria-hidden="true"></span><span id="documentProcessingGlobalText">Documenten</span></button><span class="badge good" id="cloudSyncBadge" title="Opslagstatus" role="status" aria-live="polite">Opgeslagen ✓</span><button id="cloudSyncRetry" class="link-btn hidden" type="button" onclick="retryCloudSave()">Opnieuw proberen</button><button class="avatar" id="accountAvatar" onclick="accountMenu()" aria-label="Account">A</button></div>
+    <div class="top-actions"><button id="documentProcessingGlobal" class="document-processing-global hidden" type="button" onclick="openGlobalDocumentProcessingPanel()" aria-haspopup="dialog" aria-live="polite" aria-label="Documenten worden verwerkt"><span class="document-processing-global-spinner" aria-hidden="true"></span><span id="documentProcessingGlobalText" aria-hidden="true"></span></button><button class="btn" id="quickNew"><svg class="icon"><use href="#i-plus"/></svg><span>Nieuw</span></button><span class="badge good" id="cloudSyncBadge" title="Opslagstatus" role="status" aria-live="polite">Opgeslagen ✓</span><button id="cloudSyncRetry" class="link-btn hidden" type="button" onclick="retryCloudSave()">Opnieuw proberen</button><button class="avatar" id="accountAvatar" onclick="accountMenu()" aria-label="Account">A</button></div>
   </header>
   <div class="content" id="content"></div>
 </main>
@@ -4345,14 +4346,12 @@ async function initDocumentBackgroundProcessing(){
 }
 function renderGlobalDocumentIndicator(){
  const button=document.getElementById('documentProcessingGlobal'),textEl=document.getElementById('documentProcessingGlobalText'),badge=document.getElementById('documentAttentionBadge');
- const global=persistentDocumentGlobalJobs(),local=localPersistentProcessingItems();
- if(button&&textEl){
-  if(global.length||local.length){
-   const done=global.filter(persistentDocumentIsTerminal).length,total=global.length+local.length;
-   textEl.textContent=local.length&&!global.length?'Documenten uploaden':('Documenten '+done+'/'+total);
-   button.classList.remove('hidden');button.setAttribute('aria-label',local.length?'Documenten worden geüpload':'Documentverwerking bekijken, '+done+' van '+total+' afgerond')
-  }else button.classList.add('hidden')
+ const global=persistentDocumentGlobalJobs(),local=localPersistentProcessingItems(),active=global.length||local.length;
+ if(button){
+  button.classList.toggle('hidden',!active);
+  if(active){button.setAttribute('aria-label','Documenten worden verwerkt');button.setAttribute('aria-live','polite')}
  }
+ if(textEl){textEl.textContent='';textEl.setAttribute('aria-hidden','true')}
  const attention=persistentDocumentAttentionCount();
  if(badge){badge.textContent=attention?String(attention):'';badge.classList.toggle('hidden',!attention);badge.setAttribute('aria-label',attention?(attention+' document'+(attention===1?'':'en')+' vraagt aandacht'):'')}
  const mobileBadge=document.getElementById('mobileScanBadge');
@@ -6368,6 +6367,8 @@ window.addEventListener('keydown',e=>{
 })();
 </script>
 
+
+<script src="/assets/mobile-polish-round-2.js"></script>
 
 </body>
 </html>
