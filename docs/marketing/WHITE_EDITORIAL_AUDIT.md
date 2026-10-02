@@ -1,6 +1,7 @@
 # BOEKUNA — White Editorial audit
 
-Baseline main: `71da7f3a939cad6a4c208bf221a70b1a6c5604bf`.
+Content baseline main: `71da7f3a939cad6a4c208bf221a70b1a6c5604bf`.
+Integrated main / app parity baseline: `5fc860e9a6964b63d579239be7bf54bad00805fc`.
 Branch: `marketing/white-editorial-foodhallen-direction-20261002`.
 
 ## Public inventory and content contract
@@ -49,8 +50,8 @@ The now-empty home screenshot-proof section is removed with its obsolete caption
 - Existing shared assets, manifest and underlying marketing/homepage CSS/JS remain byte-identical to baseline.
 - App non-regression compares every generated filename and SHA-256 digest: 16 files must remain byte-identical to base. Both builds run successfully.
 - Open parallel PR #120 (`45173a1d0b4cac15bd6c9e44462dadeae176b9ea`) changes app source, mobile assets, split build scripts and app tests. This PR does not edit any of those files.
-- Open parallel PR #121 (`e9c81bfc61e4a547d2d4b0759edb44bc434d3749`) changes app/processor source, app/backend workflows and app/scan tests. This PR does not edit any of those files.
-- No file intersection with either active PR. Older marketing drafts #69/#55/#18/#15 are not a baseline and are not merged or overwritten.
+- Scan/processor PR #121 merged into main during handoff. Main `5fc860e9a6964b63d579239be7bf54bad00805fc` is integrated into this branch without conflicts; all scanner changes are preserved. Relative to this current main, this PR does not edit app/processor source, app/backend workflows or app/scan tests.
+- No file intersection with #120 or the merged #121 change set. Older marketing drafts #69/#55/#18/#15 are not a baseline and are not merged or overwritten.
 - Before review/release, refresh main and file lists. If newer main changes either artifact, rerun the corresponding comparison and freeze a new exact HEAD before approving.
 
 ## Verified results
@@ -63,7 +64,7 @@ The now-empty home screenshot-proof section is removed with its obsolete caption
 - Forms: PASS, validation, honeypot and success/error contract for all three forms in both engines, 12 intercepted submissions.
 - Navigation, focus trap/restoration, dropdowns, selector, comparison, solution disclosures, FAQ, routes and no-JS content: PASS.
 - Split boundaries/origins/CI scopes and generated surface browser smoke: PASS.
-- App artifact: 16 files byte-identical to immutable baseline; marketing-only and deliberate app/shared drift rejection tests PASS.
+- App artifact: 16 files byte-identical to integrated main `5fc860e9a6964b63d579239be7bf54bad00805fc`; marketing-only and deliberate app/shared drift rejection tests PASS.
 - Screenshots: 164 complete before/after captures across both engines, every public route at 390/1440, additional home widths.
 - Whitespace/diff check: PASS.
 

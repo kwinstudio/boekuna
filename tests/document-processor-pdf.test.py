@@ -111,6 +111,8 @@ def assert_core_fields(result, *, number):
 
 def test_trusted_origin_contract():
     trusted = [
+        "https://app.boekuna.nl",
+        "https://boekuna-split-app-preview.onrender.com",
         "https://boekuna-boekhouding.onrender.com",
         "https://kwinest-boekhouding.onrender.com",
         "https://boekuna.nl",

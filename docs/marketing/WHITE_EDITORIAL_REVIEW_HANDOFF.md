@@ -2,7 +2,8 @@
 
 Repository: kwinstudio/boekuna.
 Branch: marketing/white-editorial-foodhallen-direction-20261002.
-Baseline: `71da7f3a939cad6a4c208bf221a70b1a6c5604bf`.
+Content baseline: `71da7f3a939cad6a4c208bf221a70b1a6c5604bf`.
+Integrated main / app parity baseline: `5fc860e9a6964b63d579239be7bf54bad00805fc`.
 
 The PR body records its exact HEAD. Read the current PR HEAD before any review and compare it to that frozen SHA. On divergence: `HEAD_MISMATCH`; no reuse of earlier approval. The head is deliberately stored in PR metadata rather than this self-referential committed document.
 

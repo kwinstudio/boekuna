@@ -1,6 +1,6 @@
 # BOEKUNA — White Editorial marketing system
 
-Scope: public website only. Baseline main: `71da7f3a939cad6a4c208bf221a70b1a6c5604bf`.
+Scope: public website only. Integrated main / app parity baseline: `5fc860e9a6964b63d579239be7bf54bad00805fc`. Content baseline main: `71da7f3a939cad6a4c208bf221a70b1a6c5604bf`.
 
 ## Intent
 
