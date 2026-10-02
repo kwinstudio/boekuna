@@ -13,7 +13,7 @@
   <meta property="og:type" content="website">
   <link rel="stylesheet" href="/assets/marketing.css?v=20260930b">
   <link rel="stylesheet" href="/assets/homepage.css?v=20260930b">
-  <link rel="stylesheet" href="/assets/marketing-editorial.css?v=20261002premium">
+  <link rel="stylesheet" href="/assets/marketing-editorial.css?v=20261002depth">
   <link rel="icon" type="image/svg+xml" href="/assets/boekuna-favicon.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/boekuna-app-icon-180.png">
 </head>
@@ -39,8 +39,13 @@
           </div>
         </section>
 
-        <figure class="photo-slot photo-slot--hero media-frame">
-          <img src="/assets/boekuna-editorial-workspace-placeholder.svg" width="1200" height="1500" fetchpriority="high" decoding="async" alt="Tijdelijke editorial illustratie van een zelfstandige in een rustige werkruimte">
+        <figure class="photo-slot photo-slot--hero media-frame" data-depth-root data-depth-role="hero">
+          <img class="hero-depth-image" src="/assets/boekuna-editorial-workspace-placeholder.svg" width="1200" height="1500" fetchpriority="high" decoding="async" alt="Tijdelijke editorial illustratie van een zelfstandige in een rustige werkruimte">
+          <div class="hero-depth-stack" aria-hidden="true">
+            <div class="hero-depth-layer hero-depth-layer--upload" data-depth-layer><small>01 · Upload</small><strong>PDF · scan · foto</strong></div>
+            <div class="hero-depth-layer hero-depth-layer--check" data-depth-layer><small>Controle</small><strong>Jij houdt het laatste woord</strong></div>
+            <div class="hero-depth-layer hero-depth-layer--status" data-depth-layer><i></i><span>Klaar voor controle</span></div>
+          </div>
         </figure>
       </div>
 
@@ -73,7 +78,12 @@
           </div>
         </div>
         <div class="kz-product-stage" aria-live="polite">
-          <div class="image-free-proof-note" id="kzProductShell">
+          <div class="image-free-proof-note" id="kzProductShell" data-depth-root data-depth-role="product" data-story="facturen">
+            <div class="story-depth-cluster" aria-hidden="true">
+              <span class="story-depth-card story-depth-card--one" data-depth-layer></span>
+              <span class="story-depth-card story-depth-card--two" data-depth-layer></span>
+              <span class="story-depth-card story-depth-card--three" data-depth-layer></span>
+            </div>
             <span class="story-number" aria-hidden="true">BOEKUNA</span>
             <span id="kzProductCaption">Facturen · echte lijst, filters en statussen</span>
             <a id="kzPreviewLink" class="kz-preview-link" href="/facturen/">Bekijk Facturen →</a>
@@ -88,12 +98,27 @@
             <h2 id="workflow-title">Vier rustige stappen. Geen boekhoudpuzzel.</h2>
             <p>Je werkt van bron naar controle en slaat pas op wanneer de gegevens kloppen.</p>
           </div>
-          <div class="kz-real-workflow-proof">
-            <div class="kz-real-workflow-copy">
-              <div class="kz-real-workflow-step"><strong>01 · Document</strong><span>Upload een ondersteund bestand en houd het originele bewijsstuk bij de administratie.</span></div>
-              <div class="kz-real-workflow-step"><strong>02 · Bedragen</strong><span>Controleer herkende financiële velden en rekenchecks vóór opslaan.</span></div>
-              <div class="kz-real-workflow-step"><strong>03 · Relatie</strong><span>Controleer welke klant of leverancier bij het document hoort.</span></div>
-              <div class="kz-real-workflow-step"><strong>04 · Opslaan</strong><span>Pas na jouw controle wordt de boeking aan de administratie gekoppeld.</span></div>
+          <div class="kz-real-workflow-proof" data-depth-root data-depth-role="workflow">
+            <div class="kz-real-workflow-copy" role="group" aria-label="Bekijk de vier stappen">
+              <button class="kz-real-workflow-step active" type="button" data-workflow-step="document" aria-pressed="true"><strong>01 · Document</strong><span>Upload een ondersteund bestand en houd het originele bewijsstuk bij de administratie.</span></button>
+              <button class="kz-real-workflow-step" type="button" data-workflow-step="bedragen" aria-pressed="false"><strong>02 · Bedragen</strong><span>Controleer herkende financiële velden en rekenchecks vóór opslaan.</span></button>
+              <button class="kz-real-workflow-step" type="button" data-workflow-step="controle" aria-pressed="false"><strong>03 · Relatie</strong><span>Controleer welke klant of leverancier bij het document hoort.</span></button>
+              <button class="kz-real-workflow-step" type="button" data-workflow-step="opslaan" aria-pressed="false"><strong>04 · Opslaan</strong><span>Pas na jouw controle wordt de boeking aan de administratie gekoppeld.</span></button>
+            </div>
+            <div class="kz-workflow-stage" id="kzWorkflowStage" data-step="document" aria-live="polite">
+              <div class="workflow-stage-topline"><span id="workflowStageKicker">Stap 01</span><span class="workflow-stage-state" id="workflowStageState">Ontvangen</span></div>
+              <div class="workflow-document-stack" aria-hidden="true">
+                <span class="workflow-sheet workflow-sheet--back" data-depth-layer></span>
+                <span class="workflow-sheet workflow-sheet--mid" data-depth-layer></span>
+                <span class="workflow-sheet workflow-sheet--front" data-depth-layer>
+                  <i></i><i></i><i></i><i></i><b></b>
+                </span>
+              </div>
+              <div class="workflow-stage-copy">
+                <small id="workflowStageLabel">Document</small>
+                <strong id="workflowStageTitle">Origineel bewijsstuk blijft gekoppeld.</strong>
+                <p id="workflowStageText">Boekuna begint bij je bronbestand en bouwt de controle daar omheen.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -139,7 +164,7 @@
         </div>
       </section>
 
-      <section class="kz-human-story kz-reveal" aria-labelledby="human-title">
+      <section class="kz-human-story kz-reveal" aria-labelledby="human-title" data-depth-root data-depth-role="human">
         <div class="photo-slot photo-slot--audience" aria-hidden="true"><span></span></div>
         <div class="kz-human-copy">
           <span class="kz-benefit-label">Voor je echte werk</span>
@@ -206,7 +231,7 @@
       </section>
 
       <section class="kz-plan kz-reveal" aria-labelledby="plan-title">
-        <div class="kz-plan-inner">
+        <div class="kz-plan-inner" data-depth-root data-depth-role="pricing">
           <div>
             <span class="kz-benefit-label">Eenvoudige prijzen</span>
             <h2 id="plan-title">Begin gratis. Groei pas door als je meer nodig hebt.</h2>
@@ -231,7 +256,7 @@
       </section>
 
       <section class="kz-final kz-reveal">
-        <div class="kz-final-box">
+        <div class="kz-final-box" data-depth-root data-depth-role="closing">
           <div>
             <span class="kz-benefit-label">BOEKUNA</span>
             <h2>Klaar voor minder boekhoudtaal?</h2>
@@ -247,7 +272,7 @@
   </div>
   <div id="siteFooter"></div>
   <script src="/assets/marketing.js?v=20261002premium"></script>
-  <script src="/assets/homepage.js?v=20260930b"></script>
+  <script src="/assets/homepage.js?v=20261002depth"></script>
   <script src="/assets/marketing-editorial.js?v=20261002premium" defer></script>
 </body>
 </html>

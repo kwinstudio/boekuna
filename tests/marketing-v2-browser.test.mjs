@@ -228,6 +228,14 @@ try{
    // Product tabs, solution disclosures, compare states and real FAQ controls.
    const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
    await page.goto(server.base+'/',{waitUntil:'networkidle'});
+   assert.ok(await page.locator('[data-depth-root]').count()>=4,name+' homepage exposes premium depth roots');
+   assert.equal(await page.locator('.photo-slot--hero[data-depth-root]').getAttribute('data-depth-mode'),'static',name+' reduced motion keeps hero depth static');
+   assert.equal(await page.locator('[data-workflow-step]').count(),4,name+' homepage exposes four interactive workflow steps');
+   await page.locator('[data-workflow-step="controle"]').press('Enter');
+   assert.equal(await page.locator('[data-workflow-step="controle"]').getAttribute('aria-pressed'),'true',name+' workflow step exposes active state');
+   assert.equal(await page.locator('#kzWorkflowStage').getAttribute('data-step'),'controle',name+' workflow stage follows keyboard selection');
+   assert.equal(await page.locator('#workflowStageLabel').isVisible(),true,name+' workflow label stays visible');
+   assert.equal((await page.locator('#workflowStageLabel').textContent()).trim(),'Controle',name+' workflow label follows keyboard selection');
    for(const key of ['documenten','btw','rapportages','facturen']){
     await page.locator('[data-kz-tab="'+key+'"]').press('Enter');
     assert.equal(await page.locator('[data-kz-tab="'+key+'"]').getAttribute('aria-pressed'),'true');
@@ -343,6 +351,12 @@ try{
    // The white site has no blocking intro, scrolling transforms, or word masks.
    await page.emulateMedia({reducedMotion:'no-preference'});
    await page.goto(server.base+'/',{waitUntil:'networkidle'});
+   const depthHero=page.locator('.photo-slot--hero[data-depth-root]');
+   await depthHero.hover({position:{x:260,y:140}});
+   await page.waitForTimeout(40);
+   assert.equal(await depthHero.getAttribute('data-depth-mode'),'interactive',name+' desktop hero enables pointer depth');
+   const depthVars=await depthHero.evaluate(el=>({rx:el.style.getPropertyValue('--depth-rx'),ry:el.style.getPropertyValue('--depth-ry')}));
+   assert.ok(depthVars.rx&&depthVars.ry&&depthVars.rx!=='0deg'&&depthVars.ry!=='0deg',name+' pointer depth updates 3D variables');
    assert.equal(await page.locator('.editorial-intro,.editorial-word,.ed-parallax').count(),0);
    assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
    await page.emulateMedia({reducedMotion:'reduce'});

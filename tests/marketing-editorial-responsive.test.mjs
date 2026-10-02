@@ -9,6 +9,9 @@ const root=process.cwd();
 fs.mkdirSync(path.join(root,'tests','artifacts'),{recursive:true});
 
 const identityCss=fs.readFileSync(path.join(root,'public','assets','marketing-editorial.css'),'utf8');
+const homepageHtml=fs.readFileSync(path.join(root,'public','index.html'),'utf8');
+assert.ok(homepageHtml.includes('/assets/marketing-editorial.css?v=20261002depth'),'Homepage must cache-bust the depth CSS release');
+assert.ok(homepageHtml.includes('/assets/homepage.js?v=20261002depth'),'Homepage must cache-bust the depth interaction JS release');
 for(const contract of [
   '--boekuna-amber:#FF9F1C',
   '--boekuna-honey:#FFBF69',
@@ -26,6 +29,9 @@ for(const legacy of ['#123B3A','#102724','#2B736C','#EEF7F3','#E7FE55','#BFE7EC'
 }
 const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{encoding:'utf8'});
 assert.equal(build.status,0,build.stderr);
+const builtHomepage=fs.readFileSync(path.join(root,'dist','marketing','index.html'),'utf8');
+assert.ok(builtHomepage.includes('/assets/marketing-editorial.css?v=20261002depth'),'Built homepage must preserve the depth CSS cache key');
+assert.ok(builtHomepage.includes('/assets/homepage.js?v=20261002depth'),'Built homepage must preserve the depth JS cache key');
 const server=await serveMarketing(path.join(root,'dist','marketing'));
 const base=server.base;
 const browser=await chromium.launch({headless:true});
@@ -79,6 +85,10 @@ try{
     assert.equal(await heroMedia.getAttribute('width'),'1200',`Hero intrinsic width missing at ${width}px`);
     assert.equal(await heroMedia.getAttribute('height'),'1500',`Hero intrinsic height missing at ${width}px`);
     assert.ok((await heroMedia.boundingBox())?.width>0,`Hero media must remain visible at ${width}px`);
+    assert.ok(await page.locator('[data-depth-root]').count()>=4,`Premium depth roots missing at ${width}px`);
+    assert.ok(await page.locator('.hero-depth-stack [data-depth-layer]').count()>=3,`Hero depth stack must expose at least three layers at ${width}px`);
+    assert.equal(await page.locator('[data-workflow-step]').count(),4,`Interactive workflow must expose four controls at ${width}px`);
+    assert.equal(await page.locator('#kzWorkflowStage').count(),1,`Interactive workflow stage missing at ${width}px`);
     assert.deepEqual(forbiddenRequests,[],`Product screenshot requests at ${width}px: ${forbiddenRequests.join(' | ')}`);
     assert.deepEqual(errors,[],`Homepage page errors at ${width}px: ${errors.join(' | ')}`);
     const palette=await page.evaluate(()=>({
@@ -140,6 +150,35 @@ try{
   assert.equal(await page.locator('#kzPreviewLink').getAttribute('href'),'/scanner/','Image-free product tab must retain its destination');
   assert.equal(await page.locator('#kzProductImage').count(),0,'Image-free product panel must not recreate a screenshot element');
   await page.close();
+
+  const motionPage=await browser.newPage({viewport:{width:1440,height:960},reducedMotion:'no-preference'});
+  await motionPage.goto(base+'/',{waitUntil:'domcontentloaded'});
+  const heroDepth=motionPage.locator('.photo-slot--hero[data-depth-root]');
+  await heroDepth.scrollIntoViewIfNeeded();
+  const heroBox=await heroDepth.boundingBox();
+  assert.ok(heroBox&&heroBox.width>40&&heroBox.height>40,'Desktop hero depth needs a measurable pointer surface');
+  const pointerX=heroBox.x+heroBox.width*.76;
+  const pointerY=heroBox.y+heroBox.height*.48;
+  await motionPage.mouse.move(pointerX,pointerY);
+  await motionPage.waitForTimeout(40);
+  assert.equal(await heroDepth.getAttribute('data-depth-mode'),'interactive','Desktop hero depth should enable interactive pointer motion');
+  const tilt=await heroDepth.evaluate(el=>({rx:el.style.getPropertyValue('--depth-rx'),ry:el.style.getPropertyValue('--depth-ry')}));
+  assert.ok(tilt.rx&&tilt.ry&&tilt.rx!=='0deg'&&tilt.ry!=='0deg','Pointer movement should update hero 3D tilt variables');
+  const workflowControl=motionPage.locator('[data-workflow-step="controle"]');
+  await workflowControl.click();
+  assert.equal(await workflowControl.getAttribute('aria-pressed'),'true','Workflow controls expose active state');
+  assert.equal(await motionPage.locator('#kzWorkflowStage').getAttribute('data-step'),'controle','Workflow stage follows selected control');
+  const workflowLabel=motionPage.locator('#workflowStageLabel');
+  assert.equal(await workflowLabel.isVisible(),true,'Workflow stage label stays visible after selection');
+  assert.equal((await workflowLabel.textContent()).trim(),'Controle','Workflow stage label updates with the selected step');
+  await motionPage.close();
+
+  const staticPage=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
+  await staticPage.goto(base+'/',{waitUntil:'domcontentloaded'});
+  const staticHero=staticPage.locator('.photo-slot--hero[data-depth-root]');
+  assert.equal(await staticHero.getAttribute('data-depth-mode'),'static','Reduced motion keeps depth scene static');
+  assert.equal(await staticHero.evaluate(el=>getComputedStyle(el).getPropertyValue('--depth-rx').trim()||'0deg'),'0deg','Reduced motion keeps hero x tilt neutral');
+  await staticPage.close();
 
   console.log('Image-free marketing responsive QA: PASS (320, 360, 375, 390, 393, 430, 620, 768, 1024, 1280, 1440, 1920 + white/amber/turquoise/black palette + keyboard tabs)');
 }finally{

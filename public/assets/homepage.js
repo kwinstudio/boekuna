@@ -17,7 +17,7 @@ function initBoekunaMarketingInteractions(){
   const apply=()=>{
    setText('kzProductCaption',d.caption);
    const link=q('kzPreviewLink');if(link){link.href=d.href;link.textContent=d.link}
-   if(shell)shell.classList.remove('is-changing');
+   if(shell){shell.dataset.story=key;shell.classList.remove('is-changing');}
   };
   if(reduced)apply();else setTimeout(apply,100);
  }
@@ -46,6 +46,34 @@ function initBoekunaMarketingInteractions(){
   d.boxes.forEach((box,i)=>{setText('flowBox'+(i+1)+'Label',box[0]);setText('flowBox'+(i+1)+'Value',box[1])});
  }
  flowTabs.forEach(b=>b.addEventListener('click',()=>setFlow(b.dataset.flow)));
+
+ const workflowDepthData={
+  document:{kicker:'Stap 01',state:'Ontvangen',label:'Document',title:'Origineel bewijsstuk blijft gekoppeld.',text:'Boekuna begint bij je bronbestand en bouwt de controle daar omheen.'},
+  bedragen:{kicker:'Stap 02',state:'Herkend',label:'Bedragen',title:'Belangrijke bedragen staan klaar voor controle.',text:'Financiële velden worden voorbereid zodat jij gericht kunt controleren in plaats van alles opnieuw over te typen.'},
+  controle:{kicker:'Stap 03',state:'Controle',label:'Controle',title:'Jij bevestigt relatie en inhoud.',text:'Onzekere gegevens blijven zichtbaar. Je controleert leverancier, bedragen en context voordat er iets definitief wordt.'},
+  opslaan:{kicker:'Stap 04',state:'Klaar',label:'Opslaan',title:'Na jouw akkoord wordt de administratie bijgewerkt.',text:'De boeking blijft verbonden met het document en kan daarna terugkomen in je btw- en rapportageoverzicht.'}
+ };
+ const workflowDepthButtons=[...document.querySelectorAll('[data-workflow-step]')];
+ const workflowStage=q('kzWorkflowStage');
+ function setWorkflowDepth(key){
+  const d=workflowDepthData[key];if(!d||!workflowStage)return;
+  workflowDepthButtons.forEach(button=>{
+   const on=button.dataset.workflowStep===key;
+   button.classList.toggle('active',on);
+   button.setAttribute('aria-pressed',String(on));
+  });
+  workflowStage.dataset.step=key;
+  workflowStage.classList.add('is-changing');
+  setText('workflowStageKicker',d.kicker);
+  setText('workflowStageState',d.state);
+  setText('workflowStageLabel',d.label);
+  setText('workflowStageTitle',d.title);
+  setText('workflowStageText',d.text);
+  if(reduced)workflowStage.classList.remove('is-changing');
+  else requestAnimationFrame(()=>workflowStage.classList.remove('is-changing'));
+ }
+ workflowDepthButtons.forEach(button=>button.addEventListener('click',()=>setWorkflowDepth(button.dataset.workflowStep)));
+ setWorkflowDepth('document');
 
  const compareData={
   without:{title:'Informatie staat verspreid.',text:'Bonnen, facturen, bankregels en btw-informatie zitten vaak op verschillende plekken. Daardoor ontstaat extra zoek- en controlewerk.',items:['Bonnetjes terugzoeken','Bedragen opnieuw invoeren','Openstaande acties zelf onthouden'],flow:[['Mailbox','Factuur binnengekomen','Zoeken'],['Bonfoto','Los op telefoon','Bewaren'],['Spreadsheet','Handmatig overzicht','Bijwerken']]},
@@ -105,6 +133,63 @@ function initBoekunaMarketingInteractions(){
      if(entry.isIntersecting){entry.target.classList.add('bookuna-in');universalObserver.unobserve(entry.target)}
    }),{threshold:.08,rootMargin:'0px 0px -30px 0px'});
    universalReveal.forEach(el=>universalObserver.observe(el));
+ }
+
+ const depthRoots=[...document.querySelectorAll('[data-depth-root]')];
+ const resetDepth=root=>{
+  root.style.setProperty('--depth-rx','0deg');
+  root.style.setProperty('--depth-ry','0deg');
+  root.style.setProperty('--depth-x','0px');
+  root.style.setProperty('--depth-y','0px');
+ };
+ const depthInteractive=()=>!reduced&&window.innerWidth>=900;
+ depthRoots.forEach(root=>{
+  resetDepth(root);
+  root.dataset.depthMode=depthInteractive()?'interactive':'static';
+  let raf=0;
+  root.addEventListener('pointermove',event=>{
+   if(root.dataset.depthMode!=='interactive')return;
+   const rect=root.getBoundingClientRect();
+   if(!rect.width||!rect.height)return;
+   const nx=Math.max(-1,Math.min(1,((event.clientX-rect.left)/rect.width-.5)*2));
+   const ny=Math.max(-1,Math.min(1,((event.clientY-rect.top)/rect.height-.5)*2));
+   cancelAnimationFrame(raf);
+   raf=requestAnimationFrame(()=>{
+    root.style.setProperty('--depth-rx',(-ny*3.8).toFixed(2)+'deg');
+    root.style.setProperty('--depth-ry',(nx*4.8).toFixed(2)+'deg');
+    root.style.setProperty('--depth-x',(nx*2.2).toFixed(2)+'px');
+    root.style.setProperty('--depth-y',(ny*1.8).toFixed(2)+'px');
+   });
+  },{passive:true});
+  root.addEventListener('pointerleave',()=>{cancelAnimationFrame(raf);resetDepth(root)},{passive:true});
+ });
+ const syncDepthMode=()=>depthRoots.forEach(root=>{
+  root.dataset.depthMode=depthInteractive()?'interactive':'static';
+  if(root.dataset.depthMode==='static')resetDepth(root);
+ });
+ window.addEventListener('resize',syncDepthMode,{passive:true});
+
+ if(!reduced){
+  document.querySelectorAll('.kz-hero-actions .mk-btn,.kz-final-box .mk-btn,.kz-preview-link').forEach(target=>{
+   target.classList.add('kz-magnetic');
+   let raf=0;
+   target.addEventListener('pointermove',event=>{
+    if(window.innerWidth<900)return;
+    const rect=target.getBoundingClientRect();
+    const x=((event.clientX-rect.left)/rect.width-.5)*5;
+    const y=((event.clientY-rect.top)/rect.height-.5)*4;
+    cancelAnimationFrame(raf);
+    raf=requestAnimationFrame(()=>{
+     target.style.setProperty('--micro-x',x.toFixed(2)+'px');
+     target.style.setProperty('--micro-y',y.toFixed(2)+'px');
+    });
+   },{passive:true});
+   target.addEventListener('pointerleave',()=>{
+    cancelAnimationFrame(raf);
+    target.style.setProperty('--micro-x','0px');
+    target.style.setProperty('--micro-y','0px');
+   },{passive:true});
+  });
  }
 
  const progress=q('kzProgress');
