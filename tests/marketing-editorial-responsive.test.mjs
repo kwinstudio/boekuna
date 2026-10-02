@@ -24,6 +24,7 @@ try{
     page.on('request',req=>{if(req.url().includes('/assets/product/'))forbiddenRequests.push(req.url())});
     await page.goto(base+'/',{waitUntil:'domcontentloaded'});
     await page.waitForFunction(()=>getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim()==='#123B3A');
+    await page.locator('.site-header .logo-lockup-compact').waitFor({state:'attached'});
     const overflow=await page.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth,bw:document.body.scrollWidth}));
     assert.ok(overflow.sw<=overflow.vw+1&&overflow.bw<=overflow.vw+1,`Horizontal overflow at ${width}px: ${JSON.stringify(overflow)}`);
     const header=await page.evaluate(()=>{
