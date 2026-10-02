@@ -1420,8 +1420,8 @@ body.editorial-site{
 }
 
 @media(max-width:620px){
-  .logo-lockup-primary{display:none}
-  .logo-lockup-compact{display:block}
+  .site-header .logo-lockup-primary{display:none}
+  .site-header .logo-lockup-compact{display:block}
   .footer .logo-lockup-primary{display:block;width:138px}
 }
 
