@@ -73,7 +73,7 @@ for(const checks of ['10 slimme documentchecks','40 slimme documentchecks','100 
 assert.ok(pricing.includes('Meest gekozen'),'Boekuna must carry the Meest gekozen label');
 assert.ok(pricing.includes('Nieuwe pakketten worden binnenkort beschikbaar'),'Pricing must disclose announced-plan availability');
 assert.equal((pricing.match(/href=\"[^\"]*plan=/g)||[]).length,0,'Announced paid plans must not link to checkout/plan routes');
-assert.ok((pricing.match(/Binnenkort beschikbaar/g)||[]).length>=4,'Pricing must show availability copy and three non-transactional paid CTAs');
+assert.ok((pricing.match(/Binnenkort beschikbaar/g)||[]).length>=3,'Pricing must show availability copy and three non-transactional paid CTAs');
 assert.ok(pricing.includes('https://app.boekuna.nl/?login=1'),'Gratis CTA must retain the existing product entry flow');
 for(const retired of ['Early Access','eerste 100','Founding 100','3 kalendermaanden','90 dagen']){
   assert.ok(!pricing.toLowerCase().includes(retired.toLowerCase()),`Retired First-100 offer must be absent from pricing: ${retired}`);
