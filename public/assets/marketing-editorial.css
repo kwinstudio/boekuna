@@ -321,3 +321,145 @@
 .editorial-site .mobile-toggle .mobile-toggle-icon i{transition:transform .18s,opacity .18s}
 @media(prefers-reduced-motion:reduce){.editorial-site .mobile-toggle .mobile-toggle-icon i{transition:none}}
 @media(max-width:359px){.editorial-site .how-usage-section h2{font-size:29.5px}}
+
+
+/* BOEKUNA palette preview — MP072 inspired, marketing-only. */
+:root{
+  --mp-palladian:#EEE9DF;
+  --mp-oatmeal:#C9C1B1;
+  --mp-blue-fantastic:#2C3B4D;
+  --mp-burning-flame:#FFB162;
+  --mp-truffle-trouble:#A35139;
+  --mp-abyssal:#1B2632;
+}
+.editorial-site{
+  --brand-primary:var(--mp-abyssal);
+  --brand-primary-hover:var(--mp-blue-fantastic);
+  --brand-primary-active:var(--mp-blue-fantastic);
+  --brand-primary-soft:var(--mp-palladian);
+  --brand-secondary:var(--mp-truffle-trouble);
+  --bg-canvas:var(--mp-palladian);
+  --bg-surface:#FFFFFF;
+  --bg-surface-secondary:var(--mp-oatmeal);
+  --text-primary:var(--mp-abyssal);
+  --text-secondary:var(--mp-blue-fantastic);
+  --text-muted:var(--mp-blue-fantastic);
+  --text-inverse:#FFFFFF;
+  --border-default:var(--mp-oatmeal);
+  --border-strong:var(--mp-blue-fantastic);
+  --divider:var(--mp-oatmeal);
+  --ed-line:var(--mp-oatmeal);
+  --ed-ink:var(--mp-abyssal);
+  --ed-paper:var(--mp-palladian);
+  background:var(--mp-palladian);
+}
+
+/* Light editorial canvas */
+.editorial-site #siteHeader,
+.editorial-site .site-header,
+.editorial-site .promo,
+.editorial-site .mobile-menu,
+.editorial-site.editorial-menu-open #siteHeader,
+.editorial-site :is(.ed-opening,.mk-hero,.how-hero,.page-hero),
+.editorial-site :is(.kz-workflow,.kz-solutions-section,.kz-reasons,.kz-audience,.kz-support,.kz-benefit,.kz-plan,.kz-compare,.kz-facts,.mk-section,.section,.how-principles,.how-flow-section,.how-smart-section,.how-control-section){
+  background:var(--mp-palladian);
+}
+.editorial-site .dropdown-menu,
+.editorial-site :is(input,select,textarea),
+.editorial-site .mk-form-card .field :is(input,select,textarea),
+.editorial-site .price,
+.editorial-site .plan-table{
+  background:#FFFFFF;
+}
+
+/* Warm neutral bands */
+.editorial-site :is(.kz-trust-strip,.kz-apps,.mk-stat-strip,.price.popular,.notice),
+.editorial-site .dropdown-menu a:hover{
+  background:var(--mp-oatmeal);
+}
+.editorial-site .notice.warn{
+  background:var(--mp-burning-flame);
+  color:var(--mp-abyssal);
+  border-color:var(--mp-truffle-trouble);
+}
+
+/* Primary actions use the orange from the reference palette. */
+.editorial-site :is(.btn.primary,.mk-btn.primary,.btn.dark),
+.editorial-site .nav-actions .btn:first-child{
+  background:var(--mp-burning-flame);
+  border-color:var(--mp-burning-flame);
+  color:var(--mp-abyssal);
+}
+.editorial-site :is(.btn.primary,.mk-btn.primary,.btn.dark):hover,
+.editorial-site .nav-actions .btn:first-child:hover{
+  background:var(--mp-truffle-trouble);
+  border-color:var(--mp-truffle-trouble);
+  color:#FFFFFF;
+}
+.editorial-site :is(.btn,.mk-btn):not(.primary):not(.dark){
+  border-color:var(--mp-abyssal);
+  color:var(--mp-abyssal);
+  background:transparent;
+}
+.editorial-site :is(.btn,.mk-btn):not(.primary):not(.dark):hover{
+  background:var(--mp-oatmeal);
+  color:var(--mp-abyssal);
+}
+
+/* Warm editorial accents, kept secondary to the dark navy hierarchy. */
+.editorial-site :is(.eyebrow,.kz-benefit-label,.kz-app-label,.how-flow-tag,.breadcrumbs a,.tag,.mk-tag){
+  color:var(--mp-truffle-trouble);
+}
+.editorial-site .kz-tab.active,
+.editorial-site .kz-compare-switch button.active{
+  border-bottom-color:var(--mp-truffle-trouble);
+  color:var(--mp-truffle-trouble);
+}
+.editorial-site :focus-visible{
+  outline-color:var(--mp-burning-flame);
+}
+
+/* One strong blue editorial moment before the darker footer. */
+.editorial-site :is(.kz-final-box,.mk-banner,.how-final){
+  background:var(--mp-blue-fantastic);
+  color:#FFFFFF;
+}
+.editorial-site :is(.kz-final-box,.mk-banner,.how-final) :is(h2,h3,p,.eyebrow){
+  color:#FFFFFF;
+}
+.editorial-site :is(.kz-final-box,.mk-banner,.how-final) :is(.btn.primary,.mk-btn.primary){
+  background:var(--mp-burning-flame);
+  border-color:var(--mp-burning-flame);
+  color:var(--mp-abyssal);
+}
+.editorial-site :is(.kz-final-box,.mk-banner,.how-final) :is(.btn.primary,.mk-btn.primary):hover{
+  background:var(--mp-truffle-trouble);
+  border-color:var(--mp-truffle-trouble);
+  color:#FFFFFF;
+}
+
+/* Deep footer anchor. */
+.editorial-site .footer{
+  background:var(--mp-abyssal);
+  color:#FFFFFF;
+  border-top-color:rgba(238,233,223,.24);
+}
+.editorial-site .footer-bottom{
+  border-top-color:rgba(238,233,223,.24);
+}
+
+/* Small highlight details. */
+.editorial-site .mk-flow-step .num,
+.editorial-site .how-flow-number{
+  color:var(--mp-truffle-trouble);
+}
+.editorial-site .kz-price-big{
+  color:var(--mp-abyssal);
+}
+.editorial-site .price.popular{
+  border-top-color:var(--mp-truffle-trouble);
+}
+.editorial-site .site-backtop{
+  background:var(--mp-burning-flame);
+  color:var(--mp-abyssal);
+}
