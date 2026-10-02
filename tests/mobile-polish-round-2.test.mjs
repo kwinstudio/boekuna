@@ -13,6 +13,7 @@ fs.mkdirSync('tests/artifacts/mobile-polish-round-2',{recursive:true});
 
 assert.match(original,/mobile-polish-round-2\.css/,'App source must load round-2 CSS');
 assert.match(original,/mobile-polish-round-2\.js/,'App source must load round-2 JS');
+assert.ok(original.lastIndexOf('<script src="/assets/mobile-polish-round-2.js"></script>')>original.lastIndexOf('boekuna-upload-bootstrap'),'Round-2 JS must load after the upload/bootstrap scripts');
 assert.match(build,/mobile-polish-round-2\.css/,'App build must copy round-2 CSS');
 assert.match(build,/mobile-polish-round-2\.js/,'App build must copy round-2 JS');
 assert.doesNotMatch(original,/Maak foto<\/button><button class="btn" type="button" onclick="chooseUploadSource/,'Mobile upload may not render the old Boekuna source picker');
