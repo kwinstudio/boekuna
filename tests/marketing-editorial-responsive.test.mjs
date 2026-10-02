@@ -148,7 +148,7 @@ try{
   const motionPage=await browser.newPage({viewport:{width:1440,height:960},reducedMotion:'no-preference'});
   await motionPage.goto(base+'/',{waitUntil:'domcontentloaded'});
   const heroDepth=motionPage.locator('.photo-slot--hero[data-depth-root]');
-  await heroDepth.hover({position:{x:620,y:180}});
+  await heroDepth.hover({position:{x:60,y:70}});
   await motionPage.waitForTimeout(40);
   assert.equal(await heroDepth.getAttribute('data-depth-mode'),'interactive','Desktop hero depth should enable interactive pointer motion');
   const tilt=await heroDepth.evaluate(el=>({rx:el.style.getPropertyValue('--depth-rx'),ry:el.style.getPropertyValue('--depth-ry')}));
