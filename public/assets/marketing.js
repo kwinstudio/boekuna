@@ -69,6 +69,7 @@ function sharedHeader(){
               <a href="/voor-ondernemers/#zzp"><strong>ZZP & freelance</strong><span>Minder administratie naast je vak</span></a>
               <a href="/voor-ondernemers/#klein-bedrijf"><strong>Kleine bedrijven</strong><span>Structuur terwijl je groeit</span></a>
               <a href="/voor-ondernemers/#veel-documenten"><strong>Veel documenten</strong><span>Minder handmatig invoerwerk</span></a>
+              <a href="/voor-ondernemers/"><strong>Bekijk alle ondernemers</strong></a>
             </div>
           </div>
         </div>
@@ -113,6 +114,7 @@ function sharedHeader(){
           <a href="/voor-ondernemers/#zzp">ZZP & freelance</a>
           <a href="/voor-ondernemers/#klein-bedrijf">Kleine bedrijven</a>
           <a href="/voor-ondernemers/#veel-documenten">Veel documenten</a>
+          <a href="/voor-ondernemers/">Voor wie Boekuna is</a>
         </div>
       </details>
       <details>
