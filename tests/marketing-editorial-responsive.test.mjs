@@ -9,6 +9,9 @@ const root=process.cwd();
 fs.mkdirSync(path.join(root,'tests','artifacts'),{recursive:true});
 
 const identityCss=fs.readFileSync(path.join(root,'public','assets','marketing-editorial.css'),'utf8');
+const homepageHtml=fs.readFileSync(path.join(root,'public','index.html'),'utf8');
+assert.ok(homepageHtml.includes('/assets/marketing-editorial.css?v=20261002depth'),'Homepage must cache-bust the depth CSS release');
+assert.ok(homepageHtml.includes('/assets/homepage.js?v=20261002depth'),'Homepage must cache-bust the depth interaction JS release');
 for(const contract of [
   '--boekuna-amber:#FF9F1C',
   '--boekuna-honey:#FFBF69',
@@ -148,7 +151,12 @@ try{
   const motionPage=await browser.newPage({viewport:{width:1440,height:960},reducedMotion:'no-preference'});
   await motionPage.goto(base+'/',{waitUntil:'domcontentloaded'});
   const heroDepth=motionPage.locator('.photo-slot--hero[data-depth-root]');
-  await heroDepth.hover({position:{x:60,y:70}});
+  await heroDepth.scrollIntoViewIfNeeded();
+  const heroBox=await heroDepth.boundingBox();
+  assert.ok(heroBox&&heroBox.width>40&&heroBox.height>40,'Desktop hero depth needs a measurable pointer surface');
+  const pointerX=heroBox.x+heroBox.width*.76;
+  const pointerY=heroBox.y+heroBox.height*.48;
+  await motionPage.mouse.move(pointerX,pointerY);
   await motionPage.waitForTimeout(40);
   assert.equal(await heroDepth.getAttribute('data-depth-mode'),'interactive','Desktop hero depth should enable interactive pointer motion');
   const tilt=await heroDepth.evaluate(el=>({rx:el.style.getPropertyValue('--depth-rx'),ry:el.style.getPropertyValue('--depth-ry')}));
