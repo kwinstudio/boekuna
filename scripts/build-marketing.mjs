@@ -42,9 +42,9 @@ while(stack.length){
     if(!textExtensions.has(path.extname(entry.name)))continue;
     let body=fs.readFileSync(file,'utf8');
     body=body
-      .replace(/\\/assets\\/marketing\\.js\\?v=[^"']+/g,'/assets/marketing.js?v=20261002premium')
-      .replace(/\\/assets\\/marketing-editorial\\.css\\?v=[^"']+/g,'/assets/marketing-editorial.css?v=20261002premium')
-      .replace(/\\/assets\\/marketing-editorial\\.js\\?v=[^"']+/g,'/assets/marketing-editorial.js?v=20261002premium');
+      .replace(/\/assets\/marketing\.js\?v=[^"']+/g,'/assets/marketing.js?v=20261002premium')
+      .replace(/\/assets\/marketing-editorial\.css\?v=[^"']+/g,'/assets/marketing-editorial.css?v=20261002premium')
+      .replace(/\/assets\/marketing-editorial\.js\?v=[^"']+/g,'/assets/marketing-editorial.js?v=20261002premium');
     fs.writeFileSync(file,body);
     if(body.includes('/assets/product/'))throw new Error('Marketing build still references product screenshots: '+path.relative(root,file));
   }
