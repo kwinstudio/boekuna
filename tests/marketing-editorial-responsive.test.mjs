@@ -100,7 +100,7 @@ try{
     }));
     assert.equal(palette.body,'rgb(255, 255, 255)',`White canvas missing at ${width}px`);
     assert.equal(palette.hero,'rgb(17, 17, 17)',`Near-black hero type missing at ${width}px`);
-    assert.equal(palette.ctaBg,'rgb(255, 159, 28)',`Amber primary CTA missing at ${width}px`);
+    assert.equal(palette.ctaBg,'rgb(46, 196, 182)',`Turquoise primary CTA missing at ${width}px`);
     assert.equal(palette.ctaText,'rgb(17, 17, 17)',`Near-black CTA text missing at ${width}px`);
     assert.equal(palette.trust,'rgb(203, 243, 240)',`Soft Frozen Water trust band missing at ${width}px`);
     assert.equal(palette.footer,'rgb(17, 17, 17)',`Near-black footer missing at ${width}px`);
@@ -150,7 +150,7 @@ try{
   assert.equal(await page.locator('#kzProductImage').count(),0,'Image-free product panel must not recreate a screenshot element');
   await page.close();
 
-  console.log('Image-free marketing responsive QA: PASS (320, 360, 375, 390, 393, 430, 620, 768, 1024, 1280, 1440, 1920 + white/amber/turquoise/black palette + keyboard tabs)');
+  console.log('Marketing responsive QA: PASS (320, 360, 375, 390, 393, 430, 620, 768, 1024, 1280, 1440, 1920 + calm BOEKUNA palette + keyboard controls)');
 }finally{
   await browser.close();
   await server.close();
