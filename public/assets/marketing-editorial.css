@@ -1396,8 +1396,11 @@ body.editorial-site{
   }
   .mk-hero-copy{display:block}
   .mk-hero h1,.how-hero h1,.page-hero h1{
+    max-width:100%;
     font-size:clamp(44px,11.8vw,58px);
     line-height:.98;
+    hyphens:auto;
+    overflow-wrap:anywhere;
   }
   .ed-page-support{margin-top:28px}
   .mk-stat-strip{
