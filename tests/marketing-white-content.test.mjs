@@ -24,7 +24,7 @@ for(const rel of routeFiles){
   assert.equal((html.match(/<h1\b/gi)||[]).length,1,rel+': exactly one h1');
   if(rel!=='index.html') assert.ok(/<link rel="canonical" href="https:\/\/boekuna\.nl\//.test(html),rel+': public canonical missing');
   assert.ok(html.includes('/assets/marketing.js?v=20261002premium'),rel+': premium shared runtime must be cache-busted');
-  assert.ok(html.includes('/assets/marketing-editorial.css?v=20261002depth'),rel+': depth stylesheet must use the current cache key');
+  assert.ok(html.includes('/assets/marketing-editorial.css?v=20261002parity'),rel+': depth stylesheet must use the current cache key');
   assert.equal(/revolut/i.test(html),false,rel+': reference brand must not appear in production HTML');
   assert.equal(/<img[^>]+src=["']https?:\/\//i.test(html),false,rel+': content images must remain first-party');
 }
@@ -50,6 +50,9 @@ assert.equal(/stripe/i.test(pricing),false,'Public pricing must not introduce St
 const css=fs.readFileSync(path.join(dist,'assets','marketing-editorial.css'),'utf8');
 for(const token of ['#FFFFFF','#111111','#FF9F1C','#FFBF69','#CBF3F0','#2EC4B6']) assert.ok(css.includes(token),'Approved palette token missing '+token);
 assert.ok(css.includes('@media(prefers-reduced-motion:reduce)'),'Reduced-motion override missing');
+for(const forbidden of ['data-depth-root','hero-depth-','story-depth-','kz-magnetic','rotateX(','rotateY(','perspective(']){
+  assert.equal(css.includes(forbidden),false,'Calm parity CSS must not retain 3D/depth contract: '+forbidden);
+}
 assert.equal(/(?:linear|radial)-gradient\(/i.test(css),false,'Premium rebuild must not use decorative gradients');
 assert.equal(/revolut/i.test(css),false,'Reference brand must not appear in production CSS');
 
