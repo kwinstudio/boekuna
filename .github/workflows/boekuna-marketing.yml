@@ -19,6 +19,7 @@ on:
       - "public/assets/editorial/**"
       - "public/assets/brand-v2.css"
       - "public/assets/boekuna-symbol*.svg"
+      - "public/assets/boekuna-editorial-*.svg"
       - "public/assets/boekuna-favicon.svg"
       - "public/assets/boekuna-app-icon-180.png"
       - "public/assets/favicon-32.png"

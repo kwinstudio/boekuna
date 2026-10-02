@@ -72,8 +72,13 @@ try{
     }
     assert.equal(await page.locator('img[src*="/assets/product/"],source[srcset*="/assets/product/"]').count(),0,`Product screenshots must be absent at ${width}px`);
     assert.equal(await page.locator('picture').count(),0,`Content picture elements must be absent at ${width}px`);
-    assert.equal(await page.locator('.photo-slot').count(),2,`Two future photo slots must remain present at ${width}px`);
-    assert.equal(await page.locator('.photo-slot img').count(),0,`Future photo slots must remain empty at ${width}px`);
+    assert.equal(await page.locator('.photo-slot').count(),3,`Three reusable photo slots must remain present at ${width}px`);
+    assert.equal(await page.locator('.photo-slot img').count(),1,`Only the original hero placeholder may render an image at ${width}px`);
+    const heroMedia=page.locator('.photo-slot--hero img');
+    assert.equal(await heroMedia.getAttribute('src'),'/assets/boekuna-editorial-workspace-placeholder.svg',`Original hero media missing at ${width}px`);
+    assert.equal(await heroMedia.getAttribute('width'),'1200',`Hero intrinsic width missing at ${width}px`);
+    assert.equal(await heroMedia.getAttribute('height'),'1500',`Hero intrinsic height missing at ${width}px`);
+    assert.ok((await heroMedia.boundingBox())?.width>0,`Hero media must remain visible at ${width}px`);
     assert.deepEqual(forbiddenRequests,[],`Product screenshot requests at ${width}px: ${forbiddenRequests.join(' | ')}`);
     assert.deepEqual(errors,[],`Homepage page errors at ${width}px: ${errors.join(' | ')}`);
     const palette=await page.evaluate(()=>({
