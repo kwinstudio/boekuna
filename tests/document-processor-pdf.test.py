@@ -220,6 +220,19 @@ def test_corrupt_pdf_fails_loudly():
     raise AssertionError("A corrupt PDF must fail instead of returning an empty successful extraction")
 
 
+def test_pdf_cleanup_preserves_result_and_closes_mupdf():
+    from unittest.mock import patch
+    raw=vector_pdf(invoice_lines())
+    actual_doc=processor.fitz.open(stream=raw,filetype="pdf")
+    class BrokenCleanup:
+        pages=[]
+        def close(self):raise RuntimeError("table cleanup failed")
+    with patch.object(processor.fitz,"open",return_value=actual_doc),patch.object(processor.pdfplumber,"open",return_value=BrokenCleanup()):
+        result=processor.extract_pdf(raw)
+    assert actual_doc.is_closed
+    assert "121" in result["text"]
+
+
 if __name__ == "__main__":
     tests = [
         test_trusted_origin_contract,
@@ -229,6 +242,7 @@ if __name__ == "__main__":
         test_multi_page_pdf_reads_all_pages,
         test_multiple_vat_rates_are_preserved_for_review,
         test_corrupt_pdf_fails_loudly,
+        test_pdf_cleanup_preserves_result_and_closes_mupdf,
     ]
     for test in tests:
         test()

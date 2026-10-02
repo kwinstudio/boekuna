@@ -162,7 +162,7 @@ try{
   assert.match(await page.locator('.document-processing-board').innerText(),/Controle nodig/);
   assert.match(await page.locator('.document-processing-board').innerText(),/Kon niet verwerkt worden/);
   assert.equal(await page.locator('.document-processing-board .document-status-spinner').count(),2,'Only real active states should spin');
-  assert.equal((await page.locator('#documentAttentionBadge').innerText()).trim(),'2','Review + failure require attention');
+  assert.equal((await page.locator('#documentAttentionBadge').innerText()).trim(),'3','Unbooked ready financial document, flagged review and failure require attention');
   assert.match(await page.locator('#documentProcessingGlobalText').innerText(),/3\/5/);
   fs.mkdirSync(new URL('./artifacts/',import.meta.url),{recursive:true});
   await page.screenshot({path:new URL('./artifacts/document-processing-background-mixed.png',import.meta.url).pathname,fullPage:true});
@@ -186,6 +186,33 @@ try{
   });
   assert.match(await page.locator('.document-processing-board').innerText(),/✓ 5 documenten verwerkt/,'A fully successful current batch must remain visible as completed');
   await page.screenshot({path:new URL('./artifacts/document-processing-background-complete.png',import.meta.url).pathname,fullPage:true});
+
+  // Reload removes the in-memory batch. Persisted ready financial jobs must
+  // still offer human review, without reopening already booked documents.
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.evaluate(({now})=>{
+    documentProcessingSession=null;
+    const analysis={documentType:'purchase_invoice',invoice:{invoiceNumber:'RELOAD-1',invoiceDate:'2026-09-29'},supplier:{name:'Reload leverancier'},amounts:{subtotal:100,vatLines:[{rate:21,taxableAmount:100,vatAmount:21}],vatTotal:21,total:121,currency:'EUR'},confidence:{supplierName:.99,invoiceNumber:.99,invoiceDate:.99,subtotal:.99,vatTotal:.99,total:.99,vatLines:.99},processing:{sourceKind:'pdf',pages:1,ocrPages:[],overallConfidence:.99}};
+    const job=(id,extra={})=>({id,document_id:'doc-'+id,client_ref:'ref-'+id,batch_id:'old-batch',file_name:id+'.pdf',mime_type:'application/pdf',size_bytes:1200,requested_kind:'auto',state:'ready',phase:'complete',attempt:1,max_attempts:3,result:{analysis},review_fields:[],review_message:null,resolved_at:null,created_at:now,updated_at:now,...extra});
+    state.documents=[{id:'linked-local',fileId:'ref-booked',name:'booked.pdf',linkedId:'expense-existing',linkedType:'expense'}];
+    applyDocumentProcessingJobs([job('unreviewed'),job('booked'),job('resolved',{resolved_at:now}),job('bank',{result:{analysis:{...analysis,documentType:'bank_document'}}})],{initial:true});
+    window.getStoredFile=async()=>({name:'unreviewed.pdf',type:'application/pdf',blob:new Blob(['%PDF-1.4\n%%EOF'],{type:'application/pdf'})});
+    page='documents';render();
+  },{now});
+  assert.equal(await page.locator('.document-processing-board').count(),1,'Ready financial document remains reviewable after reload');
+  assert.equal(await page.locator('.document-processing-board .document-processing-card').count(),1,'Booked, resolved and nonfinancial documents do not need review');
+  assert.match(await page.locator('.document-processing-board').innerText(),/unreviewed\.pdf/);
+  assert.equal((await page.locator('#documentAttentionBadge').innerText()).trim(),'1','Unreviewed ready financial document requires attention');
+  const sourceRow=page.locator('.mobile-documents tbody tr').filter({hasText:'unreviewed.pdf'});
+  await sourceRow.getByRole('button',{name:'Controleren',exact:true}).click();
+  await page.getByRole('heading',{name:'Document controleren'}).waitFor();
+  assert.equal(await page.evaluate(()=>pendingPdfImport.processingJobId),'unreviewed','File row reopens the persisted financial review');
+  assert.equal(await page.evaluate(()=>state.expenses.length+state.invoices.length),0,'Reopening recognition never books a document automatically');
+  await page.evaluate(()=>{cancelDocumentReview();page='documents';render()});
+  await page.locator('.document-processing-board').getByRole('button',{name:'Controleren',exact:true}).click();
+  await page.getByRole('heading',{name:'Document controleren'}).waitFor();
+  await page.evaluate(()=>{cancelDocumentReview();state.documents.find(d=>d.fileId==='ref-unreviewed').linkedId='saved-expense';page='documents';render()});
+  assert.equal(await page.locator('.document-processing-board').count(),0,'Saved document leaves pending review after its booking link is persisted');
 
   for(const width of [320,360,375,390,393,430,768,1024,1280,1440,1920]){
     await page.setViewportSize({width,height:900});
