@@ -39,6 +39,20 @@ assert.ok(home.includes('/assets/boekuna-editorial-workspace-placeholder.svg'),'
 assert.ok(/width="1200" height="1500"/.test(home),'Hero media intrinsic dimensions missing');
 assert.ok(home.includes('prefers-reduced-motion')===false,'Reduced motion belongs in CSS, not inline homepage scripting');
 
+const homeSections=[...home.matchAll(/data-home-section="([^"]+)"/g)].map(match=>match[1]);
+assert.deepEqual(homeSections,[
+  'hero','feature-rail','value','product-stories','audience','mid-cta','vat','documents','bank','demo','support','development','pricing','faq','final-cta'
+],'Homepage must follow the approved parity section order');
+for(const label of ['Facturen','Documenten','Relaties','Btw','Bankimport','Rapportages']){
+  assert.ok(home.includes('>'+label+'</a>')||home.includes('>'+label+'</span>'),'Homepage feature rail missing '+label);
+}
+assert.equal(/data-depth-root|hero-depth-|story-depth-|data-depth-layer/.test(home),false,'Homepage must remove the old 3D/depth markup');
+assert.equal(/<blockquote|class="[^"]*testimonial|klanten beoordelen|sterren|reviews van klanten/i.test(home),false,'Homepage must not fabricate testimonials or customer proof');
+assert.ok(/geen live bankkoppeling|live bankkoppeling[^<]{0,80}(?:niet|nog niet)/i.test(home),'Homepage bank section must state that a live bank connection is not active');
+assert.ok(/direct(?:e)? btw[^<]{0,100}(?:niet|nog niet)|btw[^<]{0,100}direct[^<]{0,100}(?:niet|nog niet)/i.test(home),'Homepage VAT section must state that direct VAT filing is not live');
+for(const value of ['€0','€6,95','€9,95','€14,95']) assert.ok(home.includes(value),'Homepage pricing preview missing '+value);
+assert.ok((home.match(/Binnenkort beschikbaar/g)||[]).length>=3,'Homepage paid pricing preview must stay non-transactional');
+
 const pricing=fs.readFileSync(path.join(dist,'prijzen','index.html'),'utf8');
 for(const value of ['€0','€6,95','€9,95','€14,95']) assert.ok(pricing.includes(value),'Pricing truth missing '+value);
 assert.ok(pricing.includes('Meest gekozen'),'Recommended Boekuna label missing');
