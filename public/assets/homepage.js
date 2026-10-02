@@ -64,15 +64,13 @@ function initBoekunaMarketingInteractions(){
   });
   workflowStage.dataset.step=key;
   workflowStage.classList.add('is-changing');
-  const apply=()=>{
-   setText('workflowStageKicker',d.kicker);
-   setText('workflowStageState',d.state);
-   setText('workflowStageLabel',d.label);
-   setText('workflowStageTitle',d.title);
-   setText('workflowStageText',d.text);
-   workflowStage.classList.remove('is-changing');
-  };
-  if(reduced)apply();else requestAnimationFrame(()=>requestAnimationFrame(apply));
+  setText('workflowStageKicker',d.kicker);
+  setText('workflowStageState',d.state);
+  setText('workflowStageLabel',d.label);
+  setText('workflowStageTitle',d.title);
+  setText('workflowStageText',d.text);
+  if(reduced)workflowStage.classList.remove('is-changing');
+  else requestAnimationFrame(()=>workflowStage.classList.remove('is-changing'));
  }
  workflowDepthButtons.forEach(button=>button.addEventListener('click',()=>setWorkflowDepth(button.dataset.workflowStep)));
  setWorkflowDepth('document');
