@@ -92,8 +92,12 @@
       }
       button.addEventListener('click',function(){
         if(button.disabled)return;
-        closeRowMenu(true);
-        item.action();
+        var selectedMenu=menu;
+        try{item.action()}finally{
+          queueMicrotask(function(){
+            if(activeRowMenu&&activeRowMenu.menu===selectedMenu)closeRowMenu(false);
+          });
+        }
       });
       menu.appendChild(button);
     });
