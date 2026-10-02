@@ -35,9 +35,9 @@ const browser=await chromium.launch({headless:true});
 try{
   const marketing=await browser.newPage();
   await marketing.goto(urlFor(marketingServer)+'/',{waitUntil:'domcontentloaded'});
-  await marketing.waitForSelector('.kz-hero');
+  await marketing.waitForSelector('.parity-hero');
   assert.equal(await marketing.locator('#mainApp').count(),0,'marketing must not contain app runtime');
-  assert.equal(await marketing.locator('.kz-hero h1').textContent(),'Je bent ondernemer.Geen boekhouder.');
+  assert.equal((await marketing.locator('.parity-hero h1').textContent()).replace(/\s+/g,' ').trim(),'Boekhouden. Maar dan rustig.');
   assert.match(await marketing.locator('a[href^="https://app.boekuna.nl/"]').first().getAttribute('href'),/^https:\/\/app\.boekuna\.nl\//);
 
   const app=await browser.newPage();
