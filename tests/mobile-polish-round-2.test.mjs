@@ -107,8 +107,12 @@ async function nav(route){
 }
 
 async function shot(name,width=390,height=844){
-  await page.setViewportSize({width,height:width<700?844:960});
-  await page.waitForTimeout(80);
+  const targetHeight=height||(width<700?844:960);
+  const current=page.viewportSize();
+  if(!current||current.width!==width||current.height!==targetHeight){
+    await page.setViewportSize({width,height:targetHeight});
+    await page.waitForTimeout(80);
+  }
   await page.screenshot({path:'tests/artifacts/mobile-polish-round-2/'+browserName+'-'+width+'-'+name+'.png',fullPage:true});
 }
 
