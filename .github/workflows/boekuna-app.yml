@@ -27,6 +27,7 @@ on:
       - "tests/app-wide-premium-simplification-v2.test.mjs"
       - "tests/product-ui-reference.test.mjs"
       - "tests/document-upload-browser.test.mjs"
+      - "tests/document-review-beginner-ux.test.mjs"
       - "tests/scan-native-picker.test.mjs"
       - "tests/document-background-processing.test.mjs"
       - "tests/auth-progressive-onboarding.test.mjs"
@@ -163,6 +164,10 @@ jobs:
         run: BOOKUNA_BROWSER=webkit node tests/browser-smoke.test.mjs
       - name: Single native Scan picker regression
         run: node tests/scan-native-picker.test.mjs
+      - name: Beginner document review — Chromium + WebKit
+        run: |
+          node tests/document-review-beginner-ux.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/document-review-beginner-ux.test.mjs
       - name: Document browser regressions
         run: node tests/document-upload-browser.test.mjs
       - name: Document background processing regressions
