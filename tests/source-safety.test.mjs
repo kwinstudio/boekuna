@@ -299,7 +299,7 @@ assert.ok(!html.includes("signInWithOAuth"),"Production app must not expose OAut
 assert.ok(brandSymbol.includes('fill="#1C6461"'),"Final approved Boekuna B mark colour must remain #1C6461");
 assert.ok(!brandSymbol.includes("M18,22 H30 A12,12"),"Legacy offset-frame symbol must not return");
 assert.ok(brandManifest.includes("/assets/boekuna-app-icon-maskable-512.png"),"PWA manifest must expose a maskable final-logo icon");
-assert.ok(brandMarketing.includes("/assets/boekuna-og-1200x630.png"),"Public metadata must use the final-logo social preview");
+assert.ok(!brandMarketing.includes("/assets/boekuna-og-1200x630.png"),"Current one-page marketing runtime must not re-inject the retired legacy social preview");
 const unifiedEmailModule=html.slice(html.indexOf('<script id="boekuna-unified-email-handoff-v2">'),html.indexOf('</script>',html.indexOf('<script id="boekuna-unified-email-handoff-v2">')));
 assert.ok(unifiedEmailModule.length>1000,"Unified email handoff module must be present");
 assert.ok(unifiedEmailModule.includes("function prepareEmailHandoffFromComposer()"),"Invoice/reminder/follow-up must share one handoff preparation flow");
