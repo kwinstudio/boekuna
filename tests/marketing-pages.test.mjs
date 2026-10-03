@@ -69,6 +69,8 @@ const privacy=fs.readFileSync(path.join(publicDir,'privacy','index.html'),'utf8'
 assert.ok(privacy.includes('Row Level Security'),'Privacy account-isolation disclosure must remain');
 const terms=fs.readFileSync(path.join(publicDir,'voorwaarden','index.html'),'utf8');
 assert.ok(terms.includes('Geen automatische belastingaangifte'),'Tax-filing limitation must remain in terms');
+for(const required of ['Kwinest','Arica 139, 2903 PD Capelle aan den IJssel','74542893','NL002477565B57','support@boekuna.nl'])assert.ok(terms.includes(required),'Verified business detail missing from terms: '+required);
+assert.ok(home.includes('/voorwaarden/#bedrijfsgegevens'),'Homepage footer must link to public business details');
 
 for(const file of ['index.html','privacy/index.html','voorwaarden/index.html','support/index.html','account-verwijderen/index.html']){
   const html=fs.readFileSync(path.join(publicDir,file),'utf8');
