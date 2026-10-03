@@ -126,14 +126,16 @@ try{
       assert.match(await page.locator('.dashboard-page-head h1').evaluate(el=>getComputedStyle(el).fontFamily),/Boekuna Space/);
       assert.equal(await page.locator('#sidebar').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
       assert.equal(await page.locator('.nav-item.active').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(236, 250, 238)');
-      assert.equal(await page.locator('.btn.primary').first().evaluate(el=>getComputedStyle(el).color),'rgb(27, 31, 35)');
       await noOverflow(page,browserName+' desktop dashboard');
       await axe(page,browserName+' desktop dashboard');
       await page.screenshot({path:path.join(evidence,'dashboard-1440-'+browserName+'.png'),fullPage:true});
 
       await page.evaluate(()=>navigate('invoices'));
       await page.getByRole('heading',{name:'Facturen'}).waitFor();
-      assert.ok(await page.getByRole('button',{name:/Factuur maken/}).isVisible());
+      const invoicePrimary=page.getByRole('button',{name:/Factuur maken/});
+      assert.ok(await invoicePrimary.isVisible());
+      assert.equal(await invoicePrimary.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(99, 212, 113)');
+      assert.equal(await invoicePrimary.evaluate(el=>getComputedStyle(el).color),'rgb(27, 31, 35)');
       await noOverflow(page,browserName+' desktop invoices');
       await page.screenshot({path:path.join(evidence,'invoices-1440-'+browserName+'.png'),fullPage:true});
 
