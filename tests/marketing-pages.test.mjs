@@ -1,120 +1,86 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
 
 const root=process.cwd();
 const publicDir=path.join(root,'public');
-const pages=[
-  'account-verwijderen','btw-bank','contact','facturen','faq','functies',
-  'hoe-het-werkt','over','prijzen','privacy','rapportages','scanner',
-  'support','veiligheid','voor-ondernemers','voorwaarden'
-];
+const retained=['privacy','voorwaarden','support','account-verwijderen'];
+const retired=['functies','facturen','scanner','btw-bank','rapportages','hoe-het-werkt','voor-ondernemers','prijzen','faq','over','contact','veiligheid'];
 
-for(const slug of pages){
+for(const slug of retained){
   const file=path.join(publicDir,slug,'index.html');
-  assert.ok(fs.existsSync(file),`Missing public page: ${slug}`);
+  assert.ok(fs.existsSync(file),'Missing retained endpoint: '+slug);
   const html=fs.readFileSync(file,'utf8');
-  assert.ok(/<!doctype html>/i.test(html),`${slug}: missing doctype`);
-  assert.equal((html.match(/<h1\b/gi)||[]).length,1,`${slug}: must have exactly one h1`);
-  assert.ok(html.includes('id="siteHeader"'),`${slug}: shared header missing`);
-  assert.ok(html.includes('id="siteFooter"'),`${slug}: shared footer missing`);
-  assert.ok(html.includes('/assets/marketing.css'),`${slug}: shared CSS missing`);
-  assert.ok(html.includes('/assets/marketing.js'),`${slug}: shared JS missing`);
-  assert.ok(html.includes(`https://boekuna.nl/${slug}/`),`${slug}: canonical/public URL metadata missing`);
+  assert.equal((html.match(/<h1\b/gi)||[]).length,1,slug+': must retain exactly one h1');
+  assert.ok(html.includes('id="siteHeader"'),slug+': shared header mount missing');
+  assert.ok(html.includes('id="siteFooter"'),slug+': shared footer mount missing');
+  assert.ok(html.includes('/assets/onepage.css?v=20261003a'),slug+': retained endpoint must use current chrome layer');
+  assert.ok(html.includes('/assets/boekuna-app-icon-180.png'),slug+': Apple Touch Icon must use official 180px PNG');
+}
+for(const slug of retired)assert.ok(!fs.existsSync(path.join(publicDir,slug,'index.html')),'Retired marketing route source must be removed: '+slug);
 
-  for(const m of html.matchAll(/href="(\/[^"#?]*)(?:[?#][^"]*)?"/g)){
-    const href=m[1];
-    if(href==='/'||href==='/index.html')continue;
-    const target=path.join(publicDir,href.replace(/^\//,''));
-    const resolved=href.endsWith('/')?path.join(target,'index.html'):target;
-    assert.ok(fs.existsSync(resolved),`${slug}: broken internal link ${href}`);
-  }
+const home=fs.readFileSync(path.join(publicDir,'index.html'),'utf8');
+assert.ok(home.includes('Je bent ondernemer.<br>Geen boekhouder.'),'One-page proposition missing');
+for(const id of ['product','hoe-het-werkt','waarom','prijzen','faq','veiligheid','contact'])assert.ok(home.includes('id="'+id+'"'),'Missing one-page anchor '+id);
+assert.ok(home.includes('https://app.boekuna.nl/?login=1'),'Login must cross to product host');
+assert.ok(home.includes('https://app.boekuna.nl/?register=1'),'Registration must use existing free flow');
+assert.ok(home.includes('/assets/boekuna-app-icon-180.png'),'Homepage Apple Touch Icon must use official PNG');
+assert.ok(!home.includes('/assets/homepage.'),'Homepage must not load obsolete homepage runtime');
+assert.ok(!home.includes('/assets/marketing-editorial.'),'Homepage must not load legacy editorial runtime');
+assert.ok(!home.includes('/assets/product/'),'Homepage must not use product screenshots');
+for(const price of ['€0','€6,95','€9,95','€14,95'])assert.ok(home.includes(price),'Current public price missing: '+price);
+assert.equal((home.match(/Binnenkort beschikbaar/g)||[]).length,3,'Exactly three paid packages must remain announced/non-transactional');
+assert.ok(/Direct indienen[^<]{0,80}nog niet live/i.test(home),'VAT filing limitation must remain explicit');
+assert.ok(/live PSD2-bankkoppeling[^<]{0,80}nog niet actief/i.test(home),'Live-bank limitation must remain explicit');
+assert.equal(/href=["'][^"']*plan=/.test(home),false,'One-page marketing must not expose paid checkout plan routes');
+assert.equal(/stripe/i.test(home),false,'Homepage must not add Stripe checkout wiring');
+
+const css=fs.readFileSync(path.join(publicDir,'assets','onepage.css'),'utf8');
+for(const token of ['--color-brand:','--color-accent:','--color-accent-soft:','--color-background:','--color-surface:','--color-text:','--color-muted:','--color-border:','--color-success:'])assert.ok(css.includes(token),'Central design token missing '+token);
+assert.equal((css.match(/(?:linear|radial)-gradient\(/g)||[]).length,0,'One-page design must not use decorative gradients');
+assert.ok(!fs.existsSync(path.join(publicDir,'assets','homepage.css')),'Obsolete homepage.css must be removed');
+assert.ok(!fs.existsSync(path.join(publicDir,'assets','homepage.js')),'Obsolete homepage.js must be removed');
+
+const redirects=JSON.parse(fs.readFileSync(path.join(root,'vercel.json'),'utf8')).redirects;
+const expected={
+  '/functies/':'/#product','/facturen/':'/#product','/scanner/':'/#product','/btw-bank/':'/#product','/rapportages/':'/#product',
+  '/hoe-het-werkt/':'/#hoe-het-werkt','/voor-ondernemers/':'/#waarom','/prijzen/':'/#prijzen','/faq/':'/#faq',
+  '/over/':'/#waarom','/contact/':'/#contact','/veiligheid/':'/#veiligheid'
+};
+for(const [source,destination] of Object.entries(expected)){
+  const rule=redirects.find(row=>row.source===source);
+  assert.ok(rule,'Redirect missing for '+source);
+  assert.equal(rule.destination,destination,'Wrong redirect for '+source);
+  assert.equal(rule.permanent,true,'Old route redirect must be permanent: '+source);
 }
 
-const css=fs.readFileSync(path.join(publicDir,'assets','marketing.css'),'utf8');
-for(const cls of ['.mk-hero','.mk-section','.mk-card','.mk-banner','.mk-support-shell','.mk-legal-layout']){
-  assert.ok(css.includes(cls),`Marketing design system missing ${cls}`);
-}
-assert.ok(css.includes('@media(max-width:700px)'), 'Marketing pages need mobile breakpoint');
-assert.ok(css.includes('.how-hero'), 'Product tour styling must remain present');
-
-const sharedMarketing=fs.readFileSync(path.join(publicDir,'assets','marketing.js'),'utf8');
-assert.ok(sharedMarketing.includes('mailto:support@boekuna.nl'),'Public footer must expose the official support email');
-assert.ok(sharedMarketing.includes('https://app.boekuna.nl/?login=1'),'Public navigation login must cross to the product host');
-assert.ok(!sharedMarketing.includes('href="/?login=1"'),'Public navigation must not keep same-origin product login links');
-assert.ok(!sharedMarketing.includes('boekuna-boekhouding.onrender.com'),'Shared marketing runtime must not publish legacy Render metadata');
-
-const publicRoot=fs.readFileSync(path.join(publicDir,'index.html'),'utf8');
-assert.ok(publicRoot.includes('https://boekuna.nl/'),'Marketing root must use the public canonical host');
-assert.ok(publicRoot.includes('https://app.boekuna.nl/?register=1'),'Marketing root registration must cross to the product host');
-
-for(const publicFile of ['robots.txt','sitemap.xml']){
-  const text=fs.readFileSync(path.join(publicDir,publicFile),'utf8');
-  assert.ok(!text.includes('boekuna-boekhouding.onrender.com'),publicFile+' must not advertise the legacy Render host');
-  assert.ok(text.includes('https://boekuna.nl'),publicFile+' must advertise the public host');
-}
-
-const contact=fs.readFileSync(path.join(publicDir,'contact','index.html'),'utf8');
-assert.ok(contact.includes('mailto:support@boekuna.nl'),'Contact page must expose the official support email');
+const sitemap=fs.readFileSync(path.join(publicDir,'sitemap.xml'),'utf8');
+for(const url of ['https://boekuna.nl/','https://boekuna.nl/privacy/','https://boekuna.nl/voorwaarden/','https://boekuna.nl/support/','https://boekuna.nl/account-verwijderen/'])assert.ok(sitemap.includes(url),'Sitemap missing retained URL '+url);
+for(const slug of retired)assert.ok(!sitemap.includes('https://boekuna.nl/'+slug+'/'),'Sitemap must not advertise retired route '+slug);
 
 const support=fs.readFileSync(path.join(publicDir,'support','index.html'),'utf8');
 assert.ok(support.includes('id="supportForm"'),'Support form must remain functional');
-assert.ok(support.includes("support_requests"),'Support form must submit to support_requests');
-assert.ok(support.includes('mailto:support@boekuna.nl'),'Support page and failure fallback must expose the official support email');
-
+assert.ok(support.includes('support_requests'),'Support form contract must remain intact');
 const deletion=fs.readFileSync(path.join(publicDir,'account-verwijderen','index.html'),'utf8');
-assert.ok(deletion.includes('id="deleteRequestForm"'),'Account deletion web form must remain functional');
-assert.ok(deletion.includes('pattern="VERWIJDER"'),'Deletion request requires explicit confirmation');
-
-const pricing=fs.readFileSync(path.join(publicDir,'prijzen','index.html'),'utf8');
-for(const price of ['€0','€6,95','€9,95','€14,95']) assert.ok(pricing.includes(price),`Missing public price ${price}`);
-for(const oldPrice of ['€19,95','€29,95']) assert.ok(!pricing.includes(oldPrice),`Retired public marketing price must be removed: ${oldPrice}`);
-for(const checks of ['10 slimme documentchecks','40 slimme documentchecks','100 slimme documentchecks','Geen maandlimiet']) assert.ok(pricing.includes(checks),`Pricing limit contract missing: ${checks}`);
-assert.ok(pricing.includes('Meest gekozen'),'Boekuna must carry the Meest gekozen label');
-assert.ok(pricing.includes('Nieuwe pakketten worden binnenkort beschikbaar'),'Pricing must disclose announced-plan availability');
-assert.equal((pricing.match(/href=\"[^\"]*plan=/g)||[]).length,0,'Announced paid plans must not link to checkout/plan routes');
-assert.ok((pricing.match(/Binnenkort beschikbaar/g)||[]).length>=3,'Pricing must show availability copy and three non-transactional paid CTAs');
-assert.ok(pricing.includes('https://app.boekuna.nl/?register=1'),'Gratis CTA must use the existing free registration flow');
-for(const retired of ['Early Access','eerste 100','Founding 100','3 kalendermaanden','90 dagen']){
-  assert.ok(!pricing.toLowerCase().includes(retired.toLowerCase()),`Retired First-100 offer must be absent from pricing: ${retired}`);
-}
-
+assert.ok(deletion.includes('id="deleteRequestForm"'),'Account deletion form must remain functional');
+assert.ok(deletion.includes('pattern="VERWIJDER"'),'Deletion confirmation contract must remain intact');
 const privacy=fs.readFileSync(path.join(publicDir,'privacy','index.html'),'utf8');
-assert.ok(privacy.includes('Row Level Security'),'Privacy page must retain account-isolation disclosure');
-assert.ok(privacy.includes('/account-verwijderen/'),'Privacy page must link account deletion');
-
+assert.ok(privacy.includes('Row Level Security'),'Privacy account-isolation disclosure must remain');
 const terms=fs.readFileSync(path.join(publicDir,'voorwaarden','index.html'),'utf8');
-assert.ok(terms.includes('Geen automatische belastingaangifte'),'Terms must retain tax-filing limitation');
-for(const retired of ['Early Access','eerste 100','Founding 100']){
-  assert.ok(!terms.toLowerCase().includes(retired.toLowerCase()),`Retired First-100 offer must be absent from terms: ${retired}`);
+assert.ok(terms.includes('Geen automatische belastingaangifte'),'Tax-filing limitation must remain in terms');
+
+for(const file of ['index.html','privacy/index.html','voorwaarden/index.html','support/index.html','account-verwijderen/index.html']){
+  const html=fs.readFileSync(path.join(publicDir,file),'utf8');
+  assert.ok(!/fonts\.googleapis\.com|fonts\.gstatic\.com/i.test(html),file+': external Google Fonts forbidden');
+  assert.ok(!/<script[^>]+src=["']https?:\/\//i.test(html),file+': new third-party script forbidden');
 }
 
-console.log(`Marketing page QA: PASS (${pages.length} pages)`);
+const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{cwd:root,encoding:'utf8'});
+assert.equal(build.status,0,'Marketing build failed: '+build.stderr);
+const dist=path.join(root,'dist','marketing');
+for(const slug of retired)assert.ok(!fs.existsSync(path.join(dist,slug,'index.html')),'Generated artifact must not contain retired route '+slug);
+assert.ok(fs.existsSync(path.join(dist,'assets','onepage.css')),'Generated artifact missing onepage.css');
+assert.ok(!fs.existsSync(path.join(dist,'manifest.webmanifest')),'Marketing artifact must not ship app PWA manifest');
 
-
-const marketingCssNative=fs.readFileSync(path.join(publicDir,'assets','marketing.css'),'utf8');
-const homepageCssNative=fs.readFileSync(path.join(publicDir,'assets','homepage.css'),'utf8');
-for(const [name,text] of [['marketing.css',marketingCssNative],['homepage.css',homepageCssNative]]){
-  for(const legacy of ['#08A9C5','#00A8C6','#078DA7','#008FAA','#20292E','#202B33']) assert.ok(!text.toUpperCase().includes(legacy.toUpperCase()),name+' still contains legacy visual token '+legacy);
-  assert.equal((text.match(/!important/g)||[]).length,0,name+' must not depend on legacy !important overrides');
-  assert.equal((text.match(/(?:linear|radial)-gradient\(/g)||[]).length,0,name+' must not use decorative gradients');
-}
-assert.ok(marketingCssNative.includes('--brand-primary:#123B3A'),'Marketing CSS must natively define Calm Control primary');
-assert.ok(marketingCssNative.includes('--bg-canvas:#F8F7F3'),'Marketing CSS must natively define Calm Control canvas');
-assert.ok(sharedMarketing.includes('/assets/boekuna-logo-primary.svg'),'Shared marketing must use the official primary logo');
-assert.ok(sharedMarketing.includes('/assets/boekuna-logo-compact.svg'),'Shared marketing must provide the official compact logo');
-assert.ok(!sharedMarketing.includes('/assets/boekuna-symbol.svg'),'Shared marketing must not reconstruct the primary lockup from the symbol');
-for(const label of ['Product','Voor wie','Prijzen','Ondersteuning']) assert.ok(sharedMarketing.includes(label),'Parity desktop navigation missing '+label);
-assert.ok(!sharedMarketing.includes('>☰<'),'Mobile navigation must not use a glyph as its functional icon');
-console.log('Calm Control native marketing regression: PASS');
-
-const homePolish=fs.readFileSync(path.join(publicDir,'index.html'),'utf8');
-assert.equal((homePolish.match(/class="parity-hero-media"/g)||[]).length,1,'Homepage must contain one primary parity hero media frame');
-assert.ok(homePolish.includes('/assets/boekuna-editorial-workspace-placeholder.svg'),'Homepage must include first-party hero media');
-assert.equal(/data-depth-root|hero-depth-|story-depth-|kz-magnetic/.test(homePolish),false,'Homepage must not retain the old 3D/depth interaction markup');
-assert.equal((homePolish.match(/data-home-section="/g)||[]).length,15,'Homepage must expose the approved fifteen-section parity architecture');
-for(const label of ['Product','Voor wie','Ondersteuning']) assert.ok(sharedMarketing.includes('<summary>'+label+'</summary>'),'Mobile menu group missing '+label);
-const editorialCss=fs.readFileSync(path.join(publicDir,'assets','marketing-editorial.css'),'utf8');
-for(const token of ['#FF9F1C','#FFBF69','#FFFFFF','#CBF3F0','#2EC4B6','#111111']) assert.ok(editorialCss.includes(token),'Approved palette token missing '+token);
-assert.ok(editorialCss.includes('BOEKUNA_PRICING_POLISH_20261002'),'Pricing/photo-slot release CSS missing');
-console.log('Four-tier pricing + parity homepage marketing contract: PASS');
+console.log('BOEKUNA one-page static QA: PASS');
