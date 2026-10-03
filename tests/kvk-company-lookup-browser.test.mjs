@@ -33,7 +33,7 @@ async function fresh(){
   await p.route('https://*.supabase.co/**',r=>r.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({ok:true,data:{jobs:[]},jobs:[]})}));
   await p.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm',r=>r.fulfill({status:200,contentType:'text/javascript',body:sdk}));
   await p.route('**/functions/v1/kvk-company-lookup',async r=>{const body=r.request().postDataJSON();calls.push(body);const response=await respond(body);try{await r.fulfill({status:response.ok?200:503,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(response)})}catch{}});
-  await p.goto(url,{waitUntil:'domcontentloaded'});await p.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();await p.evaluate(()=>navigate('contacts'));await p.getByRole('button',{name:'Nieuwe relatie',exact:true}).click();await p.locator('#kvkQuery').waitFor();return p;
+  await p.goto(url,{waitUntil:'domcontentloaded'});await p.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();await p.evaluate(()=>navigate('contacts'));await p.getByRole('button',{name:'Nieuwe relatie',exact:true}).click();await p.locator('#kvkQuery').waitFor();return p;
 }
 async function find(p,q='Test'){await p.locator('#kvkQuery').fill(q);await p.locator('.kvk-result').first().waitFor()}
 try{
