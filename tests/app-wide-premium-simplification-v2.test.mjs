@@ -62,7 +62,7 @@ const pageErrors=[];page.on('pageerror',e=>pageErrors.push(String(e)));
 
 async function openApp(){
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
-  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
 }
 async function nav(name){await page.evaluate(async name=>navigate(name),name);await page.waitForTimeout(20)}
 
