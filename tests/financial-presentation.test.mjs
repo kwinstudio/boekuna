@@ -50,7 +50,7 @@ try{
  await page.locator('.dashboard-chart-card').waitFor();
  const baseFinancial=await page.evaluate(financialSnapshot);
  await page.goto('http://127.0.0.1:'+server.address().port+'/app');
- await page.locator('.dashboard-chart-card').waitFor();
+ await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
  const initial=await page.evaluate(()=>JSON.stringify(state));
  const baseline=await page.evaluate(financialSnapshot);
  assert.deepEqual(baseline,baseFinancial,'Existing financial values and oneoff forecasts equal exact main for the same representative dataset');
@@ -113,7 +113,7 @@ try{
    const semantics=await page.locator('#content table').evaluateAll(tables=>tables.every(table=>[...table.querySelectorAll('th')].every(th=>th.scope==='col'&&getComputedStyle(th).display!=='none')&&[...table.querySelectorAll('tbody td:not([colspan])')].every(td=>td.hasAttribute('headers'))));
    assert.ok(semantics,route+' accessible table relationships '+width);
    if([320,390,1366,1440].includes(width)){
-    if(route==='dashboard'){
+    if(route==='dashboard'&&width>820){
      const bars=page.locator('[data-chart-values]');await bars.last().scrollIntoViewIfNeeded();await bars.last().click();
      const card=await page.locator('.dashboard-chart-card').boundingBox(),tooltip=await page.locator('#dashboardChartValues').boundingBox();
      assert.ok(tooltip.x>=card.x&&tooltip.x+tooltip.width<=card.x+card.width+1,'Tooltip clamps horizontally to chart');
@@ -128,9 +128,9 @@ try{
   }
  }
  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>{page='bank';render()});
- const mobileUnlink=page.locator('.mobile-bank .bank-unlink-action').first();
- assert.notEqual(await mobileUnlink.locator('.bank-unlink-text').evaluate(el=>getComputedStyle(el).display),'none','Mobile bank action must keep Ontkoppelen as visible text');
- assert.equal(await mobileUnlink.locator('svg').evaluate(el=>getComputedStyle(el).display),'none','Mobile bank action should favor text over icon-only meaning');
+ const mobileUnlink=page.locator('.mobile-card-list').getByRole('button',{name:'Ontkoppelen',exact:true}).first();
+ assert.equal(await mobileUnlink.isVisible(),true,'Mobile bank action must keep Ontkoppelen as visible text');
+ assert.equal(await mobileUnlink.locator('svg').count(),0,'Mobile bank action should favor text over icon-only meaning');
  await page.evaluate(()=>{page='expenses';render()});
  const mobileExpenseRow=page.locator('.mobile-expenses tbody tr').first();
  assert.equal(await mobileExpenseRow.getAttribute('onclick'),null,'Mobile expense row remains non-clickable');
@@ -140,16 +140,16 @@ try{
  await mobileReportBars.last().tap();assert.equal(await mobileReportTip.isVisible(),true,'Mobile report tap opens tooltip');
  await page.locator('.report-result-card h2').tap();assert.equal(await mobileReportTip.isVisible(),false,'Tap outside report chart closes tooltip');
 
- await page.setViewportSize({width:320,height:900});await page.evaluate(()=>{page='dashboard';render()});
- const bars=page.locator('[data-chart-values]'),tip=page.locator('#dashboardChartValues');
+ await page.setViewportSize({width:320,height:900});await page.evaluate(()=>{page='reports';render()});
+ const bars=page.locator('[data-chart-values]'),tip=page.locator('#reportChartValues');
  await bars.first().scrollIntoViewIfNeeded();await bars.first().hover();assert.equal(await tip.isVisible(),true,'Hover opens floating tooltip');
  await page.mouse.move(1,800);assert.equal(await tip.isVisible(),false,'Pointer leave dismisses unpinned tooltip');
  await bars.last().focus();assert.equal(await tip.isVisible(),true,'Keyboard focus opens tooltip');await page.keyboard.press('Escape');assert.equal(await tip.isVisible(),false,'Escape dismisses tooltip');
- await bars.last().tap();assert.equal(await tip.isVisible(),true,'Touch tap pins tooltip');await page.locator('.dashboard-chart-card h2').click();assert.equal(await tip.isVisible(),false,'Outside chart dismisses tooltip');await bars.last().tap();assert.equal(await tip.isVisible(),true);await page.locator('.dashboard-summary-card .dashboard-summary-title').first().click();assert.equal(await tip.isVisible(),false,'Outside card dismisses tooltip');
+ await bars.last().tap();assert.equal(await tip.isVisible(),true,'Touch tap pins tooltip');await page.locator('.report-result-card h2').click();assert.equal(await tip.isVisible(),false,'Outside chart dismisses tooltip');await bars.last().tap();assert.equal(await tip.isVisible(),true);await page.locator('.page-head h1').click();assert.equal(await tip.isVisible(),false,'Outside card dismisses tooltip');
  await page.evaluate(()=>{page='documents';render()});
  assert.equal(await page.locator('.page-actions .primary').count(),1);assert.equal(await page.getByRole('button',{name:'Uploaden',exact:true}).count(),1);assert.equal(await page.getByText('Archiveren zonder verwerking',{exact:true}).count(),0);assert.equal(await page.locator('.documents-secondary-menu').count(),0);assert.equal(await page.getByRole('heading',{name:'Bestanden · 2',exact:true}).count(),1);
-  assert.equal(await page.locator('table.mobile-documents .row-action-trigger').count(),2,'Documents use one stable action anchor per row');
-  const unlinkedRow=page.locator('table.mobile-documents tbody tr',{hasText:'Een zeer lange documentnaam'}),linkedRow=page.locator('table.mobile-documents tbody tr',{hasText:'Gekoppelde factuur.pdf'});
+  assert.equal(await page.locator('.mobile-card-list .row-action-trigger').count(),2,'Documents use one stable action anchor per row');
+  const unlinkedRow=page.locator('.mobile-card-row',{hasText:'Een zeer lange documentnaam'}),linkedRow=page.locator('.mobile-card-row',{hasText:'Gekoppelde factuur.pdf'});
   await unlinkedRow.locator('.row-action-trigger').click();const unlinkedDelete=page.locator('.row-action-menu').getByRole('menuitem',{name:'Verwijderen',exact:true});assert.equal(await unlinkedDelete.isDisabled(),false);await unlinkedDelete.click();await page.getByRole('heading',{name:'Wil je dit verwijderen?',exact:true}).waitFor();assert.equal(await page.evaluate(()=>state.documents.length),2,'First delete action only opens confirmation');await page.getByRole('button',{name:'Annuleren',exact:true}).click();assert.equal(await page.evaluate(()=>state.documents.length),2,'Cancel retains documents');
   await linkedRow.locator('.row-action-trigger').click();const linkedDelete=page.locator('.row-action-menu').getByRole('menuitem',{name:'Verwijderen',exact:true});assert.equal(await linkedDelete.isDisabled(),true,'Linked document stays protected');await page.keyboard.press('Escape');
  const after=await page.evaluate(financialSnapshot);

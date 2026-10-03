@@ -19,6 +19,7 @@ try{
  await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'domcontentloaded'});await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
  await check('keyboard backup import',async()=>{
   await page.evaluate(()=>navigate('settings'));
+  await page.locator('.settings-nav-item').filter({hasText:'Data en export'}).click();
   const importer=page.getByRole('button',{name:'Back-up importeren',exact:true});assert.equal(await importer.count(),1,'Importer needs a keyboard-operable button');
   await page.getByRole('button',{name:'Administratie-back-up',exact:true}).focus();await page.keyboard.press('Tab');assert.equal(await importer.evaluate(el=>el===document.activeElement),true);
   for(const key of ['Enter','Space']){const chosen=page.waitForEvent('filechooser');await page.keyboard.press(key);const chooser=await chosen;assert.equal(await chooser.element().getAttribute('id'),'backupFile');await chooser.setFiles([]);assert.equal(await importer.evaluate(el=>el===document.activeElement),true,'Focus must return after cancelling '+key+' file chooser')}

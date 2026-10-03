@@ -649,7 +649,7 @@ try{
 
   // Live pre-launch availability smoke test.
   const live=await browser.newPage({viewport:{width:1280,height:800}});
-  const response=await live.goto('https://boekuna-boekhouding.onrender.com/?login=1',{waitUntil:'domcontentloaded',timeout:45000});
+  const response=await live.goto('https://app.boekuna.nl/?login=1',{waitUntil:'domcontentloaded',timeout:45000});
   assert.ok(response && response.ok(),'Live Render build must answer successfully');
   await live.getByRole('heading',{name:'Inloggen'}).waitFor({timeout:15000});
   assert.match(await live.title(),/Boekuna/);
