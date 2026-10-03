@@ -22,11 +22,12 @@ assert.ok(fs.existsSync(path.join(root,'dist','marketing','account-verwijderen',
 assert.ok(!fs.existsSync(path.join(root,'dist','marketing','manifest.webmanifest')),'marketing build must not publish the app-only PWA manifest');
 const marketingIndex=fs.readFileSync(path.join(root,'dist','marketing','index.html'),'utf8');
 assert.ok(marketingIndex.includes('id="siteHeader"'),'marketing root must use the public marketing shell');
-assert.ok(marketingIndex.includes('class="parity-hero"'),'marketing root must preserve the approved parity homepage content');
-assert.ok(marketingIndex.includes('Boekhouden.<br>Maar dan rustig.'),'marketing root must preserve the approved parity hero message');
+assert.ok(marketingIndex.includes('class="hero shell section"'),'marketing root must use the one-page hero');
+assert.ok(marketingIndex.includes('Je bent ondernemer.<br>Geen boekhouder.'),'marketing root must expose the approved one-page proposition');
 assert.ok(marketingIndex.includes('https://app.boekuna.nl/?register=1'),'marketing registration CTA must cross to the product host');
-assert.ok(fs.existsSync(path.join(root,'dist','marketing','assets','homepage.css')),'marketing build must carry extracted homepage styles');
-assert.ok(fs.existsSync(path.join(root,'dist','marketing','assets','homepage.js')),'marketing build must carry extracted homepage interactions');
+assert.ok(fs.existsSync(path.join(root,'dist','marketing','assets','onepage.css')),'marketing build must carry one central one-page stylesheet');
+assert.ok(!fs.existsSync(path.join(root,'dist','marketing','assets','homepage.css')),'obsolete homepage stylesheet must stay removed');
+assert.ok(!fs.existsSync(path.join(root,'dist','marketing','assets','homepage.js')),'obsolete homepage interaction runtime must stay removed');
 assert.ok(!marketingIndex.includes('id="mainApp"'),'marketing artifact must not contain authenticated app runtime');
 
 const app=spawnSync(process.execPath,[appScript],{cwd:root,encoding:'utf8'});

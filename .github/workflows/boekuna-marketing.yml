@@ -8,33 +8,16 @@ on:
       - "public/*/index.html"
       - "public/robots.txt"
       - "public/sitemap.xml"
-      - "public/assets/marketing.css"
+      - "public/assets/onepage.css"
       - "public/assets/marketing.js"
-      - "public/assets/homepage.css"
-      - "public/assets/homepage.js"
-      - "public/assets/marketing-editorial.css"
-      - "public/assets/marketing-editorial.js"
-      - "public/assets/marketing-editorial/**"
-      - "public/assets/product/**"
-      - "public/assets/editorial/**"
-      - "public/assets/brand-v2.css"
-      - "public/assets/boekuna-symbol*.svg"
-      - "public/assets/boekuna-editorial-*.svg"
-      - "public/assets/boekuna-favicon.svg"
+      - "public/assets/boekuna-*.svg"
       - "public/assets/boekuna-app-icon-180.png"
       - "public/assets/favicon-32.png"
       - "scripts/build-marketing.mjs"
+      - "vercel.json"
       - "tests/marketing-pages.test.mjs"
       - "tests/marketing-product-proof.test.mjs"
-      - "tests/marketing-editorial-responsive.test.mjs"
-      - "tests/marketing-content-freeze.test.mjs"
-      - "tests/marketing-editorial-browser.test.mjs"
-      - "tests/fixtures/marketing-content-freeze.json"
-      - "tests/fixtures/marketing-content-freeze-v2.json"
-      - "tests/marketing-content-freeze-v2.test.mjs"
-      - "tests/marketing-v2-browser.test.mjs"
-      - "tests/marketing-white-content.test.mjs"
-      - "tests/helpers/marketing-site.mjs"
+      - "tests/marketing-onepage-browser.test.mjs"
       - "tests/split-build-boundaries.test.mjs"
       - "tests/marketing-app-non-regression.test.mjs"
       - "tests/split-surface-non-regression.test.mjs"
@@ -68,33 +51,22 @@ jobs:
         run: ./tests/node_modules/.bin/playwright install --with-deps chromium webkit
       - name: Build standalone marketing artifact
         run: node scripts/build-marketing.mjs
-      - name: Untouched surface artifact non-regression
+      - name: Untouched app artifact non-regression
         run: node tests/marketing-app-non-regression.test.mjs
-      - name: Both surface boundaries reject real artifact drift
+      - name: Split surface non-regression contract
         run: node tests/split-surface-non-regression.test.mjs
-      - name: Frozen content and SEO parity
-        run: node tests/marketing-white-content.test.mjs
-      - name: Marketing page QA
+      - name: One-page static product / route / legal QA
         run: node tests/marketing-pages.test.mjs
       - name: No content images or product screenshots
         run: node tests/marketing-product-proof.test.mjs
-      - name: Image-free marketing responsive QA
-        run: node tests/marketing-editorial-responsive.test.mjs
       - name: Split generated surface browser smoke
         run: node tests/split-surfaces-browser.test.mjs
-      - name: Generated marketing full browser and accessibility gate
-        run: node tests/marketing-v2-browser.test.mjs
-      - name: Upload brand visual evidence
+      - name: One-page Chromium + WebKit + Axe acceptance
+        run: node tests/marketing-onepage-browser.test.mjs
+      - name: Upload one-page browser evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: boekuna-marketing-image-free
-          path: tests/artifacts/image-free-*.png
-          if-no-files-found: error
-      - name: Upload editorial before-after and QA evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: boekuna-marketing-white-editorial
-          path: tests/artifacts/white-editorial/
+          name: boekuna-onepage-evidence
+          path: tests/artifacts/onepage/
           if-no-files-found: error

@@ -16,7 +16,7 @@ const retiredOfferMigration=read('supabase/migrations/20260929122626_retire_firs
 const retiredOfferRpcHardening=read('supabase/migrations/20260929123036_reharden_retired_offer_billing_plan_rpc.sql');
 const activeBillingGuardMigration=read('supabase/migrations/20260928012515_guard_active_billing_stripe_identity.sql');
 const providerEntitlementMigration=read('supabase/migrations/20260930093553_provider_agnostic_billing_entitlements.sql');
-const pricing=read('public/prijzen/index.html');
+const pricing=read('public/index.html');
 const privacy=read('public/privacy/index.html');
 const terms=read('public/voorwaarden/index.html');
 
@@ -94,7 +94,8 @@ for(const retired of ['early_access_active','expired_read_only','FOUNDING 100','
   assert.ok(!html.includes(retired),`Retired First-100 state/copy must be absent from app UI: ${retired}`);
 }
 
-for(const value of ['Gratis','€9,95','€19,95']) assert.ok(pricing.includes(value),`Pricing missing ${value}`);
+for(const value of ['Gratis','€6,95','€9,95','€14,95']) assert.ok(pricing.includes(value),`Pricing missing ${value}`);
+assert.ok((pricing.match(/Binnenkort beschikbaar/g)||[]).length>=3,'Public paid plans must remain announced/non-transactional');
 for(const retired of ['Founding 100','Eerste 100','Early Access','3 kalendermaanden gratis','90 dagen']){
   assert.ok(!pricing.toLowerCase().includes(retired.toLowerCase()),`Retired First-100 copy still present: ${retired}`);
 }

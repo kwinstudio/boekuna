@@ -8,46 +8,28 @@ const source=path.join(root,'public');
 const target=path.join(root,'dist','marketing');
 
 const required=[
-  path.join(source,'index.html'),
-  path.join(source,'privacy','index.html'),
-  path.join(source,'support','index.html'),
-  path.join(source,'account-verwijderen','index.html')
-];
-for(const file of required){
-  if(!fs.existsSync(file))throw new Error('Missing marketing source: '+path.relative(root,file));
-}
+  'index.html',
+  'privacy/index.html',
+  'voorwaarden/index.html',
+  'support/index.html',
+  'account-verwijderen/index.html',
+  'assets/onepage.css',
+  'assets/marketing.js'
+].map(file=>path.join(source,file));
+for(const file of required)if(!fs.existsSync(file))throw new Error('Missing marketing source: '+path.relative(root,file));
 
 fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(path.dirname(target),{recursive:true});
 fs.cpSync(source,target,{recursive:true});
 
-// The PWA manifest belongs to the authenticated product host, not the public site.
 fs.rmSync(path.join(target,'manifest.webmanifest'),{force:true});
-
-// Product captures remain in source for QA/evidence, but are not part of the public marketing artifact.
 fs.rmSync(path.join(target,'assets','product'),{recursive:true,force:true});
+for(const asset of ['mobile-polish-round-2.css','mobile-polish-round-2.js'])fs.rmSync(path.join(target,'assets',asset),{force:true});
 
-// App-only polish assets are copied by build-app and must not drift the public marketing artifact.
-for(const asset of ['mobile-polish-round-2.css','mobile-polish-round-2.js']){
-  fs.rmSync(path.join(target,'assets',asset),{force:true});
+for(const removed of ['functies','facturen','scanner','btw-bank','rapportages','hoe-het-werkt','voor-ondernemers','prijzen','faq','over','contact','veiligheid']){
+  if(fs.existsSync(path.join(target,removed)))throw new Error('Obsolete active marketing route still present: '+removed);
 }
-
-const textExtensions=new Set(['.html','.css','.js']);
-const stack=[target];
-while(stack.length){
-  const current=stack.pop();
-  for(const entry of fs.readdirSync(current,{withFileTypes:true})){
-    const file=path.join(current,entry.name);
-    if(entry.isDirectory()){stack.push(file);continue;}
-    if(!textExtensions.has(path.extname(entry.name)))continue;
-    let body=fs.readFileSync(file,'utf8');
-    body=body
-      .replace(/\/assets\/marketing\.js\?v=[^"']+/g,'/assets/marketing.js?v=20261003motion90')
-      .replace(/\/assets\/marketing-editorial\.css\?v=[^"']+/g,'/assets/marketing-editorial.css?v=20261003motion90')
-      .replace(/\/assets\/marketing-editorial\.js\?v=[^"']+/g,'/assets/marketing-editorial.js?v=20261002premium');
-    fs.writeFileSync(file,body);
-    if(body.includes('/assets/product/'))throw new Error('Marketing build still references product screenshots: '+path.relative(root,file));
-  }
-}
-
-console.log('Marketing build complete:',path.relative(root,target));
+const home=fs.readFileSync(path.join(target,'index.html'),'utf8');
+if(home.includes('/assets/homepage.')||home.includes('/assets/marketing-editorial.'))throw new Error('One-page homepage still loads legacy marketing runtime');
+if(home.includes('/assets/product/'))throw new Error('One-page homepage must not reference product screenshots');
+console.log('Marketing one-page build complete:',path.relative(root,target));
