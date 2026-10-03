@@ -9,6 +9,13 @@ on:
   pull_request:
     paths:
       - "docs/SPLIT_FULL_GATE.md"
+      - "kwinest/docprocessor/**"
+      - "kwinest/index.html"
+      - "tests/document-scan-intelligence-benchmark.test.py"
+      - "tests/ocr-production-hardening.test.py"
+      - "tests/test_document_processor_regression.py"
+      - "tests/document-upload-browser.test.mjs"
+      - "tests/document-review-beginner-ux.test.mjs"
       - ".github/workflows/boekuna-integrity.yml"
 
 permissions:
@@ -123,6 +130,8 @@ jobs:
         run: pip install --disable-pip-version-check -r kwinest/docprocessor/requirements.txt httpx==0.28.1
       - name: OCR production hardening
         run: python tests/ocr-production-hardening.test.py
+      - name: Scan intelligence benchmark
+        run: python tests/document-scan-intelligence-benchmark.test.py
       - name: Production origin HTTP and real image codec regressions
         run: python tests/processor-production-origin.test.py
       - name: Repeated real OCR memory budget
