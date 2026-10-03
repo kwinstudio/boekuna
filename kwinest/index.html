@@ -3467,7 +3467,7 @@ function dashboardChartBuckets(preset){
 function productKpi(label,value,helper,iconId='i-chart',tone='neutral'){
  return '<div class="card metric product-kpi kpi-tone-'+esc(tone)+'"><div class="metric-head"><span class="product-kpi-label"><span class="product-kpi-icon" aria-hidden="true">'+icon(iconId)+'</span><span>'+esc(label)+'</span></span></div><div class="metric-value">'+value+'</div>'+(helper?'<div class="metric-sub">'+esc(helper)+'</div>':'')+'</div>'
 }
-function productKpiGrid(cards){return '<div class="grid grid-4 product-kpis">'+cards.join('')+'</div>'}
+function productKpiGrid(cards){return '<div class="grid grid-4 compact-metrics product-kpis">'+cards.join('')+'</div>'}
 function monthKeyOffset(offset=0){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+offset);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
 function reportChartBuckets(from,to){
  const start=new Date(from+'T12:00:00'),end=new Date(to+'T12:00:00');if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||start>end)return [];
