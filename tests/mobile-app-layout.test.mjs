@@ -133,7 +133,7 @@ try{
 
   await page.locator('#mobileMenu').click();
   await page.locator('.nav-item[data-page="documents"]').click();
-  await page.locator('#pageTitle').filter({hasText:'Documenten'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Bonnetjes'}).waitFor();
   const scanChooserEvent=page.waitForEvent('filechooser');
   await page.getByRole('button',{name:'Uploaden',exact:true}).click();
   const scanChooser=await scanChooserEvent;
