@@ -140,6 +140,13 @@ function focusDocumentReviewField(key){
   const el=document.getElementById('pdfImportForm')?.elements.namedItem(key);el?.focus();el?.scrollIntoView?.({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})
 }
 
+function confirmFinancialReviewAnchor(key){
+  const f=document.getElementById('pdfImportForm'),el=f?.elements.namedItem(key);
+  if(!el||String(el.value||'').trim()===''){el?.focus();return}
+  if(typeof global.confirmFinancialReviewField==='function')global.confirmFinancialReviewField(key);
+  updateBeginnerReviewState()
+}
+
 function rateSelectValue(d){return d?.mixedRates?'':(NORMAL_RATES.includes(Number(d?.vatRate))?String(Number(d.vatRate)):'')}
 function specialRateSelected(d){return !d?.mixedRates&&Number(d?.vatRate)===0}
 function mixedLineRow(line,index){
@@ -369,7 +376,7 @@ function showPdfImportReview(d){
       '<div class="field"><label>Bedrag excl. btw '+provenanceBadge(d,'net')+'</label><input id="pdfImportNet" name="net" inputmode="decimal" autocomplete="off" value="'+esc(d.net!==''&&d.net!=null?Number(d.net).toFixed(2):'')+'" required></div>'+
       '<div class="field"><label>Btw-bedrag '+provenanceBadge(d,'vatAmount')+'</label><input id="pdfImportVatAmount" name="vatAmount" inputmode="decimal" autocomplete="off" value="'+esc(d.vatAmount!==''&&d.vatAmount!=null?Number(d.vatAmount).toFixed(2):'')+'" required></div>'+
       '<div class="field"><label>Totaal '+provenanceBadge(d,'gross')+'</label><input id="pdfImportGross" name="gross" inputmode="decimal" autocomplete="off" value="'+esc(d.gross!==''&&d.gross!=null?Number(d.gross).toFixed(2):'')+'" required></div>'+
-      '<div class="field"><label>Btw-percentage '+provenanceBadge(d,'vatRate')+'</label><select id="pdfImportVatRate" name="vatRate" '+(d.mixedRates?'disabled':'')+' aria-describedby="financialCorrectionPanel"><option value="">Kies</option><option value="21" '+(rateSelectValue(d)==='21'?'selected':'')+'>21%</option><option value="9" '+(rateSelectValue(d)==='9'?'selected':'')+'>9%</option><option value="0" hidden '+(specialRateSelected(d)?'selected':'')+'>Geen btw</option></select><button id="otherVatToggle" type="button" class="link-btn other-vat-toggle" aria-expanded="'+(specialRateSelected(d)?'true':'false')+'" onclick="toggleOtherVatSituation()">Andere btw-situatie</button><div id="otherVatSituation" class="other-vat-situation" '+(specialRateSelected(d)?'':'hidden')+'><p>Alleen gebruiken als er op dit document geen btw-bedrag staat.</p><button type="button" class="btn small" onclick="chooseZeroVat()">0% / geen btw op document</button></div></div>'+
+      '<div class="field"><label>Btw-percentage '+provenanceBadge(d,'vatRate')+'</label><select id="pdfImportVatRate" name="vatRate" '+(d.mixedRates?'disabled':'')+' aria-describedby="financialCorrectionPanel"><option value="">Kies</option><option value="21" '+(rateSelectValue(d)==='21'?'selected':'')+'>21%</option><option value="9" '+(rateSelectValue(d)==='9'?'selected':'')+'>9%</option><option value="0" hidden '+(specialRateSelected(d)?'selected':'')+'>Geen btw</option></select>'+(!d.mixedRates&&!isUserConfirmed(d,'vatRate')?'<div class="beginner-field-actions" data-financial-anchor-actions="vatRate"><button type="button" class="link-btn" data-financial-anchor-confirm="vatRate" onclick="confirmFinancialReviewAnchor(\'vatRate\')">Dit klopt zo</button></div>':'')+'<button id="otherVatToggle" type="button" class="link-btn other-vat-toggle" aria-expanded="'+(specialRateSelected(d)?'true':'false')+'" onclick="toggleOtherVatSituation()">Andere btw-situatie</button><div id="otherVatSituation" class="other-vat-situation" '+(specialRateSelected(d)?'':'hidden')+'><p>Alleen gebruiken als er op dit document geen btw-bedrag staat.</p><button type="button" class="btn small" onclick="chooseZeroVat()">0% / geen btw op document</button></div></div>'+
      '</div>'+
      mixed+
      '<div id="financialCorrectionPanel" class="financial-correction-panel" role="status" aria-live="polite"><h5>Financiële controle</h5><p>Controleer de bedragen op het document.</p></div>'+
@@ -503,6 +510,7 @@ global.savePdfInvoiceImport=savePdfInvoiceImport;
 global.deferDocumentReviewField=deferDocumentReviewField;
 global.confirmDocumentReviewField=confirmDocumentReviewField;
 global.focusDocumentReviewField=focusDocumentReviewField;
+global.confirmFinancialReviewAnchor=confirmFinancialReviewAnchor;
 global.addMixedVatLine=addMixedVatLine;
 global.removeMixedVatLine=removeMixedVatLine;
 global.useMixedVatTotals=useMixedVatTotals;
