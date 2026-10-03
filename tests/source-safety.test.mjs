@@ -280,15 +280,21 @@ assert.ok(!nativeEmailModule.includes("google_mail_client"),"Native invoice hand
 assert.ok(sendInvoice.includes('data.action==="render_pdf"'),"Invoice edge route must expose authenticated PDF rendering");
 assert.ok(sendInvoice.includes('"content-type":"application/pdf"'),"PDF handoff must return application/pdf");
 assert.ok(sendInvoice.includes("MAILBOX_SEND_DISABLED"),"Direct provider mailbox sending must be disabled");
-const sendHandler=sendInvoice.slice(sendInvoice.indexOf("Deno.serve"));
-assert.ok(sendHandler.indexOf("MAILBOX_SEND_DISABLED")<sendHandler.indexOf("mailboxConnection(auth.user.id)"),"Disabled mailbox boundary must execute before retained deprecated mailbox implementation");
+const sendOriginsStart=sendInvoice.indexOf("const ALLOWED_ORIGINS");
+const sendOriginsEnd=sendInvoice.indexOf("]);",sendOriginsStart);
+assert.ok(sendOriginsStart>=0&&sendOriginsEnd>sendOriginsStart,"send-invoice explicit origin allowlist must be statically readable");
+const sendOrigins=sendInvoice.slice(sendOriginsStart,sendOriginsEnd);
+assert.ok(sendOrigins.includes("https://app.boekuna.nl"),"send-invoice allowlist must explicitly trust the production app origin");
+assert.ok(!sendOrigins.includes("*"),"send-invoice CORS must not use wildcard origins");
+assert.ok(sendInvoice.includes('ALLOWED_ORIGINS.has(origin)?{"access-control-allow-origin":origin}:{}'),"Untrusted origins must not receive a reflected or fallback ACAO value");
+assert.ok(!sendInvoice.includes("gmail.googleapis.com"),"send-invoice must not contain Gmail API direct-send code");
+assert.ok(!sendInvoice.includes("graph.microsoft.com"),"send-invoice must not contain Microsoft direct-send code");
+assert.ok(!sendInvoice.includes("get_email_connection_secret"),"send-invoice must not read mailbox OAuth secrets");
+assert.ok(!sendInvoice.includes("SUPABASE_SERVICE_ROLE_KEY"),"native invoice PDF handoff must not need service-role privileges");
 assert.ok(emailConnection.includes("MAILBOX_CONNECTION_DISABLED"),"New mailbox OAuth connections must be disabled server-side");
 assert.ok(!emailConnection.includes('scope: "openid email https://www.googleapis.com/auth/gmail.send"'),"Disabled mailbox connection route must no longer initiate Gmail send scope");
-if(html.includes("async function loginWithGoogle()")){
-  const googleLogin=html.slice(html.indexOf("async function loginWithGoogle()"),html.indexOf("async function registerUser(e)"));
-  assert.ok(googleLogin.includes("scopes:'openid email profile'"),"Google account login must use identity-only scopes");
-  assert.ok(!googleLogin.includes("gmail.send"),"Google account login must never request Gmail send permission");
-}
+assert.ok(!html.includes("async function loginWithGoogle()"),"Google account login must remain unavailable");
+assert.ok(!html.includes("signInWithOAuth"),"Production app must not expose OAuth account login");
 
 assert.ok(brandSymbol.includes('fill="#1C6461"'),"Final approved Boekuna B mark colour must remain #1C6461");
 assert.ok(!brandSymbol.includes("M18,22 H30 A12,12"),"Legacy offset-frame symbol must not return");

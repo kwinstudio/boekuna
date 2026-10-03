@@ -129,7 +129,7 @@ const nativeSharePayload = {
 };
 const shareResponse = await handler(new Request('https://test.invalid/send-invoice', {
   method: 'POST',
-  headers: { authorization: 'Bearer test-only', origin: 'https://boekuna.nl', 'content-type': 'application/json' },
+  headers: { authorization: 'Bearer test-only', origin: 'https://app.boekuna.nl', 'content-type': 'application/json' },
   body: JSON.stringify(nativeSharePayload),
 }));
 assert.equal(shareResponse.status, 200, 'authenticated PDF handoff must not require a mailbox connection');
@@ -173,12 +173,24 @@ assert.equal((await renderResponse.clone().json()).disabled, true);
 
 const preflight = await handler(new Request('https://test.invalid/send-invoice', {
   method: 'OPTIONS',
-  headers: { origin: 'https://www.boekuna.nl' },
+  headers: { origin: 'https://app.boekuna.nl' },
 }));
-assert.equal(preflight.status, 204);
-assert.equal(preflight.headers.get('access-control-allow-origin'), 'https://www.boekuna.nl');
+assert.equal(preflight.status, 204, 'production app preflight must succeed');
+assert.equal(preflight.headers.get('access-control-allow-origin'), 'https://app.boekuna.nl');
+assert.notEqual(preflight.headers.get('access-control-allow-origin'), '*', 'CORS must never use a wildcard');
 
-assert.equal((await handler(new Request('https://test.invalid/send-invoice', { method: 'POST', headers: { origin: 'https://untrusted.invalid' } }))).status, 403);
-assert.equal((await handler(new Request('https://test.invalid/send-invoice', { method: 'POST' }))).status, 401);
+const untrusted = await handler(new Request('https://test.invalid/send-invoice', {
+  method: 'OPTIONS',
+  headers: { origin: 'https://untrusted.invalid' },
+}));
+assert.equal(untrusted.status, 403, 'untrusted preflight must be rejected');
+assert.equal(untrusted.headers.get('access-control-allow-origin'), null, 'untrusted origin must not receive a fake ACAO value');
+
+const unauthenticated = await handler(new Request('https://test.invalid/send-invoice', {
+  method: 'POST',
+  headers: { origin: 'https://app.boekuna.nl', 'content-type': 'application/json' },
+  body: JSON.stringify(nativeSharePayload),
+}));
+assert.equal(unauthenticated.status, 401, 'production app origin must still require authentication');
 
 console.log('Invoice delivery: PASS (authoritative PDF handoff, mixed VAT/credit parity, mailbox send disabled, production-domain CORS, origin/auth guards)');
