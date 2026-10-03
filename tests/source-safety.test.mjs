@@ -319,10 +319,11 @@ assert.ok(unifiedEmailModule.includes("Outlook met PDF"),"Desktop handoff must e
 assert.ok(!unifiedEmailModule.includes("De factuur vindt u als PDF in de bijlage."),"Default message body must not falsely claim an attachment before handoff");
 
 assert.ok(html.includes("subjectInvoice:'Factuur {{factuurnummer}} · {{bedrijfsnaam}}'"),"Default invoice subject must be human-readable and not filename-like");
-assert.ok(unifiedEmailModule.includes("Gmail openen"),"Mobile handoff must expose an explicit Gmail compose option");
-assert.ok(unifiedEmailModule.includes("Andere e-mailapp openen"),"Mobile handoff must preserve a separate mailto route");
-assert.ok(unifiedEmailModule.includes("PDF delen als bijlage"),"Attachment-first native sharing must remain available");
-assert.ok(unifiedEmailModule.includes("de ontvangende app bepaalt zelf Aan en Onderwerp"),"Native share UX must disclose recipient/subject mapping limits");
+assert.ok(unifiedEmailModule.includes("Deel PDF via e-mail"),"Mobile composer must expose one attachment-first send CTA");
+assert.ok(unifiedEmailModule.includes("Kies Mail of Gmail in het iPhone-deelmenu"),"Mobile copy must route users through the native attachment share sheet");
+assert.ok(unifiedEmailModule.includes("await runNativeEmailShare();"),"Mobile prepare must attempt the native PDF share immediately");
+assert.ok(!unifiedEmailModule.includes("if(mobile){buttons+='<button class=\"btn\" onclick=\"openEmailHandoffMailApp()\">Andere e-mailapp openen</button>'"),"Mobile handoff must not use mailto as the primary route");
+assert.ok(!unifiedEmailModule.includes("if(mobile){buttons+='<button class=\"btn\" onclick=\"openEmailHandoffGmail()\">Gmail openen</button>'"),"Mobile handoff must not open Gmail web as the primary route");
 assert.ok(unifiedEmailModule.includes("file:options.file||null"),"Returning to the composer must preserve the already prepared PDF");
 assert.ok(unifiedEmailModule.includes("function ensureEmailHandoffPdfDownloaded()"),"Gmail/mailto PDF preparation must be idempotent");
 assert.ok(unifiedEmailModule.includes("fileDownloaded:!!options.fileDownloaded"),"Download state must survive composer round-trips");
