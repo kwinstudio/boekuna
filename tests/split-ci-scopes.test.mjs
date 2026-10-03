@@ -16,6 +16,7 @@ assert.ok(!full.includes('      - "kwinest/**"'),'full gate must not run on ever
 assert.ok(!full.includes('      - "tests/**"'),'full gate must not run on every test-only PR change');
 
 const marketing=read(marketingPath);
+assert.ok(!marketing.includes('\\\\n'),'marketing workflow must not contain a literal backslash-n escape in YAML');
 for(const s of ['"public/index.html"','"public/*/index.html"','public/assets/marketing.js','public/assets/onepage.css','scripts/build-marketing.mjs','marketing-pages.test.mjs','marketing-product-proof.test.mjs','marketing-onepage-browser.test.mjs']){
   assert.ok(marketing.includes(s),'marketing workflow missing '+s);
 }
