@@ -37,7 +37,7 @@ assert.ok(source.includes('function dashboardPeriodRange('),'Dashboard period he
 assert.ok(source.includes('function setDashboardPeriod('),'Dashboard period switch missing');
 for(const label of ['Winst','Omzet','Kosten','Btw apartzetten'])assert.ok(source.includes('dashboard-kpi-label">'+label+'</span>'),'Dashboard KPI missing '+label);
 for(const label of ['Administratie','Nog te ontvangen','Nieuwe factuur'])assert.ok(source.includes('dashboard-summary-title">'+label+'</span>'),'Dashboard bottom summary missing '+label);
-assert.ok(source.includes('>7 dagen</option>')&&source.includes('>Maand</option>')&&source.includes('>Kwartaal</option>')&&source.includes('>Jaar</option>'),'Dashboard period options incomplete');
+for(const option of ["['7d','7 dagen']","['month','Maand']","['quarter','Kwartaal']","['year','Jaar']"])assert.ok(source.includes(option),'Dashboard period option missing '+option);
 
 const build=spawnSync(process.execPath,['scripts/build-app.mjs'],{cwd:root,encoding:'utf8'});
 assert.equal(build.status,0,'App build failed: '+(build.stderr||build.stdout));
