@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#123B3A" />
+<meta name="theme-color" content="#FFFFFF" />
 <link rel="manifest" href="/manifest.webmanifest" />
 <meta name="application-name" content="Boekuna" />
 <meta name="apple-mobile-web-app-title" content="Boekuna" />
@@ -1882,6 +1882,158 @@ img.bookuna-logo-icon,
 <link rel="stylesheet" href="/assets/brand-v2.css?v=20260929a" />
 <link rel="stylesheet" href="/assets/kvk-company-lookup.css?v=20261001a" />
   <link rel="stylesheet" href="/assets/mobile-polish-round-2.css">
+  <style id="boekuna-product-ui-reference-20261003">
+  @font-face{font-family:"Boekuna Inter";src:url("/assets/app-InterVariable.woff2") format("woff2");font-style:normal;font-weight:100 900;font-display:swap}
+  @font-face{font-family:"Boekuna Space";src:url("/assets/app-SpaceGrotesk-Variable.ttf") format("truetype");font-style:normal;font-weight:300 700;font-display:swap}
+  :root{
+    --app-charcoal:#1B1F23;--app-green:#63D471;--app-surface:#F6F7F8;--app-muted:#8A949C;--app-white:#FFFFFF;
+    --app-border:#E4E8EB;--app-muted-strong:#667179;--app-green-soft:#ECFAEE;
+    --status-info:#2563EB;--status-info-soft:#EFF6FF;--status-warning:#B45309;--status-warning-soft:#FFF7ED;
+    --status-error:#DC2626;--status-error-soft:#FEF2F2;--status-success:#15803D;--status-success-soft:#F0FDF4;
+    --radius-sm:8px;--radius-md:12px;--radius-lg:18px;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;
+    --shadow-card:0 1px 2px rgba(27,31,35,.04);--shadow-modal:0 18px 50px rgba(27,31,35,.12);--focus-ring:0 0 0 3px rgba(99,212,113,.38);--transition-fast:180ms ease;
+    --ink:var(--app-charcoal);--muted:var(--app-muted-strong);--line:var(--app-border);--paper:var(--app-surface);--card:var(--app-white);--nav:var(--app-white);--nav2:var(--app-white);--accent:var(--app-green);--accent-ink:var(--app-charcoal);
+    --good:var(--status-success);--bad:var(--status-error);--warn:var(--status-warning);--info:var(--status-info);--radius:var(--radius-md);--shadow:var(--shadow-card);
+    --sans:"Boekuna Inter",Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
+  }
+  body{font-family:var(--sans);background:var(--app-surface);color:var(--app-charcoal)}
+  #mainApp{background:var(--app-surface)!important;color:var(--app-charcoal);grid-template-columns:220px minmax(0,1fr)!important}
+  #mainApp::before{display:none!important}
+  #mainApp .sidebar{width:auto!important;height:100vh!important;padding:18px 12px 14px!important;background:var(--app-white)!important;background-image:none!important;color:var(--app-charcoal)!important;border-right:1px solid var(--app-border)!important;box-shadow:none!important}
+  #mainApp .brand{padding:0 10px 18px!important;color:var(--app-charcoal)!important}
+  .bookuna-wordmark{font-family:"Boekuna Space",var(--sans);font-size:24px;font-weight:650;letter-spacing:-.055em;line-height:1}
+  .bookuna-wordmark>span{color:var(--app-green)}
+  .bookuna-wordmark small{font-family:var(--sans);display:block;margin-top:7px!important;color:var(--app-muted-strong)!important;font-size:10px!important;font-weight:600!important;letter-spacing:0!important}
+  #mainApp .nav-group{margin:13px 8px 6px!important;padding:0!important;color:var(--app-muted)!important;font-size:9px!important;font-weight:800!important;letter-spacing:.12em!important}
+  #mainApp .nav-item{min-height:42px!important;margin:1px 0!important;padding:9px 10px!important;border-radius:9px!important;color:#3E474D!important;background:transparent!important;font-size:13px!important;font-weight:600!important;transition:background-color var(--transition-fast),color var(--transition-fast)!important}
+  #mainApp .nav-item .icon{width:18px;height:18px;stroke-width:1.8}
+  #mainApp .nav-item:hover{background:var(--app-surface)!important;color:var(--app-charcoal)!important}
+  #mainApp .nav-item.active{background:var(--app-green-soft)!important;color:var(--app-charcoal)!important;font-weight:700!important}
+  #mainApp .nav-item.active .icon{color:var(--status-success)!important}
+  #mainApp .sidebar-spacer{min-height:16px}
+  #mainApp .topbar{height:66px!important;padding:0 28px!important;background:var(--app-white)!important;background-image:none!important;border-bottom:1px solid var(--app-border)!important;box-shadow:none!important;backdrop-filter:none!important}
+  #mainApp .page-title{display:none!important}
+  #mainApp .top-actions{gap:8px!important}
+  #mainApp .content{width:100%;max-width:1320px!important;padding:28px 30px 56px!important}
+  #mainApp h1,#mainApp .metric-value,#mainApp .page-head h1{font-family:"Boekuna Space",var(--sans);font-variant-numeric:tabular-nums}
+  #mainApp .page-head{margin-bottom:22px!important;align-items:center!important}
+  #mainApp .page-head h1{margin:0;font-size:34px!important;line-height:1.05;font-weight:620!important;letter-spacing:-.045em!important}
+  #mainApp .page-status{margin:7px 0 0!important;color:var(--app-muted-strong)!important;font-size:13px!important}
+  .period-chip{display:inline-flex;align-items:center;min-height:38px;padding:0 12px;border:1px solid var(--app-border);border-radius:9px;background:var(--app-white);font-size:12px;font-weight:700;color:var(--app-charcoal)}
+  #mainApp .card{background:var(--app-white)!important;background-image:none!important;border:1px solid var(--app-border)!important;border-radius:var(--radius-md)!important;box-shadow:var(--shadow-card)!important}
+  #mainApp .metric{min-height:150px!important;padding:20px!important}
+  #mainApp .metric-head{color:var(--app-muted-strong)!important;font-size:12px!important;font-weight:700!important}
+  #mainApp .metric-value{margin:16px 0 5px!important;font-size:32px!important;line-height:1!important;font-weight:650!important;letter-spacing:-.045em!important}
+  #mainApp .metric-sub{font-size:11px!important;color:var(--app-muted-strong)!important}
+  #mainApp .metric-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;background:var(--app-green-soft);color:var(--status-success)}
+  #mainApp .metric-icon .icon{width:18px;height:18px}
+  #mainApp .grid{gap:14px!important}
+  #mainApp .dashboard-main-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,.85fr);gap:14px;margin-top:14px;align-items:stretch}
+  #mainApp .dashboard-chart-card,#mainApp .dashboard-attention{margin-top:0!important;min-width:0}
+  #mainApp .dashboard-attention{display:flex;flex-direction:column;padding:20px!important}
+  #mainApp .dashboard-attention-list{display:grid;gap:8px}
+  #mainApp .dashboard-attention-item{min-height:58px;border:1px solid var(--app-border)!important;border-radius:10px!important;background:var(--app-white)!important;padding:10px 11px!important}
+  #mainApp .dashboard-attention-item:hover{background:var(--app-surface)!important}
+  #mainApp .dashboard-attention-icon{width:30px;height:30px;border-radius:9px;background:var(--app-green-soft)!important;color:var(--status-success)!important}
+  #mainApp .dashboard-attention-item.urgent .dashboard-attention-icon{background:var(--status-error-soft)!important;color:var(--status-error)!important}
+  #mainApp .dashboard-attention-copy strong{font-size:12px!important;color:var(--app-charcoal)!important}
+  #mainApp .dashboard-attention-copy span,#mainApp .dashboard-attention-meta{color:var(--app-muted-strong)!important}
+  #mainApp .dashboard-attention-footer{margin-top:auto;padding-top:15px;border-top:1px solid var(--app-border)}
+  #mainApp .dashboard-recent{margin-top:14px!important}
+  #mainApp .section-head h2,#mainApp .table-toolbar strong{font-size:15px!important;font-weight:700!important;color:var(--app-charcoal)!important}
+  #mainApp .section-head p,#mainApp .section-meta{color:var(--app-muted-strong)!important}
+  #mainApp .chart{height:210px!important;gap:10px!important}
+  #mainApp .bar{border-radius:4px 4px 1px 1px!important;background:#DDE3E6!important}
+  #mainApp .bar.sales,#mainApp .legend-dot{background:var(--app-green)!important}
+  #mainApp .bar.costs,#mainApp .legend-dot.cost{background:#DDE3E6!important}
+  #mainApp .chart-legend{color:var(--app-muted-strong)!important}
+  #mainApp .table-card{padding:0!important;overflow:hidden!important}
+  #mainApp .table-toolbar{padding:14px 16px!important;border-color:var(--app-border)!important}
+  #mainApp .table{font-variant-numeric:tabular-nums}
+  #mainApp .table th{padding:10px 14px!important;background:var(--app-surface)!important;color:var(--app-muted-strong)!important;font-size:10px!important;border-color:var(--app-border)!important}
+  #mainApp .table td{padding:14px!important;border-color:#EEF0F2!important;font-size:12px!important}
+  #mainApp .table tbody tr:hover{background:#FAFBFB!important}
+  #mainApp .btn{min-height:42px!important;padding:9px 13px!important;border:1px solid #D7DDE1!important;border-radius:9px!important;background:var(--app-white)!important;color:var(--app-charcoal)!important;box-shadow:none!important;font-weight:700!important;transition:background-color var(--transition-fast),border-color var(--transition-fast),transform var(--transition-fast)!important}
+  #mainApp .btn:hover{background:var(--app-surface)!important;transform:translateY(-1px)!important;box-shadow:none!important}
+  #mainApp .btn.primary,#mainApp .btn.accent{background:var(--app-green)!important;border-color:var(--app-green)!important;color:var(--app-charcoal)!important}
+  #mainApp .btn.primary:hover,#mainApp .btn.accent:hover{background:#55C965!important;border-color:#55C965!important}
+  #mainApp .btn.danger{background:var(--app-white)!important;color:var(--status-error)!important;border-color:#F3C4C4!important}
+  #mainApp .icon-btn{border-radius:9px!important;border-color:var(--app-border)!important;background:var(--app-white)!important}
+  #mainApp .link-btn{color:#235C2C!important;font-weight:700!important}
+  #mainApp :is(button,a,input,select,textarea,summary):focus-visible{outline:2px solid var(--app-charcoal)!important;outline-offset:2px!important;box-shadow:var(--focus-ring)!important}
+  #mainApp .field{gap:7px!important}
+  #mainApp .field label{font-size:12px!important;text-transform:none!important;letter-spacing:0!important;color:#4C565C!important;font-weight:650!important}
+  #mainApp .field input,#mainApp .field select,#mainApp .field textarea{min-height:44px!important;border:1px solid #CDD4D9!important;border-radius:9px!important;background:var(--app-white)!important;color:var(--app-charcoal)!important;padding:10px 11px!important}
+  #mainApp .field input:focus,#mainApp .field select:focus,#mainApp .field textarea:focus{border-color:var(--app-green)!important;outline:none!important;box-shadow:var(--focus-ring)!important}
+  #mainApp .field-error{border-color:var(--status-error)!important}
+  #mainApp .badge{min-height:24px;padding:4px 8px!important;border-radius:999px!important;background:#F1F3F4!important;color:#4C565C!important;font-size:10px!important;font-weight:750!important}
+  #mainApp .badge::before{font-size:10px;line-height:1}
+  #mainApp .badge.good{background:var(--status-success-soft)!important;color:var(--status-success)!important}
+  #mainApp .badge.good::before{content:"✓ "}
+  #mainApp .badge.warn{background:var(--status-warning-soft)!important;color:var(--status-warning)!important}
+  #mainApp .badge.warn::before{content:"! "}
+  #mainApp .badge.bad{background:var(--status-error-soft)!important;color:var(--status-error)!important}
+  #mainApp .badge.bad::before{content:"! "}
+  #mainApp .badge.info{background:var(--status-info-soft)!important;color:var(--status-info)!important}
+  #mainApp .badge.info::before{content:"• "}
+  #mainApp .notice{border-radius:10px!important;box-shadow:none!important}
+  #mainApp .compact-metrics{margin-bottom:14px}
+  #mainApp .list-toolbar{border-color:var(--app-border)!important;border-radius:10px!important;background:var(--app-white)!important;box-shadow:none!important}
+  #mainApp .filter-btn{border-radius:9px!important;border-color:var(--app-border)!important;color:#4C565C!important}
+  #mainApp .filter-btn.active{background:var(--app-green-soft)!important;border-color:#B7EEC0!important;color:var(--app-charcoal)!important}
+  #mainApp .invoice-editor-section,#mainApp .profile-section{background:transparent!important;border:0!important;box-shadow:none!important}
+  #mainApp .invoice-editor-section{padding:18px 0!important;border-bottom:1px solid var(--app-border)!important}
+  #mainApp .invoice-editor-section:first-child{padding-top:0!important}
+  #mainApp .invoice-editor-summary{margin-top:18px}
+  #mainApp .invoice-preview{background:var(--app-surface)!important;border-radius:12px!important}
+  #mainApp .invoice-paper{border:1px solid var(--app-border)!important;border-radius:10px!important;box-shadow:0 4px 18px rgba(27,31,35,.06)!important}
+  #mainApp .document-processing-board,#mainApp .processing-shell,#mainApp .documents-workspace{background:var(--app-white)!important;background-image:none!important;border-color:var(--app-border)!important;box-shadow:none!important}
+  #mainApp .processing-scanline{background:var(--app-green)!important;box-shadow:none!important}
+  #mainApp .review-confidence{background:#F1F3F4!important;color:#4C565C!important}
+  #mainApp .review-confidence.good{background:var(--status-success-soft)!important;color:var(--status-success)!important}
+  #mainApp .review-confidence.warn{background:var(--status-warning-soft)!important;color:var(--status-warning)!important}
+  #mainApp .review-confidence.bad{background:var(--status-error-soft)!important;color:var(--status-error)!important}
+  #mainApp .settings-section{max-width:980px!important;gap:28px!important}
+  #mainApp .settings-group{gap:10px!important}
+  #mainApp .settings-group-label{font-family:"Boekuna Space",var(--sans);font-size:20px!important;font-weight:600!important;letter-spacing:-.03em!important}
+  #mainApp .settings-compact{padding:18px!important}
+  .modal-backdrop{background:rgba(27,31,35,.36)!important;backdrop-filter:none!important}
+  .modal{border-radius:16px!important;box-shadow:var(--shadow-modal)!important;border:1px solid var(--app-border)!important}
+  .modal-head{border-color:var(--app-border)!important}.modal-head h3{font-family:"Boekuna Space",var(--sans);font-size:20px!important;letter-spacing:-.03em}
+  .modal-foot{border-color:var(--app-border)!important;background:var(--app-white)!important}
+  .modal-close{min-width:44px;min-height:44px;border-radius:9px!important}
+  #mainApp .money{font-variant-numeric:tabular-nums}
+  .mobile-bottom-nav{font-family:"Boekuna Inter",Inter,ui-sans-serif,sans-serif}
+  @media(max-width:1100px){#mainApp .dashboard-main-grid{grid-template-columns:1fr}#mainApp .dashboard-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+  @media(max-width:820px){
+    body{background:var(--app-surface)!important}#mainApp{grid-template-columns:1fr!important}
+    #mainApp .sidebar{left:-268px!important;width:252px!important;height:100dvh!important;padding:calc(14px + env(safe-area-inset-top)) 12px calc(18px + env(safe-area-inset-bottom))!important;box-shadow:10px 0 30px rgba(27,31,35,.1)!important}
+    #mainApp .sidebar.open{left:0!important}
+    #mainApp .mobile-drawer-close{min-width:44px!important;min-height:44px!important;color:var(--app-charcoal)!important}
+    #mainApp .topbar{height:60px!important;padding:env(safe-area-inset-top) 14px 0!important}
+    #mainApp .mobile-menu{display:grid!important;place-items:center;min-width:44px!important;min-height:44px!important;border-radius:9px!important;border-color:var(--app-border)!important;background:var(--app-white)!important}
+    #mainApp .content{padding:22px 16px calc(98px + env(safe-area-inset-bottom))!important}
+    #mainApp .page-head{align-items:flex-start!important;margin-bottom:18px!important}
+    #mainApp .page-head h1{font-size:30px!important}
+    #mainApp .page-actions{width:100%;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important}
+    #mainApp .page-actions .btn{justify-content:center!important;width:100%!important}
+    #mainApp .dashboard-page-head{display:flex!important;flex-direction:row!important;align-items:flex-end!important}
+    #mainApp .dashboard-kpis{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+    #mainApp .metric{min-height:132px!important;padding:16px!important}#mainApp .metric-value{font-size:26px!important}#mainApp .metric-icon{width:30px;height:30px}
+    #mainApp .dashboard-main-grid{display:grid!important;grid-template-columns:1fr!important;gap:10px!important;margin-top:10px!important}
+    #mainApp .dashboard-recent{margin-top:10px!important}#mainApp .chart{height:180px!important}
+    .mobile-bottom-nav{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;position:fixed!important;left:0;right:0;bottom:0;z-index:55;min-height:calc(66px + env(safe-area-inset-bottom));padding:6px 4px env(safe-area-inset-bottom)!important;background:rgba(255,255,255,.98)!important;background-image:none!important;border-top:1px solid var(--app-border)!important;box-shadow:0 -4px 18px rgba(27,31,35,.05)!important}
+    .mobile-bottom-nav-item{min-width:0!important;min-height:54px!important;padding:5px 2px!important;border:0!important;background:transparent!important;color:#667179!important;border-radius:9px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;font-size:10px!important;font-weight:650!important}
+    .mobile-bottom-nav-item .icon{width:20px!important;height:20px!important}.mobile-bottom-nav-item.active{background:var(--app-green-soft)!important;color:var(--status-success)!important}.mobile-bottom-nav-item.active span{color:var(--status-success)!important;font-weight:750!important}
+    .mobile-drawer-backdrop.open{background:rgba(27,31,35,.28)!important}.icon-btn{min-width:44px!important;min-height:44px!important}
+    .modal-backdrop{align-items:flex-end!important;padding:0!important}.modal{width:100%!important;max-width:none!important;max-height:calc(100dvh - env(safe-area-inset-top) - 8px)!important;border-radius:18px 18px 0 0!important;border-bottom:0!important}
+    .modal-body{padding:16px!important}.modal-head{padding:12px 14px!important}.modal-foot{padding:12px 14px calc(12px + env(safe-area-inset-bottom))!important;position:sticky!important;bottom:0;z-index:3}
+    .form-grid{grid-template-columns:1fr!important}.field.full{grid-column:auto!important}
+    .document-review-preview-frame,.document-review-preview-image{height:min(52vh,520px)!important;min-height:320px!important}
+  }
+  @media(max-width:390px){#mainApp .content{padding-inline:12px!important}#mainApp .dashboard-kpis{grid-template-columns:1fr!important}#mainApp .page-actions{grid-template-columns:1fr!important}}
+  @media(prefers-reduced-motion:reduce){#mainApp *,#mainApp *::before,#mainApp *::after,.mobile-bottom-nav *{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}#mainApp .btn:hover{transform:none!important}}
+  </style>
 </head>
 <body>
 <script src="/assets/financial-correction.js?v=20260929a"></script>
@@ -1926,20 +2078,19 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
 <div id="authRoot"></div>
 <div class="app" id="mainApp" style="display:none">
 <aside class="sidebar" id="sidebar">
-  <div class="brand mobile-brand-row"><img class="bookuna-logo-icon" src="/assets/boekuna-symbol.svg" alt="" aria-hidden="true"><div>Boekuna<small>Boekhouden voor ondernemers</small></div><button class="mobile-drawer-close" id="mobileDrawerClose" type="button" aria-label="Menu sluiten">×</button></div>
-  <div class="nav-group">Dagelijks</div>
-  <button class="nav-item active" data-page="dashboard"><svg class="icon"><use href="#i-home"/></svg>Dashboard</button>
+  <div class="brand mobile-brand-row"><div class="bookuna-wordmark" aria-label="Boekuna">Boekuna<span aria-hidden="true">.</span><small>Boekhouden zonder gedoe</small></div><button class="mobile-drawer-close" id="mobileDrawerClose" type="button" aria-label="Menu sluiten">×</button></div>
+  <div class="nav-group">Administratie</div>
+  <button class="nav-item active" data-page="dashboard"><svg class="icon"><use href="#i-home"/></svg>Overzicht</button>
   <button class="nav-item" data-page="invoices"><svg class="icon"><use href="#i-file"/></svg>Facturen</button>
-  <button class="nav-item" data-page="expenses"><svg class="icon"><use href="#i-receipt"/></svg>Inkoop & kosten</button>
+  <button class="nav-item" data-page="expenses"><svg class="icon"><use href="#i-receipt"/></svg>Kosten</button>
   <button class="nav-item" data-page="documents"><svg class="icon"><use href="#i-folder"/></svg><span>Documenten</span><span id="documentAttentionBadge" class="document-attention-badge hidden" aria-label=""></span></button>
-  <button class="nav-item" data-page="bank"><svg class="icon"><use href="#i-bank"/></svg>Bank & kas</button>
-  <div class="nav-group">Inzicht</div>
-  <button class="nav-item" data-page="control"><svg class="icon"><use href="#i-check"/></svg>Controlecentrum</button>
+  <button class="nav-item" data-page="bank"><svg class="icon"><use href="#i-bank"/></svg>Bank</button>
   <button class="nav-item" data-page="vat"><svg class="icon"><use href="#i-tax"/></svg>Btw</button>
-  <button class="nav-item" data-page="reports"><svg class="icon"><use href="#i-chart"/></svg>Rapportages</button>
+  <button class="nav-item" data-page="reports"><svg class="icon"><use href="#i-chart"/></svg>Rapporten</button>
+  <div class="nav-group">Meer</div>
+  <button class="nav-item" data-page="control"><svg class="icon"><use href="#i-check"/></svg>Controlecentrum</button>
   <button class="nav-item" data-page="cashflow"><svg class="icon"><use href="#i-chart"/></svg>Cashflow</button>
   <button class="nav-item" data-page="ledger"><svg class="icon"><use href="#i-file"/></svg>Grootboek</button>
-  <div class="nav-group">Bedrijf</div>
   <button class="nav-item" data-page="contacts"><svg class="icon"><use href="#i-users"/></svg>Relaties</button>
   <button class="nav-item" data-page="services"><svg class="icon"><use href="#i-file"/></svg>Diensten</button>
   <button class="nav-item" data-page="bookings"><svg class="icon"><use href="#i-clock"/></svg>Boekingen</button>
@@ -1957,11 +2108,11 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
 </div>
 <div class="mobile-drawer-backdrop" id="mobileDrawerBackdrop" aria-hidden="true"></div>
 <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Hoofdnavigatie">
-  <button class="mobile-bottom-nav-item" type="button" data-mobile-page="dashboard" aria-label="Dashboard"><svg class="icon"><use href="#i-home"/></svg><span>Dashboard</span></button>
+  <button class="mobile-bottom-nav-item" type="button" data-mobile-page="dashboard" aria-label="Overzicht"><svg class="icon"><use href="#i-home"/></svg><span>Overzicht</span></button>
   <button class="mobile-bottom-nav-item" type="button" data-mobile-page="invoices" aria-label="Facturen"><svg class="icon"><use href="#i-file"/></svg><span>Facturen</span></button>
-  <button class="mobile-bottom-nav-item mobile-bottom-nav-scan" type="button" data-mobile-page="documents" aria-label="Scan"><svg class="icon"><use href="#i-upload"/></svg><span>Scan</span><span class="mobile-nav-badge hidden" id="mobileScanBadge" aria-label=""></span></button>
-  <button class="mobile-bottom-nav-item" type="button" data-mobile-page="bank" aria-label="Bank"><svg class="icon"><use href="#i-bank"/></svg><span>Bank</span></button>
-  <button class="mobile-bottom-nav-item" type="button" data-mobile-page="control" aria-label="Actie nodig"><svg class="icon"><use href="#i-check"/></svg><span>Actie nodig</span></button>
+  <button class="mobile-bottom-nav-item" type="button" data-mobile-page="expenses" aria-label="Kosten"><svg class="icon"><use href="#i-receipt"/></svg><span>Kosten</span></button>
+  <button class="mobile-bottom-nav-item" type="button" data-mobile-page="vat" aria-label="Btw"><svg class="icon"><use href="#i-tax"/></svg><span>Btw</span></button>
+  <button class="mobile-bottom-nav-item" type="button" data-mobile-more aria-label="Meer"><svg class="icon"><use href="#i-more"/></svg><span>Meer</span></button>
 </nav>
 <div id="modalRoot"></div><div class="toast-wrap" id="toastRoot"></div>
 <input class="hidden" type="file" id="invoicePdfFile" multiple accept="image/*,application/pdf,.pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,text/csv,application/csv,.csv" />
@@ -2225,7 +2376,7 @@ async function retryCloudSave(){
  if(cloudSyncStatus==='conflict'){restoreConflictDialog();return}
  try{await syncCloudStateNow()}catch(err){toast('Opslaan lukt nog niet. Probeer opnieuw.')}
 }
-const PAGE_TITLES={dashboard:'Dashboard',invoices:'Facturen',expenses:'Inkoop & kosten',bank:'Bank & kas',vat:'Btw-overzicht',reports:'Rapportages',ledger:'Grootboek',control:'Controlecentrum',cashflow:'Cashflow',bookings:'Boekingen',contacts:'Relaties',services:'Diensten',hours:'Uren & ritten',documents:'Documenten',profile:'Bedrijfsgegevens',settings:'Instellingen'};
+const PAGE_TITLES={dashboard:'Overzicht',invoices:'Facturen',expenses:'Kosten',bank:'Bank',vat:'Btw',reports:'Rapporten',ledger:'Grootboek',control:'Controlecentrum',cashflow:'Cashflow',bookings:'Boekingen',contacts:'Relaties',services:'Diensten',hours:'Uren & ritten',documents:'Documenten',profile:'Bedrijfsgegevens',settings:'Instellingen'};
 const uid=(p='id')=>p+'-'+Math.random().toString(36).slice(2,9);
 const today=()=>new Date().toISOString().slice(0,10);
 const money=n=>new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR'}).format(Number(n||0));
@@ -3160,7 +3311,7 @@ function modal(title,body,foot='',wide=false){const active=document.activeElemen
 function closeModal(){if(reportPreviewHistory){const token=reportPreviewHistory;reportPreviewHistory=null;if(history.state?.boekunaReportPreview===token)history.back()}if(documentProcessingSession&&!documentProcessingSession.persistent&&activeDocumentTransfers>0)documentProcessingSession.modalHidden=true;else if(documentProcessingSession&&!documentProcessingSession.persistent)cleanupDocumentProcessingSession();document.getElementById('modalRoot').innerHTML='';const el=modalReturnFocus;modalReturnFocus=null;if(el?.setAttribute)el.setAttribute('aria-expanded','false');if(el?.isConnected)setTimeout(()=>el.focus(),0)}
 function download(name,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
 
-function mobilePrimarySection(p=page){return ['dashboard','invoices','documents','bank','control'].includes(p)?p:''}
+function mobilePrimarySection(p=page){return ['dashboard','invoices','expenses','vat'].includes(p)?p:'more'}
 function mobileDrawerFocusable(){const sidebar=document.getElementById('sidebar');if(!sidebar)return[];return [...sidebar.querySelectorAll('button:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])')].filter(el=>el.offsetParent!==null)}
 function mobileAccountName(){
  const meta=currentUser?.supabaseUser?.user_metadata||{},company=state.company||{};
@@ -3180,7 +3331,8 @@ function setMobileMenuOpen(open,{restoreFocus=true}={}){
 function syncMobileNavigationState(){
  const current=mobilePrimarySection(page);
  document.querySelectorAll('[data-mobile-page]').forEach(btn=>{const active=btn.dataset.mobilePage===current;btn.classList.toggle('active',active);if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current')});
-  updateMobileAccountIdentity()
+ const more=document.querySelector('[data-mobile-more]');if(more){const active=current==='more';more.classList.toggle('active',active);if(active)more.setAttribute('aria-current','page');else more.removeAttribute('aria-current')}
+ updateMobileAccountIdentity()
 }
 function dashboardUserFirstName(){
  const meta=currentUser?.supabaseUser?.user_metadata||{},company=state.company||{},raw=[meta.first_name,meta.full_name,meta.name,company.contactName].map(v=>String(v||'').trim()).filter(Boolean),companyNames=[company.name,company.tradeName].map(v=>String(v||'').trim().toLowerCase()).filter(Boolean);
@@ -3253,30 +3405,38 @@ function renderDashboard(){
  const year=currentBookYear(),inv=state.invoices.filter(i=>i.status!=='draft'&&Number(String(i.issueDate||'').slice(0,4))===year),yearExpenses=state.expenses.filter(e=>Number(String(e.date||'').slice(0,4))===year),sales=inv.reduce((sum,i)=>roundMoney(sum+invoiceNet(i)),0),costs=yearExpenses.reduce((sum,e)=>roundMoney(sum+Number(e.exVat||0)),0),profit=roundMoney(sales-costs),open=state.invoices.filter(i=>i.status!=='draft'&&i.kind!=='credit').reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),q=currentQuarter(),salesVat=inv.filter(i=>inQuarter(i.issueDate,q,year)).reduce((sum,i)=>roundMoney(sum+invoiceVat(i)),0),inputVat=yearExpenses.filter(e=>inQuarter(e.date,q,year)).reduce((sum,e)=>roundMoney(sum+expenseVat(e)),0),vat=roundMoney(salesVat-inputVat);
  const now=new Date(),chart=Array.from({length:6},(_,idx)=>{const d=new Date(now.getFullYear(),now.getMonth()-(5-idx),1),y=d.getFullYear(),m=d.getMonth()+1,lab=new Intl.DateTimeFormat('nl-NL',{month:'short'}).format(d).replace('.',''),sv=state.invoices.filter(i=>i.status!=='draft'&&Number(String(i.issueDate||'').slice(0,4))===y&&new Date(i.issueDate+'T12:00:00').getMonth()+1===m).reduce((sum,i)=>roundMoney(sum+invoiceNet(i)),0),co=state.expenses.filter(e=>Number(String(e.date||'').slice(0,4))===y&&new Date(e.date+'T12:00:00').getMonth()+1===m).reduce((sum,e)=>roundMoney(sum+Number(e.exVat||0)),0);return {lab,period:new Intl.DateTimeFormat('nl-NL',{month:'long',year:'numeric'}).format(d),sv,co}}),max=Math.max(1,...chart.flatMap(x=>[Math.abs(x.sv),Math.abs(x.co)])),isEmpty=!state.invoices.length&&!state.expenses.length&&!state.transactions.length&&!state.contacts.length,greeting=dashboardGreeting();
  const profileMissing=requirementsFor('invoice-finalize',{taxTreatment:state.company.kor?'kor':'standard'}),welcomeCard=isEmpty?`<div class="card dashboard-onboarding"><div class="section-head"><h2>Begin met Boekuna</h2></div><div class="dashboard-onboarding-actions"><button class="btn primary" onclick="newInvoice()">Eerste factuur</button><button class="btn" onclick="newContact()">Klant toevoegen</button><button class="btn" onclick="navigate('profile')">Bedrijfsgegevens</button></div></div>`:'',profileReminder=profileMissing.length?`<div class="notice info dashboard-profile-reminder"><strong>Bedrijfsgegevens aanvullen</strong><button class="link-btn" onclick="navigate('profile')">Open</button></div>`:'';
- return `<section class="dashboard-greeting"><h1>${esc(greeting.title)}</h1></section>
- ${renderAttentionCenter(open)}
+ return `<div class="page-head dashboard-page-head"><div><h1>Overzicht</h1><p class="page-status">${esc(greeting.title)} · je administratie in één oogopslag</p></div><span class="period-chip">${year}</span></div>
  ${welcomeCard}${profileReminder}
- <div class="grid grid-4 dashboard-kpis"><div class="card metric"><div class="metric-head"><span>Omzet ${year}</span></div><div class="metric-value">${money(sales)}</div></div><div class="card metric"><div class="metric-head"><span>Kosten ${year}</span></div><div class="metric-value">${money(costs)}</div></div><div class="card metric"><div class="metric-head"><span>Resultaat ${year}</span></div><div class="metric-value">${money(profit)}</div></div><div class="card metric"><div class="metric-head"><span>Btw Q${q}</span><span class="badge warn">Indicatief</span></div><div class="metric-value">${money(vat)}</div></div></div>
- <div class="card dashboard-chart-card"><div class="section-head"><div><h2>Omzet & kosten</h2><p>6 maanden · excl. btw</p></div><button class="link-btn" onclick="navigate('cashflow')">Cashflow →</button></div><div class="chart" aria-label="Omzet en kosten per maand">${chart.map((x,index)=>`<button type="button" class="bar-group" data-chart-values="${esc(JSON.stringify({month:x.period,sales:money(x.sv),costs:money(x.co)}))}" aria-describedby="dashboardChartValues" aria-pressed="false" aria-label="${esc(x.period)}: omzet ${esc(money(x.sv))}, kosten ${esc(money(x.co))}"><span class="bar sales" style="height:${Math.max(3,Math.abs(x.sv)/max*100)}%"></span><span class="bar costs" style="height:${Math.max(3,Math.abs(x.co)/max*100)}%"></span><span class="bar-label">${x.lab}</span></button>`).join('')}</div><div class="chart-values" id="dashboardChartValues" role="tooltip" hidden></div><div class="chart-legend"><span><i class="legend-dot"></i>Omzet</span><span><i class="legend-dot cost"></i>Kosten</span></div></div>
- <div class="card table-card dashboard-recent"><div class="table-toolbar"><strong style="font-size:14px">Recente facturen</strong><button class="btn small" onclick="navigate('invoices')">Alle facturen</button></div><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-dashboard-invoices"><thead><tr><th>Factuur</th><th>Klant</th><th>Datum</th><th>Vervaldatum</th><th>Status</th><th class="right">Bedrag</th><th>Acties</th></tr></thead><tbody>${state.invoices.slice().sort((a,b)=>String(b.issueDate||'').localeCompare(String(a.issueDate||''))).slice(0,5).map(i=>`<tr><td><button class="link-btn" onclick="viewInvoice('${i.id}')">${esc(i.number||'Concept')}</button><span class="financial-mobile-meta" aria-hidden="true"> · ${dateNL(i.issueDate)}</span>${i.kind==='credit'?'<div class="help">Creditfactuur</div>':''}</td><td>${esc(getContact(i.customerId).name)}</td><td>${dateNL(i.issueDate)}</td><td>${dateNL(i.dueDate)}</td><td>${statusBadge(invoiceEffectiveStatus(i))}</td><td class="right money">${money(invoiceGross(i))}</td><td class="right financial-actions"><button class="icon-btn" aria-label="Factuuracties" aria-haspopup="dialog" onclick="invoiceActions('${i.id}')">${icon('i-more')}</button></td></tr>`).join('')}</tbody></table></div></div>`
+ <div class="grid grid-4 dashboard-kpis">
+  <div class="card metric"><div class="metric-head"><span>Omzet ${year}</span><span class="metric-icon" aria-hidden="true">${icon('i-chart')}</span></div><div class="metric-value">${money(sales)}</div><div class="metric-sub">excl. btw</div></div>
+  <div class="card metric"><div class="metric-head"><span>Kosten ${year}</span><span class="metric-icon" aria-hidden="true">${icon('i-receipt')}</span></div><div class="metric-value">${money(costs)}</div><div class="metric-sub">excl. btw</div></div>
+  <div class="card metric"><div class="metric-head"><span>Resultaat ${year}</span><span class="metric-icon" aria-hidden="true">${icon('i-check')}</span></div><div class="metric-value">${money(profit)}</div><div class="metric-sub">omzet minus kosten</div></div>
+  <div class="card metric"><div class="metric-head"><span>Btw Q${q}</span><span class="badge warn">Indicatief</span></div><div class="metric-value">${money(vat)}</div><div class="metric-sub">controleer vóór aangifte</div></div>
+ </div>
+ <div class="dashboard-main-grid">
+  <div class="card dashboard-chart-card"><div class="section-head"><div><h2>Omzet & kosten</h2><p>Laatste 6 maanden · excl. btw</p></div><button class="link-btn" onclick="navigate('cashflow')">Cashflow bekijken</button></div><div class="chart" aria-label="Omzet en kosten per maand">${chart.map(x=>`<button type="button" class="bar-group" data-chart-values="${esc(JSON.stringify({month:x.period,sales:money(x.sv),costs:money(x.co)}))}" aria-describedby="dashboardChartValues" aria-pressed="false" aria-label="${esc(x.period)}: omzet ${esc(money(x.sv))}, kosten ${esc(money(x.co))}"><span class="bar sales" style="height:${Math.max(3,Math.abs(x.sv)/max*100)}%"></span><span class="bar costs" style="height:${Math.max(3,Math.abs(x.co)/max*100)}%"></span><span class="bar-label">${x.lab}</span></button>`).join('')}</div><div class="chart-values" id="dashboardChartValues" role="tooltip" hidden></div><div class="chart-legend"><span><i class="legend-dot"></i>Omzet</span><span><i class="legend-dot cost"></i>Kosten</span></div></div>
+  ${renderAttentionCenter(open)}
+ </div>
+ <div class="card table-card dashboard-recent"><div class="table-toolbar"><strong>Recente facturen</strong><button class="btn small" onclick="navigate('invoices')">Alle facturen</button></div><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-dashboard-invoices"><thead><tr><th>Factuur</th><th>Klant</th><th>Datum</th><th>Vervaldatum</th><th>Status</th><th class="right">Bedrag</th><th>Acties</th></tr></thead><tbody>${state.invoices.slice().sort((a,b)=>String(b.issueDate||'').localeCompare(String(a.issueDate||''))).slice(0,5).map(i=>`<tr><td><button class="link-btn" onclick="viewInvoice('${i.id}')">${esc(i.number||'Concept')}</button><span class="financial-mobile-meta" aria-hidden="true"> · ${dateNL(i.issueDate)}</span>${i.kind==='credit'?'<div class="help">Creditfactuur</div>':''}</td><td>${esc(getContact(i.customerId).name)}</td><td>${dateNL(i.issueDate)}</td><td>${dateNL(i.dueDate)}</td><td>${statusBadge(invoiceEffectiveStatus(i))}</td><td class="right money">${money(invoiceGross(i))}</td><td class="right financial-actions"><button class="icon-btn" aria-label="Factuuracties" aria-haspopup="dialog" onclick="invoiceActions('${i.id}')">${icon('i-more')}</button></td></tr>`).join('')}</tbody></table></div></div>`
 }
+
 function renderInvoices(){
   const list=getListRows('invoices'),total=list.reduce((sum,i)=>roundMoney(sum+invoiceGross(i)),0),open=list.filter(i=>i.status!=='draft').reduce((sum,i)=>roundMoney(sum+Math.max(0,invoiceOutstanding(i))),0),paid=list.filter(i=>i.status!=='draft'&&invoiceEffectiveStatus(i)==='paid').length,overdue=list.filter(i=>invoiceEffectiveStatus(i)==='overdue').length;
-  return `<div class="page-head"><div><h1>Facturen</h1></div><div class="page-actions"><button class="btn" onclick="triggerInvoiceUpload('sale')">${icon('i-upload')} Upload PDF</button><button class="btn primary" onclick="newInvoice()">${icon('i-plus')} Nieuwe factuur</button></div></div>
+  return `<div class="page-head"><div><h1>Facturen</h1></div><div class="page-actions"><button class="btn" onclick="triggerInvoiceUpload('sale')">${icon('i-upload')} Upload PDF</button><button class="btn primary" onclick="newInvoice()">${icon('i-plus')} Factuur maken</button></div></div>
   ${listToolbar('invoices')}
   <div class="kpi-row"><div class="mini-kpi"><span>Totaal</span><strong>${money(total)}</strong></div><div class="mini-kpi"><span>Openstaand</span><strong>${money(open)}</strong></div><div class="mini-kpi"><span>Betaald</span><strong>${paid}</strong></div><div class="mini-kpi"><span>Verlopen</span><strong>${overdue}</strong></div></div>
   <div class="card table-card"><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-invoices"><thead><tr><th>Factuurnr.</th><th>Klant</th><th>Factuurdatum</th><th>Vervaldatum</th><th>Status</th><th class="right">Excl.</th><th class="right">Incl.</th><th></th></tr></thead><tbody>${list.length?list.map(i=>`<tr><td><button class="link-btn" onclick="viewInvoice('${i.id}')">${esc(i.number||'Concept')}</button><span class="financial-mobile-meta" aria-hidden="true"> · ${dateNL(i.issueDate)}</span></td><td><strong>${esc(getContact(i.customerId).name)}</strong></td><td>${dateNL(i.issueDate)}</td><td>${dateNL(i.dueDate)}</td><td>${statusBadge(invoiceEffectiveStatus(i))}</td><td class="right money">${money(invoiceNet(i))}</td><td class="right money">${money(invoiceGross(i))}</td><td class="right financial-actions"><button class="icon-btn" aria-label="Factuuracties" aria-haspopup="dialog" onclick="invoiceActions('${i.id}')">${icon('i-more')}</button></td></tr>`).join(''):`<tr><td colspan="8">${listEmptyHtml('invoices','<button class="btn primary" onclick="newInvoice()">Nieuwe factuur</button>')}</td></tr>`}</tbody></table></div></div>`
 }
 function renderExpenses(){
   const list=getListRows('expenses'),net=list.reduce((sum,e)=>roundMoney(sum+Number(e.exVat||0)),0),vat=list.reduce((sum,e)=>roundMoney(sum+expenseVat(e)),0),gross=list.reduce((sum,e)=>roundMoney(sum+expenseGross(e)),0);
-  return `<div class="page-head"><div><h1>Inkoop & kosten</h1></div><div class="page-actions"><button class="btn" onclick="triggerInvoiceUpload('purchase')">${icon('i-upload')} Upload</button><button class="btn primary" onclick="newExpense()">${icon('i-plus')} Kosten boeken</button></div></div>
+  return `<div class="page-head"><div><h1>Kosten</h1></div><div class="page-actions"><button class="btn" onclick="newExpense()">${icon('i-plus')} Kosten boeken</button><button class="btn primary" onclick="openUploadSourcePicker('purchase')">${icon('i-upload')} Bon toevoegen</button></div></div>
   ${listToolbar('expenses')}
   <div class="grid grid-3 compact-metrics"><div class="card metric"><div class="metric-head"><span>Kosten excl. btw</span></div><div class="metric-value">${money(net)}</div></div><div class="card metric"><div class="metric-head"><span>Btw op kosten</span></div><div class="metric-value">${money(vat)}</div></div><div class="card metric"><div class="metric-head"><span>Incl. btw</span></div><div class="metric-value">${money(gross)}</div></div></div>
   <div class="card table-card workspace-table"><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-expenses"><thead><tr><th>Datum</th><th>Leverancier</th><th>Factuurnr.</th><th>Categorie</th><th>Betaalwijze</th><th>Btw</th><th class="right">Excl.</th><th class="right">Incl.</th><th></th></tr></thead><tbody>${list.length?list.map(e=>`<tr><td>${dateNL(e.date)}</td><td><strong>${esc(e.vendor)}</strong><div class="help">${esc(e.notes||'')}</div></td><td>${esc(e.invoiceNumber||'—')}</td><td>${esc(e.category)}</td><td>${esc(e.paymentMethod||'—')}</td><td>${esc(expenseVatRateLabel(e))}</td><td class="right money">${money(e.exVat)}</td><td class="right money">${money(expenseGross(e))}</td><td class="right financial-actions"><button class="icon-btn" aria-label="Kostenacties" aria-haspopup="dialog" onclick="expenseActions('${e.id}')">${icon('i-more')}</button></td></tr>`).join(''):`<tr><td colspan="9">${listEmptyHtml('expenses','<button class="btn primary" onclick="newExpense()">Kosten boeken</button>')}</td></tr>`}</tbody></table></div></div>`
 }
 function renderBank(){
   const list=getListRows('bank'),balance=list.reduce((sum,t)=>roundMoney(sum+Number(t.amount||0)),0),unmatched=list.filter(t=>t.status==='unmatched').length,matched=list.filter(t=>t.status==='matched').length;
-  return `<div class="page-head"><div><h1>Bank & kas</h1></div><div class="page-actions"><input type="file" id="csvFile" accept=".csv,text/csv" class="hidden"><button class="btn" onclick="document.getElementById('csvFile').click()">${icon('i-upload')} Bank CSV</button><button class="btn primary" onclick="newTransaction()">${icon('i-plus')} Transactie</button></div></div>
+  return `<div class="page-head"><div><h1>Bank</h1></div><div class="page-actions"><input type="file" id="csvFile" accept=".csv,text/csv" class="hidden"><button class="btn" onclick="document.getElementById('csvFile').click()">${icon('i-upload')} Bank CSV</button><button class="btn primary" onclick="newTransaction()">${icon('i-plus')} Transactie</button></div></div>
   ${listToolbar('bank')}
   <div class="grid grid-3 compact-metrics"><div class="card metric"><div class="metric-head"><span>Importsaldo</span></div><div class="metric-value">${money(balance)}</div></div><div class="card metric"><div class="metric-head"><span>Te verwerken</span><span class="badge ${unmatched?'warn':'good'}">${unmatched}</span></div><div class="metric-value">${unmatched}</div></div><div class="card metric"><div class="metric-head"><span>Gekoppeld</span></div><div class="metric-value">${list.length?Math.round(matched/list.length*100):0}%</div></div></div>
   <div class="card table-card workspace-table"><div class="table-toolbar"><strong style="font-size:14px">Transacties</strong><button class="btn small" onclick="autoMatch()">Automatisch koppelen</button></div><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-bank"><thead><tr><th>Datum</th><th>Omschrijving</th><th>Status</th><th class="right">Bedrag</th><th></th></tr></thead><tbody>${list.length?list.map(t=>`<tr><td>${dateNL(t.date)}</td><td><strong>${esc(t.description)}</strong>${t.matchId?`<div class="help">${esc(listTransactionLinkText(t)||('Gekoppeld aan '+t.matchId))}</div>`:''}</td><td>${statusBadge(t.status)}</td><td class="right money" style="color:${t.amount<0?'var(--bad)':'var(--good)'}">${money(t.amount)}</td><td class="right financial-actions">${t.status==='unmatched'?`<button class="btn small" onclick="matchTransaction('${t.id}')">Koppelen</button>`:`<button class="link-btn" onclick="unmatchTransaction('${t.id}')">Ontkoppel</button>`}</td></tr>`).join(''):`<tr><td colspan="5">${listEmptyHtml('bank','<button class="btn primary" onclick="newTransaction()">Transactie toevoegen</button>')}</td></tr>`}</tbody></table></div></div>`
@@ -3292,7 +3452,7 @@ function renderVatHistory(){
 function openVatYear(year){sessionStorage.setItem('vatYear',String(year));sessionStorage.setItem('vatPeriod','year');render()}
 function reportRange(){const from=sessionStorage.getItem('reportFrom')||`${new Date().getFullYear()}-01-01`,to=sessionStorage.getItem('reportTo')||today();return {from,to}}
 function inRange(d,from,to){return !!d&&(!from||d>=from)&&(!to||d<=to)}
-function renderReports(){const {from,to}=reportRange(),inv=state.invoices.filter(i=>i.status!=='draft'&&inRange(i.issueDate,from,to)),exps=state.expenses.filter(e=>inRange(e.date,from,to)),sales=inv.reduce((sum,i)=>sum+invoiceNet(i),0),costs=exps.reduce((sum,e)=>sum+Number(e.exVat),0),profit=sales-costs,ar=state.invoices.filter(i=>i.status!=='draft').reduce((sum,i)=>sum+(i.kind==='credit'?0:invoiceOutstanding(i)),0),cash=cashBalance(),vat=inv.reduce((sum,i)=>sum+invoiceVat(i),0)-exps.reduce((sum,e)=>sum+expenseVat(e),0);const cats={};exps.forEach(e=>cats[e.category]=(cats[e.category]||0)+Number(e.exVat));const credit=inv.filter(i=>i.kind==='credit').reduce((sum,i)=>sum+Math.abs(invoiceGross(i)),0);return `<div class="page-head"><div><h1>Rapportages</h1></div></div><div class="card report-filterbar"><div class="report-shortcuts" aria-label="Periode"><button class="btn" onclick="setReportPreset('week')">Deze week</button><button class="btn" onclick="setReportPreset('month')">Deze maand</button><button class="btn" onclick="setReportPreset('quarter')">Dit kwartaal</button><button class="btn" onclick="setReportPreset('year')">Dit jaar</button></div><div class="report-custom-range"><div class="field"><label>Van</label><input id="reportFrom" type="date" value="${from}"></div><div class="field"><label>Tot en met</label><input id="reportTo" type="date" value="${to}"></div><button class="btn" type="button" onclick="printReport()">${icon('i-download')} PDF</button></div></div><div class="grid grid-4 compact-metrics"><div class="card metric"><div class="metric-head"><span>Omzet excl. btw</span></div><div class="metric-value">${money(sales)}</div></div><div class="card metric"><div class="metric-head"><span>Kosten excl. btw</span></div><div class="metric-value">${money(costs)}</div></div><div class="card metric"><div class="metric-head"><span>Resultaat</span></div><div class="metric-value">${money(profit)}</div></div><div class="card metric"><div class="metric-head"><span>Openstaand</span></div><div class="metric-value">${money(ar)}</div></div></div><div class="grid grid-2 premium-grid"><div class="card"><div class="section-head"><div><h2>Winst & verlies</h2><span class="section-meta">${dateNL(from)} – ${dateNL(to)}</span></div></div><div class="summary-lines"><div class="total-line"><span>Omzet</span><strong>${money(sales)}</strong></div><div class="total-line"><span>Creditfacturen</span><strong>− ${money(credit)}</strong></div><div class="total-line"><span>Kosten</span><strong>− ${money(costs)}</strong></div><div class="total-line grand"><span>Resultaat</span><strong>${money(profit)}</strong></div></div></div><div class="card"><div class="section-head"><h2>Financiële positie</h2></div><div class="summary-lines"><div class="total-line"><span>Importsaldo</span><strong>${money(cash)}</strong></div><div class="total-line"><span>Openstaande facturen</span><strong>${money(ar)}</strong></div><div class="total-line"><span>Btw-positie</span><strong>${money(vat)}</strong></div></div><div class="help critical-help">Operationeel overzicht · geen formele jaarstukken.</div></div></div><div class="grid grid-2 premium-grid"><div class="card"><div class="section-head"><div><h2>Kosten per categorie</h2><span class="section-meta">Excl. btw</span></div></div>${Object.keys(cats).length?Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="category-row"><div class="total-line"><span>${esc(k)}</span><strong>${money(v)}</strong></div><div class="progress"><span style="width:${costs?Math.round(v/costs*100):0}%"></span></div></div>`).join(''):'<div class="empty"><strong>Geen kosten in deze periode</strong></div>'}</div></div>`}
+function renderReports(){const {from,to}=reportRange(),inv=state.invoices.filter(i=>i.status!=='draft'&&inRange(i.issueDate,from,to)),exps=state.expenses.filter(e=>inRange(e.date,from,to)),sales=inv.reduce((sum,i)=>sum+invoiceNet(i),0),costs=exps.reduce((sum,e)=>sum+Number(e.exVat),0),profit=sales-costs,ar=state.invoices.filter(i=>i.status!=='draft').reduce((sum,i)=>sum+(i.kind==='credit'?0:invoiceOutstanding(i)),0),cash=cashBalance(),vat=inv.reduce((sum,i)=>sum+invoiceVat(i),0)-exps.reduce((sum,e)=>sum+expenseVat(e),0);const cats={};exps.forEach(e=>cats[e.category]=(cats[e.category]||0)+Number(e.exVat));const credit=inv.filter(i=>i.kind==='credit').reduce((sum,i)=>sum+Math.abs(invoiceGross(i)),0);return `<div class="page-head"><div><h1>Rapporten</h1></div></div><div class="card report-filterbar"><div class="report-shortcuts" aria-label="Periode"><button class="btn" onclick="setReportPreset('week')">Deze week</button><button class="btn" onclick="setReportPreset('month')">Deze maand</button><button class="btn" onclick="setReportPreset('quarter')">Dit kwartaal</button><button class="btn" onclick="setReportPreset('year')">Dit jaar</button></div><div class="report-custom-range"><div class="field"><label>Van</label><input id="reportFrom" type="date" value="${from}"></div><div class="field"><label>Tot en met</label><input id="reportTo" type="date" value="${to}"></div><button class="btn" type="button" onclick="printReport()">${icon('i-download')} PDF</button></div></div><div class="grid grid-4 compact-metrics"><div class="card metric"><div class="metric-head"><span>Omzet excl. btw</span></div><div class="metric-value">${money(sales)}</div></div><div class="card metric"><div class="metric-head"><span>Kosten excl. btw</span></div><div class="metric-value">${money(costs)}</div></div><div class="card metric"><div class="metric-head"><span>Resultaat</span></div><div class="metric-value">${money(profit)}</div></div><div class="card metric"><div class="metric-head"><span>Openstaand</span></div><div class="metric-value">${money(ar)}</div></div></div><div class="grid grid-2 premium-grid"><div class="card"><div class="section-head"><div><h2>Winst & verlies</h2><span class="section-meta">${dateNL(from)} – ${dateNL(to)}</span></div></div><div class="summary-lines"><div class="total-line"><span>Omzet</span><strong>${money(sales)}</strong></div><div class="total-line"><span>Creditfacturen</span><strong>− ${money(credit)}</strong></div><div class="total-line"><span>Kosten</span><strong>− ${money(costs)}</strong></div><div class="total-line grand"><span>Resultaat</span><strong>${money(profit)}</strong></div></div></div><div class="card"><div class="section-head"><h2>Financiële positie</h2></div><div class="summary-lines"><div class="total-line"><span>Importsaldo</span><strong>${money(cash)}</strong></div><div class="total-line"><span>Openstaande facturen</span><strong>${money(ar)}</strong></div><div class="total-line"><span>Btw-positie</span><strong>${money(vat)}</strong></div></div><div class="help critical-help">Operationeel overzicht · geen formele jaarstukken.</div></div></div><div class="grid grid-2 premium-grid"><div class="card"><div class="section-head"><div><h2>Kosten per categorie</h2><span class="section-meta">Excl. btw</span></div></div>${Object.keys(cats).length?Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="category-row"><div class="total-line"><span>${esc(k)}</span><strong>${money(v)}</strong></div><div class="progress"><span style="width:${costs?Math.round(v/costs*100):0}%"></span></div></div>`).join(''):'<div class="empty"><strong>Geen kosten in deze periode</strong></div>'}</div></div>`}
 function reportPresetRange(kind){const now=new Date(),y=now.getFullYear(),m=now.getMonth(),d=now.getDate(),iso=x=>`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;let start;if(kind==='week'){const offset=(now.getDay()+6)%7;start=new Date(y,m,d-offset)}else if(kind==='month')start=new Date(y,m,1);else if(kind==='quarter')start=new Date(y,Math.floor(m/3)*3,1);else start=new Date(y,0,1);return {from:iso(start),to:iso(now)}}
 function setReportPreset(kind){const {from,to}=reportPresetRange(kind);sessionStorage.setItem('reportFrom',from);sessionStorage.setItem('reportTo',to);sessionStorage.setItem('reportPreset',kind);render()}
 const LEDGER_ACCOUNT_NAMES={
@@ -5509,7 +5669,8 @@ async function deleteStoredFile(id){
 function deleteAccountDialog(){modal('Account definitief verwijderen',`<div class="notice warn" style="margin-bottom:14px"><strong>Dit kan niet ongedaan worden gemaakt.</strong> Je account, administratie, bedrijfsprofiel en privé-documenten worden definitief verwijderd.</div><form id="deleteAccountForm" class="form-grid"><div class="field full"><label>Wachtwoord *</label><input name="password" type="password" required></div><div class="field full"><label>Typ VERWIJDER *</label><input name="confirm" required autocomplete="off" oninput="document.getElementById('confirmDeleteAccount').disabled=this.value!=='VERWIJDER'"></div></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn danger" id="confirmDeleteAccount" disabled onclick="deleteAccountNow()">Definitief verwijderen</button>`)}
 async function deleteAccountNow(){const f=document.getElementById('deleteAccountForm');if(!f?.reportValidity()||!currentUser)return;const d=new FormData(f),password=String(d.get('password')||'');if(String(d.get('confirm')||'')!=='VERWIJDER')return toast('Typ VERWIJDER om te bevestigen');try{const sb=await getSupabase();const {error:reauthError}=await sb.auth.signInWithPassword({email:currentUser.email,password});if(reauthError)throw new Error('Wachtwoord is niet correct');const {error}=await sb.functions.invoke('delete-account',{body:{confirm:true}});if(error)throw error;const old=currentUser;localStorage.removeItem(DATA_KEY_PREFIX+old.id);localStorage.removeItem(PROFILE_KEY_PREFIX+old.id);const legacy=getUsers().find(u=>String(u.email||'').toLowerCase()===String(old.email||'').toLowerCase());if(legacy){localStorage.removeItem(DATA_KEY_PREFIX+legacy.id);localStorage.removeItem(PROFILE_KEY_PREFIX+legacy.id);saveUsers(getUsers().filter(u=>u.id!==legacy.id))}currentUser=null;state=structuredClone(DEFAULT);closeModal();showAuth('login');toast('Account en cloudgegevens definitief verwijderd')}catch(err){toast(err?.message||'Account kon niet worden verwijderd')}}
 document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>b.dataset.page&&navigate(b.dataset.page)));
-document.querySelectorAll('[data-mobile-page]').forEach(b=>b.addEventListener('click',()=>b.dataset.mobilePage==='documents'?openUploadSourcePicker('auto'):navigate(b.dataset.mobilePage)));
+document.querySelectorAll('[data-mobile-page]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.mobilePage)));
+document.querySelector('[data-mobile-more]')?.addEventListener('click',()=>setMobileMenuOpen(true));
 document.getElementById('mobileMenu').addEventListener('click',()=>setMobileMenuOpen(!document.getElementById('sidebar').classList.contains('open')));
 document.getElementById('mobileDrawerClose')?.addEventListener('click',()=>setMobileMenuOpen(false));
 document.getElementById('mobileDrawerBackdrop')?.addEventListener('click',()=>setMobileMenuOpen(false));
