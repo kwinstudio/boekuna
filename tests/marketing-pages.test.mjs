@@ -23,6 +23,11 @@ for(const slug of retained){
 }
 for(const slug of retired)assert.ok(!fs.existsSync(path.join(publicDir,slug,'index.html')),'Retired marketing route source must stay removed: '+slug);
 
+const notFound=fs.readFileSync(path.join(publicDir,'404.html'),'utf8');
+assert.ok(notFound.includes('/assets/onepage.css?v=20261003green1'),'404 must use current design system');
+assert.ok(notFound.includes('/#product'),'404 product link must return to the one-page product section');
+assert.equal(/marketing-editorial|\/assets\/marketing\.css/.test(notFound),false,'404 must not load retired marketing assets');
+
 const home=fs.readFileSync(path.join(publicDir,'index.html'),'utf8');
 assert.ok(home.includes('BOEKHOUDEN VOOR ZELFSTANDIGEN'),'Hero eyebrow missing');
 assert.ok(home.includes('Je bent ondernemer.<br>Geen boekhouder.'),'One-page proposition missing');
