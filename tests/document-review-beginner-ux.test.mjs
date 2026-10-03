@@ -146,9 +146,21 @@ try{
   await page.locator('#pdfImportForm [name="gross"]').fill('128,66');
   await page.locator('[data-financial-anchor-confirm="vatRate"]').click();
   await page.getByRole('button',{name:'Gebruik deze bedragen',exact:true}).click();
-  await page.locator('#reviewBlockingState').filter({hasText:/Klaar om op te slaan/}).waitFor();
-  assert.equal(await page.locator('#pdfImportForm [name="net"]').inputValue(),'106.33');
-  assert.equal(await page.locator('#pdfImportForm [name="vatAmount"]').inputValue(),'22.33');
+  await page.waitForTimeout(50);
+  const correctionState=await page.evaluate(()=>({
+    net:document.querySelector('#pdfImportForm [name="net"]')?.value,
+    vat:document.querySelector('#pdfImportForm [name="vatAmount"]')?.value,
+    gross:document.querySelector('#pdfImportForm [name="gross"]')?.value,
+    rate:document.querySelector('#pdfImportForm [name="vatRate"]')?.value,
+    blocking:BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport?.parsed),
+    review:document.getElementById('reviewBlockingState')?.innerText,
+    financial:document.getElementById('financialCorrectionPanel')?.innerText,
+    provenance:pendingPdfImport?.parsed?.fieldProvenance
+  }));
+  assert.deepEqual(correctionState.blocking,[],'correction must clear blocking issues: '+JSON.stringify(correctionState));
+  assert.match(correctionState.review||'',/Klaar om op te slaan/,'correction must revalidate the beginner save gate: '+JSON.stringify(correctionState));
+  assert.equal(correctionState.net,'106.33');
+  assert.equal(correctionState.vat,'22.33');
   await page.evaluate(()=>closeModal());
 
   await openReview({
