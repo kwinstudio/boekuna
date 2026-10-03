@@ -430,7 +430,11 @@ try{
    const noJS=await browser.newPage({javaScriptEnabled:false,viewport:{width:320,height:844}});
    await noJS.goto(server.base+'/',{waitUntil:'networkidle'});
    assert.ok(await noJS.locator('h1').isVisible());
-   assert.ok(await noJS.locator('.parity-story h3').first().isVisible());await overflow(noJS,name+' no JS');await noJS.close();
+   assert.ok(await noJS.locator('.parity-story h3').first().isVisible());
+   assert.ok(await noJS.locator('[data-motion-final] h2').isVisible(),name+' no-JS final CTA remains readable');
+   assert.equal(await noJS.locator('[data-motion-final] h2').evaluate(el=>getComputedStyle(el).opacity),'1',name+' no-JS final CTA must not inherit staged opacity');
+   assert.equal(await noJS.locator('[data-motion-flow-step]').first().evaluate(el=>getComputedStyle(el).opacity),'1',name+' no-JS flow steps remain readable');
+   await overflow(noJS,name+' no JS');await noJS.close();
    for(const width of [320,430,768,1024,1920])await captureVisual(browser,server.base,'/',width,`after-home-${width}-${name}.png`);
 
    // Recreate the immutable before state in the same engine and breakpoints.
