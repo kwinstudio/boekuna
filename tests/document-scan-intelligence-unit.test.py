@@ -9,7 +9,7 @@ sys.path.insert(0, str(PROCESSOR_DIR))
 
 import app as processor  # noqa: E402
 from image_quality import inspect_image_quality, quality_advice  # noqa: E402
-from receipt_math import derive_single_rate_amounts  # noqa: E402
+from receipt_math import derive_single_rate_amounts, detect_vat_rates  # noqa: E402
 
 
 class FakeOutput:
@@ -105,6 +105,64 @@ def test_missing_amount_can_still_be_derived_from_two_explicit_amounts():
     assert guard["reason"] == "derived_missing_amount"
 
 
+def test_dutch_month_abbreviation_is_parsed():
+    assert processor.norm_date("Factuurdatum: 3 okt 2026") == "2026-10-03"
+    assert processor.norm_date("Invoice date: 3 Oct 2026") == "2026-10-03"
+
+
+def test_invoice_number_skips_identifier_labels_on_following_lines():
+    doc = {
+        "kind":"pdf","pageCount":1,
+        "text":"""FACTUUR
+Leverancier: Context Test BV
+Factuurnummer:
+KVK: 87654321
+INV-2026-REAL
+Factuurdatum: 03-10-2026
+Subtotaal EUR 100,00
+BTW 21% EUR 21,00
+Totaal te betalen EUR 121,00
+""",
+        "tables":[],"layout":[],"ocrPages":[],"warnings":[],
+    }
+    result = processor.heuristic_extract(doc, "context-number.pdf", {})
+    assert result.invoice.invoiceNumber == "INV-2026-REAL", result.model_dump()
+
+
+def test_informational_percentage_does_not_create_false_mixed_vat():
+    rates = detect_vat_rates([
+        "Actie: ontvang 9% korting bij een volgend bezoek",
+        "BTW 21% EUR 21,00",
+    ])
+    assert rates == [21.0], rates
+
+
+def test_semantic_mixed_vat_description_still_requires_review():
+    rates = detect_vat_rates([
+        "Omschrijving Product A 9% en Product B 21%",
+        "Subtotaal EUR 200,00",
+        "Totaal BTW EUR 30,00",
+    ])
+    assert rates == [9.0, 21.0], rates
+
+
+def test_eindtotaal_is_a_strong_total_label():
+    doc = {
+        "kind":"pdf","pageCount":1,
+        "text":"""FACTUUR
+Leverancier: Eindtotaal Test BV
+Factuurnummer: END-2026-1
+Factuurdatum: 03-10-2026
+Subtotaal EUR 100,00
+BTW 21% EUR 21,00
+Eindtotaal EUR 121,00
+""",
+        "tables":[],"layout":[],"ocrPages":[],"warnings":[],
+    }
+    result = processor.heuristic_extract(doc, "eindtotaal.pdf", {})
+    assert processor.money_cents(result.amounts.total) == 12100, result.model_dump()
+
+
 if __name__ == "__main__":
     tests = [
         test_quality_gate_flags_low_resolution_and_darkness,
@@ -112,6 +170,11 @@ if __name__ == "__main__":
         test_long_receipt_uses_overlapping_tiles_and_preserves_bottom_coordinates,
         test_explicit_low_confidence_ocr_value_is_not_silently_replaced,
         test_missing_amount_can_still_be_derived_from_two_explicit_amounts,
+        test_dutch_month_abbreviation_is_parsed,
+        test_invoice_number_skips_identifier_labels_on_following_lines,
+        test_informational_percentage_does_not_create_false_mixed_vat,
+        test_semantic_mixed_vat_description_still_requires_review,
+        test_eindtotaal_is_a_strong_total_label,
     ]
     for test in tests:
         test()
