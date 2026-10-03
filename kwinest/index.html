@@ -5009,12 +5009,14 @@ function plausibleVat(v){const x=String(v||'').replace(/\s/g,'').toUpperCase();r
 function vendorMemoryKey(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\b(?:b\.?v\.?|bv|vof|v\.?o\.?f\.?)\b/g,'').replace(/[^a-z0-9]+/g,'').trim()}
 function deterministicExpenseCategory(d){const text=(String(d?.party||'')+' '+String(d?.description||'')).toLowerCase();if(/\b(adobe|figma|canva|notion|microsoft 365|software|hosting|saas)\b/.test(text))return 'Software';if(/\b(shell|bp|esso|tango|tankstation|brandstof|benzine|diesel)\b/.test(text))return 'Reiskosten';if(/\b(meta ads|facebook ads|instagram ads|google ads|advertising|reclame)\b/.test(text))return 'Marketing';return ''}
 function applyKnownSupplierMemory(d){
- if(!d||d.type!=='purchase')return d;
- const vat=String(d.vatId||'').replace(/\s/g,'').toUpperCase(),iban=ibanValid(d.iban)===true?String(d.iban||'').replace(/\s/g,'').toUpperCase():'',nameKey=vendorMemoryKey(d.party),suppliers=(state.contacts||[]).filter(c=>c.type==='supplier');
- const match=suppliers.find(c=>vat&&String(c.vat||'').replace(/\s/g,'').toUpperCase()===vat)||suppliers.find(c=>iban&&String(c.iban||'').replace(/\s/g,'').toUpperCase()===iban)||suppliers.find(c=>nameKey&&vendorMemoryKey(c.name)===nameKey);
- if(match?.name)d.party=match.name;
- const canonicalKey=vendorMemoryKey(match?.name||d.party),counts={};for(const e of state.expenses||[]){if(!canonicalKey||vendorMemoryKey(e.vendor)!==canonicalKey||!e.category)continue;counts[e.category]=(counts[e.category]||0)+1}
- d.category=Object.entries(counts).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0]?.[0]||deterministicExpenseCategory(d)||d.category||'Inkoop';d.vendorMemoryMatch=match?{matched:true,source:vat||iban?'identifier':'exact-name'}:{matched:false};return d
+  if(!d||d.type!=='purchase')return d;
+  const vat=String(d.vatId||'').replace(/\s/g,'').toUpperCase(),iban=ibanValid(d.iban)===true?String(d.iban||'').replace(/\s/g,'').toUpperCase():'',nameKey=vendorMemoryKey(d.party),suppliers=(state.contacts||[]).filter(c=>c.type==='supplier');
+  const vatMatch=suppliers.find(c=>vat&&String(c.vat||'').replace(/\s/g,'').toUpperCase()===vat),ibanMatch=suppliers.find(c=>iban&&ibanValid(c.iban)===true&&String(c.iban||'').replace(/\s/g,'').toUpperCase()===iban),nameMatch=suppliers.find(c=>nameKey&&vendorMemoryKey(c.name)===nameKey);
+  const nameVat=String(nameMatch?.vat||'').replace(/\s/g,'').toUpperCase(),nameIban=ibanValid(nameMatch?.iban)===true?String(nameMatch.iban||'').replace(/\s/g,'').toUpperCase():'',identifierConflict=!!(nameMatch&&((vat&&nameVat&&vat!==nameVat)||(iban&&nameIban&&iban!==nameIban)));
+  const match=vatMatch||ibanMatch||(!identifierConflict?nameMatch:null);
+  if(match?.name)d.party=match.name;
+  const canUseNameHistory=!!match||(!vat&&!iban),canonicalKey=canUseNameHistory?vendorMemoryKey(match?.name||d.party):'',counts={};for(const e of state.expenses||[]){if(!canonicalKey||vendorMemoryKey(e.vendor)!==canonicalKey||!e.category)continue;counts[e.category]=(counts[e.category]||0)+1}
+  d.category=Object.entries(counts).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0]?.[0]||deterministicExpenseCategory(d)||d.category||'Inkoop';d.vendorMemoryMatch=match?{matched:true,source:vatMatch||ibanMatch?'identifier':'exact-name'}:{matched:false};return d
 }
 function duplicateInvoiceCandidate(d,sha=''){
  const byHash=sha&&state.documents.find(x=>x.sha256===sha);if(byHash)return {type:'hash',label:byHash.name||'Bestaand document'};
