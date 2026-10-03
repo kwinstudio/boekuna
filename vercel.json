@@ -1,3 +1,17 @@
 {
-  "cleanUrls": true
+  "cleanUrls": true,
+  "redirects": [
+    {"source":"/functies/","destination":"/#product","permanent":true},
+    {"source":"/facturen/","destination":"/#product","permanent":true},
+    {"source":"/scanner/","destination":"/#product","permanent":true},
+    {"source":"/btw-bank/","destination":"/#product","permanent":true},
+    {"source":"/rapportages/","destination":"/#product","permanent":true},
+    {"source":"/hoe-het-werkt/","destination":"/#hoe-het-werkt","permanent":true},
+    {"source":"/voor-ondernemers/","destination":"/#waarom","permanent":true},
+    {"source":"/prijzen/","destination":"/#prijzen","permanent":true},
+    {"source":"/faq/","destination":"/#faq","permanent":true},
+    {"source":"/over/","destination":"/#waarom","permanent":true},
+    {"source":"/contact/","destination":"/#contact","permanent":true},
+    {"source":"/veiligheid/","destination":"/#veiligheid","permanent":true}
+  ]
 }
