@@ -2107,9 +2107,13 @@ body.interaction-entering{overflow:hidden}
 [data-motion-flow-step]{
   position:relative;
   z-index:1;
+  opacity:1;
+  transform:none;
+  transition:opacity 360ms var(--premium-ease),transform 420ms var(--premium-ease),background-color 300ms var(--premium-ease),box-shadow 300ms var(--premium-ease);
+}
+.motion-enhanced [data-motion-flow-step]{
   opacity:.34;
   transform:translateY(18px) scale(.985);
-  transition:opacity 360ms var(--premium-ease),transform 420ms var(--premium-ease),background-color 300ms var(--premium-ease),box-shadow 300ms var(--premium-ease);
 }
 [data-motion-flow-step].is-flow-active{
   opacity:1;
@@ -2182,9 +2186,15 @@ body.interaction-entering{overflow:hidden}
 [data-motion-final] h2,
 [data-motion-final]>p,
 [data-motion-final] .parity-btn{
+  opacity:1;
+  transform:none;
+  transition:opacity 520ms var(--premium-ease),transform 620ms var(--premium-ease);
+}
+.motion-enhanced [data-motion-final] h2,
+.motion-enhanced [data-motion-final]>p,
+.motion-enhanced [data-motion-final] .parity-btn{
   opacity:.36;
   transform:translateY(24px);
-  transition:opacity 520ms var(--premium-ease),transform 620ms var(--premium-ease);
 }
 [data-motion-final].is-final-active h2,
 [data-motion-final].is-final-active>p,
