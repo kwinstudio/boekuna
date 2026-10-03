@@ -308,6 +308,16 @@ assert.ok(unifiedEmailModule.includes("window.openSendInvoice=openInvoiceCompose
 assert.ok(unifiedEmailModule.includes("Definitief maken en versturen"),"Draft send CTA must be explicit");
 assert.ok(html.includes('<option value="sent">Definitief / openstaand</option>'),"Invoice editor must not label finalization as already sent");
 assert.ok(unifiedEmailModule.includes("function buildGmailComposeUrl(to,subject,body)"),"Desktop Gmail web compose route must exist");
+assert.ok(unifiedEmailModule.includes("function buildEmailHandoffEmlFile()"),"Desktop Outlook route must build an RFC822 draft");
+assert.ok(unifiedEmailModule.includes("'X-Unsent: 1'"),"Outlook draft must be explicitly marked unsent");
+assert.ok(unifiedEmailModule.includes("'Content-Type: application/pdf; name=\"'+attachmentName+'\"'"),"Desktop Outlook draft must embed the invoice PDF");
+assert.ok(unifiedEmailModule.includes("'Content-Disposition: attachment; filename=\"'+attachmentName+'\"'"),"Desktop Outlook draft must mark the PDF as an attachment");
+assert.ok(unifiedEmailModule.includes("'Content-Transfer-Encoding: base64'"),"Desktop Outlook draft must encode MIME body and attachment safely");
+assert.ok(unifiedEmailModule.includes("mailtoCompatibilityText(handoff.subject)"),"Windows mailto fallback must use compatibility-safe text");
+assert.ok(unifiedEmailModule.includes("replace(/€/g,'EUR ')"),"Windows mailto fallback must avoid Outlook euro mojibake");
+assert.ok(unifiedEmailModule.includes("Outlook met PDF"),"Desktop handoff must expose the attachment-preserving Outlook route");
+assert.ok(!unifiedEmailModule.includes("De factuur vindt u als PDF in de bijlage."),"Default message body must not falsely claim an attachment before handoff");
+
 assert.ok(html.includes("subjectInvoice:'Factuur {{factuurnummer}} · {{bedrijfsnaam}}'"),"Default invoice subject must be human-readable and not filename-like");
 assert.ok(unifiedEmailModule.includes("Gmail openen"),"Mobile handoff must expose an explicit Gmail compose option");
 assert.ok(unifiedEmailModule.includes("Andere e-mailapp openen"),"Mobile handoff must preserve a separate mailto route");
