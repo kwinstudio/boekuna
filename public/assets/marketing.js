@@ -21,7 +21,7 @@ const FOOTER=`
 <footer class="footer">
   <div class="shell footer-grid">
     <div><img src="/assets/boekuna-logo-reversed.svg" alt="Boekuna" class="footer-logo"><p>Boekhouden zonder boekhoudtaal. Boekuna is een product van Kwinest.</p></div>
-    <nav aria-label="Juridisch"><a href="/privacy/">Privacy</a><a href="/voorwaarden/">Voorwaarden</a><a href="/account-verwijderen/">Account verwijderen</a><a href="/support/">Support</a></nav>
+    <nav aria-label="Juridisch"><a href="/privacy/">Privacy</a><a href="/voorwaarden/">Voorwaarden</a><a href="/voorwaarden/#bedrijfsgegevens">Bedrijfsgegevens</a><a href="/account-verwijderen/">Account verwijderen</a><a href="/support/">Support</a></nav>
     <div class="footer-contact"><a href="mailto:support@boekuna.nl">support@boekuna.nl</a><a href="https://app.boekuna.nl/?login=1">Inloggen</a></div>
   </div>
   <div class="shell footer-bottom">© 2026 Boekuna · Nederland</div>
