@@ -169,8 +169,15 @@ if(!appHtml.includes("else if(wantsRegister)showAuth('register');else showAuth('
 }
 
 // App-only progressive document review layer. Keep the combined rollback source untouched.
-appHtml=appHtml.replace('</head>','<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261003a">\\n</head>');
-appHtml=appHtml.replace('</body>','<script src="/assets/document-review-v2.js?v=20261003a"></script>\\n</body>');
+// This legacy source contains literal </head> and </body> strings inside templates,
+// so injection must target the final document closing tags, never the first match.
+function injectBeforeLast(html,marker,content){
+  const index=html.lastIndexOf(marker);
+  if(index<0)throw new Error('Missing app document marker: '+marker);
+  return html.slice(0,index)+content+html.slice(index);
+}
+appHtml=injectBeforeLast(appHtml,'</head>','<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261003a">\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review-v2.js?v=20261003a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});
