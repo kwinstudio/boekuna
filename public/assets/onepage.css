@@ -16,7 +16,7 @@
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;background:var(--color-background);color:var(--color-text);font-family:Inter,Arial,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+body.onepage-site{margin:0;background:var(--color-background);color:var(--color-text);font-family:Inter,Arial,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
 body.menu-open{overflow:hidden}
 img{max-width:100%;display:block}
 a{color:inherit;text-underline-offset:4px}
@@ -30,11 +30,11 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,t
 .section-dark{background:var(--color-brand);color:var(--color-on-dark)}
 .section-dark a:focus-visible,.footer a:focus-visible,.final-cta a:focus-visible{outline-color:var(--color-on-dark)}
 .eyebrow{margin:0 0 14px;font-size:.78rem;font-weight:750;letter-spacing:.12em}
-h1,h2,h3,p{margin-top:0}
-h1{font-size:clamp(3rem,7vw,6.4rem);line-height:.96;letter-spacing:-.055em;margin-bottom:30px;max-width:11ch}
-h2{font-size:clamp(2rem,4.2vw,4rem);line-height:1.04;letter-spacing:-.045em;margin-bottom:18px}
-h3{font-size:1.15rem;line-height:1.25;margin-bottom:8px}
-p{color:var(--color-muted)}
+.onepage-site h1,.onepage-site h2,.onepage-site h3,.onepage-site p{margin-top:0}
+.onepage-site h1{font-size:clamp(3rem,7vw,6.4rem);line-height:.96;letter-spacing:-.055em;margin-bottom:30px;max-width:11ch}
+.onepage-site h2{font-size:clamp(2rem,4.2vw,4rem);line-height:1.04;letter-spacing:-.045em;margin-bottom:18px}
+.onepage-site h3{font-size:1.15rem;line-height:1.25;margin-bottom:8px}
+.onepage-site p{color:var(--color-muted)}
 .section-dark p,.final-cta p,.footer p{color:rgba(255,255,255,.76)}
 .lead{font-size:clamp(1.08rem,2vw,1.3rem);max-width:650px}
 .microcopy{font-size:.9rem;margin:16px 0 0}
