@@ -1118,7 +1118,15 @@ def targeted_header_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any,qual
         b=_ocr_row_bounds(row)
         if b and b[1] <= h*.45:top_rows.append(row)
     top_conf=sum(float(r.get("confidence") or 0) for r in top_rows)/len(top_rows) if top_rows else 0
-    trigger=("IMAGE_SKEW" in flags) or top_conf<.82
+    top_text="\n".join(str(r.get("text") or "") for r in top_rows)
+    metadata_evidence=bool(re.search(
+        r"\b(?:factuurnummer|factuurnr|invoice\s*(?:number|no|#)|factuurdatum|invoice\s*date|"
+        r"datum|date|kvk|btw|vat|iban)\b",
+        top_text,re.I,
+    ))
+    # Skew alone is not enough reason to pay for a second OCR pass. If the first
+    # header pass is already strong and contains metadata anchors, keep it.
+    trigger=(len(top_rows)<2 or top_conf<.74 or ("IMAGE_SKEW" in flags and top_conf<.82 and not metadata_evidence))
     if not trigger:
         return {"text":"","rows":[],"confidence":None,"used":False}
     crop=img.crop((0,0,img.width,max(220,int(img.height*.46))))
