@@ -170,6 +170,7 @@ try{
   await page.evaluate(()=>setDocumentReviewStep(2));
   assert.ok(await page.getByRole('button',{name:'Dit klopt zo',exact:true}).first().isVisible(),'uncertain recognized value must be confirmable');
   assert.ok(await page.getByRole('button',{name:'Later controleren',exact:true}).first().isVisible(),'non-blocking attention must be deferrable');
+  assert.equal(await page.getByRole('button',{name:'Gecontroleerd & opslaan',exact:true}).first().isDisabled(),true,'unresolved attention must require an explicit confirm/edit/defer choice');
   await page.getByRole('button',{name:'Later controleren',exact:true}).first().click();
   assert.match(await page.locator('#reviewBlockingState').innerText(),/later controleren/i);
   await page.evaluate(()=>closeModal());
@@ -206,6 +207,17 @@ try{
   assert.ok(savedReview.id,'saved document must keep a review snapshot');
   assert.deepEqual(savedReview.attention,['party','category'],'deferred supplier and category must persist as attention');
   assert.equal(savedReview.rows,1,'deferred review must appear exactly once in Actie nodig');
+  assert.equal(await page.evaluate(()=>state.contacts.filter(c=>c.type==='supplier'&&c.name==='Review Winkel').length),0,'deferred OCR supplier must not create a premature supplier relation');
+  await page.evaluate(()=>{
+    const raw=JSON.parse(localStorage.getItem(userDataKey())||'{}');
+    state=normalizeState(raw);
+  });
+  const reloadedReview=await page.evaluate(id=>{
+    const d=state.documents.find(x=>x.id===id);
+    return {attention:d?.reviewAttentionFields||[],snapshot:d?.reviewSnapshot||null};
+  },savedReview.id);
+  assert.deepEqual(reloadedReview.attention,['party','category'],'deferred attention must survive persistence and normalization');
+  assert.equal(reloadedReview.snapshot?.party,'Review Winkel','review snapshot must survive persistence and normalization');
   await page.evaluate(id=>openSavedDocumentReview(id),savedReview.id);
   await page.getByRole('heading',{name:'Opgeslagen controle'}).waitFor();
   assert.match(await page.locator('#modalRoot').innerText(),/Later controleren/);
