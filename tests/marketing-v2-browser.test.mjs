@@ -363,17 +363,56 @@ try{
     await focusPage.close();
    }
 
-   // Calm site: no blocking intro, pointer depth, magnetic motion or word masks.
+   // Kwin-style interaction layer: expressive but 2D, non-blocking and reduced-motion safe.
    await page.emulateMedia({reducedMotion:'no-preference'});
    await page.goto(server.base+'/',{waitUntil:'networkidle'});
-   assert.equal(await page.locator('[data-depth-root],.kz-magnetic,.editorial-intro,.editorial-word,.ed-parallax').count(),0);
+   assert.equal(await page.locator('[data-depth-root],.kz-magnetic').count(),0,name+' must not reintroduce 3D or magnetic hooks');
+   assert.equal(await page.locator('[data-interaction-intro]').count(),1,name+' homepage exposes one intro wipe');
+   assert.equal(await page.locator('[data-scroll-progress]').count(),1,name+' homepage exposes scroll progress');
+   assert.equal(await page.locator('[data-parallax-root]').count(),1,name+' homepage exposes one hero parallax root');
+   await page.waitForFunction(()=>document.querySelector('[data-interaction-intro]')?.classList.contains('is-done'));
+   assert.equal(await page.locator('[data-interaction-intro]').evaluate(el=>getComputedStyle(el).pointerEvents),'none',name+' intro must not block the page after entry');
+   assert.ok(await page.locator('[data-kinetic-title] .interaction-word').count()>=4,name+' kinetic title must split into staged words');
+   await page.evaluate(()=>window.scrollTo(0,Math.max(500,document.documentElement.scrollHeight*.35)));
+   await page.waitForFunction(()=>Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--scroll-progress'))>.1);
+   const scrollProgress=await page.locator('html').evaluate(el=>Number.parseFloat(getComputedStyle(el).getPropertyValue('--scroll-progress')));
+   assert.ok(scrollProgress>.1&&scrollProgress<=1,name+' scroll progress must track the page');
+   await page.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';window.scrollTo(0,0);});
+   await page.waitForFunction(()=>window.scrollY<2);
+   const heroBox=await page.locator('[data-parallax-root]').boundingBox();
+   assert.ok(heroBox,name+' hero parallax root must be measurable');
+   await page.mouse.move(heroBox.x+heroBox.width*.82,heroBox.y+heroBox.height*.28);
+   await page.waitForFunction(()=>Math.abs(Number.parseFloat(getComputedStyle(document.querySelector('[data-parallax-root]')).getPropertyValue('--hero-x')))>0.1);
+   const heroVector=await page.locator('[data-parallax-root]').evaluate(el=>({
+     x:Number.parseFloat(getComputedStyle(el).getPropertyValue('--hero-x')),
+     y:Number.parseFloat(getComputedStyle(el).getPropertyValue('--hero-y'))
+   }));
+   assert.ok(Math.abs(heroVector.x)>0.1||Math.abs(heroVector.y)>0.1,name+' pointer motion must update hero parallax variables');
+   const thirdStory=page.locator('.parity-story').nth(2);
+   await thirdStory.scrollIntoViewIfNeeded();
+   await page.waitForFunction(()=>document.querySelectorAll('.parity-story')[2]?.classList.contains('is-story-active'));
+   assert.equal(await thirdStory.getAttribute('data-story-state'),'active',name+' visible product story must expose active scroll state');
+   await page.locator('[data-demo-step="upload"]').focus();
+   await page.keyboard.press('ArrowRight');
+   assert.equal(await page.locator('[data-demo-step="recognize"]').getAttribute('aria-pressed'),'true',name+' ArrowRight advances the guided demo');
    assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
+
    await page.emulateMedia({reducedMotion:'reduce'});
+   await page.goto(server.base+'/',{waitUntil:'networkidle'});
+   assert.equal(await page.locator('[data-interaction-intro]').getAttribute('hidden'),'','Reduced motion keeps the intro wipe hidden');
    const transitions=await page.locator('.mobile-toggle-icon i').evaluateAll(elements=>elements.map(el=>getComputedStyle(el).transitionDuration));
    assert.ok(transitions.every(value=>value==='0s'));
    const demoTransition=await page.locator('#boekunaDemoStage').evaluate(el=>getComputedStyle(el).transitionDuration);
    assert.equal(demoTransition,'0s','Reduced motion disables guided-demo transitions');
-   report.motion.push({engine:name,reducedMotion:true,noBlockingIntro:true,noDepthMotion:true});
+   const kineticTransition=await page.locator('[data-kinetic-title] .interaction-word').first().evaluate(el=>getComputedStyle(el).transitionDuration);
+   assert.equal(kineticTransition,'0s','Reduced motion disables kinetic-title transitions');
+   const reducedHero=await page.locator('[data-parallax-root]').evaluate(el=>({
+     x:Number.parseFloat(getComputedStyle(el).getPropertyValue('--hero-x'))||0,
+     y:Number.parseFloat(getComputedStyle(el).getPropertyValue('--hero-y'))||0
+   }));
+   assert.equal(reducedHero.x,0,'Reduced motion disables horizontal parallax');
+   assert.equal(reducedHero.y,0,'Reduced motion disables vertical parallax');
+   report.motion.push({engine:name,reducedMotion:true,introSafe:true,scrollProgress:true,parallax2D:true,storyActivation:true});
    await page.close();
    const noJS=await browser.newPage({javaScriptEnabled:false,viewport:{width:320,height:844}});
    await noJS.goto(server.base+'/',{waitUntil:'networkidle'});

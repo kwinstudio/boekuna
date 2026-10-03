@@ -23,8 +23,8 @@ for(const rel of routeFiles){
   const html=fs.readFileSync(file,'utf8');
   assert.equal((html.match(/<h1\b/gi)||[]).length,1,rel+': exactly one h1');
   if(rel!=='index.html') assert.ok(/<link rel="canonical" href="https:\/\/boekuna\.nl\//.test(html),rel+': public canonical missing');
-  assert.ok(html.includes('/assets/marketing.js?v=20261002parity'),rel+': premium shared runtime must be cache-busted');
-  assert.ok(html.includes('/assets/marketing-editorial.css?v=20261002parity'),rel+': parity stylesheet must use the current cache key');
+  assert.ok(html.includes('/assets/marketing.js?v=20261003interaction'),rel+': premium shared runtime must be cache-busted');
+  assert.ok(html.includes('/assets/marketing-editorial.css?v=20261003interaction'),rel+': parity stylesheet must use the current cache key');
   assert.equal(/data-depth-root|hero-depth-|story-depth-|kz-magnetic/.test(html),false,rel+': old 3D/depth markup must be absent');
   assert.equal(/revolut/i.test(html),false,rel+': reference brand must not appear in production HTML');
   assert.equal(/<img[^>]+src=["']https?:\/\//i.test(html),false,rel+': content images must remain first-party');
@@ -53,6 +53,10 @@ assert.ok(/direct(?:e)? btw[^<]{0,100}(?:niet|nog niet)|btw[^<]{0,100}direct[^<]
 for(const value of ['€0','€6,95','€9,95','€14,95']) assert.ok(home.includes(value),'Homepage pricing preview missing '+value);
 assert.ok((home.match(/Binnenkort beschikbaar/g)||[]).length>=3,'Homepage paid pricing preview must stay non-transactional');
 assert.ok(home.includes('/account-verwijderen/'),'Homepage FAQ must link account deletion/privacy control');
+for(const hook of ['data-interaction-intro','data-scroll-progress','data-kinetic-title','data-parallax-root']){
+  assert.ok(home.includes(hook),'Homepage interaction hook missing '+hook);
+}
+assert.ok(home.includes('/assets/homepage.js?v=20261003interaction'),'Homepage interaction runtime must use the current cache key');
 
 const pricing=fs.readFileSync(path.join(dist,'prijzen','index.html'),'utf8');
 for(const value of ['€0','€6,95','€9,95','€14,95']) assert.ok(pricing.includes(value),'Pricing truth missing '+value);
@@ -74,6 +78,12 @@ for(const forbidden of ['data-depth-root','hero-depth-','story-depth-','kz-magne
 }
 assert.equal(/(?:linear|radial)-gradient\(/i.test(css),false,'Premium rebuild must not use decorative gradients');
 assert.equal(/revolut/i.test(css),false,'Reference brand must not appear in production CSS');
+
+const homepageJs=fs.readFileSync(path.join(dist,'assets','homepage.js'),'utf8');
+for(const contract of ['requestAnimationFrame','IntersectionObserver','ArrowRight','--scroll-progress','--hero-x','is-story-active']){
+  assert.ok(homepageJs.includes(contract),'Homepage interaction runtime missing '+contract);
+}
+assert.equal(/perspective\(|rotateX\(|rotateY\(/.test(homepageJs),false,'Homepage interaction runtime must stay 2D');
 
 const js=fs.readFileSync(path.join(dist,'assets','marketing.js'),'utf8');
 for(const label of ['Product','Voor wie','Prijzen','Ondersteuning']) assert.ok(js.includes(label),'Parity desktop navigation missing '+label);

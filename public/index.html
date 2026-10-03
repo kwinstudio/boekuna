@@ -13,18 +13,26 @@
   <meta property="og:type" content="website">
   <link rel="stylesheet" href="/assets/marketing.css?v=20260930b">
   <link rel="stylesheet" href="/assets/homepage.css?v=20260930b">
-  <link rel="stylesheet" href="/assets/marketing-editorial.css?v=20261002parity">
+  <link rel="stylesheet" href="/assets/marketing-editorial.css?v=20261003interaction">
   <link rel="icon" type="image/svg+xml" href="/assets/boekuna-favicon.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/boekuna-app-icon-180.png">
 </head>
 <body class="editorial-site" data-page="home">
+  <div class="interaction-intro" data-interaction-intro hidden aria-hidden="true">
+    <div class="interaction-intro-inner">
+      <span>BOEKUNA</span>
+      <strong>Boekhouden zonder boekhoudtaal</strong>
+      <i aria-hidden="true"></i>
+    </div>
+  </div>
+  <div class="interaction-progress" data-scroll-progress aria-hidden="true"><span></span></div>
   <div id="siteHeader"></div>
 
   <main class="parity-home" id="mainContent">
     <section class="parity-hero" data-home-section="hero" aria-labelledby="home-title">
       <div class="parity-hero-copy">
         <p class="parity-eyebrow">BOEKHOUDEN ZONDER BOEKHOUDTAAL</p>
-        <h1 id="home-title">Boekhouden.<br>Maar dan rustig.</h1>
+        <h1 id="home-title" data-kinetic-title>Boekhouden.<br>Maar dan rustig.</h1>
         <p class="parity-lead">Maak facturen, verwerk documenten en houd zicht op btw, bankregels en resultaat. Boekuna helpt je voorbereiden en jij houdt de controle.</p>
         <div class="parity-actions">
           <a class="parity-btn parity-btn--primary" href="https://app.boekuna.nl/?register=1">Gratis starten</a>
@@ -32,12 +40,12 @@
         </div>
         <p class="parity-proofline">Gratis beginnen · geen kaart nodig · jij controleert vóór opslag</p>
       </div>
-      <div class="parity-hero-media" aria-label="Voorbeeld van een rustige Boekuna-administratie">
-        <img src="/assets/boekuna-editorial-workspace-placeholder.svg" width="1200" height="1500" fetchpriority="high" decoding="async" alt="Illustratie van een zelfstandige in een rustige werkruimte">
-        <div class="parity-floating-card parity-floating-card--top" aria-hidden="true">
+      <div class="parity-hero-media" data-parallax-root aria-label="Voorbeeld van een rustige Boekuna-administratie">
+        <img data-parallax-media src="/assets/boekuna-editorial-workspace-placeholder.svg" width="1200" height="1500" fetchpriority="high" decoding="async" alt="Illustratie van een zelfstandige in een rustige werkruimte">
+        <div class="parity-floating-card parity-floating-card--top" data-parallax-card="top" aria-hidden="true">
           <small>Document</small><strong>Klaar voor controle</strong><span>PDF · € 124,63</span>
         </div>
-        <div class="parity-floating-card parity-floating-card--bottom" aria-hidden="true">
+        <div class="parity-floating-card parity-floating-card--bottom" data-parallax-card="bottom" aria-hidden="true">
           <small>Deze maand</small><strong>Administratie bijgewerkt</strong><span>Facturen · kosten · btw</span>
         </div>
       </div>
@@ -74,7 +82,7 @@
         <p>Dezelfde gegevens lopen door je hele administratie. Minder losse schermen, minder dubbel werk.</p>
       </header>
 
-      <article class="parity-story">
+      <article class="parity-story" data-scroll-story>
         <div class="parity-story-copy">
           <p class="parity-eyebrow">Zelf boekhouden</p>
           <h3>Zie wat er gebeurt zonder boekhoudjargon.</h3>
@@ -91,7 +99,7 @@
         </div>
       </article>
 
-      <article class="parity-story parity-story--reverse">
+      <article class="parity-story parity-story--reverse" data-scroll-story>
         <div class="parity-story-copy">
           <p class="parity-eyebrow">Facturen</p>
           <h3>Een factuur maken moet sneller gaan dan het werk ervoor.</h3>
@@ -111,7 +119,7 @@
         </div>
       </article>
 
-      <article class="parity-story">
+      <article class="parity-story" data-scroll-story>
         <div class="parity-story-copy">
           <p class="parity-eyebrow">Documenten</p>
           <h3>Upload wat je hebt. Controleer alleen wat ertoe doet.</h3>
@@ -126,7 +134,7 @@
         </div>
       </article>
 
-      <article class="parity-story parity-story--reverse">
+      <article class="parity-story parity-story--reverse" data-scroll-story>
         <div class="parity-story-copy">
           <p class="parity-eyebrow">Btw & bank</p>
           <h3>Van bankregel naar een administratie die klopt.</h3>
@@ -141,7 +149,7 @@
         </div>
       </article>
 
-      <article class="parity-story">
+      <article class="parity-story" data-scroll-story>
         <div class="parity-story-copy">
           <p class="parity-eyebrow">Rapportages</p>
           <h3>Je cijfers worden pas nuttig als je ze begrijpt.</h3>
@@ -308,7 +316,7 @@
 
   <div id="siteFooter"></div>
   <script src="/assets/marketing.js?v=20261002parity"></script>
-  <script src="/assets/homepage.js?v=20261002parity"></script>
+  <script src="/assets/homepage.js?v=20261003interaction"></script>
   <script src="/assets/marketing-editorial.js?v=20261002premium" defer></script>
 </body>
 </html>
