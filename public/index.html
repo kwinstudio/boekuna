@@ -13,7 +13,7 @@
   <meta property="og:type" content="website">
   <link rel="stylesheet" href="/assets/marketing.css?v=20260930b">
   <link rel="stylesheet" href="/assets/homepage.css?v=20260930b">
-  <link rel="stylesheet" href="/assets/marketing-editorial.css?v=20261003interaction">
+  <link rel="stylesheet" href="/assets/marketing-editorial.css?v=20261003motion90">
   <link rel="icon" type="image/svg+xml" href="/assets/boekuna-favicon.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/boekuna-app-icon-180.png">
 </head>
@@ -51,8 +51,8 @@
       </div>
     </section>
 
-    <section class="parity-feature-rail" data-home-section="feature-rail" aria-label="Boekuna onderdelen">
-      <div class="parity-feature-rail-inner">
+    <section class="parity-feature-rail" data-home-section="feature-rail" data-motion-rail data-drag-enabled="false" aria-label="Boekuna onderdelen">
+      <div class="parity-feature-rail-inner" data-motion-rail-track>
         <a href="/facturen/">Facturen</a>
         <a href="/scanner/">Documenten</a>
         <a href="/functies/">Relaties</a>
@@ -76,6 +76,13 @@
     </section>
 
     <section class="parity-product-stories" data-home-section="product-stories" aria-labelledby="stories-title">
+      <div class="motion-story-progress" data-motion-story-progress data-active-story="0" role="navigation" aria-label="Spring naar productverhaal">
+        <button type="button" data-story-jump="0" aria-label="Zelf boekhouden"></button>
+        <button type="button" data-story-jump="1" aria-label="Facturen"></button>
+        <button type="button" data-story-jump="2" aria-label="Documenten"></button>
+        <button type="button" data-story-jump="3" aria-label="Btw en bank"></button>
+        <button type="button" data-story-jump="4" aria-label="Rapportages"></button>
+      </div>
       <header class="parity-section-head">
         <p class="parity-eyebrow">Eén administratie</p>
         <h2 id="stories-title">Van eerste factuur tot je maandelijkse overzicht.</h2>
@@ -180,7 +187,7 @@
       <div class="parity-actions"><a class="parity-btn parity-btn--light" href="https://app.boekuna.nl/?register=1">Gratis starten</a><a class="parity-btn parity-btn--dark-outline" href="/prijzen/">Bekijk prijzen</a></div>
     </section>
 
-    <section class="parity-focus parity-focus--vat" data-home-section="vat" aria-labelledby="vat-title">
+    <section class="parity-focus parity-focus--vat" data-home-section="vat" data-motion-focus aria-labelledby="vat-title">
       <div class="parity-focus-copy">
         <p class="parity-eyebrow">Btw</p>
         <h2 id="vat-title">Weet wat je kwartaal doet vóór het kwartaal voorbij is.</h2>
@@ -195,22 +202,22 @@
       </div>
     </section>
 
-    <section class="parity-focus parity-focus--documents" data-home-section="documents" aria-labelledby="documents-title">
+    <section class="parity-focus parity-focus--documents" data-home-section="documents" data-motion-focus aria-labelledby="documents-title">
       <div class="parity-focus-copy">
         <p class="parity-eyebrow">Documentherkenning</p>
         <h2 id="documents-title">Van bewijsstuk naar controle, zonder alles opnieuw te typen.</h2>
         <p>Upload een ondersteunde PDF, scan of foto. Boekuna probeert velden voor te bereiden en laat onzekerheden zichtbaar zodat jij ze kunt controleren.</p>
         <a class="parity-text-link" href="/scanner/">Bekijk slimme verwerking →</a>
       </div>
-      <div class="parity-doc-flow" aria-hidden="true">
-        <div><span>01</span><strong>Upload</strong><small>PDF · scan · foto</small></div>
-        <div><span>02</span><strong>Herkennen</strong><small>Gegevens voorbereid</small></div>
-        <div><span>03</span><strong>Controleren</strong><small>Jij beslist</small></div>
-        <div><span>04</span><strong>Opslaan</strong><small>Administratie bijgewerkt</small></div>
+      <div class="parity-doc-flow" data-motion-flow aria-hidden="true">
+        <div data-motion-flow-step><span>01</span><strong>Upload</strong><small>PDF · scan · foto</small></div>
+        <div data-motion-flow-step><span>02</span><strong>Herkennen</strong><small>Gegevens voorbereid</small></div>
+        <div data-motion-flow-step><span>03</span><strong>Controleren</strong><small>Jij beslist</small></div>
+        <div data-motion-flow-step><span>04</span><strong>Opslaan</strong><small>Administratie bijgewerkt</small></div>
       </div>
     </section>
 
-    <section class="parity-focus parity-focus--bank" data-home-section="bank" aria-labelledby="bank-title">
+    <section class="parity-focus parity-focus--bank" data-home-section="bank" data-motion-focus aria-labelledby="bank-title">
       <div class="parity-focus-copy">
         <p class="parity-eyebrow">Bankimport</p>
         <h2 id="bank-title">Transacties terugvinden zonder te doen alsof Boekuna je bank is.</h2>
@@ -225,7 +232,7 @@
       </div>
     </section>
 
-    <section class="parity-demo" data-home-section="demo" aria-labelledby="demo-title">
+    <section class="parity-demo" data-home-section="demo" data-motion-demo data-motion-state="upload" aria-labelledby="demo-title">
       <header class="parity-section-head parity-section-head--center">
         <p class="parity-eyebrow">Zo werkt het</p>
         <h2 id="demo-title">Vier stappen van document naar administratie.</h2>
@@ -306,7 +313,7 @@
       </div>
     </section>
 
-    <section class="parity-final-cta" data-home-section="final-cta" aria-label="Gratis starten met Boekuna">
+    <section class="parity-final-cta" data-home-section="final-cta" data-motion-final data-motion-state="idle" aria-label="Gratis starten met Boekuna">
       <p class="parity-eyebrow">BOEKUNA</p>
       <h2>Klaar voor minder boekhoudtaal?</h2>
       <p>Begin met de basis en bouw je administratie vanaf daar rustig op.</p>
@@ -316,7 +323,7 @@
 
   <div id="siteFooter"></div>
   <script src="/assets/marketing.js?v=20261002parity"></script>
-  <script src="/assets/homepage.js?v=20261003interaction"></script>
+  <script src="/assets/homepage.js?v=20261003motion90"></script>
   <script src="/assets/marketing-editorial.js?v=20261002premium" defer></script>
 </body>
 </html>

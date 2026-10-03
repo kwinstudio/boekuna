@@ -370,6 +370,12 @@ try{
    assert.equal(await page.locator('[data-interaction-intro]').count(),1,name+' homepage exposes one intro wipe');
    assert.equal(await page.locator('[data-scroll-progress]').count(),1,name+' homepage exposes scroll progress');
    assert.equal(await page.locator('[data-parallax-root]').count(),1,name+' homepage exposes one hero parallax root');
+   assert.equal(await page.locator('[data-motion-rail]').count(),1,name+' homepage exposes one interactive feature rail');
+   assert.equal(await page.locator('[data-motion-story-progress]').count(),1,name+' homepage exposes one sticky story progress rail');
+   assert.equal(await page.locator('[data-motion-flow]').count(),1,name+' homepage exposes one sequential document flow');
+   assert.ok(await page.locator('[data-motion-focus]').count()>=3,name+' focus sections expose scroll-linked motion hooks');
+   assert.equal(await page.locator('[data-motion-demo]').count(),1,name+' guided demo exposes motion state hook');
+   assert.equal(await page.locator('[data-motion-final]').count(),1,name+' final CTA exposes finale motion hook');
    await page.waitForFunction(()=>document.querySelector('[data-interaction-intro]')?.classList.contains('is-done'));
    assert.equal(await page.locator('[data-interaction-intro]').evaluate(el=>getComputedStyle(el).pointerEvents),'none',name+' intro must not block the page after entry');
    assert.ok(await page.locator('[data-kinetic-title] .interaction-word').count()>=4,name+' kinetic title must split into staged words');
@@ -392,9 +398,14 @@ try{
    await thirdStory.scrollIntoViewIfNeeded();
    await page.waitForFunction(()=>document.querySelectorAll('.parity-story')[2]?.classList.contains('is-story-active'));
    assert.equal(await thirdStory.getAttribute('data-story-state'),'active',name+' visible product story must expose active scroll state');
+   const activeStoryIndex=await page.locator('[data-motion-story-progress]').getAttribute('data-active-story');
+   assert.equal(activeStoryIndex,'2',name+' sticky story progress follows active product story');
+   const storyProgress=Number.parseFloat(await page.locator('[data-motion-story-progress]').evaluate(el=>getComputedStyle(el).getPropertyValue('--story-progress')));
+   assert.ok(storyProgress>.35&&storyProgress<=1,name+' sticky story progress exposes scroll-linked progress');
    await page.locator('[data-demo-step="upload"]').focus();
    await page.keyboard.press('ArrowRight');
    assert.equal(await page.locator('[data-demo-step="recognize"]').getAttribute('aria-pressed'),'true',name+' ArrowRight advances the guided demo');
+   assert.equal(await page.locator('[data-motion-demo]').getAttribute('data-motion-state'),'recognize',name+' motion demo state follows guided demo state');
    assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
 
    await page.emulateMedia({reducedMotion:'reduce'});
@@ -412,12 +423,18 @@ try{
    }));
    assert.equal(reducedHero.x,0,'Reduced motion disables horizontal parallax');
    assert.equal(reducedHero.y,0,'Reduced motion disables vertical parallax');
+   assert.equal(await page.locator('[data-motion-rail]').getAttribute('data-drag-enabled'),'false','Reduced motion disables kinetic rail dragging');
+   assert.equal(await page.locator('[data-motion-final]').getAttribute('data-motion-state'),'static','Reduced motion keeps final CTA static');
    report.motion.push({engine:name,reducedMotion:true,introSafe:true,scrollProgress:true,parallax2D:true,storyActivation:true});
    await page.close();
    const noJS=await browser.newPage({javaScriptEnabled:false,viewport:{width:320,height:844}});
    await noJS.goto(server.base+'/',{waitUntil:'networkidle'});
    assert.ok(await noJS.locator('h1').isVisible());
-   assert.ok(await noJS.locator('.parity-story h3').first().isVisible());await overflow(noJS,name+' no JS');await noJS.close();
+   assert.ok(await noJS.locator('.parity-story h3').first().isVisible());
+   assert.ok(await noJS.locator('[data-motion-final] h2').isVisible(),name+' no-JS final CTA remains readable');
+   assert.equal(await noJS.locator('[data-motion-final] h2').evaluate(el=>getComputedStyle(el).opacity),'1',name+' no-JS final CTA must not inherit staged opacity');
+   assert.equal(await noJS.locator('[data-motion-flow-step]').first().evaluate(el=>getComputedStyle(el).opacity),'1',name+' no-JS flow steps remain readable');
+   await overflow(noJS,name+' no JS');await noJS.close();
    for(const width of [320,430,768,1024,1920])await captureVisual(browser,server.base,'/',width,`after-home-${width}-${name}.png`);
 
    // Recreate the immutable before state in the same engine and breakpoints.
