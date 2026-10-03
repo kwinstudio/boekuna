@@ -51,6 +51,58 @@ def test_blur_metric_drops_for_blurred_text():
     assert blur_q["metrics"]["sharpness"] < sharp_q["metrics"]["sharpness"], (sharp_q, blur_q)
 
 
+def test_clear_white_document_is_not_misclassified_as_overexposed_or_blurred():
+    image = Image.new("RGB", (1500, 1800), "white")
+    draw = ImageDraw.Draw(image)
+    for y, text in enumerate([
+        "BOEKUNA QA HELDER",
+        "Factuurdatum 03-10-2026",
+        "Subtotaal EUR 100,00",
+        "BTW 21% EUR 21,00",
+        "Totaal EUR 121,00",
+    ], start=1):
+        draw.text((80, y*135), text, fill="black", font=_font(42))
+    quality = inspect_image_quality(image)
+    image.close()
+    assert "IMAGE_OVEREXPOSED" not in quality["flags"], quality
+    assert "IMAGE_BLUR" not in quality["flags"], quality
+    assert quality["class"] != "poor", quality
+
+
+def test_severely_blurred_text_is_flagged_but_light_blur_can_continue():
+    sharp = Image.new("RGB", (1200, 900), "white")
+    draw = ImageDraw.Draw(sharp)
+    for y in range(80, 760, 90):
+        draw.text((70, y), "Factuurdatum 03-10-2026 Totaal EUR 121,00", fill="black", font=_font(34))
+    light = sharp.filter(ImageFilter.GaussianBlur(radius=1.2))
+    severe = sharp.filter(ImageFilter.GaussianBlur(radius=4.0))
+    light_q = inspect_image_quality(light)
+    severe_q = inspect_image_quality(severe)
+    sharp.close(); light.close(); severe.close()
+    assert severe_q["metrics"]["sharpness"] < light_q["metrics"]["sharpness"], (light_q, severe_q)
+    assert "IMAGE_BLUR" in severe_q["flags"], severe_q
+
+
+def test_confident_header_does_not_trigger_second_ocr_only_because_of_skew_flag():
+    image = Image.new("RGB", (1000, 1400), "white")
+    rows = [
+        {"box":[[20,30],[400,30],[400,70],[20,70]],"text":"BOEKUNA QA BV","confidence":.96},
+        {"box":[[20,100],[500,100],[500,140],[20,140]],"text":"Factuurnummer INV-2026-1","confidence":.95},
+        {"box":[[20,170],[500,170],[500,210],[20,210]],"text":"Factuurdatum 03-10-2026","confidence":.96},
+    ]
+    calls={"count":0}
+    def should_not_run(_):
+        calls["count"] += 1
+        raise AssertionError("strong header must not pay a second OCR pass")
+    result = processor.targeted_header_ocr(
+        image, rows, should_not_run,
+        {"class":"warning","flags":["IMAGE_SKEW"],"metrics":{"deskewAngle":2.0}},
+    )
+    image.close()
+    assert result["used"] is False
+    assert calls["count"] == 0
+
+
 def test_long_receipt_uses_overlapping_tiles_and_preserves_bottom_coordinates():
     image = Image.new("RGB", (800, 3600), "white")
     calls = []
@@ -167,6 +219,9 @@ if __name__ == "__main__":
     tests = [
         test_quality_gate_flags_low_resolution_and_darkness,
         test_blur_metric_drops_for_blurred_text,
+        test_clear_white_document_is_not_misclassified_as_overexposed_or_blurred,
+        test_severely_blurred_text_is_flagged_but_light_blur_can_continue,
+        test_confident_header_does_not_trigger_second_ocr_only_because_of_skew_flag,
         test_long_receipt_uses_overlapping_tiles_and_preserves_bottom_coordinates,
         test_explicit_low_confidence_ocr_value_is_not_silently_replaced,
         test_missing_amount_can_still_be_derived_from_two_explicit_amounts,
