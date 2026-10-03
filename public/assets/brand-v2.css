@@ -26,6 +26,9 @@
   --error-soft:#FBEAEA;
   --info:#2E5FB8;
   --info-soft:#EAF0FB;
+  /* Single supporting product accent: reuse the existing accessible info-blue role. */
+  --support-accent:var(--info);
+  --support-accent-soft:var(--info-soft);
   --radius-sm:8px;
   --radius-md:12px;
   --radius-lg:16px;
@@ -533,4 +536,106 @@ a,button,input,select,textarea{transition-duration:180ms!important;transition-ti
 }
 @media(max-width:390px){
   .contacts-table{min-width:440px}
+}
+
+
+/* Desktop product KPI system — dashboard language shared by core pages.
+   One supporting accent only: --support-accent aliases the existing info role. */
+#mainApp .product-page-head{margin-bottom:14px}
+#mainApp .product-page-head .page-status{max-width:620px}
+#mainApp .product-kpis{margin:0 0 14px;gap:12px}
+#mainApp .product-kpi{
+  min-width:0;
+  padding:15px 16px!important;
+  background:rgba(255,255,255,.72)!important;
+  border-color:var(--divider)!important;
+  box-shadow:none!important;
+}
+#mainApp .product-kpi .metric-head{margin-bottom:10px}
+#mainApp .product-kpi-label{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-width:0;
+  color:var(--text-secondary);
+  font-size:12px;
+  font-weight:800;
+  line-height:1.2;
+}
+#mainApp .product-kpi-icon,
+#mainApp .dashboard-kpi .metric-icon,
+#mainApp .dashboard-summary-card .metric-icon{
+  width:32px;
+  height:32px;
+  min-width:32px;
+  border-radius:10px;
+  display:inline-grid;
+  place-items:center;
+  background:var(--brand-primary-soft);
+  color:var(--brand-secondary);
+}
+#mainApp .product-kpi-icon .icon,
+#mainApp .dashboard-kpi .metric-icon .icon,
+#mainApp .dashboard-summary-card .metric-icon .icon{width:17px;height:17px}
+#mainApp .product-kpi .metric-value{font-size:clamp(24px,2vw,31px);line-height:1.05}
+#mainApp .product-kpi .metric-sub{margin-top:7px;min-height:16px;color:var(--text-muted)}
+#mainApp .kpi-tone-support .product-kpi-icon,
+#mainApp .kpi-tone-support .metric-icon{
+  background:var(--support-accent-soft);
+  color:var(--support-accent);
+}
+#mainApp .kpi-tone-warning .product-kpi-icon,
+#mainApp .kpi-tone-warning .metric-icon{
+  background:var(--warning-soft);
+  color:var(--warning);
+}
+#mainApp .kpi-tone-success .product-kpi-icon,
+#mainApp .kpi-tone-success .metric-icon{
+  background:var(--success-soft);
+  color:var(--success);
+}
+#mainApp .kpi-tone-error .product-kpi-icon,
+#mainApp .kpi-tone-error .metric-icon{
+  background:var(--error-soft);
+  color:var(--error);
+}
+#mainApp .kpi-tone-primary .product-kpi-icon,
+#mainApp .kpi-tone-primary .metric-icon{
+  background:var(--brand-primary-soft);
+  color:var(--brand-secondary);
+}
+
+/* One chart color contract across Dashboard and Rapportages:
+   omzet = support accent, kosten = warning, winst = Boekuna green. */
+#mainApp .chart .bar.sales,
+#mainApp .legend-dot{background:var(--support-accent)!important}
+#mainApp .chart .bar.costs,
+#mainApp .legend-dot.cost{background:var(--warning)!important}
+#mainApp .chart .bar.profit,
+#mainApp .legend-dot.profit{background:var(--brand-secondary)!important}
+#mainApp .chart .bar.profit.loss{background:var(--error)!important}
+
+#mainApp .report-result-card{margin-top:14px;box-shadow:none!important}
+#mainApp .report-result-chart{
+  height:220px;
+  min-height:180px;
+  padding-top:12px;
+}
+#mainApp .report-result-card .chart-legend{margin-top:22px}
+#mainApp .report-filterbar{margin-top:0}
+#mainApp .money-positive{color:var(--success)}
+#mainApp .money-negative{color:var(--warning)}
+
+@media(max-width:1000px){
+  #mainApp .product-kpis.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:820px){
+  #mainApp .product-kpis{margin-bottom:12px;gap:10px}
+  #mainApp .product-kpi{padding:13px!important}
+  #mainApp .product-kpi-icon{width:30px;height:30px;min-width:30px}
+  #mainApp .product-kpi .metric-value{font-size:clamp(21px,6vw,27px)}
+  #mainApp .report-result-chart{height:190px}
+}
+@media(max-width:340px){
+  #mainApp .product-kpis.grid-4{grid-template-columns:1fr!important}
 }
