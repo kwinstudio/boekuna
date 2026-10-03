@@ -146,10 +146,12 @@ try{
   await page.evaluate(()=>{documentProcessingSession=null;documentProcessingJobs=[];renderGlobalDocumentIndicator()});
   assert.equal(await processing.isHidden(),true);
 
-  // Scan must open the native file input directly, without a Boekuna source modal.
-  await shot('scan-before-native-picker');
+  // Mobile reference nav keeps scanning under Documents; upload still opens the native picker directly.
+  await shot('documents-before-native-picker');
+  await page.evaluate(()=>navigate('documents'));
+  await page.locator('#pageTitle').filter({hasText:'Documenten'}).waitFor();
   const chooserPromise=page.waitForEvent('filechooser');
-  await page.getByRole('button',{name:'Scan',exact:true}).click();
+  await page.getByRole('button',{name:'Uploaden',exact:true}).click();
   const chooser=await chooserPromise;
   assert.equal(await chooser.element().getAttribute('id'),'invoicePdfFile');
   assert.equal(await page.locator('#modalRoot .source-picker').count(),0);
