@@ -249,6 +249,12 @@ function financialBlockingIssues(d){
     if(['net','vatAmount','gross','vatRate','vatLines'].includes(key))continue;
     if(!value(key))issues.push({field:key,message:(LABELS[key]||key)+' ontbreekt.'})
   }
+  const deferred=new Set(deferredFields(d));
+  for(const key of req.attention||[]){
+    const current=value(key);
+    if(!current||deferred.has(key)||isUserConfirmed(d,key)||!fieldUncertain(d,key,key==='party'?75:70))continue;
+    issues.push({field:key,message:(LABELS[key]||key)+': kies ‘Dit klopt zo’, pas aan of kies ‘Later controleren’.'})
+  }
   const netC=cents(value('net')),vatC=cents(value('vatAmount')),grossC=cents(value('gross'));
   if(required.has('net')&&netC==null)issues.push({field:'net',message:'Controleer het bedrag excl. btw.'});
   if(required.has('vatAmount')&&vatC==null)issues.push({field:'vatAmount',message:'Controleer het btw-bedrag.'});
@@ -432,10 +438,13 @@ async function savePdfInvoiceImport(){
   const d=pendingPdfImport?.parsed;if(!d)return legacySavePdfInvoiceImport?.();
   syncMixedVatFromDomWithoutRender();
   const issues=financialBlockingIssues(d);if(issues.length){updateBeginnerReviewState();firstBlockingFocus();toast('Controleer de gemarkeerde gegevens voordat je opslaat.');return}
-  const snapshot=captureReviewSnapshot(),deferred=snapshot?.deferredFields||[],beforeIds=new Set(state.documents.map(x=>x.id)),sourceClientRef=String(pendingPdfImport?.sourceClientRef||''),fileName=pendingPdfImport?.file?.name||'';
+  const snapshot=captureReviewSnapshot(),deferred=snapshot?.deferredFields||[],beforeIds=new Set(state.documents.map(x=>x.id)),beforeContactIds=new Set(state.contacts.map(x=>x.id)),sourceClientRef=String(pendingPdfImport?.sourceClientRef||''),fileName=pendingPdfImport?.file?.name||'';
   const result=await legacySavePdfInvoiceImport();
   if(pendingPdfImport)return result;
   const doc=findSavedDocumentAfter(beforeIds,sourceClientRef,fileName);if(!doc||!snapshot)return result;
+  if(deferred.includes('party')&&doc.linkedType==='expense'){
+    state.contacts=state.contacts.filter(c=>beforeContactIds.has(c.id)||c.type!=='supplier'||String(c.name||'').trim()!==String(snapshot.party||'').trim());
+  }
   doc.reviewSnapshot=snapshot;doc.reviewAttentionFields=[...deferred];doc.reviewedAt=snapshot.reviewedAt;
   if(doc.verification?.method==='manual-review'){
     doc.verification.status='verified';doc.verification.method=deferred.length?'user-reviewed-with-attention':'user-reviewed';doc.verification.reasons=[];doc.verification.checkedAt=new Date().toISOString();doc.verification.differences=[];doc.verification.financialIssues=[]
