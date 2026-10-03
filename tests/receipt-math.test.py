@@ -36,13 +36,25 @@ r = derive_single_rate_amounts(
 approx(r["subtotal"], 100.00)
 approx(r["total"], 121.00)
 
-# Weak OCR values may be repaired from a stronger anchor.
+# Weak explicit OCR values are still printed evidence: preserve them and
+# surface arithmetic conflicts for the user instead of silently changing them.
 r = derive_single_rate_amounts(
     rate=21, subtotal=10.00, vat_total=2.10, total=121.00,
     subtotal_conf=.50, vat_conf=.50, total_conf=.99
 )
-approx(r["subtotal"], 100.00)
-approx(r["vatTotal"], 21.00)
+approx(r["subtotal"], 10.00)
+approx(r["vatTotal"], 2.10)
+assert r["used"] is False
+assert {x["field"] for x in r["conflicts"]} == {"subtotal", "vatTotal"}
+
+# Replacement remains an explicit opt-in for legacy/non-user-evidence callers.
+legacy = derive_single_rate_amounts(
+    rate=21, subtotal=10.00, vat_total=2.10, total=121.00,
+    subtotal_conf=.50, vat_conf=.50, total_conf=.99,
+    allow_replace_explicit=True,
+)
+approx(legacy["subtotal"], 100.00)
+approx(legacy["vatTotal"], 21.00)
 
 # Strong conflicting reads are never silently overwritten.
 r = derive_single_rate_amounts(
