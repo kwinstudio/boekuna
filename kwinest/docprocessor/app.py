@@ -994,6 +994,26 @@ def ocr_tiled_rows(engine:Any,img:Image.Image,*,tile_height:int=900,overlap:int=
     merged.sort(key=lambda row:((_ocr_row_bounds(row) or (0,1e9,0,1e9))[1],(_ocr_row_bounds(row) or (1e9,0,1e9,0))[0]))
     return merged
 
+def ocr_resized_rows(engine:Any,img:Image.Image,max_side:int=OCR_WORKING_MAX_SIDE)->list[dict[str,Any]]:
+    """Cheap whole-document OCR while remapping boxes to source coordinates."""
+    w,h=img.size
+    longest=max(w,h)
+    if longest<=max_side:
+        return ocr_rows(engine,img)
+    scale=max_side/max(1.0,float(longest))
+    resized=img.resize((max(1,int(w*scale)),max(1,int(h*scale))),Image.Resampling.LANCZOS)
+    try:
+        rows=ocr_rows(engine,resized)
+    finally:
+        resized.close()
+    if scale<=0:return rows
+    for row in rows:
+        box=row.get("box")
+        if box:
+            try:row["box"]=[[float(p[0])/scale,float(p[1])/scale] for p in box]
+            except Exception:pass
+    return rows
+
 def ocr_candidate_score(rows:list[dict[str,Any]]) -> float:
     if not rows:
         return -1.0
@@ -1061,7 +1081,7 @@ def targeted_header_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any,qual
         b=_ocr_row_bounds(row)
         if b and b[1] <= h*.45:top_rows.append(row)
     top_conf=sum(float(r.get("confidence") or 0) for r in top_rows)/len(top_rows) if top_rows else 0
-    trigger=bool(flags.intersection({"IMAGE_SKEW","IMAGE_LOW_RESOLUTION","IMAGE_DARK","IMAGE_BLUR"})) or top_conf<.91
+    trigger=("IMAGE_SKEW" in flags) or top_conf<.82
     if not trigger:
         return {"text":"","rows":[],"confidence":None,"used":False}
     crop=img.crop((0,0,img.width,max(220,int(img.height*.46))))
@@ -1093,59 +1113,56 @@ def run_best_ocr(img:Image.Image, *, already_prepared:bool=False, quality:dict|N
     quality=quality or {}
     try:
         is_tall=primary.height>primary.width*2.8
-        rows1=ocr_tiled_rows(engine,primary) if is_tall else ocr_rows(engine,primary)
+        # Tall receipts get a cheap whole-receipt pass first. Only if critical
+        # financial evidence is missing do we pay for overlapping tile OCR.
+        rows1=ocr_resized_rows(engine,primary) if is_tall else ocr_rows(engine,primary)
         score1=ocr_candidate_score(rows1)
         text1="\n".join(r["text"] for r in rows1)
         conf1=sum(float(r.get("confidence") or 0) for r in rows1)/len(rows1) if rows1 else 0
         money1=len(MONEY_RE.findall(text1))
         keywords1=bool(re.search(r"\b(?:totaal|total|te betalen|amount due)\b",text1,re.I))
-        best_rows,best_score,best_variant=rows1,score1,("tiled-color" if is_tall else "normalized-color")
+        best_rows,best_score,best_variant=rows1,score1,("long-fast" if is_tall else "normalized-color")
 
-        # Conservative deskew: only a small quality-gate recommendation is tried,
-        # and the rotated result wins only when OCR scoring is measurably better.
         deskew=float(((quality or {}).get("metrics") or {}).get("deskewAngle") or 0)
-        if abs(deskew)>=1.5 and abs(deskew)<=7:
+        if abs(deskew)>=1.5 and abs(deskew)<=4.5 and "IMAGE_SKEW" in set((quality or {}).get("flags") or []):
             rotated=primary.rotate(deskew,resample=Image.Resampling.BICUBIC,expand=False,fillcolor="white")
             try:
-                rowsd=ocr_tiled_rows(engine,rotated) if is_tall else ocr_rows(engine,rotated)
+                rowsd=ocr_resized_rows(engine,rotated) if is_tall else ocr_rows(engine,rotated)
             finally:
                 rotated.close()
             scored=ocr_candidate_score(rowsd)
-            if scored>best_score+.5:
-                best_rows,best_score,best_variant=rowsd,scored,("tiled-deskew" if is_tall else "deskewed-color")
+            if scored>best_score+1.0:
+                best_rows,best_score,best_variant=rowsd,scored,("long-deskew" if is_tall else "deskewed-color")
 
-        # A second pass is only run when the first pass looks weak or capture
-        # quality warrants it. Tall receipts are enhanced tile-by-tile to bound RAM.
-        quality_retry=bool(set((quality or {}).get("flags") or []).intersection({"IMAGE_DARK","IMAGE_BLUR","IMAGE_LOW_RESOLUTION"}))
-        if conf1 < .90 or len(re.sub(r"\s+","",text1)) < 220 or money1 < 2 or not keywords1 or quality_retry:
-            if is_tall:
-                rows2=ocr_tiled_rows(engine,primary,enhance=True)
-            else:
-                enhanced=enhanced_receipt_variant(primary)
-                try:rows2=ocr_rows(engine,enhanced)
-                finally:enhanced.close()
+        need_financial_retry=(conf1<.88 or len(re.sub(r"\s+","",text1))<150 or money1<2 or not keywords1)
+        if is_tall and need_financial_retry:
+            tiled=ocr_tiled_rows(engine,primary,tile_height=1500,overlap=180)
+            tiled_score=ocr_candidate_score(tiled)
+            if tiled_score>best_score+.5:
+                best_rows,best_score,best_variant=tiled,tiled_score,"tiled-color"
+        elif not is_tall and need_financial_retry:
+            enhanced=enhanced_receipt_variant(primary)
+            try:rows2=ocr_rows(engine,enhanced)
+            finally:enhanced.close()
             score2=ocr_candidate_score(rows2)
-            if score2 > best_score + .5:
-                best_rows,best_score,best_variant=rows2,score2,("tiled-enhanced" if is_tall else "enhanced-grayscale")
+            if score2>best_score+.5:
+                best_rows,best_score,best_variant=rows2,score2,"enhanced-grayscale"
 
         text="\n".join(r["text"] for r in best_rows)
         confs=[float(r.get("confidence") or 0) for r in best_rows]
         focus=targeted_financial_ocr(primary,best_rows,engine)
         header=targeted_header_ocr(primary,best_rows,engine,quality)
         return {
-            "text":text,
-            "rows":best_rows,
+            "text":text,"rows":best_rows,
             "confidence":sum(confs)/len(confs) if confs else None,
-            "variant":best_variant,
-            "qualityScore":round(best_score,2),
+            "variant":best_variant,"qualityScore":round(best_score,2),
             "financialText":focus.get("text") or "",
             "financialFocusUsed":bool(focus.get("used")),
             "financialConfidence":focus.get("confidence"),
             "headerText":header.get("text") or "",
             "headerFocusUsed":bool(header.get("used")),
             "headerConfidence":header.get("confidence"),
-            "engine":"RapidOCR 3 / ONNX",
-            "model":OCR_MODEL_NAME,
+            "engine":"RapidOCR 3 / ONNX","model":OCR_MODEL_NAME,
         }
     finally:
         if owns_primary:
