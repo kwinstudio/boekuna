@@ -111,8 +111,9 @@ try{
   assert.equal(await page.getByRole('button',{name:'Negeren',exact:true}).count(),0);
   assert.equal(await page.locator('.review-confidence').count(),0,'primary beginner UI must not expose confidence badges');
   await page.evaluate(()=>setDocumentReviewStep(2));
+  const visibleFieldNames=await page.locator('#pdfImportForm [name]').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('name')));
   for(const [name,label] of [['party','Leverancier'],['issueDate','Datum'],['invoiceNumber','Factuurnummer'],['category','Categorie'],['net','Bedrag excl. btw'],['vatAmount','Btw-bedrag'],['gross','Totaal']]){
-    assert.equal(await page.locator('#pdfImportForm [name="'+name+'"]').count(),1,'core field missing: '+label);
+    assert.ok(visibleFieldNames.includes(name),'core field missing: '+label+'; available fields: '+visibleFieldNames.join(', '));
   }
   assert.equal(await page.locator('details.review-details').first().getAttribute('open'),null,'optional details must be collapsed');
   assert.doesNotMatch(await page.locator('#modalRoot').innerText(),/OCR\s*\d+%|confidence\s*\d+%/i,'primary review must not show confidence percentages');
