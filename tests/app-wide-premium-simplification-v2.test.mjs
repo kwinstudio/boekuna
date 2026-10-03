@@ -8,7 +8,8 @@ const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),
 assert.ok(original.includes('class="invoice-advanced-options '),'Invoice editor needs progressive disclosure');
 assert.ok(original.includes('settings-disclosure'),'RED: settings needs progressive disclosure');
 assert.ok(original.includes('quick-action-group'),'RED: quick actions need grouping');
-assert.ok(original.includes('<div class="nav-group">Dagelijks</div>'),'RED: sidebar needs daily-use grouping');
+assert.ok(original.includes('<div class="nav-group">Administratie</div>'),'Sidebar needs a clear administration grouping');
+assert.ok(original.includes('<div class="nav-group">Meer</div>'),'Sidebar needs a secondary More grouping');
 assert.ok(!original.includes('<div class="demo-pill">'),'RED: sidebar must not carry permanent technical status copy');
 assert.ok(original.includes('class="profile-section"'),'RED: company profile needs flatter sections');
 assert.ok(original.includes('class="settings-group"'),'RED: settings needs human task grouping');
