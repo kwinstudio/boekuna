@@ -159,7 +159,7 @@ try{
   assert.equal(await page.locator('#loginPassword').getAttribute('minlength'),null);
   await page.locator('#loginPassword').fill('kort123');
   await page.getByRole('button',{name:'Inloggen'}).click();
-  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
   const legacySignup=await page.evaluate(()=>window.__legacySignupArgs);
   assert.equal(legacySignup.email,'legacy@example.test');
   assert.equal(legacySignup.password,'kort123');
@@ -167,7 +167,7 @@ try{
 
   // Successful confirmation session enters dashboard even with empty company profile.
   await page.goto(base+'/confirm#type=signup',{waitUntil:'domcontentloaded'});
-  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
   assert.equal(await page.evaluate(()=>page),'dashboard');
 
   // Expired confirmation gets a dedicated recovery state.
@@ -193,7 +193,7 @@ try{
 
   // Progressive onboarding: empty profile still reaches dashboard.
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
-  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
   const emptyDashboard=await page.locator('#content').innerText();
   assert.match(emptyDashboard,/Begin met Boekuna/i,'Empty onboarding must retain a clear starting point');
   assert.match(emptyDashboard,/Eerste factuur/i);
