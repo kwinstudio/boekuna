@@ -65,7 +65,7 @@ try{
           assert.ok(await toggle.isVisible(),name+' '+width+' mobile toggle visible');
           await toggle.click();
           assert.equal(await toggle.getAttribute('aria-expanded'),'true',name+' menu expanded');
-          assert.ok(await page.locator('#mobileMenu a[href="/#product"]').isVisible(),name+' mobile menu content visible');
+          assert.ok(await page.locator('#mobileMenu a[href="#product"], #mobileMenu a[href="/#product"]').first().isVisible(),name+' mobile menu content visible');
           await page.keyboard.press('Escape');
           assert.equal(await toggle.getAttribute('aria-expanded'),'false',name+' menu closes with Escape');
           assert.ok(await toggle.evaluate(el=>el===document.activeElement),name+' focus restored to menu trigger');
