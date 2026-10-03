@@ -46,6 +46,7 @@ try{
  await page.goto(`http://127.0.0.1:${server.address().port}/app`,{waitUntil:'domcontentloaded'});
  await page.evaluate(()=>{
   window.__nativeShares=[];
+  Object.defineProperty(navigator,'userAgentData',{configurable:true,value:{mobile:true}});
   Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>true});
   Object.defineProperty(navigator,'share',{configurable:true,value:async data=>window.__nativeShares.push({title:data.title,text:data.text,files:data.files.map(f=>({name:f.name,type:f.type,size:f.size}))})});
  });
