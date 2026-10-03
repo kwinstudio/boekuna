@@ -323,8 +323,13 @@ DATE_RES = [
     re.compile(r"\b(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})\b"),
     re.compile(r"\b(\d{1,2})[-/.](\d{1,2})[-/.](20\d{2})\b"),
 ]
-MONTHS = {"januari":1,"februari":2,"maart":3,"april":4,"mei":5,"juni":6,"juli":7,"augustus":8,"september":9,"oktober":10,"november":11,"december":12,
-          "january":1,"february":2,"march":3,"april":4,"may":5,"june":6,"july":7,"august":8,"september":9,"october":10,"november":11,"december":12}
+MONTHS = {
+    "januari":1,"jan":1,"februari":2,"feb":2,"maart":3,"mrt":3,"march":3,"mar":3,
+    "april":4,"apr":4,"mei":5,"may":5,"juni":6,"june":6,"jun":6,"juli":7,"july":7,"jul":7,
+    "augustus":8,"august":8,"aug":8,"september":9,"sep":9,"sept":9,
+    "oktober":10,"okt":10,"october":10,"oct":10,"november":11,"nov":11,
+    "december":12,"dec":12,"january":1,"february":2,
+}
 
 def _finite(x):
     try: return math.isfinite(float(x))
@@ -421,6 +426,38 @@ def line_after_label(lines:list[str], labels:list[str], max_ahead=2) -> tuple[st
                 if rest: return rest,i
                 for j in range(i+1,min(len(lines),i+1+max_ahead)):
                     if lines[j].strip(): return lines[j].strip(),j
+    return None,None
+
+INVOICE_NUMBER_EXCLUDE_RE = re.compile(
+    r"^(?:kvk|k\.v\.k\.?|btw(?:-?id|-?nummer)?|vat(?:\s*id|\s*number)?|iban|"
+    r"ordernummer|order\s*(?:no\.?|number)|bestelnummer|purchase\s*order|po\s*(?:no\.?|number)|"
+    r"postcode|postal|factuurdatum|invoice\s*date|datum|date|vervaldatum|due\s*date|"
+    r"e-?mail|tel(?:efoon)?|phone)\b",
+    re.I,
+)
+
+def invoice_number_after_label(lines:list[str], labels:list[str]) -> tuple[str|None,int|None]:
+    low_labels=[x.lower() for x in labels]
+    for i,line in enumerate(lines):
+        low=line.lower()
+        for lab in low_labels:
+            pos=low.find(lab)
+            if pos<0:
+                continue
+            candidates=[]
+            rest=line[pos+len(lab):].lstrip(" :#.-")
+            if rest:
+                candidates.append((rest,i))
+            for j in range(i+1,min(len(lines),i+4)):
+                cand=norm_text(lines[j])
+                if not cand or INVOICE_NUMBER_EXCLUDE_RE.search(cand):
+                    continue
+                candidates.append((cand,j))
+            for raw,index in candidates:
+                for m in re.finditer(r"(?<![A-Z0-9])([A-Z0-9][A-Z0-9._\-/]{1,50})(?![A-Z0-9])",raw,re.I):
+                    token=m.group(1).strip("._-/")
+                    if token and re.search(r"\d",token):
+                        return token,index
     return None,None
 
 def labeled_amount(lines:list[str], labels:list[str], exclude:list[str]=[]) -> tuple[float|None,float]:
@@ -1504,7 +1541,7 @@ def strong_total_anchor(lines:list[str])->tuple[float|None,float]:
     candidates=[]
     for i,line in enumerate(lines or []):
         low=line.lower()
-        if not re.search(r"\b(?:totaal|total|te betalen|amount due|grand total)\b",low,re.I):
+        if not re.search(r"\b(?:eindtotaal|totaal|total amount|total|te betalen|amount due|grand total)\b",low,re.I):
             continue
         if re.search(r"\b(?:subtotaal|subtotal|btw|vat|tax|excl|korting|discount)\b",low,re.I):
             continue
@@ -1512,8 +1549,8 @@ def strong_total_anchor(lines:list[str])->tuple[float|None,float]:
         if not vals:
             continue
         score=.955
-        if re.search(r"\b(?:te betalen|amount due|grand total)\b",low,re.I):score=.985
-        elif re.match(r"^\s*(?:totaal|total)\b",low,re.I):score=.975
+        if re.search(r"\b(?:te betalen|amount due|grand total|eindtotaal|total amount)\b",low,re.I):score=.985
+        elif re.match(r"^\s*(?:eindtotaal|totaal|total amount|total)\b",low,re.I):score=.975
         if "€" in line or re.search(r"\b(?:eur|euro)\b",low,re.I):score=min(.99,score+.005)
         if i>=max(0,len(lines)-12):score=min(.99,score+.005)
         candidates.append((abs(vals[-1]),score))
@@ -1576,10 +1613,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     invoice_number_labels=["factuurnummer","factuurnr","factuur nr","factuur aan nummer","factuur aan nr","invoice number","invoice no","invoice #","document number"]
     if dtype=="credit_invoice":
         invoice_number_labels=["creditnota nummer","creditnotanummer","creditnota nr","credit note number","credit note no","credit number"]+invoice_number_labels
-    invno_raw,idx=line_after_label(lines,invoice_number_labels)
-    invoice_no=None
-    if invno_raw:
-        m=re.search(r"([A-Z0-9][A-Z0-9._\-/]{1,50})",invno_raw,re.I); invoice_no=m.group(1) if m else None
+    invoice_no,idx=invoice_number_after_label(lines,invoice_number_labels)
     if not invoice_no and dtype!="credit_invoice":
         for line in lines[:24]:
             m=re.match(r"^\s*(?:factuur|invoice)\s+([A-Z0-9][A-Z0-9._\-/]{1,50})\s*$",line,re.I)
@@ -1602,7 +1636,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     order_raw,_=line_after_label(lines,["bestelnummer","ordernummer","order number","purchase order","po number"]); order_no=order_raw[:60] if order_raw else None
     ref_raw,_=line_after_label(lines,["betalingskenmerk","payment reference","payment ref","kenmerk"]); payref=ref_raw[:80] if ref_raw else None
 
-    total,total_conf=labeled_amount(amount_lines,["totaal te betalen","te voldoen","amount due","balance due","grand total","totaal incl. btw","totaal inclusief btw","total incl. vat","invoice total","factuurbedrag","factuurtotaal"],["subtotaal","subtotal","excl"])
+    total,total_conf=labeled_amount(amount_lines,["totaal te betalen","te voldoen","amount due","balance due","grand total","eindtotaal","total amount","totaal incl. btw","totaal inclusief btw","total incl. vat","invoice total","factuurbedrag","factuurtotaal"],["subtotaal","subtotal","excl"])
     subtotal,sub_conf=labeled_amount(amount_lines,["totaal excl. btw","totaal exclusief btw","bedrag excl. btw","bedrag exclusief btw","total excl. vat","tax exclusive","net amount","netto bedrag","subtotaal","subtotal"])
     vat_total,vat_conf=labeled_amount(amount_lines,["totaal btw","btw totaal","vat total","tax amount","btw-bedrag","btw bedrag"],["btw nr","btw-id","vat id"])
     discount,disc_conf=labeled_amount(amount_lines,["korting","discount"])
@@ -1613,7 +1647,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     if total is None:
         cands=[]
         for i,l in enumerate(amount_lines):
-            if re.search(r"\b(totaal|total|te betalen|amount due)\b",l,re.I) and not re.search(r"subtotaal|subtotal|excl|btw|vat",l,re.I):
+            if re.search(r"\b(eindtotaal|totaal|total amount|total|te betalen|amount due)\b",l,re.I) and not re.search(r"subtotaal|subtotal|excl|btw|vat",l,re.I):
                 vals=money_tokens(l)
                 if vals:cands.append((abs(vals[-1]),.72+(i/len(lines) if lines else 0)*.08))
         if cands: total,total_conf=max(cands,key=lambda x:x[1])
