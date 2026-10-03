@@ -6,37 +6,38 @@ import {spawnSync} from 'node:child_process';
 const root=process.cwd();
 const source=path.join(root,'public');
 const dist=path.join(root,'dist','marketing');
-const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{encoding:'utf8'});
+const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{cwd:root,encoding:'utf8'});
 assert.equal(build.status,0,build.stderr||build.stdout);
+
+const expectedProducts=[
+  'boekuna-dashboard-desktop-960.webp',
+  'boekuna-document-review-desktop-960.webp'
+];
+const home=fs.readFileSync(path.join(source,'index.html'),'utf8');
+for(const name of expectedProducts){
+  assert.ok(home.includes('/assets/product/'+name),'Homepage must use real product proof '+name);
+  assert.ok(fs.existsSync(path.join(source,'assets','product',name)),'Source product capture missing '+name);
+  assert.ok(fs.existsSync(path.join(dist,'assets','product',name)),'Built product capture missing '+name);
+}
+const builtProducts=fs.readdirSync(path.join(dist,'assets','product')).sort();
+assert.deepEqual(builtProducts,expectedProducts.sort(),'Marketing artifact must contain only the two intentionally published product captures');
 
 const walk=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(entry=>{
   const file=path.join(dir,entry.name);
   return entry.isDirectory()?walk(file):[file];
 });
 const rel=file=>path.relative(root,file).replaceAll(path.sep,'/');
-const textFiles=walk(source).filter(file=>/\.(html|css|js)$/i.test(file));
-for(const file of textFiles){
-  const body=fs.readFileSync(file,'utf8');
-  assert.ok(!body.includes('/assets/product/'),rel(file)+': public marketing source must not reference product screenshots');
-  assert.ok(!/\.(webp|jpg|jpeg|avif)(\?|#|["')\s>])/i.test(body),rel(file)+': public marketing source must not reference content-image formats');
-}
-
-for(const file of walk(dist).filter(file=>/\.(html|css|js)$/i.test(file))){
-  const body=fs.readFileSync(file,'utf8');
-  assert.ok(!body.includes('/assets/product/'),rel(file)+': generated marketing build must not reference product screenshots');
-}
-assert.ok(!fs.existsSync(path.join(dist,'assets','product')),'Generated marketing artifact must exclude the product capture library');
-assert.ok(fs.existsSync(path.join(source,'assets','product','capture-proof.json')),'Internal product capture evidence should remain in source for QA/history');
-
-const htmlFiles=walk(dist).filter(file=>file.endsWith('.html'));
-for(const file of htmlFiles){
+for(const file of walk(dist).filter(file=>file.endsWith('.html'))){
   const html=fs.readFileSync(file,'utf8');
-  assert.equal((html.match(/<picture\b/gi)||[]).length,0,rel(file)+': content picture element must not remain');
-  const imageTags=[...html.matchAll(/<img\b[^>]*>/gi)].map(match=>match[0]);
-  for(const tag of imageTags){
+  for(const tag of [...html.matchAll(/<img\b[^>]*>/gi)].map(match=>match[0])){
     const src=(tag.match(/\bsrc=["']([^"']+)["']/i)||[])[1]||'';
-    assert.ok(/\/assets\/(boekuna-|favicon-|apple-touch-icon)/.test(src),rel(file)+': non-brand image remains: '+src);
+    assert.ok(src.startsWith('/assets/'),rel(file)+': every image must be first-party: '+src);
+    const alt=(tag.match(/\balt=["']([^"']*)["']/i)||[])[1];
+    assert.ok(alt!==undefined&&alt.trim(),rel(file)+': content image needs useful alt text: '+src);
   }
+  assert.equal(/https?:\/\/[^"'\s>]+\.(?:webp|png|jpg|jpeg|avif)/i.test(html),false,rel(file)+': remote content image forbidden');
 }
+assert.ok(fs.existsSync(path.join(source,'assets','product','capture-proof.json')),'Internal product capture evidence should remain in source for QA/history');
+assert.ok(!fs.existsSync(path.join(dist,'assets','product','capture-proof.json')),'Internal capture proof must not be published');
 
-console.log('Marketing no-content-image QA: PASS ('+htmlFiles.length+' generated HTML files; product captures excluded from dist; brand assets retained)');
+console.log('Marketing real-product-proof QA: PASS (two first-party product captures, curated artifact, useful alt text)');

@@ -17,7 +17,7 @@ export async function settleImages(page){
 }
 export async function serveMarketing(directory){
   const root=path.resolve(directory);
-  const mime={'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.webp':'image/webp','.png':'image/png','.ico':'image/x-icon','.txt':'text/plain','.xml':'application/xml'};
+  const mime={'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.webp':'image/webp','.png':'image/png','.ico':'image/x-icon','.txt':'text/plain','.xml':'application/xml','.ttf':'font/ttf','.woff2':'font/woff2'};
   const server=http.createServer((req,res)=>{
     const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
     const file=path.resolve(root,'.'+pathname+(pathname.endsWith('/')?'index.html':''));

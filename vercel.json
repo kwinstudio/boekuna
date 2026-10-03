@@ -7,11 +7,11 @@
     {"source":"/btw-bank/","destination":"/#product","permanent":true},
     {"source":"/rapportages/","destination":"/#product","permanent":true},
     {"source":"/hoe-het-werkt/","destination":"/#hoe-het-werkt","permanent":true},
-    {"source":"/voor-ondernemers/","destination":"/#waarom","permanent":true},
+    {"source":"/voor-ondernemers/","destination":"/#product","permanent":true},
     {"source":"/prijzen/","destination":"/#prijzen","permanent":true},
     {"source":"/faq/","destination":"/#faq","permanent":true},
-    {"source":"/over/","destination":"/#waarom","permanent":true},
-    {"source":"/contact/","destination":"/#contact","permanent":true},
-    {"source":"/veiligheid/","destination":"/#veiligheid","permanent":true}
+    {"source":"/over/","destination":"/#product","permanent":true},
+    {"source":"/contact/","destination":"/support/","permanent":true},
+    {"source":"/veiligheid/","destination":"/privacy/","permanent":true}
   ]
 }
