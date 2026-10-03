@@ -77,9 +77,9 @@ try{
 
   // Daily-use browser flow on the exact production UI source, with auth/network isolated.
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
-  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
-  await page.waitForFunction(()=>getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim()==='#123B3A');
-  assert.equal(await page.locator('#mainApp .sidebar').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(18, 59, 58)','Sidebar must use Calm Control brand primary');
+  await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
+  await page.waitForFunction(()=>getComputedStyle(document.documentElement).getPropertyValue('--app-green').trim()==='#63D471');
+  assert.equal(await page.locator('#mainApp .sidebar').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)','Sidebar must use the quiet white product surface');
   assert.equal(await page.locator('.mobile-menu').evaluate(el=>getComputedStyle(el).display),'none');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'Desktop page must not create global horizontal overflow');
   await page.screenshot({path:'tests/artifacts/brand-dashboard-1440.png',fullPage:true});
@@ -634,7 +634,7 @@ try{
   // Mobile viewport: navigation, modal sizing and no page-level horizontal overflow.
   await page.setViewportSize({width:390,height:844});
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
-  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
   assert.notEqual(await page.locator('.mobile-menu').evaluate(el=>getComputedStyle(el).display),'none');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'Mobile page must not create global horizontal overflow');
   await page.screenshot({path:'tests/artifacts/brand-dashboard-390.png',fullPage:true});
