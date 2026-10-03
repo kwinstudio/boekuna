@@ -297,6 +297,11 @@ function bindBeginnerReview(){
   const f=document.getElementById('pdfImportForm'),d=pendingPdfImport?.parsed;if(!f||!d)return;
   f.querySelectorAll('input,select,textarea').forEach(el=>{if(el.closest('#mixedVatRows'))return;el.addEventListener('input',onGenericReviewInput);el.addEventListener('change',onGenericReviewInput)});
   if(d.mixedRates)renderMixedVatRows();
+  const financialPanel=document.getElementById('financialCorrectionPanel');
+  if(financialPanel){
+    const observer=new MutationObserver(()=>queueMicrotask(()=>updateBeginnerReviewState()));
+    observer.observe(financialPanel,{childList:true,subtree:true,characterData:true});
+  }
   if(typeof updateFinancialReviewPanel==='function')updateFinancialReviewPanel();
   updateBeginnerReviewState()
 }
