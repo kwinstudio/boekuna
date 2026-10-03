@@ -8,6 +8,19 @@ const target=path.join(root,'dist','app');
 const appSource=path.join(root,'kwinest','index.html');
 const manifestSource=path.join(root,'public','manifest.webmanifest');
 const assetsSource=path.join(root,'public','assets');
+const appFontCache=path.join(root,'.cache','app-fonts');
+const SPACE_GROTESK_COMMIT='9710da1eacb3be272583c3224dcb70f9da6eadbb';
+const SPACE_GROTESK_URL='https://raw.githubusercontent.com/google/fonts/'+SPACE_GROTESK_COMMIT+'/ofl/spacegrotesk/SpaceGrotesk%5Bwght%5D.ttf';
+
+async function cacheAppFont(url,name){
+  fs.mkdirSync(appFontCache,{recursive:true});
+  const file=path.join(appFontCache,name);
+  if(fs.existsSync(file)&&fs.statSync(file).size>1000)return file;
+  const response=await fetch(url,{redirect:'follow'});
+  if(!response.ok)throw new Error('Could not fetch pinned app font '+name+': HTTP '+response.status);
+  fs.writeFileSync(file,Buffer.from(await response.arrayBuffer()));
+  return file;
+}
 const appAssets=[
   'boekuna-app-icon-180.png',
   'boekuna-app-icon-192.png',
@@ -30,6 +43,10 @@ const appAssets=[
 for(const file of [appSource,manifestSource,assetsSource]){
   if(!fs.existsSync(file))throw new Error('Missing app build source: '+path.relative(root,file));
 }
+
+const spaceGroteskFont=await cacheAppFont(SPACE_GROTESK_URL,'SpaceGrotesk-Variable.ttf');
+const interFontSource=path.join(assetsSource,'marketing-editorial','InterVariable.woff2');
+if(!fs.existsSync(interFontSource))throw new Error('Missing app Inter font source');
 
 let appHtml=fs.readFileSync(appSource,'utf8');
 
@@ -160,5 +177,7 @@ for(const asset of appAssets){
   if(!fs.existsSync(sourceFile))throw new Error('Missing app asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
 }
+fs.copyFileSync(interFontSource,path.join(appAssetsTarget,'app-InterVariable.woff2'));
+fs.copyFileSync(spaceGroteskFont,path.join(appAssetsTarget,'app-SpaceGrotesk-Variable.ttf'));
 
-console.log('App build complete:',path.relative(root,target));
+console.log('App build complete:',path.relative(root,target),'with self-hosted Inter + Space Grotesk');
