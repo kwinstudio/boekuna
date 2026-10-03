@@ -25,8 +25,8 @@
   --border:color-mix(in srgb,var(--brand-charcoal) 14%,var(--white));
   --border-strong:color-mix(in srgb,var(--brand-charcoal) 28%,var(--white));
   --green-soft:color-mix(in srgb,var(--brand-green) 14%,var(--white));
-  --green-dark:color-mix(in srgb,var(--brand-green) 68%,var(--brand-charcoal));
-  --muted-strong:color-mix(in srgb,var(--text-muted) 72%,var(--brand-charcoal));
+  --green-dark:color-mix(in srgb,var(--brand-green) 50%,var(--brand-charcoal));
+  --muted-strong:color-mix(in srgb,var(--text-muted) 65%,var(--brand-charcoal));
   --on-dark:var(--white);
   --on-green:var(--brand-charcoal);
   --danger:color-mix(in srgb,var(--brand-charcoal) 78%,var(--brand-green));
@@ -269,7 +269,7 @@ button:disabled,.btn:disabled{opacity:.58;cursor:not-allowed;transform:none}
 .mk-stat-strip{width:min(calc(100% - 80px),var(--max-width));margin:0 auto 24px;display:grid;grid-template-columns:repeat(3,1fr);border-block:1px solid var(--border)}
 .mk-stat{padding:28px 26px;border-right:1px solid var(--border)}
 .mk-stat:last-child{border-right:0}
-.mk-stat small{display:block;color:var(--brand-green);font-weight:800;margin-bottom:10px}
+.mk-stat small{display:block;color:var(--green-dark);font-weight:800;margin-bottom:10px}
 .mk-stat strong{display:block;font-size:1.2rem;margin-bottom:8px}
 .mk-stat p{margin-bottom:0}
 .mk-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
