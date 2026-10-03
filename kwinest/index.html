@@ -4823,7 +4823,7 @@ async function openPersistentDocumentReview(jobId){
   const stored=await getStoredFile(job.client_ref);if(!stored?.blob)throw new Error('DOCUMENT_NOT_FOUND');
   const file=new File([stored.blob],stored.name||persistentDocumentName(job),{type:stored.type||stored.blob.type||'application/octet-stream'});
   const parsed=applyRecognitionQuality(processorAnalysisToCandidate(raw,'',job.requested_kind||'auto')),proc=raw.processing||{};
-  parsed.processor={kind:proc.sourceKind||'',pageCount:Number(raw.pageCount||proc.pages||1),ocrUsed:Array.isArray(proc.ocrPages)&&proc.ocrPages.length>0,ocrPages:Array.isArray(proc.ocrPages)?proc.ocrPages:[],ocrConfidence:null,tables:Number(proc.tablesFound||0),warnings:Array.isArray(raw.warnings)?raw.warnings:[],documentTypeHint:raw.documentType||''};
+  parsed.processor={kind:proc.sourceKind||'',pageCount:Number(raw.pageCount||proc.pages||1),ocrUsed:Array.isArray(proc.ocrPages)&&proc.ocrPages.length>0,ocrPages:Array.isArray(proc.ocrPages)?proc.ocrPages:[],ocrConfidence:null,tables:Number(proc.tablesFound||0),warnings:Array.isArray(raw.warnings)?raw.warnings:[],documentTypeHint:raw.documentType||'',imageQuality:proc.imageQuality||{}};
   parsed.pageCount=parsed.processor.pageCount;parsed.documentType=classifyDocumentType(parsed,raw.documentType||'');parsed.isCredit=parsed.documentType==='credit_invoice'||!!parsed.isCredit;if(parsed.isCredit)parsed.status='credit';
   const ext=(file.name.split('.').pop()||'').toLowerCase(),previewable=ext==='pdf'||DOCUMENT_IMAGE_MIME_TYPES.includes(String(file.type||'').toLowerCase())||DOCUMENT_IMAGE_EXTENSIONS.includes(ext);
   const previewUrl=previewable?URL.createObjectURL(file):null;
@@ -5006,6 +5006,18 @@ function processorAnalysisToCandidate(raw,text,forced='auto'){
 function ibanValid(v){const iban=String(v||'').replace(/\s/g,'').toUpperCase();if(!iban)return null;if(!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(iban))return false;const moved=iban.slice(4)+iban.slice(0,4),digits=[...moved].map(c=>/[A-Z]/.test(c)?String(c.charCodeAt(0)-55):c).join('');let rem=0;for(const ch of digits)rem=(rem*10+Number(ch))%97;return rem===1}
 function plausibleKvk(v){const x=String(v||'').replace(/\D/g,'');return !x||/^\d{8}$/.test(x)}
 function plausibleVat(v){const x=String(v||'').replace(/\s/g,'').toUpperCase();return !x||/^NL\d{9}B\d{2}$/.test(x)||/^[A-Z]{2}[A-Z0-9._-]{6,20}$/.test(x)}
+function vendorMemoryKey(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\b(?:b\.?v\.?|bv|vof|v\.?o\.?f\.?)\b/g,'').replace(/[^a-z0-9]+/g,'').trim()}
+function deterministicExpenseCategory(d){const text=(String(d?.party||'')+' '+String(d?.description||'')).toLowerCase();if(/\b(adobe|figma|canva|notion|microsoft 365|software|hosting|saas)\b/.test(text))return 'Software';if(/\b(shell|bp|esso|tango|tankstation|brandstof|benzine|diesel)\b/.test(text))return 'Reiskosten';if(/\b(meta ads|facebook ads|instagram ads|google ads|advertising|reclame)\b/.test(text))return 'Marketing';return ''}
+function applyKnownSupplierMemory(d){
+  if(!d||d.type!=='purchase')return d;
+  const vat=String(d.vatId||'').replace(/\s/g,'').toUpperCase(),iban=ibanValid(d.iban)===true?String(d.iban||'').replace(/\s/g,'').toUpperCase():'',nameKey=vendorMemoryKey(d.party),suppliers=(state.contacts||[]).filter(c=>c.type==='supplier');
+  const vatMatch=suppliers.find(c=>vat&&String(c.vat||'').replace(/\s/g,'').toUpperCase()===vat),ibanMatch=suppliers.find(c=>iban&&ibanValid(c.iban)===true&&String(c.iban||'').replace(/\s/g,'').toUpperCase()===iban),nameMatch=suppliers.find(c=>nameKey&&vendorMemoryKey(c.name)===nameKey);
+  const nameVat=String(nameMatch?.vat||'').replace(/\s/g,'').toUpperCase(),nameIban=ibanValid(nameMatch?.iban)===true?String(nameMatch.iban||'').replace(/\s/g,'').toUpperCase():'',identifierConflict=!!(nameMatch&&((vat&&nameVat&&vat!==nameVat)||(iban&&nameIban&&iban!==nameIban)));
+  const match=vatMatch||ibanMatch||(!identifierConflict?nameMatch:null);
+  if(match?.name)d.party=match.name;
+  const canUseNameHistory=!!match||(!vat&&!iban),canonicalKey=canUseNameHistory?vendorMemoryKey(match?.name||d.party):'',counts={};for(const e of state.expenses||[]){if(!canonicalKey||vendorMemoryKey(e.vendor)!==canonicalKey||!e.category)continue;counts[e.category]=(counts[e.category]||0)+1}
+  d.category=Object.entries(counts).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0]?.[0]||deterministicExpenseCategory(d)||d.category||'Inkoop';d.vendorMemoryMatch=match?{matched:true,source:vatMatch||ibanMatch?'identifier':'exact-name'}:{matched:false};return d
+}
 function duplicateInvoiceCandidate(d,sha=''){
  const byHash=sha&&state.documents.find(x=>x.sha256===sha);if(byHash)return {type:'hash',label:byHash.name||'Bestaand document'};
  const number=String(d?.invoiceNumber||'').trim().toLowerCase(),party=String(d?.party||'').trim().toLowerCase().replace(/[^a-z0-9]/g,''),date=String(d?.issueDate||''),gross=Math.abs(Number(d?.gross||0));
@@ -5461,7 +5473,7 @@ async function processFinancialDocument(file,preStructure=null,options={}){
   if(!parsed)parsed=parseInvoicePdf(serverText,file.name,pendingUploadKind);
   if(structure.analysis){const serverCandidate=processorAnalysisToCandidate(structure.analysis,serverText,pendingUploadKind);parsed=applyRecognitionQuality(mergeAIParsed(parsed,serverCandidate,pendingUploadKind));parsed.sourceQuality=serverCandidate.sourceQuality;parsed.aiModel=serverCandidate.aiModel;parsed.aiWarnings=[...(parsed.aiWarnings||[]),...(serverCandidate.warnings||[])];if(structure.duplicateCandidates?.length&&!parsed.duplicateCandidate)parsed.duplicateCandidate={type:'server',label:'Bestaande factuur met overeenkomstige kenmerken'};}
   const pageConfs=(structure.pages||[]).map(p=>Number(p.ocrConfidence)).filter(Number.isFinite),avgOcr=pageConfs.length?pageConfs.reduce((a,b)=>a+b,0)/pageConfs.length:null;
-  parsed.processor={kind:structure.kind,pageCount:structure.pageCount,ocrUsed:!!structure.ocrUsed,ocrPages:structure.ocrPages||[],ocrConfidence:avgOcr,tables:Number(structure.tableCount||(structure.tables||[]).length),warnings:structure.warnings||[],documentTypeHint:structure.documentTypeHint||''};
+  parsed.processor={kind:structure.kind,pageCount:structure.pageCount,ocrUsed:!!structure.ocrUsed,ocrPages:structure.ocrPages||[],ocrConfidence:avgOcr,tables:Number(structure.tableCount||(structure.tables||[]).length),warnings:structure.warnings||[],documentTypeHint:structure.documentTypeHint||'',imageQuality:structure.analysis?.processing?.imageQuality||{}};
   parsed.sha256=structure.sha256||'';parsed.pageCount=structure.pageCount??null;parsed.text=serverText;if(!String(parsed.sourceQuality||'').startsWith('processor-v2'))parsed.sourceQuality=structure.ocrUsed?'server-ocr':'server-document';parsed.documentType=classifyDocumentType(parsed,structure.documentTypeHint||'');parsed.isCredit=parsed.documentType==='credit_invoice'||!!parsed.isCredit;if(parsed.isCredit)parsed.status='credit';
   parsed=applyRecognitionQuality(parsed);
  }catch(err){
@@ -5648,6 +5660,7 @@ function setDocumentReviewStep(step){
  const body=flow.closest('.modal')?.querySelector('.modal-body');if(body)body.scrollTop=0;
 }
 function showPdfImportReview(d){
+ applyKnownSupplierMemory(d);
  ensureFinancialReviewProvenance(d);
  const [label,cls]=confidenceLabel(d.confidenceScore||0),source=d.sourceQuality==='processor-v2-ai'?'Boekuna documentherkenning + AI-controle':d.sourceQuality==='processor-v2'?'Boekuna documentherkenning':d.sourceQuality==='ai-pdf'?'AI + originele PDF':d.sourceQuality==='ai-text'?'AI + geëxtraheerde documenttekst':d.sourceQuality==='embedded-xml'?'E-factuurgegevens (UBL/XML)':d.sourceQuality==='server-ocr'?'Serverextractie + OCR':d.sourceQuality==='server-document'?'Serverextractie · tekst + layout + tabellen':d.sourceQuality==='pdf-text+ocr'?'Lokale PDF-tekst + OCR':d.sourceQuality==='ocr'?'OCR':d.sourceQuality==='pdf-text'?'PDF-tekst':'Handmatige invoer';
  const dup=d.duplicateCandidate?`<div class="notice warn review-important"><strong>Mogelijk duplicaat.</strong><br>${esc(d.duplicateCandidate.label)} lijkt op dit document.</div>`:'';
@@ -5665,6 +5678,8 @@ function showPdfImportReview(d){
  const checkHtml=checks.length?`<div class="review-check-summary">${checks.map(c=>`<div class="review-check-line"><span class="check-icon ${c.level==='good'?'check-ok':c.level==='warn'?'check-warn':'check-bad'}">${c.level==='good'?'✓':c.level==='warn'?'!':'×'}</span><div><strong>${esc(c.title)}</strong><span>${esc(c.detail||'')}</span></div></div>`).join('')}</div>`:'';
  const preview=pendingPdfImport?.previewUrl?(pendingPdfImport.file.type==='application/pdf'||/\.pdf$/i.test(pendingPdfImport.file.name)?`<iframe src="${esc(pendingPdfImport.previewUrl)}" title="Factuurpreview" class="document-review-preview-frame"></iframe>`:`<img src="${esc(pendingPdfImport.previewUrl)}" alt="Documentpreview" class="document-review-preview-image">`):`<div class="notice">Voor dit bestandstype is geen visuele preview beschikbaar.</div>`;
 
+ const imageQuality=d.processor?.imageQuality||{},qualityFlags=Array.isArray(imageQuality.flags)?imageQuality.flags:[],qualityAdvice=Array.isArray(imageQuality.advice)?imageQuality.advice:[],showPhotoQuality=imageQuality.class==='poor'||(qualityFlags.length&&Number(d.recognitionBad||0)>0);
+ const photoQualityNotice=showPhotoQuality?`<div class="notice warn review-important"><strong>Deze foto is moeilijk te lezen.</strong>${qualityAdvice.length?`<br>${qualityAdvice.slice(0,2).map(x=>esc(x)).join('<br>')}`:''}<br><span class="help">Boekuna gaat wel door met wat betrouwbaar is herkend.</span></div>`:'';
  const technical=[proc,aiNotice,aiWarnings,self,vatPreview,itemPreview].filter(Boolean).join('');
 
  const body=`<div class="document-review-flow" data-step="1">
@@ -5673,6 +5688,7 @@ function showPdfImportReview(d){
   <section class="review-step review-step-preview active" data-review-step="1">
    <div class="review-step-head"><div><span class="review-kicker">Document</span><h4>Bekijk de factuur</h4></div><span class="review-confidence ${cls}">${esc(label)}</span></div>
    <div class="review-preview-shell">${preview}</div>
+   ${photoQualityNotice}
    <div class="mobile-review-hint">Controleer vooral de naam, datum en bedragen. Daarna vergelijken we ze met de herkenning.</div>
   </section>
 
@@ -5728,7 +5744,7 @@ function showPdfImportReview(d){
       <div class="field"><label>Order-/bestelnummer</label><input name="orderNumber" value="${esc(d.orderNumber||'')}"></div>
       <div class="field"><label>Betalingskenmerk</label><input name="paymentReference" value="${esc(d.paymentReference)}"></div>
       <div class="field"><label>Status</label><select name="status"><option value="draft" ${d.status==='draft'?'selected':''}>Concept</option><option value="sent" ${!['draft','paid','cancelled','credit'].includes(d.status)?'selected':d.status==='sent'?'selected':''}>Openstaand</option><option value="paid" ${d.status==='paid'?'selected':''}>Betaald</option><option value="overdue" ${(d.status==='sent'&&d.dueDate&&d.dueDate<today())?'selected':''}>Te laat (automatisch)</option><option value="cancelled" ${d.status==='cancelled'?'selected':''}>Geannuleerd</option><option value="credit" ${d.isCredit||d.status==='credit'?'selected':''}>Credit</option></select></div>
-      <div class="field"><label>Kostencategorie (inkoop)</label><select name="category"><option>Inkoop</option><option>Bank- & factoringkosten</option><option>Kantoor</option><option>Software</option><option>Reiskosten</option><option>Marketing</option><option>Representatie</option><option>Huisvesting</option><option>Overig</option></select></div>
+      <div class="field"><label>Kostencategorie (inkoop)</label><select name="category">${['Inkoop','Bank- & factoringkosten','Kantoor','Software','Reiskosten','Marketing','Representatie','Huisvesting','Overig'].map(x=>`<option ${String(d.category||'Inkoop')===x?'selected':''}>${x}</option>`).join('')}</select><div class="help">${d.category&&d.category!=='Inkoop'?'Voorgesteld op basis van deze leverancier of omschrijving. Je kunt dit aanpassen.':'Je kunt de categorie aanpassen.'}</div></div>
       <div class="field full"><label>Omschrijving</label><input name="description" value="${esc(d.description)}"></div>
      </div>
      ${adj>0?`<label class="review-checkbox"><input type="checkbox" name="bookAdjustments" checked> <span>Boek gedetecteerde kosten (${money(adj)}) apart</span></label>`:''}

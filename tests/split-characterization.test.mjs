@@ -13,14 +13,17 @@ const checkout=read('supabase/functions/billing-checkout/index.ts');
 const portal=read('supabase/functions/billing-portal/index.ts');
 const analyze=read('supabase/functions/analyze-invoice/index.ts');
 
-const publicPages=[
-  'account-verwijderen','btw-bank','contact','facturen','faq','functies',
-  'hoe-het-werkt','over','prijzen','privacy','rapportages','scanner',
-  'support','veiligheid','voor-ondernemers','voorwaarden'
+const retainedPublicPages=['account-verwijderen','privacy','support','voorwaarden'];
+const retiredOnePageRoutes=[
+  'btw-bank','contact','facturen','faq','functies','hoe-het-werkt','over',
+  'prijzen','rapportages','scanner','veiligheid','voor-ondernemers'
 ];
 
-for(const slug of publicPages){
-  assert.ok(fs.existsSync(path.join(root,'public',slug,'index.html')), 'baseline public page missing: '+slug);
+for(const slug of retainedPublicPages){
+  assert.ok(fs.existsSync(path.join(root,'public',slug,'index.html')), 'retained public page missing: '+slug);
+}
+for(const slug of retiredOnePageRoutes){
+  assert.ok(!fs.existsSync(path.join(root,'public',slug,'index.html')), 'retired one-page route unexpectedly restored: '+slug);
 }
 
 assert.ok(app.includes('/* Public Boekuna landing page */'),
