@@ -47,6 +47,15 @@ const FOOTER=`
   <div class="shell footer-bottom">© 2026 Boekuna · Nederland</div>
 </footer>`;
 
+function ensureHead(){
+  let og=document.querySelector('meta[property="og:image"]');
+  if(!og){og=document.createElement('meta');og.setAttribute('property','og:image');document.head.appendChild(og);}
+  og.setAttribute('content','https://boekuna.nl/assets/boekuna-og-1200x630.png');
+  let twitter=document.querySelector('meta[name="twitter:card"]');
+  if(!twitter){twitter=document.createElement('meta');twitter.name='twitter:card';document.head.appendChild(twitter);}
+  twitter.content='summary_large_image';
+}
+
 function mountChrome(){
   const header=document.getElementById('siteHeader');
   if(header&&!header.children.length)header.innerHTML=HEADER;
@@ -92,6 +101,7 @@ function initMenu(){
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
+  ensureHead();
   mountChrome();
   initMenu();
 });
