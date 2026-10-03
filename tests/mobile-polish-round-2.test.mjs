@@ -196,7 +196,7 @@ try{
   await page.locator('.document-preview-frame').waitFor();
   await page.goBack();
   await page.locator('.document-preview-frame').waitFor({state:'detached'});
-  assert.equal(await page.locator('#pageTitle').innerText(),'Documenten');
+  assert.equal(await page.locator('#pageTitle').innerText(),'Bonnetjes');
   assert.equal(await page.locator('[data-list-search]').inputValue(),'pdf');
   assert.equal(await page.evaluate(()=>listPageState('documents').sort),'name-asc');
   const afterScroll=await page.evaluate(()=>document.getElementById('content').scrollTop);
