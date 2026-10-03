@@ -413,6 +413,11 @@ def run():
             "ocr_pages":len((doc or {}).get("ocrPages") or []),
             "digital_no_ocr_ok":no_ocr_ok,
             "warnings":len(result.warnings) if result is not None else None,
+            "actual_supplier":actual.get("supplier") if result is not None else None,
+            "ocr_variant":((result.processing or {}).get("ocrVariant") if result is not None else None),
+            "quality_flags":((((result.processing or {}).get("imageQuality") or {}).get("flags") or []) if result is not None else []),
+            "quality_class":(((result.processing or {}).get("imageQuality") or {}).get("class") if result is not None else None),
+            "header_focus":(bool((result.processing or {}).get("headerFocusUsed")) if result is not None else False),
         })
 
     after_rss = rss_mb()
