@@ -144,6 +144,7 @@ try{
   });
   await page.evaluate(()=>setDocumentReviewStep(2));
   await page.locator('#pdfImportForm [name="gross"]').fill('128,66');
+  await page.locator('[data-financial-anchor-confirm="vatRate"]').click();
   await page.getByRole('button',{name:'Gebruik deze bedragen',exact:true}).click();
   await page.locator('#reviewBlockingState').filter({hasText:/Klaar om op te slaan/}).waitFor();
   assert.equal(await page.locator('#pdfImportForm [name="net"]').inputValue(),'106.33');
