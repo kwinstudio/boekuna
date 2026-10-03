@@ -88,6 +88,9 @@ try{
  assert.ok(await reportBars.count()>0,'Report chart needs inspectable data points');
  await reportBars.first().hover();assert.equal(await reportTip.isVisible(),true,'Report hover opens exact-value tooltip');
  for(const label of ['Omzet','Kosten','Winst'])assert.match(await reportTip.innerText(),new RegExp(label));
+ const reportTipStyle=await reportTip.evaluate(el=>{const s=getComputedStyle(el);return {color:s.color,background:s.backgroundColor}});
+ assert.notEqual(reportTipStyle.color,reportTipStyle.background,'Report tooltip text must visibly contrast with its background');
+ assert.match(await reportTip.innerText(),/€/,'Report tooltip must expose exact formatted amounts visually');
  await page.mouse.move(1,1);assert.equal(await reportTip.isVisible(),false,'Report hover tooltip dismisses');
  await reportBars.last().focus();assert.equal(await reportTip.isVisible(),true,'Report keyboard focus opens tooltip');await page.keyboard.press('Escape');assert.equal(await reportTip.isVisible(),false,'Escape closes report tooltip');
  const reportPageBefore=await page.evaluate(()=>page),reportModalBefore=await page.locator('#modalRoot .modal').count();
