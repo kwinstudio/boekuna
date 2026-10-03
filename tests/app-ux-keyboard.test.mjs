@@ -16,7 +16,7 @@ page.setDefaultTimeout(2000);
 page.on('filechooser',()=>{});
 async function check(label,run){try{await run()}catch(error){failures.push({label,error:String(error)})}}
 try{
- await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'domcontentloaded'});await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+ await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'domcontentloaded'});await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
  await check('keyboard backup import',async()=>{
   await page.evaluate(()=>navigate('settings'));
   const importer=page.getByRole('button',{name:'Back-up importeren',exact:true});assert.equal(await importer.count(),1,'Importer needs a keyboard-operable button');
