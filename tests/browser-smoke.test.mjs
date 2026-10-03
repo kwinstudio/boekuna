@@ -270,7 +270,7 @@ try{
   const composerBody=await page.locator('#emailHandoffForm [name="message"]').inputValue();
   assert.match(composerBody,/Factuurdatum:/);
   assert.match(composerBody,/Vervaldatum:/);
-  assert.match(composerBody,/De factuur vindt u als PDF in de bijlage/);
+  assert.doesNotMatch(composerBody,/De factuur vindt u als PDF in de bijlage/,'Composer must not claim an attachment before the chosen handoff actually carries one');
   assert.match(composerBody,/Met vriendelijke groet,\nQA\nqa@example\.test\n0101234567$/,'Default email signature must use contact name plus available contact details');
 
   await page.evaluate(()=>prepareEmailHandoffFromComposer());
@@ -283,23 +283,26 @@ try{
   assert.equal(await page.evaluate(()=>window.__pdfRenderCalls),1,'Invoice composer must render the PDF exactly once');
   assert.equal(await page.evaluate(id=>state.invoices.find(x=>x.id===id)?.lastSentAt,invoiceId),undefined);
 
-  // Mobile choice must expose Gmail compose separately from attachment-first share.
-  // Re-enter through the real composer -> prepare flow; the private chooser is
-  // intentionally not exposed as a window API.
+  // Mobile flow is attachment-first: one composer CTA prepares the PDF and
+  // immediately opens the native share sheet. No separate Gmail-web/mailto chooser.
   await page.evaluate(()=>{
     Object.defineProperty(navigator,'userAgentData',{configurable:true,value:{mobile:true}});
     reopenEmailHandoffComposer();
   });
   await page.getByRole('heading',{name:'Factuur versturen'}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Deel PDF via e-mail'}).count(),1,'Mobile composer must expose one attachment-first CTA');
   await page.evaluate(()=>prepareEmailHandoffFromComposer());
-  await page.getByRole('heading',{name:'Hoe wilt u versturen'}).waitFor();
+  await page.getByRole('heading',{name:'Hebt u de e-mail verzonden?'}).waitFor();
   assert.equal(await page.evaluate(()=>window.__pdfRenderCalls),1,'Re-entering the composer must reuse the prepared PDF');
-  const mobileHandoffText=await page.locator('.modal').innerText();
-  assert.match(mobileHandoffText,/Gmail openen/);
-  assert.match(mobileHandoffText,/PDF delen als bijlage/);
-  assert.match(mobileHandoffText,/Andere e-mailapp openen/);
-  assert.match(mobileHandoffText,/ontvangende app bepaalt zelf Aan en Onderwerp/);
-  assert.equal(await page.getByRole('button',{name:'Gmail openen'}).evaluate(el=>el.classList.contains('primary')),true,'Gmail must be the primary explicit mobile compose option');
+  const mobileShareState=await page.evaluate(id=>({
+    shares:window.__invoiceShareCalls.slice(),
+    lastSentAt:state.invoices.find(x=>x.id===id)?.lastSentAt
+  }),invoiceId);
+  assert.equal(mobileShareState.shares.length,1,'Mobile prepare must open one native share');
+  assert.equal(mobileShareState.shares[0].files.length,1,'Mobile native share must carry one PDF');
+  assert.equal(mobileShareState.shares[0].files[0].type,'application/pdf');
+  assert.equal(mobileShareState.lastSentAt,undefined,'Opening the share sheet is not delivery');
+  await page.evaluate(()=>emailHandoffNotSent());
   await page.evaluate(()=>{
     Object.defineProperty(navigator,'userAgentData',{configurable:true,value:{mobile:false}});
     reopenEmailHandoffComposer();
