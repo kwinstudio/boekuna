@@ -216,7 +216,7 @@ async function newAppPage(){
   const page=await browser.newPage({viewport:{width:1440,height:1000}});
   await routePdfJs(page);
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
-  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
   return page;
 }
 
@@ -236,7 +236,7 @@ try{
     const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
     await routePdfJs(page);
     await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
-    await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+    await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
     const camera=page.locator('#invoicePdfFile');
     assert.equal(await camera.getAttribute('capture'),null,'General Scan keeps camera/library/files available');
     assert.notEqual(await camera.getAttribute('multiple'),null);
