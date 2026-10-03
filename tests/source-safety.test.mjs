@@ -328,7 +328,7 @@ assert.ok(unifiedEmailModule.includes("function ensureEmailHandoffPdfDownloaded(
 assert.ok(unifiedEmailModule.includes("fileDownloaded:!!options.fileDownloaded"),"Download state must survive composer round-trips");
 assert.ok(unifiedEmailModule.includes("new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'long',year:'numeric'})"),"Email dates must use readable Dutch long-month formatting");
 assert.ok(unifiedEmailModule.includes("joinEmailSections"),"Email body must use one plain-text section formatter");
-assert.ok(unifiedEmailModule.includes("window.buildInvoiceMailto(handoff.to,handoff.subject,handoff.body)"),"Desktop default email route must prefill recipient, subject and body through mailto");
+assert.ok(unifiedEmailModule.includes("window.buildInvoiceMailto(handoff.to,mailtoCompatibilityText(handoff.subject),mailtoCompatibilityText(handoff.body))"),"Desktop fallback email route must prefill recipient, subject and body through compatibility-safe mailto");
 assert.ok(unifiedEmailModule.includes("window.downloadInvoiceShareFile(handoff.file)"),"Desktop handoff must explicitly prepare the PDF for manual attachment");
 assert.ok(unifiedEmailModule.includes("navigator.share({title:handoff.subject,text:handoff.body,files:[handoff.file]})"),"Native file share must remain available as the attachment-first route");
 assert.ok(unifiedEmailModule.includes("invoice.reminderCount=Number(invoice.reminderCount||0)+1"),"Reminder count must be recorded on explicit confirmation");
