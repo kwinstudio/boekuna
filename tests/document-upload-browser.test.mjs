@@ -245,8 +245,10 @@ try{
     assert.match(accepts,/image\/png/);
     assert.match(accepts,/application\/pdf/);
     assert.match(accepts,/image\/heic/);
+    await page.evaluate(()=>navigate('documents'));
+    await page.locator('#pageTitle').filter({hasText:'Documenten'}).waitFor();
     const chooserEvent=page.waitForEvent('filechooser');
-    await page.locator('[data-mobile-page="documents"]').click();
+    await page.getByRole('button',{name:'Uploaden',exact:true}).click();
     const chooser=await chooserEvent;
     assert.equal(chooser.isMultiple(),true);
     assert.equal(await page.locator('.source-picker').count(),0);
