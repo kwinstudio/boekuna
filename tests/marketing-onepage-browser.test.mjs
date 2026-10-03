@@ -77,6 +77,21 @@ try{
         await page.close();
       }
 
+      const retiredRedirects={
+        '/functies/':'/#product','/facturen/':'/#product','/scanner/':'/#product','/btw-bank/':'/#product','/rapportages/':'/#product',
+        '/hoe-het-werkt/':'/#hoe-het-werkt','/voor-ondernemers/':'/#waarom','/prijzen/':'/#prijzen','/faq/':'/#faq',
+        '/over/':'/#waarom','/contact/':'/#contact','/veiligheid/':'/#veiligheid'
+      };
+      for(const [route,destination] of Object.entries(retiredRedirects)){
+        const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
+        await page.goto(server.base+route,{waitUntil:'domcontentloaded'});
+        await page.waitForURL(server.base+'/'+destination.replace(/^\//,''));
+        assert.equal(new URL(page.url()).pathname,'/',name+' retired route pathname '+route);
+        assert.equal(new URL(page.url()).hash,new URL('http://local'+destination).hash,name+' retired route hash '+route);
+        assert.equal(await page.locator('text=Prijzen | Boekuna').count(),0,name+' legacy pricing content must not survive '+route);
+        await page.close();
+      }
+
       for(const route of ['/privacy/','/voorwaarden/','/support/','/account-verwijderen/']){
         const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
         const response=await page.goto(server.base+route,{waitUntil:'networkidle'});
@@ -98,7 +113,7 @@ try{
     }
   }
   assert.deepEqual(errors,[],'Axe accessibility regressions: '+JSON.stringify(errors));
-  console.log('BOEKUNA one-page browser QA: PASS (Chromium + WebKit; 9 widths; Axe; keyboard; no-JS; retained endpoints)');
+  console.log('BOEKUNA one-page browser QA: PASS (Chromium + WebKit; 9 widths; Axe; keyboard; no-JS; retained endpoints; retired-route redirects)');
 }finally{
   await server.close();
 }
