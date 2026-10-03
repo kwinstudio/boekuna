@@ -87,6 +87,7 @@ async function openReview(overrides={}){
     showPdfImportReview(pendingPdfImport.parsed);
   },overrides);
   await page.getByRole('heading',{name:'Document controleren'}).waitFor();
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>resolve())));
 }
 async function noOverflow(label){
   const x=await page.evaluate(()=>({vw:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
