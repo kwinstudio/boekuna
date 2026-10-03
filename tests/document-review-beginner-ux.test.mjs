@@ -197,6 +197,8 @@ try{
   await page.evaluate(()=>closeModal());
 
   await page.setViewportSize({width:390,height:844});
+  await openReview();
+  await page.evaluate(()=>setDocumentReviewStep(2));
   await noOverflow(browserName+' mobile review');
   const touch=await page.locator('.mobile-review-actions button').evaluateAll(nodes=>nodes.filter(el=>getComputedStyle(el).display!=='none').map(el=>el.getBoundingClientRect().height));
   assert.ok(touch.length&&touch.every(h=>h>=44),browserName+' review touch targets must be >=44px');
