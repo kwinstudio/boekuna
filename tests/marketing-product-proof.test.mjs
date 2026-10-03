@@ -35,7 +35,8 @@ for(const file of walk(dist).filter(file=>file.endsWith('.html'))){
     const alt=(tag.match(/\balt=["']([^"']*)["']/i)||[])[1];
     assert.ok(alt!==undefined&&alt.trim(),rel(file)+': content image needs useful alt text: '+src);
   }
-  assert.equal(/https?:\/\/[^"'\s>]+\.(?:webp|png|jpg|jpeg|avif)/i.test(html),false,rel(file)+': remote content image forbidden');
+  const withoutApprovedSocialPreview=html.replaceAll('https://boekuna.nl/assets/boekuna-og-1200x630.png','');
+  assert.equal(/https?:\/\/[^"'\s>]+\.(?:webp|png|jpg|jpeg|avif)/i.test(withoutApprovedSocialPreview),false,rel(file)+': remote content image forbidden');
 }
 assert.ok(fs.existsSync(path.join(source,'assets','product','capture-proof.json')),'Internal product capture evidence should remain in source for QA/history');
 assert.ok(!fs.existsSync(path.join(dist,'assets','product','capture-proof.json')),'Internal capture proof must not be published');

@@ -41,6 +41,10 @@ assert.ok(home.includes('https://app.boekuna.nl/?login=1'),'Login must cross to 
 assert.ok(home.includes('https://app.boekuna.nl/?register=1'),'Registration must use free flow');
 assert.ok(home.includes('/assets/product/boekuna-dashboard-desktop-960.webp'),'Real dashboard proof missing');
 assert.ok(home.includes('/assets/product/boekuna-document-review-desktop-960.webp'),'Real document-review proof missing');
+assert.ok(home.includes('https://boekuna.nl/assets/boekuna-og-1200x630.png'),'Homepage must expose final-logo social preview');
+assert.ok(home.includes('name="twitter:card" content="summary_large_image"'),'Homepage must request a large social preview card');
+const sharedMarketing=fs.readFileSync(path.join(publicDir,'assets','marketing.js'),'utf8');
+assert.ok(sharedMarketing.includes('/assets/boekuna-og-1200x630.png'),'Shared marketing runtime must preserve final-logo social preview');
 for(const price of ['€0','€9,95','€19,95'])assert.ok(home.includes(price),'Current product price missing: '+price);
 for(const stale of ['€6,95','€14,95','Binnenkort beschikbaar'])assert.equal(home.includes(stale),false,'Stale pricing copy remains: '+stale);
 assert.ok(/Direct indienen[^<]{0,80}nog niet live/i.test(home),'VAT filing limitation must remain explicit');
