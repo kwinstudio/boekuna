@@ -90,4 +90,4 @@ jobs:
       - name: Financial blocks
         run: python tests/financial-blocks.test.py
       - name: Python syntax safety
-        run: python -m py_compile kwinest/docprocessor/app.py kwinest/docprocessor/receipt_math.py kwinest/docprocessor/financial_blocks.py
+        run: python -m py_compile kwinest/docprocessor/app.py kwinest/docprocessor/receipt_math.py kwinest/docprocessor/financial_blocks.py kwinest/docprocessor/image_quality.py
