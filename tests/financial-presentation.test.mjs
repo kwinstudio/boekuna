@@ -14,7 +14,7 @@ const fixture=`
 currentUser={...TEST_USER,email:'presentation@example.test',supabaseUser:{user_metadata:{first_name:'Kwin'}}};
 state=structuredClone(DEFAULT);
 state.company={...state.company,name:'QA Test BV',contactName:'Kwin',email:'qa@example.test',address:'Teststraat 1',postal:'3011AA',city:'Rotterdam',country:'Nederland',kvk:'12345678',vat:'NL123456789B01',iban:'NL91ABNA0417164300',kor:false};
-const qaDate='2026-10-03',qaAmounts=[5,999.99,12500.50,100000.55,1250000,-100000.55],qaPaymentMethods=['Creditcard','Privé voorgeschoten','iDEAL','Bankoverschrijving','Pin'];
+const qaDate='2026-10-03',qaAmounts=[5,999.99,12345.67,100000.55,1250000,-100000.55],qaPaymentMethods=['Creditcard','Privé voorgeschoten','iDEAL','Bankoverschrijving','Pin'];
 state.contacts=qaAmounts.map((_,i)=>({id:'c'+i,type:'customer',name:i%2?'Een zeer lange klantnaam met meerdere woorden en SupercalifragilisticexpialidociousZonderAfbreekpunten':'Kort',email:'klant@example.test'}));
 state.invoices=qaAmounts.map((gross,i)=>({id:'i'+i,number:'2026-'+String(i+1).padStart(4,'0'),customerId:'c'+i,status:i===1?'paid':'sent',kind:gross<0?'credit':'invoice',issueDate:qaDate,dueDate:qaDate,taxTreatment:'standard',payments:i===2?[{id:'p2',amount:100,date:qaDate}]:i===1?[{id:'p1',amount:999.99,date:qaDate}]:[],importedTotals:{net:Math.abs(gross)/1.21,vat:Math.abs(gross)-Math.abs(gross)/1.21,gross:Math.abs(gross)}}));
 state.expenses=qaAmounts.slice(0,5).map((v,i)=>({id:'e'+i,date:qaDate,vendor:state.contacts[i].name,invoiceNumber:'INK-'+i,category:'Kantoor',paymentMethod:qaPaymentMethods[i],exVat:v/1.21,vatRate:i===1?9:21,notes:'Aanschaf voor project'}));
@@ -67,7 +67,7 @@ try{
  const modalCountBefore=await page.locator('#modalRoot .modal').count();
  await expenseStaticCell.click();
  assert.equal(await page.locator('#modalRoot .modal').count(),modalCountBefore,'Clicking a static expense cell must not open anything');
- for(const text of ['Betaalwijze','Creditcard','Privé voorgeschoten','21%','9%','€ 12.345,67','03-10-2026']){
+ for(const text of ['Betaalwijze','Creditcard','Privé voorgeschoten','21%','9%','€ 12.345,67','03-10-2026','Betaald','Openstaand']){
   const locator=page.getByText(text,{exact:true}).first();
   if(await locator.count())assert.equal(await locator.evaluate(el=>getComputedStyle(el).whiteSpace),'nowrap','Short financial metadata must not wrap: '+text);
  }
