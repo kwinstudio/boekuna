@@ -62,7 +62,7 @@ function requirementsFor(type){
   return {blocking:[...src.blocking],attention:[...src.attention],optional:[...new Set(src.optional)]};
 }
 function reviewDocumentType(d){
-  return String(document.getElementById('pdfImportForm')?.elements.namedItem('documentType')?.value||d?.documentType||'other');
+  return String(d?.documentType||'other');
 }
 function cents(value){
   if(typeof financialReviewCentsFromInput==='function')return financialReviewCentsFromInput(value);
@@ -107,7 +107,7 @@ function provenanceBadge(d,key){
 function canDeferField(d,key){
   const type=reviewDocumentType(d);
   if(key==='category')return ['receipt','purchase_invoice','credit_invoice','invoice'].includes(type);
-  if(key==='party')return type==='receipt'&&String(document.getElementById('pdfImportForm')?.elements.namedItem('party')?.value||d?.party||'').trim().length>0;
+  if(key==='party')return type==='receipt'&&String(d?.party||'').trim().length>0;
   return false
 }
 function attentionControls(d,key){
@@ -300,6 +300,7 @@ function firstBlockingFocus(){
 }
 function onGenericReviewInput(event){
   const d=pendingPdfImport?.parsed,key=event?.target?.name;if(!d||!key)return;
+  if(['party','category','issueDate','invoiceNumber','documentType','type'].includes(key))d[key]=String(event.target?.value??'');
   if(['party','category','issueDate','invoiceNumber'].includes(key)){
     genericProvenance(d)[key]={source:'user',confirmed:true,confirmedAt:new Date().toISOString()};
     setDeferredFields(d,deferredFields(d).filter(x=>x!==key))
