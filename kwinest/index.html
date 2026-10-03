@@ -2034,7 +2034,51 @@ img.bookuna-logo-icon,
   }
   @media(max-width:390px){#mainApp .content{padding-inline:12px!important}#mainApp .dashboard-kpis{grid-template-columns:1fr!important}#mainApp .page-actions{grid-template-columns:1fr!important}}
   @media(prefers-reduced-motion:reduce){#mainApp *,#mainApp *::before,#mainApp *::after,.mobile-bottom-nav *{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}#mainApp .btn:hover{transform:none!important}}
-  </style>
+  
+  #mainApp .dashboard-period-control{display:flex;align-items:center;justify-content:flex-end}
+  #mainApp .dashboard-period-select{height:38px;min-width:116px;padding:0 34px 0 12px;border:1px solid var(--app-border);border-radius:9px;background:var(--app-white);color:var(--app-charcoal);font-size:12px;font-weight:700;outline:none}
+  #mainApp .dashboard-period-select:focus-visible{box-shadow:var(--focus-ring);border-color:var(--app-green)}
+  #mainApp .dashboard-kpi{width:100%;text-align:left;color:var(--app-charcoal);appearance:none;cursor:pointer;transition:border-color var(--transition-fast),transform var(--transition-fast),box-shadow var(--transition-fast)}
+  #mainApp .dashboard-kpi:hover{border-color:#CDD5D9!important;transform:translateY(-1px)}
+  #mainApp .dashboard-kpi:focus-visible,#mainApp .dashboard-summary-card:focus-visible{outline:0;box-shadow:var(--focus-ring)!important}
+  #mainApp .dashboard-kpi-profit{border-color:#CDEFD3!important}
+  #mainApp .dashboard-result-chart .bar-group{gap:2px}
+  #mainApp .dashboard-result-chart .bar.profit{background:var(--app-charcoal)!important}
+  #mainApp .dashboard-result-chart .bar.profit.loss{background:var(--status-error)!important}
+  #mainApp .dashboard-chart-card .legend-dot.profit{background:var(--app-charcoal)!important}
+  #mainApp .dashboard-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:14px}
+  #mainApp .dashboard-summary-card{min-height:118px;width:100%;padding:18px!important;text-align:left;color:var(--app-charcoal);appearance:none;cursor:pointer;display:flex;flex-direction:column;align-items:stretch;transition:border-color var(--transition-fast),transform var(--transition-fast)}
+  #mainApp .dashboard-summary-card:hover{border-color:#CDD5D9!important;transform:translateY(-1px)}
+  #mainApp .dashboard-summary-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  #mainApp .dashboard-summary-title{font-size:12px;font-weight:750;color:var(--app-muted-strong)}
+  #mainApp .dashboard-summary-value{font-family:"Boekuna Space",var(--sans);font-size:24px;line-height:1.05;letter-spacing:-.035em;margin-top:12px;font-variant-numeric:tabular-nums}
+  #mainApp .dashboard-summary-sub{margin-top:6px;font-size:11px;line-height:1.35;color:var(--app-muted-strong)}
+  #mainApp .dashboard-new-invoice{background:var(--app-green-soft)!important;border-color:#CDEFD3!important}
+  @media(min-width:1101px) and (max-height:820px){
+    #mainApp .content{padding-top:14px!important;padding-bottom:18px!important}
+    #mainApp .dashboard-page-head{margin-bottom:10px!important}
+    #mainApp .dashboard-page-head h1{font-size:24px!important}
+    #mainApp .dashboard-kpis{gap:10px!important}
+    #mainApp .dashboard-kpis .metric{min-height:108px!important;padding:14px!important}
+    #mainApp .dashboard-kpis .metric-value{font-size:26px!important;margin:10px 0 4px!important}
+    #mainApp .dashboard-main-grid{gap:10px!important;margin-top:10px!important}
+    #mainApp .dashboard-chart-card,#mainApp .dashboard-attention{padding:14px!important}
+    #mainApp .dashboard-chart-card .section-head,#mainApp .dashboard-attention .section-head{margin-bottom:8px!important}
+    #mainApp .chart{height:128px!important;padding-top:8px!important}
+    #mainApp .chart-legend{margin-top:24px!important}
+    #mainApp .dashboard-attention-list{gap:6px!important}
+    #mainApp .dashboard-attention-item{min-height:42px!important;padding:7px 9px!important}
+    #mainApp .dashboard-attention-icon{width:26px!important;height:26px!important}
+    #mainApp .dashboard-attention-footer{padding-top:8px!important}
+    #mainApp .dashboard-summary-grid{gap:10px!important;margin-top:10px!important}
+    #mainApp .dashboard-summary-card{min-height:92px!important;padding:13px!important}
+    #mainApp .dashboard-summary-value{font-size:20px!important;margin-top:8px!important}
+    #mainApp .dashboard-summary-sub{margin-top:4px!important}
+  }
+  @media(max-width:1100px){
+    #mainApp .dashboard-summary-grid{grid-template-columns:1fr}
+  }
+</style>
 </head>
 <body>
 <script src="/assets/financial-correction.js?v=20260929a"></script>
@@ -3402,23 +3446,46 @@ async function navigate(p){
  render()
 }
 function render(){const fn={dashboard:renderDashboard,invoices:renderInvoices,expenses:renderExpenses,bank:renderBank,vat:renderVat,reports:renderReports,ledger:renderLedger,control:renderControl,cashflow:renderCashflow,bookings:renderBookings,contacts:renderContacts,services:renderServices,hours:renderHours,documents:renderDocuments,profile:renderProfile,settings:renderSettings}[page]||renderDashboard;document.getElementById('content').innerHTML=fn();wirePage();if(page==='dashboard')wireDashboardAttention();renderGlobalDocumentIndicator();syncMobileNavigationState()}
+function dashboardIsoDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function dashboardPeriodRange(preset=String(sessionStorage.getItem('dashboardPeriod')||'month')){
+ const allowed=new Set(['7d','month','quarter','year']);if(!allowed.has(preset))preset='month';
+ const now=new Date(),end=new Date(now.getFullYear(),now.getMonth(),now.getDate()),start=new Date(end),labels={};
+ if(preset==='7d'){start.setDate(end.getDate()-6);labels.label='Laatste 7 dagen'}
+ else if(preset==='quarter'){start.setMonth(end.getMonth()-2,1);labels.label='Laatste 3 maanden'}
+ else if(preset==='year'){start.setMonth(0,1);labels.label=String(end.getFullYear())}
+ else{start.setDate(end.getDate()-29);labels.label='Laatste 30 dagen'}
+ return {preset,from:dashboardIsoDate(start),to:dashboardIsoDate(end),label:labels.label}
+}
+function setDashboardPeriod(preset){const allowed=['7d','month','quarter','year'];sessionStorage.setItem('dashboardPeriod',allowed.includes(preset)?preset:'month');if(page==='dashboard')render()}
+function dashboardChartBuckets(preset){
+ const range=dashboardPeriodRange(preset),make=(from,to,lab,period)=>{const inv=state.invoices.filter(i=>i.status!=='draft'&&inRange(i.issueDate,from,to)),exps=state.expenses.filter(e=>inRange(e.date,from,to)),sales=inv.reduce((sum,i)=>roundMoney(sum+invoiceNet(i)),0),costs=exps.reduce((sum,e)=>roundMoney(sum+Number(e.exVat||0)),0);return {from,to,lab,period,sales,costs,profit:roundMoney(sales-costs)}},out=[];
+ if(preset==='7d'){for(let i=0;i<7;i++){const d=new Date(range.from+'T12:00:00');d.setDate(d.getDate()+i);const iso=dashboardIsoDate(d),lab=new Intl.DateTimeFormat('nl-NL',{weekday:'short'}).format(d).replace('.','');out.push(make(iso,iso,lab,new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'long'}).format(d)))}return out}
+ if(preset==='quarter'){const end=new Date(range.to+'T12:00:00');for(let i=2;i>=0;i--){const d=new Date(end.getFullYear(),end.getMonth()-i,1),last=new Date(d.getFullYear(),d.getMonth()+1,0),from=dashboardIsoDate(d),to=dashboardIsoDate(last>end?end:last),lab=new Intl.DateTimeFormat('nl-NL',{month:'short'}).format(d).replace('.','');out.push(make(from,to,lab,new Intl.DateTimeFormat('nl-NL',{month:'long',year:'numeric'}).format(d)))}return out}
+ if(preset==='year'){const end=new Date(range.to+'T12:00:00');for(let month=0;month<=end.getMonth();month++){const d=new Date(end.getFullYear(),month,1),last=new Date(end.getFullYear(),month+1,0),from=dashboardIsoDate(d),to=dashboardIsoDate(last>end?end:last),lab=new Intl.DateTimeFormat('nl-NL',{month:'short'}).format(d).replace('.','');out.push(make(from,to,lab,new Intl.DateTimeFormat('nl-NL',{month:'long',year:'numeric'}).format(d)))}return out}
+ const start=new Date(range.from+'T12:00:00'),end=new Date(range.to+'T12:00:00');for(let i=0;i<5;i++){const fromDate=new Date(start);fromDate.setDate(start.getDate()+i*6);if(fromDate>end)break;const toDate=new Date(fromDate);toDate.setDate(fromDate.getDate()+5);if(i===4||toDate>end)toDate.setTime(end.getTime());const from=dashboardIsoDate(fromDate),to=dashboardIsoDate(toDate),lab=(i+1)+'';out.push(make(from,to,'W'+lab,new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short'}).format(fromDate)+' – '+new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short'}).format(toDate)))}return out
+}
 function renderDashboard(){
- const year=currentBookYear(),inv=state.invoices.filter(i=>i.status!=='draft'&&Number(String(i.issueDate||'').slice(0,4))===year),yearExpenses=state.expenses.filter(e=>Number(String(e.date||'').slice(0,4))===year),sales=inv.reduce((sum,i)=>roundMoney(sum+invoiceNet(i)),0),costs=yearExpenses.reduce((sum,e)=>roundMoney(sum+Number(e.exVat||0)),0),profit=roundMoney(sales-costs),open=state.invoices.filter(i=>i.status!=='draft'&&i.kind!=='credit').reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),q=currentQuarter(),salesVat=inv.filter(i=>inQuarter(i.issueDate,q,year)).reduce((sum,i)=>roundMoney(sum+invoiceVat(i)),0),inputVat=yearExpenses.filter(e=>inQuarter(e.date,q,year)).reduce((sum,e)=>roundMoney(sum+expenseVat(e)),0),vat=roundMoney(salesVat-inputVat);
- const now=new Date(),chart=Array.from({length:6},(_,idx)=>{const d=new Date(now.getFullYear(),now.getMonth()-(5-idx),1),y=d.getFullYear(),m=d.getMonth()+1,lab=new Intl.DateTimeFormat('nl-NL',{month:'short'}).format(d).replace('.',''),sv=state.invoices.filter(i=>i.status!=='draft'&&Number(String(i.issueDate||'').slice(0,4))===y&&new Date(i.issueDate+'T12:00:00').getMonth()+1===m).reduce((sum,i)=>roundMoney(sum+invoiceNet(i)),0),co=state.expenses.filter(e=>Number(String(e.date||'').slice(0,4))===y&&new Date(e.date+'T12:00:00').getMonth()+1===m).reduce((sum,e)=>roundMoney(sum+Number(e.exVat||0)),0);return {lab,period:new Intl.DateTimeFormat('nl-NL',{month:'long',year:'numeric'}).format(d),sv,co}}),max=Math.max(1,...chart.flatMap(x=>[Math.abs(x.sv),Math.abs(x.co)])),isEmpty=!state.invoices.length&&!state.expenses.length&&!state.transactions.length&&!state.contacts.length,greeting=dashboardGreeting();
- const profileMissing=requirementsFor('invoice-finalize',{taxTreatment:state.company.kor?'kor':'standard'}),welcomeCard=isEmpty?`<div class="card dashboard-onboarding"><div class="section-head"><h2>Begin met Boekuna</h2></div><div class="dashboard-onboarding-actions"><button class="btn primary" onclick="newInvoice()">Eerste factuur</button><button class="btn" onclick="newContact()">Klant toevoegen</button><button class="btn" onclick="navigate('profile')">Bedrijfsgegevens</button></div></div>`:'',profileReminder=profileMissing.length?`<div class="notice info dashboard-profile-reminder"><strong>Bedrijfsgegevens aanvullen</strong><button class="link-btn" onclick="navigate('profile')">Open</button></div>`:'';
- return `<div class="page-head dashboard-page-head"><div><h1>Overzicht</h1><p class="page-status">${esc(greeting.title)} · je administratie in één oogopslag</p></div><span class="period-chip">${year}</span></div>
- ${welcomeCard}${profileReminder}
- <div class="grid grid-4 dashboard-kpis">
-  <div class="card metric"><div class="metric-head"><span>Omzet ${year}</span><span class="metric-icon" aria-hidden="true">${icon('i-chart')}</span></div><div class="metric-value">${money(sales)}</div><div class="metric-sub">excl. btw</div></div>
-  <div class="card metric"><div class="metric-head"><span>Kosten ${year}</span><span class="metric-icon" aria-hidden="true">${icon('i-receipt')}</span></div><div class="metric-value">${money(costs)}</div><div class="metric-sub">excl. btw</div></div>
-  <div class="card metric"><div class="metric-head"><span>Resultaat ${year}</span><span class="metric-icon" aria-hidden="true">${icon('i-check')}</span></div><div class="metric-value">${money(profit)}</div><div class="metric-sub">omzet minus kosten</div></div>
-  <div class="card metric"><div class="metric-head"><span>Btw Q${q}</span><span class="badge warn">Indicatief</span></div><div class="metric-value">${money(vat)}</div><div class="metric-sub">controleer vóór aangifte</div></div>
- </div>
- <div class="dashboard-main-grid">
-  <div class="card dashboard-chart-card"><div class="section-head"><div><h2>Omzet & kosten</h2><p>Laatste 6 maanden · excl. btw</p></div><button class="link-btn" onclick="navigate('cashflow')">Cashflow bekijken</button></div><div class="chart" aria-label="Omzet en kosten per maand">${chart.map(x=>`<button type="button" class="bar-group" data-chart-values="${esc(JSON.stringify({month:x.period,sales:money(x.sv),costs:money(x.co)}))}" aria-describedby="dashboardChartValues" aria-pressed="false" aria-label="${esc(x.period)}: omzet ${esc(money(x.sv))}, kosten ${esc(money(x.co))}"><span class="bar sales" style="height:${Math.max(3,Math.abs(x.sv)/max*100)}%"></span><span class="bar costs" style="height:${Math.max(3,Math.abs(x.co)/max*100)}%"></span><span class="bar-label">${x.lab}</span></button>`).join('')}</div><div class="chart-values" id="dashboardChartValues" role="tooltip" hidden></div><div class="chart-legend"><span><i class="legend-dot"></i>Omzet</span><span><i class="legend-dot cost"></i>Kosten</span></div></div>
-  ${renderAttentionCenter(open)}
- </div>
- <div class="card table-card dashboard-recent"><div class="table-toolbar"><strong>Recente facturen</strong><button class="btn small" onclick="navigate('invoices')">Alle facturen</button></div><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-dashboard-invoices"><thead><tr><th>Factuur</th><th>Klant</th><th>Datum</th><th>Vervaldatum</th><th>Status</th><th class="right">Bedrag</th><th>Acties</th></tr></thead><tbody>${state.invoices.slice().sort((a,b)=>String(b.issueDate||'').localeCompare(String(a.issueDate||''))).slice(0,5).map(i=>`<tr><td><button class="link-btn" onclick="viewInvoice('${i.id}')">${esc(i.number||'Concept')}</button><span class="financial-mobile-meta" aria-hidden="true"> · ${dateNL(i.issueDate)}</span>${i.kind==='credit'?'<div class="help">Creditfactuur</div>':''}</td><td>${esc(getContact(i.customerId).name)}</td><td>${dateNL(i.issueDate)}</td><td>${dateNL(i.dueDate)}</td><td>${statusBadge(invoiceEffectiveStatus(i))}</td><td class="right money">${money(invoiceGross(i))}</td><td class="right financial-actions"><button class="icon-btn" aria-label="Factuuracties" aria-haspopup="dialog" onclick="invoiceActions('${i.id}')">${icon('i-more')}</button></td></tr>`).join('')}</tbody></table></div></div>`
+ const period=dashboardPeriodRange(),inv=state.invoices.filter(i=>i.status!=='draft'&&inRange(i.issueDate,period.from,period.to)),periodExpenses=state.expenses.filter(e=>inRange(e.date,period.from,period.to)),sales=inv.reduce((sum,i)=>roundMoney(sum+invoiceNet(i)),0),costs=periodExpenses.reduce((sum,e)=>roundMoney(sum+Number(e.exVat||0)),0),profit=roundMoney(sales-costs),openInvoices=state.invoices.filter(i=>i.status!=='draft'&&i.kind!=='credit'&&invoiceOutstanding(i)>.02),open=openInvoices.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),overdue=openInvoices.filter(i=>invoiceEffectiveStatus(i)==='overdue').length,q=currentQuarter(),year=currentBookYear(),quarterInvoices=state.invoices.filter(i=>i.status!=='draft'&&inQuarter(i.issueDate,q,year)),quarterExpenses=state.expenses.filter(e=>inQuarter(e.date,q,year)),salesVat=quarterInvoices.reduce((sum,i)=>roundMoney(sum+invoiceVat(i)),0),inputVat=quarterExpenses.reduce((sum,e)=>roundMoney(sum+expenseVat(e)),0),vat=roundMoney(salesVat-inputVat);
+ const chart=dashboardChartBuckets(period.preset),max=Math.max(1,...chart.flatMap(x=>[Math.abs(x.sales),Math.abs(x.costs),Math.abs(x.profit)])),isEmpty=!state.invoices.length&&!state.expenses.length&&!state.transactions.length&&!state.contacts.length,greeting=dashboardGreeting(),bankTotal=state.transactions.length,bankMatched=state.transactions.filter(t=>t.status==='matched').length,bankOpen=state.transactions.filter(t=>t.status==='unmatched').length,bankPct=bankTotal?Math.round(bankMatched/bankTotal*100):null;
+ const profileMissing=requirementsFor('invoice-finalize',{taxTreatment:state.company.kor?'kor':'standard'}),welcomeCard=isEmpty?'<div class="card dashboard-onboarding"><div class="section-head"><h2>Begin met Boekuna</h2></div><div class="dashboard-onboarding-actions"><button class="btn primary" onclick="newInvoice()">Eerste factuur</button><button class="btn" onclick="newContact()">Klant toevoegen</button><button class="btn" onclick="navigate(\'profile\')">Bedrijfsgegevens</button></div></div>':'',profileReminder=profileMissing.length?'<div class="notice info dashboard-profile-reminder"><strong>Bedrijfsgegevens aanvullen</strong><button class="link-btn" onclick="navigate(\'profile\')">Open</button></div>':'';
+ const periodOptions=[['7d','7 dagen'],['month','Maand'],['quarter','Kwartaal'],['year','Jaar']].map(([value,label])=>'<option value="'+value+'" '+(period.preset===value?'selected':'')+'>'+label+'</option>').join('');
+ return '<div class="page-head dashboard-page-head"><div><h1>Overzicht</h1><p class="page-status">'+esc(greeting.title)+' · je administratie in één oogopslag</p></div><div class="dashboard-period-control"><label class="sr-only" for="dashboardPeriod">Periode dashboard</label><select id="dashboardPeriod" class="dashboard-period-select" onchange="setDashboardPeriod(this.value)">'+periodOptions+'</select></div></div>'+
+ welcomeCard+profileReminder+
+ '<div class="grid grid-4 dashboard-kpis">'+
+  '<button type="button" class="card metric dashboard-kpi dashboard-kpi-profit" onclick="navigate(\'reports\')"><div class="metric-head"><span class="dashboard-kpi-label">Winst</span><span class="metric-icon" aria-hidden="true">'+icon('i-chart')+'</span></div><div class="metric-value">'+money(profit)+'</div><div class="metric-sub">'+esc(period.label)+' · omzet minus kosten</div></button>'+
+  '<button type="button" class="card metric dashboard-kpi" onclick="navigate(\'invoices\')"><div class="metric-head"><span class="dashboard-kpi-label">Omzet</span><span class="metric-icon" aria-hidden="true">'+icon('i-chart')+'</span></div><div class="metric-value">'+money(sales)+'</div><div class="metric-sub">'+esc(period.label)+' · excl. btw</div></button>'+
+  '<button type="button" class="card metric dashboard-kpi" onclick="navigate(\'expenses\')"><div class="metric-head"><span class="dashboard-kpi-label">Kosten</span><span class="metric-icon" aria-hidden="true">'+icon('i-receipt')+'</span></div><div class="metric-value">'+money(costs)+'</div><div class="metric-sub">'+esc(period.label)+' · excl. btw</div></button>'+
+  '<button type="button" class="card metric dashboard-kpi" onclick="navigate(\'vat\')"><div class="metric-head"><span class="dashboard-kpi-label">Btw apartzetten</span><span class="badge warn">Q'+q+'</span></div><div class="metric-value">'+money(vat)+'</div><div class="metric-sub">'+(vat>=0?'indicatief te betalen':'indicatief terug te vragen')+'</div></button>'+
+ '</div>'+
+ '<div class="dashboard-main-grid">'+
+  '<div class="card dashboard-chart-card"><div class="section-head"><div><h2>Resultaat</h2><p>'+esc(period.label)+' · excl. btw</p></div></div><div class="chart dashboard-result-chart" aria-label="Omzet, kosten en winst per periode">'+chart.map(x=>'<button type="button" class="bar-group" data-chart-values="'+esc(JSON.stringify({month:x.period,sales:money(x.sales),costs:money(x.costs),profit:money(x.profit)}))+'" aria-describedby="dashboardChartValues" aria-pressed="false" aria-label="'+esc(x.period)+': omzet '+esc(money(x.sales))+', kosten '+esc(money(x.costs))+', winst '+esc(money(x.profit))+'"><span class="bar sales" style="height:'+Math.max(3,Math.abs(x.sales)/max*100)+'%"></span><span class="bar costs" style="height:'+Math.max(3,Math.abs(x.costs)/max*100)+'%"></span><span class="bar profit '+(x.profit<0?'loss':'')+'" style="height:'+Math.max(3,Math.abs(x.profit)/max*100)+'%"></span><span class="bar-label">'+esc(x.lab)+'</span></button>').join('')+'</div><div class="chart-values" id="dashboardChartValues" role="tooltip" hidden></div><div class="chart-legend"><span><i class="legend-dot"></i>Omzet</span><span><i class="legend-dot cost"></i>Kosten</span><span><i class="legend-dot profit"></i>Winst</span></div></div>'+
+  renderAttentionCenter(0)+
+ '</div>'+
+ '<div class="dashboard-summary-grid">'+
+  '<button type="button" class="card dashboard-summary-card" onclick="navigate(\'bank\')"><div class="dashboard-summary-head"><span class="dashboard-summary-title">Administratie</span><span class="metric-icon" aria-hidden="true">'+icon('i-check')+'</span></div><strong class="dashboard-summary-value">'+(bankPct==null?'—':bankPct+'%')+'</strong><span class="dashboard-summary-sub">'+(bankTotal?(bankOpen?bankOpen+' bankregel'+(bankOpen===1?'':'s')+' te verwerken':'Alle bankregels verwerkt'):'Nog geen bankregels')+'</span></button>'+
+  '<button type="button" class="card dashboard-summary-card" onclick="navigate(\'invoices\')"><div class="dashboard-summary-head"><span class="dashboard-summary-title">Nog te ontvangen</span><span class="metric-icon" aria-hidden="true">'+icon('i-receipt')+'</span></div><strong class="dashboard-summary-value">'+money(open)+'</strong><span class="dashboard-summary-sub">'+openInvoices.length+' open factuur'+(openInvoices.length===1?'':'en')+(overdue?' · '+overdue+' verlopen':'')+'</span></button>'+
+  '<button type="button" class="card dashboard-summary-card dashboard-new-invoice" onclick="newInvoice()"><div class="dashboard-summary-head"><span class="dashboard-summary-title">Nieuwe factuur</span><span class="metric-icon" aria-hidden="true">'+icon('i-plus')+'</span></div><strong class="dashboard-summary-value">Factuur maken</strong><span class="dashboard-summary-sub">Nieuwe verkoopfactuur aanmaken</span></button>'+
+ '</div>'
 }
 
 function renderInvoices(){
