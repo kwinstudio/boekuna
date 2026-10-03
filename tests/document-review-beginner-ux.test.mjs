@@ -31,6 +31,9 @@ for(const file of ['assets/document-review-v2.js','assets/document-review-v2.css
 let appHtml=fs.readFileSync(path.join(dist,'index.html'),'utf8');
 assert.ok(appHtml.includes('/assets/document-review-v2.js'),'built app must load review runtime');
 assert.ok(appHtml.includes('/assets/document-review-v2.css'),'built app must load review styles');
+const inlineScripts=[...appHtml.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(Boolean);
+assert.ok(inlineScripts.length>=1,'built app must contain inline runtime');
+for(const [index,script] of inlineScripts.entries())assert.doesNotThrow(()=>new Function(script),'built inline script '+(index+1)+' must parse');
 
 function replaceLast(text,needle,replacement){
   const i=text.lastIndexOf(needle);
@@ -129,6 +132,22 @@ try{
   assert.ok(primaryRates.some(x=>x.includes('21%'))&&primaryRates.some(x=>x.includes('9%')),'normal VAT choices must expose 21% and 9%');
   assert.equal(primaryRates.some(x=>/^0%/.test(x.trim())),false,'0% must not be a normal primary VAT choice');
   assert.ok((await page.locator('#pdfImportForm').innerText()).includes('Andere btw-situatie'));
+  await page.getByRole('button',{name:'Andere btw-situatie',exact:true}).click();
+  await page.getByRole('button',{name:'0% / geen btw op document',exact:true}).click();
+  assert.equal(await page.locator('#pdfImportVatRate').inputValue(),'0','special zero-VAT path must set a real value');
+  await page.locator('#pdfImportVatRate').selectOption('21');
+  await page.evaluate(()=>closeModal());
+
+  await openReview({
+    net:128.66,vatAmount:0,gross:128.66,vatRate:21,
+    fieldConfidence:{party:95,invoiceNumber:95,issueDate:95,net:42,vatAmount:42,gross:99,vatRate:98,vatLines:42}
+  });
+  await page.evaluate(()=>setDocumentReviewStep(2));
+  await page.locator('#pdfImportForm [name="gross"]').fill('128,66');
+  await page.getByRole('button',{name:'Gebruik deze bedragen',exact:true}).click();
+  await page.locator('#reviewBlockingState').filter({hasText:/Klaar om op te slaan/}).waitFor();
+  assert.equal(await page.locator('#pdfImportForm [name="net"]').inputValue(),'106.33');
+  assert.equal(await page.locator('#pdfImportForm [name="vatAmount"]').inputValue(),'22.33');
   await page.evaluate(()=>closeModal());
 
   await openReview({
@@ -156,6 +175,27 @@ try{
   assert.equal(await page.getByRole('button',{name:'Gecontroleerd & opslaan',exact:true}).first().isDisabled(),true,'invalid mixed VAT must block save');
   await page.locator('.mixed-vat-row').first().locator('[data-vat-line-vat]').fill('1,80');
   await page.locator('#mixedVatStatus').filter({hasText:/Btw-verdeling klopt/}).waitFor();
+
+  await openReview({
+    documentType:'receipt',invoiceNumber:'',party:'Review Winkel',category:'Overig',
+    net:10,vatAmount:2.10,gross:12.10,vatRate:21,
+    fieldConfidence:{party:95,issueDate:95,net:98,vatAmount:98,gross:98,vatRate:98,vatLines:98,category:45}
+  });
+  await page.evaluate(()=>setDocumentReviewStep(2));
+  await page.locator('[data-review-defer="category"]').click();
+  await page.evaluate(()=>savePdfInvoiceImport());
+  await page.waitForFunction(()=>state.documents.some(d=>d.reviewSnapshot));
+  const savedReview=await page.evaluate(()=>{
+    const d=state.documents.find(x=>x.reviewSnapshot);
+    return {id:d?.id,attention:d?.reviewAttentionFields||[],snapshot:d?.reviewSnapshot,rows:attentionRows().filter(x=>x.key==='document-review-'+d?.id).length};
+  });
+  assert.ok(savedReview.id,'saved document must keep a review snapshot');
+  assert.deepEqual(savedReview.attention,['category'],'deferred category must persist as attention');
+  assert.equal(savedReview.rows,1,'deferred review must appear exactly once in Actie nodig');
+  await page.evaluate(id=>openSavedDocumentReview(id),savedReview.id);
+  await page.getByRole('heading',{name:'Opgeslagen controle'}).waitFor();
+  assert.match(await page.locator('#modalRoot').innerText(),/Later controleren/);
+  await page.evaluate(()=>closeModal());
 
   await page.setViewportSize({width:390,height:844});
   await noOverflow(browserName+' mobile review');
