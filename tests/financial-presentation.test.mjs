@@ -43,7 +43,7 @@ const browserName=process.env.BOOKUNA_BROWSER==='webkit'?'webkit':'chromium';
 const browser=await ({chromium,webkit}[browserName]).launch({headless:true});
 const page=await browser.newPage({viewport:{width:390,height:900},hasTouch:true});const errors=[];page.on('pageerror',e=>errors.push(String(e)));
 const artifactRoot='tests/artifacts/financial-presentation';fs.mkdirSync(artifactRoot,{recursive:true});
-const widths=[320,360,375,390,393,430,768,1024,1280,1440,1920],routes=['dashboard','invoices','expenses','bank','documents','control','vat','reports','cashflow','ledger','hours','settings'];
+const viewports=[[320,568],[360,800],[375,812],[390,844],[393,852],[430,932],[768,1024],[1024,768],[1280,800],[1366,768],[1440,900],[1920,1080]],routes=['dashboard','invoices','expenses','bank','documents','control','vat','reports','cashflow','ledger','hours','settings'];
 const checks=[];
 try{
  await page.goto('http://127.0.0.1:'+server.address().port+'/baseline');
@@ -93,8 +93,8 @@ try{
  const reportPageBefore=await page.evaluate(()=>page),reportModalBefore=await page.locator('#modalRoot .modal').count();
  await reportBars.first().click();assert.equal(await page.evaluate(()=>page),reportPageBefore,'Chart inspection must not navigate');assert.equal(await page.locator('#modalRoot .modal').count(),reportModalBefore,'Chart inspection must not open a modal');
 
- for(const width of widths){
-  await page.setViewportSize({width,height:900});
+ for(const [width,height] of viewports){
+  await page.setViewportSize({width,height});
   for(const route of routes){
    await page.evaluate(async route=>{await navigate(route)},route);
    if(route==='vat')await page.evaluate(()=>{sessionStorage.setItem('vatYear','all');render()});
@@ -109,7 +109,7 @@ try{
    }
    const semantics=await page.locator('#content table').evaluateAll(tables=>tables.every(table=>[...table.querySelectorAll('th')].every(th=>th.scope==='col'&&getComputedStyle(th).display!=='none')&&[...table.querySelectorAll('tbody td:not([colspan])')].every(td=>td.hasAttribute('headers'))));
    assert.ok(semantics,route+' accessible table relationships '+width);
-   if([320,390,1440].includes(width)){
+   if([320,390,1366,1440].includes(width)){
     if(route==='dashboard'){
      const bars=page.locator('[data-chart-values]');await bars.last().scrollIntoViewIfNeeded();await bars.last().click();
      const card=await page.locator('.dashboard-chart-card').boundingBox(),tooltip=await page.locator('#dashboardChartValues').boundingBox();
@@ -119,15 +119,19 @@ try{
      const header=await page.locator('.dashboard-chart-card .section-head').boundingBox();assert.ok(tooltip.y>=header.y+header.height,'Tooltip leaves chart navigation uncovered');
     }
     await page.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';scrollTo(0,0)});await page.waitForFunction(()=>scrollY===0);
-    await page.screenshot({path:artifactRoot+'/'+route+'-'+browserName+'-'+width+'.png',fullPage:true});
+    if(['dashboard','expenses','bank','reports'].includes(route)||width===320)await page.screenshot({path:artifactRoot+'/'+route+'-'+browserName+'-'+width+'x'+height+'.png',fullPage:true});
    }
-   checks.push({route,width});
+   checks.push({route,width,height});
   }
  }
  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>{page='bank';render()});
  const mobileUnlink=page.locator('.mobile-bank .bank-unlink-action').first();
  assert.equal(await mobileUnlink.locator('.bank-unlink-text').evaluate(el=>getComputedStyle(el).display),'inline','Mobile bank action must keep Ontkoppelen as text');
  assert.equal(await mobileUnlink.locator('svg').evaluate(el=>getComputedStyle(el).display),'none','Mobile bank action should favor text over icon-only meaning');
+ await page.evaluate(()=>{page='expenses';render()});
+ const mobileExpenseRow=page.locator('.mobile-expenses tbody tr').first();
+ assert.equal(await mobileExpenseRow.getAttribute('onclick'),null,'Mobile expense row remains non-clickable');
+ const scrollBefore=await page.evaluate(()=>scrollY);await page.mouse.wheel(0,420);await page.waitForTimeout(40);const scrollAfter=await page.evaluate(()=>scrollY);assert.ok(scrollAfter>=scrollBefore,'Mobile page scroll remains available over table content');
  await page.evaluate(()=>{page='reports';render()});
  const mobileReportBars=page.locator('.report-result-chart [data-chart-values]'),mobileReportTip=page.locator('#reportChartValues');
  await mobileReportBars.last().tap();assert.equal(await mobileReportTip.isVisible(),true,'Mobile report tap opens tooltip');
