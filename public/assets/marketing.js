@@ -1,4 +1,4 @@
-const HEADER=\`
+const HEADER=`
 <header class="site-header">
   <nav class="nav shell" aria-label="Hoofdnavigatie">
     <a class="brand" href="/" aria-label="Boekuna home"><img src="/assets/boekuna-logo-primary.svg" alt="Boekuna"></a>
@@ -15,9 +15,9 @@ const HEADER=\`
     <a href="/#product">Product</a><a href="/#hoe-het-werkt">Hoe het werkt</a><a href="/#prijzen">Prijzen</a><a href="/#faq">FAQ</a>
     <a href="/support/">Support</a><a href="https://app.boekuna.nl/?login=1">Inloggen</a><a class="button button-primary" href="https://app.boekuna.nl/?register=1">Start gratis</a>
   </nav>
-</header>\`;
+</header>`;
 
-const FOOTER=\`
+const FOOTER=`
 <footer class="footer">
   <div class="shell footer-grid">
     <div><img src="/assets/boekuna-logo-reversed.svg" alt="Boekuna" class="footer-logo"><p>Boekhouden zonder boekhoudtaal. Boekuna is een product van Kwinest.</p></div>
@@ -25,7 +25,7 @@ const FOOTER=\`
     <div class="footer-contact"><a href="mailto:support@boekuna.nl">support@boekuna.nl</a><a href="https://app.boekuna.nl/?login=1">Inloggen</a></div>
   </div>
   <div class="shell footer-bottom">© 2026 Boekuna · Nederland</div>
-</footer>\`;
+</footer>`;
 
 function ensureHead(){
   document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(el=>el.remove());
