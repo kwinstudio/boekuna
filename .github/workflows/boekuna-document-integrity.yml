@@ -7,6 +7,7 @@ on:
       - "kwinest/index.html"
       - "public/assets/financial-correction.js"
       - "tests/document-*.test.py"
+      - "tests/document-scan-intelligence-unit.test.py"
       - "tests/document-*.test.mjs"
       - "tests/ocr-production-hardening.test.py"
       - "tests/test_document_processor_regression.py"
@@ -72,6 +73,8 @@ jobs:
         run: python tests/ocr-production-hardening.test.py
       - name: Scan intelligence benchmark
         run: python tests/document-scan-intelligence-benchmark.test.py
+      - name: Scan intelligence unit regressions
+        run: python tests/document-scan-intelligence-unit.test.py
       - name: Production origin and image codecs
         run: python tests/processor-production-origin.test.py
       - name: Processor memory regression
