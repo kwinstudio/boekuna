@@ -46,6 +46,7 @@ try{
  await page.goto(`http://127.0.0.1:${server.address().port}/app`,{waitUntil:'domcontentloaded'});
  await page.evaluate(()=>{
   window.__nativeShares=[];
+  Object.defineProperty(navigator,'userAgentData',{configurable:true,value:{mobile:true}});
   Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>true});
   Object.defineProperty(navigator,'share',{configurable:true,value:async data=>window.__nativeShares.push({title:data.title,text:data.text,files:data.files.map(f=>({name:f.name,type:f.type,size:f.size}))})});
  });
@@ -57,15 +58,13 @@ try{
  assert.equal(pdfCalls,1);
  failPdf=false;
  await page.getByRole('button',{name:'Opnieuw proberen'}).click();
- await page.getByRole('heading',{name:'Hoe wilt u versturen?'}).waitFor({timeout:2500});
+ await page.getByRole('heading',{name:'Hebt u de e-mail verzonden?'}).waitFor({timeout:2500});
  assert.equal(pdfCalls,2,'Retry must generate the authoritative PDF again');
  const nativeBefore=await page.evaluate(()=>__boekunaEmailHandoffTestState());
  assert.equal(nativeBefore.file.type,'application/pdf');assert.equal(nativeBefore.file.size,pdfBytes.length);
  const mailto=await page.evaluate(()=>emailHandoffMailtoUrl());
  assert.match(mailto,/^mailto:customer%40example\.test\?subject=/);
- assert.equal(await page.evaluate(()=>state.invoices[0].lastSentAt),undefined);
- await page.evaluate(()=>shareEmailHandoffPdf());
- await page.getByRole('heading',{name:'Hebt u de e-mail verzonden?'}).waitFor();
+ assert.equal(await page.evaluate(()=>window.__nativeShares.length),1,'Successful mobile retry must open one native PDF share');
  assert.equal(await page.evaluate(()=>state.invoices[0].lastSentAt),undefined,'Native share return must await explicit confirmation');
  await page.evaluate(()=>{confirmEmailHandoff('native_share');confirmEmailHandoff('native_share')});
  const delivered=await page.evaluate(()=>structuredClone(state.invoices[0]));
