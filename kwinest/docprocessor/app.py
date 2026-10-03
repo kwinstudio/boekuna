@@ -25,6 +25,7 @@ from docx import Document as DocxDocument
 from openpyxl import load_workbook
 from receipt_math import detect_vat_rates, has_complex_adjustments, derive_single_rate_amounts, enforce_single_rate_consistency
 from financial_blocks import parse_financial_blocks
+from image_quality import inspect_image_quality, quality_advice
 
 RAPIDOCR_GENERATION = "none"
 try:
@@ -36,7 +37,7 @@ except Exception:
 _OCR_ENGINE = None
 _OCR_ENGINE_ERROR = None
 OCR_MODEL_NAME = "PP-OCRv6-small"
-PROCESSOR_VERSION = "3.2.0"
+PROCESSOR_VERSION = "3.3.0"
 PROCESSOR_REVISION = (os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or "unknown")[:64]
 
 def installed_package_version(name: str) -> str | None:
@@ -882,6 +883,17 @@ def prepare_ocr_image(img: Image.Image) -> Image.Image:
         except Exception: pass
     w,h = rgb.size
     longest=max(w,h)
+    # Long receipts must not be squeezed to a 1000px *height*: that destroys
+    # small text near the bottom. Normal pages keep the established 1000px cap;
+    # long receipts are normalized by width and processed as bounded tiles.
+    if h > w * 2.8 and h > OCR_WORKING_MAX_SIDE:
+        scale=min(1.0, OCR_WORKING_MAX_SIDE/max(1,w))
+        target=(max(1,int(w*scale)),max(1,int(h*scale)))
+        if target != rgb.size:
+            resized=rgb.resize(target,Image.Resampling.LANCZOS)
+            rgb.close()
+            return resized
+        return rgb
     if longest < OCR_WORKING_MAX_SIDE:
         scale=min(2.2,OCR_WORKING_MAX_SIDE/max(1,longest))
         resized=rgb.resize((max(1,int(w*scale)),max(1,int(h*scale))),Image.Resampling.LANCZOS)
@@ -932,6 +944,55 @@ def ocr_rows(engine: Any, img: Image.Image) -> list[dict[str,Any]]:
             return (1e9,1e9)
     rows.sort(key=pos)
     return rows
+
+def ocr_tiled_rows(engine:Any,img:Image.Image,*,tile_height:int=900,overlap:int=140,enhance:bool=False)->list[dict[str,Any]]:
+    """OCR a tall document in overlapping vertical tiles without retaining crops."""
+    w,h=img.size
+    tile_height=max(320,int(tile_height))
+    overlap=max(40,min(int(overlap),tile_height//2))
+    if h<=tile_height:
+        source=enhanced_receipt_variant(img) if enhance else img
+        try:
+            return ocr_rows(engine,source)
+        finally:
+            if source is not img:source.close()
+    step=max(1,tile_height-overlap)
+    merged=[]
+    y0=0
+    while y0<h:
+        y1=min(h,y0+tile_height)
+        crop=img.crop((0,y0,w,y1))
+        source=enhanced_receipt_variant(crop) if enhance else crop
+        try:
+            rows=ocr_rows(engine,source)
+        finally:
+            if source is not crop:source.close()
+            crop.close()
+        for row in rows:
+            mapped=dict(row)
+            box=row.get("box")
+            if box:
+                try:mapped["box"]=[[float(p[0]),float(p[1])+y0] for p in box]
+                except Exception:mapped["box"]=box
+            text_key=re.sub(r"\s+"," ",str(mapped.get("text") or "")).strip().lower()
+            bounds=_ocr_row_bounds(mapped)
+            cy=((bounds[1]+bounds[3])/2) if bounds else None
+            duplicate=False
+            if text_key:
+                for prev in reversed(merged[-18:]):
+                    if re.sub(r"\s+"," ",str(prev.get("text") or "")).strip().lower()!=text_key:
+                        continue
+                    pb=_ocr_row_bounds(prev)
+                    pcy=((pb[1]+pb[3])/2) if pb else None
+                    if cy is not None and pcy is not None and abs(cy-pcy)<=max(42,overlap*.72):
+                        if float(mapped.get("confidence") or 0)>float(prev.get("confidence") or 0):
+                            prev.update(mapped)
+                        duplicate=True;break
+            if not duplicate:merged.append(mapped)
+        if y1>=h:break
+        y0+=step
+    merged.sort(key=lambda row:((_ocr_row_bounds(row) or (0,1e9,0,1e9))[1],(_ocr_row_bounds(row) or (1e9,0,1e9,0))[0]))
+    return merged
 
 def ocr_candidate_score(rows:list[dict[str,Any]]) -> float:
     if not rows:
@@ -991,34 +1052,86 @@ def targeted_financial_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any)-
     confs=[float(r.get("confidence") or 0) for r in focus_rows]
     return {"text":text,"rows":focus_rows,"confidence":sum(confs)/len(confs) if confs else None,"used":True}
 
-def run_best_ocr(img:Image.Image, *, already_prepared:bool=False) -> dict[str,Any]:
+def targeted_header_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any,quality:dict|None=None)->dict[str,Any]:
+    """Conditionally re-scan the header for supplier/date/number metadata."""
+    flags=set((quality or {}).get("flags") or [])
+    top_rows=[]
+    h=img.height
+    for row in rows or []:
+        b=_ocr_row_bounds(row)
+        if b and b[1] <= h*.45:top_rows.append(row)
+    top_conf=sum(float(r.get("confidence") or 0) for r in top_rows)/len(top_rows) if top_rows else 0
+    trigger=bool(flags.intersection({"IMAGE_SKEW","IMAGE_LOW_RESOLUTION","IMAGE_DARK","IMAGE_BLUR"})) or top_conf<.91
+    if not trigger:
+        return {"text":"","rows":[],"confidence":None,"used":False}
+    crop=img.crop((0,0,img.width,max(220,int(img.height*.46))))
+    if crop.width<OCR_WORKING_MAX_SIDE:
+        scale=min(2.0,OCR_WORKING_MAX_SIDE/max(1,crop.width))
+        resized=crop.resize((max(1,int(crop.width*scale)),max(1,int(crop.height*scale))),Image.Resampling.LANCZOS)
+        crop.close();crop=resized
+    enhanced=enhanced_receipt_variant(crop)
+    try:
+        header_rows=ocr_rows(engine,enhanced)
+    finally:
+        enhanced.close();crop.close()
+    if not header_rows:
+        return {"text":"","rows":[],"confidence":None,"used":False}
+    confs=[float(r.get("confidence") or 0) for r in header_rows]
+    conf=sum(confs)/len(confs) if confs else 0
+    text="\n".join(r["text"] for r in header_rows)
+    # Do not inject a weak retry into the parser just because a retry happened.
+    if conf<.74 or len(re.sub(r"\s+","",text))<8:
+        return {"text":"","rows":[],"confidence":conf,"used":False}
+    return {"text":text,"rows":header_rows,"confidence":conf,"used":True}
+
+def run_best_ocr(img:Image.Image, *, already_prepared:bool=False, quality:dict|None=None) -> dict[str,Any]:
     engine=get_ocr_engine()
     if not engine:
         raise RuntimeError(_OCR_ENGINE_ERROR or "OCR-engine is niet beschikbaar")
     primary=img if already_prepared else prepare_ocr_image(img)
     owns_primary=not already_prepared
+    quality=quality or {}
     try:
-        rows1=ocr_rows(engine,primary)
+        is_tall=primary.height>primary.width*2.8
+        rows1=ocr_tiled_rows(engine,primary) if is_tall else ocr_rows(engine,primary)
         score1=ocr_candidate_score(rows1)
         text1="\n".join(r["text"] for r in rows1)
         conf1=sum(float(r.get("confidence") or 0) for r in rows1)/len(rows1) if rows1 else 0
         money1=len(MONEY_RE.findall(text1))
         keywords1=bool(re.search(r"\b(?:totaal|total|te betalen|amount due)\b",text1,re.I))
-        best_rows,best_score,best_variant=rows1,score1,"normalized-color"
-        # A second pass is only run when the first pass looks weak. This avoids doubling
-        # CPU on clear receipts but helps low contrast, shadows and thermal paper.
-        if conf1 < .90 or len(re.sub(r"\s+","",text1)) < 220 or money1 < 2 or not keywords1:
-            enhanced=enhanced_receipt_variant(primary)
+        best_rows,best_score,best_variant=rows1,score1,("tiled-color" if is_tall else "normalized-color")
+
+        # Conservative deskew: only a small quality-gate recommendation is tried,
+        # and the rotated result wins only when OCR scoring is measurably better.
+        deskew=float(((quality or {}).get("metrics") or {}).get("deskewAngle") or 0)
+        if abs(deskew)>=1.5 and abs(deskew)<=7:
+            rotated=primary.rotate(deskew,resample=Image.Resampling.BICUBIC,expand=False,fillcolor="white")
             try:
-                rows2=ocr_rows(engine,enhanced)
+                rowsd=ocr_tiled_rows(engine,rotated) if is_tall else ocr_rows(engine,rotated)
             finally:
-                enhanced.close()
+                rotated.close()
+            scored=ocr_candidate_score(rowsd)
+            if scored>best_score+.5:
+                best_rows,best_score,best_variant=rowsd,scored,("tiled-deskew" if is_tall else "deskewed-color")
+
+        # A second pass is only run when the first pass looks weak or capture
+        # quality warrants it. Tall receipts are enhanced tile-by-tile to bound RAM.
+        quality_retry=bool(set((quality or {}).get("flags") or []).intersection({"IMAGE_DARK","IMAGE_BLUR","IMAGE_LOW_RESOLUTION"}))
+        if conf1 < .90 or len(re.sub(r"\s+","",text1)) < 220 or money1 < 2 or not keywords1 or quality_retry:
+            if is_tall:
+                rows2=ocr_tiled_rows(engine,primary,enhance=True)
+            else:
+                enhanced=enhanced_receipt_variant(primary)
+                try:rows2=ocr_rows(engine,enhanced)
+                finally:enhanced.close()
             score2=ocr_candidate_score(rows2)
             if score2 > best_score + .5:
-                best_rows,best_score,best_variant=rows2,score2,"enhanced-grayscale"
+                best_rows,best_score,best_variant=rows2,score2,("tiled-enhanced" if is_tall else "enhanced-grayscale")
+
         text="\n".join(r["text"] for r in best_rows)
         confs=[float(r.get("confidence") or 0) for r in best_rows]
         focus=targeted_financial_ocr(primary,best_rows,engine)
+        header=targeted_header_ocr(primary,best_rows,engine,quality)
         return {
             "text":text,
             "rows":best_rows,
@@ -1028,6 +1141,9 @@ def run_best_ocr(img:Image.Image, *, already_prepared:bool=False) -> dict[str,An
             "financialText":focus.get("text") or "",
             "financialFocusUsed":bool(focus.get("used")),
             "financialConfidence":focus.get("confidence"),
+            "headerText":header.get("text") or "",
+            "headerFocusUsed":bool(header.get("used")),
+            "headerConfidence":header.get("confidence"),
             "engine":"RapidOCR 3 / ONNX",
             "model":OCR_MODEL_NAME,
         }
@@ -1145,11 +1261,12 @@ def extract_image(raw:bytes) -> dict[str,Any]:
         raise BoekunaDocumentError("DOCUMENT_TOO_LARGE",status=413,internal_code="IMAGE_DECOMPRESSION_BOMB",internal_error=type(exc).__name__)
     except Exception as exc:
         raise BoekunaDocumentError("DOCUMENT_IMAGE_UNREADABLE",status=422,internal_code="IMAGE_DECODE_FAILED",internal_error=exc)
+    quality=inspect_image_quality(img)
     prepared=prepare_ocr_image(img)
     img.close()
     release_document_memory()
     try:
-        best=run_best_ocr(prepared,already_prepared=True)
+        best=run_best_ocr(prepared,already_prepared=True,quality=quality)
     except Exception as exc:
         raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="OCR_EXECUTION_FAILED",internal_error=exc)
     finally:
@@ -1161,9 +1278,15 @@ def extract_image(raw:bytes) -> dict[str,Any]:
     return {
         "kind":"image","pageCount":1,
         "pages":[{"page":1,"text":text,"charCount":len(text),"ocr":True,"ocrConfidence":best.get("confidence"),"tables":[]}],
-        "text":text,"financialText":best.get("financialText") or "","layout":[{"page":1,"words":layout}],"tables":[],"ocrPages":[1],
+        "text":text,"financialText":best.get("financialText") or "","headerText":best.get("headerText") or "","layout":[{"page":1,"words":layout}],"tables":[],"ocrPages":[1],
         "ocrEngine":best.get("engine"),"ocrModel":best.get("model"),
-        "processingHints":{"ocrVariant":best.get("variant"),"ocrQualityScore":best.get("qualityScore"),"financialFocusUsed":bool(best.get("financialFocusUsed")),"financialConfidence":best.get("financialConfidence")}
+        "processingHints":{
+            "ocrVariant":best.get("variant"),"ocrQualityScore":best.get("qualityScore"),
+            "financialFocusUsed":bool(best.get("financialFocusUsed")),"financialConfidence":best.get("financialConfidence"),
+            "headerFocusUsed":bool(best.get("headerFocusUsed")),"headerConfidence":best.get("headerConfidence"),
+            "qualityClass":quality.get("class"),"qualityFlags":quality.get("flags") or [],
+            "qualityAdvice":quality_advice(quality.get("flags") or []),"qualityMetrics":quality.get("metrics") or {}
+        }
     }
 
 def extract_docx(raw:bytes)->dict[str,Any]:
@@ -1381,6 +1504,16 @@ def strong_total_anchor(lines:list[str])->tuple[float|None,float]:
 
 def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     text=doc.get("text") or ""
+    header_text=norm_text(doc.get("headerText") or "").replace(" \n","\n")
+    if header_text:
+        # Header re-scan is metadata evidence only; dedupe exact repeated lines.
+        merged=[];seen=set()
+        for raw_line in (header_text+"\n"+text).splitlines():
+            clean=norm_text(raw_line)
+            key=clean.lower()
+            if clean and key not in seen:
+                seen.add(key);merged.append(clean)
+        text="\n".join(merged)
     table_lines=[]
     for table in doc.get("tables",[])[:30]:
         for row in (table.get("rows") or [])[:160]:
@@ -1544,6 +1677,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         subtotal=subtotal,vat_total=vat_total,total=total,
         subtotal_conf=sub_conf,vat_conf=vat_conf,total_conf=total_conf,
         allow=(len(detected_rates)==1 and not has_complex_adjustments(financial_text or "\n".join(amount_lines))),
+        allow_replace_explicit=False,
     )
     if derivation.get("used") or derivation.get("conflicts"):
         subtotal=derivation.get("subtotal")
@@ -1617,7 +1751,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         invoice=InvoiceMeta(invoiceNumber=invoice_no,invoiceDate=inv_date,dueDate=due_date,paymentTermDays=term,orderNumber=order_no,paymentReference=payref,description=description),
         amounts=Amounts(subtotal=abs(subtotal) if subtotal is not None else None,vatLines=vat_lines,vatTotal=abs(vat_total) if vat_total is not None else None,total=abs(total) if total is not None else None,settlementAmount=abs(settlement_amount) if settlement_amount is not None else None,discount=abs(discount) if discount is not None else None,shipping=abs(shipping) if shipping is not None else None,currency="EUR"),
         status=status,lineItems=[],adjustments=structured_adjustments,confidence=confidence,warnings=derivation_warnings,
-        processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"financialBlocks":{"verified":bool(financial_structure.get("verified")),"primaryArithmeticOk":bool(financial_structure.get("primaryArithmeticOk")),"adjustmentArithmeticOk":bool(financial_structure.get("adjustmentArithmeticOk")),"settlementArithmeticOk":bool(financial_structure.get("settlementArithmeticOk")),"adjustmentTotal":financial_structure.get("adjustmentTotal"),"settlementSource":financial_structure.get("settlementSource")},"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"mixedRates":len(detected_rates)>1},"mixedVatEvidence":{"verified":bool(mixed_vat_evidence.get("verified")),"source":mixed_vat_evidence.get("source")},"vatLineSource":vat_line_source,"descriptionSource":description_source,"selfBilling":self_billing,"selfBillingEvidence":"explicit-source-text" if self_billing else None,"factoringSaleStructure":factoring_sale}
+        processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"financialBlocks":{"verified":bool(financial_structure.get("verified")),"primaryArithmeticOk":bool(financial_structure.get("primaryArithmeticOk")),"adjustmentArithmeticOk":bool(financial_structure.get("adjustmentArithmeticOk")),"settlementArithmeticOk":bool(financial_structure.get("settlementArithmeticOk")),"adjustmentTotal":financial_structure.get("adjustmentTotal"),"settlementSource":financial_structure.get("settlementSource")},"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"conflicts":derivation.get("conflicts",[]),"mixedRates":len(detected_rates)>1},"imageQuality":{"class":(doc.get("processingHints") or {}).get("qualityClass"),"flags":(doc.get("processingHints") or {}).get("qualityFlags") or [],"advice":(doc.get("processingHints") or {}).get("qualityAdvice") or [],"metrics":(doc.get("processingHints") or {}).get("qualityMetrics") or {}},"headerFocusUsed":bool((doc.get("processingHints") or {}).get("headerFocusUsed")),"mixedVatEvidence":{"verified":bool(mixed_vat_evidence.get("verified")),"source":mixed_vat_evidence.get("source")},"vatLineSource":vat_line_source,"descriptionSource":description_source,"selfBilling":self_billing,"selfBillingEvidence":"explicit-source-text" if self_billing else None,"factoringSaleStructure":factoring_sale}
     )
     return validate_result(result,company)
 
