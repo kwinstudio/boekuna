@@ -187,6 +187,9 @@ function initBoekunaHomepage(){
       const rect=section.getBoundingClientRect();
       const local=clamp((window.innerHeight*.86-rect.top)/(window.innerHeight+rect.height*.4));
       section.style.setProperty('--focus-progress',reduced?'.5':local.toFixed(4));
+      const focusOffset=reduced?0:(.5-local)*28;
+      section.style.setProperty('--focus-copy-y',focusOffset.toFixed(2)+'px');
+      section.style.setProperty('--focus-visual-y',(focusOffset*-1.25).toFixed(2)+'px');
       section.classList.toggle('is-focus-active',rect.top<window.innerHeight*.72&&rect.bottom>window.innerHeight*.28);
     });
 
@@ -205,6 +208,7 @@ function initBoekunaHomepage(){
       const rect=finalCta.getBoundingClientRect();
       const local=clamp((window.innerHeight-rect.top)/(window.innerHeight+rect.height));
       finalCta.style.setProperty('--final-progress',local.toFixed(4));
+      finalCta.style.setProperty('--final-scale',(.28+local*.92).toFixed(4));
     }
   }
   function queueScrollInteraction(){
