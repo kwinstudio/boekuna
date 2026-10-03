@@ -62,7 +62,9 @@ try{
         await waitFonts(page,name+' '+width);
         assert.ok(await page.locator('.hero h1').isVisible(),name+' '+width+' hero visible');
         assert.equal((await page.locator('.hero h1').innerText()).replace(/\s+/g,' ').trim(),'Je bent ondernemer. Geen boekhouder.');
-        assert.ok(await page.locator('a[href="https://app.boekuna.nl/?login=1"]').first().isVisible(),name+' '+width+' login visible');
+        const loginLinks=page.locator('a[href="https://app.boekuna.nl/?login=1"]');
+        assert.ok(await loginLinks.count()>=1,name+' '+width+' login link present');
+        if(width>640)assert.ok(await loginLinks.first().isVisible(),name+' '+width+' desktop/tablet login visible');
         assert.ok(await page.locator('.hero a[href="https://app.boekuna.nl/?register=1"]').isVisible(),name+' '+width+' registration CTA visible');
         for(const id of ['product','hoe-het-werkt','inzicht','prijzen','faq'])assert.equal(await page.locator('#'+id).count(),1,name+' '+width+' missing #'+id);
         assert.equal(await page.locator('.product-visual img').count(),2,name+' '+width+' must render exactly two real product captures');
@@ -85,6 +87,7 @@ try{
           assert.equal(await toggle.getAttribute('aria-expanded'),'true',name+' menu expanded');
           await page.locator('#mobileMenu').waitFor({state:'visible'});
           assert.ok(await page.locator('#mobileMenu a[href="#product"], #mobileMenu a[href="/#product"]').first().isVisible(),name+' mobile menu content visible');
+          assert.ok(await page.locator('#mobileMenu a[href="https://app.boekuna.nl/?login=1"]').isVisible(),name+' mobile login visible after menu opens');
           await page.keyboard.press('Escape');
           assert.equal(await toggle.getAttribute('aria-expanded'),'false',name+' menu closes with Escape');
           assert.ok(await toggle.evaluate(el=>el===document.activeElement),name+' focus restored to menu trigger');
