@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const retirement=read('supabase/migrations/20260929122626_retire_first_100_early_access.sql');
 const checkout=read('supabase/functions/billing-checkout/index.ts');
-const pricing=read('public/prijzen/index.html');
-const faq=read('public/faq/index.html');
+const pricing=read('public/index.html');
+const faq=read('public/index.html');
 const terms=read('public/voorwaarden/index.html');
 const html=read('kwinest/index.html');
 
