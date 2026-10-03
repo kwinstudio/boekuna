@@ -6,6 +6,7 @@ on:
       - "kwinest/index.html"
       - "public/manifest.webmanifest"
       - "public/assets/financial-correction.js"
+      - "public/assets/document-review-v2.*"
       - "public/assets/developer-mode.js"
       - "public/assets/kvk-company-lookup.*"
       - "public/assets/mobile-polish-round-2.*"
