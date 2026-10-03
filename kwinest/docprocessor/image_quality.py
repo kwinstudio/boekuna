@@ -42,8 +42,16 @@ def _sharpness(arr: np.ndarray) -> float:
     f = arr.astype(np.float32)
     dx = np.abs(np.diff(f, axis=1))
     dy = np.abs(np.diff(f, axis=0))
-    # Mean edge energy is stable across image sizes and falls sharply on blur.
-    return float((dx.mean() + dy.mean()) / 2.0)
+    # Measure edges around ink instead of averaging the whole paper area.
+    # The adaptive threshold keeps a dark-but-sharp capture from being
+    # mislabeled as blur just because all intensities are compressed.
+    background = float(np.percentile(arr, 75))
+    ink_threshold = min(245.0, max(20.0, background - 8.0))
+    mask_x = (arr[:, :-1] < ink_threshold) | (arr[:, 1:] < ink_threshold)
+    mask_y = (arr[:-1, :] < ink_threshold) | (arr[1:, :] < ink_threshold)
+    if float(mask_x.mean()) < .001 or float(mask_y.mean()) < .001:
+        return 0.0
+    return float((dx[mask_x].mean() + dy[mask_y].mean()) / 2.0)
 
 
 def _projection_score(gray: Image.Image, angle: float) -> float:
@@ -118,11 +126,13 @@ def inspect_image_quality(image: Image.Image) -> dict:
         flags.append("IMAGE_LOW_RESOLUTION")
     if brightness < 82.0 or dark_ratio > 0.58:
         flags.append("IMAGE_DARK")
-    if brightness > 246.0 and overexposed_ratio > 0.90:
+    # White paper legitimately contains a lot of clipped-white pixels. Flag
+    # overexposure only when useful contrast has also been lost.
+    if brightness > 246.0 and overexposed_ratio > 0.90 and contrast < 12.0:
         flags.append("IMAGE_OVEREXPOSED")
-    # Synthetic/blank pages have very low edge energy too, but the OCR result
-    # decides whether this becomes blocking; the quality gate itself only flags it.
-    if sharpness < 3.0 and contrast > 7.0:
+    # Light blur remains best-effort; only strongly softened text should prompt
+    # the user to retake the photo.
+    if sharpness < 18.0 and contrast > 7.0:
         flags.append("IMAGE_BLUR")
     if aspect >= 3.0 and height > width:
         flags.append("IMAGE_LONG_RECEIPT")
