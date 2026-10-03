@@ -241,11 +241,11 @@ function financialBlockingIssues(d){
     if(!value(key))issues.push({field:key,message:(LABELS[key]||key)+' ontbreekt.'})
   }
   const netC=cents(value('net')),vatC=cents(value('vatAmount')),grossC=cents(value('gross'));
-  if(netC==null)issues.push({field:'net',message:'Controleer het bedrag excl. btw.'});
-  if(vatC==null)issues.push({field:'vatAmount',message:'Controleer het btw-bedrag.'});
-  if(grossC==null||grossC===0)issues.push({field:'gross',message:'Controleer het totaal.'});
+  if(required.has('net')&&netC==null)issues.push({field:'net',message:'Controleer het bedrag excl. btw.'});
+  if(required.has('vatAmount')&&vatC==null)issues.push({field:'vatAmount',message:'Controleer het btw-bedrag.'});
+  if(required.has('gross')&&(grossC==null||grossC===0))issues.push({field:'gross',message:'Controleer het totaal.'});
   if(netC!=null&&vatC!=null&&grossC!=null&&netC+vatC!==grossC)issues.push({field:'gross',message:'Deze bedragen kloppen nog niet met elkaar.'});
-  if(!d?.mixedRates&&netC!=null&&vatC!=null&&grossC!=null){
+  if(!d?.mixedRates&&required.has('vatRate')&&netC!=null&&vatC!=null&&grossC!=null){
     const rate=value('vatRate')===''?null:Number(value('vatRate'));
     if(rate==null||!Number.isFinite(rate))issues.push({field:'vatRate',message:'Kies het btw-percentage.'});
     else if(typeof BookunaFinancialCorrection!=='undefined'&&!BookunaFinancialCorrection.candidateFitsRate({net:netC,vatAmount:vatC,gross:grossC},rate,0))issues.push({field:'vatRate',message:'Het btw-percentage past niet bij deze bedragen.'});
