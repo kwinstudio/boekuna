@@ -144,6 +144,8 @@ function confirmFinancialReviewAnchor(key){
   const f=document.getElementById('pdfImportForm'),el=f?.elements.namedItem(key);
   if(!el||String(el.value||'').trim()===''){el?.focus();return}
   if(typeof global.confirmFinancialReviewField==='function')global.confirmFinancialReviewField(key);
+  const actions=document.querySelector('[data-financial-anchor-actions="'+key+'"]');
+  if(actions)actions.innerHTML='<span class="beginner-confirmed">Dit klopt zo</span>';
   updateBeginnerReviewState()
 }
 
