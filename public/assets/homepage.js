@@ -1,6 +1,7 @@
 function initBoekunaHomepage(){
   const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const root=document.documentElement;
+  if(!reduced)document.body.classList.add('motion-enhanced');
   const clamp=(value,min=0,max=1)=>Math.min(max,Math.max(min,value));
 
   const demoData={
