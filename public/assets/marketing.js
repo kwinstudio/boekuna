@@ -30,6 +30,12 @@ const FOOTER=\`
 function ensureHead(){
   document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(el=>el.remove());
   const apple=document.createElement('link');apple.rel='apple-touch-icon';apple.sizes='180x180';apple.href='/assets/boekuna-app-icon-180.png';document.head.appendChild(apple);
+  let og=document.querySelector('meta[property="og:image"]');
+  if(!og){og=document.createElement('meta');og.setAttribute('property','og:image');document.head.appendChild(og);}
+  og.setAttribute('content','https://boekuna.nl/assets/boekuna-og-1200x630.png');
+  let twitter=document.querySelector('meta[name="twitter:card"]');
+  if(!twitter){twitter=document.createElement('meta');twitter.name='twitter:card';document.head.appendChild(twitter);}
+  twitter.content='summary_large_image';
 }
 function mountChrome(){
   const h=document.getElementById('siteHeader');if(h&&!h.children.length)h.innerHTML=HEADER;
