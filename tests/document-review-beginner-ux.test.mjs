@@ -116,14 +116,21 @@ try{
     const candidate={type:'purchase',party:'ADOBE SYSTEMS BV',vatId:'NL123456789B02',iban:'',description:'Creative Cloud'};
     applyKnownSupplierMemory(candidate);
     const remembered={party:candidate.party,category:candidate.category,matched:candidate.vendorMemoryMatch};
+    state.contacts=[{id:'supplier-twin',type:'supplier',name:'Twin Company B.V.',vat:'NL111111111B01',iban:''}];
+    state.expenses=[{id:'twin-expense',vendor:'Twin Company B.V.',category:'Kantoor',exVat:10,vatAmount:2.1,gross:12.1,date:'2026-09-20'}];
+    const conflicting={type:'purchase',party:'Twin Company BV',vatId:'NL222222222B02',iban:'',description:'Algemene zakelijke aankoop'};
+    applyKnownSupplierMemory(conflicting);
+    const conflictResult={party:conflicting.party,category:conflicting.category,matched:conflicting.vendorMemoryMatch};
     state.contacts=[];state.expenses=[];
     const isolated={type:'purchase',party:'Onbekende Leverancier',vatId:'',iban:'',description:'Algemene zakelijke aankoop'};
     applyKnownSupplierMemory(isolated);
-    return {remembered,isolated:{party:isolated.party,category:isolated.category,matched:isolated.vendorMemoryMatch}};
+    return {remembered,conflictResult,isolated:{party:isolated.party,category:isolated.category,matched:isolated.vendorMemoryMatch}};
   });
   assert.equal(vendorMemory.remembered.party,'Adobe Systems B.V.','tenant-local identifier match should normalize a known supplier name');
   assert.equal(vendorMemory.remembered.category,'Software','most-used confirmed category should be suggested for the known supplier');
   assert.equal(vendorMemory.remembered.matched?.matched,true);
+  assert.equal(vendorMemory.conflictResult.matched?.matched,false,'a conflicting VAT ID must disable same-name supplier memory');
+  assert.equal(vendorMemory.conflictResult.category,'Inkoop','identifier conflict must not reuse the old supplier category by name');
   assert.equal(vendorMemory.isolated.category,'Inkoop','supplier memory must not leak after the current account state is cleared');
   assert.equal(vendorMemory.isolated.matched?.matched,false);
 
