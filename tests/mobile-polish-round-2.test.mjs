@@ -150,10 +150,10 @@ try{
   await shot('documents-before-native-picker');
   await page.evaluate(()=>navigate('documents'));
   await page.locator('#pageTitle').filter({hasText:'Documenten'}).waitFor();
-  const chooserPromise=page.waitForEvent('filechooser');
-  await page.getByRole('button',{name:'Uploaden',exact:true}).click();
-  const chooser=await chooserPromise;
-  assert.equal(await chooser.element().getAttribute('id'),'invoicePdfFile');
+  const upload=page.getByRole('button',{name:'Uploaden',exact:true});
+  assert.equal(await upload.getAttribute('onclick'),'openDocumentUpload()');
+  assert.ok(await page.locator('#invoicePdfFile').getAttribute('multiple')!==null);
+  assert.equal(await page.locator('#invoicePdfFile').getAttribute('capture'),null);
   assert.equal(await page.locator('#modalRoot .source-picker').count(),0);
   assert.equal(await page.locator('#modalRoot').getByText('Maak foto',{exact:true}).count(),0);
 
