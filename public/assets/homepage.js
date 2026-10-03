@@ -1,6 +1,5 @@
 function initBoekunaHomepage(){
   const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const finePointer=window.matchMedia&&window.matchMedia('(hover: hover) and (pointer: fine)').matches;
   const root=document.documentElement;
 
   const demoData={
@@ -107,8 +106,9 @@ function initBoekunaHomepage(){
   if(parallaxRoot){
     parallaxRoot.style.setProperty('--hero-x','0px');
     parallaxRoot.style.setProperty('--hero-y','0px');
-    if(!reduced&&finePointer){
+    if(!reduced){
       parallaxRoot.addEventListener('pointermove',event=>{
+        if(event.pointerType&&event.pointerType!=='mouse'&&event.pointerType!=='pen')return;
         const rect=parallaxRoot.getBoundingClientRect();
         if(!rect.width||!rect.height)return;
         const x=((event.clientX-rect.left)/rect.width-.5)*2;
