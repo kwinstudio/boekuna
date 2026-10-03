@@ -94,8 +94,10 @@ for(const retired of ['early_access_active','expired_read_only','FOUNDING 100','
   assert.ok(!html.includes(retired),`Retired First-100 state/copy must be absent from app UI: ${retired}`);
 }
 
-for(const value of ['Gratis','€6,95','€9,95','€14,95']) assert.ok(pricing.includes(value),`Pricing missing ${value}`);
-assert.ok((pricing.match(/Binnenkort beschikbaar/g)||[]).length>=3,'Public paid plans must remain announced/non-transactional');
+for(const value of ['Gratis','€0','€9,95','€19,95']) assert.ok(pricing.includes(value),`Pricing missing ${value}`);
+assert.ok(pricing.includes('register=1&plan=boekuna'),'Public Boekuna plan CTA must retain its explicit registration route');
+assert.ok(pricing.includes('register=1&plan=pro'),'Public Unlimited plan CTA must retain its explicit registration route');
+assert.ok(!pricing.includes('Binnenkort beschikbaar'),'Current paid plans must not regress to the retired non-transactional placeholder state');
 for(const retired of ['Founding 100','Eerste 100','Early Access','3 kalendermaanden gratis','90 dagen']){
   assert.ok(!pricing.toLowerCase().includes(retired.toLowerCase()),`Retired First-100 copy still present: ${retired}`);
 }
