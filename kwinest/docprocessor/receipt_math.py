@@ -5,6 +5,11 @@ from typing import Any
 
 VAT_PERCENT_RE = re.compile(r"(?<!\d)(0|9|21)(?:[.,]0+)?\s*%", re.I)
 VAT_LABEL_RE = re.compile(r"\b(?:btw|vat|tax)\b", re.I)
+MONEY_CONTEXT_RE = re.compile(r"(?:€|\bEUR\b|\bEURO\b)\s*[-+]?\d|[-+]?\d[\d .]*[,.]\d{2}\b", re.I)
+SEMANTIC_VAT_CONTEXT_RE = re.compile(
+    r"\b(?:omschrijving|description|product|dienst|service|belast(?:baar|ing)?|grondslag|taxable)\b",
+    re.I,
+)
 COMPLEX_ADJUSTMENT_RE = re.compile(
     r"\b(?:statiegeld|deposit|fooi|tip|service\s*(?:charge|kosten)?|"
     r"korting|discount|coupon|voucher|retour|refund|afrond(?:ing)?|rounding|"
@@ -15,17 +20,27 @@ COMPLEX_ADJUSTMENT_RE = re.compile(
 
 
 def detect_vat_rates(lines: list[str]) -> list[float]:
-    """Return supported VAT rates that are actually signalled in financial-looking lines."""
+    """Return VAT rates with enough financial/semantic evidence.
+
+    A lone percentage in marketing/footer text must not turn a single-rate
+    invoice into mixed VAT. Percentages without an explicit VAT label count
+    only when they sit on a money-bearing line, or when one semantic product
+    description explicitly carries multiple supported tax rates.
+    """
     rates: set[float] = set()
     for raw in lines or []:
         line = str(raw or "")
         low = line.lower()
-        looks_financial = bool(VAT_LABEL_RE.search(line) or "%" in line)
-        if not looks_financial:
-            continue
-        for m in VAT_PERCENT_RE.finditer(line):
-            rates.add(float(m.group(1)))
-        if VAT_LABEL_RE.search(line):
+        matches = list(VAT_PERCENT_RE.finditer(line))
+        explicit_vat = bool(VAT_LABEL_RE.search(line))
+        supported = {float(m.group(1)) for m in matches}
+        money_context = bool(MONEY_CONTEXT_RE.search(line))
+        semantic_mixed = len(supported) > 1 and bool(SEMANTIC_VAT_CONTEXT_RE.search(line))
+
+        if explicit_vat or money_context or semantic_mixed:
+            rates.update(supported)
+
+        if explicit_vat:
             for m in re.finditer(r"\b(?:btw|vat|tax)(?:\s+tarief)?\s*[:=\-]?\s*(0|9|21)(?!\d)", low, re.I):
                 rates.add(float(m.group(1)))
     return sorted(rates)
