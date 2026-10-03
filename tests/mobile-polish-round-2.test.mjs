@@ -126,7 +126,7 @@ async function openRowFor(text){
 try{
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>typeof window.openDocumentPreview==='function'&&typeof window.runNormalDelete==='function');
-  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
   assert.deepEqual(errors,[],'Round-2 app must load without JavaScript errors');
 
   // Header processing indicator: spinner only, left of plus, hidden again when idle.
