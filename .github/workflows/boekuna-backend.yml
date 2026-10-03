@@ -23,6 +23,7 @@ on:
       - "tests/planned-cash-sql-isolation.test.mjs"
       - "tests/ocr-production-hardening.test.py"
       - "tests/document-scan-intelligence-benchmark.test.py"
+      - "tests/document-scan-intelligence-unit.test.py"
       - "tests/document-processor-pdf.test.py"
       - "tests/processor-production-origin.test.py"
       - "tests/processor-memory-regression.test.py"
@@ -93,6 +94,8 @@ jobs:
         run: python tests/ocr-production-hardening.test.py
       - name: Scan intelligence benchmark
         run: python tests/document-scan-intelligence-benchmark.test.py
+      - name: Scan intelligence unit regressions
+        run: python tests/document-scan-intelligence-unit.test.py
       - name: Production origin HTTP and real image codec regressions
         run: python tests/processor-production-origin.test.py
       - name: Repeated real OCR memory budget
