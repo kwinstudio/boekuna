@@ -149,7 +149,7 @@ try{
   // Mobile reference nav keeps scanning under Documents; upload still opens the native picker directly.
   await shot('documents-before-native-picker');
   await page.evaluate(()=>navigate('documents'));
-  await page.locator('#pageTitle').filter({hasText:'Documenten'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Bonnetjes'}).waitFor();
   const upload=page.getByRole('button',{name:'Uploaden',exact:true});
   assert.equal(await upload.getAttribute('onclick'),'openDocumentUpload()');
   assert.ok(await page.locator('#invoicePdfFile').getAttribute('multiple')!==null);
@@ -159,7 +159,7 @@ try{
 
   // Documents: one fixed action anchor, no useless dash, rename persists through reload.
   await nav('documents');
-  await page.locator('#pageTitle').filter({hasText:'Documenten'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Bonnetjes'}).waitFor();
   assert.equal(await page.locator('table.mobile-documents .row-action-trigger').count(),36);
   const firstDocRow=page.locator('tbody tr',{hasText:'Document 00.pdf'}).first();
   assert.equal((await firstDocRow.locator('td').nth(3).innerText()).trim(),'');
@@ -196,7 +196,7 @@ try{
   await page.locator('.document-preview-frame').waitFor();
   await page.goBack();
   await page.locator('.document-preview-frame').waitFor({state:'detached'});
-  assert.equal(await page.locator('#pageTitle').innerText(),'Documenten');
+  assert.equal(await page.locator('#pageTitle').innerText(),'Bonnetjes');
   assert.equal(await page.locator('[data-list-search]').inputValue(),'pdf');
   assert.equal(await page.evaluate(()=>listPageState('documents').sort),'name-asc');
   const afterScroll=await page.evaluate(()=>document.getElementById('content').scrollTop);

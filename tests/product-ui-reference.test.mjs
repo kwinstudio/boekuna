@@ -26,7 +26,7 @@ assert.ok(ui.includes('font-family:"Boekuna Inter"'),'Inter UI role missing');
 assert.equal(/(?:linear|radial)-gradient\(/i.test(ui),false,'Master-reference layer must not use gradients');
 assert.equal(/backdrop-filter:(?!none)/i.test(ui),false,'Master-reference layer must not introduce glassmorphism');
 assert.ok(ui.includes('@media(prefers-reduced-motion:reduce)'),'Reduced-motion handling missing');
-for(const label of ['Overzicht','Facturen','Kosten','Bank','Btw','Rapporten','Instellingen'])assert.ok(source.includes('>'+label+'</button>')||source.includes('>'+label+'</span>'),'Primary product navigation missing '+label);
+for(const label of ['Overzicht','Facturen','Kosten','Bank','Btw','Rapportages','Bonnetjes','Instellingen'])assert.ok(source.includes('>'+label+'</button>')||source.includes('>'+label+'</span>'),'Primary product navigation missing '+label);
 for(const label of ['Overzicht','Facturen','Kosten','Btw','Meer'])assert.ok(source.includes('<span>'+label+'</span>'),'Mobile reference navigation missing '+label);
 assert.equal((source.match(/class="mobile-bottom-nav-item/g)||[]).length,5,'Mobile navigation must expose exactly five primary destinations');
 assert.ok(source.includes("function mobilePrimarySection(p=page){return ['dashboard','invoices','expenses','vat'].includes(p)?p:'more'}"),'Secondary mobile destinations must map to More');
@@ -35,6 +35,9 @@ assert.ok(source.includes('prepareEmailHandoffFromComposer'),'Invoice email hand
 assert.equal(/accounts\.google\.com|Sign in with Google|Doorgaan met Google/.test(source),false,'Google account login must stay off');
 assert.ok(source.includes('function dashboardPeriodRange('),'Dashboard period helper missing');
 assert.ok(source.includes('function setDashboardPeriod('),'Dashboard period switch missing');
+assert.ok(source.includes('--app-support:var(--status-info)'),'Supporting accent must reuse the existing info role');
+assert.ok(source.includes('function productKpi(')&&source.includes('function productKpiGrid('),'Shared KPI component helpers missing');
+assert.ok(source.includes('function renderIncome()')&&source.includes('function renderOutgoings()'),'Income and outgoings subpages missing');
 for(const label of ['Winst','Omzet','Kosten','Btw apartzetten'])assert.ok(source.includes('dashboard-kpi-label">'+label+'</span>'),'Dashboard KPI missing '+label);
 for(const label of ['Administratie','Nog te ontvangen','Nieuwe factuur'])assert.ok(source.includes('dashboard-summary-title">'+label+'</span>'),'Dashboard bottom summary missing '+label);
 for(const option of ["['7d','7 dagen']","['month','Maand']","['quarter','Kwartaal']","['year','Jaar']"])assert.ok(source.includes(option),'Dashboard period option missing '+option);
@@ -150,7 +153,7 @@ try{
 
       await page.evaluate(()=>navigate('invoices'));
       await page.getByRole('heading',{name:'Facturen'}).waitFor();
-      const invoicePrimary=page.getByRole('button',{name:/Factuur maken/});
+      const invoicePrimary=page.getByRole('button',{name:/Nieuwe factuur|Factuur maken/});
       assert.ok(await invoicePrimary.isVisible());
       assert.equal(await invoicePrimary.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(99, 212, 113)');
       assert.equal(await invoicePrimary.evaluate(el=>getComputedStyle(el).color),'rgb(27, 31, 35)');
@@ -162,6 +165,38 @@ try{
       assert.match(await page.locator('#content').innerText(),/Indicatief/i);
       await noOverflow(page,browserName+' desktop VAT');
       await page.screenshot({path:path.join(evidence,'vat-1440-'+browserName+'.png'),fullPage:true});
+
+      const coreKpis={
+        invoices:['Openstaand','Te laat','Betaald deze maand','Concepten'],
+        expenses:['Kosten deze maand','Btw terug te vragen','Grootste categorie','Te controleren'],
+        documents:['Te verwerken','Controle nodig','Verwerkt deze maand','Totaal documenten'],
+        vat:['Te betalen btw','Ontvangen btw','Voorbelasting','Controle nodig'],
+        reports:['Omzet','Kosten','Winst','Winstmarge'],
+        income:['Inkomsten deze maand','Ontvangen','Nog te ontvangen','Groei'],
+        outgoings:['Deze maand uitgegeven','Nog niet gekoppeld','Terugkerende uitgaven','Te controleren']
+      };
+      for(const [route,labels] of Object.entries(coreKpis)){
+        await page.evaluate(route=>navigate(route),route);
+        await page.locator('.product-kpis').waitFor();
+        assert.deepEqual((await page.locator('.product-kpi-label').allTextContents()).map(v=>v.trim()),labels,browserName+' '+route+' KPI labels');
+        assert.equal(await page.locator('.product-kpi').count(),4,browserName+' '+route+' must expose four coherent KPI cards');
+        await noOverflow(page,browserName+' desktop '+route);
+        await axe(page,browserName+' desktop '+route);
+      }
+
+      for(const [width,height] of [[1366,768],[1440,900],[1920,1080]]){
+        await page.setViewportSize({width,height});
+        for(const route of ['dashboard',...Object.keys(coreKpis)]){
+          await page.evaluate(route=>navigate(route),route);
+          await noOverflow(page,browserName+' '+route+' '+width+'x'+height);
+          if(route!=='dashboard'){
+            const columns=await page.locator('.product-kpis').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length);
+            assert.equal(columns,4,browserName+' '+route+' must retain four desktop KPI columns at '+width+'x'+height);
+          }
+        }
+        await page.evaluate(()=>navigate('dashboard'));
+        if(width>=1440)assert.ok(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2),browserName+' '+width+'x'+height+' dashboard must fit one screen');
+      }
 
       await page.setViewportSize({width:390,height:844});
       await page.evaluate(()=>navigate('dashboard'));
@@ -181,7 +216,7 @@ try{
 
       for(const width of [320,360,375,390,393,430,768,1024,1280,1440]){
         await page.setViewportSize({width,height:width<820?844:1000});
-        for(const route of ['dashboard','invoices','expenses','bank','vat','reports','settings']){
+        for(const route of ['dashboard','invoices','expenses','bank','income','outgoings','documents','vat','reports','settings']){
           await page.evaluate(route=>navigate(route),route);
           await noOverflow(page,browserName+' '+route+' '+width);
         }
