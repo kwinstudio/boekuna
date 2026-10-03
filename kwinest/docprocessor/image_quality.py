@@ -73,7 +73,7 @@ def estimate_deskew_angle(image: Image.Image) -> float:
         base = _projection_score(gray, 0.0)
         if base <= 0:
             return 0.0
-        candidates = (-6.0, -4.0, -2.0, 2.0, 4.0, 6.0)
+        candidates = (-4.0, -2.0, 2.0, 4.0)
         best_angle = 0.0
         best_score = base
         for angle in candidates:
@@ -81,7 +81,7 @@ def estimate_deskew_angle(image: Image.Image) -> float:
             if score > best_score:
                 best_score = score
                 best_angle = angle
-        if best_angle and best_score >= base * 1.10:
+        if best_angle and best_score >= base * 1.30:
             return best_angle
         return 0.0
     finally:
