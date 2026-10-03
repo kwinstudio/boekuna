@@ -84,6 +84,32 @@ def encode_image(lines, *, fmt="JPEG", size=(1500, 1800), dark=False, skew=0, bl
     return out.getvalue()
 
 
+def stress_image(raw, *, low_res=None, shadow=False, perspective=False, darkness=None):
+    with Image.open(io.BytesIO(raw)) as source:
+        image = source.convert("RGB")
+    if low_res:
+        resized = image.resize(low_res, Image.Resampling.LANCZOS)
+        image.close()
+        image = resized
+    if shadow:
+        overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        od = ImageDraw.Draw(overlay)
+        w, h = image.size
+        od.polygon([(int(w*.48),0),(w,0),(w,h),(int(w*.62),h)], fill=(0,0,0,120))
+        merged = Image.alpha_composite(image.convert("RGBA"), overlay).convert("RGB")
+        image.close(); overlay.close(); image = merged
+    if perspective:
+        w, h = image.size
+        quad = (int(w*.08), int(h*.02), 0, int(h*.94), int(w*.93), h, w, int(h*.08))
+        warped = image.transform((w,h), Image.Transform.QUAD, quad, resample=Image.Resampling.BICUBIC, fillcolor="white")
+        image.close(); image = warped
+    if darkness is not None:
+        adjusted = ImageEnhance.Brightness(image).enhance(float(darkness))
+        image.close(); image = adjusted
+    out=io.BytesIO(); image.save(out, format="JPEG", quality=88); image.close()
+    return out.getvalue()
+
+
 def vector_pdf_pages(page_sets):
     doc = fitz.open()
     for page_lines in page_sets:
@@ -172,10 +198,13 @@ def cases():
     ]
 
     common21 = {"date":"2026-10-03","net":100.0,"vat":21.0,"gross":121.0,"vat_rate":21.0,"mixed_vat":False}
+    clear_raw = encode_image(clear_receipt, fmt="JPEG")
+    long_raw = encode_image(clear_receipt, fmt="JPEG", long=True)
+    heic_raw = (ROOT / "tests" / "fixtures" / "scan-invoice.heic").read_bytes()
     return [
         {
             "id":"receipt-clear-jpeg","name":"receipt-clear.jpg","mime":"image/jpeg",
-            "raw":encode_image(clear_receipt, fmt="JPEG"),
+            "raw":clear_raw,
             "expected":{"supplier":"BOEKUNA QA SUPERMARKT", **common21},
         },
         {
@@ -197,6 +226,36 @@ def cases():
             "id":"long-receipt-jpeg","name":"long-receipt.jpg","mime":"image/jpeg",
             "raw":encode_image(clear_receipt, fmt="JPEG", long=True),
             "expected":{"supplier":"BOEKUNA QA SUPERMARKT", **common21},
+        },
+        {
+            "id":"receipt-low-resolution-jpeg","name":"receipt-low-res.jpg","mime":"image/jpeg",
+            "raw":stress_image(clear_raw, low_res=(430, 520)),
+            "expected":{"supplier":"BOEKUNA QA SUPERMARKT", **common21},
+        },
+        {
+            "id":"receipt-shadow-jpeg","name":"receipt-shadow.jpg","mime":"image/jpeg",
+            "raw":stress_image(clear_raw, shadow=True),
+            "expected":{"supplier":"BOEKUNA QA SUPERMARKT", **common21},
+        },
+        {
+            "id":"receipt-perspective-jpeg","name":"receipt-perspective.jpg","mime":"image/jpeg",
+            "raw":stress_image(clear_raw, perspective=True),
+            "expected":{"supplier":"BOEKUNA QA SUPERMARKT", **common21},
+        },
+        {
+            "id":"receipt-dark-shadow-jpeg","name":"receipt-dark-shadow.jpg","mime":"image/jpeg",
+            "raw":stress_image(clear_raw, shadow=True, darkness=.42),
+            "expected":{"supplier":"BOEKUNA QA SUPERMARKT", **common21},
+        },
+        {
+            "id":"long-receipt-small-text-jpeg","name":"long-small.jpg","mime":"image/jpeg",
+            "raw":stress_image(long_raw, low_res=(650, 5200)),
+            "expected":{"supplier":"BOEKUNA QA SUPERMARKT", **common21},
+        },
+        {
+            "id":"iphone-style-heic","name":"iphone-style.heic","mime":"image/heic",
+            "raw":heic_raw,
+            "expected":{"supplier":"Voorbeeld Leverancier BV","invoice_number":"INV-2026-1001","date":"2026-09-28","net":100.0,"vat":21.0,"gross":121.0,"vat_rate":21.0,"mixed_vat":False},
         },
         {
             "id":"invoice-photo-png","name":"invoice-photo.png","mime":"image/png",
