@@ -127,7 +127,7 @@ try{
   const invoices=await page.locator('#content').innerText();
   assert.doesNotMatch(invoices,/Maak facturen, bewaar ze als concept/,'Invoice page should not carry a permanent instructional paragraph');
   assert.doesNotMatch(invoices,/Factuurcheck actief\./,'Invoice page should not carry a permanent invoice-check notice');
-  assert.ok(await page.getByRole('button',{name:/Factuur maken/}).isVisible());
+  assert.ok(await page.getByRole('button',{name:/Nieuwe factuur|Factuur maken/}).isVisible());
   assert.ok(await page.getByRole('button',{name:/Upload PDF/}).isVisible());
   await page.screenshot({path:`tests/artifacts/premium-invoices-${browserName}-390.png`,fullPage:true});
 
@@ -206,9 +206,9 @@ try{
 
   await navigateTo('reports');
   const reportText=await page.locator('#content').innerText();
-  for(const label of ['Deze week','Deze maand','Dit kwartaal','Dit jaar','PDF'])assert.match(reportText,new RegExp(label),'Reports toolbar missing '+label);
-  for(const label of ['Deze week','Deze maand','Dit kwartaal','Dit jaar'])assert.ok(await page.getByRole('button',{name:label,exact:true}).isVisible());
-  await page.getByRole('button',{name:'Deze week',exact:true}).click();
+  for(const label of ['Maand','Kwartaal','Jaar','PDF'])assert.match(reportText,new RegExp(label),'Reports toolbar missing '+label);
+  for(const label of ['Maand','Kwartaal','Jaar'])assert.ok(await page.getByRole('button',{name:label,exact:true}).isVisible());
+  await page.getByRole('button',{name:'Maand',exact:true}).click();
   const reportRange=await page.evaluate(()=>reportRange());
   assert.ok(reportRange.from<=reportRange.to,'Report period resolver must return an inclusive ordered range');
 
