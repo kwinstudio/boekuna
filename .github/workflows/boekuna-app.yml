@@ -25,6 +25,7 @@ on:
       - "tests/mobile-polish-round-2.test.mjs"
       - "tests/premium-app-simplification.test.mjs"
       - "tests/app-wide-premium-simplification-v2.test.mjs"
+      - "tests/product-ui-reference.test.mjs"
       - "tests/document-upload-browser.test.mjs"
       - "tests/scan-native-picker.test.mjs"
       - "tests/document-background-processing.test.mjs"
@@ -154,6 +155,8 @@ jobs:
         id: premium_v2_webkit
         continue-on-error: true
         run: BOOKUNA_BROWSER=webkit node tests/app-wide-premium-simplification-v2.test.mjs
+      - name: Master product UI reference — Chromium + WebKit + Axe
+        run: node tests/product-ui-reference.test.mjs
       - name: Split generated surface browser smoke
         run: node tests/split-surfaces-browser.test.mjs
       - name: WebKit app smoke
@@ -224,6 +227,7 @@ jobs:
             tests/artifacts/mobile-dashboard-*.png
             tests/artifacts/premium-*.png
             tests/artifacts/premium-v2-*.png
+            tests/artifacts/product-ui-reference/
             tests/artifacts/kvk-*.png
           if-no-files-found: ignore
 

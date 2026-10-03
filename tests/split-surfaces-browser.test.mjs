@@ -93,7 +93,7 @@ export function createClient(){
 `
   }));
   await protectedApp.goto(urlFor(appServer)+'/',{waitUntil:'domcontentloaded'});
-  await protectedApp.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await protectedApp.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
   await protectedApp.evaluate(()=>history.pushState({protected:true},'',location.pathname+'?protected=1'));
   await protectedApp.evaluate(()=>navigate('settings'));
   await protectedApp.locator('#settingsLogoutButton').waitFor();

@@ -126,7 +126,7 @@ async function openRowFor(text){
 try{
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>typeof window.openDocumentPreview==='function'&&typeof window.runNormalDelete==='function');
-  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
   assert.deepEqual(errors,[],'Round-2 app must load without JavaScript errors');
 
   // Header processing indicator: spinner only, left of plus, hidden again when idle.
@@ -146,12 +146,14 @@ try{
   await page.evaluate(()=>{documentProcessingSession=null;documentProcessingJobs=[];renderGlobalDocumentIndicator()});
   assert.equal(await processing.isHidden(),true);
 
-  // Scan must open the native file input directly, without a Boekuna source modal.
-  await shot('scan-before-native-picker');
-  const chooserPromise=page.waitForEvent('filechooser');
-  await page.getByRole('button',{name:'Scan',exact:true}).click();
-  const chooser=await chooserPromise;
-  assert.equal(await chooser.element().getAttribute('id'),'invoicePdfFile');
+  // Mobile reference nav keeps scanning under Documents; upload still opens the native picker directly.
+  await shot('documents-before-native-picker');
+  await page.evaluate(()=>navigate('documents'));
+  await page.locator('#pageTitle').filter({hasText:'Documenten'}).waitFor();
+  const upload=page.getByRole('button',{name:'Uploaden',exact:true});
+  assert.equal(await upload.getAttribute('onclick'),'openDocumentUpload()');
+  assert.ok(await page.locator('#invoicePdfFile').getAttribute('multiple')!==null);
+  assert.equal(await page.locator('#invoicePdfFile').getAttribute('capture'),null);
   assert.equal(await page.locator('#modalRoot .source-picker').count(),0);
   assert.equal(await page.locator('#modalRoot').getByText('Maak foto',{exact:true}).count(),0);
 

@@ -189,7 +189,7 @@ window.fetch=async()=>{window.__stripeCalls++;return new Response('{}',{status:5
   const appPage=await browser.newPage();
   try{
     await appPage.goto('http://127.0.0.1:'+integration.address().port+'/',{waitUntil:'domcontentloaded'});
-    await appPage.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+    await appPage.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
     await appPage.waitForFunction(()=>typeof window.BoekunaDeveloperMode?.clear==='function');
     await appPage.evaluate(()=>{window.__realDeveloperMode=window.BoekunaDeveloperMode;const real=window.BoekunaDeveloperMode||{};window.BoekunaDeveloperMode={...real,isActive:()=>true};});
     await appPage.evaluate(()=>startSubscription('pro'));

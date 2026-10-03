@@ -26,7 +26,7 @@ const url='http://127.0.0.1:'+server.address().port;
 async function close(){await page.locator('#modalRoot .modal-close').click();await page.locator('[role=dialog]').waitFor({state:'detached'})}
 async function control(key){await page.evaluate(()=>navigate('control'));await page.locator('[data-control-key='+JSON.stringify(key)+'] button').click()}
 try{
- await page.goto(url,{waitUntil:'domcontentloaded'});await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+ await page.goto(url,{waitUntil:'domcontentloaded'});await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
  const financialBefore=await page.evaluate(()=>({net:invoiceNet(state.invoices[0]),vat:invoiceVat(state.invoices[0]),gross:invoiceGross(state.invoices[0]),expense:expenseGross(state.expenses[0])}));
  const countBefore=await page.evaluate(()=>attentionRows().length);
  await control('document-upload');assert.match(await page.locator('[role=dialog]').innerText(),/Exact brondocument.pdf/);

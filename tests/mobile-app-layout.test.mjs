@@ -14,7 +14,7 @@ function replaceLast(source,needle,replacement){
 }
 
 assert.equal((original.match(/class="mobile-bottom-nav-item/g)||[]).length,5,'Mobile bottom navigation must contain exactly five destinations');
-for(const label of ['Dashboard','Facturen','Scan','Bank','Actie nodig'])assert.match(original,new RegExp('<span>'+label+'</span>'),'Missing mobile nav label '+label);
+for(const label of ['Overzicht','Facturen','Kosten','Btw','Meer'])assert.match(original,new RegExp('<span>'+label+'</span>'),'Missing mobile nav label '+label);
 
 const logoutSource=original.slice(original.indexOf('async function logoutUser'),original.indexOf('async function requireMfaForUser'));
 assert.match(logoutSource,/try\{await syncCloudStateNow\(\)\}catch/,'Final sync must be isolated from logout');
@@ -93,17 +93,16 @@ page.on('pageerror',error=>pageErrors.push(String(error)));
 
 try{
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
-  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
   assert.equal(pageErrors.length,0,'Mobile dashboard must load without JavaScript errors: '+pageErrors.join(' | '));
 
   const navLabels=await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents();
-  assert.deepEqual(navLabels.map(v=>v.trim()),['Dashboard','Facturen','Scan','Bank','Actie nodig']);
+  assert.deepEqual(navLabels.map(v=>v.trim()),['Overzicht','Facturen','Kosten','Btw','Meer']);
   assert.notEqual(await page.locator('#mobileBottomNav').evaluate(el=>getComputedStyle(el).display),'none','Bottom navigation must be visible on mobile');
   assert.equal(await page.locator('[data-mobile-page="dashboard"]').getAttribute('aria-current'),'page');
 
-  const greeting=await page.locator('.dashboard-greeting h1').innerText();
-  assert.match(greeting,/^(Goedemorgen|Goedemiddag|Goedenavond), Kwin$/,'Greeting must use local daypart and first name');
-  assert.equal(await page.locator('.dashboard-greeting p').count(),0,'Dashboard greeting should not carry generic status copy');
+  const greeting=await page.locator('.dashboard-page-head .page-status').innerText();
+  assert.match(greeting,/^(Goedemorgen|Goedemiddag|Goedenavond), Kwin · je administratie in één oogopslag$/,'Dashboard context must use local daypart and first name');
 
   await page.getByRole('heading',{name:'Aandacht nodig'}).waitFor();
   const attentionText=await page.locator('.dashboard-attention').innerText();
@@ -111,7 +110,7 @@ try{
   assert.match(attentionText,/1 bankregel koppelen/);
   assert.doesNotMatch(attentionText,/Btw Q\d+ controleren/,'Generic VAT action must not appear');
 
-  assert.equal(await page.locator('.dashboard-kpis').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length),2,'390px dashboard KPI layout must be 2x2');
+  assert.equal(await page.locator('.dashboard-kpis').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length),1,'390px dashboard KPI layout must use the single-column mobile reference flow');
   await page.screenshot({path:`tests/artifacts/mobile-dashboard-${browserName}-390.png`,fullPage:true});
 
   await page.locator('[data-mobile-page="invoices"]').click();
@@ -132,22 +131,25 @@ try{
   await page.keyboard.press('Escape');
   assert.ok(!(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open'))),'Escape must close drawer');
 
-  const scanChooserEvent=page.waitForEvent('filechooser');
-  await page.locator('[data-mobile-page="documents"]').click();
-  const scanChooser=await scanChooserEvent;
-  assert.equal(scanChooser.isMultiple(),true,'Scan supports multiple documents');
-  assert.equal(await page.locator('.source-picker').count(),0,'Scan opens the native chooser directly');
-  assert.equal(await page.locator('#invoicePdfFile').getAttribute('capture'),null,'Scan preserves camera, library and files');
-  await page.evaluate(()=>navigate('documents'));
+  await page.locator('#mobileMenu').click();
+  await page.locator('.nav-item[data-page="documents"]').click();
   await page.locator('#pageTitle').filter({hasText:'Documenten'}).waitFor();
+  const scanChooserEvent=page.waitForEvent('filechooser');
+  await page.getByRole('button',{name:'Uploaden',exact:true}).click();
+  const scanChooser=await scanChooserEvent;
+  assert.equal(scanChooser.isMultiple(),true,'Document upload supports multiple documents');
+  assert.equal(await page.locator('.source-picker').count(),0,'Document upload opens the native chooser directly');
+  assert.equal(await page.locator('#invoicePdfFile').getAttribute('capture'),null,'Document upload preserves camera, library and files');
   await page.evaluate(()=>{documentProcessingJobs=[{id:'job-1',client_ref:'doc-1',file_name:'bon.jpg',state:'review_required'}];documentProcessingInitialized=true;renderGlobalDocumentIndicator()});
-  assert.equal(await page.locator('#mobileScanBadge').innerText(),'1','Scan badge must reuse persistent document attention count');
+  assert.equal(await page.locator('#documentAttentionBadge').innerText(),'1','Document badge must reuse persistent document attention count');
 
-  await page.locator('[data-mobile-page="bank"]').click();
-  await page.locator('#pageTitle').filter({hasText:'Bank & kas'}).waitFor();
+  await page.locator('[data-mobile-page="expenses"]').click();
+  await page.locator('#pageTitle').filter({hasText:'Kosten'}).waitFor();
+  await page.locator('[data-mobile-page="vat"]').click();
+  await page.locator('#pageTitle').filter({hasText:'Btw'}).waitFor();
 
   await page.locator('[data-mobile-page="dashboard"]').click();
-  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
 
   // Independent QA additions: focus containment/return, non-primary active state,
   // breakpoint cleanup, long-name overflow, and desktop width coverage.
@@ -161,9 +163,10 @@ try{
   assert.equal(await page.locator('#mobileMenu').getAttribute('aria-expanded'),'false','Escape close must restore trigger state');
 
   await page.evaluate(async()=>{await navigate('settings')});
-  assert.equal(await page.locator('#mobileBottomNav [aria-current="page"]').count(),0,'Settings has no misleading primary destination');
-  await page.locator('[data-mobile-page="control"]').click();
-  assert.equal(await page.locator('[data-mobile-page="control"]').getAttribute('aria-current'),'page');
+  assert.equal(await page.locator('[data-mobile-more]').getAttribute('aria-current'),'page','Settings must map to More in mobile navigation');
+  await page.locator('[data-mobile-more]').click();
+  await page.locator('.nav-item[data-page="control"]').click();
+  assert.equal(await page.locator('[data-mobile-more]').getAttribute('aria-current'),'page','Secondary screens must keep More active');
   await page.evaluate(async()=>{await navigate('dashboard')});
 
   await page.setViewportSize({width:820,height:900});
@@ -216,7 +219,7 @@ try{
 
   await page.setViewportSize({width:390,height:844});
   await page.goto(base+'/fetch-failure',{waitUntil:'domcontentloaded'});
-  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
   await page.getByText('Aandachtspunten niet bijgewerkt').waitFor();
   assert.equal(await page.getByText('Er zijn momenteel geen acties die je aandacht nodig hebben.').count(),0,'Initial fetch failure must not look like a clean empty state');
   assert.equal(await page.evaluate(()=>documentProcessingFetchError),true,'Initial document fetch failure must set explicit error state');
@@ -227,7 +230,7 @@ try{
   assert.equal(await page.evaluate(()=>documentProcessingInitialized),true,'Successful retry must restore initialized document state');
 
   await page.goto(base+'/logout',{waitUntil:'domcontentloaded'});
-  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
   await page.locator('#mobileMenu').click();
   await page.locator('.nav-item[data-page="settings"]').click();
   await page.locator('#settingsLogoutButton').waitFor();
