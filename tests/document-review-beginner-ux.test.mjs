@@ -107,6 +107,26 @@ try{
   assert.ok(matrix.receipt.attention.includes('category'),'receipt category should be deferrable attention');
   assert.ok(matrix.invoice.optional.includes('iban'),'IBAN should stay optional');
 
+  const vendorMemory=await page.evaluate(()=>{
+    state.contacts=[{id:'supplier-memory',type:'supplier',name:'Adobe Systems B.V.',vat:'NL123456789B02',iban:'NL91ABNA0417164300'}];
+    state.expenses=[
+      {id:'mem-1',vendor:'Adobe Systems B.V.',category:'Software',exVat:10,vatAmount:2.1,gross:12.1,date:'2026-09-01'},
+      {id:'mem-2',vendor:'Adobe Systems BV',category:'Software',exVat:20,vatAmount:4.2,gross:24.2,date:'2026-09-15'}
+    ];
+    const candidate={type:'purchase',party:'ADOBE SYSTEMS BV',vatId:'NL123456789B02',iban:'',description:'Creative Cloud'};
+    applyKnownSupplierMemory(candidate);
+    const remembered={party:candidate.party,category:candidate.category,matched:candidate.vendorMemoryMatch};
+    state.contacts=[];state.expenses=[];
+    const isolated={type:'purchase',party:'Onbekende Leverancier',vatId:'',iban:'',description:'Algemene zakelijke aankoop'};
+    applyKnownSupplierMemory(isolated);
+    return {remembered,isolated:{party:isolated.party,category:isolated.category,matched:isolated.vendorMemoryMatch}};
+  });
+  assert.equal(vendorMemory.remembered.party,'Adobe Systems B.V.','tenant-local identifier match should normalize a known supplier name');
+  assert.equal(vendorMemory.remembered.category,'Software','most-used confirmed category should be suggested for the known supplier');
+  assert.equal(vendorMemory.remembered.matched?.matched,true);
+  assert.equal(vendorMemory.isolated.category,'Inkoop','supplier memory must not leak after the current account state is cleared');
+  assert.equal(vendorMemory.isolated.matched?.matched,false);
+
   await openReview();
   assert.match(await page.locator('#mobileReviewStepLabel').innerText(),/Stap 1 van 3/);
   assert.equal(await page.getByRole('button',{name:'Negeren',exact:true}).count(),0);
