@@ -1,0 +1,74 @@
+name: TEMP scan production smoke
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/temp-scan-production-smoke.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  production-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify product app is reachable and contains merged review logic
+        run: |
+          set -euo pipefail
+          curl --retry 4 --retry-all-errors --connect-timeout 10 --max-time 45 -fsSL https://app.boekuna.nl/ -o /tmp/app.html
+          grep -F "Deze foto is moeilijk te lezen." /tmp/app.html
+          grep -F "function applyKnownSupplierMemory" /tmp/app.html
+          grep -F "function deterministicExpenseCategory" /tmp/app.html
+
+      - name: Verify processor health, exact revision and OCR stack
+        run: |
+          set -euo pipefail
+          curl --retry 4 --retry-all-errors --connect-timeout 10 --max-time 45 -fsSL https://kwinest-docprocessor.onrender.com/health -o /tmp/health.json
+          python - <<'PY'
+          import json
+          h=json.load(open('/tmp/health.json'))
+          assert h.get('ok') is True, h
+          assert h.get('version') == '3.3.0', h
+          assert str(h.get('revision') or '').startswith('cd6db76c115cf8814a9786baadae42b743fe0440'), h
+          assert h.get('externalAiEnabled') is False, h
+          assert h.get('ocrAvailable') is True, h
+          o=h.get('ocr') or {}
+          assert o.get('engine') == 'RapidOCR', o
+          assert o.get('version') == '3.9.2', o
+          assert o.get('model') == 'PP-OCRv6-small', o
+          runtime=o.get('runtime') or {}
+          assert runtime.get('engine') == 'ONNX Runtime', runtime
+          assert runtime.get('version') == '1.30.0', runtime
+          assert h.get('authRequired') is True, h
+          print(json.dumps({
+            'version':h.get('version'),'revision':h.get('revision'),
+            'ocr':o,'externalAiEnabled':h.get('externalAiEnabled')
+          }, sort_keys=True))
+          PY
+
+      - name: Verify processor readiness
+        run: |
+          set -euo pipefail
+          curl --retry 4 --retry-all-errors --connect-timeout 10 --max-time 45 -fsSL https://kwinest-docprocessor.onrender.com/ready -o /tmp/ready.json
+          python - <<'PY'
+          import json
+          r=json.load(open('/tmp/ready.json'))
+          assert r.get('ok') is True and r.get('ready') is True, r
+          assert r.get('version') == '3.3.0', r
+          assert str(r.get('revision') or '').startswith('cd6db76c115cf8814a9786baadae42b743fe0440'), r
+          assert r.get('externalAiEnabled') is False, r
+          print(json.dumps(r, sort_keys=True))
+          PY
+
+      - name: Verify analyze CORS from production app origin
+        run: |
+          set -euo pipefail
+          curl --retry 4 --retry-all-errors --connect-timeout 10 --max-time 45 -sS -D /tmp/cors.headers -o /tmp/cors.body \
+            -X OPTIONS \
+            -H 'Origin: https://app.boekuna.nl' \
+            -H 'Access-Control-Request-Method: POST' \
+            -H 'Access-Control-Request-Headers: authorization,content-type' \
+            https://kwinest-docprocessor.onrender.com/analyze
+          grep -i '^access-control-allow-origin: https://app.boekuna.nl' /tmp/cors.headers
+          grep -i '^access-control-allow-methods:.*POST' /tmp/cors.headers
