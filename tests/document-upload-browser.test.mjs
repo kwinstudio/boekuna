@@ -246,7 +246,7 @@ try{
     assert.match(accepts,/application\/pdf/);
     assert.match(accepts,/image\/heic/);
     await page.evaluate(()=>navigate('documents'));
-    await page.locator('#pageTitle').filter({hasText:'Documenten'}).waitFor();
+    await page.locator('#pageTitle').filter({hasText:'Bonnetjes'}).waitFor();
     const chooserEvent=page.waitForEvent('filechooser');
     await page.getByRole('button',{name:'Uploaden',exact:true}).click();
     const chooser=await chooserEvent;
