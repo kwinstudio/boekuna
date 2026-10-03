@@ -107,7 +107,7 @@ async function assertMobileStackAccessibility(route,selector){
 
 try{
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
-  await page.locator('#pageTitle').filter({hasText:'Dashboard'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
 
   const dashboard=await page.locator('#content').innerText();
   assert.doesNotMatch(dashboard,/Jouw administratie/,'Dashboard should not repeat its context as an eyebrow');
@@ -127,13 +127,13 @@ try{
   const invoices=await page.locator('#content').innerText();
   assert.doesNotMatch(invoices,/Maak facturen, bewaar ze als concept/,'Invoice page should not carry a permanent instructional paragraph');
   assert.doesNotMatch(invoices,/Factuurcheck actief\./,'Invoice page should not carry a permanent invoice-check notice');
-  assert.ok(await page.getByRole('button',{name:/Nieuwe factuur/}).isVisible());
+  assert.ok(await page.getByRole('button',{name:/Factuur maken/}).isVisible());
   assert.ok(await page.getByRole('button',{name:/Upload PDF/}).isVisible());
   await page.screenshot({path:`tests/artifacts/premium-invoices-${browserName}-390.png`,fullPage:true});
 
   await navigateTo('expenses');
   assert.ok(await page.getByRole('button',{name:/Kosten boeken/}).isVisible());
-  assert.ok(await page.getByRole('button',{name:'Upload',exact:true}).isVisible(),'Purchase invoice upload must remain available');
+  assert.ok(await page.getByRole('button',{name:'Bon toevoegen',exact:true}).isVisible(),'Purchase invoice upload must remain available');
   assert.equal(await page.locator('#content').getByRole('button',{name:'Foto',exact:true}).count(),0,'Receipt photo must not be a separate primary action');
   assert.equal(await page.locator('#content').getByRole('button',{name:/Camera/}).count(),0,'Camera must not be a separate primary action');
 
