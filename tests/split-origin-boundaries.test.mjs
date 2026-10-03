@@ -49,4 +49,13 @@ const email=read('supabase/functions/email-connection/index.ts');
 assert.ok(email.includes('return "https://app.boekuna.nl/";'),
   'email integration safe return fallback must be the product host');
 
+const sendInvoice=read('supabase/functions/send-invoice/index.ts');
+const sendOriginsStart=sendInvoice.indexOf('const ALLOWED_ORIGINS');
+const sendOriginsEnd=sendInvoice.indexOf(']);',sendOriginsStart);
+assert.ok(sendOriginsStart>=0&&sendOriginsEnd>sendOriginsStart,'send-invoice allowlist must be statically readable');
+const sendOriginBlock=sendInvoice.slice(sendOriginsStart,sendOriginsEnd);
+assert.ok(sendOriginBlock.includes(APP),'send-invoice trusted origin contract must explicitly contain app.boekuna.nl');
+assert.ok(sendOriginBlock.includes(LEGACY),'send-invoice must retain the legacy rollback origin');
+assert.ok(!sendOriginBlock.includes('*'),'send-invoice trusted origin contract must not use wildcard CORS');
+
 console.log('BOEKUNA split origin boundaries: PASS');
