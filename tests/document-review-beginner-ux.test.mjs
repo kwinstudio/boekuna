@@ -179,9 +179,10 @@ try{
   await openReview({
     documentType:'receipt',invoiceNumber:'',party:'Review Winkel',category:'Overig',
     net:10,vatAmount:2.10,gross:12.10,vatRate:21,
-    fieldConfidence:{party:95,issueDate:95,net:98,vatAmount:98,gross:98,vatRate:98,vatLines:98,category:45}
+    fieldConfidence:{party:55,issueDate:95,net:98,vatAmount:98,gross:98,vatRate:98,vatLines:98,category:45}
   });
   await page.evaluate(()=>setDocumentReviewStep(2));
+  await page.locator('[data-review-defer="party"]').click();
   await page.locator('[data-review-defer="category"]').click();
   await page.evaluate(()=>savePdfInvoiceImport());
   await page.waitForFunction(()=>state.documents.some(d=>d.reviewSnapshot));
@@ -190,12 +191,32 @@ try{
     return {id:d?.id,attention:d?.reviewAttentionFields||[],snapshot:d?.reviewSnapshot,rows:attentionRows().filter(x=>x.key==='document-review-'+d?.id).length};
   });
   assert.ok(savedReview.id,'saved document must keep a review snapshot');
-  assert.deepEqual(savedReview.attention,['category'],'deferred category must persist as attention');
+  assert.deepEqual(savedReview.attention,['party','category'],'deferred supplier and category must persist as attention');
   assert.equal(savedReview.rows,1,'deferred review must appear exactly once in Actie nodig');
   await page.evaluate(id=>openSavedDocumentReview(id),savedReview.id);
   await page.getByRole('heading',{name:'Opgeslagen controle'}).waitFor();
   assert.match(await page.locator('#modalRoot').innerText(),/Later controleren/);
-  await page.evaluate(()=>closeModal());
+  await page.getByRole('button',{name:'Nu controleren',exact:true}).click();
+  await page.locator('#deferredReviewForm [name="party"]').fill('Nieuwe Leverancier BV');
+  await page.locator('#deferredReviewForm [name="category"]').selectOption({label:'Software'});
+  await page.getByRole('button',{name:'Opslaan',exact:true}).click();
+  const resolved=await page.evaluate(id=>{
+    const d=state.documents.find(x=>x.id===id),e=state.expenses.find(x=>x.id===d?.linkedId);
+    return {
+      attention:d?.reviewAttentionFields||[],
+      vendor:e?.vendor||'',
+      category:e?.category||'',
+      suppliers:state.contacts.filter(c=>c.type==='supplier'&&c.name==='Nieuwe Leverancier BV').length,
+      expenses:state.expenses.length,
+      rows:attentionRows().filter(x=>x.key==='document-review-'+id).length
+    };
+  },savedReview.id);
+  assert.deepEqual(resolved.attention,[],'resolved document attention must be cleared');
+  assert.equal(resolved.vendor,'Nieuwe Leverancier BV');
+  assert.equal(resolved.category,'Software');
+  assert.equal(resolved.suppliers,1,'resolved supplier must exist in relations');
+  assert.equal(resolved.expenses,1,'resolving attention must not create a duplicate booking');
+  assert.equal(resolved.rows,0,'resolved attention must disappear from Actie nodig');
 
   await page.setViewportSize({width:390,height:844});
   await openReview();
