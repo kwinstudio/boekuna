@@ -1871,7 +1871,7 @@ body.interaction-entering{overflow:hidden}
   opacity:0;
   transform:translateY(.42em);
   transition:opacity 520ms var(--premium-ease),transform 620ms var(--premium-ease);
-  transition-delay:calc(var(--word-index) * 58ms + 120ms);
+  transition-delay:var(--word-delay,120ms);
 }
 [data-kinetic-title].is-kinetic-ready .interaction-word{
   opacity:1;
@@ -1915,7 +1915,7 @@ body.interaction-entering{overflow:hidden}
   opacity:1;
   transform:none;
   transition:opacity 430ms var(--premium-ease),transform 520ms var(--premium-ease);
-  transition-delay:calc(var(--stagger-index) * 70ms + 70ms);
+  transition-delay:var(--stagger-delay,70ms);
 }
 .parity-demo-file,.parity-demo-visual i{
   transition:transform 260ms var(--premium-ease),width 260ms var(--premium-ease),background-color 260ms var(--premium-ease);
