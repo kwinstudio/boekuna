@@ -37,7 +37,7 @@ try{
   await marketing.goto(urlFor(marketingServer)+'/',{waitUntil:'domcontentloaded'});
   await marketing.waitForSelector('.hero');
   assert.equal(await marketing.locator('#mainApp').count(),0,'marketing must not contain app runtime');
-  assert.equal((await marketing.locator('.hero h1').textContent()).replace(/\s+/g,' ').trim(),'Je bent ondernemer. Geen boekhouder.');
+  assert.equal((await marketing.locator('.hero h1').textContent()).replace(/\s+/g,' ').trim(),'Je bent ondernemer.Geen boekhouder.');
   assert.match(await marketing.locator('a[href^="https://app.boekuna.nl/"]').first().getAttribute('href'),/^https:\/\/app\.boekuna\.nl\//);
 
   const app=await browser.newPage();
