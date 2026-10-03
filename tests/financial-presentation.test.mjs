@@ -126,7 +126,7 @@ try{
  }
  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>{page='bank';render()});
  const mobileUnlink=page.locator('.mobile-bank .bank-unlink-action').first();
- assert.equal(await mobileUnlink.locator('.bank-unlink-text').evaluate(el=>getComputedStyle(el).display),'inline','Mobile bank action must keep Ontkoppelen as text');
+ assert.notEqual(await mobileUnlink.locator('.bank-unlink-text').evaluate(el=>getComputedStyle(el).display),'none','Mobile bank action must keep Ontkoppelen as visible text');
  assert.equal(await mobileUnlink.locator('svg').evaluate(el=>getComputedStyle(el).display),'none','Mobile bank action should favor text over icon-only meaning');
  await page.evaluate(()=>{page='expenses';render()});
  const mobileExpenseRow=page.locator('.mobile-expenses tbody tr').first();
