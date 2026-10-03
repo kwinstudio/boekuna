@@ -81,7 +81,17 @@ for(const file of ['index.html','privacy/index.html','voorwaarden/index.html','s
 const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{cwd:root,encoding:'utf8'});
 assert.equal(build.status,0,'Marketing build failed: '+build.stderr);
 const dist=path.join(root,'dist','marketing');
-for(const slug of retired)assert.ok(!fs.existsSync(path.join(dist,slug,'index.html')),'Generated artifact must not contain retired route '+slug);
+for(const [source,destination] of Object.entries(expected)){
+  const slug=source.replaceAll('/','');
+  const file=path.join(dist,slug,'index.html');
+  assert.ok(fs.existsSync(file),'Generated artifact must shadow retired route '+source);
+  const redirect=fs.readFileSync(file,'utf8');
+  assert.ok(redirect.includes('location.replace('+JSON.stringify(destination)+')'),'Generated runtime redirect missing for '+source);
+  assert.ok(redirect.includes('content="0;url='+destination+'"'),'Generated no-JS redirect missing for '+source);
+  assert.ok(redirect.includes('name="robots" content="noindex,follow"'),'Retired route must be noindex: '+source);
+  assert.ok(redirect.includes('<link rel="canonical" href="https://boekuna.nl/">'),'Retired route canonical must point home: '+source);
+  assert.ok(!/Prijzen \| Boekuna|Facturen maken \| Boekuna|Alle functies/i.test(redirect),'Legacy marketing content leaked into redirect '+source);
+}
 assert.ok(fs.existsSync(path.join(dist,'assets','onepage.css')),'Generated artifact missing onepage.css');
 assert.ok(!fs.existsSync(path.join(dist,'manifest.webmanifest')),'Marketing artifact must not ship app PWA manifest');
 
