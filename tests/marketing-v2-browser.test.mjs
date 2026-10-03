@@ -377,7 +377,8 @@ try{
    await page.waitForFunction(()=>Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--scroll-progress'))>.1);
    const scrollProgress=await page.locator('html').evaluate(el=>Number.parseFloat(getComputedStyle(el).getPropertyValue('--scroll-progress')));
    assert.ok(scrollProgress>.1&&scrollProgress<=1,name+' scroll progress must track the page');
-   await page.evaluate(()=>window.scrollTo(0,0));
+   await page.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';window.scrollTo(0,0);});
+   await page.waitForFunction(()=>window.scrollY<2);
    const heroBox=await page.locator('[data-parallax-root]').boundingBox();
    assert.ok(heroBox,name+' hero parallax root must be measurable');
    await page.mouse.move(heroBox.x+heroBox.width*.82,heroBox.y+heroBox.height*.28);
