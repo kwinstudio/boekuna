@@ -33,6 +33,11 @@ assert.ok(source.includes("function mobilePrimarySection(p=page){return ['dashbo
 assert.ok(source.includes("openUploadSourcePicker('purchase')"),'Bon toevoegen must preserve the existing native upload path');
 assert.ok(source.includes('prepareEmailHandoffFromComposer'),'Invoice email handoff must remain present');
 assert.equal(/accounts\.google\.com|Sign in with Google|Doorgaan met Google/.test(source),false,'Google account login must stay off');
+assert.ok(source.includes('function dashboardPeriodRange('),'Dashboard period helper missing');
+assert.ok(source.includes('function setDashboardPeriod('),'Dashboard period switch missing');
+for(const label of ['Winst','Omzet','Kosten','Btw apartzetten'])assert.ok(source.includes('dashboard-kpi-label">'+label+'</span>'),'Dashboard KPI missing '+label);
+for(const label of ['Administratie','Nog te ontvangen','Nieuwe factuur'])assert.ok(source.includes('dashboard-summary-title">'+label+'</span>'),'Dashboard bottom summary missing '+label);
+for(const option of ["['7d','7 dagen']","['month','Maand']","['quarter','Kwartaal']","['year','Jaar']"])assert.ok(source.includes(option),'Dashboard period option missing '+option);
 
 const build=spawnSync(process.execPath,['scripts/build-app.mjs'],{cwd:root,encoding:'utf8'});
 assert.equal(build.status,0,'App build failed: '+(build.stderr||build.stdout));
@@ -115,7 +120,7 @@ try{
   for(const [browserName,browserType] of [['chromium',chromium],['webkit',webkit]]){
     const browser=await browserType.launch({headless:true});
     try{
-      const page=await browser.newPage({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
+      const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'});
       const pageErrors=[];page.on('pageerror',e=>pageErrors.push(String(e)));
       await page.goto(base+'/app',{waitUntil:'networkidle'});
       await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
@@ -126,9 +131,22 @@ try{
       assert.match(await page.locator('.dashboard-page-head h1').evaluate(el=>getComputedStyle(el).fontFamily),/Boekuna Space/);
       assert.equal(await page.locator('#sidebar').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
       assert.equal(await page.locator('.nav-item.active').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(236, 250, 238)');
+      assert.deepEqual(await page.locator('.dashboard-kpi-label').allTextContents(),['Winst','Omzet','Kosten','Btw apartzetten']);
+      assert.equal(await page.locator('#dashboardPeriod').inputValue(),'month');
+      assert.deepEqual((await page.locator('.dashboard-chart-card .chart-legend span').allTextContents()).map(v=>v.trim()),['Omzet','Kosten','Winst']);
+      assert.deepEqual(await page.locator('.dashboard-summary-title').allTextContents(),['Administratie','Nog te ontvangen','Nieuwe factuur']);
       await noOverflow(page,browserName+' desktop dashboard');
       await axe(page,browserName+' desktop dashboard');
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2),browserName+' 1440x900 dashboard must fit one screen');
       await page.screenshot({path:path.join(evidence,'dashboard-1440-'+browserName+'.png'),fullPage:true});
+
+      await page.setViewportSize({width:1366,height:768});
+      await page.evaluate(()=>navigate('dashboard'));
+      await noOverflow(page,browserName+' desktop dashboard 1366x768');
+      await axe(page,browserName+' desktop dashboard 1366x768');
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2),browserName+' 1366x768 dashboard must fit one screen');
+      await page.screenshot({path:path.join(evidence,'dashboard-1366-'+browserName+'.png'),fullPage:true});
+      await page.setViewportSize({width:1440,height:900});
 
       await page.evaluate(()=>navigate('invoices'));
       await page.getByRole('heading',{name:'Facturen'}).waitFor();
