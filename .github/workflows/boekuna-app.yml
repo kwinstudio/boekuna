@@ -99,6 +99,10 @@ jobs:
         run: npm install --prefix tests --no-save playwright@1.56.1
       - name: Install Chromium and WebKit
         run: ./tests/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Beginner document review — Chromium + WebKit
+        run: |
+          node tests/document-review-beginner-ux.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/document-review-beginner-ux.test.mjs
       - name: Mobile polish round 2 — Chromium and WebKit
         run: |
           node tests/mobile-polish-round-2.test.mjs
@@ -165,10 +169,6 @@ jobs:
         run: BOOKUNA_BROWSER=webkit node tests/browser-smoke.test.mjs
       - name: Single native Scan picker regression
         run: node tests/scan-native-picker.test.mjs
-      - name: Beginner document review — Chromium + WebKit
-        run: |
-          node tests/document-review-beginner-ux.test.mjs
-          BOOKUNA_BROWSER=webkit node tests/document-review-beginner-ux.test.mjs
       - name: Document browser regressions
         run: node tests/document-upload-browser.test.mjs
       - name: Document background processing regressions
