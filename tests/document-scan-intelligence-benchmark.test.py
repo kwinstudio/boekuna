@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import math
 import statistics
 import sys
@@ -15,7 +16,7 @@ import fitz
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
-PROCESSOR_DIR = ROOT / "kwinest" / "docprocessor"
+PROCESSOR_DIR = Path(os.environ.get("BOOKUNA_PROCESSOR_DIR") or (ROOT / "kwinest" / "docprocessor"))
 sys.path.insert(0, str(PROCESSOR_DIR))
 
 import app as processor  # noqa: E402
@@ -288,6 +289,47 @@ def cases():
             "id":"mixed-vat-pdf","name":"mixed.pdf","mime":"application/pdf",
             "raw":vector_pdf_pages([mixed]),
             "expected":{"supplier":"BOEKUNA QA GEMENGD BV","invoice_number":"MIX-2026-1003","date":"2026-10-03","net":150.0,"vat":19.5,"gross":169.5,"mixed_vat":True},
+            "expect_no_ocr":True,
+        },
+        {
+            "id":"date-month-abbrev-pdf","name":"date-abbrev.pdf","mime":"application/pdf",
+            "raw":vector_pdf_pages([[
+                "FACTUUR","Leverancier: BOEKUNA QA DATUM BV","Factuurnummer: DATE-2026-1",
+                "Factuurdatum: 3 okt 2026","Vervaldatum: 31-10-2026",
+                "Subtotaal EUR 100,00","BTW 21% EUR 21,00","Totaal te betalen EUR 121,00",
+            ]]),
+            "expected":{"supplier":"BOEKUNA QA DATUM BV","invoice_number":"DATE-2026-1", **common21},
+            "expect_no_ocr":True,
+        },
+        {
+            "id":"invoice-number-context-pdf","name":"number-context.pdf","mime":"application/pdf",
+            "raw":vector_pdf_pages([[
+                "FACTUUR","Leverancier: BOEKUNA QA CONTEXT BV","Factuurnummer:",
+                "KVK: 87654321","INV-2026-REAL","Factuurdatum: 03-10-2026",
+                "Subtotaal EUR 100,00","BTW 21% EUR 21,00","Totaal te betalen EUR 121,00",
+            ]]),
+            "expected":{"supplier":"BOEKUNA QA CONTEXT BV","invoice_number":"INV-2026-REAL", **common21},
+            "expect_no_ocr":True,
+        },
+        {
+            "id":"false-mixed-vat-footer-pdf","name":"false-mixed.pdf","mime":"application/pdf",
+            "raw":vector_pdf_pages([[
+                "FACTUUR","Leverancier: BOEKUNA QA SINGLE VAT BV","Factuurnummer: SINGLE-2026-1",
+                "Factuurdatum: 03-10-2026","Omschrijving: Zakelijke dienst",
+                "Subtotaal EUR 100,00","BTW 21% EUR 21,00","Totaal te betalen EUR 121,00",
+                "Actie: ontvang 9% korting bij een volgend bezoek",
+            ]]),
+            "expected":{"supplier":"BOEKUNA QA SINGLE VAT BV","invoice_number":"SINGLE-2026-1", **common21},
+            "expect_no_ocr":True,
+        },
+        {
+            "id":"eindtotaal-label-pdf","name":"eindtotaal.pdf","mime":"application/pdf",
+            "raw":vector_pdf_pages([[
+                "FACTUUR","Leverancier: BOEKUNA QA EINDTOTAAL BV","Factuurnummer: END-2026-1",
+                "Factuurdatum: 03-10-2026","Subtotaal EUR 100,00","BTW 21% EUR 21,00",
+                "Eindtotaal EUR 121,00",
+            ]]),
+            "expected":{"supplier":"BOEKUNA QA EINDTOTAAL BV","invoice_number":"END-2026-1", **common21},
             "expect_no_ocr":True,
         },
     ]
