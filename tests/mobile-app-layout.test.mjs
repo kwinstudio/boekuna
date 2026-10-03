@@ -110,7 +110,7 @@ try{
   assert.match(attentionText,/1 bankregel koppelen/);
   assert.doesNotMatch(attentionText,/Btw Q\d+ controleren/,'Generic VAT action must not appear');
 
-  assert.equal(await page.locator('.dashboard-kpis').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length),2,'390px dashboard KPI layout must be 2x2');
+  assert.equal(await page.locator('.dashboard-kpis').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length),1,'390px dashboard KPI layout must use the single-column mobile reference flow');
   await page.screenshot({path:`tests/artifacts/mobile-dashboard-${browserName}-390.png`,fullPage:true});
 
   await page.locator('[data-mobile-page="invoices"]').click();
