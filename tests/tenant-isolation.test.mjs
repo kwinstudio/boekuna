@@ -90,8 +90,9 @@ assert.ok(sync.includes('owner!==user.id'),'Billing sync must reject a Checkout 
 assert.ok(sync.includes('owner&&owner!==user.id'),'Billing sync must reject a subscription owned by another user');
 
 const send=read('supabase/functions/send-invoice/index.ts');
-assert.ok(send.includes('auth.getUser()'),'Invoice email must authenticate the bearer token');
-assert.ok(send.includes('mailboxConnection(auth.user.id)'),'Invoice email mailbox lookup must use the authenticated user');
+assert.ok(send.includes('auth.getUser()'),'Invoice PDF handoff must authenticate the bearer token');
+assert.ok(!send.includes('get_email_connection_secret'),'Invoice PDF handoff must not access mailbox OAuth secrets');
+assert.ok(!send.includes('SUPABASE_SERVICE_ROLE_KEY'),'Invoice PDF handoff must not require service-role access');
 
 const developerMode=read('supabase/dev-only/migrations/20260930144500_temporary_developer_mode.sql');
 assert.match(developerMode,/s\.user_id=p_user_id/i,'Developer Mode session must stay bound to the authenticated QA user');
