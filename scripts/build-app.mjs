@@ -39,6 +39,8 @@ const appAssets=[
   'kvk-company-lookup.css',
   'mobile-polish-round-2.css',
   'mobile-polish-round-2.js',
+  'mobile-product.css',
+  'mobile-product.js',
   'developer-mode.js'
 ];
 
@@ -178,6 +180,11 @@ function injectBeforeLast(html,marker,content){
 }
 appHtml=injectBeforeLast(appHtml,'</head>','<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261003a">\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review-v2.js?v=20261003a"></script>\n');
+// The real head precedes the app body; later </head> tokens belong to print templates.
+const mobileHeadBoundary='</head>\n<body>';
+if(!appHtml.includes(mobileHeadBoundary))throw new Error('Mobile app head boundary changed');
+appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n'+mobileHeadBoundary);
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-product.js?v=20261003a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});

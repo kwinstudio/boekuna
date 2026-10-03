@@ -10,6 +10,7 @@ on:
       - "public/assets/developer-mode.js"
       - "public/assets/kvk-company-lookup.*"
       - "public/assets/mobile-polish-round-2.*"
+      - "public/assets/mobile-product.*"
       - "public/assets/brand-v2.css"
       - "public/assets/boekuna-app-icon*"
       - "public/assets/boekuna-favicon.svg"
@@ -27,6 +28,8 @@ on:
       - "tests/premium-app-simplification.test.mjs"
       - "tests/app-wide-premium-simplification-v2.test.mjs"
       - "tests/product-ui-reference.test.mjs"
+      - "tests/complete-mobile-product.test.mjs"
+      - "tests/mobile-desktop-freeze.test.mjs"
       - "tests/document-upload-browser.test.mjs"
       - "tests/document-review-beginner-ux.test.mjs"
       - "tests/scan-native-picker.test.mjs"
@@ -163,6 +166,12 @@ jobs:
         run: BOOKUNA_BROWSER=webkit node tests/app-wide-premium-simplification-v2.test.mjs
       - name: Master product UI reference — Chromium + WebKit + Axe
         run: node tests/product-ui-reference.test.mjs
+      - name: Complete mobile product and desktop freeze — Chromium + WebKit
+        run: |
+          node tests/complete-mobile-product.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/complete-mobile-product.test.mjs
+          node tests/mobile-desktop-freeze.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/mobile-desktop-freeze.test.mjs
       - name: Split generated surface browser smoke
         run: node tests/split-surfaces-browser.test.mjs
       - name: WebKit app smoke
@@ -257,4 +266,5 @@ jobs:
             tests/artifacts/contextual-resolution/
             tests/artifacts/invoice-missing-email-390.png
             tests/artifacts/mobile-polish-round-2/
+            tests/artifacts/complete-mobile/
           if-no-files-found: error
