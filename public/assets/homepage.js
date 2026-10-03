@@ -39,7 +39,9 @@ function initBoekunaHomepage(){
         if(/^\s+$/.test(part)){fragment.appendChild(document.createTextNode(part));return;}
         const span=document.createElement('span');
         span.className='interaction-word';
-        span.style.setProperty('--word-index',String(wordIndex++));
+        span.style.setProperty('--word-index',String(wordIndex));
+        span.style.setProperty('--word-delay',(120+wordIndex*58)+'ms');
+        wordIndex+=1;
         span.textContent=part;
         fragment.appendChild(span);
       });
@@ -189,6 +191,7 @@ function initBoekunaHomepage(){
   staggerTargets.forEach((target,index)=>{
     target.classList.add('interaction-stagger');
     target.style.setProperty('--stagger-index',String(index%4));
+    target.style.setProperty('--stagger-delay',(70+(index%4)*70)+'ms');
   });
 
   const revealTargets=[...document.querySelectorAll('.parity-home > section,.parity-story')];
