@@ -2665,4 +2665,20 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
     if usage:
         processing["billing"]={"plan":usage.get("plan"),"monthlyLimit":usage.get("monthly_limit"),"used":usage.get("used"),"remaining":usage.get("remaining")}
     result.processing=processing
+    quality_meta=(processing.get("imageQuality") or {}) if isinstance(processing,dict) else {}
+    confidence_classes={
+        key:("strong" if float(value or 0)>=.90 else ("uncertain" if float(value or 0)>=.70 else "weak"))
+        for key,value in (result.confidence or {}).items()
+    }
+    logger.info(json.dumps({
+        "event":"document_analysis_completed",
+        "processor_version":PROCESSOR_VERSION,"processor_revision":PROCESSOR_REVISION,
+        "duration_ms":processing.get("durationMs"),"pages":processing.get("pages"),
+        "ocr_pages":len(processing.get("ocrPages") or []),
+        "quality_class":quality_meta.get("class"),"quality_flags":quality_meta.get("flags") or [],
+        "document_type":result.documentType,"warning_count":len(result.warnings or []),
+        "field_confidence_classes":confidence_classes,
+        "mixed_vat":bool((processing.get("amountDerivation") or {}).get("mixedRates")),
+        "external_ai_enabled":EXTERNAL_AI_ENABLED,"external_ai_used":bool(ai),
+    }))
     return {"ok":True,"data":result.model_dump(),"preview":{"text":(doc.get("text") or "")[:30000],"pages":doc.get("pages",[])[:50],"tables":doc.get("tables",[])[:20]},"duplicateCandidates":dup}
