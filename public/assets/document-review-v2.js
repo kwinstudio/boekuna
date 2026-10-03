@@ -6,6 +6,8 @@ const legacySavePdfInvoiceImport=global.savePdfInvoiceImport;
 const legacyOpenPersistentDocumentReview=global.openPersistentDocumentReview;
 const legacyAttentionRows=global.attentionRows;
 const legacyPersistentDocumentReviewActionForFile=global.persistentDocumentReviewActionForFile;
+const legacyApplyFinancialCorrectionProposal=global.applyFinancialCorrectionProposal;
+const legacyConfirmSuggestedFinancialRate=global.confirmSuggestedFinancialRate;
 
 const OPTIONAL_FIELDS=[
   'address','postal','city','email','phone','kvk','vatId','iban','dueDate','paymentReference',
@@ -299,6 +301,17 @@ function bindBeginnerReview(){
   updateBeginnerReviewState()
 }
 
+function applyFinancialCorrectionProposal(){
+  const result=typeof legacyApplyFinancialCorrectionProposal==='function'?legacyApplyFinancialCorrectionProposal():undefined;
+  queueMicrotask(()=>updateBeginnerReviewState());
+  return result
+}
+function confirmSuggestedFinancialRate(rate){
+  const result=typeof legacyConfirmSuggestedFinancialRate==='function'?legacyConfirmSuggestedFinancialRate(rate):undefined;
+  queueMicrotask(()=>updateBeginnerReviewState());
+  return result
+}
+
 function setDocumentReviewStep(step){
   const flow=document.querySelector('.document-review-flow.beginner-review');if(!flow)return;
   const n=Math.max(1,Math.min(3,Number(step)||1));flow.dataset.step=String(n);
@@ -351,7 +364,7 @@ function showPdfImportReview(d){
       '<div class="field"><label>Bedrag excl. btw '+provenanceBadge(d,'net')+'</label><input id="pdfImportNet" name="net" inputmode="decimal" autocomplete="off" value="'+esc(d.net!==''&&d.net!=null?Number(d.net).toFixed(2):'')+'" required></div>'+
       '<div class="field"><label>Btw-bedrag '+provenanceBadge(d,'vatAmount')+'</label><input id="pdfImportVatAmount" name="vatAmount" inputmode="decimal" autocomplete="off" value="'+esc(d.vatAmount!==''&&d.vatAmount!=null?Number(d.vatAmount).toFixed(2):'')+'" required></div>'+
       '<div class="field"><label>Totaal '+provenanceBadge(d,'gross')+'</label><input id="pdfImportGross" name="gross" inputmode="decimal" autocomplete="off" value="'+esc(d.gross!==''&&d.gross!=null?Number(d.gross).toFixed(2):'')+'" required></div>'+
-      '<div class="field"><label>Btw-percentage '+provenanceBadge(d,'vatRate')+'</label><select id="pdfImportVatRate" name="vatRate" '+(d.mixedRates?'disabled':'')+' aria-describedby="financialCorrectionPanel"><option value="">Kies</option><option value="21" '+(rateSelectValue(d)==='21'?'selected':'')+'>21%</option><option value="9" '+(rateSelectValue(d)==='9'?'selected':'')+'>9%</option></select><button id="otherVatToggle" type="button" class="link-btn other-vat-toggle" aria-expanded="'+(specialRateSelected(d)?'true':'false')+'" onclick="toggleOtherVatSituation()">Andere btw-situatie</button><div id="otherVatSituation" class="other-vat-situation" '+(specialRateSelected(d)?'':'hidden')+'><p>Alleen gebruiken als er op dit document geen btw-bedrag staat.</p><button type="button" class="btn small" onclick="chooseZeroVat()">0% / geen btw op document</button></div></div>'+
+      '<div class="field"><label>Btw-percentage '+provenanceBadge(d,'vatRate')+'</label><select id="pdfImportVatRate" name="vatRate" '+(d.mixedRates?'disabled':'')+' aria-describedby="financialCorrectionPanel"><option value="">Kies</option><option value="21" '+(rateSelectValue(d)==='21'?'selected':'')+'>21%</option><option value="9" '+(rateSelectValue(d)==='9'?'selected':'')+'>9%</option><option value="0" hidden '+(specialRateSelected(d)?'selected':'')+'>Geen btw</option></select><button id="otherVatToggle" type="button" class="link-btn other-vat-toggle" aria-expanded="'+(specialRateSelected(d)?'true':'false')+'" onclick="toggleOtherVatSituation()">Andere btw-situatie</button><div id="otherVatSituation" class="other-vat-situation" '+(specialRateSelected(d)?'':'hidden')+'><p>Alleen gebruiken als er op dit document geen btw-bedrag staat.</p><button type="button" class="btn small" onclick="chooseZeroVat()">0% / geen btw op document</button></div></div>'+
      '</div>'+
      mixed+
      '<div id="financialCorrectionPanel" class="financial-correction-panel" role="status" aria-live="polite"><h5>Financiële controle</h5><p>Controleer de bedragen op het document.</p></div>'+
@@ -484,6 +497,8 @@ global.useMixedVatTotals=useMixedVatTotals;
 global.toggleOtherVatSituation=toggleOtherVatSituation;
 global.chooseZeroVat=chooseZeroVat;
 global.updateBeginnerReviewState=updateBeginnerReviewState;
+global.applyFinancialCorrectionProposal=applyFinancialCorrectionProposal;
+global.confirmSuggestedFinancialRate=confirmSuggestedFinancialRate;
 global.openSavedDocumentReview=openSavedDocumentReview;
 global.openDeferredDocumentReview=openDeferredDocumentReview;
 global.saveDeferredDocumentReview=saveDeferredDocumentReview;
