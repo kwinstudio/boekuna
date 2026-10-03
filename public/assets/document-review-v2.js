@@ -455,7 +455,14 @@ function saveDeferredDocumentReview(id){
   if(!f.checkValidity()){f.reportValidity();return}
   const fd=Object.fromEntries(new FormData(f).entries()),expense=doc.linkedType==='expense'?state.expenses.find(x=>x.id===doc.linkedId):null,invoice=doc.linkedType==='invoice'?state.invoices.find(x=>x.id===doc.linkedId):null;
   for(const field of [...(doc.reviewAttentionFields||[])]){
-    if(field==='party'&&fd.party){s.party=String(fd.party).trim();if(expense)expense.vendor=s.party;if(invoice){const c=findOrCreateContact('customer',{party:s.party,email:'',phone:'',vatId:'',kvk:'',address:'',postal:'',city:'',iban:''});invoice.customerId=c.id}}
+    if(field==='party'&&fd.party){
+      s.party=String(fd.party).trim();
+      if(expense){
+        expense.vendor=s.party;
+        findOrCreateContact('supplier',{party:s.party,email:'',phone:'',vatId:'',kvk:'',address:'',postal:'',city:'',iban:''});
+      }
+      if(invoice){const c=findOrCreateContact('customer',{party:s.party,email:'',phone:'',vatId:'',kvk:'',address:'',postal:'',city:'',iban:''});invoice.customerId=c.id}
+    }
     if(field==='category'&&fd.category){s.category=String(fd.category);if(expense)expense.category=s.category}
     if(!s.reviewFieldProvenance)s.reviewFieldProvenance={};s.reviewFieldProvenance[field]={source:'user',confirmed:true,confirmedAt:new Date().toISOString()}
   }
