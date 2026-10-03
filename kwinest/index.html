@@ -2035,7 +2035,7 @@ img.bookuna-logo-icon,
   @media(max-width:390px){#mainApp .content{padding-inline:12px!important}#mainApp .dashboard-kpis{grid-template-columns:1fr!important}#mainApp .page-actions{grid-template-columns:1fr!important}}
   @media(prefers-reduced-motion:reduce){#mainApp *,#mainApp *::before,#mainApp *::after,.mobile-bottom-nav *{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}#mainApp .btn:hover{transform:none!important}}
   
-  #mainApp .dashboard-period-control{display:flex;align-items:center;justify-content:flex-end}
+  .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}\n  #mainApp .dashboard-period-control{display:flex;align-items:center;justify-content:flex-end}
   #mainApp .dashboard-period-select{height:38px;min-width:116px;padding:0 34px 0 12px;border:1px solid var(--app-border);border-radius:9px;background:var(--app-white);color:var(--app-charcoal);font-size:12px;font-weight:700;outline:none}
   #mainApp .dashboard-period-select:focus-visible{box-shadow:var(--focus-ring);border-color:var(--app-green)}
   #mainApp .dashboard-kpi{width:100%;text-align:left;color:var(--app-charcoal);appearance:none;cursor:pointer;transition:border-color var(--transition-fast),transform var(--transition-fast),box-shadow var(--transition-fast)}
@@ -3844,7 +3844,7 @@ function wireDashboardChart(){
  const show=button=>{
   selected=button;const values=JSON.parse(button.dataset.chartValues);output.replaceChildren();
   const period=document.createElement('strong');period.className='chart-tooltip-period';period.textContent=values.month;
-  output.append(period);for(const [label,value] of [['Omzet',values.sales],['Kosten',values.costs]]){const row=document.createElement('span'),name=document.createElement('span'),amount=document.createElement('strong');name.textContent=label;amount.textContent=value;row.append(name,amount);output.append(row)}
+  output.append(period);for(const [label,value] of [['Omzet',values.sales],['Kosten',values.costs],['Winst',values.profit]]){const row=document.createElement('span'),name=document.createElement('span'),amount=document.createElement('strong');name.textContent=label;amount.textContent=value;row.append(name,amount);output.append(row)}
   output.hidden=false;buttons.forEach(el=>el.setAttribute('aria-pressed',String(el===button)));position();
  };
  buttons.forEach(button=>{
