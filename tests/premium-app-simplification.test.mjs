@@ -180,8 +180,12 @@ try{
   assert.equal(await page.evaluate(()=>deleteDocumentNow('d-linked')),false,'Document linked to definitive bookkeeping must be protected from deletion');
   assert.equal(await page.evaluate(()=>state.documents.some(d=>d.id==='d-linked')),true);
 
+  await navigateTo('dashboard');
+  assert.equal(await page.locator('.dashboard-summary-card').count(),3,'Dashboard must replace the old recent-invoices table with three summary actions');
+  assert.deepEqual(await page.locator('.dashboard-summary-title').allTextContents(),['Administratie','Nog te ontvangen','Nieuwe factuur']);
+  assert.ok(await page.locator('.dashboard-summary-card').evaluateAll(nodes=>nodes.every(node=>node.tagName==='BUTTON')),'Dashboard summary actions must remain keyboard-native buttons');
+
   for(const [route,selector] of [
-    ['dashboard','.mobile-dashboard-invoices'],
     ['expenses','.mobile-expenses'],
     ['cashflow','.mobile-cashflow'],
     ['ledger','.mobile-trial'],
