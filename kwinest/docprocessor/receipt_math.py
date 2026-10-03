@@ -77,13 +77,15 @@ def derive_single_rate_amounts(
     allow: bool = True,
     anchor_threshold: float = 0.94,
     replace_below: float = 0.88,
+    allow_replace_explicit: bool = False,
 ) -> dict[str, Any]:
     """
     Candidate-stage arithmetic recovery for one unambiguous VAT rate.
 
-    Missing or explicitly low-confidence OCR candidates may be reconstructed
-    from one strong anchor + VAT rate. High-confidence conflicting reads are
-    never overwritten; they remain conflicts requiring review.
+    Missing candidates may be reconstructed from one strong anchor + VAT rate.
+    Explicit OCR reads are preserved by default, even at low confidence: if
+    arithmetic disagrees they become review conflicts instead of silent edits.
+    Legacy callers can opt into replacing weak explicit reads explicitly.
     """
     out = {
         "subtotal": subtotal,
@@ -149,12 +151,16 @@ def derive_single_rate_amounts(
         if field == anchor_field:
             out[field] = round(anchor_value, 2)
             continue
-        if cur is None or not _finite(cur) or cur_conf < replace_below:
+        if cur is None or not _finite(cur):
             out[field] = exp
             out[conf_key[field]] = derived_conf
             out["derivedFields"].append(field)
         elif _money_equal(abs(float(cur)), exp):
             out[field] = round(abs(float(cur)), 2)
+        elif allow_replace_explicit and cur_conf < replace_below:
+            out[field] = exp
+            out[conf_key[field]] = derived_conf
+            out["derivedFields"].append(field)
         else:
             out["conflicts"].append({
                 "field": field,
