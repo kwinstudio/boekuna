@@ -155,6 +155,7 @@
 .two-step-review .compact-adjustment{margin:0;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--app-surface,#f6f7f8)}
 .two-step-review .beginner-review-state{margin:0}
 .two-step-review .review-hidden-scalar{display:none!important}
+.two-step-review [data-review-net-editor][hidden]{display:none!important}
 .review-wizard-actions{width:100%;display:flex;gap:10px;justify-content:flex-end}
 .review-wizard-actions .btn[hidden]{display:none!important}
 .review-wizard-actions .btn{min-height:44px}
