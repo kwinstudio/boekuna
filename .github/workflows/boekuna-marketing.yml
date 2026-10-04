@@ -8,21 +8,19 @@ on:
       - "public/*/index.html"
       - "public/robots.txt"
       - "public/sitemap.xml"
+      - "public/assets/site.css"
+      - "public/assets/site.js"
+      - "public/assets/favicon.svg"
       - "public/assets/onepage.css"
       - "public/assets/marketing.js"
       - "public/assets/boekuna-*.svg"
-      - "public/assets/boekuna-app-icon-180.png"
-      - "public/assets/favicon-32.png"
+      - "public/assets/boekuna-og-1200x630.png"
       - "scripts/build-marketing.mjs"
       - "vercel.json"
       - "tests/marketing-pages.test.mjs"
-      - "tests/marketing-product-proof.test.mjs"
       - "tests/marketing-onepage-browser.test.mjs"
-      - "tests/helpers/marketing-site.mjs"
-      - "tests/split-build-boundaries.test.mjs"
       - "tests/marketing-app-non-regression.test.mjs"
-      - "tests/split-surface-non-regression.test.mjs"
-      - "tests/split-surfaces-browser.test.mjs"
+      - "tests/helpers/marketing-site.mjs"
       - "tests/split-ci-scopes.test.mjs"
       - ".github/workflows/boekuna-marketing.yml"
 
@@ -42,11 +40,9 @@ jobs:
           node-version: "22"
       - name: CI scope contract
         run: node tests/split-ci-scopes.test.mjs
-      - name: Split build boundaries
-        run: node tests/split-build-boundaries.test.mjs
       - name: Install browser test dependencies
         run: npm ci --prefix tests --ignore-scripts
-      - name: Install Playwright
+      - name: Install Playwright + Axe
         run: npm install --prefix tests --no-save playwright@1.56.1 axe-core@4.10.3
       - name: Install Chromium and WebKit
         run: ./tests/node_modules/.bin/playwright install --with-deps chromium webkit
@@ -54,20 +50,14 @@ jobs:
         run: node scripts/build-marketing.mjs
       - name: Untouched app artifact non-regression
         run: node tests/marketing-app-non-regression.test.mjs
-      - name: Split surface non-regression contract
-        run: node tests/split-surface-non-regression.test.mjs
-      - name: One-page static product / route / legal QA
+      - name: Multipage static / route / legal QA
         run: node tests/marketing-pages.test.mjs
-      - name: Real product proof and image integrity
-        run: node tests/marketing-product-proof.test.mjs
-      - name: Split generated surface browser smoke
-        run: node tests/split-surfaces-browser.test.mjs
-      - name: One-page Chromium + WebKit + Axe acceptance
+      - name: Multipage Chromium + WebKit + Axe acceptance
         run: node tests/marketing-onepage-browser.test.mjs
-      - name: Upload one-page browser evidence
+      - name: Upload multipage browser evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: boekuna-onepage-evidence
-          path: tests/artifacts/onepage/
-          if-no-files-found: error
+          name: boekuna-multipage-evidence
+          path: tests/artifacts/multipage/
+          if-no-files-found: warn

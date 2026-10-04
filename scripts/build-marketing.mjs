@@ -14,28 +14,37 @@ const SPACE_GROTESK_LICENSE_URL='https://raw.githubusercontent.com/google/fonts/
 
 const required=[
   'index.html',
+  'functies/index.html',
+  'assistent/index.html',
+  'scanner/index.html',
+  'prijzen/index.html',
+  'veiligheid/index.html',
+  'faq/index.html',
   'privacy/index.html',
   'voorwaarden/index.html',
   'support/index.html',
   'account-verwijderen/index.html',
-  'assets/onepage.css',
-  'assets/marketing.js',
-  'assets/boekuna-marketing-favicon.svg',
+  'assets/site.css',
+  'assets/site.js',
+  'assets/favicon.svg',
+  'assets/boekuna-og-1200x630.png',
   'assets/marketing-editorial/InterVariable.woff2',
   'assets/marketing-editorial/Inter-LICENSE.txt',
-  'assets/product/boekuna-dashboard-desktop-960.webp',
-  'assets/product/boekuna-document-review-desktop-960.webp'
+  'robots.txt',
+  'sitemap.xml'
 ].map(file=>path.join(source,file));
-for(const file of required)if(!fs.existsSync(file))throw new Error('Missing marketing source: '+path.relative(root,file));
+
+for(const file of required){
+  if(!fs.existsSync(file))throw new Error('Missing marketing source: '+path.relative(root,file));
+}
 
 async function cacheRemote(url,name){
   fs.mkdirSync(cacheDir,{recursive:true});
   const file=path.join(cacheDir,name);
   if(fs.existsSync(file)&&fs.statSync(file).size>1000)return file;
   const response=await fetch(url,{redirect:'follow'});
-  if(!response.ok)throw new Error('Could not fetch pinned marketing font asset '+name+': HTTP '+response.status);
-  const buffer=Buffer.from(await response.arrayBuffer());
-  fs.writeFileSync(file,buffer);
+  if(!response.ok)throw new Error('Could not fetch pinned font asset '+name+': HTTP '+response.status);
+  fs.writeFileSync(file,Buffer.from(await response.arrayBuffer()));
   return file;
 }
 
@@ -48,19 +57,8 @@ fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(path.dirname(target),{recursive:true});
 fs.cpSync(source,target,{recursive:true});
 
+// The public marketing host is not the installable product app.
 fs.rmSync(path.join(target,'manifest.webmanifest'),{force:true});
-for(const asset of [
-  'mobile-polish-round-2.css',
-  'mobile-polish-round-2.js',
-  'mobile-product.css',
-  'mobile-product.js',
-  'document-review-v2.css',
-  'document-review-v2.js',
-  'document-intelligence.js',
-  'marketing.css',
-  'marketing-editorial.css',
-  'marketing-editorial.js'
-])fs.rmSync(path.join(target,'assets',asset),{force:true});
 
 const fontsDir=path.join(target,'assets','fonts');
 fs.mkdirSync(fontsDir,{recursive:true});
@@ -68,29 +66,17 @@ fs.copyFileSync(spaceGrotesk,path.join(fontsDir,'SpaceGrotesk-Variable.ttf'));
 fs.copyFileSync(spaceLicense,path.join(fontsDir,'SpaceGrotesk-LICENSE.txt'));
 fs.copyFileSync(path.join(source,'assets','marketing-editorial','InterVariable.woff2'),path.join(fontsDir,'InterVariable.woff2'));
 fs.copyFileSync(path.join(source,'assets','marketing-editorial','Inter-LICENSE.txt'),path.join(fontsDir,'Inter-LICENSE.txt'));
-fs.rmSync(path.join(target,'assets','marketing-editorial'),{recursive:true,force:true});
-
-const productDir=path.join(target,'assets','product');
-const keepProducts=new Set([
-  'boekuna-dashboard-desktop-960.webp',
-  'boekuna-document-review-desktop-960.webp'
-]);
-for(const name of fs.readdirSync(productDir))if(!keepProducts.has(name))fs.rmSync(path.join(productDir,name),{recursive:true,force:true});
 
 const retiredRedirects={
-  'functies':'/#product',
-  'facturen':'/#product',
-  'scanner':'/#product',
-  'btw-bank':'/#product',
-  'rapportages':'/#product',
-  'hoe-het-werkt':'/#hoe-het-werkt',
-  'voor-ondernemers':'/#product',
-  'prijzen':'/#prijzen',
-  'faq':'/#faq',
-  'over':'/#product',
-  'contact':'/support/',
-  'veiligheid':'/privacy/'
+  'facturen':'/#facturen',
+  'btw-bank':'/#btw',
+  'rapportages':'/#rapportages',
+  'hoe-het-werkt':'/#hoe',
+  'voor-ondernemers':'/',
+  'over':'/',
+  'contact':'/support/'
 };
+
 for(const [slug,destination] of Object.entries(retiredRedirects)){
   const dir=path.join(target,slug);
   fs.rmSync(dir,{recursive:true,force:true});
@@ -105,15 +91,25 @@ for(const [slug,destination] of Object.entries(retiredRedirects)){
   fs.writeFileSync(path.join(dir,'index.html'),html);
 }
 
+const pages=['index.html','functies/index.html','assistent/index.html','scanner/index.html','prijzen/index.html','veiligheid/index.html','faq/index.html'];
+for(const page of pages){
+  const html=fs.readFileSync(path.join(target,page),'utf8');
+  if(!html.includes('/assets/site.css'))throw new Error(page+': site.css missing');
+  if(!html.includes('/assets/site.js'))throw new Error(page+': site.js missing');
+  if(!html.includes('https://app.boekuna.nl/?'))throw new Error(page+': product CTA/login handoff missing');
+  if(/accounts\.google\.com|gmail\.send|Doorgaan met Google/i.test(html))throw new Error(page+': forbidden Google auth/mailbox integration');
+}
+
 const home=fs.readFileSync(path.join(target,'index.html'),'utf8');
-for(const legacy of ['/assets/homepage.','/assets/marketing-editorial.','€6,95','€14,95','Binnenkort beschikbaar']){
-  if(home.includes(legacy))throw new Error('Stale marketing content/runtime remains: '+legacy);
+for(const claim of ['Je bent ondernemer.','Geen boekhouder.','Probeer Boekuna gratis']){
+  if(!home.includes(claim))throw new Error('Homepage proposition missing: '+claim);
 }
-for(const product of keepProducts){
-  if(!home.includes('/assets/product/'+product))throw new Error('Required real product proof missing: '+product);
-}
+
+const assistant=fs.readFileSync(path.join(target,'assistent','index.html'),'utf8');
+if(!assistant.includes('Binnenkort'))throw new Error('Assistant page must stay marked as upcoming until the feature is released');
+
 for(const font of ['SpaceGrotesk-Variable.ttf','InterVariable.woff2']){
   if(!fs.existsSync(path.join(fontsDir,font)))throw new Error('Built marketing font missing: '+font);
 }
 
-console.log('Marketing one-page build complete:',path.relative(root,target),'with',Object.keys(retiredRedirects).length,'retired-route redirects and local Space Grotesk + Inter fonts');
+console.log('Marketing multipage build complete:',path.relative(root,target),'with',pages.length,'product pages and',Object.keys(retiredRedirects).length,'legacy redirects');
