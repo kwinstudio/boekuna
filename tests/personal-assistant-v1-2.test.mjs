@@ -143,5 +143,7 @@ assert.match(app,/receivables:[^\n]*invoiceOutstanding|openInvoices[^\n]*invoice
 assert.match(app,/invoiceEffectiveStatus\(i\)!==['"]cancelled['"]/,'Cancelled invoices must be excluded by effective status in KPI revenue selection');
 assert.match(app,/vatReserve/,'KPI view model must expose VAT reserve');
 assert.match(app,/financialReliable/,'Assistant facts must explicitly carry financial reliability');
+const dashboardChartSource=app.slice(app.indexOf('function dashboardChartBuckets'),app.indexOf('function productKpi'));
+assert.match(dashboardChartSource,/invoiceEffectiveStatus\(i\)!==['"]cancelled['"]/,'Dashboard chart must exclude cancelled invoices just like the KPI view model');
 
 console.log('BOEKUNA Personal Assistant V1.2 unit contracts: PASS');
