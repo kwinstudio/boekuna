@@ -13,8 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      BOOKUNA_QA_EMAIL: \${{ secrets.BOOKUNA_MARKETING_CAPTURE_EMAIL }}
-      BOOKUNA_QA_PASSWORD: \${{ secrets.BOOKUNA_MARKETING_CAPTURE_PASSWORD }}
+      BOOKUNA_QA_EMAIL: ${{ secrets.BOOKUNA_MARKETING_CAPTURE_EMAIL }}
+      BOOKUNA_QA_PASSWORD: ${{ secrets.BOOKUNA_MARKETING_CAPTURE_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - name: Authenticated production /analyze with mixed-VAT regression fixture
