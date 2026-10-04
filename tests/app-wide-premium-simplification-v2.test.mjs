@@ -77,7 +77,7 @@ try{
 
   // Invoice editor: task-first, advanced details available but not permanently dominant.
   await page.evaluate(()=>newInvoice());
-  await page.getByRole('heading',{name:'Nieuwe verkoopfactuur'}).waitFor();
+  await page.getByRole('heading',{name:'Nieuwe factuur'}).waitFor();
   const invoiceModal=page.locator('#modalRoot');
   assert.equal(await invoiceModal.getByText('Factuurcontrole actief.',{exact:true}).count(),0,'Permanent invoice-control prose must be removed');
   assert.ok(await invoiceModal.getByText('Factuurregels',{exact:true}).count(),'Invoice lines must remain immediately discoverable');
