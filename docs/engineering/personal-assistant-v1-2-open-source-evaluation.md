@@ -15,7 +15,7 @@ The existing deterministic Personal Insights engine stays. V1.2 adds a small fir
 | Project | Use case considered | Current state checked 2026-10-04 | License | Decision | Why | Files/package used | Risk |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | actualbudget/actual | rule/normalization/personal-finance patterns | Active | MIT | ADOPTED_PATTERNS | Mature local rules and payee/category patterns are relevant, but BOEKUNA already has the safer tenant-local V4.3 learning boundary. | None copied | Low |
-| CacheControl/json-rules-engine | generic rules/facts/priorities | Active | ISC | KEEP_EXISTING_ENGINE | Prior BOEKUNA benchmark showed identical proof behavior with much more overhead; V1.2 has a small fixed rule set. | None | Low |
+| CacheControl/json-rules-engine | generic rules/facts/priorities | Active; package 7.3.2 checked | ISC | KEEP_EXISTING_ENGINE | BOEKUNA’s current deterministic engine adds no runtime dependency. json-rules-engine 7.3.2 adds four direct dependencies (clone, eventemitter2, hash-it, jsonpath-plus) for capabilities V1.2 does not need. | None | Low |
 | assistant-ui/assistant-ui | accessible assistant composer/prompt UX | Active | MIT | REFERENCE_ONLY | Useful UX reference; BOEKUNA is not React-based and does not need a framework rewrite. | None | Low |
 | CopilotKit/CopilotKit | assistant architecture/app control | Active | MIT | REFERENCE_ONLY | Too agentic/general for deterministic financial state; no LLM should control authoritative accounting. | None | Low |
 | novuhq/novu | inbox/digest/notification preferences | Active/open-core repository | Path-dependent | DEFERRED | V1.2 is in-app and needs no external notification platform. Exact path/license review required if adopted later. | None | Medium if adopted |
@@ -30,7 +30,7 @@ The existing deterministic Personal Insights engine stays. V1.2 adds a small fir
 - assistant-ui current root LICENSE: MIT.
 - CopilotKit current root LICENSE: MIT.
 - Invoice Ninja current root LICENSE: Elastic License 2.0 with explicit hosted/managed-service limitation.
-- GitHub metadata currently reports MIT for Actual Budget, ISC for json-rules-engine, Apache-2.0 for Trigger.dev, AGPL-3.0 for Firefly III and AGPL-3.0 for Maybe.
+- GitHub metadata currently reports MIT for Actual Budget, ISC for json-rules-engine, Apache-2.0 for Trigger.dev, AGPL-3.0 for Firefly III and AGPL-3.0 for Maybe. The json-rules-engine package manifest checked on 2026-10-04 reports version 7.3.2 with four direct runtime dependencies.
 - Novu and Akaunting require path-specific/manual license review before any future reuse; no source is copied in V1.2.
 
 ## Why no assistant framework
