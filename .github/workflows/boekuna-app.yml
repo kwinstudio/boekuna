@@ -41,6 +41,7 @@ on:
       - "tests/cloud-sync-serialization.test.mjs"
       - "tests/tenant-isolation.test.mjs"
       - "tests/production-integrity.test.mjs"
+      - "tests/personal-insights.test.mjs"
       - "tests/invoice-delivery.test.mjs"
       - "tests/invoice-persistence.test.mjs"
       - "tests/invoice-native-retry.test.mjs"
@@ -90,6 +91,8 @@ jobs:
         run: node tests/kvk-company-lookup-security.test.mjs
       - name: Smart financial correction
         run: node tests/smart-financial-correction.test.mjs
+      - name: Personal insights deterministic engine contracts
+        run: node tests/personal-insights.test.mjs
       - name: Install app test dependencies
         run: npm ci --prefix tests --ignore-scripts
       - name: Invoice persistence and finalization invariants
