@@ -574,7 +574,7 @@ function reviewWizardField(d,key,label,full=false){
   if(key==='gross')return '<div class="'+cls+'" data-review-field="gross"><label>'+safeLabel+'</label><input id="pdfImportGross" name="gross" inputmode="decimal" autocomplete="off" value="'+esc(d.gross!==''&&d.gross!=null?Number(d.gross).toFixed(2):'')+'" required></div>';
   if(key==='vatRate'){
     const rate=rateSelectValue(d),special=d.vatRate!=null&&!NORMAL_RATES.includes(Number(d.vatRate));
-    return '<div class="'+cls+(d.mixedRates?' review-hidden-scalar':'')+'" data-review-field="vatRate"><label>'+safeLabel+'</label><select id="pdfImportVatRate" name="vatRate" '+(d.mixedRates?'disabled':'')+'><option value="">Kies</option><option value="21" '+(rate==='21'?'selected':'')+'>21%</option><option value="9" '+(rate==='9'?'selected':'')+'>9%</option>'+(special?'<option value="'+esc(String(d.vatRate))+'" selected>'+esc(String(d.vatRate))+'%</option>':'')+'<option value="0" '+(Number(d.vatRate)===0?'selected':'')+'>Geen btw / 0%</option></select></div>'
+    return '<div class="'+cls+(d.mixedRates?' review-hidden-scalar':'')+'" data-review-field="vatRate"><label>'+safeLabel+'</label><select id="pdfImportVatRate" name="vatRate" '+(d.mixedRates?'disabled':'')+'><option value="">Kies</option><option value="21" '+(rate==='21'?'selected':'')+'>21%</option><option value="9" '+(rate==='9'?'selected':'')+'>9%</option>'+(special?'<option value="'+esc(String(d.vatRate))+'" selected>'+esc(String(d.vatRate))+'%</option>':'')+'<option value="0" '+(Number(d.vatRate)===0?'selected':'')+'>Geen btw / 0%</option></select>'+(Number(d.vatRate)===0?'<div class="help review-zero-vat-note">Geen btw (0%)</div>':'')+'</div>'
   }
   return ''
 }
