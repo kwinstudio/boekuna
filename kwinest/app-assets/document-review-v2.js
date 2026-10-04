@@ -293,12 +293,13 @@ function updateReviewWizardUi(){
   const flow=document.querySelector('.document-review-flow.two-step-review');if(!flow)return;
   const step=reviewWizardStep===2?2:1;
   flow.dataset.reviewWizardStep=String(step);
-  flow.querySelectorAll('[data-review-page]').forEach(page=>{page.hidden=Number(page.dataset.reviewPage)!==step});
+  flow.querySelectorAll('[data-review-page]').forEach(page=>{const active=Number(page.dataset.reviewPage)===step;page.hidden=!active;page.setAttribute('aria-hidden',String(!active))});
+  flow.querySelectorAll('.review-wizard-progress span').forEach((bar,index)=>bar.classList.toggle('active',index<step));
   const label=document.getElementById('documentReviewStepLabel');
   if(label)label.textContent=step===1?'Stap 1 van 2 · Basis':'Stap 2 van 2 · Bedragen';
-  document.querySelectorAll('[data-review-next]').forEach(btn=>{btn.hidden=step!==1});
-  document.querySelectorAll('[data-review-prev]').forEach(btn=>{btn.hidden=step!==2});
-  document.querySelectorAll('[data-review-save]').forEach(btn=>{btn.hidden=step!==2});
+  document.querySelectorAll('[data-review-next]').forEach(btn=>{const show=step===1;btn.hidden=!show;btn.style.display=show?'inline-flex':'none'});
+  document.querySelectorAll('[data-review-prev]').forEach(btn=>{const show=step===2;btn.hidden=!show;btn.style.display=show?'inline-flex':'none'});
+  document.querySelectorAll('[data-review-save]').forEach(btn=>{const show=step===2;btn.hidden=!show;btn.style.display=show?'inline-flex':'none'});
 }
 function focusReviewIssue(issue){
   if(!issue)return;
