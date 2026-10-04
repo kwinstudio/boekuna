@@ -3,6 +3,10 @@ import re
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 
+NET_TOTAL_LABELS=["totaal excl. btw","totaal exclusief btw","bedrag ex btw","bedrag excl. btw","bedrag exclusief btw","total excl. vat","tax exclusive","net amount","netto bedrag","subtotaal","subtotal"]
+VAT_TOTAL_LABELS=["totaal btw","btw totaal","vat total","tax amount","btw-bedrag","btw bedrag"]
+
+
 def cents(value):
     try:
         n=Decimal(str(value))
@@ -21,15 +25,95 @@ def review_route(result):
     return {'mode':mode,'fields':uncertain,'count':len(uncertain),'autoBook':False}
 
 
+def explicit_summary_groups(lines,money_tokens):
+    groups={}
+    for line in lines:
+        rm=re.match(r'^(?:btw|vat|tax|tva|mwst)\s*[-:]?\s*(\d{1,2}(?:[.,]\d+)?)\s*%',line,re.I)
+        if not rm:continue
+        rate=decimal_number(rm.group(1))
+        values=money_tokens(line[rm.end():])
+        # Require a stated base or a complete base/tax/gross triplet.
+        if len(values) not in {2,3} or len(values)==2 and not re.search(r'grondslag|taxable|tax base|base amount',line,re.I):continue
+        base,tax=values[:2]
+        if abs(cents(Decimal(str(base))*Decimal(str(rate))/100)-cents(tax))>1:continue
+        if len(values)==3 and cents(base)+cents(tax)!=cents(values[2]):continue
+        candidate={'rate':rate,'taxableAmount':base,'vatAmount':tax}
+        if rate in groups and groups[rate]!=candidate:return []
+        groups[rate]=candidate
+    return list(groups.values())
+
+
 def annotate_understanding(result,doc,company,money_tokens):
     a=result.amounts
     lines=[x.strip() for x in (doc.get('text') or '').splitlines() if x.strip()]
+    conflicts=[]
     rates=set()
     for line in lines:
         if re.search(r'\b(?:btw|vat|tax|mwst|tva|iva)\b',line,re.I):
-            for token in re.findall(r'(?<![\d.,])(\d{1,2}(?:[.,]\d{1,3})?)\s*%',line):
+            tokens=re.findall(r'(?:btw|vat|tax|mwst|tva|iva)(?:\s*(?:tarief|rate))?\s*[-:(]?\s*(\d{1,2}(?:[.,]\d{1,3})?)\s*%',line,re.I)
+            tokens+=re.findall(r'(?<![\d.,])(\d{1,2}(?:[.,]\d{1,3})?)\s*%\s*(?:btw|vat|tax|mwst|tva|iva)\b',line,re.I)
+            if re.match(r'^(?:btw|vat|tax)\s*(?:tarieven|rates)\b',line,re.I):tokens+=re.findall(r'(?<![\d.,])(\d{1,2}(?:[.,]\d{1,3})?)\s*%',line)
+            for token in tokens:
                 rate=float(token.replace(',','.'))
                 if 0<=rate<=100: rates.add(rate)
+    groups=explicit_summary_groups(lines,money_tokens)
+    if groups and a.total is not None and sum(cents(g['taxableAmount'])+cents(g['vatAmount']) for g in groups)==cents(a.total):
+        # Explicit printed triplets plus the document gross anchor disambiguate
+        # malformed reading-order totals; never use a remembered financial value.
+        summary_net=sum(cents(g['taxableAmount']) for g in groups)
+        summary_vat=sum(cents(g['vatAmount']) for g in groups)
+        explicit={}
+        for key,labels in {'subtotal':NET_TOTAL_LABELS,'vatTotal':VAT_TOTAL_LABELS}.items():
+            pattern=r'^(?:'+ '|'.join(re.escape(label).replace(r'\.',r'\.?') for label in labels)+r')\b'
+            candidates=[]
+            for i,line in enumerate(lines):
+                match=re.match(pattern,line,re.I)
+                if not match:continue
+                values=money_tokens(line[match.end():])
+                if not values and i+1<len(lines):values=money_tokens(lines[i+1])
+                if len(values)==1:candidates.append(cents(values[0]))
+            if candidates:explicit[key]=sorted(set(candidates))
+        for key,summary,code in [('subtotal',summary_net,'PRINTED_SUBTOTAL_CONFLICT'),('vatTotal',summary_vat,'PRINTED_VAT_TOTAL_CONFLICT')]:
+            printed=explicit.get(key,[])
+            if printed and printed!=[summary]:
+                conflicts.append(code)
+                # Keep explicit documentary evidence; never silently reconcile a
+                # contradiction by selecting the mathematically nicer group.
+                if len(printed)==1:setattr(a,key,printed[0]/100)
+                result.confidence[key]=.35
+            else:
+                setattr(a,key,summary/100)
+                result.confidence[key]=.95
+        if conflicts:
+            result.processing['financialCandidates']={'printedTotals':explicit,'vatSummaryTotals':{'subtotal':summary_net,'vatTotal':summary_vat},'unit':'cents'}
+        vat_model=type(a).model_fields['vatLines'].annotation.__args__[0]
+        a.vatLines=[vat_model(**g) for g in groups]
+        result.confidence['vatLines']=.95
+        result.processing['financialEvidenceSource']='explicit-vat-summary-and-gross'
+    if len(rates)==1 and next(iter(rates)) not in {0,9,21} and a.subtotal is not None and a.vatTotal is not None:
+        rate=next(iter(rates))
+        if abs(cents(Decimal(str(a.subtotal))*Decimal(str(rate))/100)-cents(a.vatTotal))<=1:
+            vat_model=type(a).model_fields['vatLines'].annotation.__args__[0]
+            a.vatLines=[vat_model(rate=rate,taxableAmount=a.subtotal,vatAmount=a.vatTotal)]
+    if len(rates)>1 and not any(re.match(r'^(?:btw totaal|totaal btw|vat total|total vat|tax amount)\b',line,re.I) for line in lines):
+        taxes={}
+        for line in lines:
+            m=re.match(r'^(?:btw|vat|tax)\s*[-:]?\s*(\d{1,2}(?:[.,]\d+)?)\s*%',line,re.I)
+            if not m:continue
+            values=money_tokens(line[m.end():])
+            if len(values)==1:
+                rate=decimal_number(m.group(1));taxes.setdefault(rate,set()).add(cents(values[0]))
+        if set(taxes)==rates and all(len(values)==1 for values in taxes.values()):
+            tax_sum=sum(next(iter(values)) for values in taxes.values())
+            explicit_net=any(re.match(r'^(?:subtotaal|subtotal|net amount|bedrag ex|totaal ex)\b',line,re.I) for line in lines)
+            reconciles=a.total is not None and (not explicit_net or a.subtotal is not None and cents(a.subtotal)+tax_sum==cents(a.total))
+            if reconciles:
+                a.vatTotal=tax_sum/100
+                result.confidence['vatTotal']=.95
+                if (a.subtotal is None or not explicit_net) and a.total is not None:
+                    a.subtotal=(cents(a.total)-cents(a.vatTotal))/100
+                    result.confidence['subtotal']=.75
+                result.processing['financialEvidenceSource']='printed-vat-summary-sum'
     rates.update(v.rate for v in a.vatLines)
     a.detectedVatRates=sorted(rates)
     # Preserve the printed VAT rate independently from accounting treatment.
@@ -53,7 +137,6 @@ def annotate_understanding(result,doc,company,money_tokens):
         'outstandingAmount':r'^(?:nog te betalen|restant|resterend(?: bedrag)?|remaining(?: balance)?|outstanding(?: amount)?|balance(?: due)?|saldo)\b',
         'amountDue':r'^(?:amount due|te betalen)\b',
     }
-    conflicts=[]
     for key,pattern in labels.items():
         candidates=[]
         for i,line in enumerate(lines):
@@ -101,9 +184,11 @@ NON_FINANCIAL=[
 def classify(result,doc):
     # Titles carry meaning; legal footer references to quotes/RMA do not.
     header='\n'.join([l.strip() for l in (doc.get('text') or '').splitlines() if l.strip()][:8])
+    invoice_title=bool(re.search(r'^\s*(?:factuur|invoice|creditnota|credit note|creditfactuur|credit invoice)(?:\s*\((?:betaalbevestiging|payment confirmation)\))?\s*$',header,re.I|re.M))
     for kind,pattern in NON_FINANCIAL:
         if re.search(pattern,header,re.I):
-            if kind in {'payment_confirmation','RMA'} and re.search(r'^\s*(?:factuur|invoice|creditnota|credit note)\b',header,re.I|re.M):continue
+            if kind=='proforma' and not re.search(r'^\s*pro\s*forma\b',header,re.I|re.M):continue
+            if invoice_title and kind!='proforma':continue
             return kind,False
     if re.search(r'\b(?:creditnota|credit note|creditfactuur|credit invoice|storno|correction invoice|cancellation invoice)\b',header,re.I): return 'credit_note',True
     if result.documentType=='other': return 'unknown',False
@@ -153,6 +238,18 @@ def coordinate_tables(doc):
     return tables
 
 
+def decimal_number(value):
+    """Counts/percentages use decimal notation, not money's two-cent convention."""
+    raw=re.sub(r'^(?:EUR|USD|GBP|CHF|€)\s*','',str(value).strip(),flags=re.I).replace('%','').replace(' ','')
+    if ',' in raw and '.' in raw:
+        raw=raw.replace('.','').replace(',','.') if raw.rfind(',')>raw.rfind('.') else raw.replace(',','')
+    else:raw=raw.replace(',','.')
+    try:
+        number=Decimal(raw)
+        return float(number) if number.is_finite() else None
+    except (InvalidOperation,ValueError):return None
+
+
 def extract_line_items(doc,norm_money):
     items=[];coverage=True
     tables=doc.get('tables') or coordinate_tables(doc)
@@ -161,6 +258,7 @@ def extract_line_items(doc,norm_money):
         for row in (table.get('rows') or table.get('table') or [])[:500]:
             clean=[str(x or '').strip() for x in row]
             found={key:i for i,cell in enumerate(clean) for key,pattern in HEADER_PATTERNS.items() if re.search(pattern,cell,re.I)}
+            if 'discount' in found and '%' in clean[found['discount']]:found['discountPercent']=found.pop('discount')
             if 'description' in found and ('netAmount' in found or ('quantity' in found and 'unitPrice' in found)):
                 mapping=found;continue
             if not mapping:continue
@@ -172,7 +270,7 @@ def extract_line_items(doc,norm_money):
                 if key=='description':continue
                 cell=clean[index] if index<len(clean) else ''
                 if key=='unit':item[key]=cell[:30];continue
-                item[key]=norm_money(cell.replace('%','')) if cell else None
+                item[key]=(decimal_number(cell) if key in {'quantity','unitPrice','vatRate','discountPercent'} or '%' in cell else norm_money(cell)) if cell else None
                 if key=='discount' and '%' in cell:item['discountPercent']=item.pop('discount')
             if item.get('netAmount') is None:
                 # Row arithmetic is only a candidate with declared quantity/price.
@@ -213,19 +311,24 @@ def annotate_safety(result,doc,norm_money):
             if item.get('discountPercent') is not None:expected*=1-Decimal(str(item['discountPercent']))/100
             if item.get('discount') is not None:expected-=Decimal(str(item['discount']))
             if abs(cents(expected)-cents(net))>1:anomalies.append('LINE_ARITHMETIC_MISMATCH')
-        if item.get('vatAmount') is not None and item.get('grossAmount') is not None and cents(net)+cents(item['vatAmount'])!=cents(item['grossAmount']):anomalies.append('LINE_GROSS_MISMATCH')
+        if net is not None and item.get('vatAmount') is not None and item.get('vatRate') is not None and abs(cents(Decimal(str(net))*Decimal(str(item['vatRate']))/100)-cents(item['vatAmount']))>1:anomalies.append('LINE_VAT_MISMATCH')
+        if net is not None and item.get('vatAmount') is not None and item.get('grossAmount') is not None and cents(net)+cents(item['vatAmount'])!=cents(item['grossAmount']):anomalies.append('LINE_GROSS_MISMATCH')
     if items:result.lineItems=[type(result).model_fields['lineItems'].annotation.__args__[0](**item) for item in items]
     if items and complete:
         net_sum=sum(cents(i.get('netAmount')) or 0 for i in items)
         if a.subtotal is not None and net_sum!=cents(a.subtotal):anomalies.append('LINE_NET_MISMATCH')
         if all(i.get('grossAmount') is not None for i in items) and a.total is not None and sum(cents(i['grossAmount']) for i in items)!=cents(a.total):anomalies.append('LINE_TOTAL_MISMATCH')
     if all(v is not None for v in [a.subtotal,a.vatTotal,a.total]) and cents(a.subtotal)+cents(a.vatTotal)!=cents(a.total):anomalies.append('TOTAL_ARITHMETIC_MISMATCH')
+    if len(a.detectedVatRates)>1 and set(v.rate for v in a.vatLines)!=set(a.detectedVatRates):
+        anomalies.append('INCOMPLETE_VAT_GROUPS');result.confidence['vatLines']=min(result.confidence.get('vatLines',.2),.35)
     if a.vatLines and a.vatTotal is not None and sum(cents(v.vatAmount) or 0 for v in a.vatLines)!=cents(a.vatTotal):anomalies.append('VAT_GROUP_MISMATCH')
     for v in a.vatLines:
         if v.taxableAmount is not None and v.vatAmount is not None and abs(cents(Decimal(str(v.taxableAmount))*Decimal(str(v.rate))/100)-cents(v.vatAmount))>1:anomalies.append('VAT_MATH_MISMATCH')
     if result.invoice.dueDate and result.invoice.invoiceDate and result.invoice.dueDate<result.invoice.invoiceDate:anomalies.append('DUE_DATE_BEFORE_INVOICE')
     if result.invoice.invoiceNumber and re.fullmatch(r'20\d{2}',result.invoice.invoiceNumber):anomalies.append('INVOICE_NUMBER_YEAR_ONLY')
     if kind!='credit_note' and any(v is not None and v<0 for v in [a.subtotal,a.vatTotal,a.total]):anomalies.append('UNEXPECTED_NEGATIVE_AMOUNT')
+    reference=re.search(r'(?:oorspronkelijke factuur|original invoice|reference invoice|referenced invoice|factuurreferentie)\s*[:#]?\s*([A-Z0-9][A-Z0-9._/-]{1,50})',doc.get('text') or '',re.I)
+    if reference:result.invoice.referencedInvoiceNumber=reference.group(1)
     result.processing={**result.processing,'intelligenceVersion':'4.2','documentClassification':kind,'bookingAllowed':bookable,'anomalyCodes':sorted(set(anomalies)),'lineItemsComplete':bool(items and complete)}
     result.processing['reviewRouting']=review_route(result)
     return result

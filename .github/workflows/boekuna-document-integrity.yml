@@ -6,6 +6,8 @@ on:
       - "kwinest/docprocessor/**"
       - "kwinest/index.html"
       - "public/assets/financial-correction.js"
+      - "public/assets/document-intelligence.js"
+      - "public/assets/document-review-v2.js"
       - "tests/document-*.test.py"
       - "tests/document-scan-intelligence-unit.test.py"
       - "tests/document-*.test.mjs"
@@ -17,6 +19,9 @@ on:
       - "docs/document-scan-intelligence.md"
       - ".github/workflows/boekuna-document-integrity.yml"
   workflow_dispatch:
+
+env:
+  ORT_DISABLE_TELEMETRY: "1"
 
 permissions:
   contents: read
@@ -42,6 +47,10 @@ jobs:
         run: node tests/tenant-isolation.test.mjs
       - name: Smart financial correction
         run: node tests/smart-financial-correction.test.mjs
+      - name: Document intelligence phase regressions
+        run: |
+          node tests/document-intelligence-app.test.mjs
+          node tests/document-intelligence-learning.test.mjs
       - name: Production calculation regression
         run: node tests/production-integrity.test.mjs
 
@@ -51,6 +60,8 @@ jobs:
           npm install --prefix tests --no-save playwright@1.56.1
           ./tests/node_modules/.bin/playwright install --with-deps chromium webkit
 
+      - name: Document intelligence tenant persistence
+        run: node tests/document-intelligence-sql-isolation.test.mjs
       - name: App browser smoke · Chromium
         run: node tests/browser-smoke.test.mjs
       - name: App browser smoke · WebKit
@@ -72,6 +83,8 @@ jobs:
 
       - name: Install processor dependencies
         run: pip install --disable-pip-version-check -r kwinest/docprocessor/requirements.txt httpx==0.28.1
+      - name: Document intelligence parser phases
+        run: python tests/document-intelligence-phases.test.py
       - name: OCR production hardening
         run: python tests/ocr-production-hardening.test.py
       - name: Baseline scan intelligence benchmark
@@ -103,4 +116,4 @@ jobs:
       - name: Financial blocks
         run: python tests/financial-blocks.test.py
       - name: Python syntax safety
-        run: python -m py_compile kwinest/docprocessor/app.py kwinest/docprocessor/receipt_math.py kwinest/docprocessor/financial_blocks.py kwinest/docprocessor/image_quality.py
+        run: python -m py_compile kwinest/docprocessor/app.py kwinest/docprocessor/receipt_math.py kwinest/docprocessor/financial_blocks.py kwinest/docprocessor/image_quality.py kwinest/docprocessor/document_intelligence.py

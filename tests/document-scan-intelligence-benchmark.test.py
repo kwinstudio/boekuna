@@ -410,6 +410,7 @@ def percentile(values, p):
 def run():
     before_rss = rss_mb()
     records = []
+    calibration={}
     field_counts = {f:{"exact":0,"normalized":0,"missing":0,"wrong":0,"ambiguous":0,"applicable":0} for f in FIELDS}
 
     for case in cases():
@@ -439,6 +440,11 @@ def run():
                 if field not in FIELDS:
                     continue
                 status = classify(field, expected, actual.get(field), field_confidence(result, field))
+                confidence=field_confidence(result,field)
+                confidence_bucket='HIGH_95' if confidence>=.95 else ('MEDIUM_70' if confidence>=.70 else 'LOW')
+                stats=calibration.setdefault(field+'|'+confidence_bucket,{'observations':0,'correct':0})
+                stats['observations']+=1
+                stats['correct']+=int(status in {'exact','normalized'})
                 statuses[field] = status
                 field_counts[field][status] += 1
                 field_counts[field]["applicable"] += 1
@@ -476,6 +482,7 @@ def run():
         "ocr_stack":processor.ocr_stack_info(),
         "documents":len(records),
         "field_accuracy":accuracies,
+        "confidence_calibration":calibration,
         "field_status":field_counts,
         "corrections_per_document":round(statistics.mean(corrections),3),
         "documents_zero_corrections":sum(1 for x in corrections if x == 0),
@@ -489,6 +496,9 @@ def run():
     print("SCAN_BENCHMARK_JSON=" + json.dumps(payload, sort_keys=True))
     assert payload["documents"] >= 10
     assert payload["digital_pdf_no_ocr"] is True
+    for key,stats in calibration.items():
+        if key.endswith("HIGH_95"):
+            assert stats["correct"]==stats["observations"], f"Unreliable high confidence: {key} {stats}"
     return payload
 
 

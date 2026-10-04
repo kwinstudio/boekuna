@@ -56,6 +56,7 @@ for(const asset of [
   'mobile-product.js',
   'document-review-v2.css',
   'document-review-v2.js',
+  'document-intelligence.js',
   'marketing.css',
   'marketing-editorial.css',
   'marketing-editorial.js'

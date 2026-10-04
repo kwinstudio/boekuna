@@ -303,6 +303,29 @@ try{
   await page.evaluate(()=>setDocumentReviewStep(2));await noOverflow(browserName+' mobile foreign VAT');
   await page.screenshot({path:'tests/artifacts/document-intelligence-foreign-mobile-'+browserName+'.png',fullPage:true});
 
+  await openReview({invoiceNumber:'FOREIGN-MIXED',party:'Mixed Foreign Supplier',mixedRates:true,vatRate:null,detectedVatRates:[5,20],accountingVatTreatment:'review_required',net:200,vatAmount:25,gross:225,vatLines:[{rate:5,taxableAmount:100,vatAmount:5},{rate:20,taxableAmount:100,vatAmount:20}]});
+  await page.evaluate(()=>{pendingPdfImport.sha256='foreign-mixed-qa';setDocumentReviewStep(2)});
+  assert.deepEqual(await page.locator('[data-vat-line-rate]').evaluateAll(els=>els.map(e=>e.value)),['5','20']);
+  await page.locator('[name="foreignVatConfirmed"]').check();
+  await page.locator('[data-vat-line-rate]').first().dispatchEvent('change');
+  assert.deepEqual(await page.evaluate(()=>pendingPdfImport.parsed.vatLines.map(x=>x.rate)),[5,20]);
+  await page.evaluate(()=>savePdfInvoiceImport());
+  await page.waitForFunction(()=>state.expenses.some(e=>e.invoiceNumber==='FOREIGN-MIXED'));
+  assert.deepEqual(await page.evaluate(()=>state.expenses.find(e=>e.invoiceNumber==='FOREIGN-MIXED').vatLines.map(x=>x.rate)),[5,20]);
+  await openReview({invoiceNumber:'CREDIT-MIXED',documentType:'credit_invoice',isCredit:true,status:'credit',mixedRates:true,vatRate:null,net:-200,vatAmount:-30,gross:-230,vatLines:[{rate:9,taxableAmount:-100,vatAmount:-9},{rate:21,taxableAmount:-100,vatAmount:-21}]});
+  await page.evaluate(()=>{pendingPdfImport.sha256='credit-mixed-qa';setDocumentReviewStep(2)});
+  await page.evaluate(()=>savePdfInvoiceImport());
+  assert.equal(await page.evaluate(()=>state.expenses.some(e=>e.invoiceNumber==='CREDIT-MIXED')),true,'credit must save: '+await page.locator('body').innerText());
+  const credit=await page.evaluate(()=>{const e=state.expenses.find(e=>e.invoiceNumber==='CREDIT-MIXED');return {net:e.exVat,vat:e.vatAmount,gross:e.gross,vatLines:e.vatLines}});
+  assert.equal(credit.net,-200);assert.equal(credit.vat,-30);assert.equal(credit.gross,-230);assert.equal(credit.vatLines.reduce((sum,l)=>sum+l.vatAmount,0),-30);
+
+  await openReview({reviewRouting:{mode:'QUICK_REVIEW',fields:['invoiceNumber']}});
+  assert.match(await page.locator('#mobileReviewStepLabel').innerText(),/Stap 2 van 3/);
+  assert.match(await page.locator('#modalRoot').innerText(),/Een korte controle/);
+  await openReview({reviewRouting:{mode:'FULL_REVIEW',fields:['party','invoiceNumber']}});
+  assert.match(await page.locator('#mobileReviewStepLabel').innerText(),/Stap 1 van 3/);
+  await page.evaluate(()=>setDocumentReviewStep(2));
+  assert.match(await page.locator('#modalRoot').innerText(),/Controleer dit document volledig/);
   assert.deepEqual(errors,[],browserName+' beginner review JavaScript errors');
   console.log('BOEKUNA document review beginner UX '+browserName+': PASS');
 }finally{

@@ -4,14 +4,14 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any
 
 MONEY_RE = re.compile(
-    r"(?<!\w)(?:EUR|€|EURO)?\s*[-+]?\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})"
+    r"(?<!\w)(?:USD|GBP|CHF|EUR|€|EURO)?\s*[-+]?\d{1,3}(?:,\d{3})+\.\d{2}(?![\w.,])|(?<!\w)(?:EUR|€|EURO)?\s*[-+]?\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})"
     r"|(?<!\w)(?:EUR|€|EURO)?\s*[-+]?\d+(?:[.,]\d{2})(?!\w)",
     re.I,
 )
 NET_RE = re.compile(
-    r"\b(?:bedrag\s*excl\.?\s*(?:(?:0|9|21)(?:[.,]0+)?\s*%\s*)?(?:btw|vat)|"
-    r"totaal\s*(?:excl\.?|exclusief)\s*(?:(?:0|9|21)(?:[.,]0+)?\s*%\s*)?(?:btw|vat)|"
-    r"total\s*excl\.?\s*vat|tax\s*exclusive|net\s*amount|subtotaal|subtotal)\b",
+    r"\b(?:bedrag\s*(?:ex|excl)\.?\s*(?:(?:0|9|21)(?:[.,]0+)?\s*%\s*)?(?:btw|vat)|"
+    r"totaal\s*(?:ex|excl\.?|exclusief)\s*(?:(?:0|9|21)(?:[.,]0+)?\s*%\s*)?(?:btw|vat)|"
+    r"total\s*excl\.?\s*vat|tax\s*exclusive|net\s*amount|subtotaal|subtotal|^\s*excl\.?)\b",
     re.I,
 )
 VAT_RE = re.compile(r"\b(?:btw|vat|tax)\b", re.I)
@@ -126,6 +126,8 @@ def _net_amount(lines: list[str], i: int) -> float | None:
 
 
 def _vat_amount_from_line(line: str) -> float | None:
+    if NET_RE.search(line) or MAIN_GROSS_RE.search(line) or re.search(r"verlegd|shifted|reverse charge",line,re.I):
+        return None
     vals = money_tokens(line)
     if not vals:
         return None
