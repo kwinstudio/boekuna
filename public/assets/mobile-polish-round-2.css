@@ -109,6 +109,26 @@ input[type="date"]{
   min-width:0;
   max-width:100%;
 }
+.field input[type="date"]{
+  height:42px;
+  padding:10px 11px;
+  line-height:20px;
+}
+.field input[type="date"]::-webkit-date-and-time-value{
+  min-height:20px;
+  line-height:20px;
+  text-align:left;
+}
+.field input[type="date"]::-webkit-calendar-picker-indicator{
+  margin:0 0 0 auto;
+  padding:2px;
+}
+@media(max-width:820px){
+  #mainApp .field input[type="date"],
+  #modalRoot .field input[type="date"]{
+    height:44px!important;
+  }
+}
 .report-filterbar{overflow:hidden}
 .report-custom-range{
   width:100%;
