@@ -34,8 +34,10 @@ assert.ok(source.includes("invoices:'Inkomsten'"),'The user-facing invoices rout
 assert.ok(source.includes("income:'Ontvangsten'"),'The bank income drill-down must be distinguished from the primary Inkomsten route');
 assert.ok(source.includes('data-page="invoices"'),'The internal invoices route must remain intact');
 assert.ok(source.includes('data-mobile-page="invoices"'),'The mobile deep-link destination must remain invoices');
-assert.ok(source.includes("'1300':'Nog te ontvangen van klanten'"),'General-ledger customer receivables label must use plain language');
-assert.ok(source.includes("'1600':'Nog te betalen aan leveranciers'"),'General-ledger supplier payables label must use plain language');
+assert.ok(source.includes("'1300':'Debiteuren'"),'Internal journal account contract must keep the established Debiteuren label');
+assert.ok(source.includes("'1600':'Crediteuren'"),'Internal journal account contract must keep the established Crediteuren label');
+assert.ok(source.includes("'1300':'Nog te ontvangen van klanten'"),'Ledger presentation map must expose the customer receivables label in plain language');
+assert.ok(source.includes("'1600':'Nog te betalen aan leveranciers'"),'Ledger presentation map must expose the supplier payables label in plain language');
 assert.ok(source.includes('<strong>Factuur</strong></button>'),'Quick-create invoice action must avoid the Verkoopfactuur jargon label');
 assert.ok(source.includes("openUploadSourcePicker('purchase')"),'Bon toevoegen must preserve the existing native upload path');
 assert.ok(source.includes('prepareEmailHandoffFromComposer'),'Invoice email handoff must remain present');
