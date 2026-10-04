@@ -89,7 +89,7 @@ jobs:
         run: python tests/ocr-production-hardening.test.py
       - name: Baseline scan intelligence benchmark
         env:
-          BOOKUNA_BASE_SHA: f1c0a10df6e84da376e333e7ee00f178862bcfcb
+          BOOKUNA_BASE_SHA: ${{ github.event.pull_request.base.sha || '175b1072f91caecdf206de77f8c9b82492b3427e' }}
         run: |
           BASE=/tmp/boekuna-base-processor
           mkdir -p "$BASE"

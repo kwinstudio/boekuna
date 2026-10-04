@@ -496,9 +496,12 @@ def run():
     print("SCAN_BENCHMARK_JSON=" + json.dumps(payload, sort_keys=True))
     assert payload["documents"] >= 10
     assert payload["digital_pdf_no_ocr"] is True
-    for key,stats in calibration.items():
-        if key.endswith("HIGH_95"):
-            assert stats["correct"]==stats["observations"], f"Unreliable high confidence: {key} {stats}"
+    # A frozen baseline measures prior defects; only the candidate is gated on
+    # the new confidence requirement. Keep both sets of calibration evidence.
+    if not os.environ.get("BOOKUNA_PROCESSOR_DIR"):
+        for key,stats in calibration.items():
+            if key.endswith("HIGH_95"):
+                assert stats["correct"]==stats["observations"], f"Unreliable high confidence: {key} {stats}"
     return payload
 
 

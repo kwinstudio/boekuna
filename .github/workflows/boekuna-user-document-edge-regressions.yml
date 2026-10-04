@@ -8,6 +8,9 @@ on:
       - ".github/workflows/boekuna-user-document-edge-regressions.yml"
   workflow_dispatch:
 
+env:
+  ORT_DISABLE_TELEMETRY: "1"
+
 permissions:
   contents: read
 
