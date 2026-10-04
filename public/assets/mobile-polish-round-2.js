@@ -45,7 +45,6 @@
       +settingsItem('Fiscale spelregels','Bekijk de fiscale uitgangspunten die Boekuna gebruikt.','showLegal()')
       +settingsItem('Belastingpot','Beheer het bestaande reservepercentage bij je cashflow.','navigate(\'cashflow\')')
       +'</div></section>'
-      +renderAssistantSettingsSafe()
       +'<section class="settings-group"><h2 class="settings-group-label">Beveiliging & privacy</h2><div class="settings-list">'
       +settingsItem('Tweestapsverificatie','Voeg een extra beveiligingsstap toe wanneer je inlogt.','accountMenu()')
       +settingsItem('Privacy & veiligheid','Bekijk hoe je account en administratie worden beschermd.','showSecurity()')
