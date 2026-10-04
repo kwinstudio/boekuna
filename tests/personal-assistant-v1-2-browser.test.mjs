@@ -96,10 +96,8 @@ try{
  await page.getByRole('heading',{name:'Overzicht'}).waitFor();
 
  assert.equal(await page.locator('.dashboard-kpis-v12 .dashboard-kpi').count(),5,'Dashboard must expose exactly five core KPI cards');
- for(const label of ['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen']){
-  assert.equal(await page.locator('.dashboard-kpis-v12 .dashboard-kpi-label').filter({hasText:new RegExp('^'+label.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\ for(const label of ['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen']){
-  assert.equal(await page.locator('.dashboard-kpis-v12 .dashboard-kpi').filter({hasText:label}).count(),1,'Missing/duplicate KPI '+label);
- }')+'
+ const kpiLabels=await page.locator('.dashboard-kpis-v12 .dashboard-kpi-label').allTextContents();
+ assert.deepEqual(kpiLabels.map(x=>x.trim()),['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen'],'Core KPI labels must be unique and ordered');
  const receivables=await page.locator('.dashboard-kpi-receivables').innerText();
  assert.match(receivables,/910/,'Partial payment must leave €910 receivable');
  const revenue=await page.locator('.dashboard-kpis-v12 .dashboard-kpi').filter({has:page.locator('.dashboard-kpi-label',{hasText:/^Omzet$/})}).innerText();
