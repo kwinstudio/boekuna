@@ -47,7 +47,7 @@ try{
     const page=await browser.newPage({viewport:{width,height:width<620?844:900},reducedMotion:'reduce'});
     const errors=[];page.on('pageerror',e=>errors.push(String(e)));
     await page.goto(server.base+'/',{waitUntil:'domcontentloaded'});
-    await page.locator('.logo').waitFor({state:'visible'});
+    await page.locator('.hdr-in > .logo').waitFor({state:'visible'});
     await noOverflow(page,'home '+width);
 
     assert.equal(await page.locator('#scanDemo').count(),1,'Scanner demo missing at '+width);
@@ -56,7 +56,7 @@ try{
 
     const mobile=width<=960;
     assert.equal(await page.locator('#burger').isVisible(),mobile,'Burger visibility mismatch at '+width);
-    assert.equal(await page.locator('.nav').isVisible(),!mobile,'Desktop nav visibility mismatch at '+width);
+    assert.equal(await page.locator('.hdr .nav').isVisible(),!mobile,'Desktop nav visibility mismatch at '+width);
 
     if([390,1440,1920].includes(width)){
       await page.screenshot({path:path.join(artifacts,'multipage-home-'+width+'.png'),fullPage:true});
