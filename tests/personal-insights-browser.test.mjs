@@ -128,7 +128,7 @@ try{
  await page.evaluate(()=>{for(const i of state.invoices){i.status='paid';i.payments=[{id:'paid-'+i.id,amount:invoiceGross(i),date:today()}]}render()});
  assert.equal(await page.evaluate(()=>window.__boekunaAssistantTest.snapshot().insights.some(x=>x.type==='OVERDUE_INVOICE')),false,'Resolved source state must remove overdue insight');
 
- await nav('settings');await page.setViewportSize({width:1440,height:900});
+ await page.setViewportSize({width:1440,height:900});await nav('settings');
  assert.equal(await page.getByText('Assistent & inzichten',{exact:true}).count(),1);
  assert.equal(await page.getByText('Zonder externe AI',{exact:true}).count(),1);
  await page.getByRole('checkbox',{name:'Kosten begrijpen'}).check();
