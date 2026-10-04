@@ -342,7 +342,11 @@ function updateBeginnerReviewState(){
     warning.textContent=financial?financial.message:''
   }
   const netEditor=document.querySelector('[data-review-net-editor]');
-  if(netEditor)netEditor.hidden=!amountIssues.some(x=>['net','vatAmount','gross','vatRate'].includes(x.field));
+  if(netEditor){
+    const f=document.getElementById('pdfImportForm'),netC=cents(f?.elements.namedItem('net')?.value),vatC=cents(f?.elements.namedItem('vatAmount')?.value),grossC=cents(f?.elements.namedItem('gross')?.value);
+    const needsNet=netC==null||(netC!=null&&vatC!=null&&grossC!=null&&netC+vatC!==grossC);
+    netEditor.hidden=!needsNet
+  }
   const financialPanel=document.getElementById('financialCorrectionPanel');
   if(financialPanel)financialPanel.classList.toggle('review-secondary-panel',!financial);
   document.querySelectorAll('[data-review-next]').forEach(btn=>{btn.disabled=basisIssues.length>0});
