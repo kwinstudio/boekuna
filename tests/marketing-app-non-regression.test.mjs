@@ -25,7 +25,7 @@ try{
 
   // Shared split tests also trigger this gate for app PRs. Compare the surface
   // that must remain unchanged; intentional app changes still have app CI.
-  const appChanged=['kwinest/index.html','scripts/build-app.mjs','public/manifest.webmanifest'].some(file=>!fs.readFileSync(path.join(root,file)).equals(fs.readFileSync(path.join(tmp,file))));
+  const appChanged=['kwinest/index.html','scripts/build-app.mjs','public/manifest.webmanifest','public/assets/document-review-v2.js','public/assets/document-review-v2.css'].some(file=>!fs.readFileSync(path.join(root,file)).equals(fs.readFileSync(path.join(tmp,file))));
   const surface=appChanged?'marketing':'app';
   for(const cwd of [tmp,root])for(const target of ['app','marketing'])runBuild(cwd,target);
   const base=digestTree(path.join(tmp,'dist',surface));
