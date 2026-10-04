@@ -33,7 +33,7 @@ const evaluate=ctx=>Engine.evaluate(base(ctx));
 // 1. Group overdue invoices and use authoritative outstanding, not gross.
 {
  const insights=evaluate({invoices:[
-  {id:'i1',number:'2026-001',kind:'invoice',effectiveStatus:'overdue',dueDate:'2026-09-20',gross:1210,paid:1000,outstanding:210,customerName:'A'},
+  {id:'i1',number:'2026-001',kind:'invoice',effectiveStatus:'partial',dueDate:'2026-09-20',gross:1210,paid:1000,outstanding:210,customerName:'A'},
   {id:'i2',number:'2026-002',kind:'invoice',effectiveStatus:'overdue',dueDate:'2026-09-22',gross:605,paid:0,outstanding:605,customerName:'B'}
  ]});
  const overdue=ids(insights,'OVERDUE_INVOICE');
