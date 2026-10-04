@@ -340,7 +340,7 @@ function evaluate(context){
   for(const item of out){if(item?.id&&!dedup.has(item.id))dedup.set(item.id,item)}
   return rankInsights(applyPreferences([...dedup.values()],prefs),prefs);
 }
-function dashboardInsights(items){return rankInsights(items||[]).slice(0,3)}
+function dashboardInsights(items){return (items||[]).slice(0,3)}
 function adminStatus(context,items){
   const source=context?.sourceStatus||{};
   if(source.financialReliable===false||source.documentsReliable===false)return {state:'UNKNOWN',label:'Status niet beschikbaar',detail:'Een bron kon niet betrouwbaar worden bijgewerkt.'};
