@@ -238,6 +238,16 @@ patchBuiltAppAsset(
   "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];",
   "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Persoonlijke tips en samenvattingen','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];"
 );
+patchBuiltAppAsset(
+  'mobile-product.css',
+  "  #mainApp .dashboard-kpi-profit, #mainApp .dashboard-kpi:last-child { grid-column:1/-1!important; }",
+  "  #mainApp .dashboard-kpi-profit { grid-column:1/-1!important; }"
+);
+patchBuiltAppAsset(
+  'mobile-product.css',
+  "  #mainApp .dashboard-kpis { grid-template-columns:1fr!important; }",
+  "  #mainApp .dashboard-kpis { grid-template-columns:repeat(2,minmax(0,1fr))!important; }"
+);
 
 fs.copyFileSync(interFontSource,path.join(appAssetsTarget,'app-InterVariable.woff2'));
 fs.copyFileSync(spaceGroteskFont,path.join(appAssetsTarget,'app-SpaceGrotesk-Variable.ttf'));
