@@ -16,6 +16,8 @@ for(const file of ['assets/personal-insights.js','assets/personal-insights-ui.js
  assert.ok(fs.existsSync(path.join(dist,file)),'Built assistant asset missing: '+file);
  assert.ok(html.includes('/'+file),'Built app must reference '+file);
 }
+const uiSource=fs.readFileSync(path.join(root,'public','assets','personal-insights-ui.js'),'utf8');
+assert.match(uiSource,/modal\(esc\(item\.title\),/,'Dynamic assistant modal titles must be HTML-escaped before reaching the generic modal helper');
 
 const fixture=`
 currentUser={...TEST_USER,email:'assistant-qa@example.test',supabaseUser:{user_metadata:{first_name:'Kwin'}}};
