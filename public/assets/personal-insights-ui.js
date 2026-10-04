@@ -26,7 +26,7 @@ function assistantMonthMetrics(){
     return rows.get(month);
   };
   for(const i of state.invoices||[]){
-    if(i.status==='draft'||!i.issueDate)continue;
+    if(i.status==='draft'||invoiceEffectiveStatus(i)==='cancelled'||!i.issueDate)continue;
     const row=ensure(String(i.issueDate).slice(0,7));if(!row)continue;
     row.revenue=roundMoney(row.revenue+invoiceNet(i));row.activity++;
   }

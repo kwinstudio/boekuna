@@ -26,7 +26,8 @@ state.company={...state.company,name:'Assistant QA BV',tradeName:'Assistant QA',
 state.contacts=[{id:'c1',type:'customer',name:'Klant Een BV',email:'klant@example.test'}];
 state.invoices=[
  {id:'i1',number:'2026-1001',customerId:'c1',status:'sent',kind:'invoice',issueDate:'2026-08-20',dueDate:'2026-09-20',taxTreatment:'standard',payments:[{id:'p1',amount:1000,date:'2026-09-21'}],importedTotals:{net:1000,vat:210,gross:1210}},
- {id:'i2',number:'2026-1002',customerId:'c1',status:'sent',kind:'invoice',issueDate:'2026-09-01',dueDate:'2026-09-22',taxTreatment:'standard',payments:[],importedTotals:{net:500,vat:105,gross:605}}
+ {id:'i2',number:'2026-1002',customerId:'c1',status:'sent',kind:'invoice',issueDate:'2026-09-01',dueDate:'2026-09-22',taxTreatment:'standard',payments:[],importedTotals:{net:500,vat:105,gross:605}},
+ {id:'i-cancelled',number:'2026-X',customerId:'c1',status:'cancelled',kind:'invoice',issueDate:'2026-07-10',dueDate:'2026-07-31',taxTreatment:'standard',payments:[],importedTotals:{net:9999,vat:2099.79,gross:12098.79}}
 ];
 state.expenses=[
  {id:'e1',date:'2026-07-05',vendor:'Adobe',invoiceNumber:'JUL',category:'Software',paymentMethod:'bank',exVat:300,vatRate:21,vatAmount:63,gross:363},
@@ -99,6 +100,8 @@ try{
  assert.ok(facts.some(x=>x.type==='OVERDUE_INVOICE'&&x.sourceFacts.totalOutstanding===815),'Outstanding must use existing paid/outstanding truth');
  assert.ok(facts.some(x=>x.type==='VAT_UNRESOLVED_DOCUMENTS'&&x.priority==='P0'),'VAT-affecting review must be blocking');
  assert.ok(facts.some(x=>x.type==='COST_SPIKE'&&x.sourceFacts.absoluteDelta===400),'Personal baseline cost spike must use three complete months');
+ const julyRevenue=await page.evaluate(()=>window.__boekunaAssistantTest.context().monthlyMetrics.find(x=>x.month==='2026-07')?.revenue);
+ assert.equal(julyRevenue,0,'Cancelled invoices must not contribute to assistant revenue baselines');
  assert.ok(facts.some(x=>x.type==='BANK_MATCH_AVAILABLE'),'Only existing bank match suggestion may surface');
 
  for(const [width,height] of [[320,568],[360,800],[375,812],[390,844],[393,852],[412,915],[430,932],[1024,768],[1280,800],[1366,768],[1440,900],[1920,1080]]){
