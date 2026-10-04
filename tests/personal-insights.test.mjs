@@ -93,6 +93,9 @@ const evaluate=ctx=>Engine.evaluate(base(ctx));
  const failed=ids(insights,'DOCUMENT_PROCESSING_FAILED')[0];
  const vat=ids(insights,'VAT_UNRESOLVED_DOCUMENTS')[0];
  assert.ok(review&&failed&&vat,'document and VAT attention rules should fire');
+ assert.equal(review.actionTarget.filter.status,'needs_review','Document review action must use the existing valid list status');
+ assert.equal(vat.actionTarget.filter.status,'needs_review','VAT review action must use the existing valid document list status');
+ assert.deepEqual(Object.keys(failed.actionTarget.filter),[],'Processing failures must not invent an unsupported document-list status');
  assert.equal(JSON.stringify(insights).includes('SECRET OCR TEXT'),false,'raw OCR must never leak into insight objects');
  assert.equal(JSON.stringify(insights).includes('ANOTHER SECRET'),false,'raw OCR must never leak into insight objects');
 }
