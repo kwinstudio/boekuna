@@ -130,7 +130,7 @@ function assistantQuestionFacts(existingSnapshot=null){
     category:String(categoryInsight?.sourceFacts?.category||'')
   }:null;
   return Object.freeze({
-    financialReliable:!!kpi?.financialReliable&&s?.context?.sourceStatus?.financialReliable!==false,
+    financialReliable:!!kpi?.financialReliable&&s?.context?.sourceStatus?.financialReliable!==false&&s?.context?.sourceStatus?.documentsReliable!==false,
     periodLabel:String(kpi?.period?.label||'Deze maand'),
     revenue:Number(kpi?.revenue||0),costs:Number(kpi?.costs||0),profit:Number(kpi?.profit||0),
     vatReserve:Number(kpi?.vatReserve||0),vatUnresolvedDocumentCount:Number(kpi?.vatUnresolvedDocumentCount||0),
