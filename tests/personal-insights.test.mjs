@@ -187,4 +187,15 @@ const evaluate=ctx=>Engine.evaluate(base(ctx));
  assert.equal(ids(results,'HIGH_OUTSTANDING').length,0);
 }
 
+// 15. Dashboard selection preserves the personalized order produced by evaluate().
+{
+ const alreadyPersonalized=[
+  {id:'preferred',priority:'P2',score:1},
+  {id:'generic',priority:'P2',score:99},
+  {id:'third',priority:'P3',score:5},
+  {id:'fourth',priority:'P3',score:4}
+ ];
+ assert.deepEqual(Engine.dashboardInsights(alreadyPersonalized).map(x=>x.id),['preferred','generic','third']);
+}
+
 console.log('BOEKUNA personal insights deterministic engine contracts: PASS');
