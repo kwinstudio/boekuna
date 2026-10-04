@@ -159,6 +159,10 @@ try{
   await page.evaluate(()=>navigate('dashboard'));
   await page.waitForTimeout(40);
   await noOverflow(browserName+' dashboard '+width);
+  if(width===320){
+   const columns=await page.locator('.dashboard-kpis-v12').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length);
+   assert.equal(columns,2,'320px dashboard must keep secondary KPIs compact in two columns');
+  }
   if(width===390||width===1440){
    await axe(browserName+' dashboard '+width);
    await page.screenshot({path:path.join(evidence,browserName+'-dashboard-attention-'+width+'.png'),fullPage:true,animations:'disabled'});
