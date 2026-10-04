@@ -3,6 +3,8 @@
 
 const GOALS=['Facturen betaald krijgen','Btw overzichtelijk houden','Bonnetjes bijhouden','Kosten begrijpen','Winst volgen','Administratie bijhouden'];
 const SAFE_VAT_REVIEW_FIELDS=new Set(['net','vatAmount','gross','vatRate','vatLines']);
+const ASSISTANT_METRIC_EVENTS=new Set(['insight_shown','insight_opened','action_clicked','dismissed','helpful','not_relevant']);
+const assistantShownThisSession=new Set();
 
 function engine(){return root.BoekunaPersonalInsights}
 function prefs(){
@@ -118,6 +120,27 @@ function iconFor(item){
   if(item?.category==='bank')return 'i-bank';
   return 'i-chart';
 }
+function recordAssistantMetric(event){
+  if(!ASSISTANT_METRIC_EVENTS.has(event)||!currentUser)return;
+  state.assistant=prefs();
+  const current=state.assistant.metrics&&typeof state.assistant.metrics==='object'?state.assistant.metrics:{};
+  const counts=current.counts&&typeof current.counts==='object'?current.counts:{};
+  state.assistant.metrics={counts:{...counts,[event]:Math.max(0,Math.round(Number(counts[event]||0)))+1},lastEventAt:new Date().toISOString()};
+  save();
+}
+function noteAssistantShown(items){
+  let added=0;
+  for(const item of items||[]){
+    const key=String(item?.id||'');if(!key||assistantShownThisSession.has(key))continue;
+    assistantShownThisSession.add(key);added++;
+  }
+  if(!added||!currentUser)return;
+  state.assistant=prefs();
+  const current=state.assistant.metrics&&typeof state.assistant.metrics==='object'?state.assistant.metrics:{};
+  const counts=current.counts&&typeof current.counts==='object'?current.counts:{};
+  state.assistant.metrics={counts:{...counts,insight_shown:Math.max(0,Math.round(Number(counts.insight_shown||0)))+added},lastEventAt:new Date().toISOString()};
+  save();
+}
 function assistantCard(item,compact=false){
   return '<button type="button" class="assistant-insight-card" data-priority="'+esc(item.priority)+'" onclick="openAssistantInsight('+esc(JSON.stringify(item.id))+')" aria-label="'+esc(item.title)+'. '+esc(item.summary)+'">'+
    '<span class="assistant-insight-icon" aria-hidden="true">'+icon(iconFor(item))+'</span>'+
@@ -129,7 +152,7 @@ function renderAssistantDashboard(){
   if(!s.ok||s.status.state==='UNKNOWN'){
     return '<section class="card dashboard-attention assistant-dashboard assistant-source-error"><div class="section-head"><div><h2 class="assistant-dashboard-title">'+icon('i-clock')+' Voor jou</h2><p>Persoonlijke administratiehulp</p></div></div><div class="assistant-empty assistant-source-error">'+icon('i-clock')+'<div><strong>Status tijdelijk niet beschikbaar</strong><span>Je administratie blijft werken. Boekuna toont liever niets dan een onbetrouwbaar inzicht.</span><button class="btn small" type="button" style="margin-top:9px" onclick="retryDocumentAttentionFetch()">Opnieuw proberen</button></div></div></section>';
   }
-  const items=E.dashboardInsights(s.insights);
+  const items=E.dashboardInsights(s.insights);noteAssistantShown(items);
   const body=items.length?'<div class="assistant-insight-list">'+items.map(x=>assistantCard(x,true)).join('')+'</div>':'<div class="assistant-empty">'+icon('i-check')+'<div><strong>Alles bijgewerkt</strong><span>Je administratie heeft op dit moment geen aandacht nodig.</span></div></div>';
   return '<section class="card dashboard-attention assistant-dashboard"><div class="section-head"><div><h2 class="assistant-dashboard-title">'+icon('i-chart')+' Voor jou</h2><p>Wat nu belangrijk is in jouw administratie</p></div><span class="badge '+(s.status.state==='BIJGEWERKT'?'good':s.status.state==='AANDACHT_NODIG'?'warn':'')+'">'+esc(s.status.label)+'</span></div>'+body+
    '<div class="assistant-dashboard-footer"><span class="assistant-admin-label"><strong>'+esc(s.status.label)+'</strong> · '+esc(s.status.detail)+'</span><button type="button" class="link-btn" onclick="navigate(\'insights\')">Bekijk alle inzichten</button></div></section>'
@@ -143,9 +166,22 @@ function renderWeekly(summary){
     [['Omzet',money(summary.revenue)],['Kosten',money(summary.costs)],['Winst',money(summary.profit)],['Btw apartzetten',money(summary.vatReserve)]].map(([label,value])=>'<div class="assistant-week-stat"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong></div>').join('')+
     '</div><div class="help" style="margin-top:10px">'+(summary.overdueInvoices?summary.overdueInvoices+' factuur'+(summary.overdueInvoices===1?'':'en')+' te laat · ':'')+(summary.documentsToReview?summary.documentsToReview+' document'+(summary.documentsToReview===1?'':'en')+' controleren':'Geen open documentcontrole')+'</div></aside>'
 }
+function renderMonthEnd(s){
+  const month=new Intl.DateTimeFormat('nl-NL',{month:'long'}).format(new Date((s.context?.now||today())+'T12:00:00'));
+  const review=s.insights.some(x=>['DOCUMENT_REVIEW_REQUIRED','DOCUMENT_PROCESSING_FAILED','VAT_UNRESOLVED_DOCUMENTS'].includes(x.type));
+  const bank=s.insights.some(x=>x.type==='BANK_UNMATCHED');
+  const overdue=s.insights.some(x=>x.type==='OVERDUE_INVOICE');
+  const rows=[
+    ['Documenten verwerkt',!review],
+    ['Bank bijgewerkt',!bank],
+    ['Geen facturen te laat',!overdue]
+  ];
+  return '<section class="card assistant-week"><div class="section-head"><div><h2>'+esc(month.charAt(0).toUpperCase()+month.slice(1))+' afronden</h2><p>Administratieve checklist, geen periode-lock.</p></div></div><div class="assistant-month-list">'+rows.map(([label,ok])=>'<div class="assistant-month-row"><span aria-hidden="true">'+(ok?'✓':'•')+'</span><strong>'+esc(label)+'</strong><em>'+esc(ok?'Klaar':'Aandacht')+'</em></div>').join('')+'</div></section>'
+}
 function renderInsights(){
   const s=snapshot(),E=engine();
   if(!s.ok||s.status.state==='UNKNOWN')return '<div class="page-head"><div><h1>Voor jou</h1><p>Persoonlijke administratiehulp</p></div></div><div class="card assistant-status-card"><div class="assistant-status-line">'+icon('i-clock')+'<div><strong>Status tijdelijk niet beschikbaar</strong><span>Boekuna toont geen geruststellende status zolang een bron niet betrouwbaar beschikbaar is.</span></div></div></div>';
+  noteAssistantShown(s.insights);
   const urgent=s.insights.filter(x=>['P0','P1'].includes(x.priority));
   const remaining=s.insights.filter(x=>!['P0','P1'].includes(x.priority));
   const moneyItems=remaining.filter(x=>['invoices','costs'].includes(x.category));
@@ -157,7 +193,7 @@ function renderInsights(){
   const main=empty+groupSection('Vandaag',urgent,'i-clock')+groupSection('Geld',moneyItems,'i-chart')+groupSection('Btw',vat,'i-tax')+groupSection('Administratie',admin,'i-check')+groupSection('Opvallend',other,'i-chart');
   return '<div class="page-head"><div><h1>Voor jou</h1><p>Boekuna kijkt mee en laat zien wat voor jou belangrijk is.</p></div></div>'+
    '<div class="card assistant-status-card"><div class="assistant-status-line">'+icon(s.status.state==='BIJGEWERKT'?'i-check':'i-clock')+'<div><strong>'+esc(s.status.label)+'</strong><span>'+esc(s.status.detail)+'</span></div></div></div>'+
-   '<div class="assistant-page-grid"><div class="assistant-section-stack">'+main+'</div>'+(prefs().weeklySummary!==false?renderWeekly(s.weekly):'')+'</div>'+
+   '<div class="assistant-page-grid"><div class="assistant-section-stack">'+main+'</div><div class="assistant-section-stack">'+(prefs().weeklySummary!==false?renderWeekly(s.weekly):'')+renderMonthEnd(s)+'</div></div>'+
    '<p class="assistant-disclaimer">Boekuna helpt je administratie bijhouden. Voor persoonlijk fiscaal advies kun je een adviseur raadplegen.</p>'
 }
 function factLabel(key,value){
@@ -172,6 +208,7 @@ function factLabel(key,value){
 function openAssistantInsight(id){
   const s=snapshot(),item=s.insights.find(x=>x.id===id);
   if(!item){toast('Dit aandachtspunt is al opgelost of niet meer actueel.');if(page==='insights'||page==='dashboard')render();return}
+  recordAssistantMetric('insight_opened');
   const facts=Object.entries(item.sourceFacts||{}).map(([k,v])=>factLabel(k,v)).filter(Boolean).map(([label,value])=>'<div class="assistant-detail-fact"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong></div>').join('');
   const canHide=['P2','P3'].includes(item.priority),footer='<button class="btn" onclick="closeModal()">Sluiten</button>'+(canHide?'<button class="btn" onclick="dismissAssistantInsight('+esc(JSON.stringify(item.id))+')">Niet meer tonen</button>':'')+(item.actionTarget?'<button class="btn primary" onclick="runAssistantInsightAction('+esc(JSON.stringify(item.id))+')">'+esc(item.actionLabel)+'</button>':'');
   modal(item.title,'<div class="assistant-detail-section"><h4>Wat zien we?</h4><p>'+esc(item.summary)+(item.detail?' '+esc(item.detail):'')+'</p></div><div class="assistant-detail-section"><h4>Waarom zie je dit?</h4><p>'+esc(item.reason)+'</p>'+facts+'</div><div class="assistant-detail-section"><h4>Wat kun je doen?</h4><p>'+(item.actionTarget?esc(item.actionLabel)+'.':'Er is nu geen actie nodig.')+'</p></div><div class="assistant-feedback"><button type="button" class="btn small" onclick="assistantFeedback('+esc(JSON.stringify(item.id))+',\'helpful\')">Nuttig</button><button type="button" class="btn small" onclick="assistantFeedback('+esc(JSON.stringify(item.id))+',\'not_relevant\')">Niet relevant</button></div>',footer,true)
@@ -180,6 +217,7 @@ function runAssistantInsightAction(id){
   const s=snapshot(),item=s.insights.find(x=>x.id===id);
   if(!item){closeModal();toast('Dit aandachtspunt is al opgelost.');render();return}
   const target=item.actionTarget;if(!target?.page)return;
+  recordAssistantMetric('action_clicked');
   closeModal();
   const entries=Object.entries(target.filter||{});
   if(entries.length===1){
@@ -190,14 +228,14 @@ function runAssistantInsightAction(id){
 }
 function assistantFeedback(id,value){
   const s=snapshot(),item=s.insights.find(x=>x.id===id);if(!item)return;
-  state.assistant=prefs();state.assistant.feedback={...state.assistant.feedback,[item.type]:value};save();
+  state.assistant=prefs();state.assistant.feedback={...state.assistant.feedback,[item.type]:value};recordAssistantMetric(value==='helpful'?'helpful':'not_relevant');
   toast(value==='helpful'?'Bedankt. Dit helpt Boekuna beter prioriteren.':'Begrepen. Minder relevante inzichten krijgen lager gewicht.');
   closeModal();if(page==='insights'||page==='dashboard')render()
 }
 function dismissAssistantInsight(id){
   const s=snapshot(),item=s.insights.find(x=>x.id===id);if(!item)return;
   if(['P0','P1'].includes(item.priority)){toast('Belangrijke aandachtspunten kunnen niet permanent worden verborgen.');return}
-  state.assistant=prefs();state.assistant.dismissed={...state.assistant.dismissed,[item.id]:new Date().toISOString()};save();closeModal();render();toast('Inzicht verborgen')
+  state.assistant=prefs();state.assistant.hiddenTypes=[...new Set([...(state.assistant.hiddenTypes||[]),item.type])];recordAssistantMetric('dismissed');closeModal();render();toast('Dit type inzicht wordt niet meer getoond')
 }
 function setAssistantPreference(key,value){
   if(!['personalTips','weeklySummary'].includes(key))return;
