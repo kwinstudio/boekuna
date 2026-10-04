@@ -1,17 +1,12 @@
 {
   "cleanUrls": true,
   "redirects": [
-    {"source":"/functies/","destination":"/#product","permanent":true},
-    {"source":"/facturen/","destination":"/#product","permanent":true},
-    {"source":"/scanner/","destination":"/#product","permanent":true},
-    {"source":"/btw-bank/","destination":"/#product","permanent":true},
-    {"source":"/rapportages/","destination":"/#product","permanent":true},
-    {"source":"/hoe-het-werkt/","destination":"/#hoe-het-werkt","permanent":true},
-    {"source":"/voor-ondernemers/","destination":"/#product","permanent":true},
-    {"source":"/prijzen/","destination":"/#prijzen","permanent":true},
-    {"source":"/faq/","destination":"/#faq","permanent":true},
-    {"source":"/over/","destination":"/#product","permanent":true},
-    {"source":"/contact/","destination":"/support/","permanent":true},
-    {"source":"/veiligheid/","destination":"/privacy/","permanent":true}
+    {"source":"/facturen/","destination":"/functies/","permanent":true},
+    {"source":"/btw-bank/","destination":"/functies/","permanent":true},
+    {"source":"/rapportages/","destination":"/functies/","permanent":true},
+    {"source":"/hoe-het-werkt/","destination":"/functies/","permanent":true},
+    {"source":"/voor-ondernemers/","destination":"/","permanent":true},
+    {"source":"/over/","destination":"/","permanent":true},
+    {"source":"/contact/","destination":"/support/","permanent":true}
   ]
 }
