@@ -149,7 +149,7 @@ function confirmFinancialReviewAnchor(key){
   updateBeginnerReviewState()
 }
 
-function rateSelectValue(d){return d?.mixedRates?'':(NORMAL_RATES.includes(Number(d?.vatRate))?String(Number(d.vatRate)):'')}
+function rateSelectValue(d){return d?.mixedRates||d?.vatRate==null?'':String(Number(d.vatRate))}
 function specialRateSelected(d){return !d?.mixedRates&&Number(d?.vatRate)===0}
 function mixedLineRow(line,index){
   const rate=Number(line?.rate);
@@ -243,6 +243,8 @@ function chooseZeroVat(){
 function financialBlockingIssues(d){
   const f=document.getElementById('pdfImportForm');if(!f)return [{field:'form',message:'Het controlescherm is niet volledig geladen.'}];
   const type=reviewDocumentType(d),req=requirementsFor(type),issues=[],value=k=>String(f.elements.namedItem(k)?.value??'').trim();
+  if(d?.accountingVatTreatment==='review_required'&&!f.elements.namedItem('foreignVatConfirmed')?.checked)issues.push({field:'foreignVatConfirmed',message:'Bevestig dat deze btw niet in de Nederlandse btw-aangifte komt.'});
+  if(d?.currency&&d.currency!=='EUR')issues.push({field:'currency',message:'Een bevestigde wisselkoers is nodig voordat je dit document boekt.'});
   const required=new Set(req.blocking);
   if(d?.mixedRates){required.delete('vatRate');required.add('vatLines')}
   for(const key of required){
@@ -360,6 +362,8 @@ function showPdfImportReview(d){
   const due=safeDate(d.dueDate,d.issueDate);
   const currency=String(d.currency||'EUR').toUpperCase();
   const preview=pendingPdfImport?.previewUrl?(pendingPdfImport.file.type==='application/pdf'||/\.pdf$/i.test(pendingPdfImport.file.name)?'<iframe src="'+esc(pendingPdfImport.previewUrl)+'" title="Documentpreview" class="document-review-preview-frame"></iframe>':'<img src="'+esc(pendingPdfImport.previewUrl)+'" alt="Documentpreview" class="document-review-preview-image">'):'<div class="beginner-preview-empty"><strong>Document ontvangen</strong><span>Vergelijk de gegevens hieronder met je bon of factuur.</span></div>';
+  const foreign=d.accountingVatTreatment==='review_required'?'<div class="notice warn review-important"><strong>Buitenlandse btw herkend</strong><p>Het btw-bedrag blijft op het document staan. Deze btw wordt niet opgenomen als Nederlandse aftrekbare btw.</p><label class="review-checkbox"><input type="checkbox" name="foreignVatConfirmed"><span>Bewaar als inkoop zonder Nederlandse btw-aftrek</span></label></div>':'';
+  const payment=(d.advancePayment!=null||d.alreadyPaid!=null||d.outstandingAmount!=null)?'<div class="notice"><strong>Voorschot of betaling herkend</strong><p>'+ (d.advancePayment!=null?'Voorschot: '+esc(money(d.advancePayment))+' · ':'')+(d.alreadyPaid!=null?'Reeds betaald: '+esc(money(d.alreadyPaid))+' · ':'')+(d.outstandingAmount!=null?'Nog te betalen: '+esc(money(d.outstandingAmount)):'')+'</p></div>':'';
   const duplicate=d.duplicateCandidate?'<div class="notice warn review-important"><strong>Deze bon lijkt al verwerkt.</strong><br>'+esc(d.duplicateCandidate.label||'Er is een vergelijkbaar document gevonden.')+'<label class="review-checkbox warn"><input type="checkbox" name="confirmDuplicate"> <span>Dit is toch een nieuwe bon</span></label></div>':'';
   const mixed=d.mixedRates?'<section class="mixed-vat-editor" aria-labelledby="mixedVatTitle"><div class="mixed-vat-head"><div><h5 id="mixedVatTitle">Deze bon heeft meerdere btw-tarieven</h5><p>Controleer per tarief het bedrag excl. btw en het btw-bedrag.</p></div></div><div id="mixedVatRows"></div><div class="mixed-vat-actions"><button type="button" class="btn small" onclick="addMixedVatLine()">Regel toevoegen</button><button type="button" class="btn small" onclick="useMixedVatTotals()">Gebruik deze totalen</button></div><div id="mixedVatStatus" class="mixed-vat-status" role="status" aria-live="polite"></div></section>':'';
   const invoiceField=invoiceRequired||d.invoiceNumber?'<div class="field"><label>'+ (type==='receipt'?'Bonnummer / referentie':'Factuurnummer')+' '+provenanceBadge(d,'invoiceNumber')+'</label><input name="invoiceNumber" value="'+esc(d.invoiceNumber||'')+'" '+(invoiceRequired?'required':'')+' placeholder="'+(invoiceRequired?'Vul het factuurnummer in':'Optioneel')+'">'+attentionControls(d,'invoiceNumber')+'</div>':'<input type="hidden" name="invoiceNumber" value="">';
@@ -372,7 +376,7 @@ function showPdfImportReview(d){
    '<section class="review-step review-step-preview active" data-review-step="1"><div class="review-step-head"><div><span class="review-kicker">Document</span><h4>Bekijk je document</h4></div></div><div class="review-preview-shell">'+preview+'</div><div class="mobile-review-hint">Boekuna heeft het voorwerk gedaan. Controleer alleen wat hieronder nodig is.</div></section>'+
    '<div class="document-review-fields"><form id="pdfImportForm">'+
     '<section class="review-step" data-review-step="2"><div class="review-step-head"><div><span class="review-kicker">Controleren</span><h4>Controleer de belangrijkste gegevens</h4></div><button type="button" class="link-btn mobile-only-review" onclick="setDocumentReviewStep(1)">Bekijk document</button></div>'+
-     duplicate+
+     duplicate+foreign+payment+
      '<div class="form-grid beginner-core-grid">'+
       '<div class="field full"><label>'+partyLabel+' '+provenanceBadge(d,'party')+'</label><input name="party" value="'+esc(d.party||'')+'" required>'+attentionControls(d,'party')+'</div>'+
       '<div class="field"><label>Datum '+provenanceBadge(d,'issueDate')+'</label><input type="date" name="issueDate" value="'+esc(safeDate(d.issueDate))+'" required></div>'+
@@ -385,7 +389,7 @@ function showPdfImportReview(d){
       '<div class="field"><label>Bedrag excl. btw '+provenanceBadge(d,'net')+'</label><input id="pdfImportNet" name="net" inputmode="decimal" autocomplete="off" value="'+esc(d.net!==''&&d.net!=null?Number(d.net).toFixed(2):'')+'" required></div>'+
       '<div class="field"><label>Btw-bedrag '+provenanceBadge(d,'vatAmount')+'</label><input id="pdfImportVatAmount" name="vatAmount" inputmode="decimal" autocomplete="off" value="'+esc(d.vatAmount!==''&&d.vatAmount!=null?Number(d.vatAmount).toFixed(2):'')+'" required></div>'+
       '<div class="field"><label>Totaal '+provenanceBadge(d,'gross')+'</label><input id="pdfImportGross" name="gross" inputmode="decimal" autocomplete="off" value="'+esc(d.gross!==''&&d.gross!=null?Number(d.gross).toFixed(2):'')+'" required></div>'+
-      '<div class="field"><label>Btw-percentage '+provenanceBadge(d,'vatRate')+'</label><select id="pdfImportVatRate" name="vatRate" '+(d.mixedRates?'disabled':'')+' aria-describedby="financialCorrectionPanel"><option value="">Kies</option><option value="21" '+(rateSelectValue(d)==='21'?'selected':'')+'>21%</option><option value="9" '+(rateSelectValue(d)==='9'?'selected':'')+'>9%</option><option value="0" hidden '+(specialRateSelected(d)?'selected':'')+'>Geen btw</option></select>'+(!d.mixedRates&&!isUserConfirmed(d,'vatRate')?'<div class="beginner-field-actions" data-financial-anchor-actions="vatRate"><button type="button" class="link-btn" data-financial-anchor-confirm="vatRate" onclick="confirmFinancialReviewAnchor(\'vatRate\')">Dit klopt zo</button></div>':'')+'<button id="otherVatToggle" type="button" class="link-btn other-vat-toggle" aria-expanded="'+(specialRateSelected(d)?'true':'false')+'" onclick="toggleOtherVatSituation()">Andere btw-situatie</button><div id="otherVatSituation" class="other-vat-situation" '+(specialRateSelected(d)?'':'hidden')+'><p>Alleen gebruiken als er op dit document geen btw-bedrag staat.</p><button type="button" class="btn small" onclick="chooseZeroVat()">0% / geen btw op document</button></div></div>'+
+      '<div class="field"><label>Btw-percentage '+provenanceBadge(d,'vatRate')+'</label><select id="pdfImportVatRate" name="vatRate" '+(d.mixedRates?'disabled':'')+' aria-describedby="financialCorrectionPanel"><option value="">Kies</option><option value="21" '+(rateSelectValue(d)==='21'?'selected':'')+'>21%</option><option value="9" '+(rateSelectValue(d)==='9'?'selected':'')+'>9%</option>'+(!NORMAL_RATES.includes(Number(d.vatRate))&&d.vatRate!=null?'<option value="'+esc(String(d.vatRate))+'" selected>'+esc(String(d.vatRate))+'% (herkend)</option>':'')+'<option value="0" hidden '+(specialRateSelected(d)?'selected':'')+'>Geen btw</option></select>'+(!d.mixedRates&&!isUserConfirmed(d,'vatRate')?'<div class="beginner-field-actions" data-financial-anchor-actions="vatRate"><button type="button" class="link-btn" data-financial-anchor-confirm="vatRate" onclick="confirmFinancialReviewAnchor(\'vatRate\')">Dit klopt zo</button></div>':'')+'<button id="otherVatToggle" type="button" class="link-btn other-vat-toggle" aria-expanded="'+(specialRateSelected(d)?'true':'false')+'" onclick="toggleOtherVatSituation()">Andere btw-situatie</button><div id="otherVatSituation" class="other-vat-situation" '+(specialRateSelected(d)?'':'hidden')+'><p>Alleen gebruiken als er op dit document geen btw-bedrag staat.</p><button type="button" class="btn small" onclick="chooseZeroVat()">0% / geen btw op document</button></div></div>'+
      '</div>'+
      mixed+
      '<div id="financialCorrectionPanel" class="financial-correction-panel" role="status" aria-live="polite"><h5>Financiële controle</h5><p>Controleer de bedragen op het document.</p></div>'+
@@ -426,7 +430,7 @@ function captureReviewSnapshot(){
     vatLines:typeof canonicalFinancialVatLines==='function'?canonicalFinancialVatLines(d.vatLines):structuredClone(d.vatLines||[]),
     currency:String(fd.currency||'EUR'),description:String(fd.description||''),dueDate:String(fd.dueDate||''),
     paymentReference:String(fd.paymentReference||''),orderNumber:String(fd.orderNumber||''),paymentTermDays:fd.paymentTermDays===''?null:Number(fd.paymentTermDays),
-    fieldProvenance:structuredClone(d.fieldProvenance||{}),reviewFieldProvenance:structuredClone(d.reviewFieldProvenance||{}),
+    advancePayment:d.advancePayment??null,alreadyPaid:d.alreadyPaid??null,outstandingAmount:d.outstandingAmount??null,amountDue:d.amountDue??null,accountingVatTreatment:d.accountingVatTreatment||'standard',detectedVatRates:structuredClone(d.detectedVatRates||[]),fieldProvenance:structuredClone(d.fieldProvenance||{}),reviewFieldProvenance:structuredClone(d.reviewFieldProvenance||{}),
     deferredFields:deferredFields(d)
   }
 }
@@ -440,11 +444,17 @@ async function savePdfInvoiceImport(){
   syncMixedVatFromDomWithoutRender();
   const issues=financialBlockingIssues(d);if(issues.length){updateBeginnerReviewState();firstBlockingFocus();toast('Controleer de gemarkeerde gegevens voordat je opslaat.');return}
   const snapshot=captureReviewSnapshot(),deferred=snapshot?.deferredFields||[],beforeIds=new Set(state.documents.map(x=>x.id)),beforeContactIds=new Set(state.contacts.map(x=>x.id)),sourceClientRef=String(pendingPdfImport?.sourceClientRef||''),fileName=pendingPdfImport?.file?.name||'';
+  const original=structuredClone(d),accountId=currentUser?.id;
   const result=await legacySavePdfInvoiceImport();
   if(pendingPdfImport)return result;
   const doc=findSavedDocumentAfter(beforeIds,sourceClientRef,fileName);if(!doc||!snapshot)return result;
   if(deferred.includes('party')&&doc.linkedType==='expense'){
     state.contacts=state.contacts.filter(c=>beforeContactIds.has(c.id)||c.type!=='supplier'||String(c.name||'').trim()!==String(snapshot.party||'').trim());
+  }
+  if(accountId&&currentUser?.id===accountId&&typeof BoekunaDocumentIntelligence!=='undefined'){
+    if(!state.documentIntelligence||state.documentIntelligence.ownerId!==accountId)state.documentIntelligence=BoekunaDocumentIntelligence.create(accountId);
+    await BoekunaDocumentIntelligence.recordFeedback(state.documentIntelligence,accountId,original,snapshot,doc.sha256||doc.id);
+    if(currentUser?.id!==accountId)return result;
   }
   doc.reviewSnapshot=snapshot;doc.reviewAttentionFields=[...deferred];doc.reviewedAt=snapshot.reviewedAt;
   if(doc.verification?.method==='manual-review'){

@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {loadApp} from './production-code.mjs';
+const c=loadApp(['processorAnalysisToCandidate','expenseTaxTreatment','expenseVat','expenseGross','expenseDeductibleVat','toCents','fromCents','roundMoney'],{ibanValid:()=>false});
+const raw={documentType:'purchase_invoice',supplier:{name:'Foreign Test'},invoice:{invoiceNumber:'BE-1'},amounts:{subtotal:1350,vatTotal:270,total:1620,detectedVatRates:[20],accountingVatTreatment:'review_required',advancePayment:300,outstandingAmount:1320},confidence:{vatRates:.9},processing:{reviewRouting:{mode:'FULL_REVIEW',fields:['vatRates']}}};
+const d=c.processorAnalysisToCandidate(raw,'');
+assert.equal(d.vatRate,20);
+assert.equal(d.advancePayment,300);
+assert.equal(d.outstandingAmount,1320);
+assert.equal(d.accountingVatTreatment,'review_required');
+assert.equal(c.expenseVat({exVat:1350,vatAmount:270,gross:1620,taxTreatment:'foreign'}),270);
+assert.equal(c.expenseDeductibleVat({exVat:1350,vatAmount:270,gross:1620,taxTreatment:'foreign'}),0);
+assert.equal(c.expenseGross({exVat:1350,vatAmount:270,gross:1620,taxTreatment:'foreign'}),1620);
+assert.equal(c.expenseDeductibleVat({exVat:100,vatAmount:21,gross:121}),21);
+console.log('V4.1 adapter and foreign accounting separation: PASS');

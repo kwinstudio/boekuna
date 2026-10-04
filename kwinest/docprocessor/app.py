@@ -26,6 +26,7 @@ from openpyxl import load_workbook
 from receipt_math import detect_vat_rates, has_complex_adjustments, derive_single_rate_amounts, enforce_single_rate_consistency
 from financial_blocks import parse_financial_blocks
 from image_quality import inspect_image_quality, quality_advice
+from document_intelligence import annotate_understanding
 
 RAPIDOCR_GENERATION = "none"
 try:
@@ -280,6 +281,13 @@ class Adjustment(BaseModel):
     counterparty: str | None = None
 
 class Amounts(BaseModel):
+    invoiceTotal: float | None = None
+    advancePayment: float | None = None
+    alreadyPaid: float | None = None
+    outstandingAmount: float | None = None
+    amountDue: float | None = None
+    detectedVatRates: list[float] = Field(default_factory=list)
+    accountingVatTreatment: Literal["standard", "review_required"] = "standard"
     subtotal: float | None = None
     vatLines: list[VatLine] = Field(default_factory=list)
     vatTotal: float | None = None
@@ -1815,7 +1823,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         status=status,lineItems=[],adjustments=structured_adjustments,confidence=confidence,warnings=derivation_warnings,
         processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"financialBlocks":{"verified":bool(financial_structure.get("verified")),"primaryArithmeticOk":bool(financial_structure.get("primaryArithmeticOk")),"adjustmentArithmeticOk":bool(financial_structure.get("adjustmentArithmeticOk")),"settlementArithmeticOk":bool(financial_structure.get("settlementArithmeticOk")),"adjustmentTotal":financial_structure.get("adjustmentTotal"),"settlementSource":financial_structure.get("settlementSource")},"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"conflicts":derivation.get("conflicts",[]),"mixedRates":len(detected_rates)>1},"imageQuality":{"class":(doc.get("processingHints") or {}).get("qualityClass"),"flags":(doc.get("processingHints") or {}).get("qualityFlags") or [],"advice":(doc.get("processingHints") or {}).get("qualityAdvice") or [],"metrics":(doc.get("processingHints") or {}).get("qualityMetrics") or {}},"headerFocusUsed":bool((doc.get("processingHints") or {}).get("headerFocusUsed")),"mixedVatEvidence":{"verified":bool(mixed_vat_evidence.get("verified")),"source":mixed_vat_evidence.get("source")},"vatLineSource":vat_line_source,"descriptionSource":description_source,"selfBilling":self_billing,"selfBillingEvidence":"explicit-source-text" if self_billing else None,"factoringSaleStructure":factoring_sale}
     )
-    return validate_result(result,company)
+    return annotate_understanding(validate_result(result,company),doc,company,money_tokens)
 
 # ----------------------------- validation -----------------------------
 def validate_result(r:ExtractionResult,company:dict)->ExtractionResult:

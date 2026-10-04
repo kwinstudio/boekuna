@@ -278,6 +278,31 @@ try{
   const touch=await page.locator('.mobile-review-actions button').evaluateAll(nodes=>nodes.filter(el=>getComputedStyle(el).display!=='none').map(el=>el.getBoundingClientRect().height));
   assert.ok(touch.length&&touch.every(h=>h>=44),browserName+' review touch targets must be >=44px');
 
+  // Foreign VAT is preserved end-to-end and excluded from Dutch input VAT.
+  await page.setViewportSize({width:1440,height:900});
+  await openReview({invoiceNumber:'FOREIGN-20',party:'Foreign Test Supplier',net:1350,vatAmount:270,gross:1620,vatRate:20,detectedVatRates:[20],accountingVatTreatment:'review_required',advancePayment:300,outstandingAmount:1320});
+  await page.evaluate(()=>setDocumentReviewStep(2));
+  assert.equal(await page.locator('#pdfImportVatRate').inputValue(),'20');
+  assert.match(await page.locator('#modalRoot').innerText(),/Buitenlandse btw herkend/);
+  assert.match(await page.locator('#modalRoot').innerText(),/Voorschot of betaling herkend/);
+  assert.equal(await page.getByRole('button',{name:'Gecontroleerd & opslaan',exact:true}).first().isDisabled(),true);
+  await page.evaluate(()=>{pendingPdfImport.sha256='foreign-qa-20';});
+  await page.locator('[name="foreignVatConfirmed"]').check();
+  await page.evaluate(()=>updateBeginnerReviewState());
+  await page.evaluate(()=>savePdfInvoiceImport());
+  await page.waitForFunction(()=>state.expenses.some(e=>e.invoiceNumber==='FOREIGN-20'));
+  const foreign=await page.evaluate(()=>{
+    state=normalizeState(JSON.parse(localStorage.getItem(userDataKey())));
+    const e=state.expenses.find(e=>e.invoiceNumber==='FOREIGN-20'),doc=state.documents.find(d=>d.linkedId===e.id);
+    return {rate:e.vatRate,vat:expenseVat(e),deductible:expenseDeductibleVat(e),gross:expenseGross(e),cost:expenseAccountingCost(e),snapshot:doc.reviewSnapshot,advance:e.advancePayment,outstanding:e.outstandingAmount};
+  });
+  assert.equal(foreign.rate,20);assert.equal(foreign.vat,270);assert.equal(foreign.deductible,0);assert.equal(foreign.gross,1620);assert.equal(foreign.cost,1620);
+  assert.equal(foreign.advance,300);assert.equal(foreign.outstanding,1320);assert.equal(foreign.snapshot.vatRate,20);
+  await page.setViewportSize({width:390,height:844});
+  await openReview({vatRate:20,accountingVatTreatment:'review_required',net:100,vatAmount:20,gross:120});
+  await page.evaluate(()=>setDocumentReviewStep(2));await noOverflow(browserName+' mobile foreign VAT');
+  await page.screenshot({path:'tests/artifacts/document-intelligence-foreign-mobile-'+browserName+'.png',fullPage:true});
+
   assert.deepEqual(errors,[],browserName+' beginner review JavaScript errors');
   console.log('BOEKUNA document review beginner UX '+browserName+': PASS');
 }finally{
