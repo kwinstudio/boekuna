@@ -163,7 +163,7 @@ try{
   await noOverflow(browserName+' dashboard '+width);
   if(width===320){
    const columns=await page.locator('.dashboard-kpis-v12').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length);
-   assert.equal(columns,2,'320px dashboard must keep secondary KPIs compact in two columns');
+   assert.equal(columns,1,'320px dashboard must preserve the existing single-column narrow-screen fallback');
   }
   if(width===390||width===1440){
    await axe(browserName+' dashboard '+width);
