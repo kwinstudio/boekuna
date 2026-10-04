@@ -31,6 +31,7 @@ for(const label of ['Overzicht','Inkomsten','Kosten','Btw','Meer'])assert.ok(sou
 assert.equal((source.match(/class="mobile-bottom-nav-item/g)||[]).length,5,'Mobile navigation must expose exactly five primary destinations');
 assert.ok(source.includes("function mobilePrimarySection(p=page){return ['dashboard','invoices','expenses','vat'].includes(p)?p:'more'}"),'Secondary mobile destinations must map to More');
 assert.ok(source.includes("invoices:'Inkomsten'"),'The user-facing invoices route title must be Inkomsten while the internal route stays invoices');
+assert.ok(source.includes("income:'Ontvangsten'"),'The bank income drill-down must be distinguished from the primary Inkomsten route');
 assert.ok(source.includes('data-page="invoices"'),'The internal invoices route must remain intact');
 assert.ok(source.includes('data-mobile-page="invoices"'),'The mobile deep-link destination must remain invoices');
 assert.ok(source.includes("'1300':'Nog te ontvangen van klanten'"),'General-ledger customer receivables label must use plain language');
@@ -196,7 +197,7 @@ try{
         documents:['Te verwerken','Controle nodig','Verwerkt deze maand','Totaal documenten'],
         vat:['Te betalen btw','Ontvangen btw','Btw die je kunt terugvragen','Controle nodig'],
         reports:['Omzet','Kosten','Winst','Winstmarge'],
-        income:['Omzet deze maand','Ontvangen','Nog te ontvangen','Groei'],
+        income:['Omzet deze maand','Bijgeschreven','Nog te ontvangen','Groei'],
         outgoings:['Deze maand uitgegeven','Nog niet gekoppeld','Terugkerende uitgaven','Te controleren']
       };
       for(const [route,labels] of Object.entries(coreKpis)){
