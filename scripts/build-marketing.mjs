@@ -57,6 +57,9 @@ for(const asset of [
   'document-review-v2.css',
   'document-review-v2.js',
   'document-intelligence.js',
+  'personal-insights.css',
+  'personal-insights.js',
+  'personal-insights-ui.js',
   'marketing.css',
   'marketing-editorial.css',
   'marketing-editorial.js'

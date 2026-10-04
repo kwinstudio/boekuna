@@ -41,6 +41,10 @@ on:
       - "tests/cloud-sync-serialization.test.mjs"
       - "tests/tenant-isolation.test.mjs"
       - "tests/production-integrity.test.mjs"
+      - "tests/personal-insights.test.mjs"
+      - "tests/personal-insights-browser.test.mjs"
+      - "tests/personal-insights-performance.test.mjs"
+      - "tests/open-source-rule-engine-benchmark.mjs"
       - "tests/invoice-delivery.test.mjs"
       - "tests/invoice-persistence.test.mjs"
       - "tests/invoice-native-retry.test.mjs"
@@ -90,8 +94,16 @@ jobs:
         run: node tests/kvk-company-lookup-security.test.mjs
       - name: Smart financial correction
         run: node tests/smart-financial-correction.test.mjs
+      - name: Personal insights deterministic engine contracts
+        run: node tests/personal-insights.test.mjs
+      - name: Personal insights performance and I/O boundary
+        run: node tests/personal-insights-performance.test.mjs
       - name: Install app test dependencies
         run: npm ci --prefix tests --ignore-scripts
+      - name: Temporary open-source rule-engine proof
+        run: |
+          npm install --prefix tests --no-save --package-lock=false --ignore-scripts json-rules-engine@7.3.1
+          node tests/open-source-rule-engine-benchmark.mjs
       - name: Invoice persistence and finalization invariants
         run: node tests/invoice-persistence.test.mjs
       - name: Recurrence date and forecast invariants
@@ -106,6 +118,10 @@ jobs:
         run: |
           node tests/document-review-beginner-ux.test.mjs
           BOOKUNA_BROWSER=webkit node tests/document-review-beginner-ux.test.mjs
+      - name: Personal assistant production-build QA — Chromium + WebKit
+        run: |
+          node tests/personal-insights-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/personal-insights-browser.test.mjs
       - name: Mobile polish round 2 — Chromium and WebKit
         run: |
           node tests/mobile-polish-round-2.test.mjs
@@ -243,6 +259,7 @@ jobs:
             tests/artifacts/premium-*.png
             tests/artifacts/premium-v2-*.png
             tests/artifacts/product-ui-reference/
+            tests/artifacts/personal-insights/
             tests/artifacts/kvk-*.png
           if-no-files-found: ignore
 
