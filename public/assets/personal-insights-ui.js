@@ -85,10 +85,6 @@ function assistantContext(){
       id:String(i.id||''),number:String(i.number||''),kind:String(i.kind||'invoice'),effectiveStatus:invoiceEffectiveStatus(i),
       issueDate:String(i.issueDate||''),dueDate:String(i.dueDate||''),gross:invoiceGross(i),paid:invoicePaidAmount(i),outstanding:invoiceOutstanding(i)
     })),
-    expenses:(state.expenses||[]).map(e=>({
-      id:String(e.id||''),date:String(e.date||''),vendor:String(e.vendor||''),net:Number(e.exVat||0),vat:expenseVat(e),gross:expenseGross(e),
-      vatRates:Array.isArray(e.vatLines)?e.vatLines.map(x=>Number(x?.rate)).filter(Number.isFinite):[Number(e.vatRate)].filter(Number.isFinite),mixedVat:!!e.mixedRates
-    })),
     transactions:(state.transactions||[]).map(t=>({
       id:String(t.id||''),status:String(t.status||'unmatched'),date:String(t.date||''),amount:Number(t.amount||0),
       matchSuggestion:t.matchSuggestion&&t.matchSuggestion.type&&t.matchSuggestion.id?{type:String(t.matchSuggestion.type),id:String(t.matchSuggestion.id),label:String(t.matchSuggestion.label||'')}:null
