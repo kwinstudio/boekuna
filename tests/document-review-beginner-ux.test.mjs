@@ -7,8 +7,8 @@ import {chromium,webkit} from 'playwright';
 import axeCore from 'axe-core';
 
 const root=process.cwd();
-const reviewJs=fs.readFileSync(path.join(root,'public','assets','document-review-v2.js'),'utf8');
-const reviewCss=fs.readFileSync(path.join(root,'public','assets','document-review-v2.css'),'utf8');
+const reviewJs=fs.readFileSync(path.join(root,'kwinest','app-assets','document-review-v2.js'),'utf8');
+const reviewCss=fs.readFileSync(path.join(root,'kwinest','app-assets','document-review-v2.css'),'utf8');
 const buildSource=fs.readFileSync(path.join(root,'scripts','build-app.mjs'),'utf8');
 
 for(const phrase of ['Meer gegevens']){
