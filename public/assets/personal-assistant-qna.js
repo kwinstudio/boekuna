@@ -74,6 +74,7 @@ function routeIntent(question){
   if(!raw.trim()||raw.length>MAX_QUESTION_LENGTH)return {intent:INTENTS.UNSUPPORTED,topic:null};
   const q=normalize(raw);
 
+  if(/^wat is\b/.test(q)){const entry=knowledgeForQuestion(q);if(entry)return {intent:INTENTS.TERM,topic:entry.id}}
   if(/\b(hoe sta ik ervoor|hoe gaat het met mijn administratie|status van mijn administratie)\b/.test(q))return {intent:INTENTS.CURRENT_STATUS,topic:null};
   if(/\b(wat moet ik vandaag doen|wat moet ik doen|wat heeft aandacht|wat moet nog gebeuren)\b/.test(q))return {intent:INTENTS.TODAY_ACTIONS,topic:null};
   if(/\b(welke facturen.*te laat|facturen.*te laat|achterstallige facturen)\b/.test(q))return {intent:INTENTS.OVERDUE,topic:null};
