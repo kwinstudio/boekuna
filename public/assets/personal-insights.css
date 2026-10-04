@@ -73,6 +73,10 @@
  #mainApp .assistant-group{padding:14px}
  #mainApp .assistant-week-grid{grid-template-columns:1fr 1fr}
  #mainApp .assistant-setting-row{min-height:54px}
+ #mainApp .assistant-setting-row .toggle{width:52px;height:44px;padding:10px 4px}
+ #mainApp .assistant-setting-row .toggle span{width:20px;height:20px}
+ #mainApp .assistant-setting-row .toggle.on span{transform:translateX(24px)}
+ #mainApp .assistant-feedback .btn,#mainApp .assistant-settings-actions .btn,#mainApp .assistant-dashboard-footer .link-btn{min-height:44px}
  #mainApp .assistant-settings-goals{grid-template-columns:1fr}
  #mainApp .assistant-goal{min-height:44px;align-items:center}
 }
