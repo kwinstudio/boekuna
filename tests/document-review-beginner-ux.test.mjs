@@ -244,6 +244,19 @@ try{
   await page.screenshot({path:'tests/artifacts/document-review-duplicate-'+browserName+'.png',fullPage:true});
   await page.evaluate(()=>closeModal());
 
+  // Processor/accounting anomalies stay blocking until the user explicitly checks the original.
+  await openReview({
+    documentType:'receipt',invoiceNumber:'',party:'Controle Winkel',category:'Kantoor',
+    anomalyCodes:['PRINTED_SUBTOTAL_CONFLICT'],
+    reviewRouting:{mode:'FULL_REVIEW',fields:[],count:0,autoBook:false},
+    fieldConfidence:{party:99,issueDate:99,net:99,vatAmount:99,gross:99,vatRate:99,vatLines:99,category:99}
+  });
+  assert.match(await page.locator('#modalRoot').innerText(),/extra controle nodig|origineel/i);
+  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true,'anomaly must block save until explicitly reviewed');
+  await page.getByRole('button',{name:'Ik heb het origineel gecontroleerd',exact:true}).click();
+  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false,'explicit anomaly review must unlock save');
+  await page.evaluate(()=>closeModal());
+
   // Non-bookable document has a safe document-only exit, never an accounting form.
   // Real background processing persists the source before review. Mirror that durable boundary here;
   // raw file persistence itself is already covered by the Chromium/WebKit upload regressions.
