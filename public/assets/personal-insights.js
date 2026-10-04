@@ -108,7 +108,7 @@ function overdueRule(context){
     title,summary:'Er staat nog '+money(total)+' open.',
     detail:rows.length===1?(String(rows[0].number||'Factuur')+' · vervaldatum '+String(rows[0].dueDate||'')):(maxDays?'De oudste staat '+maxDays+' dagen open na de vervaldatum.':'Controleer de openstaande facturen.'),
     reason:rows.length+' open factuur'+(rows.length===1?'':'en')+' met vervaldatum vóór vandaag en resterend bedrag groter dan nul.',
-    sourceFacts:{invoiceCount:rows.length,totalOutstanding:total,maxDaysOverdue:maxDays,invoiceIds:rows.map(x=>x.id).filter(Boolean)},
+    sourceFacts:{invoiceCount:rows.length,totalOutstanding:total,maxDaysOverdue:maxDays},
     actionLabel:'Bekijk facturen',actionTarget:action('invoices',{status:'overdue'}),score:Math.min(95,maxDays)+Math.min(100,total/100)
   })];
 }
@@ -127,7 +127,7 @@ function nearlyDueRule(context){
     summary:money(total)+' staat nog open.',
     detail:soonest===0?'De eerste vervalt vandaag.':'De eerste vervalt over '+soonest+' dag'+(soonest===1?'':'en')+'.',
     reason:'Open facturen met een vervaldatum binnen '+THRESHOLDS.NEARLY_DUE_DAYS+' dagen.',
-    sourceFacts:{invoiceCount:rows.length,totalOutstanding:total,soonestDueDays:soonest,invoiceIds:rows.map(x=>x.id).filter(Boolean)},
+    sourceFacts:{invoiceCount:rows.length,totalOutstanding:total,soonestDueDays:soonest},
     actionLabel:'Bekijk facturen',actionTarget:action('invoices',{status:'open'}),score:THRESHOLDS.NEARLY_DUE_DAYS-soonest
   })];
 }
@@ -154,7 +154,7 @@ function documentRules(context){
     title:failed.length===1?'1 document kon niet verwerkt worden':failed.length+' documenten konden niet verwerkt worden',
     summary:'Controleer het bestand of probeer het opnieuw.',
     reason:'De documentworkflow heeft een definitieve foutstatus teruggegeven.',
-    sourceFacts:{documentCount:failed.length,documentIds:failed.map(x=>x.id).filter(Boolean)},
+    sourceFacts:{documentCount:failed.length},
     actionLabel:'Bekijk documenten',actionTarget:action('documents',{status:'failed'}),score:40+failed.length
   }));
   if(review.length)out.push(insight({
@@ -162,7 +162,7 @@ function documentRules(context){
     title:review.length===1?'1 document moet worden gecontroleerd':review.length+' documenten moeten worden gecontroleerd',
     summary:'Controleer de gegevens voordat ze als administratie tellen.',
     reason:'De gevalideerde documentworkflow staat op controle nodig.',
-    sourceFacts:{documentCount:review.length,vatImpactCount:review.filter(x=>x.accountingImpact==='vat').length,documentIds:review.map(x=>x.id).filter(Boolean)},
+    sourceFacts:{documentCount:review.length,vatImpactCount:review.filter(x=>x.accountingImpact==='vat').length},
     actionLabel:'Controleer documenten',actionTarget:action('documents',{status:'review'}),score:35+review.length
   }));
   return out;
@@ -175,7 +175,7 @@ function bankRules(context){
     title:unmatched.length===1?'1 transactie moet nog gekoppeld worden':unmatched.length+' transacties moeten nog gekoppeld worden',
     summary:'Koppel de transacties aan de juiste boeking.',
     reason:'Banktransacties met de bestaande status ongekoppeld.',
-    sourceFacts:{transactionCount:unmatched.length,transactionIds:unmatched.map(x=>x.id).filter(Boolean)},
+    sourceFacts:{transactionCount:unmatched.length},
     actionLabel:'Ga naar bank',actionTarget:action('bank',{status:'unmatched'}),score:20+unmatched.length
   }));
   const suggestions=unmatched.filter(t=>t.matchSuggestion&&t.matchSuggestion.type&&t.matchSuggestion.id);
@@ -184,7 +184,7 @@ function bankRules(context){
     title:suggestions.length===1?'Voor 1 transactie is een match beschikbaar':'Voor '+suggestions.length+' transacties is een match beschikbaar',
     summary:'Controleer het voorstel voordat je koppelt.',
     reason:'BOEKUNA heeft al een bestaand matchvoorstel voor deze ongekoppelde transactie.',
-    sourceFacts:{transactionCount:suggestions.length,suggestionType:String(suggestions[0].matchSuggestion.type),transactionIds:suggestions.map(x=>x.id).filter(Boolean)},
+    sourceFacts:{transactionCount:suggestions.length,suggestionType:String(suggestions[0].matchSuggestion.type)},
     actionLabel:'Controleer matches',actionTarget:action('bank',{status:'unmatched'}),score:10+suggestions.length
   }));
   return out;
