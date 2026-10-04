@@ -113,13 +113,13 @@ try{
   // HAPPY RECEIPT — one screen, read-only result first, one primary save action.
   await openReview({
     documentType:'receipt',invoiceNumber:'',party:'Shell Nederland',category:'Reiskosten',
-    issueDate:'2026-10-04',net:67.89,vatAmount:14.25,gross:82.14,vatRate:21,
+    issueDate:'2026-10-04',net:100,vatAmount:21,gross:121,vatRate:21,
     reviewRouting:{mode:'AUTO_ACCEPT_CANDIDATE',fields:[],count:0,autoBook:false},
     fieldConfidence:{party:98,issueDate:99,net:99,vatAmount:99,gross:99,vatRate:99,vatLines:99,category:96}
   });
   assert.equal(await page.locator('#mobileReviewStepLabel').count(),0,'simple review must not render step 1/2/3 progress');
   assert.match(await page.locator('#modalRoot').innerText(),/Shell Nederland/);
-  assert.match(await page.locator('#modalRoot').innerText(),/€\s*82[,.]14/);
+  assert.match(await page.locator('#modalRoot').innerText(),/€\s*121[,.]00/);
   assert.match(await page.locator('#modalRoot').innerText(),/Btw/);
   assert.match(await page.locator('#modalRoot').innerText(),/Reiskosten/);
   assert.match(await page.locator('#modalRoot').innerText(),/Alles ziet er goed uit/);
