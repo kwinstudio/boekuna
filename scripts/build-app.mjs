@@ -34,6 +34,9 @@ const appAssets=[
   'favicon-32.png',
   'financial-correction.js',
   'document-intelligence.js',
+  'personal-insights.js',
+  'personal-insights-ui.js',
+  'personal-insights.css',
   'document-review-v2.js',
   'document-review-v2.css',
   'kvk-company-lookup.js',
@@ -184,7 +187,10 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review
 // The real head precedes the app body; later </head> tokens belong to print templates.
 const mobileHeadBoundary='</head>\n<body>';
 if(!appHtml.includes(mobileHeadBoundary))throw new Error('Mobile app head boundary changed');
-appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n'+mobileHeadBoundary);
+appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004a">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n'+mobileHeadBoundary);
+const assistantRuntimeMarker='\n<script>\nconst USERS_KEY=';
+if(!appHtml.includes(assistantRuntimeMarker))throw new Error('Assistant app runtime marker changed');
+appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script src="/assets/personal-insights.js?v=20261004a"></script>\n<script src="/assets/personal-insights-ui.js?v=20261004a"></script>'+assistantRuntimeMarker);
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-product.js?v=20261003a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
@@ -198,6 +204,33 @@ for(const asset of appAssets){
   if(!fs.existsSync(sourceFile))throw new Error('Missing app asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
 }
+
+// Assistant integration is app-only. Keep shared public mobile assets byte-identical
+// to the marketing source and patch only the generated product artifact.
+function patchBuiltAppAsset(asset,needle,replacement){
+  const file=path.join(appAssetsTarget,asset);
+  const source=fs.readFileSync(file,'utf8');
+  const first=source.indexOf(needle);
+  const second=first<0?-1:source.indexOf(needle,first+needle.length);
+  if(first<0||second>=0)throw new Error('App-only asset patch marker changed: '+asset);
+  fs.writeFileSync(file,source.slice(0,first)+replacement+source.slice(first+needle.length),'utf8');
+}
+patchBuiltAppAsset(
+  'mobile-polish-round-2.js',
+  "      +'</div></section>'\n      +'<section class=\"settings-group\"><h2 class=\"settings-group-label\">Beveiliging & privacy</h2><div class=\"settings-list\">'",
+  "      +'</div></section>'\n      +renderAssistantSettingsSafe()\n      +'<section class=\"settings-group\"><h2 class=\"settings-group-label\">Beveiliging & privacy</h2><div class=\"settings-list\">'"
+);
+patchBuiltAppAsset(
+  'mobile-product.js',
+  "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];",
+  "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Assistent & inzichten','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];"
+);
+patchBuiltAppAsset(
+  'mobile-product.js',
+  "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];",
+  "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Persoonlijke tips en samenvattingen','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];"
+);
+
 fs.copyFileSync(interFontSource,path.join(appAssetsTarget,'app-InterVariable.woff2'));
 fs.copyFileSync(spaceGroteskFont,path.join(appAssetsTarget,'app-SpaceGrotesk-Variable.ttf'));
 

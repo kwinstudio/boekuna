@@ -60,6 +60,10 @@ fs.cpSync(source,target,{recursive:true});
 // The public marketing host is not the installable product app.
 fs.rmSync(path.join(target,'manifest.webmanifest'),{force:true});
 
+for(const asset of ['personal-insights.css','personal-insights.js','personal-insights-ui.js']){
+  fs.rmSync(path.join(target,'assets',asset),{force:true});
+}
+
 const fontsDir=path.join(target,'assets','fonts');
 fs.mkdirSync(fontsDir,{recursive:true});
 fs.copyFileSync(spaceGrotesk,path.join(fontsDir,'SpaceGrotesk-Variable.ttf'));
