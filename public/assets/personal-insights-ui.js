@@ -83,11 +83,11 @@ function assistantContext(){
     now:today(),
     invoices:(state.invoices||[]).filter(i=>i.status!=='draft').map(i=>({
       id:String(i.id||''),number:String(i.number||''),kind:String(i.kind||'invoice'),effectiveStatus:invoiceEffectiveStatus(i),
-      issueDate:String(i.issueDate||''),dueDate:String(i.dueDate||''),gross:invoiceGross(i),paid:invoicePaidAmount(i),outstanding:invoiceOutstanding(i)
+      dueDate:String(i.dueDate||''),outstanding:invoiceOutstanding(i)
     })),
     transactions:(state.transactions||[]).map(t=>({
-      id:String(t.id||''),status:String(t.status||'unmatched'),date:String(t.date||''),amount:Number(t.amount||0),
-      matchSuggestion:t.matchSuggestion&&t.matchSuggestion.type&&t.matchSuggestion.id?{type:String(t.matchSuggestion.type),id:String(t.matchSuggestion.id),label:String(t.matchSuggestion.label||'')}:null
+      id:String(t.id||''),status:String(t.status||'unmatched'),
+      matchSuggestion:t.matchSuggestion&&t.matchSuggestion.type&&t.matchSuggestion.id?{type:String(t.matchSuggestion.type),id:String(t.matchSuggestion.id)}:null
     })),
     documents,
     monthlyMetrics:assistantMonthMetrics(),
