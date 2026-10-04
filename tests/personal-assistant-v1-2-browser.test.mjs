@@ -100,6 +100,7 @@ try{
  assert.deepEqual(kpiLabels.map(x=>x.trim()),['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen'],'Core KPI labels must be unique and ordered');
  const receivables=await page.locator('.dashboard-kpi-receivables').innerText();
  assert.match(receivables,/910/,'Partial payment must leave €910 receivable');
+ assert.match(receivables,/te laat/i,'A partially paid invoice past its due date must keep overdue context');
  const revenue=await page.locator('.dashboard-kpis-v12 .dashboard-kpi').filter({has:page.locator('.dashboard-kpi-label',{hasText:/^Omzet$/})}).innerText();
  assert.match(revenue,/1\.000|1,000|1000/,'Revenue KPI must use active invoice revenue');
  assert.doesNotMatch(revenue,/10\.999|10999/,'Cancelled invoice must not inflate revenue KPI');
