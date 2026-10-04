@@ -5,6 +5,7 @@ const GOALS=['Facturen betaald krijgen','Btw overzichtelijk houden','Bonnetjes b
 const SAFE_VAT_REVIEW_FIELDS=new Set(['net','vatAmount','gross','vatRate','vatLines']);
 const ASSISTANT_METRIC_EVENTS=new Set(['insight_shown','insight_opened','action_clicked','dismissed','helpful','not_relevant']);
 const assistantShownThisSession=new Set();
+const assistantSessionMetrics={insight_shown:0};
 
 function engine(){return root.BoekunaPersonalInsights}
 function prefs(){
@@ -129,17 +130,10 @@ function recordAssistantMetric(event){
   save();
 }
 function noteAssistantShown(items){
-  let added=0;
   for(const item of items||[]){
     const key=String(item?.id||'');if(!key||assistantShownThisSession.has(key))continue;
-    assistantShownThisSession.add(key);added++;
+    assistantShownThisSession.add(key);assistantSessionMetrics.insight_shown++;
   }
-  if(!added||!currentUser)return;
-  state.assistant=prefs();
-  const current=state.assistant.metrics&&typeof state.assistant.metrics==='object'?state.assistant.metrics:{};
-  const counts=current.counts&&typeof current.counts==='object'?current.counts:{};
-  state.assistant.metrics={counts:{...counts,insight_shown:Math.max(0,Math.round(Number(counts.insight_shown||0)))+added},lastEventAt:new Date().toISOString()};
-  save();
 }
 function assistantCard(item,compact=false){
   return '<button type="button" class="assistant-insight-card" data-priority="'+esc(item.priority)+'" onclick="openAssistantInsight('+esc(JSON.stringify(item.id))+')" aria-label="'+esc(item.title)+'. '+esc(item.summary)+'">'+
@@ -176,7 +170,7 @@ function renderMonthEnd(s){
     ['Bank bijgewerkt',!bank],
     ['Geen facturen te laat',!overdue]
   ];
-  return '<section class="card assistant-week"><div class="section-head"><div><h2>'+esc(month.charAt(0).toUpperCase()+month.slice(1))+' afronden</h2><p>Administratieve checklist, geen periode-lock.</p></div></div><div class="assistant-month-list">'+rows.map(([label,ok])=>'<div class="assistant-month-row"><span aria-hidden="true">'+(ok?'✓':'•')+'</span><strong>'+esc(label)+'</strong><em>'+esc(ok?'Klaar':'Aandacht')+'</em></div>').join('')+'</div></section>'
+  return '<section class="card assistant-month-end"><div class="section-head"><div><h2>'+esc(month.charAt(0).toUpperCase()+month.slice(1))+' afronden</h2><p>Administratieve checklist, geen periode-lock.</p></div></div><div class="assistant-month-list">'+rows.map(([label,ok])=>'<div class="assistant-month-row"><span aria-hidden="true">'+(ok?'✓':'•')+'</span><strong>'+esc(label)+'</strong><em>'+esc(ok?'Klaar':'Aandacht')+'</em></div>').join('')+'</div></section>'
 }
 function renderInsights(){
   const s=snapshot(),E=engine();
@@ -269,5 +263,5 @@ root.dismissAssistantInsight=dismissAssistantInsight;
 root.setAssistantPreference=setAssistantPreference;
 root.toggleAssistantGoal=toggleAssistantGoal;
 root.restoreHiddenAssistantInsights=restoreHiddenAssistantInsights;
-root.__boekunaAssistantTest={context:assistantContext,snapshot};
+root.__boekunaAssistantTest={context:assistantContext,snapshot,sessionMetrics:()=>({...assistantSessionMetrics})};
 })(typeof window!=='undefined'?window:globalThis);
