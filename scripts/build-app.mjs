@@ -187,7 +187,10 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review
 // The real head precedes the app body; later </head> tokens belong to print templates.
 const mobileHeadBoundary='</head>\n<body>';
 if(!appHtml.includes(mobileHeadBoundary))throw new Error('Mobile app head boundary changed');
-appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n'+mobileHeadBoundary);
+appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004a">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n'+mobileHeadBoundary);
+const assistantRuntimeMarker='\n<script>\nconst USERS_KEY=';
+if(!appHtml.includes(assistantRuntimeMarker))throw new Error('Assistant app runtime marker changed');
+appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script src="/assets/personal-insights.js?v=20261004a"></script>\n<script src="/assets/personal-insights-ui.js?v=20261004a"></script>'+assistantRuntimeMarker);
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-product.js?v=20261003a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
