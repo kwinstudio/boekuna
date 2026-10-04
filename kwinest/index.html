@@ -2584,6 +2584,7 @@ function clearLegacyLocalAccount(email){const u=legacyUserForEmail(email);if(!u)
 async function hydrateCloudAccount(user){currentUser={id:user.id,email:user.email||'',supabaseUser:user};state=load();const sb=await getSupabase();const [{data:profileRow,error:profileErr},{data:ledgerRow,error:ledgerErr}]=await Promise.all([sb.from('profiles').select('company').eq('user_id',user.id).maybeSingle(),sb.from('ledger_state').select('state,version').eq('user_id',user.id).maybeSingle()]);if(profileErr)throw profileErr;if(ledgerErr)throw ledgerErr;cloudVersion=Number(ledgerRow?.version||1);const cloudState=ledgerRow?.state&&Object.keys(ledgerRow.state).length?ledgerRow.state:null;const legacy=!cloudState?legacySnapshotForEmail(user.email):null;state=normalizeState(cloudState||legacy||{});if(profileRow?.company)state.company={...state.company,...profileRow.company};localStorage.setItem(userDataKey(),JSON.stringify(state));localStorage.setItem(userProfileKey(),JSON.stringify(state.company||{}));if(!cloudState){await syncCloudProfile(state.company);await syncCloudStateNow();if(legacy){const moved=await migrateLegacyFilesToCloud();clearLegacyLocalAccount(user.email);toast(`Je bestaande administratie is naar de cloud gekopieerd${moved?` · ${moved} document(en) meegenomen`:''}`)}}setCloudSyncStatus('saved')}
 function logEvent(action,detail='',entityType='',entityId='',oldValue=null,newValue=null){if(!Array.isArray(state.audit))state.audit=[];state.audit.unshift({id:uid('a'),at:new Date().toISOString(),actorId:String(currentUser?.id||''),actorEmail:String(currentUser?.email||''),action:String(action||''),detail:String(detail||''),entityType:String(entityType||''),entityId:String(entityId||''),oldValue:oldValue==null?null:structuredClone(oldValue),newValue:newValue==null?null:structuredClone(newValue)});state.audit=state.audit.slice(0,1000)}
 function invoiceEffectiveStatus(i){if(!i)return 'draft';if(i.status==='cancelled')return 'cancelled';if(i.status==='draft')return 'draft';const paid=invoicePaidAmount(i),out=invoiceOutstanding(i);if(toCents(out)===0&&Math.abs(invoiceGross(i))>0)return 'paid';if(paid>0&&toCents(out)>0)return 'partial';if(i.dueDate&&i.dueDate<today())return 'overdue';return i.status||'sent'}
+function invoiceIsOverdueOpen(i){return !!i&&i.status!=='draft'&&i.kind!=='credit'&&invoiceEffectiveStatus(i)!=='cancelled'&&invoiceOutstanding(i)>.02&&!!i.dueDate&&i.dueDate<today()}
 function daysUntil(d){if(!d)return 9999;const a=new Date(today()+'T12:00:00'),b=new Date(d+'T12:00:00');return Math.ceil((b-a)/86400000)}
 function cashBalance(){return state.transactions.reduce((s,t)=>s+Number(t.amount||0),0)}
 function quarterVatPosition(){const q=currentQuarter(),year=currentBookYear(),out=state.invoices.filter(i=>i.status!=='draft'&&inQuarter(i.issueDate,q,year)).reduce((s,i)=>roundMoney(s+invoiceVat(i)),0),input=state.expenses.filter(e=>inQuarter(e.date,q,year)).reduce((s,e)=>roundMoney(s+expenseDeductibleVat(e)),0);return roundMoney(out-input)}
@@ -3150,7 +3151,7 @@ function listSearchHaystack(name,item){
 function invoiceListStatusMatch(i,status){
   if(status==='all')return true;
   if(status==='draft')return i.status==='draft';
-  if(status==='overdue')return invoiceEffectiveStatus(i)==='overdue';
+  if(status==='overdue')return invoiceIsOverdueOpen(i);
   if(status==='paid')return i.status!=='draft'&&invoiceEffectiveStatus(i)==='paid';
   if(status==='open')return i.status!=='draft'&&invoiceOutstanding(i)>.02;
   return true
@@ -3464,7 +3465,7 @@ function navigateWithFilter(target,key,value){
  return navigate(target)
 }
 function dashboardAttentionItems(){
- const items=[],overdue=state.invoices.filter(i=>invoiceEffectiveStatus(i)==='overdue'),unmatched=state.transactions.filter(t=>t.status==='unmatched');
+ const items=[],overdue=state.invoices.filter(invoiceIsOverdueOpen),unmatched=state.transactions.filter(t=>t.status==='unmatched');
  const jobs=(documentProcessingJobs||[]).filter(j=>(persistentDocumentNeedsReview(j)||j.state==='failed')),jobRefs=new Set(jobs.map(j=>String(j.client_ref||'')).filter(Boolean)),localReview=state.documents.filter(d=>d?.verification?.status==='needs_review'&&!jobRefs.has(String(d.fileId||''))),failed=jobs.filter(j=>String(j.state||'')==='failed'),review=jobs.filter(persistentDocumentNeedsReview),health=dataHealthIssues(),upcoming=state.bookings.filter(b=>['planned','confirmed'].includes(b.status)&&daysUntil(b.date)>=0&&daysUntil(b.date)<=2&&!b.reminderSent);
  const additional=attentionRows().filter(row=>row.category==='contacts');if(additional.length)items.push({key:'contacts',priority:3,tone:'review',icon:'✓',title:additional.length+' klanten aanvullen',detail:'Gegevens ontbreken',action:()=>openAttentionCategory('contacts')});
  if(overdue.length)items.push({key:'overdue',priority:1,tone:'urgent',icon:'!',title:overdue.length===1?'Factuur '+overdue[0].number+' vervallen':overdue.length+' facturen vervallen',detail:overdue.length===1?money(invoiceOutstanding(overdue[0]))+' open':'Betalingen opvolgen',action:()=>openDashboardAttention('overdue',overdue.length===1?overdue[0].id:'')});
@@ -3477,9 +3478,9 @@ function dashboardAttentionItems(){
 function openDashboardAttention(kind,id=''){
  if(kind==='overdue'){
   const current=id?state.invoices.find(i=>i.id===id):null;
-  if(id&&(!current||invoiceEffectiveStatus(current)!=='overdue')){render();toast('Dit aandachtspunt is inmiddels bijgewerkt.');return}
+  if(id&&(!current||!invoiceIsOverdueOpen(current))){render();toast('Dit aandachtspunt is inmiddels bijgewerkt.');return}
   if(current){viewInvoice(current.id);return}
-  if(!state.invoices.some(i=>invoiceEffectiveStatus(i)==='overdue')){render();toast('Dit aandachtspunt is inmiddels bijgewerkt.');return}
+  if(!state.invoices.some(invoiceIsOverdueOpen)){render();toast('Dit aandachtspunt is inmiddels bijgewerkt.');return}
   navigateWithFilter('invoices','status','overdue');return
  }
  if(kind==='bank'){openAttentionCategory('bank');return}
@@ -3566,7 +3567,7 @@ function dashboardKpiViewModel(preset=String(sessionStorage.getItem('dashboardPe
  const profit=roundMoney(revenue-costs);
  const openInvoices=state.invoices.filter(i=>i.status!=='draft'&&i.kind!=='credit'&&invoiceEffectiveStatus(i)!=='cancelled'&&invoiceOutstanding(i)>.02);
  const receivables=openInvoices.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0);
- const overdueInvoices=openInvoices.filter(i=>invoiceEffectiveStatus(i)==='overdue');
+ const overdueInvoices=openInvoices.filter(invoiceIsOverdueOpen);
  const overdueReceivables=overdueInvoices.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0);
  const q=currentQuarter(),year=currentBookYear();
  const quarterInvoices=state.invoices.filter(i=>i.status!=='draft'&&invoiceEffectiveStatus(i)!=='cancelled'&&inQuarter(i.issueDate,q,year));
@@ -3619,7 +3620,7 @@ function renderDashboard(){
 }
 
 function renderInvoices(){
- const list=getListRows('invoices'),all=state.invoices.filter(i=>i.kind!=='credit'),openRows=all.filter(i=>i.status!=='draft'&&invoiceOutstanding(i)>.02),open=openRows.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),overdueRows=openRows.filter(i=>invoiceEffectiveStatus(i)==='overdue'),overdue=overdueRows.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),monthKey=monthKeyOffset(0);
+ const list=getListRows('invoices'),all=state.invoices.filter(i=>i.kind!=='credit'),openRows=all.filter(i=>i.status!=='draft'&&invoiceOutstanding(i)>.02),open=openRows.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),overdueRows=openRows.filter(invoiceIsOverdueOpen),overdue=overdueRows.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),monthKey=monthKeyOffset(0);
  const paidMonthRows=all.filter(i=>i.status!=='draft'&&invoiceEffectiveStatus(i)==='paid'&&(invoicePayments(i).some(p=>String(p.date||'').startsWith(monthKey))||state.transactions.some(t=>t.status==='matched'&&t.matchType==='invoice'&&t.matchId===i.id&&String(t.date||'').startsWith(monthKey))||String(i.issueDate||'').startsWith(monthKey))),paidMonth=paidMonthRows.reduce((sum,i)=>roundMoney(sum+invoiceGross(i)),0),drafts=all.filter(i=>i.status==='draft').length;
  return `<div class="page-head product-page-head"><div><h1>Facturen</h1><p class="page-status">Beheer en volg je verkoopfacturen.</p></div><div class="page-actions"><button class="btn" onclick="triggerInvoiceUpload('sale')">${icon('i-upload')} Upload PDF</button><button class="btn primary" onclick="newInvoice()">${icon('i-plus')} Nieuwe factuur</button></div></div>
  ${productKpiGrid([
@@ -3746,7 +3747,7 @@ function exportJournalCSV(){const {from,to}=reportRange(),rows=journalFlatRows(g
 let controlListState={userId:'',category:'all',query:'',page:1};
 function attentionRows(){
  const rows=[],add=(key,category,title,detail,action,label)=>rows.push({key,category,title,detail,action,label});
- state.invoices.filter(i=>invoiceEffectiveStatus(i)==='overdue').forEach(i=>add('invoice-'+i.id,'overdue',i.number+' · '+getContact(i.customerId).name,money(invoiceOutstanding(i))+' open · vervallen '+dateNL(i.dueDate),()=>viewInvoice(i.id),'Bekijk'));
+ state.invoices.filter(invoiceIsOverdueOpen).forEach(i=>add('invoice-'+i.id,'overdue',i.number+' · '+getContact(i.customerId).name,money(invoiceOutstanding(i))+' open · vervallen '+dateNL(i.dueDate),()=>viewInvoice(i.id),'Bekijk'));
  state.transactions.filter(t=>t.status==='unmatched').forEach(t=>add('bank-'+t.id,'bank',t.description,dateNL(t.date)+' · '+money(t.amount)+' · nog niet gekoppeld',()=>openBankAttention(t.id),'Koppelen'));
  const jobs=(documentProcessingJobs||[]).filter(j=>(persistentDocumentNeedsReview(j)||j.state==='failed')),refs=new Set(jobs.map(j=>String(j.client_ref||'')));
  jobs.forEach(j=>add('job-'+j.id,'documents',persistentDocumentName(j),j.state==='failed'?'Verwerking mislukt · opnieuw proberen of ander bestand kiezen':'Controleer de herkende gegevens',()=>persistentDocumentNeedsReview(j)?openPersistentDocumentReview(j.id):openFailedDocumentAttention(j.id),'Open'));
