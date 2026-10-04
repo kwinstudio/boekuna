@@ -40,6 +40,12 @@
 #mainApp .assistant-status-line .icon{width:20px;height:20px;flex:0 0 auto}
 #mainApp .assistant-status-line strong{display:block;font-size:13px}
 #mainApp .assistant-status-line span{display:block;margin-top:3px;font-size:10px;color:var(--muted);line-height:1.45}
+#mainApp .assistant-month-list{display:grid;gap:7px}
+#mainApp .assistant-month-row{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:7px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+#mainApp .assistant-month-row:last-child{border-bottom:0}
+#mainApp .assistant-month-row>span{font-weight:850;color:var(--good);text-align:center}
+#mainApp .assistant-month-row strong{font-size:11px}
+#mainApp .assistant-month-row em{font-size:9px;font-style:normal;color:var(--muted);font-weight:750}
 #mainApp .assistant-detail-facts{display:grid;gap:8px;margin-top:12px}
 #mainApp .assistant-detail-fact{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid var(--line);font-size:11px}
 #mainApp .assistant-detail-fact:last-child{border-bottom:0}
