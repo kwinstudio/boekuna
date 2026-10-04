@@ -11,9 +11,9 @@ const reviewJs=fs.readFileSync(path.join(root,'kwinest','app-assets','document-r
 const reviewCss=fs.readFileSync(path.join(root,'kwinest','app-assets','document-review-v2.css'),'utf8');
 const buildSource=fs.readFileSync(path.join(root,'scripts','build-app.mjs'),'utf8');
 
-for(const phrase of ['Meer gegevens']){
-  assert.ok(reviewJs.includes(phrase),'beginner review copy missing: '+phrase);
-}
+assert.equal(reviewJs.includes('<summary>Meer gegevens</summary>'),false,'secondary bookkeeping fields must stay out of the primary review flow');
+assert.ok(reviewJs.includes('Stap 1 van 2')&&reviewJs.includes('Stap 2 van 2'),'two-step review labels missing');
+assert.ok(reviewJs.includes('reviewWizardStep'),'two-step wizard controller missing');
 assert.equal(/>\s*Negeren\s*</i.test(reviewJs),false,'generic Negeren action is forbidden');
 assert.ok(reviewJs.includes('requirementsFor'),'contextual requirement matrix missing');
 assert.ok(reviewJs.includes('reviewAttentionFields'),'deferred attention persistence missing');
@@ -108,72 +108,101 @@ try{
   }));
   assert.ok(matrix.receipt.optional.includes('invoiceNumber'),'receipt number should not be universally required');
   assert.ok(matrix.invoice.blocking.includes('invoiceNumber'),'purchase invoice number should be blocking');
-  assert.ok(matrix.receipt.attention.includes('category'),'receipt category should remain reviewable attention');
-  assert.ok(matrix.invoice.optional.includes('iban'),'IBAN should stay optional');
+  assert.ok(matrix.receipt.attention.includes('category'),'receipt category remains useful but must not add another page');
+  assert.ok(matrix.invoice.optional.includes('iban'),'IBAN must stay optional');
 
-  // HAPPY RECEIPT — one screen, read-only result first, one primary save action.
+  // HAPPY RECEIPT — exactly two compact screens. No long form and no optional bookkeeping.
   await openReview({
     documentType:'receipt',invoiceNumber:'',party:'Shell Nederland',category:'Reiskosten',
     issueDate:'2026-10-04',net:100,vatAmount:21,gross:121,vatRate:21,
+    address:'Weena 1',postal:'3013AA',city:'Rotterdam',email:'bon@example.test',iban:'NL91ABNA0417164300',
     reviewRouting:{mode:'AUTO_ACCEPT_CANDIDATE',fields:[],count:0,autoBook:false},
     fieldConfidence:{party:98,issueDate:99,net:99,vatAmount:99,gross:99,vatRate:99,vatLines:99,category:96}
   });
-  assert.equal(await page.locator('#mobileReviewStepLabel').count(),0,'simple review must not render step 1/2/3 progress');
-  assert.match(await page.locator('#modalRoot').innerText(),/Shell Nederland/);
-  assert.match(await page.locator('#modalRoot').innerText(),/€\s*121[,.]00/);
-  assert.match(await page.locator('#modalRoot').innerText(),/Btw/);
-  assert.match(await page.locator('#modalRoot').innerText(),/Reiskosten/);
-  assert.match(await page.locator('#modalRoot').innerText(),/Alles ziet er goed uit/);
-  assert.equal(await page.locator('#pdfImportForm [name="net"]:visible').count(),0,'simple review must not show money inputs');
-  assert.equal(await page.locator('#pdfImportForm [name="vatAmount"]:visible').count(),0,'simple review must not show VAT input');
-  assert.equal(await page.locator('#pdfImportForm [name="gross"]:visible').count(),0,'simple review must not show gross input');
-  assert.equal(await page.getByRole('button',{name:'Dit klopt zo',exact:true}).count(),0,'simple review must not require per-field confirmations');
-  assert.equal(await page.locator('[data-review-save]:visible').count(),1,'simple review must expose one visible primary save action');
-  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false,'happy receipt save must be enabled');
-  assert.equal(await page.getByRole('button',{name:'Gegevens aanpassen',exact:true}).count(),1,'edit remains reachable');
-  assert.equal(await page.getByRole('button',{name:'Bekijk origineel',exact:true}).count(),1,'original remains reachable');
-  assert.equal(await page.locator('details.review-details').first().getAttribute('open'),null,'optional details must be collapsed');
-  assert.doesNotMatch(await page.locator('#modalRoot').innerText(),/OCR\s*\d+%|confidence\s*\d+%/i,'beginner UI must not show confidence percentages');
+  assert.match(await page.locator('#documentReviewStepLabel').innerText(),/Stap 1 van 2/i);
+  assert.equal(await page.locator('[data-review-page="1"]:visible').count(),1);
+  assert.equal(await page.locator('[data-review-page="2"]:visible').count(),0);
+  assert.equal(await page.locator('[data-review-page="1"] [name="party"]:visible').count(),1);
+  assert.equal(await page.locator('[data-review-page="1"] [name="issueDate"]:visible').count(),1);
+  assert.equal(await page.locator('[data-review-page="1"] [name="category"]:visible').count(),1);
+  assert.equal(await page.locator('[name="address"]:visible').count(),0,'address must not be in primary review');
+  assert.equal(await page.locator('[name="postal"]:visible').count(),0,'postal code must not be in primary review');
+  assert.equal(await page.locator('[name="city"]:visible').count(),0,'city must not be in primary review');
+  assert.equal(await page.locator('[name="email"]:visible').count(),0,'email must not be in primary review');
+  assert.equal(await page.locator('[name="iban"]:visible').count(),0,'IBAN must not be in primary review');
+  assert.doesNotMatch(await page.locator('#modalRoot').innerText(),/Meer gegevens|Herkenning verbeteren|Technische details/);
+  assert.equal(await page.getByRole('button',{name:'Volgende',exact:true}).count(),1);
+  assert.equal(await page.locator('[data-review-save]:visible').count(),0,'save must not compete with Next on step 1');
+  await page.getByRole('button',{name:'Volgende',exact:true}).click();
 
-  await page.getByRole('button',{name:'Gegevens aanpassen',exact:true}).click();
-  assert.equal(await page.locator('[data-review-edit-panel] [name="party"]:visible').count(),1,'edit mode must expose supplier');
-  assert.equal(await page.locator('[data-review-edit-panel] [name="gross"]:visible').count(),1,'edit mode must expose total');
-  await page.getByRole('button',{name:'Gegevens aanpassen',exact:true}).click();
-  await page.screenshot({path:'tests/artifacts/document-review-simple-desktop-'+browserName+'.png',fullPage:true});
+  assert.match(await page.locator('#documentReviewStepLabel').innerText(),/Stap 2 van 2/i);
+  assert.equal(await page.locator('[data-review-page="1"]:visible').count(),0);
+  assert.equal(await page.locator('[data-review-page="2"]:visible').count(),1);
+  assert.equal(await page.locator('[data-review-page="2"] [name="gross"]:visible').count(),1,'total is the primary amount');
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]:visible').count(),1);
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),1);
+  const consistentIssues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
+  assert.deepEqual(consistentIssues,[],'cent-exact 100 + 21 = 121 must have no blocking issues: '+JSON.stringify(consistentIssues));
+  const netVisibilityDebug=await page.locator('[data-review-page="2"] [name="net"]').evaluateAll(nodes=>nodes.map(el=>({
+    outer:el.outerHTML,
+    display:getComputedStyle(el).display,
+    visibility:getComputedStyle(el).visibility,
+    rect:{w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height},
+    parentHidden:el.parentElement?.hidden,
+    parentDisplay:el.parentElement?getComputedStyle(el.parentElement).display:null,
+    parentOuter:el.parentElement?.outerHTML?.slice(0,500)
+  })));
+  assert.equal(await page.locator('[data-review-page="2"] [name="net"]:visible').count(),0,'ex-VAT stays derived/hidden when consistent: '+JSON.stringify(netVisibilityDebug));
+  assert.equal(await page.getByRole('button',{name:'Vorige',exact:true}).count(),1);
+  assert.equal(await page.locator('[data-review-save]:visible').count(),1);
+  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
+  await page.screenshot({path:'tests/artifacts/document-review-two-step-desktop-'+browserName+'.png',fullPage:true});
   await page.evaluate(()=>closeModal());
 
-  // QUICK REVIEW — only the uncertain category is interactive.
+  // PURCHASE INVOICE — page 1 has only supplier/date/invoice number; category is not forced here.
+  await openReview({
+    documentType:'purchase_invoice',party:'Cloud BV',invoiceNumber:'CLOUD-001',category:'Software',
+    issueDate:'2026-10-04',net:200,vatAmount:42,gross:242,vatRate:21,
+    reviewRouting:{mode:'AUTO_ACCEPT_CANDIDATE',fields:[],count:0,autoBook:false}
+  });
+  assert.equal(await page.locator('[data-review-page="1"] [name="party"]:visible').count(),1);
+  assert.equal(await page.locator('[data-review-page="1"] [name="issueDate"]:visible').count(),1);
+  assert.equal(await page.locator('[data-review-page="1"] [name="invoiceNumber"]:visible').count(),1);
+  assert.equal(await page.locator('[data-review-page="1"] [name="category"]:visible').count(),0,'invoice category may be completed later');
+  await page.evaluate(()=>closeModal());
+
+  // Low-confidence suggestions do not create confirmation chores; seeing/editing the field is enough.
   await openReview({
     documentType:'receipt',invoiceNumber:'',party:'Shell Nederland',category:'Overig',
     reviewRouting:{mode:'QUICK_REVIEW',fields:['category'],count:1,autoBook:false},
     fieldConfidence:{party:98,issueDate:99,net:99,vatAmount:99,gross:99,vatRate:99,vatLines:99,category:45}
   });
-  assert.match(await page.locator('#modalRoot').innerText(),/Controleer 1 ding/);
-  assert.equal(await page.locator('[data-review-issue="category"] select:visible').count(),1,'uncertain category must be directly editable');
-  assert.equal(await page.locator('#pdfImportForm [name="net"]:visible').count(),0,'quick category review must keep money controls hidden');
-  assert.equal(await page.locator('#pdfImportForm [name="gross"]:visible').count(),0,'quick category review must keep gross hidden');
-  await page.locator('[data-review-issue="category"] select').selectOption({label:'Reiskosten'});
-  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false,'resolved quick issue must allow save');
-  await page.screenshot({path:'tests/artifacts/document-review-quick-desktop-'+browserName+'.png',fullPage:true});
+  assert.equal(await page.locator('[data-review-page="1"] [name="category"]:visible').count(),1);
+  assert.equal(await page.getByRole('button',{name:'Volgende',exact:true}).isDisabled(),false,'low confidence alone must not block the simple flow');
+  await page.locator('[data-review-page="1"] [name="category"]').selectOption({label:'Reiskosten'});
+  await page.getByRole('button',{name:'Volgende',exact:true}).click();
+  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
   await page.evaluate(()=>closeModal());
 
-  // FINANCIAL MISMATCH — direct inputs, exact cents, existing financial engine stays authoritative.
+  // FINANCIAL MISMATCH — step 1 remains simple; step 2 contains the fix at the amount.
   await openReview({
     documentType:'receipt',invoiceNumber:'',party:'Rekenwinkel',category:'Kantoor',
     net:100,vatAmount:20,gross:121,vatRate:21,
     reviewRouting:{mode:'FULL_REVIEW',fields:['vatAmount'],count:1,autoBook:false},
     fieldConfidence:{party:98,issueDate:99,net:98,vatAmount:45,gross:99,vatRate:99,vatLines:45,category:90}
   });
-  assert.match(await page.locator('#modalRoot').innerText(),/Controleer de btw|bedragen kloppen nog niet/i);
-  assert.equal(await page.locator('[data-review-issue="vatAmount"] input:visible').count(),1,'financial mismatch must be fixable where it is shown');
-  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true,'financial mismatch must block save');
-  await page.locator('[data-review-issue="vatAmount"] input').fill('21,00');
-  await page.locator('#reviewBlockingState').filter({hasText:/Alles ziet er goed uit|Bedragen kloppen/}).waitFor();
-  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false,'cent-exact correction must unlock save');
-  await page.screenshot({path:'tests/artifacts/document-review-financial-'+browserName+'.png',fullPage:true});
+  assert.equal(await page.getByRole('button',{name:'Volgende',exact:true}).isDisabled(),false,'financial issue belongs to step 2, not step 1');
+  await page.getByRole('button',{name:'Volgende',exact:true}).click();
+  assert.match(await page.locator('[data-review-page="2"]').innerText(),/kloppen nog niet|Controleer de btw/i);
+  assert.equal(await page.locator('[data-review-net-editor]:visible').count(),1,'ex-VAT editor must appear only when an amount mismatch needs correction');
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]:visible').count(),1);
+  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true);
+  await page.locator('[data-review-page="2"] [name="vatAmount"]').fill('21,00');
+  await page.locator('#reviewBlockingState').filter({hasText:/Alles ziet er goed uit|klaar om op te slaan/i}).waitFor();
+  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
   await page.evaluate(()=>closeModal());
 
-  // MIXED VAT — compact summary first, editor only after explicit edit or a mismatch.
+  // MIXED VAT — only shown on the amounts screen, compact summary first.
   await openReview({
     documentType:'receipt',invoiceNumber:'',party:'Gemengde winkel',category:'Inkoop',
     mixedRates:true,vatRate:null,net:429.95,vatAmount:52.49,gross:482.44,
@@ -181,85 +210,84 @@ try{
     reviewRouting:{mode:'AUTO_ACCEPT_CANDIDATE',fields:[],count:0,autoBook:false},
     fieldConfidence:{party:98,issueDate:99,net:99,vatAmount:99,gross:99,vatLines:98,category:90}
   });
-  assert.match(await page.locator('#modalRoot').innerText(),/2 btw-tarieven|meerdere btw-tarieven/i);
-  assert.match(await page.locator('#modalRoot').innerText(),/9%/);
-  assert.match(await page.locator('#modalRoot').innerText(),/21%/);
-  assert.equal(await page.locator('.mixed-vat-row:visible').count(),0,'valid mixed VAT must not open row editor by default');
+  assert.doesNotMatch(await page.locator('[data-review-page="1"]').innerText(),/2 btw-tarieven|21%|9%/i);
+  await page.getByRole('button',{name:'Volgende',exact:true}).click();
+  assert.match(await page.locator('[data-review-page="2"]').innerText(),/2 btw-tarieven|meerdere btw-tarieven/i);
+  assert.match(await page.locator('[data-review-page="2"]').innerText(),/9%/);
+  assert.match(await page.locator('[data-review-page="2"]').innerText(),/21%/);
+  assert.equal(await page.locator('.mixed-vat-row:visible').count(),0);
   await page.getByRole('button',{name:'Verdeling aanpassen',exact:true}).click();
-  assert.equal(await page.locator('.mixed-vat-row:visible').count(),2,'mixed VAT edit must reveal rows on demand');
+  assert.equal(await page.locator('.mixed-vat-row:visible').count(),2);
   await page.locator('.mixed-vat-row').first().locator('[data-vat-line-vat]').fill('28,34');
   await page.locator('#mixedVatStatus').filter({hasText:/telt nog niet op|Controleer/i}).waitFor();
-  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true,'invalid mixed VAT must block save');
+  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true);
   await page.locator('.mixed-vat-row').first().locator('[data-vat-line-vat]').fill('28,35');
   await page.locator('#mixedVatStatus').filter({hasText:/Btw-verdeling klopt/}).waitFor();
-  await page.screenshot({path:'tests/artifacts/document-review-mixed-vat-'+browserName+'.png',fullPage:true});
   await page.evaluate(()=>closeModal());
 
-  // 0% VAT stays simple when authoritative values are consistent.
+  // 0% VAT stays simple on the amounts screen.
   await openReview({
     documentType:'receipt',invoiceNumber:'',party:'Nul Btw Winkel',category:'Overig',
     net:100,vatAmount:0,gross:100,vatRate:0,
-    reviewRouting:{mode:'AUTO_ACCEPT_CANDIDATE',fields:[],count:0,autoBook:false},
-    fieldConfidence:{party:98,issueDate:99,net:99,vatAmount:99,gross:99,vatRate:99,vatLines:99,category:90}
+    reviewRouting:{mode:'AUTO_ACCEPT_CANDIDATE',fields:[],count:0,autoBook:false}
   });
-  assert.match(await page.locator('#modalRoot').innerText(),/Geen btw op dit document|0%/);
+  await page.getByRole('button',{name:'Volgende',exact:true}).click();
+  assert.match(await page.locator('[data-review-page="2"]').innerText(),/Geen btw|0%/);
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
   await page.evaluate(()=>closeModal());
 
-  // Foreign VAT stays foreign and requires an explicit existing treatment choice.
+  // Foreign VAT stays exact and asks only for the treatment on step 2.
   await openReview({
     invoiceNumber:'FOREIGN-20',party:'Foreign Test Supplier',net:1350,vatAmount:270,gross:1620,vatRate:20,
     detectedVatRates:[20],accountingVatTreatment:'review_required',advancePayment:300,outstandingAmount:1320,
     reviewRouting:{mode:'FULL_REVIEW',fields:['vatTreatmentChoice'],count:1,autoBook:false}
   });
-  assert.match(await page.locator('#modalRoot').innerText(),/buitenlandse btw/i);
-  assert.match(await page.locator('#modalRoot').innerText(),/Al betaald|Voorschot|Nog te betalen/i);
-  assert.equal(await page.locator('#pdfImportForm [name="vatRate"]').inputValue(),'20','foreign 20% must never normalize to 21%');
+  await page.getByRole('button',{name:'Volgende',exact:true}).click();
+  assert.match(await page.locator('[data-review-page="2"]').innerText(),/buitenlandse btw/i);
+  assert.match(await page.locator('[data-review-page="2"]').innerText(),/Al betaald|Voorschot|Nog te betalen/i);
+  assert.equal(await page.locator('[name="vatRate"]').inputValue(),'20');
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true);
   await page.locator('[name="vatTreatmentChoice"][value="foreign"]').check();
   await page.evaluate(()=>updateBeginnerReviewState());
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
   await page.evaluate(()=>closeModal());
 
-  // Historical VAT is preserved exactly.
+  // Historical VAT remains exact.
   await openReview({
     invoiceNumber:'HISTORIC-6',party:'Dutch Historic Supplier',issueDate:'2018-12-31',
     net:100,vatAmount:6,gross:106,vatRate:6,detectedVatRates:[6],accountingVatTreatment:'review_required',
     reviewRouting:{mode:'FULL_REVIEW',fields:['vatTreatmentChoice'],count:1,autoBook:false}
   });
-  assert.equal(await page.locator('#pdfImportForm [name="vatRate"]').inputValue(),'6','historic 6% must remain 6%');
-  assert.doesNotMatch(await page.locator('#modalRoot').innerText(),/6%.*wordt.*9%|6%.*wordt.*21%/i);
+  await page.getByRole('button',{name:'Volgende',exact:true}).click();
+  assert.equal(await page.locator('[name="vatRate"]').inputValue(),'6');
+  assert.doesNotMatch(await page.locator('[data-review-page="2"]').innerText(),/6%.*wordt.*9%|6%.*wordt.*21%/i);
   await page.evaluate(()=>closeModal());
 
-  // Duplicate remains blocking with explicit override.
+  // Duplicate/anomaly stay explicit on step 1, but no unrelated fields are added.
   await openReview({
     documentType:'receipt',invoiceNumber:'',party:'Dubbele Winkel',category:'Kantoor',
     duplicateCandidate:{id:'existing-doc',label:'Dubbele Winkel · € 12,10 · 4 oktober 2026'},
     reviewRouting:{mode:'FULL_REVIEW',fields:[],count:0,autoBook:false}
   });
-  assert.match(await page.locator('#modalRoot').innerText(),/lijkt al verwerkt/i);
-  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true);
+  assert.match(await page.locator('[data-review-page="1"]').innerText(),/lijkt al verwerkt/i);
+  assert.equal(await page.getByRole('button',{name:'Volgende',exact:true}).isDisabled(),true);
   await page.getByRole('button',{name:'Dit is toch een nieuwe bon',exact:true}).click();
-  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false,'explicit duplicate override must unlock save');
-  await page.screenshot({path:'tests/artifacts/document-review-duplicate-'+browserName+'.png',fullPage:true});
+  assert.equal(await page.getByRole('button',{name:'Volgende',exact:true}).isDisabled(),false);
   await page.evaluate(()=>closeModal());
 
-  // Processor/accounting anomalies stay blocking until the user explicitly checks the original.
   await openReview({
     documentType:'receipt',invoiceNumber:'',party:'Controle Winkel',category:'Kantoor',
     anomalyCodes:['PRINTED_SUBTOTAL_CONFLICT'],
     reviewRouting:{mode:'FULL_REVIEW',fields:[],count:0,autoBook:false},
     fieldConfidence:{party:99,issueDate:99,net:99,vatAmount:99,gross:99,vatRate:99,vatLines:99,category:99}
   });
-  assert.match(await page.locator('#modalRoot').innerText(),/extra controle nodig|origineel/i);
-  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true,'anomaly must block save until explicitly reviewed');
+  assert.match(await page.locator('[data-review-page="1"]').innerText(),/extra controle nodig|origineel/i);
+  assert.equal(await page.getByRole('button',{name:'Volgende',exact:true}).isDisabled(),true);
   await page.getByRole('button',{name:'Ik heb het origineel gecontroleerd',exact:true}).click();
-  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false,'explicit anomaly review must unlock save');
+  assert.equal(await page.getByRole('button',{name:'Volgende',exact:true}).isDisabled(),false);
   await page.evaluate(()=>closeModal());
 
-  // Non-bookable document has a safe document-only exit, never an accounting form.
-  // Real background processing persists the source before review. Mirror that durable boundary here;
-  // raw file persistence itself is already covered by the Chromium/WebKit upload regressions.
+  // Non-bookable stays a document-only exit.
   const nonBookableSource='nonbookable-source';
   const beforeNonBookable=await page.evaluate(source=>{
     state.documents.unshift({id:'nonbookable-document',fileId:source,name:'nonbookable.pdf',type:'processing',date:'2026-10-04',processingState:'review_required'});
@@ -271,44 +299,50 @@ try{
     reviewRouting:{mode:'FULL_REVIEW',fields:[],count:0,autoBook:false}
   });
   assert.match(await page.locator('#modalRoot').innerText(),/geen definitieve bon of factuur/i);
-  assert.equal(await page.locator('#pdfImportForm [name="net"]:visible').count(),0,'non-bookable must not show accounting inputs');
   await page.getByRole('button',{name:'Document bewaren',exact:true}).click();
   await page.waitForFunction(source=>state.documents.some(d=>d.fileId===source&&d.nonBookable===true),nonBookableSource);
   const afterNonBookable=await page.evaluate(source=>{
     const saved=state.documents.find(d=>d.fileId===source);
     return {documents:state.documents.length,expenses:state.expenses.length,invoices:state.invoices.length,saved};
   },nonBookableSource);
-  assert.equal(afterNonBookable.documents,beforeNonBookable.documents,'document-only save must finalize the persisted source instead of duplicating it');
-  assert.equal(afterNonBookable.expenses,beforeNonBookable.expenses,'document-only save must not create expense');
-  assert.equal(afterNonBookable.invoices,beforeNonBookable.invoices,'document-only save must not create invoice');
-  assert.ok(afterNonBookable.saved&&!afterNonBookable.saved.linkedId,'document-only save must remain unbooked');
+  assert.equal(afterNonBookable.documents,beforeNonBookable.documents);
+  assert.equal(afterNonBookable.expenses,beforeNonBookable.expenses);
+  assert.equal(afterNonBookable.invoices,beforeNonBookable.invoices);
+  assert.ok(afterNonBookable.saved&&!afterNonBookable.saved.linkedId);
 
-  // Saved snapshot and reopen remain intact.
+  // Saving preserves recognized optional values even though the user never has to fill them here.
   await openReview({
     invoiceNumber:'REOPEN-2026-001',party:'Snapshot Leverancier',category:'Software',
-    reviewRouting:{mode:'AUTO_ACCEPT_CANDIDATE',fields:[],count:0,autoBook:false},
-    fieldConfidence:{party:99,invoiceNumber:99,issueDate:99,net:99,vatAmount:99,gross:99,vatRate:99,vatLines:99,category:99}
+    address:'Herengracht 1',postal:'1015AA',city:'Amsterdam',email:'finance@example.test',
+    paymentReference:'RF-2026-001',orderNumber:'PO-88',
+    reviewRouting:{mode:'AUTO_ACCEPT_CANDIDATE',fields:[],count:0,autoBook:false}
   });
+  await page.getByRole('button',{name:'Volgende',exact:true}).click();
   await page.locator('[data-review-save]:visible').first().click();
   await page.waitForFunction(()=>state.documents.some(d=>d.reviewSnapshot?.invoiceNumber==='REOPEN-2026-001'));
-  const savedId=await page.evaluate(()=>state.documents.find(d=>d.reviewSnapshot?.invoiceNumber==='REOPEN-2026-001')?.id);
-  assert.ok(savedId);
-  await page.evaluate(id=>openSavedDocumentReview(id),savedId);
-  assert.match(await page.locator('#modalRoot').innerText(),/REOPEN-2026-001/);
-  assert.match(await page.locator('#modalRoot').innerText(),/Snapshot Leverancier/);
-  await page.evaluate(()=>closeModal());
+  const savedOptional=await page.evaluate(()=>{
+    const d=state.documents.find(x=>x.reviewSnapshot?.invoiceNumber==='REOPEN-2026-001');
+    const expense=state.expenses.find(x=>x.id===d?.linkedId);
+    const supplier=state.contacts.find(x=>x.name==='Snapshot Leverancier');
+    return {snapshot:d?.reviewSnapshot,expense,supplier};
+  });
+  assert.equal(savedOptional.snapshot.paymentReference,'RF-2026-001');
+  assert.equal(savedOptional.snapshot.orderNumber,'PO-88');
+  assert.equal(savedOptional.supplier.address,'Herengracht 1');
+  assert.equal(savedOptional.supplier.postal,'1015AA');
+  assert.equal(savedOptional.supplier.city,'Amsterdam');
 
-  // Credit signs stay negative in review presentation.
+  // Credit signs stay negative in the compact amounts screen.
   await openReview({
     invoiceNumber:'CREDIT-NEG',documentType:'credit_invoice',isCredit:true,status:'credit',
     party:'Credit Leverancier',net:-100,vatAmount:-21,gross:-121,vatRate:21,
-    reviewRouting:{mode:'AUTO_ACCEPT_CANDIDATE',fields:[],count:0,autoBook:false},
-    fieldConfidence:{party:99,invoiceNumber:99,issueDate:99,net:99,vatAmount:99,gross:99,vatRate:99,vatLines:99,category:99}
+    reviewRouting:{mode:'AUTO_ACCEPT_CANDIDATE',fields:[],count:0,autoBook:false}
   });
-  assert.match(await page.locator('#modalRoot').innerText(),/-\s*€|€\s*-\s*121|−\s*€/,'credit review must preserve negative sign');
+  await page.getByRole('button',{name:'Volgende',exact:true}).click();
+  assert.match(await page.locator('[data-review-page="2"]').innerText(),/-\s*€|€\s*-\s*121|−\s*€/);
   await page.evaluate(()=>closeModal());
 
-  // Mobile acceptance: single screen, no horizontal overflow, safe touch sizes.
+  // Mobile acceptance — both normal screens fit without vertical scrolling to reach the action.
   for(const width of [320,360,375,390,393,412,430]){
     await page.setViewportSize({width,height:844});
     await openReview({
@@ -316,27 +350,38 @@ try{
       reviewRouting:{mode:'AUTO_ACCEPT_CANDIDATE',fields:[],count:0,autoBook:false},
       fieldConfidence:{party:99,issueDate:99,net:99,vatAmount:99,gross:99,vatRate:99,vatLines:99,category:99}
     });
-    await noOverflow(browserName+' '+width+'px simple review');
-    assert.equal(await page.locator('#mobileReviewStepLabel').count(),0,width+'px must remain one screen without progress steps');
+    await noOverflow(browserName+' '+width+'px step 1');
+    const step1=await page.locator('[data-review-page="1"]:visible').boundingBox();
+    const next=await page.getByRole('button',{name:'Volgende',exact:true}).boundingBox();
+    assert.ok(step1&&step1.height<610,width+'px step 1 must remain compact');
+    assert.ok(next&&next.y+next.height<=844,width+'px Next must be reachable without scrolling');
+    await page.getByRole('button',{name:'Volgende',exact:true}).click();
+    await noOverflow(browserName+' '+width+'px step 2');
+    const step2=await page.locator('[data-review-page="2"]:visible').boundingBox();
+    const saveBox=await page.locator('[data-review-save]:visible').boundingBox();
+    assert.ok(step2&&step2.height<610,width+'px step 2 must remain compact');
+    assert.ok(saveBox&&saveBox.y+saveBox.height<=844,width+'px Save must be reachable without scrolling');
     const touch=await page.locator('.mobile-review-actions button:visible').evaluateAll(nodes=>nodes.map(el=>el.getBoundingClientRect().height));
-    assert.ok(touch.length&&touch.every(h=>h>=44),width+'px review touch targets must be >=44px');
-    if(width===390)await page.screenshot({path:'tests/artifacts/document-review-simple-mobile-'+browserName+'.png',fullPage:true});
+    assert.ok(touch.length&&touch.every(h=>h>=44),width+'px touch targets must be >=44px');
+    if(width===390)await page.screenshot({path:'tests/artifacts/document-review-two-step-mobile-'+browserName+'.png',fullPage:true});
     await page.evaluate(()=>closeModal());
   }
 
-  // Axe on representative simple + quick states.
+  // Axe on both wizard screens.
   await page.setViewportSize({width:390,height:844});
   await openReview({
     documentType:'receipt',invoiceNumber:'',party:'A11y Winkel',category:'Kantoor',
-    reviewRouting:{mode:'AUTO_ACCEPT_CANDIDATE',fields:[],count:0,autoBook:false},
-    fieldConfidence:{party:99,issueDate:99,net:99,vatAmount:99,gross:99,vatRate:99,vatLines:99,category:99}
+    reviewRouting:{mode:'AUTO_ACCEPT_CANDIDATE',fields:[],count:0,autoBook:false}
   });
-  const axeSimple=await page.evaluate(async()=>await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa']}}));
-  assert.deepEqual(axeSimple.violations.map(v=>v.id),[],'simple review axe violations: '+JSON.stringify(axeSimple.violations.map(v=>({id:v.id,impact:v.impact}))));
+  let axeResult=await page.evaluate(async()=>await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa']}}));
+  assert.deepEqual(axeResult.violations.map(v=>v.id),[],'step 1 axe violations: '+JSON.stringify(axeResult.violations.map(v=>({id:v.id,impact:v.impact}))));
+  await page.getByRole('button',{name:'Volgende',exact:true}).click();
+  axeResult=await page.evaluate(async()=>await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa']}}));
+  assert.deepEqual(axeResult.violations.map(v=>v.id),[],'step 2 axe violations: '+JSON.stringify(axeResult.violations.map(v=>({id:v.id,impact:v.impact}))));
   await page.evaluate(()=>closeModal());
 
-  assert.deepEqual(errors,[],browserName+' beginner review JavaScript errors');
-  console.log('BOEKUNA document review exception-first UX '+browserName+': PASS');
+  assert.deepEqual(errors,[],browserName+' two-step review JavaScript errors');
+  console.log('BOEKUNA document review two-step UX '+browserName+': PASS');
 
 }finally{
   await browser.close();

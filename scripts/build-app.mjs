@@ -183,8 +183,8 @@ function injectBeforeLast(html,marker,content){
   if(index<0)throw new Error('Missing app document marker: '+marker);
   return html.slice(0,index)+content+html.slice(index);
 }
-appHtml=injectBeforeLast(appHtml,'</head>','<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261004a">\n');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review-v2.js?v=20261004a"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</head>','<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261004c">\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review-v2.js?v=20261004c"></script>\n');
 // The real head precedes the app body; later </head> tokens belong to print templates.
 const mobileHeadBoundary='</head>\n<body>';
 if(!appHtml.includes(mobileHeadBoundary))throw new Error('Mobile app head boundary changed');
