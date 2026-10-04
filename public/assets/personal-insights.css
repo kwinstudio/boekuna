@@ -136,6 +136,7 @@
 /* Personal Assistant V1.2 — five-KPI hierarchy + lightweight Q&A */
 #mainApp .dashboard-kpis-v12{grid-template-columns:minmax(210px,1.2fr) repeat(4,minmax(0,1fr))!important;gap:12px!important}
 #mainApp .dashboard-kpis-v12 .dashboard-kpi{min-width:0}
+#mainApp .dashboard-kpis-v12 .dashboard-kpi-secondary .metric-value{font-size:clamp(17px,1.35vw,22px);letter-spacing:-.025em;white-space:nowrap;max-width:100%;min-width:0}
 #mainApp .dashboard-kpi-receivables.has-attention{border-color:#ead7a8!important}
 #mainApp .assistant-dashboard-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 #mainApp .assistant-ask{display:grid;gap:14px}
