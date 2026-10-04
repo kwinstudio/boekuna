@@ -89,6 +89,7 @@ try{
  assert.equal((await page.locator('.assistant-dashboard').innerText()).includes('RAW OCR SECRET'),false,'Raw OCR must never render');
  const safeContext=await page.evaluate(()=>JSON.stringify(window.__boekunaAssistantTest.context()));
  assert.equal(safeContext.includes('RAW OCR SECRET'),false,'Raw OCR must never enter assistant context');
+ assert.equal(await page.evaluate(()=>Object.prototype.hasOwnProperty.call(window.__boekunaAssistantTest.context(),'expenses')),false,'Unused raw expense rows must not enter assistant context');
  const facts=await page.evaluate(()=>window.__boekunaAssistantTest.snapshot().insights.map(x=>({type:x.type,priority:x.priority,sourceFacts:x.sourceFacts})));
  assert.ok(facts.some(x=>x.type==='OVERDUE_INVOICE'&&x.sourceFacts.totalOutstanding===815),'Outstanding must use existing paid/outstanding truth');
  assert.ok(facts.some(x=>x.type==='VAT_UNRESOLVED_DOCUMENTS'&&x.priority==='P0'),'VAT-affecting review must be blocking');
