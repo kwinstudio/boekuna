@@ -83,8 +83,7 @@ function assistantContext(){
     now:today(),
     invoices:(state.invoices||[]).filter(i=>i.status!=='draft').map(i=>({
       id:String(i.id||''),number:String(i.number||''),kind:String(i.kind||'invoice'),effectiveStatus:invoiceEffectiveStatus(i),
-      issueDate:String(i.issueDate||''),dueDate:String(i.dueDate||''),gross:invoiceGross(i),paid:invoicePaidAmount(i),outstanding:invoiceOutstanding(i),
-      customerName:String(getContact(i.customerId)?.name||'')
+      issueDate:String(i.issueDate||''),dueDate:String(i.dueDate||''),gross:invoiceGross(i),paid:invoicePaidAmount(i),outstanding:invoiceOutstanding(i)
     })),
     expenses:(state.expenses||[]).map(e=>({
       id:String(e.id||''),date:String(e.date||''),vendor:String(e.vendor||''),net:Number(e.exVat||0),vat:expenseVat(e),gross:expenseGross(e),
