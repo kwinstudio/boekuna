@@ -137,7 +137,7 @@ try{
       assert.deepEqual(await page.locator('.dashboard-kpi-label').allTextContents(),['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen']);
       assert.equal(await page.locator('#dashboardPeriod').inputValue(),'month');
       assert.deepEqual((await page.locator('.dashboard-chart-card .chart-legend span').allTextContents()).map(v=>v.trim()),['Omzet','Kosten','Winst']);
-      assert.deepEqual(await page.locator('.dashboard-summary-title').allTextContents(),['Administratie','Nog te ontvangen','Nieuwe factuur']);
+      assert.deepEqual(await page.locator('.dashboard-summary-title').allTextContents(),['Administratie','Vraag Boekuna','Nieuwe factuur']);
       await noOverflow(page,browserName+' desktop dashboard');
       await axe(page,browserName+' desktop dashboard');
       assert.ok(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2),browserName+' 1440x900 dashboard must fit one screen');
