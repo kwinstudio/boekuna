@@ -283,11 +283,11 @@ try{
   await openReview({invoiceNumber:'FOREIGN-20',party:'Foreign Test Supplier',net:1350,vatAmount:270,gross:1620,vatRate:20,detectedVatRates:[20],accountingVatTreatment:'review_required',advancePayment:300,outstandingAmount:1320});
   await page.evaluate(()=>setDocumentReviewStep(2));
   assert.equal(await page.locator('#pdfImportVatRate').inputValue(),'20');
-  assert.match(await page.locator('#modalRoot').innerText(),/Buitenlandse btw herkend/);
+  assert.match(await page.locator('#modalRoot').innerText(),/Btw-behandeling controleren/);
   assert.match(await page.locator('#modalRoot').innerText(),/Voorschot of betaling herkend/);
   assert.equal(await page.getByRole('button',{name:'Gecontroleerd & opslaan',exact:true}).first().isDisabled(),true);
   await page.evaluate(()=>{pendingPdfImport.sha256='foreign-qa-20';});
-  await page.locator('[name="foreignVatConfirmed"]').check();
+  await page.locator('[name="vatTreatmentChoice"][value="foreign"]').check();
   await page.evaluate(()=>updateBeginnerReviewState());
   await page.evaluate(()=>savePdfInvoiceImport());
   await page.waitForFunction(()=>state.expenses.some(e=>e.invoiceNumber==='FOREIGN-20'));
@@ -298,6 +298,14 @@ try{
   });
   assert.equal(foreign.rate,20);assert.equal(foreign.vat,270);assert.equal(foreign.deductible,0);assert.equal(foreign.gross,1620);assert.equal(foreign.cost,1620);
   assert.equal(foreign.advance,300);assert.equal(foreign.outstanding,1320);assert.equal(foreign.snapshot.vatRate,20);
+  await openReview({invoiceNumber:'HISTORIC-6',party:'Dutch Historic Supplier',issueDate:'2018-12-31',net:100,vatAmount:6,gross:106,vatRate:6,detectedVatRates:[6],accountingVatTreatment:'review_required'});
+  await page.evaluate(()=>{pendingPdfImport.sha256='historic-6-qa';setDocumentReviewStep(2)});
+  await page.locator('[name="vatTreatmentChoice"][value="standard"]').check();
+  await page.evaluate(()=>updateBeginnerReviewState());
+  await page.evaluate(()=>savePdfInvoiceImport());
+  await page.waitForFunction(()=>state.expenses.some(e=>e.invoiceNumber==='HISTORIC-6'));
+  const historic=await page.evaluate(()=>{const e=state.expenses.find(e=>e.invoiceNumber==='HISTORIC-6');return {taxTreatment:e.taxTreatment,deductible:expenseDeductibleVat(e),cost:expenseAccountingCost(e),choice:e.vatTreatmentChoice}});
+  assert.equal(historic.taxTreatment,'standard');assert.equal(historic.deductible,6);assert.equal(historic.cost,100);assert.equal(historic.choice,'standard');
   await page.setViewportSize({width:390,height:844});
   await openReview({vatRate:20,accountingVatTreatment:'review_required',net:100,vatAmount:20,gross:120});
   await page.evaluate(()=>setDocumentReviewStep(2));await noOverflow(browserName+' mobile foreign VAT');
@@ -306,7 +314,7 @@ try{
   await openReview({invoiceNumber:'FOREIGN-MIXED',party:'Mixed Foreign Supplier',mixedRates:true,vatRate:null,detectedVatRates:[5,20],accountingVatTreatment:'review_required',net:200,vatAmount:25,gross:225,vatLines:[{rate:5,taxableAmount:100,vatAmount:5},{rate:20,taxableAmount:100,vatAmount:20}]});
   await page.evaluate(()=>{pendingPdfImport.sha256='foreign-mixed-qa';setDocumentReviewStep(2)});
   assert.deepEqual(await page.locator('[data-vat-line-rate]').evaluateAll(els=>els.map(e=>e.value)),['5','20']);
-  await page.locator('[name="foreignVatConfirmed"]').check();
+  await page.locator('[name="vatTreatmentChoice"][value="foreign"]').check();
   await page.locator('[data-vat-line-rate]').first().dispatchEvent('change');
   assert.deepEqual(await page.evaluate(()=>pendingPdfImport.parsed.vatLines.map(x=>x.rate)),[5,20]);
   await page.evaluate(()=>savePdfInvoiceImport());
