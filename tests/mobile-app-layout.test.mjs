@@ -14,7 +14,7 @@ function replaceLast(source,needle,replacement){
 }
 
 assert.equal((original.match(/class="mobile-bottom-nav-item/g)||[]).length,5,'Mobile bottom navigation must contain exactly five destinations');
-for(const label of ['Overzicht','Facturen','Kosten','Btw','Meer'])assert.match(original,new RegExp('<span>'+label+'</span>'),'Missing mobile nav label '+label);
+for(const label of ['Overzicht','Inkomsten','Kosten','Btw','Meer'])assert.match(original,new RegExp('<span>'+label+'</span>'),'Missing mobile nav label '+label);
 
 const logoutSource=original.slice(original.indexOf('async function logoutUser'),original.indexOf('async function requireMfaForUser'));
 assert.match(logoutSource,/try\{await syncCloudStateNow\(\)\}catch/,'Final sync must be isolated from logout');
@@ -97,7 +97,7 @@ try{
   assert.equal(pageErrors.length,0,'Mobile dashboard must load without JavaScript errors: '+pageErrors.join(' | '));
 
   const navLabels=await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents();
-  assert.deepEqual(navLabels.map(v=>v.trim()),['Overzicht','Facturen','Kosten','Btw','Meer']);
+  assert.deepEqual(navLabels.map(v=>v.trim()),['Overzicht','Inkomsten','Kosten','Btw','Meer']);
   assert.notEqual(await page.locator('#mobileBottomNav').evaluate(el=>getComputedStyle(el).display),'none','Bottom navigation must be visible on mobile');
   assert.equal(await page.locator('[data-mobile-page="dashboard"]').getAttribute('aria-current'),'page');
 
@@ -114,7 +114,7 @@ try{
   await page.screenshot({path:`tests/artifacts/mobile-dashboard-${browserName}-390.png`,fullPage:true});
 
   await page.locator('[data-mobile-page="invoices"]').click();
-  await page.locator('#pageTitle').filter({hasText:'Facturen'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Inkomsten'}).waitFor();
   assert.equal(await page.locator('[data-mobile-page="invoices"]').getAttribute('aria-current'),'page');
 
   await page.locator('#mobileMenu').click();
@@ -124,7 +124,7 @@ try{
   assert.ok(await page.locator('.nav-item[data-page="settings"]').isVisible(),'Settings must remain directly available from the drawer');
 
   await page.locator('#mobileDrawerBackdrop').click({position:{x:380,y:200}});
-  assert.equal(await page.locator('#pageTitle').innerText(),'Facturen','Backdrop close must preserve current route');
+  assert.equal(await page.locator('#pageTitle').innerText(),'Inkomsten','Backdrop close must preserve current route');
   assert.ok(!(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open'))),'Backdrop must close drawer');
 
   await page.locator('#mobileMenu').click();
