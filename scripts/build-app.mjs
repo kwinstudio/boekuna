@@ -205,6 +205,13 @@ for(const asset of appAssets){
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
 }
 
+// Document review is app-only. Keep the shared public/marketing copies byte-identical.
+for(const asset of ['document-review-v2.js','document-review-v2.css']){
+  const sourceFile=path.join(root,'kwinest','app-assets',asset);
+  if(!fs.existsSync(sourceFile))throw new Error('Missing app-only review asset: '+asset);
+  fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
+}
+
 // Assistant integration is app-only. Keep shared public mobile assets byte-identical
 // to the marketing source and patch only the generated product artifact.
 function patchBuiltAppAsset(asset,needle,replacement){
