@@ -143,7 +143,16 @@ try{
   assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),1);
   const consistentIssues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
   assert.deepEqual(consistentIssues,[],'cent-exact 100 + 21 = 121 must have no blocking issues: '+JSON.stringify(consistentIssues));
-  assert.equal(await page.locator('[data-review-page="2"] [name="net"]:visible').count(),0,'ex-VAT stays derived/hidden when consistent');
+  const netVisibilityDebug=await page.locator('[data-review-page="2"] [name="net"]').evaluateAll(nodes=>nodes.map(el=>({
+    outer:el.outerHTML,
+    display:getComputedStyle(el).display,
+    visibility:getComputedStyle(el).visibility,
+    rect:{w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height},
+    parentHidden:el.parentElement?.hidden,
+    parentDisplay:el.parentElement?getComputedStyle(el.parentElement).display:null,
+    parentOuter:el.parentElement?.outerHTML?.slice(0,500)
+  })));
+  assert.equal(await page.locator('[data-review-page="2"] [name="net"]:visible').count(),0,'ex-VAT stays derived/hidden when consistent: '+JSON.stringify(netVisibilityDebug));
   assert.equal(await page.getByRole('button',{name:'Vorige',exact:true}).count(),1);
   assert.equal(await page.locator('[data-review-save]:visible').count(),1);
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
