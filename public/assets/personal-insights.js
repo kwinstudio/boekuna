@@ -155,7 +155,7 @@ function documentRules(context){
     summary:'Controleer het bestand of probeer het opnieuw.',
     reason:'De documentworkflow heeft een definitieve foutstatus teruggegeven.',
     sourceFacts:{documentCount:failed.length},
-    actionLabel:'Bekijk documenten',actionTarget:action('documents',{status:'failed'}),score:40+failed.length
+    actionLabel:'Bekijk documenten',actionTarget:action('documents'),score:40+failed.length
   }));
   if(review.length)out.push(insight({
     id:'DOCUMENT_REVIEW_REQUIRED:group',ruleId:'DOCUMENT_REVIEW_V1',type:'DOCUMENT_REVIEW_REQUIRED',category:'documents',priority:'P1',
@@ -163,7 +163,7 @@ function documentRules(context){
     summary:'Controleer de gegevens voordat ze als administratie tellen.',
     reason:'De gevalideerde documentworkflow staat op controle nodig.',
     sourceFacts:{documentCount:review.length,vatImpactCount:review.filter(x=>x.accountingImpact==='vat').length},
-    actionLabel:'Controleer documenten',actionTarget:action('documents',{status:'review'}),score:35+review.length
+    actionLabel:'Controleer documenten',actionTarget:action('documents',{status:'needs_review'}),score:35+review.length
   }));
   return out;
 }
@@ -197,7 +197,7 @@ function vatRules(context){
     summary:'Controleer deze documenten voordat je op het btw-overzicht vertrouwt.',
     reason:'Er zijn gevalideerde documentcontroles open die invloed kunnen hebben op de btw-status.',
     sourceFacts:{documentCount:unresolved,period:String(v.period||'')},
-    actionLabel:'Controleer documenten',actionTarget:action('documents',{status:'review'}),score:80+unresolved
+    actionLabel:'Controleer documenten',actionTarget:action('documents',{status:'needs_review'}),score:80+unresolved
   }));
   const reserve=round(v.reserve);
   if(Math.abs(reserve)>0.005)out.push(insight({
