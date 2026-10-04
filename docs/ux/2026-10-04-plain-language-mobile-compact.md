@@ -23,12 +23,12 @@ Branch: `ux/plain-language-mobile-compact-20261004`
 | P1 | Mobile KPI cards | Decorative KPI icons consume space | KPI icons hidden only below mobile breakpoint | shared dashboard/product KPI selectors | Functional icons remain; desktop icons remain visible |
 | P1 | Dashboard KPI helpers | Selected period repeated in KPI helper | Period only in filter; helpers retain meaning, e.g. Excl. btw | `renderDashboard()` | Financial context must remain; exact helper assertions |
 | P1 | Native date fields | Native date rendering can differ from adjacent inputs | Same 44px control box, padding, radius, focus and baseline contract | shared app form/date CSS | Chromium + WebKit compare date vs number/select |
-| P1 | Mobile first viewport | High page headers + KPI cards delay main task | Reduce redundant status text, gaps and KPI height without shrinking touch targets | `mobile-product.css` | 320–430 no overflow; primary content remains reachable |
+| P1 | Mobile first viewport | High page headers + KPI cards delay main task | Reduce redundant status text, gaps and KPI height without shrinking touch targets | app-only product UI style in `kwinest/index.html` | 320–430 no overflow; primary content remains reachable |
 | P2 | Costs VAT copy | “Voorbelasting deze maand” | “Btw die je kunt terugvragen” / “Deze maand” | `renderExpenses()` | Preserve deductible VAT calculation |
 | P2 | VAT page jargon | “Voorbelasting”, “Btw op verkoopfacturen”, period repeated in KPI | “Btw die je kunt terugvragen”, “Btw op je facturen”, no duplicate selected period | `renderVat()` | VAT numbers unchanged; browser copy assertions |
 | P2 | VAT control list | “Verkoopfacturen” | “Facturen” | `renderVat()` | Copy only |
 | P2 | Reports KPI | Omzet repeats visible custom date range | Omzet helper says “Excl. btw” | `renderReports()` | Range logic unchanged |
-| P2 | Secondary bank income view | Invoice-based “Inkomsten deze maand” can read like received cash | Explicit “Omzet deze maand”; received cash remains separate KPI | `renderIncome()` | Protect omzet ≠ bank receipt semantics |
+| P2 | Bank receipts drill-down | “Inkomsten” is also used for positive bank rows, which can be confused with invoice revenue | Use **Ontvangsten / Bijgeschreven** for the bank drill-down; keep **Omzet** for invoice revenue | `renderBank()` + `renderIncome()` | Protect omzet ≠ bank receipt semantics |
 | P2 | Dashboard create-invoice summary | “Nieuwe verkoopfactuur aanmaken” | “Nieuwe factuur maken” | `renderDashboard()` | Copy only |
 
 ## Copy inventory
@@ -42,10 +42,10 @@ Branch: `ux/plain-language-mobile-compact-20261004`
 - VAT checklist: **Verkoopfacturen → Facturen**
 - Dashboard KPI helpers: period prefix removed; **omzet minus kosten / excl. btw** retained
 - Reports omzet helper: visible date range removed; **Excl. btw** retained
-- Secondary bank-income KPI: **Inkomsten deze maand → Omzet deze maand**
+- Bank drill-down: **Inkomsten → Ontvangsten**, positive bank-rule KPI **Inkomsten/Ontvangen → Bijgeschreven**, invoice KPI **Inkomsten deze maand → Omzet deze maand**
 - Dashboard summary: **Nieuwe verkoopfactuur aanmaken → Nieuwe factuur maken**
 
-Expert-detail exception: official/general-ledger account names such as Debiteuren and Crediteuren remain unchanged where they are account labels in the Grootboek. They are not promoted into the beginner-first primary flow.
+- Grootboek labels: **Debiteuren → Nog te ontvangen van klanten** and **Crediteuren → Nog te betalen aan leveranciers**. Account numbers and journal logic remain unchanged.
 
 ## Acceptance
 
