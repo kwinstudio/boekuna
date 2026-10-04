@@ -285,6 +285,8 @@ function financialBlockingIssues(d){
   if(d?.mixedRates){const mixed=mixedVatValidation();if(!mixed.ok)issues.push({field:mixed.field||'vatLines',message:mixed.message})}
   const duplicateEl=f.elements.namedItem('confirmDuplicate');
   if(d?.duplicateCandidate&&!(duplicateEl?.checked||duplicateEl?.value==='on'))issues.push({field:'confirmDuplicate',message:'Controleer eerst of dit document echt nieuw is.'});
+  const anomalyEl=f.elements.namedItem('confirmAnomaly');
+  if((d?.anomalyCodes||[]).length&&anomalyEl?.value!=='on')issues.push({field:'confirmAnomaly',message:'Controleer het originele document voordat je opslaat.'});
   return issues.filter((x,i,a)=>a.findIndex(y=>y.field===x.field)===i)
 }
 function updateFinancialBadges(){
@@ -317,6 +319,7 @@ function syncMixedVatFromDomWithoutRender(){
 function firstBlockingFocus(){
   const d=pendingPdfImport?.parsed,issue=financialBlockingIssues(d)[0];if(!issue)return;
   if(issue.field==='vatLines'){document.querySelector('.mixed-vat-row input')?.focus();return}
+  if(issue.field==='confirmAnomaly'){document.querySelector('[data-review-issue="confirmAnomaly"] button')?.focus();return}
   const el=document.getElementById('pdfImportForm')?.elements.namedItem(issue.field);el?.scrollIntoView?.({block:'center',behavior:'auto'});el?.focus?.()
 }
 function onGenericReviewInput(event){
@@ -407,10 +410,7 @@ function presentationIssues(d){
     if(deferredFields(d).includes(key)||isUserConfirmed(d,key))continue;
     if(fieldUncertain(d,key,key==='party'?75:70))add(key,(LABELS[key]||key)+' heeft je controle nodig.')
   }
-  for(const code of d.anomalyCodes||[]){
-    if(out.length)break;
-    add('document','Dit document heeft een extra controlepunt.','anomaly')
-  }
+  if((d.anomalyCodes||[]).length)add('confirmAnomaly','Vergelijk de gemarkeerde gegevens met het originele document.','anomaly');
   return out
 }
 function buildDocumentReviewViewModel(d){
@@ -476,6 +476,7 @@ function canonicalFieldControl(d,key,issue=false){
 function issuePanel(d,issue){
   if(issue.field==='vatTreatmentChoice')return '<section class="review-issue-card attention" data-review-issue="vatTreatmentChoice"><h5>Controleer de btw</h5><p>Deze factuur lijkt buitenlandse of historische btw te bevatten. Hoe staat dit op het document?</p><label class="review-choice"><input type="radio" name="vatTreatmentChoice" value="foreign"><span>Buitenlandse btw</span></label><label class="review-choice"><input type="radio" name="vatTreatmentChoice" value="standard"><span>Nederlandse / historische btw</span></label><button type="button" class="link-btn" onclick="toggleDocumentOriginal(true)">Bekijk origineel</button></section>';
   if(issue.field==='confirmDuplicate')return '<section class="review-issue-card attention" data-review-issue="confirmDuplicate"><h5>Deze bon lijkt al verwerkt</h5><p>'+esc(d.duplicateCandidate?.label||'We hebben een vergelijkbaar document gevonden.')+'</p><input type="hidden" name="confirmDuplicate" value=""><div class="review-issue-actions"><button type="button" class="btn small" onclick="viewDuplicateCandidate()">Bekijk bestaand document</button><button type="button" class="btn small" onclick="confirmDuplicateOverride()">Dit is toch een nieuwe bon</button></div></section>';
+  if(issue.field==='confirmAnomaly')return '<section class="review-issue-card attention" data-review-issue="confirmAnomaly"><h5>Dit document heeft extra controle nodig</h5><p>'+esc(issue.message||'Vergelijk de gegevens met het origineel.')+'</p><input type="hidden" name="confirmAnomaly" value=""><div class="review-issue-actions"><button type="button" class="btn small" onclick="toggleDocumentOriginal(true)">Bekijk origineel</button><button type="button" class="btn small" onclick="confirmDocumentAnomaly()">Ik heb het origineel gecontroleerd</button></div></section>';
   if(issue.field==='vatLines')return '';
   if(issue.field==='document')return '<section class="review-issue-card attention" data-review-issue="document"><h5>Dit document heeft extra controle nodig</h5><p>'+esc(issue.message)+'</p><button type="button" class="link-btn" onclick="toggleDocumentReviewEdit(true)">Gegevens controleren</button></section>';
   const control=canonicalFieldControl(d,issue.field,true);
@@ -501,6 +502,11 @@ function toggleMixedVatEditor(force){
 function confirmDuplicateOverride(){
   const el=document.getElementById('pdfImportForm')?.elements.namedItem('confirmDuplicate');if(el)el.value='on';
   const card=document.querySelector('[data-review-issue="confirmDuplicate"]');if(card)card.classList.add('resolved');
+  updateBeginnerReviewState()
+}
+function confirmDocumentAnomaly(){
+  const el=document.getElementById('pdfImportForm')?.elements.namedItem('confirmAnomaly');if(el)el.value='on';
+  const card=document.querySelector('[data-review-issue="confirmAnomaly"]');if(card)card.classList.add('resolved');
   updateBeginnerReviewState()
 }
 function viewDuplicateCandidate(){
@@ -728,6 +734,7 @@ global.toggleDocumentReviewEdit=toggleDocumentReviewEdit;
 global.toggleDocumentOriginal=toggleDocumentOriginal;
 global.toggleMixedVatEditor=toggleMixedVatEditor;
 global.confirmDuplicateOverride=confirmDuplicateOverride;
+global.confirmDocumentAnomaly=confirmDocumentAnomaly;
 global.viewDuplicateCandidate=viewDuplicateCandidate;
 global.saveDocumentWithoutBooking=saveDocumentWithoutBooking;
 global.updateBeginnerReviewState=updateBeginnerReviewState;
