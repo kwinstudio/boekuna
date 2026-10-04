@@ -1,155 +1,112 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
-import {serveMarketing,settleImages} from './helpers/marketing-site.mjs';
+import {serveMarketing} from './helpers/marketing-site.mjs';
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import {chromium} from 'playwright';
 
 const root=process.cwd();
-fs.mkdirSync(path.join(root,'tests','artifacts'),{recursive:true});
+const artifacts=path.join(root,'tests','artifacts');
+fs.mkdirSync(artifacts,{recursive:true});
 
-const identityCss=fs.readFileSync(path.join(root,'public','assets','marketing-editorial.css'),'utf8');
-for(const forbidden of ['data-depth-root','hero-depth-','story-depth-','kz-magnetic','rotateX(','rotateY(','perspective(']){
-  assert.equal(identityCss.includes(forbidden),false,'Calm parity CSS must not retain 3D/depth contract: '+forbidden);
-}
-const homepageHtml=fs.readFileSync(path.join(root,'public','index.html'),'utf8');
-assert.ok(homepageHtml.includes('/assets/marketing-editorial.css?v=20261003motion90'),'Homepage must cache-bust the depth CSS release');
-assert.ok(homepageHtml.includes('/assets/homepage.js?v=20261003motion90'),'Homepage must cache-bust the parity interaction JS release');
+const css=fs.readFileSync(path.join(root,'public','assets','site.css'),'utf8');
+const js=fs.readFileSync(path.join(root,'public','assets','site.js'),'utf8');
+const home=fs.readFileSync(path.join(root,'public','index.html'),'utf8');
+
 for(const contract of [
-  '--boekuna-amber:#FF9F1C',
-  '--boekuna-honey:#FFBF69',
-  '--boekuna-frozen:#CBF3F0',
-  '--boekuna-sea:#2EC4B6',
-  '--boekuna-white:#FFFFFF',
-  '--boekuna-black:#111111',
-  '--boekuna-soft:#F6F6F3',
-  'URBANIST_ASSET_PENDING'
+  "font-family:'Space Grotesk'",
+  "font-family:'Inter'",
+  '--green:#63D471',
+  '--bg:#FFFFFF',
+  '@media (prefers-reduced-motion: reduce)'
 ]){
-  assert.ok(identityCss.includes(contract),`Marketing identity contract missing: ${contract}`);
+  assert.ok(css.includes(contract),'Current multipage marketing CSS contract missing: '+contract);
 }
-for(const legacy of ['#123B3A','#102724','#2B736C','#EEF7F3','#E7FE55','#BFE7EC','--boekuna-lime','--boekuna-cyan']){
-  assert.equal(identityCss.includes(legacy),false,`Legacy petrol/mint brand token remains: ${legacy}`);
+for(const retired of ['marketing-editorial.css','parity-hero','data-depth-root','kz-magnetic']){
+  assert.equal(home.includes(retired)||css.includes(retired)||js.includes(retired),false,
+    'Retired one-page/editorial contract returned: '+retired);
 }
-const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{encoding:'utf8'});
-assert.equal(build.status,0,build.stderr);
-const builtHomepage=fs.readFileSync(path.join(root,'dist','marketing','index.html'),'utf8');
-assert.ok(builtHomepage.includes('/assets/marketing-editorial.css?v=20261003motion90'),'Built homepage must preserve the depth CSS cache key');
-assert.ok(builtHomepage.includes('/assets/homepage.js?v=20261003motion90'),'Built homepage must preserve the parity JS cache key');
-const server=await serveMarketing(path.join(root,'dist','marketing'));
-const base=server.base;
+for(const id of ['scanDemo','functies','invLines','doclist','omzet','txlist','chart']){
+  assert.ok(home.includes('id="'+id+'"'),'Interactive homepage proof missing: '+id);
+}
+
+const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{cwd:root,encoding:'utf8'});
+assert.equal(build.status,0,build.stderr||build.stdout);
+const dist=path.join(root,'dist','marketing');
+const server=await serveMarketing(dist);
 const browser=await chromium.launch({headless:true});
 const viewports=[320,360,375,390,393,430,620,768,1024,1280,1440,1920];
 
+async function noOverflow(page,label){
+  const value=await page.evaluate(()=>({vw:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
+  assert.ok(value.html<=value.vw+1&&value.body<=value.vw+1,label+' horizontal overflow '+JSON.stringify(value));
+}
+
 try{
   for(const width of viewports){
-    const height=width<620?844:900;
-    const page=await browser.newPage({viewport:{width,height},reducedMotion:'reduce'});
-    const errors=[];
-    const forbiddenRequests=[];
-    page.on('pageerror',e=>errors.push(String(e)));
-    page.on('request',req=>{if(req.url().includes('/assets/product/'))forbiddenRequests.push(req.url())});
-    await page.goto(base+'/',{waitUntil:'domcontentloaded'});
-    await page.waitForFunction(()=>{
-      const style=getComputedStyle(document.body);
-      return style.getPropertyValue('--boekuna-black').trim()==='#111111'
-        && style.getPropertyValue('--boekuna-amber').trim()==='#FF9F1C'
-        && style.getPropertyValue('--boekuna-frozen').trim()==='#CBF3F0'
-        && style.getPropertyValue('--boekuna-sea').trim()==='#2EC4B6';
-    });
-    await page.locator(width<=620?'.site-header .logo-lockup-compact':'.site-header .logo-lockup-primary').waitFor({state:'visible'});
-    const overflow=await page.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth,bw:document.body.scrollWidth}));
-    assert.ok(overflow.sw<=overflow.vw+1&&overflow.bw<=overflow.vw+1,`Horizontal overflow at ${width}px: ${JSON.stringify(overflow)}`);
-    const header=await page.evaluate(()=>{
-      const primary=document.querySelector('.site-header .logo-lockup-primary');
-      const compact=document.querySelector('.site-header .logo-lockup-compact');
-      const logo=document.querySelector('.site-header .logo');
-      const actions=document.querySelector('.site-header .nav-actions');
-      const visible=el=>{if(!el)return false;const style=getComputedStyle(el),box=el.getBoundingClientRect();return style.display!=='none'&&style.visibility!=='hidden'&&box.width>0&&box.height>0};
-      const logoBox=logo?.getBoundingClientRect(),actionsBox=actions?.getBoundingClientRect();
-      return {primary:visible(primary),compact:visible(compact),count:[primary,compact].filter(visible).length,gap:logoBox&&actionsBox?actionsBox.left-logoBox.right:null,compactSrc:compact?.getAttribute('src')||''};
-    });
-    if(width<=620){
-      assert.equal(header.compact,true,`Compact BOEKUNA logo missing at ${width}px`);
-      assert.equal(header.primary,false,`Primary logo must not duplicate compact logo at ${width}px`);
-      assert.equal(header.count,1,`Exactly one BOEKUNA logo must be visible at ${width}px`);
-      assert.ok(header.compactSrc.endsWith('/assets/boekuna-logo-compact.svg'),`Wrong mobile logo asset at ${width}px`);
-      assert.ok(header.gap===null||header.gap>=8,`BOEKUNA logo overlaps header actions at ${width}px`);
-    }else{
-      assert.equal(header.primary,true,`Primary BOEKUNA logo missing at ${width}px`);
-      assert.equal(header.compact,false,`Compact logo must stay hidden above 620px at ${width}px`);
-      assert.equal(header.count,1,`Exactly one BOEKUNA logo must be visible at ${width}px`);
-    }
-    assert.equal(await page.locator('img[src*="/assets/product/"],source[srcset*="/assets/product/"]').count(),0,`Product screenshots must be absent at ${width}px`);
-    assert.equal(await page.locator('picture').count(),0,`Content picture elements must be absent at ${width}px`);
-    assert.equal(await page.locator('.parity-hero-media img').count(),1,`Homepage must render one first-party hero image at ${width}px`);
-    const heroMedia=page.locator('.parity-hero-media img');
-    assert.equal(await heroMedia.getAttribute('src'),'/assets/boekuna-editorial-workspace-placeholder.svg',`Original hero media missing at ${width}px`);
-    assert.equal(await heroMedia.getAttribute('width'),'1200',`Hero intrinsic width missing at ${width}px`);
-    assert.equal(await heroMedia.getAttribute('height'),'1500',`Hero intrinsic height missing at ${width}px`);
-    assert.ok((await heroMedia.boundingBox())?.width>0,`Hero media must remain visible at ${width}px`);
-    assert.deepEqual(forbiddenRequests,[],`Product screenshot requests at ${width}px: ${forbiddenRequests.join(' | ')}`);
-    assert.deepEqual(errors,[],`Homepage page errors at ${width}px: ${errors.join(' | ')}`);
-    const palette=await page.evaluate(()=>({
-      body:getComputedStyle(document.body).backgroundColor,
-      hero:getComputedStyle(document.querySelector('.parity-hero h1')).color,
-      ctaBg:getComputedStyle(document.querySelector('.parity-btn--primary')).backgroundColor,
-      ctaText:getComputedStyle(document.querySelector('.parity-btn--primary')).color,
-      trust:getComputedStyle(document.querySelector('.parity-value')).backgroundColor,
-      footer:getComputedStyle(document.querySelector('.footer')).backgroundColor
-    }));
-    assert.equal(palette.body,'rgb(255, 255, 255)',`White canvas missing at ${width}px`);
-    assert.equal(palette.hero,'rgb(17, 17, 17)',`Near-black hero type missing at ${width}px`);
-    assert.equal(palette.ctaBg,'rgb(46, 196, 182)',`Turquoise primary CTA missing at ${width}px`);
-    assert.equal(palette.ctaText,'rgb(17, 17, 17)',`Near-black CTA text missing at ${width}px`);
-    assert.equal(palette.trust,'rgb(203, 243, 240)',`Soft Frozen Water trust band missing at ${width}px`);
-    assert.equal(palette.footer,'rgb(17, 17, 17)',`Near-black footer missing at ${width}px`);
+    const page=await browser.newPage({viewport:{width,height:width<620?844:900},reducedMotion:'reduce'});
+    const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+    await page.goto(server.base+'/',{waitUntil:'domcontentloaded'});
+    await page.locator('.hdr-in > .logo').waitFor({state:'visible'});
+    await noOverflow(page,'home '+width);
+
+    assert.equal(await page.locator('#scanDemo').count(),1,'Scanner demo missing at '+width);
+    assert.equal(await page.locator('#functies').count(),1,'Feature demo missing at '+width);
+    assert.deepEqual(errors,[],'Homepage page errors at '+width+': '+errors.join(' | '));
+
+    const mobile=width<=960;
+    assert.equal(await page.locator('#burger').isVisible(),mobile,'Burger visibility mismatch at '+width);
+    assert.equal(await page.locator('.hdr .nav').isVisible(),!mobile,'Desktop nav visibility mismatch at '+width);
+
     if([390,1440,1920].includes(width)){
-      await settleImages(page);
-      await page.screenshot({path:path.join(root,'tests','artifacts',`image-free-home-${width}.png`),fullPage:true});
+      await page.screenshot({path:path.join(artifacts,'multipage-home-'+width+'.png'),fullPage:true});
     }
     await page.close();
   }
 
   for(const width of [390,430]){
-    const menuPage=await browser.newPage({viewport:{width,height:844},reducedMotion:'reduce'});
-    await menuPage.goto(base+'/',{waitUntil:'domcontentloaded'});
-    await menuPage.locator('.mobile-toggle').click();
-    const metrics=await menuPage.locator('#mobileMenu>details>summary').evaluateAll(nodes=>nodes.map(el=>{const s=getComputedStyle(el);return {fontSize:s.fontSize,fontWeight:s.fontWeight,lineHeight:s.lineHeight,padding:s.padding,borderTop:s.borderTopWidth,borderBottom:s.borderBottomWidth}}));
-    assert.equal(metrics.length,3,'Mobile menu must expose three primary groups');
-    assert.deepEqual(metrics[1],metrics[0],'Voor wie must match Product typography');
-    assert.deepEqual(metrics[2],metrics[0],'Ondersteuning must match Product typography');
-    await menuPage.screenshot({path:path.join(root,'tests','artifacts',`image-free-menu-${width}.png`),fullPage:true});
-    await menuPage.close();
+    const page=await browser.newPage({viewport:{width,height:844},reducedMotion:'reduce'});
+    await page.goto(server.base+'/',{waitUntil:'domcontentloaded'});
+    await page.locator('#burger').click();
+    assert.equal(await page.locator('#burger').getAttribute('aria-expanded'),'true');
+    assert.ok(await page.locator('#mnav').evaluate(el=>el.classList.contains('open')),'Mobile menu must open at '+width);
+    assert.equal(await page.locator('#mnav a[href="/assistent/"]').count(),1);
+    assert.equal(await page.locator('#mnav a[href="/scanner/"]').count(),1);
+    await noOverflow(page,'mobile menu '+width);
+    await page.screenshot({path:path.join(artifacts,'multipage-menu-'+width+'.png'),fullPage:true});
+    await page.close();
   }
 
-  for(const [route,widths] of [['/prijzen/',[390,768,1440]],['/faq/',[390,1440]],['/voor-ondernemers/',[390,1440]]]){
-    for(const width of widths){
-      const evidencePage=await browser.newPage({viewport:{width,height:width<700?844:960},reducedMotion:'reduce'});
-      await evidencePage.goto(base+route,{waitUntil:'domcontentloaded'});
-      const overflow=await evidencePage.evaluate(()=>({vw:innerWidth,sw:document.documentElement.scrollWidth,bw:document.body.scrollWidth}));
-      assert.ok(overflow.sw<=overflow.vw+1&&overflow.bw<=overflow.vw+1,`Horizontal overflow at ${route} ${width}px: ${JSON.stringify(overflow)}`);
-      if(route==='/prijzen/'){
-        assert.equal(await evidencePage.locator('.pricing-four .price').count(),4,'Pricing must render four plan cards');
-        assert.equal(await evidencePage.locator('.pricing-four a[href*="plan="]').count(),0,'Paid marketing cards must not expose plan checkout links');
-      }
-      const shotSlug=route.replace(/^\//,'').replace(/\/$/,'')||'home';
-      await evidencePage.screenshot({path:path.join(root,'tests','artifacts',`image-free-${shotSlug}-${width}.png`),fullPage:true});
-      await evidencePage.close();
+  const interactive=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
+  await interactive.goto(server.base+'/',{waitUntil:'domcontentloaded'});
+  await interactive.locator('#scanBtn').click();
+  await interactive.locator('#scanBadge').filter({hasText:/Herkend|controleren|op te slaan/}).waitFor();
+  assert.ok(await interactive.locator('#fields .filled, #fields .flag').count()>0,'Scanner demo must populate fields');
+  await interactive.locator('#t-btw').click();
+  assert.equal(await interactive.locator('#p-btw').isVisible(),true,'Feature tabs must switch on mobile');
+  await interactive.close();
+
+  for(const [route,heading] of [
+    ['/functies/','Alle functies op een rij.'],
+    ['/assistent/','Een assistent die jouw administratie kent.'],
+    ['/scanner/','Upload je bon. Boekuna zoekt de belangrijke gegevens voor je uit.'],
+    ['/prijzen/','Eerlijke prijzen. Begin gratis.'],
+    ['/veiligheid/','Je administratie verdient serieuze beveiliging.'],
+    ['/faq/','Waar kunnen we mee helpen?']
+  ]){
+    for(const width of [390,1440]){
+      const page=await browser.newPage({viewport:{width,height:width<700?844:960},reducedMotion:'reduce'});
+      const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+      await page.goto(server.base+route,{waitUntil:'domcontentloaded'});
+      await page.locator('h1').waitFor();
+      assert.ok((await page.locator('h1').innerText()).includes(heading),route+' heading mismatch');
+      await noOverflow(page,route+' '+width);
+      assert.deepEqual(errors,[],route+' page errors at '+width+': '+errors.join(' | '));
+      await page.close();
     }
   }
 
-  const page=await browser.newPage({viewport:{width:1440,height:960},reducedMotion:'reduce'});
-  await page.goto(base+'/',{waitUntil:'domcontentloaded'});
-  assert.equal(await page.locator('[data-home-section]').count(),15,'Homepage must expose all fifteen parity sections');
-  const demoControl=page.locator('[data-demo-step="check"]');
-  await demoControl.focus();
-  await page.keyboard.press('Enter');
-  assert.equal(await demoControl.getAttribute('aria-pressed'),'true','Keyboard activation must update active demo step');
-  assert.equal(await page.locator('#boekunaDemoStage').getAttribute('data-demo-state'),'check','Guided demo stage follows the selected step');
-  assert.ok((await page.locator('#demoTitle').textContent()).includes('laatste woord'),'Guided demo copy follows the selected step');
-  await page.close();
-
-  console.log('Marketing responsive QA: PASS (320, 360, 375, 390, 393, 430, 620, 768, 1024, 1280, 1440, 1920 + calm BOEKUNA palette + keyboard controls)');
+  console.log('Marketing multipage responsive QA: PASS (12 home viewports + mobile menu + interactive scanner/tabs + current public routes)');
 }finally{
   await browser.close();
   await server.close();
