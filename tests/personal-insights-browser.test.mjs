@@ -114,8 +114,12 @@ try{
 
  const p2=await page.evaluate(()=>window.__boekunaAssistantTest.snapshot().insights.find(x=>x.priority==='P2')?.id||'');
  assert.ok(p2,'Fixture needs a dismissible P2 insight');
+ const p2Type=await page.evaluate(id=>window.__boekunaAssistantTest.snapshot().insights.find(x=>x.id===id)?.type||'',p2);
  await page.evaluate(id=>openAssistantInsight(id),p2);await page.getByRole('dialog').getByRole('button',{name:'Niet meer tonen',exact:true}).click();
- assert.ok(await page.evaluate(id=>!!state.assistant.dismissed[id],p2),'P2 dismissal must persist in tenant state');
+ assert.ok(await page.evaluate(type=>state.assistant.hiddenTypes.includes(type),p2Type),'P2 hide-type preference must persist in tenant state');
+ const metricState=await page.evaluate(()=>structuredClone(state.assistant.metrics));
+ assert.ok(metricState.counts.insight_shown>=1&&metricState.counts.insight_opened>=1&&metricState.counts.dismissed>=1,'Privacy-safe interaction counters must be recorded');
+ assert.equal(JSON.stringify(metricState).includes('815'),false,'Assistant metrics must not contain financial amounts');
 
  const overdueBefore=await page.evaluate(()=>window.__boekunaAssistantTest.snapshot().insights.some(x=>x.type==='OVERDUE_INVOICE'));assert.equal(overdueBefore,true);
  await page.evaluate(()=>{for(const i of state.invoices){i.status='paid';i.payments=[{id:'paid-'+i.id,amount:invoiceGross(i),date:today()}]}render()});
