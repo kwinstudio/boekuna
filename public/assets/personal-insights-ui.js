@@ -92,7 +92,7 @@ function assistantContext(){
     documents,
     monthlyMetrics:assistantMonthMetrics(),
     recurringVendors:assistantRecurringVendors(),
-    vat:{reserve:quarterVatPosition(),period:'Q'+currentQuarter()+' '+currentBookYear(),unresolvedDocumentCount:documents.filter(d=>d.status==='review_required'&&d.accountingImpact==='vat').length},
+    vat:{reserve:(typeof dashboardKpiViewModel==='function'?dashboardKpiViewModel('quarter').vatReserve:quarterVatPosition()),period:'Q'+currentQuarter()+' '+currentBookYear(),unresolvedDocumentCount:documents.filter(d=>d.status==='review_required'&&d.accountingImpact==='vat').length},
     sourceStatus:{documentsReliable:!(typeof documentProcessingFetchError!=='undefined'&&documentProcessingFetchError),financialReliable:true},
     preferences:prefs()
   };
