@@ -87,12 +87,12 @@ try{
   await interactive.close();
 
   for(const [route,heading] of [
-    ['/functies/','Alle functies'],
-    ['/assistent/','Persoonlijke assistent'],
-    ['/scanner/','Slim scannen'],
-    ['/prijzen/','Eenvoudige prijzen'],
-    ['/veiligheid/','Jouw administratie'],
-    ['/faq/','Veelgestelde vragen']
+    ['/functies/','Alle functies op een rij.'],
+    ['/assistent/','Een assistent die jouw administratie kent.'],
+    ['/scanner/','Upload je bon. Boekuna zoekt de belangrijke gegevens voor je uit.'],
+    ['/prijzen/','Eerlijke prijzen. Begin gratis.'],
+    ['/veiligheid/','Je administratie verdient serieuze beveiliging.'],
+    ['/faq/','Waar kunnen we mee helpen?']
   ]){
     for(const width of [390,1440]){
       const page=await browser.newPage({viewport:{width,height:width<700?844:960},reducedMotion:'reduce'});
