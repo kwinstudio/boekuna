@@ -204,6 +204,33 @@ for(const asset of appAssets){
   if(!fs.existsSync(sourceFile))throw new Error('Missing app asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
 }
+
+// Assistant integration is app-only. Keep shared public mobile assets byte-identical
+// to the marketing source and patch only the generated product artifact.
+function patchBuiltAppAsset(asset,needle,replacement){
+  const file=path.join(appAssetsTarget,asset);
+  const source=fs.readFileSync(file,'utf8');
+  const first=source.indexOf(needle);
+  const second=first<0?-1:source.indexOf(needle,first+needle.length);
+  if(first<0||second>=0)throw new Error('App-only asset patch marker changed: '+asset);
+  fs.writeFileSync(file,source.slice(0,first)+replacement+source.slice(first+needle.length),'utf8');
+}
+patchBuiltAppAsset(
+  'mobile-polish-round-2.js',
+  "      +'</div></section>'\n      +'<section class=\"settings-group\"><h2 class=\"settings-group-label\">Beveiliging & privacy</h2><div class=\"settings-list\">'",
+  "      +'</div></section>'\n      +renderAssistantSettingsSafe()\n      +'<section class=\"settings-group\"><h2 class=\"settings-group-label\">Beveiliging & privacy</h2><div class=\"settings-list\">'"
+);
+patchBuiltAppAsset(
+  'mobile-product.js',
+  "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];",
+  "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Assistent & inzichten','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];"
+);
+patchBuiltAppAsset(
+  'mobile-product.js',
+  "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];",
+  "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Persoonlijke tips en samenvattingen','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];"
+);
+
 fs.copyFileSync(interFontSource,path.join(appAssetsTarget,'app-InterVariable.woff2'));
 fs.copyFileSync(spaceGroteskFont,path.join(appAssetsTarget,'app-SpaceGrotesk-Variable.ttf'));
 
