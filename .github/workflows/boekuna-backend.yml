@@ -103,9 +103,7 @@ jobs:
         run: |
           BASE=/tmp/boekuna-base-processor
           mkdir -p "$BASE"
-          for file in app.py receipt_math.py financial_blocks.py; do
-            git show "$BOOKUNA_BASE_SHA:kwinest/docprocessor/$file" > "$BASE/$file"
-          done
+          git archive "$BOOKUNA_BASE_SHA" kwinest/docprocessor | tar -x -C "$BASE" --strip-components=2
           BOOKUNA_PROCESSOR_DIR="$BASE" python tests/document-scan-intelligence-benchmark.test.py
       - name: Scan intelligence benchmark
         run: python tests/document-scan-intelligence-benchmark.test.py
