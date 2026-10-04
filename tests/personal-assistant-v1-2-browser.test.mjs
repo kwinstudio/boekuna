@@ -89,7 +89,7 @@ async function ask(question){
  await page.locator('#assistantAnswer[aria-live="polite"]').waitFor();
  return page.locator('#assistantAnswer');
 }
-async function closeDialog(){if(await page.getByRole('dialog').count())await page.getByRole('dialog').getByRole('button',{name:'Sluiten'}).click()}
+async function closeDialog(){if(await page.getByRole('dialog').count())await page.getByRole('dialog').locator('.modal-foot').getByRole('button',{name:'Sluiten',exact:true}).click()}
 
 try{
  await page.goto(base,{waitUntil:'networkidle'});
@@ -105,6 +105,8 @@ try{
  assert.doesNotMatch(revenue,/10\.999|10999/,'Cancelled invoice must not inflate revenue KPI');
  assert.equal(await page.locator('.dashboard-summary-title').filter({hasText:'Nog te ontvangen'}).count(),0,'Receivables must not be duplicated as a summary card');
  assert.equal(await page.getByRole('button',{name:/Vraag Boekuna/i}).count()>=1,true,'Ask Boekuna entry must be visible');
+ const receivableGrid=await page.locator('.dashboard-kpi-receivables').evaluate(el=>({start:getComputedStyle(el).gridColumnStart,end:getComputedStyle(el).gridColumnEnd}));
+ assert.notEqual(receivableGrid.end,'-1','Only the primary profit KPI may span the full mobile KPI grid');
 
  let answer=await ask('Hoe sta ik ervoor?');
  assert.match(await answer.innerText(),/winst/i);
