@@ -2140,6 +2140,69 @@ img.bookuna-logo-icon,
     #mainApp .mobile-bank .bank-unlink-action .icon{display:none}
     #mainApp .mobile-bank .bank-unlink-text{display:inline}
   }
+
+  /* UX simplification 2026-10-04: shared date geometry + mobile KPI calmness.
+     Kept in the app source so the split marketing artifact remains untouched. */
+  .field input[type="date"]{
+    height:42px;
+    padding:10px 11px;
+    line-height:20px;
+  }
+  .field input[type="date"]::-webkit-date-and-time-value{
+    min-height:20px;
+    line-height:20px;
+    text-align:left;
+  }
+  .field input[type="date"]::-webkit-calendar-picker-indicator{
+    margin:0 0 0 auto;
+    padding:2px;
+  }
+  @media(max-width:820px){
+    #mainApp .dashboard-kpis .dashboard-kpi .metric-icon,
+    #mainApp .product-kpis .product-kpi-icon{
+      display:none!important;
+    }
+    #mainApp.main .content{
+      padding-top:14px!important;
+    }
+    #mainApp .page-head.product-page-head{
+      gap:10px!important;
+      margin-bottom:10px!important;
+    }
+    #mainApp .page-head.product-page-head .page-status{
+      display:none!important;
+    }
+    #mainApp .dashboard-kpis .dashboard-kpi{
+      min-height:96px!important;
+      padding:12px!important;
+    }
+    #mainApp .dashboard-kpis .dashboard-kpi.dashboard-kpi-profit{
+      min-height:112px!important;
+    }
+    #mainApp .dashboard-kpis .dashboard-kpi.dashboard-kpi-profit .metric-value{
+      font-size:32px!important;
+    }
+    #mainApp .dashboard-kpis .dashboard-kpi .metric-value{
+      margin:10px 0 4px!important;
+    }
+    #mainApp .product-kpis .metric.product-kpi{
+      min-height:96px!important;
+      padding:11px!important;
+    }
+    #mainApp .product-kpis .product-kpi-label{
+      gap:0!important;
+    }
+    #mainApp .product-kpis .metric.product-kpi .metric-value{
+      margin:10px 0 4px!important;
+    }
+    #mainApp .product-kpis .metric.product-kpi .metric-sub{
+      min-height:0!important;
+    }
+    #mainApp .field input[type="date"],
+    #modalRoot .field input[type="date"]{
+      height:44px!important;
+    }
+  }
 </style>
 </head>
 <body>
