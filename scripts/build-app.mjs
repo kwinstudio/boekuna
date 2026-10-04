@@ -11,6 +11,8 @@ const assetsSource=path.join(root,'public','assets');
 const appFontCache=path.join(root,'.cache','app-fonts');
 const SPACE_GROTESK_COMMIT='9710da1eacb3be272583c3224dcb70f9da6eadbb';
 const SPACE_GROTESK_URL='https://raw.githubusercontent.com/google/fonts/'+SPACE_GROTESK_COMMIT+'/ofl/spacegrotesk/SpaceGrotesk%5Bwght%5D.ttf';
+const assistantFlag=String(process.env.BOEKUNA_ASSISTANT_ENABLED??'true').trim().toLowerCase();
+const assistantEnabled=!['0','false','no','off'].includes(assistantFlag);
 
 async function cacheAppFont(url,name){
   fs.mkdirSync(appFontCache,{recursive:true});
@@ -34,9 +36,7 @@ const appAssets=[
   'favicon-32.png',
   'financial-correction.js',
   'document-intelligence.js',
-  'personal-insights.js',
-  'personal-assistant-qna.js',
-  'personal-insights-ui.js',
+  ...(assistantEnabled?['personal-insights.js','personal-assistant-qna.js','personal-insights-ui.js']:[]),
   'personal-insights.css',
   'document-review-v2.js',
   'document-review-v2.css',
@@ -191,7 +191,26 @@ if(!appHtml.includes(mobileHeadBoundary))throw new Error('Mobile app head bounda
 appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n'+mobileHeadBoundary);
 const assistantRuntimeMarker='\n<script>\nconst USERS_KEY=';
 if(!appHtml.includes(assistantRuntimeMarker))throw new Error('Assistant app runtime marker changed');
-appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script src="/assets/personal-insights.js?v=20261004b"></script>\n<script src="/assets/personal-assistant-qna.js?v=20261004a"></script>\n<script src="/assets/personal-insights-ui.js?v=20261004c"></script>'+assistantRuntimeMarker);
+if(assistantEnabled){
+  appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script src="/assets/personal-insights.js?v=20261004b"></script>\n<script src="/assets/personal-assistant-qna.js?v=20261004a"></script>\n<script src="/assets/personal-insights-ui.js?v=20261004c"></script>'+assistantRuntimeMarker);
+}else{
+  function removeBuiltSourceLine(marker){
+    const lines=appHtml.split('\n');
+    const matches=[];
+    lines.forEach((line,index)=>{if(line.includes(marker))matches.push(index)});
+    if(matches.length!==1)throw new Error('Assistant disable marker changed: '+marker);
+    lines.splice(matches[0],1);
+    appHtml=lines.join('\n');
+  }
+  removeBuiltSourceLine('data-page="insights"');
+  removeBuiltSourceLine('dashboard-ask-bookuna');
+  const navigateMarker='async function navigate(p){';
+  if(!appHtml.includes(navigateMarker))throw new Error('Assistant navigation guard marker changed');
+  appHtml=appHtml.replace(navigateMarker,navigateMarker+"\n if(p==='insights')p='dashboard';");
+  const summaryGridMarker='#mainApp .dashboard-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));';
+  if(!appHtml.includes(summaryGridMarker))throw new Error('Assistant summary-grid marker changed');
+  appHtml=appHtml.replace(summaryGridMarker,'#mainApp .dashboard-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));');
+}
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-product.js?v=20261003a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
@@ -223,21 +242,23 @@ function patchBuiltAppAsset(asset,needle,replacement){
   if(first<0||second>=0)throw new Error('App-only asset patch marker changed: '+asset);
   fs.writeFileSync(file,source.slice(0,first)+replacement+source.slice(first+needle.length),'utf8');
 }
-patchBuiltAppAsset(
-  'mobile-polish-round-2.js',
-  "      +'</div></section>'\n      +'<section class=\"settings-group\"><h2 class=\"settings-group-label\">Beveiliging & privacy</h2><div class=\"settings-list\">'",
-  "      +'</div></section>'\n      +renderAssistantSettingsSafe()\n      +'<section class=\"settings-group\"><h2 class=\"settings-group-label\">Beveiliging & privacy</h2><div class=\"settings-list\">'"
-);
-patchBuiltAppAsset(
-  'mobile-product.js',
-  "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];",
-  "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Assistent & inzichten','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];"
-);
-patchBuiltAppAsset(
-  'mobile-product.js',
-  "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];",
-  "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Persoonlijke tips en samenvattingen','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];"
-);
+if(assistantEnabled){
+  patchBuiltAppAsset(
+    'mobile-polish-round-2.js',
+    "      +'</div></section>'\n      +'<section class=\"settings-group\"><h2 class=\"settings-group-label\">Beveiliging & privacy</h2><div class=\"settings-list\">'",
+    "      +'</div></section>'\n      +renderAssistantSettingsSafe()\n      +'<section class=\"settings-group\"><h2 class=\"settings-group-label\">Beveiliging & privacy</h2><div class=\"settings-list\">'"
+  );
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];",
+    "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Assistent & inzichten','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];"
+  );
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];",
+    "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Persoonlijke tips en samenvattingen','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];"
+  );
+}
 patchBuiltAppAsset(
   'mobile-product.css',
   "  #mainApp .dashboard-kpi-profit, #mainApp .dashboard-kpi:last-child { grid-column:1/-1!important; }",
