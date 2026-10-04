@@ -1,0 +1,155 @@
+name: TEMP OCR V4 authenticated production smoke
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/temp-ocr-v4-auth-production-smoke.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  authenticated-production-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SUPABASE_URL: https://vuwfyhtejsxhdfyvkkeq.supabase.co
+      SUPABASE_PUBLISHABLE_KEY: sb_publishable_miAZ6CBZShVcmmNwlnEDgA_aGw1X4aP
+      PROCESSOR_URL: https://kwinest-docprocessor.onrender.com
+      BOOKUNA_QA_EMAIL: ${{ secrets.BOOKUNA_MARKETING_CAPTURE_EMAIL }}
+      BOOKUNA_QA_PASSWORD: ${{ secrets.BOOKUNA_MARKETING_CAPTURE_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require existing fictive QA credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$BOOKUNA_QA_EMAIL"
+          test -n "$BOOKUNA_QA_PASSWORD"
+
+      - name: Verify live OCR V4 revision and readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --retry 4 --retry-all-errors --connect-timeout 10 --max-time 60 -fsSL "$PROCESSOR_URL/health" -o /tmp/health.json
+          curl --retry 4 --retry-all-errors --connect-timeout 10 --max-time 60 -fsSL "$PROCESSOR_URL/ready" -o /tmp/ready.json
+          python - <<'PY'
+          import json
+          h=json.load(open('/tmp/health.json'))
+          r=json.load(open('/tmp/ready.json'))
+          expected='8c2b0e9f66039ef09e450c6949cf21149f2e0201'
+          assert h.get('ok') is True, h
+          assert h.get('version') == '3.3.1', h
+          assert str(h.get('revision') or '').startswith(expected), h
+          assert h.get('externalAiEnabled') is False, h
+          assert h.get('ocrAvailable') is True, h
+          o=h.get('ocr') or {}
+          assert o.get('engine') == 'RapidOCR', o
+          assert o.get('version') == '3.9.2', o
+          assert o.get('model') == 'PP-OCRv6-small', o
+          runtime=o.get('runtime') or {}
+          assert runtime.get('engine') == 'ONNX Runtime', runtime
+          assert runtime.get('version') == '1.30.0', runtime
+          assert r.get('ok') is True and r.get('ready') is True, r
+          assert r.get('version') == '3.3.1', r
+          assert str(r.get('revision') or '').startswith(expected), r
+          assert r.get('externalAiEnabled') is False, r
+          print('live revision/readiness: PASS')
+          PY
+
+      - name: Authenticate fictive QA user and analyze real PDF path
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          with open('/tmp/login.json','w') as f:
+              json.dump({'email':os.environ['BOOKUNA_QA_EMAIL'],'password':os.environ['BOOKUNA_QA_PASSWORD']}, f)
+          PY
+
+          curl --retry 3 --retry-all-errors --connect-timeout 10 --max-time 45 -fsSL \
+            -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            -H "content-type: application/json" \
+            --data-binary @/tmp/login.json \
+            -o /tmp/auth.json
+
+          TOKEN="$(python - <<'PY'
+          import json
+          data=json.load(open('/tmp/auth.json'))
+          token=data.get('access_token')
+          assert token and isinstance(token,str), {'error':data.get('error'),'error_description':data.get('error_description')}
+          print(token)
+          PY
+          )"
+          echo "::add-mask::$TOKEN"
+
+          base64 -d tests/fixtures/02_gemengde_btw_9_en_21.pdf.b64 > /tmp/ocr-v4-live-smoke.pdf
+
+          HTTP_CODE="$(curl --retry 2 --retry-all-errors --connect-timeout 10 --max-time 120 -sS \
+            -D /tmp/analyze.headers \
+            -o /tmp/analyze.json \
+            -w '%{http_code}' \
+            -X POST "$PROCESSOR_URL/analyze" \
+            -H "Origin: https://app.boekuna.nl" \
+            -H "Authorization: Bearer $TOKEN" \
+            -F "file=@/tmp/ocr-v4-live-smoke.pdf;type=application/pdf;filename=ocr-v4-live-smoke.pdf" \
+            -F 'company_json={"name":"Eigen Studio","country":"NL"}' \
+            -F 'existing_json=[]')"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Authenticated /analyze returned HTTP $HTTP_CODE"
+            python - <<'PY'
+          import json
+          try:
+              data=json.load(open('/tmp/analyze.json'))
+          except Exception:
+              print('non-json processor error')
+          else:
+              err=data.get('error') or {}
+              print({'code':err.get('code'),'message':err.get('message'),'referenceId':err.get('referenceId')})
+          PY
+            exit 1
+          fi
+
+          grep -qi '^access-control-allow-origin: https://app.boekuna.nl' /tmp/analyze.headers
+
+          python - <<'PY'
+          import json
+          from decimal import Decimal, ROUND_HALF_UP
+
+          payload=json.load(open('/tmp/analyze.json'))
+          assert payload.get('ok') is True, {'ok':payload.get('ok')}
+          data=payload.get('data') or {}
+          invoice=data.get('invoice') or {}
+          amounts=data.get('amounts') or {}
+          processing=data.get('processing') or {}
+
+          def cents(value):
+              return int((Decimal(str(value))*100).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
+
+          assert invoice.get('invoiceNumber') == 'KKG/26/09/7741', invoice.get('invoiceNumber')
+          assert cents(amounts.get('subtotal')) == 42995, amounts.get('subtotal')
+          assert cents(amounts.get('vatTotal')) == 5249, amounts.get('vatTotal')
+          assert cents(amounts.get('total')) == 48244, amounts.get('total')
+          assert (processing.get('amountDerivation') or {}).get('mixedRates') is True, processing.get('amountDerivation')
+
+          lines=sorted(amounts.get('vatLines') or [], key=lambda x: float(x.get('rate') or 0))
+          assert len(lines) == 2, lines
+          expected=[(9.0,31500,2835),(21.0,11495,2414)]
+          actual=[(float(x.get('rate')),cents(x.get('taxableAmount')),cents(x.get('vatAmount'))) for x in lines]
+          assert actual == expected, actual
+
+          print(json.dumps({
+              'result':'PASS',
+              'route':'/analyze',
+              'invoiceNumber':invoice.get('invoiceNumber'),
+              'subtotalCents':cents(amounts.get('subtotal')),
+              'vatCents':cents(amounts.get('vatTotal')),
+              'totalCents':cents(amounts.get('total')),
+              'mixedVatRates':[x[0] for x in actual],
+              'externalAiUsed':bool(processing.get('externalAiUsed', False)),
+          }, sort_keys=True))
+          PY
