@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 
-export const routes=['/','/functies/','/facturen/','/scanner/','/btw-bank/','/rapportages/','/hoe-het-werkt/','/voor-ondernemers/','/prijzen/','/faq/','/over/','/veiligheid/','/privacy/','/voorwaarden/','/support/','/contact/','/account-verwijderen/','/404.html'];
+export const routes=['/','/functies/','/assistent/','/scanner/','/prijzen/','/veiligheid/','/faq/','/privacy/','/voorwaarden/','/support/','/account-verwijderen/','/404.html'];
 export const widths=[320,360,375,390,393,430,768,1024,1280,1440,1920];
 export const slug=route=>route==='/'?'home':route.replaceAll('/','').replace('.html','');
 export async function settleImages(page){
