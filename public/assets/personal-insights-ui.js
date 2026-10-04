@@ -127,7 +127,7 @@ function assistantCard(item,compact=false){
 function renderAssistantDashboard(){
   const E=engine(),s=snapshot();
   if(!s.ok||s.status.state==='UNKNOWN'){
-    return '<section class="card dashboard-attention assistant-dashboard assistant-source-error"><div class="section-head"><div><h2 class="assistant-dashboard-title">'+icon('i-clock')+' Voor jou</h2><p>Persoonlijke administratiehulp</p></div></div><div class="assistant-empty assistant-source-error">'+icon('i-clock')+'<div><strong>Status tijdelijk niet beschikbaar</strong><span>Je administratie blijft werken. Boekuna toont liever niets dan een onbetrouwbaar inzicht.</span></div></div></section>';
+    return '<section class="card dashboard-attention assistant-dashboard assistant-source-error"><div class="section-head"><div><h2 class="assistant-dashboard-title">'+icon('i-clock')+' Voor jou</h2><p>Persoonlijke administratiehulp</p></div></div><div class="assistant-empty assistant-source-error">'+icon('i-clock')+'<div><strong>Status tijdelijk niet beschikbaar</strong><span>Je administratie blijft werken. Boekuna toont liever niets dan een onbetrouwbaar inzicht.</span><button class="btn small" type="button" style="margin-top:9px" onclick="retryDocumentAttentionFetch()">Opnieuw proberen</button></div></div></section>';
   }
   const items=E.dashboardInsights(s.insights);
   const body=items.length?'<div class="assistant-insight-list">'+items.map(x=>assistantCard(x,true)).join('')+'</div>':'<div class="assistant-empty">'+icon('i-check')+'<div><strong>Alles bijgewerkt</strong><span>Je administratie heeft op dit moment geen aandacht nodig.</span></div></div>';
