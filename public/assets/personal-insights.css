@@ -139,6 +139,7 @@
 #mainApp .dashboard-kpis-v12 .dashboard-kpi-secondary.metric-wide .metric-value{font-size:20px!important;letter-spacing:-.045em!important}
 #mainApp .dashboard-kpis-v12 .dashboard-kpi-secondary.metric-huge .metric-value{font-size:17px!important;letter-spacing:-.055em!important}
 #mainApp .dashboard-kpis-v12 .dashboard-kpi-secondary .metric-value{font-size:clamp(17px,1.35vw,22px);letter-spacing:-.025em;white-space:nowrap;max-width:100%;min-width:0}
+@media(min-width:1101px){#mainApp .dashboard-kpis-v12 .dashboard-kpi.metric-wide,#mainApp .dashboard-kpis-v12 .dashboard-kpi.metric-huge{grid-column:auto!important}}
 #mainApp .dashboard-kpi-receivables.has-attention{border-color:#ead7a8!important}
 #mainApp .assistant-dashboard-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 #mainApp .assistant-ask{display:grid;gap:14px}
