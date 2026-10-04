@@ -86,3 +86,168 @@ def annotate_understanding(result,doc,company,money_tokens):
     result.processing={**result.processing,'intelligenceVersion':'4.1','anomalyCodes':sorted(set(conflicts))}
     result.processing['reviewRouting']=review_route(result)
     return result
+
+
+NON_FINANCIAL=[
+    ('RMA',r'\b(?:rma|retour[- ]?order|retouraanvraag|return[- ]?order|return authorization)\b'),
+    ('proforma',r'\bpro\s*forma\b'),('quote',r'\b(?:offerte|quotation|quote)\b'),
+    ('order_confirmation',r'\b(?:orderbevestiging|order confirmation)\b'),
+    ('payment_confirmation',r'\b(?:betaalbevestiging|payment confirmation)\b'),
+    ('delivery_note',r'\b(?:pakbon|delivery note|leveringsbon)\b'),
+    ('statement',r'\b(?:rekeningoverzicht|account statement|bank statement)\b'),
+]
+
+
+def classify(result,doc):
+    # Titles carry meaning; legal footer references to quotes/RMA do not.
+    header='\n'.join([l.strip() for l in (doc.get('text') or '').splitlines() if l.strip()][:8])
+    for kind,pattern in NON_FINANCIAL:
+        if re.search(pattern,header,re.I):
+            if kind in {'payment_confirmation','RMA'} and re.search(r'^\s*(?:factuur|invoice|creditnota|credit note)\b',header,re.I|re.M):continue
+            return kind,False
+    if re.search(r'\b(?:creditnota|credit note|creditfactuur|credit invoice|storno|correction invoice|cancellation invoice)\b',header,re.I): return 'credit_note',True
+    if result.documentType=='other': return 'unknown',False
+    if result.documentType=='bank_document': return 'statement',False
+    if result.selfBilling: return 'self_billing_invoice',True
+    return ('receipt' if result.documentType=='receipt' else 'invoice'),True
+
+
+HEADER_PATTERNS={
+    'description':r'^(?:omschrijving|beschrijving|description|product|artikel|dienst)',
+    'quantity':r'^(?:aantal|quantity|qty|uren|hours)$',
+    'unitPrice':r'^(?:prijs|tarief|unit price|stukprijs|price|rate)$',
+    'unit':r'^(?:eenheid|unit)$',
+    'discount':r'^(?:korting|discount)(?:\s*%)?$',
+    'vatRate':r'^(?:btw|vat|tax)(?:\s*(?:%|rate|tarief))?$',
+    'netAmount':r'^(?:netto|net(?: amount)?|excl(?:\.? btw)?|bedrag excl\.? btw|line net)$',
+    'vatAmount':r'^(?:btw-bedrag|vat amount|tax amount)$',
+    'grossAmount':r'^(?:incl\.? btw|gross(?: amount)?|line gross)$',
+}
+
+
+def coordinate_tables(doc):
+    """Conservative word-row/column grouping; only explicit recognizable headers."""
+    tables=[]
+    for page in (doc.get('layout') or [])[:50]:
+        words=[w for w in page.get('words',[]) if all(k in w for k in ['x0','x1','y0','y1','text'])]
+        rows=[]
+        for w in sorted(words,key=lambda w:(w['y0'],w['x0'])):
+            center=(w['y0']+w['y1'])/2
+            row=next((r for r in reversed(rows[-3:]) if abs(r['y']-center)<=max(3,(w['y1']-w['y0'])*.4)),None)
+            if row is None: row={'y':center,'words':[]};rows.append(row)
+            row['words'].append(w)
+        anchors=None;out=[]
+        for row in rows:
+            ordered=sorted(row['words'],key=lambda w:w['x0'])
+            headers=[(w['x0'],w['text']) for w in ordered if any(re.search(p,str(w['text']).lower()) for p in HEADER_PATTERNS.values())]
+            if len(headers)>=3 and any(re.search(HEADER_PATTERNS['description'],h[1],re.I) for h in headers):
+                anchors=headers;out=[[h[1] for h in anchors]];continue
+            if not anchors: continue
+            if re.search(r'^(?:subtotaal|subtotal|totaal|total|btw|vat)\b',ordered[0]['text'],re.I): break
+            cells=['']*len(anchors)
+            for w in ordered:
+                index=min(range(len(anchors)),key=lambda i:abs(w['x0']-anchors[i][0]))
+                cells[index]=(cells[index]+' '+w['text']).strip()
+            out.append(cells)
+        if len(out)>1:tables.append({'page':page.get('page'),'rows':out,'source':'coordinates'})
+    return tables
+
+
+def extract_line_items(doc,norm_money):
+    items=[];coverage=True
+    tables=doc.get('tables') or coordinate_tables(doc)
+    for table in tables[:30]:
+        mapping=None
+        for row in (table.get('rows') or table.get('table') or [])[:500]:
+            clean=[str(x or '').strip() for x in row]
+            found={key:i for i,cell in enumerate(clean) for key,pattern in HEADER_PATTERNS.items() if re.search(pattern,cell,re.I)}
+            if 'description' in found and ('netAmount' in found or ('quantity' in found and 'unitPrice' in found)):
+                mapping=found;continue
+            if not mapping:continue
+            desc=clean[mapping['description']] if mapping['description']<len(clean) else ''
+            if not desc:continue
+            if re.search(r'^(?:subtotaal|subtotal|totaal|total|btw|vat|netto|bedrag excl)',desc,re.I):break
+            item={'description':desc[:500],'source':'explicit-table'}
+            for key,index in mapping.items():
+                if key=='description':continue
+                cell=clean[index] if index<len(clean) else ''
+                if key=='unit':item[key]=cell[:30];continue
+                item[key]=norm_money(cell.replace('%','')) if cell else None
+                if key=='discount' and '%' in cell:item['discountPercent']=item.pop('discount')
+            if item.get('netAmount') is None:
+                # Row arithmetic is only a candidate with declared quantity/price.
+                if item.get('quantity') is None or item.get('unitPrice') is None:coverage=False;continue
+                net=Decimal(str(item['quantity']))*Decimal(str(item['unitPrice']))
+                if item.get('discountPercent') is not None:net*=1-Decimal(str(item['discountPercent']))/100
+                if item.get('discount') is not None:net-=Decimal(str(item['discount']))
+                item['netAmount']=float(net.quantize(Decimal('.01'),rounding=ROUND_HALF_UP));item['source']='table-calculated'
+            item['lineTotal']=item.get('grossAmount') if item.get('grossAmount') is not None else item['netAmount']
+            items.append(item)
+    return items,coverage
+
+
+def annotate_safety(result,doc,norm_money):
+    a=result.amounts;anomalies=list(result.processing.get('anomalyCodes') or [])
+    kind,bookable=classify(result,doc)
+    if not bookable:result.documentType='other';anomalies.append('NON_BOOKABLE_DOCUMENT')
+    if kind=='credit_note':
+        result.documentType='credit_invoice';result.status='credit'
+        # Preserve printed sign separately when a positive-valued credit needs an
+        # explicit accounting reversal. Already negative values stay negative.
+        result.processing['creditPrintedAmounts']={k:getattr(a,k) for k in ['subtotal','vatTotal','total']}
+        negative_printed=any(re.search(r'^(?:subtotaal|subtotal|netto|totaal|total|btw|vat)\b',line.strip(),re.I) and re.search(r'(?:EUR|€)?\s*-\s*(?:EUR|€)?\s*\d+[.,]\d{2}',line,re.I) for line in (doc.get('text') or '').splitlines())
+        result.processing['creditAccountingAmounts']={k:-abs(getattr(a,k)) if getattr(a,k) is not None else None for k in ['subtotal','vatTotal','total']}
+        for field in ['subtotal','vatTotal','total']:
+            value=getattr(a,field)
+            if value is not None and negative_printed:setattr(a,field,-abs(value))
+        a.invoiceTotal=a.total
+        for line in a.vatLines:
+            if line.taxableAmount is not None and negative_printed:line.taxableAmount=-abs(line.taxableAmount)
+            if line.vatAmount is not None and negative_printed:line.vatAmount=-abs(line.vatAmount)
+        result.processing['creditSignSource']='document-title'
+    items,complete=extract_line_items(doc,norm_money)
+    for item in items:
+        q=item.get('quantity');price=item.get('unitPrice');net=item.get('netAmount')
+        if q is not None and price is not None and net is not None:
+            expected=Decimal(str(q))*Decimal(str(price))
+            if item.get('discountPercent') is not None:expected*=1-Decimal(str(item['discountPercent']))/100
+            if item.get('discount') is not None:expected-=Decimal(str(item['discount']))
+            if abs(cents(expected)-cents(net))>1:anomalies.append('LINE_ARITHMETIC_MISMATCH')
+        if item.get('vatAmount') is not None and item.get('grossAmount') is not None and cents(net)+cents(item['vatAmount'])!=cents(item['grossAmount']):anomalies.append('LINE_GROSS_MISMATCH')
+    if items:result.lineItems=[type(result).model_fields['lineItems'].annotation.__args__[0](**item) for item in items]
+    if items and complete:
+        net_sum=sum(cents(i.get('netAmount')) or 0 for i in items)
+        if a.subtotal is not None and net_sum!=cents(a.subtotal):anomalies.append('LINE_NET_MISMATCH')
+        if all(i.get('grossAmount') is not None for i in items) and a.total is not None and sum(cents(i['grossAmount']) for i in items)!=cents(a.total):anomalies.append('LINE_TOTAL_MISMATCH')
+    if all(v is not None for v in [a.subtotal,a.vatTotal,a.total]) and cents(a.subtotal)+cents(a.vatTotal)!=cents(a.total):anomalies.append('TOTAL_ARITHMETIC_MISMATCH')
+    if a.vatLines and a.vatTotal is not None and sum(cents(v.vatAmount) or 0 for v in a.vatLines)!=cents(a.vatTotal):anomalies.append('VAT_GROUP_MISMATCH')
+    for v in a.vatLines:
+        if v.taxableAmount is not None and v.vatAmount is not None and abs(cents(Decimal(str(v.taxableAmount))*Decimal(str(v.rate))/100)-cents(v.vatAmount))>1:anomalies.append('VAT_MATH_MISMATCH')
+    if result.invoice.dueDate and result.invoice.invoiceDate and result.invoice.dueDate<result.invoice.invoiceDate:anomalies.append('DUE_DATE_BEFORE_INVOICE')
+    if result.invoice.invoiceNumber and re.fullmatch(r'20\d{2}',result.invoice.invoiceNumber):anomalies.append('INVOICE_NUMBER_YEAR_ONLY')
+    if kind!='credit_note' and any(v is not None and v<0 for v in [a.subtotal,a.vatTotal,a.total]):anomalies.append('UNEXPECTED_NEGATIVE_AMOUNT')
+    result.processing={**result.processing,'intelligenceVersion':'4.2','documentClassification':kind,'bookingAllowed':bookable,'anomalyCodes':sorted(set(anomalies)),'lineItemsComplete':bool(items and complete)}
+    result.processing['reviewRouting']=review_route(result)
+    return result
+
+
+def duplicate_candidates(result,existing,sha256):
+    def norm(v):return re.sub(r'[^\w]','',str(v or '').lower())
+    party=result.customer.name if result.documentType=='sales_invoice' else result.supplier.name
+    candidates=[]
+    for row in existing if isinstance(existing,list) else []:
+        if not isinstance(row,dict):continue
+        if sha256 and row.get('sha256')==sha256:
+            candidates.append({'id':row.get('id'),'status':'EXACT','score':1.,'reasons':['bestandshash']});continue
+        if not party or norm(party)!=norm(row.get('supplier') or row.get('party')):continue
+        currency=row.get('currency')
+        if currency and str(currency).upper()!=result.amounts.currency:continue
+        number=norm(result.invoice.invoiceNumber)
+        if not number or number!=norm(row.get('invoiceNumber') or row.get('number')):continue
+        amount=cents(row.get('total'));total=cents(result.amounts.total)
+        same_amount=amount is not None and total is not None and amount==total
+        same_date=bool(result.invoice.invoiceDate and result.invoice.invoiceDate==row.get('invoiceDate'))
+        if not same_amount and not same_date:continue
+        probable=same_amount and same_date and bool(currency)
+        candidates.append({'id':row.get('id'),'status':'PROBABLE' if probable else 'POSSIBLE','score':.95 if probable else .7,'reasons':['leverancier','factuurnummer']+(['totaal'] if same_amount else [])+(['datum'] if same_date else [])})
+    return candidates

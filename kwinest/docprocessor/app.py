@@ -26,7 +26,7 @@ from openpyxl import load_workbook
 from receipt_math import detect_vat_rates, has_complex_adjustments, derive_single_rate_amounts, enforce_single_rate_consistency
 from financial_blocks import parse_financial_blocks
 from image_quality import inspect_image_quality, quality_advice
-from document_intelligence import annotate_understanding
+from document_intelligence import annotate_understanding, annotate_safety, duplicate_candidates
 
 RAPIDOCR_GENERATION = "none"
 try:
@@ -298,6 +298,13 @@ class Amounts(BaseModel):
     currency: str = "EUR"
 
 class LineItem(BaseModel):
+    unit: str | None = None
+    discount: float | None = None
+    discountPercent: float | None = None
+    netAmount: float | None = None
+    vatAmount: float | None = None
+    grossAmount: float | None = None
+    source: str | None = None
     description: str | None = None
     quantity: float | None = None
     unitPrice: float | None = None
@@ -1823,7 +1830,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         status=status,lineItems=[],adjustments=structured_adjustments,confidence=confidence,warnings=derivation_warnings,
         processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"financialBlocks":{"verified":bool(financial_structure.get("verified")),"primaryArithmeticOk":bool(financial_structure.get("primaryArithmeticOk")),"adjustmentArithmeticOk":bool(financial_structure.get("adjustmentArithmeticOk")),"settlementArithmeticOk":bool(financial_structure.get("settlementArithmeticOk")),"adjustmentTotal":financial_structure.get("adjustmentTotal"),"settlementSource":financial_structure.get("settlementSource")},"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"conflicts":derivation.get("conflicts",[]),"mixedRates":len(detected_rates)>1},"imageQuality":{"class":(doc.get("processingHints") or {}).get("qualityClass"),"flags":(doc.get("processingHints") or {}).get("qualityFlags") or [],"advice":(doc.get("processingHints") or {}).get("qualityAdvice") or [],"metrics":(doc.get("processingHints") or {}).get("qualityMetrics") or {}},"headerFocusUsed":bool((doc.get("processingHints") or {}).get("headerFocusUsed")),"mixedVatEvidence":{"verified":bool(mixed_vat_evidence.get("verified")),"source":mixed_vat_evidence.get("source")},"vatLineSource":vat_line_source,"descriptionSource":description_source,"selfBilling":self_billing,"selfBillingEvidence":"explicit-source-text" if self_billing else None,"factoringSaleStructure":factoring_sale}
     )
-    return annotate_understanding(validate_result(result,company),doc,company,money_tokens)
+    return annotate_safety(annotate_understanding(validate_result(result,company),doc,company,money_tokens),doc,norm_money)
 
 # ----------------------------- validation -----------------------------
 def validate_result(r:ExtractionResult,company:dict)->ExtractionResult:
@@ -2678,25 +2685,11 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
         }))
         result.warnings.append("Extra AI-controle was tijdelijk niet beschikbaar; controleer onzekere velden handmatig.")
     result=validate_result(result,company)
-    dup=[]
-    if result.documentType=="sales_invoice":
-        counterparty=result.customer.name
-    elif result.documentType=="credit_invoice":
-        if own_matches(result.supplier.model_dump(),company):counterparty=result.customer.name
-        else:counterparty=result.supplier.name
-    else:
-        counterparty=result.supplier.name
-    sup=(counterparty or "").lower().strip(); no=(result.invoice.invoiceNumber or "").lower().strip(); dt=result.invoice.invoiceDate; total=result.amounts.total
-    for row in existing if isinstance(existing,list) else []:
-        score=0; reasons=[]
-        if no and no==str(row.get("invoiceNumber") or row.get("number") or "").lower().strip():score+=.5;reasons.append("factuurnummer")
-        rn=str(row.get("supplier") or row.get("party") or "").lower().strip()
-        if sup and rn and (sup==rn or sup in rn or rn in sup):score+=.2;reasons.append("leverancier")
-        if dt and dt==row.get("invoiceDate"):score+=.15;reasons.append("datum")
-        try:
-            if total is not None and abs(float(row.get("total"))-total)<=.05:score+=.15;reasons.append("totaal")
-        except Exception:pass
-        if score>=.65:dup.append({"id":row.get("id"),"score":round(score,2),"reasons":reasons})
+    # Re-apply document-local safety after reconciliation; no learned financial overwrites.
+    result=annotate_safety(annotate_understanding(result,doc,company,money_tokens),doc,norm_money)
+    dup=duplicate_candidates(result,existing,hashlib.sha256(raw).hexdigest())
+    if dup:
+        result.processing['reviewRouting']={'mode':'FULL_REVIEW','fields':['duplicate'],'count':1,'autoBook':False}
     if dup:result.warnings.append("Mogelijk bestaat deze factuur al.")
     processing={
         **result.processing,

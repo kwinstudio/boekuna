@@ -245,6 +245,7 @@ function financialBlockingIssues(d){
   const type=reviewDocumentType(d),req=requirementsFor(type),issues=[],value=k=>String(f.elements.namedItem(k)?.value??'').trim();
   if(d?.accountingVatTreatment==='review_required'&&!f.elements.namedItem('foreignVatConfirmed')?.checked)issues.push({field:'foreignVatConfirmed',message:'Bevestig dat deze btw niet in de Nederlandse btw-aangifte komt.'});
   if(d?.currency&&d.currency!=='EUR')issues.push({field:'currency',message:'Een bevestigde wisselkoers is nodig voordat je dit document boekt.'});
+  if(d?.bookingAllowed===false)issues.push({field:'documentType',message:'Dit is geen definitieve factuur of bon. Bewaar het zonder boeking.'});
   const required=new Set(req.blocking);
   if(d?.mixedRates){required.delete('vatRate');required.add('vatLines')}
   for(const key of required){

@@ -54,6 +54,47 @@ def test_all_requested_confidence_fields_exist():
     assert all(k in r.confidence for k in fields)
     assert all(0<=r.confidence[k]<=1 for k in fields)
 
+def test_credit_note_keeps_signed_amounts():
+    r=extract('Subtotaal EUR -100,00\nBTW 21% EUR -21,00\nTotaal EUR -121,00','CREDITNOTA')
+    assert r.documentType=='credit_invoice'
+    assert p.money_cents(r.amounts.total)==-12100
+    assert p.money_cents(r.amounts.vatTotal)==-2100
+
+
+def test_quote_is_classified_and_not_bookable():
+    r=extract('Subtotaal EUR 100,00\nBTW 21% EUR 21,00\nTotaal EUR 121,00','OFFERTE')
+    assert r.documentType=='other'
+    assert r.processing['documentClassification']=='quote'
+    assert r.processing['bookingAllowed'] is False
+
+
+def test_header_table_rows_are_extracted_and_checked():
+    doc=document('Subtotaal EUR 190,00\nBTW 21% EUR 39,90\nTotaal EUR 229,90')
+    doc['tables']=[{'page':1,'rows':[['Omschrijving','Aantal','Prijs','BTW %','Netto','Btw-bedrag','Incl. btw'],['Consulting','2','100,00','21%','200,00','42,00','242,00'],['Korting','1','-10,00','21%','-10,00','-2,10','-12,10']]}]
+    r=p.heuristic_extract(doc,'table.pdf',{})
+    assert len(r.lineItems)==2
+    assert p.money_cents(r.lineItems[1].netAmount)==-1000
+    assert 'LINE_NET_MISMATCH' not in r.processing['anomalyCodes']
+
+
+def test_line_arithmetic_mismatch_is_anomaly():
+    doc=document('Subtotaal EUR 100,00\nBTW 21% EUR 21,00\nTotaal EUR 121,00')
+    doc['tables']=[{'page':1,'rows':[['Omschrijving','Aantal','Prijs','Netto'],['Service','2','60,00','100,00']]}]
+    r=p.heuristic_extract(doc,'table.pdf',{})
+    assert 'LINE_ARITHMETIC_MISMATCH' in r.processing['anomalyCodes']
+
+
+def test_duplicate_requires_same_supplier_and_currency():
+    from document_intelligence import duplicate_candidates
+    r=extract('Subtotaal EUR 100,00\nBTW 21% EUR 21,00\nTotaal EUR 121,00')
+    row={'id':'a','supplier':'Other Supplier','invoiceNumber':r.invoice.invoiceNumber,'invoiceDate':r.invoice.invoiceDate,'total':121,'currency':'EUR'}
+    assert duplicate_candidates(r,[row],'hash')==[]
+    row['supplier']=r.supplier.name
+    assert duplicate_candidates(r,[row],'hash')[0]['status']=='PROBABLE'
+    row['currency']='USD'
+    assert duplicate_candidates(r,[row],'hash')==[]
+
+
 if __name__=='__main__':
     for name,f in list(globals().items()):
         if name.startswith('test_'): f();print(name, 'PASS')
