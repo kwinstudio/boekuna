@@ -89,7 +89,7 @@ async function ask(question){
  await page.locator('#assistantAnswer[aria-live="polite"]').waitFor();
  return page.locator('#assistantAnswer');
 }
-async function closeDialog(){if(await page.getByRole('dialog').count())await page.getByRole('dialog').locator('.modal-foot').getByRole('button',{name:'Sluiten',exact:true}).click()}
+async function closeDialog(){if(await page.getByRole('dialog').count())await page.getByRole('dialog').getByLabel('Sluiten',{exact:true}).click()}
 
 try{
  await page.goto(base,{waitUntil:'networkidle'});
