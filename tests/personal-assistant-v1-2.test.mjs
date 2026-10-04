@@ -71,13 +71,13 @@ assert.equal(overdue.intent,'GET_OVERDUE_INVOICES');
 assert.match(overdue.answer,/1 factuur/i);
 assert.match(overdue.detail,/2026-1001/);
 assert.match(overdue.detail,/8 dagen/i);
-assert.deepEqual(overdue.actionTarget,{page:'invoices',filter:{status:'overdue'}});
+assert.equal(JSON.stringify(overdue.actionTarget),JSON.stringify({page:'invoices',filter:{status:'overdue'}}));
 
 const vat=Q.answer('Waarom kan mijn btw veranderen?',facts);
 assert.equal(vat.intent,'EXPLAIN_VAT_STATUS');
 assert.equal(vat.state,'UNCERTAIN');
 assert.match(vat.answer,/2 documenten/i);
-assert.deepEqual(vat.actionTarget,{page:'documents',filter:{status:'needs_review'}});
+assert.equal(JSON.stringify(vat.actionTarget),JSON.stringify({page:'documents',filter:{status:'needs_review'}}));
 
 const costs=Q.answer('Waarom zijn mijn kosten hoger?',facts);
 assert.equal(costs.intent,'GET_COST_CHANGE');
@@ -106,7 +106,7 @@ assert.equal(huge.intent,'UNSUPPORTED');
 assert.ok(huge.answer.length<500,'Fallback must not echo oversized questions');
 
 const allowed=Q.sanitizeActionTarget({page:'invoices',filter:{status:'overdue'}});
-assert.deepEqual(allowed,{page:'invoices',filter:{status:'overdue'}});
+assert.equal(JSON.stringify(allowed),JSON.stringify({page:'invoices',filter:{status:'overdue'}}));
 assert.equal(Q.sanitizeActionTarget({page:'admin',filter:{anything:'go'}}),null);
 assert.equal(Q.sanitizeActionTarget({page:'invoices',filter:{status:'DROP TABLE'}}),null);
 
