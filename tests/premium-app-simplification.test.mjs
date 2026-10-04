@@ -182,7 +182,7 @@ try{
 
   await navigateTo('dashboard');
   assert.equal(await page.locator('.dashboard-summary-card').count(),3,'Dashboard must replace the old recent-invoices table with three summary actions');
-  assert.deepEqual(await page.locator('.dashboard-summary-title').allTextContents(),['Administratie','Nog te ontvangen','Nieuwe factuur']);
+  assert.deepEqual(await page.locator('.dashboard-summary-title').allTextContents(),['Administratie','Vraag Boekuna','Nieuwe factuur']);
   assert.ok(await page.locator('.dashboard-summary-card').evaluateAll(nodes=>nodes.every(node=>node.tagName==='BUTTON')),'Dashboard summary actions must remain keyboard-native buttons');
 
   for(const [route,selector] of [

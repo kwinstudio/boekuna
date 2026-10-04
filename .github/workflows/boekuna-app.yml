@@ -6,6 +6,7 @@ on:
       - "kwinest/index.html"
       - "public/manifest.webmanifest"
       - "public/assets/financial-correction.js"
+      - "public/assets/personal-assistant-qna.js"
       - "public/assets/document-review-v2.*"
       - "public/assets/developer-mode.js"
       - "public/assets/kvk-company-lookup.*"
@@ -44,6 +45,7 @@ on:
       - "tests/personal-insights.test.mjs"
       - "tests/personal-insights-browser.test.mjs"
       - "tests/personal-insights-performance.test.mjs"
+      - "tests/personal-assistant-v1-2*.test.mjs"
       - "tests/invoice-delivery.test.mjs"
       - "tests/invoice-persistence.test.mjs"
       - "tests/invoice-native-retry.test.mjs"
@@ -97,6 +99,8 @@ jobs:
         run: node tests/personal-insights.test.mjs
       - name: Personal insights performance and I/O boundary
         run: node tests/personal-insights-performance.test.mjs
+      - name: Personal Assistant V1.2 deterministic contracts
+        run: node tests/personal-assistant-v1-2.test.mjs
       - name: Install app test dependencies
         run: npm ci --prefix tests --ignore-scripts
       - name: Invoice persistence and finalization invariants
@@ -117,6 +121,10 @@ jobs:
         run: |
           node tests/personal-insights-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/personal-insights-browser.test.mjs
+      - name: Personal Assistant V1.2 browser QA — Chromium + WebKit
+        run: |
+          node tests/personal-assistant-v1-2-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/personal-assistant-v1-2-browser.test.mjs
       - name: Mobile polish round 2 — Chromium and WebKit
         run: |
           node tests/mobile-polish-round-2.test.mjs
@@ -255,6 +263,7 @@ jobs:
             tests/artifacts/premium-v2-*.png
             tests/artifacts/product-ui-reference/
             tests/artifacts/personal-insights/
+            tests/artifacts/personal-assistant-v1-2/
             tests/artifacts/kvk-*.png
           if-no-files-found: ignore
 

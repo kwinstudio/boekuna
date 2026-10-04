@@ -2584,6 +2584,7 @@ function clearLegacyLocalAccount(email){const u=legacyUserForEmail(email);if(!u)
 async function hydrateCloudAccount(user){currentUser={id:user.id,email:user.email||'',supabaseUser:user};state=load();const sb=await getSupabase();const [{data:profileRow,error:profileErr},{data:ledgerRow,error:ledgerErr}]=await Promise.all([sb.from('profiles').select('company').eq('user_id',user.id).maybeSingle(),sb.from('ledger_state').select('state,version').eq('user_id',user.id).maybeSingle()]);if(profileErr)throw profileErr;if(ledgerErr)throw ledgerErr;cloudVersion=Number(ledgerRow?.version||1);const cloudState=ledgerRow?.state&&Object.keys(ledgerRow.state).length?ledgerRow.state:null;const legacy=!cloudState?legacySnapshotForEmail(user.email):null;state=normalizeState(cloudState||legacy||{});if(profileRow?.company)state.company={...state.company,...profileRow.company};localStorage.setItem(userDataKey(),JSON.stringify(state));localStorage.setItem(userProfileKey(),JSON.stringify(state.company||{}));if(!cloudState){await syncCloudProfile(state.company);await syncCloudStateNow();if(legacy){const moved=await migrateLegacyFilesToCloud();clearLegacyLocalAccount(user.email);toast(`Je bestaande administratie is naar de cloud gekopieerd${moved?` · ${moved} document(en) meegenomen`:''}`)}}setCloudSyncStatus('saved')}
 function logEvent(action,detail='',entityType='',entityId='',oldValue=null,newValue=null){if(!Array.isArray(state.audit))state.audit=[];state.audit.unshift({id:uid('a'),at:new Date().toISOString(),actorId:String(currentUser?.id||''),actorEmail:String(currentUser?.email||''),action:String(action||''),detail:String(detail||''),entityType:String(entityType||''),entityId:String(entityId||''),oldValue:oldValue==null?null:structuredClone(oldValue),newValue:newValue==null?null:structuredClone(newValue)});state.audit=state.audit.slice(0,1000)}
 function invoiceEffectiveStatus(i){if(!i)return 'draft';if(i.status==='cancelled')return 'cancelled';if(i.status==='draft')return 'draft';const paid=invoicePaidAmount(i),out=invoiceOutstanding(i);if(toCents(out)===0&&Math.abs(invoiceGross(i))>0)return 'paid';if(paid>0&&toCents(out)>0)return 'partial';if(i.dueDate&&i.dueDate<today())return 'overdue';return i.status||'sent'}
+function invoiceIsOverdueOpen(i){return !!i&&i.status!=='draft'&&i.kind!=='credit'&&invoiceEffectiveStatus(i)!=='cancelled'&&invoiceOutstanding(i)>.02&&!!i.dueDate&&i.dueDate<today()}
 function daysUntil(d){if(!d)return 9999;const a=new Date(today()+'T12:00:00'),b=new Date(d+'T12:00:00');return Math.ceil((b-a)/86400000)}
 function cashBalance(){return state.transactions.reduce((s,t)=>s+Number(t.amount||0),0)}
 function quarterVatPosition(){const q=currentQuarter(),year=currentBookYear(),out=state.invoices.filter(i=>i.status!=='draft'&&inQuarter(i.issueDate,q,year)).reduce((s,i)=>roundMoney(s+invoiceVat(i)),0),input=state.expenses.filter(e=>inQuarter(e.date,q,year)).reduce((s,e)=>roundMoney(s+expenseDeductibleVat(e)),0);return roundMoney(out-input)}
@@ -3150,7 +3151,7 @@ function listSearchHaystack(name,item){
 function invoiceListStatusMatch(i,status){
   if(status==='all')return true;
   if(status==='draft')return i.status==='draft';
-  if(status==='overdue')return invoiceEffectiveStatus(i)==='overdue';
+  if(status==='overdue')return invoiceIsOverdueOpen(i);
   if(status==='paid')return i.status!=='draft'&&invoiceEffectiveStatus(i)==='paid';
   if(status==='open')return i.status!=='draft'&&invoiceOutstanding(i)>.02;
   return true
@@ -3464,7 +3465,7 @@ function navigateWithFilter(target,key,value){
  return navigate(target)
 }
 function dashboardAttentionItems(){
- const items=[],overdue=state.invoices.filter(i=>invoiceEffectiveStatus(i)==='overdue'),unmatched=state.transactions.filter(t=>t.status==='unmatched');
+ const items=[],overdue=state.invoices.filter(invoiceIsOverdueOpen),unmatched=state.transactions.filter(t=>t.status==='unmatched');
  const jobs=(documentProcessingJobs||[]).filter(j=>(persistentDocumentNeedsReview(j)||j.state==='failed')),jobRefs=new Set(jobs.map(j=>String(j.client_ref||'')).filter(Boolean)),localReview=state.documents.filter(d=>d?.verification?.status==='needs_review'&&!jobRefs.has(String(d.fileId||''))),failed=jobs.filter(j=>String(j.state||'')==='failed'),review=jobs.filter(persistentDocumentNeedsReview),health=dataHealthIssues(),upcoming=state.bookings.filter(b=>['planned','confirmed'].includes(b.status)&&daysUntil(b.date)>=0&&daysUntil(b.date)<=2&&!b.reminderSent);
  const additional=attentionRows().filter(row=>row.category==='contacts');if(additional.length)items.push({key:'contacts',priority:3,tone:'review',icon:'✓',title:additional.length+' klanten aanvullen',detail:'Gegevens ontbreken',action:()=>openAttentionCategory('contacts')});
  if(overdue.length)items.push({key:'overdue',priority:1,tone:'urgent',icon:'!',title:overdue.length===1?'Factuur '+overdue[0].number+' vervallen':overdue.length+' facturen vervallen',detail:overdue.length===1?money(invoiceOutstanding(overdue[0]))+' open':'Betalingen opvolgen',action:()=>openDashboardAttention('overdue',overdue.length===1?overdue[0].id:'')});
@@ -3477,9 +3478,9 @@ function dashboardAttentionItems(){
 function openDashboardAttention(kind,id=''){
  if(kind==='overdue'){
   const current=id?state.invoices.find(i=>i.id===id):null;
-  if(id&&(!current||invoiceEffectiveStatus(current)!=='overdue')){render();toast('Dit aandachtspunt is inmiddels bijgewerkt.');return}
+  if(id&&(!current||!invoiceIsOverdueOpen(current))){render();toast('Dit aandachtspunt is inmiddels bijgewerkt.');return}
   if(current){viewInvoice(current.id);return}
-  if(!state.invoices.some(i=>invoiceEffectiveStatus(i)==='overdue')){render();toast('Dit aandachtspunt is inmiddels bijgewerkt.');return}
+  if(!state.invoices.some(invoiceIsOverdueOpen)){render();toast('Dit aandachtspunt is inmiddels bijgewerkt.');return}
   navigateWithFilter('invoices','status','overdue');return
  }
  if(kind==='bank'){openAttentionCategory('bank');return}
@@ -3531,7 +3532,7 @@ function dashboardPeriodRange(preset=String(sessionStorage.getItem('dashboardPer
 }
 function setDashboardPeriod(preset){const allowed=['7d','month','quarter','year'];sessionStorage.setItem('dashboardPeriod',allowed.includes(preset)?preset:'month');if(page==='dashboard')render()}
 function dashboardChartBuckets(preset){
- const range=dashboardPeriodRange(preset),make=(from,to,lab,period)=>{const inv=state.invoices.filter(i=>i.status!=='draft'&&inRange(i.issueDate,from,to)),exps=state.expenses.filter(e=>inRange(e.date,from,to)),sales=inv.reduce((sum,i)=>roundMoney(sum+invoiceNet(i)),0),costs=exps.reduce((sum,e)=>roundMoney(sum+expenseAccountingCost(e)),0);return {from,to,lab,period,sales,costs,profit:roundMoney(sales-costs)}},out=[];
+ const range=dashboardPeriodRange(preset),make=(from,to,lab,period)=>{const inv=state.invoices.filter(i=>i.status!=='draft'&&invoiceEffectiveStatus(i)!=='cancelled'&&inRange(i.issueDate,from,to)),exps=state.expenses.filter(e=>inRange(e.date,from,to)),sales=inv.reduce((sum,i)=>roundMoney(sum+invoiceNet(i)),0),costs=exps.reduce((sum,e)=>roundMoney(sum+expenseAccountingCost(e)),0);return {from,to,lab,period,sales,costs,profit:roundMoney(sales-costs)}},out=[];
  if(preset==='7d'){for(let i=0;i<7;i++){const d=new Date(range.from+'T12:00:00');d.setDate(d.getDate()+i);const iso=dashboardIsoDate(d),lab=new Intl.DateTimeFormat('nl-NL',{weekday:'short'}).format(d).replace('.','');out.push(make(iso,iso,lab,new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'long'}).format(d)))}return out}
  if(preset==='quarter'){const end=new Date(range.to+'T12:00:00');for(let i=2;i>=0;i--){const d=new Date(end.getFullYear(),end.getMonth()-i,1),last=new Date(d.getFullYear(),d.getMonth()+1,0),from=dashboardIsoDate(d),to=dashboardIsoDate(last>end?end:last),lab=new Intl.DateTimeFormat('nl-NL',{month:'short'}).format(d).replace('.','');out.push(make(from,to,lab,new Intl.DateTimeFormat('nl-NL',{month:'long',year:'numeric'}).format(d)))}return out}
  if(preset==='year'){const end=new Date(range.to+'T12:00:00');for(let month=0;month<=end.getMonth();month++){const d=new Date(end.getFullYear(),month,1),last=new Date(end.getFullYear(),month+1,0),from=dashboardIsoDate(d),to=dashboardIsoDate(last>end?end:last),lab=new Intl.DateTimeFormat('nl-NL',{month:'short'}).format(d).replace('.','');out.push(make(from,to,lab,new Intl.DateTimeFormat('nl-NL',{month:'long',year:'numeric'}).format(d)))}return out}
@@ -3556,18 +3557,56 @@ function reportChartBuckets(from,to){
  return out
 }
 
+
+function dashboardKpiViewModel(preset=String(sessionStorage.getItem('dashboardPeriod')||'month')){
+ const period=dashboardPeriodRange(preset);
+ const periodInvoices=state.invoices.filter(i=>i.status!=='draft'&&invoiceEffectiveStatus(i)!=='cancelled'&&inRange(i.issueDate,period.from,period.to));
+ const periodExpenses=state.expenses.filter(e=>inRange(e.date,period.from,period.to));
+ const revenue=periodInvoices.reduce((sum,i)=>roundMoney(sum+invoiceNet(i)),0);
+ const costs=periodExpenses.reduce((sum,e)=>roundMoney(sum+expenseAccountingCost(e)),0);
+ const profit=roundMoney(revenue-costs);
+ const openInvoices=state.invoices.filter(i=>i.status!=='draft'&&i.kind!=='credit'&&invoiceEffectiveStatus(i)!=='cancelled'&&invoiceOutstanding(i)>.02);
+ const receivables=openInvoices.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0);
+ const overdueInvoices=openInvoices.filter(invoiceIsOverdueOpen);
+ const overdueReceivables=overdueInvoices.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0);
+ const q=currentQuarter(),year=currentBookYear();
+ const quarterInvoices=state.invoices.filter(i=>i.status!=='draft'&&invoiceEffectiveStatus(i)!=='cancelled'&&inQuarter(i.issueDate,q,year));
+ const quarterExpenses=state.expenses.filter(e=>inQuarter(e.date,q,year));
+ const salesVat=quarterInvoices.reduce((sum,i)=>roundMoney(sum+invoiceVat(i)),0);
+ const inputVat=quarterExpenses.reduce((sum,e)=>roundMoney(sum+expenseDeductibleVat(e)),0);
+ const vatReserve=roundMoney(salesVat-inputVat);
+ const vatFields=new Set(['net','gross','vatAmount','vatRate','vatLines','mixedRates','accountingVatTreatment']);
+ const vatReviewIds=new Set();
+ for(const d of state.documents||[]){
+  const verification=String(d?.verification?.status||d?.verificationStatus||'');
+  if(verification!=='needs_review')continue;
+  const issues=Array.isArray(d?.verification?.financialIssues)?d.verification.financialIssues:[];
+  const diffs=Array.isArray(d?.verification?.differences)?d.verification.differences:[];
+  if(issues.length||diffs.some(x=>vatFields.has(String(x?.field||''))))vatReviewIds.add(String(d.id||d.fileId||''));
+ }
+ const vatUnresolvedDocumentCount=[...vatReviewIds].filter(Boolean).length;
+ const financialReliable=Array.isArray(state.invoices)&&Array.isArray(state.expenses)&&Array.isArray(state.transactions);
+ return {
+  financialReliable,period,revenue,costs,profit,vatReserve,
+  vatUncertain:vatUnresolvedDocumentCount>0,vatUnresolvedDocumentCount,
+  receivables,overdueReceivables,overdueInvoiceCount:overdueInvoices.length,openInvoiceCount:openInvoices.length,
+  comparisons:{profit:null,revenue:null,costs:null}
+ }
+}
+
 function renderDashboard(){
- const period=dashboardPeriodRange(),inv=state.invoices.filter(i=>i.status!=='draft'&&inRange(i.issueDate,period.from,period.to)),periodExpenses=state.expenses.filter(e=>inRange(e.date,period.from,period.to)),sales=inv.reduce((sum,i)=>roundMoney(sum+invoiceNet(i)),0),costs=periodExpenses.reduce((sum,e)=>roundMoney(sum+expenseAccountingCost(e)),0),profit=roundMoney(sales-costs),openInvoices=state.invoices.filter(i=>i.status!=='draft'&&i.kind!=='credit'&&invoiceOutstanding(i)>.02),open=openInvoices.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),overdue=openInvoices.filter(i=>invoiceEffectiveStatus(i)==='overdue').length,q=currentQuarter(),year=currentBookYear(),quarterInvoices=state.invoices.filter(i=>i.status!=='draft'&&inQuarter(i.issueDate,q,year)),quarterExpenses=state.expenses.filter(e=>inQuarter(e.date,q,year)),salesVat=quarterInvoices.reduce((sum,i)=>roundMoney(sum+invoiceVat(i)),0),inputVat=quarterExpenses.reduce((sum,e)=>roundMoney(sum+expenseDeductibleVat(e)),0),vat=roundMoney(salesVat-inputVat);
+ const kpi=dashboardKpiViewModel(),period=kpi.period,sales=kpi.revenue,costs=kpi.costs,profit=kpi.profit,open=kpi.receivables,overdue=kpi.overdueInvoiceCount,vat=kpi.vatReserve;
  const chart=dashboardChartBuckets(period.preset),max=Math.max(1,...chart.flatMap(x=>[Math.abs(x.sales),Math.abs(x.costs),Math.abs(x.profit)])),isEmpty=!state.invoices.length&&!state.expenses.length&&!state.transactions.length&&!state.contacts.length,greeting=dashboardGreeting(),bankTotal=state.transactions.length,bankMatched=state.transactions.filter(t=>t.status==='matched').length,bankOpen=state.transactions.filter(t=>t.status==='unmatched').length,bankPct=bankTotal?Math.round(bankMatched/bankTotal*100):null;
  const profileMissing=requirementsFor('invoice-finalize',{taxTreatment:state.company.kor?'kor':'standard'}),welcomeCard=isEmpty?'<div class="card dashboard-onboarding"><div class="section-head"><h2>Begin met Boekuna</h2></div><div class="dashboard-onboarding-actions"><button class="btn primary" onclick="newInvoice()">Eerste factuur</button><button class="btn" onclick="newContact()">Klant toevoegen</button><button class="btn" onclick="navigate(\'profile\')">Bedrijfsgegevens</button></div></div>':'',profileReminder=profileMissing.length?'<div class="notice info dashboard-profile-reminder"><strong>Bedrijfsgegevens aanvullen</strong><button class="link-btn" onclick="navigate(\'profile\')">Open</button></div>':'';
  const periodOptions=[['7d','7 dagen'],['month','Maand'],['quarter','Kwartaal'],['year','Jaar']].map(([value,label])=>'<option value="'+value+'" '+(period.preset===value?'selected':'')+'>'+label+'</option>').join('');
  return '<div class="page-head dashboard-page-head"><div><h1>Overzicht</h1><p class="page-status">'+esc(greeting.title)+' · je administratie in één oogopslag</p></div><div class="dashboard-period-control"><label class="sr-only" for="dashboardPeriod">Periode dashboard</label><select id="dashboardPeriod" class="dashboard-period-select" onchange="setDashboardPeriod(this.value)">'+periodOptions+'</select></div></div>'+
  welcomeCard+profileReminder+
- '<div class="grid grid-4 dashboard-kpis">'+
+ '<div class="grid dashboard-kpis dashboard-kpis-v12">'+
   '<button type="button" class="card metric dashboard-kpi dashboard-kpi-profit kpi-tone-primary" onclick="navigate(\'reports\')"><div class="metric-head"><span class="dashboard-kpi-label">Winst</span><span class="metric-icon" aria-hidden="true">'+icon('i-chart')+'</span></div><div class="metric-value">'+money(profit)+'</div><div class="metric-sub">'+esc(period.label)+' · omzet minus kosten</div></button>'+
-  '<button type="button" class="card metric dashboard-kpi kpi-tone-support" onclick="navigate(\'invoices\')"><div class="metric-head"><span class="dashboard-kpi-label">Omzet</span><span class="metric-icon" aria-hidden="true">'+icon('i-chart')+'</span></div><div class="metric-value">'+money(sales)+'</div><div class="metric-sub">'+esc(period.label)+' · excl. btw</div></button>'+
-  '<button type="button" class="card metric dashboard-kpi kpi-tone-warning" onclick="navigate(\'expenses\')"><div class="metric-head"><span class="dashboard-kpi-label">Kosten</span><span class="metric-icon" aria-hidden="true">'+icon('i-receipt')+'</span></div><div class="metric-value">'+money(costs)+'</div><div class="metric-sub">'+esc(period.label)+' · excl. btw</div></button>'+
-  '<button type="button" class="card metric dashboard-kpi kpi-tone-support" onclick="navigate(\'vat\')"><div class="metric-head"><span class="dashboard-kpi-label">Btw apartzetten</span><span class="metric-icon" aria-hidden="true">'+icon('i-tax')+'</span></div><div class="metric-value">'+money(vat)+'</div><div class="metric-sub">'+(vat>=0?'indicatief te betalen':'indicatief terug te vragen')+'</div></button>'+
+  '<button type="button" class="card metric dashboard-kpi dashboard-kpi-secondary kpi-tone-support" onclick="navigate(\'invoices\')"><div class="metric-head"><span class="dashboard-kpi-label">Omzet</span><span class="metric-icon" aria-hidden="true">'+icon('i-chart')+'</span></div><div class="metric-value">'+money(sales)+'</div><div class="metric-sub">'+esc(period.label)+' · excl. btw</div></button>'+
+  '<button type="button" class="card metric dashboard-kpi dashboard-kpi-secondary kpi-tone-warning" onclick="navigate(\'expenses\')"><div class="metric-head"><span class="dashboard-kpi-label">Kosten</span><span class="metric-icon" aria-hidden="true">'+icon('i-receipt')+'</span></div><div class="metric-value">'+money(costs)+'</div><div class="metric-sub">'+esc(period.label)+' · excl. btw</div></button>'+
+  '<button type="button" class="card metric dashboard-kpi dashboard-kpi-secondary kpi-tone-support" onclick="navigate(\'vat\')"><div class="metric-head"><span class="dashboard-kpi-label">Btw apartzetten</span><span class="metric-icon" aria-hidden="true">'+icon('i-tax')+'</span></div><div class="metric-value">'+money(vat)+'</div><div class="metric-sub">'+(kpi.vatUncertain?('Kan nog veranderen door '+kpi.vatUnresolvedDocumentCount+' document'+(kpi.vatUnresolvedDocumentCount===1?'':'en')):(vat>=0?'Op basis van je huidige administratie':'Indicatief terug te vragen'))+'</div></button>'+
+  '<button type="button" class="card metric dashboard-kpi dashboard-kpi-secondary dashboard-kpi-receivables '+(kpi.overdueReceivables>0?'has-attention ':'')+'kpi-tone-support" onclick="navigateWithFilter(\'invoices\',\'status\',\'open\')"><div class="metric-head"><span class="dashboard-kpi-label">Nog te ontvangen</span><span class="metric-icon" aria-hidden="true">'+icon('i-file')+'</span></div><div class="metric-value">'+money(open)+'</div><div class="metric-sub">'+(kpi.overdueReceivables>0?(money(kpi.overdueReceivables)+' te laat'):(kpi.openInvoiceCount+' open factuur'+(kpi.openInvoiceCount===1?'':'en')))+'</div></button>'+
  '</div>'+
  '<div class="dashboard-main-grid">'+
   '<div class="card dashboard-chart-card"><div class="section-head"><div><h2>Resultaat</h2><p>'+esc(period.label)+' · excl. btw</p></div></div><div class="chart dashboard-result-chart" aria-label="Omzet, kosten en winst per periode">'+chart.map(x=>'<button type="button" class="bar-group" data-chart-values="'+esc(JSON.stringify({month:x.period,sales:money(x.sales),costs:money(x.costs),profit:money(x.profit)}))+'" aria-describedby="dashboardChartValues" aria-pressed="false" aria-label="'+esc(x.period)+': omzet '+esc(money(x.sales))+', kosten '+esc(money(x.costs))+', winst '+esc(money(x.profit))+'"><span class="bar sales" style="height:'+Math.max(3,Math.abs(x.sales)/max*100)+'%"></span><span class="bar costs" style="height:'+Math.max(3,Math.abs(x.costs)/max*100)+'%"></span><span class="bar profit '+(x.profit<0?'loss':'')+'" style="height:'+Math.max(3,Math.abs(x.profit)/max*100)+'%"></span><span class="bar-label">'+esc(x.lab)+'</span></button>').join('')+'</div><div class="chart-values" id="dashboardChartValues" role="tooltip" hidden></div><div class="chart-legend"><span><i class="legend-dot"></i>Omzet</span><span><i class="legend-dot cost"></i>Kosten</span><span><i class="legend-dot profit"></i>Winst</span></div></div>'+
@@ -3575,13 +3614,13 @@ function renderDashboard(){
  '</div>'+
  '<div class="dashboard-summary-grid">'+
   '<button type="button" class="card dashboard-summary-card" onclick="navigate(\'bank\')"><div class="dashboard-summary-head"><span class="dashboard-summary-title">Administratie</span><span class="metric-icon" aria-hidden="true">'+icon('i-check')+'</span></div><strong class="dashboard-summary-value">'+(bankPct==null?'—':bankPct+'%')+'</strong><span class="dashboard-summary-sub">'+(bankTotal?(bankOpen?bankOpen+' bankregel'+(bankOpen===1?'':'s')+' te verwerken':'Alle bankregels verwerkt'):'Nog geen bankregels')+'</span></button>'+
-  '<button type="button" class="card dashboard-summary-card" onclick="navigate(\'invoices\')"><div class="dashboard-summary-head"><span class="dashboard-summary-title">Nog te ontvangen</span><span class="metric-icon" aria-hidden="true">'+icon('i-receipt')+'</span></div><strong class="dashboard-summary-value">'+money(open)+'</strong><span class="dashboard-summary-sub">'+openInvoices.length+' open factuur'+(openInvoices.length===1?'':'en')+(overdue?' · '+overdue+' verlopen':'')+'</span></button>'+
+  '<button type="button" class="card dashboard-summary-card dashboard-ask-bookuna" onclick="typeof openAskBoekuna===\'function\'?openAskBoekuna():navigate(\'insights\')"><div class="dashboard-summary-head"><span class="dashboard-summary-title">Vraag Boekuna</span><span class="metric-icon" aria-hidden="true">'+icon('i-chart')+'</span></div><strong class="dashboard-summary-value">Waar kan ik mee helpen?</strong><span class="dashboard-summary-sub">Vraag iets over je cijfers of administratie.</span></button>'+
   '<button type="button" class="card dashboard-summary-card dashboard-new-invoice" onclick="newInvoice()"><div class="dashboard-summary-head"><span class="dashboard-summary-title">Nieuwe factuur</span><span class="metric-icon" aria-hidden="true">'+icon('i-plus')+'</span></div><strong class="dashboard-summary-value">Factuur maken</strong><span class="dashboard-summary-sub">Nieuwe verkoopfactuur aanmaken</span></button>'+
  '</div>'
 }
 
 function renderInvoices(){
- const list=getListRows('invoices'),all=state.invoices.filter(i=>i.kind!=='credit'),openRows=all.filter(i=>i.status!=='draft'&&invoiceOutstanding(i)>.02),open=openRows.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),overdueRows=openRows.filter(i=>invoiceEffectiveStatus(i)==='overdue'),overdue=overdueRows.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),monthKey=monthKeyOffset(0);
+ const list=getListRows('invoices'),all=state.invoices.filter(i=>i.kind!=='credit'),openRows=all.filter(i=>i.status!=='draft'&&invoiceOutstanding(i)>.02),open=openRows.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),overdueRows=openRows.filter(invoiceIsOverdueOpen),overdue=overdueRows.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),monthKey=monthKeyOffset(0);
  const paidMonthRows=all.filter(i=>i.status!=='draft'&&invoiceEffectiveStatus(i)==='paid'&&(invoicePayments(i).some(p=>String(p.date||'').startsWith(monthKey))||state.transactions.some(t=>t.status==='matched'&&t.matchType==='invoice'&&t.matchId===i.id&&String(t.date||'').startsWith(monthKey))||String(i.issueDate||'').startsWith(monthKey))),paidMonth=paidMonthRows.reduce((sum,i)=>roundMoney(sum+invoiceGross(i)),0),drafts=all.filter(i=>i.status==='draft').length;
  return `<div class="page-head product-page-head"><div><h1>Facturen</h1><p class="page-status">Beheer en volg je verkoopfacturen.</p></div><div class="page-actions"><button class="btn" onclick="triggerInvoiceUpload('sale')">${icon('i-upload')} Upload PDF</button><button class="btn primary" onclick="newInvoice()">${icon('i-plus')} Nieuwe factuur</button></div></div>
  ${productKpiGrid([
@@ -3708,7 +3747,7 @@ function exportJournalCSV(){const {from,to}=reportRange(),rows=journalFlatRows(g
 let controlListState={userId:'',category:'all',query:'',page:1};
 function attentionRows(){
  const rows=[],add=(key,category,title,detail,action,label)=>rows.push({key,category,title,detail,action,label});
- state.invoices.filter(i=>invoiceEffectiveStatus(i)==='overdue').forEach(i=>add('invoice-'+i.id,'overdue',i.number+' · '+getContact(i.customerId).name,money(invoiceOutstanding(i))+' open · vervallen '+dateNL(i.dueDate),()=>viewInvoice(i.id),'Bekijk'));
+ state.invoices.filter(invoiceIsOverdueOpen).forEach(i=>add('invoice-'+i.id,'overdue',i.number+' · '+getContact(i.customerId).name,money(invoiceOutstanding(i))+' open · vervallen '+dateNL(i.dueDate),()=>viewInvoice(i.id),'Bekijk'));
  state.transactions.filter(t=>t.status==='unmatched').forEach(t=>add('bank-'+t.id,'bank',t.description,dateNL(t.date)+' · '+money(t.amount)+' · nog niet gekoppeld',()=>openBankAttention(t.id),'Koppelen'));
  const jobs=(documentProcessingJobs||[]).filter(j=>(persistentDocumentNeedsReview(j)||j.state==='failed')),refs=new Set(jobs.map(j=>String(j.client_ref||'')));
  jobs.forEach(j=>add('job-'+j.id,'documents',persistentDocumentName(j),j.state==='failed'?'Verwerking mislukt · opnieuw proberen of ander bestand kiezen':'Controleer de herkende gegevens',()=>persistentDocumentNeedsReview(j)?openPersistentDocumentReview(j.id):openFailedDocumentAttention(j.id),'Open'));

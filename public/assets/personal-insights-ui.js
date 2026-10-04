@@ -3,7 +3,7 @@
 
 const GOALS=['Facturen betaald krijgen','Btw overzichtelijk houden','Bonnetjes bijhouden','Kosten begrijpen','Winst volgen','Administratie bijhouden'];
 const SAFE_VAT_REVIEW_FIELDS=new Set(['net','vatAmount','gross','vatRate','vatLines']);
-const ASSISTANT_METRIC_EVENTS=new Set(['insight_shown','insight_opened','action_clicked','dismissed','helpful','not_relevant']);
+const ASSISTANT_METRIC_EVENTS=new Set(['insight_shown','insight_opened','action_clicked','dismissed','helpful','not_relevant','assistant_opened','question_suggested','question_selected','supported_intent','unsupported_intent','kpi_opened']);
 const assistantShownThisSession=new Set();
 const assistantSessionMetrics={insight_shown:0};
 
@@ -83,7 +83,7 @@ function assistantContext(){
     now:today(),
     invoices:(state.invoices||[]).filter(i=>i.status!=='draft').map(i=>({
       id:String(i.id||''),number:String(i.number||''),kind:String(i.kind||'invoice'),effectiveStatus:invoiceEffectiveStatus(i),
-      dueDate:String(i.dueDate||''),outstanding:invoiceOutstanding(i)
+      dueDate:String(i.dueDate||''),outstanding:invoiceOutstanding(i),overdueOpen:typeof invoiceIsOverdueOpen==='function'?invoiceIsOverdueOpen(i):false
     })),
     transactions:(state.transactions||[]).map(t=>({
       id:String(t.id||''),status:String(t.status||'unmatched'),
@@ -92,7 +92,7 @@ function assistantContext(){
     documents,
     monthlyMetrics:assistantMonthMetrics(),
     recurringVendors:assistantRecurringVendors(),
-    vat:{reserve:quarterVatPosition(),period:'Q'+currentQuarter()+' '+currentBookYear(),unresolvedDocumentCount:documents.filter(d=>d.status==='review_required'&&d.accountingImpact==='vat').length},
+    vat:{reserve:(typeof dashboardKpiViewModel==='function'?dashboardKpiViewModel('quarter').vatReserve:quarterVatPosition()),period:'Q'+currentQuarter()+' '+currentBookYear(),unresolvedDocumentCount:documents.filter(d=>d.status==='review_required'&&d.accountingImpact==='vat').length},
     sourceStatus:{documentsReliable:!(typeof documentProcessingFetchError!=='undefined'&&documentProcessingFetchError),financialReliable:true},
     preferences:prefs()
   };
@@ -108,6 +108,101 @@ function snapshot(){
     return {ok:false,error:'ENGINE_ERROR',context:null,insights:[],status:{state:'UNKNOWN',label:'Status niet beschikbaar',detail:'Je administratie blijft gewoon werken.'}};
   }
 }
+function qnaEngine(){return root.BoekunaAssistantQna||null}
+function assistantQuestionFacts(existingSnapshot=null){
+  const s=existingSnapshot||snapshot(),kpi=typeof dashboardKpiViewModel==='function'?dashboardKpiViewModel('month'):null;
+  const invoices=s?.context?.invoices||[],overdue=invoices.filter(i=>i?.overdueOpen===true&&Number(i?.outstanding||0)>.02);
+  const overdueOutstanding=roundMoney(overdue.reduce((sum,i)=>sum+Number(i.outstanding||0),0));
+  const todayDate=new Date(today()+'T12:00:00');
+  const overdueInvoices=overdue.slice(0,5).map(i=>{
+    const due=new Date(String(i.dueDate||'')+'T12:00:00'),days=Number.isFinite(due.getTime())?Math.max(0,Math.floor((todayDate-due)/86400000)):0;
+    return {number:String(i.number||'Factuur'),outstanding:roundMoney(i.outstanding),daysOverdue:days}
+  });
+  const documents=s?.context?.documents||[],documentReviewCount=documents.filter(d=>d?.status==='review_required').length;
+  const unmatchedTransactionCount=(s?.context?.transactions||[]).filter(t=>t?.status==='unmatched').length;
+  const costInsight=(s?.insights||[]).find(x=>x.type==='COST_SPIKE');
+  const categoryInsight=(s?.insights||[]).find(x=>x.type==='CATEGORY_SPIKE');
+  const completePeriods=(s?.context?.monthlyMetrics||[]).filter(x=>x?.complete===true).length;
+  const costChange=costInsight?{
+    absoluteDelta:Number(costInsight.sourceFacts?.absoluteDelta||0),
+    currentCost:Number(costInsight.sourceFacts?.currentCost||0),
+    baselineCost:Number(costInsight.sourceFacts?.baselineCost||0),
+    category:String(categoryInsight?.sourceFacts?.category||'')
+  }:null;
+  return Object.freeze({
+    financialReliable:!!kpi?.financialReliable&&s?.context?.sourceStatus?.financialReliable!==false&&s?.context?.sourceStatus?.documentsReliable!==false,
+    periodLabel:String(kpi?.period?.label||'Deze maand'),
+    revenue:Number(kpi?.revenue||0),costs:Number(kpi?.costs||0),profit:Number(kpi?.profit||0),
+    vatReserve:Number(kpi?.vatReserve||0),vatUnresolvedDocumentCount:Number(kpi?.vatUnresolvedDocumentCount||0),
+    outstandingTotal:Number(kpi?.receivables||0),overdueOutstanding,overdueInvoiceCount:overdue.length,overdueInvoices,
+    documentReviewCount,unmatchedTransactionCount,
+    adminStatus:s?.status?.state==='BIJGEWERKT'?'calm':'attention',
+    baselineEligible:completePeriods>=3,costChange
+  })
+}
+let assistantLastQuestionAnswer=null;
+function assistantQuestionSuggestions(s=null){
+  const Q=qnaEngine();if(!Q)return [];
+  const snap=s||snapshot(),rows=Q.suggestQuestions(assistantQuestionFacts(snap),snap.insights||[],prefs());
+  return Array.isArray(rows)?rows.slice(0,5):[]
+}
+function renderAskBoekunaAnswer(result){
+  const host=document.getElementById('assistantAnswer');if(!host)return;
+  host.replaceChildren();
+  const wrap=document.createElement('div');wrap.className='assistant-answer-card';wrap.dataset.state=String(result?.state||'UNCERTAIN');
+  const label=document.createElement('strong');label.className='assistant-answer-state';
+  label.textContent=({CALM:'Alles bijgewerkt',ATTENTION:'Aandacht',ACTION:'Actie',INSIGHT:'Inzicht',UNCERTAIN:'Even controleren',EXPLAINING:'Uitleg'})[result?.state]||'Boekuna';
+  const answer=document.createElement('p');answer.className='assistant-answer-copy';answer.textContent=String(result?.answer||'');
+  wrap.append(label,answer);
+  if(result?.detail){const detail=document.createElement('p');detail.className='assistant-answer-detail';detail.textContent=String(result.detail);wrap.append(detail)}
+  if(result?.actionLabel&&result?.actionTarget){
+    const action=document.createElement('button');action.type='button';action.className='btn primary assistant-answer-action';action.textContent=String(result.actionLabel);action.addEventListener('click',runAskBoekunaAction);wrap.append(action)
+  }
+  const feedback=document.createElement('div');feedback.className='assistant-feedback assistant-answer-feedback';
+  for(const [labelText,eventName] of [['Nuttig','helpful'],['Niet relevant','not_relevant']]){
+    const button=document.createElement('button');button.type='button';button.className='btn small';button.textContent=labelText;
+    button.addEventListener('click',()=>{recordAssistantMetric(eventName);button.disabled=true;toast(eventName==='helpful'?'Bedankt.':'Begrepen.')});feedback.append(button)
+  }
+  wrap.append(feedback);host.append(wrap)
+}
+function answerAskBoekuna(question){
+  const Q=qnaEngine(),input=document.getElementById('assistantQuestion');
+  const value=String(question??input?.value??'').trim();
+  if(!Q||!value)return null;
+  const result=Q.answer(value,assistantQuestionFacts());
+  assistantLastQuestionAnswer=result;
+  recordAssistantMetric(result.supported?'supported_intent':'unsupported_intent');
+  renderAskBoekunaAnswer(result);
+  return result
+}
+function submitAskBoekuna(event){event?.preventDefault();answerAskBoekuna();return false}
+function askBoekunaSuggestion(question){
+  const input=document.getElementById('assistantQuestion');if(input)input.value=String(question||'');
+  recordAssistantMetric('question_selected');answerAskBoekuna(question)
+}
+function runAskBoekunaAction(){
+  const Q=qnaEngine(),target=Q?.sanitizeActionTarget?.(assistantLastQuestionAnswer?.actionTarget);if(!target?.page)return;
+  recordAssistantMetric('action_clicked');closeModal();
+  const entries=Object.entries(target.filter||{});
+  if(entries.length===1){
+    const [key,value]=entries[0],list=listPageState(target.page);
+    if(list?.filters&&Object.prototype.hasOwnProperty.call(list.filters,key)){void navigateWithFilter(target.page,key,value);return}
+  }
+  void navigate(target.page)
+}
+function openAskBoekuna(){
+  const Q=qnaEngine();
+  if(!Q){modal('Vraag Boekuna','<div class="assistant-empty assistant-source-error">'+icon('i-clock')+'<div><strong>Tijdelijk niet beschikbaar</strong><span>Je administratie blijft gewoon werken.</span></div></div>','<button type="button" class="btn" onclick="closeModal()">Sluiten</button>');return}
+  const s=snapshot(),suggestions=assistantQuestionSuggestions(s);
+  recordAssistantMetric('assistant_opened');if(suggestions.length)recordAssistantMetric('question_suggested');
+  const suggestionHtml=suggestions.length?'<div class="assistant-question-suggestions" aria-label="Voorgestelde vragen">'+suggestions.map(x=>'<button type="button" class="assistant-question-suggestion" onclick="askBoekunaSuggestion('+esc(JSON.stringify(x.question))+')">'+esc(x.question)+'</button>').join('')+'</div>':'';
+  const body='<div class="assistant-ask"><p class="assistant-ask-intro">Waar kan ik mee helpen?</p>'+suggestionHtml+
+   '<form id="assistantQuestionForm" class="assistant-question-form" onsubmit="return submitAskBoekuna(event)"><label class="sr-only" for="assistantQuestion">Vraag aan Boekuna</label><input id="assistantQuestion" name="question" type="text" maxlength="'+Q.MAX_QUESTION_LENGTH+'" autocomplete="off" placeholder="Bijv. hoeveel staat nog open?"><button type="submit" class="btn primary">Vraag</button></form>'+
+   '<div id="assistantAnswer" class="assistant-answer" aria-live="polite" aria-atomic="true"></div>'+
+   '<p class="assistant-disclaimer">Boekuna gebruikt je huidige administratie voor ondersteunde vragen en gokt niet met financiële bedragen.</p></div>';
+  modal('Vraag Boekuna',body,'<button type="button" class="btn" onclick="closeModal()">Sluiten</button>')
+}
+
 function iconFor(item){
   if(item?.priority==='P0'||item?.priority==='P1')return 'i-clock';
   if(item?.category==='vat')return 'i-tax';
@@ -144,7 +239,7 @@ function renderAssistantDashboard(){
   const items=E.dashboardInsights(s.insights);noteAssistantShown(items);
   const body=items.length?'<div class="assistant-insight-list">'+items.map(x=>assistantCard(x,true)).join('')+'</div>':'<div class="assistant-empty">'+icon('i-check')+'<div><strong>Alles bijgewerkt</strong><span>Je administratie heeft op dit moment geen aandacht nodig.</span></div></div>';
   return '<section class="card dashboard-attention assistant-dashboard"><div class="section-head"><div><h2 class="assistant-dashboard-title">'+icon('i-chart')+' Voor jou</h2><p>Wat nu belangrijk is in jouw administratie</p></div><span class="badge '+(s.status.state==='BIJGEWERKT'?'good':s.status.state==='AANDACHT_NODIG'?'warn':'')+'">'+esc(s.status.label)+'</span></div>'+body+
-   '<div class="assistant-dashboard-footer"><span class="assistant-admin-label"><strong>'+esc(s.status.label)+'</strong> · '+esc(s.status.detail)+'</span><button type="button" class="link-btn" onclick="navigate(\'insights\')">Bekijk alle inzichten</button></div></section>'
+   '<div class="assistant-dashboard-footer"><span class="assistant-admin-label"><strong>'+esc(s.status.label)+'</strong> · '+esc(s.status.detail)+'</span><div class="assistant-dashboard-actions"><button type="button" class="link-btn" onclick="openAskBoekuna()">Vraag Boekuna</button><button type="button" class="link-btn" onclick="navigate(\'insights\')">Bekijk alle inzichten</button></div></div></section>'
 }
 function groupSection(title,items,iconId){
   if(!items.length)return '';
@@ -180,7 +275,7 @@ function renderInsights(){
   const noItems=!s.insights.length;
   const empty=noItems?'<section class="card assistant-group"><div class="assistant-empty">'+icon('i-check')+'<div><strong>Alles bijgewerkt</strong><span>Je administratie heeft op dit moment geen aandacht nodig. Boekuna vult de pagina niet met algemene tips.</span></div></div></section>':'';
   const main=empty+groupSection('Vandaag',urgent,'i-clock')+groupSection('Geld',moneyItems,'i-chart')+groupSection('Btw',vat,'i-tax')+groupSection('Administratie',admin,'i-check')+groupSection('Opvallend',other,'i-chart');
-  return '<div class="page-head"><div><h1>Voor jou</h1><p>Boekuna kijkt mee en laat zien wat voor jou belangrijk is.</p></div></div>'+
+  return '<div class="page-head"><div><h1>Voor jou</h1><p>Boekuna kijkt mee en laat zien wat voor jou belangrijk is.</p></div><button type="button" class="btn" onclick="openAskBoekuna()">Vraag Boekuna</button></div>'+
    '<div class="card assistant-status-card"><div class="assistant-status-line">'+icon(s.status.state==='BIJGEWERKT'?'i-check':'i-clock')+'<div><strong>'+esc(s.status.label)+'</strong><span>'+esc(s.status.detail)+'</span></div></div></div>'+
    '<div class="assistant-page-grid"><div class="assistant-section-stack">'+main+'</div><div class="assistant-section-stack">'+(prefs().weeklySummary!==false?renderWeekly(s.weekly):'')+renderMonthEnd(s)+'</div></div>'+
    '<p class="assistant-disclaimer">Boekuna helpt je administratie bijhouden. Voor persoonlijk fiscaal advies kun je een adviseur raadplegen.</p>'
@@ -248,6 +343,10 @@ function renderAssistantSettings(){
    '<p class="assistant-disclaimer">Financiële bedragen en statussen komen uit de bestaande Boekuna-berekeningen. Voorkeuren bepalen alleen wat hoger of lager wordt getoond; belangrijke financiële waarschuwingen blijven zichtbaar.</p></div></section>'
 }
 
+root.openAskBoekuna=openAskBoekuna;
+root.submitAskBoekuna=submitAskBoekuna;
+root.askBoekunaSuggestion=askBoekunaSuggestion;
+root.runAskBoekunaAction=runAskBoekunaAction;
 root.renderAssistantDashboard=renderAssistantDashboard;
 root.renderInsights=renderInsights;
 root.renderAssistantSettings=renderAssistantSettings;
@@ -258,5 +357,5 @@ root.dismissAssistantInsight=dismissAssistantInsight;
 root.setAssistantPreference=setAssistantPreference;
 root.toggleAssistantGoal=toggleAssistantGoal;
 root.restoreHiddenAssistantInsights=restoreHiddenAssistantInsights;
-root.__boekunaAssistantTest={context:assistantContext,snapshot,sessionMetrics:()=>({...assistantSessionMetrics})};
+root.__boekunaAssistantTest={context:assistantContext,snapshot,qnaFacts:assistantQuestionFacts,suggestions:assistantQuestionSuggestions,sessionMetrics:()=>({...assistantSessionMetrics})};
 })(typeof window!=='undefined'?window:globalThis);

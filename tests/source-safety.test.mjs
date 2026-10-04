@@ -128,7 +128,8 @@ assert.ok(html.includes("const LIST_STATE_KEY='boekuna-list-state-v1';"),"Contex
 assert.ok(html.includes("function getListRows(name)"),"All contextual lists must share one search/filter/sort pipeline");
 assert.ok(html.includes("function listToolbar(name,extraHtml=''"),"Relevant lists must use the shared ListToolbar");
 assert.ok(html.includes("function invoiceListStatusMatch(i,status)"),"Invoice status filters must use business status logic");
-assert.ok(html.includes("invoiceEffectiveStatus(i)==='overdue'"),"Overdue invoice filtering must use invoiceEffectiveStatus");
+assert.ok(html.includes("function invoiceIsOverdueOpen(i)"),"Past-due open invoice semantics must be centralized");
+assert.ok(html.includes("if(status==='overdue')return invoiceIsOverdueOpen(i);"),"Overdue invoice filtering must include partially paid past-due invoices");
 assert.ok(html.includes("function listNormalize(v)"),"List search must share normalized case/accent-insensitive matching");
 assert.ok(html.includes("setTimeout(()=>{listPageState(name).query=String(value||'').trim();persistListState();render();focusListSearch(name,pos)},180)"),"List search must debounce while typing");
 assert.ok(html.includes('aria-label="Zoekopdracht wissen"'),"Search clear controls must be accessible");

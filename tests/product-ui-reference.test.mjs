@@ -38,8 +38,8 @@ assert.ok(source.includes('function setDashboardPeriod('),'Dashboard period swit
 assert.ok(source.includes('--app-support:var(--status-info)'),'Supporting accent must reuse the existing info role');
 assert.ok(source.includes('function productKpi(')&&source.includes('function productKpiGrid('),'Shared KPI component helpers missing');
 assert.ok(source.includes('function renderIncome()')&&source.includes('function renderOutgoings()'),'Income and outgoings subpages missing');
-for(const label of ['Winst','Omzet','Kosten','Btw apartzetten'])assert.ok(source.includes('dashboard-kpi-label">'+label+'</span>'),'Dashboard KPI missing '+label);
-for(const label of ['Administratie','Nog te ontvangen','Nieuwe factuur'])assert.ok(source.includes('dashboard-summary-title">'+label+'</span>'),'Dashboard bottom summary missing '+label);
+for(const label of ['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen'])assert.ok(source.includes('dashboard-kpi-label">'+label+'</span>'),'Dashboard KPI missing '+label);
+for(const label of ['Administratie','Vraag Boekuna','Nieuwe factuur'])assert.ok(source.includes('dashboard-summary-title">'+label+'</span>'),'Dashboard bottom summary missing '+label);
 for(const option of ["['7d','7 dagen']","['month','Maand']","['quarter','Kwartaal']","['year','Jaar']"])assert.ok(source.includes(option),'Dashboard period option missing '+option);
 
 const build=spawnSync(process.execPath,['scripts/build-app.mjs'],{cwd:root,encoding:'utf8'});
@@ -134,10 +134,10 @@ try{
       assert.match(await page.locator('.dashboard-page-head h1').evaluate(el=>getComputedStyle(el).fontFamily),/Boekuna Space/);
       assert.equal(await page.locator('#sidebar').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
       assert.equal(await page.locator('.nav-item.active').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(236, 250, 238)');
-      assert.deepEqual(await page.locator('.dashboard-kpi-label').allTextContents(),['Winst','Omzet','Kosten','Btw apartzetten']);
+      assert.deepEqual(await page.locator('.dashboard-kpi-label').allTextContents(),['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen']);
       assert.equal(await page.locator('#dashboardPeriod').inputValue(),'month');
       assert.deepEqual((await page.locator('.dashboard-chart-card .chart-legend span').allTextContents()).map(v=>v.trim()),['Omzet','Kosten','Winst']);
-      assert.deepEqual(await page.locator('.dashboard-summary-title').allTextContents(),['Administratie','Nog te ontvangen','Nieuwe factuur']);
+      assert.deepEqual(await page.locator('.dashboard-summary-title').allTextContents(),['Administratie','Vraag Boekuna','Nieuwe factuur']);
       await noOverflow(page,browserName+' desktop dashboard');
       await axe(page,browserName+' desktop dashboard');
       assert.ok(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2),browserName+' 1440x900 dashboard must fit one screen');
