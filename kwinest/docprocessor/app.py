@@ -37,7 +37,7 @@ except Exception:
 _OCR_ENGINE = None
 _OCR_ENGINE_ERROR = None
 OCR_MODEL_NAME = "PP-OCRv6-small"
-PROCESSOR_VERSION = "3.3.0"
+PROCESSOR_VERSION = "3.3.1"
 PROCESSOR_REVISION = (os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or "unknown")[:64]
 
 def installed_package_version(name: str) -> str | None:
@@ -1611,6 +1611,9 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         customer["name"]=legal_entity;cconf=max(cconf,.90);customer_own=False
     if re.search(r"creditnota|credit note|creditfactuur|credit invoice",low): dtype="credit_invoice"
     if re.search(r"\bbon\b|receipt|kassabon",low) and not re.search(r"factuur|invoice",low): dtype="receipt"
+    non_financial_return=bool(re.search(r"\b(?:retour[- ]?order|retouraanvraag|return[- ]?order|return authorization|rma)\b",low))
+    invoice_evidence=bool(re.search(r"\b(?:factuur|invoice|creditnota|credit note|kassabon|receipt)\b",low))
+    if non_financial_return and not invoice_evidence: dtype="other"
     if dtype=="receipt" and not supplier.get("name"):
         merchant=receipt_merchant_name(lines,company)
         if merchant:supplier["name"]=merchant;sconf=max(sconf,.72)
@@ -1628,7 +1631,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
             if m and re.search(r"\d",m.group(1)):
                 invoice_no=m.group(1);break
     description,description_conf,description_source=extract_description(doc,lines)
-    invoice_date_labels=["factuurdatum","invoice date","date of invoice","document date"]
+    invoice_date_labels=["factuurdatum","uitgiftedatum","invoice date","date of invoice","issue date","issued date","document date"]
     if dtype=="credit_invoice":
         invoice_date_labels=["creditnota datum","creditdatum","credit note date","credit date"]+invoice_date_labels
     inv_date,inv_date_conf=labeled_date(lines,invoice_date_labels)
