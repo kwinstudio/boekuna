@@ -124,6 +124,8 @@ try{
  await docAction.click();
  await page.locator('#pageTitle').filter({hasText:'Documenten'}).waitFor();
  assert.equal(await page.locator('[data-list-page="documents"]').count(),1,'Assistant document action must use the existing Documents route');
+ await page.evaluate(()=>navigate('dashboard'));
+ await page.getByRole('heading',{name:'Overzicht'}).waitFor();
 
  answer=await ask('Wat is voorbelasting?');
  assert.match(await answer.innerText(),/btw/i);
