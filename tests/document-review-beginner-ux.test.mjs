@@ -72,6 +72,7 @@ const errors=[];page.on('pageerror',e=>errors.push(String(e)));
 
 async function openReview(overrides={}){
   await page.evaluate(overrides=>{
+    const {__sourceClientRef='',...parsedOverrides}=overrides;
     const base={
       type:'purchase',documentType:'purchase_invoice',confidenceScore:82,sourceQuality:'processor-v2',
       party:'Voorbeeld Leverancier BV',invoiceNumber:'INK-2026-001',issueDate:'2026-10-03',dueDate:'',
@@ -82,8 +83,8 @@ async function openReview(overrides={}){
     };
     pendingPdfImport={
       file:new File(['qa'],'review.pdf',{type:'application/pdf'}),
-      parsed:{...base,...overrides},previewUrl:null,sha256:'review-qa',
-      sourceClientRef:'',sourceDocumentId:'',processingJobId:''
+      parsed:{...base,...parsedOverrides},previewUrl:null,sha256:'review-qa',
+      sourceClientRef:__sourceClientRef,sourceDocumentId:'',processingJobId:''
     };
     showPdfImportReview(pendingPdfImport.parsed);
   },overrides);
@@ -244,19 +245,30 @@ try{
   await page.evaluate(()=>closeModal());
 
   // Non-bookable document has a safe document-only exit, never an accounting form.
-  const beforeNonBookable=await page.evaluate(()=>({documents:state.documents.length,expenses:state.expenses.length,invoices:state.invoices.length}));
+  // Real background processing persists the source before review. Mirror that durable boundary here;
+  // raw file persistence itself is already covered by the Chromium/WebKit upload regressions.
+  const nonBookableSource='nonbookable-source';
+  const beforeNonBookable=await page.evaluate(source=>{
+    state.documents.unshift({id:'nonbookable-document',fileId:source,name:'nonbookable.pdf',type:'processing',date:'2026-10-04',processingState:'review_required'});
+    return {documents:state.documents.length,expenses:state.expenses.length,invoices:state.invoices.length};
+  },nonBookableSource);
   await openReview({
+    __sourceClientRef:nonBookableSource,
     documentType:'other',bookingAllowed:false,party:'Voorbeeld',gross:25,net:25,vatAmount:0,vatRate:0,
     reviewRouting:{mode:'FULL_REVIEW',fields:[],count:0,autoBook:false}
   });
   assert.match(await page.locator('#modalRoot').innerText(),/geen definitieve bon of factuur/i);
   assert.equal(await page.locator('#pdfImportForm [name="net"]:visible').count(),0,'non-bookable must not show accounting inputs');
   await page.getByRole('button',{name:'Document bewaren',exact:true}).click();
-  await page.waitForFunction(n=>state.documents.length===n+1,beforeNonBookable.documents);
-  const afterNonBookable=await page.evaluate(()=>({documents:state.documents.length,expenses:state.expenses.length,invoices:state.invoices.length,last:state.documents[0]}));
+  await page.waitForFunction(source=>state.documents.some(d=>d.fileId===source&&d.nonBookable===true),nonBookableSource);
+  const afterNonBookable=await page.evaluate(source=>{
+    const saved=state.documents.find(d=>d.fileId===source);
+    return {documents:state.documents.length,expenses:state.expenses.length,invoices:state.invoices.length,saved};
+  },nonBookableSource);
+  assert.equal(afterNonBookable.documents,beforeNonBookable.documents,'document-only save must finalize the persisted source instead of duplicating it');
   assert.equal(afterNonBookable.expenses,beforeNonBookable.expenses,'document-only save must not create expense');
   assert.equal(afterNonBookable.invoices,beforeNonBookable.invoices,'document-only save must not create invoice');
-  assert.ok(afterNonBookable.last&&!afterNonBookable.last.linkedId,'document-only save must remain unbooked');
+  assert.ok(afterNonBookable.saved&&!afterNonBookable.saved.linkedId,'document-only save must remain unbooked');
 
   // Saved snapshot and reopen remain intact.
   await openReview({
