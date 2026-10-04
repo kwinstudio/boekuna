@@ -8,6 +8,8 @@ on:
       - "public/assets/financial-correction.js"
       - "public/assets/document-intelligence.js"
       - "public/assets/document-review-v2.js"
+      - "kwinest/app-assets/document-review-v2.js"
+      - "kwinest/app-assets/document-review-v2.css"
       - "tests/document-*.test.py"
       - "tests/document-scan-intelligence-unit.test.py"
       - "tests/document-*.test.mjs"
