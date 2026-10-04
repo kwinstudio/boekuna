@@ -209,15 +209,19 @@ try{
  assert.equal(helpfulAfter,helpfulBefore+1,'Helpful feedback must be stored as an aggregate counter only');
  await closeDialog();
 
- // Source failure: exercise the real adapter and normal Ask Boekuna path.
- await page.evaluate(()=>{documentProcessingFetchError=true;render()});
- answer=await ask('Hoe sta ik ervoor?');
+ // Source failure: keep the public Ask Boekuna modal open, then let its structured source become unreliable.
+ await page.getByRole('button',{name:/Vraag Boekuna/i}).first().click();
+ await page.getByRole('dialog').waitFor();
+ await page.evaluate(()=>{documentProcessingFetchError=true});
+ await page.locator('#assistantQuestion').fill('Hoe sta ik ervoor?');
+ await page.locator('#assistantQuestionForm').getByRole('button',{name:'Vraag',exact:true}).click();
  const sourceFail=await page.locator('#assistantAnswer').innerText();
  assert.match(sourceFail,/tijdelijk niet betrouwbaar/i,'Source failure must be explicit');
  assert.doesNotMatch(sourceFail,/€\s?[-\d]/,'Source failure must not show a guessed financial amount');
  await page.screenshot({path:path.join(evidence,browserName+'-ask-source-failure-390.png'),fullPage:true,animations:'disabled'});
+ await page.evaluate(()=>{documentProcessingFetchError=false});
  await closeDialog();
- await page.evaluate(()=>{documentProcessingFetchError=false;render()});
+ await page.evaluate(()=>render());
 
  // Desktop evidence: dashboard, lightweight Ask Boekuna, and the full Voor jou page.
  await page.setViewportSize({width:1440,height:900});
