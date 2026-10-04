@@ -130,3 +130,61 @@
   .exception-first-review .review-issue-actions{flex-direction:column;align-items:stretch}
   .exception-first-review .review-issue-actions .btn{width:100%}
 }
+
+
+/* Compact two-screen receipt / invoice review */
+.two-step-review .document-review-fields{min-width:0}
+.two-step-review .review-wizard-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:10px}
+.two-step-review .review-wizard-head h4{margin:2px 0 0;font-size:16px;line-height:1.25}
+.two-step-review .review-wizard-head .link-btn{flex:0 0 auto}
+.two-step-review .review-wizard-progress{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:16px}
+.two-step-review .review-wizard-progress span{height:4px;border-radius:999px;background:var(--border)}
+.two-step-review .review-wizard-progress span.active{background:var(--app-green,#63D471)}
+.two-step-review .review-wizard-page{display:flex;flex-direction:column;gap:14px;min-width:0}
+.two-step-review .review-wizard-page[hidden]{display:none!important}
+.two-step-review .review-page-copy h4{margin:0;font-size:22px;letter-spacing:-.02em}
+.two-step-review .review-page-copy p{margin:5px 0 0;color:var(--text-muted);font-size:13px;line-height:1.45}
+.two-step-review .review-wizard-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.two-step-review .review-wizard-grid .field{margin:0}
+.two-step-review .review-wizard-grid .field.full{grid-column:1/-1}
+.two-step-review .review-wizard-grid label{font-size:13px;font-weight:700}
+.two-step-review .review-amount-glance{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:var(--app-surface,#f6f7f8)}
+.two-step-review .review-amount-glance span{font-size:13px;color:var(--text-muted)}
+.two-step-review .review-amount-glance strong{font-size:21px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.two-step-review .compact-review-warning{margin:0;padding:10px 12px;border-radius:12px;font-size:13px}
+.two-step-review .compact-adjustment{margin:0;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--app-surface,#f6f7f8)}
+.two-step-review .beginner-review-state{margin:0}
+.two-step-review .review-hidden-scalar{display:none!important}
+.two-step-review [data-review-net-editor][hidden]{display:none!important}
+.review-wizard-actions{width:100%;display:flex;gap:10px;justify-content:flex-end}
+.review-wizard-actions .btn[hidden]{display:none!important}
+.review-wizard-actions .btn{min-height:44px}
+.two-step-review .review-original-panel.open{display:block}
+.two-step-review .review-context-card{margin:0}
+.two-step-review .mixed-vat-summary{margin:0}
+.two-step-review .review-issue-card{margin:0}
+.two-step-review .financial-correction-panel.review-secondary-panel{display:none!important}
+
+@media(min-width:821px){
+  .document-review-flow.two-step-review{grid-template-columns:minmax(320px,.9fr) minmax(430px,1.1fr)}
+  .two-step-review .document-review-fields{max-width:620px;width:100%;justify-self:center}
+  .two-step-review .review-wizard-page{min-height:360px}
+}
+@media(max-width:820px){
+  .document-review-flow.two-step-review{display:block!important}
+  .two-step-review .document-review-fields{width:100%}
+  .two-step-review .review-wizard-head{margin-bottom:8px}
+  .two-step-review .review-page-copy h4{font-size:20px}
+  .two-step-review .review-wizard-grid{grid-template-columns:1fr;gap:10px}
+  .two-step-review .review-wizard-grid .field.full{grid-column:auto}
+  .two-step-review .review-wizard-page{gap:11px}
+  .two-step-review .review-amount-glance{padding:10px 12px}
+  .two-step-review .review-amount-glance strong{font-size:19px}
+  .review-wizard-actions{justify-content:stretch}
+  .review-wizard-actions .btn{flex:1 1 0}
+}
+@media(max-width:360px){
+  .two-step-review .review-wizard-head{gap:10px}
+  .two-step-review .review-wizard-head .link-btn{font-size:12px;padding-inline:4px}
+  .two-step-review .review-page-copy p{font-size:12px}
+}
