@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Persoonlijke assistent — Boekuna</title>
+<meta name="description" content="Een assistent die alleen naar jouw administratie kijkt en laat zien wat vandaag aandacht nodig heeft.">
+<link rel="canonical" href="https://boekuna.nl/assistent/">
+<meta name="theme-color" content="#FFFFFF">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Boekuna">
+<meta property="og:locale" content="nl_NL">
+<meta property="og:title" content="Persoonlijke assistent — Boekuna">
+<meta property="og:description" content="Een assistent die alleen naar jouw administratie kijkt en laat zien wat vandaag aandacht nodig heeft.">
+<meta property="og:url" content="https://boekuna.nl/assistent/">
+<meta property="og:image" content="https://boekuna.nl/assets/boekuna-og-1200x630.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/SpaceGrotesk-Variable.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body data-page="assistent">
+<a class="skip" href="#main">Naar inhoud</a>
+
+<header class="hdr" id="hdr">
+  <div class="progress" id="progress" aria-hidden="true"></div>
+  <div class="wrap hdr-in">
+    <a class="logo" href="/" aria-label="Boekuna, naar home">Boekuna<span class="dot"></span></a>
+    <nav class="nav" aria-label="Hoofdmenu">
+      <div class="dd">
+        <button class="navbtn" id="ddBtn" aria-expanded="false" aria-controls="ddPanel">Functies
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div class="dd-panel" id="ddPanel">
+          <a href="/#facturen"><span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg></span><span><strong>Facturen</strong><span class="d">Maken, versturen en volgen</span></span></a>
+          <a href="/#bonnen"><span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></span><span><strong>Bonnen en kosten</strong><span class="d">Alles op één plek</span></span></a>
+          <a href="/scanner/"><span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10"/></svg></span><span><strong>Slim scannen</strong><span class="d">Bon erin, gegevens eruit</span></span></a>
+          <a href="/#btw"><span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg></span><span><strong>Btw</strong><span class="d">Weet wat je apart zet</span></span></a>
+          <a href="/#bank"><span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10 12 4l9 6"/><path d="M5 10v8M10 10v8M14 10v8M19 10v8M3 20h18"/></svg></span><span><strong>Bank</strong><span class="d">Transacties importeren en koppelen</span></span></a>
+          <a href="/#rapportages"><span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><span><strong>Rapportages</strong><span class="d">Cijfers die je begrijpt</span></span></a>
+          <a href="/assistent/"><span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></span><span><strong>Persoonlijke assistent</strong><span class="d">Wat jij vandaag moet weten</span></span></a>
+          <a href="/functies/"><span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span><span><strong>Alle functies</strong><span class="d">Het complete overzicht</span></span></a>
+        </div>
+      </div>
+      <a href="/assistent/" data-nav="assistent" aria-current="page">Assistent</a>
+      <a href="/scanner/" data-nav="scanner">Scanner</a>
+      <a href="/prijzen/" data-nav="prijzen">Prijzen</a>
+      <a href="/veiligheid/" data-nav="veiligheid">Veiligheid</a>
+      <a href="/faq/" data-nav="faq">Hulp</a>
+    </nav>
+    <div class="hdr-cta">
+      <a class="btn btn-ghost btn-sm login" href="https://app.boekuna.nl/?login=1">Inloggen</a>
+      <a class="btn btn-primary btn-sm" href="https://app.boekuna.nl/?register=1">Probeer gratis</a>
+      <button class="burger" id="burger" aria-expanded="false" aria-controls="mnav" aria-label="Menu openen">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<nav class="mnav" id="mnav" aria-label="Mobiel menu">
+  <a href="/">Home</a>
+  <a href="/#facturen">Functies</a>
+  <div class="sub">
+    <a href="/#facturen">Facturen</a><a href="/#bonnen">Bonnen en kosten</a><a href="/#btw">Btw</a><a href="/#bank">Bank</a><a href="/#rapportages">Rapportages</a>
+  </div>
+  <a href="/assistent/">Persoonlijke assistent</a>
+  <a href="/scanner/">Slim scannen</a>
+  <a href="/functies/">Alle functies</a>
+  <a href="/prijzen/">Prijzen</a>
+  <a href="/veiligheid/">Veiligheid</a>
+  <a href="/faq/">Hulp en FAQ</a>
+  <a href="https://app.boekuna.nl/?login=1">Inloggen</a>
+</nav>
+
+<main id="main">
+  <section class="hero" style="padding-bottom:56px">
+    <div class="wrap" style="max-width:900px">
+      <p class="kicker">Binnenkort</p><h1 class="h1" style="font-size:clamp(40px,5.4vw,68px)">Een assistent die jouw administratie kent.</h1>
+      <p class="lead" style="max-width:56ch">De persoonlijke assistent is in ontwikkeling. Straks kijkt Boekuna naar je eigen facturen, kosten, bank en btw en laat het zien wat voor jou vandaag aandacht nodig heeft.</p>
+      <div class="hero-cta"><a class="btn btn-primary" href="https://app.boekuna.nl/?register=1">Probeer Boekuna gratis</a></div>
+    </div>
+  </section>
+  <section style="padding-top:0">
+    <div class="wrap"><div data-assistant="page"></div><p class="p-muted" style="font-size:14px;margin-top:14px">Voorbeeldgegevens</p></div>
+  </section>
+  <section class="sec-alt">
+    <div class="wrap">
+      <div class="sec-head"><h2 class="h2">Wat de assistent voor je doet.</h2></div>
+      <div class="cat-grid" id="asFeat"></div>
+    </div>
+  </section>
+  <section>
+    <div class="wrap">
+      <div class="sec-head"><h2 class="h2">Slim, maar niet eigenwijs.</h2><p>Een assistent mag je helpen, niet je cijfers verzinnen.</p></div>
+      <div class="trust-grid">
+        <div class="trust-item"><span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><h3>Cijfers uit je administratie</h3><p>Bedragen komen uit dezelfde berekeningen als je overzicht en btw. De assistent rekent niets zelf bij elkaar.</p></div>
+        <div class="trust-item"><span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></span><h3>Vergelijkt met jou, niet met anderen</h3><p>"Hoger dan normaal" betekent: hoger dan jouw eigen gemiddelde. Niet dan een willekeurig ander bedrijf.</p></div>
+        <div class="trust-item"><span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></svg></span><h3>Belangrijke waarschuwingen blijven staan</h3><p>Tips kun je wegklikken. Een te late factuur of een btw-punt niet, tot het echt is opgelost.</p></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="ftr">
+  <div class="wrap">
+    <div class="ftr-grid">
+      <div><a class="logo" href="/">Boekuna<span class="dot"></span></a><p class="p-muted" style="margin:12px 0 0;max-width:30ch;font-size:15px">Boekhouden zonder gedoe. Een product van Kwinest.</p></div>
+      <div><h4>Product</h4><ul><li><a href="/#facturen">Facturen</a></li><li><a href="/#bonnen">Bonnen en kosten</a></li><li><a href="/scanner/">Scanner</a></li><li><a href="/#btw">Btw</a></li><li><a href="/#bank">Bank</a></li><li><a href="/assistent/">Assistent</a></li><li><a href="/functies/">Alle functies</a></li><li><a href="/prijzen/">Prijzen</a></li></ul></div>
+      <div><h4>Bedrijf</h4><ul><li><a href="/veiligheid/">Veiligheid</a></li><li><a href="mailto:support@boekuna.nl">Contact</a></li></ul></div>
+      <div><h4>Hulp</h4><ul><li><a href="https://boekuna.nl/support/">Support</a></li><li><a href="/faq/">Veelgestelde vragen</a></li><li><a href="https://boekuna.nl/account-verwijderen/">Account verwijderen</a></li></ul></div>
+      <div><h4>Juridisch</h4><ul><li><a href="https://boekuna.nl/privacy/">Privacy</a></li><li><a href="https://boekuna.nl/voorwaarden/">Voorwaarden</a></li><li><a href="https://boekuna.nl/voorwaarden/#bedrijfsgegevens">Bedrijfsgegevens</a></li></ul></div>
+    </div>
+    <div class="ftr-bottom"><span>© 2026 Boekuna is een product van Kwinest · <a href="https://boekuna.nl/voorwaarden/#bedrijfsgegevens">Bedrijfsgegevens (KVK, btw-id, adres)</a> · <a href="mailto:support@boekuna.nl">support@boekuna.nl</a></span><button class="theme-btn" id="themeBtn" type="button">Donkere modus</button></div>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/assets/site.js" defer></script>
+</body>
+</html>
