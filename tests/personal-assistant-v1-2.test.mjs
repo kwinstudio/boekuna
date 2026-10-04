@@ -145,6 +145,7 @@ assert.match(app,/vatReserve/,'KPI view model must expose VAT reserve');
 assert.match(app,/financialReliable/,'Assistant facts must explicitly carry financial reliability');
 const assistantUi=fs.readFileSync(path.join(root,'public','assets','personal-insights-ui.js'),'utf8');
 assert.match(assistantUi,/vat:\{reserve:\(typeof dashboardKpiViewModel===['"]function['"]\?dashboardKpiViewModel\(['"]quarter['"]\)\.vatReserve:quarterVatPosition\(\)\)/,'Voor jou VAT reserve must share the V1.2 KPI truth when available');
+assert.match(assistantUi,/sourceStatus\?\.documentsReliable!==false/,'Ask Boekuna must fail closed when document source reliability is false');
 const dashboardChartSource=app.slice(app.indexOf('function dashboardChartBuckets'),app.indexOf('function productKpi'));
 assert.match(dashboardChartSource,/invoiceEffectiveStatus\(i\)!==['"]cancelled['"]/,'Dashboard chart must exclude cancelled invoices just like the KPI view model');
 
