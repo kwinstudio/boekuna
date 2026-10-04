@@ -287,6 +287,46 @@ Totaal bedrag € 324,30
         },
     },
     {
+        "id": "finqle-style-sales-invoice",
+        "file": "finqle-style-sales-invoice.pdf",
+        "text": """--- PAGE 1 ---
+Eigen Studio
+Teststraat 10
+3011AA ROTTERDAM
+BTW #: NL123456789B01
+Reg #: 12345678
+FACTUUR MAE24C9-000019
+Debiteur:
+Food Fiesta B.V.
+Klantstraat 34
+1055ZZ AMSTERDAM
+Factuur #: MAE24C9-000019
+Project: Algemeen
+Uitgiftedatum: 10-09-2026
+Betalingstermijn: 14 dagen
+Vervaldatum: 24-09-2026
+Datum: Van: Tot: Pauzes: Uren: Tarief: Totaal ex: BTW %: BTW: Totaal in:
+02-09-2026 16:30 21:30 -00h:10m 04h:50m € 22,00 € 106,33 21% € 22,33 € 128,66
+Kassamedewerker evenement
+Totalen: € 106,33 € 22,33 € 128,66
+BTW - 21% € 106,33 € 22,33 € 128,66
+Totaal te betalen € 128,66
+Betaling dient binnen 14 dagen te geschieden.
+""",
+        "tables": [{"page": 1, "rows": [
+            ["Datum", "Van", "Tot", "Pauzes", "Uren", "Tarief", "Totaal ex", "BTW %", "BTW", "Totaal in"],
+            ["02-09-2026", "16:30", "21:30", "-00h:10m", "04h:50m", "€22,00", "€106,33", "21%", "€22,33", "€128,66"],
+        ]}],
+        "layout": layout((38, 35, "Eigen Studio"), (145, 35, "Food Fiesta B.V.")),
+        "expected": {
+            "documentType": "sales_invoice", "supplier": "Eigen Studio",
+            "invoiceNumber": "MAE24C9-000019", "invoiceDate": "2026-09-10",
+            "dueDate": "2026-09-24", "subtotal": 106.33, "vatTotal": 22.33,
+            "total": 128.66, "status": "overdue", "settlement": None,
+            "vatRate": 21,
+        },
+    },
+    {
         "id": "reddende-engel-july",
         "file": "reddende-engel-july.pdf",
         "text": """--- PAGE 1 ---
@@ -376,6 +416,39 @@ class DocumentProcessorRegressionTests(unittest.TestCase):
                 self.assertMoney(vat_group.taxableAmount, exp["subtotal"])
                 self.assertMoney(vat_group.vatAmount, exp["vatTotal"])
                 self.assertGreaterEqual(result.confidence.get("vatLines", 0), .95)
+
+    def test_return_order_is_not_promoted_to_financial_invoice(self):
+        doc = {
+            "kind": "pdf",
+            "pageCount": 1,
+            "text": """--- PAGE 1 ---
+Artikelnummer Omschrijving Aantal
+021224 Friteuse 2 x 8 Liter -1,00
+Reden omruiling/retour:
+Retour-order
+support@horecaworld.example
+Ordernummer: 60530621
+Retour obv ticket: 615
+Klantnummer: 10290755
+Horeca World Europe
+Referentie: Orderdatum: 09-11-2023
+Afhaaladres
+Eigen Studio
+Teststraat 10
+3011 AA ROTTERDAM
+Deze retour-order graag op de goederen plakken
+""",
+            "tables": [],
+            "layout": layout((40, 35, "Horeca World Europe"), (300, 35, "Eigen Studio")),
+            "ocrPages": [],
+            "warnings": [],
+        }
+        result = app.heuristic_extract(doc, "return-order.pdf", COMPANY)
+        self.assertEqual(result.documentType, "other")
+        self.assertIsNone(result.invoice.invoiceNumber)
+        self.assertIsNone(result.amounts.subtotal)
+        self.assertIsNone(result.amounts.vatTotal)
+        self.assertIsNone(result.amounts.total)
 
     def test_sales_direction_does_not_imply_self_billing(self):
         doc = {
