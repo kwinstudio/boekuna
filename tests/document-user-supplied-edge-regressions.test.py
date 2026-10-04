@@ -81,5 +81,9 @@ Totaalbedrag EUR 1.620,00
     assert processor.money_cents(result.amounts.vatTotal) == 27000, result.model_dump()
     assert processor.money_cents(result.amounts.total) == 162000, result.model_dump()
     assert not any(float(line.rate) == 21.0 for line in result.amounts.vatLines), result.model_dump()
-    assert result.amounts.vatLines == [], result.model_dump()
-    assert result.confidence.get("vatLines", 1) <= 0.35, result.model_dump()
+    assert [line.rate for line in result.amounts.vatLines] == [20.0], result.model_dump()
+    assert processor.money_cents(result.amounts.vatLines[0].taxableAmount) == 135000
+    assert processor.money_cents(result.amounts.vatLines[0].vatAmount) == 27000
+    assert result.amounts.detectedVatRates == [20.0]
+    assert result.amounts.accountingVatTreatment == "review_required"
+    assert result.processing["reviewRouting"]["mode"] == "FULL_REVIEW"

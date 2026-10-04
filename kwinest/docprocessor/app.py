@@ -6,6 +6,10 @@ from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import urlsplit
 
+# Disable native ONNX telemetry before any third-party library initializes it.
+# API suppression alone can be too late for the initialization event.
+os.environ["ORT_DISABLE_TELEMETRY"] = "1"
+
 import fitz
 import pdfplumber
 import requests
@@ -26,9 +30,12 @@ from openpyxl import load_workbook
 from receipt_math import detect_vat_rates, has_complex_adjustments, derive_single_rate_amounts, enforce_single_rate_consistency
 from financial_blocks import parse_financial_blocks
 from image_quality import inspect_image_quality, quality_advice
+from document_intelligence import annotate_understanding, annotate_safety, duplicate_candidates, NET_TOTAL_LABELS, VAT_TOTAL_LABELS
 
 RAPIDOCR_GENERATION = "none"
 try:
+    import onnxruntime as ort
+    ort.disable_telemetry_events()
     from rapidocr import EngineType, LangDet, LangRec, ModelType, OCRVersion, RapidOCR
     RAPIDOCR_GENERATION = "v3"
 except Exception:
@@ -37,7 +44,7 @@ except Exception:
 _OCR_ENGINE = None
 _OCR_ENGINE_ERROR = None
 OCR_MODEL_NAME = "PP-OCRv6-small"
-PROCESSOR_VERSION = "3.3.1"
+PROCESSOR_VERSION = "4.3.0"
 PROCESSOR_REVISION = (os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or "unknown")[:64]
 
 def installed_package_version(name: str) -> str | None:
@@ -256,6 +263,7 @@ class Customer(BaseModel):
     email: str | None = None
 
 class InvoiceMeta(BaseModel):
+    referencedInvoiceNumber: str | None = None
     invoiceNumber: str | None = None
     invoiceDate: str | None = None
     dueDate: str | None = None
@@ -280,6 +288,13 @@ class Adjustment(BaseModel):
     counterparty: str | None = None
 
 class Amounts(BaseModel):
+    invoiceTotal: float | None = None
+    advancePayment: float | None = None
+    alreadyPaid: float | None = None
+    outstandingAmount: float | None = None
+    amountDue: float | None = None
+    detectedVatRates: list[float] = Field(default_factory=list)
+    accountingVatTreatment: Literal["standard", "review_required"] = "standard"
     subtotal: float | None = None
     vatLines: list[VatLine] = Field(default_factory=list)
     vatTotal: float | None = None
@@ -290,6 +305,13 @@ class Amounts(BaseModel):
     currency: str = "EUR"
 
 class LineItem(BaseModel):
+    unit: str | None = None
+    discount: float | None = None
+    discountPercent: float | None = None
+    netAmount: float | None = None
+    vatAmount: float | None = None
+    grossAmount: float | None = None
+    source: str | None = None
     description: str | None = None
     quantity: float | None = None
     unitPrice: float | None = None
@@ -318,7 +340,7 @@ class ExtractionResult(BaseModel):
         return {str(k): max(0.0, min(1.0, float(val))) for k, val in (v or {}).items() if _finite(val)}
 
 # ----------------------------- helpers -----------------------------
-MONEY_RE = re.compile(r"(?<!\w)(?:EUR|€|EURO)?\s*[-+]?\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|(?<!\w)(?:EUR|€|EURO)?\s*[-+]?\d+(?:[.,]\d{2})(?!\w)", re.I)
+MONEY_RE = re.compile(r"(?<!\w)(?:USD|GBP|CHF|EUR|€|EURO)?\s*[-+]?\d{1,3}(?:,\d{3})+\.\d{2}(?![\w.,])|(?<!\w)(?:EUR|€|EURO)?\s*[-+]?\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})|(?<!\w)(?:EUR|€|EURO)?\s*[-+]?\d+(?:[.,]\d{2})(?!\w)", re.I)
 DATE_RES = [
     re.compile(r"\b(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})\b"),
     re.compile(r"\b(\d{1,2})[-/.](\d{1,2})[-/.](20\d{2})\b"),
@@ -413,6 +435,10 @@ def norm_date(s: str) -> str | None:
     if m:
         try: return date(int(m[3]),MONTHS[m[2]],int(m[1])).isoformat()
         except Exception: pass
+    m=re.search(r"\b("+"|".join(MONTHS)+r")\s+(\d{1,2}),?\s+(20\d{2})\b",st)
+    if m:
+        try:return date(int(m[3]),MONTHS[m[1]],int(m[2])).isoformat()
+        except Exception:pass
     return None
 
 def line_after_label(lines:list[str], labels:list[str], max_ahead=2) -> tuple[str|None,int|None]:
@@ -1222,7 +1248,7 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
     try:
         if doc.page_count>MAX_PDF_PAGES:
             raise BoekunaDocumentError("INVALID_REQUEST",status=400,context={"max_pages":MAX_PDF_PAGES},internal_code="PDF_PAGE_LIMIT_EXCEEDED")
-        pages=[]; all_text=[]; layout=[]; tables=[]; ocr_pages=[]; warnings=[]; sparse_pages=[]
+        pages=[]; all_text=[]; native_text=[]; layout=[]; tables=[]; ocr_pages=[]; warnings=[]; sparse_pages=[]
         # pdfplumber is separate because its table finder is useful on vector PDFs
         try: plumber=pdfplumber.open(io.BytesIO(raw))
         except Exception: plumber=None
@@ -1231,6 +1257,7 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
             page=doc[idx]
             words=page.get_text("words", sort=True)
             blocks=page.get_text("blocks", sort=True)
+            native_text.append(page.get_text("text", sort=False) or "")
             text=page.get_text("text", sort=True) or ""
             text=norm_text(text.replace("\r","\n")).replace(" \n","\n")
             page_layout=[{"x0":round(w[0],1),"y0":round(w[1],1),"x1":round(w[2],1),"y1":round(w[3],1),"text":norm_text(w[4])} for w in words if norm_text(w[4])]
@@ -1295,7 +1322,7 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
             if not ocr_engine:
                 raise BoekunaDocumentError("PROCESSOR_UNAVAILABLE",status=503,internal_code="OCR_ENGINE_UNAVAILABLE")
             raise BoekunaDocumentError("DOCUMENT_PDF_UNREADABLE",status=422,internal_code="PDF_OCR_UNREADABLE")
-        return {"kind":"pdf","pageCount":doc.page_count,"pages":pages,"text":combined_text,"layout":layout,"tables":tables,"ocrPages":ocr_pages,"ocrEngine":"RapidOCR 3 / ONNX" if ocr_pages else None,"ocrModel":OCR_MODEL_NAME if ocr_pages else None,"warnings":warnings}
+        return {"kind":"pdf","pageCount":doc.page_count,"pages":pages,"text":combined_text,"nativeText":"\n".join(native_text),"layout":layout,"tables":tables,"ocrPages":ocr_pages,"ocrEngine":"RapidOCR 3 / ONNX" if ocr_pages else None,"ocrModel":OCR_MODEL_NAME if ocr_pages else None,"warnings":warnings}
     finally:
         if plumber:
             try: plumber.close()
@@ -1630,8 +1657,19 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
             m=re.match(r"^\s*(?:factuur|invoice)\s+([A-Z0-9][A-Z0-9._\-/]{1,50})\s*$",line,re.I)
             if m and re.search(r"\d",m.group(1)):
                 invoice_no=m.group(1);break
+    native_lines=[norm_text(x) for x in (doc.get('nativeText') or '').splitlines() if norm_text(x)]
+    # Native PDF text keeps standalone titles/identifiers apart when coordinate
+    # sorting concatenates columns; use it only for explicit title evidence.
+    for ni,line in enumerate(native_lines[:40] or lines[:40]):
+        m=re.match(r'^(?:bon/)?(?:factuur|invoice|creditnota|credit note)\b\s*[:#]?\s*([A-Z0-9][A-Z0-9._/-]{1,50})\s*$',line,re.I)
+        if m and re.search(r'\d',m.group(1)):
+            invoice_no=m.group(1);break
+        if not invoice_no and re.fullmatch(r'(?:factuur(?: / werkbon)?|invoice|creditnota|credit note)',line,re.I):
+            source=native_lines or lines
+            candidate=source[ni+1] if ni+1<len(source) else ''
+            if re.fullmatch(r'[A-Z0-9][A-Z0-9._/-]{2,50}',candidate,re.I) and re.search(r'\d',candidate):invoice_no=candidate;break
     description,description_conf,description_source=extract_description(doc,lines)
-    invoice_date_labels=["factuurdatum","uitgiftedatum","invoice date","date of invoice","issue date","issued date","document date"]
+    invoice_date_labels=["factuurdatum","uitgiftedatum","invoice date","date of invoice","issue date","issued date","issued:","document date"]
     if dtype=="credit_invoice":
         invoice_date_labels=["creditnota datum","creditdatum","credit note date","credit date"]+invoice_date_labels
     inv_date,inv_date_conf=labeled_date(lines,invoice_date_labels)
@@ -1643,13 +1681,15 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
             if d:
                 inv_date,inv_date_conf=d,.76
                 break
+    if not inv_date and native_lines:
+        inv_date,inv_date_conf=labeled_date(native_lines,invoice_date_labels+['datum:','datum'])
     due_date,due_conf=labeled_date(lines,["vervaldatum","due date","betalen voor","betaal voor","pay before","payment due"])
     order_raw,_=line_after_label(lines,["bestelnummer","ordernummer","order number","purchase order","po number"]); order_no=order_raw[:60] if order_raw else None
     ref_raw,_=line_after_label(lines,["betalingskenmerk","payment reference","payment ref","kenmerk"]); payref=ref_raw[:80] if ref_raw else None
 
     total,total_conf=labeled_amount(amount_lines,["totaal te betalen","te voldoen","amount due","balance due","grand total","eindtotaal","total amount","totaal incl. btw","totaal inclusief btw","total incl. vat","invoice total","factuurbedrag","factuurtotaal"],["subtotaal","subtotal","excl"])
-    subtotal,sub_conf=labeled_amount(amount_lines,["totaal excl. btw","totaal exclusief btw","bedrag excl. btw","bedrag exclusief btw","total excl. vat","tax exclusive","net amount","netto bedrag","subtotaal","subtotal"])
-    vat_total,vat_conf=labeled_amount(amount_lines,["totaal btw","btw totaal","vat total","tax amount","btw-bedrag","btw bedrag"],["btw nr","btw-id","vat id"])
+    subtotal,sub_conf=labeled_amount(amount_lines,NET_TOTAL_LABELS)
+    vat_total,vat_conf=labeled_amount(amount_lines,VAT_TOTAL_LABELS,["btw nr","btw-id","vat id"])
     discount,disc_conf=labeled_amount(amount_lines,["korting","discount"])
     shipping,ship_conf=labeled_amount(amount_lines,["verzendkosten","shipping","freight"])
     strong_total,strong_total_conf=strong_total_anchor(amount_lines)
@@ -1815,7 +1855,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         status=status,lineItems=[],adjustments=structured_adjustments,confidence=confidence,warnings=derivation_warnings,
         processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"financialBlocks":{"verified":bool(financial_structure.get("verified")),"primaryArithmeticOk":bool(financial_structure.get("primaryArithmeticOk")),"adjustmentArithmeticOk":bool(financial_structure.get("adjustmentArithmeticOk")),"settlementArithmeticOk":bool(financial_structure.get("settlementArithmeticOk")),"adjustmentTotal":financial_structure.get("adjustmentTotal"),"settlementSource":financial_structure.get("settlementSource")},"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"conflicts":derivation.get("conflicts",[]),"mixedRates":len(detected_rates)>1},"imageQuality":{"class":(doc.get("processingHints") or {}).get("qualityClass"),"flags":(doc.get("processingHints") or {}).get("qualityFlags") or [],"advice":(doc.get("processingHints") or {}).get("qualityAdvice") or [],"metrics":(doc.get("processingHints") or {}).get("qualityMetrics") or {}},"headerFocusUsed":bool((doc.get("processingHints") or {}).get("headerFocusUsed")),"mixedVatEvidence":{"verified":bool(mixed_vat_evidence.get("verified")),"source":mixed_vat_evidence.get("source")},"vatLineSource":vat_line_source,"descriptionSource":description_source,"selfBilling":self_billing,"selfBillingEvidence":"explicit-source-text" if self_billing else None,"factoringSaleStructure":factoring_sale}
     )
-    return validate_result(result,company)
+    return annotate_safety(annotate_understanding(validate_result(result,company),doc,company,money_tokens),doc,norm_money)
 
 # ----------------------------- validation -----------------------------
 def validate_result(r:ExtractionResult,company:dict)->ExtractionResult:
@@ -2670,25 +2710,11 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
         }))
         result.warnings.append("Extra AI-controle was tijdelijk niet beschikbaar; controleer onzekere velden handmatig.")
     result=validate_result(result,company)
-    dup=[]
-    if result.documentType=="sales_invoice":
-        counterparty=result.customer.name
-    elif result.documentType=="credit_invoice":
-        if own_matches(result.supplier.model_dump(),company):counterparty=result.customer.name
-        else:counterparty=result.supplier.name
-    else:
-        counterparty=result.supplier.name
-    sup=(counterparty or "").lower().strip(); no=(result.invoice.invoiceNumber or "").lower().strip(); dt=result.invoice.invoiceDate; total=result.amounts.total
-    for row in existing if isinstance(existing,list) else []:
-        score=0; reasons=[]
-        if no and no==str(row.get("invoiceNumber") or row.get("number") or "").lower().strip():score+=.5;reasons.append("factuurnummer")
-        rn=str(row.get("supplier") or row.get("party") or "").lower().strip()
-        if sup and rn and (sup==rn or sup in rn or rn in sup):score+=.2;reasons.append("leverancier")
-        if dt and dt==row.get("invoiceDate"):score+=.15;reasons.append("datum")
-        try:
-            if total is not None and abs(float(row.get("total"))-total)<=.05:score+=.15;reasons.append("totaal")
-        except Exception:pass
-        if score>=.65:dup.append({"id":row.get("id"),"score":round(score,2),"reasons":reasons})
+    # Re-apply document-local safety after reconciliation; no learned financial overwrites.
+    result=annotate_safety(annotate_understanding(result,doc,company,money_tokens),doc,norm_money)
+    dup=duplicate_candidates(result,existing,hashlib.sha256(raw).hexdigest())
+    if dup:
+        result.processing['reviewRouting']={'mode':'FULL_REVIEW','fields':['duplicate'],'count':1,'autoBook':False}
     if dup:result.warnings.append("Mogelijk bestaat deze factuur al.")
     processing={
         **result.processing,
@@ -2722,6 +2748,8 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
         "ocr_pages":len(processing.get("ocrPages") or []),
         "quality_class":quality_meta.get("class"),"quality_flags":quality_meta.get("flags") or [],
         "document_type":result.documentType,"warning_count":len(result.warnings or []),
+        "review_mode":(processing.get("reviewRouting") or {}).get("mode"),
+        "anomaly_types":processing.get("anomalyCodes") or [],
         "field_confidence_classes":confidence_classes,
         "mixed_vat":bool((processing.get("amountDerivation") or {}).get("mixedRates")),
         "external_ai_enabled":EXTERNAL_AI_ENABLED,"external_ai_used":bool(ai),

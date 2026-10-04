@@ -35,6 +35,9 @@ on:
       - "tests/financial-blocks.test.py"
       - ".github/workflows/boekuna-backend.yml"
 
+env:
+  ORT_DISABLE_TELEMETRY: "1"
+
 permissions:
   contents: read
 
@@ -96,13 +99,11 @@ jobs:
         run: python tests/ocr-production-hardening.test.py
       - name: Baseline scan intelligence benchmark
         env:
-          BOOKUNA_BASE_SHA: f1c0a10df6e84da376e333e7ee00f178862bcfcb
+          BOOKUNA_BASE_SHA: ${{ github.event.pull_request.base.sha || '175b1072f91caecdf206de77f8c9b82492b3427e' }}
         run: |
           BASE=/tmp/boekuna-base-processor
           mkdir -p "$BASE"
-          for file in app.py receipt_math.py financial_blocks.py; do
-            git show "$BOOKUNA_BASE_SHA:kwinest/docprocessor/$file" > "$BASE/$file"
-          done
+          git archive "$BOOKUNA_BASE_SHA" kwinest/docprocessor | tar -x -C "$BASE" --strip-components=2
           BOOKUNA_PROCESSOR_DIR="$BASE" python tests/document-scan-intelligence-benchmark.test.py
       - name: Scan intelligence benchmark
         run: python tests/document-scan-intelligence-benchmark.test.py

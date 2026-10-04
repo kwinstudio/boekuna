@@ -129,6 +129,8 @@ try{
  }
  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>{page='bank';render()});
  const mobileUnlink=page.locator('.mobile-card-list').getByRole('button',{name:'Ontkoppelen',exact:true}).first();
+ // Mobile cards are installed by a MutationObserver; WebKit may flush that observer after the viewport transition returns.
+ await mobileUnlink.waitFor({state:'visible',timeout:2000});
  assert.equal(await mobileUnlink.isVisible(),true,'Mobile bank action must keep Ontkoppelen as visible text');
  assert.equal(await mobileUnlink.locator('svg').count(),0,'Mobile bank action should favor text over icon-only meaning');
  await page.evaluate(()=>{page='expenses';render()});

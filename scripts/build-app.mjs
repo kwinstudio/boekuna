@@ -33,6 +33,7 @@ const appAssets=[
   'brand-v2.css',
   'favicon-32.png',
   'financial-correction.js',
+  'document-intelligence.js',
   'document-review-v2.js',
   'document-review-v2.css',
   'kvk-company-lookup.js',

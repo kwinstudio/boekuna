@@ -96,7 +96,29 @@ try{
   await page.goto(base+'/app'+(variant==='baseline'?'?baseline=1':''),{waitUntil:'networkidle'});
   await page.evaluate(async()=>document.fonts.ready);pages.push(page);
  }
+ const comparisonPage=await browser.newPage();
  let count=0;
+ async function pixelEquivalent(a,b){
+  if(a.equals(b))return {ok:true,diffPixels:0,maxDelta:0};
+  return comparisonPage.evaluate(async({left,right})=>{
+   const load=src=>new Promise((resolve,reject)=>{
+    const img=new Image();img.onload=()=>resolve(img);img.onerror=reject;img.src='data:image/png;base64,'+src;
+   });
+   const [aImg,bImg]=await Promise.all([load(left),load(right)]);
+   if(aImg.naturalWidth!==bImg.naturalWidth||aImg.naturalHeight!==bImg.naturalHeight)return {ok:false,diffPixels:Infinity,maxDelta:255};
+   const canvas=document.createElement('canvas');canvas.width=aImg.naturalWidth;canvas.height=aImg.naturalHeight;
+   const ctx=canvas.getContext('2d',{willReadFrequently:true});
+   ctx.drawImage(aImg,0,0);const aData=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+   ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(bImg,0,0);const bData=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+   let diffPixels=0,maxDelta=0;
+   for(let i=0;i<aData.length;i+=4){
+    let changed=false;
+    for(let c=0;c<4;c++){const d=Math.abs(aData[i+c]-bData[i+c]);if(d){changed=true;if(d>maxDelta)maxDelta=d}}
+    if(changed)diffPixels++;
+   }
+   return {ok:diffPixels<=8&&maxDelta<=1,diffPixels,maxDelta};
+  },{left:a.toString('base64'),right:b.toString('base64')});
+ }
  async function compare(name){
   const shots=[];
   for(let i=0;i<pages.length;i++){
@@ -104,7 +126,9 @@ try{
    await pages[i].waitForTimeout(350);
    shots.push(await pages[i].screenshot({path:path.join(evidence,browserName+'-'+i+'-'+name+'.png'),animations:'disabled'}));
   }
-  assert.equal(shots[0].equals(shots[1]),true,browserName+' desktop pixels changed: '+name);count++;
+  const pixels=await pixelEquivalent(shots[0],shots[1]);
+  if(pixels.ok&&pixels.diffPixels)console.log(browserName+' desktop antialias tolerance: '+name+' ('+pixels.diffPixels+' pixels, max delta '+pixels.maxDelta+')');
+  assert.equal(pixels.ok,true,browserName+' desktop pixels changed: '+name+' ('+pixels.diffPixels+' pixels, max delta '+pixels.maxDelta+')');count++;
  }
  for(const [width,height] of [[1024,768],[1280,800],[1366,768],[1440,900],[1920,1080]]){
   for(const page of pages)await page.setViewportSize({width,height});
