@@ -1,0 +1,113 @@
+name: TEMP OCR V4 authenticated production smoke
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/temp-ocr-v4-authenticated-production-smoke.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  authenticated-analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BOOKUNA_QA_EMAIL: \${{ secrets.BOOKUNA_MARKETING_CAPTURE_EMAIL }}
+      BOOKUNA_QA_PASSWORD: \${{ secrets.BOOKUNA_MARKETING_CAPTURE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Authenticated production /analyze with mixed-VAT regression fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64, json, os, pathlib, urllib.request, urllib.error, uuid
+
+          SUPABASE_URL='https://vuwfyhtejsxhdfyvkkeq.supabase.co'
+          PUBLISHABLE_KEY='sb_publishable_miAZ6CBZShVcmmNwlnEDgA_aGw1X4aP'
+          PROCESSOR='https://kwinest-docprocessor.onrender.com/analyze'
+          ORIGIN='https://app.boekuna.nl'
+
+          email=(os.environ.get('BOOKUNA_QA_EMAIL') or '').strip()
+          password=os.environ.get('BOOKUNA_QA_PASSWORD') or ''
+          if not email or not password:
+              raise SystemExit('Dedicated fictive QA credentials are not configured')
+
+          auth_req=urllib.request.Request(
+              SUPABASE_URL+'/auth/v1/token?grant_type=password',
+              data=json.dumps({'email':email,'password':password}).encode(),
+              headers={'apikey':PUBLISHABLE_KEY,'Content-Type':'application/json'},
+              method='POST',
+          )
+          try:
+              with urllib.request.urlopen(auth_req, timeout=30) as response:
+                  auth=json.load(response)
+          except urllib.error.HTTPError as exc:
+              raise SystemExit(f'QA auth failed HTTP {exc.code}') from exc
+          token=auth.get('access_token')
+          if not token:
+              raise SystemExit('QA auth returned no access token')
+
+          fixture=pathlib.Path('tests/fixtures/02_gemengde_btw_9_en_21.pdf.b64')
+          raw=base64.b64decode(fixture.read_text().strip())
+          boundary='----boekuna-ocr-v4-'+uuid.uuid4().hex
+          chunks=[]
+          def field(name,value):
+              chunks.extend([
+                  f'--{boundary}\r\n'.encode(),
+                  f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode(),
+                  str(value).encode(), b'\r\n'
+              ])
+          field('company_json', json.dumps({'name':'BOEKUNA QA TESTBEDRIJF'}))
+          field('existing_json', '[]')
+          chunks.extend([
+              f'--{boundary}\r\n'.encode(),
+              b'Content-Disposition: form-data; name="file"; filename="02_gemengde_btw_9_en_21.pdf"\r\n',
+              b'Content-Type: application/pdf\r\n\r\n', raw, b'\r\n',
+              f'--{boundary}--\r\n'.encode(),
+          ])
+          body=b''.join(chunks)
+          analyze_req=urllib.request.Request(
+              PROCESSOR,
+              data=body,
+              headers={
+                  'Authorization':'Bearer '+token,
+                  'Origin':ORIGIN,
+                  'Content-Type':'multipart/form-data; boundary='+boundary,
+                  'Accept':'application/json',
+              },
+              method='POST',
+          )
+          try:
+              with urllib.request.urlopen(analyze_req, timeout=120) as response:
+                  payload=json.load(response)
+          except urllib.error.HTTPError as exc:
+              detail=exc.read().decode('utf-8','replace')[:800]
+              raise SystemExit(f'Production analyze failed HTTP {exc.code}: {detail}') from exc
+
+          assert payload.get('ok') is True, payload
+          data=payload.get('data') or {}
+          invoice=data.get('invoice') or {}
+          amounts=data.get('amounts') or {}
+          processing=data.get('processing') or {}
+          assert invoice.get('invoiceNumber') == 'KKG/26/09/7741', invoice
+          def cents(value): return round(float(value)*100)
+          assert cents(amounts.get('subtotal')) == 42995, amounts
+          assert cents(amounts.get('vatTotal')) == 5249, amounts
+          assert cents(amounts.get('total')) == 48244, amounts
+          lines=sorted(amounts.get('vatLines') or [], key=lambda row: float(row.get('rate') or 0))
+          assert [float(row.get('rate')) for row in lines] == [9.0,21.0], lines
+          assert cents(lines[0].get('taxableAmount')) == 31500 and cents(lines[0].get('vatAmount')) == 2835, lines
+          assert cents(lines[1].get('taxableAmount')) == 11495 and cents(lines[1].get('vatAmount')) == 2414, lines
+          assert processing.get('externalAiUsed') is not True, processing
+          print(json.dumps({
+              'result':'PASS',
+              'invoiceNumber':invoice.get('invoiceNumber'),
+              'subtotal':amounts.get('subtotal'),
+              'vatTotal':amounts.get('vatTotal'),
+              'total':amounts.get('total'),
+              'vatRates':[row.get('rate') for row in lines],
+              'externalAiUsed':processing.get('externalAiUsed',False),
+          }, sort_keys=True))
+          PY
