@@ -102,7 +102,7 @@ try {
  assert.equal(await page.locator('head link[href*="mobile-product.css"]').count(),1,'Mobile CSS must be in the real head, never a print template');
  for(const [width,height] of [[320,568],[360,800],[375,812],[390,844],[393,852],[412,915],[430,932],[768,1024],[844,390]]){
   await page.setViewportSize({width,height});
-  for(const route of ['dashboard','invoices','expenses','documents','bank','income','outgoings','vat','reports','settings','profile','contacts','services','hours','bookings','ledger']){
+  for(const route of ['dashboard','insights','invoices','expenses','documents','bank','income','outgoings','vat','reports','settings','profile','contacts','services','hours','bookings','ledger']){
    await nav(route);await noOverflow(page,browserName+' '+route+' '+width);
    if(width===390)await axe(page,browserName+' '+route);
    if([320,390,430].includes(width))await page.screenshot({path:path.join(evidence,browserName+'-'+route+'-'+width+'.png'),fullPage:true,animations:'disabled'});
@@ -162,7 +162,7 @@ try {
  await nav('dashboard');await page.locator('.dashboard-summary-card').nth(1).click();
  assert.equal(await page.evaluate(()=>listPageState('invoices').filters.status),'open');
  await nav('settings');
- assert.equal(await page.locator('.mobile-settings-index .settings-nav-item').count(),7);
+ assert.equal(await page.locator('.mobile-settings-index .settings-nav-item').count(),8);assert.equal(await page.locator('.mobile-settings-index').getByText('Assistent & inzichten',{exact:true}).count(),1);
  assert.equal(await page.locator('.settings-group').first().isVisible(),false);
  await page.getByRole('button',{name:/Factuurinstellingen/}).click();
  assert.equal(await page.locator('.mobile-settings-active').count(),1);
