@@ -14,13 +14,16 @@ const portal=read('supabase/functions/billing-portal/index.ts');
 const analyze=read('supabase/functions/analyze-invoice/index.ts');
 
 const retainedPublicPages=['account-verwijderen','privacy','support','voorwaarden'];
+const multipageMarketingRoutes=['functies','assistent','scanner','prijzen','veiligheid','faq'];
 const retiredOnePageRoutes=[
-  'btw-bank','contact','facturen','faq','functies','hoe-het-werkt','over',
-  'prijzen','rapportages','scanner','veiligheid','voor-ondernemers'
+  'btw-bank','contact','facturen','hoe-het-werkt','over','rapportages','voor-ondernemers'
 ];
 
 for(const slug of retainedPublicPages){
   assert.ok(fs.existsSync(path.join(root,'public',slug,'index.html')), 'retained public page missing: '+slug);
+}
+for(const slug of multipageMarketingRoutes){
+  assert.ok(fs.existsSync(path.join(root,'public',slug,'index.html')), 'multipage marketing page missing: '+slug);
 }
 for(const slug of retiredOnePageRoutes){
   assert.ok(!fs.existsSync(path.join(root,'public',slug,'index.html')), 'retired one-page route unexpectedly restored: '+slug);
