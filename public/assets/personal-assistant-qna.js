@@ -206,7 +206,7 @@ function suggestQuestions(facts={},insights=[],preferences={}){
   for(const row of rows){const old=dedup.get(row.question);if(!old||row.score>old.score)dedup.set(row.question,row)}
   return [...dedup.values()].sort((a,b)=>b.score-a.score||a.question.localeCompare(b.question,'nl')).slice(0,5).map(({score,...row})=>row);
 }
-function knowledgeTopics(){return KNOWLEDGE.map(x=>x.id)}
+function knowledgeTopics(){return KNOWLEDGE.map(x=>x.aliases[0])}
 
 root.BoekunaAssistantQna=Object.freeze({
   AI_ENABLED,
