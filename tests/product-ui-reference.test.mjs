@@ -243,6 +243,11 @@ try{
       assert.ok(await page.locator('.product-kpi-icon').evaluateAll(nodes=>nodes.every(el=>getComputedStyle(el).display==='none')),'Mobile product KPI icons must be hidden');
       const firstContentTop=await page.locator('.workspace-table').evaluate(el=>Math.round(el.getBoundingClientRect().top));
       assert.ok(firstContentTop<844,browserName+' mobile Inkomsten main list should begin inside the first viewport');
+      await page.evaluate(()=>navigate('vat'));
+      await page.getByRole('heading',{name:'Btw'}).waitFor();
+      const vatStatus=page.locator('.product-page-head .page-status').first();
+      assert.ok(await vatStatus.isVisible(),browserName+' mobile VAT financial context must remain visible');
+      assert.match(await vatStatus.innerText(),/indicatief|ingediend/i,browserName+' mobile VAT status must preserve filing context');
 
       await openReviewFixture(page);
       await noOverflow(page,browserName+' mobile document review');
