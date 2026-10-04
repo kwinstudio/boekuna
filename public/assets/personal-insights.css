@@ -167,6 +167,8 @@
  #mainApp .dashboard-kpis-v12 .dashboard-kpi-secondary:last-child{grid-column:auto!important}
  #mainApp .dashboard-kpis-v12 .dashboard-kpi-secondary{min-height:96px!important;padding:12px!important}
  #mainApp .dashboard-kpis-v12 .dashboard-kpi-secondary .metric-value{font-size:22px!important;margin:9px 0 4px!important}
+ #mainApp .dashboard-kpis-v12 .dashboard-kpi-secondary.metric-wide .metric-value{font-size:clamp(15px,4.2vw,19px)!important;letter-spacing:-.045em}
+ #mainApp .dashboard-kpis-v12 .dashboard-kpi-secondary.metric-huge .metric-value{font-size:clamp(12px,3.6vw,16px)!important;letter-spacing:-.055em}
  #mainApp .dashboard-kpis-v12 .dashboard-kpi-secondary .metric-icon{width:28px;height:28px}
  #mainApp .dashboard-kpis-v12 .dashboard-kpi-secondary .metric-sub{font-size:10px!important;line-height:1.35}
  #mainApp .assistant-question-suggestions{display:grid;grid-template-columns:1fr}
