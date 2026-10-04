@@ -98,13 +98,15 @@
  #mainApp .assistant-dashboard .assistant-admin-label{font-size:9px;line-height:1.25}
  #mainApp .assistant-dashboard .assistant-admin-label strong{font-size:10px}
 }
-@media(min-width:1101px) and (max-height:820px){
- #mainApp .assistant-dashboard{padding:13px!important}
+@media(min-width:1101px) and (max-height:950px){
+ #mainApp .assistant-dashboard{padding:12px!important}
+ #mainApp .assistant-dashboard .section-head{margin-bottom:5px!important}
+ #mainApp .assistant-dashboard .assistant-insight-list{gap:4px}
  #mainApp .assistant-dashboard .assistant-insight-card{min-height:36px;padding:4px 7px}
  #mainApp .assistant-dashboard .assistant-insight-icon{width:24px;height:24px}
  #mainApp .assistant-dashboard .assistant-insight-copy span{display:none}
- #mainApp .assistant-dashboard .assistant-dashboard-footer{margin-top:5px;padding-top:5px}
- #mainApp .assistant-dashboard .assistant-admin-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px}
+ #mainApp .assistant-dashboard .assistant-dashboard-footer{margin-top:4px;padding-top:4px}
+ #mainApp .assistant-dashboard .assistant-admin-label{display:none}
 }
 @media(max-width:1100px){
  #mainApp .assistant-page-grid{grid-template-columns:1fr}
