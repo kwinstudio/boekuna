@@ -83,7 +83,7 @@ function assistantContext(){
     now:today(),
     invoices:(state.invoices||[]).filter(i=>i.status!=='draft').map(i=>({
       id:String(i.id||''),number:String(i.number||''),kind:String(i.kind||'invoice'),effectiveStatus:invoiceEffectiveStatus(i),
-      dueDate:String(i.dueDate||''),outstanding:invoiceOutstanding(i)
+      dueDate:String(i.dueDate||''),outstanding:invoiceOutstanding(i),overdueOpen:typeof invoiceIsOverdueOpen==='function'?invoiceIsOverdueOpen(i):false
     })),
     transactions:(state.transactions||[]).map(t=>({
       id:String(t.id||''),status:String(t.status||'unmatched'),
@@ -111,7 +111,7 @@ function snapshot(){
 function qnaEngine(){return root.BoekunaAssistantQna||null}
 function assistantQuestionFacts(existingSnapshot=null){
   const s=existingSnapshot||snapshot(),kpi=typeof dashboardKpiViewModel==='function'?dashboardKpiViewModel('month'):null;
-  const invoices=s?.context?.invoices||[],overdue=invoices.filter(i=>i?.effectiveStatus==='overdue'&&Number(i?.outstanding||0)>.02);
+  const invoices=s?.context?.invoices||[],overdue=invoices.filter(i=>i?.overdueOpen===true&&Number(i?.outstanding||0)>.02);
   const overdueOutstanding=roundMoney(overdue.reduce((sum,i)=>sum+Number(i.outstanding||0),0));
   const todayDate=new Date(today()+'T12:00:00');
   const overdueInvoices=overdue.slice(0,5).map(i=>{
