@@ -22,6 +22,18 @@
 #mainApp .assistant-source-error{border-color:#ead7a8;background:#fffaf0}
 #mainApp .assistant-source-error .icon{color:var(--warn)}
 #mainApp .assistant-dashboard-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid var(--line)}
+@media(min-width:1101px){
+ #mainApp .assistant-dashboard{padding:14px!important}
+ #mainApp .assistant-dashboard .section-head{margin-bottom:8px!important}
+ #mainApp .assistant-dashboard .assistant-insight-list{gap:6px}
+ #mainApp .assistant-dashboard .assistant-insight-card{grid-template-columns:30px minmax(0,1fr) auto;min-height:42px;padding:7px 9px}
+ #mainApp .assistant-dashboard .assistant-insight-icon{width:28px;height:28px;border-radius:8px}
+ #mainApp .assistant-dashboard .assistant-insight-copy strong{font-size:11px}
+ #mainApp .assistant-dashboard .assistant-insight-copy span{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ #mainApp .assistant-dashboard .assistant-dashboard-footer{margin-top:7px;padding-top:7px}
+ #mainApp .assistant-dashboard .assistant-admin-label{font-size:9px}
+ #mainApp .assistant-dashboard .assistant-admin-label strong{font-size:10px}
+}
 #mainApp .assistant-admin-label{font-size:10px;color:var(--muted)}
 #mainApp .assistant-admin-label strong{color:var(--ink);font-size:11px}
 #mainApp .assistant-page-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(280px,.7fr);gap:16px;align-items:start}
