@@ -3,7 +3,7 @@
 
 :root{
   --ink:#1B1F23; --ink-2:#3A4148; --muted:#5E6870; --muted-2:#8A949C;
-  --green:#63D471; --green-ink:#1E8A3A; --green-soft:#EAF8EC; --green-line:#BFE9C6;
+  --green:#63D471; --green-ink:#177A31; --green-soft:#EAF8EC; --green-line:#BFE9C6;
   --bg:#FFFFFF; --bg-2:#F6F7F8; --surface:#FFFFFF; --line:#E4E7EA;
   --warn:#B45309; --warn-soft:#FEF3E2; --red:#C2362B; --red-soft:#FDECEA; --blue:#2563EB; --blue-soft:#EAF1FE;
   --on-green:#1B1F23; --dark:#1B1F23; --on-dark:#FFFFFF; --on-dark-muted:#AEB6BD;
