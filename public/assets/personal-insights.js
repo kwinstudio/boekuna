@@ -95,7 +95,7 @@ function insight(input){
   };
 }
 function overdueRule(context){
-  const rows=(context.invoices||[]).filter(i=>i&&i.kind!=='credit'&&i.effectiveStatus==='overdue'&&finite(i.outstanding)>0.02);
+  const rows=(context.invoices||[]).filter(i=>i&&i.kind!=='credit'&&!['draft','cancelled','paid'].includes(String(i.effectiveStatus||''))&&finite(i.outstanding)>0.02&&daysBetween(i.dueDate,context.now)>0);
   if(!rows.length)return [];
   const total=round(rows.reduce((s,i)=>s+finite(i.outstanding),0));
   const lateDays=rows.map(i=>daysBetween(i.dueDate,context.now)).filter(Number.isFinite).map(x=>Math.max(0,x));
