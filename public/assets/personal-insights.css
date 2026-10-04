@@ -140,6 +140,16 @@
 #mainApp .dashboard-kpis-v12 .dashboard-kpi-secondary.metric-huge .metric-value{font-size:17px!important;letter-spacing:-.055em!important}
 #mainApp .dashboard-kpis-v12 .dashboard-kpi-secondary .metric-value{font-size:clamp(17px,1.35vw,22px);letter-spacing:-.025em;white-space:nowrap;max-width:100%;min-width:0}
 @media(min-width:1101px){#mainApp .dashboard-kpis-v12 .dashboard-kpi.metric-wide,#mainApp .dashboard-kpis-v12 .dashboard-kpi.metric-huge{grid-column:auto!important}}
+@media(min-width:1101px) and (min-height:821px) and (max-height:950px){
+ #mainApp .dashboard-page-head{margin-bottom:14px!important}
+ #mainApp .dashboard-kpis-v12 .dashboard-kpi{min-height:132px!important;padding:16px!important}
+ #mainApp .dashboard-kpis-v12 .metric-value{margin-top:12px!important}
+ #mainApp .dashboard-main-grid{margin-top:12px!important}
+ #mainApp .dashboard-chart-card{padding:16px!important}
+ #mainApp .dashboard-chart-card .chart{height:190px!important}
+ #mainApp .dashboard-summary-grid{margin-top:12px!important}
+ #mainApp .dashboard-summary-card{min-height:106px!important;padding:15px!important}
+}
 #mainApp .dashboard-kpi-receivables.has-attention{border-color:#ead7a8!important}
 #mainApp .assistant-dashboard-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 #mainApp .assistant-ask{display:grid;gap:14px}
