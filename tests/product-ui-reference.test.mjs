@@ -134,7 +134,7 @@ try{
       assert.match(await page.locator('.dashboard-page-head h1').evaluate(el=>getComputedStyle(el).fontFamily),/Boekuna Space/);
       assert.equal(await page.locator('#sidebar').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
       assert.equal(await page.locator('.nav-item.active').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(236, 250, 238)');
-      assert.deepEqual(await page.locator('.dashboard-kpi-label').allTextContents(),['Winst','Omzet','Kosten','Btw apartzetten']);
+      assert.deepEqual(await page.locator('.dashboard-kpi-label').allTextContents(),['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen']);
       assert.equal(await page.locator('#dashboardPeriod').inputValue(),'month');
       assert.deepEqual((await page.locator('.dashboard-chart-card .chart-legend span').allTextContents()).map(v=>v.trim()),['Omzet','Kosten','Winst']);
       assert.deepEqual(await page.locator('.dashboard-summary-title').allTextContents(),['Administratie','Nog te ontvangen','Nieuwe factuur']);
