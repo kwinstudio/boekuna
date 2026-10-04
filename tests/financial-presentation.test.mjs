@@ -43,7 +43,7 @@ const browserName=process.env.BOOKUNA_BROWSER==='webkit'?'webkit':'chromium';
 const browser=await ({chromium,webkit}[browserName]).launch({headless:true});
 const page=await browser.newPage({viewport:{width:390,height:900},hasTouch:true});const errors=[];page.on('pageerror',e=>errors.push(String(e)));
 const artifactRoot='tests/artifacts/financial-presentation';fs.mkdirSync(artifactRoot,{recursive:true});
-const viewports=[[320,568],[360,800],[375,812],[390,844],[393,852],[430,932],[768,1024],[1024,768],[1280,800],[1366,768],[1440,900],[1920,1080]],routes=['dashboard','invoices','expenses','bank','documents','control','vat','reports','cashflow','ledger','hours','settings'];
+const viewports=[[320,568],[360,800],[375,812],[390,844],[393,852],[430,932],[768,1024],[1024,768],[1280,800],[1366,768],[1440,900],[1920,1080]],routes=['dashboard','insights','invoices','expenses','bank','documents','control','vat','reports','cashflow','ledger','hours','settings'];
 const checks=[];
 try{
  await page.goto('http://127.0.0.1:'+server.address().port+'/baseline');
