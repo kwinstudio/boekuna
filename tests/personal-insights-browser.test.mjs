@@ -118,8 +118,11 @@ try{
  await page.evaluate(id=>openAssistantInsight(id),p2);await page.getByRole('dialog').getByRole('button',{name:'Niet meer tonen',exact:true}).click();
  assert.ok(await page.evaluate(type=>state.assistant.hiddenTypes.includes(type),p2Type),'P2 hide-type preference must persist in tenant state');
  const metricState=await page.evaluate(()=>structuredClone(state.assistant.metrics));
- assert.ok(metricState.counts.insight_shown>=1&&metricState.counts.insight_opened>=1&&metricState.counts.dismissed>=1,'Privacy-safe interaction counters must be recorded');
- assert.equal(JSON.stringify(metricState).includes('815'),false,'Assistant metrics must not contain financial amounts');
+ const sessionMetric=await page.evaluate(()=>window.__boekunaAssistantTest.sessionMetrics());
+ assert.ok(sessionMetric.insight_shown>=1,'Shown metric must be tracked without mutating ledger state on render');
+ assert.ok(metricState.counts.insight_opened>=1&&metricState.counts.dismissed>=1,'Explicit interaction counters must be recorded');
+ assert.deepEqual(Object.keys(metricState).sort(),['counts','lastEventAt'],'Assistant metrics must contain counts/timestamp only');
+ assert.ok(Object.values(metricState.counts).every(Number.isFinite),'Assistant metric values must be aggregate counts only');
 
  const overdueBefore=await page.evaluate(()=>window.__boekunaAssistantTest.snapshot().insights.some(x=>x.type==='OVERDUE_INVOICE'));assert.equal(overdueBefore,true);
  await page.evaluate(()=>{for(const i of state.invoices){i.status='paid';i.payments=[{id:'paid-'+i.id,amount:invoiceGross(i),date:today()}]}render()});
