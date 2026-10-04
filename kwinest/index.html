@@ -2143,7 +2143,8 @@ img.bookuna-logo-icon,
 
   /* UX simplification 2026-10-04: shared date geometry + mobile KPI calmness.
      Kept in the app source so the split marketing artifact remains untouched. */
-  .field input[type="date"]{
+  .field input[type="date"],
+  .field select{
     height:42px;
     padding:10px 11px;
     line-height:20px;
@@ -2201,7 +2202,9 @@ img.bookuna-logo-icon,
       min-height:0!important;
     }
     #mainApp .field input[type="date"],
-    #modalRoot .field input[type="date"]{
+    #modalRoot .field input[type="date"],
+    #mainApp .field select,
+    #modalRoot .field select{
       height:44px!important;
     }
   }
