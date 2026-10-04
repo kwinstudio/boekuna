@@ -23,7 +23,7 @@ for(const copy of [
   'Nieuwe factuur',
   'Btw dit kwartaal',
   'Voorstel:',
-  'Omzet, kosten en winst'
+  'Staafdiagram omzet en kosten per maand'
 ]){
   assert.ok((sourceHome+fs.readFileSync(path.join(source,'assets','site.js'),'utf8')).includes(copy),
     'Interactive product proof copy/behavior missing: '+copy);
