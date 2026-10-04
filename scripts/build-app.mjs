@@ -35,6 +35,7 @@ const appAssets=[
   'financial-correction.js',
   'document-intelligence.js',
   'personal-insights.js',
+  'personal-assistant-qna.js',
   'personal-insights-ui.js',
   'personal-insights.css',
   'document-review-v2.js',
@@ -190,7 +191,7 @@ if(!appHtml.includes(mobileHeadBoundary))throw new Error('Mobile app head bounda
 appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004b">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n'+mobileHeadBoundary);
 const assistantRuntimeMarker='\n<script>\nconst USERS_KEY=';
 if(!appHtml.includes(assistantRuntimeMarker))throw new Error('Assistant app runtime marker changed');
-appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script src="/assets/personal-insights.js?v=20261004b"></script>\n<script src="/assets/personal-insights-ui.js?v=20261004b"></script>'+assistantRuntimeMarker);
+appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script src="/assets/personal-insights.js?v=20261004b"></script>\n<script src="/assets/personal-assistant-qna.js?v=20261004a"></script>\n<script src="/assets/personal-insights-ui.js?v=20261004b"></script>'+assistantRuntimeMarker);
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-product.js?v=20261003a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
