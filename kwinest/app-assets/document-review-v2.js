@@ -345,7 +345,7 @@ function updateBeginnerReviewState(){
   if(netEditor){
     const f=document.getElementById('pdfImportForm'),netC=cents(f?.elements.namedItem('net')?.value),vatC=cents(f?.elements.namedItem('vatAmount')?.value),grossC=cents(f?.elements.namedItem('gross')?.value);
     const needsNet=netC==null||(netC!=null&&vatC!=null&&grossC!=null&&netC+vatC!==grossC);
-    netEditor.hidden=!needsNet
+    netEditor.hidden=!needsNet;netEditor.style.display=needsNet?'':'none'
   }
   const financialPanel=document.getElementById('financialCorrectionPanel');
   if(financialPanel)financialPanel.classList.toggle('review-secondary-panel',!financial);
@@ -625,7 +625,7 @@ function showPdfImportReview(d){
   ].join('');
   const basisIssues=basisSpecial.map(x=>reviewIssuePanelForStep(d,x)).join('');
 
-  const netControl=reviewWizardField(d,'net','Bedrag excl. btw').replace('data-review-field="net"','data-review-field="net" data-review-net-editor hidden');
+  const netControl=reviewWizardField(d,'net','Bedrag excl. btw').replace('data-review-field="net"','data-review-field="net" data-review-net-editor hidden style="display:none"');
   const amountControls=[
     reviewWizardField(d,'gross','Totaal incl. btw',true),
     reviewWizardField(d,'vatAmount','Btw-bedrag'),
