@@ -614,7 +614,6 @@ function showPdfImportReview(d){
   }
 
   const initialIssues=presentationIssues(d),basisSpecial=initialIssues.filter(x=>['confirmDuplicate','confirmAnomaly'].includes(x.field)),amountSpecial=initialIssues.filter(x=>['vatTreatmentChoice','currency'].includes(x.field));
-  const showNet=!documentValuePresent(d,'net')||initialIssues.some(x=>x.field==='net');
   const mixedValid=dataMixedVatValidation(d).ok;
   const mixed=d.mixedRates?'<section class="mixed-vat-summary" data-mixed-summary><h5>Deze bon heeft '+(d.vatLines?.length||'meerdere')+' btw-tarieven</h5><div class="mixed-vat-summary-lines">'+(d.vatLines||[]).map(x=>'<div><strong>'+esc(num(Number(x.rate)))+'%</strong><span>Btw '+esc(money(Number(x.vatAmount||0)))+'</span></div>').join('')+'</div><div class="mixed-vat-total"><span>Totaal btw</span><strong>'+esc(money(Number(d.vatAmount||0)))+'</strong></div>'+(mixedValid?'<p class="review-ok">✓ Verdeling klopt</p>':'<p class="review-attention">Controleer de btw-verdeling</p>')+'<button id="mixedVatEditToggle" type="button" class="link-btn" aria-expanded="'+String(!mixedValid)+'" onclick="toggleMixedVatEditor()">Verdeling aanpassen</button><div id="mixedVatEditorPanel" '+(mixedValid?'hidden':'')+'><div id="mixedVatRows"></div><div class="mixed-vat-actions"><button type="button" class="btn small" onclick="addMixedVatLine()">Regel toevoegen</button><button type="button" class="btn small" onclick="useMixedVatTotals()">Gebruik deze totalen</button></div><div id="mixedVatStatus" class="mixed-vat-status" role="status" aria-live="polite"></div></div></section>':'';
   const payment=(d.advancePayment!=null||d.alreadyPaid!=null||d.outstandingAmount!=null)?'<section class="review-context-card"><strong>Betaling</strong>'+(d.advancePayment!=null?'<span>Voorschot '+money(Number(d.advancePayment))+'</span>':'')+(d.alreadyPaid!=null?'<span>Al betaald '+money(Number(d.alreadyPaid))+'</span>':'')+(d.outstandingAmount!=null?'<span>Nog te betalen '+money(Number(d.outstandingAmount))+'</span>':'')+'</section>':'';
@@ -626,7 +625,7 @@ function showPdfImportReview(d){
   ].join('');
   const basisIssues=basisSpecial.map(x=>reviewIssuePanelForStep(d,x)).join('');
 
-  const netControl=reviewWizardField(d,'net','Bedrag excl. btw').replace('data-review-field="net"','data-review-field="net" data-review-net-editor'+(showNet?'':' hidden'));
+  const netControl=reviewWizardField(d,'net','Bedrag excl. btw').replace('data-review-field="net"','data-review-field="net" data-review-net-editor hidden');
   const amountControls=[
     reviewWizardField(d,'gross','Totaal incl. btw',true),
     reviewWizardField(d,'vatAmount','Btw-bedrag'),
