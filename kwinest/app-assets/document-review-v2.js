@@ -336,11 +336,15 @@ function updateBeginnerReviewState(){
     amount.className='beginner-review-state '+(amountIssues.length?'bad':'good');
     amount.innerHTML=amountIssues.length?'<strong>Controleer '+amountIssues.length+' '+(amountIssues.length===1?'ding':'dingen')+'</strong><span>'+esc(amountIssues[0].message)+'</span>':'<strong>✓ Klaar om op te slaan</strong><span>De bedragen sluiten op elkaar aan.</span>'
   }
+  const financial=amountIssues.find(x=>['net','vatAmount','gross','vatRate','vatLines'].includes(x.field));
   if(warning){
-    const financial=amountIssues.find(x=>['net','vatAmount','gross','vatRate','vatLines'].includes(x.field));
     warning.hidden=!financial;
     warning.textContent=financial?financial.message:''
   }
+  const netEditor=document.querySelector('[data-review-net-editor]');
+  if(netEditor)netEditor.hidden=!amountIssues.some(x=>['net','vatAmount','gross','vatRate'].includes(x.field));
+  const financialPanel=document.getElementById('financialCorrectionPanel');
+  if(financialPanel)financialPanel.classList.toggle('review-secondary-panel',!financial);
   document.querySelectorAll('[data-review-next]').forEach(btn=>{btn.disabled=basisIssues.length>0});
   document.querySelectorAll('[data-review-save]').forEach(btn=>{btn.disabled=issues.length>0});
   updateReviewWizardUi();updateFinancialBadges();if(d.mixedRates)updateMixedVatStatus()
@@ -618,11 +622,12 @@ function showPdfImportReview(d){
   ].join('');
   const basisIssues=basisSpecial.map(x=>reviewIssuePanelForStep(d,x)).join('');
 
+  const netControl=reviewWizardField(d,'net','Bedrag excl. btw').replace('data-review-field="net"','data-review-field="net" data-review-net-editor'+(showNet?'':' hidden'));
   const amountControls=[
     reviewWizardField(d,'gross','Totaal incl. btw',true),
     reviewWizardField(d,'vatAmount','Btw-bedrag'),
     reviewWizardField(d,'vatRate','Btw-percentage'),
-    showNet?reviewWizardField(d,'net','Bedrag excl. btw'):''
+    netControl
   ].join('');
   const amountIssues=amountSpecial.map(x=>reviewIssuePanelForStep(d,x)).join('');
 
@@ -632,7 +637,6 @@ function showPdfImportReview(d){
     reviewHiddenInput('status',d.status||'sent'),
     isReceipt?reviewHiddenInput('invoiceNumber',d.invoiceNumber||''):'',
     !isReceipt?reviewHiddenInput('category',categoryValue):'',
-    !showNet?reviewHiddenInput('net',d.net??''):'',
     currency==='EUR'?reviewHiddenInput('currency','EUR'):'',
     reviewHiddenInput('address',safeAddress),reviewHiddenInput('postal',safePostal),reviewHiddenInput('city',safeCity),
     reviewHiddenInput('email',safeEmail),reviewHiddenInput('phone',safePhone),reviewHiddenInput('kvk',kvk),reviewHiddenInput('vatId',vatId),reviewHiddenInput('iban',iban),
