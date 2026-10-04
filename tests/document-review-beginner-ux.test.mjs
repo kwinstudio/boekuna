@@ -141,6 +141,8 @@ try{
   assert.equal(await page.locator('[data-review-page="2"] [name="gross"]:visible').count(),1,'total is the primary amount');
   assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]:visible').count(),1);
   assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),1);
+  const consistentIssues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
+  assert.deepEqual(consistentIssues,[],'cent-exact 100 + 21 = 121 must have no blocking issues: '+JSON.stringify(consistentIssues));
   assert.equal(await page.locator('[data-review-page="2"] [name="net"]:visible').count(),0,'ex-VAT stays derived/hidden when consistent');
   assert.equal(await page.getByRole('button',{name:'Vorige',exact:true}).count(),1);
   assert.equal(await page.locator('[data-review-save]:visible').count(),1);
