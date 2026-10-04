@@ -45,7 +45,8 @@ on:
       - "tests/personal-insights.test.mjs"
       - "tests/personal-insights-browser.test.mjs"
       - "tests/personal-insights-performance.test.mjs"
-      - "tests/personal-assistant-v1-2*.test.mjs"\n      - "tests/assistant-feature-disabled.test.mjs"
+      - "tests/personal-assistant-v1-2*.test.mjs"
+      - "tests/assistant-feature-disabled.test.mjs"
       - "tests/invoice-delivery.test.mjs"
       - "tests/invoice-persistence.test.mjs"
       - "tests/invoice-native-retry.test.mjs"
@@ -100,7 +101,8 @@ jobs:
       - name: Personal insights performance and I/O boundary
         run: node tests/personal-insights-performance.test.mjs
       - name: Personal Assistant V1.2 deterministic contracts
-        run: node tests/personal-assistant-v1-2.test.mjs\n      - name: Temporary assistant-disabled build contract
+        run: node tests/personal-assistant-v1-2.test.mjs
+      - name: Temporary assistant-disabled build contract
         run: node tests/assistant-feature-disabled.test.mjs
       - name: Install app test dependencies
         run: npm ci --prefix tests --ignore-scripts
