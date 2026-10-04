@@ -111,7 +111,7 @@ function snapshot(){
   }
 }
 function iconFor(item){
-  if(item?.priority==='P0'||item?.priority==='P1')return 'i-alert';
+  if(item?.priority==='P0'||item?.priority==='P1')return 'i-clock';
   if(item?.category==='vat')return 'i-tax';
   if(item?.category==='documents')return 'i-folder';
   if(item?.category==='invoices')return 'i-file';
@@ -127,7 +127,7 @@ function assistantCard(item,compact=false){
 function renderAssistantDashboard(){
   const E=engine(),s=snapshot();
   if(!s.ok||s.status.state==='UNKNOWN'){
-    return '<section class="card dashboard-attention assistant-dashboard assistant-source-error"><div class="section-head"><div><h2 class="assistant-dashboard-title">'+icon('i-alert')+' Voor jou</h2><p>Persoonlijke administratiehulp</p></div></div><div class="assistant-empty assistant-source-error">'+icon('i-alert')+'<div><strong>Status tijdelijk niet beschikbaar</strong><span>Je administratie blijft werken. Boekuna toont liever niets dan een onbetrouwbaar inzicht.</span></div></div></section>';
+    return '<section class="card dashboard-attention assistant-dashboard assistant-source-error"><div class="section-head"><div><h2 class="assistant-dashboard-title">'+icon('i-clock')+' Voor jou</h2><p>Persoonlijke administratiehulp</p></div></div><div class="assistant-empty assistant-source-error">'+icon('i-clock')+'<div><strong>Status tijdelijk niet beschikbaar</strong><span>Je administratie blijft werken. Boekuna toont liever niets dan een onbetrouwbaar inzicht.</span></div></div></section>';
   }
   const items=E.dashboardInsights(s.insights);
   const body=items.length?'<div class="assistant-insight-list">'+items.map(x=>assistantCard(x,true)).join('')+'</div>':'<div class="assistant-empty">'+icon('i-check')+'<div><strong>Alles bijgewerkt</strong><span>Je administratie heeft op dit moment geen aandacht nodig.</span></div></div>';
@@ -145,7 +145,7 @@ function renderWeekly(summary){
 }
 function renderInsights(){
   const s=snapshot(),E=engine();
-  if(!s.ok||s.status.state==='UNKNOWN')return '<div class="page-head"><div><h1>Voor jou</h1><p>Persoonlijke administratiehulp</p></div></div><div class="card assistant-status-card"><div class="assistant-status-line">'+icon('i-alert')+'<div><strong>Status tijdelijk niet beschikbaar</strong><span>Boekuna toont geen geruststellende status zolang een bron niet betrouwbaar beschikbaar is.</span></div></div></div>';
+  if(!s.ok||s.status.state==='UNKNOWN')return '<div class="page-head"><div><h1>Voor jou</h1><p>Persoonlijke administratiehulp</p></div></div><div class="card assistant-status-card"><div class="assistant-status-line">'+icon('i-clock')+'<div><strong>Status tijdelijk niet beschikbaar</strong><span>Boekuna toont geen geruststellende status zolang een bron niet betrouwbaar beschikbaar is.</span></div></div></div>';
   const urgent=s.insights.filter(x=>['P0','P1'].includes(x.priority));
   const remaining=s.insights.filter(x=>!['P0','P1'].includes(x.priority));
   const moneyItems=remaining.filter(x=>['invoices','costs'].includes(x.category));
@@ -154,9 +154,9 @@ function renderInsights(){
   const other=remaining.filter(x=>!['invoices','costs','vat','documents','bank','admin'].includes(x.category));
   const noItems=!s.insights.length;
   const empty=noItems?'<section class="card assistant-group"><div class="assistant-empty">'+icon('i-check')+'<div><strong>Alles bijgewerkt</strong><span>Je administratie heeft op dit moment geen aandacht nodig. Boekuna vult de pagina niet met algemene tips.</span></div></div></section>':'';
-  const main=empty+groupSection('Vandaag',urgent,'i-alert')+groupSection('Geld',moneyItems,'i-chart')+groupSection('Btw',vat,'i-tax')+groupSection('Administratie',admin,'i-check')+groupSection('Opvallend',other,'i-chart');
+  const main=empty+groupSection('Vandaag',urgent,'i-clock')+groupSection('Geld',moneyItems,'i-chart')+groupSection('Btw',vat,'i-tax')+groupSection('Administratie',admin,'i-check')+groupSection('Opvallend',other,'i-chart');
   return '<div class="page-head"><div><h1>Voor jou</h1><p>Boekuna kijkt mee en laat zien wat voor jou belangrijk is.</p></div></div>'+
-   '<div class="card assistant-status-card"><div class="assistant-status-line">'+icon(s.status.state==='BIJGEWERKT'?'i-check':'i-alert')+'<div><strong>'+esc(s.status.label)+'</strong><span>'+esc(s.status.detail)+'</span></div></div></div>'+
+   '<div class="card assistant-status-card"><div class="assistant-status-line">'+icon(s.status.state==='BIJGEWERKT'?'i-check':'i-clock')+'<div><strong>'+esc(s.status.label)+'</strong><span>'+esc(s.status.detail)+'</span></div></div></div>'+
    '<div class="assistant-page-grid"><div class="assistant-section-stack">'+main+'</div>'+(prefs().weeklySummary!==false?renderWeekly(s.weekly):'')+'</div>'+
    '<p class="assistant-disclaimer">Boekuna helpt je administratie bijhouden. Voor persoonlijk fiscaal advies kun je een adviseur raadplegen.</p>'
 }
