@@ -230,6 +230,7 @@ try{
       assert.ok((await page.locator('.dashboard-kpi .metric-icon').count())>0,'Dashboard KPI icon nodes should remain available to desktop');
       assert.ok(await page.locator('.dashboard-kpi .metric-icon').evaluateAll(nodes=>nodes.every(el=>getComputedStyle(el).display==='none')),'Mobile dashboard KPI icons must be hidden');
       assert.equal(await page.locator('.dashboard-kpis').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length),2,'390px mobile dashboard must pair Omzet and Kosten');
+      assert.equal(await page.locator('#content').evaluate(el=>getComputedStyle(el).paddingTop),'14px','390px mobile content padding must use the compact app-only contract');
       assert.equal(await page.locator('.dashboard-chart-card').isVisible(),false,'Large chart belongs on mobile Reports');
       const targets=await page.locator('#mobileBottomNav .mobile-bottom-nav-item').evaluateAll(nodes=>nodes.map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height})));
       assert.ok(targets.every(x=>x.h>=44),'Mobile bottom-nav touch targets must be at least 44px high');
