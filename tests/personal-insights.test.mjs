@@ -178,4 +178,13 @@ const evaluate=ctx=>Engine.evaluate(base(ctx));
  for(const banned of ['ai accountant','ai boekhouder','koop nu apparatuur','belasting te besparen','debiteurenpositie','reconciliatie'])assert.equal(text.includes(banned),false,'banned assistant wording: '+banned);
 }
 
+// 14. Cancelled invoices never produce receivable reminders, even if stale outstanding data remains.
+{
+ const cancelled=[{id:'c1',number:'CANCELLED',kind:'invoice',effectiveStatus:'cancelled',dueDate:'2026-10-05',outstanding:5000}];
+ const results=evaluate({invoices:cancelled});
+ assert.equal(ids(results,'OVERDUE_INVOICE').length,0);
+ assert.equal(ids(results,'NEARLY_DUE_INVOICE').length,0);
+ assert.equal(ids(results,'HIGH_OUTSTANDING').length,0);
+}
+
 console.log('BOEKUNA personal insights deterministic engine contracts: PASS');
