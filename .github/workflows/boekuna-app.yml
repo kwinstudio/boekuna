@@ -6,6 +6,7 @@ on:
       - "kwinest/index.html"
       - "public/manifest.webmanifest"
       - "public/assets/financial-correction.js"
+      - "public/assets/personal-assistant-qna.js"
       - "public/assets/document-review-v2.*"
       - "public/assets/developer-mode.js"
       - "public/assets/kvk-company-lookup.*"
@@ -120,6 +121,10 @@ jobs:
         run: |
           node tests/personal-insights-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/personal-insights-browser.test.mjs
+      - name: Personal Assistant V1.2 browser QA — Chromium + WebKit
+        run: |
+          node tests/personal-assistant-v1-2-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/personal-assistant-v1-2-browser.test.mjs
       - name: Mobile polish round 2 — Chromium and WebKit
         run: |
           node tests/mobile-polish-round-2.test.mjs
@@ -258,6 +263,7 @@ jobs:
             tests/artifacts/premium-v2-*.png
             tests/artifacts/product-ui-reference/
             tests/artifacts/personal-insights/
+            tests/artifacts/personal-assistant-v1-2/
             tests/artifacts/kvk-*.png
           if-no-files-found: ignore
 
