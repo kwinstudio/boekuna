@@ -58,3 +58,75 @@
   .beginner-review .mixed-vat-row{grid-template-columns:1fr}
   .beginner-review .mixed-vat-remove{grid-column:1;justify-self:start}
 }
+
+
+/* Result-first + exception-first document review */
+.document-review-flow.exception-first-review{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+.exception-first-review .review-original-panel{display:none}
+.exception-first-review .review-original-panel.open{display:block}
+.exception-first-review .review-main-card{display:flex;flex-direction:column;gap:14px;min-width:0}
+.exception-first-review .review-step-head{margin:0}
+.exception-first-review .result-summary{border:1px solid var(--border);border-radius:16px;background:var(--surface,#fff);overflow:hidden}
+.exception-first-review .result-summary-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:11px 13px;border-bottom:1px solid var(--border)}
+.exception-first-review .result-summary-row:last-child{border-bottom:0}
+.exception-first-review .result-summary-row span{font-size:13px;color:var(--text-muted)}
+.exception-first-review .result-summary-row strong{font-size:14px;color:var(--text);text-align:right;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.exception-first-review .result-summary-row.emphasis strong{font-size:20px;letter-spacing:-.02em}
+.exception-first-review .review-context-card{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding:12px 14px;border-radius:14px;background:var(--app-surface,#f6f7f8);border:1px solid var(--border)}
+.exception-first-review .review-context-card strong{width:100%;font-size:13px}
+.exception-first-review .review-context-card span{font-size:13px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+.exception-first-review .review-issue-card{padding:14px;border:1px solid var(--border);border-radius:16px;background:var(--surface,#fff);display:flex;flex-direction:column;gap:9px}
+.exception-first-review .review-issue-card.attention{border-color:color-mix(in srgb,var(--status-warning,#946200) 28%,var(--border));background:var(--status-warning-soft,#fff6df)}
+.exception-first-review .review-issue-card.resolved{border-color:color-mix(in srgb,var(--status-success,#218838) 28%,var(--border));background:var(--status-success-soft,#edf9ef)}
+.exception-first-review .review-issue-card h5,.exception-first-review .review-edit-panel h5,.exception-first-review .mixed-vat-summary h5{margin:0;font-size:15px}
+.exception-first-review .review-issue-card p{margin:0;color:var(--text-muted);font-size:13px;line-height:1.45}
+.exception-first-review .review-issue-card .field{margin:0}
+.exception-first-review .review-choice{display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 10px;border-radius:12px;background:color-mix(in srgb,var(--surface,#fff) 72%,transparent);cursor:pointer}
+.exception-first-review .review-choice input{min-height:auto}
+.exception-first-review .review-issue-actions,.exception-first-review .review-secondary-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.exception-first-review .review-secondary-actions{padding-top:2px}
+.exception-first-review .review-edit-panel{padding:14px;border:1px solid var(--border);border-radius:16px;background:var(--app-surface,#f6f7f8)}
+.exception-first-review .review-edit-panel[hidden]{display:none!important}
+.exception-first-review .review-edit-panel .form-grid{margin-top:12px}
+.exception-first-review .review-secondary-panel{display:none}
+.exception-first-review .beginner-review-state{margin-top:0}
+.exception-first-review .beginner-review-state.good strong{color:var(--status-success,#218838)}
+.exception-first-review .beginner-review-state.bad strong{color:var(--status-warning,#946200)}
+.exception-first-review .mixed-vat-summary{padding:14px;border:1px solid var(--border);border-radius:16px;background:var(--surface,#fff)}
+.exception-first-review .mixed-vat-summary-lines{display:flex;flex-direction:column;gap:7px;margin:12px 0}
+.exception-first-review .mixed-vat-summary-lines>div,.exception-first-review .mixed-vat-total{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px}
+.exception-first-review .mixed-vat-summary-lines span{color:var(--text-muted);font-variant-numeric:tabular-nums}
+.exception-first-review .mixed-vat-total{padding-top:9px;border-top:1px solid var(--border);font-variant-numeric:tabular-nums}
+.exception-first-review .review-ok{margin:10px 0 4px;color:var(--status-success,#218838);font-size:13px;font-weight:700}
+.exception-first-review .review-attention{margin:10px 0 4px;color:var(--status-warning,#946200);font-size:13px;font-weight:700}
+.exception-first-review #mixedVatEditorPanel{margin-top:12px}
+.exception-first-review #mixedVatEditorPanel[hidden]{display:none!important}
+.exception-first-review .review-details{margin-top:0}
+.exception-first-review button:focus-visible,.exception-first-review input:focus-visible,.exception-first-review select:focus-visible,.exception-first-review summary:focus-visible{outline:3px solid currentColor;outline-offset:2px}
+.exception-first-review .review-preview-shell{min-height:220px}
+.exception-first-review .beginner-preview-empty{min-height:220px}
+.non-bookable-review .review-main-card>p{margin:0;color:var(--text-muted);line-height:1.5}
+
+@media(min-width:821px){
+  .document-review-flow.exception-first-review{grid-template-columns:minmax(320px,.92fr) minmax(420px,1.08fr);gap:18px}
+  .exception-first-review .review-original-panel{display:block;position:sticky;top:0;min-width:0}
+  .exception-first-review .document-review-fields{min-width:0}
+  .exception-first-review .review-preview-shell{min-height:520px}
+  .exception-first-review .document-review-preview-frame,.exception-first-review .document-review-preview-image{min-height:520px}
+}
+@media(max-width:820px){
+  .document-review-flow.exception-first-review{display:block}
+  .exception-first-review .review-original-panel{margin-bottom:14px}
+  .exception-first-review .review-original-panel.open{display:block}
+  .exception-first-review .review-main-card{padding-bottom:6px}
+  .exception-first-review .result-summary-row{padding:10px 12px}
+  .exception-first-review .review-issue-card,.exception-first-review .review-edit-panel,.exception-first-review .mixed-vat-summary{border-radius:14px;padding:12px}
+  .mobile-review-actions{padding-bottom:max(12px,env(safe-area-inset-bottom))}
+  .mobile-review-actions button{min-height:44px}
+}
+@media(max-width:390px){
+  .exception-first-review .result-summary-row{align-items:flex-start}
+  .exception-first-review .result-summary-row strong{max-width:62%}
+  .exception-first-review .review-issue-actions{flex-direction:column;align-items:stretch}
+  .exception-first-review .review-issue-actions .btn{width:100%}
+}
