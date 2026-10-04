@@ -45,7 +45,7 @@ Branch: `ux/plain-language-mobile-compact-20261004`
 - Bank drill-down: **Inkomsten → Ontvangsten**, positive bank-rule KPI **Inkomsten/Ontvangen → Bijgeschreven**, invoice KPI **Inkomsten deze maand → Omzet deze maand**
 - Dashboard summary: **Nieuwe verkoopfactuur aanmaken → Nieuwe factuur maken**
 
-- Grootboek labels: **Debiteuren → Nog te ontvangen van klanten** and **Crediteuren → Nog te betalen aan leveranciers**. Account numbers and journal logic remain unchanged.
+- Grootboek-weergave: **Debiteuren → Nog te ontvangen van klanten** and **Crediteuren → Nog te betalen aan leveranciers**. De interne rekeningnamen, accountnummers, journaalregels en CSV-contracten blijven ongewijzigd.
 
 ## Acceptance
 
