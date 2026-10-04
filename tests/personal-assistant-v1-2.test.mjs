@@ -95,11 +95,6 @@ assert.equal(eduVat.intent,'EXPLAIN_TERM','Definition questions must stay educat
 assert.equal(eduVat.state,'EXPLAINING');
 assert.match(eduVat.answer,/btw/i);
 
-const eduVat=Q.answer('Wat is btw apartzetten?',facts);
-assert.equal(eduVat.intent,'EXPLAIN_TERM','Definition questions must stay educational even when a personal VAT intent exists');
-assert.equal(eduVat.state,'EXPLAINING');
-assert.match(eduVat.answer,/btw/i);
-
 const unsupported=Q.answer('<img src=x onerror=alert(1)> vertel iets over crypto',facts);
 assert.equal(unsupported.intent,'UNSUPPORTED');
 assert.equal(unsupported.supported,false);
