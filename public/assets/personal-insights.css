@@ -1,0 +1,81 @@
+/* BOEKUNA personal assistant / insights — Calm Control extension */
+#mainApp .assistant-dashboard{min-width:0}
+#mainApp .assistant-dashboard .section-head{align-items:center}
+#mainApp .assistant-dashboard-title{display:flex;align-items:center;gap:8px}
+#mainApp .assistant-dashboard-title .icon{width:17px;height:17px;color:var(--app-green,#356267)}
+#mainApp .assistant-insight-list{display:grid;gap:8px}
+#mainApp .assistant-insight-card{width:100%;min-width:0;display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid var(--line);border-radius:12px;background:#fff;text-align:left;color:inherit}
+#mainApp .assistant-insight-card:hover{border-color:#cdd5d9}
+#mainApp .assistant-insight-card:focus-visible{outline:0;box-shadow:var(--focus-ring,0 0 0 3px rgba(53,98,103,.18))}
+#mainApp .assistant-insight-icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#eef4f0;color:#356267}
+#mainApp .assistant-insight-icon .icon{width:17px;height:17px}
+#mainApp .assistant-insight-card[data-priority="P0"] .assistant-insight-icon{background:#fceaea;color:var(--bad)}
+#mainApp .assistant-insight-card[data-priority="P1"] .assistant-insight-icon{background:#fff4d8;color:var(--warn)}
+#mainApp .assistant-insight-copy{min-width:0}
+#mainApp .assistant-insight-copy strong{display:block;font-size:12px;line-height:1.35}
+#mainApp .assistant-insight-copy span{display:block;margin-top:2px;font-size:10px;line-height:1.45;color:var(--muted)}
+#mainApp .assistant-insight-chevron{font-size:18px;color:var(--muted)}
+#mainApp .assistant-empty{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid #dce9e2;border-radius:12px;background:#f5faf7}
+#mainApp .assistant-empty .icon{width:20px;height:20px;color:var(--good);flex:0 0 auto}
+#mainApp .assistant-empty strong{display:block;font-size:12px}
+#mainApp .assistant-empty span{display:block;margin-top:3px;font-size:10px;line-height:1.45;color:var(--muted)}
+#mainApp .assistant-source-error{border-color:#ead7a8;background:#fffaf0}
+#mainApp .assistant-source-error .icon{color:var(--warn)}
+#mainApp .assistant-dashboard-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid var(--line)}
+#mainApp .assistant-admin-label{font-size:10px;color:var(--muted)}
+#mainApp .assistant-admin-label strong{color:var(--ink);font-size:11px}
+#mainApp .assistant-page-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(280px,.7fr);gap:16px;align-items:start}
+#mainApp .assistant-section-stack{display:grid;gap:14px}
+#mainApp .assistant-group{padding:18px}
+#mainApp .assistant-group .section-head{margin-bottom:10px}
+#mainApp .assistant-group-title{display:flex;align-items:center;gap:8px}
+#mainApp .assistant-group-title .icon{width:17px;height:17px}
+#mainApp .assistant-week{position:sticky;top:92px}
+#mainApp .assistant-week-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#mainApp .assistant-week-stat{border:1px solid var(--line);border-radius:11px;padding:10px;background:#f8faf9}
+#mainApp .assistant-week-stat span{display:block;font-size:9px;color:var(--muted);font-weight:750}
+#mainApp .assistant-week-stat strong{display:block;margin-top:4px;font-size:14px;font-variant-numeric:tabular-nums}
+#mainApp .assistant-status-card{margin-bottom:14px}
+#mainApp .assistant-status-line{display:flex;align-items:flex-start;gap:10px}
+#mainApp .assistant-status-line .icon{width:20px;height:20px;flex:0 0 auto}
+#mainApp .assistant-status-line strong{display:block;font-size:13px}
+#mainApp .assistant-status-line span{display:block;margin-top:3px;font-size:10px;color:var(--muted);line-height:1.45}
+#mainApp .assistant-detail-facts{display:grid;gap:8px;margin-top:12px}
+#mainApp .assistant-detail-fact{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid var(--line);font-size:11px}
+#mainApp .assistant-detail-fact:last-child{border-bottom:0}
+#mainApp .assistant-detail-fact span{color:var(--muted)}
+#mainApp .assistant-detail-fact strong{text-align:right;overflow-wrap:anywhere}
+#mainApp .assistant-detail-section{margin-bottom:16px}
+#mainApp .assistant-detail-section:last-child{margin-bottom:0}
+#mainApp .assistant-detail-section h4{font-size:12px;margin:0 0 5px}
+#mainApp .assistant-detail-section p{font-size:11px;line-height:1.55;color:var(--muted);margin:0}
+#mainApp .assistant-feedback{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#mainApp .assistant-settings-goals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+#mainApp .assistant-goal{display:flex;align-items:flex-start;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;font-size:11px;line-height:1.35}
+#mainApp .assistant-goal input{margin-top:1px}
+#mainApp .assistant-setting-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--line)}
+#mainApp .assistant-setting-row:last-child{border-bottom:0}
+#mainApp .assistant-setting-copy strong{display:block;font-size:12px}
+#mainApp .assistant-setting-copy span{display:block;margin-top:2px;color:var(--muted);font-size:10px;line-height:1.4}
+#mainApp .assistant-setting-row .toggle{flex:0 0 auto}
+#mainApp .assistant-settings-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#mainApp .assistant-disclaimer{font-size:10px;color:var(--muted);line-height:1.5;margin-top:12px}
+@media(max-width:1100px){
+ #mainApp .assistant-page-grid{grid-template-columns:1fr}
+ #mainApp .assistant-week{position:static}
+}
+@media(max-width:820px){
+ #mainApp .assistant-dashboard{padding:14px!important}
+ #mainApp .assistant-dashboard .section-head{margin-bottom:9px}
+ #mainApp .assistant-insight-card{grid-template-columns:32px minmax(0,1fr) auto;min-height:52px;padding:8px 9px}
+ #mainApp .assistant-insight-icon{width:30px;height:30px}
+ #mainApp .assistant-dashboard-footer{align-items:flex-start;flex-direction:column}
+ #mainApp .assistant-group{padding:14px}
+ #mainApp .assistant-week-grid{grid-template-columns:1fr 1fr}
+ #mainApp .assistant-setting-row{min-height:54px}
+ #mainApp .assistant-settings-goals{grid-template-columns:1fr}
+ #mainApp .assistant-goal{min-height:44px;align-items:center}
+}
+@media(max-width:390px){
+ #mainApp .assistant-week-grid{grid-template-columns:1fr}
+}
