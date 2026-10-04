@@ -209,18 +209,15 @@ try{
  assert.equal(helpfulAfter,helpfulBefore+1,'Helpful feedback must be stored as an aggregate counter only');
  await closeDialog();
 
- // Source failure: never manufacture amounts or reassurance when structured financial facts are unreliable.
- await page.getByRole('button',{name:/Vraag Boekuna/i}).first().click();
- await page.getByRole('dialog').waitFor();
- await page.evaluate(()=>{
-  const unsafe={...assistantQuestionFacts(),financialReliable:false};
-  renderAskBoekunaAnswer(BoekunaAssistantQna.answer('Hoe sta ik ervoor?',unsafe));
- });
+ // Source failure: exercise the real adapter and normal Ask Boekuna path.
+ await page.evaluate(()=>{documentProcessingFetchError=true;render()});
+ answer=await ask('Hoe sta ik ervoor?');
  const sourceFail=await page.locator('#assistantAnswer').innerText();
  assert.match(sourceFail,/tijdelijk niet betrouwbaar/i,'Source failure must be explicit');
  assert.doesNotMatch(sourceFail,/€\s?[-\d]/,'Source failure must not show a guessed financial amount');
  await page.screenshot({path:path.join(evidence,browserName+'-ask-source-failure-390.png'),fullPage:true,animations:'disabled'});
  await closeDialog();
+ await page.evaluate(()=>{documentProcessingFetchError=false;render()});
 
  // Desktop evidence: dashboard, lightweight Ask Boekuna, and the full Voor jou page.
  await page.setViewportSize({width:1440,height:900});
