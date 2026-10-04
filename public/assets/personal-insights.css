@@ -174,3 +174,33 @@
  #mainApp .assistant-question-form{grid-template-columns:1fr}
  #mainApp .assistant-question-form .btn{min-height:44px;justify-content:center}
 }
+
+
+/* Ask Boekuna renders in #modalRoot, outside #mainApp. Keep the same calm controls there. */
+#modalRoot .assistant-ask{display:grid;gap:14px}
+#modalRoot .assistant-ask-intro{margin:0;font-size:14px;font-weight:700;color:var(--ink)}
+#modalRoot .assistant-question-suggestions{display:flex;gap:8px;flex-wrap:wrap}
+#modalRoot .assistant-question-suggestion{min-height:44px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--ink);padding:9px 12px;font-size:11px;font-weight:700;text-align:left}
+#modalRoot .assistant-question-suggestion:hover{border-color:#bfcac5;background:#f8faf9}
+#modalRoot .assistant-question-suggestion:focus-visible{outline:0;box-shadow:var(--focus-ring,0 0 0 3px rgba(53,98,103,.18))}
+#modalRoot .assistant-question-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+#modalRoot .assistant-question-form input{min-width:0;min-height:44px;border:1px solid #dfe5e2;border-radius:10px;padding:10px 11px;color:var(--ink);background:#fff;outline:none;font-size:13px}
+#modalRoot .assistant-question-form input:focus{border-color:#8aa69a;box-shadow:0 0 0 3px rgba(24,54,45,.07)}
+#modalRoot .assistant-answer{min-height:0}
+#modalRoot .assistant-answer:empty{display:none}
+#modalRoot .assistant-answer-card{border:1px solid var(--line);border-radius:13px;padding:14px;background:#f8faf9}
+#modalRoot .assistant-answer-card[data-state="UNCERTAIN"]{background:#fffaf0;border-color:#ead7a8}
+#modalRoot .assistant-answer-card[data-state="ACTION"],#modalRoot .assistant-answer-card[data-state="ATTENTION"]{background:#fffaf4;border-color:#eadfc1}
+#modalRoot .assistant-answer-state{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+#modalRoot .assistant-answer-copy{margin:7px 0 0;font-size:13px;line-height:1.55;color:var(--ink);white-space:pre-line}
+#modalRoot .assistant-answer-detail{margin:7px 0 0;font-size:11px;line-height:1.55;color:var(--muted);white-space:pre-line}
+#modalRoot .assistant-answer-action{margin-top:12px}
+#modalRoot .assistant-answer-feedback{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+#modalRoot .assistant-disclaimer{margin:0;color:var(--muted);font-size:10px;line-height:1.45}
+@media(max-width:820px){
+ #modalRoot .assistant-question-suggestions{display:grid;grid-template-columns:1fr}
+ #modalRoot .assistant-question-suggestion{width:100%;border-radius:11px}
+ #modalRoot .assistant-question-form{grid-template-columns:1fr}
+ #modalRoot .assistant-question-form .btn{min-height:44px;justify-content:center}
+ #modalRoot .assistant-answer-feedback .btn{min-height:44px}
+}
