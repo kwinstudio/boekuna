@@ -1,4 +1,0 @@
-Production Render auto-deploy probe.
-Non-functional QA marker under tests/ only.
-Runtime publish content unchanged from prior green main.
-2026-09-28
