@@ -175,6 +175,67 @@ try{
  const suggestion=page.getByRole('dialog').locator('.assistant-question-suggestion').first();
  assert.ok((await suggestion.evaluate(el=>el.getBoundingClientRect().height))>=44,'Mobile suggested questions must be at least 44px high');
  await axe(browserName+' Ask Boekuna mobile');
+ await closeDialog();
+
+ // All-clear + cold-start: an empty administration must be calm, not filled with generic warnings.
+ await page.evaluate(()=>{
+  state.invoices=[];state.expenses=[];state.transactions=[];state.documents=[];state.services=[];state.bookings=[];state.plannedCash=[];
+  documentProcessingJobs=[];documentProcessingInitialized=true;documentProcessingConnectivityLost=false;documentProcessingFetchError=false;
+  if(state.assistant){state.assistant.goals=[];state.assistant.hiddenTypes=[];state.assistant.dismissed={};}
+  navigate('dashboard');render();
+ });
+ await page.setViewportSize({width:390,height:844});
+ await page.getByRole('heading',{name:'Overzicht'}).waitFor();
+ const allClear=await page.locator('.assistant-dashboard').innerText();
+ assert.match(allClear,/Alles bijgewerkt/i,'All-clear dashboard must explicitly say everything is updated');
+ assert.match(allClear,/geen aandacht nodig|niets te doen/i,'All-clear dashboard must not invent work');
+ await page.screenshot({path:path.join(evidence,browserName+'-dashboard-all-clear-390.png'),fullPage:true,animations:'disabled'});
+
+ await page.getByRole('button',{name:/Vraag Boekuna/i}).first().click();
+ await page.getByRole('dialog').waitFor();
+ assert.equal(await page.getByRole('dialog').getByRole('button',{name:'Wat is winst?',exact:true}).count(),1,'Cold start should offer a beginner profit question');
+ assert.equal(await page.getByRole('dialog').getByRole('button',{name:'Wat is btw apartzetten?',exact:true}).count(),1,'Cold start should offer a beginner VAT question');
+ await page.getByRole('dialog').getByRole('button',{name:'Wat is winst?',exact:true}).click();
+ assert.match(await page.locator('#assistantAnswer').innerText(),/overblijft|omzet/i,'Cold-start educational answer must stay beginner-first');
+ await page.screenshot({path:path.join(evidence,browserName+'-ask-cold-start-390.png'),fullPage:true,animations:'disabled'});
+ await closeDialog();
+
+ answer=await ask('Wat moet ik vandaag doen?');
+ assert.match(await answer.innerText(),/Alles bijgewerkt/i,'All-clear assistant must state that everything is updated');
+ assert.match(await answer.innerText(),/niets te doen/i,'All-clear assistant must explicitly allow doing nothing');
+ const helpfulBefore=await page.evaluate(()=>Number(state.assistant?.metrics?.counts?.helpful||0));
+ await answer.getByRole('button',{name:'Nuttig',exact:true}).click();
+ const helpfulAfter=await page.evaluate(()=>Number(state.assistant?.metrics?.counts?.helpful||0));
+ assert.equal(helpfulAfter,helpfulBefore+1,'Helpful feedback must be stored as an aggregate counter only');
+ await closeDialog();
+
+ // Source failure: never manufacture amounts or reassurance when structured financial facts are unreliable.
+ await page.getByRole('button',{name:/Vraag Boekuna/i}).first().click();
+ await page.getByRole('dialog').waitFor();
+ await page.evaluate(()=>{
+  const unsafe={...assistantQuestionFacts(),financialReliable:false};
+  renderAskBoekunaAnswer(BoekunaAssistantQna.answer('Hoe sta ik ervoor?',unsafe));
+ });
+ const sourceFail=await page.locator('#assistantAnswer').innerText();
+ assert.match(sourceFail,/tijdelijk niet betrouwbaar/i,'Source failure must be explicit');
+ assert.doesNotMatch(sourceFail,/€\s?[-\d]/,'Source failure must not show a guessed financial amount');
+ await page.screenshot({path:path.join(evidence,browserName+'-ask-source-failure-390.png'),fullPage:true,animations:'disabled'});
+ await closeDialog();
+
+ // Desktop evidence: dashboard, lightweight Ask Boekuna, and the full Voor jou page.
+ await page.setViewportSize({width:1440,height:900});
+ await page.evaluate(()=>navigate('dashboard'));
+ await page.getByRole('heading',{name:'Overzicht'}).waitFor();
+ await page.screenshot({path:path.join(evidence,browserName+'-dashboard-all-clear-1440.png'),fullPage:true,animations:'disabled'});
+ await page.getByRole('button',{name:/Vraag Boekuna/i}).first().click();
+ await page.getByRole('dialog').waitFor();
+ await axe(browserName+' Ask Boekuna desktop');
+ await page.screenshot({path:path.join(evidence,browserName+'-ask-desktop-1440.png'),fullPage:true,animations:'disabled'});
+ await closeDialog();
+ await page.evaluate(()=>navigate('insights'));
+ await page.locator('#pageTitle').filter({hasText:'Voor jou'}).waitFor();
+ await noOverflow(browserName+' Voor jou desktop');
+ await page.screenshot({path:path.join(evidence,browserName+'-voor-jou-1440.png'),fullPage:true,animations:'disabled'});
 
  assert.deepEqual(errors,[]);
  console.log('BOEKUNA Personal Assistant V1.2 browser QA: PASS '+browserName);
