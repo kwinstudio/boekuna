@@ -33,6 +33,9 @@ assert.ok(source.includes("function mobilePrimarySection(p=page){return ['dashbo
 assert.ok(source.includes("invoices:'Inkomsten'"),'The user-facing invoices route title must be Inkomsten while the internal route stays invoices');
 assert.ok(source.includes('data-page="invoices"'),'The internal invoices route must remain intact');
 assert.ok(source.includes('data-mobile-page="invoices"'),'The mobile deep-link destination must remain invoices');
+assert.ok(source.includes("'1300':'Nog te ontvangen van klanten'"),'General-ledger customer receivables label must use plain language');
+assert.ok(source.includes("'1600':'Nog te betalen aan leveranciers'"),'General-ledger supplier payables label must use plain language');
+assert.ok(source.includes('<strong>Factuur</strong></button>'),'Quick-create invoice action must avoid the Verkoopfactuur jargon label');
 assert.ok(source.includes("openUploadSourcePicker('purchase')"),'Bon toevoegen must preserve the existing native upload path');
 assert.ok(source.includes('prepareEmailHandoffFromComposer'),'Invoice email handoff must remain present');
 assert.equal(/accounts\.google\.com|Sign in with Google|Doorgaan met Google/.test(source),false,'Google account login must stay off');
