@@ -114,7 +114,7 @@ function overdueRule(context){
 }
 function nearlyDueRule(context){
   const rows=(context.invoices||[]).filter(i=>{
-    if(!i||i.kind==='credit'||finite(i.outstanding)<=0.02||i.effectiveStatus==='overdue'||i.effectiveStatus==='paid')return false;
+    if(!i||i.kind==='credit'||finite(i.outstanding)<=0.02||['overdue','paid','cancelled'].includes(String(i.effectiveStatus||'')))return false;
     const d=daysBetween(context.now,i.dueDate);
     return Number.isFinite(d)&&d>=0&&d<=THRESHOLDS.NEARLY_DUE_DAYS;
   });
@@ -132,7 +132,7 @@ function nearlyDueRule(context){
   })];
 }
 function highOutstandingRule(context,baselines){
-  const rows=(context.invoices||[]).filter(i=>i&&i.kind!=='credit'&&finite(i.outstanding)>0.02&&i.effectiveStatus!=='paid');
+  const rows=(context.invoices||[]).filter(i=>i&&i.kind!=='credit'&&finite(i.outstanding)>0.02&&!['paid','cancelled'].includes(String(i.effectiveStatus||'')));
   const total=round(rows.reduce((s,i)=>s+finite(i.outstanding),0));
   if(!rows.length||total<THRESHOLDS.HIGH_OUTSTANDING_MIN)return [];
   const relative=baselines.eligible&&baselines.revenue>0?total/baselines.revenue:null;
