@@ -140,7 +140,7 @@ try{
   await navigateTo('bank');
   const bank=await page.locator('#content').innerText();
   assert.doesNotMatch(bank,/Bankkoppeling nog niet live\./,'Bank page should not carry permanent PSD2/open-banking explanation');
-  assert.ok(await page.getByRole('button',{name:/Bank CSV/}).isVisible());
+  assert.ok(await page.getByRole('button',{name:/Bankbestand importeren/}).isVisible());
   assert.ok(await page.getByRole('button',{name:/Transactie/}).isVisible());
   await page.screenshot({path:`tests/artifacts/premium-bank-${browserName}-390.png`,fullPage:true});
 
@@ -148,7 +148,7 @@ try{
   const documents=await page.locator('#content').innerText();
   assert.doesNotMatch(documents,/Upload compleet is niet hetzelfde als verwerking compleet\./,'Documents page should not repeat background-processing explanation');
   assert.doesNotMatch(documents,/tekstextractie, tabellen en OCR/,'Documents page should not expose technical OCR explanation in the primary flow');
-  assert.ok(await page.getByRole('button',{name:'Uploaden',exact:true}).isVisible(),'Document upload must remain available');
+  assert.ok(await page.getByRole('button',{name:'Document uploaden',exact:true}).isVisible(),'Document upload must remain available');
   assert.equal(await page.locator('#content').getByRole('button',{name:'Foto',exact:true}).count(),0,'Documents must expose one upload entry, not a separate photo action');
   assert.equal(await page.locator('#content').getByRole('button',{name:/Camera/}).count(),0,'Documents must expose one upload entry, not a separate camera action');
   assert.equal(await page.locator('.documents-secondary-menu > summary').count(),0,'Technical archive action should not appear in normal document controls');
