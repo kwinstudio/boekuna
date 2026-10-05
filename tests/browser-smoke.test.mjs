@@ -122,9 +122,26 @@ try{
   assert.match(totals,/6,30/,'Invoice VAT must be €6.30');
   assert.match(totals,/36,30/,'Invoice gross total must be €36.30');
 
+  assert.equal(await page.getByRole('button',{name:'Opslaan',exact:true}).count(),1,'Invoice editor must use one plain save action');
+  assert.equal(await page.getByRole('button',{name:'Controleer factuur',exact:true}).count(),0,'Separate review CTA must be removed because checks are live');
+
+  await page.evaluate(()=>{const f=document.getElementById('invoiceForm');f.elements.paymentReference.value='';updateInvoiceCheck()});
+  const openCheckText=await page.locator('#invoiceCheck').innerText();
+  assert.match(openCheckText,/Nog controleren/);
+  assert.match(openCheckText,/Betalingskenmerk/);
+  assert.doesNotMatch(openCheckText,/Factuurdatum.*In orde|Klant.*In orde/s,'Live check must show only unresolved items');
+
   await page.evaluate(()=>reviewInvoice());
-  await page.getByRole('heading',{name:'Laatste controle vóór opslaan'}).waitFor();
-  await page.evaluate(()=>finalSaveInvoice());
+  await page.getByRole('heading',{name:'Nog één aandachtspunt'}).waitFor();
+  const attentionText=await page.locator('.modal-body').innerText();
+  assert.match(attentionText,/Betalingskenmerk/);
+  assert.doesNotMatch(attentionText,/Factuurgegevens|Klantgegevens|Regels & bedragen/,'Attention modal must not repeat already-correct invoice data');
+  await page.getByRole('button',{name:'Terug aanpassen'}).click();
+  await page.locator('#invoiceForm').waitFor();
+  await page.evaluate(()=>{const f=document.getElementById('invoiceForm');f.elements.paymentReference.value=f.elements.number.value;updateInvoiceCheck()});
+
+  await page.evaluate(()=>reviewInvoice());
+  assert.equal(await page.getByRole('heading',{name:'Laatste controle vóór opslaan'}).count(),0,'Complete invoice must not open a duplicate review modal');
   assert.equal(await page.evaluate(()=>state.invoices.length),1);
   assert.equal(await page.evaluate(()=>invoiceNet(state.invoices[0])),30);
   assert.equal(await page.evaluate(()=>invoiceVat(state.invoices[0])),6.3);
