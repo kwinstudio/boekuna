@@ -10,6 +10,9 @@ on:
       - "public/sitemap.xml"
       - "public/assets/site.css"
       - "public/assets/site.js"
+      - "public/assets/premium-marketing.css"
+      - "public/assets/premium-marketing.js"
+      - "public/assets/stories/**"
       - "public/assets/favicon.svg"
       - "public/assets/onepage.css"
       - "public/assets/marketing.js"
@@ -19,6 +22,8 @@ on:
       - "vercel.json"
       - "tests/marketing-pages.test.mjs"
       - "tests/marketing-onepage-browser.test.mjs"
+      - "tests/marketing-premium-browser.test.mjs"
+      - "tests/marketing-performance.test.mjs"
       - "tests/marketing-app-non-regression.test.mjs"
       - "tests/helpers/marketing-site.mjs"
       - "tests/split-ci-scopes.test.mjs"
@@ -54,10 +59,16 @@ jobs:
         run: node tests/marketing-pages.test.mjs
       - name: Multipage Chromium + WebKit + Axe acceptance
         run: node tests/marketing-onepage-browser.test.mjs
+      - name: Premium storytelling responsive and motion acceptance
+        run: node tests/marketing-premium-browser.test.mjs
+      - name: Mobile laboratory performance and no-JavaScript content
+        run: node tests/marketing-performance.test.mjs
       - name: Upload multipage browser evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: boekuna-multipage-evidence
-          path: tests/artifacts/multipage/
+          path: |
+            tests/artifacts/multipage/
+            tests/artifacts/premium-marketing/
           if-no-files-found: warn
