@@ -19,6 +19,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      BOEKUNA_RELEASE_PROFILE: full
     steps:
       - uses: actions/checkout@v4
         with:
