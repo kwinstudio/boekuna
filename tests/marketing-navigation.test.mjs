@@ -38,5 +38,5 @@ try{
    }
   }finally{await browser.close()}
  }
- console.log('Marketing navigation/image QA: PASS (7 real pages, both engines, four widths, next-page CTAs, no portraits, mobile default, uncropped images)');
+ console.log('Marketing navigation/image QA: PASS (7 real pages, both engines, four widths, next-page CTAs, no portraits, editorial palette, uncropped images)');
 }finally{await server.close()}
