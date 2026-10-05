@@ -98,4 +98,11 @@ for(const coreFunction of ['function renderDashboard()','function renderInvoices
 assert.ok(html.includes('const BOEKUNA_RELEASE_PROFILE=Object.freeze('),'Generated app must expose immutable release profile');
 assert.match(html,/"name":"first-release"/,'Generated app must declare first-release profile');
 
+const restore=spawnSync(process.execPath,['scripts/build-app.mjs'],{
+  cwd:root,
+  encoding:'utf8',
+  env:{...process.env,BOEKUNA_RELEASE_PROFILE:'full',BOEKUNA_DEV_MODE:'false'}
+});
+assert.equal(restore.status,0,'Full QA artifact must remain buildable after the Release 1 contract:\n'+restore.stdout+'\n'+restore.stderr);
+
 console.log('First release scope contract: PASS');
