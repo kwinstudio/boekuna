@@ -5273,6 +5273,7 @@ function reconcileFinancialReviewVisibleAmounts(markUserKey=null){
   }
  }
  if(markUserKey)financialReviewEvent('financial_recalculation_applied',['net','vatRate']);
+ if(typeof clearStaleFinancialReviewToasts==='function')clearStaleFinancialReviewToasts();
  return true
 }
 function syncFinancialReviewStateFromForm(markUserKey=null){
