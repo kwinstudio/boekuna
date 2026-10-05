@@ -28,7 +28,7 @@ try {
   await nojs.goto(server.base);
   assert.ok(await nojs.locator('.editorial-intro h2').isVisible());
   assert.ok(await nojs.getByRole('link',{name:'Probeer Boekuna gratis',exact:true}).first().isVisible());
-  assert.ok(await nojs.locator('.marquee-card').first().isVisible());
+  assert.ok(await nojs.locator('.project-card').first().isVisible());\n  assert.equal(await nojs.locator('main img').count(),0,'No screenshot content should render without JavaScript');
   fs.mkdirSync('tests/artifacts/premium-marketing',{recursive:true});
   fs.writeFileSync('tests/artifacts/premium-marketing/performance.json',JSON.stringify({profile:'390px, CPU 4x, 1.6Mbps, 150ms latency; laboratory measurements, not field INP',...metrics,noJavaScriptContent:true},null,2));
   console.log('Mobile marketing performance/no-JavaScript QA: PASS',metrics);
