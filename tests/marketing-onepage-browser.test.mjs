@@ -67,12 +67,11 @@ try{
 
       const home=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
       await home.goto(server.base+'/',{waitUntil:'networkidle'});
-      await home.locator('.try-scan > summary').click();
-      await home.locator('#scanBtn').click();
-      await home.waitForTimeout(700);
-      assert.notEqual((await home.locator('#scanBadge').innerText()).trim(),'Klaar om te scannen',name+' scan demo must react');
-      await home.locator('#t-btw').click();
-      assert.equal(await home.locator('#t-btw').getAttribute('aria-selected'),'true',name+' product tabs work');
+      await home.getByRole('link',{name:/Bekijk hoe het werkt/}).click();
+      assert.equal(new URL(home.url()).pathname,'/hoe-het-werkt/');
+      await home.goto(server.base+'/scanner/',{waitUntil:'networkidle'});
+      await home.locator('#flowline button').nth(1).click();
+      assert.equal(await home.locator('#flowline button').nth(1).getAttribute('aria-pressed'),'true',name+' scanner step reacts');
       await home.close();
 
       const assistant=await browser.newPage({viewport:{width:390,height:844}});

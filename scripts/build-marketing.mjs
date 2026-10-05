@@ -114,6 +114,21 @@ for(const [slug,destination] of Object.entries(retiredRedirects)){
   fs.writeFileSync(path.join(dir,'index.html'),html);
 }
 
+// Editorial presentation belongs to marketing, never the shared product app.
+function editorialPages(dir){
+  for(const entry of fs.readdirSync(dir,{withFileTypes:true})){
+    const file=path.join(dir,entry.name);
+    if(entry.isDirectory())editorialPages(file);
+    else if(entry.name.endsWith('.html')){
+      let html=fs.readFileSync(file,'utf8').replaceAll('href="/assets/favicon.svg"','href="/assets/editorial-favicon.svg"');
+      if(!html.includes('/assets/editorial-marketing.css'))html=html.replace('</head>','<link rel="stylesheet" href="/assets/editorial-marketing.css">\n</head>');
+      if(html.includes('id="burger"')&&!html.includes('/assets/editorial-marketing.js'))html=html.replace('</body>','<script src="/assets/editorial-marketing.js" defer></script>\n</body>');
+      fs.writeFileSync(file,html);
+    }
+  }
+}
+editorialPages(target);
+
 const pages=['index.html','functies/index.html','assistent/index.html','scanner/index.html','prijzen/index.html','veiligheid/index.html','faq/index.html'];
 for(const page of pages){
   const html=fs.readFileSync(path.join(target,page),'utf8');

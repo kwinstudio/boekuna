@@ -10,6 +10,8 @@ on:
       - "public/sitemap.xml"
       - "public/assets/site.css"
       - "public/assets/site.js"
+      - "public/assets/editorial-marketing.css"
+      - "public/assets/editorial-marketing.js"
       - "public/assets/premium-marketing.css"
       - "public/assets/premium-marketing.js"
       - "public/assets/stories/**"
