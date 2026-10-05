@@ -87,8 +87,8 @@ try{
   await page.evaluate(()=>navigate('bank'));
   const bankText=await page.locator('#content').innerText();
   assert.match(bankText,/Importeer een CSV-bankbestand om transacties te bekijken en te koppelen\./);
-  assert.equal(await page.getByRole('button',{name:/Bankbestand importeren/}).count(),2,'Bank import should be the page action and empty-state action');
-  assert.equal(await page.locator('.page-actions .btn.primary').filter({hasText:'Bankbestand importeren'}).count(),1,'Bank import must be the single primary page action');
+  assert.equal(await page.getByRole('button',{name:/Bankbestand importeren/}).count(),1,'Empty Bank should expose one obvious import action');
+  assert.equal(await page.locator('.beginner-empty-state .btn.primary').filter({hasText:'Bankbestand importeren'}).count(),1,'Bank import must be the empty-state primary action');
 
   await page.evaluate(()=>navigate('vat'));
   const vatText=await page.locator('#content').innerText();
