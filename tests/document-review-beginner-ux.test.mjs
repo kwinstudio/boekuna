@@ -201,8 +201,8 @@ try{
   });
   assert.equal(await page.getByRole('button',{name:'Volgende',exact:true}).isDisabled(),false,'financial issue belongs to step 2, not step 1');
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
-  assert.match(await page.locator('[data-review-page="2"]').innerText(),/btw-percentage past niet|Controleer totaal en btw/i);
-  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),1,'rate should appear only while it is the unresolved issue');
+  assert.match(await page.locator('[data-review-page="2"]').innerText(),/Controleer het btw-bedrag|Controleer totaal en btw/i);
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),0,'normal VAT mismatch should stay focused on the visible VAT amount');
   assert.equal(await page.locator('[data-review-net-editor]:visible').count(),0,'ex-VAT remains derived instead of adding another correction field');
   assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]:visible').count(),1);
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true);
