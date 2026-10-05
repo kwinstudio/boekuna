@@ -698,7 +698,7 @@ try{
     await panel.filter({hasText:/Controleer totaal en btw/}).waitFor();
     assert.equal(await page.getByRole('button',{name:'Gebruik deze bedragen'}).count(),0,'Low-confidence recognition alone must not create an automatic correction action');
     const initialIssues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
-    assert.ok(initialIssues.some(x=>x.field==='vatRate'),'Untrusted VAT mismatch must remain blocking until a visible amount is corrected');
+    assert.ok(initialIssues.some(x=>x.field==='vatAmount'),'Untrusted VAT mismatch must point to the visible VAT amount until the user corrects or re-enters it');
     assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true);
 
     const deterministicProcessorPosts=()=>processorMethods.filter(method=>method==='POST').length;
