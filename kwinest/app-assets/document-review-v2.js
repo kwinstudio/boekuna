@@ -342,7 +342,11 @@ function updateBeginnerReviewState(){
     warning.textContent=financial?financial.message:''
   }
   const netEditor=document.querySelector('[data-review-net-editor]');
-  if(netEditor){netEditor.hidden=true;netEditor.style.display='none'}
+  if(netEditor){
+    const f=document.getElementById('pdfImportForm'),netC=cents(f?.elements.namedItem('net')?.value),vatC=cents(f?.elements.namedItem('vatAmount')?.value),grossC=cents(f?.elements.namedItem('gross')?.value),netMeta=d.fieldProvenance?.net||{};
+    const needsExplicitNet=netMeta.source==='user'&&netMeta.confirmed&&netC!=null&&vatC!=null&&grossC!=null&&netC+vatC!==grossC;
+    netEditor.hidden=!needsExplicitNet;netEditor.style.display=needsExplicitNet?'':'none'
+  }
   const financialPanel=document.getElementById('financialCorrectionPanel');
   if(financialPanel)financialPanel.classList.toggle('review-secondary-panel',!financial);
   document.querySelectorAll('[data-review-next]').forEach(btn=>{btn.disabled=basisIssues.length>0});
@@ -364,11 +368,12 @@ function reconcileSimpleReviewAmounts(markUserKey=null){
   if(grossC==null||vatC==null||grossC===0)return;
   if(vatC!==0&&Math.sign(grossC)!==Math.sign(vatC))return;
   if(Math.abs(vatC)>Math.abs(grossC))return;
+  if(!d.fieldProvenance||typeof d.fieldProvenance!=='object')d.fieldProvenance={};
+  const provenance=d.fieldProvenance,netMeta=provenance.net||{},visibleAnchorEdited=['gross','vatAmount'].includes(markUserKey);
+  if(netMeta.source==='user'&&netMeta.confirmed&&!visibleAnchorEdited)return;
   const netC=grossC-vatC,netEl=f.elements.namedItem('net');
   if(netEl)netEl.value=formatCents(netC);
   d.net=netC/100;
-  if(!d.fieldProvenance||typeof d.fieldProvenance!=='object')d.fieldProvenance={};
-  const provenance=d.fieldProvenance;
   provenance.net={source:'calculated',confirmed:false,confidence:null,derivedFrom:['gross','vatAmount'],calculatedAt:new Date().toISOString()};
   if(typeof BookunaFinancialCorrection!=='undefined'){
     const inferred=BookunaFinancialCorrection.inferKnownRate({net:netC,vatAmount:vatC,gross:grossC},BookunaFinancialCorrection.DEFAULT_RATES,1);
