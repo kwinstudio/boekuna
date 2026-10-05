@@ -84,7 +84,12 @@ try{
         const response=await page.goto(server.base+route,{waitUntil:'networkidle'});
         assert.equal(response.status(),200,name+' retained '+route);
         assert.ok(await page.locator('h1').isVisible(),name+' retained '+route+' h1');
+        assert.ok(await page.locator('.brand-wordmark img[src*="boekuna-logo-lime.svg"]').first().isVisible(),name+' '+route+' lime header logo');
+        assert.equal(await page.locator('meta[name="theme-color"]').getAttribute('content'),'#E7FE55',name+' '+route+' theme color');
+        const primary=page.locator('.btn.primary,.button-primary').first();
+        if(await primary.count())assert.equal(await primary.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(231, 254, 85)',name+' '+route+' lime CTA');
         await noOverflow(page,name+' retained '+route);
+        await axe(page,name+' retained '+route);
         await page.close();
       }
     } finally {
