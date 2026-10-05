@@ -2421,7 +2421,7 @@ function renderBillingCard(){
  if(!b)return `<div class="card" id="billingCard" style="margin-bottom:16px"><div class="section-head"><h2>Abonnement</h2><span class="badge">Laden…</span></div></div>`;
  const plan=String(b.plan||'free'),status=String(b.status||'free'),entitlement=String(b.entitlement_status||((plan!=='free'&&status==='active')?'paid':'free')),limit=b.monthly_limit==null?null:Number(b.monthly_limit),used=Number(b.used||0),isUnlimited=plan==='pro',remaining=isUnlimited?null:Math.max(0,Number(b.remaining??Math.max(0,(limit??0)-used))),pct=isUnlimited?0:Math.min(100,Math.round((used/Math.max(1,limit??1))*100));
  const paid=entitlement==='paid';
- const hasSubscription=['trialing','active','past_due','unpaid','paused','incomplete'].includes(status);
+ const hasSubscriptionStatus=['trialing','active','past_due','unpaid','paused','incomplete'].includes(status);\n const canManageSubscription=b.can_manage_subscription===true&&hasSubscriptionStatus;
  const statusClass=paid?'good':['past_due','unpaid','paused'].includes(status)?'warn':'';
  const badge=paid?`${billingPlanLabel(plan)} · ${billingStatusLabel(status)}`:'Gratis plan';
  const period=paid&&b.current_period_end?`Huidige periode tot ${billingDate(b.current_period_end)}`:'';
@@ -2429,7 +2429,7 @@ function renderBillingCard(){
    <div class="section-head"><h2>Abonnement</h2><span class="badge ${statusClass}">${esc(badge)}</span></div>
    <div class="grid grid-2"><div><div class="eyebrow">Documentchecks deze maand</div><div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:7px"><strong style="font-size:26px">${isUnlimited?'Onbeperkt':`${used} / ${limit??0}`}</strong><span class="help">${isUnlimited?`${used} verwerkt deze maand`:`${remaining} over`}</span></div>${isUnlimited?'':`<div class="progress" style="height:7px;margin-top:10px"><span style="width:${pct}%"></span></div>`}${period?`<div class="help" style="margin-top:9px">${esc(period)}</div>`:''}</div>
    <div style="display:flex;gap:8px;align-items:flex-start;justify-content:flex-end;flex-wrap:wrap">
-     ${hasSubscription?`<button class="btn" onclick="openBillingPortal()">Beheer abonnement</button>`:`<button class="btn primary" onclick="startSubscription('boekuna')">Boekuna · €9,95</button><button class="btn" onclick="startSubscription('pro')">Unlimited · €19,95</button>`}
+     ${canManageSubscription?`<button class="btn" onclick="openBillingPortal()">Beheer abonnement</button>`:paid?`<span class="help">Je toegang is actief. Er is geen Stripe-abonnement om hier te beheren.</span>`:`<button class="btn primary" onclick="startSubscription('boekuna')">Boekuna · €9,95</button><button class="btn" onclick="startSubscription('pro')">Unlimited · €19,95</button>`}
      <a class="btn" href="/prijzen/" target="_blank" rel="noopener">Prijzen</a>
    </div></div>
    ${b.cancel_at_period_end?`<div class="notice warn" style="margin-top:14px"><strong>Opzegging gepland.</strong> Je betaalde toegang loopt door tot het einde van de huidige betaalperiode. Daarna valt je account terug op het Gratis-plan.</div>`:''}
