@@ -268,6 +268,14 @@ if(!isReleaseFeatureEnabled(releaseFeatures,'serviceCatalog')){
 }
 if(!isReleaseFeatureEnabled(releaseFeatures,'advancedReports')){
   for(const signature of ["function newPlannedCash(id='')","function editPlannedCash(id)","function savePlannedCash()","function deletePlannedCash(id)"])guardBuiltFunction(signature,'advancedReports');
+  const attentionSingle=" if(rows.length===1){rows[0].action();return}";
+  if(!appHtml.includes(attentionSingle))throw new Error('Release attention fallback marker changed');
+  appHtml=appHtml.replace(attentionSingle,attentionSingle+"\n if(!releaseFeatureEnabled('advancedReports')){rows[0].action();return}");
+  const attentionFooterStart=" const total=attentionRows().length,more=";
+  const attentionFooterAt=appHtml.indexOf(attentionFooterStart);
+  const openInfoAt=appHtml.indexOf(",openInfo=",attentionFooterAt);
+  if(attentionFooterAt<0||openInfoAt<0)throw new Error('Release attention footer marker changed');
+  appHtml=appHtml.slice(0,attentionFooterAt)+" const total=attentionRows().length,more=''"+appHtml.slice(openInfoAt);
 }
 if(!isReleaseFeatureEnabled(releaseFeatures,'advancedDocumentExceptions')){
   for(const signature of ['function newSettlement()','function saveSettlement()'])guardBuiltFunction(signature,'advancedDocumentExceptions');
