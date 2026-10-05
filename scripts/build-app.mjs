@@ -418,11 +418,19 @@ patchBuiltAppAsset(
   `      +'<section class="settings-group"><h2 class="settings-group-label">Account</h2>'`,
   `      +'<section class="settings-group"><h2 class="settings-group-label">Abonnement & account</h2>'`
 );
-patchBuiltAppAsset(
-  'mobile-product.js',
-  "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];",
-  "var titles=['Mijn bedrijf','Facturen','Boekhouding','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];"
-);
+if(assistantEnabled){
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Assistent & inzichten','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];",
+    "var titles=['Mijn bedrijf','Facturen','Boekhouding','Assistent & inzichten','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];"
+  );
+}else{
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];",
+    "var titles=['Mijn bedrijf','Facturen','Boekhouding','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];"
+  );
+}
 
 if(!isReleaseFeatureEnabled(releaseFeatures,'serviceCatalog')){
   patchBuiltAppAsset(
