@@ -104,6 +104,7 @@
 .story-stage{aspect-ratio:1/1.05}
 .hero-product-stage{height:100%;padding:30px;gap:22px;align-content:center}
 .product-story-copy{width:100%;color:#1b1f23}.product-story-copy .eyebrow{margin-bottom:10px}.product-story-copy h2{font-size:30px;line-height:1.12;letter-spacing:-.035em}.product-story-copy p{font-size:14px;color:#46564b;margin-top:10px}
+.product-story-copy .eyebrow{color:#177a31}
 #hero-story-0 .product-frame{max-width:330px}
 .hero-product-stage .product-frame img{max-height:390px;object-fit:contain}
 .bento-preview{height:auto;aspect-ratio:4/3;background:#f8fafb}

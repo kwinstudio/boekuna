@@ -12,6 +12,9 @@ try{
     const page=await browser.newPage({viewport:{width,height:960},reducedMotion:'reduce'});
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
     await page.goto(server.base);
+    await page.emulateMedia({colorScheme:'dark'});
+    assert.equal(await page.locator('.product-story-copy .eyebrow').first().evaluate(el=>getComputedStyle(el).color),'rgb(23, 122, 49)','Product artwork text stays legible in dark mode');
+    await page.emulateMedia({colorScheme:'light'});
     assert.equal(await page.locator('img[src*="ondernemer-werkplek"]').count(),0);
     const links=await page.locator('.bento-card, .hero-cta a').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href')));
     assert.ok(links.every(href=>!href.startsWith('#')&&!href.includes('/#')),links.join(','));
