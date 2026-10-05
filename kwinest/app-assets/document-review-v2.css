@@ -148,6 +148,10 @@
 .two-step-review .review-wizard-grid .field{margin:0}
 .two-step-review .review-wizard-grid .field.full{grid-column:1/-1}
 .two-step-review .review-wizard-grid label{font-size:13px;font-weight:700}
+.two-step-review .review-wizard-grid input,.two-step-review .review-wizard-grid select{width:100%;min-width:0;height:44px;min-height:44px;box-sizing:border-box}
+.two-step-review .review-wizard-grid input[type="date"]{display:block}
+.two-step-review .review-original-toggle-icon{width:44px;height:44px;min-width:44px;min-height:44px;display:grid;place-items:center;padding:0}
+.two-step-review .review-original-toggle-icon svg{pointer-events:none}
 .two-step-review .review-amount-glance{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:var(--app-surface,#f6f7f8)}
 .two-step-review .review-amount-glance span{font-size:13px;color:var(--text-muted)}
 .two-step-review .review-amount-glance strong{font-size:21px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
