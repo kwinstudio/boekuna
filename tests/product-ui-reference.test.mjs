@@ -26,10 +26,19 @@ assert.ok(ui.includes('font-family:"Boekuna Inter"'),'Inter UI role missing');
 assert.equal(/(?:linear|radial)-gradient\(/i.test(ui),false,'Master-reference layer must not use gradients');
 assert.equal(/backdrop-filter:(?!none)/i.test(ui),false,'Master-reference layer must not introduce glassmorphism');
 assert.ok(ui.includes('@media(prefers-reduced-motion:reduce)'),'Reduced-motion handling missing');
-for(const label of ['Overzicht','Facturen','Kosten','Bank','Btw','Rapportages','Bonnetjes','Instellingen'])assert.ok(source.includes('>'+label+'</button>')||source.includes('>'+label+'</span>'),'Primary product navigation missing '+label);
-for(const label of ['Overzicht','Facturen','Kosten','Btw','Meer'])assert.ok(source.includes('<span>'+label+'</span>'),'Mobile reference navigation missing '+label);
+for(const label of ['Overzicht','Inkomsten','Kosten','Bank','Btw','Rapportages','Bonnetjes','Instellingen'])assert.ok(source.includes('>'+label+'</button>')||source.includes('>'+label+'</span>'),'Primary product navigation missing '+label);
+for(const label of ['Overzicht','Inkomsten','Kosten','Btw','Meer'])assert.ok(source.includes('<span>'+label+'</span>'),'Mobile reference navigation missing '+label);
 assert.equal((source.match(/class="mobile-bottom-nav-item/g)||[]).length,5,'Mobile navigation must expose exactly five primary destinations');
 assert.ok(source.includes("function mobilePrimarySection(p=page){return ['dashboard','invoices','expenses','vat'].includes(p)?p:'more'}"),'Secondary mobile destinations must map to More');
+assert.ok(source.includes("invoices:'Inkomsten'"),'The user-facing invoices route title must be Inkomsten while the internal route stays invoices');
+assert.ok(source.includes("income:'Ontvangsten'"),'The bank income drill-down must be distinguished from the primary Inkomsten route');
+assert.ok(source.includes('data-page="invoices"'),'The internal invoices route must remain intact');
+assert.ok(source.includes('data-mobile-page="invoices"'),'The mobile deep-link destination must remain invoices');
+assert.ok(source.includes("'1300':'Debiteuren'"),'Internal journal account contract must keep the established Debiteuren label');
+assert.ok(source.includes("'1600':'Crediteuren'"),'Internal journal account contract must keep the established Crediteuren label');
+assert.ok(source.includes("'1300':'Nog te ontvangen van klanten'"),'Ledger presentation map must expose the customer receivables label in plain language');
+assert.ok(source.includes("'1600':'Nog te betalen aan leveranciers'"),'Ledger presentation map must expose the supplier payables label in plain language');
+assert.ok(source.includes('<strong>Factuur</strong></button>'),'Quick-create invoice action must avoid the Verkoopfactuur jargon label');
 assert.ok(source.includes("openUploadSourcePicker('purchase')"),'Bon toevoegen must preserve the existing native upload path');
 assert.ok(source.includes('prepareEmailHandoffFromComposer'),'Invoice email handoff must remain present');
 assert.equal(/accounts\.google\.com|Sign in with Google|Doorgaan met Google/.test(source),false,'Google account login must stay off');
@@ -136,6 +145,9 @@ try{
       assert.equal(await page.locator('.nav-item.active').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(236, 250, 238)');
       assert.deepEqual(await page.locator('.dashboard-kpi-label').allTextContents(),['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen']);
       assert.equal(await page.locator('#dashboardPeriod').inputValue(),'month');
+      const dashboardKpiHelpers=(await page.locator('.dashboard-kpis .metric-sub').allTextContents()).map(v=>v.trim());
+      assert.deepEqual(dashboardKpiHelpers.slice(0,3),['Omzet minus kosten','Excl. btw','Excl. btw'],'Dashboard KPI helpers must not repeat the selected period');
+      assert.notEqual(await page.locator('.dashboard-kpi .metric-icon').first().evaluate(el=>getComputedStyle(el).display),'none','Desktop dashboard KPI icons must remain visible');
       assert.deepEqual((await page.locator('.dashboard-chart-card .chart-legend span').allTextContents()).map(v=>v.trim()),['Omzet','Kosten','Winst']);
       assert.deepEqual(await page.locator('.dashboard-summary-title').allTextContents(),['Administratie','Vraag Boekuna','Nieuwe factuur']);
       await noOverflow(page,browserName+' desktop dashboard');
@@ -152,11 +164,26 @@ try{
       await page.setViewportSize({width:1440,height:900});
 
       await page.evaluate(()=>navigate('invoices'));
-      await page.getByRole('heading',{name:'Facturen'}).waitFor();
+      await page.getByRole('heading',{name:'Inkomsten'}).waitFor();
       const invoicePrimary=page.getByRole('button',{name:/Nieuwe factuur|Factuur maken/});
       assert.ok(await invoicePrimary.isVisible());
       assert.equal(await invoicePrimary.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(99, 212, 113)');
       assert.equal(await invoicePrimary.evaluate(el=>getComputedStyle(el).color),'rgb(27, 31, 35)');
+      assert.notEqual(await page.locator('.product-kpi-icon').first().evaluate(el=>getComputedStyle(el).display),'none','Desktop product KPI icons must remain visible');
+      await page.evaluate(()=>newInvoice());
+      const fieldMetrics=await page.evaluate(()=>{
+        const date=document.querySelector('#invoiceForm input[name="issueDate"]');
+        const number=document.querySelector('#invoiceForm input[name="paymentDays"]');
+        const select=document.querySelector('#invoiceForm select[name="status"]');
+        const metric=el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el);return {height:Math.round(r.height),radius:s.borderRadius,paddingTop:s.paddingTop,paddingBottom:s.paddingBottom}};
+        return {date:metric(date),number:metric(number),select:metric(select)};
+      });
+      assert.equal(fieldMetrics.date.height,fieldMetrics.number.height,browserName+' date and number input heights must align');
+      assert.equal(fieldMetrics.date.height,fieldMetrics.select.height,browserName+' date and select heights must align');
+      assert.equal(fieldMetrics.date.radius,fieldMetrics.number.radius,browserName+' date input radius must align');
+      assert.equal(fieldMetrics.date.paddingTop,fieldMetrics.number.paddingTop,browserName+' date input vertical padding must align');
+      assert.equal(fieldMetrics.date.paddingBottom,fieldMetrics.number.paddingBottom,browserName+' date input vertical padding must align');
+      await page.evaluate(()=>closeModal());
       await noOverflow(page,browserName+' desktop invoices');
       await page.screenshot({path:path.join(evidence,'invoices-1440-'+browserName+'.png'),fullPage:true});
 
@@ -168,11 +195,11 @@ try{
 
       const coreKpis={
         invoices:['Openstaand','Te laat','Betaald deze maand','Concepten'],
-        expenses:['Kosten deze maand','Btw terug te vragen','Grootste categorie','Te controleren'],
+        expenses:['Kosten deze maand','Btw die je kunt terugvragen','Grootste categorie','Te controleren'],
         documents:['Te verwerken','Controle nodig','Verwerkt deze maand','Totaal documenten'],
-        vat:['Te betalen btw','Ontvangen btw','Voorbelasting','Controle nodig'],
+        vat:['Te betalen btw','Ontvangen btw','Btw die je kunt terugvragen','Controle nodig'],
         reports:['Omzet','Kosten','Winst','Winstmarge'],
-        income:['Inkomsten deze maand','Ontvangen','Nog te ontvangen','Groei'],
+        income:['Omzet deze maand','Bijgeschreven','Nog te ontvangen','Groei'],
         outgoings:['Deze maand uitgegeven','Nog niet gekoppeld','Terugkerende uitgaven','Te controleren']
       };
       for(const [route,labels] of Object.entries(coreKpis)){
@@ -201,14 +228,28 @@ try{
       await page.setViewportSize({width:390,height:844});
       await page.evaluate(()=>navigate('dashboard'));
       await page.getByRole('heading',{name:'Overzicht'}).waitFor();
-      assert.deepEqual((await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents()).map(v=>v.trim()),['Overzicht','Facturen','Kosten','Btw','Meer']);
+      assert.deepEqual((await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents()).map(v=>v.trim()),['Overzicht','Inkomsten','Kosten','Btw','Meer']);
+      assert.ok((await page.locator('.dashboard-kpi .metric-icon').count())>0,'Dashboard KPI icon nodes should remain available to desktop');
+      assert.ok(await page.locator('.dashboard-kpi .metric-icon').evaluateAll(nodes=>nodes.every(el=>getComputedStyle(el).display==='none')),'Mobile dashboard KPI icons must be hidden');
       assert.equal(await page.locator('.dashboard-kpis').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length),2,'390px mobile dashboard must pair Omzet and Kosten');
+      assert.equal(await page.locator('#content').evaluate(el=>getComputedStyle(el).paddingTop),'14px','390px mobile content padding must use the compact app-only contract');
       assert.equal(await page.locator('.dashboard-chart-card').isVisible(),false,'Large chart belongs on mobile Reports');
       const targets=await page.locator('#mobileBottomNav .mobile-bottom-nav-item').evaluateAll(nodes=>nodes.map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height})));
       assert.ok(targets.every(x=>x.h>=44),'Mobile bottom-nav touch targets must be at least 44px high');
       await noOverflow(page,browserName+' mobile dashboard');
       await axe(page,browserName+' mobile dashboard');
       await page.screenshot({path:path.join(evidence,'dashboard-390-'+browserName+'.png'),fullPage:true});
+      await page.evaluate(()=>navigate('invoices'));
+      await page.getByRole('heading',{name:'Inkomsten'}).waitFor();
+      assert.ok((await page.locator('.product-kpi-icon').count())>0,'Product KPI icon nodes should remain available to desktop');
+      assert.ok(await page.locator('.product-kpi-icon').evaluateAll(nodes=>nodes.every(el=>getComputedStyle(el).display==='none')),'Mobile product KPI icons must be hidden');
+      const firstContentTop=await page.locator('.workspace-table').evaluate(el=>Math.round(el.getBoundingClientRect().top));
+      assert.ok(firstContentTop<844,browserName+' mobile Inkomsten main list should begin inside the first viewport');
+      await page.evaluate(()=>navigate('vat'));
+      await page.getByRole('heading',{name:'Btw'}).waitFor();
+      const vatStatus=page.locator('.product-page-head .page-status').first();
+      assert.ok(await vatStatus.isVisible(),browserName+' mobile VAT financial context must remain visible');
+      assert.match(await vatStatus.innerText(),/indicatief|ingediend/i,browserName+' mobile VAT status must preserve filing context');
 
       await openReviewFixture(page);
       await noOverflow(page,browserName+' mobile document review');

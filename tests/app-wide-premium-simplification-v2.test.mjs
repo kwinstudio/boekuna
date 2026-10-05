@@ -77,7 +77,7 @@ try{
 
   // Invoice editor: task-first, advanced details available but not permanently dominant.
   await page.evaluate(()=>newInvoice());
-  await page.getByRole('heading',{name:'Nieuwe verkoopfactuur'}).waitFor();
+  await page.getByRole('heading',{name:'Nieuwe factuur'}).waitFor();
   const invoiceModal=page.locator('#modalRoot');
   assert.equal(await invoiceModal.getByText('Factuurcontrole actief.',{exact:true}).count(),0,'Permanent invoice-control prose must be removed');
   assert.ok(await invoiceModal.getByText('Factuurregels',{exact:true}).count(),'Invoice lines must remain immediately discoverable');
@@ -106,7 +106,7 @@ try{
   const quick=page.locator('#modalRoot');
   assert.ok(await quick.getByText('Dagelijks',{exact:true}).count(),'Quick actions need a Daily group');
   assert.ok(await quick.getByText('Meer',{exact:true}).count(),'Quick actions need a secondary group');
-  for(const label of ['Scannen','Verkoopfactuur','Kosten boeken','Relatie','Dienst','Boeking']){
+  for(const label of ['Scannen','Factuur','Kosten boeken','Relatie','Dienst','Boeking']){
     assert.ok(await quick.getByText(label,{exact:false}).count(),label+' must remain reachable');
   }
   await page.evaluate(()=>closeModal());
