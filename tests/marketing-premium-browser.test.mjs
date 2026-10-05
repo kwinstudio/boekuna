@@ -31,11 +31,13 @@ try{
         const brand=await page.evaluate(()=>{
           const root=getComputedStyle(document.documentElement);
           return {
-            lime:root.getPropertyValue('--boekuna-lime').trim(),
-            cyan:root.getPropertyValue('--boekuna-cyan').trim()
+            charcoal:root.getPropertyValue('--brand-charcoal').trim(),
+            green:root.getPropertyValue('--brand-green').trim(),
+            light:root.getPropertyValue('--brand-light').trim(),
+            muted:root.getPropertyValue('--brand-muted').trim()
           };
         });
-        assert.deepEqual(brand,{lime:'#E7FE55',cyan:'#BFE7EC'});
+        assert.deepEqual(brand,{charcoal:'#1B1F23',green:'#63D471',light:'#F6F7F8',muted:'#8A949C'});
 
         const broken=await page.locator('img').evaluateAll(imgs=>imgs.filter(i=>!i.complete||!i.naturalWidth).map(i=>i.src));
         assert.deepEqual(broken,[]);
@@ -83,7 +85,7 @@ try{
       await browser.close();
     }
   }
-  console.log('BOEKUNA lime/cyan editorial QA: PASS (18 responsive cases, image-free content, menu focus/Escape, Axe, cursor, reduced motion and no JS)');
+  console.log('BOEKUNA canonical editorial QA: PASS (18 responsive cases, image-free content, menu focus/Escape, Axe, cursor, reduced motion and no JS)');
 }finally{
   await server.close();
 }
