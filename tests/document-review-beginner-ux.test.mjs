@@ -20,6 +20,8 @@ assert.ok(reviewJs.includes('reviewAttentionFields'),'deferred attention persist
 assert.ok(reviewJs.includes('reviewSnapshot'),'saved review snapshot missing');
 assert.ok(reviewJs.includes('mixedVatValidation'),'mixed VAT validation missing');
 assert.ok(reviewJs.includes('netC+vatC!==grossC'),'financial core must compare cents exactly');
+assert.equal(reviewJs.includes('Totaal op document'),false,'amount review must not repeat the same total');
+assert.ok(reviewJs.includes('aria-label="Origineel document bekijken"'),'original document must stay accessible without a permanent text action');
 assert.ok(reviewCss.includes('min-height:44px'),'mobile review actions must keep 44px touch targets');
 assert.ok(buildSource.includes("'document-review-v2.js'")&&buildSource.includes("'document-review-v2.css'"),'app build must copy review assets');
 assert.ok(buildSource.includes('/assets/document-review-v2.js')&&buildSource.includes('/assets/document-review-v2.css'),'app build must inject review assets');
@@ -125,6 +127,11 @@ try{
   assert.equal(await page.locator('[data-review-page="1"] [name="party"]:visible').count(),1);
   assert.equal(await page.locator('[data-review-page="1"] [name="issueDate"]:visible').count(),1);
   assert.equal(await page.locator('[data-review-page="1"] [name="category"]:visible').count(),1);
+  const originalToggle=page.locator('.review-wizard-head [data-review-original-toggle]');
+  assert.equal((await originalToggle.innerText()).trim(),'','original control should be icon-only');
+  assert.equal(await originalToggle.getAttribute('aria-label'),'Origineel document bekijken');
+  const basisHeights=await page.locator('[data-review-page="1"] [name="party"],[data-review-page="1"] [name="issueDate"],[data-review-page="1"] [name="category"]').evaluateAll(nodes=>nodes.map(el=>Math.round(el.getBoundingClientRect().height)));
+  assert.ok(basisHeights.length===3&&Math.max(...basisHeights)-Math.min(...basisHeights)<=1,'date/select/text controls must have equal height: '+JSON.stringify(basisHeights));
   assert.equal(await page.locator('[name="address"]:visible').count(),0,'address must not be in primary review');
   assert.equal(await page.locator('[name="postal"]:visible').count(),0,'postal code must not be in primary review');
   assert.equal(await page.locator('[name="city"]:visible').count(),0,'city must not be in primary review');
@@ -141,6 +148,7 @@ try{
   assert.equal(await page.locator('[data-review-page="2"] [name="gross"]:visible').count(),1,'total is the primary amount');
   assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]:visible').count(),1);
   assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),1);
+  assert.doesNotMatch(await page.locator('[data-review-page="2"]').innerText(),/Totaal op document/i,'total must only appear once as the editable total');
   const consistentIssues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
   assert.deepEqual(consistentIssues,[],'cent-exact 100 + 21 = 121 must have no blocking issues: '+JSON.stringify(consistentIssues));
   const netVisibilityDebug=await page.locator('[data-review-page="2"] [name="net"]').evaluateAll(nodes=>nodes.map(el=>({
@@ -194,11 +202,28 @@ try{
   assert.equal(await page.getByRole('button',{name:'Volgende',exact:true}).isDisabled(),false,'financial issue belongs to step 2, not step 1');
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
   assert.match(await page.locator('[data-review-page="2"]').innerText(),/kloppen nog niet|Controleer de btw/i);
-  assert.equal(await page.locator('[data-review-net-editor]:visible').count(),1,'ex-VAT editor must appear only when an amount mismatch needs correction');
+  assert.equal(await page.locator('[data-review-net-editor]:visible').count(),0,'ex-VAT remains derived instead of adding another correction field');
   assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]:visible').count(),1);
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true);
   await page.locator('[data-review-page="2"] [name="vatAmount"]').fill('21,00');
   await page.locator('#reviewBlockingState').filter({hasText:/Alles ziet er goed uit|klaar om op te slaan/i}).waitFor();
+  assert.equal(await page.locator('[data-review-page="2"] [name="net"]').inputValue(),'100.00','net must be derived from total minus VAT');
+  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
+  await page.evaluate(()=>closeModal());
+
+  // DHL-like stale OCR math — trusted visible total + VAT should repair hidden net/rate instead of trapping Save.
+  await openReview({
+    documentType:'receipt',invoiceNumber:'',party:'DHL Parcel',category:'Reiskosten',
+    net:45,vatAmount:8.40,gross:48.40,vatRate:9,
+    reviewRouting:{mode:'FULL_REVIEW',fields:['net','vatRate'],count:2,autoBook:false},
+    fieldConfidence:{party:98,issueDate:99,net:42,vatAmount:98,gross:99,vatRate:45,vatLines:45,category:90}
+  });
+  await page.getByRole('button',{name:'Volgende',exact:true}).click();
+  assert.equal(await page.locator('[data-review-net-editor]:visible').count(),0);
+  assert.equal(await page.locator('[data-review-page="2"] [name="net"]').inputValue(),'40.00');
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]').inputValue(),'21');
+  const dhlIssues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
+  assert.deepEqual(dhlIssues,[],'DHL-like stale OCR values should reconcile deterministically: '+JSON.stringify(dhlIssues));
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
   await page.evaluate(()=>closeModal());
 
