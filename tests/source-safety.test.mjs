@@ -345,7 +345,7 @@ assert.ok(!reminderDelegate.includes("fetch(EDGE_BASE+'/send-invoice'"),"Legacy 
 assert.ok(reminderDelegate.includes("prepareReminderHandoffFromForm"),"Legacy reminder entrypoint must delegate to the unified handoff");
 
 
-assert.ok(html.includes('.list-toolbar-quick{display:flex')||html.includes('.list-toolbar-quick{grid-column:1/-1;display:flex'),'Mobile quick filters must stay visible');
-assert.ok(html.includes('overflow-x:auto'),'Mobile quick filters must scroll inside their own row');
+assert.match(html,/\.list-toolbar-quick\{[^}]*display:flex[^}]*overflow-x:auto[^}]*\}/,'Mobile quick filters must stay visible and scroll inside their own row');
+assert.match(html,/\.list-toolbar-quick \.filter-btn\{[^}]*min-height:44px[^}]*\}/,'Mobile quick filters must use the 44px touch target');
 assert.equal(html.includes('.list-toolbar-quick{display:none}'),false,'Mobile quick filters must not be hidden');
 console.log("Boekuna source safety tests: PASS");
