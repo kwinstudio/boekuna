@@ -216,9 +216,8 @@ try{
   await page.locator('#invoiceLines [data-k="desc"]').fill('Progressive QA');
   await page.locator('#invoiceLines [data-k="qty"]').fill('1');
   await page.locator('#invoiceLines [data-k="unit"]').fill('100');
-  await page.evaluate(()=>{updateInvoiceCustomer();calcInvoiceForm();updateInvoiceCheck();reviewInvoice()});
-  await page.getByRole('heading',{name:'Concept opslaan'}).waitFor();
-  await page.evaluate(()=>finalSaveInvoice());
+  await page.evaluate(()=>{updateInvoiceCustomer();calcInvoiceForm();updateInvoiceCheck();return reviewInvoice()});
+  assert.equal(await page.getByRole('heading',{name:'Concept opslaan'}).count(),0,'Draft must not open a duplicate review modal');
   assert.equal(await page.evaluate(()=>state.invoices.length),1);
   assert.equal(await page.evaluate(()=>state.invoices[0].status),'draft');
 
@@ -251,8 +250,7 @@ try{
   assert.equal(await page.locator('#invoiceForm [name="status"]').inputValue(),'sent');
   assert.equal(await page.evaluate(id=>editingInvoiceId===id,draftId),true,'Returned editor must preserve draft identity');
   await page.evaluate(()=>reviewInvoice());
-  await page.getByRole('heading',{name:'Laatste controle vóór opslaan'}).waitFor();
-  await page.evaluate(()=>finalSaveInvoice());
+  assert.equal(await page.getByRole('heading',{name:'Laatste controle vóór opslaan'}).count(),0,'Returned complete invoice must finalize without duplicate review modal');
   assert.equal(await page.evaluate(id=>state.invoices.find(i=>i.id===id)?.status,draftId), 'sent', 'Finalized returned draft must keep intended status');
   assert.ok(await page.evaluate(id=>!state.invoices.find(i=>i.id===id).number.startsWith('CONCEPT-'),draftId), 'Finalized invoice must receive a final number');
 
