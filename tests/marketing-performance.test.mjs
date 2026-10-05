@@ -23,13 +23,24 @@ try {
   const metrics=await page.evaluate(()=>({...window.lab,bytes:performance.getEntriesByType('resource').reduce((sum,e)=>sum+e.transferSize,0)}));
   assert.ok(metrics.lcp<4000,`Mobile lab LCP ${metrics.lcp}ms`);
   assert.ok(metrics.cls<.1,`Mobile lab CLS ${metrics.cls}`);
-  assert.ok(await page.locator('.project-card').count()===4);
+  assert.equal(await page.locator('.project-card').count(),4);
+
   const nojs=await browser.newPage({javaScriptEnabled:false,viewport:{width:390,height:844}});
   await nojs.goto(server.base);
   assert.ok(await nojs.locator('.editorial-intro h2').isVisible());
   assert.ok(await nojs.getByRole('link',{name:'Probeer Boekuna gratis',exact:true}).first().isVisible());
-  assert.ok(await nojs.locator('.project-card').first().isVisible());\n  assert.equal(await nojs.locator('main img').count(),0,'No screenshot content should render without JavaScript');
+  assert.ok(await nojs.locator('.project-card').first().isVisible());
+  assert.equal(await nojs.locator('main img').count(),0,'No screenshot content should render without JavaScript');
+
   fs.mkdirSync('tests/artifacts/premium-marketing',{recursive:true});
-  fs.writeFileSync('tests/artifacts/premium-marketing/performance.json',JSON.stringify({profile:'390px, CPU 4x, 1.6Mbps, 150ms latency; laboratory measurements, not field INP',...metrics,noJavaScriptContent:true},null,2));
+  fs.writeFileSync('tests/artifacts/premium-marketing/performance.json',JSON.stringify({
+    profile:'390px, CPU 4x, 1.6Mbps, 150ms latency; laboratory measurements, not field INP',
+    ...metrics,
+    noJavaScriptContent:true,
+    publicScreenshots:false
+  },null,2));
   console.log('Mobile marketing performance/no-JavaScript QA: PASS',metrics);
-} finally {await browser.close();await server.close();}
+} finally {
+  await browser.close();
+  await server.close();
+}
