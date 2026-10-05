@@ -374,6 +374,56 @@ if(assistantEnabled){
     "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Persoonlijke tips en samenvattingen','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];"
   );
 }
+// Beginner-first Settings is app-only: patch the generated product asset so
+// the public/marketing source remains byte-identical.
+patchBuiltAppAsset(
+  'mobile-polish-round-2.js',
+  `      +'<button class="btn" onclick="exportInvoicesCSV()">Facturen · CSV</button>'
+      +'<button class="btn" onclick="exportExpensesCSV()">Kosten · CSV</button>'
+      +'<button class="btn" onclick="exportJournalCSV()">Journaal · CSV</button>'
+      +'<button class="btn" onclick="exportAuditCSV()">Auditlog · CSV</button>'
+      +'<button class="btn" onclick="exportBackup()">Administratie-back-up</button>'`,
+  `      +'<button class="btn" onclick="exportInvoicesCSV()">Facturen · CSV</button>'
+      +'<button class="btn" onclick="exportExpensesCSV()">Kosten · CSV</button>'
+      +'<button class="btn" onclick="exportBackup()">Administratie-back-up</button>'`
+);
+patchBuiltAppAsset(
+  'mobile-polish-round-2.js',
+  `      +'</div><div class="help critical-help">Exporteer, importeer of herstel je bestaande administratie zonder de boekhoudlogica te wijzigen.</div></div>';`,
+  `      +'</div><div class="help critical-help">Exporteer, importeer of herstel je administratie.</div>'
+      +'<details class="secondary-disclosure settings-advanced-exports"><summary>Technische exports</summary><div class="disclosure-body settings-export-grid">'
+      +'<button class="btn" onclick="exportJournalCSV()">Journaal · CSV</button>'
+      +'<button class="btn" onclick="exportAuditCSV()">Auditlog · CSV</button>'
+      +'</div><div class="help critical-help">Voor boekhoudkundige controle of overdracht. Je dagelijkse administratie heeft deze exports niet nodig.</div></details></div>';`
+);
+patchBuiltAppAsset(
+  'mobile-polish-round-2.js',
+  `      +'<section class="settings-group"><h2 class="settings-group-label">Bedrijf</h2><div class="settings-list">'`,
+  `      +'<section class="settings-group"><h2 class="settings-group-label">Mijn bedrijf</h2><div class="settings-list">'`
+);
+patchBuiltAppAsset(
+  'mobile-polish-round-2.js',
+  `      +settingsItem('Belastingpot','Beheer het bestaande reservepercentage bij je cashflow.','navigate(\\'cashflow\\')')
+      +'</div></section>'`,
+  `      +(typeof releaseFeatureEnabled!=='function'||releaseFeatureEnabled('advancedReports')?settingsItem('Belastingpot','Beheer het bestaande reservepercentage bij je cashflow.','navigate(\\'cashflow\\')'):'')
+      +'</div></section>'`
+);
+patchBuiltAppAsset(
+  'mobile-polish-round-2.js',
+  `      +'<section class="settings-group"><h2 class="settings-group-label">Data</h2>'+dataCard+'<div class="settings-list">'+recovery+'</div></section>'`,
+  `      +'<section class="settings-group"><h2 class="settings-group-label">Data & export</h2>'+dataCard+'<div class="settings-list">'+recovery+'</div></section>'`
+);
+patchBuiltAppAsset(
+  'mobile-polish-round-2.js',
+  `      +'<section class="settings-group"><h2 class="settings-group-label">Account</h2>'`,
+  `      +'<section class="settings-group"><h2 class="settings-group-label">Abonnement & account</h2>'`
+);
+patchBuiltAppAsset(
+  'mobile-product.js',
+  "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];",
+  "var titles=['Mijn bedrijf','Facturen','Boekhouding','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];"
+);
+
 if(!isReleaseFeatureEnabled(releaseFeatures,'serviceCatalog')){
   patchBuiltAppAsset(
     'mobile-polish-round-2.js',
