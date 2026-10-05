@@ -18,6 +18,10 @@ on:
       - "public/assets/boekuna-symbol*.svg"
       - "public/assets/favicon-32.png"
       - "scripts/build-app.mjs"
+      - "scripts/release-profile.mjs"
+      - "tests/first-release-scope.test.mjs"
+      - "tests/first-release-browser.test.mjs"
+      - "docs/FIRST_RELEASE_FEATURES.md"
       - "tests/browser-smoke.test.mjs"
       - "tests/developer-mode.test.mjs"
       - "tests/developer-mode-browser.test.mjs"
@@ -75,6 +79,8 @@ jobs:
   app:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      BOEKUNA_RELEASE_PROFILE: full
     steps:
       - uses: actions/checkout@v4
         with:
@@ -104,6 +110,8 @@ jobs:
         run: node tests/personal-assistant-v1-2.test.mjs
       - name: Temporary assistant-disabled build contract
         run: node tests/assistant-feature-disabled.test.mjs
+      - name: First release scope and fail-closed contract
+        run: node tests/first-release-scope.test.mjs
       - name: Install app test dependencies
         run: npm ci --prefix tests --ignore-scripts
       - name: Invoice persistence and finalization invariants
@@ -232,6 +240,10 @@ jobs:
         run: node tests/production-integrity.test.mjs
       - name: Invoice PDF and email parity
         run: node tests/invoice-delivery.test.mjs
+      - name: First release browser QA — Chromium + WebKit
+        run: |
+          node tests/first-release-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/first-release-browser.test.mjs
       - name: Mobile QA release gate
         if: always()
         run: |
