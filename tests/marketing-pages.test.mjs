@@ -61,8 +61,18 @@ assert.ok(css.includes('/assets/fonts/InterVariable.woff2'),'Built Inter referen
 assert.ok(css.includes('@media (prefers-reduced-motion: reduce)'),'Reduced-motion handling missing');
 
 for(const legal of ['privacy/index.html','voorwaarden/index.html','support/index.html','account-verwijderen/index.html']){
-  assert.ok(fs.existsSync(path.join(src,legal)),'Required existing legal/support route missing '+legal);
+  const legalPath=path.join(src,legal);
+  assert.ok(fs.existsSync(legalPath),'Required existing legal/support route missing '+legal);
+  const legalHtml=fs.readFileSync(legalPath,'utf8');
+  assert.ok(legalHtml.includes('content="#E7FE55"'),legal+': BOEKUNA lime browser theme missing');
+  assert.ok(legalHtml.includes('/assets/onepage.css?v=20261005lime1'),legal+': branded legal stylesheet version missing');
+  assert.ok(legalHtml.includes('/assets/marketing.js?v=20261005lime1'),legal+': branded legal chrome version missing');
 }
+const legalCss=fs.readFileSync(path.join(src,'assets','onepage.css'),'utf8');
+for(const token of ['#E7FE55','#BFE7EC','#111111','#F6F6F3'])assert.ok(legalCss.includes(token),'Legal/support BOEKUNA token missing '+token);
+const legalChrome=fs.readFileSync(path.join(src,'assets','marketing.js'),'utf8');
+assert.ok(legalChrome.includes('/assets/boekuna-logo-lime.svg'),'Legal header must use official lime logo');
+assert.ok(legalChrome.includes('/assets/boekuna-logo-lime-reversed.svg'),'Legal footer must use official reversed logo');
 const terms=fs.readFileSync(path.join(src,'voorwaarden','index.html'),'utf8');
 for(const detail of ['Kwinest','74542893','NL002477565B57','support@boekuna.nl'])assert.ok(terms.includes(detail),'Verified business detail missing '+detail);
 
