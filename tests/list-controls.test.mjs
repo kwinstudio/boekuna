@@ -333,9 +333,19 @@ try{
     }
   }
 
-  // Mobile dialog + filter count + keyboard focus restoration.
+  // Mobile quick filters stay directly reachable without creating page overflow.
   await page.setViewportSize({width:375,height:812});
   await page.evaluate(()=>navigate('invoices'));
+  const mobileQuick=page.locator('[data-list-page="invoices"] .list-toolbar-quick');
+  assert.equal(await mobileQuick.isVisible(),true,'Mobile quick filters must remain visible');
+  assert.equal(await page.getByRole('button',{name:'Openstaand',exact:true}).isVisible(),true,'Openstaand quick filter must be reachable on mobile');
+  assert.ok(await mobileQuick.evaluate(el=>el.scrollWidth>=el.clientWidth),'Mobile quick filters may scroll within their own row');
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'Mobile quick filters must not add page overflow');
+  await page.getByRole('button',{name:'Openstaand',exact:true}).click();
+  assert.equal(await page.evaluate(()=>listPageState('invoices').filters.status),'open','Mobile quick filter must keep existing filter behavior');
+  await page.locator('[data-list-clear-filters]').click();
+
+  // Mobile dialog + filter count + keyboard focus restoration.
   const filterTrigger=page.locator('[data-list-open-filters]');
   await filterTrigger.click();
   const modal=page.locator('.modal');
