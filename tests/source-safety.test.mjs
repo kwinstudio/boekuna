@@ -218,7 +218,10 @@ assert.ok(support.includes("support_requests"),"Public support form must submit 
 assert.ok(deletion.includes("Online verwijderingsverzoek"),"Account deletion web resource must allow an external deletion request");
 assert.ok(deleteAccountEdge.includes('admin.rpc("delete_email_connection_secret"'),"Account deletion must remove connected mailbox credentials from Vault before deleting the user");
 assert.ok(deleteAccountEdge.indexOf('admin.rpc("delete_email_connection_secret"')<deleteAccountEdge.indexOf('admin.auth.admin.deleteUser(userId)'),"Mailbox credentials must be removed before the auth user is deleted");
-const deleteAccountClient=html.slice(html.indexOf("async function deleteAccountNow()"),html.indexOf("document.querySelectorAll('.nav-item')"));
+const deleteAccountClientStart=html.indexOf("async function deleteAccountNow()");
+const deleteAccountClientEnd=html.indexOf("document.querySelectorAll('.nav-item')",deleteAccountClientStart);
+assert.ok(deleteAccountClientStart>=0&&deleteAccountClientEnd>deleteAccountClientStart,"Account deletion client block must be discoverable");
+const deleteAccountClient=html.slice(deleteAccountClientStart,deleteAccountClientEnd);
 assert.ok(deleteAccountClient.includes("sb.auth.signOut({scope:'local'})"),"Successful account deletion must clear the persisted local Supabase session");
 assert.ok(deleteAccountClient.indexOf("sb.functions.invoke('delete-account'")<deleteAccountClient.indexOf("sb.auth.signOut({scope:'local'})"),"Server-side deletion must complete before the local auth session is cleared");
 for(const origin of ["https://boekuna-boekhouding.onrender.com","https://boekuna.nl","https://www.boekuna.nl"]){
