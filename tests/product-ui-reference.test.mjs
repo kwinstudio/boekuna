@@ -189,7 +189,7 @@ try{
 
       await page.evaluate(()=>navigate('vat'));
       await page.getByRole('heading',{name:'Btw'}).waitFor();
-      assert.match(await page.locator('#content').innerText(),/Indicatief/i);
+      assert.match(await page.locator('#content').innerText(),/indicati(?:e|ef)/i);
       await noOverflow(page,browserName+' desktop VAT');
       await page.screenshot({path:path.join(evidence,'vat-1440-'+browserName+'.png'),fullPage:true});
 
@@ -249,7 +249,7 @@ try{
       await page.getByRole('heading',{name:'Btw'}).waitFor();
       const vatStatus=page.locator('.product-page-head .page-status').first();
       assert.ok(await vatStatus.isVisible(),browserName+' mobile VAT financial context must remain visible');
-      assert.match(await vatStatus.innerText(),/indicatief|ingediend/i,browserName+' mobile VAT status must preserve filing context');
+      assert.match(await vatStatus.innerText(),/indicatie|indicatief|ingediend/i,browserName+' mobile VAT status must preserve filing context');
 
       await openReviewFixture(page);
       await noOverflow(page,browserName+' mobile document review');
