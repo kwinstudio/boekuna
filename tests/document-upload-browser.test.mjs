@@ -688,19 +688,18 @@ try{
     assert.equal(await panel.getAttribute('aria-live'),'polite');
 
     // Recognition says subtotal 128.66 + VAT 0 + total 128.66 while the OCR rate says 21%.
-    // The compact flow must trust the visible money pair, derive net=128.66 and rate=0,
-    // and keep the redundant rate field out of the happy path.
+    // VAT is low-confidence here, so Boekuna must NOT silently auto-reconcile it.
+    // Only after the user corrects a visible anchor may hidden net/rate be derived.
     assert.equal(await gross.inputValue(),'128.66');
     assert.equal(await vat.inputValue(),'0.00');
     assert.equal(await net.inputValue(),'128.66');
-    assert.equal(await rate.inputValue(),'0');
-    assert.equal(await page.locator('[data-review-field="vatRate"]:visible').count(),0);
-    assert.equal(await page.getByRole('button',{name:'Gebruik deze bedragen'}).count(),0,'Simple review should not add a second correction workflow');
-    assert.deepEqual(
-      await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed)),
-      [],
-      'Derived hidden fields must not block a valid total + VAT pair'
-    );
+    assert.equal(await rate.inputValue(),'21');
+    assert.equal(await page.locator('[data-review-field="vatRate"]:visible').count(),1,'Unresolved conflicting VAT rate must stay visible');
+    await panel.filter({hasText:/Controleer totaal en btw/}).waitFor();
+    assert.equal(await page.getByRole('button',{name:'Gebruik deze bedragen'}).count(),0,'Low-confidence recognition alone must not create an automatic correction action');
+    const initialIssues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
+    assert.ok(initialIssues.some(x=>x.field==='vatRate'),'Untrusted VAT mismatch must remain blocking until a visible amount is corrected');
+    assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true);
 
     const deterministicProcessorPosts=()=>processorMethods.filter(method=>method==='POST').length;
     const processorPostsBeforeCorrection=deterministicProcessorPosts();
