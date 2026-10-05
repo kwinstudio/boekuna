@@ -26,6 +26,7 @@ const fixtureBootstrap=[
   "state.plannedCash=[{id:'pc1',date:'2026-10-15',description:'QA geplande uitgave',type:'out',amount:25}];",
   "state.documents=[{id:'d1',name:'qa-document.pdf',type:'Upload',date:'2026-09-05',processingState:'ready'}];state.bookings=[];",
   "documentProcessingJobs=[];documentProcessingInitialized=true;documentProcessingConnectivityLost=false;documentProcessingFetchError=false;",
+  "sessionStorage.setItem(FINANCIAL_PERIOD_KEY,'all');",
   "enterApp();"
 ].join('\n');
 
