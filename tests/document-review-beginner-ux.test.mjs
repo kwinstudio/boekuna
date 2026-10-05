@@ -371,7 +371,9 @@ try{
     reviewRouting:{mode:'AUTO_ACCEPT_CANDIDATE',fields:[],count:0,autoBook:false}
   });
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
-  assert.match(await page.locator('[data-review-page="2"]').innerText(),/-\s*€|€\s*-\s*121|−\s*€/);
+  assert.equal(await page.locator('[data-review-page="2"] [name="gross"]').inputValue(),'-121.00','credit total must stay negative');
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]').inputValue(),'-21.00','credit VAT must stay negative');
+  assert.equal(await page.locator('[data-review-page="2"] [name="net"]').inputValue(),'-100.00','derived credit net must stay negative');
   await page.evaluate(()=>closeModal());
 
   // Mobile acceptance — both normal screens fit without vertical scrolling to reach the action.
