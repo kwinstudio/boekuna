@@ -111,6 +111,21 @@ try{
   const dashboardText=await page.evaluate(()=>{navigate('dashboard');return document.getElementById('content').innerText});
   assert.doesNotMatch(dashboardText,/Verborgen afspraak|afspraken vragen een reminder/i,'Booking reminders must not leak onto the dashboard');
 
+  await page.evaluate(()=>{
+    state.contacts.push(
+      {id:'c2',type:'customer',name:'Onvolledig 1'},
+      {id:'c3',type:'customer',name:'Onvolledig 2'},
+      {id:'c4',type:'customer',name:'Onvolledig 3'},
+      {id:'c5',type:'customer',name:'Onvolledig 4'}
+    );
+    navigate('dashboard');
+  });
+  assert.equal(await page.getByRole('button',{name:/Alle aandachtspunten/}).count(),0,'Release dashboard must not link to hidden Control Center');
+  await page.evaluate(()=>openAttentionCategory('contacts'));
+  await page.locator('#modalTitle').filter({hasText:'Relatie bewerken'}).waitFor();
+  assert.equal(await page.locator('#pageTitle').innerText(),'Overzicht','Multiple attention items must stay actionable without navigating to hidden Control Center');
+  await page.evaluate(()=>closeModal());
+
   await page.setViewportSize({width:390,height:844});
   const mobileNav=(await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents()).map(v=>v.trim());
   assert.deepEqual(mobileNav,['Overzicht','Inkomsten','Kosten','Btw','Meer']);
