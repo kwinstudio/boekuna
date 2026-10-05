@@ -197,7 +197,7 @@ try{
         invoices:['Openstaand','Te laat','Betaald deze maand','Concepten'],
         expenses:['Kosten deze maand','Btw die je kunt terugvragen','Grootste categorie','Te controleren'],
         documents:['Te verwerken','Controle nodig','Verwerkt deze maand','Totaal documenten'],
-        vat:['Te betalen btw','Ontvangen btw','Btw die je kunt terugvragen','Controle nodig'],
+        vat:['Waarschijnlijk te betalen','Ontvangen btw','Btw die je kunt terugvragen','Controle nodig'],
         reports:['Omzet','Kosten','Winst','Winstmarge'],
         income:['Omzet deze maand','Bijgeschreven','Nog te ontvangen','Groei'],
         outgoings:['Deze maand uitgegeven','Nog niet gekoppeld','Terugkerende uitgaven','Te controleren']
