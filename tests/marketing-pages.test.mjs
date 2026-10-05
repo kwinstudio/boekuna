@@ -37,7 +37,7 @@ for(const text of ['Je bent ondernemer.','Geen boekhouder.','Probeer Boekuna gra
 for(const target of ['/#facturen','/#bonnen','/#btw','/#bank','/#rapportages']){
   assert.ok(home.includes('href="'+target+'"'),'Homepage feature anchor missing '+target);
 }
-assert.ok(home.includes('Binnenkort: je eigen assistent.'),'Upcoming assistant status must be explicit on homepage');
+assert.equal(/persoonlijke assistent|assistent-home/i.test(home),false,'Upcoming assistant must not be promoted on the Release 1 homepage');
 
 const assistant=fs.readFileSync(path.join(src,'assistent','index.html'),'utf8');
 assert.ok(assistant.includes('Binnenkort'),'Assistant page must be clearly marked upcoming until product release');
@@ -78,6 +78,14 @@ for(const live of ['functies','assistent','scanner','prijzen','veiligheid','faq'
   const built=fs.readFileSync(path.join(dist,live,'index.html'),'utf8');
   assert.ok(built.includes('/assets/site.css'),live+': live multipage route was overwritten by redirect');
 }
+
+for(const live of ['index.html','functies/index.html','scanner/index.html','prijzen/index.html','veiligheid/index.html','faq/index.html']){
+  const built=fs.readFileSync(path.join(dist,live),'utf8');
+  assert.equal(/href="\/assistent\/"/i.test(built),false,live+': upcoming assistant leaked into primary Release 1 navigation');
+}
+const builtAssistant=fs.readFileSync(path.join(dist,'assistent','index.html'),'utf8');
+assert.ok(builtAssistant.includes('Binnenkort'),'Roadmap assistant page must remain explicit about upcoming status');
+assert.equal(/data-nav="assistent"|>Persoonlijke assistent<\/a>|>Assistent<\/a>/i.test(builtAssistant),false,'Roadmap assistant page must not advertise itself as a live primary feature');
 for(const retired of ['facturen','btw-bank','rapportages','hoe-het-werkt','voor-ondernemers','over','contact']){
   const built=fs.readFileSync(path.join(dist,retired,'index.html'),'utf8');
   assert.ok(built.includes('location.replace('),retired+': legacy redirect missing');
