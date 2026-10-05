@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {chromium,webkit} from 'playwright';
 
-execFileSync(process.execPath,['scripts/build-app.mjs']);
+// This regression exercises retained full-product controls that are intentionally hidden in the first-release build.
+execFileSync(process.execPath,['scripts/build-app.mjs'],{env:{...process.env,BOEKUNA_RELEASE_PROFILE:'full'}});
 const boot="currentUser={...TEST_USER};state=structuredClone(DEFAULT);state.transactions=Array.from({length:174},(_,i)=>({id:'t'+i,date:'2026-09-01',description:'Fictieve transactie '+i,amount:-10,status:'unmatched'}));documentProcessingInitialized=true;enterApp();";
 const html=fs.readFileSync('dist/app/index.html','utf8').replace('const TEST_MODE_NO_AUTH=false;','const TEST_MODE_NO_AUTH=true;').replace(/initAuth\(\);(?![\s\S]*initAuth\(\);)/,boot);
 const server=http.createServer((req,res)=>{const p=new URL(req.url,'http://localhost').pathname;if(p.startsWith('/assets/')){const f='dist/app'+p;if(fs.existsSync(f)){res.setHeader('Content-Type',p.endsWith('.js')?'text/javascript':p.endsWith('.css')?'text/css':'image/svg+xml');return res.end(fs.readFileSync(f))}res.writeHead(404);return res.end()}res.setHeader('Content-Type','text/html');res.end(html)});
