@@ -262,9 +262,9 @@ function financialBlockingIssues(d){
   }
   if(!d?.mixedRates&&required.has('vatRate')&&netC!=null&&vatC!=null&&grossC!=null){
     const rate=value('vatRate')===''?null:Number(value('vatRate'));
-    if(rate==null||!Number.isFinite(rate))issues.push({field:'vatRate',message:'Kies het btw-percentage.'});
+    if(rate==null||!Number.isFinite(rate))issues.push({field:d?.accountingVatTreatment==='review_required'?'vatRate':'vatAmount',message:d?.accountingVatTreatment==='review_required'?'Kies het btw-percentage.':'Controleer het btw-bedrag.'});
     else if(typeof BookunaFinancialCorrection!=='undefined'&&!BookunaFinancialCorrection.candidateFitsRate({net:netC,vatAmount:vatC,gross:grossC},rate,1)){
-      issues.push({field:'vatRate',message:'Het btw-percentage past niet bij deze bedragen.'})
+      issues.push({field:d?.accountingVatTreatment==='review_required'?'vatRate':'vatAmount',message:d?.accountingVatTreatment==='review_required'?'Het btw-percentage past niet bij deze bedragen.':'Controleer het btw-bedrag op het document.'})
     }
   }
   if(d?.mixedRates){const mixed=mixedVatValidation();if(!mixed.ok)issues.push({field:mixed.field||'vatLines',message:mixed.message})}
@@ -349,9 +349,7 @@ function updateBeginnerReviewState(){
   }
   const rateField=document.querySelector('[data-review-field="vatRate"]');
   if(rateField&&!d.mixedRates){
-    const f=document.getElementById('pdfImportForm'),netC=cents(f?.elements.namedItem('net')?.value),vatC=cents(f?.elements.namedItem('vatAmount')?.value),grossC=cents(f?.elements.namedItem('gross')?.value),rateRaw=String(f?.elements.namedItem('vatRate')?.value??''),rate=rateRaw===''?null:Number(rateRaw);
-    const rateMismatch=rate!=null&&Number.isFinite(rate)&&netC!=null&&vatC!=null&&grossC!=null&&typeof BookunaFinancialCorrection!=='undefined'&&!BookunaFinancialCorrection.candidateFitsRate({net:netC,vatAmount:vatC,gross:grossC},rate,1);
-    const needsRate=amountIssues.some(x=>x.field==='vatRate')||rateMismatch||d.accountingVatTreatment==='review_required';
+    const needsRate=amountIssues.some(x=>x.field==='vatRate')||d.accountingVatTreatment==='review_required';
     rateField.hidden=!needsRate;rateField.style.display=needsRate?'':'none'
   }
   const financialPanel=document.getElementById('financialCorrectionPanel');
