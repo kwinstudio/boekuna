@@ -64,8 +64,7 @@ if(!fs.existsSync(interFontSource))throw new Error('Missing app Inter font sourc
 let appHtml=fs.readFileSync(appSource,'utf8');
 
 const devFlag=String(process.env.BOEKUNA_DEV_MODE||'').trim().toLowerCase();
-const developerModeRequested=['1','true','yes','on'].includes(devFlag);
-const developerModeEnabled=isReleaseFeatureEnabled(releaseFeatures,'developerMode')&&developerModeRequested;
+const developerModeEnabled=isReleaseFeatureEnabled(releaseFeatures,'developerMode')&&['1','true','yes','on'].includes(devFlag);
 const deploymentEnvironment=String(process.env.BOEKUNA_DEPLOYMENT_ENV||'production').trim().toLowerCase();
 const developerAllowedOrigins=String(process.env.BOEKUNA_DEV_ALLOWED_ORIGINS||'').split(',').map(v=>v.trim().replace(/\/$/,'')).filter(Boolean);
 const productionOrigins=new Set([
@@ -75,9 +74,6 @@ const productionOrigins=new Set([
   'https://boekuna-boekhouding.onrender.com',
   'https://kwinest-boekhouding.onrender.com'
 ]);
-if(developerModeRequested&&!['development','preview','staging'].includes(deploymentEnvironment)){
-  throw new Error('Refusing Developer Mode for production or unknown environment: '+deploymentEnvironment);
-}
 const kvkPreview=process.env.BOEKUNA_KVK_PREVIEW==='true';
 if(kvkPreview){
   if(developerModeEnabled||!['preview','staging'].includes(deploymentEnvironment))throw new Error('KVK preview requires an isolated preview build without Developer Mode');
