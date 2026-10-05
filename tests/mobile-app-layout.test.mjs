@@ -104,7 +104,7 @@ try{
   const greeting=await page.locator('.dashboard-page-head .page-status').innerText();
   assert.match(greeting,/^(Goedemorgen|Goedemiddag|Goedenavond), Kwin · je administratie in één oogopslag$/,'Dashboard context must use local daypart and first name');
 
-  await page.getByRole('heading',{name:'Aandacht nodig'}).waitFor();
+  await page.locator('.dashboard-attention h2').filter({hasText:/heeft je aandacht|hebben je aandacht/}).waitFor();
   const attentionText=await page.locator('.dashboard-attention').innerText();
   assert.match(attentionText,/Factuur 2026-0001 vervallen/);
   assert.match(attentionText,/1 bankregel koppelen/);
@@ -135,7 +135,7 @@ try{
   await page.locator('.nav-item[data-page="documents"]').click();
   await page.locator('#pageTitle').filter({hasText:'Bonnetjes'}).waitFor();
   const scanChooserEvent=page.waitForEvent('filechooser');
-  await page.getByRole('button',{name:'Uploaden',exact:true}).click();
+  await page.getByRole('button',{name:'Document uploaden',exact:true}).click();
   const scanChooser=await scanChooserEvent;
   assert.equal(scanChooser.isMultiple(),true,'Document upload supports multiple documents');
   assert.equal(await page.locator('.source-picker').count(),0,'Document upload opens the native chooser directly');
