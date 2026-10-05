@@ -23,7 +23,8 @@ for(const asset of ['personal-insights.js','personal-assistant-qna.js','personal
 assert.ok(fs.existsSync(path.join(assets,'personal-insights.css')),'Shared KPI presentation CSS must remain available');
 assert.equal(html.includes('data-page="insights"'),false,'Voor jou navigation must be removed');
 assert.equal(html.includes('dashboard-ask-bookuna'),false,'Vraag Boekuna dashboard entry must be removed');
-assert.match(html,/async function navigate\(p\)\{\n if\(p==='insights'\)p='dashboard';/,'Direct assistant navigation must fail closed to dashboard');
+assert.match(html,/const releaseFallback=\{[^\n]*"insights":"dashboard"/,'Direct assistant navigation must fail closed to dashboard through the central release gate');
+assert.match(html,/const releaseRenderFallback=\{[^\n]*"insights":"dashboard"/,'Direct assistant render state must fail closed to dashboard');
 assert.match(html,/#mainApp \.dashboard-summary-grid\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\);/,'Two remaining dashboard summary cards must fill the desktop row');
 
 const mobileProduct=fs.readFileSync(path.join(assets,'mobile-product.js'),'utf8');
