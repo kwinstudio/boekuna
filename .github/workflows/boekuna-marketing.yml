@@ -24,6 +24,7 @@ on:
       - "tests/marketing-onepage-browser.test.mjs"
       - "tests/marketing-premium-browser.test.mjs"
       - "tests/marketing-performance.test.mjs"
+      - "tests/marketing-navigation.test.mjs"
       - "tests/marketing-app-non-regression.test.mjs"
       - "tests/helpers/marketing-site.mjs"
       - "tests/split-ci-scopes.test.mjs"
@@ -63,6 +64,8 @@ jobs:
         run: node tests/marketing-premium-browser.test.mjs
       - name: Mobile laboratory performance and no-JavaScript content
         run: node tests/marketing-performance.test.mjs
+      - name: Feature destinations and product image proportions
+        run: node tests/marketing-navigation.test.mjs
       - name: Upload multipage browser evidence
         if: always()
         uses: actions/upload-artifact@v4

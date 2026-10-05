@@ -2,6 +2,11 @@
   'use strict';
   const root=document.querySelector('.premium-home');
   if(!root)return;
+  const device=root.querySelector('#device');
+  if(device&&matchMedia('(max-width: 700px)').matches){
+    device.dataset.mode='phone';
+    root.querySelectorAll('[data-dev]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.dev==='phone')));
+  }
   const motion=matchMedia('(prefers-reduced-motion: reduce)');
   const story=root.querySelector('.story');
   const scenes=[...story.querySelectorAll('.story-scene')];
