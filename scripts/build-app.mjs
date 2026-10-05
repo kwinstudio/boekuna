@@ -221,7 +221,7 @@ function disableBuiltPage(pageName,fallback){
   removeBuiltSourceLine('data-page="'+pageName+'"','Release navigation');
   disabledPageFallbacks[pageName]=fallback;
 }
-if(!isReleaseFeatureEnabled(releaseFeatures,'personalAssistant'))disableBuiltPage('insights','dashboard');
+if(!assistantEnabled)disableBuiltPage('insights','dashboard');
 if(!isReleaseFeatureEnabled(releaseFeatures,'advancedReports')){
   disableBuiltPage('control','dashboard');
   disableBuiltPage('cashflow','reports');
