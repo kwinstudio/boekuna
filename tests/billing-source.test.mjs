@@ -16,6 +16,7 @@ const retiredOfferMigration=read('supabase/migrations/20260929122626_retire_firs
 const retiredOfferRpcHardening=read('supabase/migrations/20260929123036_reharden_retired_offer_billing_plan_rpc.sql');
 const activeBillingGuardMigration=read('supabase/migrations/20260928012515_guard_active_billing_stripe_identity.sql');
 const providerEntitlementMigration=read('supabase/migrations/20260930093553_provider_agnostic_billing_entitlements.sql');
+const portalCapabilityMigration=read('supabase/migrations/20261005165000_expose_billing_portal_capability.sql');
 const pricing=read('public/index.html');
 const privacy=read('public/privacy/index.html');
 const terms=read('public/voorwaarden/index.html');
@@ -39,6 +40,7 @@ for(const legacy of ['addCalendarMonthsUnix','reserve_founding_offer','subscript
 }
 
 assert.ok(portal.includes('/billing_portal/sessions'),'Paid users need Stripe Customer Portal management');
+assert.ok(portal.includes('stripe_customer_id'),'Billing portal must require a real Stripe customer identity');
 assert.ok(webhook.includes('verifyStripeSignature'),'Webhook events must verify the Stripe signature before processing');
 assert.ok(webhook.includes('stripe-signature'),'Webhook must require the Stripe-Signature header');
 assert.ok(webhook.includes('Stripe event environment mismatch'),'Webhook must reject test/live environment mismatches');
@@ -90,6 +92,10 @@ assert.ok(processor.includes('record_billing_usage(request)'),'Successful smart 
 assert.ok(html.includes("startSubscription('boekuna')"),'Frontend must offer explicit Boekuna checkout');
 assert.ok(html.includes("startSubscription('pro')"),'Frontend must offer explicit Unlimited checkout');
 assert.ok(html.includes('entitlement_status'),'Frontend must render the server-side entitlement state');
+assert.ok(html.includes('b.can_manage_subscription===true'),'Frontend must use the server-side Stripe portal capability');
+assert.ok(html.includes('Je toegang is actief. Er is geen Stripe-abonnement om hier te beheren.'),'Non-Stripe paid access must not show a broken Stripe portal action');
+assert.ok(portalCapabilityMigration.includes('can_manage_subscription boolean'),'Billing summary must expose portal capability explicitly');
+assert.ok(portalCapabilityMigration.includes("nullif(btrim(b.stripe_customer_id),'') is not null"),'Portal capability must require a real Stripe customer id');
 for(const retired of ['early_access_active','expired_read_only','FOUNDING 100','Eerste 100','Early Access']){
   assert.ok(!html.includes(retired),`Retired First-100 state/copy must be absent from app UI: ${retired}`);
 }
