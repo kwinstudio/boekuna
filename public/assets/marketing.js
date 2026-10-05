@@ -1,7 +1,7 @@
 const HEADER=`
 <header class="site-header">
   <nav class="nav shell" aria-label="Hoofdnavigatie">
-    <a class="brand-wordmark" href="/" aria-label="Boekuna home">Boekuna<span aria-hidden="true">.</span></a>
+    <a class="brand-wordmark" href="/" aria-label="Boekuna home"><img src="/assets/boekuna-logo-lime.svg" width="158" height="31" alt=""></a>
     <div class="nav-links" aria-label="Pagina">
       <a href="/#product">Product</a>
       <a href="/#hoe-het-werkt">Hoe het werkt</a>
@@ -29,7 +29,7 @@ const FOOTER=`
 <footer class="footer">
   <div class="shell footer-grid">
     <div>
-      <a class="brand-wordmark brand-wordmark-reversed" href="/" aria-label="Boekuna home">Boekuna<span aria-hidden="true">.</span></a>
+      <a class="brand-wordmark brand-wordmark-reversed" href="/" aria-label="Boekuna home"><img src="/assets/boekuna-logo-lime-reversed.svg" width="165" height="32" alt=""></a>
       <p>Boekhouden zonder gedoe. Boekuna is een product van Kwinest.</p>
     </div>
     <nav aria-label="Juridisch">
