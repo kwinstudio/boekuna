@@ -697,8 +697,7 @@ try{
     assert.equal(await page.locator('[data-review-field="vatRate"]:visible').count(),0,'Normal review should keep the rate out of sight; the user fixes total or VAT instead');
     await panel.filter({hasText:/Controleer totaal en btw/}).waitFor();
     assert.equal(await page.getByRole('button',{name:'Gebruik deze bedragen'}).count(),0,'Low-confidence recognition alone must not create an automatic correction action');
-    const initialIssues=await page.evaluate(()=>window.BookunaDocumentReviewV2?.financialBlockingIssues(pendingPdfImport.parsed)??[]);
-    assert.ok(initialIssues.some(x=>x.field==='vatAmount'),'Untrusted VAT mismatch must point to the visible VAT amount until the user corrects or re-enters it');
+    assert.match(String(await page.locator('#reviewAmountIssueText').textContent()),/btw-bedrag/i,'Untrusted VAT mismatch must point to the visible VAT amount until the user corrects or re-enters it');
     assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true);
 
     const deterministicProcessorPosts=()=>processorMethods.filter(method=>method==='POST').length;
@@ -719,12 +718,8 @@ try{
     assert.equal(await net.inputValue(),'106.33');
     assert.equal(await rate.inputValue(),'21');
     assert.equal(await page.locator('[data-review-field="vatRate"]:visible').count(),0,'Resolved derived rate should disappear');
-    assert.deepEqual(
-      await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed)),
-      [],
-      '128.66 total + 22.33 VAT must derive 106.33 net and 21% without blocking'
-    );
-    assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
+    assert.equal(await page.locator('#reviewAmountIssueText').isHidden(),true,'Resolved visible amounts must clear the financial warning');
+    assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false,'128.66 total + 22.33 VAT must derive 106.33 net and 21% without blocking');
     assert.equal(deterministicProcessorPosts(),processorPostsBeforeCorrection,'Visible amount correction must not trigger OCR or AI reprocessing');
     assert.equal(await page.locator('#toastRoot .toast').filter({hasText:/btw-tarief past niet|Vul het btw-bedrag|cent-exact gelijk|Kies en bevestig het btw-tarief/i}).count(),0,'Resolved financial errors must not remain visibly stale');
 
