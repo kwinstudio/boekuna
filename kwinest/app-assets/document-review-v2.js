@@ -347,6 +347,11 @@ function updateBeginnerReviewState(){
     const needsExplicitNet=netMeta.source==='user'&&netMeta.confirmed&&netC!=null&&vatC!=null&&grossC!=null&&netC+vatC!==grossC;
     netEditor.hidden=!needsExplicitNet;netEditor.style.display=needsExplicitNet?'':'none'
   }
+  const rateField=document.querySelector('[data-review-field="vatRate"]');
+  if(rateField&&!d.mixedRates){
+    const needsRate=amountIssues.some(x=>x.field==='vatRate');
+    rateField.hidden=!needsRate;rateField.style.display=needsRate?'':'none'
+  }
   const financialPanel=document.getElementById('financialCorrectionPanel');
   if(financialPanel)financialPanel.classList.toggle('review-secondary-panel',!financial);
   document.querySelectorAll('[data-review-next]').forEach(btn=>{btn.disabled=basisIssues.length>0});
@@ -551,7 +556,8 @@ function toggleDocumentReviewEdit(force){
 function toggleDocumentOriginal(force){
   const panel=document.getElementById('reviewOriginalPanel'),button=document.querySelector('[data-review-original-toggle]');if(!panel)return;
   const open=typeof force==='boolean'?force:!panel.classList.contains('open');
-  panel.classList.toggle('open',open);if(button)button.setAttribute('aria-expanded',String(open))
+  panel.classList.toggle('open',open);
+  if(button){button.setAttribute('aria-expanded',String(open));if(button.classList.contains('review-original-toggle-icon'))button.setAttribute('aria-label',open?'Origineel document verbergen':'Origineel document bekijken')}
 }
 function toggleMixedVatEditor(force){
   const panel=document.getElementById('mixedVatEditorPanel'),button=document.getElementById('mixedVatEditToggle');if(!panel)return;
