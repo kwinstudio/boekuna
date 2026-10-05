@@ -276,6 +276,7 @@ try{
   assert.match(await page.locator('[data-review-page="2"]').innerText(),/buitenlandse btw/i);
   assert.match(await page.locator('[data-review-page="2"]').innerText(),/Al betaald|Voorschot|Nog te betalen/i);
   assert.equal(await page.locator('[name="vatRate"]').inputValue(),'20');
+  assert.equal(await page.locator('[name="vatRate"]:visible').count(),1,'foreign VAT rate must stay visible while treatment needs a decision');
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true);
   await page.locator('[name="vatTreatmentChoice"][value="foreign"]').check();
   await page.evaluate(()=>updateBeginnerReviewState());
@@ -290,6 +291,7 @@ try{
   });
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
   assert.equal(await page.locator('[name="vatRate"]').inputValue(),'6');
+  assert.equal(await page.locator('[name="vatRate"]:visible').count(),1,'historical VAT rate must stay visible while treatment needs a decision');
   assert.doesNotMatch(await page.locator('[data-review-page="2"]').innerText(),/6%.*wordt.*9%|6%.*wordt.*21%/i);
   await page.evaluate(()=>closeModal());
 
