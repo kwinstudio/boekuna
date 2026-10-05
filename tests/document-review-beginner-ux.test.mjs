@@ -147,7 +147,7 @@ try{
   assert.equal(await page.locator('[data-review-page="2"]:visible').count(),1);
   assert.equal(await page.locator('[data-review-page="2"] [name="gross"]:visible').count(),1,'total is the primary amount');
   assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]:visible').count(),1);
-  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),1);
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),0,'derived VAT rate should stay out of the simple happy path');
   assert.doesNotMatch(await page.locator('[data-review-page="2"]').innerText(),/Totaal op document/i,'total must only appear once as the editable total');
   const consistentIssues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
   assert.deepEqual(consistentIssues,[],'cent-exact 100 + 21 = 121 must have no blocking issues: '+JSON.stringify(consistentIssues));
@@ -202,12 +202,14 @@ try{
   assert.equal(await page.getByRole('button',{name:'Volgende',exact:true}).isDisabled(),false,'financial issue belongs to step 2, not step 1');
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
   assert.match(await page.locator('[data-review-page="2"]').innerText(),/btw-percentage past niet|Controleer totaal en btw/i);
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),1,'rate should appear only while it is the unresolved issue');
   assert.equal(await page.locator('[data-review-net-editor]:visible').count(),0,'ex-VAT remains derived instead of adding another correction field');
   assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]:visible').count(),1);
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true);
   await page.locator('[data-review-page="2"] [name="vatAmount"]').fill('21,00');
   await page.locator('#reviewBlockingState').filter({hasText:/Alles ziet er goed uit|klaar om op te slaan/i}).waitFor();
   assert.equal(await page.locator('[data-review-page="2"] [name="net"]').inputValue(),'100.00','net must be derived from total minus VAT');
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),0,'resolved derived rate should disappear again');
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
   await page.evaluate(()=>closeModal());
 
@@ -222,6 +224,7 @@ try{
   assert.equal(await page.locator('[data-review-net-editor]:visible').count(),0);
   assert.equal(await page.locator('[data-review-page="2"] [name="net"]').inputValue(),'40.00');
   assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]').inputValue(),'21');
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),0,'reconciled DHL VAT rate should remain hidden');
   const dhlIssues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
   assert.deepEqual(dhlIssues,[],'DHL-like stale OCR values should reconcile deterministically: '+JSON.stringify(dhlIssues));
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
