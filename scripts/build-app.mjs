@@ -238,6 +238,12 @@ if(Object.keys(disabledPageFallbacks).length){
     navigateMarker,
     navigateMarker+"\n const releaseFallback="+JSON.stringify(disabledPageFallbacks)+"[p];if(releaseFallback)p=releaseFallback;"
   );
+  const renderMarker='function render(){';
+  if(!appHtml.includes(renderMarker))throw new Error('Release render guard marker changed');
+  appHtml=appHtml.replace(
+    renderMarker,
+    renderMarker+"\n const releaseRenderFallback="+JSON.stringify(disabledPageFallbacks)+"[page];if(releaseRenderFallback){page=releaseRenderFallback;const releaseTitle=document.getElementById('pageTitle');if(releaseTitle)releaseTitle.textContent=PAGE_TITLES[page]||PAGE_TITLES.dashboard;}"
+  );
 }
 
 if(assistantEnabled){
