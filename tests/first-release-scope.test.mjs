@@ -57,6 +57,7 @@ assert.match(html,/"ledger":"reports"/,'Ledger route must be gated to reports');
 assert.match(html,/"bookings":"dashboard"/,'Bookings route must be gated');
 assert.match(html,/"hours":"dashboard"/,'Hours route must be gated');
 assert.match(html,/"services":"invoices"/,'Service catalog route must be gated');
+assert.match(html,/const releaseRenderFallback=\{[^\n]*"bookings":"dashboard"/,'Direct render state must use the same fail-closed release map');
 
 for(const asset of ['personal-insights.js','personal-assistant-qna.js','personal-insights-ui.js','developer-mode.js']){
   assert.equal(fs.existsSync(path.join(assets,asset)),false,'Disabled runtime asset must not ship: '+asset);
