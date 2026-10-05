@@ -5319,6 +5319,7 @@ function updateFinancialReviewPanel(){
  if(p.status==='needs_confirmation'){panel.classList.add('warn');panel.setAttribute('role','status');panel.innerHTML='<h5>Controleer totaal en btw</h5><p>Pas alleen aan wat niet klopt.</p>';return}
  if(p.status==='insufficient'){panel.classList.add('warn');panel.setAttribute('role','status');panel.innerHTML='<h5>Controleer totaal en btw</h5><p>Vul totaal en btw in; Boekuna berekent de rest.</p>';return}
  if(p.status==='consistent'){
+  clearStaleFinancialReviewToasts();
   panel.classList.add('good');panel.setAttribute('role','status');
   const net=state.net==null?'—':money(state.net/100),vat=state.vatAmount==null?'—':money(state.vatAmount/100),gross=state.gross==null?'—':money(state.gross/100);
   panel.innerHTML=`<h5>Bedragen kloppen</h5><p>${net} + ${vat} btw = ${gross}</p>`;return
