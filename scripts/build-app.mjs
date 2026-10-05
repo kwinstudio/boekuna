@@ -260,7 +260,7 @@ if(!isReleaseFeatureEnabled(releaseFeatures,'bookings')){
   const bookingAttention=" state.bookings.filter(b=>['planned','confirmed'].includes(b.status)&&daysUntil(b.date)>=0&&daysUntil(b.date)<=2&&!b.reminderSent).forEach(b=>add('booking-'+b.id,'bookings',b.title||b.description||b.service||'Afspraak',dateNL(b.date)+' · herinnering nog niet verstuurd',()=>openBookingAttention(b.id),'Open'));";
   if(!appHtml.includes(bookingAttention))throw new Error('Release booking worklist marker changed');
   appHtml=appHtml.replace(bookingAttention,'');
-  for(const signature of ['function newBooking()','function saveBooking()','function markBookingReminder(id)','function completeBooking(id)','function markNoShow(id)','function invoiceFromBooking(id)'])guardBuiltFunction(signature,'bookings');
+  for(const signature of ['function newBooking()','function saveBooking()','function markBookingReminder(id)','function completeBooking(id)','function markNoShow(id)','function invoiceFromBooking(id)','function openBookingAttention(id)','async function confirmBookingReminder(id)'])guardBuiltFunction(signature,'bookings');
 }
 if(!isReleaseFeatureEnabled(releaseFeatures,'timeTracking')){
   for(const signature of ['function newHour()','function saveHour()'])guardBuiltFunction(signature,'timeTracking');
