@@ -76,6 +76,11 @@ try{
     await page.locator('#pageTitle').filter({hasText:title}).waitFor();
   }
 
+  const directRender=await page.evaluate(()=>{page='bookings';render();return {page,title:document.getElementById('pageTitle').textContent,content:document.getElementById('content').innerText}});
+  assert.equal(directRender.page,'dashboard','Direct page-state mutation must fail closed to the release fallback');
+  assert.equal(directRender.title,'Overzicht','Direct render fallback must restore the safe page title');
+  assert.doesNotMatch(directRender.content,/Nieuwe boeking|Boekingen/,'Disabled page renderer must not be reachable through direct render state');
+
   await page.evaluate(()=>navigate('dashboard'));
   const before=await page.evaluate(()=>({bookings:state.bookings.length,hours:state.hours.length,mileage:state.mileage.length,settlements:state.settlements.length,services:state.services.length,plannedCash:state.plannedCash.length}));
   await page.evaluate(()=>{newBooking();newHour();newMileage();newSettlement();newService();deleteService('svc1');deletePlannedCash('pc1')});
