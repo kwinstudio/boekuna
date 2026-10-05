@@ -360,6 +360,20 @@ if(assistantEnabled){
     "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Persoonlijke tips en samenvattingen','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];"
   );
 }
+if(!isReleaseFeatureEnabled(releaseFeatures,'serviceCatalog')){
+  patchBuiltAppAsset(
+    'mobile-polish-round-2.js',
+    '    deleteService=function(id){',
+    "    deleteService=function(id){if(!releaseFeatureEnabled('serviceCatalog'))return;"
+  );
+}
+if(!isReleaseFeatureEnabled(releaseFeatures,'advancedReports')){
+  patchBuiltAppAsset(
+    'mobile-polish-round-2.js',
+    '    deletePlannedCash=function(id){',
+    "    deletePlannedCash=function(id){if(!releaseFeatureEnabled('advancedReports'))return;"
+  );
+}
 patchBuiltAppAsset(
   'mobile-product.css',
   "  #mainApp .dashboard-kpi-profit, #mainApp .dashboard-kpi:last-child { grid-column:1/-1!important; }",
