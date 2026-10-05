@@ -57,6 +57,20 @@ fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(path.dirname(target),{recursive:true});
 fs.cpSync(source,target,{recursive:true});
 
+// Release 1 keeps the upcoming assistant page as roadmap information, but does not
+// present it as a current primary product capability.
+const releaseMarketingPages=['index.html','functies/index.html','assistent/index.html','scanner/index.html','prijzen/index.html','veiligheid/index.html','faq/index.html'];
+for(const page of releaseMarketingPages){
+  const file=path.join(target,page);
+  let html=fs.readFileSync(file,'utf8');
+  html=html
+    .replace(/\s*<a href="\/assistent\/"><span class="ico">[\s\S]*?<strong>Persoonlijke assistent<\/strong><span class="d">Wat jij vandaag moet weten<\/span><\/span><\/a>/g,'')
+    .replace(/\s*<a href="\/assistent\/" data-nav="assistent"[^>]*>Assistent<\/a>/g,'')
+    .replace(/\s*<a href="\/assistent\/">Persoonlijke assistent<\/a>/g,'')
+    .replace(/<li><a href="\/assistent\/">Assistent<\/a><\/li>/g,'');
+  fs.writeFileSync(file,html);
+}
+
 // The public marketing host is not the installable product app.
 fs.rmSync(path.join(target,'manifest.webmanifest'),{force:true});
 
