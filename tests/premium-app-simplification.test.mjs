@@ -205,11 +205,11 @@ try{
   const vat=await page.locator('#content').innerText();
   assert.match(vat,/geen officiële indiening|niet naar de Belastingdienst/i,'VAT must retain not-submitted meaning');
   assert.match(vat,/indicati(?:e|ef)/i,'VAT must retain indicative meaning');
-  const vatPeriod=page.locator('#vatPeriod');
-  assert.ok(await vatPeriod.isVisible(),'VAT period selector must be visible');
-  assert.ok((await vatPeriod.locator('option').allTextContents()).includes('Jaar'),'VAT must expose a full-year option');
+  const vatPeriod=page.locator('#vatFinancialPeriod');
+  assert.ok(await vatPeriod.isVisible(),'VAT shared period selector must be visible');
+  assert.deepEqual(await vatPeriod.locator('option').allTextContents(),['Week','Maand','Kwartaal','Jaar','Altijd']);
   await vatPeriod.selectOption('year');
-  assert.match(await page.locator('#content').innerText(),/Jaar 2026/,'VAT year view must clearly identify the selected year');
+  assert.equal((await page.locator('.premium-split .section-meta').first().innerText()).trim(),String(new Date().getFullYear()),'VAT year view must clearly identify the selected year');
 
   await navigateTo('reports');
   const reportText=await page.locator('#content').innerText();
