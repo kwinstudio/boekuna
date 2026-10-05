@@ -694,7 +694,7 @@ try{
     assert.equal(await vat.inputValue(),'0.00');
     assert.equal(await net.inputValue(),'128.66');
     assert.equal(await rate.inputValue(),'21');
-    assert.equal(await page.locator('[data-review-field="vatRate"]:visible').count(),1,'Unresolved conflicting VAT rate must stay visible');
+    assert.equal(await page.locator('[data-review-field="vatRate"]:visible').count(),0,'Normal review should keep the rate out of sight; the user fixes total or VAT instead');
     await panel.filter({hasText:/Controleer totaal en btw/}).waitFor();
     assert.equal(await page.getByRole('button',{name:'Gebruik deze bedragen'}).count(),0,'Low-confidence recognition alone must not create an automatic correction action');
     const initialIssues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
