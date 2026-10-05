@@ -376,6 +376,10 @@ function reconcileSimpleReviewAmounts(markUserKey=null){
   if(Math.abs(vatC)>Math.abs(grossC))return;
   if(!d.fieldProvenance||typeof d.fieldProvenance!=='object')d.fieldProvenance={};
   const provenance=d.fieldProvenance,netMeta=provenance.net||{},visibleAnchorEdited=['gross','vatAmount'].includes(markUserKey);
+  if(visibleAnchorEdited){
+    const edited=f.elements.namedItem(markUserKey);
+    if(edited&&String(edited.value??'').trim()!=='')provenance[markUserKey]={source:'user',confirmed:true,confidence:null,confirmedAt:new Date().toISOString()};
+  }
   const anchorTrusted=key=>{const p=provenance[key]||{},confidence=Number(p.confidence??d.fieldConfidence?.[key]??0);return (p.source==='user'&&p.confirmed)||(p.source==='recognition'&&confidence>=85)};
   if(!anchorTrusted('gross')||!anchorTrusted('vatAmount'))return;
   if(netMeta.source==='user'&&netMeta.confirmed&&!visibleAnchorEdited)return;
