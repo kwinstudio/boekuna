@@ -33,6 +33,7 @@ appHtml=replaceLast(appHtml,'initAuth();',[
   "state.hours=[{id:'h1',date:today(),hours:2,project:'Bewaard project',desc:'Bestaande data'}];",
   "state.mileage=[{id:'m1',date:today(),km:12,from:'A',to:'B',purpose:'Bestaande data'}];",
   "state.services=[{id:'svc1',name:'Bestaande dienst',description:'Bewaarde dienst',price:100,vat:21,active:true}];",
+  "state.plannedCash=[{id:'pc1',type:'out',date:today(),description:'Bestaande planning',amount:50,repeating:'monthly'}];"
   "loadBillingSummary=async()=>{};handleBillingReturnAndPlan=async()=>{};handleMailboxReturn=()=>{};initDocumentBackgroundProcessing=async()=>{};resumePendingDocumentVerifications=async()=>{};",
   "documentProcessingJobs=[];documentProcessingInitialized=true;documentProcessingConnectivityLost=false;",
   "enterApp();"
@@ -76,10 +77,10 @@ try{
   }
 
   await page.evaluate(()=>navigate('dashboard'));
-  const before=await page.evaluate(()=>({bookings:state.bookings.length,hours:state.hours.length,mileage:state.mileage.length,settlements:state.settlements.length,services:state.services.length}));
-  await page.evaluate(()=>{newBooking();newHour();newMileage();newSettlement();newService()});
+  const before=await page.evaluate(()=>({bookings:state.bookings.length,hours:state.hours.length,mileage:state.mileage.length,settlements:state.settlements.length,services:state.services.length,plannedCash:state.plannedCash.length}));
+  await page.evaluate(()=>{newBooking();newHour();newMileage();newSettlement();newService();deleteService('svc1');deletePlannedCash('pc1')});
   assert.equal(await page.locator('#modalRoot .modal').count(),0,'Direct calls to disabled create flows must fail closed');
-  const after=await page.evaluate(()=>({bookings:state.bookings.length,hours:state.hours.length,mileage:state.mileage.length,settlements:state.settlements.length,services:state.services.length}));
+  const after=await page.evaluate(()=>({bookings:state.bookings.length,hours:state.hours.length,mileage:state.mileage.length,settlements:state.settlements.length,services:state.services.length,plannedCash:state.plannedCash.length}));
   assert.deepEqual(after,before,'Disabled direct calls must preserve existing data and create nothing');
 
   await page.evaluate(()=>quickMenu());
