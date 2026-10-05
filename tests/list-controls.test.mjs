@@ -17,6 +17,7 @@ let appHtml=original.replace('const TEST_MODE_NO_AUTH=false;','const TEST_MODE_N
 appHtml=replaceLast(appHtml,'initAuth();',String.raw`
 currentUser=TEST_USER;
 sessionStorage.removeItem(LIST_STATE_KEY);
+sessionStorage.setItem(FINANCIAL_PERIOD_KEY,'all');
 listState=loadListState();
 state=structuredClone(DEFAULT);
 for(const key of ['contacts','services','invoices','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])state[key]=[];
