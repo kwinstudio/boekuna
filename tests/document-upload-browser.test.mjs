@@ -656,8 +656,8 @@ try{
     await page.close();
   }
 
-  // QA-FIN-CORR-001: inconsistent low-confidence OCR becomes explicit USER truth,
-  // then deterministic cent-exact correction is proposed, applied and persisted.
+  // QA-FIN-CORR-001: a low-confidence OCR mismatch stays beginner-first.
+  // Total + VAT are the visible anchors; net/rate are derived cent-exactly and persisted.
   {
     processorMode='success';
     processorResponse=correctionProcessorPayload;
@@ -686,63 +686,39 @@ try{
     assert.equal(await vat.getAttribute('inputmode'),'decimal');
     assert.equal(await gross.getAttribute('inputmode'),'decimal');
     assert.equal(await panel.getAttribute('aria-live'),'polite');
-    await panel.filter({hasText:/Btw verdient controle|Bevestig wat je op het document ziet|Nog te weinig betrouwbare gegevens/}).waitFor();
-    const initialPanel=String(await panel.textContent());
-    assert.match(initialPanel,/Btw verdient controle|Bevestig wat je op het document ziet|Nog te weinig betrouwbare gegevens/,'Recognition may explain the deterministic mismatch before confirmation, but must not make it applicable');
-    assert.equal(await page.getByRole('button',{name:'Gebruik deze bedragen'}).count(),0,'Recognition alone must not silently offer an applicable correction');
+
+    // Recognition says subtotal 128.66 + VAT 0 + total 128.66 while the OCR rate says 21%.
+    // VAT is low-confidence here, so Boekuna must NOT silently auto-reconcile it.
+    // Only after the user corrects a visible anchor may hidden net/rate be derived.
+    assert.equal(await gross.inputValue(),'128.66');
+    assert.equal(await vat.inputValue(),'0.00');
+    assert.equal(await net.inputValue(),'128.66');
+    assert.equal(await rate.inputValue(),'21');
+    assert.equal(await page.locator('[data-review-field="vatRate"]:visible').count(),0,'Normal review should keep the rate out of sight; the user fixes total or VAT instead');
+    await panel.filter({hasText:/Controleer totaal en btw/}).waitFor();
+    assert.equal(await page.getByRole('button',{name:'Gebruik deze bedragen'}).count(),0,'Low-confidence recognition alone must not create an automatic correction action');
+
     const deterministicProcessorPosts=()=>processorMethods.filter(method=>method==='POST').length;
     const processorPostsBeforeCorrection=deterministicProcessorPosts();
 
-    // The final save boundary must not silently accept a recognized 21% rate that
-    // conflicts with the cent-exact amounts, nor derive a missing VAT value.
+    // Missing visible VAT remains blocking; Boekuna may derive hidden fields, never invent the visible VAT value.
+    await vat.fill('');
     await page.evaluate(()=>savePdfInvoiceImport());
-    assert.equal(await page.evaluate(()=>state.expenses.some(x=>x.invoiceNumber==='QA-CORRECTION-12866')),false,'Inconsistent recognized rate must be blocked at save');
-    await page.evaluate(()=>{document.querySelector('#pdfImportForm [name="vatAmount"]').value=''});
-    await page.evaluate(()=>savePdfInvoiceImport());
-    assert.equal(await page.evaluate(()=>state.expenses.some(x=>x.invoiceNumber==='QA-CORRECTION-12866')),false,'Blank VAT must not be silently derived during save');
-    await page.evaluate(()=>{document.querySelector('#pdfImportForm [name="vatAmount"]').value='0.00'});
+    assert.equal(await page.evaluate(()=>state.expenses.some(x=>x.invoiceNumber==='QA-CORRECTION-12866')),false,'Blank visible VAT must block save');
 
-    // Dutch decimal input must be accepted and normalized without changing value.
+    // User corrects only what is visible on the document. Boekuna derives the rest.
     await gross.fill('128,66');
     await gross.blur();
     assert.equal(await gross.inputValue(),'128.66');
-    assert.equal(String(await page.locator('[data-financial-badge="gross"]').textContent()).trim(),'Bevestigd');
-
-    // Confirming the recognized scalar rate makes USER + USER the authoritative anchors.
-    assert.equal(await rate.inputValue(),'21');
-    await page.locator('[data-financial-confirm="vatRate"]').click();
-    await page.getByRole('button',{name:'Gebruik deze bedragen'}).waitFor();
-    assert.match(String(await panel.textContent()),/€\s*106,33/);
-    assert.match(String(await panel.textContent()),/€\s*22,33/);
-    assert.match(String(await panel.textContent()),/€\s*128,66/);
-
-    // "Zelf aanpassen" must not silently mutate any amount.
-    const beforeDismiss=await page.evaluate(()=>({
-      net:document.querySelector('#pdfImportForm [name="net"]')?.value,
-      vat:document.querySelector('#pdfImportForm [name="vatAmount"]')?.value,
-      gross:document.querySelector('#pdfImportForm [name="gross"]')?.value
-    }));
-    await page.getByRole('button',{name:'Zelf aanpassen'}).click();
-    const afterDismiss=await page.evaluate(()=>({
-      net:document.querySelector('#pdfImportForm [name="net"]')?.value,
-      vat:document.querySelector('#pdfImportForm [name="vatAmount"]')?.value,
-      gross:document.querySelector('#pdfImportForm [name="gross"]')?.value
-    }));
-    assert.deepEqual(afterDismiss,beforeDismiss,'Dismiss must never rewrite recognized/user values');
-
-    await page.getByRole('button',{name:'Gebruik deze bedragen'}).click();
-    assert.equal(await net.inputValue(),'106.33');
+    await vat.fill('22,33');
+    await vat.blur();
     assert.equal(await vat.inputValue(),'22.33');
-    assert.equal(await gross.inputValue(),'128.66');
-    assert.equal(String(await page.locator('[data-financial-badge="net"]').textContent()).trim(),'Berekend');
-    assert.equal(String(await page.locator('[data-financial-badge="vatAmount"]').textContent()).trim(),'Berekend');
-    assert.equal(String(await page.locator('[data-financial-badge="gross"]').textContent()).trim(),'Bevestigd');
-    assert.equal(String(await page.locator('[data-financial-badge="vatRate"]').textContent()).trim(),'Bevestigd');
-    assert.match(String(await panel.textContent()),/Bedragen kloppen/);
-    assert.equal(await page.locator('#toastRoot .toast').filter({hasText:/btw-tarief past niet|Vul het btw-bedrag|cent-exact gelijk|Kies en bevestig het btw-tarief/i}).count(),0,'Resolved financial errors must not remain visibly stale after applying the deterministic correction');
-    assert.equal(deterministicProcessorPosts(),processorPostsBeforeCorrection,'Deterministic financial correction must not trigger OCR or AI reprocessing');
-    const staleFinancialChecks=String(await page.locator('.review-check-summary').allTextContents());
-    assert.doesNotMatch(staleFinancialChecks,/Btw-tarief verdient controle|Bedragen sluiten aan|Meerdere btw-tarieven/,'Static recognition checks must not contradict the live financial consistency panel');
+    assert.equal(await net.inputValue(),'106.33');
+    assert.equal(await rate.inputValue(),'21');
+    assert.equal(await page.locator('[data-review-field="vatRate"]:visible').count(),0,'Resolved derived rate should disappear');
+    assert.match(String(await panel.textContent()),/Bedragen kloppen|Klaar om op te slaan/i,'Resolved visible amounts must clear the financial warning');
+    assert.equal(deterministicProcessorPosts(),processorPostsBeforeCorrection,'Visible amount correction must not trigger OCR or AI reprocessing');
+    assert.equal(await page.locator('#toastRoot .toast').filter({hasText:/btw-tarief past niet|Vul het btw-bedrag|cent-exact gelijk|Kies en bevestig het btw-tarief/i}).count(),0,'Resolved financial errors must not remain visibly stale');
 
     if((process.env.BOOKUNA_BROWSER||'chromium')==='chromium'){
       fs.mkdirSync('tests/artifacts',{recursive:true});
@@ -782,9 +758,9 @@ try{
     assert.equal(saved.memory?.gross,128.66);
     assert.equal(saved.memory?.rate,21);
     assert.equal(saved.memory?.prov?.gross?.source,'user');
-    assert.equal(saved.memory?.prov?.vatRate?.source,'user');
+    assert.equal(saved.memory?.prov?.vatAmount?.source,'user');
     assert.equal(saved.memory?.prov?.net?.source,'calculated');
-    assert.equal(saved.memory?.prov?.vatAmount?.source,'calculated');
+    assert.equal(saved.memory?.prov?.vatRate?.source,'calculated');
     assert.ok(saved.memory?.events?.some(x=>x.type==='financial_recalculation_applied'));
     assert.deepEqual(saved.persisted?.prov,saved.memory?.prov,'Provenance must survive local persistence');
     assert.deepEqual(saved.document?.prov,saved.memory?.prov,'Document record must carry the same financial provenance');
@@ -800,7 +776,9 @@ try{
     assert.equal(reopened.gross,128.66);
     assert.equal(reopened.rate,21);
     assert.equal(reopened.prov?.gross?.source,'user');
+    assert.equal(reopened.prov?.vatAmount?.source,'user');
     assert.equal(reopened.prov?.net?.source,'calculated');
+    assert.equal(reopened.prov?.vatRate?.source,'calculated');
     assert.deepEqual(errors,[],'Smart financial correction browser errors: '+errors.join(' | '));
     await page.close();
   }

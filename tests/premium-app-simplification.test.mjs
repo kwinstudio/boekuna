@@ -127,8 +127,15 @@ try{
   const invoices=await page.locator('#content').innerText();
   assert.doesNotMatch(invoices,/Maak facturen, bewaar ze als concept/,'Invoice page should not carry a permanent instructional paragraph');
   assert.doesNotMatch(invoices,/Factuurcheck actief\./,'Invoice page should not carry a permanent invoice-check notice');
-  assert.ok(await page.getByRole('button',{name:/Nieuwe factuur|Factuur maken/}).isVisible());
+  const newInvoiceButton=page.getByRole('button',{name:/Nieuwe factuur|Factuur maken/});
+  assert.ok(await newInvoiceButton.isVisible());
   assert.ok(await page.getByRole('button',{name:/Upload PDF/}).isVisible());
+  await newInvoiceButton.click();
+  await page.locator('#invoiceCheck').waitFor();
+  const invoiceCheckText=await page.locator('#invoiceCheck').innerText();
+  assert.doesNotMatch(invoiceCheckText,/In orde/i,'invoice check must only show unresolved items');
+  assert.doesNotMatch(invoiceCheckText,/Conceptcheck|Factuurcheck/i,'technical check labels should not compete with the unresolved tasks');
+  await page.evaluate(()=>closeModal());
   await page.screenshot({path:`tests/artifacts/premium-invoices-${browserName}-390.png`,fullPage:true});
 
   await navigateTo('expenses');

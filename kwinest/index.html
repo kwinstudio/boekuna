@@ -4244,7 +4244,7 @@ function invoiceSendChecks(draft,excludeId=''){
  return r
 }
 function invoiceChecks(draft,excludeId=editingInvoiceId||''){return String(draft?.status||'draft')==='draft'?invoiceDraftChecks(draft,excludeId):invoiceFinalChecks(draft,excludeId)}
-function updateInvoiceCheck(){const box=document.getElementById('invoiceCheck');if(!box||!document.getElementById('invoiceForm'))return;const draft=collectInvoiceDraft(),r=invoiceChecks(draft),items=[...r.errors.map(x=>({...x,s:'bad'})),...r.warnings.map(x=>({...x,s:'warn'})),...r.oks.map(x=>({...x,s:'ok'}))];box.innerHTML=`<div class="invoice-check-head"><div><strong>${draft.status==='draft'?'Conceptcheck':'Factuurcheck'}</strong><div class="help">${r.errors.length?r.errors.length+' blokkerende controle(s)':r.warnings.length?'Verplicht compleet · '+r.warnings.length+' aandachtspunt(en)':'Alle controles compleet'}</div></div><span class="badge ${r.errors.length?'bad':r.warnings.length?'warn':'good'}">${r.errors.length?'Nog controleren':r.warnings.length?'Bijna klaar':'Compleet'}</span></div><div class="invoice-check-list">${items.slice(0,12).map(x=>`<div class="invoice-check-item"><span class="check-icon check-${x.s}">${x.s==='ok'?'✓':x.s==='warn'?'!':'×'}</span><div><strong>${esc(x.label)}</strong><div class="help">${x.s==='ok'?'In orde':esc(x.msg)}</div></div></div>`).join('')}</div>`}
+function updateInvoiceCheck(){const box=document.getElementById('invoiceCheck');if(!box||!document.getElementById('invoiceForm'))return;const draft=collectInvoiceDraft(),r=invoiceChecks(draft),items=[...r.errors.map(x=>({...x,s:'bad'})),...r.warnings.map(x=>({...x,s:'warn'}))];if(!items.length){box.innerHTML='<div class="invoice-check-head invoice-check-complete"><div><strong>Klaar</strong><div class="help">Er zijn geen punten meer om te controleren.</div></div><span class="badge good">✓</span></div>';return}box.innerHTML=`<div class="invoice-check-head"><div><strong>Nog controleren</strong><div class="help">${r.errors.length?r.errors.length+' verplicht'+(r.errors.length===1?' punt':'e punten'):r.warnings.length+' aandachtspunt'+(r.warnings.length===1?'':'en')}</div></div><span class="badge ${r.errors.length?'bad':'warn'}">${items.length}</span></div><div class="invoice-check-list">${items.slice(0,12).map(x=>`<div class="invoice-check-item"><span class="check-icon check-${x.s}">${x.s==='warn'?'!':'×'}</span><div><strong>${esc(x.label)}</strong><div class="help">${esc(x.msg)}</div></div></div>`).join('')}</div>`}
 function calcInvoiceForm(){const lines=formLines(),f=document.getElementById('invoiceForm'),fd=f?new FormData(f):new FormData(),draft={lines,discountType:String(fd.get('discountType')||'none'),discountValue:Number(fd.get('discountValue')||0),taxTreatment:String(fd.get('taxTreatment')||'standard')},base=invoiceDiscountBase(draft),discount=invoiceDiscountAmount(draft),net=Math.abs(invoiceNet(draft)),vats={};lines.forEach(l=>{const r=Number(l.vat||0);vats[r]=roundMoney((vats[r]||0)+(isZeroOutputVatTreatment(draft.taxTreatment)?0:discountedLineVat(draft,l)))});const vat=Object.values(vats).reduce((s,v)=>roundMoney(s+v),0),t=document.getElementById('formTotals');if(t)t.innerHTML=`<div class="total-line"><span>Regels excl. btw</span><strong>${money(base)}</strong></div>${discount?`<div class="total-line"><span>Korting</span><strong>− ${money(discount)}</strong></div>`:''}<div class="total-line"><span>Subtotaal excl. btw</span><strong>${money(net)}</strong></div>${Object.entries(vats).filter(([_,v])=>Math.abs(v)>.0001).map(([r,v])=>`<div class="total-line"><span>Btw ${r}%</span><strong>${money(v)}</strong></div>`).join('')}<div class="total-line grand"><span>Totaal te betalen</span><strong>${money(roundMoney(net+vat))}</strong></div>`}
 function markInvoiceErrors(r,draft){const f=document.getElementById('invoiceForm');if(!f)return;f.querySelectorAll('.field-error').forEach(x=>x.classList.remove('field-error'));const map={'Factuurnummer':'number','Klant':'customerId','Factuurdatum':'issueDate','Leverdatum':'supplyDate','Vervaldatum':'dueDate','Klantnaam':'newCustomerName','Klantadres':'newCustomerAddress'};r.errors.forEach(x=>{const n=map[x.label];if(n&&f.elements[n])f.elements[n].classList.add('field-error')});updateInvoiceCheck()}
 function progressiveInvoiceProfileGate(draft,missing){
@@ -5248,6 +5248,34 @@ function readFinancialReviewForm(){
  if(!d.mixedRates&&rateRaw!==''&&!Number.isFinite(rate))invalid.push('vatRate');
  return {net:net.cents,vatAmount:vatAmount.cents,gross:gross.cents,rate,empty:{net:net.empty,vatAmount:vatAmount.empty,gross:gross.empty},invalid}
 }
+function reconcileFinancialReviewVisibleAmounts(markUserKey=null){
+ const d=pendingPdfImport?.parsed,f=document.getElementById('pdfImportForm');if(!d||!f||d.mixedRates)return false;
+ const grossC=financialReviewCentsFromInput(f.elements.namedItem('gross')?.value),vatC=financialReviewCentsFromInput(f.elements.namedItem('vatAmount')?.value);
+ if(grossC==null||vatC==null||grossC===0)return false;
+ if(vatC!==0&&Math.sign(grossC)!==Math.sign(vatC))return false;
+ if(Math.abs(vatC)>Math.abs(grossC))return false;
+ const provenance=ensureFinancialReviewProvenance(d),visibleAnchorEdited=['gross','vatAmount'].includes(markUserKey);
+ const anchorTrusted=key=>{const p=provenance[key]||{},confidence=Number(p.confidence??d.fieldConfidence?.[key]??0);return (p.source==='user'&&p.confirmed)||(p.source==='recognition'&&confidence>=85)};
+ if(!anchorTrusted('gross')||!anchorTrusted('vatAmount'))return false;
+ const netMeta=provenance.net||{};
+ if(netMeta.source==='user'&&netMeta.confirmed&&!visibleAnchorEdited)return false;
+ const netC=grossC-vatC,netEl=f.elements.namedItem('net');
+ if(netEl)netEl.value=formatFinancialReviewCents(netC);
+ d.net=netC/100;
+ provenance.net={source:'calculated',confirmed:false,confidence:null,derivedFrom:['gross','vatAmount'],calculatedAt:new Date().toISOString()};
+ if(typeof BookunaFinancialCorrection!=='undefined'){
+  const inferred=BookunaFinancialCorrection.inferKnownRate({net:netC,vatAmount:vatC,gross:grossC},BookunaFinancialCorrection.DEFAULT_RATES,1);
+  const rateMeta=provenance.vatRate||{};
+  if(inferred!=null&&!(rateMeta.source==='user'&&rateMeta.confirmed)){
+   const rateEl=f.elements.namedItem('vatRate');if(rateEl)rateEl.value=String(inferred);
+   d.vatRate=inferred;
+   provenance.vatRate={source:'calculated',confirmed:false,confidence:null,derivedFrom:['gross','vatAmount'],calculatedAt:new Date().toISOString()}
+  }
+ }
+ if(markUserKey)financialReviewEvent('financial_recalculation_applied',['net','vatRate']);
+ if(typeof clearStaleFinancialReviewToasts==='function')clearStaleFinancialReviewToasts();
+ return true
+}
 function syncFinancialReviewStateFromForm(markUserKey=null){
  const d=pendingPdfImport?.parsed,state=readFinancialReviewForm(),f=document.getElementById('pdfImportForm');if(!d||state.invalid?.length)return state;
  for(const key of ['net','vatAmount','gross']){
@@ -5256,8 +5284,9 @@ function syncFinancialReviewStateFromForm(markUserKey=null){
  }
  if(!d.mixedRates)d.vatRate=state.rate;
  if(markUserKey&&String(f?.elements.namedItem(markUserKey)?.value??'').trim()!=='')markFinancialReviewFieldUser(markUserKey);
+ reconcileFinancialReviewVisibleAmounts(markUserKey);
  applyRecognitionQuality(d);
- return state
+ return readFinancialReviewForm()
 }
 function financialReviewProposal(){
  const d=pendingPdfImport?.parsed,state=readFinancialReviewForm();if(!d)return {status:'insufficient',canApply:false};
@@ -5287,9 +5316,10 @@ function updateFinancialReviewPanel(){
  if(p.status==='mixed'){panel.classList.add('warn');panel.setAttribute('role','status');panel.innerHTML='<h5>Mogelijk meerdere btw-tarieven</h5><p>Deze factuur bevat meerdere btw-tarieven. Controleer de btw-regels afzonderlijk; Boekuna past geen enkel tarief op het hele totaal toe.</p>';return}
  if(p.status==='invalid'){panel.classList.add('bad');panel.setAttribute('role','alert');panel.innerHTML='<h5>Controleer de invoer</h5><p>Gebruik een geldig bedrag, bijvoorbeeld 128,66 of 128.66.</p>';return}
  if(p.status==='conflict'){panel.classList.add('bad');panel.setAttribute('role','alert');panel.innerHTML='<h5>Bedragen kunnen niet samen kloppen</h5><p>Minimaal één door jou bevestigde waarde botst met de andere bevestigde gegevens. Boekuna overschrijft jouw invoer niet automatisch.</p>';return}
- if(p.status==='needs_confirmation'){panel.classList.add('warn');panel.setAttribute('role','status');panel.innerHTML='<h5>Bevestig wat je op het document ziet</h5><p>De herkenning bevat genoeg aanknopingspunten, maar bij deze inconsistentie kiest Boekuna niet zelf welke waarde leidend is.</p>';return}
- if(p.status==='insufficient'){panel.classList.add('warn');panel.setAttribute('role','status');panel.innerHTML='<h5>Nog te weinig betrouwbare gegevens</h5><p>Bevestig minimaal twee bedragen, of één bedrag samen met het btw-tarief.</p>';return}
+ if(p.status==='needs_confirmation'){panel.classList.add('warn');panel.setAttribute('role','status');panel.innerHTML='<h5>Controleer totaal en btw</h5><p>Pas alleen aan wat niet klopt.</p>';return}
+ if(p.status==='insufficient'){panel.classList.add('warn');panel.setAttribute('role','status');panel.innerHTML='<h5>Controleer totaal en btw</h5><p>Vul totaal en btw in; Boekuna berekent de rest.</p>';return}
  if(p.status==='consistent'){
+  clearStaleFinancialReviewToasts();
   panel.classList.add('good');panel.setAttribute('role','status');
   const net=state.net==null?'—':money(state.net/100),vat=state.vatAmount==null?'—':money(state.vatAmount/100),gross=state.gross==null?'—':money(state.gross/100);
   panel.innerHTML=`<h5>Bedragen kloppen</h5><p>${net} + ${vat} btw = ${gross}</p>`;return
@@ -5951,12 +5981,11 @@ function findOrCreateContact(type,data){
  const cnew={id:uid('c'),...patch};state.contacts.unshift(cnew);return cnew
 }
 async function savePdfInvoiceImport(){
- if(!pendingPdfImport)return;const importContext=pendingPdfImport,importLedger=state,importOwner=currentUser?.id;const processingJobId=String(pendingPdfImport.processingJobId||''),sourceClientRef=String(pendingPdfImport.sourceClientRef||'');const f=document.getElementById('pdfImportForm');if(!f)return;if(!f.checkValidity()){const bad=f.querySelector(':invalid'),step=Number(bad?.closest('[data-review-step]')?.dataset.reviewStep||4);setDocumentReviewStep(step);requestAnimationFrame(()=>bad?.reportValidity());return}const fd=new FormData(f),d=Object.fromEntries(fd.entries()),type=d.type,docType=d.documentType||'purchase_invoice',statusRaw=d.status||'sent',isCredit=statusRaw==='credit'||docType==='credit_invoice';if(docType==='receipt'&&!String(d.invoiceNumber||'').trim())d.invoiceNumber=`BON-${String(d.issueDate||today()).replace(/-/g,'')}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
+ if(!pendingPdfImport)return;const importContext=pendingPdfImport,importLedger=state,importOwner=currentUser?.id;const processingJobId=String(pendingPdfImport.processingJobId||''),sourceClientRef=String(pendingPdfImport.sourceClientRef||'');const f=document.getElementById('pdfImportForm');if(!f)return;if(!f.checkValidity()){const bad=f.querySelector(':invalid'),step=Number(bad?.closest('[data-review-step]')?.dataset.reviewStep||4);setDocumentReviewStep(step);requestAnimationFrame(()=>bad?.reportValidity());return}const preSaveFinancialState=syncFinancialReviewStateFromForm();if(preSaveFinancialState.invalid?.length)return toast('Controleer de gemarkeerde bedragen. Gebruik bijvoorbeeld 128,66 of 128.66.');const fd=new FormData(f),d=Object.fromEntries(fd.entries()),type=d.type,docType=d.documentType||'purchase_invoice',statusRaw=d.status||'sent',isCredit=statusRaw==='credit'||docType==='credit_invoice';if(docType==='receipt'&&!String(d.invoiceNumber||'').trim())d.invoiceNumber=`BON-${String(d.issueDate||today()).replace(/-/g,'')}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
  if(pendingPdfImport.parsed?.bookingAllowed===false)return toast('Dit document is geen definitieve factuur of bon. Bewaar het als document zonder boeking.');
  if(pendingPdfImport.parsed?.duplicateCandidate&&d.confirmDuplicate!=='on')return toast('Mogelijk duplicaat: controleer de waarschuwing en bevestig expliciet als dit toch een nieuwe factuur is.');
  if(pendingPdfImport.parsed?.accountingVatTreatment==='review_required'&&(type==='sale'||!['foreign','standard'].includes(d.vatTreatmentChoice)))return toast(type==='sale'?'Dit afwijkende btw-geval kan nog niet veilig als verkoop worden geboekt. Bewaar het document voor controle.':'Kies eerst of dit buitenlandse btw of Nederlandse/historische btw is.');
  if(String(d.currency||'EUR').toUpperCase()!=='EUR')return toast('Voor deze valuta is eerst een bevestigde wisselkoers nodig. Het document blijft bewaard voor controle.');
- const financialState=syncFinancialReviewStateFromForm();if(financialState.invalid?.length)return toast('Controleer de gemarkeerde bedragen. Gebruik bijvoorbeeld 128,66 of 128.66.');
  let reviewedRate=pendingPdfImport.parsed?.mixedRates?null:(d.vatRate===''||d.vatRate==null?null:Number(d.vatRate)),parsedNet=parseSignedMoneyValue(d.net),parsedVat=parseSignedMoneyValue(d.vatAmount),parsedGross=parseSignedMoneyValue(d.gross);if(d.vatAmount===''||d.vatAmount==null||parsedVat==null)return toast('Vul het btw-bedrag in of gebruik eerst het rekenvoorstel.');if(!isCredit&&[parsedNet,parsedVat,parsedGross].some(v=>v!=null&&v<0))return toast('Negatieve bedragen zijn alleen toegestaan voor creditdocumenten.');
  const netC=financialMoneyCents(parsedNet),vatC=financialMoneyCents(parsedVat),grossC=financialMoneyCents(parsedGross);if(netC==null||vatC==null||grossC==null||grossC===0)return toast('Controleer bedrag excl. btw, btw-bedrag en factuurbedrag');if(netC+vatC!==grossC)return toast('Bedrag excl. btw + btw moet cent-exact gelijk zijn aan het factuurtotaal.');
  if(!pendingPdfImport.parsed?.mixedRates){if(reviewedRate==null)return toast('Kies en bevestig het btw-tarief voordat je opslaat.');if(!BookunaFinancialCorrection.candidateFitsRate({net:netC,vatAmount:vatC,gross:grossC},reviewedRate,1))return toast('Het btw-tarief past niet bij de gecontroleerde bedragen. Gebruik het rekenvoorstel of pas de bedragen aan.')}

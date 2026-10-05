@@ -262,9 +262,9 @@ function financialBlockingIssues(d){
   }
   if(!d?.mixedRates&&required.has('vatRate')&&netC!=null&&vatC!=null&&grossC!=null){
     const rate=value('vatRate')===''?null:Number(value('vatRate'));
-    if(rate==null||!Number.isFinite(rate))issues.push({field:'vatRate',message:'Kies het btw-percentage.'});
-    else if(typeof BookunaFinancialCorrection!=='undefined'&&!BookunaFinancialCorrection.candidateFitsRate({net:netC,vatAmount:vatC,gross:grossC},rate,0)){
-      issues.push({field:'vatRate',message:'Het btw-percentage past niet bij deze bedragen.'})
+    if(rate==null||!Number.isFinite(rate))issues.push({field:d?.accountingVatTreatment==='review_required'?'vatRate':'vatAmount',message:d?.accountingVatTreatment==='review_required'?'Kies het btw-percentage.':'Controleer het btw-bedrag.'});
+    else if(typeof BookunaFinancialCorrection!=='undefined'&&!BookunaFinancialCorrection.candidateFitsRate({net:netC,vatAmount:vatC,gross:grossC},rate,1)){
+      issues.push({field:d?.accountingVatTreatment==='review_required'?'vatRate':'vatAmount',message:d?.accountingVatTreatment==='review_required'?'Het btw-percentage past niet bij deze bedragen.':'Controleer het btw-bedrag op het document.'})
     }
   }
   if(d?.mixedRates){const mixed=mixedVatValidation();if(!mixed.ok)issues.push({field:mixed.field||'vatLines',message:mixed.message})}
@@ -343,9 +343,14 @@ function updateBeginnerReviewState(){
   }
   const netEditor=document.querySelector('[data-review-net-editor]');
   if(netEditor){
-    const f=document.getElementById('pdfImportForm'),netC=cents(f?.elements.namedItem('net')?.value),vatC=cents(f?.elements.namedItem('vatAmount')?.value),grossC=cents(f?.elements.namedItem('gross')?.value);
-    const needsNet=netC==null||(netC!=null&&vatC!=null&&grossC!=null&&netC+vatC!==grossC);
-    netEditor.hidden=!needsNet;netEditor.style.display=needsNet?'':'none'
+    const f=document.getElementById('pdfImportForm'),netC=cents(f?.elements.namedItem('net')?.value),vatC=cents(f?.elements.namedItem('vatAmount')?.value),grossC=cents(f?.elements.namedItem('gross')?.value),netMeta=d.fieldProvenance?.net||{};
+    const needsExplicitNet=netMeta.source==='user'&&netMeta.confirmed&&netC!=null&&vatC!=null&&grossC!=null&&netC+vatC!==grossC;
+    netEditor.hidden=!needsExplicitNet;netEditor.style.display=needsExplicitNet?'':'none'
+  }
+  const rateField=document.querySelector('[data-review-field="vatRate"]');
+  if(rateField&&!d.mixedRates){
+    const needsRate=amountIssues.some(x=>x.field==='vatRate')||d.accountingVatTreatment==='review_required';
+    rateField.hidden=!needsRate;rateField.style.display=needsRate?'':'none'
   }
   const financialPanel=document.getElementById('financialCorrectionPanel');
   if(financialPanel)financialPanel.classList.toggle('review-secondary-panel',!financial);
@@ -362,6 +367,37 @@ function firstBlockingFocus(){
   reviewWizardStep=reviewStepForField(issue.field);updateReviewWizardUi();
   requestAnimationFrame(()=>focusReviewIssue(issue))
 }
+function reconcileSimpleReviewAmounts(markUserKey=null){
+  if(typeof global.reconcileFinancialReviewVisibleAmounts==='function')return global.reconcileFinancialReviewVisibleAmounts(markUserKey);
+  const d=pendingPdfImport?.parsed,f=document.getElementById('pdfImportForm');if(!d||!f||d.mixedRates)return;
+  const grossC=cents(f.elements.namedItem('gross')?.value),vatC=cents(f.elements.namedItem('vatAmount')?.value);
+  if(grossC==null||vatC==null||grossC===0)return;
+  if(vatC!==0&&Math.sign(grossC)!==Math.sign(vatC))return;
+  if(Math.abs(vatC)>Math.abs(grossC))return;
+  if(!d.fieldProvenance||typeof d.fieldProvenance!=='object')d.fieldProvenance={};
+  const provenance=d.fieldProvenance,netMeta=provenance.net||{},visibleAnchorEdited=['gross','vatAmount'].includes(markUserKey);
+  if(visibleAnchorEdited){
+    const edited=f.elements.namedItem(markUserKey);
+    if(edited&&String(edited.value??'').trim()!=='')provenance[markUserKey]={source:'user',confirmed:true,confidence:null,confirmedAt:new Date().toISOString()};
+  }
+  const anchorTrusted=key=>{const p=provenance[key]||{},confidence=Number(p.confidence??d.fieldConfidence?.[key]??0);return (p.source==='user'&&p.confirmed)||(p.source==='recognition'&&confidence>=85)};
+  if(!anchorTrusted('gross')||!anchorTrusted('vatAmount'))return;
+  if(netMeta.source==='user'&&netMeta.confirmed&&!visibleAnchorEdited)return;
+  const netC=grossC-vatC,netEl=f.elements.namedItem('net');
+  if(netEl)netEl.value=formatCents(netC);
+  d.net=netC/100;
+  provenance.net={source:'calculated',confirmed:false,confidence:null,derivedFrom:['gross','vatAmount'],calculatedAt:new Date().toISOString()};
+  if(typeof BookunaFinancialCorrection!=='undefined'){
+    const inferred=BookunaFinancialCorrection.inferKnownRate({net:netC,vatAmount:vatC,gross:grossC},BookunaFinancialCorrection.DEFAULT_RATES,1);
+    const rateMeta=provenance.vatRate||{};
+    if(inferred!=null&&!(rateMeta.source==='user'&&rateMeta.confirmed)){
+      const rateEl=f.elements.namedItem('vatRate');if(rateEl)rateEl.value=String(inferred);
+      d.vatRate=inferred;
+      provenance.vatRate={source:'calculated',confirmed:false,confidence:null,derivedFrom:['gross','vatAmount'],calculatedAt:new Date().toISOString()}
+    }
+  }
+  if(markUserKey&&typeof financialReviewEvent==='function')financialReviewEvent('financial_recalculation_applied',['net'])
+}
 function onGenericReviewInput(event){
   const d=pendingPdfImport?.parsed,key=event?.target?.name;if(!d||!key)return;
   if(['party','category','issueDate','invoiceNumber','documentType','type'].includes(key))d[key]=String(event.target?.value??'');
@@ -369,14 +405,14 @@ function onGenericReviewInput(event){
     genericProvenance(d)[key]={source:'user',confirmed:true,confirmedAt:new Date().toISOString()};
     setDeferredFields(d,deferredFields(d).filter(x=>x!==key))
   }
-  if(['net','vatAmount','gross','vatRate'].includes(key)&&typeof syncFinancialReviewStateFromForm==='function')syncFinancialReviewStateFromForm(key);
+  if(['net','vatAmount','gross','vatRate'].includes(key)&&typeof syncFinancialReviewStateFromForm==='function'){syncFinancialReviewStateFromForm(key);reconcileSimpleReviewAmounts(key)}
   if(typeof updateFinancialReviewPanel==='function'&&['net','vatAmount','gross','vatRate'].includes(key))updateFinancialReviewPanel();
   updateBeginnerReviewState()
 }
 function bindBeginnerReview(){
   const f=document.getElementById('pdfImportForm'),d=pendingPdfImport?.parsed;if(!f||!d)return;
   f.querySelectorAll('input,select,textarea').forEach(el=>{if(el.closest('#mixedVatRows'))return;el.addEventListener('input',onGenericReviewInput);el.addEventListener('change',onGenericReviewInput)});
-  if(d.mixedRates)renderMixedVatRows();
+  if(d.mixedRates)renderMixedVatRows();else reconcileSimpleReviewAmounts();
   const financialPanel=document.getElementById('financialCorrectionPanel');
   if(financialPanel){
     const observer=new MutationObserver(()=>queueMicrotask(()=>updateBeginnerReviewState()));
@@ -527,7 +563,8 @@ function toggleDocumentReviewEdit(force){
 function toggleDocumentOriginal(force){
   const panel=document.getElementById('reviewOriginalPanel'),button=document.querySelector('[data-review-original-toggle]');if(!panel)return;
   const open=typeof force==='boolean'?force:!panel.classList.contains('open');
-  panel.classList.toggle('open',open);if(button)button.setAttribute('aria-expanded',String(open))
+  panel.classList.toggle('open',open);
+  if(button){button.setAttribute('aria-expanded',String(open));if(button.classList.contains('review-original-toggle-icon'))button.setAttribute('aria-label',open?'Origineel document verbergen':'Origineel document bekijken')}
 }
 function toggleMixedVatEditor(force){
   const panel=document.getElementById('mixedVatEditorPanel'),button=document.getElementById('mixedVatEditToggle');if(!panel)return;
@@ -649,16 +686,16 @@ function showPdfImportReview(d){
   ].join('');
 
   const financialNeedsAttention=initialIssues.some(x=>x.kind==='financial'||x.kind==='mixed');
-  const financialPanel='<div id="financialCorrectionPanel" class="financial-correction-panel '+(financialNeedsAttention?'':'review-secondary-panel')+'" role="status" aria-live="polite"><h5>Financiële controle</h5><p>Controleer het totaal en de btw.</p></div>';
+  const financialPanel='<div id="financialCorrectionPanel" class="financial-correction-panel '+(financialNeedsAttention?'':'review-secondary-panel')+'" role="status" aria-live="polite"><h5>Controleer totaal en btw</h5><p>Pas alleen aan wat niet klopt.</p></div>';
 
   const body='<div class="document-review-flow beginner-review exception-first-review two-step-review" data-review-mode="'+esc(vm.mode)+'" data-review-wizard-step="1">'+
     '<aside id="reviewOriginalPanel" class="review-original-panel"><div class="review-preview-shell">'+preview+'</div></aside>'+
     '<div class="document-review-fields"><form id="pdfImportForm">'+hidden+
-      '<div class="review-wizard-head"><div><span class="review-kicker">'+esc(isReceipt?'Bon controleren':'Factuur controleren')+'</span><h4 id="documentReviewStepLabel" tabindex="-1">Stap 1 van 2 · Basis</h4></div><button type="button" class="link-btn" data-review-original-toggle aria-expanded="false" onclick="toggleDocumentOriginal()">Bekijk origineel</button></div>'+
+      '<div class="review-wizard-head"><div><span class="review-kicker">'+esc(isReceipt?'Bon controleren':'Factuur controleren')+'</span><h4 id="documentReviewStepLabel" tabindex="-1">Stap 1 van 2 · Basis</h4></div><button type="button" class="icon-btn review-original-toggle-icon" data-review-original-toggle aria-label="Origineel document bekijken" title="Origineel document" aria-expanded="false" onclick="toggleDocumentOriginal()"><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg></button></div>'+
       '<div class="review-wizard-progress" aria-hidden="true"><span class="active"></span><span></span></div>'+
       '<section class="review-wizard-page" data-review-page="1"><div class="review-page-copy"><h4 tabindex="-1">Basisgegevens</h4><p>Controleer alleen wat nodig is om deze '+(isReceipt?'bon':'factuur')+' te herkennen.</p></div><div class="form-grid review-wizard-grid">'+basisControls+'</div>'+basisIssues+'<div id="reviewBasisState" class="beginner-review-state bad" role="status" aria-live="polite" hidden></div></section>'+
-      '<section class="review-wizard-page" data-review-page="2" hidden><div class="review-page-copy"><h4 tabindex="-1">Bedragen</h4><p>Controleer het totaal en de btw. De rest kun je later aanvullen.</p></div>'+
-        '<div class="review-amount-glance"><span>Totaal op document</span><strong>'+esc(d.gross!=null?money(Number(d.gross)):'—')+'</strong></div>'+
+      '<section class="review-wizard-page" data-review-page="2" hidden><div class="review-page-copy"><h4 tabindex="-1">Bedragen</h4><p>Controleer alleen het totaal en de btw. Boekuna berekent de rest.</p></div>'+
+
         '<div class="form-grid review-wizard-grid review-amount-grid">'+amountControls+'</div>'+
         '<div id="reviewAmountIssueText" class="notice warn compact-review-warning" role="status" hidden></div>'+amountIssues+mixed+payment+financialPanel+
         (adjustTotal>0?'<label class="review-checkbox compact-adjustment"><input type="checkbox" name="bookAdjustments" checked> <span>Gedetecteerde kosten ('+money(adjustTotal)+') apart boeken</span></label>':'')+
