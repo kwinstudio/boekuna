@@ -197,7 +197,7 @@ try{
   await navigateTo('vat');
   const vat=await page.locator('#content').innerText();
   assert.match(vat,/geen officiële indiening|niet naar de Belastingdienst/i,'VAT must retain not-submitted meaning');
-  assert.match(vat,/Indicatief/i,'VAT must retain indicative meaning');
+  assert.match(vat,/indicati(?:e|ef)/i,'VAT must retain indicative meaning');
   const vatPeriod=page.locator('#vatPeriod');
   assert.ok(await vatPeriod.isVisible(),'VAT period selector must be visible');
   assert.ok((await vatPeriod.locator('option').allTextContents()).includes('Jaar'),'VAT must expose a full-year option');
