@@ -260,7 +260,9 @@ try{
     reviewRouting:{mode:'AUTO_ACCEPT_CANDIDATE',fields:[],count:0,autoBook:false}
   });
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
-  assert.match(await page.locator('[data-review-page="2"]').innerText(),/Geen btw|0%/);
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]').inputValue(),'0.00');
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]').inputValue(),'0');
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),0,'resolved 0% VAT should not add another field');
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
   await page.evaluate(()=>closeModal());
 
