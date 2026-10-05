@@ -201,7 +201,7 @@ try{
   });
   assert.equal(await page.getByRole('button',{name:'Volgende',exact:true}).isDisabled(),false,'financial issue belongs to step 2, not step 1');
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
-  assert.match(await page.locator('[data-review-page="2"]').innerText(),/kloppen nog niet|Controleer de btw/i);
+  assert.match(await page.locator('[data-review-page="2"]').innerText(),/btw-percentage past niet|Controleer totaal en btw/i);
   assert.equal(await page.locator('[data-review-net-editor]:visible').count(),0,'ex-VAT remains derived instead of adding another correction field');
   assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]:visible').count(),1);
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true);
