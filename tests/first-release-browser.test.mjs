@@ -33,7 +33,7 @@ appHtml=replaceLast(appHtml,'initAuth();',[
   "state.hours=[{id:'h1',date:today(),hours:2,project:'Bewaard project',desc:'Bestaande data'}];",
   "state.mileage=[{id:'m1',date:today(),km:12,from:'A',to:'B',purpose:'Bestaande data'}];",
   "state.services=[{id:'svc1',name:'Bestaande dienst',description:'Bewaarde dienst',price:100,vat:21,active:true}];",
-  "state.plannedCash=[{id:'pc1',type:'out',date:today(),description:'Bestaande planning',amount:50,repeating:'monthly'}];"
+  "state.plannedCash=[{id:'pc1',type:'out',date:today(),description:'Bestaande planning',amount:50,repeating:'monthly'}];",
   "loadBillingSummary=async()=>{};handleBillingReturnAndPlan=async()=>{};handleMailboxReturn=()=>{};initDocumentBackgroundProcessing=async()=>{};resumePendingDocumentVerifications=async()=>{};",
   "documentProcessingJobs=[];documentProcessingInitialized=true;documentProcessingConnectivityLost=false;",
   "enterApp();"
