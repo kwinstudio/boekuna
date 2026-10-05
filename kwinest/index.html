@@ -2421,7 +2421,8 @@ function renderBillingCard(){
  if(!b)return `<div class="card" id="billingCard" style="margin-bottom:16px"><div class="section-head"><h2>Abonnement</h2><span class="badge">Laden…</span></div></div>`;
  const plan=String(b.plan||'free'),status=String(b.status||'free'),entitlement=String(b.entitlement_status||((plan!=='free'&&status==='active')?'paid':'free')),limit=b.monthly_limit==null?null:Number(b.monthly_limit),used=Number(b.used||0),isUnlimited=plan==='pro',remaining=isUnlimited?null:Math.max(0,Number(b.remaining??Math.max(0,(limit??0)-used))),pct=isUnlimited?0:Math.min(100,Math.round((used/Math.max(1,limit??1))*100));
  const paid=entitlement==='paid';
- const hasSubscriptionStatus=['trialing','active','past_due','unpaid','paused','incomplete'].includes(status);\n const canManageSubscription=b.can_manage_subscription===true&&hasSubscriptionStatus;
+ const hasSubscriptionStatus=['trialing','active','past_due','unpaid','paused','incomplete'].includes(status);
+ const canManageSubscription=b.can_manage_subscription===true&&hasSubscriptionStatus;
  const statusClass=paid?'good':['past_due','unpaid','paused'].includes(status)?'warn':'';
  const badge=paid?`${billingPlanLabel(plan)} · ${billingStatusLabel(status)}`:'Gratis plan';
  const period=paid&&b.current_period_end?`Huidige periode tot ${billingDate(b.current_period_end)}`:'';
