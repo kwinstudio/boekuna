@@ -195,7 +195,7 @@ try{
   await page.setViewportSize({width:390,height:844});
 
   await page.evaluate(()=>{state.invoices=[];state.transactions=[];state.documents=[];state.contacts=[];state.bookings=[];documentProcessingJobs=[];documentProcessingConnectivityLost=false;documentProcessingInitialized=true;render()});
-  await page.getByText('Alles bijgewerkt',{exact:true}).waitFor();
+  await page.getByRole('heading',{name:'Alles bijgewerkt',exact:true}).waitFor();
   await page.getByText('Er zijn momenteel geen acties die je aandacht nodig hebben.').waitFor();
 
   await page.evaluate(()=>{documentProcessingConnectivityLost=true;render()});
@@ -224,7 +224,7 @@ try{
   assert.equal(await page.getByText('Er zijn momenteel geen acties die je aandacht nodig hebben.').count(),0,'Initial fetch failure must not look like a clean empty state');
   assert.equal(await page.evaluate(()=>documentProcessingFetchError),true,'Initial document fetch failure must set explicit error state');
   await page.getByRole('button',{name:'Opnieuw proberen'}).click();
-  await page.getByText('Alles bijgewerkt',{exact:true}).waitFor();
+  await page.getByRole('heading',{name:'Alles bijgewerkt',exact:true}).waitFor();
   assert.equal(await page.evaluate(()=>window.__docFetchAttempts),2,'Retry must perform a second document fetch');
   assert.equal(await page.evaluate(()=>documentProcessingFetchError),false,'Successful retry must clear explicit fetch error');
   assert.equal(await page.evaluate(()=>documentProcessingInitialized),true,'Successful retry must restore initialized document state');
