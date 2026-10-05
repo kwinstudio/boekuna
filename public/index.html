@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Boekuna — boekhouden zonder gedoe</title>
+<title>Boekuna — boekhouden zonder boekhoudtaal</title>
 <meta name="description" content="Boekhoudsoftware voor zzp’ers en freelancers. Facturen, bonnetjes, documentcontrole, bankimport en btw, zonder boekhoudtaal.">
 <link rel="canonical" href="https://boekuna.nl/">
 <meta name="theme-color" content="#FFFFFF">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Boekuna">
 <meta property="og:locale" content="nl_NL">
-<meta property="og:title" content="Boekuna — boekhouden zonder gedoe">
+<meta property="og:title" content="Boekuna — boekhouden zonder boekhoudtaal">
 <meta property="og:description" content="Boekhoudsoftware voor zzp’ers en freelancers. Facturen, bonnetjes, documentcontrole, bankimport en btw, zonder boekhoudtaal.">
 <meta property="og:url" content="https://boekuna.nl/">
 <meta property="og:image" content="https://boekuna.nl/assets/boekuna-og-1200x630.png">
@@ -19,8 +19,9 @@
 <link rel="preload" href="/assets/fonts/SpaceGrotesk-Variable.ttf" as="font" type="font/ttf" crossorigin>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/premium-marketing.css">
 </head>
-<body data-page="home">
+<body data-page="home" class="premium-home">
 <a class="skip" href="#main">Naar inhoud</a>
 
 <header class="hdr" id="hdr">
@@ -77,20 +78,73 @@
   <section class="hero">
     <div class="wrap hero-grid">
       <div>
-        <h1 class="h1">Je bent ondernemer.<br><span class="green">Geen boekhouder.</span></h1>
-        <p class="lead">Facturen, bonnetjes, btw en inzicht in je bedrijf. Boekuna doet het voorwerk, zodat jij alleen hoeft te controleren.</p>
+        <p class="eyebrow">Voor zzp’ers en freelancers</p>
+        <h1 class="h1">Boekhouden <br>zonder <br><span class="green">boekhoudtaal.</span></h1>
+        <p class="lead">Facturen, bonnetjes, btw en overzicht in één rustige plek. Boekuna doet het voorwerk. Jij controleert.</p>
         <div class="hero-cta">
           <a class="btn btn-primary" href="https://app.boekuna.nl/?register=1">Probeer Boekuna gratis</a>
-          <a class="btn btn-ghost" href="#functies">Bekijk hoe het werkt</a>
+          <a class="btn btn-ghost" href="#hoe-het-werkt">Bekijk hoe het werkt</a>
         </div>
         <ul class="trust">
           <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Geen creditcard nodig</li>
           <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Voor Nederlandse ondernemers</li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Maandelijks opzegbaar</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Jij beslist wat wordt opgeslagen</li>
         </ul>
       </div>
 
-      <!-- SCAN DEMO -->
+      <div class="story" role="region" aria-roledescription="carrousel" aria-label="Drie manieren waarop Boekuna helpt">
+        <div class="story-stage" id="story-stage">
+          <article class="story-scene" id="hero-story-0" aria-label="1 van 3: Bonnetjes">
+            <img class="story-photo" src="/assets/stories/ondernemer-werkplek-1200.webp" srcset="/assets/stories/ondernemer-werkplek-640.webp 640w, /assets/stories/ondernemer-werkplek-1200.webp 1200w" sizes="(max-width: 960px) 100vw, 48vw" width="1200" height="675" alt="Zelfstandige aan een rustige werktafel met laptop, telefoon en bonnetjes" fetchpriority="high">
+            <div class="story-note"><span class="story-check" aria-hidden="true">✓</span><div><strong>Boekuna doet het voorwerk.</strong><span>Jij houdt de controle.</span></div></div>
+            <div class="story-product"><div class="story-product-label"><span>Bon controleren</span><span>Voorbeeld</span></div><img src="/assets/stories/bon-controleren.webp" width="498" height="472" alt="Echt Boekuna-controlescherm met totaal en btw van een voorbeeldbon"></div>
+          </article>
+          <article class="story-scene" id="hero-story-1" aria-label="2 van 3: Facturen" hidden>
+            <img class="story-photo" src="/assets/stories/ondernemer-werkplek-1200.webp" width="1200" height="675" alt="Ondernemer met laptop aan zijn werktafel">
+            <div class="story-note"><span class="story-check" aria-hidden="true">✓</span><div><strong>Van werk naar factuur.</strong><span>Een PDF om zelf te delen.</span></div></div>
+            <div class="story-product story-product-wide"><div class="story-product-label"><span>Je facturen</span><span>Voorbeeld</span></div><img src="/assets/stories/facturen.webp" width="1060" height="797" alt="Echte Boekuna-facturenlijst met uitsluitend voorbeeldgegevens"></div>
+          </article>
+          <article class="story-scene" id="hero-story-2" aria-label="3 van 3: Overzicht" hidden>
+            <div class="story-overview"><span class="eyebrow">Rust in je administratie</span><h2>Weten waar je staat.</h2><p>Wat komt er binnen, wat gaat eruit en wat blijft er over?</p><img src="/assets/stories/overzicht.webp" width="1060" height="787" alt="Huidig Boekuna-dashboard met omzet, kosten en resultaat van een demo-administratie"></div>
+          </article>
+        </div>
+        <div class="story-controls" hidden>
+          <div class="story-pills" role="group" aria-label="Kies een productverhaal">
+            <button type="button" data-story="0" aria-controls="hero-story-0" aria-pressed="true">Bonnetjes</button>
+            <button type="button" data-story="1" aria-controls="hero-story-1" aria-pressed="false">Facturen</button>
+            <button type="button" data-story="2" aria-controls="hero-story-2" aria-pressed="false">Overzicht</button>
+          </div>
+          <button type="button" id="story-pause" aria-label="Productverhalen pauzeren">Pauzeren</button>
+        </div>
+        <p class="story-caption">Echte appbeelden, met voorbeeldgegevens.</p>
+      </div>
+    </div>
+  </section>
+
+
+
+
+  <section class="audience-rail" aria-labelledby="audience-heading">
+    <div class="wrap"><div class="rail-heading"><h2 id="audience-heading">Voor ondernemers die liever ondernemen.</h2><p>Je bent ondernemer. Geen boekhouder.</p></div>
+      <div class="profession-rail" tabindex="0" role="region" aria-label="Voor fotografen, consultants, salons, designers, coaches en freelancers">
+        <span>Fotograaf</span><span>Consultant</span><span>Salon</span><span>Designer</span><span>Coach</span><span>Freelancer</span>
+      </div>
+    </div>
+  </section>
+  <section class="workflow-section" id="hoe-het-werkt" aria-labelledby="workflow-heading">
+    <div class="wrap"><div class="sec-head"><p class="eyebrow">Zo werkt Boekuna</p><h2 class="h2" id="workflow-heading">Uploaden. Controleren. Klaar.</h2><p>Je hoeft het voorwerk niet zelf te doen.</p></div>
+      <div class="workflow-grid">
+        <div class="workflow-visual"><div class="workflow-browser"><span>Boekuna · voorbeeldadministratie</span><span aria-hidden="true">● ● ●</span></div>
+          <img id="workflow-image" src="/assets/stories/documenten.webp" width="1060" height="950" alt="Documenten toevoegen in de echte Boekuna-app" loading="lazy">
+          <p id="workflow-caption">Begin met een foto of bestand. Ook meerdere tegelijk.</p>
+        </div>
+        <div class="workflow-steps">
+          <div class="workflow-step" data-workflow-step="0"><button id="workflow-step-0" type="button" aria-pressed="true" aria-controls="workflow-image"><span>01</span><strong>Upload je bon of factuur.</strong></button><p>Maak een foto of kies een bestand. Je documenten blijven bij elkaar.</p></div>
+          <div class="workflow-step" data-workflow-step="1"><button id="workflow-step-1" type="button" aria-pressed="false" aria-controls="workflow-image"><span>02</span><strong>Boekuna doet het voorwerk.</strong></button><p>Leverancier, datum, bedragen en btw worden herkend. Twijfel blijft zichtbaar.</p></div>
+          <div class="workflow-step" data-workflow-step="2"><button id="workflow-step-2" type="button" aria-pressed="false" aria-controls="workflow-image"><span>03</span><strong>Controleer. Dan ben je klaar.</strong></button><p>Bekijk wat aandacht nodig heeft. Pas na jouw bevestiging gaat het je administratie in.</p></div>
+        </div>
+      </div>
+      <details class="try-scan"><summary>Probeer het zelf met een voorbeeldbon <span aria-hidden="true">＋</span></summary><div class="scan-demo-content">      <!-- SCAN DEMO -->
       <div class="demo" id="scanDemo" aria-label="Probeer de scanner">
         <div class="demo-top">
           <strong style="font-family:var(--display);font-size:18px">Probeer het zelf</strong>
@@ -120,10 +174,9 @@
           <span class="mini-kpi" id="miniKpi"><span>Kosten deze maand</span><b class="num" id="miniKpiVal">€ 1.284,50</b></span>
         </div>
       </div>
+</div></details>
     </div>
   </section>
-
-
 
   <section id="hoe">
     <div class="wrap jargon">
@@ -140,8 +193,10 @@
     <div class="wrap">
       <div class="sec-head">
         <h2 class="h2">Alles wat je nodig hebt. Niet alles wat mogelijk is.</h2>
-        <p>Klik door de onderdelen. Alles hieronder werkt, zodat je ziet hoe Boekuna voelt. Of bekijk <a href="/functies/">alle functies</a> op een rij.</p>
+        <p>Gemaakt voor ondernemers die hun administratie zelf willen begrijpen. We laten vooral zien wat je nú nodig hebt.</p>
       </div>
+<div class="bento-grid"><a class="bento-card bento-0" href="#bonnen"><div><span class="eyebrow">Bonnen en kosten</span><h3>Bon erin. Voorwerk gedaan.</h3><p>Leverancier, datum en bedragen bij elkaar. Jij controleert.</p></div><div class="bento-preview"><img src="/assets/stories/bon-controleren.webp" width="498" height="472" alt="Echt Boekuna-scherm: Bonnen en kosten, met voorbeeldgegevens" loading="lazy"></div><span class="bento-link">Bekijk hoe het werkt <span aria-hidden="true">↗</span></span></a><a class="bento-card bento-1" href="#facturen"><div><span class="eyebrow">Facturen</span><h3>Een factuur zonder gedoe.</h3><p>Voeg je regels toe. Boekuna rekent de btw en het totaal uit.</p></div><div class="bento-preview"><img src="/assets/stories/facturen.webp" width="1060" height="797" alt="Echt Boekuna-scherm: Facturen, met voorbeeldgegevens" loading="lazy"></div><span class="bento-link">Bekijk hoe het werkt <span aria-hidden="true">↗</span></span></a><a class="bento-card bento-2" href="#btw"><div><span class="eyebrow">Btw</span><h3>Btw in gewone taal.</h3><p>Zie wat je voor de btw apart moet zetten.</p></div><div class="bento-preview"><img src="/assets/stories/btw.webp" width="1060" height="718" alt="Echt Boekuna-scherm: Btw, met voorbeeldgegevens" loading="lazy"></div><span class="bento-link">Bekijk hoe het werkt <span aria-hidden="true">↗</span></span></a><a class="bento-card bento-3" href="#bank"><div><span class="eyebrow">Bank</span><h3>Je bank naast je administratie.</h3><p>Importeer een bankbestand en bekijk welke betaling bij welke factuur hoort.</p></div><div class="bento-preview"><img src="/assets/stories/bank.webp" width="1060" height="836" alt="Echt Boekuna-scherm: Bank, met voorbeeldgegevens" loading="lazy"></div><span class="bento-link">Bekijk hoe het werkt <span aria-hidden="true">↗</span></span></a><a class="bento-card bento-4" href="#rapportages"><div><span class="eyebrow">Rapportages</span><h3>Cijfers die je begrijpt.</h3><p>Wat komt binnen, gaat eruit en blijft over?</p></div><div class="bento-preview"><img src="/assets/stories/overzicht.webp" width="1060" height="787" alt="Echt Boekuna-scherm: Rapportages, met voorbeeldgegevens" loading="lazy"></div><span class="bento-link">Bekijk hoe het werkt <span aria-hidden="true">↗</span></span></a><a class="bento-card bento-5" href="#functies"><div><span class="eyebrow">Mobiel</span><h3>Ook op je telefoon.</h3><p>Je administratie bij de hand. Ook onderweg.</p></div><div class="bento-preview"><img src="/assets/stories/overzicht-mobiel.webp" width="390" height="936" alt="Echt Boekuna-scherm: Mobiel, met voorbeeldgegevens" loading="lazy"></div><span class="bento-link">Bekijk hoe het werkt <span aria-hidden="true">↗</span></span></a></div>
+      <div class="demo-intro"><h3>Bekijk wat Boekuna voor je doet.</h3><p>Deze voorbeelden kun je zelf bedienen. Ze veranderen niets in je eigen administratie.</p></div>
       <div class="tabs" role="tablist" aria-label="Functies">
         <button class="tab" role="tab" id="t-facturen" aria-controls="p-facturen" aria-selected="true">Facturen</button>
         <button class="tab" role="tab" id="t-bonnen" aria-controls="p-bonnen" aria-selected="false" tabindex="-1">Bonnen en kosten</button>
@@ -267,21 +322,9 @@
         <p style="color:var(--ink-2);margin:18px 0 0;max-width:52ch">De mobiele versie is geen verkleinde desktop. Belangrijke acties zitten onder je duim, en je zet Boekuna als app op je beginscherm.</p></div>
         <div class="seg" role="group" aria-label="Kies een scherm"><button type="button" data-dev="desk" aria-pressed="true">Laptop</button><button type="button" data-dev="phone" aria-pressed="false">Telefoon</button></div>
       </div>
-      <div class="device" id="device" data-mode="desk">
-        <div class="dv">
-          <div class="dv-top"><span class="logo">Boekuna<span class="dot"></span></span><span class="badge warn">2 acties</span></div>
-          <aside class="dv-side"><span class="logo">Boekuna<span class="dot"></span></span><span class="on">Overzicht</span><span>Voor jou</span><span>Facturen</span><span>Kosten</span><span>Bank</span><span>Btw</span><span>Rapporten</span></aside>
-          <div class="dv-main">
-            <h4>Overzicht</h4>
-            <div class="dv-kpis"><div><small>Omzet deze maand</small><b class="num">€ 5.300</b><small style="color:var(--green-ink)">+18% t.o.v. je gemiddelde</small></div><div><small>Kosten</small><b class="num">€ 1.358</b></div><div><small>Btw apartzetten</small><b class="num">€ 840</b></div></div>
-            <div class="dv-list">
-              <div><span>2 facturen zijn te laat</span><span class="badge late">Nu oplossen</span></div>
-              <div><span>3 documenten controleren</span><span class="badge warn">Aandacht</span></div>
-              <div><span>Btw klaar om te controleren</span><span class="badge ok">Klaar</span></div>
-            </div>
-          </div>
-          <nav class="dv-bottom" aria-hidden="true"><span class="on">● Home</span><span>Facturen</span><span>Kosten</span><span>Btw</span><span>Meer</span></nav>
-        </div>
+      <div class="device actual-device" id="device" data-mode="desk">
+        <img class="device-desktop" src="/assets/stories/overzicht.webp" width="1060" height="787" alt="Huidig Boekuna-overzicht op de laptop, met voorbeeldgegevens" loading="lazy">
+        <img class="device-mobile" src="/assets/stories/overzicht-mobiel.webp" width="390" height="936" alt="Huidig Boekuna-overzicht op de telefoon, met voorbeeldgegevens" loading="lazy">
       </div>
     </div>
   </section>
@@ -296,9 +339,14 @@
     </div>
   </section>
 
-  <section>
+  <section class="editorial-section"><div class="wrap editorial-grid">
+    <div class="editorial-photo"><img src="/assets/stories/ondernemer-werkplek-1200.webp" width="1200" height="675" alt="Een zelfstandige met zijn administratie aan de werktafel" loading="lazy"><span class="editorial-label">Voorwerk voor Boekuna. Ruimte voor jou.</span></div>
+    <div><p class="eyebrow">Slim, met jou aan het stuur</p><h2 class="h2">Boekuna doet het voorwerk.<br>Jij houdt het overzicht.</h2><p class="lead">We herkennen en rekenen waar dat veilig kan. Jij beslist wat uiteindelijk in je administratie terechtkomt.</p><a class="link-arrow" href="/scanner/">Zo werkt het herkennen</a></div>
+  </div></section>
+
+  <section class="honest-section">
     <div class="wrap">
-      <div class="sec-head reveal"><h2 class="h2">Vertrouwen begint bij eerlijk zijn.</h2><p>We laten geen nep-reviews zien. Wel waar je op kunt rekenen.</p></div>
+      <div class="sec-head reveal"><p class="eyebrow">Eerlijk vanaf het begin</p><h2 class="h2">Geen verrassingen.<br>Ook niet in je administratie.</h2><p>We laten geen nep-reviews zien. Wel waar je op kunt rekenen.</p></div>
       <div class="trust-grid">
         <div class="trust-item reveal"><span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><h3>Jij keurt alles goed</h3><p>Herkende gegevens blijven een voorstel tot jij bevestigt.</p></div>
         <div class="trust-item reveal"><span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg></span><h3>Geen verrassingen in je betaling</h3><p>Gratis blijft gratis. Een betaald abonnement start pas als jij het zelf kiest.</p></div>
@@ -332,7 +380,7 @@
 
   <section style="padding-top:0">
     <div class="wrap"><div class="cta-dark">
-      <div><h2 class="h2">Minder tijd aan administratie. Meer tijd voor je bedrijf.</h2><p>Begin met Boekuna en houd je administratie overzichtelijk, zonder boekhoudtaal.</p></div>
+      <div><h2 class="h2">Minder administratie.<br>Meer tijd voor je bedrijf.</h2><p>Begin met Boekuna en houd je administratie overzichtelijk, zonder boekhoudtaal.</p></div>
       <a class="btn btn-primary" href="https://app.boekuna.nl/?register=1">Probeer Boekuna gratis</a>
     </div></div>
   </section>
@@ -354,5 +402,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="/assets/site.js" defer></script>
+<script src="/assets/premium-marketing.js" defer></script>
 </body>
 </html>

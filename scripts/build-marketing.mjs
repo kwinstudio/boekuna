@@ -119,7 +119,7 @@ for(const page of pages){
 }
 
 const home=fs.readFileSync(path.join(target,'index.html'),'utf8');
-for(const claim of ['Je bent ondernemer.','Geen boekhouder.','Probeer Boekuna gratis']){
+for(const claim of ['Boekhouden','boekhoudtaal.','Probeer Boekuna gratis']){
   if(!home.includes(claim))throw new Error('Homepage proposition missing: '+claim);
 }
 

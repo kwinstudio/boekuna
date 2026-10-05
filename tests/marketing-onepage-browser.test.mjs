@@ -67,6 +67,7 @@ try{
 
       const home=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
       await home.goto(server.base+'/',{waitUntil:'networkidle'});
+      await home.locator('.try-scan > summary').click();
       await home.locator('#scanBtn').click();
       await home.waitForTimeout(700);
       assert.notEqual((await home.locator('#scanBadge').innerText()).trim(),'Klaar om te scannen',name+' scan demo must react');
