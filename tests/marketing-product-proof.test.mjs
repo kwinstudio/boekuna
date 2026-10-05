@@ -27,8 +27,12 @@ const builtHome=fs.readFileSync(path.join(dist,'index.html'),'utf8');
 for(const html of [sourceHome,builtHome]){
   assert.equal(/product-marquee|marquee-card|project-image/.test(html),false,'Homepage screenshot presentation returned');
   assert.ok(html.includes('class="logo brand-wordmark"'),'Canonical BOEKUNA wordmark missing');
+  assert.ok(html.includes('content="#63D471"'),'Canonical BOEKUNA browser theme missing');
+  assert.equal(/boekuna-logo-lime/.test(html),false,'Incorrect lime logo reference returned');
 }
 assert.equal(fs.existsSync(path.join(dist,'assets','stories')),false,'Screenshot assets must not ship in public marketing artifact');
+assert.equal(fs.existsSync(path.join(dist,'assets','boekuna-logo-lime.svg')),false,'Incorrect lime logo asset must not ship');
+assert.equal(fs.existsSync(path.join(dist,'assets','boekuna-logo-lime-reversed.svg')),false,'Incorrect reversed lime logo asset must not ship');
 
 const css=fs.readFileSync(path.join(source,'assets','editorial-marketing.css'),'utf8');
 for(const token of ['#1B1F23','#63D471','#F6F7F8','#8A949C','#FFFFFF']){
