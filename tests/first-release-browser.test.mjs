@@ -82,7 +82,8 @@ try{
 
   await page.evaluate(()=>navigate('documents'));
   assert.match(await page.locator('#content').innerText(),/Boekuna leest hem uit en laat zien wat je moet controleren\./);
-  assert.ok(await page.getByRole('button',{name:'Document uploaden'}).count()>=1);
+  assert.equal(await page.getByRole('button',{name:'Document uploaden'}).count(),1,'Empty documents should expose one upload action');
+  assert.equal(await page.locator('.dropzone').count(),0,'Empty documents should not duplicate the upload action with a dropzone');
 
   await page.evaluate(()=>navigate('bank'));
   const bankText=await page.locator('#content').innerText();
