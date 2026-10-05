@@ -117,7 +117,7 @@ assert.equal(prod.status,0,'Normal app build must stay green: '+prod.stderr);
 let built=fs.readFileSync('dist/app/index.html','utf8');
 assert.ok(built.includes("enabled:false,environment:'production',allowedOrigins:[]"),'Normal build must ship Developer Mode off');
 
-const bad=spawnSync(process.execPath,['scripts/build-app.mjs'],{
+// Security guard is exercised with the full QA profile.\nconst bad=spawnSync(process.execPath,['scripts/build-app.mjs'],{
   encoding:'utf8',
   env:{...process.env,BOEKUNA_RELEASE_PROFILE:'full',BOEKUNA_DEV_MODE:'true',BOEKUNA_DEPLOYMENT_ENV:'production',BOEKUNA_DEV_ALLOWED_ORIGINS:'http://127.0.0.1:3000',BOEKUNA_SUPABASE_URL:'https://example.supabase.co',BOEKUNA_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_test'}
 });
