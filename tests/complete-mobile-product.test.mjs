@@ -164,7 +164,7 @@ try {
  await nav('settings');
  assert.equal(await page.locator('.mobile-settings-index .settings-nav-item').count(),8);assert.equal(await page.locator('.mobile-settings-index').getByText('Assistent & inzichten',{exact:true}).count(),1);
  assert.equal(await page.locator('.settings-group').first().isVisible(),false);
- await page.getByRole('button',{name:/Factuurinstellingen/}).click();
+ await page.locator('.mobile-settings-index').getByRole('button',{name:'Facturen',exact:true}).click();
  assert.equal(await page.locator('.mobile-settings-active').count(),1);
  await page.getByRole('button',{name:'Terug naar Instellingen',exact:true}).click();
  assert.equal(await page.locator('.mobile-settings-index').isVisible(),true);
