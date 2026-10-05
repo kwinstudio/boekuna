@@ -57,8 +57,7 @@ async function createDraft({label,status='draft'}={}){
   await page.evaluate(()=>{updateInvoiceCustomer();calcInvoiceForm();updateInvoiceCheck()});
   const conceptNumber=await page.locator('#invoiceForm [name="number"]').inputValue();
   await page.evaluate(()=>reviewInvoice());
-  await page.getByRole('heading',{name:status==='draft'?'Concept opslaan':'Laatste controle vóór opslaan'}).waitFor();
-  await page.evaluate(()=>finalSaveInvoice());
+  assert.equal(await page.getByRole('heading',{name:status==='draft'?'Concept opslaan':'Laatste controle vóór opslaan'}).count(),0,'Complete invoice must save without duplicate review modal');
   await page.waitForTimeout(20);
   return {conceptNumber,id:await page.evaluate(()=>state.invoices[0].id),number:await page.evaluate(()=>state.invoices[0].number)};
 }
@@ -68,8 +67,7 @@ async function editDraftAndSave(id,status){
   await page.locator('#invoiceForm').waitFor();
   if(status)await page.locator('#invoiceForm [name="status"]').selectOption(status);
   await page.evaluate(()=>reviewInvoice());
-  await page.getByRole('heading',{name:status==='draft'?'Concept opslaan':'Laatste controle vóór opslaan'}).waitFor();
-  await page.evaluate(()=>finalSaveInvoice());
+  assert.equal(await page.getByRole('heading',{name:status==='draft'?'Concept opslaan':'Laatste controle vóór opslaan'}).count(),0,'Edited complete invoice must save without duplicate review modal');
   await page.waitForTimeout(20);
 }
 
