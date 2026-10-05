@@ -368,6 +368,7 @@ function firstBlockingFocus(){
   requestAnimationFrame(()=>focusReviewIssue(issue))
 }
 function reconcileSimpleReviewAmounts(markUserKey=null){
+  if(typeof global.reconcileFinancialReviewVisibleAmounts==='function')return global.reconcileFinancialReviewVisibleAmounts(markUserKey);
   const d=pendingPdfImport?.parsed,f=document.getElementById('pdfImportForm');if(!d||!f||d.mixedRates)return;
   const grossC=cents(f.elements.namedItem('gross')?.value),vatC=cents(f.elements.namedItem('vatAmount')?.value);
   if(grossC==null||vatC==null||grossC===0)return;
