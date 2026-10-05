@@ -13,7 +13,7 @@ try{
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
     await page.goto(server.base);
     await page.emulateMedia({colorScheme:'dark'});
-    assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)','Editorial palette remains white in dark preference');
+    assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)','BOEKUNA marketing canvas remains white in dark preference');
     await page.emulateMedia({colorScheme:'light'});
     assert.equal(await page.locator('img[src*="ondernemer-werkplek"]').count(),0);
     const links=await page.locator('.project-card, .hero-cta a').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href')));
@@ -38,5 +38,5 @@ try{
    }
   }finally{await browser.close()}
  }
- console.log('Marketing navigation/image QA: PASS (7 real pages, both engines, four widths, next-page CTAs, no portraits, editorial palette, uncropped images)');
+ console.log('Marketing navigation QA: PASS (7 real pages, both engines, four widths, next-page CTAs, no portraits or screenshots, BOEKUNA palette)');
 }finally{await server.close()}
