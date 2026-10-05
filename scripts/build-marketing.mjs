@@ -57,9 +57,17 @@ fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(path.dirname(target),{recursive:true});
 fs.cpSync(source,target,{recursive:true});
 
+// Repair old public destinations in the marketing artifact only. Legal/support
+// sources are also used by the app and remain byte-for-byte unchanged.
+for(const page of ['404.html','support/index.html']){
+  const file=path.join(target,page);
+  fs.writeFileSync(file,fs.readFileSync(file,'utf8').replaceAll('href="/#faq"','href="/faq/"').replaceAll('href="/#product"','href="/functies/"'));
+}
+
 // Release 1 keeps the upcoming assistant page as roadmap information, but does not
 // present it as a current primary product capability.
-const releaseMarketingPages=['index.html','functies/index.html','assistent/index.html','scanner/index.html','prijzen/index.html','veiligheid/index.html','faq/index.html'];
+const featurePages=['facturen','bonnen','btw','bank','rapportages','mobiel','hoe-het-werkt'];
+const releaseMarketingPages=['index.html','functies/index.html','assistent/index.html','scanner/index.html','prijzen/index.html','veiligheid/index.html','faq/index.html',...featurePages.map(slug=>slug+'/index.html')];
 for(const page of releaseMarketingPages){
   const file=path.join(target,page);
   let html=fs.readFileSync(file,'utf8');
@@ -86,10 +94,7 @@ fs.copyFileSync(path.join(source,'assets','marketing-editorial','InterVariable.w
 fs.copyFileSync(path.join(source,'assets','marketing-editorial','Inter-LICENSE.txt'),path.join(fontsDir,'Inter-LICENSE.txt'));
 
 const retiredRedirects={
-  'facturen':'/#facturen',
-  'btw-bank':'/#btw',
-  'rapportages':'/#rapportages',
-  'hoe-het-werkt':'/#hoe',
+  'btw-bank':'/btw/',
   'voor-ondernemers':'/',
   'over':'/',
   'contact':'/support/'

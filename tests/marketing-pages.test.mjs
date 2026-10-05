@@ -34,8 +34,8 @@ const home=fs.readFileSync(path.join(src,'index.html'),'utf8');
 for(const text of ['Je bent ondernemer.','Geen boekhouder.','Probeer Boekuna gratis','Bonnetje erin. Boekuna doet het voorwerk.']){
   assert.ok(home.includes(text),'Homepage copy missing: '+text);
 }
-for(const target of ['/#facturen','/#bonnen','/#btw','/#bank','/#rapportages']){
-  assert.ok(home.includes('href="'+target+'"'),'Homepage feature anchor missing '+target);
+for(const target of ['/facturen/','/bonnen/','/btw/','/bank/','/rapportages/']){
+  assert.ok(home.includes('href="'+target+'"'),'Homepage feature page missing '+target);
 }
 assert.equal(/<section id="assistent-home">/i.test(home),false,'Upcoming assistant must not have a Release 1 homepage section');
 const homeDescription=home.match(/<meta name="description" content="([^"]+)"/i)?.[1]||'';
@@ -89,7 +89,14 @@ for(const live of ['index.html','functies/index.html','scanner/index.html','prij
 const builtAssistant=fs.readFileSync(path.join(dist,'assistent','index.html'),'utf8');
 assert.ok(builtAssistant.includes('Binnenkort'),'Roadmap assistant page must remain explicit about upcoming status');
 assert.equal(/data-nav="assistent"|>Persoonlijke assistent<\/a>|>Assistent<\/a>/i.test(builtAssistant),false,'Roadmap assistant page must not advertise itself as a live primary feature');
-for(const retired of ['facturen','btw-bank','rapportages','hoe-het-werkt','voor-ondernemers','over','contact']){
+for(const feature of ['facturen','bonnen','btw','bank','rapportages','mobiel','hoe-het-werkt']){
+  const built=fs.readFileSync(path.join(dist,feature,'index.html'),'utf8');
+  assert.ok(built.includes('<h1'),feature+': real feature page missing');
+  assert.equal(built.includes('location.replace('),false,feature+': must not redirect to homepage');
+  assert.ok(sitemap.includes('https://boekuna.nl/'+feature+'/'),feature+': sitemap missing');
+}
+assert.equal(home.includes('ondernemer-werkplek'),false,'No portrait photographs on homepage');
+for(const retired of ['btw-bank','voor-ondernemers','over','contact']){
   const built=fs.readFileSync(path.join(dist,retired,'index.html'),'utf8');
   assert.ok(built.includes('location.replace('),retired+': legacy redirect missing');
 }

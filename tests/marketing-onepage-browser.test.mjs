@@ -13,7 +13,7 @@ const evidence=path.join(root,'tests','artifacts','multipage');
 fs.mkdirSync(evidence,{recursive:true});
 const server=await serveMarketing(dist);
 
-const routes=['/','/functies/','/assistent/','/scanner/','/prijzen/','/veiligheid/','/faq/'];
+const routes=['/','/functies/','/assistent/','/scanner/','/prijzen/','/veiligheid/','/faq/','/facturen/','/bonnen/','/btw/','/bank/','/rapportages/','/mobiel/','/hoe-het-werkt/'];
 const engines=[['chromium',chromium],['webkit',webkit]];
 const axeErrors=[];
 
