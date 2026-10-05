@@ -349,7 +349,7 @@ function updateBeginnerReviewState(){
   }
   const rateField=document.querySelector('[data-review-field="vatRate"]');
   if(rateField&&!d.mixedRates){
-    const needsRate=amountIssues.some(x=>x.field==='vatRate');
+    const needsRate=amountIssues.some(x=>x.field==='vatRate')||d.accountingVatTreatment==='review_required';
     rateField.hidden=!needsRate;rateField.style.display=needsRate?'':'none'
   }
   const financialPanel=document.getElementById('financialCorrectionPanel');
