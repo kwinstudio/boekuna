@@ -286,8 +286,8 @@ if(
 }
 
 if(!isReleaseFeatureEnabled(releaseFeatures,'peppol')){
-  const profilePeppol='<div class="field"><label>Peppol / e-factuur ID</label><input name="peppolId" value="${esc(c.peppolId||'')}" placeholder="Optioneel"></div>';
-  const contactPeppol='<div class="field"><label for="contactPeppol">E-factuur / Peppol ID</label><input id="contactPeppol" name="peppolId" value="${esc(c?.peppolId||'')}" placeholder="Optioneel"></div>';
+  const profilePeppol="<div class=\"field\"><label>Peppol / e-factuur ID</label><input name=\"peppolId\" value=\"${esc(c.peppolId||'')}\" placeholder=\"Optioneel\"></div>";
+  const contactPeppol="<div class=\"field\"><label for=\"contactPeppol\">E-factuur / Peppol ID</label><input id=\"contactPeppol\" name=\"peppolId\" value=\"${esc(c?.peppolId||'')}\" placeholder=\"Optioneel\"></div>";
   for(const [needle,label] of [[profilePeppol,'profile'],[contactPeppol,'contact']]){
     if(!appHtml.includes(needle))throw new Error('Release Peppol '+label+' marker changed');
     appHtml=appHtml.replace(needle,'');
