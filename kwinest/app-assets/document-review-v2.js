@@ -349,7 +349,9 @@ function updateBeginnerReviewState(){
   }
   const rateField=document.querySelector('[data-review-field="vatRate"]');
   if(rateField&&!d.mixedRates){
-    const needsRate=amountIssues.some(x=>x.field==='vatRate')||d.accountingVatTreatment==='review_required';
+    const f=document.getElementById('pdfImportForm'),netC=cents(f?.elements.namedItem('net')?.value),vatC=cents(f?.elements.namedItem('vatAmount')?.value),grossC=cents(f?.elements.namedItem('gross')?.value),rateRaw=String(f?.elements.namedItem('vatRate')?.value??''),rate=rateRaw===''?null:Number(rateRaw);
+    const rateMismatch=rate!=null&&Number.isFinite(rate)&&netC!=null&&vatC!=null&&grossC!=null&&typeof BookunaFinancialCorrection!=='undefined'&&!BookunaFinancialCorrection.candidateFitsRate({net:netC,vatAmount:vatC,gross:grossC},rate,1);
+    const needsRate=amountIssues.some(x=>x.field==='vatRate')||rateMismatch||d.accountingVatTreatment==='review_required';
     rateField.hidden=!needsRate;rateField.style.display=needsRate?'':'none'
   }
   const financialPanel=document.getElementById('financialCorrectionPanel');
