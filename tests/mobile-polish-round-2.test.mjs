@@ -150,7 +150,7 @@ try{
   await shot('documents-before-native-picker');
   await page.evaluate(()=>navigate('documents'));
   await page.locator('#pageTitle').filter({hasText:'Bonnetjes'}).waitFor();
-  const upload=page.getByRole('button',{name:'Uploaden',exact:true});
+  const upload=page.getByRole('button',{name:'Document uploaden',exact:true});
   assert.equal(await upload.getAttribute('onclick'),'openDocumentUpload()');
   assert.ok(await page.locator('#invoicePdfFile').getAttribute('multiple')!==null);
   assert.equal(await page.locator('#invoicePdfFile').getAttribute('capture'),null);
