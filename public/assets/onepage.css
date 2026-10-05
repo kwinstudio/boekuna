@@ -14,10 +14,11 @@
 }
 
 :root{
-  --brand-charcoal:#1B1F23;
-  --brand-green:#63D471;
-  --surface-soft:#F6F7F8;
-  --text-muted:#8A949C;
+  --brand-charcoal:#111111;
+  --brand-green:#E7FE55;
+  --brand-cyan:#BFE7EC;
+  --surface-soft:#F6F6F3;
+  --text-muted:#666666;
   --white:#FFFFFF;
 
   --text:var(--brand-charcoal);
@@ -383,4 +384,32 @@ button:disabled,.btn:disabled{opacity:.58;cursor:not-allowed;transform:none}
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
   .button:hover,.btn:hover{transform:none}
+}
+
+
+/* BOEKUNA legal/support brand unification — 2026-10-05 */
+.site-header{background:color-mix(in srgb,#FFFFFF 94%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.brand-wordmark{display:inline-flex;align-items:center}
+.brand-wordmark img{display:block;width:158px;height:auto}
+.brand-wordmark-reversed img{width:165px}
+.button-primary,.btn.primary{background:#E7FE55;color:#111111;border-color:#111111}
+.button-primary:hover,.btn.primary:hover{background:#111111;color:#FFFFFF;border-color:#111111}
+.button-secondary,.btn:not(.primary):not(.danger){background:#FFFFFF;color:#111111;border-color:#D9D9D5}
+.button-secondary:hover,.btn:not(.primary):not(.danger):hover{background:#BFE7EC;border-color:#111111}
+.mk-section.alt{background:#BFE7EC}
+.ed-fact-sheet{border-color:#DADAD6;background:#FFFFFF}
+.ed-fact-heading{background:#BFE7EC;border-bottom-color:#1111111A}
+.ed-fact-body{background:#FFFFFF}
+.mk-card{background:#FFFFFF}
+.mk-card-icon,.feature-index{background:#E7FE55;color:#111111}
+.mk-legal-nav a:hover{border-color:#E7FE55;background:linear-gradient(90deg,#E7FE55 0 6px,transparent 6px)}
+.notice.warn{border-left-color:#E7FE55;background:#F6F6F3}
+.mk-stat small{color:#111111;text-decoration:underline;text-decoration-color:#E7FE55;text-decoration-thickness:4px;text-underline-offset:5px}
+.mk-banner{background:#BFE7EC;border-color:#1111111A}
+.mk-form-card{box-shadow:none}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:#111111;box-shadow:0 0 0 3px #E7FE55}
+.footer{background:#111111}
+::selection{background:#E7FE55;color:#111111}
+@media(max-width:640px){
+  .brand-wordmark img{width:142px}
 }
