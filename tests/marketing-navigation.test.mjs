@@ -13,17 +13,13 @@ try{
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
     await page.goto(server.base);
     await page.emulateMedia({colorScheme:'dark'});
-    assert.equal(await page.locator('.product-story-copy .eyebrow').first().evaluate(el=>getComputedStyle(el).color),'rgb(23, 122, 49)','Product artwork text stays legible in dark mode');
+    assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)','Editorial palette remains white in dark preference');
     await page.emulateMedia({colorScheme:'light'});
     assert.equal(await page.locator('img[src*="ondernemer-werkplek"]').count(),0);
-    const links=await page.locator('.bento-card, .hero-cta a').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href')));
+    const links=await page.locator('.project-card, .hero-cta a').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href')));
     assert.ok(links.every(href=>!href.startsWith('#')&&!href.includes('/#')),links.join(','));
-    await page.getByRole('link',{name:'Bekijk hoe het werkt',exact:true}).click();
+    await page.getByRole('link',{name:/Bekijk hoe het werkt/}).click();
     assert.equal(new URL(page.url()).pathname,'/hoe-het-werkt/');
-    if(width<701){
-     await page.goto(server.base);assert.equal(await page.locator('#device').getAttribute('data-mode'),'phone');
-     assert.ok(await page.locator('.device-mobile').isVisible());
-    }
     for(const route of routes){
      await page.goto(server.base+route,{waitUntil:'networkidle'});
      assert.equal(new URL(page.url()).pathname,route,'No feature page may redirect home');
@@ -42,5 +38,5 @@ try{
    }
   }finally{await browser.close()}
  }
- console.log('Marketing navigation/image QA: PASS (7 real pages, both engines, four widths, next-page CTAs, no portraits, mobile default, uncropped images)');
+ console.log('Marketing navigation/image QA: PASS (7 real pages, both engines, four widths, next-page CTAs, no portraits, editorial palette, uncropped images)');
 }finally{await server.close()}

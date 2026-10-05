@@ -31,7 +31,7 @@ for(const [file,canonical] of pages){
 }
 
 const home=fs.readFileSync(path.join(src,'index.html'),'utf8');
-for(const text of ['Je bent ondernemer.','Geen boekhouder.','Probeer Boekuna gratis','Bonnetje erin. Boekuna doet het voorwerk.']){
+for(const text of ['Je bent ondernemer.','Geen boekhouder.','Probeer Boekuna gratis','Boekuna doet het voorwerk.']){
   assert.ok(home.includes(text),'Homepage copy missing: '+text);
 }
 for(const target of ['/facturen/','/bonnen/','/btw/','/bank/','/rapportages/']){

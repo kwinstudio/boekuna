@@ -12,26 +12,13 @@ assert.equal(build.status,0,build.stderr||build.stdout);
 const sourceHome=fs.readFileSync(path.join(source,'index.html'),'utf8');
 const builtHome=fs.readFileSync(path.join(dist,'index.html'),'utf8');
 
-// Current multipage marketing demonstrates real product behavior interactively rather than
-// depending on legacy app screenshots. Keep the product proof tied to working UI demos.
-for(const id of ['scanDemo','functies','invLines','doclist','omzet','txlist','chart']){
-  assert.ok(sourceHome.includes('id="'+id+'"'),'Homepage interactive product proof missing '+id);
-  assert.ok(builtHome.includes('id="'+id+'"'),'Built homepage interactive product proof missing '+id);
+// The minimal homepage uses authentic screenshots; the scanner retains the interactive demo.
+for(const image of ['bon-controleren.webp','facturen.webp','overzicht.webp','overzicht-mobiel.webp']){
+ assert.ok(sourceHome.includes('/assets/stories/'+image),'Authentic product screenshot missing: '+image);
+ assert.ok(builtHome.includes('/assets/stories/'+image));
 }
-for(const copy of [
-  'Document controleren',
-  'Nieuwe factuur',
-  'Btw dit kwartaal',
-  'Voorstel:',
-  'Staafdiagram omzet en kosten per maand'
-]){
-  assert.ok((sourceHome+fs.readFileSync(path.join(source,'assets','site.js'),'utf8')).includes(copy),
-    'Interactive product proof copy/behavior missing: '+copy);
-}
-
-// The current homepage intentionally does not publish stale embedded product screenshots.
-assert.equal(/\/assets\/product\//.test(sourceHome),false,
-  'Homepage should not regress to stale hard-coded app screenshots');
+assert.ok(fs.readFileSync(path.join(dist,'scanner/index.html'),'utf8').includes('id="flowline"'));
+assert.equal(/ondernemer-werkplek|\/assets\/product\//.test(sourceHome),false,'No portraits or stale screenshots');
 
 const walk=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(entry=>{
   const file=path.join(dir,entry.name);
@@ -56,4 +43,4 @@ for(const file of walk(dist).filter(file=>file.endsWith('.html'))){
 assert.ok(fs.existsSync(path.join(source,'assets','product','capture-proof.json')),
   'Internal product capture evidence should remain available for QA/history');
 
-console.log('Marketing interactive-product-proof QA: PASS (working demos, no stale screenshot dependency, first-party image safety)');
+console.log('Marketing product-proof QA: PASS (authentic screenshots, retained scanner interaction, first-party image safety)');
