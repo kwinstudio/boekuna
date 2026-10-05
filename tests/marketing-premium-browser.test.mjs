@@ -69,6 +69,7 @@ try{
       assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).cursor),'none');
       assert.ok(await page.locator('.editorial-cursor').evaluate(el=>el.classList.contains('is-visible')));
       await page.emulateMedia({reducedMotion:'reduce'});
+      await page.waitForFunction(()=>!document.body.classList.contains('cursor-active'));
       assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('cursor-active')),false);
       await page.close();
 
