@@ -18,7 +18,7 @@ const activeBillingGuardMigration=read('supabase/migrations/20260928012515_guard
 const providerEntitlementMigration=read('supabase/migrations/20260930093553_provider_agnostic_billing_entitlements.sql');
 const portalCapabilityMigration=read('supabase/migrations/20261005145822_expose_billing_portal_capability.sql');
 const normalizedInternalBillingMigration=read('supabase/migrations/20261005170500_normalize_internal_billing_state.sql');
-const pricing=read('public/index.html');
+const pricing=read('public/prijzen/index.html')+'\n'+read('public/assets/site.js');
 const privacy=read('public/privacy/index.html');
 const terms=read('public/voorwaarden/index.html');
 
