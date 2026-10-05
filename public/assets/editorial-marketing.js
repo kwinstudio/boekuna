@@ -25,8 +25,14 @@
       menuWasOpen = open;
       menu.inert = !open;
       background.forEach(el => { el.inert = open; });
-      if (open) menu.querySelector('a')?.focus();
-      else document.body.style.overflow = '';
+      if (open) {
+        const first=menu.querySelector('a');
+        first?.focus();
+        // Visibility transitions start at hidden on the click frame.
+        requestAnimationFrame(() => {
+          if (trigger.getAttribute('aria-expanded') === 'true' && !menu.contains(document.activeElement)) first?.focus();
+        });
+      } else document.body.style.overflow = '';
     };
     menu.inert = true;
     trigger.addEventListener('click', sync);
