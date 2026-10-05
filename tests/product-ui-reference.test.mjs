@@ -195,7 +195,7 @@ try{
 
       const coreKpis={
         invoices:['Omzet','Betaald','Openstaand','Te laat'],
-        expenses:['Kosten','Btw die je kunt terugvragen','Grootste categorie','Te controleren'],
+        expenses:['Kosten','Btw terug te vragen','Grootste categorie','Te controleren'],
         documents:['Te verwerken','Controle nodig','Verwerkt deze maand','Totaal documenten'],
         vat:['Waarschijnlijk te betalen','Ontvangen btw','Btw die je kunt terugvragen','Controle nodig'],
         reports:['Omzet','Kosten','Winst','Winstmarge'],
