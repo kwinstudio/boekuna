@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {resolveReleaseProfile,isReleaseFeatureEnabled} from './release-profile.mjs';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
 const root=path.resolve(here,'..');
@@ -11,8 +12,11 @@ const assetsSource=path.join(root,'public','assets');
 const appFontCache=path.join(root,'.cache','app-fonts');
 const SPACE_GROTESK_COMMIT='9710da1eacb3be272583c3224dcb70f9da6eadbb';
 const SPACE_GROTESK_URL='https://raw.githubusercontent.com/google/fonts/'+SPACE_GROTESK_COMMIT+'/ofl/spacegrotesk/SpaceGrotesk%5Bwght%5D.ttf';
+const releaseProfile=resolveReleaseProfile();
+const releaseFeatures=releaseProfile.features;
 const assistantFlag=String(process.env.BOEKUNA_ASSISTANT_ENABLED??'true').trim().toLowerCase();
-const assistantEnabled=!['0','false','no','off'].includes(assistantFlag);
+const assistantRequested=!['0','false','no','off'].includes(assistantFlag);
+const assistantEnabled=isReleaseFeatureEnabled(releaseFeatures,'personalAssistant')&&assistantRequested;
 
 async function cacheAppFont(url,name){
   fs.mkdirSync(appFontCache,{recursive:true});
@@ -46,7 +50,7 @@ const appAssets=[
   'mobile-polish-round-2.js',
   'mobile-product.css',
   'mobile-product.js',
-  'developer-mode.js'
+  ...(isReleaseFeatureEnabled(releaseFeatures,'developerMode')?['developer-mode.js']:[])
 ];
 
 for(const file of [appSource,manifestSource,assetsSource]){
@@ -60,7 +64,7 @@ if(!fs.existsSync(interFontSource))throw new Error('Missing app Inter font sourc
 let appHtml=fs.readFileSync(appSource,'utf8');
 
 const devFlag=String(process.env.BOEKUNA_DEV_MODE||'').trim().toLowerCase();
-const developerModeEnabled=['1','true','yes','on'].includes(devFlag);
+const developerModeEnabled=isReleaseFeatureEnabled(releaseFeatures,'developerMode')&&['1','true','yes','on'].includes(devFlag);
 const deploymentEnvironment=String(process.env.BOEKUNA_DEPLOYMENT_ENV||'production').trim().toLowerCase();
 const developerAllowedOrigins=String(process.env.BOEKUNA_DEV_ALLOWED_ORIGINS||'').split(',').map(v=>v.trim().replace(/\/$/,'')).filter(Boolean);
 const productionOrigins=new Set([
@@ -191,26 +195,123 @@ if(!appHtml.includes(mobileHeadBoundary))throw new Error('Mobile app head bounda
 appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n'+mobileHeadBoundary);
 const assistantRuntimeMarker='\n<script>\nconst USERS_KEY=';
 if(!appHtml.includes(assistantRuntimeMarker))throw new Error('Assistant app runtime marker changed');
+
+function removeBuiltSourceLine(marker,label='Release gate'){
+  const lines=appHtml.split('\n');
+  const matches=[];
+  lines.forEach((line,index)=>{if(line.includes(marker))matches.push(index)});
+  if(matches.length!==1)throw new Error(label+' marker changed: '+marker);
+  lines.splice(matches[0],1);
+  appHtml=lines.join('\n');
+}
+function removeBuiltRange(startMarker,endMarker,label='Release gate'){
+  const startIndex=appHtml.indexOf(startMarker);
+  const endIndex=appHtml.indexOf(endMarker,startIndex);
+  if(startIndex<0||endIndex<0||endIndex<=startIndex)throw new Error(label+' range changed');
+  appHtml=appHtml.slice(0,startIndex)+appHtml.slice(endIndex);
+}
+function guardBuiltFunction(signature,feature){
+  const marker=signature+'{';
+  if(!appHtml.includes(marker))throw new Error('Release function marker changed: '+signature);
+  appHtml=appHtml.replace(marker,marker+"if(!releaseFeatureEnabled("+JSON.stringify(feature)+"))return;");
+}
+
+const disabledPageFallbacks={};
+function disableBuiltPage(pageName,fallback){
+  removeBuiltSourceLine('data-page="'+pageName+'"','Release navigation');
+  disabledPageFallbacks[pageName]=fallback;
+}
+if(!isReleaseFeatureEnabled(releaseFeatures,'personalAssistant'))disableBuiltPage('insights','dashboard');
+if(!isReleaseFeatureEnabled(releaseFeatures,'advancedReports')){
+  disableBuiltPage('control','dashboard');
+  disableBuiltPage('cashflow','reports');
+  disableBuiltPage('ledger','reports');
+}
+if(!isReleaseFeatureEnabled(releaseFeatures,'bookings'))disableBuiltPage('bookings','dashboard');
+if(!isReleaseFeatureEnabled(releaseFeatures,'timeTracking')||!isReleaseFeatureEnabled(releaseFeatures,'mileage'))disableBuiltPage('hours','dashboard');
+if(!isReleaseFeatureEnabled(releaseFeatures,'serviceCatalog'))disableBuiltPage('services','invoices');
+
+const navigateMarker='async function navigate(p){';
+if(!appHtml.includes(navigateMarker))throw new Error('Release navigation guard marker changed');
+if(Object.keys(disabledPageFallbacks).length){
+  appHtml=appHtml.replace(
+    navigateMarker,
+    navigateMarker+"\n const releaseFallback="+JSON.stringify(disabledPageFallbacks)+"[p];if(releaseFallback)p=releaseFallback;"
+  );
+}
+
 if(assistantEnabled){
   appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script src="/assets/personal-insights.js?v=20261004b"></script>\n<script src="/assets/personal-assistant-qna.js?v=20261004a"></script>\n<script src="/assets/personal-insights-ui.js?v=20261004c"></script>'+assistantRuntimeMarker);
 }else{
-  function removeBuiltSourceLine(marker){
-    const lines=appHtml.split('\n');
-    const matches=[];
-    lines.forEach((line,index)=>{if(line.includes(marker))matches.push(index)});
-    if(matches.length!==1)throw new Error('Assistant disable marker changed: '+marker);
-    lines.splice(matches[0],1);
-    appHtml=lines.join('\n');
-  }
-  removeBuiltSourceLine('data-page="insights"');
-  removeBuiltSourceLine('dashboard-ask-bookuna');
-  const navigateMarker='async function navigate(p){';
-  if(!appHtml.includes(navigateMarker))throw new Error('Assistant navigation guard marker changed');
-  appHtml=appHtml.replace(navigateMarker,navigateMarker+"\n if(p==='insights')p='dashboard';");
+  removeBuiltSourceLine('dashboard-ask-bookuna','Assistant disable');
   const summaryGridMarker='#mainApp .dashboard-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));';
   if(!appHtml.includes(summaryGridMarker))throw new Error('Assistant summary-grid marker changed');
   appHtml=appHtml.replace(summaryGridMarker,'#mainApp .dashboard-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));');
 }
+
+if(!isReleaseFeatureEnabled(releaseFeatures,'bookings')){
+  removeBuiltSourceLine("if(upcoming.length)items.push({key:'bookings'","Release booking attention");
+  const bookingAttention=" state.bookings.filter(b=>['planned','confirmed'].includes(b.status)&&daysUntil(b.date)>=0&&daysUntil(b.date)<=2&&!b.reminderSent).forEach(b=>add('booking-'+b.id,'bookings',b.title||b.description||b.service||'Afspraak',dateNL(b.date)+' · herinnering nog niet verstuurd',()=>openBookingAttention(b.id),'Open'));";
+  if(!appHtml.includes(bookingAttention))throw new Error('Release booking worklist marker changed');
+  appHtml=appHtml.replace(bookingAttention,'');
+  for(const signature of ['function newBooking()','function saveBooking()','function markBookingReminder(id)','function completeBooking(id)','function markNoShow(id)','function invoiceFromBooking(id)'])guardBuiltFunction(signature,'bookings');
+}
+if(!isReleaseFeatureEnabled(releaseFeatures,'timeTracking')){
+  for(const signature of ['function newHour()','function saveHour()'])guardBuiltFunction(signature,'timeTracking');
+}
+if(!isReleaseFeatureEnabled(releaseFeatures,'mileage')){
+  for(const signature of ['function newMileage()','function saveMileage()'])guardBuiltFunction(signature,'mileage');
+}
+if(!isReleaseFeatureEnabled(releaseFeatures,'serviceCatalog')){
+  for(const signature of ["function newService(editId='')","function editService(id)","function saveService(id='')","function deleteService(id)"])guardBuiltFunction(signature,'serviceCatalog');
+  removeBuiltRange('<div class="invoice-service-picker">','<div id="invoiceLines">','Release service picker');
+}
+if(!isReleaseFeatureEnabled(releaseFeatures,'advancedReports')){
+  for(const signature of ["function newPlannedCash(id='')","function editPlannedCash(id)","function savePlannedCash()","function deletePlannedCash(id)"])guardBuiltFunction(signature,'advancedReports');
+}
+if(!isReleaseFeatureEnabled(releaseFeatures,'advancedDocumentExceptions')){
+  for(const signature of ['function newSettlement()','function saveSettlement()'])guardBuiltFunction(signature,'advancedDocumentExceptions');
+}
+if(
+  !isReleaseFeatureEnabled(releaseFeatures,'bookings')||
+  !isReleaseFeatureEnabled(releaseFeatures,'serviceCatalog')||
+  !isReleaseFeatureEnabled(releaseFeatures,'advancedDocumentExceptions')
+){
+  const quickStart='function quickMenu(){';
+  const quickEnd='function nextInvoiceNumber()';
+  const startIndex=appHtml.indexOf(quickStart),endIndex=appHtml.indexOf(quickEnd,startIndex);
+  if(startIndex<0||endIndex<0)throw new Error('Release quick-menu marker changed');
+  const quickCore=`function quickMenu(){modal('Nieuw',\`<div class="quick-action-group"><div class="quick-action-heading">Dagelijks</div><div class="quick-action-grid"><button class="quick-action" onclick="closeModal();openUploadSourcePicker('auto')"><strong>Scannen</strong><span>Document of bon</span></button><button class="quick-action" onclick="closeModal();newInvoice()"><strong>Factuur</strong></button><button class="quick-action" onclick="closeModal();newExpense()"><strong>Kosten boeken</strong></button><button class="quick-action" onclick="closeModal();newTransaction()"><strong>Banktransactie</strong></button><button class="quick-action" onclick="closeModal();newContact()"><strong>Relatie</strong></button></div></div>\`)}\n`;
+  appHtml=appHtml.slice(0,startIndex)+quickCore+appHtml.slice(endIndex);
+}
+
+if(!isReleaseFeatureEnabled(releaseFeatures,'peppol')){
+  const profilePeppol='<div class="field"><label>Peppol / e-factuur ID</label><input name="peppolId" value="${esc(c.peppolId||'')}" placeholder="Optioneel"></div>';
+  const contactPeppol='<div class="field"><label for="contactPeppol">E-factuur / Peppol ID</label><input id="contactPeppol" name="peppolId" value="${esc(c?.peppolId||'')}" placeholder="Optioneel"></div>';
+  for(const [needle,label] of [[profilePeppol,'profile'],[contactPeppol,'contact']]){
+    if(!appHtml.includes(needle))throw new Error('Release Peppol '+label+' marker changed');
+    appHtml=appHtml.replace(needle,'');
+  }
+  const profileKeys="['name','tradeName','contactName','email','phone','website','address','postal','city','country','kvk','vat','iban','bic','bankAccountName','peppolId','invoicePrefix']";
+  const releaseProfileKeys="['name','tradeName','contactName','email','phone','website','address','postal','city','country','kvk','vat','iban','bic','bankAccountName','invoicePrefix']";
+  if(!appHtml.includes(profileKeys))throw new Error('Release Peppol profile persistence marker changed');
+  appHtml=appHtml.replace(profileKeys,releaseProfileKeys);
+  const contactSave="peppolId:String(d.get('peppolId')||'').trim()";
+  if(!appHtml.includes(contactSave))throw new Error('Release Peppol contact persistence marker changed');
+  appHtml=appHtml.replace(contactSave,"peppolId:existing?.peppolId||''");
+  const contactDisplay="${c.peppolId?\`<div class=\"help\">E-factuur: ${esc(c.peppolId)}</div>\`:''}";
+  if(!appHtml.includes(contactDisplay))throw new Error('Release Peppol contact display marker changed');
+  appHtml=appHtml.replace(contactDisplay,'');
+}
+if(!isReleaseFeatureEnabled(releaseFeatures,'foreignVatAdvancedUX')){
+  const vatTreatmentField='<div class="field"><label>Btw-behandeling *</label><select name="taxTreatment" id="taxTreatment"><option value="standard" ${defaultTreatment===\'standard\'?\'selected\':\'\'}>Binnenland · normale btw</option><option value="reverse">Btw verlegd</option><option value="icp">EU · intracommunautair / 0%</option><option value="exempt">Btw-vrijgesteld</option><option value="kor" ${defaultTreatment===\'kor\'?\'selected\':\'\'}>KOR · geen btw</option></select><div class="help">Alleen aanpassen bij een bijzondere btw-situatie.</div></div>';
+  if(!appHtml.includes(vatTreatmentField))throw new Error('Release foreign VAT invoice marker changed');
+  appHtml=appHtml.replace(vatTreatmentField,'<input type="hidden" name="taxTreatment" id="taxTreatment" value="${esc(defaultTreatment)}">');
+}
+
+const releaseRuntime="const BOEKUNA_RELEASE_PROFILE=Object.freeze("+JSON.stringify({name:releaseProfile.name,features:releaseFeatures})+");\nfunction releaseFeatureEnabled(key){return BOEKUNA_RELEASE_PROFILE.features?.[key]===true}\n";
+if(!appHtml.includes(assistantRuntimeMarker))throw new Error('Release runtime marker changed');
+appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script>\n'+releaseRuntime+'const USERS_KEY=');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-product.js?v=20261003a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
