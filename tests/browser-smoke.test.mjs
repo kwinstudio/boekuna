@@ -138,6 +138,7 @@ try{
   assert.doesNotMatch(attentionText,/Factuurgegevens|Klantgegevens|Regels & bedragen/,'Attention modal must not repeat already-correct invoice data');
   await page.getByRole('button',{name:'Terug aanpassen'}).click();
   await page.locator('#invoiceForm').waitFor();
+  await page.waitForFunction(id=>document.querySelector('#invoiceForm [name="customerId"]')?.value===id,customerId);
   await page.evaluate(()=>{const f=document.getElementById('invoiceForm');f.elements.paymentReference.value=f.elements.number.value;updateInvoiceCheck()});
 
   await page.evaluate(()=>reviewInvoice());
