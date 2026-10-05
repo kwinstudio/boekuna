@@ -93,6 +93,7 @@ assert.ok(html.includes("startSubscription('boekuna')"),'Frontend must offer exp
 assert.ok(html.includes("startSubscription('pro')"),'Frontend must offer explicit Unlimited checkout');
 assert.ok(html.includes('entitlement_status'),'Frontend must render the server-side entitlement state');
 assert.ok(html.includes('b.can_manage_subscription===true'),'Frontend must use the server-side Stripe portal capability');
+assert.ok(html.includes('const canManageSubscription=b.can_manage_subscription===true&&hasSubscriptionStatus;'),'Stripe portal capability must also require a manageable subscription status');
 assert.ok(html.includes('Je toegang is actief. Er is geen Stripe-abonnement om hier te beheren.'),'Non-Stripe paid access must not show a broken Stripe portal action');
 assert.ok(portalCapabilityMigration.includes('can_manage_subscription boolean'),'Billing summary must expose portal capability explicitly');
 assert.ok(portalCapabilityMigration.includes("nullif(btrim(b.stripe_customer_id),'') is not null"),'Portal capability must require a real Stripe customer id');
