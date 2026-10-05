@@ -14,10 +14,11 @@ const portal=read('supabase/functions/billing-portal/index.ts');
 const analyze=read('supabase/functions/analyze-invoice/index.ts');
 
 const retainedPublicPages=['account-verwijderen','privacy','support','voorwaarden'];
-const multipageMarketingRoutes=['functies','assistent','scanner','prijzen','veiligheid','faq'];
-const retiredOnePageRoutes=[
-  'btw-bank','contact','facturen','hoe-het-werkt','over','rapportages','voor-ondernemers'
+const multipageMarketingRoutes=[
+  'functies','assistent','scanner','prijzen','veiligheid','faq',
+  'facturen','bonnen','btw','bank','rapportages','mobiel','hoe-het-werkt'
 ];
+const retiredOnePageRoutes=['btw-bank','contact','over','voor-ondernemers'];
 
 for(const slug of retainedPublicPages){
   assert.ok(fs.existsSync(path.join(root,'public',slug,'index.html')), 'retained public page missing: '+slug);
