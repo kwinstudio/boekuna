@@ -5,7 +5,15 @@ import assert from 'node:assert/strict';
 import { chromium, webkit } from 'playwright';
 
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
+const mobileProductSource=fs.readFileSync(new URL('../public/assets/mobile-product.js',import.meta.url),'utf8');
 fs.mkdirSync('tests/artifacts',{recursive:true});
+
+assert.match(original,/--mobile-viewport-height/,'Mobile modal CSS must follow the visual viewport height');
+assert.match(original,/--mobile-viewport-offset-top/,'Mobile modal CSS must follow the visual viewport offset');
+assert.match(original,/\.field input,\.field select,\.field textarea\{font-size:16px\}/,'Mobile form controls must stay at 16px to prevent iOS focus zoom');
+assert.match(mobileProductSource,/visualViewport\.offsetTop/,'Mobile viewport sync must include iOS visual viewport offset');
+assert.match(mobileProductSource,/keepFocusedModalFieldVisible/,'Focused modal fields must remain visible when the keyboard changes the viewport');
+assert.match(mobileProductSource,/addEventListener\('scroll',viewport\)/,'Visual viewport scroll must keep the modal aligned with iOS keyboard panning');
 
 function replaceLast(source,needle,replacement){
   const i=source.lastIndexOf(needle);
