@@ -5248,6 +5248,33 @@ function readFinancialReviewForm(){
  if(!d.mixedRates&&rateRaw!==''&&!Number.isFinite(rate))invalid.push('vatRate');
  return {net:net.cents,vatAmount:vatAmount.cents,gross:gross.cents,rate,empty:{net:net.empty,vatAmount:vatAmount.empty,gross:gross.empty},invalid}
 }
+function reconcileFinancialReviewVisibleAmounts(markUserKey=null){
+ const d=pendingPdfImport?.parsed,f=document.getElementById('pdfImportForm');if(!d||!f||d.mixedRates)return false;
+ const grossC=financialReviewCentsFromInput(f.elements.namedItem('gross')?.value),vatC=financialReviewCentsFromInput(f.elements.namedItem('vatAmount')?.value);
+ if(grossC==null||vatC==null||grossC===0)return false;
+ if(vatC!==0&&Math.sign(grossC)!==Math.sign(vatC))return false;
+ if(Math.abs(vatC)>Math.abs(grossC))return false;
+ const provenance=ensureFinancialReviewProvenance(d),visibleAnchorEdited=['gross','vatAmount'].includes(markUserKey);
+ const anchorTrusted=key=>{const p=provenance[key]||{},confidence=Number(p.confidence??d.fieldConfidence?.[key]??0);return (p.source==='user'&&p.confirmed)||(p.source==='recognition'&&confidence>=85)};
+ if(!anchorTrusted('gross')||!anchorTrusted('vatAmount'))return false;
+ const netMeta=provenance.net||{};
+ if(netMeta.source==='user'&&netMeta.confirmed&&!visibleAnchorEdited)return false;
+ const netC=grossC-vatC,netEl=f.elements.namedItem('net');
+ if(netEl)netEl.value=formatFinancialReviewCents(netC);
+ d.net=netC/100;
+ provenance.net={source:'calculated',confirmed:false,confidence:null,derivedFrom:['gross','vatAmount'],calculatedAt:new Date().toISOString()};
+ if(typeof BookunaFinancialCorrection!=='undefined'){
+  const inferred=BookunaFinancialCorrection.inferKnownRate({net:netC,vatAmount:vatC,gross:grossC},BookunaFinancialCorrection.DEFAULT_RATES,1);
+  const rateMeta=provenance.vatRate||{};
+  if(inferred!=null&&!(rateMeta.source==='user'&&rateMeta.confirmed)){
+   const rateEl=f.elements.namedItem('vatRate');if(rateEl)rateEl.value=String(inferred);
+   d.vatRate=inferred;
+   provenance.vatRate={source:'calculated',confirmed:false,confidence:null,derivedFrom:['gross','vatAmount'],calculatedAt:new Date().toISOString()}
+  }
+ }
+ if(markUserKey)financialReviewEvent('financial_recalculation_applied',['net','vatRate']);
+ return true
+}
 function syncFinancialReviewStateFromForm(markUserKey=null){
  const d=pendingPdfImport?.parsed,state=readFinancialReviewForm(),f=document.getElementById('pdfImportForm');if(!d||state.invalid?.length)return state;
  for(const key of ['net','vatAmount','gross']){
@@ -5256,8 +5283,9 @@ function syncFinancialReviewStateFromForm(markUserKey=null){
  }
  if(!d.mixedRates)d.vatRate=state.rate;
  if(markUserKey&&String(f?.elements.namedItem(markUserKey)?.value??'').trim()!=='')markFinancialReviewFieldUser(markUserKey);
+ reconcileFinancialReviewVisibleAmounts(markUserKey);
  applyRecognitionQuality(d);
- return state
+ return readFinancialReviewForm()
 }
 function financialReviewProposal(){
  const d=pendingPdfImport?.parsed,state=readFinancialReviewForm();if(!d)return {status:'insufficient',canApply:false};
