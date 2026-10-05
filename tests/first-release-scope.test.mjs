@@ -26,7 +26,7 @@ assert.equal(resolveReleaseProfile('unexpected-value').name,'first-release','Unk
 assert.equal(resolveReleaseProfile('').name,'first-release','Empty release profile must fail closed');
 for(const feature of Object.keys(FIRST_RELEASE_FEATURES))assert.equal(FULL_FEATURES[feature],true,'Full QA profile must preserve '+feature);
 
-const run=spawnSync(process.execPath,['scripts/build-app.mjs'],{
+const rejectedDevBuild=spawnSync(process.execPath,['scripts/build-app.mjs'],{
   cwd:root,
   encoding:'utf8',
   env:{
@@ -37,7 +37,21 @@ const run=spawnSync(process.execPath,['scripts/build-app.mjs'],{
     BOEKUNA_DEPLOYMENT_ENV:'production'
   }
 });
-assert.equal(run.status,0,'First-release app build must succeed:\n'+run.stdout+'\n'+run.stderr);
+assert.notEqual(rejectedDevBuild.status,0,'Production build must fail closed when Developer Mode is requested');
+assert.match(rejectedDevBuild.stderr,/Refusing Developer Mode for production or unknown environment: production/,'Production Developer Mode rejection must remain explicit');
+
+const run=spawnSync(process.execPath,['scripts/build-app.mjs'],{
+  cwd:root,
+  encoding:'utf8',
+  env:{
+    ...process.env,
+    BOEKUNA_RELEASE_PROFILE:'first-release',
+    BOEKUNA_ASSISTANT_ENABLED:'true',
+    BOEKUNA_DEV_MODE:'false',
+    BOEKUNA_DEPLOYMENT_ENV:'production'
+  }
+});
+assert.equal(run.status,0,'First-release app build must succeed with Developer Mode disabled:\n'+run.stdout+'\n'+run.stderr);
 
 const dist=path.join(root,'dist','app');
 const html=fs.readFileSync(path.join(dist,'index.html'),'utf8');
