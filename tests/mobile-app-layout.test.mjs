@@ -104,7 +104,7 @@ try{
   const greeting=await page.locator('.dashboard-page-head .page-status').innerText();
   assert.match(greeting,/^(Goedemorgen|Goedemiddag|Goedenavond), Kwin · je administratie in één oogopslag$/,'Dashboard context must use local daypart and first name');
 
-  await page.getByRole('heading',{name:'Aandacht nodig'}).waitFor();
+  await page.locator('.dashboard-attention h2').filter({hasText:/heeft je aandacht|hebben je aandacht/}).waitFor();
   const attentionText=await page.locator('.dashboard-attention').innerText();
   assert.match(attentionText,/Factuur 2026-0001 vervallen/);
   assert.match(attentionText,/1 bankregel koppelen/);
@@ -135,7 +135,7 @@ try{
   await page.locator('.nav-item[data-page="documents"]').click();
   await page.locator('#pageTitle').filter({hasText:'Bonnetjes'}).waitFor();
   const scanChooserEvent=page.waitForEvent('filechooser');
-  await page.getByRole('button',{name:'Uploaden',exact:true}).click();
+  await page.getByRole('button',{name:'Document uploaden',exact:true}).click();
   const scanChooser=await scanChooserEvent;
   assert.equal(scanChooser.isMultiple(),true,'Document upload supports multiple documents');
   assert.equal(await page.locator('.source-picker').count(),0,'Document upload opens the native chooser directly');
@@ -195,7 +195,7 @@ try{
   await page.setViewportSize({width:390,height:844});
 
   await page.evaluate(()=>{state.invoices=[];state.transactions=[];state.documents=[];state.contacts=[];state.bookings=[];documentProcessingJobs=[];documentProcessingConnectivityLost=false;documentProcessingInitialized=true;render()});
-  await page.getByText('Alles bijgewerkt',{exact:true}).waitFor();
+  await page.getByRole('heading',{name:'Alles bijgewerkt',exact:true}).waitFor();
   await page.getByText('Er zijn momenteel geen acties die je aandacht nodig hebben.').waitFor();
 
   await page.evaluate(()=>{documentProcessingConnectivityLost=true;render()});
@@ -224,7 +224,7 @@ try{
   assert.equal(await page.getByText('Er zijn momenteel geen acties die je aandacht nodig hebben.').count(),0,'Initial fetch failure must not look like a clean empty state');
   assert.equal(await page.evaluate(()=>documentProcessingFetchError),true,'Initial document fetch failure must set explicit error state');
   await page.getByRole('button',{name:'Opnieuw proberen'}).click();
-  await page.getByText('Alles bijgewerkt',{exact:true}).waitFor();
+  await page.getByRole('heading',{name:'Alles bijgewerkt',exact:true}).waitFor();
   assert.equal(await page.evaluate(()=>window.__docFetchAttempts),2,'Retry must perform a second document fetch');
   assert.equal(await page.evaluate(()=>documentProcessingFetchError),false,'Successful retry must clear explicit fetch error');
   assert.equal(await page.evaluate(()=>documentProcessingInitialized),true,'Successful retry must restore initialized document state');

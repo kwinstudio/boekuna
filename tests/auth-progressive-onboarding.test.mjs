@@ -196,9 +196,9 @@ try{
   await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
   const emptyDashboard=await page.locator('#content').innerText();
   assert.match(emptyDashboard,/Begin met Boekuna/i,'Empty onboarding must retain a clear starting point');
-  assert.match(emptyDashboard,/Eerste factuur/i);
-  assert.match(emptyDashboard,/Klant toevoegen/i);
-  assert.match(emptyDashboard,/Bedrijfsgegevens/i);
+  assert.match(emptyDashboard,/Bedrijfsgegevens invullen/i,'The first onboarding action must be explicit');
+  assert.match(emptyDashboard,/eerst een bon uploaden/i,'Document upload must remain available before profile completion');
+  assert.equal(await page.locator('.dashboard-onboarding .btn.primary').count(),1,'Empty onboarding must expose one obvious primary action');
   assert.equal(await page.evaluate(()=>requirementsFor('document-upload').length),0,'Document upload must not require company profile');
 
   // Contact create requires name only.

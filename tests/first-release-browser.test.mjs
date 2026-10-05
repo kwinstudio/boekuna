@@ -71,6 +71,38 @@ try{
   for(const core of ['Overzicht','Inkomsten','Kosten','Bank','Btw','Rapportages','Bonnetjes','Relaties','Instellingen'])assert.ok(desktopNav.includes(core),'Core desktop navigation missing '+core);
   for(const disabled of ['Voor jou','Controlecentrum','Cashflow','Grootboek','Boekingen','Uren & ritten','Diensten'])assert.equal(desktopNav.includes(disabled),false,'Disabled desktop navigation leaked '+disabled);
 
+  // Beginner-first empty states and one obvious task per core screen.
+  await page.evaluate(()=>navigate('invoices'));
+  assert.match(await page.locator('#content').innerText(),/Maak je eerste factuur\. Boekuna houdt daarna bij wat nog openstaat\./);
+  assert.equal(await page.getByRole('button',{name:'Eerste factuur maken'}).count(),1);
+
+  await page.evaluate(()=>navigate('expenses'));
+  assert.match(await page.locator('#content').innerText(),/Upload een bon of inkoopfactuur\./);
+  assert.equal(await page.getByRole('button',{name:'Bon of factuur toevoegen'}).count(),1);
+
+  await page.evaluate(()=>navigate('documents'));
+  assert.match(await page.locator('#content').innerText(),/Boekuna leest hem uit en laat zien wat je moet controleren\./);
+  assert.equal(await page.getByRole('button',{name:'Document uploaden'}).count(),1,'Empty documents should expose one upload action');
+  assert.equal(await page.locator('.dropzone').count(),0,'Empty documents should not duplicate the upload action with a dropzone');
+
+  await page.evaluate(()=>navigate('bank'));
+  const bankText=await page.locator('#content').innerText();
+  assert.match(bankText,/Importeer een CSV-bankbestand om transacties te bekijken en te koppelen\./);
+  assert.equal(await page.getByRole('button',{name:/Bankbestand importeren/}).count(),1,'Empty Bank should expose one obvious import action');
+  assert.equal(await page.locator('.beginner-empty-state .btn.primary').filter({hasText:'Bankbestand importeren'}).count(),1,'Bank import must be the empty-state primary action');
+
+  await page.evaluate(()=>navigate('vat'));
+  const vatText=await page.locator('#content').innerText();
+  assert.match(vatText,/Boekuna telt de btw uit je gecontroleerde inkomsten en kosten bij elkaar\. Dit is een indicatie\./);
+  assert.match(vatText,/Waarschijnlijk te betalen|Waarschijnlijk terug te vragen/);
+  assert.match(vatText,/Boekuna verstuurt deze aangifte niet naar de Belastingdienst\./);
+
+  await page.evaluate(()=>navigate('settings'));
+  const settingsText=await page.locator('#content').innerText();
+  for(const label of ['Mijn bedrijf','Boekhouding','Beveiliging & privacy','Data & export','Abonnement & account'])assert.match(settingsText,new RegExp(label.replace(/[&]/g,'\\&'),'i'));
+  assert.doesNotMatch(settingsText,/Belastingpot/,'Hidden cashflow must not leave a dead Release 1 settings shortcut');
+  assert.equal(await page.locator('details.settings-advanced-exports').count(),1,'Specialist exports should use progressive disclosure');
+
   for(const [route,title] of [['bookings','Overzicht'],['hours','Overzicht'],['control','Overzicht'],['cashflow','Rapportages'],['ledger','Rapportages'],['services','Inkomsten'],['insights','Overzicht']]){
     await page.evaluate(route=>navigate(route),route);
     await page.locator('#pageTitle').filter({hasText:title}).waitFor();
