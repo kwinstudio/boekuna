@@ -23,20 +23,18 @@
       +'<div class="settings-export-grid">'
       +'<button class="btn" onclick="exportInvoicesCSV()">Facturen · CSV</button>'
       +'<button class="btn" onclick="exportExpensesCSV()">Kosten · CSV</button>'
+      +'<button class="btn" onclick="exportJournalCSV()">Journaal · CSV</button>'
+      +'<button class="btn" onclick="exportAuditCSV()">Auditlog · CSV</button>'
       +'<button class="btn" onclick="exportBackup()">Administratie-back-up</button>'
       +'<button type="button" class="btn" onclick="document.getElementById(\'backupFile\').click()">Back-up importeren</button>'
       +'<input type="file" id="backupFile" accept="application/json,.json" class="hidden">'
       +'<button class="btn" onclick="openVersionHistory()">Herstelpunten</button>'
-      +'</div><div class="help critical-help">Exporteer, importeer of herstel je administratie.</div>'
-      +'<details class="secondary-disclosure settings-advanced-exports"><summary>Technische exports</summary><div class="disclosure-body settings-export-grid">'
-      +'<button class="btn" onclick="exportJournalCSV()">Journaal · CSV</button>'
-      +'<button class="btn" onclick="exportAuditCSV()">Auditlog · CSV</button>'
-      +'</div><div class="help critical-help">Voor boekhoudkundige controle of overdracht. Je dagelijkse administratie heeft deze exports niet nodig.</div></details></div>';
+      +'</div><div class="help critical-help">Exporteer, importeer of herstel je bestaande administratie zonder de boekhoudlogica te wijzigen.</div></div>';
     var recovery=hasConflictBackup()
       ?settingsItem('Lokale herstelkopie','Herstel een lokale kopie na een opslagconflict.','restoreConflictDialog()')
       :'<div class="settings-nav-item" aria-disabled="true"><span class="settings-nav-copy"><strong>Lokale herstelkopie</strong><span>Er is nu geen lokale herstelkopie beschikbaar.</span></span><span></span></div>';
     return '<div class="page-head"><div><h1>Instellingen</h1></div></div><div class="settings-section polish-settings">'
-      +'<section class="settings-group"><h2 class="settings-group-label">Mijn bedrijf</h2><div class="settings-list">'
+      +'<section class="settings-group"><h2 class="settings-group-label">Bedrijf</h2><div class="settings-list">'
       +settingsItem('Bedrijfsgegevens','Beheer je bedrijfsnaam, adres, contactgegevens en betaalinformatie.','navigate(\'profile\')')
       +'</div></section>'
       +'<section class="settings-group"><h2 class="settings-group-label">Facturen</h2>'
@@ -45,14 +43,14 @@
       +'</section>'
       +'<section class="settings-group"><h2 class="settings-group-label">Boekhouding</h2><div class="settings-list">'
       +settingsItem('Fiscale spelregels','Bekijk de fiscale uitgangspunten die Boekuna gebruikt.','showLegal()')
-      +(typeof releaseFeatureEnabled!=='function'||releaseFeatureEnabled('advancedReports')?settingsItem('Belastingpot','Beheer het bestaande reservepercentage bij je cashflow.','navigate(\'cashflow\')'):'')
+      +settingsItem('Belastingpot','Beheer het bestaande reservepercentage bij je cashflow.','navigate(\'cashflow\')')
       +'</div></section>'
       +'<section class="settings-group"><h2 class="settings-group-label">Beveiliging & privacy</h2><div class="settings-list">'
       +settingsItem('Tweestapsverificatie','Voeg een extra beveiligingsstap toe wanneer je inlogt.','accountMenu()')
       +settingsItem('Privacy & veiligheid','Bekijk hoe je account en administratie worden beschermd.','showSecurity()')
       +'</div></section>'
-      +'<section class="settings-group"><h2 class="settings-group-label">Data & export</h2>'+dataCard+'<div class="settings-list">'+recovery+'</div></section>'
-      +'<section class="settings-group"><h2 class="settings-group-label">Abonnement & account</h2>'
+      +'<section class="settings-group"><h2 class="settings-group-label">Data</h2>'+dataCard+'<div class="settings-list">'+recovery+'</div></section>'
+      +'<section class="settings-group"><h2 class="settings-group-label">Account</h2>'
       +renderBillingCard()
       +'<div class="settings-list">'
       +'<a class="settings-nav-item" href="'+SUPPORT_MAILTO+'"><span class="settings-nav-copy"><strong>Support</strong><span>'+esc(SUPPORT_EMAIL)+'</span></span><span class="settings-nav-chevron" aria-hidden="true">›</span></a>'
