@@ -17,6 +17,7 @@ const retiredOfferRpcHardening=read('supabase/migrations/20260929123036_reharden
 const activeBillingGuardMigration=read('supabase/migrations/20260928012515_guard_active_billing_stripe_identity.sql');
 const providerEntitlementMigration=read('supabase/migrations/20260930093553_provider_agnostic_billing_entitlements.sql');
 const portalCapabilityMigration=read('supabase/migrations/20261005165000_expose_billing_portal_capability.sql');
+const normalizedInternalBillingMigration=read('supabase/migrations/20261005170500_normalize_internal_billing_state.sql');
 const pricing=read('public/index.html');
 const privacy=read('public/privacy/index.html');
 const terms=read('public/voorwaarden/index.html');
@@ -96,6 +97,8 @@ assert.ok(html.includes('b.can_manage_subscription===true'),'Frontend must use t
 assert.ok(html.includes('Je toegang is actief. Er is geen Stripe-abonnement om hier te beheren.'),'Non-Stripe paid access must not show a broken Stripe portal action');
 assert.ok(portalCapabilityMigration.includes('can_manage_subscription boolean'),'Billing summary must expose portal capability explicitly');
 assert.ok(portalCapabilityMigration.includes("nullif(btrim(b.stripe_customer_id),'') is not null"),'Portal capability must require a real Stripe customer id');
+assert.ok(normalizedInternalBillingMigration.includes("status='free'"),'Legacy internal access must not remain an active Stripe billing row');
+assert.ok(normalizedInternalBillingMigration.includes('validate constraint billing_active_requires_stripe_identity'),'Stripe active-state identity invariant must be fully validated');
 for(const retired of ['early_access_active','expired_read_only','FOUNDING 100','Eerste 100','Early Access']){
   assert.ok(!html.includes(retired),`Retired First-100 state/copy must be absent from app UI: ${retired}`);
 }
