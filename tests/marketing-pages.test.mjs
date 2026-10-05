@@ -37,7 +37,10 @@ for(const text of ['Je bent ondernemer.','Geen boekhouder.','Probeer Boekuna gra
 for(const target of ['/#facturen','/#bonnen','/#btw','/#bank','/#rapportages']){
   assert.ok(home.includes('href="'+target+'"'),'Homepage feature anchor missing '+target);
 }
-assert.equal(/persoonlijke assistent|assistent-home/i.test(home),false,'Upcoming assistant must not be promoted on the Release 1 homepage');
+assert.equal(/<section id="assistent-home">/i.test(home),false,'Upcoming assistant must not have a Release 1 homepage section');
+const homeDescription=home.match(/<meta name="description" content="([^"]+)"/i)?.[1]||'';
+const homeOgDescription=home.match(/<meta property="og:description" content="([^"]+)"/i)?.[1]||'';
+assert.equal(/assistent/i.test(homeDescription+homeOgDescription),false,'Release 1 homepage metadata must describe live features only');
 
 const assistant=fs.readFileSync(path.join(src,'assistent','index.html'),'utf8');
 assert.ok(assistant.includes('Binnenkort'),'Assistant page must be clearly marked upcoming until product release');
