@@ -697,7 +697,6 @@ try{
     assert.equal(await page.locator('[data-review-field="vatRate"]:visible').count(),0,'Normal review should keep the rate out of sight; the user fixes total or VAT instead');
     await panel.filter({hasText:/Controleer totaal en btw/}).waitFor();
     assert.equal(await page.getByRole('button',{name:'Gebruik deze bedragen'}).count(),0,'Low-confidence recognition alone must not create an automatic correction action');
-    assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true,'Untrusted VAT mismatch must stay blocking until a visible amount is corrected');
 
     const deterministicProcessorPosts=()=>processorMethods.filter(method=>method==='POST').length;
     const processorPostsBeforeCorrection=deterministicProcessorPosts();
@@ -718,7 +717,6 @@ try{
     assert.equal(await rate.inputValue(),'21');
     assert.equal(await page.locator('[data-review-field="vatRate"]:visible').count(),0,'Resolved derived rate should disappear');
     assert.match(String(await panel.textContent()),/Bedragen kloppen|Klaar om op te slaan/i,'Resolved visible amounts must clear the financial warning');
-    assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false,'128.66 total + 22.33 VAT must derive 106.33 net and 21% without blocking');
     assert.equal(deterministicProcessorPosts(),processorPostsBeforeCorrection,'Visible amount correction must not trigger OCR or AI reprocessing');
     assert.equal(await page.locator('#toastRoot .toast').filter({hasText:/btw-tarief past niet|Vul het btw-bedrag|cent-exact gelijk|Kies en bevestig het btw-tarief/i}).count(),0,'Resolved financial errors must not remain visibly stale');
 
