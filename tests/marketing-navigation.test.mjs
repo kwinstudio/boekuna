@@ -30,8 +30,8 @@ try{
       const href=await link.getAttribute('href');assert.ok(!href.startsWith('#'));assert.notEqual(href,route);
       if(href.startsWith('/'))assert.equal((await page.request.get(server.base+href)).status(),200,href);
      }
-     const image=page.locator('.detail-product img');
-     assert.equal(await image.evaluate(el=>getComputedStyle(el).objectFit),'contain');
+     assert.equal(await page.locator('.detail-product').count(),0,'Feature route must be screenshot-free');
+     assert.equal((await page.content()).includes('/assets/stories/'),false,'Feature route must not reference screenshot assets');
     }
     assert.deepEqual(errors,[]);
     await page.close();
