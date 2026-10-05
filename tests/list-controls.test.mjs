@@ -128,6 +128,17 @@ try{
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
   assert.equal(await page.locator('#globalSearch').count(),0,'Global cross-app search must not render');
 
+  await page.evaluate(()=>navigate('dashboard'));
+  assert.deepEqual(await page.locator('#dashboardPeriod option').allTextContents(),['Week','Maand','Kwartaal','Jaar','Altijd']);
+  await page.locator('#dashboardPeriod').selectOption('year');
+  await page.evaluate(()=>navigate('invoices'));
+  assert.equal(await page.locator('#incomePeriod').inputValue(),'year','Income inherits dashboard period');
+  await page.locator('#incomePeriod').selectOption('all');
+  await page.evaluate(()=>navigate('expenses'));
+  assert.equal(await page.locator('#expensePeriod').inputValue(),'all','Costs inherit income period');
+  await page.evaluate(()=>navigate('vat'));
+  assert.equal(await page.locator('#vatFinancialPeriod').inputValue(),'all','VAT inherits shared period');
+
   // FACTUREN — number/customer/amount search + status/period/customer filters + sort + clear behavior.
   await go('invoices');
   assert.equal(await page.locator('[data-list-search]').getAttribute('placeholder'),'Zoek op factuurnummer, klant of bedrag');
