@@ -52,23 +52,6 @@
       if (event.target.closest('a') && trigger.getAttribute('aria-expanded') === 'true') trigger.click();
     });
   }
-  const marquee = document.querySelector('.product-marquee');
-  if (marquee) {
-    const track = marquee.querySelector('.marquee-track');
-    const clone = marquee.querySelector('.marquee-group').cloneNode(true);
-    clone.classList.add('marquee-clone'); clone.setAttribute('aria-hidden', 'true'); clone.inert = true;
-    track.append(clone);
-    const pause = document.querySelector('#marquee-pause');
-    let paused = motion.matches;
-    const update = () => {
-      marquee.classList.toggle('is-paused', paused || motion.matches);
-      pause.setAttribute('aria-pressed', String(paused || motion.matches));
-      pause.textContent = motion.matches ? 'Beweging uit' : paused ? 'Beelden afspelen' : 'Beelden pauzeren';
-      pause.disabled = motion.matches;
-    };
-    pause.addEventListener('click', () => { paused = !paused; update(); });
-    motion.addEventListener('change', update); update();
-  }
   const cursor = document.createElement('div');
   cursor.className = 'editorial-cursor'; cursor.setAttribute('aria-hidden', 'true');
   cursor.innerHTML = '<div class="editorial-cursor-dot"></div>';

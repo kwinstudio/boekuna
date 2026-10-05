@@ -6,33 +6,22 @@ import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
 
 const root=process.cwd();
-const artifacts=path.join(root,'tests','artifacts');
+const artifacts=path.join(root,'tests','artifacts','premium-marketing');
 fs.mkdirSync(artifacts,{recursive:true});
 
-const css=fs.readFileSync(path.join(root,'public','assets','site.css'),'utf8');
-const js=fs.readFileSync(path.join(root,'public','assets','site.js'),'utf8');
+const css=fs.readFileSync(path.join(root,'public','assets','editorial-marketing.css'),'utf8');
 const home=fs.readFileSync(path.join(root,'public','index.html'),'utf8');
-
-for(const contract of [
-  "font-family:'Space Grotesk'",
-  "font-family:'Inter'",
-  '--green:#63D471',
-  '--bg:#FFFFFF',
-  '@media (prefers-reduced-motion: reduce)'
-]){
-  assert.ok(css.includes(contract),'Current multipage marketing CSS contract missing: '+contract);
+for(const contract of ['#E7FE55','#BFE7EC','#111111','#FFFFFF','#F6F6F3','@media(prefers-reduced-motion:reduce)']){
+  assert.ok(css.includes(contract),'BOEKUNA marketing contract missing: '+contract);
 }
-for(const retired of ['marketing-editorial.css','parity-hero','data-depth-root','kz-magnetic']){
-  assert.equal(home.includes(retired)||css.includes(retired)||js.includes(retired),false,
-    'Retired one-page/editorial contract returned: '+retired);
-}
-for(const id of ['scanDemo','functies','invLines','doclist','omzet','txlist','chart']){
-  assert.ok(home.includes('id="'+id+'"'),'Interactive homepage proof missing: '+id);
-}
+assert.equal(/\/assets\/stories\//.test(home),false,'Homepage screenshot reference returned');
+assert.equal(/product-marquee|project-image/.test(home),false,'Homepage screenshot presentation returned');
 
 const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{cwd:root,encoding:'utf8'});
 assert.equal(build.status,0,build.stderr||build.stdout);
 const dist=path.join(root,'dist','marketing');
+assert.equal(fs.existsSync(path.join(dist,'assets','stories')),false,'Public build must exclude screenshot assets');
+
 const server=await serveMarketing(dist);
 const browser=await chromium.launch({headless:true});
 const viewports=[320,360,375,390,393,430,620,768,1024,1280,1440,1920];
@@ -45,68 +34,52 @@ async function noOverflow(page,label){
 try{
   for(const width of viewports){
     const page=await browser.newPage({viewport:{width,height:width<620?844:900},reducedMotion:'reduce'});
-    const errors=[];page.on('pageerror',e=>errors.push(String(e)));
-    await page.goto(server.base+'/',{waitUntil:'domcontentloaded'});
+    const errors=[];
+    page.on('pageerror',e=>errors.push(String(e)));
+    await page.goto(server.base+'/',{waitUntil:'networkidle'});
     await page.locator('.hdr-in > .logo').waitFor({state:'visible'});
     await noOverflow(page,'home '+width);
 
-    assert.equal(await page.locator('#scanDemo').count(),1,'Scanner demo missing at '+width);
-    assert.equal(await page.locator('#functies').count(),1,'Feature demo missing at '+width);
+    assert.equal(await page.locator('.project-card').count(),4,'Feature links missing at '+width);
+    assert.equal(await page.locator('main img').count(),0,'Screenshot content returned at '+width);
+    assert.ok(await page.locator('#burger').isVisible(),'Editorial menu trigger must remain visible at '+width);
+
+    const palette=await page.evaluate(()=>({
+      primary:getComputedStyle(document.querySelector('.btn-primary')).backgroundColor,
+      intro:getComputedStyle(document.querySelector('.editorial-intro')).backgroundColor
+    }));
+    assert.equal(palette.primary,'rgb(231, 254, 85)','Primary CTA must be BOEKUNA lime at '+width);
+    assert.equal(palette.intro,'rgb(191, 231, 236)','Supporting band must be BOEKUNA cyan at '+width);
     assert.deepEqual(errors,[],'Homepage page errors at '+width+': '+errors.join(' | '));
 
-    const mobile=width<=960;
-    assert.equal(await page.locator('#burger').isVisible(),mobile,'Burger visibility mismatch at '+width);
-    assert.equal(await page.locator('.hdr .nav').isVisible(),!mobile,'Desktop nav visibility mismatch at '+width);
-
     if([390,1440,1920].includes(width)){
-      await page.screenshot({path:path.join(artifacts,'multipage-home-'+width+'.png'),fullPage:true});
+      await page.screenshot({path:path.join(artifacts,'brand-home-'+width+'.png'),fullPage:true});
     }
     await page.close();
   }
 
-  for(const width of [390,430]){
-    const page=await browser.newPage({viewport:{width,height:844},reducedMotion:'reduce'});
-    await page.goto(server.base+'/',{waitUntil:'domcontentloaded'});
+  for(const width of [390,1440]){
+    const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});
+    await page.goto(server.base+'/',{waitUntil:'networkidle'});
     await page.locator('#burger').click();
     assert.equal(await page.locator('#burger').getAttribute('aria-expanded'),'true');
-    assert.ok(await page.locator('#mnav').evaluate(el=>el.classList.contains('open')),'Mobile menu must open at '+width);
-    assert.equal(await page.locator('#mnav a[href="/assistent/"]').count(),1);
-    assert.equal(await page.locator('#mnav a[href="/scanner/"]').count(),1);
-    await noOverflow(page,'mobile menu '+width);
-    await page.screenshot({path:path.join(artifacts,'multipage-menu-'+width+'.png'),fullPage:true});
+    assert.ok(await page.locator('#mnav').evaluate(el=>el.classList.contains('open')),'Menu must open at '+width);
+    await noOverflow(page,'menu '+width);
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#burger').getAttribute('aria-expanded'),'false');
     await page.close();
   }
 
-  const interactive=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
-  await interactive.goto(server.base+'/',{waitUntil:'domcontentloaded'});
-  await interactive.locator('#scanBtn').click();
-  await interactive.locator('#scanBadge').filter({hasText:/Herkend|controleren|op te slaan/}).waitFor();
-  assert.ok(await interactive.locator('#fields .filled, #fields .flag').count()>0,'Scanner demo must populate fields');
-  await interactive.locator('#t-btw').click();
-  assert.equal(await interactive.locator('#p-btw').isVisible(),true,'Feature tabs must switch on mobile');
-  await interactive.close();
-
-  for(const [route,heading] of [
-    ['/functies/','Alle functies op een rij.'],
-    ['/assistent/','Een assistent die jouw administratie kent.'],
-    ['/scanner/','Upload je bon. Boekuna zoekt de belangrijke gegevens voor je uit.'],
-    ['/prijzen/','Eerlijke prijzen. Begin gratis.'],
-    ['/veiligheid/','Je administratie verdient serieuze beveiliging.'],
-    ['/faq/','Waar kunnen we mee helpen?']
-  ]){
-    for(const width of [390,1440]){
-      const page=await browser.newPage({viewport:{width,height:width<700?844:960},reducedMotion:'reduce'});
-      const errors=[];page.on('pageerror',e=>errors.push(String(e)));
-      await page.goto(server.base+route,{waitUntil:'domcontentloaded'});
-      await page.locator('h1').waitFor();
-      assert.ok((await page.locator('h1').innerText()).includes(heading),route+' heading mismatch');
-      await noOverflow(page,route+' '+width);
-      assert.deepEqual(errors,[],route+' page errors at '+width+': '+errors.join(' | '));
-      await page.close();
-    }
+  for(const route of ['/facturen/','/bonnen/','/btw/','/bank/','/rapportages/','/mobiel/','/hoe-het-werkt/']){
+    const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
+    await page.goto(server.base+route,{waitUntil:'networkidle'});
+    assert.equal(await page.locator('.detail-product').count(),0,route+' screenshot stage returned');
+    assert.equal((await page.content()).includes('/assets/stories/'),false,route+' screenshot asset returned');
+    await noOverflow(page,route);
+    await page.close();
   }
 
-  console.log('Marketing multipage responsive QA: PASS (12 home viewports + mobile menu + interactive scanner/tabs + current public routes)');
+  console.log('BOEKUNA lime/cyan responsive QA: PASS (12 home widths + menu + 7 screenshot-free feature routes)');
 }finally{
   await browser.close();
   await server.close();

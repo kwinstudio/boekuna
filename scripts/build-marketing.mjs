@@ -79,6 +79,9 @@ for(const page of releaseMarketingPages){
   fs.writeFileSync(file,html);
 }
 
+// Product screenshot captures are internal QA/history only and are not shipped on the public website.
+fs.rmSync(path.join(target,'assets','stories'),{recursive:true,force:true});
+
 // The public marketing host is not the installable product app.
 fs.rmSync(path.join(target,'manifest.webmanifest'),{force:true});
 
