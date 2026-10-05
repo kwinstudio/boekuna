@@ -28,10 +28,6 @@
       if (open) {
         const first=menu.querySelector('a');
         first?.focus();
-        // Visibility transitions start at hidden on the click frame.
-        requestAnimationFrame(() => {
-          if (trigger.getAttribute('aria-expanded') === 'true' && !menu.contains(document.activeElement)) first?.focus();
-        });
       } else document.body.style.overflow = '';
     };
     menu.inert = true;
