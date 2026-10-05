@@ -11,7 +11,7 @@ fs.mkdirSync(artifacts,{recursive:true});
 
 const css=fs.readFileSync(path.join(root,'public','assets','editorial-marketing.css'),'utf8');
 const home=fs.readFileSync(path.join(root,'public','index.html'),'utf8');
-for(const contract of ['#E7FE55','#BFE7EC','#111111','#FFFFFF','#F6F6F3','@media(prefers-reduced-motion:reduce)']){
+for(const contract of ['#1B1F23','#63D471','#F6F7F8','#8A949C','#FFFFFF','@media(prefers-reduced-motion:reduce)']){
   assert.ok(css.includes(contract),'BOEKUNA marketing contract missing: '+contract);
 }
 assert.equal(/\/assets\/stories\//.test(home),false,'Homepage screenshot reference returned');
@@ -48,8 +48,8 @@ try{
       primary:getComputedStyle(document.querySelector('.btn-primary')).backgroundColor,
       intro:getComputedStyle(document.querySelector('.editorial-intro')).backgroundColor
     }));
-    assert.equal(palette.primary,'rgb(231, 254, 85)','Primary CTA must be BOEKUNA lime at '+width);
-    assert.equal(palette.intro,'rgb(191, 231, 236)','Supporting band must be BOEKUNA cyan at '+width);
+    assert.equal(palette.primary,'rgb(99, 212, 113)','Primary CTA must be BOEKUNA green at '+width);
+    assert.equal(palette.intro,'rgb(246, 247, 248)','Supporting band must be BOEKUNA light gray at '+width);
     assert.deepEqual(errors,[],'Homepage page errors at '+width+': '+errors.join(' | '));
 
     if([390,1440,1920].includes(width)){
@@ -79,7 +79,7 @@ try{
     await page.close();
   }
 
-  console.log('BOEKUNA lime/cyan responsive QA: PASS (12 home widths + menu + 7 screenshot-free feature routes)');
+  console.log('BOEKUNA canonical responsive QA: PASS (12 home widths + menu + 7 screenshot-free feature routes)');
 }finally{
   await browser.close();
   await server.close();
