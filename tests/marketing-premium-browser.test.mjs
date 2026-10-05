@@ -39,6 +39,10 @@ try{
    }
    const page=await browser.newPage({viewport:{width:1440,height:960}});
    await page.goto(server.base,{waitUntil:'networkidle'});
+   await page.locator('#burger').click();
+   await page.waitForFunction(()=>document.activeElement===document.querySelector('#mnav a'));
+   await page.keyboard.press('Escape');
+   assert.equal(await page.locator('#burger').evaluate(el=>el===document.activeElement),true);
    assert.equal(await page.locator('.marquee-track').evaluate(el=>getComputedStyle(el).animationDuration),'30s');
    await page.locator('#marquee-pause').click();assert.equal(await page.locator('#marquee-pause').getAttribute('aria-pressed'),'true');
    assert.equal(await page.locator('.marquee-track').evaluate(el=>getComputedStyle(el).animationPlayState),'paused');
