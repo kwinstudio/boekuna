@@ -126,7 +126,7 @@ assert.match(bad.stderr+bad.stdout,/Refusing Developer Mode for production/);
 
 const good=spawnSync(process.execPath,['scripts/build-app.mjs'],{
   encoding:'utf8',
-  env:{...process.env,BOEKUNA_DEV_MODE:'true',BOEKUNA_DEPLOYMENT_ENV:'preview',BOEKUNA_DEV_ALLOWED_ORIGINS:'http://127.0.0.1:3000',BOEKUNA_SUPABASE_URL:'https://example.supabase.co',BOEKUNA_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_test'}
+  env:{...process.env,BOEKUNA_RELEASE_PROFILE:'full',BOEKUNA_DEV_MODE:'true',BOEKUNA_DEPLOYMENT_ENV:'preview',BOEKUNA_DEV_ALLOWED_ORIGINS:'http://127.0.0.1:3000',BOEKUNA_SUPABASE_URL:'https://example.supabase.co',BOEKUNA_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_test'}
 });
 assert.equal(good.status,0,'Explicit preview Developer Mode build should succeed: '+good.stderr);
 built=fs.readFileSync('dist/app/index.html','utf8');
