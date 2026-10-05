@@ -686,9 +686,9 @@ try{
     assert.equal(await vat.getAttribute('inputmode'),'decimal');
     assert.equal(await gross.getAttribute('inputmode'),'decimal');
     assert.equal(await panel.getAttribute('aria-live'),'polite');
-    await panel.filter({hasText:/Btw verdient controle|Bevestig wat je op het document ziet|Nog te weinig betrouwbare gegevens/}).waitFor();
+    await panel.filter({hasText:/Controleer totaal en btw|Pas alleen aan wat niet klopt/}).waitFor();
     const initialPanel=String(await panel.textContent());
-    assert.match(initialPanel,/Btw verdient controle|Bevestig wat je op het document ziet|Nog te weinig betrouwbare gegevens/,'Recognition may explain the deterministic mismatch before confirmation, but must not make it applicable');
+    assert.match(initialPanel,/Controleer totaal en btw|Pas alleen aan wat niet klopt/,'Recognition may explain the deterministic mismatch before confirmation, but must not make it applicable');
     assert.equal(await page.getByRole('button',{name:'Gebruik deze bedragen'}).count(),0,'Recognition alone must not silently offer an applicable correction');
     const deterministicProcessorPosts=()=>processorMethods.filter(method=>method==='POST').length;
     const processorPostsBeforeCorrection=deterministicProcessorPosts();
