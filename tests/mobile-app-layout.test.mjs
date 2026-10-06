@@ -165,11 +165,16 @@ try{
     document.documentElement.style.setProperty('--mobile-viewport-height','410px');
     document.documentElement.style.setProperty('--mobile-viewport-offset-top','100px');
   });
+  await page.locator('#modalRoot .modal').evaluate(async el=>{
+    await Promise.all(el.getAnimations().map(animation=>animation.finished.catch(()=>{})));
+  });
   const keyboardBackdrop=await page.locator('#modalRoot .modal-backdrop').boundingBox();
   const keyboardSheet=await page.locator('#modalRoot .modal').boundingBox();
   assert.ok(keyboardBackdrop&&Math.abs(keyboardBackdrop.y-100)<3,'Keyboard modal backdrop must follow the visual viewport top');
   assert.ok(Math.abs(keyboardBackdrop.height-410)<3,'Keyboard modal backdrop must fit the visible viewport height');
-  assert.ok(keyboardSheet&&keyboardSheet.y+keyboardSheet.height<=512,'Invoice sheet must stay above the simulated keyboard');
+  assert.ok(keyboardSheet&&keyboardSheet.height<=404,'Invoice modal must not exceed the visible keyboard viewport');
+  assert.ok(keyboardSheet.y>=keyboardBackdrop.y-2,'Invoice sheet must remain within the visible keyboard viewport');
+  assert.ok(keyboardSheet.y+keyboardSheet.height<=keyboardBackdrop.y+keyboardBackdrop.height+2,'Invoice sheet must stay above the simulated keyboard');
   assert.equal(await page.locator('#modalRoot .field input').first().evaluate(el=>getComputedStyle(el).fontSize),'16px','Mobile invoice fields must prevent iOS input focus zoom');
   await page.evaluate(()=>{
     document.documentElement.style.removeProperty('--mobile-viewport-height');
