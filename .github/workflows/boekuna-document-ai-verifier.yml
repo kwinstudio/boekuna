@@ -1,0 +1,47 @@
+name: BOEKUNA document AI verifier contracts
+
+on:
+  pull_request:
+    paths:
+      - "services/document-ai-verifier/**"
+      - ".github/workflows/boekuna-document-ai-verifier.yml"
+  workflow_dispatch:
+
+jobs:
+  verifier-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install contract test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r services/document-ai-verifier/requirements.txt pytest
+      - name: Document-only verifier contract
+        run: pytest -q services/document-ai-verifier/tests/test_contract.py
+      - name: Production source safety
+        run: node tests/source-safety.test.mjs
+      - name: Smart financial correction
+        run: node tests/smart-financial-correction.test.mjs
+      - name: Production integrity
+        run: node tests/production-integrity.test.mjs
+      - name: Build isolated verifier container
+        run: docker build -f services/document-ai-verifier/Dockerfile -t boekuna-document-ai-verifier:ci .
+      - name: Container health / readiness contract
+        run: |
+          docker run -d --rm --name boekuna-verifier-ci -p 18080:8080 \
+            -e BOOKUNA_DOCUMENT_AI_TOKEN=ci-secret \
+            -e LOCAL_VLM_URL=http://127.0.0.1:9 \
+            boekuna-document-ai-verifier:ci
+          trap 'docker rm -f boekuna-verifier-ci >/dev/null 2>&1 || true' EXIT
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:18080/health >/tmp/health.json; then break; fi
+            sleep 1
+          done
+          grep -q '"scope":"documents-only"' /tmp/health.json
+          status=$(curl -sS -o /tmp/ready.json -w '%{http_code}' http://127.0.0.1:18080/ready)
+          test "$status" = "503"
+          grep -q 'MODEL_NOT_READY' /tmp/ready.json
