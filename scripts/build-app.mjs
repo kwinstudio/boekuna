@@ -452,6 +452,17 @@ patchBuiltAppAsset(
   "  #mainApp .dashboard-kpi-profit { grid-column:1/-1!important; }"
 );
 
+// Rewrite the generated app's mobile Settings menu by section heading, not position.
+// The public mobile asset must remain unchanged for the marketing site.
+{
+  const file=path.join(appAssetsTarget,'mobile-product.js');
+  const current=fs.readFileSync(file,'utf8');
+  const from=current.indexOf('  function settings(root) {');
+  const to=current.indexOf('  function vat(root) {',from);
+  if(from<0||to<=from||current.indexOf('  function settings(root) {',from+1)>=0)throw new Error('Settings mobile section marker changed');
+  fs.writeFileSync(file,current.slice(0,from)+"  function settings(root) {\n    if (page !== 'settings') return;\n    var section=root.querySelector('.settings-section');\n    if (!section || section.dataset.mobileSettings) return;\n    section.dataset.mobileSettings='index';\n    var groups=Array.from(section.querySelectorAll(':scope>.settings-group'));\n    var index=element('div','mobile-settings-index');\n    var back=button('Terug naar Instellingen',function(){\n      section.dataset.mobileSettings='index';\n      groups.forEach(function(group){group.classList.remove('mobile-settings-active')});\n      index.querySelector('button').focus();\n    },'btn mobile-settings-back');\n    // Map by semantic headings instead of index so new settings groups never mislabel later sections.\n    var settingsLabels={\n      'Bedrijf':['Mijn bedrijf','Naam, adres en betaalgegevens'],\n      'Weergave':['Weergave','Extra uitleg aan- of uitzetten'],\n      'Facturen':['Facturen','Factuurlayout en e-mailbericht'],\n      'Boekhouding':['Boekhouding','Fiscale instellingen en reserves'],\n      'Beveiliging':['Beveiliging & privacy','Je account beschermen'],\n      'Data & import/export':['Data & export','Download of herstel je administratie'],\n      'Account':['Abonnement & account','Je plan en account beheren'],\n      'Gevaarzone':['Gevaarzone','Acties met extra bevestiging']\n    };\n    groups.forEach(function(group){\n      var title=group.querySelector('h2');\n      var heading=title?title.textContent.trim():'Instellingen';\n      var label=settingsLabels[heading]||[heading,'Bekijk en wijzig je instellingen'];\n      var item=button('',function(){\n        if(heading==='Bedrijf'){navigate('profile');return;}\n        section.dataset.mobileSettings='detail';\n        groups.forEach(function(other){other.classList.toggle('mobile-settings-active',other===group)});\n        back.focus();\n      },'settings-nav-item');\n      var copy=element('span','settings-nav-copy');copy.append(element('strong','',label[0]));\n      copy.append(element('span','',label[1]));\n      var chevron=element('span','settings-nav-chevron','›');chevron.setAttribute('aria-hidden','true');item.append(copy,chevron);index.append(item);\n    });\n    section.prepend(back,index);\n  }\n"+current.slice(to),'utf8');
+}
+
 fs.copyFileSync(interFontSource,path.join(appAssetsTarget,'app-InterVariable.woff2'));
 fs.copyFileSync(spaceGroteskFont,path.join(appAssetsTarget,'app-SpaceGrotesk-Variable.ttf'));
 
