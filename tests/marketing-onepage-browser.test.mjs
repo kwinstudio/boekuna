@@ -36,7 +36,7 @@ async function noOverflow(page,label){
 async function axe(page,label){
   await page.addScriptTag({content:axeSource});
   const result=await page.evaluate(async()=>await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa']}}));
-  if(result.violations.length)axeErrors.push({label,violations:result.violations.map(v=>({id:v.id,nodes:v.nodes.length}))});
+  if(result.violations.length)axeErrors.push({label,violations:result.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))}))});
 }
 
 try{
