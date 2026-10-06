@@ -35,7 +35,7 @@
   --bg-elevated:var(--app-surface);
   --text-primary:var(--app-ink);
   --text-secondary:var(--app-muted-strong);
-  --text-muted:var(--app-muted);
+  --text-muted:var(--app-muted-strong);
   --border-default:var(--app-border);
   --border-strong:var(--app-border-strong);
   --divider:var(--app-border);
