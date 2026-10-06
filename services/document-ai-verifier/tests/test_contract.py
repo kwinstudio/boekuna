@@ -197,3 +197,18 @@ def test_ocr_text_and_payload_are_bounded(client):
 def test_no_general_chat_endpoint_exists(client):
     for path in ("/chat", "/v1/chat/completions", "/assistant", "/ask"):
         assert client.post(path, json={"message": "hello"}).status_code == 404
+
+
+def test_service_source_has_no_shared_app_or_financial_backends():
+    source = (ROOT / "app.py").read_text(encoding="utf-8").lower()
+    forbidden = [
+        "supabase",
+        "stripe",
+        "psycopg",
+        "sqlalchemy",
+        "boto3",
+        "bank_transactions",
+        "billing_entitlements",
+    ]
+    for token in forbidden:
+        assert token not in source, f"document verifier must not depend on {token}"
