@@ -113,15 +113,18 @@ function foreignCurrencyReviewState(d){
   if(d?.mixedRates){
     const rows=document.querySelector('.mixed-vat-row')?readMixedVatEditor():(d.vatLines||[]).map(x=>({rate:Number(x.rate),netC:cents(x.taxableAmount),vatC:cents(x.vatAmount),valid:true}));
     if(rows.length<2||rows.some(x=>!x.valid||x.netC==null||x.vatC==null))return {currency,rate,confirmed,sourceCents,sourceAmounts,bookingAmountsEur:null,bookingVatLinesEur:[]};
-    bookingVatLinesEur=rows.map(x=>({rate:x.rate,taxableAmount:convertSourceCentsToEur(x.netC,rate.normalized)/100,vatAmount:convertSourceCentsToEur(x.vatC,rate.normalized)/100}));
-    netC=bookingVatLinesEur.reduce((sum,x)=>sum+cents(x.taxableAmount),0);
-    vatC=bookingVatLinesEur.reduce((sum,x)=>sum+cents(x.vatAmount),0);
+    const converted=rows.map(x=>({rate:x.rate,netC:convertSourceCentsToEur(x.netC,rate.normalized),vatC:convertSourceCentsToEur(x.vatC,rate.normalized)}));
+    if(converted.some(x=>x.netC==null||x.vatC==null))return {currency,rate,confirmed,sourceCents,sourceAmounts,bookingAmountsEur:null,bookingVatLinesEur:[]};
+    bookingVatLinesEur=converted.map(x=>({rate:x.rate,taxableAmount:x.netC/100,vatAmount:x.vatC/100}));
+    netC=converted.reduce((sum,x)=>sum+x.netC,0);
+    vatC=converted.reduce((sum,x)=>sum+x.vatC,0);
   }else{
     netC=convertSourceCentsToEur(sourceCents.net,rate.normalized);
     vatC=convertSourceCentsToEur(sourceCents.vatAmount,rate.normalized)
   }
   if(netC==null||vatC==null)return {currency,rate,confirmed,sourceCents,sourceAmounts,bookingAmountsEur:null,bookingVatLinesEur:[]};
   const grossC=netC+vatC;
+  if(!Number.isSafeInteger(grossC))return {currency,rate,confirmed,sourceCents,sourceAmounts,bookingAmountsEur:null,bookingVatLinesEur:[]};
   return {currency,rate,confirmed,sourceCents,sourceAmounts,bookingAmountsEur:{net:netC/100,vatAmount:vatC/100,gross:grossC/100},bookingVatLinesEur}
 }
 function updateForeignCurrencyPreview(){
@@ -334,6 +337,10 @@ function financialBlockingIssues(d){
     const confirmed=!!rate&&value('exchangeRateConfirmed')==='on'&&d?.exchangeRateConfirmed===true&&String(d?.exchangeRateToEur||'')===rate.normalized;
     if(!rate)issues.push({field:'exchangeRateToEur',message:'Vul de wisselkoers in: hoeveel EUR is 1 '+currency+'?'});
     else if(!confirmed)issues.push({field:'exchangeRateToEur',message:'Bevestig de wisselkoers van 1 '+currency+' = '+rate.normalized.replace('.',',')+' EUR.'})
+    else{
+      const fx=foreignCurrencyReviewState(d),complete=Object.values(fx.sourceCents||{}).every(v=>v!=null)&&fx.sourceCents.net+fx.sourceCents.vatAmount===fx.sourceCents.gross;
+      if(complete&&!fx.bookingAmountsEur)issues.push({field:'exchangeRateToEur',message:'Deze koers kan niet veilig naar eurocenten worden omgerekend. Controleer de koers en bedragen.'})
+    }
   }
   const required=new Set(req.blocking);
   if(d?.mixedRates){required.delete('vatRate');required.add('vatLines')}
@@ -848,8 +855,8 @@ function prepareForeignCurrencyLegacyBooking(d,snapshot){
   if(d.mixedRates&&snapshot.bookingVatLinesEur?.length)d.vatLines=structuredClone(snapshot.bookingVatLinesEur);
   for(const key of ['advancePayment','alreadyPaid','outstandingAmount','amountDue','payout'])if(d[key]!=null)d[key]=convertOptionalSourceAmount(d[key],rate);
   d.adjustments=(d.adjustments||[]).map(a=>{
-    const net=a.net!=null?convertOptionalSourceAmount(a.net,rate):a.net,vat=a.vat!=null?convertOptionalSourceAmount(a.vat,rate):a.vat;
-    const gross=net!=null&&vat!=null?((cents(net)+cents(vat))/100):convertOptionalSourceAmount(a.gross,rate);
+    const net=a.net!=null?convertOptionalSourceAmount(a.net,rate):a.net,vat=a.vat!=null?convertOptionalSourceAmount(a.vat,rate):a.vat,netC=cents(net),vatC=cents(vat);
+    const gross=netC!=null&&vatC!=null?(netC+vatC)/100:convertOptionalSourceAmount(a.gross,rate);
     return {...a,net,vat,gross}
   });
   d.lineItems=(d.lineItems||[]).map(item=>({...item,unit:convertOptionalSourceAmount(item.unit,rate),total:item.total==null?item.total:convertOptionalSourceAmount(item.total,rate)}));
