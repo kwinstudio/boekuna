@@ -398,7 +398,7 @@ def to_verifier_jpeg(case: dict[str, Any]) -> bytes:
         doc = fitz.open(stream=raw, filetype="pdf")
         pages = []
         for page in list(doc)[:3]:
-            pix = page.get_pixmap(matrix=fitz.Matrix(1.6,1.6), alpha=False)
+            pix = page.get_pixmap(matrix=fitz.Matrix(1.2,1.2), alpha=False)
             pages.append(Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB"))
         doc.close()
         width = max(x.width for x in pages)
@@ -410,7 +410,7 @@ def to_verifier_jpeg(case: dict[str, Any]) -> bytes:
         image=canvas
     else:
         image=Image.open(io.BytesIO(raw)).convert("RGB")
-    max_w,max_h=1800,4200
+    max_w,max_h=1200,3000
     scale=min(1.0,max_w/image.width,max_h/image.height)
     if scale<1:
         resized=image.resize((max(1,int(image.width*scale)),max(1,int(image.height*scale))),Image.Resampling.LANCZOS)
@@ -461,7 +461,7 @@ def verifier_request(server: str, image: bytes, source_text: str, candidates: di
         "model":MODEL_ID,
         "messages":[{"role":"user","content":[{"type":"image_url","image_url":{"url":data_url}},{"type":"text","text":prompt}]}],
         "temperature":0,
-        "max_tokens":450,
+        "max_tokens":320,
         "response_format":{"type":"json_schema","json_schema":{"name":"boekuna_second_check","strict":True,"schema":schema_for(fields)}},
     }
     t=time.perf_counter()
