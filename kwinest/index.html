@@ -7111,6 +7111,30 @@ window.addEventListener('keydown',e=>{
 </script>
 
 
+<script id="boekuna-ios-keyboard-layout">
+(function(){
+ if(!window.visualViewport)return;
+ const narrow=window.matchMedia('(max-width:520px)');
+ function syncKeyboardOffset(){
+  const style=document.documentElement.style;
+  if(!narrow.matches){style.removeProperty('--mobile-viewport-offset-top');return}
+  style.setProperty('--mobile-viewport-offset-top',Math.round(window.visualViewport.offsetTop||0)+'px');
+ }
+ function keepFocusedModalFieldVisible(target=document.activeElement){
+  if(!narrow.matches||!target?.matches?.('input,select,textarea')||!target.closest('#modalRoot .modal'))return;
+  requestAnimationFrame(()=>target.scrollIntoView({block:'center',inline:'nearest',behavior:'auto'}));
+ }
+ window.visualViewport.addEventListener('resize',function(){syncKeyboardOffset();setTimeout(function(){keepFocusedModalFieldVisible()},60)});
+ window.visualViewport.addEventListener('scroll',syncKeyboardOffset);
+ document.addEventListener('focusin',function(event){
+  if(!narrow.matches||!event.target.matches('input,select,textarea'))return;
+  setTimeout(function(){keepFocusedModalFieldVisible(event.target)},60);
+ });
+ narrow.addEventListener('change',syncKeyboardOffset);
+ syncKeyboardOffset();
+})();
+</script>
+
 <script src="/assets/mobile-polish-round-2.js"></script>
 
 </body>
