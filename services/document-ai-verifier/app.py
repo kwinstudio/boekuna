@@ -191,6 +191,31 @@ def _normalize_candidate(value: str | None) -> str:
     return " ".join(str(value or "").strip().casefold().split())
 
 
+def _request_represents_mixed_vat(request: VerifyRequest) -> bool:
+    fields = {row.field: row for row in request.fields}
+    mixed = fields.get("mixedRates")
+    vat_rate = fields.get("vatRate")
+    vat_lines = fields.get("vatLines")
+    if mixed is None or _normalize_candidate(mixed.parserValue) != "true":
+        return False
+    if vat_rate is not None and _normalize_candidate(vat_rate.parserValue):
+        return False
+    if vat_lines is None or not vat_lines.parserValue:
+        return False
+    try:
+        rows = json.loads(vat_lines.parserValue)
+    except Exception:
+        return False
+    if not isinstance(rows, list) or len(rows) < 2:
+        return False
+    rates: set[str] = set()
+    for row in rows:
+        if not isinstance(row, dict) or "rate" not in row:
+            return False
+        rates.add(_normalize_candidate(str(row["rate"])))
+    return len(rates) >= 2
+
+
 def _response_schema(fields: list[str]) -> dict[str, Any]:
     return {
         "type": "object",
@@ -308,44 +333,58 @@ async def query_local_vlm(request: VerifyRequest) -> dict[str, Any]:
 def _validate_model_result(
     raw: dict[str, Any],
     request: VerifyRequest,
+    *,
+    mixed_vat_active: bool = False,
 ) -> list[VerdictRow]:
-    if not isinstance(raw, dict) or not isinstance(raw.get("verdicts"), list):
+    if not isinstance(raw, dict) or set(raw) != {"verdicts"}:
+        raise VerifierUnavailable("VERIFIER_RESPONSE_INVALID")
+    if not isinstance(raw["verdicts"], list):
         raise VerifierUnavailable("VERIFIER_RESPONSE_INVALID")
 
     requested = {row.field: row for row in request.fields}
+    expected_fields = set(requested)
     seen: set[str] = set()
     result: list[VerdictRow] = []
+    required_row_keys = {"field", "verdict", "verifierValue", "confidence", "evidence"}
 
     for item in raw["verdicts"]:
-        if not isinstance(item, dict):
+        if not isinstance(item, dict) or set(item) != required_row_keys:
             raise VerifierUnavailable("VERIFIER_RESPONSE_INVALID")
-        field = item.get("field")
+
+        field = item["field"]
         if field not in requested or field in seen:
             raise VerifierUnavailable("VERIFIER_RESPONSE_INVALID")
         seen.add(field)
 
-        verdict = item.get("verdict")
+        verdict = item["verdict"]
         if verdict not in {"agree", "disagree", "uncertain"}:
             raise VerifierUnavailable("VERIFIER_RESPONSE_INVALID")
 
-        value = item.get("verifierValue")
-        if value is None:
-            value = ""
+        value = item["verifierValue"]
         if not isinstance(value, str) or len(value) > 400:
             raise VerifierUnavailable("VERIFIER_RESPONSE_INVALID")
 
-        evidence = item.get("evidence")
+        evidence = item["evidence"]
         if not isinstance(evidence, str) or len(evidence) > 240:
             raise VerifierUnavailable("VERIFIER_RESPONSE_INVALID")
 
-        try:
-            confidence = float(item.get("confidence"))
-        except Exception as exc:
-            raise VerifierUnavailable("VERIFIER_RESPONSE_INVALID") from exc
+        confidence_raw = item["confidence"]
+        if isinstance(confidence_raw, bool) or not isinstance(confidence_raw, (int, float)):
+            raise VerifierUnavailable("VERIFIER_RESPONSE_INVALID")
+        confidence = float(confidence_raw)
         if confidence < 0 or confidence > 1:
             raise VerifierUnavailable("VERIFIER_RESPONSE_INVALID")
 
         parser = requested[field]
+
+        # Financial hard guard: a validated mixed-VAT source cannot be
+        # semantically collapsed into a single VAT rate by verifier evidence.
+        if mixed_vat_active and field == "vatRate" and _normalize_candidate(value):
+            raise VerifierUnavailable("VERIFIER_RESPONSE_INVALID")
+        if mixed_vat_active and field == "mixedRates":
+            if _normalize_candidate(value) not in {"true", "1"}:
+                raise VerifierUnavailable("VERIFIER_RESPONSE_INVALID")
+
         if verdict == "agree" and _normalize_candidate(value) != _normalize_candidate(parser.parserValue):
             raise VerifierUnavailable("VERIFIER_RESPONSE_INVALID")
 
@@ -369,6 +408,10 @@ def _validate_model_result(
                 candidateMatch=candidate_match,
             )
         )
+
+    if seen != expected_fields:
+        raise VerifierUnavailable("VERIFIER_RESPONSE_INVALID")
+
     return result
 
 
@@ -420,13 +463,18 @@ async def verify(
             "processingMs": 0,
         }
 
+    mixed_vat_active = _request_represents_mixed_vat(request)
     model_request = request.model_copy(update={"fields": model_fields})
     started = time.perf_counter()
 
     try:
         async with _semaphore:
             raw = await query_local_vlm(model_request)
-        verdicts = _validate_model_result(raw, model_request)
+        verdicts = _validate_model_result(
+            raw,
+            model_request,
+            mixed_vat_active=mixed_vat_active,
+        )
     except VerifierUnavailable as exc:
         _record_failure()
         raise _error(exc.code) from exc
