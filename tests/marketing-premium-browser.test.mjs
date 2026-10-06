@@ -30,7 +30,7 @@ try{
         assert.equal(await heroPhoto.getAttribute('alt'),'Ondernemer werkt ontspannen met smartphone naast laptop');
         assert.equal(await heroPhoto.getAttribute('loading'),'eager');
         assert.equal(await heroPhoto.getAttribute('fetchpriority'),'high');
-        assert.ok((await heroPhoto.getAttribute('srcset')).includes('hero-ondernemer-1600.webp'));
+        assert.ok((await heroPhoto.getAttribute('srcset')).includes('hero-ondernemer-1000.webp'));
         assert.equal(await page.locator('.audience-photo').count(),4,'Four trades represented');
         assert.equal(await page.locator('.collaboration-photo').count(),1,'Small-business collaboration photo present');
 
