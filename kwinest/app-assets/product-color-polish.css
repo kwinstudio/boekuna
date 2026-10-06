@@ -1,0 +1,256 @@
+/* BOEKUNA product-app colour & warmth polish — app-only.
+   Presentation only: semantic colours, surfaces, focus and state treatment.
+   Loaded only by scripts/build-app.mjs; the public marketing surface never references it. */
+
+:root{
+  --app-ink:#1B1F23;
+  --app-bg:#F6F7F8;
+  --app-surface:#FFFFFF;
+  --app-muted:#8A949C;
+  --app-muted-strong:#667179;
+  --app-brand:#63D471;
+  --app-brand-hover:#55C965;
+  --app-brand-pressed:#45B956;
+  --app-brand-soft:#ECFAEE;
+  --app-brand-border:#BFEBC5;
+  --app-border:#E4E8EB;
+  --app-border-strong:#CDD5D9;
+  --app-subtle:#FAFBFB;
+  --app-focus:#1B1F23;
+  --status-success:#16733A;
+  --status-success-soft:#EFFAF2;
+  --status-warning:#925A08;
+  --status-warning-soft:#FFF7E8;
+  --status-error:#B42318;
+  --status-error-soft:#FFF1F0;
+  --status-info:#1D4ED8;
+  --status-info-soft:#EFF6FF;
+}
+
+/* Bridge older presentation aliases to the canonical product palette inside the app only. */
+#mainApp,#modalRoot{
+  --bg-canvas:var(--app-bg);
+  --bg-surface:var(--app-surface);
+  --bg-surface-secondary:var(--app-bg);
+  --bg-elevated:var(--app-surface);
+  --text-primary:var(--app-ink);
+  --text-secondary:var(--app-muted-strong);
+  --text-muted:var(--app-muted);
+  --border-default:var(--app-border);
+  --border-strong:var(--app-border-strong);
+  --divider:var(--app-border);
+  --brand-primary:var(--app-brand);
+  --brand-primary-hover:var(--app-brand-hover);
+  --brand-primary-active:var(--app-brand-pressed);
+  --brand-primary-soft:var(--app-brand-soft);
+  --brand-secondary:var(--app-brand);
+  --brand-secondary-soft:var(--app-brand-soft);
+  --success:var(--status-success);
+  --success-soft:var(--status-success-soft);
+  --warning:var(--status-warning);
+  --warning-soft:var(--status-warning-soft);
+  --error:var(--status-error);
+  --error-soft:var(--status-error-soft);
+  --info:var(--status-info);
+  --info-soft:var(--status-info-soft);
+  --ink:var(--app-ink);
+  --muted:var(--app-muted-strong);
+  --line:var(--app-border);
+  --paper:var(--app-bg);
+  --card:var(--app-surface);
+  --accent:var(--app-brand);
+  --accent-ink:var(--app-ink);
+  --good:var(--status-success);
+  --bad:var(--status-error);
+  --warn:var(--status-warning);
+}
+
+/* Shell: quiet neutral canvas, white surfaces, green only where it carries direction. */
+#mainApp{background:var(--app-bg)!important;color:var(--app-ink)!important}
+#mainApp .sidebar{background:var(--app-surface)!important;color:var(--app-ink)!important;border-right-color:var(--app-border)!important}
+#mainApp .sidebar .nav-item{color:#3E474D!important}
+#mainApp .sidebar .nav-item:hover{background:var(--app-bg)!important;color:var(--app-ink)!important}
+#mainApp .sidebar .nav-item.active{
+  background:var(--app-brand-soft)!important;
+  color:var(--app-ink)!important;
+  box-shadow:inset 3px 0 0 var(--app-brand)!important;
+}
+#mainApp .sidebar .nav-item.active .icon,
+#mainApp .sidebar .nav-item.active .icon-wrap{color:var(--status-success)!important}
+#mainApp .topbar{background:var(--app-surface)!important;border-bottom-color:var(--app-border)!important}
+#mainApp .mobile-bottom-nav{
+  background:rgba(255,255,255,.98)!important;
+  border-top-color:var(--app-border)!important;
+  box-shadow:0 -6px 20px rgba(27,31,35,.05)!important;
+}
+#mainApp .mobile-bottom-nav-item{color:var(--app-muted-strong)!important}
+#mainApp .mobile-bottom-nav-item.active{
+  color:var(--app-ink)!important;
+  background:var(--app-brand-soft)!important;
+  box-shadow:inset 0 2px 0 var(--app-brand)!important;
+}
+#mainApp .mobile-bottom-nav-item.active .icon{color:var(--status-success)!important}
+
+/* Cards gain warmth through a restrained brand edge, never full-colour fills. */
+#mainApp .card,#mainApp .table-card,#mainApp .list-toolbar,
+#mainApp .documents-workspace,#mainApp .processing-shell,#mainApp .document-processing-board{
+  background:var(--app-surface)!important;
+  border-color:var(--app-border)!important;
+}
+#mainApp .dashboard-kpi,#mainApp .product-kpi{
+  position:relative;
+  background:var(--app-surface)!important;
+  border-color:var(--app-border)!important;
+  box-shadow:inset 0 2px 0 var(--app-brand-soft)!important;
+}
+#mainApp .dashboard-kpi:hover,#mainApp .product-kpi:hover{border-color:var(--app-border-strong)!important}
+#mainApp .metric-icon,#mainApp .product-kpi-icon{
+  background:var(--app-brand-soft)!important;
+  color:var(--status-success)!important;
+  border:1px solid #D7F2DB;
+}
+#mainApp .kpi-tone-primary .metric-value{color:var(--app-ink)!important}
+#mainApp .kpi-tone-primary .product-kpi-icon,#mainApp .kpi-tone-primary .metric-icon{
+  background:var(--app-brand-soft)!important;color:var(--status-success)!important
+}
+#mainApp .kpi-tone-success .product-kpi-icon,#mainApp .kpi-tone-success .metric-icon{
+  background:var(--status-success-soft)!important;color:var(--status-success)!important;border-color:#CBEBD4
+}
+#mainApp .kpi-tone-warning .product-kpi-icon,#mainApp .kpi-tone-warning .metric-icon{
+  background:var(--status-warning-soft)!important;color:var(--status-warning)!important;border-color:#F0D8A9
+}
+#mainApp .kpi-tone-error .product-kpi-icon,#mainApp .kpi-tone-error .metric-icon{
+  background:var(--status-error-soft)!important;color:var(--status-error)!important;border-color:#F3C8C4
+}
+#mainApp .kpi-tone-support .product-kpi-icon,#mainApp .kpi-tone-support .metric-icon{
+  background:#F1F3F4!important;color:#4C565C!important;border-color:var(--app-border)!important
+}
+
+/* Charts are data visualisation, not status messaging: green + neutral + ink. */
+#mainApp .chart .bar.sales,#mainApp .chart-legend .legend-dot{background:var(--app-brand)!important}
+#mainApp .chart .bar.costs,#mainApp .chart-legend .legend-dot.cost{background:#C9D0D4!important}
+#mainApp .chart .bar.profit,#mainApp .chart-legend .legend-dot.profit{background:var(--app-ink)!important}
+#mainApp .chart .bar.profit.loss{background:var(--status-error)!important}
+#mainApp .money-positive{color:var(--status-success)!important}
+#mainApp .money-negative{color:var(--app-ink)!important}
+
+/* Buttons: one green primary role, neutral secondary, red only for destructive actions. */
+#mainApp .btn,#modalRoot .btn{
+  background:var(--app-surface)!important;
+  color:var(--app-ink)!important;
+  border-color:var(--app-border-strong)!important;
+  box-shadow:none!important;
+}
+#mainApp .btn:hover,#modalRoot .btn:hover{background:var(--app-bg)!important;border-color:#BFC7CC!important}
+#mainApp .btn.primary,#mainApp .btn.accent,#modalRoot .btn.primary,#modalRoot .btn.accent{
+  background:var(--app-brand)!important;
+  border-color:var(--app-brand)!important;
+  color:var(--app-ink)!important;
+}
+#mainApp .btn.primary:hover,#mainApp .btn.accent:hover,#modalRoot .btn.primary:hover,#modalRoot .btn.accent:hover{
+  background:var(--app-brand-hover)!important;border-color:var(--app-brand-hover)!important
+}
+#mainApp .btn.primary:active,#mainApp .btn.accent:active,#modalRoot .btn.primary:active,#modalRoot .btn.accent:active{
+  background:var(--app-brand-pressed)!important;border-color:var(--app-brand-pressed)!important
+}
+#mainApp .btn.danger,#modalRoot .btn.danger{
+  background:var(--app-surface)!important;
+  color:var(--status-error)!important;
+  border-color:#E9B7B2!important;
+}
+#mainApp .btn.danger:hover,#modalRoot .btn.danger:hover{background:var(--status-error-soft)!important;border-color:#D98C85!important}
+#mainApp button:disabled,#mainApp .btn:disabled,#modalRoot button:disabled,#modalRoot .btn:disabled{
+  opacity:.58!important;background:#F1F3F4!important;color:#68737A!important;border-color:var(--app-border)!important
+}
+
+/* Selected controls remain recognizable by border/weight as well as colour. */
+#mainApp .filter-btn,#mainApp .period-chip,#mainApp .dashboard-period-select,#mainApp .financial-period-select{
+  background:var(--app-surface)!important;color:var(--app-ink)!important;border-color:var(--app-border-strong)!important
+}
+#mainApp .filter-btn.active,#mainApp .filter-btn[aria-pressed="true"],#mainApp [role="tab"][aria-selected="true"]{
+  background:var(--app-brand-soft)!important;
+  color:var(--app-ink)!important;
+  border-color:var(--app-brand)!important;
+  box-shadow:inset 0 0 0 1px var(--app-brand)!important;
+  font-weight:800!important;
+}
+
+/* Forms stay neutral until focus or semantic validation requires colour. */
+#mainApp .field input,#mainApp .field select,#mainApp .field textarea,#mainApp .list-search,
+#modalRoot .field input,#modalRoot .field select,#modalRoot .field textarea{
+  background:var(--app-surface)!important;color:var(--app-ink)!important;border-color:var(--app-border-strong)!important
+}
+#mainApp .field input:focus,#mainApp .field select:focus,#mainApp .field textarea:focus,#mainApp .list-search:focus,
+#modalRoot .field input:focus,#modalRoot .field select:focus,#modalRoot .field textarea:focus{
+  border-color:var(--app-brand)!important;
+  box-shadow:0 0 0 3px rgba(99,212,113,.28)!important;
+}
+#mainApp :is(button,a,input,select,textarea,summary):focus-visible,
+#modalRoot :is(button,a,input,select,textarea,summary):focus-visible{
+  outline:2px solid var(--app-focus)!important;
+  outline-offset:2px!important;
+  box-shadow:0 0 0 3px rgba(99,212,113,.30)!important;
+}
+
+/* Tables and lists: slightly stronger structure without zebra stripes. */
+#mainApp .table th{background:#F1F3F4!important;color:#566168!important;border-color:var(--app-border)!important}
+#mainApp .table td{border-color:#EEF0F2!important}
+#mainApp .table tbody tr:hover,#mainApp .mobile-card-row:hover{background:var(--app-subtle)!important}
+#mainApp .mobile-card-row{border-bottom-color:var(--app-border)!important}
+
+/* Semantic states. Text/icons remain present, so colour is never the sole signal. */
+#mainApp .badge,#modalRoot .badge{background:#F1F3F4!important;color:#4C565C!important;border-color:var(--app-border)!important}
+#mainApp .badge.good,#modalRoot .badge.good,
+#mainApp .success-box,#mainApp .dashboard-attention-state.success{
+  background:var(--status-success-soft)!important;color:var(--status-success)!important;border-color:#CBEBD4!important
+}
+#mainApp .badge.warn,#modalRoot .badge.warn,#mainApp .notice.warn,#modalRoot .notice.warn,
+#mainApp .dashboard-attention-item.review{
+  background:var(--status-warning-soft)!important;color:var(--status-warning)!important;border-color:#F0D8A9!important
+}
+#mainApp .badge.bad,#modalRoot .badge.bad,#mainApp .dashboard-attention-state.error,
+#mainApp .processing-error{
+  background:var(--status-error-soft)!important;color:var(--status-error)!important;border-color:#F3C8C4!important
+}
+#mainApp .badge.info,#modalRoot .badge.info,#mainApp .notice.info,#modalRoot .notice.info,
+#mainApp .dashboard-attention-item.soon{
+  background:var(--status-info-soft)!important;color:var(--status-info)!important;border-color:#C9D8FF!important
+}
+#mainApp .notice:not(.warn):not(.info),#modalRoot .notice:not(.warn):not(.info){
+  background:var(--app-bg)!important;color:var(--app-ink)!important;border-color:var(--app-border)!important
+}
+#mainApp .dashboard-attention-item.urgent{background:var(--status-error-soft)!important;border-color:#F3C8C4!important}
+#mainApp .dashboard-attention-item.urgent .dashboard-attention-icon{background:#FFE5E2!important;color:var(--status-error)!important}
+#mainApp .dashboard-attention-item.review .dashboard-attention-icon{background:#FFEED0!important;color:var(--status-warning)!important}
+#mainApp .dashboard-attention-item.soon .dashboard-attention-icon{background:#E3EDFF!important;color:var(--status-info)!important}
+
+/* Empty states and administrative surfaces feel intentional, not blank. */
+#mainApp .empty,#mainApp .beginner-empty-state{
+  background:var(--app-subtle)!important;
+  border:1px dashed var(--app-border-strong)!important;
+  border-radius:12px!important;
+}
+#mainApp .beginner-empty-state .icon,#mainApp .beginner-empty-action .icon{color:var(--status-success)!important}
+#mainApp .premium-dropzone{
+  background:var(--app-subtle)!important;
+  border-color:var(--app-border-strong)!important;
+}
+#mainApp .premium-dropzone:hover{background:var(--app-brand-soft)!important;border-color:var(--app-brand)!important}
+
+/* Settings, modals and document review inherit the same semantic palette. */
+#mainApp .settings-compact,#mainApp .settings-disclosure,#mainApp .profile-sections,#mainApp .profile-section-wide{
+  background:var(--app-surface)!important;border-color:var(--app-border)!important
+}
+#modalRoot .modal{background:var(--app-surface)!important;color:var(--app-ink)!important;border-color:var(--app-border)!important}
+#modalRoot .modal-head,#modalRoot .modal-foot{border-color:var(--app-border)!important;background:var(--app-surface)!important}
+#modalRoot .review-confidence{background:#F1F3F4!important;color:#4C565C!important}
+#modalRoot .review-confidence.good{background:var(--status-success-soft)!important;color:var(--status-success)!important}
+#modalRoot .review-confidence.warn{background:var(--status-warning-soft)!important;color:var(--status-warning)!important}
+#modalRoot .review-confidence.bad{background:var(--status-error-soft)!important;color:var(--status-error)!important}
+
+/* Keep motion restrained and honour reduced-motion users. */
+@media(prefers-reduced-motion:reduce){
+  #mainApp *,#mainApp *::before,#mainApp *::after,#modalRoot *,#modalRoot *::before,#modalRoot *::after{
+    transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important
+  }
+}
