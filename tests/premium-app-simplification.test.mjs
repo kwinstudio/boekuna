@@ -220,6 +220,7 @@ try{
   assert.doesNotMatch(compactDashboard,/Omzet minus kosten/,'Compact dashboard should not repeat the profit formula');
   assert.doesNotMatch(compactDashboard,/Op basis van je huidige administratie/,'Compact dashboard should not repeat the VAT calculation context');
   await navigateTo('settings');
+  await page.locator('.settings-nav-item').filter({hasText:'Weergave'}).click();
   const helpSwitch=page.getByRole('switch',{name:'Extra uitleg tonen'});
   assert.equal(await helpSwitch.isChecked(),false,'Extra explanation must be disabled by default');
   await helpSwitch.check();
@@ -228,6 +229,7 @@ try{
   await navigateTo('dashboard');
   assert.match(await page.locator('#content').innerText(),/Omzet minus kosten/,'Explanation should be visible when enabled');
   await navigateTo('settings');
+  await page.locator('.settings-nav-item').filter({hasText:'Weergave'}).click();
   await page.getByRole('switch',{name:'Extra uitleg tonen'}).uncheck();
   assert.equal(await page.evaluate(()=>extraHelpVisible()),false,'Compact mode is restored');
   await navigateTo('vat');
