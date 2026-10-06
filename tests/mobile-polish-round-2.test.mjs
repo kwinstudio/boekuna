@@ -304,7 +304,9 @@ try{
   await page.setViewportSize({width:390,height:844});
   await nav('settings');
   const groups=(await page.locator('.settings-group>.settings-group-label').allTextContents()).map(v=>v.trim());
-  assert.deepEqual(groups,['Bedrijf','Weergave','Facturen','Boekhouding','Beveiliging & privacy','Data','Account','Gevaarzone']);
+  // This test exercises the shared polish asset; app-only Weergave is injected
+  // by build-app and is covered by generated-app settings QA.
+  assert.deepEqual(groups,['Bedrijf','Facturen','Boekhouding','Beveiliging & privacy','Data','Account','Gevaarzone']);
   assert.equal(await page.locator('.settings-danger-group').getByRole('button',{name:'Administratie wissen',exact:true}).count(),1);
   assert.equal(await page.locator('.settings-danger-group').getByRole('button',{name:'Account verwijderen',exact:true}).count(),1);
   await shot('settings',390);
