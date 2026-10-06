@@ -22,6 +22,12 @@ jobs:
           python -m pip install -r services/document-ai-verifier/requirements.txt pytest
       - name: Document-only verifier contract
         run: pytest -q services/document-ai-verifier/tests/test_contract.py
+      - name: Production source safety
+        run: node tests/source-safety.test.mjs
+      - name: Smart financial correction
+        run: node tests/smart-financial-correction.test.mjs
+      - name: Production integrity
+        run: node tests/production-integrity.test.mjs
       - name: Build isolated verifier container
         run: docker build -f services/document-ai-verifier/Dockerfile -t boekuna-document-ai-verifier:ci .
       - name: Container health / readiness contract
