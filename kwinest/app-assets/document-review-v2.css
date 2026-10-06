@@ -178,7 +178,7 @@
 .saved-review-fx span{font-size:13px;color:var(--text-muted);overflow-wrap:anywhere}
 .two-step-review .review-hidden-scalar{display:none!important}
 .two-step-review [data-review-net-editor][hidden]{display:none!important}
-.review-wizard-actions{width:100%;display:flex;gap:10px;justify-content:flex-end}
+.review-wizard-actions{width:100%;gap:10px;justify-content:flex-end}
 .review-wizard-actions .btn[hidden]{display:none!important}
 .review-wizard-actions .btn{min-height:44px}
 .two-step-review .review-original-panel.open{display:block}
