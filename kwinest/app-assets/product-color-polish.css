@@ -9,6 +9,7 @@
   --app-muted:#8A949C;
   --app-muted-strong:#667179;
   --app-brand:#63D471;
+  --app-brand-ink:#237A3B;
   --app-brand-hover:#55C965;
   --app-brand-pressed:#45B956;
   --app-brand-soft:#ECFAEE;
@@ -78,18 +79,18 @@
 #mainApp .sidebar .nav-item.active .icon,
 #mainApp .sidebar .nav-item.active .icon-wrap{color:var(--status-success)!important}
 #mainApp .topbar{background:var(--app-surface)!important;border-bottom-color:var(--app-border)!important}
-#mainApp .mobile-bottom-nav{
+.mobile-bottom-nav{
   background:rgba(255,255,255,.98)!important;
   border-top-color:var(--app-border)!important;
   box-shadow:0 -6px 20px rgba(27,31,35,.05)!important;
 }
-#mainApp .mobile-bottom-nav-item{color:var(--app-muted-strong)!important}
-#mainApp .mobile-bottom-nav-item.active{
+.mobile-bottom-nav-item{color:var(--app-muted-strong)!important}
+.mobile-bottom-nav-item.active{
   color:var(--app-ink)!important;
   background:var(--app-brand-soft)!important;
   box-shadow:inset 0 2px 0 var(--app-brand)!important;
 }
-#mainApp .mobile-bottom-nav-item.active .icon{color:var(--status-success)!important}
+.mobile-bottom-nav-item.active .icon{color:var(--status-success)!important}
 
 /* Cards gain warmth through a restrained brand edge, never full-colour fills. */
 #mainApp .card,#mainApp .table-card,#mainApp .list-toolbar,
@@ -123,7 +124,7 @@
   background:var(--status-error-soft)!important;color:var(--status-error)!important;border-color:#F3C8C4
 }
 #mainApp .kpi-tone-support .product-kpi-icon,#mainApp .kpi-tone-support .metric-icon{
-  background:#F1F3F4!important;color:#4C565C!important;border-color:var(--app-border)!important
+  background:var(--app-brand-soft)!important;color:var(--app-brand-ink)!important;border-color:var(--app-brand-border)!important
 }
 
 /* Charts are data visualisation, not status messaging: green + neutral + ink. */
@@ -133,6 +134,7 @@
 #mainApp .chart .bar.profit.loss{background:var(--status-error)!important}
 #mainApp .money-positive{color:var(--status-success)!important}
 #mainApp .money-negative{color:var(--app-ink)!important}
+#mainApp .financial-table .money-positive,#mainApp .financial-table .money-negative,#mainApp .mobile-bank td.money{color:var(--app-ink)!important}
 
 /* Buttons: one green primary role, neutral secondary, red only for destructive actions. */
 #mainApp .btn,#modalRoot .btn{
