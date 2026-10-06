@@ -398,6 +398,20 @@ patchBuiltAppAsset(
 );
 patchBuiltAppAsset(
   'mobile-polish-round-2.js',
+  `      +'<section class="settings-group"><h2 class="settings-group-label">Bedrijf</h2><div class="settings-list">'
+      +settingsItem('Bedrijfsgegevens','Beheer je bedrijfsnaam, adres, contactgegevens en betaalinformatie.','navigate(\\'profile\\')')
+      +'</div></section>'
+      +'<section class="settings-group"><h2 class="settings-group-label">Facturen</h2>'`,
+  `      +'<section class="settings-group"><h2 class="settings-group-label">Bedrijf</h2><div class="settings-list">'
+      +settingsItem('Bedrijfsgegevens','Beheer je bedrijfsnaam, adres, contactgegevens en betaalinformatie.','navigate(\\'profile\\')')
+      +'</div></section>'
+      +'<section class="settings-group"><h2 class="settings-group-label">Weergave</h2><div class="card settings-compact">'
+      +'<label class="settings-view-toggle" for="extraHelpToggle"><span><strong>Extra uitleg tonen</strong></span><input type="checkbox" role="switch" id="extraHelpToggle" aria-label="Extra uitleg tonen" '+(extraHelpVisible()?'checked':'')+' onchange="setExtraHelpEnabled(this.checked)"></label>'
+      +'</div></section>'
+      +'<section class="settings-group"><h2 class="settings-group-label">Facturen</h2>'`
+);
+patchBuiltAppAsset(
+  'mobile-polish-round-2.js',
   `      +'<section class="settings-group"><h2 class="settings-group-label">Bedrijf</h2><div class="settings-list">'`,
   `      +'<section class="settings-group"><h2 class="settings-group-label">Mijn bedrijf</h2><div class="settings-list">'`
 );
@@ -429,6 +443,29 @@ if(assistantEnabled){
     'mobile-product.js',
     "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];",
     "var titles=['Mijn bedrijf','Facturen','Boekhouding','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];"
+  );
+}
+if(assistantEnabled){
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var titles=['Mijn bedrijf','Facturen','Boekhouding','Assistent & inzichten','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];",
+    "var titles=['Mijn bedrijf','Weergave','Facturen','Boekhouding','Assistent & inzichten','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];"
+  );
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Persoonlijke tips en samenvattingen','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];",
+    "var descriptions=['Naam, adres en betaalgegevens','Extra uitleg aan- of uitzetten','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Persoonlijke tips en samenvattingen','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];"
+  );
+}else{
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var titles=['Mijn bedrijf','Facturen','Boekhouding','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];",
+    "var titles=['Mijn bedrijf','Weergave','Facturen','Boekhouding','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];"
+  );
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];",
+    "var descriptions=['Naam, adres en betaalgegevens','Extra uitleg aan- of uitzetten','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];"
   );
 }
 

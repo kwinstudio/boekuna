@@ -213,13 +213,50 @@ try{
   await vatPeriod.selectOption('year');
   assert.equal((await page.locator('.premium-split .section-meta').first().innerText()).trim(),String(new Date().getFullYear()),'VAT year view must clearly identify the selected year');
 
+  // Compact copy is the default. Help is an account-level setting, never a financial calculation toggle.
+  await navigateTo('dashboard');
+  assert.equal(await page.evaluate(()=>extraHelpVisible()),false,'Account should start in compact mode');
+  const compactDashboard=await page.locator('#content').innerText();
+  assert.doesNotMatch(compactDashboard,/Omzet minus kosten/,'Compact dashboard should not repeat the profit formula');
+  assert.doesNotMatch(compactDashboard,/Op basis van je huidige administratie/,'Compact dashboard should not repeat the VAT calculation context');
+  await navigateTo('settings');
+  // Source-artifact QA validates the preference itself; generated-app QA validates
+  // the mobile Weergave navigation entry.
+  const helpSwitch=page.getByRole('switch',{name:'Extra uitleg tonen'});
+  assert.equal(await helpSwitch.isChecked(),false,'Extra explanation must be disabled by default');
+  await helpSwitch.check();
+  assert.equal(await page.evaluate(()=>extraHelpVisible()),true,'Switch turns help on for the current account');
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem(userDataKey())).meta.extraHelpEnabled),true,'Extra help setting must be saved with the account');
+  await navigateTo('dashboard');
+  assert.match(await page.locator('#content').innerText(),/Omzet minus kosten/,'Explanation should be visible when enabled');
+  await navigateTo('settings');
+  await page.getByRole('switch',{name:'Extra uitleg tonen'}).uncheck();
+  assert.equal(await page.evaluate(()=>extraHelpVisible()),false,'Compact mode is restored');
+  await navigateTo('vat');
+  const compactVat=await page.locator('#content').innerText();
+  assert.match(compactVat,/Indicatie/i,'Critical VAT uncertainty information is never hidden');
+  assert.match(compactVat,/geen officiële indiening|niet naar de Belastingdienst/i,'Legal VAT handoff remains visible');
+
   await navigateTo('reports');
-  const reportText=await page.locator('#content').innerText();
-  for(const label of ['Maand','Kwartaal','Jaar','PDF'])assert.match(reportText,new RegExp(label),'Reports toolbar missing '+label);
-  for(const label of ['Maand','Kwartaal','Jaar'])assert.ok(await page.getByRole('button',{name:label,exact:true}).isVisible());
-  await page.getByRole('button',{name:'Maand',exact:true}).click();
-  const reportRange=await page.evaluate(()=>reportRange());
-  assert.ok(reportRange.from<=reportRange.to,'Report period resolver must return an inclusive ordered range');
+  const reportPeriod=page.locator('#reportPeriodPreset');
+  assert.ok(await reportPeriod.isVisible(),'Compact report period picker must be visible');
+  assert.deepEqual(await reportPeriod.locator('option').allTextContents(),['Week','Maand','Kwartaal','Jaar','Altijd']);
+  assert.equal(await page.locator('.report-period-details').evaluate(el=>el.open),false,'Custom dates must stay collapsed initially');
+  await reportPeriod.selectOption('month');
+  assert.equal(await page.evaluate(()=>sessionStorage.getItem('reportPreset')),'month','Report period should update from compact selector');
+  const monthRange=await page.evaluate(()=>reportRange());
+  assert.ok(monthRange.from<=monthRange.to,'Report month period must return an inclusive ordered range');
+  await page.locator('#reportPeriodPreset').selectOption('all');
+  assert.equal(await page.evaluate(()=>sessionStorage.getItem('reportPreset')),'all');
+  assert.match(await page.locator('.report-period-dates').innerText(),/Alle boekjaren/);
+  assert.ok((await page.locator('.report-result-chart .bar-group').count())<=12,'All-time chart should avoid 48 tiny monthly bars');
+  await page.locator('.report-period-details > summary').click();
+  assert.equal(await page.locator('.report-period-details').evaluate(el=>el.open),true,'Custom date fields open on demand');
+  await page.locator('#reportFrom').fill('2024-01-01');
+  await page.locator('#reportFrom').dispatchEvent('change');
+  assert.equal(await page.evaluate(()=>sessionStorage.getItem('reportPreset')),'custom','Manual dates must switch the report to a custom range');
+  assert.equal(await page.evaluate(()=>reportRange().from),'2024-01-01','Manually chosen start date must be retained');
+  assert.equal(await page.locator('.report-period-details').evaluate(el=>el.open),true,'Manual dates remain expanded after render');
 
   await navigateTo('control');
   const control=await page.locator('#content').innerText();
