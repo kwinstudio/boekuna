@@ -23,7 +23,10 @@ try {
   const metrics=await page.evaluate(()=>({...window.lab,bytes:performance.getEntriesByType('resource').reduce((sum,e)=>sum+e.transferSize,0)}));
   assert.ok(metrics.lcp<4000,`Mobile lab LCP ${metrics.lcp}ms`);
   assert.ok(metrics.cls<.1,`Mobile lab CLS ${metrics.cls}`);
+  assert.ok(metrics.bytes<950000,`Mobile transfer budget ${metrics.bytes} bytes`);
   assert.equal(await page.locator('.project-card').count(),4);
+  assert.equal(await page.locator('main img.marketing-photo').count(),6);
+  assert.ok(await page.locator('.editorial-hero .hero-photo').isVisible());
 
   const nojs=await browser.newPage({javaScriptEnabled:false,viewport:{width:390,height:844}});
   await nojs.goto(server.base);
@@ -33,14 +36,14 @@ try {
   assert.ok(await nojs.locator('.editorial-pricing').isVisible());
   const noJsPricing=await nojs.locator('.editorial-pricing').innerText();
   for(const price of ['€0','€9,95','€19,95'])assert.ok(noJsPricing.includes(price),'No-JS pricing includes '+price);
-  assert.equal(await nojs.locator('main img').count(),0,'No screenshot content should render without JavaScript');
+  assert.equal(await nojs.locator('main img.marketing-photo').count(),6,'Owner photography remains available without JavaScript');
 
   fs.mkdirSync('tests/artifacts/premium-marketing',{recursive:true});
   fs.writeFileSync('tests/artifacts/premium-marketing/performance.json',JSON.stringify({
     profile:'390px, CPU 4x, 1.6Mbps, 150ms latency; laboratory measurements, not field INP',
     ...metrics,
     noJavaScriptContent:true,
-    publicScreenshots:false
+    ownerPhotography:true
   },null,2));
   console.log('Mobile marketing performance/no-JavaScript QA: PASS',metrics);
 } finally {
