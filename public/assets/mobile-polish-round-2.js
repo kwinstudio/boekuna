@@ -37,9 +37,6 @@
       +'<section class="settings-group"><h2 class="settings-group-label">Bedrijf</h2><div class="settings-list">'
       +settingsItem('Bedrijfsgegevens','Beheer je bedrijfsnaam, adres, contactgegevens en betaalinformatie.','navigate(\'profile\')')
       +'</div></section>'
-      +'<section class="settings-group"><h2 class="settings-group-label">Weergave</h2><div class="card settings-compact">'
-      +'<label class="settings-view-toggle" for="extraHelpToggle"><span><strong>Extra uitleg tonen</strong></span><input type="checkbox" role="switch" id="extraHelpToggle" aria-label="Extra uitleg tonen" '+(extraHelpVisible()?'checked':'')+' onchange="setExtraHelpEnabled(this.checked)"></label>'
-      +'</div></section>'
       +'<section class="settings-group"><h2 class="settings-group-label">Facturen</h2>'
       +renderEmailConnectionSettings()
       +'<div class="settings-inline-card">'+renderBrandingSettings()+'</div>'
