@@ -131,7 +131,7 @@ try{
   assert.doesNotMatch(invoices,/Factuurcheck actief\./,'Invoice page should not carry a permanent invoice-check notice');
   const newInvoiceButton=page.getByRole('button',{name:/Nieuwe factuur|Factuur maken/});
   assert.ok(await newInvoiceButton.isVisible());
-  assert.ok(await page.getByRole('button',{name:/Upload PDF/}).isVisible());
+  assert.ok(await page.getByRole('button',{name:'Factuur uploaden',exact:true}).isVisible());
   await newInvoiceButton.click();
   await page.locator('#invoiceCheck').waitFor();
   const invoiceCheckText=await page.locator('#invoiceCheck').innerText();

@@ -50,6 +50,10 @@ assert.ok(source.includes('function renderIncome()')&&source.includes('function 
 for(const label of ['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen'])assert.ok(source.includes('dashboard-kpi-label">'+label+'</span>'),'Dashboard KPI missing '+label);
 for(const label of ['Administratie','Vraag Boekuna','Nieuwe factuur'])assert.ok(source.includes('dashboard-summary-title">'+label+'</span>'),'Dashboard bottom summary missing '+label);
 for(const option of ["['week','Week']","['month','Maand']","['quarter','Kwartaal']","['year','Jaar']","['all','Altijd']"])assert.ok(source.includes(option),'Shared financial period option missing '+option);
+for(const marker of ['product-page-shell','page-period-slot','product-page-actions'])assert.ok(source.includes(marker),'Shared product header pattern missing '+marker);
+assert.ok(source.includes('function fitFinancialCardValues('),'Adaptive financial-card value fitting helper missing');
+assert.ok(source.includes('#mainApp .kpi-tone-primary .metric-value{color:var(--app-charcoal)}'),'Primary KPI emphasis must stay neutral, not success-green');
+assert.ok(source.includes('#mainApp .kpi-tone-success .metric-value{color:var(--status-success)}'),'Success KPI values must keep explicit success color');
 
 const build=spawnSync(process.execPath,['scripts/build-app.mjs'],{cwd:root,encoding:'utf8'});
 assert.equal(build.status,0,'App build failed: '+(build.stderr||build.stdout));
@@ -170,6 +174,37 @@ try{
       assert.equal(await invoicePrimary.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(99, 212, 113)');
       assert.equal(await invoicePrimary.evaluate(el=>getComputedStyle(el).color),'rgb(27, 31, 35)');
       assert.notEqual(await page.locator('.product-kpi-icon').first().evaluate(el=>getComputedStyle(el).display),'none','Desktop product KPI icons must remain visible');
+      assert.equal(await page.getByRole('button',{name:'Factuur maken',exact:true}).count(),1,browserName+' Inkomsten primary action');
+      assert.equal(await page.getByRole('button',{name:'Factuur uploaden',exact:true}).count(),1,browserName+' Inkomsten secondary action');
+      const incomeHeader=await page.evaluate(()=>{
+        const head=document.querySelector('.product-page-head'),title=head?.querySelector('h1'),period=head?.querySelector('.page-period-slot'),actions=document.querySelector('.product-page-actions');
+        const box=el=>{const r=el?.getBoundingClientRect();return r?{left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height}:null};
+        return {head:box(head),title:box(title),period:box(period),actions:box(actions)};
+      });
+      assert.ok(incomeHeader.period&&incomeHeader.actions,browserName+' Inkomsten must use shared title/filter/action pattern');
+      assert.ok(incomeHeader.period.left>incomeHeader.title.left,browserName+' Inkomsten period must sit to the right of title');
+      assert.ok(incomeHeader.actions.top>=incomeHeader.head.bottom-1,browserName+' Inkomsten actions must sit below title/filter row');
+      const iconGeometry=await page.locator('.product-kpi').first().evaluate(card=>{
+        const label=card.querySelector('.product-kpi-label'),icon=card.querySelector('.product-kpi-icon'),a=label.getBoundingClientRect(),b=icon.getBoundingClientRect();
+        return {labelLeft:a.left,labelRight:a.right,iconLeft:b.left,iconRight:b.right};
+      });
+      assert.ok(iconGeometry.iconLeft>=iconGeometry.labelRight-1,browserName+' KPI icon must be positioned at the top-right, after the label');
+      const invoiceCardHeights=await page.locator('.product-kpi').evaluateAll(cards=>cards.map(card=>Math.round(card.getBoundingClientRect().height)));
+      assert.ok(Math.max(...invoiceCardHeights)-Math.min(...invoiceCardHeights)<=1,browserName+' KPI cards in one group must keep equal heights');
+      await page.evaluate(()=>{
+        state.invoices[0].importedTotals={net:987654321098.76,vat:20740740743.74,gross:100839506184.5};
+        render();
+      });
+      const largeValueFit=await page.locator('.product-kpi .metric-value').evaluateAll(values=>values.map(value=>({text:value.textContent,client:value.clientWidth,scroll:value.scrollWidth,font:getComputedStyle(value).fontSize})));
+      assert.ok(largeValueFit.every(item=>item.scroll<=item.client+1),browserName+' long KPI amounts must fit without clipping or horizontal overflow: '+JSON.stringify(largeValueFit));
+      const largeCardHeights=await page.locator('.product-kpi').evaluateAll(cards=>cards.map(card=>Math.round(card.getBoundingClientRect().height)));
+      assert.ok(Math.max(...largeCardHeights)-Math.min(...largeCardHeights)<=1,browserName+' long amounts must not change KPI card height');
+      await page.evaluate(()=>navigate('dashboard'));
+      const dashboardLargeFit=await page.locator('.dashboard-kpi .metric-value').evaluateAll(values=>values.map(value=>({text:value.textContent,client:value.clientWidth,scroll:value.scrollWidth,font:getComputedStyle(value).fontSize})));
+      assert.ok(dashboardLargeFit.every(item=>item.scroll<=item.client+1),browserName+' dashboard long amounts must fit without clipping: '+JSON.stringify(dashboardLargeFit));
+      await noOverflow(page,browserName+' dashboard extreme amounts');
+      await page.screenshot({path:path.join(evidence,'large-values-1440-'+browserName+'.png'),fullPage:true});
+      await page.evaluate(()=>navigate('invoices'));
       await page.evaluate(()=>newInvoice());
       const fieldMetrics=await page.evaluate(()=>{
         const date=document.querySelector('#invoiceForm input[name="issueDate"]');
@@ -189,6 +224,12 @@ try{
 
       await page.evaluate(()=>navigate('vat'));
       await page.getByRole('heading',{name:'Btw'}).waitFor();
+      const vatHeader=await page.evaluate(()=>{
+        const head=document.querySelector('.product-page-head'),title=head?.querySelector('h1'),period=head?.querySelector('.page-period-slot');
+        const box=el=>{const r=el?.getBoundingClientRect();return r?{left:r.left,top:r.top,bottom:r.bottom}:null};
+        return {title:box(title),period:box(period)};
+      });
+      assert.ok(vatHeader.period&&vatHeader.period.left>vatHeader.title.left,browserName+' VAT period must be right of title');
       assert.match(await page.locator('#content').innerText(),/indicati(?:e|ef)/i);
       await noOverflow(page,browserName+' desktop VAT');
       await page.screenshot({path:path.join(evidence,'vat-1440-'+browserName+'.png'),fullPage:true});
@@ -205,10 +246,29 @@ try{
       for(const [route,labels] of Object.entries(coreKpis)){
         await page.evaluate(route=>navigate(route),route);
         await page.locator('.product-kpis').waitFor();
+        const cardMetrics=await page.locator('.product-kpi').evaluateAll(cards=>cards.map(card=>{
+          const r=card.getBoundingClientRect(),value=card.querySelector('.metric-value'),icon=card.querySelector('.product-kpi-icon');
+          return {height:Math.round(r.height),valueFits:!value||value.scrollWidth<=value.clientWidth+1,iconVisible:!!icon&&getComputedStyle(icon).display!=='none'};
+        }));
+        assert.ok(Math.max(...cardMetrics.map(x=>x.height))-Math.min(...cardMetrics.map(x=>x.height))<=1,browserName+' '+route+' KPI cards must have equal height');
+        assert.ok(cardMetrics.every(x=>x.valueFits),browserName+' '+route+' KPI values must fit');
+        assert.ok(cardMetrics.every(x=>x.iconVisible),browserName+' '+route+' KPI icons must be visible');
         assert.deepEqual((await page.locator('.product-kpi-label').allTextContents()).map(v=>v.trim()),labels,browserName+' '+route+' KPI labels');
         assert.equal(await page.locator('.product-kpi').count(),4,browserName+' '+route+' must expose four coherent KPI cards');
         await noOverflow(page,browserName+' desktop '+route);
         await axe(page,browserName+' desktop '+route);
+      }
+      for(const route of ['bank','documents','contacts','income','outgoings']){
+        await page.evaluate(route=>navigate(route),route);
+        const hierarchy=await page.evaluate(()=>{
+          const shell=document.querySelector('.product-page-shell'),head=shell?.querySelector('.product-page-head'),actions=shell?.querySelector('.product-page-actions');
+          if(!shell||!head||!actions)return null;
+          const h=head.getBoundingClientRect(),a=actions.getBoundingClientRect();
+          return {headBottom:h.bottom,actionsTop:a.top};
+        });
+        assert.ok(hierarchy,browserName+' '+route+' must use shared title/action hierarchy');
+        assert.ok(hierarchy.actionsTop>=hierarchy.headBottom-1,browserName+' '+route+' actions must be below the title row');
+        await noOverflow(page,browserName+' desktop '+route+' actions');
       }
 
       for(const [width,height] of [[1366,768],[1440,900],[1920,1080]]){
@@ -226,11 +286,32 @@ try{
       }
 
       await page.setViewportSize({width:390,height:844});
+      for(const route of ['invoices','expenses','vat','reports']){
+        await page.evaluate(route=>navigate(route),route);
+        const header=await page.locator('.product-page-head').evaluate(head=>{
+          const title=head.querySelector('h1'),period=head.querySelector('.page-period-slot'),a=title?.getBoundingClientRect(),b=period?.getBoundingClientRect();
+          return {title:a?{left:a.left,top:a.top,bottom:a.bottom}:null,period:b?{left:b.left,top:b.top,bottom:b.bottom}:null};
+        });
+        assert.ok(header.period&&header.period.left>header.title.left,browserName+' mobile '+route+' period must remain right of title');
+        assert.ok(Math.abs(header.period.top-header.title.top)<36,browserName+' mobile '+route+' title and period must remain on one row');
+        await noOverflow(page,browserName+' mobile '+route+' header');
+      }
+      await page.evaluate(()=>navigate('invoices'));
+      for(const width of [390,320]){
+        await page.setViewportSize({width,height:844});
+        await page.evaluate(()=>render());
+        const mobileValues=await page.locator('.product-kpi .metric-value').evaluateAll(values=>values.map(value=>({text:value.textContent,client:value.clientWidth,scroll:value.scrollWidth,font:getComputedStyle(value).fontSize})));
+        assert.ok(mobileValues.every(item=>item.scroll<=item.client+1),browserName+' mobile '+width+' long KPI amounts must fit: '+JSON.stringify(mobileValues));
+        const mobileHeights=await page.locator('.product-kpi').evaluateAll(cards=>cards.map(card=>Math.round(card.getBoundingClientRect().height)));
+        assert.ok(Math.max(...mobileHeights)-Math.min(...mobileHeights)<=1,browserName+' mobile '+width+' KPI cards must keep equal heights');
+        await noOverflow(page,browserName+' mobile invoices long amounts '+width);
+      }
+      await page.setViewportSize({width:390,height:844});
       await page.evaluate(()=>navigate('dashboard'));
       await page.getByRole('heading',{name:'Overzicht'}).waitFor();
       assert.deepEqual((await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents()).map(v=>v.trim()),['Overzicht','Inkomsten','Kosten','Btw','Meer']);
-      assert.ok((await page.locator('.dashboard-kpi .metric-icon').count())>0,'Dashboard KPI icon nodes should remain available to desktop');
-      assert.ok(await page.locator('.dashboard-kpi .metric-icon').evaluateAll(nodes=>nodes.every(el=>getComputedStyle(el).display==='none')),'Mobile dashboard KPI icons must be hidden');
+      assert.ok((await page.locator('.dashboard-kpi .metric-icon').count())>0,'Dashboard KPI icon nodes should remain available');
+      assert.ok(await page.locator('.dashboard-kpi .metric-icon').evaluateAll(nodes=>nodes.every(el=>getComputedStyle(el).display!=='none')),'Mobile dashboard KPI icons must stay visible at the card top-right');
       assert.equal(await page.locator('.dashboard-kpis').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length),2,'390px mobile dashboard must pair Omzet and Kosten');
       assert.equal(await page.locator('#content').evaluate(el=>getComputedStyle(el).paddingTop),'14px','390px mobile content padding must use the compact app-only contract');
       assert.equal(await page.locator('.dashboard-chart-card').isVisible(),false,'Large chart belongs on mobile Reports');
@@ -242,9 +323,13 @@ try{
       await page.evaluate(()=>navigate('invoices'));
       await page.getByRole('heading',{name:'Inkomsten'}).waitFor();
       assert.ok((await page.locator('.product-kpi-icon').count())>0,'Product KPI icon nodes should remain available to desktop');
-      assert.ok(await page.locator('.product-kpi-icon').evaluateAll(nodes=>nodes.every(el=>getComputedStyle(el).display==='none')),'Mobile product KPI icons must be hidden');
-      const firstContentTop=await page.locator('.workspace-table').evaluate(el=>Math.round(el.getBoundingClientRect().top));
-      assert.ok(firstContentTop<844,browserName+' mobile Inkomsten main list should begin inside the first viewport');
+      assert.ok(await page.locator('.product-kpi-icon').evaluateAll(nodes=>nodes.every(el=>getComputedStyle(el).display!=='none')),'Mobile product KPI icons must stay visible at the card top-right');
+      const incomeMobileGeometry=await page.evaluate(()=>{
+        const box=selector=>{const el=document.querySelector(selector),r=el?.getBoundingClientRect();return r?{top:Math.round(r.top),bottom:Math.round(r.bottom),height:Math.round(r.height)}:null};
+        return {shell:box('.product-page-shell'),kpis:box('.product-kpis'),toolbar:box('.list-toolbar'),list:box('.workspace-table')};
+      });
+      const firstContentTop=incomeMobileGeometry.list?.top??Infinity;
+      assert.ok(firstContentTop<844,browserName+' mobile Inkomsten main list should begin inside the first viewport: '+JSON.stringify(incomeMobileGeometry));
       await page.evaluate(()=>navigate('vat'));
       await page.getByRole('heading',{name:'Btw'}).waitFor();
       const vatStatus=page.locator('.product-page-head .page-status').first();
