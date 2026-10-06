@@ -144,6 +144,13 @@ if __name__ == "__main__":
         test_perspective_shadow_targeted_header_recovers_invoice_number,
         test_factoring_primary_totals_are_not_replaced_by_fee_percentage,
     ]
+    failures = []
     for test in tests:
-        test()
-        print("PASS", test.__name__)
+        try:
+            test()
+            print("PASS", test.__name__)
+        except Exception as exc:
+            failures.append((test.__name__, type(exc).__name__, str(exc)))
+            print("FAIL", test.__name__, type(exc).__name__, str(exc))
+    if failures:
+        raise AssertionError("OCR V5 RED regressions: " + " | ".join(f"{name}:{kind}" for name, kind, _ in failures))
