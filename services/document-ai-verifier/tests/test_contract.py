@@ -152,6 +152,300 @@ def test_unknown_or_duplicate_model_fields_fail_closed(client, monkeypatch):
     assert r.json()["detail"]["code"] == "VERIFIER_RESPONSE_INVALID"
 
 
+
+def test_empty_verdicts_fail_closed(client, monkeypatch):
+    async def fake_backend(_request):
+        return {"verdicts": []}
+
+    monkeypatch.setattr(verifier, "query_local_vlm", fake_backend)
+    r = client.post("/verify", headers=auth(), json=payload())
+    assert r.status_code == 503
+    assert r.json()["detail"] == {
+        "code": "VERIFIER_RESPONSE_INVALID",
+        "fallback": "deterministic_pipeline_and_human_review",
+    }
+
+
+def test_incomplete_verdict_set_fails_closed(client, monkeypatch):
+    async def fake_backend(_request):
+        return {
+            "verdicts": [
+                {
+                    "field": "supplier",
+                    "verdict": "agree",
+                    "verifierValue": "Voorbeeld BV",
+                    "confidence": 0.9,
+                    "evidence": "Naam zichtbaar.",
+                }
+            ]
+        }
+
+    monkeypatch.setattr(verifier, "query_local_vlm", fake_backend)
+    r = client.post("/verify", headers=auth(), json=payload())
+    assert r.status_code == 503
+    assert r.json()["detail"]["code"] == "VERIFIER_RESPONSE_INVALID"
+
+
+def test_complete_exact_verdict_set_succeeds(client, monkeypatch):
+    async def fake_backend(_request):
+        return {
+            "verdicts": [
+                {
+                    "field": "supplier",
+                    "verdict": "agree",
+                    "verifierValue": "Voorbeeld BV",
+                    "confidence": 0.9,
+                    "evidence": "Naam zichtbaar.",
+                },
+                {
+                    "field": "gross",
+                    "verdict": "agree",
+                    "verifierValue": "121.00",
+                    "confidence": 0.99,
+                    "evidence": "Totaal zichtbaar.",
+                },
+            ]
+        }
+
+    monkeypatch.setattr(verifier, "query_local_vlm", fake_backend)
+    r = client.post("/verify", headers=auth(), json=payload())
+    assert r.status_code == 200
+    assert {row["field"] for row in r.json()["verdicts"]} == {"supplier", "gross"}
+
+
+def test_missing_verifier_value_property_fails_closed(client, monkeypatch):
+    async def fake_backend(_request):
+        return {
+            "verdicts": [
+                {
+                    "field": "supplier",
+                    "verdict": "uncertain",
+                    "confidence": 0.5,
+                    "evidence": "Onduidelijk.",
+                },
+                {
+                    "field": "gross",
+                    "verdict": "agree",
+                    "verifierValue": "121.00",
+                    "confidence": 0.99,
+                    "evidence": "Totaal zichtbaar.",
+                },
+            ]
+        }
+
+    monkeypatch.setattr(verifier, "query_local_vlm", fake_backend)
+    r = client.post("/verify", headers=auth(), json=payload())
+    assert r.status_code == 503
+    assert r.json()["detail"]["code"] == "VERIFIER_RESPONSE_INVALID"
+
+
+def _mixed_vat_fields():
+    return [
+        {
+            "field": "mixedRates",
+            "parserValue": "true",
+            "parserConfidence": 0.99,
+            "parserCandidates": ["true"],
+        },
+        {
+            "field": "vatRate",
+            "parserValue": None,
+            "parserConfidence": 0.99,
+            "parserCandidates": [],
+        },
+        {
+            "field": "vatLines",
+            "parserValue": '[{"rate":9,"taxableAmount":100,"vatAmount":9},{"rate":21,"taxableAmount":100,"vatAmount":21}]',
+            "parserConfidence": 0.99,
+            "parserCandidates": [
+                '[{"rate":9,"taxableAmount":100,"vatAmount":9},{"rate":21,"taxableAmount":100,"vatAmount":21}]'
+            ],
+        },
+    ]
+
+
+def test_mixed_vat_single_rate_collapse_attempt_fails_closed(client, monkeypatch):
+    async def fake_backend(_request):
+        return {
+            "verdicts": [
+                {
+                    "field": "mixedRates",
+                    "verdict": "agree",
+                    "verifierValue": "true",
+                    "confidence": 0.99,
+                    "evidence": "Twee btw-tarieven zichtbaar.",
+                },
+                {
+                    "field": "vatRate",
+                    "verdict": "disagree",
+                    "verifierValue": "21",
+                    "confidence": 0.99,
+                    "evidence": "21% zichtbaar.",
+                },
+                {
+                    "field": "vatLines",
+                    "verdict": "agree",
+                    "verifierValue": '[{"rate":9,"taxableAmount":100,"vatAmount":9},{"rate":21,"taxableAmount":100,"vatAmount":21}]',
+                    "confidence": 0.99,
+                    "evidence": "9% en 21% regels zichtbaar.",
+                },
+            ]
+        }
+
+    monkeypatch.setattr(verifier, "query_local_vlm", fake_backend)
+    body = payload(fields=_mixed_vat_fields())
+    r = client.post("/verify", headers=auth(), json=body)
+    assert r.status_code == 503
+    assert r.json()["detail"]["code"] == "VERIFIER_RESPONSE_INVALID"
+
+
+def test_legitimate_mixed_vat_keeps_single_rate_empty(client, monkeypatch):
+    async def fake_backend(_request):
+        return {
+            "verdicts": [
+                {
+                    "field": "mixedRates",
+                    "verdict": "agree",
+                    "verifierValue": "true",
+                    "confidence": 0.99,
+                    "evidence": "Twee btw-tarieven zichtbaar.",
+                },
+                {
+                    "field": "vatRate",
+                    "verdict": "uncertain",
+                    "verifierValue": "",
+                    "confidence": 0.99,
+                    "evidence": "Geen enkel tarief vertegenwoordigt het document.",
+                },
+                {
+                    "field": "vatLines",
+                    "verdict": "agree",
+                    "verifierValue": '[{"rate":9,"taxableAmount":100,"vatAmount":9},{"rate":21,"taxableAmount":100,"vatAmount":21}]',
+                    "confidence": 0.99,
+                    "evidence": "9% en 21% regels zichtbaar.",
+                },
+            ]
+        }
+
+    monkeypatch.setattr(verifier, "query_local_vlm", fake_backend)
+    body = payload(fields=_mixed_vat_fields())
+    r = client.post("/verify", headers=auth(), json=body)
+    assert r.status_code == 200
+    rows = {row["field"]: row for row in r.json()["verdicts"]}
+    assert rows["vatRate"]["verdict"] == "uncertain"
+    assert rows["vatRate"]["verifierValue"] is None
+    assert rows["vatLines"]["verifierValue"].count('"rate"') == 2
+    assert r.json()["mayBook"] is False
+    assert r.json()["sourceOfTruth"] == "boekuna-deterministic-pipeline"
+
+
+def test_unknown_model_field_fails_closed(client, monkeypatch):
+    async def fake_backend(_request):
+        return {
+            "verdicts": [
+                {
+                    "field": "supplier",
+                    "verdict": "agree",
+                    "verifierValue": "Voorbeeld BV",
+                    "confidence": 0.9,
+                    "evidence": "A",
+                },
+                {
+                    "field": "gross",
+                    "verdict": "agree",
+                    "verifierValue": "121.00",
+                    "confidence": 0.9,
+                    "evidence": "B",
+                },
+                {
+                    "field": "bankAccountBalance",
+                    "verdict": "agree",
+                    "verifierValue": "10000",
+                    "confidence": 0.9,
+                    "evidence": "C",
+                },
+            ]
+        }
+
+    monkeypatch.setattr(verifier, "query_local_vlm", fake_backend)
+    r = client.post("/verify", headers=auth(), json=payload())
+    assert r.status_code == 503
+    assert r.json()["detail"]["code"] == "VERIFIER_RESPONSE_INVALID"
+
+
+def test_duplicate_model_field_fails_closed(client, monkeypatch):
+    async def fake_backend(_request):
+        return {
+            "verdicts": [
+                {
+                    "field": "supplier",
+                    "verdict": "agree",
+                    "verifierValue": "Voorbeeld BV",
+                    "confidence": 0.9,
+                    "evidence": "A",
+                },
+                {
+                    "field": "supplier",
+                    "verdict": "agree",
+                    "verifierValue": "Voorbeeld BV",
+                    "confidence": 0.9,
+                    "evidence": "B",
+                },
+            ]
+        }
+
+    monkeypatch.setattr(verifier, "query_local_vlm", fake_backend)
+    r = client.post("/verify", headers=auth(), json=payload())
+    assert r.status_code == 503
+    assert r.json()["detail"]["code"] == "VERIFIER_RESPONSE_INVALID"
+
+
+def test_invalid_verdict_confidence_and_long_evidence_fail_closed(client, monkeypatch):
+    cases = [
+        {
+            "field": "supplier",
+            "verdict": "approved",
+            "verifierValue": "Voorbeeld BV",
+            "confidence": 0.9,
+            "evidence": "A",
+        },
+        {
+            "field": "supplier",
+            "verdict": "agree",
+            "verifierValue": "Voorbeeld BV",
+            "confidence": 1.1,
+            "evidence": "A",
+        },
+        {
+            "field": "supplier",
+            "verdict": "agree",
+            "verifierValue": "Voorbeeld BV",
+            "confidence": 0.9,
+            "evidence": "x" * 241,
+        },
+    ]
+    for bad_supplier in cases:
+        async def fake_backend(_request, row=bad_supplier):
+            return {
+                "verdicts": [
+                    row,
+                    {
+                        "field": "gross",
+                        "verdict": "agree",
+                        "verifierValue": "121.00",
+                        "confidence": 0.99,
+                        "evidence": "Totaal zichtbaar.",
+                    },
+                ]
+            }
+
+        monkeypatch.setattr(verifier, "query_local_vlm", fake_backend)
+        r = client.post("/verify", headers=auth(), json=payload())
+        assert r.status_code == 503
+        assert r.json()["detail"]["code"] == "VERIFIER_RESPONSE_INVALID"
+        verifier.reset_runtime_state_for_tests()
+
+
 def test_backend_timeout_fails_closed_without_mutation(client, monkeypatch):
     async def timeout_backend(_request):
         raise verifier.VerifierUnavailable("VERIFIER_TIMEOUT")
