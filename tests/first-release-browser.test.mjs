@@ -93,7 +93,7 @@ try{
 
   await page.evaluate(()=>navigate('vat'));
   const vatText=await page.locator('#content').innerText();
-  assert.match(vatText,/Boekuna telt de btw uit je gecontroleerde inkomsten en kosten bij elkaar\. Dit is een indicatie\./);
+  assert.match(vatText,/Indicatie · geen aangifte/,'Compact VAT view must retain clear indicative/not-filed meaning');
   assert.match(vatText,/Waarschijnlijk te betalen|Waarschijnlijk terug te vragen/);
   assert.match(vatText,/Boekuna verstuurt deze aangifte niet naar de Belastingdienst\./);
 
