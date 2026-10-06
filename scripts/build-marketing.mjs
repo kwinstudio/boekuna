@@ -125,7 +125,7 @@ function editorialPages(dir){
     else if(entry.name.endsWith('.html')){
       let html=fs.readFileSync(file,'utf8').replaceAll('href="/assets/favicon.svg"','href="/assets/editorial-favicon.svg"');
       if(html.includes('id="mnav"')&&!html.includes('class="mnav-primary"')){
-        html=html.replace(/(<nav class="mnav"[\\s\\S]*?<a href="https:\\/\\/app\\.boekuna\\.nl\\/\\?login=1">Inloggen<\\/a>)([\\s\\S]*?<\\/nav>)/,'$1\\n  <a class="mnav-primary" href="https://app.boekuna.nl/?register=1">Probeer gratis</a>$2');
+        html=html.replace(/(<nav class="mnav"[\s\S]*?<a href="https:\/\/app\.boekuna\.nl\/\?login=1">Inloggen<\/a>)([\s\S]*?<\/nav>)/,'$1\n  <a class="mnav-primary" href="https://app.boekuna.nl/?register=1">Probeer gratis</a>$2');
       }
       if(!html.includes('/assets/editorial-marketing.css'))html=html.replace('</head>','<link rel="stylesheet" href="/assets/editorial-marketing.css">\n</head>');
       if(html.includes('id="burger"')&&!html.includes('/assets/editorial-marketing.js'))html=html.replace('</body>','<script src="/assets/editorial-marketing.js" defer></script>\n</body>');
