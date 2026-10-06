@@ -20,6 +20,9 @@ assert.ok(reviewJs.includes('reviewAttentionFields'),'deferred attention persist
 assert.ok(reviewJs.includes('reviewSnapshot'),'saved review snapshot missing');
 assert.ok(reviewJs.includes('mixedVatValidation'),'mixed VAT validation missing');
 assert.ok(reviewJs.includes('netC+vatC!==grossC'),'financial core must compare cents exactly');
+assert.ok(reviewJs.includes('exchangeRateToEur'),'foreign-currency review must expose an explicit EUR exchange-rate contract');
+assert.ok(reviewJs.includes('confirmExchangeRate'),'foreign-currency review must require explicit user confirmation');
+assert.ok(reviewJs.includes('convertSourceCentsToEur'),'foreign-currency booking must use a deterministic cents conversion helper');
 assert.equal(reviewJs.includes('Totaal op document'),false,'amount review must not repeat the same total');
 assert.ok(reviewJs.includes('aria-label="Origineel document bekijken"'),'original document must stay accessible without a permanent text action');
 assert.ok(reviewCss.includes('min-height:44px'),'mobile review actions must keep 44px touch targets');
@@ -191,6 +194,113 @@ try{
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
   await page.evaluate(()=>closeModal());
+
+  // FOREIGN CURRENCY — a non-EUR document must never dead-end. The detected
+  // currency stays visible, an explicit EUR-per-unit rate is required, and a
+  // confirmed rate is persisted together with deterministic EUR booking amounts.
+  await openReview({
+    documentType:'purchase_invoice',invoiceNumber:'USD-2026-101',party:'Northwind Tools LLC',category:'Inkoop',
+    currency:'USD',net:100,vatAmount:21,gross:121,vatRate:21,
+    reviewRouting:{mode:'FULL_REVIEW',fields:['currency'],count:1,autoBook:false},
+    fieldConfidence:{party:99,invoiceNumber:99,issueDate:99,net:99,vatAmount:99,gross:99,vatRate:99,vatLines:99,currency:99,category:90}
+  });
+  await page.getByRole('button',{name:'Volgende',exact:true}).click();
+  const fxCard=page.locator('[data-review-issue="currency"]');
+  assert.equal(await fxCard.count(),1,'USD blocker must have a visible resolution card');
+  assert.match(await fxCard.innerText(),/USD/i);
+  assert.match(await fxCard.innerText(),/wisselkoers/i);
+  assert.match(await fxCard.innerText(),/1 USD/i,'rate direction must be explicit');
+  assert.equal(await fxCard.locator('[name="exchangeRateToEur"]').count(),1,'exchange-rate input must be visible');
+  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true,'USD without confirmed rate must stay blocked');
+  let fxIssues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
+  assert.ok(fxIssues.some(x=>x.field==='exchangeRateToEur'),'missing confirmed rate must be the actionable blocker');
+
+  await fxCard.locator('[name="exchangeRateToEur"]').fill('0,92');
+  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true,'typing a rate is not confirmation');
+  await fxCard.getByRole('button',{name:'Wisselkoers bevestigen',exact:true}).click();
+  fxIssues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
+  assert.deepEqual(fxIssues,[],'confirmed valid USD rate must resolve the blocker: '+JSON.stringify(fxIssues));
+  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false,'confirmed rate must unlock save');
+  assert.match(await fxCard.innerText(),/€\s?92,00|92,00\s?€/i,'EUR booking preview must be deterministic');
+  await page.screenshot({path:'tests/artifacts/document-review-foreign-currency-desktop-'+browserName+'.png',fullPage:true});
+  await page.locator('[data-review-save]:visible').first().click();
+  await page.waitForFunction(()=>state.documents.some(d=>d.reviewSnapshot?.invoiceNumber==='USD-2026-101'));
+
+  const savedFx=await page.evaluate(()=>{
+    const doc=state.documents.find(d=>d.reviewSnapshot?.invoiceNumber==='USD-2026-101');
+    const expense=state.expenses.find(e=>e.id===doc?.linkedId);
+    return {
+      snapshot:doc?.reviewSnapshot,
+      docMeta:doc?{sourceCurrency:doc.sourceCurrency,exchangeRateToEur:doc.exchangeRateToEur,bookingCurrency:doc.bookingCurrency,bookingAmountsEur:doc.bookingAmountsEur}:null,
+      expense:expense?{currency:expense.currency,sourceCurrency:expense.sourceCurrency,exchangeRateToEur:expense.exchangeRateToEur,sourceAmounts:expense.sourceAmounts,bookingAmountsEur:expense.bookingAmountsEur,exVat:expense.exVat,vatAmount:expense.vatAmount,gross:expense.gross}:null
+    };
+  });
+  assert.equal(savedFx.snapshot.currency,'USD');
+  assert.equal(savedFx.snapshot.exchangeRateToEur,'0.92');
+  assert.equal(savedFx.snapshot.exchangeRateConfirmed,true);
+  assert.deepEqual(savedFx.snapshot.sourceAmounts,{net:100,vatAmount:21,gross:121});
+  assert.deepEqual(savedFx.snapshot.bookingAmountsEur,{net:92,vatAmount:19.32,gross:111.32});
+  assert.deepEqual(savedFx.docMeta,{sourceCurrency:'USD',exchangeRateToEur:'0.92',bookingCurrency:'EUR',bookingAmountsEur:{net:92,vatAmount:19.32,gross:111.32}});
+  assert.equal(savedFx.expense.currency,'EUR','ledger booking values must be denominated in EUR');
+  assert.equal(savedFx.expense.sourceCurrency,'USD','original source currency must remain traceable');
+  assert.equal(savedFx.expense.exchangeRateToEur,'0.92');
+  assert.deepEqual(savedFx.expense.sourceAmounts,{net:100,vatAmount:21,gross:121});
+  assert.deepEqual(savedFx.expense.bookingAmountsEur,{net:92,vatAmount:19.32,gross:111.32});
+  assert.deepEqual({net:savedFx.expense.exVat,vatAmount:savedFx.expense.vatAmount,gross:savedFx.expense.gross},{net:92,vatAmount:19.32,gross:111.32});
+
+  await page.evaluate(()=>{
+    const doc=state.documents.find(d=>d.reviewSnapshot?.invoiceNumber==='USD-2026-101');
+    openSavedDocumentReview(doc.id);
+  });
+  assert.match(await page.locator('#modalRoot').innerText(),/USD/i,'reopened review must preserve source currency');
+  assert.match(await page.locator('#modalRoot').innerText(),/1 USD.*0,92 EUR/i,'reopened review must show the exact confirmed rate');
+  assert.match(await page.locator('#modalRoot').innerText(),/111,32/i,'reopened review must show the EUR booking total');
+  await page.evaluate(()=>closeModal());
+
+  // Exact rounding regression: source cents * decimal rate is rounded half-up,
+  // then gross is the exact sum of converted net + VAT (never binary-float drift).
+  const fxRounding=await page.evaluate(()=>({
+    one:BookunaDocumentReviewV2.convertSourceCentsToEur(1,'0.5'),
+    edge:BookunaDocumentReviewV2.convertSourceCentsToEur(5,'0.333')
+  }));
+  assert.deepEqual(fxRounding,{one:1,edge:2});
+
+  // VAT MISMATCH — 10 total / 5 VAT / 21% must stay blocked, show the
+  // actionable VAT field and unlock immediately after the user fixes it.
+  await openReview({
+    documentType:'receipt',invoiceNumber:'',party:'VAT Check Shop',category:'Kantoor',
+    net:5,vatAmount:5,gross:10,vatRate:21,
+    reviewRouting:{mode:'FULL_REVIEW',fields:['vatAmount'],count:1,autoBook:false},
+    fieldConfidence:{party:99,issueDate:99,net:70,vatAmount:70,gross:99,vatRate:99,vatLines:70,category:90}
+  });
+  await page.getByRole('button',{name:'Volgende',exact:true}).click();
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]:visible').count(),1,'VAT blocker must expose the VAT input');
+  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true);
+  const badVatIssues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
+  assert.ok(badVatIssues.some(x=>x.field==='vatAmount'),'bad VAT combination must point at the VAT field');
+  await page.locator('[data-review-page="2"] [name="vatAmount"]').fill('1,74');
+  await page.locator('#reviewBlockingState').filter({hasText:/klaar om op te slaan/i}).waitFor();
+  assert.equal(await page.locator('[data-review-page="2"] [name="net"]').inputValue(),'8.26');
+  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
+  await page.evaluate(()=>closeModal());
+
+  // BLOCKER ACTION AUDIT — every blocker exercised here has a visible control
+  // in the same review screen.
+  const blockerScenarios=[
+    {name:'missing total',overrides:{gross:null},field:'gross',selector:'[name="gross"]'},
+    {name:'missing VAT',overrides:{vatAmount:null},field:'vatAmount',selector:'[name="vatAmount"]'},
+    {name:'missing net',overrides:{net:null,fieldProvenance:{gross:{source:'recognition',confidence:40},vatAmount:{source:'recognition',confidence:40}}},field:'net',selector:'[name="net"]'},
+    {name:'VAT treatment',overrides:{vatRate:20,net:100,vatAmount:20,gross:120,accountingVatTreatment:'review_required'},field:'vatTreatmentChoice',selector:'[name="vatTreatmentChoice"]'},
+    {name:'foreign currency',overrides:{currency:'USD'},field:'exchangeRateToEur',selector:'[name="exchangeRateToEur"]'}
+  ];
+  for(const scenario of blockerScenarios){
+    await openReview(scenario.overrides);
+    await page.getByRole('button',{name:'Volgende',exact:true}).click();
+    const issues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
+    assert.ok(issues.some(x=>x.field===scenario.field),scenario.name+' blocker missing: '+JSON.stringify(issues));
+    assert.ok(await page.locator(scenario.selector+':visible').count()>0,scenario.name+' has no visible resolution control');
+    await page.evaluate(()=>closeModal());
+  }
 
   // FINANCIAL MISMATCH — step 1 remains simple; step 2 contains the fix at the amount.
   await openReview({
@@ -400,6 +510,19 @@ try{
     if(width===390)await page.screenshot({path:'tests/artifacts/document-review-two-step-mobile-'+browserName+'.png',fullPage:true});
     await page.evaluate(()=>closeModal());
   }
+
+  // Foreign-currency mobile layout must remain usable without overflow.
+  await page.setViewportSize({width:390,height:844});
+  await openReview({
+    documentType:'purchase_invoice',invoiceNumber:'USD-MOBILE-1',party:'Mobile Foreign Supplier',currency:'USD',
+    net:100,vatAmount:21,gross:121,vatRate:21,
+    reviewRouting:{mode:'FULL_REVIEW',fields:['currency'],count:1,autoBook:false}
+  });
+  await page.getByRole('button',{name:'Volgende',exact:true}).click();
+  await noOverflow(browserName+' foreign currency mobile');
+  assert.equal(await page.locator('[name="exchangeRateToEur"]:visible').count(),1);
+  await page.screenshot({path:'tests/artifacts/document-review-foreign-currency-mobile-'+browserName+'.png',fullPage:true});
+  await page.evaluate(()=>closeModal());
 
   // Axe on both wizard screens.
   await page.setViewportSize({width:390,height:844});
