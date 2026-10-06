@@ -575,7 +575,8 @@ def run():
         needs_review = result is None or routing.get("mode") == "FULL_REVIEW" or bool(routing.get("fields"))
         review_required += int(needs_review)
 
-        roi_used = bool((doc or {}).get("financialFocusUsed") or (doc or {}).get("headerFocusUsed"))
+        hints = (doc or {}).get("processingHints") or {}
+        roi_used = bool(hints.get("financialFocusUsed") or hints.get("headerFocusUsed"))
         roi_docs += int(roi_used)
 
         native_no_ocr_ok = not case.get("expect_no_ocr") or not bool((doc or {}).get("ocrPages"))
@@ -587,8 +588,8 @@ def run():
             "cpuMs": round(cpu_elapsed, 2),
             "ocrPasses": calls["count"],
             "roiUsed": roi_used,
-            "ocrVariant": (doc or {}).get("ocrVariant"),
-            "qualityFlags": ((doc or {}).get("imageQuality") or {}).get("flags", []),
+            "ocrVariant": hints.get("ocrVariant"),
+            "qualityFlags": hints.get("qualityFlags", []),
             "ocrPages": (doc or {}).get("ocrPages", []),
             "nativePdfNoOcrOk": native_no_ocr_ok,
             "extractError": extract_error,
