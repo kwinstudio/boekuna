@@ -274,6 +274,10 @@ try{
   assert.equal(savedFx.persisted.sourceCurrency,'USD');
   assert.equal(savedFx.persisted.exchangeRateToEur,'0.92');
   assert.deepEqual(savedFx.persisted.bookingAmountsEur,{net:92,vatAmount:19.32,gross:111.32});
+  const foreignDuplicate=await page.evaluate(()=>duplicateInvoiceCandidate({
+    invoiceNumber:'USD-2026-101',party:'Northwind Tools LLC',currency:'USD',issueDate:'2026-10-03',gross:121
+  },''));
+  assert.ok(foreignDuplicate&&['PROBABLE','POSSIBLE'].includes(foreignDuplicate.status),'saved foreign document must remain detectable using source currency/amount');
 
   await page.evaluate(()=>{
     const doc=state.documents.find(d=>d.reviewSnapshot?.invoiceNumber==='USD-2026-101');
