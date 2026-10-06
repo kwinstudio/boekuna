@@ -151,6 +151,22 @@ try{
     await shot(page,name+'-after');
   }
 
+  // Semantic KPI roles: normal financial amounts are neutral/brand, attention alone is amber/red.
+  await page.evaluate(()=>navigate('expenses'));
+  const expenseKpis=page.locator('.product-kpi');
+  assert.ok((await expenseKpis.nth(0).getAttribute('class')).includes('kpi-tone-neutral'),'Normal Kosten KPI must not be warning/error');
+  assert.equal(await expenseKpis.nth(0).locator('.product-kpi-icon').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(241, 243, 244)');
+  assert.ok((await expenseKpis.nth(1).getAttribute('class')).includes('kpi-tone-neutral'),'VAT reclaim amount must remain neutral');
+  await page.evaluate(()=>navigate('invoices'));
+  assert.ok((await page.locator('.product-kpi').nth(0).getAttribute('class')).includes('kpi-tone-support'),'Omzet may use the restrained BOEKUNA brand accent');
+  assert.ok((await page.locator('.product-kpi').nth(2).getAttribute('class')).includes('kpi-tone-neutral'),'Openstaand must be neutral without an attention condition');
+  assert.ok((await page.locator('.product-kpi').nth(3).getAttribute('class')).includes('kpi-tone-error'),'Te laat must retain semantic error treatment');
+  await page.evaluate(()=>navigate('documents'));
+  assert.ok((await page.locator('.product-kpi').nth(1).getAttribute('class')).includes('kpi-tone-warning'),'Controle nodig must retain semantic warning treatment');
+  assert.equal(await page.locator('.product-kpi').nth(1).locator('.product-kpi-icon').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 247, 232)');
+  await page.evaluate(()=>navigate('reports'));
+  assert.ok((await page.locator('.product-kpi').nth(1).getAttribute('class')).includes('kpi-tone-neutral'),'Report Kosten must not be decorative amber');
+
   await page.evaluate(()=>navigate('invoices'));
   const primary=page.getByRole('button',{name:/Nieuwe factuur|Factuur maken/}).first();
   assert.equal(await primary.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(99, 212, 113)');
@@ -196,7 +212,9 @@ try{
   }
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(()=>navigate('dashboard'));
-  assert.equal(await page.locator('#mobileBottomNav .mobile-bottom-nav-item.active').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(236, 250, 238)');
+  const mobileActive=page.locator('#mobileBottomNav .mobile-bottom-nav-item.active');
+  assert.equal(await mobileActive.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(236, 250, 238)');
+  assert.match(await mobileActive.evaluate(el=>getComputedStyle(el).boxShadow),/99, 212, 113/);
   await shot(page,'overzicht-mobile-after');
 
   // Baseline captures prove the change visually without mutating the historical source.
