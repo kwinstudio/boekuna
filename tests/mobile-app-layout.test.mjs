@@ -7,6 +7,13 @@ import { chromium, webkit } from 'playwright';
 const original=fs.readFileSync(new URL('../kwinest/index.html',import.meta.url),'utf8');
 fs.mkdirSync('tests/artifacts',{recursive:true});
 
+assert.match(original,/--mobile-viewport-height/,'Mobile modal CSS must follow the visual viewport height');
+assert.match(original,/--mobile-viewport-offset-top/,'Mobile modal CSS must follow the visual viewport offset');
+assert.match(original,/\.field input,\.field select,\.field textarea\{font-size:16px\}/,'Mobile inputs need 16px to prevent iOS focus zoom');
+assert.match(original,/visualViewport\.offsetTop/,'App-only viewport sync includes iOS offset');
+assert.match(original,/keepFocusedModalFieldVisible/,'Focused modal fields stay visible over keyboard');
+assert.match(original,/visualViewport\.addEventListener\('scroll',syncKeyboardOffset\)/,'App handles visual viewport panning');
+
 function replaceLast(source,needle,replacement){
   const i=source.lastIndexOf(needle);
   if(i<0)throw new Error('Missing bootstrap marker: '+needle);
@@ -150,6 +157,30 @@ try{
 
   await page.locator('[data-mobile-page="dashboard"]').click();
   await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
+
+  // Simulate a 410px iOS visual viewport above the keyboard, including viewport panning.
+  await page.evaluate(()=>newInvoice());
+  await page.locator('#modalRoot .modal').waitFor();
+  await page.evaluate(()=>{
+    document.documentElement.style.setProperty('--mobile-viewport-height','410px');
+    document.documentElement.style.setProperty('--mobile-viewport-offset-top','100px');
+  });
+  await page.locator('#modalRoot .modal').evaluate(async el=>{
+    await Promise.all(el.getAnimations().map(animation=>animation.finished.catch(()=>{})));
+  });
+  const keyboardBackdrop=await page.locator('#modalRoot .modal-backdrop').boundingBox();
+  const keyboardSheet=await page.locator('#modalRoot .modal').boundingBox();
+  assert.ok(keyboardBackdrop&&Math.abs(keyboardBackdrop.y-100)<3,'Keyboard modal backdrop must follow the visual viewport top');
+  assert.ok(Math.abs(keyboardBackdrop.height-410)<3,'Keyboard modal backdrop must fit the visible viewport height');
+  assert.ok(keyboardSheet&&keyboardSheet.height<=404,'Invoice modal must not exceed the visible keyboard viewport');
+  assert.ok(keyboardSheet.y>=keyboardBackdrop.y-2,'Invoice sheet must remain within the visible keyboard viewport');
+  assert.ok(keyboardSheet.y+keyboardSheet.height<=keyboardBackdrop.y+keyboardBackdrop.height+2,'Invoice sheet must stay above the simulated keyboard');
+  assert.equal(await page.locator('#modalRoot .field input').first().evaluate(el=>getComputedStyle(el).fontSize),'16px','Mobile invoice fields must prevent iOS input focus zoom');
+  await page.evaluate(()=>{
+    document.documentElement.style.removeProperty('--mobile-viewport-height');
+    document.documentElement.style.removeProperty('--mobile-viewport-offset-top');
+    closeModal();
+  });
 
   // Independent QA additions: focus containment/return, non-primary active state,
   // breakpoint cleanup, long-name overflow, and desktop width coverage.
