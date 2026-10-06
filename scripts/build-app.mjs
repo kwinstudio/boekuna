@@ -322,6 +322,36 @@ if(!isReleaseFeatureEnabled(releaseFeatures,'foreignVatAdvancedUX')){
   appHtml=appHtml.replace(vatTreatmentField,'<input type="hidden" name="taxTreatment" id="taxTreatment" value="${esc(defaultTreatment)}">');
 }
 
+// Product-app colour semantics are presentation-only. Normalize legacy tone tags in
+// the generated app artifact without touching financial values, state or persistence.
+const productToneReplacements=[
+  [
+    'dashboard-kpi dashboard-kpi-secondary kpi-tone-warning" onclick="navigate(\\'expenses\\')"',
+    'dashboard-kpi dashboard-kpi-secondary kpi-tone-neutral" onclick="navigate(\\'expenses\\')"'
+  ],
+  [
+    "productKpi('Kosten',money(net),'','i-receipt','warning')",
+    "productKpi('Kosten',money(net),'','i-receipt','neutral')"
+  ],
+  [
+    "productKpi('Uitgaven',money(out),extraHelpVisible()?'Negatieve bankregels':'','i-receipt','warning')",
+    "productKpi('Uitgaven',money(out),extraHelpVisible()?'Negatieve bankregels':'','i-receipt','neutral')"
+  ],
+  [
+    "productKpi('Deze maand uitgegeven',money(spent),monthRows.length+' bankregel'+(monthRows.length===1?'':'s'),'i-receipt','warning')",
+    "productKpi('Deze maand uitgegeven',money(spent),monthRows.length+' bankregel'+(monthRows.length===1?'':'s'),'i-receipt','neutral')"
+  ],
+  [
+    "productKpi('Kosten',money(costs),extraHelpVisible()?'Excl. btw':'','i-receipt','warning')",
+    "productKpi('Kosten',money(costs),extraHelpVisible()?'Excl. btw':'','i-receipt','neutral')"
+  ]
+];
+for(const [needle,replacement] of productToneReplacements){
+  const first=appHtml.indexOf(needle),second=first<0?-1:appHtml.indexOf(needle,first+needle.length);
+  if(first<0||second>=0)throw new Error('Product colour tone marker changed: '+needle);
+  appHtml=appHtml.slice(0,first)+replacement+appHtml.slice(first+needle.length);
+}
+
 const releaseRuntime="const BOEKUNA_RELEASE_PROFILE=Object.freeze("+JSON.stringify({name:releaseProfile.name,features:releaseFeatures})+");\nfunction releaseFeatureEnabled(key){return BOEKUNA_RELEASE_PROFILE.features?.[key]===true}\n";
 if(!appHtml.includes(assistantRuntimeMarker))throw new Error('Release runtime marker changed');
 appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script>\n'+releaseRuntime+'const USERS_KEY=');
