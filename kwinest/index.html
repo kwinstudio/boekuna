@@ -4300,9 +4300,10 @@ function syncCompactSettingsNavigation(){
  const section=document.querySelector('#content .settings-section');
  const menu=section?.querySelector('.mobile-settings-index');
  if(!menu)return false;
- const headings=Array.from(section.querySelectorAll(':scope > .settings-group')).map(group=>group.querySelector('.settings-group-label')?.textContent.trim()||'');
+ const groups=Array.from(section.querySelectorAll(':scope > .settings-group'));
  const labels={
   'Bedrijf':['Mijn bedrijf','Naam, adres en betaalgegevens'],
+  'Mijn bedrijf':['Mijn bedrijf','Naam, adres en betaalgegevens'],
   'Weergave':['Weergave','Extra uitleg aan- of uitzetten'],
   'Facturen':['Facturen','Factuurlayout en e-mailbericht'],
   'Boekhouding':['Boekhouding','Fiscale instellingen en reserves'],
@@ -4316,15 +4317,35 @@ function syncCompactSettingsNavigation(){
   'Abonnement & account':['Abonnement & account','Je plan en account beheren'],
   'Gevaarzone':['Account verwijderen','Acties met extra bevestiging']
  };
- const items=Array.from(menu.querySelectorAll(':scope > .settings-nav-item'));
- items.forEach((item,i)=>{
-  const [title,description]=labels[headings[i]]||[headings[i]||'Instellingen','Bekijk en wijzig je instellingen'];
-  const copy=item.querySelector('.settings-nav-copy');
-  const strong=copy?.querySelector('strong'),hint=copy?.querySelector('span');
-  if(strong)strong.textContent=title;
-  if(hint)hint.textContent=description;
- });
- return items.length===headings.length&&items.some(item=>item.textContent.includes('Weergave'));
+ const headings=groups.map(group=>group.querySelector('.settings-group-label')?.textContent.trim()||'Instellingen');
+ let items=Array.from(menu.querySelectorAll(':scope > .settings-nav-item'));
+ // The mobile enhancer may have built its index before the app-only Weergave
+ // section was inserted. Rebuild from the live groups so every section is reachable.
+ if(items.length!==groups.length){
+  menu.replaceChildren();
+  groups.forEach((group,index)=>{
+   const heading=headings[index],[title,description]=labels[heading]||[heading,'Bekijk en wijzig je instellingen'];
+   const item=document.createElement('button');
+   item.type='button';item.className='settings-nav-item';
+   item.innerHTML='<span class="settings-nav-copy"><strong>'+esc(title)+'</strong><span>'+esc(description)+'</span></span><span class="settings-nav-chevron" aria-hidden="true">›</span>';
+   item.addEventListener('click',()=>{
+    if(heading==='Bedrijf'||heading==='Mijn bedrijf'){navigate('profile');return}
+    section.dataset.mobileSettings='detail';
+    groups.forEach(other=>other.classList.toggle('mobile-settings-active',other===group));
+    section.querySelector('.mobile-settings-back')?.focus()
+   });
+   menu.append(item)
+  });
+  items=Array.from(menu.querySelectorAll(':scope > .settings-nav-item'))
+ }else{
+  items.forEach((item,index)=>{
+   const [title,description]=labels[headings[index]]||[headings[index]||'Instellingen','Bekijk en wijzig je instellingen'];
+   const copy=item.querySelector('.settings-nav-copy'),strong=copy?.querySelector('strong'),hint=copy?.querySelector('span');
+   if(strong)strong.textContent=title;
+   if(hint)hint.textContent=description
+  })
+ }
+ return items.length===groups.length&&items.some(item=>item.textContent.includes('Weergave'))
 }
 function scheduleCompactSettingsNavigationSync(){
  compactSettingsNavigationObserver?.disconnect();compactSettingsNavigationObserver=null;
