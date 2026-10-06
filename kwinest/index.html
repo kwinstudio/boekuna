@@ -2043,7 +2043,11 @@ img.bookuna-logo-icon,
 .settings-view-toggle>span{display:grid;gap:4px}
 .settings-view-toggle strong{font-size:14px;font-weight:650}
 .settings-view-description{font-size:12px;color:var(--muted)}
-.settings-view-toggle input{flex:0 0 auto;width:22px;height:22px;accent-color:var(--app-green,#63d471);cursor:pointer}
+.settings-view-toggle input{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:46px;height:28px;border:1px solid #bfcbc5;border-radius:999px;background:#d7ded9;position:relative;cursor:pointer;transition:background-color .16s ease,border-color .16s ease}
+.settings-view-toggle input::before{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.16);transition:transform .16s ease}
+.settings-view-toggle input:checked{background:var(--app-green,#63d471);border-color:var(--app-green,#63d471)}
+.settings-view-toggle input:checked::before{transform:translateX(18px)}
+@media(prefers-reduced-motion:reduce){.settings-view-toggle input,.settings-view-toggle input::before{transition:none}}
 .settings-view-toggle input:focus-visible{outline:3px solid var(--app-green,#63d471);outline-offset:4px}
 .report-period-compact{display:grid;gap:10px;padding:14px 16px}
 .report-period-head{display:flex;align-items:center;justify-content:space-between;gap:14px}
