@@ -70,7 +70,7 @@ function cents(value){
   return typeof financialMoneyCents==='function'?financialMoneyCents(n):Number.isFinite(n)?Math.round(n*100):null;
 }
 function formatCents(value){return value==null?'':(value/100).toFixed(2)}
-function normalizeCurrencyCode(value){return String(value||'EUR').trim().toUpperCase().slice(0,3)}
+function normalizeCurrencyCode(value){return String(value||'EUR').trim().toUpperCase()}
 function parseExchangeRateToEur(value){
   const raw=String(value??'').trim().replace(',','.');
   if(!/^\d+(?:\.\d{1,8})?$/.test(raw))return null;
