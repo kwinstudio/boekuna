@@ -109,9 +109,9 @@ try{
   assert.equal(await page.locator('[data-mobile-page="dashboard"]').getAttribute('aria-current'),'page');
 
   const greeting=await page.locator('.dashboard-page-head .page-status').innerText();
-  assert.match(greeting,/^(Goedemorgen|Goedemiddag|Goedenavond), Kwin · je administratie in één oogopslag$/,'Dashboard context must use local daypart and first name');
+  assert.match(greeting,/^(Goedemorgen|Goedemiddag|Goedenavond), Kwin$/,'Dashboard context must use local daypart and first name');
 
-  await page.locator('.dashboard-attention h2').filter({hasText:/heeft je aandacht|hebben je aandacht/}).waitFor();
+  await page.locator('.dashboard-attention h2').filter({hasText:'Nog te doen'}).waitFor();
   const attentionText=await page.locator('.dashboard-attention').innerText();
   assert.match(attentionText,/Factuur 2026-0001 vervallen/);
   assert.match(attentionText,/1 bankregel koppelen/);
@@ -182,6 +182,38 @@ try{
     closeModal();
   });
 
+  // COMPACT UX — opt-in help is account-scoped, default off; warnings remain visible.
+  await page.evaluate(()=>navigate('settings'));
+  const extraHelp=page.locator('#extraHelpToggle');
+  assert.ok(await extraHelp.isVisible(),'Compact guidance switch must be in Settings');
+  assert.equal(await extraHelp.isChecked(),false,'Extra explanation must default off');
+  await extraHelp.check();
+  assert.equal(await page.evaluate(()=>state.meta.extraHelpEnabled),true,'Extra explanation preference must be saved in account state');
+  await page.evaluate(()=>navigate('dashboard'));
+  assert.equal((await page.locator('.dashboard-kpi-profit .metric-sub').innerText()).trim(),'Omzet minus kosten','Enabled extra explanation must show the profit hint');
+  await page.evaluate(()=>navigate('settings'));
+  await page.locator('#extraHelpToggle').uncheck();
+  await page.evaluate(()=>navigate('dashboard'));
+  assert.equal(await page.locator('.dashboard-kpi-profit .metric-sub').count(),0,'Compact mode must remove repeated profit copy');
+
+  // REPORTING — week/month/quarter/year/all + compact date chooser, multi-year annual bars.
+  await page.evaluate(()=>{
+    state.invoices.push({id:'compact-older',number:'2023-QA',kind:'invoice',status:'paid',customerId:'c1',issueDate:'2023-01-10',dueDate:'2023-01-24',importedTotals:{net:300,vat:63,gross:363},payments:[{date:'2023-01-15',amount:363}]});
+  });
+  await page.evaluate(()=>navigate('reports'));
+  const reportPeriod=page.locator('#reportPeriodPreset');
+  assert.deepEqual(await reportPeriod.locator('option').allTextContents(),['Week','Maand','Kwartaal','Jaar','Altijd'],'Reports must show all shared timeframe choices');
+  assert.equal(await page.locator('#reportFrom').isVisible(),false,'Custom date fields must start collapsed');
+  await reportPeriod.selectOption('all');
+  assert.equal((await page.locator('.report-period-dates').innerText()).trim(),'Alle boekjaren','All-time reporting must name the whole range');
+  assert.ok((await page.locator('.report-result-chart .bar-label').allTextContents()).includes('2023'),'Multi-year result graph must include historical book years');
+  await page.locator('.report-period-details summary').click();
+  assert.ok(await page.locator('#reportFrom').isVisible(),'Manual date range must expand on demand');
+  await page.locator('#reportFrom').fill('2024-01-01');
+  await page.locator('#reportFrom').dispatchEvent('change');
+  assert.equal(await page.locator('#reportPeriodPreset').inputValue(),'custom','Manual date entry must switch to a custom period');
+  await page.evaluate(()=>{state.invoices=state.invoices.filter(i=>i.id!=='compact-older');sessionStorage.removeItem('reportPreset');sessionStorage.removeItem('reportFrom');sessionStorage.removeItem('reportTo');navigate('dashboard')});
+
   // Independent QA additions: focus containment/return, non-primary active state,
   // breakpoint cleanup, long-name overflow, and desktop width coverage.
   await page.locator('#mobileMenu').click();
@@ -226,12 +258,12 @@ try{
   await page.setViewportSize({width:390,height:844});
 
   await page.evaluate(()=>{state.invoices=[];state.transactions=[];state.documents=[];state.contacts=[];state.bookings=[];documentProcessingJobs=[];documentProcessingConnectivityLost=false;documentProcessingInitialized=true;render()});
-  await page.getByRole('heading',{name:'Alles bijgewerkt',exact:true}).waitFor();
-  await page.getByText('Er zijn momenteel geen acties die je aandacht nodig hebben.').waitFor();
+  await page.getByRole('heading',{name:'Aandachtspunten',exact:true}).waitFor();
+  await page.getByText('Alles bijgewerkt',{exact:true}).waitFor();
 
   await page.evaluate(()=>{documentProcessingConnectivityLost=true;render()});
   await page.getByText('Aandachtspunten niet bijgewerkt').waitFor();
-  assert.equal(await page.getByText('Er zijn momenteel geen acties die je aandacht nodig hebben.').count(),0);
+  assert.equal(await page.getByText('Alles bijgewerkt',{exact:true}).count(),0);
 
   await page.evaluate(()=>{state.invoices=[];documentProcessingConnectivityLost=false;render();openDashboardAttention('overdue','stale')});
   await page.getByText('Dit aandachtspunt is inmiddels bijgewerkt.').waitFor();
@@ -252,10 +284,10 @@ try{
   await page.goto(base+'/fetch-failure',{waitUntil:'domcontentloaded'});
   await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
   await page.getByText('Aandachtspunten niet bijgewerkt').waitFor();
-  assert.equal(await page.getByText('Er zijn momenteel geen acties die je aandacht nodig hebben.').count(),0,'Initial fetch failure must not look like a clean empty state');
+  assert.equal(await page.getByText('Alles bijgewerkt',{exact:true}).count(),0,'Initial fetch failure must not look like a clean empty state');
   assert.equal(await page.evaluate(()=>documentProcessingFetchError),true,'Initial document fetch failure must set explicit error state');
   await page.getByRole('button',{name:'Opnieuw proberen'}).click();
-  await page.getByRole('heading',{name:'Alles bijgewerkt',exact:true}).waitFor();
+  await page.getByRole('heading',{name:'Aandachtspunten',exact:true}).waitFor();
   assert.equal(await page.evaluate(()=>window.__docFetchAttempts),2,'Retry must perform a second document fetch');
   assert.equal(await page.evaluate(()=>documentProcessingFetchError),false,'Successful retry must clear explicit fetch error');
   assert.equal(await page.evaluate(()=>documentProcessingInitialized),true,'Successful retry must restore initialized document state');
