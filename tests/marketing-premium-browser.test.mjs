@@ -42,14 +42,28 @@ try{
         const broken=await page.locator('img').evaluateAll(imgs=>imgs.filter(i=>!i.complete||!i.naturalWidth).map(i=>i.src));
         assert.deepEqual(broken,[]);
 
-        await page.locator('#burger').click();
-        assert.equal(await page.locator('#burger').getAttribute('aria-expanded'),'true');
-        assert.equal(await page.locator('main').evaluate(el=>el.inert),true);
-        await page.keyboard.press('Shift+Tab');
-        assert.equal(await page.locator('#burger').evaluate(el=>el===document.activeElement),true);
-        await page.keyboard.press('Escape');
-        assert.equal(await page.locator('#burger').getAttribute('aria-expanded'),'false');
-        assert.equal(await page.locator('main').evaluate(el=>el.inert),false);
+        if(width<=960){
+          const burger=page.locator('#burger');
+          assert.ok(await burger.isVisible(),name+'/'+width+' mobile menu trigger');
+          await burger.click();
+          assert.equal(await burger.getAttribute('aria-expanded'),'true');
+          assert.equal(await page.locator('main').evaluate(el=>el.inert),true);
+          await page.keyboard.press('Shift+Tab');
+          assert.equal(await burger.evaluate(el=>el===document.activeElement),true);
+          await page.keyboard.press('Escape');
+          assert.equal(await burger.getAttribute('aria-expanded'),'false');
+          assert.equal(await page.locator('main').evaluate(el=>el.inert),false);
+        }else{
+          assert.equal(await page.locator('#burger').isVisible(),false,name+'/'+width+' desktop burger hidden');
+          assert.ok(await page.locator('.hdr .nav').isVisible(),name+'/'+width+' desktop navigation visible');
+          const navTrigger=page.locator('#ddBtn');
+          await navTrigger.focus();
+          await page.keyboard.press('Enter');
+          assert.equal(await navTrigger.getAttribute('aria-expanded'),'true',name+'/'+width+' desktop menu keyboard open');
+          await page.keyboard.press('Escape');
+          assert.equal(await navTrigger.getAttribute('aria-expanded'),'false',name+'/'+width+' desktop menu Escape close');
+          assert.ok(await navTrigger.evaluate(el=>el===document.activeElement),name+'/'+width+' desktop focus restored');
+        }
 
         if(width===390||width===1440){
           await page.addScriptTag({content:axeSource});
@@ -63,10 +77,12 @@ try{
 
       const page=await browser.newPage({viewport:{width:1440,height:960}});
       await page.goto(server.base,{waitUntil:'networkidle'});
-      await page.locator('#burger').click();
-      await page.waitForFunction(()=>document.activeElement===document.querySelector('#mnav a'));
+      const navTrigger=page.locator('#ddBtn');
+      await navTrigger.focus();
+      await page.keyboard.press('Enter');
+      assert.equal(await navTrigger.getAttribute('aria-expanded'),'true');
       await page.keyboard.press('Escape');
-      assert.equal(await page.locator('#burger').evaluate(el=>el===document.activeElement),true);
+      assert.equal(await navTrigger.evaluate(el=>el===document.activeElement),true);
       await page.mouse.move(100,150);
       assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).cursor),'none');
       assert.ok(await page.locator('.editorial-cursor').evaluate(el=>el.classList.contains('is-visible')));
