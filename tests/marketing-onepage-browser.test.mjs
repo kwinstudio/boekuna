@@ -62,6 +62,13 @@ try{
             assert.ok(await page.locator('.hdr-cta .login').isVisible(),name+' desktop login CTA visible');
             assert.ok(await page.locator('.hdr-cta a[href="https://app.boekuna.nl/?register=1"]').isVisible(),name+' desktop free CTA visible');
             assert.equal(await page.locator('#burger').isVisible(),false,name+' desktop burger hidden');
+            const desktopMenuButton=page.locator('#ddBtn');
+            await desktopMenuButton.focus();
+            await page.keyboard.press('Enter');
+            assert.equal(await desktopMenuButton.getAttribute('aria-expanded'),'true',name+' desktop menu opens by keyboard');
+            await page.keyboard.press('Escape');
+            assert.equal(await desktopMenuButton.getAttribute('aria-expanded'),'false',name+' desktop menu closes by Escape');
+            assert.ok(await desktopMenuButton.evaluate(el=>el===document.activeElement),name+' desktop menu focus returns to trigger');
           }
           if(route==='/'){
             assert.ok(await page.locator('.editorial-pricing').isVisible(),name+' '+width+' homepage pricing visible');
@@ -88,8 +95,10 @@ try{
             const mobileFree=page.locator('#mnav a[href="https://app.boekuna.nl/?register=1"]');
             assert.equal(await mobileFree.count(),1,name+' '+route+' mobile menu has one free CTA');
             assert.ok(await mobileFree.isVisible(),name+' '+route+' mobile free CTA visible');
+            assert.ok(await page.locator('#mnav').evaluate(el=>el.contains(document.activeElement)),name+' '+route+' focus enters mobile navigation');
             await page.keyboard.press('Escape');
             assert.equal(await burger.getAttribute('aria-expanded'),'false',name+' '+route+' menu closes');
+            assert.ok(await burger.evaluate(el=>el===document.activeElement),name+' '+route+' focus returns to mobile trigger');
           }
           await page.close();
         }
