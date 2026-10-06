@@ -110,6 +110,31 @@ try{
   assert.equal(await activeNav.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(236, 250, 238)');
   assert.match(await activeNav.evaluate(el=>getComputedStyle(el).boxShadow),/99, 212, 113/);
 
+  // Non-status financial concepts stay neutral; actual attention/error states keep semantics.
+  const dashboardTones=await page.locator('.dashboard-kpi').evaluateAll(cards=>cards.map(card=>({label:card.querySelector('.dashboard-kpi-label')?.textContent?.trim(),classes:card.className})));
+  assert.match(dashboardTones.find(x=>x.label==='Kosten')?.classes||'',/kpi-tone-neutral/,'Dashboard Kosten must not look like a warning');
+
+  await page.evaluate(()=>navigate('invoices'));
+  const invoiceTones=await page.locator('.product-kpi').evaluateAll(cards=>cards.map(card=>({label:card.querySelector('.product-kpi-label')?.textContent?.trim(),classes:card.className})));
+  assert.match(invoiceTones.find(x=>x.label==='Omzet')?.classes||'',/kpi-tone-support/);
+  assert.match(invoiceTones.find(x=>x.label==='Te laat')?.classes||'',/kpi-tone-error/);
+
+  await page.evaluate(()=>navigate('expenses'));
+  const expenseTones=await page.locator('.product-kpi').evaluateAll(cards=>cards.map(card=>({label:card.querySelector('.product-kpi-label')?.textContent?.trim(),classes:card.className})));
+  assert.match(expenseTones.find(x=>x.label==='Kosten')?.classes||'',/kpi-tone-neutral/,'Kosten must remain neutral');
+  assert.match(expenseTones.find(x=>x.label==='Te controleren')?.classes||'',/kpi-tone-warning/,'Real review attention must remain warning');
+
+  await page.evaluate(()=>navigate('bank'));
+  const bankTones=await page.locator('.product-kpi').evaluateAll(cards=>cards.map(card=>({label:card.querySelector('.product-kpi-label')?.textContent?.trim(),classes:card.className})));
+  assert.match(bankTones.find(x=>x.label==='Uitgaven')?.classes||'',/kpi-tone-neutral/,'Normal bank outgoings must remain neutral');
+  assert.match(bankTones.find(x=>x.label==='Te verwerken')?.classes||'',/kpi-tone-warning/,'Unmatched bank work must remain warning');
+
+  await page.evaluate(()=>navigate('reports'));
+  const reportTones=await page.locator('.product-kpi').evaluateAll(cards=>cards.map(card=>({label:card.querySelector('.product-kpi-label')?.textContent?.trim(),classes:card.className})));
+  assert.match(reportTones.find(x=>x.label==='Kosten')?.classes||'',/kpi-tone-neutral/,'Report costs must remain neutral');
+
+  await page.evaluate(()=>navigate('dashboard'));
+
   const routes=[
     ['dashboard','overzicht-desktop'],
     ['invoices','inkomsten'],
