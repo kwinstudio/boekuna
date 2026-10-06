@@ -1,0 +1,105 @@
+name: BOEKUNA Qwen3-VL local second-check benchmark
+
+on:
+  pull_request:
+    paths:
+      - 'benchmarks/qwen3_vl_second_check.py'
+      - '.github/workflows/boekuna-qwen3-vl-benchmark.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qwen3-vl-benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      LLAMA_TAG: b11429
+      QWEN_REPO: Qwen/Qwen3-VL-2B-Instruct-GGUF
+      QWEN_MODEL: Qwen3VL-2B-Instruct-Q4_K_M.gguf
+      QWEN_MMPROJ: mmproj-Qwen3VL-2B-Instruct-Q8_0.gguf
+      GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install current BOEKUNA processor dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r kwinest/docprocessor/requirements.txt psutil
+
+      - name: Record current deterministic A baseline
+        run: |
+          python tests/document-scan-intelligence-benchmark.test.py | tee qwen-a-baseline.log
+
+      - name: Download pinned llama.cpp CPU runtime
+        run: |
+          set -euo pipefail
+          mkdir -p .benchmark/llama
+          curl --fail --location --retry 3             -o .benchmark/llama.tar.gz             "https://github.com/ggml-org/llama.cpp/releases/download/${LLAMA_TAG}/llama-${LLAMA_TAG}-bin-ubuntu-x64.tar.gz"
+          echo "f6d25dde8f51133143d1453da4fd5f73b145127177612a283bf7995957af3392  .benchmark/llama.tar.gz" | sha256sum -c -
+          tar -xzf .benchmark/llama.tar.gz -C .benchmark/llama
+          find .benchmark/llama -type f -name 'llama-server' -print -quit | tee .benchmark/llama-server-path
+          test -s .benchmark/llama-server-path
+
+      - name: Download pinned official Qwen3-VL Q4 + Q8 vision projector
+        run: |
+          set -euo pipefail
+          mkdir -p .benchmark/models
+          curl --fail --location --retry 3             -o ".benchmark/models/${QWEN_MODEL}"             "https://huggingface.co/${QWEN_REPO}/resolve/main/${QWEN_MODEL}"
+          curl --fail --location --retry 3             -o ".benchmark/models/${QWEN_MMPROJ}"             "https://huggingface.co/${QWEN_REPO}/resolve/main/${QWEN_MMPROJ}"
+          echo "089d75c52f4b7ffc56ba998ffc50aae89fcafc755f9e7208aacca281dca6c2ae  .benchmark/models/${QWEN_MODEL}" | sha256sum -c -
+          echo "f9a68fabba69c3b81e153367b2c7521030b0fa8bb0de400c9599c8e6725f9c82  .benchmark/models/${QWEN_MMPROJ}" | sha256sum -c -
+          ls -lh .benchmark/models
+
+      - name: Run local Qwen3-VL A/B benchmark
+        shell: bash
+        run: |
+          set -euo pipefail
+          SERVER="$(cat .benchmark/llama-server-path)"
+          chmod +x "$SERVER"
+          LIBDIR="$(dirname "$SERVER")"
+          export LD_LIBRARY_PATH="$LIBDIR:${LD_LIBRARY_PATH:-}"
+          MODEL=".benchmark/models/${QWEN_MODEL}"
+          MMPROJ=".benchmark/models/${QWEN_MMPROJ}"
+          START_NS="$(date +%s%N)"
+          "$SERVER"             -m "$MODEL"             --mmproj "$MMPROJ"             --host 127.0.0.1             --port 8088             --ctx-size 8192             --threads 2             --no-mmproj-offload             --jinja             > qwen-server.log 2>&1 &
+          SERVER_PID=$!
+          cleanup(){ kill "$SERVER_PID" 2>/dev/null || true; }
+          trap cleanup EXIT
+
+          READY=0
+          for i in $(seq 1 240); do
+            if curl --silent --fail http://127.0.0.1:8088/health >/dev/null 2>&1; then
+              READY=1
+              break
+            fi
+            if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+              echo "llama-server exited before readiness"
+              tail -200 qwen-server.log || true
+              exit 1
+            fi
+            sleep 1
+          done
+          test "$READY" = "1"
+          END_NS="$(date +%s%N)"
+          COLD_MS="$(( (END_NS - START_NS) / 1000000 ))"
+
+          python benchmarks/qwen3_vl_second_check.py             --server http://127.0.0.1:8088             --cold-start-ms "$COLD_MS"             --model-bytes "$(stat -c %s "$MODEL")"             --mmproj-bytes "$(stat -c %s "$MMPROJ")"             --out qwen3-vl-benchmark.json             | tee qwen3-vl-benchmark.log
+
+      - name: Upload benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qwen3-vl-local-second-check-benchmark
+          path: |
+            qwen-a-baseline.log
+            qwen3-vl-benchmark.json
+            qwen3-vl-benchmark.log
+            qwen-server.log
+          if-no-files-found: warn
+          retention-days: 14
