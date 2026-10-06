@@ -33,6 +33,18 @@ try{
         assert.ok((await heroPhoto.getAttribute('srcset')).includes('hero-ondernemer-1000.webp'));
         assert.equal(await page.locator('.audience-photo').count(),4,'Four trades represented');
         assert.equal(await page.locator('.collaboration-photo').count(),1,'Small-business collaboration photo present');
+        const photoRanges=await photos.evaluateAll(images=>images.map(img=>{
+          const canvas=document.createElement('canvas');canvas.width=32;canvas.height=24;
+          const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0,32,24);
+          const data=ctx.getImageData(0,0,32,24).data;
+          let min=255,max=0;
+          for(let i=0;i<data.length;i+=4){
+            const l=.2126*data[i]+.7152*data[i+1]+.0722*data[i+2];
+            min=Math.min(min,l);max=Math.max(max,l);
+          }
+          return {alt:img.alt,range:max-min};
+        }));
+        for(const photo of photoRanges)assert.ok(photo.range>35,name+'/'+width+' photo has real visual detail: '+JSON.stringify(photo));
 
         const size=await page.evaluate(()=>({html:document.documentElement.scrollWidth,body:document.body.scrollWidth,vw:innerWidth}));
         assert.ok(size.html<=width+1&&size.body<=width+1,JSON.stringify({name,width,...size}));
