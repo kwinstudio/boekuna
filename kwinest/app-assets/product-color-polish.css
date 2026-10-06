@@ -114,6 +114,9 @@
 #mainApp .kpi-tone-primary .product-kpi-icon,#mainApp .kpi-tone-primary .metric-icon{
   background:var(--app-brand-soft)!important;color:var(--status-success)!important
 }
+#mainApp .kpi-tone-neutral .product-kpi-icon,#mainApp .kpi-tone-neutral .metric-icon{
+  background:#F1F3F4!important;color:#566168!important;border-color:var(--app-border)!important
+}
 #mainApp .kpi-tone-success .product-kpi-icon,#mainApp .kpi-tone-success .metric-icon{
   background:var(--status-success-soft)!important;color:var(--status-success)!important;border-color:#CBEBD4
 }
