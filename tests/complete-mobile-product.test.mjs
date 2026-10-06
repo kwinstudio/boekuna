@@ -162,7 +162,7 @@ try {
  await nav('dashboard');await page.locator('.dashboard-summary-card').nth(1).click();
  assert.equal(await page.evaluate(()=>listPageState('invoices').filters.status),'open');
  await nav('settings');
- assert.equal(await page.locator('.mobile-settings-index .settings-nav-item').count(),8);assert.equal(await page.locator('.mobile-settings-index').getByText('Assistent & inzichten',{exact:true}).count(),1);
+ assert.equal(await page.locator('.mobile-settings-index .settings-nav-item').count(),9);assert.equal(await page.locator('.mobile-settings-index').getByText('Weergave',{exact:true}).count(),1);assert.equal(await page.locator('.mobile-settings-index').getByText('Assistent & inzichten',{exact:true}).count(),1);
  assert.equal(await page.locator('.settings-group').first().isVisible(),false);
  await page.locator('.mobile-settings-index .settings-nav-item').filter({hasText:/^Facturen/}).click();
  assert.equal(await page.locator('.mobile-settings-active').count(),1);
