@@ -363,6 +363,16 @@ if(assistantEnabled){
     "      +'</div></section>'\n      +'<section class=\"settings-group\"><h2 class=\"settings-group-label\">Beveiliging & privacy</h2><div class=\"settings-list\">'",
     "      +'</div></section>'\n      +renderAssistantSettingsSafe()\n      +'<section class=\"settings-group\"><h2 class=\"settings-group-label\">Beveiliging & privacy</h2><div class=\"settings-list\">'"
   );
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];",
+    "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Assistent & inzichten','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];"
+  );
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];",
+    "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Persoonlijke tips en samenvattingen','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];"
+  );
 }
 // Beginner-first Settings is app-only: patch the generated product asset so
 // the public/marketing source remains byte-identical.
@@ -388,6 +398,20 @@ patchBuiltAppAsset(
 );
 patchBuiltAppAsset(
   'mobile-polish-round-2.js',
+  `      +'<section class="settings-group"><h2 class="settings-group-label">Bedrijf</h2><div class="settings-list">'
+      +settingsItem('Bedrijfsgegevens','Beheer je bedrijfsnaam, adres, contactgegevens en betaalinformatie.','navigate(\\'profile\\')')
+      +'</div></section>'
+      +'<section class="settings-group"><h2 class="settings-group-label">Facturen</h2>'`,
+  `      +'<section class="settings-group"><h2 class="settings-group-label">Bedrijf</h2><div class="settings-list">'
+      +settingsItem('Bedrijfsgegevens','Beheer je bedrijfsnaam, adres, contactgegevens en betaalinformatie.','navigate(\\'profile\\')')
+      +'</div></section>'
+      +'<section class="settings-group"><h2 class="settings-group-label">Weergave</h2><div class="card settings-compact">'
+      +'<label class="settings-view-toggle" for="extraHelpToggle"><span><strong>Extra uitleg tonen</strong></span><input type="checkbox" role="switch" id="extraHelpToggle" aria-label="Extra uitleg tonen" '+(extraHelpVisible()?'checked':'')+' onchange="setExtraHelpEnabled(this.checked)"></label>'
+      +'</div></section>'
+      +'<section class="settings-group"><h2 class="settings-group-label">Facturen</h2>'`
+);
+patchBuiltAppAsset(
+  'mobile-polish-round-2.js',
   `      +'<section class="settings-group"><h2 class="settings-group-label">Bedrijf</h2><div class="settings-list">'`,
   `      +'<section class="settings-group"><h2 class="settings-group-label">Mijn bedrijf</h2><div class="settings-list">'`
 );
@@ -408,6 +432,43 @@ patchBuiltAppAsset(
   `      +'<section class="settings-group"><h2 class="settings-group-label">Account</h2>'`,
   `      +'<section class="settings-group"><h2 class="settings-group-label">Abonnement & account</h2>'`
 );
+if(assistantEnabled){
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Assistent & inzichten','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];",
+    "var titles=['Mijn bedrijf','Facturen','Boekhouding','Assistent & inzichten','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];"
+  );
+}else{
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];",
+    "var titles=['Mijn bedrijf','Facturen','Boekhouding','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];"
+  );
+}
+if(assistantEnabled){
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var titles=['Mijn bedrijf','Facturen','Boekhouding','Assistent & inzichten','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];",
+    "var titles=['Mijn bedrijf','Weergave','Facturen','Boekhouding','Assistent & inzichten','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];"
+  );
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Persoonlijke tips en samenvattingen','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];",
+    "var descriptions=['Naam, adres en betaalgegevens','Extra uitleg aan- of uitzetten','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Persoonlijke tips en samenvattingen','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];"
+  );
+}else{
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var titles=['Mijn bedrijf','Facturen','Boekhouding','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];",
+    "var titles=['Mijn bedrijf','Weergave','Facturen','Boekhouding','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];"
+  );
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];",
+    "var descriptions=['Naam, adres en betaalgegevens','Extra uitleg aan- of uitzetten','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];"
+  );
+}
+
 if(!isReleaseFeatureEnabled(releaseFeatures,'serviceCatalog')){
   patchBuiltAppAsset(
     'mobile-polish-round-2.js',
@@ -428,7 +489,6 @@ patchBuiltAppAsset(
   "  #mainApp .dashboard-kpi-profit { grid-column:1/-1!important; }"
 );
 
-// Settings structure and mobile section mapping now live in the shared source assets.
 fs.copyFileSync(interFontSource,path.join(appAssetsTarget,'app-InterVariable.woff2'));
 fs.copyFileSync(spaceGroteskFont,path.join(appAssetsTarget,'app-SpaceGrotesk-Variable.ttf'));
 
