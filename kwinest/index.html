@@ -7206,6 +7206,19 @@ window.addEventListener('keydown',e=>{
 </script>
 
 <script src="/assets/mobile-polish-round-2.js"></script>
+<script id="boekuna-settings-view-parity">
+(function(){
+ const polishedRenderSettings=renderSettings;
+ renderSettings=function(){
+  const html=polishedRenderSettings();
+  if(html.includes('id="extraHelpToggle"'))return html;
+  const marker='<section class="settings-group"><h2 class="settings-group-label">Facturen</h2>';
+  if(!html.includes(marker))return html;
+  const view='<section class="settings-group"><h2 class="settings-group-label">Weergave</h2><div class="card settings-compact"><label class="settings-view-toggle" for="extraHelpToggle"><span><strong>Extra uitleg tonen</strong></span><input type="checkbox" role="switch" id="extraHelpToggle" aria-label="Extra uitleg tonen" '+(extraHelpVisible()?'checked':'')+' onchange="setExtraHelpEnabled(this.checked)"></label></div></section>';
+  return html.replace(marker,view+marker);
+ };
+})();
+</script>
 
 </body>
 </html>
