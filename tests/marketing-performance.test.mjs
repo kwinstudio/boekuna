@@ -30,6 +30,9 @@ try {
   assert.ok(await nojs.locator('.editorial-intro h2').isVisible());
   assert.ok(await nojs.getByRole('link',{name:'Probeer Boekuna gratis',exact:true}).first().isVisible());
   assert.ok(await nojs.locator('.project-card').first().isVisible());
+  assert.ok(await nojs.locator('.editorial-pricing').isVisible());
+  const noJsPricing=await nojs.locator('.editorial-pricing').innerText();
+  for(const price of ['€0','€9,95','€19,95'])assert.ok(noJsPricing.includes(price),'No-JS pricing includes '+price);
   assert.equal(await nojs.locator('main img').count(),0,'No screenshot content should render without JavaScript');
 
   fs.mkdirSync('tests/artifacts/premium-marketing',{recursive:true});
