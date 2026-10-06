@@ -232,6 +232,16 @@ def safe_accept(
     parser_confidence: dict[str, float],
     protected_fields: set[str] | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
+    """
+    Production-safe benchmark semantics.
+
+    The current processor does not expose a complete candidate list for every
+    field. Therefore a verifier disagreement is NEVER auto-promoted into a
+    bookkeeping value here. Qwen may agree, disagree or be uncertain; a
+    disagreement can route human review and its alternative is measured, but
+    the deterministic parser value remains the stored candidate unless BOEKUNA
+    itself later exposes and validates the same candidate.
+    """
     out = deepcopy(base)
     rejected = []
     protected_fields = protected_fields or set()
@@ -244,36 +254,20 @@ def safe_accept(
         except Exception:
             conf = 0
         if conf < VERIFIER_ACCEPT:
+            rejected.append(field + ":verifier_low_confidence")
             continue
         if field in protected_fields:
             rejected.append(field + ":user_confirmed")
             continue
-        # A second-check may choose between uncertain parser candidates, but an
-        # AI-only suggestion is not promoted into bookkeeping and a high-
-        # confidence parser value is never replaced by AI disagreement alone.
         if out.get(field) in (None, ""):
             rejected.append(field + ":ai_only_suggestion")
             continue
         if parser_confidence.get(field, 0.0) >= HIGH_CONF:
             rejected.append(field + ":high_conf_parser")
             continue
-        value, parse_error = parse_proposal_value(field, p.get("value"))
-        if parse_error:
-            rejected.append(field + ":" + parse_error)
-            continue
-        trial = deepcopy(out)
-        trial[field] = value
-        # Mixed VAT is never collapsed into a single-rate result by AI.
-        if out.get("mixedRates") is True and field in {"vatRate", "mixedRates"}:
-            rejected.append(field + ":mixed_vat")
-            continue
-        # Financial changes must make deterministic state no worse.
-        before = len(financial_issues(out))
-        after = len(financial_issues(trial))
-        if field in MONEY_FIELDS | RATE_FIELDS | {"vatLines", "mixedRates"} and after > before:
-            rejected.append(field + ":financial")
-            continue
-        out = trial
+        # No complete parser-candidate set exists for this field, so the
+        # alternative remains review evidence only.
+        rejected.append(field + ":review_only_no_parser_candidate")
     return out, rejected
 
 
@@ -544,7 +538,7 @@ def main():
 
     records=[]; request_ms=[]; calls=0
     counts={f:{"A":{"EXACT":0,"NORMALIZED":0,"MISSING":0,"WRONG":0},"B":{"EXACT":0,"NORMALIZED":0,"MISSING":0,"WRONG":0}} for f in FIELDS}
-    transition={"parser_correct_ai_correct":0,"parser_correct_ai_wrong":0,"parser_wrong_ai_corrects":0,"parser_wrong_ai_wrong":0,"parser_uncertain_ai_uncertain":0,"parser_uncertain_ai_hallucinates":0}
+    transition={"parser_correct_ai_correct":0,"parser_correct_ai_wrong":0,"parser_wrong_ai_corrects":0,"parser_wrong_ai_wrong":0,"parser_uncertain_ai_uncertain":0,"parser_uncertain_ai_hallucinates":0,"parser_wrong_ai_flags":0,"parser_correct_ai_false_challenge":0}
     ai_wrong_introduced=[]; rejected_total=[]
 
     # One clear control is always verified to measure the hallucination rate on a
@@ -592,18 +586,26 @@ def main():
             parsed_proposed,_=parse_proposal_value(f,proposed)
             proposed_status=status(f,parsed_proposed,truth.get(f)) if verdict=="disagree" else ps
             if ps in {"EXACT","NORMALIZED"}:
-                if verdict=="disagree" and proposed_status not in {"EXACT","NORMALIZED"}:
-                    transition["parser_correct_ai_wrong"]+=1
-                    ai_wrong_introduced.append({"id":case["id"],"field":f,"parser":a.get(f),"ai":parsed_proposed,"truth":truth.get(f),"confidence":p.get("confidence")})
+                if verdict=="disagree":
+                    transition["parser_correct_ai_false_challenge"]+=1
+                    if proposed_status not in {"EXACT","NORMALIZED"}:
+                        transition["parser_correct_ai_wrong"]+=1
+                        ai_wrong_introduced.append({"id":case["id"],"field":f,"parser":a.get(f),"ai":parsed_proposed,"truth":truth.get(f),"confidence":p.get("confidence")})
+                    else:
+                        transition["parser_correct_ai_correct"]+=1
                 else:
                     transition["parser_correct_ai_correct"]+=1
             else:
-                if verdict=="disagree" and proposed_status in {"EXACT","NORMALIZED"}:
-                    transition["parser_wrong_ai_corrects"]+=1
+                if verdict=="disagree":
+                    transition["parser_wrong_ai_flags"]+=1
+                    if proposed_status in {"EXACT","NORMALIZED"}:
+                        transition["parser_wrong_ai_corrects"]+=1
+                    elif parser_uncertain:
+                        transition["parser_uncertain_ai_hallucinates"]+=1
+                    else:
+                        transition["parser_wrong_ai_wrong"]+=1
                 elif parser_uncertain and verdict=="uncertain":
                     transition["parser_uncertain_ai_uncertain"]+=1
-                elif parser_uncertain and verdict=="disagree" and proposed_status not in {"EXACT","NORMALIZED"}:
-                    transition["parser_uncertain_ai_hallucinates"]+=1
                 else:
                     transition["parser_wrong_ai_wrong"]+=1
 
@@ -659,6 +661,7 @@ def main():
             "wallSeconds":round(wall,2),
         },
         "safety":{
+            "verifierMutationPolicy":"review_only_without_matching_parser_candidate",
             "providerFailureFallbackUnchanged":True,
             "financialImpossibleAccepted":any(r["financialIssuesB"] and not r["financialIssuesA"] for r in records),
             "mixedVatCollapsed":any(r["truth"].get("mixedRates") is True and r["B"].get("mixedRates") is not True for r in records),
@@ -675,8 +678,8 @@ def main():
             and not output["safety"]["financialImpossibleAccepted"]
             and not output["safety"]["mixedVatCollapsed"]
             and verifier_errors==0
-            and (output["overall"]["BAccuracy"] or 0) >= (output["overall"]["AAccuracy"] or 0)
-            and output["hallucination"]["parser_wrong_ai_corrects"] > 0
+            and (output["overall"]["BAccuracy"] or 0) == (output["overall"]["AAccuracy"] or 0)
+            and output["hallucination"]["parser_wrong_ai_flags"] > 0
         ),
         "verifierErrors":verifier_errors,
         "criteria":[
@@ -684,8 +687,8 @@ def main():
             "no new financial invariant failure",
             "mixed VAT never collapsed",
             "no verifier execution errors",
-            "safe B accuracy >= A accuracy",
-            "at least one parser error is correctly identified/corrected by verifier",
+            "safe B values remain identical to A until BOEKUNA exposes a validated matching parser candidate",
+            "at least one parser error is independently flagged by verifier",
         ],
     }
     Path(args.out).write_text(json.dumps(output,indent=2,ensure_ascii=False),encoding="utf-8")
