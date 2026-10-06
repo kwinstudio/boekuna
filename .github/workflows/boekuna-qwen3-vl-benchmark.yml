@@ -67,7 +67,7 @@ jobs:
           MODEL=".benchmark/models/${QWEN_MODEL}"
           MMPROJ=".benchmark/models/${QWEN_MMPROJ}"
           START_NS="$(date +%s%N)"
-          "$SERVER"             -m "$MODEL"             --mmproj "$MMPROJ"             --host 127.0.0.1             --port 8088             --ctx-size 8192             --threads 2             --no-mmproj-offload             --jinja             > qwen-server.log 2>&1 &
+          "$SERVER"             -m "$MODEL"             --mmproj "$MMPROJ"             --host 127.0.0.1             --port 8088             --ctx-size 4096             --threads 4             --no-mmproj-offload             --jinja             > qwen-server.log 2>&1 &
           SERVER_PID=$!
           cleanup(){ kill "$SERVER_PID" 2>/dev/null || true; }
           trap cleanup EXIT
