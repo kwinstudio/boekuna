@@ -249,8 +249,11 @@ try{
   await shot('services-menu',390,844,false);
   await page.keyboard.press('Escape');
 
-  // Report date controls may never overflow their content column at mobile widths.
+  // Compact report date controls are collapsed until requested, then must not overflow.
   await nav('reports');
+  assert.equal(await page.locator('#reportFrom').isVisible(),false,'Custom report dates must be collapsed by default');
+  await page.locator('.report-period-details summary').click();
+  assert.ok(await page.locator('#reportFrom').isVisible(),'Date editing must expand on demand');
   for(const width of [320,390,430]){
     await page.setViewportSize({width,height:844});
     await page.waitForTimeout(60);
