@@ -17,6 +17,17 @@ const routes=['/','/functies/','/assistent/','/scanner/','/prijzen/','/veilighei
 const engines=[['chromium',chromium],['webkit',webkit]];
 const axeErrors=[];
 
+function hexChannel(value){
+  const c=value/255;
+  return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4);
+}
+function contrastRatio(foreground,background){
+  const parse=hex=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));
+  const luminance=hex=>{const [r,g,b]=parse(hex).map(hexChannel);return 0.2126*r+0.7152*g+0.0722*b;};
+  const [a,b]=[luminance(foreground),luminance(background)].sort((x,y)=>y-x);
+  return (a+0.05)/(b+0.05);
+}
+
 async function noOverflow(page,label){
   const s=await page.evaluate(()=>({vw:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
   assert.ok(s.html<=s.vw+1&&s.body<=s.vw+1,label+' horizontal overflow '+JSON.stringify(s));
@@ -46,6 +57,22 @@ try{
           assert.ok(await page.locator('a[href^="https://app.boekuna.nl/?"]').count()>=1,name+' '+route+' app CTA');
           await page.evaluate(async()=>document.fonts.ready);
           await noOverflow(page,name+' '+route+' '+width);
+          if(route==='/'&&width===1440){
+            assert.ok(await page.locator('.hdr .nav').isVisible(),name+' desktop primary navigation visible');
+            assert.ok(await page.locator('.hdr-cta .login').isVisible(),name+' desktop login CTA visible');
+            assert.ok(await page.locator('.hdr-cta a[href="https://app.boekuna.nl/?register=1"]').isVisible(),name+' desktop free CTA visible');
+            assert.equal(await page.locator('#burger').isVisible(),false,name+' desktop burger hidden');
+          }
+          if(route==='/'){
+            assert.ok(await page.locator('.editorial-pricing').isVisible(),name+' '+width+' homepage pricing visible');
+            assert.equal(await page.locator('.editorial-plan').count(),3,name+' '+width+' homepage has three plans');
+            const pricingText=await page.locator('.editorial-pricing').innerText();
+            for(const price of ['€0','€9,95','€19,95'])assert.ok(pricingText.includes(price),name+' '+width+' pricing includes '+price);
+            const muted=await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--muted').trim().toUpperCase());
+            assert.ok(/^#[0-9A-F]{6}$/.test(muted),name+' semantic muted token is a hex color');
+            assert.ok(contrastRatio(muted,'#FFFFFF')>=4.5,name+' muted text meets WCAG AA on white: '+contrastRatio(muted,'#FFFFFF'));
+            assert.ok(contrastRatio(muted,'#F6F7F8')>=4.5,name+' muted text meets WCAG AA on light gray: '+contrastRatio(muted,'#F6F7F8'));
+          }
           assert.deepEqual(runtime,[],name+' '+route+' runtime errors');
           assert.deepEqual(failed,[],name+' '+route+' failed requests');
           if(width===390)await axe(page,name+' '+route);
@@ -58,6 +85,9 @@ try{
             await burger.click();
             assert.equal(await burger.getAttribute('aria-expanded'),'true',name+' '+route+' menu opens');
             assert.ok(await page.locator('#mnav').evaluate(el=>el.classList.contains('open')),name+' '+route+' mobile menu visible');
+            const mobileFree=page.locator('#mnav a[href="https://app.boekuna.nl/?register=1"]');
+            assert.equal(await mobileFree.count(),1,name+' '+route+' mobile menu has one free CTA');
+            assert.ok(await mobileFree.isVisible(),name+' '+route+' mobile free CTA visible');
             await page.keyboard.press('Escape');
             assert.equal(await burger.getAttribute('aria-expanded'),'false',name+' '+route+' menu closes');
           }
