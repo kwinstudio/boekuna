@@ -180,19 +180,18 @@ if(!appHtml.includes("else if(wantsRegister)showAuth('register');else showAuth('
 }
 
 // App-only progressive document review layer. Keep the combined rollback source untouched.
-// This legacy source contains literal </head> and </body> strings inside templates,
-// so injection must target the final document closing tags, never the first match.
+// The source contains literal </head> tokens inside print templates, so stylesheet
+// injection must use the unique real document head/body boundary. The final </body>
+// remains the real document closing tag and is safe for the review runtime.
 function injectBeforeLast(html,marker,content){
   const index=html.lastIndexOf(marker);
   if(index<0)throw new Error('Missing app document marker: '+marker);
   return html.slice(0,index)+content+html.slice(index);
 }
-appHtml=injectBeforeLast(appHtml,'</head>','<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261004c">\n');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review-v2.js?v=20261004c"></script>\n');
-// The real head precedes the app body; later </head> tokens belong to print templates.
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review-v2.js?v=20261006fx1"></script>\n');
 const mobileHeadBoundary='</head>\n<body>';
 if(!appHtml.includes(mobileHeadBoundary))throw new Error('Mobile app head boundary changed');
-appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n<style id="boekuna-app-mobile-compact-overrides">@media (max-width:820px){#mainApp #appMain #content.content{padding-top:14px!important}}</style>\n'+mobileHeadBoundary);
+appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261006fx2">\n<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n<style id="boekuna-app-mobile-compact-overrides">@media (max-width:820px){#mainApp #appMain #content.content{padding-top:14px!important}}</style>\n'+mobileHeadBoundary);
 const assistantRuntimeMarker='\n<script>\nconst USERS_KEY=';
 if(!appHtml.includes(assistantRuntimeMarker))throw new Error('Assistant app runtime marker changed');
 
