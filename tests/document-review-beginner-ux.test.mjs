@@ -100,6 +100,24 @@ async function noOverflow(label){
   const x=await page.evaluate(()=>({vw:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
   assert.ok(x.html<=x.vw+2&&x.body<=x.vw+2,label+' horizontal overflow '+JSON.stringify(x));
 }
+async function assertPreviewCopySeparated(label){
+  const layout=await page.locator('.beginner-preview-empty').evaluate(el=>{
+    const title=el.querySelector('strong'),copy=el.querySelector('span');
+    if(!title||!copy)return {missing:true};
+    const a=title.getBoundingClientRect(),b=copy.getBoundingClientRect();
+    return {
+      missing:false,
+      titleTop:Math.round(a.top),titleBottom:Math.round(a.bottom),
+      copyTop:Math.round(b.top),copyBottom:Math.round(b.bottom),
+      parentDisplay:getComputedStyle(el).display,
+      parentDirection:getComputedStyle(el).flexDirection,
+      titleDisplay:getComputedStyle(title).display,
+      copyDisplay:getComputedStyle(copy).display
+    };
+  });
+  assert.equal(layout.missing,false,label+' preview copy elements missing');
+  assert.ok(layout.copyTop>=layout.titleBottom+2,label+' preview title/copy must be vertically separated: '+JSON.stringify(layout));
+}
 
 try{
   fs.mkdirSync(path.join(root,'tests','artifacts'),{recursive:true});
@@ -133,6 +151,7 @@ try{
   const originalToggle=page.locator('.review-wizard-head [data-review-original-toggle]');
   assert.equal((await originalToggle.innerText()).trim(),'','original control should be icon-only');
   assert.equal(await originalToggle.getAttribute('aria-label'),'Origineel document bekijken');
+  await assertPreviewCopySeparated(browserName+' desktop preview');
   const basisHeights=await page.locator('[data-review-page="1"] [name="party"],[data-review-page="1"] [name="issueDate"],[data-review-page="1"] [name="category"]').evaluateAll(nodes=>nodes.map(el=>Math.round(el.getBoundingClientRect().height)));
   assert.ok(basisHeights.length===3&&Math.max(...basisHeights)-Math.min(...basisHeights)<=1,'date/select/text controls must have equal height: '+JSON.stringify(basisHeights));
   assert.equal(await page.locator('[name="address"]:visible').count(),0,'address must not be in primary review');
@@ -562,6 +581,7 @@ try{
     net:100,vatAmount:21,gross:121,vatRate:21,
     reviewRouting:{mode:'FULL_REVIEW',fields:['currency'],count:1,autoBook:false}
   });
+  await assertPreviewCopySeparated(browserName+' mobile preview');
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
   await noOverflow(browserName+' foreign currency mobile');
   assert.equal(await page.locator('[name="exchangeRateToEur"]:visible').count(),1);
