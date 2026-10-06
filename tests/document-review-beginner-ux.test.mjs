@@ -37,6 +37,11 @@ for(const file of ['assets/document-review-v2.js','assets/document-review-v2.css
 let appHtml=fs.readFileSync(path.join(dist,'index.html'),'utf8');
 assert.ok(appHtml.includes('/assets/document-review-v2.js'),'built app must load review runtime');
 assert.ok(appHtml.includes('/assets/document-review-v2.css'),'built app must load review styles');
+const realHeadEnd=appHtml.indexOf('</head>');
+assert.ok(realHeadEnd>0,'built app must contain a real document head');
+const realHead=appHtml.slice(0,realHeadEnd);
+assert.ok(realHead.includes('/assets/document-review-v2.css?v=20261006fx2'),'review stylesheet must be injected in the real app head, not a print template');
+assert.equal((appHtml.match(/\/assets\/document-review-v2\.css/g)||[]).length,1,'review stylesheet must be linked exactly once');
 const inlineScripts=[...appHtml.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(Boolean);
 assert.ok(inlineScripts.length>=1,'built app must contain inline runtime');
 for(const [index,script] of inlineScripts.entries())assert.doesNotThrow(()=>new Function(script),'built inline script '+(index+1)+' must parse');
