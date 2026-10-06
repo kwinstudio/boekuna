@@ -352,6 +352,31 @@ for(const [needle,replacement] of productToneReplacements){
   appHtml=appHtml.slice(0,first)+replacement+appHtml.slice(first+needle.length);
 }
 
+// Product colour semantics are presentation-only and app-only. Normal financial amounts
+// stay neutral; warning/error tones remain reserved for actual attention states.
+function replaceBuiltPresentationTone(needle,replacement,label){
+  const first=appHtml.indexOf(needle);
+  const second=first<0?-1:appHtml.indexOf(needle,first+needle.length);
+  if(first<0||second>=0)throw new Error('Product colour presentation marker changed: '+label);
+  appHtml=appHtml.slice(0,first)+replacement+appHtml.slice(first+needle.length);
+}
+for(const [needle,replacement,label] of [
+  ["productKpi('Kosten',money(net),'','i-receipt','warning')","productKpi('Kosten',money(net),'','i-receipt','neutral')",'expenses cost KPI'],
+  ["productKpi('Uitgaven',money(out),extraHelpVisible()?'Negatieve bankregels':'','i-receipt','warning')","productKpi('Uitgaven',money(out),extraHelpVisible()?'Negatieve bankregels':'','i-receipt','neutral')",'bank outgoing KPI'],
+  ["productKpi('Deze maand uitgegeven',money(spent),monthRows.length+' bankregel'+(monthRows.length===1?'':'s'),'i-receipt','warning')","productKpi('Deze maand uitgegeven',money(spent),monthRows.length+' bankregel'+(monthRows.length===1?'':'s'),'i-receipt','neutral')",'outgoings spent KPI'],
+  ["productKpi('Kosten',money(costs),extraHelpVisible()?'Excl. btw':'','i-receipt','warning')","productKpi('Kosten',money(costs),extraHelpVisible()?'Excl. btw':'','i-receipt','neutral')",'reports cost KPI'],
+  ["productKpi('Openstaand',money(open),'','i-file','support')","productKpi('Openstaand',money(open),'','i-file','neutral')",'invoice outstanding KPI'],
+  ["productKpi('Btw terug te vragen',money(vat),'','i-tax','support')","productKpi('Btw terug te vragen',money(vat),'','i-tax','neutral')",'expense VAT KPI'],
+  ["productKpi('Grootste categorie',largest[0],largestPct?largestPct+'%':'','i-folder','support')","productKpi('Grootste categorie',largest[0],largestPct?largestPct+'%':'','i-folder','neutral')",'expense category KPI'],
+  ["productKpi('Nog te ontvangen',money(open),openRows.length+' open factuur'+(openRows.length===1?'':'en'),'i-file','support')","productKpi('Nog te ontvangen',money(open),openRows.length+' open factuur'+(openRows.length===1?'':'en'),'i-file','neutral')",'income receivables KPI'],
+  ["productKpi('Ontvangen btw',money(output),'','i-chart','support')","productKpi('Ontvangen btw',money(output),'','i-chart','neutral')",'VAT received KPI'],
+  ["productKpi('Btw die je kunt terugvragen',money(input),'','i-receipt','support')","productKpi('Btw die je kunt terugvragen',money(input),'','i-receipt','neutral')",'VAT reclaim KPI'],
+  ["productKpi('Te verwerken',String(toProcess),extraHelpVisible()?'Nog niet gekoppeld':'','i-upload','support')","productKpi('Te verwerken',String(toProcess),extraHelpVisible()?'Nog niet gekoppeld':'','i-upload','neutral')",'documents pending KPI'],
+  ["dashboard-kpi dashboard-kpi-secondary kpi-tone-warning\" onclick=\"navigate('expenses')","dashboard-kpi dashboard-kpi-secondary kpi-tone-neutral\" onclick=\"navigate('expenses')",'dashboard costs KPI'],
+  ["dashboard-kpi dashboard-kpi-secondary kpi-tone-support\" onclick=\"navigate('vat')","dashboard-kpi dashboard-kpi-secondary kpi-tone-neutral\" onclick=\"navigate('vat')",'dashboard VAT KPI'],
+  ["dashboard-kpi dashboard-kpi-secondary dashboard-kpi-receivables '+(kpi.overdueReceivables>0?'has-attention ':'')+'kpi-tone-support","dashboard-kpi dashboard-kpi-secondary dashboard-kpi-receivables '+(kpi.overdueReceivables>0?'has-attention ':'')+'kpi-tone-neutral",'dashboard receivables KPI']
+])replaceBuiltPresentationTone(needle,replacement,label);
+
 const releaseRuntime="const BOEKUNA_RELEASE_PROFILE=Object.freeze("+JSON.stringify({name:releaseProfile.name,features:releaseFeatures})+");\nfunction releaseFeatureEnabled(key){return BOEKUNA_RELEASE_PROFILE.features?.[key]===true}\n";
 if(!appHtml.includes(assistantRuntimeMarker))throw new Error('Release runtime marker changed');
 appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script>\n'+releaseRuntime+'const USERS_KEY=');
