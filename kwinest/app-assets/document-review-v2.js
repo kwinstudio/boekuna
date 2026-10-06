@@ -825,6 +825,8 @@ function captureReviewSnapshot(){
     vatId:String(fd.vatId||d.vatId||''),iban:String(fd.iban||''),currency,description:String(fd.description||''),dueDate:String(fd.dueDate||''),
     exchangeRateToEur:currency==='EUR'?null:(fx.rate?.normalized||null),exchangeRateConfirmed:currency!=='EUR'&&fx.confirmed,exchangeRateConfirmedAt:currency!=='EUR'&&fx.confirmed?(d.exchangeRateConfirmedAt||null):null,
     bookingCurrency:'EUR',bookingAmountsEur:currency==='EUR'?sourceAmounts:structuredClone(fx.bookingAmountsEur),bookingVatLinesEur:currency==='EUR'?[]:structuredClone(fx.bookingVatLinesEur||[]),
+    sourcePaymentAmounts:{advancePayment:d.advancePayment??null,alreadyPaid:d.alreadyPaid??null,outstandingAmount:d.outstandingAmount??null,amountDue:d.amountDue??null,payout:d.payout??null},
+    sourceAdjustments:structuredClone(d.adjustments||[]),sourceLineItems:structuredClone(d.lineItems||[]),
     paymentReference:String(fd.paymentReference||''),orderNumber:String(fd.orderNumber||''),paymentTermDays:fd.paymentTermDays===''?null:Number(fd.paymentTermDays),
     advancePayment:d.advancePayment??null,alreadyPaid:d.alreadyPaid??null,outstandingAmount:d.outstandingAmount??null,amountDue:d.amountDue??null,accountingVatTreatment:d.accountingVatTreatment||'standard',vatTreatmentChoice:String(fd.vatTreatmentChoice||''),detectedVatRates:structuredClone(d.detectedVatRates||[]),fieldProvenance:structuredClone(d.fieldProvenance||{}),reviewFieldProvenance:structuredClone(d.reviewFieldProvenance||{}),
     deferredFields:deferredFields(d)
@@ -839,7 +841,7 @@ function prepareForeignCurrencyLegacyBooking(d,snapshot){
   const f=document.getElementById('pdfImportForm'),rate=snapshot.exchangeRateToEur,booking=snapshot.bookingAmountsEur;
   if(!f||!snapshot.exchangeRateConfirmed||!rate||!booking)return ()=>{};
   const formOriginal=Object.fromEntries(['currency','net','vatAmount','gross'].map(k=>[k,f.elements.namedItem(k)?.value]));
-  const parsedOriginal={currency:d.currency,net:d.net,vatAmount:d.vatAmount,gross:d.gross,vatLines:structuredClone(d.vatLines||[]),advancePayment:d.advancePayment,alreadyPaid:d.alreadyPaid,outstandingAmount:d.outstandingAmount,amountDue:d.amountDue,payout:d.payout,adjustments:structuredClone(d.adjustments||[])};
+  const parsedOriginal={currency:d.currency,net:d.net,vatAmount:d.vatAmount,gross:d.gross,vatLines:structuredClone(d.vatLines||[]),advancePayment:d.advancePayment,alreadyPaid:d.alreadyPaid,outstandingAmount:d.outstandingAmount,amountDue:d.amountDue,payout:d.payout,adjustments:structuredClone(d.adjustments||[]),lineItems:structuredClone(d.lineItems||[])};
   const values={currency:'EUR',net:Number(booking.net).toFixed(2),vatAmount:Number(booking.vatAmount).toFixed(2),gross:Number(booking.gross).toFixed(2)};
   for(const [key,value] of Object.entries(values)){const el=f.elements.namedItem(key);if(el)el.value=String(value)}
   d.currency='EUR';d.net=booking.net;d.vatAmount=booking.vatAmount;d.gross=booking.gross;
@@ -850,6 +852,7 @@ function prepareForeignCurrencyLegacyBooking(d,snapshot){
     const gross=net!=null&&vat!=null?((cents(net)+cents(vat))/100):convertOptionalSourceAmount(a.gross,rate);
     return {...a,net,vat,gross}
   });
+  d.lineItems=(d.lineItems||[]).map(item=>({...item,unit:convertOptionalSourceAmount(item.unit,rate),total:item.total==null?item.total:convertOptionalSourceAmount(item.total,rate)}));
   return ()=>{
     for(const [key,value] of Object.entries(formOriginal)){const el=f.elements.namedItem(key);if(el&&value!=null)el.value=String(value)}
     Object.assign(d,parsedOriginal)
@@ -857,15 +860,23 @@ function prepareForeignCurrencyLegacyBooking(d,snapshot){
 }
 function annotateForeignCurrencyBooking(doc,snapshot){
   if(!doc||!snapshot||snapshot.currency==='EUR'||!snapshot.exchangeRateConfirmed)return;
-  const meta={sourceCurrency:snapshot.currency,exchangeRateToEur:snapshot.exchangeRateToEur,exchangeRateConfirmedAt:snapshot.exchangeRateConfirmedAt||snapshot.reviewedAt,sourceAmounts:structuredClone(snapshot.sourceAmounts),bookingCurrency:'EUR',bookingAmountsEur:structuredClone(snapshot.bookingAmountsEur)};
+  const meta={sourceCurrency:snapshot.currency,exchangeRateToEur:snapshot.exchangeRateToEur,exchangeRateConfirmedAt:snapshot.exchangeRateConfirmedAt||snapshot.reviewedAt,sourceAmounts:structuredClone(snapshot.sourceAmounts),sourcePaymentAmounts:structuredClone(snapshot.sourcePaymentAmounts||{}),bookingCurrency:'EUR',bookingAmountsEur:structuredClone(snapshot.bookingAmountsEur)};
   Object.assign(doc,meta);
+  doc.sourceFieldProvenance=structuredClone(snapshot.fieldProvenance||{});
+  if(!doc.fieldProvenance||typeof doc.fieldProvenance!=='object')doc.fieldProvenance={};
+  for(const key of ['net','vatAmount','gross'])doc.fieldProvenance[key]={source:'calculated',confirmed:false,confidence:null,derivedFrom:['sourceAmount','exchangeRateToEur'],calculatedAt:snapshot.exchangeRateConfirmedAt||snapshot.reviewedAt};
   const linked=doc.linkedType==='expense'?state.expenses.find(x=>x.id===doc.linkedId):doc.linkedType==='invoice'?state.invoices.find(x=>x.id===doc.linkedId):null;
   if(linked){
-    Object.assign(linked,meta,{sourceVatLines:structuredClone(snapshot.vatLines||[]),bookingVatLinesEur:structuredClone(snapshot.bookingVatLinesEur||[])});
+    Object.assign(linked,meta,{sourceVatLines:structuredClone(snapshot.vatLines||[]),bookingVatLinesEur:structuredClone(snapshot.bookingVatLinesEur||[]),sourceLineItems:structuredClone(snapshot.sourceLineItems||[])});
     linked.sourceFieldProvenance=structuredClone(snapshot.fieldProvenance||{});
     if(!linked.fieldProvenance||typeof linked.fieldProvenance!=='object')linked.fieldProvenance={};
     for(const key of ['net','vatAmount','gross'])linked.fieldProvenance[key]={source:'calculated',confirmed:false,confidence:null,derivedFrom:['sourceAmount','exchangeRateToEur'],calculatedAt:snapshot.exchangeRateConfirmedAt||snapshot.reviewedAt}
   }
+  const adjustmentRows=(state.expenses||[]).filter(x=>x.documentId===doc.id&&x.source==='document-import-adjustment');
+  adjustmentRows.forEach((row,index)=>{
+    const source=snapshot.sourceAdjustments?.[index]||null;
+    Object.assign(row,{sourceCurrency:snapshot.currency,exchangeRateToEur:snapshot.exchangeRateToEur,exchangeRateConfirmedAt:snapshot.exchangeRateConfirmedAt||snapshot.reviewedAt,bookingCurrency:'EUR',sourceAmounts:source?{net:source.net??null,vatAmount:source.vat??null,gross:source.gross??null}:null})
+  })
 }
 function findSavedDocumentAfter(beforeIds,sourceClientRef,fileName){
   if(sourceClientRef){const d=state.documents.find(x=>String(x.fileId||'')===String(sourceClientRef));if(d)return d}
