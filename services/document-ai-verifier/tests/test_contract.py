@@ -1,0 +1,199 @@
+import json
+import os
+import sys
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+import app as verifier  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _safe_env(monkeypatch):
+    monkeypatch.setenv("BOOKUNA_DOCUMENT_AI_TOKEN", "qa-secret")
+    monkeypatch.setenv("LOCAL_VLM_URL", "http://local-vlm.test")
+    verifier.reset_runtime_state_for_tests()
+
+
+@pytest.fixture
+def client():
+    return TestClient(verifier.app)
+
+
+def payload(**overrides):
+    body = {
+        "documentImageDataUrl": "data:image/png;base64,aGVsbG8=",
+        "ocrText": "FACTUUR\nLeverancier Voorbeeld BV\nTotaal 121,00\nBTW 21,00",
+        "documentType": "purchase_invoice",
+        "qualityFlags": [],
+        "fields": [
+            {
+                "field": "supplier",
+                "parserValue": "Voorbeeld BV",
+                "parserConfidence": 0.62,
+                "parserCandidates": ["Voorbeeld BV", "Voorbeeld Holding BV"],
+            },
+            {
+                "field": "gross",
+                "parserValue": "121.00",
+                "parserConfidence": 0.99,
+                "parserCandidates": ["121.00"],
+            },
+        ],
+    }
+    body.update(overrides)
+    return body
+
+
+def auth():
+    return {"Authorization": "Bearer qa-secret"}
+
+
+def test_health_is_document_only_and_secret_free(client):
+    r = client.get("/health")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ok"] is True
+    assert body["service"] == "boekuna-document-ai-verifier"
+    assert body["scope"] == "documents-only"
+    assert body["financialSourceOfTruth"] is False
+    assert body["storesDocuments"] is False
+    assert "qa-secret" not in json.dumps(body)
+    assert "OPENAI" not in json.dumps(body).upper()
+
+
+def test_verify_requires_service_auth(client):
+    r = client.post("/verify", json=payload())
+    assert r.status_code == 401
+    assert r.json()["detail"]["code"] == "UNAUTHORIZED"
+
+
+def test_request_forbids_account_or_database_identifiers(client):
+    r = client.post("/verify", headers=auth(), json=payload(userId="user-123"))
+    assert r.status_code == 422
+    r = client.post("/verify", headers=auth(), json=payload(accountId="acct-123"))
+    assert r.status_code == 422
+
+
+def test_request_accepts_only_document_verification_fields(client):
+    bad = payload()
+    bad["fields"][0]["field"] = "bankAccountBalance"
+    r = client.post("/verify", headers=auth(), json=bad)
+    assert r.status_code == 422
+
+
+def test_model_disagreement_never_becomes_booking_instruction(client, monkeypatch):
+    async def fake_backend(_request):
+        return {
+            "verdicts": [
+                {
+                    "field": "supplier",
+                    "verdict": "disagree",
+                    "verifierValue": "Voorbeeld Holding BV",
+                    "confidence": 0.94,
+                    "evidence": "Naam staat bovenaan de factuur.",
+                },
+                {
+                    "field": "gross",
+                    "verdict": "disagree",
+                    "verifierValue": "999.00",
+                    "confidence": 0.99,
+                    "evidence": "Model test output.",
+                },
+            ]
+        }
+
+    monkeypatch.setattr(verifier, "query_local_vlm", fake_backend)
+    r = client.post("/verify", headers=auth(), json=payload())
+    assert r.status_code == 200
+    body = r.json()
+    assert body["sourceOfTruth"] == "boekuna-deterministic-pipeline"
+    assert body["mayBook"] is False
+    rows = {x["field"]: x for x in body["verdicts"]}
+    assert rows["supplier"]["candidateMatch"] is True
+    assert rows["gross"]["candidateMatch"] is False
+    assert rows["gross"]["verifierValue"] == "999.00"
+    assert "acceptedValue" not in rows["gross"]
+
+
+def test_user_confirmed_fields_are_not_sent_to_model(client, monkeypatch):
+    seen = {}
+
+    async def fake_backend(request):
+        seen["fields"] = [x.field for x in request.fields]
+        return {"verdicts": [{"field": "supplier", "verdict": "agree", "verifierValue": "Voorbeeld BV", "confidence": 0.9, "evidence": "Zichtbaar."}]}
+
+    monkeypatch.setattr(verifier, "query_local_vlm", fake_backend)
+    body = payload()
+    body["fields"][1]["userConfirmed"] = True
+    r = client.post("/verify", headers=auth(), json=body)
+    assert r.status_code == 200
+    assert seen["fields"] == ["supplier"]
+    assert {x["field"] for x in r.json()["verdicts"]} == {"supplier"}
+
+
+def test_unknown_or_duplicate_model_fields_fail_closed(client, monkeypatch):
+    async def fake_backend(_request):
+        return {
+            "verdicts": [
+                {"field": "supplier", "verdict": "agree", "verifierValue": "Voorbeeld BV", "confidence": 0.9, "evidence": "A"},
+                {"field": "supplier", "verdict": "disagree", "verifierValue": "Anders", "confidence": 0.9, "evidence": "B"},
+                {"field": "bankAccountBalance", "verdict": "agree", "verifierValue": "10000", "confidence": 0.9, "evidence": "C"},
+            ]
+        }
+
+    monkeypatch.setattr(verifier, "query_local_vlm", fake_backend)
+    r = client.post("/verify", headers=auth(), json=payload())
+    assert r.status_code == 503
+    assert r.json()["detail"]["code"] == "VERIFIER_RESPONSE_INVALID"
+
+
+def test_backend_timeout_fails_closed_without_mutation(client, monkeypatch):
+    async def timeout_backend(_request):
+        raise verifier.VerifierUnavailable("VERIFIER_TIMEOUT")
+
+    monkeypatch.setattr(verifier, "query_local_vlm", timeout_backend)
+    r = client.post("/verify", headers=auth(), json=payload())
+    assert r.status_code == 503
+    detail = r.json()["detail"]
+    assert detail["code"] == "VERIFIER_TIMEOUT"
+    assert detail["fallback"] == "deterministic_pipeline_and_human_review"
+
+
+def test_circuit_breaker_opens_after_repeated_failures(client, monkeypatch):
+    async def fail_backend(_request):
+        raise verifier.VerifierUnavailable("VERIFIER_BACKEND_UNAVAILABLE")
+
+    monkeypatch.setattr(verifier, "query_local_vlm", fail_backend)
+    for _ in range(verifier.CIRCUIT_FAILURE_THRESHOLD):
+        r = client.post("/verify", headers=auth(), json=payload())
+        assert r.status_code == 503
+    r = client.post("/verify", headers=auth(), json=payload())
+    assert r.status_code == 503
+    assert r.json()["detail"]["code"] == "VERIFIER_CIRCUIT_OPEN"
+
+
+def test_ready_reflects_model_backend_without_blocking_health(client, monkeypatch):
+    async def down():
+        return False
+
+    monkeypatch.setattr(verifier, "backend_ready", down)
+    assert client.get("/health").status_code == 200
+    r = client.get("/ready")
+    assert r.status_code == 503
+    assert r.json()["detail"]["code"] == "MODEL_NOT_READY"
+
+
+def test_ocr_text_and_payload_are_bounded(client):
+    too_long = payload(ocrText="x" * 20001)
+    r = client.post("/verify", headers=auth(), json=too_long)
+    assert r.status_code == 422
+
+
+def test_no_general_chat_endpoint_exists(client):
+    for path in ("/chat", "/v1/chat/completions", "/assistant", "/ask"):
+        assert client.post(path, json={"message": "hello"}).status_code == 404
