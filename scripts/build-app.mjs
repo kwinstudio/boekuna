@@ -363,16 +363,6 @@ if(assistantEnabled){
     "      +'</div></section>'\n      +'<section class=\"settings-group\"><h2 class=\"settings-group-label\">Beveiliging & privacy</h2><div class=\"settings-list\">'",
     "      +'</div></section>'\n      +renderAssistantSettingsSafe()\n      +'<section class=\"settings-group\"><h2 class=\"settings-group-label\">Beveiliging & privacy</h2><div class=\"settings-list\">'"
   );
-  patchBuiltAppAsset(
-    'mobile-product.js',
-    "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];",
-    "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Assistent & inzichten','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];"
-  );
-  patchBuiltAppAsset(
-    'mobile-product.js',
-    "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];",
-    "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Persoonlijke tips en samenvattingen','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];"
-  );
 }
 // Beginner-first Settings is app-only: patch the generated product asset so
 // the public/marketing source remains byte-identical.
@@ -418,20 +408,6 @@ patchBuiltAppAsset(
   `      +'<section class="settings-group"><h2 class="settings-group-label">Account</h2>'`,
   `      +'<section class="settings-group"><h2 class="settings-group-label">Abonnement & account</h2>'`
 );
-if(assistantEnabled){
-  patchBuiltAppAsset(
-    'mobile-product.js',
-    "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Assistent & inzichten','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];",
-    "var titles=['Mijn bedrijf','Facturen','Boekhouding','Assistent & inzichten','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];"
-  );
-}else{
-  patchBuiltAppAsset(
-    'mobile-product.js',
-    "var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];",
-    "var titles=['Mijn bedrijf','Facturen','Boekhouding','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];"
-  );
-}
-
 if(!isReleaseFeatureEnabled(releaseFeatures,'serviceCatalog')){
   patchBuiltAppAsset(
     'mobile-polish-round-2.js',
@@ -452,28 +428,7 @@ patchBuiltAppAsset(
   "  #mainApp .dashboard-kpi-profit { grid-column:1/-1!important; }"
 );
 
-// The polished settings renderer replaces the inline settings page in Release 1.
-// Insert the optional account-view switch only into the generated app asset.
-patchBuiltAppAsset(
-  'mobile-polish-round-2.js',
-  `      +'<section class="settings-group"><h2 class="settings-group-label">Facturen</h2>'`,
-  `      +'<section class="settings-group"><h2 class="settings-group-label">Weergave</h2><div class="card settings-compact">'
-      +'<label class="settings-view-toggle" for="extraHelpToggle"><span><strong>Extra uitleg tonen</strong></span><input type="checkbox" role="switch" id="extraHelpToggle" aria-label="Extra uitleg tonen" '+(extraHelpVisible()?'checked':'')+' onchange="setExtraHelpEnabled(this.checked)"></label>'
-      +'</div></section>'
-      +'<section class="settings-group"><h2 class="settings-group-label">Facturen</h2>'`
-);
-
-// Rewrite the generated app's mobile Settings menu by section heading, not position.
-// The public mobile asset must remain unchanged for the marketing site.
-{
-  const file=path.join(appAssetsTarget,'mobile-product.js');
-  const current=fs.readFileSync(file,'utf8');
-  const from=current.indexOf('  function settings(root) {');
-  const to=current.indexOf('  function vat(root) {',from);
-  if(from<0||to<=from||current.indexOf('  function settings(root) {',from+1)>=0)throw new Error('Settings mobile section marker changed');
-  fs.writeFileSync(file,current.slice(0,from)+"  function settings(root) {\n    if (page !== 'settings') return;\n    var section=root.querySelector('.settings-section');\n    if (!section || section.dataset.mobileSettings) return;\n    section.dataset.mobileSettings='index';\n    var groups=Array.from(section.querySelectorAll(':scope>.settings-group'));\n    var index=element('div','mobile-settings-index');\n    var back=button('Terug naar Instellingen',function(){\n      section.dataset.mobileSettings='index';\n      groups.forEach(function(group){group.classList.remove('mobile-settings-active')});\n      index.querySelector('button').focus();\n    },'btn mobile-settings-back');\n    // Map by semantic headings instead of index so new settings groups never mislabel later sections.\n    var settingsLabels={\n      'Bedrijf':['Mijn bedrijf','Naam, adres en betaalgegevens'],\n      'Weergave':['Weergave','Extra uitleg aan- of uitzetten'],\n      'Facturen':['Facturen','Factuurlayout en e-mailbericht'],\n      'Boekhouding':['Boekhouding','Fiscale instellingen en reserves'],\n      'Beveiliging':['Beveiliging & privacy','Je account beschermen'],\n      'Data & import/export':['Data & export','Download of herstel je administratie'],\n      'Account':['Abonnement & account','Je plan en account beheren'],\n      'Gevaarzone':['Account verwijderen','Acties met extra bevestiging']\n    };\n    groups.forEach(function(group){\n      var title=group.querySelector('h2');\n      var heading=title?title.textContent.trim():'Instellingen';\n      var label=settingsLabels[heading]||[heading,'Bekijk en wijzig je instellingen'];\n      var item=button('',function(){\n        if(heading==='Bedrijf'||heading==='Mijn bedrijf'){navigate('profile');return;}\n        section.dataset.mobileSettings='detail';\n        groups.forEach(function(other){other.classList.toggle('mobile-settings-active',other===group)});\n        back.focus();\n      },'settings-nav-item');\n      var copy=element('span','settings-nav-copy');copy.append(element('strong','',label[0]));\n      copy.append(element('span','',label[1]));\n      var chevron=element('span','settings-nav-chevron','›');chevron.setAttribute('aria-hidden','true');item.append(copy,chevron);index.append(item);\n    });\n    section.prepend(back,index);\n  }\n"+current.slice(to),'utf8');
-}
-
+// Settings structure and mobile section mapping now live in the shared source assets.
 fs.copyFileSync(interFontSource,path.join(appAssetsTarget,'app-InterVariable.woff2'));
 fs.copyFileSync(spaceGroteskFont,path.join(appAssetsTarget,'app-SpaceGrotesk-Variable.ttf'));
 
