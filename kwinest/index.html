@@ -5201,8 +5201,8 @@ async function fileSha256(file){const buf=await file.arrayBuffer(),hash=await cr
 function processorTablesToText(tables){return (tables||[]).slice(0,25).map((x,ti)=>`TABEL ${ti+1}${x.page!=null?` · pagina ${x.page}`:''}\n${(x.table||[]).slice(0,120).map(r=>(r||[]).join(' | ')).join('\n')}`).join('\n\n')}
 function buildProcessorExistingIndex(){
  const rows=[];
- for(const i of state.invoices||[]){const c=state.contacts.find(x=>x.id===i.customerId);rows.push({id:i.id,invoiceNumber:i.number||'',supplier:c?.name||'',party:c?.name||'',paymentReference:i.paymentReference||'',orderNumber:i.reference||'',invoiceDate:i.issueDate||'',currency:i.currency||'EUR',total:Number(invoiceGross(i)||0)})}
- for(const e of state.expenses||[]){rows.push({id:e.id,invoiceNumber:e.invoiceNumber||'',supplier:e.vendor||'',party:e.vendor||'',paymentReference:e.paymentReference||'',orderNumber:e.orderNumber||'',invoiceDate:e.date||'',currency:e.currency||'EUR',total:Number(expenseGross(e)||0)})}
+ for(const i of state.invoices||[]){const c=state.contacts.find(x=>x.id===i.customerId),sourceTotal=i.sourceAmounts?.gross;rows.push({id:i.id,invoiceNumber:i.number||'',supplier:c?.name||'',party:c?.name||'',paymentReference:i.paymentReference||'',orderNumber:i.reference||'',invoiceDate:i.issueDate||'',currency:i.sourceCurrency||i.currency||'EUR',total:Number(sourceTotal??invoiceGross(i)||0)})}
+ for(const e of state.expenses||[]){const sourceTotal=e.sourceAmounts?.gross;rows.push({id:e.id,invoiceNumber:e.invoiceNumber||'',supplier:e.vendor||'',party:e.vendor||'',paymentReference:e.paymentReference||'',orderNumber:e.orderNumber||'',invoiceDate:e.date||'',currency:e.sourceCurrency||e.currency||'EUR',total:Number(sourceTotal??expenseGross(e)||0)})}
  return rows.slice(0,1500)
 }
 function fallbackDocumentCode(status){
