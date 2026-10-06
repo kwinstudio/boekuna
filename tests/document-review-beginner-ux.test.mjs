@@ -222,6 +222,15 @@ try{
   assert.deepEqual(fxIssues,[],'confirmed valid USD rate must resolve the blocker: '+JSON.stringify(fxIssues));
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false,'confirmed rate must unlock save');
   assert.match(await fxCard.innerText(),/€\s?92,00|92,00\s?€/i,'EUR booking preview must be deterministic');
+
+  // A confirmed rate is immutable until the user explicitly confirms a new one.
+  await fxCard.locator('[name="exchangeRateToEur"]').fill('0,93');
+  fxIssues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
+  assert.ok(fxIssues.some(x=>x.field==='exchangeRateToEur'),'editing a confirmed rate must revoke confirmation');
+  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true,'changed rate must re-block save');
+  await fxCard.locator('[name="exchangeRateToEur"]').fill('0,92');
+  await fxCard.getByRole('button',{name:'Wisselkoers bevestigen',exact:true}).click();
+  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false,'re-confirming the intended rate must unlock save again');
   await page.screenshot({path:'tests/artifacts/document-review-foreign-currency-desktop-'+browserName+'.png',fullPage:true});
   await page.locator('[data-review-save]:visible').first().click();
   await page.waitForFunction(()=>state.documents.some(d=>d.reviewSnapshot?.invoiceNumber==='USD-2026-101'));
@@ -232,7 +241,18 @@ try{
     return {
       snapshot:doc?.reviewSnapshot,
       docMeta:doc?{sourceCurrency:doc.sourceCurrency,exchangeRateToEur:doc.exchangeRateToEur,bookingCurrency:doc.bookingCurrency,bookingAmountsEur:doc.bookingAmountsEur}:null,
-      expense:expense?{currency:expense.currency,sourceCurrency:expense.sourceCurrency,exchangeRateToEur:expense.exchangeRateToEur,sourceAmounts:expense.sourceAmounts,bookingAmountsEur:expense.bookingAmountsEur,exVat:expense.exVat,vatAmount:expense.vatAmount,gross:expense.gross}:null
+      expense:expense?{currency:expense.currency,sourceCurrency:expense.sourceCurrency,exchangeRateToEur:expense.exchangeRateToEur,sourceAmounts:expense.sourceAmounts,bookingAmountsEur:expense.bookingAmountsEur,exVat:expense.exVat,vatAmount:expense.vatAmount,gross:expense.gross}:null,
+      persisted:(()=>{
+        const raw=JSON.parse(localStorage.getItem(userDataKey())||'{}');
+        const persistedDoc=(raw.documents||[]).find(x=>x.reviewSnapshot?.invoiceNumber==='USD-2026-101');
+        const persistedExpense=(raw.expenses||[]).find(x=>x.id===persistedDoc?.linkedId);
+        return persistedDoc&&persistedExpense?{
+          snapshot:persistedDoc.reviewSnapshot,
+          sourceCurrency:persistedExpense.sourceCurrency,
+          exchangeRateToEur:persistedExpense.exchangeRateToEur,
+          bookingAmountsEur:persistedExpense.bookingAmountsEur
+        }:null
+      })()
     };
   });
   assert.equal(savedFx.snapshot.currency,'USD');
@@ -247,6 +267,13 @@ try{
   assert.deepEqual(savedFx.expense.sourceAmounts,{net:100,vatAmount:21,gross:121});
   assert.deepEqual(savedFx.expense.bookingAmountsEur,{net:92,vatAmount:19.32,gross:111.32});
   assert.deepEqual({net:savedFx.expense.exVat,vatAmount:savedFx.expense.vatAmount,gross:savedFx.expense.gross},{net:92,vatAmount:19.32,gross:111.32});
+  assert.ok(savedFx.persisted,'foreign-currency confirmation must be persisted in saved ledger state');
+  assert.equal(savedFx.persisted.snapshot.currency,'USD');
+  assert.equal(savedFx.persisted.snapshot.exchangeRateToEur,'0.92');
+  assert.equal(savedFx.persisted.snapshot.exchangeRateConfirmed,true);
+  assert.equal(savedFx.persisted.sourceCurrency,'USD');
+  assert.equal(savedFx.persisted.exchangeRateToEur,'0.92');
+  assert.deepEqual(savedFx.persisted.bookingAmountsEur,{net:92,vatAmount:19.32,gross:111.32});
 
   await page.evaluate(()=>{
     const doc=state.documents.find(d=>d.reviewSnapshot?.invoiceNumber==='USD-2026-101');
@@ -299,6 +326,19 @@ try{
     const issues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
     assert.ok(issues.some(x=>x.field===scenario.field),scenario.name+' blocker missing: '+JSON.stringify(issues));
     assert.ok(await page.locator(scenario.selector+':visible').count()>0,scenario.name+' has no visible resolution control');
+    await page.evaluate(()=>closeModal());
+  }
+  const basisBlockers=[
+    {name:'missing supplier',overrides:{party:''},field:'party',selector:'[name="party"]'},
+    {name:'missing date',overrides:{issueDate:''},field:'issueDate',selector:'[name="issueDate"]'},
+    {name:'missing invoice number',overrides:{invoiceNumber:''},field:'invoiceNumber',selector:'[name="invoiceNumber"]'}
+  ];
+  for(const scenario of basisBlockers){
+    await openReview(scenario.overrides);
+    const issues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
+    assert.ok(issues.some(x=>x.field===scenario.field),scenario.name+' blocker missing: '+JSON.stringify(issues));
+    assert.ok(await page.locator('[data-review-page="1"] '+scenario.selector+':visible').count()>0,scenario.name+' has no visible resolution control');
+    assert.equal(await page.getByRole('button',{name:'Volgende',exact:true}).isDisabled(),true,scenario.name+' must block advancing until fixed');
     await page.evaluate(()=>closeModal());
   }
 
