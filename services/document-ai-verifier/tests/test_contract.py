@@ -1,4 +1,6 @@
 import json
+
+import httpx
 import os
 import sys
 from pathlib import Path
@@ -446,6 +448,156 @@ def test_invalid_verdict_confidence_and_long_evidence_fail_closed(client, monkey
         verifier.reset_runtime_state_for_tests()
 
 
+
+def test_missing_and_null_verifier_value_are_distinct_and_fail_closed(client, monkeypatch):
+    responses = [
+        {
+            "verdicts": [
+                {
+                    "field": "supplier",
+                    "verdict": "uncertain",
+                    "confidence": 0.5,
+                    "evidence": "Ontbrekende property.",
+                },
+                {
+                    "field": "gross",
+                    "verdict": "agree",
+                    "verifierValue": "121.00",
+                    "confidence": 0.99,
+                    "evidence": "Totaal zichtbaar.",
+                },
+            ]
+        },
+        {
+            "verdicts": [
+                {
+                    "field": "supplier",
+                    "verdict": "uncertain",
+                    "verifierValue": None,
+                    "confidence": 0.5,
+                    "evidence": "Null is niet toegestaan door het runtime-schema.",
+                },
+                {
+                    "field": "gross",
+                    "verdict": "agree",
+                    "verifierValue": "121.00",
+                    "confidence": 0.99,
+                    "evidence": "Totaal zichtbaar.",
+                },
+            ]
+        },
+    ]
+    for response in responses:
+        async def fake_backend(_request, body=response):
+            return body
+
+        monkeypatch.setattr(verifier, "query_local_vlm", fake_backend)
+        r = client.post("/verify", headers=auth(), json=payload())
+        assert r.status_code == 503
+        assert r.json()["detail"]["code"] == "VERIFIER_RESPONSE_INVALID"
+        verifier.reset_runtime_state_for_tests()
+
+
+def test_model_booking_instruction_properties_fail_closed(client, monkeypatch):
+    async def fake_backend(_request):
+        return {
+            "verdicts": [
+                {
+                    "field": "supplier",
+                    "verdict": "agree",
+                    "verifierValue": "Voorbeeld BV",
+                    "confidence": 0.9,
+                    "evidence": "Naam zichtbaar.",
+                    "acceptedValue": "Kwaad BV",
+                },
+                {
+                    "field": "gross",
+                    "verdict": "agree",
+                    "verifierValue": "121.00",
+                    "confidence": 0.99,
+                    "evidence": "Totaal zichtbaar.",
+                },
+            ]
+        }
+
+    monkeypatch.setattr(verifier, "query_local_vlm", fake_backend)
+    r = client.post("/verify", headers=auth(), json=payload())
+    assert r.status_code == 503
+    assert r.json()["detail"]["code"] == "VERIFIER_RESPONSE_INVALID"
+
+
+def test_wrong_or_empty_service_secret_fails_closed(client, monkeypatch):
+    r = client.post("/verify", headers={"Authorization": "Bearer wrong"}, json=payload())
+    assert r.status_code == 401
+    assert r.json()["detail"]["code"] == "UNAUTHORIZED"
+
+    monkeypatch.setenv("BOOKUNA_DOCUMENT_AI_TOKEN", "")
+    r = client.post("/verify", headers=auth(), json=payload())
+    assert r.status_code == 401
+    assert r.json()["detail"]["code"] == "UNAUTHORIZED"
+
+
+def test_http_500_backend_fails_closed(client, monkeypatch):
+    original_client = verifier.httpx.AsyncClient
+
+    def client_factory(**kwargs):
+        async def handler(request):
+            return httpx.Response(500, json={"error": "backend failed"}, request=request)
+
+        return original_client(transport=httpx.MockTransport(handler), **kwargs)
+
+    monkeypatch.setattr(verifier.httpx, "AsyncClient", client_factory)
+    r = client.post("/verify", headers=auth(), json=payload())
+    assert r.status_code == 503
+    assert r.json()["detail"]["code"] == "VERIFIER_BACKEND_UNAVAILABLE"
+    assert r.json()["detail"]["fallback"] == "deterministic_pipeline_and_human_review"
+
+
+def test_connection_refused_backend_fails_closed(client, monkeypatch):
+    original_client = verifier.httpx.AsyncClient
+
+    def client_factory(**kwargs):
+        async def handler(request):
+            raise httpx.ConnectError("connection refused", request=request)
+
+        return original_client(transport=httpx.MockTransport(handler), **kwargs)
+
+    monkeypatch.setattr(verifier.httpx, "AsyncClient", client_factory)
+    r = client.post("/verify", headers=auth(), json=payload())
+    assert r.status_code == 503
+    assert r.json()["detail"]["code"] == "VERIFIER_BACKEND_UNAVAILABLE"
+
+
+def test_malformed_json_backend_fails_closed(client, monkeypatch):
+    original_client = verifier.httpx.AsyncClient
+
+    def client_factory(**kwargs):
+        async def handler(request):
+            return httpx.Response(200, text="{not-json", request=request)
+
+        return original_client(transport=httpx.MockTransport(handler), **kwargs)
+
+    monkeypatch.setattr(verifier.httpx, "AsyncClient", client_factory)
+    r = client.post("/verify", headers=auth(), json=payload())
+    assert r.status_code == 503
+    assert r.json()["detail"]["code"] == "VERIFIER_RESPONSE_INVALID"
+
+
+def test_backend_transport_timeout_maps_to_verifier_timeout(client, monkeypatch):
+    original_client = verifier.httpx.AsyncClient
+
+    def client_factory(**kwargs):
+        async def handler(request):
+            raise httpx.ReadTimeout("timed out", request=request)
+
+        return original_client(transport=httpx.MockTransport(handler), **kwargs)
+
+    monkeypatch.setattr(verifier.httpx, "AsyncClient", client_factory)
+    r = client.post("/verify", headers=auth(), json=payload())
+    assert r.status_code == 503
+    assert r.json()["detail"]["code"] == "VERIFIER_TIMEOUT"
+
+
 def test_backend_timeout_fails_closed_without_mutation(client, monkeypatch):
     async def timeout_backend(_request):
         raise verifier.VerifierUnavailable("VERIFIER_TIMEOUT")
@@ -459,16 +611,22 @@ def test_backend_timeout_fails_closed_without_mutation(client, monkeypatch):
 
 
 def test_circuit_breaker_opens_after_repeated_failures(client, monkeypatch):
+    calls = {"count": 0}
+
     async def fail_backend(_request):
+        calls["count"] += 1
         raise verifier.VerifierUnavailable("VERIFIER_BACKEND_UNAVAILABLE")
 
     monkeypatch.setattr(verifier, "query_local_vlm", fail_backend)
     for _ in range(verifier.CIRCUIT_FAILURE_THRESHOLD):
         r = client.post("/verify", headers=auth(), json=payload())
         assert r.status_code == 503
+    assert calls["count"] == verifier.CIRCUIT_FAILURE_THRESHOLD
+
     r = client.post("/verify", headers=auth(), json=payload())
     assert r.status_code == 503
     assert r.json()["detail"]["code"] == "VERIFIER_CIRCUIT_OPEN"
+    assert calls["count"] == verifier.CIRCUIT_FAILURE_THRESHOLD
 
 
 def test_ready_reflects_model_backend_without_blocking_health(client, monkeypatch):
