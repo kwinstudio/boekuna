@@ -45,8 +45,9 @@ FIELDS = (
     "documentType", "supplier", "invoiceNumber", "invoiceDate", "dueDate", "currency",
     "subtotal", "vatTotal", "gross", "vatRate", "vatLines", "mixedRates",
     "iban", "bic", "vatId", "amountPaid", "advancePaid", "amountDue", "paymentReference",
+    "factoringFeeTotal", "payoutAmount",
 )
-MONEY_FIELDS = {"subtotal", "vatTotal", "gross", "amountPaid", "advancePaid", "amountDue"}
+MONEY_FIELDS = {"subtotal", "vatTotal", "gross", "amountPaid", "advancePaid", "amountDue", "factoringFeeTotal", "payoutAmount"}
 BOOL_FIELDS = {"mixedRates"}
 RATE_FIELDS = {"vatRate"}
 HIGH_CONF = 0.85
@@ -154,6 +155,8 @@ def parser_fields(result) -> dict[str, Any]:
         "advancePaid": result.amounts.advancePayment,
         "amountDue": result.amounts.amountDue if result.amounts.amountDue is not None else result.amounts.outstandingAmount,
         "paymentReference": result.invoice.paymentReference,
+        "factoringFeeTotal": next((x.total for x in (result.adjustments or []) if getattr(x, "type", "") == "factoring_fee"), None),
+        "payoutAmount": result.amounts.settlementAmount,
     }
 
 
@@ -176,26 +179,62 @@ def financial_issues(values: dict[str, Any]) -> list[str]:
     net, vat, gross = cents(values.get("subtotal")), cents(values.get("vatTotal")), cents(values.get("gross"))
     if None not in (net, vat, gross) and net + vat != gross:
         issues.append("subtotal_plus_vat")
-    if values.get("mixedRates") is True:
-        lines = normalize_vat_lines(values.get("vatLines"))
-        if not lines or len(lines) < 2:
-            issues.append("mixed_vat_lines_missing")
-        elif vat is not None:
-            vals = [x["vatAmount"] for x in lines]
-            if any(x is None for x in vals) or sum(vals) != vat:
-                issues.append("vat_lines_sum")
+    lines = normalize_vat_lines(values.get("vatLines"))
+    if values.get("mixedRates") is True and (not lines or len(lines) < 2):
+        issues.append("mixed_vat_lines_missing")
+    if lines and vat is not None:
+        vals = [x["vatAmount"] for x in lines]
+        if any(x is None for x in vals) or sum(vals) != vat:
+            issues.append("vat_lines_sum")
     amount_paid = cents(values.get("amountPaid"))
     advance = cents(values.get("advancePaid"))
     due = cents(values.get("amountDue"))
     if gross is not None and due is not None and (amount_paid is not None or advance is not None):
         if gross - (amount_paid or 0) - (advance or 0) != due:
             issues.append("amount_due")
+    fee = cents(values.get("factoringFeeTotal"))
+    payout = cents(values.get("payoutAmount"))
+    if gross is not None and fee is not None and payout is not None and gross - fee != payout:
+        issues.append("factoring_payout")
     return issues
 
 
-def safe_accept(base: dict[str, Any], proposals: list[dict[str, Any]]) -> tuple[dict[str, Any], list[str]]:
+def parse_proposal_value(field: str, raw: Any) -> tuple[Any, str | None]:
+    if raw is None:
+        return None, "empty"
+    text = str(raw).strip()
+    if not text:
+        return None, "empty"
+    if field in MONEY_FIELDS or field in RATE_FIELDS:
+        try:
+            return float(text.replace(",", ".")), None
+        except Exception:
+            return None, "parse"
+    if field in BOOL_FIELDS:
+        low = text.lower()
+        if low in {"1", "true", "yes", "ja"}:
+            return True, None
+        if low in {"0", "false", "no", "nee"}:
+            return False, None
+        return None, "parse"
+    if field == "vatLines":
+        try:
+            value = json.loads(text)
+        except Exception:
+            return None, "parse"
+        return (value, None) if isinstance(value, list) else (None, "schema")
+    return text, None
+
+
+def safe_accept(
+    base: dict[str, Any],
+    proposals: list[dict[str, Any]],
+    parser_confidence: dict[str, float],
+    protected_fields: set[str] | None = None,
+) -> tuple[dict[str, Any], list[str]]:
     out = deepcopy(base)
     rejected = []
+    protected_fields = protected_fields or set()
     for p in proposals:
         field = p.get("field")
         if field not in FIELDS or p.get("verdict") != "disagree":
@@ -206,31 +245,29 @@ def safe_accept(base: dict[str, Any], proposals: list[dict[str, Any]]) -> tuple[
             conf = 0
         if conf < VERIFIER_ACCEPT:
             continue
-        raw = p.get("value")
-        if raw is None:
+        if field in protected_fields:
+            rejected.append(field + ":user_confirmed")
             continue
-        if field in MONEY_FIELDS or field in RATE_FIELDS:
-            try:
-                value = float(str(raw).replace(",", "."))
-            except Exception:
-                rejected.append(field + ":parse")
-                continue
-        elif field in BOOL_FIELDS:
-            value = str(raw).strip().lower() in {"1", "true", "yes", "ja"}
-        elif field == "vatLines":
-            if not isinstance(raw, list):
-                rejected.append(field + ":schema")
-                continue
-            value = raw
-        else:
-            value = str(raw).strip()
+        # A second-check may choose between uncertain parser candidates, but an
+        # AI-only suggestion is not promoted into bookkeeping and a high-
+        # confidence parser value is never replaced by AI disagreement alone.
+        if out.get(field) in (None, ""):
+            rejected.append(field + ":ai_only_suggestion")
+            continue
+        if parser_confidence.get(field, 0.0) >= HIGH_CONF:
+            rejected.append(field + ":high_conf_parser")
+            continue
+        value, parse_error = parse_proposal_value(field, p.get("value"))
+        if parse_error:
+            rejected.append(field + ":" + parse_error)
+            continue
         trial = deepcopy(out)
         trial[field] = value
         # Mixed VAT is never collapsed into a single-rate result by AI.
-        if trial.get("mixedRates") is True and field == "vatRate":
+        if out.get("mixedRates") is True and field in {"vatRate", "mixedRates"}:
             rejected.append(field + ":mixed_vat")
             continue
-        # Financial changes must make the deterministic state no worse.
+        # Financial changes must make deterministic state no worse.
         before = len(financial_issues(out))
         after = len(financial_issues(trial))
         if field in MONEY_FIELDS | RATE_FIELDS | {"vatLines", "mixedRates"} and after > before:
@@ -316,7 +353,7 @@ def special_cases() -> list[dict[str, Any]]:
         "FACTUUR","Leverancier: BOEKUNA FACTORING BV","Factuurnummer FAC-2026-12","Factuurdatum 03-10-2026",
         "Subtotaal EUR 1000,00","BTW 21% EUR 210,00","Factuurtotaal EUR 1210,00",
         "Factoring fee EUR 10,00","Uitbetaling EUR 1200,00"
-    ], {"supplier":"BOEKUNA FACTORING BV","invoiceNumber":"FAC-2026-12","invoiceDate":"2026-10-03","currency":"EUR","subtotal":1000,"vatTotal":210,"gross":1210,"vatRate":21,"mixedRates":False}))
+    ], {"supplier":"BOEKUNA FACTORING BV","invoiceNumber":"FAC-2026-12","invoiceDate":"2026-10-03","currency":"EUR","subtotal":1000,"vatTotal":210,"gross":1210,"vatRate":21,"factoringFeeTotal":10,"payoutAmount":1200,"mixedRates":False}))
     cases.append(pdf("advance-due", [
         "FACTUUR","Leverancier: BOEKUNA ADVANCE BV","Factuurnummer ADV-2026-1","Factuurdatum 03-10-2026",
         "Subtotaal EUR 1000,00","BTW 21% EUR 210,00","Totaal EUR 1210,00",
@@ -399,7 +436,7 @@ def schema_for(fields: list[str]) -> dict[str, Any]:
                     "properties":{
                         "field":{"type":"string","enum":fields},
                         "verdict":{"type":"string","enum":["agree","disagree","uncertain"]},
-                        "value":{},
+                        "value":{"type":"string"},
                         "confidence":{"type":"number","minimum":0,"maximum":1},
                         "evidence":{"type":"string"},
                     },
@@ -418,7 +455,9 @@ def verifier_request(server: str, image: bytes, source_text: str, candidates: di
         "Use only visible document evidence and the supplied source text. Review every candidate field. "
         "For each field return agree, disagree, or uncertain. If disagree, value must be exactly supported by the document. "
         "If evidence is insufficient, use uncertain. Preserve mixed VAT as multiple VAT lines; never collapse it to one rate. "
-        "Amounts must come from printed source evidence, not arithmetic guessing. Keep evidence short.\n\n"
+        "Amounts must come from printed source evidence, not arithmetic guessing. Keep evidence short. "
+        "Return value as a STRING. For booleans use true/false. For vatLines use a compact JSON-array string "
+        "with objects containing rate, taxableAmount and vatAmount. For uncertain use an empty string.\n\n"
         "SOURCE_TEXT:\n" + source_text[:7000] + "\n\nPARSER_CANDIDATES:\n" +
         json.dumps({k:candidates.get(k) for k in fields}, ensure_ascii=False, separators=(",",":"))
     )
@@ -428,7 +467,7 @@ def verifier_request(server: str, image: bytes, source_text: str, candidates: di
         "messages":[{"role":"user","content":[{"type":"image_url","image_url":{"url":data_url}},{"type":"text","text":prompt}]}],
         "temperature":0,
         "max_tokens":1200,
-        "response_format":{"type":"json_schema","schema":schema_for(fields)},
+        "response_format":{"type":"json_schema","json_schema":{"name":"boekuna_second_check","strict":True,"schema":schema_for(fields)}},
     }
     t=time.perf_counter()
     try:
@@ -470,6 +509,24 @@ def main():
     args=ap.parse_args()
 
     cases=base_cases()+special_cases()
+    # Benchmark policy self-checks: user-confirmed and high-confidence values
+    # remain immutable; AI-only fields remain suggestions for human review.
+    protected_base={"gross":121.0,"supplier":"Trusted BV","iban":None,"mixedRates":False,"vatLines":[]}
+    protected_props=[
+        {"field":"gross","verdict":"disagree","value":"999.00","confidence":1.0,"evidence":"test"},
+        {"field":"supplier","verdict":"disagree","value":"Wrong BV","confidence":1.0,"evidence":"test"},
+        {"field":"iban","verdict":"disagree","value":"NL91ABNA0417164300","confidence":1.0,"evidence":"test"},
+    ]
+    policy_out,policy_rejected=safe_accept(
+        protected_base,protected_props,
+        {"gross":0.2,"supplier":0.99,"iban":0.0},
+        protected_fields={"gross"},
+    )
+    assert policy_out==protected_base
+    assert "gross:user_confirmed" in policy_rejected
+    assert "supplier:high_conf_parser" in policy_rejected
+    assert "iban:ai_only_suggestion" in policy_rejected
+
     proc=find_server_process()
     idle_mem=proc.memory_info().rss if proc else None
     peak={"rss":idle_mem or 0}
@@ -512,7 +569,8 @@ def main():
             request_ms.append(vms); calls+=1
             if raw and isinstance(raw.get("fields"),list):
                 proposals=raw["fields"]
-                b,rejected=safe_accept(a,proposals)
+                parser_conf={f:confidence_for(result,f) for f in FIELDS}
+                b,rejected=safe_accept(a,proposals,parser_conf)
                 rejected_total.extend(case["id"]+":"+x for x in rejected)
         b_status={f:status(f,b.get(f),truth.get(f)) for f in applicable}
         for f,s in b_status.items(): counts[f]["B"][s]+=1
@@ -525,11 +583,12 @@ def main():
                 continue
             verdict=p.get("verdict")
             proposed=p.get("value")
-            proposed_status=status(f,proposed,truth.get(f)) if verdict=="disagree" else ps
+            parsed_proposed,_=parse_proposal_value(f,proposed)
+            proposed_status=status(f,parsed_proposed,truth.get(f)) if verdict=="disagree" else ps
             if ps in {"EXACT","NORMALIZED"}:
                 if verdict=="disagree" and proposed_status not in {"EXACT","NORMALIZED"}:
                     transition["parser_correct_ai_wrong"]+=1
-                    ai_wrong_introduced.append({"id":case["id"],"field":f,"parser":a.get(f),"ai":proposed,"truth":truth.get(f),"confidence":p.get("confidence")})
+                    ai_wrong_introduced.append({"id":case["id"],"field":f,"parser":a.get(f),"ai":parsed_proposed,"truth":truth.get(f),"confidence":p.get("confidence")})
                 else:
                     transition["parser_correct_ai_correct"]+=1
             else:
@@ -603,13 +662,25 @@ def main():
     }
     # Benchmark evidence, not production authorization. Hard safety gates are
     # intentionally strict; performance target is evaluated against real target hardware.
+    verifier_errors=sum(1 for r in records if r["verified"] and r["verifierError"])
     output["qualityGate"]={
         "pass": (
             output["hallucination"]["aiWrongIntroducedFinancial"]==0
             and not output["safety"]["financialImpossibleAccepted"]
             and not output["safety"]["mixedVatCollapsed"]
+            and verifier_errors==0
+            and (output["overall"]["BAccuracy"] or 0) >= (output["overall"]["AAccuracy"] or 0)
+            and output["hallucination"]["parser_wrong_ai_corrects"] > 0
         ),
-        "criteria":["AI_WRONG_INTRODUCED_FINANCIAL == 0","no new financial invariant failure","mixed VAT never collapsed"],
+        "verifierErrors":verifier_errors,
+        "criteria":[
+            "AI_WRONG_INTRODUCED_FINANCIAL == 0",
+            "no new financial invariant failure",
+            "mixed VAT never collapsed",
+            "no verifier execution errors",
+            "safe B accuracy >= A accuracy",
+            "at least one parser error is correctly identified/corrected by verifier",
+        ],
     }
     Path(args.out).write_text(json.dumps(output,indent=2,ensure_ascii=False),encoding="utf-8")
     print("QWEN3_VL_BENCHMARK_JSON="+json.dumps(output,separators=(",",":"),ensure_ascii=False))
