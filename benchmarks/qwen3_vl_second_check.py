@@ -429,23 +429,23 @@ def schema_for(fields: list[str]) -> dict[str, Any]:
     return {
         "type":"object",
         "properties":{
-            "fields":{
+            "corrections":{
                 "type":"array",
                 "items":{
                     "type":"object",
                     "properties":{
                         "field":{"type":"string","enum":fields},
-                        "verdict":{"type":"string","enum":["agree","disagree","uncertain"]},
                         "value":{"type":"string"},
                         "confidence":{"type":"number","minimum":0,"maximum":1},
                         "evidence":{"type":"string"},
                     },
-                    "required":["field","verdict","value","confidence","evidence"],
+                    "required":["field","value","confidence","evidence"],
                     "additionalProperties":False,
                 }
-            }
+            },
+            "uncertain":{"type":"array","items":{"type":"string","enum":fields}},
         },
-        "required":["fields"],"additionalProperties":False,
+        "required":["corrections","uncertain"],"additionalProperties":False,
     }
 
 
@@ -453,12 +453,13 @@ def verifier_request(server: str, image: bytes, source_text: str, candidates: di
     prompt = (
         "You are BOEKUNA's SECOND CHECK only. Never book, calculate an exchange rate, or invent values. "
         "Use only visible document evidence and the supplied source text. Review every candidate field. "
-        "For each field return agree, disagree, or uncertain. If disagree, value must be exactly supported by the document. "
-        "If evidence is insufficient, use uncertain. Preserve mixed VAT as multiple VAT lines; never collapse it to one rate. "
-        "Amounts must come from printed source evidence, not arithmetic guessing. Keep evidence short. "
-        "Return value as a STRING. For booleans use true/false. For vatLines use a compact JSON-array string "
-        "with objects containing rate, taxableAmount and vatAmount. For uncertain use an empty string.\n\n"
-        "SOURCE_TEXT:\n" + source_text[:7000] + "\n\nPARSER_CANDIDATES:\n" +
+        "Return only corrections for parser fields that are visibly wrong, plus an uncertain list for fields you cannot verify. "
+        "Do not repeat fields that are already supported. Every correction must be exactly supported by the document. "
+        "Preserve mixed VAT as multiple VAT lines; never collapse it to one rate. "
+        "Amounts must come from printed source evidence, not arithmetic guessing. Keep evidence under 12 words. "
+        "Return correction value as a STRING. For booleans use true/false. For vatLines use a compact JSON-array string "
+        "with objects containing rate, taxableAmount and vatAmount.\n\n"
+        "SOURCE_TEXT:\n" + source_text[:3500] + "\n\nPARSER_CANDIDATES:\n" +
         json.dumps({k:candidates.get(k) for k in fields}, ensure_ascii=False, separators=(",",":"))
     )
     data_url="data:image/jpeg;base64,"+base64.b64encode(image).decode("ascii")
@@ -466,7 +467,7 @@ def verifier_request(server: str, image: bytes, source_text: str, candidates: di
         "model":MODEL_ID,
         "messages":[{"role":"user","content":[{"type":"image_url","image_url":{"url":data_url}},{"type":"text","text":prompt}]}],
         "temperature":0,
-        "max_tokens":1200,
+        "max_tokens":450,
         "response_format":{"type":"json_schema","json_schema":{"name":"boekuna_second_check","strict":True,"schema":schema_for(fields)}},
     }
     t=time.perf_counter()
@@ -567,8 +568,11 @@ def main():
             image=to_verifier_jpeg(case)
             raw,vms,err=verifier_request(args.server,image,doc.get("text") or "",a,fields)
             request_ms.append(vms); calls+=1
-            if raw and isinstance(raw.get("fields"),list):
-                proposals=raw["fields"]
+            if raw:
+                corrections=raw.get("corrections") if isinstance(raw.get("corrections"),list) else []
+                uncertain=raw.get("uncertain") if isinstance(raw.get("uncertain"),list) else []
+                proposals=[{**p,"verdict":"disagree"} for p in corrections if isinstance(p,dict)]
+                proposals += [{"field":name,"verdict":"uncertain","value":"","confidence":0.0,"evidence":""} for name in uncertain if name in fields]
                 parser_conf={f:confidence_for(result,f) for f in FIELDS}
                 b,rejected=safe_accept(a,proposals,parser_conf)
                 rejected_total.extend(case["id"]+":"+x for x in rejected)
@@ -580,6 +584,8 @@ def main():
             ps=a_status[f]; p=by_field.get(f)
             parser_uncertain=(a.get(f) in (None,"") or confidence_for(result,f)<HIGH_CONF)
             if p is None:
+                if ps in {"EXACT","NORMALIZED"}:
+                    transition["parser_correct_ai_correct"]+=1
                 continue
             verdict=p.get("verdict")
             proposed=p.get("value")
