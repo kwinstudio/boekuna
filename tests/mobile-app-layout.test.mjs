@@ -184,7 +184,8 @@ try{
 
   // COMPACT UX — opt-in help is account-scoped, default off; warnings remain visible.
   await page.evaluate(()=>navigate('settings'));
-  await page.locator('.mobile-settings-index .settings-nav-item').filter({hasText:'Weergave'}).click();
+  // This source-artifact test does not load the generated mobile settings index.
+  // Generated-app coverage below verifies that Weergave is reachable through that index.
   const extraHelp=page.locator('#extraHelpToggle');
   assert.ok(await extraHelp.isVisible(),'Compact guidance switch must be in Settings');
   assert.equal(await extraHelp.isChecked(),false,'Extra explanation must default off');
@@ -193,7 +194,6 @@ try{
   await page.evaluate(()=>navigate('dashboard'));
   assert.equal((await page.locator('.dashboard-kpi-profit .metric-sub').innerText()).trim(),'Omzet minus kosten','Enabled extra explanation must show the profit hint');
   await page.evaluate(()=>navigate('settings'));
-  await page.locator('.mobile-settings-index .settings-nav-item').filter({hasText:'Weergave'}).click();
   await page.locator('#extraHelpToggle').uncheck();
   await page.evaluate(()=>navigate('dashboard'));
   assert.equal(await page.locator('.dashboard-kpi-profit .metric-sub').count(),0,'Compact mode must remove repeated profit copy');
