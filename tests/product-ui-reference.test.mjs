@@ -49,7 +49,7 @@ assert.ok(source.includes('function productKpi(')&&source.includes('function pro
 assert.ok(source.includes('function renderIncome()')&&source.includes('function renderOutgoings()'),'Income and outgoings subpages missing');
 for(const label of ['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen'])assert.ok(source.includes('dashboard-kpi-label">'+label+'</span>'),'Dashboard KPI missing '+label);
 for(const label of ['Administratie','Vraag Boekuna','Nieuwe factuur'])assert.ok(source.includes('dashboard-summary-title">'+label+'</span>'),'Dashboard bottom summary missing '+label);
-for(const option of ["['7d','7 dagen']","['month','Maand']","['quarter','Kwartaal']","['year','Jaar']"])assert.ok(source.includes(option),'Dashboard period option missing '+option);
+for(const option of ["['week','Week']","['month','Maand']","['quarter','Kwartaal']","['year','Jaar']","['all','Altijd']"])assert.ok(source.includes(option),'Shared financial period option missing '+option);
 
 const build=spawnSync(process.execPath,['scripts/build-app.mjs'],{cwd:root,encoding:'utf8'});
 assert.equal(build.status,0,'App build failed: '+(build.stderr||build.stdout));
@@ -194,8 +194,8 @@ try{
       await page.screenshot({path:path.join(evidence,'vat-1440-'+browserName+'.png'),fullPage:true});
 
       const coreKpis={
-        invoices:['Openstaand','Te laat','Betaald deze maand','Concepten'],
-        expenses:['Kosten deze maand','Btw die je kunt terugvragen','Grootste categorie','Te controleren'],
+        invoices:['Omzet','Betaald','Openstaand','Te laat'],
+        expenses:['Kosten','Btw terug te vragen','Grootste categorie','Te controleren'],
         documents:['Te verwerken','Controle nodig','Verwerkt deze maand','Totaal documenten'],
         vat:['Waarschijnlijk te betalen','Ontvangen btw','Btw die je kunt terugvragen','Controle nodig'],
         reports:['Omzet','Kosten','Winst','Winstmarge'],

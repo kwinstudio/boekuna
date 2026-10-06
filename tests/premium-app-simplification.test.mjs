@@ -16,6 +16,7 @@ function replaceLast(source,needle,replacement){
 
 const fixtureBootstrap=[
   "currentUser={...TEST_USER,email:'kwin@example.test',supabaseUser:{user_metadata:{first_name:'Kwin'}}};",
+  "sessionStorage.setItem(FINANCIAL_PERIOD_KEY,'all');",
   "state=structuredClone(DEFAULT);",
   "state.company={...state.company,name:'QA Test BV',tradeName:'Boekuna QA',contactName:'Kwin',email:'qa@example.test',address:'Teststraat 1',postal:'3011AA',city:'Rotterdam',country:'Nederland',kvk:'12345678',vat:'NL123456789B01',iban:'NL91ABNA0417164300',kor:false};",
   "state.contacts=[{id:'c1',type:'customer',name:'QA Klant BV',email:'klant@example.test',address:'Klantstraat 2',postal:'3012BB',city:'Rotterdam'}];",
@@ -26,6 +27,7 @@ const fixtureBootstrap=[
   "state.plannedCash=[{id:'pc1',date:'2026-10-15',description:'QA geplande uitgave',type:'out',amount:25}];",
   "state.documents=[{id:'d1',name:'qa-document.pdf',type:'Upload',date:'2026-09-05',processingState:'ready'}];state.bookings=[];",
   "documentProcessingJobs=[];documentProcessingInitialized=true;documentProcessingConnectivityLost=false;documentProcessingFetchError=false;",
+  "sessionStorage.setItem(FINANCIAL_PERIOD_KEY,'all');",
   "enterApp();"
 ].join('\n');
 
@@ -205,11 +207,11 @@ try{
   const vat=await page.locator('#content').innerText();
   assert.match(vat,/geen officiële indiening|niet naar de Belastingdienst/i,'VAT must retain not-submitted meaning');
   assert.match(vat,/indicati(?:e|ef)/i,'VAT must retain indicative meaning');
-  const vatPeriod=page.locator('#vatPeriod');
-  assert.ok(await vatPeriod.isVisible(),'VAT period selector must be visible');
-  assert.ok((await vatPeriod.locator('option').allTextContents()).includes('Jaar'),'VAT must expose a full-year option');
+  const vatPeriod=page.locator('#vatFinancialPeriod');
+  assert.ok(await vatPeriod.isVisible(),'VAT shared period selector must be visible');
+  assert.deepEqual(await vatPeriod.locator('option').allTextContents(),['Week','Maand','Kwartaal','Jaar','Altijd']);
   await vatPeriod.selectOption('year');
-  assert.match(await page.locator('#content').innerText(),/Jaar 2026/,'VAT year view must clearly identify the selected year');
+  assert.equal((await page.locator('.premium-split .section-meta').first().innerText()).trim(),String(new Date().getFullYear()),'VAT year view must clearly identify the selected year');
 
   await navigateTo('reports');
   const reportText=await page.locator('#content').innerText();

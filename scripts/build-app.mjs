@@ -192,7 +192,7 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review
 // The real head precedes the app body; later </head> tokens belong to print templates.
 const mobileHeadBoundary='</head>\n<body>';
 if(!appHtml.includes(mobileHeadBoundary))throw new Error('Mobile app head boundary changed');
-appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n'+mobileHeadBoundary);
+appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n<style id="boekuna-app-mobile-compact-overrides">@media (max-width:820px){#mainApp #appMain #content.content{padding-top:14px!important}}</style>\n'+mobileHeadBoundary);
 const assistantRuntimeMarker='\n<script>\nconst USERS_KEY=';
 if(!appHtml.includes(assistantRuntimeMarker))throw new Error('Assistant app runtime marker changed');
 

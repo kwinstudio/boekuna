@@ -2040,6 +2040,9 @@ img.bookuna-logo-icon,
   .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}\n  #mainApp .dashboard-period-control{display:flex;align-items:center;justify-content:flex-end}
   #mainApp .dashboard-period-select{height:38px;min-width:116px;padding:0 34px 0 12px;border:1px solid var(--app-border);border-radius:9px;background:var(--app-white);color:var(--app-charcoal);font-size:12px;font-weight:700;outline:none}
   #mainApp .dashboard-period-select:focus-visible{box-shadow:var(--focus-ring);border-color:var(--app-green)}
+  #mainApp .financial-period-control{display:inline-flex;align-items:center;flex:0 0 auto}
+  #mainApp .financial-period-select{min-width:118px}
+  #mainApp .financial-page-head .page-actions{align-items:center}
   #mainApp .dashboard-kpi{width:100%;text-align:left;color:var(--app-charcoal);appearance:none;cursor:pointer;transition:border-color var(--transition-fast),transform var(--transition-fast),box-shadow var(--transition-fast)}
   #mainApp .dashboard-kpi:hover{border-color:#CDD5D9!important;transform:translateY(-1px)}
   #mainApp .dashboard-kpi:focus-visible,#mainApp .dashboard-summary-card:focus-visible{outline:0;box-shadow:var(--focus-ring)!important}
@@ -2172,6 +2175,14 @@ img.bookuna-logo-icon,
       gap:10px!important;
       margin-bottom:10px!important;
     }
+    #mainApp .financial-page-head .page-actions{
+      width:100%;
+      display:flex!important;
+      flex-wrap:wrap!important;
+      gap:8px!important;
+    }
+    #mainApp .financial-page-head .financial-period-control{margin-right:auto}
+    #mainApp .financial-page-head .financial-period-select{min-width:118px}
     #mainApp .page-head.product-page-head .page-status{
       margin-top:2px!important;
       font-size:12px!important;
@@ -3167,6 +3178,7 @@ function listPeriodMatch(dateValue,period='all',from='',to=''){
   const d=String(dateValue||'').slice(0,10);if(!d||period==='all')return period==='all';
   if(period==='custom')return (!from||d>=from)&&(!to||d<=to);
   const now=new Date(),year=String(now.getFullYear()),month=String(now.getMonth()+1).padStart(2,'0');
+  if(period==='week'){const end=dashboardIsoDate(now),startDate=new Date(now.getFullYear(),now.getMonth(),now.getDate()),offset=(startDate.getDay()+6)%7;startDate.setDate(startDate.getDate()-offset);return d>=dashboardIsoDate(startDate)&&d<=end}
   if(period==='year')return d.startsWith(year+'-');
   if(period==='month')return d.startsWith(year+'-'+month);
   if(period==='quarter'){const m=Number(d.slice(5,7)),q=Math.floor(now.getMonth()/3)+1;return d.startsWith(year+'-')&&Math.floor((m-1)/3)+1===q}
@@ -3337,7 +3349,7 @@ function getListRows(name){
   return rows.slice().sort((a,b)=>listSortCompare(name,a,b))
 }
 function listPeriodOptions(includeCustom=false){
-  const x=[['all','Alle periodes'],['month','Deze maand'],['quarter','Dit kwartaal'],['year','Dit jaar']];
+  const x=[['all','Alle periodes'],['week','Deze week'],['month','Deze maand'],['quarter','Dit kwartaal'],['year','Dit jaar']];
   if(includeCustom)x.push(['custom','Aangepaste periode']);
   return x
 }
@@ -3428,11 +3440,13 @@ function listFilterFormHtml(name){
 }
 function clearListFilters(name){
   const keepQuery=listPageState(name).query,keepSort=listPageState(name).sort;
-  listState[name]=defaultListState(name);listState[name].query=keepQuery;listState[name].sort=keepSort;persistListState()
+  listState[name]=defaultListState(name);listState[name].query=keepQuery;listState[name].sort=keepSort;
+  if(['invoices','expenses'].includes(name))storeFinancialPeriod('all');else persistListState()
 }
 function clearOneListFilter(name,key){
   const d=LIST_DEFAULTS[name]?.filters||{},s=listPageState(name);
   if(Object.prototype.hasOwnProperty.call(d,key))s.filters[key]=d[key];
+  if(key==='period'&&['invoices','expenses'].includes(name))storeFinancialPeriod(String(s.filters[key]||'all'));
   if(key==='period'&&name==='bookings'){s.filters.from='';s.filters.to=''}
   persistListState()
 }
@@ -3444,6 +3458,7 @@ function openListFilters(name,trigger=null){
   form?.addEventListener('submit',e=>{
     e.preventDefault();const data=new FormData(form),s=listPageState(name);
     for(const field of listFilterFields(name))s.filters[field.key]=String(data.get(field.key)||'');
+    if(['invoices','expenses'].includes(name)&&s.filters.period)storeFinancialPeriod(s.filters.period);
     if(name==='bookings'&&s.filters.period!=='custom'){s.filters.from='';s.filters.to=''}
     persistListState();closeModal();render()
   });
@@ -3603,19 +3618,40 @@ function renderAssistantDashboardSafe(){return typeof window.renderAssistantDash
 function renderAssistantSettingsSafe(){return typeof window.renderAssistantSettings==='function'?window.renderAssistantSettings():''}
 function render(){const fn={dashboard:renderDashboard,insights:renderAssistantInsightsSafe,invoices:renderInvoices,expenses:renderExpenses,bank:renderBank,income:renderIncome,outgoings:renderOutgoings,vat:renderVat,reports:renderReports,ledger:renderLedger,control:renderControl,cashflow:renderCashflow,bookings:renderBookings,contacts:renderContacts,services:renderServices,hours:renderHours,documents:renderDocuments,profile:renderProfile,settings:renderSettings}[page]||renderDashboard;document.getElementById('content').innerHTML=fn();wirePage();if(page==='dashboard')wireDashboardAttention();renderGlobalDocumentIndicator();syncMobileNavigationState()}
 function dashboardIsoDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
-function dashboardPeriodRange(preset=String(sessionStorage.getItem('dashboardPeriod')||'month')){
- const allowed=new Set(['7d','month','quarter','year']);if(!allowed.has(preset))preset='month';
- const now=new Date(),end=new Date(now.getFullYear(),now.getMonth(),now.getDate()),start=new Date(end),labels={};
- if(preset==='7d'){start.setDate(end.getDate()-6);labels.label='Laatste 7 dagen'}
- else if(preset==='quarter'){start.setMonth(end.getMonth()-2,1);labels.label='Laatste 3 maanden'}
- else if(preset==='year'){start.setMonth(0,1);labels.label=String(end.getFullYear())}
- else{start.setDate(end.getDate()-29);labels.label='Laatste 30 dagen'}
- return {preset,from:dashboardIsoDate(start),to:dashboardIsoDate(end),label:labels.label}
+const FINANCIAL_PERIOD_KEY='boekuna-financial-period-v1';
+const FINANCIAL_PERIOD_OPTIONS=[['week','Week'],['month','Maand'],['quarter','Kwartaal'],['year','Jaar'],['all','Altijd']];
+function financialPeriodPreset(){
+ const saved=String(sessionStorage.getItem(FINANCIAL_PERIOD_KEY)||sessionStorage.getItem('dashboardPeriod')||'month');
+ const migrated=saved==='7d'?'week':saved;
+ return FINANCIAL_PERIOD_OPTIONS.some(([value])=>value===migrated)?migrated:'month'
 }
-function setDashboardPeriod(preset){const allowed=['7d','month','quarter','year'];sessionStorage.setItem('dashboardPeriod',allowed.includes(preset)?preset:'month');if(page==='dashboard')render()}
+function financialPeriodRange(preset=financialPeriodPreset()){
+ const now=new Date(),end=new Date(now.getFullYear(),now.getMonth(),now.getDate()),start=new Date(end);
+ if(preset==='all')return {preset:'all',from:'',to:'',label:'Altijd'};
+ if(preset==='week'){const offset=(end.getDay()+6)%7;start.setDate(end.getDate()-offset);return {preset,from:dashboardIsoDate(start),to:dashboardIsoDate(end),label:'Deze week'}}
+ if(preset==='quarter'){start.setMonth(Math.floor(end.getMonth()/3)*3,1);return {preset,from:dashboardIsoDate(start),to:dashboardIsoDate(end),label:'Dit kwartaal'}}
+ if(preset==='year'){start.setMonth(0,1);return {preset,from:dashboardIsoDate(start),to:dashboardIsoDate(end),label:String(end.getFullYear())}}
+ start.setDate(1);return {preset:'month',from:dashboardIsoDate(start),to:dashboardIsoDate(end),label:'Deze maand'}
+}
+function financialPeriodContains(dateValue,range=financialPeriodRange()){return range.preset==='all'||inRange(String(dateValue||'').slice(0,10),range.from,range.to)}
+function financialPeriodSelect(id='financialPeriod'){
+ const preset=financialPeriodPreset(),options=FINANCIAL_PERIOD_OPTIONS.map(([value,label])=>'<option value="'+value+'" '+(preset===value?'selected':'')+'>'+label+'</option>').join('');
+ return '<label class="financial-period-control"><span class="sr-only">Periode</span><select id="'+esc(id)+'" class="dashboard-period-select financial-period-select" aria-label="Periode" onchange="setFinancialPeriod(this.value)">'+options+'</select></label>'
+}
+function storeFinancialPeriod(preset){
+ const allowed=FINANCIAL_PERIOD_OPTIONS.map(([value])=>value),next=allowed.includes(preset)?preset:'month';
+ sessionStorage.setItem(FINANCIAL_PERIOD_KEY,next);sessionStorage.setItem('dashboardPeriod',next==='week'?'7d':next);
+ for(const name of ['invoices','expenses']){const list=listPageState(name);if(list?.filters)list.filters.period=next}
+ persistListState();return next
+}
+function setFinancialPeriod(preset){storeFinancialPeriod(preset);render()}
+function syncFinancialListPeriod(name){if(!['invoices','expenses'].includes(name))return;const list=listPageState(name),preset=financialPeriodPreset();if(list?.filters&&list.filters.period!==preset){list.filters.period=preset;persistListState()}}
+function dashboardPeriodRange(preset=financialPeriodPreset()){return financialPeriodRange(preset==='7d'?'week':preset)}
+function setDashboardPeriod(preset){setFinancialPeriod(preset==='7d'?'week':preset)}
 function dashboardChartBuckets(preset){
  const range=dashboardPeriodRange(preset),make=(from,to,lab,period)=>{const inv=state.invoices.filter(i=>i.status!=='draft'&&invoiceEffectiveStatus(i)!=='cancelled'&&inRange(i.issueDate,from,to)),exps=state.expenses.filter(e=>inRange(e.date,from,to)),sales=inv.reduce((sum,i)=>roundMoney(sum+invoiceNet(i)),0),costs=exps.reduce((sum,e)=>roundMoney(sum+expenseAccountingCost(e)),0);return {from,to,lab,period,sales,costs,profit:roundMoney(sales-costs)}},out=[];
- if(preset==='7d'){for(let i=0;i<7;i++){const d=new Date(range.from+'T12:00:00');d.setDate(d.getDate()+i);const iso=dashboardIsoDate(d),lab=new Intl.DateTimeFormat('nl-NL',{weekday:'short'}).format(d).replace('.','');out.push(make(iso,iso,lab,new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'long'}).format(d)))}return out}
+ if(preset==='week'||preset==='7d'){for(let i=0;i<7;i++){const d=new Date(range.from+'T12:00:00');d.setDate(d.getDate()+i);const iso=dashboardIsoDate(d),lab=new Intl.DateTimeFormat('nl-NL',{weekday:'short'}).format(d).replace('.','');out.push(make(iso,iso,lab,new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'long'}).format(d)))}return out}
+ if(preset==='all'){return availableBookYears().slice().sort((a,b)=>a-b).map(year=>make(String(year)+'-01-01',String(year)+'-12-31',String(year),String(year)))}
  if(preset==='quarter'){const end=new Date(range.to+'T12:00:00');for(let i=2;i>=0;i--){const d=new Date(end.getFullYear(),end.getMonth()-i,1),last=new Date(d.getFullYear(),d.getMonth()+1,0),from=dashboardIsoDate(d),to=dashboardIsoDate(last>end?end:last),lab=new Intl.DateTimeFormat('nl-NL',{month:'short'}).format(d).replace('.','');out.push(make(from,to,lab,new Intl.DateTimeFormat('nl-NL',{month:'long',year:'numeric'}).format(d)))}return out}
  if(preset==='year'){const end=new Date(range.to+'T12:00:00');for(let month=0;month<=end.getMonth();month++){const d=new Date(end.getFullYear(),month,1),last=new Date(end.getFullYear(),month+1,0),from=dashboardIsoDate(d),to=dashboardIsoDate(last>end?end:last),lab=new Intl.DateTimeFormat('nl-NL',{month:'short'}).format(d).replace('.','');out.push(make(from,to,lab,new Intl.DateTimeFormat('nl-NL',{month:'long',year:'numeric'}).format(d)))}return out}
  const start=new Date(range.from+'T12:00:00'),end=new Date(range.to+'T12:00:00');for(let i=0;i<6;i++){const fromDate=new Date(start);fromDate.setDate(start.getDate()+i*5);if(fromDate>end)break;const toDate=new Date(fromDate);toDate.setDate(fromDate.getDate()+4);if(i===5||toDate>end)toDate.setTime(end.getTime());const from=dashboardIsoDate(fromDate),to=dashboardIsoDate(toDate),lab=(i+1)+'';out.push(make(from,to,'W'+lab,new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short'}).format(fromDate)+' – '+new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short'}).format(toDate)))}return out
@@ -3651,11 +3687,8 @@ function dashboardKpiViewModel(preset=String(sessionStorage.getItem('dashboardPe
  const receivables=openInvoices.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0);
  const overdueInvoices=openInvoices.filter(invoiceIsOverdueOpen);
  const overdueReceivables=overdueInvoices.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0);
- const q=currentQuarter(),year=currentBookYear();
- const quarterInvoices=state.invoices.filter(i=>i.status!=='draft'&&invoiceEffectiveStatus(i)!=='cancelled'&&inQuarter(i.issueDate,q,year));
- const quarterExpenses=state.expenses.filter(e=>inQuarter(e.date,q,year));
- const salesVat=quarterInvoices.reduce((sum,i)=>roundMoney(sum+invoiceVat(i)),0);
- const inputVat=quarterExpenses.reduce((sum,e)=>roundMoney(sum+expenseDeductibleVat(e)),0);
+ const salesVat=periodInvoices.reduce((sum,i)=>roundMoney(sum+invoiceVat(i)),0);
+ const inputVat=periodExpenses.reduce((sum,e)=>roundMoney(sum+expenseDeductibleVat(e)),0);
  const vatReserve=roundMoney(salesVat-inputVat);
  const vatFields=new Set(['net','gross','vatAmount','vatRate','vatLines','mixedRates','accountingVatTreatment']);
  const vatReviewIds=new Set();
@@ -3684,8 +3717,8 @@ function renderDashboard(){
   ?`<div class="card dashboard-onboarding"><div class="section-head"><div><h2>Begin met Boekuna</h2><p>Vul eerst de gegevens in die nodig zijn om later een definitieve factuur te maken.</p></div></div><div class="dashboard-onboarding-actions"><button class="btn primary" onclick="navigate('profile')">Bedrijfsgegevens invullen</button><button class="btn" onclick="openUploadSourcePicker('purchase')">Liever eerst een bon uploaden?</button></div></div>`
   :`<div class="card dashboard-onboarding"><div class="section-head"><div><h2>Kies je eerste stap</h2><p>Start met iets dat je nu echt wilt vastleggen.</p></div></div><div class="dashboard-onboarding-actions"><button class="btn primary" onclick="newInvoice()">Eerste factuur maken</button><button class="btn" onclick="openUploadSourcePicker('purchase')">Bon of inkoopfactuur uploaden</button></div></div>`):'';
  const profileReminder=!isEmpty&&needsProfile?'<div class="notice info dashboard-profile-reminder"><strong>Bedrijfsgegevens aanvullen</strong><span>Nodig voordat je een definitieve factuur kunt opslaan.</span><button class="link-btn" onclick="navigate(\'profile\')">Aanvullen</button></div>':'';
- const periodOptions=[['7d','7 dagen'],['month','Maand'],['quarter','Kwartaal'],['year','Jaar']].map(([value,label])=>'<option value="'+value+'" '+(period.preset===value?'selected':'')+'>'+label+'</option>').join('');
- return '<div class="page-head dashboard-page-head"><div><h1>Overzicht</h1><p class="page-status">'+esc(greeting.title)+' · je administratie in één oogopslag</p></div><div class="dashboard-period-control"><label class="sr-only" for="dashboardPeriod">Periode dashboard</label><select id="dashboardPeriod" class="dashboard-period-select" onchange="setDashboardPeriod(this.value)">'+periodOptions+'</select></div></div>'+
+ const periodControl=financialPeriodSelect('dashboardPeriod');
+ return '<div class="page-head dashboard-page-head"><div><h1>Overzicht</h1><p class="page-status">'+esc(greeting.title)+' · je administratie in één oogopslag</p></div><div class="dashboard-period-control">'+periodControl+'</div></div>'+
  welcomeCard+profileReminder+
  '<div class="grid dashboard-kpis dashboard-kpis-v12">'+
   '<button type="button" class="card metric dashboard-kpi dashboard-kpi-profit kpi-tone-primary" onclick="navigate(\'reports\')"><div class="metric-head"><span class="dashboard-kpi-label">Winst</span><span class="metric-icon" aria-hidden="true">'+icon('i-chart')+'</span></div><div class="metric-value">'+money(profit)+'</div><div class="metric-sub">Omzet minus kosten</div></button>'+
@@ -3706,28 +3739,29 @@ function renderDashboard(){
 }
 
 function renderInvoices(){
- const list=getListRows('invoices'),all=state.invoices.filter(i=>i.kind!=='credit'),openRows=all.filter(i=>i.status!=='draft'&&invoiceOutstanding(i)>.02),open=openRows.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),overdueRows=openRows.filter(invoiceIsOverdueOpen),overdue=overdueRows.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),monthKey=monthKeyOffset(0);
- const paidMonthRows=all.filter(i=>i.status!=='draft'&&invoiceEffectiveStatus(i)==='paid'&&(invoicePayments(i).some(p=>String(p.date||'').startsWith(monthKey))||state.transactions.some(t=>t.status==='matched'&&t.matchType==='invoice'&&t.matchId===i.id&&String(t.date||'').startsWith(monthKey))||String(i.issueDate||'').startsWith(monthKey))),paidMonth=paidMonthRows.reduce((sum,i)=>roundMoney(sum+invoiceGross(i)),0),drafts=all.filter(i=>i.status==='draft').length;
- return `<div class="page-head product-page-head"><div><h1>Inkomsten</h1><p class="page-status">Maak facturen en houd bij wat nog binnenkomt.</p></div>${state.invoices.length?`<div class="page-actions"><button class="btn" onclick="triggerInvoiceUpload('sale')">${icon('i-upload')} Upload PDF</button><button class="btn primary" onclick="newInvoice()">${icon('i-plus')} Nieuwe factuur</button></div>`:''}</div>
+ syncFinancialListPeriod('invoices');
+ const period=financialPeriodRange(),list=getListRows('invoices'),periodInvoices=state.invoices.filter(i=>financialPeriodContains(i.issueDate,period)),all=periodInvoices.filter(i=>i.kind!=='credit'),finalRows=periodInvoices.filter(i=>i.status!=='draft'&&invoiceEffectiveStatus(i)!=='cancelled'),revenue=finalRows.reduce((sum,i)=>roundMoney(sum+invoiceNet(i)),0),openRows=all.filter(i=>i.status!=='draft'&&invoiceOutstanding(i)>.02),open=openRows.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),overdueRows=openRows.filter(invoiceIsOverdueOpen),overdue=overdueRows.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),paidRows=all.filter(i=>i.status!=='draft'&&invoiceEffectiveStatus(i)==='paid'),paid=paidRows.reduce((sum,i)=>roundMoney(sum+invoiceGross(i)),0);
+ return `<div class="page-head product-page-head financial-page-head"><div><h1>Inkomsten</h1><p class="page-status">Maak facturen en houd bij wat nog binnenkomt.</p></div><div class="page-actions">${financialPeriodSelect('incomePeriod')}${state.invoices.length?`<button class="btn" onclick="triggerInvoiceUpload('sale')">${icon('i-upload')} Upload PDF</button><button class="btn primary" onclick="newInvoice()">${icon('i-plus')} Nieuwe factuur</button>`:''}</div></div>
  ${productKpiGrid([
-  productKpi('Openstaand',money(open),openRows.length+' factuur'+(openRows.length===1?'':'en'),'i-file','support'),
-  productKpi('Te laat',money(overdue),overdueRows.length+' factuur'+(overdueRows.length===1?'':'en'),'i-clock','error'),
-  productKpi('Betaald deze maand',money(paidMonth),paidMonthRows.length+' factuur'+(paidMonthRows.length===1?'':'en'),'i-check','success'),
-  productKpi('Concepten',String(drafts),drafts===1?'Nog afmaken':'Nog afmaken','i-file','neutral')
+  productKpi('Omzet',money(revenue),'','i-chart','support'),
+  productKpi('Betaald',money(paid),'','i-check','success'),
+  productKpi('Openstaand',money(open),'','i-file','support'),
+  productKpi('Te laat',money(overdue),'','i-clock','error')
  ])}
  ${listToolbar('invoices')}
  <div class="card table-card workspace-table"><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-invoices"><thead><tr><th>Factuurnr.</th><th>Klant</th><th>Factuurdatum</th><th>Vervaldatum</th><th>Status</th><th class="right">Excl.</th><th class="right">Incl.</th><th></th></tr></thead><tbody>${list.length?list.map(i=>`<tr><td class="cell-nowrap"><button class="link-btn" onclick="viewInvoice('${i.id}')">${esc(i.number||'Concept')}</button><span class="financial-mobile-meta" aria-hidden="true"> · ${dateNL(i.issueDate)}</span></td><td class="cell-name"><strong title="${esc(getContact(i.customerId).name)}">${esc(getContact(i.customerId).name)}</strong></td><td class="cell-nowrap">${dateNL(i.issueDate)}</td><td class="cell-nowrap">${dateNL(i.dueDate)}</td><td class="cell-nowrap">${statusBadge(invoiceEffectiveStatus(i))}</td><td class="right money cell-nowrap">${money(invoiceNet(i))}</td><td class="right money cell-nowrap">${money(invoiceGross(i))}</td><td class="right financial-actions cell-nowrap"><button class="icon-btn" aria-label="Factuuracties" aria-haspopup="dialog" onclick="invoiceActions('${i.id}')">${icon('i-more')}</button></td></tr>`).join(''):`<tr><td colspan="8">${listEmptyHtml('invoices')}</td></tr>`}</tbody></table></div></div>`
 }
 function renderExpenses(){
- const list=getListRows('expenses'),monthKey=monthKeyOffset(0),month=state.expenses.filter(e=>String(e.date||'').startsWith(monthKey)),net=month.reduce((sum,e)=>roundMoney(sum+expenseAccountingCost(e)),0),vat=month.reduce((sum,e)=>roundMoney(sum+expenseDeductibleVat(e)),0),categoryTotals={};
- month.forEach(e=>{const k=String(e.category||'Overig');categoryTotals[k]=roundMoney((categoryTotals[k]||0)+expenseAccountingCost(e))});
- const largest=Object.entries(categoryTotals).sort((a,b)=>b[1]-a[1])[0]||['—',0],largestPct=net>0?Math.round(largest[1]/net*100):0,review=month.filter(e=>!String(e.vendor||'').trim()||!String(e.category||'').trim()||!Number.isFinite(Number(e.exVat))).length;
- return `<div class="page-head product-page-head"><div><h1>Kosten</h1><p class="page-status">Bekijk en controleer je zakelijke kosten.</p></div>${state.expenses.length?`<div class="page-actions"><button class="btn" onclick="newExpense()">${icon('i-plus')} Kosten boeken</button><button class="btn primary" onclick="openUploadSourcePicker('purchase')">${icon('i-upload')} Bon toevoegen</button></div>`:''}</div>
+ syncFinancialListPeriod('expenses');
+ const period=financialPeriodRange(),list=getListRows('expenses'),rows=state.expenses.filter(e=>financialPeriodContains(e.date,period)),net=rows.reduce((sum,e)=>roundMoney(sum+expenseAccountingCost(e)),0),vat=rows.reduce((sum,e)=>roundMoney(sum+expenseDeductibleVat(e)),0),categoryTotals={};
+ rows.forEach(e=>{const k=String(e.category||'Overig');categoryTotals[k]=roundMoney((categoryTotals[k]||0)+expenseAccountingCost(e))});
+ const largest=Object.entries(categoryTotals).sort((a,b)=>b[1]-a[1])[0]||['—',0],largestPct=net>0?Math.round(largest[1]/net*100):0,review=rows.filter(e=>!String(e.vendor||'').trim()||!String(e.category||'').trim()||!Number.isFinite(Number(e.exVat))).length;
+ return `<div class="page-head product-page-head financial-page-head"><div><h1>Kosten</h1><p class="page-status">Bekijk en controleer je zakelijke kosten.</p></div><div class="page-actions">${financialPeriodSelect('expensePeriod')}${state.expenses.length?`<button class="btn" onclick="newExpense()">${icon('i-plus')} Kosten boeken</button><button class="btn primary" onclick="openUploadSourcePicker('purchase')">${icon('i-upload')} Bon toevoegen</button>`:''}</div></div>
  ${productKpiGrid([
-  productKpi('Kosten deze maand',money(net),'Excl. btw','i-receipt','warning'),
-  productKpi('Btw die je kunt terugvragen',money(vat),'Deze maand','i-tax','support'),
-  productKpi('Grootste categorie',largest[0],largestPct+'% van kosten','i-folder','support'),
-  productKpi('Te controleren',String(review),review===1?'1 kost mist gegevens':review+' kosten missen gegevens','i-check',review?'warning':'success')
+  productKpi('Kosten',money(net),'','i-receipt','warning'),
+  productKpi('Btw terug te vragen',money(vat),'','i-tax','support'),
+  productKpi('Grootste categorie',largest[0],largestPct?largestPct+'%':'','i-folder','support'),
+  productKpi('Te controleren',String(review),'','i-check',review?'warning':'success')
  ])}
  ${listToolbar('expenses')}
  <div class="card table-card workspace-table"><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-expenses"><thead><tr><th>Datum</th><th>Leverancier</th><th>Factuurnr.</th><th>Categorie</th><th>Betaalwijze</th><th>Btw</th><th class="right">Excl.</th><th class="right">Incl.</th><th></th></tr></thead><tbody>${list.length?list.map(e=>`<tr><td class="cell-nowrap">${dateNL(e.date)}</td><td class="cell-name"><strong title="${esc(e.vendor)}">${esc(e.vendor)}</strong><div class="help">${esc(e.notes||'')}</div></td><td class="cell-nowrap">${esc(e.invoiceNumber||'—')}</td><td>${esc(e.category)}</td><td class="cell-nowrap">${esc(e.paymentMethod||'—')}</td><td class="cell-nowrap">${esc(expenseVatRateLabel(e))}</td><td class="right money cell-nowrap">${money(e.exVat)}</td><td class="right money cell-nowrap">${money(expenseGross(e))}</td><td class="right financial-actions cell-nowrap"><button class="icon-btn" aria-label="Kostenacties" aria-haspopup="dialog" onclick="expenseActions('${e.id}')">${icon('i-more')}</button></td></tr>`).join(''):`<tr><td colspan="9">${listEmptyHtml('expenses')}</td></tr>`}</tbody></table></div></div>`
@@ -3767,16 +3801,22 @@ function renderOutgoings(){
  ])}
  <div class="card table-card workspace-table"><div class="section-head"><div><h2>Uitgaande transacties</h2><span class="section-meta">${rows.length} bankregel${rows.length===1?'':'s'}</span></div></div><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-bank"><thead><tr><th>Datum</th><th>Omschrijving</th><th>Status</th><th class="right">Bedrag</th></tr></thead><tbody>${rows.length?rows.map(t=>`<tr><td>${dateNL(t.date)}</td><td><strong>${esc(t.description)}</strong></td><td>${statusBadge(t.status)}</td><td class="right money money-negative">${money(Math.abs(Number(t.amount||0)))}</td></tr>`).join(''):'<tr><td colspan="4"><div class="empty"><strong>Nog geen uitgaven op je bankimport.</strong></div></td></tr>'}</tbody></table></div></div>`
 }
-function renderVat(){if(sessionStorage.getItem('vatYear')==='all')return renderVatHistory();const period=String(sessionStorage.getItem('vatPeriod')||sessionStorage.getItem('vatQ')||currentQuarter()),isYear=period==='year',q=isYear?currentQuarter():Number(period),year=selectedVatYear(),inVatPeriod=d=>isYear?Number(String(d||'').slice(0,4))===year:inQuarter(d,q,year),invs=state.invoices.filter(i=>i.status!=='draft'&&inVatPeriod(i.issueDate)),exps=state.expenses.filter(e=>inVatPeriod(e.date)),outBy=r=>invs.reduce((sum,i)=>roundMoney(sum+Number(invoiceVatBreakdown(i)[r]||0)),0),input=exps.reduce((sum,e)=>roundMoney(sum+expenseDeductibleVat(e)),0),output=roundMoney(invs.reduce((sum,i)=>sum+invoiceVat(i),0)),pay=roundMoney(output-input),years=availableBookYears(),review=state.transactions.filter(t=>t.status==='unmatched').length;return `<div class="page-head product-page-head"><div><h1>Btw</h1><p class="page-status">Boekuna telt de btw uit je gecontroleerde inkomsten en kosten bij elkaar. Dit is een indicatie.</p></div><div class="page-actions"><select id="vatYear" class="btn" aria-label="Jaar"><option value="all">Alle jaren</option>${years.map(y=>`<option value="${y}" ${y===year?'selected':''}>${y}</option>`).join('')}</select><select id="vatPeriod" class="btn" aria-label="Periode">${[1,2,3,4].map(x=>`<option value="${x}" ${!isYear&&q===x?'selected':''}>Q${x}</option>`).join('')}<option value="year" ${isYear?'selected':''}>Jaar</option></select></div></div>
+function renderVat(){const period=financialPeriodRange(),invs=state.invoices.filter(i=>i.status!=='draft'&&invoiceEffectiveStatus(i)!=='cancelled'&&financialPeriodContains(i.issueDate,period)),exps=state.expenses.filter(e=>financialPeriodContains(e.date,period)),input=exps.reduce((sum,e)=>roundMoney(sum+expenseDeductibleVat(e)),0),output=roundMoney(invs.reduce((sum,i)=>sum+invoiceVat(i),0)),pay=roundMoney(output-input),review=state.transactions.filter(t=>t.status==='unmatched'&&financialPeriodContains(t.date,period)).length;return `<div class="page-head product-page-head financial-page-head"><div><h1>Btw</h1><p class="page-status">Boekuna telt de btw uit je gecontroleerde inkomsten en kosten bij elkaar. Dit is een indicatie.</p></div><div class="page-actions">${financialPeriodSelect('vatFinancialPeriod')}</div></div>
  ${state.company.kor?`<div class="notice warn compact-notice"><strong>KOR staat aan.</strong> Historische boekingen blijven ongewijzigd.</div>`:''}
  ${productKpiGrid([
   productKpi(pay>=0?'Waarschijnlijk te betalen':'Waarschijnlijk terug te vragen',money(Math.abs(pay)),'Indicatie','i-tax',pay>0?'warning':'success'),
-  productKpi('Ontvangen btw',money(output),'Btw op je facturen','i-chart','support'),
-  productKpi('Btw die je kunt terugvragen',money(input),'Btw op zakelijke kosten','i-receipt','support'),
-  productKpi('Controle nodig',String(review),review===1?'1 bankregel vraagt aandacht':review+' bankregels vragen aandacht','i-check',review?'warning':'success')
+  productKpi('Ontvangen btw',money(output),'','i-chart','support'),
+  productKpi('Btw die je kunt terugvragen',money(input),'','i-receipt','support'),
+  productKpi('Controle nodig',String(review),'','i-check',review?'warning':'success')
  ])}
- <div class="split premium-split"><div class="card"><div class="section-head"><div><h2>Berekening</h2><span class="section-meta">${isYear?`Jaar ${year}`:`Q${q} ${year}`}</span></div></div><div class="summary-lines"><div class="total-line"><span>Omzet excl. btw</span><strong>${money(invs.reduce((sum,i)=>roundMoney(sum+invoiceNet(i)),0))}</strong></div><div class="total-line"><span>Ontvangen btw</span><strong>${money(output)}</strong></div><div class="total-line"><span>Btw die je kunt terugvragen</span><strong>− ${money(input)}</strong></div><div class="total-line grand"><span>${pay>=0?'Te betalen btw':'Terug te vragen btw'}</span><strong>${money(Math.abs(pay))}</strong></div></div></div><div class="card"><div class="section-head"><h2>Controlelijst</h2></div><div class="action-list"><div class="action-row"><span class="status-dot ${review?'wait':'ok'}"></span><div class="action-text"><strong>Bank verwerkt</strong><span>${review} open regels</span></div></div><div class="action-row"><span class="status-dot ok"></span><div class="action-text"><strong>Facturen</strong><span>${invs.length} ${isYear?`in ${year}`:`in Q${q}`}</span></div></div><div class="action-row"><span class="status-dot ok"></span><div class="action-text"><strong>Inkoop</strong><span>${exps.length} ${isYear?`in ${year}`:`in Q${q}`}</span></div></div></div><div class="notice ${review?'warn':'info'} compact-notice"><strong>${review?'Controle nodig':'Klaar om te controleren'}</strong><span>Boekuna verstuurt deze aangifte niet naar de Belastingdienst.</span></div></div></div>`}
-
+ <div class="split premium-split"><div class="card"><div class="section-head"><div><h2>Berekening</h2><span class="section-meta">${esc(period.label)}</span></div></div><div class="summary-lines"><div class="total-line"><span>Omzet excl. btw</span><strong>${money(invs.reduce((sum,i)=>roundMoney(sum+invoiceNet(i)),0))}</strong></div><div class="total-line"><span>Ontvangen btw</span><strong>${money(output)}</strong></div><div class="total-line"><span>Btw terug te vragen</span><strong>− ${money(input)}</strong></div><div class="total-line grand"><span>${pay>=0?'Te betalen btw':'Terug te vragen btw'}</span><strong>${money(Math.abs(pay))}</strong></div></div></div><div class="card"><div class="section-head"><h2>Controlelijst</h2></div><div class="action-list"><div class="action-row"><span class="status-dot ${review?'wait':'ok'}"></span><div class="action-text"><strong>Bank verwerkt</strong><span>${review} open regels</span></div></div><div class="action-row"><span class="status-dot ok"></span><div class="action-text"><strong>Facturen</strong><span>${invs.length}</span></div></div><div class="action-row"><span class="status-dot ok"></span><div class="action-text"><strong>Inkoop</strong><span>${exps.length}</span></div></div></div><div class="notice ${review?'warn':'info'} compact-notice"><strong>${review?'Controle nodig':'Klaar'}</strong><span>Boekuna verstuurt deze aangifte niet naar de Belastingdienst.</span></div></div></div>${period.preset==='all'?renderVatHistoryTable():''}`}
+function renderVatHistoryTable(){
+ const years=availableBookYears();
+ return `<div class="card table-card vat-history-table"><div class="section-head"><div><h2>Per jaar</h2><span class="section-meta">${years.length} boekjaar${years.length===1?'':'en'}</span></div></div><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-labelled mobile-vat"><thead><tr><th>Jaar</th><th>Btw op omzet</th><th>Btw op kosten</th><th>Saldo</th></tr></thead><tbody>${years.map(year=>{
+  const invoices=state.invoices.filter(i=>i.status!=='draft'&&invoiceEffectiveStatus(i)!=='cancelled'&&Number(String(i.issueDate||'').slice(0,4))===year),expenses=state.expenses.filter(e=>Number(String(e.date||'').slice(0,4))===year),out=invoices.reduce((sum,i)=>roundMoney(sum+invoiceVat(i)),0),input=expenses.reduce((sum,e)=>roundMoney(sum+expenseDeductibleVat(e)),0),balance=roundMoney(out-input);
+  return `<tr><td><strong>${year}</strong></td><td class="money">${money(out)}</td><td class="money">${money(input)}</td><td><strong class="money">${money(Math.abs(balance))}</strong> ${balance>=0?'Te betalen':'Terug te vragen'}</td></tr>`
+ }).join('')}</tbody></table></div></div>`
+}
 function renderVatHistory(){
  const years=availableBookYears();
  return `<div class="page-head"><div><h1>Btw-overzicht</h1><p class="page-status">Indicatief · nog niet ingediend</p></div><select class="btn" id="vatYear" aria-label="Jaar"><option value="all" selected>Alle jaren</option>${years.map(year=>`<option value="${year}">${year}</option>`).join('')}</select></div><div class="card table-card"><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-labelled mobile-vat"><thead><tr><th>Jaar</th><th>Btw op omzet</th><th>Btw op kosten</th><th>Saldo</th><th></th></tr></thead><tbody>${years.map(year=>{
