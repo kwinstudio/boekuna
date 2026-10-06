@@ -70,6 +70,87 @@ function cents(value){
   return typeof financialMoneyCents==='function'?financialMoneyCents(n):Number.isFinite(n)?Math.round(n*100):null;
 }
 function formatCents(value){return value==null?'':(value/100).toFixed(2)}
+function normalizeCurrencyCode(value){return String(value||'EUR').trim().toUpperCase().slice(0,3)}
+function parseExchangeRateToEur(value){
+  const raw=String(value??'').trim().replace(',','.');
+  if(!/^\d+(?:\.\d{1,8})?$/.test(raw))return null;
+  const parts=raw.split('.'),whole=(parts[0].replace(/^0+(?=\d)/,'')||'0'),fraction=(parts[1]||'').replace(/0+$/,'');
+  const numerator=BigInt(whole+(fraction||'')),denominator=10n**BigInt(fraction.length);
+  if(numerator<=0n)return null;
+  return {numerator,denominator,normalized:fraction?whole+'.'+fraction:whole}
+}
+function roundBigRatio(numerator,denominator){
+  if(typeof numerator!=='bigint'||typeof denominator!=='bigint'||denominator<=0n)return null;
+  const sign=numerator<0n?-1n:1n,abs=numerator<0n?-numerator:numerator;
+  let quotient=abs/denominator;
+  if((abs%denominator)*2n>=denominator)quotient+=1n;
+  return quotient*sign
+}
+function convertSourceCentsToEur(sourceCents,rateText){
+  if(!Number.isSafeInteger(sourceCents))return null;
+  const rate=parseExchangeRateToEur(rateText);if(!rate)return null;
+  const out=roundBigRatio(BigInt(sourceCents)*rate.numerator,rate.denominator);
+  if(out==null)return null;
+  const n=Number(out);return Number.isSafeInteger(n)?n:null
+}
+function sourceMoney(value,currency='EUR'){
+  const code=normalizeCurrencyCode(currency);
+  try{return new Intl.NumberFormat('nl-NL',{style:'currency',currency:/^[A-Z]{3}$/.test(code)?code:'EUR'}).format(Number(value||0))}
+  catch(_){return code+' '+Number(value||0).toFixed(2)}
+}
+function foreignCurrencyReviewState(d){
+  const f=document.getElementById('pdfImportForm'),value=k=>String(f?.elements.namedItem(k)?.value??'').trim();
+  const currency=normalizeCurrencyCode(value('currency')||d?.currency||'EUR');
+  const sourceCents={net:cents(value('net')),vatAmount:cents(value('vatAmount')),gross:cents(value('gross'))};
+  const sourceAmounts=Object.fromEntries(Object.entries(sourceCents).map(([k,v])=>[k,v==null?null:v/100]));
+  if(currency==='EUR')return {currency,rate:null,confirmed:true,sourceCents,sourceAmounts,bookingAmountsEur:sourceAmounts,bookingVatLinesEur:[]};
+  const rate=parseExchangeRateToEur(value('exchangeRateToEur')||d?.exchangeRateToEur||'');
+  const confirmed=!!rate&&value('exchangeRateConfirmed')==='on'&&d?.exchangeRateConfirmed===true&&String(d?.exchangeRateToEur||'')===rate.normalized;
+  if(!rate||Object.values(sourceCents).some(v=>v==null)||sourceCents.net+sourceCents.vatAmount!==sourceCents.gross){
+    return {currency,rate,confirmed,sourceCents,sourceAmounts,bookingAmountsEur:null,bookingVatLinesEur:[]}
+  }
+  let netC,vatC,bookingVatLinesEur=[];
+  if(d?.mixedRates){
+    const rows=document.querySelector('.mixed-vat-row')?readMixedVatEditor():(d.vatLines||[]).map(x=>({rate:Number(x.rate),netC:cents(x.taxableAmount),vatC:cents(x.vatAmount),valid:true}));
+    if(rows.length<2||rows.some(x=>!x.valid||x.netC==null||x.vatC==null))return {currency,rate,confirmed,sourceCents,sourceAmounts,bookingAmountsEur:null,bookingVatLinesEur:[]};
+    bookingVatLinesEur=rows.map(x=>({rate:x.rate,taxableAmount:convertSourceCentsToEur(x.netC,rate.normalized)/100,vatAmount:convertSourceCentsToEur(x.vatC,rate.normalized)/100}));
+    netC=bookingVatLinesEur.reduce((sum,x)=>sum+cents(x.taxableAmount),0);
+    vatC=bookingVatLinesEur.reduce((sum,x)=>sum+cents(x.vatAmount),0);
+  }else{
+    netC=convertSourceCentsToEur(sourceCents.net,rate.normalized);
+    vatC=convertSourceCentsToEur(sourceCents.vatAmount,rate.normalized)
+  }
+  if(netC==null||vatC==null)return {currency,rate,confirmed,sourceCents,sourceAmounts,bookingAmountsEur:null,bookingVatLinesEur:[]};
+  const grossC=netC+vatC;
+  return {currency,rate,confirmed,sourceCents,sourceAmounts,bookingAmountsEur:{net:netC/100,vatAmount:vatC/100,gross:grossC/100},bookingVatLinesEur}
+}
+function updateForeignCurrencyPreview(){
+  const d=pendingPdfImport?.parsed,card=document.querySelector('[data-review-issue="currency"]');if(!d||!card)return;
+  const f=document.getElementById('pdfImportForm'),currency=normalizeCurrencyCode(f?.elements.namedItem('currency')?.value||d.currency||'EUR');
+  card.querySelectorAll('[data-fx-source-code]').forEach(el=>{el.textContent=currency});
+  const state=foreignCurrencyReviewState(d),preview=card.querySelector('[data-fx-preview]'),status=card.querySelector('[data-fx-status]');
+  if(!preview||!status)return;
+  if(currency==='EUR'){
+    status.textContent='Valuta staat op EUR; er is geen wisselkoers nodig.';status.className='exchange-rate-status good';preview.innerHTML='';return
+  }
+  if(!state.rate){
+    status.textContent='Vul eerst de koers in die je voor deze boeking gebruikt.';status.className='exchange-rate-status';preview.innerHTML='';return
+  }
+  if(!state.confirmed){
+    status.textContent='Koers ingevuld. Bevestig hem expliciet voordat je opslaat.';status.className='exchange-rate-status warn';preview.innerHTML='';return
+  }
+  status.textContent='Bevestigd: 1 '+currency+' = '+state.rate.normalized.replace('.',',')+' EUR';status.className='exchange-rate-status good';
+  const b=state.bookingAmountsEur;
+  preview.innerHTML=b?'<strong>Boeking in EUR</strong><span>Excl. '+esc(money(b.net))+' · btw '+esc(money(b.vatAmount))+' · totaal '+esc(money(b.gross))+'</span>':'<strong>Koers bevestigd</strong><span>Corrigeer eerst de bedragen om de EUR-boeking te berekenen.</span>'
+}
+function confirmExchangeRate(){
+  const d=pendingPdfImport?.parsed,f=document.getElementById('pdfImportForm'),input=f?.elements.namedItem('exchangeRateToEur'),confirmed=f?.elements.namedItem('exchangeRateConfirmed');if(!d||!input||!confirmed)return;
+  const rate=parseExchangeRateToEur(input.value);
+  if(!rate){input.setCustomValidity('Vul een positieve wisselkoers in, bijvoorbeeld 0,92.');input.reportValidity();return}
+  input.setCustomValidity('');input.value=rate.normalized;d.exchangeRateToEur=rate.normalized;d.exchangeRateConfirmed=true;d.exchangeRateConfirmedAt=new Date().toISOString();confirmed.value='on';
+  genericProvenance(d).exchangeRateToEur={source:'user',confirmed:true,confirmedAt:d.exchangeRateConfirmedAt};
+  updateForeignCurrencyPreview();updateBeginnerReviewState()
+}
 function safeDate(value,issue=''){
   const v=String(value||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(v))return '';
   if(issue&&v<issue)return '';
@@ -246,7 +327,14 @@ function financialBlockingIssues(d){
   if(d?.bookingAllowed===false)return [];
   const type=reviewDocumentType(d),req=requirementsFor(type),issues=[],value=k=>String(f.elements.namedItem(k)?.value??'').trim();
   if(d?.accountingVatTreatment==='review_required'&&!value('vatTreatmentChoice'))issues.push({field:'vatTreatmentChoice',message:'Kies hoe de btw op dit document moet worden behandeld.'});
-  if(d?.currency&&d.currency!=='EUR')issues.push({field:'currency',message:'Voor deze valuta is eerst een bevestigde wisselkoers nodig.'});
+  const currency=normalizeCurrencyCode(value('currency')||d?.currency||'EUR');
+  if(!/^[A-Z]{3}$/.test(currency))issues.push({field:'currency',message:'Gebruik een valutacode van drie letters, bijvoorbeeld USD.'});
+  else if(currency!=='EUR'){
+    const rate=parseExchangeRateToEur(value('exchangeRateToEur'));
+    const confirmed=!!rate&&value('exchangeRateConfirmed')==='on'&&d?.exchangeRateConfirmed===true&&String(d?.exchangeRateToEur||'')===rate.normalized;
+    if(!rate)issues.push({field:'exchangeRateToEur',message:'Vul de wisselkoers in: hoeveel EUR is 1 '+currency+'?'});
+    else if(!confirmed)issues.push({field:'exchangeRateToEur',message:'Bevestig de wisselkoers van 1 '+currency+' = '+rate.normalized.replace('.',',')+' EUR.'})
+  }
   const required=new Set(req.blocking);
   if(d?.mixedRates){required.delete('vatRate');required.add('vatLines')}
   for(const key of required){
@@ -308,6 +396,7 @@ function focusReviewIssue(issue){
   if(issue.field==='confirmDuplicate'){document.querySelector('[data-review-issue="confirmDuplicate"] button')?.focus();return}
   const el=document.getElementById('pdfImportForm')?.elements.namedItem(issue.field);el?.focus?.()
 }
+function focusDocumentReviewIssue(field){focusReviewIssue({field})}
 function setReviewWizardStep(step,validate=true){
   const target=Number(step)===2?2:1,d=pendingPdfImport?.parsed;
   if(target===2&&validate&&d){
@@ -334,17 +423,14 @@ function updateBeginnerReviewState(){
   }
   if(amount){
     amount.className='beginner-review-state '+(amountIssues.length?'bad':'good');
-    amount.innerHTML=amountIssues.length?'<strong>Controleer '+amountIssues.length+' '+(amountIssues.length===1?'ding':'dingen')+'</strong><span>'+esc(amountIssues[0].message)+'</span>':'<strong>✓ Klaar om op te slaan</strong><span>De bedragen sluiten op elkaar aan.</span>'
+    amount.innerHTML=amountIssues.length?'<strong>Nog '+amountIssues.length+' '+(amountIssues.length===1?'punt':'punten')+' oplossen</strong><div class="beginner-issue-list">'+amountIssues.map(issue=>'<button type="button" class="beginner-issue" onclick="focusDocumentReviewIssue(\''+esc(issue.field)+'\')">'+esc(issue.message)+'</button>').join('')+'</div>':'<strong>✓ Klaar om op te slaan</strong><span>De bedragen sluiten op elkaar aan.</span>'
   }
   const financial=amountIssues.find(x=>['net','vatAmount','gross','vatRate','vatLines'].includes(x.field));
-  if(warning){
-    warning.hidden=!financial;
-    warning.textContent=financial?financial.message:''
-  }
+  if(warning){warning.hidden=true;warning.textContent=''}
   const netEditor=document.querySelector('[data-review-net-editor]');
   if(netEditor){
     const f=document.getElementById('pdfImportForm'),netC=cents(f?.elements.namedItem('net')?.value),vatC=cents(f?.elements.namedItem('vatAmount')?.value),grossC=cents(f?.elements.namedItem('gross')?.value),netMeta=d.fieldProvenance?.net||{};
-    const needsExplicitNet=netMeta.source==='user'&&netMeta.confirmed&&netC!=null&&vatC!=null&&grossC!=null&&netC+vatC!==grossC;
+    const needsExplicitNet=amountIssues.some(x=>x.field==='net')||(netMeta.source==='user'&&netMeta.confirmed&&netC!=null&&vatC!=null&&grossC!=null&&netC+vatC!==grossC);
     netEditor.hidden=!needsExplicitNet;netEditor.style.display=needsExplicitNet?'':'none'
   }
   const rateField=document.querySelector('[data-review-field="vatRate"]');
@@ -401,12 +487,21 @@ function reconcileSimpleReviewAmounts(markUserKey=null){
 function onGenericReviewInput(event){
   const d=pendingPdfImport?.parsed,key=event?.target?.name;if(!d||!key)return;
   if(['party','category','issueDate','invoiceNumber','documentType','type'].includes(key))d[key]=String(event.target?.value??'');
+  if(key==='currency'){
+    d.currency=normalizeCurrencyCode(event.target?.value||'EUR');event.target.value=d.currency;d.exchangeRateConfirmed=false;d.exchangeRateConfirmedAt=null;
+    const confirmed=document.getElementById('pdfImportForm')?.elements.namedItem('exchangeRateConfirmed');if(confirmed)confirmed.value=''
+  }
+  if(key==='exchangeRateToEur'){
+    d.exchangeRateToEur=String(event.target?.value??'').trim().replace(',','.');d.exchangeRateConfirmed=false;d.exchangeRateConfirmedAt=null;event.target.setCustomValidity('');
+    const confirmed=document.getElementById('pdfImportForm')?.elements.namedItem('exchangeRateConfirmed');if(confirmed)confirmed.value=''
+  }
   if(['party','category','issueDate','invoiceNumber'].includes(key)){
     genericProvenance(d)[key]={source:'user',confirmed:true,confirmedAt:new Date().toISOString()};
     setDeferredFields(d,deferredFields(d).filter(x=>x!==key))
   }
   if(['net','vatAmount','gross','vatRate'].includes(key)&&typeof syncFinancialReviewStateFromForm==='function'){syncFinancialReviewStateFromForm(key);reconcileSimpleReviewAmounts(key)}
   if(typeof updateFinancialReviewPanel==='function'&&['net','vatAmount','gross','vatRate'].includes(key))updateFinancialReviewPanel();
+  if(['currency','exchangeRateToEur','net','vatAmount','gross'].includes(key))updateForeignCurrencyPreview();
   updateBeginnerReviewState()
 }
 function bindBeginnerReview(){
@@ -419,7 +514,7 @@ function bindBeginnerReview(){
     observer.observe(financialPanel,{childList:true,subtree:true,characterData:true});
   }
   if(typeof updateFinancialReviewPanel==='function')updateFinancialReviewPanel();
-  updateBeginnerReviewState()
+  updateForeignCurrencyPreview();updateBeginnerReviewState()
 }
 
 function applyFinancialCorrectionProposal(){
@@ -455,6 +550,7 @@ function reviewIssueLabel(field){
   if(['vatAmount','vatRate','vatLines'].includes(field))return 'Controleer de btw';
   if(['net','gross'].includes(field))return 'Controleer de bedragen';
   if(field==='currency')return 'Controleer de valuta';
+  if(field==='exchangeRateToEur')return 'Bevestig de wisselkoers';
   return 'Controleer dit'
 }
 function presentationIssues(d){
@@ -546,6 +642,10 @@ function canonicalFieldControl(d,key,issue=false){
   return ''
 }
 function issuePanel(d,issue){
+  if(issue.field==='currency'||issue.field==='exchangeRateToEur'){
+    const currency=normalizeCurrencyCode(d.currency||'EUR'),rate=parseExchangeRateToEur(d.exchangeRateToEur||''),confirmed=!!rate&&d.exchangeRateConfirmed===true;
+    return '<section class="review-issue-card attention foreign-currency-review" data-review-issue="currency"><h5>Buitenlandse valuta bevestigen</h5><p>Dit document is in <strong data-fx-source-code>'+esc(currency)+'</strong>. Vul de koers in die je voor deze boeking gebruikt. Boekuna haalt of verzint geen koers.</p><div class="foreign-currency-fields"><div class="field"><label>Valuta</label><input name="currency" value="'+esc(currency)+'" maxlength="3" autocomplete="off" inputmode="text"></div><div class="field"><label for="exchangeRateToEur">Wisselkoers</label><div class="foreign-rate-equation"><span>1 <strong data-fx-source-code>'+esc(currency)+'</strong> =</span><input id="exchangeRateToEur" name="exchangeRateToEur" inputmode="decimal" autocomplete="off" placeholder="0,92" value="'+esc(rate?.normalized||'')+'"><span>EUR</span></div><div class="help">Gebruik de koers die je voor deze boeking wilt vastleggen: EUR per 1 '+esc(currency)+'.</div></div></div><input type="hidden" name="exchangeRateConfirmed" value="'+(confirmed?'on':'')+'"><div class="review-issue-actions"><button type="button" class="btn small" onclick="confirmExchangeRate()">Wisselkoers bevestigen</button><button type="button" class="link-btn" onclick="toggleDocumentOriginal(true)">Bekijk origineel</button></div><div data-fx-status class="exchange-rate-status" role="status" aria-live="polite"></div><div data-fx-preview class="exchange-rate-preview" aria-live="polite"></div></section>'
+  }
   if(issue.field==='vatTreatmentChoice')return '<section class="review-issue-card attention" data-review-issue="vatTreatmentChoice"><h5>Controleer de btw</h5><p>Deze factuur lijkt buitenlandse of historische btw te bevatten. Hoe staat dit op het document?</p><label class="review-choice"><input type="radio" name="vatTreatmentChoice" value="foreign"><span>Buitenlandse btw</span></label><label class="review-choice"><input type="radio" name="vatTreatmentChoice" value="standard"><span>Nederlandse / historische btw</span></label><button type="button" class="link-btn" onclick="toggleDocumentOriginal(true)">Bekijk origineel</button></section>';
   if(issue.field==='confirmDuplicate')return '<section class="review-issue-card attention" data-review-issue="confirmDuplicate"><h5>Deze bon lijkt al verwerkt</h5><p>'+esc(d.duplicateCandidate?.label||'We hebben een vergelijkbaar document gevonden.')+'</p><input type="hidden" name="confirmDuplicate" value=""><div class="review-issue-actions"><button type="button" class="btn small" onclick="viewDuplicateCandidate()">Bekijk bestaand document</button><button type="button" class="btn small" onclick="confirmDuplicateOverride()">Dit is toch een nieuwe bon</button></div></section>';
   if(issue.field==='confirmAnomaly')return '<section class="review-issue-card attention" data-review-issue="confirmAnomaly"><h5>Dit document heeft extra controle nodig</h5><p>'+esc(issue.message||'Vergelijk de gegevens met het origineel.')+'</p><input type="hidden" name="confirmAnomaly" value=""><div class="review-issue-actions"><button type="button" class="btn small" onclick="toggleDocumentOriginal(true)">Bekijk origineel</button><button type="button" class="btn small" onclick="confirmDocumentAnomaly()">Ik heb het origineel gecontroleerd</button></div></section>';
@@ -713,18 +813,58 @@ function showPdfImportReview(d){
 function captureReviewSnapshot(){
   const d=pendingPdfImport?.parsed,f=document.getElementById('pdfImportForm');if(!d||!f)return null;
   syncMixedVatFromDomWithoutRender();
-  const fd=Object.fromEntries(new FormData(f).entries()),number=v=>{const n=typeof parseSignedMoneyValue==='function'?parseSignedMoneyValue(v):Number(v);return Number.isFinite(n)?n:null};
+  const fd=Object.fromEntries(new FormData(f).entries()),number=v=>{const n=typeof parseSignedMoneyValue==='function'?parseSignedMoneyValue(v):Number(v);return Number.isFinite(n)?n:null},fx=foreignCurrencyReviewState(d),currency=normalizeCurrencyCode(fd.currency||d.currency||'EUR');
+  const sourceAmounts={net:number(fd.net),vatAmount:number(fd.vatAmount),gross:number(fd.gross)};
   return {
-    version:2,reviewedAt:new Date().toISOString(),
+    version:3,reviewedAt:new Date().toISOString(),
     type:String(fd.type||d.type||'purchase'),documentType:String(fd.documentType||d.documentType||'other'),
     party:String(fd.party||''),issueDate:String(fd.issueDate||''),invoiceNumber:String(fd.invoiceNumber||''),category:String(fd.category||''),
-    net:number(fd.net),vatAmount:number(fd.vatAmount),gross:number(fd.gross),
+    ...sourceAmounts,sourceAmounts,
     lineItemCount:Number(d.lineItems?.length||0),vatRate:d.mixedRates?null:(fd.vatRate===''?null:Number(fd.vatRate)),mixedRates:!!d.mixedRates,
     vatLines:typeof canonicalFinancialVatLines==='function'?canonicalFinancialVatLines(d.vatLines):structuredClone(d.vatLines||[]),
-    vatId:String(fd.vatId||d.vatId||''),iban:String(fd.iban||''),currency:String(fd.currency||'EUR'),description:String(fd.description||''),dueDate:String(fd.dueDate||''),
+    vatId:String(fd.vatId||d.vatId||''),iban:String(fd.iban||''),currency,description:String(fd.description||''),dueDate:String(fd.dueDate||''),
+    exchangeRateToEur:currency==='EUR'?null:(fx.rate?.normalized||null),exchangeRateConfirmed:currency!=='EUR'&&fx.confirmed,exchangeRateConfirmedAt:currency!=='EUR'&&fx.confirmed?(d.exchangeRateConfirmedAt||null):null,
+    bookingCurrency:'EUR',bookingAmountsEur:currency==='EUR'?sourceAmounts:structuredClone(fx.bookingAmountsEur),bookingVatLinesEur:currency==='EUR'?[]:structuredClone(fx.bookingVatLinesEur||[]),
     paymentReference:String(fd.paymentReference||''),orderNumber:String(fd.orderNumber||''),paymentTermDays:fd.paymentTermDays===''?null:Number(fd.paymentTermDays),
     advancePayment:d.advancePayment??null,alreadyPaid:d.alreadyPaid??null,outstandingAmount:d.outstandingAmount??null,amountDue:d.amountDue??null,accountingVatTreatment:d.accountingVatTreatment||'standard',vatTreatmentChoice:String(fd.vatTreatmentChoice||''),detectedVatRates:structuredClone(d.detectedVatRates||[]),fieldProvenance:structuredClone(d.fieldProvenance||{}),reviewFieldProvenance:structuredClone(d.reviewFieldProvenance||{}),
     deferredFields:deferredFields(d)
+  }
+}
+function convertOptionalSourceAmount(value,rate){
+  const c=cents(value);if(c==null)return value;
+  const converted=convertSourceCentsToEur(c,rate);return converted==null?value:converted/100
+}
+function prepareForeignCurrencyLegacyBooking(d,snapshot){
+  if(!snapshot||snapshot.currency==='EUR')return ()=>{};
+  const f=document.getElementById('pdfImportForm'),rate=snapshot.exchangeRateToEur,booking=snapshot.bookingAmountsEur;
+  if(!f||!snapshot.exchangeRateConfirmed||!rate||!booking)return ()=>{};
+  const formOriginal=Object.fromEntries(['currency','net','vatAmount','gross'].map(k=>[k,f.elements.namedItem(k)?.value]));
+  const parsedOriginal={currency:d.currency,net:d.net,vatAmount:d.vatAmount,gross:d.gross,vatLines:structuredClone(d.vatLines||[]),advancePayment:d.advancePayment,alreadyPaid:d.alreadyPaid,outstandingAmount:d.outstandingAmount,amountDue:d.amountDue,payout:d.payout,adjustments:structuredClone(d.adjustments||[])};
+  const values={currency:'EUR',net:Number(booking.net).toFixed(2),vatAmount:Number(booking.vatAmount).toFixed(2),gross:Number(booking.gross).toFixed(2)};
+  for(const [key,value] of Object.entries(values)){const el=f.elements.namedItem(key);if(el)el.value=String(value)}
+  d.currency='EUR';d.net=booking.net;d.vatAmount=booking.vatAmount;d.gross=booking.gross;
+  if(d.mixedRates&&snapshot.bookingVatLinesEur?.length)d.vatLines=structuredClone(snapshot.bookingVatLinesEur);
+  for(const key of ['advancePayment','alreadyPaid','outstandingAmount','amountDue','payout'])if(d[key]!=null)d[key]=convertOptionalSourceAmount(d[key],rate);
+  d.adjustments=(d.adjustments||[]).map(a=>{
+    const net=a.net!=null?convertOptionalSourceAmount(a.net,rate):a.net,vat=a.vat!=null?convertOptionalSourceAmount(a.vat,rate):a.vat;
+    const gross=net!=null&&vat!=null?((cents(net)+cents(vat))/100):convertOptionalSourceAmount(a.gross,rate);
+    return {...a,net,vat,gross}
+  });
+  return ()=>{
+    for(const [key,value] of Object.entries(formOriginal)){const el=f.elements.namedItem(key);if(el&&value!=null)el.value=String(value)}
+    Object.assign(d,parsedOriginal)
+  }
+}
+function annotateForeignCurrencyBooking(doc,snapshot){
+  if(!doc||!snapshot||snapshot.currency==='EUR'||!snapshot.exchangeRateConfirmed)return;
+  const meta={sourceCurrency:snapshot.currency,exchangeRateToEur:snapshot.exchangeRateToEur,exchangeRateConfirmedAt:snapshot.exchangeRateConfirmedAt||snapshot.reviewedAt,sourceAmounts:structuredClone(snapshot.sourceAmounts),bookingCurrency:'EUR',bookingAmountsEur:structuredClone(snapshot.bookingAmountsEur)};
+  Object.assign(doc,meta);
+  const linked=doc.linkedType==='expense'?state.expenses.find(x=>x.id===doc.linkedId):doc.linkedType==='invoice'?state.invoices.find(x=>x.id===doc.linkedId):null;
+  if(linked){
+    Object.assign(linked,meta,{sourceVatLines:structuredClone(snapshot.vatLines||[]),bookingVatLinesEur:structuredClone(snapshot.bookingVatLinesEur||[])});
+    linked.sourceFieldProvenance=structuredClone(snapshot.fieldProvenance||{});
+    if(!linked.fieldProvenance||typeof linked.fieldProvenance!=='object')linked.fieldProvenance={};
+    for(const key of ['net','vatAmount','gross'])linked.fieldProvenance[key]={source:'calculated',confirmed:false,confidence:null,derivedFrom:['sourceAmount','exchangeRateToEur'],calculatedAt:snapshot.exchangeRateConfirmedAt||snapshot.reviewedAt}
   }
 }
 function findSavedDocumentAfter(beforeIds,sourceClientRef,fileName){
@@ -733,15 +873,17 @@ function findSavedDocumentAfter(beforeIds,sourceClientRef,fileName){
   return state.documents.find(x=>String(x.name||'')===String(fileName||'')&&x.linkedId)||null
 }
 async function savePdfInvoiceImport(){
-  const d=pendingPdfImport?.parsed;if(!d)return legacySavePdfInvoiceImport?.();
+  const importContext=pendingPdfImport,d=importContext?.parsed;if(!d)return legacySavePdfInvoiceImport?.();
   syncMixedVatFromDomWithoutRender();
   const issues=financialBlockingIssues(d);if(issues.length){updateBeginnerReviewState();firstBlockingFocus();toast('Controleer de gemarkeerde gegevens voordat je opslaat.');return}
-  const snapshot=captureReviewSnapshot(),deferred=snapshot?.deferredFields||[],beforeIds=new Set(state.documents.map(x=>x.id)),beforeContactIds=new Set(state.contacts.map(x=>x.id)),sourceClientRef=String(pendingPdfImport?.sourceClientRef||''),fileName=pendingPdfImport?.file?.name||'';
-  const original=structuredClone(d.recognitionOriginal||d),accountId=currentUser?.id,ledger=state;
-  const result=await legacySavePdfInvoiceImport();
+  const snapshot=captureReviewSnapshot(),deferred=snapshot?.deferredFields||[],beforeIds=new Set(state.documents.map(x=>x.id)),beforeContactIds=new Set(state.contacts.map(x=>x.id)),sourceClientRef=String(importContext?.sourceClientRef||''),fileName=importContext?.file?.name||'';
+  const original=structuredClone(d.recognitionOriginal||d),accountId=currentUser?.id,ledger=state,restoreForeign=prepareForeignCurrencyLegacyBooking(d,snapshot);
+  let result;
+  try{result=await legacySavePdfInvoiceImport()}finally{if(pendingPdfImport===importContext)restoreForeign()}
   if(currentUser?.id!==accountId||state!==ledger)return result;
   if(pendingPdfImport)return result;
   const doc=findSavedDocumentAfter(beforeIds,sourceClientRef,fileName);if(!doc||!snapshot)return result;
+  annotateForeignCurrencyBooking(doc,snapshot);
   if(deferred.includes('party')&&doc.linkedType==='expense'){
     state.contacts=state.contacts.filter(c=>beforeContactIds.has(c.id)||c.type!=='supplier'||String(c.name||'').trim()!==String(snapshot.party||'').trim());
   }
@@ -760,17 +902,18 @@ async function savePdfInvoiceImport(){
 
 function savedReviewValue(snapshot,key){
   const value=snapshot?.[key];if(value==null||value==='')return '—';
-  if(['net','vatAmount','gross'].includes(key))return money(Number(value));
+  if(['net','vatAmount','gross'].includes(key))return sourceMoney(Number(value),snapshot?.currency||'EUR');
   if(key==='vatRate')return value==null?'Meerdere tarieven':num(Number(value))+'%';
   if(key==='issueDate')return dateNL(value);
   return String(value)
 }
 function openSavedDocumentReview(id){
   const doc=state.documents.find(x=>x.id===id),s=doc?.reviewSnapshot;if(!doc||!s)return toast('De opgeslagen controle is niet beschikbaar.');
-  const rows=[['Leverancier / relatie','party'],['Datum','issueDate'],['Factuurnummer','invoiceNumber'],['Bedrag excl. btw','net'],['Btw','vatAmount'],['Totaal','gross']];
-  const vat=s.mixedRates?'<div class="saved-review-vat"><strong>Btw-verdeling</strong>'+((s.vatLines||[]).map(x=>'<span>'+esc(num(x.rate))+'% · excl. '+money(x.taxableAmount)+' · btw '+money(x.vatAmount)+'</span>').join('')||'<span>—</span>')+'</div>':'<div class="saved-review-row"><span>Btw-percentage</span><strong>'+esc(savedReviewValue(s,'vatRate'))+'</strong></div>';
+  const rows=[['Leverancier / relatie','party'],['Datum','issueDate'],['Factuurnummer','invoiceNumber'],['Valuta','currency'],['Bedrag excl. btw','net'],['Btw','vatAmount'],['Totaal','gross']];
+  const vat=s.mixedRates?'<div class="saved-review-vat"><strong>Btw-verdeling</strong>'+((s.vatLines||[]).map(x=>'<span>'+esc(num(x.rate))+'% · excl. '+esc(sourceMoney(x.taxableAmount,s.currency))+' · btw '+esc(sourceMoney(x.vatAmount,s.currency))+'</span>').join('')||'<span>—</span>')+'</div>':'<div class="saved-review-row"><span>Btw-percentage</span><strong>'+esc(savedReviewValue(s,'vatRate'))+'</strong></div>';
+  const fx=s.currency&&s.currency!=='EUR'&&s.exchangeRateConfirmed?'<div class="saved-review-fx"><strong>Bevestigde wisselkoers</strong><span>1 '+esc(s.currency)+' = '+esc(String(s.exchangeRateToEur||'').replace('.',','))+' EUR</span>'+(s.bookingAmountsEur?'<span>EUR-boeking · excl. '+esc(money(s.bookingAmountsEur.net))+' · btw '+esc(money(s.bookingAmountsEur.vatAmount))+' · totaal '+esc(money(s.bookingAmountsEur.gross))+'</span>':'')+'</div>':'';
   const attention=Array.isArray(doc.reviewAttentionFields)&&doc.reviewAttentionFields.length?'<div class="notice warn"><strong>Later controleren</strong><br>'+doc.reviewAttentionFields.map(x=>esc(LABELS[x]||x)).join(' · ')+'</div>':'';
-  modal('Opgeslagen controle','<div class="saved-review-card">'+rows.map(([label,key])=>'<div class="saved-review-row"><span>'+esc(label)+'</span><strong>'+esc(savedReviewValue(s,key))+'</strong></div>').join('')+vat+'</div>'+attention,'<button class="btn" onclick="closeModal()">Sluiten</button>'+(doc.reviewAttentionFields?.length?'<button class="btn primary" onclick="openDeferredDocumentReview(\''+esc(doc.id)+'\')">Nu controleren</button>':''),true)
+  modal('Opgeslagen controle','<div class="saved-review-card">'+rows.map(([label,key])=>'<div class="saved-review-row"><span>'+esc(label)+'</span><strong>'+esc(savedReviewValue(s,key))+'</strong></div>').join('')+vat+fx+'</div>'+attention,'<button class="btn" onclick="closeModal()">Sluiten</button>'+(doc.reviewAttentionFields?.length?'<button class="btn primary" onclick="openDeferredDocumentReview(\''+esc(doc.id)+'\')">Nu controleren</button>':''),true)
 }
 function openDeferredDocumentReview(id){
   const doc=state.documents.find(x=>x.id===id),s=doc?.reviewSnapshot,fields=Array.isArray(doc?.reviewAttentionFields)?doc.reviewAttentionFields:[];if(!doc||!s||!fields.length)return openSavedDocumentReview(id);
@@ -818,7 +961,7 @@ function persistentDocumentReviewActionForFile(d){
   return d?.reviewSnapshot?'<button class="link-btn" onclick="openSavedDocumentReview(\''+esc(d.id)+'\')">Bekijken</button> ':''
 }
 
-global.BookunaDocumentReviewV2=Object.freeze({requirementsFor,financialBlockingIssues,mixedVatValidation,captureReviewSnapshot,buildDocumentReviewViewModel});
+global.BookunaDocumentReviewV2=Object.freeze({requirementsFor,financialBlockingIssues,mixedVatValidation,captureReviewSnapshot,buildDocumentReviewViewModel,parseExchangeRateToEur,convertSourceCentsToEur,foreignCurrencyReviewState});
 global.requirementsForDocumentReview=requirementsFor;
 global.setDocumentReviewStep=setDocumentReviewStep;
 global.goToReviewWizardStep=goToReviewWizardStep;
@@ -828,6 +971,8 @@ global.deferDocumentReviewField=deferDocumentReviewField;
 global.confirmDocumentReviewField=confirmDocumentReviewField;
 global.focusDocumentReviewField=focusDocumentReviewField;
 global.confirmFinancialReviewAnchor=confirmFinancialReviewAnchor;
+global.confirmExchangeRate=confirmExchangeRate;
+global.focusDocumentReviewIssue=focusDocumentReviewIssue;
 global.addMixedVatLine=addMixedVatLine;
 global.removeMixedVatLine=removeMixedVatLine;
 global.useMixedVatTotals=useMixedVatTotals;
