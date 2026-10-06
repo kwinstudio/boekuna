@@ -264,25 +264,17 @@
     document.querySelectorAll('[data-mobile-input-mode]').forEach(function(node){node.removeAttribute('inputmode');delete node.dataset.mobileInputMode});
     document.querySelectorAll('[data-mobile-aria]').forEach(function(node){if(node.dataset.mobileAria)node.setAttribute('aria-label',node.dataset.mobileAria);else node.removeAttribute('aria-label');delete node.dataset.mobileAria});
     document.documentElement.style.removeProperty('--mobile-viewport-height');
-    document.documentElement.style.removeProperty('--mobile-viewport-offset-top');
   }
   function viewport() {
-    if(!media.matches||!window.visualViewport)return;
-    document.documentElement.style.setProperty('--mobile-viewport-height',Math.round(visualViewport.height)+'px');
-    document.documentElement.style.setProperty('--mobile-viewport-offset-top',Math.round(visualViewport.offsetTop||0)+'px');
-  }
-  function keepFocusedModalFieldVisible(target=document.activeElement) {
-    if(!media.matches||!target?.matches?.('input,select,textarea')||!target.closest('#modalRoot .modal'))return;
-    requestAnimationFrame(function(){target.scrollIntoView({block:'center',inline:'nearest',behavior:'auto'})});
+    if(media.matches&&window.visualViewport)document.documentElement.style.setProperty('--mobile-viewport-height',Math.round(visualViewport.height)+'px');
   }
   function install() {
     ['content','modalRoot'].forEach(function(id){var root=document.getElementById(id);if(root)new MutationObserver(schedule).observe(root,{childList:true,subtree:true})});
     media.addEventListener('change',function(){if(media.matches){viewport();schedule()}else restoreDesktop()});
-    window.visualViewport?.addEventListener('resize',function(){viewport();setTimeout(function(){keepFocusedModalFieldVisible()},60)});
-    window.visualViewport?.addEventListener('scroll',viewport);
+    window.visualViewport?.addEventListener('resize',viewport);
     document.addEventListener('focusin',function(event){
       if(!media.matches||!event.target.matches('input,select,textarea'))return;
-      setTimeout(function(){keepFocusedModalFieldVisible(event.target)},60);
+      requestAnimationFrame(function(){event.target.scrollIntoView({block:'nearest',behavior:'auto'})});
     });
     document.addEventListener('invalid',function(event){if(media.matches){var details=event.target.closest('details');if(details)details.open=true}},true);
     viewport();schedule();
