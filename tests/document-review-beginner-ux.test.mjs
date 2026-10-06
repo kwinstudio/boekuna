@@ -586,7 +586,10 @@ try{
     net:100,vatAmount:21,gross:121,vatRate:21,
     reviewRouting:{mode:'FULL_REVIEW',fields:['currency'],count:1,autoBook:false}
   });
+  await page.evaluate(()=>toggleDocumentOriginal(true));
+  await page.locator('#reviewOriginalPanel.open .beginner-preview-empty').waitFor();
   await assertPreviewCopySeparated(browserName+' mobile preview');
+  await page.evaluate(()=>toggleDocumentOriginal(false));
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
   await noOverflow(browserName+' foreign currency mobile');
   assert.equal(await page.locator('[name="exchangeRateToEur"]:visible').count(),1);
