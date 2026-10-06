@@ -159,6 +159,25 @@ try{
   await page.locator('[data-mobile-page="dashboard"]').click();
   await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
 
+  // Simulate a 410px iOS visual viewport above the keyboard, including viewport panning.
+  await page.evaluate(()=>newInvoice());
+  await page.locator('#modalRoot .modal').waitFor();
+  await page.evaluate(()=>{
+    document.documentElement.style.setProperty('--mobile-viewport-height','410px');
+    document.documentElement.style.setProperty('--mobile-viewport-offset-top','100px');
+  });
+  const keyboardBackdrop=await page.locator('#modalRoot .modal-backdrop').boundingBox();
+  const keyboardSheet=await page.locator('#modalRoot .modal').boundingBox();
+  assert.ok(keyboardBackdrop&&Math.abs(keyboardBackdrop.y-100)<3,'Keyboard modal backdrop must follow the visual viewport top');
+  assert.ok(Math.abs(keyboardBackdrop.height-410)<3,'Keyboard modal backdrop must fit the visible viewport height');
+  assert.ok(keyboardSheet&&keyboardSheet.y+keyboardSheet.height<=512,'Invoice sheet must stay above the simulated keyboard');
+  assert.equal(await page.locator('#modalRoot .field input').first().evaluate(el=>getComputedStyle(el).fontSize),'16px','Mobile invoice fields must prevent iOS input focus zoom');
+  await page.evaluate(()=>{
+    document.documentElement.style.removeProperty('--mobile-viewport-height');
+    document.documentElement.style.removeProperty('--mobile-viewport-offset-top');
+    closeModal();
+  });
+
   // Independent QA additions: focus containment/return, non-primary active state,
   // breakpoint cleanup, long-name overflow, and desktop width coverage.
   await page.locator('#mobileMenu').click();
