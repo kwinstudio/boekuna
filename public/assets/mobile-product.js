@@ -153,29 +153,19 @@
       groups.forEach(function(group){group.classList.remove('mobile-settings-active')});
       index.querySelector('button').focus();
     },'btn mobile-settings-back');
-    // Map by semantic headings instead of index so new settings groups never mislabel later sections.
-    var settingsLabels={
-      'Bedrijf':['Mijn bedrijf','Naam, adres en betaalgegevens'],
-      'Weergave':['Weergave','Extra uitleg aan- of uitzetten'],
-      'Facturen':['Facturen','Factuurlayout en e-mailbericht'],
-      'Boekhouding':['Boekhouding','Fiscale instellingen en reserves'],
-      'Beveiliging':['Beveiliging & privacy','Je account beschermen'],
-      'Data & import/export':['Data & export','Download of herstel je administratie'],
-      'Account':['Abonnement & account','Je plan en account beheren'],
-      'Gevaarzone':['Gevaarzone','Acties met extra bevestiging']
-    };
-    groups.forEach(function(group){
+    var titles=['Bedrijfsgegevens','Factuurinstellingen','Boekhouding','Beveiliging en privacy','Data en export','Abonnement en account','Account verwijderen'];
+    groups.forEach(function(group,i){
       var title=group.querySelector('h2');
-      var heading=title?title.textContent.trim():'Instellingen';
-      var label=settingsLabels[heading]||[heading,'Bekijk en wijzig je instellingen'];
+      var name=titles[i] || (title?title.textContent:'Instellingen');
       var item=button('',function(){
-        if(heading==='Bedrijf'){navigate('profile');return;}
+        if(i===0){navigate('profile');return;}
         section.dataset.mobileSettings='detail';
         groups.forEach(function(other){other.classList.toggle('mobile-settings-active',other===group)});
         back.focus();
       },'settings-nav-item');
-      var copy=element('span','settings-nav-copy');copy.append(element('strong','',label[0]));
-      copy.append(element('span','',label[1]));
+      var copy=element('span','settings-nav-copy');copy.append(element('strong','',name));
+      var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];
+      copy.append(element('span','',descriptions[i] || 'Bekijk en wijzig je instellingen'));
       var chevron=element('span','settings-nav-chevron','›');chevron.setAttribute('aria-hidden','true');item.append(copy,chevron);index.append(item);
     });
     section.prepend(back,index);
