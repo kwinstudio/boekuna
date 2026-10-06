@@ -65,7 +65,7 @@ body .badge,body .plan,body .card,body .faq-item,body .demo,body .scan-panel{bor
   --brand-light:#F6F7F8;
   --brand-muted:#8A949C;
   --brand-white:#FFFFFF;
-  --bg:#FFFFFF;--bg-2:#F6F7F8;--ink:#1B1F23;--ink-2:#4E5961;--muted:#8A949C;--line:#1B1F231A;--surface:#FFFFFF;
+  --bg:#FFFFFF;--bg-2:#F6F7F8;--ink:#1B1F23;--ink-2:#4E5961;--muted:#66727A;--line:#1B1F231A;--surface:#FFFFFF;
   --green:#63D471;--green-hover:#4FC361;--green-soft:color-mix(in srgb,#63D471 14%,#FFFFFF);--green-ink:#1B1F23;--green-line:color-mix(in srgb,#63D471 45%,#FFFFFF);--on-green:#1B1F23;
   --dark:#1B1F23;--on-dark:#FFFFFF;--on-dark-muted:#D9DEE2;
   --display:'Space Grotesk','Arial Narrow',Arial,sans-serif;--body:'Inter',Arial,sans-serif;
