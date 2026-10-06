@@ -273,6 +273,7 @@ jobs:
           path: |
             tests/artifacts/smart-financial-correction-*.png
             tests/artifacts/document-processing-*.png
+            tests/artifacts/document-review-*.png
             tests/artifacts/mobile-dashboard-*.png
             tests/artifacts/premium-*.png
             tests/artifacts/premium-v2-*.png
