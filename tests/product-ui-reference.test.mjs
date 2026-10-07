@@ -240,9 +240,9 @@ try{
         profitLegend:getComputedStyle(document.querySelector('.dashboard-chart-card .chart-legend .legend-dot.profit')).backgroundColor
       }));
       assert.deepEqual(dashboardChartColours,{
-        sales:'rgb(99, 212, 113)',costs:'rgb(216, 221, 225)',profit:'rgb(27, 31, 35)',
-        salesLegend:'rgb(99, 212, 113)',costsLegend:'rgb(216, 221, 225)',profitLegend:'rgb(27, 31, 35)'
-      },browserName+' dashboard chart must use brand + neutral data colours, never decorative info/warning colours');
+        sales:'rgb(99, 212, 113)',costs:'rgb(229, 83, 75)',profit:'rgb(59, 130, 246)',
+        salesLegend:'rgb(99, 212, 113)',costsLegend:'rgb(229, 83, 75)',profitLegend:'rgb(59, 130, 246)'
+      },browserName+' dashboard chart must use green for omzet, red for kosten and blue for winst');
       assert.deepEqual(await page.locator('.dashboard-summary-title').allTextContents(),['Administratie','Vraag Boekuna','Nieuwe factuur']);
       await noOverflow(page,browserName+' desktop dashboard');
       await axe(page,browserName+' desktop dashboard');
@@ -374,13 +374,13 @@ try{
             profitLegend:getComputedStyle(document.querySelector('.report-result-card .chart-legend .legend-dot.profit')).backgroundColor
           }));
           assert.deepEqual(reportChartColours,{
-            sales:'rgb(99, 212, 113)',costs:'rgb(216, 221, 225)',profit:'rgb(27, 31, 35)',
-            salesLegend:'rgb(99, 212, 113)',costsLegend:'rgb(216, 221, 225)',profitLegend:'rgb(27, 31, 35)'
-          },browserName+' reports chart must keep blue for info and amber for warnings only');
+            sales:'rgb(99, 212, 113)',costs:'rgb(229, 83, 75)',profit:'rgb(59, 130, 246)',
+            salesLegend:'rgb(99, 212, 113)',costsLegend:'rgb(229, 83, 75)',profitLegend:'rgb(59, 130, 246)'
+          },browserName+' reports chart must use green for omzet, red for kosten and blue for winst');
           const categoryCostColours=await page.locator('.category-row .progress span').evaluateAll(nodes=>nodes.map(el=>getComputedStyle(el).backgroundColor));
           assert.ok(categoryCostColours.length>0,browserName+' reports category costs must render a progress bar');
           for(const colour of categoryCostColours){
-            assert.equal(colour,'rgb(216, 221, 225)',browserName+' reports category cost progress must use the neutral financial-data colour');
+            assert.equal(colour,'rgb(229, 83, 75)',browserName+' reports category cost progress must use the kosten colour');
             assert.ok(!['rgb(99, 212, 113)','rgb(37, 99, 235)','rgb(180, 83, 9)','rgb(194, 54, 43)'].includes(colour),browserName+' reports category cost progress must not use brand or semantic status colours');
           }
         }
