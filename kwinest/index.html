@@ -2500,6 +2500,38 @@ function billingPlanLabel(plan='free'){return ({free:'Gratis',boekuna:'Boekuna',
 function billingStatusLabel(status='free'){return ({free:'Geen betaald abonnement',trialing:'Proefstatus',active:'Actief',past_due:'Betaling nodig',canceled:'Beëindigd',incomplete:'Nog niet afgerond',incomplete_expired:'Niet afgerond',unpaid:'Onbetaald',paused:'Gepauzeerd'})[String(status)]||String(status||'Gratis')}
 function entitlementStatusLabel(status='free'){return ({free:'Gratis',paid:'Betaald'})[String(status)]||String(status||'Gratis')}
 function billingDate(v){if(!v)return '';try{return new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'long',year:'numeric'}).format(new Date(v))}catch{return ''}}
+function testerCodeMessage(code=''){
+ const messages={
+  EMAIL_NOT_VERIFIED:'Verifieer eerst je e-mailadres.',
+  INVALID_CODE:'Deze testcode is niet geldig.',
+  CODE_ALREADY_USED:'Deze testcode is al gebruikt.',
+  CODE_EXPIRED:'Deze testcode is verlopen.',
+  ACCOUNT_TEST_ALREADY_USED:'Je hebt je gratis testperiode al gebruikt.',
+  ACTIVE_SUBSCRIPTION:'Je hebt al een actief abonnement.',
+  RATE_LIMITED:'Te veel pogingen. Probeer het later opnieuw.'
+ };
+ return messages[String(code)]||'De testcode kon niet worden geactiveerd.'
+}
+async function activateTesterCode(){
+ if(billingBusy)return;
+ const input=document.getElementById('testerInviteCode'),button=document.getElementById('testerInviteActivate'),statusEl=document.getElementById('testerInviteStatus');
+ const code=String(input?.value||'').trim();
+ if(!code){if(statusEl)statusEl.textContent='Vul eerst je testcode in.';input?.focus();return}
+ billingBusy=true;if(button){button.disabled=true;button.textContent='Activeren…'}if(statusEl)statusEl.textContent='';
+ try{
+  const sb=await getSupabase();
+  const {data,error}=await sb.rpc('redeem_tester_invite_code',{p_code:code});
+  if(error)throw error;
+  const result=Array.isArray(data)?(data[0]||null):data;
+  if(!result?.ok){const message=testerCodeMessage(result?.code);if(statusEl)statusEl.textContent=message;toast(message);return}
+  if(input)input.value='';
+  billingSnapshot=null;billingLoadedAt=0;
+  await loadBillingSummary(true);
+  const card=document.getElementById('billingCard');if(card)card.outerHTML=renderBillingCard();
+  toast('Testtoegang actief.')
+ }catch(err){console.warn('Tester code activation',err);const message='De testcode kon niet worden geactiveerd. Probeer het later opnieuw.';if(statusEl)statusEl.textContent=message;toast(message)}
+ finally{billingBusy=false;if(button?.isConnected){button.disabled=false;button.textContent='Code activeren'}}
+}
 async function loadBillingSummary(force=false){
  if(TEST_MODE_NO_AUTH)return null;
  const developerActive=!!currentUser?.id&&window.BoekunaDeveloperMode?.isActive(currentUser.id);
@@ -2542,20 +2574,28 @@ function renderBillingCard(){
  if(window.BoekunaDeveloperMode?.isActive(currentUser?.id)&&billingSnapshotSource==='developer')return `<div class="card" id="billingCard" style="margin-bottom:16px"><div class="section-head"><div><h2>Abonnement</h2><p>Tijdelijke QA-context; echte billing blijft ongewijzigd.</p></div><span class="badge warn">DEV MODE · Unlimited</span></div><div class="notice info"><strong>Geen Stripe-betaling nodig in deze preview.</strong> Toegang is tijdelijk, gebonden aan de QA-user en schrijft geen abonnementstatus weg.</div></div>`;
  const b=billingSnapshot;
  if(!b)return `<div class="card" id="billingCard" style="margin-bottom:16px"><div class="section-head"><h2>Abonnement</h2><span class="badge">Laden…</span></div></div>`;
- const plan=String(b.plan||'free'),status=String(b.status||'free'),entitlement=String(b.entitlement_status||((plan!=='free'&&status==='active')?'paid':'free')),limit=b.monthly_limit==null?null:Number(b.monthly_limit),used=Number(b.used||0),isUnlimited=plan==='pro',remaining=isUnlimited?null:Math.max(0,Number(b.remaining??Math.max(0,(limit??0)-used))),pct=isUnlimited?0:Math.min(100,Math.round((used/Math.max(1,limit??1))*100));
- const paid=entitlement==='paid';
+ const plan=String(b.plan||'free'),status=String(b.status||'free'),entitlement=String(b.entitlement_status||((plan!=='free'&&status==='active')?'paid':'free')),accessSource=String(b.access_source||''),testerUsed=b.tester_access_used===true,limit=b.monthly_limit==null?null:Number(b.monthly_limit),used=Number(b.used||0),isUnlimited=plan==='pro',remaining=isUnlimited?null:Math.max(0,Number(b.remaining??Math.max(0,(limit??0)-used))),pct=isUnlimited?0:Math.min(100,Math.round((used/Math.max(1,limit??1))*100));
+ const paid=entitlement==='paid',tester=paid&&accessSource==='tester_code';
  const hasSubscriptionStatus=['trialing','active','past_due','unpaid','paused','incomplete'].includes(status);
  const canManageSubscription=b.can_manage_subscription===true&&hasSubscriptionStatus;
  const statusClass=paid?'good':['past_due','unpaid','paused'].includes(status)?'warn':'';
- const badge=paid?`${billingPlanLabel(plan)} · ${billingStatusLabel(status)}`:'Gratis plan';
- const period=paid&&b.current_period_end?`Huidige periode tot ${billingDate(b.current_period_end)}`:'';
+ const badge=tester?'Boekuna · Testtoegang':paid?`${billingPlanLabel(plan)} · ${billingStatusLabel(status)}`:'Gratis plan';
+ const period=tester&&b.access_ends_at?`Je kunt Boekuna gratis gebruiken tot ${billingDate(b.access_ends_at)}. Daarna ga je terug naar Gratis, tenzij je zelf een abonnement kiest.`:paid&&b.current_period_end?`Huidige periode tot ${billingDate(b.current_period_end)}`:'';
+ const invite=tester
+  ?`<div class="notice success" style="margin-top:14px"><strong>Testtoegang actief</strong><br>${esc(period)}</div>`
+  :testerUsed
+   ?`<div class="notice info" style="margin-top:14px"><strong>Testperiode gebruikt</strong><br>Je hebt je gratis testperiode al gebruikt.</div>`
+   :paid
+    ?`<div class="notice info" style="margin-top:14px"><strong>Heb je een testcode?</strong><br>Je hebt al een actief abonnement.</div>`
+    :`<div class="legal-item" style="margin-top:14px"><strong>Heb je een testcode?</strong><p>Een geldige code geeft 30 dagen toegang tot het Boekuna-plan. Geen kaart en geen automatische betaling.</p><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input id="testerInviteCode" class="input" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="BOEKUNA-…" aria-label="Testcode" style="max-width:260px"><button id="testerInviteActivate" type="button" class="btn" onclick="activateTesterCode()">Code activeren</button></div><div id="testerInviteStatus" class="help" role="status" aria-live="polite" style="margin-top:7px"></div></div>`;
  return `<div class="card" id="billingCard" style="margin-bottom:16px">
    <div class="section-head"><h2>Abonnement</h2><span class="badge ${statusClass}">${esc(badge)}</span></div>
-   <div class="grid grid-2"><div><div class="eyebrow">Documentchecks deze maand</div><div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:7px"><strong style="font-size:26px">${isUnlimited?'Onbeperkt':`${used} / ${limit??0}`}</strong><span class="help">${isUnlimited?`${used} verwerkt deze maand`:`${remaining} over`}</span></div>${isUnlimited?'':`<div class="progress" style="height:7px;margin-top:10px"><span style="width:${pct}%"></span></div>`}${period?`<div class="help" style="margin-top:9px">${esc(period)}</div>`:''}</div>
+   <div class="grid grid-2"><div><div class="eyebrow">Documentchecks deze maand</div><div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:7px"><strong style="font-size:26px">${isUnlimited?'Onbeperkt':`${used} / ${limit??0}`}</strong><span class="help">${isUnlimited?`${used} verwerkt deze maand`:`${remaining} over`}</span></div>${isUnlimited?'':`<div class="progress" style="height:7px;margin-top:10px"><span style="width:${pct}%"></span></div>`}${period&&!tester?`<div class="help" style="margin-top:9px">${esc(period)}</div>`:''}</div>
    <div style="display:flex;gap:8px;align-items:flex-start;justify-content:flex-end;flex-wrap:wrap">
-     ${canManageSubscription?`<button class="btn" onclick="openBillingPortal()">Beheer abonnement</button>`:paid?`<span class="help">Je toegang is actief. Er is geen Stripe-abonnement om hier te beheren.</span>`:`<button class="btn primary" onclick="startSubscription('boekuna')">Boekuna · €9,95</button><button class="btn" onclick="startSubscription('pro')">Unlimited · €19,95</button>`}
+     ${canManageSubscription?`<button class="btn" onclick="openBillingPortal()">Beheer abonnement</button>`:tester?`<span class="help">Geen kaart gekoppeld. Er start geen automatische betaling.</span>`:paid?`<span class="help">Je toegang is actief. Er is geen Stripe-abonnement om hier te beheren.</span>`:`<button class="btn primary" onclick="startSubscription('boekuna')">Boekuna · €9,95</button><button class="btn" onclick="startSubscription('pro')">Unlimited · €19,95</button>`}
      <a class="btn" href="/prijzen/" target="_blank" rel="noopener">Prijzen</a>
    </div></div>
+   ${invite}
    ${b.cancel_at_period_end?`<div class="notice warn" style="margin-top:14px"><strong>Opzegging gepland.</strong> Je betaalde toegang loopt door tot het einde van de huidige betaalperiode. Daarna valt je account terug op het Gratis-plan.</div>`:''}
  </div>`
 }
