@@ -7,6 +7,8 @@ import {createRequire} from 'node:module';
 import {chromium,webkit} from 'playwright';
 
 const root=process.cwd();
+const evidenceDir=path.join(root,'tests','artifacts','mobile-flow-simplification');
+fs.mkdirSync(evidenceDir,{recursive:true});
 const require=createRequire(import.meta.url);
 const axeSource=fs.readFileSync(require.resolve('axe-core/axe.min.js'),'utf8');
 const jsPath=path.join(root,'kwinest','app-assets','mobile-flow-simplification.js');
@@ -45,7 +47,7 @@ const fixture=[
   "state.contacts=[{id:'c1',type:'customer',name:'Studio Noord',email:'facturen@studionoord.test',address:'Klantstraat 2',postal:'3012BB',city:'Rotterdam'},{id:'c2',type:'customer',name:'Bakkerij Jansen B.V.',email:'boekhouding@jansen.test',address:'Dorpsstraat 12',postal:'1135AB',city:'Edam',kvk:'12345678'}];",
   "state.invoices=[{id:'i1',number:'2026-0001',customerId:'c1',status:'sent',kind:'invoice',issueDate:'2026-10-01',supplyDate:'2026-10-01',dueDate:'2026-10-15',paymentDays:14,taxTreatment:'standard',payments:[],lines:[{desc:'Websiteonderhoud',qty:1,unitLabel:'stuk',unit:450,vat:21}]}];",
   "state.expenses=[];state.transactions=[];",
-  "state.documents=[{id:'d-ok-1',fileId:'f-ok-1',name:'Albert-Heijn.pdf',type:'Bon',date:'2026-10-03',processingState:'ready'},{id:'d-q-1',fileId:'f-q-1',name:'Jumbo.pdf',type:'Bon',date:'2026-10-04',processingState:'review_required'},{id:'d-usd-1',fileId:'f-usd-1',name:'USD.pdf',type:'Factuur',date:'2026-10-04',processingState:'ready'}];",
+  "state.documents=[{id:'d-ok-1',fileId:'f-ok-1',name:'Albert-Heijn.pdf',type:'Bon',date:'2026-10-03',processingState:'ready'},{id:'d-q-1',fileId:'f-q-1',name:'Jumbo.pdf',type:'Bon',date:'2026-10-04',processingState:'review_required'},{id:'d-usd-1',fileId:'f-usd-1',name:'USD.pdf',type:'Factuur',date:'2026-10-04',processingState:'ready'},{id:'d-dup-source',fileId:'f-dup-source',name:'Gamma-nieuw.pdf',type:'Bon',date:'2026-09-12',processingState:'review_required'},{id:'existing-doc',fileId:'f-existing',name:'Gamma.pdf',type:'Bon',date:'2026-09-12',processingState:'ready',linkedType:'expense',linkedId:'e-existing',reviewSnapshot:{party:'Gamma',issueDate:'2026-09-12',gross:36.99}}];",
   "state.services=[];state.bookings=[];state.plannedCash=[];",
   "documentProcessingJobs=[{id:'j-ok-1',client_ref:'f-ok-1',file_name:'Albert-Heijn.pdf',state:'ready',review_fields:[],requested_kind:'purchase',result:{analysis:{documentType:'receipt',party:'Albert Heijn',issueDate:'2026-10-03',currency:'EUR',gross:18.40,net:16.88,vatAmount:1.52,vatRate:9,amounts:{total:18.40}}}},{id:'j-q-1',client_ref:'f-q-1',file_name:'Jumbo.pdf',state:'review_required',review_fields:['gross'],review_message:'Controleer het totaal',requested_kind:'purchase',result:{analysis:{documentType:'receipt',party:'Jumbo',issueDate:'2026-10-04',currency:'EUR',gross:15.93,net:14.61,vatAmount:1.32,vatRate:9,amounts:{total:15.93}}}},{id:'j-usd-1',client_ref:'f-usd-1',file_name:'USD.pdf',state:'ready',review_fields:[],requested_kind:'purchase',result:{analysis:{documentType:'purchase_invoice',party:'US Vendor',invoiceNumber:'USD-1',issueDate:'2026-10-04',currency:'USD',gross:121,net:100,vatAmount:21,vatRate:21,amounts:{total:121}}}}];",
   "documentProcessingInitialized=true;documentProcessingConnectivityLost=false;documentProcessingFetchError=false;",
@@ -92,6 +94,8 @@ try{
   assert.match(await page.locator('.mobile-document-questions').innerText(),/Klopt het totaal\?/);
   assert.match(await page.locator('.mobile-document-questions').innerText(),/Controleer de valuta/);
   assert.equal(await page.locator('.mobile-document-good .mobile-document-compact-row').count(),1,'only zero-unresolved receipts may enter the green bulk group');
+  await page.locator('.mobile-document-good').screenshot({path:path.join(evidenceDir,'01-bonnen-kloppen-'+browserName+'.png')});
+  await page.locator('.mobile-document-questions').screenshot({path:path.join(evidenceDir,'02-bonnen-vragen-'+browserName+'.png')});
 
   await page.evaluate(()=>newContact());
   await page.locator('#contactForm[data-mobile-customer-flow]').waitFor();
@@ -99,6 +103,7 @@ try{
   assert.ok(await page.locator('#kvkQuery').isVisible(),'KVK query is primary');
   assert.equal(await page.getByRole('button',{name:/Particulier of buitenland/}).count(),1);
   assert.equal(await page.locator('#contactForm [name="email"]').isVisible(),false,'email appears after KVK selection or manual mode');
+  await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'05-klant-kvk-zoeken-'+browserName+'.png')});
   await page.evaluate(()=>{
     const form=document.getElementById('contactForm');
     form.elements.name.value='Bakkerij Jansen B.V.';
@@ -107,11 +112,13 @@ try{
     form.elements.city.value='Edam';
     form.elements.kvk.value='12345678';
     form.dataset.kvkSelectedNumber='12345678';
+    form.elements.name.dispatchEvent(new Event('input',{bubbles:true}));
   });
   await page.waitForTimeout(50);
   assert.ok(await page.locator('.mobile-customer-company-card').isVisible(),'KVK selection must produce a compact confirmation card');
   assert.match(await page.locator('.mobile-customer-company-card').innerText(),/Bakkerij Jansen B\.V\./);
   assert.ok(await page.locator('#contactForm [name="email"]').isVisible(),'invoice email becomes directly editable after KVK selection');
+  await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'06-klant-kvk-geselecteerd-'+browserName+'.png')});
   assert.equal(await page.locator('#contactForm [name="contactPerson"]').isVisible(),false,'optional customer fields stay collapsed');
   await page.locator('.mobile-contact-more summary').click();
   assert.ok(await page.locator('#contactForm [name="contactPerson"]').isVisible(),'Meer gegevens reveals optional fields');
@@ -129,6 +136,7 @@ try{
   assert.deepEqual(await page.locator('.mobile-invoice-progress span').allTextContents(),['1 van 3','2 van 3','3 van 3']);
   assert.match(await page.locator('.mobile-invoice-step[data-step="1"]').innerText(),/Voor wie is de factuur\?/);
   assert.match(await page.locator('.mobile-invoice-quick').innerText(),/Zelfde als vorige factuur/);
+  await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'07-factuur-stap-1-'+browserName+'.png')});
   const invoiceCountBeforeQuick=await page.evaluate(()=>state.invoices.length);
   await page.locator('.mobile-invoice-quick .mobile-invoice-choice').click();
   assert.equal(await page.evaluate(()=>state.invoices.length),invoiceCountBeforeQuick,'same-as-previous must only prefill UI, not persist a new draft');
@@ -139,6 +147,7 @@ try{
   assert.match(await page.locator('.mobile-invoice-step[data-step="2"]').innerText(),/Wat heb je gedaan\?/);
   assert.equal(await page.locator('.mobile-invoice-step[data-step="2"] details.invoice-advanced-options').count(),0,'advanced invoice options belong to step 3, not step 2');
   assert.deepEqual((await page.locator('.mobile-vat-choice button').allTextContents()).map(x=>x.trim()),['21%','9%','Geen']);
+  await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'08-factuur-stap-2-'+browserName+'.png')});
   await page.locator('[data-k="desc"]').fill('Websiteonderhoud oktober');
   await page.locator('[data-k="unit"]').fill('450');
   await page.locator('[data-k="unit"]').dispatchEvent('input');
@@ -153,10 +162,11 @@ try{
   assert.equal(await page.getByRole('button',{name:'Bekijk PDF',exact:true}).count(),1);
   assert.equal(await page.getByRole('button',{name:'Versturen',exact:true}).count(),1);
   assert.equal(await page.getByRole('button',{name:'Bewaar als concept',exact:true}).count(),1);
+  await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'09-factuur-stap-3-'+browserName+'.png')});
   await page.evaluate(()=>closeModal());
 
   await page.evaluate(()=>{
-    pendingPdfImport={file:new File(['qa'],'vraag.pdf',{type:'application/pdf'}),previewUrl:null,sha256:'qa',sourceClientRef:'',sourceDocumentId:'',processingJobId:'',parsed:null};
+    pendingPdfImport={file:new File(['qa'],'vraag.pdf',{type:'application/pdf'}),previewUrl:null,sha256:'qa',sourceClientRef:'f-q-1',sourceDocumentId:'d-q-1',processingJobId:'j-q-1',parsed:null};
     const parsed={confidenceScore:75,sourceQuality:'processor-v2',documentType:'receipt',party:'Jumbo',invoiceNumber:'',issueDate:'2026-10-04',net:14.61,vatAmount:1.32,gross:15.94,vatRate:9,mixedRates:false,vatLines:[],lineItems:[],adjustments:[],fieldProvenance:{gross:{source:'recognition',confidence:40}}};
     pendingPdfImport.parsed=parsed;showPdfImportReview(parsed);
   });
@@ -164,10 +174,11 @@ try{
   assert.equal(await page.locator('.mobile-single-issue-question').count(),1,'one issue question per mobile screen');
   assert.equal(await page.getByRole('button',{name:'Alle gegevens bekijken',exact:true}).count(),1);
   assert.equal(await page.locator('.mobile-single-issue-review .beginner-provenance:visible').count(),0,'simple review hides provenance labels only');
+  await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'03-bon-enkele-vraag-'+browserName+'.png')});
   await page.evaluate(()=>closeModal());
 
   await page.evaluate(()=>{
-    pendingPdfImport={file:new File(['qa'],'dubbel.pdf',{type:'application/pdf'}),previewUrl:null,sha256:'qa-dup',sourceClientRef:'',sourceDocumentId:'',processingJobId:'',parsed:null};
+    pendingPdfImport={file:new File(['qa'],'dubbel.pdf',{type:'application/pdf'}),previewUrl:null,sha256:'qa-dup',sourceClientRef:'f-dup-source',sourceDocumentId:'d-dup-source',processingJobId:'j-dup',parsed:null};
     const parsed={confidenceScore:95,sourceQuality:'processor-v2',documentType:'receipt',party:'Gamma',invoiceNumber:'',issueDate:'2026-09-12',net:33.94,vatAmount:3.05,gross:36.99,vatRate:9,mixedRates:false,vatLines:[],lineItems:[],adjustments:[],duplicateCandidate:{id:'existing-doc',label:'Gamma · 12 sep · € 36,99'}};
     pendingPdfImport.parsed=parsed;showPdfImportReview(parsed);
   });
@@ -176,6 +187,10 @@ try{
   assert.equal(await page.getByRole('button',{name:'Weggooien, is dubbel',exact:true}).count(),1);
   assert.equal(await page.getByRole('button',{name:'Nee, dit is een andere bon',exact:true}).count(),1);
   assert.equal(await page.getByRole('button',{name:'Ja, klopt',exact:true}).count(),0,'duplicate flow must not use an ambiguous approval label');
+  assert.equal(await page.locator('.mobile-duplicate-card').count(),2,'duplicate review must compare new and existing document side by side');
+  assert.match(await page.locator('.mobile-duplicate-cards').innerText(),/NIEUW/);
+  assert.match(await page.locator('.mobile-duplicate-cards').innerText(),/AL IN BOEKUNA/);
+  await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'04-bon-duplicaat-'+browserName+'.png')});
   await page.evaluate(()=>closeModal());
 
   for(const width of [320,360,375,390,393,430]){
@@ -187,7 +202,12 @@ try{
   await page.evaluate(()=>newInvoice());await page.locator('#invoiceForm[data-mobile-invoice-flow]').waitFor();
   const targets=await page.locator('.mobile-flow-action, .mobile-vat-choice button, .mobile-invoice-nav button').evaluateAll(nodes=>nodes.map(n=>({w:n.getBoundingClientRect().width,h:n.getBoundingClientRect().height,text:n.textContent.trim()})));
   assert.ok(targets.every(t=>t.w>=44&&t.h>=44),'mobile touch target smaller than 44px: '+JSON.stringify(targets.filter(t=>t.w<44||t.h<44)));
-  await axe(page,browserName+' mobile invoice');await page.evaluate(()=>closeModal());
+  await axe(page,browserName+' mobile invoice');
+  await page.locator('[data-k="desc"]').focus();
+  await page.setViewportSize({width:390,height:620});
+  await noOverflow(page,browserName+' invoice keyboard viewport');
+  assert.ok(await page.getByRole('button',{name:'Volgende',exact:true}).count()===1,'invoice CTA remains present with soft-keyboard sized viewport');
+  await page.evaluate(()=>closeModal());
 
   await page.setViewportSize({width:1024,height:900});
   await page.evaluate(()=>navigate('documents'));await page.waitForTimeout(50);
