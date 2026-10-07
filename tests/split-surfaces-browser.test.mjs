@@ -99,6 +99,8 @@ export function createClient(){
   await protectedApp.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
   await protectedApp.evaluate(()=>history.pushState({protected:true},'',location.pathname+'?protected=1'));
   await protectedApp.evaluate(()=>navigate('settings'));
+  // Uitloggen lives under Instellingen → Account.
+  await protectedApp.locator('.settings-nav-item[data-settings-open="account"]').click();
   await protectedApp.locator('#settingsLogoutButton').waitFor();
   await protectedApp.locator('#settingsLogoutButton').click();
   await protectedApp.waitForFunction(()=>window.__generatedSignOutCalled===1);
