@@ -219,8 +219,6 @@
         var marker=document.createComment('mobile-original-section');sections[2].before(marker);moved.push({node:sections[2],marker:marker});sections[1].before(sections[2]);
         disclosure(invoice,[sections[1]],'Datum en betaling');
       }
-      var service=invoice.querySelector('.invoice-service-picker');
-      if(service)disclosure(service.parentNode,[service],'Opgeslagen dienst kiezen');
       var customer=invoice.querySelector('#newCustomerFields .form-grid');
       if(customer){
         var optional=['newCustomerContact','newCustomerPhone','newCustomerKvk','newCustomerVat'].map(function(name){return customer.querySelector('[name="'+name+'"]')?.closest('.field')});

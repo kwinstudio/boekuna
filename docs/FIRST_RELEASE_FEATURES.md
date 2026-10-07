@@ -43,11 +43,11 @@ tables, document intelligence, financial calculations and historical feature dat
 | Developer Mode | Isolated dev helper already environment/origin/Supabase gated | OFF / FAIL-CLOSED | Asset not shipped in Release 1 | Even `BOEKUNA_DEV_MODE=true` cannot override first-release | No customer data touched | Use `full` profile only in non-production plus existing dev-mode allowlists |
 | Google / Gmail / OAuth | Google login absent; mailbox OAuth endpoint currently refuses connections; invoice delivery is native/web handoff | OFF | No Google login/connect UI; native mail/share handoff stays | No Gmail API send; mailbox connection remains disabled | Historical integration tables untouched | Re-enable only with a dedicated release flag + auth/security QA |
 
-### Auxiliary service catalog
+### Service catalog (Diensten)
 
-The standalone `Diensten` page is also hidden in Release 1 because it is not required for basic bookkeeping.
-Existing service data is preserved. Manual invoice lines remain fully available. The generated invoice editor
-does not leave a dead link to the hidden service-management page.
+`serviceCatalog` is on in Release 1. Users set up their services once (name, price, unit, VAT) on their own
+`Diensten` page, separate from Relaties. On every new invoice, for any customer, the active services are
+one-tap shortcuts, and a typed invoice line can be kept as a service with *Bewaar als dienst*.
 
 ## Route fallbacks
 
@@ -57,7 +57,6 @@ does not leave a dead link to the hidden service-management page.
 - `ledger → reports`
 - `bookings → dashboard`
 - `hours → dashboard`
-- `services → invoices`
 
 These guards are part of the generated Release 1 artifact. Removing a navigation item alone is not considered sufficient.
 

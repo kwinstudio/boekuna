@@ -12,7 +12,7 @@ import {
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 
-const core=['dashboard','invoices','expenses','documents','bankImport','vatOverview','simpleReports','settings','contacts'];
+const core=['dashboard','invoices','expenses','documents','bankImport','vatOverview','simpleReports','settings','contacts','serviceCatalog'];
 const disabled=[
   'personalAssistant','timeTracking','mileage','projects','quotes','recurringInvoices',
   'inventory','advancedCRM','bookings','psd2','peppol','vatSubmission','advancedReports',
@@ -43,10 +43,10 @@ const dist=path.join(root,'dist','app');
 const html=fs.readFileSync(path.join(dist,'index.html'),'utf8');
 const assets=path.join(dist,'assets');
 
-for(const page of ['insights','control','cashflow','ledger','bookings','hours','services']){
+for(const page of ['insights','control','cashflow','ledger','bookings','hours']){
   assert.equal(html.includes('data-page="'+page+'"'),false,'Disabled page must be absent from navigation: '+page);
 }
-for(const page of ['dashboard','invoices','expenses','bank','vat','reports','documents','contacts','settings']){
+for(const page of ['dashboard','invoices','expenses','bank','vat','reports','documents','contacts','services','settings']){
   assert.ok(html.includes('data-page="'+page+'"'),'Core page must remain in navigation: '+page);
 }
 
@@ -56,7 +56,7 @@ assert.match(html,/"cashflow":"reports"/,'Cashflow route must be gated to report
 assert.match(html,/"ledger":"reports"/,'Ledger route must be gated to reports');
 assert.match(html,/"bookings":"dashboard"/,'Bookings route must be gated');
 assert.match(html,/"hours":"dashboard"/,'Hours route must be gated');
-assert.match(html,/"services":"invoices"/,'Service catalog route must be gated');
+assert.doesNotMatch(html,/"services":"invoices"/,'Diensten has its own page in Release 1');
 assert.match(html,/const releaseRenderFallback=\{[^\n]*"bookings":"dashboard"/,'Direct render state must use the same fail-closed release map');
 
 for(const asset of ['personal-insights.js','personal-assistant-qna.js','personal-insights-ui.js','developer-mode.js']){
