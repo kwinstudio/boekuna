@@ -191,7 +191,10 @@ function injectBeforeLast(html,marker,content){
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review-v2.js?v=20261006fx1"></script>\n');
 const mobileHeadBoundary='</head>\n<body>';
 if(!appHtml.includes(mobileHeadBoundary))throw new Error('Mobile app head boundary changed');
-appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261006fx2">\n<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n<style id="boekuna-app-mobile-compact-overrides">@media (max-width:820px){#mainApp #appMain #content.content{padding-top:14px!important}}@media (max-width:359px){#mainApp .product-kpis.grid-4{grid-template-columns:1fr!important}}</style>\n'+mobileHeadBoundary);
+appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261006fx2">\n<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/product-color-polish.css?v=20261006a">\n<style id="boekuna-app-mobile-compact-overrides">@media (max-width:820px){#mainApp #appMain #content.content{padding-top:14px!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active{-webkit-appearance:none!important;appearance:none!important;background:#ECFAEE!important;background-color:#ECFAEE!important;background-image:none!important;color:#1B1F23!important;box-shadow:inset 0 2px 0 #63D471!important;font-weight:800!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active .icon,#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active span{color:#1B1F23!important}}@media (max-width:359px){#mainApp .product-kpis.grid-4{grid-template-columns:1fr!important}}</style>\n'+mobileHeadBoundary);
+const mobileNavStateMarker="function syncMobileNavigationState(){\n const current=mobilePrimarySection(page);\n document.querySelectorAll('[data-mobile-page]').forEach(btn=>{const active=btn.dataset.mobilePage===current;btn.classList.toggle('active',active);if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current')});\n const more=document.querySelector('[data-mobile-more]');if(more){const active=current==='more';more.classList.toggle('active',active);if(active)more.setAttribute('aria-current','page');else more.removeAttribute('aria-current')}\n updateMobileAccountIdentity()\n}";
+if(!appHtml.includes(mobileNavStateMarker))throw new Error('Mobile navigation state marker changed');
+appHtml=appHtml.replace(mobileNavStateMarker,"function syncMobileNavigationState(){\n const current=mobilePrimarySection(page);\n document.querySelectorAll('[data-mobile-page]').forEach(btn=>{const active=btn.dataset.mobilePage===current;btn.classList.toggle('active',active);btn.style.setProperty('background-color',active?'#ECFAEE':'transparent','important');if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current')});\n const more=document.querySelector('[data-mobile-more]');if(more){const active=current==='more';more.classList.toggle('active',active);more.style.setProperty('background-color',active?'#ECFAEE':'transparent','important');if(active)more.setAttribute('aria-current','page');else more.removeAttribute('aria-current')}\n updateMobileAccountIdentity()\n}");
 const assistantRuntimeMarker='\n<script>\nconst USERS_KEY=';
 if(!appHtml.includes(assistantRuntimeMarker))throw new Error('Assistant app runtime marker changed');
 
@@ -322,6 +325,34 @@ if(!isReleaseFeatureEnabled(releaseFeatures,'foreignVatAdvancedUX')){
   appHtml=appHtml.replace(vatTreatmentField,'<input type="hidden" name="taxTreatment" id="taxTreatment" value="${esc(defaultTreatment)}">');
 }
 
+// App-only colour semantics: neutral financial amounts are not warnings.
+// Keep the rollback source untouched because PR #217 currently owns kwinest/index.html.
+const productToneReplacements=[
+  ["productKpi('Kosten',money(net),'','i-receipt','warning')","productKpi('Kosten',money(net),'','i-receipt','neutral')"],
+  ["productKpi('Te laat',money(overdue),'','i-clock','error')","productKpi('Te laat',money(overdue),'','i-clock',overdue>0?'error':'neutral')"],
+  ["sent:['Openstaand','info']","sent:['Openstaand','']"],
+  ["credit:['Credit','info']","credit:['Credit','']"],
+  ["productKpi('Uitgaven',money(out),extraHelpVisible()?'Negatieve bankregels':'','i-receipt','warning')","productKpi('Uitgaven',money(out),extraHelpVisible()?'Negatieve bankregels':'','i-receipt','neutral')"],
+  ["productKpi('Deze maand uitgegeven',money(spent),monthRows.length+' bankregel'+(monthRows.length===1?'':'s'),'i-receipt','warning')","productKpi('Deze maand uitgegeven',money(spent),monthRows.length+' bankregel'+(monthRows.length===1?'':'s'),'i-receipt','neutral')"],
+  ["productKpi('Kosten',money(costs),extraHelpVisible()?'Excl. btw':'','i-receipt','warning')","productKpi('Kosten',money(costs),extraHelpVisible()?'Excl. btw':'','i-receipt','neutral')"],
+  ["productKpi('Winstmarge',margin+'%',extraHelpVisible()?'Van omzet':'','i-chart',margin<0?'error':'primary')","productKpi('Winstmarge',margin+'%',extraHelpVisible()?'Van omzet':'','i-chart',margin<0?'warning':'primary')"],
+  ["dashboard-kpi dashboard-kpi-secondary kpi-tone-warning\" onclick=\"navigate(\\'expenses\\')","dashboard-kpi dashboard-kpi-secondary kpi-tone-neutral\" onclick=\"navigate(\\'expenses\\')"],
+  ["productKpi('Openstaand',money(open),'','i-file','support')","productKpi('Openstaand',money(open),'','i-file','neutral')"],
+  ["productKpi('Btw terug te vragen',money(vat),'','i-tax','support')","productKpi('Btw terug te vragen',money(vat),'','i-tax','neutral')"],
+  ["productKpi('Grootste categorie',largest[0],largestPct?largestPct+'%':'','i-folder','support')","productKpi('Grootste categorie',largest[0],largestPct?largestPct+'%':'','i-folder','neutral')"],
+  ["productKpi('Nog te ontvangen',money(open),openRows.length+' open factuur'+(openRows.length===1?'':'en'),'i-file','support')","productKpi('Nog te ontvangen',money(open),openRows.length+' open factuur'+(openRows.length===1?'':'en'),'i-file','neutral')"],
+  ["productKpi('Ontvangen btw',money(output),'','i-chart','support')","productKpi('Ontvangen btw',money(output),'','i-chart','neutral')"],
+  ["productKpi('Btw die je kunt terugvragen',money(input),'','i-receipt','support')","productKpi('Btw die je kunt terugvragen',money(input),'','i-receipt','neutral')"],
+  ["productKpi('Te verwerken',String(toProcess),extraHelpVisible()?'Nog niet gekoppeld':'','i-upload','support')","productKpi('Te verwerken',String(toProcess),extraHelpVisible()?'Nog niet gekoppeld':'','i-upload','neutral')"],
+  ["dashboard-kpi dashboard-kpi-secondary kpi-tone-support\" onclick=\"navigate(\\'vat\\')","dashboard-kpi dashboard-kpi-secondary kpi-tone-neutral\" onclick=\"navigate(\\'vat\\')"],
+  ["dashboard-kpi dashboard-kpi-secondary dashboard-kpi-receivables '+(kpi.overdueReceivables>0?'has-attention ':'')+'kpi-tone-support","dashboard-kpi dashboard-kpi-secondary dashboard-kpi-receivables '+(kpi.overdueReceivables>0?'has-attention ':'')+'kpi-tone-neutral"]
+];
+for(const [needle,replacement] of productToneReplacements){
+  const first=appHtml.indexOf(needle),second=first<0?-1:appHtml.indexOf(needle,first+needle.length);
+  if(first<0||second>=0)throw new Error('Product colour tone marker changed: '+needle);
+  appHtml=appHtml.slice(0,first)+replacement+appHtml.slice(first+needle.length);
+}
+
 const releaseRuntime="const BOEKUNA_RELEASE_PROFILE=Object.freeze("+JSON.stringify({name:releaseProfile.name,features:releaseFeatures})+");\nfunction releaseFeatureEnabled(key){return BOEKUNA_RELEASE_PROFILE.features?.[key]===true}\n";
 if(!appHtml.includes(assistantRuntimeMarker))throw new Error('Release runtime marker changed');
 appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script>\n'+releaseRuntime+'const USERS_KEY=');
@@ -340,7 +371,7 @@ for(const asset of appAssets){
 }
 
 // Document review is app-only. Keep the shared public/marketing copies byte-identical.
-for(const asset of ['document-review-v2.js','document-review-v2.css']){
+for(const asset of ['document-review-v2.js','document-review-v2.css','product-color-polish.css']){
   const sourceFile=path.join(root,'kwinest','app-assets',asset);
   if(!fs.existsSync(sourceFile))throw new Error('Missing app-only review asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));

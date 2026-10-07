@@ -10,6 +10,20 @@ const root=process.cwd();
 const require=createRequire(import.meta.url);
 const axeSource=fs.readFileSync(require.resolve('axe-core/axe.min.js'),'utf8');
 const source=fs.readFileSync(path.join(root,'kwinest','index.html'),'utf8');
+const colorPolish=fs.readFileSync(path.join(root,'kwinest','app-assets','product-color-polish.css'),'utf8');
+for(const token of ['#1B1F23','#63D471','#F6F7F8','#8A949C','#FFFFFF'])assert.ok(colorPolish.includes(token),'Product colour polish missing canonical token '+token);
+for(const semantic of ['--status-success:#177A31','--status-warning:#B45309','--status-error:#C2362B','--status-info:#2563EB'])assert.ok(colorPolish.includes(semantic),'Semantic colour mapping missing '+semantic);
+assert.equal(/(?:linear|radial)-gradient\(/i.test(colorPolish),false,'Product colour polish must not introduce gradients');
+assert.equal(/(?:\.marketing\b|body:not\(|\.site-header\b|\.marketing-nav\b)/.test(colorPolish),false,'Product colour polish must remain isolated from public marketing selectors');
+assert.ok(colorPolish.includes('#mainApp')&&colorPolish.includes('#modalRoot'),'Product colour polish must stay scoped to app roots');
+assert.equal(colorPolish.includes('#mainApp,#modalRoot,#authRoot{'),false,'Auth tokens must not leak through the shared authRoot/marketing container');
+assert.ok(colorPolish.includes('#authRoot .auth-root{'),'Auth palette must be scoped to the authentication shell only');
+assert.ok(colorPolish.includes('--app-support:var(--app-brand)'),'Non-semantic supporting accent must resolve to BOEKUNA green, not info blue');
+assert.ok(colorPolish.includes('.mobile-bottom-nav{'),'Mobile bottom navigation colour polish must target the real app-only nav outside #mainApp');
+assert.equal(colorPolish.includes('#mainApp .mobile-bottom-nav{'),false,'Mobile bottom navigation must not be incorrectly scoped beneath #mainApp');
+for(const selector of ['.soft-panel','.processing-shell','.processing-review-skeleton div::after']){
+  assert.ok(colorPolish.includes(selector),'Product colour polish must normalize legacy gradient surface '+selector);
+}
 const styleMatch=source.match(/<style id="boekuna-product-ui-reference-20261003">([\s\S]*?)<\/style>/);
 assert.ok(styleMatch,'Master-reference product UI layer missing');
 const ui=styleMatch[1];
@@ -58,9 +72,10 @@ assert.ok(source.includes('#mainApp .kpi-tone-success .metric-value{color:var(--
 const build=spawnSync(process.execPath,['scripts/build-app.mjs'],{cwd:root,encoding:'utf8'});
 assert.equal(build.status,0,'App build failed: '+(build.stderr||build.stdout));
 const dist=path.join(root,'dist','app');
-for(const file of ['index.html','manifest.webmanifest','assets/app-InterVariable.woff2','assets/app-SpaceGrotesk-Variable.ttf'])assert.ok(fs.existsSync(path.join(dist,file)),'Built app asset missing '+file);
+for(const file of ['index.html','manifest.webmanifest','assets/app-InterVariable.woff2','assets/app-SpaceGrotesk-Variable.ttf','assets/product-color-polish.css'])assert.ok(fs.existsSync(path.join(dist,file)),'Built app asset missing '+file);
 let appHtml=fs.readFileSync(path.join(dist,'index.html'),'utf8');
 assert.ok(appHtml.includes('boekuna-product-ui-reference-20261003'),'Built artifact must contain the new product UI layer');
+assert.ok(appHtml.includes('/assets/product-color-polish.css?v=20261006a'),'Built artifact must load the app-only colour polish layer');
 assert.equal(appHtml.includes('function showMarketingPage'),false,'App artifact must remain free of marketing runtime');
 
 function replaceLast(sourceText,needle,replacement){
@@ -147,12 +162,40 @@ try{
       assert.match(await page.locator('.dashboard-page-head h1').evaluate(el=>getComputedStyle(el).fontFamily),/Boekuna Space/);
       assert.equal(await page.locator('#sidebar').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
       assert.equal(await page.locator('.nav-item.active').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(236, 250, 238)');
+      const semanticColours=await page.evaluate(()=>{
+        const probe=document.createElement('div');
+        probe.id='semanticColourProbe';
+        probe.innerHTML='<span class="badge good">Betaald</span><span class="badge warn">Controle nodig</span><span class="badge bad">Fout</span><span class="badge info">Info</span><button class="btn primary">Opslaan</button>';
+        document.getElementById('mainApp').appendChild(probe);
+        const read=selector=>{const s=getComputedStyle(probe.querySelector(selector));return {color:s.color,background:s.backgroundColor,border:s.borderColor,fontWeight:s.fontWeight}};
+        const result={success:read('.good'),warning:read('.warn'),error:read('.bad'),info:read('.info'),primary:read('.primary')};
+        probe.remove();
+        return result;
+      });
+      assert.equal(semanticColours.success.color,'rgb(23, 122, 49)',browserName+' success must use semantic green');
+      assert.equal(semanticColours.warning.color,'rgb(180, 83, 9)',browserName+' warning must use amber');
+      assert.equal(semanticColours.error.color,'rgb(194, 54, 43)',browserName+' error must use red');
+      assert.equal(semanticColours.info.color,'rgb(37, 99, 235)',browserName+' info must use blue');
+      assert.equal(semanticColours.primary.background,'rgb(99, 212, 113)',browserName+' primary action must use BOEKUNA green');
+      assert.equal(semanticColours.primary.color,'rgb(27, 31, 35)',browserName+' green primary action must use accessible anthracite text');
       assert.deepEqual(await page.locator('.dashboard-kpi-label').allTextContents(),['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen']);
       assert.equal(await page.locator('#dashboardPeriod').inputValue(),'month');
       assert.equal(await page.locator('.dashboard-kpi-profit .metric-sub').count(),0,'Compact dashboard must hide repeated profit explanation by default');
       assert.equal(await page.locator('.dashboard-kpi-secondary .metric-sub').count(),0,'Compact dashboard must hide repeated KPI helper copy when no warning exists');
       assert.notEqual(await page.locator('.dashboard-kpi .metric-icon').first().evaluate(el=>getComputedStyle(el).display),'none','Desktop dashboard KPI icons must remain visible');
       assert.deepEqual((await page.locator('.dashboard-chart-card .chart-legend span').allTextContents()).map(v=>v.trim()),['Omzet','Kosten','Winst']);
+      const dashboardChartColours=await page.evaluate(()=>({
+        sales:getComputedStyle(document.querySelector('.dashboard-result-chart .bar.sales')).backgroundColor,
+        costs:getComputedStyle(document.querySelector('.dashboard-result-chart .bar.costs')).backgroundColor,
+        profit:getComputedStyle(document.querySelector('.dashboard-result-chart .bar.profit')).backgroundColor,
+        salesLegend:getComputedStyle(document.querySelector('.dashboard-chart-card .chart-legend .legend-dot')).backgroundColor,
+        costsLegend:getComputedStyle(document.querySelector('.dashboard-chart-card .chart-legend .legend-dot.cost')).backgroundColor,
+        profitLegend:getComputedStyle(document.querySelector('.dashboard-chart-card .chart-legend .legend-dot.profit')).backgroundColor
+      }));
+      assert.deepEqual(dashboardChartColours,{
+        sales:'rgb(99, 212, 113)',costs:'rgb(216, 221, 225)',profit:'rgb(27, 31, 35)',
+        salesLegend:'rgb(99, 212, 113)',costsLegend:'rgb(216, 221, 225)',profitLegend:'rgb(27, 31, 35)'
+      },browserName+' dashboard chart must use brand + neutral data colours, never decorative info/warning colours');
       assert.deepEqual(await page.locator('.dashboard-summary-title').allTextContents(),['Administratie','Vraag Boekuna','Nieuwe factuur']);
       await noOverflow(page,browserName+' desktop dashboard');
       await axe(page,browserName+' desktop dashboard');
@@ -176,6 +219,13 @@ try{
       assert.notEqual(await page.locator('.product-kpi-icon').first().evaluate(el=>getComputedStyle(el).display),'none','Desktop product KPI icons must remain visible');
       assert.equal(await page.getByRole('button',{name:'Factuur maken',exact:true}).count(),1,browserName+' Inkomsten primary action');
       assert.equal(await page.getByRole('button',{name:'Factuur uploaden',exact:true}).count(),1,browserName+' Inkomsten secondary action');
+      const incomeToneClasses=await page.locator('.product-kpi').evaluateAll(cards=>cards.map(card=>card.className));
+      assert.ok(incomeToneClasses[2].includes('kpi-tone-neutral'),browserName+' ordinary Openstaand must remain neutral, not info-coloured');
+      assert.ok(incomeToneClasses[3].includes('kpi-tone-neutral'),browserName+' zero overdue must remain neutral instead of error-red');
+      const openBadge=page.locator('.financial-table .badge').filter({hasText:'Openstaand'}).first();
+      if(await openBadge.count()){
+        assert.notEqual(await openBadge.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(234, 241, 254)',browserName+' ordinary Openstaand status must not use info blue');
+      }
       const incomeHeader=await page.evaluate(()=>{
         const head=document.querySelector('.product-page-head'),title=head?.querySelector('h1'),period=head?.querySelector('.page-period-slot'),actions=document.querySelector('.product-page-actions');
         const box=el=>{const r=el?.getBoundingClientRect();return r?{left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height}:null};
@@ -218,9 +268,13 @@ try{
       assert.equal(fieldMetrics.date.radius,fieldMetrics.number.radius,browserName+' date input radius must align');
       assert.equal(fieldMetrics.date.paddingTop,fieldMetrics.number.paddingTop,browserName+' date input vertical padding must align');
       assert.equal(fieldMetrics.date.paddingBottom,fieldMetrics.number.paddingBottom,browserName+' date input vertical padding must align');
+      await page.screenshot({path:path.join(evidence,'form-invoice-1440-'+browserName+'.png'),fullPage:true});
       await page.evaluate(()=>closeModal());
       await noOverflow(page,browserName+' desktop invoices');
       await page.screenshot({path:path.join(evidence,'invoices-1440-'+browserName+'.png'),fullPage:true});
+      await page.evaluate(()=>{state.invoices[0].status='paid';render()});
+      await page.screenshot({path:path.join(evidence,'success-paid-invoice-1440-'+browserName+'.png'),fullPage:true});
+      await page.evaluate(()=>{state.invoices[0].status='sent';render()});
 
       await page.evaluate(()=>navigate('vat'));
       await page.getByRole('heading',{name:'Btw'}).waitFor();
@@ -246,6 +300,37 @@ try{
       for(const [route,labels] of Object.entries(coreKpis)){
         await page.evaluate(route=>navigate(route),route);
         await page.locator('.product-kpis').waitFor();
+        if(route==='expenses'){
+          assert.ok(!(await page.locator('.product-kpi').first().getAttribute('class')).includes('kpi-tone-warning'),browserName+' Costs must remain neutral, not warning-coloured');
+        }
+        if(route==='outgoings'){
+          assert.ok(!(await page.locator('.product-kpi').first().getAttribute('class')).includes('kpi-tone-warning'),browserName+' ordinary outgoings must remain neutral');
+        }
+        if(route==='reports'){
+          const reportChartColours=await page.evaluate(()=>({
+            sales:getComputedStyle(document.querySelector('.report-result-chart .bar.sales')).backgroundColor,
+            costs:getComputedStyle(document.querySelector('.report-result-chart .bar.costs')).backgroundColor,
+            profit:getComputedStyle(document.querySelector('.report-result-chart .bar.profit')).backgroundColor,
+            salesLegend:getComputedStyle(document.querySelector('.report-result-card .chart-legend .legend-dot')).backgroundColor,
+            costsLegend:getComputedStyle(document.querySelector('.report-result-card .chart-legend .legend-dot.cost')).backgroundColor,
+            profitLegend:getComputedStyle(document.querySelector('.report-result-card .chart-legend .legend-dot.profit')).backgroundColor
+          }));
+          assert.deepEqual(reportChartColours,{
+            sales:'rgb(99, 212, 113)',costs:'rgb(216, 221, 225)',profit:'rgb(27, 31, 35)',
+            salesLegend:'rgb(99, 212, 113)',costsLegend:'rgb(216, 221, 225)',profitLegend:'rgb(27, 31, 35)'
+          },browserName+' reports chart must keep blue for info and amber for warnings only');
+          const categoryCostColours=await page.locator('.category-row .progress span').evaluateAll(nodes=>nodes.map(el=>getComputedStyle(el).backgroundColor));
+          assert.ok(categoryCostColours.length>0,browserName+' reports category costs must render a progress bar');
+          for(const colour of categoryCostColours){
+            assert.equal(colour,'rgb(216, 221, 225)',browserName+' reports category cost progress must use the neutral financial-data colour');
+            assert.ok(!['rgb(99, 212, 113)','rgb(37, 99, 235)','rgb(180, 83, 9)','rgb(194, 54, 43)'].includes(colour),browserName+' reports category cost progress must not use brand or semantic status colours');
+          }
+        }
+        const supportIcons=page.locator('.kpi-tone-support .product-kpi-icon');
+        if(await supportIcons.count()){
+          const colours=await supportIcons.evaluateAll(nodes=>nodes.map(el=>getComputedStyle(el).color));
+          assert.ok(colours.every(colour=>colour!=='rgb(37, 99, 235)'),browserName+' supporting KPIs must not use informational blue decoratively');
+        }
         const cardMetrics=await page.locator('.product-kpi').evaluateAll(cards=>cards.map(card=>{
           const r=card.getBoundingClientRect(),value=card.querySelector('.metric-value'),icon=card.querySelector('.product-kpi-icon');
           return {height:Math.round(r.height),valueFits:!value||value.scrollWidth<=value.clientWidth+1,iconVisible:!!icon&&getComputedStyle(icon).display!=='none'};
@@ -258,6 +343,14 @@ try{
         await noOverflow(page,browserName+' desktop '+route);
         await axe(page,browserName+' desktop '+route);
       }
+      const polishVisualRoutes=['expenses','documents','bank','vat','reports','settings','profile'];
+      await page.setViewportSize({width:1440,height:900});
+      for(const route of polishVisualRoutes){
+        await page.evaluate(route=>navigate(route),route);
+        await noOverflow(page,browserName+' visual '+route);
+        await page.screenshot({path:path.join(evidence,'polish-'+route+'-1440-'+browserName+'.png'),fullPage:true});
+      }
+
       for(const route of ['bank','documents','contacts','income','outgoings']){
         await page.evaluate(route=>navigate(route),route);
         const hierarchy=await page.evaluate(()=>{
@@ -306,10 +399,23 @@ try{
         assert.ok(Math.max(...mobileHeights)-Math.min(...mobileHeights)<=1,browserName+' mobile '+width+' KPI cards must keep equal heights');
         await noOverflow(page,browserName+' mobile invoices long amounts '+width);
       }
+      for(const width of [320,375,390,430]){
+        await page.setViewportSize({width,height:844});
+        await page.evaluate(()=>navigate('dashboard'));
+        await page.getByRole('heading',{name:'Overzicht'}).waitFor();
+        assert.deepEqual((await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents()).map(v=>v.trim()),['Overzicht','Inkomsten','Kosten','Btw','Meer']);
+        const activeMobileNav=page.locator('#mobileBottomNav .mobile-bottom-nav-item.active[aria-current="page"]');
+        await page.waitForFunction(()=>getComputedStyle(document.querySelector('#mobileBottomNav .mobile-bottom-nav-item.active[aria-current="page"]')).backgroundColor==='rgb(236, 250, 238)');
+        const activeMobileStyle=await activeMobileNav.evaluate(el=>{const s=getComputedStyle(el);return {background:s.backgroundColor,color:s.color,boxShadow:s.boxShadow,fontWeight:s.fontWeight}});
+        assert.equal(activeMobileStyle.background,'rgb(236, 250, 238)',browserName+' mobile '+width+' active destination must use the soft BOEKUNA-green selected state');
+        assert.equal(activeMobileStyle.color,'rgb(27, 31, 35)',browserName+' mobile '+width+' active destination label must remain anthracite');
+        assert.match(activeMobileStyle.boxShadow,/99, 212, 113/,browserName+' mobile '+width+' active destination must retain the non-colour inset selection cue');
+        assert.ok(Number.parseInt(activeMobileStyle.fontWeight,10)>=700,browserName+' mobile '+width+' active destination must retain a font-weight selection cue');
+        await noOverflow(page,browserName+' mobile dashboard active nav '+width);
+      }
       await page.setViewportSize({width:390,height:844});
       await page.evaluate(()=>navigate('dashboard'));
       await page.getByRole('heading',{name:'Overzicht'}).waitFor();
-      assert.deepEqual((await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents()).map(v=>v.trim()),['Overzicht','Inkomsten','Kosten','Btw','Meer']);
       assert.ok((await page.locator('.dashboard-kpi .metric-icon').count())>0,'Dashboard KPI icon nodes should remain available');
       assert.ok(await page.locator('.dashboard-kpi .metric-icon').evaluateAll(nodes=>nodes.every(el=>getComputedStyle(el).display!=='none')),'Mobile dashboard KPI icons must stay visible at the card top-right');
       assert.equal(await page.locator('.dashboard-kpis').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length),2,'390px mobile dashboard must pair Omzet and Kosten');
@@ -341,6 +447,13 @@ try{
       await page.screenshot({path:path.join(evidence,'document-review-390-'+browserName+'.png'),fullPage:true});
       await page.evaluate(()=>closeModal());
 
+      await page.setViewportSize({width:1440,height:900});
+      await page.evaluate(()=>navigate('settings'));
+      await page.evaluate(()=>deleteAccountDialog());
+      await page.getByRole('heading',{name:/Account.*verwijderen/i}).waitFor();
+      await page.screenshot({path:path.join(evidence,'danger-account-delete-1440-'+browserName+'.png'),fullPage:true});
+      await page.evaluate(()=>closeModal());
+
       for(const width of [320,360,375,390,393,430,768,1024,1280,1440]){
         await page.setViewportSize({width,height:width<820?844:1000});
         for(const route of ['dashboard','invoices','expenses','bank','income','outgoings','documents','vat','reports','settings']){
@@ -348,6 +461,30 @@ try{
           await noOverflow(page,browserName+' '+route+' '+width);
         }
       }
+      await page.setViewportSize({width:1440,height:900});
+      await page.evaluate(()=>showAuth('login'));
+      await page.locator('#authRoot .auth-root').waitFor();
+      const authPalette=await page.evaluate(()=>{
+        const root=document.querySelector('#authRoot .auth-root'),side=document.querySelector('#authRoot .auth-side'),primary=document.querySelector('#authRoot .btn.primary');
+        const style=el=>{const s=getComputedStyle(el);return {background:s.backgroundColor,image:s.backgroundImage,color:s.color}};
+        return {root:style(root),side:style(side),primary:style(primary)};
+      });
+      assert.equal(authPalette.root.background,'rgb(246, 247, 248)',browserName+' auth canvas must use product neutral background');
+      assert.equal(authPalette.root.image,'none',browserName+' auth canvas must not use a gradient');
+      assert.equal(authPalette.side.background,'rgb(236, 250, 238)',browserName+' auth side must use soft BOEKUNA green');
+      assert.equal(authPalette.side.image,'none',browserName+' auth side must not use a gradient');
+      assert.equal(authPalette.primary.background,'rgb(99, 212, 113)',browserName+' auth primary action must use BOEKUNA green');
+      assert.equal(authPalette.primary.color,'rgb(27, 31, 35)',browserName+' auth primary action must use anthracite text');
+      await axe(page,browserName+' auth login');
+      await page.screenshot({path:path.join(evidence,'auth-login-1440-'+browserName+'.png'),fullPage:true});
+      await page.evaluate(()=>showAuth('register'));
+      await page.locator('#authRoot #registerEmail').waitFor();
+      await axe(page,browserName+' auth register');
+      await noOverflow(page,browserName+' auth register desktop');
+      await page.setViewportSize({width:390,height:844});
+      await noOverflow(page,browserName+' auth register mobile');
+      await page.screenshot({path:path.join(evidence,'auth-register-390-'+browserName+'.png'),fullPage:true});
+
       assert.deepEqual(pageErrors,[],browserName+' product UI must have no JavaScript errors');
       await page.close();
     }finally{await browser.close()}
