@@ -99,6 +99,9 @@ def test_orthogonal_rotation_270_preserves_receipt_supplier():
 def test_perspective_shadow_targeted_header_recovers_invoice_number():
     doc, result = _run_image(_jpeg_bytes(_invoice_image()), "perspective-shadow.jpg")
     assert (doc.get("processingHints") or {}).get("headerFocusUsed") is True
+    if result.invoice.invoiceNumber != "PERS-2026-001":
+        print("PERSPECTIVE_HEADER_TEXT=", repr(doc.get("headerText")))
+        print("PERSPECTIVE_MAIN_TEXT=", repr(doc.get("text")))
     assert result.invoice.invoiceNumber == "PERS-2026-001", result.model_dump()
 
 
