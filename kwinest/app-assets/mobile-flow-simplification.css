@@ -19,13 +19,12 @@
   #mainApp .mobile-document-chevron{font-size:24px;color:var(--app-muted-strong)}
   #mainApp .mobile-document-groups~.mobile-card-list{display:none!important}
 
-  #modalRoot #contactForm[data-mobile-customer-flow]>.form-grid>.field{display:none}
-  #modalRoot #contactForm[data-mobile-customer-flow][data-mobile-manual="1"]>.form-grid>.field{display:flex}
-  #modalRoot #contactForm[data-mobile-customer-flow][data-mobile-kvk-selected="1"]>.form-grid>.field:has([name="email"]){display:flex}
-  #modalRoot #contactForm[data-mobile-customer-flow][data-mobile-kvk-selected="1"][data-mobile-more="true"]>.form-grid>.field:has([name="contactPerson"]),
-  #modalRoot #contactForm[data-mobile-customer-flow][data-mobile-kvk-selected="1"][data-mobile-more="true"]>.form-grid>.field:has([name="phone"]),
-  #modalRoot #contactForm[data-mobile-customer-flow][data-mobile-kvk-selected="1"][data-mobile-more="true"]>.form-grid>.field:has([name="vat"]),
-  #modalRoot #contactForm[data-mobile-customer-flow][data-mobile-kvk-selected="1"][data-mobile-more="true"]>.form-grid>.field:has([name="peppolId"]){display:flex}
+  #modalRoot #contactForm[data-mobile-customer-flow]>.field{display:none}
+  #modalRoot #contactForm[data-mobile-customer-flow][data-mobile-manual="1"]>.field{display:flex}
+  #modalRoot #contactForm[data-mobile-customer-flow][data-mobile-kvk-selected="1"]>.field:has([name="email"]){display:flex}
+  #modalRoot #contactForm[data-mobile-customer-flow]:not([data-mobile-kvk-selected="1"]):not([data-mobile-manual="1"]) .mobile-contact-more{display:none!important}
+  #modalRoot #contactForm[data-mobile-customer-flow] .mobile-contact-more-body{display:grid;gap:12px;padding:0 14px 14px}
+  #modalRoot #contactForm[data-mobile-customer-flow] .mobile-contact-more-body>.field{display:flex}
   #modalRoot .mobile-kvk-first .kvk-heading h4{display:none}
   #modalRoot .mobile-kvk-first .mobile-existing-kvk-manual{display:none!important}
   #modalRoot .mobile-kvk-first .kvk-search-fields{grid-template-columns:1fr!important}
@@ -36,9 +35,9 @@
   #modalRoot .mobile-customer-company-card span{font-size:13px;color:var(--app-muted-strong)}
   #modalRoot .mobile-customer-company-card small{font-size:12px;color:var(--status-success);font-weight:700}
   #modalRoot .mobile-contact-manual{width:100%;justify-content:flex-start;margin:4px 0 8px}
-  #modalRoot .mobile-contact-more{margin:8px 0 0}
-  #modalRoot #contactForm[data-mobile-manual="1"] .mobile-contact-more{display:none}
-  #modalRoot .mobile-contact-more summary{min-height:44px;display:flex;align-items:center;font-weight:700;cursor:pointer}
+  #modalRoot .mobile-contact-more{margin:8px 0 0;border:1px solid var(--app-border);border-radius:12px;grid-column:1/-1}
+  #modalRoot #contactForm[data-mobile-manual="1"] .mobile-contact-more{display:block}
+  #modalRoot .mobile-contact-more summary{min-height:44px;display:flex;align-items:center;font-weight:700;cursor:pointer;padding:0 14px}
 
   #modalRoot #invoiceForm[data-mobile-invoice-flow]>*{display:none!important}
   #modalRoot #invoiceForm[data-mobile-invoice-flow]>.mobile-invoice-progress,
