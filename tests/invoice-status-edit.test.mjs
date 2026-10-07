@@ -69,6 +69,12 @@ async function editDraftAndSave(id,status){
   await page.evaluate(()=>reviewInvoice());
   assert.equal(await page.getByRole('heading',{name:status==='draft'?'Concept opslaan':'Laatste controle vóór opslaan'}).count(),0,'Edited complete invoice must save without duplicate review modal');
   await page.waitForTimeout(20);
+  if(status==='paid'){
+    // 'Betaald' never marks an invoice paid without a payment: the payment dialog asks how it was paid.
+    await page.locator('#paymentForm').waitFor();
+    await page.getByRole('button',{name:'Opslaan als betaald',exact:true}).click();
+    await page.locator('#paymentForm').waitFor({state:'detached'});
+  }
 }
 
 try{
@@ -185,7 +191,7 @@ try{
 
   // 6. Paid/final invoices remain immutable through the editor: no unsupported backward status edit.
   await page.evaluate(id=>editInvoice(id),sentId);
-  await page.locator('.toast').filter({hasText:'definitieve factuur blijft ongewijzigd'}).waitFor();
+  await page.locator('.toast').filter({hasText:'is (deels) betaald'}).waitFor();
   assert.equal(await page.locator('#invoiceForm').count(),0,'Paid/final invoice must not reopen in mutable editor');
 
   // 7. Two different concepts for the same customer finalize to distinct sequential numbers.
