@@ -81,7 +81,7 @@
       var entry;
       if (page === 'invoices') {
         entry = row(getContact(item.customerId).name || 'Klant', money(invoiceGross(item)),
-          (item.number || 'Concept') + ' · ' + (invoiceEffectiveStatus(item)==='paid' ? dateNL(item.issueDate) : 'Vervalt ' + dateNL(item.dueDate)),
+          (item.number || 'Concept') + ' · ' + (invoiceEffectiveStatus(item)==='paid' ? ((typeof invoicePaymentSummary==='function' && invoicePaymentSummary(item)) || dateNL(item.issueDate)) : 'Vervalt ' + dateNL(item.dueDate)),
           statusBadge(invoiceEffectiveStatus(item)), function () { viewInvoice(item.id); });
         var actions = button('', function () { invoiceActions(item.id); }, 'icon-btn');
         actions.innerHTML = icon('i-more');

@@ -542,7 +542,7 @@ try{
     notes:'',
     lines:[{desc:'QA '+label,qty:1,unitLabel:'uur',unit:100,vat:21}]
   }),{label,status,customerId:invoiceQaCustomerId});
-  const snap=()=>page.evaluate(()=>({count:state.invoices.length,next:Number(state.meta.nextInvoice||0),invoices:state.invoices.map(i=>({id:i.id,number:i.number,status:i.status,numberFinalized:!!i.numberFinalized}))}));
+  const snap=()=>page.evaluate(()=>({count:state.invoices.length,next:Number(state.meta.nextInvoice||0),invoices:state.invoices.map(i=>({id:i.id,number:i.number,status:i.status,numberFinalized:!!i.numberFinalized,payments:i.payments||[]}))}));
 
   // Concept -> Verzonden.
   let qaDraft=await makeDraft('A');
@@ -570,11 +570,17 @@ try{
   const qaBBefore={...qaSnap.invoices.find(i=>i.id===qaBId),count:qaSnap.count,next:qaSnap.next};
   await page.evaluate(id=>{const i=state.invoices.find(x=>x.id===id);editingInvoiceId=id;pendingInvoiceDraft={...structuredClone(i),customer:getContact(i.customerId),paymentDays:i.paymentDays||0,status:'paid'}},qaBId);
   await page.evaluate(()=>finalSaveInvoice());
+  // 'Betaald' never marks an invoice paid without a payment: it stays open and asks how it was paid.
+  assert.equal((await snap()).invoices.find(i=>i.id===qaBId).status,'sent','Concept -> Betaald stays open until the payment is recorded');
+  await page.locator('#paymentForm').waitFor();
+  await page.evaluate(id=>savePayment(id),qaBId);
   qaSnap=await snap();
   const qaB=qaSnap.invoices.find(i=>i.id===qaBId);
   assert.equal(qaB.id,qaBBefore.id,'Concept -> Betaald must preserve invoice ID');
   assert.notEqual(qaB.number,qaBBefore.number,'Concept -> Betaald must reserve one final number');
   assert.equal(qaB.status,'paid');
+  assert.equal(qaB.payments.length,1,'Concept -> Betaald records exactly one payment');
+  assert.equal(qaB.payments[0].method,'bank','The payment keeps how it was paid');
   assert.equal(qaSnap.count,qaBBefore.count,'Concept -> Betaald must not create a duplicate record');
   assert.equal(qaSnap.next,qaBBefore.next+1,'Concept -> Betaald must reserve exactly one number');
 
