@@ -138,6 +138,8 @@ try{
  assert.equal(await page.evaluate(()=>window.__boekunaAssistantTest.snapshot().insights.some(x=>x.type==='OVERDUE_INVOICE')),false,'Resolved source state must remove overdue insight');
 
  await page.setViewportSize({width:1440,height:900});await nav('settings');
+ // Assistant preferences live under Instellingen → App & weergave.
+ await page.locator('.settings-nav-item').filter({hasText:'App & weergave'}).click();
  assert.equal(await page.getByText('Assistent & inzichten',{exact:true}).count(),1);
  assert.equal(await page.getByText('Zonder externe AI',{exact:true}).count(),1);
  await page.getByRole('checkbox',{name:'Kosten begrijpen'}).check();
