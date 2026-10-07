@@ -9,8 +9,8 @@ import {chromium,webkit} from 'playwright';
 const root=process.cwd();
 const require=createRequire(import.meta.url);
 const axeSource=fs.readFileSync(require.resolve('axe-core/axe.min.js'),'utf8');
-const jsPath=path.join(root,'public','assets','mobile-flow-simplification.js');
-const cssPath=path.join(root,'public','assets','mobile-flow-simplification.css');
+const jsPath=path.join(root,'kwinest','app-assets','mobile-flow-simplification.js');
+const cssPath=path.join(root,'kwinest','app-assets','mobile-flow-simplification.css');
 assert.ok(fs.existsSync(jsPath),'mobile flow simplification JS asset missing');
 assert.ok(fs.existsSync(cssPath),'mobile flow simplification CSS asset missing');
 
