@@ -95,7 +95,7 @@ try{
   assert.equal(await page.locator('#modalTitle').innerText(),'Nieuwe klant');
   assert.ok(await page.locator('#kvkQuery').isVisible(),'KVK query is primary');
   assert.equal(await page.getByRole('button',{name:/Particulier of buitenland/}).count(),1);
-  assert.equal(await page.locator('#contactEmail').isVisible(),false,'email appears after KVK selection or manual mode');
+  assert.equal(await page.locator('#contactForm [name="email"]').isVisible(),false,'email appears after KVK selection or manual mode');
   await page.getByRole('button',{name:/Particulier of buitenland/}).click();
   assert.ok(await page.locator('#contactName').isVisible(),'manual fallback exposes existing full form');
   await page.evaluate(()=>closeModal());
