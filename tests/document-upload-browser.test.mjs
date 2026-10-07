@@ -377,9 +377,10 @@ try{
       const layout=await page.evaluate(()=>({
         overflow:document.documentElement.scrollWidth-window.innerWidth,
         box:document.querySelector('#documentProcessingExperience')?.getBoundingClientRect(),
-        viewport:window.innerWidth
+        viewport:window.innerWidth,
+        wide:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>window.innerWidth+2).slice(-6).map(e=>e.tagName.toLowerCase()+(e.id?'#'+e.id:'')+(typeof e.className==='string'&&e.className?'.'+e.className.trim().split(/\s+/).join('.'):'')+' '+Math.round(e.getBoundingClientRect().left)+'-'+Math.round(e.getBoundingClientRect().right))
       }));
-      assert.ok(layout.overflow<=2,'Processing experience must not overflow at '+width+'px');
+      assert.ok(layout.overflow<=2,'Processing experience must not overflow at '+width+'px: '+layout.wide.join(', '));
       assert.ok((layout.box?.width||0)<=layout.viewport,'Processing experience must fit viewport at '+width+'px');
     }
 
