@@ -98,6 +98,14 @@
   #modalRoot .mobile-single-issue-review[hidden]{display:none!important}
   #modalRoot .mobile-single-issue-question{font-size:22px;margin:0;letter-spacing:-.02em}
   #modalRoot .mobile-single-issue-review>p{margin:0;color:var(--app-muted-strong);font-size:13px;line-height:1.5}
+  #modalRoot .mobile-duplicate-comparison{display:grid;gap:10px}
+  #modalRoot .mobile-duplicate-comparison h5{margin:0;font-size:18px}
+  #modalRoot .mobile-duplicate-comparison>p{margin:0;color:var(--app-muted-strong);font-size:13px;line-height:1.45}
+  #modalRoot .mobile-duplicate-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #modalRoot .mobile-duplicate-card{display:grid;align-content:start;gap:5px;min-width:0;border:1px solid var(--app-border);border-radius:10px;padding:12px;background:var(--app-surface)}
+  #modalRoot .mobile-duplicate-card strong{font-size:14px;overflow-wrap:anywhere}
+  #modalRoot .mobile-duplicate-card>span:not(.mobile-duplicate-kicker){font-size:12px;color:var(--app-muted-strong);overflow-wrap:anywhere}
+  #modalRoot .mobile-duplicate-kicker{font-size:10px;font-weight:800;letter-spacing:.04em;color:var(--app-muted-strong)}
   #modalRoot .mobile-single-issue-actions{display:flex;flex-direction:column;gap:8px}
   #modalRoot .mobile-single-issue-actions .btn{width:100%;justify-content:center}
 
