@@ -53,8 +53,8 @@
   function reviewQuestion(field){
     var map={
       gross:'Klopt het totaal?',net:'Klopt het bedrag excl. btw?',vatAmount:'Klopt de btw?',vatRate:'Klopt de btw?',
-      vatLines:'Klopt deze btw-verdeling?',vatTreatmentChoice:'Klopt de btw?',confirmDuplicate:'Al eerder toegevoegd?',
-      confirmAnomaly:'Klopt dit document?',currency:'Welke valuta is gebruikt?',exchangeRateToEur:'Welke valuta is gebruikt?',
+      vatLines:'Klopt deze btw-verdeling?',vatTreatmentChoice:'Klopt de btw?',confirmDuplicate:'Deze bon heb je al',
+      confirmAnomaly:'Controleer het origineel',currency:'Controleer de valuta',exchangeRateToEur:'Controleer de valuta',
       issueDate:'Klopt de datum?',party:'Klopt de leverancier?',invoiceNumber:'Klopt het factuurnummer?',category:'Klopt de categorie?',
       document:'Klopt dit document?'
     };
@@ -63,7 +63,15 @@
   function jobFirstField(job){
     var fields=Array.isArray(job?.review_fields)?job.review_fields.filter(Boolean):[];
     if(fields.length)return String(fields[0]);
-    var financial=job?.result?.analysis?.recognitionChecks;
+    var analysis=job?.result?.analysis||{};
+    if(analysis.duplicateCandidate)return 'confirmDuplicate';
+    if(Array.isArray(analysis.anomalyCodes)&&analysis.anomalyCodes.length)return 'confirmAnomaly';
+    if(String(analysis.currency||'EUR').toUpperCase()!=='EUR')return 'currency';
+    if(analysis.mixedRates)return 'vatLines';
+    if(!String(analysis.party||'').trim())return 'party';
+    if(!String(analysis.issueDate||'').trim())return 'issueDate';
+    if(!['receipt','other'].includes(String(analysis.documentType||''))&&!String(analysis.invoiceNumber||'').trim())return 'invoiceNumber';
+    var financial=analysis.recognitionChecks;
     if(Array.isArray(financial)){
       var bad=financial.find(function(x){return x&&x.level==='bad'});
       if(bad?.field)return String(bad.field);
@@ -83,12 +91,26 @@
     var d=documentForJob(job);
     return !d||!d.linkedId;
   }
+  function jobHasUnresolvedSignals(job){
+    var analysis=job?.result?.analysis||{},fields=Array.isArray(job?.review_fields)?job.review_fields.filter(Boolean):[];
+    if(fields.length||analysis.bookingAllowed===false||analysis.duplicateCandidate)return true;
+    if(Array.isArray(analysis.anomalyCodes)&&analysis.anomalyCodes.length)return true;
+    if(String(analysis.currency||'EUR').toUpperCase()!=='EUR')return true;
+    if(!String(analysis.party||'').trim()||!String(analysis.issueDate||'').trim())return true;
+    if(!['receipt','other'].includes(String(analysis.documentType||''))&&!String(analysis.invoiceNumber||'').trim())return true;
+    var checks=Array.isArray(analysis.recognitionChecks)?analysis.recognitionChecks:[];
+    if(checks.some(function(check){return check&&['bad','warn'].includes(String(check.level||''))}))return true;
+    var net=Number(analysis.net),vat=Number(analysis.vatAmount),gross=Number(analysis.gross);
+    if(!Number.isFinite(net)||!Number.isFinite(vat)||!Number.isFinite(gross))return true;
+    if(Math.abs((net+vat)-gross)>.02)return true;
+    return false;
+  }
   function documentGroups(root){
     if(page!=='documents'||!root)return;
     var jobs=Array.isArray(documentProcessingJobs)?documentProcessingJobs:[];
-    var clean=jobs.filter(function(job){return job?.state==='ready'&&jobBookable(job)&&unlinkedJob(job)&&!(Array.isArray(job.review_fields)&&job.review_fields.length)});
+    var clean=jobs.filter(function(job){return job?.state==='ready'&&jobBookable(job)&&unlinkedJob(job)&&!jobHasUnresolvedSignals(job)});
     var questions=jobs.filter(function(job){
-      return jobBookable(job)&&unlinkedJob(job)&&(job?.state==='review_required'||(job?.state==='ready'&&Array.isArray(job.review_fields)&&job.review_fields.length));
+      return jobBookable(job)&&unlinkedJob(job)&&(job?.state==='review_required'||(job?.state==='ready'&&jobHasUnresolvedSignals(job)));
     });
     var questionIds=new Set(questions.map(function(j){return String(j.client_ref||'')}));
     var verification=(state.documents||[]).filter(function(d){
@@ -158,7 +180,7 @@
     try{
       for(const original of jobs){
         var job=(documentProcessingJobs||[]).find(function(x){return String(x.id)===String(original.id)});
-        if(!job||job.state!=='ready'||!jobBookable(job)||!unlinkedJob(job)||(Array.isArray(job.review_fields)&&job.review_fields.length)){
+        if(!job||job.state!=='ready'||!jobBookable(job)||!unlinkedJob(job)||jobHasUnresolvedSignals(job)){
           throw new Error('Een bon heeft intussen controle nodig.');
         }
         await openPersistentDocumentReview(job.id);
@@ -210,16 +232,29 @@
     var manual=button('Particulier of buitenland? Zelf invullen',function(){
       form.dataset.mobileManual='1';
       if(manualExisting&&!lookup.querySelector('.kvk-search-controls')?.hidden)manualExisting.click();
+      var more=form.querySelector('.mobile-contact-more');if(more)more.open=true;
       contactField(form,'name')?.querySelector('input')?.focus?.();
       schedule();
     },'btn link-btn mobile-contact-manual mobile-flow-action');
     lookup.after(manual);
     var more=node('details','mobile-contact-more');
-    more.append(node('summary','','Meer gegevens'));
+    var moreBody=node('div','mobile-contact-more-body');
+    more.append(node('summary','','Meer gegevens'),moreBody);
+    ['contactPerson','phone','vat','peppolId'].forEach(function(name){var field=contactField(form,name);if(field)move(moreBody,field)});
     more.addEventListener('toggle',function(){form.dataset.mobileMore=String(more.open)});
     form.append(more);
     var save=root.querySelector('.modal-foot .btn.primary');
     if(save)rememberText(save,'Klant opslaan');
+    var cancel=root.querySelector('.modal-foot .btn:not(.primary)');
+    if(cancel&&invoiceResume){
+      rememberText(cancel,'Terug naar factuur');
+      cancel.onclick=function(){
+        var resume=invoiceResume;invoiceResume=null;closeModal();
+        if(!resume)return;
+        nextInvoiceStep=1;
+        setTimeout(function(){newInvoice(true);setTimeout(function(){fillInvoiceFormFromData(resume.draft);schedule()},0)},0);
+      };
+    }
     updateContactCompanyCard(form,card);
     form.querySelectorAll('input,select,textarea').forEach(function(input){
       input.addEventListener('input',function(){if(form.dataset.mobileKvkSelected)updateContactCompanyCard(form,card)});
@@ -269,7 +304,11 @@
       var quick=node('div','mobile-invoice-quick');
       quick.append(node('span','mobile-flow-eyebrow','Snelste optie'));
       var customer=getContact(last.customerId);
-      var quickButton=button('',function(){nextInvoiceStep=2;duplicateInvoiceAsDraft(last.id)},'mobile-invoice-choice mobile-flow-action');
+      var quickButton=button('',function(){
+        var draft=collectInvoiceDraft();
+        draft.customerId=last.customerId;draft.customer=getContact(last.customerId);draft.lines=structuredClone(last.lines||[]);
+        fillInvoiceFormFromData(draft);enhanceInvoiceRows(form);setInvoiceStep(form,2);
+      },'mobile-invoice-choice mobile-flow-action');
       quickButton.append(node('strong','','Zelfde als vorige factuur'));
       quickButton.append(node('span','',[customer?.name||'Klant',(last.lines||[])[0]?.desc||'',moneyText(typeof invoiceGross==='function'?invoiceGross(last):0)].filter(Boolean).join(' · ')));
       quick.append(quickButton);step.append(quick);
@@ -324,8 +363,6 @@
     step.append(node('h2','','Wat heb je gedaan?'));
     move(step,lines);
     var total=form.querySelector('.invoice-editor-summary');if(total)move(step,total);
-    var advanced=form.querySelector('details.invoice-advanced-options');
-    if(advanced){var summary=advanced.querySelector('summary');if(summary)rememberText(summary,'Wijzig of voeg korting, referentie of notitie toe');move(step,advanced)}
     var nav=node('div','mobile-invoice-nav');
     nav.append(button('Vorige',function(){setInvoiceStep(form,1)},'btn mobile-flow-action'));
     nav.append(button('Volgende',function(){
@@ -356,7 +393,7 @@
     if(checks.errors.length){updateInvoiceCheck();toast('Nog '+checks.errors.length+' punt(en) controleren');setInvoiceStep(form,checks.errors.some(function(x){return x.label==='Klant'||x.label==='Klantnaam'})?1:2);return null}
     pendingInvoiceDraft=draft;
     var saved=await finalSaveInvoice({throwOnError:true});
-    if(saved&&openPreview)viewInvoice(saved.id);
+    if(saved&&openPreview)printInvoice(saved.id);
     return saved;
   }
   async function sendMobileInvoice(form){
@@ -367,6 +404,13 @@
     var step=node('section','mobile-invoice-step');step.dataset.step='3';
     step.append(node('h2','','Klaar om te versturen'));
     var summary=node('div','mobile-invoice-summary');step.append(summary);
+    var advanced=form.querySelector('details.invoice-advanced-options'),dateSection=invoiceSectionFor(form,'[name="issueDate"]');
+    if(advanced){
+      var disclosure=advanced.querySelector('.disclosure-body')||advanced;
+      if(dateSection)move(disclosure,dateSection,disclosure.firstChild);
+      var advancedLabel=advanced.querySelector('summary');if(advancedLabel)rememberText(advancedLabel,'Wijzig of voeg korting, referentie of notitie toe');
+      move(step,advanced);
+    }else if(dateSection)move(step,dateSection);
     step.append(button('Bekijk PDF',function(){saveMobileInvoiceConcept(form,true)},'btn mobile-invoice-pdf mobile-flow-action'));
     var nav=node('div','mobile-invoice-nav mobile-invoice-final-actions');
     nav.append(button('Vorige',function(){setInvoiceStep(form,2)},'btn mobile-flow-action'));
@@ -416,6 +460,13 @@
     else updateBeginnerReviewState();
     requestAnimationFrame(schedule);
   }
+  async function discardDuplicateReview(){
+    var context=pendingPdfImport,ref=String(context?.sourceClientRef||''),jobId=String(context?.processingJobId||'');
+    var doc=(state.documents||[]).find(function(d){return String(d.fileId||'')===ref})||null;
+    cancelDocumentReview();
+    if(doc&&typeof deleteDocumentNow==='function')return await deleteDocumentNow(doc.id);
+    if(jobId&&typeof removePersistentDocumentByJob==='function')return removePersistentDocumentByJob(jobId);
+  }
   function simpleReview(root){
     var flow=root?.querySelector('.document-review-flow.two-step-review');
     if(!flow||!media.matches||flow.dataset.mobileSimpleReview==='full')return;
@@ -438,7 +489,7 @@
     shell.append(node('span','mobile-flow-eyebrow','1 van '+issues.length));
     shell.append(node('h4','mobile-single-issue-question',reviewQuestion(String(issue.field||''))));
     if(issue.message)shell.append(node('p','',String(issue.message)));
-    shell.append(button('Bekijk document',function(){toggleDocumentOriginal(true)},'btn link-btn mobile-flow-action'));
+    if(String(issue.field||'')!=='confirmDuplicate')shell.append(button('Bekijk document',function(){toggleDocumentOriginal(true)},'btn link-btn mobile-flow-action'));
     var page=target?.closest('[data-review-page]');
     if(page){
       if(!page.dataset.mobileWasHidden)page.dataset.mobileWasHidden=page.hidden?'1':'0';
@@ -447,9 +498,20 @@
     var candidates=flow.querySelectorAll('[data-review-field],[data-review-issue],.mixed-vat-summary,.review-context-card,#financialCorrectionPanel,#reviewBasisState,#reviewBlockingState');
     candidates.forEach(function(el){if(el!==target&&!el.contains(target))el.classList.add('mobile-flow-hidden')});
     target?.classList.add('mobile-active-issue');
-    var actions=node('div','mobile-single-issue-actions');
-    actions.append(button('Ja, klopt',function(){confirmReviewIssue(flow,issue)},'btn primary mobile-flow-action'));
-    actions.append(button('Alle gegevens bekijken',function(){showFullReview(flow)},'btn link-btn mobile-flow-action'));
+    var actions=node('div','mobile-single-issue-actions'),field=String(issue.field||'');
+    if(field==='confirmDuplicate'){
+      actions.append(button('Weggooien, is dubbel',function(){discardDuplicateReview()},'btn primary mobile-flow-action'));
+      actions.append(button('Nee, dit is een andere bon',function(){confirmDuplicateOverride();requestAnimationFrame(schedule)},'btn mobile-flow-action'));
+    }else if(field==='confirmAnomaly'){
+      actions.append(button('Ik heb het origineel gecontroleerd',function(){confirmDocumentAnomaly();requestAnimationFrame(schedule)},'btn primary mobile-flow-action'));
+      actions.append(button('Alle gegevens bekijken',function(){showFullReview(flow)},'btn link-btn mobile-flow-action'));
+    }else if(['currency','exchangeRateToEur','vatLines','vatTreatmentChoice'].includes(field)){
+      actions.append(button('Aanpassen',function(){showFullReview(flow)},'btn primary mobile-flow-action'));
+    }else{
+      actions.append(button('Ja, klopt',function(){confirmReviewIssue(flow,issue)},'btn primary mobile-flow-action'));
+      actions.append(button('Aanpassen',function(){showFullReview(flow)},'btn mobile-flow-action'));
+      actions.append(button('Alle gegevens bekijken',function(){showFullReview(flow)},'btn link-btn mobile-flow-action'));
+    }
     shell.append(actions);
   }
 
