@@ -39,7 +39,7 @@ try{
    await page.evaluate(()=>navigate('control'));assert.equal((await page.locator('#pageTitle').innerText()).trim(),'Overzicht');assert.equal(await page.locator('.control-filters').count(),0,'Release 1 must keep advanced control UI hidden');
   });
   await check('keyboard bank quick filter',async()=>{
-   await page.evaluate(()=>navigate('bank'));const filter=page.getByRole('button',{name:'Te verwerken',exact:true});await filter.focus();await page.keyboard.press('Enter');const active=page.getByRole('button',{name:'Te verwerken',exact:true});assert.equal(await active.evaluate(el=>el.classList.contains('active')),true,'Keyboard activation must apply the visible bank quick filter');
+   await page.evaluate(()=>navigate('bank'));const filter=page.getByLabel('Snelle filters').getByRole('button',{name:'Te verwerken',exact:true});await filter.focus();await page.keyboard.press('Enter');const active=page.getByLabel('Snelle filters').getByRole('button',{name:'Te verwerken',exact:true});assert.equal(await active.evaluate(el=>el.classList.contains('active')),true,'Keyboard activation must apply the visible bank quick filter');
   });
  }
  await check('dialog initial focus respects field input',async()=>{
