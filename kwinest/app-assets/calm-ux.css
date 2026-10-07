@@ -145,3 +145,68 @@ html:not(.app-zoom-allowed) body{touch-action:pan-x pan-y}
   #modalRoot #contactForm[data-mobile-customer-flow]>.field,
   #modalRoot #contactForm[data-mobile-customer-flow] .mobile-contact-more-body>.field{flex-direction:column;align-items:stretch}
 }
+
+/* One calm look everywhere: no shadows, one page grey, one card style, one set of greys and greens.
+   Palette: ink #1B1F23, brand #63D471, page #F6F7F8, surface #FFFFFF, quiet #8A949C. */
+html body :is(#mainApp,#modalRoot,#mobileBottomNav,#authRoot,#toastRoot) :not(:focus-visible),
+html body :is(#mainApp,#modalRoot,#mobileBottomNav,#authRoot) :not(:focus-visible)::before,
+html body :is(#mainApp,#modalRoot,#mobileBottomNav,#authRoot) :not(:focus-visible)::after,
+html body #modalRoot .modal,html body #mobileBottomNav{box-shadow:none!important;text-shadow:none!important}
+html body #mainApp :is(.main,.content,#appMain,#content){background:#F6F7F8!important}
+
+/* Cards: white, one thin border on every side, no raised top edge. */
+html body #mainApp#mainApp :is(.card,.product-kpi,.metric,.dashboard-kpi,.dashboard-summary-card){
+  background:#FFFFFF!important;border:1px solid #E4E7EA!important;
+}
+
+
+/* Icon tiles: the same quiet tile on every card. */
+html body #mainApp#mainApp :is(.metric-icon,.product-kpi-icon){background:#F1F3F4!important;color:#5E6870!important;border:0!important}
+
+/* One soft green for "active" and "done", one readable green for its text. */
+html body :is(#mainApp#mainApp,#modalRoot#modalRoot,#mobileBottomNav#mobileBottomNav) :is(.nav-item.active,.mobile-bottom-nav-item.active,.badge.good,.dashboard-attention-state.success,.settings-center-row[aria-current="true"],.filter-btn.active,.invoice-check){background:#ECFAEE!important}
+html body :is(#mainApp,#modalRoot) :is(.badge.good,.dashboard-attention-state.success,.settings-center-status.good){color:#177A31!important}
+html body #mainApp #cloudSyncBadge::before{content:none!important}
+html body #mainApp .status-dot.ok{background:#63D471!important}
+
+/* Neutral badges instead of blue, red only where something is wrong. */
+html body :is(#mainApp,#modalRoot) .badge:not(.good):not(.bad):not(.warn):not(.info):not(.info){color:#3A4148}
+
+/* Greys: one border, one strong border for fields and buttons, one quiet fill. */
+html body :is(#mainApp,#modalRoot) :is(.list-search-box,.list-filter-chips,.divider){border-color:#E4E7EA!important}
+html body :is(#mainApp,#modalRoot) .divider{background:#E4E7EA!important}
+html body #modalRoot .modal-close{background:#F1F3F4!important;color:#1B1F23!important}
+html body #mainApp #accountAvatar{background:#F1F3F4!important;border-color:#E4E7EA!important;color:#1B1F23!important}
+
+/* Text greys: ink for content, one grey for labels and help, the light grey only for chevrons. */
+html body :is(#mainApp,#modalRoot) :is(label,.field>span,.bar-label,.help,.critical-help,.settings-center-group-label,.report-period-adjust){color:#5E6870!important}
+html body :is(#mainApp,#modalRoot) .link-btn{color:#1B1F23!important;text-decoration:underline;text-underline-offset:2px}
+
+/* "Factuur maken" on the overview: a normal card, the green stays on the button. */
+html body #mainApp :is(.dashboard-summary-card.primary,.dashboard-summary-card.is-primary,.dashboard-new-invoice){background:#FFFFFF!important;border-color:#E4E7EA!important}
+
+/* Messages float above the page with a line instead of a shadow. */
+html body #toastRoot>*{border:1px solid #E4E7EA!important}
+html body :is(#mainApp,#modalRoot) :is(.row-action-trigger,.invoice-advanced-options,.secondary-disclosure){border-color:#E4E7EA!important}
+html body :is(#mainApp,#modalRoot) .customer-preview{background:#F6F7F8!important}
+html body #mainApp .progress{background:#F1F3F4!important}
+html body :is(#mainApp,#modalRoot) .settings-nav-chevron{color:#8A949C!important}
+html body :is(#mainApp,#modalRoot) :is(.settings-center-row span,.badge:not(.good):not(.bad):not(.warn):not(.info)){color:#5E6870!important}
+html body #modalRoot .action-row strong:not(.is-danger strong){color:#1B1F23!important}
+html body #mainApp .settings-center-row.danger :is(strong,.settings-center-icon){color:#C2362B!important}
+
+/* Date fields: on iPhone a date field keeps its own minimum width and can push past the screen.
+   Make every date field fill its box like the other fields, and never wider. */
+html body :is(#mainApp,#modalRoot) :is(input[type="date"],input[type="month"],input[type="time"],input[type="datetime-local"]){
+  -webkit-appearance:none;appearance:none;display:block;box-sizing:border-box;
+  width:100%!important;min-width:0!important;max-width:100%!important;
+  margin:0;background-color:#FFFFFF;text-align:left;
+}
+html body :is(#mainApp,#modalRoot) :is(input[type="date"],input[type="month"],input[type="time"],input[type="datetime-local"])::-webkit-date-and-time-value{text-align:left;margin:0;min-height:1.2em}
+html body :is(#mainApp,#modalRoot) :is(.field,.form-grid>*,.grid>*){min-width:0}
+
+/* Small phones: the save status shrinks to a dot-sized tick so the top bar stays on one line. */
+@media(max-width:374px){
+  html body #mainApp #cloudSyncBadge.badge.good:not(.hidden){font-size:0!important;padding:0!important;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center}
+  html body #mainApp #cloudSyncBadge.badge.good:not(.hidden)::after{content:"✓";font-size:14px}
+}
