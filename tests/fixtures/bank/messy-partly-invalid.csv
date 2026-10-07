@@ -1,0 +1,12 @@
+Export rekening NL00TEST0000000006
+
+Datum;Omschrijving;Bedrag;Onbekende kolom
+2026-10-01;"Lange omschrijving met ""aanhalingstekens""; puntkomma en
+regeleinde";-1.234,56;x
+01-10-2026;Leeg optioneel veld;12,5;
+31-02-2026;Ongeldige datum;-10,00;
+02-10-2026;Bedrag niet eenduidig;1.250;
+03-10-2026;Geen bedrag;;
+kapotte regel
+04-10-2026;Min achteraan;7,00-;
+05-10-2026;Unicode min;−8,00;
