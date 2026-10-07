@@ -56,6 +56,7 @@ const server=http.createServer((req,res)=>{
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const base='http://127.0.0.1:'+server.address().port;
+const evidence=path.join(root,'tests','artifacts','product-ui-reference');fs.mkdirSync(evidence,{recursive:true});
 const browserName=(process.env.BOOKUNA_BROWSER||'chromium')==='webkit'?'webkit':'chromium';
 const browserType=browserName==='webkit'?webkit:chromium;
 const browser=await browserType.launch({headless:true});
@@ -164,6 +165,21 @@ try{
   await page.evaluate(()=>closeModal());
 
   await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>navigate('vat'));
+  assert.equal(await page.locator('.mobile-vat-attention').count(),0,'Release 1 Btw must not expose a Documenten controleren CTA');
+  assert.doesNotMatch(await page.locator('#content').innerText(),/^Documenten controleren$/m,'Release 1 Btw must stay an information screen');
+  await page.evaluate(()=>navigate('dashboard'));
+  const quickTrigger=page.locator('#quickNew');await quickTrigger.focus();await quickTrigger.click();
+  await page.locator('#modalRoot .quick-action-modal').waitFor();
+  assert.equal(await page.locator('#modalRoot .quick-action').count(),5,'Mobile quick-create must expose exactly five Release 1 actions');
+  const quickLabels=(await page.locator('#modalRoot .quick-action').allTextContents()).map(v=>v.trim().replace(/\s+/g,' '));
+  for(const core of ['Scannen','Factuur','Kosten boeken','Banktransactie','Relatie'])assert.ok(quickLabels.some(v=>v.includes(core)),'Mobile quick-create missing '+core);
+  const quickGeometry=await page.locator('#modalRoot .quick-action-modal').evaluate(el=>{const r=el.getBoundingClientRect(),b=getComputedStyle(el.closest('.modal-backdrop'));return {top:r.top,bottom:r.bottom,height:r.height,align:b.alignItems,radius:getComputedStyle(el).borderRadius}});
+  assert.equal(quickGeometry.align,'center','Mobile quick-create backdrop must center the dialog');
+  assert.ok(quickGeometry.top>24&&quickGeometry.bottom<820,'Mobile quick-create must float centrally instead of attaching to the bottom edge: '+JSON.stringify(quickGeometry));
+  await page.screenshot({path:path.join(evidence,'quick-popup-390-first-release-'+browserName+'.png'),fullPage:true});
+  await page.keyboard.press('Escape');await page.locator('#modalRoot .modal').waitFor({state:'detached'});
+  assert.equal(await quickTrigger.evaluate(el=>el===document.activeElement),true,'Closing quick-create must restore focus to the + button');
   const mobileNav=(await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents()).map(v=>v.trim());
   assert.deepEqual(mobileNav,['Overzicht','Inkomsten','Kosten','Btw','Meer']);
   await page.locator('#mobileMenu').click();

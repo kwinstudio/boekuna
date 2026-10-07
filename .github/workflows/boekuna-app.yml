@@ -14,6 +14,7 @@ on:
       - "public/assets/mobile-product.*"
       - "public/assets/brand-v2.css"
       - "kwinest/app-assets/product-color-polish.css"
+      - "kwinest/app-assets/product-ux-polish-round-3.css"
       - "public/assets/boekuna-app-icon*"
       - "public/assets/boekuna-favicon.svg"
       - "public/assets/boekuna-symbol*.svg"

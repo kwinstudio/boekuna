@@ -11,6 +11,22 @@ const require=createRequire(import.meta.url);
 const axeSource=fs.readFileSync(require.resolve('axe-core/axe.min.js'),'utf8');
 const source=fs.readFileSync(path.join(root,'kwinest','index.html'),'utf8');
 const colorPolish=fs.readFileSync(path.join(root,'kwinest','app-assets','product-color-polish.css'),'utf8');
+const uxPolish=fs.readFileSync(path.join(root,'kwinest','app-assets','product-ux-polish-round-3.css'),'utf8');
+assert.ok(uxPolish.includes('--boekuna-system-font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif'),'Round 3 must use the native platform system-font stack');
+assert.equal(/Boekuna (?:Inter|Space)/.test(uxPolish),false,'Round 3 must not depend on app-only Inter or Space Grotesk as primary UI fonts');
+assert.ok(uxPolish.includes('#mobileBottomNav{display:none!important}'),'Pre-auth mobile navigation gate missing');
+assert.ok(uxPolish.includes('.quick-action-backdrop'),'Central mobile quick-create presentation missing');
+assert.ok(uxPolish.includes('#modalRoot .report-preview-modal #reportPreviewFrame{'),'A4 report iframe must have a dedicated geometry selector');
+assert.ok(uxPolish.includes('width:794px!important')&&uxPolish.includes('min-width:794px!important')&&uxPolish.includes('max-width:none!important'),'A4 report iframe fixed-width cascade contract missing');
+assert.ok(source.includes('id="appBootstrap"')&&source.includes('role="status"')&&source.includes('aria-live="polite"'),'Accessible auth bootstrap state missing');
+assert.ok(source.includes("setBootstrapVisible(true);setProductUiAuthenticated(false);document.getElementById('authRoot').innerHTML='';"),'Auth initialization must show bootstrap before session resolution');
+assert.ok(source.includes("setProductUiAuthenticated(false);document.getElementById('mainApp').style.display='none';cleanupDocumentBackgroundProcessing();"),'Logout must hide authenticated navigation immediately');
+assert.ok(source.includes('const today=()=>localDateOnly(new Date());'),'today() must use the local calendar date');
+assert.equal(source.includes("const today=()=>new Date().toISOString().slice(0,10);"),false,'Date-only today() must not round-trip through UTC');
+const reportSource=source.slice(source.indexOf('function buildReportPreview(){'),source.indexOf('async function deleteStoredFile'));
+assert.ok(reportSource.includes('body{width:210mm;min-height:297mm;padding:16mm;background:#fff}'),'Report screen preview must preserve A4 paper geometry');
+assert.equal(reportSource.includes('.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}'),false,'Report preview must not switch to a mobile KPI layout');
+assert.ok(reportSource.includes('page-break-before:always'),'Report must preserve explicit multi-page breaks');
 for(const token of ['#1B1F23','#63D471','#F6F7F8','#8A949C','#FFFFFF'])assert.ok(colorPolish.includes(token),'Product colour polish missing canonical token '+token);
 for(const semantic of ['--status-success:#177A31','--status-warning:#B45309','--status-error:#C2362B','--status-info:#2563EB'])assert.ok(colorPolish.includes(semantic),'Semantic colour mapping missing '+semantic);
 assert.equal(/(?:linear|radial)-gradient\(/i.test(colorPolish),false,'Product colour polish must not introduce gradients');
@@ -35,8 +51,7 @@ for(const [token,value] of Object.entries({
   '--app-muted':'#8A949C',
   '--app-white':'#FFFFFF'
 }))assert.ok(ui.includes(token+':'+value),'Product design token mismatch: '+token);
-assert.ok(ui.includes('font-family:"Boekuna Space"'),'Space Grotesk display role missing');
-assert.ok(ui.includes('font-family:"Boekuna Inter"'),'Inter UI role missing');
+assert.ok(uxPolish.includes('font-family:var(--boekuna-system-font)!important'),'System UI font override missing');
 assert.equal(/(?:linear|radial)-gradient\(/i.test(ui),false,'Master-reference layer must not use gradients');
 assert.equal(/backdrop-filter:(?!none)/i.test(ui),false,'Master-reference layer must not introduce glassmorphism');
 assert.ok(ui.includes('@media(prefers-reduced-motion:reduce)'),'Reduced-motion handling missing');
@@ -72,10 +87,11 @@ assert.ok(source.includes('#mainApp .kpi-tone-success .metric-value{color:var(--
 const build=spawnSync(process.execPath,['scripts/build-app.mjs'],{cwd:root,encoding:'utf8'});
 assert.equal(build.status,0,'App build failed: '+(build.stderr||build.stdout));
 const dist=path.join(root,'dist','app');
-for(const file of ['index.html','manifest.webmanifest','assets/app-InterVariable.woff2','assets/app-SpaceGrotesk-Variable.ttf','assets/product-color-polish.css'])assert.ok(fs.existsSync(path.join(dist,file)),'Built app asset missing '+file);
+for(const file of ['index.html','manifest.webmanifest','assets/app-InterVariable.woff2','assets/app-SpaceGrotesk-Variable.ttf','assets/product-color-polish.css','assets/product-ux-polish-round-3.css'])assert.ok(fs.existsSync(path.join(dist,file)),'Built app asset missing '+file);
 let appHtml=fs.readFileSync(path.join(dist,'index.html'),'utf8');
 assert.ok(appHtml.includes('boekuna-product-ui-reference-20261003'),'Built artifact must contain the new product UI layer');
 assert.ok(appHtml.includes('/assets/product-color-polish.css?v=20261006a'),'Built artifact must load the app-only colour polish layer');
+assert.ok(appHtml.includes('/assets/product-ux-polish-round-3.css?v=20261007a'),'Built artifact must load Round 3 after the established colour baseline');
 assert.equal(appHtml.includes('function showMarketingPage'),false,'App artifact must remain free of marketing runtime');
 
 function replaceLast(sourceText,needle,replacement){
@@ -119,6 +135,34 @@ async function noOverflow(page,label){
   const result=await page.evaluate(()=>({vw:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
   assert.ok(result.html<=result.vw+2&&result.body<=result.vw+2,label+' horizontal overflow: '+JSON.stringify(result));
 }
+async function noDecorativeShadows(page,label){
+  const shadows=await page.evaluate(()=>{
+    const roots=[document.getElementById('mainApp'),document.getElementById('mobileBottomNav'),document.getElementById('modalRoot'),document.querySelector('#authRoot .auth-root')].filter(Boolean);
+    const nodes=roots.flatMap(root=>[root,...root.querySelectorAll('*')]);
+    return nodes.filter((el,index)=>nodes.indexOf(el)===index).filter(el=>{const r=el.getBoundingClientRect();return r.width>0&&r.height>0&&!el.matches(':focus,:focus-visible')}).map(el=>({tag:el.tagName,className:String(el.className||''),shadow:getComputedStyle(el).boxShadow}));
+  });
+  const offenders=shadows.filter(item=>item.shadow!=='none');
+  assert.deepEqual(offenders,[],label+' decorative shadows: '+JSON.stringify(offenders));
+}
+async function reportA4State(page,label){
+  await page.evaluate(()=>printReport());
+  await page.locator('#reportPreviewFrame').waitFor();
+  await page.waitForFunction(()=>{const f=document.getElementById('reportPreviewFrame');return f?.contentDocument?.body&&f.style.transform});
+  const state=await page.evaluate(()=>{
+    const frame=document.getElementById('reportPreviewFrame'),doc=frame.contentDocument,body=doc.body,kpis=doc.querySelector('.kpis'),canvas=document.getElementById('reportPreviewCanvas');
+    const bodyStyle=frame.contentWindow.getComputedStyle(body),kpiStyle=frame.contentWindow.getComputedStyle(kpis),canvasRect=canvas.getBoundingClientRect();
+    const frameStyle=getComputedStyle(frame);
+    return {innerWidth:frame.contentWindow.innerWidth,inlineWidth:frame.style.width,frameCssWidth:parseFloat(frameStyle.width),frameCssHeight:parseFloat(frameStyle.height),bodyWidth:body.getBoundingClientRect().width,bodyCssWidth:bodyStyle.width,kpiColumns:kpiStyle.gridTemplateColumns.split(' ').filter(Boolean).length,transform:frame.style.transform,transformOrigin:frameStyle.transformOrigin,canvasWidth:canvasRect.width,canvasHeight:canvasRect.height,scrollHeight:doc.documentElement.scrollHeight};
+  });
+  assert.equal(state.inlineWidth,'794px',label+' JS A4 geometry must request a 794px iframe');
+  assert.ok(Math.abs(state.frameCssWidth-794)<=2,label+' preview frame CSS width must remain A4-width before scaling: '+JSON.stringify(state));
+  assert.ok(Math.abs(state.frameCssHeight-1123)<=2,label+' preview frame CSS height must remain A4-height before scaling: '+JSON.stringify(state));
+  assert.ok(Math.abs(state.bodyWidth-794)<=3,label+' paper must remain 210mm/A4-width: '+JSON.stringify(state));
+  assert.equal(state.kpiColumns,4,label+' PDF KPI composition must stay desktop/document layout');
+  assert.match(state.transform,/scale\(/,label+' preview must scale the fixed paper rather than reflow it');
+  assert.match(state.transformOrigin,/^0px 0px/,label+' A4 preview must scale from the top-left origin');
+  return state;
+}
 async function axe(page,label){
   await page.addScriptTag({content:axeSource});
   const result=await page.evaluate(async()=>await axe.run(document.getElementById('mainApp'),{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']}}));
@@ -156,10 +200,11 @@ try{
       await page.goto(base+'/app',{waitUntil:'networkidle'});
       await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
       await page.evaluate(async()=>document.fonts.ready);
-      assert.equal(await page.evaluate(()=>document.fonts.check('16px "Boekuna Inter"')),true,browserName+' Inter must load locally');
-      assert.equal(await page.evaluate(()=>document.fonts.check('32px "Boekuna Space"')),true,browserName+' Space Grotesk must load locally');
-      assert.match(await page.locator('#mainApp').evaluate(el=>getComputedStyle(el).fontFamily),/Boekuna Inter/);
-      assert.match(await page.locator('.dashboard-page-head h1').evaluate(el=>getComputedStyle(el).fontFamily),/Boekuna Space/);
+      const appFont=await page.locator('#mainApp').evaluate(el=>getComputedStyle(el).fontFamily);
+      const headingFont=await page.locator('.dashboard-page-head h1').evaluate(el=>getComputedStyle(el).fontFamily);
+      assert.match(appFont,/-apple-system|Segoe UI|Roboto/,browserName+' app must use the platform system-font stack');
+      assert.doesNotMatch(appFont,/Boekuna Inter|Boekuna Space/,browserName+' app must not use legacy webfonts as its primary UI font');
+      assert.match(headingFont,/-apple-system|Segoe UI|Roboto/,browserName+' headings must use the same native system stack');
       assert.equal(await page.locator('#sidebar').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
       assert.equal(await page.locator('.nav-item.active').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(236, 250, 238)');
       const semanticColours=await page.evaluate(()=>{
@@ -201,6 +246,15 @@ try{
       await axe(page,browserName+' desktop dashboard');
       assert.ok(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2),browserName+' 1440x900 dashboard must fit one screen');
       await page.screenshot({path:path.join(evidence,'dashboard-1440-'+browserName+'.png'),fullPage:true});
+      await noDecorativeShadows(page,browserName+' desktop dashboard');
+      const dateSafety=await page.evaluate(()=>({
+        roundtrip:localDateOnly(parseDateOnly('2026-10-07')),
+        plusDst:addDateOnlyDays('2026-10-24',2),
+        plusInvoice:addDateOnlyDays('2026-10-07',14),
+        display:dateNL('2026-10-07')
+      }));
+      assert.deepEqual(dateSafety,{roundtrip:'2026-10-07',plusDst:'2026-10-26',plusInvoice:'2026-10-21',display:dateSafety.display},browserName+' date-only helpers must preserve calendar dates');
+      assert.match(dateSafety.display,/2026/,browserName+' date-only display must preserve the intended year');
 
       await page.setViewportSize({width:1366,height:768});
       await page.evaluate(()=>navigate('dashboard'));
@@ -286,6 +340,8 @@ try{
       assert.ok(vatHeader.period&&vatHeader.period.left>vatHeader.title.left,browserName+' VAT period must be right of title');
       assert.match(await page.locator('#content').innerText(),/indicati(?:e|ef)/i);
       await noOverflow(page,browserName+' desktop VAT');
+      assert.equal(await page.locator('.mobile-vat-attention').count(),0,browserName+' VAT must not expose the removed document-review CTA');
+      assert.doesNotMatch(await page.locator('#content').innerText(),/^Documenten controleren$/m,browserName+' VAT must remain informational');
       await page.screenshot({path:path.join(evidence,'vat-1440-'+browserName+'.png'),fullPage:true});
 
       const coreKpis={
@@ -341,8 +397,38 @@ try{
         assert.deepEqual((await page.locator('.product-kpi-label').allTextContents()).map(v=>v.trim()),labels,browserName+' '+route+' KPI labels');
         assert.equal(await page.locator('.product-kpi').count(),4,browserName+' '+route+' must expose four coherent KPI cards');
         await noOverflow(page,browserName+' desktop '+route);
+        await noDecorativeShadows(page,browserName+' desktop '+route);
         await axe(page,browserName+' desktop '+route);
       }
+      await page.evaluate(()=>navigate('reports'));
+      const reportDesktop=await reportA4State(page,browserName+' desktop A4');
+      assert.ok(reportDesktop.canvasWidth>=790,browserName+' desktop A4 preview should render at natural paper size when space allows');
+      await page.screenshot({path:path.join(evidence,'report-a4-1440-'+browserName+'.png'),fullPage:true});
+      await page.evaluate(()=>{reportPreviewHistory=null;closeModal();window.__round3Invoices=structuredClone(state.invoices);const base=structuredClone(state.invoices[0]);for(let n=2;n<=64;n++)state.invoices.push({...base,id:'round3-'+n,number:'2026-'+String(n).padStart(4,'0')})});
+      const multipage=await reportA4State(page,browserName+' desktop multipage A4');
+      assert.ok(multipage.scrollHeight>1123,browserName+' desktop multipage report must exceed one A4 preview page');
+      await page.evaluate(()=>{reportPreviewHistory=null;closeModal()});
+      await page.setViewportSize({width:390,height:844});
+      await page.evaluate(()=>navigate('reports'));
+      const multipageMobile=await reportA4State(page,browserName+' mobile multipage A4');
+      assert.ok(multipageMobile.scrollHeight>1123,browserName+' mobile multipage report must preserve all report pages');
+      assert.ok(multipageMobile.canvasWidth<794,browserName+' mobile multipage report must scale the complete A4 paper');
+      await noOverflow(page,browserName+' mobile multipage A4');
+      await page.evaluate(()=>{reportPreviewHistory=null;closeModal();state.invoices=window.__round3Invoices;delete window.__round3Invoices;render()});
+
+      const a4ViewportEvidence=[];
+      for(const [width,height] of [[320,844],[360,844],[375,844],[390,844],[393,852],[430,900],[768,900],[1024,900],[1440,900]]){
+        await page.setViewportSize({width,height});
+        await page.evaluate(()=>navigate('reports'));
+        const a4=await reportA4State(page,browserName+' A4 '+width+'px');
+        if(width<794)assert.ok(a4.canvasWidth<794,browserName+' '+width+'px A4 preview canvas must scale below natural paper width');
+        else assert.ok(a4.canvasWidth>=790,browserName+' '+width+'px A4 preview should keep natural paper width when space allows');
+        await noOverflow(page,browserName+' A4 '+width+'px');
+        a4ViewportEvidence.push({width,frameCssWidth:a4.frameCssWidth,bodyWidth:a4.bodyWidth,kpiColumns:a4.kpiColumns,transform:a4.transform,canvasWidth:a4.canvasWidth});
+        await page.evaluate(()=>{reportPreviewHistory=null;closeModal()});
+      }
+      console.log('Round 3 A4 viewport evidence '+browserName+': '+JSON.stringify(a4ViewportEvidence));
+
       const polishVisualRoutes=['expenses','documents','bank','vat','reports','settings','profile'];
       await page.setViewportSize({width:1440,height:900});
       for(const route of polishVisualRoutes){
@@ -379,6 +465,12 @@ try{
       }
 
       await page.setViewportSize({width:390,height:844});
+      await page.evaluate(()=>{setProductUiAuthenticated(false);setBootstrapVisible(true);document.getElementById('mainApp').style.display='none';document.getElementById('authRoot').innerHTML=''});
+      assert.equal(await page.locator('#appBootstrap').isVisible(),true,browserName+' bootstrap must cover unresolved auth state');
+      assert.equal(await page.locator('#mobileBottomNav').evaluate(el=>getComputedStyle(el).display),'none',browserName+' navigation must stay hidden during bootstrap');
+      await page.screenshot({path:path.join(evidence,'loading-390-'+browserName+'.png'),fullPage:true});
+      await page.evaluate(()=>enterApp());
+      await page.getByRole('heading',{name:'Overzicht'}).waitFor();
       for(const route of ['invoices','expenses','vat','reports']){
         await page.evaluate(route=>navigate(route),route);
         const header=await page.locator('.product-page-head').evaluate(head=>{
@@ -389,6 +481,12 @@ try{
         assert.ok(Math.abs(header.period.top-header.title.top)<36,browserName+' mobile '+route+' title and period must remain on one row');
         await noOverflow(page,browserName+' mobile '+route+' header');
       }
+      await page.evaluate(()=>navigate('reports'));
+      const reportMobile=await reportA4State(page,browserName+' mobile A4');
+      assert.ok(reportMobile.canvasWidth<794,browserName+' mobile preview must scale down the A4 paper');
+      assert.equal(reportMobile.kpiColumns,4,browserName+' mobile viewport must not reflow the PDF itself');
+      await page.screenshot({path:path.join(evidence,'report-a4-390-'+browserName+'.png'),fullPage:true});
+      await page.evaluate(()=>{reportPreviewHistory=null;closeModal()});
       await page.evaluate(()=>navigate('invoices'));
       for(const width of [390,320]){
         await page.setViewportSize({width,height:844});
@@ -398,6 +496,11 @@ try{
         const mobileHeights=await page.locator('.product-kpi').evaluateAll(cards=>cards.map(card=>Math.round(card.getBoundingClientRect().height)));
         assert.ok(Math.max(...mobileHeights)-Math.min(...mobileHeights)<=1,browserName+' mobile '+width+' KPI cards must keep equal heights');
         await noOverflow(page,browserName+' mobile invoices long amounts '+width);
+        await page.evaluate(()=>newInvoice());
+        const dateInputs=await page.locator('#invoiceForm input[type="date"]').evaluateAll(nodes=>nodes.map(el=>{const r=el.getBoundingClientRect();return {left:r.left,right:r.right,width:r.width,client:el.clientWidth,scroll:el.scrollWidth,value:el.value}}));
+        assert.ok(dateInputs.every(item=>item.left>=-1&&item.right<=width+1&&item.scroll<=item.client+1),browserName+' '+width+' date inputs must fit without clipping: '+JSON.stringify(dateInputs));
+        await page.screenshot({path:path.join(evidence,'date-input-'+width+'-'+browserName+'.png'),fullPage:true});
+        await page.evaluate(()=>closeModal());
       }
       for(const width of [320,375,390,430]){
         await page.setViewportSize({width,height:844});
@@ -406,10 +509,12 @@ try{
         assert.deepEqual((await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents()).map(v=>v.trim()),['Overzicht','Inkomsten','Kosten','Btw','Meer']);
         const activeMobileNav=page.locator('#mobileBottomNav .mobile-bottom-nav-item.active[aria-current="page"]');
         await page.waitForFunction(()=>getComputedStyle(document.querySelector('#mobileBottomNav .mobile-bottom-nav-item.active[aria-current="page"]')).backgroundColor==='rgb(236, 250, 238)');
-        const activeMobileStyle=await activeMobileNav.evaluate(el=>{const s=getComputedStyle(el);return {background:s.backgroundColor,color:s.color,boxShadow:s.boxShadow,fontWeight:s.fontWeight}});
+        const activeMobileStyle=await activeMobileNav.evaluate(el=>{const s=getComputedStyle(el);return {background:s.backgroundColor,color:s.color,boxShadow:s.boxShadow,borderTopColor:s.borderTopColor,borderTopWidth:s.borderTopWidth,fontWeight:s.fontWeight}});
         assert.equal(activeMobileStyle.background,'rgb(236, 250, 238)',browserName+' mobile '+width+' active destination must use the soft BOEKUNA-green selected state');
         assert.equal(activeMobileStyle.color,'rgb(27, 31, 35)',browserName+' mobile '+width+' active destination label must remain anthracite');
-        assert.match(activeMobileStyle.boxShadow,/99, 212, 113/,browserName+' mobile '+width+' active destination must retain the non-colour inset selection cue');
+        assert.equal(activeMobileStyle.boxShadow,'none',browserName+' mobile '+width+' active destination must not use a decorative shadow');
+        assert.equal(activeMobileStyle.borderTopColor,'rgb(99, 212, 113)',browserName+' mobile '+width+' active destination must use a border cue');
+        assert.equal(activeMobileStyle.borderTopWidth,'2px',browserName+' mobile '+width+' active destination border cue must remain visible');
         assert.ok(Number.parseInt(activeMobileStyle.fontWeight,10)>=700,browserName+' mobile '+width+' active destination must retain a font-weight selection cue');
         await noOverflow(page,browserName+' mobile dashboard active nav '+width);
       }
@@ -482,6 +587,14 @@ try{
       await axe(page,browserName+' auth register');
       await noOverflow(page,browserName+' auth register desktop');
       await page.setViewportSize({width:390,height:844});
+      await page.evaluate(()=>showAuth('login'));
+      await page.locator('#authRoot .auth-root').waitFor();
+      assert.equal(await page.locator('#mobileBottomNav').evaluate(el=>getComputedStyle(el).display),'none',browserName+' logged-out mobile login must not show product navigation');
+      assert.equal(await page.locator('#mobileBottomNav').getAttribute('aria-hidden'),'true',browserName+' logged-out nav must be hidden from assistive technology');
+      await noOverflow(page,browserName+' auth login mobile');
+      await page.screenshot({path:path.join(evidence,'auth-login-390-'+browserName+'.png'),fullPage:true});
+      await page.evaluate(()=>showAuth('register'));
+      await page.locator('#authRoot #registerEmail').waitFor();
       await noOverflow(page,browserName+' auth register mobile');
       await page.screenshot({path:path.join(evidence,'auth-register-390-'+browserName+'.png'),fullPage:true});
 
