@@ -98,7 +98,7 @@ try{
   await page.locator('.mobile-document-questions').screenshot({path:path.join(evidenceDir,'02-bonnen-vragen-'+browserName+'.png')});
 
   await page.evaluate(()=>newContact());
-  await page.locator('#contactForm[data-mobile-customer-flow]').waitFor();
+  await page.locator('#contactForm[data-mobile-customer-flow]').waitFor({state:'attached'});
   assert.equal(await page.locator('#modalTitle').innerText(),'Nieuwe klant');
   assert.ok(await page.locator('#kvkQuery').isVisible(),'KVK query is primary');
   assert.equal(await page.getByRole('button',{name:/Particulier of buitenland/}).count(),1);
@@ -125,7 +125,7 @@ try{
   await page.evaluate(()=>closeModal());
 
   await page.evaluate(()=>newContact());
-  await page.locator('#contactForm[data-mobile-customer-flow]').waitFor();
+  await page.locator('#contactForm[data-mobile-customer-flow]').waitFor({state:'attached'});
   await page.getByRole('button',{name:/Particulier of buitenland/}).click();
   assert.ok(await page.locator('#contactName').isVisible(),'manual fallback exposes existing full form');
   assert.ok(await page.locator('#contactForm [name="contactPerson"]').isVisible(),'manual fallback keeps the full manual form reachable');
