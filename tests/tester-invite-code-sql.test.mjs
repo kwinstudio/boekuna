@@ -33,7 +33,7 @@ try{
   await db.exec([
     "create role anon;",
     "create role authenticated;",
-    "create role service_role;",
+    "create role service_role bypassrls;",
     "create schema auth;",
     "create schema private;",
     "create schema extensions;",

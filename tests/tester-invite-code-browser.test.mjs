@@ -62,7 +62,7 @@ try{
   await page.getByRole('button',{name:'Activeren…'}).waitFor();
   assert.equal(await page.getByRole('button',{name:'Activeren…'}).isDisabled(),true,'activation must expose loading state');
   await page.evaluate(()=>window.__testerResolve({data:{ok:false,code:'INVALID_CODE'},error:null}));
-  await page.getByText('Deze testcode is niet geldig.').waitFor();
+  await page.locator('#testerInviteStatus').filter({hasText:'Deze testcode is niet geldig.'}).waitFor();
   assert.deepEqual(await page.evaluate(()=>window.__testerRpc),{name:'redeem_tester_invite_code',args:{p_code:'BOEKUNA-ABCDEFGHJKLMNPQR'}});
 
   assert.equal(await page.evaluate(()=>testerCodeMessage('CODE_EXPIRED')),'Deze testcode is verlopen.');
@@ -83,7 +83,7 @@ try{
   });
   await page.locator('#testerInviteCode').fill('BOEKUNA-HJKLMNPQ23456789');
   await page.getByRole('button',{name:'Code activeren'}).click();
-  await page.getByText('Testtoegang actief').waitFor();
+  await page.getByText('Testtoegang actief',{exact:true}).waitFor();
   assert.ok(await page.getByText(/Je kunt Boekuna gratis gebruiken tot/).isVisible());
   assert.equal(await page.locator('#testerInviteCode').count(),0,'active tester must not see another-code input');
   assert.ok(await page.getByText('Geen kaart gekoppeld. Er start geen automatische betaling.').isVisible());
