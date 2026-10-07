@@ -16,6 +16,8 @@ assert.ok(uxPolish.includes('--boekuna-system-font:-apple-system,BlinkMacSystemF
 assert.equal(/Boekuna (?:Inter|Space)/.test(uxPolish),false,'Round 3 must not depend on app-only Inter or Space Grotesk as primary UI fonts');
 assert.ok(uxPolish.includes('#mobileBottomNav{display:none!important}'),'Pre-auth mobile navigation gate missing');
 assert.ok(uxPolish.includes('.quick-action-backdrop'),'Central mobile quick-create presentation missing');
+assert.ok(uxPolish.includes('#modalRoot .report-preview-modal #reportPreviewFrame{'),'A4 report iframe must have a dedicated geometry selector');
+assert.ok(uxPolish.includes('width:794px!important')&&uxPolish.includes('min-width:794px!important')&&uxPolish.includes('max-width:none!important'),'A4 report iframe fixed-width cascade contract missing');
 assert.ok(source.includes('id="appBootstrap"')&&source.includes('role="status"')&&source.includes('aria-live="polite"'),'Accessible auth bootstrap state missing');
 assert.ok(source.includes("setBootstrapVisible(true);setProductUiAuthenticated(false);document.getElementById('authRoot').innerHTML='';"),'Auth initialization must show bootstrap before session resolution');
 assert.ok(source.includes("setProductUiAuthenticated(false);document.getElementById('mainApp').style.display='none';cleanupDocumentBackgroundProcessing();"),'Logout must hide authenticated navigation immediately');
@@ -150,12 +152,15 @@ async function reportA4State(page,label){
     const frame=document.getElementById('reportPreviewFrame'),doc=frame.contentDocument,body=doc.body,kpis=doc.querySelector('.kpis'),canvas=document.getElementById('reportPreviewCanvas');
     const bodyStyle=frame.contentWindow.getComputedStyle(body),kpiStyle=frame.contentWindow.getComputedStyle(kpis),canvasRect=canvas.getBoundingClientRect();
     const frameStyle=getComputedStyle(frame);
-    return {innerWidth:frame.contentWindow.innerWidth,frameCssWidth:parseFloat(frameStyle.width),bodyWidth:body.getBoundingClientRect().width,bodyCssWidth:bodyStyle.width,kpiColumns:kpiStyle.gridTemplateColumns.split(' ').filter(Boolean).length,transform:frame.style.transform,canvasWidth:canvasRect.width,canvasHeight:canvasRect.height,scrollHeight:doc.documentElement.scrollHeight};
+    return {innerWidth:frame.contentWindow.innerWidth,inlineWidth:frame.style.width,frameCssWidth:parseFloat(frameStyle.width),frameCssHeight:parseFloat(frameStyle.height),bodyWidth:body.getBoundingClientRect().width,bodyCssWidth:bodyStyle.width,kpiColumns:kpiStyle.gridTemplateColumns.split(' ').filter(Boolean).length,transform:frame.style.transform,transformOrigin:frameStyle.transformOrigin,canvasWidth:canvasRect.width,canvasHeight:canvasRect.height,scrollHeight:doc.documentElement.scrollHeight};
   });
+  assert.equal(state.inlineWidth,'794px',label+' JS A4 geometry must request a 794px iframe');
   assert.ok(Math.abs(state.frameCssWidth-794)<=2,label+' preview frame CSS width must remain A4-width before scaling: '+JSON.stringify(state));
+  assert.ok(Math.abs(state.frameCssHeight-1123)<=2,label+' preview frame CSS height must remain A4-height before scaling: '+JSON.stringify(state));
   assert.ok(Math.abs(state.bodyWidth-794)<=3,label+' paper must remain 210mm/A4-width: '+JSON.stringify(state));
   assert.equal(state.kpiColumns,4,label+' PDF KPI composition must stay desktop/document layout');
   assert.match(state.transform,/scale\(/,label+' preview must scale the fixed paper rather than reflow it');
+  assert.match(state.transformOrigin,/^0px 0px/,label+' A4 preview must scale from the top-left origin');
   return state;
 }
 async function axe(page,label){
@@ -400,9 +405,29 @@ try{
       assert.ok(reportDesktop.canvasWidth>=790,browserName+' desktop A4 preview should render at natural paper size when space allows');
       await page.screenshot({path:path.join(evidence,'report-a4-1440-'+browserName+'.png'),fullPage:true});
       await page.evaluate(()=>{reportPreviewHistory=null;closeModal();window.__round3Invoices=structuredClone(state.invoices);const base=structuredClone(state.invoices[0]);for(let n=2;n<=64;n++)state.invoices.push({...base,id:'round3-'+n,number:'2026-'+String(n).padStart(4,'0')})});
-      const multipage=await reportA4State(page,browserName+' multipage A4');
-      assert.ok(multipage.scrollHeight>1123,browserName+' multipage report must exceed one A4 preview page');
+      const multipage=await reportA4State(page,browserName+' desktop multipage A4');
+      assert.ok(multipage.scrollHeight>1123,browserName+' desktop multipage report must exceed one A4 preview page');
+      await page.evaluate(()=>{reportPreviewHistory=null;closeModal()});
+      await page.setViewportSize({width:390,height:844});
+      await page.evaluate(()=>navigate('reports'));
+      const multipageMobile=await reportA4State(page,browserName+' mobile multipage A4');
+      assert.ok(multipageMobile.scrollHeight>1123,browserName+' mobile multipage report must preserve all report pages');
+      assert.ok(multipageMobile.canvasWidth<794,browserName+' mobile multipage report must scale the complete A4 paper');
+      await noOverflow(page,browserName+' mobile multipage A4');
       await page.evaluate(()=>{reportPreviewHistory=null;closeModal();state.invoices=window.__round3Invoices;delete window.__round3Invoices;render()});
+
+      const a4ViewportEvidence=[];
+      for(const [width,height] of [[320,844],[360,844],[375,844],[390,844],[393,852],[430,900],[768,900],[1024,900],[1440,900]]){
+        await page.setViewportSize({width,height});
+        await page.evaluate(()=>navigate('reports'));
+        const a4=await reportA4State(page,browserName+' A4 '+width+'px');
+        if(width<794)assert.ok(a4.canvasWidth<794,browserName+' '+width+'px A4 preview canvas must scale below natural paper width');
+        else assert.ok(a4.canvasWidth>=790,browserName+' '+width+'px A4 preview should keep natural paper width when space allows');
+        await noOverflow(page,browserName+' A4 '+width+'px');
+        a4ViewportEvidence.push({width,frameCssWidth:a4.frameCssWidth,bodyWidth:a4.bodyWidth,kpiColumns:a4.kpiColumns,transform:a4.transform,canvasWidth:a4.canvasWidth});
+        await page.evaluate(()=>{reportPreviewHistory=null;closeModal()});
+      }
+      console.log('Round 3 A4 viewport evidence '+browserName+': '+JSON.stringify(a4ViewportEvidence));
 
       const polishVisualRoutes=['expenses','documents','bank','vat','reports','settings','profile'];
       await page.setViewportSize({width:1440,height:900});
