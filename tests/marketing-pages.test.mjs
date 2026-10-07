@@ -32,6 +32,19 @@ for(const slug of preserved){
 const terms=fs.readFileSync(path.join(source,'voorwaarden','index.html'),'utf8');
 for(const detail of ['Kwinest','74542893','NL002477565B57','support@boekuna.nl'])assert.ok(terms.includes(detail),'Required business detail missing '+detail);
 
+const vercel=JSON.parse(fs.readFileSync(path.join(root,'vercel.json'),'utf8'));
+assert.ok(!Array.isArray(vercel.redirects)||vercel.redirects.length===0,'Retired permanent marketing redirects must be removed');
+const securityHeaders=(vercel.headers||[]).flatMap(rule=>rule.headers||[]);
+for(const key of ['X-Content-Type-Options','Referrer-Policy','X-Frame-Options','Permissions-Policy']){
+  assert.ok(securityHeaders.some(header=>header.key===key), 'Security header missing: '+key);
+}
+const support=fs.readFileSync(path.join(source,'support','index.html'),'utf8');
+assert.ok(support.includes('id="supportForm"'),'Support form must remain operational');
+assert.ok(support.includes('/rest/v1/support_requests'),'Support storage endpoint must remain present');
+const deletion=fs.readFileSync(path.join(source,'account-verwijderen','index.html'),'utf8');
+assert.ok(deletion.includes('id="deleteRequestForm"'),'Account deletion request form must remain operational');
+assert.ok(deletion.includes('/rest/v1/support_requests'),'Account deletion request endpoint must remain present');
+
 const sitemap=fs.readFileSync(path.join(source,'sitemap.xml'),'utf8');
 assert.equal(sitemap.includes('https://boekuna.nl/</loc>'),false,'Noindex holding root must not be in sitemap');
 for(const slug of preserved)assert.ok(sitemap.includes('https://boekuna.nl/'+slug+'/'), 'Sitemap missing preserved route '+slug);
