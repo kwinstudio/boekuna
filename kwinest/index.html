@@ -4920,7 +4920,7 @@ function showBankImportPreview(){
   ${plan.problems.length?`<li><strong>${plan.problems.length}</strong> ${plan.problems.length===1?'heeft':'hebben'} controle nodig</li>`:''}
  </ul>
  ${plan.problems.length?`<div class="notice warn" role="alert"><strong>Deze regels worden niet geïmporteerd.</strong> Controleer ze in je bankapp en voeg ze zo nodig zelf toe met "Transactie toevoegen".<ul class="bank-import-problems" style="margin:8px 0 0;padding-left:18px">${probHtml}</ul>${plan.problems.length>50?`<p class="help">En nog ${plan.problems.length-50} regels.</p>`:''}</div>`:''}
- ${n?`<div class="table-wrap"><table class="table financial-table"><thead><tr><th>Datum</th><th>Omschrijving</th><th class="right">Bedrag</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>${n>100?`<p class="help">De eerste 100 van ${n} transacties.</p>`:''}`:`<div class="notice info">Er is niets nieuws om te importeren.</div>`}
+ ${n?`<div class="table-wrap"><table class="table financial-table"><thead><tr><th>Datum</th><th>Omschrijving</th><th class="right">Bedrag</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>${n>100?`<p class="help">100 van ${n} transacties getoond.</p>`:''}`:`<div class="notice info">Er is niets nieuws om te importeren.</div>`}
  <p class="help">Klopt een kolom niet? <button type="button" class="btn small" onclick="showBankColumnMapping()">Kolommen aanpassen</button></p>
  </div>`,`<button class="btn" onclick="pendingBankImport=null;closeModal()">Annuleren</button>${bankPickFileButton()}${n?`<button class="btn primary" onclick="confirmBankImport()">${n} transactie${n===1?'':'s'} importeren</button>`:''}`,true);
 }
