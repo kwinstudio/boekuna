@@ -50,8 +50,6 @@ const appAssets=[
   'mobile-polish-round-2.js',
   'mobile-product.css',
   'mobile-product.js',
-  'mobile-flow-simplification.css',
-  'mobile-flow-simplification.js',
   ...(isReleaseFeatureEnabled(releaseFeatures,'developerMode')?['developer-mode.js']:[])
 ];
 
@@ -374,7 +372,7 @@ for(const asset of appAssets){
 }
 
 // Document review is app-only. Keep the shared public/marketing copies byte-identical.
-for(const asset of ['document-review-v2.js','document-review-v2.css','product-color-polish.css','product-ux-polish-round-3.css']){
+for(const asset of ['document-review-v2.js','document-review-v2.css','product-color-polish.css','product-ux-polish-round-3.css','mobile-flow-simplification.js','mobile-flow-simplification.css']){
   const sourceFile=path.join(root,'kwinest','app-assets',asset);
   if(!fs.existsSync(sourceFile))throw new Error('Missing app-only review asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
