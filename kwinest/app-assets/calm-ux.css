@@ -210,3 +210,8 @@ html body :is(#mainApp,#modalRoot) :is(.field,.form-grid>*,.grid>*){min-width:0}
   html body #mainApp #cloudSyncBadge.badge.good:not(.hidden){font-size:0!important;padding:0!important;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center}
   html body #mainApp #cloudSyncBadge.badge.good:not(.hidden)::after{content:"✓";font-size:14px}
 }
+
+/* Chart colours: omzet green, kosten red, winst blue. Same in the overview, reports and the cost categories. */
+html body #mainApp#mainApp :is(.bar.sales,.legend-dot:not(.cost):not(.profit)){background:#63D471!important}
+html body #mainApp#mainApp :is(.bar.costs,.legend-dot.cost,.category-row .progress span){background:#E5534B!important}
+html body #mainApp#mainApp :is(.bar.profit,.bar.profit.loss,.legend-dot.profit){background:#3B82F6!important}
