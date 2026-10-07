@@ -261,7 +261,7 @@
     }
     updateContactCompanyCard(form,card);
     form.querySelectorAll('input,select,textarea').forEach(function(input){
-      input.addEventListener('input',function(){if(form.dataset.mobileKvkSelected)updateContactCompanyCard(form,card)});
+      input.addEventListener('input',function(){if(form.dataset.mobileKvkSelected||form.dataset.kvkSelectedNumber)updateContactCompanyCard(form,card)});
     });
   }
 

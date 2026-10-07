@@ -200,7 +200,9 @@ try{
   }
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(()=>newInvoice());await page.locator('#invoiceForm[data-mobile-invoice-flow]').waitFor();
-  const targets=await page.locator('.mobile-flow-action, .mobile-vat-choice button, .mobile-invoice-nav button').evaluateAll(nodes=>nodes.map(n=>({w:n.getBoundingClientRect().width,h:n.getBoundingClientRect().height,text:n.textContent.trim()})));
+  const targets=await page.locator('.mobile-flow-action, .mobile-vat-choice button, .mobile-invoice-nav button').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length>0).map(n=>({w:n.getBoundingClientRect().width,h:n.getBoundingClientRect().height,text:n.textContent.trim()})));
+  // Buttons in invoice steps that are not shown yet (display:none) have no box; they are measured once their step is visible.
+  assert.ok(targets.length>0,'mobile invoice must render touch targets');
   assert.ok(targets.every(t=>t.w>=44&&t.h>=44),'mobile touch target smaller than 44px: '+JSON.stringify(targets.filter(t=>t.w<44||t.h<44)));
   await axe(page,browserName+' mobile invoice');
   await page.locator('[data-k="desc"]').focus();
@@ -214,7 +216,7 @@ try{
   assert.equal(await page.locator('.mobile-document-groups').count(),0,'desktop documents must remain original');
   await page.evaluate(()=>newContact());await page.waitForTimeout(50);
   assert.equal(await page.locator('#contactForm[data-mobile-customer-flow]').count(),0,'desktop customer form must remain original');
-  assert.match(await page.locator('#contactForm').innerText(),/Juridische \/ handelsnaam/);
+  assert.match(await page.locator('#contactForm').textContent(),/Juridische \/ handelsnaam/,'desktop customer form keeps original fields (hidden behind KVK search until manual entry)');
   await page.evaluate(()=>closeModal());
   await page.evaluate(()=>newInvoice());await page.waitForTimeout(50);
   assert.equal(await page.locator('#invoiceForm[data-mobile-invoice-flow]').count(),0,'desktop invoice must remain original');
