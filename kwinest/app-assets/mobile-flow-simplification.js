@@ -204,9 +204,12 @@
   function updateContactCompanyCard(form,card){
     if(!form||!card)return;
     var selected=String(form.dataset.kvkSelectedNumber||'');
-    card.hidden=!selected;
-    if(!selected)return;
     var get=function(name){return String(form.elements.namedItem(name)?.value||'').trim()};
+    var signature=JSON.stringify([selected,get('name'),get('address'),get('postal'),get('city')]);
+    if(card.dataset.signature===signature)return;
+    card.dataset.signature=signature;
+    card.hidden=!selected;
+    if(!selected){card.replaceChildren();return}
     card.replaceChildren();
     card.append(node('strong','',get('name')||'Bedrijf'));
     var address=[get('address'),[get('postal'),get('city')].filter(Boolean).join(' ')].filter(Boolean).join(', ');
@@ -471,9 +474,12 @@
     var flow=root?.querySelector('.document-review-flow.two-step-review');
     if(!flow||!media.matches||flow.dataset.mobileSimpleReview==='full')return;
     var parsed=pendingPdfImport?.parsed;if(!parsed)return;
-    var issues=BookunaDocumentReviewV2?.financialBlockingIssues?.(parsed)||[];
-    restoreReviewPages(flow);
+    var issues=window.BookunaDocumentReviewV2?.financialBlockingIssues?.(parsed)||[];
+    var issueSignature=JSON.stringify(issues.map(function(issue){return [issue?.field,issue?.message,issue?.code]}));
     var shell=flow.querySelector('.mobile-single-issue-review');
+    if(shell&&flow.dataset.mobileSimpleReview==='active'&&flow.dataset.mobileIssueSignature===issueSignature)return;
+    flow.dataset.mobileIssueSignature=issueSignature;
+    restoreReviewPages(flow);
     if(!shell){shell=node('section','mobile-single-issue-review');flow.querySelector('.document-review-fields')?.prepend(shell)}
     shell.hidden=false;flow.dataset.mobileSimpleReview='active';
     shell.replaceChildren();
@@ -558,10 +564,10 @@
     document.querySelectorAll('[data-mobile-invoice-flow]').forEach(function(form){delete form.dataset.mobileInvoiceFlow;delete form.dataset.mobileInvoiceStep});
     document.querySelectorAll('.mobile-invoice-original-foot').forEach(function(el){el.classList.remove('mobile-invoice-original-foot')});
     document.querySelectorAll('.mobile-vat-native-select,.mobile-invoice-unit-label').forEach(function(el){el.classList.remove('mobile-vat-native-select','mobile-invoice-unit-label')});
-    document.querySelectorAll('[data-mobile-simple-review]').forEach(function(flow){delete flow.dataset.mobileSimpleReview});
+    document.querySelectorAll('[data-mobile-simple-review]').forEach(function(flow){delete flow.dataset.mobileSimpleReview;delete flow.dataset.mobileIssueSignature});
   }
   function install(){
-    ['content','modalRoot'].forEach(function(id){var root=document.getElementById(id);if(root)new MutationObserver(schedule).observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','data-kvk-selected-number']})});
+    ['content','modalRoot'].forEach(function(id){var root=document.getElementById(id);if(root)new MutationObserver(schedule).observe(root,{childList:true,subtree:true})});
     media.addEventListener('change',function(){if(media.matches)schedule();else restoreDesktop()});
     document.addEventListener('change',function(event){
       if(!media.matches)return;
