@@ -270,11 +270,9 @@ if(!isReleaseFeatureEnabled(releaseFeatures,'timeTracking')){
 if(!isReleaseFeatureEnabled(releaseFeatures,'mileage')){
   for(const signature of ['function newMileage()','function saveMileage()'])guardBuiltFunction(signature,'mileage');
 }
-// Saved services stay usable (Relaties page + invoice shortcuts) even when the standalone Diensten page is hidden.
-if(!isReleaseFeatureEnabled(releaseFeatures,'serviceCatalog')&&!isReleaseFeatureEnabled(releaseFeatures,'savedServices')){
+if(!isReleaseFeatureEnabled(releaseFeatures,'serviceCatalog')){
   for(const signature of ["function newService(editId='')","function editService(id)","function saveService(id='')","function deleteService(id)"])guardBuiltFunction(signature,'serviceCatalog');
   removeBuiltRange('<div class="invoice-service-picker">','<div id="invoiceLines">','Release service picker');
-  removeBuiltRange('${savedServicesHtml()}','`\n}','Release saved services');
 }
 if(!isReleaseFeatureEnabled(releaseFeatures,'advancedReports')){
   for(const signature of ["function newPlannedCash(id='')","function editPlannedCash(id)","function savePlannedCash()","function deletePlannedCash(id)"])guardBuiltFunction(signature,'advancedReports');
@@ -512,7 +510,7 @@ if(assistantEnabled){
   );
 }
 
-if(!isReleaseFeatureEnabled(releaseFeatures,'serviceCatalog')&&!isReleaseFeatureEnabled(releaseFeatures,'savedServices')){
+if(!isReleaseFeatureEnabled(releaseFeatures,'serviceCatalog')){
   patchBuiltAppAsset(
     'mobile-polish-round-2.js',
     '    deleteService=function(id){',

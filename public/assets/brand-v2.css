@@ -497,13 +497,6 @@ a,button,input,select,textarea{transition-duration:180ms!important;transition-ti
 .service-chip:hover,.service-chip:focus-visible{border-color:var(--primary)}
 .service-chip small{color:var(--muted)}
 .line-item>.line-save-service{grid-column:1/-1;justify-self:start;margin-top:-2px;font-size:12px}
-.saved-services{margin-top:16px;padding:16px}
-.saved-services .section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.saved-services h2{margin:0;font-size:16px}
-.saved-services .help{margin:4px 0 0}
-.saved-services ul{list-style:none;margin:10px 0 0;padding:0}
-.saved-services li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--divider)}
-.saved-services li small{display:block;color:var(--muted)}
 .invoice-advanced-options{margin:14px 0!important;border:1px solid var(--divider)!important;border-radius:var(--radius-md)!important;background:transparent!important}
 .invoice-advanced-options>summary{padding:13px 14px!important;font-size:13px}
 .invoice-editor-summary{display:flex;justify-content:flex-end;margin-top:14px}

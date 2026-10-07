@@ -69,8 +69,8 @@ try{
   await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
 
   const desktopNav=(await page.locator('#sidebar .nav-item').allTextContents()).map(v=>v.trim());
-  for(const core of ['Overzicht','Inkomsten','Kosten','Bank','Btw','Rapportages','Bonnetjes','Relaties','Instellingen'])assert.ok(desktopNav.includes(core),'Core desktop navigation missing '+core);
-  for(const disabled of ['Voor jou','Controlecentrum','Cashflow','Grootboek','Boekingen','Uren & ritten','Diensten'])assert.equal(desktopNav.includes(disabled),false,'Disabled desktop navigation leaked '+disabled);
+  for(const core of ['Overzicht','Inkomsten','Kosten','Bank','Btw','Rapportages','Bonnetjes','Relaties','Diensten','Instellingen'])assert.ok(desktopNav.includes(core),'Core desktop navigation missing '+core);
+  for(const disabled of ['Voor jou','Controlecentrum','Cashflow','Grootboek','Boekingen','Uren & ritten'])assert.equal(desktopNav.includes(disabled),false,'Disabled desktop navigation leaked '+disabled);
 
   // Beginner-first empty states and one obvious task per core screen.
   await page.evaluate(()=>navigate('invoices'));
@@ -104,7 +104,7 @@ try{
   assert.doesNotMatch(settingsText,/Belastingpot/,'Hidden cashflow must not leave a dead Release 1 settings shortcut');
   assert.equal(await page.locator('details.settings-advanced-exports').count(),1,'Specialist exports should use progressive disclosure');
 
-  for(const [route,title] of [['bookings','Overzicht'],['hours','Overzicht'],['control','Overzicht'],['cashflow','Rapportages'],['ledger','Rapportages'],['services','Inkomsten'],['insights','Overzicht']]){
+  for(const [route,title] of [['bookings','Overzicht'],['hours','Overzicht'],['control','Overzicht'],['cashflow','Rapportages'],['ledger','Rapportages'],['insights','Overzicht']]){
     await page.evaluate(route=>navigate(route),route);
     await page.locator('#pageTitle').filter({hasText:title}).waitFor();
   }
@@ -143,16 +143,16 @@ try{
   await page.evaluate(()=>newInvoice());
   assert.equal(await page.getByText('Btw-behandeling',{exact:false}).count(),0,'Advanced VAT selector must not be shown in Release 1');
   assert.equal(await page.locator('#invoiceForm [name="taxTreatment"]').getAttribute('type'),'hidden','VAT treatment must remain deterministic internally');
-  assert.equal(await page.locator('#invoiceForm [onclick*="navigate(\'services\')"]').count(),0,'Hidden service catalog must not leave a dead invoice shortcut');
   await page.evaluate(()=>closeModal());
 
-  // Services are set up once on the Relaties page and picked with one tap on any invoice.
-  await page.evaluate(()=>navigate('contacts'));
-  await page.locator('.saved-services').getByRole('button',{name:'Nieuwe dienst'}).click();
+  // Services are set up once on their own Diensten page and picked with one tap on any invoice.
+  await page.evaluate(()=>navigate('services'));
+  await page.locator('#pageTitle').filter({hasText:'Diensten'}).waitFor();
+  await page.evaluate(()=>newService());
   await page.locator('#serviceForm [name="name"]').fill('Maandelijks onderhoud');
   await page.locator('#serviceForm [name="price"]').fill('75');
   await page.evaluate(()=>saveService(''));
-  await page.locator('.saved-services li').filter({hasText:'Maandelijks onderhoud'}).waitFor();
+  await page.locator('#content').getByText('Maandelijks onderhoud').first().waitFor();
   await page.evaluate(()=>newInvoice());
   await page.locator('.invoice-service-picker .service-chip').filter({hasText:'Maandelijks onderhoud'}).click();
   assert.equal(await page.locator('#invoiceLines .line-item').count(),1,'Picking a service fills the empty first line instead of adding a second');
@@ -206,7 +206,7 @@ try{
   assert.deepEqual(mobileNav,['Overzicht','Inkomsten','Kosten','Btw','Meer']);
   await page.locator('#mobileMenu').click();
   const drawer=(await page.locator('#sidebar .nav-item').allTextContents()).map(v=>v.trim());
-  for(const disabled of ['Voor jou','Controlecentrum','Cashflow','Grootboek','Boekingen','Uren & ritten','Diensten'])assert.equal(drawer.includes(disabled),false,'Disabled mobile drawer item leaked '+disabled);
+  for(const disabled of ['Voor jou','Controlecentrum','Cashflow','Grootboek','Boekingen','Uren & ritten'])assert.equal(drawer.includes(disabled),false,'Disabled mobile drawer item leaked '+disabled);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),true,'Release 1 mobile app must not overflow horizontally');
 
   assert.equal(errors.length,0,'Release 1 browser must have no JavaScript page errors: '+errors.join(' | '));

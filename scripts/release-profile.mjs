@@ -29,8 +29,7 @@ export const FIRST_RELEASE_FEATURES=Object.freeze({
   foreignVatAdvancedUX:false,
   developerMode:false,
   googleIntegration:false,
-  serviceCatalog:false,
-  savedServices:true
+  serviceCatalog:true
 });
 
 export const FULL_FEATURES=Object.freeze(
