@@ -54,7 +54,7 @@ window.__metrics=()=>{
  const inv=state.invoices.filter(i=>i.status!=='draft'),sales=inv.reduce((s,i)=>s+invoiceNet(i),0),costs=state.expenses.reduce((s,e)=>s+Number(e.exVat),0);
  return {sales,costs,profit:sales-costs,vat:inv.reduce((s,i)=>s+invoiceVat(i),0)-state.expenses.reduce((s,e)=>s+expenseVat(e),0),outstanding:inv.map(invoiceOutstanding),paid:inv.map(invoicePaidAmount),statuses:inv.map(invoiceEffectiveStatus),cash:cashBalance(),ledger:ledgerAccountSummary(journalFlatRows()),journal:generatedJournal()}
 };
-document.getElementById('authRoot').innerHTML='';document.getElementById('mainApp').style.display='grid';page='cashflow';render();
+setBootstrapVisible(false);setProductUiAuthenticated(true);document.getElementById('authRoot').innerHTML='';document.getElementById('mainApp').style.display='grid';page='cashflow';render();
 `;
 const at=original.lastIndexOf('initAuth();');
 assert.ok(at>=0);
