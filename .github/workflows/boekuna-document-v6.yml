@@ -8,6 +8,9 @@ on:
       - 'supabase/migrations/*document*'
       - 'tests/document-*.test.*'
       - 'tests/test_document_processor_regression.py'
+      - 'tests/fixtures/supabase-platform-shim.sql'
+      - 'tests/fixtures/replay-migrations.sh'
+      - 'tests/document-workflow-integration.py'
       - '.github/workflows/boekuna-document-v6.yml'
   workflow_dispatch:
 permissions:
@@ -32,7 +35,7 @@ jobs:
       - name: Metadata, shared engine, existing financial and OCR contracts
         run: >-
           python -m pytest --import-mode=importlib -q
-          tests/document-v6-metadata.test.py tests/document-workflow-worker.test.py
+          tests/document-v6-metadata.test.py tests/document-v6-scenarios.test.py tests/document-workflow-worker.test.py
           tests/document-intelligence-phases.test.py tests/document-scan-intelligence-unit.test.py
           tests/financial-blocks.test.py tests/receipt-math.test.py
           tests/document-user-supplied-edge-regressions.test.py tests/document-ocr-v5-regressions.test.py
@@ -52,6 +55,43 @@ jobs:
         with:
           name: document-v6-ocr
           path: artifacts/document-v6-ocr.json
+          if-no-files-found: warn
+  workflow_integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      ORT_DISABLE_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned workflow SDK, processor and integration clients
+        run: python -m pip install -r kwinest/docprocessor/requirements-workflow.txt 'psycopg[binary]==3.2.10' PyJWT==2.10.1
+      - name: Install pinned PostgREST
+        run: |
+          curl -sSL -o postgrest.tar.xz https://github.com/PostgREST/postgrest/releases/download/v12.2.3/postgrest-v12.2.3-linux-static-x64.tar.xz
+          echo '9f71269e61ac3a940281e93ff415760f5957e430e475ba4c3889f3ede7d5527c  postgrest.tar.xz' | sha256sum -c -
+          tar xJf postgrest.tar.xz && ./postgrest --version
+      - name: All migrations on PostgreSQL 17, PostgREST RPC, real worker and engine under faults
+        env:
+          BOOKUNA_WORKFLOW_REPORT: artifacts/workflow-integration.json
+        run: |
+          mkdir -p artifacts
+          python tests/document-workflow-integration.py postgresql://postgres:postgres@localhost:5432/postgres ./postgrest
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: workflow-integration
+          path: artifacts/workflow-integration.json
           if-no-files-found: warn
   document_browser:
     runs-on: ubuntu-latest

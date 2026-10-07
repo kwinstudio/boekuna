@@ -1,0 +1,109 @@
+{
+ "scenarios": [
+  {
+   "scenario": "1 documents, one user, one dispatch",
+   "documents": 1,
+   "batchCompletionMs": 4296,
+   "processP50Ms": 4194.0,
+   "processP95Ms": 4194.0,
+   "queueDelayP50Ms": 25.5,
+   "queueDelayP95Ms": 25.5,
+   "peakActive": 1,
+   "states": {
+    "review_required": 1
+   },
+   "retries": 0
+  },
+  {
+   "scenario": "10 documents, one user, one dispatch",
+   "documents": 10,
+   "batchCompletionMs": 14048,
+   "processP50Ms": 4481.9,
+   "processP95Ms": 4823.2,
+   "queueDelayP50Ms": 4807.8,
+   "queueDelayP95Ms": 9953.0,
+   "peakActive": 4,
+   "states": {
+    "review_required": 10
+   },
+   "retries": 0
+  },
+  {
+   "scenario": "50 documents, one user, one dispatch",
+   "documents": 50,
+   "batchCompletionMs": 57458,
+   "processP50Ms": 4272.0,
+   "processP95Ms": 4748.1,
+   "queueDelayP50Ms": 26308.5,
+   "queueDelayP95Ms": 50304.0,
+   "peakActive": 4,
+   "states": {
+    "review_required": 50
+   },
+   "retries": 0
+  },
+  {
+   "scenario": "3 users x 15 documents, every batch dispatched twice, concurrent recovery",
+   "documents": 45,
+   "batchCompletionMs": 54033,
+   "processP50Ms": 4289.2,
+   "processP95Ms": 4580.8,
+   "queueDelayP95Ms": 46879.5,
+   "peakActive": 4,
+   "peakActivePerUser": 4,
+   "states": {
+    "review_required": 45
+   },
+   "retries": 0
+  },
+  {
+   "scenario": "30 documents with 15% storage 5xx, 5% RPC 5xx, 10% lost completion responses, 10% worker crashes",
+   "documents": 30,
+   "injected": {
+    "storage_5xx": 7,
+    "rpc_5xx": 8,
+    "complete_lost_response": 2,
+    "crash": 5
+   },
+   "states": {
+    "review_required": 29,
+    "failed": 1
+   },
+   "retries": 16
+  },
+  {
+   "scenario": "browser closed before dispatch; scheduled recovery only",
+   "documents": 5,
+   "states": {
+    "review_required": 5
+   },
+   "retries": 0
+  },
+  {
+   "scenario": "free plan (limit 10) with 12 documents",
+   "documents": 12,
+   "usage": 10,
+   "states": {
+    "review_required": 10,
+    "failed": 2
+   },
+   "retries": 0
+  },
+  {
+   "scenario": "plan downgraded during processing (pro to free at 10/10)",
+   "documents": 1,
+   "completionRejected": "DOCUMENT_LIMIT_REACHED",
+   "states": {
+    "failed": 1
+   },
+   "retries": 1
+  }
+ ],
+ "migrationReplay": "all repository migrations, PostgreSQL 17.10",
+ "postgrest": "PostgREST 12.2.3",
+ "engineColdStartMs": 5921.6,
+ "edgeRepairEmbed": "documents without a job selected via PostgREST anti-join",
+ "rpcPrivileges": "anon/authenticated denied via PostgREST",
+ "peakRssMb": 1624.3,
+ "result": "PASS"
+}

@@ -1727,9 +1727,20 @@ def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tu
         if idx is not None:break
     block=lines[idx:idx+12] if idx is not None else lines[:18]
     party_label=re.compile(r'^(?:leverancier|supplier|vendor|seller|from|van|factuur aan|factureren aan|bill to|sold to|customer|klant|debiteur|aan|to|verzender|sender)(?:\s*[:\-]|$)',re.I)
+    customer_label=re.compile(r'^(?:factuur aan|factureren aan|bill to|sold to|customer|klant|debiteur|aan|to)(?:\s*[:\-]|$)',re.I)
+    # Party blocks never continue into the totals; a footer below them belongs to the issuer.
+    totals_line=re.compile(r'^(?:subtotaal|subtotal|totaal|total|te betalen|amount due|btw\s*\d|vat\s*\d)\b',re.I)
+    footer=[]
     if idx is not None:
-        boundary=next((j for j,x in enumerate(block[1:],1) if party_label.match(x)),len(block))
+        boundary=next((j for j,x in enumerate(block[1:],1) if party_label.match(x) or totals_line.match(x)),len(block))
         block=block[:boundary]
+    elif role=="supplier":
+        # Unlabelled issuer: the addressee block is not the supplier. Legal footer lines
+        # (KvK/BTW/IBAN) after the totals are issuer evidence.
+        boundary=next((j for j,x in enumerate(block) if customer_label.match(x)),len(block))
+        block=block[:boundary]
+        footer=[x for x in lines[-8:] if re.search(r'\b(?:kvk|k\.v\.k|btw|vat|iban)\b',x,re.I) and x not in block]
+        block=block+footer
     block=[x for x in block if x and not re.match(r"^-{2,}\s*page\s+\d+\s*-{2,}$",x,re.I)]
     joined="\n".join(block)
     emails=re.findall(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}",joined,re.I)
@@ -1774,6 +1785,12 @@ def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tu
             if re.search(r"\b(?:kvk|btw|vat|iban|factuurnr|factuurnummer|invoice no|invoice number)\b",cand,re.I):continue
             if re.search(r"\b(?:factuur|invoice|creditnota|receipt)\b",cand,re.I):continue
             name=cand;break
+    if not name and footer:
+        # Only a legal-form name leading a footer legal line, e.g. "Name BV | KvK ...".
+        for raw in footer:
+            head=_clean_party_candidate(re.split(r'\s*[|•·]\s*|\s{2,}',raw)[0])
+            if 2<=len(head)<=100 and re.search(r'\b(?:b\.?v\.?|n\.?v\.?|v\.?o\.?f\.?|gmbh|ltd|limited|inc|s\.?a\.?|bvba|srl)$',head,re.I) and not re.search(r'\b(?:kvk|btw|vat|iban)\b',head,re.I):
+                name=head;break
     data={"name":name,"address":address,"postalCode":f"{postal[1]} {postal[2].upper()}" if postal else None,"city":postal[3].strip() if postal and postal[3] else None,"country":"Nederland" if postal else None,
           "kvk":kvks[0] if kvks else None,"vatNumber":nl_vats[0] if nl_vats else None,"iban":next((x for x in ibans if valid_iban(x)),None),"email":emails[0] if emails else None}
     conf=.97 if idx is not None and name else (.62 if name else .20)
@@ -1972,7 +1989,13 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
                 inv_date,inv_date_conf=d,.76
                 break
     if not inv_date and native_lines:
-        inv_date,inv_date_conf=labeled_date(native_lines,invoice_date_labels+['datum:','datum'])
+        inv_date,inv_date_conf=labeled_date(native_lines,invoice_date_labels)
+    if not inv_date and native_lines:
+        # Bare "datum" only as its own word: vervaldatum/besteldatum are other roles.
+        for i,line in enumerate(native_lines):
+            if re.search(r'(?<![^\W\d_])datum\b',line,re.I):
+                inv_date=next((d for d in (norm_date(x) for x in native_lines[i:i+3]) if d),None)
+                if inv_date:inv_date_conf=.7;break
     due_date_labels=["vervaldatum","verval datum","vervalt op","due date","date due","betalen voor","betalen vóór","te betalen voor","betaal voor","pay before","pay by","payment due","uiterste betaaldatum","fällig am","échéance"]
     due_date,due_conf=labeled_date(lines,due_date_labels)
     date_candidates=date_field_candidates(lines,invoice_date_labels)
