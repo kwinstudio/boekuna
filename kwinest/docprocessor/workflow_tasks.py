@@ -56,15 +56,52 @@ class WorkerError(Exception):
         super().__init__(code)
 
 
-def assessment(data):
-    """Respect existing engine review routing, including non-bookable documents."""
+FINANCIAL={'purchase_invoice','sales_invoice','sale_invoice','credit_invoice','receipt'}
+REVIEW_LABELS={'gross':'totaal','vatAmount':'btw-bedrag','issueDate':'datum','party':'leverancier','vatLines':'btw-verdeling','vatRate':'btw-tarief','document':'documentgegevens'}
+
+
+def _confidence(raw):
+    try:n=float(raw)
+    except (TypeError,ValueError):return None
+    if n!=n or n in (float('inf'),float('-inf')):return None
+    return n*100 if n<=1 else n
+
+
+def review(data):
+    """Same rules as the existing Edge reviewAssessment, so both adapters route alike."""
+    if str(data.get('documentType') or '') not in FINANCIAL:
+        return ['documentType'],'Controleer het documenttype. Dit document kan niet automatisch worden geboekt.'
     processing=data.get('processing') or {}
     fields=list((processing.get('reviewRouting') or {}).get('fields') or [])
-    if processing.get('bookingAllowed') is False:fields.append('documentType')
     if processing.get('anomalyCodes'):fields.append('document')
-    if (data.get('amounts') or {}).get('accountingVatTreatment')=='review_required':fields.append('vatTreatment')
+    if processing.get('bookingAllowed') is False:fields.append('documentType')
+    a=data.get('amounts') or {};c=data.get('confidence') or {};inv=data.get('invoice') or {}
+    if a.get('accountingVatTreatment')=='review_required':fields.append('vatTreatment')
+    total,vat,date=_confidence(c.get('total')),_confidence(c.get('vatTotal')),_confidence(c.get('invoiceDate'))
+    party=max(_confidence(c.get('supplierName')) or 0,_confidence(c.get('customerName')) or 0)
+    if a.get('total') is None or total is None or total<85:fields.append('gross')
+    if a.get('vatTotal') is None or vat is None or vat<80:fields.append('vatAmount')
+    if not inv.get('invoiceDate') or date is None or date<75:fields.append('issueDate')
+    if party<70:fields.append('party')
+    rates=set()
+    for line in a.get('vatLines') or []:
+        if not isinstance(line,dict) or 'rate' not in line:continue  # Number(undefined) is NaN
+        r=line['rate']
+        if r is None or (isinstance(r,str) and not r.strip()):r=0  # JS Number(null|'')===0
+        try:
+            r=float(r)
+            if r==r and r not in (float('inf'),float('-inf')):rates.add(r)
+        except (TypeError,ValueError):pass
+    line_conf=_confidence(c.get('vatLines'))
+    if len(rates)>1 and (line_conf is None or line_conf<85):fields.append('vatLines')
+    if not rates:fields.append('vatRate')
     if data.get('warnings') and not fields:fields.append('document')
-    return list(dict.fromkeys(fields))
+    fields=list(dict.fromkeys(fields))
+    return fields,('Controleer '+', '.join(REVIEW_LABELS.get(x,x) for x in fields)+'.') if fields else ''
+
+
+def assessment(data):
+    return review(data)[0]
 
 
 def process_claimed_job(job_id, store=None, engine=analyze_document):
@@ -92,9 +129,9 @@ def process_claimed_job(job_id, store=None, engine=analyze_document):
         data=payload['data']
         data.setdefault('processing',{}).update({'processorVersion':PROCESSOR_VERSION,
             'processorRevision':PROCESSOR_REVISION,'executionMode':'workflow','attempt':job['attempt']})
-        fields=assessment(data)
+        fields,message=review(data)
         completed=store.rpc('complete_document_workflow_job',p_job_id=job_id,p_lease=lease,
-            p_analysis=data,p_review_fields=fields,p_review_message='Controleer de aangegeven documentgegevens.' if fields else '')
+            p_analysis=data,p_review_fields=fields,p_review_message=message)
         return {'job_id':job_id,'state':('review_required' if fields else 'ready') if completed else 'lease_lost'}
     except (WorkerError,BoekunaDocumentError) as err:
         retryable=err.retryable if isinstance(err,WorkerError) else err.code in TRANSIENT

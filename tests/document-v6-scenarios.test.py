@@ -257,3 +257,25 @@ def test_fin_multipage_repeated_header_footer_totals_once():
 
 def test_ocr_o_zero_in_invoice_number_is_not_rewritten():
     assert invoice('Factuurnummer: INV-2O26-OO1').invoice.invoiceNumber == 'INV-2O26-OO1'
+
+
+@pytest.mark.parametrize('statement', ['BTW: verlegd', 'BTW-verlegd', 'BTW 0% verlegd', 'Omzetbelasting verlegd'])
+def test_fin_reverse_charge_dutch_spellings(statement):
+    r = invoice('Factuurnummer: INV-1\nFactuurdatum: 07-10-2026\n' + statement,
+                totals='Subtotaal EUR 100,00\nTotaal EUR 100,00')
+    assert r.amounts.accountingVatTreatment == 'review_required'
+
+
+def test_fin_own_reverse_charge_sales_invoice_keeps_booking_path():
+    company = {'name': 'Jansen Bouw ZZP', 'kvk': '11223344', 'vat': 'NL112233445B01'}
+    r = run('FACTUUR\nVan: Jansen Bouw ZZP\nKvK: 11223344\nBTW-id: NL112233445B01\nFactuur aan: Aannemer Groot BV\n'
+            'Factuurnummer: 2026-014\nFactuurdatum: 07-10-2026\nSubtotaal EUR 1.000,00\nBTW verlegd\nTotaal EUR 1.000,00', company)
+    assert r.documentType == 'sales_invoice'
+    assert r.amounts.accountingVatTreatment == 'standard'
+    assert not r.processing.get('reverseChargeCandidate')
+
+
+def test_party_name_starting_with_total_word_is_not_a_totals_boundary():
+    r = run('FACTUUR\nLeverancier:\nTotaal Techniek B.V.\nKvK: 74542893\nFactuurnummer: INV-1\nFactuurdatum: 07-10-2026\n'
+            'Subtotaal EUR 100,00\nBTW 21% EUR 21,00\nTotaal EUR 121,00')
+    assert r.supplier.kvk == '74542893'

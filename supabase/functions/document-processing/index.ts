@@ -180,13 +180,16 @@ async function processJob(jobId:string,authHeader:string,developer:DeveloperCont
   }
 }
 function run(jobId:string,auth:string,developer:DeveloperContext|null=null){EdgeRuntime.waitUntil(processJob(jobId,auth,developer))}
-async function kickUser(userId:string,authHeader:string,developer:DeveloperContext|null=null){
+async function kickUser(userId:string,authHeader:string,developer:DeveloperContext|null=null,onlyBatch=""){
   const sb=admin();
   const scopedDeveloper=developer?.userId===String(userId)?developer:null;
   if(EXECUTION_MODE==="workflow"&&!scopedDeveloper){
     if(!WORKFLOW_SLUG||!WORKFLOW_API_KEY||!WORKFLOW_RECOVERY_ENABLED)throw new Error("WORKFLOW_NOT_CONFIGURED");
-    const {data:jobs,error}=await sb.from("document_processing_jobs").select("batch_id")
-      .eq("user_id",userId).eq("execution_mode","workflow").eq("state","queued").limit(50);
+    // Upload/retry dispatch only their own batch; resume and recovery cover the rest.
+    let query=sb.from("document_processing_jobs").select("batch_id")
+      .eq("user_id",userId).eq("execution_mode","workflow").eq("state","queued");
+    if(onlyBatch)query=query.eq("batch_id",onlyBatch);
+    const {data:jobs,error}=await query.limit(50);
     if(error)throw new Error("JOB_DISPATCH_FAILED");
     const batches=[...new Set((jobs||[]).map((j:any)=>String(j.batch_id)))];
     for(const batch of batches)EdgeRuntime.waitUntil(dispatchWorkflowBatch(sb,userId,batch));
@@ -236,7 +239,7 @@ async function enqueue(req:Request,a:{user:any,auth:string},body:any,developer:D
   const company=body.company&&typeof body.company==="object"?body.company:{};
   const {data:existing}=await sb.from("document_processing_jobs").select("*").eq("user_id",a.user.id).eq("document_id",doc.id).maybeSingle();
   if(existing){
-    if(existing.state==="queued")await kickUser(a.user.id,a.auth,developer);
+    if(existing.state==="queued")await kickUser(a.user.id,a.auth,developer,String(existing.batch_id||""));
     return out(req,{ok:true,job:existing,idempotent:true});
   }
   const {data:job,error:insertError}=await sb.from("document_processing_jobs").insert({
@@ -249,7 +252,7 @@ async function enqueue(req:Request,a:{user:any,auth:string},body:any,developer:D
     if(winner)return out(req,{ok:true,job:winner,idempotent:true});
     return out(req,{ok:false,error:{code:"JOB_CREATE_FAILED"}},500);
   }
-  await kickUser(a.user.id,a.auth,developer);
+  await kickUser(a.user.id,a.auth,developer,batchId);
   return out(req,{ok:true,job},202);
 }
 async function retry(req:Request,a:{user:any,auth:string},body:any,developer:DeveloperContext|null=null){
@@ -261,9 +264,10 @@ async function retry(req:Request,a:{user:any,auth:string},body:any,developer:Dev
   const {data:reset,error}=await sb.from("document_processing_jobs").update({
     state:"queued",phase:"queued",result:null,review_fields:[],review_message:null,error_code:null,error_reference:null,error_retryable:false,
     started_at:null,completed_at:null,lease_token:null,lease_expires_at:null,next_attempt_at:new Date().toISOString(),updated_at:new Date().toISOString()
-  }).eq("id",job.id).eq("user_id",a.user.id).eq("state",job.state).eq("attempt",job.attempt).select("*").single();
-  if(error||!reset)return out(req,{ok:false,error:{code:"JOB_RETRY_FAILED"}},500);
-  await kickUser(a.user.id,a.auth,developer);
+  }).eq("id",job.id).eq("user_id",a.user.id).eq("state",job.state).eq("attempt",job.attempt).select("*").maybeSingle();
+  if(error)return out(req,{ok:false,error:{code:"JOB_RETRY_FAILED"}},500);
+  if(!reset)return out(req,{ok:false,error:{code:"JOB_NOT_RETRYABLE",state:"changed"}},409); // a concurrent retry won
+  await kickUser(a.user.id,a.auth,developer,String(reset.batch_id||""));
   return out(req,{ok:true,job:reset},202);
 }
 async function resolveReview(req:Request,a:{user:any,auth:string},body:any){

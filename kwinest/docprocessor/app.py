@@ -1732,7 +1732,7 @@ def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tu
     totals_line=re.compile(r'^(?:subtotaal|subtotal|totaal|total|te betalen|amount due|btw\s*\d|vat\s*\d)\b',re.I)
     footer=[]
     if idx is not None:
-        boundary=next((j for j,x in enumerate(block[1:],1) if party_label.match(x) or totals_line.match(x)),len(block))
+        boundary=next((j for j,x in enumerate(block[1:],1) if party_label.match(x) or (totals_line.match(x) and re.search(r'\d',x))),len(block))
         block=block[:boundary]
     elif role=="supplier":
         # Unlabelled issuer: the addressee block is not the supplier. Legal footer lines

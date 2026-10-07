@@ -105,7 +105,8 @@ def test_corrupt_is_permanent():
 
 def test_non_bookable_and_metadata_conflicts_are_reviewed():
     assert w.assessment({'processing':{'bookingAllowed':False}})==['documentType']
-    assert 'document' in w.assessment({'processing':{'anomalyCodes':['COMPETING_INVOICE_NUMBERS']}})
+    assert 'document' in w.assessment({'documentType':'purchase_invoice','processing':{'anomalyCodes':['COMPETING_INVOICE_NUMBERS']}})
+    assert w.assessment({'documentType':'quote'})==['documentType']
 
 
 def test_workflow_external_ai_is_effectively_disabled_even_if_server_flag_is_enabled(monkeypatch):

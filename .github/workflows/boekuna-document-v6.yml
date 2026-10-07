@@ -46,6 +46,8 @@ jobs:
         run: node tests/document-workflow-leases.test.mjs
       - name: Upload receipt behavior
         run: node tests/document-upload-receipt.test.mjs
+      - name: Workflow and Edge review routing parity
+        run: node tests/document-review-parity.test.mjs
       - name: Frozen existing OCR benchmark
         env:
           BOOKUNA_OCR_V5_REPORT: artifacts/document-v6-ocr.json
