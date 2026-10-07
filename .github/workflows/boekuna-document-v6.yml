@@ -53,3 +53,46 @@ jobs:
           name: document-v6-ocr
           path: artifacts/document-v6-ocr.json
           if-no-files-found: warn
+  document_browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container: mcr.microsoft.com/playwright:v1.56.1-noble
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install existing browser test dependencies
+        id: browser_dependencies
+        run: |
+          npm ci --prefix tests --ignore-scripts
+          npm install --prefix tests --no-save playwright@1.56.1
+      - name: Existing upload, review and background browser regressions
+        run: |
+          node tests/document-upload-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/document-upload-browser.test.mjs
+          node tests/document-background-processing.test.mjs
+      - name: Diagnose document overflow against unchanged publication main
+        if: always() && steps.browser_dependencies.outcome == 'success'
+        run: |
+          mkdir -p artifacts
+          if node tests/mobile-flow-simplification.test.mjs > artifacts/mobile-candidate.log 2>&1; then
+            cat artifacts/mobile-candidate.log
+          else
+            cat artifacts/mobile-candidate.log
+            git config --global --add safe.directory "$GITHUB_WORKSPACE"
+            git fetch origin 50fa6ae456f96d0e4f8145c32ce8d6641d28444a --depth=1
+            git show FETCH_HEAD:kwinest/index.html > kwinest/index.html
+            node tests/mobile-flow-simplification.test.mjs > artifacts/mobile-base.log 2>&1 || true
+            cat artifacts/mobile-base.log
+            git checkout -- kwinest/index.html
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: document-browser-diagnostics
+          path: |
+            artifacts/mobile-*.log
+            tests/artifacts/**
+          if-no-files-found: warn
