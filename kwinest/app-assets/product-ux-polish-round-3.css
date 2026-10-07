@@ -166,9 +166,14 @@ html,body{
   flex:0 0 auto;
   margin:0 auto;
 }
-#modalRoot #reportPreviewFrame{
+#modalRoot .report-preview-modal #reportPreviewFrame{
   position:absolute;
   inset:0 auto auto 0;
+  width:794px!important;
+  min-width:794px!important;
+  max-width:none!important;
+  height:1123px!important;
+  min-height:1123px!important;
   border:0;
   display:block;
   background:#fff;
