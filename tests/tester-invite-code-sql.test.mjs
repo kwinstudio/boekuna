@@ -82,7 +82,9 @@ try{
   const expires=new Date(first.expires_at).getTime();
   assert.ok(Math.abs((expires-activated)-(30*24*60*60*1000))<1000);
 
+  await service();
   const entitlement=(await db.query("select provider,plan,access_state,valid_until from public.billing_entitlements where user_id=$1 and provider='tester_code'",[A])).rows[0];
+  await actor(A);
   assert.equal(entitlement.provider,'tester_code');
   assert.equal(entitlement.plan,'boekuna');
   assert.equal(entitlement.access_state,'active');
