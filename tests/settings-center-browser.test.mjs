@@ -111,15 +111,14 @@ try{
   // Preferences persist per account and change real behaviour.
   {
     const {context,page}=await openApp(1280,900);
-    await page.evaluate(()=>navigate('dashboard'));
-    assert.match(await page.locator('#dashboardAttentionTitle').locator('..').locator('..').innerText(),/bankregel/i);
+    // The full release profile replaces the dashboard with the assistant, so check the "Nog te doen" renderer itself.
+    assert.match(await page.evaluate(()=>renderAttentionCenter(0)),/bankregel/i);
     await page.evaluate(()=>window.openSettingsSection('notifications'));
     await page.locator('#set-attention-bank').uncheck();
     assert.deepEqual(await page.evaluate(()=>state.meta.attentionHidden),['bank']);
     assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem(userDataKey())).meta.attentionHidden),['bank'],'Saved with the account data');
     assert.equal(await page.locator('.settings-center-row[data-settings-open="notifications"] .settings-center-status').innerText(),'4 van 5 aan');
-    await page.evaluate(()=>navigate('dashboard'));
-    assert.doesNotMatch(await page.locator('.dashboard-attention').innerText(),/bankregel/i,'Hidden type no longer shows under Nog te doen');
+    assert.doesNotMatch(await page.evaluate(()=>renderAttentionCenter(0)),/bankregel/i,'Hidden type no longer shows under Nog te doen');
     await page.evaluate(()=>window.openSettingsSection('app'));
     await page.locator('#set-startPage').selectOption('invoices');
     assert.equal(await page.evaluate(()=>state.meta.startPage),'invoices');
