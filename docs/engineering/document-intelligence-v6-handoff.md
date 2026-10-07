@@ -1,6 +1,6 @@
 # BOEKUNA document intelligence V6: implementation and release handoff
 
-Status: draft. Production remains on the existing legacy adapter. **NOT MERGE READY**: hosted staging (Supabase + Render Workflow) and physical-device gates are open. See "Round 2" below for the current state.
+Status: draft. Production remains on the existing legacy adapter. **NOT MERGE READY**: the Render Workflow service (real OCR compute, recovery schedule, Edge dispatch) and physical-device gates are open. The database layer passed on hosted Supabase staging. See "Round 3" at the end for the current state.
 
 ## Source of truth and discovery
 
@@ -99,7 +99,7 @@ Before ready-for-review / merge:
 
 Apply the additive migration before deploying the new Edge code even in legacy mode, because the code queries execution_mode. Never enable workflow until the independent recovery schedule and staged tests are proven. Drain existing legacy jobs before switching new uploads to workflow, because existing rows deliberately keep their execution_mode.
 
-Rollback new uploads by setting Edge `DOCUMENT_EXECUTION_MODE=legacy`. Keep the workflow service/recovery running until accepted workflow jobs drain. For a stopped provider: pause dispatch, wait for or recover current leases, then under controlled service access change **only queued, unleased** workflow rows to legacy; invoke the existing owner-bound resume flow. Never clear a live lease to race an active worker. Preserve results, documents, Storage, attempts and usage markers. Keep additive columns; reverting the Edge/processor deployment does not require destructive schema rollback. Browser receipt recovery continues to reuse existing Storage/document rows.
+Rollback new uploads by setting Edge `DOCUMENT_EXECUTION_MODE=legacy`. Keep the workflow service/recovery running until accepted workflow jobs drain. For a stopped provider: pause dispatch, wait for or recover current leases, then under controlled service access change **only queued, unleased workflow rows with `usage_recorded_at is null`** to legacy (a row with `usage_recorded_at` already counted its usage; converting it would let the legacy path count it again); invoke the existing owner-bound resume flow. Never clear a live lease to race an active worker. Preserve results, documents, Storage, attempts and usage markers. Keep additive columns; reverting the Edge/processor deployment does not require destructive schema rollback. Browser receipt recovery continues to reuse existing Storage/document rows.
 
 ## Official Render patterns reused
 
@@ -164,6 +164,56 @@ This container is ~2× slower than the CI runner, so both main and candidate exc
 
 ### Hosted gates still open
 
-- **Supabase staging**: the candidate project `ozisiotrzeubwbffnxyr` lacks `internal_access_grants`/`billing_entitlements`; aligning it and applying the V6 migration was blocked pending owner approval. Production was only read.
+- **Supabase staging**: done in round 3, see below.
 - **Render Workflow**: no Workflow-service creation is available to this session and no Render API key exists in the environment. Needed from the owner: create a Workflow service from this branch (root `kwinest/docprocessor`, build `pip install -r requirements-workflow.txt`, start `python workflow_tasks.py`, env `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` of **staging**, external AI off), a cron job (same root, `python workflow_recovery.py`, every minute, env `RENDER_API_KEY`, `DOCUMENT_WORKFLOW_SLUG`) and staging Edge env `DOCUMENT_EXECUTION_MODE=workflow`, `DOCUMENT_WORKFLOW_SLUG`, `RENDER_API_KEY`, `DOCUMENT_WORKFLOW_RECOVERY_ENABLED=true`. Then hosted 1/10/50/multi-user runs and a confirmed recovery schedule.
 - **Devices**: physical iPhone Safari/PWA and WebKit background processing remain unproven.
+
+## Round 3 (2026-10-07): independent reviews, fixes, hosted staging
+
+### Independent reviews and fixes (commit `d17b897`)
+
+- **TR3 (financial/backend/security): PASS with findings.** Fixed: reverse-charge review now applies only to incoming documents (own sales invoices with "BTW verlegd" keep their booking path); Dutch spellings `BTW: verlegd`, `BTW-verlegd`, `BTW 0% verlegd`, `Omzetbelasting verlegd` are recognised; the party-block totals boundary needs an amount, so "Totaal Techniek B.V." keeps its KvK; the workflow worker's review routing now mirrors Edge `reviewAssessment` exactly (`tests/document-review-parity.test.mjs` compares both on 23 cases); Edge upload/retry dispatch only their own batch, and a lost concurrent retry returns 409 `JOB_NOT_RETRYABLE` instead of 500. Documented, not changed: the local harness never exercises the `ready` path (synthetic documents always need review) and does not run Edge TypeScript; rollback must not convert rows with `usage_recorded_at` (rollback section updated). Pre-existing and unchanged: the supplier name on that fixture reads "taal Techniek B.V." (truncated), which stays in review.
+- **TR2 (upload/mobile): PASS with low findings.** Chromium only; WebKit is not installed in this environment. Low: the developer resume helper skips workflow jobs (by design, workflow rows are resumed by recovery, not by the browser). Physical iPhone Safari/PWA is not covered.
+
+Scenario fixtures 53/53 ([matrix](document-v6-evidence/scenario-matrix.md)), metadata 107/107, worker tests pass.
+
+### Hosted Supabase staging (`boekuna-candidate`, `ozisiotrzeubwbffnxyr`)
+
+Owner approved testing on staging with synthetic data. Production was not touched.
+
+Applied on staging: `staging_align_entitlement_tables_with_production`, `staging_align_access_quota_functions_with_production` (all access/quota functions md5-equal to production except `current_user_has_verified_mfa`, which V6 does not call) and `document_workflow_leases` (this PR's migration, unchanged).
+
+Driver: a temporary staging-only Edge function that runs the same RPC/Storage sequence as `workflow_tasks.process_claimed_job` (claim, access check, document row, Storage download, complete/fail) on synthetic `%PDF synthetic ST-xxxx` files, without OCR and without external AI. Each run dispatched the same ids twice with 8 workers against caps of 4 per user and 4 global. Report: [`workflow-staging-hosted.json`](document-v6-evidence/workflow-staging-hosted.json).
+
+| Run | Jobs | Result | Queue → completion P50 / P95 |
+| --- | --- | --- | --- |
+| 1 document | 1 | done; duplicate dispatch not claimed | 2.8 / 2.8 s |
+| 10 documents | 10 | done in 3 rounds of max 4 | included below |
+| 50 documents | 50 | done in 12 rounds, never more than 4 active | 32.7 / 40.0 s |
+| 3 users × 10, faults (4 crashes, 1 Storage 5xx, 4 lost completion responses) | 30 | 4 crashed leases held all slots; after simulated lease expiry `recover_document_workflow_jobs` returned 4 and the batch drained | 64–95 / ~100 s (includes the manual wait for the simulated expiry) |
+| free plan (limit 10), 12 documents | 12 | 10 done, 2 `DOCUMENT_LIMIT_REACHED` | 6.3 / 9.1 s |
+
+Per-call latency (hosted, first round): claim P50 160–470 ms, Storage download P50 720–880 ms, complete P50 120–330 ms.
+
+Checked on the database afterwards: 103 jobs, 101 completed and 2 quota failures, 0 leases left, 0 results with another document's invoice number, 0 double completions (audit trigger), max attempt 2, and `billing_usage_monthly` equal to `usage_recorded_at` equal to completions for every user (71, 10, 10, 10). Anon calls to `claim`, `access`, `complete`, `fail` and `recover` are refused (401 / 42501). The Edge `repairMissingJobs` embed query works on the hosted schema.
+
+Not measured here: OCR compute, memory and cost on Render (no Workflow service yet), Edge `document-processing` workflow dispatch (no workflow env on staging), and a real 10-minute lease expiry plus cron recovery.
+
+Staging cleanup: the synthetic Storage files (103) are deleted and the temporary function is replaced by a 410 stub. Deleting rows needs a confirmation this session cannot give, so these synthetic rows remain on staging only: 4 users `v6-stress-*@synthetic.invalid`, their 103 jobs and documents, usage rows and internal grants, plus a disabled audit trigger `v6_stress_audit` and schema `v6_stress`. Cleanup SQL for the owner:
+
+```sql
+drop trigger if exists v6_stress_audit on public.document_processing_jobs;
+drop schema if exists v6_stress cascade;
+create temp table su as select id from auth.users where email like 'v6-stress-%@synthetic.invalid';
+delete from public.document_processing_jobs where user_id in (select id from su);
+delete from public.documents where user_id in (select id from su);
+delete from public.billing_usage_monthly where user_id in (select id from su);
+delete from public.internal_access_grants where user_id in (select id from su);
+delete from auth.users where id in (select id from su);
+```
+
+### Remaining gates (NOT MERGE READY)
+
+1. Render Workflow service and one-minute recovery cron on staging (settings under "Hosted gates still open"), then a 1/10/50 run with real OCR compute, memory and cost, and Edge dispatch with `DOCUMENT_EXECUTION_MODE=workflow` on staging.
+2. Physical iPhone Safari/PWA and WebKit background behaviour.
+3. CI green on the final head (see PR).

@@ -3,11 +3,11 @@
 Every row runs the EXISTING engine (`app.heuristic_extract` → `document_intelligence`) on synthetic text or images. No customer documents.
 Columns: scenario → existing implementation → fixture/test → expected → actual on candidate → status.
 
-Test files: **M** = `tests/document-v6-metadata.test.py` (107), **S** = `tests/document-v6-scenarios.test.py` (47), **B** = frozen OCR benchmark `tests/document-ocr-v5-benchmark.test.py` (28 rendered documents), **R** = `tests/test_document_processor_regression.py`, **P** = `tests/document-intelligence-phases.test.py`, **U** = `tests/document-scan-intelligence-unit.test.py`, **O** = `tests/document-ocr-v5-regressions.test.py`, **E** = `tests/document-error-contract.test.py`.
+Test files: **M** = `tests/document-v6-metadata.test.py` (107), **S** = `tests/document-v6-scenarios.test.py` (53), **B** = frozen OCR benchmark `tests/document-ocr-v5-benchmark.test.py` (28 rendered documents), **R** = `tests/test_document_processor_regression.py`, **P** = `tests/document-intelligence-phases.test.py`, **U** = `tests/document-scan-intelligence-unit.test.py`, **O** = `tests/document-ocr-v5-regressions.test.py`, **E** = `tests/document-error-contract.test.py`.
 
 Status: **PASS** = exact expected value; **PASS (review)** = value withheld (null) and routed to review, never guessed; **PARTIAL** = safe (null, no wrong value) but not extracted; **OPEN** = not covered.
 
-Score on the 47 S-fixtures: main `50fa6ae` 36/47, PR head `6d27ea9` 40/47, candidate 47/47. M-fixtures: main 40/107, `6d27ea9` 107/107, candidate 107/107.
+Score on the first 47 S-fixtures: main `50fa6ae` 36/47, PR head `6d27ea9` 40/47, candidate 47/47. The 6 fixtures added after the TR3 review (`d17b897`) pass on the candidate: 53/53. M-fixtures: main 40/107, `6d27ea9` 107/107, candidate 107/107.
 
 ## Identifiers
 
@@ -52,6 +52,7 @@ Score on the 47 S-fixtures: main `50fa6ae` 36/47, PR head `6d27ea9` 40/47, candi
 | Customer prominent above supplier | `contact_block` | S `test_party_customer_prominent_above_supplier` | supplier = labelled `Van:` | same | PASS |
 | Own company context | `own_matches`, `layout_own_party_name` | S `test_party_company_context_identifies_own_company` | own company is customer | same | PASS |
 | Self-billing | `self_billing` | R `test_sales_direction_does_not_imply_self_billing`, `test_reconcile_preserves_only_explicit_self_billing`, B `self-billing` | only explicit | same | PASS |
+| Company name starting with `Totaal` | party block totals boundary needs an amount (TR3 fix) | S `test_party_name_starting_with_total_word_is_not_a_totals_boundary` | KvK kept | same | PASS |
 | Multiple party blocks | party label boundary | M `test_party_block_identifiers_do_not_leak_into_supplier` | no leakage | same | PASS |
 | Multiple IBANs / payer account | IBAN filter | S `test_party_multiple_ibans_do_not_pick_payer_account`, M `test_payer_account_is_not_supplier_account` | supplier IBAN only | same | PASS |
 | Foreign supplier with NL VAT ID | NL VAT + treatment | S `test_party_foreign_supplier_with_nl_vat_id` | NL VAT kept | `NL823456789B01` | PASS |
@@ -72,6 +73,8 @@ Score on the 47 S-fixtures: main `50fa6ae` 36/47, PR head `6d27ea9` 40/47, candi
 | Fees, shipping, discount | adjustments | S `test_fin_shipping_and_discount_reconcile`, P `test_discount_percent_header_controls_arithmetic` | discount 10, shipping 10, total 121 | same | PASS |
 | Multipage totals, repeated headers/footers | dedupe | S `test_fin_multipage_repeated_header_footer_totals_once`, B `multipage-pdf` | one number, one total | same | PASS |
 | Reverse-charge statement on zero/absent VAT | `document_intelligence` treatment (added in this round) | S `test_fin_reverse_charge_candidate_requires_treatment_review`, `test_fin_reverse_charge_statement_variants` (3) | treatment review | `review_required`, `reverseChargeCandidate` | PASS (review) |
+| Dutch spellings `BTW: verlegd`, `BTW-verlegd`, `BTW 0% verlegd`, `Omzetbelasting verlegd` | same (TR3 fix) | S `test_fin_reverse_charge_dutch_spellings` (4) | treatment review | `review_required` | PASS (review) |
+| Own sales invoice with `BTW verlegd` | same, incoming documents only (TR3 fix) | S `test_fin_own_reverse_charge_sales_invoice_keeps_booking_path` | `standard` | `standard` | PASS |
 | Reverse-charge boilerplate only / with charged VAT | same | S `test_fin_reverse_charge_boilerplate_does_not_change_standard_vat`, `test_fin_reverse_charge_text_with_charged_vat_is_not_reverse_charge` | standard | standard | PASS |
 | Printed conflicts preserved, missing stays null | existing validators | P `test_explicit_contradictory_*`, `test_all_parser_total_labels_preserve_printed_conflicts`, B `missing-fields` | preserved / null | same | PASS |
 
