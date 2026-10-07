@@ -6,7 +6,7 @@ import {serveMarketing} from './helpers/marketing-site.mjs';
 
 const server=await serveMarketing(path.resolve('dist/marketing'));
 const browser=await chromium.launch();
-try {
+try{
   const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,reducedMotion:'reduce'});
   const session=await page.context().newCDPSession(page);
   await session.send('Emulation.setCPUThrottlingRate',{rate:4});
@@ -18,35 +18,27 @@ try {
     new PerformanceObserver(list=>{for(const entry of list.getEntries())if(!entry.hadRecentInput)window.lab.cls+=entry.value}).observe({type:'layout-shift',buffered:true});
   });
   await page.goto(server.base,{waitUntil:'networkidle'});
-  await page.evaluate(()=>document.fonts.ready);
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(600);
   const metrics=await page.evaluate(()=>({...window.lab,bytes:performance.getEntriesByType('resource').reduce((sum,e)=>sum+e.transferSize,0)}));
-  assert.ok(metrics.lcp<4000,`Mobile lab LCP ${metrics.lcp}ms`);
-  assert.ok(metrics.cls<.1,`Mobile lab CLS ${metrics.cls}`);
-  assert.ok(metrics.bytes<950000,`Mobile transfer budget ${metrics.bytes} bytes`);
-  assert.equal(await page.locator('.project-card').count(),4);
-  assert.equal(await page.locator('main img.marketing-photo').count(),6);
-  assert.ok(await page.locator('.editorial-hero .hero-photo').isVisible());
+  assert.ok(metrics.lcp<2500,`Clean holding mobile lab LCP ${metrics.lcp}ms`);
+  assert.ok(metrics.cls<.1,`Clean holding CLS ${metrics.cls}`);
+  assert.ok(metrics.bytes<250000,`Clean holding transfer budget ${metrics.bytes} bytes`);
+  assert.equal(await page.locator('script').count(),0,'Holding page must not ship runtime JS');
+  assert.equal(await page.locator('img').count(),0,'Holding page must not ship marketing imagery');
 
   const nojs=await browser.newPage({javaScriptEnabled:false,viewport:{width:390,height:844}});
   await nojs.goto(server.base);
-  assert.ok(await nojs.locator('.editorial-intro h2').isVisible());
-  assert.ok(await nojs.getByRole('link',{name:'Probeer Boekuna gratis',exact:true}).first().isVisible());
-  assert.ok(await nojs.locator('.project-card').first().isVisible());
-  assert.ok(await nojs.locator('.editorial-pricing').isVisible());
-  const noJsPricing=await nojs.locator('.editorial-pricing').innerText();
-  for(const price of ['€0','€9,95','€19,95'])assert.ok(noJsPricing.includes(price),'No-JS pricing includes '+price);
-  assert.equal(await nojs.locator('main img.marketing-photo').count(),6,'Owner photography remains available without JavaScript');
+  assert.equal(await nojs.locator('h1').innerText(),'Nieuwe website in ontwikkeling.');
+  assert.ok(await nojs.getByRole('link',{name:'Inloggen'}).isVisible());
+  for(const route of ['/privacy/','/voorwaarden/','/support/','/account-verwijderen/']){
+    await nojs.goto(server.base+route);
+    assert.equal(await nojs.locator('h1').count(),1,route+' readable without JS');
+  }
 
   fs.mkdirSync('tests/artifacts/premium-marketing',{recursive:true});
   fs.writeFileSync('tests/artifacts/premium-marketing/performance.json',JSON.stringify({
-    profile:'390px, CPU 4x, 1.6Mbps, 150ms latency; laboratory measurements, not field INP',
-    ...metrics,
-    noJavaScriptContent:true,
-    ownerPhotography:true
+    profile:'390px, CPU 4x, 1.6Mbps, 150ms latency; laboratory measurements',
+    ...metrics,noJavaScriptHolding:true
   },null,2));
-  console.log('Mobile marketing performance/no-JavaScript QA: PASS',metrics);
-} finally {
-  await browser.close();
-  await server.close();
-}
+  console.log('Clean holding mobile performance/no-JavaScript QA: PASS',metrics);
+} finally {await browser.close();await server.close()}
