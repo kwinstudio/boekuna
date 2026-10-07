@@ -1,0 +1,207 @@
+/* BOEKUNA product-app UX polish round 3.
+   App-only override layer: system typography, flat surfaces, auth gating,
+   fixed A4 preview geometry and mobile quick-create presentation. */
+
+:root{
+  --boekuna-system-font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+
+#authRoot .auth-root,
+#authRoot .auth-root *,
+#mainApp,
+#mainApp *,
+#mobileBottomNav,
+#mobileBottomNav *,
+#modalRoot,
+#modalRoot *,
+#toastRoot,
+#toastRoot *{
+  font-family:var(--boekuna-system-font)!important;
+}
+
+/* Auth bootstrap is real initialization state only; JS removes it as soon as
+   auth/session resolution has chosen a stable surface. */
+.app-bootstrap{
+  position:fixed;
+  inset:0;
+  z-index:200;
+  display:grid;
+  place-items:center;
+  min-height:100dvh;
+  padding:24px;
+  background:#F6F7F8;
+  color:#1B1F23;
+  font-family:var(--boekuna-system-font);
+}
+.app-bootstrap[hidden]{display:none!important}
+.app-bootstrap-inner{
+  display:grid;
+  justify-items:center;
+  gap:14px;
+  text-align:center;
+}
+.app-bootstrap-wordmark{
+  font-size:28px;
+  line-height:1;
+  font-weight:800;
+  letter-spacing:-.045em;
+}
+.app-bootstrap-wordmark span{color:#63D471}
+.app-bootstrap-loader{
+  width:24px;
+  height:24px;
+  border:2px solid #D8DDE1;
+  border-top-color:#63D471;
+  border-radius:50%;
+  animation:boekuna-bootstrap-spin .75s linear infinite;
+}
+.app-bootstrap-copy{
+  margin:0;
+  color:#667179;
+  font-size:13px;
+  font-weight:650;
+}
+@keyframes boekuna-bootstrap-spin{to{transform:rotate(360deg)}}
+
+/* mobileBottomNav lives outside #mainApp in the legacy source, so authentication
+   state must gate it explicitly. */
+#mobileBottomNav{display:none!important}
+@media(max-width:820px){
+  body[data-product-authenticated="true"] #mobileBottomNav.mobile-bottom-nav{
+    display:grid!important;
+    box-shadow:none!important;
+  }
+}
+body:not([data-product-authenticated="true"]) #mobileDrawerBackdrop{
+  display:none!important;
+}
+
+/* Flat product surfaces. Focus/error rings are intentionally not included here. */
+#mainApp .sidebar,
+#mainApp .topbar,
+#mainApp :is(
+  .card,.table-card,.mini-kpi,.list-toolbar,.settings-compact,
+  .documents-workspace,.settings-disclosure,.profile-sections,
+  .profile-section-wide,.hero-strip,.dashboard-kpi,.dashboard-summary-card,
+  .soft-panel,.invoice-paper,.btn,.icon-btn,.filter-btn,.settings-nav-item
+),
+#modalRoot :is(.modal,.card,.soft-panel,.invoice-paper,.btn,.icon-btn,.quick-action),
+#toastRoot .toast,
+#mobileBottomNav{
+  box-shadow:none!important;
+}
+#mainApp .btn:hover,
+#modalRoot .btn:hover{
+  box-shadow:none!important;
+}
+#mainApp .sidebar .nav-item.active{
+  box-shadow:none!important;
+  border-left:3px solid var(--app-brand,#63D471)!important;
+}
+#mobileBottomNav .mobile-bottom-nav-item[aria-current="page"],
+#mobileBottomNav .mobile-bottom-nav-item.active{
+  box-shadow:none!important;
+  border-top:2px solid var(--app-brand,#63D471)!important;
+}
+
+/* Prevent the application canvas itself from drifting horizontally. Deliberate
+   local table/filter scrollers remain local. */
+html,body{
+  max-width:100%;
+  overflow-x:hidden;
+  overflow-x:clip;
+}
+#mainApp,
+#appMain,
+#content,
+#modalRoot,
+#modalRoot .modal-backdrop{
+  min-width:0;
+  max-width:100%;
+}
+#mainApp .topbar,
+#mainApp .top-left,
+#mainApp .top-actions,
+#mainApp .page-head,
+#mainApp .product-page-shell,
+#mainApp .product-page-actions,
+#mainApp .form-grid,
+#modalRoot .form-grid{
+  min-width:0;
+}
+#mainApp input[type="date"],
+#modalRoot input[type="date"]{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+}
+
+/* Report PDF preview: the iframe itself always has an A4 portrait viewport.
+   The parent scales that paper down on narrow screens instead of reflowing it. */
+#modalRoot .report-preview-modal{
+  box-shadow:none!important;
+}
+#modalRoot .report-preview-modal .modal-body{
+  padding:0!important;
+  background:#EEF1F3!important;
+}
+#modalRoot .report-preview-viewport{
+  width:100%;
+  height:100%;
+  min-height:0;
+  overflow:auto;
+  overscroll-behavior:contain;
+  padding:14px;
+}
+#modalRoot .report-preview-canvas{
+  position:relative;
+  flex:0 0 auto;
+  margin:0 auto;
+}
+#modalRoot #reportPreviewFrame{
+  position:absolute;
+  inset:0 auto auto 0;
+  border:0;
+  display:block;
+  background:#fff;
+  transform-origin:top left;
+}
+
+/* Only the mobile quick-create dialog opts out of the generic bottom-sheet
+   presentation. Other established mobile dialogs keep their existing contract. */
+@media(max-width:520px){
+  #modalRoot .modal-backdrop.quick-action-backdrop{
+    align-items:center!important;
+    padding:16px!important;
+  }
+  #modalRoot .modal.quick-action-modal{
+    width:min(420px,calc(100vw - 32px))!important;
+    max-width:420px!important;
+    max-height:min(72dvh,620px)!important;
+    border:1px solid var(--app-border,#E4E7EA)!important;
+    border-radius:16px!important;
+  }
+  #modalRoot .quick-action-modal .modal-head{
+    padding:14px 16px!important;
+  }
+  #modalRoot .quick-action-modal .modal-body{
+    padding:14px 16px 18px!important;
+  }
+  #modalRoot .quick-action-modal .quick-action-grid{
+    grid-template-columns:1fr!important;
+    gap:8px!important;
+  }
+  #modalRoot .quick-action-modal .quick-action{
+    min-height:52px!important;
+    justify-content:flex-start!important;
+    text-align:left!important;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .app-bootstrap-loader{
+    animation:none!important;
+    border-color:#D8DDE1!important;
+    border-top-color:#63D471!important;
+  }
+}
