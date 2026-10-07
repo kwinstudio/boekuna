@@ -1151,6 +1151,11 @@ def targeted_header_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any,qual
         top_text,re.I,
     ))
     invoice_like=bool(re.search(r"\b(?:factuur|invoice|creditnota|credit\s+note)\b",top_text,re.I))
+    receipt_like=bool(re.search(r"\b(?:kassabon|receipt)\b",top_text,re.I))
+    invoice_context=invoice_like or bool(re.search(
+        r"\b(?:factuurnummer|factuurnr|factuurdatum|vervaldatum|invoice\s*(?:number|no|date)|due\s+date)\b",
+        top_text,re.I,
+    ))
     invoice_number_evidence=False
     top_lines=[norm_text(x) for x in top_text.splitlines() if norm_text(x)]
     for i,line in enumerate(top_lines):
@@ -1165,7 +1170,7 @@ def targeted_header_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any,qual
                 invoice_number_evidence=True;break
     # A labelled invoice header without an actual number candidate is an
     # evidence gap even when date/VAT/IBAN OCR confidence is otherwise high.
-    missing_invoice_candidate=invoice_like and not invoice_number_evidence
+    missing_invoice_candidate=invoice_context and not receipt_like and not invoice_number_evidence
     # Skew alone is not enough reason to pay for a second OCR pass. If the first
     # header pass is already strong and contains the required metadata, keep it.
     trigger=(len(top_rows)<2 or top_conf<.74 or missing_invoice_candidate or ("IMAGE_SKEW" in flags and top_conf<.82 and not metadata_evidence))
