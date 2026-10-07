@@ -69,6 +69,9 @@ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const base='http://127.0.0.1:'+server.address().port;
 
 async function noOverflow(page,label){
+  // Resize and navigation schedule mobile presentation updates. Measure after
+  // the browser has painted those updates, retaining the same strict limit.
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   const x=await page.evaluate(()=>({vw:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
   if(x.html>x.vw+2||x.body>x.vw+2) console.error('OVERFLOW_NODES',label,await page.locator('body *').evaluateAll(nodes=>nodes.map(n=>({tag:n.tagName,id:n.id,classes:n.className,rect:n.getBoundingClientRect().toJSON(),text:(n.textContent||'').trim().slice(0,100)})).filter(n=>n.rect.width&&n.rect.right>innerWidth+2).slice(-20)));
   assert.ok(x.html<=x.vw+2&&x.body<=x.vw+2,label+' overflow '+JSON.stringify(x));
