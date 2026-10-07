@@ -109,7 +109,12 @@ try {
    if(width<=820&&['invoices','expenses','documents','bank','income','outgoings'].includes(route)){
     const list=page.locator('.mobile-card-list');
     const hasRows=await page.locator('.mobile-stack-table tbody tr').filter({has:page.locator('td:not([colspan])')}).count();
-    if(hasRows){assert.equal(await list.isVisible(),true,route+' card list');assert.equal(await page.locator('.mobile-stack-wrap').first().isVisible(),false,route+' desktop table hidden');}
+    if(hasRows){
+     const groupedDocuments=route==='documents'&&await page.locator('.mobile-document-groups:visible').count();
+     if(groupedDocuments)assert.equal(await page.locator('.mobile-document-groups').isVisible(),true,'documents grouped mobile flow');
+     else assert.equal(await list.isVisible(),true,route+' card list');
+     assert.equal(await page.locator('.mobile-stack-wrap').first().isVisible(),false,route+' desktop table hidden');
+    }
    }
   }
   if(width<=820){
