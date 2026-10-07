@@ -35,10 +35,13 @@ const browser=await chromium.launch({headless:true});
 try{
   const marketing=await browser.newPage();
   await marketing.goto(urlFor(marketingServer)+'/',{waitUntil:'domcontentloaded'});
-  await marketing.waitForSelector('#hero-heading');
+  await marketing.waitForSelector('h1');
   assert.equal(await marketing.locator('#mainApp').count(),0,'marketing must not contain app runtime');
-  assert.equal(await marketing.locator('#hero-heading').getAttribute('aria-label'),'Boekhouden zonder boekhoudtaal.');
-  assert.match(await marketing.locator('a[href^="https://app.boekuna.nl/"]').first().getAttribute('href'),/^https:\/\/app\.boekuna\.nl\//);
+  assert.equal(await marketing.locator('h1').innerText(),'Nieuwe website in ontwikkeling.');
+  assert.equal(await marketing.locator('meta[name="robots"]').getAttribute('content'),'noindex,follow');
+  assert.equal(await marketing.locator('script').count(),0,'clean holding must not ship marketing runtime JS');
+  assert.equal(await marketing.locator('img').count(),0,'clean holding must not ship marketing imagery');
+  assert.equal(await marketing.getByRole('link',{name:'Inloggen'}).getAttribute('href'),'https://app.boekuna.nl/?login=1');
 
   const app=await browser.newPage();
   await app.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm',route=>route.fulfill({

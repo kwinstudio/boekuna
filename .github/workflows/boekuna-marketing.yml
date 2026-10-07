@@ -8,18 +8,8 @@ on:
       - "public/*/index.html"
       - "public/robots.txt"
       - "public/sitemap.xml"
-      - "public/assets/site.css"
-      - "public/assets/site.js"
-      - "public/assets/editorial-marketing.css"
-      - "public/assets/editorial-marketing.js"
-      - "public/assets/premium-marketing.css"
-      - "public/assets/premium-marketing.js"
-      - "public/assets/stories/**"
+      - "public/assets/baseline.css"
       - "public/assets/favicon.svg"
-      - "public/assets/onepage.css"
-      - "public/assets/marketing.js"
-      - "public/assets/boekuna-*.svg"
-      - "public/assets/boekuna-og-1200x630.png"
       - "scripts/build-marketing.mjs"
       - "vercel.json"
       - "tests/marketing-pages.test.mjs"
@@ -27,8 +17,14 @@ on:
       - "tests/marketing-premium-browser.test.mjs"
       - "tests/marketing-performance.test.mjs"
       - "tests/marketing-navigation.test.mjs"
+      - "tests/marketing-product-proof.test.mjs"
+      - "tests/marketing-editorial-responsive.test.mjs"
       - "tests/marketing-app-non-regression.test.mjs"
       - "tests/helpers/marketing-site.mjs"
+      - "tests/split-build-boundaries.test.mjs"
+      - "tests/split-characterization.test.mjs"
+      - "tests/split-surfaces-browser.test.mjs"
+      - "tests/source-safety.test.mjs"
       - "tests/split-ci-scopes.test.mjs"
       - ".github/workflows/boekuna-marketing.yml"
 
@@ -54,26 +50,39 @@ jobs:
         run: npm install --prefix tests --no-save playwright@1.56.1 axe-core@4.10.3
       - name: Install Chromium and WebKit
         run: ./tests/node_modules/.bin/playwright install --with-deps chromium webkit
-      - name: Build standalone marketing artifact
+      - name: Build clean marketing artifact
         run: node scripts/build-marketing.mjs
       - name: Untouched app artifact non-regression
         run: node tests/marketing-app-non-regression.test.mjs
-      - name: Multipage static / route / legal QA
+      - name: Clean-slate static / route / legal QA
         run: node tests/marketing-pages.test.mjs
-      - name: Multipage Chromium + WebKit + Axe acceptance
+      - name: Clean-slate Chromium + WebKit + Axe acceptance
         run: node tests/marketing-onepage-browser.test.mjs
-      - name: Premium storytelling responsive and motion acceptance
+      - name: Holding visual responsive acceptance
         run: node tests/marketing-premium-browser.test.mjs
       - name: Mobile laboratory performance and no-JavaScript content
         run: node tests/marketing-performance.test.mjs
-      - name: Feature destinations and product image proportions
+      - name: Retired-route and required-route navigation safety
         run: node tests/marketing-navigation.test.mjs
-      - name: Upload multipage browser evidence
+      - name: Legacy marketing asset absence
+        run: node tests/marketing-product-proof.test.mjs
+      - name: Extended responsive clean-baseline evidence
+        run: node tests/marketing-editorial-responsive.test.mjs
+      - name: Split build boundaries
+        run: node tests/split-build-boundaries.test.mjs
+      - name: Split characterization
+        run: node tests/split-characterization.test.mjs
+      - name: Split generated surface browser smoke
+        run: node tests/split-surfaces-browser.test.mjs
+      - name: Production source safety
+        run: node tests/source-safety.test.mjs
+      - name: Upload clean baseline evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: boekuna-multipage-evidence
+          name: boekuna-clean-baseline-evidence
           path: |
             tests/artifacts/multipage/
             tests/artifacts/premium-marketing/
+            tests/artifacts/brand-clean-slate-*.png
           if-no-files-found: warn

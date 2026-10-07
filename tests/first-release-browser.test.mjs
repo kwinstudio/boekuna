@@ -179,7 +179,9 @@ try{
   assert.ok(quickGeometry.top>24&&quickGeometry.bottom<820,'Mobile quick-create must float centrally instead of attaching to the bottom edge: '+JSON.stringify(quickGeometry));
   await page.screenshot({path:path.join(evidence,'quick-popup-390-first-release-'+browserName+'.png'),fullPage:true});
   await page.keyboard.press('Escape');await page.locator('#modalRoot .modal').waitFor({state:'detached'});
-  assert.equal(await quickTrigger.evaluate(el=>el===document.activeElement),true,'Closing quick-create must restore focus to the + button');
+  // closeModal() restores focus in a setTimeout(0) after removing the modal, so wait for it instead of reading it in the same tick.
+  const focusRestored=await page.waitForFunction(()=>document.activeElement===document.getElementById('quickNew'),null,{timeout:2000}).then(()=>true,()=>false);
+  assert.equal(focusRestored,true,'Closing quick-create must restore focus to the + button');
   const mobileNav=(await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents()).map(v=>v.trim());
   assert.deepEqual(mobileNav,['Overzicht','Inkomsten','Kosten','Btw','Meer']);
   await page.locator('#mobileMenu').click();

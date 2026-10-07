@@ -1,129 +1,46 @@
 import fs from 'node:fs';
+import path from 'node:path';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {chromium,webkit} from 'playwright';
-import {serveMarketing,settleImages} from './helpers/marketing-site.mjs';
+import {serveMarketing} from './helpers/marketing-site.mjs';
 
 const require=createRequire(import.meta.url);
 const axeSource=fs.readFileSync(require.resolve('axe-core/axe.min.js'),'utf8');
-const evidence='tests/artifacts/premium-marketing';
+const evidence=path.join('tests','artifacts','premium-marketing');
 fs.mkdirSync(evidence,{recursive:true});
 const server=await serveMarketing('dist/marketing');
+const widths=[320,375,390,430,768,1024,1280,1440];
 
 try{
   for(const [name,engine] of [['chromium',chromium],['webkit',webkit]]){
-    const browser=await engine.launch();
+    const browser=await engine.launch({headless:true});
     try{
-      for(const width of [320,360,390,430,768,1024,1280,1440,1920]){
-        const page=await browser.newPage({viewport:{width,height:960},reducedMotion:'reduce'});
-        const errors=[];
-        page.on('pageerror',e=>errors.push(e.message));
-        await page.goto(server.base,{waitUntil:'networkidle'});
-        await settleImages(page);
-
-        assert.equal(await page.locator('h1').getAttribute('aria-label'),'Boekhouden zonder boekhoudtaal.');
-        assert.equal(await page.locator('.project-card').count(),4);
-        const photos=page.locator('main img.marketing-photo');
-        assert.equal(await photos.count(),6,'Homepage should use six owner-supplied marketing photos');
-        const heroPhoto=page.locator('.editorial-hero .hero-photo');
-        assert.ok(await heroPhoto.isVisible(),name+'/'+width+' hero photo visible');
-        assert.equal(await heroPhoto.getAttribute('alt'),'Ondernemer werkt ontspannen met smartphone naast laptop');
-        assert.equal(await heroPhoto.getAttribute('loading'),'eager');
-        assert.equal(await heroPhoto.getAttribute('fetchpriority'),'high');
-        assert.ok((await heroPhoto.getAttribute('srcset')).includes('hero-ondernemer-1000.webp'));
-        assert.equal(await page.locator('.audience-photo').count(),4,'Four trades represented');
-        assert.equal(await page.locator('.collaboration-photo').count(),1,'Small-business collaboration photo present');
-        const photoRanges=await photos.evaluateAll(images=>images.map(img=>{
-          const canvas=document.createElement('canvas');canvas.width=32;canvas.height=24;
-          const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0,32,24);
-          const data=ctx.getImageData(0,0,32,24).data;
-          let min=255,max=0;
-          for(let i=0;i<data.length;i+=4){
-            const l=.2126*data[i]+.7152*data[i+1]+.0722*data[i+2];
-            min=Math.min(min,l);max=Math.max(max,l);
-          }
-          return {alt:img.alt,range:max-min};
-        }));
-        for(const photo of photoRanges)assert.ok(photo.range>35,name+'/'+width+' photo has real visual detail: '+JSON.stringify(photo));
-
-        const size=await page.evaluate(()=>({html:document.documentElement.scrollWidth,body:document.body.scrollWidth,vw:innerWidth}));
-        assert.ok(size.html<=width+1&&size.body<=width+1,JSON.stringify({name,width,...size}));
-
-        const brand=await page.evaluate(()=>{
+      for(const width of widths){
+        const page=await browser.newPage({viewport:{width,height:width<600?844:900},reducedMotion:'reduce'});
+        const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+        await page.goto(server.base+'/',{waitUntil:'networkidle'});
+        assert.equal(await page.locator('h1').innerText(),'Nieuwe website in ontwikkeling.');
+        assert.equal(await page.locator('img').count(),0,'Clean holding must be image-free');
+        assert.equal(await page.locator('script').count(),0,'Clean holding must be runtime-JS-free');
+        assert.equal(await page.locator('.editorial-hero,.editorial-pricing,.project-grid,.audience-grid').count(),0,'Old marketing structure returned');
+        const size=await page.evaluate(()=>({vw:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
+        assert.ok(size.html<=size.vw+1&&size.body<=size.vw+1,name+'/'+width+' overflow '+JSON.stringify(size));
+        const palette=await page.evaluate(()=>{
           const root=getComputedStyle(document.documentElement);
-          return {
-            charcoal:root.getPropertyValue('--brand-charcoal').trim(),
-            green:root.getPropertyValue('--brand-green').trim(),
-            light:root.getPropertyValue('--brand-light').trim(),
-            muted:root.getPropertyValue('--brand-muted').trim()
-          };
+          return ['--ink','--green','--soft','--brand-muted','--paper'].map(k=>root.getPropertyValue(k).trim());
         });
-        assert.deepEqual(brand,{charcoal:'#1B1F23',green:'#63D471',light:'#F6F7F8',muted:'#8A949C'});
-
-        const broken=await page.locator('img').evaluateAll(imgs=>imgs.filter(i=>!i.complete||!i.naturalWidth).map(i=>i.src));
-        assert.deepEqual(broken,[]);
-
-        if(width<=960){
-          const burger=page.locator('#burger');
-          assert.ok(await burger.isVisible(),name+'/'+width+' mobile menu trigger');
-          await burger.click();
-          assert.equal(await burger.getAttribute('aria-expanded'),'true');
-          assert.equal(await page.locator('main').evaluate(el=>el.inert),true);
-          await page.keyboard.press('Shift+Tab');
-          assert.equal(await burger.evaluate(el=>el===document.activeElement),true);
-          await page.keyboard.press('Escape');
-          assert.equal(await burger.getAttribute('aria-expanded'),'false');
-          assert.equal(await page.locator('main').evaluate(el=>el.inert),false);
-        }else{
-          assert.equal(await page.locator('#burger').isVisible(),false,name+'/'+width+' desktop burger hidden');
-          assert.ok(await page.locator('.hdr .nav').isVisible(),name+'/'+width+' desktop navigation visible');
-          const navTrigger=page.locator('#ddBtn');
-          await navTrigger.focus();
-          await page.keyboard.press('Enter');
-          assert.equal(await navTrigger.getAttribute('aria-expanded'),'true',name+'/'+width+' desktop menu keyboard open');
-          await page.keyboard.press('Escape');
-          assert.equal(await navTrigger.getAttribute('aria-expanded'),'false',name+'/'+width+' desktop menu Escape close');
-          assert.ok(await navTrigger.evaluate(el=>el===document.activeElement),name+'/'+width+' desktop focus restored');
-        }
-
+        assert.deepEqual(palette,['#1B1F23','#63D471','#F6F7F8','#8A949C','#FFFFFF']);
         if(width===390||width===1440){
           await page.addScriptTag({content:axeSource});
-          const result=await page.evaluate(async()=> (await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']}})).violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})));
-          assert.deepEqual(result,[],`${name}/${width} accessibility`);
-          await page.screenshot({path:`${evidence}/home-${width}-${name}.png`,fullPage:true});
+          const result=await page.evaluate(async()=> (await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa']}})).violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})));
+          assert.deepEqual(result,[],name+'/'+width+' Axe');
+          await page.screenshot({path:path.join(evidence,'clean-holding-'+width+'-'+name+'.png'),fullPage:true});
         }
-        assert.deepEqual(errors,[]);
+        assert.deepEqual(errors,[],name+'/'+width+' runtime errors');
         await page.close();
       }
-
-      const page=await browser.newPage({viewport:{width:1440,height:960}});
-      await page.goto(server.base,{waitUntil:'networkidle'});
-      const navTrigger=page.locator('#ddBtn');
-      await navTrigger.focus();
-      await page.keyboard.press('Enter');
-      assert.equal(await navTrigger.getAttribute('aria-expanded'),'true');
-      await page.keyboard.press('Escape');
-      assert.equal(await navTrigger.evaluate(el=>el===document.activeElement),true);
-      await page.mouse.move(100,150);
-      assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).cursor),'none');
-      assert.ok(await page.locator('.editorial-cursor').evaluate(el=>el.classList.contains('is-visible')));
-      await page.emulateMedia({reducedMotion:'reduce'});
-      await page.waitForFunction(()=>!document.body.classList.contains('cursor-active'));
-      assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('cursor-active')),false);
-      await page.close();
-
-      const nojs=await browser.newPage({javaScriptEnabled:false,viewport:{width:390,height:844}});
-      await nojs.goto(server.base);
-      assert.ok(await nojs.locator('h1').isVisible());
-      assert.ok(await nojs.locator('.project-card').first().isVisible());
-      assert.equal(await nojs.locator('main img.marketing-photo').count(),6);
-      assert.ok(await nojs.locator('.editorial-hero .hero-photo').isVisible());
-      await nojs.close();
-    }finally{
-      await browser.close();
-    }
+    } finally {await browser.close()}
   }
-  console.log('BOEKUNA canonical editorial QA: PASS (18 responsive cases, owner photography, menu focus/Escape, Axe, cursor, reduced motion and no JS)');
-}finally{
-  await server.close();
-}
+  console.log('BOEKUNA clean holding visual QA: PASS (Chromium + WebKit, 8 widths, canonical palette, Axe, no runtime imagery/JS)');
+} finally {await server.close()}

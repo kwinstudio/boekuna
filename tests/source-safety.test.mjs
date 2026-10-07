@@ -6,7 +6,7 @@ const invoiceAi=fs.readFileSync(new URL("../supabase/functions/analyze-invoice/i
 const processor=fs.readFileSync(new URL("../kwinest/docprocessor/app.py",import.meta.url),"utf8");
 const brandSymbol=fs.readFileSync(new URL("../public/assets/boekuna-symbol.svg",import.meta.url),"utf8");
 const brandManifest=fs.readFileSync(new URL("../public/manifest.webmanifest",import.meta.url),"utf8");
-const brandMarketing=fs.readFileSync(new URL("../public/assets/marketing.js",import.meta.url),"utf8");
+const marketingHolding=fs.readFileSync(new URL("../public/index.html",import.meta.url),"utf8");
 const sendInvoice=fs.readFileSync(new URL("../supabase/functions/send-invoice/index.ts",import.meta.url),"utf8");
 const emailConnection=fs.readFileSync(new URL("../supabase/functions/email-connection/index.ts",import.meta.url),"utf8");
 const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(Boolean);
@@ -306,7 +306,10 @@ assert.ok(!html.includes("signInWithOAuth"),"Production app must not expose OAut
 assert.ok(brandSymbol.includes('fill="#1C6461"'),"Final approved Boekuna B mark colour must remain #1C6461");
 assert.ok(!brandSymbol.includes("M18,22 H30 A12,12"),"Legacy offset-frame symbol must not return");
 assert.ok(brandManifest.includes("/assets/boekuna-app-icon-maskable-512.png"),"PWA manifest must expose a maskable final-logo icon");
-assert.ok(brandMarketing.includes("/assets/boekuna-og-1200x630.png"),"Public metadata must use the final-logo social preview");
+assert.ok(marketingHolding.includes('<meta name="robots" content="noindex,follow">'),"Temporary public root must remain noindex,follow");
+assert.ok(marketingHolding.includes('href="https://app.boekuna.nl/?login=1"'),"Temporary public root must hand login to the isolated app host");
+assert.ok(!marketingHolding.includes('/assets/marketing.js'),"Retired marketing runtime must not return on the clean holding page");
+assert.ok(!marketingHolding.includes('id="mainApp"'),"Public holding page must never contain authenticated app runtime");
 const unifiedEmailModule=html.slice(html.indexOf('<script id="boekuna-unified-email-handoff-v2">'),html.indexOf('</script>',html.indexOf('<script id="boekuna-unified-email-handoff-v2">')));
 assert.ok(unifiedEmailModule.length>1000,"Unified email handoff module must be present");
 assert.ok(unifiedEmailModule.includes("function prepareEmailHandoffFromComposer()"),"Invoice/reminder/follow-up must share one handoff preparation flow");
