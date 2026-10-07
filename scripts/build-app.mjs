@@ -191,7 +191,7 @@ function injectBeforeLast(html,marker,content){
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review-v2.js?v=20261006fx1"></script>\n');
 const mobileHeadBoundary='</head>\n<body>';
 if(!appHtml.includes(mobileHeadBoundary))throw new Error('Mobile app head boundary changed');
-appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261006fx2">\n<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/product-color-polish.css?v=20261006a">\n<style id="boekuna-app-mobile-compact-overrides">@media (max-width:820px){#mainApp #appMain #content.content{padding-top:14px!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active{-webkit-appearance:none!important;appearance:none!important;background:#ECFAEE!important;background-color:#ECFAEE!important;background-image:none!important;color:#1B1F23!important;box-shadow:none!important;border-top:2px solid #63D471!important;font-weight:800!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active .icon,#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active span{color:#1B1F23!important}}@media (max-width:359px){#mainApp .product-kpis.grid-4{grid-template-columns:1fr!important}}</style>\n<link rel="stylesheet" href="/assets/product-ux-polish-round-3.css?v=20261007a">\n<link rel="stylesheet" href="/assets/mobile-flow-simplification.css?v=20261007a" media="(max-width:820px)">\n'+mobileHeadBoundary);
+appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261006fx2">\n<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261007a" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/product-color-polish.css?v=20261006a">\n<style id="boekuna-app-mobile-compact-overrides">@media (max-width:820px){#mainApp #appMain #content.content{padding-top:14px!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active{-webkit-appearance:none!important;appearance:none!important;background:#ECFAEE!important;background-color:#ECFAEE!important;background-image:none!important;color:#1B1F23!important;box-shadow:none!important;border-top:2px solid #63D471!important;font-weight:800!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active .icon,#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active span{color:#1B1F23!important}}@media (max-width:359px){#mainApp .product-kpis.grid-4{grid-template-columns:1fr!important}}</style>\n<link rel="stylesheet" href="/assets/product-ux-polish-round-3.css?v=20261007a">\n<link rel="stylesheet" href="/assets/mobile-flow-simplification.css?v=20261007b" media="(max-width:820px)">\n'+mobileHeadBoundary);
 const mobileNavStateMarker="function syncMobileNavigationState(){\n const current=mobilePrimarySection(page);\n document.querySelectorAll('[data-mobile-page]').forEach(btn=>{const active=btn.dataset.mobilePage===current;btn.classList.toggle('active',active);if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current')});\n const more=document.querySelector('[data-mobile-more]');if(more){const active=current==='more';more.classList.toggle('active',active);if(active)more.setAttribute('aria-current','page');else more.removeAttribute('aria-current')}\n updateMobileAccountIdentity()\n}";
 if(!appHtml.includes(mobileNavStateMarker))throw new Error('Mobile navigation state marker changed');
 appHtml=appHtml.replace(mobileNavStateMarker,"function syncMobileNavigationState(){\n const current=mobilePrimarySection(page);\n document.querySelectorAll('[data-mobile-page]').forEach(btn=>{const active=btn.dataset.mobilePage===current;btn.classList.toggle('active',active);btn.style.setProperty('background-color',active?'#ECFAEE':'transparent','important');if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current')});\n const more=document.querySelector('[data-mobile-more]');if(more){const active=current==='more';more.classList.toggle('active',active);more.style.setProperty('background-color',active?'#ECFAEE':'transparent','important');if(active)more.setAttribute('aria-current','page');else more.removeAttribute('aria-current')}\n updateMobileAccountIdentity()\n}");
@@ -270,9 +270,11 @@ if(!isReleaseFeatureEnabled(releaseFeatures,'timeTracking')){
 if(!isReleaseFeatureEnabled(releaseFeatures,'mileage')){
   for(const signature of ['function newMileage()','function saveMileage()'])guardBuiltFunction(signature,'mileage');
 }
-if(!isReleaseFeatureEnabled(releaseFeatures,'serviceCatalog')){
+// Saved services stay usable (Relaties page + invoice shortcuts) even when the standalone Diensten page is hidden.
+if(!isReleaseFeatureEnabled(releaseFeatures,'serviceCatalog')&&!isReleaseFeatureEnabled(releaseFeatures,'savedServices')){
   for(const signature of ["function newService(editId='')","function editService(id)","function saveService(id='')","function deleteService(id)"])guardBuiltFunction(signature,'serviceCatalog');
   removeBuiltRange('<div class="invoice-service-picker">','<div id="invoiceLines">','Release service picker');
+  removeBuiltRange('${savedServicesHtml()}','`\n}','Release saved services');
 }
 if(!isReleaseFeatureEnabled(releaseFeatures,'advancedReports')){
   for(const signature of ["function newPlannedCash(id='')","function editPlannedCash(id)","function savePlannedCash()","function deletePlannedCash(id)"])guardBuiltFunction(signature,'advancedReports');
@@ -356,7 +358,7 @@ for(const [needle,replacement] of productToneReplacements){
 const releaseRuntime="const BOEKUNA_RELEASE_PROFILE=Object.freeze("+JSON.stringify({name:releaseProfile.name,features:releaseFeatures})+");\nfunction releaseFeatureEnabled(key){return BOEKUNA_RELEASE_PROFILE.features?.[key]===true}\n";
 if(!appHtml.includes(assistantRuntimeMarker))throw new Error('Release runtime marker changed');
 appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script>\n'+releaseRuntime+'const USERS_KEY=');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-product.js?v=20261003a"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-product.js?v=20261007a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-flow-simplification.js?v=20261007a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
@@ -510,7 +512,7 @@ if(assistantEnabled){
   );
 }
 
-if(!isReleaseFeatureEnabled(releaseFeatures,'serviceCatalog')){
+if(!isReleaseFeatureEnabled(releaseFeatures,'serviceCatalog')&&!isReleaseFeatureEnabled(releaseFeatures,'savedServices')){
   patchBuiltAppAsset(
     'mobile-polish-round-2.js',
     '    deleteService=function(id){',

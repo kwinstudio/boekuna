@@ -82,7 +82,6 @@
   #modalRoot .line-item .icon-btn { justify-self:end; width:44px; height:44px; }
   #modalRoot .field { min-width:0; }
   #modalRoot .field label { display:block; margin-bottom:6px; }
-  #modalRoot .invoice-service-picker { display:grid; grid-template-columns:1fr; gap:8px; }
   #modalRoot .invoice-editor-summary { margin-top:16px; }
   #modalRoot .total-box { width:100%; }
   #modalRoot .total-line { font-size:14px; gap:12px; }

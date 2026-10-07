@@ -49,6 +49,10 @@ The standalone `Diensten` page is also hidden in Release 1 because it is not req
 Existing service data is preserved. Manual invoice lines remain fully available. The generated invoice editor
 does not leave a dead link to the hidden service-management page.
 
+Saved services (`savedServices`, on in Release 1): users keep one list of services (name, price, unit, VAT)
+on the *Relaties* page. On every invoice, for any customer, those services are one-tap shortcuts, and a typed
+invoice line can be kept as a service with *Bewaar als dienst*. Only the standalone `Diensten` page stays hidden.
+
 ## Route fallbacks
 
 - `insights → dashboard`

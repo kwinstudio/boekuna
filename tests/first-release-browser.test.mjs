@@ -116,7 +116,7 @@ try{
 
   await page.evaluate(()=>navigate('dashboard'));
   const before=await page.evaluate(()=>({bookings:state.bookings.length,hours:state.hours.length,mileage:state.mileage.length,settlements:state.settlements.length,services:state.services.length,plannedCash:state.plannedCash.length,reminderSent:state.bookings[0].reminderSent}));
-  await page.evaluate(async()=>{newBooking();newHour();newMileage();newSettlement();newService();deleteService('svc1');deletePlannedCash('pc1');markBookingReminder('b1');await confirmBookingReminder('b1')});
+  await page.evaluate(async()=>{newBooking();newHour();newMileage();newSettlement();deletePlannedCash('pc1');markBookingReminder('b1');await confirmBookingReminder('b1')});
   assert.equal(await page.locator('#modalRoot .modal').count(),0,'Direct calls to disabled create flows must fail closed');
   const after=await page.evaluate(()=>({bookings:state.bookings.length,hours:state.hours.length,mileage:state.mileage.length,settlements:state.settlements.length,services:state.services.length,plannedCash:state.plannedCash.length,reminderSent:state.bookings[0].reminderSent}));
   assert.deepEqual(after,before,'Disabled direct calls must preserve existing data and create nothing');
@@ -143,7 +143,27 @@ try{
   await page.evaluate(()=>newInvoice());
   assert.equal(await page.getByText('Btw-behandeling',{exact:false}).count(),0,'Advanced VAT selector must not be shown in Release 1');
   assert.equal(await page.locator('#invoiceForm [name="taxTreatment"]').getAttribute('type'),'hidden','VAT treatment must remain deterministic internally');
-  assert.equal(await page.locator('.invoice-service-picker').count(),0,'Hidden service catalog must not leave a dead invoice shortcut');
+  assert.equal(await page.locator('#invoiceForm [onclick*="navigate(\'services\')"]').count(),0,'Hidden service catalog must not leave a dead invoice shortcut');
+  await page.evaluate(()=>closeModal());
+
+  // Services are set up once on the Relaties page and picked with one tap on any invoice.
+  await page.evaluate(()=>navigate('contacts'));
+  await page.locator('.saved-services').getByRole('button',{name:'Nieuwe dienst'}).click();
+  await page.locator('#serviceForm [name="name"]').fill('Maandelijks onderhoud');
+  await page.locator('#serviceForm [name="price"]').fill('75');
+  await page.evaluate(()=>saveService(''));
+  await page.locator('.saved-services li').filter({hasText:'Maandelijks onderhoud'}).waitFor();
+  await page.evaluate(()=>newInvoice());
+  await page.locator('.invoice-service-picker .service-chip').filter({hasText:'Maandelijks onderhoud'}).click();
+  assert.equal(await page.locator('#invoiceLines .line-item').count(),1,'Picking a service fills the empty first line instead of adding a second');
+  assert.equal(await page.locator('#invoiceLines [data-k="unit"]').inputValue(),'75');
+  await page.evaluate(()=>addInvoiceLine());
+  const typed=page.locator('#invoiceLines .line-item').last();
+  await typed.locator('[data-k="desc"]').fill('Extra uur support');
+  await typed.locator('[data-k="unit"]').fill('60');
+  await typed.locator('.line-save-service').click();
+  assert.equal(await page.evaluate(()=>state.services.find(s=>s.name==='Extra uur support')?.price),60,'A typed line can be kept as a service');
+  await page.locator('.invoice-service-picker .service-chip').filter({hasText:'Extra uur support'}).waitFor();
   await page.evaluate(()=>closeModal());
 
   const dashboardText=await page.evaluate(()=>{navigate('dashboard');return document.getElementById('content').innerText});

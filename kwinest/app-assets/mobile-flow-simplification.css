@@ -59,7 +59,6 @@
   #modalRoot .mobile-invoice-step .invoice-editor-section{display:block!important;padding:0!important;margin:0!important;border:0!important;background:transparent!important}
   #modalRoot .mobile-invoice-step .invoice-editor-section>.section-head h2{display:none}
   #modalRoot .mobile-invoice-step .invoice-new-customer{display:none!important}
-  #modalRoot .mobile-invoice-step .invoice-service-picker{display:none!important}
   #modalRoot .mobile-invoice-step .invoice-service-empty{display:none!important}
   #modalRoot .mobile-invoice-unit-label{display:none!important}
   #modalRoot .mobile-vat-native-select{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
