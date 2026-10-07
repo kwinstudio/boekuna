@@ -1,0 +1,125 @@
+/* BOEKUNA Instellingen — calm index + detail panel. Loaded after all other app styles. */
+#mainApp .settings-center{
+  --sc-ink:#1B1F23;--sc-green:#63D471;--sc-bg:#F6F7F8;--sc-surface:#FFFFFF;--sc-muted:#5F6A72;--sc-line:#E4E7EA;--sc-warn:#8A5A00;--sc-warn-bg:#FFF6E0;--sc-danger:#B42318;
+  color:var(--sc-ink);max-width:1120px;
+}
+#mainApp .settings-center-layout{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:24px;align-items:start}
+
+/* Setup status */
+#mainApp .settings-center-setup{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 18px;padding:14px 16px;border:1px solid #F1DFAE;border-radius:12px;background:var(--sc-warn-bg)}
+#mainApp .settings-center-setup>div{display:grid;gap:3px;min-width:0}
+#mainApp .settings-center-setup strong{font-size:14px}
+#mainApp .settings-center-setup span{font-size:13px;color:var(--sc-muted)}
+#mainApp .settings-center-setup .btn{flex:0 0 auto}
+
+/* Category index */
+#mainApp .settings-center-nav{position:sticky;top:92px;max-height:calc(100vh - 108px);overflow:auto;display:grid;gap:14px;padding-bottom:2px}
+#mainApp .settings-center-group ul{list-style:none;margin:0;padding:0;background:var(--sc-surface);border:1px solid var(--sc-line);border-radius:14px;overflow:hidden}
+#mainApp .settings-center-group li+li{border-top:1px solid var(--sc-line)}
+#mainApp .settings-center-group-label{margin:0 0 6px 4px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sc-muted)}
+#mainApp .settings-center .settings-center-row{width:100%;min-height:60px;display:grid;grid-template-columns:20px minmax(0,1fr) auto 12px;align-items:center;gap:12px;padding:11px 14px;border:0;border-radius:0;background:transparent;color:var(--sc-ink);text-align:left;font:inherit;cursor:pointer}
+#mainApp .settings-center .settings-center-row:hover{background:var(--sc-bg)}
+#mainApp .settings-center .settings-center-row:focus-visible{outline:2px solid var(--sc-ink);outline-offset:-2px}
+#mainApp .settings-center .settings-center-row[aria-current="true"]{background:#EEF9F0;box-shadow:inset 3px 0 0 var(--sc-green)}
+#mainApp .settings-center-icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;color:var(--sc-muted)}
+#mainApp .settings-center-row .settings-nav-copy{display:grid;gap:2px;min-width:0}
+#mainApp .settings-center-row .settings-nav-copy strong{font-size:14px;font-weight:650}
+#mainApp .settings-center-row .settings-nav-copy span{font-size:12.5px;color:var(--sc-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mainApp .settings-center-status{font-size:12px;font-weight:600;color:var(--sc-muted);white-space:nowrap}
+#mainApp .settings-center-status.good{color:#2E7D3A}
+#mainApp .settings-center-status.warn{color:var(--sc-warn)}
+#mainApp .settings-center-row .settings-nav-chevron{color:#A3ACB3;font-size:18px;line-height:1}
+#mainApp .settings-center-row.danger,#mainApp .settings-center-row.danger .settings-center-icon{color:var(--sc-danger)}
+
+/* Detail panel */
+#mainApp .settings-center-panel{min-width:0;display:grid;gap:14px}
+#mainApp .settings-center-panel[hidden]{display:none}
+#mainApp .settings-center-panel-head h2{margin:0;font-size:20px;letter-spacing:-.02em}
+#mainApp .settings-center-panel-head h2:focus{outline:none}
+#mainApp .settings-center-panel-head h2:focus-visible{outline:2px solid var(--sc-ink);outline-offset:4px;border-radius:4px}
+#mainApp .settings-center-panel-head p{margin:4px 0 0;color:var(--sc-muted);font-size:13.5px}
+#mainApp .settings-center-back{display:none}
+#mainApp .settings-center-form{display:grid;gap:14px}
+#mainApp .settings-center-block{background:var(--sc-surface);border:1px solid var(--sc-line);border-radius:14px;padding:18px;min-width:0}
+#mainApp .settings-center-block>h3{margin:0 0 12px;font-size:14px}
+#mainApp .settings-center-block .form-grid{gap:12px;align-items:start}
+#mainApp .settings-center .page-head{margin-bottom:18px}
+#mainApp .settings-center-file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+#mainApp .settings-center-file-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#mainApp .settings-center-field-label{display:block;margin-bottom:6px;font-size:12px;font-weight:650;color:var(--sc-ink)}
+#mainApp .settings-center-logo{max-width:120px;max-height:40px;object-fit:contain;border:1px solid var(--sc-line);border-radius:8px;padding:4px;background:#fff}
+#mainApp .settings-center-more{background:var(--sc-surface);border:1px solid var(--sc-line);border-radius:14px;padding:0;margin:0}
+#mainApp .settings-center-more>summary{min-height:48px;display:flex;align-items:center;padding:0 18px;font-size:14px;font-weight:650;cursor:pointer;list-style:none}
+#mainApp .settings-center-more>summary::-webkit-details-marker{display:none}
+#mainApp .settings-center-more>summary::after{content:"›";margin-left:auto;font-size:18px;color:#A3ACB3;transform:rotate(90deg);transition:transform .15s ease}
+#mainApp .settings-center-more[open]>summary::after{transform:rotate(-90deg)}
+#mainApp .settings-center-more>summary:focus-visible{outline:2px solid var(--sc-ink);outline-offset:-2px;border-radius:14px}
+#mainApp .settings-center-more-body{padding:4px 18px 18px;display:grid;gap:4px}
+#mainApp .settings-center-switch{padding:10px 0;border-top:1px solid var(--sc-line)}
+#mainApp .settings-center-switch:first-child,#mainApp .settings-center-block>h3+.settings-center-switch,#mainApp .settings-center-fieldset legend+.settings-center-switch{border-top:0}
+#mainApp .settings-center .settings-center-switch input[role=switch]{width:46px!important;height:28px!important;min-width:46px!important;min-height:0!important;max-height:28px!important;padding:0!important;margin:0;flex:0 0 46px}
+#mainApp .settings-center-switch>span>span{font-size:12.5px;color:var(--sc-muted);font-weight:400}
+#mainApp .settings-center-fieldset{border:0;margin:0;padding:0;min-width:0}
+#mainApp .settings-center-fieldset legend{padding:0;margin:0 0 6px;font-size:14px;font-weight:650}
+#mainApp .settings-center-line{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid var(--sc-line)}
+#mainApp .settings-center-line:first-child{border-top:0;padding-top:0}
+#mainApp .settings-center-line:last-child{padding-bottom:0}
+#mainApp .settings-center-line>div{display:grid;gap:3px;min-width:0}
+#mainApp .settings-center-line strong{font-size:14px}
+#mainApp .settings-center-line span{font-size:13px;color:var(--sc-muted);overflow-wrap:anywhere}
+#mainApp .settings-center-line .btn{flex:0 0 auto}
+#mainApp .settings-center-note{font-size:13px;color:var(--sc-muted);padding:0 4px}
+#mainApp .settings-center-save{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+#mainApp .settings-center-embedded .settings-group{margin:0}
+#mainApp .settings-center-panel .settings-export-grid{margin:0}
+#mainApp .settings-center-panel .settings-export-grid+.help{margin-top:10px}
+#mainApp .settings-center-panel #billingCard{margin:0!important}
+#mainApp .settings-center-panel.danger .settings-danger-group{background:var(--sc-surface);border:1px solid #F3C9C4;border-radius:14px;padding:18px}
+#mainApp .settings-center-panel.danger .settings-danger-group>p{margin:0 0 12px;font-size:13.5px;color:var(--sc-muted)}
+
+/* Invoice preview */
+#mainApp .settings-center-split{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:14px;align-items:start}
+#mainApp .settings-center-split>div:first-child{display:grid;gap:14px;min-width:0}
+#mainApp .settings-center-preview-wrap{position:sticky;top:92px;background:var(--sc-surface);border:1px solid var(--sc-line);border-radius:14px;padding:12px;overflow:hidden}
+#mainApp .settings-center-preview-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:12px;font-weight:650;color:var(--sc-muted)}
+#mainApp .settings-center-preview{zoom:.4;pointer-events:none;user-select:none}
+#mainApp .settings-center-preview>div{padding:0!important;background:none!important}
+#mainApp .settings-center-preview>div>div{box-shadow:none!important;border:1px solid var(--sc-line)}
+
+@media (max-width:1100px){
+  #mainApp .settings-center-split{grid-template-columns:minmax(0,1fr)}
+  #mainApp .settings-center-preview-wrap{position:static;max-width:360px}
+  #mainApp .settings-center-preview{zoom:.55}
+}
+
+/* Mobile: index → category → back */
+@media (max-width:820px){
+  #mainApp .settings-center-layout{display:block}
+  #mainApp .settings-center[data-view="index"] .settings-center-panels{display:none}
+  #mainApp .settings-center[data-view="detail"] .settings-center-nav,
+  #mainApp .settings-center[data-view="detail"] .settings-center-setup,
+  #mainApp .settings-center[data-view="detail"]>.page-head{display:none}
+  #mainApp .settings-center-nav{position:static}
+  #mainApp .settings-center .settings-center-row{min-height:64px;padding:12px 14px}
+  #mainApp .settings-center-back{display:inline-flex;align-items:center;min-height:44px;padding:0 4px;margin:-6px 0 -4px -4px;border:0;background:none;color:var(--sc-ink);font:inherit;font-size:14px;font-weight:650;cursor:pointer;justify-self:start}
+  #mainApp .settings-center-back:focus-visible{outline:2px solid var(--sc-ink);outline-offset:2px;border-radius:8px}
+  #mainApp .settings-center-block{padding:16px}
+  #mainApp .settings-center-more>summary{padding:0 16px}
+  #mainApp .settings-center-more-body{padding:4px 16px 16px}
+  #mainApp .settings-center-setup{flex-direction:column;align-items:stretch}
+  #mainApp .settings-center-line{flex-wrap:wrap}
+  #mainApp .settings-center-line .btn{width:100%;justify-content:center}
+  #mainApp .settings-center-save{position:sticky;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:5;padding:10px 0;background:var(--sc-bg)}
+  #mainApp .settings-center-save .btn{flex:1 1 auto;justify-content:center;min-height:48px}
+  #mainApp .settings-center-preview-wrap{max-width:none}
+}
+@media (max-width:359px){
+  #mainApp .settings-center .settings-center-row{grid-template-columns:20px minmax(0,1fr) 12px;row-gap:2px}
+  #mainApp .settings-center .settings-center-icon{grid-column:1;grid-row:1/span 2}
+  #mainApp .settings-center .settings-center-row .settings-nav-copy{grid-column:2;grid-row:1}
+  #mainApp .settings-center .settings-center-status{grid-column:2;grid-row:2}
+  #mainApp .settings-center .settings-center-row .settings-nav-chevron{grid-column:3;grid-row:1/span 2}
+}
+@media (prefers-reduced-motion:reduce){
+  #mainApp .settings-center-more>summary::after{transition:none}
+}

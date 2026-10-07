@@ -13,6 +13,9 @@ on:
       - "public/assets/mobile-polish-round-2.*"
       - "public/assets/mobile-product.*"
       - "kwinest/app-assets/mobile-flow-simplification.*"
+      - "kwinest/app-assets/calm-ux.*"
+      - "kwinest/app-assets/settings-center.*"
+      - "tests/settings-center-browser.test.mjs"
       - "public/assets/brand-v2.css"
       - "kwinest/app-assets/product-color-polish.css"
       - "kwinest/app-assets/product-ux-polish-round-3.css"
@@ -157,6 +160,10 @@ jobs:
         run: |
           node tests/personal-assistant-v1-2-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/personal-assistant-v1-2-browser.test.mjs
+      - name: Instellingen index, panels and preferences — Chromium and WebKit
+        run: |
+          node tests/settings-center-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/settings-center-browser.test.mjs
       - name: Mobile polish round 2 — Chromium and WebKit
         run: |
           node tests/mobile-polish-round-2.test.mjs

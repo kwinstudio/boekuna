@@ -79,11 +79,11 @@ try{
   await trigger.click();await page.locator('#reportPreviewFrame').waitFor();await report.getByRole('heading',{name:'Boekhoudrapport',exact:true}).waitFor();await report.locator('body').click();await page.keyboard.press('Escape');await page.locator('[role=dialog]').waitFor({state:'detached'});await page.waitForFunction(()=>!history.state?.boekunaReportPreview);
  }
  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>navigate('settings'));
- await page.locator('.settings-nav-item').filter({hasText:'Abonnement & account'}).click();
+ await page.locator('.settings-nav-item').filter({hasText:/^Account/}).click();
  const logout=page.getByRole('button',{name:'Uitloggen',exact:true});assert.ok(await logout.isVisible());assert.equal(await logout.evaluate(el=>el.classList.contains('danger')),false);
- await page.getByRole('button',{name:'Terug naar Instellingen',exact:true}).click();
+ await page.locator('#settings-panel-account .settings-center-back').click();
  const zone=page.locator('.settings-danger-group');
- async function openDanger(){if(await page.locator('.mobile-settings-index').isVisible())await page.locator('.settings-nav-item').filter({hasText:'Account verwijderen'}).click()}
+ async function openDanger(){if(await page.locator('.settings-center-nav').isVisible())await page.locator('.settings-nav-item').filter({hasText:'Gevaarzone'}).click()}
  await openDanger();assert.ok(await zone.getByRole('button',{name:'Administratie wissen',exact:true}).isVisible());assert.ok(await zone.getByRole('button',{name:'Account verwijderen',exact:true}).isVisible());assert.equal(await zone.getByRole('button',{name:'Uitloggen',exact:true}).count(),0);
  await openDanger();await zone.getByRole('button',{name:'Administratie wissen',exact:true}).click();const destructive=page.getByRole('button',{name:'Administratie definitief wissen',exact:true});assert.equal(await destructive.isDisabled(),true);
  for(const value of ['wis administratie','WIS ADMINISTRATIE ','WIS']){await page.fill('#resetAdministrationConfirmation',value);assert.equal(await destructive.isDisabled(),true)}

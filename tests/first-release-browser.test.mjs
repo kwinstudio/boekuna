@@ -100,7 +100,7 @@ try{
 
   await page.evaluate(()=>navigate('settings'));
   const settingsText=await page.locator('#content').innerText();
-  for(const label of ['Mijn bedrijf','Boekhouding','Beveiliging & privacy','Data & export','Abonnement & account'])assert.match(settingsText,new RegExp(label.replace(/[&]/g,'\\&'),'i'));
+  for(const label of ['Mijn bedrijf','Facturen','Meldingen','App & weergave','Beveiliging & privacy','Data & export','Abonnement & gebruik','Gevaarzone'])assert.match(settingsText,new RegExp(label.replace(/[&]/g,'\\&'),'i'));
   assert.doesNotMatch(settingsText,/Belastingpot/,'Hidden cashflow must not leave a dead Release 1 settings shortcut');
   assert.equal(await page.locator('details.settings-advanced-exports').count(),1,'Specialist exports should use progressive disclosure');
 

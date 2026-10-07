@@ -172,22 +172,24 @@ try {
  await nav('dashboard');await page.locator('.dashboard-summary-card').nth(1).click();
  assert.equal(await page.evaluate(()=>listPageState('invoices').filters.status),'open');
  await nav('settings');
- assert.equal(await page.locator('.mobile-settings-index .settings-nav-item').count(),9);assert.equal(await page.locator('.mobile-settings-index').getByText('Weergave',{exact:true}).count(),1);assert.equal(await page.locator('.mobile-settings-index').getByText('Assistent & inzichten',{exact:true}).count(),1);
- assert.equal(await page.locator('.settings-group').first().isVisible(),false);
- await page.locator('.mobile-settings-index .settings-nav-item').filter({hasText:/^Weergave/}).click();
+ // Instellingen: category index first, one category at a time, a clear way back.
+ const settingsRows=page.locator('.settings-center-nav .settings-nav-item');
+ assert.equal(await settingsRows.count(),11);
+ assert.equal(await page.locator('.settings-center-panels').isVisible(),false);
+ await settingsRows.filter({hasText:/^App & weergave/}).click();
  const extraHelpToggle=page.getByRole('switch',{name:'Extra uitleg tonen'});
- assert.ok(await extraHelpToggle.isVisible(),'Instellingen → Weergave must expose Extra uitleg tonen');
+ assert.ok(await extraHelpToggle.isVisible(),'Instellingen → App & weergave must expose Extra uitleg tonen');
  assert.equal(await extraHelpToggle.isChecked(),false,'Extra uitleg tonen must default off');
  await extraHelpToggle.check();
  assert.equal(await page.evaluate(()=>state.meta.extraHelpEnabled),true,'Extra uitleg tonen must update account state');
  await extraHelpToggle.uncheck();
  assert.equal(await page.evaluate(()=>state.meta.extraHelpEnabled),false,'Turning extra explanation off must restore compact mode');
- await page.getByRole('button',{name:'Terug naar Instellingen',exact:true}).click();
- assert.equal(await page.locator('.mobile-settings-index').isVisible(),true);
- await page.locator('.mobile-settings-index .settings-nav-item').filter({hasText:/^Facturen/}).click();
- assert.equal(await page.locator('.mobile-settings-active').count(),1);
- await page.getByRole('button',{name:'Terug naar Instellingen',exact:true}).click();
- assert.equal(await page.locator('.mobile-settings-index').isVisible(),true);
+ await page.locator('#settings-panel-app .settings-center-back').click();
+ assert.equal(await page.locator('.settings-center-nav').isVisible(),true);
+ await settingsRows.filter({hasText:/^Facturen/}).click();
+ assert.equal(await page.locator('#settings-panel-invoices').isVisible(),true);
+ await page.locator('#settings-panel-invoices .settings-center-back').click();
+ assert.equal(await page.locator('.settings-center-nav').isVisible(),true);
  // Rotate/resize while editing: every moved field and action must return exactly once.
  await page.evaluate(()=>newInvoice());await page.waitForTimeout(50);
  await page.setViewportSize({width:1440,height:900});await page.waitForTimeout(100);
