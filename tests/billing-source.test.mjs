@@ -18,7 +18,7 @@ const activeBillingGuardMigration=read('supabase/migrations/20260928012515_guard
 const providerEntitlementMigration=read('supabase/migrations/20260930093553_provider_agnostic_billing_entitlements.sql');
 const portalCapabilityMigration=read('supabase/migrations/20261005145822_expose_billing_portal_capability.sql');
 const normalizedInternalBillingMigration=read('supabase/migrations/20261005170500_normalize_internal_billing_state.sql');
-const pricing=read('public/prijzen/index.html')+'\n'+read('public/assets/site.js');
+const holding=read('public/index.html');
 const privacy=read('public/privacy/index.html');
 const terms=read('public/voorwaarden/index.html');
 
@@ -103,12 +103,13 @@ for(const retired of ['early_access_active','expired_read_only','FOUNDING 100','
   assert.ok(!html.includes(retired),`Retired First-100 state/copy must be absent from app UI: ${retired}`);
 }
 
-for(const value of ['Gratis','€9,95','€19,95']) assert.ok(pricing.includes(value),`Pricing missing ${value}`);
-for(const stale of ['€6,95','€14,95','Binnenkort beschikbaar']) assert.ok(!pricing.includes(stale),`Retired public pricing copy still present: ${stale}`);
-assert.ok(pricing.includes('register=1&plan=boekuna'),'Public Boekuna plan must hand off to the existing authenticated checkout intent');
-assert.ok(pricing.includes('register=1&plan=pro'),'Public Unlimited plan must hand off to the existing authenticated checkout intent');
+assert.ok(holding.includes('<meta name="robots" content="noindex,follow">'),'Temporary marketing root must remain noindex while pricing is intentionally unpublished');
+assert.ok(holding.includes('https://app.boekuna.nl/?login=1'),'Temporary marketing root must preserve the app login handoff');
+for(const publicPricing of ['€9,95','€19,95','register=1&plan=boekuna','register=1&plan=pro']){
+  assert.ok(!holding.includes(publicPricing),`Temporary holding page must not publish retired website pricing/checkout UI: ${publicPricing}`);
+}
 for(const retired of ['Founding 100','Eerste 100','Early Access','3 kalendermaanden gratis','90 dagen']){
-  assert.ok(!pricing.toLowerCase().includes(retired.toLowerCase()),`Retired First-100 copy still present: ${retired}`);
+  assert.ok(!holding.toLowerCase().includes(retired.toLowerCase()),`Retired First-100 copy still present on holding page: ${retired}`);
 }
 assert.ok(privacy.includes('Stripe'),'Privacy policy must disclose Stripe');
 assert.ok(!terms.includes('Early Access'),'Terms must not describe the retired Early Access offer');
