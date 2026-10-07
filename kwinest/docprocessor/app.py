@@ -1099,6 +1099,74 @@ def _ocr_row_bounds(row:dict[str,Any])->tuple[float,float,float,float]|None:
     except Exception:
         return None
 
+def _ocr_orientation_score(rows:list[dict[str,Any]]) -> tuple[float,bool]:
+    """Score whether OCR row order looks like an upright invoice/receipt.
+
+    The score only decides whether a bounded 90/180/270 retry is worth paying
+    for. It never changes extracted financial values.
+    """
+    if not rows:
+        return -20.0, True
+    texts=[norm_text(str(row.get("text") or "")) for row in rows if norm_text(str(row.get("text") or ""))]
+    if not texts:
+        return -20.0, True
+    count=max(1,len(texts))
+    def first(pattern:str)->int|None:
+        return next((i for i,text in enumerate(texts) if re.search(pattern,text,re.I)),None)
+    title=first(r"^(?:factuur|invoice|creditnota|credit\s+note|kassabon|receipt)\b")
+    date_idx=first(r"\b(?:factuurdatum|invoice\s*date|datum|date)\b")
+    subtotal_idx=first(r"\b(?:subtotaal|subtotal|netto|net\s+amount|bedrag\s+ex)\b")
+    vat_idx=first(r"\b(?:btw|vat|tax)\b")
+    total_idx=first(r"\b(?:totaal\s+te\s+betalen|grand\s+total|eindtotaal|totaal|total)\b")
+    score=0.0
+    if title is not None:
+        score += 8.0 if title <= max(2,int(count*.35)) else -10.0
+    if title is not None and date_idx is not None:
+        score += 3.0 if date_idx>title else -4.0
+    ordered=[x for x in (subtotal_idx,vat_idx,total_idx) if x is not None]
+    if len(ordered)>=2:
+        score += 8.0 if ordered==sorted(ordered) else -9.0
+    vertical=0
+    measured=0
+    for row in rows:
+        bounds=_ocr_row_bounds(row)
+        if not bounds:continue
+        measured+=1
+        width=max(1.0,bounds[2]-bounds[0]);height=max(1.0,bounds[3]-bounds[1])
+        if height>width*1.25:vertical+=1
+    vertical_ratio=(vertical/measured) if measured else 0.0
+    suspicious=vertical_ratio>=.35 or (title is not None and title>max(2,int(count*.55))) or score<0
+    return score,suspicious
+
+def _orthogonal_retry(img:Image.Image,rows:list[dict[str,Any]],engine:Any)->dict[str,Any]:
+    """Try bounded right-angle rotations only when row geometry/order is suspicious."""
+    semantic,suspicious=_ocr_orientation_score(rows)
+    if not suspicious:
+        return {"used":False,"rows":rows,"image":None,"angle":0,"score":ocr_candidate_score(rows)+semantic*3}
+    best_rows=rows
+    best_image=None
+    best_angle=0
+    best_score=ocr_candidate_score(rows)+semantic*3
+    for angle in (90,180,270):
+        rotated=img.rotate(angle,resample=Image.Resampling.BICUBIC,expand=True,fillcolor="white")
+        try:
+            tall=rotated.height>rotated.width*2.8
+            candidate=ocr_resized_rows(engine,rotated) if tall else ocr_rows(engine,rotated)
+            orientation_score,_=_ocr_orientation_score(candidate)
+            composite=ocr_candidate_score(candidate)+orientation_score*3
+        except Exception:
+            rotated.close()
+            continue
+        if composite>best_score+3.0:
+            if best_image is not None:best_image.close()
+            best_rows=candidate
+            best_image=rotated
+            best_angle=angle
+            best_score=composite
+        else:
+            rotated.close()
+    return {"used":best_image is not None,"rows":best_rows,"image":best_image,"angle":best_angle,"score":best_score}
+
 def targeted_financial_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any)->dict[str,Any]:
     """Re-scan only the financial band after the first full-page OCR."""
     bounds=[]
@@ -1208,16 +1276,21 @@ def run_best_ocr(img:Image.Image, *, already_prepared:bool=False, quality:dict|N
         # Tall receipts get a cheap whole-receipt pass first. Only if critical
         # financial evidence is missing do we pay for overlapping tile OCR.
         rows1=ocr_resized_rows(engine,primary) if is_tall else ocr_rows(engine,primary)
+        orientation=_orthogonal_retry(primary,rows1,engine)
+        oriented=orientation.get("image")
+        working=oriented or primary
+        rows1=orientation.get("rows") or rows1
+        is_tall=working.height>working.width*2.8
         score1=ocr_candidate_score(rows1)
         text1="\n".join(r["text"] for r in rows1)
         conf1=sum(float(r.get("confidence") or 0) for r in rows1)/len(rows1) if rows1 else 0
         money1=len(MONEY_RE.findall(text1))
         keywords1=bool(re.search(r"\b(?:totaal|total|te betalen|amount due)\b",text1,re.I))
-        best_rows,best_score,best_variant=rows1,score1,("long-fast" if is_tall else "normalized-color")
+        best_rows,best_score,best_variant=rows1,score1,(f"rotated-{orientation.get('angle')}" if orientation.get("used") else ("long-fast" if is_tall else "normalized-color"))
 
-        deskew=float(((quality or {}).get("metrics") or {}).get("deskewAngle") or 0)
+        deskew=0.0 if orientation.get("used") else float(((quality or {}).get("metrics") or {}).get("deskewAngle") or 0)
         if abs(deskew)>=1.5 and abs(deskew)<=4.5 and "IMAGE_SKEW" in set((quality or {}).get("flags") or []):
-            rotated=primary.rotate(deskew,resample=Image.Resampling.BICUBIC,expand=False,fillcolor="white")
+            rotated=working.rotate(deskew,resample=Image.Resampling.BICUBIC,expand=False,fillcolor="white")
             try:
                 rowsd=ocr_resized_rows(engine,rotated) if is_tall else ocr_rows(engine,rotated)
             finally:
@@ -1228,12 +1301,12 @@ def run_best_ocr(img:Image.Image, *, already_prepared:bool=False, quality:dict|N
 
         need_financial_retry=(conf1<.88 or len(re.sub(r"\s+","",text1))<150 or money1<2 or not keywords1)
         if is_tall and need_financial_retry:
-            tiled=ocr_tiled_rows(engine,primary,tile_height=1500,overlap=180)
+            tiled=ocr_tiled_rows(engine,working,tile_height=1500,overlap=180)
             tiled_score=ocr_candidate_score(tiled)
             if tiled_score>best_score+.5:
                 best_rows,best_score,best_variant=tiled,tiled_score,"tiled-color"
         elif not is_tall and need_financial_retry:
-            enhanced=enhanced_receipt_variant(primary)
+            enhanced=enhanced_receipt_variant(working)
             try:rows2=ocr_rows(engine,enhanced)
             finally:enhanced.close()
             score2=ocr_candidate_score(rows2)
@@ -1242,12 +1315,12 @@ def run_best_ocr(img:Image.Image, *, already_prepared:bool=False, quality:dict|N
 
         text="\n".join(r["text"] for r in best_rows)
         confs=[float(r.get("confidence") or 0) for r in best_rows]
-        focus=targeted_financial_ocr(primary,best_rows,engine)
-        header=targeted_header_ocr(primary,best_rows,engine,quality)
+        focus=targeted_financial_ocr(working,best_rows,engine)
+        header=targeted_header_ocr(working,best_rows,engine,quality)
         return {
             "text":text,"rows":best_rows,
             "confidence":sum(confs)/len(confs) if confs else None,
-            "variant":best_variant,"qualityScore":round(best_score,2),
+            "variant":best_variant,"qualityScore":round(best_score,2),"orthogonalRotation":int(orientation.get("angle") or 0),
             "financialText":focus.get("text") or "",
             "financialFocusUsed":bool(focus.get("used")),
             "financialConfidence":focus.get("confidence"),
@@ -1257,6 +1330,11 @@ def run_best_ocr(img:Image.Image, *, already_prepared:bool=False, quality:dict|N
             "engine":"RapidOCR 3 / ONNX","model":OCR_MODEL_NAME,
         }
     finally:
+        try:
+            if 'oriented' in locals() and oriented is not None:
+                oriented.close()
+        except Exception:
+            pass
         if owns_primary:
             primary.close()
 
