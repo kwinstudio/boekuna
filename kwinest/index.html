@@ -4920,7 +4920,7 @@ function showBankImportPreview(){
   ${plan.problems.length?`<li><strong>${plan.problems.length}</strong> ${plan.problems.length===1?'heeft':'hebben'} controle nodig</li>`:''}
  </ul>
  ${plan.problems.length?`<div class="notice warn" role="alert"><strong>Deze regels worden niet geïmporteerd.</strong> Controleer ze in je bankapp en voeg ze zo nodig zelf toe met "Transactie toevoegen".<ul class="bank-import-problems" style="margin:8px 0 0;padding-left:18px">${probHtml}</ul>${plan.problems.length>50?`<p class="help">En nog ${plan.problems.length-50} regels.</p>`:''}</div>`:''}
- ${n?`<div class="table-wrap"><table class="table financial-table"><thead><tr><th>Datum</th><th>Omschrijving</th><th class="right">Bedrag</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>${n>100?`<p class="help">De eerste 100 van ${n} transacties.</p>`:''}`:`<div class="notice info">Er is niets nieuws om te importeren.</div>`}
+ ${n?`<div class="table-wrap"><table class="table financial-table"><thead><tr><th>Datum</th><th>Omschrijving</th><th class="right">Bedrag</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>${n>100?`<p class="help">100 van ${n} transacties getoond.</p>`:''}`:`<div class="notice info">Er is niets nieuws om te importeren.</div>`}
  <p class="help">Klopt een kolom niet? <button type="button" class="btn small" onclick="showBankColumnMapping()">Kolommen aanpassen</button></p>
  </div>`,`<button class="btn" onclick="pendingBankImport=null;closeModal()">Annuleren</button>${bankPickFileButton()}${n?`<button class="btn primary" onclick="confirmBankImport()">${n} transactie${n===1?'':'s'} importeren</button>`:''}`,true);
 }
@@ -5347,7 +5347,7 @@ function localPersistentProcessingItems(){
  const items=documentProcessingSession?.items||[];
  return items.filter(item=>{
   if(['selected','uploading','uploaded'].includes(item.state))return true;
-  if(item.state==='queued'&&item.receivedPersisted)return !documentProcessingJobs.some(job=>String(job.client_ref||'')===String(item.clientRef||''));
+  if(item.state==='queued'&&(item.documentPersisted||item.receivedPersisted))return !documentProcessingJobs.some(job=>String(job.client_ref||'')===String(item.clientRef||''));
   return false
  })
 }
@@ -5362,10 +5362,10 @@ function renderDocumentProcessingBoard(){
  if(!local.length&&!jobs.length)return '';
  jobs=[...jobs].sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
  const terminal=jobs.filter(persistentDocumentIsTerminal).length,total=local.length+jobs.length,ready=jobs.filter(j=>j.state==='ready').length,review=jobs.filter(j=>j.state==='review_required').length,failed=jobs.filter(j=>j.state==='failed').length;
- const receivedAll=!!documentProcessingSession?.allReceived||(!local.length&&jobs.length>0);
+ const receivedAll=documentProcessingSession?.persistent?!!documentProcessingSession.allReceived:(!local.length&&jobs.length>0);
  const summary=jobs.length?(terminal+' van '+jobs.length+' afgerond'):(local.length+' uploaden');
- const completion=jobs.length&&terminal===jobs.length?(review||failed?('Verwerking afgerond · '+ready+' klaar'+(review?' · '+review+' controle nodig':'')+(failed?' · '+failed+' niet verwerkt':'')):('✓ '+ready+' documenten verwerkt')):'';
- return '<section class="document-processing-board" aria-live="polite" aria-busy="'+((local.length||jobs.some(j=>!persistentDocumentIsTerminal(j)))?'true':'false')+'"><div class="document-processing-board-head"><div><h2>'+total+' document'+(total===1?'':'en')+'</h2><p>'+(completion||'Verwerken…')+'</p></div><span class="document-processing-summary">'+esc(summary)+'</span></div><div class="document-processing-list">'+local.map(localUploadCardHtml).join('')+jobs.map(j=>persistentDocumentCardHtml(j)).join('')+'</div>'+(receivedAll?'<div class="document-processing-received"><strong>Ontvangen.</strong> Je kunt verder werken.</div>':'')+(documentProcessingConnectivityLost&&(jobs.length||local.some(x=>x.receivedPersisted))?'<div class="document-processing-reconnect"><strong>Verbinding onderbroken.</strong> Je documenten zijn ontvangen. We halen de status opnieuw op zodra de verbinding terug is.</div>':'')+'</section>'
+ const completion=!local.length&&jobs.length&&terminal===jobs.length?(review||failed?('Verwerking afgerond · '+ready+' klaar'+(review?' · '+review+' controle nodig':'')+(failed?' · '+failed+' niet verwerkt':'')):('✓ '+ready+' documenten verwerkt')):'';
+ return '<section class="document-processing-board" aria-live="polite" aria-busy="'+((local.length||jobs.some(j=>!persistentDocumentIsTerminal(j)))?'true':'false')+'"><div class="document-processing-board-head"><div><h2>'+total+' document'+(total===1?'':'en')+'</h2><p>'+(completion||'Verwerken…')+'</p></div><span class="document-processing-summary">'+esc(summary)+'</span></div><div class="document-processing-list">'+local.map(localUploadCardHtml).join('')+jobs.map(j=>persistentDocumentCardHtml(j)).join('')+'</div>'+(receivedAll?'<div class="document-processing-received"><strong>Ontvangen.</strong> Je kunt verder werken.</div>':'')+(documentProcessingConnectivityLost&&(jobs.length||local.some(x=>x.receivedPersisted))?'<div class="document-processing-reconnect"><strong>Verbinding onderbroken.</strong> '+(receivedAll?'Je documenten zijn ontvangen. We halen de status opnieuw op zodra de verbinding terug is.':'We herstellen de verwerkingsopdrachten van opgeslagen bestanden zodra de verbinding terug is.')+'</div>':'')+'</section>'
 }
 function updateLocalDocumentFromJob(job){
  const ref=String(job?.client_ref||'');let doc=state.documents.find(x=>String(x.fileId||'')===ref),changed=false;
@@ -5398,14 +5398,17 @@ function syncPersistentJobsToUploadSession(){
  for(const item of s.items||[]){
   if(!item.clientRef)continue;
   const job=documentProcessingJobs.find(j=>String(j.client_ref)===String(item.clientRef));if(!job)continue;
-  item.jobId=job.id;item.uploaded=true;
+  if(!item.receivedPersisted)touched=true;
+  item.jobId=job.id;item.uploaded=true;item.documentPersisted=true;item.receivedPersisted=true;
   const next=String(job.state||'queued');
   if(item.state!==next){item.state=next;touched=true}
   item.processingPhase=job.phase==='validate'?'validate':'read';
   item.processorComplete=['validating','ready','review_required'].includes(next);
   item.error=next==='failed'?createUploadError(job.error_code||'UNKNOWN','',0,{retryable:job.error_retryable!==false,state:'no_changes'}):null;
  }
- if(touched)scheduleDocumentProcessingRender()
+ const receivedAll=(s.items||[]).length>0&&(s.items||[]).every(x=>x.receivedPersisted);
+ if(s.allReceived!==receivedAll){s.allReceived=receivedAll;touched=true}
+ if(touched){scheduleDocumentProcessingRender();renderGlobalDocumentIndicator()}
 }
 async function fetchDocumentProcessingJobs(){
  if(TEST_MODE_NO_AUTH||!currentUser)return [];
@@ -5497,7 +5500,7 @@ async function persistSelectedDocument(item,batchId){
  const path=currentUser.id+'/'+clientRef+'-'+safeStorageName(item.file.name);item.storagePath=path;
  documentProcessingTransition(item,'uploading');setDocumentProcessingMessage(item,'Uploaden…','Je bestand wordt veilig ontvangen.');
  await uploadPersistentDocumentBlob(item.file,path,item);
- item.uploaded=true;item.uploadPercent=100;documentProcessingTransition(item,'uploaded');setDocumentProcessingMessage(item,'Bestand ontvangen','Je kunt dit document nu veilig op de achtergrond laten verwerken.');
+ item.uploaded=true;item.uploadPercent=100;documentProcessingTransition(item,'uploaded');setDocumentProcessingMessage(item,'Bestand opgeslagen','De verwerkingsopdracht wordt aangemaakt.');
  const {data:existing}=await sb.from('documents').select('id,client_ref,storage_path').eq('user_id',currentUser.id).eq('client_ref',clientRef).maybeSingle();
  let row=existing;
  if(!row){
@@ -5508,11 +5511,12 @@ async function persistSelectedDocument(item,batchId){
  if(!state.documents.some(d=>String(d.fileId||'')===clientRef)){
   state.documents.unshift({id:uid('d'),fileId:clientRef,name:item.file.name,type:'Document',date:today(),size:item.file.size,source:'background-upload',analyzed:false,processingState:'queued'});save()
  }
- item.documentId=row.id;item.receivedPersisted=true;
- documentProcessingTransition(item,'queued');setDocumentProcessingMessage(item,'Wacht','Bestand ontvangen. Verwerking start automatisch.');
+ item.documentId=row.id;item.documentPersisted=true;
+ documentProcessingTransition(item,'queued');setDocumentProcessingMessage(item,'Wacht','Bestand opgeslagen. De verwerkingsopdracht wordt aangemaakt.');
  const company=state.company||{};
  const queued=await invokeDocumentProcessing('enqueue',{client_ref:clientRef,batch_id:batchId,kind:item.kind||'auto',company:{name:company.name||'',tradeName:company.tradeName||'',kvk:company.kvk||'',vat:company.vat||''}});
- item.jobId=queued.job?.id||'';item.state=queued.job?.state||'queued';scheduleDocumentProcessingRender();renderGlobalDocumentIndicator();
+ if(!queued.job?.id)throw Object.assign(new Error('Verwerkingsopdracht ontbreekt'),{code:'JOB_CREATE_FAILED'});
+ item.jobId=queued.job.id;item.receivedPersisted=true;item.state=queued.job.state||'queued';setDocumentProcessingMessage(item,'Wacht','Bestand ontvangen. Verwerking start automatisch.');scheduleDocumentProcessingRender();renderGlobalDocumentIndicator();
  return item
 }
 async function startPersistentDocumentProcessingQueue(files,kind='auto',options={}){
@@ -5521,10 +5525,11 @@ async function startPersistentDocumentProcessingQueue(files,kind='auto',options=
  const batchId='batch-'+(crypto.randomUUID?crypto.randomUUID():uid('bg'));
  const session=documentProcessingSession={id:batchId,items:list.map(file=>{const item=createDocumentProcessingItem(file,kind);item.sourceInputId=String(options.sourceInputId||'');return item}),smart:!!options.smart,reviewingItemId:null,startedAt:Date.now(),persistent:true,allReceived:false,modalHidden:false};
  if(page!=='documents')await navigate('documents');else render();renderGlobalDocumentIndicator();
- const work=[...session.items],worker=async()=>{while(work.length){const item=work.shift();if(!item)continue;try{await persistSelectedDocument(item,batchId)}catch(err){console.error('Persistent upload failed',err);item.error=err;if(item.receivedPersisted){item.state='queued';documentProcessingConnectivityLost=documentProcessingConnectivityLost||!navigator.onLine||String(err?.code||'')==='NETWORK_ERROR';setDocumentProcessingMessage(item,'Wacht','Bestand ontvangen. De verwerking wordt hervat zodra de verbinding beschikbaar is.');setTimeout(()=>{if(currentUser)invokeDocumentProcessing('resume').then(()=>fetchDocumentProcessingJobs()).catch(()=>{})},5000)}else if(!['failed'].includes(item.state)){try{documentProcessingTransition(item,'failed')}catch{item.state='failed';scheduleDocumentProcessingRender()}}}}};
+ const work=[...session.items],worker=async()=>{while(work.length){const item=work.shift();if(!item)continue;try{await persistSelectedDocument(item,batchId)}catch(err){console.error('Persistent upload failed',err);item.error=err;if(item.documentPersisted){item.state='queued';documentProcessingConnectivityLost=documentProcessingConnectivityLost||!navigator.onLine||String(err?.code||'')==='NETWORK_ERROR';setDocumentProcessingMessage(item,'Wacht',item.receivedPersisted?'Bestand ontvangen. De verwerking wordt hervat zodra de verbinding beschikbaar is.':'Bestand opgeslagen. De verwerkingsopdracht wordt hersteld zodra de verbinding beschikbaar is.');setTimeout(()=>{if(currentUser)invokeDocumentProcessing('resume').then(()=>fetchDocumentProcessingJobs()).catch(()=>{})},5000)}else if(!['failed'].includes(item.state)){try{documentProcessingTransition(item,'failed')}catch{item.state='failed';scheduleDocumentProcessingRender()}}}}};
  await Promise.all(Array.from({length:Math.min(DOCUMENT_PROCESSING_MAX_PARALLEL,list.length)},()=>worker()));
- session.allReceived=session.items.every(x=>x.receivedPersisted||x.state==='failed');
- if(session.items.some(x=>x.uploaded))toast('Je documenten zijn ontvangen. Je kunt ondertussen verder werken.');
+ session.allReceived=session.items.every(x=>x.receivedPersisted);
+ const receivedCount=session.items.filter(x=>x.receivedPersisted).length;
+ if(session.allReceived)toast('Je documenten zijn ontvangen. Je kunt ondertussen verder werken.');else if(receivedCount)toast(receivedCount+' document'+(receivedCount===1?'':'en')+' ontvangen.');
  await fetchDocumentProcessingJobs().catch(()=>{});
  scheduleDocumentProcessingRender();renderGlobalDocumentIndicator();
 }
@@ -7726,3 +7731,4 @@ window.addEventListener('keydown',e=>{
 
 </body>
 </html>
+
