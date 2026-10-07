@@ -1,0 +1,3 @@
+Rekeningnummer;Transactiedatum;Valutacode;CreditDebet;Bedrag;Tegenrekeningnummer;Tegenrekeninghouder;Valutadatum;Betaalwijze;Omschrijving
+NL00TEST0000000003;05-10-2026;EUR;D;19,99;NL00TEST0000000098;Software Voorbeeld;05-10-2026;Incasso;Abonnement oktober
+NL00TEST0000000003;06-10-2026;EUR;C;50,00;NL00TEST0000000097;Voorbeeld Klant BV;06-10-2026;Overboeking;"Factuur F2026-016; deelbetaling"
