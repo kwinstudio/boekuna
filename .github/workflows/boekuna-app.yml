@@ -12,6 +12,7 @@ on:
       - "public/assets/kvk-company-lookup.*"
       - "public/assets/mobile-polish-round-2.*"
       - "public/assets/mobile-product.*"
+      - "kwinest/app-assets/mobile-flow-simplification.*"
       - "public/assets/brand-v2.css"
       - "kwinest/app-assets/product-color-polish.css"
       - "kwinest/app-assets/product-ux-polish-round-3.css"
@@ -27,6 +28,7 @@ on:
       - "tests/browser-smoke.test.mjs"
       - "tests/developer-mode.test.mjs"
       - "tests/developer-mode-browser.test.mjs"
+      - "tests/tester-invite-code-browser.test.mjs"
       - "tests/app-ux-plain-language.test.mjs"
       - "tests/app-ux-keyboard.test.mjs"
       - "tests/app-ux-status.test.mjs"
@@ -37,6 +39,7 @@ on:
       - "tests/product-ui-reference.test.mjs"
       - "tests/complete-mobile-product.test.mjs"
       - "tests/mobile-desktop-freeze.test.mjs"
+      - "tests/mobile-flow-simplification.test.mjs"
       - "tests/document-upload-browser.test.mjs"
       - "tests/document-review-beginner-ux.test.mjs"
       - "tests/scan-native-picker.test.mjs"
@@ -126,6 +129,10 @@ jobs:
         run: npm install --prefix tests --no-save playwright@1.56.1
       - name: Install Chromium and WebKit
         run: ./tests/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Tester invite-code billing UI — Chromium + WebKit
+        run: |
+          node tests/tester-invite-code-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/tester-invite-code-browser.test.mjs
       - name: Beginner document review — Chromium + WebKit
         run: |
           node tests/document-review-beginner-ux.test.mjs
@@ -204,6 +211,10 @@ jobs:
           BOOKUNA_BROWSER=webkit node tests/complete-mobile-product.test.mjs
           node tests/mobile-desktop-freeze.test.mjs
           BOOKUNA_BROWSER=webkit node tests/mobile-desktop-freeze.test.mjs
+      - name: Mobile flow simplification — Chromium + WebKit
+        run: |
+          node tests/mobile-flow-simplification.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/mobile-flow-simplification.test.mjs
       - name: Split generated surface browser smoke
         run: node tests/split-surfaces-browser.test.mjs
       - name: WebKit app smoke
@@ -283,6 +294,7 @@ jobs:
             tests/artifacts/personal-insights/
             tests/artifacts/personal-assistant-v1-2/
             tests/artifacts/kvk-*.png
+            tests/artifacts/mobile-flow-simplification/
           if-no-files-found: ignore
 
       - name: Upload app UX evidence
