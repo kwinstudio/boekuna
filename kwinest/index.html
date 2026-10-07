@@ -4514,7 +4514,7 @@ function invoiceFinalChecks(draft,excludeId=editingInvoiceId||''){
 }
 function invoiceSendChecks(draft,excludeId=''){
  const r=invoiceFinalChecks(draft,excludeId),c=draft.customer||{};
- for(const miss of companyRequirementsForInvoice(draft,'send').filter(x=>!x.ok&&!r.errors.some(e=>e.companyField===miss.key)))r.errors.push({label:miss.label,msg:miss.msg,companyField:miss.key});
+ for(const miss of companyRequirementsForInvoice(draft,'send').filter(x=>!x.ok&&!r.errors.some(e=>e.companyField===x.key)))r.errors.push({label:miss.label,msg:miss.msg,companyField:miss.key});
  if(!c.email)r.errors.push({label:'Klant-e-mail',msg:'Vul het e-mailadres van de ontvanger in.'});
  return r
 }
@@ -6843,7 +6843,8 @@ window.addEventListener('keydown',e=>{
       return '<div class="legal-item"><strong>'+esc(item.label||'Controle')+'</strong><p>'+esc(item.msg||'Controleer dit veld.')+'</p></div>';
     }).join('');
     var footer='<button class="btn" onclick="closeModal()">Sluiten</button>';
-    if(customer&&customer.id)footer+='<button class="btn primary" onclick="closeModal();editContact(\''+customer.id+'\')">Klantgegevens openen</button>';
+    if((errors||[]).some(function(item){return item.companyField||item.company;}))footer+='<button class="btn primary" onclick="closeModal();navigate(\'profile\')">Bedrijfsgegevens invullen</button>';
+    else if(customer&&customer.id)footer+='<button class="btn primary" onclick="closeModal();editContact(\''+customer.id+'\')">Klantgegevens openen</button>';
     if(invoice&&errors.some(function(item){return item.label==='Klant-e-mail';}))footer+='<button class="btn" onclick="printInvoice(\''+invoice.id+'\')">PDF / print gebruiken</button>';
     modal(title,'<div class="notice warn"><strong>Controleer eerst de ontbrekende gegevens.</strong></div><div class="legal-list" style="margin-top:12px">'+rows+'</div>',footer,true);
   }
@@ -7205,7 +7206,7 @@ window.addEventListener('keydown',e=>{
     var checks=invoiceSendChecks(draft,id);
     var missing=requirementsFor('invoice-finalize',draft);
     if(missing.length){
-      showValidationErrors('Uw factuur is bijna klaar',missing.map(function(item){return {label:item.label||'Bedrijfsgegevens',msg:item.msg||'Vul de ontbrekende bedrijfsgegevens aan.'};}),customer);
+      showValidationErrors('Uw factuur is bijna klaar',missing.map(function(item){return {label:item.label||'Bedrijfsgegevens',msg:item.msg||'Vul de ontbrekende bedrijfsgegevens aan.',company:true};}),customer);
       return;
     }
     if(checks.errors.length){showValidationErrors('Factuur nog niet klaar voor verzending',checks.errors,customer,invoice);return;}
