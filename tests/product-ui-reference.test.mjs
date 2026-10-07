@@ -397,7 +397,7 @@ try{
         assert.ok(cardMetrics.every(x=>x.valueFits),browserName+' '+route+' KPI values must fit');
         assert.ok(cardMetrics.every(x=>x.iconVisible),browserName+' '+route+' KPI icons must be visible');
         assert.deepEqual((await page.locator('.product-kpi-label').allTextContents()).map(v=>v.trim()),labels,browserName+' '+route+' KPI labels');
-        assert.equal(await page.locator('.product-kpi').count(),4,browserName+' '+route+' must expose four coherent KPI cards');
+        assert.equal(await page.locator('.product-kpi').count(),labels.length,browserName+' '+route+' must expose one coherent KPI card per label');
         await noOverflow(page,browserName+' desktop '+route);
         await noDecorativeShadows(page,browserName+' desktop '+route);
         await axe(page,browserName+' desktop '+route);
@@ -459,7 +459,7 @@ try{
           await noOverflow(page,browserName+' '+route+' '+width+'x'+height);
           if(route!=='dashboard'){
             const columns=await page.locator('.product-kpis').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length);
-            assert.equal(columns,4,browserName+' '+route+' must retain four desktop KPI columns at '+width+'x'+height);
+            assert.equal(columns,coreKpis[route].length,browserName+' '+route+' must give each KPI its own desktop column at '+width+'x'+height);
           }
         }
         await page.evaluate(()=>navigate('dashboard'));
