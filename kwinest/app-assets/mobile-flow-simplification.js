@@ -446,10 +446,15 @@
     });
     flow?.querySelectorAll('.mobile-flow-hidden,.mobile-active-issue').forEach(function(el){el.classList.remove('mobile-flow-hidden','mobile-active-issue')});
   }
-  function showFullReview(flow){
+  function showFullReview(flow,issue){
     restoreReviewPages(flow);flow.dataset.mobileSimpleReview='full';
     flow.querySelector('.mobile-single-issue-review')?.setAttribute('hidden','');
+    var field=String(issue?.field||'');
+    var amountFields=['net','vatAmount','gross','vatRate','vatLines','currency','exchangeRateToEur','vatTreatmentChoice'];
+    var step=amountFields.includes(field)?2:1;
+    if(typeof setDocumentReviewStep==='function')setDocumentReviewStep(step);
     if(typeof updateBeginnerReviewState==='function')updateBeginnerReviewState();
+    requestAnimationFrame(function(){if(field&&typeof focusDocumentReviewIssue==='function')focusDocumentReviewIssue(field)});
   }
   function confirmReviewIssue(flow,issue){
     var field=String(issue?.field||'');
@@ -531,7 +536,7 @@
       shell.append(node('h4','mobile-single-issue-question','Alles klopt'));
       shell.append(node('p','','Je kunt deze bon nu veilig opslaan.'));
       shell.append(button('Opslaan',function(){savePdfInvoiceImport()},'btn primary mobile-flow-action'));
-      shell.append(button('Alle gegevens bekijken',function(){showFullReview(flow)},'btn link-btn mobile-flow-action'));
+      shell.append(button('Alle gegevens bekijken',function(){showFullReview(flow,issue)},'btn link-btn mobile-flow-action'));
       return;
     }
     var issue=issues[0],target=activeReviewTarget(flow,String(issue.field||''));
@@ -554,13 +559,13 @@
       actions.append(button('Nee, dit is een andere bon',function(){confirmDuplicateOverride();requestAnimationFrame(schedule)},'btn mobile-flow-action'));
     }else if(field==='confirmAnomaly'){
       actions.append(button('Ik heb het origineel gecontroleerd',function(){confirmDocumentAnomaly();requestAnimationFrame(schedule)},'btn primary mobile-flow-action'));
-      actions.append(button('Alle gegevens bekijken',function(){showFullReview(flow)},'btn link-btn mobile-flow-action'));
+      actions.append(button('Alle gegevens bekijken',function(){showFullReview(flow,issue)},'btn link-btn mobile-flow-action'));
     }else if(['currency','exchangeRateToEur','vatLines','vatTreatmentChoice'].includes(field)){
-      actions.append(button('Aanpassen',function(){showFullReview(flow)},'btn primary mobile-flow-action'));
+      actions.append(button('Aanpassen',function(){showFullReview(flow,issue)},'btn primary mobile-flow-action'));
     }else{
       actions.append(button('Ja, klopt',function(){confirmReviewIssue(flow,issue)},'btn primary mobile-flow-action'));
-      actions.append(button('Aanpassen',function(){showFullReview(flow)},'btn mobile-flow-action'));
-      actions.append(button('Alle gegevens bekijken',function(){showFullReview(flow)},'btn link-btn mobile-flow-action'));
+      actions.append(button('Aanpassen',function(){showFullReview(flow,issue)},'btn mobile-flow-action'));
+      actions.append(button('Alle gegevens bekijken',function(){showFullReview(flow,issue)},'btn link-btn mobile-flow-action'));
     }
     shell.append(actions);
   }
