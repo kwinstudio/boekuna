@@ -64,18 +64,18 @@ try{
  await control('health-contact-addresses');await page.getByRole('button',{name:'Context klant',exact:true}).click();assert.equal(await page.locator('#contactName').inputValue(),'Context klant');await close();
  await page.evaluate(()=>{state=load();render();openDashboardAttention('documents')});assert.match(await page.locator('[role=dialog]').innerText(),/Exact controle.pdf/);await close();
  const stale=await page.evaluate(()=>{state.documents=state.documents.filter(d=>d.id!=='review');openControlItem('document-review');return document.querySelector('[role=dialog]')===null});assert.equal(stale,true);
- // Report preview exits and restores focus on desktop and mobile layouts.
+ // Report preview (Instellingen > Data & export) exits and restores focus on desktop and mobile layouts.
  for(const width of [320,390,768,1440]){
-  await page.setViewportSize({width,height:844});await page.evaluate(()=>navigate('reports'));const trigger=page.getByRole('button',{name:/PDF/}).first();await trigger.focus();await trigger.click();await page.locator('#reportPreviewFrame').waitFor();
+  await page.setViewportSize({width,height:844});await page.evaluate(()=>openSettingsSection('data'));const trigger=page.locator('#settings-panel-data').getByRole('button',{name:'PDF bekijken',exact:true});await trigger.focus();await trigger.click();await page.locator('#reportPreviewFrame').waitFor();
   assert.equal(await page.getByRole('button',{name:'Sluiten',exact:true}).evaluate(el=>el===document.activeElement),true);
-  const exit=page.getByRole('button',{name:'Terug naar rapportages',exact:true});const box=await exit.boundingBox();assert.ok(box&&box.x>=0&&box.x+box.width<=width+1&&box.y+box.height<=844,'Report exit remains visible at '+width);
+  const exit=page.getByRole('button',{name:'Terug',exact:true});const box=await exit.boundingBox();assert.ok(box&&box.x>=0&&box.x+box.width<=width+1&&box.y+box.height<=844,'Report exit remains visible at '+width);
   const report=page.frameLocator('#reportPreviewFrame');assert.match(await report.locator('body').innerText(),/Boekhoudrapport/);
   await page.locator('#reportPreviewFrame').evaluate(frame=>{frame.contentWindow.__printed=0;frame.contentWindow.print=()=>frame.contentWindow.__printed++});await page.getByRole('button',{name:'Print / bewaar als PDF',exact:true}).click();assert.equal(await page.locator('#reportPreviewFrame').evaluate(frame=>frame.contentWindow.__printed),1);
   await page.getByRole('button',{name:'Sluiten',exact:true}).focus();
   if([320,390,1440].includes(width)){await page.waitForFunction(()=>!document.querySelector('.toast'));fs.mkdirSync('tests/artifacts/contextual-resolution',{recursive:true});await page.screenshot({path:'tests/artifacts/contextual-resolution/report-'+name+'-'+width+'.png'})}
   await page.keyboard.press('Escape');await page.locator('[role=dialog]').waitFor({state:'detached'});await page.waitForFunction(()=>document.activeElement?.textContent?.includes('PDF'));
   await trigger.click();await page.locator('#reportPreviewFrame').waitFor();await exit.click();await page.locator('[role=dialog]').waitFor({state:'detached'});await page.waitForFunction(()=>!history.state?.boekunaReportPreview);
-  await trigger.click();await page.locator('#reportPreviewFrame').waitFor();await page.goBack();await page.locator('[role=dialog]').waitFor({state:'detached'});assert.equal(await page.evaluate(()=>page),'reports');await page.waitForFunction(()=>document.activeElement?.textContent?.includes('PDF'));
+  await trigger.click();await page.locator('#reportPreviewFrame').waitFor();await page.goBack();await page.locator('[role=dialog]').waitFor({state:'detached'});assert.equal(await page.evaluate(()=>page),'settings');await page.waitForFunction(()=>document.activeElement?.textContent?.includes('PDF'));
   await trigger.click();await page.locator('#reportPreviewFrame').waitFor();await report.getByRole('heading',{name:'Boekhoudrapport',exact:true}).waitFor();await report.locator('body').click();await page.keyboard.press('Escape');await page.locator('[role=dialog]').waitFor({state:'detached'});await page.waitForFunction(()=>!history.state?.boekunaReportPreview);
  }
  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>navigate('settings'));

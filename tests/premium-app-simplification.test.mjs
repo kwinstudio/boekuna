@@ -209,7 +209,7 @@ try{
   assert.match(vat,/indicati(?:e|ef)/i,'VAT must retain indicative meaning');
   const vatPeriod=page.locator('#vatFinancialPeriod');
   assert.ok(await vatPeriod.isVisible(),'VAT shared period selector must be visible');
-  assert.deepEqual(await vatPeriod.locator('option').allTextContents(),['Week','Maand','Kwartaal','Jaar','Altijd']);
+  assert.deepEqual(await vatPeriod.locator('option').allTextContents(),['Deze week','Deze maand','Dit kwartaal','Dit jaar','Alles','Aangepast']);
   await vatPeriod.selectOption('year');
   assert.equal((await page.locator('.premium-split .section-meta').first().innerText()).trim(),String(new Date().getFullYear()),'VAT year view must clearly identify the selected year');
 
@@ -240,7 +240,7 @@ try{
   await navigateTo('reports');
   const reportPeriod=page.locator('#reportPeriodPreset');
   assert.ok(await reportPeriod.isVisible(),'Compact report period picker must be visible');
-  assert.deepEqual(await reportPeriod.locator('option').allTextContents(),['Week','Maand','Kwartaal','Jaar','Altijd']);
+  assert.deepEqual(await reportPeriod.locator('option').allTextContents(),['Deze week','Deze maand','Dit kwartaal','Dit jaar','Alles','Aangepast']);
   assert.equal(await page.locator('.report-period-details').evaluate(el=>el.open),false,'Custom dates must stay collapsed initially');
   await reportPeriod.selectOption('month');
   assert.equal(await page.evaluate(()=>sessionStorage.getItem('reportPreset')),'month','Report period should update from compact selector');

@@ -204,7 +204,7 @@ try{
   });
   await page.evaluate(()=>navigate('reports'));
   const reportPeriod=page.locator('#reportPeriodPreset');
-  assert.deepEqual(await reportPeriod.locator('option').allTextContents(),['Week','Maand','Kwartaal','Jaar','Altijd'],'Reports must show all shared timeframe choices');
+  assert.deepEqual(await reportPeriod.locator('option').allTextContents(),['Deze week','Deze maand','Dit kwartaal','Dit jaar','Alles','Aangepast'],'Reports must show all shared timeframe choices');
   assert.equal(await page.locator('#reportFrom').isVisible(),false,'Custom date fields must start collapsed');
   await reportPeriod.selectOption('all');
   assert.equal((await page.locator('.report-period-dates').innerText()).trim(),'Alle boekjaren','All-time reporting must name the whole range');
