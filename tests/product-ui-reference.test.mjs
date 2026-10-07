@@ -149,9 +149,10 @@ async function reportA4State(page,label){
   const state=await page.evaluate(()=>{
     const frame=document.getElementById('reportPreviewFrame'),doc=frame.contentDocument,body=doc.body,kpis=doc.querySelector('.kpis'),canvas=document.getElementById('reportPreviewCanvas');
     const bodyStyle=frame.contentWindow.getComputedStyle(body),kpiStyle=frame.contentWindow.getComputedStyle(kpis),canvasRect=canvas.getBoundingClientRect();
-    return {innerWidth:frame.contentWindow.innerWidth,bodyWidth:body.getBoundingClientRect().width,bodyCssWidth:bodyStyle.width,kpiColumns:kpiStyle.gridTemplateColumns.split(' ').filter(Boolean).length,transform:frame.style.transform,canvasWidth:canvasRect.width,canvasHeight:canvasRect.height,scrollHeight:doc.documentElement.scrollHeight};
+    const frameStyle=getComputedStyle(frame);
+    return {innerWidth:frame.contentWindow.innerWidth,frameCssWidth:parseFloat(frameStyle.width),bodyWidth:body.getBoundingClientRect().width,bodyCssWidth:bodyStyle.width,kpiColumns:kpiStyle.gridTemplateColumns.split(' ').filter(Boolean).length,transform:frame.style.transform,canvasWidth:canvasRect.width,canvasHeight:canvasRect.height,scrollHeight:doc.documentElement.scrollHeight};
   });
-  assert.ok(Math.abs(state.innerWidth-794)<=2,label+' iframe viewport must remain A4-width: '+JSON.stringify(state));
+  assert.ok(Math.abs(state.frameCssWidth-794)<=2,label+' preview frame CSS width must remain A4-width before scaling: '+JSON.stringify(state));
   assert.ok(Math.abs(state.bodyWidth-794)<=3,label+' paper must remain 210mm/A4-width: '+JSON.stringify(state));
   assert.equal(state.kpiColumns,4,label+' PDF KPI composition must stay desktop/document layout');
   assert.match(state.transform,/scale\(/,label+' preview must scale the fixed paper rather than reflow it');
