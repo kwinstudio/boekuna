@@ -11,6 +11,11 @@ const require=createRequire(import.meta.url);
 const axeSource=fs.readFileSync(require.resolve('axe-core/axe.min.js'),'utf8');
 const source=fs.readFileSync(path.join(root,'kwinest','index.html'),'utf8');
 const colorPolish=fs.readFileSync(path.join(root,'kwinest','app-assets','product-color-polish.css'),'utf8');
+const uxPolish=fs.readFileSync(path.join(root,'kwinest','app-assets','product-ux-polish-round-3.css'),'utf8');
+assert.ok(uxPolish.includes('--boekuna-system-font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif'),'Round 3 must use the native platform system-font stack');
+assert.equal(/Boekuna (?:Inter|Space)/.test(uxPolish),false,'Round 3 must not depend on app-only Inter or Space Grotesk as primary UI fonts');
+assert.ok(uxPolish.includes('#mobileBottomNav{display:none!important}'),'Pre-auth mobile navigation gate missing');
+assert.ok(uxPolish.includes('.quick-action-backdrop'),'Central mobile quick-create presentation missing');
 for(const token of ['#1B1F23','#63D471','#F6F7F8','#8A949C','#FFFFFF'])assert.ok(colorPolish.includes(token),'Product colour polish missing canonical token '+token);
 for(const semantic of ['--status-success:#177A31','--status-warning:#B45309','--status-error:#C2362B','--status-info:#2563EB'])assert.ok(colorPolish.includes(semantic),'Semantic colour mapping missing '+semantic);
 assert.equal(/(?:linear|radial)-gradient\(/i.test(colorPolish),false,'Product colour polish must not introduce gradients');
@@ -35,8 +40,7 @@ for(const [token,value] of Object.entries({
   '--app-muted':'#8A949C',
   '--app-white':'#FFFFFF'
 }))assert.ok(ui.includes(token+':'+value),'Product design token mismatch: '+token);
-assert.ok(ui.includes('font-family:"Boekuna Space"'),'Space Grotesk display role missing');
-assert.ok(ui.includes('font-family:"Boekuna Inter"'),'Inter UI role missing');
+assert.ok(uxPolish.includes('font-family:var(--boekuna-system-font)!important'),'System UI font override missing');
 assert.equal(/(?:linear|radial)-gradient\(/i.test(ui),false,'Master-reference layer must not use gradients');
 assert.equal(/backdrop-filter:(?!none)/i.test(ui),false,'Master-reference layer must not introduce glassmorphism');
 assert.ok(ui.includes('@media(prefers-reduced-motion:reduce)'),'Reduced-motion handling missing');
@@ -72,10 +76,11 @@ assert.ok(source.includes('#mainApp .kpi-tone-success .metric-value{color:var(--
 const build=spawnSync(process.execPath,['scripts/build-app.mjs'],{cwd:root,encoding:'utf8'});
 assert.equal(build.status,0,'App build failed: '+(build.stderr||build.stdout));
 const dist=path.join(root,'dist','app');
-for(const file of ['index.html','manifest.webmanifest','assets/app-InterVariable.woff2','assets/app-SpaceGrotesk-Variable.ttf','assets/product-color-polish.css'])assert.ok(fs.existsSync(path.join(dist,file)),'Built app asset missing '+file);
+for(const file of ['index.html','manifest.webmanifest','assets/app-InterVariable.woff2','assets/app-SpaceGrotesk-Variable.ttf','assets/product-color-polish.css','assets/product-ux-polish-round-3.css'])assert.ok(fs.existsSync(path.join(dist,file)),'Built app asset missing '+file);
 let appHtml=fs.readFileSync(path.join(dist,'index.html'),'utf8');
 assert.ok(appHtml.includes('boekuna-product-ui-reference-20261003'),'Built artifact must contain the new product UI layer');
 assert.ok(appHtml.includes('/assets/product-color-polish.css?v=20261006a'),'Built artifact must load the app-only colour polish layer');
+assert.ok(appHtml.includes('/assets/product-ux-polish-round-3.css?v=20261007a'),'Built artifact must load Round 3 after the established colour baseline');
 assert.equal(appHtml.includes('function showMarketingPage'),false,'App artifact must remain free of marketing runtime');
 
 function replaceLast(sourceText,needle,replacement){
@@ -156,10 +161,11 @@ try{
       await page.goto(base+'/app',{waitUntil:'networkidle'});
       await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
       await page.evaluate(async()=>document.fonts.ready);
-      assert.equal(await page.evaluate(()=>document.fonts.check('16px "Boekuna Inter"')),true,browserName+' Inter must load locally');
-      assert.equal(await page.evaluate(()=>document.fonts.check('32px "Boekuna Space"')),true,browserName+' Space Grotesk must load locally');
-      assert.match(await page.locator('#mainApp').evaluate(el=>getComputedStyle(el).fontFamily),/Boekuna Inter/);
-      assert.match(await page.locator('.dashboard-page-head h1').evaluate(el=>getComputedStyle(el).fontFamily),/Boekuna Space/);
+      const appFont=await page.locator('#mainApp').evaluate(el=>getComputedStyle(el).fontFamily);
+      const headingFont=await page.locator('.dashboard-page-head h1').evaluate(el=>getComputedStyle(el).fontFamily);
+      assert.match(appFont,/-apple-system|Segoe UI|Roboto/,browserName+' app must use the platform system-font stack');
+      assert.doesNotMatch(appFont,/Boekuna Inter|Boekuna Space/,browserName+' app must not use legacy webfonts as its primary UI font');
+      assert.match(headingFont,/-apple-system|Segoe UI|Roboto/,browserName+' headings must use the same native system stack');
       assert.equal(await page.locator('#sidebar').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
       assert.equal(await page.locator('.nav-item.active').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(236, 250, 238)');
       const semanticColours=await page.evaluate(()=>{
@@ -406,10 +412,12 @@ try{
         assert.deepEqual((await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents()).map(v=>v.trim()),['Overzicht','Inkomsten','Kosten','Btw','Meer']);
         const activeMobileNav=page.locator('#mobileBottomNav .mobile-bottom-nav-item.active[aria-current="page"]');
         await page.waitForFunction(()=>getComputedStyle(document.querySelector('#mobileBottomNav .mobile-bottom-nav-item.active[aria-current="page"]')).backgroundColor==='rgb(236, 250, 238)');
-        const activeMobileStyle=await activeMobileNav.evaluate(el=>{const s=getComputedStyle(el);return {background:s.backgroundColor,color:s.color,boxShadow:s.boxShadow,fontWeight:s.fontWeight}});
+        const activeMobileStyle=await activeMobileNav.evaluate(el=>{const s=getComputedStyle(el);return {background:s.backgroundColor,color:s.color,boxShadow:s.boxShadow,borderTopColor:s.borderTopColor,borderTopWidth:s.borderTopWidth,fontWeight:s.fontWeight}});
         assert.equal(activeMobileStyle.background,'rgb(236, 250, 238)',browserName+' mobile '+width+' active destination must use the soft BOEKUNA-green selected state');
         assert.equal(activeMobileStyle.color,'rgb(27, 31, 35)',browserName+' mobile '+width+' active destination label must remain anthracite');
-        assert.match(activeMobileStyle.boxShadow,/99, 212, 113/,browserName+' mobile '+width+' active destination must retain the non-colour inset selection cue');
+        assert.equal(activeMobileStyle.boxShadow,'none',browserName+' mobile '+width+' active destination must not use a decorative shadow');
+        assert.equal(activeMobileStyle.borderTopColor,'rgb(99, 212, 113)',browserName+' mobile '+width+' active destination must use a border cue');
+        assert.equal(activeMobileStyle.borderTopWidth,'2px',browserName+' mobile '+width+' active destination border cue must remain visible');
         assert.ok(Number.parseInt(activeMobileStyle.fontWeight,10)>=700,browserName+' mobile '+width+' active destination must retain a font-weight selection cue');
         await noOverflow(page,browserName+' mobile dashboard active nav '+width);
       }
