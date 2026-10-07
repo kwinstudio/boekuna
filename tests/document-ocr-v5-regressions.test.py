@@ -105,6 +105,35 @@ def test_perspective_shadow_targeted_header_recovers_invoice_number():
     assert result.invoice.invoiceNumber == "PERS-2026-001", result.model_dump()
 
 
+
+
+def test_scanned_pdf_page_marker_is_not_receipt_supplier():
+    lines = [
+        "BOEKUNA QA PDF BON",
+        "KASSABON",
+        "Datum 03-10-2026",
+        "Subtotaal EUR 100,00",
+        "BTW 21% EUR 21,00",
+        "Totaal EUR 121,00",
+        "PIN EUR 121,00",
+    ]
+    image = Image.new("RGB", (1800, 2400), "white")
+    draw = ImageDraw.Draw(image)
+    for idx, line in enumerate(lines):
+        draw.text((80, 80 + idx * 120), line, fill="black", font=_font(52 if idx == 0 else 44, idx == 0))
+    buf = io.BytesIO()
+    image.save(buf, format="PNG")
+    image.close()
+    pdf = fitz.open()
+    page = pdf.new_page(width=595, height=842)
+    page.insert_image(page.rect, stream=buf.getvalue())
+    raw = pdf.tobytes()
+    pdf.close()
+    doc = processor.extract_document("receipt-scan.pdf", "application/pdf", raw)
+    result = processor.heuristic_extract(doc, "receipt-scan.pdf", {})
+    assert result.supplier.name == "BOEKUNA QA PDF BON", result.model_dump()
+
+
 def test_factoring_primary_totals_are_not_replaced_by_fee_percentage():
     text = """FACTUUR
 Leverancier: BOEKUNA QA FACTORING BV
@@ -145,6 +174,7 @@ if __name__ == "__main__":
         test_orthogonal_rotation_180_preserves_receipt_supplier,
         test_orthogonal_rotation_270_preserves_receipt_supplier,
         test_perspective_shadow_targeted_header_recovers_invoice_number,
+        test_scanned_pdf_page_marker_is_not_receipt_supplier,
         test_factoring_primary_totals_are_not_replaced_by_fee_percentage,
     ]
     failures = []
