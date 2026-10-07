@@ -5,7 +5,7 @@ import {execFileSync} from 'node:child_process';
 import { chromium, webkit } from 'playwright';
 
 execFileSync(process.execPath,['scripts/build-app.mjs']);
-const original=fs.readFileSync(new URL('../dist/app/index.html',import.meta.url),'utf8').replace('const today=()=>new Date().toISOString().slice(0,10);',"const today=()=> '2026-01-31';");
+const original=fs.readFileSync(new URL('../dist/app/index.html',import.meta.url),'utf8').replace('const today=()=>localDateOnly(new Date());',"const today=()=> '2026-01-31';");
 const bootstrap=String.raw`
 // Domain mock only: this exercises the client persistence contract, not live RLS.
 window.__auth='account-a';
