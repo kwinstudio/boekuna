@@ -8,6 +8,7 @@
   var invoiceResume=null;
   var nextInvoiceStep=null;
   var bulkBusy=false;
+  var mobileIssueReviewRequested=false;
 
   function node(tag,className,text){
     var el=document.createElement(tag);
@@ -154,7 +155,7 @@
       issue.append(node('h2','',total+' '+(total===1?'heeft':'hebben')+' een vraag'));
       questions.forEach(function(job){
         var a=job.result?.analysis||{},field=jobFirstField(job);
-        var row=button('',function(){openPersistentDocumentReview(job.id)},'mobile-document-question-row mobile-flow-action');
+        var row=button('',function(){mobileIssueReviewRequested=true;openPersistentDocumentReview(job.id)},'mobile-document-question-row mobile-flow-action');
         var copy=node('span','mobile-document-question-copy');
         copy.append(node('strong','',reviewQuestion(field)));
         copy.append(node('span','',[analysisParty(a),analysisDate(a)?dateText(analysisDate(a)):'',analysisAmount(a)].filter(Boolean).join(' · ')));
@@ -463,25 +464,67 @@
     else updateBeginnerReviewState();
     requestAnimationFrame(schedule);
   }
+  function duplicateDisplayData(parsed){
+    var candidate=parsed?.duplicateCandidate||{};
+    var existing=(state.documents||[]).find(function(d){return String(d.id||'')===String(candidate.id||candidate.document_ref||'')})||null;
+    var snap=existing?.reviewSnapshot||{};
+    return {
+      current:{party:String(parsed?.party||'Nieuwe bon'),date:String(parsed?.issueDate||''),gross:parsed?.gross},
+      existing:{party:String(snap.party||existing?.name||'Bestaand document'),date:String(snap.issueDate||existing?.date||''),gross:snap.gross,label:String(candidate.label||'')},
+      source:existing
+    };
+  }
+  function duplicateComparison(parsed){
+    var data=duplicateDisplayData(parsed),wrap=node('section','mobile-duplicate-comparison');
+    wrap.append(node('h5','','Deze bon heb je al'));
+    var intro=String(parsed?.duplicateCandidate?.label||'Zelfde gegevens als een document dat al in BOEKUNA staat.');
+    wrap.append(node('p','',intro));
+    var cards=node('div','mobile-duplicate-cards');
+    function card(kicker,data){
+      var el=node('article','mobile-duplicate-card');
+      el.append(node('span','mobile-duplicate-kicker',kicker));
+      el.append(node('strong','',data.party||'Document'));
+      var meta=[data.date?dateText(data.date):'',data.gross!=null&&Number.isFinite(Number(data.gross))?moneyText(Number(data.gross)):''].filter(Boolean).join(' · ');
+      if(meta)el.append(node('span','',meta));
+      if(!meta&&data.label)el.append(node('span','',data.label));
+      return el;
+    }
+    cards.append(card('NIEUW',data.current),card('AL IN BOEKUNA',data.existing));
+    wrap.append(cards);
+    return wrap;
+  }
   async function discardDuplicateReview(){
     var context=pendingPdfImport,ref=String(context?.sourceClientRef||''),jobId=String(context?.processingJobId||'');
     var doc=(state.documents||[]).find(function(d){return String(d.fileId||'')===ref})||null;
-    cancelDocumentReview();
-    if(doc&&typeof deleteDocumentNow==='function')return await deleteDocumentNow(doc.id);
-    if(jobId&&typeof removePersistentDocumentByJob==='function')return removePersistentDocumentByJob(jobId);
+    if(doc&&typeof documentDeleteEligibility==='function'){
+      var check=documentDeleteEligibility(doc);
+      if(!check.allowed){toast(check.reason||'Dit document kan nu niet veilig worden verwijderd.');return false}
+    }
+    if(doc&&typeof deleteDocumentNow==='function'){
+      cleanupPendingImport();closeModal();
+      return await deleteDocumentNow(doc.id);
+    }
+    if(jobId&&typeof removePersistentDocumentByJob==='function'){
+      cleanupPendingImport();closeModal();removePersistentDocumentByJob(jobId);return true;
+    }
+    toast('Deze bon kan hier niet veilig worden weggegooid. Gebruik Alle gegevens bekijken.');
+    return false;
   }
   function simpleReview(root){
     var flow=root?.querySelector('.document-review-flow.two-step-review');
     if(!flow||!media.matches||flow.dataset.mobileSimpleReview==='full')return;
     var parsed=pendingPdfImport?.parsed;if(!parsed)return;
+    var requested=mobileIssueReviewRequested||(!bulkBusy&&!!pendingPdfImport?.processingJobId);
+    if(flow.dataset.mobileSimpleReview!=='active'&&!requested)return;
     var issues=window.BookunaDocumentReviewV2?.financialBlockingIssues?.(parsed)||[];
+    if(!issues.length&&flow.dataset.mobileSimpleReview!=='active'){mobileIssueReviewRequested=false;return}
     var issueSignature=JSON.stringify(issues.map(function(issue){return [issue?.field,issue?.message,issue?.code]}));
     var shell=flow.querySelector('.mobile-single-issue-review');
     if(shell&&flow.dataset.mobileSimpleReview==='active'&&flow.dataset.mobileIssueSignature===issueSignature)return;
     flow.dataset.mobileIssueSignature=issueSignature;
     restoreReviewPages(flow);
     if(!shell){shell=node('section','mobile-single-issue-review');flow.querySelector('.document-review-fields')?.prepend(shell)}
-    shell.hidden=false;flow.dataset.mobileSimpleReview='active';
+    shell.hidden=false;flow.dataset.mobileSimpleReview='active';mobileIssueReviewRequested=false;
     shell.replaceChildren();
     if(!issues.length){
       shell.append(node('span','mobile-flow-eyebrow','Controle afgerond'));
@@ -495,7 +538,8 @@
     shell.append(node('span','mobile-flow-eyebrow','1 van '+issues.length));
     shell.append(node('h4','mobile-single-issue-question',reviewQuestion(String(issue.field||''))));
     if(issue.message)shell.append(node('p','',String(issue.message)));
-    if(String(issue.field||'')!=='confirmDuplicate')shell.append(button('Bekijk document',function(){toggleDocumentOriginal(true)},'btn link-btn mobile-flow-action'));
+    if(String(issue.field||'')==='confirmDuplicate')shell.append(duplicateComparison(parsed));
+    else shell.append(button('Bekijk document',function(){toggleDocumentOriginal(true)},'btn link-btn mobile-flow-action'));
     var page=target?.closest('[data-review-page]');
     if(page){
       if(!page.dataset.mobileWasHidden)page.dataset.mobileWasHidden=page.hidden?'1':'0';
@@ -556,6 +600,7 @@
   }
 
   function restoreDesktop(){
+    mobileIssueReviewRequested=false;
     restoreReviewPages(document.querySelector('.document-review-flow.two-step-review'));
     moves.reverse().forEach(function(item){if(item.marker.isConnected&&item.el){delete item.el.dataset.mobileFlowMoved;item.marker.replaceWith(item.el)}});moves=[];
     textChanges.forEach(function(item){if(item.el?.isConnected){item.el.textContent=item.text;delete item.el.dataset.mobileFlowTextSaved}});textChanges=[];
