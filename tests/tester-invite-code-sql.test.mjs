@@ -51,6 +51,9 @@ try{
     "create function public.billing_plan_limit(p_plan text) returns integer language sql immutable as $$ select case when p_plan='boekuna' then 100 when p_plan='pro' then null else 10 end $$;",
     "grant usage on schema public,auth,private to authenticated,service_role;",
     "grant select on auth.users to authenticated,service_role;",
+    "grant select,insert,update,delete on public.billing_entitlements to service_role;",
+    "grant select,insert,update,delete on public.billing_accounts to service_role;",
+    "grant select,insert,update,delete on public.internal_access_grants to service_role;",
     "grant execute on function public.billing_effective_plan(uuid) to service_role;"
   ].join('\n'));
 
