@@ -563,27 +563,18 @@ try{
       fieldConfidence:{party:99,issueDate:99,net:99,vatAmount:99,gross:99,vatRate:99,vatLines:99,category:99}
     });
     await noOverflow(browserName+' '+width+'px step 1');
-    const simple=await page.locator('.mobile-single-issue-review:visible').count();
-    if(simple){
-      assert.match(await page.locator('.mobile-single-issue-question').innerText(),/Alles klopt|Klopt/);
-      const saveBox=await page.locator('.mobile-single-issue-review .btn.primary:visible').boundingBox();
-      assert.ok(saveBox&&saveBox.y+saveBox.height<=844,width+'px simplified action must be reachable without scrolling');
-      const touch=await page.locator('.mobile-single-issue-review .mobile-flow-action:visible').evaluateAll(nodes=>nodes.map(el=>el.getBoundingClientRect().height));
-      assert.ok(touch.length&&touch.every(h=>h>=44),width+'px simplified touch targets must be >=44px');
-    }else{
-      const step1=await page.locator('[data-review-page="1"]:visible').boundingBox();
-      const next=await page.getByRole('button',{name:'Volgende',exact:true}).boundingBox();
-      assert.ok(step1&&step1.height<610,width+'px step 1 must remain compact');
-      assert.ok(next&&next.y+next.height<=844,width+'px Next must be reachable without scrolling');
-      await page.getByRole('button',{name:'Volgende',exact:true}).click();
-      await noOverflow(browserName+' '+width+'px step 2');
-      const step2=await page.locator('[data-review-page="2"]:visible').boundingBox();
-      const saveBox=await page.locator('[data-review-save]:visible').boundingBox();
-      assert.ok(step2&&step2.height<610,width+'px step 2 must remain compact');
-      assert.ok(saveBox&&saveBox.y+saveBox.height<=844,width+'px Save must be reachable without scrolling');
-      const touch=await page.locator('.mobile-review-actions button:visible').evaluateAll(nodes=>nodes.map(el=>el.getBoundingClientRect().height));
-      assert.ok(touch.length&&touch.every(h=>h>=44),width+'px touch targets must be >=44px');
-    }
+    const step1=await page.locator('[data-review-page="1"]:visible').boundingBox();
+    const next=await page.getByRole('button',{name:'Volgende',exact:true}).boundingBox();
+    assert.ok(step1&&step1.height<610,width+'px step 1 must remain compact');
+    assert.ok(next&&next.y+next.height<=844,width+'px Next must be reachable without scrolling');
+    await page.getByRole('button',{name:'Volgende',exact:true}).click();
+    await noOverflow(browserName+' '+width+'px step 2');
+    const step2=await page.locator('[data-review-page="2"]:visible').boundingBox();
+    const saveBox=await page.locator('[data-review-save]:visible').boundingBox();
+    assert.ok(step2&&step2.height<610,width+'px step 2 must remain compact');
+    assert.ok(saveBox&&saveBox.y+saveBox.height<=844,width+'px Save must be reachable without scrolling');
+    const touch=await page.locator('.mobile-review-actions button:visible').evaluateAll(nodes=>nodes.map(el=>el.getBoundingClientRect().height));
+    assert.ok(touch.length&&touch.every(h=>h>=44),width+'px touch targets must be >=44px');
     if(width===390)await page.screenshot({path:'tests/artifacts/document-review-two-step-mobile-'+browserName+'.png',fullPage:true});
     await page.evaluate(()=>closeModal());
   }
@@ -599,12 +590,7 @@ try{
   await page.locator('#reviewOriginalPanel.open .beginner-preview-empty').waitFor();
   await assertPreviewCopySeparated(browserName+' mobile preview');
   await page.evaluate(()=>toggleDocumentOriginal(false));
-  if(await page.locator('.mobile-single-issue-review:visible').count()){
-    assert.match(await page.locator('.mobile-single-issue-question').innerText(),/valuta/i);
-    await page.getByRole('button',{name:'Aanpassen',exact:true}).click();
-  }else{
-    await page.getByRole('button',{name:'Volgende',exact:true}).click();
-  }
+  await page.getByRole('button',{name:'Volgende',exact:true}).click();
   await noOverflow(browserName+' foreign currency mobile');
   assert.equal(await page.locator('[name="exchangeRateToEur"]:visible').count(),1);
   await page.screenshot({path:'tests/artifacts/document-review-foreign-currency-mobile-'+browserName+'.png',fullPage:true});
@@ -617,13 +603,10 @@ try{
     reviewRouting:{mode:'AUTO_ACCEPT_CANDIDATE',fields:[],count:0,autoBook:false}
   });
   let axeResult=await page.evaluate(async()=>await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa']}}));
-  assert.deepEqual(axeResult.violations.map(v=>v.id),[],'mobile review axe violations: '+JSON.stringify(axeResult.violations.map(v=>({id:v.id,impact:v.impact}))));
-  if(await page.locator('.mobile-single-issue-review:visible').count()){
-    await page.getByRole('button',{name:'Alle gegevens bekijken',exact:true}).click();
-  }
+  assert.deepEqual(axeResult.violations.map(v=>v.id),[],'step 1 axe violations: '+JSON.stringify(axeResult.violations.map(v=>({id:v.id,impact:v.impact}))));
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
   axeResult=await page.evaluate(async()=>await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa']}}));
-  assert.deepEqual(axeResult.violations.map(v=>v.id),[],'full review step 2 axe violations: '+JSON.stringify(axeResult.violations.map(v=>({id:v.id,impact:v.impact}))));
+  assert.deepEqual(axeResult.violations.map(v=>v.id),[],'step 2 axe violations: '+JSON.stringify(axeResult.violations.map(v=>({id:v.id,impact:v.impact}))));
   await page.evaluate(()=>closeModal());
 
   assert.deepEqual(errors,[],browserName+' two-step review JavaScript errors');
