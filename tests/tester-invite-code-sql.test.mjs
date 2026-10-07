@@ -127,7 +127,8 @@ try{
 
   await service();
   const expCode=(await db.query("select * from public.generate_tester_invite_codes(1,'expiry-test',30,now()+interval '1 day')")).rows[0].code;
-  await db.query("update private.tester_invite_codes set code_expires_at=now()-interval '1 second' where code_hash=extensions.digest(convert_to($1,'UTF8'),'sha256')",[expCode]);
+  const expiredUpdate=await db.query("update private.tester_invite_codes set code_expires_at=now()-interval '1 second' where campaign='expiry-test' returning id");
+  assert.equal(expiredUpdate.rows.length,1,'expiry fixture must target exactly one invite code');
   await actor(E);
   const expired=await redeem(expCode);
   assert.equal(expired.code,'CODE_EXPIRED');
