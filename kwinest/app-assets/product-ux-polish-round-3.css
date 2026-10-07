@@ -94,6 +94,12 @@ body:not([data-product-authenticated="true"]) #mobileDrawerBackdrop{
 #modalRoot .btn:hover{
   box-shadow:none!important;
 }
+#mainApp :is(.filter-btn,.list-filter-chip).active,
+#mainApp :is(.filter-btn,.list-filter-chip)[aria-pressed="true"],
+#mainApp .toggle span,
+#authRoot .auth-shell{
+  box-shadow:none!important;
+}
 #mainApp .sidebar .nav-item.active{
   box-shadow:none!important;
   border-left:3px solid var(--app-brand,#63D471)!important;
