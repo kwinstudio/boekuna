@@ -110,7 +110,8 @@
         entry = row(item.description || 'Banktransactie', (value >= 0 ? '+ ' : '− ') + money(Math.abs(value)), dateNL(item.date), statusBadge(item.status), null);
         entry.lastChild.firstChild.classList.add(value >= 0 ? 'money-positive' : 'money-negative');
         metadata(entry.firstChild, linked);
-        if (item.status === 'unmatched') entry.lastChild.append(button('Koppelen', function () { matchTransaction(item.id); }, 'btn small'));
+        if (item.status === 'unmatched' && typeof bankSuggestionText === 'function') metadata(entry.firstChild, bankSuggestionText(item));
+        if (item.status === 'unmatched') entry.lastChild.append(button(item.matchSuggestion ? 'Controleren' : 'Koppelen', function () { matchTransaction(item.id); }, 'btn small'));
         else entry.lastChild.append(button('Ontkoppelen', function () { confirmUnlink(item.id); }, 'btn small'));
       }
       entry.setAttribute('role', 'listitem');

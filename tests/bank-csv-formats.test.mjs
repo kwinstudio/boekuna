@@ -3,7 +3,8 @@ import { loadApp } from './production-code.mjs';
 
 // Real export layouts of Dutch banks: dates, separators and Af/Bij direction columns.
 const app = loadApp(['toCents', 'fromCents', 'roundMoney', 'normalizeBankText', 'parseCsvRow',
-  'parseBankAmount', 'normalizeBankDate', 'applyBankDirection', 'bankCsvLayout']);
+  'parseBankAmountCents', 'parseBankAmount', 'normalizeBankDate', 'bankDirectionSign', 'applyBankDirection', 'detectCsvDelimiter',
+  'bankHeaderLayout', 'bankHeaderlessLayout', 'bankCsvLayout']);
 
 function read(text) {
   const lines = text.split('\n').filter(Boolean), layout = app.bankCsvLayout(lines[0]);
