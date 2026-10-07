@@ -1,5 +1,5 @@
 -- BOEKUNA 30-day tester invite-code access.
--- Replaces the abandoned, never-deployed 90-day tester draft.
+-- Replaces the abandoned, never-deployed tester draft.
 -- Codes are one-time, hash-only at rest, and grant the normal Boekuna plan.
 -- No Stripe customer, trial, coupon, payment method or automatic charge is created.
 
