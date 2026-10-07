@@ -137,17 +137,21 @@ try{
     await page.evaluate(()=>{setFinancialPeriod('all');correctExpense('e2');navigate('dashboard')});
     assert.equal(await page.evaluate(()=>dataHealthIssues().filter(i=>i.key.startsWith('negative-')).length),0,'A complete correction pair is not flagged');
     await page.evaluate(()=>{state.expenses.push({id:'credit',date:'2026-05-02',vendor:'Drukkerij',category:'marketing',exVat:-40,vatRate:21});render()});
-    await page.locator('[data-attention-key="health"]').click();
+    // The basic dashboard lists the alert itself; the full release shows insights there and the alert under "Alle aandachtspunten".
+    const healthAlert=page.locator('[data-attention-key="health"]'),healthRows=()=>page.evaluate(()=>attentionRows().filter(r=>r.category==='health').length);
+    if(await healthAlert.count())await healthAlert.click();
+    else{await page.evaluate(()=>navigate('control'));await page.locator('[onclick*="health-negative-credit"]').first().click()}
     const dialog=page.locator('[role=dialog]');
     assert.match(await dialog.innerText(),/Drukkerij[\s\S]*Waarom zie je dit\?[\s\S]*Wat moet je doen\?/);
     assert.equal(await dialog.getByRole('button',{name:'Kosten aanpassen'}).count(),1,'The fix is one tap away');
     await page.screenshot({path:`${shotDir}/${browserName}-${tag}-melding.png`});
     await dialog.getByRole('button',{name:'Klopt, het is een creditnota'}).click();
     await dialog.waitFor({state:'detached'});
-    assert.equal(await page.locator('[data-attention-key="health"]').count(),0,'The alert disappears after confirming');
+    assert.equal(await healthRows(),0,'The alert disappears after confirming');
+    assert.equal(await healthAlert.count(),0);
     assert.equal(await page.evaluate(()=>state.audit[0].action),'Negatieve kosten gecontroleerd');
     await page.evaluate(()=>{state.expenses.find(e=>e.id==='credit').exVat=-55;render()});
-    assert.equal(await page.locator('[data-attention-key="health"]').count(),1,'A changed amount is checked again');
+    assert.equal(await healthRows(),1,'A changed amount is checked again');
 
     // Flow 5: Btw says "Te betalen" and the yearly overview sits inside its card.
     await page.evaluate(()=>{setFinancialPeriod('all');navigate('vat')});
