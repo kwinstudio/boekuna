@@ -398,7 +398,6 @@ try{
       assert.ok(reportDesktop.canvasWidth>=790,browserName+' desktop A4 preview should render at natural paper size when space allows');
       await page.screenshot({path:path.join(evidence,'report-a4-1440-'+browserName+'.png'),fullPage:true});
       await page.evaluate(()=>{reportPreviewHistory=null;closeModal();window.__round3Invoices=structuredClone(state.invoices);const base=structuredClone(state.invoices[0]);for(let n=2;n<=64;n++)state.invoices.push({...base,id:'round3-'+n,number:'2026-'+String(n).padStart(4,'0')})});
-      await page.evaluate(()=>printReport());
       const multipage=await reportA4State(page,browserName+' multipage A4');
       assert.ok(multipage.scrollHeight>1123,browserName+' multipage report must exceed one A4 preview page');
       await page.evaluate(()=>{reportPreviewHistory=null;closeModal();state.invoices=window.__round3Invoices;delete window.__round3Invoices;render()});
@@ -439,6 +438,12 @@ try{
       }
 
       await page.setViewportSize({width:390,height:844});
+      await page.evaluate(()=>{setProductUiAuthenticated(false);setBootstrapVisible(true);document.getElementById('mainApp').style.display='none';document.getElementById('authRoot').innerHTML=''});
+      assert.equal(await page.locator('#appBootstrap').isVisible(),true,browserName+' bootstrap must cover unresolved auth state');
+      assert.equal(await page.locator('#mobileBottomNav').evaluate(el=>getComputedStyle(el).display),'none',browserName+' navigation must stay hidden during bootstrap');
+      await page.screenshot({path:path.join(evidence,'loading-390-'+browserName+'.png'),fullPage:true});
+      await page.evaluate(()=>enterApp());
+      await page.getByRole('heading',{name:'Overzicht'}).waitFor();
       for(const route of ['invoices','expenses','vat','reports']){
         await page.evaluate(route=>navigate(route),route);
         const header=await page.locator('.product-page-head').evaluate(head=>{
@@ -449,6 +454,12 @@ try{
         assert.ok(Math.abs(header.period.top-header.title.top)<36,browserName+' mobile '+route+' title and period must remain on one row');
         await noOverflow(page,browserName+' mobile '+route+' header');
       }
+      await page.evaluate(()=>navigate('reports'));
+      const reportMobile=await reportA4State(page,browserName+' mobile A4');
+      assert.ok(reportMobile.canvasWidth<794,browserName+' mobile preview must scale down the A4 paper');
+      assert.equal(reportMobile.kpiColumns,4,browserName+' mobile viewport must not reflow the PDF itself');
+      await page.screenshot({path:path.join(evidence,'report-a4-390-'+browserName+'.png'),fullPage:true});
+      await page.evaluate(()=>{reportPreviewHistory=null;closeModal()});
       await page.evaluate(()=>navigate('invoices'));
       for(const width of [390,320]){
         await page.setViewportSize({width,height:844});
@@ -458,6 +469,11 @@ try{
         const mobileHeights=await page.locator('.product-kpi').evaluateAll(cards=>cards.map(card=>Math.round(card.getBoundingClientRect().height)));
         assert.ok(Math.max(...mobileHeights)-Math.min(...mobileHeights)<=1,browserName+' mobile '+width+' KPI cards must keep equal heights');
         await noOverflow(page,browserName+' mobile invoices long amounts '+width);
+        await page.evaluate(()=>newInvoice());
+        const dateInputs=await page.locator('#invoiceForm input[type="date"]').evaluateAll(nodes=>nodes.map(el=>{const r=el.getBoundingClientRect();return {left:r.left,right:r.right,width:r.width,client:el.clientWidth,scroll:el.scrollWidth,value:el.value}}));
+        assert.ok(dateInputs.every(item=>item.left>=-1&&item.right<=innerWidth+1&&item.scroll<=item.client+1),browserName+' '+width+' date inputs must fit without clipping: '+JSON.stringify(dateInputs));
+        await page.screenshot({path:path.join(evidence,'date-input-'+width+'-'+browserName+'.png'),fullPage:true});
+        await page.evaluate(()=>closeModal());
       }
       for(const width of [320,375,390,430]){
         await page.setViewportSize({width,height:844});
@@ -544,6 +560,14 @@ try{
       await axe(page,browserName+' auth register');
       await noOverflow(page,browserName+' auth register desktop');
       await page.setViewportSize({width:390,height:844});
+      await page.evaluate(()=>showAuth('login'));
+      await page.locator('#authRoot .auth-root').waitFor();
+      assert.equal(await page.locator('#mobileBottomNav').evaluate(el=>getComputedStyle(el).display),'none',browserName+' logged-out mobile login must not show product navigation');
+      assert.equal(await page.locator('#mobileBottomNav').getAttribute('aria-hidden'),'true',browserName+' logged-out nav must be hidden from assistive technology');
+      await noOverflow(page,browserName+' auth login mobile');
+      await page.screenshot({path:path.join(evidence,'auth-login-390-'+browserName+'.png'),fullPage:true});
+      await page.evaluate(()=>showAuth('register'));
+      await page.locator('#authRoot #registerEmail').waitFor();
       await noOverflow(page,browserName+' auth register mobile');
       await page.screenshot({path:path.join(evidence,'auth-register-390-'+browserName+'.png'),fullPage:true});
 
