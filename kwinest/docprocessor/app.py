@@ -267,6 +267,15 @@ class InvoiceMeta(BaseModel):
     invoiceNumber: str | None = None
     invoiceDate: str | None = None
     dueDate: str | None = None
+    orderDate: str | None = None
+    serviceDate: str | None = None
+    deliveryDate: str | None = None
+    paymentDate: str | None = None
+    postingDate: str | None = None
+    creationDate: str | None = None
+    statementDate: str | None = None
+    servicePeriodFrom: str | None = None
+    servicePeriodTo: str | None = None
     paymentTermDays: int | None = None
     orderNumber: str | None = None
     paymentReference: str | None = None
@@ -420,7 +429,7 @@ def rounded_vat_cents(base:Any,rate:Any)->int|None:
     except (InvalidOperation,ValueError,TypeError):
         return None
 
-def norm_date(s: str) -> str | None:
+def norm_date(s: str, context_year:int|None=None) -> str | None:
     if not s: return None
     st = norm_text(s).lower()
     m=DATE_RES[0].search(st)
@@ -431,14 +440,28 @@ def norm_date(s: str) -> str | None:
     if m:
         try: return date(int(m[3]),int(m[2]),int(m[1])).isoformat()
         except Exception: pass
-    m=re.search(r"\b(\d{1,2})\s+("+"|".join(MONTHS)+r")\s+(20\d{2})\b", st)
+    m=re.search(r"\b(\d{1,2})\s+("+"|".join(MONTHS)+r")\.?\s+(20\d{2})\b", st)
     if m:
         try: return date(int(m[3]),MONTHS[m[2]],int(m[1])).isoformat()
         except Exception: pass
-    m=re.search(r"\b("+"|".join(MONTHS)+r")\s+(\d{1,2}),?\s+(20\d{2})\b",st)
+    m=re.search(r"\b("+"|".join(MONTHS)+r")\.?\s+(\d{1,2}),?\s+(20\d{2})\b",st)
     if m:
         try:return date(int(m[3]),MONTHS[m[1]],int(m[2])).isoformat()
         except Exception:pass
+    # Compact forms are accepted only as whole date values, never as substrings
+    # of invoice/party identifiers.
+    compact=re.fullmatch(r"(?:[^\d]*[:\s])?(\d{8})",st)
+    if compact:
+        token=compact[1]
+        y,m,d=(token[:4],token[4:6],token[6:]) if token.startswith('20') else (token[4:],token[2:4],token[:2])
+        try:return date(int(y),int(m),int(d)).isoformat()
+        except ValueError:pass
+    # A short year needs explicit, consistent full-date evidence from this
+    # document. Never choose a century from the server clock or invoice ID.
+    short=re.fullmatch(r'(\d{1,2})[-/.](\d{1,2})[-/.](\d{2})',st)
+    if short and context_year is not None and context_year%100==int(short[3]):
+        try:return date(context_year,int(short[2]),int(short[1])).isoformat()
+        except ValueError:pass
     return None
 
 def line_after_label(lines:list[str], labels:list[str], max_ahead=2) -> tuple[str|None,int|None]:
@@ -458,32 +481,88 @@ INVOICE_NUMBER_EXCLUDE_RE = re.compile(
     r"^(?:kvk|k\.v\.k\.?|btw(?:-?id|-?nummer)?|vat(?:\s*id|\s*number)?|iban|"
     r"ordernummer|order\s*(?:no\.?|number)|bestelnummer|purchase\s*order|po\s*(?:no\.?|number)|"
     r"postcode|postal|factuurdatum|invoice\s*date|datum|date|vervaldatum|due\s*date|"
+    r"klant(?:nummer|\s*nr)|debiteur(?:nummer|\s*nr)|customer\s*(?:no|number|id)|"
+    r"payment\s*(?:ref(?:erence)?|id)|betalingskenmerk|factoring\s*ref(?:erence)?|"
+    r"rsin|vestigingsnummer|shipment|tracking|transaction\s*id|"
     r"e-?mail|tel(?:efoon)?|phone)\b",
     re.I,
 )
 
-def invoice_number_after_label(lines:list[str], labels:list[str]) -> tuple[str|None,int|None]:
-    low_labels=[x.lower() for x in labels]
+INVOICE_NUMBER_ALIASES = [
+    'fact. nr.', 'fact.nr.', 'factnr.', 'factuur #', 'factuur#', 'nr. factuur',
+    'invoice nr.', 'invoice id', 'invoice reference', 'inv. no.', 'inv no.', 'inv#',
+    'rechnungsnummer', 'rechnungs-nr.', 'rechnung nr.', 're.-nr.', 'rg.-nr.',
+    'numéro de facture', 'no de facture', 'n° facture', 'facture n°', 'nº facture',
+    'número de factura', 'factura nº',
+]
+
+INVOICE_NUMBER_LABELS=[
+    'factuurnummer','factuurnr','factuur nr','actuurnummer','actuurnr',
+    'factuur aan nummer','factuur aan nr','invoice number','invoice no',
+    'invoice #','nvoice number','nvoice no','document number',
+]
+CREDIT_NUMBER_LABELS=['creditnota nummer','creditnotanummer','creditnota nr','credit note number','credit note no','credit number']
+
+
+def date_value_span(raw:str)->str:
+    """Reuse known identifier labels to fence a date's documentary value."""
+    labels=INVOICE_NUMBER_LABELS+INVOICE_NUMBER_ALIASES+CREDIT_NUMBER_LABELS
+    boundary=r'(?<!\w)(?:'+'|'.join(re.escape(x) for x in sorted(labels,key=len,reverse=True))+r')(?=$|[\s:#.\-])'
+    # The existing exclusion labels also identify the next metadata field.
+    boundary+='|'+INVOICE_NUMBER_EXCLUDE_RE.pattern.removeprefix('^')
+    match=re.search(boundary,raw,re.I)
+    if match:raw=raw[:match.start()]
+    return re.split(r'\s+[A-Za-z][A-Za-z .-]{0,30}:',raw,maxsplit=1)[0].strip()
+
+
+def date_label_has_context(match,line:str)->bool:
+    # Bare 'issued' is often prose, so it requires a delimiter/date value.
+    if match.group(0).lower()!='issued':return True
+    tail=line[match.end():]
+    return bool(re.match(r'\s*:',tail) or re.match(r'\s+(?:\d|(?:'+'|'.join(MONTHS)+r')\b)',tail,re.I))
+
+
+def invoice_number_candidates(lines:list[str], labels:list[str]) -> list[dict[str,Any]]:
+    """Extend the existing labelled extractor; exact values remain documentary evidence."""
+    patterns=sorted(set(labels+INVOICE_NUMBER_ALIASES),key=len,reverse=True)
+    label_re=re.compile(r'(?<!\w)(?:'+'|'.join(re.escape(x) for x in patterns)+r')(?=$|[\s:#.\-]|\|)',re.I)
+    found={}
     for i,line in enumerate(lines):
-        low=line.lower()
-        for lab in low_labels:
-            pos=low.find(lab)
-            if pos<0:
-                continue
+        for match in label_re.finditer(line):
+            prefix=line[:match.start()].strip()
+            if re.search(r'(?:original|oorspronkelijk|referenced|collection|verzamel)[- ]*(?:invoice|factuur)?\s*$',prefix,re.I):continue
             candidates=[]
-            rest=line[pos+len(lab):].lstrip(" :#.-")
-            if rest:
-                candidates.append((rest,i))
-            for j in range(i+1,min(len(lines),i+4)):
+            rest=line[match.end():].lstrip(" :#.-")
+            first=rest.split('|')[0].strip()
+            if first:candidates.append((first,i))
+            for j in range(i+1,min(len(lines),i+4)) if not first else []:
                 cand=norm_text(lines[j])
-                if not cand or INVOICE_NUMBER_EXCLUDE_RE.search(cand):
-                    continue
-                candidates.append((cand,j))
+                if not cand:continue
+                if INVOICE_NUMBER_EXCLUDE_RE.search(cand):
+                    # Coordinate sorting can interleave a complete KVK/VAT row.
+                    if re.search(r'\d',cand):continue
+                    break
+                if re.match(r'^[\w .-]+:',cand):break
+                candidates.append((cand.split('|')[0].strip(),j))
+                break
             for raw,index in candidates:
-                for m in re.finditer(r"(?<![A-Z0-9])([A-Z0-9][A-Z0-9._\-/]{1,50})(?![A-Z0-9])",raw,re.I):
-                    token=m.group(1).strip("._-/")
-                    if token and re.search(r"\d",token):
-                        return token,index
+                if index!=i and not re.fullmatch(r'[A-Z0-9][A-Z0-9._\-/]{1,70}|\d{4}\s+\d{2,10}',raw,re.I):continue
+                if index!=i and re.fullmatch(r'(?:\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}|20\d{2}[-/.]\d{1,2}[-/.]\d{1,2})',raw):continue
+                if re.fullmatch(r'\d{4}\s+\d{2,10}',raw):tokens=[raw]
+                else:tokens=[m[1].strip('._-/') for m in re.finditer(r'(?<![A-Z0-9])([A-Z0-9][A-Z0-9._\-/]{1,70})(?![A-Z0-9])',raw,re.I)]
+                for token in tokens:
+                    if not re.search(r'\d',token):continue
+                    if re.fullmatch(r'20\d{2}',token) or valid_iban(token) or re.fullmatch(r'NL\d{9}B\d{2}',token,re.I):continue
+                    if re.fullmatch(r'[1-9]\d{3}\s?[A-Z]{2}',token,re.I):continue
+                    found.setdefault(token,{'value':token,'sourceText':line if index==i else line+'\n'+lines[index],
+                                            'sourceType':'printed','line':index,'score':.96,'reasons':['explicit-invoice-label']})
+                    break
+    return list(found.values())
+
+
+def invoice_number_after_label(lines:list[str], labels:list[str]) -> tuple[str|None,int|None]:
+    candidates=invoice_number_candidates(lines,labels)
+    if len(candidates)==1:return candidates[0]['value'],candidates[0]['line']
     return None,None
 
 def labeled_amount(lines:list[str], labels:list[str], exclude:list[str]=[]) -> tuple[float|None,float]:
@@ -508,6 +587,45 @@ def labeled_date(lines:list[str], labels:list[str]) -> tuple[str|None,float]:
                     d=norm_date(lines[j])
                     if d: return d,max(.7,.96-rank*.03)
     return None,0.0
+
+
+def date_field_candidates(lines:list[str],labels:list[str],range_endpoint:int|None=None)->list[dict[str,Any]]:
+    found={}
+    years=set()
+    context_label=re.compile(r'(?<!\w)(?:factuur\s*datum|verval\s*datum|besteldatum|servicedatum|prestatiedatum|leveringsdatum|leverdatum|betaaldatum|boekingsdatum|afschriftdatum|uitgiftedatum|rechnungsdatum|date de facture|(?:invoice|order|service|delivery|payment|posting|creation|statement|issue|due)\s+date|issued(?: on)?|aangemaakt op|betaald op|service period|billing period|prestatieperiode|factuurperiode|periode)(?=$|[\s:|])',re.I)
+    for i,line in enumerate(lines):
+        for match in context_label.finditer(line):
+            if not date_label_has_context(match,line):continue
+            raw=line[match.end():].lstrip(' :').split('|')[0].strip()
+            # Stop at another label, including an identifier on the same line.
+            raw=date_value_span(raw)
+            if not raw and i+1<len(lines) and not re.search(r'[A-Za-z]+:',lines[i+1]):raw=lines[i+1].strip()
+            raw=date_value_span(raw)
+            values=[norm_date(raw)]+[norm_date(m.group(0)) for pattern in DATE_RES for m in pattern.finditer(raw)]
+            years.update(int(value[:4]) for value in values if value)
+    context_year=next(iter(years)) if len(years)==1 else None
+    pattern=re.compile(r'(?<!\w)(?:'+'|'.join(re.escape(x.rstrip(':')) for x in sorted(set(labels),key=len,reverse=True))+r')(?=$|[\s:|])',re.I)
+    for i,line in enumerate(lines):
+        for match in pattern.finditer(line):
+            if not date_label_has_context(match,line):continue
+            raw=line[match.end():].lstrip(' :').split('|')[0].strip()
+            raw=date_value_span(raw)
+            if not raw and i+1<len(lines) and not re.search(r'[A-Za-z]+:',lines[i+1]):raw=lines[i+1]
+            raw=date_value_span(raw)
+            if range_endpoint is not None:
+                # Reuse the existing full numeric date patterns, preserving
+                # documentary order rather than sorting chronological values.
+                matches=sorted({(m.start(),m.group(0)) for pattern in DATE_RES for m in pattern.finditer(raw)})
+                if len(matches)!=2:continue
+                raw=matches[range_endpoint][1]
+            short=bool(re.fullmatch(r'\d{1,2}[-/.]\d{1,2}[-/.]\d{2}',raw))
+            value=norm_date(raw,context_year=context_year)
+            key=value if value else ('unresolved',i,raw)
+            found.setdefault(key,{'value':value,'sourceText':raw or line,'sourceType':'printed','line':i,
+                'score':(.90 if short else .96) if value else .25,
+                'reasons':['explicit-date-label']+(['explicit-full-year-context'] if short and value else ['unresolved-date-value'] if not value else [])})
+    return list(found.values())
+
 
 def valid_iban(v:str|None)->bool:
     if not v:return False
@@ -1605,13 +1723,21 @@ def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tu
                 idx=i;matched_label=lab;break
         if idx is not None:break
     block=lines[idx:idx+12] if idx is not None else lines[:18]
+    party_label=re.compile(r'^(?:leverancier|supplier|vendor|seller|from|van|factuur aan|factureren aan|bill to|sold to|customer|klant|debiteur|aan|to|verzender|sender)(?:\s*[:\-]|$)',re.I)
+    if idx is not None:
+        boundary=next((j for j,x in enumerate(block[1:],1) if party_label.match(x)),len(block))
+        block=block[:boundary]
     block=[x for x in block if x and not re.match(r"^-{2,}\s*page\s+\d+\s*-{2,}$",x,re.I)]
     joined="\n".join(block)
     emails=re.findall(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}",joined,re.I)
-    vats=[re.sub(r"\s+","",x).upper() for x in re.findall(r"\b[A-Z]{2}\s?[A-Z0-9]{6,14}\b",joined,re.I)]
+    vats=[re.sub(r'[\s.]','',x).upper() for x in re.findall(r'\bNL[ .]*\d(?:[ .]*\d){8}[ .]*B[ .]*\d{2}\b',joined,re.I)]
     nl_vats=[x for x in vats if re.fullmatch(r"NL\d{9}B\d{2}",x)]
-    kvks=re.findall(r"(?:kvk|k\.v\.k\.|coc|chamber of commerce)(?:\s*(?:nr|nummer|number|no))?\s*[:#-]?\s*(\d{8})",joined,re.I)
-    ibans=[re.sub(r"\s+","",x).upper() for x in re.findall(r"\b[A-Z]{2}\d{2}(?:[ \t]?[A-Z0-9]){11,30}\b",joined,re.I)]
+    kvks=[]
+    for line in block:
+        m=re.search(r'(?:\bkvk|k\.v\.k\.?|\bcoc|chamber of commerce|handelsregister|kamer van koophandel)(?:[- ]*(?:nr\.?|nummer|number|no\.?))?\s*[:#-]?\s*((?:\d[ .]*){8})(?![\d .])',line,re.I)
+        if m:kvks.append(re.sub(r'\D','',m[1]))
+    bank_lines=[x for x in block if not re.search(r'incass|geïncasseerd|debited from|debit from|payer|afgeschreven van',x,re.I)]
+    ibans=[re.sub(r"\s+","",x).upper() for x in re.findall(r"\b[A-Z]{2}\d{2}(?:[ \t]?[A-Z0-9]){11,30}\b",'\n'.join(bank_lines),re.I)]
     postal=re.search(r"\b([1-9]\d{3})\s*([A-Z]{2})\b(?:\s+([^\n,;|]{2,50}))?",joined,re.I)
     address_re=re.compile(r"\b\d+[A-Z-]*\b.*(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|place)|(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|place)[^\n]*\b\d+[A-Z-]*\b",re.I)
     address=next((x for x in block if address_re.search(x)),None)
@@ -1624,8 +1750,8 @@ def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tu
         if 2<=len(remainder)<=100 and not field_only.match(remainder) and not address_re.search(remainder) and not re.match(r"^\d",remainder):
             name=remainder
     if not name and idx is not None:
-        for j in range(idx+1,min(len(lines),idx+7)):
-            cand=_clean_party_candidate(lines[j])
+        for raw in block[1:7]:
+            cand=_clean_party_candidate(raw)
             if not (2<=len(cand)<=100):continue
             if field_only.match(cand) or address_re.search(cand) or re.match(r"^\d",cand) or "@" in cand:continue
             if re.search(r"\b(?:kvk|btw|vat|iban)\b",cand,re.I):continue
@@ -1802,17 +1928,10 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     if supplier_own and dtype=="purchase_invoice": supplier={k:None for k in supplier}
     if customer_own and dtype=="sales_invoice": customer={k:None for k in customer}
 
-    invoice_number_labels=[
-        "factuurnummer","factuurnr","factuur nr",
-        # Conservative OCR edge aliases: perspective crops can lose only the
-        # first glyph while preserving the labelled candidate exactly.
-        "actuurnummer","actuurnr",
-        "factuur aan nummer","factuur aan nr",
-        "invoice number","invoice no","invoice #","nvoice number","nvoice no",
-        "document number",
-    ]
+    invoice_number_labels=INVOICE_NUMBER_LABELS
     if dtype=="credit_invoice":
-        invoice_number_labels=["creditnota nummer","creditnotanummer","creditnota nr","credit note number","credit note no","credit number"]+invoice_number_labels
+        invoice_number_labels=CREDIT_NUMBER_LABELS+invoice_number_labels
+    number_candidates=invoice_number_candidates(lines,invoice_number_labels)
     invoice_no,idx=invoice_number_after_label(lines,invoice_number_labels)
     if not invoice_no and dtype!="credit_invoice":
         for line in lines[:24]:
@@ -1831,7 +1950,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
             candidate=source[ni+1] if ni+1<len(source) else ''
             if re.fullmatch(r'[A-Z0-9][A-Z0-9._/-]{2,50}',candidate,re.I) and re.search(r'\d',candidate):invoice_no=candidate;break
     description,description_conf,description_source=extract_description(doc,lines)
-    invoice_date_labels=["factuurdatum","uitgiftedatum","invoice date","date of invoice","issue date","issued date","issued:","document date"]
+    invoice_date_labels=["factuurdatum","factuur datum","datum factuur","uitgiftedatum","datum uitgifte","invoice date","date of invoice","date of issue","issue date","issued date","issued on","issued:","document date","rechnungsdatum","date de facture"]
     if dtype=="credit_invoice":
         invoice_date_labels=["creditnota datum","creditdatum","credit note date","credit date"]+invoice_date_labels
     inv_date,inv_date_conf=labeled_date(lines,invoice_date_labels)
@@ -1845,7 +1964,49 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
                 break
     if not inv_date and native_lines:
         inv_date,inv_date_conf=labeled_date(native_lines,invoice_date_labels+['datum:','datum'])
-    due_date,due_conf=labeled_date(lines,["vervaldatum","due date","betalen voor","betaal voor","pay before","payment due"])
+    due_date_labels=["vervaldatum","verval datum","vervalt op","due date","date due","betalen voor","betalen vóór","te betalen voor","betaal voor","pay before","pay by","payment due","uiterste betaaldatum","fällig am","échéance"]
+    due_date,due_conf=labeled_date(lines,due_date_labels)
+    date_candidates=date_field_candidates(lines,invoice_date_labels)
+    due_candidates=date_field_candidates(lines,due_date_labels)
+    secondary_date_labels={
+        'orderDate':['order date','besteldatum','besteld op'],
+        'serviceDate':['service date','servicedatum','prestatiedatum','datum prestatie'],
+        'deliveryDate':['delivery date','leverdatum','leveringsdatum'],
+        'paymentDate':['payment date','betaaldatum','betaald op'],
+        'postingDate':['posting date','boekingsdatum'],
+        'creationDate':['creation date','aangemaakt op'],
+        'statementDate':['statement date','afschriftdatum'],
+    }
+    secondary_candidates={field:date_field_candidates(lines,labels) for field,labels in secondary_date_labels.items()}
+    period_labels=['service period','billing period','periode','prestatieperiode','factuurperiode']
+    secondary_candidates.update({'servicePeriodFrom':date_field_candidates(lines,period_labels,range_endpoint=0),
+                                 'servicePeriodTo':date_field_candidates(lines,period_labels,range_endpoint=1)})
+    secondary_dates={field:candidates[0]['value'] if len(candidates)==1 else None for field,candidates in secondary_candidates.items()}
+    metadata_anomalies=[]
+    if len(number_candidates)>1:
+        invoice_no=None;metadata_anomalies.append('COMPETING_INVOICE_NUMBERS')
+    if len(date_candidates)==1:inv_date=date_candidates[0]['value'];inv_date_conf=date_candidates[0]['score']
+    elif len(date_candidates)>1:
+        inv_date=None;inv_date_conf=.25;metadata_anomalies.append('COMPETING_INVOICE_DATES')
+    if len(due_candidates)==1:due_date=due_candidates[0]['value'];due_conf=due_candidates[0]['score']
+    elif len(due_candidates)>1:
+        due_date=None;due_conf=.25;metadata_anomalies.append('COMPETING_DUE_DATES')
+    for field,candidates in {'invoiceDate':date_candidates,'dueDate':due_candidates,**secondary_candidates}.items():
+        code=re.sub(r'(?<!^)(?=[A-Z])','_',field).upper()
+        if any(c['value'] is None for c in candidates):metadata_anomalies.append('AMBIGUOUS_'+code)
+        elif len(candidates)>1 and field in secondary_candidates:metadata_anomalies.append('COMPETING_'+code)
+    if secondary_dates['servicePeriodFrom'] and secondary_dates['servicePeriodTo'] and secondary_dates['servicePeriodFrom']>secondary_dates['servicePeriodTo']:
+        secondary_dates['servicePeriodFrom']=secondary_dates['servicePeriodTo']=None
+        metadata_anomalies.append('INVALID_SERVICE_PERIOD')
+    foreign_date_context=bool(re.search(r'\b(?:United States|USA|US address|Canada|Australia)\b',text,re.I))
+    if foreign_date_context:
+        for key,candidates in {'invoiceDate':date_candidates,'dueDate':due_candidates,**secondary_candidates}.items():
+            ambiguous=any((m:=re.search(r'\b(0?[1-9]|1[012])/(0?[1-9]|1[012])/(?:20\d{2}|\d{2})\b',c['sourceText'])) and int(m[1])!=int(m[2]) for c in candidates)
+            if ambiguous:
+                metadata_anomalies.append('AMBIGUOUS_'+re.sub(r'(?<!^)(?=[A-Z])','_',key).upper())
+                if key=='invoiceDate':inv_date=None;inv_date_conf=.25
+                elif key=='dueDate':due_date=None;due_conf=.25
+                else:secondary_dates[key]=None
     order_raw,_=line_after_label(lines,["bestelnummer","ordernummer","order number","purchase order","po number"]); order_no=order_raw[:60] if order_raw else None
     ref_raw,_=line_after_label(lines,["betalingskenmerk","payment reference","payment ref","kenmerk"]); payref=ref_raw[:80] if ref_raw else None
 
@@ -1962,7 +2123,8 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     for x in re.findall(r"\b[A-Z]{2}\d{2}(?:[ \t]?[A-Z0-9]){11,30}\b",text,re.I):
         if valid_iban(x): iban=re.sub(r"\s+","",x).upper();break
 
-    paid=bool(re.search(r"\b(reeds betaald|already paid|paid via|voldaan|betaald|totaal betaald|total paid|betaalbevestiging)\b",low))
+    unpaid=bool(re.search(r'\b(?:niet betaald|onbetaald|unpaid|not paid|deels betaald|partially paid)\b',low))
+    paid=not unpaid and bool(re.search(r"\b(reeds betaald|already paid|paid in full|paid via|voldaan|betaald|totaal betaald|total paid|betaalbevestiging)\b",low))
     status="credit" if dtype=="credit_invoice" else ("paid" if (paid or dtype=="receipt") else "open")
     if due_date and status=="open":
         try:
@@ -2012,11 +2174,14 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     result=ExtractionResult(
         documentType=dtype,selfBilling=self_billing,originalFileName=filename,pageCount=doc.get("pageCount",1),
         supplier=Supplier(**supplier),customer=Customer(**customer),
-        invoice=InvoiceMeta(invoiceNumber=invoice_no,invoiceDate=inv_date,dueDate=due_date,paymentTermDays=term,orderNumber=order_no,paymentReference=payref,description=description),
+        invoice=InvoiceMeta(invoiceNumber=invoice_no,invoiceDate=inv_date,dueDate=due_date,paymentTermDays=term,orderNumber=order_no,paymentReference=payref,description=description,**secondary_dates),
         amounts=Amounts(subtotal=abs(subtotal) if subtotal is not None else None,vatLines=vat_lines,vatTotal=abs(vat_total) if vat_total is not None else None,total=abs(total) if total is not None else None,settlementAmount=abs(settlement_amount) if settlement_amount is not None else None,discount=abs(discount) if discount is not None else None,shipping=abs(shipping) if shipping is not None else None,currency="EUR"),
         status=status,lineItems=[],adjustments=structured_adjustments,confidence=confidence,warnings=derivation_warnings,
         processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"financialBlocks":{"verified":bool(financial_structure.get("verified")),"primaryArithmeticOk":bool(financial_structure.get("primaryArithmeticOk")),"adjustmentArithmeticOk":bool(financial_structure.get("adjustmentArithmeticOk")),"settlementArithmeticOk":bool(financial_structure.get("settlementArithmeticOk")),"adjustmentTotal":financial_structure.get("adjustmentTotal"),"settlementSource":financial_structure.get("settlementSource")},"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"conflicts":derivation.get("conflicts",[]),"mixedRates":len(detected_rates)>1},"imageQuality":{"class":(doc.get("processingHints") or {}).get("qualityClass"),"flags":(doc.get("processingHints") or {}).get("qualityFlags") or [],"advice":(doc.get("processingHints") or {}).get("qualityAdvice") or [],"metrics":(doc.get("processingHints") or {}).get("qualityMetrics") or {}},"headerFocusUsed":bool((doc.get("processingHints") or {}).get("headerFocusUsed")),"mixedVatEvidence":{"verified":bool(mixed_vat_evidence.get("verified")),"source":mixed_vat_evidence.get("source")},"vatLineSource":vat_line_source,"descriptionSource":description_source,"selfBilling":self_billing,"selfBillingEvidence":"explicit-source-text" if self_billing else None,"factoringSaleStructure":factoring_sale}
     )
+    result.processing['fieldCandidates']={'invoiceNumber':number_candidates,'invoiceDate':date_candidates,'dueDate':due_candidates,**secondary_candidates}
+    result.processing['metadataAnomalyCodes']=metadata_anomalies
+    if 'COMPETING_INVOICE_NUMBERS' in metadata_anomalies:result.confidence['invoiceNumber']=.25
     return annotate_safety(annotate_understanding(validate_result(result,company),doc,company,money_tokens),doc,norm_money)
 
 # ----------------------------- validation -----------------------------
@@ -2778,6 +2943,110 @@ async def verify_document(request:Request,file:UploadFile=File(...),company_json
     result.processing={**result.processing,"verificationMode":"independent","durationMs":round((time.time()-started)*1000),"pages":doc.get("pageCount"),"tablesFound":len(doc.get("tables",[])),"overallConfidence":round(overall_confidence(result),3)}
     return {"ok":True,"data":result.model_dump()}
 
+def analyze_document(raw:bytes,filename:str,content_type:str,company:dict,existing:list|None=None,ocr_text:str="",*,request:Request|None=None,user:dict|None=None,allow_external_ai:bool=True)->dict:
+    """One shared engine for HTTP and durable jobs; authorization stays at entry points."""
+    if not raw:raise BoekunaDocumentError("INVALID_REQUEST",status=400,internal_code="EMPTY_FILE")
+    if len(raw)>MAX_BYTES:raise BoekunaDocumentError("DOCUMENT_TOO_LARGE",status=413,internal_code="FILE_SIZE_LIMIT")
+    user=user or {}
+    existing=existing or []
+    def meta(**values):
+        if request is not None:set_processing_meta(request,**values)
+    started=time.time()
+    meta(stage="extract")
+    doc=extract_document(filename,content_type,raw)
+    ocr_confs=[
+        float(page.get("ocrConfidence"))
+        for page in (doc.get("pages") or [])
+        if page.get("ocrConfidence") is not None
+    ]
+    logger.info(json.dumps({
+        "event":"document_analysis_extracted","kind":doc.get("kind"),"pages":doc.get("pageCount"),
+        "ocr_used":bool(doc.get("ocrPages")),"ocr_pages":len(doc.get("ocrPages") or []),
+        "ocr_confidence":round(sum(ocr_confs)/len(ocr_confs),4) if ocr_confs else None,
+        "ocr_engine":doc.get("ocrEngine"),"ocr_model":doc.get("ocrModel"),
+        "rapidocr_version":RAPIDOCR_VERSION,"onnxruntime_version":ONNXRUNTIME_VERSION,
+        "processor_version":PROCESSOR_VERSION,"processor_revision":PROCESSOR_REVISION,
+        "tables":len(doc.get("tables") or []),
+        "duration_ms":round((time.time()-started)*1000),
+    }))
+    if ocr_text and len((doc.get("text") or "").replace(" ","")) < 320:
+        doc["text"] = (doc.get("text") or "") + "\n\n--- CLIENT OCR ---\n" + ocr_text[:70000]
+        doc.setdefault("processingHints", {})["clientOcrUsed"] = True
+    heur=heuristic_extract(doc,filename,company)
+    ai_reasons=ai_escalation_reasons(doc,heur)
+    ai_candidate=bool(ai_reasons)
+    ai_requested=bool(ai_candidate and EXTERNAL_AI_ENABLED and allow_external_ai)
+    fast_path=not ai_requested
+    ai=None
+    ai_failure=None
+    if ai_requested:
+        if OPENAI_API_KEY:
+            meta(stage="ai_extract")
+            ai,ai_failure=ai_extract(doc,filename,company,heur)
+        else:
+            ai_failure={"internal_code":"AI_PROVIDER_NOT_CONFIGURED","provider":"openai"}
+    result=reconcile(ai,heur) if ai else heur
+    if ai_failure:
+        degraded_ref=new_reference_id()
+        logger.warning(json.dumps({
+            "event":"document_ai_degraded","reference_id":degraded_ref,
+            "timestamp":datetime.utcnow().isoformat(timespec="milliseconds")+"Z",
+            "route":request.url.path if request is not None else "workflow","stage":"ai_extract",
+            "internal_code":ai_failure.get("internal_code"),
+            "provider":ai_failure.get("provider"),
+            "provider_status":ai_failure.get("provider_status"),
+            "provider_code":ai_failure.get("provider_code"),
+            "provider_request_id":ai_failure.get("provider_request_id"),
+            "internal_error":sanitize_log_value(ai_failure.get("internal_error")),
+            "user_ref":str(user.get("id"))[:80],
+            "file_mime":(content_type or "application/octet-stream")[:120],
+            "file_ext":Path(filename).suffix.lower(),"file_size":len(raw),
+        }))
+        result.warnings.append("Extra AI-controle was tijdelijk niet beschikbaar; controleer onzekere velden handmatig.")
+    result=validate_result(result,company)
+    # Re-apply document-local safety after reconciliation; no learned financial overwrites.
+    result=annotate_safety(annotate_understanding(result,doc,company,money_tokens),doc,norm_money)
+    dup=duplicate_candidates(result,existing,hashlib.sha256(raw).hexdigest())
+    if dup:
+        result.processing['reviewRouting']={'mode':'FULL_REVIEW','fields':['duplicate'],'count':1,'autoBook':False}
+    if dup:result.warnings.append("Mogelijk bestaat deze factuur al.")
+    processing={
+        **result.processing,
+        "ai":bool(ai),
+        "aiMode":"optional_fallback",
+        "aiRequested":ai_requested,
+        "aiReasons":ai_reasons,
+        "aiStatus":"used" if ai else ("unavailable" if ai_failure else ("disabled" if ai_candidate and not (EXTERNAL_AI_ENABLED and allow_external_ai) else "skipped")),
+        "externalAiEnabled":bool(EXTERNAL_AI_ENABLED and allow_external_ai),
+        "reviewComplete":True,
+        "fastPath":"deterministic" if fast_path else None,
+        "durationMs":round((time.time()-started)*1000),
+        "pages":doc.get("pageCount"),
+        "tablesFound":len(doc.get("tables",[])),
+        "duplicateCandidates":dup,
+        "overallConfidence":round(overall_confidence(result),3),
+    }
+    result.processing=processing
+    quality_meta=(processing.get("imageQuality") or {}) if isinstance(processing,dict) else {}
+    confidence_classes={
+        key:("strong" if float(value or 0)>=.90 else ("uncertain" if float(value or 0)>=.70 else "weak"))
+        for key,value in (result.confidence or {}).items()
+    }
+    logger.info(json.dumps({
+        "event":"document_analysis_completed",
+        "processor_version":PROCESSOR_VERSION,"processor_revision":PROCESSOR_REVISION,
+        "duration_ms":processing.get("durationMs"),"pages":processing.get("pages"),
+        "ocr_pages":len(processing.get("ocrPages") or []),
+        "quality_class":quality_meta.get("class"),"quality_flags":quality_meta.get("flags") or [],
+        "document_type":result.documentType,"warning_count":len(result.warnings or []),
+        "review_mode":(processing.get("reviewRouting") or {}).get("mode"),
+        "anomaly_types":processing.get("anomalyCodes") or [],
+        "field_confidence_classes":confidence_classes,
+        "mixed_vat":bool((processing.get("amountDerivation") or {}).get("mixedRates")),
+        "external_ai_enabled":EXTERNAL_AI_ENABLED,"external_ai_used":bool(ai),
+    }))
+    return {"ok":True,"data":result.model_dump(),"preview":{"text":(doc.get("text") or "")[:30000],"pages":doc.get("pages",[])[:50],"tables":doc.get("tables",[])[:20]},"duplicateCandidates":dup}
+
 @app.post("/analyze")
 async def analyze(request:Request,file:UploadFile=File(...),company_json:str=Form("{}"),existing_json:str=Form("[]"),ocr_text:str=Form("")):
     require_allowed_origin(request)
@@ -2819,101 +3088,8 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
         existing=json.loads(existing_json or "[]")
     except Exception:
         existing=[]
-    started=time.time()
-    set_processing_meta(request,stage="extract")
-    doc=extract_document(file.filename or "document",file.content_type or "",raw)
-    ocr_confs=[
-        float(page.get("ocrConfidence"))
-        for page in (doc.get("pages") or [])
-        if page.get("ocrConfidence") is not None
-    ]
-    logger.info(json.dumps({
-        "event":"document_analysis_extracted","kind":doc.get("kind"),"pages":doc.get("pageCount"),
-        "ocr_used":bool(doc.get("ocrPages")),"ocr_pages":len(doc.get("ocrPages") or []),
-        "ocr_confidence":round(sum(ocr_confs)/len(ocr_confs),4) if ocr_confs else None,
-        "ocr_engine":doc.get("ocrEngine"),"ocr_model":doc.get("ocrModel"),
-        "rapidocr_version":RAPIDOCR_VERSION,"onnxruntime_version":ONNXRUNTIME_VERSION,
-        "processor_version":PROCESSOR_VERSION,"processor_revision":PROCESSOR_REVISION,
-        "tables":len(doc.get("tables") or []),
-        "duration_ms":round((time.time()-started)*1000),
-    }))
-    if ocr_text and len((doc.get("text") or "").replace(" ","")) < 320:
-        doc["text"] = (doc.get("text") or "") + "\n\n--- CLIENT OCR ---\n" + ocr_text[:70000]
-        doc.setdefault("processingHints", {})["clientOcrUsed"] = True
-    heur=heuristic_extract(doc,file.filename or "document",company)
-    ai_reasons=ai_escalation_reasons(doc,heur)
-    ai_candidate=bool(ai_reasons)
-    ai_requested=bool(ai_candidate and EXTERNAL_AI_ENABLED)
-    fast_path=not ai_requested
-    ai=None
-    ai_failure=None
-    if ai_requested:
-        if OPENAI_API_KEY:
-            set_processing_meta(request,stage="ai_extract")
-            ai,ai_failure=ai_extract(doc,file.filename or "document",company,heur)
-        else:
-            ai_failure={"internal_code":"AI_PROVIDER_NOT_CONFIGURED","provider":"openai"}
-    result=reconcile(ai,heur) if ai else heur
-    if ai_failure:
-        degraded_ref=new_reference_id()
-        logger.warning(json.dumps({
-            "event":"document_ai_degraded","reference_id":degraded_ref,
-            "timestamp":datetime.utcnow().isoformat(timespec="milliseconds")+"Z",
-            "route":request.url.path,"stage":"ai_extract",
-            "internal_code":ai_failure.get("internal_code"),
-            "provider":ai_failure.get("provider"),
-            "provider_status":ai_failure.get("provider_status"),
-            "provider_code":ai_failure.get("provider_code"),
-            "provider_request_id":ai_failure.get("provider_request_id"),
-            "internal_error":sanitize_log_value(ai_failure.get("internal_error")),
-            "user_ref":str(user.get("id"))[:80],
-            "file_mime":(file.content_type or "application/octet-stream")[:120],
-            "file_ext":Path(file.filename or "").suffix.lower(),"file_size":len(raw),
-        }))
-        result.warnings.append("Extra AI-controle was tijdelijk niet beschikbaar; controleer onzekere velden handmatig.")
-    result=validate_result(result,company)
-    # Re-apply document-local safety after reconciliation; no learned financial overwrites.
-    result=annotate_safety(annotate_understanding(result,doc,company,money_tokens),doc,norm_money)
-    dup=duplicate_candidates(result,existing,hashlib.sha256(raw).hexdigest())
-    if dup:
-        result.processing['reviewRouting']={'mode':'FULL_REVIEW','fields':['duplicate'],'count':1,'autoBook':False}
-    if dup:result.warnings.append("Mogelijk bestaat deze factuur al.")
-    processing={
-        **result.processing,
-        "ai":bool(ai),
-        "aiMode":"optional_fallback",
-        "aiRequested":ai_requested,
-        "aiReasons":ai_reasons,
-        "aiStatus":"used" if ai else ("unavailable" if ai_failure else ("disabled" if ai_candidate and not EXTERNAL_AI_ENABLED else "skipped")),
-        "externalAiEnabled":EXTERNAL_AI_ENABLED,
-        "reviewComplete":True,
-        "fastPath":"deterministic" if fast_path else None,
-        "durationMs":round((time.time()-started)*1000),
-        "pages":doc.get("pageCount"),
-        "tablesFound":len(doc.get("tables",[])),
-        "duplicateCandidates":dup,
-        "overallConfidence":round(overall_confidence(result),3),
-    }
+    payload=analyze_document(raw,file.filename or "document",file.content_type or "",company,existing,ocr_text,request=request,user=user)
     usage=record_billing_usage(request)
     if usage:
-        processing["billing"]={"plan":usage.get("plan"),"monthlyLimit":usage.get("monthly_limit"),"used":usage.get("used"),"remaining":usage.get("remaining")}
-    result.processing=processing
-    quality_meta=(processing.get("imageQuality") or {}) if isinstance(processing,dict) else {}
-    confidence_classes={
-        key:("strong" if float(value or 0)>=.90 else ("uncertain" if float(value or 0)>=.70 else "weak"))
-        for key,value in (result.confidence or {}).items()
-    }
-    logger.info(json.dumps({
-        "event":"document_analysis_completed",
-        "processor_version":PROCESSOR_VERSION,"processor_revision":PROCESSOR_REVISION,
-        "duration_ms":processing.get("durationMs"),"pages":processing.get("pages"),
-        "ocr_pages":len(processing.get("ocrPages") or []),
-        "quality_class":quality_meta.get("class"),"quality_flags":quality_meta.get("flags") or [],
-        "document_type":result.documentType,"warning_count":len(result.warnings or []),
-        "review_mode":(processing.get("reviewRouting") or {}).get("mode"),
-        "anomaly_types":processing.get("anomalyCodes") or [],
-        "field_confidence_classes":confidence_classes,
-        "mixed_vat":bool((processing.get("amountDerivation") or {}).get("mixedRates")),
-        "external_ai_enabled":EXTERNAL_AI_ENABLED,"external_ai_used":bool(ai),
-    }))
-    return {"ok":True,"data":result.model_dump(),"preview":{"text":(doc.get("text") or "")[:30000],"pages":doc.get("pages",[])[:50],"tables":doc.get("tables",[])[:20]},"duplicateCandidates":dup}
+        payload["data"]["processing"]["billing"]={"plan":usage.get("plan"),"monthlyLimit":usage.get("monthly_limit"),"used":usage.get("used"),"remaining":usage.get("remaining")}
+    return payload

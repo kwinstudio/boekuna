@@ -1,0 +1,1702 @@
+{
+  "avgOcrPasses": 2,
+  "baselineSha": "5201ee9fe1e62adba4495302e89363519ec4d185",
+  "byTag": {
+    "blur": {
+      "avgOcrPasses": 3,
+      "documents": 1,
+      "fullyCorrect": 1,
+      "p50Ms": 2184.17,
+      "p95Ms": 2184.17
+    },
+    "credit": {
+      "avgOcrPasses": 0,
+      "documents": 1,
+      "fullyCorrect": 1,
+      "p50Ms": 126.0,
+      "p95Ms": 126.0
+    },
+    "dark": {
+      "avgOcrPasses": 3,
+      "documents": 1,
+      "fullyCorrect": 1,
+      "p50Ms": 2119.12,
+      "p95Ms": 2119.12
+    },
+    "difficult": {
+      "avgOcrPasses": 4,
+      "documents": 1,
+      "fullyCorrect": 1,
+      "p50Ms": 3835.37,
+      "p95Ms": 3835.37
+    },
+    "factoring": {
+      "avgOcrPasses": 0,
+      "documents": 1,
+      "fullyCorrect": 1,
+      "p50Ms": 140.75,
+      "p95Ms": 140.75
+    },
+    "horeca": {
+      "avgOcrPasses": 3,
+      "documents": 1,
+      "fullyCorrect": 1,
+      "p50Ms": 2044.24,
+      "p95Ms": 2044.24
+    },
+    "identifiers": {
+      "avgOcrPasses": 0,
+      "documents": 1,
+      "fullyCorrect": 1,
+      "p50Ms": 119.57,
+      "p95Ms": 119.57
+    },
+    "image": {
+      "avgOcrPasses": 3.4,
+      "documents": 15,
+      "fullyCorrect": 15,
+      "p50Ms": 2184.17,
+      "p95Ms": 4990.44
+    },
+    "long": {
+      "avgOcrPasses": 1,
+      "documents": 2,
+      "fullyCorrect": 2,
+      "p50Ms": 5161.57,
+      "p95Ms": 5546.6
+    },
+    "low-contrast": {
+      "avgOcrPasses": 3,
+      "documents": 1,
+      "fullyCorrect": 1,
+      "p50Ms": 2134.39,
+      "p95Ms": 2134.39
+    },
+    "low-res": {
+      "avgOcrPasses": 3,
+      "documents": 1,
+      "fullyCorrect": 1,
+      "p50Ms": 2025.34,
+      "p95Ms": 2025.34
+    },
+    "missing": {
+      "avgOcrPasses": 0,
+      "documents": 1,
+      "fullyCorrect": 1,
+      "p50Ms": 149.12,
+      "p95Ms": 149.12
+    },
+    "mixed-vat": {
+      "avgOcrPasses": 0,
+      "documents": 1,
+      "fullyCorrect": 1,
+      "p50Ms": 134.98,
+      "p95Ms": 134.98
+    },
+    "multipage": {
+      "avgOcrPasses": 0,
+      "documents": 1,
+      "fullyCorrect": 1,
+      "p50Ms": 153.32,
+      "p95Ms": 153.32
+    },
+    "native": {
+      "avgOcrPasses": 0,
+      "documents": 11,
+      "fullyCorrect": 11,
+      "p50Ms": 128.41,
+      "p95Ms": 152.51
+    },
+    "payments": {
+      "avgOcrPasses": 0,
+      "documents": 2,
+      "fullyCorrect": 2,
+      "p50Ms": 121.16,
+      "p95Ms": 122.01
+    },
+    "pdf": {
+      "avgOcrPasses": 0.38,
+      "documents": 13,
+      "fullyCorrect": 13,
+      "p50Ms": 134.98,
+      "p95Ms": 2041.7
+    },
+    "perspective": {
+      "avgOcrPasses": 4,
+      "documents": 1,
+      "fullyCorrect": 1,
+      "p50Ms": 3835.37,
+      "p95Ms": 3835.37
+    },
+    "receipt": {
+      "avgOcrPasses": 3.43,
+      "documents": 14,
+      "fullyCorrect": 14,
+      "p50Ms": 2166.14,
+      "p95Ms": 5033.22
+    },
+    "rotation": {
+      "avgOcrPasses": 6,
+      "documents": 3,
+      "fullyCorrect": 3,
+      "p50Ms": 3903.34,
+      "p95Ms": 3911.65
+    },
+    "scanned": {
+      "avgOcrPasses": 2.5,
+      "documents": 2,
+      "fullyCorrect": 2,
+      "p50Ms": 2047.86,
+      "p95Ms": 2075.56
+    },
+    "self-billing": {
+      "avgOcrPasses": 0,
+      "documents": 1,
+      "fullyCorrect": 1,
+      "p50Ms": 123.79,
+      "p95Ms": 123.79
+    },
+    "simple": {
+      "avgOcrPasses": 2.5,
+      "documents": 2,
+      "fullyCorrect": 2,
+      "p50Ms": 2072.45,
+      "p95Ms": 2140.55
+    },
+    "skew": {
+      "avgOcrPasses": 4,
+      "documents": 1,
+      "fullyCorrect": 1,
+      "p50Ms": 2878.94,
+      "p95Ms": 2878.94
+    },
+    "small-text": {
+      "avgOcrPasses": 1,
+      "documents": 1,
+      "fullyCorrect": 1,
+      "p50Ms": 4733.75,
+      "p95Ms": 4733.75
+    },
+    "tank": {
+      "avgOcrPasses": 3,
+      "documents": 1,
+      "fullyCorrect": 1,
+      "p50Ms": 2103.59,
+      "p95Ms": 2103.59
+    },
+    "zero-vat": {
+      "avgOcrPasses": 0,
+      "documents": 1,
+      "fullyCorrect": 1,
+      "p50Ms": 128.41,
+      "p95Ms": 128.41
+    }
+  },
+  "cpuP50Ms": 2071.12,
+  "cpuP95Ms": 4494.83,
+  "documents": 28,
+  "fieldAccuracy": {
+    "advancePaid": 1.0,
+    "amountDue": 1.0,
+    "amountPaid": 1.0,
+    "currency": 1.0,
+    "documentType": 1.0,
+    "dueDate": 1.0,
+    "gross": 1.0,
+    "iban": 1.0,
+    "invoiceDate": 1.0,
+    "invoiceNumber": 1.0,
+    "mixedRates": 1.0,
+    "paymentReference": 1.0,
+    "subtotal": 1.0,
+    "supplier": 1.0,
+    "vatAmount": 1.0,
+    "vatId": 1.0,
+    "vatLines": 1.0,
+    "vatRate": 1.0
+  },
+  "fieldStatus": {
+    "advancePaid": {
+      "EXACT": 1,
+      "MISSING": 0,
+      "NORMALIZED": 0,
+      "WRONG": 0,
+      "applicable": 1
+    },
+    "amountDue": {
+      "EXACT": 2,
+      "MISSING": 0,
+      "NORMALIZED": 0,
+      "WRONG": 0,
+      "applicable": 2
+    },
+    "amountPaid": {
+      "EXACT": 1,
+      "MISSING": 0,
+      "NORMALIZED": 0,
+      "WRONG": 0,
+      "applicable": 1
+    },
+    "currency": {
+      "EXACT": 28,
+      "MISSING": 0,
+      "NORMALIZED": 0,
+      "WRONG": 0,
+      "applicable": 28
+    },
+    "documentType": {
+      "EXACT": 28,
+      "MISSING": 0,
+      "NORMALIZED": 0,
+      "WRONG": 0,
+      "applicable": 28
+    },
+    "dueDate": {
+      "EXACT": 10,
+      "MISSING": 0,
+      "NORMALIZED": 0,
+      "WRONG": 0,
+      "applicable": 10
+    },
+    "gross": {
+      "EXACT": 28,
+      "MISSING": 0,
+      "NORMALIZED": 0,
+      "WRONG": 0,
+      "applicable": 28
+    },
+    "iban": {
+      "EXACT": 8,
+      "MISSING": 0,
+      "NORMALIZED": 0,
+      "WRONG": 0,
+      "applicable": 8
+    },
+    "invoiceDate": {
+      "EXACT": 28,
+      "MISSING": 0,
+      "NORMALIZED": 0,
+      "WRONG": 0,
+      "applicable": 28
+    },
+    "invoiceNumber": {
+      "EXACT": 14,
+      "MISSING": 0,
+      "NORMALIZED": 0,
+      "WRONG": 0,
+      "applicable": 14
+    },
+    "mixedRates": {
+      "EXACT": 27,
+      "MISSING": 0,
+      "NORMALIZED": 0,
+      "WRONG": 0,
+      "applicable": 27
+    },
+    "paymentReference": {
+      "EXACT": 9,
+      "MISSING": 0,
+      "NORMALIZED": 0,
+      "WRONG": 0,
+      "applicable": 9
+    },
+    "subtotal": {
+      "EXACT": 27,
+      "MISSING": 0,
+      "NORMALIZED": 0,
+      "WRONG": 0,
+      "applicable": 27
+    },
+    "supplier": {
+      "EXACT": 27,
+      "MISSING": 0,
+      "NORMALIZED": 0,
+      "WRONG": 0,
+      "applicable": 27
+    },
+    "vatAmount": {
+      "EXACT": 27,
+      "MISSING": 0,
+      "NORMALIZED": 0,
+      "WRONG": 0,
+      "applicable": 27
+    },
+    "vatId": {
+      "EXACT": 8,
+      "MISSING": 0,
+      "NORMALIZED": 0,
+      "WRONG": 0,
+      "applicable": 8
+    },
+    "vatLines": {
+      "EXACT": 1,
+      "MISSING": 0,
+      "NORMALIZED": 0,
+      "WRONG": 0,
+      "applicable": 1
+    },
+    "vatRate": {
+      "EXACT": 26,
+      "MISSING": 0,
+      "NORMALIZED": 0,
+      "WRONG": 0,
+      "applicable": 26
+    }
+  },
+  "fullyCorrectDocuments": 28,
+  "fullyCorrectRate": 1.0,
+  "nativePdfNoOcr": true,
+  "ocrColdStartMs": 217.68,
+  "ocrFailures": 0,
+  "ocrStack": {
+    "engine": "RapidOCR",
+    "model": "PP-OCRv6-small",
+    "runtime": {
+      "engine": "ONNX Runtime",
+      "version": "1.30.0"
+    },
+    "version": "3.9.2"
+  },
+  "p50Ms": 2034.79,
+  "p95Ms": 4446.34,
+  "parserFailures": 0,
+  "peakRssMb": 856.32,
+  "processorRevision": "unknown",
+  "processorVersion": "4.3.0",
+  "records": [
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "purchase_invoice",
+        "dueDate": "2026-10-31",
+        "gross": 121.0,
+        "iban": "NL91ABNA0417164300",
+        "invoiceDate": "2026-10-03",
+        "invoiceNumber": "INV-2026-1001",
+        "mixedRates": false,
+        "paymentReference": "RF18539007547034",
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA LEVERANCIER BV",
+        "vatAmount": 21.0,
+        "vatId": "NL123456789B01",
+        "vatRate": 21.0
+      },
+      "cpuMs": 2022.02,
+      "durationMs": 1996.78,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "standard-invoice-image",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [
+        1
+      ],
+      "ocrPasses": 2,
+      "ocrVariant": "normalized-color",
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": true,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "dueDate": "EXACT",
+        "gross": "EXACT",
+        "iban": "EXACT",
+        "invoiceDate": "EXACT",
+        "invoiceNumber": "EXACT",
+        "mixedRates": "EXACT",
+        "paymentReference": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatId": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "image",
+        "simple"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "purchase_invoice",
+        "dueDate": "2026-10-31",
+        "gross": 121.0,
+        "iban": "NL91ABNA0417164300",
+        "invoiceDate": "2026-10-03",
+        "invoiceNumber": "INV-2026-1001",
+        "mixedRates": false,
+        "paymentReference": "RF18539007547034",
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA LEVERANCIER BV",
+        "vatAmount": 21.0,
+        "vatId": "NL123456789B01",
+        "vatRate": 21.0
+      },
+      "cpuMs": 3890.34,
+      "durationMs": 3835.37,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "smartphone-perspective-shadow",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [
+        1
+      ],
+      "ocrPasses": 4,
+      "ocrVariant": "normalized-color",
+      "parserError": null,
+      "qualityFlags": [
+        "IMAGE_BLUR",
+        "IMAGE_SKEW"
+      ],
+      "reviewRequired": true,
+      "roiUsed": true,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "dueDate": "EXACT",
+        "gross": "EXACT",
+        "iban": "EXACT",
+        "invoiceDate": "EXACT",
+        "invoiceNumber": "EXACT",
+        "mixedRates": "EXACT",
+        "paymentReference": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatId": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "image",
+        "difficult",
+        "perspective"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "receipt",
+        "gross": 121.0,
+        "invoiceDate": "2026-10-03",
+        "mixedRates": false,
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA SUPERMARKT",
+        "vatAmount": 21.0,
+        "vatRate": 21.0
+      },
+      "cpuMs": 2184.64,
+      "durationMs": 2148.12,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "receipt-clear",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [
+        1
+      ],
+      "ocrPasses": 3,
+      "ocrVariant": "normalized-color",
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": true,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "mixedRates": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "image",
+        "receipt",
+        "simple"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "receipt",
+        "gross": 121.0,
+        "invoiceDate": "2026-10-03",
+        "mixedRates": false,
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA SUPERMARKT",
+        "vatAmount": 21.0,
+        "vatRate": 21.0
+      },
+      "cpuMs": 2152.25,
+      "durationMs": 2119.12,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "receipt-dark",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [
+        1
+      ],
+      "ocrPasses": 3,
+      "ocrVariant": "normalized-color",
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": true,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "mixedRates": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "image",
+        "receipt",
+        "dark"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "receipt",
+        "gross": 121.0,
+        "invoiceDate": "2026-10-03",
+        "mixedRates": false,
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA SUPERMARKT",
+        "vatAmount": 21.0,
+        "vatRate": 21.0
+      },
+      "cpuMs": 2167.36,
+      "durationMs": 2134.39,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "receipt-low-contrast",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [
+        1
+      ],
+      "ocrPasses": 3,
+      "ocrVariant": "enhanced-grayscale",
+      "parserError": null,
+      "qualityFlags": [
+        "IMAGE_OVEREXPOSED"
+      ],
+      "reviewRequired": true,
+      "roiUsed": true,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "mixedRates": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "image",
+        "receipt",
+        "low-contrast"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "receipt",
+        "gross": 121.0,
+        "invoiceDate": "2026-10-03",
+        "mixedRates": false,
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA SUPERMARKT",
+        "vatAmount": 21.0,
+        "vatRate": 21.0
+      },
+      "cpuMs": 2217.41,
+      "durationMs": 2184.17,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "receipt-blur",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [
+        1
+      ],
+      "ocrPasses": 3,
+      "ocrVariant": "normalized-color",
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": true,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "mixedRates": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "image",
+        "receipt",
+        "blur"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "receipt",
+        "gross": 121.0,
+        "invoiceDate": "2026-10-03",
+        "mixedRates": false,
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA SUPERMARKT",
+        "vatAmount": 21.0,
+        "vatRate": 21.0
+      },
+      "cpuMs": 2065.62,
+      "durationMs": 2025.34,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "receipt-low-resolution",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [
+        1
+      ],
+      "ocrPasses": 3,
+      "ocrVariant": "enhanced-grayscale",
+      "parserError": null,
+      "qualityFlags": [
+        "IMAGE_LOW_RESOLUTION"
+      ],
+      "reviewRequired": true,
+      "roiUsed": true,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "mixedRates": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "image",
+        "receipt",
+        "low-res"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "receipt",
+        "gross": 121.0,
+        "invoiceDate": "2026-10-03",
+        "mixedRates": false,
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA SUPERMARKT",
+        "vatAmount": 21.0,
+        "vatRate": 21.0
+      },
+      "cpuMs": 2926.89,
+      "durationMs": 2878.94,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "receipt-skew",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [
+        1
+      ],
+      "ocrPasses": 4,
+      "ocrVariant": "enhanced-grayscale",
+      "parserError": null,
+      "qualityFlags": [
+        "IMAGE_SKEW"
+      ],
+      "reviewRequired": true,
+      "roiUsed": true,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "mixedRates": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "image",
+        "receipt",
+        "skew"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "receipt",
+        "gross": 121.0,
+        "invoiceDate": "2026-10-03",
+        "mixedRates": false,
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA SUPERMARKT",
+        "vatAmount": 21.0,
+        "vatRate": 21.0
+      },
+      "cpuMs": 3925.5,
+      "durationMs": 3862.46,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "receipt-rotate-90",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [
+        1
+      ],
+      "ocrPasses": 6,
+      "ocrVariant": "rotated-270",
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": true,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "mixedRates": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "image",
+        "receipt",
+        "rotation"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "receipt",
+        "gross": 121.0,
+        "invoiceDate": "2026-10-03",
+        "mixedRates": false,
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA SUPERMARKT",
+        "vatAmount": 21.0,
+        "vatRate": 21.0
+      },
+      "cpuMs": 3986.76,
+      "durationMs": 3912.57,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "receipt-rotate-180",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [
+        1
+      ],
+      "ocrPasses": 6,
+      "ocrVariant": "rotated-180",
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": true,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "mixedRates": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "image",
+        "receipt",
+        "rotation"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "receipt",
+        "gross": 121.0,
+        "invoiceDate": "2026-10-03",
+        "mixedRates": false,
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA SUPERMARKT",
+        "vatAmount": 21.0,
+        "vatRate": 21.0
+      },
+      "cpuMs": 3976.52,
+      "durationMs": 3903.34,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "receipt-rotate-270",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [
+        1
+      ],
+      "ocrPasses": 6,
+      "ocrVariant": "rotated-90",
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": true,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "mixedRates": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "image",
+        "receipt",
+        "rotation"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "receipt",
+        "gross": 121.0,
+        "invoiceDate": "2026-10-03",
+        "mixedRates": false,
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA ZEER LANGE SUPERMARKT",
+        "vatAmount": 21.0,
+        "vatRate": 21.0
+      },
+      "cpuMs": 5636.19,
+      "durationMs": 5589.38,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "receipt-long",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [
+        1
+      ],
+      "ocrPasses": 1,
+      "ocrVariant": "long-fast",
+      "parserError": null,
+      "qualityFlags": [
+        "IMAGE_LONG_RECEIPT"
+      ],
+      "reviewRequired": true,
+      "roiUsed": false,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "mixedRates": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "image",
+        "receipt",
+        "long"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "receipt",
+        "gross": 121.0,
+        "invoiceDate": "2026-10-03",
+        "mixedRates": false,
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA ZEER LANGE SUPERMARKT",
+        "vatAmount": 21.0,
+        "vatRate": 21.0
+      },
+      "cpuMs": 4768.4,
+      "durationMs": 4733.75,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "receipt-very-long-small",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [
+        1
+      ],
+      "ocrPasses": 1,
+      "ocrVariant": "long-fast",
+      "parserError": null,
+      "qualityFlags": [
+        "IMAGE_LONG_RECEIPT"
+      ],
+      "reviewRequired": true,
+      "roiUsed": false,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "mixedRates": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "image",
+        "receipt",
+        "long",
+        "small-text"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "receipt",
+        "gross": 109.0,
+        "invoiceDate": "2026-10-03",
+        "mixedRates": false,
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA HORECA",
+        "vatAmount": 9.0,
+        "vatRate": 9.0
+      },
+      "cpuMs": 2076.62,
+      "durationMs": 2044.24,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "restaurant-9",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [
+        1
+      ],
+      "ocrPasses": 3,
+      "ocrVariant": "normalized-color",
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": true,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "mixedRates": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "image",
+        "receipt",
+        "horeca"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "receipt",
+        "gross": 121.0,
+        "invoiceDate": "2026-10-03",
+        "mixedRates": false,
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA TANKSTATION",
+        "vatAmount": 21.0,
+        "vatRate": 21.0
+      },
+      "cpuMs": 2138.93,
+      "durationMs": 2103.59,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "tankstation-21",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [
+        1
+      ],
+      "ocrPasses": 3,
+      "ocrVariant": "normalized-color",
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": true,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "mixedRates": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "image",
+        "receipt",
+        "tank"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "purchase_invoice",
+        "dueDate": "2026-10-31",
+        "gross": 121.0,
+        "iban": "NL91ABNA0417164300",
+        "invoiceDate": "2026-10-03",
+        "invoiceNumber": "INV-2026-1001",
+        "mixedRates": false,
+        "paymentReference": "RF18539007547034",
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA LEVERANCIER BV",
+        "vatAmount": 21.0,
+        "vatId": "NL123456789B01",
+        "vatRate": 21.0
+      },
+      "cpuMs": 151.64,
+      "durationMs": 151.7,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "digital-pdf",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [],
+      "ocrPasses": 0,
+      "ocrVariant": null,
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": false,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "dueDate": "EXACT",
+        "gross": "EXACT",
+        "iban": "EXACT",
+        "invoiceDate": "EXACT",
+        "invoiceNumber": "EXACT",
+        "mixedRates": "EXACT",
+        "paymentReference": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatId": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "pdf",
+        "native"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "purchase_invoice",
+        "dueDate": "2026-10-31",
+        "gross": 121.0,
+        "iban": "NL91ABNA0417164300",
+        "invoiceDate": "2026-10-03",
+        "invoiceNumber": "SCAN-2026-1",
+        "mixedRates": false,
+        "paymentReference": "RF18539007547034",
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA SCAN BV",
+        "vatAmount": 21.0,
+        "vatId": "NL123456789B01",
+        "vatRate": 21.0
+      },
+      "cpuMs": 2040.98,
+      "durationMs": 2017.07,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "scanned-pdf",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [
+        1
+      ],
+      "ocrPasses": 2,
+      "ocrVariant": null,
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": false,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "dueDate": "EXACT",
+        "gross": "EXACT",
+        "iban": "EXACT",
+        "invoiceDate": "EXACT",
+        "invoiceNumber": "EXACT",
+        "mixedRates": "EXACT",
+        "paymentReference": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatId": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "pdf",
+        "scanned"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "receipt",
+        "gross": 121.0,
+        "invoiceDate": "2026-10-03",
+        "mixedRates": false,
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA PDF BON",
+        "vatAmount": 21.0,
+        "vatRate": 21.0
+      },
+      "cpuMs": 2112.11,
+      "durationMs": 2078.64,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "image-only-pdf",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [
+        1
+      ],
+      "ocrPasses": 3,
+      "ocrVariant": null,
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": false,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "mixedRates": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "pdf",
+        "scanned",
+        "receipt"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "purchase_invoice",
+        "dueDate": "2026-10-31",
+        "gross": 121.0,
+        "iban": "NL91ABNA0417164300",
+        "invoiceDate": "2026-10-03",
+        "invoiceNumber": "MULTI-2026-1",
+        "mixedRates": false,
+        "paymentReference": "RF18539007547034",
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA MULTIPAGE BV",
+        "vatAmount": 21.0,
+        "vatId": "NL123456789B01",
+        "vatRate": 21.0
+      },
+      "cpuMs": 153.18,
+      "durationMs": 153.32,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "multipage-pdf",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [],
+      "ocrPasses": 0,
+      "ocrVariant": null,
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": false,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "dueDate": "EXACT",
+        "gross": "EXACT",
+        "iban": "EXACT",
+        "invoiceDate": "EXACT",
+        "invoiceNumber": "EXACT",
+        "mixedRates": "EXACT",
+        "paymentReference": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatId": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "pdf",
+        "native",
+        "multipage"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "purchase_invoice",
+        "dueDate": "2026-10-31",
+        "gross": 169.5,
+        "invoiceDate": "2026-10-03",
+        "invoiceNumber": "MIX-2026-1",
+        "mixedRates": true,
+        "subtotal": 150.0,
+        "supplier": "BOEKUNA QA MIXED BV",
+        "vatAmount": 19.5,
+        "vatLines": [
+          [
+            9.0,
+            100.0,
+            9.0
+          ],
+          [
+            21.0,
+            50.0,
+            10.5
+          ]
+        ]
+      },
+      "cpuMs": 134.98,
+      "durationMs": 134.98,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "mixed-vat",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [],
+      "ocrPasses": 0,
+      "ocrVariant": null,
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": false,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "dueDate": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "invoiceNumber": "EXACT",
+        "mixedRates": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatLines": "EXACT"
+      },
+      "tags": [
+        "pdf",
+        "native",
+        "mixed-vat"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "purchase_invoice",
+        "dueDate": "2026-10-31",
+        "gross": 100.0,
+        "iban": "NL91ABNA0417164300",
+        "invoiceDate": "2026-10-03",
+        "invoiceNumber": "ZERO-2026-1",
+        "mixedRates": false,
+        "paymentReference": "RF18539007547034",
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA NUL BV",
+        "vatAmount": 0.0,
+        "vatId": "NL123456789B01",
+        "vatRate": 0.0
+      },
+      "cpuMs": 128.39,
+      "durationMs": 128.41,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "zero-vat",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [],
+      "ocrPasses": 0,
+      "ocrVariant": null,
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": false,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "dueDate": "EXACT",
+        "gross": "EXACT",
+        "iban": "EXACT",
+        "invoiceDate": "EXACT",
+        "invoiceNumber": "EXACT",
+        "mixedRates": "EXACT",
+        "paymentReference": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatId": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "pdf",
+        "native",
+        "zero-vat"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "purchase_invoice",
+        "dueDate": "2026-10-31",
+        "gross": 121.0,
+        "invoiceDate": "2026-10-03",
+        "invoiceNumber": "INV-2026-REAL",
+        "mixedRates": false,
+        "paymentReference": "RF18539007547034",
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA NUMMERS BV",
+        "vatAmount": 21.0,
+        "vatRate": 21.0
+      },
+      "cpuMs": 119.57,
+      "durationMs": 119.57,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "number-disambiguation",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [],
+      "ocrPasses": 0,
+      "ocrVariant": null,
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": false,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "dueDate": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "invoiceNumber": "EXACT",
+        "mixedRates": "EXACT",
+        "paymentReference": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "pdf",
+        "native",
+        "identifiers"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "credit_invoice",
+        "gross": -121.0,
+        "invoiceDate": "2026-10-03",
+        "invoiceNumber": "CR-2026-9",
+        "mixedRates": false,
+        "subtotal": -100.0,
+        "supplier": "BOEKUNA QA CREDIT BV",
+        "vatAmount": -21.0,
+        "vatRate": 21.0
+      },
+      "cpuMs": 126.0,
+      "durationMs": 126.0,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "credit-note",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [],
+      "ocrPasses": 0,
+      "ocrVariant": null,
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": false,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "invoiceNumber": "EXACT",
+        "mixedRates": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "pdf",
+        "native",
+        "credit"
+      ]
+    },
+    {
+      "actual": {
+        "amountDue": 81.0,
+        "amountPaid": 40.0,
+        "currency": "EUR",
+        "documentType": "purchase_invoice",
+        "dueDate": "2026-10-31",
+        "gross": 121.0,
+        "iban": "NL91ABNA0417164300",
+        "invoiceDate": "2026-10-03",
+        "invoiceNumber": "PAY-2026-1",
+        "mixedRates": false,
+        "paymentReference": "RF18539007547034",
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA PAYMENT BV",
+        "vatAmount": 21.0,
+        "vatId": "NL123456789B01",
+        "vatRate": 21.0
+      },
+      "cpuMs": 122.12,
+      "durationMs": 122.11,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "amount-paid-due",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [],
+      "ocrPasses": 0,
+      "ocrVariant": null,
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": false,
+      "statuses": {
+        "amountDue": "EXACT",
+        "amountPaid": "EXACT",
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "dueDate": "EXACT",
+        "gross": "EXACT",
+        "iban": "EXACT",
+        "invoiceDate": "EXACT",
+        "invoiceNumber": "EXACT",
+        "mixedRates": "EXACT",
+        "paymentReference": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatId": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "pdf",
+        "native",
+        "payments"
+      ]
+    },
+    {
+      "actual": {
+        "advancePaid": 300.0,
+        "amountDue": 249.34,
+        "currency": "EUR",
+        "documentType": "purchase_invoice",
+        "dueDate": "2026-10-31",
+        "gross": 549.34,
+        "iban": "NL91ABNA0417164300",
+        "invoiceDate": "2026-10-03",
+        "invoiceNumber": "ADV-2026-1",
+        "mixedRates": false,
+        "paymentReference": "RF18539007547034",
+        "subtotal": 454.0,
+        "supplier": "BOEKUNA QA ADVANCE BV",
+        "vatAmount": 95.34,
+        "vatId": "NL123456789B01",
+        "vatRate": 21.0
+      },
+      "cpuMs": 120.2,
+      "durationMs": 120.2,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "advance-due",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [],
+      "ocrPasses": 0,
+      "ocrVariant": null,
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": false,
+      "statuses": {
+        "advancePaid": "EXACT",
+        "amountDue": "EXACT",
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "dueDate": "EXACT",
+        "gross": "EXACT",
+        "iban": "EXACT",
+        "invoiceDate": "EXACT",
+        "invoiceNumber": "EXACT",
+        "mixedRates": "EXACT",
+        "paymentReference": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatId": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "pdf",
+        "native",
+        "payments"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "sales_invoice",
+        "gross": 121.0,
+        "invoiceDate": "2026-10-03",
+        "invoiceNumber": "SELF-2026-1",
+        "mixedRates": false,
+        "subtotal": 100.0,
+        "vatAmount": 21.0,
+        "vatRate": 21.0
+      },
+      "cpuMs": 123.79,
+      "durationMs": 123.79,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "self-billing",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [],
+      "ocrPasses": 0,
+      "ocrVariant": null,
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": false,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "invoiceNumber": "EXACT",
+        "mixedRates": "EXACT",
+        "subtotal": "EXACT",
+        "vatAmount": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "pdf",
+        "native",
+        "self-billing"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "purchase_invoice",
+        "gross": 121.0,
+        "invoiceDate": "2026-10-03",
+        "invoiceNumber": "FAC-2026-1",
+        "mixedRates": false,
+        "subtotal": 100.0,
+        "supplier": "BOEKUNA QA FACTORING BV",
+        "vatAmount": 21.0,
+        "vatRate": 21.0
+      },
+      "cpuMs": 140.64,
+      "durationMs": 140.75,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "factoring",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [],
+      "ocrPasses": 0,
+      "ocrVariant": null,
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": false,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "invoiceNumber": "EXACT",
+        "mixedRates": "EXACT",
+        "subtotal": "EXACT",
+        "supplier": "EXACT",
+        "vatAmount": "EXACT",
+        "vatRate": "EXACT"
+      },
+      "tags": [
+        "pdf",
+        "native",
+        "factoring"
+      ]
+    },
+    {
+      "actual": {
+        "currency": "EUR",
+        "documentType": "purchase_invoice",
+        "gross": 121.0,
+        "invoiceDate": "2026-10-03",
+        "invoiceNumber": "MISS-2026-1",
+        "supplier": "BOEKUNA QA MISSING BV"
+      },
+      "cpuMs": 149.12,
+      "durationMs": 149.12,
+      "extractError": null,
+      "fullyCorrect": true,
+      "id": "missing-fields",
+      "nativePdfNoOcrOk": true,
+      "ocrPages": [],
+      "ocrPasses": 0,
+      "ocrVariant": null,
+      "parserError": null,
+      "qualityFlags": [],
+      "reviewRequired": true,
+      "roiUsed": false,
+      "statuses": {
+        "currency": "EXACT",
+        "documentType": "EXACT",
+        "gross": "EXACT",
+        "invoiceDate": "EXACT",
+        "invoiceNumber": "EXACT",
+        "supplier": "EXACT"
+      },
+      "tags": [
+        "pdf",
+        "native",
+        "missing"
+      ]
+    }
+  ],
+  "reviewRequiredDocuments": 28,
+  "reviewRequiredRate": 1.0,
+  "roiDocuments": 13,
+  "roiRate": 0.4643,
+  "rssStartMb": 230.74,
+  "totalOcrPasses": 56
+}

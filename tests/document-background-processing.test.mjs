@@ -39,7 +39,7 @@ assert.match(processorSource,/rest\/v1\/document_processing_jobs/,'Processor bac
 assert.match(processorSource,/state":"in\.\(processing,validating\)"/,'Processor must only accept an active background processing job');
 assert.match(worker,/\.eq\("state","queued"\)/,'Job claim must be state guarded for idempotency');
 assert.match(worker,/if\(existing\)/,'Enqueue must reuse an existing document job');
-assert.match(worker,/repairMissingJobs\(a\.user\.id\)/,'Resume must repair received documents that missed job creation');
+assert.match(worker,/repairMissingJobs\(a\.user\.id,developer\?"legacy":EXECUTION_MODE\)/,'Resume must repair stored documents in the same execution mode as enqueue');
 assert.match(worker,/action==="run_next"/,'Background completion must continue the server queue without the scan page');
 assert.match(worker,/if\(!\["failed","review_required"\]\.includes\(job\.state\)\)/,'Retry must target one terminal problem job');
 assert.match(worker,/state:"ready".*review_fields:\[\]/s,'Resolved human review must clear attention state');
@@ -55,8 +55,9 @@ assert.match(original,/setTimeout\(\(\)=>\{documentProcessingPollTimer=null;fetc
 assert.match(original,/function persistentDocumentActionHtml[\s\S]*?state==='failed'[\s\S]*?Opnieuw proberen/,'Failed cards keep the primary retry');
 assert.match(original,/function openDocumentActions[\s\S]*?Handmatig invoeren[\s\S]*?Ander bestand[\s\S]*?Verwijderen/,'Failed documents keep replacement, manual entry and deletion in their secondary menu');
 assert.match(original,/aria-label="Documentacties"[\s\S]*?openDocumentActions/,'Secondary actions remain accessible from the card');
-assert.match(original,/item\.documentId=row\.id;item\.receivedPersisted=true/,'A file is only safely received after storage and the persistent document row exist');
-assert.match(original,/session\.items\.every\(x=>x\.receivedPersisted\|\|x\.state==='failed'\)/,'Batch received copy must use the durable receipt boundary');
+assert.match(original,/item\.documentId=row\.id;item\.documentPersisted=true/,'Storage and the document row are tracked separately from job acceptance');
+assert.match(original,/if\(!queued\.job\?\.id\)throw[\s\S]*?item\.jobId=queued\.job\.id;item\.receivedPersisted=true/,'A file is only safely received after storage, document row AND durable job exist');
+assert.match(original,/session\.items\.every\(x=>x\.receivedPersisted\)/,'Batch received copy must use the durable receipt boundary');
 assert.match(original,/function localPersistentProcessingItems\(\)/,'Received items without a visible job must stay on screen');
 assert.match(original,/if\(!doc\)\{doc=\{id:uid\('d'\).*source:'background-upload'/s,'Another browser must reconstruct missing local document metadata from persistent jobs');
 

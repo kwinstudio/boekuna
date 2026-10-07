@@ -1,0 +1,53 @@
+name: BOEKUNA document engine and workflow regressions
+on:
+  pull_request:
+    paths:
+      - 'kwinest/docprocessor/**'
+      - 'kwinest/index.html'
+      - 'supabase/functions/document-processing/**'
+      - 'supabase/migrations/*document*'
+      - 'tests/document-*.test.*'
+      - '.github/workflows/boekuna-document-v6.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      ORT_DISABLE_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned workflow SDK and processor
+        run: python -m pip install -r kwinest/docprocessor/requirements-workflow.txt pytest==9.1.1
+      - run: npm ci --prefix tests
+      - name: Metadata, shared engine, existing financial and OCR contracts
+        run: >-
+          python -m pytest --import-mode=importlib -q
+          tests/document-v6-metadata.test.py tests/document-workflow-worker.test.py
+          tests/document-intelligence-phases.test.py tests/document-scan-intelligence-unit.test.py
+          tests/financial-blocks.test.py tests/receipt-math.test.py
+          tests/document-user-supplied-edge-regressions.test.py tests/document-ocr-v5-regressions.test.py
+          tests/ocr-production-hardening.test.py tests/document-error-contract.test.py
+          tests/document-processor-pdf.test.py tests/processor-production-origin.test.py
+      - name: Actual migration lease, ownership, quota and 1/10/50 job regressions
+        run: node tests/document-workflow-leases.test.mjs
+      - name: Upload receipt behavior
+        run: node tests/document-upload-receipt.test.mjs
+      - name: Frozen existing OCR benchmark
+        env:
+          BOOKUNA_OCR_V5_REPORT: artifacts/document-v6-ocr.json
+        run: python tests/document-ocr-v5-benchmark.test.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: document-v6-ocr
+          path: artifacts/document-v6-ocr.json
+          if-no-files-found: warn

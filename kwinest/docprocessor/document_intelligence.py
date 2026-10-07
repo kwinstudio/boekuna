@@ -46,7 +46,7 @@ def explicit_summary_groups(lines,money_tokens):
 def annotate_understanding(result,doc,company,money_tokens):
     a=result.amounts
     lines=[x.strip() for x in (doc.get('text') or '').splitlines() if x.strip()]
-    conflicts=[]
+    conflicts=list(result.processing.get('metadataAnomalyCodes') or [])
     rates=set()
     for line in lines:
         if re.search(r'\b(?:btw|vat|tax|mwst|tva|iva)\b',line,re.I):
