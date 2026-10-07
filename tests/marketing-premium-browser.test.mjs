@@ -23,7 +23,28 @@ try{
 
         assert.equal(await page.locator('h1').getAttribute('aria-label'),'Boekhouden zonder boekhoudtaal.');
         assert.equal(await page.locator('.project-card').count(),4);
-        assert.equal(await page.locator('main img').count(),0,'Homepage content must remain screenshot-free');
+        const photos=page.locator('main img.marketing-photo');
+        assert.equal(await photos.count(),6,'Homepage should use six owner-supplied marketing photos');
+        const heroPhoto=page.locator('.editorial-hero .hero-photo');
+        assert.ok(await heroPhoto.isVisible(),name+'/'+width+' hero photo visible');
+        assert.equal(await heroPhoto.getAttribute('alt'),'Ondernemer werkt ontspannen met smartphone naast laptop');
+        assert.equal(await heroPhoto.getAttribute('loading'),'eager');
+        assert.equal(await heroPhoto.getAttribute('fetchpriority'),'high');
+        assert.ok((await heroPhoto.getAttribute('srcset')).includes('hero-ondernemer-1000.webp'));
+        assert.equal(await page.locator('.audience-photo').count(),4,'Four trades represented');
+        assert.equal(await page.locator('.collaboration-photo').count(),1,'Small-business collaboration photo present');
+        const photoRanges=await photos.evaluateAll(images=>images.map(img=>{
+          const canvas=document.createElement('canvas');canvas.width=32;canvas.height=24;
+          const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0,32,24);
+          const data=ctx.getImageData(0,0,32,24).data;
+          let min=255,max=0;
+          for(let i=0;i<data.length;i+=4){
+            const l=.2126*data[i]+.7152*data[i+1]+.0722*data[i+2];
+            min=Math.min(min,l);max=Math.max(max,l);
+          }
+          return {alt:img.alt,range:max-min};
+        }));
+        for(const photo of photoRanges)assert.ok(photo.range>35,name+'/'+width+' photo has real visual detail: '+JSON.stringify(photo));
 
         const size=await page.evaluate(()=>({html:document.documentElement.scrollWidth,body:document.body.scrollWidth,vw:innerWidth}));
         assert.ok(size.html<=width+1&&size.body<=width+1,JSON.stringify({name,width,...size}));
@@ -95,13 +116,14 @@ try{
       await nojs.goto(server.base);
       assert.ok(await nojs.locator('h1').isVisible());
       assert.ok(await nojs.locator('.project-card').first().isVisible());
-      assert.equal(await nojs.locator('main img').count(),0);
+      assert.equal(await nojs.locator('main img.marketing-photo').count(),6);
+      assert.ok(await nojs.locator('.editorial-hero .hero-photo').isVisible());
       await nojs.close();
     }finally{
       await browser.close();
     }
   }
-  console.log('BOEKUNA canonical editorial QA: PASS (18 responsive cases, image-free content, menu focus/Escape, Axe, cursor, reduced motion and no JS)');
+  console.log('BOEKUNA canonical editorial QA: PASS (18 responsive cases, owner photography, menu focus/Escape, Axe, cursor, reduced motion and no JS)');
 }finally{
   await server.close();
 }
