@@ -239,6 +239,15 @@ try{
       await axe(page,browserName+' desktop dashboard');
       assert.ok(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2),browserName+' 1440x900 dashboard must fit one screen');
       await page.screenshot({path:path.join(evidence,'dashboard-1440-'+browserName+'.png'),fullPage:true});
+      await noDecorativeShadows(page,browserName+' desktop dashboard');
+      const dateSafety=await page.evaluate(()=>({
+        roundtrip:localDateOnly(parseDateOnly('2026-10-07')),
+        plusDst:addDateOnlyDays('2026-10-24',2),
+        plusInvoice:addDateOnlyDays('2026-10-07',14),
+        display:dateNL('2026-10-07')
+      }));
+      assert.deepEqual(dateSafety,{roundtrip:'2026-10-07',plusDst:'2026-10-26',plusInvoice:'2026-10-21',display:dateSafety.display},browserName+' date-only helpers must preserve calendar dates');
+      assert.match(dateSafety.display,/2026/,browserName+' date-only display must preserve the intended year');
 
       await page.setViewportSize({width:1366,height:768});
       await page.evaluate(()=>navigate('dashboard'));
@@ -324,6 +333,8 @@ try{
       assert.ok(vatHeader.period&&vatHeader.period.left>vatHeader.title.left,browserName+' VAT period must be right of title');
       assert.match(await page.locator('#content').innerText(),/indicati(?:e|ef)/i);
       await noOverflow(page,browserName+' desktop VAT');
+      assert.equal(await page.locator('.mobile-vat-attention').count(),0,browserName+' VAT must not expose the removed document-review CTA');
+      assert.doesNotMatch(await page.locator('#content').innerText(),/^Documenten controleren$/m,browserName+' VAT must remain informational');
       await page.screenshot({path:path.join(evidence,'vat-1440-'+browserName+'.png'),fullPage:true});
 
       const coreKpis={
@@ -379,8 +390,19 @@ try{
         assert.deepEqual((await page.locator('.product-kpi-label').allTextContents()).map(v=>v.trim()),labels,browserName+' '+route+' KPI labels');
         assert.equal(await page.locator('.product-kpi').count(),4,browserName+' '+route+' must expose four coherent KPI cards');
         await noOverflow(page,browserName+' desktop '+route);
+        await noDecorativeShadows(page,browserName+' desktop '+route);
         await axe(page,browserName+' desktop '+route);
       }
+      await page.evaluate(()=>navigate('reports'));
+      const reportDesktop=await reportA4State(page,browserName+' desktop A4');
+      assert.ok(reportDesktop.canvasWidth>=790,browserName+' desktop A4 preview should render at natural paper size when space allows');
+      await page.screenshot({path:path.join(evidence,'report-a4-1440-'+browserName+'.png'),fullPage:true});
+      await page.evaluate(()=>{reportPreviewHistory=null;closeModal();window.__round3Invoices=structuredClone(state.invoices);const base=structuredClone(state.invoices[0]);for(let n=2;n<=64;n++)state.invoices.push({...base,id:'round3-'+n,number:'2026-'+String(n).padStart(4,'0')})});
+      await page.evaluate(()=>printReport());
+      const multipage=await reportA4State(page,browserName+' multipage A4');
+      assert.ok(multipage.scrollHeight>1123,browserName+' multipage report must exceed one A4 preview page');
+      await page.evaluate(()=>{reportPreviewHistory=null;closeModal();state.invoices=window.__round3Invoices;delete window.__round3Invoices;render()});
+
       const polishVisualRoutes=['expenses','documents','bank','vat','reports','settings','profile'];
       await page.setViewportSize({width:1440,height:900});
       for(const route of polishVisualRoutes){
