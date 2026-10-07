@@ -16,6 +16,15 @@ assert.ok(uxPolish.includes('--boekuna-system-font:-apple-system,BlinkMacSystemF
 assert.equal(/Boekuna (?:Inter|Space)/.test(uxPolish),false,'Round 3 must not depend on app-only Inter or Space Grotesk as primary UI fonts');
 assert.ok(uxPolish.includes('#mobileBottomNav{display:none!important}'),'Pre-auth mobile navigation gate missing');
 assert.ok(uxPolish.includes('.quick-action-backdrop'),'Central mobile quick-create presentation missing');
+assert.ok(source.includes('id="appBootstrap"')&&source.includes('role="status"')&&source.includes('aria-live="polite"'),'Accessible auth bootstrap state missing');
+assert.ok(source.includes("setBootstrapVisible(true);setProductUiAuthenticated(false);document.getElementById('authRoot').innerHTML='';"),'Auth initialization must show bootstrap before session resolution');
+assert.ok(source.includes("setProductUiAuthenticated(false);document.getElementById('mainApp').style.display='none';cleanupDocumentBackgroundProcessing();"),'Logout must hide authenticated navigation immediately');
+assert.ok(source.includes('const today=()=>localDateOnly(new Date());'),'today() must use the local calendar date');
+assert.equal(source.includes("const today=()=>new Date().toISOString().slice(0,10);"),false,'Date-only today() must not round-trip through UTC');
+const reportSource=source.slice(source.indexOf('function buildReportPreview(){'),source.indexOf('async function deleteStoredFile'));
+assert.ok(reportSource.includes('body{width:210mm;min-height:297mm;padding:16mm;background:#fff}'),'Report screen preview must preserve A4 paper geometry');
+assert.equal(reportSource.includes('.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}'),false,'Report preview must not switch to a mobile KPI layout');
+assert.ok(reportSource.includes('page-break-before:always'),'Report must preserve explicit multi-page breaks');
 for(const token of ['#1B1F23','#63D471','#F6F7F8','#8A949C','#FFFFFF'])assert.ok(colorPolish.includes(token),'Product colour polish missing canonical token '+token);
 for(const semantic of ['--status-success:#177A31','--status-warning:#B45309','--status-error:#C2362B','--status-info:#2563EB'])assert.ok(colorPolish.includes(semantic),'Semantic colour mapping missing '+semantic);
 assert.equal(/(?:linear|radial)-gradient\(/i.test(colorPolish),false,'Product colour polish must not introduce gradients');
@@ -123,6 +132,29 @@ fs.mkdirSync(evidence,{recursive:true});
 async function noOverflow(page,label){
   const result=await page.evaluate(()=>({vw:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
   assert.ok(result.html<=result.vw+2&&result.body<=result.vw+2,label+' horizontal overflow: '+JSON.stringify(result));
+}
+async function noDecorativeShadows(page,label){
+  const shadows=await page.evaluate(()=>{
+    const selectors=['.dashboard-kpi','.product-kpi','.card','.table-card','.mini-kpi','.list-toolbar','#mobileBottomNav','.modal'];
+    return selectors.flatMap(selector=>[...document.querySelectorAll(selector)].filter(el=>{const r=el.getBoundingClientRect();return r.width>0&&r.height>0}).map(el=>({selector,shadow:getComputedStyle(el).boxShadow})));
+  });
+  const offenders=shadows.filter(item=>item.shadow!=='none');
+  assert.deepEqual(offenders,[],label+' decorative shadows: '+JSON.stringify(offenders));
+}
+async function reportA4State(page,label){
+  await page.evaluate(()=>printReport());
+  await page.locator('#reportPreviewFrame').waitFor();
+  await page.waitForFunction(()=>{const f=document.getElementById('reportPreviewFrame');return f?.contentDocument?.body&&f.style.transform});
+  const state=await page.evaluate(()=>{
+    const frame=document.getElementById('reportPreviewFrame'),doc=frame.contentDocument,body=doc.body,kpis=doc.querySelector('.kpis'),canvas=document.getElementById('reportPreviewCanvas');
+    const bodyStyle=frame.contentWindow.getComputedStyle(body),kpiStyle=frame.contentWindow.getComputedStyle(kpis),canvasRect=canvas.getBoundingClientRect();
+    return {innerWidth:frame.contentWindow.innerWidth,bodyWidth:body.getBoundingClientRect().width,bodyCssWidth:bodyStyle.width,kpiColumns:kpiStyle.gridTemplateColumns.split(' ').filter(Boolean).length,transform:frame.style.transform,canvasWidth:canvasRect.width,canvasHeight:canvasRect.height,scrollHeight:doc.documentElement.scrollHeight};
+  });
+  assert.ok(Math.abs(state.innerWidth-794)<=2,label+' iframe viewport must remain A4-width: '+JSON.stringify(state));
+  assert.ok(Math.abs(state.bodyWidth-794)<=3,label+' paper must remain 210mm/A4-width: '+JSON.stringify(state));
+  assert.equal(state.kpiColumns,4,label+' PDF KPI composition must stay desktop/document layout');
+  assert.match(state.transform,/scale\(/,label+' preview must scale the fixed paper rather than reflow it');
+  return state;
 }
 async function axe(page,label){
   await page.addScriptTag({content:axeSource});
