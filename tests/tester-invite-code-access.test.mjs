@@ -44,7 +44,9 @@ for(const fragment of [
 ]){
   assert.ok(html.includes(fragment),'billing UI missing tester-code contract: '+fragment);
 }
-assert.ok(!/90\s*dagen|3\s*maanden|90-day|90 days/i.test(sql+'\n'+html+'\n'+generator));
+// The cashflow page legitimately forecasts "90 dagen" ahead; only tester/billing copy must not mention 90 days.
+const htmlWithoutCashflow=html.replace(/function renderCashflow\(\)[^\n]*/,'');
+assert.ok(!/90\s*dagen|3\s*maanden|90-day|90 days/i.test(sql+'\n'+htmlWithoutCashflow+'\n'+generator));
 assert.ok(html.includes("accessSource==='tester_code'")||html.includes("access_source==='tester_code'"));
 assert.ok(html.includes('access_ends_at'));
 assert.ok(!html.includes("localStorage.setItem('tester"));
