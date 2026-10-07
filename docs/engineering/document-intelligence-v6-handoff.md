@@ -1,6 +1,6 @@
 # BOEKUNA document intelligence V6: implementation and release handoff
 
-Status: draft implementation prepared for separate PR review. Production remains on the existing legacy adapter. **Not merge-ready and not a production PASS.**
+Status: draft. Production remains on the existing legacy adapter. **NOT MERGE READY**: hosted staging (Supabase + Render Workflow) and physical-device gates are open. See "Round 2" below for the current state.
 
 ## Source of truth and discovery
 
@@ -108,3 +108,62 @@ Rollback new uploads by setting Edge `DOCUMENT_EXECUTION_MODE=legacy`. Keep the 
 - [Python workflow SDK](https://render.com/docs/workflows-sdk-python), [task definitions](https://render.com/docs/workflows-defining), [create task run API](https://api-docs.render.com/reference/createtask): pinned SDK/start_task and REST dispatch.
 
 Official examples are orchestration references. All OCR/parser/financial rules remain BOEKUNA's existing implementation.
+
+## Round 2 (2026-10-07): scenario gaps, real Postgres/PostgREST run, gates
+
+Discovery at start: main `50fa6ae`, PR head `6d27ea9`, mergeable, no new main commits. All 7 checks on `6d27ea9` green, including `app` and `document-integrity` that were still running at the first handoff. Open PRs #227 (local Qwen benchmark, draft) and #223 (iOS packaging) do not overlap. The "Elite Agent Skillmap" and AGENTS.md/CLAUDE.md do not exist in the repository; this handoff and the PR are the instruction sources.
+
+### Changed in this round (commit `3d275e4`)
+
+| File | Change | Reuses |
+| --- | --- | --- |
+| `kwinest/docprocessor/app.py` | `contact_block`: unlabelled supplier search stops at the addressee label; labelled party blocks stop at totals; a legal footer line (`Name BV \| KvK …`) can name the issuer (confidence stays 0.62, so `supplierName` is reviewed). Native-text bare `datum` fallback only matches the standalone word, no longer `vervaldatum`/`besteldatum`. | existing party block, review routing, `norm_date` |
+| `kwinest/docprocessor/document_intelligence.py` | Explicit reverse-charge statement on a zero/absent-VAT document sets the existing `accountingVatTreatment=review_required` (+ `processing.reverseChargeCandidate`). Conditional boilerplate and documents with charged VAT stay `standard`. Austrian `ATU…` counts as foreign tax context. | existing treatment field, both adapters already add `vatTreatment` review |
+| `tests/document-v6-scenarios.test.py` | 47 synthetic scenario fixtures | existing parser entry point |
+| `tests/document-workflow-integration.py`, `tests/fixtures/*` | real PostgreSQL 17 + PostgREST + unchanged worker/engine harness | all repository migrations, `workflow_tasks` task bodies |
+| `.github/workflows/boekuna-document-v6.yml` | runs the scenarios; new `workflow_integration` job (Postgres 17 service, PostgREST 12.2.3 with checksum) | existing V6 workflow |
+| `docs/engineering/document-v6-evidence/scenario-matrix.md`, `workflow-integration-local.json` | evidence | |
+
+No change to OCR models, financial validators, queue table semantics, Edge, migration SQL or `index.html` in this round.
+
+### Scenario matrix
+
+Full traceable matrix: [`document-v6-evidence/scenario-matrix.md`](document-v6-evidence/scenario-matrix.md). Scenario fixtures: main 36/47, previous head 40/47, candidate 47/47. Metadata fixtures: main 40/107, previous head and candidate 107/107. Remaining PARTIAL (safe null, not extracted): invoice number printed above its label, month-name service periods.
+
+### Database validation against real definitions
+
+All 51 repository migrations replay in order on PostgreSQL 17.10 with a small Supabase platform shim (Supabase's own `auth.uid/role/jwt`; inert storage/pg_net/vault). The replayed `can_operate_bookkeeping`, `check_document_quota`, `record_document_usage`, `billing_effective_plan`, `billing_plan_limit`, `private.entitlement_state_for_user` and `private.current_user_has_verified_mfa` are **md5-identical to production** `pg_get_functiondef` (read-only query, 2026-10-07). `documents` and pre-V6 `document_processing_jobs` columns and constraints are identical to production. The PGlite test's stubs are therefore no longer the only database evidence.
+
+### Worker integration run (local, real Postgres + PostgREST, not hosted)
+
+`tests/document-workflow-integration.py`: real `process_batch` / `recover_pending` / `process_claimed_job` bodies and the existing engine through PostgREST RPCs, Storage endpoint emulated, Render fan-out emulated with threads, user cap 4, global cap 4, 4-core container. Result `PASS` ([JSON](document-v6-evidence/workflow-integration-local.json)):
+
+| Scenario | Docs | Terminal | Batch completion | Per-doc P50 / P95 | Queue delay P95 | Peak active |
+| --- | --- | --- | --- | --- | --- | --- |
+| one user, one dispatch | 1 | 1 review | 4.3 s | 4.2 / 4.2 s | 0.03 s | 1 |
+| one user, one dispatch | 10 | 10 review | 14.0 s | 4.5 / 4.8 s | 10.0 s | 4 |
+| one user, one dispatch | 50 | 50 review | 57.5 s | 4.3 / 4.7 s | 50.3 s | 4 |
+| 3 users × 15, each batch dispatched twice, concurrent recovery | 45 | 45 review | 54.0 s | 4.3 / 4.6 s | 46.9 s | 4 (4 per user) |
+| 15% Storage 5xx, 5% RPC 5xx, 10% lost completion responses, 10% worker crashes | 30 | 29 review, 1 failed after 3 attempts | — | — | — | — |
+| browser closed before dispatch, recovery only | 5 | 5 review | — | — | — | — |
+| free plan (limit 10), 12 docs | 12 | 10 review, 2 `DOCUMENT_LIMIT_REACHED` | — | — | — | — |
+| plan downgraded between claim and completion | 1 | completion rejected, then failed without usage | — | — | — | — |
+
+Asserted for every scenario: no lost job, every job terminal without a lease, each result belongs to its own document and tenant, a completion audit trigger shows no job completed twice, billing usage equals completed jobs exactly. PostgREST anti-join used by Edge `repairMissingJobs` works on the real schema. Anon/authenticated JWTs cannot call workflow RPCs. Peak RSS of the single test process (engine + 8 threads) 1.6 GB; engine cold start 5.9 s. Lease expiry is simulated by moving `lease_expires_at`, not by waiting 10 minutes. The 100% review rate is the engine's existing conservative routing (`documentType` is always in quick review for these synthetic invoices), identical to the frozen benchmark; no review-rate change is claimed. Timings are from one shared container and are not a hosted SLA.
+
+### OCR benchmark, same machine, same run conditions
+
+| | main `50fa6ae` | candidate |
+| --- | --- | --- |
+| Fully correct | 28/28 | 28/28 |
+| OCR / parser failures | 0 / 0 | 0 / 0 |
+| P50 / P95 | 4343 / 8599 ms | 4213 / 8178 ms |
+| Peak RSS | 925 MB | 926 MB |
+
+This container is ~2× slower than the CI runner, so both main and candidate exceed the benchmark's 6 s P95 assertion here; the assertion is unchanged and CI is the gate. `processor-memory-regression` peaks at 474–501 MiB here for main, previous head and candidate alike (threshold 480 MiB, Python 3.13 vs CI 3.12); CI is the gate.
+
+### Hosted gates still open
+
+- **Supabase staging**: the candidate project `ozisiotrzeubwbffnxyr` lacks `internal_access_grants`/`billing_entitlements`; aligning it and applying the V6 migration was blocked pending owner approval. Production was only read.
+- **Render Workflow**: no Workflow-service creation is available to this session and no Render API key exists in the environment. Needed from the owner: create a Workflow service from this branch (root `kwinest/docprocessor`, build `pip install -r requirements-workflow.txt`, start `python workflow_tasks.py`, env `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` of **staging**, external AI off), a cron job (same root, `python workflow_recovery.py`, every minute, env `RENDER_API_KEY`, `DOCUMENT_WORKFLOW_SLUG`) and staging Edge env `DOCUMENT_EXECUTION_MODE=workflow`, `DOCUMENT_WORKFLOW_SLUG`, `RENDER_API_KEY`, `DOCUMENT_WORKFLOW_RECOVERY_ENABLED=true`. Then hosted 1/10/50/multi-user runs and a confirmed recovery schedule.
+- **Devices**: physical iPhone Safari/PWA and WebKit background processing remain unproven.
