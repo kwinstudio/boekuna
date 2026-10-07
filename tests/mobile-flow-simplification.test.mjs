@@ -19,10 +19,11 @@ const css=fs.readFileSync(cssPath,'utf8');
 const buildSource=fs.readFileSync(path.join(root,'scripts','build-app.mjs'),'utf8');
 assert.match(js,/max-width:820px/,'runtime must use the established mobile breakpoint');
 assert.match(css,/@media\s*\(max-width:820px\)/,'all visual changes must stay mobile-only');
-for(const marker of ['saveContact','duplicateInvoiceAsDraft','finalSaveInvoice','finalizeDraftAndSend','savePdfInvoiceImport','confirmDuplicateOverride']){
+for(const marker of ['saveContact','finalSaveInvoice','finalizeDraftAndSend','savePdfInvoiceImport','confirmDuplicateOverride','deleteDocumentNow','printInvoice']){
   assert.ok(js.includes(marker),'mobile flow must reuse existing authoritative action: '+marker);
 }
 assert.doesNotMatch(js,/state\.invoices\s*=|state\.expenses\s*=|vatRate\s*=\s*21|reserveFinalInvoiceNumber\(/,'mobile presentation layer must not reimplement accounting/state semantics');
+assert.doesNotMatch(js,/duplicateInvoiceAsDraft\(/,'same-as-previous mobile choice must not persist a duplicate before the user saves');
 assert.ok(buildSource.includes("'mobile-flow-simplification.js'")&&buildSource.includes("'mobile-flow-simplification.css'"),'app build must copy mobile flow assets');
 assert.ok(buildSource.includes('/assets/mobile-flow-simplification.js')&&buildSource.includes('/assets/mobile-flow-simplification.css'),'app build must load mobile flow assets');
 
@@ -44,9 +45,9 @@ const fixture=[
   "state.contacts=[{id:'c1',type:'customer',name:'Studio Noord',email:'facturen@studionoord.test',address:'Klantstraat 2',postal:'3012BB',city:'Rotterdam'},{id:'c2',type:'customer',name:'Bakkerij Jansen B.V.',email:'boekhouding@jansen.test',address:'Dorpsstraat 12',postal:'1135AB',city:'Edam',kvk:'12345678'}];",
   "state.invoices=[{id:'i1',number:'2026-0001',customerId:'c1',status:'sent',kind:'invoice',issueDate:'2026-10-01',supplyDate:'2026-10-01',dueDate:'2026-10-15',paymentDays:14,taxTreatment:'standard',payments:[],lines:[{desc:'Websiteonderhoud',qty:1,unitLabel:'stuk',unit:450,vat:21}]}];",
   "state.expenses=[];state.transactions=[];",
-  "state.documents=[{id:'d-ok-1',fileId:'f-ok-1',name:'Albert-Heijn.pdf',type:'Bon',date:'2026-10-03',processingState:'ready'},{id:'d-q-1',fileId:'f-q-1',name:'Jumbo.pdf',type:'Bon',date:'2026-10-04',processingState:'review_required'}];",
+  "state.documents=[{id:'d-ok-1',fileId:'f-ok-1',name:'Albert-Heijn.pdf',type:'Bon',date:'2026-10-03',processingState:'ready'},{id:'d-q-1',fileId:'f-q-1',name:'Jumbo.pdf',type:'Bon',date:'2026-10-04',processingState:'review_required'},{id:'d-usd-1',fileId:'f-usd-1',name:'USD.pdf',type:'Factuur',date:'2026-10-04',processingState:'ready'}];",
   "state.services=[];state.bookings=[];state.plannedCash=[];",
-  "documentProcessingJobs=[{id:'j-ok-1',client_ref:'f-ok-1',file_name:'Albert-Heijn.pdf',state:'ready',review_fields:[],requested_kind:'purchase',result:{analysis:{documentType:'receipt',party:'Albert Heijn',issueDate:'2026-10-03',gross:18.40,net:16.88,vatAmount:1.52,vatRate:9,amounts:{total:18.40}}}},{id:'j-q-1',client_ref:'f-q-1',file_name:'Jumbo.pdf',state:'review_required',review_fields:['gross'],review_message:'Controleer het totaal',requested_kind:'purchase',result:{analysis:{documentType:'receipt',party:'Jumbo',issueDate:'2026-10-04',gross:15.93,net:14.61,vatAmount:1.32,vatRate:9,amounts:{total:15.93}}}}];",
+  "documentProcessingJobs=[{id:'j-ok-1',client_ref:'f-ok-1',file_name:'Albert-Heijn.pdf',state:'ready',review_fields:[],requested_kind:'purchase',result:{analysis:{documentType:'receipt',party:'Albert Heijn',issueDate:'2026-10-03',currency:'EUR',gross:18.40,net:16.88,vatAmount:1.52,vatRate:9,amounts:{total:18.40}}}},{id:'j-q-1',client_ref:'f-q-1',file_name:'Jumbo.pdf',state:'review_required',review_fields:['gross'],review_message:'Controleer het totaal',requested_kind:'purchase',result:{analysis:{documentType:'receipt',party:'Jumbo',issueDate:'2026-10-04',currency:'EUR',gross:15.93,net:14.61,vatAmount:1.32,vatRate:9,amounts:{total:15.93}}}},{id:'j-usd-1',client_ref:'f-usd-1',file_name:'USD.pdf',state:'ready',review_fields:[],requested_kind:'purchase',result:{analysis:{documentType:'purchase_invoice',party:'US Vendor',invoiceNumber:'USD-1',issueDate:'2026-10-04',currency:'USD',gross:121,net:100,vatAmount:21,vatRate:21,amounts:{total:121}}}}];",
   "documentProcessingInitialized=true;documentProcessingConnectivityLost=false;documentProcessingFetchError=false;",
   "enterApp();"
 ].join('\n');
@@ -87,8 +88,10 @@ try{
   await page.evaluate(()=>navigate('documents'));
   await page.locator('.mobile-document-groups').waitFor();
   assert.match(await page.locator('.mobile-document-groups').innerText(),/1 bon klopt/);
-  assert.match(await page.locator('.mobile-document-groups').innerText(),/1 heeft een vraag/);
+  assert.match(await page.locator('.mobile-document-groups').innerText(),/2 hebben een vraag/);
   assert.match(await page.locator('.mobile-document-questions').innerText(),/Klopt het totaal\?/);
+  assert.match(await page.locator('.mobile-document-questions').innerText(),/Controleer de valuta/);
+  assert.equal(await page.locator('.mobile-document-good .mobile-document-compact-row').count(),1,'only zero-unresolved receipts may enter the green bulk group');
 
   await page.evaluate(()=>newContact());
   await page.locator('#contactForm[data-mobile-customer-flow]').waitFor();
@@ -96,8 +99,29 @@ try{
   assert.ok(await page.locator('#kvkQuery').isVisible(),'KVK query is primary');
   assert.equal(await page.getByRole('button',{name:/Particulier of buitenland/}).count(),1);
   assert.equal(await page.locator('#contactForm [name="email"]').isVisible(),false,'email appears after KVK selection or manual mode');
+  await page.evaluate(()=>{
+    const form=document.getElementById('contactForm');
+    form.elements.name.value='Bakkerij Jansen B.V.';
+    form.elements.address.value='Dorpsstraat 12';
+    form.elements.postal.value='1135 AB';
+    form.elements.city.value='Edam';
+    form.elements.kvk.value='12345678';
+    form.dataset.kvkSelectedNumber='12345678';
+  });
+  await page.waitForTimeout(50);
+  assert.ok(await page.locator('.mobile-customer-company-card').isVisible(),'KVK selection must produce a compact confirmation card');
+  assert.match(await page.locator('.mobile-customer-company-card').innerText(),/Bakkerij Jansen B\.V\./);
+  assert.ok(await page.locator('#contactForm [name="email"]').isVisible(),'invoice email becomes directly editable after KVK selection');
+  assert.equal(await page.locator('#contactForm [name="contactPerson"]').isVisible(),false,'optional customer fields stay collapsed');
+  await page.locator('.mobile-contact-more summary').click();
+  assert.ok(await page.locator('#contactForm [name="contactPerson"]').isVisible(),'Meer gegevens reveals optional fields');
+  await page.evaluate(()=>closeModal());
+
+  await page.evaluate(()=>newContact());
+  await page.locator('#contactForm[data-mobile-customer-flow]').waitFor();
   await page.getByRole('button',{name:/Particulier of buitenland/}).click();
   assert.ok(await page.locator('#contactName').isVisible(),'manual fallback exposes existing full form');
+  assert.ok(await page.locator('#contactForm [name="contactPerson"]').isVisible(),'manual fallback keeps the full manual form reachable');
   await page.evaluate(()=>closeModal());
 
   await page.evaluate(()=>newInvoice());
@@ -105,15 +129,28 @@ try{
   assert.deepEqual(await page.locator('.mobile-invoice-progress span').allTextContents(),['1 van 3','2 van 3','3 van 3']);
   assert.match(await page.locator('.mobile-invoice-step[data-step="1"]').innerText(),/Voor wie is de factuur\?/);
   assert.match(await page.locator('.mobile-invoice-quick').innerText(),/Zelfde als vorige factuur/);
+  const invoiceCountBeforeQuick=await page.evaluate(()=>state.invoices.length);
+  await page.locator('.mobile-invoice-quick .mobile-invoice-choice').click();
+  assert.equal(await page.evaluate(()=>state.invoices.length),invoiceCountBeforeQuick,'same-as-previous must only prefill UI, not persist a new draft');
+  assert.equal(await page.locator('#invoiceForm').getAttribute('data-mobile-invoice-step'),'2');
+  await page.getByRole('button',{name:'Vorige',exact:true}).click();
   await page.locator('#invoiceCustomer').selectOption('c1');
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
   assert.match(await page.locator('.mobile-invoice-step[data-step="2"]').innerText(),/Wat heb je gedaan\?/);
+  assert.equal(await page.locator('.mobile-invoice-step[data-step="2"] details.invoice-advanced-options').count(),0,'advanced invoice options belong to step 3, not step 2');
   assert.deepEqual((await page.locator('.mobile-vat-choice button').allTextContents()).map(x=>x.trim()),['21%','9%','Geen']);
   await page.locator('[data-k="desc"]').fill('Websiteonderhoud oktober');
   await page.locator('[data-k="unit"]').fill('450');
   await page.locator('[data-k="unit"]').dispatchEvent('input');
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
   assert.match(await page.locator('.mobile-invoice-step[data-step="3"]').innerText(),/Klaar om te versturen/);
+  assert.match(await page.locator('.mobile-invoice-summary').innerText(),/Studio Noord/);
+  assert.match(await page.locator('.mobile-invoice-summary').innerText(),/Websiteonderhoud oktober/);
+  assert.match(await page.locator('.mobile-invoice-summary').innerText(),/Factuurnummer/);
+  assert.match(await page.locator('.mobile-invoice-summary').innerText(),/Betalen binnen/);
+  assert.equal(await page.locator('.mobile-invoice-step[data-step="3"] details.invoice-advanced-options').count(),1,'step 3 must contain the optional invoice edits');
+  assert.match(await page.locator('.mobile-invoice-step[data-step="3"] details.invoice-advanced-options summary').innerText(),/Wijzig of voeg korting, referentie of notitie toe/);
+  assert.equal(await page.getByRole('button',{name:'Bekijk PDF',exact:true}).count(),1);
   assert.equal(await page.getByRole('button',{name:'Versturen',exact:true}).count(),1);
   assert.equal(await page.getByRole('button',{name:'Bewaar als concept',exact:true}).count(),1);
   await page.evaluate(()=>closeModal());
@@ -129,6 +166,18 @@ try{
   assert.equal(await page.locator('.mobile-single-issue-review .beginner-provenance:visible').count(),0,'simple review hides provenance labels only');
   await page.evaluate(()=>closeModal());
 
+  await page.evaluate(()=>{
+    pendingPdfImport={file:new File(['qa'],'dubbel.pdf',{type:'application/pdf'}),previewUrl:null,sha256:'qa-dup',sourceClientRef:'',sourceDocumentId:'',processingJobId:'',parsed:null};
+    const parsed={confidenceScore:95,sourceQuality:'processor-v2',documentType:'receipt',party:'Gamma',invoiceNumber:'',issueDate:'2026-09-12',net:33.94,vatAmount:3.05,gross:36.99,vatRate:9,mixedRates:false,vatLines:[],lineItems:[],adjustments:[],duplicateCandidate:{id:'existing-doc',label:'Gamma · 12 sep · € 36,99'}};
+    pendingPdfImport.parsed=parsed;showPdfImportReview(parsed);
+  });
+  await page.locator('.mobile-single-issue-review').waitFor();
+  assert.equal(await page.locator('.mobile-single-issue-question').innerText(),'Deze bon heb je al');
+  assert.equal(await page.getByRole('button',{name:'Weggooien, is dubbel',exact:true}).count(),1);
+  assert.equal(await page.getByRole('button',{name:'Nee, dit is een andere bon',exact:true}).count(),1);
+  assert.equal(await page.getByRole('button',{name:'Ja, klopt',exact:true}).count(),0,'duplicate flow must not use an ambiguous approval label');
+  await page.evaluate(()=>closeModal());
+
   for(const width of [320,360,375,390,393,430]){
     await page.setViewportSize({width,height:844});
     await page.evaluate(()=>navigate('documents'));await noOverflow(page,browserName+' documents '+width);
@@ -141,6 +190,12 @@ try{
   await axe(page,browserName+' mobile invoice');await page.evaluate(()=>closeModal());
 
   await page.setViewportSize({width:1024,height:900});
+  await page.evaluate(()=>navigate('documents'));await page.waitForTimeout(50);
+  assert.equal(await page.locator('.mobile-document-groups').count(),0,'desktop documents must remain original');
+  await page.evaluate(()=>newContact());await page.waitForTimeout(50);
+  assert.equal(await page.locator('#contactForm[data-mobile-customer-flow]').count(),0,'desktop customer form must remain original');
+  assert.match(await page.locator('#contactForm').innerText(),/Juridische \/ handelsnaam/);
+  await page.evaluate(()=>closeModal());
   await page.evaluate(()=>newInvoice());await page.waitForTimeout(50);
   assert.equal(await page.locator('#invoiceForm[data-mobile-invoice-flow]').count(),0,'desktop invoice must remain original');
   assert.equal(await page.locator('.mobile-invoice-progress').count(),0,'desktop must not get mobile flow UI');
