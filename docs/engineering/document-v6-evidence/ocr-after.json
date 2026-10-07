@@ -6,194 +6,194 @@
       "avgOcrPasses": 3,
       "documents": 1,
       "fullyCorrect": 1,
-      "p50Ms": 1966.65,
-      "p95Ms": 1966.65
+      "p50Ms": 2048.64,
+      "p95Ms": 2048.64
     },
     "credit": {
       "avgOcrPasses": 0,
       "documents": 1,
       "fullyCorrect": 1,
-      "p50Ms": 123.79,
-      "p95Ms": 123.79
+      "p50Ms": 120.63,
+      "p95Ms": 120.63
     },
     "dark": {
       "avgOcrPasses": 3,
       "documents": 1,
       "fullyCorrect": 1,
-      "p50Ms": 2079.86,
-      "p95Ms": 2079.86
+      "p50Ms": 2163.19,
+      "p95Ms": 2163.19
     },
     "difficult": {
       "avgOcrPasses": 4,
       "documents": 1,
       "fullyCorrect": 1,
-      "p50Ms": 3625.82,
-      "p95Ms": 3625.82
+      "p50Ms": 3783.01,
+      "p95Ms": 3783.01
     },
     "factoring": {
       "avgOcrPasses": 0,
       "documents": 1,
       "fullyCorrect": 1,
-      "p50Ms": 165.85,
-      "p95Ms": 165.85
+      "p50Ms": 130.17,
+      "p95Ms": 130.17
     },
     "horeca": {
       "avgOcrPasses": 3,
       "documents": 1,
       "fullyCorrect": 1,
-      "p50Ms": 1911.03,
-      "p95Ms": 1911.03
+      "p50Ms": 1938.84,
+      "p95Ms": 1938.84
     },
     "identifiers": {
       "avgOcrPasses": 0,
       "documents": 1,
       "fullyCorrect": 1,
-      "p50Ms": 110.09,
-      "p95Ms": 110.09
+      "p50Ms": 123.78,
+      "p95Ms": 123.78
     },
     "image": {
       "avgOcrPasses": 3.4,
       "documents": 15,
       "fullyCorrect": 15,
-      "p50Ms": 2079.86,
-      "p95Ms": 4597.2
+      "p50Ms": 2247.17,
+      "p95Ms": 4891.64
     },
     "long": {
       "avgOcrPasses": 1,
       "documents": 2,
       "fullyCorrect": 2,
-      "p50Ms": 4727.74,
-      "p95Ms": 5021.45
+      "p50Ms": 4993.51,
+      "p95Ms": 5222.72
     },
     "low-contrast": {
       "avgOcrPasses": 3,
       "documents": 1,
       "fullyCorrect": 1,
-      "p50Ms": 2010.12,
-      "p95Ms": 2010.12
+      "p50Ms": 2037.21,
+      "p95Ms": 2037.21
     },
     "low-res": {
       "avgOcrPasses": 3,
       "documents": 1,
       "fullyCorrect": 1,
-      "p50Ms": 1845.47,
-      "p95Ms": 1845.47
+      "p50Ms": 2039.08,
+      "p95Ms": 2039.08
     },
     "missing": {
       "avgOcrPasses": 0,
       "documents": 1,
       "fullyCorrect": 1,
-      "p50Ms": 178.53,
-      "p95Ms": 178.53
+      "p50Ms": 122.42,
+      "p95Ms": 122.42
     },
     "mixed-vat": {
       "avgOcrPasses": 0,
       "documents": 1,
       "fullyCorrect": 1,
-      "p50Ms": 118.04,
-      "p95Ms": 118.04
+      "p50Ms": 115.96,
+      "p95Ms": 115.96
     },
     "multipage": {
       "avgOcrPasses": 0,
       "documents": 1,
       "fullyCorrect": 1,
-      "p50Ms": 143.62,
-      "p95Ms": 143.62
+      "p50Ms": 154.66,
+      "p95Ms": 154.66
     },
     "native": {
       "avgOcrPasses": 0,
       "documents": 11,
       "fullyCorrect": 11,
-      "p50Ms": 130.91,
-      "p95Ms": 174.12
+      "p50Ms": 122.42,
+      "p95Ms": 146.12
     },
     "payments": {
       "avgOcrPasses": 0,
       "documents": 2,
       "fullyCorrect": 2,
-      "p50Ms": 121.8,
-      "p95Ms": 130.99
+      "p50Ms": 110.0,
+      "p95Ms": 114.8
     },
     "pdf": {
       "avgOcrPasses": 0.38,
       "documents": 13,
       "fullyCorrect": 13,
-      "p50Ms": 132.01,
-      "p95Ms": 1850.82
+      "p50Ms": 123.78,
+      "p95Ms": 1996.45
     },
     "perspective": {
       "avgOcrPasses": 4,
       "documents": 1,
       "fullyCorrect": 1,
-      "p50Ms": 3625.82,
-      "p95Ms": 3625.82
+      "p50Ms": 3783.01,
+      "p95Ms": 3783.01
     },
     "receipt": {
       "avgOcrPasses": 3.43,
       "documents": 14,
       "fullyCorrect": 14,
-      "p50Ms": 2072.51,
-      "p95Ms": 4629.84
+      "p50Ms": 2241.21,
+      "p95Ms": 4917.11
     },
     "rotation": {
       "avgOcrPasses": 6,
       "documents": 3,
       "fullyCorrect": 3,
-      "p50Ms": 3678.2,
-      "p95Ms": 3734.66
+      "p50Ms": 3771.23,
+      "p95Ms": 3910.05
     },
     "scanned": {
       "avgOcrPasses": 2.5,
       "documents": 2,
       "fullyCorrect": 2,
-      "p50Ms": 1869.06,
-      "p95Ms": 1951.12
+      "p50Ms": 2005.14,
+      "p95Ms": 2044.24
     },
     "self-billing": {
       "avgOcrPasses": 0,
       "documents": 1,
       "fullyCorrect": 1,
-      "p50Ms": 130.91,
-      "p95Ms": 130.91
+      "p50Ms": 114.59,
+      "p95Ms": 114.59
     },
     "simple": {
       "avgOcrPasses": 2.5,
       "documents": 2,
       "fullyCorrect": 2,
-      "p50Ms": 2064.87,
-      "p95Ms": 2065.13
+      "p50Ms": 2063.93,
+      "p95Ms": 2218.12
     },
     "skew": {
       "avgOcrPasses": 4,
       "documents": 1,
       "fullyCorrect": 1,
-      "p50Ms": 2570.56,
-      "p95Ms": 2570.56
+      "p50Ms": 2660.47,
+      "p95Ms": 2660.47
     },
     "small-text": {
       "avgOcrPasses": 1,
       "documents": 1,
       "fullyCorrect": 1,
-      "p50Ms": 4401.39,
-      "p95Ms": 4401.39
+      "p50Ms": 4738.84,
+      "p95Ms": 4738.84
     },
     "tank": {
       "avgOcrPasses": 3,
       "documents": 1,
       "fullyCorrect": 1,
-      "p50Ms": 1948.78,
-      "p95Ms": 1948.78
+      "p50Ms": 2247.17,
+      "p95Ms": 2247.17
     },
     "zero-vat": {
       "avgOcrPasses": 0,
       "documents": 1,
       "fullyCorrect": 1,
-      "p50Ms": 169.71,
-      "p95Ms": 169.71
+      "p50Ms": 124.43,
+      "p95Ms": 124.43
     }
   },
-  "cpuP50Ms": 1961.27,
-  "cpuP95Ms": 4212.84,
+  "cpuP50Ms": 2033.47,
+  "cpuP95Ms": 4501.33,
   "documents": 28,
   "fieldAccuracy": {
     "advancePaid": 1.0,
@@ -346,7 +346,7 @@
   "fullyCorrectDocuments": 28,
   "fullyCorrectRate": 1.0,
   "nativePdfNoOcr": true,
-  "ocrColdStartMs": 200.37,
+  "ocrColdStartMs": 212.21,
   "ocrFailures": 0,
   "ocrStack": {
     "engine": "RapidOCR",
@@ -357,10 +357,10 @@
     },
     "version": "3.9.2"
   },
-  "p50Ms": 1929.91,
-  "p95Ms": 4170.23,
+  "p50Ms": 1999.45,
+  "p95Ms": 4454.16,
   "parserFailures": 0,
-  "peakRssMb": 855.94,
+  "peakRssMb": 855.14,
   "processorRevision": "unknown",
   "processorVersion": "4.3.0",
   "records": [
@@ -381,8 +381,8 @@
         "vatId": "NL123456789B01",
         "vatRate": 21.0
       },
-      "cpuMs": 2093.21,
-      "durationMs": 2064.58,
+      "cpuMs": 1920.09,
+      "durationMs": 1892.61,
       "extractError": null,
       "fullyCorrect": true,
       "id": "standard-invoice-image",
@@ -434,8 +434,8 @@
         "vatId": "NL123456789B01",
         "vatRate": 21.0
       },
-      "cpuMs": 3674.1,
-      "durationMs": 3625.82,
+      "cpuMs": 3834.8,
+      "durationMs": 3783.01,
       "extractError": null,
       "fullyCorrect": true,
       "id": "smartphone-perspective-shadow",
@@ -486,8 +486,8 @@
         "vatAmount": 21.0,
         "vatRate": 21.0
       },
-      "cpuMs": 2097.85,
-      "durationMs": 2065.16,
+      "cpuMs": 2275.79,
+      "durationMs": 2235.25,
       "extractError": null,
       "fullyCorrect": true,
       "id": "receipt-clear",
@@ -530,8 +530,8 @@
         "vatAmount": 21.0,
         "vatRate": 21.0
       },
-      "cpuMs": 2107.22,
-      "durationMs": 2079.86,
+      "cpuMs": 2203.96,
+      "durationMs": 2163.19,
       "extractError": null,
       "fullyCorrect": true,
       "id": "receipt-dark",
@@ -574,8 +574,8 @@
         "vatAmount": 21.0,
         "vatRate": 21.0
       },
-      "cpuMs": 2043.31,
-      "durationMs": 2010.12,
+      "cpuMs": 2077.24,
+      "durationMs": 2037.21,
       "extractError": null,
       "fullyCorrect": true,
       "id": "receipt-low-contrast",
@@ -620,8 +620,8 @@
         "vatAmount": 21.0,
         "vatRate": 21.0
       },
-      "cpuMs": 1997.11,
-      "durationMs": 1966.65,
+      "cpuMs": 2089.99,
+      "durationMs": 2048.64,
       "extractError": null,
       "fullyCorrect": true,
       "id": "receipt-blur",
@@ -664,8 +664,8 @@
         "vatAmount": 21.0,
         "vatRate": 21.0
       },
-      "cpuMs": 1876.04,
-      "durationMs": 1845.47,
+      "cpuMs": 2079.18,
+      "durationMs": 2039.08,
       "extractError": null,
       "fullyCorrect": true,
       "id": "receipt-low-resolution",
@@ -710,8 +710,8 @@
         "vatAmount": 21.0,
         "vatRate": 21.0
       },
-      "cpuMs": 2610.26,
-      "durationMs": 2570.56,
+      "cpuMs": 2709.19,
+      "durationMs": 2660.47,
       "extractError": null,
       "fullyCorrect": true,
       "id": "receipt-skew",
@@ -756,8 +756,8 @@
         "vatAmount": 21.0,
         "vatRate": 21.0
       },
-      "cpuMs": 3738.66,
-      "durationMs": 3678.2,
+      "cpuMs": 3852.69,
+      "durationMs": 3771.23,
       "extractError": null,
       "fullyCorrect": true,
       "id": "receipt-rotate-90",
@@ -800,8 +800,8 @@
         "vatAmount": 21.0,
         "vatRate": 21.0
       },
-      "cpuMs": 3658.44,
-      "durationMs": 3595.57,
+      "cpuMs": 3998.88,
+      "durationMs": 3925.48,
       "extractError": null,
       "fullyCorrect": true,
       "id": "receipt-rotate-180",
@@ -844,8 +844,8 @@
         "vatAmount": 21.0,
         "vatRate": 21.0
       },
-      "cpuMs": 3801.32,
-      "durationMs": 3740.93,
+      "cpuMs": 3679.38,
+      "durationMs": 3608.24,
       "extractError": null,
       "fullyCorrect": true,
       "id": "receipt-rotate-270",
@@ -888,8 +888,8 @@
         "vatAmount": 21.0,
         "vatRate": 21.0
       },
-      "cpuMs": 5090.06,
-      "durationMs": 5054.09,
+      "cpuMs": 5285.07,
+      "durationMs": 5248.19,
       "extractError": null,
       "fullyCorrect": true,
       "id": "receipt-long",
@@ -934,8 +934,8 @@
         "vatAmount": 21.0,
         "vatRate": 21.0
       },
-      "cpuMs": 4434.43,
-      "durationMs": 4401.39,
+      "cpuMs": 4771.88,
+      "durationMs": 4738.84,
       "extractError": null,
       "fullyCorrect": true,
       "id": "receipt-very-long-small",
@@ -981,8 +981,8 @@
         "vatAmount": 9.0,
         "vatRate": 9.0
       },
-      "cpuMs": 1943.34,
-      "durationMs": 1911.03,
+      "cpuMs": 1980.5,
+      "durationMs": 1938.84,
       "extractError": null,
       "fullyCorrect": true,
       "id": "restaurant-9",
@@ -1025,8 +1025,8 @@
         "vatAmount": 21.0,
         "vatRate": 21.0
       },
-      "cpuMs": 1979.19,
-      "durationMs": 1948.78,
+      "cpuMs": 2287.36,
+      "durationMs": 2247.17,
       "extractError": null,
       "fullyCorrect": true,
       "id": "tankstation-21",
@@ -1074,8 +1074,8 @@
         "vatId": "NL123456789B01",
         "vatRate": 21.0
       },
-      "cpuMs": 111.85,
-      "durationMs": 111.92,
+      "cpuMs": 137.58,
+      "durationMs": 137.59,
       "extractError": null,
       "fullyCorrect": true,
       "id": "digital-pdf",
@@ -1125,8 +1125,8 @@
         "vatId": "NL123456789B01",
         "vatRate": 21.0
       },
-      "cpuMs": 1797.59,
-      "durationMs": 1777.88,
+      "cpuMs": 1989.7,
+      "durationMs": 1961.7,
       "extractError": null,
       "fullyCorrect": true,
       "id": "scanned-pdf",
@@ -1173,8 +1173,8 @@
         "vatAmount": 21.0,
         "vatRate": 21.0
       },
-      "cpuMs": 1987.23,
-      "durationMs": 1960.24,
+      "cpuMs": 2088.41,
+      "durationMs": 2048.58,
       "extractError": null,
       "fullyCorrect": true,
       "id": "image-only-pdf",
@@ -1222,8 +1222,8 @@
         "vatId": "NL123456789B01",
         "vatRate": 21.0
       },
-      "cpuMs": 143.32,
-      "durationMs": 143.62,
+      "cpuMs": 154.65,
+      "durationMs": 154.66,
       "extractError": null,
       "fullyCorrect": true,
       "id": "multipage-pdf",
@@ -1282,8 +1282,8 @@
           ]
         ]
       },
-      "cpuMs": 117.98,
-      "durationMs": 118.04,
+      "cpuMs": 115.96,
+      "durationMs": 115.96,
       "extractError": null,
       "fullyCorrect": true,
       "id": "mixed-vat",
@@ -1331,8 +1331,8 @@
         "vatId": "NL123456789B01",
         "vatRate": 0.0
       },
-      "cpuMs": 169.56,
-      "durationMs": 169.71,
+      "cpuMs": 124.43,
+      "durationMs": 124.43,
       "extractError": null,
       "fullyCorrect": true,
       "id": "zero-vat",
@@ -1381,8 +1381,8 @@
         "vatAmount": 21.0,
         "vatRate": 21.0
       },
-      "cpuMs": 110.04,
-      "durationMs": 110.09,
+      "cpuMs": 123.78,
+      "durationMs": 123.78,
       "extractError": null,
       "fullyCorrect": true,
       "id": "number-disambiguation",
@@ -1427,8 +1427,8 @@
         "vatAmount": -21.0,
         "vatRate": 21.0
       },
-      "cpuMs": 123.73,
-      "durationMs": 123.79,
+      "cpuMs": 120.36,
+      "durationMs": 120.63,
       "extractError": null,
       "fullyCorrect": true,
       "id": "credit-note",
@@ -1477,8 +1477,8 @@
         "vatId": "NL123456789B01",
         "vatRate": 21.0
       },
-      "cpuMs": 131.87,
-      "durationMs": 132.01,
+      "cpuMs": 115.33,
+      "durationMs": 115.33,
       "extractError": null,
       "fullyCorrect": true,
       "id": "amount-paid-due",
@@ -1533,8 +1533,8 @@
         "vatId": "NL123456789B01",
         "vatRate": 21.0
       },
-      "cpuMs": 111.54,
-      "durationMs": 111.6,
+      "cpuMs": 104.66,
+      "durationMs": 104.66,
       "extractError": null,
       "fullyCorrect": true,
       "id": "advance-due",
@@ -1582,8 +1582,8 @@
         "vatAmount": 21.0,
         "vatRate": 21.0
       },
-      "cpuMs": 130.66,
-      "durationMs": 130.91,
+      "cpuMs": 114.59,
+      "durationMs": 114.59,
       "extractError": null,
       "fullyCorrect": true,
       "id": "self-billing",
@@ -1625,8 +1625,8 @@
         "vatAmount": 21.0,
         "vatRate": 21.0
       },
-      "cpuMs": 165.7,
-      "durationMs": 165.85,
+      "cpuMs": 130.15,
+      "durationMs": 130.17,
       "extractError": null,
       "fullyCorrect": true,
       "id": "factoring",
@@ -1665,8 +1665,8 @@
         "invoiceNumber": "MISS-2026-1",
         "supplier": "BOEKUNA QA MISSING BV"
       },
-      "cpuMs": 178.44,
-      "durationMs": 178.53,
+      "cpuMs": 122.42,
+      "durationMs": 122.42,
       "extractError": null,
       "fullyCorrect": true,
       "id": "missing-fields",
@@ -1697,7 +1697,7 @@
   "reviewRequiredRate": 1.0,
   "roiDocuments": 13,
   "roiRate": 0.4643,
-  "rssStartMb": 230.43,
-  "sourceSha256": "d8745dfeefdd899974106ccea30e809510e9393ed0bbe4b0e857baae246b1237",
-  "totalOcrPasses": 56
+  "rssStartMb": 230.38,
+  "totalOcrPasses": 56,
+  "sourceSha256": "49a6a6477d762ce819703bb13c178c563b522ad2634135a3dc7dda6d10726468"
 }

@@ -49,6 +49,7 @@ The proven OCR acquisition, financial extraction, reconciliation, confidence, du
 ## Parser changes
 
 - Extend existing invoice-number candidate collection for multilingual abbreviations, prefixed labels, inline multiple labels, leading zeros, numeric/year/alphanumeric/hash shapes and space-separated year sequences. Strong unusual identifiers remain eligible, including eight digits that happen to resemble a date.
+- Preserve existing joined-column PDF labels such as `AmsterdamFactuurnummer`. A credit note's own explicit number/date takes precedence over the original invoice reference. Competing own credit numbers/dates still clear the field and route to review. Title fallback cannot replace explicit identifier candidates. The existing CHECK/Adidas fixture suite is included in V6 CI.
 - Following-line extraction excludes order/customer/payment/factoring/legal identifiers and separated date values. Conflicting strong invoice labels retain evidence and clear invoiceNumber for review. Repeated identical labels do not create a conflict.
 - Extend existing date normalization for dotted month abbreviations and compact full date values. Short years require a single consistent year from explicit full-date-role evidence; invoice/order identifiers and prose cannot supply century evidence. Optional invoice metadata now separates order/service/delivery/payment/posting/creation/statement dates and full-numeric service-period endpoints. Conflicting secondary roles or reversed periods remain null and route to review. The same recognized identifier labels fence both date candidates and year context, including inline, next-line, no-colon and hash variants. Generic issued prose is excluded from date evidence. Explicit invoice/due candidates retain sourceText. Multiple strong explicit dates clear the relevant field for review. Recognized US/Canada/Australia context with unresolved ambiguous slash dates routes to review.
 - Bound party blocks at the next explicit party label. Normalize labeled eight-digit KvK with spaces/dots, without prefix assumptions or truncating 9/12-digit values. Normalize NL VAT ID separators, including a shared legal KvK/VAT row. Direct-debit/payer IBAN is not assigned to supplier.
@@ -63,10 +64,10 @@ Only generated/synthetic fixtures and existing privacy-safe regression fixtures 
 
 | Test | Before | Candidate |
 | --- | --- | --- |
-| New metadata scenario families, 100 parameter instances | 36 pass | 100 pass |
-| Metadata parser timing P50 / P95 | 0.617 / 0.871 ms | 1.039 / 4.057 ms |
+| New metadata scenario families, 107 parameter instances | 40 pass | 107 pass |
+| Metadata parser timing P50 / P95 | 0.651 / 0.960 ms | 1.113 / 3.465 ms |
 | Existing frozen V5 actual OCR documents | 28/28 fully correct | 28/28 fully correct |
-| OCR P50 / P95 | 2034.79 / 4446.34 ms | 1929.91 / 4170.23 ms |
+| OCR P50 / P95 | 2034.79 / 4446.34 ms | 1999.45 / 4454.16 ms |
 | OCR/parser failures | 0 / 0 | 0 / 0 |
 | OCR passes per document | 2.0 | 2.0 |
 | Applicable invoiceNumber/date/supplier/financial/mixed VAT field accuracy | 100% | 100% |
@@ -74,7 +75,7 @@ Only generated/synthetic fixtures and existing privacy-safe regression fixtures 
 
 The JSON contains the existing EXACT/NORMALIZED/MISSING/WRONG field grading and document records. The metadata count grades whole assertions, not a population accuracy estimate. Single-machine timing is descriptive, not a statistically established speedup or hosted SLA. The 100% review rate is the benchmark's existing conservative parser/confidence behavior; no review-rate improvement is claimed.
 
-Final source regression selection: **192 passed**, 12 existing dependency/deprecation warnings, 54.00 seconds. Independent TR3 repeated 100 metadata + 10 worker cases: **110 passed**. The source hashes are app.py `d8745dfeefdd899974106ccea30e809510e9393ed0bbe4b0e857baae246b1237`, Edge index.ts `b7939b4eb7e7fb78700a792c9f2d7e1926d54fad0b590d057dd02f77e0c4eeab`, TR2-reviewed index.html `726b537083702edc6bab4863b0d732592cdf0c1e4238f4c34af1752c0660bd37`.
+Final source regression selection: **210 passed + 10 subtests**, 12 existing dependency/deprecation warnings, 52.86 seconds. Independent TR3 repeated 107 metadata + 10 worker + 11 existing fixture tests: **128 passed + 10 subtests**. The source hashes are app.py `49a6a6477d762ce819703bb13c178c563b522ad2634135a3dc7dda6d10726468`, Edge index.ts `b7939b4eb7e7fb78700a792c9f2d7e1926d54fad0b590d057dd02f77e0c4eeab`, TR2-reviewed index.html `726b537083702edc6bab4863b0d732592cdf0c1e4238f4c34af1752c0660bd37`.
 
 Actual migration SQL executed in PGlite: 1, 10 and 50 jobs all reached terminal ready; peak active 1, 4 and 4. Tests cover multi-user/global caps, duplicate claims, wrong/stale leases, exponential backoff, exhausted/permanent failures, crash recovery, revoked access/quota rollback, atomic exactly-once usage and denied anon/authenticated RPC execution. This is a database simulation with stubs for existing auth/quota functions, not a Render load test or hosted Supabase integration.
 
@@ -82,7 +83,7 @@ Production-function VM upload tests pass for receipt gating, delayed/missing job
 
 ## Independent review and merge gates
 
-TR3 independent review passed the locally automated financial/backend/security/document integrity scope after its parser findings were fixed. The subsequent date extension independently passed 110 tests (100 metadata + 10 worker), with app.py hash `d8745dfeefdd899974106ccea30e809510e9393ed0bbe4b0e857baae246b1237`. All reported inline/fallback identifier, short-year, foreign-date and issued-prose blockers were rechecked. It is not a hosted production PASS. Local tests use a Render SDK substitute when the SDK is unavailable; CI installs the real pinned `render==1.0.1`. TR2 independent source/VM review passed receipt changes after mixed-batch/recovery findings were fixed, and repeated its closure after rebase onto current main (index.html hash `726b537083702edc6bab4863b0d732592cdf0c1e4238f4c34af1752c0660bd37`). Its browser and physical-device scope remains open.
+TR3 independent review passed the locally automated financial/backend/security/document integrity scope after its parser findings were fixed. The final metadata/credit delta independently passed 128 tests plus 10 subtests (107 metadata + 10 worker + 11 existing fixture tests), with app.py hash `49a6a6477d762ce819703bb13c178c563b522ad2634135a3dc7dda6d10726468`. All reported inline/fallback identifier, short-year, foreign-date and issued-prose blockers were rechecked. It is not a hosted production PASS. Local tests use a Render SDK substitute when the SDK is unavailable; CI installs the real pinned `render==1.0.1`. TR2 independent source/VM review passed receipt changes after mixed-batch/recovery findings were fixed, and repeated its closure after rebase onto current main (index.html hash `726b537083702edc6bab4863b0d732592cdf0c1e4238f4c34af1752c0660bd37`). Its browser and physical-device scope remains open.
 
 Before ready-for-review / merge:
 

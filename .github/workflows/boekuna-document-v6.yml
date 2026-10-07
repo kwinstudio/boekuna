@@ -7,6 +7,7 @@ on:
       - 'supabase/functions/document-processing/**'
       - 'supabase/migrations/*document*'
       - 'tests/document-*.test.*'
+      - 'tests/test_document_processor_regression.py'
       - '.github/workflows/boekuna-document-v6.yml'
   workflow_dispatch:
 permissions:
@@ -37,6 +38,7 @@ jobs:
           tests/document-user-supplied-edge-regressions.test.py tests/document-ocr-v5-regressions.test.py
           tests/ocr-production-hardening.test.py tests/document-error-contract.test.py
           tests/document-processor-pdf.test.py tests/processor-production-origin.test.py
+          tests/test_document_processor_regression.py
       - name: Actual migration lease, ownership, quota and 1/10/50 job regressions
         run: node tests/document-workflow-leases.test.mjs
       - name: Upload receipt behavior

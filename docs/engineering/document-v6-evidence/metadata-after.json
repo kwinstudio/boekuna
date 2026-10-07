@@ -1,609 +1,653 @@
 {
-  "p50Ms": 1.0394999999999999,
-  "p95Ms": 4.057,
-  "passed": 100,
-  "processorDir": "/workspace/scratch/3ae872cb4b0f/boekuna/kwinest/docprocessor",
+  "processorDir": "kwinest/docprocessor",
+  "scenarios": 107,
+  "passed": 107,
+  "p50Ms": 1.113,
+  "p95Ms": 3.465,
   "records": [
     {
       "case": "test_invoice_label_families",
-      "durationMs": 9.519,
       "parameter": "Factuurnummer",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 9.443
     },
     {
       "case": "test_invoice_label_families",
-      "durationMs": 1.485,
       "parameter": "Factuurnr.",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.153
     },
     {
       "case": "test_invoice_label_families",
-      "durationMs": 1.043,
       "parameter": "Fact. nr.",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.094
     },
     {
       "case": "test_invoice_label_families",
-      "durationMs": 0.942,
       "parameter": "Factnr.",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.965
     },
     {
       "case": "test_invoice_label_families",
-      "durationMs": 0.953,
       "parameter": "Factuur #",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.976
     },
     {
       "case": "test_invoice_label_families",
-      "durationMs": 0.93,
       "parameter": "Invoice number",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.197
     },
     {
       "case": "test_invoice_label_families",
-      "durationMs": 0.952,
       "parameter": "Invoice No.",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.144
     },
     {
       "case": "test_invoice_label_families",
-      "durationMs": 0.923,
       "parameter": "Inv. no.",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.053
     },
     {
       "case": "test_invoice_label_families",
-      "durationMs": 0.908,
       "parameter": "Inv#",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.958
     },
     {
       "case": "test_invoice_label_families",
-      "durationMs": 0.888,
       "parameter": "Invoice ID",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.953
     },
     {
       "case": "test_invoice_label_families",
-      "durationMs": 0.926,
       "parameter": "Rechnungsnummer",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.059
     },
     {
       "case": "test_invoice_label_families",
-      "durationMs": 0.944,
       "parameter": "Rechnungs-Nr.",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.956
     },
     {
       "case": "test_invoice_label_families",
-      "durationMs": 0.922,
       "parameter": "Re.-Nr.",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.935
     },
     {
       "case": "test_invoice_label_families",
-      "durationMs": 0.906,
       "parameter": "Rg.-Nr.",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.914
     },
     {
       "case": "test_invoice_label_families",
-      "durationMs": 0.971,
       "parameter": "Num\u00e9ro de facture",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.993
     },
     {
       "case": "test_invoice_label_families",
-      "durationMs": 0.947,
       "parameter": "N\u00b0 facture",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.076
     },
     {
       "case": "test_invoice_label_families",
-      "durationMs": 0.938,
       "parameter": "Facture n\u00b0",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.967
     },
     {
       "case": "test_invoice_label_families",
-      "durationMs": 0.935,
       "parameter": "N\u00famero de factura",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.939
     },
     {
       "case": "test_invoice_label_families",
-      "durationMs": 0.937,
       "parameter": "Factura N\u00ba",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.95
     },
     {
       "case": "test_invoice_shapes",
-      "durationMs": 0.913,
       "parameter": "123",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.873
     },
     {
       "case": "test_invoice_shapes",
-      "durationMs": 0.91,
       "parameter": "000123",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.898
     },
     {
       "case": "test_invoice_shapes",
-      "durationMs": 0.893,
       "parameter": "12345678",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.878
     },
     {
       "case": "test_invoice_shapes",
-      "durationMs": 0.898,
       "parameter": "2026-001",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.919
     },
     {
       "case": "test_invoice_shapes",
-      "durationMs": 0.865,
       "parameter": "2026/001",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.024
     },
     {
       "case": "test_invoice_shapes",
-      "durationMs": 1.004,
       "parameter": "2026.001",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.939
     },
     {
       "case": "test_invoice_shapes",
-      "durationMs": 1.028,
       "parameter": "2026 001",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.929
     },
     {
       "case": "test_invoice_shapes",
-      "durationMs": 0.958,
       "parameter": "INV2026001",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.065
     },
     {
       "case": "test_invoice_shapes",
-      "durationMs": 0.912,
       "parameter": "Y41829625005",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.918
     },
     {
       "case": "test_invoice_shapes",
-      "durationMs": 0.998,
       "parameter": "CHECK-F05BE34CF5",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.921
     },
     {
       "case": "test_invoice_shapes",
-      "durationMs": 1.265,
       "parameter": "5KMQH259-0001",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.451
     },
     {
       "case": "test_invoice_shapes",
-      "durationMs": 0.914,
       "parameter": "NL644900",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.019
     },
     {
       "case": "test_invoice_shapes",
-      "durationMs": 1.036,
       "parameter": "WP226-1030608",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.14
     },
     {
       "case": "test_invoice_shapes",
-      "durationMs": 0.955,
       "parameter": "9BF0758D-7568136",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.072
     },
     {
       "case": "test_invoice_shapes",
-      "durationMs": 0.915,
       "parameter": "VRQBUI-00001",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.934
     },
     {
       "case": "test_invoice_shapes",
-      "durationMs": 0.895,
       "parameter": "20261007",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.094
     },
     {
       "case": "test_invoice_shapes",
-      "durationMs": 0.968,
       "parameter": "01012026",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.915
     },
     {
       "case": "test_empty_invoice_label_does_not_borrow_other_identifiers",
-      "durationMs": 1.815,
       "parameter": "Klantnummer: 44321",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.033
     },
     {
       "case": "test_empty_invoice_label_does_not_borrow_other_identifiers",
-      "durationMs": 0.987,
       "parameter": "Debiteurnummer: 44321",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.098
     },
     {
       "case": "test_empty_invoice_label_does_not_borrow_other_identifiers",
-      "durationMs": 1.167,
       "parameter": "Payment reference: RF18539007547034",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.062
     },
     {
       "case": "test_empty_invoice_label_does_not_borrow_other_identifiers",
-      "durationMs": 1.221,
       "parameter": "Factoring reference: FAC-999",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.231
     },
     {
       "case": "test_empty_invoice_label_does_not_borrow_other_identifiers",
-      "durationMs": 0.975,
       "parameter": "Order No: 983746",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.059
     },
     {
       "case": "test_empty_invoice_label_does_not_borrow_other_identifiers",
-      "durationMs": 1.019,
       "parameter": "KvK: 74542893",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.088
     },
     {
       "case": "test_empty_invoice_label_does_not_borrow_other_identifiers",
-      "durationMs": 1.073,
       "parameter": "VAT: NL123456789B01",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.182
     },
     {
       "case": "test_empty_invoice_label_does_not_borrow_other_identifiers",
-      "durationMs": 1.009,
       "parameter": "Datum: 07-10-2026",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.991
     },
     {
       "case": "test_conflicting_strong_labels_route_to_review",
-      "durationMs": 1.015,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.081
     },
     {
       "case": "test_repeated_invoice_number_is_not_conflict",
-      "durationMs": 0.98,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.417
     },
     {
       "case": "test_invoice_labels_can_have_metadata_prefix",
-      "durationMs": 0.902,
       "parameter": "Uw ",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.989
     },
     {
       "case": "test_invoice_labels_can_have_metadata_prefix",
-      "durationMs": 0.978,
       "parameter": "Factuurgegevens: ",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.052
     },
     {
       "case": "test_inline_invoice_number_conflict_is_reviewed",
-      "durationMs": 0.999,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.047
     },
     {
       "case": "test_inline_invoice_date_conflict_is_reviewed",
-      "durationMs": 4.393,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 4.361
+    },
+    {
+      "case": "test_pdf_joined_address_preserves_explicit_invoice_label",
+      "parameter": null,
+      "status": "PASS",
+      "durationMs": 1.021
+    },
+    {
+      "case": "test_credit_identity_is_separate_from_original_invoice",
+      "parameter": "Factuurnummer",
+      "status": "PASS",
+      "durationMs": 2.893
+    },
+    {
+      "case": "test_credit_identity_is_separate_from_original_invoice",
+      "parameter": "Invoice No",
+      "status": "PASS",
+      "durationMs": 2.41
+    },
+    {
+      "case": "test_credit_identity_is_separate_from_original_invoice",
+      "parameter": "Inv. no.",
+      "status": "PASS",
+      "durationMs": 2.331
+    },
+    {
+      "case": "test_competing_credit_identity_still_requires_review",
+      "parameter": null,
+      "status": "PASS",
+      "durationMs": 2.67
+    },
+    {
+      "case": "test_title_fallback_does_not_replace_explicit_credit_candidates",
+      "parameter": "Credit note number: CN-001",
+      "status": "PASS",
+      "durationMs": 1.019
+    },
+    {
+      "case": "test_title_fallback_does_not_replace_explicit_credit_candidates",
+      "parameter": "Credit note number: CN-001\nCreditnota nummer: CN-002",
+      "status": "PASS",
+      "durationMs": 1.113
     },
     {
       "case": "test_invoice_date_formats",
-      "durationMs": 2.038,
       "parameter": "07-10-2026",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.926
     },
     {
       "case": "test_invoice_date_formats",
-      "durationMs": 1.891,
       "parameter": "7/10/2026",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.889
     },
     {
       "case": "test_invoice_date_formats",
-      "durationMs": 1.889,
       "parameter": "2026-10-07",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.938
     },
     {
       "case": "test_invoice_date_formats",
-      "durationMs": 1.896,
       "parameter": "07.10.2026",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.863
     },
     {
       "case": "test_invoice_date_formats",
-      "durationMs": 2.199,
       "parameter": "7 okt. 2026",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.335
     },
     {
       "case": "test_invoice_date_formats",
-      "durationMs": 1.931,
       "parameter": "7 October 2026",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.935
     },
     {
       "case": "test_invoice_date_formats",
-      "durationMs": 2.181,
       "parameter": "Oct 7, 2026",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.315
     },
     {
       "case": "test_invoice_date_formats",
-      "durationMs": 1.941,
       "parameter": "07102026",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.104
     },
     {
       "case": "test_invoice_date_formats",
-      "durationMs": 2.027,
       "parameter": "20261007",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.987
     },
     {
       "case": "test_date_roles_remain_distinct",
-      "durationMs": 4.696,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 4.045
     },
     {
       "case": "test_foreign_ambiguous_numeric_date_requires_review",
-      "durationMs": 2.366,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.171
     },
     {
       "case": "test_conflicting_invoice_dates_require_review",
-      "durationMs": 3.272,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.971
     },
     {
       "case": "test_labeled_kvk_normalization_without_prefix_assumption",
-      "durationMs": 0.924,
       "parameter": "74542893",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.963
     },
     {
       "case": "test_labeled_kvk_normalization_without_prefix_assumption",
-      "durationMs": 1.047,
       "parameter": "74 542 893",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.976
     },
     {
       "case": "test_labeled_kvk_normalization_without_prefix_assumption",
-      "durationMs": 1.045,
       "parameter": "74.542.893",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.937
     },
     {
       "case": "test_labeled_kvk_normalization_without_prefix_assumption",
-      "durationMs": 0.933,
       "parameter": "12345678",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.907
     },
     {
       "case": "test_kvk_does_not_truncate_long_identifiers",
-      "durationMs": 0.877,
       "parameter": "123456789",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.893
     },
     {
       "case": "test_kvk_does_not_truncate_long_identifiers",
-      "durationMs": 0.904,
       "parameter": "000042491371",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.925
     },
     {
       "case": "test_vat_id_normalization",
-      "durationMs": 0.903,
       "parameter": "NL123456789B01",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.946
     },
     {
       "case": "test_vat_id_normalization",
-      "durationMs": 0.9,
       "parameter": "NL 123456789 B01",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.939
     },
     {
       "case": "test_vat_id_normalization",
-      "durationMs": 0.915,
       "parameter": "NL123.456.789.B01",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 0.943
     },
     {
       "case": "test_kvk_and_vat_can_share_one_legal_footer_line",
-      "durationMs": 0.964,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.06
     },
     {
       "case": "test_party_block_identifiers_do_not_leak_into_supplier",
-      "durationMs": 1.129,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.107
     },
     {
       "case": "test_unpaid_text_does_not_set_paid",
-      "durationMs": 0.955,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.241
     },
     {
       "case": "test_payer_account_is_not_supplier_account",
-      "durationMs": 1.048,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.09
     },
     {
       "case": "test_two_digit_year_uses_explicit_full_date_context",
-      "durationMs": 3.029,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 3.2
     },
     {
       "case": "test_two_digit_year_without_context_stays_null_and_reviewed",
-      "durationMs": 1.966,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.055
     },
     {
       "case": "test_two_digit_year_does_not_borrow_a_conflicting_century_or_year",
-      "durationMs": 4.057,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 4.036
     },
     {
       "case": "test_secondary_date_roles_and_service_period_are_separate",
-      "durationMs": 9.717,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 8.415
     },
     {
       "case": "test_conflicting_secondary_dates_remain_null_with_evidence",
-      "durationMs": 4.06,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 3.975
     },
     {
       "case": "test_reversed_service_period_requires_review",
-      "durationMs": 3.349,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 3.465
     },
     {
       "case": "test_foreign_short_year_does_not_resolve_day_month_ambiguity",
-      "durationMs": 3.719,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 3.286
     },
     {
       "case": "test_foreign_secondary_date_ambiguity_is_also_reviewed",
-      "durationMs": 3.236,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 3.134
     },
     {
       "case": "test_short_year_cannot_use_an_invoice_identifier_as_century_evidence",
-      "durationMs": 2.241,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.274
     },
     {
       "case": "test_short_year_cannot_borrow_inline_identifier_year",
-      "durationMs": 2.128,
       "parameter": "Invoice number: 2026-10-07",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.073
     },
     {
       "case": "test_short_year_cannot_borrow_inline_identifier_year",
-      "durationMs": 2.224,
       "parameter": "Order number: ORD-07-10-2026",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.366
     },
     {
       "case": "test_short_year_cannot_borrow_inline_identifier_without_separator",
-      "durationMs": 2.123,
       "parameter": "Invoice number: 2026-10-07",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.078
     },
     {
       "case": "test_short_year_cannot_borrow_inline_identifier_without_separator",
-      "durationMs": 1.988,
       "parameter": "Order number: ORD-07-10-2026",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.083
     },
     {
       "case": "test_foreign_ambiguous_date_with_suffix_is_not_guessed",
-      "durationMs": 2.591,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.762
     },
     {
       "case": "test_date_span_stops_at_existing_identifier_labels_without_colon",
-      "durationMs": 1.977,
       "parameter": "Invoice number",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.141
     },
     {
       "case": "test_date_span_stops_at_existing_identifier_labels_without_colon",
-      "durationMs": 2.014,
       "parameter": "Invoice number #",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.196
     },
     {
       "case": "test_date_span_stops_at_existing_identifier_labels_without_colon",
-      "durationMs": 2.001,
       "parameter": "Factuurnummer #",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.015
     },
     {
       "case": "test_date_span_stops_at_existing_identifier_labels_without_colon",
-      "durationMs": 2.068,
       "parameter": "Order number",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.011
     },
     {
       "case": "test_following_metadata_cannot_supply_date_or_year_context",
-      "durationMs": 2.875,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.862
     },
     {
       "case": "test_unparseable_explicit_date_does_not_borrow_a_following_other_date",
-      "durationMs": 2.891,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 3.154
     },
     {
       "case": "test_issued_prose_is_not_a_competing_invoice_date",
-      "durationMs": 2.209,
       "parameter": " (issued electronically)",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.382
     },
     {
       "case": "test_issued_prose_is_not_a_competing_invoice_date",
-      "durationMs": 2.017,
       "parameter": "\nInvoices are issued electronically",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.037
     },
     {
       "case": "test_issued_prose_is_not_a_competing_invoice_date",
-      "durationMs": 2.481,
       "parameter": "\nIssued by: Test Supplier BV",
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.175
     },
     {
       "case": "test_explicit_issued_date_label_remains_supported",
-      "durationMs": 1.907,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 1.916
     },
     {
       "case": "test_issued_by_identifier_cannot_supply_a_short_year_context",
-      "durationMs": 2.185,
       "parameter": null,
-      "status": "PASS"
+      "status": "PASS",
+      "durationMs": 2.039
     }
   ],
-  "scenarios": 100
+  "baselineSha": "candidate-source-before-draft-commit",
+  "sourceSha256": "49a6a6477d762ce819703bb13c178c563b522ad2634135a3dc7dda6d10726468"
 }

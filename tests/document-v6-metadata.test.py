@@ -70,6 +70,39 @@ def test_inline_invoice_date_conflict_is_reviewed():
     assert 'COMPETING_INVOICE_DATES' in r.processing['anomalyCodes']
 
 
+def test_pdf_joined_address_preserves_explicit_invoice_label():
+    assert extract('1051CH, AmsterdamFactuurnummer: CHECK-1DFC85046B').invoice.invoiceNumber=='CHECK-1DFC85046B'
+
+
+@pytest.mark.parametrize('reference_label',['Factuurnummer','Invoice No','Inv. no.'])
+def test_credit_identity_is_separate_from_original_invoice(reference_label):
+    r=extract('Creditnota\nCreditnota nummer: CN-2026-001\nCreditnota datum: 07-10-2026\n'
+              +reference_label+': INV-2026-001\nFactuurdatum: 01-10-2026')
+    assert r.invoice.invoiceNumber=='CN-2026-001'
+    assert r.invoice.invoiceDate=='2026-10-07'
+    assert 'COMPETING_INVOICE_NUMBERS' not in r.processing['anomalyCodes']
+    assert 'COMPETING_INVOICE_DATES' not in r.processing['anomalyCodes']
+
+
+def test_competing_credit_identity_still_requires_review():
+    r=extract('Creditnota\nCreditnota nummer: CN-001\nCredit note no: CN-002\n'
+              'Creditnota datum: 07-10-2026\nCredit note date: 08-10-2026\n'
+              'Invoice No: INV-001\nInvoice date: 01-10-2026')
+    assert r.invoice.invoiceNumber is None
+    assert r.invoice.invoiceDate is None
+    assert 'COMPETING_INVOICE_NUMBERS' in r.processing['anomalyCodes']
+    assert 'COMPETING_INVOICE_DATES' in r.processing['anomalyCodes']
+
+
+@pytest.mark.parametrize('credit_number_lines',[
+    'Credit note number: CN-001',
+    'Credit note number: CN-001\nCreditnota nummer: CN-002',
+])
+def test_title_fallback_does_not_replace_explicit_credit_candidates(credit_number_lines):
+    r=extract('Credit note\n'+credit_number_lines+'\nInvoice INV-001')
+    assert r.invoice.invoiceNumber==('CN-001' if 'CN-002' not in credit_number_lines else None)
+
+
 @pytest.mark.parametrize('value', ['07-10-2026', '7/10/2026', '2026-10-07',
     '07.10.2026', '7 okt. 2026', '7 October 2026', 'Oct 7, 2026', '07102026', '20261007'])
 def test_invoice_date_formats(value):

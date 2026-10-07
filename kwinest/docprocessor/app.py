@@ -524,8 +524,11 @@ def date_label_has_context(match,line:str)->bool:
 
 def invoice_number_candidates(lines:list[str], labels:list[str]) -> list[dict[str,Any]]:
     """Extend the existing labelled extractor; exact values remain documentary evidence."""
-    patterns=sorted(set(labels+INVOICE_NUMBER_ALIASES),key=len,reverse=True)
-    label_re=re.compile(r'(?<!\w)(?:'+'|'.join(re.escape(x) for x in patterns)+r')(?=$|[\s:#.\-]|\|)',re.I)
+    aliases=[] if labels and all(x in CREDIT_NUMBER_LABELS for x in labels) else INVOICE_NUMBER_ALIASES
+    patterns=sorted(set(labels+aliases),key=len,reverse=True)
+    # PDF column extraction can join an address directly to a capitalized label
+    # (AmsterdamFactuurnummer). Preserve that existing source layout support.
+    label_re=re.compile(r'(?:(?<!\w)|(?-i:(?<=[a-z])(?=[A-Z])))(?:'+'|'.join(re.escape(x) for x in patterns)+r')(?=$|[\s:#.\-]|\|)',re.I)
     found={}
     for i,line in enumerate(lines):
         for match in label_re.finditer(line):
@@ -1930,7 +1933,11 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
 
     invoice_number_labels=INVOICE_NUMBER_LABELS
     if dtype=="credit_invoice":
-        invoice_number_labels=CREDIT_NUMBER_LABELS+invoice_number_labels
+        # A credit note commonly prints the original invoice as a reference.
+        # Its own explicit credit number takes precedence; competing credit
+        # numbers still use the same conservative conflict handling below.
+        credit_candidates=invoice_number_candidates(lines,CREDIT_NUMBER_LABELS)
+        invoice_number_labels=CREDIT_NUMBER_LABELS if credit_candidates else invoice_number_labels
     number_candidates=invoice_number_candidates(lines,invoice_number_labels)
     invoice_no,idx=invoice_number_after_label(lines,invoice_number_labels)
     if not invoice_no and dtype!="credit_invoice":
@@ -1942,6 +1949,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     # Native PDF text keeps standalone titles/identifiers apart when coordinate
     # sorting concatenates columns; use it only for explicit title evidence.
     for ni,line in enumerate(native_lines[:40] or lines[:40]):
+        if number_candidates:break
         m=re.match(r'^(?:bon/)?(?:factuur|invoice|creditnota|credit note)\b\s*[:#]?\s*([A-Z0-9][A-Z0-9._/-]{1,50})\s*$',line,re.I)
         if m and re.search(r'\d',m.group(1)):
             invoice_no=m.group(1);break
@@ -1952,7 +1960,8 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     description,description_conf,description_source=extract_description(doc,lines)
     invoice_date_labels=["factuurdatum","factuur datum","datum factuur","uitgiftedatum","datum uitgifte","invoice date","date of invoice","date of issue","issue date","issued date","issued on","issued:","document date","rechnungsdatum","date de facture"]
     if dtype=="credit_invoice":
-        invoice_date_labels=["creditnota datum","creditdatum","credit note date","credit date"]+invoice_date_labels
+        credit_date_labels=["creditnota datum","creditdatum","credit note date","credit date"]
+        if date_field_candidates(lines,credit_date_labels):invoice_date_labels=credit_date_labels
     inv_date,inv_date_conf=labeled_date(lines,invoice_date_labels)
     if not inv_date:
         inv_date,inv_date_conf=generic_invoice_date(lines)
