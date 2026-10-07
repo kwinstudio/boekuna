@@ -1658,6 +1658,7 @@ def receipt_merchant_name(lines:list[str], company:dict)->str|None:
         low=cand.lower()
         if not (2<=len(cand)<=90):continue
         if skip.search(cand) or "@" in cand or re.fullmatch(r"[\d\s€$£.,:+*/#-]+",cand):continue
+        if re.match(r"^-{2,}\s*page\s+\d+\s*-{0,}$",cand,re.I):continue
         if re.search(r"\b\d{4}\s?[A-Z]{2}\b|\b\d{2}[:.]\d{2}\b|\b(?:kvk|btw|vat|iban|tel|phone)\b",cand,re.I):continue
         if any(o and o in low for o in own_names):continue
         return cand
