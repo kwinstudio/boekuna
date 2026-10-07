@@ -289,6 +289,7 @@ jobs:
             tests/artifacts/personal-insights/
             tests/artifacts/personal-assistant-v1-2/
             tests/artifacts/kvk-*.png
+            tests/artifacts/mobile-flow-simplification/
           if-no-files-found: ignore
 
       - name: Upload app UX evidence
