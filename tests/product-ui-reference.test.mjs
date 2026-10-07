@@ -135,8 +135,9 @@ async function noOverflow(page,label){
 }
 async function noDecorativeShadows(page,label){
   const shadows=await page.evaluate(()=>{
-    const selectors=['.dashboard-kpi','.product-kpi','.card','.table-card','.mini-kpi','.list-toolbar','#mobileBottomNav','.modal'];
-    return selectors.flatMap(selector=>[...document.querySelectorAll(selector)].filter(el=>{const r=el.getBoundingClientRect();return r.width>0&&r.height>0}).map(el=>({selector,shadow:getComputedStyle(el).boxShadow})));
+    const roots=[document.getElementById('mainApp'),document.getElementById('mobileBottomNav'),document.getElementById('modalRoot'),document.querySelector('#authRoot .auth-root')].filter(Boolean);
+    const nodes=roots.flatMap(root=>[root,...root.querySelectorAll('*')]);
+    return nodes.filter((el,index)=>nodes.indexOf(el)===index).filter(el=>{const r=el.getBoundingClientRect();return r.width>0&&r.height>0&&!el.matches(':focus,:focus-visible')}).map(el=>({tag:el.tagName,className:String(el.className||''),shadow:getComputedStyle(el).boxShadow}));
   });
   const offenders=shadows.filter(item=>item.shadow!=='none');
   assert.deepEqual(offenders,[],label+' decorative shadows: '+JSON.stringify(offenders));
@@ -471,7 +472,7 @@ try{
         await noOverflow(page,browserName+' mobile invoices long amounts '+width);
         await page.evaluate(()=>newInvoice());
         const dateInputs=await page.locator('#invoiceForm input[type="date"]').evaluateAll(nodes=>nodes.map(el=>{const r=el.getBoundingClientRect();return {left:r.left,right:r.right,width:r.width,client:el.clientWidth,scroll:el.scrollWidth,value:el.value}}));
-        assert.ok(dateInputs.every(item=>item.left>=-1&&item.right<=innerWidth+1&&item.scroll<=item.client+1),browserName+' '+width+' date inputs must fit without clipping: '+JSON.stringify(dateInputs));
+        assert.ok(dateInputs.every(item=>item.left>=-1&&item.right<=width+1&&item.scroll<=item.client+1),browserName+' '+width+' date inputs must fit without clipping: '+JSON.stringify(dateInputs));
         await page.screenshot({path:path.join(evidence,'date-input-'+width+'-'+browserName+'.png'),fullPage:true});
         await page.evaluate(()=>closeModal());
       }
