@@ -33,6 +33,7 @@ create index if not exists tester_invite_codes_campaign_idx
   on private.tester_invite_codes(campaign,created_at);
 
 alter table private.tester_invite_codes enable row level security;
+grant usage on schema private to service_role;
 revoke all on table private.tester_invite_codes from public,anon,authenticated;
 grant select,insert,update,delete on table private.tester_invite_codes to service_role;
 
