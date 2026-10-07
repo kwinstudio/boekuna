@@ -2374,6 +2374,7 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
 <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></symbol>
 <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></symbol>
 </svg>
+<div id="appBootstrap" class="app-bootstrap" role="status" aria-live="polite" aria-label="Boekuna laden"><div class="app-bootstrap-inner"><div class="app-bootstrap-wordmark" aria-label="Boekuna">Boekuna<span aria-hidden="true">.</span></div><span class="app-bootstrap-loader" aria-hidden="true"></span><p class="app-bootstrap-copy">Boekuna laden…</p></div></div>
 <div id="authRoot"></div>
 <div class="app" id="mainApp" style="display:none">
 <aside class="sidebar" id="sidebar">
@@ -2896,6 +2897,7 @@ function goMarketingPage(page='home',push=true){
  showMarketingPage(page);
 }
 function showLanding(){
+ setBootstrapVisible(false);setProductUiAuthenticated(false);
  const page=new URL(location.href).searchParams.get('page')||lastMarketingPage||'home';
  showMarketingPage(['home','features','how','pricing','faq'].includes(page)?page:'home');
 }
@@ -3067,7 +3069,7 @@ function showMarketingPage(page='home'){
  window.scrollTo({top:0,behavior:'instant'});
 }
 function showAuth(mode='login',prefillEmail=''){
- document.getElementById('mainApp').style.display='none';
+ showAuthSurface();
  const register=mode==='register',email=String(prefillEmail||pendingVerificationEmail()||'');
  const body=register
   ? `<div class="eyebrow">Gratis starten</div><h2>Maak je gratis account</h2><p>Je kunt Boekuna direct bekijken. Bedrijfsgegevens vul je pas in wanneer je ze nodig hebt.</p><div class="auth-error" id="authError"></div><form id="authForm" onsubmit="registerUser(event)"><div class="auth-field"><label for="registerEmail">E-mailadres</label><input id="registerEmail" name="email" type="email" autocomplete="email" required value="${esc(email)}" placeholder="naam@bedrijf.nl" autofocus></div>${passwordFieldHtml({id:'registerPassword'})}<div class="auth-legal">Door een account aan te maken ga je akkoord met de <a href="/voorwaarden/" target="_blank" rel="noopener">Algemene voorwaarden</a>. Lees ook onze <a href="/privacy/" target="_blank" rel="noopener">privacyverklaring</a>.</div><button class="btn primary auth-submit" data-password-submit type="submit" disabled>Account aanmaken</button></form><div class="auth-switch">Heb je al een account? <button type="button" onclick="showAuth('login')">Inloggen</button></div>`
@@ -3075,8 +3077,11 @@ function showAuth(mode='login',prefillEmail=''){
  document.getElementById('authRoot').innerHTML=authShell(body);
  if(register)updateNewPasswordState('registerPassword')
 }
+function setProductUiAuthenticated(active){const authenticated=active===true;document.body.dataset.productAuthenticated=authenticated?'true':'false';const nav=document.getElementById('mobileBottomNav');if(nav){nav.setAttribute('aria-hidden',authenticated?'false':'true');nav.toggleAttribute('inert',!authenticated)}}
+function setBootstrapVisible(visible){const bootstrap=document.getElementById('appBootstrap');if(!bootstrap)return;bootstrap.hidden=!visible}
+function showAuthSurface(){setBootstrapVisible(false);setProductUiAuthenticated(false);const main=document.getElementById('mainApp');if(main)main.style.display='none';if(typeof setMobileMenuOpen==='function')setMobileMenuOpen(false,{restoreFocus:false})}
 function showVerificationState(email=pendingVerificationEmail(),message=''){
- document.getElementById('mainApp').style.display='none';setPendingVerificationEmail(email);
+ showAuthSurface();setPendingVerificationEmail(email);
  const body=`<div class="eyebrow">Account activeren</div><h2>Controleer je e-mail</h2><p>We hebben een bevestigingslink gestuurd naar <strong>${esc(email||'je e-mailadres')}</strong>. Open die link om je Boekuna-account te activeren.</p><div class="auth-error ${message?'show':''}" id="authError">${esc(message)}</div><div class="auth-state-actions"><button class="btn primary" id="resendVerificationButton" type="button" onclick="resendVerification()">Opnieuw versturen</button><button class="btn" type="button" onclick="showAuth('register',pendingVerificationEmail())">Andere e-mail gebruiken</button><button class="btn" type="button" onclick="showAuth('login',pendingVerificationEmail())">Terug naar inloggen</button></div>`;
  document.getElementById('authRoot').innerHTML=authShell(body)
 }
@@ -3090,13 +3095,13 @@ async function resendVerification(){
  catch(err){authError(mapAuthError(err,'confirmation'));if(/rate limit|too many|over_email_send_rate_limit/i.test(String(err?.message||'')))startVerificationCooldown(60)}
 }
 function showAuthLinkError(kind='confirmation'){
- document.getElementById('mainApp').style.display='none';const recovery=kind==='recovery';
+ showAuthSurface();const recovery=kind==='recovery';
  const body=`<div class="eyebrow">Link verlopen</div><h2>${recovery?'Deze herstel-link is verlopen':'Deze link werkt niet meer'}</h2><p>${recovery?'Deze herstel-link is verlopen. Vraag een nieuwe aan.':'De bevestigingslink is verlopen of al gebruikt. Vraag een nieuwe bevestigingsmail aan.'}</p><div class="auth-state-actions"><button class="btn primary" type="button" onclick="${recovery?'showForgotPassword()':'resendOrRestartVerification()'}">${recovery?'Nieuwe herstel-link':'Nieuwe link sturen'}</button><button class="btn" type="button" onclick="showAuth('login')">Terug naar inloggen</button></div>`;
  document.getElementById('authRoot').innerHTML=authShell(body)
 }
 function resendOrRestartVerification(){if(pendingVerificationEmail())showVerificationState(pendingVerificationEmail());else showAuth('register')}
 function showForgotPassword(){
- document.getElementById('mainApp').style.display='none';
+ showAuthSurface();
  const body=`<div class="eyebrow">Account herstellen</div><h2>Wachtwoord vergeten?</h2><p>Vul je e-mailadres in. We sturen je een link waarmee je een nieuw wachtwoord kunt kiezen.</p><div class="auth-error" id="authError"></div><form id="forgotForm" onsubmit="sendPasswordReset(event)"><div class="auth-field"><label for="forgotEmail">E-mailadres</label><input id="forgotEmail" name="email" type="email" autocomplete="email" required placeholder="naam@bedrijf.nl" autofocus></div><button class="btn primary auth-submit" type="submit">Herstel-link sturen</button></form><div class="auth-switch"><button type="button" onclick="showAuth('login')">Terug naar inloggen</button></div>`;
  document.getElementById('authRoot').innerHTML=authShell(body)
 }
@@ -3107,7 +3112,7 @@ async function sendPasswordReset(e){
  catch(err){authError(mapAuthError(err,'recovery'))}
 }
 function showResetPassword(){
- authRecoveryActive=true;document.getElementById('mainApp').style.display='none';
+ authRecoveryActive=true;showAuthSurface();
  const body=`<div class="eyebrow">Wachtwoord herstellen</div><h2>Kies een nieuw wachtwoord</h2><p>Gebruik een nieuw wachtwoord voor je Boekuna-account.</p><div class="auth-error" id="authError"></div><form id="resetPasswordForm" onsubmit="updateRecoveredPassword(event)">${passwordFieldHtml({id:'recoveryPassword',label:'Nieuw wachtwoord',autofocus:true})}<button class="btn primary auth-submit" data-password-submit type="submit" disabled>Wachtwoord opslaan</button></form>`;
  document.getElementById('authRoot').innerHTML=authShell(body);updateNewPasswordState('recoveryPassword')
 }
@@ -3144,10 +3149,10 @@ async function loginUser(e){
  }catch(err){const context=String(err?.code||'')==='HYDRATION'?'hydration':'login';authError(mapAuthError(err,context));if(/email not confirmed/i.test(String(err?.message||''))){setPendingVerificationEmail(email);const el=document.getElementById('authError');if(el)el.insertAdjacentHTML('beforeend',' <button type="button" class="link-btn" onclick="showVerificationState(pendingVerificationEmail())">Bevestigingsmail opnieuw sturen</button>')}}
 }
 function enterApp(){
- document.getElementById('authRoot').innerHTML='';document.getElementById('mainApp').style.display='grid';window.BoekunaDeveloperMode?.mountIndicator();const av=document.getElementById('accountAvatar');if(av)av.textContent=(currentUser?.email||'A').slice(0,2).toUpperCase();page='dashboard';document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page===page));document.getElementById('pageTitle').textContent=PAGE_TITLES[page];render();void loadBillingSummary().catch(()=>null);void handleBillingReturnAndPlan();void handleMailboxReturn();void initDocumentBackgroundProcessing();setTimeout(()=>void resumePendingDocumentVerifications(),1200)
+ setBootstrapVisible(false);setProductUiAuthenticated(true);document.getElementById('authRoot').innerHTML='';document.getElementById('mainApp').style.display='grid';window.BoekunaDeveloperMode?.mountIndicator();const av=document.getElementById('accountAvatar');if(av)av.textContent=(currentUser?.email||'A').slice(0,2).toUpperCase();page='dashboard';document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page===page));document.getElementById('pageTitle').textContent=PAGE_TITLES[page];render();void loadBillingSummary().catch(()=>null);void handleBillingReturnAndPlan();void handleMailboxReturn();void initDocumentBackgroundProcessing();setTimeout(()=>void resumePendingDocumentVerifications(),1200)
 }
 async function logoutUser(trigger=null){
- cleanupDocumentBackgroundProcessing();
+ setProductUiAuthenticated(false);document.getElementById('mainApp').style.display='none';cleanupDocumentBackgroundProcessing();
  window.BoekunaDeveloperMode?.clear();
  resetAuthScopedClientState('');
  const button=trigger?.setAttribute?trigger:document.getElementById('settingsLogoutButton'),originalLabel=button?.textContent||'Uitloggen';
@@ -3165,7 +3170,7 @@ async function logoutUser(trigger=null){
  if(button?.isConnected){button.disabled=false;button.textContent=originalLabel}
 }
 async function requireMfaForUser(user){const sb=await getSupabase();const {data,error}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();if(error)throw error;if(data?.nextLevel==='aal2'&&data?.currentLevel!=='aal2'){pendingMfaUser=user;await showMfaLoginChallenge();return true}return false}
-async function showMfaLoginChallenge(){const sb=await getSupabase();const {data,error}=await sb.auth.mfa.listFactors();if(error)throw error;const factor=(data?.totp||[]).find(x=>x.status==='verified');if(!factor)throw new Error('Tweestapsverificatie is geactiveerd maar er is geen geldige authenticator gevonden.');pendingMfaFactorId=factor.id;document.getElementById('mainApp').style.display='none';document.getElementById('authRoot').innerHTML=`<div class="auth-root"><div class="auth-shell" style="grid-template-columns:1fr"><section class="auth-form-wrap" style="min-height:520px"><div class="auth-form"><div class="eyebrow">Extra beveiliging</div><h2>Tweestapsverificatie</h2><p>Open je authenticator-app en vul de huidige 6-cijferige code in.</p><div class="auth-error" id="authError"></div><form onsubmit="verifyMfaLogin(event)"><div class="auth-field"><label>Authenticator-code</label><input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required autofocus></div><button class="btn primary auth-submit" type="submit">Controleren</button></form><div class="auth-switch"><button onclick="cancelMfaLogin()">Terug naar inloggen</button></div></div></section></div></div>`}
+async function showMfaLoginChallenge(){const sb=await getSupabase();const {data,error}=await sb.auth.mfa.listFactors();if(error)throw error;const factor=(data?.totp||[]).find(x=>x.status==='verified');if(!factor)throw new Error('Tweestapsverificatie is geactiveerd maar er is geen geldige authenticator gevonden.');pendingMfaFactorId=factor.id;showAuthSurface();document.getElementById('authRoot').innerHTML=`<div class="auth-root"><div class="auth-shell" style="grid-template-columns:1fr"><section class="auth-form-wrap" style="min-height:520px"><div class="auth-form"><div class="eyebrow">Extra beveiliging</div><h2>Tweestapsverificatie</h2><p>Open je authenticator-app en vul de huidige 6-cijferige code in.</p><div class="auth-error" id="authError"></div><form onsubmit="verifyMfaLogin(event)"><div class="auth-field"><label>Authenticator-code</label><input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required autofocus></div><button class="btn primary auth-submit" type="submit">Controleren</button></form><div class="auth-switch"><button onclick="cancelMfaLogin()">Terug naar inloggen</button></div></div></section></div></div>`}
 async function verifyMfaLogin(e){e.preventDefault();const f=e.currentTarget;if(!f.reportValidity())return;const code=String(new FormData(f).get('code')||'').trim();try{const sb=await getSupabase();const challenge=await sb.auth.mfa.challenge({factorId:pendingMfaFactorId});if(challenge.error)throw challenge.error;const verify=await sb.auth.mfa.verify({factorId:pendingMfaFactorId,challengeId:challenge.data.id,code});if(verify.error)throw verify.error;const user=pendingMfaUser;pendingMfaUser=null;pendingMfaFactorId=null;if(user?.id)resetAuthScopedClientState(user.id);await hydrateCloudAccount(user);enterApp()}catch(err){authError('De authenticator-code is niet geldig of verlopen.')}}
 async function cancelMfaLogin(){try{const sb=await getSupabase();await sb.auth.signOut()}catch(e){}resetAuthScopedClientState('');pendingMfaUser=null;pendingMfaFactorId=null;currentUser=null;state=structuredClone(DEFAULT);showAuth('login')}
 async function accountMenu(){if(!currentUser)return;if(TEST_MODE_NO_AUTH){modal('Testmodus',`<div class="notice info"><strong>Geen login nodig.</strong> Deze tijdelijke versie bewaart wijzigingen alleen op dit apparaat. Cloudsync, 2FA, versiegeschiedenis, AI en echte mailverzending zijn uitgeschakeld zolang deze testmodus actief is.</div>`);return}try{const sb=await getSupabase();const {data,error}=await sb.auth.mfa.listFactors();if(error)throw error;const verified=(data?.totp||[]).find(x=>x.status==='verified');modal('Mijn account',`<div class="account-menu"><div class="account-email"><strong>${esc(currentUser.email)}</strong><span>Account</span></div><div class="legal-item"><strong>Tweestapsverificatie</strong><p>${verified?'Actief':'Niet ingeschakeld. Aanbevolen voor financiële data.'}</p></div>${verified?`<button class="btn" style="justify-content:center" onclick="disableMfa('${verified.id}')">Tweestapsverificatie uitschakelen</button>`:`<button class="btn primary" style="justify-content:center" onclick="startMfaEnrollment()">Tweestapsverificatie inschakelen</button>`}<button class="btn danger" style="justify-content:center" onclick="logoutUser()">Uitloggen</button></div>`)}catch(e){toast('Accountbeveiliging kon niet worden geladen')}}
@@ -3174,6 +3179,7 @@ async function cancelMfaEnrollment(){try{if(pendingMfaEnrollId){const sb=await g
 async function verifyMfaEnrollment(){const f=document.getElementById('mfaEnrollForm');if(!f?.reportValidity()||!pendingMfaEnrollId)return;const code=String(new FormData(f).get('code')||'').trim();try{const sb=await getSupabase();const challenge=await sb.auth.mfa.challenge({factorId:pendingMfaEnrollId});if(challenge.error)throw challenge.error;const verify=await sb.auth.mfa.verify({factorId:pendingMfaEnrollId,challengeId:challenge.data.id,code});if(verify.error)throw verify.error;pendingMfaEnrollId=null;closeModal();toast('Tweestapsverificatie is actief');accountMenu()}catch(e){toast('De code is niet geldig. Probeer een nieuwe code uit je authenticator-app.')}}
 async function disableMfa(factorId){if(!confirm('Tweestapsverificatie uitschakelen? Je account is daarna alleen met je wachtwoord beveiligd.'))return;try{const sb=await getSupabase();const {error}=await sb.auth.mfa.unenroll({factorId});if(error)throw error;await sb.auth.refreshSession();closeModal();toast('Tweestapsverificatie is uitgeschakeld')}catch(e){toast(e?.message||'Tweestapsverificatie kon niet worden uitgeschakeld')}}
 async function initAuth(){
+ setBootstrapVisible(true);setProductUiAuthenticated(false);document.getElementById('authRoot').innerHTML='';
  await window.BOEKUNA_DEV_MODE_READY;
  document.getElementById('mainApp').style.display='none';const url=new URL(location.href),wantsLogin=url.searchParams.get('login')==='1',wantsRegister=url.searchParams.get('register')==='1',hashParams=new URLSearchParams((location.hash||'').replace(/^#/,'')),callbackType=hashParams.get('type')||url.searchParams.get('type')||'',callbackError=hashParams.get('error_code')||url.searchParams.get('error_code')||hashParams.get('error')||url.searchParams.get('error')||'',callbackDescription=hashParams.get('error_description')||url.searchParams.get('error_description')||'',isRecovery=callbackType==='recovery';
  try{
