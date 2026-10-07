@@ -21,7 +21,10 @@ except ImportError:
     class Workflows:
         def __init__(self,**kwargs):self.defaults=kwargs
         def task(self,fn):return fn
-    sys.modules['render']=types.SimpleNamespace(Workflows=Workflows,Retry=lambda **kwargs:kwargs,TaskContext=object)
+    class Retry:
+        def __init__(self,max_retries,wait_duration_ms):
+            self.max_retries=max_retries;self.wait_duration_ms=wait_duration_ms
+    sys.modules['render']=types.SimpleNamespace(Workflows=Workflows,Retry=Retry,TaskContext=object)
 import workflow_tasks as w
 
 

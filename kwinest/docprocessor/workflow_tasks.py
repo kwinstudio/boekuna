@@ -11,7 +11,7 @@ from render import Retry, TaskContext, Workflows
 from app import analyze_document, BoekunaDocumentError, MAX_BYTES, PROCESSOR_VERSION, PROCESSOR_REVISION, release_document_memory
 
 
-workflows = Workflows(default_retry=Retry(max_retries=0), default_timeout=300)
+workflows = Workflows(default_retry=Retry(max_retries=0, wait_duration_ms=1000), default_timeout=300)
 TRANSIENT = {'PROCESSOR_UNAVAILABLE', 'PROCESSING_TIMEOUT', 'RATE_LIMITED', 'NETWORK_ERROR'}
 
 
