@@ -113,7 +113,7 @@ try{
 
   await page.locator('.dashboard-attention h2').filter({hasText:'Nog te doen'}).waitFor();
   const attentionText=await page.locator('.dashboard-attention').innerText();
-  assert.match(attentionText,/Factuur 2026-0001 vervallen/);
+  assert.match(attentionText,/Factuur 2026-0001 is nog niet betaald/);
   assert.match(attentionText,/1 bankregel koppelen/);
   assert.doesNotMatch(attentionText,/Btw Q\d+ controleren/,'Generic VAT action must not appear');
 

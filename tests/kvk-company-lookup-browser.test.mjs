@@ -7,7 +7,7 @@ import {chromium,webkit} from 'playwright';
 
 const root=path.resolve(new URL('..',import.meta.url).pathname),browserName=process.env.BOOKUNA_BROWSER==='webkit'?'webkit':'chromium';
 const preview=process.env.KVK_BROWSER_PREVIEW==='true';
-const build=spawnSync(process.execPath,['scripts/build-app.mjs'],{cwd:root,encoding:'utf8',env:{...process.env,BOEKUNA_DEV_MODE:'false',BOEKUNA_KVK_PREVIEW:String(preview),BOEKUNA_DEPLOYMENT_ENV:preview?'preview':'production',BOEKUNA_SUPABASE_URL:'https://ozisiotrzeubwbffnxyr.supabase.co',BOEKUNA_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_browser_fixture'}});
+const build=spawnSync(process.execPath,['scripts/build-app.mjs'],{cwd:root,encoding:'utf8',env:{...process.env,BOEKUNA_DEV_MODE:'false',BOEKUNA_KVK_PREVIEW:String(preview),BOEKUNA_KVK_LOOKUP:'true',BOEKUNA_DEPLOYMENT_ENV:preview?'preview':'production',BOEKUNA_SUPABASE_URL:'https://ozisiotrzeubwbffnxyr.supabase.co',BOEKUNA_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_browser_fixture'}});
 assert.equal(build.status,0,build.stderr);
 const dir=path.join(root,'dist/app');
 const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost'),file=path.join(dir,url.pathname==='/'?'index.html':url.pathname);if(!file.startsWith(dir)||!fs.existsSync(file)){res.writeHead(404);return res.end()}res.writeHead(200,{'content-type':file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html'});res.end(fs.readFileSync(file))});

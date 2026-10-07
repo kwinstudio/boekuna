@@ -228,11 +228,14 @@
     form.dataset.mobileCustomerFlow='1';
     if(title)rememberText(title,'Nieuwe klant');
     var lookup=root.querySelector('#kvkLookup');
-    if(!lookup)return;
+    // Without KVK search the customer is filled in by hand straight away.
+    if(!lookup)form.dataset.mobileManual='1';
+    var card=node('section','mobile-customer-company-card');card.hidden=true;
+    if(lookup){
     lookup.classList.add('mobile-kvk-first');
     var heading=lookup.querySelector('#kvkHeading');if(heading)rememberText(heading,'Nieuwe klant');
     var manualExisting=lookup.querySelector('.kvk-manual');if(manualExisting)manualExisting.classList.add('mobile-existing-kvk-manual');
-    var card=node('section','mobile-customer-company-card');card.hidden=true;lookup.after(card);
+    lookup.after(card);
     var manual=button('Particulier of buitenland? Zelf invullen',function(){
       form.dataset.mobileManual='1';
       if(manualExisting&&!lookup.querySelector('.kvk-search-controls')?.hidden)manualExisting.click();
@@ -241,10 +244,11 @@
       schedule();
     },'btn link-btn mobile-contact-manual mobile-flow-action');
     lookup.after(manual);
+    }
     var more=node('details','mobile-contact-more');
     var moreBody=node('div','mobile-contact-more-body');
     more.append(node('summary','','Meer gegevens'),moreBody);
-    ['contactPerson','phone','vat','peppolId'].forEach(function(name){var field=contactField(form,name);if(field)move(moreBody,field)});
+    ['contactPerson','phone','kvk','vat','peppolId','country'].forEach(function(name){var field=contactField(form,name);if(field)move(moreBody,field)});
     more.addEventListener('toggle',function(){form.dataset.mobileMore=String(more.open)});
     form.append(more);
     var save=root.querySelector('.modal-foot .btn.primary');
@@ -391,17 +395,18 @@
       var row=node('div','mobile-invoice-summary-row');row.append(node('span','',pair[0]),node('strong','',pair[1]));box.append(row);
     });
   }
-  async function saveMobileInvoiceConcept(form,openPreview){
+  async function saveMobileInvoiceConcept(form,openPreview,quiet){
     var draft=collectInvoiceDraft();draft.status='draft';
     var checks=invoiceDraftChecks(draft,editingInvoiceId||'');
     if(checks.errors.length){updateInvoiceCheck();toast('Nog '+checks.errors.length+' punt(en) controleren');setInvoiceStep(form,checks.errors.some(function(x){return x.label==='Klant'||x.label==='Klantnaam'})?1:2);return null}
     pendingInvoiceDraft=draft;
-    var saved=await finalSaveInvoice({throwOnError:true});
+    var saved=await finalSaveInvoice({throwOnError:true,quiet:!!quiet});
     if(saved&&openPreview)printInvoice(saved.id);
     return saved;
   }
   async function sendMobileInvoice(form){
-    var saved=await saveMobileInvoiceConcept(form,false);
+    // Sending saves a concept first; only the e-mail step should give feedback.
+    var saved=await saveMobileInvoiceConcept(form,false,true);
     if(saved)await finalizeDraftAndSend(saved.id);
   }
   function invoiceStepThree(form){
