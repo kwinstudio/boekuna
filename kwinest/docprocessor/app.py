@@ -1249,6 +1249,10 @@ def targeted_header_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any,qual
         scale=min(2.0,OCR_WORKING_MAX_SIDE/max(1,crop.width))
         resized=crop.resize((max(1,int(crop.width*scale)),max(1,int(crop.height*scale))),Image.Resampling.LANCZOS)
         crop.close();crop=resized
+    deskew=float(((quality or {}).get("metrics") or {}).get("deskewAngle") or 0)
+    if abs(deskew)>=1.5 and abs(deskew)<=4.5 and "IMAGE_SKEW" in flags:
+        rotated_crop=crop.rotate(deskew,resample=Image.Resampling.BICUBIC,expand=False,fillcolor="white")
+        crop.close();crop=rotated_crop
     enhanced=enhanced_receipt_variant(crop)
     try:
         header_rows=ocr_rows(engine,enhanced)
@@ -1259,6 +1263,50 @@ def targeted_header_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any,qual
     confs=[float(r.get("confidence") or 0) for r in header_rows]
     conf=sum(confs)/len(confs) if confs else 0
     text="\n".join(r["text"] for r in header_rows)
+
+    def has_number_candidate(value:str)->bool:
+        check_lines=[norm_text(x) for x in str(value or "").splitlines() if norm_text(x)]
+        for i,line in enumerate(check_lines):
+            match=re.search(r"\b(?:factuurnummer|factuurnr|factuur\s*nr|invoice\s*(?:number|no|#)|document\s*number)\b\s*[:#-]?\s*(.*)$",line,re.I)
+            if not match:continue
+            remainder=norm_text(match.group(1))
+            if re.fullmatch(r"[A-Z0-9][A-Z0-9._/-]{2,50}",remainder,re.I) and re.search(r"\d",remainder):
+                return True
+            if i+1<len(check_lines):
+                candidate=check_lines[i+1]
+                if re.fullmatch(r"[A-Z0-9][A-Z0-9._/-]{2,50}",candidate,re.I) and re.search(r"\d",candidate):
+                    return True
+        return False
+
+    # If the broad header retry still only sees the invoice-number label, spend
+    # one final bounded pass on that exact row band. This is materially cheaper
+    # than re-OCRing the whole page and only runs for a proven missing candidate.
+    if missing_invoice_candidate and not has_number_candidate(text):
+        label_bounds=[
+            _ocr_row_bounds(row) for row in top_rows
+            if re.search(r"\b(?:factuurnummer|factuurnr|factuur\s*nr|invoice\s*(?:number|no|#)|document\s*number)\b",str(row.get("text") or ""),re.I)
+        ]
+        label_bounds=[b for b in label_bounds if b]
+        if label_bounds:
+            y0=max(0,int(min(b[1] for b in label_bounds)-img.height*.035))
+            y1=min(img.height,int(max(b[3] for b in label_bounds)+img.height*.055))
+            if y1-y0>=40:
+                number_crop=img.crop((0,y0,img.width,y1))
+                if abs(deskew)>=1.5 and abs(deskew)<=4.5 and "IMAGE_SKEW" in flags:
+                    corrected=number_crop.rotate(deskew,resample=Image.Resampling.BICUBIC,expand=False,fillcolor="white")
+                    number_crop.close();number_crop=corrected
+                number_enhanced=enhanced_receipt_variant(number_crop)
+                try:
+                    number_rows=ocr_rows(engine,number_enhanced)
+                finally:
+                    number_enhanced.close();number_crop.close()
+                number_text="\n".join(r["text"] for r in number_rows)
+                if number_rows and has_number_candidate(number_text):
+                    header_rows.extend(number_rows)
+                    text=(text+"\n"+number_text).strip()
+                    confs=[float(r.get("confidence") or 0) for r in header_rows]
+                    conf=sum(confs)/len(confs) if confs else conf
+
     # Do not inject a weak retry into the parser just because a retry happened.
     if conf<.74 or len(re.sub(r"\s+","",text))<8:
         return {"text":"","rows":[],"confidence":conf,"used":False}
