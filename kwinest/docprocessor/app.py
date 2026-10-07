@@ -1801,7 +1801,15 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     if supplier_own and dtype=="purchase_invoice": supplier={k:None for k in supplier}
     if customer_own and dtype=="sales_invoice": customer={k:None for k in customer}
 
-    invoice_number_labels=["factuurnummer","factuurnr","factuur nr","factuur aan nummer","factuur aan nr","invoice number","invoice no","invoice #","document number"]
+    invoice_number_labels=[
+        "factuurnummer","factuurnr","factuur nr",
+        # Conservative OCR edge aliases: perspective crops can lose only the
+        # first glyph while preserving the labelled candidate exactly.
+        "actuurnummer","actuurnr",
+        "factuur aan nummer","factuur aan nr",
+        "invoice number","invoice no","invoice #","nvoice number","nvoice no",
+        "document number",
+    ]
     if dtype=="credit_invoice":
         invoice_number_labels=["creditnota nummer","creditnotanummer","creditnota nr","credit note number","credit note no","credit number"]+invoice_number_labels
     invoice_no,idx=invoice_number_after_label(lines,invoice_number_labels)
