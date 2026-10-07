@@ -1,0 +1,39 @@
+name: BOEKUNA deterministic OCR V5 benchmark
+
+on:
+  push:
+    branches:
+      - "fix/deterministic-ocr-accuracy-v5"
+    paths:
+      - "kwinest/docprocessor/**"
+      - "tests/document-ocr-v5-benchmark.test.py"
+      - "tests/document-ocr-v5-regressions.test.py"
+      - ".github/workflows/boekuna-ocr-v5-benchmark.yml"
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install processor dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r kwinest/docprocessor/requirements.txt
+      - name: Deterministic OCR V5 regressions
+        run: python tests/document-ocr-v5-regressions.test.py
+      - name: Run deterministic OCR V5 benchmark
+        env:
+          BOOKUNA_OCR_V5_REPORT: artifacts/ocr-v5-report.json
+        run: python tests/document-ocr-v5-benchmark.test.py
+      - name: Upload benchmark report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: boekuna-ocr-v5-benchmark
+          path: artifacts/ocr-v5-report.json
+          if-no-files-found: error
