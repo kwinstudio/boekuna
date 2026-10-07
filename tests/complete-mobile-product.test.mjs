@@ -109,7 +109,12 @@ try {
    if(width<=820&&['invoices','expenses','documents','bank','income','outgoings'].includes(route)){
     const list=page.locator('.mobile-card-list');
     const hasRows=await page.locator('.mobile-stack-table tbody tr').filter({has:page.locator('td:not([colspan])')}).count();
-    if(hasRows){assert.equal(await list.isVisible(),true,route+' card list');assert.equal(await page.locator('.mobile-stack-wrap').first().isVisible(),false,route+' desktop table hidden');}
+    if(hasRows){
+     const groupedDocuments=route==='documents'&&await page.locator('.mobile-document-groups:visible').count();
+     if(groupedDocuments)assert.equal(await page.locator('.mobile-document-groups').isVisible(),true,'documents grouped mobile flow');
+     else assert.equal(await list.isVisible(),true,route+' card list');
+     assert.equal(await page.locator('.mobile-stack-wrap').first().isVisible(),false,route+' desktop table hidden');
+    }
    }
   }
   if(width<=820){
@@ -123,6 +128,11 @@ try {
    const fields=page.locator('#invoiceForm .line-item [data-k]');
    assert.equal(await fields.count(),5,'Original invoice inputs must survive mobile disclosure');
    assert.equal(await page.locator('#invoiceForm .mobile-disclosure').count()>=2,true);
+   if(await page.locator('#invoiceForm[data-mobile-invoice-flow]').count()){
+    await page.evaluate(()=>{const f=document.getElementById('invoiceForm');f.elements.customerId.value='c1';f.elements.customerId.dispatchEvent(new Event('change',{bubbles:true}))});
+    await page.getByRole('button',{name:'Volgende',exact:true}).click();
+    assert.equal(await page.locator('#invoiceForm').getAttribute('data-mobile-invoice-step'),'2','mobile invoice must expose line editing in step 2');
+   }
    await page.locator('[data-k="desc"]').fill('Mobiele factuurregel');
    await page.locator('[data-k="unit"]').fill('125');
    await page.locator('[data-k="unit"]').dispatchEvent('input');
