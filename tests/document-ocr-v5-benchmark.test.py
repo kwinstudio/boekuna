@@ -657,6 +657,22 @@ def run():
     print("OCR_V5_BENCHMARK_JSON=" + json.dumps(payload, sort_keys=True))
     assert payload["documents"] >= 28
     assert payload["nativePdfNoOcr"] is True
+    assert payload["ocrFailures"] == 0
+    assert payload["parserFailures"] == 0
+    assert payload["fullyCorrectDocuments"] == payload["documents"], payload["records"]
+    assert all(
+        stats["WRONG"] == 0 and stats["MISSING"] == 0
+        for stats in payload["fieldStatus"].values()
+        if stats["applicable"]
+    ), payload["fieldStatus"]
+    # V5 is conditional, not a blanket extra OCR pass. The frozen suite must
+    # stay at or below two OCR calls per document on average, with no more than
+    # half of documents using targeted ROI extraction.
+    assert payload["avgOcrPasses"] <= 2.0, payload["avgOcrPasses"]
+    assert payload["roiRate"] <= 0.5, payload["roiRate"]
+    # CI timing is intentionally loose enough to avoid runner noise but catches
+    # a large accidental performance regression in the deterministic path.
+    assert payload["p95Ms"] < 6000, payload["p95Ms"]
     return payload
 
 
