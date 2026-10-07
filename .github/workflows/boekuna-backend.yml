@@ -14,7 +14,8 @@ on:
       - "tests/invoice-delivery.test.mjs"
       - "tests/early-access-entitlement.test.mjs"
       - "tests/billing-source.test.mjs"
-      - "tests/provider-agnostic-entitlement.test.mjs"\n      - "tests/tester-invite-code-access.test.mjs"
+      - "tests/provider-agnostic-entitlement.test.mjs"
+      - "tests/tester-invite-code-access.test.mjs"
       - "tests/split-origin-boundaries.test.mjs"
       - "tests/split-ci-scopes.test.mjs"
       - "tests/kvk-company-lookup.test.mjs"
@@ -93,6 +94,8 @@ jobs:
         run: node tests/early-access-entitlement.test.mjs
       - name: Billing subscription regressions
         run: node tests/billing-source.test.mjs
+      - name: Tester invite-code access regression
+        run: node tests/tester-invite-code-access.test.mjs
       - name: Install document processor regression dependencies
         run: pip install --disable-pip-version-check -r kwinest/docprocessor/requirements.txt httpx==0.28.1
       - name: OCR production hardening
