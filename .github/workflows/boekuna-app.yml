@@ -27,6 +27,7 @@ on:
       - "tests/browser-smoke.test.mjs"
       - "tests/developer-mode.test.mjs"
       - "tests/developer-mode-browser.test.mjs"
+      - "tests/tester-invite-code-browser.test.mjs"
       - "tests/app-ux-plain-language.test.mjs"
       - "tests/app-ux-keyboard.test.mjs"
       - "tests/app-ux-status.test.mjs"
@@ -126,6 +127,10 @@ jobs:
         run: npm install --prefix tests --no-save playwright@1.56.1
       - name: Install Chromium and WebKit
         run: ./tests/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Tester invite-code billing UI — Chromium + WebKit
+        run: |
+          node tests/tester-invite-code-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/tester-invite-code-browser.test.mjs
       - name: Beginner document review — Chromium + WebKit
         run: |
           node tests/document-review-beginner-ux.test.mjs
