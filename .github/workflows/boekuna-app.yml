@@ -12,7 +12,7 @@ on:
       - "public/assets/kvk-company-lookup.*"
       - "public/assets/mobile-polish-round-2.*"
       - "public/assets/mobile-product.*"
-      - "public/assets/mobile-flow-simplification.*"
+      - "kwinest/app-assets/mobile-flow-simplification.*"
       - "public/assets/brand-v2.css"
       - "kwinest/app-assets/product-color-polish.css"
       - "kwinest/app-assets/product-ux-polish-round-3.css"
