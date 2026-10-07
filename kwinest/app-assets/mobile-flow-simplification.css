@@ -1,0 +1,113 @@
+/* BOEKUNA mobile-flow simplification. No desktop rules. */
+@media (max-width:820px){
+  #mainApp .mobile-document-groups{display:grid;gap:14px;margin:0 0 16px}
+  #mainApp .mobile-document-group{border:1px solid var(--app-border);border-radius:12px;background:var(--app-surface);padding:16px}
+  #mainApp .mobile-document-group h2{font-size:18px;margin:0 0 12px;color:var(--app-charcoal)}
+  #mainApp .mobile-document-compact-list{display:grid;gap:0}
+  #mainApp .mobile-document-compact-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--app-border)}
+  #mainApp .mobile-document-compact-row:last-child{border-bottom:0}
+  #mainApp .mobile-document-compact-row>div{display:grid;gap:3px;min-width:0}
+  #mainApp .mobile-document-compact-row strong{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #mainApp .mobile-document-compact-row span,#mainApp .mobile-document-more{font-size:12px;color:var(--app-muted-strong);margin:0}
+  #mainApp .mobile-document-bulk{width:100%;margin-top:12px;justify-content:center}
+  #mainApp .mobile-document-questions{padding:8px 0 0}
+  #mainApp .mobile-document-questions h2{padding:8px 16px 4px}
+  #mainApp .mobile-document-question-row{width:100%;min-height:64px;border:0;border-top:1px solid var(--app-border);background:transparent;color:inherit;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;font:inherit}
+  #mainApp .mobile-document-question-copy{display:grid;gap:4px;min-width:0}
+  #mainApp .mobile-document-question-copy strong{font-size:14px}
+  #mainApp .mobile-document-question-copy span{font-size:12px;color:var(--app-muted-strong);overflow-wrap:anywhere}
+  #mainApp .mobile-document-chevron{font-size:24px;color:var(--app-muted-strong)}
+  #mainApp .mobile-document-groups~.mobile-card-list{display:none!important}
+
+  #modalRoot #contactForm[data-mobile-customer-flow]>.form-grid>.field{display:none}
+  #modalRoot #contactForm[data-mobile-customer-flow][data-mobile-manual="1"]>.form-grid>.field{display:flex}
+  #modalRoot #contactForm[data-mobile-customer-flow][data-mobile-kvk-selected="1"]>.form-grid>.field:has([name="email"]){display:flex}
+  #modalRoot #contactForm[data-mobile-customer-flow][data-mobile-kvk-selected="1"][data-mobile-more="true"]>.form-grid>.field:has([name="contactPerson"]),
+  #modalRoot #contactForm[data-mobile-customer-flow][data-mobile-kvk-selected="1"][data-mobile-more="true"]>.form-grid>.field:has([name="phone"]),
+  #modalRoot #contactForm[data-mobile-customer-flow][data-mobile-kvk-selected="1"][data-mobile-more="true"]>.form-grid>.field:has([name="vat"]),
+  #modalRoot #contactForm[data-mobile-customer-flow][data-mobile-kvk-selected="1"][data-mobile-more="true"]>.form-grid>.field:has([name="peppolId"]){display:flex}
+  #modalRoot .mobile-kvk-first .kvk-heading h4{display:none}
+  #modalRoot .mobile-kvk-first .mobile-existing-kvk-manual{display:none!important}
+  #modalRoot .mobile-kvk-first .kvk-search-fields{grid-template-columns:1fr!important}
+  #modalRoot .mobile-kvk-first .field:has(#kvkPlace){display:none!important}
+  #modalRoot .mobile-kvk-first #kvkHint{margin-top:6px}
+  #modalRoot .mobile-customer-company-card{display:grid;gap:4px;border:1px solid var(--app-border);border-radius:12px;padding:14px;background:var(--app-surface);margin:12px 0}
+  #modalRoot .mobile-customer-company-card[hidden]{display:none!important}
+  #modalRoot .mobile-customer-company-card span{font-size:13px;color:var(--app-muted-strong)}
+  #modalRoot .mobile-customer-company-card small{font-size:12px;color:var(--status-success);font-weight:700}
+  #modalRoot .mobile-contact-manual{width:100%;justify-content:flex-start;margin:4px 0 8px}
+  #modalRoot .mobile-contact-more{margin:8px 0 0}
+  #modalRoot #contactForm[data-mobile-manual="1"] .mobile-contact-more{display:none}
+  #modalRoot .mobile-contact-more summary{min-height:44px;display:flex;align-items:center;font-weight:700;cursor:pointer}
+
+  #modalRoot #invoiceForm[data-mobile-invoice-flow]>*{display:none!important}
+  #modalRoot #invoiceForm[data-mobile-invoice-flow]>.mobile-invoice-progress,
+  #modalRoot #invoiceForm[data-mobile-invoice-flow]>.mobile-invoice-step[data-step]{display:none!important}
+  #modalRoot #invoiceForm[data-mobile-invoice-flow]>.mobile-invoice-progress{display:flex!important}
+  #modalRoot #invoiceForm[data-mobile-invoice-flow][data-mobile-invoice-step="1"]>.mobile-invoice-step[data-step="1"],
+  #modalRoot #invoiceForm[data-mobile-invoice-flow][data-mobile-invoice-step="2"]>.mobile-invoice-step[data-step="2"],
+  #modalRoot #invoiceForm[data-mobile-invoice-flow][data-mobile-invoice-step="3"]>.mobile-invoice-step[data-step="3"]{display:flex!important}
+  #modalRoot .mobile-invoice-original-foot{display:none!important}
+  #modalRoot .mobile-invoice-progress{gap:6px;margin-bottom:16px}
+  #modalRoot .mobile-invoice-progress span{flex:1;min-width:0;border-top:3px solid var(--app-border);padding-top:7px;font-size:11px;font-weight:700;color:var(--app-muted-strong)}
+  #modalRoot .mobile-invoice-progress span.active{border-color:var(--app-green);color:var(--app-charcoal)}
+  #modalRoot .mobile-invoice-step{flex-direction:column;gap:14px;min-width:0}
+  #modalRoot .mobile-invoice-step>h2{font-size:22px;margin:0;letter-spacing:-.02em}
+  #modalRoot .mobile-flow-eyebrow{font-size:12px;font-weight:800;color:var(--app-muted-strong);text-transform:none}
+  #modalRoot .mobile-invoice-quick,#modalRoot .mobile-invoice-recent{display:grid;gap:8px}
+  #modalRoot .mobile-invoice-choice{min-height:54px;width:100%;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;border:1px solid var(--app-border);border-radius:10px;background:var(--app-surface);padding:11px 12px;text-align:left;color:inherit;font:inherit}
+  #modalRoot .mobile-invoice-choice span{font-size:12px;color:var(--app-muted-strong);overflow-wrap:anywhere}
+  #modalRoot .mobile-invoice-step .invoice-editor-section{display:block!important;padding:0!important;margin:0!important;border:0!important;background:transparent!important}
+  #modalRoot .mobile-invoice-step .invoice-editor-section>.section-head h2{display:none}
+  #modalRoot .mobile-invoice-step .invoice-new-customer{display:none!important}
+  #modalRoot .mobile-invoice-step .invoice-service-picker{display:none!important}
+  #modalRoot .mobile-invoice-step .invoice-service-empty{display:none!important}
+  #modalRoot .mobile-invoice-unit-label{display:none!important}
+  #modalRoot .mobile-vat-native-select{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+  #modalRoot .mobile-vat-choice{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;grid-column:1/-1}
+  #modalRoot .mobile-vat-choice .btn{min-width:0!important;width:100%;padding-inline:8px}
+  #modalRoot .mobile-vat-choice .btn[aria-pressed="true"]{border-width:2px;font-weight:800}
+  #modalRoot #invoiceLines{display:grid;gap:12px}
+  #modalRoot #invoiceLines .line-item{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(88px,.55fr)!important;gap:10px!important;margin:0!important}
+  #modalRoot #invoiceLines .line-item .field:first-child{grid-column:1/-1}
+  #modalRoot #invoiceLines .line-item .field:has([data-k="unit"]){grid-column:1/-1}
+  #modalRoot #invoiceLines .line-item>.icon-btn{grid-column:2;justify-self:end}
+  #modalRoot .mobile-invoice-step .invoice-editor-summary{display:block!important}
+  #modalRoot .mobile-invoice-step details.invoice-advanced-options{display:block!important;margin-top:4px}
+  #modalRoot .mobile-invoice-step details.invoice-advanced-options>summary{min-height:48px;display:flex;align-items:center;font-size:13px}
+  #modalRoot .mobile-invoice-nav{display:flex;flex-wrap:wrap;gap:8px;padding-bottom:max(6px,env(safe-area-inset-bottom))}
+  #modalRoot .mobile-invoice-nav .btn{flex:1 1 120px;justify-content:center}
+  #modalRoot .mobile-invoice-final-actions .primary{flex-basis:100%}
+  #modalRoot .mobile-invoice-summary{display:grid;gap:10px;border:1px solid var(--app-border);border-radius:12px;padding:14px;background:var(--app-surface)}
+  #modalRoot .mobile-invoice-summary-top,#modalRoot .mobile-invoice-summary-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  #modalRoot .mobile-invoice-summary p{margin:0;color:var(--app-muted-strong);font-size:13px}
+  #modalRoot .mobile-invoice-summary-row{font-size:13px;padding-top:8px;border-top:1px solid var(--app-border)}
+  #modalRoot .mobile-invoice-pdf{align-self:flex-start}
+
+  #modalRoot .document-review-flow[data-mobile-simple-review="active"] .review-wizard-head,
+  #modalRoot .document-review-flow[data-mobile-simple-review="active"] .review-wizard-progress,
+  #modalRoot .document-review-flow[data-mobile-simple-review="active"] .review-page-copy,
+  #modalRoot .document-review-flow[data-mobile-simple-review="active"] .beginner-provenance,
+  #modalRoot .document-review-flow[data-mobile-simple-review="active"] .desktop-review-actions,
+  #modalRoot .document-review-flow[data-mobile-simple-review="active"] .mobile-review-actions{display:none!important}
+  #modalRoot .document-review-flow[data-mobile-simple-review="active"] .review-wizard-page{display:none!important}
+  #modalRoot .document-review-flow[data-mobile-simple-review="active"] .review-wizard-page:has(.mobile-active-issue){display:block!important}
+  #modalRoot .document-review-flow[data-mobile-simple-review="active"] .mobile-flow-hidden{display:none!important}
+  #modalRoot .document-review-flow[data-mobile-simple-review="active"] .mobile-active-issue{display:flex!important}
+  #modalRoot .document-review-flow[data-mobile-simple-review="active"] .form-grid:has(.mobile-active-issue){display:grid!important}
+  #modalRoot .mobile-single-issue-review{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+  #modalRoot .mobile-single-issue-review[hidden]{display:none!important}
+  #modalRoot .mobile-single-issue-question{font-size:22px;margin:0;letter-spacing:-.02em}
+  #modalRoot .mobile-single-issue-review>p{margin:0;color:var(--app-muted-strong);font-size:13px;line-height:1.5}
+  #modalRoot .mobile-single-issue-actions{display:flex;flex-direction:column;gap:8px}
+  #modalRoot .mobile-single-issue-actions .btn{width:100%;justify-content:center}
+
+  #modalRoot .mobile-flow-action{min-width:44px;min-height:44px}
+  #mainApp .mobile-flow-action{min-width:44px;min-height:44px}
+}
+
+@media (max-width:359px){
+  #modalRoot .mobile-vat-choice{grid-template-columns:1fr}
+  #modalRoot #invoiceLines .line-item{grid-template-columns:1fr!important}
+  #modalRoot #invoiceLines .line-item>.icon-btn{grid-column:1}
+}
