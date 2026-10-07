@@ -16,6 +16,17 @@ on:
       - "kwinest/app-assets/calm-ux.*"
       - "kwinest/app-assets/settings-center.*"
       - "tests/settings-center-browser.test.mjs"
+      - "kwinest/app-assets/theme.js"
+      - "kwinest/app-assets/theme-dark.css"
+      - "kwinest/app-assets/feedback.*"
+      - "scripts/theme-dark-generate.mjs"
+      - "supabase/migrations/20261007200000_in_app_feedback.sql"
+      - "tests/theme-browser.test.mjs"
+      - "tests/feedback-browser.test.mjs"
+      - "tests/feedback-ocr-corrections.test.mjs"
+      - "tests/feedback-sql-isolation.test.mjs"
+      - "tests/lib/app-fixture.mjs"
+      - "tests/lib/fake-feedback-backend.mjs"
       - "public/assets/brand-v2.css"
       - "kwinest/app-assets/product-color-polish.css"
       - "kwinest/app-assets/product-ux-polish-round-3.css"
@@ -140,6 +151,8 @@ jobs:
         run: node tests/cashflow-recurrence.test.mjs
       - name: Real local PostgreSQL migration and two-account isolation
         run: node tests/planned-cash-sql-isolation.test.mjs
+      - name: Feedback RLS, privacy and tenant isolation
+        run: node tests/feedback-sql-isolation.test.mjs
       - name: Install Playwright
         run: npm install --prefix tests --no-save playwright@1.56.1
       - name: Install Chromium and WebKit
@@ -164,6 +177,16 @@ jobs:
         run: |
           node tests/settings-center-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/settings-center-browser.test.mjs
+      - name: Thema (Automatisch, Licht, Donker) — Chromium and WebKit
+        run: |
+          node tests/theme-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/theme-browser.test.mjs
+      - name: Hulp & feedback — Chromium and WebKit
+        run: |
+          node tests/feedback-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/feedback-browser.test.mjs
+          node tests/feedback-ocr-corrections.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/feedback-ocr-corrections.test.mjs
       - name: Mobile polish round 2 — Chromium and WebKit
         run: |
           node tests/mobile-polish-round-2.test.mjs
