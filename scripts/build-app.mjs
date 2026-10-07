@@ -191,7 +191,7 @@ function injectBeforeLast(html,marker,content){
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review-v2.js?v=20261006fx1"></script>\n');
 const mobileHeadBoundary='</head>\n<body>';
 if(!appHtml.includes(mobileHeadBoundary))throw new Error('Mobile app head boundary changed');
-appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261006fx2">\n<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/product-color-polish.css?v=20261006a">\n<style id="boekuna-app-mobile-compact-overrides">@media (max-width:820px){#mainApp #appMain #content.content{padding-top:14px!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active{-webkit-appearance:none!important;appearance:none!important;background:#ECFAEE!important;background-color:#ECFAEE!important;background-image:none!important;color:#1B1F23!important;box-shadow:inset 0 2px 0 #63D471!important;font-weight:800!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active .icon,#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active span{color:#1B1F23!important}}@media (max-width:359px){#mainApp .product-kpis.grid-4{grid-template-columns:1fr!important}}</style>\n'+mobileHeadBoundary);
+appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261006fx2">\n<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/product-color-polish.css?v=20261006a">\n<style id="boekuna-app-mobile-compact-overrides">@media (max-width:820px){#mainApp #appMain #content.content{padding-top:14px!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active{-webkit-appearance:none!important;appearance:none!important;background:#ECFAEE!important;background-color:#ECFAEE!important;background-image:none!important;color:#1B1F23!important;box-shadow:none!important;border-top:2px solid #63D471!important;font-weight:800!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active .icon,#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active span{color:#1B1F23!important}}@media (max-width:359px){#mainApp .product-kpis.grid-4{grid-template-columns:1fr!important}}</style>\n<link rel="stylesheet" href="/assets/product-ux-polish-round-3.css?v=20261007a">\n'+mobileHeadBoundary);
 const mobileNavStateMarker="function syncMobileNavigationState(){\n const current=mobilePrimarySection(page);\n document.querySelectorAll('[data-mobile-page]').forEach(btn=>{const active=btn.dataset.mobilePage===current;btn.classList.toggle('active',active);if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current')});\n const more=document.querySelector('[data-mobile-more]');if(more){const active=current==='more';more.classList.toggle('active',active);if(active)more.setAttribute('aria-current','page');else more.removeAttribute('aria-current')}\n updateMobileAccountIdentity()\n}";
 if(!appHtml.includes(mobileNavStateMarker))throw new Error('Mobile navigation state marker changed');
 appHtml=appHtml.replace(mobileNavStateMarker,"function syncMobileNavigationState(){\n const current=mobilePrimarySection(page);\n document.querySelectorAll('[data-mobile-page]').forEach(btn=>{const active=btn.dataset.mobilePage===current;btn.classList.toggle('active',active);btn.style.setProperty('background-color',active?'#ECFAEE':'transparent','important');if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current')});\n const more=document.querySelector('[data-mobile-more]');if(more){const active=current==='more';more.classList.toggle('active',active);more.style.setProperty('background-color',active?'#ECFAEE':'transparent','important');if(active)more.setAttribute('aria-current','page');else more.removeAttribute('aria-current')}\n updateMobileAccountIdentity()\n}");
@@ -371,7 +371,7 @@ for(const asset of appAssets){
 }
 
 // Document review is app-only. Keep the shared public/marketing copies byte-identical.
-for(const asset of ['document-review-v2.js','document-review-v2.css','product-color-polish.css']){
+for(const asset of ['document-review-v2.js','document-review-v2.css','product-color-polish.css','product-ux-polish-round-3.css']){
   const sourceFile=path.join(root,'kwinest','app-assets',asset);
   if(!fs.existsSync(sourceFile))throw new Error('Missing app-only review asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
@@ -387,6 +387,16 @@ function patchBuiltAppAsset(asset,needle,replacement){
   if(first<0||second>=0)throw new Error('App-only asset patch marker changed: '+asset);
   fs.writeFileSync(file,source.slice(0,first)+replacement+source.slice(first+needle.length),'utf8');
 }
+patchBuiltAppAsset(
+  'mobile-product.js',
+  `    var review=dashboardAttentionItems().filter(function(item){return /document|bon/i.test(item.key+' '+item.title)});
+    // Existing attention entries supply their own authorized destination/action.
+    if(review.length){
+      var action=button('Documenten controleren',function(){review[0].action()},'btn mobile-vat-attention');
+      root.querySelector('.product-kpis')?.after(action);
+    }`,
+  `    // Btw stays an information screen; document review remains available from Bonnetjes/attention flows.`
+);
 if(assistantEnabled){
   patchBuiltAppAsset(
     'mobile-polish-round-2.js',
@@ -522,4 +532,4 @@ patchBuiltAppAsset(
 fs.copyFileSync(interFontSource,path.join(appAssetsTarget,'app-InterVariable.woff2'));
 fs.copyFileSync(spaceGroteskFont,path.join(appAssetsTarget,'app-SpaceGrotesk-Variable.ttf'));
 
-console.log('App build complete:',path.relative(root,target),'with self-hosted Inter + Space Grotesk');
+console.log('App build complete:',path.relative(root,target),'with system UI typography polish');
