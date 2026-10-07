@@ -271,8 +271,13 @@ def parse_financial_blocks(raw_lines: list[str]) -> dict[str, Any]:
             gross = round(float(net) + float(vat), 2)
         if gross is None or vat is None:
             continue
-        context = " ".join(lines[max(0, i - 5): min(len(lines), (gross_index if gross_index >= 0 else i) + 1)])
-        is_adjustment = bool(net < 0 or gross < 0 or ADJUSTMENT_RE.search(context))
+        end_index=gross_index if gross_index>=0 else i
+        context = " ".join(lines[max(0, i - 5): min(len(lines), end_index + 1)])
+        # Adjustment classification must use the financial block itself, not
+        # header/supplier text. A supplier such as "Factoring BV" must not turn
+        # an ordinary 100 + 21 = 121 invoice total into a factoring fee.
+        financial_context=" ".join(lines[i:min(len(lines),end_index+1)])
+        is_adjustment = bool(net < 0 or gross < 0 or ADJUSTMENT_RE.search(financial_context))
         sections.append({
             "subtotal": abs(float(net)),
             "vatTotal": abs(float(vat)),
@@ -280,10 +285,10 @@ def parse_financial_blocks(raw_lines: list[str]) -> dict[str, Any]:
             "vatRate": rate or _infer_rate(abs(float(net)), abs(float(vat))),
             "context": context,
             "start": i,
-            "end": gross_index if gross_index >= 0 else i,
+            "end": end_index,
             "isAdjustment": is_adjustment,
-            "type": _adjustment_type(context) if is_adjustment else None,
-            "counterparty": _counterparty(context),
+            "type": _adjustment_type(financial_context) if is_adjustment else None,
+            "counterparty": _counterparty(financial_context),
         })
 
     explicit_inclusive = _inclusive_vat_primary(lines)
