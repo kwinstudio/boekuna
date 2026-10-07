@@ -61,6 +61,7 @@ on:
       - "tests/invoice-native-retry.test.mjs"
       - "tests/invoice-send-checks.test.mjs"
       - "tests/bank-csv-formats.test.mjs"
+      - "tests/credit-note-discount.test.mjs"
       - "tests/cashflow-recurrence.test.mjs"
       - "tests/cashflow-recurrence-browser.test.mjs"
       - "tests/planned-cash-sql-isolation.test.mjs"
@@ -127,6 +128,8 @@ jobs:
         run: node tests/invoice-send-checks.test.mjs
       - name: Dutch bank CSV formats (ING, Rabobank, ABN AMRO, Knab)
         run: node tests/bank-csv-formats.test.mjs
+      - name: Credit notes follow the original discount
+        run: node tests/credit-note-discount.test.mjs
       - name: Recurrence date and forecast invariants
         run: node tests/cashflow-recurrence.test.mjs
       - name: Real local PostgreSQL migration and two-account isolation
