@@ -100,36 +100,18 @@ try{
   await page.evaluate(()=>newContact());
   await page.locator('#contactForm[data-mobile-customer-flow]').waitFor({state:'attached'});
   assert.equal(await page.locator('#modalTitle').innerText(),'Nieuwe klant');
-  assert.ok(await page.locator('#kvkQuery').isVisible(),'KVK query is primary');
-  assert.equal(await page.getByRole('button',{name:/Particulier of buitenland/}).count(),1);
-  assert.equal(await page.locator('#contactForm [name="email"]').isVisible(),false,'email appears after KVK selection or manual mode');
-  await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'05-klant-kvk-zoeken-'+browserName+'.png')});
-  await page.evaluate(()=>{
-    const form=document.getElementById('contactForm');
-    form.elements.name.value='Bakkerij Jansen B.V.';
-    form.elements.address.value='Dorpsstraat 12';
-    form.elements.postal.value='1135 AB';
-    form.elements.city.value='Edam';
-    form.elements.kvk.value='12345678';
-    form.dataset.kvkSelectedNumber='12345678';
-    form.elements.name.dispatchEvent(new Event('input',{bubbles:true}));
-  });
-  await page.waitForTimeout(50);
-  assert.ok(await page.locator('.mobile-customer-company-card').isVisible(),'KVK selection must produce a compact confirmation card');
-  assert.match(await page.locator('.mobile-customer-company-card').innerText(),/Bakkerij Jansen B\.V\./);
-  assert.ok(await page.locator('#contactForm [name="email"]').isVisible(),'invoice email becomes directly editable after KVK selection');
-  await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'06-klant-kvk-geselecteerd-'+browserName+'.png')});
+  // KVK search stays hidden while there is no KVK API key: the customer is filled in by hand straight away.
+  assert.equal(await page.locator('#kvkQuery').count(),0,'KVK search is hidden without a KVK key');
+  assert.equal(await page.getByRole('button',{name:/Particulier of buitenland/}).count(),0);
+  assert.ok(await page.locator('#contactForm [name="name"]').isVisible(),'customer name is directly editable');
+  assert.ok(await page.locator('#contactForm [name="email"]').isVisible(),'invoice email is directly editable');
+  assert.equal(await page.locator('#contactForm [name="kvk"]').isVisible(),false,'KVK number is optional and collapsed');
+  await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'05-klant-invullen-'+browserName+'.png')});
   assert.equal(await page.locator('#contactForm [name="contactPerson"]').isVisible(),false,'optional customer fields stay collapsed');
   await page.locator('.mobile-contact-more summary').click();
   assert.ok(await page.locator('#contactForm [name="contactPerson"]').isVisible(),'Meer gegevens reveals optional fields');
   await page.evaluate(()=>closeModal());
 
-  await page.evaluate(()=>newContact());
-  await page.locator('#contactForm[data-mobile-customer-flow]').waitFor({state:'attached'});
-  await page.getByRole('button',{name:/Particulier of buitenland/}).click();
-  assert.ok(await page.locator('#contactName').isVisible(),'manual fallback exposes existing full form');
-  assert.ok(await page.locator('#contactForm [name="contactPerson"]').isVisible(),'manual fallback keeps the full manual form reachable');
-  await page.evaluate(()=>closeModal());
 
   await page.evaluate(()=>newInvoice());
   await page.locator('#invoiceForm[data-mobile-invoice-flow]').waitFor();
@@ -216,7 +198,7 @@ try{
   assert.equal(await page.locator('.mobile-document-groups').count(),0,'desktop documents must remain original');
   await page.evaluate(()=>newContact());await page.waitForTimeout(50);
   assert.equal(await page.locator('#contactForm[data-mobile-customer-flow]').count(),0,'desktop customer form must remain original');
-  assert.match(await page.locator('#contactForm').textContent(),/Juridische \/ handelsnaam/,'desktop customer form keeps original fields (hidden behind KVK search until manual entry)');
+  assert.match(await page.locator('#contactForm').textContent(),/Naam \(bedrijf of persoon\)/,'desktop customer form keeps the full set of fields');
   await page.evaluate(()=>closeModal());
   await page.evaluate(()=>newInvoice());await page.waitForTimeout(50);
   assert.equal(await page.locator('#invoiceForm[data-mobile-invoice-flow]').count(),0,'desktop invoice must remain original');

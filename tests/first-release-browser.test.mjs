@@ -129,6 +129,7 @@ try{
 
   await page.evaluate(()=>navigate('profile'));
   assert.equal(await page.locator('#profileForm [name="peppolId"]').count(),0,'Company Peppol control must be absent');
+  await page.locator('#profileForm details.profile-more summary').click();
   await page.locator('#profileForm [name="tradeName"]').fill('Release Test gewijzigd');
   await page.locator('#profileForm').evaluate(form=>form.requestSubmit());
   assert.equal(await page.evaluate(()=>state.company.peppolId),'legacy-company-peppol','Saving visible company fields must preserve hidden Peppol data');

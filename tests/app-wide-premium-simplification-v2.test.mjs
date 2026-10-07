@@ -124,7 +124,8 @@ try{
 
   assert.ok(await settings.locator('.settings-group').count()>=3,'Settings should be grouped by human task');
   await nav('profile');
-  assert.ok(await page.locator('#content .profile-section').count()>=5,'Company details should use calm sections instead of a card wall');
+  assert.equal(await page.locator('#content .profile-section-essentials').count(),1,'Company details start with only what invoices need');
+  assert.equal(await page.locator('#content details.profile-more').count(),1,'Optional company details stay folded away');
   assert.equal(await page.locator('#content .profile-section.card').count(),0,'Profile sections should not all be cards');
   await page.screenshot({path:`tests/artifacts/premium-v2-profile-${browserName}-390.png`,fullPage:true});
 

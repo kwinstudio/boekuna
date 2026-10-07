@@ -141,7 +141,7 @@ try{
   await page.screenshot({path:`tests/artifacts/premium-invoices-${browserName}-390.png`,fullPage:true});
 
   await navigateTo('expenses');
-  assert.ok(await page.getByRole('button',{name:/Kosten boeken/}).isVisible());
+  assert.ok(await page.getByRole('button',{name:/Zelf invullen/}).isVisible());
   assert.ok(await page.getByRole('button',{name:'Bon toevoegen',exact:true}).isVisible(),'Purchase invoice upload must remain available');
   assert.equal(await page.locator('#content').getByRole('button',{name:'Foto',exact:true}).count(),0,'Receipt photo must not be a separate primary action');
   assert.equal(await page.locator('#content').getByRole('button',{name:/Camera/}).count(),0,'Camera must not be a separate primary action');
