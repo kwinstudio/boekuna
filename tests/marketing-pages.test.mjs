@@ -4,101 +4,59 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 
 const root=process.cwd();
-const src=path.join(root,'public');
-const pages=[
-  ['index.html','https://boekuna.nl/'],
-  ['functies/index.html','https://boekuna.nl/functies/'],
-  ['assistent/index.html','https://boekuna.nl/assistent/'],
-  ['scanner/index.html','https://boekuna.nl/scanner/'],
-  ['prijzen/index.html','https://boekuna.nl/prijzen/'],
-  ['veiligheid/index.html','https://boekuna.nl/veiligheid/'],
-  ['faq/index.html','https://boekuna.nl/faq/']
-];
+const source=path.join(root,'public');
+const retired=['functies','assistent','scanner','prijzen','veiligheid','faq','facturen','bonnen','btw','bank','rapportages','mobiel','hoe-het-werkt'];
+const preserved=['privacy','voorwaarden','support','account-verwijderen'];
 
-for(const [file,canonical] of pages){
-  const full=path.join(src,file);
-  assert.ok(fs.existsSync(full),'Missing multipage source '+file);
-  const html=fs.readFileSync(full,'utf8');
-  assert.equal((html.match(/<h1\b/gi)||[]).length,1,file+': exactly one h1 required');
-  assert.ok(html.includes('<link rel="canonical" href="'+canonical+'">'),file+': canonical missing');
-  assert.ok(html.includes('/assets/site.css'),file+': shared site.css missing');
-  assert.ok(html.includes('/assets/site.js'),file+': shared site.js missing');
-  assert.ok(html.includes('/assets/favicon.svg'),file+': favicon missing');
-  assert.ok(html.includes('https://app.boekuna.nl/?'),file+': app handoff missing');
-  assert.equal(/fonts\.googleapis\.com|fonts\.gstatic\.com/i.test(html),false,file+': remote fonts forbidden');
-  assert.equal(/<script[^>]+src=["']https?:\/\//i.test(html),false,file+': remote scripts forbidden');
-  assert.equal(/accounts\.google\.com|Doorgaan met Google|gmail\.send/i.test(html),false,file+': Google auth/mailbox OAuth forbidden');
+const home=fs.readFileSync(path.join(source,'index.html'),'utf8');
+assert.match(home,/<meta name="robots" content="noindex,follow">/i,'Holding page must be noindex,follow');
+assert.ok(home.includes('Nieuwe website in ontwikkeling.'),'Holding copy missing');
+assert.ok(home.includes('https://app.boekuna.nl/?login=1'),'Holding login handoff missing');
+for(const old of ['editorial-hero','editorial-pricing','project-grid','audience-grid','Uploaden.<br>Controleren. Klaar.']){
+  assert.equal(home.includes(old),false,'Old marketing homepage content remains: '+old);
 }
+assert.ok(home.includes('/assets/baseline.css'),'Holding page must use only the clean baseline stylesheet');
+assert.equal(/<script\b/i.test(home),false,'Holding page must not ship marketing runtime JavaScript');
 
-const home=fs.readFileSync(path.join(src,'index.html'),'utf8');
-for(const text of ['Je bent ondernemer.','Geen boekhouder.','Probeer Boekuna gratis','Boekuna doet het voorwerk.']){
-  assert.ok(home.includes(text),'Homepage copy missing: '+text);
+for(const slug of retired){
+  assert.equal(fs.existsSync(path.join(source,slug,'index.html')),false,'Retired marketing source page must be removed: '+slug);
 }
-for(const target of ['/facturen/','/bonnen/','/btw/','/bank/','/rapportages/']){
-  assert.ok(home.includes('href="'+target+'"'),'Homepage feature page missing '+target);
+for(const slug of preserved){
+  const file=path.join(source,slug,'index.html');
+  assert.ok(fs.existsSync(file),'Preserved public route missing: '+slug);
+  const html=fs.readFileSync(file,'utf8');
+  assert.ok(html.includes('/assets/baseline.css'),slug+': clean baseline stylesheet missing');
+  assert.equal(/\/assets\/(?:site|editorial-marketing|premium-marketing|onepage)\.css/.test(html),false,slug+': old marketing stylesheet still active');
+  assert.equal(/\/assets\/(?:site|editorial-marketing|premium-marketing|marketing)\.js/.test(html),false,slug+': old marketing runtime still active');
 }
-assert.equal(/<section id="assistent-home">/i.test(home),false,'Upcoming assistant must not have a Release 1 homepage section');
-const homeDescription=home.match(/<meta name="description" content="([^"]+)"/i)?.[1]||'';
-const homeOgDescription=home.match(/<meta property="og:description" content="([^"]+)"/i)?.[1]||'';
-assert.equal(/assistent/i.test(homeDescription+homeOgDescription),false,'Release 1 homepage metadata must describe live features only');
+const terms=fs.readFileSync(path.join(source,'voorwaarden','index.html'),'utf8');
+for(const detail of ['Kwinest','74542893','NL002477565B57','support@boekuna.nl'])assert.ok(terms.includes(detail),'Required business detail missing '+detail);
 
-const assistant=fs.readFileSync(path.join(src,'assistent','index.html'),'utf8');
-assert.ok(assistant.includes('Binnenkort'),'Assistant page must be clearly marked upcoming until product release');
-
-const pricing=fs.readFileSync(path.join(src,'prijzen','index.html'),'utf8');
-const js=fs.readFileSync(path.join(src,'assets','site.js'),'utf8');
-for(const price of ['€0','€9,95','€19,95'])assert.ok(pricing.includes(price)||js.includes(price),'Current pricing missing '+price);
-assert.equal(/€6,95|€14,95/.test(pricing+js),false,'Stale pricing must not return');
-assert.ok(/btw-aangifte direct indienen[\s\S]{0,220}Nog niet/i.test(js),'Direct VAT filing limitation must remain');
-assert.ok(/automatische bankkoppeling[\s\S]{0,220}Nog niet/i.test(js),'Live bank connection limitation must remain');
-assert.equal(/accounts\.google\.com|Doorgaan met Google|gmail\.send/i.test(js),false,'Google auth/mailbox OAuth must remain absent');
-
-const css=fs.readFileSync(path.join(src,'assets','site.css'),'utf8');
-assert.ok(css.includes("font-family:'Space Grotesk'"),'Space Grotesk font face missing');
-assert.ok(css.includes("font-family:'Inter'"),'Inter font face missing');
-assert.ok(css.includes('/assets/fonts/SpaceGrotesk-Variable.ttf'),'Built Space Grotesk reference missing');
-assert.ok(css.includes('/assets/fonts/InterVariable.woff2'),'Built Inter reference missing');
-assert.ok(css.includes('@media (prefers-reduced-motion: reduce)'),'Reduced-motion handling missing');
-
-for(const legal of ['privacy/index.html','voorwaarden/index.html','support/index.html','account-verwijderen/index.html']){
-  assert.ok(fs.existsSync(path.join(src,legal)),'Required existing legal/support route missing '+legal);
-}
-const terms=fs.readFileSync(path.join(src,'voorwaarden','index.html'),'utf8');
-for(const detail of ['Kwinest','74542893','NL002477565B57','support@boekuna.nl'])assert.ok(terms.includes(detail),'Verified business detail missing '+detail);
-
-const sitemap=fs.readFileSync(path.join(src,'sitemap.xml'),'utf8');
-for(const [,url] of pages)assert.ok(sitemap.includes(url),'Sitemap missing '+url);
+const sitemap=fs.readFileSync(path.join(source,'sitemap.xml'),'utf8');
+assert.equal(sitemap.includes('https://boekuna.nl/</loc>'),false,'Noindex holding root must not be in sitemap');
+for(const slug of preserved)assert.ok(sitemap.includes('https://boekuna.nl/'+slug+'/'), 'Sitemap missing preserved route '+slug);
+for(const slug of retired)assert.equal(sitemap.includes('https://boekuna.nl/'+slug+'/'),false,'Retired route remains in sitemap '+slug);
 
 const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{cwd:root,encoding:'utf8'});
 assert.equal(build.status,0,'Marketing build failed: '+(build.stderr||build.stdout));
 const dist=path.join(root,'dist','marketing');
-for(const [file] of pages)assert.ok(fs.existsSync(path.join(dist,file)),'Built page missing '+file);
-for(const legal of ['privacy/index.html','voorwaarden/index.html','support/index.html','account-verwijderen/index.html'])assert.ok(fs.existsSync(path.join(dist,legal)),'Built legal/support route missing '+legal);
-for(const font of ['SpaceGrotesk-Variable.ttf','InterVariable.woff2'])assert.ok(fs.existsSync(path.join(dist,'assets','fonts',font)),'Built font missing '+font);
-assert.ok(!fs.existsSync(path.join(dist,'manifest.webmanifest')),'Marketing artifact must not ship app PWA manifest');
 
-for(const live of ['functies','assistent','scanner','prijzen','veiligheid','faq']){
-  const built=fs.readFileSync(path.join(dist,live,'index.html'),'utf8');
-  assert.ok(built.includes('/assets/site.css'),live+': live multipage route was overwritten by redirect');
+for(const file of ['index.html','404.html','robots.txt','sitemap.xml','assets/baseline.css','assets/favicon.svg']){
+  assert.ok(fs.existsSync(path.join(dist,file)),'Built baseline missing '+file);
 }
-
-for(const live of ['index.html','functies/index.html','scanner/index.html','prijzen/index.html','veiligheid/index.html','faq/index.html']){
-  const built=fs.readFileSync(path.join(dist,live),'utf8');
-  assert.equal(/href="\/assistent\/"/i.test(built),false,live+': upcoming assistant leaked into primary Release 1 navigation');
+for(const slug of preserved)assert.ok(fs.existsSync(path.join(dist,slug,'index.html')),'Built preserved route missing '+slug);
+for(const slug of retired){
+  const file=path.join(dist,slug,'index.html');
+  assert.ok(fs.existsSync(file),'Built retired route holding missing '+slug);
+  const html=fs.readFileSync(file,'utf8');
+  assert.match(html,/<meta name="robots" content="noindex,follow">/i,slug+': retired route must be noindex');
+  assert.ok(html.includes('Nieuwe website in ontwikkeling.'),slug+': retired route must use holding response');
 }
-const builtAssistant=fs.readFileSync(path.join(dist,'assistent','index.html'),'utf8');
-assert.ok(builtAssistant.includes('Binnenkort'),'Roadmap assistant page must remain explicit about upcoming status');
-assert.equal(/data-nav="assistent"|>Persoonlijke assistent<\/a>|>Assistent<\/a>/i.test(builtAssistant),false,'Roadmap assistant page must not advertise itself as a live primary feature');
-for(const feature of ['facturen','bonnen','btw','bank','rapportages','mobiel','hoe-het-werkt']){
-  const built=fs.readFileSync(path.join(dist,feature,'index.html'),'utf8');
-  assert.ok(built.includes('<h1'),feature+': real feature page missing');
-  assert.equal(built.includes('location.replace('),false,feature+': must not redirect to homepage');
-  assert.ok(sitemap.includes('https://boekuna.nl/'+feature+'/'),feature+': sitemap missing');
+for(const obsolete of [
+  'assets/site.css','assets/site.js','assets/editorial-marketing.css','assets/editorial-marketing.js',
+  'assets/premium-marketing.css','assets/premium-marketing.js','assets/onepage.css','assets/marketing.js',
+  'assets/marketing-people','assets/stories','assets/product','manifest.webmanifest'
+]){
+  assert.equal(fs.existsSync(path.join(dist,obsolete)),false,'Obsolete/publicly unsafe marketing artifact shipped: '+obsolete);
 }
-assert.equal(home.includes('ondernemer-werkplek'),false,'No portrait photographs on homepage');
-for(const retired of ['btw-bank','voor-ondernemers','over','contact']){
-  const built=fs.readFileSync(path.join(dist,retired,'index.html'),'utf8');
-  assert.ok(built.includes('location.replace('),retired+': legacy redirect missing');
-}
-
-console.log('BOEKUNA multipage static QA: PASS');
+console.log('BOEKUNA marketing clean-slate static QA: PASS');
