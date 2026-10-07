@@ -1150,9 +1150,25 @@ def targeted_header_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any,qual
         r"datum|date|kvk|btw|vat|iban)\b",
         top_text,re.I,
     ))
+    invoice_like=bool(re.search(r"\b(?:factuur|invoice|creditnota|credit\s+note)\b",top_text,re.I))
+    invoice_number_evidence=False
+    top_lines=[norm_text(x) for x in top_text.splitlines() if norm_text(x)]
+    for i,line in enumerate(top_lines):
+        match=re.search(r"\b(?:factuurnummer|factuurnr|factuur\s*nr|invoice\s*(?:number|no|#)|document\s*number)\b\s*[:#-]?\s*(.*)$",line,re.I)
+        if not match:continue
+        remainder=norm_text(match.group(1))
+        if re.fullmatch(r"[A-Z0-9][A-Z0-9._/-]{2,50}",remainder,re.I) and re.search(r"\d",remainder):
+            invoice_number_evidence=True;break
+        if i+1<len(top_lines):
+            candidate=top_lines[i+1]
+            if re.fullmatch(r"[A-Z0-9][A-Z0-9._/-]{2,50}",candidate,re.I) and re.search(r"\d",candidate):
+                invoice_number_evidence=True;break
+    # A labelled invoice header without an actual number candidate is an
+    # evidence gap even when date/VAT/IBAN OCR confidence is otherwise high.
+    missing_invoice_candidate=invoice_like and not invoice_number_evidence
     # Skew alone is not enough reason to pay for a second OCR pass. If the first
-    # header pass is already strong and contains metadata anchors, keep it.
-    trigger=(len(top_rows)<2 or top_conf<.74 or ("IMAGE_SKEW" in flags and top_conf<.82 and not metadata_evidence))
+    # header pass is already strong and contains the required metadata, keep it.
+    trigger=(len(top_rows)<2 or top_conf<.74 or missing_invoice_candidate or ("IMAGE_SKEW" in flags and top_conf<.82 and not metadata_evidence))
     if not trigger:
         return {"text":"","rows":[],"confidence":None,"used":False}
     crop=img.crop((0,0,img.width,max(220,int(img.height*.46))))
@@ -1505,7 +1521,7 @@ def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tu
 
 def receipt_merchant_name(lines:list[str], company:dict)->str|None:
     own_names=[norm_text(str(company.get(k) or "")).lower() for k in ("name","tradeName")]
-    skip=re.compile(r"^(?:bon|kassabon|receipt|factuur|invoice|datum|date|tijd|time|totaal|total|subtotaal|subtotal|btw|vat|pin|cash|contant|wisselgeld|change|bedankt|thank you|www\.|https?://)",re.I)
+    skip=re.compile(r"^(?:bon|kassabon|receipt|factuur|invoice|datum|date|tijd|time|totaal|total|subtotaal|subtotal|btw|vat|pin|cash|contant|wisselgeld|change|bedankt|thank you|zakelijke\s+aankoop|aankoop|payment|betaald|www\.|https?://)",re.I)
     for line in lines[:18]:
         cand=norm_text(line)
         low=cand.lower()
@@ -1641,9 +1657,15 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     non_financial_return=bool(re.search(r"\b(?:retour[- ]?order|retouraanvraag|return[- ]?order|return authorization|rma)\b",low))
     invoice_evidence=bool(re.search(r"\b(?:factuur|invoice|creditnota|credit note|kassabon|receipt)\b",low))
     if non_financial_return and not invoice_evidence: dtype="other"
-    if dtype=="receipt" and not supplier.get("name"):
+    if dtype=="receipt":
         merchant=receipt_merchant_name(lines,company)
-        if merchant:supplier["name"]=merchant;sconf=max(sconf,.72)
+        weak_receipt_party=(
+            not supplier.get("name")
+            or sconf<.75
+            or bool(re.match(r"^(?:pin|cash|contant|totaal|total|btw|vat|datum|date|zakelijke\s+aankoop|aankoop)\b",str(supplier.get("name") or ""),re.I))
+        )
+        if merchant and weak_receipt_party:
+            supplier["name"]=merchant;sconf=max(sconf,.76)
     # if role extraction guessed own party, try to avoid assigning it as counterparty
     if supplier_own and dtype=="purchase_invoice": supplier={k:None for k in supplier}
     if customer_own and dtype=="sales_invoice": customer={k:None for k in customer}
