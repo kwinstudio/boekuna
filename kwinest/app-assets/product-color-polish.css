@@ -1,0 +1,502 @@
+/* BOEKUNA product-app colour & visual warmth polish.
+   App-only presentation layer. No layout, state, financial, OCR or backend semantics. */
+:root{
+  --app-ink:#1B1F23;
+  --app-bg:#F6F7F8;
+  --app-surface-elevated:#FFFFFF;
+  --app-muted:#8A949C;
+  --app-muted-strong:#5E6870;
+  --app-brand:#63D471;
+  --app-brand-hover:#55C965;
+  --app-brand-pressed:#48BA59;
+  --app-brand-soft:#ECFAEE;
+  --app-brand-border:#BFE9C6;
+  --app-border:#E4E7EA;
+  --app-border-strong:#CBD2D7;
+  --app-focus:#2E7D3A;
+  --status-success:#177A31;
+  --status-success-soft:#EDF9EF;
+  --status-warning:#B45309;
+  --status-warning-soft:#FEF3E2;
+  --status-error:#C2362B;
+  --status-error-soft:#FDECEA;
+  --status-info:#2563EB;
+  --status-info-soft:#EAF1FE;
+  --app-support:var(--app-brand);
+  --app-support-soft:var(--app-brand-soft);
+  --good:var(--status-success);
+  --warn:var(--status-warning);
+  --bad:var(--status-error);
+  --info:var(--status-info);
+  --accent:var(--app-brand);
+  --accent-ink:var(--app-ink);
+}
+
+/* Shell: neutral canvas, white working surfaces, brand only where it guides. */
+#mainApp{background:var(--app-bg)!important;color:var(--app-ink)!important}
+#mainApp .sidebar{
+  background:var(--app-surface-elevated)!important;
+  color:var(--app-ink)!important;
+  border-right-color:var(--app-border)!important;
+  box-shadow:none!important
+}
+#mainApp .sidebar .bookuna-logo-icon{content:url("/assets/boekuna-symbol.svg")!important}
+#mainApp .sidebar .brand,
+#mainApp .sidebar .bookuna-wordmark{color:var(--app-ink)!important}
+#mainApp .sidebar .bookuna-wordmark>span{color:var(--app-brand)!important}
+#mainApp .sidebar .brand small,
+#mainApp .sidebar .bookuna-wordmark small,
+#mainApp .sidebar .nav-group{color:var(--app-muted-strong)!important}
+#mainApp .sidebar .nav-item{
+  color:#3A4148!important;
+  background:transparent!important;
+  box-shadow:inset 0 0 0 0 transparent!important
+}
+#mainApp .sidebar .nav-item:hover{
+  background:var(--app-bg)!important;
+  color:var(--app-ink)!important
+}
+#mainApp .sidebar .nav-item.active{
+  background:var(--app-brand-soft)!important;
+  color:var(--app-ink)!important;
+  box-shadow:inset 3px 0 0 var(--app-brand)!important;
+  font-weight:750!important
+}
+#mainApp .sidebar .nav-item.active .icon,
+#mainApp .sidebar .nav-item.active .icon-wrap{color:var(--app-focus)!important}
+#mainApp .topbar{
+  background:var(--app-surface-elevated)!important;
+  border-color:var(--app-border)!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important
+}
+#mainApp .content{color:var(--app-ink)!important}
+#mainApp .page-status,
+#mainApp .section-meta,
+#mainApp .metric-sub{color:var(--app-muted-strong)!important}
+
+/* Surfaces: warmer through rhythm and borders, not decorative colour blocks. */
+#mainApp :is(.card,.table-card,.mini-kpi,.list-toolbar,.settings-compact,.documents-workspace,.settings-disclosure,.profile-sections,.profile-section-wide),
+#modalRoot .modal{
+  background:var(--app-surface-elevated)!important;
+  border-color:var(--app-border)!important
+}
+#mainApp :is(.card,.table-card,.mini-kpi,.list-toolbar,.settings-compact,.documents-workspace,.settings-disclosure,.profile-sections,.profile-section-wide){
+  box-shadow:0 1px 2px rgba(27,31,35,.035)!important
+}
+#mainApp .hero-strip{
+  background:var(--app-surface-elevated)!important;
+  color:var(--app-ink)!important;
+  border:1px solid var(--app-border)!important;
+  border-left:3px solid var(--app-brand)!important
+}
+#mainApp .hero-strip:after{display:none!important}
+#mainApp .hero-strip p{color:var(--app-muted-strong)!important}
+
+/* KPI cards: consistent brand badge; semantic tone only when the class has meaning. */
+#mainApp :is(.dashboard-kpi,.product-kpi){
+  position:relative;
+  background:var(--app-surface-elevated)!important;
+  border-color:var(--app-border)!important
+}
+#mainApp :is(.dashboard-kpi,.product-kpi):hover{border-color:var(--app-border-strong)!important}
+#mainApp :is(.metric-icon,.product-kpi-icon){
+  background:var(--app-brand-soft)!important;
+  color:var(--app-focus)!important;
+  border:1px solid var(--app-brand-border)!important
+}
+#mainApp :is(.kpi-tone-primary,.kpi-tone-neutral,.kpi-tone-support) :is(.metric-value,.product-kpi-value){color:var(--app-ink)!important}
+#mainApp .kpi-tone-support{border-top-color:var(--app-border-strong)!important}
+#mainApp .kpi-tone-support :is(.metric-icon,.product-kpi-icon){
+  background:var(--app-brand-soft)!important;
+  color:var(--app-focus)!important;
+  border-color:var(--app-brand-border)!important
+}
+#mainApp .kpi-tone-success :is(.metric-icon,.product-kpi-icon){
+  background:var(--status-success-soft)!important;
+  color:var(--status-success)!important;
+  border-color:#BFE3C9!important
+}
+#mainApp .kpi-tone-warning :is(.metric-icon,.product-kpi-icon){
+  background:var(--status-warning-soft)!important;
+  color:var(--status-warning)!important;
+  border-color:#F1D7AC!important
+}
+#mainApp .kpi-tone-error :is(.metric-icon,.product-kpi-icon){
+  background:var(--status-error-soft)!important;
+  color:var(--status-error)!important;
+  border-color:#F2C8C3!important
+}
+#mainApp .kpi-tone-info :is(.metric-icon,.product-kpi-icon){
+  background:var(--status-info-soft)!important;
+  color:var(--status-info)!important;
+  border-color:#C9D8FB!important
+}
+#mainApp .dashboard-kpi-profit{border-color:var(--app-brand-border)!important}
+#mainApp .dashboard-kpi-receivables.has-attention{border-color:#F1D7AC!important}
+#mainApp .dashboard-kpi-receivables.has-attention :is(.metric-icon,.product-kpi-icon){background:var(--status-warning-soft)!important;color:var(--status-warning)!important;border-color:#F1D7AC!important}
+#mainApp .dashboard-new-invoice{
+  background:var(--app-brand-soft)!important;
+  border-color:var(--app-brand-border)!important
+}
+
+/* Primary, secondary and destructive actions. */
+#mainApp .btn,
+#modalRoot .btn{
+  background:var(--app-surface-elevated)!important;
+  color:var(--app-ink)!important;
+  border-color:var(--app-border-strong)!important;
+  box-shadow:none!important
+}
+#mainApp .btn:hover,
+#modalRoot .btn:hover{background:var(--app-bg)!important}
+#mainApp :is(.btn.primary,.btn.accent),
+#modalRoot :is(.btn.primary,.btn.accent){
+  background:var(--app-brand)!important;
+  border-color:var(--app-brand)!important;
+  color:var(--app-ink)!important
+}
+#mainApp :is(.btn.primary,.btn.accent):hover,
+#modalRoot :is(.btn.primary,.btn.accent):hover{
+  background:var(--app-brand-hover)!important;
+  border-color:var(--app-brand-hover)!important
+}
+#mainApp :is(.btn.primary,.btn.accent):active,
+#modalRoot :is(.btn.primary,.btn.accent):active{
+  background:var(--app-brand-pressed)!important;
+  border-color:var(--app-brand-pressed)!important
+}
+#mainApp .btn.danger,
+#modalRoot .btn.danger{
+  background:var(--app-surface-elevated)!important;
+  color:var(--status-error)!important;
+  border-color:#E7A9A2!important
+}
+#mainApp .btn.danger:hover,
+#modalRoot .btn.danger:hover{background:var(--status-error-soft)!important}
+#mainApp :is(.link-btn,.text-link){color:var(--status-success)!important}
+
+/* Keyboard focus: distinct from selected/active state and visible on white/green. */
+#mainApp :is(button,a,input,select,textarea,summary):focus-visible,
+#modalRoot :is(button,a,input,select,textarea,summary):focus-visible{
+  outline:3px solid var(--app-focus)!important;
+  outline-offset:2px!important;
+  box-shadow:0 0 0 2px var(--app-surface-elevated)!important
+}
+
+/* Forms: white fields, neutral border, green focus, semantic validation. */
+#mainApp :is(.field input,.field select,.field textarea,.list-search),
+#modalRoot :is(.field input,.field select,.field textarea,.auth-field input,.auth-field select,.auth-field textarea){
+  background:var(--app-surface-elevated)!important;
+  color:var(--app-ink)!important;
+  border-color:var(--app-border-strong)!important
+}
+#mainApp :is(.field input,.field select,.field textarea,.list-search):focus,
+#modalRoot :is(.field input,.field select,.field textarea,.auth-field input,.auth-field select,.auth-field textarea):focus{
+  border-color:var(--app-focus)!important;
+  box-shadow:0 0 0 3px rgba(99,212,113,.24)!important
+}
+#mainApp :is(input,select,textarea)[aria-invalid="true"],
+#modalRoot :is(input,select,textarea)[aria-invalid="true"]{
+  border-color:var(--status-error)!important;
+  box-shadow:0 0 0 3px rgba(194,54,43,.12)!important
+}
+#mainApp :is(input,select,textarea):disabled,
+#modalRoot :is(input,select,textarea):disabled{
+  background:#EFF1F3!important;
+  color:var(--app-muted-strong)!important;
+  opacity:1!important
+}
+
+/* Filters and segmented controls: selected state has shape + weight, not colour alone. */
+#mainApp :is(.filter-btn,.list-filter-chip,.list-clear-filters,.period-chip){
+  background:var(--app-surface-elevated)!important;
+  color:var(--app-ink)!important;
+  border-color:var(--app-border-strong)!important
+}
+#mainApp :is(.filter-btn,.list-filter-chip).active,
+#mainApp :is(.filter-btn,.list-filter-chip)[aria-pressed="true"]{
+  background:var(--app-brand-soft)!important;
+  color:var(--app-ink)!important;
+  border-color:var(--app-brand)!important;
+  box-shadow:inset 0 0 0 1px var(--app-focus)!important;
+  font-weight:800!important
+}
+#mainApp :is(.dashboard-period-select,.financial-period-select,.report-period-head select){
+  background-color:var(--app-surface-elevated)!important;
+  color:var(--app-ink)!important;
+  border-color:var(--app-border-strong)!important
+}
+#mainApp :is(.dashboard-period-select,.financial-period-select,.report-period-head select):focus-visible{
+  border-color:var(--app-focus)!important
+}
+
+/* Tables and long lists: quiet separation, richer hover, no decorative striping. */
+#mainApp .table th{
+  background:var(--app-bg)!important;
+  color:var(--app-muted-strong)!important;
+  border-color:var(--app-border)!important
+}
+#mainApp .table td{border-color:#ECEFF1!important}
+#mainApp .table tbody tr:hover,
+#mainApp .mobile-card-row:hover{background:#F9FBF9!important}
+#mainApp .mobile-card-row{border-color:var(--app-border)!important}
+#mainApp .mobile-card-metadata{color:var(--app-muted-strong)!important}
+#mainApp .money-negative,
+#mainApp .mobile-card-side .money-negative,
+#mainApp .financial-table .money[style*="var(--bad)"]{color:var(--app-ink)!important}
+
+/* Semantic status system. Text/icon labels remain authoritative; colour reinforces meaning. */
+#mainApp :is(.badge.good,.success-box,.status-success),
+#modalRoot :is(.badge.good,.success-box,.status-success,.beginner-provenance.good){
+  background:var(--status-success-soft)!important;
+  color:var(--status-success)!important;
+  border-color:#BFE3C9!important
+}
+#mainApp :is(.badge.warn,.notice.warn,.status-warning),
+#modalRoot :is(.badge.warn,.notice.warn,.status-warning,.beginner-provenance.warn){
+  background:var(--status-warning-soft)!important;
+  color:var(--status-warning)!important;
+  border-color:#F1D7AC!important
+}
+#mainApp :is(.badge.bad,.status-error,.notice.error),
+#modalRoot :is(.badge.bad,.status-error,.notice.error,.normal-delete-error){
+  background:var(--status-error-soft)!important;
+  color:var(--status-error)!important;
+  border-color:#F2C8C3!important
+}
+#mainApp :is(.badge.info,.notice.info,.status-info),
+#modalRoot :is(.badge.info,.notice.info,.status-info){
+  background:var(--status-info-soft)!important;
+  color:var(--status-info)!important;
+  border-color:#C9D8FB!important
+}
+#mainApp .badge:not(.good):not(.warn):not(.bad):not(.info){
+  background:#F1F3F4!important;
+  color:#4F5961!important;
+  border-color:var(--app-border)!important
+}
+#mainApp .action-dot{background:var(--app-brand)!important}
+
+/* Dashboard attention has explicit semantic roles instead of decorative teal. */
+#mainApp .dashboard-attention-item{background:var(--app-surface-elevated)!important;border-color:var(--app-border)!important}
+#mainApp .dashboard-attention-item.urgent{background:var(--status-error-soft)!important;border-color:#F2C8C3!important}
+#mainApp .dashboard-attention-item.review{background:var(--status-warning-soft)!important;border-color:#F1D7AC!important}
+#mainApp .dashboard-attention-item.soon{background:var(--status-info-soft)!important;border-color:#C9D8FB!important}
+#mainApp .dashboard-attention-item.urgent .dashboard-attention-icon{background:#FFFFFF!important;color:var(--status-error)!important}
+#mainApp .dashboard-attention-item.review .dashboard-attention-icon{background:#FFFFFF!important;color:var(--status-warning)!important}
+#mainApp .dashboard-attention-item.soon .dashboard-attention-icon{background:#FFFFFF!important;color:var(--status-info)!important}
+#mainApp .dashboard-attention-state{background:var(--status-success-soft)!important;color:var(--status-success)!important}
+#mainApp .dashboard-attention-state.error{background:var(--status-error-soft)!important;color:var(--status-error)!important}
+#mainApp .dashboard-attention-state.loading{background:var(--app-bg)!important;color:var(--app-muted-strong)!important}
+
+/* Empty/loading states: friendly, neutral and action-first. */
+#mainApp :is(.beginner-empty-state,.assistant-empty),
+#modalRoot .beginner-preview-empty{
+  background:var(--app-surface-elevated)!important;
+  color:var(--app-muted-strong)!important;
+  border-color:var(--app-brand-border)!important
+}
+#mainApp :is(.beginner-empty-state,.assistant-empty) .icon{color:var(--app-focus)!important}
+
+/* Legacy product utility surfaces: remove decorative gradients/teal without touching marketing. */
+#mainApp .soft-panel,
+#modalRoot .soft-panel{
+  background:var(--app-surface-elevated)!important;
+  background-image:none!important;
+  border-color:var(--app-border)!important
+}
+#mainApp .feature-chip,
+#modalRoot .feature-chip{
+  background:var(--app-surface-elevated)!important;
+  color:var(--app-muted-strong)!important;
+  border-color:var(--app-border)!important
+}
+#mainApp .forecast-track,
+#modalRoot .forecast-track{background:#EEF1F3!important}
+#mainApp .forecast-track span,
+#modalRoot .forecast-track span{background:var(--app-brand)!important}
+#mainApp .processing-experience,
+#modalRoot .processing-experience{--pe-accent:var(--app-brand)!important}
+#mainApp .processing-shell,
+#modalRoot .processing-shell{
+  background:var(--app-surface-elevated)!important;
+  background-image:none!important;
+  border-color:var(--app-border)!important
+}
+#mainApp .processing-document,
+#mainApp .processing-queue-item,
+#modalRoot .processing-document,
+#modalRoot .processing-queue-item{
+  background:var(--app-surface-elevated)!important;
+  border-color:var(--app-border)!important;
+  box-shadow:none!important
+}
+#mainApp .processing-queue-item[data-state="completed"] .processing-queue-icon,
+#modalRoot .processing-queue-item[data-state="completed"] .processing-queue-icon{
+  background:var(--status-success-soft)!important;
+  color:var(--status-success)!important;
+  border-color:#BFE3C9!important
+}
+#mainApp .processing-queue-item[data-state="failed"] .processing-queue-icon,
+#modalRoot .processing-queue-item[data-state="failed"] .processing-queue-icon{
+  background:var(--status-error-soft)!important;
+  color:var(--status-error)!important;
+  border-color:#F2C8C3!important
+}
+#mainApp .processing-error,
+#modalRoot .processing-error{
+  background:var(--status-error-soft)!important;
+  border-color:#F2C8C3!important
+}
+#mainApp .processing-review-skeleton div,
+#modalRoot .processing-review-skeleton div{
+  background:#F1F3F4!important;
+  border-color:var(--app-border)!important
+}
+#mainApp .processing-review-skeleton div::after,
+#modalRoot .processing-review-skeleton div::after{display:none!important}
+
+/* Modals, sheets and document review remain presentation-only. */
+#modalRoot{
+  color:var(--app-ink);
+  --text:var(--app-ink);
+  --text-muted:var(--app-muted-strong);
+  --border:var(--app-border);
+  --surface:var(--app-surface-elevated)
+}
+#modalRoot .modal{box-shadow:0 18px 50px rgba(27,31,35,.12)!important}
+#modalRoot :is(.modal-head,.modal-foot){background:var(--app-surface-elevated)!important;border-color:var(--app-border)!important}
+#modalRoot .beginner-confirmed{color:var(--status-success)!important}
+#modalRoot .review-important{border-left:3px solid var(--status-warning)!important}
+#modalRoot .review-wizard-progress span.active{background:var(--app-brand)!important}
+#modalRoot .review-checkbox:has(input:checked){
+  border-color:var(--app-brand)!important;
+  background:var(--app-brand-soft)!important
+}
+
+/* Charts/progress: brand + neutral; amber only when the underlying result needs attention. */
+#mainApp .chart .bar.sales{background:var(--app-brand)!important}
+#mainApp .chart-legend .legend-dot{background:var(--app-brand)!important}
+#mainApp .chart .bar.costs{background:#D8DDE1!important}
+#mainApp .chart-legend .legend-dot.cost{background:#D8DDE1!important}
+#mainApp .chart .bar.profit{background:var(--app-ink)!important}
+#mainApp .chart-legend .legend-dot.profit{background:var(--app-ink)!important}
+#mainApp .chart .bar.profit.loss{background:var(--status-warning)!important}
+#mainApp .progress span,#mainApp .mobile-admin-progress span{background:var(--app-brand)!important}
+#mainApp .category-row .progress span{background:#D8DDE1!important}
+
+/* Mobile navigation: same hierarchy, stronger selected destination.
+   aria-current is the semantic source of truth; the active class remains the visual/runtime companion. */
+#mobileBottomNav .mobile-bottom-nav-item[aria-current="page"]{
+  -webkit-appearance:none!important;
+  appearance:none!important;
+  background:#ECFAEE!important;
+  background-color:#ECFAEE!important;
+  background-image:none!important;
+  color:#1B1F23!important;
+  box-shadow:inset 0 2px 0 #63D471!important;
+  font-weight:800!important
+}
+#mobileBottomNav .mobile-bottom-nav-item[aria-current="page"] :is(.icon,span){color:#1B1F23!important}
+@media(max-width:820px){
+  .mobile-bottom-nav{
+    --app-ink:#1B1F23;
+    --app-brand:#63D471;
+    --app-brand-soft:#ECFAEE;
+    --app-border:#E4E7EA;
+    background:#FFFFFF!important;
+    border-top-color:var(--app-border)!important;
+    box-shadow:0 -4px 18px rgba(27,31,35,.045)!important
+  }
+  .mobile-bottom-nav-item{color:#5E6870!important}
+  #mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active{
+    -webkit-appearance:none!important;
+    appearance:none!important;
+    background:#ECFAEE!important;
+    background-color:#ECFAEE!important;
+    background-image:none!important;
+    color:#1B1F23!important;
+    box-shadow:inset 0 2px 0 #63D471!important;
+    font-weight:800!important
+  }
+  #mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active :is(.icon,span){color:#1B1F23!important}
+  .mobile-drawer-backdrop.open{background:rgba(27,31,35,.28)!important}
+}
+
+/* Motion remains restrained and respects the existing reduced-motion contract. */
+@media(prefers-reduced-motion:reduce){
+  #mainApp *,#mainApp *::before,#mainApp *::after,
+  #modalRoot *,#modalRoot *::before,#modalRoot *::after{
+    transition-duration:.01ms!important;
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important
+  }
+}
+
+/* Authentication / registration shell: product identity without legacy gradients. */
+#authRoot .auth-root{
+  background:var(--app-bg)!important;
+  background-image:none!important;
+  color:var(--app-ink)!important
+}
+#authRoot .auth-root::before,
+#authRoot .auth-root::after{display:none!important}
+#authRoot .auth-shell{
+  background:var(--app-surface-elevated)!important;
+  border:1px solid var(--app-border)!important;
+  box-shadow:0 16px 44px rgba(27,31,35,.10)!important
+}
+#authRoot .auth-side{
+  background:var(--app-brand-soft)!important;
+  background-image:none!important;
+  color:var(--app-ink)!important
+}
+#authRoot .auth-side .bookuna-logo-icon{content:url("/assets/boekuna-symbol.svg")!important}
+#authRoot .auth-side :is(.brand,h1,p,strong,span){color:var(--app-ink)!important}
+#authRoot .auth-form-wrap{background:var(--app-surface-elevated)!important}
+#authRoot .auth-form :is(h2,label){color:var(--app-ink)!important}
+#authRoot .auth-form>p,
+#authRoot .password-help,
+#authRoot .auth-legal{color:var(--app-muted-strong)!important}
+#authRoot .eyebrow{color:var(--status-success)!important}
+#authRoot .auth-field input{
+  background:var(--app-surface-elevated)!important;
+  color:var(--app-ink)!important;
+  border-color:var(--app-border-strong)!important
+}
+#authRoot .auth-field input:focus{
+  border-color:var(--app-focus)!important;
+  box-shadow:0 0 0 3px rgba(99,212,113,.24)!important
+}
+#authRoot .auth-root :is(button,a,input):focus-visible{
+  outline:3px solid var(--app-focus)!important;
+  outline-offset:2px!important
+}
+#authRoot .auth-root .btn{
+  background:var(--app-surface-elevated)!important;
+  color:var(--app-ink)!important;
+  border-color:var(--app-border-strong)!important;
+  box-shadow:none!important
+}
+#authRoot .auth-root .btn.primary{
+  background:var(--app-brand)!important;
+  color:var(--app-ink)!important;
+  border-color:var(--app-brand)!important
+}
+#authRoot .auth-root .btn.primary:hover{
+  background:var(--app-brand-hover)!important;
+  border-color:var(--app-brand-hover)!important
+}
+#authRoot .auth-root .btn.primary:disabled{
+  background:#DDE3DF!important;
+  color:#4F5961!important;
+  border-color:#DDE3DF!important
+}
+#authRoot :is(.auth-switch button,.auth-switch a,.auth-legal a,.password-toggle){color:var(--status-success)!important}
+#authRoot .auth-error.show,
+#authRoot input[aria-invalid="true"]~.password-help{color:var(--status-error)!important}
+@media(max-width:820px){
+  #authRoot .auth-root{background:var(--app-surface-elevated)!important}
+  #authRoot .auth-shell{border:0!important;box-shadow:none!important}
+}

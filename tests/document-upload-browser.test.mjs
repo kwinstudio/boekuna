@@ -150,6 +150,7 @@ let appHtml=original
   .replace("const DOCUMENT_PROCESSOR_URL='https://kwinest-docprocessor.onrender.com';",`const DOCUMENT_PROCESSOR_URL='${processorBase}';`);
 appHtml=replaceLast(appHtml,'initAuth();',`
 currentUser=TEST_USER;
+sessionStorage.setItem(FINANCIAL_PERIOD_KEY,'all');
 state=structuredClone(DEFAULT);
 for(const key of ['contacts','services','invoices','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])state[key]=[];
 state.company={...state.company,name:'QA PDF BV',tradeName:'Boekuna PDF QA',contactName:'QA',email:'qa-pdf@example.test',phone:'0100000000',address:'Teststraat 1',postal:'3011AA',city:'Rotterdam',country:'Nederland',kvk:'12345678',vat:'NL123456789B01',iban:'NL91ABNA0417164300',invoicePrefix:'2026-',paymentDays:14,kor:false};

@@ -17,6 +17,7 @@ let appHtml=original.replace('const TEST_MODE_NO_AUTH=false;','const TEST_MODE_N
 appHtml=replaceLast(appHtml,'initAuth();',String.raw`
 currentUser=TEST_USER;
 sessionStorage.removeItem(LIST_STATE_KEY);
+sessionStorage.setItem(FINANCIAL_PERIOD_KEY,'all');
 listState=loadListState();
 state=structuredClone(DEFAULT);
 for(const key of ['contacts','services','invoices','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])state[key]=[];
@@ -126,6 +127,17 @@ async function visibleRowTexts(){
 try{
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
   assert.equal(await page.locator('#globalSearch').count(),0,'Global cross-app search must not render');
+
+  await page.evaluate(()=>navigate('dashboard'));
+  assert.deepEqual(await page.locator('#dashboardPeriod option').allTextContents(),['Week','Maand','Kwartaal','Jaar','Altijd']);
+  await page.locator('#dashboardPeriod').selectOption('year');
+  await page.evaluate(()=>navigate('invoices'));
+  assert.equal(await page.locator('#incomePeriod').inputValue(),'year','Income inherits dashboard period');
+  await page.locator('#incomePeriod').selectOption('all');
+  await page.evaluate(()=>navigate('expenses'));
+  assert.equal(await page.locator('#expensePeriod').inputValue(),'all','Costs inherit income period');
+  await page.evaluate(()=>navigate('vat'));
+  assert.equal(await page.locator('#vatFinancialPeriod').inputValue(),'all','VAT inherits shared period');
 
   // FACTUREN — number/customer/amount search + status/period/customer filters + sort + clear behavior.
   await go('invoices');

@@ -16,6 +16,7 @@ function replaceLast(source,needle,replacement){
 
 const fixtureBootstrap=[
   "currentUser={...TEST_USER,email:'kwin@example.test',supabaseUser:{user_metadata:{first_name:'Kwin'}}};",
+  "sessionStorage.setItem(FINANCIAL_PERIOD_KEY,'all');",
   "state=structuredClone(DEFAULT);",
   "state.company={...state.company,name:'QA Test BV',tradeName:'Boekuna QA',contactName:'Kwin',email:'qa@example.test',address:'Teststraat 1',postal:'3011AA',city:'Rotterdam',country:'Nederland',kvk:'12345678',vat:'NL123456789B01',iban:'NL91ABNA0417164300',kor:false};",
   "state.contacts=[{id:'c1',type:'customer',name:'QA Klant BV',email:'klant@example.test',address:'Klantstraat 2',postal:'3012BB',city:'Rotterdam'}];",
@@ -26,6 +27,7 @@ const fixtureBootstrap=[
   "state.plannedCash=[{id:'pc1',date:'2026-10-15',description:'QA geplande uitgave',type:'out',amount:25}];",
   "state.documents=[{id:'d1',name:'qa-document.pdf',type:'Upload',date:'2026-09-05',processingState:'ready'}];state.bookings=[];",
   "documentProcessingJobs=[];documentProcessingInitialized=true;documentProcessingConnectivityLost=false;documentProcessingFetchError=false;",
+  "sessionStorage.setItem(FINANCIAL_PERIOD_KEY,'all');",
   "enterApp();"
 ].join('\n');
 
@@ -129,7 +131,7 @@ try{
   assert.doesNotMatch(invoices,/Factuurcheck actief\./,'Invoice page should not carry a permanent invoice-check notice');
   const newInvoiceButton=page.getByRole('button',{name:/Nieuwe factuur|Factuur maken/});
   assert.ok(await newInvoiceButton.isVisible());
-  assert.ok(await page.getByRole('button',{name:/Upload PDF/}).isVisible());
+  assert.ok(await page.getByRole('button',{name:'Factuur uploaden',exact:true}).isVisible());
   await newInvoiceButton.click();
   await page.locator('#invoiceCheck').waitFor();
   const invoiceCheckText=await page.locator('#invoiceCheck').innerText();
@@ -205,19 +207,56 @@ try{
   const vat=await page.locator('#content').innerText();
   assert.match(vat,/geen officiële indiening|niet naar de Belastingdienst/i,'VAT must retain not-submitted meaning');
   assert.match(vat,/indicati(?:e|ef)/i,'VAT must retain indicative meaning');
-  const vatPeriod=page.locator('#vatPeriod');
-  assert.ok(await vatPeriod.isVisible(),'VAT period selector must be visible');
-  assert.ok((await vatPeriod.locator('option').allTextContents()).includes('Jaar'),'VAT must expose a full-year option');
+  const vatPeriod=page.locator('#vatFinancialPeriod');
+  assert.ok(await vatPeriod.isVisible(),'VAT shared period selector must be visible');
+  assert.deepEqual(await vatPeriod.locator('option').allTextContents(),['Week','Maand','Kwartaal','Jaar','Altijd']);
   await vatPeriod.selectOption('year');
-  assert.match(await page.locator('#content').innerText(),/Jaar 2026/,'VAT year view must clearly identify the selected year');
+  assert.equal((await page.locator('.premium-split .section-meta').first().innerText()).trim(),String(new Date().getFullYear()),'VAT year view must clearly identify the selected year');
+
+  // Compact copy is the default. Help is an account-level setting, never a financial calculation toggle.
+  await navigateTo('dashboard');
+  assert.equal(await page.evaluate(()=>extraHelpVisible()),false,'Account should start in compact mode');
+  const compactDashboard=await page.locator('#content').innerText();
+  assert.doesNotMatch(compactDashboard,/Omzet minus kosten/,'Compact dashboard should not repeat the profit formula');
+  assert.doesNotMatch(compactDashboard,/Op basis van je huidige administratie/,'Compact dashboard should not repeat the VAT calculation context');
+  await navigateTo('settings');
+  // Source-artifact QA validates the preference itself; generated-app QA validates
+  // the mobile Weergave navigation entry.
+  const helpSwitch=page.getByRole('switch',{name:'Extra uitleg tonen'});
+  assert.equal(await helpSwitch.isChecked(),false,'Extra explanation must be disabled by default');
+  await helpSwitch.check();
+  assert.equal(await page.evaluate(()=>extraHelpVisible()),true,'Switch turns help on for the current account');
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem(userDataKey())).meta.extraHelpEnabled),true,'Extra help setting must be saved with the account');
+  await navigateTo('dashboard');
+  assert.match(await page.locator('#content').innerText(),/Omzet minus kosten/,'Explanation should be visible when enabled');
+  await navigateTo('settings');
+  await page.getByRole('switch',{name:'Extra uitleg tonen'}).uncheck();
+  assert.equal(await page.evaluate(()=>extraHelpVisible()),false,'Compact mode is restored');
+  await navigateTo('vat');
+  const compactVat=await page.locator('#content').innerText();
+  assert.match(compactVat,/Indicatie/i,'Critical VAT uncertainty information is never hidden');
+  assert.match(compactVat,/geen officiële indiening|niet naar de Belastingdienst/i,'Legal VAT handoff remains visible');
 
   await navigateTo('reports');
-  const reportText=await page.locator('#content').innerText();
-  for(const label of ['Maand','Kwartaal','Jaar','PDF'])assert.match(reportText,new RegExp(label),'Reports toolbar missing '+label);
-  for(const label of ['Maand','Kwartaal','Jaar'])assert.ok(await page.getByRole('button',{name:label,exact:true}).isVisible());
-  await page.getByRole('button',{name:'Maand',exact:true}).click();
-  const reportRange=await page.evaluate(()=>reportRange());
-  assert.ok(reportRange.from<=reportRange.to,'Report period resolver must return an inclusive ordered range');
+  const reportPeriod=page.locator('#reportPeriodPreset');
+  assert.ok(await reportPeriod.isVisible(),'Compact report period picker must be visible');
+  assert.deepEqual(await reportPeriod.locator('option').allTextContents(),['Week','Maand','Kwartaal','Jaar','Altijd']);
+  assert.equal(await page.locator('.report-period-details').evaluate(el=>el.open),false,'Custom dates must stay collapsed initially');
+  await reportPeriod.selectOption('month');
+  assert.equal(await page.evaluate(()=>sessionStorage.getItem('reportPreset')),'month','Report period should update from compact selector');
+  const monthRange=await page.evaluate(()=>reportRange());
+  assert.ok(monthRange.from<=monthRange.to,'Report month period must return an inclusive ordered range');
+  await page.locator('#reportPeriodPreset').selectOption('all');
+  assert.equal(await page.evaluate(()=>sessionStorage.getItem('reportPreset')),'all');
+  assert.match(await page.locator('.report-period-dates').innerText(),/Alle boekjaren/);
+  assert.ok((await page.locator('.report-result-chart .bar-group').count())<=12,'All-time chart should avoid 48 tiny monthly bars');
+  await page.locator('.report-period-details > summary').click();
+  assert.equal(await page.locator('.report-period-details').evaluate(el=>el.open),true,'Custom date fields open on demand');
+  await page.locator('#reportFrom').fill('2024-01-01');
+  await page.locator('#reportFrom').dispatchEvent('change');
+  assert.equal(await page.evaluate(()=>sessionStorage.getItem('reportPreset')),'custom','Manual dates must switch the report to a custom range');
+  assert.equal(await page.evaluate(()=>reportRange().from),'2024-01-01','Manually chosen start date must be retained');
+  assert.equal(await page.locator('.report-period-details').evaluate(el=>el.open),true,'Manual dates remain expanded after render');
 
   await navigateTo('control');
   const control=await page.locator('#content').innerText();

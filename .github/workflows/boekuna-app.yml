@@ -13,6 +13,8 @@ on:
       - "public/assets/mobile-polish-round-2.*"
       - "public/assets/mobile-product.*"
       - "public/assets/brand-v2.css"
+      - "kwinest/app-assets/product-color-polish.css"
+      - "kwinest/app-assets/product-ux-polish-round-3.css"
       - "public/assets/boekuna-app-icon*"
       - "public/assets/boekuna-favicon.svg"
       - "public/assets/boekuna-symbol*.svg"
@@ -273,6 +275,7 @@ jobs:
           path: |
             tests/artifacts/smart-financial-correction-*.png
             tests/artifacts/document-processing-*.png
+            tests/artifacts/document-review-*.png
             tests/artifacts/mobile-dashboard-*.png
             tests/artifacts/premium-*.png
             tests/artifacts/premium-v2-*.png

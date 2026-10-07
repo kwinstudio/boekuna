@@ -39,6 +39,7 @@
 .saved-review-vat span{font-size:13px;color:var(--text-muted)}
 .mobile-review-actions button,.beginner-review button,.beginner-review select,.beginner-review input{min-height:44px}
 @media(min-width:821px){
+  .mobile-review-actions{display:none!important}
   .document-review-flow.beginner-review{display:grid!important;grid-template-columns:minmax(320px,.9fr) minmax(440px,1.1fr);gap:18px;align-items:start}
   .beginner-review .mobile-review-progress{display:none!important}
   .beginner-review>.review-step-preview{display:block!important;grid-column:1;position:sticky;top:0}
@@ -48,6 +49,7 @@
   .beginner-review .mobile-only-review{display:none!important}
 }
 @media(max-width:820px){
+  .desktop-review-actions{display:none!important}
   .document-review-flow.beginner-review .review-step{display:none}
   .document-review-flow.beginner-review .review-step.active{display:block}
   .beginner-review .mixed-vat-row{grid-template-columns:1fr 1fr}
@@ -157,10 +159,28 @@
 .two-step-review .review-amount-glance strong{font-size:21px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .two-step-review .compact-review-warning{margin:0;padding:10px 12px;border-radius:12px;font-size:13px}
 .two-step-review .compact-adjustment{margin:0;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--app-surface,#f6f7f8)}
-.two-step-review .beginner-review-state{margin:0}
+.two-step-review .beginner-review-state{margin:0;row-gap:8px;min-width:0}
+.two-step-review .beginner-review-state>strong,.two-step-review .beginner-review-state>span,.two-step-review .beginner-review-state>.beginner-issue-list{display:block;min-width:0}
+.two-step-review .beginner-review-state>strong{line-height:1.35}
+.two-step-review .beginner-issue-list{gap:7px}
+.two-step-review .beginner-issue{display:block;width:100%;padding:3px 0;line-height:1.45;white-space:normal;overflow-wrap:anywhere}
+.two-step-review .foreign-currency-review{gap:12px}
+.two-step-review .foreign-currency-fields{display:grid;grid-template-columns:minmax(110px,.55fr) minmax(0,1.45fr);gap:12px;align-items:start}
+.two-step-review .foreign-currency-fields .field{margin:0;min-width:0}
+.two-step-review .foreign-rate-equation{display:grid;grid-template-columns:auto minmax(100px,1fr) auto;gap:8px;align-items:center}
+.two-step-review .foreign-rate-equation span{font-size:13px;white-space:nowrap}
+.two-step-review .foreign-rate-equation input{width:100%;min-width:0}
+.two-step-review .exchange-rate-status,.two-step-review .exchange-rate-preview{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:12px;font-size:13px;line-height:1.45;overflow-wrap:anywhere}
+.two-step-review .exchange-rate-status{background:var(--app-surface,#f6f7f8);color:var(--text-muted)}
+.two-step-review .exchange-rate-status.warn{background:var(--status-warning-soft,#fff6df);color:var(--status-warning,#946200)}
+.two-step-review .exchange-rate-status.good{background:var(--status-success-soft,#edf9ef);color:var(--status-success,#218838)}
+.two-step-review .exchange-rate-preview{background:var(--app-surface,#f6f7f8);border:1px solid var(--border)}
+.two-step-review .exchange-rate-preview:empty{display:none}
+.saved-review-fx{display:flex;flex-direction:column;gap:5px;padding:12px 13px;border-top:1px solid var(--border);background:var(--app-surface,#f6f7f8)}
+.saved-review-fx span{font-size:13px;color:var(--text-muted);overflow-wrap:anywhere}
 .two-step-review .review-hidden-scalar{display:none!important}
 .two-step-review [data-review-net-editor][hidden]{display:none!important}
-.review-wizard-actions{width:100%;display:flex;gap:10px;justify-content:flex-end}
+.review-wizard-actions{width:100%;gap:10px;justify-content:flex-end}
 .review-wizard-actions .btn[hidden]{display:none!important}
 .review-wizard-actions .btn{min-height:44px}
 .two-step-review .review-original-panel.open{display:block}
@@ -180,6 +200,8 @@
   .two-step-review .review-wizard-head{margin-bottom:8px}
   .two-step-review .review-page-copy h4{font-size:20px}
   .two-step-review .review-wizard-grid{grid-template-columns:1fr;gap:10px}
+  .two-step-review .foreign-currency-fields{grid-template-columns:1fr}
+  .two-step-review .foreign-rate-equation{grid-template-columns:auto minmax(0,1fr) auto}
   .two-step-review .review-wizard-grid .field.full{grid-column:auto}
   .two-step-review .review-wizard-page{gap:11px}
   .two-step-review .review-amount-glance{padding:10px 12px}

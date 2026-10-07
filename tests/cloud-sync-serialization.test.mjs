@@ -69,6 +69,7 @@ getSupabase=async()=>({
   })
 });
 function assertCloudRpc(name){if(name!=='save_ledger_state')throw new Error('Unexpected RPC '+name)}
+setBootstrapVisible(false);setProductUiAuthenticated(true);
 document.getElementById('authRoot').innerHTML='';
 document.getElementById('mainApp').style.display='grid';
 `;

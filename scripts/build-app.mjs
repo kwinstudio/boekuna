@@ -180,19 +180,21 @@ if(!appHtml.includes("else if(wantsRegister)showAuth('register');else showAuth('
 }
 
 // App-only progressive document review layer. Keep the combined rollback source untouched.
-// This legacy source contains literal </head> and </body> strings inside templates,
-// so injection must target the final document closing tags, never the first match.
+// The source contains literal </head> tokens inside print templates, so stylesheet
+// injection must use the unique real document head/body boundary. The final </body>
+// remains the real document closing tag and is safe for the review runtime.
 function injectBeforeLast(html,marker,content){
   const index=html.lastIndexOf(marker);
   if(index<0)throw new Error('Missing app document marker: '+marker);
   return html.slice(0,index)+content+html.slice(index);
 }
-appHtml=injectBeforeLast(appHtml,'</head>','<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261004c">\n');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review-v2.js?v=20261004c"></script>\n');
-// The real head precedes the app body; later </head> tokens belong to print templates.
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review-v2.js?v=20261006fx1"></script>\n');
 const mobileHeadBoundary='</head>\n<body>';
 if(!appHtml.includes(mobileHeadBoundary))throw new Error('Mobile app head boundary changed');
-appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n'+mobileHeadBoundary);
+appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261006fx2">\n<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261003a" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/product-color-polish.css?v=20261006a">\n<style id="boekuna-app-mobile-compact-overrides">@media (max-width:820px){#mainApp #appMain #content.content{padding-top:14px!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active{-webkit-appearance:none!important;appearance:none!important;background:#ECFAEE!important;background-color:#ECFAEE!important;background-image:none!important;color:#1B1F23!important;box-shadow:none!important;border-top:2px solid #63D471!important;font-weight:800!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active .icon,#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active span{color:#1B1F23!important}}@media (max-width:359px){#mainApp .product-kpis.grid-4{grid-template-columns:1fr!important}}</style>\n<link rel="stylesheet" href="/assets/product-ux-polish-round-3.css?v=20261007a">\n'+mobileHeadBoundary);
+const mobileNavStateMarker="function syncMobileNavigationState(){\n const current=mobilePrimarySection(page);\n document.querySelectorAll('[data-mobile-page]').forEach(btn=>{const active=btn.dataset.mobilePage===current;btn.classList.toggle('active',active);if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current')});\n const more=document.querySelector('[data-mobile-more]');if(more){const active=current==='more';more.classList.toggle('active',active);if(active)more.setAttribute('aria-current','page');else more.removeAttribute('aria-current')}\n updateMobileAccountIdentity()\n}";
+if(!appHtml.includes(mobileNavStateMarker))throw new Error('Mobile navigation state marker changed');
+appHtml=appHtml.replace(mobileNavStateMarker,"function syncMobileNavigationState(){\n const current=mobilePrimarySection(page);\n document.querySelectorAll('[data-mobile-page]').forEach(btn=>{const active=btn.dataset.mobilePage===current;btn.classList.toggle('active',active);btn.style.setProperty('background-color',active?'#ECFAEE':'transparent','important');if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current')});\n const more=document.querySelector('[data-mobile-more]');if(more){const active=current==='more';more.classList.toggle('active',active);more.style.setProperty('background-color',active?'#ECFAEE':'transparent','important');if(active)more.setAttribute('aria-current','page');else more.removeAttribute('aria-current')}\n updateMobileAccountIdentity()\n}");
 const assistantRuntimeMarker='\n<script>\nconst USERS_KEY=';
 if(!appHtml.includes(assistantRuntimeMarker))throw new Error('Assistant app runtime marker changed');
 
@@ -323,6 +325,34 @@ if(!isReleaseFeatureEnabled(releaseFeatures,'foreignVatAdvancedUX')){
   appHtml=appHtml.replace(vatTreatmentField,'<input type="hidden" name="taxTreatment" id="taxTreatment" value="${esc(defaultTreatment)}">');
 }
 
+// App-only colour semantics: neutral financial amounts are not warnings.
+// Keep the rollback source untouched because PR #217 currently owns kwinest/index.html.
+const productToneReplacements=[
+  ["productKpi('Kosten',money(net),'','i-receipt','warning')","productKpi('Kosten',money(net),'','i-receipt','neutral')"],
+  ["productKpi('Te laat',money(overdue),'','i-clock','error')","productKpi('Te laat',money(overdue),'','i-clock',overdue>0?'error':'neutral')"],
+  ["sent:['Openstaand','info']","sent:['Openstaand','']"],
+  ["credit:['Credit','info']","credit:['Credit','']"],
+  ["productKpi('Uitgaven',money(out),extraHelpVisible()?'Negatieve bankregels':'','i-receipt','warning')","productKpi('Uitgaven',money(out),extraHelpVisible()?'Negatieve bankregels':'','i-receipt','neutral')"],
+  ["productKpi('Deze maand uitgegeven',money(spent),monthRows.length+' bankregel'+(monthRows.length===1?'':'s'),'i-receipt','warning')","productKpi('Deze maand uitgegeven',money(spent),monthRows.length+' bankregel'+(monthRows.length===1?'':'s'),'i-receipt','neutral')"],
+  ["productKpi('Kosten',money(costs),extraHelpVisible()?'Excl. btw':'','i-receipt','warning')","productKpi('Kosten',money(costs),extraHelpVisible()?'Excl. btw':'','i-receipt','neutral')"],
+  ["productKpi('Winstmarge',margin+'%',extraHelpVisible()?'Van omzet':'','i-chart',margin<0?'error':'primary')","productKpi('Winstmarge',margin+'%',extraHelpVisible()?'Van omzet':'','i-chart',margin<0?'warning':'primary')"],
+  ["dashboard-kpi dashboard-kpi-secondary kpi-tone-warning\" onclick=\"navigate(\\'expenses\\')","dashboard-kpi dashboard-kpi-secondary kpi-tone-neutral\" onclick=\"navigate(\\'expenses\\')"],
+  ["productKpi('Openstaand',money(open),'','i-file','support')","productKpi('Openstaand',money(open),'','i-file','neutral')"],
+  ["productKpi('Btw terug te vragen',money(vat),'','i-tax','support')","productKpi('Btw terug te vragen',money(vat),'','i-tax','neutral')"],
+  ["productKpi('Grootste categorie',largest[0],largestPct?largestPct+'%':'','i-folder','support')","productKpi('Grootste categorie',largest[0],largestPct?largestPct+'%':'','i-folder','neutral')"],
+  ["productKpi('Nog te ontvangen',money(open),openRows.length+' open factuur'+(openRows.length===1?'':'en'),'i-file','support')","productKpi('Nog te ontvangen',money(open),openRows.length+' open factuur'+(openRows.length===1?'':'en'),'i-file','neutral')"],
+  ["productKpi('Ontvangen btw',money(output),'','i-chart','support')","productKpi('Ontvangen btw',money(output),'','i-chart','neutral')"],
+  ["productKpi('Btw die je kunt terugvragen',money(input),'','i-receipt','support')","productKpi('Btw die je kunt terugvragen',money(input),'','i-receipt','neutral')"],
+  ["productKpi('Te verwerken',String(toProcess),extraHelpVisible()?'Nog niet gekoppeld':'','i-upload','support')","productKpi('Te verwerken',String(toProcess),extraHelpVisible()?'Nog niet gekoppeld':'','i-upload','neutral')"],
+  ["dashboard-kpi dashboard-kpi-secondary kpi-tone-support\" onclick=\"navigate(\\'vat\\')","dashboard-kpi dashboard-kpi-secondary kpi-tone-neutral\" onclick=\"navigate(\\'vat\\')"],
+  ["dashboard-kpi dashboard-kpi-secondary dashboard-kpi-receivables '+(kpi.overdueReceivables>0?'has-attention ':'')+'kpi-tone-support","dashboard-kpi dashboard-kpi-secondary dashboard-kpi-receivables '+(kpi.overdueReceivables>0?'has-attention ':'')+'kpi-tone-neutral"]
+];
+for(const [needle,replacement] of productToneReplacements){
+  const first=appHtml.indexOf(needle),second=first<0?-1:appHtml.indexOf(needle,first+needle.length);
+  if(first<0||second>=0)throw new Error('Product colour tone marker changed: '+needle);
+  appHtml=appHtml.slice(0,first)+replacement+appHtml.slice(first+needle.length);
+}
+
 const releaseRuntime="const BOEKUNA_RELEASE_PROFILE=Object.freeze("+JSON.stringify({name:releaseProfile.name,features:releaseFeatures})+");\nfunction releaseFeatureEnabled(key){return BOEKUNA_RELEASE_PROFILE.features?.[key]===true}\n";
 if(!appHtml.includes(assistantRuntimeMarker))throw new Error('Release runtime marker changed');
 appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script>\n'+releaseRuntime+'const USERS_KEY=');
@@ -341,7 +371,7 @@ for(const asset of appAssets){
 }
 
 // Document review is app-only. Keep the shared public/marketing copies byte-identical.
-for(const asset of ['document-review-v2.js','document-review-v2.css']){
+for(const asset of ['document-review-v2.js','document-review-v2.css','product-color-polish.css','product-ux-polish-round-3.css']){
   const sourceFile=path.join(root,'kwinest','app-assets',asset);
   if(!fs.existsSync(sourceFile))throw new Error('Missing app-only review asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
@@ -357,6 +387,16 @@ function patchBuiltAppAsset(asset,needle,replacement){
   if(first<0||second>=0)throw new Error('App-only asset patch marker changed: '+asset);
   fs.writeFileSync(file,source.slice(0,first)+replacement+source.slice(first+needle.length),'utf8');
 }
+patchBuiltAppAsset(
+  'mobile-product.js',
+  `    var review=dashboardAttentionItems().filter(function(item){return /document|bon/i.test(item.key+' '+item.title)});
+    // Existing attention entries supply their own authorized destination/action.
+    if(review.length){
+      var action=button('Documenten controleren',function(){review[0].action()},'btn mobile-vat-attention');
+      root.querySelector('.product-kpis')?.after(action);
+    }`,
+  `    // Btw stays an information screen; document review remains available from Bonnetjes/attention flows.`
+);
 if(assistantEnabled){
   patchBuiltAppAsset(
     'mobile-polish-round-2.js',
@@ -398,6 +438,20 @@ patchBuiltAppAsset(
 );
 patchBuiltAppAsset(
   'mobile-polish-round-2.js',
+  `      +'<section class="settings-group"><h2 class="settings-group-label">Bedrijf</h2><div class="settings-list">'
+      +settingsItem('Bedrijfsgegevens','Beheer je bedrijfsnaam, adres, contactgegevens en betaalinformatie.','navigate(\\'profile\\')')
+      +'</div></section>'
+      +'<section class="settings-group"><h2 class="settings-group-label">Facturen</h2>'`,
+  `      +'<section class="settings-group"><h2 class="settings-group-label">Bedrijf</h2><div class="settings-list">'
+      +settingsItem('Bedrijfsgegevens','Beheer je bedrijfsnaam, adres, contactgegevens en betaalinformatie.','navigate(\\'profile\\')')
+      +'</div></section>'
+      +'<section class="settings-group"><h2 class="settings-group-label">Weergave</h2><div class="card settings-compact">'
+      +'<label class="settings-view-toggle" for="extraHelpToggle"><span><strong>Extra uitleg tonen</strong></span><input type="checkbox" role="switch" id="extraHelpToggle" aria-label="Extra uitleg tonen" '+(extraHelpVisible()?'checked':'')+' onchange="setExtraHelpEnabled(this.checked)"></label>'
+      +'</div></section>'
+      +'<section class="settings-group"><h2 class="settings-group-label">Facturen</h2>'`
+);
+patchBuiltAppAsset(
+  'mobile-polish-round-2.js',
   `      +'<section class="settings-group"><h2 class="settings-group-label">Bedrijf</h2><div class="settings-list">'`,
   `      +'<section class="settings-group"><h2 class="settings-group-label">Mijn bedrijf</h2><div class="settings-list">'`
 );
@@ -431,6 +485,29 @@ if(assistantEnabled){
     "var titles=['Mijn bedrijf','Facturen','Boekhouding','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];"
   );
 }
+if(assistantEnabled){
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var titles=['Mijn bedrijf','Facturen','Boekhouding','Assistent & inzichten','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];",
+    "var titles=['Mijn bedrijf','Weergave','Facturen','Boekhouding','Assistent & inzichten','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];"
+  );
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Persoonlijke tips en samenvattingen','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];",
+    "var descriptions=['Naam, adres en betaalgegevens','Extra uitleg aan- of uitzetten','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Persoonlijke tips en samenvattingen','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];"
+  );
+}else{
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var titles=['Mijn bedrijf','Facturen','Boekhouding','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];",
+    "var titles=['Mijn bedrijf','Weergave','Facturen','Boekhouding','Beveiliging & privacy','Data & export','Abonnement & account','Account verwijderen'];"
+  );
+  patchBuiltAppAsset(
+    'mobile-product.js',
+    "var descriptions=['Naam, adres en betaalgegevens','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];",
+    "var descriptions=['Naam, adres en betaalgegevens','Extra uitleg aan- of uitzetten','Factuurlayout en e-mailbericht','Fiscale instellingen en reserves','Je account beschermen','Download of herstel je administratie','Je plan en account beheren','Acties met extra bevestiging'];"
+  );
+}
 
 if(!isReleaseFeatureEnabled(releaseFeatures,'serviceCatalog')){
   patchBuiltAppAsset(
@@ -455,4 +532,4 @@ patchBuiltAppAsset(
 fs.copyFileSync(interFontSource,path.join(appAssetsTarget,'app-InterVariable.woff2'));
 fs.copyFileSync(spaceGroteskFont,path.join(appAssetsTarget,'app-SpaceGrotesk-Variable.ttf'));
 
-console.log('App build complete:',path.relative(root,target),'with self-hosted Inter + Space Grotesk');
+console.log('App build complete:',path.relative(root,target),'with system UI typography polish');

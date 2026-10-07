@@ -1099,6 +1099,74 @@ def _ocr_row_bounds(row:dict[str,Any])->tuple[float,float,float,float]|None:
     except Exception:
         return None
 
+def _ocr_orientation_score(rows:list[dict[str,Any]]) -> tuple[float,bool]:
+    """Score whether OCR row order looks like an upright invoice/receipt.
+
+    The score only decides whether a bounded 90/180/270 retry is worth paying
+    for. It never changes extracted financial values.
+    """
+    if not rows:
+        return -20.0, True
+    texts=[norm_text(str(row.get("text") or "")) for row in rows if norm_text(str(row.get("text") or ""))]
+    if not texts:
+        return -20.0, True
+    count=max(1,len(texts))
+    def first(pattern:str)->int|None:
+        return next((i for i,text in enumerate(texts) if re.search(pattern,text,re.I)),None)
+    title=first(r"^(?:factuur|invoice|creditnota|credit\s+note|kassabon|receipt)\b")
+    date_idx=first(r"\b(?:factuurdatum|invoice\s*date|datum|date)\b")
+    subtotal_idx=first(r"\b(?:subtotaal|subtotal|netto|net\s+amount|bedrag\s+ex)\b")
+    vat_idx=first(r"\b(?:btw|vat|tax)\b")
+    total_idx=first(r"\b(?:totaal\s+te\s+betalen|grand\s+total|eindtotaal|totaal|total)\b")
+    score=0.0
+    if title is not None:
+        score += 8.0 if title <= max(2,int(count*.35)) else -10.0
+    if title is not None and date_idx is not None:
+        score += 3.0 if date_idx>title else -4.0
+    ordered=[x for x in (subtotal_idx,vat_idx,total_idx) if x is not None]
+    if len(ordered)>=2:
+        score += 8.0 if ordered==sorted(ordered) else -9.0
+    vertical=0
+    measured=0
+    for row in rows:
+        bounds=_ocr_row_bounds(row)
+        if not bounds:continue
+        measured+=1
+        width=max(1.0,bounds[2]-bounds[0]);height=max(1.0,bounds[3]-bounds[1])
+        if height>width*1.25:vertical+=1
+    vertical_ratio=(vertical/measured) if measured else 0.0
+    suspicious=vertical_ratio>=.35 or (title is not None and title>max(2,int(count*.55))) or score<0
+    return score,suspicious
+
+def _orthogonal_retry(img:Image.Image,rows:list[dict[str,Any]],engine:Any)->dict[str,Any]:
+    """Try bounded right-angle rotations only when row geometry/order is suspicious."""
+    semantic,suspicious=_ocr_orientation_score(rows)
+    if not suspicious:
+        return {"used":False,"rows":rows,"image":None,"angle":0,"score":ocr_candidate_score(rows)+semantic*3}
+    best_rows=rows
+    best_image=None
+    best_angle=0
+    best_score=ocr_candidate_score(rows)+semantic*3
+    for angle in (90,180,270):
+        rotated=img.rotate(angle,resample=Image.Resampling.BICUBIC,expand=True,fillcolor="white")
+        try:
+            tall=rotated.height>rotated.width*2.8
+            candidate=ocr_resized_rows(engine,rotated) if tall else ocr_rows(engine,rotated)
+            orientation_score,_=_ocr_orientation_score(candidate)
+            composite=ocr_candidate_score(candidate)+orientation_score*3
+        except Exception:
+            rotated.close()
+            continue
+        if composite>best_score+3.0:
+            if best_image is not None:best_image.close()
+            best_rows=candidate
+            best_image=rotated
+            best_angle=angle
+            best_score=composite
+        else:
+            rotated.close()
+    return {"used":best_image is not None,"rows":best_rows,"image":best_image,"angle":best_angle,"score":best_score}
+
 def targeted_financial_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any)->dict[str,Any]:
     """Re-scan only the financial band after the first full-page OCR."""
     bounds=[]
@@ -1150,9 +1218,30 @@ def targeted_header_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any,qual
         r"datum|date|kvk|btw|vat|iban)\b",
         top_text,re.I,
     ))
+    invoice_like=bool(re.search(r"\b(?:factuur|invoice|creditnota|credit\s+note)\b",top_text,re.I))
+    receipt_like=bool(re.search(r"\b(?:kassabon|receipt)\b",top_text,re.I))
+    invoice_context=invoice_like or bool(re.search(
+        r"\b(?:factuurnummer|factuurnr|factuurdatum|vervaldatum|invoice\s*(?:number|no|date)|due\s+date)\b",
+        top_text,re.I,
+    ))
+    invoice_number_evidence=False
+    top_lines=[norm_text(x) for x in top_text.splitlines() if norm_text(x)]
+    for i,line in enumerate(top_lines):
+        match=re.search(r"\b(?:factuurnummer|factuurnr|factuur\s*nr|invoice\s*(?:number|no|#)|document\s*number)\b\s*[:#-]?\s*(.*)$",line,re.I)
+        if not match:continue
+        remainder=norm_text(match.group(1))
+        if re.fullmatch(r"[A-Z0-9][A-Z0-9._/-]{2,50}",remainder,re.I) and re.search(r"\d",remainder):
+            invoice_number_evidence=True;break
+        if i+1<len(top_lines):
+            candidate=top_lines[i+1]
+            if re.fullmatch(r"[A-Z0-9][A-Z0-9._/-]{2,50}",candidate,re.I) and re.search(r"\d",candidate):
+                invoice_number_evidence=True;break
+    # A labelled invoice header without an actual number candidate is an
+    # evidence gap even when date/VAT/IBAN OCR confidence is otherwise high.
+    missing_invoice_candidate=invoice_context and not receipt_like and not invoice_number_evidence
     # Skew alone is not enough reason to pay for a second OCR pass. If the first
-    # header pass is already strong and contains metadata anchors, keep it.
-    trigger=(len(top_rows)<2 or top_conf<.74 or ("IMAGE_SKEW" in flags and top_conf<.82 and not metadata_evidence))
+    # header pass is already strong and contains the required metadata, keep it.
+    trigger=(len(top_rows)<2 or top_conf<.74 or missing_invoice_candidate or ("IMAGE_SKEW" in flags and top_conf<.82 and not metadata_evidence))
     if not trigger:
         return {"text":"","rows":[],"confidence":None,"used":False}
     crop=img.crop((0,0,img.width,max(220,int(img.height*.46))))
@@ -1160,6 +1249,10 @@ def targeted_header_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any,qual
         scale=min(2.0,OCR_WORKING_MAX_SIDE/max(1,crop.width))
         resized=crop.resize((max(1,int(crop.width*scale)),max(1,int(crop.height*scale))),Image.Resampling.LANCZOS)
         crop.close();crop=resized
+    deskew=float(((quality or {}).get("metrics") or {}).get("deskewAngle") or 0)
+    if abs(deskew)>=1.5 and abs(deskew)<=4.5 and "IMAGE_SKEW" in flags:
+        rotated_crop=crop.rotate(deskew,resample=Image.Resampling.BICUBIC,expand=False,fillcolor="white")
+        crop.close();crop=rotated_crop
     enhanced=enhanced_receipt_variant(crop)
     try:
         header_rows=ocr_rows(engine,enhanced)
@@ -1170,6 +1263,50 @@ def targeted_header_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any,qual
     confs=[float(r.get("confidence") or 0) for r in header_rows]
     conf=sum(confs)/len(confs) if confs else 0
     text="\n".join(r["text"] for r in header_rows)
+
+    def has_number_candidate(value:str)->bool:
+        check_lines=[norm_text(x) for x in str(value or "").splitlines() if norm_text(x)]
+        for i,line in enumerate(check_lines):
+            match=re.search(r"\b(?:factuurnummer|factuurnr|factuur\s*nr|invoice\s*(?:number|no|#)|document\s*number)\b\s*[:#-]?\s*(.*)$",line,re.I)
+            if not match:continue
+            remainder=norm_text(match.group(1))
+            if re.fullmatch(r"[A-Z0-9][A-Z0-9._/-]{2,50}",remainder,re.I) and re.search(r"\d",remainder):
+                return True
+            if i+1<len(check_lines):
+                candidate=check_lines[i+1]
+                if re.fullmatch(r"[A-Z0-9][A-Z0-9._/-]{2,50}",candidate,re.I) and re.search(r"\d",candidate):
+                    return True
+        return False
+
+    # If the broad header retry still only sees the invoice-number label, spend
+    # one final bounded pass on that exact row band. This is materially cheaper
+    # than re-OCRing the whole page and only runs for a proven missing candidate.
+    if missing_invoice_candidate and not has_number_candidate(text):
+        label_bounds=[
+            _ocr_row_bounds(row) for row in top_rows
+            if re.search(r"\b(?:factuurnummer|factuurnr|factuur\s*nr|invoice\s*(?:number|no|#)|document\s*number)\b",str(row.get("text") or ""),re.I)
+        ]
+        label_bounds=[b for b in label_bounds if b]
+        if label_bounds:
+            y0=max(0,int(min(b[1] for b in label_bounds)-img.height*.035))
+            y1=min(img.height,int(max(b[3] for b in label_bounds)+img.height*.055))
+            if y1-y0>=40:
+                number_crop=img.crop((0,y0,img.width,y1))
+                if abs(deskew)>=1.5 and abs(deskew)<=4.5 and "IMAGE_SKEW" in flags:
+                    corrected=number_crop.rotate(deskew,resample=Image.Resampling.BICUBIC,expand=False,fillcolor="white")
+                    number_crop.close();number_crop=corrected
+                number_enhanced=enhanced_receipt_variant(number_crop)
+                try:
+                    number_rows=ocr_rows(engine,number_enhanced)
+                finally:
+                    number_enhanced.close();number_crop.close()
+                number_text="\n".join(r["text"] for r in number_rows)
+                if number_rows and has_number_candidate(number_text):
+                    header_rows.extend(number_rows)
+                    text=(text+"\n"+number_text).strip()
+                    confs=[float(r.get("confidence") or 0) for r in header_rows]
+                    conf=sum(confs)/len(confs) if confs else conf
+
     # Do not inject a weak retry into the parser just because a retry happened.
     if conf<.74 or len(re.sub(r"\s+","",text))<8:
         return {"text":"","rows":[],"confidence":conf,"used":False}
@@ -1187,16 +1324,21 @@ def run_best_ocr(img:Image.Image, *, already_prepared:bool=False, quality:dict|N
         # Tall receipts get a cheap whole-receipt pass first. Only if critical
         # financial evidence is missing do we pay for overlapping tile OCR.
         rows1=ocr_resized_rows(engine,primary) if is_tall else ocr_rows(engine,primary)
+        orientation=_orthogonal_retry(primary,rows1,engine)
+        oriented=orientation.get("image")
+        working=oriented or primary
+        rows1=orientation.get("rows") or rows1
+        is_tall=working.height>working.width*2.8
         score1=ocr_candidate_score(rows1)
         text1="\n".join(r["text"] for r in rows1)
         conf1=sum(float(r.get("confidence") or 0) for r in rows1)/len(rows1) if rows1 else 0
         money1=len(MONEY_RE.findall(text1))
         keywords1=bool(re.search(r"\b(?:totaal|total|te betalen|amount due)\b",text1,re.I))
-        best_rows,best_score,best_variant=rows1,score1,("long-fast" if is_tall else "normalized-color")
+        best_rows,best_score,best_variant=rows1,score1,(f"rotated-{orientation.get('angle')}" if orientation.get("used") else ("long-fast" if is_tall else "normalized-color"))
 
-        deskew=float(((quality or {}).get("metrics") or {}).get("deskewAngle") or 0)
+        deskew=0.0 if orientation.get("used") else float(((quality or {}).get("metrics") or {}).get("deskewAngle") or 0)
         if abs(deskew)>=1.5 and abs(deskew)<=4.5 and "IMAGE_SKEW" in set((quality or {}).get("flags") or []):
-            rotated=primary.rotate(deskew,resample=Image.Resampling.BICUBIC,expand=False,fillcolor="white")
+            rotated=working.rotate(deskew,resample=Image.Resampling.BICUBIC,expand=False,fillcolor="white")
             try:
                 rowsd=ocr_resized_rows(engine,rotated) if is_tall else ocr_rows(engine,rotated)
             finally:
@@ -1207,12 +1349,12 @@ def run_best_ocr(img:Image.Image, *, already_prepared:bool=False, quality:dict|N
 
         need_financial_retry=(conf1<.88 or len(re.sub(r"\s+","",text1))<150 or money1<2 or not keywords1)
         if is_tall and need_financial_retry:
-            tiled=ocr_tiled_rows(engine,primary,tile_height=1500,overlap=180)
+            tiled=ocr_tiled_rows(engine,working,tile_height=1500,overlap=180)
             tiled_score=ocr_candidate_score(tiled)
             if tiled_score>best_score+.5:
                 best_rows,best_score,best_variant=tiled,tiled_score,"tiled-color"
         elif not is_tall and need_financial_retry:
-            enhanced=enhanced_receipt_variant(primary)
+            enhanced=enhanced_receipt_variant(working)
             try:rows2=ocr_rows(engine,enhanced)
             finally:enhanced.close()
             score2=ocr_candidate_score(rows2)
@@ -1221,12 +1363,12 @@ def run_best_ocr(img:Image.Image, *, already_prepared:bool=False, quality:dict|N
 
         text="\n".join(r["text"] for r in best_rows)
         confs=[float(r.get("confidence") or 0) for r in best_rows]
-        focus=targeted_financial_ocr(primary,best_rows,engine)
-        header=targeted_header_ocr(primary,best_rows,engine,quality)
+        focus=targeted_financial_ocr(working,best_rows,engine)
+        header=targeted_header_ocr(working,best_rows,engine,quality)
         return {
             "text":text,"rows":best_rows,
             "confidence":sum(confs)/len(confs) if confs else None,
-            "variant":best_variant,"qualityScore":round(best_score,2),
+            "variant":best_variant,"qualityScore":round(best_score,2),"orthogonalRotation":int(orientation.get("angle") or 0),
             "financialText":focus.get("text") or "",
             "financialFocusUsed":bool(focus.get("used")),
             "financialConfidence":focus.get("confidence"),
@@ -1236,6 +1378,11 @@ def run_best_ocr(img:Image.Image, *, already_prepared:bool=False, quality:dict|N
             "engine":"RapidOCR 3 / ONNX","model":OCR_MODEL_NAME,
         }
     finally:
+        try:
+            if 'oriented' in locals() and oriented is not None:
+                oriented.close()
+        except Exception:
+            pass
         if owns_primary:
             primary.close()
 
@@ -1505,12 +1652,13 @@ def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tu
 
 def receipt_merchant_name(lines:list[str], company:dict)->str|None:
     own_names=[norm_text(str(company.get(k) or "")).lower() for k in ("name","tradeName")]
-    skip=re.compile(r"^(?:bon|kassabon|receipt|factuur|invoice|datum|date|tijd|time|totaal|total|subtotaal|subtotal|btw|vat|pin|cash|contant|wisselgeld|change|bedankt|thank you|www\.|https?://)",re.I)
+    skip=re.compile(r"^(?:bon|kassabon|receipt|factuur|invoice|datum|date|tijd|time|totaal|total|subtotaal|subtotal|btw|vat|pin|cash|contant|wisselgeld|change|bedankt|thank you|zakelijke\s+aankoop|aankoop|payment|betaald|www\.|https?://)",re.I)
     for line in lines[:18]:
         cand=norm_text(line)
         low=cand.lower()
         if not (2<=len(cand)<=90):continue
         if skip.search(cand) or "@" in cand or re.fullmatch(r"[\d\s€$£.,:+*/#-]+",cand):continue
+        if re.match(r"^-{2,}\s*page\s+\d+\s*-{0,}$",cand,re.I):continue
         if re.search(r"\b\d{4}\s?[A-Z]{2}\b|\b\d{2}[:.]\d{2}\b|\b(?:kvk|btw|vat|iban|tel|phone)\b",cand,re.I):continue
         if any(o and o in low for o in own_names):continue
         return cand
@@ -1641,14 +1789,28 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     non_financial_return=bool(re.search(r"\b(?:retour[- ]?order|retouraanvraag|return[- ]?order|return authorization|rma)\b",low))
     invoice_evidence=bool(re.search(r"\b(?:factuur|invoice|creditnota|credit note|kassabon|receipt)\b",low))
     if non_financial_return and not invoice_evidence: dtype="other"
-    if dtype=="receipt" and not supplier.get("name"):
+    if dtype=="receipt":
         merchant=receipt_merchant_name(lines,company)
-        if merchant:supplier["name"]=merchant;sconf=max(sconf,.72)
+        weak_receipt_party=(
+            not supplier.get("name")
+            or sconf<.75
+            or bool(re.match(r"^(?:pin|cash|contant|totaal|total|btw|vat|datum|date|zakelijke\s+aankoop|aankoop)\b",str(supplier.get("name") or ""),re.I))
+        )
+        if merchant and weak_receipt_party:
+            supplier["name"]=merchant;sconf=max(sconf,.76)
     # if role extraction guessed own party, try to avoid assigning it as counterparty
     if supplier_own and dtype=="purchase_invoice": supplier={k:None for k in supplier}
     if customer_own and dtype=="sales_invoice": customer={k:None for k in customer}
 
-    invoice_number_labels=["factuurnummer","factuurnr","factuur nr","factuur aan nummer","factuur aan nr","invoice number","invoice no","invoice #","document number"]
+    invoice_number_labels=[
+        "factuurnummer","factuurnr","factuur nr",
+        # Conservative OCR edge aliases: perspective crops can lose only the
+        # first glyph while preserving the labelled candidate exactly.
+        "actuurnummer","actuurnr",
+        "factuur aan nummer","factuur aan nr",
+        "invoice number","invoice no","invoice #","nvoice number","nvoice no",
+        "document number",
+    ]
     if dtype=="credit_invoice":
         invoice_number_labels=["creditnota nummer","creditnotanummer","creditnota nr","credit note number","credit note no","credit number"]+invoice_number_labels
     invoice_no,idx=invoice_number_after_label(lines,invoice_number_labels)

@@ -100,7 +100,7 @@ try{
   await page.setViewportSize({width,height});
   for(const route of routes){
    await page.evaluate(async route=>{await navigate(route)},route);
-   if(route==='vat')await page.evaluate(()=>{sessionStorage.setItem('vatYear','all');render()});
+   if(route==='vat')await page.evaluate(()=>{storeFinancialPeriod('all');render()});
    const layout=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,clipped:[...document.querySelectorAll('#content .money,#content .metric-value,#content .total-line strong,#content .mini-kpi strong')].filter(el=>getComputedStyle(el).display!=='none'&&el.getBoundingClientRect().width>2&&el.scrollWidth>el.clientWidth+2).map(el=>({text:el.textContent,scroll:el.scrollWidth,client:el.clientWidth})),overflow:[...document.querySelectorAll('#content .table-wrap')].filter(el=>el.scrollWidth>el.clientWidth+2).map(el=>({class:el.className,scroll:el.scrollWidth,client:el.clientWidth}))}));
    assert.ok(layout.scroll<=width+2,route+' global overflow '+width+': '+JSON.stringify(layout));
    assert.deepEqual(layout.clipped,[],route+' money cannot wrap or clip '+width+': '+JSON.stringify(layout));
