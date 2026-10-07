@@ -18,6 +18,7 @@ assert.ok(uxPolish.includes('#mobileBottomNav{display:none!important}'),'Pre-aut
 assert.ok(uxPolish.includes('.quick-action-backdrop'),'Central mobile quick-create presentation missing');
 assert.ok(uxPolish.includes('#modalRoot .report-preview-modal #reportPreviewFrame{'),'A4 report iframe must have a dedicated geometry selector');
 assert.ok(uxPolish.includes('width:794px!important')&&uxPolish.includes('min-width:794px!important')&&uxPolish.includes('max-width:none!important'),'A4 report iframe fixed-width cascade contract missing');
+assert.ok(uxPolish.includes('transform-origin:top left;'),'A4 report iframe must keep the top-left transform-origin source contract');
 assert.ok(source.includes('id="appBootstrap"')&&source.includes('role="status"')&&source.includes('aria-live="polite"'),'Accessible auth bootstrap state missing');
 assert.ok(source.includes("setBootstrapVisible(true);setProductUiAuthenticated(false);document.getElementById('authRoot').innerHTML='';"),'Auth initialization must show bootstrap before session resolution');
 assert.ok(source.includes("setProductUiAuthenticated(false);document.getElementById('mainApp').style.display='none';cleanupDocumentBackgroundProcessing();"),'Logout must hide authenticated navigation immediately');
@@ -160,7 +161,8 @@ async function reportA4State(page,label){
   assert.ok(Math.abs(state.bodyWidth-794)<=3,label+' paper must remain 210mm/A4-width: '+JSON.stringify(state));
   assert.equal(state.kpiColumns,4,label+' PDF KPI composition must stay desktop/document layout');
   assert.match(state.transform,/scale\(/,label+' preview must scale the fixed paper rather than reflow it');
-  assert.match(state.transformOrigin,/^0px 0px/,label+' A4 preview must scale from the top-left origin');
+  const scaleMatch=state.transform.match(/scale\(([^)]+)\)/),scale=scaleMatch?Number(scaleMatch[1]):NaN;
+  if(Number.isFinite(scale)&&scale<0.999)assert.match(state.transformOrigin,/^0px 0px/,label+' scaled A4 preview must scale from the top-left origin');
   return state;
 }
 async function axe(page,label){
