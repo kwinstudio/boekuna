@@ -50,6 +50,7 @@ try{
     "create function public.billing_effective_plan(p_user_id uuid) returns text language sql stable security definer set search_path='' as $$ select coalesce((select e.plan from public.billing_entitlements e where e.user_id=p_user_id and e.plan in ('boekuna','pro') and e.access_state in ('active','grace') and e.valid_until>now() order by case when e.plan='pro' then 0 else 1 end,case when e.provider='stripe' then 0 else 1 end,e.valid_until desc limit 1),'free') $$;",
     "create function public.billing_plan_limit(p_plan text) returns integer language sql immutable as $$ select case when p_plan='boekuna' then 100 when p_plan='pro' then null else 10 end $$;",
     "grant usage on schema public,auth,private to authenticated,service_role;",
+    "grant usage on schema extensions to service_role;",
     "grant select on auth.users to authenticated,service_role;",
     "grant select,insert,update,delete on public.billing_entitlements to service_role;",
     "grant select,insert,update,delete on public.billing_accounts to service_role;",
