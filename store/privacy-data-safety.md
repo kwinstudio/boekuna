@@ -1,13 +1,13 @@
 # Boekuna — App Store privacy & Google Play Data Safety
 
-Last updated: 29 September 2026
+Last updated: 8 October 2026 (App Store preflight; final privacy-label audit pending)
 
 ## Public URLs
 
-- Privacy policy: https://boekuna-boekhouding.onrender.com/privacy/
-- Support: https://boekuna-boekhouding.onrender.com/support/
-- Account deletion: https://boekuna-boekhouding.onrender.com/account-verwijderen/
-- Marketing website: https://boekuna-boekhouding.onrender.com/
+- Privacy policy: https://boekuna.nl/privacy/
+- Support: https://boekuna.nl/support/
+- Account deletion: https://boekuna.nl/account-verwijderen/
+- Marketing website: https://boekuna.nl/
 
 ## Tracking and advertising
 
@@ -87,7 +87,7 @@ Use these as the baseline and re-check them against the final Android binary/SDK
 
 ## Apple App Privacy draft
 
-Expected collected-data groups:
+Initial candidate collected-data groups (must be validated against the final iOS binary and all services):
 - Contact Info
 - Financial Info
 - User Content
@@ -100,7 +100,7 @@ Primary purposes:
 - Customer Support
 - Security / Fraud Prevention where available in the questionnaire
 
-Tracking: **No**.
+Tracking: **No**, subject to final SDK/network audit; never declare 'data not collected' while account, financial and uploaded document data are processed.
 
 ### Billing note for native store builds
 
@@ -109,9 +109,13 @@ The web product can use Stripe for web subscriptions. Before shipping a native i
 ## Account deletion
 
 In-app deletion exists under account/settings and requires explicit confirmation/reauthentication.
-External request URL: https://boekuna-boekhouding.onrender.com/account-verwijderen/
+External request URL: https://boekuna.nl/account-verwijderen/
 
 The web page lets a user submit a deletion request without reinstalling the app. The request should be verified against the account before destructive deletion.
+
+## Account and legal entity review gate
+
+The Apple Developer account has previously been described as Individual (Dutch sole proprietor). Apple guideline 5.1.1(ix) may require a legal entity to submit apps that handle sensitive user information or regulated financial services. This accounting product should seek clarification from Apple before submission; do not assume acceptance or set the legal seller field without review.
 
 ## Final verification before submission
 
