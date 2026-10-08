@@ -36,17 +36,18 @@ try{
         const errors=[]; page.on('pageerror',e=>errors.push(String(e)));
         const response=await page.goto(server.base+'/',{waitUntil:'networkidle'});
         assert.equal(response.status(),200,name+' root '+width);
-        assert.equal(await page.locator('h1').innerText(),'Nieuwe website in ontwikkeling.');
-        assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'),'noindex,follow');
+        assert.equal(await page.locator('h1').textContent(),'Boekhouden zonder gedoe.');
+        if(width<=760)await page.locator('.mobile-menu summary').click();
+        assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'),'index,follow');
         assert.ok(await page.getByRole('link',{name:'Inloggen'}).isVisible());
-        assert.equal(await page.locator('img').count(),0,'Holding page must not contain marketing imagery');
-        assert.equal(await page.locator('script').count(),0,'Holding page must not contain marketing JS');
+        assert.equal(await page.locator('img').count(),0,'V3 uses a lightweight CSS illustration');
+        assert.equal(await page.locator('script').count(),0,'V3 requires no runtime JS');
         await noOverflow(page,name+' root '+width);
         await axe(page,name+' root '+width);
         const login=await page.getByRole('link',{name:'Inloggen'}).getAttribute('href');
         assert.equal(login,'https://app.boekuna.nl/?login=1');
         assert.deepEqual(errors,[]);
-        if(width===390||width===1440)await page.screenshot({path:path.join(evidence,'clean-holding-'+width+'-'+name+'.png'),fullPage:true});
+        if(width===390||width===1440){if(width<=760)await page.locator('.mobile-menu summary').click();await page.screenshot({path:path.join(evidence,'landing-v3-'+width+'-'+name+'.png'),fullPage:true});}
         await page.close();
       }
 
@@ -77,5 +78,5 @@ try{
       }
     } finally { await browser.close(); }
   }
-  console.log('BOEKUNA marketing clean-slate browser QA: PASS (Chromium + WebKit, 8 widths, legal/support, retired-route holdings, Axe)');
+  console.log('BOEKUNA V3 landing browser QA: PASS (Chromium + WebKit, 8 widths, legal/support, retired-route holdings, Axe)');
 } finally { await server.close(); }
