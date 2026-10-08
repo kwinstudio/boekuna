@@ -15,6 +15,11 @@ const cases = [
   ['percentage discount', invoice([line(100)], { discountType: 'percent', discountValue: 12.5 }), [87.5, 18.38, 105.88]],
   ['credit', invoice([line(100)], { kind: 'credit' }), [-100, -21, -121]],
   ...['kor', 'reverse', 'icp', 'exempt'].map(t => [t, invoice([line(100)], { taxTreatment: t }), [100, 0, 100]]),
+  // Half cents round up, also where the binary value is just below (22,50 x 21% = 4,725 is 4,73).
+  ['half cent VAT 21%', invoice([line(22.5)]), [22.5, 4.73, 27.23]],
+  ['half cent VAT 9%', invoice([line(26.5, 9)]), [26.5, 2.39, 28.89]],
+  ['half cent line amount', invoice([line(2.135, 0)]), [2.14, 0, 2.14]],
+  ['half cent credit', invoice([line(22.5)], { kind: 'credit' }), [-22.5, -4.73, -27.23]],
 ];
 for (const [label, i, expected] of cases) {
   const actual = [app.invoiceNet(i), app.invoiceVat(i), app.invoiceGross(i)];
@@ -30,11 +35,46 @@ for (let cents = 1; cents <= 333; cents++) {
   assert.equal(edge.calc(i).net, app.invoiceNet(i));
 }
 
+for (const [value, cents] of [[1.005, 101], [10.075, 1008], [-4.725, -473], [0.004, 0], ['12,5', 0], [NaN, 0], [Infinity, 0]]) {
+  assert.equal(app.toCents(value), cents, `toCents(${value})`);
+}
+assert.ok(Object.is(app.toCents(-0.001), 0), 'No negative zero');
+
 const historic = invoice([line(100)]);
 app.state.company.kor = true;
 assert.equal(app.invoiceVat(historic), 21, 'Changing company KOR must not change a historic invoice');
 app.state.company.kor = false;
 assert.equal(app.invoiceVat(invoice([line(100)], { taxTreatment: 'kor' })), 0);
+
+// A final credit note settles the unpaid invoice it credits; a draft does not; what is left is a refund.
+{
+  const original = invoice([line(22.5), line(4.15, 9, 3)], { id: 'orig', number: '2026-0001', issueDate: '2026-09-01' });
+  const credit = invoice(structuredClone(original.lines), { id: 'cr', kind: 'credit', creditFor: 'orig', status: 'draft', number: '2026-0002', issueDate: '2026-09-02' });
+  app.state.invoices = [original, credit];
+  assert.equal(app.invoiceOutstanding(original), 40.8, 'A draft credit note does not settle anything');
+  credit.status = 'sent';
+  assert.deepEqual([app.invoiceOutstanding(original), app.invoiceOutstanding(credit)], [0, 0], 'Full credit settles the open invoice');
+  assert.deepEqual([app.invoiceEffectiveStatus(original), app.invoiceEffectiveStatus(credit)], ['credited', 'credited']);
+  credit.lines = [line(22.5)];
+  assert.equal(app.invoiceOutstanding(original), 13.57, 'Partial credit lowers what is still owed');
+  assert.equal(app.invoiceEffectiveStatus(original), 'sent');
+  credit.lines = structuredClone(original.lines);
+  original.payments = [{ amount: 40.8 }];
+  assert.deepEqual([app.invoiceOutstanding(original), app.invoiceOutstanding(credit)], [0, 40.8], 'Credit on a paid invoice is a refund to pay back');
+  assert.deepEqual([app.invoiceEffectiveStatus(original), app.invoiceEffectiveStatus(credit)], ['paid', 'sent']);
+  original.payments = [{ amount: 10 }];
+  assert.deepEqual([app.invoiceOutstanding(original), app.invoiceOutstanding(credit)], [0, 10], 'Partly paid: credit settles the rest and refunds the payment');
+  original.payments = [];
+  const second = invoice([line(4.15, 9, 3)], { id: 'cr2', kind: 'credit', creditFor: 'orig', status: 'sent', number: '2026-0003', issueDate: '2026-09-03' });
+  credit.lines = [line(22.5)];
+  app.state.invoices = [original, credit, second];
+  assert.deepEqual([app.invoiceOutstanding(original), app.invoiceOutstanding(credit), app.invoiceOutstanding(second)], [0, 0, 0], 'Two partial credits settle in date order');
+  second.lines = [line(30)];
+  assert.deepEqual([app.invoiceOutstanding(original), app.invoiceOutstanding(second)], [0, 22.73], 'Credit beyond the open amount stays open as a refund');
+  app.state.invoices = [credit];
+  assert.equal(app.invoiceOutstanding(credit), 27.23, 'A credit note without its original keeps its own amount');
+  app.state.invoices = [];
+}
 
 const partial = invoice([line(100)], { payments: [{ amount: 120.99 }] });
 assert.equal(app.invoiceOutstanding(partial), .01);

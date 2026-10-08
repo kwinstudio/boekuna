@@ -144,7 +144,7 @@ def annotate_understanding(result,doc,company,money_tokens):
     labels={
         'advancePayment':r'^(?:voorschot|aanbetaling|deposit|advance(?: payment)?)\b',
         'alreadyPaid':r'^(?:reeds betaald|already paid|paid(?: amount)?|betaald)\b',
-        'outstandingAmount':r'^(?:nog te betalen|restant|resterend(?: bedrag)?|remaining(?: balance)?|outstanding(?: amount)?|balance(?: due)?|saldo)\b',
+        'outstandingAmount':r'^(?:nog te betalen|openstaand(?: bedrag)?|restant|resterend(?: bedrag)?|remaining(?: balance)?|outstanding(?: amount)?|balance(?: due)?|saldo)\b',
         'amountDue':r'^(?:amount due|te betalen)\b',
     }
     for key,pattern in labels.items():
@@ -280,7 +280,9 @@ def extract_line_items(doc,norm_money):
                 if key=='description':continue
                 cell=clean[index] if index<len(clean) else ''
                 if key=='unit':item[key]=cell[:30];continue
-                item[key]=(decimal_number(cell) if key in {'quantity','unitPrice','vatRate','discountPercent'} or '%' in cell else norm_money(cell)) if cell else None
+                # A merged VAT cell such as "9% 75,00" holds the rate and the line amount; read only the rate.
+                rate=re.search(r'(-?\d+(?:[.,]\d+)?)\s*%',cell) if key in {'vatRate','discountPercent'} else None
+                item[key]=(decimal_number(rate.group(1)) if rate else decimal_number(cell) if key in {'quantity','unitPrice','vatRate','discountPercent'} or '%' in cell else norm_money(cell)) if cell else None
                 if key=='discount' and '%' in cell:item['discountPercent']=item.pop('discount')
             if item.get('netAmount') is None:
                 # Row arithmetic is only a candidate with declared quantity/price.

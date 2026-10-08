@@ -51,7 +51,10 @@ async function quota(token:string,feature:string){
   const out=await r.json().catch(()=>({}));
   return !!(r.ok&&out.allowed);
 }
-function toCents(v:any){const n=num(v);return Math.round((n+(n>=0?Number.EPSILON:-Number.EPSILON))*100)}
+// Same rounding as the app: half away from zero on the decimal value (0.835 -> 84 cents). An invoice the app
+// marks rounding:"legacy" (already final before that change) keeps the old float rounding, as in the app.
+let legacyCents=false;
+function toCents(v:any){const n=num(v);if(!Number.isFinite(n))return 0;if(legacyCents)return Math.round((n+(n>=0?Number.EPSILON:-Number.EPSILON))*100);return (n<0?-1:1)*Math.round(Number((Math.abs(n)*100).toPrecision(12)))||0}
 function roundMoney(v:any){return toCents(v)/100}
 function taxTreatment(invoice:any){return String(invoice?.taxTreatment||"standard")}
 function zeroVatTreatment(v:any){return ["kor","reverse","icp","exempt"].includes(String(v||"standard"))}
@@ -76,6 +79,10 @@ function discountFactor(invoice:any){const base=discountBase(invoice);return bas
 function discountedLineNet(invoice:any,l:any){const lines=Array.isArray(invoice?.lines)?invoice.lines:[],index=lines.indexOf(l);if(index<0)return roundMoney(lineNet(l)*discountFactor(invoice));return allocateDiscountCents(lines.map((line:any)=>toCents(lineNet(line))),toCents(discountAmount(invoice)))[index]/100}
 function discountedLineVat(invoice:any,l:any){return zeroVatTreatment(taxTreatment(invoice))?0:roundMoney(discountedLineNet(invoice,l)*num(l?.vat)/100)}
 function calc(invoice:any){
+  const previous=legacyCents;legacyCents=invoice?.rounding==="legacy";
+  try{return calcAmounts(invoice)}finally{legacyCents=previous}
+}
+function calcAmounts(invoice:any){
   const sign=invoice?.kind==="credit"?-1:1;
   const lines=Array.isArray(invoice?.lines)?invoice.lines:[];
   const net=invoice?.importedTotals?.net!=null
@@ -106,7 +113,8 @@ function calc(invoice:any){
     }
     vatGroups=[...groups.values()].sort((a,b)=>a.rate-b.rate);
   }
-  return {lines,net,vat,gross,paid,outstanding:Math.max(0,roundMoney(Math.abs(gross)-paid)),sign,discount:discountAmount(invoice),vatGroups};
+  const lineNets=lines.map((line:any)=>discountedLineNet(invoice,line));
+  return {lines,lineNets,net,vat,gross,paid,outstanding:Math.max(0,roundMoney(Math.abs(gross)-paid)),sign,discount:discountAmount(invoice),vatGroups};
 }
 // Same legends as treatmentNote() in the app (tests/invoice-legal-content.test.mjs keeps them equal).
 const TREATMENT_NOTES:Record<string,string>={
@@ -155,11 +163,11 @@ async function pdfBytes(data:any){
   y=Math.min(party("VAN",46,company),party("FACTUUR AAN",310,customer))-16;
   const legend=[creditNote(invoice),TREATMENT_NOTES[taxTreatment(invoice)]||""].filter(Boolean);
   tableHeader();
-  for(const l of c.lines){
+  for(const [lineIndex,l] of c.lines.entries()){
     const descLines=wrapText(String(l.desc||""),regular,9,240);
     if(y-descLines.length*12<170){newPage();tableHeader()}
     descLines.forEach((d,index)=>text(d,46,y-index*12,9,regular));
-    text(String(num(l.qty)),300,y,9); right(money(num(l.unit)),425,y,9); right(zeroVat?"0%":String(num(l.vat))+"%",465,y,9); right(money(discountedLineNet(invoice,l)*c.sign),549,y,9,bold);
+    text(String(num(l.qty)),300,y,9); right(money(num(l.unit)),425,y,9); right(zeroVat?"0%":String(num(l.vat))+"%",465,y,9); right(money(c.lineNets[lineIndex]*c.sign),549,y,9,bold);
     y-=Math.max(24,descLines.length*12+12);
   }
   const vatGroups=zeroVat?[]:(c.vatGroups||[]).filter((g:any)=>Math.abs(g.taxable)>0.004||Math.abs(g.vat)>0.004);

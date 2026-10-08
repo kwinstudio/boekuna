@@ -66,6 +66,8 @@ on:
       - "tests/scan-native-picker.test.mjs"
       - "tests/document-background-processing.test.mjs"
       - "tests/auth-progressive-onboarding.test.mjs"
+      - "tests/auth-signed-in-once.test.mjs"
+      - "tests/invoice-rounding-history.test.mjs"
       - "tests/list-controls.test.mjs"
       - "tests/invoice-status-edit.test.mjs"
       - "tests/document-verification.test.mjs"
@@ -329,6 +331,10 @@ jobs:
         run: BOOKUNA_BROWSER=webkit node tests/app-ux-keyboard.test.mjs
       - name: Auth and progressive onboarding
         run: node tests/auth-progressive-onboarding.test.mjs
+      - name: Signed-in user loads once (no data loss on tab focus)
+        run: node tests/auth-signed-in-once.test.mjs
+      - name: Old final invoices keep their amounts after the rounding fix
+        run: node tests/invoice-rounding-history.test.mjs
       - name: Contextual list controls
         run: node tests/list-controls.test.mjs
       - name: Invoice status edit regression

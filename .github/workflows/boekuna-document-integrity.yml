@@ -94,6 +94,8 @@ jobs:
         run: pip install --disable-pip-version-check -r kwinest/docprocessor/requirements.txt httpx==0.28.1
       - name: Document intelligence parser phases
         run: python tests/document-intelligence-phases.test.py
+      - name: Document VAT summary rows and payment status
+        run: python tests/document-vat-summary-rows.test.py
       - name: OCR production hardening
         run: python tests/ocr-production-hardening.test.py
       - name: Baseline scan intelligence benchmark
