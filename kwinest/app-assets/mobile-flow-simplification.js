@@ -362,23 +362,6 @@
     wrap.append(cards);
     return wrap;
   }
-  async function discardDuplicateReview(){
-    var context=pendingPdfImport,ref=String(context?.sourceClientRef||''),jobId=String(context?.processingJobId||'');
-    var doc=(state.documents||[]).find(function(d){return String(d.fileId||'')===ref})||null;
-    if(doc&&typeof documentDeleteEligibility==='function'){
-      var check=documentDeleteEligibility(doc);
-      if(!check.allowed){toast(check.reason||'Dit document kan nu niet veilig worden verwijderd.');return false}
-    }
-    if(doc&&typeof deleteDocumentNow==='function'){
-      cleanupPendingImport();closeModal();
-      return await deleteDocumentNow(doc.id);
-    }
-    if(jobId&&typeof removePersistentDocumentByJob==='function'){
-      cleanupPendingImport();closeModal();removePersistentDocumentByJob(jobId);return true;
-    }
-    toast('Deze bon kan hier niet veilig worden weggegooid. Gebruik Alle gegevens bekijken.');
-    return false;
-  }
   function simpleReview(root){
     var flow=root?.querySelector('.document-review-flow.two-step-review');
     if(!flow||!media.matches||flow.dataset.mobileSimpleReview==='full')return;
@@ -428,7 +411,7 @@
     target?.classList.add('mobile-active-issue');
     var actions=node('div','mobile-single-issue-actions'),field=String(issue.field||'');
     if(field==='confirmDuplicate'){
-      actions.append(button('Weggooien, is dubbel',function(){discardDuplicateReview()},'btn primary mobile-flow-action'));
+      actions.append(button('Weggooien, is dubbel',function(){window.discardDuplicateReview?.()},'btn primary mobile-flow-action'));
       actions.append(button('Nee, dit is een andere bon',function(){confirmDuplicateOverride();requestAnimationFrame(schedule)},'btn mobile-flow-action'));
     }else if(field==='confirmAnomaly'){
       actions.append(button('Ik heb het origineel gecontroleerd',function(){confirmDocumentAnomaly();requestAnimationFrame(schedule)},'btn primary mobile-flow-action'));

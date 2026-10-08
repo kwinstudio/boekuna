@@ -697,7 +697,7 @@ function issuePanel(d,issue){
     const rate=d.vatRate!=null&&d.vatRate!==''&&Number.isFinite(Number(d.vatRate))?num(Number(d.vatRate))+'% ':'';
     return '<section class="review-issue-card attention vat-treatment-card" data-review-issue="vatTreatmentChoice"><h5>Welke btw staat erop?</h5><p>Deze '+rate+'btw is geen gewoon Nederlands tarief.</p><div class="review-choice-group" role="radiogroup" aria-label="Soort btw"><label class="review-choice"><input type="radio" name="vatTreatmentChoice" value="foreign"><span><strong>Buitenlandse btw</strong><small>Niet terug te vragen</small></span></label><label class="review-choice"><input type="radio" name="vatTreatmentChoice" value="standard"><span><strong>Nederlandse btw</strong><small>Oud of afwijkend tarief</small></span></label></div></section>'
   }
-  if(issue.field==='confirmDuplicate')return '<section class="review-issue-card attention" data-review-issue="confirmDuplicate"><h5>Deze bon lijkt al verwerkt</h5><p>'+esc(d.duplicateCandidate?.label||'We hebben een vergelijkbaar document gevonden.')+'</p><input type="hidden" name="confirmDuplicate" value=""><div class="review-issue-actions"><button type="button" class="btn small" onclick="viewDuplicateCandidate()">Bekijk bestaand document</button><button type="button" class="btn small" onclick="confirmDuplicateOverride()">Dit is toch een nieuwe bon</button></div></section>';
+  if(issue.field==='confirmDuplicate')return '<section class="review-issue-card attention" data-review-issue="confirmDuplicate"><h5>Deze bon lijkt al verwerkt</h5><p>'+esc(d.duplicateCandidate?.label||'We hebben een vergelijkbaar document gevonden.')+'</p><input type="hidden" name="confirmDuplicate" value=""><div class="review-issue-actions"><button type="button" class="btn small" onclick="viewDuplicateCandidate()">Bekijk bestaand document</button><button type="button" class="btn small" onclick="confirmDuplicateOverride()">Dit is toch een nieuwe bon</button><button type="button" class="btn small danger" onclick="discardDuplicateReview()">Weggooien, is dubbel</button></div></section>';
   if(issue.field==='confirmAnomaly')return '<section class="review-issue-card attention" data-review-issue="confirmAnomaly"><h5>Dit document heeft extra controle nodig</h5><p>'+esc(issue.message||'Vergelijk de gegevens met het origineel.')+'</p><input type="hidden" name="confirmAnomaly" value=""><div class="review-issue-actions"><button type="button" class="btn small" onclick="toggleDocumentOriginal(true)">Bekijk origineel</button><button type="button" class="btn small" onclick="confirmDocumentAnomaly()">Ik heb het origineel gecontroleerd</button></div></section>';
   if(issue.field==='vatLines')return '';
   if(issue.field==='document')return '<section class="review-issue-card attention" data-review-issue="document"><h5>Dit document heeft extra controle nodig</h5><p>'+esc(issue.message)+'</p><button type="button" class="link-btn" onclick="toggleDocumentReviewEdit(true)">Gegevens controleren</button></section>';
@@ -758,6 +758,21 @@ function confirmDocumentAnomaly(){
   const el=document.getElementById('pdfImportForm')?.elements.namedItem('confirmAnomaly');if(el)el.value='on';
   const card=document.querySelector('[data-review-issue="confirmAnomaly"]');if(card)card.classList.add('resolved');
   updateBeginnerReviewState()
+}
+// A document recognised as a duplicate can be thrown away right from the check; the existing one stays.
+async function discardDuplicateReview(){
+  const context=pendingPdfImport,ref=String(context?.sourceClientRef||''),jobId=String(context?.processingJobId||'');
+  const doc=(state.documents||[]).find(d=>String(d.fileId||'')===ref)||null;
+  if(doc&&typeof documentDeleteEligibility==='function'){
+    const check=documentDeleteEligibility(doc);
+    if(!check.allowed){toast(check.reason||'Dit document kan nu niet veilig worden verwijderd.');return false}
+  }
+  if(!doc&&!jobId){cleanupPendingImport();closeModal();toast('Dubbele bon niet opgeslagen');return true}
+  if(!confirm('Deze dubbele bon weggooien? Het bestaande document blijft gewoon staan.'))return false;
+  if(doc&&typeof deleteDocumentNow==='function'){cleanupPendingImport();closeModal();return await deleteDocumentNow(doc.id)}
+  if(jobId&&typeof removePersistentDocumentByJob==='function'){cleanupPendingImport();closeModal();removePersistentDocumentByJob(jobId);return true}
+  toast('Deze bon kan hier niet veilig worden weggegooid.');
+  return false;
 }
 function viewDuplicateCandidate(){
   const id=pendingPdfImport?.parsed?.duplicateCandidate?.id;
@@ -1084,6 +1099,7 @@ global.toggleMixedVatEditor=toggleMixedVatEditor;
 global.confirmDuplicateOverride=confirmDuplicateOverride;
 global.confirmDocumentAnomaly=confirmDocumentAnomaly;
 global.viewDuplicateCandidate=viewDuplicateCandidate;
+global.discardDuplicateReview=discardDuplicateReview;
 global.saveDocumentWithoutBooking=saveDocumentWithoutBooking;
 global.updateBeginnerReviewState=updateBeginnerReviewState;
 global.applyFinancialCorrectionProposal=applyFinancialCorrectionProposal;

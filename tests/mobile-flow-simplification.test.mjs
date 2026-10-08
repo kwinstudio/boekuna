@@ -21,7 +21,7 @@ const css=fs.readFileSync(cssPath,'utf8');
 const buildSource=fs.readFileSync(path.join(root,'scripts','build-app.mjs'),'utf8');
 assert.match(js,/max-width:820px/,'runtime must use the established mobile breakpoint');
 assert.match(css,/@media\s*\(max-width:820px\)/,'all visual changes must stay mobile-only');
-for(const marker of ['saveContact','finalSaveInvoice','finalizeDraftAndSend','savePdfInvoiceImport','confirmDuplicateOverride','deleteDocumentNow','printInvoice']){
+for(const marker of ['saveContact','finalSaveInvoice','finalizeDraftAndSend','savePdfInvoiceImport','confirmDuplicateOverride','discardDuplicateReview','printInvoice']){
   assert.ok(js.includes(marker),'mobile flow must reuse existing authoritative action: '+marker);
 }
 assert.doesNotMatch(js,/state\.invoices\s*=|state\.expenses\s*=|vatRate\s*=\s*21|reserveFinalInvoiceNumber\(/,'mobile presentation layer must not reimplement accounting/state semantics');
@@ -185,14 +185,22 @@ try{
   });
   await page.locator('.mobile-single-issue-review').waitFor();
   assert.equal(await page.locator('.mobile-single-issue-question').innerText(),'Deze bon heb je al');
-  assert.equal(await page.getByRole('button',{name:'Weggooien, is dubbel',exact:true}).count(),1);
+  assert.equal(await page.locator('.mobile-single-issue-review').getByRole('button',{name:'Weggooien, is dubbel',exact:true}).count(),1);
+  assert.equal(await page.locator('button:visible',{hasText:'Weggooien, is dubbel'}).count(),1,'one visible discard button on a phone');
   assert.equal(await page.getByRole('button',{name:'Nee, dit is een andere bon',exact:true}).count(),1);
   assert.equal(await page.getByRole('button',{name:'Ja, klopt',exact:true}).count(),0,'duplicate flow must not use an ambiguous approval label');
   assert.equal(await page.locator('.mobile-duplicate-card').count(),2,'duplicate review must compare new and existing document side by side');
   assert.match(await page.locator('.mobile-duplicate-cards').innerText(),/NIEUW/);
   assert.match(await page.locator('.mobile-duplicate-cards').innerText(),/AL IN BOEKUNA/);
   await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'04-bon-duplicaat-'+browserName+'.png')});
-  await page.evaluate(()=>closeModal());
+  // Throwing the duplicate away asks once, then removes only the new copy; the existing document stays.
+  await page.evaluate(()=>{window.__realConfirm=window.confirm;window.__confirmAsked='';window.confirm=msg=>{window.__confirmAsked=msg;return true}});
+  await page.locator('.mobile-single-issue-review').getByRole('button',{name:'Weggooien, is dubbel',exact:true}).click();
+  await page.waitForFunction(()=>!(state.documents||[]).some(d=>d.id==='d-dup-source'));
+  assert.match(await page.evaluate(()=>window.__confirmAsked),/dubbele bon weggooien/);
+  assert.ok(await page.evaluate(()=>(state.documents||[]).some(d=>d.id==='existing-doc')),'the existing document stays');
+  assert.equal(await page.locator('.mobile-single-issue-review').count(),0,'the check closes after throwing the duplicate away');
+  await page.evaluate(()=>{window.confirm=window.__realConfirm;if(document.querySelector('#modalRoot .modal'))closeModal()});
 
   // Regression: a USD document without supplier. Save may never be off while the screen says it is ready.
   await page.evaluate(()=>{

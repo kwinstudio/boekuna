@@ -74,6 +74,8 @@
   #modalRoot .document-review-flow[data-mobile-simple-review="active"] .review-wizard-page:has(.mobile-active-issue){display:block!important}
   #modalRoot .document-review-flow[data-mobile-simple-review="active"] .mobile-flow-hidden{display:none!important}
   #modalRoot .document-review-flow[data-mobile-simple-review="active"] .mobile-active-issue{display:flex!important}
+  /* The question above already offers these choices as large buttons. */
+  #modalRoot .document-review-flow[data-mobile-simple-review="active"] [data-review-issue="confirmDuplicate"] .review-issue-actions{display:none!important}
   #modalRoot .document-review-flow[data-mobile-simple-review="active"] .form-grid:has(.mobile-active-issue){display:grid!important}
   #modalRoot .mobile-single-issue-review{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
   #modalRoot .mobile-single-issue-review[hidden]{display:none!important}

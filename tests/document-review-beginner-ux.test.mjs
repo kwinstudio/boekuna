@@ -481,6 +481,7 @@ try{
   });
   assert.match(await page.locator('[data-review-page="1"]').innerText(),/lijkt al verwerkt/i);
   assert.equal(await page.getByRole('button',{name:'Volgende',exact:true}).isDisabled(),true);
+  assert.equal(await page.getByRole('button',{name:'Weggooien, is dubbel',exact:true}).count(),1,'a duplicate can be thrown away from the check');
   await page.getByRole('button',{name:'Dit is toch een nieuwe bon',exact:true}).click();
   assert.equal(await page.getByRole('button',{name:'Volgende',exact:true}).isDisabled(),false);
   await page.evaluate(()=>closeModal());
