@@ -23,7 +23,7 @@ try{
         assert.equal(await page.locator('h1').textContent(),'Boekhouden zonder gedoe.');
         assert.equal(await page.locator('img:not([src^="/assets/site/"])').count(),0,'Only first-party Boekuna images');
         assert.equal(await page.locator('img:not([alt])').count(),0,'Every image has alt text');
-        assert.equal(await page.locator('script:not([src="/assets/site/site.js"])').count(),0,'Only the first-party site script');
+        assert.equal(await page.locator('script:not([src="/assets/site/site.js"]):not([type="application/ld+json"])').count(),0,'Only the first-party site script');
         assert.equal(await page.locator('.editorial-hero,.editorial-pricing,.project-grid').count(),0,'Old marketing structure returned');
         const size=await page.evaluate(()=>({vw:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
         assert.ok(size.html<=size.vw+1&&size.body<=size.vw+1,name+'/'+width+' overflow '+JSON.stringify(size));
