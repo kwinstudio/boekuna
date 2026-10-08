@@ -609,6 +609,12 @@ try{
   await page.waitForTimeout(100);
   assert.equal(await page.locator('.docviewer .docviewer-page').count(),1,'drawn page stays');
   assert.equal(await page.locator('.docviewer .docviewer-frame').count(),0,'the document is shown once, not again as browser PDF view');
+  // One simple screen on a phone: Sluiten on top, Tekst kopiëren and Downloaden at the bottom; zoom is pinch or double tap.
+  assert.ok(await page.getByRole('button',{name:'Document sluiten'}).isVisible());
+  assert.ok(await page.locator('.docviewer-foot').getByRole('button',{name:'Tekst kopiëren'}).isVisible());
+  assert.ok(await page.locator('.docviewer-foot').getByRole('link',{name:'Downloaden'}).isVisible());
+  assert.equal(await page.getByRole('button',{name:'Inzoomen'}).isVisible(),false,'no zoom buttons on a phone');
+  await noOverflow(browserName+' mobile document viewer footer');
   await page.evaluate(()=>{BoekunaDocumentViewer.close();window.loadPdfLib=window.__realLoadPdfLib});
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
   await noOverflow(browserName+' foreign currency mobile');

@@ -127,7 +127,8 @@ function createView(container,{file,name,url,compact=false}){
   async function render(){
     const token=++view.token,current=()=>token===view.token&&pagesHost.isConnected;
     pagesHost.replaceChildren();
-    const width=Math.max(220,Math.floor((pagesHost.clientWidth||container.clientWidth||600)-(compact?0:16))*view.zoom);
+    // Fit the width of the screen, but on a large screen keep a page at reading size instead of a giant sheet.
+    const fit=Math.floor((pagesHost.clientWidth||container.clientWidth||600)-(compact?0:16)),width=Math.max(220,(compact?fit:Math.min(fit,860))*view.zoom);
     if(kind==='image'){
       if(!objectUrl)objectUrl=URL.createObjectURL(file);
       const img=el('img','docviewer-image');img.alt=name||'Document';img.src=objectUrl;img.style.width=width+'px';img.draggable=false;pagesHost.append(img);return
@@ -160,6 +161,7 @@ function close(){
   if(!active)return;
   const current=active;active=null;
   current.view.dispose();current.root.remove();
+  if(current.downloadUrl)URL.revokeObjectURL(current.downloadUrl);
   document.removeEventListener('keydown',current.onKey,true);
   global.removeEventListener('popstate',current.onPop);
   document.documentElement.classList.remove('docviewer-open');
@@ -171,32 +173,37 @@ function open({file,name,url,tab='document'}={}){
   if(!file)return toast('Bestand niet gevonden');
   close();
   const root=el('div','docviewer');root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label',name||'Document');
+  // One calm screen: the name and Sluiten on top, the document filling the width, a few plain actions at the bottom.
   const head=el('div','docviewer-head');
   const title=el('strong','docviewer-title',name||'Document');
   const closeBtn=btn('Sluiten','btn docviewer-close',close,'Document sluiten');
-  const tabs=el('div','docviewer-tabs');tabs.setAttribute('role','tablist');
-  const docTab=btn('Document','docviewer-tab',()=>select('document'));docTab.setAttribute('role','tab');
-  const textTab=btn('Tekst kopiëren','docviewer-tab',()=>select('text'));textTab.setAttribute('role','tab');
-  tabs.append(docTab,textTab);
+  const row=el('div','docviewer-head-row');row.append(title,closeBtn);
+  head.append(row);
+  const body=el('div','docviewer-body');
+  const foot=el('div','docviewer-foot');
+  const textBtn=btn('Tekst kopiëren','btn docviewer-text-toggle',()=>select(docPane.hidden?'document':'text'));
   const zoomOut=btn('−','docviewer-zoom',()=>view.setZoom(view.zoom-.25),'Uitzoomen'),zoomIn=btn('+','docviewer-zoom',()=>view.setZoom(view.zoom+.25),'Inzoomen');
   const zoom=el('div','docviewer-zoombar');zoom.append(zoomOut,zoomIn);
-  const row=el('div','docviewer-head-row');row.append(title,closeBtn);
-  const row2=el('div','docviewer-head-row');row2.append(tabs,zoom);
-  head.append(row,row2);
-  const body=el('div','docviewer-body');
-  root.append(head,body);
+  const download=el('a','btn docviewer-download','Downloaden');download.download=name||'document';
+  foot.append(textBtn,zoom,download);
+  root.append(head,body,foot);
   document.body.append(root);
   document.documentElement.classList.add('docviewer-open');
   const docPane=el('div','docviewer-pane');body.append(docPane);
   const view=createView(docPane,{file,name,url});
+  const downloadUrl=url||URL.createObjectURL(file);download.href=downloadUrl;
   const text=textPanel(view);text.panel.hidden=true;body.append(text.panel);
   function select(which){
     const isText=which==='text';
     docPane.hidden=isText;text.panel.hidden=!isText;zoom.hidden=isText||view.kind==='other';
-    docTab.setAttribute('aria-selected',String(!isText));textTab.setAttribute('aria-selected',String(isText));
+    textBtn.textContent=isText?'Terug naar document':'Tekst kopiëren';
+    body.scrollTop=0;
     if(isText)text.load();
   }
-  if(view.kind==='other')textTab.hidden=true;
+  // Double tap zooms in on a phone, a second double tap fits the page again.
+  let lastTap=0;
+  docPane.addEventListener('touchend',e=>{if(e.touches.length)return;const now=Date.now();if(now-lastTap<300){view.setZoom(view.zoom>1?1:2);lastTap=0}else lastTap=now});
+  if(view.kind==='other')textBtn.hidden=true;
   // Pinch zoom stays inside the viewer, so the close button never moves off screen.
   let pinch=null;
   body.addEventListener('touchstart',e=>{if(e.touches.length===2&&!docPane.hidden){const [a,b]=e.touches;pinch={d:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),zoom:view.zoom}}},{passive:true});
@@ -215,7 +222,7 @@ function open({file,name,url,tab='document'}={}){
   const historyToken='viewer-'+Date.now();
   const onPop=()=>{if(active&&history.state?.boekunaDocumentViewer!==active.historyToken){active.historyToken=null;close()}};
   history.pushState({...(history.state||{}),boekunaDocumentViewer:historyToken},'',location.href);
-  active={root,view,onKey,onPop,historyToken,returnFocus:document.activeElement};
+  active={root,view,onKey,onPop,historyToken,returnFocus:document.activeElement,downloadUrl:url?'':downloadUrl};
   document.addEventListener('keydown',onKey,true);
   global.addEventListener('popstate',onPop);
   select(tab);
