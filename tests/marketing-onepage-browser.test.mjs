@@ -46,8 +46,9 @@ try{
         if(width<980)await page.locator('.mobile-nav summary').click();
         assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'),'index,follow');
         assert.ok(await page.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).isVisible());
-        assert.equal(await page.locator('img').count(),0,'V3 uses a lightweight CSS illustration');
-        assert.equal(await page.locator('script').count(),0,'V3 requires no runtime JS');
+        assert.equal(await page.locator('img:not([src^="/assets/site/"])').count(),0,'Only first-party Boekuna images');
+        assert.equal(await page.locator('img:not([alt])').count(),0,'Every image has alt text');
+        assert.equal(await page.locator('script:not([src="/assets/site/site.js"])').count(),0,'Only the first-party site script');
         await noOverflow(page,name+' root '+width);
         await axe(page,name+' root '+width);
         const login=await page.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).getAttribute('href');

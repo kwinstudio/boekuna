@@ -1,0 +1,86 @@
+/* Boekuna website: real app screenshots, product tour, photos, plan helper. Loaded after landing-v4.css. */
+button:focus-visible,input:focus-visible{outline:3px solid var(--bk-dark-green);outline-offset:3px}
+
+/* Hero: real app screens instead of a stock photo */
+.hero-shots{position:relative;padding-bottom:28px}
+.hero-shots figure{margin:0}
+.shot-desktop{border:1px solid #DCE3DE;border-radius:14px;background:#fff;overflow:hidden;box-shadow:0 30px 60px -38px rgba(16,40,24,.45)}
+.shot-desktop img{display:block;width:100%;height:auto}
+.browser-bar{display:flex;align-items:center;gap:6px;height:30px;padding:0 12px;background:#F4F6F5;border-bottom:1px solid #E3E8E5}
+.browser-bar i{width:9px;height:9px;border-radius:50%;background:#D5DBD7}
+.browser-bar span{margin-left:10px;font-size:11px;color:#5C6B64;background:#fff;border:1px solid #E3E8E5;border-radius:6px;padding:2px 10px}
+.shot-phone{position:absolute;right:-4px;bottom:0;width:31%;max-width:190px;border:6px solid #1E2326;border-radius:26px;background:#1E2326;overflow:hidden;box-shadow:0 24px 40px -22px rgba(10,30,18,.55)}
+.shot-phone img{display:block;width:100%;height:auto;border-radius:20px}
+.shot-note{margin:14px 0 0;font-size:12px;color:#5A6B62;max-width:32ch}
+
+/* Product tour */
+.tour-section{background:#F6F8F7}
+.tour{margin-top:34px}
+.tour-tabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:4px 2px 6px;margin:0 -2px 22px;scroll-snap-type:x mandatory}
+.tour-tabs::-webkit-scrollbar{display:none}
+.tour-tabs [role=tab]{scroll-snap-align:start;flex:none;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 16px;border-radius:999px;border:1px solid #CFD9D3;background:#fff;color:#26332C;font-size:14px;font-weight:700;cursor:pointer;transition:background-color .2s,border-color .2s,color .2s}
+.tour-tabs [role=tab] .icon{width:17px;height:17px}
+.tour-tabs [role=tab]:hover{border-color:#6DBB7C}
+.tour-tabs [role=tab][aria-selected=true]{background:#1B1F23;border-color:#1B1F23;color:#fff}
+.tour-panel{display:grid;gap:24px;align-items:center}
+.tour-panel[hidden]{display:none}
+.tour-panel.is-entering .tour-shot{animation:tour-in .45s cubic-bezier(.2,.7,.2,1)}
+.tour-panel.is-entering .tour-copy{animation:tour-in .45s cubic-bezier(.2,.7,.2,1) .04s both}
+@keyframes tour-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.tour-copy h3{font-family:var(--bk-heading);font-size:24px;letter-spacing:-.04em;line-height:1.2;margin-bottom:10px}
+.tour-copy p{color:#4E5E56;font-size:15px;line-height:1.7;margin-bottom:16px;max-width:46ch}
+.tour-copy ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.tour-copy li{display:flex;gap:10px;align-items:flex-start;font-size:14px;font-weight:600;color:#33453B}
+.tour-copy li .icon{width:17px;height:17px;color:#2AA445;stroke-width:2.6;margin-top:2px}
+.tour-shot{margin:0;justify-self:center;width:100%;max-width:330px;border:7px solid #1E2326;border-radius:30px;background:#1E2326;overflow:hidden;box-shadow:0 28px 50px -30px rgba(10,30,18,.5)}
+.tour-shot img{display:block;width:100%;height:auto;border-radius:22px;background:#F4F6F5}
+.tour-note{margin:26px 0 0;font-size:12px;color:#5A6B62;text-align:center}
+.tour-cta{display:flex;justify-content:center;margin-top:18px}
+
+/* Audience: real, sharp photos with labels under the image */
+.audience-grid{display:grid;grid-auto-flow:column;grid-auto-columns:78%;grid-template-columns:none;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;scrollbar-width:thin}
+.audience-card{margin:0;scroll-snap-align:start;background:#fff;border:1px solid #E1E9E3;border-radius:14px;overflow:hidden}
+.audience-card img{display:block;width:100%;aspect-ratio:3/2;object-fit:cover;height:auto}
+.audience-card figcaption{padding:12px 14px 14px}
+.audience-card figcaption strong{display:block;font-size:15px;line-height:1.3}
+.audience-card figcaption span{display:block;font-size:13px;color:#5B6C63;margin-top:2px}
+
+/* Plan helper */
+.plan-helper{max-width:640px;margin:0 auto 26px;background:#fff;border:1px solid #DCE5DF;border-radius:14px;padding:18px}
+.plan-helper label{display:block;font-weight:700;font-size:15px;line-height:1.4;margin-bottom:12px}
+.plan-helper-row{display:flex;align-items:center;gap:14px}
+.plan-helper input[type=range]{flex:1;min-width:0;accent-color:#2F9D49;height:28px}
+.plan-helper output{min-width:48px;text-align:center;font-weight:800;font-size:18px;font-variant-numeric:tabular-nums;background:#EFF8F1;border-radius:8px;padding:4px 8px}
+.plan-advice{margin:12px 0 0;font-size:14px;color:#3E4F46}
+.pricing-card{transition:border-color .25s,box-shadow .25s,transform .25s}
+.pricing-card.is-recommended{border-color:#2F9D49;box-shadow:0 0 0 2px #2F9D49}
+
+/* Scroll reveal, only with JS and without reduced motion */
+.js-motion .reveal{opacity:0;transform:translateY(14px);transition:opacity .6s cubic-bezier(.2,.7,.2,1),transform .6s cubic-bezier(.2,.7,.2,1)}
+.js-motion .reveal.is-visible{opacity:1;transform:none}
+
+@media(max-width:599px){
+ .hero-shots{padding-bottom:0;display:flex;flex-direction:column;align-items:center}
+ .shot-desktop{display:none}
+ .shot-phone{position:relative;right:auto;bottom:auto;width:68%;max-width:270px}
+ .shot-note{text-align:center}
+ .tour-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible;margin-inline:0;padding:0}
+ .tour-tabs [role=tab]{justify-content:center;padding-inline:10px}
+}
+@media(min-width:600px){
+ .audience-grid{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible}
+}
+@media(min-width:768px){
+ .tour-panel{grid-template-columns:minmax(0,.8fr) minmax(0,2fr);gap:40px}
+ .tour-shot{max-width:none;border:1px solid #DCE3DE;border-radius:14px;background:#fff}
+ .tour-shot img{border-radius:0}
+ .tour-tabs{justify-content:center;overflow:visible}
+}
+@media(min-width:1024px){
+ .shot-phone{right:-22px;width:27%}
+}
+@media(prefers-reduced-motion:reduce){
+ .tour-panel.is-entering .tour-shot,.tour-panel.is-entering .tour-copy{animation:none}
+ .pricing-card{transition:none}
+}
+.audience-grid:focus-visible{outline:3px solid var(--bk-dark-green);outline-offset:4px;border-radius:14px}
