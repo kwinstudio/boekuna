@@ -31,23 +31,30 @@
     });
   });
 
-  // Plan helper: recommend a plan from the number of documents per month.
-  const helper=document.querySelector('[data-plan-helper]');
-  if(helper){
-    const input=helper.querySelector('input'),count=helper.querySelector('[data-plan-count]'),advice=helper.querySelector('[data-plan-advice]');
-    const cards={gratis:document.querySelector('[data-plan=gratis]'),boekuna:document.querySelector('[data-plan=boekuna]'),unlimited:document.querySelector('[data-plan=unlimited]')};
-    const update=()=>{
-      const v=Number(input.value);
-      count.textContent=v>=150?'150+':String(v);
-      const plan=v<=10?'gratis':v<=100?'boekuna':'unlimited';
-      advice.innerHTML=plan==='gratis'?'Advies: <strong>Gratis</strong>, met 10 slimme documentchecks per maand.'
-        :plan==='boekuna'?'Advies: <strong>Boekuna</strong>, met 100 slimme documentchecks per maand.'
-        :'Advies: <strong>Unlimited</strong>, zonder maandlimiet op slimme documentchecks.';
-      Object.entries(cards).forEach(([k,el])=>el&&el.classList.toggle('is-recommended',k===plan));
+  // Pricing: month/year switch. Prices are in the HTML; this only toggles which one
+  // is shown and carries the chosen period to the app link. No reload, no layout shift.
+  document.querySelectorAll('[data-interval-switch]').forEach(sw=>{
+    const radios=[...sw.querySelectorAll('[role=radio]')];
+    const status=sw.querySelector('[data-interval-status]');
+    const grid=sw.parentElement.querySelector('[data-pricing]');
+    const set=(interval,focus)=>{
+      radios.forEach(r=>{const on=r.dataset.interval===interval;r.setAttribute('aria-checked',String(on));r.tabIndex=on?0:-1;if(on&&focus)r.focus()});
+      if(grid){
+        grid.dataset.intervalCurrent=interval;
+        grid.querySelectorAll('a[data-plan-cta]').forEach(a=>{const u=new URL(a.href);u.searchParams.set('interval',interval);a.href=u.toString()});
+      }
+      if(status)status.textContent=interval==='year'?'Jaarprijzen worden getoond.':'Maandprijzen worden getoond.';
     };
-    input.addEventListener('input',update);
-    update();
-  }
+    radios.forEach((r,i)=>{
+      r.addEventListener('click',()=>set(r.dataset.interval,false));
+      r.addEventListener('keydown',e=>{
+        if(!['ArrowRight','ArrowLeft','ArrowUp','ArrowDown'].includes(e.key))return;
+        e.preventDefault();
+        const n=radios[(i+(e.key==='ArrowRight'||e.key==='ArrowDown'?1:radios.length-1))%radios.length];
+        set(n.dataset.interval,true);
+      });
+    });
+  });
 
   // Header dropdown: close on outside click, Escape, or when focus leaves it.
   document.querySelectorAll('.nav-drop').forEach(drop=>{

@@ -10,9 +10,13 @@ on:
       - "public/sitemap.xml"
       - "public/assets/baseline.css"
       - "public/assets/favicon.svg"
+      - "public/assets/site/**"
       - "scripts/build-marketing.mjs"
       - "vercel.json"
       - "tests/marketing-pages.test.mjs"
+      - "tests/pricing-v2-website.test.mjs"
+      - "supabase/functions/_shared/pricing.mjs"
+      - "docs/marketing/pricing-v2-copy.json"
       - "tests/marketing-onepage-browser.test.mjs"
       - "tests/marketing-premium-browser.test.mjs"
       - "tests/marketing-performance.test.mjs"
@@ -56,6 +60,10 @@ jobs:
         run: node tests/marketing-app-non-regression.test.mjs
       - name: Clean-slate static / route / legal QA
         run: node tests/marketing-pages.test.mjs
+      - name: Pricing V2 module (Chromium + WebKit)
+        run: |
+          node tests/pricing-v2-website.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/pricing-v2-website.test.mjs
       - name: Clean-slate Chromium + WebKit + Axe acceptance
         run: node tests/marketing-onepage-browser.test.mjs
       - name: Holding visual responsive acceptance
