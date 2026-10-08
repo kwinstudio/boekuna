@@ -932,7 +932,8 @@ def table_vat_groups(doc:dict)->list[VatLine]:
 def explicit_vat_groups(lines:list[str])->list[VatLine]:
     """Parse only explicit VAT summary rows with a stated taxable base."""
     groups={}
-    base_label=re.compile(r"\b(?:belastbaar|taxable|grondslag|maatstaf|tax\s*base|base\s*amount)\b",re.I)
+    # "Btw 21% over 100,00 21,00" names the base with "over"; the arithmetic check below still decides.
+    base_label=re.compile(r"\b(?:belastbaar|taxable|grondslag|maatstaf|tax\s*base|base\s*amount|over)\b",re.I)
     for raw in lines or []:
         line=norm_text(raw)
         rm=re.search(r"\b(0|9|21)(?:[.,]0+)?\s*%",line,re.I)
