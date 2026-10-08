@@ -33,7 +33,7 @@ Authoritative financial logic: server `kwinest/docprocessor/document_intelligenc
 | Login, session (Supabase in WKWebView) | EXISTS AND WORKS | Web-based; persisted in the default WebKit data store. |
 | Logout, account deletion | EXISTS AND WORKS | Web-based; local copy removed after a confirmed cloud save. |
 | Camera / photo / file import | EXISTS AND WORKS | System file picker from `<input type=file>`; no document-scanner UI (no edge detection, no multi-page). |
-| Document upload and server OCR | EXISTS AND WORKS | V6 live; V5 benchmark 28/28 documents fully correct with RapidOCR. |
+| Document upload and server OCR | EXISTS AND WORKS | V6 live; V5 benchmark 28/28 documents fully correct with RapidOCR (Linux CI; also 28/28 on macOS once the fixture font is installed). |
 | Review of uncertain fields | EXISTS AND WORKS | Existing review UI; user-confirmed values win. |
 | PDF preview, download, share | EXISTS AND WORKS | Download becomes the iOS share sheet; print bridge for reports. |
 | On-device OCR | MISSING | |

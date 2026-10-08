@@ -45,3 +45,7 @@ De bestaande iOS-app (`ios/`, uit PR #223 en #277) bouwt nu in de cloud op GitHu
 3. **Kwin**: in App Store Connect → TestFlight jezelf als interne tester toevoegen, de app via TestFlight installeren en de apparaatchecks doorlopen.
 4. Na merge: app.boekuna.nl deployen, zodat de companion-aanpassingen (geen abonnementsknoppen, PDF via deelmenu) live staan. Zonder deploy toont de iOS-app nog de webversie zonder die aanpassingen.
 5. Voor App Store-publicatie later (apart, met jouw toestemming): App Privacy-vragenlijst, leeftijdsclassificatie, screenshots, reviewer-testaccount, en de punten uit PR #262 (richtlijn 4.2 "minimale functionaliteit" voor web-apps is het grootste reviewrisico; 5.1.1(ix) over financiële gegevens bij een individueel ontwikkelaarsaccount).
+
+## Local-first (PR #281)
+
+PR #281 voegt scannen, tekst lezen op de iPhone, offline bewaren en offline openen van de administratie toe, achter de build-instelling `BOEKUNA_LOCAL_FIRST` (standaard uit; deze release-workflow bouwt dus zonder). Rapport: `ios/BOEKUNA-IOS-LOCAL-FIRST-RELEASE-REPORT.md`.
