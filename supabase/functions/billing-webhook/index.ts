@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { cancelSubscriptionNow, isChargeable, stripeRequestWithKey } from "../_shared/account-closure.ts";
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -203,8 +204,35 @@ Deno.serve(async (req: Request) => {
       return "";
     }
 
+    // A deleted (or deleting-and-already-unbilled) account can still receive Stripe
+    // events: retries, an open Checkout that completed afterwards, a renewal. Never
+    // write state for it (the user row is gone) and never let it keep billing:
+    // cancel any subscription that can still charge, then mark the event processed.
+    async function closedAccountGuard(userId: string, subscriptionId: string, knownStatus?: string) {
+      if (!userId) return false;
+      const { data: closure, error: closureError } = await admin
+        .from("account_closures")
+        .select("state")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (closureError) throw closureError;
+      // 'pending' and 'failed' mean the user still exists and may keep using Boekuna.
+      let closed = closure?.state === "billing_closed" || closure?.state === "completed";
+      if (!closed) {
+        const { data: found, error: lookupError } = await admin.auth.admin.getUserById(userId);
+        if (lookupError && !/not.?found/i.test(lookupError.message)) throw lookupError;
+        closed = !found?.user;
+      }
+      if (!closed) return false;
+      if (subscriptionId.startsWith("sub_") && (knownStatus === undefined || isChargeable(knownStatus))) {
+        await cancelSubscriptionNow(stripeRequestWithKey(Deno.env.get("STRIPE_SECRET_KEY") || ""), subscriptionId);
+      }
+      return true;
+    }
+
     async function applySubscription(sub: any, userId: string) {
       if (!userId || !sub?.id) return false;
+      if (await closedAccountGuard(userId, String(sub.id), String(sub?.status || ""))) return false;
       const metadataOwner = String(sub?.metadata?.user_id || "");
       if (metadataOwner && metadataOwner !== userId) throw new Error("STRIPE_OWNER_MISMATCH");
 
@@ -236,7 +264,9 @@ Deno.serve(async (req: Request) => {
       if (type === "checkout.session.completed") {
         const userId = String(obj?.client_reference_id || obj?.metadata?.user_id || "");
         const subId = String(obj?.subscription || "");
-        if (userId && subId) {
+        if (userId && subId && await closedAccountGuard(userId, subId)) {
+          // Account was deleted while this Checkout was open: subscription cancelled above.
+        } else if (userId && subId) {
           const sub = await stripeGet("/subscriptions/" + encodeURIComponent(subId));
           await applySubscription(sub, userId);
         }
