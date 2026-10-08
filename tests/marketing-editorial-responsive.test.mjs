@@ -19,7 +19,7 @@ try{
     const page=await browser.newPage({viewport:{width,height:width<620?844:900},reducedMotion:'reduce'});
     const errors=[];page.on('pageerror',e=>errors.push(String(e)));
     await page.goto(server.base+'/',{waitUntil:'networkidle'});
-    assert.equal(await page.locator('h1').innerText(),'Boekhouden zonder gedoe.');
+    assert.equal(await page.locator('h1').textContent(),'Boekhouden zonder gedoe.');
     assert.ok(await page.getByRole('link',{name:'Inloggen'}).isVisible());
     const size=await page.evaluate(()=>({vw:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
     assert.ok(size.html<=size.vw+1&&size.body<=size.vw+1,'home '+width+' overflow '+JSON.stringify(size));
