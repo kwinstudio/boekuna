@@ -65,6 +65,7 @@
   #mainApp #content.content>.product-page-shell:not(:has(>.product-page-actions))>.page-head>.page-period-slot{margin-left:auto!important}
   /* Btw and Rapportages: Filters sits next to the period choice instead of under it. */
   #mainApp #content.content>.product-page-shell>.page-head>.page-period-stack{flex-direction:row-reverse;align-items:center;gap:var(--space-2,8px)}
+  #mainApp #content.content>.product-page-shell>.page-head>.page-period-stack>*{width:auto!important;flex:0 0 auto}
   /* Smaller desktop screens: buttons and period choice stay together on one row under the title. */
   @media(max-width:1199px){#mainApp #content.content>.product-page-shell:has(>.product-page-actions):has(.page-period-slot)>.page-head>div:first-child{flex-basis:100%}}
   /* Pages without the shared shell (Diensten): same row, same centring. */
