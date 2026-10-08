@@ -408,7 +408,11 @@ function focusReviewIssue(issue){
   if(issue.field==='confirmDuplicate'){document.querySelector('[data-review-issue="confirmDuplicate"] button')?.focus();return}
   const el=document.getElementById('pdfImportForm')?.elements.namedItem(issue.field);el?.focus?.()
 }
-function focusDocumentReviewIssue(field){focusReviewIssue({field})}
+function focusDocumentReviewIssue(field){
+  const step=reviewStepForField(field);
+  if(step!==reviewWizardStep){setReviewWizardStep(step,false);requestAnimationFrame(()=>focusReviewIssue({field}));return}
+  focusReviewIssue({field})
+}
 function setReviewWizardStep(step,validate=true){
   const target=Number(step)===2?2:1,d=pendingPdfImport?.parsed;
   if(target===2&&validate&&d){
@@ -435,10 +439,12 @@ function updateBeginnerReviewState(){
   }
   if(amount){
     // A question that already has its own card above is not repeated in this summary.
-    const listed=amountIssues.filter(issue=>!document.querySelector('[data-review-issue="'+(issue.field==='exchangeRateToEur'?'currency':issue.field)+'"]:not(.resolved)'));
-    amount.hidden=amountIssues.length>0&&!listed.length;
-    amount.className='beginner-review-state '+(amountIssues.length?'bad':'good');
-    amount.innerHTML=listed.length?'<strong>Nog '+listed.length+' '+(listed.length===1?'punt':'punten')+' oplossen</strong><div class="beginner-issue-list">'+listed.map(issue=>'<button type="button" class="beginner-issue" onclick="focusDocumentReviewIssue(\''+esc(issue.field)+'\')">'+esc(issue.message)+'</button>').join('')+'</div>':amountIssues.length?'':'<strong>✓ Klaar om op te slaan</strong><span>De bedragen sluiten op elkaar aan.</span>'
+    // Issues from the first step are listed here too: on step 2 they are otherwise invisible while Save stays off.
+    const otherIssues=issues.filter(issue=>!amountIssues.includes(issue));
+    const listed=[...amountIssues.filter(issue=>!document.querySelector('[data-review-issue="'+(issue.field==='exchangeRateToEur'?'currency':issue.field)+'"]:not(.resolved)')),...otherIssues];
+    amount.hidden=issues.length>0&&!listed.length;
+    amount.className='beginner-review-state '+(issues.length?'bad':'good');
+    amount.innerHTML=listed.length?'<strong>Nog '+listed.length+' '+(listed.length===1?'punt':'punten')+' oplossen</strong><div class="beginner-issue-list">'+listed.map(issue=>'<button type="button" class="beginner-issue" onclick="focusDocumentReviewIssue(\''+esc(issue.field)+'\')">'+esc(issue.message)+'</button>').join('')+'</div>':issues.length?'':'<strong>✓ Klaar om op te slaan</strong><span>De bedragen sluiten op elkaar aan.</span>'
   }
   const financial=amountIssues.find(x=>['net','vatAmount','gross','vatRate','vatLines'].includes(x.field));
   if(warning){warning.hidden=true;warning.textContent=''}

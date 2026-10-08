@@ -49,7 +49,7 @@ const fixture=[
   "state.expenses=[];state.transactions=[];",
   "state.documents=[{id:'d-ok-1',fileId:'f-ok-1',name:'Albert-Heijn.pdf',type:'Bon',date:'2026-10-03',processingState:'ready'},{id:'d-q-1',fileId:'f-q-1',name:'Jumbo.pdf',type:'Bon',date:'2026-10-04',processingState:'review_required'},{id:'d-usd-1',fileId:'f-usd-1',name:'USD.pdf',type:'Factuur',date:'2026-10-04',processingState:'ready'},{id:'d-dup-source',fileId:'f-dup-source',name:'Gamma-nieuw.pdf',type:'Bon',date:'2026-09-12',processingState:'review_required'},{id:'existing-doc',fileId:'f-existing',name:'Gamma.pdf',type:'Bon',date:'2026-09-12',processingState:'ready',linkedType:'expense',linkedId:'e-existing',reviewSnapshot:{party:'Gamma',issueDate:'2026-09-12',gross:36.99}}];",
   "state.services=[];state.bookings=[];state.plannedCash=[];",
-  "documentProcessingJobs=[{id:'j-ok-1',client_ref:'f-ok-1',file_name:'Albert-Heijn.pdf',state:'ready',review_fields:[],requested_kind:'purchase',result:{analysis:{documentType:'receipt',party:'Albert Heijn',issueDate:'2026-10-03',currency:'EUR',gross:18.40,net:16.88,vatAmount:1.52,vatRate:9,amounts:{total:18.40}}}},{id:'j-q-1',client_ref:'f-q-1',file_name:'Jumbo.pdf',state:'review_required',review_fields:['gross'],review_message:'Controleer het totaal',requested_kind:'purchase',result:{analysis:{documentType:'receipt',party:'Jumbo',issueDate:'2026-10-04',currency:'EUR',gross:15.93,net:14.61,vatAmount:1.32,vatRate:9,amounts:{total:15.93}}}},{id:'j-usd-1',client_ref:'f-usd-1',file_name:'USD.pdf',state:'ready',review_fields:[],requested_kind:'purchase',result:{analysis:{documentType:'purchase_invoice',party:'US Vendor',invoiceNumber:'USD-1',issueDate:'2026-10-04',currency:'USD',gross:121,net:100,vatAmount:21,vatRate:21,amounts:{total:121}}}}];",
+  "documentProcessingJobs=[{id:'j-ok-1',client_ref:'f-ok-1',file_name:'Albert-Heijn.pdf',state:'ready',review_fields:[],requested_kind:'purchase',result:{analysis:{documentType:'receipt',party:'Albert Heijn',issueDate:'2026-10-03',currency:'EUR',gross:18.40,net:16.88,vatAmount:1.52,vatRate:9,amounts:{total:18.40}}}},{id:'j-q-1',client_ref:'f-q-1',file_name:'Jumbo.pdf',state:'review_required',review_fields:['gross'],review_message:'Controleer het totaal',requested_kind:'purchase',result:{analysis:{documentType:'receipt',supplier:{name:'Jumbo'},invoice:{number:'',date:'2026-10-04'},currency:'EUR',gross:15.93,net:14.61,vatAmount:1.32,vatRate:9,amounts:{total:15.93}}}},{id:'j-usd-1',client_ref:'f-usd-1',file_name:'USD.pdf',state:'ready',review_fields:[],requested_kind:'purchase',result:{analysis:{documentType:'purchase_invoice',party:'US Vendor',invoiceNumber:'USD-1',issueDate:'2026-10-04',currency:'USD',gross:121,net:100,vatAmount:21,vatRate:21,amounts:{total:121}}}}];",
   "documentProcessingInitialized=true;documentProcessingConnectivityLost=false;documentProcessingFetchError=false;",
   "enterApp();"
 ].join('\n');
@@ -91,15 +91,15 @@ try{
   await page.goto(base+'/app',{waitUntil:'networkidle'});
   await page.evaluate(async()=>document.fonts.ready);
 
+  // Bonnetjes is a plain list of the customer's documents; open checks are a small badge, not a separate block.
   await page.evaluate(()=>navigate('documents'));
-  await page.locator('.mobile-document-groups').waitFor();
-  assert.match(await page.locator('.mobile-document-groups').innerText(),/1 bon klopt/);
-  assert.match(await page.locator('.mobile-document-groups').innerText(),/2 hebben een vraag/);
-  assert.match(await page.locator('.mobile-document-questions').innerText(),/Klopt het totaal\?/);
-  assert.match(await page.locator('.mobile-document-questions').innerText(),/Controleer de valuta/);
-  assert.equal(await page.locator('.mobile-document-good .mobile-document-compact-row').count(),1,'only zero-unresolved receipts may enter the green bulk group');
-  await page.locator('.mobile-document-good').screenshot({path:path.join(evidenceDir,'01-bonnen-kloppen-'+browserName+'.png')});
-  await page.locator('.mobile-document-questions').screenshot({path:path.join(evidenceDir,'02-bonnen-vragen-'+browserName+'.png')});
+  await page.locator('.mobile-card-list').waitFor();
+  assert.equal(await page.locator('.mobile-document-groups').count(),0,'no question/ok groups above the documents');
+  const documentsText=await page.locator('.mobile-card-list').innerText();
+  for(const name of ['Albert-Heijn.pdf','Jumbo.pdf','USD.pdf','Gamma.pdf'])assert.match(documentsText,new RegExp(name.replace('.','\\.')),'documents list shows '+name);
+  assert.doesNotMatch(await page.locator('#mainApp').innerText(),/\[object Object\]/,'raw processor supplier objects must never be rendered');
+  assert.ok((documentsText.match(/Controle nodig/g)||[]).length>=2,'documents that still need a check carry a badge');
+  await page.screenshot({path:path.join(evidenceDir,'01-bonnetjes-lijst-'+browserName+'.png')});
 
   await page.evaluate(()=>newContact());
   await page.locator('#contactForm[data-mobile-customer-flow]').waitFor({state:'attached'});
@@ -192,6 +192,34 @@ try{
   assert.match(await page.locator('.mobile-duplicate-cards').innerText(),/NIEUW/);
   assert.match(await page.locator('.mobile-duplicate-cards').innerText(),/AL IN BOEKUNA/);
   await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'04-bon-duplicaat-'+browserName+'.png')});
+  await page.evaluate(()=>closeModal());
+
+  // Regression: a USD document without supplier. Save may never be off while the screen says it is ready.
+  await page.evaluate(()=>{
+    const parsed={type:'purchase',documentType:'receipt',confidenceScore:80,party:'',invoiceNumber:'',issueDate:'2026-10-05',category:'Software',currency:'USD',net:5,vatAmount:0.95,gross:5.95,vatRate:19,mixedRates:false,vatLines:[],lineItems:[],adjustments:[]};
+    pendingPdfImport={file:new File(['qa'],'usd.pdf',{type:'application/pdf'}),parsed,previewUrl:null,sha256:'qa-usd',sourceClientRef:'',sourceDocumentId:'',processingJobId:'j-usd-2'};
+    showPdfImportReview(parsed);
+  });
+  await page.locator('.mobile-single-issue-review').waitFor();
+  assert.equal(await page.locator('.mobile-single-issue-question').innerText(),'Klopt de leverancier?','the missing supplier is asked before the amounts step');
+  await page.locator('[name="party"]:visible').fill('OpenAI LLC');
+  // Depending on timing the shell has already moved on after typing; confirm only when the button is still there.
+  const confirmParty=page.getByRole('button',{name:'Ja, klopt',exact:true});if(await confirmParty.isVisible())await confirmParty.click();
+  await page.locator('[name="exchangeRateToEur"]:visible').waitFor();
+  await page.locator('[name="exchangeRateToEur"]').fill('0.92');
+  await page.getByRole('button',{name:'Wisselkoers bevestigen'}).click();
+  const foreign=page.locator('[name="vatTreatmentChoice"][value="foreign"]');if(await foreign.count())await foreign.check();
+  const saveState=()=>page.evaluate(()=>({state:document.getElementById('reviewBlockingState')?.hidden?'':document.getElementById('reviewBlockingState')?.innerText||'',disabled:[...document.querySelectorAll('[data-review-save]')].filter(x=>x.offsetParent).map(x=>x.disabled)}));
+  await page.waitForFunction(()=>[...document.querySelectorAll('[data-review-save]')].some(x=>x.offsetParent&&!x.disabled));
+  await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'06-usd-opslaan-'+browserName+'.png')});
+  // Clearing the supplier on the amounts step: the state must say what is missing, not "Klaar", and lead back to it.
+  await page.evaluate(()=>{const el=document.getElementById('pdfImportForm').elements.namedItem('party');el.value='';el.dispatchEvent(new Event('input',{bubbles:true}));updateBeginnerReviewState()});
+  const blocked=await saveState();
+  assert.ok(blocked.disabled.length&&blocked.disabled.every(Boolean),'save is off without supplier');
+  assert.doesNotMatch(blocked.state,/Klaar/,'never "Klaar" while save is off: '+blocked.state);
+  assert.match(blocked.state,/Leverancier ontbreekt/);
+  await page.locator('#reviewBlockingState .beginner-issue').first().click();
+  await page.waitForFunction(()=>document.activeElement?.name==='party');
   await page.evaluate(()=>closeModal());
 
   for(const width of [320,360,375,390,393,430]){

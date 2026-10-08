@@ -7,7 +7,6 @@
   var textChanges=[];
   var invoiceResume=null;
   var nextInvoiceStep=null;
-  var bulkBusy=false;
   var mobileIssueReviewRequested=false;
   var DIRECT_FIELDS=['net','vatAmount','gross','vatRate','vatLines','currency','exchangeRateToEur','vatTreatmentChoice'];
 
@@ -45,13 +44,6 @@
     try{return typeof dateNL==='function'?dateNL(value):String(value||'')}
     catch(_){return String(value||'')}
   }
-  function analysisAmount(analysis){
-    var candidates=[analysis?.gross,analysis?.amounts?.total,analysis?.invoiceTotal,analysis?.total];
-    var value=candidates.find(function(v){return Number.isFinite(Number(v))});
-    return value==null?'':moneyText(Number(value));
-  }
-  function analysisParty(analysis){return String(analysis?.party||analysis?.supplier||analysis?.vendor||analysis?.merchant||'Document')}
-  function analysisDate(analysis){return String(analysis?.issueDate||analysis?.invoiceDate||analysis?.date||'')}
   function reviewQuestion(field){
     var map={
       gross:'Klopt het totaal?',net:'Klopt het bedrag excl. btw?',vatAmount:'Klopt de btw?',vatRate:'Klopt de btw?',
@@ -62,146 +54,6 @@
     };
     return map[field]||'Klopt dit gegeven?';
   }
-  function jobFirstField(job){
-    var fields=Array.isArray(job?.review_fields)?job.review_fields.filter(Boolean):[];
-    if(fields.length)return String(fields[0]);
-    var analysis=job?.result?.analysis||{};
-    if(analysis.duplicateCandidate)return 'confirmDuplicate';
-    if(Array.isArray(analysis.anomalyCodes)&&analysis.anomalyCodes.length)return 'confirmAnomaly';
-    if(String(analysis.currency||'EUR').toUpperCase()!=='EUR')return 'currency';
-    if(analysis.mixedRates)return 'vatLines';
-    if(!String(analysis.party||'').trim())return 'party';
-    if(!String(analysis.issueDate||'').trim())return 'issueDate';
-    if(!['receipt','other'].includes(String(analysis.documentType||''))&&!String(analysis.invoiceNumber||'').trim())return 'invoiceNumber';
-    var financial=analysis.recognitionChecks;
-    if(Array.isArray(financial)){
-      var bad=financial.find(function(x){return x&&x.level==='bad'});
-      if(bad?.field)return String(bad.field);
-      if(/totaal/i.test(String(bad?.title||bad?.detail||'')))return 'gross';
-      if(/btw/i.test(String(bad?.title||bad?.detail||'')))return 'vatAmount';
-    }
-    return 'document';
-  }
-  function documentForJob(job){
-    return (state.documents||[]).find(function(d){return String(d.fileId||'')===String(job?.client_ref||'')})||null;
-  }
-  function jobBookable(job){
-    var type=String(job?.result?.analysis?.documentType||'');
-    return ['purchase_invoice','sales_invoice','sale_invoice','credit_invoice','receipt','invoice'].includes(type);
-  }
-  function unlinkedJob(job){
-    var d=documentForJob(job);
-    return !d||!d.linkedId;
-  }
-  function jobHasUnresolvedSignals(job){
-    var analysis=job?.result?.analysis||{},fields=Array.isArray(job?.review_fields)?job.review_fields.filter(Boolean):[];
-    if(fields.length||analysis.bookingAllowed===false||analysis.duplicateCandidate)return true;
-    if(Array.isArray(analysis.anomalyCodes)&&analysis.anomalyCodes.length)return true;
-    if(String(analysis.currency||'EUR').toUpperCase()!=='EUR')return true;
-    if(!String(analysis.party||'').trim()||!String(analysis.issueDate||'').trim())return true;
-    if(!['receipt','other'].includes(String(analysis.documentType||''))&&!String(analysis.invoiceNumber||'').trim())return true;
-    var checks=Array.isArray(analysis.recognitionChecks)?analysis.recognitionChecks:[];
-    if(checks.some(function(check){return check&&['bad','warn'].includes(String(check.level||''))}))return true;
-    var net=Number(analysis.net),vat=Number(analysis.vatAmount),gross=Number(analysis.gross);
-    if(!Number.isFinite(net)||!Number.isFinite(vat)||!Number.isFinite(gross))return true;
-    if(Math.abs((net+vat)-gross)>.02)return true;
-    return false;
-  }
-  function documentGroups(root){
-    if(page!=='documents'||!root)return;
-    var jobs=Array.isArray(documentProcessingJobs)?documentProcessingJobs:[];
-    var clean=jobs.filter(function(job){return job?.state==='ready'&&jobBookable(job)&&unlinkedJob(job)&&!jobHasUnresolvedSignals(job)});
-    var questions=jobs.filter(function(job){
-      return jobBookable(job)&&unlinkedJob(job)&&(job?.state==='review_required'||(job?.state==='ready'&&jobHasUnresolvedSignals(job)));
-    });
-    var questionIds=new Set(questions.map(function(j){return String(j.client_ref||'')}));
-    var verification=(state.documents||[]).filter(function(d){
-      var status=String(d?.verification?.status||d?.verificationStatus||'');
-      return status==='needs_review'&&!questionIds.has(String(d.fileId||''));
-    });
-    var sig=JSON.stringify({
-      clean:clean.map(function(j){return [j.id,j.state,j.client_ref]}),
-      questions:questions.map(function(j){return [j.id,j.state,j.review_fields]}),
-      verification:verification.map(function(d){return [d.id,d.verification?.status||d.verificationStatus]})
-    });
-    var current=root.querySelector('.mobile-document-groups');
-    if(current&&current.dataset.signature===sig)return;
-    current?.remove();
-    if(!clean.length&&!questions.length&&!verification.length)return;
-    var wrap=node('section','mobile-document-groups');
-    wrap.dataset.signature=sig;
-    wrap.setAttribute('aria-label','Bonnen controleren');
-
-    if(clean.length){
-      var good=node('section','mobile-document-group mobile-document-good');
-      good.append(node('h2','',clean.length+' '+(clean.length===1?'bon klopt':'bonnen kloppen')));
-      var list=node('div','mobile-document-compact-list');
-      clean.slice(0,3).forEach(function(job){
-        var a=job.result?.analysis||{},row=node('div','mobile-document-compact-row');
-        var copy=node('div','');
-        copy.append(node('strong','',analysisParty(a)));
-        var meta=[analysisDate(a)?dateText(analysisDate(a)):'',analysisAmount(a)].filter(Boolean).join(' · ');
-        copy.append(node('span','',meta));
-        list.append(row);row.append(copy);
-      });
-      if(clean.length>3)list.append(node('p','mobile-document-more','en nog '+(clean.length-3)+' andere'));
-      good.append(list);
-      good.append(button('Alle '+clean.length+' goedkeuren',function(){approveCleanDocuments(clean)},'btn primary mobile-flow-action mobile-document-bulk'));
-      wrap.append(good);
-    }
-
-    if(questions.length||verification.length){
-      var issue=node('section','mobile-document-group mobile-document-questions');
-      var total=questions.length+verification.length;
-      issue.append(node('h2','',total+' '+(total===1?'heeft':'hebben')+' een vraag'));
-      questions.forEach(function(job){
-        var a=job.result?.analysis||{},field=jobFirstField(job);
-        var row=button('',function(){mobileIssueReviewRequested=true;openPersistentDocumentReview(job.id)},'mobile-document-question-row mobile-flow-action');
-        var copy=node('span','mobile-document-question-copy');
-        copy.append(node('strong','',reviewQuestion(field)));
-        copy.append(node('span','',[analysisParty(a),analysisDate(a)?dateText(analysisDate(a)):'',analysisAmount(a)].filter(Boolean).join(' · ')));
-        row.append(copy,node('span','mobile-document-chevron','›'));issue.append(row);
-      });
-      verification.forEach(function(d){
-        var diffs=Array.isArray(d?.verification?.differences)?d.verification.differences:[];
-        var field=String(diffs[0]?.field||d?.verification?.financialIssues?.[0]?.field||'document');
-        var row=button('',function(){openDocumentVerification(d.id)},'mobile-document-question-row mobile-flow-action');
-        var copy=node('span','mobile-document-question-copy');
-        copy.append(node('strong','',reviewQuestion(field)));
-        copy.append(node('span','',[d.name,dateText(d.date)].filter(Boolean).join(' · ')));
-        row.append(copy,node('span','mobile-document-chevron','›'));issue.append(row);
-      });
-      wrap.append(issue);
-    }
-    var anchor=root.querySelector('.mobile-card-list')||root.querySelector('.documents-workspace')||root.firstElementChild;
-    if(anchor)anchor.before(wrap);else root.prepend(wrap);
-  }
-  async function approveCleanDocuments(jobs){
-    if(bulkBusy||!Array.isArray(jobs)||!jobs.length)return;
-    bulkBusy=true;var completed=0;
-    try{
-      for(const original of jobs){
-        var job=(documentProcessingJobs||[]).find(function(x){return String(x.id)===String(original.id)});
-        if(!job||job.state!=='ready'||!jobBookable(job)||!unlinkedJob(job)||jobHasUnresolvedSignals(job)){
-          throw new Error('Een bon heeft intussen controle nodig.');
-        }
-        await openPersistentDocumentReview(job.id);
-        var parsed=pendingPdfImport?.parsed;
-        if(!parsed)throw new Error('De bon kon niet veilig worden geopend.');
-        var issues=BookunaDocumentReviewV2?.financialBlockingIssues?.(parsed)||[];
-        if(issues.length)throw new Error(reviewQuestion(issues[0].field));
-        await savePdfInvoiceImport();
-        if(pendingPdfImport)throw new Error('De bon kon niet veilig worden opgeslagen.');
-        completed++;
-      }
-      toast(completed+' '+(completed===1?'bon goedgekeurd':'bonnen goedgekeurd')+'.');
-    }catch(err){
-      toast(completed+' van '+jobs.length+' goedgekeurd. '+String(err?.message||'Controleer de volgende bon.'));
-    }finally{
-      bulkBusy=false;schedule();
-    }
-  }
-
   function contactField(form,name){return form.elements.namedItem(name)?.closest('.field')||null}
   function updateContactCompanyCard(form,card){
     if(!form||!card)return;
@@ -531,9 +383,13 @@
     var flow=root?.querySelector('.document-review-flow.two-step-review');
     if(!flow||!media.matches||flow.dataset.mobileSimpleReview==='full')return;
     var parsed=pendingPdfImport?.parsed;if(!parsed)return;
-    var requested=mobileIssueReviewRequested||(!bulkBusy&&!!pendingPdfImport?.processingJobId);
+    var requested=mobileIssueReviewRequested||!!pendingPdfImport?.processingJobId;
     if(flow.dataset.mobileSimpleReview!=='active'&&!requested)return;
-    var issues=window.BookunaDocumentReviewV2?.financialBlockingIssues?.(parsed)||[];
+    // Questions about the basis (supplier, date, number) come first: amounts are answered on the amounts step,
+    // and jumping there first would hide a basis question while Save stays off.
+    var issues=(window.BookunaDocumentReviewV2?.financialBlockingIssues?.(parsed)||[]).slice().sort(function(a,b){
+      return Number(DIRECT_FIELDS.includes(String(a?.field||'')))-Number(DIRECT_FIELDS.includes(String(b?.field||'')));
+    });
     if(!issues.length&&flow.dataset.mobileSimpleReview!=='active'){mobileIssueReviewRequested=false;return}
     // Amounts and VAT choices are answered in the amounts step itself; a "Ja, klopt" there would only repeat the
     // same question, so those go straight to the step with the field.
@@ -590,8 +446,7 @@
 
   function enhance(){
     queued=false;if(!media.matches)return;
-    var content=document.getElementById('content'),modalRoot=document.getElementById('modalRoot');
-    if(content)documentGroups(content);
+    var modalRoot=document.getElementById('modalRoot');
     if(modalRoot){contactFlow(modalRoot);invoiceFlow(modalRoot);simpleReview(modalRoot)}
     document.querySelectorAll('#invoiceForm[data-mobile-invoice-flow]').forEach(enhanceInvoiceRows);
     document.querySelectorAll('#contactForm[data-mobile-customer-flow]').forEach(function(form){

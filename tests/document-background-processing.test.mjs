@@ -201,20 +201,19 @@ try{
     window.getStoredFile=async()=>({name:'unreviewed.pdf',type:'application/pdf',blob:new Blob(['%PDF-1.4\n%%EOF'],{type:'application/pdf'})});
     page='documents';render();
   },{now});
-  assert.equal(await page.locator('.document-processing-board').count(),1,'Ready financial document remains reviewable after reload');
-  assert.equal(await page.locator('.document-processing-board .document-processing-card').count(),1,'Booked, resolved and nonfinancial documents do not need review');
-  assert.match(await page.locator('.document-processing-board').innerText(),/unreviewed\.pdf/);
+  // Bonnetjes is a plain file list: a document that still needs a check is marked in its own row, not in a separate block.
+  assert.equal(await page.locator('.document-processing-board').count(),0,'No separate review block above the documents');
+  const reviewRows=page.locator('.mobile-documents tbody tr').filter({hasText:'Controle nodig'});
+  assert.equal(await reviewRows.count(),1,'Booked, resolved and nonfinancial documents do not need review');
+  assert.match(await reviewRows.innerText(),/unreviewed\.pdf/);
   assert.equal((await page.locator('#documentAttentionBadge').innerText()).trim(),'1','Unreviewed ready financial document requires attention');
   const sourceRow=page.locator('.mobile-documents tbody tr').filter({hasText:'unreviewed.pdf'});
   await sourceRow.getByRole('button',{name:'Controleren',exact:true}).click();
   await page.getByRole('heading',{name:'Document controleren'}).waitFor();
   assert.equal(await page.evaluate(()=>pendingPdfImport.processingJobId),'unreviewed','File row reopens the persisted financial review');
   assert.equal(await page.evaluate(()=>state.expenses.length+state.invoices.length),0,'Reopening recognition never books a document automatically');
-  await page.evaluate(()=>{cancelDocumentReview();page='documents';render()});
-  await page.locator('.document-processing-board').getByRole('button',{name:'Controleren',exact:true}).click();
-  await page.getByRole('heading',{name:'Document controleren'}).waitFor();
   await page.evaluate(()=>{cancelDocumentReview();state.documents.find(d=>d.fileId==='ref-unreviewed').linkedId='saved-expense';page='documents';render()});
-  assert.equal(await page.locator('.document-processing-board').count(),0,'Saved document leaves pending review after its booking link is persisted');
+  assert.equal(await page.locator('.mobile-documents tbody tr').filter({hasText:'Controle nodig'}).count(),0,'Saved document leaves pending review after its booking link is persisted');
 
   for(const width of [320,360,375,390,393,430,768,1024,1280,1440,1920]){
     await page.setViewportSize({width,height:900});
