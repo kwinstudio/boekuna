@@ -3223,9 +3223,10 @@ async function logoutUser(trigger=null){
  resetAuthScopedClientState('');
  const button=trigger?.setAttribute?trigger:document.getElementById('settingsLogoutButton'),originalLabel=button?.textContent||'Uitloggen';
  if(button){button.disabled=true;button.textContent='Uitloggen…'}
- const leavingUserId=String(currentUser?.id||'');let cloudCopyConfirmed=false;
+ const leavingUserId=String(currentUser?.id||'');let cloudCopyConfirmed=false,finalSyncFailed=false;
  if(!TEST_MODE_NO_AUTH){
-  try{await syncCloudStateNow();cloudCopyConfirmed=cloudSyncStatus==='saved'}catch(e){console.warn('Finale cloudsync vóór uitloggen mislukt; uitloggen gaat door.',e)}
+  try{await syncCloudStateNow()}catch(e){finalSyncFailed=true;console.warn('Finale cloudsync vóór uitloggen mislukt; uitloggen gaat door.',e)}
+  cloudCopyConfirmed=!finalSyncFailed&&cloudSyncStatus==='saved';
   try{const sb=await getSupabase();await sb.auth.signOut()}catch(e){console.warn('Supabase signOut gaf een fout; lokale sessie wordt alsnog afgesloten.',e)}
  }
  // Privacy: the cloud holds the administration, so once it is confirmed saved the local
