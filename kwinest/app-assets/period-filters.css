@@ -19,8 +19,14 @@
 }
 
 /* Filters on pages without a list (Btw, Rapportages): same button as in the list toolbar. */
-#mainApp .page-filter-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 16px}
-#mainApp .page-filter-row .page-filter-btn{height:38px!important;min-height:38px!important;padding:0 16px!important;font-size:13px!important;font-weight:700!important}
+/* Btw, Rapportages: Filters stacks right under the dropdown, same width and height; active filters show as chips below. */
+#mainApp .page-period-stack{flex-direction:column;align-items:stretch;gap:8px}
+#mainApp .page-period-stack .page-filter-btn{
+  box-sizing:border-box;width:164px!important;min-width:164px!important;height:40px!important;min-height:40px!important;margin:0!important;
+  padding:0 14px!important;display:inline-flex!important;align-items:center;justify-content:center;gap:8px;font-size:14px!important;font-weight:700!important;border-radius:10px!important
+}
+#mainApp .page-period-stack .page-filter-btn .icon{width:16px;height:16px}
+#mainApp .page-filter-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;margin:0 0 16px}
 #mainApp .page-filter-row .list-filter-chip{height:38px;min-height:38px}
 #modalRoot .field[hidden]{display:none!important}
 
@@ -35,6 +41,7 @@
   #mainApp .page-head .page-period-slot{margin:0 0 0 auto!important;flex:0 0 auto!important}
   #mainApp .page-period-slot .period-quick-select,#mainApp .period-quick .period-quick-select{width:156px!important;min-width:156px!important;height:44px!important;min-height:44px!important;font-size:14px!important}
   #mainApp .list-toolbar-quick .filter-btn{height:44px!important;min-height:44px!important}
-  #mainApp .page-filter-row .page-filter-btn,#mainApp .page-filter-row .list-filter-chip{height:44px!important;min-height:44px!important}
+  #mainApp .page-period-stack .page-filter-btn{width:156px!important;min-width:156px!important;height:44px!important;min-height:44px!important}
+  #mainApp .page-filter-row .list-filter-chip{height:44px!important;min-height:44px!important}
 }
 #mainApp .report-customers-card .progress span{background:#63D471!important}
