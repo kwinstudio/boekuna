@@ -63,6 +63,7 @@ try{
     assert.equal(calls.pdf,1,'the PDF is made once, while the screen is open');
     assert.equal(await page.locator('.modal-foot .btn').count(),2,'one cancel and one send button');
     assert.equal(await page.locator('#emailHandoffForm [name="to"]').inputValue(),'klant@example.test');
+    assert.equal(await page.locator('#emailHandoffForm [name="subject"]').inputValue(),'Factuur 2026-0001 van Fictieve QA BV');
     const body=await page.locator('#emailHandoffForm [name="message"]').inputValue();
     assert.match(body,/^Goedendag Fictieve klant BV,\n\nHierbij ontvangt u factuur 2026-0001\. De factuur vindt u als PDF in de bijlage\.\n\nFactuurnummer: 2026-0001\nBedrag: €[ \u00a0]411,40\nFactuurdatum: 1 augustus 2026\nVervaldatum: 15 augustus 2026\n\n/);
     assert.match(body,/Wilt u het bedrag uiterlijk 15 augustus 2026 overmaken naar NL91ABNA0417164300 t\.n\.v\. Fictieve QA BV, onder vermelding van 2026-0001\?/);
@@ -73,8 +74,13 @@ try{
     const shares=await page.evaluate(()=>window.__shares);
     assert.equal(shares.length,1,'one tap opens the share sheet');
     assert.equal(shares[0].files.length,1);assert.equal(shares[0].files[0].type,'application/pdf');
-    assert.match(shares[0].files[0].name,/^Factuur-2026-0001-Fictieve-klant-BV\.pdf$/);
-    assert.match(shares[0].text,/Hierbij ontvangt u factuur 2026-0001/);
+    // Gmail on iPhone uses the file name as subject, Outlook the first text line; both must read as the subject.
+    assert.equal(shares[0].files[0].name,'Factuur 2026-0001 van Fictieve QA BV.pdf');
+    assert.equal(shares[0].title,'Factuur 2026-0001 van Fictieve QA BV');
+    // Outlook turns every enter into a blank line: the shared text has the subject first and single enters only.
+    assert.equal(shares[0].text,'Factuur 2026-0001 van Fictieve QA BV\n'+body.split('\n').filter(Boolean).join('\n'));
+    assert.doesNotMatch(shares[0].text,/\n\n/);
+    assert.match(shares[0].text,/\nGoedendag Fictieve klant BV,\nHierbij ontvangt u factuur 2026-0001\./);
     assert.equal(await page.locator('#emailHandoffForm').count(),0,'screen closes after sending');
     let i0=await invoice(page,'i0');
     assert.ok(i0.lastSentAt);assert.equal(i0.lastSentTo,'klant@example.test');assert.equal(i0.lastShareChannel,'native_share');
@@ -137,10 +143,10 @@ try{
       if(engineName==='webkit')await page.evaluate(()=>{window.openMailtoUri=uri=>{window.__openedMailto=uri}});
       const download=page.waitForEvent('download');
       await send.click();
-      assert.match((await download).suggestedFilename(),/^Factuur-2026-0001-Fictieve-klant-BV\.pdf$/);
+      assert.equal((await download).suggestedFilename(),'Factuur 2026-0001 van Fictieve QA BV.pdf');
       await page.locator('.toast.has-action').waitFor();
       const mailto=await page.evaluate(()=>window.__boekunaLastMailto);
-      assert.match(mailto,/^mailto:klant%40example\.test\?subject=Factuur%202026-0001/);
+      assert.match(mailto,/^mailto:klant%40example\.test\?subject=Factuur%202026-0001%20van%20Fictieve%20QA%20BV&body=/);
       assert.match(decodeURIComponent(mailto),/Hierbij ontvangt u factuur 2026-0001/);
       const i0=await invoice(page,'i0');
       assert.equal(i0.lastShareChannel,'mailto');assert.ok(i0.lastSentAt);
