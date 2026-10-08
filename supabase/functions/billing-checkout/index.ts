@@ -63,6 +63,11 @@ Deno.serve(async(req:Request)=>{
   } as const;
   if(!(plan in config))return json(req,{ok:false,error:"Kies Boekuna of Unlimited."},400);
 
+  // No new paid subscription while this account is being deleted.
+  const {data:closure,error:closureError}=await admin.from("account_closures").select("state").eq("user_id",user.id).maybeSingle();
+  if(closureError)throw closureError;
+  if(closure&&closure.state!=="failed")return json(req,{ok:false,error:"Dit account wordt verwijderd. Je kunt geen abonnement meer afsluiten.",code:"ACCOUNT_CLOSING"},409);
+
   const {data:account}=await admin.from("billing_accounts")
     .select("stripe_customer_id,stripe_subscription_id,status,plan")
     .eq("user_id",user.id).maybeSingle();

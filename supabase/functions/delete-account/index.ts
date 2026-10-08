@@ -1,5 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { closeStripeBilling, isChargeable, stripeRequestWithKey } from "../_shared/account-closure.ts";
+
+function reply(status: number, data: unknown) {
+  return new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json" } });
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") {
@@ -27,14 +32,73 @@ Deno.serve(async (req: Request) => {
 
   const { data: aal, error: aalError } = await userClient.auth.mfa.getAuthenticatorAssuranceLevel();
   if (aalError) {
-    return new Response(JSON.stringify({ error: "MFA status could not be verified" }), { status: 401, headers: { "content-type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Je tweestapsverificatie kon niet worden gecontroleerd. Log opnieuw in en probeer het nog eens." }), { status: 401, headers: { "content-type": "application/json" } });
   }
   if (aal?.nextLevel === "aal2" && aal?.currentLevel !== "aal2") {
-    return new Response(JSON.stringify({ error: "Two-step verification is required before deleting this account." }), { status: 403, headers: { "content-type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Bevestig eerst je tweestapsverificatie voordat je je account verwijdert." }), { status: 403, headers: { "content-type": "application/json" } });
   }
 
   const userId = userData.user.id;
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+
+  // 1. Claim the closure. A second request while one is running gets a 409, so a
+  //    double click can never run two deletions side by side.
+  const { data: claim, error: claimError } = await admin.rpc("begin_account_closure", { p_user_id: userId });
+  if (claimError || !claim) {
+    return reply(500, { error: "Verwijderen kon niet worden gestart. Er is niets verwijderd. Probeer het later opnieuw." });
+  }
+  if (!claim.claimed) {
+    return reply(409, { error: "Je account wordt al verwijderd. Wacht even en ververs de pagina." });
+  }
+  const closure = admin.from("account_closures");
+  const failClosure = async (message: string) => {
+    await closure
+      .update({ state: "failed", last_error: message.slice(0, 1000), updated_at: new Date().toISOString() })
+      .eq("user_id", userId);
+  };
+
+  // 2. Stop billing before any data is touched. If Stripe cannot confirm that every
+  //    chargeable subscription is cancelled, nothing is deleted and the user can retry.
+  const storedCustomer = String(claim.stripe_customer_id || "");
+  const storedSubscription = String(claim.stripe_subscription_id || "");
+  const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") || "";
+  const knownStripeLink = !!storedCustomer || (!!storedSubscription && isChargeable(claim.subscription_status));
+  try {
+    let customerId = storedCustomer;
+    let canceled: string[] = [];
+    if (knownStripeLink || stripeKey) {
+      const result = await closeStripeBilling(stripeRequestWithKey(stripeKey), {
+        userId,
+        customerId: storedCustomer,
+        subscriptionId: storedSubscription && isChargeable(claim.subscription_status) ? storedSubscription : "",
+      });
+      customerId = result.customerId;
+      canceled = result.canceledSubscriptionIds;
+    }
+    const closedAt = new Date().toISOString();
+    const { error: closedError } = await closure
+      .update({
+        state: "billing_closed",
+        stripe_customer_id: /^cus_[A-Za-z0-9]+$/.test(customerId) ? customerId : null,
+        canceled_subscription_ids: canceled,
+        billing_closed_at: closedAt,
+        updated_at: closedAt,
+      })
+      .eq("user_id", userId);
+    if (closedError) throw closedError;
+  } catch (billingError) {
+    const message = String((billingError as any)?.message || billingError);
+    await failClosure("billing: " + message);
+    return reply(502, {
+      error: "Je abonnement kon niet worden stopgezet, daarom is er niets verwijderd. Probeer het later opnieuw of mail support@boekuna.nl.",
+    });
+  }
+
+  // 3. Billing is closed: remove documents, screenshots, mailbox secret and the account.
+  const fail = async (status: number, message: string) => {
+    await failClosure("data: " + message);
+    return reply(status, { error: message });
+  };
 
   let offset = 0;
   const pageSize = 1000;
@@ -45,14 +109,14 @@ Deno.serve(async (req: Request) => {
       sortBy: { column: "name", order: "asc" }
     });
     if (listError) {
-      return new Response(JSON.stringify({ error: listError.message }), { status: 400, headers: { "content-type": "application/json" } });
+      return await fail(400, listError.message);
     }
     if (!files?.length) break;
 
     const paths = files.map((file) => `${userId}/${file.name}`);
     const { error: removeError } = await admin.storage.from("kwinest-documents").remove(paths);
     if (removeError) {
-      return new Response(JSON.stringify({ error: removeError.message }), { status: 400, headers: { "content-type": "application/json" } });
+      return await fail(400, removeError.message);
     }
     if (files.length < pageSize) break;
   }
@@ -65,33 +129,36 @@ Deno.serve(async (req: Request) => {
     // Before the feedback migration is applied the bucket does not exist: nothing to remove.
     if (folderError && /not found/i.test(folderError.message)) break;
     if (folderError) {
-      return new Response(JSON.stringify({ error: folderError.message }), { status: 400, headers: { "content-type": "application/json" } });
+      return await fail(400, folderError.message);
     }
     if (!folders?.length) break;
     const paths: string[] = [];
     for (const folder of folders) {
       const { data: files, error: fileError } = await feedbackBucket.list(`${userId}/${folder.name}`, { limit: 100 });
       if (fileError) {
-        return new Response(JSON.stringify({ error: fileError.message }), { status: 400, headers: { "content-type": "application/json" } });
+        return await fail(400, fileError.message);
       }
       for (const file of files || []) paths.push(`${userId}/${folder.name}/${file.name}`);
     }
     if (!paths.length) break;
     const { error: removeFeedbackError } = await feedbackBucket.remove(paths);
     if (removeFeedbackError) {
-      return new Response(JSON.stringify({ error: removeFeedbackError.message }), { status: 400, headers: { "content-type": "application/json" } });
+      return await fail(400, removeFeedbackError.message);
     }
   }
 
   const { error: emailSecretError } = await admin.rpc("delete_email_connection_secret", { p_user_id: userId });
   if (emailSecretError) {
-    return new Response(JSON.stringify({ error: "Connected mailbox credentials could not be removed" }), { status: 500, headers: { "content-type": "application/json" } });
+    return await fail(500, "Connected mailbox credentials could not be removed");
   }
 
   const { error } = await admin.auth.admin.deleteUser(userId);
-  if (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { "content-type": "application/json" } });
+  if (error && !/not.?found/i.test(error.message)) {
+    return await fail(400, error.message);
   }
 
-  return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "content-type": "application/json" } });
+  const doneAt = new Date().toISOString();
+  await closure.update({ state: "completed", completed_at: doneAt, updated_at: doneAt, last_error: null }).eq("user_id", userId);
+
+  return reply(200, { ok: true });
 });
