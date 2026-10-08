@@ -5,7 +5,8 @@ import {spawnSync} from 'node:child_process';
 
 const root=process.cwd();
 const source=path.join(root,'public');
-const retired=['functies','assistent','scanner','prijzen','veiligheid','faq','facturen','bonnen','btw','bank','rapportages','mobiel','hoe-het-werkt'];
+const retired=['assistent','scanner','rapportages','mobiel'];
+const pages=['functies','facturen','bonnen','btw','bank','hoe-het-werkt','prijzen','veiligheid','faq','over-ons'];
 const preserved=['privacy','voorwaarden','support','account-verwijderen'];
 
 const home=fs.readFileSync(path.join(source,'index.html'),'utf8');
@@ -49,8 +50,20 @@ for(const slug of preserved){
   assert.equal(/\/assets\/(?:site|editorial-marketing|premium-marketing|onepage)\.css/.test(html),false,slug+': old marketing stylesheet still active');
   assert.equal(/\/assets\/(?:site|editorial-marketing|premium-marketing|marketing)\.js/.test(html),false,slug+': old marketing runtime still active');
 }
+for(const slug of pages){
+  const html=fs.readFileSync(path.join(source,slug,'index.html'),'utf8');
+  assert.match(html,/<meta name="robots" content="index,follow">/i,slug+': page must be indexable');
+  assert.ok(html.includes('<link rel="canonical" href="https://boekuna.nl/'+slug+'/">'),slug+': canonical missing');
+  assert.equal((html.match(/<h1\b/g)||[]).length,1,slug+': exactly one h1');
+  for(const detail of ['Kwinest','KVK 74542893','NL002477565B57','support@boekuna.nl','href="/privacy/"','href="/voorwaarden/"'])assert.ok(html.includes(detail),slug+': footer business detail missing '+detail);
+  assert.deepEqual([...html.matchAll(/<script\b[^>]*>/gi)].map(m=>m[0]),['<script src="/assets/site/site.js" defer>'],slug+': only the deferred first-party site script');
+  for(const claim of ['automatische bankkoppeling is nu beschikbaar','100% correcte herkenning','direct btw-aangifte indienen','offertes maken','koppeling met je bank via psd2'])assert.ok(!html.toLowerCase().includes(claim),slug+': unverified feature claim '+claim);
+  for(const m of html.matchAll(/<img\b[^>]*>/g))assert.match(m[0],/alt="[^"]+"/,slug+': image without alt text');
+}
+for(const detail of ['Kwinest','KVK 74542893','NL002477565B57'])assert.ok(home.includes(detail),'Home footer business detail missing '+detail);
 const terms=fs.readFileSync(path.join(source,'voorwaarden','index.html'),'utf8');
 for(const detail of ['Kwinest','74542893','NL002477565B57','support@boekuna.nl'])assert.ok(terms.includes(detail),'Required business detail missing '+detail);
+for(const clause of ['Alleen voor ondernemers','Geen terugbetaling','Verwerkersovereenkomst','Nederlands recht','Rechtbank Rotterdam'])assert.ok(terms.includes(clause),'Terms clause missing: '+clause);
 
 const vercel=JSON.parse(fs.readFileSync(path.join(root,'vercel.json'),'utf8'));
 assert.ok(!Array.isArray(vercel.redirects)||vercel.redirects.length===0,'Retired permanent marketing redirects must be removed');
@@ -67,6 +80,7 @@ assert.ok(deletion.includes('/rest/v1/support_requests'),'Account deletion reque
 
 const sitemap=fs.readFileSync(path.join(source,'sitemap.xml'),'utf8');
 assert.equal(sitemap.includes('https://boekuna.nl/</loc>'),true,'Indexable V3 home must be in sitemap');
+for(const slug of pages)assert.ok(sitemap.includes('https://boekuna.nl/'+slug+'/'),'Sitemap missing page '+slug);
 for(const slug of preserved)assert.ok(sitemap.includes('https://boekuna.nl/'+slug+'/'), 'Sitemap missing preserved route '+slug);
 for(const slug of retired)assert.equal(sitemap.includes('https://boekuna.nl/'+slug+'/'),false,'Retired route remains in sitemap '+slug);
 
@@ -78,7 +92,7 @@ for(const file of ['index.html','404.html','robots.txt','sitemap.xml','assets/ba
   assert.ok(fs.existsSync(path.join(dist,file)),'Built baseline missing '+file);
 }
 for(const f of fs.readdirSync(path.join(dist,'assets/site')).filter(f=>f.endsWith('.webp')))assert.ok(fs.statSync(path.join(dist,'assets/site',f)).size<120000,'Image exceeds marketing transfer budget: '+f);
-for(const slug of preserved)assert.ok(fs.existsSync(path.join(dist,slug,'index.html')),'Built preserved route missing '+slug);
+for(const slug of [...preserved,...pages])assert.ok(fs.existsSync(path.join(dist,slug,'index.html')),'Built route missing '+slug);
 for(const slug of retired){
   const file=path.join(dist,slug,'index.html');
   assert.ok(fs.existsSync(file),'Built retired route holding missing '+slug);

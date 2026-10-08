@@ -3,8 +3,9 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 const here=path.dirname(fileURLToPath(import.meta.url));
 const root=path.resolve(here,'..'),source=path.join(root,'public'),target=path.join(root,'dist','marketing');
-const preserved=['index.html','404.html','privacy/index.html','voorwaarden/index.html','support/index.html','account-verwijderen/index.html','assets/baseline.css','assets/favicon.svg','assets/boekuna-symbol.svg','assets/boekuna-favicon.svg','assets/landing-v4.css','assets/site/site.css','assets/site/site.js','assets/site/app-desktop-dashboard.webp','assets/site/app-desktop-invoices.webp','assets/site/app-desktop-review.webp','assets/site/app-desktop-vat.webp','assets/site/app-mobile-dashboard.webp','assets/site/app-mobile-invoices.webp','assets/site/app-mobile-review.webp','assets/site/app-mobile-vat.webp','assets/site/foto-kapper.webp','assets/site/foto-vakman.webp','assets/site/foto-bloemist.webp','assets/site/foto-creatief.webp','robots.txt','sitemap.xml'];
-const retiredRoutes=['functies','assistent','scanner','prijzen','veiligheid','faq','facturen','bonnen','btw','bank','rapportages','mobiel','hoe-het-werkt'];
+const pages=['functies','facturen','bonnen','btw','bank','hoe-het-werkt','prijzen','veiligheid','faq','over-ons'];
+const preserved=['index.html','404.html',...pages.map(p=>p+'/index.html'),'privacy/index.html','voorwaarden/index.html','support/index.html','account-verwijderen/index.html','assets/baseline.css','assets/favicon.svg','assets/boekuna-symbol.svg','assets/boekuna-favicon.svg','assets/landing-v4.css','assets/site/site.css','assets/site/site.js','assets/site/app-desktop-dashboard.webp','assets/site/app-desktop-invoices.webp','assets/site/app-desktop-review.webp','assets/site/app-desktop-vat.webp','assets/site/app-mobile-dashboard.webp','assets/site/app-mobile-invoices.webp','assets/site/app-mobile-review.webp','assets/site/app-mobile-vat.webp','assets/site/app-desktop-bank.webp','assets/site/app-mobile-bank.webp','assets/site/app-desktop-composer.webp','assets/site/app-mobile-composer.webp','assets/site/app-desktop-documents.webp','assets/site/app-mobile-documents.webp','assets/site/app-desktop-expenses.webp','assets/site/app-mobile-expenses.webp','assets/site/app-desktop-reports.webp','assets/site/app-mobile-reports.webp','assets/site/app-desktop-services.webp','assets/site/app-mobile-services.webp','assets/site/foto-kapper.webp','assets/site/foto-vakman.webp','assets/site/foto-bloemist.webp','assets/site/foto-creatief.webp','robots.txt','sitemap.xml'];
+const retiredRoutes=['assistent','scanner','rapportages','mobiel'];
 for(const rel of preserved){const file=path.join(source,rel);if(!fs.existsSync(file))throw new Error('Missing clean marketing source: '+rel)}
 for(const slug of retiredRoutes)if(fs.existsSync(path.join(source,slug,'index.html')))throw new Error('Retired marketing source content still exists: '+slug);
 fs.rmSync(target,{recursive:true,force:true});
@@ -17,6 +18,7 @@ if(!home.includes('<meta name="robots" content="index,follow">'))throw new Error
 if(!home.includes('Boekhouden'))throw new Error('BOEKUNA V4 landing page missing');
 if(!home.includes('/assets/landing-v4.css'))throw new Error('V4 styles missing');
 if(!home.includes('/assets/site/app-desktop-dashboard.webp'))throw new Error('Real app screenshot missing from landing page');
+for(const p of pages){const html=fs.readFileSync(path.join(target,p,'index.html'),'utf8');if(!html.includes('<meta name="robots" content="index,follow">')||!html.includes('KVK 74542893'))throw new Error('Public page incomplete: '+p)}
 for(const f of fs.readdirSync(path.join(target,'assets/site')))if(f.endsWith('.webp')&&fs.statSync(path.join(target,'assets/site',f)).size>120000)throw new Error('Marketing image exceeds budget: '+f);
 if(!home.includes('https://app.boekuna.nl/?login=1'))throw new Error('Landing page must link to isolated app login');
 if(['editorial-hero','editorial-pricing','project-grid'].some(token=>home.includes(token)))throw new Error('Old marketing homepage structure returned');
@@ -26,5 +28,6 @@ if(process.env.BOEKUNA_MARKETING_PREVIEW==='1'){
   const marker='<meta name="robots" content="index,follow">';
   if(!home.includes(marker))throw new Error('V3 indexable robots marker missing for preview transform');
   fs.writeFileSync(path.join(target,'index.html'),home.replace(marker,'<meta name="robots" content="noindex,nofollow">'));
+  for(const p of pages){const f=path.join(target,p,'index.html');fs.writeFileSync(f,fs.readFileSync(f,'utf8').replace(marker,'<meta name="robots" content="noindex,nofollow">'))}
 }
-console.log('Marketing V4 landing build complete:',path.relative(root,target),'with',retiredRoutes.length,'retired route holdings');
+console.log('Marketing V4 landing build complete:',path.relative(root,target),'with',pages.length,'pages and',retiredRoutes.length,'retired route holdings');
