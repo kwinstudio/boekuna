@@ -120,7 +120,7 @@ assert.equal(isChargeable('incomplete_expired'),false);
   assert.ok(/catch \(billingError\)[\s\S]{0,400}return reply\(502/.test(del),'Stripe failure returns before deleting anything');
   assert.ok(del.includes('state: "completed"'),'successful deletion is recorded');
   const hook=fs.readFileSync('supabase/functions/billing-webhook/index.ts','utf8');
-  assert.ok(hook.indexOf('closedAccountGuard(userId, String(sub.id)')<hook.indexOf('apply_stripe_subscription_state'),'webhook checks closed accounts before writing state');
+  assert.ok(hook.indexOf('closedAccountGuard(userId, String(sub.id)')<hook.indexOf('applyStripeState(admin'),'webhook checks closed accounts before writing state');
   assert.ok(hook.includes('closedAccountGuard(userId, subId)'),'completed checkouts for deleted accounts are cancelled');
   const checkout=fs.readFileSync('supabase/functions/billing-checkout/index.ts','utf8');
   assert.ok(checkout.indexOf('ACCOUNT_CLOSING')<checkout.indexOf('/checkout/sessions'),'no checkout while an account is closing');

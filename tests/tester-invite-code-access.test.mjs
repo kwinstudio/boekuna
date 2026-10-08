@@ -37,7 +37,7 @@ assert.ok(!checkout.includes('trial_period_days'));
 
 for(const fragment of [
   'Heb je een testcode?','Code activeren','activateTesterCode',"redeem_tester_invite_code",
-  'Testtoegang actief','Je kunt Boekuna gratis gebruiken tot',
+  'Testtoegang actief','Je kunt ZZP gratis gebruiken tot',
   'Verifieer eerst je e-mailadres.','Deze testcode is niet geldig.',
   'Deze testcode is al gebruikt.','Deze testcode is verlopen.',
   'Je hebt je gratis testperiode al gebruikt.','Je hebt al een actief abonnement.'
