@@ -8,6 +8,8 @@
     "errorPath": "offline.html"
   },
   "android": {
-    "backgroundColor": "#F3F0E8"
+    "backgroundColor": "#F3F0E8",
+    "appendUserAgent": "BoekunaNative",
+    "allowMixedContent": false
   }
 }
