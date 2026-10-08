@@ -21,7 +21,7 @@ try{
     await page.goto(server.base+'/',{waitUntil:'networkidle'});
     assert.equal(await page.locator('h1').textContent(),'Boekhouden zonder gedoe.');
     if(width<=760)await page.locator('.mobile-menu summary').click();
-    assert.ok(await page.getByRole('link',{name:'Inloggen'}).isVisible());
+    assert.ok(await page.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).isVisible());
     const size=await page.evaluate(()=>({vw:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
     assert.ok(size.html<=size.vw+1&&size.body<=size.vw+1,'home '+width+' overflow '+JSON.stringify(size));
     assert.deepEqual(errors,[]);
