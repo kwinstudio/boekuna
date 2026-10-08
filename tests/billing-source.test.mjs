@@ -103,13 +103,17 @@ for(const retired of ['early_access_active','expired_read_only','FOUNDING 100','
   assert.ok(!html.includes(retired),`Retired First-100 state/copy must be absent from app UI: ${retired}`);
 }
 
-assert.ok(holding.includes('<meta name="robots" content="noindex,follow">'),'Temporary marketing root must remain noindex while pricing is intentionally unpublished');
-assert.ok(holding.includes('https://app.boekuna.nl/?login=1'),'Temporary marketing root must preserve the app login handoff');
-for(const publicPricing of ['€9,95','€19,95','register=1&plan=boekuna','register=1&plan=pro']){
-  assert.ok(!holding.includes(publicPricing),`Temporary holding page must not publish retired website pricing/checkout UI: ${publicPricing}`);
+assert.ok(holding.includes('<meta name="robots" content="index,follow">'),'Marketing V3 root must be indexable');
+assert.ok(holding.includes('https://app.boekuna.nl/?login=1'),'Marketing must preserve app login');
+assert.ok(holding.includes('https://app.boekuna.nl/?register=1'),'Marketing must link to app registration');
+for(const publicPricing of ['€ 9,95','€ 19,95']){
+  assert.ok(holding.includes(publicPricing),'V3 public price must match live Stripe plan: '+publicPricing);
+}
+for(const forbidden of ['register=1&plan=boekuna','register=1&plan=pro']){
+  assert.ok(!holding.includes(forbidden),'V3 public paid checkout link must not bypass plan selection: '+forbidden);
 }
 for(const retired of ['Founding 100','Eerste 100','Early Access','3 kalendermaanden gratis','90 dagen']){
-  assert.ok(!holding.toLowerCase().includes(retired.toLowerCase()),`Retired First-100 copy still present on holding page: ${retired}`);
+  assert.ok(!holding.toLowerCase().includes(retired.toLowerCase()),`Retired First-100 copy still present on landing page: ${retired}`);
 }
 assert.ok(privacy.includes('Stripe'),'Privacy policy must disclose Stripe');
 assert.ok(!terms.includes('Early Access'),'Terms must not describe the retired Early Access offer');
