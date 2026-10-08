@@ -19,11 +19,11 @@ for(const slug of retainedPublicPages)assert.ok(fs.existsSync(path.join(root,'pu
 for(const slug of retiredMarketingRoutes)assert.ok(!fs.existsSync(path.join(root,'public',slug,'index.html')),'retired marketing source page unexpectedly restored: '+slug);
 
 assert.ok(app.includes('function enterApp()'),'product-app entry logic must remain');
-assert.ok(marketing.includes('<meta name="robots" content="noindex,follow">'),'public root must be a noindex holding page');
-assert.ok(marketing.includes('Nieuwe website in ontwikkeling.'),'public root holding copy missing');
+assert.ok(marketing.includes('<meta name="robots" content="index,follow">'),'public root must be an indexable landing page');
+assert.ok(marketing.includes('Boekhouden zonder gedoe'),'public landing copy missing');
 assert.ok(marketing.includes('https://app.boekuna.nl/?login=1'),'marketing login must cross to isolated product host');
 assert.equal(marketing.includes('/assets/marketing.js'),false,'retired marketing JS returned');
-assert.equal(marketing.includes('boekuna-boekhouding.onrender.com'),false,'holding page must not publish legacy Render host');
+assert.equal(marketing.includes('boekuna-boekhouding.onrender.com'),false,'landing page must not publish legacy Render host');
 
 const parsedManifest=JSON.parse(manifest);
 assert.equal(parsedManifest.start_url,'/?login=1&app=1','app PWA entry must remain unchanged');

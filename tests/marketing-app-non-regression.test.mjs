@@ -9,7 +9,9 @@ const root=process.cwd();
 const baseRef=process.env.BOOKUNA_BASE_REF || (process.env.GITHUB_BASE_REF ? 'origin/'+process.env.GITHUB_BASE_REF : 'origin/main');
 const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'boekuna-app-base-'));
 
-const runBuild=(cwd,surface)=>execFileSync(process.execPath,['scripts/build-'+surface+'.mjs'],{cwd,encoding:'utf8',stdio:['ignore','pipe','pipe']});
+// Normalize only the volatile embedded build commit stamp. Otherwise two identical app
+// sources built from different Git SHAs appear byte-different in marketing-only PRs.
+const runBuild=(cwd,surface)=>execFileSync(process.execPath,['scripts/build-'+surface+'.mjs'],{cwd,encoding:'utf8',stdio:['ignore','pipe','pipe'],env:{...process.env,RENDER_GIT_COMMIT:'marketing-non-regression-fixture'}});
 const walk=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(entry=>{
   const file=path.join(dir,entry.name);
   return entry.isDirectory()?walk(file):[file];

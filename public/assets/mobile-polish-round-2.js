@@ -407,17 +407,19 @@
     return pages;
   }
 
-  function a4InvoiceTable(lines){
+  function a4InvoiceTable(lines,sign){
     return '<table class="boekuna-a4-table"><thead><tr><th style="width:42%">Omschrijving</th><th style="width:10%">Aantal</th><th style="width:12%">Eenheid</th><th class="r" style="width:14%">Prijs</th><th class="r" style="width:9%">Btw</th><th class="r" style="width:13%">Bedrag</th></tr></thead><tbody>'
       +(lines||[]).map(function(l){
-        return '<tr><td>'+esc(l.desc||'')+'</td><td>'+num(l.qty)+'</td><td>'+esc(l.unitLabel||'—')+'</td><td class="r">'+money(l.unit)+'</td><td class="r">'+Number(l.vat||0)+'%</td><td class="r">'+money(Number(l.qty||0)*Number(l.unit||0))+'</td></tr>';
+        return '<tr><td>'+esc(l.desc||'')+'</td><td>'+num(l.qty)+'</td><td>'+esc(l.unitLabel||'—')+'</td><td class="r">'+money(l.unit)+'</td><td class="r">'+Number(l.vat||0)+'%</td><td class="r">'+money(Number(l.qty||0)*Number(l.unit||0)*(sign||1))+'</td></tr>';
       }).join('')
       +'</tbody></table>';
   }
 
   function renderInvoiceA4Pages(i){
     var c=getContact(i.customerId)||{};
-    var vats=invoiceVatBreakdown(i);
+    var sign=i.kind==='credit'?-1:1;
+    var vatRows=invoiceVatRows(i);
+    var legend=[invoiceCreditNote(i),treatmentNote(i.taxTreatment)].filter(Boolean);
     var pages=splitInvoiceLines(Array.isArray(i.lines)?i.lines:[]);
     var pageCount=pages.length;
     return pages.map(function(lines,index){
@@ -431,16 +433,20 @@
         :'<div class="boekuna-a4-continuation"><strong>'+esc(i.kind==='credit'?'Creditfactuur ':'Factuur ')+esc(i.number||'')+'</strong><span>Pagina '+(index+1)+' van '+pageCount+'</span></div>';
       var totals='';
       if(last){
-        totals='<div class="boekuna-a4-totals"><div class="boekuna-a4-total"><span>Subtotaal excl. btw</span><strong>'+money(invoiceNet(i))+'</strong></div>'
-          +Object.entries(vats).map(function(entry){return '<div class="boekuna-a4-total"><span>Btw '+esc(entry[0])+'%</span><strong>'+money(entry[1])+'</strong></div>'}).join('')
+        var discount=invoiceDiscountAmount(i);
+        totals='<div class="boekuna-a4-totals">'
+          +(discount?'<div class="boekuna-a4-total"><span>Regels excl. btw</span><strong>'+money(invoiceDiscountBase(i)*sign)+'</strong></div><div class="boekuna-a4-total"><span>Korting</span><strong>− '+money(discount)+'</strong></div>':'')
+          +'<div class="boekuna-a4-total"><span>Subtotaal excl. btw</span><strong>'+money(invoiceNet(i))+'</strong></div>'
+          +vatRows.map(function(row){return '<div class="boekuna-a4-total"><span>'+esc(invoiceVatRowLabel(row))+'</span><strong>'+money(row.vat)+'</strong></div>'}).join('')
           +'<div class="boekuna-a4-total grand"><span>'+(i.kind==='credit'?'Totaal credit':'Totaal')+'</span><strong>'+money(invoiceGross(i))+'</strong></div>'
           +(invoicePaidAmount(i)>0?'<div class="boekuna-a4-total"><span>Betaald / verrekend</span><strong>'+money(invoicePaidAmount(i))+'</strong></div><div class="boekuna-a4-total"><span>Nog open</span><strong>'+money(invoiceOutstanding(i))+'</strong></div>':'')
           +'</div>'
+          +(legend.length?'<div class="boekuna-a4-note"><strong>'+legend.map(esc).join('<br>')+'</strong></div>':'')
           +(i.notes?'<div class="boekuna-a4-note"><strong>Notitie</strong><br>'+esc(i.notes).replace(/\n/g,'<br>')+'</div>':'')
           +'<div class="boekuna-a4-payment"><strong>Betaling</strong><br>IBAN: '+esc(state.company.iban||'—')+' t.n.v. '+esc(state.company.name||'')+'<br>Betalingskenmerk: '+esc(i.paymentReference||i.number||'')+'</div>';
       }
       return '<div class="boekuna-a4-shell"><section '+(index===0?'id="invoicePaper" ':'')+'class="invoice-paper boekuna-a4-page" data-a4-page="'+(index+1)+'" aria-label="Factuurpagina '+(index+1)+' van '+pageCount+'">'
-        +header+a4InvoiceTable(lines)+totals
+        +header+a4InvoiceTable(lines,sign)+totals
         +'<div class="boekuna-a4-footer"><span>'+esc(state.company.name||'')+(state.company.kvk?' · KVK '+esc(state.company.kvk):'')+'</span><span>'+ (index+1)+' / '+pageCount+'</span></div>'
         +'</section></div>';
     }).join('');

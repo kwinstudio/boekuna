@@ -35,7 +35,6 @@ const appAssets=[
   'boekuna-app-icon-512.png',
   'boekuna-app-icon-maskable-512.png',
   'boekuna-app-icon.svg',
-  'boekuna-favicon.svg',
   'boekuna-symbol-reversed.svg',
   'boekuna-symbol.svg',
   'brand-v2.css',
@@ -149,6 +148,11 @@ for(const [from,to] of publicLinkMap){
   appHtml=appHtml.replaceAll('href="'+from+'"','href="'+to+'"');
   appHtml=appHtml.replaceAll("location.href='"+from+"'","location.href='"+to+"'");
 }
+
+// The same map, for runtime code in app assets that builds public links itself.
+const publicLinksMarker='<meta name="theme-color" content="#FFFFFF" />';
+if(!appHtml.includes(publicLinksMarker))throw new Error('Public links marker changed');
+appHtml=appHtml.replace(publicLinksMarker,publicLinksMarker+'\n<script>window.BOEKUNA_PUBLIC_LINKS=Object.freeze('+JSON.stringify(Object.fromEntries(publicLinkMap))+');</script>');
 
 // Logged-out, logout and auth-failure states stay on the product host and render auth.
 appHtml=appHtml.replace(
@@ -380,13 +384,23 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-flow-sim
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/calm-ux.js?v=20261007a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/settings-center.js?v=20261008a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/theme.js?v=20261007a"></script>\n');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/feedback.js?v=20261007a"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/feedback.js?v=20261008c"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-viewer.js?v=20261008e"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});
 fs.writeFileSync(path.join(target,'index.html'),appHtml,'utf8');
 fs.copyFileSync(manifestSource,path.join(target,'manifest.webmanifest'));
+
+// Public pages live on boekuna.nl only. Old links, store listings and typed URLs such as
+// app.boekuna.nl/privacy/ must not 404: each public path gets a tiny forwarding page,
+// generated from the same publicLinkMap as the in-app links (one source of truth).
+for(const [from,to] of publicLinkMap){
+  const dir=path.join(target,from.replace(/^\/|\/$/g,''));
+  fs.mkdirSync(dir,{recursive:true});
+  const href=JSON.stringify(to);
+  fs.writeFileSync(path.join(dir,'index.html'),'<!doctype html>\n<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><link rel="canonical" href='+href+'><meta http-equiv="refresh" content="0; url='+to+'"><title>Boekuna</title><script>location.replace('+href+'+location.hash)</script></head><body style="font-family:system-ui,sans-serif;padding:24px"><p>Deze pagina staat op <a href='+href+'>'+to.replace('https://','')+'</a>.</p></body></html>\n','utf8');
+}
 const appAssetsTarget=path.join(target,'assets');
 fs.mkdirSync(appAssetsTarget,{recursive:true});
 for(const asset of appAssets){
@@ -396,7 +410,7 @@ for(const asset of appAssets){
 }
 
 // Document review is app-only. Keep the shared public/marketing copies byte-identical.
-for(const asset of ['document-review-v2.js','document-review-v2.css','product-color-polish.css','product-ux-polish-round-3.css','mobile-flow-simplification.js','mobile-flow-simplification.css','calm-ux.js','calm-ux.css','settings-center.js','settings-center.css','theme.js','theme-dark.css','period-filters.css','feedback.js','feedback.css','exports-filters.css','document-viewer.js','document-viewer.css','bank-documents.css']){
+for(const asset of ['boekuna-app-favicon.svg','document-review-v2.js','document-review-v2.css','product-color-polish.css','product-ux-polish-round-3.css','mobile-flow-simplification.js','mobile-flow-simplification.css','calm-ux.js','calm-ux.css','settings-center.js','settings-center.css','theme.js','theme-dark.css','period-filters.css','feedback.js','feedback.css','exports-filters.css','document-viewer.js','document-viewer.css','bank-documents.css']){
   const sourceFile=path.join(root,'kwinest','app-assets',asset);
   if(!fs.existsSync(sourceFile))throw new Error('Missing app-only review asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
