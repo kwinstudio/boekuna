@@ -238,6 +238,10 @@
 .review-viewer{max-height:min(72vh,760px);overflow:auto;border-radius:12px;background:var(--app-surface,#f4f6f5);padding:8px}
 .review-viewer .docviewer-pages{gap:8px}
 .review-viewer>[hidden]{display:none}
+/* Fixed bar height: switching between document and text must not move the panel. */
+.review-viewer-bar{min-height:30px;flex-wrap:nowrap}
+.review-viewer-hint{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.review-viewer-actions{flex:0 0 auto;white-space:nowrap}
 .review-viewer .docviewer-text{padding:4px 2px}
 @media(max-width:820px){
   .two-step-review .review-amount-grid{grid-template-columns:1fr 1fr}

@@ -5632,8 +5632,8 @@ function localUploadCardHtml(item){
 function renderDocumentProcessingBoard(){
  const local=localPersistentProcessingItems();
  const activeBatches=persistentDocumentActiveBatchIds(),sessionBatch=documentProcessingSession?.persistent?String(documentProcessingSession.id||''):'';
- let jobs=activeBatches.size?documentProcessingJobs.filter(j=>activeBatches.has(String(j.batch_id||''))):(sessionBatch?documentProcessingJobs.filter(j=>String(j.batch_id||'')===sessionBatch):[]);
- // Documents that still need a check are not listed here: they show "Controle nodig" in the file list itself.
+ let jobs=activeBatches.size?documentProcessingJobs.filter(j=>activeBatches.has(String(j.batch_id||''))):(sessionBatch?documentProcessingJobs.filter(j=>String(j.batch_id||'')===sessionBatch):documentProcessingJobs.filter(j=>j.state==='failed').slice(0,20));
+ // Documents that still need a check are not listed here: they show "Controle nodig" in the file list itself. Failed uploads stay, they need "Opnieuw proberen".
  if(!local.length&&!jobs.length)return '';
  jobs=[...jobs].sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
  const terminal=jobs.filter(persistentDocumentIsTerminal).length,total=local.length+jobs.length,ready=jobs.filter(j=>j.state==='ready').length,review=jobs.filter(j=>j.state==='review_required').length,failed=jobs.filter(j=>j.state==='failed').length;

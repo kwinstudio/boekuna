@@ -40,7 +40,7 @@ assert.ok(appHtml.includes('/assets/document-review-v2.css'),'built app must loa
 const realHeadEnd=appHtml.indexOf('</head>');
 assert.ok(realHeadEnd>0,'built app must contain a real document head');
 const realHead=appHtml.slice(0,realHeadEnd);
-assert.ok(realHead.includes('/assets/document-review-v2.css?v=20261008c'),'review stylesheet must be injected in the real app head, not a print template');
+assert.ok(realHead.includes('/assets/document-review-v2.css?v=20261008d'),'review stylesheet must be injected in the real app head, not a print template');
 assert.equal((appHtml.match(/\/assets\/document-review-v2\.css/g)||[]).length,1,'review stylesheet must be linked exactly once');
 const inlineScripts=[...appHtml.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(Boolean);
 assert.ok(inlineScripts.length>=1,'built app must contain inline runtime');
@@ -630,10 +630,12 @@ try{
     pendingPdfImport={file,parsed,previewUrl:URL.createObjectURL(file),sha256:'panel',sourceClientRef:'',sourceDocumentId:'',processingJobId:''};showPdfImportReview(parsed);
   });
   await page.locator('.review-viewer .docviewer-page').waitFor();
-  const panelBefore=await page.locator('.review-viewer').boundingBox();
+  // Measured inside the review panel, so a scroll of the dialog itself does not count as a size change.
+  const panelBox=()=>page.evaluate(()=>{const host=document.querySelector('.review-viewer').getBoundingClientRect(),panel=document.getElementById('reviewOriginalPanel').getBoundingClientRect();return {y:Math.round(host.top-panel.top),height:Math.round(host.height),width:Math.round(host.width)}});
+  const panelBefore=await panelBox();
   await page.locator('[data-review-text-toggle]').click();
   await page.locator('.review-viewer .docviewer-text:visible').waitFor();
-  const panelAfter=await page.locator('.review-viewer').boundingBox();
+  const panelAfter=await panelBox();
   assert.equal(await page.locator('.docviewer').count(),0,'text opens in the panel, not in a full-screen view');
   assert.ok(Math.abs(panelAfter.height-panelBefore.height)<2&&Math.abs(panelAfter.y-panelBefore.y)<2,'the panel keeps its size: '+JSON.stringify({panelBefore,panelAfter}));
   assert.equal(await page.locator('.review-viewer .docviewer-page').isVisible(),false,'the text takes the place of the document');
