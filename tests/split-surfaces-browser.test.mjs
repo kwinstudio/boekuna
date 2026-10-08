@@ -41,7 +41,7 @@ try{
   assert.equal(await marketing.locator('meta[name="robots"]').getAttribute('content'),'index,follow');
   assert.equal(await marketing.locator('script').count(),0,'V3 root must not ship runtime JS');
   assert.equal(await marketing.locator('img').count(),0,'V3 root must not ship external imagery');
-  assert.equal(await marketing.getByRole('link',{name:'Inloggen'}).getAttribute('href'),'https://app.boekuna.nl/?login=1');
+  assert.equal(await marketing.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).getAttribute('href'),'https://app.boekuna.nl/?login=1');
 
   const app=await browser.newPage();
   await app.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm',route=>route.fulfill({
