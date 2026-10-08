@@ -18,21 +18,24 @@
 - [ ] Stripe Customer Portal activated/configured
 - [ ] Stripe Tax/VAT configuration verified for the legal seller
 
-## Apple App Store
+## Apple App Store — status as of 8 October 2026
 
-- [ ] Apple Developer Program membership active
-- [ ] Final Bundle ID created and matches the binary
-- [ ] Version/build numbers set
-- [ ] Build produced with Xcode 26 or later and an accepted iOS SDK
-- [ ] Final iPhone screenshots captured from the submitted build
-- [ ] 1024x1024 app icon included in the asset catalog
-- [ ] App Privacy questionnaire completed from privacy-data-safety.md
-- [ ] Current age-rating questionnaire completed
-- [ ] Support and privacy URLs entered
-- [ ] Working reviewer account entered in App Review Information
-- [ ] App tested on a physical iPhone
-- [ ] No broken/inactive features shown to reviewers
-- [ ] If digital subscriptions are sold inside the app, StoreKit/IAP policy is satisfied
+- [x] Apple Developer Program membership previously reported active (6 October; confirm live in account).
+- [x] App Store Connect app record previously created for `Boekuna` (confirm live in account).
+- [x] Bundle ID previously registered: `nl.boekuna.app`; confirm the final binary uses it.
+- [x] DSA trader verification previously reported completed (confirm live in account).
+- [x] Dutch submission copy revised using the current `boekuna.nl` URLs.
+- [ ] Confirm Apple legal-entity / Individual-account admissibility for bookkeeping handling sensitive financial data (guideline 5.1.1(ix)).
+- [ ] Complete exact-build App Privacy questions and age-rating questionnaire in App Store Connect.
+- [ ] Verify support, privacy and account-deletion flows end-to-end under the final production build.
+- [ ] Verify copyright/legal seller name against the actual Apple developer identity.
+- [ ] Merge iOS packaging PR #223 only after TR2 review, then generate signed iPhone binary.
+- [ ] Validate physical iPhone camera, OCR upload, PDF share, auth, network recovery, and account deletion.
+- [ ] Provide a synthetic demo administration and private reviewer credentials in App Store Connect.
+- [ ] Remove/hide Stripe Checkout and external purchasing CTAs in the submitted app; re-test.
+- [ ] Take true screenshots of the final iPhone build (required supported resolutions).
+- [ ] Upload and accept TestFlight build; complete external or internal testing as appropriate.
+- [ ] Final submit for Apple review only after all technical/legal/privacy gates pass.
 
 ## Google Play
 
