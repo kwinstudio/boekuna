@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {PGlite} from '@electric-sql/pglite';
+import {DOCUMENT_LIMITS} from '../supabase/functions/_shared/pricing.mjs';
 
 const db=new PGlite();
 const testerMigration=fs.readFileSync('supabase/migrations/20261007101500_tester_invite_code_access.sql','utf8');
@@ -90,13 +91,15 @@ try{
   assert.equal(await effective(INTERNAL),'pro','internal grants keep access');
   assert.equal(await effective(FREE),'free','users without a plan are Start (storage key free)');
 
-  // No monthly quota on any paid plan; Start keeps the 10 it has today.
-  for(const plan of ['zzp','boekuna','pro','business'])assert.equal((await one('select public.billing_plan_limit($1) as l',[plan])).l,null,plan+' must have no monthly limit');
-  for(const plan of ['free','start',null])assert.equal((await one('select public.billing_plan_limit($1) as l',[plan])).l,10,'Start keeps 10 checks');
+  // Monthly document recognition: Start 10, ZZP 100 (as the old paid plan), Pro and Business no limit.
+  for(const [plan,limit] of [['zzp',100],['boekuna',100],['pro',null],['unlimited',null],['business',null],['free',10],['start',10],[null,10]])
+    assert.equal((await one('select public.billing_plan_limit($1) as l',[plan])).l,limit,String(plan)+' document limit');
+  for(const [plan,limit] of Object.entries(DOCUMENT_LIMITS))
+    assert.equal((await one('select public.billing_plan_limit($1) as l',[plan])).l,limit,'server limit equals pricing.mjs for '+plan);
   await actor(LEGACY_BOEKUNA);
   const q=await one('select * from public.check_document_quota()');
-  assert.equal(q.allowed,true,'a ZZP customer at 150 documents must not be blocked');
-  assert.equal(q.monthly_limit,null);
+  assert.equal(q.allowed,false,'a ZZP customer at 150 documents has used the 100 of this month');
+  assert.equal(q.monthly_limit,100);
   await actor(FREE);
   assert.equal((await one('select * from public.check_document_quota()')).allowed,false,'Start limit unchanged');
 

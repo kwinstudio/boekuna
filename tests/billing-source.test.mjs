@@ -98,7 +98,8 @@ assert.ok(consume.includes('can_operate_bookkeeping'),'Quota edge function must 
 assert.ok(analyze.includes('can_operate_bookkeeping'),'Invoice AI must enforce entitlement server-side');
 assert.ok(processor.includes('billing_quota_status(request)'),'Document processor must check server-side plan allowance');
 assert.ok(processor.includes('record_billing_usage(request)'),'Successful smart documents must keep being counted (cost telemetry)');
-assert.ok(pricingV2Migration.includes("in ('zzp','boekuna','pro','unlimited','business') then null"),'No paid plan may carry a monthly smart-document quota');
+assert.ok(pricingV2Migration.includes("in ('pro','unlimited','business') then null"),'Pro and Business have no monthly smart-document limit');
+assert.ok(pricingV2Migration.includes("in ('zzp','boekuna') then 100"),'ZZP keeps the 100 documents of the old paid plan');
 
 assert.ok(html.includes("startSubscription('${id}','${iv}')"),'Frontend must offer explicit plan + interval checkout');
 assert.ok(html.includes("JSON.stringify({plan,interval})"),'Checkout request must carry plan and interval, never an amount');

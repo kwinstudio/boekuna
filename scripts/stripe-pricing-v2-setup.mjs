@@ -27,11 +27,12 @@ async function stripe(method, path, params) {
 }
 
 const DESCRIPTIONS = {
-  zzp: 'Boekuna met documentherkenning zonder maandlimiet en herstelpunten.',
+  zzp: 'Boekhouding met kosten, bonnetjes, btw-overzicht, bankimport en rapporten. 100 slimme documenten per maand.',
+  pro: 'Alles van ZZP, zonder documentlimiet en met herstelpunten.',
 };
 
-// Only plans that are sellable get Stripe products and prices. Pro and Business stay
-// unconfigured until existing features justify them (docs/billing/pricing-v2.md).
+// Only plans that are sellable get Stripe products and prices. Business stays
+// unconfigured until existing features justify it (docs/billing/pricing-v2.md).
 const switchable = sellablePlans(process.env.BILLING_SELLABLE_PLANS);
 const prices = {};
 for (const plan of switchable) {

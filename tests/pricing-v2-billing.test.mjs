@@ -27,7 +27,7 @@ assert.equal(priceCents('start','month'),null,'Start has no Stripe price');
 assert.equal(priceCents('zzp','week'),null);
 assert.equal(PLANS.start.paid,false);
 assert.equal(UNLIMITED_CLAIM_RELEASED,false,'the word onbeperkt stays off until costs are measured');
-assert.deepEqual(DEFAULT_SELLABLE_PLANS,['zzp'],'only ZZP is sold until Pro/Business features exist');
+assert.deepEqual(DEFAULT_SELLABLE_PLANS,['zzp','pro'],'ZZP and Pro are sold; Business has no features of its own yet');
 assert.deepEqual(sellablePlans('zzp, pro ,gold'),['zzp','pro']);
 
 // 2. Legacy keys map safely onto V2.
@@ -107,7 +107,9 @@ async function checkout({body,env={},tables={},prices={},stripeSubs=[]}){
   assert.equal(legacy.session.body.get('line_items[0][price_data][unit_amount]'),'995');
   assert.equal(legacy.session.body.get('line_items[0][price_data][recurring][interval]'),'month');
 
-  assert.equal((await checkout({body:{plan:'pro',interval:'month'}})).json.code,'PLAN_NOT_AVAILABLE','Pro is behind the feature flag');
+  const proDefault=await checkout({body:{plan:'pro',interval:'month'}});
+  assert.equal(proDefault.json.ok,true,'Pro can be bought');
+  assert.equal(proDefault.session.body.get('line_items[0][price_data][unit_amount]'),'1995');
   assert.equal((await checkout({body:{plan:'business',interval:'year'}})).json.code,'PLAN_NOT_AVAILABLE','Business is behind the feature flag');
   const pro=await checkout({body:{plan:'pro',interval:'year'},env:{BILLING_SELLABLE_PLANS:'zzp,pro,business'}});
   assert.equal(pro.session.body.get('line_items[0][price_data][unit_amount]'),'19950');

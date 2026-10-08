@@ -70,8 +70,10 @@ try{
     assert.equal(await card.getByRole('radio',{name:/Jaarlijks/}).getAttribute('aria-checked'),'true');
     assert.ok(await card.getByText('€ 99,50',{exact:true}).isVisible(),'ZZP yearly total is shown');
     assert.ok(await card.getByText(/gemiddeld € 8,29 per maand/).isVisible());
-    // Pro and Business have no distinguishing features yet: not shown, not sold, no promises.
-    for(const hidden of [/\bPro\b/,/Business/,/€ 199,50/,/€ 349,50/,/€ 19,95/,/€ 34,95/,/binnenkort/i])
+    assert.ok(await card.getByText('€ 199,50',{exact:true}).isVisible(),'Pro yearly total is shown');
+    assert.equal(await card.getByRole('button',{name:'Kies Pro'}).count(),1,'Pro can be chosen');
+    // Business has no features of its own yet: not shown, not sold, no promises.
+    for(const hidden of [/Business/,/€ 349,50/,/€ 34,95/,/binnenkort/i])
       assert.equal(await card.getByText(hidden).count(),0,'hidden plan shown in app: '+hidden);
 
     // Switch to monthly without reload; keyboard reachable.
@@ -139,6 +141,39 @@ try{
     await dialog.waitFor();
     assert.ok(await dialog.getByText('€ 9,95 excl. btw per maand',{exact:false}).isVisible());
     assert.ok(!page.url().includes('plan='),'plan parameter is removed from the address bar');
+    await page.close();
+  }
+
+  // Plan split: Start invoices, ZZP keeps the books, Pro adds herstelpunten and the advanced overviews.
+  // Accounts from before the split keep their bookkeeping on Start.
+  {
+    const page=await settingsPage({width:390,height:844});
+    const asPlan=(rank,legacy=false)=>page.evaluate(([r,l])=>{
+      currentPlanRank=function(b=billingSnapshot){return b?Number(b.details?.plan_rank??0):null};
+      loadBillingSummary=async()=>billingSnapshot;
+      billingSnapshot={plan:['free','zzp','pro','business'][r],status:r?'active':'free',entitlement_status:r?'paid':'free',details:{plan_rank:r,start_includes_bookkeeping:l}};
+      billingLoadedAt=Date.now();billingSnapshotSource='normal';closeModal();
+    },[rank,legacy]);
+    const tryPage=async name=>{await page.evaluate(()=>navigate('dashboard'));await page.evaluate(n=>navigate(n),name);return page.evaluate(()=>page)};
+    await asPlan(0);
+    for(const name of ['expenses','documents','bank','vat','reports']){
+      assert.equal(await tryPage(name),'dashboard','new Start account cannot open '+name);
+      assert.ok(await page.getByRole('dialog').getByText('hoort bij ZZP',{exact:false}).isVisible(),name+' explains it is part of ZZP');
+      await page.evaluate(()=>closeModal());
+    }
+    for(const name of ['invoices','contacts','settings'])assert.equal(await tryPage(name),name,'Start keeps '+name);
+    await page.evaluate(()=>newExpense());
+    assert.ok(await page.getByRole('dialog').getByText('hoort bij ZZP',{exact:false}).isVisible(),'adding a cost on Start asks for ZZP');
+    await asPlan(0,true);
+    for(const name of ['expenses','documents','bank','vat','reports'])assert.equal(await tryPage(name),name,'existing Start account keeps '+name);
+    assert.equal(await page.evaluate(()=>planAllows(2)),false,'existing Start account does not get Pro');
+    await asPlan(1);
+    for(const name of ['expenses','documents','bank','vat','reports'])assert.equal(await tryPage(name),name,'ZZP opens '+name);
+    assert.equal(await page.evaluate(()=>planAllows(2)),false,'ZZP has no herstelpunten');
+    await page.evaluate(()=>requirePlanAccess(2,'Herstelpunten'));
+    assert.ok(await page.getByRole('dialog').getByText('hoort bij Pro',{exact:false}).isVisible());
+    await asPlan(2);
+    assert.equal(await page.evaluate(()=>planAllows(2)),true,'Pro has herstelpunten and the advanced overviews');
     await page.close();
   }
 

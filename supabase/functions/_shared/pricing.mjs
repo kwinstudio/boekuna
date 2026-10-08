@@ -25,10 +25,14 @@ export const PLANS = Object.freeze({
 export const INTERVALS = Object.freeze(["month", "year"]);
 export const PAID_PLAN_IDS = Object.freeze(["zzp", "pro", "business"]);
 
-// Plans that may be bought right now. Pro and Business stay behind this flag
-// until their distinguishing features work in production (see docs/billing/pricing-v2.md).
+// Plans that may be bought right now. Business stays behind this flag until it has
+// features of its own (see docs/billing/pricing-v2.md).
 // Override per environment with BILLING_SELLABLE_PLANS="zzp,pro".
-export const DEFAULT_SELLABLE_PLANS = Object.freeze(["zzp"]);
+export const DEFAULT_SELLABLE_PLANS = Object.freeze(["zzp", "pro"]);
+
+// Smart document recognition per calendar month (null = no monthly limit). Must equal
+// public.billing_plan_limit in the Pricing V2 migration.
+export const DOCUMENT_LIMITS = Object.freeze({ start: 10, zzp: 100, pro: null, business: null });
 
 // The public word "onbeperkt" stays off until measured processing costs support it.
 export const UNLIMITED_CLAIM_RELEASED = false;

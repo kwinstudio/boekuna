@@ -104,7 +104,8 @@ immutable
 set search_path = public
 as $$
   select case
-    when lower(btrim(coalesce(p_plan,''))) in ('zzp','boekuna','pro','unlimited','business') then null
+    when lower(btrim(coalesce(p_plan,''))) in ('pro','unlimited','business') then null
+    when lower(btrim(coalesce(p_plan,''))) in ('zzp','boekuna') then 100
     else 10
   end
 $$;
@@ -425,6 +426,16 @@ grant execute on function public.apply_stripe_subscription_state(uuid,text,text,
   to service_role;
 
 -- 8. Subscription details for the app's Abonnement screen (own account only).
+-- 8a. Accounts that exist when this migration runs keep the bookkeeping they had on the free plan
+-- (costs, receipts, VAT, bank, reports). New Start accounts get invoicing only. Never removed here.
+create table if not exists private.start_legacy_accounts(
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  granted_at timestamptz not null default now()
+);
+revoke all on private.start_legacy_accounts from public,anon,authenticated;
+insert into private.start_legacy_accounts(user_id) select id from auth.users on conflict do nothing;
+
+drop function if exists public.get_subscription_details();
 create or replace function public.get_subscription_details()
 returns table(
   plan text,
@@ -434,7 +445,8 @@ returns table(
   status text,
   current_period_end timestamptz,
   cancel_at_period_end boolean,
-  has_stripe_subscription boolean
+  has_stripe_subscription boolean,
+  start_includes_bookkeeping boolean
 )
 language plpgsql
 stable
@@ -456,7 +468,8 @@ begin
     coalesce(b.status,'free'),
     b.current_period_end,
     coalesce(b.cancel_at_period_end,false),
-    coalesce(nullif(btrim(b.stripe_subscription_id),'') is not null,false)
+    coalesce(nullif(btrim(b.stripe_subscription_id),'') is not null,false),
+    exists(select 1 from private.start_legacy_accounts l where l.user_id=v_user)
   from (select 1) seed
   left join public.billing_accounts b on b.user_id=v_user;
 end

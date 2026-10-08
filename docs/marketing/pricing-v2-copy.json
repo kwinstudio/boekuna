@@ -9,7 +9,7 @@
       "monthly": "€ 0",
       "yearly": "€ 0",
       "sellable": true,
-      "positioning": "Gratis: facturen, kosten, btw-overzicht, bankimport en rapporten, met 10 slimme documenten per maand."
+      "positioning": "Gratis factureren: facturen, creditnota's en klanten."
     },
     "zzp": {
       "name": "ZZP",
@@ -18,7 +18,7 @@
       "yearlySaving": "€ 19,90",
       "yearlyPerMonth": "€ 8,29",
       "sellable": true,
-      "positioning": "Alles van Start, plus documentherkenning zonder maandlimiet en herstelpunten."
+      "positioning": "Je boekhouding: kosten en bonnetjes, btw-overzicht, bankimport en rapporten, met 100 slimme documenten per maand."
     },
     "pro": {
       "name": "Pro",
@@ -26,8 +26,8 @@
       "yearly": "€ 199,50",
       "yearlySaving": "€ 39,90",
       "yearlyPerMonth": "€ 16,63",
-      "sellable": false,
-      "positioning": "Verborgen: er zijn nog geen bestaande functies die dit pakket onderscheiden. Niet noemen."
+      "sellable": true,
+      "positioning": "Alles van ZZP, zonder documentlimiet en met herstelpunten."
     },
     "business": {
       "name": "Business",
@@ -40,10 +40,10 @@
     }
   },
   "rules": [
-    "Gebruik alleen pakketten met sellable=true. Pro en Business niet noemen, ook niet als 'binnenkort'.",
+    "Gebruik alleen pakketten met sellable=true (Start, ZZP, Pro). Business niet noemen, ook niet als 'binnenkort'.",
     "Noem alleen functies die nu in de app werken. Geen toekomstige functies of roadmap.",
+    "Gebruik het woord 'onbeperkt' niet. Zeg bij Pro: geen maandlimiet op documentherkenning.",
     "Noem altijd het werkelijke jaarbedrag; het gemiddelde per maand alleen als tweede regel.",
-    "Gebruik het woord 'onbeperkt' niet. Zeg: geen scancredits en geen vaste maandlimiet.",
     "Geen 'meest gekozen', geen verzonnen reviews, kortingen, deadlines of urgentie.",
     "Geen trials, Early Access of First-100: die bestaan niet.",
     "Alleen opt-in ontvangers. Gebruik betaalstatus alleen grof (Start of betaald), nooit bedragen of betaalproblemen in segmentnamen of tekst."
@@ -51,8 +51,8 @@
   "copy": {
     "introductie": {
       "subject": "Nieuwe, eenvoudige prijzen voor Boekuna",
-      "preheader": "Je betaalt voor functies, niet voor het aantal bonnetjes.",
-      "body": "Boekuna heeft nu duidelijke pakketten. Start is gratis: je maakt facturen, houdt kosten en bonnetjes bij, ziet je btw-overzicht, importeert je bankbestand en bekijkt je rapporten, met 10 slimme documentherkenningen per maand. ZZP kost € 9,95 per maand of € 99,50 per jaar, exclusief btw. Met ZZP worden je documenten uitgelezen zonder maandlimiet en kun je herstelpunten gebruiken. Er zijn geen scancredits.",
+      "preheader": "Gratis factureren, of je hele boekhouding met ZZP of Pro.",
+      "body": "Boekuna heeft nu drie pakketten. Start is gratis: je maakt facturen en creditnota's en beheert je klanten. Met ZZP (€ 9,95 per maand of € 99,50 per jaar, exclusief btw) houd je ook je kosten en bonnetjes bij, zie je je btw-overzicht, importeer je je bankbestand en bekijk je rapporten; 100 documenten per maand worden slim uitgelezen. Pro (€ 19,95 per maand of € 199,50 per jaar) heeft geen documentlimiet en herstelpunten. Gebruikte je Boekuna al vóór deze wijziging, dan houd je in Start alles wat je had.",
       "cta": "Bekijk de prijzen"
     },
     "jaarabonnement": {
@@ -69,6 +69,11 @@
       "subject": "Maandelijks of jaarlijks?",
       "body": "Maandelijks: € 9,95 per maand, elke maand opzegbaar tegen het einde van die maand. Jaarlijks: € 99,50 per jaar vooruit, dat is 2 maanden gratis. Beide exclusief btw, met precies dezelfde functies.",
       "cta": "Vergelijk maand en jaar"
+    },
+    "upgrade_zzp_naar_pro": {
+      "subject": "Meer dan 100 documenten per maand?",
+      "body": "Met Pro worden al je documenten uitgelezen, zonder maandlimiet, en kun je je administratie terugzetten naar een eerder herstelpunt. Pro kost € 19,95 per maand of € 199,50 per jaar, exclusief btw. Een upgrade gaat direct in; je betaalt alleen het verschil voor de rest van je periode.",
+      "cta": "Bekijk Pro"
     }
   },
   "segments": {

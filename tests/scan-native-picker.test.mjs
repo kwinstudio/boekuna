@@ -7,7 +7,7 @@ const source=html.slice(html.indexOf('function triggerInvoiceUpload('),html.inde
 for(const mobile of [true,false]){
  let clicks=0,modals=0;
  const input={value:'previous-file',dataset:{},click(){clicks++}};
- const ctx=vm.createContext({document:{getElementById:id=>id==='invoicePdfFile'?input:null},matchMedia:()=>({matches:mobile}),modal:()=>modals++,closeModal(){},pendingUploadKind:''});
+ const ctx=vm.createContext({document:{getElementById:id=>id==='invoicePdfFile'?input:null},matchMedia:()=>({matches:mobile}),modal:()=>modals++,closeModal(){},pendingUploadKind:'',planAllows:()=>true});
  vm.runInContext(source,ctx);
  for(const call of ["openUploadSourcePicker('auto')","triggerInvoiceUpload('purchase')","openDocumentUpload()"]){
   const before=clicks;vm.runInContext(call,ctx);
@@ -28,7 +28,7 @@ const replaceSource=html.slice(html.indexOf('function chooseAnotherDocumentProce
 const selectSource=html.slice(html.indexOf('async function startSelectedDocumentUpload('),html.indexOf('async function handleGenericDocuments('));
 for(const smart of [true,false]){
  const calls=[],input={id:'invoicePdfFile',value:'',dataset:{},files:[{name:'replacement.pdf'}],click(){}};
- const context=vm.createContext({document:{getElementById:()=>input},closeModal(){},toast(){},pendingUploadKind:'auto',documentProcessingSession:{smart,items:[{id:'failed',sourceInputId:'invoicePdfFile',kind:'purchase'}]},startDocumentProcessingQueue:(files,kind,options)=>calls.push({kind,smart:options.smart})});
+ const context=vm.createContext({document:{getElementById:()=>input},closeModal(){},toast(){},pendingUploadKind:'auto',planAllows:()=>true,documentProcessingSession:{smart,items:[{id:'failed',sourceInputId:'invoicePdfFile',kind:'purchase'}]},startDocumentProcessingQueue:(files,kind,options)=>calls.push({kind,smart:options.smart})});
  vm.runInContext(source+replaceSource+selectSource,context);
  vm.runInContext("chooseAnotherDocumentProcessingItem('failed')",context);
  await vm.runInContext("startSelectedDocumentUpload(document.getElementById('invoicePdfFile'),document.getElementById('invoicePdfFile').dataset.uploadKind||'auto')",context);

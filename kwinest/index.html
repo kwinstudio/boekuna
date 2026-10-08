@@ -2508,11 +2508,11 @@ async function fetchWithAuthRetry(url,options={}){
 // supabase/functions/_shared/pricing.mjs; the server decides what is charged.
 const BOEKUNA_PRICING=Object.freeze({
  plans:Object.freeze({
-  zzp:Object.freeze({name:'ZZP',month:995,year:9950,tagline:'Documentherkenning zonder maandlimiet en herstelpunten'}),
-  pro:Object.freeze({name:'Pro',month:1995,year:19950,tagline:''}),
+  zzp:Object.freeze({name:'ZZP',month:995,year:9950,tagline:'Je boekhouding, met 100 slimme documenten per maand'}),
+  pro:Object.freeze({name:'Pro',month:1995,year:19950,tagline:'Geen documentlimiet en herstelpunten'}),
   business:Object.freeze({name:'Business',month:3495,year:34950,tagline:''})
  }),
- sellable:Object.freeze(['zzp'])
+ sellable:Object.freeze(['zzp','pro'])
 });
 const BILLING_PLAN_KEYS=['boekuna','zzp','pro','business'];
 function canonicalBillingPlan(plan=''){const p=String(plan||'').toLowerCase();return p==='boekuna'?'zzp':p==='unlimited'?'pro':['zzp','pro','business'].includes(p)?p:'start'}
@@ -2597,6 +2597,39 @@ function hasBoekunaSmartLayer(b=billingSnapshot){
  const plan=String(b?.plan||'free'),status=String(b?.status||'free');
  return BILLING_PLAN_KEYS.includes(plan)&&status==='active'
 }
+// Pricing V2 feature split. Start: invoicing. ZZP: bookkeeping (costs, receipts, VAT, bank, reports).
+// Pro: no document limit plus version history. Accounts that existed before this split keep the
+// bookkeeping they already had on Start (server flag start_includes_bookkeeping).
+const PLAN_RANK={start:0,free:0,zzp:1,boekuna:1,pro:2,unlimited:2,business:3};
+const PLAN_RANK_LABEL=['Start','ZZP','Pro','Business'];
+const PAGE_MIN_PLAN={expenses:1,documents:1,bank:1,vat:1,reports:1,outgoings:1,control:2,cashflow:2,ledger:2};
+function currentPlanRank(b=billingSnapshot){
+ if(TEST_MODE_NO_AUTH)return 3;
+ if(!b)return null;
+ const detailRank=Number(b.details?.plan_rank);
+ if(Number.isFinite(detailRank))return detailRank;
+ const rank=PLAN_RANK[String(b.plan||'free')]??0;
+ return hasBoekunaSmartLayer(b)?Math.max(rank,1):0;
+}
+function planAllows(minRank,b=billingSnapshot){
+ const rank=currentPlanRank(b);
+ if(rank===null)return minRank<=1; // summary not loaded: never lock someone out of their own books
+ if(rank>=minRank)return true;
+ return minRank===1&&b?.details?.start_includes_bookkeeping===true;
+}
+function showPlanUpsell(minRank,feature){
+ const name=PLAN_RANK_LABEL[minRank]||'ZZP';
+ const id=minRank>=2?'pro':'zzp',p=BOEKUNA_PRICING.plans[id];
+ const what=minRank>=2?'herstelpunten en documentherkenning zonder maandlimiet':'kosten en bonnetjes, documentherkenning (100 per maand), btw-overzicht, bankimport en rapporten';
+ if(isNativeStoreShell()){modal('Onderdeel van '+name,`<div class="notice info"><strong>${esc(feature)} hoort bij ${name}.</strong></div>`,`<button class="btn primary" onclick="closeModal()">Sluiten</button>`);return}
+ const buy=BOEKUNA_PRICING.sellable.includes(id)&&p;
+ modal('Onderdeel van '+name,`<div class="notice info"><strong>${esc(feature)} hoort bij ${name}.</strong><br>Met ${name} krijg je ${what}.</div>${buy?`<div class="legal-item" style="margin-top:12px"><strong>${name} · ${euroCents(p.month)} per maand of ${euroCents(p.year)} per jaar, excl. btw</strong><p>Betalen start alleen nadat je zelf een Stripe Checkout bevestigt.</p></div>`:''}`,`<button class="btn" onclick="closeModal()">Niet nu</button>${buy?`<button class="btn primary" onclick="closeModal();navigate('settings')">Bekijk ${name}</button>`:''}`);
+}
+async function requirePlanAccess(minRank,feature){
+ try{if(!billingSnapshot||billingSnapshotSource!=='normal'||Date.now()-billingLoadedAt>30000)await loadBillingSummary()}catch(err){console.warn('Plancontrole',err)}
+ if(planAllows(minRank))return true;
+ showPlanUpsell(minRank,feature);return false;
+}
 async function requireBoekunaSmartLayer(feature='Deze slimme functie'){
  if(TEST_MODE_NO_AUTH)return true;
  try{
@@ -2605,7 +2638,7 @@ async function requireBoekunaSmartLayer(feature='Deze slimme functie'){
  }catch(err){console.warn('Plancontrole',err)}
  if(hasBoekunaSmartLayer())return true;
  if(isNativeStoreShell()){modal('Onderdeel van ZZP',`<div class="notice info"><strong>${esc(feature)} hoort bij het ZZP-pakket.</strong></div>`,`<button class="btn primary" onclick="closeModal()">Sluiten</button>`);return false}
- modal('Onderdeel van ZZP',`<div class="notice info"><strong>${esc(feature)} hoort bij het ZZP-pakket.</strong><br>Met ZZP worden je documenten uitgelezen zonder maandlimiet en kun je herstelpunten gebruiken. Alle andere functies blijven ook in Start beschikbaar.</div><div class="legal-item" style="margin-top:12px"><strong>ZZP · ${euroCents(995)} per maand of ${euroCents(9950)} per jaar, excl. btw</strong><p>Betalen start alleen nadat je zelf een Stripe Checkout bevestigt.</p></div>`,`<button class="btn" onclick="closeModal()">Niet nu</button><button class="btn primary" onclick="closeModal();startSubscription('zzp',billingIntervalChoice)">Kies ZZP</button>`);
+ modal('Onderdeel van ZZP',`<div class="notice info"><strong>${esc(feature)} hoort bij het ZZP-pakket.</strong><br>Met ZZP krijg je kosten en bonnetjes, documentherkenning, btw-overzicht, bankimport en rapporten.</div><div class="legal-item" style="margin-top:12px"><strong>ZZP · ${euroCents(995)} per maand of ${euroCents(9950)} per jaar, excl. btw</strong><p>Betalen start alleen nadat je zelf een Stripe Checkout bevestigt.</p></div>`,`<button class="btn" onclick="closeModal()">Niet nu</button><button class="btn primary" onclick="closeModal();startSubscription('zzp',billingIntervalChoice)">Kies ZZP</button>`);
  return false
 }
 function renderPlanChooser(){
@@ -2618,7 +2651,7 @@ function renderPlanChooser(){
   const sellable=BOEKUNA_PRICING.sellable.includes(id),amount=p[iv];
   const sub=iv==='year'?`per jaar, vooruitbetaald · gemiddeld ${euroCents(Math.round(p.year/12))} per maand`:`per maand · of ${euroCents(p.year)} per jaar`;
   return `<div class="legal-item" style="margin:0"><strong>${esc(p.name)}</strong><p style="margin:2px 0 6px">${esc(p.tagline)}</p><div style="font-size:22px;font-weight:700">${euroCents(amount)}</div><div class="help">${sub} · excl. btw</div><div style="margin-top:10px">${sellable?`<button type="button" class="btn primary" onclick="startSubscription('${id}','${iv}')">Kies ${esc(p.name)}</button>`:`<span class="badge">Binnenkort beschikbaar</span>`}</div></div>`}).join('');
- return `<div style="margin-top:16px"><div class="eyebrow">Kies een pakket</div>${toggle}<div style="display:grid;gap:10px;max-width:420px">${cards}</div><p class="help" style="margin-top:8px">Alle prijzen excl. btw. Betaalde pakketten hebben geen scancredits en geen vaste maandlimiet voor documenten.</p></div>`
+ return `<div style="margin-top:16px"><div class="eyebrow">Kies een pakket</div>${toggle}<div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">${cards}</div><p class="help" style="margin-top:8px">Alle prijzen excl. btw. Slimme documentherkenning: ZZP 100 per maand, Pro zonder maandlimiet.</p></div>`
 }
 function renderBillingCard(){
  if(window.BoekunaDeveloperMode?.isActive(currentUser?.id)&&billingSnapshotSource==='developer')return `<div class="card" id="billingCard" style="margin-bottom:16px"><div class="section-head"><div><h2>Abonnement</h2><p>Tijdelijke QA-context; echte billing blijft ongewijzigd.</p></div><span class="badge warn">DEV MODE · Pro</span></div><div class="notice info"><strong>Geen Stripe-betaling nodig in deze preview.</strong> Toegang is tijdelijk, gebonden aan de QA-user en schrijft geen abonnementstatus weg.</div></div>`;
@@ -3924,8 +3957,8 @@ async function retryDocumentAttentionFetch(){
  catch(err){console.warn('Documentstatus opnieuw ophalen',err);return []}
 }
 async function navigate(p){
- const paidFeature={control:'Controlecentrum',cashflow:'Cashflow vooruitblik'}[p];
- if(paidFeature&&!(await requireBoekunaSmartLayer(paidFeature)))return;
+ const minPlan=PAGE_MIN_PLAN[p];
+ if(minPlan&&!(await requirePlanAccess(minPlan,PAGE_TITLES[p]||'Deze pagina')))return;
  page=p;
  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page===p));
  document.getElementById('pageTitle').textContent=PAGE_TITLES[p];
@@ -5006,7 +5039,7 @@ function deleteInvoice(id){const i=state.invoices.find(x=>x.id===id);if(!i)retur
 const EXPENSE_CATEGORIES=[['Kantoor','Kantoor'],['Software','Software & abonnementen'],['Reiskosten','Reizen & vervoer'],['Marketing','Reclame'],['Representatie','Eten & drinken (zakelijk)'],['Inkoop','Inkoop'],['Huisvesting','Huur & energie'],['Overig','Overig']];
 let editingExpenseId=null;
 function expenseAmountLocked(e){if(!e)return '';if(expenseHasMixedVat(e)||(Array.isArray(e.vatLines)&&e.vatLines.length>1))return 'Deze bon heeft meerdere btw-tarieven. Het bedrag en de btw komen van de bon zelf.';if(!['standard','kor'].includes(expenseTaxTreatment(e)))return 'Deze kosten hebben een bijzondere btw-regeling. Het bedrag en de btw komen van de bon zelf.';if(expenseGross(e)<0)return 'Dit is een terugbetaling. Het bedrag komt van de bon zelf.';if(e.settlementId||e.source==='pdf-import-adjustment')return 'Deze kosten horen bij een afrekening. Het bedrag pas je daar aan.';if(state.transactions.some(t=>t.status==='matched'&&t.matchType==='expense'&&t.matchId===e.id))return 'Dit bedrag is gekoppeld aan je bank. Klopt het niet? Haal de kosten weg en voer ze opnieuw in.';return ''}
-function newExpense(id){const e=typeof id==='string'?state.expenses.find(x=>x.id===id):null;editingExpenseId=e?e.id:null;const chips=(name,items,checked)=>items.map(([value,label])=>`<label class="choice-chip"><input type="radio" name="${name}" value="${esc(value)}" ${String(value)===String(checked)?'checked':''}><span>${esc(label)}</span></label>`).join('');const locked=expenseAmountLocked(e),rate=e?expenseVatRateValue(e):21,rateOptions=[['21','21%'],['9','9%'],['0','Geen btw']];if(e&&rate!=null&&!rateOptions.some(r=>Number(r[0])===Number(rate)))rateOptions.push([String(rate),rate+'%']);const categories=e&&e.category&&!EXPENSE_CATEGORIES.some(c=>c[0]===e.category)?[...EXPENSE_CATEGORIES,[e.category,e.category]]:EXPENSE_CATEGORIES,methods=[['Bank','Bankrekening of pin'],['Creditcard','Creditcard'],['Kas','Contant'],['Privé voorgeschoten','Eigen geld (privé)']];if(e?.paymentMethod&&!methods.some(m=>m[0]===e.paymentMethod))methods.push([e.paymentMethod,e.paymentMethod]);const amountHtml=locked?`<div class="field"><label>Bedrag</label><div class="expense-detail-amount">${money(expenseGross(e))}</div><div class="help">${esc(locked)}</div></div>`:`<div class="field"><label>Hoeveel heb je betaald?</label><input type="number" step="0.01" min="0" name="gross" required inputmode="decimal" placeholder="0,00" value="${e?expenseGross(e).toFixed(2):''}" oninput="updateExpenseSplit()"><div class="help">Het totaal op de bon, met btw.</div></div>`,vatHtml=locked?'':`<fieldset class="field full choice-group"><legend>Hoeveel btw staat op de bon?</legend><div class="choice-chips">${chips('vatRate',rateOptions,e?String(rate??21):'21')}</div><div class="help" id="expenseSplit">Weet je het niet? Meestal is het 21%.</div></fieldset>`;modal(e?'Kosten aanpassen':'Kosten toevoegen',`<form id="expenseForm" class="form-grid expense-form" data-mobile-form="1">${amountHtml}<div class="field"><label>Waar?</label><input name="vendor" required placeholder="Bijv. bouwmarkt of NS" value="${esc(e?.vendor||'')}"></div>${vatHtml}<fieldset class="field full choice-group"><legend>Waarvoor?</legend><div class="choice-chips">${chips('category',categories,e?.category||'Overig')}</div></fieldset><div class="field"><label>Datum</label><input type="date" name="date" value="${esc(e?.date||today())}" required></div><details class="field full expense-more"${e&&(e.notes||(e.paymentMethod&&e.paymentMethod!=='Bank'))?' open':''}><summary>Betaalwijze en notitie <span class="muted">(niet verplicht)</span></summary><div class="form-grid"><div class="field"><label>Betaald met</label><select name="paymentMethod">${methods.map(([v,l])=>`<option value="${esc(v)}" ${String(e?.paymentMethod||'Bank')===v?'selected':''}>${esc(l)}</option>`).join('')}</select></div><div class="field full"><label>Notitie</label><textarea name="notes" rows="2">${esc(e?.notes||'')}</textarea></div></div></details></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="saveExpense()">Opslaan</button>`);if(e&&!locked)updateExpenseSplit()}
+function newExpense(id){if(!planAllows(1)){requirePlanAccess(1,'Kosten').then(ok=>{if(ok)newExpense(id)});return}const e=typeof id==='string'?state.expenses.find(x=>x.id===id):null;editingExpenseId=e?e.id:null;const chips=(name,items,checked)=>items.map(([value,label])=>`<label class="choice-chip"><input type="radio" name="${name}" value="${esc(value)}" ${String(value)===String(checked)?'checked':''}><span>${esc(label)}</span></label>`).join('');const locked=expenseAmountLocked(e),rate=e?expenseVatRateValue(e):21,rateOptions=[['21','21%'],['9','9%'],['0','Geen btw']];if(e&&rate!=null&&!rateOptions.some(r=>Number(r[0])===Number(rate)))rateOptions.push([String(rate),rate+'%']);const categories=e&&e.category&&!EXPENSE_CATEGORIES.some(c=>c[0]===e.category)?[...EXPENSE_CATEGORIES,[e.category,e.category]]:EXPENSE_CATEGORIES,methods=[['Bank','Bankrekening of pin'],['Creditcard','Creditcard'],['Kas','Contant'],['Privé voorgeschoten','Eigen geld (privé)']];if(e?.paymentMethod&&!methods.some(m=>m[0]===e.paymentMethod))methods.push([e.paymentMethod,e.paymentMethod]);const amountHtml=locked?`<div class="field"><label>Bedrag</label><div class="expense-detail-amount">${money(expenseGross(e))}</div><div class="help">${esc(locked)}</div></div>`:`<div class="field"><label>Hoeveel heb je betaald?</label><input type="number" step="0.01" min="0" name="gross" required inputmode="decimal" placeholder="0,00" value="${e?expenseGross(e).toFixed(2):''}" oninput="updateExpenseSplit()"><div class="help">Het totaal op de bon, met btw.</div></div>`,vatHtml=locked?'':`<fieldset class="field full choice-group"><legend>Hoeveel btw staat op de bon?</legend><div class="choice-chips">${chips('vatRate',rateOptions,e?String(rate??21):'21')}</div><div class="help" id="expenseSplit">Weet je het niet? Meestal is het 21%.</div></fieldset>`;modal(e?'Kosten aanpassen':'Kosten toevoegen',`<form id="expenseForm" class="form-grid expense-form" data-mobile-form="1">${amountHtml}<div class="field"><label>Waar?</label><input name="vendor" required placeholder="Bijv. bouwmarkt of NS" value="${esc(e?.vendor||'')}"></div>${vatHtml}<fieldset class="field full choice-group"><legend>Waarvoor?</legend><div class="choice-chips">${chips('category',categories,e?.category||'Overig')}</div></fieldset><div class="field"><label>Datum</label><input type="date" name="date" value="${esc(e?.date||today())}" required></div><details class="field full expense-more"${e&&(e.notes||(e.paymentMethod&&e.paymentMethod!=='Bank'))?' open':''}><summary>Betaalwijze en notitie <span class="muted">(niet verplicht)</span></summary><div class="form-grid"><div class="field"><label>Betaald met</label><select name="paymentMethod">${methods.map(([v,l])=>`<option value="${esc(v)}" ${String(e?.paymentMethod||'Bank')===v?'selected':''}>${esc(l)}</option>`).join('')}</select></div><div class="field full"><label>Notitie</label><textarea name="notes" rows="2">${esc(e?.notes||'')}</textarea></div></div></details></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="saveExpense()">Opslaan</button>`);if(e&&!locked)updateExpenseSplit()}
 function editExpense(id){const e=state.expenses.find(x=>x.id===id);if(!e)return;if(e.correctedAt)return toast('Deze kosten zijn weggehaald. Voer ze opnieuw in als ze toch kloppen.');if(e.correctionFor)return toast('Dit is een correctie. Die kun je niet aanpassen.');closeModal();newExpense(id)}
 function splitExpenseGross(gross,rate,kor=!!state.company.kor){const g=roundMoney(gross),vat=kor?0:roundMoney(g-g/(1+Number(rate||0)/100));return {gross:g,exVat:roundMoney(g-vat),vatAmount:vat}}
 function updateExpenseSplit(){const f=document.getElementById('expenseForm'),el=document.getElementById('expenseSplit');if(!f||!el)return;const g=Number(f.elements.gross.value||0);if(!(g>0)){el.textContent='Weet je het niet? Meestal is het 21%.';return}const x=splitExpenseGross(g,f.elements.vatRate.value);el.textContent=state.company.kor?'Je doet mee aan de KOR, dus je krijgt geen btw terug.':x.vatAmount>0?`Hiervan is ${money(x.vatAmount)} btw. Die krijg je terug.`:'Geen btw op deze bon.'}
@@ -5970,6 +6003,7 @@ function triggerInvoiceUpload(kind='auto'){
  openUploadSourcePicker(kind)
 }
 function openUploadSourcePicker(kind='auto',smart=false){
+ if(kind!=='sale'&&!planAllows(1)){requirePlanAccess(1,'Bonnetjes en documenten').then(ok=>{if(ok)openUploadSourcePicker(kind,smart)});return}
  const input=document.getElementById('invoicePdfFile');if(!input)return;
  pendingUploadKind=kind;input.dataset.uploadKind=kind;input.dataset.smartUpload=String(smart);input.value='';input.click()
 }
@@ -6605,7 +6639,7 @@ const UPLOAD_ERROR_CODES={
  DOCUMENT_UNSUPPORTED_TYPE:['Bestandstype niet ondersteund','Dit bestandstype hoort niet bij de ondersteunde documentformaten.','Gebruik een ondersteund documenttype en probeer opnieuw.'],
  DOCUMENT_TOO_LARGE:['Bestand te groot','Het document is groter dan de toegestane uploadgrootte.','Verklein of comprimeer het bestand en probeer opnieuw.'],
  AUTH_SESSION_EXPIRED:['Sessie verlopen','Je inlogsessie is niet meer geldig.','Log opnieuw in en start de upload opnieuw.'],
- DOCUMENT_LIMIT_REACHED:['Documentlimiet bereikt','De 10 slimme documentverwerkingen van Start zijn deze maand opgebruikt.','Met ZZP worden je documenten uitgelezen zonder maandlimiet. Kies ZZP in Instellingen → Abonnement, of wacht tot de nieuwe maand.'],
+ DOCUMENT_LIMIT_REACHED:['Documentlimiet bereikt','Je slimme documentverwerkingen zijn deze maand opgebruikt.','Met Pro worden je documenten uitgelezen zonder maandlimiet. Kies een ander pakket in Instellingen → Abonnement, of wacht tot de nieuwe maand. Je kunt documenten ook zelf invullen.'],
  ACCOUNT_READ_ONLY:['Account is read-only','Je account kan momenteel geen nieuwe boekhoudkundige wijzigingen uitvoeren.','Open je abonnementsstatus om je toegang te herstellen.'],
  RATE_LIMITED:['Te veel aanvragen','Er zijn te veel verwerkingen kort na elkaar gestart.','Wacht even en probeer daarna opnieuw.'],
  PROCESSING_TIMEOUT:['Verwerking duurde te lang','De documentverwerking heeft de maximale verwerkingstijd bereikt.','Probeer opnieuw. Een kleiner bestand of scherpere scan kan helpen.'],
@@ -7075,7 +7109,7 @@ async function confirmResetDemo(){
   closeModal();render();toast('Administratie leeggemaakt; Mijn gegevens zijn behouden')
  }catch(err){if(currentUser?.id===accountId&&state===cleared){state=before;save();render()}if(button.isConnected)button.disabled=false;toast(err?.message||'De administratie kon niet worden gewist.')}finally{administrationResetInFlight=false}
 }
-async function openVersionHistory(){if(TEST_MODE_NO_AUTH)return toast('Versiegeschiedenis is uitgeschakeld in testmodus zonder login.');if(!(await requireBoekunaSmartLayer('Versiegeschiedenis en herstelpunten')))return;try{const sb=await getSupabase();const {data,error}=await sb.from('ledger_revisions').select('id,version,created_at').order('created_at',{ascending:false}).limit(25);if(error)throw error;modal('Versiegeschiedenis',data?.length?`<div class="notice info" style="margin-bottom:12px"><strong>Automatische herstelpunten.</strong> Bij opslaan blijft de vorige versie bewaard. Maximaal 25 versies.</div><div class="legal-list">${data.map((r,i)=>`<div class="legal-item" style="display:flex;gap:12px;align-items:center;justify-content:space-between"><div><strong>${i===0?'Meest recente herstelpunt':`Versie ${r.version}`}</strong><p>${new Date(r.created_at).toLocaleString('nl-NL')}</p></div><button class="btn small" onclick="confirmRestoreVersion('${r.id}','${new Date(r.created_at).toLocaleString('nl-NL')}')">Herstellen</button></div>`).join('')}</div>`:`<div class="empty"><strong>Nog geen herstelpunten</strong><span>Zodra je wijzigingen opslaat, ontstaat hier automatisch versiegeschiedenis.</span></div>`,'',true)}catch(e){toast('Versiegeschiedenis kon niet worden geladen')}}
+async function openVersionHistory(){if(TEST_MODE_NO_AUTH)return toast('Versiegeschiedenis is uitgeschakeld in testmodus zonder login.');if(!(await requirePlanAccess(2,'Herstelpunten')))return;try{const sb=await getSupabase();const {data,error}=await sb.from('ledger_revisions').select('id,version,created_at').order('created_at',{ascending:false}).limit(25);if(error)throw error;modal('Versiegeschiedenis',data?.length?`<div class="notice info" style="margin-bottom:12px"><strong>Automatische herstelpunten.</strong> Bij opslaan blijft de vorige versie bewaard. Maximaal 25 versies.</div><div class="legal-list">${data.map((r,i)=>`<div class="legal-item" style="display:flex;gap:12px;align-items:center;justify-content:space-between"><div><strong>${i===0?'Meest recente herstelpunt':`Versie ${r.version}`}</strong><p>${new Date(r.created_at).toLocaleString('nl-NL')}</p></div><button class="btn small" onclick="confirmRestoreVersion('${r.id}','${new Date(r.created_at).toLocaleString('nl-NL')}')">Herstellen</button></div>`).join('')}</div>`:`<div class="empty"><strong>Nog geen herstelpunten</strong><span>Zodra je wijzigingen opslaat, ontstaat hier automatisch versiegeschiedenis.</span></div>`,'',true)}catch(e){toast('Versiegeschiedenis kon niet worden geladen')}}
 function confirmRestoreVersion(id,label){modal('Vorige versie herstellen',`<div class="notice warn"><strong>Administratie terugzetten naar ${esc(label)}?</strong> De huidige versie wordt eerst automatisch als herstelpunt bewaard.</div>`,`<button class="btn" onclick="openVersionHistory()">Annuleren</button><button class="btn danger" onclick="restoreCloudVersion('${id}')">Herstellen</button>`)}
 async function restoreCloudVersion(id){try{const sb=await getSupabase();const {data:newVersion,error}=await sb.rpc('restore_ledger_revision',{p_revision_id:id,p_expected_version:cloudVersion});if(error)throw error;if(newVersion==null){toast('Er is intussen op een ander apparaat gewijzigd. Laad eerst de nieuwste versie.');return}const {data:row,error:readErr}=await sb.from('ledger_state').select('state,version').eq('user_id',currentUser.id).single();if(readErr)throw readErr;state=normalizeState(row.state||{});cloudVersion=Number(row.version||newVersion);localStorage.setItem(userDataKey(),JSON.stringify(state));closeModal();render();setCloudSyncStatus('saved');toast('Vorige administratieversie is hersteld')}catch(e){toast(e?.message||'Versie kon niet worden hersteld')}}
 function restoreConflictDialog(){const k=conflictBackupKey(),raw=k?localStorage.getItem(k):null;if(!raw)return toast('Geen herstelkopie gevonden');let info={};try{info=JSON.parse(raw)}catch(e){}modal('Lokale herstelkopie',`<div class="notice warn"><strong>Gebruik dit alleen als jouw lokale versie de juiste is.</strong> De online versie wordt vervangen door de versie op dit apparaat.</div><div class="legal-item" style="margin-top:12px"><strong>Herstelkopie</strong><p>${info.savedAt?`Bewaard op ${new Date(info.savedAt).toLocaleString('nl-NL')}`:'Lokale conflictversie beschikbaar'}</p></div>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn danger" onclick="restoreConflictBackup()">Lokale versie terugzetten</button>`)}
