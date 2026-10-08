@@ -1,0 +1,15 @@
+/* BOEKUNA bank lines and files: add/delete a transaction, files list on mobile. */
+.tx-form .field-label{display:block;margin-bottom:6px;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#566875;color:var(--text-muted,#566875);font-weight:800}
+@media(max-width:820px){.tx-form .field-label{font-size:12px}}
+.tx-direction{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tx-direction-option{position:relative;display:flex;align-items:center;justify-content:center;min-height:44px;border:1px solid var(--border);border-radius:12px;background:var(--surface,#fff);font-weight:700;cursor:pointer}
+#modalRoot .field label.tx-direction-option,.field label.tx-direction-option{display:flex!important;align-items:center!important;justify-content:center!important;margin:0!important;padding:0 12px!important;font-size:15px!important;font-weight:700!important;text-transform:none!important;letter-spacing:0!important;color:var(--text,#1b1f23)!important}
+.tx-direction-option input{position:absolute;inset:0;z-index:1;width:100%!important;height:100%!important;min-height:0!important;margin:0;opacity:0;cursor:pointer}
+.tx-direction-option:has(input:checked){border-color:var(--app-green,#63D471);background:var(--app-green-soft,#ecfaee)}
+.tx-direction-option:has(input:focus-visible){outline:3px solid currentColor;outline-offset:2px}
+.bank-delete-action{min-width:44px;min-height:44px}
+.mobile-card-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+@media(max-width:820px){
+  /* Files on mobile: the list of files comes first, like on desktop; the counters stay on desktop. */
+  .documents-kpis{display:none}
+}

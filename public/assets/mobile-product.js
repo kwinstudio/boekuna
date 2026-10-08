@@ -92,8 +92,10 @@
           '', function () { expenseActions(item.id); });
         metadata(entry.firstChild, 'Btw ' + expenseVatRateLabel(item));
       } else if (page === 'documents') {
-        entry = row(item.name || 'Document', null, dateNL(item.date) + ' · ' + (item.type || 'Document'), documentStatus(item),
+        var docLink = typeof listLinkedDocumentInfo === 'function' && item.linkedId ? listLinkedDocumentInfo(item) : null;
+        entry = row(item.name || 'Document', null, [dateNL(item.date), typeof documentTypeLabel === 'function' ? documentTypeLabel(item.type) : (item.type || 'Document')].join(' · '), documentStatus(item),
           item.fileId ? function () { openDocumentPreview(item.id); } : null);
+        if (docLink) metadata(entry.firstChild, [docLink.party, docLink.number].filter(Boolean).join(' · '));
         var originalRow = Array.from(table.querySelectorAll('tbody tr')).find(function (_, index) { return items[index] === item; });
         var originalActions = originalRow && originalRow.lastElementChild;
         if (originalActions) {
@@ -111,8 +113,16 @@
         entry.lastChild.firstChild.classList.add(value >= 0 ? 'money-positive' : 'money-negative');
         metadata(entry.firstChild, linked);
         if (item.status === 'unmatched' && typeof bankSuggestionText === 'function') metadata(entry.firstChild, bankSuggestionText(item));
-        if (item.status === 'unmatched') entry.lastChild.append(button(item.matchSuggestion ? 'Controleren' : 'Koppelen', function () { matchTransaction(item.id); }, 'btn small'));
-        else entry.lastChild.append(button('Ontkoppelen', function () { confirmUnlink(item.id); }, 'btn small'));
+        var bankActions = element('div', 'mobile-card-actions');
+        if (item.status === 'unmatched') bankActions.append(button(item.matchSuggestion ? 'Controleren' : 'Koppelen', function () { matchTransaction(item.id); }, 'btn small'));
+        else bankActions.append(button('Ontkoppelen', function () { confirmUnlink(item.id); }, 'btn small'));
+        if (page === 'bank' && typeof requestTransactionDelete === 'function') {
+          var remove = button('', function () { requestTransactionDelete(item.id); }, 'icon-btn bank-delete-action');
+          remove.innerHTML = icon('i-trash');
+          remove.setAttribute('aria-label', 'Transactie verwijderen: ' + (item.description || 'banktransactie'));
+          bankActions.append(remove);
+        }
+        entry.lastChild.append(bankActions);
       }
       entry.setAttribute('role', 'listitem');
       list.append(entry);
@@ -186,7 +196,7 @@
       var details=element('details','mobile-disclosure mobile-vat-details');
       var body=element('div','mobile-disclosure-body');details.append(element('summary','','Btw per tarief'),body);
       // Same period and invoice selection as renderVat, so the split matches the total above.
-      var range=financialPeriodRange();
+      var range=typeof vatPeriodRange==="function"?vatPeriodRange():financialPeriodRange();
       var invoices=state.invoices.filter(function(invoice){return invoice.status!=='draft'&&invoiceEffectiveStatus(invoice)!=='cancelled'&&financialPeriodContains(invoice.issueDate,range)});
       [21,9,0].forEach(function(rate){
         var sum=invoices.reduce(function(amount,invoice){return roundMoney(amount+Number(invoiceVatBreakdown(invoice)[rate]||0))},0);

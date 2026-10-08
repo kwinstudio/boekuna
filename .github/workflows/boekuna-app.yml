@@ -193,6 +193,10 @@ jobs:
         run: |
           node tests/theme-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/theme-browser.test.mjs
+      - name: Spacing and layout (375–1440px, Light and Dark) — Chromium and WebKit
+        run: |
+          node tests/spacing-layout-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/spacing-layout-browser.test.mjs
       - name: Hulp & feedback — Chromium and WebKit
         run: |
           node tests/feedback-browser.test.mjs

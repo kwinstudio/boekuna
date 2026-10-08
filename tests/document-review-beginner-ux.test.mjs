@@ -40,7 +40,7 @@ assert.ok(appHtml.includes('/assets/document-review-v2.css'),'built app must loa
 const realHeadEnd=appHtml.indexOf('</head>');
 assert.ok(realHeadEnd>0,'built app must contain a real document head');
 const realHead=appHtml.slice(0,realHeadEnd);
-assert.ok(realHead.includes('/assets/document-review-v2.css?v=20261006fx2'),'review stylesheet must be injected in the real app head, not a print template');
+assert.ok(realHead.includes('/assets/document-review-v2.css?v=20261008a'),'review stylesheet must be injected in the real app head, not a print template');
 assert.equal((appHtml.match(/\/assets\/document-review-v2\.css/g)||[]).length,1,'review stylesheet must be linked exactly once');
 const inlineScripts=[...appHtml.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(Boolean);
 assert.ok(inlineScripts.length>=1,'built app must contain inline runtime');
@@ -586,10 +586,18 @@ try{
     net:100,vatAmount:21,gross:121,vatRate:21,
     reviewRouting:{mode:'FULL_REVIEW',fields:['currency'],count:1,autoBook:false}
   });
+  // The original opens full screen on mobile and always has a way back to the review.
   await page.evaluate(()=>toggleDocumentOriginal(true));
-  await page.locator('#reviewOriginalPanel.open .beginner-preview-empty').waitFor();
-  await assertPreviewCopySeparated(browserName+' mobile preview');
-  await page.evaluate(()=>toggleDocumentOriginal(false));
+  await page.locator('.docviewer').waitFor();
+  await noOverflow(browserName+' mobile document viewer');
+  await page.getByRole('button',{name:'Document sluiten'}).click();
+  assert.equal(await page.locator('.docviewer').count(),0,'viewer closes');
+  assert.equal(await page.getByRole('heading',{name:'Document controleren'}).count(),1,'review stays open behind the viewer');
+  await page.evaluate(()=>toggleDocumentOriginal(true));
+  await page.locator('.docviewer').waitFor();
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('.docviewer').count(),0,'Escape closes only the viewer');
+  assert.equal(await page.getByRole('heading',{name:'Document controleren'}).count(),1);
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
   await noOverflow(browserName+' foreign currency mobile');
   assert.equal(await page.locator('[name="exchangeRateToEur"]:visible').count(),1);
