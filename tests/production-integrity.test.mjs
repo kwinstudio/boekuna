@@ -46,6 +46,36 @@ assert.equal(app.invoiceVat(historic), 21, 'Changing company KOR must not change
 app.state.company.kor = false;
 assert.equal(app.invoiceVat(invoice([line(100)], { taxTreatment: 'kor' })), 0);
 
+// A final credit note settles the unpaid invoice it credits; a draft does not; what is left is a refund.
+{
+  const original = invoice([line(22.5), line(4.15, 9, 3)], { id: 'orig', number: '2026-0001', issueDate: '2026-09-01' });
+  const credit = invoice(structuredClone(original.lines), { id: 'cr', kind: 'credit', creditFor: 'orig', status: 'draft', number: '2026-0002', issueDate: '2026-09-02' });
+  app.state.invoices = [original, credit];
+  assert.equal(app.invoiceOutstanding(original), 40.8, 'A draft credit note does not settle anything');
+  credit.status = 'sent';
+  assert.deepEqual([app.invoiceOutstanding(original), app.invoiceOutstanding(credit)], [0, 0], 'Full credit settles the open invoice');
+  assert.deepEqual([app.invoiceEffectiveStatus(original), app.invoiceEffectiveStatus(credit)], ['credited', 'credited']);
+  credit.lines = [line(22.5)];
+  assert.equal(app.invoiceOutstanding(original), 13.57, 'Partial credit lowers what is still owed');
+  assert.equal(app.invoiceEffectiveStatus(original), 'sent');
+  credit.lines = structuredClone(original.lines);
+  original.payments = [{ amount: 40.8 }];
+  assert.deepEqual([app.invoiceOutstanding(original), app.invoiceOutstanding(credit)], [0, 40.8], 'Credit on a paid invoice is a refund to pay back');
+  assert.deepEqual([app.invoiceEffectiveStatus(original), app.invoiceEffectiveStatus(credit)], ['paid', 'sent']);
+  original.payments = [{ amount: 10 }];
+  assert.deepEqual([app.invoiceOutstanding(original), app.invoiceOutstanding(credit)], [0, 10], 'Partly paid: credit settles the rest and refunds the payment');
+  original.payments = [];
+  const second = invoice([line(4.15, 9, 3)], { id: 'cr2', kind: 'credit', creditFor: 'orig', status: 'sent', number: '2026-0003', issueDate: '2026-09-03' });
+  credit.lines = [line(22.5)];
+  app.state.invoices = [original, credit, second];
+  assert.deepEqual([app.invoiceOutstanding(original), app.invoiceOutstanding(credit), app.invoiceOutstanding(second)], [0, 0, 0], 'Two partial credits settle in date order');
+  second.lines = [line(30)];
+  assert.deepEqual([app.invoiceOutstanding(original), app.invoiceOutstanding(second)], [0, 22.73], 'Credit beyond the open amount stays open as a refund');
+  app.state.invoices = [credit];
+  assert.equal(app.invoiceOutstanding(credit), 27.23, 'A credit note without its original keeps its own amount');
+  app.state.invoices = [];
+}
+
 const partial = invoice([line(100)], { payments: [{ amount: 120.99 }] });
 assert.equal(app.invoiceOutstanding(partial), .01);
 assert.equal(app.invoiceEffectiveStatus(partial), 'partial', 'One cent outstanding must not show paid');

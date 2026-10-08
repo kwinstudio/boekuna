@@ -23,7 +23,7 @@ export const financialNames = [
   'invoiceDiscountBase', 'invoiceDiscountAmount', 'invoiceDiscountFactor',
   'discountedLineNet', 'discountedLineVat', 'invoiceSign', 'invoiceTaxTreatment',
   'isZeroOutputVatTreatment', 'invoiceNet', 'invoiceVat', 'invoiceGross',
-  'invoicePayments', 'invoicePaidAmount', 'invoiceOutstanding', 'invoiceEffectiveStatus',
+  'invoicePayments', 'invoicePaidAmount', 'invoiceCreditOffset', 'invoiceOutstanding', 'invoiceEffectiveStatus',
   'invoiceVatBreakdown', 'invoiceNetByVatRate', 'expenseTaxTreatment', 'expenseVat', 'expenseGross',
 ];
 
