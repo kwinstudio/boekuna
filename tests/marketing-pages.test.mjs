@@ -11,7 +11,7 @@ const preserved=['privacy','voorwaarden','support','account-verwijderen'];
 
 const home=fs.readFileSync(path.join(source,'index.html'),'utf8');
 assert.match(home,/<meta name="robots" content="index,follow">/i,'Landing page must be indexable');
-assert.ok(home.includes('Boekhouden zonder gedoe'),'BOEKUNA V3 hero missing');
+assert.ok(home.includes('Zo simpel kan het zijn'),'BOEKUNA V3 hero missing');
 assert.ok(home.includes('https://app.boekuna.nl/?login=1'),'App login handoff missing');
 assert.ok(home.includes('https://app.boekuna.nl/?register=1'),'App registration handoff missing');
 assert.ok(home.includes('aria-label="Hoofdnavigatie"'),'Accessible primary navigation missing');

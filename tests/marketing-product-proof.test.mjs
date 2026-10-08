@@ -8,7 +8,7 @@ const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{cwd:root
 assert.equal(build.status,0,'Marketing build failed: '+(build.stderr||build.stdout));
 const dist=path.join(root,'dist','marketing');
 const home=fs.readFileSync(path.join(dist,'index.html'),'utf8');
-assert.ok(home.includes('Boekhouden zonder gedoe'),'V3 landing copy missing');
+assert.ok(home.includes('Zo simpel kan het zijn'),'V3 landing copy missing');
 assert.match(home,/<meta name="robots" content="index,follow">/i);
 assert.ok([...home.matchAll(/<img\b[^>]*>/gi)].every(m=>/src="\/assets\/site\//.test(m[0])&&/\balt="[^"]+"/.test(m[0])&&/\bwidth="\d+"/.test(m[0])),'Images are first-party, sized and described');
 assert.ok(fs.existsSync(path.join(dist,'assets','site','foto-kapper.webp')),'Photos must be deployed');

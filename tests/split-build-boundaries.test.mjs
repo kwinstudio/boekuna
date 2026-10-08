@@ -23,7 +23,7 @@ for(const old of ['site.css','site.js','editorial-marketing.css','editorial-mark
 for(const oldDir of ['marketing-people','stories','product'])assert.ok(!fs.existsSync(path.join(distMarketing,'assets',oldDir)),'retired marketing media shipped: '+oldDir);
 assert.ok(!fs.existsSync(path.join(distMarketing,'manifest.webmanifest')),'marketing must not publish app PWA manifest');
 const marketingIndex=fs.readFileSync(path.join(distMarketing,'index.html'),'utf8');
-assert.ok(marketingIndex.includes('Boekhouden zonder gedoe'),'V3 public landing missing');
+assert.ok(marketingIndex.includes('Zo simpel kan het zijn'),'V3 public landing missing');
 assert.ok(marketingIndex.includes('index,follow'),'V3 public landing should be indexable');
 assert.ok(marketingIndex.includes('https://app.boekuna.nl/?login=1'),'login must cross to isolated app host');
 assert.ok(!marketingIndex.includes('id="mainApp"'),'marketing artifact must not contain authenticated app runtime');

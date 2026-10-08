@@ -20,7 +20,7 @@ for(const slug of retiredMarketingRoutes)assert.ok(!fs.existsSync(path.join(root
 
 assert.ok(app.includes('function enterApp()'),'product-app entry logic must remain');
 assert.ok(marketing.includes('<meta name="robots" content="index,follow">'),'public root must be an indexable landing page');
-assert.ok(marketing.includes('Boekhouden zonder gedoe'),'public landing copy missing');
+assert.ok(marketing.includes('Zo simpel kan het zijn'),'public landing copy missing');
 assert.ok(marketing.includes('https://app.boekuna.nl/?login=1'),'marketing login must cross to isolated product host');
 assert.equal(marketing.includes('/assets/marketing.js'),false,'retired marketing JS returned');
 assert.equal(marketing.includes('boekuna-boekhouding.onrender.com'),false,'landing page must not publish legacy Render host');

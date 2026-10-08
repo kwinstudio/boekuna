@@ -28,7 +28,7 @@ try{
 
   const nojs=await browser.newPage({javaScriptEnabled:false,viewport:{width:390,height:844}});
   await nojs.goto(server.base);
-  assert.equal(await nojs.locator('h1').textContent(),'Boekhouden zonder gedoe.');
+  assert.equal(await nojs.locator('h1').textContent(),'Zo simpel kan het zijn.');
   await nojs.locator('.mobile-nav summary').click();
   assert.ok(await nojs.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).isVisible());
   for(const route of ['/privacy/','/voorwaarden/','/support/','/account-verwijderen/']){
