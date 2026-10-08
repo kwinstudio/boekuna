@@ -32,8 +32,10 @@ export function loadApp(names = financialNames, overrides = {}) {
     state: { company: {}, invoices: [], expenses: [], transactions: [], audit: [] },
     structuredClone, today: () => '2026-09-27', ...overrides,
   });
-  const optional = appSource.includes('function allocateDiscountCents(') ? ['allocateDiscountCents'] : [];
-  vm.runInContext([...new Set([...optional, ...names])].map(n => declaration(appSource, n)).join('\n'), context);
+  const optional = ['allocateDiscountCents', 'withInvoiceRounding'].filter(n => appSource.includes(`function ${n}(`));
+  // toCents reads this switch; withInvoiceRounding turns it on for invoices that keep the old rounding.
+  const prelude = appSource.includes('let legacyInvoiceCents=') ? 'var legacyInvoiceCents=false;\n' : '';
+  vm.runInContext(prelude + [...new Set([...optional, ...names])].map(n => declaration(appSource, n)).join('\n'), context);
   return context;
 }
 
