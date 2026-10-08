@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { cancelSubscriptionNow, isChargeable, stripeRequestWithKey } from "../_shared/account-closure.ts";
+import { applyStripeState } from "../_shared/stripe-state.ts";
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -243,21 +244,18 @@ Deno.serve(async (req: Request) => {
         .maybeSingle();
       if (existingError) throw existingError;
 
-      const rawPlan = String(sub?.metadata?.plan || existing?.plan || "boekuna");
-      const plan = rawPlan === "pro" ? "pro" : "boekuna";
-      const { data: applied, error: applyError } = await admin.rpc("apply_stripe_subscription_state", {
-        p_user_id: userId,
-        p_stripe_customer_id: String(sub?.customer || ""),
-        p_stripe_subscription_id: String(sub?.id || ""),
-        p_plan: plan,
-        p_status: normalizedStatus(sub?.status),
-        p_current_period_end: periodEnd(sub),
-        p_cancel_at_period_end: !!sub?.cancel_at_period_end,
-        p_event_created: eventCreated,
-        p_event_id: String(event.id),
+      // Plan and interval come from the price the customer pays (a Customer
+      // Portal switch changes the price, not the subscription metadata).
+      const result = await applyStripeState(admin, {
+        userId,
+        subscription: sub,
+        fallbackPlan: String(sub?.metadata?.plan || existing?.plan || ""),
+        status: normalizedStatus(sub?.status),
+        currentPeriodEnd: periodEnd(sub),
+        eventCreated,
+        eventId: String(event.id),
       });
-      if (applyError) throw applyError;
-      return applied === true;
+      return result.applied;
     }
 
     try {

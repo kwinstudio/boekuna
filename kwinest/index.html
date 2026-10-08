@@ -2504,7 +2504,30 @@ async function fetchWithAuthRetry(url,options={}){
  }
  return res
 }
-function billingPlanLabel(plan='free'){return ({free:'Gratis',boekuna:'Boekuna',pro:'Unlimited'})[String(plan)]||'Gratis'}
+// Pricing V2 display copy. Amounts are integer cents excl. btw and must equal
+// supabase/functions/_shared/pricing.mjs; the server decides what is charged.
+const BOEKUNA_PRICING=Object.freeze({
+ plans:Object.freeze({
+  zzp:Object.freeze({name:'ZZP',month:995,year:9950,tagline:'Volledige basisboekhouding'}),
+  pro:Object.freeze({name:'Pro',month:1995,year:19950,tagline:'Meer automatisering'}),
+  business:Object.freeze({name:'Business',month:3495,year:34950,tagline:'Voor groeiende bedrijven'})
+ }),
+ sellable:Object.freeze(['zzp'])
+});
+const BILLING_PLAN_KEYS=['boekuna','zzp','pro','business'];
+function canonicalBillingPlan(plan=''){const p=String(plan||'').toLowerCase();return p==='boekuna'?'zzp':p==='unlimited'?'pro':['zzp','pro','business'].includes(p)?p:'start'}
+function billingPlanLabel(plan='free'){return ({start:'Start',zzp:'ZZP',pro:'Pro',business:'Business'})[canonicalBillingPlan(plan)]||'Start'}
+function billingIntervalLabel(interval=''){return interval==='year'?'Jaarlijks':interval==='month'?'Maandelijks':''}
+function euroCents(cents){return '€ '+(Number(cents)/100).toFixed(2).replace('.',',')}
+function billingPrice(plan,interval){const p=BOEKUNA_PRICING.plans[canonicalBillingPlan(plan)];return p?p[interval==='year'?'year':'month']:null}
+// Native App Store / Google Play builds never show a web purchase (store rules).
+function isNativeStoreShell(){try{return !!(window.Capacitor?.isNativePlatform?.()||/BoekunaNative/i.test(navigator.userAgent||''))}catch{return false}}
+let billingIntervalChoice='year';
+function setBillingIntervalChoice(v){billingIntervalChoice=v==='month'?'month':'year';const el=document.getElementById('billingCard');if(el)el.outerHTML=renderBillingCard()}
+const PLAN_INTENT_KEY='boekuna.planIntent';
+function rememberPlanIntent(plan,interval){try{localStorage.setItem(PLAN_INTENT_KEY,JSON.stringify({plan:canonicalBillingPlan(plan),interval:interval==='month'?'month':'year',at:Date.now()}))}catch{}}
+function takePlanIntent(){try{const raw=localStorage.getItem(PLAN_INTENT_KEY);localStorage.removeItem(PLAN_INTENT_KEY);const v=JSON.parse(raw||'null');if(!v||Date.now()-Number(v.at||0)>24*3600*1000)return null;return v}catch{return null}}
+(function captureWebsitePlanChoice(){try{const u=new URL(location.href),plan=u.searchParams.get('plan');if(plan&&['zzp','pro','business','boekuna'].includes(plan))rememberPlanIntent(plan,u.searchParams.get('interval')||'year')}catch{}})();
 function billingStatusLabel(status='free'){return ({free:'Geen betaald abonnement',trialing:'Proefstatus',active:'Actief',past_due:'Betaling nodig',canceled:'Beëindigd',incomplete:'Nog niet afgerond',incomplete_expired:'Niet afgerond',unpaid:'Onbetaald',paused:'Gepauzeerd'})[String(status)]||String(status||'Gratis')}
 function entitlementStatusLabel(status='free'){return ({free:'Gratis',paid:'Betaald'})[String(status)]||String(status||'Gratis')}
 function billingDate(v){if(!v)return '';try{return new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'long',year:'numeric'}).format(new Date(v))}catch{return ''}}
@@ -2557,6 +2580,12 @@ async function loadBillingSummary(force=false){
  }
  if(error)throw error;
  billingSnapshot=Array.isArray(data)?(data[0]||null):data;
+ if(billingSnapshot&&billingRpc==='get_billing_summary'){
+  // Pricing V2 details (interval, amount); older databases simply lack this RPC.
+  let row=null;
+  try{const details=await sb.rpc('get_subscription_details');row=Array.isArray(details?.data)?details.data[0]:details?.data}catch{}
+  if(row)billingSnapshot={...billingSnapshot,details:row};
+ }
  billingLoadedAt=Date.now();
  billingSnapshotSource=billingRpc==='get_developer_billing_summary'?'developer':'normal';
  return billingSnapshot
@@ -2566,7 +2595,7 @@ function hasBoekunaSmartLayer(b=billingSnapshot){
  const entitlement=String(b?.entitlement_status||'');
  if(entitlement)return entitlement==='paid';
  const plan=String(b?.plan||'free'),status=String(b?.status||'free');
- return ['boekuna','pro'].includes(plan)&&status==='active'
+ return BILLING_PLAN_KEYS.includes(plan)&&status==='active'
 }
 async function requireBoekunaSmartLayer(feature='Deze slimme functie'){
  if(TEST_MODE_NO_AUTH)return true;
@@ -2575,55 +2604,96 @@ async function requireBoekunaSmartLayer(feature='Deze slimme functie'){
   else if(!billingSnapshot||billingSnapshotSource!=='normal'||Date.now()-billingLoadedAt>30000)await loadBillingSummary();
  }catch(err){console.warn('Plancontrole',err)}
  if(hasBoekunaSmartLayer())return true;
- modal('Onderdeel van Boekuna',`<div class="notice info"><strong>${esc(feature)} hoort bij de slimme controlelaag van Boekuna.</strong><br>Met Boekuna krijg je extra controle, cashflow-inzicht en herstelpunten zodat je minder handmatig hoeft uit te zoeken.</div><div class="legal-item" style="margin-top:12px"><strong>Boekuna · €9,95 p/m excl. btw</strong><p>Betalen start alleen nadat je zelf een Stripe Checkout bevestigt.</p></div>`,`<button class="btn" onclick="closeModal()">Niet nu</button><button class="btn primary" onclick="closeModal();startSubscription('boekuna')">Kies Boekuna</button>`);
+ if(isNativeStoreShell()){modal('Onderdeel van ZZP',`<div class="notice info"><strong>${esc(feature)} hoort bij het ZZP-pakket.</strong></div>`,`<button class="btn primary" onclick="closeModal()">Sluiten</button>`);return false}
+ modal('Onderdeel van ZZP',`<div class="notice info"><strong>${esc(feature)} hoort bij het ZZP-pakket.</strong><br>Met ZZP krijg je je volledige boekhouding: bonnetjes uitlezen, btw-overzicht, bankimport en winst en kosten.</div><div class="legal-item" style="margin-top:12px"><strong>ZZP · ${euroCents(995)} per maand of ${euroCents(9950)} per jaar, excl. btw</strong><p>Betalen start alleen nadat je zelf een Stripe Checkout bevestigt.</p></div>`,`<button class="btn" onclick="closeModal()">Niet nu</button><button class="btn primary" onclick="closeModal();startSubscription('zzp',billingIntervalChoice)">Kies ZZP</button>`);
  return false
 }
+function renderPlanChooser(){
+ if(isNativeStoreShell())return `<div class="notice info" style="margin-top:14px">Je beheert je abonnement op boekuna.nl.</div>`;
+ const iv=billingIntervalChoice;
+ const toggle=`<div class="plan-interval" role="radiogroup" aria-label="Betaalperiode" style="display:inline-flex;gap:4px;padding:4px;border:1px solid var(--line,#ddd);border-radius:999px;margin:4px 0 12px">
+  <button type="button" role="radio" aria-checked="${iv==='month'}" class="btn small ${iv==='month'?'primary':''}" onclick="setBillingIntervalChoice('month')">Maandelijks</button>
+  <button type="button" role="radio" aria-checked="${iv==='year'}" class="btn small ${iv==='year'?'primary':''}" onclick="setBillingIntervalChoice('year')">Jaarlijks · 2 maanden gratis</button></div>`;
+ const cards=Object.entries(BOEKUNA_PRICING.plans).map(([id,p])=>{
+  const sellable=BOEKUNA_PRICING.sellable.includes(id),amount=p[iv];
+  const sub=iv==='year'?`per jaar, vooruitbetaald · gemiddeld ${euroCents(Math.round(p.year/12))} per maand`:`per maand · of ${euroCents(p.year)} per jaar`;
+  return `<div class="legal-item" style="margin:0"><strong>${esc(p.name)}</strong><p style="margin:2px 0 6px">${esc(p.tagline)}</p><div style="font-size:22px;font-weight:700">${euroCents(amount)}</div><div class="help">${sub} · excl. btw</div><div style="margin-top:10px">${sellable?`<button type="button" class="btn primary" onclick="startSubscription('${id}','${iv}')">Kies ${esc(p.name)}</button>`:`<span class="badge">Binnenkort beschikbaar</span>`}</div></div>`}).join('');
+ return `<div style="margin-top:16px"><div class="eyebrow">Kies een pakket</div>${toggle}<div class="grid grid-3" style="gap:10px">${cards}</div><p class="help" style="margin-top:8px">Alle prijzen excl. btw. Betaalde pakketten hebben geen scancredits en geen vaste maandlimiet voor documenten.</p></div>`
+}
 function renderBillingCard(){
- if(window.BoekunaDeveloperMode?.isActive(currentUser?.id)&&billingSnapshotSource==='developer')return `<div class="card" id="billingCard" style="margin-bottom:16px"><div class="section-head"><div><h2>Abonnement</h2><p>Tijdelijke QA-context; echte billing blijft ongewijzigd.</p></div><span class="badge warn">DEV MODE · Unlimited</span></div><div class="notice info"><strong>Geen Stripe-betaling nodig in deze preview.</strong> Toegang is tijdelijk, gebonden aan de QA-user en schrijft geen abonnementstatus weg.</div></div>`;
+ if(window.BoekunaDeveloperMode?.isActive(currentUser?.id)&&billingSnapshotSource==='developer')return `<div class="card" id="billingCard" style="margin-bottom:16px"><div class="section-head"><div><h2>Abonnement</h2><p>Tijdelijke QA-context; echte billing blijft ongewijzigd.</p></div><span class="badge warn">DEV MODE · Pro</span></div><div class="notice info"><strong>Geen Stripe-betaling nodig in deze preview.</strong> Toegang is tijdelijk, gebonden aan de QA-user en schrijft geen abonnementstatus weg.</div></div>`;
  const b=billingSnapshot;
  if(!b)return `<div class="card" id="billingCard" style="margin-bottom:16px"><div class="section-head"><h2>Abonnement</h2><span class="badge">Laden…</span></div></div>`;
- const plan=String(b.plan||'free'),status=String(b.status||'free'),entitlement=String(b.entitlement_status||((plan!=='free'&&status==='active')?'paid':'free')),accessSource=String(b.access_source||''),testerUsed=b.tester_access_used===true,limit=b.monthly_limit==null?null:Number(b.monthly_limit),used=Number(b.used||0),isUnlimited=plan==='pro',remaining=isUnlimited?null:Math.max(0,Number(b.remaining??Math.max(0,(limit??0)-used))),pct=isUnlimited?0:Math.min(100,Math.round((used/Math.max(1,limit??1))*100));
+ const d=b.details||{};
+ const plan=String(b.plan||'free'),status=String(b.status||'free'),entitlement=String(b.entitlement_status||((plan!=='free'&&status==='active')?'paid':'free')),accessSource=String(b.access_source||''),testerUsed=b.tester_access_used===true,limit=b.monthly_limit==null?null:Number(b.monthly_limit),used=Number(b.used||0),noLimit=limit===null,remaining=noLimit?null:Math.max(0,Number(b.remaining??Math.max(0,(limit??0)-used))),pct=noLimit?0:Math.min(100,Math.round((used/Math.max(1,limit??1))*100));
  const paid=entitlement==='paid',tester=paid&&accessSource==='tester_code';
  const hasSubscriptionStatus=['trialing','active','past_due','unpaid','paused','incomplete'].includes(status);
- const canManageSubscription=b.can_manage_subscription===true&&hasSubscriptionStatus;
+ const canManageSubscription=b.can_manage_subscription===true&&hasSubscriptionStatus&&!isNativeStoreShell();
  const statusClass=paid?'good':['past_due','unpaid','paused'].includes(status)?'warn':'';
- const badge=tester?'Boekuna · Testtoegang':paid?`${billingPlanLabel(plan)} · ${billingStatusLabel(status)}`:'Gratis plan';
- const period=tester&&b.access_ends_at?`Je kunt Boekuna gratis gebruiken tot ${billingDate(b.access_ends_at)}. Daarna ga je terug naar Gratis, tenzij je zelf een abonnement kiest.`:paid&&b.current_period_end?`Huidige periode tot ${billingDate(b.current_period_end)}`:'';
+ const interval=String(d.billing_interval||''),amount=d.unit_amount_cents==null?null:Number(d.unit_amount_cents);
+ const badge=tester?'ZZP · Testtoegang':paid?`${billingPlanLabel(plan)} · ${billingStatusLabel(status)}`:'Start · gratis';
+ const period=tester&&b.access_ends_at?`Je kunt ZZP gratis gebruiken tot ${billingDate(b.access_ends_at)}. Daarna ga je terug naar Start, tenzij je zelf een abonnement kiest.`:'';
+ const facts=paid&&!tester&&accessSource!=='internal'?[
+   ['Pakket',billingPlanLabel(plan)],
+   ['Betaalperiode',billingIntervalLabel(interval)||'—'],
+   ['Bedrag',amount!=null&&interval?`${euroCents(amount)} per ${interval==='year'?'jaar':'maand'} excl. btw`:'—'],
+   ['Status',billingStatusLabel(status)],
+   [b.cancel_at_period_end?'Loopt af op':'Volgende verlenging',b.current_period_end?billingDate(b.current_period_end):'—']
+  ]:[];
+ const factList=facts.length?`<dl class="billing-facts" style="display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:12px 0 0">${facts.map(([k,v])=>`<dt class="help">${esc(k)}</dt><dd style="margin:0;font-weight:600">${esc(v)}</dd>`).join('')}</dl>`:'';
  const invite=tester
   ?`<div class="notice success" style="margin-top:14px"><strong>Testtoegang actief</strong><br>${esc(period)}</div>`
   :testerUsed
    ?`<div class="notice info" style="margin-top:14px"><strong>Testperiode gebruikt</strong><br>Je hebt je gratis testperiode al gebruikt.</div>`
    :paid
-    ?`<div class="notice info" style="margin-top:14px"><strong>Heb je een testcode?</strong><br>Je hebt al een actief abonnement.</div>`
-    :`<div class="legal-item" style="margin-top:14px"><strong>Heb je een testcode?</strong><p>Een geldige code geeft 30 dagen toegang tot het Boekuna-plan. Geen kaart en geen automatische betaling.</p><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input id="testerInviteCode" class="input" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="BOEKUNA-…" aria-label="Testcode" style="max-width:260px"><button id="testerInviteActivate" type="button" class="btn" onclick="activateTesterCode()">Code activeren</button></div><div id="testerInviteStatus" class="help" role="status" aria-live="polite" style="margin-top:7px"></div></div>`;
+    ?''
+    :`<div class="legal-item" style="margin-top:14px"><strong>Heb je een testcode?</strong><p>Een geldige code geeft 30 dagen toegang tot het ZZP-pakket. Geen kaart en geen automatische betaling.</p><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input id="testerInviteCode" class="input" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="BOEKUNA-…" aria-label="Testcode" style="max-width:260px"><button id="testerInviteActivate" type="button" class="btn" onclick="activateTesterCode()">Code activeren</button></div><div id="testerInviteStatus" class="help" role="status" aria-live="polite" style="margin-top:7px"></div></div>`;
+ const actions=canManageSubscription
+  ?`<button class="btn" onclick="openBillingPortal()">Beheer abonnement</button>`
+  :tester?`<span class="help">Geen kaart gekoppeld. Er start geen automatische betaling.</span>`
+  :paid?`<span class="help">Je toegang is actief. Er is geen Stripe-abonnement om hier te beheren.</span>`:'';
  return `<div class="card" id="billingCard" style="margin-bottom:16px">
    <div class="section-head"><h2>Abonnement</h2><span class="badge ${statusClass}">${esc(badge)}</span></div>
-   <div class="grid grid-2"><div><div class="eyebrow">Documentchecks deze maand</div><div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:7px"><strong style="font-size:26px">${isUnlimited?'Onbeperkt':`${used} / ${limit??0}`}</strong><span class="help">${isUnlimited?`${used} verwerkt deze maand`:`${remaining} over`}</span></div>${isUnlimited?'':`<div class="progress" style="height:7px;margin-top:10px"><span style="width:${pct}%"></span></div>`}${period&&!tester?`<div class="help" style="margin-top:9px">${esc(period)}</div>`:''}</div>
+   <div class="grid grid-2"><div><div class="eyebrow">Documenten deze maand</div><div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:7px"><strong style="font-size:26px">${noLimit?`${used}`:`${used} / ${limit??0}`}</strong><span class="help">${noLimit?'Geen maandlimiet':`${remaining} over`}</span></div>${noLimit?'':`<div class="progress" style="height:7px;margin-top:10px"><span style="width:${pct}%"></span></div>`}${factList}</div>
    <div style="display:flex;gap:8px;align-items:flex-start;justify-content:flex-end;flex-wrap:wrap">
-     ${canManageSubscription?`<button class="btn" onclick="openBillingPortal()">Beheer abonnement</button>`:tester?`<span class="help">Geen kaart gekoppeld. Er start geen automatische betaling.</span>`:paid?`<span class="help">Je toegang is actief. Er is geen Stripe-abonnement om hier te beheren.</span>`:`<button class="btn primary" onclick="startSubscription('boekuna')">Boekuna · €9,95</button><button class="btn" onclick="startSubscription('pro')">Unlimited · €19,95</button>`}
-     <a class="btn" href="/prijzen/" target="_blank" rel="noopener">Prijzen</a>
+     ${actions}
+     ${isNativeStoreShell()?'':`<a class="btn" href="https://boekuna.nl/prijzen/" target="_blank" rel="noopener">Prijzen</a>`}
    </div></div>
+   ${canManageSubscription?`<p class="help" style="margin-top:10px">Via Beheer abonnement wissel je van pakket of betaalperiode of zeg je op. Een upgrade gaat direct in; je betaalt dan alleen het verschil voor de rest van je periode. Een downgrade of overstap van jaar naar maand gaat in na je betaalde periode.</p>`:''}
+   ${!paid?renderPlanChooser():''}
    ${invite}
-   ${b.cancel_at_period_end?`<div class="notice warn" style="margin-top:14px"><strong>Opzegging gepland.</strong> Je betaalde toegang loopt door tot het einde van de huidige betaalperiode. Daarna valt je account terug op het Gratis-plan.</div>`:''}
+   ${b.cancel_at_period_end?`<div class="notice warn" style="margin-top:14px"><strong>Opzegging gepland.</strong> Je betaalde toegang loopt door tot ${b.current_period_end?billingDate(b.current_period_end):'het einde van de betaalde periode'}. Daarna ga je terug naar Start. Je gegevens blijven bewaard.</div>`:''}
+   ${status==='past_due'||status==='unpaid'?`<div class="notice warn" style="margin-top:14px"><strong>Betaling is niet gelukt.</strong> Werk je betaalgegevens bij via Beheer abonnement. Je gegevens blijven bewaard.</div>`:''}
  </div>`
 }
 async function refreshBillingCard(force=false){
  try{await loadBillingSummary(force);const el=document.getElementById('billingCard');if(el)el.outerHTML=renderBillingCard()}catch(err){console.warn('Billing summary',err);const el=document.getElementById('billingCard');if(el)el.innerHTML='<div class="section-head"><div><h2>Abonnement</h2><p>Status kon niet worden geladen.</p></div></div><button class="btn small" onclick="refreshBillingCard(true)">Opnieuw proberen</button>'}
 }
-async function startSubscription(plan){
- if(billingBusy)return;
- if(!['boekuna','pro'].includes(plan))return;
+function startSubscription(plan,interval='year'){
+ plan=canonicalBillingPlan(plan);interval=interval==='month'?'month':'year';
+ if(billingBusy||!BOEKUNA_PRICING.plans[plan])return;
+ if(isNativeStoreShell()){toast('Je beheert je abonnement op boekuna.nl.');return}
  if(window.BoekunaDeveloperMode?.isActive(currentUser?.id)){toast('Developer Mode gebruikt geen Stripe Checkout.');return}
- if(!currentUser){location.href='/?login=1&plan='+encodeURIComponent(plan);return}
+ if(!BOEKUNA_PRICING.sellable.includes(plan)){toast(`${billingPlanLabel(plan)} is binnenkort beschikbaar.`);return}
+ if(!currentUser){rememberPlanIntent(plan,interval);location.href='/?login=1&plan='+encodeURIComponent(plan)+'&interval='+interval;return}
+ const p=BOEKUNA_PRICING.plans[plan],amount=p[interval];
+ const lines=interval==='year'
+  ?[`Je betaalt ${euroCents(amount)} excl. btw vooruit voor 12 maanden toegang.`,`Na 12 maanden verlengt je abonnement automatisch met een jaar, tenzij je vóór de verlengdatum opzegt.`]
+  :[`Je betaalt ${euroCents(amount)} excl. btw per maand.`,`Je abonnement verlengt elke maand automatisch, tenzij je vóór de verlengdatum opzegt.`];
+ lines.push('De btw wordt in de betaalpagina van Stripe berekend.','Opzeggen kan altijd via Abonnement; je houdt toegang tot het einde van de betaalde periode. Een lopende periode wordt niet terugbetaald.');
+ modal(`${esc(p.name)} ${interval==='year'?'jaarlijks':'maandelijks'}`,`<div class="legal-item" style="margin:0"><strong style="font-size:20px">${euroCents(amount)} <span class="help">per ${interval==='year'?'jaar':'maand'}, excl. btw</span></strong><ul style="margin:10px 0 0;padding-left:18px">${lines.map(l=>`<li>${esc(l)}</li>`).join('')}</ul></div>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" id="confirmCheckout" onclick="confirmSubscriptionCheckout('${plan}','${interval}')">Naar betalen</button>`)
+}
+async function confirmSubscriptionCheckout(plan,interval){
+ if(billingBusy)return;
  billingBusy=true;
+ const btn=document.getElementById('confirmCheckout');if(btn){btn.disabled=true;btn.textContent='Betaalpagina openen…'}
  try{
-  toast('Veilige Stripe Checkout openen…');
-  const res=await fetchWithAuthRetry(EDGE_BASE+'/billing-checkout',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({plan})});
+  const res=await fetchWithAuthRetry(EDGE_BASE+'/billing-checkout',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({plan,interval})});
   const body=await res.json().catch(()=>({}));
   if(!res.ok)throw new Error(body?.error||'Checkout kon niet worden gestart.');
   if(!body?.url)throw new Error('Stripe Checkout gaf geen betaalpagina terug.');
   location.href=body.url
- }catch(err){console.error('Billing checkout',err);toast(err?.message||'Checkout kon niet worden gestart.')}
+ }catch(err){console.error('Billing checkout',err);toast(err?.message||'Checkout kon niet worden gestart.');if(btn?.isConnected){btn.disabled=false;btn.textContent='Naar betalen'}}
  finally{billingBusy=false}
 }
 async function openBillingPortal(){
@@ -2665,11 +2735,13 @@ async function handleBillingReturnAndPlan(){
   }
   if(page==='settings')render()
  }
- if(plan&&['boekuna','pro'].includes(plan)){
-  u.searchParams.delete('plan');
+ const intent=takePlanIntent();
+ if(plan||u.searchParams.has('interval')){
+  u.searchParams.delete('plan');u.searchParams.delete('interval');
   history.replaceState({},'',u.pathname+(u.search?'?'+u.searchParams.toString():'')+u.hash);
-  await startSubscription(plan)
  }
+ // A plan chosen on the website opens a confirmation first; nothing is charged without the user's click in Stripe.
+ if(intent){await loadBillingSummary().catch(()=>null);if(!hasBoekunaSmartLayer())startSubscription(intent.plan,intent.interval)}
 }
 async function checkFallbackBillingAllowance(){
  if(TEST_MODE_NO_AUTH)return null;
@@ -6504,7 +6576,7 @@ const UPLOAD_ERROR_CODES={
  DOCUMENT_UNSUPPORTED_TYPE:['Bestandstype niet ondersteund','Dit bestandstype hoort niet bij de ondersteunde documentformaten.','Gebruik een ondersteund documenttype en probeer opnieuw.'],
  DOCUMENT_TOO_LARGE:['Bestand te groot','Het document is groter dan de toegestane uploadgrootte.','Verklein of comprimeer het bestand en probeer opnieuw.'],
  AUTH_SESSION_EXPIRED:['Sessie verlopen','Je inlogsessie is niet meer geldig.','Log opnieuw in en start de upload opnieuw.'],
- DOCUMENT_LIMIT_REACHED:['Documentlimiet bereikt','Je maandelijkse aantal slimme documentverwerkingen is opgebruikt.','Ga naar Instellingen → Abonnement om je limiet te bekijken of wacht tot de nieuwe maandperiode.'],
+ DOCUMENT_LIMIT_REACHED:['Documentlimiet bereikt','De 10 slimme documentverwerkingen van Start zijn deze maand opgebruikt.','Met ZZP worden je documenten uitgelezen zonder maandlimiet. Kies ZZP in Instellingen → Abonnement, of wacht tot de nieuwe maand.'],
  ACCOUNT_READ_ONLY:['Account is read-only','Je account kan momenteel geen nieuwe boekhoudkundige wijzigingen uitvoeren.','Open je abonnementsstatus om je toegang te herstellen.'],
  RATE_LIMITED:['Te veel aanvragen','Er zijn te veel verwerkingen kort na elkaar gestart.','Wacht even en probeer daarna opnieuw.'],
  PROCESSING_TIMEOUT:['Verwerking duurde te lang','De documentverwerking heeft de maximale verwerkingstijd bereikt.','Probeer opnieuw. Een kleiner bestand of scherpere scan kan helpen.'],

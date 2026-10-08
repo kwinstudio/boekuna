@@ -1,0 +1,53 @@
+{
+  "_about": "Boekuna Pricing V2: prices and approved marketing copy for e-mail (Klaviyo) and other channels. Not a source of truth for subscription status: Stripe and the server-side entitlements are. Nothing is sent from here. Amounts must equal supabase/functions/_shared/pricing.mjs (checked by tests/pricing-v2-website.test.mjs).",
+  "version": "2026-10-08",
+  "currency": "EUR",
+  "vat": "Alle bedragen exclusief btw.",
+  "plans": {
+    "start": { "name": "Start", "monthly": "€ 0", "yearly": "€ 0", "sellable": true, "positioning": "Beginnen met factureren." },
+    "zzp": { "name": "ZZP", "monthly": "€ 9,95", "yearly": "€ 99,50", "yearlySaving": "€ 19,90", "yearlyPerMonth": "€ 8,29", "sellable": true, "positioning": "Volledige basisboekhouding voor zelfstandigen." },
+    "pro": { "name": "Pro", "monthly": "€ 19,95", "yearly": "€ 199,50", "yearlySaving": "€ 39,90", "yearlyPerMonth": "€ 16,63", "sellable": false, "positioning": "Meer boekhouding automatiseren." },
+    "business": { "name": "Business", "monthly": "€ 34,95", "yearly": "€ 349,50", "yearlySaving": "€ 69,90", "yearlyPerMonth": "€ 29,13", "sellable": false, "positioning": "Administratie voor groeiende ondernemingen." }
+  },
+  "rules": [
+    "Gebruik alleen pakketten met sellable=true in een aanbod. Pro en Business alleen als 'binnenkort'.",
+    "Noem altijd het werkelijke jaarbedrag; het gemiddelde per maand alleen als tweede regel.",
+    "Gebruik het woord 'onbeperkt' niet. Zeg: geen scancredits en geen vaste maandlimiet.",
+    "Geen 'meest gekozen', geen verzonnen reviews, kortingen, deadlines of urgentie.",
+    "Geen trials, Early Access of First-100: die bestaan niet.",
+    "Alleen opt-in ontvangers. Gebruik betaalstatus alleen grof (Start of betaald), nooit bedragen of betaalproblemen in segmentnamen of tekst."
+  ],
+  "copy": {
+    "introductie": {
+      "subject": "Nieuwe, eenvoudige prijzen voor Boekuna",
+      "preheader": "Je betaalt voor functies, niet voor het aantal bonnetjes.",
+      "body": "Boekuna heeft nu duidelijke pakketten. Start is gratis en bedoeld om te factureren. Met ZZP heb je je volledige basisboekhouding: inkomsten en uitgaven, bonnetjes uitlezen, btw-overzicht, bankimport en winst en kosten. ZZP kost € 9,95 per maand of € 99,50 per jaar, exclusief btw. Er zijn geen scancredits: je hoeft geen duurder pakket te kiezen omdat je meer bonnetjes hebt.",
+      "cta": "Bekijk de prijzen"
+    },
+    "jaarabonnement": {
+      "subject": "Zo werkt het jaarabonnement",
+      "body": "Bij een jaarabonnement betaal je vooruit voor 12 maanden. Voor ZZP is dat € 99,50 exclusief btw, gemiddeld ongeveer € 8,29 per maand. Na 12 maanden verlengt het abonnement automatisch met een jaar, tenzij je vóór de verlengdatum opzegt. Opzeggen gaat in aan het einde van de betaalde periode; een lopende periode wordt niet terugbetaald.",
+      "cta": "Kies ZZP jaarlijks"
+    },
+    "twee_maanden_gratis": {
+      "subject": "Jaarlijks betalen: 2 maanden gratis",
+      "body": "Een jaar ZZP kost € 99,50 exclusief btw. Dat is tien keer het maandbedrag voor twaalf maanden toegang. Je bespaart € 19,90 ten opzichte van twaalf keer € 9,95.",
+      "cta": "Bekijk jaarlijks betalen"
+    },
+    "upgrade_zzp_naar_pro": {
+      "status": "niet gebruiken tot Pro verkoopbaar is",
+      "subject": "Meer automatiseren met Pro",
+      "body": "Pro voegt automatisering toe aan ZZP, zoals terugkerende facturen en automatische betalingsherinneringen. Pro kost € 19,95 per maand of € 199,50 per jaar, exclusief btw. Een upgrade gaat direct in; je betaalt alleen het verschil voor de rest van je periode.",
+      "cta": "Bekijk Pro"
+    },
+    "maand_vs_jaar": {
+      "subject": "Maandelijks of jaarlijks?",
+      "body": "Maandelijks: € 9,95 per maand, elke maand opzegbaar tegen het einde van die maand. Jaarlijks: € 99,50 per jaar vooruit, dat is 2 maanden gratis. Beide exclusief btw, met precies dezelfde functies.",
+      "cta": "Vergelijk maand en jaar"
+    }
+  },
+  "segments": {
+    "start_users_opted_in": "Start-gebruikers met marketing-opt-in. Doel: introductie, jaarabonnement.",
+    "zzp_monthly_opted_in": "ZZP maandbetalers met opt-in. Doel: maand versus jaar. Alleen na Stripe/Boekuna-sync, niet op basis van Klaviyo-data."
+  }
+}

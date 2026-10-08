@@ -2,11 +2,19 @@
 
 This repository contains the subscription code. Never commit Stripe secret keys.
 
-## Web plans
+## Web plans (Pricing V2, see docs/billing/pricing-v2.md)
 
-- Gratis: €0/month, 10 smart document analyses/month.
-- Boekuna: €9.95/month excl. VAT, 100 smart document analyses/month.
-- Unlimited: €19.95/month excl. VAT, no monthly smart-document quota.
+All prices excl. VAT. Yearly is paid up front for 12 months and costs exactly 10x the monthly price.
+
+- Start: €0, no Stripe subscription.
+- ZZP: €9.95/month or €99.50/year. Sellable.
+- Pro: €19.95/month or €199.50/year. Modelled, not sellable yet (feature flag `BILLING_SELLABLE_PLANS`).
+- Business: €34.95/month or €349.50/year. Modelled, not sellable yet.
+
+Paid plans have no monthly smart-document quota. Start keeps 10 per month.
+Pre-V2 subscriptions ("Boekuna" €9.95 and "Unlimited" €19.95 per month) are read as ZZP and Pro; they are never re-priced automatically.
+
+Stripe prices: one Product per paid plan with a monthly and a yearly recurring price, found by lookup key `boekuna_<plan>_<month|year>_v2`. Create them with `scripts/stripe-pricing-v2-setup.mjs` (test mode first). Checkout refuses a price whose amount, currency, interval or tax behaviour differs from the server config.
 
 ## No introductory First-100 offer
 
@@ -18,6 +26,8 @@ Set securely in the Supabase project environment:
 
 - STRIPE_SECRET_KEY — Stripe **live** secret key for production.
 - APP_URL — optional; defaults to https://app.boekuna.nl
+- BILLING_SELLABLE_PLANS — optional; defaults to `zzp`. Comma list of plans Checkout may sell.
+- STRIPE_PORTAL_CONFIGURATION_ID — optional `bpc_...` from the setup script; enables Pricing V2 plan/interval switching in the Customer Portal.
 
 Do not put either value in frontend code or Git.
 
@@ -42,7 +52,7 @@ The webhook retrieves each incoming event from Stripe by event ID using the acco
 
 ## Customer Portal
 
-Activate/configure Stripe Customer Portal for the production account so customers can update billing/payment details and cancel subscriptions. The app creates authenticated portal sessions through the `billing-portal` Edge Function.
+Activate/configure Stripe Customer Portal for the production account so customers can update billing/payment details, switch plan or billing period and cancel subscriptions. The app creates authenticated portal sessions through the `billing-portal` Edge Function. Upgrades apply at once with proration; downgrades and year-to-month apply at the end of the paid period; cancellation is at period end without refund of the running period.
 
 ## Tax
 
@@ -55,7 +65,7 @@ Configuration-only checks may create a Checkout Session but must **not** complet
 Before public launch, perform one controlled live paid lifecycle with an explicitly authorized real payment method:
 
 1. Login with a dedicated QA account that is not an internal/demo grant.
-2. Start Boekuna Checkout and confirm the hosted Checkout shows the expected plan and VAT behavior.
+2. Start ZZP Checkout (monthly and yearly) and confirm the hosted Checkout shows the expected plan, amount, interval, renewal text and VAT behavior.
 3. Complete the live payment only with explicit human authorization.
 4. Confirm `checkout.session.completed` and subscription events are processed.
 5. Confirm `billing_accounts` contains the Stripe customer/subscription, correct plan, active status and period end.
