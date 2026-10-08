@@ -4,7 +4,7 @@ This repository contains the subscription code. Never commit Stripe secret keys.
 
 ## Web plans (Pricing V2, see docs/billing/pricing-v2.md)
 
-All prices excl. VAT. Yearly is paid up front for 12 months and costs exactly 10x the monthly price.
+All prices incl. 21% VAT (since 2026-10-08). Yearly is paid up front for 12 months and costs exactly 10x the monthly price.
 
 - Start: €0, no Stripe subscription.
 - ZZP: €9.95/month or €99.50/year. Sellable.
@@ -56,7 +56,9 @@ Activate/configure Stripe Customer Portal for the production account so customer
 
 ## Tax
 
-Web prices are presented excluding VAT. Checkout uses `tax_behavior=exclusive`, tax ID collection and Stripe automatic tax. Before enabling live sales, verify the correct Stripe Tax registrations/settings for the legal seller.
+Web prices are presented including VAT. Prices and Checkout use `tax_behavior=inclusive`, tax ID collection and Stripe automatic tax, so Stripe splits the VAT out of the price on the invoice. Stripe Tax must have the Netherlands registration for the legal seller; without it Stripe charges no VAT at all.
+
+Switching existing excl. VAT v2 prices: run `scripts/stripe-pricing-v2-setup.mjs --apply` (plus `--live` for live) with `STRIPE_PORTAL_CONFIGURATION_ID` set. It creates incl. VAT prices that take over the lookup keys, archives the old prices and updates that portal configuration in place.
 
 ## Release smoke test
 

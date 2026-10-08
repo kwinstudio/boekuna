@@ -95,7 +95,7 @@ try{
     await page.locator('#billingCard').getByRole('button',{name:'Kies ZZP'}).click();
     const dialog=page.getByRole('dialog');
     await dialog.waitFor();
-    for(const text of ['€ 99,50 excl. btw vooruit voor 12 maanden','verlengt je abonnement automatisch met een jaar','btw wordt in de betaalpagina','niet terugbetaald'])
+    for(const text of ['€ 99,50 incl. btw vooruit voor 12 maanden','verlengt je abonnement automatisch met een jaar','btw zit in dit bedrag','niet terugbetaald'])
       assert.ok(await dialog.getByText(text,{exact:false}).isVisible(),'confirmation must say: '+text);
     assert.deepEqual(await page.evaluate(()=>window.__checkout),[],'nothing is requested before confirming');
     await dialog.getByRole('button',{name:'Naar betalen'}).dblclick();
@@ -111,7 +111,7 @@ try{
     await showSnapshot(page,{plan:'zzp',status:'active',entitlement_status:'paid',monthly_limit:null,used:240,remaining:null,access_source:'stripe',can_manage_subscription:true,current_period_end:'2027-10-08T10:00:00Z',cancel_at_period_end:false,
       details:{plan:'zzp',billing_interval:'year',unit_amount_cents:9950,status:'active'}});
     const paid=page.locator('#billingCard');
-    for(const text of ['ZZP · Actief','Jaarlijks','€ 99,50 per jaar excl. btw','Volgende verlenging','8 oktober 2027','Geen maandlimiet'])
+    for(const text of ['ZZP · Actief','Jaarlijks','€ 99,50 per jaar incl. btw','Volgende verlenging','8 oktober 2027','Geen maandlimiet'])
       assert.ok(await paid.getByText(text,{exact:false}).first().isVisible(),'paid card must show '+text);
     assert.ok(await paid.getByRole('button',{name:'Beheer abonnement'}).isVisible());
     assert.equal(await paid.getByText(/240 \//).count(),0,'a paid plan shows no quota fraction');
@@ -139,7 +139,7 @@ try{
     await page.evaluate(()=>handleBillingReturnAndPlan());
     const dialog=page.getByRole('dialog');
     await dialog.waitFor();
-    assert.ok(await dialog.getByText('€ 9,95 excl. btw per maand',{exact:false}).isVisible());
+    assert.ok(await dialog.getByText('€ 9,95 incl. btw per maand',{exact:false}).isVisible());
     assert.ok(!page.url().includes('plan='),'plan parameter is removed from the address bar');
     await page.close();
   }

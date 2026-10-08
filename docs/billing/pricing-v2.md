@@ -3,7 +3,9 @@
 Status: 8 oktober 2026. Geïmplementeerd in deze PR, nog niet in productie.
 Bron van waarheid voor bedragen: `supabase/functions/_shared/pricing.mjs`.
 
-## 1. Pakketten en prijzen (excl. btw)
+## 1. Pakketten en prijzen (incl. btw)
+
+Sinds 8 oktober 2026 zijn alle bedragen inclusief 21% btw (besluit Kwin). Stripe-prijzen hebben `tax_behavior=inclusive`; Stripe Tax haalt de btw uit het bedrag op de factuur. Daarvoor moet in Stripe Tax de registratie voor Nederland aan staan.
 
 | Pakket | Per maand | Per jaar (vooruit) | Besparing | Gemiddeld p/m bij jaar | Verkoopbaar |
 |---|---:|---:|---:|---:|---|
@@ -69,8 +71,8 @@ Deploy-volgorde maakt niet uit: nieuwe Edge Functions vallen terug op de oude sc
 ## 5. Stripe
 
 - Officiële recurring prices via lookup key `boekuna_<plan>_<month|year>_v2`, één Product per pakket. Het setup-script maakt de vier prijzen van ZZP en Pro (maand en jaar); Business krijgt geen Stripe-product zolang het verborgen is. Aanmaken: `scripts/stripe-pricing-v2-setup.mjs` (eerst dry run, dan `--apply` met test-key; live alleen met `--apply --live` na go).
-- Checkout controleert bij elke sessie dat de gevonden prijs exact klopt (bedrag, EUR, interval, excl. btw). Klopt het niet: weigeren (`PRICE_MISMATCH`), niets afgeschreven. Bestaat de prijs nog niet: inline recurring price met dezelfde serverbedragen (huidig gedrag).
-- Checkout toont pakket, bedrag, periode, btw (Stripe Tax, excl.), verlenging en opzeggen. Eén abonnement per account: database én Stripe worden gecontroleerd.
+- Checkout controleert bij elke sessie dat de gevonden prijs exact klopt (bedrag, EUR, interval). Klopt het bedrag niet: weigeren (`PRICE_MISMATCH`), niets afgeschreven. Bestaat de prijs nog niet, of heeft hij nog de oude btw-instelling (excl.): inline recurring price met dezelfde serverbedragen, incl. btw.
+- Checkout toont pakket, bedrag, periode, btw (Stripe Tax, incl.), verlenging en opzeggen. Eén abonnement per account: database én Stripe worden gecontroleerd.
 - Webhook en sync lezen plan en interval uit de prijs die de klant betaalt (lookup key → prijs-metadata → bedrag → subscription-metadata). Oude prijzen (€ 9,95 en € 19,95 per maand) worden ZZP en Pro.
 
 ### Wisselen en proratie (Customer Portal)
@@ -96,14 +98,14 @@ Ingesteld door het setup-script. Zet daarna `STRIPE_PORTAL_CONFIGURATION_ID` op 
 
 Gemeten: documentaantallen (zie 3). **Niet gemeten**: kosten per document. De processor roept OpenAI aan (`OPENAI_MODEL`), maar tokengebruik wordt niet opgeslagen (`aiUsage` gaat alleen terug naar de app). Er zijn dus geen echte kosten per document; we verzinnen ze niet.
 
-Wat wel vaststaat is de maximale kostprijs per document waarbij een klant nog winstgevend is. Netto-opbrengst ZZP maand ≈ € 9,95 minus Stripe-kosten (EU-kaart standaard 1,5 % + € 0,25 over € 12,04 incl. btw ≈ € 0,43; controleer het tarief in het Stripe-dashboard) ≈ € 9,52. Jaar: (€ 99,50 minus ≈ € 2,06 Stripe-kosten over € 120,40) / 12 ≈ € 8,12 per maand. Pro maand: € 19,95 minus ≈ € 0,61 ≈ € 19,34.
+Wat wel vaststaat is de maximale kostprijs per document waarbij een klant nog winstgevend is. Netto-opbrengst ZZP maand ≈ € 9,95 / 1,21 = € 8,22 excl. btw, minus Stripe-kosten (EU-kaart standaard 1,5 % + € 0,25 over € 9,95 ≈ € 0,40; controleer het tarief in het Stripe-dashboard) ≈ € 7,82. Jaar: (€ 82,23 minus ≈ € 1,74 Stripe-kosten) / 12 ≈ € 6,71 per maand. Pro maand: € 16,49 minus ≈ € 0,55 ≈ € 15,94.
 
 | Documenten per maand | Max. kosten per document (ZZP maand) | (ZZP jaar) | (Pro maand, € 19,95) |
 |---:|---:|---:|---:|
-| 50 | € 0,190 | € 0,162 | € 0,387 |
-| 200 | € 0,048 | € 0,041 | € 0,097 |
-| 500 | € 0,019 | € 0,016 | € 0,039 |
-| 1.000 | € 0,0095 | € 0,0081 | € 0,0193 |
+| 50 | € 0,156 | € 0,134 | € 0,319 |
+| 200 | € 0,039 | € 0,034 | € 0,080 |
+| 500 | € 0,016 | € 0,013 | € 0,032 |
+| 1.000 | € 0,0078 | € 0,0067 | € 0,0159 |
 
 Vaste kosten (Render, Supabase) komen hier nog af. Besluit: de onbeperkt-claim blijft **niet vrijgegeven** tot de kosten per document gemeten zijn. Nodig: `aiUsage` (input/output tokens) per document opslaan in de processor (`kwinest/docprocessor/app.py`, deploy via `kwinest-hosting`) en 2–4 weken meten.
 
