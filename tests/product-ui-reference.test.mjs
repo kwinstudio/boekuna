@@ -70,7 +70,7 @@ assert.ok(source.includes("'1300':'Nog te ontvangen van klanten'"),'Ledger prese
 assert.ok(source.includes("'1600':'Nog te betalen aan leveranciers'"),'Ledger presentation map must expose the supplier payables label in plain language');
 assert.ok(source.includes('<strong>Factuur</strong></button>'),'Quick-create invoice action must avoid the Verkoopfactuur jargon label');
 assert.ok(source.includes("openUploadSourcePicker('purchase')"),'Bon toevoegen must preserve the existing native upload path');
-assert.ok(source.includes('prepareEmailHandoffFromComposer'),'Invoice email handoff must remain present');
+assert.ok(source.includes('sendEmailHandoff'),'Invoice email handoff must remain present');
 assert.equal(/accounts\.google\.com|Sign in with Google|Doorgaan met Google/.test(source),false,'Google account login must stay off');
 assert.ok(source.includes('function dashboardPeriodRange('),'Dashboard period helper missing');
 assert.ok(source.includes('function setDashboardPeriod('),'Dashboard period switch missing');

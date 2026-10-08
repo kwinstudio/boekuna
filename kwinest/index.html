@@ -7483,13 +7483,14 @@ window.addEventListener('pageshow',e=>{if(e.persisted)void checkForNewAppBuild()
   function emailSenderName(){return String((state.company&&state.company.contactName)||companyDisplayName()).trim()}
   function emailDate(value){var raw=String(value||'').trim();if(!raw)return '';var date=new Date(raw+'T12:00:00');if(Number.isNaN(date.getTime()))return dateNL(raw);try{return new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'long',year:'numeric'}).format(date)}catch(_err){return dateNL(raw)}}
   function joinEmailSections(sections){return cleanBody((sections||[]).map(function(section){if(Array.isArray(section))section=section.filter(Boolean).join('\n');return String(section==null?'':section).trim()}).filter(Boolean).join('\n\n'))}
-  function emailSignatureBlock(){var lines=[],sender=emailSenderName();if(sender)lines.push(sender);if(state.company&&state.company.email)lines.push(String(state.company.email).trim());if(state.company&&state.company.phone)lines.push(String(state.company.phone).trim());return lines.filter(Boolean).join('\n')}
+  function emailSignatureBlock(){var lines=[],sender=emailSenderName(),company=companyDisplayName();if(sender)lines.push(sender);if(company&&company!==sender)lines.push(company);if(state.company&&state.company.email)lines.push(String(state.company.email).trim());if(state.company&&state.company.phone)lines.push(String(state.company.phone).trim());return lines.filter(Boolean).join('\n')}
   function configuredInvoiceBody(invoice,customer){
     var configured=state.company&&state.company.emailTemplate&&state.company.emailTemplate.bodyInvoice;
     if(configured&&configured!==DEFAULT_EMAIL_TEMPLATE.bodyInvoice)return cleanBody(defaultInvoiceEmailMessage(invoice,customer));
-    var summary=['Factuurdatum: '+emailDate(invoice.issueDate),'Vervaldatum: '+emailDate(invoice.dueDate),'Bedrag: '+money(invoiceGross(invoice))],payment='';
-    if(state.company&&state.company.iban){payment='U kunt het bedrag overmaken naar '+String(state.company.iban).trim();if(invoice.paymentReference||invoice.number)payment+=' onder vermelding van '+String(invoice.paymentReference||invoice.number);payment+='.'}
-    return joinEmailSections([contactGreeting(customer),'Hierbij ontvangt u factuur '+String(invoice.number||'')+' voor '+money(invoiceGross(invoice))+'.',summary,payment,'Heeft u vragen over de factuur? Neem dan gerust contact met ons op.',['Met vriendelijke groet,',emailSignatureBlock()]])
+    var number=String(invoice.number||'');
+    var summary=['Factuurnummer: '+number,'Bedrag: '+money(invoiceGross(invoice)),'Factuurdatum: '+emailDate(invoice.issueDate),'Vervaldatum: '+emailDate(invoice.dueDate)],payment='';
+    if(state.company&&state.company.iban){var holder=String(state.company.name||companyDisplayName()||'').trim();payment='Wilt u het bedrag'+(invoice.dueDate?' uiterlijk '+emailDate(invoice.dueDate):'')+' overmaken naar '+String(state.company.iban).trim()+(holder?' t.n.v. '+holder:'')+(invoice.paymentReference||number?', onder vermelding van '+String(invoice.paymentReference||number):'')+'?'}
+    return joinEmailSections([contactGreeting(customer),'Hierbij ontvangt u factuur '+number+'. De factuur vindt u als PDF in de bijlage.',summary,payment,'Heeft u vragen over deze factuur? Neem dan gerust contact met ons op.',['Met vriendelijke groet,',emailSignatureBlock()]])
   }
   function invoiceSubject(invoice,customer){
     var template={...DEFAULT_EMAIL_TEMPLATE,...(state.company&&state.company.emailTemplate||{})};
@@ -7530,6 +7531,84 @@ window.addEventListener('pageshow',e=>{if(e.persisted)void checkForNewAppBuild()
     modal(title,'<div class="notice warn"><strong>Controleer eerst de ontbrekende gegevens.</strong></div><div class="legal-list" style="margin-top:12px">'+rows+'</div>',footer,true);
   }
 
+  // One send screen: address, the e-mail itself and the PDF. The PDF is made
+  // while the screen is open, so the single send tap can open the phone's share
+  // sheet directly (iOS and Android only allow that inside the tap itself).
+  var pdfLoadToken=0;
+  function handoffIsMobileShare(){
+    return !!(handoff&&handoff.file&&likelyMobile()&&typeof window.canNativeShareInvoiceFile==='function'&&window.canNativeShareInvoiceFile(handoff.file));
+  }
+  function sendButtonHtml(){
+    if(!handoff||!handoff.file)return '<button class="btn primary" id="emailHandoffSend" type="button" disabled>PDF wordt klaargemaakt…</button>';
+    return '<button class="btn primary" id="emailHandoffSend" type="button" onclick="sendEmailHandoff()">'+(likelyMobile()?'Open mail-app':'Open e-mail')+'</button>';
+  }
+  function pdfStatusHtml(){
+    if(!handoff)return '';
+    var invoice=state.invoices.find(function(item){return item.id===handoff.invoiceId;}),customer=getContact(handoff.customerId);
+    var name=handoff.file?handoff.file.name:(invoice&&typeof window.invoiceShareFilename==='function'?window.invoiceShareFilename(invoice,customer):'Factuur.pdf');
+    if(handoff.pdfError){
+      return '<div class="email-send-pdf is-error" role="alert"><span class="email-send-pdf-text"><strong>PDF maken lukte niet</strong><small>'+esc(handoff.pdfError)+'</small></span><button class="btn small" type="button" onclick="retryEmailHandoffPdf()">Opnieuw</button></div>';
+    }
+    return '<div class="email-send-pdf'+(handoff.file?' is-ready':'')+'" aria-live="polite"><span class="email-send-pdf-icon" aria-hidden="true">PDF</span><span class="email-send-pdf-text"><strong>'+esc(name)+'</strong><small>'+(handoff.file?'Gaat mee als bijlage':'Wordt klaargemaakt…')+'</small></span></div>';
+  }
+  function sendHintHtml(){
+    if(likelyMobile())return '<p class="help email-send-hint">Kies daarna Mail of Gmail. Het e-mailadres van de klant staat gekopieerd: plak het bij Aan als je mail-app het leeg laat.</p>';
+    return '<p class="help email-send-hint">Je e-mailprogramma opent met alles ingevuld. De PDF komt in je Downloads: sleep hem in de mail. <button class="link-btn" type="button" onclick="openEmailHandoffGmail()">Gmail in de browser gebruiken</button></p>';
+  }
+  function updateSendScreen(){
+    var form=document.getElementById('emailHandoffForm');
+    if(!form||!handoff)return;
+    var status=document.getElementById('emailHandoffPdf');
+    if(status)status.innerHTML=pdfStatusHtml();
+    var button=document.getElementById('emailHandoffSend');
+    if(button)button.outerHTML=sendButtonHtml();
+  }
+  function renderSendScreen(){
+    if(!handoff)return;
+    modal(
+      handoffTitle(handoff.mode),
+      '<form id="emailHandoffForm" class="email-send-form" onsubmit="event.preventDefault();sendEmailHandoff()">'+
+        '<div class="field"><label for="emailHandoffTo">Aan</label><input id="emailHandoffTo" name="to" type="email" value="'+esc(handoff.to)+'" required maxlength="240" autocomplete="email"></div>'+
+        '<div class="email-send-letter">'+
+          '<input name="subject" class="email-send-subject" aria-label="Onderwerp" value="'+esc(handoff.subject)+'" required maxlength="240">'+
+          '<textarea name="message" class="email-message email-send-body" aria-label="Bericht" rows="14" maxlength="12000" required>'+esc(handoff.body)+'</textarea>'+
+        '</div>'+
+        '<div id="emailHandoffPdf">'+pdfStatusHtml()+'</div>'+
+        sendHintHtml()+
+      '</form>',
+      '<button class="btn" type="button" onclick="closeModal()">Annuleren</button>'+sendButtonHtml(),
+      true
+    );
+    // Keep the phone keyboard closed: most people only check the mail and tap send.
+    var dialog=document.querySelector('#modalRoot .modal');
+    if(dialog){dialog.setAttribute('tabindex','-1');dialog.focus({preventScroll:true});}
+  }
+  async function loadHandoffPdf(){
+    if(!handoff)return;
+    var current=handoff,token=++pdfLoadToken;
+    current.pdfError='';
+    updateSendScreen();
+    try{
+      var invoice=state.invoices.find(function(item){return item.id===current.invoiceId;});
+      var customer=getContact(current.customerId);
+      if(!invoice||invoice.status==='draft'||(invoice.numberManaged&&!invoice.numberFinalized&&isManagedDraftNumber(invoice.number)))throw new Error('De factuur is nog niet definitief.');
+      invoice=await ensureInvoiceSavedForDelivery(invoice.id);
+      var file=await window.fetchInvoiceSharePdf(invoice,customer);
+      if(handoff!==current||token!==pdfLoadToken)return;
+      current.file=file;
+    }catch(err){
+      if(handoff!==current||token!==pdfLoadToken)return;
+      current.pdfError=err&&err.message?err.message:'De factuur-PDF kon niet worden gemaakt.';
+    }
+    updateSendScreen();
+  }
+  function retryEmailHandoffPdf(){
+    if(!handoff)return;
+    var values=readComposer(true);
+    if(values){handoff.to=values.to;handoff.subject=values.subject;handoff.body=values.body;}
+    return loadHandoffPdf();
+  }
+
   function openComposer(options){
     handoff={
       mode:options.mode,
@@ -7538,111 +7617,79 @@ window.addEventListener('pageshow',e=>{if(e.persisted)void checkForNewAppBuild()
       to:String(options.to||options.customer.email||'').trim(),
       subject:cleanHeader(options.subject,240),
       body:cleanBody(options.body),
-      attachPdf:options.attachPdf!==false,
+      attachPdf:true,
       file:options.file||null,
       fileDownloaded:!!options.fileDownloaded,
+      pdfError:'',
       confirmed:false
     };
-    var attachControl='';
-    if(options.mode!=='invoice'){
-      attachControl='<label style="display:flex;gap:9px;align-items:flex-start"><input type="checkbox" name="attachPdf" '+(handoff.attachPdf?'checked':'')+' style="margin-top:3px"><span><strong>Factuur als PDF toevoegen</strong><span class="help" style="display:block">Op mobiel kan de PDF direct worden gedeeld. Op desktop wordt hij klaargezet om handmatig toe te voegen.</span></span></label>';
-    }
-    modal(
-      handoffTitle(options.mode),
-      '<form id="emailHandoffForm" class="form-grid">'+
-        '<div class="field full"><label>Aan</label><input name="to" type="email" value="'+esc(handoff.to)+'" required maxlength="240"></div>'+
-        '<div class="field full"><label>Onderwerp</label><input name="subject" value="'+esc(handoff.subject)+'" required maxlength="240"></div>'+
-        '<div class="field full email-message-field"><label>Bericht</label><textarea name="message" class="email-message" rows="14" maxlength="12000" required>'+esc(handoff.body)+'</textarea></div>'+
-        (options.mode==='invoice'?'<p class="help full email-attachment-note">De factuur gaat als PDF mee.</p>':'<div class="field full">'+attachControl+'</div>')+
-      '</form>',
-      '<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="prepareEmailHandoffFromComposer()">'+(likelyMobile()&&handoff.attachPdf?'Deel PDF via e-mail':'Verder naar e-mailapp')+'</button>',
-      true
-    );
+    renderSendScreen();
+    if(likelyMobile())copyRecipientQuietly();
+    if(!handoff.file)loadHandoffPdf();
   }
 
-  function readComposer(){
+  function readComposer(quiet){
     var form=document.getElementById('emailHandoffForm');
-    if(!form||!form.reportValidity())return null;
+    if(!form)return null;
+    if(!quiet&&!form.reportValidity())return null;
     var fd=new FormData(form);
     var to=String(fd.get('to')||'').trim();
     var subject=cleanHeader(fd.get('subject'),240);
     var body=cleanBody(fd.get('message'));
+    if(quiet)return {to:to,subject:subject,body:body};
     if(!validEmail(to)){toast('Vul een geldig e-mailadres in.');return null;}
     if(!subject||!body){toast('Onderwerp en bericht zijn verplicht.');return null;}
-    return {
-      to:to,
-      subject:subject,
-      body:body,
-      attachPdf:handoff&&handoff.mode==='invoice'?true:!!(form.elements.attachPdf&&form.elements.attachPdf.checked)
-    };
+    return {to:to,subject:subject,body:body};
   }
 
-  async function prepareEmailHandoffFromComposer(){return prepareEmailHandoff(false)}
-  async function retryEmailHandoffPreparation(){return prepareEmailHandoff(true)}
-  async function prepareEmailHandoff(retry){
+  function takeComposerValues(){
+    if(!handoff)return false;
+    if(document.getElementById('emailHandoffForm')){
+      var values=readComposer(false);
+      if(!values)return false;
+      handoff.to=values.to;handoff.subject=values.subject;handoff.body=values.body;
+    }
+    if(!validEmail(handoff.to)){toast('Vul een geldig e-mailadres in.');return false;}
+    if(!cleanHeader(handoff.subject,240)||!cleanBody(handoff.body)){toast('Onderwerp en bericht zijn verplicht.');return false;}
+    return true;
+  }
+
+  // The one send button. Must stay synchronous up to navigator.share().
+  function sendEmailHandoff(){
     if(!handoff||handoffBusy)return;
-    var values=retry?handoff:readComposer();
-    if(!values)return;
-    handoff.to=values.to;
-    handoff.subject=values.subject;
-    handoff.body=values.body;
-    handoff.attachPdf=values.attachPdf;
-    handoffBusy=true;
-    modal(
-      'E-mail voorbereiden…',
-      '<div aria-busy="true"><div class="notice info"><strong>Factuur controleren en e-mail voorbereiden…</strong><br>'+(handoff.attachPdf?'De definitieve PDF wordt nu klaargezet.':'Daarna kiest u zelf de e-mailapp.')+'</div><div class="processing-progress" style="margin-top:15px"><div class="processing-indeterminate" role="progressbar" aria-label="E-mail wordt voorbereid"></div></div></div>',
-      '<button class="btn primary" disabled>Even geduld…</button>'
-    );
+    if(!takeComposerValues())return;
+    if(!handoff.file){toast('De PDF wordt nog klaargemaakt.');return;}
+    if(handoffIsMobileShare())return shareEmailHandoffPdf();
+    return openEmailHandoffMailApp();
+  }
+
+  function copyRecipientQuietly(){
     try{
-      var invoice=state.invoices.find(function(item){return item.id===handoff.invoiceId;});
-      var customer=getContact(handoff.customerId);
-      if(!invoice||invoice.status==='draft'||(invoice.numberManaged&&!invoice.numberFinalized&&isManagedDraftNumber(invoice.number)))throw new Error('De factuur is nog niet definitief.');
-      invoice=await ensureInvoiceSavedForDelivery(invoice.id);
-      if(handoff.attachPdf&&!handoff.file)handoff.file=await window.fetchInvoiceSharePdf(invoice,customer);
-      if(likelyMobile()&&handoff.file&&typeof window.canNativeShareInvoiceFile==='function'&&window.canNativeShareInvoiceFile(handoff.file)){
-        try{
-          await runNativeEmailShare();
-          return;
-        }catch(shareErr){
-          if(shareErr&&shareErr.name==='AbortError')toast('Delen geannuleerd');
-          else{
-            console.warn('Mobile email attachment share failed',shareErr&&shareErr.name?shareErr.name:'SHARE_FAILED');
-            toast('Het deelmenu kon niet direct openen. Probeer nog één keer via Deel PDF via e-mail.');
-          }
-        }
-      }
-      showDeliveryOptions();
+      if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(handoff.to).catch(function(){});
+    }catch(_err){}
+  }
+
+  async function shareEmailHandoffPdf(){
+    if(!handoff||handoffBusy||!handoff.file)return;
+    if(!window.canNativeShareInvoiceFile(handoff.file))return openEmailHandoffMailApp();
+    var fallback=false;
+    handoffBusy=true;
+    try{
+      await navigator.share({title:handoff.subject,text:handoff.body,files:[handoff.file]});
+      markEmailHandoffSent('native_share');
     }catch(err){
-      modal(
-        'E-mail kon niet worden voorbereid',
-        '<div class="notice warn"><strong>'+esc(err&&err.message?err.message:'De e-mail kon niet worden voorbereid.')+'</strong><br>Er is niets als verzonden gemarkeerd.</div>',
-        '<button class="btn" onclick="reopenEmailHandoffComposer()">Terug</button><button class="btn primary" onclick="retryEmailHandoffPreparation()">Opnieuw proberen</button>'
-      );
+      if(err&&err.name==='AbortError')toast('Niet verstuurd. De factuur staat nog klaar.');
+      else{
+        console.warn('Email handoff share failed',err&&err.name?err.name:'SHARE_FAILED');
+        toast('Delen lukte niet. Je e-mailapp opent, voeg daar de PDF uit Downloads toe.');
+        fallback=true;
+      }
     }finally{
       handoffBusy=false;
     }
+    if(fallback)openEmailHandoffMailApp();
   }
 
-  function deliverySummary(){
-    var attachment=handoff&&handoff.file?'<div class="help" style="margin-top:8px"><strong>PDF:</strong> '+esc(handoff.file.name)+'</div>':'';
-    return '<div class="review-card"><div class="eyebrow">Aan</div><strong>'+esc(handoff.to)+'</strong><div class="eyebrow" style="margin-top:12px">Onderwerp</div><strong>'+esc(handoff.subject)+'</strong><div class="eyebrow" style="margin-top:12px">Bericht</div><div class="help" style="white-space:pre-wrap;max-height:210px;overflow:auto">'+esc(handoff.body)+'</div>'+attachment+'</div>';
-  }
-
-  function showDeliveryOptions(){
-    if(!handoff)return;
-    var nativePossible=!!(handoff.file&&typeof window.canNativeShareInvoiceFile==='function'&&window.canNativeShareInvoiceFile(handoff.file)),mobile=likelyMobile();
-    var buttons='<button class="btn" onclick="reopenEmailHandoffComposer()">Terug aanpassen</button>';
-    if(mobile){if(nativePossible)buttons+='<button class="btn primary" onclick="shareEmailHandoffPdf()">Deel PDF via e-mail</button>';else buttons+='<button class="btn primary" onclick="openEmailHandoffMailApp()">Open e-mail zonder bijlage</button>'}
-    else{buttons+='<button class="btn" onclick="openEmailHandoffGmail()">Gmail in browser</button>';if(nativePossible)buttons+='<button class="btn" onclick="shareEmailHandoffPdf()">PDF delen als bijlage</button>';if(handoff.file)buttons+='<button class="btn primary" onclick="downloadEmailHandoffEml()">Outlook met PDF</button>';buttons+='<button class="btn" onclick="openEmailHandoffMailApp()">Andere e-mailapp</button>'}
-    var note=mobile
-      ?'<div class="notice info" style="margin-bottom:12px"><strong>De factuur-PDF is klaar.</strong><br>'+(nativePossible?'Kies Mail of Gmail in het iPhone-deelmenu. De PDF gaat direct mee als bijlage. De ontvangende app bepaalt zelf of Aan en Onderwerp automatisch worden ingevuld.':'Deze browser kan geen PDF-bestand direct delen. Open de e-mail zonder bijlage en voeg de PDF handmatig toe.')+'</div>'
-      :'<div class="notice info" style="margin-bottom:12px"><strong>De PDF is klaar.</strong><br><strong>Outlook met PDF</strong> maakt een .eml-concept waarin de PDF al is ingebouwd. Gmail in browser en Andere e-mailapp kunnen vanuit een webpagina geen lokale bijlage automatisch overnemen; voeg daar de PDF handmatig toe. '+(nativePossible?'“PDF delen als bijlage” kan de PDF direct meenemen, maar de ontvangende app bepaalt zelf Aan en Onderwerp.':'')+'</div>';
-    modal('Hoe wilt u versturen?',note+deliverySummary()+'<div class="help" style="margin-top:12px">Boekuna krijgt geen toegang tot Gmail, Outlook of uw inbox.</div>',buttons,true)
-  }
-  function reopenEmailHandoffComposer(){
-    if(!handoff)return;var previous=handoff,invoice=state.invoices.find(function(item){return item.id===previous.invoiceId;}),customer=getContact(previous.customerId);if(!invoice||!customer)return;
-    openComposer({mode:previous.mode,invoice:invoice,customer:customer,to:previous.to,subject:previous.subject,body:previous.body,attachPdf:previous.attachPdf,file:previous.file,fileDownloaded:previous.fileDownloaded})
-  }
   function ensureEmailHandoffPdfDownloaded(){if(!handoff||!handoff.file||handoff.fileDownloaded)return false;var downloaded=window.downloadInvoiceShareFile(handoff.file);if(downloaded)handoff.fileDownloaded=true;return downloaded}
   function likelyWindows(){return /Windows/i.test(String(navigator.userAgent||''))}
   function mailtoCompatibilityText(value){
@@ -7653,75 +7700,8 @@ window.addEventListener('pageshow',e=>{if(e.persisted)void checkForNewAppBuild()
       .replace(/·/g,'-')
       .replace(/[“”]/g,'"')
       .replace(/[’‘]/g,"'")
-      .normalize('NFKD').replace(/[\u0300-\u036f]/g,'')
+      .normalize('NFKD').replace(/[̀-ͯ]/g,'')
       .replace(/[^\x09\x0A\x0D\x20-\x7E]/g,'');
-  }
-  function emailHandoffBytesBase64(bytes){
-    var binary='',chunk=0x8000;
-    for(var i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode.apply(null,bytes.subarray(i,Math.min(i+chunk,bytes.length)));
-    return btoa(binary);
-  }
-  function emailHandoffUtf8Base64(value){return emailHandoffBytesBase64(new TextEncoder().encode(String(value==null?'':value)))}
-  function emailHandoffWrapBase64(value){return String(value||'').match(/.{1,76}/g)?.join('\r\n')||''}
-  function emailHandoffEncodedHeader(value){return '=?UTF-8?B?'+emailHandoffUtf8Base64(cleanHeader(value,240))+'?='}
-  function emailHandoffEmlFilename(){
-    var base=handoff&&handoff.file?String(handoff.file.name||'Factuur.pdf').replace(/\.pdf$/i,''):'Factuur';
-    base=base.replace(/[^a-zA-Z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,150)||'Factuur';
-    return base+'-Outlook.eml';
-  }
-  async function buildEmailHandoffEmlFile(){
-    if(!handoff||!handoff.file)throw new Error('Geen factuur-PDF voorbereid.');
-    if(!validEmail(handoff.to))throw new Error('Ongeldig e-mailadres.');
-    var pdfBytes=new Uint8Array(await handoff.file.arrayBuffer());
-    if(pdfBytes.length<5||pdfBytes[0]!==0x25||pdfBytes[1]!==0x50||pdfBytes[2]!==0x44||pdfBytes[3]!==0x46)throw new Error('De factuur-PDF is ongeldig.');
-    var boundary='----=_Boekuna_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,10);
-    var attachmentName=String(handoff.file.name||'Factuur.pdf').replace(/[^a-zA-Z0-9._-]+/g,'-').slice(0,180)||'Factuur.pdf';
-    var messageId='<boekuna-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10)+'@local>';
-    var eml=[
-      'X-Unsent: 1',
-      'Date: '+new Date().toUTCString(),
-      'Message-ID: '+messageId,
-      'To: '+String(handoff.to).trim(),
-      'Subject: '+emailHandoffEncodedHeader(handoff.subject),
-      'MIME-Version: 1.0',
-      'Content-Type: multipart/mixed; boundary="'+boundary+'"',
-      '',
-      '--'+boundary,
-      'Content-Type: text/plain; charset="UTF-8"',
-      'Content-Transfer-Encoding: base64',
-      '',
-      emailHandoffWrapBase64(emailHandoffUtf8Base64(handoff.body)),
-      '',
-      '--'+boundary,
-      'Content-Type: application/pdf; name="'+attachmentName+'"',
-      'Content-Transfer-Encoding: base64',
-      'Content-Disposition: attachment; filename="'+attachmentName+'"',
-      '',
-      emailHandoffWrapBase64(emailHandoffBytesBase64(pdfBytes)),
-      '',
-      '--'+boundary+'--',
-      ''
-    ].join('\r\n');
-    return new File([eml],emailHandoffEmlFilename(),{type:'message/rfc822'});
-  }
-  async function downloadEmailHandoffEml(){
-    if(!handoff||handoffBusy||!handoff.file)return;
-    handoffBusy=true;
-    try{
-      var eml=await buildEmailHandoffEmlFile();
-      var url=URL.createObjectURL(eml),anchor=document.createElement('a');
-      try{
-        anchor.href=url;anchor.download=eml.name;anchor.rel='noopener';anchor.style.display='none';
-        document.body.appendChild(anchor);anchor.click();anchor.remove();
-      }finally{setTimeout(function(){URL.revokeObjectURL(url)},1500)}
-      recordStart('eml_draft');
-      modal(
-        'Outlook-concept met PDF is klaar',
-        '<div class="notice info"><strong>Open '+esc(eml.name)+' vanuit Downloads.</strong><br>Outlook opent het concept met ontvanger, onderwerp, bericht en de factuur-PDF als bijlage. Controleer de mail en druk daarna zelf op Verzenden.</div><div class="help" style="margin-top:12px">Werkt uw e-mailprogramma niet met .eml? Gebruik dan Gmail in browser of Andere e-mailapp; daarbij moet de PDF handmatig worden toegevoegd.</div>',
-        '<button class="btn" onclick="showDeliveryOptions()">Terug</button><button class="btn primary" onclick="showEmailHandoffConfirmation(\'eml_draft\')">Ik heb de mail verstuurd</button>'
-      );
-    }catch(err){toast(err&&err.message?err.message:'Het Outlook-concept kon niet worden gemaakt.')}
-    finally{handoffBusy=false}
   }
   function emailHandoffMailtoUrl(){
     if(!handoff)throw new Error('Geen e-mail voorbereid.');
@@ -7733,106 +7713,106 @@ window.addEventListener('pageshow',e=>{if(e.persisted)void checkForNewAppBuild()
     var invoice=state.invoices.find(function(item){return item.id===handoff.invoiceId;});
     if(!invoice)return;
     logEvent('E-mailhandoff gestart',String(invoice.number||'')+' · '+handoff.mode+' · '+channel,'invoice',invoice.id);
-    save();
   }
 
+  window.openMailtoUri=function(uri){window.location.href=uri};
   function openEmailHandoffMailApp(){
-    if(!handoff||handoffBusy)return;handoffBusy=true;
-    try{if(handoff.file)ensureEmailHandoffPdfDownloaded();var uri=emailHandoffMailtoUrl();window.__boekunaLastMailto=uri;recordStart('mailto');window.location.href=uri;setTimeout(function(){showEmailHandoffConfirmation('mailto');handoffBusy=false;},450)}
-    catch(err){handoffBusy=false;toast(err&&err.message?err.message:'De e-mailapp kon niet worden geopend.')}
-  }
-  function openEmailHandoffGmail(){
-    if(!handoff||handoffBusy)return;if(!validEmail(handoff.to)){toast('Vul een geldig e-mailadres in.');return}if(!cleanHeader(handoff.subject,240)||!cleanBody(handoff.body)){toast('Onderwerp en bericht zijn verplicht.');return}handoffBusy=true;
-    try{var downloaded=handoff.file?ensureEmailHandoffPdfDownloaded():false;if(handoff.file)toast(downloaded?'PDF staat klaar. Voeg hem in Gmail via de paperclip toe.':'PDF staat klaar om in Gmail toe te voegen.');var url=buildGmailComposeUrl(handoff.to,handoff.subject,handoff.body);window.__boekunaLastGmailUrl=url;recordStart('gmail_web');var popup=window.open(url,'_blank','noopener,noreferrer');if(!popup){toast('Gmail kon niet openen. De standaard e-mailapp wordt gebruikt.');window.location.href=emailHandoffMailtoUrl();setTimeout(function(){showEmailHandoffConfirmation('mailto');handoffBusy=false;},450);return}setTimeout(function(){showEmailHandoffConfirmation('gmail_web');handoffBusy=false;},450)}
-    catch(err){handoffBusy=false;toast(err&&err.message?err.message:'Gmail kon niet worden geopend.')}
-  }
-  async function runNativeEmailShare(){
-    if(!handoff||!handoff.file)throw new Error('Geen factuur-PDF voorbereid.');
-    if(!window.canNativeShareInvoiceFile(handoff.file))throw new Error('Deze browser kan de PDF niet direct delen.');
-    await navigator.share({title:handoff.subject,text:handoff.body,files:[handoff.file]});
-    recordStart('native_share');
-    showEmailHandoffConfirmation('native_share');
-  }
-  async function shareEmailHandoffPdf(){
-    if(!handoff||handoffBusy||!handoff.file)return;
-    if(!window.canNativeShareInvoiceFile(handoff.file)){
-      toast('Deze browser kan de PDF niet direct delen. Open de e-mail zonder bijlage en voeg de PDF handmatig toe.');
-      return;
-    }
+    if(!handoff||handoffBusy)return;
+    if(!takeComposerValues())return;
     handoffBusy=true;
     try{
-      await runNativeEmailShare();
-    }catch(err){
-      if(err&&err.name==='AbortError')toast('Delen geannuleerd');
-      else{
-        console.warn('Email handoff share failed',err&&err.name?err.name:'SHARE_FAILED');
-        toast('Delen lukte niet. Probeer het opnieuw.');
-      }
-      showDeliveryOptions();
-    }finally{
-      handoffBusy=false;
-    }
+      if(handoff.file)ensureEmailHandoffPdfDownloaded();
+      var uri=emailHandoffMailtoUrl();
+      window.__boekunaLastMailto=uri;
+      recordStart('mailto');
+      window.openMailtoUri(uri);
+      setTimeout(function(){handoffBusy=false;markEmailHandoffSent('mailto');},450);
+    }catch(err){handoffBusy=false;toast(err&&err.message?err.message:'De e-mailapp kon niet worden geopend.')}
+  }
+  function openEmailHandoffGmail(){
+    if(!handoff||handoffBusy)return;
+    if(!takeComposerValues())return;
+    handoffBusy=true;
+    try{
+      if(handoff.file)ensureEmailHandoffPdfDownloaded();
+      var url=buildGmailComposeUrl(handoff.to,handoff.subject,handoff.body);
+      window.__boekunaLastGmailUrl=url;
+      recordStart('gmail_web');
+      var popup=window.open(url,'_blank','noopener,noreferrer');
+      if(!popup){toast('Gmail kon niet openen. Je standaard e-mailapp wordt gebruikt.');window.openMailtoUri(emailHandoffMailtoUrl());setTimeout(function(){handoffBusy=false;markEmailHandoffSent('mailto');},450);return}
+      setTimeout(function(){handoffBusy=false;markEmailHandoffSent('gmail_web');},450);
+    }catch(err){handoffBusy=false;toast(err&&err.message?err.message:'Gmail kon niet worden geopend.')}
   }
 
-  function showEmailHandoffConfirmation(channel){
-    if(!handoff)return;
-    var noun=handoff.mode==='payment_reminder'?'herinnering':handoff.mode==='follow_up'?'follow-up':'factuur';
-    modal(
-      'Hebt u de e-mail verzonden?',
-      '<div class="notice info"><strong>Boekuna kan niet zien of u in uw e-mailapp op Verzenden hebt gedrukt.</strong><br>Bevestig dit alleen als de '+noun+' echt is verstuurd.</div>',
-      '<button class="btn" onclick="emailHandoffNotSent()">Nee, nog niet</button><button class="btn primary" onclick="confirmEmailHandoff(\''+channel+'\')">Ja, markeer als verzonden</button>'
-    );
-  }
-
-  function emailHandoffNotSent(){
-    closeModal();
-    toast('E-mail niet als verzonden gemarkeerd');
-  }
-
-  function confirmEmailHandoff(channel){
+  // Boekuna cannot see the user's outbox. Handing the mail to the mail app
+  // counts as sent; a short "Ongedaan maken" covers a mail they did not send.
+  var SENT_FIELDS=['lastSentAt','lastSentTo','lastShareChannel','sendHistory','lastReminderAt','lastReminderTo','reminderCount','reminderHistory','lastFollowUpAt','followUpHistory'];
+  var lastSentUndo=null;
+  function markEmailHandoffSent(channel){
     if(!handoff||confirmBusy||handoff.confirmed)return;
     confirmBusy=true;
     try{
       var invoice=state.invoices.find(function(item){return item.id===handoff.invoiceId;});
       if(!invoice)return;
+      var before={};
+      SENT_FIELDS.forEach(function(key){before[key]=Object.prototype.hasOwnProperty.call(invoice,key)?structuredClone(invoice[key]):undefined;});
       var at=new Date().toISOString();
-      var entry={sentAt:at,to:handoff.to,subject:handoff.subject,provider:'manual-email-app',channel:channel,confirmedByUser:true};
+      var entry={sentAt:at,to:handoff.to,subject:handoff.subject,provider:'manual-email-app',channel:channel,confirmedByUser:false};
+      var noun;
       if(handoff.mode==='payment_reminder'){
         invoice.lastReminderAt=at;
         invoice.lastReminderTo=handoff.to;
         invoice.reminderCount=Number(invoice.reminderCount||0)+1;
         invoice.reminderHistory=(invoice.reminderHistory||[]).concat([entry]);
-        logEvent('Betalingsherinnering verzending bevestigd',String(invoice.number||'')+' · '+channel,'invoice',invoice.id);
+        logEvent('Betalingsherinnering verstuurd via e-mailapp',String(invoice.number||'')+' · '+channel,'invoice',invoice.id);
+        noun='Herinnering';
       }else if(handoff.mode==='follow_up'){
         invoice.lastFollowUpAt=at;
         invoice.followUpHistory=(invoice.followUpHistory||[]).concat([entry]);
-        logEvent('Factuur follow-up verzending bevestigd',String(invoice.number||'')+' · '+channel,'invoice',invoice.id);
+        logEvent('Factuur follow-up verstuurd via e-mailapp',String(invoice.number||'')+' · '+channel,'invoice',invoice.id);
+        noun='Follow-up';
       }else{
         invoice.lastSentAt=at;
         invoice.lastSentTo=handoff.to;
         invoice.lastShareChannel=channel;
         invoice.sendHistory=(invoice.sendHistory||[]).concat([entry]);
-        logEvent('Factuur verzending bevestigd',String(invoice.number||'')+' · '+channel,'invoice',invoice.id);
+        logEvent('Factuur verstuurd via e-mailapp',String(invoice.number||'')+' · '+channel,'invoice',invoice.id);
+        noun='Factuur';
       }
       handoff.confirmed=true;
+      lastSentUndo={invoiceId:invoice.id,before:before,at:at};
       save();
       closeModal();
       render();
-      toast('Verzending bevestigd.');
+      undoToast(noun+' staat als verstuurd.');
     }finally{
       confirmBusy=false;
     }
   }
-
-  async function copyEmailHandoffValue(kind){
-    if(!handoff)return;
-    var value=kind==='to'?handoff.to:kind==='subject'?handoff.subject:handoff.body;
-    try{
-      await navigator.clipboard.writeText(value);
-      toast(kind==='to'?'E-mailadres gekopieerd':kind==='subject'?'Onderwerp gekopieerd':'Bericht gekopieerd');
-    }catch(_err){
-      toast('Kopiëren lukte niet.');
-    }
+  function undoEmailHandoffSent(){
+    var undo=lastSentUndo;lastSentUndo=null;
+    if(!undo)return;
+    var invoice=state.invoices.find(function(item){return item.id===undo.invoiceId;});
+    if(!invoice)return;
+    SENT_FIELDS.forEach(function(key){if(undo.before[key]===undefined)delete invoice[key];else invoice[key]=undo.before[key];});
+    logEvent('Verzending ongedaan gemaakt',String(invoice.number||''),'invoice',invoice.id);
+    save();
+    render();
+    document.querySelectorAll('.toast.has-action').forEach(function(el){el.remove();});
+    toast('Niet meer als verstuurd gemarkeerd.');
+  }
+  function undoToast(message){
+    var root=document.getElementById('toastRoot');
+    if(!root){toast(message);return;}
+    var el=document.createElement('div');
+    el.className='toast has-action';
+    el.setAttribute('role','status');
+    var text=document.createElement('span');text.textContent=message;
+    var button=document.createElement('button');button.type='button';button.className='toast-action';button.textContent='Ongedaan maken';
+    button.addEventListener('click',undoEmailHandoffSent);
+    el.append(text,button);
+    root.appendChild(el);
+    setTimeout(function(){el.remove();},8000);
   }
 
   function finalInvoiceSendChecks(invoice,customer){
@@ -7845,7 +7825,8 @@ window.addEventListener('pageshow',e=>{if(e.persisted)void checkForNewAppBuild()
     if(!invoice)return;
     var customer=getContact(invoice.customerId);
     if(invoice.status==='draft'||(invoice.numberManaged&&!invoice.numberFinalized&&isManagedDraftNumber(invoice.number))){
-      showDraftSendPrompt(id);
+      if(invoice.kind==='credit'){showDraftSendPrompt(id);return;}
+      finalizeDraftAndSend(id);
       return;
     }
     var checks=finalInvoiceSendChecks(invoice,customer);
@@ -7857,18 +7838,9 @@ window.addEventListener('pageshow',e=>{if(e.persisted)void checkForNewAppBuild()
     openComposer({mode:'invoice',invoice:invoice,customer:customer,to:customer.email,subject:invoiceSubject(invoice,customer),body:invoiceBody(invoice,customer),attachPdf:true});
   }
 
+  // Only credit concepts get here: those are finalised on their own first.
   function showDraftSendPrompt(id){
-    var invoice=state.invoices.find(function(item){return item.id===id;});
-    if(!invoice)return;
-    if(invoice.kind==='credit'){
-      modal('Maak de creditfactuur eerst definitief','<div class="notice warn"><strong>Deze creditfactuur is nog een concept.</strong><br>Maak de creditfactuur eerst definitief voordat u haar deelt.</div>','<button class="btn" onclick="closeModal()">Sluiten</button>');
-      return;
-    }
-    modal(
-      'Deze factuur is nog een concept',
-      '<div class="notice info"><strong>Om deze factuur te versturen maken we hem eerst definitief.</strong><br>Boekuna kent het definitieve factuurnummer toe, slaat de factuur veilig op en maakt daarna de PDF.</div><div class="help" style="margin-top:10px">Als u daarna de e-mailapp sluit zonder te verzenden, blijft de factuur definitief maar wordt hij niet als verzonden gemarkeerd.</div>',
-      '<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="finalizeDraftAndSend(\''+id+'\')">Definitief maken en versturen</button>'
-    );
+    modal('Maak de creditfactuur eerst definitief','<div class="notice warn"><strong>Deze creditfactuur is nog een concept.</strong><br>Maak de creditfactuur eerst definitief voordat je haar verstuurt.</div>','<button class="btn" onclick="closeModal()">Sluiten</button>');
   }
 
   async function finalizeDraftAndSend(id){
@@ -7892,7 +7864,7 @@ window.addEventListener('pageshow',e=>{if(e.persisted)void checkForNewAppBuild()
     }
     if(checks.errors.length){showValidationErrors('Factuur nog niet klaar voor verzending',checks.errors,customer,invoice);return;}
     handoffBusy=true;
-    modal('Factuur definitief maken…','<div aria-busy="true"><div class="notice info"><strong>Factuur controleren en definitief opslaan…</strong><br>Daarna wordt de e-mailcomposer geopend.</div><div class="processing-progress" style="margin-top:15px"><div class="processing-indeterminate" role="progressbar" aria-label="Factuur wordt definitief gemaakt"></div></div></div>','<button class="btn primary" disabled>Even geduld…</button>');
+    modal('Factuur definitief maken…','<div aria-busy="true"><div class="notice info"><strong>Factuur controleren en definitief opslaan…</strong><br>Daarna kun je hem meteen versturen.</div><div class="processing-progress" style="margin-top:15px"><div class="processing-indeterminate" role="progressbar" aria-label="Factuur wordt definitief gemaakt"></div></div></div>','<button class="btn primary" disabled>Even geduld…</button>');
     try{
       editingInvoiceId=id;
       pendingInvoiceDraft=draft;
@@ -7939,7 +7911,7 @@ window.addEventListener('pageshow',e=>{if(e.persisted)void checkForNewAppBuild()
   }
 
   async function prepareReminderHandoffFromForm(id){
-    if(document.getElementById('emailHandoffForm'))return prepareEmailHandoffFromComposer();
+    if(document.getElementById('emailHandoffForm'))return sendEmailHandoff();
     return openReminder(id);
   }
 
@@ -7985,20 +7957,14 @@ window.addEventListener('pageshow',e=>{if(e.persisted)void checkForNewAppBuild()
   }
 
   window.buildGmailComposeUrl=buildGmailComposeUrl;
-  window.prepareEmailHandoffFromComposer=prepareEmailHandoffFromComposer;
-  window.retryEmailHandoffPreparation=retryEmailHandoffPreparation;
-  window.reopenEmailHandoffComposer=reopenEmailHandoffComposer;
+  window.sendEmailHandoff=sendEmailHandoff;
+  window.retryEmailHandoffPdf=retryEmailHandoffPdf;
   window.emailHandoffMailtoUrl=emailHandoffMailtoUrl;
-  window.buildEmailHandoffEmlFile=buildEmailHandoffEmlFile;
-  window.downloadEmailHandoffEml=downloadEmailHandoffEml;
   window.openEmailHandoffMailApp=openEmailHandoffMailApp;
   window.openEmailHandoffGmail=openEmailHandoffGmail;
-  window.runNativeEmailShare=runNativeEmailShare;
   window.shareEmailHandoffPdf=shareEmailHandoffPdf;
-  window.showEmailHandoffConfirmation=showEmailHandoffConfirmation;
-  window.emailHandoffNotSent=emailHandoffNotSent;
-  window.confirmEmailHandoff=confirmEmailHandoff;
-  window.copyEmailHandoffValue=copyEmailHandoffValue;
+  window.markEmailHandoffSent=markEmailHandoffSent;
+  window.undoEmailHandoffSent=undoEmailHandoffSent;
   window.finalizeDraftAndSend=finalizeDraftAndSend;
   window.prepareReminderHandoffFromForm=prepareReminderHandoffFromForm;
   window.openFollowUp=openFollowUp;
@@ -8010,7 +7976,7 @@ window.addEventListener('pageshow',e=>{if(e.persisted)void checkForNewAppBuild()
   window.__boekunaEmailHandoffTestState=function(){
     if(!TEST_MODE_NO_AUTH||!handoff)return null;
     return {
-      mode:handoff.mode,to:handoff.to,subject:handoff.subject,body:handoff.body,attachPdf:handoff.attachPdf,
+      mode:handoff.mode,to:handoff.to,subject:handoff.subject,body:handoff.body,attachPdf:handoff.attachPdf,pdfError:handoff.pdfError,
       file:handoff.file?{name:handoff.file.name,type:handoff.file.type,size:handoff.file.size}:null,
       fileDownloaded:!!handoff.fileDownloaded,
       confirmed:handoff.confirmed

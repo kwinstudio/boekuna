@@ -50,25 +50,30 @@ try{
   Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>true});
   Object.defineProperty(navigator,'share',{configurable:true,value:async data=>window.__nativeShares.push({title:data.title,text:data.text,files:data.files.map(f=>({name:f.name,type:f.type,size:f.size}))})});
  });
- // PDF failure replaces the form: retry must reuse validated composer values.
+ // PDF failure stays on the send screen with one retry; typed values are kept.
  await page.evaluate(()=>openSendInvoice('final'));
  await page.locator('#emailHandoffForm').waitFor();
- await page.evaluate(()=>prepareEmailHandoffFromComposer());
- await page.getByRole('heading',{name:'E-mail kon niet worden voorbereid'}).waitFor();
+ await page.getByText('PDF maken lukte niet').waitFor();
  assert.equal(pdfCalls,1);
+ assert.equal(await page.locator('#emailHandoffSend').isDisabled(),true,'No send button without the PDF');
+ await page.locator('#emailHandoffForm [name="subject"]').fill('Factuur 2026-0001 · aangepast');
  failPdf=false;
- await page.getByRole('button',{name:'Opnieuw proberen'}).click();
- await page.getByRole('heading',{name:'Hebt u de e-mail verzonden?'}).waitFor({timeout:2500});
+ await page.getByRole('button',{name:'Opnieuw'}).click();
+ await page.getByRole('button',{name:'Open mail-app'}).waitFor({timeout:2500});
  assert.equal(pdfCalls,2,'Retry must generate the authoritative PDF again');
+ assert.equal(await page.locator('#emailHandoffForm [name="subject"]').inputValue(),'Factuur 2026-0001 · aangepast','Retry keeps what was typed');
  const nativeBefore=await page.evaluate(()=>__boekunaEmailHandoffTestState());
  assert.equal(nativeBefore.file.type,'application/pdf');assert.equal(nativeBefore.file.size,pdfBytes.length);
  const mailto=await page.evaluate(()=>emailHandoffMailtoUrl());
  assert.match(mailto,/^mailto:customer%40example\.test\?subject=/);
- assert.equal(await page.evaluate(()=>window.__nativeShares.length),1,'Successful mobile retry must open one native PDF share');
- assert.equal(await page.evaluate(()=>state.invoices[0].lastSentAt),undefined,'Native share return must await explicit confirmation');
- await page.evaluate(()=>{confirmEmailHandoff('native_share');confirmEmailHandoff('native_share')});
+ assert.equal(await page.evaluate(()=>state.invoices[0].lastSentAt),undefined,'Opening the send screen is not delivery');
+ await page.getByRole('button',{name:'Open mail-app'}).click();
+ await page.locator('.toast.has-action').waitFor();
+ assert.equal(await page.evaluate(()=>window.__nativeShares.length),1,'One tap must open one native PDF share');
+ assert.equal(await page.evaluate(()=>window.__nativeShares[0].title),'Factuur 2026-0001 · aangepast');
+ await page.evaluate(()=>{markEmailHandoffSent('native_share');markEmailHandoffSent('native_share')});
  const delivered=await page.evaluate(()=>structuredClone(state.invoices[0]));
- assert.equal(delivered.sendHistory.length,1);assert.equal(delivered.status,'sent');assert.ok(delivered.lastSentAt);
+ assert.equal(delivered.sendHistory.length,1,'Handing off twice must record one delivery');assert.equal(delivered.status,'sent');assert.ok(delivered.lastSentAt);
  await page.reload({waitUntil:'domcontentloaded'});
  assert.deepEqual(await page.evaluate(()=>structuredClone(state.invoices[0])),delivered,'Reload must retain identity, amounts and confirmed delivery');
  // Missing customer email has a concrete relation edit and PDF alternative, no mutation.
@@ -121,5 +126,5 @@ try{
  assert.equal(await page.evaluate(()=>state.meta.nextInvoice),seq);
  assert.equal(providerCalls,0,'Invoice delivery must never invoke provider send');
  assert.deepEqual(errors,[]);
- console.log(`Invoice native retry (${process.env.BOOKUNA_BROWSER||process.env.BROWSER||'chromium'}): PASS (PDF retry, valid PDF, native/mailto, explicit confirmation, missing email, sync failure/double-click/retry, numbered draft, reload)`);
+ console.log(`Invoice native retry (${process.env.BOOKUNA_BROWSER||process.env.BROWSER||'chromium'}): PASS (PDF retry, valid PDF, one-tap native share, single delivery record, missing email, sync failure/double-click/retry, numbered draft, reload)`);
 }finally{await browser.close();await new Promise(r=>server.close(r))}

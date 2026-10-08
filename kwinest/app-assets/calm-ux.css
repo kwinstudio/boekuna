@@ -75,13 +75,31 @@ html:not(.app-zoom-allowed) body{touch-action:pan-x pan-y}
 #modalRoot .expense-detail-list dt{color:#5E6870}
 #modalRoot .expense-detail-list dd{margin:0;text-align:right;font-weight:600}
 
-/* E-mail: a message you can actually read on a phone. */
-#modalRoot #emailHandoffForm .email-message{min-height:280px!important;line-height:1.5;resize:vertical}
-#modalRoot #emailHandoffForm .email-attachment-note{margin:0}
+/* E-mail: one send screen. Address, the mail as the customer reads it, the PDF. */
+#modalRoot #emailHandoffForm.email-send-form{display:grid;gap:14px}
+#modalRoot .modal:has(#emailHandoffForm):focus{outline:none}
+#modalRoot #emailHandoffForm .email-send-letter{display:grid;border:1px solid var(--app-border,#E4E7EA);border-radius:14px;background:#FFFFFF;overflow:hidden}
+#modalRoot #emailHandoffForm .email-send-subject{width:100%;min-height:48px;border:0;border-bottom:1px solid var(--app-border,#E4E7EA);border-radius:0;padding:12px 14px;font-weight:700;font-size:15px;background:transparent;color:inherit;outline:none}
+#modalRoot #emailHandoffForm .email-send-body{width:100%;border:0;border-radius:0;padding:14px;background:transparent;color:inherit;outline:none;box-shadow:none}
+#modalRoot #emailHandoffForm .email-send-letter:focus-within{border-color:#8AA69A}
+#modalRoot #emailHandoffForm .email-message{min-height:280px!important;line-height:1.55;font-size:14px;resize:vertical}
+#modalRoot .email-send-pdf{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--app-border,#E4E7EA);border-radius:12px;background:#FFFFFF}
+#modalRoot .email-send-pdf-icon{flex:0 0 auto;display:grid;place-items:center;width:38px;height:38px;border-radius:9px;background:#FCEBEA;color:#B42318;font-size:10px;font-weight:800;letter-spacing:.04em}
+#modalRoot .email-send-pdf:not(.is-ready) .email-send-pdf-icon{opacity:.55}
+#modalRoot .email-send-pdf-text{display:grid;gap:2px;min-width:0;flex:1}
+#modalRoot .email-send-pdf-text strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#modalRoot .email-send-pdf-text small{font-size:12px;color:#5E6870}
+#modalRoot .email-send-pdf.is-ready .email-send-pdf-text small{color:#1E7A3C}
+#modalRoot .email-send-pdf.is-error{border-color:#F2C9C5}
+#modalRoot .email-send-hint{margin:0;font-size:12px;line-height:1.5}
+#modalRoot .email-send-hint .link-btn{font-size:12px;text-decoration:underline}
+#toastRoot .toast.has-action{display:flex;align-items:center;gap:14px}
+#toastRoot .toast-action{border:0;background:transparent;color:inherit;font:inherit;font-weight:800;text-decoration:underline;padding:4px 0;cursor:pointer;white-space:nowrap}
 @media(max-width:820px){
   #modalRoot .modal:has(#emailHandoffForm){height:calc(var(--mobile-viewport-height,100dvh) - max(8px,env(safe-area-inset-top)))!important}
   #modalRoot .modal:has(#emailHandoffForm) .modal-body{flex:1 1 auto}
-  #modalRoot #emailHandoffForm .email-message{min-height:max(300px,50dvh)!important;max-height:none!important;height:auto!important;font-size:16px!important}
+  #modalRoot #emailHandoffForm .email-message{min-height:max(260px,42dvh)!important;max-height:none!important;height:auto!important;font-size:16px!important}
+  #modalRoot #emailHandoffForm .email-send-subject{font-size:16px}
 }
 
 /* Company details: what invoices need first, the rest folded away. */
