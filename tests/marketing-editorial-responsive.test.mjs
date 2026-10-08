@@ -19,12 +19,13 @@ try{
     const page=await browser.newPage({viewport:{width,height:width<620?844:900},reducedMotion:'reduce'});
     const errors=[];page.on('pageerror',e=>errors.push(String(e)));
     await page.goto(server.base+'/',{waitUntil:'networkidle'});
-    assert.equal(await page.locator('h1').innerText(),'Nieuwe website in ontwikkeling.');
-    assert.ok(await page.getByRole('link',{name:'Inloggen'}).isVisible());
+    assert.equal(await page.locator('h1').textContent(),'Boekhouden zonder gedoe.');
+    if(width<980)await page.locator('.mobile-nav summary').click();
+    assert.ok(await page.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).isVisible());
     const size=await page.evaluate(()=>({vw:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
     assert.ok(size.html<=size.vw+1&&size.body<=size.vw+1,'home '+width+' overflow '+JSON.stringify(size));
     assert.deepEqual(errors,[]);
-    if([390,1440].includes(width))await page.screenshot({path:path.join(artifacts,'brand-clean-slate-'+width+'.png'),fullPage:true});
+    if([390,1440].includes(width)){if(width<980)await page.locator('.mobile-nav summary').click();await page.screenshot({path:path.join(artifacts,'brand-v4-'+width+'.png'),fullPage:true});}
     await page.close();
   }
   for(const route of ['/privacy/','/voorwaarden/','/support/','/account-verwijderen/']){
@@ -35,5 +36,5 @@ try{
     assert.ok(size<=391,route+' mobile overflow');
     await page.close();
   }
-  console.log('BOEKUNA clean-slate responsive QA: PASS (12 holding widths + required public routes)');
+  console.log('BOEKUNA V3 responsive QA: PASS (12 root widths + required public routes)');
 }finally{await browser.close();await server.close()}

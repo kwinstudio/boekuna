@@ -16,6 +16,7 @@ on:
       - "kwinest/app-assets/calm-ux.*"
       - "kwinest/app-assets/settings-center.*"
       - "tests/settings-center-browser.test.mjs"
+      - "tests/account-deletion-browser.test.mjs"
       - "kwinest/app-assets/exports-filters.*"
       - "tests/exports-filters-alerts-browser.test.mjs"
       - "kwinest/app-assets/theme.js"
@@ -24,6 +25,8 @@ on:
       - "scripts/theme-dark-generate.mjs"
       - "supabase/migrations/20261007200000_in_app_feedback.sql"
       - "tests/theme-browser.test.mjs"
+      - "tests/app-legal-routes-browser.test.mjs"
+      - "tests/logout-local-data.test.mjs"
       - "tests/feedback-browser.test.mjs"
       - "tests/feedback-ocr-corrections.test.mjs"
       - "tests/feedback-sql-isolation.test.mjs"
@@ -82,6 +85,8 @@ on:
       - "tests/fixtures/bank/**"
       - "public/assets/mobile-product.js"
       - "tests/credit-note-discount.test.mjs"
+      - "tests/invoice-legal-content.test.mjs"
+      - "supabase/functions/send-invoice/index.ts"
       - "tests/vat-return-boxes.test.mjs"
       - "tests/cashflow-recurrence.test.mjs"
       - "tests/cashflow-recurrence-browser.test.mjs"
@@ -153,8 +158,12 @@ jobs:
         run: node tests/bank-import-reliability.test.mjs
       - name: Credit notes follow the original discount
         run: node tests/credit-note-discount.test.mjs
+      - name: Uitloggen removes the local copy only after a confirmed cloud save
+        run: node tests/logout-local-data.test.mjs
       - name: VAT return boxes and receipt-amount expenses
         run: node tests/vat-return-boxes.test.mjs
+      - name: Mandatory invoice content on print/PDF and shared PDF
+        run: node tests/invoice-legal-content.test.mjs
       - name: Recurrence date and forecast invariants
         run: node tests/cashflow-recurrence.test.mjs
       - name: Real local PostgreSQL migration and two-account isolation
@@ -181,6 +190,10 @@ jobs:
         run: |
           node tests/personal-assistant-v1-2-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/personal-assistant-v1-2-browser.test.mjs
+      - name: Account verwijderen (abonnement, export, fouten) — Chromium and WebKit
+        run: |
+          node tests/account-deletion-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/account-deletion-browser.test.mjs
       - name: Instellingen index, panels and preferences — Chromium and WebKit
         run: |
           node tests/settings-center-browser.test.mjs
@@ -189,6 +202,10 @@ jobs:
         run: |
           node tests/exports-filters-alerts-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/exports-filters-alerts-browser.test.mjs
+      - name: Privacy, voorwaarden and public routes from the app host — Chromium and WebKit
+        run: |
+          node tests/app-legal-routes-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/app-legal-routes-browser.test.mjs
       - name: Thema (Automatisch, Licht, Donker) — Chromium and WebKit
         run: |
           node tests/theme-browser.test.mjs

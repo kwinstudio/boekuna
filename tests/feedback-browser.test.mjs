@@ -40,7 +40,7 @@ try{
     assert.ok(rows.includes('Hulp & feedback'),'Instellingen has Hulp & feedback');
     await toHelp(page);
     const headings=await page.locator('#settings-panel-help h3').allInnerTexts();
-    assert.deepEqual(headings,['Feedback geven','Mijn meldingen','Hulp nodig']);
+    assert.deepEqual(headings,['Feedback geven','Mijn meldingen','Hulp nodig','Privacy en voorwaarden']);
     assert.equal(await page.locator('#settings-panel-help .btn.primary').count(),1,'Feedback geven is the one primary action');
     assert.match(await page.locator('[data-fb-reports]').innerText(),/Je hebt nog geen meldingen gestuurd/);
 

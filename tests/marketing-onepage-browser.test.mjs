@@ -19,6 +19,12 @@ const retired=['/functies/','/assistent/','/scanner/','/prijzen/','/veiligheid/'
 
 async function noOverflow(page,label){
   const s=await page.evaluate(()=>({vw:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
+  if(s.html>s.vw+1||s.body>s.vw+1){
+    const offenders=await page.evaluate(()=>[...document.querySelectorAll('body *')]
+      .map(e=>({tag:e.tagName,cls:e.className?.toString?.().slice(0,85),text:(e.textContent||'').trim().slice(0,55),right:Math.round(e.getBoundingClientRect().right),width:Math.round(e.getBoundingClientRect().width)}))
+      .filter(x=>x.right>innerWidth+1).sort((a,b)=>b.right-a.right).slice(0,18));
+    console.error('LANDING_OVERFLOW_DIAGNOSTIC '+JSON.stringify(offenders));
+  }
   assert.ok(s.html<=s.vw+1&&s.body<=s.vw+1,label+' horizontal overflow '+JSON.stringify(s));
 }
 async function axe(page,label){
@@ -36,17 +42,18 @@ try{
         const errors=[]; page.on('pageerror',e=>errors.push(String(e)));
         const response=await page.goto(server.base+'/',{waitUntil:'networkidle'});
         assert.equal(response.status(),200,name+' root '+width);
-        assert.equal(await page.locator('h1').innerText(),'Nieuwe website in ontwikkeling.');
-        assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'),'noindex,follow');
-        assert.ok(await page.getByRole('link',{name:'Inloggen'}).isVisible());
-        assert.equal(await page.locator('img').count(),0,'Holding page must not contain marketing imagery');
-        assert.equal(await page.locator('script').count(),0,'Holding page must not contain marketing JS');
+        assert.equal(await page.locator('h1').textContent(),'Boekhouden zonder gedoe.');
+        if(width<980)await page.locator('.mobile-nav summary').click();
+        assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'),'index,follow');
+        assert.ok(await page.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).isVisible());
+        assert.equal(await page.locator('img').count(),0,'V3 uses a lightweight CSS illustration');
+        assert.equal(await page.locator('script').count(),0,'V3 requires no runtime JS');
         await noOverflow(page,name+' root '+width);
         await axe(page,name+' root '+width);
-        const login=await page.getByRole('link',{name:'Inloggen'}).getAttribute('href');
+        const login=await page.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).getAttribute('href');
         assert.equal(login,'https://app.boekuna.nl/?login=1');
         assert.deepEqual(errors,[]);
-        if(width===390||width===1440)await page.screenshot({path:path.join(evidence,'clean-holding-'+width+'-'+name+'.png'),fullPage:true});
+        if(width===390||width===1440){if(width<980)await page.locator('.mobile-nav summary').click();await page.screenshot({path:path.join(evidence,'landing-v4-'+width+'-'+name+'.png'),fullPage:true});}
         await page.close();
       }
 
@@ -77,5 +84,5 @@ try{
       }
     } finally { await browser.close(); }
   }
-  console.log('BOEKUNA marketing clean-slate browser QA: PASS (Chromium + WebKit, 8 widths, legal/support, retired-route holdings, Axe)');
+  console.log('BOEKUNA V4 landing browser QA: PASS (Chromium + WebKit, 8 widths, legal/support, retired-route holdings, Axe)');
 } finally { await server.close(); }

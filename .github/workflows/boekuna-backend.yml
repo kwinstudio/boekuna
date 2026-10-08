@@ -14,6 +14,7 @@ on:
       - "tests/invoice-delivery.test.mjs"
       - "tests/early-access-entitlement.test.mjs"
       - "tests/billing-source.test.mjs"
+      - "tests/account-closure.test.mjs"
       - "tests/provider-agnostic-entitlement.test.mjs"
       - "tests/tester-invite-code-access.test.mjs"
       - "tests/tester-invite-code-sql.test.mjs"
@@ -23,6 +24,7 @@ on:
       - "tests/kvk-company-lookup-security.test.mjs"
       - "tests/package*.json"
       - "tests/planned-cash-sql-isolation.test.mjs"
+      - "tests/security-hardening-sql.test.mjs"
       - "tests/ocr-production-hardening.test.py"
       - "tests/document-scan-intelligence-benchmark.test.py"
       - "tests/document-scan-intelligence-unit.test.py"
@@ -91,12 +93,16 @@ jobs:
         run: node tests/tester-invite-code-sql.test.mjs
       - name: Planned cash migration and two-account PostgreSQL isolation
         run: node tests/planned-cash-sql-isolation.test.mjs
+      - name: MFA guard and anon grant hardening
+        run: node tests/security-hardening-sql.test.mjs
       - name: Invoice PDF and email parity
         run: node tests/invoice-delivery.test.mjs
       - name: Retired First 100 regression
         run: node tests/early-access-entitlement.test.mjs
       - name: Billing subscription regressions
         run: node tests/billing-source.test.mjs
+      - name: Account deletion stops Stripe billing first
+        run: node tests/account-closure.test.mjs
       - name: Tester invite-code access regression
         run: node tests/tester-invite-code-access.test.mjs
       - name: Install document processor regression dependencies
