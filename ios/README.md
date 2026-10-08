@@ -93,3 +93,7 @@ The shell identifies itself as `BoekunaNative/<version> Boekuna-iOS/<version>` s
 The app loads the live web product. Companion-specific web fixes must be deployed and verified before testing the native archive. Physical-device acceptance, signing and Apple account suitability remain separate gates.
 
 Dutch operator instructions and the real-iPhone checklist: [TESTFLIGHT-NL.md](TESTFLIGHT-NL.md).
+
+## Cloud release (no Mac)
+
+`.github/workflows/boekuna-ios-release.yml` archives on a macOS 26 runner, verifies the existing App Store Connect app `6819651528`, takes the next build number, cloud-signs an `.ipa` (artifact) and uploads it to TestFlight. It needs the GitHub Secrets `ASC_KEY_ID`, `ASC_ISSUER_ID` and `ASC_KEY_P8` (App Store Connect team API key with Admin access). It never submits for App Review. Steps in Dutch: `ios/TESTFLIGHT-NL.md`.

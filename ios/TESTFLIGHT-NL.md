@@ -11,7 +11,34 @@ Bundle ID: `nl.boekuna.app` · versie `1.0.0` · iPhone met iOS 17 of nieuwer.
 - Gebruik een afzonderlijk testaccount met fictieve administratie. Benodigde toegang moet door het bestaande entitlement/testersysteem worden toegekend; wijzig geen betaalstatus in de app.
 - Bewaar Apple-account, certificaten, API-sleutels en reviewer-wachtwoord uitsluitend in de daarvoor bestemde beveiligde omgeving.
 
-## Vanaf Windows: eerste Mac-buildcontrole via Codemagic
+## Vanaf Windows: ondertekende build en TestFlight via GitHub Actions (aanbevolen)
+
+Geen Mac, Xcode of certificaatbestand nodig. De workflow **Boekuna iOS release** (`.github/workflows/boekuna-ios-release.yml`) draait op een macOS 26-runner met Xcode 26, controleert de bestaande app `6819651528`, kiest zelf het volgende buildnummer, ondertekent automatisch met een door Apple beheerd distributiecertificaat en uploadt naar TestFlight. Hij dient nooit iets in voor App Review en publiceert niets.
+
+### Eenmalig (alleen jij kunt dit doen)
+
+1. **App Store Connect-API-sleutel maken.** Ga naar https://appstoreconnect.apple.com/access/integrations/api → tab **Team Keys** → **+** (de eerste keer eventueel eerst **Request Access** en de voorwaarden accepteren).
+   - Naam: `GitHub Boekuna`
+   - Toegang: **Admin** (nodig voor automatische cloud-ondertekening; App Manager is niet genoeg).
+   - Klik **Generate**, daarna **Download API Key**. Het `.p8`-bestand kun je maar één keer downloaden.
+   - Noteer de **Key ID** (in de rij van de sleutel) en de **Issuer ID** (boven de tabel).
+2. **Drie GitHub Secrets toevoegen.** Ga naar https://github.com/kwinstudio/boekuna/settings/secrets/actions → **New repository secret**:
+   - `ASC_KEY_ID` = de Key ID
+   - `ASC_ISSUER_ID` = de Issuer ID
+   - `ASC_KEY_P8` = de volledige inhoud van het `.p8`-bestand (open met Kladblok, kopieer alles inclusief de regels `-----BEGIN PRIVATE KEY-----` en `-----END PRIVATE KEY-----`).
+3. Bewaar het `.p8`-bestand in je wachtwoordkluis of verwijder het. Zet het nooit in Git, chat of e-mail.
+
+Team ID, certificaten en provisioning profiles hoef je niet aan te maken: de workflow leest het Team ID uit de bestaande Bundle ID en Apple maakt certificaat en profiel automatisch aan.
+
+### Een nieuwe build maken (elke update)
+
+1. Ga naar https://github.com/kwinstudio/boekuna/actions/workflows/boekuna-ios-release.yml → **Run workflow**.
+2. Laat **Upload the signed build to TestFlight** aangevinkt. Vul alleen bij een nieuwe App Store-versie `marketing_version` in (bijvoorbeeld `1.0.1`).
+3. Na ongeveer 10–20 minuten staat de build in App Store Connect → TestFlight (Apple verwerkt hem nog 5–30 minuten). Het `.ipa`-bestand staat 14 dagen onder **Artifacts** van de run, met een simulator-screenshot.
+
+Zonder de drie secrets bouwt de workflow alleen ongesigned en draait hij de simulator-rooktest, zonder `.ipa` of upload. Op een pull request uploadt hij alleen als de PR het label `testflight` heeft.
+
+## Vanaf Windows: Codemagic (optioneel, alleen buildcontrole)
 
 Een eigen Mac is niet nodig voor deze unsigned controle. Het individuele Codemagic-plan bevat momenteel 500 gratis Mac M2-buildminuten per maand. Gebruik de M2-workflow binnen die limiet; activeer geen betaald plan voor deze stap.
 
