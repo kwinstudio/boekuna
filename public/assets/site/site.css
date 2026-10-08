@@ -290,3 +290,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--bk-dark-green);
 .article-body .info-table{min-width:0}
 .page-hero h1,.crumbs,.kb-card strong,.related a span,.article-body h2{overflow-wrap:break-word;hyphens:auto}
 @media(max-width:420px){.interval-toggle button{padding:6px 12px;font-size:13px}.interval-toggle button[data-interval=year]{flex-direction:column;gap:2px;line-height:1.1}.interval-badge{font-size:11px;padding:1px 6px}}
+/* Woordmerk "Boekuna." zoals in de app */
+.brand{gap:0}
+.brand-word{font-family:var(--bk-heading);font-size:25px;font-weight:650;letter-spacing:-.055em;line-height:1;color:var(--bk-ink)}
+.brand-dot{color:var(--bk-green)}
+@media(min-width:980px){.brand-word{font-size:28px}}
+.site-footer-full .brand-word{font-size:26px}
