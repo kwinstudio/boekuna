@@ -226,7 +226,7 @@ try{
       assert.equal(semanticColours.primary.background,'rgb(99, 212, 113)',browserName+' primary action must use BOEKUNA green');
       assert.equal(semanticColours.primary.color,'rgb(27, 31, 35)',browserName+' green primary action must use accessible anthracite text');
       assert.deepEqual(await page.locator('.dashboard-kpi-label').allTextContents(),['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen']);
-      assert.equal(await page.locator('#dashboardPeriod [data-period-value="month"]').getAttribute('aria-pressed'),'true');
+      assert.equal(await page.locator('#dashboardPeriod').inputValue(),'month');
       assert.equal(await page.locator('.dashboard-kpi-profit .metric-sub').count(),0,'Compact dashboard must hide repeated profit explanation by default');
       assert.equal(await page.locator('.dashboard-kpi-secondary .metric-sub').count(),0,'Compact dashboard must hide repeated KPI helper copy when no warning exists');
       assert.notEqual(await page.locator('.dashboard-kpi .metric-icon').first().evaluate(el=>getComputedStyle(el).display),'none','Desktop dashboard KPI icons must remain visible');

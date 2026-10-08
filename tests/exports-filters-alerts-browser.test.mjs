@@ -110,7 +110,7 @@ try{
 
     // Flow 3: Kosten: quick period at the top, Aangepaste periode (Van/Tot) only under Filters.
     await page.evaluate(()=>navigate('expenses'));
-    assert.deepEqual(await page.locator('#expensePeriod button').allTextContents(),['Week','Maand','Kwartaal','Jaar','Alles']);
+    assert.deepEqual(await page.locator('#expensePeriod option').allTextContents(),['Deze week','Deze maand','Dit kwartaal','Dit jaar','Alles'],'Quick dropdown has no custom period');
     assert.equal(await page.locator('#content input[type="date"]').count(),0,'No Van/Tot on the page itself');
     await page.locator('[data-list-open-filters]').click();
     await page.locator('#listFilter-period').selectOption('year');
@@ -124,7 +124,7 @@ try{
     assert.deepEqual(await page.evaluate(()=>getListRows('expenses').map(e=>e.id).sort()),['e1','e2']);
     assert.match(await page.locator('.product-kpis').innerText(),/170,00/,'Totals follow the custom period');
     assert.match(await page.locator('.list-filter-chip').innerText(),/1 jan – 31 mrt 2026/);
-    assert.equal(await page.locator('#expensePeriod .filter-btn.active').count(),0,'No quick choice is active for a custom period');
+    assert.match(await page.locator('#expensePeriod option:checked').innerText(),/1 jan – 31 mrt 2026/,'The dropdown names the custom period');
     await page.locator('[data-list-open-filters]').click();
     assert.equal(await page.locator('#listFilterFrom').inputValue(),'2026-01-01','Filter dialog shows the same Van/Tot');
     await setDate(page.locator('#listFilterFrom'),'2026-03-01');

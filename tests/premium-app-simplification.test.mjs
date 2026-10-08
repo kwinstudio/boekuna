@@ -209,8 +209,8 @@ try{
   assert.match(vat,/indicati(?:e|ef)/i,'VAT must retain indicative meaning');
   const vatPeriod=page.locator('#vatPeriodQuick');
   assert.ok(await vatPeriod.isVisible(),'VAT quarter choice must be visible');
-  assert.deepEqual((await vatPeriod.locator('button').allTextContents()).slice(0,4),['Q1','Q2','Q3','Q4']);
-  await vatPeriod.locator('[data-period-value="year"]').click();
+  assert.deepEqual((await vatPeriod.locator('option').allTextContents()).slice(0,4),['Q1','Q2','Q3','Q4']);
+  await vatPeriod.selectOption('year');
   assert.equal((await page.locator('.premium-split .section-meta').first().innerText()).trim(),String(new Date().getFullYear()),'VAT year view must clearly identify the selected year');
 
   // Compact copy is the default. Help is an account-level setting, never a financial calculation toggle.
@@ -240,13 +240,13 @@ try{
   await navigateTo('reports');
   const reportPeriod=page.locator('#reportPeriodPreset');
   assert.ok(await reportPeriod.isVisible(),'Compact report period picker must be visible');
-  assert.deepEqual(await reportPeriod.locator('button').allTextContents(),['Week','Maand','Kwartaal','Jaar','Alles']);
+  assert.deepEqual(await reportPeriod.locator('option').allTextContents(),['Deze week','Deze maand','Dit kwartaal','Dit jaar','Alles']);
   assert.equal(await page.locator('#content input[type="date"]').count(),0,'Custom dates live under Filters');
-  await reportPeriod.locator('[data-period-value="month"]').click();
+  await reportPeriod.selectOption('month');
   assert.equal(await page.evaluate(()=>sessionStorage.getItem('reportPreset')),'month','Report period should update from compact selector');
   const monthRange=await page.evaluate(()=>reportRange());
   assert.ok(monthRange.from<=monthRange.to,'Report month period must return an inclusive ordered range');
-  await page.locator('#reportPeriodPreset [data-period-value="all"]').click();
+  await page.locator('#reportPeriodPreset').selectOption('all');
   assert.equal(await page.evaluate(()=>sessionStorage.getItem('reportPreset')),'all');
   assert.ok((await page.locator('.report-result-chart .bar-group').count())<=12,'All-time chart should avoid 48 tiny monthly bars');
   await page.locator('.page-filter-btn').click();

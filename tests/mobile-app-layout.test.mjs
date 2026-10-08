@@ -204,8 +204,8 @@ try{
   });
   await page.evaluate(()=>navigate('reports'));
   const reportPeriod=page.locator('#reportPeriodPreset');
-  assert.deepEqual(await reportPeriod.locator('button').allTextContents(),['Week','Maand','Kwartaal','Jaar','Alles'],'Reports show the shared quick period choices');
-  await reportPeriod.locator('[data-period-value="all"]').click();
+  assert.deepEqual(await reportPeriod.locator('option').allTextContents(),['Deze week','Deze maand','Dit kwartaal','Dit jaar','Alles'],'Reports show the shared quick period choices');
+  await reportPeriod.selectOption('all');
   assert.ok((await page.locator('.report-result-chart .bar-label').allTextContents()).includes('2023'),'Multi-year result graph must include historical book years');
   // A custom period lives under Filters.
   await page.locator('.page-filter-btn').click();

@@ -3,19 +3,20 @@
    Filters = custom period and extra options. Loaded after exports-filters.css. */
 
 #mainApp .page-period-slot{margin-left:auto;display:flex;align-items:flex-start;justify-content:flex-end;flex:0 0 auto;min-width:0;padding-top:0}
-#mainApp .period-quick{display:grid;grid-template-columns:repeat(var(--period-count,5),auto);gap:6px;align-items:center;margin:0}
 
-/* The quick period buttons and the quick list filters (Alle / Concept / ...) share one look. */
-#mainApp :is(.period-quick,.list-toolbar-quick) .filter-btn{
-  box-sizing:border-box;height:38px!important;min-height:38px!important;margin:0;padding:0 14px!important;
-  display:inline-flex;align-items:center;justify-content:center;
-  font-size:13px!important;font-weight:700!important;line-height:1!important;letter-spacing:0;white-space:nowrap;
-  border:1px solid #D9DEE2!important;border-radius:10px!important;background:#FFFFFF!important;color:#4C565C!important;box-shadow:none!important
+/* The quick period dropdown: one width and height on every page, never cut off ("Dit kwartaal" fits). */
+#mainApp .period-quick{display:block;margin:0;flex:0 0 auto}
+#mainApp .page-period-slot .period-quick-select,#mainApp .period-quick .period-quick-select{
+  box-sizing:border-box;width:164px!important;min-width:164px!important;max-width:100%;height:40px!important;min-height:40px!important;
+  padding:0 34px 0 14px!important;font-size:14px!important;font-weight:700!important;line-height:38px!important;
+  text-overflow:clip;white-space:nowrap;border-radius:10px!important
 }
-#mainApp :is(.period-quick,.list-toolbar-quick) .filter-btn:hover:not(:disabled){border-color:#AEB6BC!important;color:#1B1F23!important}
-#mainApp :is(.period-quick,.list-toolbar-quick) .filter-btn.active{background:#ECFAEE!important;border-color:#B7EEC0!important;color:#1B1F23!important}
-#mainApp .period-quick .filter-btn:disabled{opacity:.42;cursor:default}
-#mainApp :is(.period-quick,.list-toolbar-quick) .filter-btn:focus-visible{outline:2px solid #1B1F23;outline-offset:2px}
+
+/* Quick list filters (Alle / Concept / ...) share one size. */
+#mainApp .list-toolbar-quick .filter-btn{
+  box-sizing:border-box;height:38px!important;min-height:38px!important;margin:0;padding:0 14px!important;
+  display:inline-flex;align-items:center;justify-content:center;font-size:13px!important;font-weight:700!important;line-height:1!important;white-space:nowrap;border-radius:10px!important
+}
 
 /* Filters on pages without a list (Btw, Rapportages): same button as in the list toolbar. */
 #mainApp .page-filter-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 16px}
@@ -28,18 +29,12 @@
 #mainApp .report-bar-meta{font-size:12px;font-weight:500;color:#6B757C;margin-left:4px}
 
 @media(max-width:820px){
-  /* Mobile: the quick period gets its own full-width row under the title, equal buttons, never cut off. */
-  #mainApp .page-head:has(.period-quick){flex-wrap:wrap!important;align-items:flex-start!important;row-gap:12px!important}
-  #mainApp .page-head:has(.period-quick)>div:first-child{flex:1 1 100%!important;min-width:0}
-  #mainApp .page-head .page-period-slot{flex:1 0 100%!important;width:100%!important;margin:0!important;justify-content:stretch}
-  #mainApp .period-quick{grid-template-columns:repeat(var(--period-count,5),minmax(0,1fr));width:100%;gap:6px}
-  #mainApp :is(.period-quick,.list-toolbar-quick) .filter-btn{height:44px!important;min-height:44px!important}
-  #mainApp .period-quick .filter-btn{padding:0 4px!important;min-width:0}
-  #mainApp .list-toolbar-quick .filter-btn{padding:0 14px!important}
+  /* Mobile: title left, dropdown right, same size on every page; it drops under the title only when space runs out. */
+  #mainApp .page-head:has(.period-quick){display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;align-items:center!important;justify-content:space-between!important;row-gap:10px!important;column-gap:12px!important}
+  #mainApp .page-head:has(.period-quick)>div:first-child{flex:1 1 auto!important;min-width:0}
+  #mainApp .page-head .page-period-slot{margin:0 0 0 auto!important;flex:0 0 auto!important}
+  #mainApp .page-period-slot .period-quick-select,#mainApp .period-quick .period-quick-select{width:156px!important;min-width:156px!important;height:44px!important;min-height:44px!important;font-size:14px!important}
+  #mainApp .list-toolbar-quick .filter-btn{height:44px!important;min-height:44px!important}
   #mainApp .page-filter-row .page-filter-btn,#mainApp .page-filter-row .list-filter-chip{height:44px!important;min-height:44px!important}
-}
-@media(max-width:359px){
-  #mainApp .period-quick{gap:4px}
-  #mainApp .period-quick .filter-btn{font-size:12px!important}
 }
 #mainApp .report-customers-card .progress span{background:#63D471!important}
