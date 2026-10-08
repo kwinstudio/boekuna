@@ -456,7 +456,18 @@
       +'<div class="settings-center-block"><h3>Hulp nodig</h3>'
       +'<div class="settings-center-line"><div><strong>Mail ons</strong><span>We reageren op werkdagen.</span></div><a class="btn" href="'+esc(typeof SUPPORT_MAILTO!=='undefined'?SUPPORT_MAILTO:'mailto:support@boekuna.nl')+'">'+esc(typeof SUPPORT_EMAIL!=='undefined'?SUPPORT_EMAIL:'support@boekuna.nl')+'</a></div>'
       +'<div class="settings-center-line"><div><strong>Fiscale spelregels</strong><span>De uitgangspunten die Boekuna gebruikt voor btw en facturen.</span></div><button class="btn" type="button" onclick="showLegal()">Bekijken</button></div>'
-      +'</div>';
+      +'</div>'
+      +legalLinksHtml();
+  }
+
+  // Privacy, terms and deletion info live on boekuna.nl; the build passes the URLs in
+  // window.BOEKUNA_PUBLIC_LINKS (generated from the same map as all other public links).
+  function legalLinksHtml(){
+    var links=window.BOEKUNA_PUBLIC_LINKS||{};
+    var rows=[['/privacy/','Privacyverklaring','Welke gegevens Boekuna gebruikt en waarom.'],['/voorwaarden/','Algemene voorwaarden','De afspraken over het gebruik van Boekuna.'],['/account-verwijderen/','Account en gegevens verwijderen','Wat er gebeurt als je je account verwijdert.']];
+    var html='';
+    rows.forEach(function(r){var href=links[r[0]]||('https://boekuna.nl'+r[0]);html+='<div class="settings-center-line"><div><strong>'+esc(r[1])+'</strong><span>'+esc(r[2])+'</span></div><a class="btn" href="'+esc(href)+'" target="_blank" rel="noopener">Openen</a></div>'});
+    return '<div class="settings-center-block"><h3>Privacy en voorwaarden</h3>'+html+'</div>';
   }
 
   // ---------- Resolved feedback: a calm in-app note, once ----------

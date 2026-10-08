@@ -3223,9 +3223,18 @@ async function logoutUser(trigger=null){
  resetAuthScopedClientState('');
  const button=trigger?.setAttribute?trigger:document.getElementById('settingsLogoutButton'),originalLabel=button?.textContent||'Uitloggen';
  if(button){button.disabled=true;button.textContent='Uitloggen…'}
+ const leavingUserId=String(currentUser?.id||'');let cloudCopyConfirmed=false,finalSyncFailed=false;
  if(!TEST_MODE_NO_AUTH){
-  try{await syncCloudStateNow()}catch(e){console.warn('Finale cloudsync vóór uitloggen mislukt; uitloggen gaat door.',e)}
+  try{await syncCloudStateNow()}catch(e){finalSyncFailed=true;console.warn('Finale cloudsync vóór uitloggen mislukt; uitloggen gaat door.',e)}
+  cloudCopyConfirmed=!finalSyncFailed&&cloudSyncStatus==='saved';
   try{const sb=await getSupabase();await sb.auth.signOut()}catch(e){console.warn('Supabase signOut gaf een fout; lokale sessie wordt alsnog afgesloten.',e)}
+ }
+ // Privacy: the cloud holds the administration, so once it is confirmed saved the local
+ // copy (ledger and company profile) is removed from this device. If saving failed it
+ // stays, so unsaved work is never thrown away.
+ if(leavingUserId&&!TEST_MODE_NO_AUTH){
+  if(cloudCopyConfirmed){try{localStorage.removeItem(DATA_KEY_PREFIX+leavingUserId);localStorage.removeItem(PROFILE_KEY_PREFIX+leavingUserId)}catch(e){}}
+  else toast('Niet alles was opgeslagen. Je laatste wijzigingen blijven op dit apparaat staan.');
  }
  currentUser=null;state=structuredClone(DEFAULT);pendingMfaUser=null;pendingMfaFactorId=null;
  if(typeof setMobileMenuOpen==='function')setMobileMenuOpen(false,{restoreFocus:false});
