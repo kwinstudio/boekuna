@@ -114,8 +114,7 @@
       +field('invoiceDesign.footerText','Voettekst op je factuur',inv.footerText,{full:true,placeholder:'Bijv. Bedankt voor uw vertrouwen.'})
       +'</div>'
       +check('invoiceDesign.showPaymentBlock','Betaalgegevens tonen',inv.showPaymentBlock!==false,'IBAN en betalingskenmerk onderaan de factuur.')
-      +check('invoiceDesign.showContactDetails','Contactgegevens tonen',inv.showContactDetails!==false)
-      +check('invoiceDesign.showVatBreakdown','Btw-specificatie tonen',inv.showVatBreakdown!==false);
+      +check('invoiceDesign.showContactDetails','Contactgegevens tonen',inv.showContactDetails!==false);
     return '<form class="settings-center-form" data-settings-form="invoices" novalidate>'
       +'<div class="settings-center-split"><div>'+block(basis)+more('Meer instellingen',extra)+'</div>'
       +'<div class="settings-center-preview-wrap"><div class="settings-center-preview-head"><span>Voorbeeld</span><button type="button" class="link-btn" data-settings-action="preview-invoice">Voorbeeld bekijken</button></div><div class="settings-center-preview" aria-hidden="true">'+thumbnailHtml(inv)+'</div></div></div>'

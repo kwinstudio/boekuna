@@ -82,6 +82,8 @@ on:
       - "tests/fixtures/bank/**"
       - "public/assets/mobile-product.js"
       - "tests/credit-note-discount.test.mjs"
+      - "tests/invoice-legal-content.test.mjs"
+      - "supabase/functions/send-invoice/index.ts"
       - "tests/vat-return-boxes.test.mjs"
       - "tests/cashflow-recurrence.test.mjs"
       - "tests/cashflow-recurrence-browser.test.mjs"
@@ -155,6 +157,8 @@ jobs:
         run: node tests/credit-note-discount.test.mjs
       - name: VAT return boxes and receipt-amount expenses
         run: node tests/vat-return-boxes.test.mjs
+      - name: Mandatory invoice content on print/PDF and shared PDF
+        run: node tests/invoice-legal-content.test.mjs
       - name: Recurrence date and forecast invariants
         run: node tests/cashflow-recurrence.test.mjs
       - name: Real local PostgreSQL migration and two-account isolation
