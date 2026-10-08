@@ -158,6 +158,8 @@ try{
     pendingPdfImport.parsed=parsed;showPdfImportReview(parsed);
   });
   await page.locator('#documentReviewStepLabel',{hasText:'Stap 2 van 2'}).waitFor();
+  // The review first renders step 1 and moves to the amounts step a frame later; wait for the field itself.
+  await page.locator('[name="gross"]:visible').waitFor();
   assert.equal(await page.locator('.mobile-single-issue-review:visible').count(),0,'amount problems open the amounts step, not a yes/no question');
   assert.equal(await page.locator('[name="gross"]:visible').count(),1);
   assert.match(await page.locator('#reviewBlockingState').innerText(),/De bedragen kloppen nog niet/);
