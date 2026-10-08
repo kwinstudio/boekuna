@@ -3408,7 +3408,7 @@ function documentListStatus(d){
   const st=String(d?.verification?.status||d?.verificationStatus||'');
   if(st==='pending'||st==='running')return 'processing';
   if(st==='verified')return 'verified';
-  if(st==='needs_review')return 'needs_review';
+  if(st==='needs_review'||documentReviewJob(d))return 'needs_review';
   if(st==='technical_error')return 'error';
   return 'stored'
 }
@@ -4551,7 +4551,7 @@ function documentsPeriodSelect(){
 }
 function setDocumentsPeriod(value){const s=listPageState('documents');s.filters.period=value;if(value!=='custom'){s.filters.from='';s.filters.to=''}persistListState();render()}
 function renderDocuments(){
- const list=getListRows('documents'),docs=state.documents,monthKey=monthKeyOffset(0),toProcess=docs.filter(d=>!d.linkedId&&!d.verification).length,review=docs.filter(d=>{const st=String(d.verification?.status||'');return st==='needs_review'||st==='error'||(!d.linkedId&&!!d.verification)}).length,processed=docs.filter(d=>!!d.linkedId&&String(d.date||'').startsWith(monthKey)).length;
+ const list=getListRows('documents'),docs=state.documents,monthKey=monthKeyOffset(0),toProcess=docs.filter(d=>!d.linkedId&&!d.verification).length,review=docs.filter(d=>{const st=String(d.verification?.status||'');return st==='needs_review'||st==='error'||(!d.linkedId&&!!d.verification)||!!documentReviewJob(d)}).length,processed=docs.filter(d=>!!d.linkedId&&String(d.date||'').startsWith(monthKey)).length;
  return `<div class="product-page-shell"><div class="page-head product-page-head financial-page-head"><div><h1>Bonnetjes</h1>${optionalCopyHtml('Ondersteund: PDF, JPG, PNG, HEIC, DOCX, XLSX en CSV.','page-status','p')}</div>${docs.length?`<div class="page-period-slot">${documentsPeriodSelect()}</div>`:''}</div>${docs.length?`<div class="page-actions product-page-actions"><button class="btn primary" onclick="openDocumentUpload()">${icon('i-upload')} Document uploaden</button></div>`:''}<input class="hidden" type="file" id="docFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"><input class="hidden" type="file" id="archiveFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"></div>
  <div class="documents-kpis">${productKpiGrid([
   productKpi('Te verwerken',String(toProcess),extraHelpVisible()?'Nog niet gekoppeld':'','i-upload','support'),
@@ -5573,8 +5573,9 @@ function persistentDocumentNeedsReview(job){
  if(!['purchase_invoice','sales_invoice','sale_invoice','credit_invoice','receipt','invoice'].includes(type))return false;
  return !state.documents.some(d=>String(d.fileId||'')===String(job.client_ref||'')&&d.linkedId)
 }
+function documentReviewJob(d){return d?.fileId?documentProcessingJobs.find(j=>String(j.client_ref||'')===String(d.fileId||'')&&persistentDocumentNeedsReview(j))||null:null}
 function persistentDocumentReviewActionForFile(d){
- const job=documentProcessingJobs.find(j=>String(j.client_ref||'')===String(d.fileId||'')&&persistentDocumentNeedsReview(j));
+ const job=documentReviewJob(d);
  return job?'<button class="link-btn" onclick="openPersistentDocumentReview('+esc(JSON.stringify(String(job.id)))+')">Controleren</button> ':''
 }
 function persistentDocumentJobStatus(job){
@@ -5649,8 +5650,9 @@ function localUploadCardHtml(item){
 }
 function renderDocumentProcessingBoard(){
  const local=localPersistentProcessingItems();
- const activeBatches=persistentDocumentActiveBatchIds(),attention=documentProcessingJobs.filter(j=>(persistentDocumentNeedsReview(j)||j.state==='failed')),sessionBatch=documentProcessingSession?.persistent?String(documentProcessingSession.id||''):'';
- let jobs=activeBatches.size?documentProcessingJobs.filter(j=>activeBatches.has(String(j.batch_id||''))):(sessionBatch?documentProcessingJobs.filter(j=>String(j.batch_id||'')===sessionBatch):attention.slice(0,20));
+ const activeBatches=persistentDocumentActiveBatchIds(),sessionBatch=documentProcessingSession?.persistent?String(documentProcessingSession.id||''):'';
+ let jobs=activeBatches.size?documentProcessingJobs.filter(j=>activeBatches.has(String(j.batch_id||''))):(sessionBatch?documentProcessingJobs.filter(j=>String(j.batch_id||'')===sessionBatch):documentProcessingJobs.filter(j=>j.state==='failed').slice(0,20));
+ // Documents that still need a check are not listed here: they show "Controle nodig" in the file list itself. Failed uploads stay, they need "Opnieuw proberen".
  if(!local.length&&!jobs.length)return '';
  jobs=[...jobs].sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
  const terminal=jobs.filter(persistentDocumentIsTerminal).length,total=local.length+jobs.length,ready=jobs.filter(j=>j.state==='ready').length,review=jobs.filter(j=>j.state==='review_required').length,failed=jobs.filter(j=>j.state==='failed').length;
@@ -6689,7 +6691,7 @@ function documentVerificationBadge(d){
  const processing=String(d?.processingState||''),st=d?.verification?.status||d?.verificationStatus||'';
  if(['received','queued','processing','validating'].includes(processing))return '<span class="badge info">Verwerken</span>';
  if(processing==='failed')return '<span class="badge bad">Mislukt</span>';
- if(processing==='review_required')return '<span class="badge warn">Controle nodig</span>';
+ if(processing==='review_required'||documentReviewJob(d))return '<span class="badge warn">Controle nodig</span>';
  if(st==='pending'||st==='running')return '<span class="badge info">Extra controle bezig</span>';
  if(st==='verified')return '<span class="badge good">Gecontroleerd</span>';
  if(st==='needs_review')return '<span class="badge warn">Controle nodig</span>';

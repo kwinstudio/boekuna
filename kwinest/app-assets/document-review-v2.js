@@ -408,7 +408,11 @@ function focusReviewIssue(issue){
   if(issue.field==='confirmDuplicate'){document.querySelector('[data-review-issue="confirmDuplicate"] button')?.focus();return}
   const el=document.getElementById('pdfImportForm')?.elements.namedItem(issue.field);el?.focus?.()
 }
-function focusDocumentReviewIssue(field){focusReviewIssue({field})}
+function focusDocumentReviewIssue(field){
+  const step=reviewStepForField(field);
+  if(step!==reviewWizardStep){setReviewWizardStep(step,false);requestAnimationFrame(()=>focusReviewIssue({field}));return}
+  focusReviewIssue({field})
+}
 function setReviewWizardStep(step,validate=true){
   const target=Number(step)===2?2:1,d=pendingPdfImport?.parsed;
   if(target===2&&validate&&d){
@@ -435,10 +439,12 @@ function updateBeginnerReviewState(){
   }
   if(amount){
     // A question that already has its own card above is not repeated in this summary.
-    const listed=amountIssues.filter(issue=>!document.querySelector('[data-review-issue="'+(issue.field==='exchangeRateToEur'?'currency':issue.field)+'"]:not(.resolved)'));
-    amount.hidden=amountIssues.length>0&&!listed.length;
-    amount.className='beginner-review-state '+(amountIssues.length?'bad':'good');
-    amount.innerHTML=listed.length?'<strong>Nog '+listed.length+' '+(listed.length===1?'punt':'punten')+' oplossen</strong><div class="beginner-issue-list">'+listed.map(issue=>'<button type="button" class="beginner-issue" onclick="focusDocumentReviewIssue(\''+esc(issue.field)+'\')">'+esc(issue.message)+'</button>').join('')+'</div>':amountIssues.length?'':'<strong>✓ Klaar om op te slaan</strong><span>De bedragen sluiten op elkaar aan.</span>'
+    // Issues from the first step are listed here too: on step 2 they are otherwise invisible while Save stays off.
+    const otherIssues=issues.filter(issue=>!amountIssues.includes(issue));
+    const listed=[...amountIssues.filter(issue=>!document.querySelector('[data-review-issue="'+(issue.field==='exchangeRateToEur'?'currency':issue.field)+'"]:not(.resolved)')),...otherIssues];
+    amount.hidden=issues.length>0&&!listed.length;
+    amount.className='beginner-review-state '+(issues.length?'bad':'good');
+    amount.innerHTML=listed.length?'<strong>Nog '+listed.length+' '+(listed.length===1?'punt':'punten')+' oplossen</strong><div class="beginner-issue-list">'+listed.map(issue=>'<button type="button" class="beginner-issue" onclick="focusDocumentReviewIssue(\''+esc(issue.field)+'\')">'+esc(issue.message)+'</button>').join('')+'</div>':issues.length?'':'<strong>✓ Klaar om op te slaan</strong><span>De bedragen sluiten op elkaar aan.</span>'
   }
   const financial=amountIssues.find(x=>['net','vatAmount','gross','vatRate','vatLines'].includes(x.field));
   if(warning){warning.hidden=true;warning.textContent=''}
@@ -691,7 +697,7 @@ function issuePanel(d,issue){
     const rate=d.vatRate!=null&&d.vatRate!==''&&Number.isFinite(Number(d.vatRate))?num(Number(d.vatRate))+'% ':'';
     return '<section class="review-issue-card attention vat-treatment-card" data-review-issue="vatTreatmentChoice"><h5>Welke btw staat erop?</h5><p>Deze '+rate+'btw is geen gewoon Nederlands tarief.</p><div class="review-choice-group" role="radiogroup" aria-label="Soort btw"><label class="review-choice"><input type="radio" name="vatTreatmentChoice" value="foreign"><span><strong>Buitenlandse btw</strong><small>Niet terug te vragen</small></span></label><label class="review-choice"><input type="radio" name="vatTreatmentChoice" value="standard"><span><strong>Nederlandse btw</strong><small>Oud of afwijkend tarief</small></span></label></div></section>'
   }
-  if(issue.field==='confirmDuplicate')return '<section class="review-issue-card attention" data-review-issue="confirmDuplicate"><h5>Deze bon lijkt al verwerkt</h5><p>'+esc(d.duplicateCandidate?.label||'We hebben een vergelijkbaar document gevonden.')+'</p><input type="hidden" name="confirmDuplicate" value=""><div class="review-issue-actions"><button type="button" class="btn small" onclick="viewDuplicateCandidate()">Bekijk bestaand document</button><button type="button" class="btn small" onclick="confirmDuplicateOverride()">Dit is toch een nieuwe bon</button></div></section>';
+  if(issue.field==='confirmDuplicate')return '<section class="review-issue-card attention" data-review-issue="confirmDuplicate"><h5>Deze bon lijkt al verwerkt</h5><p>'+esc(d.duplicateCandidate?.label||'We hebben een vergelijkbaar document gevonden.')+'</p><input type="hidden" name="confirmDuplicate" value=""><div class="review-issue-actions"><button type="button" class="btn small" onclick="viewDuplicateCandidate()">Bekijk bestaand document</button><button type="button" class="btn small" onclick="confirmDuplicateOverride()">Dit is toch een nieuwe bon</button><button type="button" class="btn small danger" onclick="discardDuplicateReview()">Weggooien, is dubbel</button></div></section>';
   if(issue.field==='confirmAnomaly')return '<section class="review-issue-card attention" data-review-issue="confirmAnomaly"><h5>Dit document heeft extra controle nodig</h5><p>'+esc(issue.message||'Vergelijk de gegevens met het origineel.')+'</p><input type="hidden" name="confirmAnomaly" value=""><div class="review-issue-actions"><button type="button" class="btn small" onclick="toggleDocumentOriginal(true)">Bekijk origineel</button><button type="button" class="btn small" onclick="confirmDocumentAnomaly()">Ik heb het origineel gecontroleerd</button></div></section>';
   if(issue.field==='vatLines')return '';
   if(issue.field==='document')return '<section class="review-issue-card attention" data-review-issue="document"><h5>Dit document heeft extra controle nodig</h5><p>'+esc(issue.message)+'</p><button type="button" class="link-btn" onclick="toggleDocumentReviewEdit(true)">Gegevens controleren</button></section>';
@@ -718,11 +724,23 @@ function mountReviewPreview(){
   const file=pendingPdfImport?.file,shell=document.querySelector('#reviewOriginalPanel .review-preview-shell');
   if(!file||!pendingPdfImport.previewUrl||!shell||shell.querySelector('.review-viewer')||!global.BoekunaDocumentViewer||global.BoekunaDocumentViewer.mobile())return;
   if(!/pdf|image/i.test(String(file.type||''))&&!/\.(pdf|jpe?g|png|webp|gif)$/i.test(String(file.name||'')))return;
+  // "Tekst kopiëren" swaps the document for its text in this same panel, so the review keeps its size and you copy with the mouse.
   const bar=document.createElement('div');bar.className='review-viewer-bar';
-  bar.innerHTML='<span>Selecteer tekst om te kopiëren</span><span class="review-viewer-actions"><button type="button" class="link-btn" onclick="toggleDocumentOriginal(true,\'text\')">Tekst kopiëren</button><button type="button" class="link-btn" onclick="toggleDocumentOriginal(true)">Vergroten</button></span>';
+  bar.innerHTML='<span class="review-viewer-hint">Selecteer tekst om te kopiëren</span><span class="review-viewer-actions"><button type="button" class="link-btn" data-review-text-toggle>Tekst kopiëren</button><button type="button" class="link-btn" onclick="toggleDocumentOriginal(true)">Vergroten</button></span>';
   const host=document.createElement('div');host.className='review-viewer';
   shell.replaceChildren(bar,host);
-  const view=global.BoekunaDocumentViewer.createView(host,{file,name:file.name,url:pendingPdfImport.previewUrl||'',compact:true});
+  const docHost=document.createElement('div');host.append(docHost);
+  const view=global.BoekunaDocumentViewer.createView(docHost,{file,name:file.name,url:pendingPdfImport.previewUrl||'',compact:true});
+  const text=global.BoekunaDocumentViewer.textPanel(view);text.panel.hidden=true;host.append(text.panel);
+  const toggle=bar.querySelector('[data-review-text-toggle]'),hint=bar.querySelector('.review-viewer-hint');
+  toggle.addEventListener('click',()=>{
+    const showText=text.panel.hidden;
+    if(showText)host.style.height=host.offsetHeight+'px';
+    text.panel.hidden=!showText;docHost.hidden=showText;host.scrollTop=0;
+    toggle.textContent=showText?'Document tonen':'Tekst kopiëren';
+    hint.textContent=showText?'Klik een regel om te kopiëren':'Selecteer tekst om te kopiëren';
+    if(showText)text.load();
+  });
   requestAnimationFrame(()=>view.render())
 }
 function toggleMixedVatEditor(force){
@@ -740,6 +758,21 @@ function confirmDocumentAnomaly(){
   const el=document.getElementById('pdfImportForm')?.elements.namedItem('confirmAnomaly');if(el)el.value='on';
   const card=document.querySelector('[data-review-issue="confirmAnomaly"]');if(card)card.classList.add('resolved');
   updateBeginnerReviewState()
+}
+// A document recognised as a duplicate can be thrown away right from the check; the existing one stays.
+async function discardDuplicateReview(){
+  const context=pendingPdfImport,ref=String(context?.sourceClientRef||''),jobId=String(context?.processingJobId||'');
+  const doc=(state.documents||[]).find(d=>String(d.fileId||'')===ref)||null;
+  if(doc&&typeof documentDeleteEligibility==='function'){
+    const check=documentDeleteEligibility(doc);
+    if(!check.allowed){toast(check.reason||'Dit document kan nu niet veilig worden verwijderd.');return false}
+  }
+  if(!doc&&!jobId){cleanupPendingImport();closeModal();toast('Dubbele bon niet opgeslagen');return true}
+  if(!confirm('Deze dubbele bon weggooien? Het bestaande document blijft gewoon staan.'))return false;
+  if(doc&&typeof deleteDocumentNow==='function'){cleanupPendingImport();closeModal();return await deleteDocumentNow(doc.id)}
+  if(jobId&&typeof removePersistentDocumentByJob==='function'){cleanupPendingImport();closeModal();removePersistentDocumentByJob(jobId);return true}
+  toast('Deze bon kan hier niet veilig worden weggegooid.');
+  return false;
 }
 function viewDuplicateCandidate(){
   const id=pendingPdfImport?.parsed?.duplicateCandidate?.id;
@@ -1066,6 +1099,7 @@ global.toggleMixedVatEditor=toggleMixedVatEditor;
 global.confirmDuplicateOverride=confirmDuplicateOverride;
 global.confirmDocumentAnomaly=confirmDocumentAnomaly;
 global.viewDuplicateCandidate=viewDuplicateCandidate;
+global.discardDuplicateReview=discardDuplicateReview;
 global.saveDocumentWithoutBooking=saveDocumentWithoutBooking;
 global.updateBeginnerReviewState=updateBeginnerReviewState;
 global.applyFinancialCorrectionProposal=applyFinancialCorrectionProposal;

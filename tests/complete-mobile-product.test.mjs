@@ -165,7 +165,7 @@ try {
  await page.setViewportSize({width:390,height:844});
  // Document processing/review state always outranks the existence of a stored file.
  const documents=await page.evaluate(()=>structuredClone(state.documents));
- const documentCases=[['received','', 'Verwerken'],['validating','','Verwerken'],['review_required','','Controleer dit even'],['ready','pending','Controle loopt'],['ready','running','Controle loopt'],['ready','needs_review','Controleer dit even'],['failed','','Mislukt'],['ready','verified','Klaar']];
+ const documentCases=[['received','', 'Verwerken'],['validating','','Verwerken'],['review_required','','Controle nodig'],['ready','pending','Controle loopt'],['ready','running','Controle loopt'],['ready','needs_review','Controle nodig'],['failed','','Mislukt'],['ready','verified','Klaar']];
  await page.evaluate(cases=>{state.documents=cases.map((c,i)=>({id:'status-'+i,name:'Status '+i+'.pdf',fileId:'stored-'+i,date:'2026-10-01',processingState:c[0],verificationStatus:c[1]}))},documentCases);
  await nav('documents');
  for(let i=0;i<documentCases.length;i++)assert.match(await page.locator('.mobile-card-row').filter({hasText:'Status '+i+'.pdf'}).innerText(),new RegExp(documentCases[i][2]));

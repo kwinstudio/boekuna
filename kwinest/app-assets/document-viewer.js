@@ -39,12 +39,15 @@ async function renderPdfPages(host,file,width,isCurrent){
     const canvas=el('canvas');canvas.width=Math.floor(viewport.width*ratio);canvas.height=Math.floor(viewport.height*ratio);canvas.setAttribute('aria-hidden','true');
     box.append(canvas);host.append(box);
     await page.render({canvasContext:canvas.getContext('2d'),viewport,transform:ratio!==1?[ratio,0,0,ratio,0,0]:null}).promise;
-    const content=await page.getTextContent();
-    pages.push(content);
-    if(pdfjs.TextLayer){
-      const layer=el('div','textLayer');box.append(layer);
-      try{await new pdfjs.TextLayer({textContentSource:content,container:layer,viewport}).render()}catch(err){console.warn('Tekstlaag',err);layer.remove()}
-    }
+    // The page is already drawn: a text layer that fails (seen on iPhone Safari) only loses text selection.
+    try{
+      const content=await page.getTextContent();
+      pages.push(content);
+      if(pdfjs.TextLayer){
+        const layer=el('div','textLayer');box.append(layer);
+        try{await new pdfjs.TextLayer({textContentSource:content,container:layer,viewport}).render()}catch(err){console.warn('Tekstlaag',err);layer.remove()}
+      }
+    }catch(err){console.warn('Tekstlaag',err)}
   }
   return pages;
 }
@@ -72,7 +75,7 @@ async function copyText(text){
 
 function textPanel(view){
   const panel=el('div','docviewer-text');
-  const intro=el('p','docviewer-hint','Tik op een regel om hem te kopiëren. Plak hem daarna in het veld.');
+  const intro=el('p','docviewer-hint','Tik of klik op een regel om hem te kopiëren, of selecteer de tekst zelf. Plak hem daarna in het veld.');
   const list=el('div','docviewer-lines');list.setAttribute('role','list');
   const status=el('p','docviewer-status');status.setAttribute('role','status');
   panel.append(intro,status,list);
@@ -83,13 +86,16 @@ function textPanel(view){
     const all=btn('Alle tekst kopiëren','btn small docviewer-copy-all',async()=>{toast(await copyText(lines.join('\n'))?'Alle tekst gekopieerd':'Kopiëren lukte niet. Selecteer de tekst zelf.')});
     list.append(all);
     lines.forEach(line=>{
-      const row=btn('','docviewer-line',async()=>{
+      // Not a <button>: text in a button cannot be selected, and on a computer people select and right-click to copy.
+      const row=el('div','docviewer-line');row.tabIndex=0;
+      const copy=async()=>{
         if(String(getSelection?.()||'').trim())return;
         const ok=await copyText(line);
         row.classList.toggle('copied',ok);setTimeout(()=>row.classList.remove('copied'),1400);
         toast(ok?'Gekopieerd: '+(line.length>40?line.slice(0,40)+'…':line):'Kopiëren lukte niet. Selecteer de tekst zelf.');
-      });
-      row.setAttribute('role','listitem');
+      };
+      row.addEventListener('click',copy);row.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();copy()}});
+      row.setAttribute('role','listitem');row.setAttribute('aria-label',line+'. Enter kopieert deze regel');
       row.append(el('span','docviewer-line-text',line),el('span','docviewer-line-copy','Kopieer'));
       list.append(row);
     });
@@ -98,9 +104,11 @@ function textPanel(view){
     if(view.textLines){show(view.textLines);return}
     status.textContent='Tekst wordt gelezen…';
     try{
-      let lines=view.kind==='pdf'?await pdfTextLines(view.file):[];
+      // Some browsers cannot read the PDF text directly; text recognition still works there.
+      let unreadable=false;
+      const lines=view.kind==='pdf'?await pdfTextLines(view.file).catch(err=>{console.warn(err);unreadable=true;return []}):[];
       if(lines.join('').length<30){
-        status.replaceChildren(document.createTextNode(view.kind==='pdf'?'Dit is een scan. ':'Dit is een foto. '));
+        status.replaceChildren(document.createTextNode(unreadable?'De tekst kon niet direct worden gelezen. ':view.kind==='pdf'?'Dit is een scan. ':'Dit is een foto. '));
         const run=btn('Tekst herkennen','btn small',async()=>{
           run.disabled=true;status.textContent='Tekst herkennen… dit kan even duren.';
           try{view.textLines=await recognizedLines(view.file,view.kind);show(view.textLines)}
@@ -122,7 +130,8 @@ function createView(container,{file,name,url,compact=false}){
   async function render(){
     const token=++view.token,current=()=>token===view.token&&pagesHost.isConnected;
     pagesHost.replaceChildren();
-    const width=Math.max(220,Math.floor((pagesHost.clientWidth||container.clientWidth||600)-(compact?0:16))*view.zoom);
+    // Fit the width of the screen, but on a large screen keep a page at reading size instead of a giant sheet.
+    const fit=Math.floor((pagesHost.clientWidth||container.clientWidth||600)-(compact?0:16)),width=Math.max(220,(compact?fit:Math.min(fit,860))*view.zoom);
     if(kind==='image'){
       if(!objectUrl)objectUrl=URL.createObjectURL(file);
       const img=el('img','docviewer-image');img.alt=name||'Document';img.src=objectUrl;img.style.width=width+'px';img.draggable=false;pagesHost.append(img);return
@@ -132,6 +141,8 @@ function createView(container,{file,name,url,compact=false}){
       try{await renderPdfPages(pagesHost,file,width,current);loading.remove()}
       catch(err){
         console.warn('PDF tonen',err);if(!current())return;loading.remove();
+        // Pages that were drawn stay; the browser's PDF view below them showed the document twice.
+        if(pagesHost.querySelector('.docviewer-page'))return;
         // Without pdf.js (offline) the browser's own PDF view is the fallback.
         if(!objectUrl)objectUrl=URL.createObjectURL(file);
         const frame=el('iframe','docviewer-frame');frame.title=name||'Document';frame.src=objectUrl;pagesHost.append(frame)
@@ -153,6 +164,7 @@ function close(){
   if(!active)return;
   const current=active;active=null;
   current.view.dispose();current.root.remove();
+  if(current.downloadUrl)URL.revokeObjectURL(current.downloadUrl);
   document.removeEventListener('keydown',current.onKey,true);
   global.removeEventListener('popstate',current.onPop);
   document.documentElement.classList.remove('docviewer-open');
@@ -164,32 +176,37 @@ function open({file,name,url,tab='document'}={}){
   if(!file)return toast('Bestand niet gevonden');
   close();
   const root=el('div','docviewer');root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label',name||'Document');
+  // One calm screen: the name and Sluiten on top, the document filling the width, a few plain actions at the bottom.
   const head=el('div','docviewer-head');
   const title=el('strong','docviewer-title',name||'Document');
   const closeBtn=btn('Sluiten','btn docviewer-close',close,'Document sluiten');
-  const tabs=el('div','docviewer-tabs');tabs.setAttribute('role','tablist');
-  const docTab=btn('Document','docviewer-tab',()=>select('document'));docTab.setAttribute('role','tab');
-  const textTab=btn('Tekst kopiëren','docviewer-tab',()=>select('text'));textTab.setAttribute('role','tab');
-  tabs.append(docTab,textTab);
+  const row=el('div','docviewer-head-row');row.append(title,closeBtn);
+  head.append(row);
+  const body=el('div','docviewer-body');
+  const foot=el('div','docviewer-foot');
+  const textBtn=btn('Tekst kopiëren','btn docviewer-text-toggle',()=>select(docPane.hidden?'document':'text'));
   const zoomOut=btn('−','docviewer-zoom',()=>view.setZoom(view.zoom-.25),'Uitzoomen'),zoomIn=btn('+','docviewer-zoom',()=>view.setZoom(view.zoom+.25),'Inzoomen');
   const zoom=el('div','docviewer-zoombar');zoom.append(zoomOut,zoomIn);
-  const row=el('div','docviewer-head-row');row.append(title,closeBtn);
-  const row2=el('div','docviewer-head-row');row2.append(tabs,zoom);
-  head.append(row,row2);
-  const body=el('div','docviewer-body');
-  root.append(head,body);
+  const download=el('a','btn docviewer-download','Downloaden');download.download=name||'document';
+  foot.append(textBtn,zoom,download);
+  root.append(head,body,foot);
   document.body.append(root);
   document.documentElement.classList.add('docviewer-open');
   const docPane=el('div','docviewer-pane');body.append(docPane);
   const view=createView(docPane,{file,name,url});
+  const downloadUrl=url||URL.createObjectURL(file);download.href=downloadUrl;
   const text=textPanel(view);text.panel.hidden=true;body.append(text.panel);
   function select(which){
     const isText=which==='text';
     docPane.hidden=isText;text.panel.hidden=!isText;zoom.hidden=isText||view.kind==='other';
-    docTab.setAttribute('aria-selected',String(!isText));textTab.setAttribute('aria-selected',String(isText));
+    textBtn.textContent=isText?'Terug naar document':'Tekst kopiëren';
+    body.scrollTop=0;
     if(isText)text.load();
   }
-  if(view.kind==='other')textTab.hidden=true;
+  // Double tap zooms in on a phone, a second double tap fits the page again.
+  let lastTap=0;
+  docPane.addEventListener('touchend',e=>{if(e.touches.length)return;const now=Date.now();if(now-lastTap<300){view.setZoom(view.zoom>1?1:2);lastTap=0}else lastTap=now});
+  if(view.kind==='other')textBtn.hidden=true;
   // Pinch zoom stays inside the viewer, so the close button never moves off screen.
   let pinch=null;
   body.addEventListener('touchstart',e=>{if(e.touches.length===2&&!docPane.hidden){const [a,b]=e.touches;pinch={d:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),zoom:view.zoom}}},{passive:true});
@@ -208,7 +225,7 @@ function open({file,name,url,tab='document'}={}){
   const historyToken='viewer-'+Date.now();
   const onPop=()=>{if(active&&history.state?.boekunaDocumentViewer!==active.historyToken){active.historyToken=null;close()}};
   history.pushState({...(history.state||{}),boekunaDocumentViewer:historyToken},'',location.href);
-  active={root,view,onKey,onPop,historyToken,returnFocus:document.activeElement};
+  active={root,view,onKey,onPop,historyToken,returnFocus:document.activeElement,downloadUrl:url?'':downloadUrl};
   document.addEventListener('keydown',onKey,true);
   global.addEventListener('popstate',onPop);
   select(tab);

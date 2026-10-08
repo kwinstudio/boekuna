@@ -47,10 +47,17 @@
     var processing=String(item.processingState||'');
     if(/failed|error/.test(processing))return '<span class="badge bad">Mislukt</span>';
     if(['received','queued','processing','validating','uploading','pending'].includes(processing))return '<span class="badge info">Verwerken</span>';
-    if(status==='needs_review'||status==='technical_error'||['needs_review','review_required'].includes(processing))return '<span class="badge warn">Controleer dit even</span>';
+    if(typeof documentReviewJob==='function'&&documentReviewJob(item))return '<span class="badge warn">Controle nodig</span>';
+    if(status==='needs_review'||status==='technical_error'||['needs_review','review_required'].includes(processing))return '<span class="badge warn">Controle nodig</span>';
     if(status==='pending'||status==='running')return '<span class="badge info">Controle loopt</span>';
     if(status==='verified'||item.fileId)return '<span class="badge good">Klaar</span>';
     return '<span class="badge">Geen bestand</span>';
+  }
+  // A document that still needs a check opens that check; any other document opens the file.
+  function documentOpenAction(item) {
+    var job = typeof documentReviewJob === 'function' ? documentReviewJob(item) : null;
+    if (job) return function () { openPersistentDocumentReview(job.id); };
+    return item.fileId ? function () { openDocumentPreview(item.id); } : null;
   }
   function row(title, amount, detail, status, action, actionText) {
     var wrapper = element('div', 'mobile-card-row');
@@ -94,13 +101,14 @@
       } else if (page === 'documents') {
         var docLink = typeof listLinkedDocumentInfo === 'function' && item.linkedId ? listLinkedDocumentInfo(item) : null;
         entry = row(item.name || 'Document', null, [dateNL(item.date), typeof documentTypeLabel === 'function' ? documentTypeLabel(item.type) : (item.type || 'Document')].join(' · '), documentStatus(item),
-          item.fileId ? function () { openDocumentPreview(item.id); } : null);
+          documentOpenAction(item));
         if (docLink) metadata(entry.firstChild, [docLink.party, docLink.number].filter(Boolean).join(' · '));
         var originalRow = Array.from(table.querySelectorAll('tbody tr')).find(function (_, index) { return items[index] === item; });
         var originalActions = originalRow && originalRow.lastElementChild;
         if (originalActions) {
           // Move the exact existing controls so menu closures and review/retry behavior survive.
-          var controls = Array.from(originalActions.children).filter(function (node) { return node.tagName==='BUTTON'; });
+          // "Controleren" is left out: tapping the card already opens the check.
+          var controls = Array.from(originalActions.children).filter(function (node) { return node.tagName==='BUTTON' && !/openPersistentDocumentReview/.test(node.getAttribute('onclick')||''); });
           controls.forEach(function (node) {
             var marker=document.createComment('mobile-original-action');node.before(marker);moved.push({node:node,marker:marker});
             entry.lastChild.append(node);

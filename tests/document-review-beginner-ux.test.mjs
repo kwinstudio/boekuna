@@ -40,7 +40,7 @@ assert.ok(appHtml.includes('/assets/document-review-v2.css'),'built app must loa
 const realHeadEnd=appHtml.indexOf('</head>');
 assert.ok(realHeadEnd>0,'built app must contain a real document head');
 const realHead=appHtml.slice(0,realHeadEnd);
-assert.ok(realHead.includes('/assets/document-review-v2.css?v=20261008a'),'review stylesheet must be injected in the real app head, not a print template');
+assert.ok(realHead.includes('/assets/document-review-v2.css?v=20261008d'),'review stylesheet must be injected in the real app head, not a print template');
 assert.equal((appHtml.match(/\/assets\/document-review-v2\.css/g)||[]).length,1,'review stylesheet must be linked exactly once');
 const inlineScripts=[...appHtml.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(Boolean);
 assert.ok(inlineScripts.length>=1,'built app must contain inline runtime');
@@ -481,6 +481,7 @@ try{
   });
   assert.match(await page.locator('[data-review-page="1"]').innerText(),/lijkt al verwerkt/i);
   assert.equal(await page.getByRole('button',{name:'Volgende',exact:true}).isDisabled(),true);
+  assert.equal(await page.getByRole('button',{name:'Weggooien, is dubbel',exact:true}).count(),1,'a duplicate can be thrown away from the check');
   await page.getByRole('button',{name:'Dit is toch een nieuwe bon',exact:true}).click();
   assert.equal(await page.getByRole('button',{name:'Volgende',exact:true}).isDisabled(),false);
   await page.evaluate(()=>closeModal());
@@ -598,11 +599,50 @@ try{
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('.docviewer').count(),0,'Escape closes only the viewer');
   assert.equal(await page.getByRole('heading',{name:'Document controleren'}).count(),1);
+  // Regression: when the PDF text could not be read (iPhone Safari), the drawn page got the browser's PDF view below it, so the document showed twice.
+  await page.evaluate(()=>{
+    window.__realLoadPdfLib=window.loadPdfLib;
+    const page={getViewport:({scale})=>({width:300*scale,height:400*scale}),render:()=>({promise:Promise.resolve()}),getTextContent:()=>Promise.reject(new Error('no text stream'))};
+    window.loadPdfLib=async()=>({getDocument:()=>({promise:Promise.resolve({numPages:1,getPage:async()=>page})})});
+    BoekunaDocumentViewer.open({file:new File(['%PDF-1.4'],'tekstloos.pdf',{type:'application/pdf'})});
+  });
+  await page.locator('.docviewer .docviewer-page').waitFor();
+  await page.waitForTimeout(100);
+  assert.equal(await page.locator('.docviewer .docviewer-page').count(),1,'drawn page stays');
+  assert.equal(await page.locator('.docviewer .docviewer-frame').count(),0,'the document is shown once, not again as browser PDF view');
+  // One simple screen on a phone: Sluiten on top, Tekst kopiëren and Downloaden at the bottom; zoom is pinch or double tap.
+  assert.ok(await page.getByRole('button',{name:'Document sluiten'}).isVisible());
+  assert.ok(await page.locator('.docviewer-foot').getByRole('button',{name:'Tekst kopiëren'}).isVisible());
+  assert.ok(await page.locator('.docviewer-foot').getByRole('link',{name:'Downloaden'}).isVisible());
+  assert.equal(await page.getByRole('button',{name:'Inzoomen'}).isVisible(),false,'no zoom buttons on a phone');
+  await noOverflow(browserName+' mobile document viewer footer');
+  await page.evaluate(()=>BoekunaDocumentViewer.close());
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
   await noOverflow(browserName+' foreign currency mobile');
   assert.equal(await page.locator('[name="exchangeRateToEur"]:visible').count(),1);
   await page.screenshot({path:'tests/artifacts/document-review-foreign-currency-mobile-'+browserName+'.png',fullPage:true});
   await page.evaluate(()=>closeModal());
+  // On a computer "Tekst kopiëren" shows the text in place of the document, in the same panel next to the fields.
+  await page.setViewportSize({width:1280,height:900});
+  await page.evaluate(()=>{
+    const file=new File(['%PDF-1.4'],'paneel.pdf',{type:'application/pdf'});
+    const parsed={type:'purchase',documentType:'purchase_invoice',confidenceScore:90,party:'Paneel BV',invoiceNumber:'P-1',issueDate:'2026-10-04',currency:'EUR',net:100,vatAmount:21,gross:121,vatRate:21,mixedRates:false,vatLines:[],lineItems:[],adjustments:[]};
+    pendingPdfImport={file,parsed,previewUrl:URL.createObjectURL(file),sha256:'panel',sourceClientRef:'',sourceDocumentId:'',processingJobId:''};showPdfImportReview(parsed);
+  });
+  await page.locator('.review-viewer .docviewer-page').waitFor();
+  // Measured inside the review panel, so a scroll of the dialog itself does not count as a size change.
+  const panelBox=()=>page.evaluate(()=>{const host=document.querySelector('.review-viewer').getBoundingClientRect(),panel=document.getElementById('reviewOriginalPanel').getBoundingClientRect();return {y:Math.round(host.top-panel.top),height:Math.round(host.height),width:Math.round(host.width)}});
+  const panelBefore=await panelBox();
+  await page.locator('[data-review-text-toggle]').click();
+  await page.locator('.review-viewer .docviewer-text:visible').waitFor();
+  const panelAfter=await panelBox();
+  assert.equal(await page.locator('.docviewer').count(),0,'text opens in the panel, not in a full-screen view');
+  assert.ok(Math.abs(panelAfter.height-panelBefore.height)<2&&Math.abs(panelAfter.y-panelBefore.y)<2,'the panel keeps its size: '+JSON.stringify({panelBefore,panelAfter}));
+  assert.equal(await page.locator('.review-viewer .docviewer-page').isVisible(),false,'the text takes the place of the document');
+  await page.locator('[data-review-text-toggle]').click();
+  assert.ok(await page.locator('.review-viewer .docviewer-page').isVisible(),'Document tonen brings the document back');
+  await page.evaluate(()=>{closeModal();window.loadPdfLib=window.__realLoadPdfLib});
+  await page.setViewportSize({width:390,height:844});
 
   // Axe on both wizard screens.
   await page.setViewportSize({width:390,height:844});
