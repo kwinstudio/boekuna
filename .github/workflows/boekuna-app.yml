@@ -7,7 +7,7 @@ on:
       - "kwinest/index.html"
       - "public/manifest.webmanifest"
       - "public/assets/financial-correction.js"
-      - "public/assets/native-local-first.js"
+      - "kwinest/app-assets/native-local-first.js"
       - "public/assets/personal-assistant-qna.js"
       - "public/assets/document-review-v2.*"
       - "public/assets/developer-mode.js"
