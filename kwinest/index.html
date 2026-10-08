@@ -4128,10 +4128,6 @@ function setVatPeriod(preset,extra={}){
  if(preset==='custom'){sessionStorage.setItem(VAT_FROM_KEY,extra.from);sessionStorage.setItem(VAT_TO_KEY,extra.to)}
  sessionStorage.setItem(VAT_PERIOD_KEY,preset);render()
 }
-function vatPeriodQuickHtml(){
- const preset=vatPeriodPreset(),year=vatPeriodYear(),thisYear=year===new Date().getFullYear();
- return periodQuickHtml({id:'vatPeriodQuick',label:'Btw-periode',value:preset,onPick:'setVatPeriod',customLabel:vatPeriodRange().label,options:[['q1','Q1',vatQuarterIsFuture('q1')],['q2','Q2',vatQuarterIsFuture('q2')],['q3','Q3',vatQuarterIsFuture('q3')],['q4','Q4',vatQuarterIsFuture('q4')],['year',thisYear?'Dit jaar':String(year)]]})
-}
 // "Filters" for pages without a list (Btw, Rapportages): one button plus the active choices as chips.
 // Filters sits right under the quick period dropdown (same width); active filters show as chips below the title.
 function pageFilterButtonHtml(openFn,count=0){
@@ -4164,8 +4160,7 @@ function openVatFilters(trigger=null){
  });
  document.getElementById('vatFilterReset')?.addEventListener('click',()=>{closeModal();setVatPeriod(vatCurrentQuarter(),{year:new Date().getFullYear()})})
 }
-function renderVat(){const period=vatPeriodRange(),invs=state.invoices.filter(i=>i.status!=='draft'&&invoiceEffectiveStatus(i)!=='cancelled'&&financialPeriodContains(i.issueDate,period)),exps=state.expenses.filter(e=>financialPeriodContains(e.date,period)),input=exps.reduce((sum,e)=>roundMoney(sum+expenseDeductibleVat(e)),0),output=roundMoney(invs.reduce((sum,i)=>sum+invoiceVat(i),0)),pay=roundMoney(output-input),review=state.transactions.filter(t=>t.status==='unmatched'&&financialPeriodContains(t.date,period)).length;return `<div class="product-page-shell"><div class="page-head product-page-head financial-page-head"><div><h1>Btw</h1><p class="page-status">${extraHelpVisible()?'Boekuna telt de btw uit je gecontroleerde inkomsten en kosten bij elkaar. Dit is een indicatie.':'Indicatie · geen aangifte'}</p></div><div class="page-period-slot page-period-stack">${vatPeriodQuickHtml()}${pageFilterButtonHtml('openVatFilters',vatFilterChips().length)}</div></div></div>
- ${pageFilterChipsHtml(vatFilterChips())}
+function renderVat(){const period=vatPeriodRange(),invs=state.invoices.filter(i=>i.status!=='draft'&&invoiceEffectiveStatus(i)!=='cancelled'&&financialPeriodContains(i.issueDate,period)),exps=state.expenses.filter(e=>financialPeriodContains(e.date,period)),input=exps.reduce((sum,e)=>roundMoney(sum+expenseDeductibleVat(e)),0),output=roundMoney(invs.reduce((sum,i)=>sum+invoiceVat(i),0)),pay=roundMoney(output-input),review=state.transactions.filter(t=>t.status==='unmatched'&&financialPeriodContains(t.date,period)).length;return `<div class="product-page-shell"><div class="page-head product-page-head financial-page-head"><div><h1>Btw</h1><p class="page-status"><span class="vat-period-label">${esc(period.label)}</span> · ${extraHelpVisible()?'Boekuna telt de btw uit je gecontroleerde inkomsten en kosten bij elkaar. Dit is een indicatie.':'Indicatie · geen aangifte'}</p></div><div class="page-period-slot page-period-stack">${pageFilterButtonHtml('openVatFilters')}</div></div></div>
  ${state.company.kor?`<div class="notice warn compact-notice"><strong>KOR staat aan.</strong> Historische boekingen blijven ongewijzigd.</div>`:''}
  ${productKpiGrid([
   productKpi(pay>=0?'Te betalen btw':'Terug te vragen btw',money(Math.abs(pay)),extraHelpVisible()?'Indicatie':'','i-tax',pay>0?'warning':'success'),

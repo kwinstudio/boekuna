@@ -207,10 +207,12 @@ try{
   const vat=await page.locator('#content').innerText();
   assert.match(vat,/geen officiële indiening|niet naar de Belastingdienst/i,'VAT must retain not-submitted meaning');
   assert.match(vat,/indicati(?:e|ef)/i,'VAT must retain indicative meaning');
-  const vatPeriod=page.locator('#vatPeriodQuick');
-  assert.ok(await vatPeriod.isVisible(),'VAT quarter choice must be visible');
-  assert.deepEqual((await vatPeriod.locator('option').allTextContents()).slice(0,4),['Q1','Q2','Q3','Q4']);
-  await vatPeriod.selectOption('year');
+  assert.equal(await page.locator('#vatPeriodQuick').count(),0,'Btw has one Filters button, no separate dropdown');
+  assert.match(await page.locator('.vat-period-label').innerText(),/^Q[1-4] \d{4}$/,'The chosen quarter is shown under the title');
+  await page.locator('.page-filter-btn').click();
+  assert.deepEqual((await page.locator('#vatFilterPeriod option').allTextContents()).slice(0,4).map(t=>t.slice(0,2)),['1e','2e','3e','4e'],'Filters offer the quarters');
+  await page.locator('#vatFilterPeriod').selectOption('year');
+  await page.locator('button[form="vatFilterForm"]').click();
   assert.equal((await page.locator('.premium-split .section-meta').first().innerText()).trim(),String(new Date().getFullYear()),'VAT year view must clearly identify the selected year');
 
   // Compact copy is the default. Help is an account-level setting, never a financial calculation toggle.

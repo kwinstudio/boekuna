@@ -138,7 +138,9 @@ try{
   await page.evaluate(()=>navigate('expenses'));
   assert.equal(await page.locator('#expensePeriod').inputValue(),'all','Costs inherit income period');
   await page.evaluate(()=>navigate('vat'));
-  assert.deepEqual((await page.locator('#vatPeriodQuick option').allTextContents()).slice(0,4),['Q1','Q2','Q3','Q4'],'Btw offers quarters');
+  await page.locator('.page-filter-btn').click();
+  assert.deepEqual((await page.locator('#vatFilterPeriod option').allTextContents()).slice(0,4).map(t=>t.slice(0,2)),['1e','2e','3e','4e'],'Btw Filters offer quarters');
+  await page.evaluate(()=>closeModal());
 
   // FACTUREN — number/customer/amount search + status/period/customer filters + sort + clear behavior.
   await go('invoices');

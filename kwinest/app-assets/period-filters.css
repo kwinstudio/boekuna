@@ -23,7 +23,7 @@
 #mainApp .page-period-stack{flex-direction:column;align-items:stretch;gap:8px}
 #mainApp .page-period-stack .page-filter-btn{
   box-sizing:border-box;width:164px!important;min-width:164px!important;height:40px!important;min-height:40px!important;margin:0!important;
-  padding:0 14px!important;display:inline-flex!important;align-items:center;justify-content:center;gap:8px;font-size:14px!important;font-weight:700!important;border-radius:10px!important
+  padding:0 14px!important;display:inline-flex!important;align-items:center;justify-content:flex-start;gap:8px;font-size:14px!important;font-weight:700!important;border-radius:10px!important
 }
 #mainApp .page-period-stack .page-filter-btn .icon{width:16px;height:16px}
 #mainApp .page-filter-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;margin:0 0 16px}
