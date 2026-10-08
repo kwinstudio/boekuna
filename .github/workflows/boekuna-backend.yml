@@ -14,6 +14,7 @@ on:
       - "tests/invoice-delivery.test.mjs"
       - "tests/early-access-entitlement.test.mjs"
       - "tests/billing-source.test.mjs"
+      - "tests/account-closure.test.mjs"
       - "tests/provider-agnostic-entitlement.test.mjs"
       - "tests/tester-invite-code-access.test.mjs"
       - "tests/tester-invite-code-sql.test.mjs"
@@ -97,6 +98,8 @@ jobs:
         run: node tests/early-access-entitlement.test.mjs
       - name: Billing subscription regressions
         run: node tests/billing-source.test.mjs
+      - name: Account deletion stops Stripe billing first
+        run: node tests/account-closure.test.mjs
       - name: Tester invite-code access regression
         run: node tests/tester-invite-code-access.test.mjs
       - name: Install document processor regression dependencies
