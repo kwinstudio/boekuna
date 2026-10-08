@@ -11,3 +11,24 @@ for(const status of ['offline','error','conflict']){ctx.setCloudSyncStatus(statu
 await ctx.retryCloudSave();assert.equal(conflicts,1);assert.equal(writes,0,'Conflict retry must preserve the choice of version');
 ctx.setCloudSyncStatus('error');await ctx.retryCloudSave();assert.equal(writes,1,'Retry uses the existing serialized sync');
 console.log('App storage status and conflict-safe retry: PASS');
+
+// Bonnetjes: a review message never shows the processor's own field names.
+{
+  const c=vm.createContext({});vm.runInContext(declaration(appSource,'documentReviewMessage')+';this.f=documentReviewMessage',c);
+  assert.equal(c.f({review_message:'Controleer documentType, supplierName, subtotal, vatTotal, total, documentgegevens, totaal, btw-bedrag.'}),'Controleer documenttype, leverancier, bedrag excl. btw, btw-bedrag en totaal.');
+  assert.equal(c.f({review_fields:['party','gross','vatAmount','total'],review_message:'x'}),'Controleer leverancier, totaal en btw-bedrag.');
+  assert.equal(c.f({review_fields:['documentType'],review_message:'Controleer het documenttype. Dit document kan niet automatisch worden geboekt.'}),'Controleer het documenttype. Dit document kan niet automatisch worden geboekt.');
+  assert.equal(c.f({}),'Controleer de gemarkeerde gegevens.');
+  console.log('Review message in plain words: PASS');
+}
+// A home-screen app reloads itself for a new version, only when nothing is open and never for scripts it added itself.
+{
+  const page='<script src="/assets/a.js?v=1"></script><link href="/assets/b.css?v=2">';
+  for(const [online,busy,expected] of [[page,false,0],[page.replace('v=1','v=3'),false,1],[page.replace('v=1','v=3'),true,0]]){
+    let reloaded=0;
+    const c=vm.createContext({TEST_MODE_NO_AUTH:false,Date,document:{visibilityState:'visible',documentElement:{outerHTML:page+'<script src="/assets/lazy.js?v=7">'},activeElement:null,querySelector:()=>busy?{}:null},location:{pathname:'/',reload(){reloaded++}},fetch:async()=>({ok:true,text:async()=>online}),cloudSyncStatus:'saved',pendingPdfImport:null});
+    vm.runInContext('let appBuildCheckAt=0;'+declaration(appSource,'appBuildSignature')+declaration(appSource,'appBusyForReload')+declaration(appSource,'checkForNewAppBuild')+';this.c=checkForNewAppBuild',c);
+    await c.c();assert.equal(reloaded,expected);
+  }
+  console.log('Reload for a new app version: PASS');
+}

@@ -2410,7 +2410,7 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
 <main class="main" id="appMain">
   <header class="topbar">
     <div class="top-left"><button class="mobile-menu" id="mobileMenu" aria-label="Menu openen"><svg class="icon"><use href="#i-menu"/></svg></button><div class="page-title" id="pageTitle">Dashboard</div></div>
-    <div class="top-actions"><button id="documentProcessingGlobal" class="document-processing-global hidden" type="button" onclick="openGlobalDocumentProcessingPanel()" aria-haspopup="dialog" aria-live="polite" aria-label="Documenten worden verwerkt"><span class="document-processing-global-spinner" aria-hidden="true"></span><span id="documentProcessingGlobalText" aria-hidden="true"></span></button><button class="btn" id="quickNew" aria-label="Nieuw"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg><span>Nieuw</span></button><span class="badge good" id="cloudSyncBadge" title="Opslagstatus" role="status" aria-live="polite">Opgeslagen ✓</span><button id="cloudSyncRetry" class="link-btn hidden" type="button" onclick="retryCloudSave()">Opnieuw proberen</button><button class="avatar" id="accountAvatar" onclick="accountMenu()" aria-label="Account">A</button></div>
+    <div class="top-actions"><button id="documentProcessingGlobal" class="document-processing-global hidden" type="button" onclick="openGlobalDocumentProcessingPanel()" aria-haspopup="dialog" aria-live="polite" aria-label="Documenten worden verwerkt"><span class="document-processing-global-spinner" aria-hidden="true"></span><span id="documentProcessingGlobalText" aria-hidden="true"></span></button><button class="btn" id="quickNew" aria-label="Nieuw"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg><span>Nieuw</span></button><span class="badge good" id="cloudSyncBadge" title="Opslagstatus" role="status" aria-live="polite" onclick="if(['offline','conflict','error'].includes(cloudSyncStatus))retryCloudSave()">Opgeslagen ✓</span><button id="cloudSyncRetry" class="link-btn hidden" type="button" onclick="retryCloudSave()">Opnieuw proberen</button><button class="avatar" id="accountAvatar" onclick="accountMenu()" aria-label="Account">A</button></div>
   </header>
   <div class="content" id="content"></div>
 </main>
@@ -5578,10 +5578,22 @@ function persistentDocumentReviewActionForFile(d){
  const job=documentReviewJob(d);
  return job?'<button class="link-btn" onclick="openPersistentDocumentReview('+esc(JSON.stringify(String(job.id)))+')">Controleren</button> ':''
 }
+// The processor can hand back its own field names (supplierName, vatTotal, …); show them as plain words, once each.
+function documentReviewMessage(job){
+ const LABELS={gross:'totaal',total:'totaal',vatAmount:'btw-bedrag',vatTotal:'btw-bedrag',net:'bedrag excl. btw',subtotal:'bedrag excl. btw',issueDate:'datum',invoiceDate:'datum',party:'leverancier',supplierName:'leverancier',customerName:'klant',invoiceNumber:'factuurnummer',vatLines:'btw-verdeling',vatRate:'btw-tarief',vatTreatment:'btw-behandeling',currency:'valuta',documentType:'documenttype',document:'documentgegevens'};
+ const raw=String(job?.review_message||'').trim();
+ if(/^Controleer het documenttype\./.test(raw))return raw;
+ const fields=Array.isArray(job?.review_fields)&&job.review_fields.length?job.review_fields.map(String):(raw.match(/^Controleer (.+)\.$/)?.[1]||'').split(/,\s*/).filter(Boolean);
+ const labels=[...new Set(fields.map(f=>LABELS[f]||(/^[a-z]+[A-Z]/.test(f)?'':f)).filter(Boolean))];
+ if(!labels.length)return raw&&!/[a-z][A-Z]/.test(raw)?raw:'Controleer de gemarkeerde gegevens.';
+ // "documentgegevens" says nothing extra next to specific fields.
+ const shown=labels.length>1?labels.filter(l=>l!=='documentgegevens'):labels;
+ return 'Controleer '+(shown.length>1?shown.slice(0,-1).join(', ')+' en '+shown.at(-1):shown[0])+'.'
+}
 function persistentDocumentJobStatus(job){
  const state=String(job?.state||'queued'),phase=String(job?.phase||'queued');
  if(state==='ready')return {label:'Klaar',detail:'De verwerking is afgerond.',icon:'✓'};
- if(state==='review_required')return {label:'Controle nodig',detail:String(job?.review_message||'Controleer de gemarkeerde gegevens.'),icon:'!'};
+ if(state==='review_required')return {label:'Controle nodig',detail:documentReviewMessage(job),icon:'!'};
  if(state==='failed')return {label:'Kon niet verwerkt worden',detail:persistentDocumentErrorMessage(job),icon:'×'};
  if(state==='validating'||phase==='validate')return {label:'Bedragen controleren',detail:'Bedragen en btw worden gecontroleerd.',icon:'spinner'};
  if(state==='processing'||phase==='read')return {label:'Wordt verwerkt',detail:'Document lezen en gegevens herkennen.',icon:'spinner'};
@@ -5847,9 +5859,26 @@ async function replacePersistentDocument(jobId){
  };
  input.click()
 }
-async function openPersistentDocumentReview(jobId){
+// A document that is not a receipt or invoice (a return order, a quote, …) is not booked by itself.
+// "Controleren" then asks what to do with it instead of only showing the file.
+function openNonFinancialDocumentChoice(jobId){
+ const job=documentProcessingJobs.find(j=>String(j.id)===String(jobId));if(!job)return;
+ const id=esc(JSON.stringify(String(job.id))),name=esc(persistentDocumentName(job));
+ modal('Wat is dit document?',`<p class="muted">BOEKUNA ziet <strong>${name}</strong> niet als bon of factuur, maar bijvoorbeeld als retour-order, offerte of pakbon. Zo'n document wordt niet geboekt.</p><div class="action-list non-financial-choice"><button type="button" class="btn primary" onclick="keepDocumentInArchiveOnly(${id})">Alleen bewaren</button><button type="button" class="btn" onclick="closeModal();openPersistentDocumentReview(${id},'purchase_invoice')">Het is wel een bon of factuur</button><button type="button" class="btn" onclick="openStoredDocument(${esc(JSON.stringify(String(job.client_ref||'')))})">Bekijk document</button><button type="button" class="btn danger" onclick="closeModal();removePersistentDocumentByJob(${id})">Verwijderen</button></div>`)
+}
+async function keepDocumentInArchiveOnly(jobId){
+ const job=documentProcessingJobs.find(j=>String(j.id)===String(jobId));if(!job)return;
+ try{
+  if(!TEST_MODE_NO_AUTH&&job.state==='review_required')await invokeDocumentProcessing('resolve',{job_id:job.id});
+  Object.assign(job,{state:'ready',phase:'complete',review_fields:[],review_message:null,resolved_at:new Date().toISOString()});
+  const d=state.documents.find(x=>String(x.fileId||'')===String(job.client_ref||''));if(d){d.processingState='ready';save()}
+  closeModal();renderGlobalDocumentIndicator();render();toast('Bewaard in Bonnetjes. Er wordt niets geboekt.');
+  if(!TEST_MODE_NO_AUTH)void fetchDocumentProcessingJobs().catch(()=>{})
+ }catch(err){console.warn(err);toast('Bewaren lukte niet. Probeer opnieuw.')}
+}
+async function openPersistentDocumentReview(jobId,forceType=''){
  const job=documentProcessingJobs.find(j=>j.id===jobId);if(!job?.result?.analysis)return toast('De verwerkte gegevens zijn nog niet beschikbaar.');
- const raw=job.result.analysis;if(!['purchase_invoice','sales_invoice','sale_invoice','credit_invoice','receipt','invoice'].includes(String(raw.documentType||'')))return openStoredDocument(job.client_ref);
+ const raw=forceType?{...job.result.analysis,documentType:forceType}:job.result.analysis;if(!['purchase_invoice','sales_invoice','sale_invoice','credit_invoice','receipt','invoice'].includes(String(raw.documentType||'')))return job.state==='review_required'?openNonFinancialDocumentChoice(jobId):openStoredDocument(job.client_ref);
  try{
   const stored=await getStoredFile(job.client_ref);if(!stored?.blob)throw new Error('DOCUMENT_NOT_FOUND');
   const file=new File([stored.blob],stored.name||persistentDocumentName(job),{type:stored.type||stored.blob.type||'application/octet-stream'});
@@ -7050,6 +7079,26 @@ window.addEventListener('keydown',e=>{
   else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
  }
 });window.addEventListener('popstate',()=>{if(document.getElementById('mainApp').style.display==='none')showLanding()});window.addEventListener('online',()=>{documentProcessingConnectivityLost=false;renderGlobalDocumentIndicator();if(TEST_MODE_NO_AUTH){setCloudSyncStatus('saved');void resumePendingDocumentVerifications();return}setCloudSyncStatus('saving');syncCloudStateNow().then(()=>resumePendingDocumentVerifications()).catch(()=>setCloudSyncStatus('error'));invokeDocumentProcessing('resume').then(()=>fetchDocumentProcessingJobs()).catch(()=>{})});window.addEventListener('offline',()=>{documentProcessingConnectivityLost=true;renderGlobalDocumentIndicator();if(page==='documents')render();setCloudSyncStatus(TEST_MODE_NO_AUTH?'saved':'offline')});initAuth();
+// An app saved on the home screen can stay open for days and keep an old version in memory. When it comes back
+// to the front and a newer version is online, reload it, but only while nothing is being typed or checked.
+let appBuildCheckAt=0;
+function appBuildSignature(html){return [...String(html||'').matchAll(/\/assets\/[\w.-]+\?v=[\w.-]+/g)].map(m=>m[0]).sort().join('|')}
+function appBusyForReload(){
+ const active=document.activeElement;
+ return !!(document.querySelector('#modalRoot .modal,#modalRoot [role="dialog"],.docviewer')||(typeof pendingPdfImport!=='undefined'&&pendingPdfImport)||(typeof cloudSyncStatus!=='undefined'&&cloudSyncStatus!=='saved')||active?.matches?.('input,textarea,select,[contenteditable="true"]'))
+}
+async function checkForNewAppBuild(){
+ if(TEST_MODE_NO_AUTH||document.visibilityState!=='visible'||Date.now()-appBuildCheckAt<60000)return;
+ appBuildCheckAt=Date.now();
+ try{
+  const res=await fetch(location.pathname+'?build-check='+Date.now(),{cache:'no-store',credentials:'same-origin'});if(!res.ok)return;
+  // Only a file this page does not have yet counts: scripts the app adds itself later must not cause a reload.
+  const here=new Set(appBuildSignature(document.documentElement.outerHTML).split('|')),online=appBuildSignature(await res.text()).split('|').filter(Boolean);
+  if(here.size>1&&online.some(url=>!here.has(url))&&!appBusyForReload())location.reload()
+ }catch(_){}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void checkForNewAppBuild()});
+window.addEventListener('pageshow',e=>{if(e.persisted)void checkForNewAppBuild()});
 </script>
 <script id="boekuna-native-email-share">
 (function(){

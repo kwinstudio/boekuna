@@ -233,6 +233,87 @@ def test_pdf_cleanup_preserves_result_and_closes_mupdf():
     assert "121" in result["text"]
 
 
+def classic_header_invoice_pdf(subtotal="EUR 1.525,70", vat="EUR 320,40", total="EUR 1.846,10", watermark=True):
+    """Issuer name top-left without a label, invoice metadata as a right column,
+    the customer under "FACTUUR AAN", KvK/BTW/IBAN only in the footer and a
+    light diagonal "OCR TEST" watermark crossing the totals (TEST-049_klassiek)."""
+    doc = fitz.open()
+    page = doc.new_page(width=595, height=842)
+    if watermark:
+        pivot = fitz.Point(200, 520)
+        page.insert_text(pivot, "OCR TEST", fontsize=80, fontname="helv", color=(0.85, 0.85, 0.85),
+                         morph=(pivot, fitz.Matrix(-40)))
+    page.insert_text((50, 60), "Kruimel & Koffie Zakelijk", fontsize=14, fontname="hebo")
+    page.insert_text((50, 76), "Meent 77", fontsize=10)
+    page.insert_text((50, 90), "3011 JG Rotterdam", fontsize=10)
+    page.insert_text((470, 60), "FACTUUR", fontsize=20, fontname="hebo")
+    for i, (label, value) in enumerate([("Factuurnummer", "NL-000049"), ("Factuurdatum", "05-09-2026"), ("Vervaldatum", "19-09-2026")]):
+        page.insert_text((365, 82 + i * 14), label, fontsize=10)
+        page.insert_text((480, 82 + i * 14), value, fontsize=10)
+    page.insert_text((50, 150), "FACTUUR AAN", fontsize=9, fontname="hebo")
+    for i, line in enumerate(["Rijnstad Proefklant", "Klantstraat 21", "3021 AA Rotterdam"]):
+        page.insert_text((50, 166 + i * 14), line, fontsize=10)
+    page.insert_text((50, 250), "Omschrijving", fontsize=10, fontname="hebo")
+    for x, label in [(300, "Aantal"), (370, "Prijs"), (440, "BTW"), (500, "Bedrag")]:
+        page.insert_text((x, 250), label, fontsize=10, fontname="hebo")
+    rows = [
+        ("Interieur montage", "7,5", "EUR 67,00", "EUR 502,50"),
+        ("Administratieve ondersteuning", "1,5", "EUR 58,00", "EUR 87,00"),
+        ("Reinigingswerkzaamheden", "2,0", "EUR 42,50", "EUR 85,00"),
+        ("Interieur montage", "3,5", "EUR 67,00", "EUR 234,50"),
+        ("Administratieve ondersteuning", "5,0", "EUR 58,00", "EUR 290,00"),
+        ("Reinigingswerkzaamheden", "7,5", "EUR 42,50", "EUR 318,75"),
+    ]
+    for i, (desc, qty, price, amount) in enumerate(rows):
+        y = 270 + i * 18
+        page.insert_text((50, y), desc, fontsize=10)
+        page.insert_text((300, y), qty, fontsize=10)
+        page.insert_text((370, y), price, fontsize=10)
+        page.insert_text((440, y), "21%", fontsize=10)
+        page.insert_text((500, y), amount, fontsize=10)
+    for i, (label, value) in enumerate([("Subtotaal", subtotal), ("BTW 21%", vat), ("Totaal", total)]):
+        page.insert_text((365, 420 + i * 16), label, fontsize=10)
+        page.insert_text((490, 420 + i * 16), value, fontsize=10)
+    page.insert_text((110, 772), "KVK 00000049 (TEST) | BTW NL000000000B00 (TEST) | IBAN NL00TEST0000000049", fontsize=8)
+    page.insert_text((200, 784), "Kruimel & Koffie Zakelijk | testfactuur.local", fontsize=8)
+    page.insert_text((185, 796), "SYNTHETISCHE OCR-TESTFACTUUR - NIET BETALEN", fontsize=8)
+    raw = doc.tobytes()
+    doc.close()
+    return raw
+
+
+def test_classic_header_invoice_with_diagonal_watermark():
+    """Regression TEST-049_klassiek: supplier was empty and the watermark's
+    words were spliced into the totals rows, so every amount went to review."""
+    for watermark in (True, False):
+        for printed, cents in [
+            (("EUR 1.525,70", "EUR 320,40", "EUR 1.846,10"), (152570, 32040, 184610)),
+            (("EUR 1.517,75", "EUR 318,73", "EUR 1.836,48"), (151775, 31873, 183648)),
+        ]:
+            raw = classic_header_invoice_pdf(*printed, watermark=watermark)
+            doc = processor.extract_document("TEST-049_klassiek.pdf", "application/pdf", raw)
+            assert doc["ocrPages"] == []
+            assert "OCR" not in doc["text"].split() and "TEST" not in doc["text"].split(), doc["text"]
+            assert "Totaal " + printed[2] in doc["text"], doc["text"]
+            data = processor.analyze_document(raw, "TEST-049_klassiek.pdf", "application/pdf", {}, allow_external_ai=False)["data"]
+            amounts = data["amounts"]
+            assert data["supplier"]["name"] == "Kruimel & Koffie Zakelijk", data["supplier"]
+            assert data["customer"]["name"] == "Rijnstad Proefklant", data["customer"]
+            assert data["supplier"]["kvk"] == "00000049"
+            assert data["invoice"]["invoiceNumber"] == "NL-000049"
+            assert data["invoice"]["invoiceDate"] == "2026-09-05"
+            assert tuple(processor.money_cents(amounts[k]) for k in ("subtotal", "vatTotal", "total")) == cents, amounts
+            routing = data["processing"]["reviewRouting"]
+            assert not {"subtotal", "vatTotal", "total"} & set(routing["fields"]), routing
+            assert "VAT_MATH_MISMATCH" not in (data["processing"].get("anomalyCodes") or [])
+            assert not any("Rekenkundige controle" in w for w in data["warnings"]), data["warnings"]
+            if cents[0] == 152570:
+                # The printed subtotal differs from the line sum (1.517,75): a real review reason.
+                assert "LINE_NET_MISMATCH" in data["processing"]["anomalyCodes"], data["processing"]
+            else:
+                assert routing["mode"] == "QUICK_REVIEW", routing
+
+
 if __name__ == "__main__":
     tests = [
         test_trusted_origin_contract,
@@ -243,6 +324,7 @@ if __name__ == "__main__":
         test_multiple_vat_rates_are_preserved_for_review,
         test_corrupt_pdf_fails_loudly,
         test_pdf_cleanup_preserves_result_and_closes_mupdf,
+        test_classic_header_invoice_with_diagonal_watermark,
     ]
     for test in tests:
         test()

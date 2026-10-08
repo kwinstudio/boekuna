@@ -13,7 +13,7 @@ for(const dir of ['dist/marketing','dist/app'])fs.rmSync(path.join(root,dir),{re
 const marketing=spawnSync(process.execPath,[marketingScript],{cwd:root,encoding:'utf8'});
 assert.equal(marketing.status,0,'marketing build failed: '+marketing.stderr+'\n'+marketing.stdout);
 const distMarketing=path.join(root,'dist','marketing');
-for(const route of ['','privacy','support','voorwaarden','account-verwijderen','functies','assistent','scanner','prijzen','veiligheid','faq','facturen','bonnen','btw','bank','rapportages','mobiel','hoe-het-werkt']){
+for(const route of ['','privacy','support','voorwaarden','account-verwijderen','functies','assistent','scanner','prijzen','veiligheid','faq','facturen','bonnen','btw','bank','rapportages','mobiel','hoe-het-werkt','over-ons']){
   assert.ok(fs.existsSync(path.join(distMarketing,route,'index.html')),'marketing route missing '+(route||'/'));
 }
 assert.ok(fs.existsSync(path.join(distMarketing,'assets','baseline.css')),'clean baseline stylesheet missing');

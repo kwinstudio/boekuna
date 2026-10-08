@@ -14,8 +14,8 @@ fs.mkdirSync(evidence,{recursive:true});
 const server=await serveMarketing(dist);
 const engines=[['chromium',chromium],['webkit',webkit]];
 const widths=[320,375,390,430,768,1024,1280,1440];
-const preserved=['/privacy/','/voorwaarden/','/support/','/account-verwijderen/'];
-const retired=['/functies/','/assistent/','/scanner/','/prijzen/','/veiligheid/','/faq/','/facturen/','/bonnen/','/btw/','/bank/','/rapportages/','/mobiel/','/hoe-het-werkt/'];
+const preserved=['/privacy/','/voorwaarden/','/support/','/account-verwijderen/','/functies/','/facturen/','/bonnen/','/btw/','/bank/','/hoe-het-werkt/','/prijzen/','/veiligheid/','/faq/','/over-ons/'];
+const retired=['/assistent/','/scanner/','/rapportages/','/mobiel/'];
 
 async function noOverflow(page,label){
   const s=await page.evaluate(()=>({vw:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
@@ -65,7 +65,7 @@ try{
         assert.equal(response.status(),200,name+' '+route);
         assert.equal(await page.locator('h1').count(),1,route+' h1');
         assert.ok(await page.locator('header .brand').isVisible(),route+' baseline brand');
-        assert.ok(await page.locator('a[href="https://app.boekuna.nl/?login=1"]').first().isVisible(),route+' app login link');
+        assert.ok(await page.locator('a[href="https://app.boekuna.nl/?login=1"]:visible').first().isVisible(),route+' app login link');
         await noOverflow(page,name+' '+route);
         await axe(page,name+' '+route);
         assert.deepEqual(errors,[],name+' '+route+' console/page errors');

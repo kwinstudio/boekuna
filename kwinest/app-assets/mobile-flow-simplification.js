@@ -54,6 +54,10 @@
     };
     return map[field]||'Klopt dit gegeven?';
   }
+  function emptyQuestion(field){
+    var map={party:'Wie is de leverancier?',issueDate:'Wat is de datum?',invoiceNumber:'Wat is het factuurnummer?',category:'Welke categorie past?'};
+    return map[field]||'Vul dit gegeven in';
+  }
   function contactField(form,name){return form.elements.namedItem(name)?.closest('.field')||null}
   function updateContactCompanyCard(form,card){
     if(!form||!card)return;
@@ -309,6 +313,7 @@
   function showFullReview(flow,issue){
     restoreReviewPages(flow);flow.dataset.mobileSimpleReview='full';setShellFoot(flow,false);
     flow.querySelector('.mobile-single-issue-review')?.setAttribute('hidden','');
+    flow.querySelectorAll('.mobile-single-issue-actions').forEach(function(el){el.remove()});
     var field=String(issue?.field||'');
     var amountFields=['net','vatAmount','gross','vatRate','vatLines','currency','exchangeRateToEur','vatTreatmentChoice'];
     var step=amountFields.includes(field)?2:1;
@@ -383,6 +388,7 @@
     if(shell&&flow.dataset.mobileSimpleReview==='active'&&flow.dataset.mobileIssueSignature===issueSignature)return;
     flow.dataset.mobileIssueSignature=issueSignature;
     restoreReviewPages(flow);
+    flow.querySelectorAll('.mobile-single-issue-actions').forEach(function(el){el.remove()});
     if(!shell){shell=node('section','mobile-single-issue-review');flow.querySelector('.document-review-fields')?.prepend(shell)}
     shell.hidden=false;flow.dataset.mobileSimpleReview='active';mobileIssueReviewRequested=false;setShellFoot(flow,true);
     shell.replaceChildren();
@@ -396,11 +402,16 @@
     }
     var issue=issues[0],target=activeReviewTarget(flow,String(issue.field||''));
     if(DIRECT_FIELDS.includes(String(issue.field||''))){showFullReview(flow,issue);return}
-    shell.append(node('span','mobile-flow-eyebrow','1 van '+issues.length));
-    shell.append(node('h4','mobile-single-issue-question',reviewQuestion(String(issue.field||''))));
-    if(issue.message)shell.append(node('p','',String(issue.message)));
-    if(String(issue.field||'')==='confirmDuplicate')shell.append(duplicateComparison(parsed));
-    else shell.append(button('Bekijk document',function(){toggleDocumentOriginal(true)},'btn link-btn mobile-flow-action'));
+    var field=String(issue.field||''),input=target?.querySelector('input,select,textarea');
+    // Only a plain field can be empty; question cards (duplicate, anomaly, currency) keep their own wording.
+    var plain=!!target?.matches?.('[data-review-field]')&&!['confirmDuplicate','confirmAnomaly','currency','exchangeRateToEur','vatLines','vatTreatmentChoice'].includes(field);
+    var empty=plain&&!!input&&!String(input.value||'').trim();
+    shell.append(node('span','mobile-flow-eyebrow',issues.length>1?'Vraag 1 van '+issues.length:'Nog 1 vraag'));
+    shell.append(node('h4','mobile-single-issue-question',empty?emptyQuestion(field):reviewQuestion(field)));
+    // An empty field says "… ontbreekt" in the message; the question already asks for it, so it is not repeated.
+    if(issue.message&&!empty)shell.append(node('p','',String(issue.message)));
+    else if(empty)shell.append(node('p','','Neem het over zoals het op het document staat.'));
+    if(field==='confirmDuplicate')shell.append(duplicateComparison(parsed));
     var page=target?.closest('[data-review-page]');
     if(page){
       if(!page.dataset.mobileWasHidden)page.dataset.mobileWasHidden=page.hidden?'1':'0';
@@ -409,22 +420,24 @@
     var candidates=flow.querySelectorAll('[data-review-field],[data-review-issue],.mixed-vat-summary,.review-context-card,#financialCorrectionPanel,#reviewBasisState,#reviewBlockingState');
     candidates.forEach(function(el){if(el!==target&&!el.contains(target))el.classList.add('mobile-flow-hidden')});
     target?.classList.add('mobile-active-issue');
-    var actions=node('div','mobile-single-issue-actions'),field=String(issue.field||'');
+    // The answers sit right under the field they are about, not above it.
+    var actions=node('div','mobile-single-issue-actions'),more=node('div','mobile-single-issue-more');
     if(field==='confirmDuplicate'){
       actions.append(button('Weggooien, is dubbel',function(){window.discardDuplicateReview?.()},'btn primary mobile-flow-action'));
       actions.append(button('Nee, dit is een andere bon',function(){confirmDuplicateOverride();requestAnimationFrame(schedule)},'btn mobile-flow-action'));
     }else if(field==='confirmAnomaly'){
       actions.append(button('Ik heb het origineel gecontroleerd',function(){confirmDocumentAnomaly();requestAnimationFrame(schedule)},'btn primary mobile-flow-action'));
-      actions.append(button('Alle gegevens bekijken',function(){showFullReview(flow,issue)},'btn link-btn mobile-flow-action'));
     }else if(['currency','exchangeRateToEur','vatLines','vatTreatmentChoice'].includes(field)){
       actions.append(button('Aanpassen',function(){showFullReview(flow,issue)},'btn primary mobile-flow-action'));
-    }else{
-      // An empty field has nothing to confirm: the field itself is shown above, so typing is the answer.
-      var input=target?.querySelector('input,select,textarea');
-      if(input&&String(input.value||'').trim())actions.append(button('Ja, klopt',function(){confirmReviewIssue(flow,issue)},'btn primary mobile-flow-action'));
-      actions.append(button('Alle gegevens bekijken',function(){showFullReview(flow,issue)},'btn link-btn mobile-flow-action'));
+    }else if(!empty){
+      // An empty field has nothing to confirm: typing in the field is the answer.
+      actions.append(button('Ja, klopt',function(){confirmReviewIssue(flow,issue)},'btn primary mobile-flow-action'));
     }
-    shell.append(actions);
+    if(field!=='confirmDuplicate')more.append(button('Bekijk document',function(){toggleDocumentOriginal(true)},'btn mobile-flow-action'));
+    if(field!=='confirmDuplicate')more.append(button('Alle gegevens',function(){showFullReview(flow,issue)},'btn mobile-flow-action'));
+    if(more.childElementCount)actions.append(more);
+    var form=flow.querySelector('#pdfImportForm');
+    if(form)form.after(actions);else shell.append(actions);
   }
 
   function enhance(){
@@ -465,7 +478,7 @@
     restoreReviewPages(document.querySelector('.document-review-flow.two-step-review'));
     moves.reverse().forEach(function(item){if(item.marker.isConnected&&item.el){delete item.el.dataset.mobileFlowMoved;item.marker.replaceWith(item.el)}});moves=[];
     textChanges.forEach(function(item){if(item.el?.isConnected){item.el.textContent=item.text;delete item.el.dataset.mobileFlowTextSaved}});textChanges=[];
-    document.querySelectorAll('.mobile-document-groups,.mobile-customer-company-card,.mobile-contact-manual,.mobile-contact-more,.mobile-invoice-progress,.mobile-invoice-step,.mobile-single-issue-review,.mobile-vat-choice').forEach(function(el){el.remove()});
+    document.querySelectorAll('.mobile-document-groups,.mobile-customer-company-card,.mobile-contact-manual,.mobile-contact-more,.mobile-invoice-progress,.mobile-invoice-step,.mobile-single-issue-review,.mobile-single-issue-actions,.mobile-vat-choice').forEach(function(el){el.remove()});
     document.querySelectorAll('[data-mobile-customer-flow]').forEach(function(form){delete form.dataset.mobileCustomerFlow;delete form.dataset.mobileManual;delete form.dataset.mobileMore;delete form.dataset.mobileKvkSelected});
     document.querySelectorAll('[data-mobile-invoice-flow]').forEach(function(form){delete form.dataset.mobileInvoiceFlow;delete form.dataset.mobileInvoiceStep});
     document.querySelectorAll('.mobile-invoice-original-foot').forEach(function(el){el.classList.remove('mobile-invoice-original-foot')});

@@ -229,6 +229,20 @@ html body :is(#mainApp,#modalRoot) :is(.field,.form-grid>*,.grid>*){min-width:0}
   html body #mainApp #cloudSyncBadge.badge.good:not(.hidden)::after{content:"✓";font-size:14px}
 }
 
+/* Phone top bar: everything stays on one line. A failed save is one small pill you tap to try again,
+   instead of a red label with a separate link wrapping under it and pushing "+" off the screen. */
+@media(max-width:820px){
+  html body #mainApp .top-actions{flex-wrap:nowrap!important;max-width:none!important;min-width:0;align-items:center}
+  html body #mainApp #cloudSyncRetry{display:none!important}
+  html body #mainApp #cloudSyncBadge.badge.bad:not(.hidden){font-size:0!important;padding:0 12px!important;height:32px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer;background:#FFF7E6!important;color:#8A5300!important;border:1px solid #F3D9A4!important}
+  html body #mainApp #cloudSyncBadge.badge.bad:not(.hidden)::after{content:"Opnieuw opslaan";font-size:12px;font-weight:700}
+  html body #mainApp .topbar :is(#quickNew,#mobileMenu){flex:0 0 auto}
+  html body #mainApp .topbar .page-title{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+@media(max-width:374px){
+  html body #mainApp #cloudSyncBadge.badge.bad:not(.hidden)::after{content:"Opslaan"}
+}
+
 /* Chart colours: omzet green, kosten red, winst blue. Same in the overview, reports and the cost categories. */
 html body #mainApp#mainApp :is(.bar.sales,.legend-dot:not(.cost):not(.profit)){background:#63D471!important}
 html body #mainApp#mainApp :is(.bar.costs,.legend-dot.cost,.category-row .progress span){background:#E5534B!important}
