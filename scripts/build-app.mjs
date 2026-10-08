@@ -35,7 +35,6 @@ const appAssets=[
   'boekuna-app-icon-512.png',
   'boekuna-app-icon-maskable-512.png',
   'boekuna-app-icon.svg',
-  'boekuna-app-favicon.svg',
   'boekuna-symbol-reversed.svg',
   'boekuna-symbol.svg',
   'brand-v2.css',
@@ -396,7 +395,7 @@ for(const asset of appAssets){
 }
 
 // Document review is app-only. Keep the shared public/marketing copies byte-identical.
-for(const asset of ['document-review-v2.js','document-review-v2.css','product-color-polish.css','product-ux-polish-round-3.css','mobile-flow-simplification.js','mobile-flow-simplification.css','calm-ux.js','calm-ux.css','settings-center.js','settings-center.css','theme.js','theme-dark.css','period-filters.css','feedback.js','feedback.css','exports-filters.css','document-viewer.js','document-viewer.css','bank-documents.css']){
+for(const asset of ['boekuna-app-favicon.svg','document-review-v2.js','document-review-v2.css','product-color-polish.css','product-ux-polish-round-3.css','mobile-flow-simplification.js','mobile-flow-simplification.css','calm-ux.js','calm-ux.css','settings-center.js','settings-center.css','theme.js','theme-dark.css','period-filters.css','feedback.js','feedback.css','exports-filters.css','document-viewer.js','document-viewer.css','bank-documents.css']){
   const sourceFile=path.join(root,'kwinest','app-assets',asset);
   if(!fs.existsSync(sourceFile))throw new Error('Missing app-only review asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
