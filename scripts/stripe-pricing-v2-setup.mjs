@@ -105,6 +105,8 @@ const portal = {
 };
 switchable.forEach((plan, i) => {
   portal[`features[subscription_update][products][${i}][product]`] = `boekuna_${plan}`;
+  // One seat per account: customers may not change the quantity in the portal.
+  portal[`features[subscription_update][products][${i}][adjustable_quantity][enabled]`] = 'false';
   INTERVALS.forEach((interval, j) => {
     portal[`features[subscription_update][products][${i}][prices][${j}]`] = prices[lookupKey(plan, interval)] || `<${lookupKey(plan, interval)}>`;
   });
