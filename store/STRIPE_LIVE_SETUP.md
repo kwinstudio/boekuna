@@ -17,7 +17,7 @@ The previous First-100 / Early Access campaign is retired. Production must not a
 Set securely in the Supabase project environment:
 
 - STRIPE_SECRET_KEY — Stripe **live** secret key for production.
-- APP_URL — optional; defaults to https://boekuna-boekhouding.onrender.com
+- APP_URL — optional; defaults to https://app.boekuna.nl
 
 Do not put either value in frontend code or Git.
 
