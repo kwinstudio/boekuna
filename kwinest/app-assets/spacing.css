@@ -50,6 +50,30 @@
   #mainApp #content .documents-workspace td:last-child{padding-right:0!important}
 }
 
+/* Desktop page head: one row. Title (and subtitle) left; the page buttons and the period choice
+   right, on the same line, centred on the title block. The period choice stays the rightmost item
+   on every page. On smaller desktop screens the buttons and period choice move together to one row under the title. */
+@media(min-width:821px){
+  #mainApp #content.content>.product-page-shell{display:flex!important;flex-wrap:wrap;align-items:center;column-gap:var(--space-3,12px);row-gap:var(--space-3,12px)}
+  #mainApp #content.content>.product-page-shell>.page-head{display:contents!important}
+  #mainApp #content.content>.product-page-shell>.page-head>div:first-child{flex:1 1 280px;min-width:0;order:1}
+  #mainApp #content.content>.product-page-shell>.page-head>div:first-child>h1{margin:0!important;line-height:36px!important}
+  #mainApp #content.content>.product-page-shell>.page-head>div:first-child>p{margin:4px 0 0!important;line-height:22px!important}
+  /* Whole-pixel title lines, so the row centres on whole pixels and text renders the same every time. */
+  #mainApp #content.content>.product-page-shell>.product-page-actions,
+  #mainApp #content.content>.product-page-shell>.page-head+.product-page-actions{order:2;width:auto!important;margin:0 0 0 auto!important;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end!important}
+  #mainApp #content.content>.product-page-shell>.page-head>.page-period-slot{order:3;margin:0!important;padding:0!important;align-items:center}
+  #mainApp #content.content>.product-page-shell:not(:has(>.product-page-actions))>.page-head>.page-period-slot{margin-left:auto!important}
+  /* Btw and Rapportages: Filters sits next to the period choice instead of under it. */
+  #mainApp #content.content>.product-page-shell>.page-head>.page-period-stack{flex-direction:row-reverse;align-items:center;gap:var(--space-2,8px)}
+  #mainApp #content.content>.product-page-shell>.page-head>.page-period-stack>*{width:auto!important;flex:0 0 auto}
+  /* Smaller desktop screens: buttons and period choice stay together on one row under the title. */
+  @media(max-width:1199px){#mainApp #content.content>.product-page-shell:has(>.product-page-actions):has(.page-period-slot)>.page-head>div:first-child{flex-basis:100%}}
+  /* Pages without the shared shell (Diensten): same row, same centring. */
+  #mainApp #content.content>.page-head{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between;gap:var(--space-3,12px)}
+  #mainApp #content.content>.page-head>div:first-child>h1{margin:0!important}
+}
+
 /* A table card's heading sits on the same inner edge as every other card (Ontvangsten had none). */
 #mainApp #content .table-card>.section-head{padding:var(--space-5,20px) var(--space-5,20px) 0!important}
 

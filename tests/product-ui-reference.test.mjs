@@ -289,7 +289,8 @@ try{
       });
       assert.ok(incomeHeader.period&&incomeHeader.actions,browserName+' Inkomsten must use shared title/filter/action pattern');
       assert.ok(incomeHeader.period.left>incomeHeader.title.left,browserName+' Inkomsten period must sit to the right of title');
-      assert.ok(incomeHeader.actions.top>=incomeHeader.head.bottom-1,browserName+' Inkomsten actions must sit below title/filter row');
+      assert.ok(incomeHeader.actions.left>=incomeHeader.title.right&&incomeHeader.period.left>=incomeHeader.actions.right,browserName+' Inkomsten desktop head: title, then actions, then period on the right');
+      assert.ok(incomeHeader.actions.top<incomeHeader.title.bottom&&incomeHeader.actions.bottom>incomeHeader.title.top,browserName+' Inkomsten actions must share the title row on desktop');
       const iconGeometry=await page.locator('.product-kpi').first().evaluate(card=>{
         const label=card.querySelector('.product-kpi-label'),icon=card.querySelector('.product-kpi-icon'),a=label.getBoundingClientRect(),b=icon.getBoundingClientRect();
         return {labelLeft:a.left,labelRight:a.right,iconLeft:b.left,iconRight:b.right};
@@ -444,11 +445,11 @@ try{
         const hierarchy=await page.evaluate(()=>{
           const shell=document.querySelector('.product-page-shell'),head=shell?.querySelector('.product-page-head'),actions=shell?.querySelector('.product-page-actions');
           if(!shell||!head||!actions)return null;
-          const h=head.getBoundingClientRect(),a=actions.getBoundingClientRect();
-          return {headBottom:h.bottom,actionsTop:a.top};
+          const t=head.querySelector('h1').getBoundingClientRect(),a=actions.getBoundingClientRect();
+          return {titleTop:t.top,titleBottom:t.bottom,titleRight:t.right,actionsTop:a.top,actionsBottom:a.bottom,actionsLeft:a.left};
         });
         assert.ok(hierarchy,browserName+' '+route+' must use shared title/action hierarchy');
-        assert.ok(hierarchy.actionsTop>=hierarchy.headBottom-1,browserName+' '+route+' actions must be below the title row');
+        assert.ok(hierarchy.actionsLeft>=hierarchy.titleRight&&hierarchy.actionsTop<hierarchy.titleBottom&&hierarchy.actionsBottom>hierarchy.titleTop,browserName+' '+route+' actions must sit on the title row, to the right, on desktop');
         await noOverflow(page,browserName+' desktop '+route+' actions');
       }
 
