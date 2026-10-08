@@ -18,7 +18,7 @@ async function render(source,name,width,height=width,fit='contain'){
 }
 for(const size of [180,192,512,1024]) await render('boekuna-app-icon.svg','boekuna-app-icon-'+size+'.png',size);
 await render('boekuna-app-icon-maskable.svg','boekuna-app-icon-maskable-512.png',512);
-for(const size of [16,32,48,64]) await render('boekuna-favicon.svg','favicon-'+size+'.png',size);
+for(const size of [16,32,48,64]) await render('boekuna-app-favicon.svg','favicon-'+size+'.png',size);
 await render('boekuna-symbol.svg','boekuna-logo-master-1024.png',1024);
 await render('boekuna-app-icon.svg','boekuna-social-avatar-1024.png',1024);
 await render('boekuna-og-template.svg','boekuna-og-1200x630.png',1200,630,'fill');

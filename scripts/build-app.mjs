@@ -35,7 +35,7 @@ const appAssets=[
   'boekuna-app-icon-512.png',
   'boekuna-app-icon-maskable-512.png',
   'boekuna-app-icon.svg',
-  'boekuna-favicon.svg',
+  'boekuna-app-favicon.svg',
   'boekuna-symbol-reversed.svg',
   'boekuna-symbol.svg',
   'brand-v2.css',
