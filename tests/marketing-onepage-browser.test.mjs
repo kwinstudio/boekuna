@@ -19,6 +19,12 @@ const retired=['/functies/','/assistent/','/scanner/','/prijzen/','/veiligheid/'
 
 async function noOverflow(page,label){
   const s=await page.evaluate(()=>({vw:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
+  if(s.html>s.vw+1||s.body>s.vw+1){
+    const offenders=await page.evaluate(()=>[...document.querySelectorAll('body *')]
+      .map(e=>({tag:e.tagName,cls:e.className?.toString?.().slice(0,85),text:(e.textContent||'').trim().slice(0,55),right:Math.round(e.getBoundingClientRect().right),width:Math.round(e.getBoundingClientRect().width)}))
+      .filter(x=>x.right>innerWidth+1).sort((a,b)=>b.right-a.right).slice(0,18));
+    console.error('LANDING_OVERFLOW_DIAGNOSTIC '+JSON.stringify(offenders));
+  }
   assert.ok(s.html<=s.vw+1&&s.body<=s.vw+1,label+' horizontal overflow '+JSON.stringify(s));
 }
 async function axe(page,label){
