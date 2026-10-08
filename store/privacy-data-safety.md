@@ -1,13 +1,13 @@
 # Boekuna — App Store privacy & Google Play Data Safety
 
-Last updated: 29 September 2026
+Last updated: 8 October 2026
 
 ## Public URLs
 
-- Privacy policy: https://boekuna-boekhouding.onrender.com/privacy/
-- Support: https://boekuna-boekhouding.onrender.com/support/
-- Account deletion: https://boekuna-boekhouding.onrender.com/account-verwijderen/
-- Marketing website: https://boekuna-boekhouding.onrender.com/
+- Privacy policy: https://boekuna.nl/privacy/
+- Support: https://boekuna.nl/support/
+- Account deletion: https://boekuna.nl/account-verwijderen/
+- Marketing website: https://boekuna.nl/
 
 ## Tracking and advertising
 
@@ -63,8 +63,10 @@ Payment card details: processed by Stripe and not stored directly in the Boekuna
 
 ## Service providers / processors
 
-- Supabase: authentication, PostgreSQL database, private storage and server functions.
-- Render: web app/document processor hosting.
+- Supabase: authentication, PostgreSQL database, private storage and server functions (EU, Frankfurt).
+- Render: website, web app and document processor hosting.
+- Cloudflare: DNS and network edge for boekuna.nl and app.boekuna.nl (sees IP/connection data).
+- jsDelivr: CDN for open-source browser libraries loaded by the web app (sees IP/connection data, no bookkeeping data).
 - Stripe: web subscription checkout, recurring billing, payment-method management and customer billing portal.
 - Configured transactional email provider: only when email delivery is used.
 
@@ -108,8 +110,8 @@ The web product can use Stripe for web subscriptions. Before shipping a native i
 
 ## Account deletion
 
-In-app deletion exists under account/settings and requires explicit confirmation/reauthentication.
-External request URL: https://boekuna-boekhouding.onrender.com/account-verwijderen/
+In-app deletion exists under account/settings and requires explicit confirmation/reauthentication. A running paid subscription is cancelled at Stripe first; if that fails, nothing is deleted. Account data and uploaded documents are then removed; daily database backups roll over after 7 days.
+External request URL: https://boekuna.nl/account-verwijderen/
 
 The web page lets a user submit a deletion request without reinstalling the app. The request should be verified against the account before destructive deletion.
 

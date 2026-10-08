@@ -108,45 +108,82 @@ function calc(invoice:any){
   }
   return {lines,net,vat,gross,paid,outstanding:Math.max(0,roundMoney(Math.abs(gross)-paid)),sign,discount:discountAmount(invoice),vatGroups};
 }
+// Same legends as treatmentNote() in the app (tests/invoice-legal-content.test.mjs keeps them equal).
+const TREATMENT_NOTES:Record<string,string>={
+  reverse:"Btw verlegd",
+  icp:"Intracommunautaire levering/dienst · 0% btw",
+  exempt:"Btw-vrijstelling van toepassing",
+  kor:"Kleineondernemersregeling (KOR) · geen btw in rekening gebracht"
+};
+function creditNote(invoice:any){
+  if(invoice?.kind!=="credit")return "";
+  const number=safe(invoice?.creditForNumber,80).trim();
+  if(number)return "Creditfactuur voor factuur "+number+(invoice?.creditForDate?" van "+dateNL(invoice.creditForDate):"");
+  const reference=safe(invoice?.reference,160).trim();
+  return reference?"Creditfactuur · "+reference:"";
+}
+function wrapText(value:string,font:any,size:number,width:number){
+  const words=safe(value,2000).replace(/\s+/g," ").trim().split(" ");
+  const lines:string[]=[];let current="";
+  for(const word of words){
+    const next=current?current+" "+word:word;
+    if(current&&font.widthOfTextAtSize(next,size)>width){lines.push(current);current=word}else current=next;
+  }
+  if(current)lines.push(current);
+  return lines.length?lines:[""];
+}
 async function pdfBytes(data:any){
   const {company={},customer={},invoice={}}=data; const c=calc(invoice);
   const pdf=await PDFDocument.create(); const regular=await pdf.embedFont(StandardFonts.Helvetica); const bold=await pdf.embedFont(StandardFonts.HelveticaBold);
   const accentHex=String(company?.invoiceDesign?.accentColor||"#17382f").replace("#","");
   const ar=parseInt(accentHex.slice(0,2)||"17",16)/255,ag=parseInt(accentHex.slice(2,4)||"38",16)/255,ab=parseInt(accentHex.slice(4,6)||"2f",16)/255;
   const accent=rgb(ar,ag,ab), ink=rgb(.09,.14,.12), muted=rgb(.4,.46,.43);
+  const zeroVat=zeroVatTreatment(taxTreatment(invoice));
   let page=pdf.addPage([595.28,841.89]); let y=790;
   const text=(t:string,x:number,yy:number,size=10,font=regular,color=ink)=>page.drawText(safe(t,1000),{x,y:yy,size,font,color,maxWidth:500});
-  const tableHeader=()=>{text("Omschrijving",46,y,8,bold,muted);text("Aantal",330,y,8,bold,muted);text("Btw",410,y,8,bold,muted);text("Bedrag",480,y,8,bold,muted);page.drawLine({start:{x:46,y:y-10},end:{x:549,y:y-10},thickness:1,color:accent});y-=30;};
+  const right=(t:string,xRight:number,yy:number,size=9,font=regular,color=ink)=>{const v=safe(t,200);page.drawText(v,{x:xRight-font.widthOfTextAtSize(v,size),y:yy,size,font,color})};
+  const newPage=()=>{page=pdf.addPage([595.28,841.89]);y=790};
+  const tableHeader=()=>{text("Omschrijving",46,y,8,bold,muted);text("Aantal",300,y,8,bold,muted);right("Prijs excl. btw",425,y,8,bold,muted);right("Btw",465,y,8,bold,muted);right("Bedrag",549,y,8,bold,muted);page.drawLine({start:{x:46,y:y-10},end:{x:549,y:y-10},thickness:1,color:accent});y-=30;};
   text(safe(company.tradeName||company.name,120).toUpperCase(),46,y,9,bold,accent); text(invoice.kind==="credit"?"CREDITFACTUUR":"FACTUUR",46,y-34,26,bold,ink);
-  text(safe(invoice.number,80),410,y,12,bold,ink); text("Factuurdatum "+dateNL(invoice.issueDate),410,y-18,8,regular,muted);text("Vervaldatum "+dateNL(invoice.dueDate),410,y-32,8,regular,muted);
-  page.drawLine({start:{x:46,y:y-52},end:{x:549,y:y-52},thickness:1.5,color:accent}); y-=82;
-  text("VAN",46,y,7,bold,muted); text(safe(company.name,120),46,y-17,10,bold); text(safe(company.address,120),46,y-34,9); text((safe(company.postal,30)+" "+safe(company.city,80)).trim(),46,y-48,9);
-  text("FACTUUR AAN",310,y,7,bold,muted); text(safe(customer.name,120),310,y-17,10,bold); text(safe(customer.address,120),310,y-34,9); text((safe(customer.postal,30)+" "+safe(customer.city,80)).trim(),310,y-48,9);
-  y-=90;
+  text(safe(invoice.number,80),410,y,12,bold,ink); text("Factuurdatum "+dateNL(invoice.issueDate),410,y-18,8,regular,muted);text("Leverdatum "+dateNL(invoice.supplyDate||invoice.issueDate),410,y-32,8,regular,muted);text("Vervaldatum "+dateNL(invoice.dueDate),410,y-46,8,regular,muted);
+  page.drawLine({start:{x:46,y:y-58},end:{x:549,y:y-58},thickness:1.5,color:accent}); y-=88;
+  const party=(label:string,x:number,p:any)=>{
+    let yy=y;text(label,x,yy,7,bold,muted);yy-=17;text(safe(p.name,120),x,yy,10,bold);yy-=17;
+    for(const lineText of [safe(p.address,120),(safe(p.postal,30)+" "+safe(p.city,80)).trim(),p.kvk?"KVK "+safe(p.kvk,30):"",p.vat?"Btw-id "+safe(p.vat,40):""]){if(!lineText)continue;text(lineText,x,yy,9);yy-=14}
+    return yy;
+  };
+  y=Math.min(party("VAN",46,company),party("FACTUUR AAN",310,customer))-16;
+  const legend=[creditNote(invoice),TREATMENT_NOTES[taxTreatment(invoice)]||""].filter(Boolean);
   tableHeader();
   for(const l of c.lines){
-    if(y<170){page=pdf.addPage([595.28,841.89]);y=790;tableHeader()}
-    text(safe(l.desc||"",180),46,y,9,regular); text(String(num(l.qty)),330,y,9); text(zeroVatTreatment(taxTreatment(invoice))?"0%":String(num(l.vat))+"%",410,y,9); text(money(discountedLineNet(invoice,l)*c.sign),480,y,9,bold);
-    y-=24;
+    const descLines=wrapText(String(l.desc||""),regular,9,240);
+    if(y-descLines.length*12<170){newPage();tableHeader()}
+    descLines.forEach((d,index)=>text(d,46,y-index*12,9,regular));
+    text(String(num(l.qty)),300,y,9); right(money(num(l.unit)),425,y,9); right(zeroVat?"0%":String(num(l.vat))+"%",465,y,9); right(money(discountedLineNet(invoice,l)*c.sign),549,y,9,bold);
+    y-=Math.max(24,descLines.length*12+12);
   }
-  if(y<170+(c.vatGroups?.length||0)*18){page=pdf.addPage([595.28,841.89]);y=790}
+  const vatGroups=zeroVat?[]:(c.vatGroups||[]).filter((g:any)=>Math.abs(g.taxable)>0.004||Math.abs(g.vat)>0.004);
+  if(y<190+vatGroups.length*18+legend.length*14){newPage()}
   y-=10; page.drawLine({start:{x:330,y:y+8},end:{x:549,y:y+8},thickness:.7,color:rgb(.85,.88,.86)});
-  text(c.discount>0?"Subtotaal na korting":"Subtotaal",330,y,9,regular,muted); text(money(c.net),470,y,9,bold); y-=20;
-  if(c.discount>0){text("Korting (inbegrepen)",330,y,9,regular,muted); text(money(c.discount),470,y,9,bold); y-=20;}
-  if(c.vatGroups?.length>1){
-    for(const group of c.vatGroups){text("Btw "+String(num(group.rate))+"% over "+money(group.taxable),330,y,8,regular,muted);text(money(group.vat),470,y,8,bold);y-=18}
-  }else{
-    text(zeroVatTreatment(taxTreatment(invoice))?"Btw ("+taxTreatment(invoice)+")":"Btw",330,y,9,regular,muted); text(money(c.vat),470,y,9,bold); y-=20;
+  text(c.discount>0?"Subtotaal na korting":"Subtotaal excl. btw",330,y,9,regular,muted); right(money(c.net),549,y,9,bold); y-=20;
+  if(c.discount>0){text("Korting (inbegrepen)",330,y,9,regular,muted); right(money(c.discount),549,y,9,bold); y-=20;}
+  if(vatGroups.length){
+    for(const group of vatGroups){text("Btw "+String(num(group.rate))+"% over "+money(group.taxable),330,y,9,regular,muted);right(money(group.vat),549,y,9,bold);y-=18}
+  }else if(!zeroVat&&Math.abs(c.vat)>0.004){
+    text("Btw",330,y,9,regular,muted); right(money(c.vat),549,y,9,bold); y-=20;
   }
-  text(invoice.kind==="credit"?"Totaal credit":"Totaal",330,y,11,bold,ink); text(money(c.gross),470,y,11,bold,ink); y-=38;
+  text(invoice.kind==="credit"?"Totaal credit":"Totaal",330,y,11,bold,ink); right(money(c.gross),549,y,11,bold,ink); y-=30;
+  for(const line of legend){text(line,46,y,9,bold,ink);y-=14}
+  if(legend.length)y-=8;
   if(company?.invoiceDesign?.showPaymentBlock!==false){
     page.drawRectangle({x:46,y:y-54,width:503,height:54,color:accent});
     text(invoice.kind==="credit"?"CREDIT / VERREKENING":"BETALEN AAN",58,y-17,7,bold,rgb(1,1,1));
     text(invoice.kind==="credit"?"Wordt verrekend of terugbetaald":safe(company.iban,80),58,y-34,10,bold,rgb(1,1,1));
     text("REFERENTIE",330,y-17,7,bold,rgb(1,1,1)); text(safe(invoice.paymentReference||invoice.number,80),330,y-34,10,bold,rgb(1,1,1));
   }
+  const footer=[safe(company.name,120),company.kvk?"KVK "+safe(company.kvk,30):"",company.vat?"Btw-id "+safe(company.vat,40):""].filter(Boolean).join(" · ");
   const pages=pdf.getPages();
-  pages.forEach((p:any,i:number)=>p.drawText("Pagina "+String(i+1)+" / "+String(pages.length),{x:46,y:28,size:7,font:regular,color:muted}));
+  pages.forEach((p:any,i:number)=>{p.drawText(footer,{x:46,y:40,size:7,font:regular,color:muted,maxWidth:500});p.drawText("Pagina "+String(i+1)+" / "+String(pages.length),{x:46,y:28,size:7,font:regular,color:muted})});
   return await pdf.save();
 }
 function htmlMail(data:any){
