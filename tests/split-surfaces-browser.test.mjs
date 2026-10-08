@@ -37,10 +37,10 @@ try{
   await marketing.goto(urlFor(marketingServer)+'/',{waitUntil:'domcontentloaded'});
   await marketing.waitForSelector('h1');
   assert.equal(await marketing.locator('#mainApp').count(),0,'marketing must not contain app runtime');
-  assert.equal(await marketing.locator('h1').innerText(),'Nieuwe website in ontwikkeling.');
-  assert.equal(await marketing.locator('meta[name="robots"]').getAttribute('content'),'noindex,follow');
-  assert.equal(await marketing.locator('script').count(),0,'clean holding must not ship marketing runtime JS');
-  assert.equal(await marketing.locator('img').count(),0,'clean holding must not ship marketing imagery');
+  assert.equal(await marketing.locator('h1').textContent(),'Boekhouden zonder gedoe.');
+  assert.equal(await marketing.locator('meta[name="robots"]').getAttribute('content'),'index,follow');
+  assert.equal(await marketing.locator('script').count(),0,'V3 root must not ship runtime JS');
+  assert.equal(await marketing.locator('img').count(),0,'V3 root must not ship external imagery');
   assert.equal(await marketing.getByRole('link',{name:'Inloggen'}).getAttribute('href'),'https://app.boekuna.nl/?login=1');
 
   const app=await browser.newPage();
