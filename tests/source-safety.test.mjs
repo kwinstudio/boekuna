@@ -322,7 +322,7 @@ assert.ok(html.includes('<option value="sent">Definitief / openstaand</option>')
 assert.ok(unifiedEmailModule.includes("function buildGmailComposeUrl(to,subject,body)"),"Desktop Gmail web compose route must exist");
 assert.ok(unifiedEmailModule.includes("mailtoCompatibilityText(handoff.subject)"),"Windows mailto fallback must use compatibility-safe text");
 assert.ok(unifiedEmailModule.includes("replace(/€/g,'EUR ')"),"Windows mailto fallback must avoid Outlook euro mojibake");
-assert.ok(html.includes("subjectInvoice:'Factuur {{factuurnummer}} · {{bedrijfsnaam}}'"),"Default invoice subject must be human-readable and not filename-like");
+assert.ok(html.includes("subjectInvoice:'Factuur {{factuurnummer}} van {{bedrijfsnaam}}'"),"Default invoice subject must be human-readable and not filename-like");
 assert.ok(unifiedEmailModule.includes("Open mail-app"),"Phone send screen must have one mail-app button");
 assert.ok(unifiedEmailModule.includes("if(!handoff.file)loadHandoffPdf();"),"The PDF must be made while the send screen is open, so the tap can share it directly");
 assert.ok(unifiedEmailModule.includes("if(handoffIsMobileShare())return shareEmailHandoffPdf();"),"Phone send must go straight to the share sheet with the PDF");
@@ -332,7 +332,7 @@ assert.ok(unifiedEmailModule.includes("new Intl.DateTimeFormat('nl-NL',{day:'num
 assert.ok(unifiedEmailModule.includes("joinEmailSections"),"Email body must use one plain-text section formatter");
 assert.ok(unifiedEmailModule.includes("window.buildInvoiceMailto(handoff.to,mailtoCompatibilityText(handoff.subject),mailtoCompatibilityText(handoff.body))"),"Desktop email route must prefill recipient, subject and body through compatibility-safe mailto");
 assert.ok(unifiedEmailModule.includes("window.downloadInvoiceShareFile(handoff.file)"),"Desktop handoff must download the PDF for the mail");
-assert.ok(unifiedEmailModule.includes("navigator.share({title:handoff.subject,text:handoff.body,files:[handoff.file]})"),"Native file share must remain the attachment-first route");
+assert.ok(unifiedEmailModule.includes("navigator.share({title:handoff.subject,text:shareMailText(handoff.subject,handoff.body),files:[handoff.file]})"),"Native file share must remain the attachment-first route, with text shaped for mail apps (subject first, single enters)");
 assert.ok(unifiedEmailModule.includes("invoice.reminderCount=Number(invoice.reminderCount||0)+1"),"Reminder count must be recorded on explicit confirmation");
 assert.ok(unifiedEmailModule.includes("invoice.reminderHistory=(invoice.reminderHistory||[]).concat([entry])"),"Reminder confirmations need auditable delivery metadata");
 assert.ok(unifiedEmailModule.includes("if(!handoff||confirmBusy||handoff.confirmed)return"),"Duplicate delivery confirmation must be guarded");

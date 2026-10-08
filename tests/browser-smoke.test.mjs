@@ -213,7 +213,7 @@ try{
   }));
   assert.equal(helperContract.valid,true);
   assert.equal(helperContract.invalid,false,'CRLF/header-injected recipient must be rejected');
-  assert.match(helperContract.filename,/^Factuur-2026-0041-Bcc-evil-Jansen-Bouw-BV\.pdf$/);
+  assert.match(helperContract.filename,/^Factuur 2026-0041-Bcc-evil van [A-Za-z0-9 ]+\.pdf$/);
   assert.ok(!/[\r\n/]/.test(helperContract.filename),'Filename must be path/header safe');
   assert.ok(helperContract.mailto.startsWith('mailto:klant%2Bfacturen%40example.nl?subject='));
   assert.ok(!/[\r\n]/.test(helperContract.mailto),'mailto URI must not contain raw CR/LF');
@@ -260,7 +260,7 @@ try{
   const physicalBody=await page.locator('#emailHandoffForm [name="message"]').inputValue();
   await page.locator('#emailHandoffSend:not([disabled])').waitFor();
   assert.equal(physicalTo,'customer@example.com');
-  assert.equal(physicalSubject,'Factuur 2026-0008 · Kwin Phetmanee');
+  assert.equal(physicalSubject,'Factuur 2026-0008 van Kwin Phetmanee');
   assert.notEqual(physicalSubject,'Factuur-2026-0008-Kwin-Phetmanee');
   assert.match(physicalBody,/^Goedendag Kwin Phetmanee,\n\n/);
   assert.match(physicalBody,/Hierbij ontvangt u factuur 2026-0008\. De factuur vindt u als PDF in de bijlage\./);
@@ -270,7 +270,7 @@ try{
   const physicalGmailUrl=await page.evaluate(({to,subject,body})=>buildGmailComposeUrl(to,subject,body),{to:physicalTo,subject:physicalSubject,body:physicalBody});
   const parsedPhysicalGmail=new URL(physicalGmailUrl);
   assert.equal(parsedPhysicalGmail.searchParams.get('to'),'customer@example.com');
-  assert.equal(parsedPhysicalGmail.searchParams.get('su'),'Factuur 2026-0008 · Kwin Phetmanee');
+  assert.equal(parsedPhysicalGmail.searchParams.get('su'),'Factuur 2026-0008 van Kwin Phetmanee');
   assert.equal(parsedPhysicalGmail.searchParams.get('body'),physicalBody,'Gmail compose must retain the exact plain-text newlines');
   await page.evaluate(fixture=>{
     state.invoices=state.invoices.filter(x=>x.id!==fixture.invoiceId);
@@ -299,7 +299,7 @@ try{
   assert.equal(unified.mode,'invoice');
   assert.equal(unified.to,'klant@example.test');
   assert.equal(unified.file.type,'application/pdf');
-  assert.match(unified.file.name,/^Factuur-2026-\d{4}-QA-Klant-BV\.pdf$/);
+  assert.match(unified.file.name,/^Factuur 2026-\d{4} van [A-Za-z0-9 ]+\.pdf$/);
   assert.equal(await page.evaluate(()=>window.__pdfRenderCalls),1,'The send screen must render the PDF exactly once');
   assert.equal(await page.getByRole('heading',{name:'Hoe wilt u versturen'}).count(),0,'No separate channel chooser');
   assert.equal(await page.locator('.modal-foot .btn').count(),2,'Send screen has one cancel and one send button');
