@@ -1,0 +1,77 @@
+/* BOEKUNA spacing and alignment — app-only layer, loaded after the other app layers
+   (before the Dark Mode files; it sets no colours).
+   One rhythm on every page, built on the existing tokens (--space-1..8, --boekuna-section-gap):
+   - between page sections and between cards in a grid: 16px desktop, 12px phone
+   - tiles (KPI, summary): 16px padding desktop, 12px phone
+   - content cards: 20px padding desktop, 16px phone; rows in a table card line up with its heading
+   - form fields: 16px apart desktop, 12px phone; fields never stretch to their neighbour's height
+   No redesign: only margins, padding, gaps and alignment. */
+
+:root{--boekuna-section-gap:var(--space-4,16px)}
+
+/* Page rhythm: every visible section of a page sits the same distance from the one above it. */
+#mainApp #content.content>*:not([hidden]){margin-top:0!important;margin-bottom:0!important}
+#mainApp #content.content>*:not([hidden])~*:not([hidden]){margin-top:var(--boekuna-section-gap)!important}
+#mainApp #content.content>.product-page-shell>.page-head{margin-bottom:0!important}
+#mainApp #content.content>.product-page-shell>.page-head+.product-page-actions{margin-top:var(--space-3,12px)!important}
+#mainApp #content.content>.product-page-shell>.product-page-actions{margin-bottom:0!important}
+#mainApp #content.content>.documents-toolbar>.list-toolbar{margin-top:0!important;margin-bottom:0!important}
+
+/* Card grids use the same gap as the page rhythm. */
+#mainApp #content .grid.compact-metrics,
+#mainApp #content .dashboard-kpis,
+#mainApp #content .dashboard-main-grid,
+#mainApp #content .dashboard-summary-grid,
+#mainApp #content .grid.premium-grid,
+#mainApp #content .split.premium-split{gap:var(--boekuna-section-gap)!important}
+#mainApp #content .dashboard-main-grid>*,
+#mainApp #content .dashboard-summary-grid>*,
+#mainApp #content .grid.premium-grid>*,
+#mainApp #content .split.premium-split>*{margin:0!important}
+
+/* Tiles: one padding, content starts at the top (buttons centre their content by default). */
+#mainApp #content .card.metric,
+#mainApp #content .card.dashboard-summary-card{padding:var(--space-4,16px)!important}
+#mainApp #content button.card.metric{display:flex!important;flex-direction:column;justify-content:flex-start;align-items:stretch;text-align:left}
+
+/* Content cards: one padding, so headings in cards next to each other line up. */
+#mainApp #content .card:not(.metric):not(.table-card):not(.dashboard-summary-card):not(.report-filterbar){padding:var(--space-5,20px)!important}
+
+@media(min-width:821px){
+  /* Table cards: first and last column line up with the card heading and footnote. */
+  #mainApp #content .table-card th:first-child,
+  #mainApp #content .table-card td:first-child{padding-left:var(--space-5,20px)!important}
+  #mainApp #content .table-card th:last-child,
+  #mainApp #content .table-card td:last-child{padding-right:var(--space-5,20px)!important}
+  /* The documents list sits inside a padded card: its columns start at the card edge, like the heading. */
+  #mainApp #content .documents-workspace th:first-child,
+  #mainApp #content .documents-workspace td:first-child{padding-left:0!important}
+  #mainApp #content .documents-workspace th:last-child,
+  #mainApp #content .documents-workspace td:last-child{padding-right:0!important}
+}
+
+/* A table card's heading sits on the same inner edge as every other card (Ontvangsten had none). */
+#mainApp #content .table-card>.section-head{padding:var(--space-5,20px) var(--space-5,20px) 0!important}
+
+/* Forms: even distance between fields; a field with a hint never stretches its neighbour. */
+#mainApp .form-grid,#modalRoot .form-grid{row-gap:var(--space-4,16px)!important}
+#mainApp .form-grid>.field,#modalRoot .form-grid>.field{align-content:start!important}
+
+@media(max-width:820px){
+  :root{--boekuna-section-gap:var(--space-3,12px)}
+  #mainApp #content .card.metric,
+  #mainApp #content .card.dashboard-summary-card{padding:var(--space-3,12px)!important}
+  #mainApp #content .card:not(.metric):not(.table-card):not(.dashboard-summary-card):not(.report-filterbar){padding:var(--space-4,16px)!important}
+  /* A single page action (e.g. Document uploaden) uses the full width instead of wrapping in half. */
+  #mainApp .product-page-shell>.product-page-actions>.btn:only-child{grid-column:1/-1}
+  /* Phone table cards: heading and rows share one inner edge. */
+  #mainApp #content .table-card>.section-head{padding:var(--space-4,16px) var(--space-4,16px) 0!important}
+  #mainApp #content .table-card .mobile-card-row,
+  #mainApp #content .table-card .mobile-stack-table tbody tr,
+  #mainApp #content .table-card>.help{padding-left:var(--space-4,16px)!important;padding-right:var(--space-4,16px)!important}
+  #mainApp #content .documents-workspace .mobile-card-row{padding-left:0!important;padding-right:0!important}
+  #mainApp .form-grid,#modalRoot .form-grid{row-gap:var(--space-3,12px)!important}
+  /* Phone sheets: title, fields and buttons share one left edge. */
+  #modalRoot .modal-head,#modalRoot .modal-foot{padding-left:var(--space-4,16px)!important;padding-right:var(--space-4,16px)!important}
+  #modalRoot .modal-body{padding-left:var(--space-4,16px)!important;padding-right:var(--space-4,16px)!important}
+}
