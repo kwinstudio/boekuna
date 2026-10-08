@@ -17,4 +17,11 @@ if(!home.includes('<meta name="robots" content="index,follow">'))throw new Error
 if(!home.includes('Boekhouden zonder gedoe'))throw new Error('BOEKUNA V3 landing page missing');
 if(!home.includes('https://app.boekuna.nl/?login=1'))throw new Error('Holding page must link to isolated app login');
 if(['editorial-hero','editorial-pricing','project-grid','audience-grid'].some(token=>home.includes(token)))throw new Error('Old marketing homepage structure returned');
+// Preview URLs are publicly viewable but must not compete with the canonical marketing domain.
+// This flag is configured exclusively on the isolated Render preview service.
+if(process.env.BOEKUNA_MARKETING_PREVIEW==='1'){
+  const marker='<meta name="robots" content="index,follow">';
+  if(!home.includes(marker))throw new Error('V3 indexable robots marker missing for preview transform');
+  fs.writeFileSync(path.join(target,'index.html'),home.replace(marker,'<meta name="robots" content="noindex,nofollow">'));
+}
 console.log('Marketing V3 landing build complete:',path.relative(root,target),'with',retiredRoutes.length,'retired route holdings');
