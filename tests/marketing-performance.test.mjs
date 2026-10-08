@@ -30,7 +30,7 @@ try{
   await nojs.goto(server.base);
   assert.equal(await nojs.locator('h1').textContent(),'Boekhouden zonder gedoe.');
   await nojs.locator('.mobile-menu summary').click();
-  assert.ok(await nojs.getByRole('link',{name:'Inloggen'}).isVisible());
+  assert.ok(await nojs.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).isVisible());
   for(const route of ['/privacy/','/voorwaarden/','/support/','/account-verwijderen/']){
     await nojs.goto(server.base+route);
     assert.equal(await nojs.locator('h1').count(),1,route+' readable without JS');
