@@ -16,7 +16,7 @@ import fitz
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
-PROCESSOR_DIR = ROOT / "kwinest" / "docprocessor"
+PROCESSOR_DIR = Path(os.environ.get("BOOKUNA_PROCESSOR_DIR") or ROOT / "kwinest" / "docprocessor")
 sys.path.insert(0, str(PROCESSOR_DIR))
 
 import app as processor  # noqa: E402

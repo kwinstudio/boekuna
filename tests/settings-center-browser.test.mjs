@@ -46,6 +46,8 @@ async function axe(page){
   return result;
 }
 async function overflow(page){return page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth)}
+// Visible boxes inside the page that scroll on their own (the page itself should be the only scroll on phones; text fields may scroll).
+async function innerScrollers(page){return page.evaluate(()=>[...document.querySelectorAll('#content *:not(textarea,select)')].filter(e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return /(auto|scroll)/.test(s.overflowY)&&e.scrollHeight>e.clientHeight+1&&r.width>0&&r.height>0}).map(e=>e.id||e.className))}
 
 try{
   // Desktop: index and detail side by side.
@@ -131,8 +133,9 @@ try{
 
   // Mobile: index → category → back at every required width.
   for(const width of [320,360,375,390,393,430]){
-    const {context,page}=await openApp(width,844);
+    const {context,page}=await openApp(width,width===360?640:844);
     await toSettings(page);
+    assert.deepEqual(await innerScrollers(page),[],'Settings index scrolls with the page, not on its own, at '+width);
     assert.equal(await page.locator('.settings-center-nav').isVisible(),true);
     assert.equal(await page.locator('.settings-center-panels').isVisible(),false,'Mobile starts on the index only');
     assert.ok(await overflow(page)<=0,'No horizontal overflow on the index at '+width);
@@ -143,6 +146,7 @@ try{
       assert.equal(await page.locator('.settings-center-nav').isVisible(),false);
       await page.locator('#settings-panel-'+key+' details').evaluateAll(list=>list.forEach(d=>{d.open=true}));
       assert.ok(await overflow(page)<=0,'No horizontal overflow in '+key+' at '+width);
+      assert.deepEqual(await innerScrollers(page),[],'No second scroll in '+key+' at '+width);
       if(width===390&&['business','invoices','notifications','app','security','danger'].includes(key)){
         await page.locator('#settings-panel-'+key+' details').evaluateAll(list=>list.forEach(d=>{d.open=false}));
         await page.screenshot({path:shotDir+'/m-'+key+'.png',fullPage:true});

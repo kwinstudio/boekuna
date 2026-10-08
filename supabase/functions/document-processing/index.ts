@@ -26,6 +26,10 @@ const PRODUCTION_ORIGINS=new Set([
 const MAX_BODY=64*1024;
 const STALE_MS=10*60*1000;
 const PROCESSING_CONCURRENCY=1;
+const EXECUTION_MODE=Deno.env.get("DOCUMENT_EXECUTION_MODE")||"legacy";
+const WORKFLOW_SLUG=Deno.env.get("DOCUMENT_WORKFLOW_SLUG")||"";
+const WORKFLOW_API_KEY=Deno.env.get("RENDER_API_KEY")||"";
+const WORKFLOW_RECOVERY_ENABLED=Deno.env.get("DOCUMENT_WORKFLOW_RECOVERY_ENABLED")==="true";
 const ACTIVE=new Set(["received","queued","processing","validating"]);
 const RETRYABLE_CODES=new Set(["PROCESSOR_UNAVAILABLE","PROCESSING_TIMEOUT","RATE_LIMITED","NETWORK_ERROR","UNKNOWN"]);
 
@@ -96,8 +100,11 @@ function confidence(raw:unknown){
 }
 function reviewAssessment(data:any){
   const financial=new Set(["purchase_invoice","sales_invoice","sale_invoice","credit_invoice","receipt"]).has(String(data?.documentType||""));
-  if(!financial)return {fields:[],message:""};
-  const fields:string[]=[];
+  if(!financial)return {fields:["documentType"],message:"Controleer het documenttype. Dit document kan niet automatisch worden geboekt."};
+  const fields:string[]=Array.isArray(data?.processing?.reviewRouting?.fields)?[...data.processing.reviewRouting.fields]:[];
+  if(data?.processing?.anomalyCodes?.length)fields.push("document");
+  if(data?.processing?.bookingAllowed===false)fields.push("documentType");
+  if(data?.amounts?.accountingVatTreatment==="review_required")fields.push("vatTreatment");
   const c=data?.confidence||{},a=data?.amounts||{},inv=data?.invoice||{};
   const total=confidence(c.total),vat=confidence(c.vatTotal),date=confidence(c.invoiceDate),party=Math.max(confidence(c.supplierName)||0,confidence(c.customerName)||0);
   if(a.total==null||total==null||total<85)fields.push("gross");
@@ -126,7 +133,7 @@ async function processJob(jobId:string,authHeader:string,developer:DeveloperCont
   const now=new Date().toISOString();
   const {data:claimed,error:claimError}=await sb.from("document_processing_jobs")
     .update({state:"processing",phase:"read",started_at:now,updated_at:now})
-    .eq("id",jobId).eq("state","queued").lt("attempt",3).select("*").maybeSingle();
+    .eq("id",jobId).eq("execution_mode","legacy").eq("state","queued").lt("attempt",3).select("*").maybeSingle();
   if(claimError||!claimed)return;
   const jobDeveloper=developer?.userId===String(claimed.user_id)?developer:null;
   await sb.from("document_processing_jobs").update({attempt:Number(claimed.attempt||0)+1,updated_at:new Date().toISOString()}).eq("id",jobId);
@@ -173,15 +180,39 @@ async function processJob(jobId:string,authHeader:string,developer:DeveloperCont
   }
 }
 function run(jobId:string,auth:string,developer:DeveloperContext|null=null){EdgeRuntime.waitUntil(processJob(jobId,auth,developer))}
-async function kickUser(userId:string,authHeader:string,developer:DeveloperContext|null=null){
+async function kickUser(userId:string,authHeader:string,developer:DeveloperContext|null=null,onlyBatch=""){
   const sb=admin();
   const scopedDeveloper=developer?.userId===String(userId)?developer:null;
+  if(EXECUTION_MODE==="workflow"&&!scopedDeveloper){
+    if(!WORKFLOW_SLUG||!WORKFLOW_API_KEY||!WORKFLOW_RECOVERY_ENABLED)throw new Error("WORKFLOW_NOT_CONFIGURED");
+    // Upload/retry dispatch only their own batch; resume and recovery cover the rest.
+    let query=sb.from("document_processing_jobs").select("batch_id")
+      .eq("user_id",userId).eq("execution_mode","workflow").eq("state","queued");
+    if(onlyBatch)query=query.eq("batch_id",onlyBatch);
+    const {data:jobs,error}=await query.limit(50);
+    if(error)throw new Error("JOB_DISPATCH_FAILED");
+    const batches=[...new Set((jobs||[]).map((j:any)=>String(j.batch_id)))];
+    for(const batch of batches)EdgeRuntime.waitUntil(dispatchWorkflowBatch(sb,userId,batch));
+    return jobs?.length||0;
+  }
   const {count}=await sb.from("document_processing_jobs").select("id",{count:"exact",head:true}).eq("user_id",userId).in("state",["processing","validating"]);
   const slots=Math.max(0,PROCESSING_CONCURRENCY-Number(count||0));
   if(!slots)return 0;
-  const {data:queued}=await sb.from("document_processing_jobs").select("id").eq("user_id",userId).eq("state","queued").lt("attempt",3).order("created_at",{ascending:true}).limit(slots);
+  const {data:queued}=await sb.from("document_processing_jobs").select("id").eq("user_id",userId).eq("execution_mode","legacy").eq("state","queued").lt("attempt",3).order("created_at",{ascending:true}).limit(slots);
   for(const job of queued||[])run(job.id,authHeader,scopedDeveloper);
   return queued?.length||0;
+}
+async function dispatchWorkflowBatch(sb:any,userId:string,batchId:string){
+  try{
+    const response=await fetch("https://api.render.com/v1/task-runs",{
+      method:"POST",headers:{Authorization:"Bearer "+WORKFLOW_API_KEY,"content-type":"application/json"},
+      body:JSON.stringify({task:WORKFLOW_SLUG+"/process_batch",input:[batchId]}),signal:AbortSignal.timeout(10000)
+    });
+    if(!response.ok)return; // Durable recovery owns retries; never retry OCR here.
+    const task=await response.json();
+    if(task?.id)await sb.from("document_processing_jobs").update({workflow_run_id:clean(task.id,120)})
+      .eq("user_id",userId).eq("batch_id",batchId).eq("execution_mode","workflow").eq("state","queued");
+  }catch(_){} // No secrets, file contents or provider error bodies in logs.
 }
 async function triggerNext(authHeader:string,jobId:string,developer:DeveloperContext|null=null){
   try{
@@ -200,20 +231,28 @@ async function triggerNext(authHeader:string,jobId:string,developer:DeveloperCon
 async function enqueue(req:Request,a:{user:any,auth:string},body:any,developer:DeveloperContext|null=null){
   const sb=admin(),clientRef=clean(body.client_ref,120),batchId=clean(body.batch_id,120),kind=clean(body.kind||"auto",32);
   if(!clientRef||!batchId)return out(req,{ok:false,error:{code:"INVALID_REQUEST"}},400);
+  const executionMode=developer?"legacy":EXECUTION_MODE;
+  if(!["legacy","workflow"].includes(executionMode))return out(req,{ok:false,error:{code:"WORKFLOW_NOT_CONFIGURED"}},503);
+  if(executionMode==="workflow"&&(!WORKFLOW_SLUG||!WORKFLOW_API_KEY||!WORKFLOW_RECOVERY_ENABLED))return out(req,{ok:false,error:{code:"WORKFLOW_NOT_CONFIGURED"}},503);
   const {data:doc,error}=await sb.from("documents").select("id,user_id,client_ref,name,mime_type,metadata").eq("user_id",a.user.id).eq("client_ref",clientRef).maybeSingle();
   if(error||!doc)return out(req,{ok:false,error:{code:"DOCUMENT_NOT_FOUND"}},404);
   const company=body.company&&typeof body.company==="object"?body.company:{};
   const {data:existing}=await sb.from("document_processing_jobs").select("*").eq("user_id",a.user.id).eq("document_id",doc.id).maybeSingle();
   if(existing){
-    if(existing.state==="queued")await kickUser(a.user.id,a.auth,developer);
+    if(existing.state==="queued")await kickUser(a.user.id,a.auth,developer,String(existing.batch_id||""));
     return out(req,{ok:true,job:existing,idempotent:true});
   }
   const {data:job,error:insertError}=await sb.from("document_processing_jobs").insert({
-    user_id:a.user.id,document_id:doc.id,client_ref:clientRef,batch_id:batchId,file_name:clean(doc.name,260)||"document",mime_type:clean(doc.mime_type,160)||"application/octet-stream",size_bytes:Math.max(0,Number(doc.metadata?.size||0)),requested_kind:kind,state:"queued",phase:"queued",
+    user_id:a.user.id,document_id:doc.id,client_ref:clientRef,batch_id:batchId,file_name:clean(doc.name,260)||"document",mime_type:clean(doc.mime_type,160)||"application/octet-stream",size_bytes:Math.max(0,Number(doc.metadata?.size||0)),requested_kind:kind,state:"queued",phase:"queued",execution_mode:executionMode,
     company_context:{name:clean(company.name,160),tradeName:clean(company.tradeName,160),kvk:clean(company.kvk,40),vat:clean(company.vat,40)}
   }).select("*").single();
-  if(insertError||!job)return out(req,{ok:false,error:{code:"JOB_CREATE_FAILED"}},500);
-  await kickUser(a.user.id,a.auth,developer);
+  if(insertError||!job){
+    // Concurrent deliveries can lose the unique insert race. Return the winner.
+    const {data:winner}=await sb.from("document_processing_jobs").select("*").eq("user_id",a.user.id).eq("document_id",doc.id).maybeSingle();
+    if(winner)return out(req,{ok:true,job:winner,idempotent:true});
+    return out(req,{ok:false,error:{code:"JOB_CREATE_FAILED"}},500);
+  }
+  await kickUser(a.user.id,a.auth,developer,batchId);
   return out(req,{ok:true,job},202);
 }
 async function retry(req:Request,a:{user:any,auth:string},body:any,developer:DeveloperContext|null=null){
@@ -224,10 +263,11 @@ async function retry(req:Request,a:{user:any,auth:string},body:any,developer:Dev
   if(Number(job.attempt||0)>=Number(job.max_attempts||3))return out(req,{ok:false,error:{code:"RETRY_LIMIT_REACHED"}},409);
   const {data:reset,error}=await sb.from("document_processing_jobs").update({
     state:"queued",phase:"queued",result:null,review_fields:[],review_message:null,error_code:null,error_reference:null,error_retryable:false,
-    started_at:null,completed_at:null,updated_at:new Date().toISOString()
-  }).eq("id",job.id).eq("user_id",a.user.id).select("*").single();
-  if(error||!reset)return out(req,{ok:false,error:{code:"JOB_RETRY_FAILED"}},500);
-  await kickUser(a.user.id,a.auth,developer);
+    started_at:null,completed_at:null,lease_token:null,lease_expires_at:null,next_attempt_at:new Date().toISOString(),updated_at:new Date().toISOString()
+  }).eq("id",job.id).eq("user_id",a.user.id).eq("state",job.state).eq("attempt",job.attempt).select("*").maybeSingle();
+  if(error)return out(req,{ok:false,error:{code:"JOB_RETRY_FAILED"}},500);
+  if(!reset)return out(req,{ok:false,error:{code:"JOB_NOT_RETRYABLE",state:"changed"}},409); // a concurrent retry won
+  await kickUser(a.user.id,a.auth,developer,String(reset.batch_id||""));
   return out(req,{ok:true,job:reset},202);
 }
 async function resolveReview(req:Request,a:{user:any,auth:string},body:any){
@@ -242,12 +282,13 @@ async function resolveReview(req:Request,a:{user:any,auth:string},body:any){
   if(error||!resolved)return out(req,{ok:false,error:{code:"JOB_RESOLVE_FAILED"}},409);
   return out(req,{ok:true,job:resolved});
 }
-async function repairMissingJobs(userId:string){
+async function repairMissingJobs(userId:string,executionMode=EXECUTION_MODE){
   const sb=admin();
   const {data:docs,error}=await sb.from("documents")
-    .select("id,user_id,client_ref,name,mime_type,metadata")
+    .select("id,user_id,client_ref,name,mime_type,metadata,document_processing_jobs(id)")
     .eq("user_id",userId)
     .contains("metadata",{processing:true})
+    .is("document_processing_jobs",null)
     .order("created_at",{ascending:true})
     .limit(20);
   if(error||!docs?.length)return 0;
@@ -264,7 +305,7 @@ async function repairMissingJobs(userId:string){
       mime_type:clean(doc.mime_type,160)||"application/octet-stream",
       size_bytes:Math.max(0,Number(meta.size||0)),
       requested_kind:clean(meta.requested_kind||"auto",32),
-      state:"queued",phase:"queued",
+      state:"queued",phase:"queued",execution_mode:executionMode,
       company_context:{name:clean(company.name,160),tradeName:clean(company.tradeName,160),kvk:clean(company.kvk,40),vat:clean(company.vat,40)}
     };
   });
@@ -275,9 +316,9 @@ async function repairMissingJobs(userId:string){
 }
 async function resume(req:Request,a:{user:any,auth:string},developer:DeveloperContext|null=null){
   const sb=admin(),threshold=new Date(Date.now()-STALE_MS).toISOString();
-  await repairMissingJobs(a.user.id);
+  await repairMissingJobs(a.user.id,developer?"legacy":EXECUTION_MODE);
   const {data:queued}=await sb.from("document_processing_jobs").select("*").eq("user_id",a.user.id).eq("state","queued").lt("attempt",3).limit(3);
-  const {data:stale}=await sb.from("document_processing_jobs").select("*").eq("user_id",a.user.id).in("state",["processing","validating"]).lt("updated_at",threshold).lt("attempt",3).limit(3);
+  const {data:stale}=await sb.from("document_processing_jobs").select("*").eq("user_id",a.user.id).eq("execution_mode","legacy").in("state",["processing","validating"]).lt("updated_at",threshold).lt("attempt",3).limit(3);
   for(const job of stale||[]){
     await sb.from("document_processing_jobs").update({state:"queued",phase:"queued",updated_at:new Date().toISOString()}).eq("id",job.id).in("state",["processing","validating"]);
   }

@@ -98,7 +98,8 @@
   #mainApp .settings-center[data-view="detail"] .settings-center-nav,
   #mainApp .settings-center[data-view="detail"] .settings-center-setup,
   #mainApp .settings-center[data-view="detail"]>.page-head{display:none}
-  #mainApp .settings-center-nav{position:static}
+  /* One scroll on phones: the index flows with the page instead of being its own scroll box. */
+  #mainApp .settings-center-nav{position:static;max-height:none;overflow:visible}
   #mainApp .settings-center .settings-center-row{min-height:64px;padding:12px 14px}
   #mainApp .settings-center-back{display:inline-flex;align-items:center;min-height:44px;padding:0 4px;margin:-6px 0 -4px -4px;border:0;background:none;color:var(--sc-ink);font:inherit;font-size:14px;font-weight:650;cursor:pointer;justify-self:start}
   #mainApp .settings-center-back:focus-visible{outline:2px solid var(--sc-ink);outline-offset:2px;border-radius:8px}

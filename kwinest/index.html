@@ -4020,7 +4020,7 @@ function renderBank(){
   productKpi('Te verwerken',String(unmatched),matched+' gekoppeld','i-check',unmatched?'warning':'success')
  ])}
  ${listToolbar('bank')}
- <div class="card table-card workspace-table"><div class="table-toolbar"><strong style="font-size:14px">Transacties</strong><button class="btn small" onclick="autoMatch()">Automatisch koppelen</button></div><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-bank"><thead><tr><th>Datum</th><th>Omschrijving</th><th>Status</th><th class="right">Bedrag</th><th></th></tr></thead><tbody>${list.length?list.map(t=>`<tr><td class="cell-nowrap">${dateNL(t.date)}</td><td class="cell-name"><strong title="${esc(t.description)}">${esc(t.description)}</strong>${t.matchId?`<div class="help">${esc(listTransactionLinkText(t)||('Gekoppeld aan '+t.matchId))}</div>`:''}</td><td class="cell-nowrap">${statusBadge(t.status)}</td><td class="right money cell-nowrap" style="color:${t.amount<0?'var(--bad)':'var(--good)'}">${money(t.amount)}</td><td class="right financial-actions cell-nowrap">${t.status==='unmatched'?`<button class="btn small" onclick="matchTransaction('${t.id}')">Koppelen</button>`:`<button class="icon-btn bank-unlink-action" type="button" aria-label="Ontkoppelen" title="Ontkoppelen" onclick="unmatchTransaction('${t.id}')">${icon('i-unlink')}<span class="bank-unlink-text">Ontkoppelen</span></button>`}</td></tr>`).join(''):`<tr><td colspan="5">${listEmptyHtml('bank')}</td></tr>`}</tbody></table></div></div>`
+ <div class="card table-card workspace-table"><div class="table-toolbar"><strong style="font-size:14px">Transacties</strong><button class="btn small" onclick="autoMatch()">Automatisch koppelen</button></div><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-bank"><thead><tr><th>Datum</th><th>Omschrijving</th><th>Status</th><th class="right">Bedrag</th><th></th></tr></thead><tbody>${list.length?list.map(t=>`<tr><td class="cell-nowrap">${dateNL(t.date)}</td><td class="cell-name"><strong title="${esc(t.description)}">${esc(t.description)}</strong>${t.matchId?`<div class="help">${esc(listTransactionLinkText(t)||('Gekoppeld aan '+t.matchId))}</div>`:''}${!t.matchId&&t.status==='unmatched'&&t.matchSuggestion?`<div class="help">${esc(bankSuggestionText(t))}</div>`:''}</td><td class="cell-nowrap">${statusBadge(t.status)}</td><td class="right money cell-nowrap" style="color:${t.amount<0?'var(--bad)':'var(--good)'}">${money(t.amount)}</td><td class="right financial-actions cell-nowrap">${t.status==='unmatched'?`<button class="btn small" onclick="matchTransaction('${t.id}')">${t.matchSuggestion?'Controleren':'Koppelen'}</button>`:`<button class="icon-btn bank-unlink-action" type="button" aria-label="Ontkoppelen" title="Ontkoppelen" onclick="unmatchTransaction('${t.id}')">${icon('i-unlink')}<span class="bank-unlink-text">Ontkoppelen</span></button>`}</td></tr>`).join(''):`<tr><td colspan="5">${listEmptyHtml('bank')}</td></tr>`}</tbody></table></div></div>`
 }
 function directionalBankRows(kind){return state.transactions.filter(t=>kind==='income'?Number(t.amount||0)>0:Number(t.amount||0)<0).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))}
 function renderIncome(){
@@ -4750,26 +4750,290 @@ function correctExpense(id){const e=state.expenses.find(x=>x.id===id);if(!e)retu
 function deleteExpense(id){return correctExpense(id)}
 function newTransaction(){modal('Banktransactie toevoegen',`<form id="txForm" class="form-grid"><div class="field"><label>Datum</label><input type="date" name="date" value="${today()}" required></div><div class="field"><label>Bedrag</label><input type="number" step="0.01" name="amount" placeholder="Positief = binnen, negatief = uit" required></div><div class="field full"><label>Omschrijving</label><input name="description" required></div></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="saveTransaction()">Toevoegen</button>`)}
 function saveTransaction(){const f=document.getElementById('txForm');if(!f.reportValidity())return;const d=new FormData(f);state.transactions.unshift({id:uid('t'),date:d.get('date'),description:d.get('description'),amount:Number(d.get('amount')),status:'unmatched'});logEvent('Banktransactie toegevoegd',`${d.get('description')} · ${money(Number(d.get('amount')))}`,'transaction',state.transactions[0].id);save();closeModal();toast('Transactie toegevoegd');navigate('bank')}
-function normalizedMatchText(v){return normalizeBankText(v).replace(/[^a-z0-9]+/g,' ')}
-function txInvoiceEvidence(t,i){const desc=normalizedMatchText([t.description,t.reference,t.endToEndId].filter(Boolean).join(' ')),customer=getContact(i.customerId),amountOk=Math.abs(roundMoney(invoiceOutstanding(i)-Number(t.amount||0)))<=0.02;if(!amountOk)return {score:0,reasons:[]};let score=50,reasons=['bedrag'];const number=normalizedMatchText(i.number),payref=normalizedMatchText(i.paymentReference),name=normalizedMatchText(customer.name),iban=String(customer.iban||'').replace(/\s/g,'').toLowerCase(),txIban=String(t.counterpartyIban||'').replace(/\s/g,'').toLowerCase();if(number&&desc.includes(number)){score+=35;reasons.push('factuurnummer')}if(payref&&payref!==number&&desc.includes(payref)){score+=30;reasons.push('betalingskenmerk')}if(name&&name.length>=4&&desc.includes(name)){score+=20;reasons.push('klantnaam')}if(iban&&txIban&&iban===txIban){score+=25;reasons.push('IBAN')}const sameManual=invoicePayments(i).some(p=>Math.abs(Math.abs(roundMoney(p.amount||0))-Math.abs(roundMoney(t.amount||0)))<=0.02&&p.date&&t.date&&p.date===t.date);if(sameManual){score-=60;reasons.push('mogelijke dubbele betaling')}return {score,reasons}}
-function txExpenseEvidence(t,e){const amountOk=Math.abs(roundMoney(expenseGross(e)+Number(t.amount||0)))<=0.02;if(!amountOk)return {score:0,reasons:[]};let score=50,reasons=['bedrag'];const desc=normalizedMatchText([t.description,t.reference].filter(Boolean).join(' ')),vendor=normalizedMatchText(e.vendor);if(vendor&&vendor.length>=4&&desc.includes(vendor)){score+=40;reasons.push('leverancier')}return {score,reasons}}
-function autoMatch(){let matched=0,suggested=0;for(const t of state.transactions.filter(t=>t.status==='unmatched')){if(t.amount>0){const candidates=state.invoices.filter(i=>i.status!=='draft'&&i.kind!=='credit'&&invoiceOutstanding(i)>.02).map(i=>({i,...txInvoiceEvidence(t,i)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score),best=candidates[0],second=candidates[1];if(best&&best.score>=80&&(!second||best.score-second.score>=15)){t.status='matched';t.matchType='invoice';t.matchId=best.i.id;t.matchConfidence='high';t.matchReasons=best.reasons;syncInvoiceStatus(best.i);matched++}else if(best&&best.score>=50){t.matchSuggestion={type:'invoice',id:best.i.id,score:best.score,reasons:best.reasons};suggested++}}else{const candidates=state.expenses.filter(e=>!state.transactions.some(x=>x.status==='matched'&&x.matchType==='expense'&&x.matchId===e.id)).map(e=>({e,...txExpenseEvidence(t,e)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score),best=candidates[0],second=candidates[1];if(best&&best.score>=80&&(!second||best.score-second.score>=15)){t.status='matched';t.matchType='expense';t.matchId=best.e.id;t.matchConfidence='high';t.matchReasons=best.reasons;matched++}else if(best&&best.score>=50){t.matchSuggestion={type:'expense',id:best.e.id,score:best.score,reasons:best.reasons};suggested++}}}save();logEvent('Automatische bankmatching',`${matched} hoog-zekere matches · ${suggested} voorstellen`,'bank','automatch');toast(matched?`${matched} hoog-zekere match(es) gekoppeld${suggested?` · ${suggested} voorstel(len) niet automatisch gekoppeld`:''}`:(suggested?`${suggested} mogelijke match(es) gevonden; bevestig handmatig`:'Geen veilige automatische matches gevonden'));render()}
-function matchTransaction(id){const t=state.transactions.find(x=>x.id===id);const options=t.amount>0?state.invoices.filter(i=>i.status!=='draft'&&invoiceOutstanding(i)>.02).map(i=>`<option value="invoice:${i.id}">${esc(i.number)} · ${esc(getContact(i.customerId).name)} · open ${money(invoiceOutstanding(i))}</option>`).join(''):state.expenses.map(e=>`<option value="expense:${e.id}">${esc(e.vendor)} · ${dateNL(e.date)} · ${money(expenseGross(e))}</option>`).join('');modal('Transactie koppelen',`<div class="notice info" style="margin-bottom:14px">${dateNL(t.date)} · ${esc(t.description)} · <strong>${money(t.amount)}</strong></div><div class="field"><label>Kies boeking</label><select id="matchSelect"><option value="">Selecteer…</option>${options}</select></div>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="saveMatch('${id}')">Koppelen</button>`)}
+function normalizedMatchText(v){return normalizeBankText(v).replace(/[^a-z0-9]+/g,' ').trim()}
+// Whole-word match only: invoice "2026-1" must not match a payment for "2026-12".
+function matchTextHas(hay,needle){if(!needle)return false;if((' '+hay+' ').includes(' '+needle+' '))return true;const compact=needle.replace(/ /g,'');return compact.length>=5&&hay.split(' ').includes(compact)}
+function txInvoiceEvidence(t,i){const desc=normalizedMatchText([t.description,t.reference,t.endToEndId].filter(Boolean).join(' ')),customer=getContact(i.customerId),amountOk=Math.abs(roundMoney(invoiceOutstanding(i)-Number(t.amount||0)))<=0.02;if(!amountOk)return {score:0,reasons:[]};let score=50,reasons=['bedrag'];const number=normalizedMatchText(i.number),payref=normalizedMatchText(i.paymentReference),name=normalizedMatchText(customer.name),iban=String(customer.iban||'').replace(/\s/g,'').toLowerCase(),txIban=String(t.counterpartyIban||'').replace(/\s/g,'').toLowerCase();if(number.replace(/ /g,'').length>=3&&matchTextHas(desc,number)){score+=35;reasons.push('factuurnummer')}if(payref&&payref!==number&&payref.replace(/ /g,'').length>=3&&matchTextHas(desc,payref)){score+=30;reasons.push('betalingskenmerk')}if(name&&name.length>=4&&matchTextHas(desc,name)){score+=20;reasons.push('klantnaam')}if(t.date&&i.issueDate&&t.date<i.issueDate){score-=30;reasons.push('betaling vóór factuurdatum')}if(iban&&txIban&&iban===txIban){score+=25;reasons.push('IBAN')}const sameManual=invoicePayments(i).some(p=>Math.abs(Math.abs(roundMoney(p.amount||0))-Math.abs(roundMoney(t.amount||0)))<=0.02&&p.date&&t.date&&p.date===t.date);if(sameManual){score-=60;reasons.push('mogelijke dubbele betaling')}return {score,reasons}}
+function txExpenseEvidence(t,e){const amountOk=Math.abs(roundMoney(expenseGross(e)+Number(t.amount||0)))<=0.02;if(!amountOk)return {score:0,reasons:[]};let score=50,reasons=['bedrag'];const desc=normalizedMatchText([t.description,t.reference].filter(Boolean).join(' ')),vendor=normalizedMatchText(e.vendor);if(vendor&&vendor.length>=4&&matchTextHas(desc,vendor)){score+=40;reasons.push('leverancier')}if(t.date&&e.date&&Math.abs(Date.parse(t.date)-Date.parse(e.date))<=5*86400000){score+=10;reasons.push('datum')}return {score,reasons}}
+// Conservative: only link on its own when a unique document identifier (invoice number or payment reference)
+// or, for costs, supplier plus date agrees and no other candidate comes close. Everything else is a suggestion
+// the user confirms; amount alone never books anything.
+function bankMatchDecision(t){
+ const invoice=t.amount>0,cands=(invoice?state.invoices.filter(i=>i.status!=='draft'&&i.kind!=='credit'&&invoiceOutstanding(i)>.02).map(i=>({type:'invoice',id:i.id,target:i,...txInvoiceEvidence(t,i)})):state.expenses.filter(e=>!state.transactions.some(x=>x.status==='matched'&&x.matchType==='expense'&&x.matchId===e.id)).map(e=>({type:'expense',id:e.id,target:e,...txExpenseEvidence(t,e)}))).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
+ const best=cands[0],second=cands[1];if(!best||best.score<50)return {};
+ const unique=!second||best.score-second.score>=15,r=best.reasons;
+ const strong=invoice?(r.includes('factuurnummer')||r.includes('betalingskenmerk'))&&!r.includes('betaling vóór factuurdatum')&&!r.includes('mogelijke dubbele betaling'):r.includes('leverancier')&&r.includes('datum');
+ if(best.score>=80&&unique&&strong)return {auto:best};
+ const close=cands.filter(x=>best.score-x.score<15).slice(0,5);
+ return {suggestion:{type:best.type,id:best.id,score:best.score,reasons:r,candidates:close.map(x=>x.id)}};
+}
+function autoMatch(){let matched=0,suggested=0;for(const t of state.transactions.filter(t=>t.status==='unmatched')){delete t.matchSuggestion;const d=bankMatchDecision(t);if(d.auto){t.status='matched';t.matchType=d.auto.type;t.matchId=d.auto.id;t.matchConfidence='high';t.matchReasons=d.auto.reasons;if(d.auto.type==='invoice')syncInvoiceStatus(d.auto.target);matched++}else if(d.suggestion){t.matchSuggestion=d.suggestion;suggested++}}save();logEvent('Automatische bankmatching',`${matched} zekere koppelingen · ${suggested} voorstellen`,'bank','automatch');toast(matched?`${matched} transactie${matched===1?'':'s'} gekoppeld${suggested?` · ${suggested} voorstel${suggested===1?'':'len'} om te controleren`:''}`:(suggested?`${suggested} mogelijke koppeling${suggested===1?'':'en'} gevonden. Controleer ze in de lijst.`:'Geen zekere koppelingen gevonden'));render()}
+function bankSuggestionText(t){const s=t.matchSuggestion;if(!s)return '';const n=(s.candidates||[s.id]).length;if(n>1)return `${n} mogelijke koppelingen`;const x=s.type==='invoice'?state.invoices.find(i=>i.id===s.id):state.expenses.find(e=>e.id===s.id);if(!x)return '';return 'Mogelijke koppeling: '+(s.type==='invoice'?[x.number,getContact(x.customerId).name]:[x.vendor,dateNL(x.date)]).filter(Boolean).join(' ')}
+function matchTransaction(id){const t=state.transactions.find(x=>x.id===id);if(!t)return;const sug=t.matchSuggestion,suggested=new Set(sug?.candidates||(sug?[sug.id]:[])),opt=(type,x,label)=>`<option value="${type}:${x.id}"${sug&&suggested.size===1&&suggested.has(x.id)?' selected':''}>${label}</option>`;
+ const all=t.amount>0?state.invoices.filter(i=>i.status!=='draft'&&invoiceOutstanding(i)>.02).map(i=>[i.id,opt('invoice',i,`${esc(i.number)} · ${esc(getContact(i.customerId).name)} · open ${money(invoiceOutstanding(i))}`)]):state.expenses.map(e=>[e.id,opt('expense',e,`${esc(e.vendor)} · ${dateNL(e.date)} · ${money(expenseGross(e))}`)]);
+ const first=all.filter(([k])=>suggested.has(k)).map(x=>x[1]).join(''),rest=all.filter(([k])=>!suggested.has(k)).map(x=>x[1]).join(''),options=first?`<optgroup label="Mogelijke koppeling">${first}</optgroup><optgroup label="Alle andere">${rest}</optgroup>`:rest;
+ const hint=sug?`<div class="notice warn" style="margin-bottom:14px">${suggested.size>1?`${suggested.size} boekingen passen bij deze transactie. Kies de juiste.`:`Mogelijke koppeling op basis van: ${esc((sug.reasons||[]).join(', '))}. Controleer of dit klopt.`}</div>`:'';
+ modal('Transactie koppelen',`<div class="notice info" style="margin-bottom:14px">${dateNL(t.date)} · ${esc(t.description)} · <strong>${money(t.amount)}</strong></div>${hint}<div class="field"><label for="matchSelect">Kies boeking</label><select id="matchSelect"><option value="">Selecteer…</option>${options}</select></div>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" onclick="saveMatch('${id}')">Koppelen</button>`)}
 function saveMatch(id){const val=document.getElementById('matchSelect').value;if(!val)return toast('Kies eerst een boeking');const [type,mid]=val.split(':'),t=state.transactions.find(x=>x.id===id);if(!t)return;if(type==='invoice'){const i=state.invoices.find(x=>x.id===mid);if(!i)return;const dup=(i.payments||[]).find(p=>p.date===t.date&&Math.abs(Math.abs(roundMoney(p.amount||0))-Math.abs(roundMoney(t.amount||0)))<=0.02);if(dup){if(!confirm('Er staat op dezelfde datum al een handmatige betaling met hetzelfde bedrag. Wil je die handmatige betaling vervangen door deze banktransactie?'))return;i.payments=i.payments.filter(p=>p.id!==dup.id);logEvent('Handmatige betaling vervangen door bankmatch',`${i.number} · ${money(t.amount)}`,'invoice',i.id)}t.status='matched';t.matchType=type;t.matchId=mid;t.matchConfidence='manual';syncInvoiceStatus(i)}else{t.status='matched';t.matchType=type;t.matchId=mid;t.matchConfidence='manual'}delete t.matchSuggestion;logEvent('Banktransactie gekoppeld',`${t.description} → ${type}`,'transaction',t.id);save();closeModal();render();toast(type==='invoice'&&invoiceOutstanding(state.invoices.find(x=>x.id===mid))>0.02?'Deelbetaling gekoppeld':'Transactie gekoppeld')}
 function unmatchTransaction(id){const t=state.transactions.find(x=>x.id===id);let linked=null;if(t.matchType==='invoice')linked=state.invoices.find(x=>x.id===t.matchId);delete t.matchType;delete t.matchId;t.status='unmatched';if(linked)syncInvoiceStatus(linked);save();render();toast('Koppeling verwijderd')}
 function normalizeBankText(v){return String(v||'').trim().toLowerCase().replace(/\s+/g,' ')}
 function fnv1a(v){let h=2166136261;for(let i=0;i<v.length;i++){h^=v.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(16).padStart(8,'0')}
 function bankFingerprint(t){const parts=[t.sourceId||'',t.endToEndId||'',t.reference||'',t.date||'',String(toCents(t.amount||0)),normalizeBankText(t.description),normalizeBankText(t.counterpartyIban||'')];return 'b1-'+fnv1a(parts.join('|'))}
 function parseCsvRow(line,delimiter){const out=[];let cur='',quoted=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(quoted&&line[i+1]==='"'){cur+='"';i++}else quoted=!quoted}else if(ch===delimiter&&!quoted){out.push(cur);cur=''}else cur+=ch}out.push(cur);return out}
-function parseBankAmount(raw){let s=String(raw??'').trim().replace(/\s/g,'').replace(/[^0-9,.-]/g,'');if(!s)return NaN;if(s.includes(',')&&s.includes('.')){if(s.lastIndexOf(',')>s.lastIndexOf('.'))s=s.replace(/\./g,'').replace(',','.');else s=s.replace(/,/g,'')}else if(s.includes(','))s=s.replace(',','.');return roundMoney(Number(s))}
-function normalizeBankDate(raw){const d=String(raw||'').trim();let m;if(/^\d{4}-\d{2}-\d{2}$/.test(d))return d;if((m=d.match(/^(\d{4})(\d{2})(\d{2})$/)))return `${m[1]}-${m[2]}-${m[3]}`;if((m=d.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/)))return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;return ''}
-function applyBankDirection(amount,raw){if(!Number.isFinite(amount))return amount;const v=normalizeBankText(raw);if(['af','d','debet','debit'].includes(v))return -Math.abs(amount);if(['bij','c','credit'].includes(v))return Math.abs(amount);return amount}
-function bankCsvLayout(firstLine){const counts={';':firstLine.split(';').length,',':firstLine.split(',').length,'\t':firstLine.split('\t').length},delimiter=Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0],cols=parseCsvRow(firstLine,delimiter);
- // ABN AMRO .TAB export: no header; rekening, munt, datum, beginsaldo, eindsaldo, rentedatum, bedrag, omschrijving
- if(delimiter==='\t'&&cols.length>=8&&/^\d{8}$/.test(String(cols[2]).trim()))return {delimiter,headerless:true,di:2,oi:7,ai:6,idi:-1,eti:-1,ri:-1,ibi:-1,dci:-1};
- const head=cols.map(x=>normalizeBankText(x)),idx=re=>head.findIndex(x=>re.test(x)),counterIban=idx(/tegenrekening/),layout={delimiter,headerless:false,di:idx(/datum|date/),oi:idx(/omschrijving|description|naam|mededeling/),ai:idx(/bedrag|amount/),idi:idx(/transactie.?id|transaction.?id|boekings.?id/),eti:idx(/end.?to.?end|endtoend/),ri:idx(/referentie|reference|kenmerk/),ibi:counterIban>=0?counterIban:idx(/iban/),dci:idx(/^af ?\/? ?bij$|^credit ?\/? ?debet$|^debet ?\/? ?credit$|^d ?\/ ?c$|^c ?\/ ?d$/)};
- return layout.di<0||layout.oi<0||layout.ai<0?null:layout}
-function handleCSV(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const raw=String(r.result||'').replace(/^\uFEFF/,'').trim(),lines=raw.split(/\r?\n/).filter(Boolean);const layout=lines.length?bankCsvLayout(lines[0]):null;if(lines.length<(layout?.headerless?1:2))return toast('CSV bevat geen regels');if(!layout)return toast('Kolommen datum, omschrijving en bedrag nodig');const {delimiter,di,oi,ai,idi,eti,ri,ibi,dci}=layout;const existing=new Set(state.transactions.map(t=>t.fingerprint||bankFingerprint(t)));let read=0,added=0,duplicate=0;for(const line of lines.slice(layout.headerless?0:1)){const cols=parseCsvRow(line,delimiter);let d=normalizeBankDate(cols[di]),a=applyBankDirection(parseBankAmount(cols[ai]),dci>=0?cols[dci]:'');if(!d||!/^\d{4}-\d{2}-\d{2}$/.test(d)||!Number.isFinite(a))continue;read++;const tx={id:uid('t'),date:d,description:String(cols[oi]||'CSV-import').trim()||'CSV-import',amount:a,status:'unmatched',sourceId:idi>=0?String(cols[idi]||'').trim():'',endToEndId:eti>=0?String(cols[eti]||'').trim():'',reference:ri>=0?String(cols[ri]||'').trim():'',counterpartyIban:ibi>=0?String(cols[ibi]||'').replace(/\s/g,'').toUpperCase():''};tx.fingerprint=bankFingerprint(tx);if(existing.has(tx.fingerprint)){duplicate++;continue}existing.add(tx.fingerprint);state.transactions.push(tx);added++}save();logEvent('Bank CSV geïmporteerd',`${read} gelezen · ${added} nieuw · ${duplicate} reeds aanwezig`,'bank','csv');toast(`${read} regels gelezen · ${added} nieuw · ${duplicate} reeds aanwezig`);render()};r.readAsText(f)}
+// Bank import. Amounts are parsed as whole cents from text, never via float guessing. Rows that cannot be read
+// exactly are kept as visible problems in the preview; nothing is imported before the user confirms.
+function parseBankAmountCents(raw){
+ let s=String(raw??'').replace(/[\u2212\u2012\u2013\u2014]/g,'-').replace(/eur|€|[\s\u00a0\u202f']/gi,'');
+ if(!s)return {error:'empty'};
+ let neg=false;
+ if(/^\(.*\)$/.test(s)){neg=true;s=s.slice(1,-1)}
+ if(/^[-+]/.test(s)){neg=neg||s[0]==='-';s=s.slice(1)}else if(/[-+]$/.test(s)){neg=neg||s.endsWith('-');s=s.slice(0,-1)}
+ if(!/^\d[\d.,]*$/.test(s))return {error:'invalid'};
+ let whole=s,frac='';
+ const commas=(s.match(/,/g)||[]).length,dots=(s.match(/\./g)||[]).length;
+ if(commas&&dots){
+  const dec=s.lastIndexOf(',')>s.lastIndexOf('.')?',':'.',thou=dec===','?'.':',';
+  if((dec===','?commas:dots)!==1)return {error:'invalid'};
+  [whole,frac]=s.split(dec);
+  if(!new RegExp('^\\d{1,3}(\\'+thou+'\\d{3})*$').test(whole)||!/^\d{1,2}$/.test(frac))return {error:'invalid'};
+  whole=whole.split(thou).join('');
+ }else if(commas||dots){
+  const sep=commas?',':'.',count=commas||dots,parts=s.split(sep);
+  if(count>1){if(!new RegExp('^\\d{1,3}(\\'+sep+'\\d{3})+$').test(s))return {error:'invalid'};whole=parts.join('')}
+  else if(/^\d{1,2}$/.test(parts[1])&&parts[0]){whole=parts[0];frac=parts[1]}
+  else if(/^\d{3}$/.test(parts[1]))return {error:'ambiguous'};
+  else return {error:'invalid'};
+ }
+ if(whole.length>13)return {error:'invalid'};
+ const cents=Number(whole)*100+Number((frac+'00').slice(0,2));
+ if(!Number.isSafeInteger(cents))return {error:'invalid'};
+ return {cents:neg&&cents?-cents:cents};
+}
+function parseBankAmount(raw){const r=parseBankAmountCents(raw);return r.error?NaN:r.cents/100}
+function normalizeBankDate(raw){
+ let d=String(raw||'').trim().replace(/^['"]|['"]$/g,'').replace(/(?:T|\s+)\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:\s*(?:Z|[+-]\d{2}:?\d{2}|UTC))?$/i,'');
+ let m,y,mo,da;
+ if((m=d.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/))||(m=d.match(/^(\d{4})(\d{2})(\d{2})$/)))[y,mo,da]=[m[1],m[2],m[3]];
+ else if((m=d.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4}|\d{2})$/)))[y,mo,da]=[m[3].length===2?'20'+m[3]:m[3],m[2],m[1]];
+ else return '';
+ const iso=`${y}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`,ms=Date.parse(iso+'T00:00:00Z');
+ if(Number.isNaN(ms)||new Date(ms).toISOString().slice(0,10)!==iso||Number(y)<1990||Number(y)>2100)return '';
+ return iso;
+}
+function bankDirectionSign(raw){const v=normalizeBankText(raw);if(!v)return 0;if(['af','d','debet','debit','dbit','afschrijving','-'].includes(v))return -1;if(['bij','c','credit','crdt','bijschrijving','+'].includes(v))return 1;return null}
+function applyBankDirection(amount,raw){if(!Number.isFinite(amount))return amount;const s=bankDirectionSign(raw);if(s===-1)return -Math.abs(amount);if(s===1)return Math.abs(amount);return amount}
+function detectCsvDelimiter(text){
+ const lines=String(text||'').split(/\r?\n/).filter(l=>l.trim()).slice(0,12);let best=';',bestScore=0;
+ for(const d of [';','\t',',','|']){
+  const counts=lines.map(l=>{let n=0,q=false;for(const ch of l){if(ch==='"')q=!q;else if(ch===d&&!q)n++}return n});
+  const freq={};for(const c of counts)if(c>0)freq[c]=(freq[c]||0)+1;
+  const [mode,hits]=Object.entries(freq).sort((a,b)=>b[1]-a[1]||b[0]-a[0])[0]||[0,0],score=hits*100+Number(mode);
+  if(score>bestScore){best=d;bestScore=score}
+ }
+ return best;
+}
+function parseCsvRecords(text,delimiter){
+ const s=String(text||''),records=[];let cells=[],cur='',quoted=false,atStart=true,line=1,start=1;
+ for(let i=0;i<s.length;i++){
+  const ch=s[i];
+  if(quoted){if(ch==='"'){if(s[i+1]==='"'){cur+='"';i++}else quoted=false}else{if(ch==='\n')line++;cur+=ch}continue}
+  if(ch==='"'&&atStart){quoted=true;atStart=false;continue}
+  if(ch===delimiter){cells.push(cur);cur='';atStart=true;continue}
+  if(ch==='\r'&&s[i+1]==='\n')continue;
+  if(ch==='\n'||ch==='\r'){cells.push(cur);records.push({line:start,cells});cells=[];cur='';atStart=true;line++;start=line;continue}
+  cur+=ch;atStart=false;
+ }
+ // An unclosed quote would swallow every following row: fall back to one record per line so nothing disappears.
+ if(quoted)return s.split(/\r?\n/).map((l,i)=>({line:i+1,cells:parseCsvRow(l,delimiter)}));
+ if(cur!==''||cells.length){cells.push(cur);records.push({line:start,cells})}
+ return records;
+}
+function bankHeaderLayout(cells,delimiter){
+ const head=cells.map(x=>normalizeBankText(String(x).replace(/^'|'$/g,''))),find=(re,not)=>head.findIndex(x=>re.test(x)&&!(not&&not.test(x))),all=(re,not)=>head.map((x,i)=>re.test(x)&&!(not&&not.test(x))?i:-1).filter(i=>i>=0);
+ const counterIban=find(/tegenrekening|counterparty ?(iban|account)/,/naam|houder|name/);
+ const layout={delimiter,headerless:false,
+  di:(i=>i>=0?i:find(/datum|date/))(find(/datum|date/,/rente|valuta|interest|value|journaal|started/)),
+  oi:find(/omschrijving|description|naam|mededeling/),
+  ai:find(/bedrag|amount/,/oorspr|orig|saldo|balance|fee|^(bedrag )?(af|bij|debet|debit|credit)( bedrag)?( \(eur\))?$/),
+  adi:find(/^(bedrag )?(af|debet|debit|uitgaven?|afschrijvingen?)( bedrag)?( \(eur\))?$/),
+  aci:find(/^(bedrag )?(bij|credit|inkomsten|bijschrijvingen?)( bedrag)?( \(eur\))?$/),
+  idi:find(/transactie.?id|transaction.?id|boekings.?id/),eti:find(/end.?to.?end|endtoend/),ri:find(/referentie|reference|kenmerk/),
+  ibi:counterIban>=0?counterIban:find(/iban/),
+  dci:find(/^af ?\/? ?bij$|^bij ?\/? ?af$|^credit ?\/? ?debe?t$|^debe?t ?\/? ?credit$|^debit ?\/? ?credit$|^d ?\/ ?c$|^c ?\/ ?d$/),
+  ci:find(/^munt$|^valuta(code)?$|^currency$|valutasoort mutatie/),
+  descs:[...all(/^naam|tegenpartij|tegenrekeninghouder|counterparty name|^name$|^payee|^payer$/,/iban|uiteindelijke|initi|bic/),...all(/omschrijving|mededeling|description/)]};
+ if(layout.di<0||(layout.ai<0&&(layout.adi<0||layout.aci<0)))return null;
+ if(layout.ai>=0){layout.adi=-1;layout.aci=-1}
+ layout.descs=[...new Set(layout.descs)];
+ return layout;
+}
+function bankHeaderlessLayout(cells,delimiter){
+ const c=cells.map(x=>String(x).trim()),dmy=/^\d{1,2}-\d{1,2}-\d{4}$/,acct=/^[A-Z]{2}\d{2}[A-Z0-9]{8,30}$|^\d{7,10}$/;
+ // ABN AMRO .TAB export: rekening, munt, datum, beginsaldo, eindsaldo, rentedatum, bedrag, omschrijving
+ if(delimiter==='\t'&&c.length>=8&&/^\d{8}$/.test(c[2]))return {delimiter,headerless:true,bank:'ABN AMRO',di:2,oi:7,ai:6,adi:-1,aci:-1,idi:-1,eti:-1,ri:-1,ibi:-1,dci:-1,ci:1,descs:[7]};
+ // de Volksbank (ASN, SNS, RegioBank): 19 columns, date first, signed amount with decimal point in column 11
+ if(delimiter===','&&c.length>=19&&dmy.test(c[0])&&acct.test(c[1].toUpperCase())&&/^[+-]?\d+\.\d{2}$/.test(c[10]))return {delimiter,headerless:true,bank:'ASN, SNS of RegioBank',di:0,oi:17,ai:10,adi:-1,aci:-1,idi:15,eti:-1,ri:16,ibi:2,dci:-1,ci:9,descs:[3,17]};
+ // Triodos: datum, rekening, bedrag, Debet/Credit, naam, tegenrekening, code, omschrijving
+ if(delimiter===','&&c.length>=8&&dmy.test(c[0])&&/^(debet|credit)$/i.test(c[3]))return {delimiter,headerless:true,bank:'Triodos',di:0,oi:7,ai:2,adi:-1,aci:-1,idi:-1,eti:-1,ri:-1,ibi:5,dci:3,ci:-1,descs:[4,7]};
+ return null;
+}
+function bankCsvLayout(firstLine){const delimiter=detectCsvDelimiter(firstLine),cols=parseCsvRow(firstLine,delimiter);return bankHeaderlessLayout(cols,delimiter)||bankHeaderLayout(cols,delimiter)}
+function decodeBankFileBytes(buf){
+ const b=new Uint8Array(buf||[]);
+ if(!b.length)return {error:'empty'};
+ const head=String.fromCharCode(...b.slice(0,5));
+ if(head.startsWith('%PDF'))return {error:'pdf'};
+ if(head.startsWith('PK\u0003\u0004')||(b[0]===0xD0&&b[1]===0xCF))return {error:'spreadsheet'};
+ if(b[0]===0xFF&&b[1]===0xFE)return {text:new TextDecoder('utf-16le').decode(b.slice(2))};
+ if(b[0]===0xFE&&b[1]===0xFF)return {text:new TextDecoder('utf-16be').decode(b.slice(2))};
+ // Older bank exports are Windows-1252; reading them as UTF-8 would garble names like "Café".
+ try{return {text:new TextDecoder('utf-8',{fatal:true}).decode(b).replace(/^\uFEFF/,'')}}catch(_){return {text:new TextDecoder('windows-1252').decode(b),encoding:'windows-1252'}}
+}
+function bankCellText(v){return String(v??'').trim().replace(/^'(.*)'$/s,'$1').trim()}
+function parseBankStatement(text,forcedLayout){
+ const raw=String(text||'').replace(/^\uFEFF/,'');
+ if(!raw.trim())return {ok:false,code:'empty'};
+ if(/^\s*<\?xml|<(\w+:)?(Document|BkToCstmrStmt)\b/.test(raw.slice(0,2000)))return {ok:false,code:'camt'};
+ if(/(^|\n):20:/.test(raw.slice(0,4000))&&/(^|\n):61:/.test(raw))return {ok:false,code:'mt940'};
+ const delimiter=forcedLayout?.delimiter||detectCsvDelimiter(raw),records=parseCsvRecords(raw,delimiter).filter(r=>r.cells.some(c=>String(c).trim()));
+ if(!records.length)return {ok:false,code:'empty'};
+ if(records.length>20001)return {ok:false,code:'too_large'};
+ let layout=forcedLayout||null,start=0;
+ // A chosen "first row has column names" must never swallow a real transaction row.
+ if(layout)start=layout.headerless||normalizeBankDate(bankCellText(records[0].cells[layout.di]))?0:1;
+ else for(let i=0;i<Math.min(records.length,10)&&!layout;i++){
+  const h=bankHeaderlessLayout(records[i].cells,delimiter);if(h){layout=h;start=i;break}
+  const l=bankHeaderLayout(records[i].cells,delimiter);if(l){layout=l;start=i+1}
+ }
+ if(!layout)return {ok:false,code:'columns',delimiter,records:records.slice(0,6)};
+ const rows=[],need=Math.max(layout.di,layout.ai,layout.adi,layout.aci);
+ for(const r of records.slice(start)){
+  const c=r.cells,cell=i=>i>=0?bankCellText(c[i]):'',problem=msg=>rows.push({line:r.line,problem:msg,raw:c.join(' | ').slice(0,160)});
+  if(c.length<=need){problem('Deze regel heeft te weinig kolommen.');continue}
+  const date=normalizeBankDate(cell(layout.di));
+  if(!date){problem(`Datum "${cell(layout.di)||'leeg'}" is niet herkend.`);continue}
+  const cur=cell(layout.ci).toUpperCase();
+  if(cur&&cur!=='EUR'){problem(`Bedrag in ${cur}. BOEKUNA rekent in euro.`);continue}
+  let cents;
+  if(layout.ai>=0){
+   const a=parseBankAmountCents(cell(layout.ai));
+   if(a.error){problem(a.error==='ambiguous'?`Bedrag "${cell(layout.ai)}" is niet eenduidig.`:a.error==='empty'?'Bedrag ontbreekt.':`Bedrag "${cell(layout.ai)}" is niet herkend.`);continue}
+   cents=a.cents;
+   if(layout.dci>=0){const s=bankDirectionSign(cell(layout.dci));if(!s){problem(s===0?'Af/Bij ontbreekt.':`Af/Bij-waarde "${cell(layout.dci)}" is niet herkend.`);continue}cents=Math.abs(cents)*s}
+  }else{
+   const d=parseBankAmountCents(cell(layout.adi)),k=parseBankAmountCents(cell(layout.aci)),dOk=!d.error&&d.cents!==0,kOk=!k.error&&k.cents!==0;
+   if((d.error&&d.error!=='empty')||(k.error&&k.error!=='empty')){problem('Bedrag is niet herkend.');continue}
+   if(dOk&&kOk){problem('Zowel Af als Bij is ingevuld.');continue}
+   if(d.error&&k.error){problem('Bedrag ontbreekt.');continue}
+   cents=dOk?-Math.abs(d.cents):kOk?Math.abs(k.cents):0;
+  }
+  const parts=[...new Set(layout.descs.map(cell).filter(Boolean))];
+  const tx={id:uid('t'),date,description:parts.join(' · ').replace(/\s+/g,' ').slice(0,500)||'Bankregel',amount:cents/100,status:'unmatched',
+   sourceId:cell(layout.idi),endToEndId:cell(layout.eti),reference:cell(layout.ri),counterpartyIban:cell(layout.ibi).replace(/\s/g,'').toUpperCase()};
+  rows.push({line:r.line,tx,legacyDescription:(layout.oi>=0?cell(layout.oi):'')||'CSV-import'});
+ }
+ assignBankImportFingerprints(rows.filter(r=>r.tx));
+ return {ok:true,layout,delimiter,rows};
+}
+function assignBankImportFingerprints(rows){
+ // Identical rows (two coffees, same shop, same day) are real separate payments: number them instead of
+ // dropping them. The first one keeps the old fingerprint, so files imported before stay recognised.
+ const seen={};
+ for(const r of rows){
+  const base=bankFingerprint(r.tx),n=seen[base]=(seen[base]||0)+1;
+  r.tx.fingerprint=n===1?base:'b1-'+fnv1a(base+'#'+n);
+  r.legacyFingerprint=n===1?bankFingerprint({...r.tx,description:r.legacyDescription}):'';
+ }
+ return rows;
+}
+function bankImportPlan(parsed,transactions){
+ const existing=new Set((transactions||[]).map(t=>t.fingerprint||bankFingerprint(t))),ready=[],duplicates=[],problems=[];
+ for(const r of parsed.rows){
+  if(!r.tx){problems.push(r);continue}
+  if(existing.has(r.tx.fingerprint)||(r.legacyFingerprint&&existing.has(r.legacyFingerprint)))duplicates.push(r);else ready.push(r);
+ }
+ const sum=f=>ready.filter(r=>f(r.tx.amount)).reduce((s,r)=>s+Math.round(r.tx.amount*100),0)/100,dates=ready.map(r=>r.tx.date).sort();
+ return {ready,duplicates,problems,found:parsed.rows.length,incoming:sum(a=>a>0),outgoing:-sum(a=>a<0),from:dates[0]||'',to:dates.at(-1)||''};
+}
+let pendingBankImport=null;
+function bankImportErrorText(code){return ({
+ empty:'Dit bestand is leeg.',
+ pdf:'Dit is een PDF. BOEKUNA leest bankbestanden als CSV. Download bij je bank de transacties als CSV-bestand.',
+ spreadsheet:'Dit is een Excel-bestand. Sla het op als CSV, of download bij je bank de transacties als CSV-bestand.',
+ camt:'Dit is een CAMT.053-bestand. Dat formaat leest BOEKUNA nog niet. Download bij je bank de transacties als CSV-bestand.',
+ mt940:'Dit is een MT940-bestand. Dat formaat leest BOEKUNA nog niet. Download bij je bank de transacties als CSV-bestand.',
+ too_large:'Dit bestand heeft meer dan 20.000 regels. Download bij je bank een kortere periode.',
+ read:'BOEKUNA kon dit bestand niet openen. Probeer het opnieuw of kies een ander bestand.'
+})[code]||'BOEKUNA kon dit bestand niet lezen. Kies een ander bestand.'}
+function bankPickFileButton(label='Ander bestand kiezen'){return `<button class="btn" type="button" onclick="closeModal();document.getElementById('csvFile').click()">${label}</button>`}
+function handleCSV(e){
+ const input=e.target,f=input.files[0];if(!f)return;
+ const r=new FileReader();
+ r.onerror=()=>showBankImportError('read');
+ r.onload=()=>{input.value='';const dec=decodeBankFileBytes(r.result);if(dec.error)return showBankImportError(dec.error);startBankImport(dec.text,f.name)};
+ r.readAsArrayBuffer(f);
+}
+function startBankImport(text,name,layout){
+ const parsed=parseBankStatement(text,layout);
+ if(!parsed.ok&&parsed.code==='columns'){pendingBankImport={text,name,parsed};return showBankColumnMapping()}
+ if(!parsed.ok)return showBankImportError(parsed.code);
+ pendingBankImport={text,name,parsed,plan:bankImportPlan(parsed,state.transactions)};
+ showBankImportPreview();
+}
+function showBankImportError(code){pendingBankImport=null;modal('Bankbestand importeren',`<div class="notice warn" role="alert">${esc(bankImportErrorText(code))}</div>`,`<button class="btn" onclick="closeModal()">Sluiten</button>${bankPickFileButton()}`)}
+function showBankImportPreview(){
+ const p=pendingBankImport;if(!p)return;const plan=p.plan,lay=p.parsed.layout,n=plan.ready.length;
+ const rowsHtml=plan.ready.slice(0,100).map(r=>`<tr><td class="cell-nowrap">${dateNL(r.tx.date)}</td><td>${esc(r.tx.description)}</td><td class="right money cell-nowrap" style="color:${r.tx.amount<0?'var(--bad)':'var(--good)'}">${money(r.tx.amount)}</td></tr>`).join('');
+ const probHtml=plan.problems.slice(0,50).map(r=>`<li><strong>Regel ${r.line}:</strong> ${esc(r.problem)} <span class="help">${esc(r.raw)}</span></li>`).join('');
+ modal('Controleer je bankbestand',`<div class="bank-import-preview">
+ <p><strong>${plan.found} transactie${plan.found===1?'':'s'} gevonden</strong> in ${esc(p.name||'je bestand')}${lay.bank?` (${esc(lay.bank)})`:''}.</p>
+ <ul class="bank-import-summary" style="margin:8px 0 14px;padding-left:20px">
+  <li><strong>${n}</strong> klaar om te importeren${n?` · bij ${money(plan.incoming)} · af ${money(plan.outgoing)}${plan.from?` · ${dateNL(plan.from)} t/m ${dateNL(plan.to)}`:''}`:''}</li>
+  ${plan.duplicates.length?`<li><strong>${plan.duplicates.length}</strong> al eerder geïmporteerd, die slaan we over</li>`:''}
+  ${plan.problems.length?`<li><strong>${plan.problems.length}</strong> ${plan.problems.length===1?'heeft':'hebben'} controle nodig</li>`:''}
+ </ul>
+ ${plan.problems.length?`<div class="notice warn" role="alert"><strong>Deze regels worden niet geïmporteerd.</strong> Controleer ze in je bankapp en voeg ze zo nodig zelf toe met "Transactie toevoegen".<ul class="bank-import-problems" style="margin:8px 0 0;padding-left:18px">${probHtml}</ul>${plan.problems.length>50?`<p class="help">En nog ${plan.problems.length-50} regels.</p>`:''}</div>`:''}
+ ${n?`<div class="table-wrap"><table class="table financial-table"><thead><tr><th>Datum</th><th>Omschrijving</th><th class="right">Bedrag</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>${n>100?`<p class="help">100 van ${n} transacties getoond.</p>`:''}`:`<div class="notice info">Er is niets nieuws om te importeren.</div>`}
+ <p class="help">Klopt een kolom niet? <button type="button" class="btn small" onclick="showBankColumnMapping()">Kolommen aanpassen</button></p>
+ </div>`,`<button class="btn" onclick="pendingBankImport=null;closeModal()">Annuleren</button>${bankPickFileButton()}${n?`<button class="btn primary" onclick="confirmBankImport()">${n} transactie${n===1?'':'s'} importeren</button>`:''}`,true);
+}
+function confirmBankImport(){
+ const p=pendingBankImport;if(!p)return;
+ // Re-check against the current ledger: another tab or a cloud sync may have added rows since the preview.
+ const plan=bankImportPlan(p.parsed,state.transactions);
+ for(const r of plan.ready)state.transactions.push(r.tx);
+ pendingBankImport=null;
+ save();
+ logEvent('Bankbestand geïmporteerd',`${plan.ready.length} nieuw · ${plan.duplicates.length} al aanwezig · ${plan.problems.length} niet gelezen`,'bank','csv');
+ closeModal();render();
+ toast(`${plan.ready.length} transactie${plan.ready.length===1?'':'s'} geïmporteerd${plan.problems.length?` · ${plan.problems.length} regel${plan.problems.length===1?'':'s'} niet geïmporteerd`:''}`);
+}
+function showBankColumnMapping(){
+ const p=pendingBankImport;if(!p)return;
+ const delimiter=p.parsed.delimiter||p.parsed.layout?.delimiter||detectCsvDelimiter(p.text),recs=parseCsvRecords(p.text,delimiter).filter(r=>r.cells.some(c=>String(c).trim())).slice(0,6);
+ const width=Math.max(0,...recs.map(r=>r.cells.length)),cur=p.parsed.layout||{},sample=i=>recs.map(r=>bankCellText(r.cells[i])).filter(Boolean).slice(0,2).join(' / ');
+ const opts=(sel,none)=>`<option value="-1">${none}</option>`+Array.from({length:width},(_,i)=>`<option value="${i}"${sel===i?' selected':''}>Kolom ${i+1}: ${esc(sample(i).slice(0,50)||'leeg')}</option>`).join('');
+ const desc=Array.isArray(cur.descs)&&cur.descs.length?cur.descs[0]:-1;
+ modal('Kolommen kiezen',`<p>${p.parsed.ok?'Kies welke kolom wat betekent.':'BOEKUNA kon de kolommen in dit bestand niet herkennen. Kies welke kolom wat betekent.'}</p>
+ <form id="bankMapForm" class="form-grid">
+ <div class="field full"><label for="bankMapDate">Datum</label><select id="bankMapDate" name="di">${opts(cur.di??-1,'Kies een kolom')}</select></div>
+ <div class="field full"><label for="bankMapAmount">Bedrag (met min-teken voor uitgaven)</label><select id="bankMapAmount" name="ai">${opts(cur.ai??-1,'Geen, ik heb aparte Af- en Bij-kolommen')}</select></div>
+ <div class="field"><label for="bankMapDebit">Af (uitgaven)</label><select id="bankMapDebit" name="adi">${opts(cur.adi??-1,'Geen')}</select></div>
+ <div class="field"><label for="bankMapCredit">Bij (ontvangsten)</label><select id="bankMapCredit" name="aci">${opts(cur.aci??-1,'Geen')}</select></div>
+ <div class="field full"><label for="bankMapDir">Af/Bij-kolom (optioneel)</label><select id="bankMapDir" name="dci">${opts(cur.dci??-1,'Geen')}</select></div>
+ <div class="field full"><label for="bankMapDesc">Omschrijving</label><select id="bankMapDesc" name="oi">${opts(desc,'Geen')}</select></div>
+ <div class="field full"><label style="display:flex;align-items:center;gap:9px;text-transform:none;letter-spacing:0"><input type="checkbox" name="header" style="width:auto" ${cur.headerless?'':'checked'}> De eerste regel bevat kolomnamen</label></div>
+ </form><p id="bankMapError" class="help" role="alert"></p>`,`<button class="btn" onclick="pendingBankImport=null;closeModal()">Annuleren</button>${bankPickFileButton()}<button class="btn primary" onclick="applyBankColumnMapping()">Controleren</button>`);
+}
+function applyBankColumnMapping(){
+ const p=pendingBankImport,f=document.getElementById('bankMapForm');if(!p||!f)return;
+ const v=n=>Number(f.elements[n].value),err=document.getElementById('bankMapError');
+ const layout={delimiter:p.parsed.delimiter||p.parsed.layout?.delimiter||detectCsvDelimiter(p.text),headerless:!f.elements.header.checked,di:v('di'),ai:v('ai'),adi:v('adi'),aci:v('aci'),dci:v('dci'),oi:v('oi'),descs:v('oi')>=0?[v('oi')]:[],idi:-1,eti:-1,ri:-1,ibi:-1,ci:-1};
+ if(layout.di<0)return err.textContent='Kies de kolom met de datum.';
+ if(layout.ai<0&&(layout.adi<0||layout.aci<0))return err.textContent='Kies de kolom met het bedrag, of kies zowel een Af- als een Bij-kolom.';
+ if(layout.ai>=0){layout.adi=-1;layout.aci=-1}
+ startBankImport(p.text,p.name,layout);
+}
 function removeDemoCustomers(){
  const n=state.contacts.filter(c=>c.demo).length;
  if(!n)return toast('Geen demo-klanten aanwezig');
@@ -5156,7 +5420,7 @@ function localPersistentProcessingItems(){
  const items=documentProcessingSession?.items||[];
  return items.filter(item=>{
   if(['selected','uploading','uploaded'].includes(item.state))return true;
-  if(item.state==='queued'&&item.receivedPersisted)return !documentProcessingJobs.some(job=>String(job.client_ref||'')===String(item.clientRef||''));
+  if(item.state==='queued'&&(item.documentPersisted||item.receivedPersisted))return !documentProcessingJobs.some(job=>String(job.client_ref||'')===String(item.clientRef||''));
   return false
  })
 }
@@ -5171,10 +5435,10 @@ function renderDocumentProcessingBoard(){
  if(!local.length&&!jobs.length)return '';
  jobs=[...jobs].sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
  const terminal=jobs.filter(persistentDocumentIsTerminal).length,total=local.length+jobs.length,ready=jobs.filter(j=>j.state==='ready').length,review=jobs.filter(j=>j.state==='review_required').length,failed=jobs.filter(j=>j.state==='failed').length;
- const receivedAll=!!documentProcessingSession?.allReceived||(!local.length&&jobs.length>0);
+ const receivedAll=documentProcessingSession?.persistent?!!documentProcessingSession.allReceived:(!local.length&&jobs.length>0);
  const summary=jobs.length?(terminal+' van '+jobs.length+' afgerond'):(local.length+' uploaden');
- const completion=jobs.length&&terminal===jobs.length?(review||failed?('Verwerking afgerond · '+ready+' klaar'+(review?' · '+review+' controle nodig':'')+(failed?' · '+failed+' niet verwerkt':'')):('✓ '+ready+' documenten verwerkt')):'';
- return '<section class="document-processing-board" aria-live="polite" aria-busy="'+((local.length||jobs.some(j=>!persistentDocumentIsTerminal(j)))?'true':'false')+'"><div class="document-processing-board-head"><div><h2>'+total+' document'+(total===1?'':'en')+'</h2><p>'+(completion||'Verwerken…')+'</p></div><span class="document-processing-summary">'+esc(summary)+'</span></div><div class="document-processing-list">'+local.map(localUploadCardHtml).join('')+jobs.map(j=>persistentDocumentCardHtml(j)).join('')+'</div>'+(receivedAll?'<div class="document-processing-received"><strong>Ontvangen.</strong> Je kunt verder werken.</div>':'')+(documentProcessingConnectivityLost&&(jobs.length||local.some(x=>x.receivedPersisted))?'<div class="document-processing-reconnect"><strong>Verbinding onderbroken.</strong> Je documenten zijn ontvangen. We halen de status opnieuw op zodra de verbinding terug is.</div>':'')+'</section>'
+ const completion=!local.length&&jobs.length&&terminal===jobs.length?(review||failed?('Verwerking afgerond · '+ready+' klaar'+(review?' · '+review+' controle nodig':'')+(failed?' · '+failed+' niet verwerkt':'')):('✓ '+ready+' documenten verwerkt')):'';
+ return '<section class="document-processing-board" aria-live="polite" aria-busy="'+((local.length||jobs.some(j=>!persistentDocumentIsTerminal(j)))?'true':'false')+'"><div class="document-processing-board-head"><div><h2>'+total+' document'+(total===1?'':'en')+'</h2><p>'+(completion||'Verwerken…')+'</p></div><span class="document-processing-summary">'+esc(summary)+'</span></div><div class="document-processing-list">'+local.map(localUploadCardHtml).join('')+jobs.map(j=>persistentDocumentCardHtml(j)).join('')+'</div>'+(receivedAll?'<div class="document-processing-received"><strong>Ontvangen.</strong> Je kunt verder werken.</div>':'')+(documentProcessingConnectivityLost&&(jobs.length||local.some(x=>x.receivedPersisted))?'<div class="document-processing-reconnect"><strong>Verbinding onderbroken.</strong> '+(receivedAll?'Je documenten zijn ontvangen. We halen de status opnieuw op zodra de verbinding terug is.':'We herstellen de verwerkingsopdrachten van opgeslagen bestanden zodra de verbinding terug is.')+'</div>':'')+'</section>'
 }
 function updateLocalDocumentFromJob(job){
  const ref=String(job?.client_ref||'');let doc=state.documents.find(x=>String(x.fileId||'')===ref),changed=false;
@@ -5207,14 +5471,17 @@ function syncPersistentJobsToUploadSession(){
  for(const item of s.items||[]){
   if(!item.clientRef)continue;
   const job=documentProcessingJobs.find(j=>String(j.client_ref)===String(item.clientRef));if(!job)continue;
-  item.jobId=job.id;item.uploaded=true;
+  if(!item.receivedPersisted)touched=true;
+  item.jobId=job.id;item.uploaded=true;item.documentPersisted=true;item.receivedPersisted=true;
   const next=String(job.state||'queued');
   if(item.state!==next){item.state=next;touched=true}
   item.processingPhase=job.phase==='validate'?'validate':'read';
   item.processorComplete=['validating','ready','review_required'].includes(next);
   item.error=next==='failed'?createUploadError(job.error_code||'UNKNOWN','',0,{retryable:job.error_retryable!==false,state:'no_changes'}):null;
  }
- if(touched)scheduleDocumentProcessingRender()
+ const receivedAll=(s.items||[]).length>0&&(s.items||[]).every(x=>x.receivedPersisted);
+ if(s.allReceived!==receivedAll){s.allReceived=receivedAll;touched=true}
+ if(touched){scheduleDocumentProcessingRender();renderGlobalDocumentIndicator()}
 }
 async function fetchDocumentProcessingJobs(){
  if(TEST_MODE_NO_AUTH||!currentUser)return [];
@@ -5306,7 +5573,7 @@ async function persistSelectedDocument(item,batchId){
  const path=currentUser.id+'/'+clientRef+'-'+safeStorageName(item.file.name);item.storagePath=path;
  documentProcessingTransition(item,'uploading');setDocumentProcessingMessage(item,'Uploaden…','Je bestand wordt veilig ontvangen.');
  await uploadPersistentDocumentBlob(item.file,path,item);
- item.uploaded=true;item.uploadPercent=100;documentProcessingTransition(item,'uploaded');setDocumentProcessingMessage(item,'Bestand ontvangen','Je kunt dit document nu veilig op de achtergrond laten verwerken.');
+ item.uploaded=true;item.uploadPercent=100;documentProcessingTransition(item,'uploaded');setDocumentProcessingMessage(item,'Bestand opgeslagen','De verwerkingsopdracht wordt aangemaakt.');
  const {data:existing}=await sb.from('documents').select('id,client_ref,storage_path').eq('user_id',currentUser.id).eq('client_ref',clientRef).maybeSingle();
  let row=existing;
  if(!row){
@@ -5317,11 +5584,12 @@ async function persistSelectedDocument(item,batchId){
  if(!state.documents.some(d=>String(d.fileId||'')===clientRef)){
   state.documents.unshift({id:uid('d'),fileId:clientRef,name:item.file.name,type:'Document',date:today(),size:item.file.size,source:'background-upload',analyzed:false,processingState:'queued'});save()
  }
- item.documentId=row.id;item.receivedPersisted=true;
- documentProcessingTransition(item,'queued');setDocumentProcessingMessage(item,'Wacht','Bestand ontvangen. Verwerking start automatisch.');
+ item.documentId=row.id;item.documentPersisted=true;
+ documentProcessingTransition(item,'queued');setDocumentProcessingMessage(item,'Wacht','Bestand opgeslagen. De verwerkingsopdracht wordt aangemaakt.');
  const company=state.company||{};
  const queued=await invokeDocumentProcessing('enqueue',{client_ref:clientRef,batch_id:batchId,kind:item.kind||'auto',company:{name:company.name||'',tradeName:company.tradeName||'',kvk:company.kvk||'',vat:company.vat||''}});
- item.jobId=queued.job?.id||'';item.state=queued.job?.state||'queued';scheduleDocumentProcessingRender();renderGlobalDocumentIndicator();
+ if(!queued.job?.id)throw Object.assign(new Error('Verwerkingsopdracht ontbreekt'),{code:'JOB_CREATE_FAILED'});
+ item.jobId=queued.job.id;item.receivedPersisted=true;item.state=queued.job.state||'queued';setDocumentProcessingMessage(item,'Wacht','Bestand ontvangen. Verwerking start automatisch.');scheduleDocumentProcessingRender();renderGlobalDocumentIndicator();
  return item
 }
 async function startPersistentDocumentProcessingQueue(files,kind='auto',options={}){
@@ -5330,10 +5598,11 @@ async function startPersistentDocumentProcessingQueue(files,kind='auto',options=
  const batchId='batch-'+(crypto.randomUUID?crypto.randomUUID():uid('bg'));
  const session=documentProcessingSession={id:batchId,items:list.map(file=>{const item=createDocumentProcessingItem(file,kind);item.sourceInputId=String(options.sourceInputId||'');return item}),smart:!!options.smart,reviewingItemId:null,startedAt:Date.now(),persistent:true,allReceived:false,modalHidden:false};
  if(page!=='documents')await navigate('documents');else render();renderGlobalDocumentIndicator();
- const work=[...session.items],worker=async()=>{while(work.length){const item=work.shift();if(!item)continue;try{await persistSelectedDocument(item,batchId)}catch(err){console.error('Persistent upload failed',err);item.error=err;if(item.receivedPersisted){item.state='queued';documentProcessingConnectivityLost=documentProcessingConnectivityLost||!navigator.onLine||String(err?.code||'')==='NETWORK_ERROR';setDocumentProcessingMessage(item,'Wacht','Bestand ontvangen. De verwerking wordt hervat zodra de verbinding beschikbaar is.');setTimeout(()=>{if(currentUser)invokeDocumentProcessing('resume').then(()=>fetchDocumentProcessingJobs()).catch(()=>{})},5000)}else if(!['failed'].includes(item.state)){try{documentProcessingTransition(item,'failed')}catch{item.state='failed';scheduleDocumentProcessingRender()}}}}};
+ const work=[...session.items],worker=async()=>{while(work.length){const item=work.shift();if(!item)continue;try{await persistSelectedDocument(item,batchId)}catch(err){console.error('Persistent upload failed',err);item.error=err;if(item.documentPersisted){item.state='queued';documentProcessingConnectivityLost=documentProcessingConnectivityLost||!navigator.onLine||String(err?.code||'')==='NETWORK_ERROR';setDocumentProcessingMessage(item,'Wacht',item.receivedPersisted?'Bestand ontvangen. De verwerking wordt hervat zodra de verbinding beschikbaar is.':'Bestand opgeslagen. De verwerkingsopdracht wordt hersteld zodra de verbinding beschikbaar is.');setTimeout(()=>{if(currentUser)invokeDocumentProcessing('resume').then(()=>fetchDocumentProcessingJobs()).catch(()=>{})},5000)}else if(!['failed'].includes(item.state)){try{documentProcessingTransition(item,'failed')}catch{item.state='failed';scheduleDocumentProcessingRender()}}}}};
  await Promise.all(Array.from({length:Math.min(DOCUMENT_PROCESSING_MAX_PARALLEL,list.length)},()=>worker()));
- session.allReceived=session.items.every(x=>x.receivedPersisted||x.state==='failed');
- if(session.items.some(x=>x.uploaded))toast('Je documenten zijn ontvangen. Je kunt ondertussen verder werken.');
+ session.allReceived=session.items.every(x=>x.receivedPersisted);
+ const receivedCount=session.items.filter(x=>x.receivedPersisted).length;
+ if(session.allReceived)toast('Je documenten zijn ontvangen. Je kunt ondertussen verder werken.');else if(receivedCount)toast(receivedCount+' document'+(receivedCount===1?'':'en')+' ontvangen.');
  await fetchDocumentProcessingJobs().catch(()=>{});
  scheduleDocumentProcessingRender();renderGlobalDocumentIndicator();
 }
@@ -7540,3 +7809,4 @@ window.addEventListener('keydown',e=>{
 
 </body>
 </html>
+

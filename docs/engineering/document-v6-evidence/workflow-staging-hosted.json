@@ -1,0 +1,170 @@
+{
+  "environment": "Supabase staging project boekuna-candidate (ozisiotrzeubwbffnxyr), hosted; production untouched",
+  "date": "2026-10-07",
+  "migrations_applied_on_staging": [
+    "staging_align_entitlement_tables_with_production",
+    "staging_align_access_quota_functions_with_production (function md5 equal to production)",
+    "document_workflow_leases (= supabase/migrations/20261007150000_document_workflow_leases.sql)"
+  ],
+  "driver": "temporary edge function v6-staging-harness: same RPC/Storage sequence as workflow_tasks.process_claimed_job (claim -> access -> documents row -> Storage download -> complete/fail), synthetic '%PDF synthetic ST-xxxx' bytes, no OCR, no external AI. Each run = 2 duplicate dispatches x 8 workers against caps user 4 / global 4. Removed after the run (redeployed as 410 stub).",
+  "users": "3 synthetic pro users (internal grant) + 1 synthetic free user, emails *@synthetic.invalid",
+  "runs": {
+    "n1": {
+      "wallMs": 2213,
+      "claimP50": 409,
+      "claimP95": 409,
+      "downloadP50": 750,
+      "downloadP95": 750,
+      "completeP50": 328,
+      "completeP95": 328,
+      "endToEndP50": 2213,
+      "endToEndP95": 2213,
+      "injected": {
+        "crash": 0,
+        "storage5xx": 0,
+        "lostResponse": 0
+      }
+    },
+    "n10_first_round": {
+      "wallMs": 2018,
+      "claimP50": 472,
+      "claimP95": 491,
+      "downloadP50": 718,
+      "downloadP95": 790,
+      "completeP50": 126,
+      "completeP95": 129,
+      "endToEndP50": 1901,
+      "endToEndP95": 2015,
+      "injected": {
+        "crash": 0,
+        "storage5xx": 0,
+        "lostResponse": 0
+      }
+    },
+    "n50_first_round": {
+      "wallMs": 3041,
+      "claimP50": 160,
+      "claimP95": 311,
+      "downloadP50": 833,
+      "downloadP95": 914,
+      "completeP50": 120,
+      "completeP95": 304,
+      "endToEndP50": 1552,
+      "endToEndP95": 1831,
+      "injected": {
+        "crash": 0,
+        "storage5xx": 0,
+        "lostResponse": 0
+      }
+    },
+    "multi_user_3x10_faults_first_round": {
+      "wallMs": 2249,
+      "claimP50": 367,
+      "claimP95": 372,
+      "downloadP50": 878,
+      "downloadP95": 898,
+      "completeP50": 124,
+      "completeP95": 136,
+      "endToEndP50": 2044,
+      "endToEndP95": 2044,
+      "injected": {
+        "crash": 0,
+        "storage5xx": 0,
+        "lostResponse": 2
+      }
+    },
+    "free_quota_12_first_round": {
+      "wallMs": 1520,
+      "claimP50": 170,
+      "claimP95": 180,
+      "downloadP50": 779,
+      "downloadP95": 789,
+      "completeP50": 170,
+      "completeP95": 178,
+      "endToEndP50": 1445,
+      "endToEndP95": 1516,
+      "injected": {
+        "crash": 0,
+        "storage5xx": 0,
+        "lostResponse": 0
+      }
+    }
+  },
+  "n50": {
+    "rounds_to_drain": 12,
+    "done_per_round_max": 4,
+    "wall_s_including_seed_upload": 67
+  },
+  "faults_multi_user": {
+    "injected_total": {
+      "crash": 4,
+      "storage5xx": 1,
+      "lostResponse": 4
+    },
+    "note": "4 crashed jobs held all 4 global slots; lease expiry simulated with lease_expires_at=now()-1s, recover_document_workflow_jobs returned 4, batch then drained"
+  },
+  "queue_to_completion_s": {
+    "n1": {
+      "p50": 2.8,
+      "p95": 2.8
+    },
+    "free_quota_10_completed": {
+      "p50": 6.3,
+      "p95": 9.1
+    },
+    "n50": {
+      "p50": 32.7,
+      "p95": 40.0
+    },
+    "user1_n10_plus_multi_10": {
+      "p50": 12.8,
+      "p95": 29.4
+    },
+    "multi_user2_10": {
+      "p50": 64.4,
+      "p95": 99.9
+    },
+    "multi_user3_10": {
+      "p50": 94.5,
+      "p95": 99.3
+    },
+    "note": "multi-user values include the manual wait before the simulated lease expiry; in production that wait is the 10-minute lease plus the recovery schedule"
+  },
+  "invariants": {
+    "jobs": 103,
+    "states": {
+      "review_required": 101,
+      "failed": 2
+    },
+    "failed_codes": {
+      "DOCUMENT_LIMIT_REACHED": 2
+    },
+    "leases_left": 0,
+    "result_invoice_number_mismatch": 0,
+    "double_completions": 0,
+    "completions_audited": 101,
+    "max_attempt": 2,
+    "usage_equals_recorded_equals_completed": {
+      "pro1": 71,
+      "pro2": 10,
+      "pro3": 10,
+      "free": 10
+    }
+  },
+  "free_plan_quota": "12 queued -> 10 completed, 2 failed DOCUMENT_LIMIT_REACHED, usage 10",
+  "security": {
+    "anon_calls": {
+      "claim_document_workflow_job": "401 42501",
+      "document_workflow_access": "401 42501",
+      "complete_document_workflow_job": "401 42501",
+      "fail_document_workflow_job": "401 42501",
+      "recover_document_workflow_jobs": "401"
+    },
+    "processing_documents_without_job_embed": "[] (all documents have a job)"
+  },
+  "not_measured_here": [
+    "OCR CPU/memory (no Render Workflow service; see local benchmark and CI)",
+    "Edge function document-processing workflow dispatch (WORKFLOW env not set)",
+    "Render Workflow cost"
+  ]
+}

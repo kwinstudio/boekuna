@@ -46,7 +46,7 @@ def explicit_summary_groups(lines,money_tokens):
 def annotate_understanding(result,doc,company,money_tokens):
     a=result.amounts
     lines=[x.strip() for x in (doc.get('text') or '').splitlines() if x.strip()]
-    conflicts=[]
+    conflicts=list(result.processing.get('metadataAnomalyCodes') or [])
     rates=set()
     for line in lines:
         if re.search(r'\b(?:btw|vat|tax|mwst|tva|iva)\b',line,re.I):
@@ -124,8 +124,18 @@ def annotate_understanding(result,doc,company,money_tokens):
     explicit_foreign_id=bool(vat and not vat.upper().startswith('NL'))
     # A lone labelled tax ID outside party blocks remains review evidence, not a
     # supplier identity assignment (it can be the customer's ID).
-    foreign_context=bool(re.search(r'\b(?:VAT\s*(?:number|id)|BTW[- ]?(?:nummer|id))\s*:?\s*(?!NL)([A-Z]{2})\d', '\n'.join(lines),re.I))
+    foreign_context=bool(re.search(r'\b(?:VAT\s*(?:number|id)|BTW[- ]?(?:nummer|id))\s*:?\s*(?!NL)([A-Z]{2})U?\d', '\n'.join(lines),re.I))
     a.accountingVatTreatment='review_required' if foreign_country or explicit_foreign_id or foreign_context or any(r not in {0,9,21} for r in rates) else 'standard'
+    # An explicit reverse-charge statement on a zero/absent-VAT document must be
+    # self-assessed; conditional boilerplate ("kan ... verlegd worden") is not evidence.
+    reverse_charge=any(re.search(r'\b(?:btw|vat|omzetbelasting)\b[\s:.\-]*(?:0\s*%\s*)?(?:is\s+)?verlegd\b|\bverlegde\s+(?:btw|omzetbelasting)\b|\breverse[- ]charged?\b|\bautoliquidation\b|steuerschuldnerschaft',line,re.I)
+                       and not re.search(r'\b(?:kan|kunnen|indien|wanneer|tenzij|if|may|where applicable|in case|unless)\b',line,re.I) for line in lines)
+    # Own sales invoices keep their existing booking path (the app has a reverse-charge
+    # sales treatment); only incoming documents need the self-assessment review.
+    incoming=result.documentType!='sales_invoice' and not result.selfBilling
+    if reverse_charge and incoming and not (a.vatTotal or 0):
+        a.accountingVatTreatment='review_required'
+        result.processing['reverseChargeCandidate']=True
     currencies=set(re.findall(r'\b(?:EUR|USD|GBP|CHF|CAD|AUD|JPY|SEK|NOK|DKK|PLN)\b','\n'.join(lines)))
     if len(currencies)==1: a.currency=next(iter(currencies))
     elif not currencies and '€' in '\n'.join(lines): currencies={'EUR'}

@@ -1,0 +1,4 @@
+"Datum";"Naam / Omschrijving";"Rekening";"Tegenrekening";"Code";"Af Bij";"Bedrag (EUR)";"Mutatiesoort";"Mededelingen";"Saldo na mutatie";"Tag"
+"20261001";"Koffiebar De Hoek";"NL00TEST0000000001";"";"BA";"Af";"3,50";"Betaalautomaat";"Pasvolgnr: 001";"996,50";""
+"20261001";"Koffiebar De Hoek";"NL00TEST0000000001";"";"BA";"Af";"3,50";"Betaalautomaat";"Pasvolgnr: 001";"993,00";""
+"20261002";"Voorbeeld Klant BV";"NL00TEST0000000001";"NL91ABNA0417164300";"GT";"Bij";"1.210,00";"Online bankieren";"Factuur F2026-014, dank je wel";"2.203,00";""
