@@ -79,7 +79,7 @@ assert.ok(source.includes('function productKpi(')&&source.includes('function pro
 assert.ok(source.includes('function renderIncome()')&&source.includes('function renderOutgoings()'),'Income and outgoings subpages missing');
 for(const label of ['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen'])assert.ok(source.includes('dashboard-kpi-label">'+label+'</span>'),'Dashboard KPI missing '+label);
 for(const label of ['Administratie','Vraag Boekuna','Nieuwe factuur'])assert.ok(source.includes('dashboard-summary-title">'+label+'</span>'),'Dashboard bottom summary missing '+label);
-for(const option of ["['week','Week']","['month','Maand']","['quarter','Kwartaal']","['year','Jaar']","['all','Altijd']"])assert.ok(source.includes(option),'Shared financial period option missing '+option);
+for(const option of ["['week','Deze week']","['month','Deze maand']","['quarter','Dit kwartaal']","['year','Dit jaar']","['all','Alles']","['custom','Aangepast']"])assert.ok(source.includes(option),'Shared financial period option missing '+option);
 for(const marker of ['product-page-shell','page-period-slot','product-page-actions'])assert.ok(source.includes(marker),'Shared product header pattern missing '+marker);
 assert.ok(source.includes('function fitFinancialCardValues('),'Adaptive financial-card value fitting helper missing');
 assert.ok(source.includes('#mainApp .kpi-tone-primary .metric-value{color:var(--app-charcoal)}'),'Primary KPI emphasis must stay neutral, not success-green');
@@ -350,7 +350,7 @@ try{
         invoices:['Omzet','Betaald','Openstaand','Te laat'],
         expenses:['Kosten','Btw die je terugkrijgt'],
         documents:['Te verwerken','Controle nodig','Verwerkt deze maand','Totaal documenten'],
-        vat:['Waarschijnlijk te betalen','Ontvangen btw','Btw die je kunt terugvragen','Controle nodig'],
+        vat:['Te betalen btw','Ontvangen btw','Btw die je kunt terugvragen','Controle nodig'],
         reports:['Omzet','Kosten','Winst','Winstmarge'],
         income:['Omzet deze maand','Bijgeschreven','Nog te ontvangen','Groei'],
         outgoings:['Deze maand uitgegeven','Nog niet gekoppeld','Terugkerende uitgaven','Te controleren']

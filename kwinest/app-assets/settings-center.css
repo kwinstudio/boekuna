@@ -82,14 +82,13 @@
 #mainApp .settings-center-split>div:first-child{display:grid;gap:14px;min-width:0}
 #mainApp .settings-center-preview-wrap{position:sticky;top:92px;background:var(--sc-surface);border:1px solid var(--sc-line);border-radius:14px;padding:12px;overflow:hidden}
 #mainApp .settings-center-preview-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:12px;font-weight:650;color:var(--sc-muted)}
-#mainApp .settings-center-preview{zoom:.4;pointer-events:none;user-select:none}
-#mainApp .settings-center-preview>div{padding:0!important;background:none!important}
-#mainApp .settings-center-preview>div>div{box-shadow:none!important;border:1px solid var(--sc-line)}
+#mainApp .settings-center-preview{pointer-events:none;user-select:none}
+#mainApp .settings-center-paper{position:relative;width:100%;aspect-ratio:210/297;overflow:hidden;background:#fff;border:1px solid var(--sc-line);border-radius:4px}
+#mainApp .settings-center-paper-frame{position:absolute;top:0;left:0;width:794px!important;height:1123px!important;max-width:none!important;border:0;transform-origin:top left;background:#fff}
 
 @media (max-width:1100px){
   #mainApp .settings-center-split{grid-template-columns:minmax(0,1fr)}
   #mainApp .settings-center-preview-wrap{position:static;max-width:360px}
-  #mainApp .settings-center-preview{zoom:.55}
 }
 
 /* Mobile: index → category → back */

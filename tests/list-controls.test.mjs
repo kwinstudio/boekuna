@@ -129,7 +129,7 @@ try{
   assert.equal(await page.locator('#globalSearch').count(),0,'Global cross-app search must not render');
 
   await page.evaluate(()=>navigate('dashboard'));
-  assert.deepEqual(await page.locator('#dashboardPeriod option').allTextContents(),['Week','Maand','Kwartaal','Jaar','Altijd']);
+  assert.deepEqual(await page.locator('#dashboardPeriod option').allTextContents(),['Deze week','Deze maand','Dit kwartaal','Dit jaar','Alles']);
   await page.locator('#dashboardPeriod').selectOption('year');
   await page.evaluate(()=>navigate('invoices'));
   assert.equal(await page.locator('#incomePeriod').inputValue(),'year','Income inherits dashboard period');

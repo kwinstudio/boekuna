@@ -118,9 +118,27 @@
       +check('invoiceDesign.showVatBreakdown','Btw-specificatie tonen',inv.showVatBreakdown!==false);
     return '<form class="settings-center-form" data-settings-form="invoices" novalidate>'
       +'<div class="settings-center-split"><div>'+block(basis)+more('Meer instellingen',extra)+'</div>'
-      +'<div class="settings-center-preview-wrap"><div class="settings-center-preview-head"><span>Voorbeeld</span><button type="button" class="link-btn" onclick="previewInvoiceLayout()">Groot bekijken</button></div><div class="settings-center-preview" aria-hidden="true">'+invoiceLayoutPreviewHtml(inv)+'</div></div></div>'
+      +'<div class="settings-center-preview-wrap"><div class="settings-center-preview-head"><span>Voorbeeld</span><button type="button" class="link-btn" data-settings-action="preview-invoice">Voorbeeld bekijken</button></div><div class="settings-center-preview" aria-hidden="true">'+thumbnailHtml(inv)+'</div></div></div>'
       +saveBar('Factuurinstellingen opslaan')
       +'</form>';
+  }
+
+  // The small preview is the real A4 invoice (same template as the PDF), scaled to fit.
+  function thumbnailHtml(inv){
+    return '<div class="settings-center-paper"><iframe class="settings-center-paper-frame" title="Factuurvoorbeeld" tabindex="-1" sandbox="allow-same-origin" srcdoc="'+attr(invoicePreviewDocumentHtml(inv))+'"></iframe></div>';
+  }
+  var paperObserver=typeof ResizeObserver==='function'?new ResizeObserver(function(entries){entries.forEach(function(entry){fitPaper(entry.target)})}):null;
+  function fitPaper(paper){
+    var frame=paper.querySelector('iframe');if(!frame||!paper.clientWidth)return;
+    frame.style.transform='scale('+(paper.clientWidth/794)+')';
+  }
+  function watchPapers(scope){
+    (scope||document).querySelectorAll('.settings-center-paper').forEach(function(paper){fitPaper(paper);if(paperObserver)paperObserver.observe(paper)});
+  }
+  function draftDesign(form){
+    var draft=design();
+    if(form)form.querySelectorAll('[name^="invoiceDesign."]').forEach(function(input){draft[input.name.split('.')[1]]=inputValue(input)});
+    return draft;
   }
 
   function emailPanel(){
@@ -197,23 +215,28 @@
     +'<div class="settings-center-note">Je administratie is afgeschermd per account. Alleen jij kunt erbij.</div>';
   }
 
+  // Everything you can download lives here: one list, each row says what you get.
   function dataPanel(){
-    var everyday='<div class="settings-export-grid">'
-      +'<button class="btn" type="button" onclick="exportInvoicesCSV()">Facturen · CSV</button>'
-      +'<button class="btn" type="button" onclick="exportExpensesCSV()">Kosten · CSV</button>'
-      +'<button class="btn" type="button" onclick="exportBackup()">Administratie-back-up</button>'
+    var range=reportRange(),preset=String(sessionStorage.getItem('reportPreset')||'year');
+    var period='<div class="settings-export-period"><div class="field"><span class="settings-center-field-label" aria-hidden="true">Periode voor rapportage en journaal</span>'+reportPeriodSelect('exportPeriodPreset')+'</div>'
+      +(preset==='custom'?periodRangeFieldsHtml('export',range.from,range.to):'<div class="help">'+esc(reportCompactDateLabel(range.from,range.to))+'</div>')+'</div>';
+    var everyday=period+'<div class="settings-export-list">'
+      +line('Rapportage','Omzet, kosten, winst en btw als PDF. Je ziet hem eerst, daarna kun je hem bewaren of printen.','<button class="btn" type="button" onclick="printReport()">PDF bekijken</button>')
+      +line('Facturen','Al je facturen en creditfacturen als CSV-bestand voor Excel of je boekhouder.','<button class="btn" type="button" onclick="exportInvoicesCSV()">Downloaden</button>')
+      +line('Kosten','Al je kosten met btw als CSV-bestand.','<button class="btn" type="button" onclick="exportExpensesCSV()">Downloaden</button>')
+      +line('Volledige back-up','Je hele administratie in één bestand. Hiermee kun je later alles terugzetten.','<button class="btn" type="button" onclick="exportBackup()">Downloaden</button>')
       +'</div>';
     var restore='<div class="settings-export-grid">'
       +'<button type="button" class="btn" onclick="document.getElementById(\'backupFile\').click()">Back-up importeren</button>'
       +'<input type="file" id="backupFile" accept="application/json,.json" class="hidden">'
       +'<button class="btn" type="button" onclick="openVersionHistory()">Herstelpunten</button>'
       +'</div>';
-    var advanced='<div class="settings-export-grid">'
-      +'<button class="btn" type="button" onclick="exportJournalCSV()">Journaal · CSV</button>'
-      +'<button class="btn" type="button" onclick="exportAuditCSV()">Auditlog · CSV</button>'
-      +(hasConflictBackup()?'<button class="btn" type="button" onclick="restoreConflictDialog()">Lokale herstelkopie</button>':'')
-      +'</div><div class="help">Voor je boekhouder of een controle. Het journaal gebruikt de periode uit Rapportages.</div>';
-    return block(everyday,'Exporteren')+block(restore,'Herstellen')+more('Geavanceerde exports',advanced,'settings-advanced-exports');
+    var advanced='<div class="settings-export-list">'
+      +line('Journaal','Alle boekingsregels in de gekozen periode als CSV.','<button class="btn" type="button" onclick="exportJournalCSV()">Downloaden</button>')
+      +line('Auditlog','Wat er wanneer is gewijzigd, als CSV.','<button class="btn" type="button" onclick="exportAuditCSV()">Downloaden</button>')
+      +(hasConflictBackup()?line('Lokale herstelkopie','Een kopie die op dit apparaat is bewaard.','<button class="btn" type="button" onclick="restoreConflictDialog()">Bekijken</button>'):'')
+      +'</div><div class="help">Voor je boekhouder of een controle. Je dagelijkse administratie heeft deze niet nodig.</div>';
+    return block(everyday+more('Meer exports voor je boekhouder',advanced,'settings-advanced-exports'),'Exporteren')+block(restore,'Herstellen');
   }
 
   function billingPanel(){return renderBillingCard()}
@@ -373,9 +396,8 @@
 
   function livePreview(form){
     var target=form.querySelector('.settings-center-preview');if(!target)return;
-    var draft=design();
-    form.querySelectorAll('[name^="invoiceDesign."]').forEach(function(input){draft[input.name.split('.')[1]]=inputValue(input)});
-    target.innerHTML=invoiceLayoutPreviewHtml(draft);
+    target.innerHTML=thumbnailHtml(draftDesign(form));
+    watchPapers(target);
   }
 
   function savePref(input){
@@ -430,6 +452,7 @@
       if(name==='remove-logo')removeInvoiceLogo();
       else if(name==='pick-logo'){var file=document.getElementById('settingsLogoFile');if(file)file.click()}
       else if(name==='password-link')sendPasswordLink(action);
+      else if(name==='preview-invoice')previewInvoiceLayout(draftDesign(action.closest('form')));
     });
     el.addEventListener('submit',function(event){
       var form=event.target.closest('[data-settings-form]');
@@ -447,6 +470,7 @@
       if(form&&t.name&&t.name.indexOf('invoiceDesign.')===0)livePreview(form);
       if(t.hasAttribute('data-theme-choice')){if(window.BoekunaTheme&&t.checked){window.BoekunaTheme.set(t.value);toast('Opgeslagen');refreshChrome()}return}
       if(t.hasAttribute('data-attention-key')||t.hasAttribute('data-settings-pref'))savePref(t);
+      if(t.id==='exportFrom'||t.id==='exportTo')setReportDate(t.id==='exportFrom'?'from':'to',t.value);
     });
     el.addEventListener('keydown',function(event){
       if(event.key==='Escape'&&el.dataset.view==='detail'&&window.matchMedia('(max-width:820px)').matches&&!document.querySelector('#modalRoot .modal-backdrop')){event.preventDefault();back()}
@@ -462,7 +486,7 @@
     // Opening Instellingen from the menu always starts at the category index.
     navigate=function(p){if(p==='settings')active=null;return originalNavigate.apply(this,arguments)};
     var originalWirePage=wirePage;
-    wirePage=function(){var result=originalWirePage.apply(this,arguments);if(page==='settings')wire();return result};
+    wirePage=function(){var result=originalWirePage.apply(this,arguments);if(page==='settings'){wire();watchPapers(root())}return result};
     var originalRefreshBilling=refreshBillingCard;
     refreshBillingCard=async function(){var result=await originalRefreshBilling.apply(this,arguments);if(page==='settings')refreshChrome();return result};
     window.openSettingsSection=function(key){if(page!=='settings'){active=key;Promise.resolve(originalNavigate('settings')).then(function(){open(key)})}else open(key)};
