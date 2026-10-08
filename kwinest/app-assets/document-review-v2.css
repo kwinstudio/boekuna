@@ -214,3 +214,37 @@
   .two-step-review .review-wizard-head .link-btn{font-size:12px;padding-inline:4px}
   .two-step-review .review-page-copy p{font-size:12px}
 }
+
+/* Calm review cards (round 4): one card style, no coloured fills, compact on mobile. */
+.two-step-review .review-issue-card,.two-step-review .review-issue-card.attention{background:var(--surface,#fff);border:1px solid var(--border);border-radius:16px;padding:14px;gap:10px}
+.two-step-review .review-issue-card.attention h5{display:flex;align-items:center;gap:8px}
+.two-step-review .review-issue-card.attention h5::before{content:"";flex:0 0 8px;width:8px;height:8px;border-radius:50%;background:var(--status-warning,#d39b00)}
+.two-step-review .review-issue-card.resolved h5::before{background:var(--app-green,#63D471)}
+.two-step-review .review-issue-card.resolved{background:var(--surface,#fff);border-color:var(--border)}
+.two-step-review .review-choice-group{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.two-step-review .review-choice{position:relative;display:flex;align-items:center;min-height:56px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--surface,#fff);cursor:pointer}
+.two-step-review .review-choice input{position:absolute;inset:0;z-index:1;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.two-step-review .review-choice span{display:flex;flex-direction:column;gap:2px;min-width:0}
+.two-step-review .review-choice strong{font-size:14px}
+.two-step-review .review-choice small{font-size:12px;color:var(--text-muted)}
+.two-step-review .review-choice:has(input:checked){border-color:var(--app-green,#63D471);background:var(--app-green-soft,#ecfaee)}
+.two-step-review .review-choice:has(input:focus-visible){outline:3px solid currentColor;outline-offset:2px}
+.two-step-review .beginner-review-state,.two-step-review .beginner-review-state.bad,.two-step-review .beginner-review-state.good{background:var(--app-surface,#f6f7f8);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+.two-step-review .beginner-review-state.bad strong{color:var(--text)}
+.two-step-review .beginner-review-state.good strong{color:var(--status-success,#218838)}
+.two-step-review .beginner-review-state .beginner-issue{font-size:13px;color:var(--text-muted)}
+.review-viewer-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px 2px 8px;font-size:12px;color:var(--text-muted)}
+.review-viewer-actions{display:inline-flex;gap:12px}
+.review-viewer{max-height:min(72vh,760px);overflow:auto;border-radius:12px;background:var(--app-surface,#f4f6f5);padding:8px}
+.review-viewer .docviewer-pages{gap:8px}
+@media(max-width:820px){
+  .two-step-review .review-amount-grid{grid-template-columns:1fr 1fr}
+  .two-step-review .review-amount-grid .field.full{grid-column:1/-1}
+  .two-step-review .review-page-copy p{display:none}
+  .two-step-review .review-page-copy h4{font-size:18px}
+  .two-step-review .review-wizard-progress{margin-bottom:10px}
+  .two-step-review .review-issue-card{padding:12px}
+}
+@media(max-width:340px){.two-step-review .review-choice-group,.two-step-review .review-amount-grid{grid-template-columns:1fr}}
+.beginner-review .beginner-review-state[hidden]{display:none!important}
+@media(max-width:820px){.two-step-review .review-page-copy{display:none}}

@@ -150,7 +150,7 @@ try{
   const bank=await page.locator('#content').innerText();
   assert.doesNotMatch(bank,/Bankkoppeling nog niet live\./,'Bank page should not carry permanent PSD2/open-banking explanation');
   assert.ok(await page.getByRole('button',{name:/Bankbestand importeren/}).isVisible());
-  assert.ok(await page.getByRole('button',{name:/Transactie/}).isVisible());
+  assert.ok(await page.getByRole('button',{name:'Transactie toevoegen'}).isVisible());
   await page.screenshot({path:`tests/artifacts/premium-bank-${browserName}-390.png`,fullPage:true});
 
   await navigateTo('documents');

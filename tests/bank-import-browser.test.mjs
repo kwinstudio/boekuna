@@ -81,7 +81,7 @@ async function run(viewport, label) {
     await shot('4-mapping');
     await page.getByLabel('Datum').selectOption('0');
     await page.getByLabel('Bedrag (met min-teken voor uitgaven)').selectOption('2');
-    await page.getByLabel('Omschrijving').selectOption('1');
+    await page.getByLabel('Omschrijving', { exact: true }).selectOption('1');
     await dialog.getByRole('button', { name: 'Controleren' }).click();
     await dialog.getByRole('button', { name: '1 transactie importeren' }).click();
     assert.equal(await page.evaluate(() => state.transactions.at(-1).amount), -45);

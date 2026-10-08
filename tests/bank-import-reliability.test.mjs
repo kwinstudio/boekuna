@@ -7,7 +7,7 @@ let seq = 0;
 const app = loadApp(['toCents', 'fromCents', 'roundMoney', 'normalizeBankText', 'fnv1a', 'bankFingerprint', 'parseCsvRow',
   'parseBankAmountCents', 'parseBankAmount', 'normalizeBankDate', 'bankDirectionSign', 'applyBankDirection',
   'detectCsvDelimiter', 'parseCsvRecords', 'bankHeaderLayout', 'bankHeaderlessLayout', 'bankCsvLayout',
-  'bankCellText', 'decodeBankFileBytes', 'parseBankStatement', 'assignBankImportFingerprints', 'bankImportPlan',
+  'bankCellText', 'decodeBankFileBytes', 'parseBankStatement', 'assignBankImportFingerprints', 'bankRemovedFingerprints', 'bankImportPlan',
   'normalizedMatchText', 'matchTextHas', 'invoiceSign', 'invoicePayments', 'invoicePaidAmount', 'invoiceOutstanding',
   'invoiceGross', 'invoiceNet', 'invoiceVat', 'lineNetAmount', 'lineVatAmount', 'invoiceDiscountBase', 'invoiceDiscountAmount',
   'invoiceDiscountFactor', 'discountedLineNet', 'discountedLineVat', 'invoiceTaxTreatment', 'isZeroOutputVatTreatment',
@@ -152,6 +152,18 @@ for (const raw of ['31-02-2026', '2026-13-01', '00-01-2026', 'gisteren', '']) as
   assert.equal(app.bankMatchDecision(tx(-45, 'Tankstation Voorbeeld')).auto?.id, 'e1');
   const costTie = app.bankMatchDecision(tx(-45, 'Pinbetaling'));
   assert.equal(costTie.auto, undefined); assert.equal(costTie.suggestion.candidates.length, 2);
+}
+
+// A transaction the user deleted stays out on the next import of the same file; the rest is unaffected.
+{
+  const { parsed, plan } = load('ing-semicolon.csv');
+  const deleted = plan.ready[2].tx;
+  app.state.bankRemoved = [{ fingerprint: deleted.fingerprint, date: deleted.date, amount: deleted.amount }];
+  const again = app.bankImportPlan(parsed, [plan.ready[0].tx]);
+  assert.equal(again.removed.length, 1, 'deleted row is skipped');
+  assert.equal(again.duplicates.length, 1);
+  assert.deepEqual(rows(again), [['2026-10-01', -3.5]], 'the second identical coffee still imports');
+  app.state.bankRemoved = [];
 }
 
 // The import flow shows a preview first and only books on confirm.

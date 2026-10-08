@@ -1,0 +1,45 @@
+/* BOEKUNA document viewer */
+html.docviewer-open,html.docviewer-open body{overflow:hidden}
+.docviewer{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;background:var(--app-surface,#f4f6f5);color:var(--text,#1b1f23)}
+.docviewer-head{flex:0 0 auto;display:flex;flex-direction:column;gap:8px;padding:max(10px,env(safe-area-inset-top)) 16px 10px;background:var(--surface,#fff);border-bottom:1px solid var(--border,#e3e6e8)}
+.docviewer-head-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.docviewer-title{font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.docviewer-close{min-height:44px;flex:0 0 auto}
+.docviewer-tabs{display:inline-flex;gap:4px;padding:3px;border:1px solid var(--border,#e3e6e8);border-radius:999px;background:var(--app-surface,#f4f6f5)}
+.docviewer-tab{min-height:38px;padding:0 14px;border:0;border-radius:999px;background:transparent;color:var(--text-muted,#5b6670);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.docviewer-tab[aria-selected="true"]{background:var(--surface,#fff);color:var(--text,#1b1f23);box-shadow:inset 0 0 0 1px var(--border,#e3e6e8)}
+.docviewer-zoombar{display:inline-flex;gap:6px}
+.docviewer-zoombar[hidden]{display:none}
+.docviewer-zoom{width:44px;height:44px;border:1px solid var(--border,#e3e6e8);border-radius:12px;background:var(--surface,#fff);color:var(--text,#1b1f23);font-size:20px;font-weight:700;cursor:pointer}
+.docviewer-body{flex:1 1 auto;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 8px max(16px,env(safe-area-inset-bottom))}
+.docviewer-pane{transform-origin:50% 0}
+.docviewer-pane[hidden],.docviewer-text[hidden]{display:none}
+.docviewer-pages{display:flex;flex-direction:column;align-items:center;gap:12px;min-width:100%;width:max-content;margin:0 auto}
+.docviewer-page{position:relative;background:#fff;border:1px solid var(--border,#e3e6e8);border-radius:6px;overflow:hidden}
+.docviewer-page canvas{display:block;width:100%;height:100%}
+.docviewer-image{display:block;max-width:none;height:auto;background:#fff;border-radius:6px}
+.docviewer-frame{width:100%;height:70vh;border:1px solid var(--border,#e3e6e8);border-radius:6px;background:#fff}
+.docviewer-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:40px 16px;text-align:center;color:var(--text-muted,#5b6670)}
+.docviewer-empty strong{color:var(--text,#1b1f23)}
+.docviewer-status{margin:12px auto;color:var(--text-muted,#5b6670);font-size:13px;text-align:center;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}
+.docviewer-status:empty{display:none}
+.docviewer-text{max-width:720px;margin:0 auto;padding:0 8px}
+.docviewer-hint{margin:2px 0 10px;color:var(--text-muted,#5b6670);font-size:13px}
+.docviewer-lines{display:flex;flex-direction:column;gap:6px}
+.docviewer-copy-all{align-self:flex-start;margin-bottom:4px}
+.docviewer-line{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:44px;padding:8px 12px;border:1px solid var(--border,#e3e6e8);border-radius:12px;background:var(--surface,#fff);color:var(--text,#1b1f23);font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.docviewer-line-text{min-width:0;overflow-wrap:anywhere;-webkit-user-select:text;user-select:text;font-variant-numeric:tabular-nums}
+.docviewer-line-copy{flex:0 0 auto;font-size:12px;font-weight:700;color:var(--text-muted,#5b6670)}
+.docviewer-line.copied{border-color:var(--app-green,#63D471)}
+.docviewer-line.copied .docviewer-line-copy{color:var(--status-success,#218838)}
+@media(max-width:420px){.docviewer-tab{padding:0 11px}}
+@media(min-width:821px){.docviewer{inset:24px;border:1px solid var(--border,#e3e6e8);border-radius:16px;overflow:hidden}}
+
+/* pdf.js text layer (from pdf_viewer.css), so text on a PDF can be selected. */
+.docviewer-page .textLayer,.review-viewer .textLayer{position:absolute;text-align:initial;inset:0;overflow:clip;opacity:1;line-height:1;letter-spacing:normal;word-spacing:normal;-webkit-text-size-adjust:none;text-size-adjust:none;forced-color-adjust:none;transform-origin:0 0;z-index:0;--min-font-size:1;--text-scale-factor:calc(var(--total-scale-factor) * var(--min-font-size));--min-font-size-inv:calc(1 / var(--min-font-size))}
+.textLayer span,.textLayer br{color:transparent;position:absolute;white-space:pre;cursor:text;transform-origin:0% 0%;-webkit-user-select:text;user-select:text}
+.textLayer > :not(.markedContent),.textLayer .markedContent span:not(.markedContent){z-index:1;--font-height:0;font-size:calc(var(--text-scale-factor) * var(--font-height));--scale-x:1;--rotate:0deg;transform:rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv))}
+.textLayer .markedContent{display:contents}
+.textLayer ::selection{background:rgba(0,0,255,.25)}
+.textLayer br::selection{background:transparent}
+.textLayer .endOfContent{display:block;position:absolute;inset:100% 0 0;z-index:0;cursor:default;-webkit-user-select:none;user-select:none}
