@@ -185,8 +185,9 @@
     if(total){
       var details=element('details','mobile-disclosure mobile-vat-details');
       var body=element('div','mobile-disclosure-body');details.append(element('summary','','Btw per tarief'),body);
-      var year=selectedVatYear(),period=String(sessionStorage.getItem('vatPeriod')||sessionStorage.getItem('vatQ')||currentQuarter());
-      var invoices=state.invoices.filter(function(invoice){return invoice.status!=='draft'&&(period==='year'?Number(String(invoice.issueDate||'').slice(0,4))===year:inQuarter(invoice.issueDate,Number(period),year))});
+      // Same period and invoice selection as renderVat, so the split matches the total above.
+      var range=financialPeriodRange();
+      var invoices=state.invoices.filter(function(invoice){return invoice.status!=='draft'&&invoiceEffectiveStatus(invoice)!=='cancelled'&&financialPeriodContains(invoice.issueDate,range)});
       [21,9,0].forEach(function(rate){
         var sum=invoices.reduce(function(amount,invoice){return roundMoney(amount+Number(invoiceVatBreakdown(invoice)[rate]||0))},0);
         if(rate===0&&sum===0)return;
