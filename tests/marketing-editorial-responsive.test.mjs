@@ -20,12 +20,12 @@ try{
     const errors=[];page.on('pageerror',e=>errors.push(String(e)));
     await page.goto(server.base+'/',{waitUntil:'networkidle'});
     assert.equal(await page.locator('h1').textContent(),'Boekhouden zonder gedoe.');
-    if(width<=900)await page.locator('.mobile-menu summary').click();
+    if(width<980)await page.locator('.mobile-nav summary').click();
     assert.ok(await page.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).isVisible());
     const size=await page.evaluate(()=>({vw:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
     assert.ok(size.html<=size.vw+1&&size.body<=size.vw+1,'home '+width+' overflow '+JSON.stringify(size));
     assert.deepEqual(errors,[]);
-    if([390,1440].includes(width)){if(width<=900)await page.locator('.mobile-menu summary').click();await page.screenshot({path:path.join(artifacts,'brand-v3-'+width+'.png'),fullPage:true});}
+    if([390,1440].includes(width)){if(width<980)await page.locator('.mobile-nav summary').click();await page.screenshot({path:path.join(artifacts,'brand-v4-'+width+'.png'),fullPage:true});}
     await page.close();
   }
   for(const route of ['/privacy/','/voorwaarden/','/support/','/account-verwijderen/']){
