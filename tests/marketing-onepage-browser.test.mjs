@@ -43,7 +43,7 @@ try{
         const response=await page.goto(server.base+'/',{waitUntil:'networkidle'});
         assert.equal(response.status(),200,name+' root '+width);
         assert.equal(await page.locator('h1').textContent(),'Boekhouden zonder gedoe.');
-        if(width<=900)await page.locator('.mobile-menu summary').click();
+        if(width<980)await page.locator('.mobile-nav summary').click();
         assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'),'index,follow');
         assert.ok(await page.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).isVisible());
         assert.equal(await page.locator('img').count(),0,'V3 uses a lightweight CSS illustration');
@@ -53,7 +53,7 @@ try{
         const login=await page.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).getAttribute('href');
         assert.equal(login,'https://app.boekuna.nl/?login=1');
         assert.deepEqual(errors,[]);
-        if(width===390||width===1440){if(width<=900)await page.locator('.mobile-menu summary').click();await page.screenshot({path:path.join(evidence,'landing-v3-'+width+'-'+name+'.png'),fullPage:true});}
+        if(width===390||width===1440){if(width<980)await page.locator('.mobile-nav summary').click();await page.screenshot({path:path.join(evidence,'landing-v4-'+width+'-'+name+'.png'),fullPage:true});}
         await page.close();
       }
 
@@ -84,5 +84,5 @@ try{
       }
     } finally { await browser.close(); }
   }
-  console.log('BOEKUNA V3 landing browser QA: PASS (Chromium + WebKit, 8 widths, legal/support, retired-route holdings, Axe)');
+  console.log('BOEKUNA V4 landing browser QA: PASS (Chromium + WebKit, 8 widths, legal/support, retired-route holdings, Axe)');
 } finally { await server.close(); }
