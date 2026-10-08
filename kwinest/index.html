@@ -5859,9 +5859,26 @@ async function replacePersistentDocument(jobId){
  };
  input.click()
 }
-async function openPersistentDocumentReview(jobId){
+// A document that is not a receipt or invoice (a return order, a quote, …) is not booked by itself.
+// "Controleren" then asks what to do with it instead of only showing the file.
+function openNonFinancialDocumentChoice(jobId){
+ const job=documentProcessingJobs.find(j=>String(j.id)===String(jobId));if(!job)return;
+ const id=esc(JSON.stringify(String(job.id))),name=esc(persistentDocumentName(job));
+ modal('Wat is dit document?',`<p class="muted">BOEKUNA ziet <strong>${name}</strong> niet als bon of factuur, maar bijvoorbeeld als retour-order, offerte of pakbon. Zo'n document wordt niet geboekt.</p><div class="action-list non-financial-choice"><button type="button" class="btn primary" onclick="keepDocumentInArchiveOnly(${id})">Alleen bewaren</button><button type="button" class="btn" onclick="closeModal();openPersistentDocumentReview(${id},'purchase_invoice')">Het is wel een bon of factuur</button><button type="button" class="btn" onclick="openStoredDocument(${esc(JSON.stringify(String(job.client_ref||'')))})">Bekijk document</button><button type="button" class="btn danger" onclick="closeModal();removePersistentDocumentByJob(${id})">Verwijderen</button></div>`)
+}
+async function keepDocumentInArchiveOnly(jobId){
+ const job=documentProcessingJobs.find(j=>String(j.id)===String(jobId));if(!job)return;
+ try{
+  if(!TEST_MODE_NO_AUTH&&job.state==='review_required')await invokeDocumentProcessing('resolve',{job_id:job.id});
+  Object.assign(job,{state:'ready',phase:'complete',review_fields:[],review_message:null,resolved_at:new Date().toISOString()});
+  const d=state.documents.find(x=>String(x.fileId||'')===String(job.client_ref||''));if(d){d.processingState='ready';save()}
+  closeModal();renderGlobalDocumentIndicator();render();toast('Bewaard in Bonnetjes. Er wordt niets geboekt.');
+  if(!TEST_MODE_NO_AUTH)void fetchDocumentProcessingJobs().catch(()=>{})
+ }catch(err){console.warn(err);toast('Bewaren lukte niet. Probeer opnieuw.')}
+}
+async function openPersistentDocumentReview(jobId,forceType=''){
  const job=documentProcessingJobs.find(j=>j.id===jobId);if(!job?.result?.analysis)return toast('De verwerkte gegevens zijn nog niet beschikbaar.');
- const raw=job.result.analysis;if(!['purchase_invoice','sales_invoice','sale_invoice','credit_invoice','receipt','invoice'].includes(String(raw.documentType||'')))return openStoredDocument(job.client_ref);
+ const raw=forceType?{...job.result.analysis,documentType:forceType}:job.result.analysis;if(!['purchase_invoice','sales_invoice','sale_invoice','credit_invoice','receipt','invoice'].includes(String(raw.documentType||'')))return openNonFinancialDocumentChoice(jobId);
  try{
   const stored=await getStoredFile(job.client_ref);if(!stored?.blob)throw new Error('DOCUMENT_NOT_FOUND');
   const file=new File([stored.blob],stored.name||persistentDocumentName(job),{type:stored.type||stored.blob.type||'application/octet-stream'});

@@ -270,6 +270,18 @@ try{
   assert.match(await page.locator('#invoiceForm').innerText(),/Datum & betaling/);
   await page.evaluate(()=>closeModal());
 
+  // A return order (not a receipt or invoice): "Controleren" asks what to do instead of only showing the file.
+  await page.evaluate(()=>{
+    state.documents.push({id:'d-rma',fileId:'f-rma',name:'RMA.pdf',type:'application/pdf',size:1000,date:'2026-10-08'});
+    documentProcessingJobs=[{id:'j-rma',client_ref:'f-rma',document_id:'d-rma',file_name:'RMA.pdf',state:'review_required',phase:'complete',review_fields:['documentType'],review_message:'Controleer het documenttype. Dit document kan niet automatisch worden geboekt.',result:{analysis:{documentType:'other'}}}];
+    openPersistentDocumentReview('j-rma');
+  });
+  await page.getByRole('button',{name:'Alleen bewaren',exact:true}).waitFor();
+  for(const name of ['Het is wel een bon of factuur','Bekijk document','Verwijderen'])assert.equal(await page.getByRole('button',{name,exact:true}).count(),1,name);
+  await page.getByRole('button',{name:'Alleen bewaren',exact:true}).click();
+  await page.waitForFunction(()=>!document.querySelector('#modalRoot .modal'));
+  assert.equal(await page.evaluate(()=>documentReviewJob(state.documents.find(d=>d.id==='d-rma'))),null,'kept in the archive, no check left');
+
   assert.deepEqual(errors,[],'page errors: '+errors.join('\n'));
   console.log('BOEKUNA mobile flow simplification '+browserName+': PASS');
 }finally{
