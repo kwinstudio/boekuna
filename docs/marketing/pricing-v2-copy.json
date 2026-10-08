@@ -2,7 +2,7 @@
   "_about": "Boekuna Pricing V2: prices and approved marketing copy for e-mail (Klaviyo) and other channels. Not a source of truth for subscription status: Stripe and the server-side entitlements are. Nothing is sent from here. Amounts must equal supabase/functions/_shared/pricing.mjs (checked by tests/pricing-v2-website.test.mjs).",
   "version": "2026-10-08",
   "currency": "EUR",
-  "vat": "Alle bedragen exclusief btw.",
+  "vat": "Alle bedragen inclusief btw.",
   "plans": {
     "start": {
       "name": "Start",
@@ -52,27 +52,27 @@
     "introductie": {
       "subject": "Nieuwe, eenvoudige prijzen voor Boekuna",
       "preheader": "Gratis factureren, of je hele boekhouding met ZZP of Pro.",
-      "body": "Boekuna heeft nu drie pakketten. Start is gratis: je maakt facturen en creditnota's en beheert je klanten. Met ZZP (€ 9,95 per maand of € 99,50 per jaar, exclusief btw) houd je ook je kosten en bonnetjes bij, zie je je btw-overzicht, importeer je je bankbestand en bekijk je rapporten; 100 documenten per maand worden slim uitgelezen. Pro (€ 19,95 per maand of € 199,50 per jaar) heeft geen documentlimiet en herstelpunten. Gebruikte je Boekuna al vóór deze wijziging, dan houd je in Start alles wat je had.",
+      "body": "Boekuna heeft nu drie pakketten. Start is gratis: je maakt facturen en creditnota's en beheert je klanten. Met ZZP (€ 9,95 per maand of € 99,50 per jaar, inclusief btw) houd je ook je kosten en bonnetjes bij, zie je je btw-overzicht, importeer je je bankbestand en bekijk je rapporten; 100 documenten per maand worden slim uitgelezen. Pro (€ 19,95 per maand of € 199,50 per jaar) heeft geen documentlimiet en herstelpunten. Gebruikte je Boekuna al vóór deze wijziging, dan houd je in Start alles wat je had.",
       "cta": "Bekijk de prijzen"
     },
     "jaarabonnement": {
       "subject": "Zo werkt het jaarabonnement",
-      "body": "Bij een jaarabonnement betaal je vooruit voor 12 maanden. Voor ZZP is dat € 99,50 exclusief btw, gemiddeld ongeveer € 8,29 per maand. Na 12 maanden verlengt het abonnement automatisch met een jaar, tenzij je vóór de verlengdatum opzegt. Opzeggen gaat in aan het einde van de betaalde periode; een lopende periode wordt niet terugbetaald.",
+      "body": "Bij een jaarabonnement betaal je vooruit voor 12 maanden. Voor ZZP is dat € 99,50 inclusief btw, gemiddeld ongeveer € 8,29 per maand. Na 12 maanden verlengt het abonnement automatisch met een jaar, tenzij je vóór de verlengdatum opzegt. Opzeggen gaat in aan het einde van de betaalde periode; een lopende periode wordt niet terugbetaald.",
       "cta": "Kies ZZP jaarlijks"
     },
     "twee_maanden_gratis": {
       "subject": "Jaarlijks betalen: 2 maanden gratis",
-      "body": "Een jaar ZZP kost € 99,50 exclusief btw. Dat is tien keer het maandbedrag voor twaalf maanden toegang. Je bespaart € 19,90 ten opzichte van twaalf keer € 9,95.",
+      "body": "Een jaar ZZP kost € 99,50 inclusief btw. Dat is tien keer het maandbedrag voor twaalf maanden toegang. Je bespaart € 19,90 ten opzichte van twaalf keer € 9,95.",
       "cta": "Bekijk jaarlijks betalen"
     },
     "maand_vs_jaar": {
       "subject": "Maandelijks of jaarlijks?",
-      "body": "Maandelijks: € 9,95 per maand, elke maand opzegbaar tegen het einde van die maand. Jaarlijks: € 99,50 per jaar vooruit, dat is 2 maanden gratis. Beide exclusief btw, met precies dezelfde functies.",
+      "body": "Maandelijks: € 9,95 per maand, elke maand opzegbaar tegen het einde van die maand. Jaarlijks: € 99,50 per jaar vooruit, dat is 2 maanden gratis. Beide inclusief btw, met precies dezelfde functies.",
       "cta": "Vergelijk maand en jaar"
     },
     "upgrade_zzp_naar_pro": {
       "subject": "Meer dan 100 documenten per maand?",
-      "body": "Met Pro worden al je documenten uitgelezen, zonder maandlimiet, en kun je je administratie terugzetten naar een eerder herstelpunt. Pro kost € 19,95 per maand of € 199,50 per jaar, exclusief btw. Een upgrade gaat direct in; je betaalt alleen het verschil voor de rest van je periode.",
+      "body": "Met Pro worden al je documenten uitgelezen, zonder maandlimiet, en kun je je administratie terugzetten naar een eerder herstelpunt. Pro kost € 19,95 per maand of € 199,50 per jaar, inclusief btw. Een upgrade gaat direct in; je betaalt alleen het verschil voor de rest van je periode.",
       "cta": "Bekijk Pro"
     }
   },
