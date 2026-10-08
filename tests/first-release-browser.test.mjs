@@ -204,7 +204,7 @@ try{
   const focusRestored=await page.waitForFunction(()=>document.activeElement===document.getElementById('quickNew'),null,{timeout:2000}).then(()=>true,()=>false);
   assert.equal(focusRestored,true,'Closing quick-create must restore focus to the + button');
   const mobileNav=(await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents()).map(v=>v.trim());
-  assert.deepEqual(mobileNav,['Overzicht','Inkomsten','Kosten','Btw','Meer']);
+  assert.deepEqual(mobileNav,['Overzicht','Inkomsten','Kosten','Btw','Bonnen']);
   await page.locator('#mobileMenu').click();
   const drawer=(await page.locator('#sidebar .nav-item').allTextContents()).map(v=>v.trim());
   for(const disabled of ['Voor jou','Controlecentrum','Cashflow','Grootboek','Boekingen','Uren & ritten'])assert.equal(drawer.includes(disabled),false,'Disabled mobile drawer item leaked '+disabled);

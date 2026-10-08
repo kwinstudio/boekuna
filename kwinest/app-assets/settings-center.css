@@ -28,7 +28,7 @@
 #mainApp .settings-center-status{font-size:12px;font-weight:600;color:var(--sc-muted);white-space:nowrap}
 #mainApp .settings-center-status.good{color:#2E7D3A}
 #mainApp .settings-center-status.warn{color:var(--sc-warn)}
-#mainApp .settings-center-row .settings-nav-chevron{color:#A3ACB3;font-size:18px;line-height:1}
+#mainApp .settings-center-row .settings-nav-chevron{color:#A3ACB3;font-size:18px;line-height:1;grid-column:-2/-1}
 #mainApp .settings-center-row.danger,#mainApp .settings-center-row.danger .settings-center-icon{color:var(--sc-danger)}
 
 /* Detail panel */
@@ -100,7 +100,7 @@
   #mainApp .settings-center[data-view="detail"]>.page-head{display:none}
   /* One scroll on phones: the index flows with the page instead of being its own scroll box. */
   #mainApp .settings-center-nav{position:static;max-height:none;overflow:visible}
-  #mainApp .settings-center .settings-center-row{min-height:64px;padding:12px 14px}
+  #mainApp .settings-center .settings-center-row{min-height:54px;padding:10px 14px}
   #mainApp .settings-center-back{display:inline-flex;align-items:center;min-height:44px;padding:0 4px;margin:-6px 0 -4px -4px;border:0;background:none;color:var(--sc-ink);font:inherit;font-size:14px;font-weight:650;cursor:pointer;justify-self:start}
   #mainApp .settings-center-back:focus-visible{outline:2px solid var(--sc-ink);outline-offset:2px;border-radius:8px}
   #mainApp .settings-center-block{padding:16px}

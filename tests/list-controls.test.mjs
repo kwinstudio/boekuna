@@ -129,6 +129,7 @@ try{
   assert.equal(await page.locator('#globalSearch').count(),0,'Global cross-app search must not render');
 
   await page.evaluate(()=>navigate('dashboard'));
+  // One quick period choice (top right) shared by Overzicht, Inkomsten and Kosten; Btw has its own quarters.
   assert.deepEqual(await page.locator('#dashboardPeriod option').allTextContents(),['Deze week','Deze maand','Dit kwartaal','Dit jaar','Alles']);
   await page.locator('#dashboardPeriod').selectOption('year');
   await page.evaluate(()=>navigate('invoices'));
@@ -137,7 +138,9 @@ try{
   await page.evaluate(()=>navigate('expenses'));
   assert.equal(await page.locator('#expensePeriod').inputValue(),'all','Costs inherit income period');
   await page.evaluate(()=>navigate('vat'));
-  assert.equal(await page.locator('#vatFinancialPeriod').inputValue(),'all','VAT inherits shared period');
+  await page.locator('.page-filter-btn').click();
+  assert.deepEqual((await page.locator('#vatFilterPeriod option').allTextContents()).slice(0,4).map(t=>t.slice(0,2)),['1e','2e','3e','4e'],'Btw Filters offer quarters');
+  await page.evaluate(()=>closeModal());
 
   // FACTUREN — number/customer/amount search + status/period/customer filters + sort + clear behavior.
   await go('invoices');
@@ -178,6 +181,8 @@ try{
   assert.equal(rows.length,1,'Paid quick filter must return fully paid invoices');
   assert.match(rows[0],/0003/);
   await page.locator('[data-list-clear-filters]').click();
+  // Filters wissen keeps the quick period; show everything to compare amounts across years.
+  await page.locator('#incomePeriod').selectOption('all');
   await setSort('amount-desc');
   rows=await visibleRowTexts();
   assert.match(rows[0],/0099/,'Amount high→low must put largest invoice first');
