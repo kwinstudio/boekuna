@@ -296,3 +296,15 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--bk-dark-green);
 .brand-dot{color:var(--bk-green)}
 @media(min-width:980px){.brand-word{font-size:28px}}
 .site-footer-full .brand-word{font-size:26px}
+/* Hero: rustige foto met twee kleine meldingen */
+.hero-calm{position:relative;padding:18px 10px 26px}
+.calm-photo{margin:0;border-radius:24px;overflow:hidden;aspect-ratio:5/4;background:#EEF3EF}
+.calm-photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 40%}
+.calm-note{position:absolute;display:flex;align-items:center;gap:11px;padding:11px 15px 11px 11px;border:1px solid #E6EDE7;border-radius:14px;background:rgba(255,255,255,.97);color:var(--bk-ink);box-shadow:0 14px 34px -22px rgba(10,25,13,.55)}
+.calm-note strong{display:block;font-size:13px;line-height:1.25}
+.calm-note small{display:block;font-size:11px;color:var(--bk-muted)}
+.calm-tick{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:#DDF7E1;color:#1E7137;flex:none}
+.calm-tick .icon{width:17px;height:17px;stroke-width:2}
+.calm-note-top{top:0;right:0}
+.calm-note-bottom{bottom:0;left:0}
+@media(min-width:980px){.hero-calm{padding:26px 18px 34px}.calm-note{padding:13px 18px 13px 13px}.calm-note strong{font-size:14px}.calm-note small{font-size:12px}.calm-note-top{right:-6px}.calm-note-bottom{left:-6px}}

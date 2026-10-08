@@ -42,7 +42,7 @@ try{
         const errors=[]; page.on('pageerror',e=>errors.push(String(e)));
         const response=await page.goto(server.base+'/',{waitUntil:'networkidle'});
         assert.equal(response.status(),200,name+' root '+width);
-        assert.equal(await page.locator('h1').textContent(),'Boekhouden zonder gedoe.');
+        assert.equal(await page.locator('h1').textContent(),'Zo simpel kan het zijn.');
         if(width<980)await page.locator('.mobile-nav summary').click();
         assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'),'index,follow');
         assert.ok(await page.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).isVisible());

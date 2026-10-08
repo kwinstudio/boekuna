@@ -20,7 +20,7 @@ try{
         const page=await browser.newPage({viewport:{width,height:width<600?844:900},reducedMotion:'reduce'});
         const errors=[];page.on('pageerror',e=>errors.push(String(e)));
         await page.goto(server.base+'/',{waitUntil:'networkidle'});
-        assert.equal(await page.locator('h1').textContent(),'Boekhouden zonder gedoe.');
+        assert.equal(await page.locator('h1').textContent(),'Zo simpel kan het zijn.');
         assert.equal(await page.locator('img:not([src^="/assets/site/"])').count(),0,'Only first-party Boekuna images');
         assert.equal(await page.locator('img:not([alt])').count(),0,'Every image has alt text');
         assert.equal(await page.locator('script:not([src="/assets/site/site.js"]):not([type="application/ld+json"])').count(),0,'Only the first-party site script');
