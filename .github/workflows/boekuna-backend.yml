@@ -24,6 +24,7 @@ on:
       - "tests/kvk-company-lookup-security.test.mjs"
       - "tests/package*.json"
       - "tests/planned-cash-sql-isolation.test.mjs"
+      - "tests/security-hardening-sql.test.mjs"
       - "tests/ocr-production-hardening.test.py"
       - "tests/document-scan-intelligence-benchmark.test.py"
       - "tests/document-scan-intelligence-unit.test.py"
@@ -92,6 +93,8 @@ jobs:
         run: node tests/tester-invite-code-sql.test.mjs
       - name: Planned cash migration and two-account PostgreSQL isolation
         run: node tests/planned-cash-sql-isolation.test.mjs
+      - name: MFA guard and anon grant hardening
+        run: node tests/security-hardening-sql.test.mjs
       - name: Invoice PDF and email parity
         run: node tests/invoice-delivery.test.mjs
       - name: Retired First 100 regression
