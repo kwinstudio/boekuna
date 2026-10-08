@@ -1,4 +1,7 @@
 /* Boekuna website: real app screenshots, product tour, photos, plan helper. Loaded after landing-v4.css. */
+@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url('/assets/fonts/inter-var-latin.woff2') format('woff2')}
+@font-face{font-family:'Space Grotesk';font-style:normal;font-weight:300 700;font-display:swap;src:url('/assets/fonts/space-grotesk-var-latin.woff2') format('woff2')}
+body{font-family:var(--bk-body);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
 button:focus-visible,input:focus-visible{outline:3px solid var(--bk-dark-green);outline-offset:3px}
 
 /* Hero: real app screens instead of a stock photo */
@@ -208,3 +211,71 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--bk-dark-green);
 @media(min-width:900px){.info-grid.count-4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(min-width:1100px){.info-grid.count-4{grid-template-columns:repeat(4,minmax(0,1fr))}.info-grid.count-10{grid-template-columns:repeat(5,minmax(0,1fr))}.info-grid.count-5{grid-template-columns:repeat(5,minmax(0,1fr))}}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Desktop "Functies" dropdown */
+.nav-drop{position:relative}
+.nav-drop summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:700;white-space:nowrap;padding:8px 2px;border-radius:6px}
+.nav-drop summary::-webkit-details-marker{display:none}
+.nav-drop summary.is-current{color:#1E7137}
+.nav-drop summary:focus-visible{outline:3px solid var(--bk-dark-green);outline-offset:3px}
+.nav-drop .chev{width:15px;height:15px;transition:transform .2s}
+.nav-drop[open] .chev{transform:rotate(180deg)}
+.nav-drop-panel{position:absolute;left:-18px;top:calc(100% + 14px);width:min(560px,80vw);background:#fff;border:1px solid #E1E8E3;border-radius:16px;box-shadow:0 30px 60px -30px rgba(16,40,24,.35);padding:10px;z-index:60}
+.nav-drop-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+.nav-drop-panel a{display:flex;gap:12px;align-items:flex-start;padding:12px;border-radius:10px;color:#1B1F23;transition:background-color .15s}
+.nav-drop-panel a:hover,.nav-drop-panel a:focus-visible{background:#F2F8F3}
+.nav-drop-panel a[aria-current=page] strong{color:#1E7137}
+.nav-drop-icon{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:#E7F8EA;color:#277A3D}
+.nav-drop-icon .icon{width:19px;height:19px}
+.nav-drop-panel strong{display:block;font-size:14px;line-height:1.3}
+.nav-drop-panel small{display:block;font-size:12.5px;color:#5A6B62;line-height:1.4;margin-top:2px;font-weight:500;white-space:normal}
+.nav-drop-panel .nav-drop-all{margin-top:4px;border-top:1px solid #EEF2EF;border-radius:0 0 10px 10px;justify-content:space-between;align-items:center;font-size:13.5px;font-weight:800;color:#1E7137}
+.nav-drop-all .icon{width:16px;height:16px}
+.mobile-nav-label{display:block;margin:14px 4px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.1em;font-weight:800;color:#5A6B62}
+.mobile-nav-links>a.sub{font-size:15.5px}
+
+/* Kennisbank */
+.kb-grid{display:grid;gap:14px}
+.kb-card{display:grid;gap:8px;align-content:start;background:#fff;border:1px solid #DFE7E2;border-radius:16px;padding:22px 20px;color:#1B1F23;transition:border-color .2s,transform .2s}
+.kb-card:hover{border-color:#6DBB7C;transform:translateY(-2px)}
+.kb-card .feature-icon{margin-bottom:6px}
+.kb-card strong{font-family:var(--bk-heading);font-size:19px;letter-spacing:-.03em;line-height:1.25}
+.kb-card>span:not(.feature-icon){font-size:14px;color:#56665D;line-height:1.6}
+.kb-card small{display:inline-flex;align-items:center;gap:8px;margin-top:6px;font-size:13px;font-weight:800;color:#1E7137}
+.kb-card small .icon{width:15px;height:15px}
+.kb-more{margin:22px 0 0}
+.kb-disclaimer{display:flex;gap:10px;align-items:flex-start;margin:26px 0 0;font-size:13.5px;line-height:1.6;color:#4F5F57;max-width:760px}
+.kb-disclaimer .icon{flex:none;width:18px;height:18px;margin-top:2px;color:#6B7A72}
+.article-hero h1{max-width:22ch}
+.article{padding:44px 0 72px}
+.article-grid{display:grid;gap:28px}
+.article-grid>*{min-width:0}
+.article-toc{display:grid;gap:8px;border-left:2px solid #DCE7DF;padding-left:16px}
+.article-toc strong{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#46574E}
+.article-toc a{font-size:14px;color:#33453B;text-underline-offset:3px}
+.article-toc a:hover{color:#1E7137;text-decoration:underline}
+.article-body{max-width:68ch}
+.article-body section+section{margin-top:38px}
+.article-body h2{font-family:var(--bk-heading);font-size:clamp(23px,4.6vw,28px);letter-spacing:-.04em;line-height:1.2;margin:0 0 14px;scroll-margin-top:100px}
+.article-body p{font-size:16px;line-height:1.75;color:#33433A;margin:0 0 14px}
+.article-list{margin:0 0 14px;padding-left:22px;display:grid;gap:10px}
+.article-list li,.article-steps li{font-size:16px;line-height:1.7;color:#33433A;padding-left:4px}
+.article-steps{margin:0;padding-left:24px;display:grid;gap:12px}
+.article-body .table-scroll{margin:6px 0 16px}
+.article-boekuna{margin:40px 0 0;padding:22px 22px;border-radius:16px;background:#EFF8F1;border:1px solid #CFE8D5}
+.article-boekuna strong{display:block;font-family:var(--bk-heading);font-size:18px;letter-spacing:-.02em;margin-bottom:8px}
+.article-boekuna p{font-size:15px;margin-bottom:12px}
+.article-sources{margin-top:40px;padding-top:24px;border-top:1px solid #E3E9E5}
+.article-sources h2{font-size:18px;margin-bottom:10px}
+.article-sources ul{margin:0 0 12px;padding-left:20px;display:grid;gap:6px}
+.article-sources a{color:#1E7137;text-decoration:underline;text-underline-offset:3px;font-size:15px}
+.article-sources p{font-size:13.5px;color:#5A6B62}
+@media(min-width:600px){.kb-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:980px){
+ .kb-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .article-grid{grid-template-columns:220px minmax(0,1fr);gap:56px}
+ .article-aside{position:relative}
+ .article-toc{position:sticky;top:110px}
+}
+.article-body .info-table{min-width:0}
+.page-hero h1,.crumbs,.kb-card strong,.related a span,.article-body h2{overflow-wrap:break-word;hyphens:auto}

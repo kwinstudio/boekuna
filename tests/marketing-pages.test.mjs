@@ -6,7 +6,7 @@ import {spawnSync} from 'node:child_process';
 const root=process.cwd();
 const source=path.join(root,'public');
 const retired=['assistent','scanner','rapportages','mobiel'];
-const pages=['functies','facturen','bonnen','btw','bank','hoe-het-werkt','prijzen','veiligheid','faq','over-ons'];
+const pages=['functies','facturen','bonnen','btw','bank','hoe-het-werkt','prijzen','veiligheid','faq','over-ons','kennisbank','kennisbank/factuur-eisen','kennisbank/btw-aangifte-per-kwartaal','kennisbank/kleineondernemersregeling','kennisbank/bewaarplicht','kennisbank/zakelijke-kosten-en-btw'];
 const preserved=['privacy','voorwaarden','support','account-verwijderen'];
 
 const home=fs.readFileSync(path.join(source,'index.html'),'utf8');
@@ -37,7 +37,10 @@ for(const old of ['editorial-hero','editorial-pricing','project-grid','Uploaden.
 assert.ok(home.includes('/assets/baseline.css'),'Marketing baseline stylesheet required');
 assert.ok(home.includes('/assets/landing-v4.css'),'V4 landing stylesheet missing');
 assert.ok(home.includes('/assets/site/app-desktop-dashboard.webp'),'Real app screenshot missing');
-assert.deepEqual([...home.matchAll(/<script\b[^>]*>/gi)].map(m=>m[0]),['<script src="/assets/site/site.js" defer>'],'Only the deferred first-party site script');
+const scriptsOf=html=>[...html.matchAll(/<script\b[^>]*>/gi)].map(m=>m[0]).filter(t=>t!=='<script type="application/ld+json">');
+for(const m of home.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g))JSON.parse(m[1]);
+assert.deepEqual(scriptsOf(home),['<script src="/assets/site/site.js" defer>'],'Only the deferred first-party site script (plus structured data)');
+assert.ok(home.includes('"vatID":"NL002477565B57"'),'Organization structured data must use the real business details');
 
 for(const slug of retired){
   assert.equal(fs.existsSync(path.join(source,slug,'index.html')),false,'Retired marketing source page must be removed: '+slug);
@@ -56,7 +59,11 @@ for(const slug of pages){
   assert.ok(html.includes('<link rel="canonical" href="https://boekuna.nl/'+slug+'/">'),slug+': canonical missing');
   assert.equal((html.match(/<h1\b/g)||[]).length,1,slug+': exactly one h1');
   for(const detail of ['Kwinest','KVK 74542893','NL002477565B57','support@boekuna.nl','href="/privacy/"','href="/voorwaarden/"'])assert.ok(html.includes(detail),slug+': footer business detail missing '+detail);
-  assert.deepEqual([...html.matchAll(/<script\b[^>]*>/gi)].map(m=>m[0]),['<script src="/assets/site/site.js" defer>'],slug+': only the deferred first-party site script');
+  assert.deepEqual(scriptsOf(html),['<script src="/assets/site/site.js" defer>'],slug+': only the deferred first-party site script');
+  for(const m of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g))JSON.parse(m[1]);
+  assert.ok(html.includes('/assets/fonts/inter-var-latin.woff2'),slug+': self-hosted font preload missing');
+  assert.ok(html.includes('og-boekuna.png'),slug+': share image missing');
+  if(slug.startsWith('kennisbank/')){assert.ok(html.includes('geen fiscaal advies'),slug+': disclaimer missing');assert.ok(/href="https:\/\/(www\.belastingdienst\.nl|ondernemersplein\.kvk\.nl)/.test(html),slug+': official source missing')}
   for(const claim of ['automatische bankkoppeling is nu beschikbaar','100% correcte herkenning','direct btw-aangifte indienen','offertes maken','koppeling met je bank via psd2'])assert.ok(!html.toLowerCase().includes(claim),slug+': unverified feature claim '+claim);
   for(const m of html.matchAll(/<img\b[^>]*>/g))assert.match(m[0],/alt="[^"]+"/,slug+': image without alt text');
 }

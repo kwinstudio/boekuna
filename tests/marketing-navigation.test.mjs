@@ -4,7 +4,7 @@ import {serveMarketing} from './helpers/marketing-site.mjs';
 
 const server=await serveMarketing('dist/marketing');
 const retired=['/assistent/','/scanner/','/rapportages/','/mobiel/'];
-const pages=['/functies/','/facturen/','/bonnen/','/btw/','/bank/','/hoe-het-werkt/','/prijzen/','/veiligheid/','/faq/','/over-ons/'];
+const pages=['/functies/','/facturen/','/bonnen/','/btw/','/bank/','/hoe-het-werkt/','/prijzen/','/veiligheid/','/faq/','/over-ons/','/kennisbank/','/kennisbank/factuur-eisen/','/kennisbank/btw-aangifte-per-kwartaal/','/kennisbank/kleineondernemersregeling/','/kennisbank/bewaarplicht/','/kennisbank/zakelijke-kosten-en-btw/'];
 const preserved=['/privacy/','/voorwaarden/','/support/','/account-verwijderen/'];
 try{
   for(const [name,engine] of [['chromium',chromium],['webkit',webkit]]){

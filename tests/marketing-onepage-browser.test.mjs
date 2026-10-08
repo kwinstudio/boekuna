@@ -14,7 +14,7 @@ fs.mkdirSync(evidence,{recursive:true});
 const server=await serveMarketing(dist);
 const engines=[['chromium',chromium],['webkit',webkit]];
 const widths=[320,375,390,430,768,1024,1280,1440];
-const preserved=['/privacy/','/voorwaarden/','/support/','/account-verwijderen/','/functies/','/facturen/','/bonnen/','/btw/','/bank/','/hoe-het-werkt/','/prijzen/','/veiligheid/','/faq/','/over-ons/'];
+const preserved=['/privacy/','/voorwaarden/','/support/','/account-verwijderen/','/functies/','/facturen/','/bonnen/','/btw/','/bank/','/hoe-het-werkt/','/prijzen/','/veiligheid/','/faq/','/over-ons/','/kennisbank/','/kennisbank/factuur-eisen/','/kennisbank/btw-aangifte-per-kwartaal/','/kennisbank/kleineondernemersregeling/','/kennisbank/bewaarplicht/','/kennisbank/zakelijke-kosten-en-btw/'];
 const retired=['/assistent/','/scanner/','/rapportages/','/mobiel/'];
 
 async function noOverflow(page,label){
@@ -48,7 +48,7 @@ try{
         assert.ok(await page.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).isVisible());
         assert.equal(await page.locator('img:not([src^="/assets/site/"])').count(),0,'Only first-party Boekuna images');
         assert.equal(await page.locator('img:not([alt])').count(),0,'Every image has alt text');
-        assert.equal(await page.locator('script:not([src="/assets/site/site.js"])').count(),0,'Only the first-party site script');
+        assert.equal(await page.locator('script:not([src="/assets/site/site.js"]):not([type="application/ld+json"])').count(),0,'Only the first-party site script');
         await noOverflow(page,name+' root '+width);
         await axe(page,name+' root '+width);
         const login=await page.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).getAttribute('href');
