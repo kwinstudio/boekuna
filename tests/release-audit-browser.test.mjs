@@ -446,6 +446,7 @@ try{
         const v=await run(page,'#modalRoot');if(v.length)found[name]=v;
         await page.evaluate(()=>closeModal());
       }
+      if(Object.keys(found).length)console.log('axe '+label+' (alle meldingen):',JSON.stringify(found));
       const serious=Object.entries(found).flatMap(([k,v])=>v.filter(x=>/^(critical|serious)/.test(x)).map(x=>k+' '+x));
       check('W-0'+(width<768?2:1),'Geen ernstige axe-fouten '+label+' (9 pagina\'s, 3 formulieren)',serious.length===0,serious.join('; ')||JSON.stringify(found));
       if(width===1440){

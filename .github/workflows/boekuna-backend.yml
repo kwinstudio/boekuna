@@ -19,6 +19,7 @@ on:
       - "tests/lib/edge-harness.mjs"
       - "scripts/stripe-pricing-v2-setup.mjs"
       - "tests/account-closure.test.mjs"
+      - "tests/delete-account-cors.test.mjs"
       - "tests/provider-agnostic-entitlement.test.mjs"
       - "tests/tester-invite-code-access.test.mjs"
       - "tests/tester-invite-code-sql.test.mjs"
@@ -111,6 +112,8 @@ jobs:
         run: node tests/pricing-v2-sql.test.mjs
       - name: Account deletion stops Stripe billing first
         run: node tests/account-closure.test.mjs
+      - name: Account deletion works from the app (CORS)
+        run: node tests/delete-account-cors.test.mjs
       - name: Tester invite-code access regression
         run: node tests/tester-invite-code-access.test.mjs
       - name: Install document processor regression dependencies

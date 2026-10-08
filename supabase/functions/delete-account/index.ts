@@ -2,18 +2,39 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { closeStripeBilling, isChargeable, stripeRequestWithKey } from "../_shared/account-closure.ts";
 
-function reply(status: number, data: unknown) {
-  return new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json" } });
+// The app calls this function from the browser (app.boekuna.nl), so the browser first sends a CORS
+// preflight. Without these headers it blocked the request and "Account verwijderen" did nothing.
+const APP_URL = (Deno.env.get("APP_URL") || "https://app.boekuna.nl").replace(/\/$/, "");
+const ALLOWED_ORIGINS = new Set([
+  APP_URL,
+  "https://boekuna-boekhouding.onrender.com",
+  "https://boekuna.nl",
+  "https://www.boekuna.nl",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+]);
+function corsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  return {
+    "Access-Control-Allow-Origin": ALLOWED_ORIGINS.has(origin) ? origin : APP_URL,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST,OPTIONS",
+    "content-type": "application/json",
+    "Vary": "Origin",
+  };
 }
 
 Deno.serve(async (req: Request) => {
+  const headers = corsHeaders(req);
+  const reply = (status: number, data: unknown) => new Response(JSON.stringify(data), { status, headers });
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers });
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: { "content-type": "application/json" } });
+    return reply(405, { error: "Method not allowed" });
   }
 
   const authHeader = req.headers.get("Authorization") || "";
   if (!authHeader.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "content-type": "application/json" } });
+    return reply(401, { error: "Unauthorized" });
   }
 
   const url = Deno.env.get("SUPABASE_URL")!;
@@ -27,15 +48,15 @@ Deno.serve(async (req: Request) => {
 
   const { data: userData, error: userError } = await userClient.auth.getUser();
   if (userError || !userData.user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "content-type": "application/json" } });
+    return reply(401, { error: "Unauthorized" });
   }
 
   const { data: aal, error: aalError } = await userClient.auth.mfa.getAuthenticatorAssuranceLevel();
   if (aalError) {
-    return new Response(JSON.stringify({ error: "Je tweestapsverificatie kon niet worden gecontroleerd. Log opnieuw in en probeer het nog eens." }), { status: 401, headers: { "content-type": "application/json" } });
+    return reply(401, { error: "Je tweestapsverificatie kon niet worden gecontroleerd. Log opnieuw in en probeer het nog eens." });
   }
   if (aal?.nextLevel === "aal2" && aal?.currentLevel !== "aal2") {
-    return new Response(JSON.stringify({ error: "Bevestig eerst je tweestapsverificatie voordat je je account verwijdert." }), { status: 403, headers: { "content-type": "application/json" } });
+    return reply(403, { error: "Bevestig eerst je tweestapsverificatie voordat je je account verwijdert." });
   }
 
   const userId = userData.user.id;
