@@ -554,6 +554,16 @@ patchBuiltAppAsset(
   "  #mainApp .dashboard-kpi-profit { grid-column:1/-1!important; }"
 );
 
+// One spacing rhythm for every page (kwinest/app-assets/spacing.css): after the other app layers, before Dark Mode.
+{
+  const indexFile=path.join(target,'index.html');
+  const html=fs.readFileSync(indexFile,'utf8');
+  const darkLink='<link rel="stylesheet" href="/assets/theme-dark.css?v=20261007a">';
+  if(html.split(darkLink).length!==2)throw new Error('Spacing layer marker changed');
+  fs.copyFileSync(path.join(root,'kwinest','app-assets','spacing.css'),path.join(appAssetsTarget,'spacing.css'));
+  fs.writeFileSync(indexFile,html.replace(darkLink,'<link rel="stylesheet" href="/assets/spacing.css?v=20261008a">\n'+darkLink),'utf8');
+}
+
 // Dark Mode: derive dark equivalents of every hardcoded colour from the final cascade, then
 // load them just before the hand-written theme-dark.css refinements.
 {
