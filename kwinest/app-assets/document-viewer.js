@@ -75,7 +75,7 @@ async function copyText(text){
 
 function textPanel(view){
   const panel=el('div','docviewer-text');
-  const intro=el('p','docviewer-hint','Tik op een regel om hem te kopiëren. Plak hem daarna in het veld.');
+  const intro=el('p','docviewer-hint','Tik of klik op een regel om hem te kopiëren, of selecteer de tekst zelf. Plak hem daarna in het veld.');
   const list=el('div','docviewer-lines');list.setAttribute('role','list');
   const status=el('p','docviewer-status');status.setAttribute('role','status');
   panel.append(intro,status,list);
@@ -86,13 +86,16 @@ function textPanel(view){
     const all=btn('Alle tekst kopiëren','btn small docviewer-copy-all',async()=>{toast(await copyText(lines.join('\n'))?'Alle tekst gekopieerd':'Kopiëren lukte niet. Selecteer de tekst zelf.')});
     list.append(all);
     lines.forEach(line=>{
-      const row=btn('','docviewer-line',async()=>{
+      // Not a <button>: text in a button cannot be selected, and on a computer people select and right-click to copy.
+      const row=el('div','docviewer-line');row.tabIndex=0;
+      const copy=async()=>{
         if(String(getSelection?.()||'').trim())return;
         const ok=await copyText(line);
         row.classList.toggle('copied',ok);setTimeout(()=>row.classList.remove('copied'),1400);
         toast(ok?'Gekopieerd: '+(line.length>40?line.slice(0,40)+'…':line):'Kopiëren lukte niet. Selecteer de tekst zelf.');
-      });
-      row.setAttribute('role','listitem');
+      };
+      row.addEventListener('click',copy);row.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();copy()}});
+      row.setAttribute('role','listitem');row.setAttribute('aria-label',line+'. Enter kopieert deze regel');
       row.append(el('span','docviewer-line-text',line),el('span','docviewer-line-copy','Kopieer'));
       list.append(row);
     });

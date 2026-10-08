@@ -724,11 +724,23 @@ function mountReviewPreview(){
   const file=pendingPdfImport?.file,shell=document.querySelector('#reviewOriginalPanel .review-preview-shell');
   if(!file||!pendingPdfImport.previewUrl||!shell||shell.querySelector('.review-viewer')||!global.BoekunaDocumentViewer||global.BoekunaDocumentViewer.mobile())return;
   if(!/pdf|image/i.test(String(file.type||''))&&!/\.(pdf|jpe?g|png|webp|gif)$/i.test(String(file.name||'')))return;
+  // "Tekst kopiëren" swaps the document for its text in this same panel, so the review keeps its size and you copy with the mouse.
   const bar=document.createElement('div');bar.className='review-viewer-bar';
-  bar.innerHTML='<span>Selecteer tekst om te kopiëren</span><span class="review-viewer-actions"><button type="button" class="link-btn" onclick="toggleDocumentOriginal(true,\'text\')">Tekst kopiëren</button><button type="button" class="link-btn" onclick="toggleDocumentOriginal(true)">Vergroten</button></span>';
+  bar.innerHTML='<span class="review-viewer-hint">Selecteer tekst om te kopiëren</span><span class="review-viewer-actions"><button type="button" class="link-btn" data-review-text-toggle>Tekst kopiëren</button><button type="button" class="link-btn" onclick="toggleDocumentOriginal(true)">Vergroten</button></span>';
   const host=document.createElement('div');host.className='review-viewer';
   shell.replaceChildren(bar,host);
-  const view=global.BoekunaDocumentViewer.createView(host,{file,name:file.name,url:pendingPdfImport.previewUrl||'',compact:true});
+  const docHost=document.createElement('div');host.append(docHost);
+  const view=global.BoekunaDocumentViewer.createView(docHost,{file,name:file.name,url:pendingPdfImport.previewUrl||'',compact:true});
+  const text=global.BoekunaDocumentViewer.textPanel(view);text.panel.hidden=true;host.append(text.panel);
+  const toggle=bar.querySelector('[data-review-text-toggle]'),hint=bar.querySelector('.review-viewer-hint');
+  toggle.addEventListener('click',()=>{
+    const showText=text.panel.hidden;
+    if(showText)host.style.height=host.offsetHeight+'px';
+    text.panel.hidden=!showText;docHost.hidden=showText;host.scrollTop=0;
+    toggle.textContent=showText?'Document tonen':'Tekst kopiëren';
+    hint.textContent=showText?'Klik een regel om te kopiëren':'Selecteer tekst om te kopiëren';
+    if(showText)text.load();
+  });
   requestAnimationFrame(()=>view.render())
 }
 function toggleMixedVatEditor(force){
