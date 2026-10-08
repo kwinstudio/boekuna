@@ -6271,6 +6271,9 @@ function mergeAIParsed(local,ai,forced='auto'){
    if(trustedAiIban)out[k]=trustedAiIban;
    continue
   }
+  // The processor decides who the counterparty is. An empty party from the processor means "check this",
+  // so the browser text guess (which can be the user's own company) must not fill it back in.
+  if(processorAuthoritative&&['party','email','phone','vatId','kvk','address','postal','city','country'].includes(k)){out[k]=v??'';continue}
   if(v!==''&&v!==null&&v!==undefined)out[k]=v
  }
  out.type=forced!=='auto'?forced:(ai.type&&ai.type!=='unknown'?ai.type:(local?.type||'purchase'));out.documentType=ai.documentType||local?.documentType||classifyDocumentType(out);out.isCredit=!!ai.isCredit||!!local?.isCredit||out.documentType==='credit_invoice';

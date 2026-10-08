@@ -647,6 +647,24 @@ def vat_plausible(v:str|None)->bool:
 def kvk_plausible(v:str|None)->bool:
     return bool(v and re.fullmatch(r"\d{8}",re.sub(r"\D","",v)))
 
+def _within_one_edit(a:str,b:str)->bool:
+    if a==b:return True
+    if abs(len(a)-len(b))>1:return False
+    if len(a)==len(b):return sum(x!=y for x,y in zip(a,b))<=1
+    if len(a)>len(b):a,b=b,a
+    i=0
+    while i<len(a) and a[i]==b[i]:i+=1
+    return a[i:]==b[i+1:]
+
+def ocr_tolerant_name_match(own:str,candidate:str)->bool:
+    """Own name inside a candidate, allowing one OCR character error (Kwlnest)."""
+    o="".join(ch for ch in own.casefold() if ch.isalnum());c="".join(ch for ch in candidate.casefold() if ch.isalnum())
+    if len(o)<7 or not c:return False
+    for size in (len(o)-1,len(o),len(o)+1):
+        for start in range(0,max(1,len(c)-size+1)):
+            if _within_one_edit(o,c[start:start+size]):return True
+    return False
+
 def own_matches(block:dict, company:dict)->bool:
     cvat=re.sub(r"[\s.\-]","",str(company.get("vat") or company.get("vatNumber") or "")).upper()
     ckvk=re.sub(r"\D","",str(company.get("kvk") or ""))
@@ -661,6 +679,7 @@ def own_matches(block:dict, company:dict)->bool:
     bname=norm_text(str(block.get("name") or "")).lower()
     name_match=any(
         n==bname or (len(n)>=5 and len(bname)>=5 and (n in bname or bname in n))
+        or (len(bname)>=5 and ocr_tolerant_name_match(n,bname))
         for n in cnames if bname
     )
     return bool(
@@ -671,41 +690,164 @@ def own_matches(block:dict, company:dict)->bool:
         or name_match
     )
 
+# Party role labels. The issuer side names who sends the invoice; the recipient
+# side names who receives it (also delivery/billing addresses, which on a
+# purchase invoice are the user's own company).
+SUPPLIER_PARTY_LABELS=[
+    "leverancier","supplier","vendor","seller","from","van",
+    "verkoper","verkocht door","geleverd door","sold by","issued by","uitgegeven door","factuur van",
+    "invoice from","billed by","rechnungssteller","verkäufer","lieferant","fournisseur","vendeur",
+]
+CUSTOMER_PARTY_LABELS=[
+    "factuur aan","factureren aan","gefactureerd aan","factuuradres","afleveradres","leveradres",
+    "bezorgadres","klantgegevens","uw gegevens","geleverd aan","besteld door","bill to","billed to",
+    "sold to","ship to","deliver to","delivered to","invoice to","invoice address","billing address",
+    "delivery address","shipping address","customer","client","buyer","koper","klant","debiteur",
+    "afnemer","opdrachtgever","aan","to","rechnungsempfänger","rechnungsadresse","lieferadresse",
+    "kunde","empfänger","facturé à","adresse de facturation","destinataire",
+    # On carrier invoices (DHL, PostNL) the "verzender" is the shipper who is
+    # billed, not the carrier that issues the invoice.
+    "verzender","sender",
+]
+_PARTY_LABEL_ALT="|".join(
+    re.escape(x).replace(r"\ ",r"\s+")
+    for x in sorted(set(SUPPLIER_PARTY_LABELS+CUSTOMER_PARTY_LABELS),key=len,reverse=True)
+)
+_PARTY_LABEL_LONG_ALT="|".join(
+    re.escape(x).replace(r"\ ",r"\s+")
+    for x in sorted({x for x in SUPPLIER_PARTY_LABELS+CUSTOMER_PARTY_LABELS if " " in x or len(x)>=8},key=len,reverse=True)
+)
+# Short labels (van, aan, to, klant) only count with a separator or alone, so
+# names such as "Van Dam Schilders" or "Tomas BV" keep their first word.
+PARTY_LABEL_PREFIX_RE=re.compile(
+    r"^(?:(?:"+_PARTY_LABEL_ALT+r")(?:\s*[:#-]\s*|\s*$)|(?:"+_PARTY_LABEL_LONG_ALT+r")(?:\s*[:#-]\s*|\s+|$))",re.I)
+PARTY_LABEL_LINE_RE=re.compile(r"^(?:"+_PARTY_LABEL_ALT+r")(?:\s*[:\-]|$)",re.I)
+CUSTOMER_LABEL_LINE_RE=re.compile(
+    r"^(?:"+"|".join(re.escape(x).replace(r"\ ",r"\s+") for x in sorted(CUSTOMER_PARTY_LABELS,key=len,reverse=True))+r")(?:\s*[:\-]|$)",re.I)
+PARTY_BLOCK_MARKER="--- BLOCK ---"
+PARTY_BODY_MARKER="--- BODY ---"
+
+def party_label_only(value:str)->bool:
+    """True for a line made only of role labels, e.g. 'Factuuradres  Afleveradres'."""
+    rest=norm_text(value or "")
+    for _ in range(4):
+        stripped=PARTY_LABEL_PREFIX_RE.sub("",rest).strip(" |:#-")
+        if stripped==rest:break
+        rest=stripped
+    return bool(norm_text(value or "")) and not rest
+
 def _clean_party_candidate(value:str)->str:
     cand=norm_text(value or "").strip(" |:#-")
-    cand=re.sub(r"^(?:leverancier|supplier|vendor|seller|from|van|factuur\s+aan|factureren\s+aan|bill\s+to|sold\s+to|customer|klant|debiteur|aan|to|verzender|sender)\s*[:#-]?\s*","",cand,flags=re.I)
+    cand=PARTY_LABEL_PREFIX_RE.sub("",cand)
     cand=re.split(r"\b(?:factuurnummer|factuurnr|invoice\s+(?:number|no)|factuurdatum|invoice\s+date|vervaldatum|due\s+date|betalingskenmerk|payment\s+reference|kvk\s*(?:nummer|nr)?|btw[- ]?(?:nummer|nr|id)|vat\s*(?:number|id))\b",cand,maxsplit=1,flags=re.I)[0]
     return cand.strip(" |:#-")
+
+def layout_page_words(page:dict)->list[dict[str,Any]]:
+    """Positioned words of one layout page in PDF points.
+
+    Native PDF words already carry x0/y0/x1/y1. OCR rows (photos, scanned PDF
+    pages) carry a pixel polygon; they are scaled so the widest text spans an
+    A4-like 595pt width, which keeps the point-based thresholds meaningful."""
+    native=[w for w in (page.get("words") or []) if isinstance(w,dict) and "x0" in w]
+    if native:return native
+    rows=[w for w in (page.get("words") or page.get("ocrWords") or []) if isinstance(w,dict) and w.get("box")]
+    out=[]
+    for r in rows:
+        try:
+            xs=[float(pt[0]) for pt in r["box"]];ys=[float(pt[1]) for pt in r["box"]]
+        except Exception:
+            continue
+        out.append({"x0":min(xs),"y0":min(ys),"x1":max(xs),"y1":max(ys),"text":norm_text(str(r.get("text") or ""))})
+    if not out:return []
+    # Boxes in a rotated frame (text runs vertically) carry no usable reading order.
+    if sum(1 for w in out if (w["y1"]-w["y0"])>(w["x1"]-w["x0"]))*2>len(out):return []
+    right=max(w["x1"] for w in out)
+    scale=595.0/right if right>0 else 1.0
+    return [{k:(round(v*scale,1) if k!="text" else v) for k,v in w.items()} for w in out]
+
+def page_fragments(page:dict,max_y:float=330.0)->list[dict[str,Any]]:
+    out=[]
+    words=[w for w in layout_page_words(page) if norm_text(str(w.get("text") or "")) and float(w.get("y0") or 0)<=max_y]
+    words.sort(key=lambda w:(float(w.get("y0") or 0),float(w.get("x0") or 0)))
+    line_groups=[]
+    for w in words:
+        y=float(w.get("y0") or 0)
+        target=None
+        for g in reversed(line_groups[-4:]):
+            if abs(g["y"]-y)<=3.5:
+                target=g;break
+        if target is None:
+            target={"y":y,"words":[]};line_groups.append(target)
+        target["words"].append(w)
+    def emit(group,current):
+        txt=norm_text(" ".join(str(x.get("text") or "") for x in current))
+        if txt:
+            out.append({"text":txt,"x0":float(current[0].get("x0") or 0),"y0":group["y"],
+                        "x1":max(float(x.get("x1") or x.get("x0") or 0) for x in current),
+                        "h":max(float(x.get("y1") or 0)-float(x.get("y0") or 0) for x in current)})
+    for g in line_groups:
+        row=sorted(g["words"],key=lambda w:float(w.get("x0") or 0))
+        current=[];last_x1=None
+        for w in row:
+            x0=float(w.get("x0") or 0);x1=float(w.get("x1") or x0)
+            if current and last_x1 is not None and x0-last_x1>55:
+                emit(g,current);current=[]
+            current.append(w);last_x1=x1
+        if current:emit(g,current)
+    return sorted(out,key=lambda x:(x["y0"],x["x0"]))
 
 def layout_fragments(doc:dict,max_y:float=330.0)->list[dict[str,Any]]:
     out=[]
     for page in (doc.get("layout") or [])[:2]:
-        words=[w for w in (page.get("words") or []) if norm_text(str(w.get("text") or "")) and float(w.get("y0") or 0)<=max_y]
-        words.sort(key=lambda w:(float(w.get("y0") or 0),float(w.get("x0") or 0)))
-        line_groups=[]
-        for w in words:
-            y=float(w.get("y0") or 0)
-            target=None
-            for g in reversed(line_groups[-4:]):
-                if abs(g["y"]-y)<=3.5:
-                    target=g;break
-            if target is None:
-                target={"y":y,"words":[]};line_groups.append(target)
-            target["words"].append(w)
-        for g in line_groups:
-            row=sorted(g["words"],key=lambda w:float(w.get("x0") or 0))
-            current=[];last_x1=None
-            for w in row:
-                x0=float(w.get("x0") or 0);x1=float(w.get("x1") or x0)
-                if current and last_x1 is not None and x0-last_x1>55:
-                    txt=norm_text(" ".join(str(x.get("text") or "") for x in current))
-                    if txt:out.append({"text":txt,"x0":float(current[0].get("x0") or 0),"y0":g["y"]})
-                    current=[]
-                current.append(w);last_x1=x1
-            if current:
-                txt=norm_text(" ".join(str(x.get("text") or "") for x in current))
-                if txt:out.append({"text":txt,"x0":float(current[0].get("x0") or 0),"y0":g["y"]})
+        out.extend(page_fragments(page,max_y))
     return sorted(out,key=lambda x:(x["y0"],x["x0"]))
+
+PARTY_TABLE_START_RE=re.compile(r"^(?:omschrijving|beschrijving|description|artikel|product|aantal|qty|quantity|pos\.?|subtotaal|subtotal|totaal|total|bedrag\s+excl|nettobetrag|gesamt)\b",re.I)
+
+def layout_party_lines(doc:dict)->list[str]|None:
+    """Read the header of page 1 block by block instead of row by row.
+
+    Address blocks often sit side by side ("Van" left, "Aan" right, or the
+    recipient in the envelope window with the issuer on the right). Plain text
+    extraction interleaves those columns, so names from both parties end up on
+    one line. Here fragments are grouped into vertical blocks that share a left
+    (or right) edge, and each block is emitted as a unit followed by a marker.
+    Returns None when the layout has no usable positions."""
+    pages=doc.get("layout") or []
+    if not pages:return None
+    frags=page_fragments(pages[0],max_y=520.0)
+    if len(frags)<3:return None
+    limit=520.0
+    for f in frags:
+        if f["y0"]>60 and PARTY_TABLE_START_RE.match(f["text"]):
+            limit=f["y0"];break
+    frags=[f for f in frags if f["y0"]<limit]
+    heights=sorted(f["h"] for f in frags if f["h"]>0) or [10.0]
+    line_h=heights[len(heights)//2]
+    gap=max(14.0,line_h*2.1)
+    blocks=[]
+    for f in frags:
+        target=None
+        for b in reversed(blocks):
+            last=b["frags"][-1]
+            aligned=abs(last["x0"]-f["x0"])<=25 or abs(last["x1"]-f["x1"])<=25
+            if aligned and 0<=f["y0"]-last["y0"]<=gap+(f["h"]-line_h if f["h"]>line_h else 0)+(last["h"]-line_h if last["h"]>line_h else 0):
+                target=b;break
+        if target is None:
+            target={"frags":[]};blocks.append(target)
+        target["frags"].append(f)
+    if len(blocks)<2:return None
+    blocks.sort(key=lambda b:(b["frags"][0]["y0"],b["frags"][0]["x0"]))
+    out=[]
+    for b in blocks:
+        fr=b["frags"]
+        texts=[x["text"] for x in fr]
+        # A display name printed over two large-font lines ("SCHILDERSBEDRIJF" /
+        # "VAN DAM") is one name.
+        if len(fr)>=2 and fr[0]["h"]>=line_h*1.3 and fr[1]["h"]>=line_h*1.3 and not re.search(r"\d",texts[0]+texts[1]):
+            texts=[texts[0]+" "+texts[1]]+texts[2:]
+        out.extend(texts);out.append(PARTY_BLOCK_MARKER)
+    return out
 
 LEGAL_ENTITY_RE=re.compile(r"([A-ZÀ-ÖØ-Ý][A-Za-zÀ-ÖØ-öø-ÿ0-9&'()., -]{1,80}?(?:B\.\s*V\.|BV\b|N\.\s*V\.|NV\b|V\.\s*O\.\s*F\.|VOF\b|LTD\.|LTD\b|LLC\b|GMBH\b))(?![A-Za-z0-9])",re.I)
 
@@ -1537,7 +1679,7 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
                         if clean: page_tables.append(clean)
                 except Exception: pass
             printable=len(re.sub(r"\s+","",text))
-            used_ocr=False; ocr_conf=None
+            used_ocr=False; ocr_conf=None; ocr_layout_rows=[]
             sparse_text=printable < 180 or (len(words) < 35 and not page_tables)
             if sparse_text:
                 sparse_pages.append(idx+1)
@@ -1573,6 +1715,8 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
                             used_ocr=True
                         if used_ocr:
                             ocr_conf=best.get("confidence")
+                            # Positions for party/role analysis only; table parsing keeps native words.
+                            ocr_layout_rows=[{"box":r.get("box"),"text":r.get("text")} for r in (best.get("rows") or [])[:600] if r.get("box")]
                             ocr_pages.append(idx+1)
                         elif printable < 40:
                             warnings.append(f"Pagina {idx+1} kon niet betrouwbaar met OCR worden gelezen.")
@@ -1583,7 +1727,7 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
                         prepared.close()
             pages.append({"page":idx+1,"text":text,"charCount":len(text),"ocr":used_ocr,"ocrConfidence":ocr_conf,"tables":page_tables})
             all_text.append(f"--- PAGE {idx+1} ---\n{text}")
-            layout.append({"page":idx+1,"words":page_layout[:2500]})
+            layout.append({"page":idx+1,"words":page_layout[:2500],**({"ocrWords":ocr_layout_rows} if ocr_layout_rows and not page_layout else {})})
             if page_tables: tables.extend([{"page":idx+1,"rows":t} for t in page_tables])
         combined_text="\n\n".join(all_text)
         if sparse_pages and len(re.sub(r"\s+","",combined_text)) < 40:
@@ -1716,6 +1860,85 @@ def _extract_document(filename:str,content_type:str,raw:bytes)->dict[str,Any]:
     )
 
 # ----------------------------- deterministic invoice parser -----------------------------
+# Identifiers an issuer prints about itself. A VAT rate line ("Btw 21%") is not one.
+ISSUER_EVIDENCE_RE=re.compile(
+    r"\b(?:kvk|k\.v\.k\.?|coc|handelsregister)\b\D{0,20}\d{6}|\b[A-Z]{2}[ .]*\d{2}[ .]*[A-Z]{4}[ .]*\d{6,}|\bNL[ .]*\d{9}[ .]*B[ .]*\d{2}\b"
+    r"|\b(?:btw|vat|ust)[- .]*(?:id|nr|nummer|number|idnr|reg)\b|\b(?:btw|vat|ust)\b\s*[:#]?\s*[A-Z]{2}[ .]*[A-Z0-9]{8,12}\b|\b(?:iban|bic)\b|@|www\.|https?://|\b(?:tel|telefoon|phone)\b",re.I)
+RECIPIENT_MARK_RE=re.compile(r"^(?:t\.?\s*a\.?\s*v\.?|ter\s+attentie|attn\.?|attention|c/o)(?:\s|:|$)",re.I)
+POSTAL_OR_STREET_RE=re.compile(r"\b[1-9]\d{3}\s?[A-Z]{2}\b|\b\d{4,5}\s+[A-ZÀ-Ý][a-zà-ÿ]+|(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|strasse|straße)\b",re.I)
+
+def _party_subblocks(lines:list[str])->list[list[str]]:
+    subs=[];cur=[]
+    for x in lines[:60]:
+        if x==PARTY_BODY_MARKER:break
+        if x==PARTY_BLOCK_MARKER:
+            if cur:subs.append(cur)
+            cur=[];continue
+        cur.append(x)
+    if cur:subs.append(cur)
+    return subs
+
+def _subblock_name(sub:list[str])->str|None:
+    for raw in sub[:3]:
+        cand=_clean_party_candidate(raw)
+        if not (2<=len(cand)<=100) or party_label_only(cand) or "@" in cand or re.match(r"^\d",cand):continue
+        if re.match(r"^(?:factuur|invoice|rechnung|creditnota|credit note|kassabon|receipt|bon|datum|date|totaal|total|btw|vat|kvk|iban|pagina|page)\b",cand,re.I):continue
+        if RECIPIENT_MARK_RE.match(cand) or POSTAL_OR_STREET_RE.search(cand) and re.search(r"\d",cand):continue
+        if re.search(r"(?:nummer|number|datum|date|nr\.?|no\.?)\s*[:#]",cand,re.I):continue
+        return cand
+    return None
+
+def select_unlabelled_party_block(lines:list[str],company:dict,role:str)->list[str]:
+    """Pick the issuer or recipient among unlabelled header blocks.
+
+    Evidence, in order: a block that belongs to the user's own company is the
+    recipient on a purchase; a block with 't.a.v.'/'attn' is a recipient; the
+    issuer prints its own KvK/BTW/IBAN/contact details. Two plain name blocks
+    without such evidence are ambiguous and return nothing (review), instead of
+    guessing the first one."""
+    named=[]
+    for sub in _party_subblocks(lines):
+        # Labelled blocks are handled by the labelled path in contact_block.
+        if PARTY_LABEL_LINE_RE.match(sub[0]):continue
+        name=_subblock_name(sub)
+        if not name:continue
+        joined="\n".join(sub)
+        kvk=re.search(r"(?:kvk|k\.v\.k\.?)(?:[- ]*(?:nr\.?|nummer))?\s*[:#-]?\s*((?:\d[ .]*){8})",joined,re.I)
+        vat=re.search(r"\bNL[ .]*\d(?:[ .]*\d){8}[ .]*B[ .]*\d{2}\b",joined,re.I)
+        own=own_matches({"name":name,"kvk":kvk[1] if kvk else None,"vatNumber":re.sub(r"[\s.]","",vat[0]) if vat else None},company)
+        named.append({"lines":sub,"own":own,"recipient":any(RECIPIENT_MARK_RE.match(x) for x in sub),
+                      "issuer":bool(ISSUER_EVIDENCE_RE.search(joined)),
+                      "address":bool(POSTAL_OR_STREET_RE.search(joined))})
+    body=lines[lines.index(PARTY_BODY_MARKER)+1:] if PARTY_BODY_MARKER in lines else []
+    header_text={x for b in named for x in b["lines"]}
+    # Issuer details (KvK/BTW/IBAN/contact) printed outside the header blocks.
+    elsewhere=any(ISSUER_EVIDENCE_RE.search(x) and x not in header_text for x in body)
+    def pick_supplier():
+        issuers=[b for b in named if b["issuer"] and not b["recipient"]]
+        external=[b for b in issuers if not b["own"]]
+        if external:return external[0]
+        if issuers:return issuers[0]  # own company prints its own KvK/BTW: it issued this document
+        cands=[b for b in named if not b["own"] and not b["recipient"]]
+        # One plain block is the issuer only when nothing else on the document
+        # carries issuer details; otherwise it is usually the addressee in the
+        # envelope window (the issuer's KvK/IBAN sits in a footer or signature).
+        if len(cands)==1 and not elsewhere and (len(named)==1 or any(b["own"] or b["recipient"] for b in named)):
+            return cands[0]
+        return None
+    supplier=pick_supplier()
+    if role=="supplier":
+        return supplier["lines"] if supplier else []
+    rest=[b for b in named if b is not supplier]
+    pick=next((b for b in rest if b["recipient"]),None)
+    if pick is None and supplier is not None and supplier["own"]:
+        pick=next((b for b in rest if not b["own"]),None)
+    if pick is None:
+        pick=next((b for b in rest if b["own"]),None)
+    if pick is None and (supplier is not None or elsewhere):
+        plain=[b for b in rest if not b["issuer"] and b["address"]]
+        pick=plain[0] if len(plain)==1 else None
+    return pick["lines"] if pick else []
+
 def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tuple[dict,float]:
     idx=None;matched_label=None
     for i,line in enumerate(lines[:120]):
@@ -1726,22 +1949,28 @@ def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tu
                 idx=i;matched_label=lab;break
         if idx is not None:break
     block=lines[idx:idx+12] if idx is not None else lines[:18]
-    party_label=re.compile(r'^(?:leverancier|supplier|vendor|seller|from|van|factuur aan|factureren aan|bill to|sold to|customer|klant|debiteur|aan|to|verzender|sender)(?:\s*[:\-]|$)',re.I)
-    customer_label=re.compile(r'^(?:factuur aan|factureren aan|bill to|sold to|customer|klant|debiteur|aan|to)(?:\s*[:\-]|$)',re.I)
+    party_label=PARTY_LABEL_LINE_RE
+    customer_label=CUSTOMER_LABEL_LINE_RE
+    marker=lambda x:x in (PARTY_BLOCK_MARKER,PARTY_BODY_MARKER)
     # Party blocks never continue into the totals; a footer below them belongs to the issuer.
     totals_line=re.compile(r'^(?:subtotaal|subtotal|totaal|total|te betalen|amount due|btw\s*\d|vat\s*\d)\b',re.I)
     footer=[]
     if idx is not None:
-        boundary=next((j for j,x in enumerate(block[1:],1) if party_label.match(x) or (totals_line.match(x) and re.search(r'\d',x))),len(block))
+        boundary=next((j for j,x in enumerate(block[1:],1) if marker(x) or party_label.match(x) or (totals_line.match(x) and re.search(r'\d',x))),len(block))
         block=block[:boundary]
     elif role=="supplier":
         # Unlabelled issuer: the addressee block is not the supplier. Legal footer lines
         # (KvK/BTW/IBAN) after the totals are issuer evidence.
-        boundary=next((j for j,x in enumerate(block) if customer_label.match(x)),len(block))
-        block=block[:boundary]
+        if PARTY_BLOCK_MARKER in lines[:40]:
+            block=select_unlabelled_party_block(lines,company,"supplier")
+        else:
+            boundary=next((j for j,x in enumerate(block) if customer_label.match(x) or x==PARTY_BODY_MARKER),len(block))
+            block=block[:boundary]
         footer=[x for x in lines[-8:] if re.search(r'\b(?:kvk|k\.v\.k|btw|vat|iban)\b',x,re.I) and x not in block]
         block=block+footer
-    block=[x for x in block if x and not re.match(r"^-{2,}\s*page\s+\d+\s*-{2,}$",x,re.I)]
+    elif PARTY_BLOCK_MARKER in lines[:40]:
+        block=select_unlabelled_party_block(lines,company,"customer")
+    block=[x for x in block if x and not marker(x) and not re.match(r"^-{2,}\s*page\s+\d+\s*-{2,}$",x,re.I)]
     joined="\n".join(block)
     emails=re.findall(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}",joined,re.I)
     vats=[re.sub(r'[\s.]','',x).upper() for x in re.findall(r'\bNL[ .]*\d(?:[ .]*\d){8}[ .]*B[ .]*\d{2}\b',joined,re.I)]
@@ -1755,45 +1984,52 @@ def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tu
     postal=re.search(r"\b([1-9]\d{3})\s*([A-Z]{2})\b(?:\s+([^\n,;|]{2,50}))?",joined,re.I)
     address_re=re.compile(r"\b\d+[A-Z-]*\b.*(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|place)|(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|place)[^\n]*\b\d+[A-Z-]*\b",re.I)
     address=next((x for x in block if address_re.search(x)),None)
-    field_only=re.compile(r"^(?:leverancier|supplier|vendor|seller|from|van|factuur aan|factureren aan|bill to|sold to|customer|klant|debiteur|aan|to|verzender|sender|factuur|invoice|datum|date|totaal|total|btw|vat|kvk|iban|omschrijving|description|pagina|page)(?:\s*[:#-].*)?$",re.I)
-    name=None
+    field_only_re=re.compile(r"^(?:factuur|invoice|rechnung|creditnota|datum|date|totaal|total|btw|vat|kvk|iban|omschrijving|description|pagina|page)(?:\s*[:#-].*)?$",re.I)
+    field_only=lambda x:bool(field_only_re.match(x) or party_label_only(x))
+    name=None;src=None
     if idx is not None and matched_label:
         line=lines[idx]
         pos=line.lower().find(matched_label)
         remainder=_clean_party_candidate(line[pos+len(matched_label):])
-        if 2<=len(remainder)<=100 and not field_only.match(remainder) and not address_re.search(remainder) and not re.match(r"^\d",remainder):
-            name=remainder
+        if 2<=len(remainder)<=100 and not field_only(remainder) and not address_re.search(remainder) and not re.match(r"^\d",remainder):
+            name=remainder;src=("label",line)
     if not name and idx is not None:
         for raw in block[1:7]:
             cand=_clean_party_candidate(raw)
             if not (2<=len(cand)<=100):continue
-            if field_only.match(cand) or address_re.search(cand) or re.match(r"^\d",cand) or "@" in cand:continue
+            if field_only(cand) or address_re.search(cand) or re.match(r"^\d",cand) or "@" in cand:continue
             if re.search(r"\b(?:kvk|btw|vat|iban)\b",cand,re.I):continue
-            name=cand;break
+            name=cand;src=("label",raw);break
     if not name and idx is not None:
-        for back in range(max(0,idx-3),idx):
+        above=[]
+        for back in range(idx-1,max(-1,idx-4),-1):
+            if marker(lines[back]):break
+            above.insert(0,back)
+        for back in above:
             cand=_clean_party_candidate(lines[back])
-            if 2<=len(cand)<=100 and not field_only.match(cand) and not address_re.search(cand) and not re.match(r"^\d",cand) and "@" not in cand:
+            if 2<=len(cand)<=100 and not field_only(cand) and not address_re.search(cand) and not re.match(r"^\d",cand) and "@" not in cand:
                 if not re.search(r"factuur|invoice|creditnota|receipt",cand,re.I):
-                    name=cand;break
+                    name=cand;src=("label-above",lines[back]);break
     if not name:
         for rawline in block:
+            if rawline in footer:continue  # legal footer lines: only their leading legal name, below
             cand=_clean_party_candidate(rawline)
             if not (2<=len(cand)<=100):continue
-            if field_only.match(cand) or address_re.search(cand) or re.match(r"^\d",cand) or "@" in cand:continue
+            if field_only(cand) or address_re.search(cand) or re.match(r"^\d",cand) or "@" in cand:continue
             if re.match(r"^-{2,}\s*page\s+\d+",cand,re.I):continue
             if re.search(r"\b(?:kvk|btw|vat|iban|factuurnr|factuurnummer|invoice no|invoice number)\b",cand,re.I):continue
             if re.search(r"\b(?:factuur|invoice|creditnota|receipt)\b",cand,re.I):continue
-            name=cand;break
+            name=cand;src=("label" if idx is not None else ("header-block" if PARTY_BLOCK_MARKER in lines[:40] else "first-lines"),rawline);break
     if not name and footer:
         # Only a legal-form name leading a footer legal line, e.g. "Name BV | KvK ...".
         for raw in footer:
-            head=_clean_party_candidate(re.split(r'\s*[|•·]\s*|\s{2,}',raw)[0])
+            head=_clean_party_candidate(re.split(r'\s*[|•·]\s*|\s{2,}|\s+[-–]\s+|,\s+',raw)[0])
             if 2<=len(head)<=100 and re.search(r'\b(?:b\.?v\.?|n\.?v\.?|v\.?o\.?f\.?|gmbh|ltd|limited|inc|s\.?a\.?|bvba|srl)$',head,re.I) and not re.search(r'\b(?:kvk|btw|vat|iban)\b',head,re.I):
-                name=head;break
+                name=head;src=("footer",raw);break
     data={"name":name,"address":address,"postalCode":f"{postal[1]} {postal[2].upper()}" if postal else None,"city":postal[3].strip() if postal and postal[3] else None,"country":"Nederland" if postal else None,
           "kvk":kvks[0] if kvks else None,"vatNumber":nl_vats[0] if nl_vats else None,"iban":next((x for x in ibans if valid_iban(x)),None),"email":emails[0] if emails else None}
     conf=.97 if idx is not None and name else (.62 if name else .20)
+    data["_evidence"]={"source":src[0] if src else None,"label":matched_label,"sourceText":(src[1] if src else None)}
     return data,conf
 
 def receipt_merchant_name(lines:list[str], company:dict)->str|None:
@@ -1914,8 +2150,14 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
             seen_amount_lines.add(key);amount_lines.append(line)
     low=text.lower()
     self_billing=bool(re.search(r"factuur\s+uitgereikt\s+door\s+afnemer|self[- ]?billing|self[- ]?billed",low))
-    supplier,sconf=contact_block(lines,["leverancier","supplier","vendor","seller","from","van"],company,"supplier")
-    customer,cconf=contact_block(lines,["factuur aan","factureren aan","bill to","sold to","customer","klant","debiteur","aan","to","verzender","sender"],company,"customer")
+    # Party roles are read from the header block by block when positions exist,
+    # so side-by-side address blocks are not merged into one line.
+    header_party_lines=layout_party_lines(doc)
+    party_lines=header_party_lines+[PARTY_BODY_MARKER]+lines if header_party_lines else lines
+    supplier,sconf=contact_block(party_lines,SUPPLIER_PARTY_LABELS,company,"supplier")
+    customer,cconf=contact_block(party_lines,CUSTOMER_PARTY_LABELS,company,"customer")
+    # Where each party name came from, kept for review and regression analysis.
+    sev=supplier.pop("_evidence",None) or {};cev=customer.pop("_evidence",None) or {}
     legal_entity=layout_legal_entity_name(doc,company)
     own_layout=layout_own_party_name(doc,company)
     supplier_own=own_matches(supplier,company); customer_own=own_matches(customer,company)
@@ -1923,13 +2165,24 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     else: dtype="purchase_invoice"
     if self_billing and own_layout and not supplier_own:
         supplier["name"]=own_layout;sconf=max(sconf,.96);supplier_own=True
+        sev={"source":"own-company","label":None,"sourceText":own_layout}
+    # A legal-form name inside the labelled recipient block is the customer, not
+    # the issuer (e.g. "Factuur aan: Bakker Media B.V.").
+    if legal_entity and cconf>=.9 and customer.get("name") and own_matches({"name":legal_entity},{"name":customer.get("name")}):
+        legal_entity=None
     if dtype=="purchase_invoice":
         if legal_entity and (not supplier.get("name") or supplier_own or sconf<.85):
+            if supplier_own:
+                # Do not keep the own company's KvK/BTW/IBAN under another name.
+                supplier={k:None for k in supplier}
             supplier["name"]=legal_entity;sconf=max(sconf,.94);supplier_own=False
+            sev={"source":"legal-entity-header","label":None,"sourceText":legal_entity}
         if own_layout and (not customer.get("name") or not own_matches(customer,company)):
             customer["name"]=own_layout;cconf=max(cconf,.90);customer_own=True
+            cev={"source":"own-company","label":None,"sourceText":own_layout}
     elif dtype=="sales_invoice" and legal_entity and (not customer.get("name") or customer_own):
         customer["name"]=legal_entity;cconf=max(cconf,.90);customer_own=False
+        cev={"source":"legal-entity-header","label":None,"sourceText":legal_entity}
     if re.search(r"creditnota|credit note|creditfactuur|credit invoice",low): dtype="credit_invoice"
     if re.search(r"\bbon\b|receipt|kassabon",low) and not re.search(r"factuur|invoice",low): dtype="receipt"
     non_financial_return=bool(re.search(r"\b(?:retour[- ]?order|retouraanvraag|return[- ]?order|return authorization|rma)\b",low))
@@ -1944,9 +2197,12 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         )
         if merchant and weak_receipt_party:
             supplier["name"]=merchant;sconf=max(sconf,.76)
+            sev={"source":"receipt-header","label":None,"sourceText":merchant}
     # if role extraction guessed own party, try to avoid assigning it as counterparty
-    if supplier_own and dtype=="purchase_invoice": supplier={k:None for k in supplier}
-    if customer_own and dtype=="sales_invoice": customer={k:None for k in customer}
+    if supplier_own and dtype=="purchase_invoice":
+        supplier={k:None for k in supplier};sev={**sev,"source":None,"doubt":"OWN_COMPANY_NOT_SUPPLIER"}
+    if customer_own and dtype=="sales_invoice":
+        customer={k:None for k in customer};cev={**cev,"source":None,"doubt":"OWN_COMPANY_NOT_CUSTOMER"}
 
     invoice_number_labels=INVOICE_NUMBER_LABELS
     if dtype=="credit_invoice":
@@ -2125,6 +2381,8 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         customer={**customer,"name":counterparty_name}
         sconf=max(sconf,.92);cconf=max(cconf,.88 if counterparty_name else cconf)
         dtype="sales_invoice"
+        sev={"source":"own-company","label":None,"sourceText":own_layout}
+        cev={"source":"factoring-structure","label":None,"sourceText":counterparty_name}
 
     # Arithmetic recovery: derive only missing values. Explicit printed amounts
     # amount is a strong anchor, calculate the other amounts rather than trusting
@@ -2211,6 +2469,18 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         status=status,lineItems=[],adjustments=structured_adjustments,confidence=confidence,warnings=derivation_warnings,
         processing={"textEngine":"PyMuPDF","tableEngine":"pdfplumber" if doc.get("kind")=="pdf" else None,"ocrEngine":doc.get("ocrEngine") if doc.get("ocrPages") else None,"ocrModel":doc.get("ocrModel") if doc.get("ocrPages") else None,"ocrVariant":(doc.get("processingHints") or {}).get("ocrVariant"),"financialFocusUsed":bool((doc.get("processingHints") or {}).get("financialFocusUsed")),"ocrPages":doc.get("ocrPages",[]),"sourceKind":doc.get("kind"),"financialBlocks":{"verified":bool(financial_structure.get("verified")),"primaryArithmeticOk":bool(financial_structure.get("primaryArithmeticOk")),"adjustmentArithmeticOk":bool(financial_structure.get("adjustmentArithmeticOk")),"settlementArithmeticOk":bool(financial_structure.get("settlementArithmeticOk")),"adjustmentTotal":financial_structure.get("adjustmentTotal"),"settlementSource":financial_structure.get("settlementSource")},"amountDerivation":{"used":bool(derivation.get("used")),"rate":derivation.get("rate"),"anchorField":derivation.get("anchorField"),"derivedFields":derivation.get("derivedFields",[]),"conflicts":derivation.get("conflicts",[]),"mixedRates":len(detected_rates)>1},"imageQuality":{"class":(doc.get("processingHints") or {}).get("qualityClass"),"flags":(doc.get("processingHints") or {}).get("qualityFlags") or [],"advice":(doc.get("processingHints") or {}).get("qualityAdvice") or [],"metrics":(doc.get("processingHints") or {}).get("qualityMetrics") or {}},"headerFocusUsed":bool((doc.get("processingHints") or {}).get("headerFocusUsed")),"mixedVatEvidence":{"verified":bool(mixed_vat_evidence.get("verified")),"source":mixed_vat_evidence.get("source")},"vatLineSource":vat_line_source,"descriptionSource":description_source,"selfBilling":self_billing,"selfBillingEvidence":"explicit-source-text" if self_billing else None,"factoringSaleStructure":factoring_sale}
     )
+    def party_evidence(ev,name,conf):
+        doubt=ev.get("doubt")
+        if not name:doubt=doubt or "NOT_FOUND"
+        elif conf<.85:doubt=doubt or "NO_ROLE_LABEL"
+        page=(doc.get("pageCount") or 1) if ev.get("source")=="footer" else 1
+        return {"value":name,"confidence":round(float(conf),3),"source":ev.get("source") if name else None,
+                "label":ev.get("label") if name else None,"sourceText":(ev.get("sourceText") or "")[:160] if name else None,
+                "page":page if name else None,"doubt":doubt}
+    result.processing['partyEvidence']={
+        "supplier":party_evidence(sev,result.supplier.name,result.confidence.get("supplierName",0)),
+        "customer":party_evidence(cev,result.customer.name,result.confidence.get("customerName",0)),
+    }
     result.processing['fieldCandidates']={'invoiceNumber':number_candidates,'invoiceDate':date_candidates,'dueDate':due_candidates,**secondary_candidates}
     result.processing['metadataAnomalyCodes']=metadata_anomalies
     if 'COMPETING_INVOICE_NUMBERS' in metadata_anomalies:result.confidence['invoiceNumber']=.25
