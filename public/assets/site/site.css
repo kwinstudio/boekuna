@@ -35,8 +35,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--bk-dark-green);
 .tour-copy ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
 .tour-copy li{display:flex;gap:10px;align-items:flex-start;font-size:14px;font-weight:600;color:#33453B}
 .tour-copy li .icon{width:17px;height:17px;color:#2AA445;stroke-width:2.6;margin-top:2px}
-.tour-shot{margin:0;justify-self:center;width:100%;max-width:330px;border:7px solid #1E2326;border-radius:30px;background:#1E2326;overflow:hidden;box-shadow:0 28px 50px -30px rgba(10,30,18,.5)}
-.tour-shot img{display:block;width:100%;height:auto;border-radius:22px;background:#F4F6F5}
+.tour-shot{margin:0;justify-self:center;width:100%}
+.tour-shot img{display:block;width:100%;height:auto;background:#F4F6F5}
 .tour-note{margin:26px 0 0;font-size:12px;color:#5A6B62;text-align:center}
 .tour-cta{display:flex;justify-content:center;margin-top:18px}
 
@@ -85,8 +85,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--bk-dark-green);
 }
 @media(min-width:768px){
  .tour-panel{grid-template-columns:minmax(0,.8fr) minmax(0,2fr);gap:40px}
- .tour-shot{max-width:none;border:1px solid #DCE3DE;border-radius:14px;background:#fff}
- .tour-shot img{border-radius:0}
+ .tour-shot{border:1px solid #DCE3DE;border-radius:14px;background:#fff;overflow:hidden;box-shadow:0 28px 50px -30px rgba(10,30,18,.5)}
  .tour-tabs{justify-content:center;overflow:visible}
 }
 @media(min-width:1024px){
@@ -212,9 +211,15 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--bk-dark-green);
  .footer-brand{grid-column:auto}
 }
 @media(max-width:767px){
- .page-shot{max-width:330px;justify-self:center;width:100%;border:7px solid #1E2326;border-radius:30px;background:#1E2326}
+ .page-shot{justify-self:center;width:100%}
  .page-shot .browser-bar{display:none}
- .page-shot img{border-radius:22px}
+ /* Phones: the real mobile screenshot sits in a phone body with status bar, island, side buttons and home bar */
+ .tour-shot,.page-shot{position:relative;overflow:visible;max-width:300px;padding:9px;border:0;border-radius:50px;background:linear-gradient(150deg,#2C3034,#101214 45%,#1C1F22);box-shadow:0 0 0 1.5px #868C91,0 0 0 3px #2A2E31,inset 0 0 0 1px rgba(255,255,255,.12),0 34px 60px -30px rgba(10,30,18,.55),0 12px 24px -16px rgba(10,30,18,.3)}
+ .tour-shot::before,.page-shot::before{content:"";position:absolute;left:-4.5px;top:17%;width:3px;height:27%;border-radius:2px 0 0 2px;background:linear-gradient(#5D6267 0 13%,transparent 13% 29%,#5D6267 29% 61%,transparent 61% 70%,#5D6267 70%)}
+ .tour-shot::after,.page-shot::after{content:"";position:absolute;right:-4.5px;top:27%;width:3px;height:13%;border-radius:0 2px 2px 0;background:#5D6267}
+ .tour-shot picture,.page-shot picture{display:block;overflow:hidden;border-radius:41px;padding:12.8% 0 4.6%;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 50'%3E%3Ctext x='54' y='33' text-anchor='middle' font-family='-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif' font-size='16.5' font-weight='600' fill='%23111'%3E9:41%3C/text%3E%3Crect x='137' y='11' width='116' height='33' rx='16.5' fill='%23000'/%3E%3Cg fill='%23111'%3E%3Crect x='288' y='29' width='3.2' height='4.5' rx='1'/%3E%3Crect x='293' y='26.5' width='3.2' height='7' rx='1'/%3E%3Crect x='298' y='24' width='3.2' height='9.5' rx='1'/%3E%3Crect x='303' y='21.5' width='3.2' height='12' rx='1'/%3E%3C/g%3E%3Cg fill='none' stroke='%23111' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M314 25.4a11.4 11.4 0 0 1 16 0'/%3E%3Cpath d='M317.2 28.7a6.9 6.9 0 0 1 9.6 0'/%3E%3C/g%3E%3Ccircle cx='322' cy='32' r='1.8' fill='%23111'/%3E%3Crect x='337.5' y='22' width='24' height='12' rx='3.6' fill='none' stroke='%23111' stroke-opacity='.38'/%3E%3Crect x='339.5' y='24' width='20' height='8' rx='2' fill='%23111'/%3E%3Crect x='362.8' y='26' width='1.7' height='4' rx='.85' fill='%23111' fill-opacity='.4'/%3E%3C/svg%3E") top center/100% auto no-repeat,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 5'%3E%3Crect width='140' height='5' rx='2.5' fill='%23111'/%3E%3C/svg%3E") bottom 4px center/35% auto no-repeat,var(--phone-screen,#fff)}
+ .tour-shot img,.page-shot img{border-radius:0;background:#fff}
+ .shot-dim{--phone-screen:linear-gradient(#ACAEB0 0 50%,#fff 50%)}
  .page-hero-media{display:grid;justify-items:center}
  .page-hero-media .shot-note{text-align:center}
 }
