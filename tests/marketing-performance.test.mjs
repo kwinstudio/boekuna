@@ -20,15 +20,16 @@ try{
   await page.goto(server.base,{waitUntil:'networkidle'});
   await page.waitForTimeout(600);
   const metrics=await page.evaluate(()=>({...window.lab,bytes:performance.getEntriesByType('resource').reduce((sum,e)=>sum+e.transferSize,0)}));
-  assert.ok(metrics.lcp<2500,`Clean holding mobile lab LCP ${metrics.lcp}ms`);
-  assert.ok(metrics.cls<.1,`Clean holding CLS ${metrics.cls}`);
-  assert.ok(metrics.bytes<250000,`Clean holding transfer budget ${metrics.bytes} bytes`);
-  assert.equal(await page.locator('script').count(),0,'Holding page must not ship runtime JS');
-  assert.equal(await page.locator('img').count(),0,'Holding page must not ship marketing imagery');
+  assert.ok(metrics.lcp<2500,`V3 landing mobile lab LCP ${metrics.lcp}ms`);
+  assert.ok(metrics.cls<.1,`V3 landing CLS ${metrics.cls}`);
+  assert.ok(metrics.bytes<250000,`V3 landing transfer budget ${metrics.bytes} bytes`);
+  assert.equal(await page.locator('script').count(),0,'V3 landing must not ship runtime JS');
+  assert.equal(await page.locator('img').count(),0,'V3 landing must not ship external imagery');
 
   const nojs=await browser.newPage({javaScriptEnabled:false,viewport:{width:390,height:844}});
   await nojs.goto(server.base);
-  assert.equal(await nojs.locator('h1').innerText(),'Nieuwe website in ontwikkeling.');
+  assert.equal(await nojs.locator('h1').textContent(),'Boekhouden zonder gedoe.');
+  await nojs.locator('.mobile-menu summary').click();
   assert.ok(await nojs.getByRole('link',{name:'Inloggen'}).isVisible());
   for(const route of ['/privacy/','/voorwaarden/','/support/','/account-verwijderen/']){
     await nojs.goto(server.base+route);
@@ -38,7 +39,7 @@ try{
   fs.mkdirSync('tests/artifacts/premium-marketing',{recursive:true});
   fs.writeFileSync('tests/artifacts/premium-marketing/performance.json',JSON.stringify({
     profile:'390px, CPU 4x, 1.6Mbps, 150ms latency; laboratory measurements',
-    ...metrics,noJavaScriptHolding:true
+    ...metrics,noJavaScriptLanding:true
   },null,2));
-  console.log('Clean holding mobile performance/no-JavaScript QA: PASS',metrics);
+  console.log('V3 landing mobile performance/no-JavaScript QA: PASS',metrics);
 } finally {await browser.close();await server.close()}
