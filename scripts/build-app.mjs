@@ -150,6 +150,11 @@ for(const [from,to] of publicLinkMap){
   appHtml=appHtml.replaceAll("location.href='"+from+"'","location.href='"+to+"'");
 }
 
+// The same map, for runtime code in app assets that builds public links itself.
+const publicLinksMarker='<meta name="theme-color" content="#FFFFFF" />';
+if(!appHtml.includes(publicLinksMarker))throw new Error('Public links marker changed');
+appHtml=appHtml.replace(publicLinksMarker,publicLinksMarker+'\n<script>window.BOEKUNA_PUBLIC_LINKS=Object.freeze('+JSON.stringify(Object.fromEntries(publicLinkMap))+');</script>');
+
 // Logged-out, logout and auth-failure states stay on the product host and render auth.
 appHtml=appHtml.replace(
   "else if(wantsRegister)showAuth('register');else if(wantsLogin)showAuth('login');else showLanding();",
@@ -380,13 +385,23 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-flow-sim
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/calm-ux.js?v=20261007a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/settings-center.js?v=20261008a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/theme.js?v=20261007a"></script>\n');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/feedback.js?v=20261007a"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/feedback.js?v=20261008c"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-viewer.js?v=20261008a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});
 fs.writeFileSync(path.join(target,'index.html'),appHtml,'utf8');
 fs.copyFileSync(manifestSource,path.join(target,'manifest.webmanifest'));
+
+// Public pages live on boekuna.nl only. Old links, store listings and typed URLs such as
+// app.boekuna.nl/privacy/ must not 404: each public path gets a tiny forwarding page,
+// generated from the same publicLinkMap as the in-app links (one source of truth).
+for(const [from,to] of publicLinkMap){
+  const dir=path.join(target,from.replace(/^\/|\/$/g,''));
+  fs.mkdirSync(dir,{recursive:true});
+  const href=JSON.stringify(to);
+  fs.writeFileSync(path.join(dir,'index.html'),'<!doctype html>\n<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><link rel="canonical" href='+href+'><meta http-equiv="refresh" content="0; url='+to+'"><title>Boekuna</title><script>location.replace('+href+'+location.hash)</script></head><body style="font-family:system-ui,sans-serif;padding:24px"><p>Deze pagina staat op <a href='+href+'>'+to.replace('https://','')+'</a>.</p></body></html>\n','utf8');
+}
 const appAssetsTarget=path.join(target,'assets');
 fs.mkdirSync(appAssetsTarget,{recursive:true});
 for(const asset of appAssets){
