@@ -13,6 +13,23 @@ assert.match(home,/<meta name="robots" content="index,follow">/i,'Landing page m
 assert.ok(home.includes('Boekhouden zonder gedoe'),'BOEKUNA V3 hero missing');
 assert.ok(home.includes('https://app.boekuna.nl/?login=1'),'App login handoff missing');
 assert.ok(home.includes('https://app.boekuna.nl/?register=1'),'App registration handoff missing');
+assert.ok(home.includes('aria-label="Hoofdnavigatie"'),'Accessible primary navigation missing');
+assert.ok(home.includes('class="mobile-menu"'),'Native mobile menu missing');
+for(const section of ['id="hoe-het-werkt"','id="functies"','id="prijzen"','id="vragen"']){
+  assert.ok(home.includes(section),'V3 landing section missing '+section);
+}
+for(const price of ['€ 0','€ 9,95','€ 19,95']){
+  assert.ok(home.includes(price),'Verified public plan price missing '+price);
+}
+for(const oldPlan of ['€ 6,95','€ 14,95','€ 34,95']){
+  assert.ok(!home.includes(oldPlan),'Stale historic plan price appeared '+oldPlan);
+}
+assert.equal((home.match(/<details>/g)||[]).length,6,'FAQ must contain six accessible disclosures');
+assert.ok(home.includes('Illustratieve productweergave'),'Marketing mock must be clearly labeled');
+for(const claim of ['automatische bankkoppeling is nu beschikbaar','100% correcte herkenning','direct btw-aangifte indienen']){
+  assert.ok(!home.toLowerCase().includes(claim),'Unverified feature claim: '+claim);
+}
+
 for(const old of ['editorial-hero','editorial-pricing','project-grid','audience-grid','Uploaden.<br>Controleren. Klaar.']){
   assert.equal(home.includes(old),false,'Old marketing homepage content remains: '+old);
 }
