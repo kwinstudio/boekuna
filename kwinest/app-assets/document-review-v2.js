@@ -55,6 +55,8 @@ const LABELS={
   net:'Bedrag excl. btw',vatAmount:'Btw-bedrag',gross:'Totaal',vatRate:'Btw-percentage',vatLines:'Btw-verdeling'
 };
 const NORMAL_RATES=[9,21];
+const NL_BOOKABLE_RATES=[0,9,21];
+const SAVE_REQUIRED=['party','issueDate','net','vatAmount','gross','vatRate'];
 
 function requirementsFor(type){
   const key=String(type||'other').toLowerCase();
@@ -342,7 +344,9 @@ function financialBlockingIssues(d){
       if(complete&&!fx.bookingAmountsEur)issues.push({field:'exchangeRateToEur',message:'Deze koers kan niet veilig naar eurocenten worden omgerekend. Controleer de koers en bedragen.'})
     }
   }
-  const required=new Set(req.blocking);
+  // Saving books the document, so whatever the booking needs is required here too, also for "other" documents.
+  // Otherwise the save button looks ready while saving silently refuses.
+  const required=new Set([...req.blocking,...SAVE_REQUIRED]);
   if(d?.mixedRates){required.delete('vatRate');required.add('vatLines')}
   for(const key of required){
     if(['net','vatAmount','gross','vatRate','vatLines'].includes(key))continue;
@@ -357,7 +361,8 @@ function financialBlockingIssues(d){
   }
   if(!d?.mixedRates&&required.has('vatRate')&&netC!=null&&vatC!=null&&grossC!=null){
     const rate=value('vatRate')===''?null:Number(value('vatRate'));
-    if(rate==null||!Number.isFinite(rate))issues.push({field:d?.accountingVatTreatment==='review_required'?'vatRate':'vatAmount',message:d?.accountingVatTreatment==='review_required'?'Kies het btw-percentage.':'Controleer het btw-bedrag.'});
+    if(rate!=null&&Number.isFinite(rate)&&!NL_BOOKABLE_RATES.includes(rate)&&d?.accountingVatTreatment!=='review_required')issues.push({field:'vatRate',message:'Kies 21%, 9% of geen btw. Is dit buitenlandse btw? Kies dan bij btw "Buitenlandse btw".'});
+    else if(rate==null||!Number.isFinite(rate))issues.push({field:d?.accountingVatTreatment==='review_required'?'vatRate':'vatAmount',message:d?.accountingVatTreatment==='review_required'?'Kies het btw-percentage.':'Controleer het btw-bedrag.'});
     else if(typeof BookunaFinancialCorrection!=='undefined'&&!BookunaFinancialCorrection.candidateFitsRate({net:netC,vatAmount:vatC,gross:grossC},rate,1)){
       issues.push({field:d?.accountingVatTreatment==='review_required'?'vatRate':'vatAmount',message:d?.accountingVatTreatment==='review_required'?'Het btw-percentage past niet bij deze bedragen.':'Controleer het btw-bedrag op het document.'})
     }
@@ -429,8 +434,11 @@ function updateBeginnerReviewState(){
     basis.innerHTML=basisIssues.length?'<strong>Controleer dit nog even</strong><span>'+esc(basisIssues[0].message)+'</span>':''
   }
   if(amount){
+    // A question that already has its own card above is not repeated in this summary.
+    const listed=amountIssues.filter(issue=>!document.querySelector('[data-review-issue="'+(issue.field==='exchangeRateToEur'?'currency':issue.field)+'"]:not(.resolved)'));
+    amount.hidden=amountIssues.length>0&&!listed.length;
     amount.className='beginner-review-state '+(amountIssues.length?'bad':'good');
-    amount.innerHTML=amountIssues.length?'<strong>Nog '+amountIssues.length+' '+(amountIssues.length===1?'punt':'punten')+' oplossen</strong><div class="beginner-issue-list">'+amountIssues.map(issue=>'<button type="button" class="beginner-issue" onclick="focusDocumentReviewIssue(\''+esc(issue.field)+'\')">'+esc(issue.message)+'</button>').join('')+'</div>':'<strong>✓ Klaar om op te slaan</strong><span>De bedragen sluiten op elkaar aan.</span>'
+    amount.innerHTML=listed.length?'<strong>Nog '+listed.length+' '+(listed.length===1?'punt':'punten')+' oplossen</strong><div class="beginner-issue-list">'+listed.map(issue=>'<button type="button" class="beginner-issue" onclick="focusDocumentReviewIssue(\''+esc(issue.field)+'\')">'+esc(issue.message)+'</button>').join('')+'</div>':amountIssues.length?'':'<strong>✓ Klaar om op te slaan</strong><span>De bedragen sluiten op elkaar aan.</span>'
   }
   const financial=amountIssues.find(x=>['net','vatAmount','gross','vatRate','vatLines'].includes(x.field));
   if(warning){warning.hidden=true;warning.textContent=''}
@@ -491,6 +499,31 @@ function reconcileSimpleReviewAmounts(markUserKey=null){
   }
   if(markUserKey&&typeof financialReviewEvent==='function')financialReviewEvent('financial_recalculation_applied',['net'])
 }
+// Foreign and historical VAT use rates such as 19% or 20%. After the user picks the VAT situation, the rate is
+// read from the amounts on the document so the select never lacks the only option that fits.
+function rateFromAmounts(netC,vatC,grossC){
+  if(netC==null||vatC==null||grossC==null||netC<=0||netC+vatC!==grossC||typeof BookunaFinancialCorrection==='undefined')return null;
+  const exact=vatC*100/netC;
+  for(const digits of [0,1,2]){
+    const rate=Number(exact.toFixed(digits));
+    if(rate>=0&&rate<=100&&BookunaFinancialCorrection.candidateFitsRate({net:netC,vatAmount:vatC,gross:grossC},rate,1))return rate
+  }
+  return null
+}
+function applyTreatmentRate(){
+  const d=pendingPdfImport?.parsed,f=document.getElementById('pdfImportForm');if(!d||!f||d.mixedRates)return;
+  const select=f.elements.namedItem('vatRate');if(!select)return;
+  const netC=cents(f.elements.namedItem('net')?.value),vatC=cents(f.elements.namedItem('vatAmount')?.value),grossC=cents(f.elements.namedItem('gross')?.value);
+  const current=select.value===''?null:Number(select.value);
+  if(current!=null&&typeof BookunaFinancialCorrection!=='undefined'&&netC!=null&&vatC!=null&&grossC!=null&&BookunaFinancialCorrection.candidateFitsRate({net:netC,vatAmount:vatC,gross:grossC},current,1))return;
+  const rate=rateFromAmounts(netC,vatC,grossC);if(rate==null)return;
+  if(![...select.options].some(o=>Number(o.value)===rate&&o.value!=='')){const o=document.createElement('option');o.value=String(rate);o.textContent=String(rate).replace('.',',')+'%';select.insertBefore(o,select.lastElementChild)}
+  select.value=String(rate);d.vatRate=rate;
+  if(!d.fieldProvenance||typeof d.fieldProvenance!=='object')d.fieldProvenance={};
+  d.fieldProvenance.vatRate={source:'calculated',confirmed:false,confidence:null,derivedFrom:['net','vatAmount'],calculatedAt:new Date().toISOString()};
+  if(typeof syncFinancialReviewStateFromForm==='function')syncFinancialReviewStateFromForm('vatRate');
+  const field=select.closest('[data-review-field]');if(field){field.hidden=false;field.style.display=''}
+}
 function onGenericReviewInput(event){
   const d=pendingPdfImport?.parsed,key=event?.target?.name;if(!d||!key)return;
   if(['party','category','issueDate','invoiceNumber','documentType','type'].includes(key))d[key]=String(event.target?.value??'');
@@ -506,6 +539,7 @@ function onGenericReviewInput(event){
     genericProvenance(d)[key]={source:'user',confirmed:true,confirmedAt:new Date().toISOString()};
     setDeferredFields(d,deferredFields(d).filter(x=>x!==key))
   }
+  if(key==='vatTreatmentChoice')applyTreatmentRate();
   if(['net','vatAmount','gross','vatRate'].includes(key)&&typeof syncFinancialReviewStateFromForm==='function'){syncFinancialReviewStateFromForm(key);reconcileSimpleReviewAmounts(key)}
   if(typeof updateFinancialReviewPanel==='function'&&['net','vatAmount','gross','vatRate'].includes(key))updateFinancialReviewPanel();
   if(['currency','exchangeRateToEur','net','vatAmount','gross'].includes(key))updateForeignCurrencyPreview();
@@ -651,9 +685,12 @@ function canonicalFieldControl(d,key,issue=false){
 function issuePanel(d,issue){
   if(issue.field==='currency'||issue.field==='exchangeRateToEur'){
     const currency=normalizeCurrencyCode(d.currency||'EUR'),rate=parseExchangeRateToEur(d.exchangeRateToEur||''),confirmed=!!rate&&d.exchangeRateConfirmed===true;
-    return '<section class="review-issue-card attention foreign-currency-review" data-review-issue="currency"><h5>Buitenlandse valuta bevestigen</h5><p>Dit document is in <strong data-fx-source-code>'+esc(currency)+'</strong>. Vul de koers in die je voor deze boeking gebruikt. Boekuna haalt of verzint geen koers.</p><div class="foreign-currency-fields"><div class="field"><label>Valuta</label><input name="currency" value="'+esc(currency)+'" maxlength="3" autocomplete="off" inputmode="text"></div><div class="field"><label for="exchangeRateToEur">Wisselkoers</label><div class="foreign-rate-equation"><span>1 <strong data-fx-source-code>'+esc(currency)+'</strong> =</span><input id="exchangeRateToEur" name="exchangeRateToEur" inputmode="decimal" autocomplete="off" placeholder="0,92" value="'+esc(rate?.normalized||'')+'"><span>EUR</span></div><div class="help">Gebruik de koers die je voor deze boeking wilt vastleggen: EUR per 1 '+esc(currency)+'.</div></div></div><input type="hidden" name="exchangeRateConfirmed" value="'+(confirmed?'on':'')+'"><div class="review-issue-actions"><button type="button" class="btn small" onclick="confirmExchangeRate()">Wisselkoers bevestigen</button><button type="button" class="link-btn" onclick="toggleDocumentOriginal(true)">Bekijk origineel</button></div><div data-fx-status class="exchange-rate-status" role="status" aria-live="polite"></div><div data-fx-preview class="exchange-rate-preview" aria-live="polite"></div></section>'
+    return '<section class="review-issue-card attention foreign-currency-review" data-review-issue="currency"><h5>Bedrag in <span data-fx-source-code>'+esc(currency)+'</span></h5><p>Vul de koers in die je voor deze boeking gebruikt.</p><div class="foreign-currency-fields"><div class="field"><label>Valuta</label><input name="currency" value="'+esc(currency)+'" maxlength="3" autocomplete="off" inputmode="text"></div><div class="field"><label for="exchangeRateToEur">Wisselkoers</label><div class="foreign-rate-equation"><span>1 <strong data-fx-source-code>'+esc(currency)+'</strong> =</span><input id="exchangeRateToEur" name="exchangeRateToEur" inputmode="decimal" autocomplete="off" placeholder="0,92" value="'+esc(rate?.normalized||'')+'"><span>EUR</span></div></div></div><input type="hidden" name="exchangeRateConfirmed" value="'+(confirmed?'on':'')+'"><div class="review-issue-actions"><button type="button" class="btn small" onclick="confirmExchangeRate()">Wisselkoers bevestigen</button></div><div data-fx-status class="exchange-rate-status" role="status" aria-live="polite"></div><div data-fx-preview class="exchange-rate-preview" aria-live="polite"></div></section>'
   }
-  if(issue.field==='vatTreatmentChoice')return '<section class="review-issue-card attention" data-review-issue="vatTreatmentChoice"><h5>Controleer de btw</h5><p>Deze factuur lijkt buitenlandse of historische btw te bevatten. Hoe staat dit op het document?</p><label class="review-choice"><input type="radio" name="vatTreatmentChoice" value="foreign"><span>Buitenlandse btw</span></label><label class="review-choice"><input type="radio" name="vatTreatmentChoice" value="standard"><span>Nederlandse / historische btw</span></label><button type="button" class="link-btn" onclick="toggleDocumentOriginal(true)">Bekijk origineel</button></section>';
+  if(issue.field==='vatTreatmentChoice'){
+    const rate=d.vatRate!=null&&d.vatRate!==''&&Number.isFinite(Number(d.vatRate))?num(Number(d.vatRate))+'% ':'';
+    return '<section class="review-issue-card attention vat-treatment-card" data-review-issue="vatTreatmentChoice"><h5>Welke btw staat erop?</h5><p>Deze '+rate+'btw is geen gewoon Nederlands tarief.</p><div class="review-choice-group" role="radiogroup" aria-label="Soort btw"><label class="review-choice"><input type="radio" name="vatTreatmentChoice" value="foreign"><span><strong>Buitenlandse btw</strong><small>Niet terug te vragen</small></span></label><label class="review-choice"><input type="radio" name="vatTreatmentChoice" value="standard"><span><strong>Nederlandse btw</strong><small>Oud of afwijkend tarief</small></span></label></div></section>'
+  }
   if(issue.field==='confirmDuplicate')return '<section class="review-issue-card attention" data-review-issue="confirmDuplicate"><h5>Deze bon lijkt al verwerkt</h5><p>'+esc(d.duplicateCandidate?.label||'We hebben een vergelijkbaar document gevonden.')+'</p><input type="hidden" name="confirmDuplicate" value=""><div class="review-issue-actions"><button type="button" class="btn small" onclick="viewDuplicateCandidate()">Bekijk bestaand document</button><button type="button" class="btn small" onclick="confirmDuplicateOverride()">Dit is toch een nieuwe bon</button></div></section>';
   if(issue.field==='confirmAnomaly')return '<section class="review-issue-card attention" data-review-issue="confirmAnomaly"><h5>Dit document heeft extra controle nodig</h5><p>'+esc(issue.message||'Vergelijk de gegevens met het origineel.')+'</p><input type="hidden" name="confirmAnomaly" value=""><div class="review-issue-actions"><button type="button" class="btn small" onclick="toggleDocumentOriginal(true)">Bekijk origineel</button><button type="button" class="btn small" onclick="confirmDocumentAnomaly()">Ik heb het origineel gecontroleerd</button></div></section>';
   if(issue.field==='vatLines')return '';
@@ -667,11 +704,26 @@ function toggleDocumentReviewEdit(force){
   panel.hidden=!open;if(button)button.setAttribute('aria-expanded',String(open));
   if(open)panel.querySelector('input,select,textarea')?.focus()
 }
-function toggleDocumentOriginal(force){
+function toggleDocumentOriginal(force,tab){
+  // The original opens in the full-screen viewer: it always has a close button and keeps the review underneath intact.
+  const file=pendingPdfImport?.file;
+  if(force!==false&&file&&global.BoekunaDocumentViewer)return global.BoekunaDocumentViewer.open({file,name:file.name,tab:tab||'document'});
   const panel=document.getElementById('reviewOriginalPanel'),button=document.querySelector('[data-review-original-toggle]');if(!panel)return;
   const open=typeof force==='boolean'?force:!panel.classList.contains('open');
   panel.classList.toggle('open',open);
   if(button){button.setAttribute('aria-expanded',String(open));if(button.classList.contains('review-original-toggle-icon'))button.setAttribute('aria-label',open?'Origineel document verbergen':'Origineel document bekijken')}
+}
+// Desktop shows the original next to the fields, rendered with the same viewer so its text can be selected.
+function mountReviewPreview(){
+  const file=pendingPdfImport?.file,shell=document.querySelector('#reviewOriginalPanel .review-preview-shell');
+  if(!file||!pendingPdfImport.previewUrl||!shell||shell.querySelector('.review-viewer')||!global.BoekunaDocumentViewer||global.BoekunaDocumentViewer.mobile())return;
+  if(!/pdf|image/i.test(String(file.type||''))&&!/\.(pdf|jpe?g|png|webp|gif)$/i.test(String(file.name||'')))return;
+  const bar=document.createElement('div');bar.className='review-viewer-bar';
+  bar.innerHTML='<span>Selecteer tekst om te kopiëren</span><span class="review-viewer-actions"><button type="button" class="link-btn" onclick="toggleDocumentOriginal(true,\'text\')">Tekst kopiëren</button><button type="button" class="link-btn" onclick="toggleDocumentOriginal(true)">Vergroten</button></span>';
+  const host=document.createElement('div');host.className='review-viewer';
+  shell.replaceChildren(bar,host);
+  const view=global.BoekunaDocumentViewer.createView(host,{file,name:file.name,url:pendingPdfImport.previewUrl||'',compact:true});
+  requestAnimationFrame(()=>view.render())
 }
 function toggleMixedVatEditor(force){
   const panel=document.getElementById('mixedVatEditorPanel'),button=document.getElementById('mixedVatEditToggle');if(!panel)return;
@@ -719,7 +771,7 @@ function reviewWizardField(d,key,label,full=false){
   const cls='field'+(full?' full':''),safeLabel=esc(label);
   if(key==='party')return '<div class="'+cls+'" data-review-field="party"><label>'+safeLabel+'</label><input name="party" value="'+esc(d.party||'')+'" required autocomplete="organization"></div>';
   if(key==='issueDate')return '<div class="'+cls+'" data-review-field="issueDate"><label>'+safeLabel+'</label><input type="date" name="issueDate" value="'+esc(safeDate(d.issueDate))+'" required></div>';
-  if(key==='invoiceNumber')return '<div class="'+cls+'" data-review-field="invoiceNumber"><label>'+safeLabel+'</label><input name="invoiceNumber" value="'+esc(d.invoiceNumber||'')+'" required autocomplete="off"></div>';
+  if(key==='invoiceNumber')return '<div class="'+cls+'" data-review-field="invoiceNumber"><label>'+safeLabel+'</label><input name="invoiceNumber" value="'+esc(d.invoiceNumber||'')+'" '+(['receipt','other'].includes(reviewDocumentType(d))?'':'required ')+'autocomplete="off"></div>';
   if(key==='category')return '<div class="'+cls+'" data-review-field="category"><label>'+safeLabel+'</label><select name="category">'+selectFieldOptions(['Inkoop','Kantoor','Software','Reiskosten','Marketing','Representatie','Huisvesting','Bank- & factoringkosten','Overig'],String(d.category||'Inkoop'))+'</select></div>';
   if(key==='net')return '<div class="'+cls+'" data-review-field="net"><label>'+safeLabel+'</label><input id="pdfImportNet" name="net" inputmode="decimal" autocomplete="off" value="'+esc(d.net!==''&&d.net!=null?Number(d.net).toFixed(2):'')+'" required></div>';
   if(key==='vatAmount')return '<div class="'+cls+'" data-review-field="vatAmount"><label>'+safeLabel+'</label><input id="pdfImportVatAmount" name="vatAmount" inputmode="decimal" autocomplete="off" value="'+esc(d.vatAmount!==''&&d.vatAmount!=null?Number(d.vatAmount).toFixed(2):'')+'" required></div>';
@@ -741,6 +793,9 @@ function showPdfImportReview(d){
   if(!d.reviewFieldProvenance)d.reviewFieldProvenance={};
   if(!Array.isArray(d.reviewDeferredFields))d.reviewDeferredFields=[];
   if(d.mixedRates)d.vatRate=null;
+  // A rate Boekuna cannot book as Dutch VAT (for example 19% or 20%) gets the foreign/historical VAT question
+  // instead of a save that is refused later.
+  if(!d.mixedRates&&d.vatRate!=null&&d.vatRate!==''&&Number.isFinite(Number(d.vatRate))&&!NL_BOOKABLE_RATES.includes(Number(d.vatRate))&&d.bookingAllowed!==false)d.accountingVatTreatment='review_required';
 
   reviewWizardStep=1;
   const vm=buildDocumentReviewViewModel(d),type=reviewDocumentType(d),isReceipt=type==='receipt',isSale=['sale_invoice','sales_invoice'].includes(type)||d.type==='sale',invoiceRequired=!['receipt','other'].includes(type);
@@ -754,7 +809,7 @@ function showPdfImportReview(d){
       reviewHiddenInput('type',d.type||'purchase')+reviewHiddenInput('documentType',type)+reviewHiddenInput('party',d.party||'')+reviewHiddenInput('issueDate',d.issueDate||today())+reviewHiddenInput('invoiceNumber',d.invoiceNumber||'')+reviewHiddenInput('category',categoryValue)+reviewHiddenInput('net',d.net??'')+reviewHiddenInput('vatAmount',d.vatAmount??'')+reviewHiddenInput('gross',d.gross??'')+reviewHiddenInput('vatRate',d.vatRate??'')+reviewHiddenInput('currency',currency)+
       '</form><button type="button" class="link-btn" data-review-original-toggle onclick="toggleDocumentOriginal()">Bekijk origineel</button></section></div></div>';
     const nonBookableFoot='<div class="desktop-review-actions"><button class="btn" type="button" onclick="cancelDocumentReview()">Annuleren</button><button class="btn primary" type="button" onclick="saveDocumentWithoutBooking()">Document bewaren</button></div><div class="mobile-review-actions"><button class="btn primary" type="button" onclick="saveDocumentWithoutBooking()">Document bewaren</button></div>';
-    modal('Document controleren',nonBookableBody,nonBookableFoot,true);return
+    modal('Document controleren',nonBookableBody,nonBookableFoot,true);requestAnimationFrame(mountReviewPreview);return
   }
 
   const initialIssues=presentationIssues(d),basisSpecial=initialIssues.filter(x=>['confirmDuplicate','confirmAnomaly'].includes(x.field)),amountSpecial=initialIssues.filter(x=>['vatTreatmentChoice','currency'].includes(x.field));
@@ -814,7 +869,7 @@ function showPdfImportReview(d){
   const foot='<div class="desktop-review-actions review-wizard-actions"><button class="btn" type="button" data-review-prev hidden onclick="goToReviewWizardStep(1)">Vorige</button><button class="btn primary" type="button" data-review-next onclick="goToReviewWizardStep(2)">Volgende</button><button class="btn primary" type="button" data-review-save hidden aria-label="Gecontroleerd & opslaan" onclick="savePdfInvoiceImport()">'+saveLabel+'</button></div>'+
     '<div class="mobile-review-actions review-wizard-actions"><button class="btn" type="button" data-review-prev hidden onclick="goToReviewWizardStep(1)">Vorige</button><button class="btn primary" type="button" data-review-next onclick="goToReviewWizardStep(2)">Volgende</button><button class="btn primary" type="button" data-review-save hidden aria-label="Gecontroleerd & opslaan" onclick="savePdfInvoiceImport()">'+saveLabel+'</button></div>';
   modal('Document controleren',body,foot,true);
-  requestAnimationFrame(()=>{bindBeginnerReview();setReviewWizardStep(1,false)})
+  requestAnimationFrame(()=>{bindBeginnerReview();setReviewWizardStep(1,false);mountReviewPreview()})
 }
 
 function captureReviewSnapshot(){
@@ -890,16 +945,25 @@ function findSavedDocumentAfter(beforeIds,sourceClientRef,fileName){
   const fresh=state.documents.find(x=>!beforeIds.has(x.id));if(fresh)return fresh;
   return state.documents.find(x=>String(x.name||'')===String(fileName||'')&&x.linkedId)||null
 }
+// When saving is refused, the reason stays on screen next to the save button instead of a toast that disappears.
+function showSaveRefusal(message,el){
+  const box=document.getElementById('reviewBlockingState');
+  if(el){const field=el.closest('[data-review-field]');if(field){field.hidden=false;field.style.display=''}const page=el.closest('[data-review-page]');if(page)setReviewWizardStep(Number(page.dataset.reviewPage),false);requestAnimationFrame(()=>el.focus?.())}
+  if(box){box.hidden=false;box.className='beginner-review-state bad';box.innerHTML='<strong>Nog niet opgeslagen</strong><span>'+esc(message)+'</span>';box.scrollIntoView?.({block:'nearest'})}
+}
 async function savePdfInvoiceImport(){
   const importContext=pendingPdfImport,d=importContext?.parsed;if(!d)return legacySavePdfInvoiceImport?.();
   syncMixedVatFromDomWithoutRender();
   const issues=financialBlockingIssues(d);if(issues.length){updateBeginnerReviewState();firstBlockingFocus();toast('Controleer de gemarkeerde gegevens voordat je opslaat.');return}
   const snapshot=captureReviewSnapshot(),deferred=snapshot?.deferredFields||[],beforeIds=new Set(state.documents.map(x=>x.id)),beforeContactIds=new Set(state.contacts.map(x=>x.id)),sourceClientRef=String(importContext?.sourceClientRef||''),fileName=importContext?.file?.name||'';
   const original=structuredClone(d.recognitionOriginal||d),accountId=currentUser?.id,ledger=state,restoreForeign=prepareForeignCurrencyLegacyBooking(d,snapshot);
-  let result;
-  try{result=await legacySavePdfInvoiceImport()}finally{if(pendingPdfImport===importContext)restoreForeign()}
+  const form=document.getElementById('pdfImportForm'),invalid=form&&!form.checkValidity()?form.querySelector(':invalid'):null;
+  if(invalid){restoreForeign();showSaveRefusal((invalid.closest('.field')?.querySelector('label')?.textContent||'Een veld')+' ontbreekt nog.',invalid);return}
+  let result,refusal='';const originalToast=global.toast;
+  global.toast=function(message,...rest){refusal=String(message||'');return originalToast?.apply(this,[message,...rest])};
+  try{result=await legacySavePdfInvoiceImport()}finally{global.toast=originalToast;if(pendingPdfImport===importContext)restoreForeign()}
   if(currentUser?.id!==accountId||state!==ledger)return result;
-  if(pendingPdfImport)return result;
+  if(pendingPdfImport){if(pendingPdfImport===importContext)showSaveRefusal(refusal||'Opslaan lukte niet. Controleer de gegevens en probeer het opnieuw.');return result}
   const doc=findSavedDocumentAfter(beforeIds,sourceClientRef,fileName);if(!doc||!snapshot)return result;
   annotateForeignCurrencyBooking(doc,snapshot);
   if(deferred.includes('party')&&doc.linkedType==='expense'){

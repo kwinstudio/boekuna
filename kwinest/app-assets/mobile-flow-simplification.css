@@ -117,3 +117,6 @@
   #modalRoot #invoiceLines .line-item{grid-template-columns:1fr!important}
   #modalRoot #invoiceLines .line-item>.icon-btn{grid-column:1}
 }
+@media (max-width:820px){
+  #modalRoot .modal.mobile-single-issue-active .modal-foot{display:none!important}
+}

@@ -151,13 +151,26 @@ try{
   await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'09-factuur-stap-3-'+browserName+'.png')});
   await page.evaluate(()=>closeModal());
 
+  // Amounts that do not add up go straight to the amounts step: a "Ja, klopt" there could not resolve it.
+  await page.evaluate(()=>{
+    pendingPdfImport={file:new File(['qa'],'bedrag.pdf',{type:'application/pdf'}),previewUrl:null,sha256:'qa-amount',sourceClientRef:'f-q-0',sourceDocumentId:'d-q-0',processingJobId:'j-q-0',parsed:null};
+    const parsed={confidenceScore:75,sourceQuality:'processor-v2',documentType:'receipt',party:'Jumbo',invoiceNumber:'',issueDate:'2026-10-04',net:14.61,vatAmount:1.32,gross:15.94,vatRate:9,mixedRates:false,vatLines:[],lineItems:[],adjustments:[],fieldProvenance:{gross:{source:'recognition',confidence:40}}};
+    pendingPdfImport.parsed=parsed;showPdfImportReview(parsed);
+  });
+  await page.locator('#documentReviewStepLabel',{hasText:'Stap 2 van 2'}).waitFor();
+  assert.equal(await page.locator('.mobile-single-issue-review:visible').count(),0,'amount problems open the amounts step, not a yes/no question');
+  assert.equal(await page.locator('[name="gross"]:visible').count(),1);
+  assert.match(await page.locator('#reviewBlockingState').innerText(),/De bedragen kloppen nog niet/);
+  await page.evaluate(()=>closeModal());
+
   await page.evaluate(()=>{
     pendingPdfImport={file:new File(['qa'],'vraag.pdf',{type:'application/pdf'}),previewUrl:null,sha256:'qa',sourceClientRef:'f-q-1',sourceDocumentId:'d-q-1',processingJobId:'j-q-1',parsed:null};
-    const parsed={confidenceScore:75,sourceQuality:'processor-v2',documentType:'receipt',party:'Jumbo',invoiceNumber:'',issueDate:'2026-10-04',net:14.61,vatAmount:1.32,gross:15.94,vatRate:9,mixedRates:false,vatLines:[],lineItems:[],adjustments:[],fieldProvenance:{gross:{source:'recognition',confidence:40}}};
+    const parsed={confidenceScore:75,sourceQuality:'processor-v2',documentType:'receipt',party:'',invoiceNumber:'',issueDate:'2026-10-04',net:14.62,vatAmount:1.32,gross:15.94,vatRate:9,mixedRates:false,vatLines:[],lineItems:[],adjustments:[]};
     pendingPdfImport.parsed=parsed;showPdfImportReview(parsed);
   });
   await page.locator('.mobile-single-issue-review').waitFor();
   assert.equal(await page.locator('.mobile-single-issue-question').count(),1,'one issue question per mobile screen');
+  assert.equal(await page.locator('.mobile-single-issue-question').innerText(),'Klopt de leverancier?');
   assert.equal(await page.getByRole('button',{name:'Alle gegevens bekijken',exact:true}).count(),1);
   assert.equal(await page.locator('.mobile-single-issue-review .beginner-provenance:visible').count(),0,'simple review hides provenance labels only');
   await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'03-bon-enkele-vraag-'+browserName+'.png')});
