@@ -57,8 +57,9 @@
   #mainApp #content.content>.product-page-shell{display:flex!important;flex-wrap:wrap;align-items:center;column-gap:var(--space-3,12px);row-gap:var(--space-3,12px)}
   #mainApp #content.content>.product-page-shell>.page-head{display:contents!important}
   #mainApp #content.content>.product-page-shell>.page-head>div:first-child{flex:1 1 280px;min-width:0;order:1}
-  #mainApp #content.content>.product-page-shell>.page-head>div:first-child>h1{margin:0!important}
-  #mainApp #content.content>.product-page-shell>.page-head>div:first-child>p{margin:4px 0 0!important}
+  #mainApp #content.content>.product-page-shell>.page-head>div:first-child>h1{margin:0!important;line-height:36px!important}
+  #mainApp #content.content>.product-page-shell>.page-head>div:first-child>p{margin:4px 0 0!important;line-height:22px!important}
+  /* Whole-pixel title lines, so the row centres on whole pixels and text renders the same every time. */
   #mainApp #content.content>.product-page-shell>.product-page-actions,
   #mainApp #content.content>.product-page-shell>.page-head+.product-page-actions{order:2;width:auto!important;margin:0 0 0 auto!important;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end!important}
   #mainApp #content.content>.product-page-shell>.page-head>.page-period-slot{order:3;margin:0!important;padding:0!important;align-items:center}
