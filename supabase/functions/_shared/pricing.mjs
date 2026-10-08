@@ -1,8 +1,12 @@
 // Boekuna Pricing V2: the single server-side source of truth for plans and prices.
 // Imported by the billing Edge Functions (Deno) and by the Node regression tests.
-// All amounts are integer euro cents, excluding VAT. Never trust amounts from a client.
+// All amounts are integer euro cents, including VAT. Never trust amounts from a client.
 
 export const CURRENCY = "eur";
+
+// Prices are what the customer pays, btw included (Kwin, 2026-10-08). Stripe Tax
+// splits the btw out of this amount on the invoice.
+export const TAX_BEHAVIOR = "inclusive";
 
 // Product identity is separate from the billing interval.
 // plan = start | zzp | pro | business, interval = month | year.

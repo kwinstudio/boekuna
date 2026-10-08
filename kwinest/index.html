@@ -2504,7 +2504,7 @@ async function fetchWithAuthRetry(url,options={}){
  }
  return res
 }
-// Pricing V2 display copy. Amounts are integer cents excl. btw and must equal
+// Pricing V2 display copy. Amounts are integer cents incl. btw and must equal
 // supabase/functions/_shared/pricing.mjs; the server decides what is charged.
 const BOEKUNA_PRICING=Object.freeze({
  plans:Object.freeze({
@@ -2623,7 +2623,7 @@ function showPlanUpsell(minRank,feature){
  const what=minRank>=2?'herstelpunten en documentherkenning zonder maandlimiet':'kosten en bonnetjes, documentherkenning (100 per maand), btw-overzicht, bankimport en rapporten';
  if(isNativeStoreShell()){modal('Onderdeel van '+name,`<div class="notice info"><strong>${esc(feature)} hoort bij ${name}.</strong></div>`,`<button class="btn primary" onclick="closeModal()">Sluiten</button>`);return}
  const buy=BOEKUNA_PRICING.sellable.includes(id)&&p;
- modal('Onderdeel van '+name,`<div class="notice info"><strong>${esc(feature)} hoort bij ${name}.</strong><br>Met ${name} krijg je ${what}.</div>${buy?`<div class="legal-item" style="margin-top:12px"><strong>${name} · ${euroCents(p.month)} per maand of ${euroCents(p.year)} per jaar, excl. btw</strong><p>Betalen start alleen nadat je zelf een Stripe Checkout bevestigt.</p></div>`:''}`,`<button class="btn" onclick="closeModal()">Niet nu</button>${buy?`<button class="btn primary" onclick="closeModal();navigate('settings')">Bekijk ${name}</button>`:''}`);
+ modal('Onderdeel van '+name,`<div class="notice info"><strong>${esc(feature)} hoort bij ${name}.</strong><br>Met ${name} krijg je ${what}.</div>${buy?`<div class="legal-item" style="margin-top:12px"><strong>${name} · ${euroCents(p.month)} per maand of ${euroCents(p.year)} per jaar, incl. btw</strong><p>Betalen start alleen nadat je zelf een Stripe Checkout bevestigt.</p></div>`:''}`,`<button class="btn" onclick="closeModal()">Niet nu</button>${buy?`<button class="btn primary" onclick="closeModal();navigate('settings')">Bekijk ${name}</button>`:''}`);
 }
 async function requirePlanAccess(minRank,feature){
  try{if(!billingSnapshot||billingSnapshotSource!=='normal'||Date.now()-billingLoadedAt>30000)await loadBillingSummary()}catch(err){console.warn('Plancontrole',err)}
@@ -2638,7 +2638,7 @@ async function requireBoekunaSmartLayer(feature='Deze slimme functie'){
  }catch(err){console.warn('Plancontrole',err)}
  if(hasBoekunaSmartLayer())return true;
  if(isNativeStoreShell()){modal('Onderdeel van ZZP',`<div class="notice info"><strong>${esc(feature)} hoort bij het ZZP-pakket.</strong></div>`,`<button class="btn primary" onclick="closeModal()">Sluiten</button>`);return false}
- modal('Onderdeel van ZZP',`<div class="notice info"><strong>${esc(feature)} hoort bij het ZZP-pakket.</strong><br>Met ZZP krijg je kosten en bonnetjes, documentherkenning, btw-overzicht, bankimport en rapporten.</div><div class="legal-item" style="margin-top:12px"><strong>ZZP · ${euroCents(995)} per maand of ${euroCents(9950)} per jaar, excl. btw</strong><p>Betalen start alleen nadat je zelf een Stripe Checkout bevestigt.</p></div>`,`<button class="btn" onclick="closeModal()">Niet nu</button><button class="btn primary" onclick="closeModal();startSubscription('zzp',billingIntervalChoice)">Kies ZZP</button>`);
+ modal('Onderdeel van ZZP',`<div class="notice info"><strong>${esc(feature)} hoort bij het ZZP-pakket.</strong><br>Met ZZP krijg je kosten en bonnetjes, documentherkenning, btw-overzicht, bankimport en rapporten.</div><div class="legal-item" style="margin-top:12px"><strong>ZZP · ${euroCents(995)} per maand of ${euroCents(9950)} per jaar, incl. btw</strong><p>Betalen start alleen nadat je zelf een Stripe Checkout bevestigt.</p></div>`,`<button class="btn" onclick="closeModal()">Niet nu</button><button class="btn primary" onclick="closeModal();startSubscription('zzp',billingIntervalChoice)">Kies ZZP</button>`);
  return false
 }
 function renderPlanChooser(){
@@ -2650,8 +2650,8 @@ function renderPlanChooser(){
  const cards=Object.entries(BOEKUNA_PRICING.plans).filter(([id])=>BOEKUNA_PRICING.sellable.includes(id)).map(([id,p])=>{
   const sellable=BOEKUNA_PRICING.sellable.includes(id),amount=p[iv];
   const sub=iv==='year'?`per jaar, vooruitbetaald · gemiddeld ${euroCents(Math.round(p.year/12))} per maand`:`per maand · of ${euroCents(p.year)} per jaar`;
-  return `<div class="legal-item" style="margin:0"><strong>${esc(p.name)}</strong><p style="margin:2px 0 6px">${esc(p.tagline)}</p><div style="font-size:22px;font-weight:700">${euroCents(amount)}</div><div class="help">${sub} · excl. btw</div><div style="margin-top:10px">${sellable?`<button type="button" class="btn primary" onclick="startSubscription('${id}','${iv}')">Kies ${esc(p.name)}</button>`:`<span class="badge">Binnenkort beschikbaar</span>`}</div></div>`}).join('');
- return `<div style="margin-top:16px"><div class="eyebrow">Kies een pakket</div>${toggle}<div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">${cards}</div><p class="help" style="margin-top:8px">Alle prijzen excl. btw. Slimme documentherkenning: ZZP 100 per maand, Pro zonder maandlimiet.</p></div>`
+  return `<div class="legal-item" style="margin:0"><strong>${esc(p.name)}</strong><p style="margin:2px 0 6px">${esc(p.tagline)}</p><div style="font-size:22px;font-weight:700">${euroCents(amount)}</div><div class="help">${sub} · incl. btw</div><div style="margin-top:10px">${sellable?`<button type="button" class="btn primary" onclick="startSubscription('${id}','${iv}')">Kies ${esc(p.name)}</button>`:`<span class="badge">Binnenkort beschikbaar</span>`}</div></div>`}).join('');
+ return `<div style="margin-top:16px"><div class="eyebrow">Kies een pakket</div>${toggle}<div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">${cards}</div><p class="help" style="margin-top:8px">Alle prijzen incl. btw. Slimme documentherkenning: ZZP 100 per maand, Pro zonder maandlimiet.</p></div>`
 }
 function renderBillingCard(){
  if(window.BoekunaDeveloperMode?.isActive(currentUser?.id)&&billingSnapshotSource==='developer')return `<div class="card" id="billingCard" style="margin-bottom:16px"><div class="section-head"><div><h2>Abonnement</h2><p>Tijdelijke QA-context; echte billing blijft ongewijzigd.</p></div><span class="badge warn">DEV MODE · Pro</span></div><div class="notice info"><strong>Geen Stripe-betaling nodig in deze preview.</strong> Toegang is tijdelijk, gebonden aan de QA-user en schrijft geen abonnementstatus weg.</div></div>`;
@@ -2669,7 +2669,7 @@ function renderBillingCard(){
  const facts=paid&&!tester&&accessSource!=='internal'?[
    ['Pakket',billingPlanLabel(plan)],
    ['Betaalperiode',billingIntervalLabel(interval)||'—'],
-   ['Bedrag',amount!=null&&interval?`${euroCents(amount)} per ${interval==='year'?'jaar':'maand'} excl. btw`:'—'],
+   ['Bedrag',amount!=null&&interval?`${euroCents(amount)} per ${interval==='year'?'jaar':'maand'} incl. btw`:'—'],
    ['Status',billingStatusLabel(status)],
    [b.cancel_at_period_end?'Loopt af op':'Volgende verlenging',b.current_period_end?billingDate(b.current_period_end):'—']
   ]:[];
@@ -2711,10 +2711,10 @@ function startSubscription(plan,interval='year'){
  if(!currentUser){rememberPlanIntent(plan,interval);location.href='/?login=1&plan='+encodeURIComponent(plan)+'&interval='+interval;return}
  const p=BOEKUNA_PRICING.plans[plan],amount=p[interval];
  const lines=interval==='year'
-  ?[`Je betaalt ${euroCents(amount)} excl. btw vooruit voor 12 maanden toegang.`,`Na 12 maanden verlengt je abonnement automatisch met een jaar, tenzij je vóór de verlengdatum opzegt.`]
-  :[`Je betaalt ${euroCents(amount)} excl. btw per maand.`,`Je abonnement verlengt elke maand automatisch, tenzij je vóór de verlengdatum opzegt.`];
- lines.push('De btw wordt in de betaalpagina van Stripe berekend.','Opzeggen kan altijd via Abonnement; je houdt toegang tot het einde van de betaalde periode. Een lopende periode wordt niet terugbetaald.');
- modal(`${esc(p.name)} ${interval==='year'?'jaarlijks':'maandelijks'}`,`<div class="legal-item" style="margin:0"><strong style="font-size:20px">${euroCents(amount)} <span class="help">per ${interval==='year'?'jaar':'maand'}, excl. btw</span></strong><ul style="margin:10px 0 0;padding-left:18px">${lines.map(l=>`<li>${esc(l)}</li>`).join('')}</ul></div>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" id="confirmCheckout" onclick="confirmSubscriptionCheckout('${plan}','${interval}')">Naar betalen</button>`)
+  ?[`Je betaalt ${euroCents(amount)} incl. btw vooruit voor 12 maanden toegang.`,`Na 12 maanden verlengt je abonnement automatisch met een jaar, tenzij je vóór de verlengdatum opzegt.`]
+  :[`Je betaalt ${euroCents(amount)} incl. btw per maand.`,`Je abonnement verlengt elke maand automatisch, tenzij je vóór de verlengdatum opzegt.`];
+ lines.push('De btw zit in dit bedrag en staat apart op je factuur.','Opzeggen kan altijd via Abonnement; je houdt toegang tot het einde van de betaalde periode. Een lopende periode wordt niet terugbetaald.');
+ modal(`${esc(p.name)} ${interval==='year'?'jaarlijks':'maandelijks'}`,`<div class="legal-item" style="margin:0"><strong style="font-size:20px">${euroCents(amount)} <span class="help">per ${interval==='year'?'jaar':'maand'}, incl. btw</span></strong><ul style="margin:10px 0 0;padding-left:18px">${lines.map(l=>`<li>${esc(l)}</li>`).join('')}</ul></div>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn primary" id="confirmCheckout" onclick="confirmSubscriptionCheckout('${plan}','${interval}')">Naar betalen</button>`)
 }
 async function confirmSubscriptionCheckout(plan,interval){
  if(billingBusy)return;

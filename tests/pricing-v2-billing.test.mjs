@@ -74,32 +74,35 @@ async function checkout({body,env={},tables={},prices={},stripeSubs=[]}){
   assert.equal(p.get('mode'),'subscription');
   assert.equal(p.get('line_items[0][price_data][unit_amount]'),'9950');
   assert.equal(p.get('line_items[0][price_data][recurring][interval]'),'year','a yearly plan is charged yearly, not in monthly instalments');
-  assert.equal(p.get('line_items[0][price_data][tax_behavior]'),'exclusive');
+  assert.equal(p.get('line_items[0][price_data][tax_behavior]'),'inclusive','prices are incl. btw');
   assert.equal(p.get('automatic_tax[enabled]'),'true');
   assert.equal(p.get('subscription_data[metadata][plan]'),'zzp');
   assert.equal(p.get('subscription_data[metadata][interval]'),'year');
   assert.equal(p.get('subscription_data[trial_end]'),null,'no trials');
   assert.equal(p.get('subscription_data[trial_period_days]'),null,'no trials');
   const text=p.get('custom_text[submit][message]');
-  for(const must of ['€ 99,50 excl. btw','12 maanden','verlengt','opzegt','btw'])assert.ok(text.includes(must),'checkout text must mention '+must);
+  for(const must of ['€ 99,50 incl. btw','12 maanden','verlengt','opzegt','btw'])assert.ok(text.includes(must),'checkout text must mention '+must);
   assert.ok(text.length<=1200,'Stripe custom text limit');
   assert.match(r.session.headers['Idempotency-Key'],/^boekuna-checkout:[^:]+:zzp:year:/);
 }
 {
-  const official={id:'price_zzp_m',lookup_key:'boekuna_zzp_month_v2',currency:'eur',unit_amount:995,type:'recurring',recurring:{interval:'month',interval_count:1},tax_behavior:'exclusive'};
+  const official={id:'price_zzp_m',lookup_key:'boekuna_zzp_month_v2',currency:'eur',unit_amount:995,type:'recurring',recurring:{interval:'month',interval_count:1},tax_behavior:'inclusive'};
   const r=await checkout({body:{plan:'zzp',interval:'month'},prices:{boekuna_zzp_month_v2:official}});
   assert.equal(r.status,200);
   assert.equal(r.session.body.get('line_items[0][price]'),'price_zzp_m','official Stripe recurring price is used when configured');
   assert.equal(r.session.body.get('line_items[0][price_data][unit_amount]'),null);
-  assert.ok(r.session.body.get('custom_text[submit][message]').includes('€ 9,95 excl. btw per maand'));
+  assert.ok(r.session.body.get('custom_text[submit][message]').includes('€ 9,95 incl. btw per maand'));
 }
 {
-  const wrong={id:'price_bad',currency:'eur',unit_amount:990,type:'recurring',recurring:{interval:'month',interval_count:1},tax_behavior:'exclusive'};
+  const wrong={id:'price_bad',currency:'eur',unit_amount:990,type:'recurring',recurring:{interval:'month',interval_count:1},tax_behavior:'inclusive'};
   const r=await checkout({body:{plan:'zzp',interval:'month'},prices:{boekuna_zzp_month_v2:wrong}});
   assert.equal(r.json.code,'PRICE_MISMATCH');
   assert.equal(r.session,undefined,'a mismatching Stripe price never reaches Checkout');
-  const inclusive=await checkout({body:{plan:'zzp',interval:'month'},prices:{boekuna_zzp_month_v2:{...wrong,unit_amount:995,tax_behavior:'inclusive'}}});
-  assert.equal(inclusive.json.code,'PRICE_MISMATCH','prices are excl. btw; an inclusive price is refused');
+  const old=await checkout({body:{plan:'zzp',interval:'month'},prices:{boekuna_zzp_month_v2:{...wrong,id:'price_old',unit_amount:995,tax_behavior:'exclusive'}}});
+  assert.equal(old.status,200,'an old excl. btw price does not block checkout');
+  assert.equal(old.session.body.get('line_items[0][price]'),null,'an old excl. btw price is never charged');
+  assert.equal(old.session.body.get('line_items[0][price_data][unit_amount]'),'995');
+  assert.equal(old.session.body.get('line_items[0][price_data][tax_behavior]'),'inclusive');
 }
 {
   const legacy=await checkout({body:{plan:'boekuna'}});
