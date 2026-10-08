@@ -73,6 +73,8 @@ try{
   assert.equal(await page.evaluate(()=>__fb.inserts),0,'correcting alone sends nothing');
   await page.locator('[data-review-save]:visible').first().click();
   await page.waitForFunction(()=>!document.querySelector('#modalRoot .modal'));
+  // The correction is written right after the save promise settles, which can be a tick after the modal closed.
+  await page.waitForFunction(()=>state.documents.some(d=>d.recognitionCorrections),null,{timeout:5000}).catch(()=>{});
   const saved=await page.evaluate(()=>{
     const doc=state.documents.find(d=>d.recognitionCorrections);
     const expense=doc&&state.expenses.find(e=>e.id===doc.linkedId);

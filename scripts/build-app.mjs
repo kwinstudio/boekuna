@@ -211,14 +211,10 @@ function injectBeforeLast(html,marker,content){
   if(index<0)throw new Error('Missing app document marker: '+marker);
   return html.slice(0,index)+content+html.slice(index);
 }
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review-v2.js?v=20261006fx1"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review-v2.js?v=20261008a"></script>\n');
 const mobileHeadBoundary='</head>\n<body>';
 if(!appHtml.includes(mobileHeadBoundary))throw new Error('Mobile app head boundary changed');
-appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261006fx2">\n<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261007a" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/product-color-polish.css?v=20261006a">\n<style id="boekuna-app-mobile-compact-overrides">@media (max-width:820px){#mainApp #appMain #content.content{padding-top:14px!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active{-webkit-appearance:none!important;appearance:none!important;background:#ECFAEE!important;background-color:#ECFAEE!important;background-image:none!important;color:#1B1F23!important;box-shadow:none!important;border-top:2px solid #63D471!important;font-weight:800!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active .icon,#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active span{color:#1B1F23!important}}@media (max-width:359px){#mainApp .product-kpis.grid-4{grid-template-columns:1fr!important}}</style>\n<link rel="stylesheet" href="/assets/product-ux-polish-round-3.css?v=20261007a">\n<link rel="stylesheet" href="/assets/mobile-flow-simplification.css?v=20261007b" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/calm-ux.css?v=20261007c">\n<link rel="stylesheet" href="/assets/settings-center.css?v=20261007c">\n<link rel="stylesheet" href="/assets/exports-filters.css?v=20261007a">\n<link rel="stylesheet" href="/assets/feedback.css?v=20261007a">\n<link rel="stylesheet" href="/assets/theme-dark.css?v=20261007a">\n'+mobileHeadBoundary);
-// One spacing rhythm for every page (kwinest/app-assets/spacing.css): after the other app layers, before Dark Mode.
-const spacingDarkLink='<link rel="stylesheet" href="/assets/theme-dark.css?v=20261007a">';
-if(!appHtml.includes(spacingDarkLink))throw new Error('Spacing layer marker changed');
-appHtml=appHtml.replace(spacingDarkLink,'<link rel="stylesheet" href="/assets/spacing.css?v=20261008a">\n'+spacingDarkLink);
+appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261008a">\n<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261007a" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/product-color-polish.css?v=20261006a">\n<style id="boekuna-app-mobile-compact-overrides">@media (max-width:820px){#mainApp #appMain #content.content{padding-top:14px!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active{-webkit-appearance:none!important;appearance:none!important;background:#ECFAEE!important;background-color:#ECFAEE!important;background-image:none!important;color:#1B1F23!important;box-shadow:none!important;border-top:2px solid #63D471!important;font-weight:800!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active .icon,#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active span{color:#1B1F23!important}}@media (max-width:359px){#mainApp .product-kpis.grid-4{grid-template-columns:1fr!important}}</style>\n<link rel="stylesheet" href="/assets/product-ux-polish-round-3.css?v=20261007a">\n<link rel="stylesheet" href="/assets/mobile-flow-simplification.css?v=20261008a" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/calm-ux.css?v=20261007c">\n<link rel="stylesheet" href="/assets/settings-center.css?v=20261007c">\n<link rel="stylesheet" href="/assets/exports-filters.css?v=20261007a">\n<link rel="stylesheet" href="/assets/feedback.css?v=20261007a">\n<link rel="stylesheet" href="/assets/theme-dark.css?v=20261007a">\n<link rel="stylesheet" href="/assets/document-viewer.css?v=20261008a">\n<link rel="stylesheet" href="/assets/bank-documents.css?v=20261008a">\n'+mobileHeadBoundary);
 const mobileNavStateMarker="function syncMobileNavigationState(){\n const current=mobilePrimarySection(page);\n document.querySelectorAll('[data-mobile-page]').forEach(btn=>{const active=btn.dataset.mobilePage===current;btn.classList.toggle('active',active);if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current')});\n const more=document.querySelector('[data-mobile-more]');if(more){const active=current==='more';more.classList.toggle('active',active);if(active)more.setAttribute('aria-current','page');else more.removeAttribute('aria-current')}\n updateMobileAccountIdentity()\n}";
 if(!appHtml.includes(mobileNavStateMarker))throw new Error('Mobile navigation state marker changed');
 appHtml=appHtml.replace(mobileNavStateMarker,"function syncMobileNavigationState(){\n const current=mobilePrimarySection(page);\n document.querySelectorAll('[data-mobile-page]').forEach(btn=>{const active=btn.dataset.mobilePage===current;btn.classList.toggle('active',active);btn.style.setProperty('background-color',active?'var(--app-green-soft,#ECFAEE)':'transparent','important');if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current')});\n const more=document.querySelector('[data-mobile-more]');if(more){const active=current==='more';more.classList.toggle('active',active);more.style.setProperty('background-color',active?'var(--app-green-soft,#ECFAEE)':'transparent','important');if(active)more.setAttribute('aria-current','page');else more.removeAttribute('aria-current')}\n updateMobileAccountIdentity()\n}");
@@ -380,12 +376,13 @@ for(const [needle,replacement] of productToneReplacements){
 const releaseRuntime="const BOEKUNA_RELEASE_PROFILE=Object.freeze("+JSON.stringify({name:releaseProfile.name,features:releaseFeatures})+");\nfunction releaseFeatureEnabled(key){return BOEKUNA_RELEASE_PROFILE.features?.[key]===true}\n";
 if(!appHtml.includes(assistantRuntimeMarker))throw new Error('Release runtime marker changed');
 appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script>\n'+releaseRuntime+'const USERS_KEY=');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-product.js?v=20261008a"></script>\n');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-flow-simplification.js?v=20261007c"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-product.js?v=20261008b"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-flow-simplification.js?v=20261008a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/calm-ux.js?v=20261007a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/settings-center.js?v=20261007c"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/theme.js?v=20261007a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/feedback.js?v=20261007a"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-viewer.js?v=20261008a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});
@@ -400,12 +397,11 @@ for(const asset of appAssets){
 }
 
 // Document review is app-only. Keep the shared public/marketing copies byte-identical.
-for(const asset of ['document-review-v2.js','document-review-v2.css','product-color-polish.css','product-ux-polish-round-3.css','mobile-flow-simplification.js','mobile-flow-simplification.css','calm-ux.js','calm-ux.css','settings-center.js','settings-center.css','theme.js','theme-dark.css','feedback.js','feedback.css','exports-filters.css']){
+for(const asset of ['document-review-v2.js','document-review-v2.css','product-color-polish.css','product-ux-polish-round-3.css','mobile-flow-simplification.js','mobile-flow-simplification.css','calm-ux.js','calm-ux.css','settings-center.js','settings-center.css','theme.js','theme-dark.css','feedback.js','feedback.css','exports-filters.css','document-viewer.js','document-viewer.css','bank-documents.css']){
   const sourceFile=path.join(root,'kwinest','app-assets',asset);
   if(!fs.existsSync(sourceFile))throw new Error('Missing app-only review asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
 }
-fs.copyFileSync(path.join(root,'kwinest','app-assets','spacing.css'),path.join(appAssetsTarget,'spacing.css'));
 
 // Assistant integration is app-only. Keep shared public mobile assets byte-identical
 // to the marketing source and patch only the generated product artifact.
@@ -558,6 +554,16 @@ patchBuiltAppAsset(
   "  #mainApp .dashboard-kpi-profit, #mainApp .dashboard-kpi:last-child { grid-column:1/-1!important; }",
   "  #mainApp .dashboard-kpi-profit { grid-column:1/-1!important; }"
 );
+
+// One spacing rhythm for every page (kwinest/app-assets/spacing.css): after the other app layers, before Dark Mode.
+{
+  const indexFile=path.join(target,'index.html');
+  const html=fs.readFileSync(indexFile,'utf8');
+  const darkLink='<link rel="stylesheet" href="/assets/theme-dark.css?v=20261007a">';
+  if(html.split(darkLink).length!==2)throw new Error('Spacing layer marker changed');
+  fs.copyFileSync(path.join(root,'kwinest','app-assets','spacing.css'),path.join(appAssetsTarget,'spacing.css'));
+  fs.writeFileSync(indexFile,html.replace(darkLink,'<link rel="stylesheet" href="/assets/spacing.css?v=20261008a">\n'+darkLink),'utf8');
+}
 
 // Dark Mode: derive dark equivalents of every hardcoded colour from the final cascade, then
 // load them just before the hand-written theme-dark.css refinements.

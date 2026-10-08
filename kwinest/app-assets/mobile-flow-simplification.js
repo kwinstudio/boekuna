@@ -9,6 +9,7 @@
   var nextInvoiceStep=null;
   var bulkBusy=false;
   var mobileIssueReviewRequested=false;
+  var DIRECT_FIELDS=['net','vatAmount','gross','vatRate','vatLines','currency','exchangeRateToEur','vatTreatmentChoice'];
 
   function node(tag,className,text){
     var el=document.createElement(tag);
@@ -449,15 +450,21 @@
     flow?.querySelectorAll('[data-review-page][data-mobile-was-hidden]').forEach(function(page){
       page.hidden=page.dataset.mobileWasHidden==='1';delete page.dataset.mobileWasHidden;
     });
+    setShellFoot(flow,false);
     flow?.querySelectorAll('.mobile-flow-hidden,.mobile-active-issue').forEach(function(el){el.classList.remove('mobile-flow-hidden','mobile-active-issue')});
   }
+  function setShellFoot(flow,on){flow?.closest('.modal')?.classList.toggle('mobile-single-issue-active',!!on)}
   function showFullReview(flow,issue){
-    restoreReviewPages(flow);flow.dataset.mobileSimpleReview='full';
+    restoreReviewPages(flow);flow.dataset.mobileSimpleReview='full';setShellFoot(flow,false);
     flow.querySelector('.mobile-single-issue-review')?.setAttribute('hidden','');
     var field=String(issue?.field||'');
     var amountFields=['net','vatAmount','gross','vatRate','vatLines','currency','exchangeRateToEur','vatTreatmentChoice'];
     var step=amountFields.includes(field)?2:1;
-    if(typeof setDocumentReviewStep==='function')setDocumentReviewStep(step);
+    if(typeof setDocumentReviewStep==='function'){
+      setDocumentReviewStep(step);
+      // The review opens on step 1 one frame later; land on the step with the question after that.
+      requestAnimationFrame(function(){requestAnimationFrame(function(){if(flow.isConnected&&step===2&&flow.dataset.reviewWizardStep!=='2')setDocumentReviewStep(2)})});
+    }
     if(typeof updateBeginnerReviewState==='function')updateBeginnerReviewState();
     requestAnimationFrame(function(){if(field&&typeof focusDocumentReviewIssue==='function')focusDocumentReviewIssue(field)});
   }
@@ -528,13 +535,17 @@
     if(flow.dataset.mobileSimpleReview!=='active'&&!requested)return;
     var issues=window.BookunaDocumentReviewV2?.financialBlockingIssues?.(parsed)||[];
     if(!issues.length&&flow.dataset.mobileSimpleReview!=='active'){mobileIssueReviewRequested=false;return}
+    // Amounts and VAT choices are answered in the amounts step itself; a "Ja, klopt" there would only repeat the
+    // same question, so those go straight to the step with the field.
+    var first=String(issues[0]?.field||'');
+    if(issues.length&&DIRECT_FIELDS.includes(first)&&flow.dataset.mobileSimpleReview!=='active'){showFullReview(flow,issues[0]);mobileIssueReviewRequested=false;return}
     var issueSignature=JSON.stringify(issues.map(function(issue){return [issue?.field,issue?.message,issue?.code]}));
     var shell=flow.querySelector('.mobile-single-issue-review');
     if(shell&&flow.dataset.mobileSimpleReview==='active'&&flow.dataset.mobileIssueSignature===issueSignature)return;
     flow.dataset.mobileIssueSignature=issueSignature;
     restoreReviewPages(flow);
     if(!shell){shell=node('section','mobile-single-issue-review');flow.querySelector('.document-review-fields')?.prepend(shell)}
-    shell.hidden=false;flow.dataset.mobileSimpleReview='active';mobileIssueReviewRequested=false;
+    shell.hidden=false;flow.dataset.mobileSimpleReview='active';mobileIssueReviewRequested=false;setShellFoot(flow,true);
     shell.replaceChildren();
     if(!issues.length){
       shell.append(node('span','mobile-flow-eyebrow','Controle afgerond'));
@@ -545,6 +556,7 @@
       return;
     }
     var issue=issues[0],target=activeReviewTarget(flow,String(issue.field||''));
+    if(DIRECT_FIELDS.includes(String(issue.field||''))){showFullReview(flow,issue);return}
     shell.append(node('span','mobile-flow-eyebrow','1 van '+issues.length));
     shell.append(node('h4','mobile-single-issue-question',reviewQuestion(String(issue.field||''))));
     if(issue.message)shell.append(node('p','',String(issue.message)));
@@ -568,8 +580,9 @@
     }else if(['currency','exchangeRateToEur','vatLines','vatTreatmentChoice'].includes(field)){
       actions.append(button('Aanpassen',function(){showFullReview(flow,issue)},'btn primary mobile-flow-action'));
     }else{
-      actions.append(button('Ja, klopt',function(){confirmReviewIssue(flow,issue)},'btn primary mobile-flow-action'));
-      actions.append(button('Aanpassen',function(){showFullReview(flow,issue)},'btn mobile-flow-action'));
+      // An empty field has nothing to confirm: the field itself is shown above, so typing is the answer.
+      var input=target?.querySelector('input,select,textarea');
+      if(input&&String(input.value||'').trim())actions.append(button('Ja, klopt',function(){confirmReviewIssue(flow,issue)},'btn primary mobile-flow-action'));
       actions.append(button('Alle gegevens bekijken',function(){showFullReview(flow,issue)},'btn link-btn mobile-flow-action'));
     }
     shell.append(actions);
