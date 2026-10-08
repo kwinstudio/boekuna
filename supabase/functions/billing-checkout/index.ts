@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { CURRENCY, PLANS, canonicalPlan, formatEuro, isPaidPlan, lookupKey, normalizeInterval, priceCents, sellablePlans } from "../_shared/pricing.mjs";
+import { CURRENCY, PLANS, TAX_BEHAVIOR, canonicalPlan, formatEuro, isPaidPlan, lookupKey, normalizeInterval, priceCents, sellablePlans } from "../_shared/pricing.mjs";
 
 const APP_URL=(Deno.env.get("APP_URL")||"https://app.boekuna.nl").replace(/\/$/,"");
 const ALLOWED_ORIGINS=new Set([
@@ -59,25 +59,27 @@ async function stripeGet(path:string){
 }
 // The official recurring Stripe price for this plan and interval, found by
 // lookup key. It must match the server-side amount exactly; otherwise refuse.
+// A price with the old tax behaviour (excl. btw) is skipped, so checkout uses the
+// inline price below until the setup script has moved the lookup key.
 async function officialPrice(plan:string,interval:string,amount:number){
   const key=lookupKey(plan,interval);
   const list=await stripeGet("/prices?active=true&limit=2&lookup_keys%5B%5D="+encodeURIComponent(key));
   const price=list?.data?.[0];
   if(!price)return null;
+  if(String(price.tax_behavior||"")!==TAX_BEHAVIOR)return null;
   const ok=String(price.currency||"").toLowerCase()===CURRENCY
     &&Number(price.unit_amount)===amount
     &&price.type==="recurring"
     &&String(price?.recurring?.interval||"")===interval
-    &&Number(price?.recurring?.interval_count||1)===1
-    &&String(price.tax_behavior||"")==="exclusive";
+    &&Number(price?.recurring?.interval_count||1)===1;
   if(!ok)throw new Error("PRICE_MISMATCH");
   return String(price.id);
 }
 function submitMessage(name:string,interval:string,amount:number){
-  const bedrag=formatEuro(amount)+" excl. btw";
+  const bedrag=formatEuro(amount)+" incl. btw";
   return interval==="year"
-    ?`Boekuna ${name} jaarabonnement: je betaalt ${bedrag} vooruit voor 12 maanden toegang. Na 12 maanden verlengt het automatisch met een jaar voor ${bedrag}, tenzij je vóór de verlengdatum opzegt via Abonnement in Boekuna. Opzeggen gaat in aan het einde van de betaalde periode; er is geen restitutie van een lopende periode. De btw wordt hierboven berekend.`
-    :`Boekuna ${name} maandabonnement: ${bedrag} per maand. Het verlengt elke maand automatisch, tenzij je vóór de verlengdatum opzegt via Abonnement in Boekuna. Opzeggen gaat in aan het einde van de betaalde maand. De btw wordt hierboven berekend.`;
+    ?`Boekuna ${name} jaarabonnement: je betaalt ${bedrag} vooruit voor 12 maanden toegang. Na 12 maanden verlengt het automatisch met een jaar voor ${bedrag}, tenzij je vóór de verlengdatum opzegt via Abonnement in Boekuna. Opzeggen gaat in aan het einde van de betaalde periode; er is geen restitutie van een lopende periode.`
+    :`Boekuna ${name} maandabonnement: ${bedrag} per maand. Het verlengt elke maand automatisch, tenzij je vóór de verlengdatum opzegt via Abonnement in Boekuna. Opzeggen gaat in aan het einde van de betaalde maand.`;
 }
 
 Deno.serve(async(req:Request)=>{
@@ -145,7 +147,7 @@ Deno.serve(async(req:Request)=>{
     // server-side amount, interval and tax behaviour.
     p.set("line_items[0][price_data][currency]",CURRENCY);
     p.set("line_items[0][price_data][unit_amount]",String(amount));
-    p.set("line_items[0][price_data][tax_behavior]","exclusive");
+    p.set("line_items[0][price_data][tax_behavior]",TAX_BEHAVIOR);
     p.set("line_items[0][price_data][recurring][interval]",interval);
     p.set("line_items[0][price_data][recurring][interval_count]","1");
     p.set("line_items[0][price_data][product_data][name]","Boekuna "+name);
