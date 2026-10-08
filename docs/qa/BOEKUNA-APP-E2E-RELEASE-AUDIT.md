@@ -4,10 +4,10 @@
 |---|---|
 | Datum | 8 oktober 2026 |
 | Scope | De app (app.boekuna.nl). De marketingwebsite valt buiten scope. |
-| Geteste commit (kandidaat) | `85654b2` op branch `claude/project-thread-2fzuoe` (PR #276) |
-| App-code getest op | `a4cbf99`, `be48c08`, `55d3b80`, `b7a990f` en `85654b2`. `kwinest/index.html` is in de eerste drie identiek. `55d3b80` wijzigt alleen `delete-account`. `b7a990f` laat oude definitieve facturen hun afronding houden (BUG-001). `85654b2` wijzigt alleen een pixeltest. Daarna zijn alle testbestanden uit de CI opnieuw gedraaid. |
-| Productie tijdens de test | App `e1119d2` (ochtend), daarna `366ff22` (#273). `main` staat nu op `f9818ec` (#274, alleen website). |
-| Verschil productie en kandidaat | De vier P1-fixes en twee P2-fixes uit dit rapport staan nog niet live (zie I en J). |
+| Geteste commit | Kandidaat `85654b2` (PR #276, gemerged als `fa74294`). Hertest op productie: `fa74294`. Fix BUG-029: `e347efa` (PR #278). |
+| App-code getest op | `a4cbf99`, `be48c08`, `55d3b80`, `b7a990f` en `85654b2`. `kwinest/index.html` is in de eerste drie identiek. `55d3b80` wijzigt alleen `delete-account`. `b7a990f` laat oude definitieve facturen hun afronding houden (BUG-001). `85654b2` wijzigt alleen een pixeltest. Daarna zijn alle testbestanden uit de CI opnieuw gedraaid. Na de uitrol is `fa74294` op productie hertest (C.4). `e347efa` wijzigt alleen Account verwijderen (BUG-029). |
+| Productie tijdens de test | App `e1119d2` (ochtend), daarna `366ff22` (#273). Na de merge van #276: app `fa74294` (build-marker `fa742942a484`), `send-invoice` v19 en `delete-account` v11. Scanner (kwinest-docprocessor) nog op `7155884` (#264). |
+| Verschil productie en kandidaat | De vier P1-fixes staan live en zijn op productie hertest (C.4). Nog niet live: de scanner-fixes (BUG-005, BUG-006; deploy van kwinest-docprocessor) en de fix voor BUG-029 (PR #278). |
 | Testers | Claude (geautomatiseerd met Playwright/Chromium, Node, Python). Live met twee QA-accounts na akkoord van Kwin ("Ja, stap 1-5"). |
 | Testdata | Alleen synthetische data: "Bakkerij QA A", "Klant QA BV", "Groothandel Testmeel B.V." en gelijksoortig. Geen klantgegevens, geen echte betalingen, geen mail naar klanten. |
 
@@ -19,14 +19,16 @@ Statussen in dit rapport: **PASS**, **FAIL**, **BLOCKED**, **NOT TESTED** en **N
 
 ## A. Managementsamenvatting
 
-**Advies: CONDITIONAL GO voor commit `85654b2` (PR #276).** De huidige productieversie (`366ff22`) haalt de lat niet. Daar zijn vier P1-fouten live:
+**Advies: CONDITIONAL GO.** PR #276 is gemerged en staat live (`fa74294`, met `send-invoice` v19 en `delete-account` v11). De hertest op productie slaagt: 13 van 13 (C.4). Vóór de uitrol haalde productie (`366ff22`) de lat niet. Daar waren vier P1-fouten live:
 
 1. **Dataverlies na inloggen (P1).** Supabase meldt "SIGNED_IN" opnieuw vlak na het inloggen en elke keer dat je terugkomt in het tabblad. De app laadt dan de administratie opnieuw uit de cloud. Wat je net had ingevoerd verdween, en je ging terug naar Overzicht. Dit is live nagespeeld met een QA-account.
 2. **Btw-afronding (P1).** 22,50 excl. btw tegen 21% gaf € 4,72 in plaats van € 4,73. Dat gebeurt bij 21% bij ongeveer 1 op de 1.400 bedragen, in de factuur, de PDF en de btw-aangifte. Live bevestigd. Facturen die al definitief zijn, houden na de fix hun oude bedrag; alleen nieuwe facturen rekenen nieuw.
 3. **Creditfactuur (P1).** Een definitieve creditfactuur zette de oude factuur niet op nul. De factuur bleef "Nog te ontvangen" en werd "Te laat".
 4. **Account verwijderen werkt niet (P1).** De browser blokkeert het verzoek, want de functie beantwoordt de CORS-preflight met 405. Er wordt niets verwijderd. Live bevestigd met de Supabase-logs.
 
-Alle vier zijn opgelost in PR #276, met tests die vóór de fix falen en erna slagen. De fix voor dataverlies is ook gecontroleerd met de branch-build tegen de echte live backend (H-01 t/m H-06: PASS). Daarnaast verbetert de scanner op twee punten (P2).
+Alle vier zijn opgelost in PR #276, met tests die vóór de fix falen en erna slagen, en na de uitrol op productie hertest. De fix voor dataverlies is ook gecontroleerd met de branch-build tegen de echte live backend (H-01 t/m H-06: PASS). Daarnaast verbetert de scanner op twee punten (P2).
+
+Bij de live hertest van Account verwijderen kwam één nieuwe fout boven (BUG-029, P2). Het account wordt wel verwijderd, maar het venster blijft open met een Engelse foutmelding, en de lokale kopie van de administratie blijft in de browser staan. De fix staat in PR #278.
 
 Wat goed is:
 - Tenant-isolatie: live 28 van 28 controles PASS met twee accounts (database, opslag en edge functions).
@@ -46,8 +48,8 @@ Wat nog open staat:
   - lokale beeld-OCR-benchmark (RapidOCR niet installeerbaar in de container)
 
 **Voorwaarden voor GO:**
-- PR #276 mergen en uitrollen (app, edge functions `send-invoice` en `delete-account`, scanner).
-- Na de uitrol een korte hertest op productie.
+- ~~PR #276 mergen en uitrollen~~: gedaan voor de app, `send-invoice` en `delete-account`. De scanner (kwinest-docprocessor) moet nog.
+- ~~Na de uitrol een korte hertest op productie~~: gedaan, 13 van 13 PASS (C.4).
 - Eén Stripe-testmodusronde.
 - Eén iPhone/Safari-rooktest.
 
@@ -70,14 +72,15 @@ Wat nog open staat:
 | Abonnementen (Stripe testmodus) | 0 | 0 | 0 | 4 | 0 |
 | Offline, synchronisatie en dataverlies | 11 | 9 | 2 | 0 | 0 |
 | Account verwijderen | 1 | 0 | 1 | 0 | 0 |
+| Hertest op productie na de uitrol (P-01 t/m P-13, L-D02, L-D03) | 15 | 14 | 1 | 0 | 0 |
 | Schermbreedtes en mobiel | 3 | 3 | 0 | 3 | 0 |
 | Toegankelijkheid (WCAG 2.2 AA) | 4 | 4 | 0 | 0 | 1 |
 | Security en tenant-isolatie | 28 | 28 | 0 | 0 | 0 |
 | Performance | 1 | 1 | 0 | 0 | 0 |
 | Console en netwerk | 1 | 1 | 0 | 0 | 0 |
-| **Subtotaal audit (nieuw)** | **141** | **124** | **17** | **9** | **5** |
+| **Subtotaal audit (nieuw)** | **156** | **138** | **18** | **9** | **5** |
 | Bestaande CI-suite (testbestanden) | 116 | 104 | 0 | 12 | 0 |
-| **Totaal** | **257** | **228** | **17** | **21** | **5** |
+| **Totaal** | **272** | **242** | **18** | **21** | **5** |
 
 ¹ MT940 en CAMT.053: **NOT IMPLEMENTED** in de app. De server-bibliotheek `financial-automation` kan ze lezen, maar de app accepteert alleen `.csv`, `.tab` en `.txt` (`#csvFile`).
 
@@ -87,12 +90,13 @@ Toelichting:
   - 4 hebben WebKit nodig, dat niet in de container zit. Daarvan zijn er 3 voor de website.
   - 1 heeft Postgres/psycopg nodig.
   - In CI draaien deze wel.
-- De 17 FAILs zijn als bug opgenomen in D. Acht daarvan zijn opgelost in PR #276. Die FAILs zijn gemeten op productie en de hertest staat in D.
+- De eerste 17 FAILs zijn als bug opgenomen in D. Acht daarvan zijn opgelost in PR #276. Die FAILs zijn gemeten op productie vóór de uitrol; de hertest staat in D en C.4. De 18e FAIL (L-D03) is BUG-029.
 - Herhaalbare tests staan in de repo:
   - `tests/release-audit-browser.test.mjs`: 63 controles voor gebruiker A, B en C. Handmatig te draaien. Deze test faalt bewust zolang de 6 open punten uit C-13, C-15, B-21, A-39, C-20 en C-24 bestaan.
   - `tests/auth-signed-in-once.test.mjs` (in CI)
   - `tests/invoice-rounding-history.test.mjs` (in CI)
   - `tests/delete-account-cors.test.mjs` (in CI)
+  - `tests/account-deletion-browser.test.mjs` (in CI; doet nu na dat supabase-js bij uitloggen eerst `SIGNED_OUT` meldt, BUG-029)
   - `tests/document-vat-summary-rows.test.py` (in CI)
   - extra gevallen in `tests/production-integrity.test.mjs` (in CI)
 
@@ -105,6 +109,7 @@ Afkortingen:
 - L-nummers zijn live tests op app.boekuna.nl met de QA-accounts.
 - H-nummers zijn tests met de branch-build tegen de live backend.
 - S-nummers zijn tenant-isolatietests.
+- P-nummers zijn de hertest op productie na de uitrol van #276 (`fa74294`), met QA-account A.
 
 ### C.1 Eindacceptatie (gevraagde reis)
 
@@ -153,19 +158,19 @@ Afkortingen:
 |---|---|---|---|---|
 | Registreren | A, B | n.v.t. | PASS | L-R01, L-R02 |
 | Inloggen, foutmeldingen (onbevestigd, fout wachtwoord, onbekend account) | C | n.v.t. | PASS | L-R03 t/m L-R05 |
-| Inloggen laadt de administratie één keer | A | PASS | FAIL (BUG-003) | auth-signed-in-once, H-02, L-B01 |
-| Tabbladwissel houdt invoer | A, C | PASS | FAIL (BUG-003) | auth-signed-in-once, H-03, L-B02 |
+| Inloggen laadt de administratie één keer | A | PASS | Vóór uitrol FAIL (BUG-003); na uitrol PASS | auth-signed-in-once, H-02, L-B01, P-03 |
+| Tabbladwissel houdt invoer | A, C | PASS | Vóór uitrol FAIL (BUG-003); na uitrol PASS | auth-signed-in-once, H-03, L-B02, P-02, P-04 |
 | Uitloggen wist lokale data | C | n.v.t. | PASS | L-C05 t/m L-C08 |
 | Wachtwoord vergeten | A | NOT TESTED | NOT TESTED | (zou echte mail sturen) |
 | Tweestapsverificatie instellen | B | NOT TESTED | NOT TESTED | |
 | Bedrijfsgegevens | A | PASS | PASS | A-02, A-03, L-A02 |
 | Relatie aanmaken, wijzigen, zoeken | A, B, C | PASS | PASS | A-10 t/m A-12, B-10, C-10, L-A03 |
-| Factuur maken (desktop) | A | PASS | FAIL (BUG-001) | A-20 t/m A-25, L-A04 |
+| Factuur maken (desktop) | A | PASS | Vóór uitrol FAIL (BUG-001); na uitrol PASS | A-20 t/m A-25, L-A04, P-10, P-11 |
 | Factuur maken (mobiel, 3 stappen) | A | PASS | NOT TESTED | M-02, M-03 |
 | Factuurnummering zonder gaten of dubbelen | B | PASS | PASS | A-26, A-27, L-A05 |
-| Factuur-PDF en versturen | A | PASS | PASS | A-28, L-A05 (PDF 200, `%PDF-`) |
+| Factuur-PDF en versturen | A | PASS | PASS | A-28, L-A05 (PDF 200, `%PDF-`), P-08, P-11 |
 | Betaling registreren | A | PASS | PASS | A-29, L-A06 |
-| Creditfactuur | A | PASS | NOT TESTED | A-30 t/m A-34, A-58 |
+| Creditfactuur | A | PASS | PASS (concept, bedragen) | A-30 t/m A-34, A-58, P-09 |
 | Herinnering | A | PASS | NOT TESTED | A-34, invoice-send-simple (suite) |
 | Concept verwijderen | B | PASS | NOT TESTED | B-23, B-24 |
 | Zoeken in facturen | B | FAIL | NOT TESTED | B-21, B-22 |
@@ -184,11 +189,35 @@ Afkortingen:
 | Automatisch koppelen | B | PASS (suite) | PASS | L-A62 |
 | MT940 / CAMT.053 | B | NOT IMPLEMENTED | NOT IMPLEMENTED | |
 | Abonnement kiezen, betalen, opzeggen | A | BLOCKED | BLOCKED | (geen Stripe-testmodus; live verboden) |
-| Account verwijderen | A | PASS (harnas) | FAIL (BUG-004) | delete-account-cors, L-D01 |
+| Account verwijderen | A | PASS (harnas, `e347efa`) | Vóór uitrol FAIL (BUG-004); na uitrol PASS, maar het venster blijft open (BUG-029) | delete-account-cors, account-deletion-browser, L-D01 t/m L-D03 |
 | Offline opslaan en herstel | C | n.v.t. | PASS | L-C01 t/m L-C03 |
 | Breedtes 320 t/m 1440 | A | PASS | NOT TESTED | R-01, M-04 |
 | Toegankelijkheid (axe) | A | PASS | NOT TESTED | W-01 t/m W-05 |
 | Tenant-isolatie | A, B | n.v.t. | PASS | S-01 t/m S-70 (28) |
+
+### C.4 Hertest op productie na de uitrol
+
+Op app.boekuna.nl met `fa74294`, `send-invoice` v19 en `delete-account` v11. QA-account A ("Bakkerij QA A"), alleen synthetische gegevens. De PDF's zijn alleen gerenderd (`render_pdf`); er is niets gemaild en niets betaald. Script: `scratchpad/qa/live/live-prod.mjs`, uitvoer `live-prod.json`.
+
+| ID | Controle | Status | Bewijs |
+|---|---|---|---|
+| P-01 | Productie draait de gemergde code | PASS | Build-marker `fa742942a484` in de live HTML |
+| P-02 | Relatie direct na inloggen toegevoegd blijft staan (BUG-003) | PASS | "Prod Direct BV" blijft |
+| P-03 | Inloggen laadt de administratie één keer (BUG-003) | PASS | 1 laadactie, app 1 keer geopend |
+| P-04 | Tabblad wisselen houdt relatie en pagina (BUG-003) | PASS | "Prod Tab BV" blijft; pagina blijft Relaties |
+| P-05 | Wijzigingen staan in de cloud | PASS | Status "Opgeslagen" |
+| P-06 | Oude betaalde factuur 2026-0001 (22,50 @21% + 12,45 @9%) houdt € 40,79, niets open (BUG-001) | PASS | Kenmerk `legacy`, `meta.decimalRounding` gezet; btw 1,12 + 4,72; betaling € 40,79 |
+| P-07 | Facturenlijst toont de oude factuur met € 40,79 | PASS | "2026-0001 Klant QA BV … Betaald … € 34,95 € 40,79" |
+| P-08 | PDF van de oude factuur toont € 40,79 en btw € 4,72 | PASS | `pdftotext`: "Btw 21% over € 22,50 € 4,72 Totaal € 40,79" |
+| P-09 | Creditnota van de oude factuur crediteert precies € 40,79 | PASS | Concept met kenmerk `legacy`, btw −1,12 en −4,72 |
+| P-10 | Nieuwe factuur 22,50 @21%: editor toont btw € 4,73 (BUG-001) | PASS | "Btw 21% € 4,73 Totaal te betalen € 27,23" |
+| P-11 | Nieuwe definitieve factuur 2026-0002: € 27,23 met btw € 4,73, ook in de PDF | PASS | `pdftotext` van de PDF uit `send-invoice` |
+| P-12 | Na uitloggen en opnieuw inloggen staat alles er, bedragen gelijk | PASS | Beide relaties; 2026-0001 € 40,79 en niets open; 2026-0002 € 27,23 |
+| P-13 | Geen JavaScript- of netwerkfouten | PASS | 0 paginafouten, 0 HTTP-fouten |
+| L-D02 | Account verwijderen via de app, QA-account B (BUG-004) | PASS | `delete-account` 200 `{"ok":true}`; daarna inloggen: "E-mailadres of wachtwoord is onjuist" |
+| L-D03 | Na verwijderen sluit het venster en verschijnt de bevestiging | FAIL (BUG-029) | Venster blijft open boven het inlogscherm (`scratchpad/qa/live/shots/del-b.png`) |
+
+Niet hertest: de scanner-fixes (BUG-005, BUG-006). kwinest-docprocessor draait nog `7155884` (#264). QA-account A blijft daarom bestaan tot die hertest en wordt daarna via de app verwijderd.
 
 ---
 
@@ -210,8 +239,8 @@ Ernst: P0 = blokkerend of datalek, P1 = verkeerde financiën, dataverlies of ker
 | Screenshot/log | `scratchpad/qa/live/shots/a2-factuur.png`, `a2-btw.png`. Live: "Btw 21% € 4,72 … Totaal te betalen € 40,79". |
 | Oplossing | Afronden op het decimale bedrag: `Math.round(Number((Math.abs(n)*100).toPrecision(12)))` met teken. Dezelfde code staat in `send-invoice`. |
 | Impactanalyse | De app rekent factuurbedragen bij elke weergave opnieuw uit de regels. Zonder extra maatregel zou de fix dus ook oude, al verstuurde facturen met een halve cent veranderen: € 40,79 wordt € 40,80, er blijft € 0,01 open terwijl de klant alles betaalde, en rubriek 1a van een al ingediende aangifte schuift € 0,01. Daarom krijgen facturen die al definitief waren bij de eerste keer laden na de update het kenmerk `rounding: 'legacy'` (eenmalig, vastgelegd met `meta.decimalRounding`). Zij en hun creditfacturen rekenen met de oude afronding, in de app en in `send-invoice`. Concepten, kopieën en nieuwe facturen rekenen nieuw. Een herstelpunt van vóór de update krijgt bij terugzetten dezelfde behandeling. |
-| Status | Opgelost in PR #276 (`a7b0e45`; oude facturen vergrendeld in `b7a990f`). Nog niet live. |
-| Hertest | PASS lokaal: A-20, A-22, A-24, A-28, M-02, M-03 en `production-integrity` (1,005 → 101, 10,075 → 1008, −4,725 → −473). `invoice-rounding-history` (A-29b): faalt zonder de vergrendeling (oude betaalde factuur € 40,80, € 0,01 open, 1a € 4,73) en slaagt erna (€ 40,79, niets open, 1a € 4,72; creditfactuur −€ 40,79; nieuwe factuur en kopie € 40,80; `send-invoice` gelijk). Live hertest na deploy. |
+| Status | Opgelost in PR #276 (`a7b0e45`; oude facturen vergrendeld in `b7a990f`). Live sinds `fa74294` en `send-invoice` v19. |
+| Hertest | PASS lokaal: A-20, A-22, A-24, A-28, M-02, M-03 en `production-integrity` (1,005 → 101, 10,075 → 1008, −4,725 → −473). `invoice-rounding-history` (A-29b): faalt zonder de vergrendeling (oude betaalde factuur € 40,80, € 0,01 open, 1a € 4,73) en slaagt erna (€ 40,79, niets open, 1a € 4,72; creditfactuur −€ 40,79; nieuwe factuur en kopie € 40,80; `send-invoice` gelijk). Live hertest PASS: P-06 t/m P-11 (oude factuur € 40,79 in app en PDF; nieuwe factuur € 27,23 met btw € 4,73). |
 
 ### BUG-002: Creditfactuur zet de oude factuur niet op nul
 
@@ -226,8 +255,8 @@ Ernst: P0 = blokkerend of datalek, P1 = verkeerde financiën, dataverlies of ker
 | Oorzaak | Het openstaande bedrag hield geen rekening met definitieve creditfacturen. |
 | Screenshot/log | `scratchpad/qa/audit-before.json` (A-30 t/m A-33, A-55 en A-58 FAIL op `main`) |
 | Oplossing | `invoiceCreditOffset`: definitieve creditfacturen verrekenen het onbetaalde deel, oudste eerst. Wat al betaald was, blijft open op de creditfactuur als terugbetaling. Nieuwe status "Verrekend". |
-| Status | Opgelost in PR #276 (`52fc100`). Nog niet live. |
-| Hertest | PASS: A-30 t/m A-34, A-55, A-58. `production-integrity`-gevallen: concept verrekent niets; volledig [0,0]; deels 13,57; betaald origineel geeft 40,80 terug; twee credits in datumvolgorde; credit hoger dan open. |
+| Status | Opgelost in PR #276 (`52fc100`). Live sinds `fa74294`. |
+| Hertest | PASS: A-30 t/m A-34, A-55, A-58. `production-integrity`-gevallen: concept verrekent niets; volledig [0,0]; deels 13,57; betaald origineel geeft 40,80 terug; twee credits in datumvolgorde; credit hoger dan open. Live: het creditconcept van een oude factuur crediteert precies € 40,79 (P-09); de verrekening na definitief maken is live niet herhaald. |
 
 ### BUG-003: Ingevoerde gegevens verdwijnen kort na inloggen en bij terugkeer naar het tabblad
 
@@ -242,8 +271,8 @@ Ernst: P0 = blokkerend of datalek, P1 = verkeerde financiën, dataverlies of ker
 | Oorzaak | supabase-js (auth-js 2.117.3) meldt `SIGNED_IN` direct na `signInWithPassword` en opnieuw bij elke `visibilitychange`. Elke melding laadde de administratie opnieuw en riep `enterApp` aan. |
 | Screenshot/log | `scratchpad/qa/live/live-b4.mjs` en `live-b5.mjs`. Uitvoer: "after 0 contacts ['Online Test BV'] … after 500 contacts []"; events "INITIAL_SESSION, SIGNED_IN, SIGNED_IN". |
 | Oplossing | `loadSignedInUser`: één laadactie per ingelogde gebruiker. Latere meldingen delen die laadactie. Alleen de eerste opent de app. Een open sessie van dezelfde gebruiker laadt niets opnieuw. |
-| Status | Opgelost in PR #276 (`a4cbf99`). Nog niet live. |
-| Hertest | PASS: `auth-signed-in-once.test.mjs` (faalt vóór de fix). Branch-build tegen de live backend met QA-account B: H-01 t/m H-06 PASS (1 laadactie, relatie blijft, pagina blijft "contacts", opgeslagen, opnieuw inloggen, geen JS-fouten). |
+| Status | Opgelost in PR #276 (`a4cbf99`). Live sinds `fa74294`. |
+| Hertest | PASS: `auth-signed-in-once.test.mjs` (faalt vóór de fix). Branch-build tegen de live backend met QA-account B: H-01 t/m H-06 PASS (1 laadactie, relatie blijft, pagina blijft "contacts", opgeslagen, opnieuw inloggen, geen JS-fouten). Live hertest PASS: P-02 t/m P-05 en P-12. |
 
 ### BUG-004: Account verwijderen doet niets (CORS)
 
@@ -258,8 +287,8 @@ Ernst: P0 = blokkerend of datalek, P1 = verkeerde financiën, dataverlies of ker
 | Oorzaak | `delete-account` had geen OPTIONS-afhandeling en geen CORS-headers. Andere functies (`billing-portal`, `send-invoice`) hebben die wel. |
 | Screenshot/log | Supabase function_edge_logs 8 okt 16:33 en 16:35: "OPTIONS \| 405 \| …/functions/v1/delete-account". SQL na de poging: auth-gebruiker en ledger van QA-account B bestaan nog. |
 | Oplossing | Dezelfde CORS-aanpak als `billing-portal`: OPTIONS geeft 204, en elk antwoord heeft `Access-Control-Allow-Origin` (alleen bekende origins). |
-| Status | Opgelost in PR #276 (`55d3b80`). Edge-deploy nodig. |
-| Hertest | PASS: `tests/delete-account-cors.test.mjs` (faalt vóór de fix met 405). De volledige verwijdering via het harnas geeft 200 met CORS. Live hertest na deploy: beide QA-accounts via de app verwijderen (stap 5 van het akkoord). |
+| Status | Opgelost in PR #276 (`55d3b80`). Live sinds `delete-account` v11. |
+| Hertest | PASS: `tests/delete-account-cors.test.mjs` (faalt vóór de fix met 405). De volledige verwijdering via het harnas geeft 200 met CORS. Live hertest PASS (L-D02): QA-account B via de app verwijderd; `delete-account` gaf 200 en daarna kan B niet meer inloggen. Daarbij kwam BUG-029 boven. |
 
 ### BUG-005: Scanner leest btw-regels met "over" niet; de btw-verdeling blijft leeg
 
@@ -405,6 +434,22 @@ Ernst: P0 = blokkerend of datalek, P1 = verkeerde financiën, dataverlies of ker
 | Status | Open |
 | Hertest | n.v.t. |
 
+### BUG-029: Na Account verwijderen blijft het venster open met een Engelse foutmelding
+
+| Veld | Inhoud |
+|---|---|
+| Ernst | P2 (het account wordt wel verwijderd, maar de gebruiker ziet een fout en de lokale kopie blijft staan) |
+| Route | Instellingen › Gevaarzone › Account verwijderen |
+| Functie | `deleteAccountNow` in `kwinest/index.html` |
+| Reproductiestappen | 1. Wachtwoord en "VERWIJDER" invullen. 2. Klik op "Definitief verwijderen". |
+| Verwacht | Het venster sluit. Het inlogscherm toont "Account en cloudgegevens definitief verwijderd". De lokale kopie van de administratie is weg. |
+| Werkelijk | De server verwijdert het account (200). Het venster blijft open boven het inlogscherm, met het wachtwoord nog ingevuld. De melding is "Cannot read properties of null (reading 'id')". De lokale kopie (`boekhouden-user-data-v1-…`) blijft in de browser. Wie het opnieuw probeert, krijgt "Wachtwoord is niet correct". |
+| Oorzaak | supabase-js meldt `SIGNED_OUT` aan de listener van de app voordat `signOut` klaar is. Die listener zet `currentUser` op `null`. `deleteAccountNow` las de gebruiker pas daarna; `logoutUser` bewaarde hem al vooraf. De bestaande test zag het niet, omdat de nep-Supabase bij `signOut` geen `SIGNED_OUT` meldde. |
+| Screenshot/log | `scratchpad/qa/live/shots/del-b.png` (live, QA-account B). Lokaal nagespeeld: melding "Cannot read properties of null (reading 'id')", venster open, lokale kopie aanwezig. |
+| Oplossing | `deleteAccountNow` bewaart de gebruiker vooraf. De opruiming bij `SIGNED_OUT` staat in `clearSignedOutSession()`, zodat de test dezelfde code aanroept als supabase-js. |
+| Status | Opgelost in PR #278 (`e347efa`). Nog niet live. |
+| Hertest | `account-deletion-browser` faalt zonder de fix (de bevestiging verschijnt niet) en slaagt erna in Chromium, desktop en mobiel: venster dicht, bevestiging zichtbaar, lokale kopie weg, inlogscherm zichtbaar. WebKit draait in CI. Live hertest bij het verwijderen van QA-account A, als #278 dan live staat. |
+
 ### BUG-014 t/m BUG-028 (P3)
 
 | ID | Titel | Route | Werkelijk | Voorstel | Status |
@@ -420,7 +465,7 @@ Ernst: P0 = blokkerend of datalek, P1 = verkeerde financiën, dataverlies of ker
 | BUG-022 | Dashboard rendert in 0,8 s bij 600 facturen | Overzicht | 787 ms (B-20, nog binnen de norm) | Berekeningen cachen per wijziging | Open |
 | BUG-023 | Bonnummer van een kassabon niet herkend, terwijl de app een nummer eist | Bonnetjes | "Bonnr: 4471" niet gelezen; "Volgende" blijft uit tot er een nummer is (L-A53) | "Bonnr" herkennen, of nummer optioneel maken bij een kassabon | Open |
 | BUG-024 | Omschrijving van een gescande factuur is de ruwe eerste regel | Kosten | "Tarwebloem 25 kg 4 18,75 9% 75,00" | Alleen de omschrijving overnemen | Open |
-| BUG-025 | JS-fout "cannot add postgres_changes callbacks … after subscribe()" | Na inloggen (live) | Gezien in 2 live sessies; waarschijnlijk door de dubbele laadactie van BUG-003 | Komt mee met BUG-003 | Opgelost in PR (H-06: geen JS-fouten); live hertest na deploy |
+| BUG-025 | JS-fout "cannot add postgres_changes callbacks … after subscribe()" | Na inloggen (live) | Gezien in 2 live sessies; waarschijnlijk door de dubbele laadactie van BUG-003 | Komt mee met BUG-003 | Opgelost in PR #276; live hertest PASS (P-13: geen JS-fouten) |
 | BUG-026 | Dubbele relatie zonder waarschuwing | Relaties | Twee keer "Head Direct BV" toegestaan | Waarschuwen bij dezelfde naam | Open |
 | BUG-027 | "Btw apartzetten € -16,66" bij terug te vragen btw | Overzicht | Negatief bedrag bij "apartzetten" | Tekst "Btw terug te vragen € 16,66" | Open |
 | BUG-028 | Supabase-adviseur: `pg_net` in schema public; 7 SECURITY DEFINER-functies aanroepbaar door ingelogde gebruikers | Database | WARN (geen misbruik gevonden; isolatietests PASS) | Per functie nagaan of `authenticated` execute nodig heeft | Open |
@@ -512,7 +557,7 @@ Betrouwbaarheid: de scanner faalt veilig. In alle geteste foutgevallen bleef het
 | Inlogfout verraadt geen bestaand account | PASS | L-R04, L-R05 |
 | Uitloggen wist de lokale administratie; herladen logt niet vanzelf in | PASS | L-C05, L-C08 |
 | Geen live geheime sleutels in de repo | PASS | `git grep` op `sk_live_`, `rk_live_` en `sb_secret_`: geen treffers |
-| Account verwijderen | FAIL op productie (BUG-004); opgelost in kandidaat | |
+| Account verwijderen | PASS op productie na de uitrol (L-D02). Venster en lokale kopie: BUG-029, fix in PR #278 | L-D02, L-D03 |
 | Security-headers | FAIL (BUG-012) | |
 | Oude en overbodige edge functions | FAIL (BUG-013, BUG-014) | |
 | Supabase-adviseur | 2 WARN (BUG-028), 16 INFO (RLS zonder policy = alles dicht) | |
@@ -524,7 +569,7 @@ Privacy van de test:
 - Geen mail naar klanten (het "versturen" werd gemarkeerd zonder te mailen; de PDF is alleen gedownload).
 - Geen betalingen.
 
-De accounts worden verwijderd via "Account verwijderen" zodra de fix voor BUG-004 live staat. Zo dient die verwijdering ook als hertest. Tot die tijd hebben ze tijdelijke ZZP-toegang.
+QA-account B is op 8 oktober via "Account verwijderen" in de app verwijderd (L-D02); inloggen kan daarna niet meer. QA-account A blijft tot de hertest van de scanner na de deploy van kwinest-docprocessor en wordt daarna op dezelfde manier verwijderd. Tot die tijd heeft het tijdelijke ZZP-toegang en alleen synthetische gegevens.
 
 ---
 
@@ -537,7 +582,7 @@ De accounts worden verwijderd via "Account verwijderen" zodra de fix voor BUG-00
 | Scan PDF tot "Controle nodig" | ongeveer 67 s | Live |
 | Scan foto tot "Controle nodig" | 86 s (OCR 21,6 s) | Live |
 | Grootte van de app (`index.html`) | 918 kB, één bestand | Live |
-| Onverwachte netwerkfouten (4xx/5xx) tijdens de live tests | 0, behalve de preflight van `delete-account` (BUG-004) en de Realtime-websocket (proxy van de testomgeving) | Live |
+| Onverwachte netwerkfouten (4xx/5xx) tijdens de live tests | 0, behalve de preflight van `delete-account` (BUG-004) en de Realtime-websocket (proxy van de testomgeving). Na de uitrol: 0 in de hertest (P-13). Bij het verwijderen alleen 403 op `auth/v1/logout`, omdat de gebruiker dan al weg is; supabase-js negeert die. | Live |
 
 Er zijn geen loadtests gedaan, want dat is verboden tegen productie. Advies: maak het dashboard sneller bij grote administraties (BUG-022), en kijk of de wachtrijtijd van de scanner (ongeveer 45 tot 65 s buiten de OCR zelf) korter kan.
 
@@ -555,13 +600,16 @@ Er zijn geen loadtests gedaan, want dat is verboden tegen productie. Advies: maa
 | Account verwijderen: CORS (BUG-004) | `supabase/functions/delete-account/index.ts`, `tests/delete-account-cors.test.mjs`, workflow backend | Test faalt vóór de fix (405); na de fix PASS, inclusief volledige verwijdering in het harnas | In PR #276 (`55d3b80`) |
 | Oude definitieve facturen houden hun afronding (BUG-001, impact) | `kwinest/index.html`, `supabase/functions/send-invoice/index.ts`, `tests/invoice-rounding-history.test.mjs`, `tests/production-code.mjs`, workflow app | Test faalt zonder de vergrendeling (€ 40,80 en € 0,01 open), slaagt erna. Alle 84 testbestanden uit de CI-workflows opnieuw, met het CI-profiel: 83 PASS; `product-ui-reference` Chromium PASS, WebKit BLOCKED (niet in de container). Audit-browsertest 57/63, dezelfde 6 open punten. | In PR #276 (`b7a990f`) |
 | Pixeltest desktop robuuster (CI-fout "app") | `tests/mobile-desktop-freeze.test.mjs` | Faalde in CI op bank-1920 (25 en 37 pixels, 1 kleurniveau verschil) en lokaal ook op `main` zonder deze PR. Grens van 12 naar 64 pixels; een verschil groter dan 1 niveau faalt nog steeds. Daarna 3× PASS (main en kandidaat). | In PR #276 (`85654b2`) |
+| Account verwijderen: venster sluit, lokale kopie weg (BUG-029) | `kwinest/index.html`, `tests/account-deletion-browser.test.mjs` | Test faalt vóór de fix, slaagt erna (Chromium, desktop en mobiel). 12 verwante testbestanden PASS, waaronder `developer-mode`, `logout-local-data`, `source-safety`, `auth-signed-in-once` en `kvk-company-lookup-browser`. | In PR #278 (`e347efa`) |
 
 Uitrol na merge, alleen met akkoord van Kwin per stap:
 1. App: Render › boekuna-split-app-preview › Manual Deploy.
 2. Direct daarna de edge functions `send-invoice` en `delete-account` deployen. Volgorde app eerst: dan krijgen oude facturen meteen hun kenmerk. Tot `send-invoice` live staat, kan een PDF van een nieuwe factuur met een halve cent nog € 0,01 afwijken.
 3. Branch `kwinest-hosting` gelijkzetten met `main` en daarna kwinest-docprocessor deployen.
 
-PR: https://github.com/kwinstudio/boekuna/pull/276
+Stand na de merge (8 oktober): stap 1 en 2 zijn gedaan (app `fa74294`, `send-invoice` v19, `delete-account` v11) en `kwinest-hosting` staat gelijk met `main`. Open: kwinest-docprocessor deployen.
+
+PR's: https://github.com/kwinstudio/boekuna/pull/276 (gemerged als `fa74294`) en https://github.com/kwinstudio/boekuna/pull/278 (BUG-029)
 
 ---
 
@@ -571,9 +619,9 @@ PR: https://github.com/kwinstudio/boekuna/pull/276
 
 | Werk | Reden | Impact | Afhankelijkheden |
 |---|---|---|---|
-| PR #276 mergen en de app deployen | BUG-001, BUG-002 en BUG-003 staan live | Financiële fouten en dataverlies bij elke gebruiker | Kwins "merge" en de Render-deploy |
-| `send-invoice` en `delete-account` deployen | De PDF-afronding (BUG-001) en Account verwijderen (BUG-004) | Verkeerde PDF-bedragen; AVG-verwijdering werkt niet | Kwins go per functie |
-| Hertest op productie na deploy | Bevestigen dat de fixes live werken | 22,50 × 21% = 4,73 op een nieuwe factuur; de oude QA-factuur van € 40,79 blijft € 40,79 zonder open bedrag; tabbladwissel houdt invoer; beide QA-accounts verwijderen via de app | QA-accounts (nog aanwezig) |
+| PR #276 mergen en de app deployen | **Gedaan**: `fa74294` staat live | | |
+| `send-invoice` en `delete-account` deployen | **Gedaan**: v19 en v11 staan live | | |
+| Hertest op productie na deploy | **Gedaan**: 13 van 13 PASS en QA-account B verwijderd (C.4) | | |
 | Stripe-testmodusronde: kiezen, betalen, portal, opzeggen | Niet testbaar in deze sessie (BLOCKED) | Abonnementen zijn de inkomsten | Stripe-testsleutel in een nieuwe sessie; prijzen in testmodus |
 | iPhone/Safari-rooktest (inloggen, factuur, foto uploaden) | WebKit BLOCKED in de container | Veel ZZP'ers werken op een iPhone | Echte iPhone of BrowserStack |
 
@@ -581,7 +629,8 @@ PR: https://github.com/kwinstudio/boekuna/pull/276
 
 | Werk | Reden | Impact | Afhankelijkheden |
 |---|---|---|---|
-| Scanner deployen (`kwinest-hosting` gelijkzetten) en foto-OCR hertesten | BUG-005, BUG-006, BUG-008 | Minder handwerk; juiste betaalstatus | Kwins deploy |
+| PR #278 mergen en de app deployen | BUG-029: na verwijderen blijft het venster open met een Engelse foutmelding | Verwarring bij een verwijderverzoek; lokale kopie blijft in de browser | Kwins "merge" en de Render-deploy |
+| Scanner deployen (`kwinest-hosting` staat al gelijk met `main`) en hertesten | BUG-005, BUG-006, BUG-008 | Minder handwerk; juiste betaalstatus | Kwins deploy van kwinest-docprocessor; hertest met QA-account A, daarna A verwijderen |
 | Terugknop in de app (BUG-009) | Gebruikers verlaten de app per ongeluk | Frustratie, kans op dubbel werk | Geen |
 | Waarschuwing bij weggooien van een factuur (BUG-010) | Invoer verdwijnt | Frustratie | Geen |
 | Zoeken over alle perioden (BUG-011) | Oude facturen "onvindbaar" | Kans op dubbele facturen | Geen |
@@ -602,16 +651,16 @@ PR: https://github.com/kwinstudio/boekuna/pull/276
 
 ## K. Releaseadvies
 
-**CONDITIONAL GO**, voor commit `85654b2` (PR #276), onder de vijf voorwaarden "Vóór livegang" in J.
+**CONDITIONAL GO** voor productie `fa74294` (PR #276 live). Drie van de vijf voorwaarden "Vóór livegang" in J zijn gedaan. Open zijn de Stripe-testmodusronde en de iPhone/Safari-rooktest.
 
 Onderbouwing:
 - Kritieke flows (registreren, inloggen, factuur maken, betalen, btw, uitloggen) werken in de kandidaat. De eindacceptatie is doorlopen (C.1).
 - Financiële berekeningen kloppen in de kandidaat. De twee P1-fouten op productie zijn opgelost en getest. Oude definitieve facturen veranderen niet van bedrag.
 - Geen tenant-lek: live 28/28.
-- Geen ongecontroleerd dataverlies in de kandidaat (BUG-003 opgelost en tegen de live backend gecontroleerd).
-- Geen open P0 of P1 in de kandidaat.
-- **Geen GO**, omdat belangrijke criteria niet getest zijn: Stripe in testmodus en Safari/WebKit. Ook staan de fixes nog niet in productie.
-- De huidige productie (`366ff22`) zou zonder deze PR **NO-GO** krijgen: er zijn open P1's voor dataverlies, btw-afronding, creditfacturen en account verwijderen.
+- Geen ongecontroleerd dataverlies (BUG-003 opgelost en op productie hertest: P-02 t/m P-05, P-12).
+- Geen open P0 of P1, ook niet op productie na de uitrol.
+- **Geen GO**, omdat belangrijke criteria niet getest zijn: Stripe in testmodus en Safari/WebKit.
+- Productie vóór de uitrol (`366ff22`) was **NO-GO**: er waren open P1's voor dataverlies, btw-afronding, creditfacturen en account verwijderen. Die zijn live opgelost en hertest (C.4).
 
 ---
 
@@ -625,10 +674,12 @@ Onderbouwing:
 **Scepticus.**
 - De dataverlies-fix is getest met een nep-Supabase en met één live account, niet met meerdere apparaten tegelijk. Een versieconflict tussen twee apparaten valt buiten deze fix; de bestaande conflictafhandeling (back-up plus serverstaat) is niet opnieuw getest.
 - De eerste versie van de afrondingsfix (`a7b0e45`) zou oude definitieve facturen met een halve cent stil € 0,01 laten veranderen, omdat de app bedragen telkens opnieuw uit de regels berekent. Dat is in `b7a990f` afgedicht met een kenmerk per factuur en een test die zonder die vergrendeling faalt. Restrisico: een tabblad met de oude app dat nog openstaat tijdens de update, kan in die minuten een definitieve factuur zonder kenmerk maken. Die rekent daarna nieuw; het verschil is hooguit € 0,01 en alleen bij een halve cent.
+- De test voor Account verwijderen gebruikte een nep-Supabase die bij `signOut` geen `SIGNED_OUT` meldde. Daardoor bleef BUG-029 verborgen tot de live hertest. De test doet supabase-js nu na. Les: een nep-backend moet de volgorde van gebeurtenissen van de echte bibliotheek volgen.
 
 **Factchecker.**
 - Elk getal in dit rapport komt uit een testuitvoer, een log of een SQL-resultaat (bronnen staan bij de bug of in `scratchpad/qa`).
-- De commit op productie is afgelezen uit `BOEKUNA_BUILD` in de live HTML (`366ff22ba221`).
+- De commit op productie is afgelezen uit `BOEKUNA_BUILD` in de live HTML (`366ff22ba221`; na de uitrol `fa742942a484`, P-01).
+- De versie van de scanner komt uit de Render-deploylijst van kwinest-docprocessor (live: `7155884`, #264).
 - De Realtime-fout is als omgevingsprobleem aangemerkt op basis van de Supabase-logs (alleen 101-antwoorden). De uitleg bij BUG-025 is een afleiding, geen bewezen oorzaak.
 
 **Tegenstander.**
@@ -641,19 +692,19 @@ Onderbouwing:
 
 ```
 BOEKUNA — RELEASE READINESS
-Algemene status: Kandidaat klaar onder voorwaarden; productie (366ff22) heeft 4 open P1's tot de deploy
-Geteste commit: 85654b2 (PR #276; app-code gelijk aan b7a990f)
-Aantal uitgevoerde tests: 257
-Aantal geslaagde tests: 228
-Aantal gefaalde tests: 17
+Algemene status: PR #276 live op productie (fa74294); hertest op productie 13/13 PASS; open: Stripe-testmodus, iPhone/Safari, scanner-deploy, PR #278
+Geteste commit: fa74294 (productie, PR #276) en e347efa (PR #278)
+Aantal uitgevoerde tests: 272
+Aantal geslaagde tests: 242
+Aantal gefaalde tests: 18
 Aantal geblokkeerde tests: 21 (12 suite-tests door omgeving + 9 testcases: Stripe-testmodus 4, WebKit/Firefox/echt toestel 3, e-maillink 1, lokale beeld-OCR 1)
 Aantal open P0: 0
-Aantal open P1: 0 in de kandidaat (4 opgelost in PR #276, nog niet live)
-Aantal open P2: 7 (BUG-007 t/m BUG-013); 2 opgelost in PR #276
+Aantal open P1: 0 (4 opgelost in PR #276, live en hertest)
+Aantal open P2: 7 (BUG-007 t/m BUG-013). Opgelost, nog niet live: BUG-005 en BUG-006 (scanner-deploy), BUG-029 (PR #278)
 Aantal open P3: 14
-Belangrijkste risico: tot de deploy verliezen gebruikers live invoer na inloggen en bij een tabbladwissel, en rekent productie soms 1 cent te weinig btw
-Resterende releaseblockers: PR #276 mergen en deployen (app, send-invoice, delete-account), hertest op productie, Stripe-testmodusronde, iPhone/Safari-rooktest
+Belangrijkste risico: abonnementen (Stripe) en Safari/iPhone zijn niet getest; foto-OCR leest bedragen nog onbetrouwbaar (opslaan wordt dan wel geblokkeerd)
+Resterende releaseblockers: Stripe-testmodusronde, iPhone/Safari-rooktest
 Definitief advies: CONDITIONAL GO
 Rapportlocatie: docs/qa/BOEKUNA-APP-E2E-RELEASE-AUDIT.md (kopie: /mnt/project-files/qa/BOEKUNA-APP-E2E-RELEASE-AUDIT.md)
-PR-link: https://github.com/kwinstudio/boekuna/pull/276
+PR-link: https://github.com/kwinstudio/boekuna/pull/276 (gemerged), https://github.com/kwinstudio/boekuna/pull/278
 ```
