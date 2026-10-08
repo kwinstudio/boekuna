@@ -88,7 +88,7 @@ try{
     // Choosing a plan opens a confirmation; Stripe opens only after "Naar betalen".
     await page.evaluate(()=>{
       window.__checkout=[];
-      fetchWithAuthRetry=async(url,opts)=>{window.__checkout.push({url,body:JSON.parse(opts.body)});return new Response(JSON.stringify({ok:false,error:'Testmodus: geen Stripe.'}),{status:503})};
+      fetchWithAuthRetry=async(url,opts)=>{window.__checkout.push({url,body:JSON.parse(opts.body)});await new Promise(r=>setTimeout(r,400));return new Response(JSON.stringify({ok:false,error:'Testmodus: geen Stripe.'}),{status:503})};
     });
     await page.locator('#billingCard').getByRole('radio',{name:/Jaarlijks/}).click();
     await page.locator('#billingCard').getByRole('button',{name:'Kies ZZP'}).click();
@@ -99,7 +99,7 @@ try{
     assert.deepEqual(await page.evaluate(()=>window.__checkout),[],'nothing is requested before confirming');
     await dialog.getByRole('button',{name:'Naar betalen'}).dblclick();
     await page.waitForFunction(()=>window.__checkout.length>0);
-    await page.waitForTimeout(150);
+    await page.waitForTimeout(600);
     const sent=await page.evaluate(()=>window.__checkout);
     assert.equal(sent.length,1,'a double click starts one checkout request');
     assert.deepEqual(sent[0].body,{plan:'zzp',interval:'year'},'only plan and interval are sent, never an amount');
