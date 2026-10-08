@@ -172,8 +172,17 @@ try{
   });
   await page.locator('.mobile-single-issue-review').waitFor();
   assert.equal(await page.locator('.mobile-single-issue-question').count(),1,'one issue question per mobile screen');
-  assert.equal(await page.locator('.mobile-single-issue-question').innerText(),'Klopt de leverancier?');
-  assert.equal(await page.getByRole('button',{name:'Alle gegevens bekijken',exact:true}).count(),1);
+  assert.equal(await page.locator('.mobile-single-issue-question').innerText(),'Wie is de leverancier?','an empty field asks for the value, not whether it is right');
+  assert.equal(await page.getByRole('button',{name:'Alle gegevens',exact:true}).count(),1);
+  assert.equal(await page.getByRole('button',{name:'Ja, klopt',exact:true}).count(),0,'an empty field has nothing to confirm');
+  assert.equal(await page.locator('#modalRoot :is(#reviewBasisState,#reviewBlockingState):visible').count(),0,'the question is not repeated in a warning card');
+  assert.equal(await page.locator('#modalRoot').getByText('Leverancier ontbreekt.').filter({visible:true}).count(),0,'the missing field is said once, as the question');
+  {
+    const label=await page.locator('.mobile-active-issue label').boundingBox(),input=await page.locator('.mobile-active-issue input').boundingBox(),actions=await page.locator('.mobile-single-issue-actions').boundingBox();
+    assert.ok(label.height<30,'field label stays on one line');
+    assert.ok(input.y>=label.y+label.height-1,'label sits above the field');
+    assert.ok(actions.y>=input.y+input.height,'the buttons sit under the field they are about');
+  }
   assert.equal(await page.locator('.mobile-single-issue-review .beginner-provenance:visible').count(),0,'simple review hides provenance labels only');
   await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'03-bon-enkele-vraag-'+browserName+'.png')});
   await page.evaluate(()=>closeModal());
@@ -185,7 +194,7 @@ try{
   });
   await page.locator('.mobile-single-issue-review').waitFor();
   assert.equal(await page.locator('.mobile-single-issue-question').innerText(),'Deze bon heb je al');
-  assert.equal(await page.locator('.mobile-single-issue-review').getByRole('button',{name:'Weggooien, is dubbel',exact:true}).count(),1);
+  assert.equal(await page.locator('.mobile-single-issue-actions').getByRole('button',{name:'Weggooien, is dubbel',exact:true}).count(),1);
   assert.equal(await page.locator('button:visible',{hasText:'Weggooien, is dubbel'}).count(),1,'one visible discard button on a phone');
   assert.equal(await page.getByRole('button',{name:'Nee, dit is een andere bon',exact:true}).count(),1);
   assert.equal(await page.getByRole('button',{name:'Ja, klopt',exact:true}).count(),0,'duplicate flow must not use an ambiguous approval label');
@@ -195,7 +204,7 @@ try{
   await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'04-bon-duplicaat-'+browserName+'.png')});
   // Throwing the duplicate away asks once, then removes only the new copy; the existing document stays.
   await page.evaluate(()=>{window.__realConfirm=window.confirm;window.__confirmAsked='';window.confirm=msg=>{window.__confirmAsked=msg;return true}});
-  await page.locator('.mobile-single-issue-review').getByRole('button',{name:'Weggooien, is dubbel',exact:true}).click();
+  await page.locator('.mobile-single-issue-actions').getByRole('button',{name:'Weggooien, is dubbel',exact:true}).click();
   await page.waitForFunction(()=>!(state.documents||[]).some(d=>d.id==='d-dup-source'));
   assert.match(await page.evaluate(()=>window.__confirmAsked),/dubbele bon weggooien/);
   assert.ok(await page.evaluate(()=>(state.documents||[]).some(d=>d.id==='existing-doc')),'the existing document stays');
@@ -209,7 +218,7 @@ try{
     showPdfImportReview(parsed);
   });
   await page.locator('.mobile-single-issue-review').waitFor();
-  assert.equal(await page.locator('.mobile-single-issue-question').innerText(),'Klopt de leverancier?','the missing supplier is asked before the amounts step');
+  assert.equal(await page.locator('.mobile-single-issue-question').innerText(),'Wie is de leverancier?','the missing supplier is asked before the amounts step');
   await page.locator('[name="party"]:visible').fill('OpenAI LLC');
   // Depending on timing the shell has already moved on after typing; confirm only when the button is still there.
   const confirmParty=page.getByRole('button',{name:'Ja, klopt',exact:true});if(await confirmParty.isVisible())await confirmParty.click();

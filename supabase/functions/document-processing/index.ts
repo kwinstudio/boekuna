@@ -117,8 +117,10 @@ function reviewAssessment(data:any){
   if(rates.length===0)fields.push("vatRate");
   const warnings=Array.isArray(data?.warnings)?data.warnings:[];
   if(warnings.length&&!fields.length)fields.push("document");
-  const unique=[...new Set(fields)];
-  const label:Record<string,string>={gross:"totaal",vatAmount:"btw-bedrag",issueDate:"datum",party:"leverancier",vatLines:"btw-verdeling",vatRate:"btw-tarief",document:"documentgegevens"};
+  // Routing can name extractor fields (supplierName, vatTotal, …); fold them into the app's own field names.
+  const alias:Record<string,string>={supplierName:"party",customerName:"party",total:"gross",vatTotal:"vatAmount",subtotal:"net",invoiceDate:"issueDate"};
+  const unique=[...new Set(fields.map(x=>alias[x]||x))];
+  const label:Record<string,string>={gross:"totaal",net:"bedrag excl. btw",vatAmount:"btw-bedrag",issueDate:"datum",party:"leverancier",vatLines:"btw-verdeling",vatRate:"btw-tarief",vatTreatment:"btw-behandeling",invoiceNumber:"factuurnummer",documentType:"documenttype",document:"documentgegevens"};
   return {fields:unique,message:unique.length?"Controleer "+unique.map(x=>label[x]||x).join(", ")+".":""};
 }
 async function markFailed(sb:any,jobId:string,code:string,status=500,reference=""){

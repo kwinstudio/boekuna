@@ -89,8 +89,16 @@
   #modalRoot .mobile-duplicate-card strong{font-size:14px;overflow-wrap:anywhere}
   #modalRoot .mobile-duplicate-card>span:not(.mobile-duplicate-kicker){font-size:12px;color:var(--app-muted-strong);overflow-wrap:anywhere}
   #modalRoot .mobile-duplicate-kicker{font-size:10px;font-weight:800;letter-spacing:.04em;color:var(--app-muted-strong)}
-  #modalRoot .mobile-single-issue-actions{display:flex;flex-direction:column;gap:8px}
+  #modalRoot .mobile-single-issue-actions{display:flex;flex-direction:column;gap:10px;margin-top:16px}
   #modalRoot .mobile-single-issue-actions .btn{width:100%;justify-content:center}
+  #modalRoot .mobile-single-issue-more{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #modalRoot .mobile-single-issue-more .btn{min-height:44px;font-size:14px;padding:0 10px;white-space:nowrap}
+  /* One question, one field: label above a full-width input, no repeated warning card under it. */
+  #modalRoot .document-review-flow[data-mobile-simple-review="active"] .mobile-active-issue.field{flex-direction:column!important;align-items:stretch!important;gap:6px}
+  #modalRoot .document-review-flow[data-mobile-simple-review="active"] .mobile-active-issue.field>label{white-space:nowrap;margin:0}
+  #modalRoot .document-review-flow[data-mobile-simple-review="active"] .mobile-active-issue.field :is(input,select,textarea){width:100%;min-height:48px;font-size:16px}
+  #modalRoot .document-review-flow[data-mobile-simple-review="active"] :is(#reviewBasisState,#reviewBlockingState):not(:has(.mobile-active-issue)){display:none!important}
+  #modalRoot .document-review-flow[data-mobile-simple-review="active"] .review-wizard-page:has(.mobile-active-issue){padding:0;margin:0}
 
   #modalRoot .mobile-flow-action{min-width:44px;min-height:44px}
   #mainApp .mobile-flow-action{min-width:44px;min-height:44px}
