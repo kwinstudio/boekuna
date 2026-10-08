@@ -70,10 +70,9 @@ try{
     assert.equal(await card.getByRole('radio',{name:/Jaarlijks/}).getAttribute('aria-checked'),'true');
     assert.ok(await card.getByText('€ 99,50',{exact:true}).isVisible(),'ZZP yearly total is shown');
     assert.ok(await card.getByText(/gemiddeld € 8,29 per maand/).isVisible());
-    assert.ok(await card.getByText('€ 199,50',{exact:true}).isVisible());
-    assert.ok(await card.getByText('€ 349,50',{exact:true}).isVisible());
-    assert.equal(await card.getByText('Binnenkort beschikbaar').count(),2,'Pro and Business are not sold yet');
-    assert.equal(await card.getByRole('button',{name:'Kies Pro'}).count(),0);
+    // Pro and Business have no distinguishing features yet: not shown, not sold, no promises.
+    for(const hidden of [/\bPro\b/,/Business/,/€ 199,50/,/€ 349,50/,/€ 19,95/,/€ 34,95/,/binnenkort/i])
+      assert.equal(await card.getByText(hidden).count(),0,'hidden plan shown in app: '+hidden);
 
     // Switch to monthly without reload; keyboard reachable.
     await card.getByRole('radio',{name:'Maandelijks'}).focus();

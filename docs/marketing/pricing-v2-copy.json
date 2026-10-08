@@ -4,13 +4,44 @@
   "currency": "EUR",
   "vat": "Alle bedragen exclusief btw.",
   "plans": {
-    "start": { "name": "Start", "monthly": "€ 0", "yearly": "€ 0", "sellable": true, "positioning": "Beginnen met factureren." },
-    "zzp": { "name": "ZZP", "monthly": "€ 9,95", "yearly": "€ 99,50", "yearlySaving": "€ 19,90", "yearlyPerMonth": "€ 8,29", "sellable": true, "positioning": "Volledige basisboekhouding voor zelfstandigen." },
-    "pro": { "name": "Pro", "monthly": "€ 19,95", "yearly": "€ 199,50", "yearlySaving": "€ 39,90", "yearlyPerMonth": "€ 16,63", "sellable": false, "positioning": "Meer boekhouding automatiseren." },
-    "business": { "name": "Business", "monthly": "€ 34,95", "yearly": "€ 349,50", "yearlySaving": "€ 69,90", "yearlyPerMonth": "€ 29,13", "sellable": false, "positioning": "Administratie voor groeiende ondernemingen." }
+    "start": {
+      "name": "Start",
+      "monthly": "€ 0",
+      "yearly": "€ 0",
+      "sellable": true,
+      "positioning": "Gratis: facturen, kosten, btw-overzicht, bankimport en rapporten, met 10 slimme documenten per maand."
+    },
+    "zzp": {
+      "name": "ZZP",
+      "monthly": "€ 9,95",
+      "yearly": "€ 99,50",
+      "yearlySaving": "€ 19,90",
+      "yearlyPerMonth": "€ 8,29",
+      "sellable": true,
+      "positioning": "Alles van Start, plus documentherkenning zonder maandlimiet en herstelpunten."
+    },
+    "pro": {
+      "name": "Pro",
+      "monthly": "€ 19,95",
+      "yearly": "€ 199,50",
+      "yearlySaving": "€ 39,90",
+      "yearlyPerMonth": "€ 16,63",
+      "sellable": false,
+      "positioning": "Verborgen: er zijn nog geen bestaande functies die dit pakket onderscheiden. Niet noemen."
+    },
+    "business": {
+      "name": "Business",
+      "monthly": "€ 34,95",
+      "yearly": "€ 349,50",
+      "yearlySaving": "€ 69,90",
+      "yearlyPerMonth": "€ 29,13",
+      "sellable": false,
+      "positioning": "Verborgen: er zijn nog geen bestaande functies die dit pakket onderscheiden. Niet noemen."
+    }
   },
   "rules": [
-    "Gebruik alleen pakketten met sellable=true in een aanbod. Pro en Business alleen als 'binnenkort'.",
+    "Gebruik alleen pakketten met sellable=true. Pro en Business niet noemen, ook niet als 'binnenkort'.",
+    "Noem alleen functies die nu in de app werken. Geen toekomstige functies of roadmap.",
     "Noem altijd het werkelijke jaarbedrag; het gemiddelde per maand alleen als tweede regel.",
     "Gebruik het woord 'onbeperkt' niet. Zeg: geen scancredits en geen vaste maandlimiet.",
     "Geen 'meest gekozen', geen verzonnen reviews, kortingen, deadlines of urgentie.",
@@ -21,7 +52,7 @@
     "introductie": {
       "subject": "Nieuwe, eenvoudige prijzen voor Boekuna",
       "preheader": "Je betaalt voor functies, niet voor het aantal bonnetjes.",
-      "body": "Boekuna heeft nu duidelijke pakketten. Start is gratis en bedoeld om te factureren. Met ZZP heb je je volledige basisboekhouding: inkomsten en uitgaven, bonnetjes uitlezen, btw-overzicht, bankimport en winst en kosten. ZZP kost € 9,95 per maand of € 99,50 per jaar, exclusief btw. Er zijn geen scancredits: je hoeft geen duurder pakket te kiezen omdat je meer bonnetjes hebt.",
+      "body": "Boekuna heeft nu duidelijke pakketten. Start is gratis: je maakt facturen, houdt kosten en bonnetjes bij, ziet je btw-overzicht, importeert je bankbestand en bekijkt je rapporten, met 10 slimme documentherkenningen per maand. ZZP kost € 9,95 per maand of € 99,50 per jaar, exclusief btw. Met ZZP worden je documenten uitgelezen zonder maandlimiet en kun je herstelpunten gebruiken. Er zijn geen scancredits.",
       "cta": "Bekijk de prijzen"
     },
     "jaarabonnement": {
@@ -33,12 +64,6 @@
       "subject": "Jaarlijks betalen: 2 maanden gratis",
       "body": "Een jaar ZZP kost € 99,50 exclusief btw. Dat is tien keer het maandbedrag voor twaalf maanden toegang. Je bespaart € 19,90 ten opzichte van twaalf keer € 9,95.",
       "cta": "Bekijk jaarlijks betalen"
-    },
-    "upgrade_zzp_naar_pro": {
-      "status": "niet gebruiken tot Pro verkoopbaar is",
-      "subject": "Meer automatiseren met Pro",
-      "body": "Pro voegt automatisering toe aan ZZP, zoals terugkerende facturen en automatische betalingsherinneringen. Pro kost € 19,95 per maand of € 199,50 per jaar, exclusief btw. Een upgrade gaat direct in; je betaalt alleen het verschil voor de rest van je periode.",
-      "cta": "Bekijk Pro"
     },
     "maand_vs_jaar": {
       "subject": "Maandelijks of jaarlijks?",

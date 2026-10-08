@@ -8,7 +8,7 @@
 // Live mode needs both --apply and --live, and is only for after a successful test-mode
 // release check and Kwin's explicit go. It creates prices; it never touches existing
 // subscriptions, customers or payments.
-import { CURRENCY, PLANS, PAID_PLAN_IDS, INTERVALS, lookupKey, sellablePlans } from '../supabase/functions/_shared/pricing.mjs';
+import { CURRENCY, PLANS, INTERVALS, lookupKey, sellablePlans } from '../supabase/functions/_shared/pricing.mjs';
 
 const args = new Set(process.argv.slice(2));
 const apply = args.has('--apply');
@@ -27,13 +27,15 @@ async function stripe(method, path, params) {
 }
 
 const DESCRIPTIONS = {
-  zzp: 'Volledige basisboekhouding voor zelfstandigen.',
-  pro: 'Meer boekhouding automatiseren.',
-  business: 'Administratie voor groeiende ondernemingen.',
+  zzp: 'Boekuna met documentherkenning zonder maandlimiet en herstelpunten.',
 };
 
+// Only plans that are sellable get Stripe products and prices. Pro and Business stay
+// unconfigured until existing features justify them (docs/billing/pricing-v2.md).
+const switchable = sellablePlans(process.env.BILLING_SELLABLE_PLANS);
 const prices = {};
-for (const plan of PAID_PLAN_IDS) {
+for (const plan of switchable) {
+  if (!DESCRIPTIONS[plan]) throw new Error(`No product description for ${plan}; add one with only existing features.`);
   const productId = `boekuna_${plan}`;
   let product = await stripe('GET', `/products/${productId}`).catch(() => null);
   if (!product) {
@@ -72,7 +74,6 @@ for (const plan of PAID_PLAN_IDS) {
 // - upgrades apply at once with proration on the next invoice (no surprise charge);
 // - downgrades and year->month apply at the end of the paid period;
 // - cancellation at period end, no refund of the running period.
-const switchable = sellablePlans(process.env.BILLING_SELLABLE_PLANS);
 const portal = {
   'business_profile[headline]': 'Beheer je Boekuna-abonnement',
   'features[payment_method_update][enabled]': 'true',

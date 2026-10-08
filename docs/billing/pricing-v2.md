@@ -9,35 +9,52 @@ Bron van waarheid voor bedragen: `supabase/functions/_shared/pricing.mjs`.
 |---|---:|---:|---:|---:|---|
 | Start | € 0 | € 0 | — | — | ja, gratis, geen Stripe |
 | ZZP | € 9,95 | € 99,50 | € 19,90 | ≈ € 8,29 | **ja** |
-| Pro | € 19,95 | € 199,50 | € 39,90 | ≈ € 16,63 | nee, featureflag |
-| Business | € 34,95 | € 349,50 | € 69,90 | ≈ € 29,13 | nee, featureflag |
+| Pro | € 19,95 | € 199,50 | € 39,90 | ≈ € 16,63 | nee, verborgen concept |
+| Business | € 34,95 | € 349,50 | € 69,90 | ≈ € 29,13 | nee, verborgen concept |
 
 - Jaar = precies 10 × maand, 12 maanden toegang, korting 16,67 % (afgerond 17 %).
 - Bedragen zijn hele centen in de servercode. De frontend stuurt alleen `plan` en `interval`; de server bepaalt het bedrag.
 - Jaarbetaling wordt in één keer vooraf geïncasseerd, niet in maandtermijnen.
 - Geen trials, geen gratis betaalperiodes, geen Early Access / First-100 (blijft beëindigd).
 
-## 2. Gap-analyse: gewenste functies tegen wat er werkt
+## 2. Bestaande functies en pakketindeling
 
-Gecontroleerd in `scripts/release-profile.mjs` (wat productie toont) en `kwinest/index.html`.
+Correctie van 8 oktober: pakketten bevatten **alleen functies die nu in productie werken**. Niets nieuws gebouwd. Bron: `kwinest/index.html`, `scripts/release-profile.mjs` (productiebuild = profiel `first-release`), `scripts/build-app.mjs`, Edge Functions en migraties. "In productie" = aan in de standaardbuild `node scripts/build-app.mjs`.
 
-| Functie | Pakket | Status |
-|---|---|---|
-| Basisfacturen, klanten/relaties, omzetoverzicht, export, één gebruiker | Start | werkt |
-| Inkomsten/uitgaven, bonnetjes, documentherkenning, btw-overzicht, winst en kosten, administratie-export | ZZP | werkt |
-| Bankbestandimport (CSV) | ZZP | werkt (thread Bankimport) |
-| Documentherkenning zonder scancredits | ZZP+ | werkt na migratie (`billing_plan_limit` = geen limiet) |
-| Batch-upload | Pro | **deels**: meerdere bestanden tegelijk kiezen kan al, voor iedereen; geen aparte batchverwerking |
-| Slimme boekingsregels | Pro | **ontbreekt** |
-| Hergebruik bevestigde leveranciersgegevens | Pro | **deels**: leveranciersgeheugen in documentherkenning, voor iedereen |
-| Terugkerende facturen | Pro | **ontbreekt in productie** (`recurringInvoices:false`) |
-| Automatische betalingsherinneringen | Pro | **ontbreekt**: alleen handmatige herinnering |
-| Uitgebreide rapportages | Pro/Business | **ontbreekt in productie** (`advancedReports:false`) |
-| Meerdere gebruikers, rollen, boekhouder, teamworkflows | Business | **ontbreekt** |
+| Functie | Bestaat in productie? | Start | ZZP | Pro | Business |
+|---|---|---|---|---|---|
+| Dashboard met kerncijfers, resultaatgrafiek en aandachtspunten | Ja | ✓ | ✓ | — | — |
+| Verkoopfacturen maken, nummeren, statussen (concept, open, deels betaald, betaald, vervallen) | Ja | ✓ | ✓ | — | — |
+| Factuur-PDF | Ja | ✓ | ✓ | — | — |
+| Factuur versturen via eigen mailprogramma of delen (PDF + mail) | Ja (direct verzenden vanuit Boekuna: nee) | ✓ | ✓ | — | — |
+| Creditnota's (volledig of gedeeltelijk) | Ja | ✓ | ✓ | — | — |
+| Relaties (klanten en leveranciers) | Ja | ✓ | ✓ | — | — |
+| Diensten (vaste diensten en prijzen) | Ja | ✓ | ✓ | — | — |
+| Inkomsten en uitgaven | Ja | ✓ | ✓ | — | — |
+| Bonnen en inkoopfacturen uploaden, ook meerdere tegelijk | Ja | ✓ | ✓ | — | — |
+| Slimme documentherkenning | Ja | 10 per maand | zonder maandlimiet | — | — |
+| Btw-overzicht per kwartaal/jaar met aangifterubrieken | Ja (zelf indienen bij de Belastingdienst) | ✓ | ✓ | — | — |
+| Bankbestand importeren (CSV) met koppelvoorstellen | Ja (CAMT/MT940: nee) | ✓ | ✓ | — | — |
+| Betalingen registreren, deelbetalingen | Ja | ✓ | ✓ | — | — |
+| Betalingsherinnering (handmatig, via eigen mail) | Ja | ✓ | ✓ | — | — |
+| Rapporten: winst en verlies, omzet per klant, kosten per categorie, financiële positie | Ja | ✓ | ✓ | — | — |
+| Export: CSV, volledige back-up (JSON), rapport-PDF | Ja | ✓ | ✓ | — | — |
+| Huisstijl: factuurlayout, logo, mailtekst | Ja | ✓ | ✓ | — | — |
+| Tweestapsverificatie | Ja | ✓ | ✓ | — | — |
+| Herstelpunten (versiegeschiedenis) | Ja | — | ✓ | — | — |
+| Terugkerende facturen | Nee (geen code) | — | — | — | — |
+| Automatische betalingsherinneringen | Nee | — | — | — | — |
+| Slimme boekingsregels | Nee | — | — | — | — |
+| Controlecentrum, cashflow, grootboek, geavanceerde rapporten | Nee (uit in productie) | — | — | — | — |
+| Meerdere gebruikers, rollen, boekhoudertoegang | Nee | — | — | — | — |
+| Offertes, uren, kilometers, Peppol, KVK-zoeker, Vraag Boekuna | Nee (uit in productie) | — | — | — | — |
 
-Conclusie: Pro en Business hebben nog te weinig werkende, onderscheidende functies. Ze zijn volledig gemodelleerd (prijzen, Stripe, rechten, webhook, UI), maar **niet verkoopbaar**: `DEFAULT_SELLABLE_PLANS = ['zzp']`. Checkout weigert ze met `PLAN_NOT_AVAILABLE`; website en app tonen "Binnenkort beschikbaar". Vrijgeven per omgeving met de Edge-secret `BILLING_SELLABLE_PLANS=zzp,pro` en `sellable` in `kwinest/index.html` en `public/prijzen/`, pas als de functies er zijn.
-
-Let op Start: vandaag kan een gratis gebruiker ook kosten, bonnetjes, btw en bankimport gebruiken. Dat blijft zo (geen stille afname van rechten). De website belooft bij Start alleen factureren. Of nieuwe Start-gebruikers later minder krijgen, is een productbesluit dat eerst gecommuniceerd moet worden.
+Conclusie:
+- Er zijn **twee eerlijke pakketten**: Start (gratis) en ZZP. Start houdt alles wat gratis gebruikers nu hebben; niemand verliest rechten.
+- ZZP onderscheidt zich door documentherkenning zonder maandlimiet en herstelpunten. Dat zijn bestaande functies; het verschil met Start is beperkt, en dat staat eerlijk op de site.
+- **Pro en Business zijn verborgen.** Geen enkele bestaande functie onderscheidt ze van ZZP. Ze staan als concept in de code (prijzen, Stripe-herkenning, rechten), maar worden nergens getoond of verkocht en krijgen geen Stripe-product. `DEFAULT_SELLABLE_PLANS = ['zzp']`; checkout weigert ze met `PLAN_NOT_AVAILABLE`.
+- Teruggedraaid uit de eerste versie: "binnenkort"-beloftes (batchverwerking, boekingsregels, terugkerende facturen, automatische herinneringen, rapportages, meerdere gebruikers, rollen, boekhouder) van website, app en Klaviyo-teksten; Pro/Business-kaarten in app en website; Stripe-producten voor Pro/Business in het setup-script. Er was geen functiecode voor deze onderdelen gebouwd.
+- Bestaande tekst die meer beloofde dan de afscherming deed ("met ZZP krijg je btw-overzicht, bankimport…") is gecorrigeerd: die functies zitten ook in Start.
 
 ## 3. Productiestand bij ontwerp (gemeten 8 oktober 2026, alleen lezen)
 
@@ -62,7 +79,7 @@ Deploy-volgorde maakt niet uit: nieuwe Edge Functions vallen terug op de oude sc
 
 ## 5. Stripe
 
-- Zes officiële recurring prices, gevonden via lookup key `boekuna_<plan>_<month|year>_v2`, één Product per pakket. Aanmaken: `scripts/stripe-pricing-v2-setup.mjs` (eerst dry run, dan `--apply` met test-key; live alleen met `--apply --live` na go).
+- Officiële recurring prices via lookup key `boekuna_<plan>_<month|year>_v2`, één Product per pakket. Het setup-script maakt alleen de twee ZZP-prijzen (maand en jaar); Pro en Business krijgen geen Stripe-product zolang ze verborgen zijn. Aanmaken: `scripts/stripe-pricing-v2-setup.mjs` (eerst dry run, dan `--apply` met test-key; live alleen met `--apply --live` na go).
 - Checkout controleert bij elke sessie dat de gevonden prijs exact klopt (bedrag, EUR, interval, excl. btw). Klopt het niet: weigeren (`PRICE_MISMATCH`), niets afgeschreven. Bestaat de prijs nog niet: inline recurring price met dezelfde serverbedragen (huidig gedrag).
 - Checkout toont pakket, bedrag, periode, btw (Stripe Tax, excl.), verlenging en opzeggen. Eén abonnement per account: database én Stripe worden gecontroleerd.
 - Webhook en sync lezen plan en interval uit de prijs die de klant betaalt (lookup key → prijs-metadata → bedrag → subscription-metadata). Oude prijzen (€ 9,95 en € 19,95 per maand) worden ZZP en Pro.
@@ -72,8 +89,6 @@ Deploy-volgorde maakt niet uit: nieuwe Edge Functions vallen terug op de oude sc
 | Wissel | Wanneer | Betaling |
 |---|---|---|
 | ZZP maand → ZZP jaar | direct | Stripe rekent direct het jaarbedrag minus het ongebruikte deel van de maand af (interval wijzigt) |
-| ZZP → Pro, Pro → Business | direct | verschil voor de rest van de periode op de volgende factuur |
-| Business → Pro, Pro → ZZP | einde betaalde periode | geen verlies van vooruitbetaalde rechten |
 | Jaar → maand | einde betaalde periode | jaar loopt uit, daarna maand |
 | Opzeggen | einde betaalde periode | geen restitutie lopende periode (voorwaarden art. 8) |
 
@@ -107,11 +122,11 @@ Er is nog geen native build in productie. De app herkent een native shell (`wind
 
 ## 9. Vijf rechters
 
-- **Onderzoeker**: vier pakketten met een gratis start en een ZZP-prijs onder € 10 passen bij Nederlandse zzp'ers; "betaal voor functies, niet voor scans" is een helder verschil. Jaarprijs = 10 maanden is gangbaar en eerlijk uit te leggen.
-- **Scepticus**: Pro en Business bieden vandaag te weinig extra. Daarom niet verkopen tot de functies werken. Nu er geen scanlimiet meer is, is ZZP voor bijna iedereen genoeg; Pro moet echte automatisering krijgen.
-- **Factchecker**: bedragen getest (centen, 10×, 16,67 %, € 8,29/16,63/29,13). Btw excl. overal, Stripe Tax berekent. Verlengtekst en restitutie volgen voorwaarden art. 8. Geen "onbeperkt", geen "meest gekozen", geen reviews.
-- **Tegenstander**: geen bestaand abonnement wordt aangeraakt; oude prijzen blijven herkend; dubbele en oude events veranderen niets; portaalwissels lezen de echte prijs; checkout tijdens accountverwijdering wordt geweigerd en een toch voltooide checkout direct opgezegd. Rest-risico: twee open checkouts tegelijk afgerond (twee tabbladen) kan twee abonnementen geven; de tweede checkout wordt geblokkeerd zodra Stripe het eerste abonnement kent.
-- **Hoofdrechter**: **GO voor ZZP maand en jaar** na de Stripe-testmodusronde en Kwins go per productiestap. **NO-GO** voor commerciële activatie van Pro en Business. **NO-GO** voor de claim "onbeperkt".
+- **Onderzoeker**: met de bestaande functies zijn twee pakketten logisch: Start voor alles wat je dagelijks doet, ZZP voor wie veel documenten laat uitlezen en herstelpunten wil. Vier pakketten zijn niet te verdelen zonder te verzinnen.
+- **Scepticus**: waarom meer betalen? Voor ZZP alleen als je meer dan 10 documenten per maand hebt of herstelpunten wilt. Voor Pro of Business is er vandaag geen reden; daarom verborgen.
+- **Factchecker**: elke ✓ in de tabel hierboven is gecontroleerd in code en productieprofiel. Geen functie die alleen op de website of half in code bestaat. Bedragen getest (centen, 10×, € 8,29). Geen "onbeperkt", geen "binnenkort", geen reviews.
+- **Tegenstander**: Start-gebruikers houden alles; betaalde gebruikers krijgen meer (geen maandlimiet in plaats van 100). Geen abonnement wordt aangeraakt, oude prijzen blijven herkend. Er zijn vandaag 0 betalende klanten.
+- **Hoofdrechter**: **GO voor Start en ZZP (maand en jaar)** na de Stripe-testmodusronde en Kwins go per stap. **NO-GO** voor Pro en Business (functies ontbreken). **NO-GO** voor de claim "onbeperkt" (kosten niet gemeten).
 
 ## 10. Release-overdracht (elke stap vraagt Kwins go)
 
