@@ -20,9 +20,9 @@ try{
         const page=await browser.newPage({viewport:{width,height:width<600?844:900},reducedMotion:'reduce'});
         const errors=[];page.on('pageerror',e=>errors.push(String(e)));
         await page.goto(server.base+'/',{waitUntil:'networkidle'});
-        assert.equal(await page.locator('h1').innerText(),'Nieuwe website in ontwikkeling.');
-        assert.equal(await page.locator('img').count(),0,'Clean holding must be image-free');
-        assert.equal(await page.locator('script').count(),0,'Clean holding must be runtime-JS-free');
+        assert.equal(await page.locator('h1').textContent(),'Boekhouden zonder gedoe.');
+        assert.equal(await page.locator('img').count(),0,'V3 illustration is image-free');
+        assert.equal(await page.locator('script').count(),0,'V3 must be runtime-JS-free');
         assert.equal(await page.locator('.editorial-hero,.editorial-pricing,.project-grid,.audience-grid').count(),0,'Old marketing structure returned');
         const size=await page.evaluate(()=>({vw:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
         assert.ok(size.html<=size.vw+1&&size.body<=size.vw+1,name+'/'+width+' overflow '+JSON.stringify(size));
@@ -35,12 +35,12 @@ try{
           await page.addScriptTag({content:axeSource});
           const result=await page.evaluate(async()=> (await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa']}})).violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})));
           assert.deepEqual(result,[],name+'/'+width+' Axe');
-          await page.screenshot({path:path.join(evidence,'clean-holding-'+width+'-'+name+'.png'),fullPage:true});
+          await page.screenshot({path:path.join(evidence,'landing-v3-'+width+'-'+name+'.png'),fullPage:true});
         }
         assert.deepEqual(errors,[],name+'/'+width+' runtime errors');
         await page.close();
       }
     } finally {await browser.close()}
   }
-  console.log('BOEKUNA clean holding visual QA: PASS (Chromium + WebKit, 8 widths, canonical palette, Axe, no runtime imagery/JS)');
+  console.log('BOEKUNA V3 landing visual QA: PASS (Chromium + WebKit, 8 widths, canonical palette, Axe, no runtime imagery/JS)');
 } finally {await server.close()}
