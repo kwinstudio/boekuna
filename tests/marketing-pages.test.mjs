@@ -14,8 +14,8 @@ assert.ok(home.includes('Boekhouden zonder gedoe'),'BOEKUNA V3 hero missing');
 assert.ok(home.includes('https://app.boekuna.nl/?login=1'),'App login handoff missing');
 assert.ok(home.includes('https://app.boekuna.nl/?register=1'),'App registration handoff missing');
 assert.ok(home.includes('aria-label="Hoofdnavigatie"'),'Accessible primary navigation missing');
-assert.ok(home.includes('class="mobile-menu"'),'Native mobile menu missing');
-for(const section of ['id="hoe-het-werkt"','id="functies"','id="prijzen"','id="vragen"']){
+assert.ok(home.includes('class="mobile-nav"'),'Native mobile menu missing');
+for(const section of ['id="hoe-het-werkt"','id="mogelijkheden"','id="tarieven"','id="voor-wie"','id="product"','id="vragen"']){
   assert.ok(home.includes(section),'V3 landing section missing '+section);
 }
 for(const price of ['€ 0','€ 9,95','€ 19,95']){
@@ -24,16 +24,18 @@ for(const price of ['€ 0','€ 9,95','€ 19,95']){
 for(const oldPlan of ['€ 6,95','€ 14,95','€ 34,95']){
   assert.ok(!home.includes(oldPlan),'Stale historic plan price appeared '+oldPlan);
 }
-assert.equal((home.match(/<details>/g)||[]).length,6,'FAQ must contain six accessible disclosures');
-assert.ok(home.includes('Illustratieve productweergave'),'Marketing mock must be clearly labeled');
+assert.equal((home.match(/<details>/g)||[]).length,6,'Five accessible FAQ entries plus mobile menu expected');
+assert.ok(home.includes('Voorbeeldweergaven met fictieve bedragen'),'Marketing mock must be clearly labeled');
 for(const claim of ['automatische bankkoppeling is nu beschikbaar','100% correcte herkenning','direct btw-aangifte indienen']){
   assert.ok(!home.toLowerCase().includes(claim),'Unverified feature claim: '+claim);
 }
 
-for(const old of ['editorial-hero','editorial-pricing','project-grid','audience-grid','Uploaden.<br>Controleren. Klaar.']){
+for(const old of ['editorial-hero','editorial-pricing','project-grid','Uploaden.<br>Controleren. Klaar.']){
   assert.equal(home.includes(old),false,'Old marketing homepage content remains: '+old);
 }
 assert.ok(home.includes('/assets/baseline.css'),'Marketing baseline stylesheet required');
+assert.ok(home.includes('/assets/landing-v4.css'),'V4 landing stylesheet missing');
+assert.ok(home.includes('atlas-photo'),'Approved editorial imagery missing');
 assert.equal(/<script\b/i.test(home),false,'V3 must not ship marketing runtime JavaScript');
 
 for(const slug of retired){
@@ -72,9 +74,10 @@ const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{cwd:root
 assert.equal(build.status,0,'Marketing build failed: '+(build.stderr||build.stdout));
 const dist=path.join(root,'dist','marketing');
 
-for(const file of ['index.html','404.html','robots.txt','sitemap.xml','assets/baseline.css','assets/favicon.svg']){
+for(const file of ['index.html','404.html','robots.txt','sitemap.xml','assets/baseline.css','assets/favicon.svg','assets/landing-v4.css','assets/boekuna-editorial-atlas.webp','assets/boekuna-symbol.svg','assets/boekuna-favicon.svg']){
   assert.ok(fs.existsSync(path.join(dist,file)),'Built baseline missing '+file);
 }
+assert.ok(fs.statSync(path.join(dist,'assets/boekuna-editorial-atlas.webp')).size<180000,'Photographic image asset exceeds marketing transfer budget');
 for(const slug of preserved)assert.ok(fs.existsSync(path.join(dist,slug,'index.html')),'Built preserved route missing '+slug);
 for(const slug of retired){
   const file=path.join(dist,slug,'index.html');
