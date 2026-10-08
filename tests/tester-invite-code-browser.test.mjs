@@ -48,7 +48,7 @@ try{
   await page.locator('#testerInviteCode').waitFor();
   assert.ok(await page.getByText('Heb je een testcode?').isVisible());
   assert.ok(await page.getByRole('button',{name:'Code activeren'}).isVisible());
-  assert.ok(await page.getByRole('button',{name:/Boekuna · €9,95/}).isVisible(),'Gratis account must still work without code');
+  assert.ok(await page.getByRole('button',{name:'Kies ZZP'}).isVisible(),'Gratis account must still work without code');
 
   await page.evaluate(()=>{
     window.__testerResolve=null;
@@ -84,7 +84,7 @@ try{
   await page.locator('#testerInviteCode').fill('BOEKUNA-HJKLMNPQ23456789');
   await page.getByRole('button',{name:'Code activeren'}).click();
   await page.getByText('Testtoegang actief',{exact:true}).waitFor();
-  assert.ok(await page.getByText(/Je kunt Boekuna gratis gebruiken tot/).isVisible());
+  assert.ok(await page.getByText(/Je kunt ZZP gratis gebruiken tot/).isVisible());
   assert.equal(await page.locator('#testerInviteCode').count(),0,'active tester must not see another-code input');
   assert.ok(await page.getByText('Geen kaart gekoppeld. Er start geen automatische betaling.').isVisible());
 

@@ -8,6 +8,9 @@ const checkout=read('supabase/functions/billing-checkout/index.ts');
 const portal=read('supabase/functions/billing-portal/index.ts');
 const webhook=read('supabase/functions/billing-webhook/index.ts');
 const sync=read('supabase/functions/billing-sync/index.ts');
+const stripeState=read('supabase/functions/_shared/stripe-state.ts');
+const pricing=read('supabase/functions/_shared/pricing.mjs');
+const pricingV2Migration=read('supabase/migrations/20261008170000_pricing_v2_plans_and_intervals.sql');
 const consume=read('supabase/functions/consume-quota/index.ts');
 const analyze=read('supabase/functions/analyze-invoice/index.ts');
 const migration=read('supabase/migrations/20260927111024_add_boekuna_billing_founders_and_monthly_quota.sql');
@@ -22,12 +25,16 @@ const holding=read('public/index.html');
 const privacy=read('public/privacy/index.html');
 const terms=read('public/voorwaarden/index.html');
 
-for(const file of [checkout,portal,webhook,sync,consume,analyze,html]){
+for(const file of [checkout,portal,webhook,sync,consume,analyze,html,stripeState,pricing]){
   assert.ok(!/sk_(?:live|test)_[A-Za-z0-9]+/.test(file),'Stripe secret key must never be committed or exposed client-side');
 }
 
-assert.ok(checkout.includes('amount:995'),'Boekuna monthly price must be €9.95');
-assert.ok(checkout.includes('amount:1995'),'Unlimited monthly price must be €19.95');
+// Pricing V2: amounts live in the shared server-side price config (see pricing-v2-billing.test.mjs).
+assert.ok(pricing.includes('prices: Object.freeze({ month: 995, year: 9950 })'),'ZZP must be €9.95/month or €99.50/year');
+assert.ok(pricing.includes('prices: Object.freeze({ month: 1995, year: 19950 })'),'Pro must be €19.95/month or €199.50/year');
+assert.ok(pricing.includes('prices: Object.freeze({ month: 3495, year: 34950 })'),'Business must be €34.95/month or €349.50/year');
+assert.ok(checkout.includes('priceCents(plan,interval)'),'Checkout amount must come from the server-side price config');
+assert.ok(!/input\.(amount|price|unit_amount)/.test(checkout),'Checkout must never read an amount from the client');
 assert.ok(checkout.includes('{CHECKOUT_SESSION_ID}'),'Checkout success must carry a server-verifiable session reference');
 assert.ok(checkout.includes('mode","subscription'),'Checkout must explicitly create paid subscriptions');
 assert.ok(checkout.includes('Idempotency-Key'),'Checkout must use Stripe idempotency for concurrent/double-click retries');
@@ -49,7 +56,9 @@ assert.ok(webhook.includes('ageSeconds > 300'),'Webhook signature verification m
 assert.ok(webhook.includes('status: "processing"'),'Webhook must claim an event before side effects');
 assert.ok(webhook.includes('status: "processed"'),'Webhook must mark completed events');
 assert.ok(webhook.includes('status: "failed"'),'Failed webhook processing must remain retryable');
-assert.ok(webhook.includes('apply_stripe_subscription_state'),'Webhook must use the monotonic Stripe state writer');
+assert.ok(webhook.includes('applyStripeState'),'Webhook must use the shared monotonic Stripe state writer');
+assert.ok(stripeState.includes('apply_stripe_subscription_state_v2'),'Stripe state must be written through the V2 monotonic writer');
+assert.ok(stripeState.includes('"apply_stripe_subscription_state"'),'Pre-V2 writer remains the deploy-order fallback');
 assert.ok(webhook.includes('checkout.session.completed'),'Checkout completion must be synchronized');
 assert.ok(webhook.includes('customer.subscription.updated'),'Subscription changes must sync back to Boekuna');
 assert.ok(webhook.includes('customer.subscription.deleted'),'Subscription cancellation must sync back to Boekuna');
@@ -57,7 +66,7 @@ assert.ok(webhook.includes('invoice.paid'),'Successful recurring payments must s
 assert.ok(webhook.includes('invoice.payment_failed'),'Failed recurring payments must sync');
 assert.ok(sync.includes('/checkout/sessions/'),'Successful checkout must be directly syncable even before webhook delivery');
 assert.ok(sync.includes('client_reference_id'),'Billing sync must verify checkout ownership');
-assert.ok(sync.includes('apply_stripe_subscription_state'),'Direct sync must use the same server-side Stripe state writer');
+assert.ok(sync.includes('applyStripeState'),'Direct sync must use the same server-side Stripe state writer');
 
 assert.ok(unlimitedMigration.includes("when 'pro' then null"),'Unlimited must have no monthly smart-document quota');
 assert.ok(unlimitedMigration.includes("v_limit is null or v_used < v_limit"),'Unlimited quota check must remain allowed without a limit');
@@ -88,10 +97,13 @@ assert.ok(!/drop\s+table\s+(if\s+exists\s+)?public\.billing_accounts/i.test(prov
 assert.ok(consume.includes('can_operate_bookkeeping'),'Quota edge function must enforce server-side bookkeeping entitlement');
 assert.ok(analyze.includes('can_operate_bookkeeping'),'Invoice AI must enforce entitlement server-side');
 assert.ok(processor.includes('billing_quota_status(request)'),'Document processor must check server-side plan allowance');
-assert.ok(processor.includes('record_billing_usage(request)'),'Successful smart documents must consume monthly usage');
+assert.ok(processor.includes('record_billing_usage(request)'),'Successful smart documents must keep being counted (cost telemetry)');
+assert.ok(pricingV2Migration.includes("in ('pro','unlimited','business') then null"),'Pro and Business have no monthly smart-document limit');
+assert.ok(pricingV2Migration.includes("in ('zzp','boekuna') then 100"),'ZZP keeps the 100 documents of the old paid plan');
 
-assert.ok(html.includes("startSubscription('boekuna')"),'Frontend must offer explicit Boekuna checkout');
-assert.ok(html.includes("startSubscription('pro')"),'Frontend must offer explicit Unlimited checkout');
+assert.ok(html.includes("startSubscription('${id}','${iv}')"),'Frontend must offer explicit plan + interval checkout');
+assert.ok(html.includes("JSON.stringify({plan,interval})"),'Checkout request must carry plan and interval, never an amount');
+assert.ok(html.includes('function confirmSubscriptionCheckout'),'A website plan choice must be confirmed in the app before Stripe opens');
 assert.ok(html.includes('entitlement_status'),'Frontend must render the server-side entitlement state');
 assert.ok(html.includes('b.can_manage_subscription===true'),'Frontend must use the server-side Stripe portal capability');
 assert.ok(html.includes('Je toegang is actief. Er is geen Stripe-abonnement om hier te beheren.'),'Non-Stripe paid access must not show a broken Stripe portal action');

@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { applyStripeState } from "../_shared/stripe-state.ts";
 
 const APP_URL=(Deno.env.get("APP_URL")||"https://app.boekuna.nl").replace(/\/$/,"");
 const ALLOWED_ORIGINS=new Set([
@@ -80,25 +81,22 @@ Deno.serve(async(req:Request)=>{
   const {data:existing,error:existingError}=await admin.from("billing_accounts")
     .select("plan").eq("user_id",user.id).maybeSingle();
   if(existingError)throw existingError;
-  const planRaw=String(sub?.metadata?.plan||session?.metadata?.plan||existing?.plan||"boekuna");
-  const plan=planRaw==="pro"?"pro":"boekuna";
   const status=normalizedStatus(sub.status);
   const watermark=Math.floor(Date.now()/1000);
   const syncId="sync:"+String(session?.id||sub.id)+":"+String(watermark);
-  const {data:applied,error:applyError}=await admin.rpc("apply_stripe_subscription_state",{
-    p_user_id:user.id,
-    p_stripe_customer_id:String(session?.customer||sub?.customer||""),
-    p_stripe_subscription_id:String(sub.id),
-    p_plan:plan,
-    p_status:status,
-    p_current_period_end:periodEnd(sub),
-    p_cancel_at_period_end:!!sub.cancel_at_period_end,
-    p_event_created:watermark,
-    p_event_id:syncId
+  const result=await applyStripeState(admin,{
+    userId:user.id,
+    subscription:sub,
+    customerId:String(session?.customer||sub?.customer||""),
+    fallbackPlan:String(sub?.metadata?.plan||session?.metadata?.plan||existing?.plan||""),
+    status,
+    currentPeriodEnd:periodEnd(sub),
+    eventCreated:watermark,
+    eventId:syncId
   });
-  if(applyError)throw applyError;
+  const applied=result.applied,plan=result.plan,interval=result.interval||null;
 
-  return json(req,{ok:true,synced:true,applied:applied===true,plan,status,currentPeriodEnd:periodEnd(sub),cancelAtPeriodEnd:!!sub.cancel_at_period_end});
+  return json(req,{ok:true,synced:true,applied,plan,interval,status,currentPeriodEnd:periodEnd(sub),cancelAtPeriodEnd:!!sub.cancel_at_period_end});
  }catch(e){
   const m=String(e?.message||e);
   if(m==="UNAUTHORIZED")return json(req,{ok:false,error:"Je sessie is verlopen. Log opnieuw in."},401);

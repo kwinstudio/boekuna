@@ -1,0 +1,83 @@
+{
+  "_about": "Boekuna Pricing V2: prices and approved marketing copy for e-mail (Klaviyo) and other channels. Not a source of truth for subscription status: Stripe and the server-side entitlements are. Nothing is sent from here. Amounts must equal supabase/functions/_shared/pricing.mjs (checked by tests/pricing-v2-website.test.mjs).",
+  "version": "2026-10-08",
+  "currency": "EUR",
+  "vat": "Alle bedragen exclusief btw.",
+  "plans": {
+    "start": {
+      "name": "Start",
+      "monthly": "€ 0",
+      "yearly": "€ 0",
+      "sellable": true,
+      "positioning": "Gratis factureren: facturen, creditnota's en klanten."
+    },
+    "zzp": {
+      "name": "ZZP",
+      "monthly": "€ 9,95",
+      "yearly": "€ 99,50",
+      "yearlySaving": "€ 19,90",
+      "yearlyPerMonth": "€ 8,29",
+      "sellable": true,
+      "positioning": "Je boekhouding: kosten en bonnetjes, btw-overzicht, bankimport en rapporten, met 100 slimme documenten per maand."
+    },
+    "pro": {
+      "name": "Pro",
+      "monthly": "€ 19,95",
+      "yearly": "€ 199,50",
+      "yearlySaving": "€ 39,90",
+      "yearlyPerMonth": "€ 16,63",
+      "sellable": true,
+      "positioning": "Alles van ZZP, zonder documentlimiet en met herstelpunten."
+    },
+    "business": {
+      "name": "Business",
+      "monthly": "€ 34,95",
+      "yearly": "€ 349,50",
+      "yearlySaving": "€ 69,90",
+      "yearlyPerMonth": "€ 29,13",
+      "sellable": false,
+      "positioning": "Verborgen: er zijn nog geen bestaande functies die dit pakket onderscheiden. Niet noemen."
+    }
+  },
+  "rules": [
+    "Gebruik alleen pakketten met sellable=true (Start, ZZP, Pro). Business niet noemen, ook niet als 'binnenkort'.",
+    "Noem alleen functies die nu in de app werken. Geen toekomstige functies of roadmap.",
+    "Gebruik het woord 'onbeperkt' niet. Zeg bij Pro: geen maandlimiet op documentherkenning.",
+    "Noem altijd het werkelijke jaarbedrag; het gemiddelde per maand alleen als tweede regel.",
+    "Geen 'meest gekozen', geen verzonnen reviews, kortingen, deadlines of urgentie.",
+    "Geen trials, Early Access of First-100: die bestaan niet.",
+    "Alleen opt-in ontvangers. Gebruik betaalstatus alleen grof (Start of betaald), nooit bedragen of betaalproblemen in segmentnamen of tekst."
+  ],
+  "copy": {
+    "introductie": {
+      "subject": "Nieuwe, eenvoudige prijzen voor Boekuna",
+      "preheader": "Gratis factureren, of je hele boekhouding met ZZP of Pro.",
+      "body": "Boekuna heeft nu drie pakketten. Start is gratis: je maakt facturen en creditnota's en beheert je klanten. Met ZZP (€ 9,95 per maand of € 99,50 per jaar, exclusief btw) houd je ook je kosten en bonnetjes bij, zie je je btw-overzicht, importeer je je bankbestand en bekijk je rapporten; 100 documenten per maand worden slim uitgelezen. Pro (€ 19,95 per maand of € 199,50 per jaar) heeft geen documentlimiet en herstelpunten. Gebruikte je Boekuna al vóór deze wijziging, dan houd je in Start alles wat je had.",
+      "cta": "Bekijk de prijzen"
+    },
+    "jaarabonnement": {
+      "subject": "Zo werkt het jaarabonnement",
+      "body": "Bij een jaarabonnement betaal je vooruit voor 12 maanden. Voor ZZP is dat € 99,50 exclusief btw, gemiddeld ongeveer € 8,29 per maand. Na 12 maanden verlengt het abonnement automatisch met een jaar, tenzij je vóór de verlengdatum opzegt. Opzeggen gaat in aan het einde van de betaalde periode; een lopende periode wordt niet terugbetaald.",
+      "cta": "Kies ZZP jaarlijks"
+    },
+    "twee_maanden_gratis": {
+      "subject": "Jaarlijks betalen: 2 maanden gratis",
+      "body": "Een jaar ZZP kost € 99,50 exclusief btw. Dat is tien keer het maandbedrag voor twaalf maanden toegang. Je bespaart € 19,90 ten opzichte van twaalf keer € 9,95.",
+      "cta": "Bekijk jaarlijks betalen"
+    },
+    "maand_vs_jaar": {
+      "subject": "Maandelijks of jaarlijks?",
+      "body": "Maandelijks: € 9,95 per maand, elke maand opzegbaar tegen het einde van die maand. Jaarlijks: € 99,50 per jaar vooruit, dat is 2 maanden gratis. Beide exclusief btw, met precies dezelfde functies.",
+      "cta": "Vergelijk maand en jaar"
+    },
+    "upgrade_zzp_naar_pro": {
+      "subject": "Meer dan 100 documenten per maand?",
+      "body": "Met Pro worden al je documenten uitgelezen, zonder maandlimiet, en kun je je administratie terugzetten naar een eerder herstelpunt. Pro kost € 19,95 per maand of € 199,50 per jaar, exclusief btw. Een upgrade gaat direct in; je betaalt alleen het verschil voor de rest van je periode.",
+      "cta": "Bekijk Pro"
+    }
+  },
+  "segments": {
+    "start_users_opted_in": "Start-gebruikers met marketing-opt-in. Doel: introductie, jaarabonnement.",
+    "zzp_monthly_opted_in": "ZZP maandbetalers met opt-in. Doel: maand versus jaar. Alleen na Stripe/Boekuna-sync, niet op basis van Klaviyo-data."
+  }
+}

@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { CURRENCY, PLANS, canonicalPlan, formatEuro, isPaidPlan, lookupKey, normalizeInterval, priceCents, sellablePlans } from "../_shared/pricing.mjs";
 
 const APP_URL=(Deno.env.get("APP_URL")||"https://app.boekuna.nl").replace(/\/$/,"");
 const ALLOWED_ORIGINS=new Set([
@@ -48,6 +49,37 @@ async function stripePost(path:string,params:URLSearchParams,idempotencyKey?:str
   return body;
 }
 
+async function stripeGet(path:string){
+  const key=Deno.env.get("STRIPE_SECRET_KEY")||"";
+  if(!key)throw new Error("STRIPE_NOT_CONFIGURED");
+  const r=await fetch("https://api.stripe.com/v1"+path,{headers:{Authorization:"Bearer "+key}});
+  const body=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error("STRIPE:"+String(body?.error?.message||"Stripe request failed"));
+  return body;
+}
+// The official recurring Stripe price for this plan and interval, found by
+// lookup key. It must match the server-side amount exactly; otherwise refuse.
+async function officialPrice(plan:string,interval:string,amount:number){
+  const key=lookupKey(plan,interval);
+  const list=await stripeGet("/prices?active=true&limit=2&lookup_keys%5B%5D="+encodeURIComponent(key));
+  const price=list?.data?.[0];
+  if(!price)return null;
+  const ok=String(price.currency||"").toLowerCase()===CURRENCY
+    &&Number(price.unit_amount)===amount
+    &&price.type==="recurring"
+    &&String(price?.recurring?.interval||"")===interval
+    &&Number(price?.recurring?.interval_count||1)===1
+    &&String(price.tax_behavior||"")==="exclusive";
+  if(!ok)throw new Error("PRICE_MISMATCH");
+  return String(price.id);
+}
+function submitMessage(name:string,interval:string,amount:number){
+  const bedrag=formatEuro(amount)+" excl. btw";
+  return interval==="year"
+    ?`Boekuna ${name} jaarabonnement: je betaalt ${bedrag} vooruit voor 12 maanden toegang. Na 12 maanden verlengt het automatisch met een jaar voor ${bedrag}, tenzij je vóór de verlengdatum opzegt via Abonnement in Boekuna. Opzeggen gaat in aan het einde van de betaalde periode; er is geen restitutie van een lopende periode. De btw wordt hierboven berekend.`
+    :`Boekuna ${name} maandabonnement: ${bedrag} per maand. Het verlengt elke maand automatisch, tenzij je vóór de verlengdatum opzegt via Abonnement in Boekuna. Opzeggen gaat in aan het einde van de betaalde maand. De btw wordt hierboven berekend.`;
+}
+
 Deno.serve(async(req:Request)=>{
  const origin=req.headers.get("origin")||"";
  if(origin&&!ALLOWED_ORIGINS.has(origin))return json(req,{ok:false,error:"ORIGIN_NOT_ALLOWED"},403);
@@ -56,12 +88,16 @@ Deno.serve(async(req:Request)=>{
  try{
   const {user,admin}=await userAndAdmin(req);
   const input=await req.json().catch(()=>({}));
-  const plan=String(input.plan||"");
-  const config={
-    boekuna:{name:"Boekuna",amount:995,limit:100},
-    pro:{name:"Boekuna Unlimited",amount:1995,limit:null}
-  } as const;
-  if(!(plan in config))return json(req,{ok:false,error:"Kies Boekuna of Unlimited."},400);
+  // Only plan and interval come from the client. The amount is always server-side.
+  const plan=canonicalPlan(input.plan);
+  const interval=input.interval===undefined?"month":normalizeInterval(input.interval);
+  if(!isPaidPlan(plan))return json(req,{ok:false,error:"Kies ZZP, Pro of Business.",code:"INVALID_PLAN"},400);
+  if(!interval)return json(req,{ok:false,error:"Kies maandelijks of jaarlijks betalen.",code:"INVALID_INTERVAL"},400);
+  if(!sellablePlans(Deno.env.get("BILLING_SELLABLE_PLANS")).includes(plan)){
+    return json(req,{ok:false,error:"Dit pakket is nog niet beschikbaar.",code:"PLAN_NOT_AVAILABLE"},409);
+  }
+  const amount=priceCents(plan,interval)!;
+  const name=PLANS[plan as keyof typeof PLANS].name;
 
   // No new paid subscription while this account is being deleted.
   const {data:closure,error:closureError}=await admin.from("account_closures").select("state").eq("user_id",user.id).maybeSingle();
@@ -75,7 +111,16 @@ Deno.serve(async(req:Request)=>{
     return json(req,{ok:false,error:"Er bestaat al een Stripe-abonnement voor dit account. Beheer of herstel dit via Abonnement in Boekuna.",code:"EXISTING_SUBSCRIPTION"},409);
   }
 
-  const chosen=config[plan as keyof typeof config];
+  // The webhook may not have arrived yet for a Checkout that was just paid.
+  // Ask Stripe directly so one account never ends up with two subscriptions.
+  if(account?.stripe_customer_id){
+    const subs=await stripeGet("/subscriptions?status=all&limit=10&customer="+encodeURIComponent(String(account.stripe_customer_id)));
+    if((subs?.data||[]).some((s:any)=>["trialing","active","past_due","unpaid","paused"].includes(String(s?.status||"")))){
+      return json(req,{ok:false,error:"Er bestaat al een Stripe-abonnement voor dit account. Beheer of herstel dit via Abonnement in Boekuna.",code:"EXISTING_SUBSCRIPTION"},409);
+    }
+  }
+
+  const priceId=await officialPrice(plan,interval,amount);
 
   // Keep all request parameters deterministic inside the idempotency bucket.
   // A stable expiry prevents harmless double-clicks from producing a different
@@ -93,19 +138,29 @@ Deno.serve(async(req:Request)=>{
   p.set("billing_address_collection","required");
   p.set("tax_id_collection[enabled]","true");
   p.set("automatic_tax[enabled]","true");
-  p.set("line_items[0][price_data][currency]","eur");
-  p.set("line_items[0][price_data][unit_amount]",String(chosen.amount));
-  p.set("line_items[0][price_data][tax_behavior]","exclusive");
-  p.set("line_items[0][price_data][recurring][interval]","month");
-  p.set("line_items[0][price_data][product_data][name]",chosen.name);
-  p.set("line_items[0][price_data][product_data][description]",chosen.limit===null?"Onbeperkte slimme documentverwerkingen per maand":chosen.limit+" slimme documentverwerkingen per maand");
-  p.set("line_items[0][price_data][product_data][tax_code]","txcd_10103001");
+  if(priceId){
+    p.set("line_items[0][price]",priceId);
+  }else{
+    // No official price configured yet: an inline recurring price with the same
+    // server-side amount, interval and tax behaviour.
+    p.set("line_items[0][price_data][currency]",CURRENCY);
+    p.set("line_items[0][price_data][unit_amount]",String(amount));
+    p.set("line_items[0][price_data][tax_behavior]","exclusive");
+    p.set("line_items[0][price_data][recurring][interval]",interval);
+    p.set("line_items[0][price_data][recurring][interval_count]","1");
+    p.set("line_items[0][price_data][product_data][name]","Boekuna "+name);
+    p.set("line_items[0][price_data][product_data][description]",interval==="year"?"Jaarabonnement, vooruitbetaald voor 12 maanden":"Maandabonnement");
+    p.set("line_items[0][price_data][product_data][tax_code]","txcd_10103001");
+    p.set("line_items[0][price_data][product_data][metadata][boekuna_plan]",plan);
+  }
   p.set("line_items[0][quantity]","1");
   p.set("metadata[user_id]",user.id);
   p.set("metadata[plan]",plan);
+  p.set("metadata[interval]",interval);
   p.set("subscription_data[metadata][user_id]",user.id);
   p.set("subscription_data[metadata][plan]",plan);
-  p.set("custom_text[submit][message]",chosen.name+" wordt na jouw expliciete bevestiging als betaald maandabonnement geactiveerd. Maandelijks opzegbaar. Toepasselijke btw wordt in Checkout berekend.");
+  p.set("subscription_data[metadata][interval]",interval);
+  p.set("custom_text[submit][message]",submitMessage(name,interval,amount));
   if(account?.stripe_customer_id)p.set("customer",String(account.stripe_customer_id));
   else if(user.email)p.set("customer_email",user.email);
 
@@ -113,13 +168,14 @@ Deno.serve(async(req:Request)=>{
   // Include a fingerprint of the complete, deterministic Stripe payload so a
   // later code/config change can never reuse an old key with different params.
   const payloadFingerprint=await shortSha256(p.toString());
-  const idempotencyKey="boekuna-checkout:"+user.id+":"+plan+":"+checkoutBucket+":"+payloadFingerprint;
+  const idempotencyKey="boekuna-checkout:"+user.id+":"+plan+":"+interval+":"+checkoutBucket+":"+payloadFingerprint;
   const session=await stripePost("/checkout/sessions",p,idempotencyKey);
   if(!session?.url)throw new Error("STRIPE:Geen checkout-URL ontvangen");
-  return json(req,{ok:true,url:session.url,plan});
+  return json(req,{ok:true,url:session.url,plan,interval,amount});
  }catch(e){
   const m=String(e?.message||e);
   if(m==="UNAUTHORIZED")return json(req,{ok:false,error:"Je sessie is verlopen. Log opnieuw in."},401);
+  if(m==="PRICE_MISMATCH")return json(req,{ok:false,error:"De prijsinstelling klopt niet. Er is niets afgeschreven. Probeer het later opnieuw.",code:"PRICE_MISMATCH"},500);
   if(m==="STRIPE_NOT_CONFIGURED")return json(req,{ok:false,error:"Betalingen zijn technisch voorbereid maar Stripe is nog niet met een geheime productiesleutel verbonden.",code:"STRIPE_NOT_CONFIGURED"},503);
   return json(req,{ok:false,error:m.replace(/^STRIPE:/,"")||"Checkout kon niet worden gestart."},500);
  }

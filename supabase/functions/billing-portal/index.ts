@@ -55,6 +55,10 @@ Deno.serve(async(req:Request)=>{
   const p=new URLSearchParams();
   p.set("customer",String(account.stripe_customer_id));
   p.set("return_url",APP_URL+"/?login=1&billing=portal-return");
+  // Pricing V2 portal: plan/interval switches and proration rules live in this
+  // configuration (scripts/stripe-pricing-v2-setup.mjs). Without it Stripe's default applies.
+  const portalConfiguration=(Deno.env.get("STRIPE_PORTAL_CONFIGURATION_ID")||"").trim();
+  if(/^bpc_[A-Za-z0-9]+$/.test(portalConfiguration))p.set("configuration",portalConfiguration);
   const session=await stripePost("/billing_portal/sessions",p);
   return json(req,{ok:true,url:session.url});
  }catch(e){

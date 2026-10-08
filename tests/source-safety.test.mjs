@@ -230,8 +230,8 @@ for(const origin of ["https://boekuna-boekhouding.onrender.com","https://boekuna
 assert.ok(analyzeInvoiceEdge.includes("!ALLOWED_ORIGINS.has(origin)"),"Invoice analysis must reject untrusted origins");
 assert.ok(html.includes("function showUploadError(err,file=null)"),"Upload errors must render a user-facing explanation");
 assert.ok(html.includes("function uploadErrorInfo(err)"),"Upload errors must be translated centrally");
-assert.ok(html.includes("function startSubscription(plan)"),"Paid plans must start through the authenticated subscription flow");
-assert.ok(!html.slice(html.indexOf("async function startSubscription(plan)"),html.indexOf("async function openBillingPortal")).includes("profileEssentialsComplete"),"Subscription must not require a complete accounting profile");
+assert.ok(html.includes("function startSubscription(plan,interval='year')"),"Paid plans must start through the authenticated subscription flow");
+assert.ok(!html.slice(html.indexOf("function startSubscription(plan"),html.indexOf("async function openBillingPortal")).includes("profileEssentialsComplete"),"Subscription must not require a complete accounting profile");
 assert.ok(html.includes("requirementsFor('invoice-finalize'"),"Invoice finalization must use function-specific company requirements");
 assert.ok(html.includes("progressiveInvoiceProfileGate"),"Missing finalization data must use the progressive profile gate");
 assert.ok(html.includes("AUTH_RETURN_INTENT_KEY"),"Progressive invoice return intent must survive navigation");

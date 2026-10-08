@@ -16,6 +16,8 @@ on:
       - "kwinest/app-assets/calm-ux.*"
       - "kwinest/app-assets/settings-center.*"
       - "tests/settings-center-browser.test.mjs"
+      - "tests/pricing-v2-app-browser.test.mjs"
+      - "supabase/functions/_shared/pricing.mjs"
       - "tests/account-deletion-browser.test.mjs"
       - "kwinest/app-assets/exports-filters.*"
       - "tests/exports-filters-alerts-browser.test.mjs"
@@ -179,6 +181,10 @@ jobs:
         run: |
           node tests/tester-invite-code-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/tester-invite-code-browser.test.mjs
+      - name: Pricing V2 plan chooser and subscription screen — Chromium + WebKit
+        run: |
+          node tests/pricing-v2-app-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/pricing-v2-app-browser.test.mjs
       - name: Beginner document review — Chromium + WebKit
         run: |
           node tests/document-review-beginner-ux.test.mjs
