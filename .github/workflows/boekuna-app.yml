@@ -3,6 +3,7 @@ name: Boekuna app tests
 on:
   pull_request:
     paths:
+      - "ios/**"
       - "kwinest/index.html"
       - "public/manifest.webmanifest"
       - "public/assets/financial-correction.js"
@@ -17,6 +18,7 @@ on:
       - "kwinest/app-assets/settings-center.*"
       - "tests/settings-center-browser.test.mjs"
       - "tests/pricing-v2-app-browser.test.mjs"
+      - "tests/ios-*.test.mjs"
       - "supabase/functions/_shared/pricing.mjs"
       - "tests/account-deletion-browser.test.mjs"
       - "kwinest/app-assets/exports-filters.*"
@@ -177,6 +179,13 @@ jobs:
         run: npm install --prefix tests --no-save playwright@1.56.1
       - name: Install Chromium and WebKit
         run: ./tests/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: iOS companion purchase guards on the actual native user-agent
+        run: |
+          node tests/ios-companion-contract.test.mjs
+          node tests/ios-archive-guards.test.mjs
+          node tests/ios-companion-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/ios-companion-browser.test.mjs
+
       - name: Tester invite-code billing UI — Chromium + WebKit
         run: |
           node tests/tester-invite-code-browser.test.mjs

@@ -1,0 +1,75 @@
+# BOEKUNA — eerste TestFlight-installatie
+
+Dit is voorbereiding voor een testbuild, geen openbare App Store-publicatie.
+Bestaande app: https://appstoreconnect.apple.com/apps/6819651528/testflight
+Bundle ID: `nl.boekuna.app` · versie `1.0.0` · iPhone met iOS 17 of nieuwer.
+
+## Vooraf
+
+- Laat de onafhankelijke review van deze wijziging en de macOS CI-build slagen.
+- Controleer dat de companion-webaanpassingen uit dezelfde PR op `app.boekuna.nl` zijn gedeployed. De iOS-app laadt deze live webapp; de commit van de native build alleen fixeert de webversie niet.
+- Gebruik een afzonderlijk testaccount met fictieve administratie. Benodigde toegang moet door het bestaande entitlement/testersysteem worden toegekend; wijzig geen betaalstatus in de app.
+- Bewaar Apple-account, certificaten, API-sleutels en reviewer-wachtwoord uitsluitend in de daarvoor bestemde beveiligde omgeving.
+
+## Op een Mac met Xcode 26 of nieuwer
+
+1. Download de gecontroleerde branch/commit van `kwinstudio/boekuna`.
+2. Open `ios/Boekuna.xcodeproj` in Xcode.
+3. Open **Xcode → Settings → Accounts**, voeg je Apple-account toe en log zelf in.
+4. Selecteer target **Boekuna → Signing & Capabilities**. Zet **Automatically manage signing** aan en selecteer het developerteam dat `nl.boekuna.app` bezit. Bewaar account-specifieke projectwijzigingen niet in GitHub.
+5. Controleer **General**: Bundle Identifier `nl.boekuna.app`, versie `1.0.0`. Kies een nog niet geüpload buildnummer; kijk hiervoor bij de bestaande app in App Store Connect → TestFlight.
+6. Voor een rechtstreekse iPhone-test: sluit de iPhone aan, vertrouw de Mac en schakel Developer Mode op de iPhone in als Xcode daarom vraagt. Selecteer de iPhone en klik **Run**. Doorloop de apparaatchecks hieronder. Dit is een lokale ontwikkeltest en nog geen TestFlight-build.
+7. Selecteer **Any iOS Device (arm64)** of het equivalente generieke iPhone-doel. Kies **Product → Archive**.
+8. Open het archief in **Window → Organizer → Archives**. Kies **Distribute App → TestFlight & App Store** en doorloop de upload naar de bestaande BOEKUNA-app. Kies geen openbare review/publicatie.
+9. Wacht tot Apple de build heeft verwerkt. Beantwoord eventuele export/encryptievragen op basis van de werkelijke app en configureer de beta-testinformatie. Raad niet bij juridische/privacyvragen.
+
+## Via het bestaande script
+
+Als Xcode jouw account en signing al heeft ingericht, kun je vanuit de repository deze opdrachten gebruiken. Vul jouw Team ID in (Apple Developer → Membership details) en een vrij buildnummer. Plaats deze waarden niet in chat.
+
+```bash
+export DEVELOPMENT_TEAM='JOUW_TEAM_ID'
+export BUILD_NUMBER='2' # Alleen gebruiken als 2 nog vrij is; controleer TestFlight.
+./ios/scripts/archive.sh
+```
+
+Dit voert packagingvalidatie, navigatietests, Debug/Release-simulatorbuilds en een device-SDK-build uit. Daarna maakt het een ondertekend archief en exporteert de IPA in `ios/build/`. Het uploadt standaard niets.
+
+Na controle van de ondertekende build en de releasevoorwaarden:
+
+```bash
+export UPLOAD_TO_TESTFLIGHT=1
+./ios/scripts/archive.sh
+```
+
+De upload gebruikt Xcode's ingestelde Apple-account. Een ontbrekend developerteam, ongeldig buildnummer, checkout met niet-genegeerde wijzigingen of oude Xcode/SDK blokkeert het script. `ios/build/export/build-identity.txt` vermeldt commit, buildnummer en Bundle ID; geen credentials.
+
+## Installeren via TestFlight
+
+1. Open de bestaande BOEKUNA-app in App Store Connect en kies **TestFlight**.
+2. Maak een interne testgroep en voeg jezelf toe als geschikte interne tester. Je moet een App Store Connect-gebruiker met een daarvoor toegestane rol zijn en toegang tot deze app hebben.
+3. Voeg de verwerkte build toe aan die groep en stuur de uitnodiging via Apple.
+4. Installeer Apple's **TestFlight** op je iPhone, open de uitnodiging en tik **Installeren**.
+5. Als interne testing niet beschikbaar is, gebruik externe testers. De eerste externe build kan een aparte beta-review nodig hebben; dat is geen openbare App Store-publicatie.
+
+## Verplichte apparaatchecks — nog te bewijzen
+
+Leg per check vast: buildnummer, native commit, webdeploy-commit, iPhone-model, iOS-versie en resultaat.
+
+- E-mail/wachtwoord-login; app afsluiten/heropenen; sessie blijft behouden.
+- Uitloggen; heropenen; administratie van de vorige gebruiker niet zichtbaar.
+- Camera toestaan én weigeren; bibliotheek en Bestanden blijven bruikbaar.
+- JPG/PNG/HEIC en digitale/multipage PDF uploaden; terug naar de app na de bestandkiezer.
+- OCR-resultaten controleren/corrigeren en opslaan; enkel/gemengde btw gebruiken via de bestaande controleflow. Geen stille boeking.
+- Rapport afdrukken via het native afdrukmenu; factuur-PDF en administratie-back-up delen naar Bestanden; documentinhoud en bestandsnaam kloppen.
+- Keyboard open op login/factuur/documentcontrole; invoerveld en primaire actie bereikbaar.
+- Notch/Dynamic Island, onderste home indicator, portret/landschap; geen afgesneden knoppen.
+- Slechte verbinding, vliegtuigmodus, herstel en opnieuw proberen; geen dubbele boeking.
+- Start, betaald en verlopen/testtoegang: geen Stripe Checkout, prijslink, externe koopknop of verborgen betaalroute.
+- Account verwijderen met apart fictief account; fout houdt gegevens intact, succes beëindigt toegang. Gebruik hiervoor nooit een echt administratieaccount.
+
+Een Playwright WebKit-test is geen WKWebView/iPhone-acceptance. Simulator- en device-SDK-compilatie bewijzen geen signing, camera of deelmenu.
+
+## Openbare App Store-gates later
+
+App Privacy/leeftijdsvragen, definitieve screenshots, reviewer-account en de Apple-accountvraag uit PR #262 moeten afzonderlijk worden afgerond. Apple 5.1.1(ix) kan relevant zijn voor gevoelige financiële gegevens; accountgeschiktheid is nog niet bevestigd. De bruikbaarheid van deze companion onder Apple 4.2 moet bij de uiteindelijke review worden beoordeeld. Deze gids geeft geen goedkeuringsgarantie.
