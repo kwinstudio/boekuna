@@ -176,6 +176,25 @@
       +'<div class="settings-center-note">Deze meldingen zie je in de app. Het Controlecentrum laat altijd alles zien, ook wat je hier uitzet.</div>';
   }
 
+  var THEME_OPTIONS=[
+    {value:'system',label:'Automatisch',help:'Volgt de instelling van je apparaat.'},
+    {value:'light',label:'Licht',help:''},
+    {value:'dark',label:'Donker',help:''}
+  ];
+  function themePreference(){return window.BoekunaTheme?window.BoekunaTheme.preference():'system'}
+  function themeLabel(){var p=themePreference();return (THEME_OPTIONS.filter(function(o){return o.value===p})[0]||THEME_OPTIONS[0]).label}
+  function themeBlock(){
+    var current=themePreference();
+    return '<fieldset class="settings-center-fieldset settings-theme"><legend>Thema</legend><div class="settings-theme-options">'
+      +THEME_OPTIONS.map(function(o){
+        var id='set-theme-'+o.value;
+        return '<label class="settings-theme-option" for="'+id+'"><input type="radio" name="theme" id="'+id+'" value="'+o.value+'" data-theme-choice'+(o.value===current?' checked':'')+'>'
+          +'<span class="settings-theme-swatch settings-theme-swatch-'+o.value+'" aria-hidden="true"></span>'
+          +'<span class="settings-theme-copy"><strong>'+esc(o.label)+'</strong>'+(o.help?'<span>'+esc(o.help)+'</span>':'')+'</span></label>';
+      }).join('')
+      +'</div></fieldset>';
+  }
+
   function appPanel(){
     var current=preferredStartPage();
     var select='<div class="field"><label for="set-startPage">Openen op</label><select id="set-startPage" data-settings-pref="startPage">'
@@ -183,7 +202,7 @@
       +'</select><div class="help">De pagina die je ziet nadat je bent ingelogd.</div></div>';
     var help='<label class="settings-view-toggle settings-center-switch" for="extraHelpToggle"><span><strong>Extra uitleg tonen</strong><span>Korte uitleg bij cijfers en knoppen. Handig als je net begint.</span></span><input type="checkbox" role="switch" id="extraHelpToggle" aria-label="Extra uitleg tonen" '+(extraHelpVisible()?'checked':'')+' onchange="setExtraHelpEnabled(this.checked)"></label>';
     var assistant=renderAssistantSettingsSafe();
-    return block('<div class="form-grid">'+select+'</div>','Startpagina')+block(help,'Uitleg')+(assistant?'<div class="settings-center-embedded">'+assistant+'</div>':'');
+    return block(themeBlock())+block('<div class="form-grid">'+select+'</div>','Startpagina')+block(help,'Uitleg')+(assistant?'<div class="settings-center-embedded">'+assistant+'</div>':'');
   }
 
   function securityPanel(){
@@ -223,6 +242,7 @@
   function billingPanel(){return renderBillingCard()}
 
   function helpPanel(){
+    if(window.BoekunaFeedback)return window.BoekunaFeedback.panelHtml();
     return block(
       line('Support','Stel je vraag per e-mail. We reageren op werkdagen.','<a class="btn" href="'+SUPPORT_MAILTO+'">'+esc(SUPPORT_EMAIL)+'</a>')
       +line('Fiscale spelregels','De uitgangspunten die Boekuna gebruikt voor btw en facturen.','<button class="btn" type="button" onclick="showLegal()">Bekijken</button>')
@@ -260,11 +280,11 @@
       {group:'Je bedrijf',key:'invoices',title:'Facturen',desc:'Nummering, betaaltermijn en layout',status:Number(c.paymentDays||14)+' dagen',render:invoicesPanel},
       {group:'Je bedrijf',key:'email',title:'E-mail & delen',desc:'Het bericht bij je facturen',status:'Eigen mail-app',render:emailPanel},
       {group:'App',key:'notifications',title:'Meldingen',desc:'Wat je ziet onder "Nog te doen"',status:on===ATTENTION_TYPES.length?'Alles aan':on+' van '+ATTENTION_TYPES.length+' aan',render:notificationsPanel},
-      {group:'App',key:'app',title:'App & weergave',desc:'Startpagina en extra uitleg',status:PAGE_TITLES[preferredStartPage()]||'',render:appPanel},
+      {group:'App',key:'app',title:'App & weergave',desc:'Thema, startpagina en extra uitleg',status:themeLabel(),render:appPanel},
       {group:'Account',key:'security',title:'Beveiliging & privacy',desc:'Tweestapsverificatie en wachtwoord',status:mfaEnabled===true?'Tweestap aan':mfaEnabled===false?'Tweestap uit':'',tone:mfaEnabled===false?'warn':'',render:securityPanel},
       {group:'Account',key:'data',title:'Data & export',desc:'Exporteren, back-up en herstel',status:'',render:dataPanel},
       {group:'Account',key:'billing',title:'Abonnement & gebruik',desc:'Je plan en documentchecks',status:billingStatus(),render:billingPanel},
-      {group:'Account',key:'help',title:'Hulp & support',desc:'Vragen en fiscale spelregels',status:'',render:helpPanel},
+      {group:'Account',key:'help',title:'Hulp & feedback',desc:'Feedback geven, je meldingen en hulp',status:'',render:helpPanel},
       {group:'Account',key:'account',title:'Account',desc:'E-mailadres en uitloggen',status:'',render:accountPanel},
       {group:'',key:'danger',title:'Gevaarzone',desc:'Administratie wissen of account verwijderen',status:'',danger:true,render:dangerPanel}
     ];
@@ -337,6 +357,7 @@
     if(window.matchMedia('(max-width:820px)').matches)window.scrollTo({top:0,behavior:'instant'});
     if(!opts||opts.focus!==false){var h=panel.querySelector('h2');if(h)h.focus({preventScroll:true})}
     if(key==='security')loadMfaStatus();
+    if(key==='help'&&window.BoekunaFeedback)window.BoekunaFeedback.refreshPanelReports();
   }
 
   function back(){
@@ -447,6 +468,7 @@
       if(t.id==='settingsLogoFile'){handleInvoiceLogoFile(t.files&&t.files[0]);return}
       var form=t.closest('[data-settings-form="invoices"]');
       if(form&&t.name&&t.name.indexOf('invoiceDesign.')===0)livePreview(form);
+      if(t.hasAttribute('data-theme-choice')){if(window.BoekunaTheme&&t.checked){window.BoekunaTheme.set(t.value);toast('Opgeslagen');refreshChrome()}return}
       if(t.hasAttribute('data-attention-key')||t.hasAttribute('data-settings-pref'))savePref(t);
       if(t.id==='exportFrom'||t.id==='exportTo')setReportDate(t.id==='exportFrom'?'from':'to',t.value);
     });

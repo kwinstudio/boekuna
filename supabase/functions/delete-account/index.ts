@@ -57,6 +57,32 @@ Deno.serve(async (req: Request) => {
     if (files.length < pageSize) break;
   }
 
+  // Feedback screenshots live in <user id>/<report id>/screenshot.jpg; remove them before the
+  // account (feedback rows themselves cascade with auth.users).
+  const feedbackBucket = admin.storage.from("feedback-screenshots");
+  while (true) {
+    const { data: folders, error: folderError } = await feedbackBucket.list(userId, { limit: 100, offset: 0 });
+    // Before the feedback migration is applied the bucket does not exist: nothing to remove.
+    if (folderError && /not found/i.test(folderError.message)) break;
+    if (folderError) {
+      return new Response(JSON.stringify({ error: folderError.message }), { status: 400, headers: { "content-type": "application/json" } });
+    }
+    if (!folders?.length) break;
+    const paths: string[] = [];
+    for (const folder of folders) {
+      const { data: files, error: fileError } = await feedbackBucket.list(`${userId}/${folder.name}`, { limit: 100 });
+      if (fileError) {
+        return new Response(JSON.stringify({ error: fileError.message }), { status: 400, headers: { "content-type": "application/json" } });
+      }
+      for (const file of files || []) paths.push(`${userId}/${folder.name}/${file.name}`);
+    }
+    if (!paths.length) break;
+    const { error: removeFeedbackError } = await feedbackBucket.remove(paths);
+    if (removeFeedbackError) {
+      return new Response(JSON.stringify({ error: removeFeedbackError.message }), { status: 400, headers: { "content-type": "application/json" } });
+    }
+  }
+
   const { error: emailSecretError } = await admin.rpc("delete_email_connection_secret", { p_user_id: userId });
   if (emailSecretError) {
     return new Response(JSON.stringify({ error: "Connected mailbox credentials could not be removed" }), { status: 500, headers: { "content-type": "application/json" } });

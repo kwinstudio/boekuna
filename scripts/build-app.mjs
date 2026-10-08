@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {execFileSync} from 'node:child_process';
 import {resolveReleaseProfile,isReleaseFeatureEnabled} from './release-profile.mjs';
+import {generateDarkTheme,appCssSources} from './theme-dark-generate.mjs';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
 const root=path.resolve(here,'..');
@@ -186,6 +188,20 @@ if(!appHtml.includes("else if(wantsRegister)showAuth('register');else showAuth('
   throw new Error('App-only auth fallback was not rewritten');
 }
 
+// Theme boot: apply this device's last theme choice before the first paint, so a dark
+// preference never flashes white. kwinest/app-assets/theme.js takes over after load.
+const themeMetaMarker='<meta name="theme-color" content="#FFFFFF" />';
+if(!appHtml.includes(themeMetaMarker))throw new Error('Theme-color meta marker changed');
+const themeBoot="<script id=\"boekuna-theme-boot\">(function(){var p='system',d=document.documentElement;try{p=localStorage.getItem('boekuna-theme')||'system'}catch(e){}if(p!=='light'&&p!=='dark')p='system';var dark=p==='dark'||(p==='system'&&!!window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);d.dataset.themePref=p;d.dataset.theme=dark?'dark':'light';d.style.colorScheme=dark?'dark':'light';var m=document.querySelector('meta[name=\"theme-color\"]');if(m)m.setAttribute('content',dark?'#15191C':'#FFFFFF')})();</script>";
+appHtml=appHtml.replace(themeMetaMarker,themeMetaMarker+'\n<meta name="color-scheme" content="light dark" />\n'+themeBoot);
+
+// Release stamp for feedback context: which build a report came from. Render sets
+// RENDER_GIT_COMMIT; local builds fall back to the checked-out commit.
+let buildCommit=String(process.env.RENDER_GIT_COMMIT||'').trim();
+if(!buildCommit){try{buildCommit=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8',stdio:['ignore','pipe','ignore']}).trim()}catch(e){buildCommit=''}}
+const buildStamp={release:/^[0-9a-f]{7,40}$/i.test(buildCommit)?buildCommit.slice(0,12):'dev',profile:releaseProfile.name};
+appHtml=appHtml.replace(themeMetaMarker,themeMetaMarker+'\n<script>window.BOEKUNA_BUILD=Object.freeze('+JSON.stringify(buildStamp)+');</script>');
+
 // App-only progressive document review layer. Keep the combined rollback source untouched.
 // The source contains literal </head> tokens inside print templates, so stylesheet
 // injection must use the unique real document head/body boundary. The final </body>
@@ -198,10 +214,10 @@ function injectBeforeLast(html,marker,content){
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review-v2.js?v=20261006fx1"></script>\n');
 const mobileHeadBoundary='</head>\n<body>';
 if(!appHtml.includes(mobileHeadBoundary))throw new Error('Mobile app head boundary changed');
-appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261006fx2">\n<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261007a" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/product-color-polish.css?v=20261006a">\n<style id="boekuna-app-mobile-compact-overrides">@media (max-width:820px){#mainApp #appMain #content.content{padding-top:14px!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active{-webkit-appearance:none!important;appearance:none!important;background:#ECFAEE!important;background-color:#ECFAEE!important;background-image:none!important;color:#1B1F23!important;box-shadow:none!important;border-top:2px solid #63D471!important;font-weight:800!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active .icon,#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active span{color:#1B1F23!important}}@media (max-width:359px){#mainApp .product-kpis.grid-4{grid-template-columns:1fr!important}}</style>\n<link rel="stylesheet" href="/assets/product-ux-polish-round-3.css?v=20261007a">\n<link rel="stylesheet" href="/assets/mobile-flow-simplification.css?v=20261007b" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/calm-ux.css?v=20261007c">\n<link rel="stylesheet" href="/assets/settings-center.css?v=20261007b">\n<link rel="stylesheet" href="/assets/exports-filters.css?v=20261007a">\n'+mobileHeadBoundary);
+appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261006fx2">\n<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261007a" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/product-color-polish.css?v=20261006a">\n<style id="boekuna-app-mobile-compact-overrides">@media (max-width:820px){#mainApp #appMain #content.content{padding-top:14px!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active{-webkit-appearance:none!important;appearance:none!important;background:#ECFAEE!important;background-color:#ECFAEE!important;background-image:none!important;color:#1B1F23!important;box-shadow:none!important;border-top:2px solid #63D471!important;font-weight:800!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active .icon,#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active span{color:#1B1F23!important}}@media (max-width:359px){#mainApp .product-kpis.grid-4{grid-template-columns:1fr!important}}</style>\n<link rel="stylesheet" href="/assets/product-ux-polish-round-3.css?v=20261007a">\n<link rel="stylesheet" href="/assets/mobile-flow-simplification.css?v=20261007b" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/calm-ux.css?v=20261007c">\n<link rel="stylesheet" href="/assets/settings-center.css?v=20261007c">\n<link rel="stylesheet" href="/assets/exports-filters.css?v=20261007a">\n<link rel="stylesheet" href="/assets/feedback.css?v=20261007a">\n<link rel="stylesheet" href="/assets/theme-dark.css?v=20261007a">\n'+mobileHeadBoundary);
 const mobileNavStateMarker="function syncMobileNavigationState(){\n const current=mobilePrimarySection(page);\n document.querySelectorAll('[data-mobile-page]').forEach(btn=>{const active=btn.dataset.mobilePage===current;btn.classList.toggle('active',active);if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current')});\n const more=document.querySelector('[data-mobile-more]');if(more){const active=current==='more';more.classList.toggle('active',active);if(active)more.setAttribute('aria-current','page');else more.removeAttribute('aria-current')}\n updateMobileAccountIdentity()\n}";
 if(!appHtml.includes(mobileNavStateMarker))throw new Error('Mobile navigation state marker changed');
-appHtml=appHtml.replace(mobileNavStateMarker,"function syncMobileNavigationState(){\n const current=mobilePrimarySection(page);\n document.querySelectorAll('[data-mobile-page]').forEach(btn=>{const active=btn.dataset.mobilePage===current;btn.classList.toggle('active',active);btn.style.setProperty('background-color',active?'#ECFAEE':'transparent','important');if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current')});\n const more=document.querySelector('[data-mobile-more]');if(more){const active=current==='more';more.classList.toggle('active',active);more.style.setProperty('background-color',active?'#ECFAEE':'transparent','important');if(active)more.setAttribute('aria-current','page');else more.removeAttribute('aria-current')}\n updateMobileAccountIdentity()\n}");
+appHtml=appHtml.replace(mobileNavStateMarker,"function syncMobileNavigationState(){\n const current=mobilePrimarySection(page);\n document.querySelectorAll('[data-mobile-page]').forEach(btn=>{const active=btn.dataset.mobilePage===current;btn.classList.toggle('active',active);btn.style.setProperty('background-color',active?'var(--app-green-soft,#ECFAEE)':'transparent','important');if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current')});\n const more=document.querySelector('[data-mobile-more]');if(more){const active=current==='more';more.classList.toggle('active',active);more.style.setProperty('background-color',active?'var(--app-green-soft,#ECFAEE)':'transparent','important');if(active)more.setAttribute('aria-current','page');else more.removeAttribute('aria-current')}\n updateMobileAccountIdentity()\n}");
 const assistantRuntimeMarker='\n<script>\nconst USERS_KEY=';
 if(!appHtml.includes(assistantRuntimeMarker))throw new Error('Assistant app runtime marker changed');
 
@@ -363,7 +379,9 @@ appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script>\n'+releaseRuntime+'co
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-product.js?v=20261007a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-flow-simplification.js?v=20261007c"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/calm-ux.js?v=20261007a"></script>\n');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/settings-center.js?v=20261007b"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/settings-center.js?v=20261007c"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/theme.js?v=20261007a"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/feedback.js?v=20261007a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});
@@ -378,7 +396,7 @@ for(const asset of appAssets){
 }
 
 // Document review is app-only. Keep the shared public/marketing copies byte-identical.
-for(const asset of ['document-review-v2.js','document-review-v2.css','product-color-polish.css','product-ux-polish-round-3.css','mobile-flow-simplification.js','mobile-flow-simplification.css','calm-ux.js','calm-ux.css','settings-center.js','settings-center.css','exports-filters.css']){
+for(const asset of ['document-review-v2.js','document-review-v2.css','product-color-polish.css','product-ux-polish-round-3.css','mobile-flow-simplification.js','mobile-flow-simplification.css','calm-ux.js','calm-ux.css','settings-center.js','settings-center.css','theme.js','theme-dark.css','feedback.js','feedback.css','exports-filters.css']){
   const sourceFile=path.join(root,'kwinest','app-assets',asset);
   if(!fs.existsSync(sourceFile))throw new Error('Missing app-only review asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
@@ -535,6 +553,19 @@ patchBuiltAppAsset(
   "  #mainApp .dashboard-kpi-profit, #mainApp .dashboard-kpi:last-child { grid-column:1/-1!important; }",
   "  #mainApp .dashboard-kpi-profit { grid-column:1/-1!important; }"
 );
+
+// Dark Mode: derive dark equivalents of every hardcoded colour from the final cascade, then
+// load them just before the hand-written theme-dark.css refinements.
+{
+  const indexFile=path.join(target,'index.html');
+  let builtHtml=fs.readFileSync(indexFile,'utf8');
+  const readBuiltAsset=file=>{const f=path.join(appAssetsTarget,file);return fs.existsSync(f)?fs.readFileSync(f,'utf8'):null};
+  fs.writeFileSync(path.join(appAssetsTarget,'theme-dark-generated.css'),generateDarkTheme(appCssSources(builtHtml,readBuiltAsset)),'utf8');
+  const darkLink='<link rel="stylesheet" href="/assets/theme-dark.css?v=20261007a">';
+  if(builtHtml.split(darkLink).length!==2)throw new Error('Dark theme stylesheet marker changed');
+  builtHtml=builtHtml.replace(darkLink,'<link rel="stylesheet" href="/assets/theme-dark-generated.css?v=20261007a">\n'+darkLink);
+  fs.writeFileSync(indexFile,builtHtml,'utf8');
+}
 
 fs.copyFileSync(interFontSource,path.join(appAssetsTarget,'app-InterVariable.woff2'));
 fs.copyFileSync(spaceGroteskFont,path.join(appAssetsTarget,'app-SpaceGrotesk-Variable.ttf'));
