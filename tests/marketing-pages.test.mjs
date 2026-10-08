@@ -9,14 +9,15 @@ const retired=['functies','assistent','scanner','prijzen','veiligheid','faq','fa
 const preserved=['privacy','voorwaarden','support','account-verwijderen'];
 
 const home=fs.readFileSync(path.join(source,'index.html'),'utf8');
-assert.match(home,/<meta name="robots" content="noindex,follow">/i,'Holding page must be noindex,follow');
-assert.ok(home.includes('Nieuwe website in ontwikkeling.'),'Holding copy missing');
-assert.ok(home.includes('https://app.boekuna.nl/?login=1'),'Holding login handoff missing');
+assert.match(home,/<meta name="robots" content="index,follow">/i,'Landing page must be indexable');
+assert.ok(home.includes('Boekhouden zonder gedoe'),'BOEKUNA V3 hero missing');
+assert.ok(home.includes('https://app.boekuna.nl/?login=1'),'App login handoff missing');
+assert.ok(home.includes('https://app.boekuna.nl/?register=1'),'App registration handoff missing');
 for(const old of ['editorial-hero','editorial-pricing','project-grid','audience-grid','Uploaden.<br>Controleren. Klaar.']){
   assert.equal(home.includes(old),false,'Old marketing homepage content remains: '+old);
 }
-assert.ok(home.includes('/assets/baseline.css'),'Holding page must use only the clean baseline stylesheet');
-assert.equal(/<script\b/i.test(home),false,'Holding page must not ship marketing runtime JavaScript');
+assert.ok(home.includes('/assets/baseline.css'),'Marketing baseline stylesheet required');
+assert.equal(/<script\b/i.test(home),false,'V3 must not ship marketing runtime JavaScript');
 
 for(const slug of retired){
   assert.equal(fs.existsSync(path.join(source,slug,'index.html')),false,'Retired marketing source page must be removed: '+slug);
@@ -46,7 +47,7 @@ assert.ok(deletion.includes('id="deleteRequestForm"'),'Account deletion request 
 assert.ok(deletion.includes('/rest/v1/support_requests'),'Account deletion request endpoint must remain present');
 
 const sitemap=fs.readFileSync(path.join(source,'sitemap.xml'),'utf8');
-assert.equal(sitemap.includes('https://boekuna.nl/</loc>'),false,'Noindex holding root must not be in sitemap');
+assert.equal(sitemap.includes('https://boekuna.nl/</loc>'),true,'Indexable V3 home must be in sitemap');
 for(const slug of preserved)assert.ok(sitemap.includes('https://boekuna.nl/'+slug+'/'), 'Sitemap missing preserved route '+slug);
 for(const slug of retired)assert.equal(sitemap.includes('https://boekuna.nl/'+slug+'/'),false,'Retired route remains in sitemap '+slug);
 
@@ -72,4 +73,4 @@ for(const obsolete of [
 ]){
   assert.equal(fs.existsSync(path.join(dist,obsolete)),false,'Obsolete/publicly unsafe marketing artifact shipped: '+obsolete);
 }
-console.log('BOEKUNA marketing clean-slate static QA: PASS');
+console.log('BOEKUNA V3 marketing static QA: PASS');
