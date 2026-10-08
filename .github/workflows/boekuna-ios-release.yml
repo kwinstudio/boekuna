@@ -63,17 +63,30 @@ jobs:
       - name: Check signing access
         id: access
         run: |
-          if [[ -n "$ASC_KEY_ID" && -n "$ASC_ISSUER_ID" && -n "$ASC_KEY_P8" ]]; then
+          # Pasted values often carry a trailing newline or space; strip it.
+          KEY_ID="$(printf '%s' "$ASC_KEY_ID" | tr -d '[:space:]')"
+          ISSUER_ID="$(printf '%s' "$ASC_ISSUER_ID" | tr -d '[:space:]')"
+          echo "ASC_KEY_ID=$KEY_ID" >> "$GITHUB_ENV"
+          echo "ASC_ISSUER_ID=$ISSUER_ID" >> "$GITHUB_ENV"
+          MISSING=()
+          [[ -n "$KEY_ID" ]] || MISSING+=(ASC_KEY_ID)
+          [[ -n "$ISSUER_ID" ]] || MISSING+=(ASC_ISSUER_ID)
+          [[ -n "$ASC_KEY_P8" ]] || MISSING+=(ASC_KEY_P8)
+          if [[ ${#MISSING[@]} -eq 0 ]]; then
             echo "signing=true" >> "$GITHUB_OUTPUT"
           else
             echo "signing=false" >> "$GITHUB_OUTPUT"
+            if [[ ${#MISSING[@]} -lt 3 ]]; then
+              echo "::error::GitHub Secret(s) missing or empty: ${MISSING[*]}. Add them under Settings > Secrets and variables > Actions > Repository secrets."
+              exit 1
+            fi
             echo "::notice::No App Store Connect API key in GitHub Secrets (ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8). Building unsigned only; no .ipa and no TestFlight upload."
           fi
 
       - name: Verify existing App Store Connect app and pick the next build number
         id: asc
         if: steps.access.outputs.signing == 'true'
-        run: node ios/scripts/asc.mjs
+        run: ASC_KEY_OUT="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8" node ios/scripts/asc.mjs
 
       - name: Archive (unsigned; signed during export)
         run: |
@@ -101,9 +114,7 @@ jobs:
       - name: Sign and export .ipa (automatic cloud signing via API key)
         if: steps.access.outputs.signing == 'true'
         run: |
-          umask 077
           KEY_PATH="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
-          printf '%s\n' "$ASC_KEY_P8" > "$KEY_PATH"
           for KIND in IPA TestFlight; do
             cp "ios/ExportOptions-$KIND.plist" "$RUNNER_TEMP/ExportOptions-$KIND.plist"
             /usr/libexec/PlistBuddy -c "Add :teamID string ${{ steps.asc.outputs.team_id }}" "$RUNNER_TEMP/ExportOptions-$KIND.plist"

@@ -7,9 +7,17 @@ import fs from 'node:fs';
 
 const APP_ID = process.env.ASC_APP_ID || '6819651528';
 const BUNDLE_ID = 'nl.boekuna.app';
-const keyId = process.env.ASC_KEY_ID || '';
-const issuerId = process.env.ASC_ISSUER_ID || '';
-const p8 = process.env.ASC_KEY_P8 || (process.env.ASC_KEY_PATH ? fs.readFileSync(process.env.ASC_KEY_PATH, 'utf8') : '');
+const keyId = (process.env.ASC_KEY_ID || '').trim();
+const issuerId = (process.env.ASC_ISSUER_ID || '').trim();
+// Accept the .p8 as pasted text, with escaped newlines, or base64-encoded.
+function normalizeKey(raw) {
+  let key = String(raw || '').trim().replace(/\\n/g, '\n');
+  if (key && !key.includes('PRIVATE KEY')) {
+    try { key = Buffer.from(key, 'base64').toString('utf8').trim(); } catch {}
+  }
+  return key ? `${key}\n` : '';
+}
+const p8 = normalizeKey(process.env.ASC_KEY_P8 || (process.env.ASC_KEY_PATH ? fs.readFileSync(process.env.ASC_KEY_PATH, 'utf8') : ''));
 
 function fail(message) {
   console.error(`ERROR: ${message}`);
@@ -29,7 +37,10 @@ function token() {
   return `${head}.${body}.${b64url(signature)}`;
 }
 
-const jwt = token();
+let jwt;
+try { jwt = token(); } catch { fail('ASC_KEY_P8 is not a valid App Store Connect .p8 private key.'); }
+// Hand the normalized key to xcodebuild without echoing it.
+if (process.env.ASC_KEY_OUT) fs.writeFileSync(process.env.ASC_KEY_OUT, p8, { mode: 0o600 });
 async function api(path) {
   const response = await fetch(`https://api.appstoreconnect.apple.com${path}`, { headers: { Authorization: `Bearer ${jwt}` } });
   const text = await response.text();
