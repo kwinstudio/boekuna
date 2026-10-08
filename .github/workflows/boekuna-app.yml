@@ -188,10 +188,12 @@ jobs:
           node tests/ios-archive-guards.test.mjs
           node tests/ios-companion-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/ios-companion-browser.test.mjs
-      - name: iOS local-first adapter (offline drafts, resend, scanner) — Chromium + WebKit
+      - name: iOS local-first adapter (offline drafts, resend, scanner, offline administration) — Chromium + WebKit
         run: |
           node tests/ios-local-first-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/ios-local-first-browser.test.mjs
+          node tests/ios-local-first-offline-ledger.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/ios-local-first-offline-ledger.test.mjs
 
       - name: Tester invite-code billing UI — Chromium + WebKit
         run: |

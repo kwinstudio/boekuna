@@ -2898,14 +2898,37 @@ function normalizeState(x){
  out.plannedCash=out.plannedCash.map(normalizePlannedCash);
  return out
 }
+// iPhone app with local-first on (native flag BOEKUNA_LOCAL_FIRST): set NATIVE_LOCAL_FIRST_OFF to true and
+// deploy the web app to switch every local-first behaviour off without an app update.
+const NATIVE_LOCAL_FIRST_OFF=false;
+function nativeLocalFirstShell(){try{return !NATIVE_LOCAL_FIRST_OFF&&window.BoekunaNativeLocalFirst?.version===1}catch(e){return false}}
+// Which cloud version the local copy is based on (base) and whether it holds changes the cloud has not
+// confirmed yet (rev > synced). Only bookkeeping; the cloud stays the source of truth.
+function syncMetaKey(id){return 'boekuna-sync-meta-'+id}
+function readSyncMeta(id){try{const m=JSON.parse(localStorage.getItem(syncMetaKey(id))||'null')||{};return {base:Number(m.base)||0,rev:Number(m.rev)||0,synced:Number(m.synced)||0}}catch(e){return {base:0,rev:0,synced:0}}}
+function writeSyncMeta(id,m){try{localStorage.setItem(syncMetaKey(id),JSON.stringify(m))}catch(e){}}
+function localChangesPending(id){const m=readSyncMeta(id);return m.rev>m.synced}
+function looksLikeNetworkFailure(err){return !navigator.onLine||err instanceof TypeError||/failed to fetch|load failed|network|fetch/i.test(String(err?.message||err||''))}
+let offlineStartUserId='';
 function load(){try{if(!currentUser)return structuredClone(DEFAULT);const raw=JSON.parse(localStorage.getItem(userDataKey()));return normalizeState(raw)}catch(e){return structuredClone(DEFAULT)}}
-function save(){if(!currentUser)return;localStorage.setItem(userDataKey(),JSON.stringify(state));if(TEST_MODE_NO_AUTH){setCloudSyncStatus('saved');return}queueCloudSave()}
+function save(){if(!currentUser)return;localStorage.setItem(userDataKey(),JSON.stringify(state));if(TEST_MODE_NO_AUTH){setCloudSyncStatus('saved');return}const m=readSyncMeta(currentUser.id);m.rev++;writeSyncMeta(currentUser.id,m);queueCloudSave()}
 function queueCloudSave(){if(TEST_MODE_NO_AUTH){setCloudSyncStatus('saved');return}clearTimeout(cloudSaveTimer);setCloudSyncStatus(navigator.onLine?'saving':'offline');cloudSaveTimer=setTimeout(()=>syncCloudStateNow().catch(err=>{console.warn('Cloudsync mislukt',err);setCloudSyncStatus(navigator.onLine?'error':'offline')}),350)}
 async function performCloudStateSync(requestedUserId){
  if(!currentUser||currentUser.id!==requestedUserId)return;
  if(!navigator.onLine){setCloudSyncStatus('offline');return}
  setCloudSyncStatus('saving');
- const sb=await getSupabase(),snapshot=structuredClone(state),expectedVersion=cloudVersion;
+ const sb=await getSupabase(),snapshot=structuredClone(state),expectedVersion=cloudVersion,snapshotRev=readSyncMeta(requestedUserId).rev;
+ if(offlineStartUserId===requestedUserId){
+  // Opened offline from the local copy. Nothing changed here: take the newest cloud copy instead of
+  // pushing the older local one (which would look like a conflict).
+  offlineStartUserId='';
+  if(snapshotRev<=readSyncMeta(requestedUserId).synced){
+   const {data:remote,error:remoteErr}=await sb.from('ledger_state').select('state,version').eq('user_id',requestedUserId).maybeSingle();
+   if(remoteErr){offlineStartUserId=requestedUserId;throw remoteErr}
+   if(remote&&currentUser?.id===requestedUserId&&Number(remote.version||1)!==cloudVersion){state=normalizeState(remote.state||{});cloudVersion=Number(remote.version||1);localStorage.setItem(userDataKey(),JSON.stringify(state));writeSyncMeta(requestedUserId,{base:cloudVersion,rev:0,synced:0});render()}
+   setCloudSyncStatus('saved');return
+  }
+ }
  let {data,error}=await sb.rpc('save_ledger_state',{p_expected_version:expectedVersion,p_state:snapshot});
  if(error)throw error;
  if(data==null){
@@ -2914,14 +2937,14 @@ async function performCloudStateSync(requestedUserId){
   if(!remote){
    const {error:insertErr}=await sb.from('ledger_state').insert({user_id:requestedUserId,state:snapshot,version:1});
    if(insertErr)throw insertErr;
-   cloudVersion=1;setCloudSyncStatus('saved');return
+   cloudVersion=1;writeSyncMeta(requestedUserId,{...readSyncMeta(requestedUserId),base:1,synced:snapshotRev});setCloudSyncStatus('saved');return
   }
   setCloudSyncStatus('conflict');
   const conflictKey=conflictBackupKey();if(conflictKey)localStorage.setItem(conflictKey,JSON.stringify({savedAt:new Date().toISOString(),state:snapshot}));
   toast('Syncconflict: je lokale wijziging is veilig als herstelkopie bewaard.');
-  state=normalizeState(remote.state||{});cloudVersion=Number(remote.version||1);localStorage.setItem(userDataKey(),JSON.stringify(state));render();return
+  state=normalizeState(remote.state||{});cloudVersion=Number(remote.version||1);localStorage.setItem(userDataKey(),JSON.stringify(state));writeSyncMeta(requestedUserId,{base:cloudVersion,rev:0,synced:0});render();return
  }
- cloudVersion=Number(data);setCloudSyncStatus('saved')
+ cloudVersion=Number(data);const done=readSyncMeta(requestedUserId);writeSyncMeta(requestedUserId,{...done,base:cloudVersion,synced:Math.max(done.synced,snapshotRev)});setCloudSyncStatus('saved')
 }
 function syncCloudStateNow(){
  if(!currentUser)return Promise.resolve();
@@ -2954,7 +2977,20 @@ function loadSignedInUser(user){
  signedInLoad=load;
  return load.promise.then(()=>true);
 }
-async function hydrateCloudAccount(user){currentUser={id:user.id,email:user.email||'',supabaseUser:user};state=load();const sb=await getSupabase();const [{data:profileRow,error:profileErr},{data:ledgerRow,error:ledgerErr}]=await Promise.all([sb.from('profiles').select('company').eq('user_id',user.id).maybeSingle(),sb.from('ledger_state').select('state,version').eq('user_id',user.id).maybeSingle()]);if(profileErr)throw profileErr;if(ledgerErr)throw ledgerErr;cloudVersion=Number(ledgerRow?.version||1);const cloudState=ledgerRow?.state&&Object.keys(ledgerRow.state).length?ledgerRow.state:null;const legacy=!cloudState?legacySnapshotForEmail(user.email):null;state=normalizeState(cloudState||legacy||{});if(profileRow?.company)state.company={...state.company,...profileRow.company};localStorage.setItem(userDataKey(),JSON.stringify(state));localStorage.setItem(userProfileKey(),JSON.stringify(state.company||{}));if(!cloudState){await syncCloudProfile(state.company);await syncCloudStateNow();if(legacy){const moved=await migrateLegacyFilesToCloud();clearLegacyLocalAccount(user.email);toast(`Je bestaande administratie is naar de cloud gekopieerd${moved?` · ${moved} document(en) meegenomen`:''}`)}}setCloudSyncStatus('saved')}
+async function hydrateCloudAccount(user){currentUser={id:user.id,email:user.email||'',supabaseUser:user};state=load();const sb=await getSupabase();let profileRow=null,ledgerRow=null;try{const [{data:p,error:profileErr},{data:l,error:ledgerErr}]=await Promise.all([sb.from('profiles').select('company').eq('user_id',user.id).maybeSingle(),sb.from('ledger_state').select('state,version').eq('user_id',user.id).maybeSingle()]);if(profileErr)throw profileErr;if(ledgerErr)throw ledgerErr;profileRow=p;ledgerRow=l}catch(err){
+ // iPhone local-first: without a connection, open this account's own local copy instead of the login screen.
+ if(nativeLocalFirstShell()&&looksLikeNetworkFailure(err)&&localStorage.getItem(userDataKey())){cloudVersion=readSyncMeta(user.id).base||1;offlineStartUserId=user.id;setCloudSyncStatus('offline');return}
+ throw err}
+ cloudVersion=Number(ledgerRow?.version||1);const syncMeta=readSyncMeta(user.id),localRaw=localStorage.getItem(userDataKey());
+ // iPhone local-first: changes made offline on top of the current cloud version are kept and sent; if the
+ // cloud moved on in the meantime they are kept as a recovery copy, as with any other sync conflict.
+ if(nativeLocalFirstShell()&&localRaw&&syncMeta.rev>syncMeta.synced&&ledgerRow?.state){
+  if(syncMeta.base===cloudVersion){setCloudSyncStatus('saving');queueCloudSave();return}
+  const conflictKey=conflictBackupKey();if(conflictKey)localStorage.setItem(conflictKey,JSON.stringify({savedAt:new Date().toISOString(),state:normalizeState(JSON.parse(localRaw))}));
+  toast('Syncconflict: je offline wijzigingen zijn veilig als herstelkopie bewaard.')
+ }
+ writeSyncMeta(user.id,{base:cloudVersion,rev:0,synced:0});
+ const cloudState=ledgerRow?.state&&Object.keys(ledgerRow.state).length?ledgerRow.state:null;const legacy=!cloudState?legacySnapshotForEmail(user.email):null;state=normalizeState(cloudState||legacy||{});if(profileRow?.company)state.company={...state.company,...profileRow.company};localStorage.setItem(userDataKey(),JSON.stringify(state));localStorage.setItem(userProfileKey(),JSON.stringify(state.company||{}));if(!cloudState){await syncCloudProfile(state.company);await syncCloudStateNow();if(legacy){const moved=await migrateLegacyFilesToCloud();clearLegacyLocalAccount(user.email);toast(`Je bestaande administratie is naar de cloud gekopieerd${moved?` · ${moved} document(en) meegenomen`:''}`)}}setCloudSyncStatus('saved')}
 function logEvent(action,detail='',entityType='',entityId='',oldValue=null,newValue=null){if(!Array.isArray(state.audit))state.audit=[];state.audit.unshift({id:uid('a'),at:new Date().toISOString(),actorId:String(currentUser?.id||''),actorEmail:String(currentUser?.email||''),action:String(action||''),detail:String(detail||''),entityType:String(entityType||''),entityId:String(entityId||''),oldValue:oldValue==null?null:structuredClone(oldValue),newValue:newValue==null?null:structuredClone(newValue)});state.audit=state.audit.slice(0,1000)}
 function invoiceEffectiveStatus(i){if(!i)return 'draft';if(i.status==='cancelled')return 'cancelled';if(i.status==='draft')return 'draft';const paid=invoicePaidAmount(i),out=invoiceOutstanding(i);if(toCents(out)===0&&invoiceCreditOffset(i)>0)return 'credited';if(toCents(out)===0&&Math.abs(invoiceGross(i))>0)return 'paid';if(paid>0&&toCents(out)>0)return 'partial';if(i.dueDate&&i.dueDate<today())return 'overdue';return i.status||'sent'}
 function invoiceIsOverdueOpen(i){return !!i&&i.status!=='draft'&&i.kind!=='credit'&&invoiceEffectiveStatus(i)!=='cancelled'&&invoiceOutstanding(i)>.02&&!!i.dueDate&&i.dueDate<today()}
@@ -3354,7 +3390,7 @@ async function logoutUser(trigger=null){
  // copy (ledger and company profile) is removed from this device. If saving failed it
  // stays, so unsaved work is never thrown away.
  if(leavingUserId&&!TEST_MODE_NO_AUTH){
-  if(cloudCopyConfirmed){try{localStorage.removeItem(DATA_KEY_PREFIX+leavingUserId);localStorage.removeItem(PROFILE_KEY_PREFIX+leavingUserId)}catch(e){}}
+  if(cloudCopyConfirmed){try{localStorage.removeItem(DATA_KEY_PREFIX+leavingUserId);localStorage.removeItem(PROFILE_KEY_PREFIX+leavingUserId);localStorage.removeItem(syncMetaKey(leavingUserId))}catch(e){}}
   else toast('Niet alles was opgeslagen. Je laatste wijzigingen blijven op dit apparaat staan.');
  }
  currentUser=null;state=structuredClone(DEFAULT);pendingMfaUser=null;pendingMfaFactorId=null;
@@ -7300,7 +7336,7 @@ function deleteAccountBillingNotice(){const b=typeof billingSnapshot!=='undefine
 function deleteAccountDialog(){modal('Account definitief verwijderen',`<div class="notice warn" style="margin-bottom:14px"><strong>Dit kan niet ongedaan worden gemaakt.</strong> Je account, administratie, bedrijfsprofiel en privé-documenten worden definitief verwijderd.</div>${deleteAccountBillingNotice()}<div class="legal-item" style="margin-bottom:14px"><strong>Bewaar eerst je administratie</strong><p>Als ondernemer moet je je administratie 7 jaar bewaren. Download daarom eerst een volledige back-up en, via Instellingen › Data &amp; export, je facturen en kosten.</p><button class="btn" type="button" onclick="exportBackup()">Volledige back-up downloaden</button></div><form id="deleteAccountForm" class="form-grid"><div class="field full"><label>Wachtwoord *</label><input name="password" type="password" required></div><div class="field full"><label>Typ VERWIJDER *</label><input name="confirm" required autocomplete="off" oninput="document.getElementById('confirmDeleteAccount').disabled=this.value!=='VERWIJDER'"></div></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn danger" id="confirmDeleteAccount" disabled onclick="deleteAccountNow()">Definitief verwijderen</button>`)}
 async function deleteAccountNow(){const f=document.getElementById('deleteAccountForm');if(!f?.reportValidity()||!currentUser)return;const d=new FormData(f),password=String(d.get('password')||'');if(String(d.get('confirm')||'')!=='VERWIJDER')return toast('Typ VERWIJDER om te bevestigen');
 // signOut tells the SIGNED_OUT listener before it resolves, and that listener clears currentUser: keep the deleted user here.
-const old=currentUser;try{const sb=await getSupabase();const {error:reauthError}=await sb.auth.signInWithPassword({email:old.email,password});if(reauthError)throw new Error('Wachtwoord is niet correct');const {error}=await sb.functions.invoke('delete-account',{body:{confirm:true}});if(error){let message='';try{const body=await error.context?.json?.();message=String(body?.error||'')}catch(e){}throw new Error(message||'Account kon niet worden verwijderd. Er is niets verwijderd.')}await window.BoekunaLocalFirst?.clearDrafts(old.id).catch(()=>{});try{const {error:signOutError}=await sb.auth.signOut({scope:'local'});if(signOutError)console.warn('Lokale Supabase-sessie kon niet volledig worden afgemeld',signOutError)}catch(signOutError){console.warn('Lokale Supabase-sessie kon niet volledig worden afgemeld',signOutError)}localStorage.removeItem(DATA_KEY_PREFIX+old.id);localStorage.removeItem(PROFILE_KEY_PREFIX+old.id);localStorage.removeItem('boekhouden-cloud-conflict-v1-'+old.id);const legacy=getUsers().find(u=>String(u.email||'').toLowerCase()===String(old.email||'').toLowerCase());if(legacy){localStorage.removeItem(DATA_KEY_PREFIX+legacy.id);localStorage.removeItem(PROFILE_KEY_PREFIX+legacy.id);saveUsers(getUsers().filter(u=>u.id!==legacy.id))}currentUser=null;state=structuredClone(DEFAULT);closeModal();showAuth('login');toast('Account en cloudgegevens definitief verwijderd')}catch(err){toast(err?.message||'Account kon niet worden verwijderd')}}
+const old=currentUser;try{const sb=await getSupabase();const {error:reauthError}=await sb.auth.signInWithPassword({email:old.email,password});if(reauthError)throw new Error('Wachtwoord is niet correct');const {error}=await sb.functions.invoke('delete-account',{body:{confirm:true}});if(error){let message='';try{const body=await error.context?.json?.();message=String(body?.error||'')}catch(e){}throw new Error(message||'Account kon niet worden verwijderd. Er is niets verwijderd.')}await window.BoekunaLocalFirst?.clearDrafts(old.id).catch(()=>{});try{const {error:signOutError}=await sb.auth.signOut({scope:'local'});if(signOutError)console.warn('Lokale Supabase-sessie kon niet volledig worden afgemeld',signOutError)}catch(signOutError){console.warn('Lokale Supabase-sessie kon niet volledig worden afgemeld',signOutError)}localStorage.removeItem(DATA_KEY_PREFIX+old.id);localStorage.removeItem(PROFILE_KEY_PREFIX+old.id);localStorage.removeItem(syncMetaKey(old.id));localStorage.removeItem('boekhouden-cloud-conflict-v1-'+old.id);const legacy=getUsers().find(u=>String(u.email||'').toLowerCase()===String(old.email||'').toLowerCase());if(legacy){localStorage.removeItem(DATA_KEY_PREFIX+legacy.id);localStorage.removeItem(PROFILE_KEY_PREFIX+legacy.id);saveUsers(getUsers().filter(u=>u.id!==legacy.id))}currentUser=null;state=structuredClone(DEFAULT);closeModal();showAuth('login');toast('Account en cloudgegevens definitief verwijderd')}catch(err){toast(err?.message||'Account kon niet worden verwijderd')}}
 document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>b.dataset.page&&navigate(b.dataset.page)));
 document.querySelectorAll('[data-mobile-page]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.mobilePage)));
 document.querySelector('[data-mobile-more]')?.addEventListener('click',()=>setMobileMenuOpen(true));
