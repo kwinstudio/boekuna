@@ -11,6 +11,20 @@ Bundle ID: `nl.boekuna.app` · versie `1.0.0` · iPhone met iOS 17 of nieuwer.
 - Gebruik een afzonderlijk testaccount met fictieve administratie. Benodigde toegang moet door het bestaande entitlement/testersysteem worden toegekend; wijzig geen betaalstatus in de app.
 - Bewaar Apple-account, certificaten, API-sleutels en reviewer-wachtwoord uitsluitend in de daarvoor bestemde beveiligde omgeving.
 
+## Vanaf Windows: eerste Mac-buildcontrole via Codemagic
+
+Een eigen Mac is niet nodig voor deze unsigned controle. Het individuele Codemagic-plan bevat momenteel 500 gratis Mac M2-buildminuten per maand. Gebruik de M2-workflow binnen die limiet; activeer geen betaald plan voor deze stap.
+
+1. Koppel de bestaande GitHub-repository `kwinstudio/boekuna` in Codemagic als native iOS-project.
+2. Kies branch `fix/ios-testflight-preflight-20261008`, niet `main` zolang deze PR niet is gemerged.
+3. Klik **Check for configuration files**. `codemagic.yaml` staat in de repositoryroot; kopieer dit bestand niet naar `ios/`.
+4. Kies workflow **BOEKUNA iOS - buildcontrole zonder signing** en klik **Start new build**. Als een projectpad de YAML-scan beperkt, zet dit pad op `.`; de workflow bepaalt zelf de repositoryroot en gebruikt `ios/Boekuna.xcodeproj`.
+5. Controleer de commit in de buildlog. De job draait hetzelfde `ios/scripts/preflight.sh` als GitHub CI: 23 native navigatiegevallen, beide simulatorconfiguraties en het device-SDK zonder signing.
+
+Deze workflow heeft geen Apple-integratie, certificaat, upload- of publicatiestap. Een groene controle levert nog geen installeerbare IPA. Voor een signed cloudbuild moeten Apple-signing en een expliciete TestFlight-uploadworkflow afzonderlijk worden ingericht, met sleutels uitsluitend in de beveiligde Codemagic-instellingen. Maak daarvoor geen nieuwe App Store Connect-app aan. Het bestaande Apple Developer-lidmaatschap blijft nodig.
+
+Bronnen: https://codemagic.io/pricing/ en https://docs.codemagic.io/yaml-basic-configuration/yaml-getting-started/.
+
 ## Op een Mac met Xcode 26 of nieuwer
 
 1. Download de gecontroleerde branch/commit van `kwinstudio/boekuna`.

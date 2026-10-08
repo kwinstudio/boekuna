@@ -5,6 +5,7 @@ on:
     paths:
       - "ios/**"
       - ".github/workflows/boekuna-ios.yml"
+      - "codemagic.yaml"
       - "public/assets/boekuna-app-icon-1024.png"
       - "kwinest/index.html"
       - "tests/ios-*.test.mjs"
