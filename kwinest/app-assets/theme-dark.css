@@ -1,0 +1,89 @@
+/* BOEKUNA Donker thema. Loaded last; only active under html[data-theme="dark"].
+   Same BOEKUNA identity: charcoal surfaces (never pure black), BOEKUNA green as the accent,
+   semantic colours keep their meaning, chart colours stay omzet green / kosten red / winst blue.
+   Presentation only: no layout, state, financial, OCR or backend semantics. */
+html[data-theme="dark"]{
+  color-scheme:dark;
+  --dk-bg:#121619;
+  --dk-surface:#1A1F23;
+  --dk-raised:#21272C;
+  --dk-input:#161B1E;
+  --dk-hover:#262D33;
+  --dk-line:#2E363C;
+  --dk-line-strong:#424C54;
+  --dk-ink:#E9EDEF;
+  --dk-muted:#A7B1B8;
+  --dk-faint:#8C979F;
+  --dk-green:#63D471;
+  --dk-green-ink:#7FE08B;
+  --dk-green-soft:#1C3322;
+  --dk-green-line:#2F5A37;
+
+  /* Shared product tokens (index.html, product-color-polish.css, calm-ux, settings-center) */
+  --app-charcoal:var(--dk-ink);
+  --app-ink:var(--dk-ink);
+  --app-bg:var(--dk-bg);
+  --app-surface:var(--dk-bg);
+  --app-white:var(--dk-surface);
+  --app-surface-elevated:var(--dk-surface);
+  --app-muted:var(--dk-faint);
+  --app-muted-strong:var(--dk-muted);
+  --app-brand:var(--dk-green);
+  --app-brand-hover:#74DB81;
+  --app-brand-pressed:#55C965;
+  --app-brand-soft:var(--dk-green-soft);
+  --app-brand-border:var(--dk-green-line);
+  --app-green:var(--dk-green);
+  --app-green-soft:var(--dk-green-soft);
+  --app-border:var(--dk-line);
+  --app-border-strong:var(--dk-line-strong);
+  --app-focus:#7FE08B;
+  --status-success:#5ED17A;
+  --status-success-soft:#173021;
+  --status-warning:#F2B259;
+  --status-warning-soft:#33260F;
+  --status-error:#FF8A80;
+  --status-error-soft:#3A1C1B;
+  --status-info:#7DB0FF;
+  --status-info-soft:#172539;
+  --app-support:var(--app-brand);
+  --app-support-soft:var(--app-brand-soft);
+  --shadow-card:none;
+  --shadow-modal:0 18px 50px rgba(0,0,0,.45);
+  --focus-ring:0 0 0 3px rgba(99,212,113,.45);
+  --ink:var(--dk-ink);
+  --muted:var(--dk-muted);
+  --line:var(--dk-line);
+  --paper:var(--dk-bg);
+  --card:var(--dk-surface);
+  --nav:var(--dk-surface);
+  --nav2:var(--dk-surface);
+  --accent:var(--dk-green);
+  --accent-ink:#10150F;
+  --good:var(--status-success);
+  --bad:var(--status-error);
+  --warn:var(--status-warning);
+  --info:var(--status-info);
+  --shadow:none;
+  --text-primary:var(--dk-ink);
+  --text-secondary:var(--dk-muted);
+  --text-muted:var(--dk-faint);
+  --divider:var(--dk-line);
+  --success:var(--status-success);
+  --success-soft:var(--status-success-soft);
+  --warning:var(--status-warning);
+  --warning-soft:var(--status-warning-soft);
+  --error:var(--status-error);
+  --error-soft:var(--status-error-soft);
+  --info-soft:var(--status-info-soft);
+  background:var(--dk-bg);
+}
+html[data-theme="dark"] body{background:var(--dk-bg);color:var(--dk-ink)}
+html[data-theme="dark"] #mainApp .settings-center{
+  --sc-ink:var(--dk-ink);--sc-green:var(--dk-green);--sc-bg:var(--dk-bg);--sc-surface:var(--dk-surface);--sc-muted:var(--dk-muted);--sc-line:var(--dk-line);--sc-warn:#F2B259;--sc-warn-bg:#33260F;--sc-danger:#FF8A80;
+}
+@media(max-width:820px){
+  html[data-theme="dark"] .mobile-bottom-nav{--app-ink:var(--dk-ink);--app-brand:var(--dk-green);--app-brand-soft:var(--dk-green-soft);--app-border:var(--dk-line)}
+}
+/* Selected choice chips: the light theme's inverted ink fill becomes the green selection used elsewhere. */
+html[data-theme="dark"] #modalRoot .choice-chip input:checked+span{border-color:var(--dk-green);background:var(--dk-green-soft);color:var(--dk-ink)}
