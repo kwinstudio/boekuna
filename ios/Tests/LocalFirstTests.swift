@@ -1,6 +1,7 @@
 import CoreGraphics
 import CoreText
 import Foundation
+import ImageIO
 
 // Compiled with swiftc on macOS CI together with LocalFirstOCR.swift and
 // LocalFirstDraftStore.swift. Vision and PDFKit are the same frameworks as on

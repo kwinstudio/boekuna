@@ -386,6 +386,7 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/settings-center
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/theme.js?v=20261007a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/feedback.js?v=20261008c"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-viewer.js?v=20261008f"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/native-local-first.js?v=20261008a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});

@@ -75,4 +75,6 @@
   _base64ToFile:base64ToFile
  };
  window.BoekunaLocalFirst=api;
+ // Loaded after the app script; a session restored before this point still gets its drafts and scanner.
+ if(handler()&&typeof window.initLocalFirstForUser==='function')setTimeout(()=>window.initLocalFirstForUser(),0);
 })();
