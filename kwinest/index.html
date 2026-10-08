@@ -5878,7 +5878,7 @@ async function keepDocumentInArchiveOnly(jobId){
 }
 async function openPersistentDocumentReview(jobId,forceType=''){
  const job=documentProcessingJobs.find(j=>j.id===jobId);if(!job?.result?.analysis)return toast('De verwerkte gegevens zijn nog niet beschikbaar.');
- const raw=forceType?{...job.result.analysis,documentType:forceType}:job.result.analysis;if(!['purchase_invoice','sales_invoice','sale_invoice','credit_invoice','receipt','invoice'].includes(String(raw.documentType||'')))return openNonFinancialDocumentChoice(jobId);
+ const raw=forceType?{...job.result.analysis,documentType:forceType}:job.result.analysis;if(!['purchase_invoice','sales_invoice','sale_invoice','credit_invoice','receipt','invoice'].includes(String(raw.documentType||'')))return job.state==='review_required'?openNonFinancialDocumentChoice(jobId):openStoredDocument(job.client_ref);
  try{
   const stored=await getStoredFile(job.client_ref);if(!stored?.blob)throw new Error('DOCUMENT_NOT_FOUND');
   const file=new File([stored.blob],stored.name||persistentDocumentName(job),{type:stored.type||stored.blob.type||'application/octet-stream'});
