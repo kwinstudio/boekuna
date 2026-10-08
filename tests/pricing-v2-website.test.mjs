@@ -24,7 +24,7 @@ for(const page of [home,prices]){
   assert.ok(page.includes('Eenvoudige prijzen.'),'title');
   assert.ok(page.includes('Gratis factureren, of je hele boekhouding voor een vast bedrag.'),'subtitle');
   assert.ok(page.includes('2 maanden gratis'),'yearly switch label');
-  assert.ok(page.includes('exclusief btw'),'VAT basis');
+  assert.ok(page.includes('inclusief btw')&&!page.includes('exclusief btw.'),'VAT basis: prices incl. btw');
   for(const id of DEFAULT_SELLABLE_PLANS)
     assert.ok(page.includes(`href="https://app.boekuna.nl/?register=1&amp;plan=${id}&amp;interval=year"`),id+' CTA carries plan and default interval');
 }
