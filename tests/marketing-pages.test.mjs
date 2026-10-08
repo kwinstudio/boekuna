@@ -19,10 +19,10 @@ assert.ok(home.includes('class="mobile-nav"'),'Native mobile menu missing');
 for(const section of ['id="hoe-het-werkt"','id="mogelijkheden"','id="tarieven"','id="voor-wie"','id="product"','id="vragen"']){
   assert.ok(home.includes(section),'V3 landing section missing '+section);
 }
-for(const price of ['€ 0','€ 9,95','€ 19,95']){
+for(const price of ['€ 0','€ 9,95','€ 99,50','€ 19,95','€ 199,50']){
   assert.ok(home.includes(price),'Verified public plan price missing '+price);
 }
-for(const oldPlan of ['€ 6,95','€ 14,95','€ 34,95']){
+for(const oldPlan of ['€ 6,95','€ 14,95','Unlimited','documentchecks per maand']){
   assert.ok(!home.includes(oldPlan),'Stale historic plan price appeared '+oldPlan);
 }
 assert.equal((home.match(/<details>/g)||[]).length,5,'Five accessible FAQ disclosures expected');

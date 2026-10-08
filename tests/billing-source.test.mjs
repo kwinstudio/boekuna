@@ -118,7 +118,7 @@ for(const retired of ['early_access_active','expired_read_only','FOUNDING 100','
 assert.ok(holding.includes('<meta name="robots" content="index,follow">'),'Marketing V3 root must be indexable');
 assert.ok(holding.includes('https://app.boekuna.nl/?login=1'),'Marketing must preserve app login');
 assert.ok(holding.includes('https://app.boekuna.nl/?register=1'),'Marketing must link to app registration');
-for(const publicPricing of ['€ 9,95','€ 19,95']){
+for(const publicPricing of ['€ 9,95','€ 99,50','€ 19,95','€ 199,50']){
   assert.ok(holding.includes(publicPricing),'V3 public price must match live Stripe plan: '+publicPricing);
 }
 for(const forbidden of ['register=1&plan=boekuna','register=1&plan=pro']){
