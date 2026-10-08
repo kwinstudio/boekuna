@@ -14,7 +14,7 @@ assert.ok([...home.matchAll(/<img\b[^>]*>/gi)].every(m=>/src="\/assets\/site\//.
 assert.ok(fs.existsSync(path.join(dist,'assets','site','foto-kapper.webp')),'Photos must be deployed');
 assert.ok(fs.statSync(path.join(dist,'assets','site','foto-kapper.webp')).size<120000,'Photo asset too large');
 assert.ok(home.includes('Voorbeeldgegevens van een fictief bedrijf'),'App screenshots must be labeled honestly');
-assert.equal((home.match(/<script\b/gi)||[]).length,1,'Landing uses one first-party script');
+assert.equal((home.match(/<script\b(?! type="application\/ld\+json")/gi)||[]).length,1,'Landing uses one first-party script (structured data aside)');
 for(const token of ['editorial-hero','project-grid','editorial-pricing','product-marquee'])assert.equal(home.includes(token),false,'Old presentation returned: '+token);
 for(const old of ['assets/stories','assets/product','assets/marketing-people','assets/site.css','assets/site.js','assets/editorial-marketing.css','assets/premium-marketing.css','assets/onepage.css','assets/marketing.js'])assert.equal(fs.existsSync(path.join(dist,old)),false,'Old public marketing asset returned: '+old);
 const css=fs.readFileSync(path.join(dist,'assets','baseline.css'),'utf8');

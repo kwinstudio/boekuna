@@ -57,7 +57,9 @@ class WorkerError(Exception):
 
 
 FINANCIAL={'purchase_invoice','sales_invoice','sale_invoice','credit_invoice','receipt'}
-REVIEW_LABELS={'gross':'totaal','vatAmount':'btw-bedrag','issueDate':'datum','party':'leverancier','vatLines':'btw-verdeling','vatRate':'btw-tarief','document':'documentgegevens'}
+REVIEW_LABELS={'gross':'totaal','net':'bedrag excl. btw','vatAmount':'btw-bedrag','issueDate':'datum','party':'leverancier','vatLines':'btw-verdeling','vatRate':'btw-tarief','vatTreatment':'btw-behandeling','invoiceNumber':'factuurnummer','documentType':'documenttype','document':'documentgegevens'}
+# Routing can name extractor fields; fold them into the app's own field names (same as the Edge adapter).
+REVIEW_ALIASES={'supplierName':'party','customerName':'party','total':'gross','vatTotal':'vatAmount','subtotal':'net','invoiceDate':'issueDate'}
 
 
 def _confidence(raw):
@@ -96,7 +98,7 @@ def review(data):
     if len(rates)>1 and (line_conf is None or line_conf<85):fields.append('vatLines')
     if not rates:fields.append('vatRate')
     if data.get('warnings') and not fields:fields.append('document')
-    fields=list(dict.fromkeys(fields))
+    fields=list(dict.fromkeys(REVIEW_ALIASES.get(x,x) for x in fields))
     return fields,('Controleer '+', '.join(REVIEW_LABELS.get(x,x) for x in fields)+'.') if fields else ''
 
 

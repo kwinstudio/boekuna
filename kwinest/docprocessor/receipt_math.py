@@ -170,7 +170,14 @@ def derive_single_rate_amounts(
             out[field] = exp
             out[conf_key[field]] = derived_conf
             out["derivedFields"].append(field)
-        elif _money_equal(abs(float(cur)), exp):
+        elif _money_equal(abs(float(cur)), exp) or (
+            # A VAT anchor is itself rounded to cents; dividing it by the rate
+            # cannot pin the base to the cent (318.73 / 21% = 1517.76 while the
+            # printed 1517.75 gives exactly 318.73). Accept a printed value whose
+            # own VAT rounds to the anchor, as enforce_single_rate_consistency does.
+            anchor_field == "vatTotal"
+            and abs((_cents(_rate_expected(abs(float(cur)) - (anchor_value if field == "total" else 0), rate)) or 0) - (_cents(anchor_value) or 0)) <= 1
+        ):
             out[field] = round(abs(float(cur)), 2)
         elif allow_replace_explicit and cur_conf < replace_below:
             out[field] = exp

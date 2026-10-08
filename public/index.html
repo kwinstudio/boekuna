@@ -13,13 +13,20 @@
 <meta property="og:description" content="Facturen, bonnetjes, kosten en btw. Alles op één plek voor zelfstandigen.">
 <meta property="og:url" content="https://boekuna.nl/">
 <meta property="og:site_name" content="BOEKUNA">
+<meta property="og:image" content="https://boekuna.nl/assets/site/og-boekuna.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://boekuna.nl/">
+<link rel="preload" href="/assets/fonts/inter-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/space-grotesk-var-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="icon" href="/assets/boekuna-favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/baseline.css">
 <link rel="stylesheet" href="/assets/landing-v4.css">
 <link rel="stylesheet" href="/assets/site/site.css">
 <link rel="preload" as="image" href="/assets/site/app-desktop-dashboard.webp" media="(min-width:768px)">
 <script src="/assets/site/site.js" defer></script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://boekuna.nl/#org","name":"Kwinest","brand":{"@type":"Brand","name":"Boekuna"},"url":"https://boekuna.nl/","email":"support@boekuna.nl","vatID":"NL002477565B57","address":{"@type":"PostalAddress","streetAddress":"Arica 139","postalCode":"2903 PD","addressLocality":"Capelle aan den IJssel","addressCountry":"NL"},"identifier":{"@type":"PropertyValue","propertyID":"KVK","value":"74542893"}},{"@type":"WebSite","url":"https://boekuna.nl/","name":"Boekuna","inLanguage":"nl-NL","publisher":{"@id":"https://boekuna.nl/#org"}}]}</script>
 <title>BOEKUNA — Boekhouden zonder gedoe | Voor zelfstandigen</title>
 </head>
 <body>
@@ -38,13 +45,25 @@
  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
  <symbol id="i-close" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
  <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 2.3 7.7L22 12l-7.7 2.3L12 22l-2.3-7.7L2 12l7.7-2.3L12 2z"/></symbol>
+ <symbol id="i-bank" viewBox="0 0 24 24"><path d="M3 10h18M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18M12 3l9 5H3l9-5z"/></symbol>
+ <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+ <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></symbol>
+ <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 20v-1.5A3.5 3.5 0 0 0 12.5 15h-5A3.5 3.5 0 0 0 4 18.5V20M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM20 20v-1.5a3.5 3.5 0 0 0-2.5-3.35M15.5 4.15a3.5 3.5 0 0 1 0 6.7"/></symbol>
+ <symbol id="i-tag" viewBox="0 0 24 24"><path d="M20 12l-8 8-9-9V3h8l9 9zM7.5 7.5h.01"/></symbol>
+ <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></symbol>
+ <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></symbol>
+ <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+ <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+ <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5zM4 21.5A2.5 2.5 0 0 1 6.5 19H20v3H6.5"/></symbol>
+ <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+ <symbol id="i-building" viewBox="0 0 24 24"><path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M8 7h4M8 11h4M8 15h4M3 21h18"/></symbol>
 </svg>
 <header class="site-header">
  <nav class="shell nav-shell" aria-label="Hoofdnavigatie">
   <a class="brand" href="/" aria-label="BOEKUNA home"><span class="brand-mark" aria-hidden="true"></span><span>BOEKUNA</span></a>
-  <div class="desktop-links"><a href="/functies/">Functies</a><a href="/hoe-het-werkt/">Zo werkt het</a><a href="/prijzen/">Prijzen</a><a href="/veiligheid/">Veiligheid</a><a href="/faq/">Vragen</a></div>
+  <div class="desktop-links"><details class="nav-drop"><summary>Functies <svg class="icon chev" aria-hidden="true"><use href="#i-chev"/></svg></summary><div class="nav-drop-panel"><div class="nav-drop-grid"><a href="/facturen/"><span class="nav-drop-icon"><svg class="icon"><use href="#i-file"/></svg></span><span><strong>Facturen</strong><small>Maken, delen en betalingen volgen</small></span></a><a href="/bonnen/"><span class="nav-drop-icon"><svg class="icon"><use href="#i-scan"/></svg></span><span><strong>Bonnetjes en kosten</strong><small>Uploaden, controleren en bewaren</small></span></a><a href="/btw/"><span class="nav-drop-icon"><svg class="icon"><use href="#i-up"/></svg></span><span><strong>Btw-overzicht</strong><small>Per kwartaal, per rubriek</small></span></a><a href="/bank/"><span class="nav-drop-icon"><svg class="icon"><use href="#i-bank"/></svg></span><span><strong>Bank</strong><small>Bankbestand importeren en koppelen</small></span></a></div><a class="nav-drop-all" href="/functies/">Alle functies bekijken <svg class="icon"><use href="#i-arrow"/></svg></a></div></details><a href="/hoe-het-werkt/">Zo werkt het</a><a href="/prijzen/">Prijzen</a><a href="/veiligheid/">Veiligheid</a><a href="/kennisbank/">Kennisbank</a></div>
   <div class="nav-actions"><a class="nav-signin" href="https://app.boekuna.nl/?login=1">Inloggen</a><a class="button button-green nav-join" href="https://app.boekuna.nl/?register=1">Begin gratis <svg class="icon"><use href="#i-arrow"/></svg></a></div>
-  <details class="mobile-nav"><summary aria-label="Open menu"><svg class="icon"><use href="#i-menu"/></svg><span>Menu</span></summary><nav class="mobile-nav-links" aria-label="Mobiele navigatie"><a href="/functies/">Functies</a><a href="/hoe-het-werkt/">Zo werkt het</a><a href="/prijzen/">Prijzen</a><a href="/veiligheid/">Veiligheid</a><a href="/faq/">Vragen</a><a href="/over-ons/">Over ons en contact</a><div class="mobile-nav-footer"><a href="https://app.boekuna.nl/?login=1">Inloggen</a><a class="button button-green" href="https://app.boekuna.nl/?register=1">Begin gratis <svg class="icon"><use href="#i-arrow"/></svg></a></div></nav></details>
+  <details class="mobile-nav"><summary aria-label="Open menu"><svg class="icon"><use href="#i-menu"/></svg><span>Menu</span></summary><nav class="mobile-nav-links" aria-label="Mobiele navigatie"><span class="mobile-nav-label">Functies</span><a class="sub" href="/facturen/">Facturen</a><a class="sub" href="/bonnen/">Bonnetjes en kosten</a><a class="sub" href="/btw/">Btw-overzicht</a><a class="sub" href="/bank/">Bank</a><a class="sub" href="/functies/">Alle functies</a><span class="mobile-nav-label">Boekuna</span><a class="sub" href="/hoe-het-werkt/">Zo werkt het</a><a class="sub" href="/prijzen/">Prijzen</a><a class="sub" href="/veiligheid/">Veiligheid</a><a class="sub" href="/kennisbank/">Kennisbank</a><a class="sub" href="/faq/">Veelgestelde vragen</a><a class="sub" href="/over-ons/">Over ons en contact</a><div class="mobile-nav-footer"><a href="https://app.boekuna.nl/?login=1">Inloggen</a><a class="button button-green" href="https://app.boekuna.nl/?register=1">Begin gratis <svg class="icon"><use href="#i-arrow"/></svg></a></div></nav></details>
  </nav>
 </header>
 <main id="inhoud">
@@ -128,6 +147,8 @@
 <details><summary>Kan ik facturen maken en delen?<span aria-hidden="true">+</span></summary><p>Ja, je kunt facturen maken en de PDF delen. De app kan het openen van je e-mailprogramma niet automatisch gelijkstellen aan een daadwerkelijk verzonden factuur.</p></details>
 <details><summary>Kan ik de btw direct indienen?<span aria-hidden="true">+</span></summary><p>BOEKUNA helpt je met een btw-overzicht. Rechtstreeks de btw-aangifte indienen vanuit BOEKUNA is op dit moment geen beschikbare functie.</p></details>
 </div></div></section>
+
+<section class="section page-section kb-teaser" id="kennisbank" aria-labelledby="kb-heading"><div class="shell"><div class="section-head reveal"><span class="eyebrow"><span class="eyebrow-dot"></span> Kennisbank</span><h2 id="kb-heading">Snap je administratie.<br><span>In gewone taal.</span></h2><p>Korte uitleg over facturen, btw en de regels die voor jou gelden. Met bronnen van de Belastingdienst.</p></div><div class="kb-grid"><a class="kb-card reveal" href="/kennisbank/factuur-eisen/"><span class="feature-icon"><svg class="icon"><use href="#i-file"/></svg></span><strong>Wat moet er op een factuur?</strong><span>Een factuur moet aan vaste regels voldoen.</span><small>4 minuten lezen <svg class="icon"><use href="#i-arrow"/></svg></small></a><a class="kb-card reveal" href="/kennisbank/btw-aangifte-per-kwartaal/"><span class="feature-icon"><svg class="icon"><use href="#i-up"/></svg></span><strong>Btw-aangifte per kwartaal: zo doe je het</strong><span>De meeste zelfstandigen doen elk kwartaal btw-aangifte.</span><small>5 minuten lezen <svg class="icon"><use href="#i-arrow"/></svg></small></a><a class="kb-card reveal" href="/kennisbank/kleineondernemersregeling/"><span class="feature-icon"><svg class="icon"><use href="#i-tag"/></svg></span><strong>De kleineondernemersregeling (KOR) uitgelegd</strong><span>Met de KOR reken je geen btw over je omzet.</span><small>4 minuten lezen <svg class="icon"><use href="#i-arrow"/></svg></small></a></div><p class="kb-more"><a class="text-link" href="/kennisbank/">Alle artikelen <svg class="icon"><use href="#i-arrow"/></svg></a></p></div></section>
 <section class="closing" aria-labelledby="closing-heading"><div class="shell closing-grid"><div><span class="eyebrow eyebrow-light"><span class="eyebrow-dot"></span> Aan de slag</span><h2 id="closing-heading">Minder gedoe.<br><span>Meer ondernemen.</span></h2><p>Begin met BOEKUNA en breng je administratie op één overzichtelijke plek.</p></div><a href="https://app.boekuna.nl/?register=1" class="button button-green button-large">Begin gratis <svg class="icon"><use href="#i-arrow"/></svg></a></div></section>
 </main>
 <footer class="site-footer site-footer-full"><div class="shell footer-columns">

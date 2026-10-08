@@ -1649,6 +1649,48 @@ def run_best_ocr(img:Image.Image, *, already_prepared:bool=False, quality:dict|N
         if owns_primary:
             primary.close()
 
+def rotated_text_lines(page:Any)->set[tuple[int,int]]:
+    """(block, line) numbers of non-horizontal text that is only a small part of the page.
+
+    Diagonal watermarks ("OCR TEST", "CONCEPT", "KOPIE") are real PDF text. Sorted
+    plain-text extraction splices their words into the horizontal lines they cross
+    ("BTW 21% €318,73 TESTTotaal €1.836,48"), which corrupts amounts and party
+    blocks. A page that is mostly rotated text is left alone."""
+    try:
+        data=page.get_text("dict",flags=fitz.TEXTFLAGS_WORDS)
+    except Exception:
+        return set()
+    rotated=set();rot_chars=0;total_chars=0
+    for block in data.get("blocks") or []:
+        for li,line in enumerate(block.get("lines") or []):
+            n=sum(len((s.get("text") or "").strip()) for s in line.get("spans") or [])
+            total_chars+=n
+            dx,dy=(line.get("dir") or (1.0,0.0))[:2]
+            if dx<0.995 or abs(dy)>0.1:
+                rotated.add((int(block.get("number",-1)),li));rot_chars+=n
+    if not rotated or total_chars==0 or rot_chars*5>total_chars:return set()
+    return rotated
+
+def horizontal_page_text(words:list)->str:
+    """Rebuild reading-order text from PyMuPDF words (rows by baseline, left to right)."""
+    rows=[]
+    for w in sorted(words,key=lambda w:(round(w[3],1),w[0])):
+        y0,y1=float(w[1]),float(w[3])
+        target=None
+        for row in reversed(rows[-6:]):
+            overlap=min(row["y1"],y1)-max(row["y0"],y0)
+            if overlap>=0.5*min(row["y1"]-row["y0"],y1-y0):
+                target=row;break
+        if target is None:
+            target={"y0":y0,"y1":y1,"words":[]};rows.append(target)
+        target["words"].append(w)
+    rows.sort(key=lambda r:r["y0"])
+    out=[];prev=None
+    for r in rows:
+        if prev is not None and r["y0"]-prev["y1"]>1.2*max(1.0,prev["y1"]-prev["y0"]):out.append("")
+        out.append(" ".join(str(w[4]) for w in sorted(r["words"],key=lambda w:w[0])));prev=r
+    return "\n".join(out)
+
 def extract_pdf(raw:bytes) -> dict[str,Any]:
     try:
         doc=fitz.open(stream=raw,filetype="pdf")
@@ -1669,12 +1711,18 @@ def extract_pdf(raw:bytes) -> dict[str,Any]:
             blocks=page.get_text("blocks", sort=True)
             native_text.append(page.get_text("text", sort=False) or "")
             text=page.get_text("text", sort=True) or ""
+            watermark_lines=rotated_text_lines(page) if words else set()
+            if watermark_lines:
+                words=[w for w in words if (int(w[5]),int(w[6])) not in watermark_lines]
+                text=horizontal_page_text(words)
             text=norm_text(text.replace("\r","\n")).replace(" \n","\n")
             page_layout=[{"x0":round(w[0],1),"y0":round(w[1],1),"x1":round(w[2],1),"y1":round(w[3],1),"text":norm_text(w[4])} for w in words if norm_text(w[4])]
             page_tables=[]
             if words and plumber and idx<len(plumber.pages):
                 try:
-                    for table in plumber.pages[idx].extract_tables() or []:
+                    plumber_page=plumber.pages[idx]
+                    if watermark_lines:plumber_page=plumber_page.filter(lambda o:o.get("object_type")!="char" or o.get("upright",True))
+                    for table in plumber_page.extract_tables() or []:
                         clean=[[norm_text(c or "") for c in row] for row in table if row]
                         if clean: page_tables.append(clean)
                 except Exception: pass
@@ -1878,6 +1926,16 @@ def _party_subblocks(lines:list[str])->list[list[str]]:
     if cur:subs.append(cur)
     return subs
 
+HEADER_FIELD_LABEL_RE=re.compile(
+    r"^(?:factuur|invoice|order|klant|debiteur|customer|lever|verval|betaal|boek|document)?\s*-?\s*"
+    r"(?:nummer|nr\.?|number|no\.?|datum|date|termijn|referentie|kenmerk|reference)$",re.I)
+# Labels that name the billed party. A block opened by one of these is the
+# recipient, so it is evidence that an unlabelled block beside it is the issuer.
+BILLED_PARTY_LABEL_RE=re.compile(
+    r"^(?:factuur\s+aan|factureren\s+aan|gefactureerd\s+aan|factuuradres|klantgegevens|uw\s+gegevens|bill\s+to|billed\s+to|"
+    r"sold\s+to|invoice\s+to|invoice\s+address|billing\s+address|customer|client|buyer|koper|klant|debiteur|afnemer|"
+    r"opdrachtgever|aan|to|rechnungsempfänger|rechnungsadresse|kunde|facturé\s+à|adresse\s+de\s+facturation)(?:\s*[:\-]|$)",re.I)
+
 def _subblock_name(sub:list[str])->str|None:
     for raw in sub[:3]:
         cand=_clean_party_candidate(raw)
@@ -1885,6 +1943,10 @@ def _subblock_name(sub:list[str])->str|None:
         if re.match(r"^(?:factuur|invoice|rechnung|creditnota|credit note|kassabon|receipt|bon|datum|date|totaal|total|btw|vat|kvk|iban|pagina|page)\b",cand,re.I):continue
         if RECIPIENT_MARK_RE.match(cand) or POSTAL_OR_STREET_RE.search(cand) and re.search(r"\d",cand):continue
         if re.search(r"(?:nummer|number|datum|date|nr\.?|no\.?)\s*[:#]",cand,re.I):continue
+        # Header metadata printed as its own column: bare field labels
+        # ("Factuurnummer", "Vervaldatum") or a lone code/date ("NL-000049").
+        # Names such as "3M" or "123inkt.nl" stay: only codes that are mostly digits are skipped.
+        if HEADER_FIELD_LABEL_RE.match(cand) or re.fullmatch(r"[A-Za-z]{0,4}[-/#]?\d[\d\-/.]*",cand):continue
         return cand
     return None
 
@@ -1896,10 +1958,12 @@ def select_unlabelled_party_block(lines:list[str],company:dict,role:str)->list[s
     issuer prints its own KvK/BTW/IBAN/contact details. Two plain name blocks
     without such evidence are ambiguous and return nothing (review), instead of
     guessing the first one."""
-    named=[]
+    named=[];billed_label=False
     for sub in _party_subblocks(lines):
         # Labelled blocks are handled by the labelled path in contact_block.
-        if PARTY_LABEL_LINE_RE.match(sub[0]):continue
+        if PARTY_LABEL_LINE_RE.match(sub[0]):
+            if BILLED_PARTY_LABEL_RE.match(sub[0]) and _subblock_name(sub[1:]):billed_label=True
+            continue
         name=_subblock_name(sub)
         if not name:continue
         joined="\n".join(sub)
@@ -1923,6 +1987,11 @@ def select_unlabelled_party_block(lines:list[str],company:dict,role:str)->list[s
         # carries issuer details; otherwise it is usually the addressee in the
         # envelope window (the issuer's KvK/IBAN sits in a footer or signature).
         if len(cands)==1 and not elsewhere and (len(named)==1 or any(b["own"] or b["recipient"] for b in named)):
+            return cands[0]
+        # The billed party is printed in its own labelled block ("Factuur aan"),
+        # so the single plain name block is not the addressee: it is the issuer,
+        # even when its KvK/BTW/IBAN sit in the footer.
+        if len(cands)==1 and billed_label:
             return cands[0]
         return None
     supplier=pick_supplier()
@@ -2020,11 +2089,13 @@ def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tu
             if re.search(r"\b(?:kvk|btw|vat|iban|factuurnr|factuurnummer|invoice no|invoice number)\b",cand,re.I):continue
             if re.search(r"\b(?:factuur|invoice|creditnota|receipt)\b",cand,re.I):continue
             name=cand;src=("label" if idx is not None else ("header-block" if PARTY_BLOCK_MARKER in lines[:40] else "first-lines"),rawline);break
-    if not name and footer:
+    if footer and (not name or (src and src[0]=="header-block")):
         # Only a legal-form name leading a footer legal line, e.g. "Name BV | KvK ...".
+        # It also completes a header brand name ("MediaWinkel" -> "MediaWinkel Nederland B.V.").
         for raw in footer:
             head=_clean_party_candidate(re.split(r'\s*[|•·]\s*|\s{2,}|\s+[-–]\s+|,\s+',raw)[0])
             if 2<=len(head)<=100 and re.search(r'\b(?:b\.?v\.?|n\.?v\.?|v\.?o\.?f\.?|gmbh|ltd|limited|inc|s\.?a\.?|bvba|srl)$',head,re.I) and not re.search(r'\b(?:kvk|btw|vat|iban)\b',head,re.I):
+                if name and not head.casefold().startswith(name.casefold()):continue
                 name=head;src=("footer",raw);break
     data={"name":name,"address":address,"postalCode":f"{postal[1]} {postal[2].upper()}" if postal else None,"city":postal[3].strip() if postal and postal[3] else None,"country":"Nederland" if postal else None,
           "kvk":kvks[0] if kvks else None,"vatNumber":nl_vats[0] if nl_vats else None,"iban":next((x for x in ibans if valid_iban(x)),None),"email":emails[0] if emails else None}

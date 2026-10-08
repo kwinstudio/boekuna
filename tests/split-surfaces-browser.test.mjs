@@ -39,7 +39,7 @@ try{
   assert.equal(await marketing.locator('#mainApp').count(),0,'marketing must not contain app runtime');
   assert.equal(await marketing.locator('h1').textContent(),'Boekhouden zonder gedoe.');
   assert.equal(await marketing.locator('meta[name="robots"]').getAttribute('content'),'index,follow');
-  assert.equal(await marketing.locator('script:not([src="/assets/site/site.js"])').count(),0,'Marketing root ships only the first-party site script');
+  assert.equal(await marketing.locator('script:not([src="/assets/site/site.js"]):not([type="application/ld+json"])').count(),0,'Marketing root ships only the first-party site script');
   assert.equal(await marketing.locator('img:not([src^="/assets/site/"])').count(),0,'V3 root must not ship external imagery');
   assert.equal(await marketing.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).getAttribute('href'),'https://app.boekuna.nl/?login=1');
 

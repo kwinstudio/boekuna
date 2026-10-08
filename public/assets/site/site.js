@@ -49,6 +49,14 @@
     update();
   }
 
+  // Header dropdown: close on outside click, Escape, or when focus leaves it.
+  document.querySelectorAll('.nav-drop').forEach(drop=>{
+    const close=()=>{if(drop.open){drop.open=false}};
+    document.addEventListener('click',e=>{if(!drop.contains(e.target))close()});
+    drop.addEventListener('keydown',e=>{if(e.key==='Escape'&&drop.open){close();drop.querySelector('summary').focus()}});
+    drop.addEventListener('focusout',e=>{if(e.relatedTarget&&!drop.contains(e.relatedTarget))close()});
+  });
+
   // Gentle reveal while scrolling. Content stays visible without JS or with reduced motion.
   if(!reduce&&'IntersectionObserver' in window){
     document.documentElement.classList.add('js-motion');
