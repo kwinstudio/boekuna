@@ -24,7 +24,7 @@ for(const price of ['€ 0','€ 9,95','€ 19,95']){
 for(const oldPlan of ['€ 6,95','€ 14,95','€ 34,95']){
   assert.ok(!home.includes(oldPlan),'Stale historic plan price appeared '+oldPlan);
 }
-assert.equal((home.match(/<details>/g)||[]).length,6,'Five accessible FAQ entries plus mobile menu expected');
+assert.equal((home.match(/<details>/g)||[]).length,5,'Five accessible FAQ disclosures expected');
 assert.ok(home.includes('Voorbeeldweergaven met fictieve bedragen'),'Marketing mock must be clearly labeled');
 for(const claim of ['automatische bankkoppeling is nu beschikbaar','100% correcte herkenning','direct btw-aangifte indienen']){
   assert.ok(!home.toLowerCase().includes(claim),'Unverified feature claim: '+claim);
