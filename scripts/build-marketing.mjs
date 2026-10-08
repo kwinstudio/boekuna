@@ -13,7 +13,8 @@ function retiredHolding(){return '<!doctype html><html lang="nl"><head><meta cha
 for(const slug of retiredRoutes){const dir=path.join(target,slug);fs.mkdirSync(dir,{recursive:true});fs.writeFileSync(path.join(dir,'index.html'),retiredHolding())}
 for(const forbidden of ['assets/site.css','assets/site.js','assets/editorial-marketing.css','assets/editorial-marketing.js','assets/premium-marketing.css','assets/premium-marketing.js','assets/onepage.css','assets/marketing.js','assets/marketing-people','assets/stories','assets/product','manifest.webmanifest'])if(fs.existsSync(path.join(target,forbidden)))throw new Error('Obsolete marketing artifact leaked into build: '+forbidden);
 const home=fs.readFileSync(path.join(target,'index.html'),'utf8');
-if(!home.includes('noindex,follow'))throw new Error('Holding page must be noindex,follow');
+if(!home.includes('<meta name="robots" content="index,follow">'))throw new Error('Public landing page must be indexable');
+if(!home.includes('Boekhouden zonder gedoe'))throw new Error('BOEKUNA V3 landing page missing');
 if(!home.includes('https://app.boekuna.nl/?login=1'))throw new Error('Holding page must link to isolated app login');
 if(['editorial-hero','editorial-pricing','project-grid','audience-grid'].some(token=>home.includes(token)))throw new Error('Old marketing homepage structure returned');
-console.log('Marketing clean-slate build complete:',path.relative(root,target),'with',retiredRoutes.length,'retired route holdings');
+console.log('Marketing V3 landing build complete:',path.relative(root,target),'with',retiredRoutes.length,'retired route holdings');
