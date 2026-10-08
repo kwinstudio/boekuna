@@ -41,6 +41,7 @@ const appAssets=[
   'favicon-32.png',
   'financial-correction.js',
   'document-intelligence.js',
+  'native-local-first.js',
   ...(assistantEnabled?['personal-insights.js','personal-assistant-qna.js','personal-insights-ui.js']:[]),
   'personal-insights.css',
   'document-review-v2.js',

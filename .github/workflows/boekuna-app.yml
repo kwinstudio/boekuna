@@ -7,6 +7,7 @@ on:
       - "kwinest/index.html"
       - "public/manifest.webmanifest"
       - "public/assets/financial-correction.js"
+      - "public/assets/native-local-first.js"
       - "public/assets/personal-assistant-qna.js"
       - "public/assets/document-review-v2.*"
       - "public/assets/developer-mode.js"
@@ -187,6 +188,10 @@ jobs:
           node tests/ios-archive-guards.test.mjs
           node tests/ios-companion-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/ios-companion-browser.test.mjs
+      - name: iOS local-first adapter (offline drafts, resend, scanner) — Chromium + WebKit
+        run: |
+          node tests/ios-local-first-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/ios-local-first-browser.test.mjs
 
       - name: Tester invite-code billing UI — Chromium + WebKit
         run: |

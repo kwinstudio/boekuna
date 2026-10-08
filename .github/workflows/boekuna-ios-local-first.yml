@@ -1,0 +1,81 @@
+name: Boekuna iOS local-first
+
+# On-device OCR, PDF reading and offline drafts of the iOS app (flag BOEKUNA_LOCAL_FIRST, default NO).
+# - Swift unit tests with the real Vision and PDFKit frameworks on macOS
+# - Simulator and device-SDK builds with the flag ON (the default-OFF build is covered by "Boekuna iOS packaging")
+# - Benchmark: Apple Vision versus the server's RapidOCR on the frozen V5 fixtures, both feeding the existing parser
+
+on:
+  pull_request:
+    paths:
+      - "ios/**"
+      - "kwinest/docprocessor/**"
+      - "tests/ios-vision-ocr-benchmark.py"
+      - "tests/document-ocr-v5-benchmark.test.py"
+      - ".github/workflows/boekuna-ios-local-first.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-local-first-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  swift-tests-and-builds:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Local-first unit tests (Vision, PDFKit, draft store)
+        run: |
+          xcrun swiftc -O ios/Boekuna/LocalFirstOCR.swift ios/Boekuna/LocalFirstDraftStore.swift ios/Tests/LocalFirstTests.swift -o "$RUNNER_TEMP/local-first-tests"
+          "$RUNNER_TEMP/local-first-tests"
+
+      - name: Build with local-first ON (simulator and device SDK, unsigned)
+        run: |
+          for SDK in iphonesimulator iphoneos; do
+            DEST='generic/platform=iOS Simulator'; [[ "$SDK" == iphoneos ]] && DEST='generic/platform=iOS'
+            xcodebuild -project ios/Boekuna.xcodeproj -scheme Boekuna -configuration Release -sdk "$SDK" \
+              -destination "$DEST" -derivedDataPath "$RUNNER_TEMP/dd-$SDK" \
+              BOEKUNA_LOCAL_FIRST=YES CODE_SIGNING_ALLOWED=NO build -quiet
+          done
+          APP="$RUNNER_TEMP/dd-iphoneos/Build/Products/Release-iphoneos/Boekuna.app"
+          /usr/libexec/PlistBuddy -c 'Print :BoekunaLocalFirst' "$APP/Info.plist" | grep -qx YES
+          echo "Device app bundle size with local-first: $(du -sk "$APP" | cut -f1) KB"
+
+      - name: Default build keeps local-first OFF
+        run: |
+          xcodebuild -project ios/Boekuna.xcodeproj -scheme Boekuna -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/dd-default" CODE_SIGNING_ALLOWED=NO build -quiet
+          APP="$RUNNER_TEMP/dd-default/Build/Products/Release-iphoneos/Boekuna.app"
+          /usr/libexec/PlistBuddy -c 'Print :BoekunaLocalFirst' "$APP/Info.plist" | grep -qx NO
+          echo "Device app bundle size, default build: $(du -sk "$APP" | cut -f1) KB"
+
+  vision-benchmark:
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install processor dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r kwinest/docprocessor/requirements.txt
+      - name: Build the Vision benchmark CLI from the app's OCR code
+        run: xcrun swiftc -O ios/Boekuna/LocalFirstOCR.swift ios/Tests/VisionOCRBenchmarkCLI.swift -o "$RUNNER_TEMP/vision-ocr"
+      - name: Vision versus RapidOCR on the V5 fixtures
+        run: python tests/ios-vision-ocr-benchmark.py --cli "$RUNNER_TEMP/vision-ocr" --out artifacts/ios-vision-benchmark
+      - name: Upload benchmark
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boekuna-ios-vision-benchmark
+          path: |
+            artifacts/ios-vision-benchmark/*.json
+          if-no-files-found: ignore
+          retention-days: 30

@@ -8,6 +8,7 @@ final class BrowserModel: ObservableObject {
 
     fileprivate weak var webView: WKWebView?
     fileprivate let startURL = URL(string: "https://app.boekuna.nl/?login=1&app=1")!
+    private var triedOfflineCopy = false
 
     fileprivate func attach(_ webView: WKWebView) {
         self.webView = webView
@@ -18,7 +19,20 @@ final class BrowserModel: ObservableObject {
     fileprivate func loadStartPage(in webView: WKWebView) {
         failureMessage = nil
         isLoading = true
+        triedOfflineCopy = false
         webView.load(URLRequest(url: startURL, cachePolicy: .reloadRevalidatingCacheData))
+    }
+
+    /// Local-first only: without a connection, open the last copy of the app that WebKit cached.
+    /// Returns false when there is nothing to try, so the normal error screen shows.
+    fileprivate func loadOfflineCopy(after error: NSError) -> Bool {
+        let offline = [NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost,
+                       NSURLErrorCannotFindHost, NSURLErrorTimedOut, NSURLErrorDataNotAllowed]
+        guard LocalFirstFlags.enabled, !triedOfflineCopy, error.domain == NSURLErrorDomain,
+              offline.contains(error.code), let webView else { return false }
+        triedOfflineCopy = true
+        webView.load(URLRequest(url: startURL, cachePolicy: .returnCacheDataDontLoad))
+        return true
     }
 
     func retry() {
@@ -47,6 +61,9 @@ struct BoekunaWebView: UIViewRepresentable {
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = true
         configuration.userContentController.add(context.coordinator, name: "boekunaPrint")
+        if LocalFirstFlags.enabled {
+            LocalFirstBridge.install(in: configuration, bridge: LocalFirstBridge())
+        }
 
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1"
         configuration.applicationNameForUserAgent = "BoekunaNative/\(version) Boekuna-iOS/\(version)"
@@ -102,6 +119,7 @@ struct BoekunaWebView: UIViewRepresentable {
         private func report(_ error: Error) {
             let nsError = error as NSError
             if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled { return }
+            if model.loadOfflineCopy(after: nsError) { return }
             model.isLoading = false
             model.failureMessage = "Controleer je internetverbinding en probeer het opnieuw."
         }
