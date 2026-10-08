@@ -1,0 +1,13 @@
+{
+  "appId": "nl.boekuna.app",
+  "appName": "Boekuna",
+  "webDir": "www",
+  "server": {
+    "url": "https://app.boekuna.nl/?login=1&app=1",
+    "androidScheme": "https",
+    "errorPath": "offline.html"
+  },
+  "android": {
+    "backgroundColor": "#F3F0E8"
+  }
+}
