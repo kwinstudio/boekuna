@@ -13,7 +13,7 @@ try{
         const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});
         const errors=[];page.on('pageerror',e=>errors.push(String(e)));
         await page.goto(server.base+'/',{waitUntil:'networkidle'});
-        if(width<=760)await page.locator('.mobile-menu summary').click();
+        if(width<=900)await page.locator('.mobile-menu summary').click();
         assert.equal(await page.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).getAttribute('href'),'https://app.boekuna.nl/?login=1');
         for(const href of ['/privacy/','/voorwaarden/','/support/'])assert.equal((await page.request.get(server.base+href)).status(),200,href);
         for(const route of retired){
