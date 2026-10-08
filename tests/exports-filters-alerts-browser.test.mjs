@@ -108,28 +108,29 @@ try{
     await page.locator('[role=dialog]').waitFor({state:'detached'});
     assert.equal(await overflow(page),0,'No horizontal page scroll');
 
-    // Flow 3: Kosten > Aangepast > Van/Tot filters the list and the totals.
+    // Flow 3: Kosten: quick period at the top, Aangepaste periode (Van/Tot) only under Filters.
     await page.evaluate(()=>navigate('expenses'));
-    assert.deepEqual(await page.locator('#expensePeriod option').allTextContents(),['Deze week','Deze maand','Dit kwartaal','Dit jaar','Alles','Aangepast']);
-    await page.locator('#expensePeriod').selectOption('custom');
-    await setDate(page.locator('#financialFrom'),'2026-01-01');
-    await setDate(page.locator('#financialTo'),'2026-03-31');
+    assert.deepEqual(await page.locator('#expensePeriod button').allTextContents(),['Week','Maand','Kwartaal','Jaar','Alles']);
+    assert.equal(await page.locator('#content input[type="date"]').count(),0,'No Van/Tot on the page itself');
+    await page.locator('[data-list-open-filters]').click();
+    await page.locator('#listFilter-period').selectOption('year');
+    assert.equal(await page.locator('#modalRoot .period-range-fields').isHidden(),true,'Van/Tot only for Aangepaste periode');
+    await page.locator('#listFilter-period').selectOption('custom');
+    await setDate(page.locator('#listFilterFrom'),'2026-01-01');
+    await setDate(page.locator('#listFilterTo'),'2026-03-31');
+    const [from,to]=await Promise.all([page.locator('#listFilterFrom').boundingBox(),page.locator('#listFilterTo').boundingBox()]);
+    assert.equal(Math.round(from.height),Math.round(to.height),'Van and Tot same height');
+    await page.getByRole('button',{name:'Toepassen'}).click();
     assert.deepEqual(await page.evaluate(()=>getListRows('expenses').map(e=>e.id).sort()),['e1','e2']);
     assert.match(await page.locator('.product-kpis').innerText(),/170,00/,'Totals follow the custom period');
-    const [from,to]=await Promise.all([page.locator('#financialFrom').boundingBox(),page.locator('#financialTo').boundingBox()]);
-    assert.equal(Math.round(from.y),Math.round(to.y),'Van and Tot on one baseline');
-    assert.equal(Math.round(from.height),Math.round(to.height),'Van and Tot same height');
     assert.match(await page.locator('.list-filter-chip').innerText(),/1 jan – 31 mrt 2026/);
+    assert.equal(await page.locator('#expensePeriod .filter-btn.active').count(),0,'No quick choice is active for a custom period');
     await page.locator('[data-list-open-filters]').click();
     assert.equal(await page.locator('#listFilterFrom').inputValue(),'2026-01-01','Filter dialog shows the same Van/Tot');
-    await page.locator('#listFilter-period').selectOption('year');
-    assert.equal(await page.locator('#modalRoot .period-range-fields').isHidden(),true,'Van/Tot only for Aangepast');
-    await page.locator('#listFilter-period').selectOption('custom');
     await setDate(page.locator('#listFilterFrom'),'2026-03-01');
     await setDate(page.locator('#listFilterTo'),'2026-04-30');
     await page.getByRole('button',{name:'Toepassen'}).click();
     assert.deepEqual(await page.evaluate(()=>getListRows('expenses').map(e=>e.id).sort()),['e2','e3']);
-    assert.equal(await page.locator('#financialFrom').inputValue(),'2026-03-01','Page and filter share one period');
     await page.screenshot({path:`${shotDir}/${browserName}-${tag}-kosten-periode.png`,fullPage:true});
     assert.equal(await overflow(page),0);
 
@@ -154,7 +155,7 @@ try{
     assert.equal(await healthRows(),1,'A changed amount is checked again');
 
     // Flow 5: Btw says "Te betalen" and the yearly overview sits inside its card.
-    await page.evaluate(()=>{setFinancialPeriod('all');navigate('vat')});
+    await page.evaluate(()=>{setVatPeriod('all');navigate('vat')});
     assert.match(await page.locator('.product-kpis').innerText(),/Te betalen btw|Terug te vragen btw/);
     assert.doesNotMatch(await page.locator('#content').innerText(),/Waarschijnlijk/);
     assert.match(await page.locator('.page-status').innerText(),/Indicatie/,'The page still says it is an indication');

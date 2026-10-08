@@ -249,25 +249,27 @@ try{
   await shot('services-menu',390,844,false);
   await page.keyboard.press('Escape');
 
-  // Compact report date controls are collapsed until requested, then must not overflow.
+  // Report period: quick choice on the page; Van/Tot only in the Filters dialog, which must not overflow.
   await nav('reports');
-  assert.equal(await page.locator('#reportFrom').isVisible(),false,'Custom report dates must be collapsed by default');
-  await page.locator('.report-period-details summary').click();
-  assert.ok(await page.locator('#reportFrom').isVisible(),'Date editing must expand on demand');
+  assert.equal(await page.locator('#content input[type="date"]').count(),0,'No date fields on the page itself');
+  await page.locator('.page-filter-btn').click();
+  await page.locator('#reportFilterPeriod').selectOption('custom');
+  assert.ok(await page.locator('#reportFilterFrom').isVisible(),'Date editing appears for a custom period');
   for(const width of [320,390,430]){
     await page.setViewportSize({width,height:844});
     await page.waitForTimeout(60);
     const dateLayout=await page.evaluate(()=>({
       overflow:document.documentElement.scrollWidth-window.innerWidth,
-      parent:document.querySelector('.report-custom-range').getBoundingClientRect(),
-      from:document.getElementById('reportFrom').getBoundingClientRect(),
-      to:document.getElementById('reportTo').getBoundingClientRect()
+      parent:document.querySelector('#modalRoot .report-custom-range').getBoundingClientRect(),
+      from:document.getElementById('reportFilterFrom').getBoundingClientRect(),
+      to:document.getElementById('reportFilterTo').getBoundingClientRect()
     }));
     assert.ok(dateLayout.overflow<=1,'No horizontal overflow at '+width);
     assert.ok(dateLayout.from.left>=dateLayout.parent.left-1&&dateLayout.from.right<=dateLayout.parent.right+1,'From date must stay inside grid at '+width);
     assert.ok(dateLayout.to.left>=dateLayout.parent.left-1&&dateLayout.to.right<=dateLayout.parent.right+1,'To date must stay inside grid at '+width);
     await shot('reports-date-fields',width);
   }
+  await page.evaluate(()=>closeModal());
 
   // Invoice spacing and fixed A4 preview, including mixed VAT and multipage long invoice.
   await page.setViewportSize({width:390,height:844});

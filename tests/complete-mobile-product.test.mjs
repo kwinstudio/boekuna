@@ -118,18 +118,18 @@ try {
    }
   }
   if(width===390){
-   // Btw per tarief must follow the chosen period, not always the current quarter.
-   const vatSplit=async preset=>{await page.evaluate(p=>{storeFinancialPeriod(p);navigate('vat')},preset);await page.waitForTimeout(50);return page.evaluate(()=>{
-    const range=financialPeriodRange(),expected=state.invoices.filter(i=>i.status!=='draft'&&invoiceEffectiveStatus(i)!=='cancelled'&&financialPeriodContains(i.issueDate,range)).reduce((a,i)=>roundMoney(a+Number(invoiceVatBreakdown(i)[21]||0)),0);
+   // Btw per tarief must follow the chosen Btw period (a quarter or the whole year), not always the current quarter.
+   const vatSplit=async preset=>{await page.evaluate(p=>{sessionStorage.setItem('boekuna-vat-period-v1',p);navigate('vat')},preset);await page.waitForTimeout(50);return page.evaluate(()=>{
+    const range=vatPeriodRange(),expected=state.invoices.filter(i=>i.status!=='draft'&&invoiceEffectiveStatus(i)!=='cancelled'&&financialPeriodContains(i.issueDate,range)).reduce((a,i)=>roundMoney(a+Number(invoiceVatBreakdown(i)[21]||0)),0);
     const line=[...document.querySelectorAll('.mobile-vat-details .total-line')].find(l=>l.textContent.includes('21%'));
     return {shown:line?.querySelector('strong').textContent,expected:money(expected),raw:expected};
    })};
-   await page.evaluate(()=>{state.invoices.push({id:'i-vat-q1',number:'2026-0002',customerId:'c1',status:'sent',kind:'invoice',issueDate:currentBookYear()+'-02-01',dueDate:currentBookYear()+'-02-15',taxTreatment:'standard',payments:[],lines:[{desc:'Q1 werk',qty:1,unit:200,vat:21}]})});
-   const quarter=await vatSplit('quarter'),year=await vatSplit('year');
+   await page.evaluate(()=>{sessionStorage.removeItem('boekuna-vat-year-v1');state.invoices.push({id:'i-vat-q1',number:'2026-0002',customerId:'c1',status:'sent',kind:'invoice',issueDate:new Date().getFullYear()+'-02-01',dueDate:new Date().getFullYear()+'-02-15',taxTreatment:'standard',payments:[],lines:[{desc:'Q1 werk',qty:1,unit:200,vat:21}]})});
+   const quarter=await vatSplit(await page.evaluate(()=>vatCurrentQuarter())),year=await vatSplit('year');
    assert.equal(quarter.shown,quarter.expected,'Btw per tarief for this quarter');
    assert.equal(year.shown,year.expected,'Btw per tarief for this year');
-   assert.ok(year.raw>quarter.raw,'Choosing "Dit jaar" must include earlier quarters');
-   await page.evaluate(()=>{state.invoices=state.invoices.filter(i=>i.id!=='i-vat-q1');storeFinancialPeriod('quarter')});
+   if(quarter.shown!==undefined&&new Date().getMonth()>2)assert.ok(year.raw>quarter.raw,'Choosing "Dit jaar" must include earlier quarters');
+   await page.evaluate(()=>{state.invoices=state.invoices.filter(i=>i.id!=='i-vat-q1');sessionStorage.removeItem('boekuna-vat-period-v1')});
   }
   if(width<=820){
    await nav('dashboard');

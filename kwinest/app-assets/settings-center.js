@@ -218,7 +218,7 @@
   // Everything you can download lives here: one list, each row says what you get.
   function dataPanel(){
     var range=reportRange(),preset=String(sessionStorage.getItem('reportPreset')||'year');
-    var period='<div class="settings-export-period"><div class="field"><span class="settings-center-field-label" aria-hidden="true">Periode voor rapportage en journaal</span>'+reportPeriodSelect('exportPeriodPreset')+'</div>'
+    var period='<div class="settings-export-period"><div class="field"><span class="settings-center-field-label" aria-hidden="true">Periode voor rapportage en journaal</span>'+(typeof reportPeriodDropdown==='function'?reportPeriodDropdown('exportPeriodPreset'):reportPeriodSelect('exportPeriodPreset'))+'</div>'
       +(preset==='custom'?periodRangeFieldsHtml('export',range.from,range.to):'<div class="help">'+esc(reportCompactDateLabel(range.from,range.to))+'</div>')+'</div>';
     var everyday=period+'<div class="settings-export-list">'
       +line('Rapportage','Omzet, kosten, winst en btw als PDF. Je ziet hem eerst, daarna kun je hem bewaren of printen.','<button class="btn" type="button" onclick="printReport()">PDF bekijken</button>')
@@ -278,8 +278,8 @@
     return [
       {group:'Je bedrijf',key:'business',title:'Mijn bedrijf',desc:'Bedrijfsgegevens, KVK en betaalgegevens',status:missing.length?(missing.length===1?'1 ontbreekt':missing.length+' ontbreken'):'Compleet',tone:missing.length?'warn':'good',render:businessPanel},
       {group:'Je bedrijf',key:'invoices',title:'Facturen',desc:'Nummering, betaaltermijn en layout',status:Number(c.paymentDays||14)+' dagen',render:invoicesPanel},
-      {group:'Je bedrijf',key:'email',title:'E-mail & delen',desc:'Het bericht bij je facturen',status:'Eigen mail-app',render:emailPanel},
-      {group:'App',key:'notifications',title:'Meldingen',desc:'Wat je ziet onder "Nog te doen"',status:on===ATTENTION_TYPES.length?'Alles aan':on+' van '+ATTENTION_TYPES.length+' aan',render:notificationsPanel},
+      {group:'Je bedrijf',key:'email',title:'E-mail & delen',desc:'Het bericht bij je facturen',status:'',render:emailPanel},
+      {group:'App',key:'notifications',title:'Meldingen',desc:'Wat je ziet onder "Nog te doen"',status:on===ATTENTION_TYPES.length?'':on+' van '+ATTENTION_TYPES.length+' aan',render:notificationsPanel},
       {group:'App',key:'app',title:'App & weergave',desc:'Thema, startpagina en extra uitleg',status:themeLabel(),render:appPanel},
       {group:'Account',key:'security',title:'Beveiliging & privacy',desc:'Tweestapsverificatie en wachtwoord',status:mfaEnabled===true?'Tweestap aan':mfaEnabled===false?'Tweestap uit':'',tone:mfaEnabled===false?'warn':'',render:securityPanel},
       {group:'Account',key:'data',title:'Data & export',desc:'Exporteren, back-up en herstel',status:'',render:dataPanel},
@@ -293,7 +293,7 @@
   function setupStatusHtml(){
     var missing=missingForInvoice();
     if(!missing.length)return '';
-    return '<div class="settings-center-setup" id="settingsSetupStatus"><div><strong>Boekuna is bijna klaar voor je eerste factuur</strong><span>Nog nodig: '+esc(missing.map(function(x){return x.label}).join(', '))+'</span></div><button class="btn small" type="button" data-settings-open="business">Aanvullen</button></div>';
+    return '<div class="settings-center-setup" id="settingsSetupStatus"><div><strong>Nog aanvullen</strong><span>'+esc(missing.map(function(x){return x.label}).join(', '))+'</span></div><button class="btn small" type="button" data-settings-open="business">Aanvullen</button></div>';
   }
 
   function navHtml(list,current){
@@ -304,7 +304,7 @@
         +byGroup[g].map(function(s){
           return '<li><button type="button" class="settings-nav-item settings-center-row'+(s.danger?' danger':'')+'" data-settings-open="'+s.key+'" aria-controls="settings-panel-'+s.key+'"'+(s.key===current?' aria-current="true"':'')+'>'
             +icon(s.key)
-            +'<span class="settings-nav-copy"><strong>'+esc(s.title)+'</strong><span>'+esc(s.desc)+'</span></span>'
+            +'<span class="settings-nav-copy"><strong>'+esc(s.title)+'</strong></span>'
             +(s.status?'<span class="settings-center-status'+(s.tone?' '+s.tone:'')+'">'+esc(s.status)+'</span>':'')
             +'<span class="settings-nav-chevron" aria-hidden="true">›</span></button></li>';
         }).join('')+'</ul></div>';

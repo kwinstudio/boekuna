@@ -21,7 +21,7 @@ function replaceLast(source,needle,replacement){
 }
 
 assert.equal((original.match(/class="mobile-bottom-nav-item/g)||[]).length,5,'Mobile bottom navigation must contain exactly five destinations');
-for(const label of ['Overzicht','Inkomsten','Kosten','Btw','Meer'])assert.match(original,new RegExp('<span>'+label+'</span>'),'Missing mobile nav label '+label);
+for(const label of ['Overzicht','Inkomsten','Kosten','Btw','Bonnen'])assert.match(original,new RegExp('<span>'+label+'</span>'),'Missing mobile nav label '+label);
 
 const logoutSource=original.slice(original.indexOf('async function logoutUser'),original.indexOf('async function requireMfaForUser'));
 assert.match(logoutSource,/try\{await syncCloudStateNow\(\)\}catch/,'Final sync must be isolated from logout');
@@ -104,7 +104,7 @@ try{
   assert.equal(pageErrors.length,0,'Mobile dashboard must load without JavaScript errors: '+pageErrors.join(' | '));
 
   const navLabels=await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents();
-  assert.deepEqual(navLabels.map(v=>v.trim()),['Overzicht','Inkomsten','Kosten','Btw','Meer']);
+  assert.deepEqual(navLabels.map(v=>v.trim()),['Overzicht','Inkomsten','Kosten','Btw','Bonnen']);
   assert.notEqual(await page.locator('#mobileBottomNav').evaluate(el=>getComputedStyle(el).display),'none','Bottom navigation must be visible on mobile');
   assert.equal(await page.locator('[data-mobile-page="dashboard"]').getAttribute('aria-current'),'page');
 
@@ -204,16 +204,17 @@ try{
   });
   await page.evaluate(()=>navigate('reports'));
   const reportPeriod=page.locator('#reportPeriodPreset');
-  assert.deepEqual(await reportPeriod.locator('option').allTextContents(),['Deze week','Deze maand','Dit kwartaal','Dit jaar','Alles','Aangepast'],'Reports must show all shared timeframe choices');
-  assert.equal(await page.locator('#reportFrom').isVisible(),false,'Custom date fields must start collapsed');
-  await reportPeriod.selectOption('all');
-  assert.equal((await page.locator('.report-period-dates').innerText()).trim(),'Alle boekjaren','All-time reporting must name the whole range');
+  assert.deepEqual(await reportPeriod.locator('button').allTextContents(),['Week','Maand','Kwartaal','Jaar','Alles'],'Reports show the shared quick period choices');
+  await reportPeriod.locator('[data-period-value="all"]').click();
   assert.ok((await page.locator('.report-result-chart .bar-label').allTextContents()).includes('2023'),'Multi-year result graph must include historical book years');
-  await page.locator('.report-period-details summary').click();
-  assert.ok(await page.locator('#reportFrom').isVisible(),'Manual date range must expand on demand');
-  await page.locator('#reportFrom').fill('2024-01-01');
-  await page.locator('#reportFrom').dispatchEvent('change');
-  assert.equal(await page.locator('#reportPeriodPreset').inputValue(),'custom','Manual date entry must switch to a custom period');
+  // A custom period lives under Filters.
+  await page.locator('.page-filter-btn').click();
+  await page.locator('#reportFilterPeriod').selectOption('custom');
+  assert.ok(await page.locator('#reportFilterFrom').isVisible(),'Van/Tot appear for a custom period');
+  await page.locator('#reportFilterFrom').fill('2024-01-01');
+  await page.locator('button[form="reportFilterForm"]').click();
+  assert.equal(await page.evaluate(()=>sessionStorage.getItem('reportPreset')),'custom','Filters set a custom period');
+  assert.equal(await page.locator('.page-filter-row .list-filter-chip').count(),1,'The custom period shows as a removable chip');
   await page.evaluate(()=>{state.invoices=state.invoices.filter(i=>i.id!=='compact-older');sessionStorage.removeItem('reportPreset');sessionStorage.removeItem('reportFrom');sessionStorage.removeItem('reportTo');navigate('dashboard')});
 
   // Independent QA additions: focus containment/return, non-primary active state,
@@ -227,11 +228,11 @@ try{
   await page.waitForFunction(()=>document.activeElement?.id==='mobileMenu');
   assert.equal(await page.locator('#mobileMenu').getAttribute('aria-expanded'),'false','Escape close must restore trigger state');
 
+  // Bonnen sits in the bottom bar; everything else is reachable from the menu at the top left.
+  await page.locator('#mobileBottomNav [data-mobile-page="documents"]').click();
+  assert.equal(await page.locator('#mobileBottomNav [data-mobile-page="documents"]').getAttribute('aria-current'),'page','Bonnen is a direct bottom nav destination');
   await page.evaluate(async()=>{await navigate('settings')});
-  assert.equal(await page.locator('[data-mobile-more]').getAttribute('aria-current'),'page','Settings must map to More in mobile navigation');
-  await page.locator('[data-mobile-more]').click();
-  await page.locator('.nav-item[data-page="control"]').click();
-  assert.equal(await page.locator('[data-mobile-more]').getAttribute('aria-current'),'page','Secondary screens must keep More active');
+  assert.equal(await page.locator('#mobileBottomNav [aria-current="page"]').count(),0,'Secondary screens highlight no bottom nav item');
   await page.evaluate(async()=>{await navigate('dashboard')});
 
   await page.setViewportSize({width:820,height:900});

@@ -129,15 +129,16 @@ try{
   assert.equal(await page.locator('#globalSearch').count(),0,'Global cross-app search must not render');
 
   await page.evaluate(()=>navigate('dashboard'));
-  assert.deepEqual(await page.locator('#dashboardPeriod option').allTextContents(),['Deze week','Deze maand','Dit kwartaal','Dit jaar','Alles']);
-  await page.locator('#dashboardPeriod').selectOption('year');
+  // One quick period choice (top right) shared by Overzicht, Inkomsten and Kosten; Btw has its own quarters.
+  assert.deepEqual(await page.locator('#dashboardPeriod button').allTextContents(),['Week','Maand','Kwartaal','Jaar','Alles']);
+  await page.locator('#dashboardPeriod [data-period-value="year"]').click();
   await page.evaluate(()=>navigate('invoices'));
-  assert.equal(await page.locator('#incomePeriod').inputValue(),'year','Income inherits dashboard period');
-  await page.locator('#incomePeriod').selectOption('all');
+  assert.equal(await page.locator('#incomePeriod [data-period-value="year"]').getAttribute('aria-pressed'),'true','Income inherits dashboard period');
+  await page.locator('#incomePeriod [data-period-value="all"]').click();
   await page.evaluate(()=>navigate('expenses'));
-  assert.equal(await page.locator('#expensePeriod').inputValue(),'all','Costs inherit income period');
+  assert.equal(await page.locator('#expensePeriod [data-period-value="all"]').getAttribute('aria-pressed'),'true','Costs inherit income period');
   await page.evaluate(()=>navigate('vat'));
-  assert.equal(await page.locator('#vatFinancialPeriod').inputValue(),'all','VAT inherits shared period');
+  assert.deepEqual((await page.locator('#vatPeriodQuick button').allTextContents()).slice(0,4),['Q1','Q2','Q3','Q4'],'Btw offers quarters');
 
   // FACTUREN — number/customer/amount search + status/period/customer filters + sort + clear behavior.
   await go('invoices');
@@ -178,6 +179,8 @@ try{
   assert.equal(rows.length,1,'Paid quick filter must return fully paid invoices');
   assert.match(rows[0],/0003/);
   await page.locator('[data-list-clear-filters]').click();
+  // Filters wissen keeps the quick period; show everything to compare amounts across years.
+  await page.locator('#incomePeriod [data-period-value="all"]').click();
   await setSort('amount-desc');
   rows=await visibleRowTexts();
   assert.match(rows[0],/0099/,'Amount high→low must put largest invoice first');

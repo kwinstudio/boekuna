@@ -186,7 +186,7 @@
       var details=element('details','mobile-disclosure mobile-vat-details');
       var body=element('div','mobile-disclosure-body');details.append(element('summary','','Btw per tarief'),body);
       // Same period and invoice selection as renderVat, so the split matches the total above.
-      var range=financialPeriodRange();
+      var range=typeof vatPeriodRange==="function"?vatPeriodRange():financialPeriodRange();
       var invoices=state.invoices.filter(function(invoice){return invoice.status!=='draft'&&invoiceEffectiveStatus(invoice)!=='cancelled'&&financialPeriodContains(invoice.issueDate,range)});
       [21,9,0].forEach(function(rate){
         var sum=invoices.reduce(function(amount,invoice){return roundMoney(amount+Number(invoiceVatBreakdown(invoice)[rate]||0))},0);

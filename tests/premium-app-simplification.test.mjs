@@ -207,10 +207,10 @@ try{
   const vat=await page.locator('#content').innerText();
   assert.match(vat,/geen officiële indiening|niet naar de Belastingdienst/i,'VAT must retain not-submitted meaning');
   assert.match(vat,/indicati(?:e|ef)/i,'VAT must retain indicative meaning');
-  const vatPeriod=page.locator('#vatFinancialPeriod');
-  assert.ok(await vatPeriod.isVisible(),'VAT shared period selector must be visible');
-  assert.deepEqual(await vatPeriod.locator('option').allTextContents(),['Deze week','Deze maand','Dit kwartaal','Dit jaar','Alles','Aangepast']);
-  await vatPeriod.selectOption('year');
+  const vatPeriod=page.locator('#vatPeriodQuick');
+  assert.ok(await vatPeriod.isVisible(),'VAT quarter choice must be visible');
+  assert.deepEqual((await vatPeriod.locator('button').allTextContents()).slice(0,4),['Q1','Q2','Q3','Q4']);
+  await vatPeriod.locator('[data-period-value="year"]').click();
   assert.equal((await page.locator('.premium-split .section-meta').first().innerText()).trim(),String(new Date().getFullYear()),'VAT year view must clearly identify the selected year');
 
   // Compact copy is the default. Help is an account-level setting, never a financial calculation toggle.
@@ -240,23 +240,21 @@ try{
   await navigateTo('reports');
   const reportPeriod=page.locator('#reportPeriodPreset');
   assert.ok(await reportPeriod.isVisible(),'Compact report period picker must be visible');
-  assert.deepEqual(await reportPeriod.locator('option').allTextContents(),['Deze week','Deze maand','Dit kwartaal','Dit jaar','Alles','Aangepast']);
-  assert.equal(await page.locator('.report-period-details').evaluate(el=>el.open),false,'Custom dates must stay collapsed initially');
-  await reportPeriod.selectOption('month');
+  assert.deepEqual(await reportPeriod.locator('button').allTextContents(),['Week','Maand','Kwartaal','Jaar','Alles']);
+  assert.equal(await page.locator('#content input[type="date"]').count(),0,'Custom dates live under Filters');
+  await reportPeriod.locator('[data-period-value="month"]').click();
   assert.equal(await page.evaluate(()=>sessionStorage.getItem('reportPreset')),'month','Report period should update from compact selector');
   const monthRange=await page.evaluate(()=>reportRange());
   assert.ok(monthRange.from<=monthRange.to,'Report month period must return an inclusive ordered range');
-  await page.locator('#reportPeriodPreset').selectOption('all');
+  await page.locator('#reportPeriodPreset [data-period-value="all"]').click();
   assert.equal(await page.evaluate(()=>sessionStorage.getItem('reportPreset')),'all');
-  assert.match(await page.locator('.report-period-dates').innerText(),/Alle boekjaren/);
   assert.ok((await page.locator('.report-result-chart .bar-group').count())<=12,'All-time chart should avoid 48 tiny monthly bars');
-  await page.locator('.report-period-details > summary').click();
-  assert.equal(await page.locator('.report-period-details').evaluate(el=>el.open),true,'Custom date fields open on demand');
-  await page.locator('#reportFrom').fill('2024-01-01');
-  await page.locator('#reportFrom').dispatchEvent('change');
-  assert.equal(await page.evaluate(()=>sessionStorage.getItem('reportPreset')),'custom','Manual dates must switch the report to a custom range');
+  await page.locator('.page-filter-btn').click();
+  await page.locator('#reportFilterPeriod').selectOption('custom');
+  await page.locator('#reportFilterFrom').fill('2024-01-01');
+  await page.locator('button[form="reportFilterForm"]').click();
+  assert.equal(await page.evaluate(()=>sessionStorage.getItem('reportPreset')),'custom','Filters switch the report to a custom range');
   assert.equal(await page.evaluate(()=>reportRange().from),'2024-01-01','Manually chosen start date must be retained');
-  assert.equal(await page.locator('.report-period-details').evaluate(el=>el.open),true,'Manual dates remain expanded after render');
 
   await navigateTo('control');
   const control=await page.locator('#content').innerText();
