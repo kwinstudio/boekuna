@@ -598,6 +598,18 @@ try{
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('.docviewer').count(),0,'Escape closes only the viewer');
   assert.equal(await page.getByRole('heading',{name:'Document controleren'}).count(),1);
+  // Regression: when the PDF text could not be read (iPhone Safari), the drawn page got the browser's PDF view below it, so the document showed twice.
+  await page.evaluate(()=>{
+    window.__realLoadPdfLib=window.loadPdfLib;
+    const page={getViewport:({scale})=>({width:300*scale,height:400*scale}),render:()=>({promise:Promise.resolve()}),getTextContent:()=>Promise.reject(new Error('no text stream'))};
+    window.loadPdfLib=async()=>({getDocument:()=>({promise:Promise.resolve({numPages:1,getPage:async()=>page})})});
+    BoekunaDocumentViewer.open({file:new File(['%PDF-1.4'],'tekstloos.pdf',{type:'application/pdf'})});
+  });
+  await page.locator('.docviewer .docviewer-page').waitFor();
+  await page.waitForTimeout(100);
+  assert.equal(await page.locator('.docviewer .docviewer-page').count(),1,'drawn page stays');
+  assert.equal(await page.locator('.docviewer .docviewer-frame').count(),0,'the document is shown once, not again as browser PDF view');
+  await page.evaluate(()=>{BoekunaDocumentViewer.close();window.loadPdfLib=window.__realLoadPdfLib});
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
   await noOverflow(browserName+' foreign currency mobile');
   assert.equal(await page.locator('[name="exchangeRateToEur"]:visible').count(),1);

@@ -39,12 +39,15 @@ async function renderPdfPages(host,file,width,isCurrent){
     const canvas=el('canvas');canvas.width=Math.floor(viewport.width*ratio);canvas.height=Math.floor(viewport.height*ratio);canvas.setAttribute('aria-hidden','true');
     box.append(canvas);host.append(box);
     await page.render({canvasContext:canvas.getContext('2d'),viewport,transform:ratio!==1?[ratio,0,0,ratio,0,0]:null}).promise;
-    const content=await page.getTextContent();
-    pages.push(content);
-    if(pdfjs.TextLayer){
-      const layer=el('div','textLayer');box.append(layer);
-      try{await new pdfjs.TextLayer({textContentSource:content,container:layer,viewport}).render()}catch(err){console.warn('Tekstlaag',err);layer.remove()}
-    }
+    // The page is already drawn: a text layer that fails (seen on iPhone Safari) only loses text selection.
+    try{
+      const content=await page.getTextContent();
+      pages.push(content);
+      if(pdfjs.TextLayer){
+        const layer=el('div','textLayer');box.append(layer);
+        try{await new pdfjs.TextLayer({textContentSource:content,container:layer,viewport}).render()}catch(err){console.warn('Tekstlaag',err);layer.remove()}
+      }
+    }catch(err){console.warn('Tekstlaag',err)}
   }
   return pages;
 }
@@ -98,9 +101,11 @@ function textPanel(view){
     if(view.textLines){show(view.textLines);return}
     status.textContent='Tekst wordt gelezen…';
     try{
-      let lines=view.kind==='pdf'?await pdfTextLines(view.file):[];
+      // Some browsers cannot read the PDF text directly; text recognition still works there.
+      let unreadable=false;
+      const lines=view.kind==='pdf'?await pdfTextLines(view.file).catch(err=>{console.warn(err);unreadable=true;return []}):[];
       if(lines.join('').length<30){
-        status.replaceChildren(document.createTextNode(view.kind==='pdf'?'Dit is een scan. ':'Dit is een foto. '));
+        status.replaceChildren(document.createTextNode(unreadable?'De tekst kon niet direct worden gelezen. ':view.kind==='pdf'?'Dit is een scan. ':'Dit is een foto. '));
         const run=btn('Tekst herkennen','btn small',async()=>{
           run.disabled=true;status.textContent='Tekst herkennen… dit kan even duren.';
           try{view.textLines=await recognizedLines(view.file,view.kind);show(view.textLines)}
@@ -132,6 +137,8 @@ function createView(container,{file,name,url,compact=false}){
       try{await renderPdfPages(pagesHost,file,width,current);loading.remove()}
       catch(err){
         console.warn('PDF tonen',err);if(!current())return;loading.remove();
+        // Pages that were drawn stay; the browser's PDF view below them showed the document twice.
+        if(pagesHost.querySelector('.docviewer-page'))return;
         // Without pdf.js (offline) the browser's own PDF view is the fallback.
         if(!objectUrl)objectUrl=URL.createObjectURL(file);
         const frame=el('iframe','docviewer-frame');frame.title=name||'Document';frame.src=objectUrl;pagesHost.append(frame)
