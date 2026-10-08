@@ -299,7 +299,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--bk-dark-green);
 /* Hero: rustige foto met twee kleine meldingen */
 .hero-calm{position:relative;padding:18px 10px 26px}
 .calm-photo{margin:0;border-radius:24px;overflow:hidden;aspect-ratio:5/4;background:#EEF3EF}
-.calm-photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 30%}
+.calm-photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 20%}
 .calm-note{position:absolute;display:flex;align-items:center;gap:11px;padding:11px 15px 11px 11px;border:1px solid #E6EDE7;border-radius:14px;background:rgba(255,255,255,.97);color:var(--bk-ink);box-shadow:0 14px 34px -22px rgba(10,25,13,.55)}
 .calm-note strong{display:block;font-size:13px;line-height:1.25}
 .calm-note small{display:block;font-size:11px;color:var(--bk-muted)}
