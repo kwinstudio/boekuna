@@ -15,6 +15,11 @@ const cases = [
   ['percentage discount', invoice([line(100)], { discountType: 'percent', discountValue: 12.5 }), [87.5, 18.38, 105.88]],
   ['credit', invoice([line(100)], { kind: 'credit' }), [-100, -21, -121]],
   ...['kor', 'reverse', 'icp', 'exempt'].map(t => [t, invoice([line(100)], { taxTreatment: t }), [100, 0, 100]]),
+  // Half cents round up, also where the binary value is just below (22,50 x 21% = 4,725 is 4,73).
+  ['half cent VAT 21%', invoice([line(22.5)]), [22.5, 4.73, 27.23]],
+  ['half cent VAT 9%', invoice([line(26.5, 9)]), [26.5, 2.39, 28.89]],
+  ['half cent line amount', invoice([line(2.135, 0)]), [2.14, 0, 2.14]],
+  ['half cent credit', invoice([line(22.5)], { kind: 'credit' }), [-22.5, -4.73, -27.23]],
 ];
 for (const [label, i, expected] of cases) {
   const actual = [app.invoiceNet(i), app.invoiceVat(i), app.invoiceGross(i)];
@@ -29,6 +34,11 @@ for (let cents = 1; cents <= 333; cents++) {
   assert.equal(app.toCents(app.invoiceNet(i)), app.toCents(app.invoiceDiscountBase(i)) - app.toCents(app.invoiceDiscountAmount(i)));
   assert.equal(edge.calc(i).net, app.invoiceNet(i));
 }
+
+for (const [value, cents] of [[1.005, 101], [10.075, 1008], [-4.725, -473], [0.004, 0], ['12,5', 0], [NaN, 0], [Infinity, 0]]) {
+  assert.equal(app.toCents(value), cents, `toCents(${value})`);
+}
+assert.ok(Object.is(app.toCents(-0.001), 0), 'No negative zero');
 
 const historic = invoice([line(100)]);
 app.state.company.kor = true;

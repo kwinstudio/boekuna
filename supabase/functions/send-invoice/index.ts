@@ -51,7 +51,8 @@ async function quota(token:string,feature:string){
   const out=await r.json().catch(()=>({}));
   return !!(r.ok&&out.allowed);
 }
-function toCents(v:any){const n=num(v);return Math.round((n+(n>=0?Number.EPSILON:-Number.EPSILON))*100)}
+// Same rounding as the app: half away from zero on the decimal value (0.835 -> 84 cents).
+function toCents(v:any){const n=num(v);if(!Number.isFinite(n))return 0;return (n<0?-1:1)*Math.round(Number((Math.abs(n)*100).toPrecision(12)))||0}
 function roundMoney(v:any){return toCents(v)/100}
 function taxTreatment(invoice:any){return String(invoice?.taxTreatment||"standard")}
 function zeroVatTreatment(v:any){return ["kor","reverse","icp","exempt"].includes(String(v||"standard"))}

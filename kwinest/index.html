@@ -3382,7 +3382,8 @@ async function initAuth(){
   })
  }catch(err){console.error('Supabase auth init failed',err);if(isRecovery)showAuthLinkError('recovery');else if(wantsLogin||wantsRegister){showAuth(wantsRegister?'register':'login');authError(mapAuthError(err,'auth'))}else showLanding()}
 }
-function toCents(v){const n=Number(v||0);return Math.round((n+(n>=0?Number.EPSILON:-Number.EPSILON))*100)}
+// Round half away from zero on the decimal value people typed: 0.835 is 84 cents, not 83 (binary 0.8349999…).
+function toCents(v){const n=Number(v||0);if(!Number.isFinite(n))return 0;return (n<0?-1:1)*Math.round(Number((Math.abs(n)*100).toPrecision(12)))||0}
 function fromCents(c){return Number(c||0)/100}
 function roundMoney(v){return fromCents(toCents(v))}
 function lineNetAmount(l){return roundMoney(Number(l?.qty||0)*Number(l?.unit||0))}
