@@ -495,7 +495,6 @@
     b.addEventListener('click',function(){open(typeof opts==='function'?opts():opts)});
     return b;
   }
-  var BANK_ERRORS={'CSV bevat geen regels':'BANK_CSV_EMPTY','Kolommen datum, omschrijving en bedrag nodig':'BANK_CSV_COLUMNS'};
 
   function installContextual(){
     // Upload/processing error dialog.
@@ -524,13 +523,14 @@
       });
     });
     observer.observe(document.body,{childList:true,subtree:true});
-    // Bank import errors arrive as a toast; offer the same report action there.
-    if(typeof toast==='function'){
-      var originalToast=toast;
-      toast=function(msg){
-        var code=BANK_ERRORS[String(msg)];
-        if(code)return actionToast(String(msg),'Probleem melden',function(){open({category:'bug',feature:'bank-import',errorCode:code})},10000);
-        return originalToast.apply(this,arguments);
+    // Bank import errors open a dialog; offer the same report action in its footer.
+    if(typeof showBankImportError==='function'){
+      var originalBankError=showBankImportError;
+      showBankImportError=function(code){
+        var result=originalBankError.apply(this,arguments);
+        var foot=document.querySelector('#modalRoot .modal-foot');
+        if(foot&&!foot.querySelector('[data-fb-context]'))foot.insertBefore(reportButton('Probleem melden',{category:'bug',feature:'bank-import',errorCode:'BANK_'+String(code||'unreadable').toUpperCase().replace(/[^A-Z0-9_]/g,'_').slice(0,40)}),foot.firstChild);
+        return result;
       };
     }
     installDocumentReview();

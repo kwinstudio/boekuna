@@ -25,7 +25,9 @@ try{
 
   // Shared split tests also trigger this gate for app PRs. Compare the surface
   // that must remain unchanged; intentional app changes still have app CI.
-  const appChanged=['kwinest/index.html','scripts/build-app.mjs','scripts/theme-dark-generate.mjs','public/manifest.webmanifest'].some(file=>{const a=path.join(root,file),b=path.join(tmp,file);return fs.existsSync(a)!==fs.existsSync(b)||(fs.existsSync(a)&&!fs.readFileSync(a).equals(fs.readFileSync(b)))});
+  const appAssets=dir=>fs.existsSync(path.join(dir,'kwinest/app-assets'))?digestTree(path.join(dir,'kwinest/app-assets')):{};
+  const appChanged=['kwinest/index.html','scripts/build-app.mjs','scripts/theme-dark-generate.mjs','public/manifest.webmanifest'].some(file=>{const a=path.join(root,file),b=path.join(tmp,file);return fs.existsSync(a)!==fs.existsSync(b)||(fs.existsSync(a)&&!fs.readFileSync(a).equals(fs.readFileSync(b)))})
+    || JSON.stringify(appAssets(root))!==JSON.stringify(appAssets(tmp));
   const surface=appChanged?'marketing':'app';
   for(const cwd of [tmp,root])for(const target of ['app','marketing'])runBuild(cwd,target);
   const base=digestTree(path.join(tmp,'dist',surface));

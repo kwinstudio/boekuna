@@ -75,6 +75,10 @@ on:
       - "tests/invoice-native-retry.test.mjs"
       - "tests/invoice-send-checks.test.mjs"
       - "tests/bank-csv-formats.test.mjs"
+      - "tests/bank-import-reliability.test.mjs"
+      - "tests/bank-import-browser.test.mjs"
+      - "tests/fixtures/bank/**"
+      - "public/assets/mobile-product.js"
       - "tests/credit-note-discount.test.mjs"
       - "tests/vat-return-boxes.test.mjs"
       - "tests/cashflow-recurrence.test.mjs"
@@ -143,6 +147,8 @@ jobs:
         run: node tests/invoice-send-checks.test.mjs
       - name: Dutch bank CSV formats (ING, Rabobank, ABN AMRO, Knab)
         run: node tests/bank-csv-formats.test.mjs
+      - name: Bank import reliability (variants, preview, duplicates, matching)
+        run: node tests/bank-import-reliability.test.mjs
       - name: Credit notes follow the original discount
         run: node tests/credit-note-discount.test.mjs
       - name: VAT return boxes and receipt-amount expenses
@@ -207,6 +213,10 @@ jobs:
         run: |
           node tests/financial-presentation.test.mjs
           BOOKUNA_BROWSER=webkit node tests/financial-presentation.test.mjs
+      - name: Bank import preview and matching — Chromium and WebKit
+        run: |
+          node tests/bank-import-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/bank-import-browser.test.mjs
       - name: Browser pre-launch smoke
         run: node tests/browser-smoke.test.mjs
       - name: KVK generated production flow — Chromium

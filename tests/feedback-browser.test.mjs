@@ -225,15 +225,15 @@ try{
   {
     const {context,page}=await openApp();
     // Bank import error.
-    await page.evaluate(()=>toast('CSV bevat geen regels'));
-    await page.locator('.fb-action-toast').getByRole('button',{name:'Probleem melden'}).click();
+    await page.evaluate(()=>showBankImportError('empty'));
+    await page.locator('#modalRoot').getByRole('button',{name:'Probleem melden'}).click();
     await page.locator('#fbMessage').waitFor();
     assert.equal((await page.locator('#fbTitle').innerText()).trim(),'Wat ging er mis?','category already chosen');
     assert.match(await page.locator('.fb-context').innerText(),/Bankimport/);
     await page.locator('#fbMessage').fill('Mijn ING-bestand wordt niet herkend.');
     await page.getByRole('button',{name:'Feedback versturen'}).click();await page.locator('.fb-done').waitFor();
     let row=await page.evaluate(()=>__fb.rows.at(-1));
-    assert.deepEqual([row.category,row.context.feature,row.context.errorCode],['bug','bank-import','BANK_CSV_EMPTY']);
+    assert.deepEqual([row.category,row.context.feature,row.context.errorCode],['bug','bank-import','BANK_EMPTY']);
     await page.getByRole('button',{name:'Klaar'}).click();
     // Document processing error dialog.
     await page.evaluate(()=>showUploadError({code:'DOCUMENT_PDF_UNREADABLE',referenceId:'ref-123'},new File(['x'],'bon.pdf')));
