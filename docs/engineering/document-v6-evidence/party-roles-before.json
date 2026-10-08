@@ -1,0 +1,5521 @@
+{
+ "withCompanyContext": {
+  "processorDir": "main a370734",
+  "company": {
+   "name": true,
+   "tradeName": false,
+   "kvk": true,
+   "vat": true
+  },
+  "summary": {
+   "CORRECT": 410,
+   "NORMALIZED": 0,
+   "MISSING": 10,
+   "WRONG": 26
+  },
+  "perField": {
+   "documentType": {
+    "CORRECT": 35,
+    "NORMALIZED": 0,
+    "MISSING": 0,
+    "WRONG": 0
+   },
+   "appParty": {
+    "CORRECT": 24,
+    "NORMALIZED": 0,
+    "MISSING": 2,
+    "WRONG": 9
+   },
+   "supplierName": {
+    "CORRECT": 25,
+    "NORMALIZED": 0,
+    "MISSING": 2,
+    "WRONG": 8
+   },
+   "customerName": {
+    "CORRECT": 25,
+    "NORMALIZED": 0,
+    "MISSING": 0,
+    "WRONG": 8
+   },
+   "supplierKvk": {
+    "CORRECT": 32,
+    "NORMALIZED": 0,
+    "MISSING": 2,
+    "WRONG": 1
+   },
+   "invoiceNumber": {
+    "CORRECT": 34,
+    "NORMALIZED": 0,
+    "MISSING": 0,
+    "WRONG": 0
+   },
+   "invoiceDate": {
+    "CORRECT": 35,
+    "NORMALIZED": 0,
+    "MISSING": 0,
+    "WRONG": 0
+   },
+   "dueDate": {
+    "CORRECT": 35,
+    "NORMALIZED": 0,
+    "MISSING": 0,
+    "WRONG": 0
+   },
+   "total": {
+    "CORRECT": 33,
+    "NORMALIZED": 0,
+    "MISSING": 2,
+    "WRONG": 0
+   },
+   "vatTotal": {
+    "CORRECT": 33,
+    "NORMALIZED": 0,
+    "MISSING": 2,
+    "WRONG": 0
+   },
+   "amountDue": {
+    "CORRECT": 35,
+    "NORMALIZED": 0,
+    "MISSING": 0,
+    "WRONG": 0
+   },
+   "currency": {
+    "CORRECT": 35,
+    "NORMALIZED": 0,
+    "MISSING": 0,
+    "WRONG": 0
+   },
+   "vatTreatment": {
+    "CORRECT": 29,
+    "NORMALIZED": 0,
+    "MISSING": 0,
+    "WRONG": 0
+   }
+  },
+  "ownCompanyShownAsCounterparty": [],
+  "scenarios": [
+   {
+    "scenario": "00 Coolblue voorbeeld (Factuur aan)",
+    "ms": 334,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Coolblue B.V.",
+      "actual": "Coolblue B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Coolblue B.V.",
+      "actual": "Coolblue B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "24304000",
+      "actual": "24304000"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "CB-2026-184",
+      "actual": "CB-2026-184"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-08",
+      "actual": "2026-10-08"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-22",
+      "actual": "2026-10-22"
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 249.99,
+      "actual": 249.99
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 43.38,
+      "actual": 43.38
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [],
+    "warnings": [
+     "Rekenkundige controle wijkt af voor subtotal: gelezen 206.61, berekend 206.57.",
+     "Rekenkundige controle wijkt af voor total: gelezen 249.99, berekend 249.95."
+    ]
+   },
+   {
+    "scenario": "01 Leverancier boven, klant eronder (geen label)",
+    "ms": 114,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Bakkerij Noord B.V.",
+      "actual": "Bakkerij Noord B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Bakkerij Noord B.V.",
+      "actual": "Bakkerij Noord B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "74542893",
+      "actual": "74542893"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "BN-0042",
+      "actual": "BN-0042"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-02",
+      "actual": "2026-10-02"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 109.0,
+      "actual": 109.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 9.0,
+      "actual": 9.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [],
+    "warnings": []
+   },
+   {
+    "scenario": "02 Eigen bedrijf bovenaan als ontvanger",
+    "ms": 106,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Drukkerij Zuid B.V.",
+      "actual": "Drukkerij Zuid B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Drukkerij Zuid B.V.",
+      "actual": "Drukkerij Zuid B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "61234567",
+      "actual": "61234567"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "DZ-2026-311",
+      "actual": "DZ-2026-311"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-05",
+      "actual": "2026-10-05"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": "2026-11-04",
+      "actual": "2026-11-04"
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 484.0,
+      "actual": 484.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 84.0,
+      "actual": 84.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [],
+    "warnings": []
+   },
+   {
+    "scenario": "03 Leverancier alleen in footer",
+    "ms": 108,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Studio Lens B.V.",
+      "actual": "Studio Lens B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Studio Lens B.V.",
+      "actual": "Studio Lens B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "87654321",
+      "actual": "87654321"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "SL-1009",
+      "actual": "SL-1009"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-01",
+      "actual": "2026-10-01"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 302.5,
+      "actual": 302.5
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 52.5,
+      "actual": 52.5
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "supplierName"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "04 Twee bedrijfsnamen naast elkaar",
+    "ms": 102,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Hosting Plus B.V.",
+      "actual": "Hosting Plus B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Hosting Plus B.V.",
+      "actual": "Hosting Plus B.V."
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Hosting Plus B.V. Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "WRONG",
+      "expected": "30111222",
+      "actual": "11223344"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "HP-77812",
+      "actual": "HP-77812"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-09-30",
+      "actual": "2026-09-30"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 60.5,
+      "actual": 60.5
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 10.5,
+      "actual": 10.5
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "supplierName"
+    ],
+    "warnings": [
+     "Leverancier lijkt het eigen bedrijf te zijn; controleer leverancier vs. klant."
+    ]
+   },
+   {
+    "scenario": "05 Twee KVK-nummers",
+    "ms": 102,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Groen Advies B.V.",
+      "actual": "Groen Advies B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Groen Advies B.V.",
+      "actual": "Groen Advies B.V."
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Kwinest Groen Advies B.V."
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "34567890",
+      "actual": "34567890"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "GA-2026-015",
+      "actual": "GA-2026-015"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-06",
+      "actual": "2026-10-06"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 968.0,
+      "actual": 968.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 168.0,
+      "actual": 168.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [],
+    "warnings": []
+   },
+   {
+    "scenario": "06 Factuurnummer lijkt op klantnummer",
+    "ms": 103,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Telecom Direct B.V.",
+      "actual": "Telecom Direct B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Telecom Direct B.V.",
+      "actual": "Telecom Direct B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "33445566",
+      "actual": "33445566"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "2026-1093",
+      "actual": "2026-1093"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-01",
+      "actual": "2026-10-01"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 48.4,
+      "actual": 48.4
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 8.4,
+      "actual": 8.4
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [],
+    "warnings": []
+   },
+   {
+    "scenario": "07 Buitenlandse factuur (DE, 19% MwSt)",
+    "ms": 99,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Muster Technik GmbH",
+      "actual": "Muster Technik GmbH"
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Muster Technik GmbH",
+      "actual": "Muster Technik GmbH"
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "MT-55120",
+      "actual": "MT-55120"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-03",
+      "actual": "2026-10-03"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "MISSING",
+      "expected": 119.0,
+      "actual": null
+     },
+     "vatTotal": {
+      "grade": "MISSING",
+      "expected": 19.0,
+      "actual": null
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     }
+    },
+    "reviewFields": [
+     "subtotal",
+     "vatTotal",
+     "total"
+    ],
+    "warnings": [
+     "Totaalbedrag niet betrouwbaar gevonden."
+    ]
+   },
+   {
+    "scenario": "07b Buitenlandse factuur (USD, Bill to)",
+    "ms": 4584,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "MISSING",
+      "expected": "Design Tools Inc.",
+      "actual": null
+     },
+     "supplierName": {
+      "grade": "MISSING",
+      "expected": "Design Tools Inc.",
+      "actual": null
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "DT-2026-8812",
+      "actual": "DT-2026-8812"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-01",
+      "actual": "2026-10-01"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 15.0,
+      "actual": 15.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 0.0,
+      "actual": 0.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "USD",
+      "actual": "USD"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total",
+     "vatRates",
+     "invoiceNumber"
+    ],
+    "warnings": [
+     "Leverancier niet betrouwbaar gevonden."
+    ]
+   },
+   {
+    "scenario": "08 Creditnota",
+    "ms": 114,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "credit_invoice",
+      "actual": "credit_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Kantoorshop B.V.",
+      "actual": "Kantoorshop B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Kantoorshop B.V.",
+      "actual": "Kantoorshop B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "32109876",
+      "actual": "32109876"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "CN-2026-007",
+      "actual": "CN-2026-007"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-04",
+      "actual": "2026-10-04"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": -60.5,
+      "actual": -60.5
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": -10.5,
+      "actual": -10.5
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     }
+    },
+    "reviewFields": [
+     "invoiceDate"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "09 Self-billing",
+    "ms": 118,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "sales_invoice",
+      "actual": "sales_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Bezorgplatform B.V.",
+      "actual": "Bezorgplatform B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Bezorgplatform B.V.",
+      "actual": "Bezorgplatform B.V."
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "11223344",
+      "actual": "11223344"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "SB-2026-0912",
+      "actual": "SB-2026-0912"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-09-30",
+      "actual": "2026-09-30"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 605.0,
+      "actual": 605.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 105.0,
+      "actual": 105.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "customerName"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "10 Factoring (betaling aan factormaatschappij)",
+    "ms": 126,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Bouwmaterialen Oost B.V.",
+      "actual": "Bouwmaterialen Oost B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Bouwmaterialen Oost B.V.",
+      "actual": "Bouwmaterialen Oost B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "08123456",
+      "actual": "08123456"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "BO-88001",
+      "actual": "BO-88001"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-09-29",
+      "actual": "2026-09-29"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 1210.0,
+      "actual": 1210.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 210.0,
+      "actual": 210.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [],
+    "warnings": []
+   },
+   {
+    "scenario": "11 Meerdere btw-tarieven",
+    "ms": 131,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Horeca Groothandel B.V.",
+      "actual": "Horeca Groothandel B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Horeca Groothandel B.V.",
+      "actual": "Horeca Groothandel B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "09876543",
+      "actual": "09876543"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "HG-4410",
+      "actual": "HG-4410"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-07",
+      "actual": "2026-10-07"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 230.0,
+      "actual": 230.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 30.0,
+      "actual": 30.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "vatTotal"
+    ],
+    "warnings": [
+     "Meerdere btw-tarieven gevonden, maar de btw-groepen konden niet betrouwbaar worden vastgesteld; handmatige controle is vereist."
+    ]
+   },
+   {
+    "scenario": "12 Factuur met meerdere pagina's",
+    "ms": 125,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Installatiebedrijf West B.V.",
+      "actual": "Installatiebedrijf West B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Installatiebedrijf West B.V.",
+      "actual": "Installatiebedrijf West B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "28123456",
+      "actual": "28123456"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "IW-2026-221",
+      "actual": "IW-2026-221"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-03",
+      "actual": "2026-10-03"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 786.5,
+      "actual": 786.5
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 136.5,
+      "actual": 136.5
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [],
+    "warnings": []
+   },
+   {
+    "scenario": "13 Slecht gescande bon (foto)",
+    "ms": 12665,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "receipt",
+      "actual": "receipt"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "SUPERMARKT DE HOEK",
+      "actual": "SUPERMARKT DE HOEK"
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "SUPERMARKT DE HOEK",
+      "actual": "SUPERMARKT DE HOEK"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-08",
+      "actual": "2026-10-08"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "MISSING",
+      "expected": 9.0,
+      "actual": null
+     },
+     "vatTotal": {
+      "grade": "MISSING",
+      "expected": 0.74,
+      "actual": null
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total"
+    ],
+    "warnings": [
+     "Totaalbedrag niet betrouwbaar gevonden."
+    ]
+   },
+   {
+    "scenario": "14 Verkoopfactuur, eigen bedrijf is uitgever",
+    "ms": 107,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "sales_invoice",
+      "actual": "sales_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Bakker Media B.V.",
+      "actual": "Bakker Media B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Bakker Media B.V.",
+      "actual": "Bakker Media B.V."
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "11223344",
+      "actual": "11223344"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "2026-031",
+      "actual": "2026-031"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-06",
+      "actual": "2026-10-06"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-20",
+      "actual": "2026-10-20"
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 907.5,
+      "actual": 907.5
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 157.5,
+      "actual": 157.5
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [],
+    "warnings": []
+   },
+   {
+    "scenario": "15 Geen duidelijk leverancierslabel",
+    "ms": 85,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": "Schildersbedrijf Van Dam",
+      "actual": "SCHILDERSBEDRIJF"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": "Schildersbedrijf Van Dam",
+      "actual": "SCHILDERSBEDRIJF"
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "1188",
+      "actual": "1188"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-01",
+      "actual": "2026-10-01"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 1452.0,
+      "actual": 1452.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 252.0,
+      "actual": 252.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "supplierName"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "16 Openstaand bedrag is geen factuurtotaal",
+    "ms": 105,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Opleidingen Centrum B.V.",
+      "actual": "Opleidingen Centrum B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Opleidingen Centrum B.V.",
+      "actual": "Opleidingen Centrum B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "30999888",
+      "actual": "30999888"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "OC-512",
+      "actual": "OC-512"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-09-15",
+      "actual": "2026-09-15"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-15",
+      "actual": "2026-10-15"
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 1210.0,
+      "actual": 1210.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 210.0,
+      "actual": 210.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": 605.0,
+      "actual": 605.0
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [],
+    "warnings": []
+   },
+   {
+    "scenario": "17 Scan: eigen bedrijf bovenaan als ontvanger",
+    "ms": 8163,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Drukkerij Zuid B.V.",
+      "actual": "Drukkerij Zuid B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Drukkerij Zuid B.V.",
+      "actual": "Drukkerij Zuid B.V."
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Drukkerij Zuid B.V."
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "61234567",
+      "actual": "61234567"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "DZ-2026-311",
+      "actual": "DZ-2026-311"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-05",
+      "actual": "2026-10-05"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 484.0,
+      "actual": 484.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 84.0,
+      "actual": 84.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total",
+     "invoiceNumber"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "18 Webshop: naam alleen in logo en footer",
+    "ms": 112,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": "Coolblue B.V.",
+      "actual": "Factuuradres Afleveradres"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": "Coolblue B.V.",
+      "actual": "Factuuradres Afleveradres"
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "24304000",
+      "actual": "24304000"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "CB-2026-184",
+      "actual": "CB-2026-184"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-08",
+      "actual": "2026-10-08"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 249.99,
+      "actual": 249.99
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 43.38,
+      "actual": 43.38
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "supplierName"
+    ],
+    "warnings": [
+     "Rekenkundige controle wijkt af voor subtotal: gelezen 206.61, berekend 206.57.",
+     "Rekenkundige controle wijkt af voor total: gelezen 249.99, berekend 249.95."
+    ]
+   },
+   {
+    "scenario": "19 Webshop: factuur op naam van de eigenaar",
+    "ms": 103,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": "Coolblue B.V.",
+      "actual": "Factuuradres Afleveradres"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": "Coolblue B.V.",
+      "actual": "Factuuradres Afleveradres"
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwin Phetmanee",
+      "actual": "Factuuradres Afleveradres"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "24304000",
+      "actual": "24304000"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "CB-2026-185",
+      "actual": "CB-2026-185"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-08",
+      "actual": "2026-10-08"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 249.99,
+      "actual": 249.99
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 43.38,
+      "actual": 43.38
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName"
+    ],
+    "warnings": [
+     "Rekenkundige controle wijkt af voor subtotal: gelezen 206.61, berekend 206.57.",
+     "Rekenkundige controle wijkt af voor total: gelezen 249.99, berekend 249.95."
+    ]
+   },
+   {
+    "scenario": "20 Marktplaats: verkocht door",
+    "ms": 102,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Gadget Store B.V.",
+      "actual": "Gadget Store B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Gadget Store B.V.",
+      "actual": "Gadget Store B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "GS-2026-0091",
+      "actual": "GS-2026-0091"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-02",
+      "actual": "2026-10-02"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 100.0,
+      "actual": 100.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 17.36,
+      "actual": 17.36
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [],
+    "warnings": [
+     "Rekenkundige controle wijkt af voor subtotal: gelezen 82.64, berekend 82.67.",
+     "Rekenkundige controle wijkt af voor total: gelezen 100.00, berekend 100.03."
+    ]
+   },
+   {
+    "scenario": "21 Scan: webshop, naam in footer",
+    "ms": 2808,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": "Coolblue B.V.",
+      "actual": "Factuuradres"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": "Coolblue B.V.",
+      "actual": "Factuuradres"
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Factuuradres"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "24304000",
+      "actual": "24304000"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "CB-2026-184",
+      "actual": "CB-2026-184"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-08",
+      "actual": "2026-10-08"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 249.99,
+      "actual": 249.99
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 43.38,
+      "actual": 43.38
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total",
+     "invoiceNumber"
+    ],
+    "warnings": [
+     "Rekenkundige controle wijkt af voor subtotal: gelezen 206.61, berekend 206.57.",
+     "Rekenkundige controle wijkt af voor total: gelezen 249.99, berekend 249.95."
+    ]
+   },
+   {
+    "scenario": "22 Invoice to / Ship to, naam zonder rechtsvorm",
+    "ms": 98,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Fietsenmaker Jansen",
+      "actual": "Fietsenmaker Jansen"
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Fietsenmaker Jansen",
+      "actual": "Fietsenmaker Jansen"
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "18123456",
+      "actual": "18123456"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "FJ-311",
+      "actual": "FJ-311"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-04",
+      "actual": "2026-10-04"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 363.0,
+      "actual": 363.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 63.0,
+      "actual": 63.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "supplierName"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "23 Briefstijl op naam van de eigenaar",
+    "ms": 3998,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": null,
+      "actual": "Kwin Phetmanee"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": null,
+      "actual": "Kwin Phetmanee"
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwin Phetmanee",
+      "actual": "Kwin Phetmanee"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "70123457",
+      "actual": "70123457"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "2026-78",
+      "actual": "2026-78"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-04",
+      "actual": "2026-10-04"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 96.8,
+      "actual": 96.8
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 16.8,
+      "actual": 16.8
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total",
+     "invoiceNumber"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "H1 Inline 'Factuur aan', leverancier rechts uitgelijnd",
+    "ms": 3756,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Webdesign Noord",
+      "actual": "Webdesign Noord"
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Webdesign Noord",
+      "actual": "Webdesign Noord"
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "WN-2026-12",
+      "actual": "WN-2026-12"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-01",
+      "actual": "2026-10-01"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 121.0,
+      "actual": 121.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 21.0,
+      "actual": 21.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total",
+     "invoiceNumber"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "H2 Eigen naam verkeerd gelezen (Kwlnest)",
+    "ms": 3345,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Copyshop Centrum",
+      "actual": "Copyshop Centrum"
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Copyshop Centrum",
+      "actual": "Copyshop Centrum"
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwlnest",
+      "actual": "Copyshop Centrum"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "CC-901",
+      "actual": "CC-901"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-03",
+      "actual": "2026-10-03"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 24.2,
+      "actual": 24.2
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 4.2,
+      "actual": 4.2
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total",
+     "invoiceNumber"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "H3 Engelse factuur in GBP",
+    "ms": 2955,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Brightline Software Ltd",
+      "actual": "Brightline Software Ltd"
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Brightline Software Ltd",
+      "actual": "Brightline Software Ltd"
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "BL-4471",
+      "actual": "BL-4471"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-02",
+      "actual": "2026-10-02"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 40.0,
+      "actual": 40.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 0.0,
+      "actual": 0.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "GBP",
+      "actual": "GBP"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total",
+     "invoiceNumber"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "H4 Eigen creditnota aan klant",
+    "ms": 94,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "credit_invoice",
+      "actual": "credit_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": "Bakker Media B.V.",
+      "actual": "Creditnotanummer: 2026-C02"
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Bakker Media B.V.",
+      "actual": "Creditnotanummer: 2026-C02"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "11223344",
+      "actual": "11223344"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "2026-C02",
+      "actual": "2026-C02"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-07",
+      "actual": "2026-10-07"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": -121.0,
+      "actual": -121.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": -21.0,
+      "actual": -21.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     }
+    },
+    "reviewFields": [
+     "supplierName",
+     "invoiceDate"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "H5 Twee naamblokken zonder bewijs (niet eigen bedrijf)",
+    "ms": 11507,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": null,
+      "actual": "Jansen Klussen Pietersen Holding"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": null,
+      "actual": "Jansen Klussen Pietersen Holding"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "55",
+      "actual": "55"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-02",
+      "actual": "2026-10-02"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 121.0,
+      "actual": 121.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 21.0,
+      "actual": 21.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total",
+     "invoiceNumber"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "H6 Klant boven, leverancier-label onderaan",
+    "ms": 95,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Tuinservice Ruud",
+      "actual": "Tuinservice Ruud"
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Tuinservice Ruud",
+      "actual": "Tuinservice Ruud"
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "09123456",
+      "actual": "09123456"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "TR-88",
+      "actual": "TR-88"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-06",
+      "actual": "2026-10-06"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 72.6,
+      "actual": 72.6
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 12.6,
+      "actual": 12.6
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [],
+    "warnings": []
+   },
+   {
+    "scenario": "H7 Factoring met begunstigde",
+    "ms": 92,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Transport Snel B.V.",
+      "actual": "Transport Snel B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Transport Snel B.V.",
+      "actual": "Transport Snel B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "11998877",
+      "actual": "11998877"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "TS-2026-77",
+      "actual": "TS-2026-77"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-02",
+      "actual": "2026-10-02"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 605.0,
+      "actual": 605.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 105.0,
+      "actual": 105.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [],
+    "warnings": []
+   },
+   {
+    "scenario": "H8 Factuur- en afleveradres, merknaam bovenaan",
+    "ms": 121,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": "MediaWinkel Nederland B.V.",
+      "actual": "MediaWinkel"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": "MediaWinkel Nederland B.V.",
+      "actual": "MediaWinkel"
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "34156789",
+      "actual": "34156789"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "MW-310022",
+      "actual": "MW-310022"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-05",
+      "actual": "2026-10-05"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 200.0,
+      "actual": 200.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 34.71,
+      "actual": 34.71
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "supplierName"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "H9 Briefstijl: eigen adres boven, leverancier onderaan",
+    "ms": 94,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "MISSING",
+      "expected": "Fotografie Lisa de Wit",
+      "actual": null
+     },
+     "supplierName": {
+      "grade": "MISSING",
+      "expected": "Fotografie Lisa de Wit",
+      "actual": null
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "MISSING",
+      "expected": "70123456",
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "2026-77",
+      "actual": "2026-77"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-04",
+      "actual": "2026-10-04"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 96.8,
+      "actual": 96.8
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 16.8,
+      "actual": 16.8
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "supplierName"
+    ],
+    "warnings": [
+     "Leverancier niet betrouwbaar gevonden."
+    ]
+   },
+   {
+    "scenario": "H10 Scan: Van/Aan naast elkaar",
+    "ms": 3818,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": "Hosting Plus B.V.",
+      "actual": "PAGE 1"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": "Hosting Plus B.V.",
+      "actual": "PAGE 1"
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Hosting Plus B.V."
+     },
+     "supplierKvk": {
+      "grade": "MISSING",
+      "expected": "30111222",
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "HP-77812",
+      "actual": "HP-77812"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-09-30",
+      "actual": "2026-09-30"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 60.5,
+      "actual": 60.5
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 10.5,
+      "actual": 10.5
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total",
+     "invoiceNumber"
+    ],
+    "warnings": []
+   }
+  ]
+ },
+ "withoutCompanyContext": {
+  "processorDir": "main a370734",
+  "company": {
+   "name": false,
+   "tradeName": false,
+   "kvk": false,
+   "vat": false
+  },
+  "summary": {
+   "CORRECT": 396,
+   "NORMALIZED": 0,
+   "MISSING": 5,
+   "WRONG": 45
+  },
+  "perField": {
+   "documentType": {
+    "CORRECT": 34,
+    "NORMALIZED": 0,
+    "MISSING": 0,
+    "WRONG": 1
+   },
+   "appParty": {
+    "CORRECT": 24,
+    "NORMALIZED": 0,
+    "MISSING": 0,
+    "WRONG": 11
+   },
+   "supplierName": {
+    "CORRECT": 22,
+    "NORMALIZED": 0,
+    "MISSING": 0,
+    "WRONG": 13
+   },
+   "customerName": {
+    "CORRECT": 14,
+    "NORMALIZED": 0,
+    "MISSING": 0,
+    "WRONG": 19
+   },
+   "supplierKvk": {
+    "CORRECT": 33,
+    "NORMALIZED": 0,
+    "MISSING": 1,
+    "WRONG": 1
+   },
+   "invoiceNumber": {
+    "CORRECT": 34,
+    "NORMALIZED": 0,
+    "MISSING": 0,
+    "WRONG": 0
+   },
+   "invoiceDate": {
+    "CORRECT": 35,
+    "NORMALIZED": 0,
+    "MISSING": 0,
+    "WRONG": 0
+   },
+   "dueDate": {
+    "CORRECT": 35,
+    "NORMALIZED": 0,
+    "MISSING": 0,
+    "WRONG": 0
+   },
+   "total": {
+    "CORRECT": 33,
+    "NORMALIZED": 0,
+    "MISSING": 2,
+    "WRONG": 0
+   },
+   "vatTotal": {
+    "CORRECT": 33,
+    "NORMALIZED": 0,
+    "MISSING": 2,
+    "WRONG": 0
+   },
+   "amountDue": {
+    "CORRECT": 35,
+    "NORMALIZED": 0,
+    "MISSING": 0,
+    "WRONG": 0
+   },
+   "currency": {
+    "CORRECT": 35,
+    "NORMALIZED": 0,
+    "MISSING": 0,
+    "WRONG": 0
+   },
+   "vatTreatment": {
+    "CORRECT": 29,
+    "NORMALIZED": 0,
+    "MISSING": 0,
+    "WRONG": 0
+   }
+  },
+  "ownCompanyShownAsCounterparty": [
+   "H9 Briefstijl: eigen adres boven, leverancier onderaan"
+  ],
+  "scenarios": [
+   {
+    "scenario": "00 Coolblue voorbeeld (Factuur aan)",
+    "ms": 137,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Coolblue B.V.",
+      "actual": "Coolblue B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Coolblue B.V.",
+      "actual": "Coolblue B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "24304000",
+      "actual": "24304000"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "CB-2026-184",
+      "actual": "CB-2026-184"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-08",
+      "actual": "2026-10-08"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-22",
+      "actual": "2026-10-22"
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 249.99,
+      "actual": 249.99
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 43.38,
+      "actual": 43.38
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType"
+    ],
+    "warnings": [
+     "Rekenkundige controle wijkt af voor subtotal: gelezen 206.61, berekend 206.57.",
+     "Rekenkundige controle wijkt af voor total: gelezen 249.99, berekend 249.95."
+    ]
+   },
+   {
+    "scenario": "01 Leverancier boven, klant eronder (geen label)",
+    "ms": 99,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Bakkerij Noord B.V.",
+      "actual": "Bakkerij Noord B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Bakkerij Noord B.V.",
+      "actual": "Bakkerij Noord B.V."
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Bakkerij Noord B.V."
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "74542893",
+      "actual": "74542893"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "BN-0042",
+      "actual": "BN-0042"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-02",
+      "actual": "2026-10-02"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 109.0,
+      "actual": 109.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 9.0,
+      "actual": 9.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "02 Eigen bedrijf bovenaan als ontvanger",
+    "ms": 105,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Drukkerij Zuid B.V.",
+      "actual": "Drukkerij Zuid B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Drukkerij Zuid B.V.",
+      "actual": "Drukkerij Zuid B.V."
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Drukkerij Zuid B.V."
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "61234567",
+      "actual": "61234567"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "DZ-2026-311",
+      "actual": "DZ-2026-311"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-05",
+      "actual": "2026-10-05"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": "2026-11-04",
+      "actual": "2026-11-04"
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 484.0,
+      "actual": 484.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 84.0,
+      "actual": 84.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "03 Leverancier alleen in footer",
+    "ms": 82,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Studio Lens B.V.",
+      "actual": "Studio Lens B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Studio Lens B.V.",
+      "actual": "Studio Lens B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "87654321",
+      "actual": "87654321"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "SL-1009",
+      "actual": "SL-1009"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-01",
+      "actual": "2026-10-01"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 302.5,
+      "actual": 302.5
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 52.5,
+      "actual": 52.5
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "04 Twee bedrijfsnamen naast elkaar",
+    "ms": 82,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": "Hosting Plus B.V.",
+      "actual": "Hosting Plus B.V. Kwinest"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": "Hosting Plus B.V.",
+      "actual": "Hosting Plus B.V. Kwinest"
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Hosting Plus B.V. Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "WRONG",
+      "expected": "30111222",
+      "actual": "11223344"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "HP-77812",
+      "actual": "HP-77812"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-09-30",
+      "actual": "2026-09-30"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 60.5,
+      "actual": 60.5
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 10.5,
+      "actual": 10.5
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "05 Twee KVK-nummers",
+    "ms": 86,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Groen Advies B.V.",
+      "actual": "Groen Advies B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Groen Advies B.V.",
+      "actual": "Groen Advies B.V."
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Kwinest Groen Advies B.V."
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "34567890",
+      "actual": "34567890"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "GA-2026-015",
+      "actual": "GA-2026-015"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-06",
+      "actual": "2026-10-06"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 968.0,
+      "actual": 968.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 168.0,
+      "actual": 168.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "06 Factuurnummer lijkt op klantnummer",
+    "ms": 99,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Telecom Direct B.V.",
+      "actual": "Telecom Direct B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Telecom Direct B.V.",
+      "actual": "Telecom Direct B.V."
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "nummer: 2026-0184"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "33445566",
+      "actual": "33445566"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "2026-1093",
+      "actual": "2026-1093"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-01",
+      "actual": "2026-10-01"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 48.4,
+      "actual": 48.4
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 8.4,
+      "actual": 8.4
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "07 Buitenlandse factuur (DE, 19% MwSt)",
+    "ms": 99,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Muster Technik GmbH",
+      "actual": "Muster Technik GmbH"
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Muster Technik GmbH",
+      "actual": "Muster Technik GmbH"
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Rechnungssteller: Rechnungsempfänger"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "MT-55120",
+      "actual": "MT-55120"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-03",
+      "actual": "2026-10-03"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "MISSING",
+      "expected": 119.0,
+      "actual": null
+     },
+     "vatTotal": {
+      "grade": "MISSING",
+      "expected": 19.0,
+      "actual": null
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "subtotal",
+     "vatTotal",
+     "total"
+    ],
+    "warnings": [
+     "Totaalbedrag niet betrouwbaar gevonden."
+    ]
+   },
+   {
+    "scenario": "07b Buitenlandse factuur (USD, Bill to)",
+    "ms": 4375,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": "Design Tools Inc.",
+      "actual": "Design Tools Inc. Kwinest"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": "Design Tools Inc.",
+      "actual": "Design Tools Inc. Kwinest"
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "DT-2026-8812",
+      "actual": "DT-2026-8812"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-01",
+      "actual": "2026-10-01"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 15.0,
+      "actual": 15.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 0.0,
+      "actual": 0.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "USD",
+      "actual": "USD"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total",
+     "vatRates",
+     "invoiceNumber"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "08 Creditnota",
+    "ms": 97,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "credit_invoice",
+      "actual": "credit_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Kantoorshop B.V.",
+      "actual": "Kantoorshop B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Kantoorshop B.V.",
+      "actual": "Kantoorshop B.V."
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Creditnotanummer: CN-2026-007"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "32109876",
+      "actual": "32109876"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "CN-2026-007",
+      "actual": "CN-2026-007"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-04",
+      "actual": "2026-10-04"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": -60.5,
+      "actual": -60.5
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": -10.5,
+      "actual": -10.5
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "invoiceDate"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "09 Self-billing",
+    "ms": 99,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "sales_invoice",
+      "actual": "sales_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Bezorgplatform B.V.",
+      "actual": "Bezorgplatform B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Bezorgplatform B.V.",
+      "actual": "Bezorgplatform B.V."
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "11223344",
+      "actual": "11223344"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "SB-2026-0912",
+      "actual": "SB-2026-0912"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-09-30",
+      "actual": "2026-09-30"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 605.0,
+      "actual": 605.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 105.0,
+      "actual": 105.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "customerName"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "10 Factoring (betaling aan factormaatschappij)",
+    "ms": 104,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Bouwmaterialen Oost B.V.",
+      "actual": "Bouwmaterialen Oost B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Bouwmaterialen Oost B.V.",
+      "actual": "Bouwmaterialen Oost B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "08123456",
+      "actual": "08123456"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "BO-88001",
+      "actual": "BO-88001"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-09-29",
+      "actual": "2026-09-29"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 1210.0,
+      "actual": 1210.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 210.0,
+      "actual": 210.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "11 Meerdere btw-tarieven",
+    "ms": 119,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Horeca Groothandel B.V.",
+      "actual": "Horeca Groothandel B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Horeca Groothandel B.V.",
+      "actual": "Horeca Groothandel B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "09876543",
+      "actual": "09876543"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "HG-4410",
+      "actual": "HG-4410"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-07",
+      "actual": "2026-10-07"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 230.0,
+      "actual": 230.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 30.0,
+      "actual": 30.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "vatTotal"
+    ],
+    "warnings": [
+     "Meerdere btw-tarieven gevonden, maar de btw-groepen konden niet betrouwbaar worden vastgesteld; handmatige controle is vereist."
+    ]
+   },
+   {
+    "scenario": "12 Factuur met meerdere pagina's",
+    "ms": 108,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Installatiebedrijf West B.V.",
+      "actual": "Installatiebedrijf West B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Installatiebedrijf West B.V.",
+      "actual": "Installatiebedrijf West B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "28123456",
+      "actual": "28123456"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "IW-2026-221",
+      "actual": "IW-2026-221"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-03",
+      "actual": "2026-10-03"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 786.5,
+      "actual": 786.5
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 136.5,
+      "actual": 136.5
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "13 Slecht gescande bon (foto)",
+    "ms": 12572,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "receipt",
+      "actual": "receipt"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "SUPERMARKT DE HOEK",
+      "actual": "SUPERMARKT DE HOEK"
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "SUPERMARKT DE HOEK",
+      "actual": "SUPERMARKT DE HOEK"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-08",
+      "actual": "2026-10-08"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "MISSING",
+      "expected": 9.0,
+      "actual": null
+     },
+     "vatTotal": {
+      "grade": "MISSING",
+      "expected": 0.74,
+      "actual": null
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total"
+    ],
+    "warnings": [
+     "Totaalbedrag niet betrouwbaar gevonden."
+    ]
+   },
+   {
+    "scenario": "14 Verkoopfactuur, eigen bedrijf is uitgever",
+    "ms": 94,
+    "fields": {
+     "documentType": {
+      "grade": "WRONG",
+      "expected": "sales_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Bakker Media B.V.",
+      "actual": "Bakker Media B.V."
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Bakker Media B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Bakker Media B.V.",
+      "actual": "Bakker Media B.V."
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "11223344",
+      "actual": "11223344"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "2026-031",
+      "actual": "2026-031"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-06",
+      "actual": "2026-10-06"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-20",
+      "actual": "2026-10-20"
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 907.5,
+      "actual": 907.5
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 157.5,
+      "actual": 157.5
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "15 Geen duidelijk leverancierslabel",
+    "ms": 95,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": "Schildersbedrijf Van Dam",
+      "actual": "SCHILDERSBEDRIJF"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": "Schildersbedrijf Van Dam",
+      "actual": "SCHILDERSBEDRIJF"
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "SCHILDERSBEDRIJF"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "1188",
+      "actual": "1188"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-01",
+      "actual": "2026-10-01"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 1452.0,
+      "actual": 1452.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 252.0,
+      "actual": 252.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "16 Openstaand bedrag is geen factuurtotaal",
+    "ms": 96,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Opleidingen Centrum B.V.",
+      "actual": "Opleidingen Centrum B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Opleidingen Centrum B.V.",
+      "actual": "Opleidingen Centrum B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "30999888",
+      "actual": "30999888"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "OC-512",
+      "actual": "OC-512"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-09-15",
+      "actual": "2026-09-15"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-15",
+      "actual": "2026-10-15"
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 1210.0,
+      "actual": 1210.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 210.0,
+      "actual": 210.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": 605.0,
+      "actual": 605.0
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "17 Scan: eigen bedrijf bovenaan als ontvanger",
+    "ms": 7833,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Drukkerij Zuid B.V.",
+      "actual": "Drukkerij Zuid B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Drukkerij Zuid B.V.",
+      "actual": "Drukkerij Zuid B.V."
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Drukkerij Zuid B.V."
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "61234567",
+      "actual": "61234567"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "DZ-2026-311",
+      "actual": "DZ-2026-311"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-05",
+      "actual": "2026-10-05"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 484.0,
+      "actual": 484.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 84.0,
+      "actual": 84.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total",
+     "invoiceNumber"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "18 Webshop: naam alleen in logo en footer",
+    "ms": 90,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": "Coolblue B.V.",
+      "actual": "Factuuradres Afleveradres"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": "Coolblue B.V.",
+      "actual": "Factuuradres Afleveradres"
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Factuuradres Afleveradres"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "24304000",
+      "actual": "24304000"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "CB-2026-184",
+      "actual": "CB-2026-184"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-08",
+      "actual": "2026-10-08"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 249.99,
+      "actual": 249.99
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 43.38,
+      "actual": 43.38
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName"
+    ],
+    "warnings": [
+     "Rekenkundige controle wijkt af voor subtotal: gelezen 206.61, berekend 206.57.",
+     "Rekenkundige controle wijkt af voor total: gelezen 249.99, berekend 249.95."
+    ]
+   },
+   {
+    "scenario": "19 Webshop: factuur op naam van de eigenaar",
+    "ms": 86,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": "Coolblue B.V.",
+      "actual": "Factuuradres Afleveradres"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": "Coolblue B.V.",
+      "actual": "Factuuradres Afleveradres"
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwin Phetmanee",
+      "actual": "Factuuradres Afleveradres"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "24304000",
+      "actual": "24304000"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "CB-2026-185",
+      "actual": "CB-2026-185"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-08",
+      "actual": "2026-10-08"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 249.99,
+      "actual": 249.99
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 43.38,
+      "actual": 43.38
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName"
+    ],
+    "warnings": [
+     "Rekenkundige controle wijkt af voor subtotal: gelezen 206.61, berekend 206.57.",
+     "Rekenkundige controle wijkt af voor total: gelezen 249.99, berekend 249.95."
+    ]
+   },
+   {
+    "scenario": "20 Marktplaats: verkocht door",
+    "ms": 84,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Gadget Store B.V.",
+      "actual": "Gadget Store B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Gadget Store B.V.",
+      "actual": "Gadget Store B.V."
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Online Marktplaats"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "GS-2026-0091",
+      "actual": "GS-2026-0091"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-02",
+      "actual": "2026-10-02"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 100.0,
+      "actual": 100.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 17.36,
+      "actual": 17.36
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType"
+    ],
+    "warnings": [
+     "Rekenkundige controle wijkt af voor subtotal: gelezen 82.64, berekend 82.67.",
+     "Rekenkundige controle wijkt af voor total: gelezen 100.00, berekend 100.03."
+    ]
+   },
+   {
+    "scenario": "21 Scan: webshop, naam in footer",
+    "ms": 2612,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": "Coolblue B.V.",
+      "actual": "Factuuradres"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": "Coolblue B.V.",
+      "actual": "Factuuradres"
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Factuuradres"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "24304000",
+      "actual": "24304000"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "CB-2026-184",
+      "actual": "CB-2026-184"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-08",
+      "actual": "2026-10-08"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 249.99,
+      "actual": 249.99
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 43.38,
+      "actual": 43.38
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total",
+     "invoiceNumber"
+    ],
+    "warnings": [
+     "Rekenkundige controle wijkt af voor subtotal: gelezen 206.61, berekend 206.57.",
+     "Rekenkundige controle wijkt af voor total: gelezen 249.99, berekend 249.95."
+    ]
+   },
+   {
+    "scenario": "22 Invoice to / Ship to, naam zonder rechtsvorm",
+    "ms": 98,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Fietsenmaker Jansen",
+      "actual": "Fietsenmaker Jansen"
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Fietsenmaker Jansen",
+      "actual": "Fietsenmaker Jansen"
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Fietsenmaker Jansen"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "18123456",
+      "actual": "18123456"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "FJ-311",
+      "actual": "FJ-311"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-04",
+      "actual": "2026-10-04"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 363.0,
+      "actual": 363.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 63.0,
+      "actual": 63.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "23 Briefstijl op naam van de eigenaar",
+    "ms": 3913,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": null,
+      "actual": "Kwin Phetmanee"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": null,
+      "actual": "Kwin Phetmanee"
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwin Phetmanee",
+      "actual": "Kwin Phetmanee"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "70123457",
+      "actual": "70123457"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "2026-78",
+      "actual": "2026-78"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-04",
+      "actual": "2026-10-04"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 96.8,
+      "actual": 96.8
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 16.8,
+      "actual": 16.8
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total",
+     "invoiceNumber"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "H1 Inline 'Factuur aan', leverancier rechts uitgelijnd",
+    "ms": 3546,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Webdesign Noord",
+      "actual": "Webdesign Noord"
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Webdesign Noord",
+      "actual": "Webdesign Noord"
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "WN-2026-12",
+      "actual": "WN-2026-12"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-01",
+      "actual": "2026-10-01"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 121.0,
+      "actual": 121.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 21.0,
+      "actual": 21.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total",
+     "invoiceNumber"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "H2 Eigen naam verkeerd gelezen (Kwlnest)",
+    "ms": 3397,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Copyshop Centrum",
+      "actual": "Copyshop Centrum"
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Copyshop Centrum",
+      "actual": "Copyshop Centrum"
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwlnest",
+      "actual": "Copyshop Centrum"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "CC-901",
+      "actual": "CC-901"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-03",
+      "actual": "2026-10-03"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 24.2,
+      "actual": 24.2
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 4.2,
+      "actual": 4.2
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total",
+     "invoiceNumber"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "H3 Engelse factuur in GBP",
+    "ms": 2985,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Brightline Software Ltd",
+      "actual": "Brightline Software Ltd"
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Brightline Software Ltd",
+      "actual": "Brightline Software Ltd"
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "London EC2V 8AU Amsterdam, The Netherlands"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "BL-4471",
+      "actual": "BL-4471"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-02",
+      "actual": "2026-10-02"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 40.0,
+      "actual": 40.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 0.0,
+      "actual": 0.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "GBP",
+      "actual": "GBP"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total",
+     "invoiceNumber"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "H4 Eigen creditnota aan klant",
+    "ms": 96,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "credit_invoice",
+      "actual": "credit_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Bakker Media B.V.",
+      "actual": "Bakker Media B.V."
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Bakker Media B.V."
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Bakker Media B.V.",
+      "actual": "Creditnotanummer: 2026-C02"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "11223344",
+      "actual": "11223344"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "2026-C02",
+      "actual": "2026-C02"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-07",
+      "actual": "2026-10-07"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": -121.0,
+      "actual": -121.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": -21.0,
+      "actual": -21.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "invoiceDate"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "H5 Twee naamblokken zonder bewijs (niet eigen bedrijf)",
+    "ms": 10512,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": null,
+      "actual": "Jansen Klussen Pietersen Holding"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": null,
+      "actual": "Jansen Klussen Pietersen Holding"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "55",
+      "actual": "55"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-02",
+      "actual": "2026-10-02"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 121.0,
+      "actual": 121.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 21.0,
+      "actual": 21.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total",
+     "invoiceNumber"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "H6 Klant boven, leverancier-label onderaan",
+    "ms": 131,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Tuinservice Ruud",
+      "actual": "Tuinservice Ruud"
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Tuinservice Ruud",
+      "actual": "Tuinservice Ruud"
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "09123456",
+      "actual": "09123456"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "TR-88",
+      "actual": "TR-88"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-06",
+      "actual": "2026-10-06"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 72.6,
+      "actual": 72.6
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 12.6,
+      "actual": 12.6
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "H7 Factoring met begunstigde",
+    "ms": 136,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "CORRECT",
+      "expected": "Transport Snel B.V.",
+      "actual": "Transport Snel B.V."
+     },
+     "supplierName": {
+      "grade": "CORRECT",
+      "expected": "Transport Snel B.V.",
+      "actual": "Transport Snel B.V."
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "11998877",
+      "actual": "11998877"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "TS-2026-77",
+      "actual": "TS-2026-77"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-02",
+      "actual": "2026-10-02"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 605.0,
+      "actual": 605.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 105.0,
+      "actual": 105.0
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "H8 Factuur- en afleveradres, merknaam bovenaan",
+    "ms": 105,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": "MediaWinkel Nederland B.V.",
+      "actual": "MediaWinkel"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": "MediaWinkel Nederland B.V.",
+      "actual": "MediaWinkel"
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "MediaWinkel"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "34156789",
+      "actual": "34156789"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "MW-310022",
+      "actual": "MW-310022"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-05",
+      "actual": "2026-10-05"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 200.0,
+      "actual": 200.0
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 34.71,
+      "actual": 34.71
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "H9 Briefstijl: eigen adres boven, leverancier onderaan",
+    "ms": 125,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": "Fotografie Lisa de Wit",
+      "actual": "Kwinest"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": "Fotografie Lisa de Wit",
+      "actual": "Kwinest"
+     },
+     "customerName": {
+      "grade": "CORRECT",
+      "expected": "Kwinest",
+      "actual": "Kwinest"
+     },
+     "supplierKvk": {
+      "grade": "CORRECT",
+      "expected": "70123456",
+      "actual": "70123456"
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "2026-77",
+      "actual": "2026-77"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-10-04",
+      "actual": "2026-10-04"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 96.8,
+      "actual": 96.8
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 16.8,
+      "actual": 16.8
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName"
+    ],
+    "warnings": []
+   },
+   {
+    "scenario": "H10 Scan: Van/Aan naast elkaar",
+    "ms": 3842,
+    "fields": {
+     "documentType": {
+      "grade": "CORRECT",
+      "expected": "purchase_invoice",
+      "actual": "purchase_invoice"
+     },
+     "appParty": {
+      "grade": "WRONG",
+      "expected": "Hosting Plus B.V.",
+      "actual": "PAGE 1"
+     },
+     "supplierName": {
+      "grade": "WRONG",
+      "expected": "Hosting Plus B.V.",
+      "actual": "PAGE 1"
+     },
+     "customerName": {
+      "grade": "WRONG",
+      "expected": "Kwinest",
+      "actual": "Hosting Plus B.V."
+     },
+     "supplierKvk": {
+      "grade": "MISSING",
+      "expected": "30111222",
+      "actual": null
+     },
+     "invoiceNumber": {
+      "grade": "CORRECT",
+      "expected": "HP-77812",
+      "actual": "HP-77812"
+     },
+     "invoiceDate": {
+      "grade": "CORRECT",
+      "expected": "2026-09-30",
+      "actual": "2026-09-30"
+     },
+     "dueDate": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "total": {
+      "grade": "CORRECT",
+      "expected": 60.5,
+      "actual": 60.5
+     },
+     "vatTotal": {
+      "grade": "CORRECT",
+      "expected": 10.5,
+      "actual": 10.5
+     },
+     "amountDue": {
+      "grade": "CORRECT",
+      "expected": null,
+      "actual": null
+     },
+     "currency": {
+      "grade": "CORRECT",
+      "expected": "EUR",
+      "actual": "EUR"
+     },
+     "vatTreatment": {
+      "grade": "CORRECT",
+      "expected": "standard",
+      "actual": "standard"
+     }
+    },
+    "reviewFields": [
+     "documentType",
+     "supplierName",
+     "invoiceDate",
+     "subtotal",
+     "vatTotal",
+     "total",
+     "invoiceNumber"
+    ],
+    "warnings": []
+   }
+  ]
+ }
+}

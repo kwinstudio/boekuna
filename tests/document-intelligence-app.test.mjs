@@ -17,6 +17,16 @@ const candidate=merged.mergeAIParsed({type:'purchase'},d);
 assert.equal(candidate.advancePayment,300,'full parsing pipeline must preserve payment semantics');
 assert.equal(candidate.accountingVatTreatment,'review_required');
 console.log('V4 full parser merge contract: PASS');
+// The processor leaves the supplier empty when it is not sure (for example when the only
+// name it sees is the user's own company). The browser text guess must not refill it.
+const unsure=c.processorAnalysisToCandidate({documentType:'purchase_invoice',supplier:{name:null,kvk:null},customer:{name:'Kwinest'},invoice:{invoiceNumber:'CB-2026-184'},amounts:{total:249.99},confidence:{supplierName:.15},processing:{reviewRouting:{mode:'FULL_REVIEW',fields:['supplierName']}}},'');
+const ownGuess=merged.mergeAIParsed({type:'purchase',party:'Kwinest',kvk:'11223344',address:'Teststraat 1'},unsure);
+assert.equal(ownGuess.party,'','an empty processor supplier stays empty for review');
+assert.equal(ownGuess.kvk,'','no own KvK under an unknown supplier');
+const sure=merged.mergeAIParsed({type:'purchase',party:'Kwinest'},c.processorAnalysisToCandidate({documentType:'purchase_invoice',supplier:{name:'Coolblue B.V.',kvk:'24304000'},customer:{name:'Kwinest'},amounts:{total:249.99},confidence:{supplierName:.97}},''));
+assert.equal(sure.party,'Coolblue B.V.');
+assert.equal(sure.kvk,'24304000');
+console.log('Processor supplier role is authoritative in merge: PASS');
 const vat=loadApp(['trustedVatLinesForImport','canonicalFinancialVatLines','financialMoneyCents','roundMoney','toCents','fromCents']);
 const mixedCredit=vat.trustedVatLinesForImport({isCredit:true,mixedRates:true,vatLines:[{rate:9,taxableAmount:-100,vatAmount:-9},{rate:21,taxableAmount:-100,vatAmount:-21}]},200,30,null);
 assert.equal(mixedCredit.ok,true,'signed mixed credit must remain saveable');
