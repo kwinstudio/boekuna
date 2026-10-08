@@ -25,7 +25,7 @@ for(const oldPlan of ['€ 6,95','€ 14,95','€ 34,95']){
   assert.ok(!home.includes(oldPlan),'Stale historic plan price appeared '+oldPlan);
 }
 assert.equal((home.match(/<details>/g)||[]).length,5,'Five accessible FAQ disclosures expected');
-assert.ok(home.includes('Voorbeeldweergaven met fictieve bedragen'),'Marketing mock must be clearly labeled');
+assert.ok(home.includes('Voorbeeldgegevens van een fictief bedrijf'),'App screenshots must be clearly labeled as sample data');
 for(const claim of ['automatische bankkoppeling is nu beschikbaar','100% correcte herkenning','direct btw-aangifte indienen']){
   assert.ok(!home.toLowerCase().includes(claim),'Unverified feature claim: '+claim);
 }
@@ -35,8 +35,8 @@ for(const old of ['editorial-hero','editorial-pricing','project-grid','Uploaden.
 }
 assert.ok(home.includes('/assets/baseline.css'),'Marketing baseline stylesheet required');
 assert.ok(home.includes('/assets/landing-v4.css'),'V4 landing stylesheet missing');
-assert.ok(home.includes('atlas-photo'),'Approved editorial imagery missing');
-assert.equal(/<script\b/i.test(home),false,'V3 must not ship marketing runtime JavaScript');
+assert.ok(home.includes('/assets/site/app-desktop-dashboard.webp'),'Real app screenshot missing');
+assert.deepEqual([...home.matchAll(/<script\b[^>]*>/gi)].map(m=>m[0]),['<script src="/assets/site/site.js" defer>'],'Only the deferred first-party site script');
 
 for(const slug of retired){
   assert.equal(fs.existsSync(path.join(source,slug,'index.html')),false,'Retired marketing source page must be removed: '+slug);
@@ -74,10 +74,10 @@ const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{cwd:root
 assert.equal(build.status,0,'Marketing build failed: '+(build.stderr||build.stdout));
 const dist=path.join(root,'dist','marketing');
 
-for(const file of ['index.html','404.html','robots.txt','sitemap.xml','assets/baseline.css','assets/favicon.svg','assets/landing-v4.css','assets/boekuna-editorial-atlas.webp','assets/boekuna-symbol.svg','assets/boekuna-favicon.svg']){
+for(const file of ['index.html','404.html','robots.txt','sitemap.xml','assets/baseline.css','assets/favicon.svg','assets/landing-v4.css','assets/site/site.css','assets/site/site.js','assets/site/app-desktop-dashboard.webp','assets/site/app-mobile-review.webp','assets/site/foto-kapper.webp','assets/boekuna-symbol.svg','assets/boekuna-favicon.svg']){
   assert.ok(fs.existsSync(path.join(dist,file)),'Built baseline missing '+file);
 }
-assert.ok(fs.statSync(path.join(dist,'assets/boekuna-editorial-atlas.webp')).size<180000,'Photographic image asset exceeds marketing transfer budget');
+for(const f of fs.readdirSync(path.join(dist,'assets/site')).filter(f=>f.endsWith('.webp')))assert.ok(fs.statSync(path.join(dist,'assets/site',f)).size<120000,'Image exceeds marketing transfer budget: '+f);
 for(const slug of preserved)assert.ok(fs.existsSync(path.join(dist,slug,'index.html')),'Built preserved route missing '+slug);
 for(const slug of retired){
   const file=path.join(dist,slug,'index.html');

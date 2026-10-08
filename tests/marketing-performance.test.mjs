@@ -23,8 +23,8 @@ try{
   assert.ok(metrics.lcp<2500,`V4 landing mobile lab LCP ${metrics.lcp}ms`);
   assert.ok(metrics.cls<.1,`V4 landing CLS ${metrics.cls}`);
   assert.ok(metrics.bytes<250000,`V4 landing transfer budget ${metrics.bytes} bytes`);
-  assert.equal(await page.locator('script').count(),0,'V4 landing must not ship runtime JS');
-  assert.equal(await page.locator('img').count(),0,'V4 landing must not ship external imagery');
+  assert.equal(await page.locator('script:not([src="/assets/site/site.js"][defer])').count(),0,'Landing ships only the deferred first-party site script');
+  assert.equal(await page.locator('img:not([src^="/assets/site/"])').count(),0,'V4 landing must not ship external imagery');
 
   const nojs=await browser.newPage({javaScriptEnabled:false,viewport:{width:390,height:844}});
   await nojs.goto(server.base);
