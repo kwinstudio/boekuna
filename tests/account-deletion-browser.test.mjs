@@ -13,7 +13,8 @@ const shotDir=process.env.ACCOUNT_DELETE_SHOT_DIR||'tests/artifacts/account-dele
 const fakeSupabase=`
 window.__deleteCalls=0;window.__deleteReply={status:502,error:'Je abonnement kon niet worden stopgezet, daarom is er niets verwijderd. Probeer het later opnieuw of mail support@boekuna.nl.'};
 getSupabase=async()=>({
-  auth:{signInWithPassword:async()=>({error:null}),signOut:async()=>({error:null})},
+  // Like supabase-js: signOut tells the app's SIGNED_OUT listener before it resolves, and that listener clears currentUser.
+  auth:{signInWithPassword:async()=>({error:null}),signOut:async()=>{clearSignedOutSession();return {error:null}}},
   functions:{invoke:async(name)=>{window.__deleteCalls++;const r=window.__deleteReply;if(r.status===200)return {data:{ok:true},error:null};return {data:null,error:{message:'Edge Function returned a non-2xx status code',context:new Response(JSON.stringify({error:r.error}),{status:r.status})}}}}
 });
 `;
@@ -56,12 +57,20 @@ try{
     await page.evaluate(()=>{billingSnapshot={plan:'free',status:'free'};deleteAccountDialog()});
     assert.doesNotMatch(await page.locator('.modal').innerText(),/Je abonnement stopt direct/);
 
-    // Success: signed out to the login screen.
+    // Success: the dialog closes, the login screen says the account is gone, and no copy of the
+    // administration stays behind in this browser (live retest 2026-10-08: the dialog stayed open).
+    const dataKey=await page.evaluate(()=>{const key=DATA_KEY_PREFIX+currentUser.id;localStorage.setItem(key,JSON.stringify(state));return key});
     await page.evaluate(()=>{window.__deleteReply={status:200}});
     await page.fill('#deleteAccountForm input[name=password]','fictief-wachtwoord');
     await page.fill('#deleteAccountForm input[name=confirm]','VERWIJDER');
     await page.click('#confirmDeleteAccount');
-    await page.waitForFunction(()=>currentUser===null);
+    await page.waitForFunction(()=>/definitief verwijderd/.test(document.getElementById('toastRoot').innerText));
+    assert.equal(await page.locator('#deleteAccountForm').count(),0,'the delete dialog closes after a successful deletion');
+    assert.equal(await page.evaluate(()=>currentUser),null);
+    assert.equal(await page.evaluate(key=>localStorage.getItem(key),dataKey),null,'the local copy of the deleted administration is removed');
+    assert.ok(await page.locator('#loginEmail').isVisible(),'the login screen is shown');
+    await page.waitForTimeout(300);
+    await page.screenshot({path:`${shotDir}/${browserName}-${tag}-3-verwijderd.png`});
     await page.close();
     console.log(`PASS account deletion dialog ${browserName} ${tag}`);
   }
