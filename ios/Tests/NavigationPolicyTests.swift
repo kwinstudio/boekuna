@@ -27,6 +27,17 @@ struct NavigationPolicyTests {
             let result = NativeNavigationPolicy.decide(URL(string: text)!, download: download)
             precondition(result == expected, "\(text): expected \(expected), got \(result)")
         }
-        print("PASS native navigation policy: \(cases.count) cases")
+        let srcdoc = URL(string: "about:srcdoc")!
+        precondition(NativeNavigationPolicy.decide(srcdoc, isMainFrame: false) == .internalPage,
+                     "Existing iframe.srcdoc A4 previews must remain available")
+        precondition(NativeNavigationPolicy.decide(srcdoc) == .blocked,
+                     "Main-frame about:srcdoc must remain blocked")
+        precondition(NativeNavigationPolicy.decide(srcdoc, download: true, isMainFrame: false) == .blocked,
+                     "The srcdoc preview exception must not permit downloads")
+        precondition(NativeNavigationPolicy.decide(URL(string: "https://checkout.stripe.com/c/pay/test")!, isMainFrame: false) == .blocked,
+                     "Subframes must not bypass purchase blocking")
+        precondition(NativeNavigationPolicy.decide(URL(string: "javascript:alert(1)")!, isMainFrame: false) == .blocked,
+                     "Subframes must not bypass scheme blocking")
+        print("PASS native navigation policy: \(cases.count + 5) cases")
     }
 }

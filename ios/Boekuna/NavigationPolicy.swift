@@ -7,7 +7,7 @@ enum NativeNavigationDecision: Equatable {
 }
 
 enum NativeNavigationPolicy {
-    static func decide(_ url: URL, download: Bool = false) -> NativeNavigationDecision {
+    static func decide(_ url: URL, download: Bool = false, isMainFrame: Bool = true) -> NativeNavigationDecision {
         let scheme = url.scheme?.lowercased() ?? ""
         let host = url.host?.lowercased() ?? ""
         let path = url.path.lowercased()
@@ -20,6 +20,8 @@ enum NativeNavigationPolicy {
         }
         if scheme == "mailto" || scheme == "tel" { return .externalPage }
         if scheme == "about", url.absoluteString == "about:blank" { return .internalPage }
+        // Existing A4 previews use iframe.srcdoc. Never replace the main app with it.
+        if scheme == "about", url.absoluteString == "about:srcdoc", !isMainFrame, !download { return .internalPage }
         if scheme == "blob" { return download ? .download : .internalPage }
         guard scheme == "https" else { return .blocked }
         if download { return .download }

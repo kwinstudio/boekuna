@@ -116,7 +116,10 @@ struct BoekunaWebView: UIViewRepresentable {
                 return
             }
 
-            let decision = NativeNavigationPolicy.decide(url, download: navigationAction.shouldPerformDownload)
+            let decision = NativeNavigationPolicy.decide(
+                url, download: navigationAction.shouldPerformDownload,
+                isMainFrame: navigationAction.targetFrame?.isMainFrame != false
+            )
             // Reject purchases/prohibited schemes in every frame before permitting
             // HTTPS document previews (for example an authenticated storage URL).
             if decision == .blocked {
