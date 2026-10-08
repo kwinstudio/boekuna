@@ -9,6 +9,24 @@ for(const Type of [Map,WeakMap]){
   if(!Type.prototype.getOrInsertComputed)Object.defineProperty(Type.prototype,'getOrInsertComputed',{configurable:true,writable:true,value(key,make){if(this.has(key))return this.get(key);const value=make(key);this.set(key,value);return value}});
   if(!Type.prototype.getOrInsert)Object.defineProperty(Type.prototype,'getOrInsert',{configurable:true,writable:true,value(key,value){if(!this.has(key))this.set(key,value);return this.get(key)}});
 }
+// pdf.js 6 reads PDF text with `for await` over a ReadableStream. Safari on iPhone cannot iterate a stream that way,
+// so "Tekst kopiëren" and PDF reading failed there. Same behaviour as the standard, built on the stream reader.
+if(typeof ReadableStream==='function'&&!ReadableStream.prototype[Symbol.asyncIterator]){
+  const values=function(options){
+    const reader=this.getReader(),preventCancel=!!options?.preventCancel;
+    return {
+      next(){return reader.read().then(r=>{if(r.done)reader.releaseLock();return r})},
+      return(value){
+        const done=()=>({done:true,value});
+        if(preventCancel){reader.releaseLock();return Promise.resolve(done())}
+        return reader.cancel(value).then(()=>{reader.releaseLock();return done()},()=>done());
+      },
+      [Symbol.asyncIterator](){return this}
+    };
+  };
+  if(!ReadableStream.prototype.values)Object.defineProperty(ReadableStream.prototype,'values',{configurable:true,writable:true,value:values});
+  Object.defineProperty(ReadableStream.prototype,Symbol.asyncIterator,{configurable:true,writable:true,value:values});
+}
 let active=null;
 
 function el(tag,className,text){const n=document.createElement(tag);if(className)n.className=className;if(text!=null)n.textContent=text;return n}
