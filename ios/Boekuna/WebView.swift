@@ -115,6 +115,12 @@ struct BoekunaWebView: UIViewRepresentable {
             model.isLoading = true
         }
 
+        // The page paints its own welcome screen as soon as it commits; don't
+        // keep the native loader on top of it until every resource is in.
+        func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+            model.isLoading = false
+        }
+
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             model.failureMessage = nil
             model.isLoading = false
