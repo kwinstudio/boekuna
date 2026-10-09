@@ -16,7 +16,7 @@ assert.ok(home.includes('https://app.boekuna.nl/?login=1'),'App login handoff mi
 assert.ok(home.includes('https://app.boekuna.nl/?register=1'),'App registration handoff missing');
 assert.ok(home.includes('aria-label="Hoofdnavigatie"'),'Accessible primary navigation missing');
 assert.ok(home.includes('class="mobile-nav"'),'Native mobile menu missing');
-for(const section of ['id="hoe-het-werkt"','id="mogelijkheden"','id="tarieven"','id="voor-wie"','id="product"','id="vragen"']){
+for(const section of ['id="hoe-het-werkt"','id="mogelijkheden"','id="tarieven"','id="voor-wie"','id="vertrouwen"','id="vragen"']){
   assert.ok(home.includes(section),'V3 landing section missing '+section);
 }
 for(const price of ['€ 0','€ 9,95','€ 99,50','€ 19,95','€ 199,50']){
@@ -26,7 +26,7 @@ for(const oldPlan of ['€ 6,95','€ 14,95','Unlimited','documentchecks per maa
   assert.ok(!home.includes(oldPlan),'Stale historic plan price appeared '+oldPlan);
 }
 assert.equal((home.match(/<details>/g)||[]).length,5,'Five accessible FAQ disclosures expected');
-assert.ok(home.includes('Voorbeeldgegevens van een fictief bedrijf'),'App screenshots must be clearly labeled as sample data');
+assert.equal(/app-(desktop|mobile)-/.test(home),false,'Homepage shows people, not app screenshots (Kwin 2026-10-09)');
 for(const claim of ['automatische bankkoppeling is nu beschikbaar','100% correcte herkenning','direct btw-aangifte indienen']){
   assert.ok(!home.toLowerCase().includes(claim),'Unverified feature claim: '+claim);
 }
@@ -36,7 +36,7 @@ for(const old of ['editorial-hero','editorial-pricing','project-grid','Uploaden.
 }
 assert.ok(home.includes('/assets/baseline.css'),'Marketing baseline stylesheet required');
 assert.ok(home.includes('/assets/landing-v4.css'),'V4 landing stylesheet missing');
-assert.ok(home.includes('/assets/site/app-desktop-dashboard.webp'),'Real app screenshot missing');
+{const features=fs.readFileSync(path.join(source,'functies','index.html'),'utf8');assert.ok(features.includes('/assets/site/app-desktop-dashboard.webp'),'Real app screenshot missing');assert.ok(features.includes('voorbeeldgegevens van een fictief bedrijf'),'App screenshots must be clearly labeled as sample data');}
 const scriptsOf=html=>[...html.matchAll(/<script\b[^>]*>/gi)].map(m=>m[0]).filter(t=>t!=='<script type="application/ld+json">');
 for(const m of home.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g))JSON.parse(m[1]);
 assert.deepEqual(scriptsOf(home),['<script src="/assets/site/site.js" defer>'],'Only the deferred first-party site script (plus structured data)');
