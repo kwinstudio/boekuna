@@ -254,3 +254,11 @@
 @media(max-width:340px){.two-step-review .review-choice-group,.two-step-review .review-amount-grid{grid-template-columns:1fr}}
 .beginner-review .beginner-review-state[hidden]{display:none!important}
 @media(max-width:820px){.two-step-review .review-page-copy{display:none}}
+/* Simple amount entry: one amount, incl./excl. btw and the rate; the breakdown is information only. */
+.two-step-review .review-basis-choice .review-choice{min-height:44px;justify-content:center;text-transform:none;letter-spacing:normal;color:var(--text,inherit)}
+.two-step-review .review-basis-choice .review-choice strong{font-size:15px;font-weight:600}
+.two-step-review .review-amount-breakdown{display:grid;gap:6px;padding:12px 14px;border-radius:12px;background:var(--app-surface,#f6f7f8);border:1px solid var(--border)}
+.two-step-review .review-amount-breakdown[hidden]{display:none!important}
+.two-step-review .review-amount-breakdown div{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--text-muted)}
+.two-step-review .review-amount-breakdown div:last-child{color:var(--text,inherit);padding-top:6px;border-top:1px solid var(--border)}
+.two-step-review .review-amount-breakdown strong{font-variant-numeric:tabular-nums;color:inherit}

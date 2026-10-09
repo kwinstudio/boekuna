@@ -965,7 +965,7 @@ def explicit_net_total(lines:list[str])->tuple[float|None,float]:
     patterns=(
         re.compile(r"^\s*(?:netto|net\s*(?:amount|total))\b",re.I),
         re.compile(r"^\s*(?:totaal|bedrag)\s*(?:excl\.?|exclusief)\s*(?:btw|vat)\b",re.I),
-        re.compile(r"^\s*(?:total|amount)\s*(?:excl\.?|exclusive(?:\s+of)?)\s*(?:vat|tax)\b",re.I),
+        re.compile(r"^\s*(?:total|amount)\s*(?:excl\.?|excluding|exclusive(?:\s+of)?|before)\s*(?:vat|tax)\b",re.I),
     )
     for i,line in enumerate(lines or []):
         low=line.lower()

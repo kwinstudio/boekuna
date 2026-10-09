@@ -87,3 +87,41 @@ Totaalbedrag EUR 1.620,00
     assert result.amounts.detectedVatRates == [20.0]
     assert result.amounts.accountingVatTreatment == "review_required"
     assert result.processing["reviewRouting"]["mode"] == "FULL_REVIEW"
+
+
+def test_total_excluding_tax_row_is_not_read_as_vat_amount():
+    # Stripe/Link tax invoice: "Total excluding tax" repeats the net amount and
+    # the VAT row also prints its base ("21% on €59.00"). VAT must be 12.39, not 59.00.
+    doc = {
+        "kind": "pdf",
+        "pageCount": 1,
+        "text": """--- PAGE 1 ---
+Tax Invoice
+Invoice number H5H8BFOT-91017
+Date of issue October 9, 2026
+Date due October 9, 2026
+Sold through Link, LLC Bill to
+354 Oyster Point Boulevard K Phetmanee
+South San Francisco, California 94080 Netherlands
+EU OSS VAT EU440000220
+€71.39 due October 9, 2026
+Description Qty Unit price Tax Amount
+Higgsfield Inc. 1 €59.00 21% €59.00
+Higgsfield Plus - monthly
+Subtotal €59.00
+Total excluding tax €59.00
+VAT - Netherlands (21% on €59.00) €12.39
+Total €71.39
+Amount due €71.39
+""",
+        "tables": [],
+        "layout": [],
+        "ocrPages": [],
+        "warnings": [],
+    }
+    company = {"name": "K Phetmanee", "country": "NL"}
+    result = processor.validate_result(processor.heuristic_extract(doc, "Invoice-H5H8BFOT-91017.pdf", company), company)
+    assert processor.money_cents(result.amounts.subtotal) == 5900, result.model_dump()
+    assert processor.money_cents(result.amounts.vatTotal) == 1239, result.model_dump()
+    assert processor.money_cents(result.amounts.total) == 7139, result.model_dump()
+    assert [processor.money_cents(v.vatAmount) for v in result.amounts.vatLines] == [1239], result.model_dump()

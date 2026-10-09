@@ -40,7 +40,7 @@ assert.ok(appHtml.includes('/assets/document-review-v2.css'),'built app must loa
 const realHeadEnd=appHtml.indexOf('</head>');
 assert.ok(realHeadEnd>0,'built app must contain a real document head');
 const realHead=appHtml.slice(0,realHeadEnd);
-assert.ok(realHead.includes('/assets/document-review-v2.css?v=20261008d'),'review stylesheet must be injected in the real app head, not a print template');
+assert.ok(realHead.includes('/assets/document-review-v2.css?v=20261009a'),'review stylesheet must be injected in the real app head, not a print template');
 assert.equal((appHtml.match(/\/assets\/document-review-v2\.css/g)||[]).length,1,'review stylesheet must be linked exactly once');
 const inlineScripts=[...appHtml.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(Boolean);
 assert.ok(inlineScripts.length>=1,'built app must contain inline runtime');
@@ -172,9 +172,13 @@ try{
   assert.match(await page.locator('#documentReviewStepLabel').innerText(),/Stap 2 van 2/i);
   assert.equal(await page.locator('[data-review-page="1"]:visible').count(),0);
   assert.equal(await page.locator('[data-review-page="2"]:visible').count(),1);
-  assert.equal(await page.locator('[data-review-page="2"] [name="gross"]:visible').count(),1,'total is the primary amount');
-  assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]:visible').count(),1);
-  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),0,'derived VAT rate should stay out of the simple happy path');
+  assert.equal(await page.locator('[data-review-page="2"] [name="reviewAmount"]:visible').count(),1,'one total amount is the only amount to check');
+  assert.equal(await page.locator('[data-review-page="2"] [name="reviewAmount"]').inputValue(),'121.00');
+  assert.equal(await page.locator('[data-review-page="2"] [name="amountBasis"][value="incl"]').isChecked(),true,'scanner total is incl. btw');
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),1,'the VAT rate is the second and last thing to check');
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]').inputValue(),'21');
+  assert.equal(await page.locator('[data-review-page="2"] input[name="gross"]:visible,[data-review-page="2"] input[name="vatAmount"]:visible').count(),0,'gross and VAT amount are calculated, not typed');
+  assert.match(await page.locator('#reviewAmountBreakdown').innerText(),/Excl\. btw[\s\S]*100,00[\s\S]*Btw 21%[\s\S]*21,00[\s\S]*Incl\. btw[\s\S]*121,00/,'breakdown shows the calculated amounts as information');
   assert.doesNotMatch(await page.locator('[data-review-page="2"]').innerText(),/Totaal op document/i,'total must only appear once as the editable total');
   const consistentIssues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
   assert.deepEqual(consistentIssues,[],'cent-exact 100 + 21 = 121 must have no blocking issues: '+JSON.stringify(consistentIssues));
@@ -320,8 +324,8 @@ try{
   }));
   assert.deepEqual(fxRounding,{one:1,edge:2});
 
-  // VAT MISMATCH — 10 total / 5 VAT / 21% must stay blocked, show the
-  // actionable VAT field and unlock immediately after the user fixes it.
+  // VAT MISMATCH — 10 total / 5 VAT / 21%: the scanned VAT cannot be right, so Boekuna
+  // calculates it from the total and the rate. The user only checks total and rate.
   await openReview({
     documentType:'receipt',invoiceNumber:'',party:'VAT Check Shop',category:'Kantoor',
     net:5,vatAmount:5,gross:10,vatRate:21,
@@ -329,22 +333,47 @@ try{
     fieldConfidence:{party:99,issueDate:99,net:70,vatAmount:70,gross:99,vatRate:99,vatLines:70,category:90}
   });
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
-  assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]:visible').count(),1,'VAT blocker must expose the VAT input');
-  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true);
-  const badVatIssues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
-  assert.ok(badVatIssues.some(x=>x.field==='vatAmount'),'bad VAT combination must point at the VAT field');
-  await page.locator('[data-review-page="2"] [name="vatAmount"]').fill('1,74');
-  await page.locator('#reviewBlockingState').filter({hasText:/klaar om op te slaan/i}).waitFor();
+  assert.equal(await page.locator('[data-review-page="2"] [name="reviewAmount"]').inputValue(),'10.00');
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]').inputValue(),'1.74','VAT is calculated from total and rate');
   assert.equal(await page.locator('[data-review-page="2"] [name="net"]').inputValue(),'8.26');
+  await page.locator('#reviewBlockingState').filter({hasText:/klaar om op te slaan/i}).waitFor();
+  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
+  // Excl. btw: the same amount is now the amount before VAT.
+  await page.locator('[data-review-page="2"] label.review-choice',{hasText:'Excl. btw'}).click();
+  assert.equal(await page.locator('[data-review-page="2"] [name="net"]').inputValue(),'10.00');
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]').inputValue(),'2.10');
+  assert.equal(await page.locator('[data-review-page="2"] [name="gross"]').inputValue(),'12.10');
+  await page.locator('[data-review-page="2"] [name="vatRate"]').selectOption('9');
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]').inputValue(),'0.90');
+  assert.equal(await page.locator('[data-review-page="2"] [name="gross"]').inputValue(),'10.90');
+  await page.locator('[data-review-page="2"] [name="reviewAmount"]').fill('20,00');
+  assert.equal(await page.locator('[data-review-page="2"] [name="gross"]').inputValue(),'21.80');
+  assert.match(await page.locator('#reviewAmountBreakdown').innerText(),/Btw 9%[\s\S]*1,80/);
+  await page.locator('[data-review-page="2"] [name="reviewAmount"]').fill('');
+  const emptyAmountIssues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
+  assert.deepEqual(emptyAmountIssues.map(x=>x.field),['reviewAmount'],'an empty total asks for the total only');
+  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true);
+  await page.evaluate(()=>closeModal());
+
+  // LINK / STRIPE TAX INVOICE — scanner read "Total excluding tax" as VAT (59,00 instead of 12,39).
+  await openReview({
+    invoiceNumber:'H5H8BFOT-91017',party:'Link, LLC',category:'Software',
+    net:59,vatAmount:59,gross:71.39,vatRate:21,
+    fieldConfidence:{party:95,invoiceNumber:95,issueDate:95,net:98,vatAmount:98,gross:98,vatRate:98,vatLines:98,category:80}
+  });
+  await page.getByRole('button',{name:'Volgende',exact:true}).click();
+  assert.equal(await page.locator('[data-review-page="2"] [name="reviewAmount"]').inputValue(),'71.39');
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]').inputValue(),'12.39');
+  assert.equal(await page.locator('[data-review-page="2"] [name="net"]').inputValue(),'59.00');
+  assert.deepEqual(await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed)),[]);
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
   await page.evaluate(()=>closeModal());
 
   // BLOCKER ACTION AUDIT — every blocker exercised here has a visible control
   // in the same review screen.
   const blockerScenarios=[
-    {name:'missing total',overrides:{gross:null},field:'gross',selector:'[name="gross"]'},
-    {name:'missing VAT',overrides:{vatAmount:null},field:'vatAmount',selector:'[name="vatAmount"]'},
-    {name:'missing net',overrides:{net:null,fieldProvenance:{gross:{source:'recognition',confidence:40},vatAmount:{source:'recognition',confidence:40}}},field:'net',selector:'[name="net"]'},
+    {name:'missing total',overrides:{gross:null,net:null},field:'reviewAmount',selector:'[name="reviewAmount"]'},
+    {name:'missing VAT rate',overrides:{vatRate:null,vatAmount:null},field:'vatRate',selector:'[name="vatRate"]'},
     {name:'VAT treatment',overrides:{vatRate:20,net:100,vatAmount:20,gross:120,accountingVatTreatment:'review_required'},field:'vatTreatmentChoice',selector:'[name="vatTreatmentChoice"]'},
     {name:'foreign currency',overrides:{currency:'USD'},field:'exchangeRateToEur',selector:'[name="exchangeRateToEur"]'}
   ];
@@ -370,7 +399,7 @@ try{
     await page.evaluate(()=>closeModal());
   }
 
-  // FINANCIAL MISMATCH — step 1 remains simple; step 2 contains the fix at the amount.
+  // FINANCIAL MISMATCH — step 1 remains simple; step 2 recalculates VAT from total and rate.
   await openReview({
     documentType:'receipt',invoiceNumber:'',party:'Rekenwinkel',category:'Kantoor',
     net:100,vatAmount:20,gross:121,vatRate:21,
@@ -379,15 +408,10 @@ try{
   });
   assert.equal(await page.getByRole('button',{name:'Volgende',exact:true}).isDisabled(),false,'financial issue belongs to step 2, not step 1');
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
-  assert.match(await page.locator('[data-review-page="2"]').innerText(),/Controleer het btw-bedrag|Controleer totaal en btw/i);
-  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),0,'normal VAT mismatch should stay focused on the visible VAT amount');
   assert.equal(await page.locator('[data-review-net-editor]:visible').count(),0,'ex-VAT remains derived instead of adding another correction field');
-  assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]:visible').count(),1);
-  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),true);
-  await page.locator('[data-review-page="2"] [name="vatAmount"]').fill('21,00');
   await page.locator('#reviewBlockingState').filter({hasText:/Alles ziet er goed uit|klaar om op te slaan/i}).waitFor();
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]').inputValue(),'21.00','VAT is calculated from total and rate');
   assert.equal(await page.locator('[data-review-page="2"] [name="net"]').inputValue(),'100.00','net must be derived from total minus VAT');
-  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),0,'resolved derived rate should disappear again');
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
   await page.evaluate(()=>closeModal());
 
@@ -402,7 +426,7 @@ try{
   assert.equal(await page.locator('[data-review-net-editor]:visible').count(),0);
   assert.equal(await page.locator('[data-review-page="2"] [name="net"]').inputValue(),'40.00');
   assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]').inputValue(),'21');
-  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),0,'reconciled DHL VAT rate should remain hidden');
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),1,'the corrected rate stays visible so the user can check it');
   const dhlIssues=await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed));
   assert.deepEqual(dhlIssues,[],'DHL-like stale OCR values should reconcile deterministically: '+JSON.stringify(dhlIssues));
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
@@ -440,7 +464,8 @@ try{
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
   assert.equal(await page.locator('[data-review-page="2"] [name="vatAmount"]').inputValue(),'0.00');
   assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]').inputValue(),'0');
-  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"]:visible').count(),0,'resolved 0% VAT should not add another field');
+  assert.equal(await page.locator('[data-review-page="2"] [name="vatRate"] option[value="0"]').count(),1,'0% is one option, not two');
+  assert.match(await page.locator('#reviewAmountBreakdown').innerText(),/Btw 0%[\s\S]*0,00/);
   assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
   await page.evaluate(()=>closeModal());
 
