@@ -109,9 +109,9 @@ html[data-theme="dark"] #mainApp .kpi-ring .ring-track,html[data-theme="dark"] #
 @media(max-width:820px){
   #mainApp#mainApp .topbar #quickNew{position:fixed;left:calc(50% - 28px);right:auto;bottom:calc(22px + env(safe-area-inset-bottom));width:56px;height:56px;min-width:56px;min-height:56px;padding:0!important;border-radius:50%!important;border:4px solid #fff!important;background:#63D471!important;color:#10331A!important;display:grid!important;place-items:center;z-index:60;margin:0!important;box-shadow:none!important;overflow:visible}
   #mainApp#mainApp .topbar #quickNew .icon{width:24px;height:24px;stroke-width:2.2}
-  #mainApp#mainApp .topbar #quickNew span{position:absolute;top:calc(100% + 1px);left:50%;width:64px;margin-left:-32px;text-align:center;font-size:10px;font-weight:650;line-height:12px;color:#667179;white-space:nowrap;display:block!important;pointer-events:none}
+  #mainApp#mainApp .topbar #quickNew span{position:absolute;top:calc(100% + 1px);left:50%;width:64px;margin-left:-32px;text-align:center;font-size:10px;font-weight:650;line-height:12px;color:#667179;background:#fff;white-space:nowrap;display:block!important;pointer-events:none}
   html[data-theme="dark"] #mainApp#mainApp .topbar #quickNew{border-color:var(--dk-surface,#1A1F23)!important}
-  html[data-theme="dark"] #mainApp#mainApp .topbar #quickNew span{color:var(--dk-muted,#9AA4AB)}
+  html[data-theme="dark"] #mainApp#mainApp .topbar #quickNew span{color:var(--dk-muted,#9AA4AB);background:var(--dk-surface,#1A1F23)}
   .mobile-bottom-nav-gap{display:block;min-width:0;pointer-events:none}
   #mainApp#mainApp .topbar{z-index:56}
 }
