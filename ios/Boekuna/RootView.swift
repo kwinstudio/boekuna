@@ -5,8 +5,10 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
+            // Keep the web page below the status bar (like Safari); only the
+            // bottom edge runs under the home indicator.
             BoekunaWebView(model: browser)
-                .ignoresSafeArea(.container)
+                .ignoresSafeArea(.container, edges: .bottom)
 
             if browser.isLoading {
                 LoadingView()
@@ -18,7 +20,7 @@ struct RootView: View {
                     .transition(.opacity)
             }
         }
-        .background(Color("LaunchBackground"))
+        .background(browser.statusBarColor.ignoresSafeArea())
         .animation(.easeOut(duration: 0.18), value: browser.isLoading)
         .animation(.easeOut(duration: 0.18), value: browser.failureMessage)
     }

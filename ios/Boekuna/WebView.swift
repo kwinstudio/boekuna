@@ -5,12 +5,20 @@ import WebKit
 final class BrowserModel: ObservableObject {
     @Published var isLoading = true
     @Published var failureMessage: String?
+    /// Fills the strip behind the status bar; follows the page's theme-color.
+    @Published var statusBarColor = Color.white
 
     fileprivate weak var webView: WKWebView?
     fileprivate let startURL = URL(string: "https://app.boekuna.nl/?login=1&app=1")!
+    private var themeColorObservation: NSKeyValueObservation?
 
     fileprivate func attach(_ webView: WKWebView) {
         self.webView = webView
+        themeColorObservation = webView.observe(\.themeColor, options: [.initial, .new]) { [weak self] webView, _ in
+            DispatchQueue.main.async {
+                self?.statusBarColor = webView.themeColor.map { Color(uiColor: $0) } ?? .white
+            }
+        }
         guard webView.url == nil else { return }
         loadStartPage(in: webView)
     }
@@ -47,6 +55,10 @@ struct BoekunaWebView: UIViewRepresentable {
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = true
         configuration.userContentController.add(context.coordinator, name: "boekunaPrint")
+        configuration.userContentController.add(context.coordinator, name: "boekunaShare")
+        configuration.userContentController.addUserScript(WKUserScript(
+            source: NativeShareBridge.script, injectionTime: .atDocumentStart, forMainFrameOnly: true
+        ))
 
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1"
         configuration.applicationNameForUserAgent = "BoekunaNative/\(version) Boekuna-iOS/\(version)"
@@ -223,10 +235,15 @@ struct BoekunaWebView: UIViewRepresentable {
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-            // Render the existing report locally; no document content leaves this bridge.
-            guard message.name == "boekunaPrint", message.frameInfo.isMainFrame,
+            guard message.frameInfo.isMainFrame,
                   message.frameInfo.securityOrigin.host == "app.boekuna.nl",
-                  message.frameInfo.securityOrigin.protocol == "https",
+                  message.frameInfo.securityOrigin.protocol == "https" else { return }
+            if message.name == "boekunaShare" {
+                share(message.body, from: message.webView)
+                return
+            }
+            // Render the existing report locally; no document content leaves this bridge.
+            guard message.name == "boekunaPrint",
                   let body = message.body as? [String: Any],
                   let html = body["html"] as? String, !html.isEmpty,
                   topViewController() != nil else { return }
@@ -237,6 +254,56 @@ struct BoekunaWebView: UIViewRepresentable {
             controller.printInfo = info
             controller.printFormatter = UIMarkupTextPrintFormatter(markupText: html)
             controller.present(animated: true) { _, _, _ in }
+        }
+
+        /// navigator.share replacement: same share sheet, but mail text that survives Gmail.
+        private func share(_ body: Any, from webView: WKWebView?) {
+            guard let body = body as? [String: Any], let id = body["id"] as? String,
+                  id.allSatisfy(\.isNumber) else { return }
+            func finish(_ ok: Bool, _ error: String = "AbortError") {
+                webView?.evaluateJavaScript("window.__boekunaShareDone && window.__boekunaShareDone('\(id)', \(ok), '\(error)')")
+            }
+
+            let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+            var items: [Any] = []
+            let title = body["title"] as? String ?? ""
+            let text = body["text"] as? String ?? ""
+            if !text.isEmpty || !title.isEmpty {
+                items.append(ShareTextItem(title: title, text: text))
+            }
+            if let link = body["url"] as? String, let url = URL(string: link), url.scheme == "https" {
+                items.append(url)
+            }
+            for file in body["files"] as? [[String: Any]] ?? [] {
+                guard let base64 = file["data"] as? String, let data = Data(base64Encoded: base64) else { continue }
+                let name = ((file["name"] as? String ?? "") as NSString).lastPathComponent
+                let safeName = name.isEmpty || name.hasPrefix(".") ? "Boekuna-bestand" : name
+                let url = folder.appendingPathComponent(safeName)
+                do {
+                    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                    try data.write(to: url, options: .completeFileProtection)
+                    items.append(url)
+                } catch {
+                    continue
+                }
+            }
+
+            guard !items.isEmpty, let presenter = topViewController() else {
+                try? FileManager.default.removeItem(at: folder)
+                finish(false, items.isEmpty ? "DataError" : "AbortError")
+                return
+            }
+            let sheet = UIActivityViewController(activityItems: items, applicationActivities: nil)
+            sheet.completionWithItemsHandler = { _, completed, _, _ in
+                try? FileManager.default.removeItem(at: folder)
+                finish(completed)
+            }
+            if let popover = sheet.popoverPresentationController, let webView {
+                popover.sourceView = webView
+                popover.sourceRect = CGRect(x: webView.bounds.midX, y: webView.bounds.midY, width: 1, height: 1)
+                popover.permittedArrowDirections = []
+            }
+            presenter.present(sheet, animated: true)
         }
 
         private func presentAlert(title: String, message: String, actions: [UIAlertAction], fallback: @escaping () -> Void) {
@@ -317,4 +384,86 @@ struct BoekunaWebView: UIViewRepresentable {
             model.failureMessage = "Het bestand kon niet worden gedownload. Probeer het opnieuw."
         }
     }
+}
+
+/// Mail text for the share sheet. Gmail's share extension drops plain-text line
+/// breaks, so Gmail gets the same text as paragraphs in rich text; every other
+/// app keeps the text exactly as the page sent it.
+private final class ShareTextItem: NSObject, UIActivityItemSource {
+    let title: String
+    let text: String
+
+    init(title: String, text: String) {
+        self.title = title
+        self.text = text
+    }
+
+    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
+        text
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
+        guard let type = activityType?.rawValue, type.lowercased().contains("gmail") else { return text }
+        let paragraphs = text.components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        let style = NSMutableParagraphStyle()
+        style.paragraphSpacing = 12
+        return NSAttributedString(string: paragraphs.joined(separator: "\n\n"), attributes: [
+            .font: UIFont.systemFont(ofSize: 15),
+            .paragraphStyle: style,
+        ])
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController, subjectForActivityType activityType: UIActivity.ActivityType?) -> String {
+        title
+    }
+}
+
+/// Replaces navigator.share/canShare in the app so sharing goes through the
+/// native share sheet above. Files travel as base64 to the app only.
+enum NativeShareBridge {
+    static let script = """
+    (function () {
+      var handler = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.boekunaShare;
+      if (!handler) return;
+      var pending = {}, seq = 0;
+      window.__boekunaShareDone = function (id, ok, errorName) {
+        var entry = pending[id];
+        if (!entry) return;
+        delete pending[id];
+        if (ok) entry.resolve();
+        else entry.reject(new DOMException(errorName === 'AbortError' ? 'Share canceled' : 'Share failed', errorName || 'AbortError'));
+      };
+      function readFile(file) {
+        return new Promise(function (resolve, reject) {
+          var reader = new FileReader();
+          reader.onload = function () {
+            var value = String(reader.result || '');
+            resolve({ name: file.name || 'Boekuna-bestand', type: file.type || 'application/octet-stream', data: value.slice(value.indexOf(',') + 1) });
+          };
+          reader.onerror = function () { reject(reader.error); };
+          reader.readAsDataURL(file);
+        });
+      }
+      function canShare(data) {
+        if (!data) return false;
+        if (data.files && data.files.length) return true;
+        return !!(data.text || data.url || data.title);
+      }
+      function share(data) {
+        data = data || {};
+        if (!canShare(data)) return Promise.reject(new TypeError('Nothing to share'));
+        return Promise.all(Array.prototype.map.call(data.files || [], readFile)).then(function (files) {
+          return new Promise(function (resolve, reject) {
+            var id = String(++seq);
+            pending[id] = { resolve: resolve, reject: reject };
+            handler.postMessage({ id: id, title: String(data.title || ''), text: String(data.text || ''), url: String(data.url || ''), files: files });
+          });
+        });
+      }
+      Object.defineProperty(navigator, 'share', { value: share, configurable: true, writable: true });
+      Object.defineProperty(navigator, 'canShare', { value: canShare, configurable: true, writable: true });
+    })();
+    """
 }
