@@ -239,6 +239,10 @@ jobs:
         run: |
           node tests/motion-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/motion-browser.test.mjs
+      - name: Intro bij opstarten (max 2,5 s, traag laden, reduced motion) — Chromium and WebKit
+        run: |
+          node tests/boot-intro-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/boot-intro-browser.test.mjs
       - name: Rustige look (groet, centen, logo's, stippen, klaar, lege lijsten) — Chromium and WebKit
         run: |
           node tests/look-browser.test.mjs

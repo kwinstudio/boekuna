@@ -92,7 +92,7 @@ for(const file of ['index.html','manifest.webmanifest','assets/app-InterVariable
 let appHtml=fs.readFileSync(path.join(dist,'index.html'),'utf8');
 assert.ok(appHtml.includes('boekuna-product-ui-reference-20261003'),'Built artifact must contain the new product UI layer');
 assert.ok(appHtml.includes('/assets/product-color-polish.css?v=20261006a'),'Built artifact must load the app-only colour polish layer');
-assert.ok(appHtml.includes('/assets/product-ux-polish-round-3.css?v=20261007a'),'Built artifact must load Round 3 after the established colour baseline');
+assert.ok(appHtml.includes('/assets/product-ux-polish-round-3.css?v=20261009i'),'Built artifact must load Round 3 after the established colour baseline');
 assert.equal(appHtml.includes('function showMarketingPage'),false,'App artifact must remain free of marketing runtime');
 
 function replaceLast(sourceText,needle,replacement){

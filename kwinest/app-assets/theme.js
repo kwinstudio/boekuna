@@ -25,7 +25,8 @@
     }
     root.style.colorScheme=resolved;
     var meta=document.querySelector('meta[name="theme-color"]');
-    if(meta)meta.setAttribute('content',THEME_COLOR[resolved]);
+    // While the Boekuna intro is up it owns the bar colour; it hands back the theme colour when it leaves.
+    if(meta&&!(window.BoekunaIntro&&window.BoekunaIntro.tinted))meta.setAttribute('content',THEME_COLOR[resolved]);
     return resolved;
   }
 
