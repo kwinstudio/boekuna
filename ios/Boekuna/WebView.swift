@@ -422,15 +422,37 @@ private final class ShareTextItem: NSObject, UIActivityItemSource {
 
     func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
         guard let type = activityType?.rawValue, type.lowercased().contains("gmail") else { return text }
-        let paragraphs = text.components(separatedBy: .newlines)
+        return NSAttributedString(string: Self.gmailBody(title: title, text: text), attributes: [
+            .font: UIFont.systemFont(ofSize: 15),
+        ])
+    }
+
+    /// Gmail already shows the subject, so the first line goes when it repeats it.
+    /// "Label: value" lines and the closing with signature stay together; other
+    /// lines get one blank line between them.
+    static func gmailBody(title: String, text: String) -> String {
+        var lines = text.components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
-        let style = NSMutableParagraphStyle()
-        style.paragraphSpacing = 12
-        return NSAttributedString(string: paragraphs.joined(separator: "\n\n"), attributes: [
-            .font: UIFont.systemFont(ofSize: 15),
-            .paragraphStyle: style,
-        ])
+        if let first = lines.first, first == title.trimmingCharacters(in: .whitespaces) {
+            lines.removeFirst()
+        }
+        func isDetail(_ line: String) -> Bool {
+            guard let colon = line.firstIndex(of: ":") else { return false }
+            let label = line[..<colon]
+            return !label.isEmpty && label.count <= 30 && line.index(after: colon) < line.endIndex
+        }
+        var body = ""
+        var inClosing = false
+        for (index, line) in lines.enumerated() {
+            if index > 0 {
+                let previous = lines[index - 1]
+                body += inClosing || (isDetail(previous) && isDetail(line)) ? "\n" : "\n\n"
+            }
+            body += line
+            if line.lowercased().hasPrefix("met vriendelijke groet") { inClosing = true }
+        }
+        return body
     }
 
     func activityViewController(_ activityViewController: UIActivityViewController, subjectForActivityType activityType: UIActivity.ActivityType?) -> String {
