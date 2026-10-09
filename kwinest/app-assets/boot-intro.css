@@ -1,15 +1,26 @@
 /* BOEKUNA intro: the brand screen while the app really starts (boot-intro.js).
    Inlined into <head> by scripts/build-app.mjs so it paints with the first frame.
-   Choreography (from first paint): 0-0.3 s calm background, 0.3-0.9 s wordmark rises in,
-   0.65-1.4 s the green dot settles with one soft pulse, then everything rests. The screen
-   leaves as soon as the app is ready; after 2.5 s it becomes a quiet loading state. */
+   Story in 2.5 s, "from mess to calm" (ms from first paint):
+     100-700   three documents (invoice, receipt, invoice) tumble in and land scattered
+     700-1180  they straighten and slide into one tidy stack
+     1180-1500 the stack folds into the green Boekuna dot
+     1580-2020 the dot glides to its place and draws the wordmark open behind it
+     2020-2180 the dot lands with a soft ring, then everything rests and fades into the app.
+   If the app is not ready after 2.5 s the screen becomes a quiet loading state. */
 .boot-intro{
   --boot-bg:#F6F7F8;
   --boot-ink:#1B1F23;
   --boot-muted:#5E6870;
   --boot-green:#63D471;
   --boot-glow:rgba(99,212,113,.11);
+  --boot-doc:#FFFFFF;
+  --boot-doc-line:#E2E6E9;
+  --boot-doc-ink:#9AA4AB;
+  --boot-doc-shadow:0 14px 28px -12px rgba(27,31,35,.22),0 0 0 1px rgba(27,31,35,.06);
   --boot-fade:320ms;
+  /* Wordmark width; everything in the story is sized from it. */
+  --w:clamp(160px,44vw,220px);
+  --u:calc(var(--w) / 100);
   position:fixed;
   inset:0;
   z-index:2147483000;
@@ -21,6 +32,7 @@
   opacity:1;
   transition:opacity var(--boot-fade) cubic-bezier(.4,0,.2,1);
   contain:strict;
+  overflow:hidden;
   overscroll-behavior:none;
   -webkit-user-select:none;
   user-select:none;
@@ -30,6 +42,10 @@ html[data-theme="dark"] .boot-intro{
   --boot-ink:#EEF1F3;
   --boot-muted:#A3ADB5;
   --boot-glow:rgba(99,212,113,.08);
+  --boot-doc:#222A30;
+  --boot-doc-line:#36414A;
+  --boot-doc-ink:#6E7A84;
+  --boot-doc-shadow:0 14px 28px -12px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.07);
 }
 .boot-intro[hidden]{display:none!important}
 .boot-intro::before{
@@ -54,13 +70,91 @@ html[data-theme="dark"] .boot-intro{
    everywhere, no font download, no layout shift. */
 .boot-intro-mark{
   display:block;
-  width:clamp(160px,44vw,220px);
+  width:var(--w);
   height:auto;
   overflow:visible;
 }
 .boot-intro-word{fill:var(--boot-ink)}
 .boot-intro-dot,.boot-intro-halo{fill:var(--boot-green);transform-box:fill-box;transform-origin:center}
 .boot-intro-halo{opacity:0}
+
+/* The documents: drawn with gradients only (header block, text lines, a bold total). */
+.boot-intro-docs{position:absolute;left:50%;top:50%;width:0;height:0;--u:calc(var(--w) / 100 * 1.45)}
+.boot-intro-doc,.boot-intro-orb{display:none;position:absolute;pointer-events:none}
+.boot-intro-doc{
+  left:calc(var(--u) * -13);
+  top:calc(var(--u) * -17);
+  width:calc(var(--u) * 26);
+  height:calc(var(--u) * 34);
+  border-radius:calc(var(--u) * 2.4);
+  background-color:var(--boot-doc);
+  box-shadow:var(--boot-doc-shadow);
+  background-repeat:no-repeat;
+  background-image:
+    linear-gradient(var(--boot-green),var(--boot-green)),
+    linear-gradient(var(--boot-doc-line),var(--boot-doc-line)),
+    linear-gradient(var(--boot-doc-line),var(--boot-doc-line)),
+    linear-gradient(var(--boot-doc-line),var(--boot-doc-line)),
+    linear-gradient(var(--boot-doc-ink),var(--boot-doc-ink));
+  background-size:
+    calc(var(--u) * 6) calc(var(--u) * 4),
+    calc(var(--u) * 18.8) calc(var(--u) * 1.4),
+    calc(var(--u) * 13) calc(var(--u) * 1.4),
+    calc(var(--u) * 16) calc(var(--u) * 1.4),
+    calc(var(--u) * 8) calc(var(--u) * 2.2);
+  background-position:
+    calc(var(--u) * 3.6) calc(var(--u) * 3.6),
+    calc(var(--u) * 3.6) calc(var(--u) * 12),
+    calc(var(--u) * 3.6) calc(var(--u) * 15.6),
+    calc(var(--u) * 3.6) calc(var(--u) * 19.2),
+    calc(var(--u) * 14.4) calc(var(--u) * 27.4);
+  will-change:transform,opacity;
+}
+/* The receipt: narrower, centred lines, total at the bottom. */
+.boot-intro-doc-2{
+  left:calc(var(--u) * -11);
+  top:calc(var(--u) * -18);
+  width:calc(var(--u) * 22);
+  height:calc(var(--u) * 36);
+  border-radius:calc(var(--u) * 1.4);
+  background-image:
+    linear-gradient(var(--boot-doc-ink),var(--boot-doc-ink)),
+    linear-gradient(var(--boot-doc-line),var(--boot-doc-line)),
+    linear-gradient(var(--boot-doc-line),var(--boot-doc-line)),
+    linear-gradient(var(--boot-doc-line),var(--boot-doc-line)),
+    linear-gradient(var(--boot-green),var(--boot-green));
+  background-size:
+    calc(var(--u) * 9) calc(var(--u) * 1.8),
+    calc(var(--u) * 15) calc(var(--u) * 1.4),
+    calc(var(--u) * 15) calc(var(--u) * 1.4),
+    calc(var(--u) * 15) calc(var(--u) * 1.4),
+    calc(var(--u) * 15) calc(var(--u) * 2.4);
+  background-position:
+    calc(var(--u) * 6.5) calc(var(--u) * 4.4),
+    calc(var(--u) * 3.5) calc(var(--u) * 11),
+    calc(var(--u) * 3.5) calc(var(--u) * 15),
+    calc(var(--u) * 3.5) calc(var(--u) * 19),
+    calc(var(--u) * 3.5) calc(var(--u) * 28.6);
+}
+.boot-intro-doc-3{
+  background-image:
+    linear-gradient(var(--boot-doc-ink),var(--boot-doc-ink)),
+    linear-gradient(var(--boot-doc-line),var(--boot-doc-line)),
+    linear-gradient(var(--boot-doc-line),var(--boot-doc-line)),
+    linear-gradient(var(--boot-doc-line),var(--boot-doc-line)),
+    linear-gradient(var(--boot-green),var(--boot-green));
+}
+/* The green dot that the stack becomes; it ends exactly on the wordmark's own dot. */
+.boot-intro-orb{
+  left:calc(96.34% - var(--u) * 2.287);
+  top:calc(81.64% - var(--u) * 2.287);
+  width:calc(var(--u) * 4.574);
+  height:calc(var(--u) * 4.574);
+  border-radius:50%;
+  background:var(--boot-green);
+  opacity:0;
+  will-change:transform,opacity;
+}
 /* Reserved space under the wordmark: the loading text never pushes the logo. */
 .boot-intro-status{
   position:absolute;
@@ -91,26 +185,77 @@ html[data-theme="dark"] .boot-intro{
   cursor:pointer;
 }
 
-/* First start: the full intro. */
-.boot-intro.is-playing::before{animation:boot-intro-glow .9s .3s cubic-bezier(.22,1,.36,1) both}
-.boot-intro.is-playing .boot-intro-word{animation:boot-intro-rise .6s .3s cubic-bezier(.22,1,.36,1) both}
-.boot-intro.is-playing .boot-intro-dot{animation:boot-intro-dot .75s .65s cubic-bezier(.33,1,.68,1) both}
-.boot-intro.is-playing .boot-intro-halo{animation:boot-intro-halo .7s .95s cubic-bezier(.22,1,.36,1) both}
-@keyframes boot-intro-glow{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
-@keyframes boot-intro-rise{from{opacity:0;transform:translateY(150px)}to{opacity:1;transform:none}}
-@keyframes boot-intro-dot{
-  0%{opacity:0;transform:scale(.35)}
-  34%{opacity:1;transform:scale(1)}
-  62%{transform:scale(1.2)}
-  100%{opacity:1;transform:scale(1)}
+/* First start: the full story. Every part shares one 2 s clock that starts at 100 ms,
+   so a keyframe at p% happens at 100 + 20*p ms. */
+.boot-intro.is-playing .boot-intro-doc,.boot-intro.is-playing .boot-intro-orb{display:block}
+.boot-intro.is-playing .boot-intro-doc{animation:2s .1s linear both}
+.boot-intro.is-playing .boot-intro-doc-1{animation-name:boot-intro-doc-1}
+.boot-intro.is-playing .boot-intro-doc-2{animation-name:boot-intro-doc-2}
+.boot-intro.is-playing .boot-intro-doc-3{animation-name:boot-intro-doc-3}
+.boot-intro.is-playing .boot-intro-orb{animation:boot-intro-orb 2s .1s linear both}
+.boot-intro.is-playing .boot-intro-mark{animation:boot-intro-reveal 2s .1s linear both}
+.boot-intro.is-playing .boot-intro-word{animation:boot-intro-word 2s .1s linear both}
+.boot-intro.is-playing .boot-intro-dot{animation:boot-intro-dot-on 2s .1s linear both}
+.boot-intro.is-playing .boot-intro-halo{animation:boot-intro-halo .7s 2.03s cubic-bezier(.22,1,.36,1) both}
+.boot-intro.is-playing::before{animation:boot-intro-glow 2s .1s linear both}
+
+/* Documents: tumble in (ease-out spring), straighten into a stack, fold into the dot. */
+@keyframes boot-intro-doc-1{
+  0%{opacity:0;transform:translate(calc(var(--w) * -1.25),calc(var(--w) * -.95)) rotate(-38deg) scale(.9);animation-timing-function:cubic-bezier(.2,1.15,.4,1)}
+  30%{opacity:1;transform:translate(calc(var(--w) * -.52),calc(var(--w) * -.16)) rotate(-14deg);animation-timing-function:ease-in-out}
+  38%{opacity:1;transform:translate(calc(var(--w) * -.50),calc(var(--w) * -.17)) rotate(-12deg);animation-timing-function:cubic-bezier(.65,0,.35,1)}
+  54%{opacity:1;transform:translate(calc(var(--w) * -.02),calc(var(--w) * -.06)) rotate(-4deg)}
+  60%{opacity:1;transform:translate(calc(var(--w) * -.02),calc(var(--w) * -.06)) rotate(-4deg);animation-timing-function:cubic-bezier(.55,0,.8,.3)}
+  70%,100%{opacity:0;transform:translate(0,0) rotate(0) scale(.12)}
 }
-@keyframes boot-intro-halo{from{opacity:.32;transform:scale(1)}to{opacity:0;transform:scale(2.7)}}
+@keyframes boot-intro-doc-2{
+  0%,4%{opacity:0;transform:translate(calc(var(--w) * 1.2),calc(var(--w) * -1.05)) rotate(42deg) scale(.9);animation-timing-function:cubic-bezier(.2,1.15,.4,1)}
+  33%{opacity:1;transform:translate(calc(var(--w) * .52),calc(var(--w) * -.24)) rotate(12deg);animation-timing-function:ease-in-out}
+  40%{opacity:1;transform:translate(calc(var(--w) * .50),calc(var(--w) * -.23)) rotate(10deg);animation-timing-function:cubic-bezier(.65,0,.35,1)}
+  54%{opacity:1;transform:translate(0,calc(var(--w) * -.01)) rotate(2deg)}
+  61%{opacity:1;transform:translate(0,calc(var(--w) * -.01)) rotate(2deg);animation-timing-function:cubic-bezier(.55,0,.8,.3)}
+  70%,100%{opacity:0;transform:translate(0,0) rotate(0) scale(.12)}
+}
+@keyframes boot-intro-doc-3{
+  0%,8%{opacity:0;transform:translate(calc(var(--w) * .25),calc(var(--w) * 1.25)) rotate(-24deg) scale(.9);animation-timing-function:cubic-bezier(.2,1.15,.4,1)}
+  36%{opacity:1;transform:translate(calc(var(--w) * .04),calc(var(--w) * .28)) rotate(-6deg);animation-timing-function:ease-in-out}
+  42%{opacity:1;transform:translate(calc(var(--w) * .03),calc(var(--w) * .27)) rotate(-5deg);animation-timing-function:cubic-bezier(.65,0,.35,1)}
+  54%{opacity:1;transform:translate(calc(var(--w) * .015),calc(var(--w) * .045)) rotate(1deg)}
+  62%{opacity:1;transform:translate(calc(var(--w) * .015),calc(var(--w) * .045)) rotate(1deg);animation-timing-function:cubic-bezier(.55,0,.8,.3)}
+  70%,100%{opacity:0;transform:translate(0,0) rotate(0) scale(.12)}
+}
+/* The dot: born in the middle of the stack, pops, then glides to the end of the word. */
+@keyframes boot-intro-orb{
+  0%,62%{opacity:0;transform:translate(calc(var(--w) * -.4634),calc(var(--w) * -.0631)) scale(.2);animation-timing-function:cubic-bezier(.2,1.4,.4,1)}
+  70%{opacity:1;transform:translate(calc(var(--w) * -.4634),calc(var(--w) * -.0631)) scale(1.9);animation-timing-function:ease-out}
+  74%{opacity:1;transform:translate(calc(var(--w) * -.4634),calc(var(--w) * -.0631)) scale(1);animation-timing-function:cubic-bezier(.65,0,.35,1)}
+  96%{opacity:1;transform:translate(0,0) scale(1)}
+  97%,100%{opacity:0;transform:translate(0,0) scale(1)}
+}
+/* The wordmark opens from the middle, with its right edge just ahead of the dot. */
+@keyframes boot-intro-reveal{
+  0%,74%{clip-path:inset(-20% 50% -20% 50%);animation-timing-function:cubic-bezier(.65,0,.35,1)}
+  96%,100%{clip-path:inset(-20% 0 -20% 0)}
+}
+@keyframes boot-intro-word{
+  0%,74%{opacity:0;animation-timing-function:ease-out}
+  84%,100%{opacity:1}
+}
+@keyframes boot-intro-dot-on{0%,95.9%{opacity:0}96%,100%{opacity:1}}
+@keyframes boot-intro-glow{
+  0%,60%{opacity:.35;transform:scale(.85);animation-timing-function:cubic-bezier(.22,1,.36,1)}
+  80%,100%{opacity:1;transform:none}
+}
+@keyframes boot-intro-halo{from{opacity:.36;transform:scale(1)}to{opacity:0;transform:scale(2.8)}}
 
 /* Leaving: one calm cross-fade into the app. */
 .boot-intro.is-leaving{opacity:0;pointer-events:none}
 .boot-intro.is-leaving .boot-intro-stage{transform:translateY(-6px) scale(.985)}
 
-/* Not ready after 2.5 s: the intro stops and becomes a quiet, honest loading state. */
+/* Not ready after 2.5 s: the story is over and the screen becomes a quiet, honest loading state. */
+.boot-intro.is-waiting .boot-intro-doc,.boot-intro.is-waiting .boot-intro-orb{display:none}
+.boot-intro.is-waiting .boot-intro-mark{animation:none;clip-path:none}
+.boot-intro.is-waiting .boot-intro-word{animation:none;opacity:1}
 .boot-intro.is-waiting .boot-intro-status{opacity:1;visibility:visible;transition:opacity .4s ease,visibility 0s}
 .boot-intro.is-waiting .boot-intro-dot{animation:boot-intro-breathe 1.6s ease-in-out infinite}
 .boot-intro.is-slow .boot-intro-slow{display:block!important}
@@ -122,5 +267,8 @@ html[data-theme="dark"] .boot-intro{
 .boot-intro.is-still .boot-intro-word,.boot-intro.is-still .boot-intro-dot{animation:none}
 @media(prefers-reduced-motion:reduce){
   .boot-intro,.boot-intro *,.boot-intro::before{animation:none!important;transition:none!important}
+  .boot-intro .boot-intro-doc,.boot-intro .boot-intro-orb{display:none!important}
+  .boot-intro .boot-intro-mark{clip-path:none!important}
+  .boot-intro .boot-intro-word,.boot-intro .boot-intro-dot{opacity:1!important}
   .boot-intro.is-leaving .boot-intro-stage{transform:none}
 }

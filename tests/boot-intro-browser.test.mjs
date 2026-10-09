@@ -68,21 +68,29 @@ try{
     await context.close();
   }
 
-  // Normal start (~1.9 s session restore): full choreography, gone before 2.5 s.
+  // Normal start (~1.9 s session restore): the full story (documents -> stack -> dot -> wordmark), 2.5 s.
   for(const [label,width,height] of [['iphone-se',320,568],['iphone',390,844],['android',412,915],['desktop',1440,900]]){
     const {context,page}=await open({width,height,query:'intro=1&ready=1900'});
+    const at=ms=>page.waitForFunction(t=>performance.now()-window.BoekunaIntro.startedAt>=t,ms);
+    const docsShown=()=>page.locator('.boot-intro-doc').evaluateAll(els=>els.filter(e=>Number(getComputedStyle(e).opacity)>.5).length);
     await page.waitForTimeout(150);
     assert.equal(await page.locator('.boot-intro-word').evaluate(e=>Number(getComputedStyle(e).opacity)),0,'Calm background first');
-    await page.waitForTimeout(1050);
+    await at(950);
+    assert.equal(await docsShown(),3,label+' the documents tumble in');
+    await shot(page,'intro-'+label+'-950ms');
+    await at(1200);
     await shot(page,'intro-'+label+'-1200ms');
     const box=await markBox(page);
     const cx=box.x+box.width/2,cy=box.y+box.height/2;
     assert.ok(Math.abs(cx-width/2)<=1.5&&Math.abs(cy-height/2)<=1.5,label+' wordmark centred: '+JSON.stringify(box));
     assert.ok(box.width>=160&&box.width<=220,label+' wordmark width '+box.width);
     assert.ok(box.x>=16,label+' wordmark keeps a margin');
-    await page.waitForTimeout(500);
+    await at(1800);
+    await shot(page,'intro-'+label+'-1800ms');
+    await at(2090);
     assert.equal(await page.locator('.boot-intro-word').evaluate(e=>getComputedStyle(e).opacity),'1');
     assert.equal(await page.locator('.boot-intro-dot').evaluate(e=>getComputedStyle(e).opacity),'1');
+    assert.equal(await docsShown(),0,label+' the documents have become the dot');
     await shot(page,'intro-'+label+'-rest');
     await page.locator('#mainApp').waitFor();
     await page.waitForFunction(()=>document.getElementById('appBootstrap').hidden,null,{timeout:3000});
