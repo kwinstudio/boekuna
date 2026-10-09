@@ -802,6 +802,11 @@ def layout_fragments(doc:dict,max_y:float=330.0)->list[dict[str,Any]]:
         out.extend(page_fragments(page,max_y))
     return sorted(out,key=lambda x:(x["y0"],x["x0"]))
 
+def label_row(text:str,minimum:int=2)->bool:
+    """A row of column labels ("Van: Tot: Pauzes: Uren:") without values is a table header, never a name."""
+    t=norm_text(text or "")
+    return not re.search(r"\d",t) and len(re.findall(r"[^\s:]+\s*:",t))>=minimum
+
 PARTY_TABLE_START_RE=re.compile(r"^(?:omschrijving|beschrijving|description|artikel|product|aantal|qty|quantity|pos\.?|subtotaal|subtotal|totaal|total|bedrag\s+excl|nettobetrag|gesamt)\b",re.I)
 
 def layout_party_lines(doc:dict)->list[str]|None:
@@ -819,7 +824,7 @@ def layout_party_lines(doc:dict)->list[str]|None:
     if len(frags)<3:return None
     limit=520.0
     for f in frags:
-        if f["y0"]>60 and PARTY_TABLE_START_RE.match(f["text"]):
+        if f["y0"]>60 and (PARTY_TABLE_START_RE.match(f["text"]) or label_row(f["text"],3)):
             limit=f["y0"];break
     frags=[f for f in frags if f["y0"]<limit]
     heights=sorted(f["h"] for f in frags if f["h"]>0) or [10.0]
@@ -1959,11 +1964,14 @@ def select_unlabelled_party_block(lines:list[str],company:dict,role:str)->list[s
     issuer prints its own KvK/BTW/IBAN/contact details. Two plain name blocks
     without such evidence are ambiguous and return nothing (review), instead of
     guessing the first one."""
-    named=[];billed_label=False
+    named=[];billed_label=False;billed_other=False
     for sub in _party_subblocks(lines):
         # Labelled blocks are handled by the labelled path in contact_block.
         if PARTY_LABEL_LINE_RE.match(sub[0]):
-            if BILLED_PARTY_LABEL_RE.match(sub[0]) and _subblock_name(sub[1:]):billed_label=True
+            billed_name=_subblock_name(sub[1:]) if BILLED_PARTY_LABEL_RE.match(sub[0]) else None
+            if billed_name:
+                billed_label=True
+                if not own_matches({"name":billed_name},company):billed_other=True
             continue
         name=_subblock_name(sub)
         if not name:continue
@@ -1980,6 +1988,10 @@ def select_unlabelled_party_block(lines:list[str],company:dict,role:str)->list[s
     elsewhere=any(ISSUER_EVIDENCE_RE.search(x) and x not in header_text for x in body)
     def pick_supplier():
         issuers=[b for b in named if b["issuer"] and not b["recipient"]]
+        # The own company prints its own BTW/KvK while the billed party has its own labelled block
+        # ("Debiteur", "Factuur aan"): the own company issued it (sales, e.g. via Temper/Finqle).
+        own_issuers=[b for b in issuers if b["own"]]
+        if own_issuers and billed_other:return own_issuers[0]
         external=[b for b in issuers if not b["own"]]
         if external:return external[0]
         if issuers:return issuers[0]  # own company prints its own KvK/BTW: it issued this document
@@ -2055,7 +2067,7 @@ def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tu
     address_re=re.compile(r"\b\d+[A-Z-]*\b.*(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|place)|(?:straat|laan|weg|kade|plein|singel|dreef|gracht|boulevard|hof|street|road|avenue|lane|drive|place)[^\n]*\b\d+[A-Z-]*\b",re.I)
     address=next((x for x in block if address_re.search(x)),None)
     field_only_re=re.compile(r"^(?:factuur|invoice|rechnung|creditnota|datum|date|totaal|total|btw|vat|kvk|iban|omschrijving|description|pagina|page)(?:\s*[:#-].*)?$",re.I)
-    field_only=lambda x:bool(field_only_re.match(x) or party_label_only(x))
+    field_only=lambda x:bool(field_only_re.match(x) or party_label_only(x) or label_row(x))
     name=None;src=None
     if idx is not None and matched_label:
         line=lines[idx]
