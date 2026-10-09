@@ -197,6 +197,23 @@ try{
   await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'03-bon-enkele-vraag-'+browserName+'.png')});
   await page.evaluate(()=>closeModal());
 
+  // Regression (iPhone): the date picker reports a date as soon as it opens. The question must stay on the date
+  // until the user taps "Volgende"; moving on at the first change closed the picker before a date was chosen.
+  await page.evaluate(()=>{
+    pendingPdfImport={file:new File(['qa'],'datum.pdf',{type:'application/pdf'}),previewUrl:null,sha256:'qa-date',sourceClientRef:'f-date',sourceDocumentId:'d-date',processingJobId:'j-date',parsed:null};
+    const parsed={confidenceScore:90,sourceQuality:'processor-v2',documentType:'receipt',party:'Coolblue',invoiceNumber:'Y41829623003',issueDate:'',net:100,vatAmount:21,gross:121,vatRate:21,mixedRates:false,vatLines:[],lineItems:[],adjustments:[]};
+    pendingPdfImport.parsed=parsed;showPdfImportReview(parsed);
+  });
+  await page.locator('.mobile-single-issue-review').waitFor();
+  assert.equal(await page.locator('.mobile-single-issue-question').innerText(),'Wat is de datum?');
+  await page.locator('.mobile-active-issue input[name="issueDate"]').fill('2026-10-09');
+  await page.waitForTimeout(150);
+  assert.equal(await page.locator('.mobile-single-issue-question').innerText(),'Wat is de datum?','choosing a date must not move on by itself');
+  assert.ok(await page.locator('input[name="issueDate"]').isVisible(),'the date field stays visible while the user is choosing');
+  await page.locator('.mobile-single-issue-actions').getByRole('button',{name:'Volgende',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('.mobile-single-issue-question')?.innerText!=='Wat is de datum?');
+  await page.evaluate(()=>closeModal());
+
   await page.evaluate(()=>{
     pendingPdfImport={file:new File(['qa'],'dubbel.pdf',{type:'application/pdf'}),previewUrl:null,sha256:'qa-dup',sourceClientRef:'f-dup-source',sourceDocumentId:'d-dup-source',processingJobId:'j-dup',parsed:null};
     const parsed={confidenceScore:95,sourceQuality:'processor-v2',documentType:'receipt',party:'Gamma',invoiceNumber:'',issueDate:'2026-09-12',net:33.94,vatAmount:3.05,gross:36.99,vatRate:9,mixedRates:false,vatLines:[],lineItems:[],adjustments:[],duplicateCandidate:{id:'existing-doc',label:'Gamma · 12 sep · € 36,99'}};
@@ -230,8 +247,8 @@ try{
   await page.locator('.mobile-single-issue-review').waitFor();
   assert.equal(await page.locator('.mobile-single-issue-question').innerText(),'Wie is de leverancier?','the missing supplier is asked before the amounts step');
   await page.locator('[name="party"]:visible').fill('OpenAI LLC');
-  // Depending on timing the shell has already moved on after typing; confirm only when the button is still there.
-  const confirmParty=page.getByRole('button',{name:'Ja, klopt',exact:true});if(await confirmParty.isVisible())await confirmParty.click();
+  // A filled-in empty field stays on screen until the user goes on.
+  await page.locator('.mobile-single-issue-actions').getByRole('button',{name:'Volgende',exact:true}).click();
   await page.locator('[name="exchangeRateToEur"]:visible').waitFor();
   await page.locator('[name="exchangeRateToEur"]').fill('0.92');
   await page.getByRole('button',{name:'Wisselkoers bevestigen'}).click();

@@ -189,6 +189,30 @@ try{
   assert.match(await page.locator('.document-processing-board').innerText(),/✓ 5 documenten verwerkt/,'A fully successful current batch must remain visible as completed');
   await page.screenshot({path:new URL('./artifacts/document-processing-background-complete.png',import.meta.url).pathname,fullPage:true});
 
+  // A temporary processor outage (crash restart or deploy) is retried
+  // automatically; the user sees "waiting", not an error. Real document
+  // errors and used-up attempts still show the error.
+  const autoRetry=await page.evaluate(async({now})=>{
+    const calls=[];const realInvoke=invokeDocumentProcessing,realFetch=fetchDocumentProcessingJobs;
+    invokeDocumentProcessing=async(action,payload)=>{calls.push(action+':'+payload.job_id);return {ok:true}};
+    fetchDocumentProcessingJobs=async()=>[];
+    const old=new Date(Date.now()-60000).toISOString();
+    const job=(id,extra)=>({id,document_id:'doc-'+id,client_ref:'ref-'+id,batch_id:'batch-retry',file_name:id+'.pdf',mime_type:'application/pdf',size_bytes:1200,requested_kind:'auto',state:'failed',phase:'complete',attempt:1,max_attempts:3,result:null,review_fields:[],review_message:null,error_code:'PROCESSOR_UNAVAILABLE',error_retryable:true,created_at:old,updated_at:old,completed_at:old,...extra});
+    documentProcessingSession=null;
+    applyDocumentProcessingJobs([job('outage'),job('unreadable',{error_code:'DOCUMENT_IMAGE_UNREADABLE'}),job('used-up',{attempt:3})],{initial:true});
+    const states=Object.fromEntries(documentProcessingJobs.map(j=>[j.id,j.state]));
+    await new Promise(r=>setTimeout(r,50));
+    applyDocumentProcessingJobs([job('outage')],{initial:false});
+    await new Promise(r=>setTimeout(r,50));
+    invokeDocumentProcessing=realInvoke;fetchDocumentProcessingJobs=realFetch;
+    documentProcessingJobs=[];page='documents';render();
+    return {states,calls};
+  },{now});
+  assert.equal(autoRetry.states.outage,'queued','A temporary processor failure must show as waiting while it is retried');
+  assert.equal(autoRetry.states.unreadable,'failed','A real document error must not be retried automatically');
+  assert.equal(autoRetry.states['used-up'],'failed','A job without attempts left must show its error');
+  assert.deepEqual(autoRetry.calls,['retry:outage'],'The outage job must be retried exactly once per failed attempt');
+
   // Reload removes the in-memory batch. Persisted ready financial jobs must
   // still offer human review, without reopening already booked documents.
   await page.reload({waitUntil:'domcontentloaded'});
