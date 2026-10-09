@@ -394,7 +394,7 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/theme.js?v=2026
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/feedback.js?v=20261008c"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-viewer.js?v=20261008f"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/native-local-first.js?v=20261008a"></script>\n');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/look.js?v=20261009e"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/look.js?v=20261009f"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/motion.js?v=20261009e"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});

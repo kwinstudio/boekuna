@@ -36,6 +36,25 @@
     <string>Boekuna gebruikt de camera alleen wanneer je zelf een bon of factuur wilt vastleggen.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Boekuna gebruikt je fotobibliotheek alleen wanneer je zelf een foto van een bon of factuur kiest.</string>
+    <key>UIApplicationShortcutItems</key>
+    <array>
+        <dict>
+            <key>UIApplicationShortcutItemType</key>
+            <string>nl.boekuna.app.scan</string>
+            <key>UIApplicationShortcutItemTitle</key>
+            <string>Bon scannen</string>
+            <key>UIApplicationShortcutItemIconSymbolName</key>
+            <string>doc.viewfinder</string>
+        </dict>
+        <dict>
+            <key>UIApplicationShortcutItemType</key>
+            <string>nl.boekuna.app.invoice</string>
+            <key>UIApplicationShortcutItemTitle</key>
+            <string>Factuur maken</string>
+            <key>UIApplicationShortcutItemIconSymbolName</key>
+            <string>doc.text</string>
+        </dict>
+    </array>
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
     <key>UIFileSharingEnabled</key>

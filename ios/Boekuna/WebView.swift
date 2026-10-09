@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import UIKit
 import WebKit
@@ -12,6 +13,7 @@ final class BrowserModel: ObservableObject {
     fileprivate weak var webView: WKWebView?
     fileprivate let startURL = URL(string: "https://app.boekuna.nl/?login=1&app=1")!
     private var themeColorObservation: NSKeyValueObservation?
+    private var quickActionObservation: AnyCancellable?
     private var triedOfflineCopy = false
 
     fileprivate func attach(_ webView: WKWebView) {
@@ -21,8 +23,23 @@ final class BrowserModel: ObservableObject {
                 self?.statusBarColor = webView.themeColor.map { Color(uiColor: $0) } ?? Color("LaunchBackground")
             }
         }
+        quickActionObservation = QuickActionCenter.shared.$pending
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.deliverQuickAction() }
         guard webView.url == nil else { return }
         loadStartPage(in: webView)
+    }
+
+    /// Hands a home-screen quick action to the web app once the page is there.
+    /// The page waits for login itself; until it confirms, the action stays pending.
+    fileprivate func deliverQuickAction() {
+        guard let action = QuickActionCenter.shared.pending, ["scan", "invoice"].contains(action),
+              let webView, !isLoading else { return }
+        webView.evaluateJavaScript("window.boekunaQuickAction ? window.boekunaQuickAction('\(action)') : false") { result, _ in
+            if (result as? Bool) == true, QuickActionCenter.shared.pending == action {
+                QuickActionCenter.shared.pending = nil
+            }
+        }
     }
 
     fileprivate func loadStartPage(in webView: WKWebView) {
@@ -125,6 +142,7 @@ struct BoekunaWebView: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             model.failureMessage = nil
             model.isLoading = false
+            model.deliverQuickAction()
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

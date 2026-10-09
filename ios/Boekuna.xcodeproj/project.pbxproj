@@ -15,6 +15,7 @@
 		B10000000000000000000006 /* LocalFirstOCR.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000008 /* LocalFirstOCR.swift */; };
 		B10000000000000000000007 /* LocalFirstDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000009 /* LocalFirstDraftStore.swift */; };
 		B10000000000000000000008 /* LocalFirstBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000000A /* LocalFirstBridge.swift */; };
+		B10000000000000000000009 /* QuickActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000000B /* QuickActions.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +29,7 @@
 		F10000000000000000000008 /* LocalFirstOCR.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalFirstOCR.swift; sourceTree = "<group>"; };
 		F10000000000000000000009 /* LocalFirstDraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalFirstDraftStore.swift; sourceTree = "<group>"; };
 		F1000000000000000000000A /* LocalFirstBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalFirstBridge.swift; sourceTree = "<group>"; };
+		F1000000000000000000000B /* QuickActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActions.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -67,6 +69,7 @@
 				F10000000000000000000008 /* LocalFirstOCR.swift */,
 				F10000000000000000000009 /* LocalFirstDraftStore.swift */,
 				F1000000000000000000000A /* LocalFirstBridge.swift */,
+				F1000000000000000000000B /* QuickActions.swift */,
 				F10000000000000000000004 /* Info.plist */,
 				F10000000000000000000005 /* Assets.xcassets */,
 			);
@@ -149,6 +152,7 @@
 				B10000000000000000000006 /* LocalFirstOCR.swift in Sources */,
 				B10000000000000000000007 /* LocalFirstDraftStore.swift in Sources */,
 				B10000000000000000000008 /* LocalFirstBridge.swift in Sources */,
+				B10000000000000000000009 /* QuickActions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
