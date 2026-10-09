@@ -5868,9 +5868,34 @@ function updateLocalDocumentFromJob(job){
  for(const [k,v] of Object.entries(patch)){if(doc[k]!==v){doc[k]=v;changed=true}}
  return changed
 }
+// A short processor outage (restart after a crash or deploy) fails jobs with a
+// temporary code. Retry those automatically after a pause and show them as
+// waiting, so the user only sees an error once every attempt is used up.
+const DOCUMENT_AUTO_RETRY_CODES=new Set(['PROCESSOR_UNAVAILABLE','NETWORK_ERROR','RATE_LIMITED']);
+const DOCUMENT_AUTO_RETRY_DELAY_MS=20000;
+const documentAutoRetryScheduled=new Set(),documentAutoRetryGaveUp=new Set();
+function documentJobAutoRetryable(job){
+ return String(job?.state||'')==='failed'&&job.error_retryable!==false&&DOCUMENT_AUTO_RETRY_CODES.has(String(job.error_code||''))&&Number(job.attempt||0)<Number(job.max_attempts||3)&&!documentAutoRetryGaveUp.has(job.id+':'+job.attempt)
+}
+function applyDocumentAutoRetries(rows){
+ return rows.map(job=>{
+  if(!documentJobAutoRetryable(job))return job;
+  const key=job.id+':'+job.attempt;
+  if(!documentAutoRetryScheduled.has(key)){
+   documentAutoRetryScheduled.add(key);
+   const failedAt=Date.parse(job.completed_at||job.updated_at||'');
+   const wait=Number.isFinite(failedAt)?Math.max(0,Math.min(DOCUMENT_AUTO_RETRY_DELAY_MS,failedAt+DOCUMENT_AUTO_RETRY_DELAY_MS-Date.now())):DOCUMENT_AUTO_RETRY_DELAY_MS;
+   setTimeout(()=>{
+    if(!currentUser)return;
+    invokeDocumentProcessing('retry',{job_id:job.id}).catch(err=>{if(err?.code!=='JOB_NOT_RETRYABLE')documentAutoRetryGaveUp.add(key)}).finally(()=>fetchDocumentProcessingJobs().catch(()=>{}))
+   },wait)
+  }
+  return {...job,state:'queued',phase:'queued',error_code:null,error_reference:null,error_retryable:false,completed_at:null}
+ })
+}
 function applyDocumentProcessingJobs(rows,{initial=false}={}){
  const previous=documentProcessingInitialized?documentProcessingLastSummary:null;
- documentProcessingJobs=Array.isArray(rows)?rows:[];
+ documentProcessingJobs=applyDocumentAutoRetries(Array.isArray(rows)?rows:[]);
  let localChanged=false;for(const job of documentProcessingJobs)if(updateLocalDocumentFromJob(job))localChanged=true;
  if(localChanged)save();
  const active=documentProcessingJobs.filter(j=>!persistentDocumentIsTerminal(j)).length,attention=persistentDocumentAttentionCount(),terminal=documentProcessingJobs.filter(persistentDocumentIsTerminal).length;
