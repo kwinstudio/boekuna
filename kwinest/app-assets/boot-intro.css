@@ -1,0 +1,126 @@
+/* BOEKUNA intro: the brand screen while the app really starts (boot-intro.js).
+   Inlined into <head> by scripts/build-app.mjs so it paints with the first frame.
+   Choreography (from first paint): 0-0.3 s calm background, 0.3-0.9 s wordmark rises in,
+   0.65-1.4 s the green dot settles with one soft pulse, then everything rests. The screen
+   leaves as soon as the app is ready; after 2.5 s it becomes a quiet loading state. */
+.boot-intro{
+  --boot-bg:#F6F7F8;
+  --boot-ink:#1B1F23;
+  --boot-muted:#5E6870;
+  --boot-green:#63D471;
+  --boot-glow:rgba(99,212,113,.11);
+  --boot-fade:320ms;
+  position:fixed;
+  inset:0;
+  z-index:2147483000;
+  display:grid;
+  place-items:center;
+  background:var(--boot-bg);
+  color:var(--boot-ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  opacity:1;
+  transition:opacity var(--boot-fade) cubic-bezier(.4,0,.2,1);
+  contain:strict;
+  overscroll-behavior:none;
+  -webkit-user-select:none;
+  user-select:none;
+}
+html[data-theme="dark"] .boot-intro{
+  --boot-bg:#15191C;
+  --boot-ink:#EEF1F3;
+  --boot-muted:#A3ADB5;
+  --boot-glow:rgba(99,212,113,.08);
+}
+.boot-intro[hidden]{display:none!important}
+.boot-intro::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:min(520px,130vw);
+  height:min(520px,130vw);
+  margin:calc(min(520px,130vw)/-2) 0 0 calc(min(520px,130vw)/-2);
+  border-radius:50%;
+  background:radial-gradient(circle,var(--boot-glow) 0%,transparent 62%);
+  pointer-events:none;
+}
+.boot-intro-stage{
+  position:relative;
+  display:grid;
+  place-items:center;
+  transition:transform var(--boot-fade) cubic-bezier(.4,0,.2,1);
+}
+/* The official wordmark (logo zip, Space Grotesk Bold) as outlines: same proportions
+   everywhere, no font download, no layout shift. */
+.boot-intro-mark{
+  display:block;
+  width:clamp(160px,44vw,220px);
+  height:auto;
+  overflow:visible;
+}
+.boot-intro-word{fill:var(--boot-ink)}
+.boot-intro-dot,.boot-intro-halo{fill:var(--boot-green);transform-box:fill-box;transform-origin:center}
+.boot-intro-halo{opacity:0}
+/* Reserved space under the wordmark: the loading text never pushes the logo. */
+.boot-intro-status{
+  position:absolute;
+  top:100%;
+  left:50%;
+  width:min(300px,calc(100vw - 48px));
+  margin-left:calc(min(300px,calc(100vw - 48px))/-2);
+  padding-top:26px;
+  text-align:center;
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .4s ease,visibility 0s .4s;
+}
+.boot-intro-status p{margin:0;color:var(--boot-muted);font-size:14px;line-height:1.45;font-weight:550}
+.boot-intro-slow,.boot-intro-retry{display:none!important}
+.boot-intro-slow{margin-top:6px!important;font-size:13px!important}
+.boot-intro-retry{
+  margin:14px auto 0;
+  min-height:40px;
+  padding:0 18px;
+  border:1px solid rgba(127,135,142,.4);
+  border-radius:999px;
+  background:transparent;
+  color:var(--boot-ink);
+  font:inherit;
+  font-size:14px;
+  font-weight:650;
+  cursor:pointer;
+}
+
+/* First start: the full intro. */
+.boot-intro.is-playing::before{animation:boot-intro-glow .9s .3s cubic-bezier(.22,1,.36,1) both}
+.boot-intro.is-playing .boot-intro-word{animation:boot-intro-rise .6s .3s cubic-bezier(.22,1,.36,1) both}
+.boot-intro.is-playing .boot-intro-dot{animation:boot-intro-dot .75s .65s cubic-bezier(.33,1,.68,1) both}
+.boot-intro.is-playing .boot-intro-halo{animation:boot-intro-halo .7s .95s cubic-bezier(.22,1,.36,1) both}
+@keyframes boot-intro-glow{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+@keyframes boot-intro-rise{from{opacity:0;transform:translateY(150px)}to{opacity:1;transform:none}}
+@keyframes boot-intro-dot{
+  0%{opacity:0;transform:scale(.35)}
+  34%{opacity:1;transform:scale(1)}
+  62%{transform:scale(1.2)}
+  100%{opacity:1;transform:scale(1)}
+}
+@keyframes boot-intro-halo{from{opacity:.32;transform:scale(1)}to{opacity:0;transform:scale(2.7)}}
+
+/* Leaving: one calm cross-fade into the app. */
+.boot-intro.is-leaving{opacity:0;pointer-events:none}
+.boot-intro.is-leaving .boot-intro-stage{transform:translateY(-6px) scale(.985)}
+
+/* Not ready after 2.5 s: the intro stops and becomes a quiet, honest loading state. */
+.boot-intro.is-waiting .boot-intro-status{opacity:1;visibility:visible;transition:opacity .4s ease,visibility 0s}
+.boot-intro.is-waiting .boot-intro-dot{animation:boot-intro-breathe 1.6s ease-in-out infinite}
+.boot-intro.is-slow .boot-intro-slow{display:block!important}
+.boot-intro.is-slow .boot-intro-retry{display:inline-flex!important;align-items:center}
+@keyframes boot-intro-breathe{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Reload in the same tab, automated browsers and reduced motion: a still wordmark. */
+.boot-intro.is-repeat .boot-intro-word,.boot-intro.is-repeat .boot-intro-dot,
+.boot-intro.is-still .boot-intro-word,.boot-intro.is-still .boot-intro-dot{animation:none}
+@media(prefers-reduced-motion:reduce){
+  .boot-intro,.boot-intro *,.boot-intro::before{animation:none!important;transition:none!important}
+  .boot-intro.is-leaving .boot-intro-stage{transform:none}
+}

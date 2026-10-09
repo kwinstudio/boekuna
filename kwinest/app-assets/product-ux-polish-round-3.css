@@ -19,49 +19,6 @@
   font-family:var(--boekuna-system-font)!important;
 }
 
-/* Auth bootstrap is real initialization state only; JS removes it as soon as
-   auth/session resolution has chosen a stable surface. */
-.app-bootstrap{
-  position:fixed;
-  inset:0;
-  z-index:200;
-  display:grid;
-  place-items:center;
-  min-height:100dvh;
-  padding:24px;
-  background:#F6F7F8;
-  color:#1B1F23;
-  font-family:var(--boekuna-system-font);
-}
-.app-bootstrap[hidden]{display:none!important}
-.app-bootstrap-inner{
-  display:grid;
-  justify-items:center;
-  gap:14px;
-  text-align:center;
-}
-.app-bootstrap-wordmark{
-  font-size:28px;
-  line-height:1;
-  font-weight:800;
-  letter-spacing:-.045em;
-}
-.app-bootstrap-wordmark span{color:#63D471}
-.app-bootstrap-loader{
-  width:24px;
-  height:24px;
-  border:2px solid #D8DDE1;
-  border-top-color:#63D471;
-  border-radius:50%;
-  animation:boekuna-bootstrap-spin .75s linear infinite;
-}
-.app-bootstrap-copy{
-  margin:0;
-  color:#667179;
-  font-size:13px;
-  font-weight:650;
-}
-@keyframes boekuna-bootstrap-spin{to{transform:rotate(360deg)}}
 
 /* mobileBottomNav lives outside #mainApp in the legacy source, so authentication
    state must gate it explicitly. */
@@ -211,10 +168,3 @@ html,body{
   }
 }
 
-@media(prefers-reduced-motion:reduce){
-  .app-bootstrap-loader{
-    animation:none!important;
-    border-color:#D8DDE1!important;
-    border-top-color:#63D471!important;
-  }
-}

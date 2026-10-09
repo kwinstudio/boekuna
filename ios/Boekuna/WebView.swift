@@ -6,7 +6,8 @@ final class BrowserModel: ObservableObject {
     @Published var isLoading = true
     @Published var failureMessage: String?
     /// Fills the strip behind the status bar; follows the page's theme-color.
-    @Published var statusBarColor = Color.white
+    /// Starts in the launch colour so the first frames are one even surface.
+    @Published var statusBarColor = Color("LaunchBackground")
 
     fileprivate weak var webView: WKWebView?
     fileprivate let startURL = URL(string: "https://app.boekuna.nl/?login=1&app=1")!
@@ -17,7 +18,7 @@ final class BrowserModel: ObservableObject {
         self.webView = webView
         themeColorObservation = webView.observe(\.themeColor, options: [.initial, .new]) { [weak self] webView, _ in
             DispatchQueue.main.async {
-                self?.statusBarColor = webView.themeColor.map { Color(uiColor: $0) } ?? .white
+                self?.statusBarColor = webView.themeColor.map { Color(uiColor: $0) } ?? Color("LaunchBackground")
             }
         }
         guard webView.url == nil else { return }
@@ -88,7 +89,7 @@ struct BoekunaWebView: UIViewRepresentable {
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.scrollView.keyboardDismissMode = .interactive
         webView.isOpaque = false
-        webView.backgroundColor = UIColor(red: 246 / 255, green: 247 / 255, blue: 248 / 255, alpha: 1)
+        webView.backgroundColor = UIColor(named: "LaunchBackground") ?? UIColor(red: 246 / 255, green: 247 / 255, blue: 248 / 255, alpha: 1)
 
 #if DEBUG
         if #available(iOS 16.4, *) {
