@@ -367,9 +367,8 @@ try{
     const drafts=await appState(page,()=>state.invoices.filter(i=>i.status==='draft').length);
     const draftId=await appState(page,()=>state.invoices.find(i=>i.status==='draft').id);
     await page.evaluate(id=>deleteInvoice(id),draftId);
-    await page.getByRole('button',{name:'Bevestig verwijderen'}).click();
     await page.waitForTimeout(300);
-    await attempt('B-23','Concept verwijderen (met bevestiging) haalt alleen dat concept weg',async()=>(await appState(page,()=>[state.invoices.length,state.invoices.filter(i=>i.status==='draft').length])).join()===[599,drafts-1].join());
+    await attempt('B-23','Concept verwijderen (met ongedaan maken) haalt alleen dat concept weg',async()=>(await appState(page,()=>[state.invoices.length,state.invoices.filter(i=>i.status==='draft').length])).join()===[599,drafts-1].join());
     const finalId=await appState(page,()=>state.invoices.find(i=>i.status==='sent').id);
     await page.evaluate(id=>deleteInvoice(id),finalId);
     await page.waitForTimeout(300);

@@ -220,15 +220,15 @@ try{
   await shot('documents-processing');
   await page.evaluate(()=>{documentProcessingSession=null;renderGlobalDocumentIndicator()});
 
-  // Cashflow actions are compact buttons and deletion is confirmed.
+  // Cashflow actions are compact buttons; deletion happens at once with "Ongedaan maken".
   await nav('cashflow');
   const plannedRow=page.locator('table.mobile-cashflow tbody tr',{hasText:'Software abonnement'});
   assert.equal(await plannedRow.getByRole('button',{name:'Bewerken',exact:true}).count(),1);
   assert.equal(await plannedRow.getByRole('button',{name:'Verwijderen',exact:true}).count(),1);
   await shot('cashflow-planned');
   await plannedRow.getByRole('button',{name:'Verwijderen',exact:true}).click();
-  assert.equal(await page.evaluate(()=>state.plannedCash.length),1);
-  await page.getByRole('button',{name:'Annuleren',exact:true}).click();
+  assert.equal(await page.evaluate(()=>state.plannedCash.length),0);
+  await page.locator('#toastRoot .toast-undo .toast-action',{hasText:'Ongedaan maken'}).click();
   assert.equal(await page.evaluate(()=>state.plannedCash.length),1);
 
   // Relations and services use the same three-dot menu pattern.

@@ -120,6 +120,54 @@ try{
     await context.close();
   }
 
+  // Buttons on a phone: quick buttons (45), delete with undo (42), busy button (41), Alles / Een deel (48),
+  // copy (49), send channels (50), round back button (51) and the error under the field itself (61).
+  {
+    const {context,page}=await openApp(390,844);
+    assert.deepEqual((await page.locator('.dashboard-quick-btn').allTextContents()).map(s=>s.trim()),['Scan','Factuur','Rit','Vraag']);
+    await page.evaluate(()=>{const day=new Date().toISOString().slice(0,10);state.invoices.push({id:'dq',number:'CONCEPT-1',customerId:'c1',status:'draft',kind:'invoice',issueDate:day,dueDate:day,lines:[{desc:'Fictief',qty:1,unit:10,vat:21}],payments:[]});deleteInvoice('dq')});
+    assert.equal(await page.evaluate(()=>state.invoices.some(i=>i.id==='dq')),false,'A draft is deleted at once');
+    await page.locator('#toastRoot .toast-undo .toast-action',{hasText:'Ongedaan maken'}).click();
+    assert.equal(await page.evaluate(()=>state.invoices.some(i=>i.id==='dq')),true,'Ongedaan maken brings it back');
+    await page.evaluate(()=>{window.__calls=0;window.syncOfflineDrafts=function(){window.__calls++;return new Promise(r=>setTimeout(r,900))};boekunaBusy.wrap('syncOfflineDrafts');modal('Test','<p>Test</p>','<button class="btn primary" id="slowBtn" onclick="syncOfflineDrafts()">Opslaan</button>')});
+    await page.locator('#slowBtn').dblclick();
+    await page.locator('#slowBtn.is-busy').waitFor();
+    assert.equal(await page.locator('#slowBtn').getAttribute('aria-busy'),'true');
+    assert.equal(await page.evaluate(()=>window.__calls),1,'A second tap while busy does nothing');
+    await page.locator('#slowBtn:not(.is-busy)').waitFor();
+    assert.equal(await page.locator('#slowBtn').isEnabled(),true);
+    await page.evaluate(()=>{closeModal();registerPayment('i1')});
+    await page.locator('.payment-share-btn',{hasText:'Een deel'}).click();
+    assert.equal(await page.locator('#paymentAmount').inputValue(),'');
+    await page.locator('#paymentAmount').fill('20');
+    await page.locator('.payment-share-btn',{hasText:'Alles'}).click();
+    assert.equal(await page.locator('#paymentAmount').inputValue(),'1452.00');
+    assert.equal(await page.locator('.payment-share-btn.on').innerText(),'Alles');
+    await page.evaluate(()=>{closeModal();viewInvoice('i1')});
+    assert.deepEqual(await page.locator('.invoice-copy-strip .copy-chip-label').allTextContents(),['Factuurnummer','IBAN']);
+    if(browserName==='chromium'){
+      await context.grantPermissions(['clipboard-read','clipboard-write'],{origin:url});
+      await page.locator('.copy-chip-btn').last().click();
+      await page.locator('.copy-chip-btn.is-copied',{hasText:'Gekopieerd'}).waitFor();
+      assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),'NL91ABNA0417164300');
+    }
+    await page.evaluate(()=>{closeModal();const i=state.invoices.find(x=>x.id==='i1');i.supplyDate=i.issueDate;openInvoiceEmailShare('i1')});
+    await page.locator('.send-channels').waitFor();
+    assert.deepEqual((await page.locator('.send-channel').allTextContents()).map(s=>s.trim()),['Mail','WhatsApp','Kopiëren']);
+    await page.evaluate(()=>{closeModal();navigate('settings')});
+    await page.locator('.settings-center-row[data-settings-open="app"]').click();
+    const back=await page.locator('#settings-panel-app .settings-center-back').evaluate(el=>{const r=el.getBoundingClientRect();return {w:r.width,h:r.height,radius:getComputedStyle(el).borderRadius}});
+    assert.ok(back.w===44&&back.h===44&&back.radius==='50%','Back is a round 44px button: '+JSON.stringify(back));
+    await page.evaluate(()=>newContact());
+    await page.locator('#modalRoot .modal-foot .btn.primary').click();
+    await page.locator('#modalRoot .field.has-error .field-error-text',{hasText:'Vul dit in.'}).first().waitFor();
+    const invalid=page.locator('#modalRoot [aria-invalid="true"]').first();
+    await invalid.fill('Nieuwe klant BV');
+    assert.equal(await page.locator('#modalRoot .field.has-error').count(),0,'The error goes away once it is filled in');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth),0);
+    await context.close();
+  }
+
   // Desktop table: avatar next to the customer, cents in the amount cells.
   {
     const {context,page}=await openApp(1280,860);
