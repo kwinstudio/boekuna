@@ -255,6 +255,21 @@
       '<button class="btn" type="button" onclick="closeModal()">Annuleren</button><button class="btn danger normal-delete-confirm" id="normalDeleteConfirm" type="button" onclick="runNormalDelete()">Bevestig verwijderen</button>');
   }
 
+  // 42. Simple deletes happen at once, with 5 seconds to take them back (no "are you sure?" question).
+  function deleteWithUndo(key,item,entity,label,doneText){
+    var list=state[key]||[],index=list.findIndex(function(x){return String(x.id)===String(item.id)});
+    if(index<0)return;
+    state[key]=list.filter(function(x){return String(x.id)!==String(item.id)});
+    logEvent(label+' verwijderd',item.name||item.description||item.number||item.id,entity,item.id);
+    save();if(document.getElementById('modalRoot')?.children.length)closeModal();render();
+    var undo=function(){
+      if(typeof restoreRemoved==='function'?!restoreRemoved(key,item,index):true)return;
+      logEvent(label+' teruggezet',item.name||item.description||item.number||item.id,entity,item.id);
+      save();render();toast(label+' teruggezet');
+    };
+    if(typeof undoableToast==='function')undoableToast(doneText,undo);else toast(doneText);
+  }
+
   window.runNormalDelete=async function(){
     if(normalDeleteBusy||typeof normalDeleteAction!=='function')return;
     var action=normalDeleteAction;
@@ -281,13 +296,7 @@
     if(!c)return;
     var allowed=relationCanDelete(c);
     if(!allowed.allowed){toast(allowed.reason);return}
-    confirmNormalDelete('Relatie “'+c.name+'” verwijderen?',function(){
-      if(!state.contacts.some(function(x){return String(x.id)===String(id)}))return true;
-      state.contacts=state.contacts.filter(function(x){return String(x.id)!==String(id)});
-      logEvent('Relatie verwijderd',c.name,'contact',c.id);
-      save();render();toast('Relatie verwijderd');
-      return true;
-    });
+    deleteWithUndo('contacts',c,'contact','Relatie','Relatie verwijderd');
   };
 
   window.toggleServiceActive=function(id){
@@ -530,8 +539,8 @@
       var i=(state.invoices||[]).find(function(x){return String(x.id)===String(id)});
       if(!i)return;
       modal('Factuur '+esc(i.number||''),
-        (typeof invoicePaymentsHtml==='function'?invoicePaymentsHtml(i):'')+'<div class="invoice-preview boekuna-a4-preview">'+renderInvoiceA4Pages(i)+'</div>',
-        '<button class="btn" aria-label="Factuuracties" aria-haspopup="dialog" onclick="invoiceActions(\''+esc(String(i.id))+'\')">'+icon('i-more')+'</button><button class="btn primary" onclick="closeModal();openSendInvoice(\''+esc(String(i.id))+'\')">Versturen via e-mail</button>',
+        (typeof invoiceViewStatusHtml==='function'?invoiceViewStatusHtml(i):'')+(typeof invoiceCopyStripHtml==='function'?invoiceCopyStripHtml(i):'')+(typeof invoicePaymentsHtml==='function'?invoicePaymentsHtml(i):'')+'<div class="invoice-preview boekuna-a4-preview">'+renderInvoiceA4Pages(i)+'</div>'+(typeof invoiceTimelineHtml==='function'?invoiceTimelineHtml(i):''),
+        typeof invoiceViewFoot==='function'?invoiceViewFoot(i):'<button class="btn" aria-label="Factuuracties" aria-haspopup="dialog" onclick="invoiceActions(\''+esc(String(i.id))+'\')">'+icon('i-more')+'</button><button class="btn primary" onclick="closeModal();openSendInvoice(\''+esc(String(i.id))+'\')">Versturen via e-mail</button>',
         true);
       installA4Observer();requestAnimationFrame(sizeInvoiceA4Preview);
     };
@@ -549,38 +558,20 @@
     deletePlannedCash=function(id){
       var item=(state.plannedCash||[]).find(function(x){return String(x.id)===String(id)});
       if(!item)return;
-      confirmNormalDelete('Planning “'+(item.description||'geplande beweging')+'” verwijderen?',function(){
-        if(!state.plannedCash.some(function(x){return String(x.id)===String(id)}))return true;
-        state.plannedCash=state.plannedCash.filter(function(x){return String(x.id)!==String(id)});
-        logEvent('Cashflowplanning verwijderd',item.description||id,'plannedCash',id);
-        save();render();toast('Planning verwijderd');
-        return true;
-      });
+      deleteWithUndo('plannedCash',item,'plannedCash','Planning','Planning verwijderd');
     };
 
     deleteService=function(id){
       var service=(state.services||[]).find(function(x){return String(x.id)===String(id)});
       if(!service)return;
-      confirmNormalDelete('Dienst “'+(service.name||'dienst')+'” verwijderen? Bestaande facturen blijven ongewijzigd.',function(){
-        if(!state.services.some(function(x){return String(x.id)===String(id)}))return true;
-        state.services=state.services.filter(function(x){return String(x.id)!==String(id)});
-        logEvent('Dienst verwijderd',service.name,'service',id);
-        save();render();toast('Dienst verwijderd');
-        return true;
-      });
+      deleteWithUndo('services',service,'service','Dienst','Dienst verwijderd');
     };
 
     deleteInvoice=function(id){
       var invoice=(state.invoices||[]).find(function(x){return String(x.id)===String(id)});
       if(!invoice)return;
       if(invoice.status!=='draft'){toast('Definitieve facturen kunnen niet worden verwijderd. Maak een creditnota of correctie.');return}
-      confirmNormalDelete('Conceptfactuur '+(invoice.number||'')+' verwijderen?',function(){
-        if(!state.invoices.some(function(x){return String(x.id)===String(id)}))return true;
-        state.invoices=state.invoices.filter(function(x){return String(x.id)!==String(id)});
-        logEvent('Conceptfactuur verwijderd',invoice.number||invoice.id,'invoice',invoice.id);
-        save();render();toast('Conceptfactuur verwijderd');
-        return true;
-      });
+      deleteWithUndo('invoices',invoice,'invoice','Conceptfactuur','Conceptfactuur verwijderd');
     };
 
     removeDemoCustomers=function(){

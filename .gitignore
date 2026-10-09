@@ -1,1 +1,7 @@
-.boekuna-backups/\n*.backup\ndist/
+.boekuna-backups/
+*.backup
+dist/
+.cache/
+tests/node_modules/
+tests/artifacts/*
+!tests/artifacts/kvk-integration.json

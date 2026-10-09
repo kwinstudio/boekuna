@@ -371,7 +371,8 @@ try{
   assert.equal(await modal.evaluate(el=>getComputedStyle(el).overflowY),'auto','Mobile filter dialog must be scrollable');
   await page.locator('#listFilterForm [name="status"]').selectOption('overdue');
   await page.getByRole('button',{name:'Toepassen'}).click();
-  assert.match(await filterTrigger.innerText(),/Filters \(1\)/,'Active filter count must be visible');
+  assert.equal(await filterTrigger.locator('.filter-count').innerText(),'1','Active filter count must be visible');
+  assert.equal(await filterTrigger.getAttribute('aria-label'),'Filters, 1 aan','Active filter count must be announced');
   await filterTrigger.click();
   await page.keyboard.press('Escape');
   await page.waitForTimeout(20);
