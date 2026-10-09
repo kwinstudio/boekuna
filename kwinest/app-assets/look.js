@@ -249,3 +249,26 @@
     setTimeout(function(){location.reload()},150);
   },{passive:true});
 })();
+
+/* 16. iPhone quick actions (hold the app icon): the native shell calls boekunaQuickAction('scan'|'invoice').
+   It waits until you are logged in. Scanning asks for one tap, because iOS only opens the camera after a tap. */
+(function(){
+  'use strict';
+  var pending=null,timer=null,tries=0;
+  function ready(){var app=document.getElementById('mainApp');return typeof currentUser!=='undefined'&&!!currentUser&&!!app&&app.style.display!=='none'&&!app.classList.contains('hidden')}
+  function run(){
+    if(!pending)return;
+    if(!ready()){if(++tries<240){clearTimeout(timer);timer=setTimeout(run,500)}return}
+    var action=pending;pending=null;tries=0;
+    try{if(typeof closeModal==='function')closeModal()}catch(e){}
+    if(action==='invoice'&&typeof newInvoice==='function'){newInvoice();return}
+    if(action==='scan'&&typeof modal==='function'){
+      modal('Bon scannen','<p class="quick-scan-text">Maak een foto van je bon. Boekuna leest hem uit.</p>',
+        '<button class="btn" type="button" onclick="closeModal()">Annuleren</button><button class="btn primary" type="button" onclick="closeModal();openUploadSourcePicker(\'auto\',true)">Camera openen</button>');
+    }
+  }
+  window.boekunaQuickAction=function(action){
+    if(action!=='scan'&&action!=='invoice')return false;
+    pending=action;tries=0;run();return true;
+  };
+})();
