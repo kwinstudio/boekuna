@@ -316,7 +316,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--bk-dark-green);
 @media(min-width:980px){.hero-calm{padding:26px 18px 34px}.calm-note{padding:13px 18px 13px 13px}.calm-note strong{font-size:14px}.calm-note small{font-size:12px}.calm-note-top{right:-6px}.calm-note-bottom{left:-6px}}
 
 /* Soft organic photo shapes */
-.hero-calm,.people-shot{--blob-front:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M20 19C35 6 63 1 81 5C95 8 100 24 99 43C98 63 86 81 67 92C51 101 33 98 21 86C7 72 0 54 3 38C5 29 11 25 20 19Z'/%3E%3C/svg%3E");--blob-back:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M28 6C46 -1 72 2 87 14C99 24 101 44 95 63C89 82 73 97 52 99C33 101 15 92 7 76C0 62 3 44 10 31C14 21 19 10 28 6Z'/%3E%3C/svg%3E")}
+.hero-calm,.people-shot,.face-wall{--blob-front:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M20 19C35 6 63 1 81 5C95 8 100 24 99 43C98 63 86 81 67 92C51 101 33 98 21 86C7 72 0 54 3 38C5 29 11 25 20 19Z'/%3E%3C/svg%3E");--blob-back:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M28 6C46 -1 72 2 87 14C99 24 101 44 95 63C89 82 73 97 52 99C33 101 15 92 7 76C0 62 3 44 10 31C14 21 19 10 28 6Z'/%3E%3C/svg%3E")}
 /* People: real entrepreneurs in soft shapes, with a small card that says something true about Boekuna */
 .people-grid{display:grid;gap:30px;align-items:center}
 .people-shot{position:relative;margin:0 auto;width:100%;max-width:480px;padding:5% 2% 8% 7%}
@@ -331,3 +331,28 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--bk-dark-green);
 .people-copy p{color:#4E5E56;font-size:16px;line-height:1.7;margin:0 0 18px;max-width:46ch}
 .people-copy .check-list{margin-bottom:20px}
 @media(min-width:900px){.people-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:64px}.people-badge{left:-8px}}
+/* Homepage trust section: a wall of entrepreneurs in soft shapes */
+.trust-section{background:#F6F8F7}
+.trust-grid{display:grid;gap:34px;align-items:center}
+.face-wall{--blob-three:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M50 2C74 1 96 14 98 41C100 66 88 92 61 98C36 103 9 92 3 66C-3 40 18 3 50 2Z'/%3E%3C/svg%3E");position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;width:100%;max-width:520px;margin:0 auto;padding:0 0 58px}
+.face-wall::before{content:"";position:absolute;inset:8% -4% 14% -4%;background:#E4F5E7;-webkit-mask:var(--blob-back) center/100% 100% no-repeat;mask:var(--blob-back) center/100% 100% no-repeat}
+.face{position:relative;margin:0}
+.face:nth-child(3n+2){transform:translateY(22px)}
+.face img{display:block;width:100%;height:auto;aspect-ratio:1;object-fit:cover;background:#EEF3EF;-webkit-mask:var(--blob-front) center/100% 100% no-repeat;mask:var(--blob-front) center/100% 100% no-repeat}
+.face:nth-child(2n) img{-webkit-mask-image:var(--blob-three);mask-image:var(--blob-three)}
+.face:nth-child(3) img,.face:nth-child(4) img{-webkit-mask-image:var(--blob-back);mask-image:var(--blob-back)}
+.face-badge{left:50%;bottom:0;transform:translateX(-50%);white-space:nowrap}
+.face-badge .feature-icon{width:38px;height:38px;margin:0;border-radius:11px}
+.face-badge .feature-icon .icon{width:20px;height:20px}
+.trust-copy h2{font-family:var(--bk-heading);font-weight:750;letter-spacing:-.05em;font-size:clamp(29px,7vw,42px);line-height:1.1;margin:14px 0}
+.trust-copy h2 span{color:#2F9D49}
+.trust-copy>p{color:#4E5E56;font-size:16px;line-height:1.7;margin:0 0 22px;max-width:46ch}
+.trust-list{list-style:none;margin:0 0 22px;padding:0;display:grid;gap:16px}
+.trust-list li{display:flex;gap:14px;align-items:flex-start;font-size:14px;line-height:1.6;color:#56665D}
+.trust-list .feature-icon{flex:none;width:40px;height:40px;margin:0;border-radius:11px}
+.trust-list .feature-icon .icon{width:20px;height:20px}
+.trust-list strong{display:block;font-size:15px;color:var(--bk-ink);line-height:1.4}
+.trust-list a{color:#277A3D;font-weight:600}
+@media(min-width:600px){.trust-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 24px}}
+@media(min-width:900px){.trust-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:64px}.face-wall{gap:16px}.trust-list{grid-template-columns:1fr}}
+@media(min-width:1100px){.trust-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
