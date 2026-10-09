@@ -12,6 +12,9 @@
 		B10000000000000000000003 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000003 /* WebView.swift */; };
 		B10000000000000000000004 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000005 /* Assets.xcassets */; };
 		B10000000000000000000005 /* NavigationPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000007 /* NavigationPolicy.swift */; };
+		B10000000000000000000006 /* LocalFirstOCR.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000008 /* LocalFirstOCR.swift */; };
+		B10000000000000000000007 /* LocalFirstDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000009 /* LocalFirstDraftStore.swift */; };
+		B10000000000000000000008 /* LocalFirstBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000000A /* LocalFirstBridge.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -22,6 +25,9 @@
 		F10000000000000000000005 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F10000000000000000000006 /* Boekuna.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Boekuna.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F10000000000000000000007 /* NavigationPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationPolicy.swift; sourceTree = "<group>"; };
+		F10000000000000000000008 /* LocalFirstOCR.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalFirstOCR.swift; sourceTree = "<group>"; };
+		F10000000000000000000009 /* LocalFirstDraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalFirstDraftStore.swift; sourceTree = "<group>"; };
+		F1000000000000000000000A /* LocalFirstBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalFirstBridge.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +64,9 @@
 				F10000000000000000000002 /* RootView.swift */,
 				F10000000000000000000003 /* WebView.swift */,
 				F10000000000000000000007 /* NavigationPolicy.swift */,
+				F10000000000000000000008 /* LocalFirstOCR.swift */,
+				F10000000000000000000009 /* LocalFirstDraftStore.swift */,
+				F1000000000000000000000A /* LocalFirstBridge.swift */,
 				F10000000000000000000004 /* Info.plist */,
 				F10000000000000000000005 /* Assets.xcassets */,
 			);
@@ -137,6 +146,9 @@
 				B10000000000000000000002 /* RootView.swift in Sources */,
 				B10000000000000000000003 /* WebView.swift in Sources */,
 				B10000000000000000000005 /* NavigationPolicy.swift in Sources */,
+				B10000000000000000000006 /* LocalFirstOCR.swift in Sources */,
+				B10000000000000000000007 /* LocalFirstDraftStore.swift in Sources */,
+				B10000000000000000000008 /* LocalFirstBridge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -258,6 +270,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				BOEKUNA_LOCAL_FIRST = NO;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -284,6 +297,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				BOEKUNA_LOCAL_FIRST = NO;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";

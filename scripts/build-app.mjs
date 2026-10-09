@@ -386,6 +386,7 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/settings-center
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/theme.js?v=20261007a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/feedback.js?v=20261008c"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-viewer.js?v=20261008f"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/native-local-first.js?v=20261008a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});
@@ -410,7 +411,7 @@ for(const asset of appAssets){
 }
 
 // Document review is app-only. Keep the shared public/marketing copies byte-identical.
-for(const asset of ['boekuna-app-favicon.svg','document-review-v2.js','document-review-v2.css','product-color-polish.css','product-ux-polish-round-3.css','mobile-flow-simplification.js','mobile-flow-simplification.css','calm-ux.js','calm-ux.css','settings-center.js','settings-center.css','theme.js','theme-dark.css','period-filters.css','feedback.js','feedback.css','exports-filters.css','document-viewer.js','document-viewer.css','bank-documents.css']){
+for(const asset of ['boekuna-app-favicon.svg','document-review-v2.js','document-review-v2.css','product-color-polish.css','product-ux-polish-round-3.css','mobile-flow-simplification.js','mobile-flow-simplification.css','calm-ux.js','calm-ux.css','settings-center.js','settings-center.css','theme.js','theme-dark.css','period-filters.css','feedback.js','feedback.css','exports-filters.css','document-viewer.js','document-viewer.css','bank-documents.css','native-local-first.js']){
   const sourceFile=path.join(root,'kwinest','app-assets',asset);
   if(!fs.existsSync(sourceFile))throw new Error('Missing app-only review asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
