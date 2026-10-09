@@ -45,10 +45,85 @@ html.boekuna-motion .toast.motion-success{display:flex;align-items:center;gap:9p
 html.boekuna-motion .badge.motion-paid{animation:boekuna-motion-stamp .45s cubic-bezier(.2,.8,.2,1)}
 @keyframes boekuna-motion-stamp{0%{transform:scale(1)}40%{transform:scale(1.22)}100%{transform:scale(1)}}
 
+/* C. On a phone a new screen comes from the side of the tab you tapped. */
+@media (max-width:820px){
+  html.boekuna-motion #content.motion-enter.motion-dir-right{animation:boekuna-motion-from-right .3s cubic-bezier(.2,.8,.2,1) both}
+  html.boekuna-motion #content.motion-enter.motion-dir-left{animation:boekuna-motion-from-left .3s cubic-bezier(.2,.8,.2,1) both}
+}
+@keyframes boekuna-motion-from-right{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+@keyframes boekuna-motion-from-left{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}
+
+/* A. A new item slides into its place and lights up green for a moment. */
+html.boekuna-motion :is(tr,.mobile-card-row).motion-new{animation:boekuna-motion-slot .4s cubic-bezier(.2,.8,.2,1) both,boekuna-motion-glow 1.6s ease-out both}
+html.boekuna-motion tr.motion-new>td{animation:boekuna-motion-glow 1.6s ease-out both}
+@keyframes boekuna-motion-slot{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+@keyframes boekuna-motion-glow{0%,35%{background-color:rgba(99,212,113,.22)}100%{background-color:transparent}}
+
+/* B. A removed item slides out; motion.js then closes the gap. */
+html.boekuna-motion .motion-ghost{pointer-events:none;animation:boekuna-motion-out .24s cubic-bezier(.4,0,.2,1) forwards}
+@keyframes boekuna-motion-out{to{opacity:0;transform:translateX(32px)}}
+
+/* D. A new receipt flies to Bonnen, which bumps once. */
+.motion-fly{position:fixed;left:0;top:0;z-index:2000;width:44px;height:44px;border-radius:12px;background:#63D471;display:grid;place-items:center;pointer-events:none}
+.motion-fly svg{width:22px;height:22px;fill:none;stroke:#0E2A16;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+html.boekuna-motion .motion-bump{animation:boekuna-motion-bump .45s cubic-bezier(.2,.8,.2,1)}
+@keyframes boekuna-motion-bump{40%{transform:scale(1.18)}}
+
+/* E. A detail window grows out of the row you tapped (motion.js sets the origin). */
+html.boekuna-motion #modalRoot .modal.motion-from-row{animation:boekuna-motion-grow-in .3s cubic-bezier(.2,.8,.2,1) both!important}
+@keyframes boekuna-motion-grow-in{from{opacity:0;transform:scale(.88,.4)}to{opacity:1;transform:none}}
+
+/* 5. A total that changed shows how much it moved. */
+html.boekuna-motion .motion-delta-host{position:relative}
+.motion-delta{position:absolute;right:14px;bottom:12px;font-size:12px;font-weight:700;border-radius:999px;padding:2px 8px;pointer-events:none;animation:boekuna-motion-float 1.4s cubic-bezier(.2,.8,.2,1) both}
+.motion-delta.is-up{background:#ECFAEE;color:#1F7A35}
+.motion-delta.is-down{background:#FDECEA;color:#A3271F}
+@keyframes boekuna-motion-float{0%{opacity:0;transform:translateY(6px)}20%{opacity:1;transform:none}75%{opacity:1}100%{opacity:0;transform:translateY(-10px)}}
+
+/* 1-4. A livelier overview: trend label, mini-chart, paid ring and profit split. */
+.motion-kpi-extra{display:flex;flex-direction:column;gap:6px;margin-top:8px;min-width:0;text-align:left}
+.motion-trend{align-self:flex-start;display:inline-flex;gap:4px;align-items:center;font-size:12px;font-weight:700;line-height:1.3;border-radius:10px;padding:2px 9px;background:#F1F3F4;color:#5E6870}
+.motion-trend.is-good{background:#ECFAEE;color:#1F7A35}
+.motion-trend.is-bad{background:#FDECEA;color:#A3271F}
+.motion-spark-wrap{position:relative;height:28px}
+.motion-spark{display:block;width:100%;height:28px;overflow:visible}
+.motion-spark-line{fill:none;stroke:var(--spark);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.motion-spark-area{fill:var(--spark);opacity:.12}
+.motion-spark-dot{position:absolute;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:var(--spark)}
+.motion-kpi-extra.is-entering .motion-spark-line{stroke-dasharray:100;animation:boekuna-motion-line .9s .15s cubic-bezier(.2,.8,.2,1) both}
+.motion-kpi-extra.is-entering .motion-spark-dot{animation:boekuna-motion-show .25s .95s both}
+.motion-kpi-extra.is-entering .motion-trend{animation:boekuna-motion-pop .35s .25s cubic-bezier(.2,.8,.2,1) both}
+@keyframes boekuna-motion-line{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}
+@keyframes boekuna-motion-show{from{opacity:0}to{opacity:1}}
+.motion-ring-row{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#5E6870}
+.motion-ring{width:30px;height:30px;flex:0 0 30px;transform:rotate(-90deg)}
+.motion-ring circle{fill:none;stroke-width:5}
+.motion-ring-bg{stroke:#E4E7EA}
+.motion-ring-fg{stroke:#63D471;stroke-linecap:round}
+.motion-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.motion-kpi-extra.is-entering .motion-ring-fg{animation:boekuna-motion-ring .9s .15s cubic-bezier(.2,.8,.2,1) both}
+@keyframes boekuna-motion-ring{from{stroke-dasharray:0 100}}
+.motion-split{display:flex;gap:2px;height:7px;border-radius:999px;overflow:hidden;background:#E4E7EA}
+.motion-split i{display:block;height:100%;width:var(--w)}
+.motion-split .keep{background:#63D471}
+.motion-split .cost{background:#E5534B}
+.motion-kpi-extra.is-entering .motion-split i{animation:boekuna-motion-width .8s .2s cubic-bezier(.2,.8,.2,1) both}
+@keyframes boekuna-motion-width{from{width:0}}
+.motion-split-text{font-size:12px;font-weight:600;color:#5E6870}
+
+html[data-theme="dark"] .motion-trend{background:#242B2F;color:#B7C0C6}
+html[data-theme="dark"] .motion-trend.is-good,html[data-theme="dark"] .motion-delta.is-up{background:#1D2C21;color:#7FE08B}
+html[data-theme="dark"] .motion-trend.is-bad,html[data-theme="dark"] .motion-delta.is-down{background:#33201E;color:#FF9A92}
+html[data-theme="dark"] .motion-ring-row,html[data-theme="dark"] .motion-split-text{color:#B7C0C6}
+html[data-theme="dark"] .motion-ring-bg,html[data-theme="dark"] .motion-split{stroke:#2E363B;background:#2E363B}
+
 @media (prefers-reduced-motion:reduce){
   html.boekuna-motion #content.motion-enter,
   html.boekuna-motion #content.motion-enter *,
   html.boekuna-motion .badge.motion-paid,
-  .motion-check circle,.motion-check path{animation:none!important}
+  .motion-check circle,.motion-check path,
+  .motion-kpi-extra *,.motion-delta,.motion-bump,
+  html.boekuna-motion :is(tr,.mobile-card-row).motion-new,html.boekuna-motion tr.motion-new>td,
+  html.boekuna-motion #modalRoot .modal.motion-from-row{animation:none!important}
   html.boekuna-motion :is(#mainApp,#modalRoot) :is(.btn,.icon-btn,.nav-item,.mobile-bottom-nav-item,button.card,.dashboard-attention-item,.quick-action,.action-row,.mobile-card-main,.modal-close):active:not(:disabled){transform:none!important}
 }

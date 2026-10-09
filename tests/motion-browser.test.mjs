@@ -67,6 +67,44 @@ try{
   assert.equal(await page.locator('#toastRoot .toast.motion-success').count(),1,'Error toasts get no check');
   await context.close();
 
+  // Overview: trend, mini-chart and profit split; a change you cause shows how much a total moved.
+  {
+    const {context,page}=await openApp();
+    await page.waitForTimeout(900);
+    assert.ok(await page.locator('.dashboard-kpi-profit .motion-kpi-extra .motion-trend').count()===1,'Profit shows a trend');
+    assert.ok(await page.locator('.dashboard-kpi-profit .motion-split').count()===1,'Profit shows the split');
+    assert.ok(await page.locator('.dashboard-kpi .motion-spark-wrap').count()>=3,'Mini-charts on profit, revenue and costs');
+    await page.evaluate(()=>{state.expenses.push({id:'e-new',date:new Date().toISOString().slice(0,10),vendor:'Nieuwe kosten',category:'office',exVat:100,vatRate:21});render()});
+    assert.ok(await page.locator('.motion-delta',{hasText:'100,00'}).count()>=1,'Changed total shows the difference');
+    // A new row lights up where it landed; a removed row slides out and leaves no ghost behind.
+    await page.evaluate(()=>navigate('expenses'));
+    await page.waitForTimeout(900);
+    await page.evaluate(()=>{state.expenses.push({id:'e-new2',date:new Date().toISOString().slice(0,10),vendor:'Tankstation',category:'travel',exVat:60,vatRate:21});render()});
+    assert.ok(await page.locator('#content tr.motion-new').count()>=1,'New row is marked');
+    await page.waitForTimeout(400);
+    await page.evaluate(()=>{state.expenses=state.expenses.filter(e=>e.id!=='e-new2');render()});
+    assert.ok(await page.locator('#content .motion-ghost').count()>=1,'Removed row slides out');
+    await page.waitForTimeout(700);
+    assert.equal(await page.locator('#content .motion-ghost').count(),0,'Ghost row is cleaned up');
+    assert.equal(await page.locator('#content tbody tr',{hasText:'Tankstation'}).count(),0);
+    await context.close();
+  }
+  {
+    // Phone: tabs slide in from their side; a tapped row opens its details from that row.
+    const {context,page}=await openApp({width:390,height:844});
+    await page.evaluate(()=>navigate('expenses'));
+    assert.equal(await page.locator('#content.motion-dir-right').count(),1,'Tab to the right slides in from the right');
+    await page.waitForTimeout(400);
+    await page.evaluate(()=>navigate('dashboard'));
+    assert.equal(await page.locator('#content.motion-dir-left').count(),1,'Tab to the left slides in from the left');
+    await page.evaluate(()=>navigate('invoices'));
+    await page.waitForTimeout(900);
+    await page.locator('#content .mobile-card-row .mobile-card-main').first().click();
+    await page.locator('#modalRoot .modal').waitFor();
+    assert.equal(await page.locator('#modalRoot .modal.motion-from-row').count(),1,'Details grow from the tapped row');
+    await context.close();
+  }
+
   // Phone: the Nieuw menu stays the centred pop-up it was; motion must not move it to the bottom.
   const phone=await openApp({width:390,height:844});
   await phone.page.locator('#quickNew').click();
