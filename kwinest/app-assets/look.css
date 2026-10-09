@@ -1,13 +1,13 @@
 /* BOEKUNA rustige look: greeting, smaller cents, avatars and cost icons, status dots,
    a calm "all done" moment and friendlier empty lists. Uses the app's own tokens so dark mode follows. */
-#mainApp{
+#mainApp,#modalRoot{
   --look-tone-0:#E3EFE6;--look-ink-0:#2F6B45;
   --look-tone-1:#E6ECF7;--look-ink-1:#3A5A8F;
   --look-tone-2:#F6ECE1;--look-ink-2:#8A5A26;
   --look-tone-3:#EEE8F4;--look-ink-3:#614A85;
   --look-icon-bg:#EEF2F0;--look-icon-ink:#4C5A54;
 }
-html[data-theme="dark"] #mainApp{
+html[data-theme="dark"] #mainApp,html[data-theme="dark"] #modalRoot{
   --look-tone-0:#1F2E24;--look-ink-0:#8FD9A2;
   --look-tone-1:#1F2635;--look-ink-1:#9DB8E8;
   --look-tone-2:#2E261D;--look-ink-2:#E0B98A;
@@ -27,16 +27,16 @@ html[data-theme="dark"] #mainApp{
 #mainApp :is(td.money,.mobile-card-value) .amount-cents{font-size:.85em}
 
 /* 3 + 4. Initials or logo for a relation, a line icon per kind of cost. */
-#mainApp .party-avatar{position:relative;flex:0 0 32px;width:32px;height:32px;border-radius:50%;display:inline-grid;place-items:center;font-size:12px;font-weight:800;letter-spacing:.02em;overflow:hidden;font-variant-numeric:normal}
-#mainApp .party-avatar.tone-0{background:var(--look-tone-0);color:var(--look-ink-0)}
-#mainApp .party-avatar.tone-1{background:var(--look-tone-1);color:var(--look-ink-1)}
-#mainApp .party-avatar.tone-2{background:var(--look-tone-2);color:var(--look-ink-2)}
-#mainApp .party-avatar.tone-3{background:var(--look-tone-3);color:var(--look-ink-3)}
-#mainApp .party-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:4px;background:#fff;opacity:0}
-#mainApp .party-avatar.has-logo{box-shadow:inset 0 0 0 1px var(--app-border,#E4E7EA)}
-#mainApp .party-avatar.has-logo img{opacity:1}
-#mainApp .party-avatar.has-logo .party-initials{visibility:hidden}
-#mainApp .party-avatar.category-icon{border-radius:9px;background:var(--look-icon-bg);color:var(--look-icon-ink)}
+:is(#mainApp,#modalRoot) .party-avatar{position:relative;flex:0 0 32px;width:32px;height:32px;border-radius:50%;display:inline-grid;place-items:center;font-size:12px;font-weight:800;letter-spacing:.02em;overflow:hidden;font-variant-numeric:normal}
+:is(#mainApp,#modalRoot) .party-avatar.tone-0{background:var(--look-tone-0);color:var(--look-ink-0)}
+:is(#mainApp,#modalRoot) .party-avatar.tone-1{background:var(--look-tone-1);color:var(--look-ink-1)}
+:is(#mainApp,#modalRoot) .party-avatar.tone-2{background:var(--look-tone-2);color:var(--look-ink-2)}
+:is(#mainApp,#modalRoot) .party-avatar.tone-3{background:var(--look-tone-3);color:var(--look-ink-3)}
+:is(#mainApp,#modalRoot) .party-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:4px;background:#fff;opacity:0}
+:is(#mainApp,#modalRoot) .party-avatar.has-logo{box-shadow:inset 0 0 0 1px var(--app-border,#E4E7EA)}
+:is(#mainApp,#modalRoot) .party-avatar.has-logo img{opacity:1}
+:is(#mainApp,#modalRoot) .party-avatar.has-logo .party-initials{visibility:hidden}
+:is(#mainApp,#modalRoot) .party-avatar.category-icon{border-radius:9px;background:var(--look-icon-bg);color:var(--look-icon-ink)}
 #mainApp .party-avatar.category-icon svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 #mainApp .cell-with-avatar{display:flex;align-items:center;gap:10px;min-width:0}
 #mainApp .cell-with-avatar>strong,#mainApp .cell-with-avatar-text{min-width:0;overflow:hidden;text-overflow:ellipsis}
@@ -64,3 +64,317 @@ html[data-theme="dark"] #mainApp{
 /* 7. Empty lists: an icon, one sentence and one button. */
 #mainApp .empty .empty-icon{display:block;width:34px;height:34px;margin:0 auto 10px;fill:none;stroke:var(--app-muted,#8A968F);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 #mainApp .empty .empty-action{margin-top:14px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+
+/* Overview style C: a blue-tinted Winst card and tiles with one small picture each. */
+#mainApp#mainApp .dashboard-kpis .dashboard-kpi-profit{background:#EEF4FE!important;border-color:transparent!important}
+html[data-theme="dark"] #mainApp#mainApp .dashboard-kpis .dashboard-kpi-profit{background:#1B2740!important}
+#mainApp .dashboard-kpis .dashboard-kpi-label{display:inline-flex;align-items:center;gap:6px}
+#mainApp .dashboard-kpis .dashboard-kpi-label::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--kpi-dot,#8A949B);flex:0 0 8px}
+#mainApp .dashboard-kpi-profit{--kpi-dot:#3B82F6}
+#mainApp .dashboard-kpi[onclick*="invoices'"]:not(.dashboard-kpi-receivables){--kpi-dot:#63D471}
+#mainApp .dashboard-kpi[onclick*="expenses"]{--kpi-dot:#E5534B}
+#mainApp .dashboard-kpi-receivables{--kpi-dot:#D99A1C}
+#mainApp .dashboard-kpi[onclick*="'vat'"]{--kpi-dot:#3B82F6}
+#mainApp .kpi-visual{display:block;margin-top:8px;pointer-events:none}
+#mainApp .kpi-bars svg{display:block;width:100%;max-width:140px;height:26px}
+#mainApp .kpi-bars rect{fill:#63D471}
+#mainApp .kpi-bars rect.is-past{opacity:.35}
+#mainApp .kpi-ring{display:flex;align-items:center;gap:8px;min-width:0}
+#mainApp .kpi-ring svg{width:40px;height:40px;flex:0 0 40px}
+#mainApp .kpi-ring circle{fill:none;stroke-width:6}
+#mainApp .kpi-ring .ring-track{stroke:var(--app-surface,#F6F7F8)}
+#mainApp .kpi-ring .ring-0{stroke:#E5534B;background:#E5534B}
+#mainApp .kpi-ring .ring-1{stroke:#F19A94;background:#F19A94}
+#mainApp .kpi-ring .ring-2{stroke:#F7C6C2;background:#F7C6C2}
+#mainApp .kpi-ring-legend{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:11px;font-weight:500;color:var(--app-muted-strong,#5E6870)}
+#mainApp .kpi-ring-legend span{display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mainApp .kpi-ring-legend .ring-dot{width:6px;height:6px;border-radius:50%;flex:0 0 6px}
+#mainApp .kpi-share{display:flex;height:5px;border-radius:99px;overflow:hidden;background:var(--app-surface,#F6F7F8)}
+#mainApp .kpi-share i{display:block;height:100%}
+#mainApp .kpi-share .is-late{background:#E5534B}
+#mainApp .kpi-share .is-open{background:#D99A1C;opacity:.55}
+#mainApp .kpi-deadline{color:var(--app-muted-strong,#5E6870)}
+html[data-theme="dark"] #mainApp .kpi-ring .ring-track,html[data-theme="dark"] #mainApp .kpi-share{stroke:#2E363C;background:#2E363C}
+@media(max-width:820px){
+  /* Phone: Winst on top, then Omzet, Kosten, Nog te ontvangen and Btw as 2 x 2 tiles. */
+  #mainApp .dashboard-kpis .dashboard-kpi-receivables{order:4}
+  #mainApp .dashboard-kpis .dashboard-kpi[onclick*="'vat'"]{order:5}
+  #mainApp#mainApp .dashboard-kpis .dashboard-kpi:last-child:not(.dashboard-kpi-profit){grid-column:auto!important}
+  #mainApp#mainApp .dashboard-kpis .dashboard-kpi:not(.dashboard-kpi-profit) .metric-icon{display:none!important}
+}
+@media(max-width:359px){#mainApp .kpi-ring svg{width:34px;height:34px;flex-basis:34px}#mainApp .product-kpis.grid-2{grid-template-columns:1fr!important;grid-auto-rows:1fr}}
+
+/* 14. Phone: Nieuw is a round green button bottom-right, where your thumb is. */
+@media(max-width:820px){
+  #mainApp#mainApp[data-fab] .topbar #quickNew{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));width:56px;height:56px;min-width:56px;min-height:56px;padding:0!important;border-radius:50%!important;border:0!important;background:#63D471!important;color:#10331A!important;display:grid!important;place-items:center;z-index:45;margin:0!important}
+  #mainApp#mainApp[data-fab] .topbar #quickNew span{display:none!important}
+  #mainApp#mainApp[data-fab] .topbar #quickNew .icon{width:24px;height:24px;stroke-width:2.2}
+  #mainApp[data-fab] .content{padding-bottom:calc(150px + env(safe-area-inset-bottom))!important}
+}
+
+/* 9 + 10. Phone lists: day headers and a thin bar on partly paid invoices. */
+#mainApp .mobile-card-group{padding:14px 16px 4px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--app-muted-strong,#5E6870)}
+#mainApp .mobile-card-group:first-child{padding-top:2px}
+#mainApp .mobile-paid-bar{display:block;height:4px;border-radius:99px;background:var(--app-surface,#F6F7F8);overflow:hidden;margin-top:6px;max-width:180px}
+#mainApp .mobile-paid-bar i{display:block;height:100%;background:#63D471;border-radius:99px}
+html[data-theme="dark"] #mainApp .mobile-paid-bar{background:#2E363C}
+
+/* 41. Busy button: a small spinner before the label, and it can't be pressed twice. */
+button.is-busy{cursor:progress!important;opacity:.88}
+button.is-busy::before{content:"";display:inline-block;flex:0 0 14px;width:14px;height:14px;margin-right:6px;vertical-align:-2px;box-sizing:border-box;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:boekuna-busy-spin .7s linear infinite}
+@keyframes boekuna-busy-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){button.is-busy::before{animation-duration:2.4s}}
+
+/* 42. Delete is a calm red text button; right after, a 5-second "Ongedaan maken" (no "are you sure?" question). */
+:is(#mainApp,#modalRoot) .btn.danger:not(#confirmDeleteAccount):not(#confirmResetAdministration){background:transparent!important;border-color:transparent!important;box-shadow:none!important;color:var(--status-error,#C0392B)!important}
+:is(#mainApp,#modalRoot) .btn.danger:not(#confirmDeleteAccount):not(#confirmResetAdministration):hover{background:rgba(229,83,75,.08)!important;transform:none}
+html[data-theme="dark"] :is(#mainApp,#modalRoot) .btn.danger:not(#confirmDeleteAccount):not(#confirmResetAdministration){color:#F2817A!important}
+#toastRoot .toast-undo{display:flex;align-items:center;gap:14px}
+
+/* 43. Phone forms: the main button stays in view at the bottom and gets the most room. */
+@media(max-width:820px){
+  #modalRoot .mobile-invoice-nav{position:sticky;bottom:0;z-index:3;margin-top:16px;padding-top:12px;background:var(--app-surface-elevated,#fff);box-shadow:0 -1px 0 var(--app-border,#E4E8EB)}
+  #modalRoot#modalRoot .modal-foot{flex-wrap:nowrap}
+  #modalRoot#modalRoot .modal-foot .btn.primary{flex:1 1 auto}
+  #modalRoot#modalRoot .modal-foot .btn:not(.primary):not(.danger):not(:only-child){flex:0 0 auto;background:transparent!important;border-color:transparent!important;box-shadow:none!important}
+}
+
+/* 44. Filters on? The count sits on the button as a small green circle. */
+.filter-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;margin-left:6px;border-radius:999px;background:#63D471;color:#10331A;font-size:11.5px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.btn.has-filters{border-color:#63D471!important}
+
+/* 45. Phone: round quick buttons on the overview (Scan, Factuur, Rit, Vraag). */
+@media(max-width:820px){
+  #mainApp#mainApp .dashboard-quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 16px}
+  #mainApp .dashboard-quick-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 0;border:0;background:transparent;color:var(--app-ink,#17201B);font-size:12.5px;font-weight:650;cursor:pointer;min-width:0}
+  #mainApp .dashboard-quick-icon{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--app-white,#fff);border:1px solid var(--app-border,#E4E8EB)}
+  #mainApp .dashboard-quick-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  #mainApp .dashboard-quick-btn:first-child .dashboard-quick-icon{background:#63D471;border-color:#63D471;color:#10331A}
+  #mainApp .dashboard-quick-btn:focus-visible{outline:none}
+  #mainApp .dashboard-quick-btn:focus-visible .dashboard-quick-icon{outline:2px solid #63D471;outline-offset:2px}
+  html[data-theme="dark"] #mainApp .dashboard-quick-btn{color:var(--dk-ink,#E9EDEF)}
+  html[data-theme="dark"] #mainApp .dashboard-quick-icon{background:var(--dk-raised,#21272C);border-color:var(--dk-line,#2E363C)}
+}
+
+/* 48. Paid: "Alles" or "Een deel" as two buttons above the amount. */
+#modalRoot .payment-share{display:flex;gap:4px;padding:3px;margin-bottom:8px;border-radius:12px;background:var(--app-surface,#F6F7F8);border:1px solid var(--app-border,#E4E8EB)}
+#modalRoot .payment-share-btn{flex:1 1 0;height:38px;border:0;border-radius:9px;background:transparent;color:var(--app-muted-strong,#5E6870);font-weight:650;font-size:14px;cursor:pointer}
+#modalRoot .payment-share-btn.on{background:var(--app-white,#fff);color:var(--app-ink,#17201B);box-shadow:inset 0 0 0 1px var(--app-border,#E4E8EB)}
+#modalRoot .payment-share-btn:focus-visible{outline:2px solid #63D471;outline-offset:1px}
+html[data-theme="dark"] #modalRoot .payment-share{background:var(--dk-bg,#121619);border-color:var(--dk-line,#2E363C)}
+html[data-theme="dark"] #modalRoot .payment-share-btn{color:var(--dk-muted,#A7B1B8)}
+html[data-theme="dark"] #modalRoot .payment-share-btn.on{background:var(--dk-raised,#21272C);color:var(--dk-ink,#E9EDEF);box-shadow:inset 0 0 0 1px var(--dk-line-strong,#424C54)}
+
+/* 49. Copy button next to the invoice number and IBAN; it says "Gekopieerd" after a tap. */
+#modalRoot .invoice-copy-strip{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+#modalRoot .copy-chip{display:inline-flex;align-items:center;gap:10px;min-width:0;padding:8px 8px 8px 12px;border:1px solid var(--app-border,#E4E8EB);border-radius:12px;background:var(--app-white,#fff)}
+#modalRoot .copy-chip-text{display:flex;flex-direction:column;min-width:0}
+#modalRoot .copy-chip-label{font-size:11.5px;color:var(--app-muted-strong,#5E6870)}
+#modalRoot .copy-chip-value{font-weight:700;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.copy-chip-btn{flex:0 0 auto;height:32px;padding:0 12px;border:0;border-radius:9px;background:var(--app-surface,#F1F3F4);color:var(--app-ink,#17201B);font-size:13px;font-weight:700;cursor:pointer}
+.copy-chip-btn.is-copied,.send-channel.is-copied{background:#ECFAEE!important;color:#177A31!important}
+html[data-theme="dark"] #modalRoot .copy-chip{background:var(--dk-raised,#21272C);border-color:var(--dk-line,#2E363C)}
+html[data-theme="dark"] .copy-chip-btn{background:var(--dk-bg,#121619);color:var(--dk-ink,#E9EDEF)}
+html[data-theme="dark"] .copy-chip-btn.is-copied,html[data-theme="dark"] .send-channel.is-copied{background:#1F3A27!important;color:#8FE39C!important}
+
+/* 50. Send: Mail, WhatsApp or copy, as three clear buttons on top. */
+#modalRoot .send-channels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 14px}
+#modalRoot .send-channel{height:44px;border:1px solid var(--app-border,#E4E8EB);border-radius:12px;background:var(--app-white,#fff);color:var(--app-ink,#17201B);font-weight:700;font-size:14px;cursor:pointer}
+#modalRoot .send-channel.on{border-color:#63D471;background:#ECFAEE;color:#10331A}
+html[data-theme="dark"] #modalRoot .send-channel{background:var(--dk-raised,#21272C);border-color:var(--dk-line,#2E363C);color:var(--dk-ink,#E9EDEF)}
+html[data-theme="dark"] #modalRoot .send-channel.on{background:#1F3A27;border-color:#63D471;color:#DDF7E1}
+
+/* 51. Phone: going back is a round arrow top-left, big enough for your thumb. */
+@media(max-width:820px){
+  #mainApp#mainApp .settings-center-back{width:44px;height:44px;min-height:44px;padding:0;margin:0 0 12px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;border:1px solid var(--app-border,#E4E8EB);background:var(--app-white,#fff);color:var(--app-ink,#17201B);font-size:0;line-height:0}
+  #mainApp#mainApp .settings-center-back::before{content:"";width:10px;height:10px;border-left:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateX(2px) rotate(45deg)}
+  #mainApp#mainApp .settings-center-back:focus-visible{outline:2px solid #63D471;outline-offset:2px;border-radius:50%}
+  html[data-theme="dark"] #mainApp#mainApp .settings-center-back{background:var(--dk-raised,#21272C);border-color:var(--dk-line,#2E363C);color:var(--dk-ink,#E9EDEF)}
+}
+
+/* 62. Phone settings: calm white blocks like on an iPhone; no green "selected" row in the list. */
+@media(max-width:820px){
+  #mainApp#mainApp .settings-center .settings-center-row[aria-current="true"]{background:transparent;box-shadow:none}
+  #mainApp#mainApp .settings-center .settings-center-row:active{background:var(--app-surface,#F6F7F8)}
+}
+
+/* 61. A wrong or missing field turns red with one sentence under it. */
+.field.has-error input,.field.has-error select,.field.has-error textarea{border-color:#E5534B!important;box-shadow:0 0 0 3px rgba(229,83,75,.14)!important}
+.field.has-error>label,.field.has-error>legend{color:#C0392B!important}
+.field-error-text{margin-top:4px;font-size:13px;line-height:1.4;font-weight:600;color:#C0392B}
+html[data-theme="dark"] .field-error-text,html[data-theme="dark"] .field.has-error>label,html[data-theme="dark"] .field.has-error>legend{color:#F2817A!important}
+#mainApp .product-kpi .kpi-share{max-width:320px}
+
+/* Btw in style C: the deadline as a calm line with a thin time bar, and the return as short rows on a phone. */
+#mainApp .kpi-time{display:block;height:5px;max-width:320px;border-radius:99px;overflow:hidden;background:var(--app-surface,#EEF0F2)}
+#mainApp .kpi-time i{display:block;height:100%;border-radius:99px;background:#3B82F6}
+html[data-theme="dark"] #mainApp .kpi-time{background:#2E363C}
+#mainApp .vat-return-card .section-head{align-items:center}
+#mainApp .vat-return-copy{flex:0 0 auto}
+@media(max-width:820px){
+  #mainApp#mainApp .vat-return-card tbody tr{display:grid!important;grid-template-columns:36px minmax(0,1fr) auto;column-gap:10px;row-gap:2px;align-items:baseline;padding:12px 16px!important}
+  #mainApp#mainApp .vat-return-card tbody td{display:block!important;padding:0!important;border:0!important;min-height:0!important}
+  #mainApp#mainApp .vat-return-card .mobile-cell-label{display:none!important}
+  #mainApp#mainApp .vat-return-card tbody td:nth-child(1){grid-column:1;grid-row:1}
+  #mainApp#mainApp .vat-return-card tbody td:nth-child(2){grid-column:2;grid-row:1}
+  #mainApp#mainApp .vat-return-card tbody td:nth-child(4){grid-column:3;grid-row:1;text-align:right;font-weight:700}
+  #mainApp#mainApp .vat-return-card tbody td:nth-child(3){grid-column:2/4;grid-row:2;font-size:13px;color:var(--app-muted-strong,#5E6870);font-weight:500;text-align:left}
+  #mainApp#mainApp .vat-return-card tbody td:nth-child(3) .mobile-cell-value:not(:empty)::before{content:"Omzet "}
+  #mainApp#mainApp .vat-return-card tbody tr:last-child{font-size:17px}
+}
+
+/* Customer card (style C, 20 + 22): tiles, how fast they pay, a reminder with one tap. */
+#mainApp .contact-card-link{color:inherit;text-decoration:none;text-align:left}
+#mainApp .contact-card-link strong{text-decoration:underline;text-decoration-color:var(--app-border,#D5DBDF);text-underline-offset:3px}
+#modalRoot .customer-card{display:grid;gap:14px}
+#modalRoot .customer-card-head{display:flex;align-items:center;gap:12px}
+#modalRoot .customer-card-head .party-avatar{width:48px;height:48px;flex:0 0 48px;font-size:16px}
+#modalRoot .customer-card-head>div>strong{display:block;font-size:18px}
+#modalRoot .customer-card-head>div>span{display:block;font-size:13px;color:var(--app-muted-strong,#5E6870)}
+#modalRoot .customer-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#modalRoot .customer-tile{display:flex;flex-direction:column;gap:4px;padding:14px;border:1px solid var(--app-border,#E4E8EB);border-radius:14px;background:var(--app-white,#fff);min-width:0}
+#modalRoot .customer-tile-label,#modalRoot .customer-tile-sub{font-size:13px;color:var(--app-muted-strong,#5E6870)}
+#modalRoot .customer-tile-value{font-size:22px;font-weight:780;letter-spacing:-.02em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#modalRoot .customer-pays{margin:0;font-size:14px;color:var(--app-muted-strong,#5E6870)}
+#modalRoot .customer-pays strong{color:var(--app-ink,#17201B)}
+#modalRoot .customer-late{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:14px;background:#FDF1F0}
+#modalRoot .customer-late strong{display:block;font-size:14px;color:#9B2C22}
+#modalRoot .customer-late span{font-size:13px;color:#9B2C22}
+#modalRoot .customer-invoices h3{margin:4px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--app-muted-strong,#5E6870)}
+#modalRoot .customer-invoice-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:12px;width:100%;padding:12px 2px;border:0;border-top:1px solid var(--app-border,#EEF0F2);background:transparent;color:inherit;text-align:left;cursor:pointer}
+#modalRoot .customer-invoice-number{font-weight:650}
+#modalRoot .customer-invoice-amount{font-weight:700;font-variant-numeric:tabular-nums}
+html[data-theme="dark"] #modalRoot .customer-tile{background:var(--dk-raised,#21272C);border-color:var(--dk-line,#2E363C)}
+html[data-theme="dark"] #modalRoot .customer-late{background:#3A2220}
+html[data-theme="dark"] #modalRoot .customer-late strong,html[data-theme="dark"] #modalRoot .customer-late span{color:#F2B8B3}
+html[data-theme="dark"] #modalRoot .customer-pays strong{color:var(--dk-ink,#E9EDEF)}
+html[data-theme="dark"] #modalRoot .customer-invoice-row{border-color:var(--dk-line,#2E363C)}
+
+/* Nieuw pop-up (style C, screen 5): icon left, a short line under each action, the two daily ones in green. */
+#modalRoot .quick-action{flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;text-align:left!important;gap:12px}
+#modalRoot .quick-action-icon{display:grid;place-items:center;width:40px;height:40px;flex:0 0 40px;border-radius:12px;background:#F1F3F4;color:#5E6870}
+#modalRoot .quick-action-icon .icon{width:20px;height:20px}
+#modalRoot .quick-action-main .quick-action-icon{background:#ECFAEE;color:#2E8B3D}
+#modalRoot .quick-action-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+#modalRoot .quick-action-text strong{font-size:15px;color:var(--app-ink,#17201B)}
+#modalRoot .quick-action-text span{font-size:13px;color:var(--app-muted-strong,#5E6870)}
+#modalRoot .quick-action-modal .quick-action-main{min-height:64px!important}
+html[data-theme="dark"] #modalRoot .quick-action-icon{background:var(--dk-raised,#21272C);color:#AEB8BF}
+html[data-theme="dark"] #modalRoot .quick-action-main .quick-action-icon{background:#1E3324;color:#7FDB8B}
+html[data-theme="dark"] #modalRoot .quick-action-text span{color:#AEB8BF}
+html[data-theme="dark"] #modalRoot .quick-action-text strong{color:var(--dk-ink,#E9EDEF)}
+
+/* Factuur bekijken (style C, screen 7): status on top, what happened below, Delen and Betaald at the bottom. */
+#modalRoot .invoice-view-status{margin:0 0 12px}
+#modalRoot .invoice-timeline{margin:18px 0 4px}
+#modalRoot .invoice-timeline h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--app-muted-strong,#5E6870)}
+#modalRoot .invoice-timeline ol{list-style:none;margin:0;padding:0;display:grid;gap:0}
+#modalRoot .invoice-event{position:relative;display:flex;gap:12px;padding:0 0 14px}
+#modalRoot .invoice-event:not(:last-child)::before{content:"";position:absolute;left:5px;top:16px;bottom:0;width:2px;background:var(--app-border,#E4E8EB)}
+#modalRoot .invoice-event-dot{width:12px;height:12px;flex:0 0 12px;margin-top:4px;border-radius:50%;background:#C9D0D5}
+#modalRoot .invoice-event.is-good .invoice-event-dot{background:#63D471}
+#modalRoot .invoice-event.is-bad .invoice-event-dot{background:#E5534B}
+#modalRoot .invoice-event strong{display:block;font-size:14px;color:var(--app-ink,#17201B)}
+#modalRoot .invoice-event span:not(.invoice-event-dot){font-size:13px;color:var(--app-muted-strong,#5E6870)}
+html[data-theme="dark"] #modalRoot .invoice-event:not(:last-child)::before{background:var(--dk-line,#2E363C)}
+html[data-theme="dark"] #modalRoot .invoice-event-dot{background:#4A545B}
+html[data-theme="dark"] #modalRoot .invoice-event strong{color:var(--dk-ink,#E9EDEF)}
+html[data-theme="dark"] #modalRoot .invoice-event span:not(.invoice-event-dot){color:#AEB8BF}
+
+/* Bonnen (style C, screen 9): tiles per month on the phone. */
+@media(max-width:820px){
+  #mainApp#mainApp .mobile-card-list.mobile-doc-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  #mainApp#mainApp .mobile-doc-grid .mobile-card-group{grid-column:1/-1}
+  #mainApp#mainApp .mobile-doc-grid .mobile-card-row{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:8px;padding:10px!important;min-width:0}
+  #mainApp#mainApp .mobile-doc-grid .mobile-card-main{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:2px!important;min-width:0;width:100%}
+  #mainApp#mainApp .mobile-doc-grid .mobile-card-main .mobile-card-title{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #mainApp#mainApp .mobile-doc-grid .mobile-card-metadata{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #mainApp#mainApp .mobile-doc-grid .doc-thumb{display:grid;place-items:center;width:100%;height:84px;margin:0 0 8px;border-radius:10px;background:#F1F3F4;color:#8A949B}
+  #mainApp#mainApp .mobile-doc-grid .doc-thumb.is-photo{background:#F6F2EA;color:#A08A5E}
+  #mainApp#mainApp .mobile-doc-grid .doc-thumb .icon{width:28px;height:28px}
+  #mainApp#mainApp .mobile-doc-grid .mobile-card-row{border:1px solid var(--app-border,#E4E8EB)!important;border-radius:14px!important;background:var(--app-white,#fff)}
+  #mainApp#mainApp .mobile-doc-grid .mobile-card-side{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;justify-items:start;gap:4px 6px;width:100%;text-align:left!important}
+  #mainApp#mainApp .mobile-doc-grid .mobile-card-side .mobile-card-value{grid-column:1/-1;font-size:17px!important}
+  #mainApp#mainApp .mobile-doc-grid .mobile-card-side>:not(.mobile-card-value):not(span){justify-self:end}
+  #mainApp#mainApp .mobile-doc-grid .mobile-card-side .icon-btn{width:36px!important;height:36px!important;min-height:36px!important;border:0!important}
+  html[data-theme="dark"] #mainApp#mainApp .mobile-doc-grid .mobile-card-row{background:var(--dk-raised,#21272C)!important;border-color:var(--dk-line,#2E363C)!important}
+  html[data-theme="dark"] #mainApp#mainApp .mobile-doc-grid .doc-thumb{background:var(--dk-raised,#21272C);color:#8A949B}
+  html[data-theme="dark"] #mainApp#mainApp .mobile-doc-grid .doc-thumb.is-photo{background:#2C2820;color:#C9B385}
+}
+
+/* Meer menu (style C, screen 10): profile on top, chevrons, dark-mode switch. Phone drawer only. */
+#sidebar .drawer-profile,#sidebar .drawer-theme{display:none}
+@media(max-width:820px){
+  #sidebar .drawer-profile{display:flex;align-items:center;gap:12px;width:calc(100% - 16px);margin:4px 8px 10px;padding:12px;border:1px solid var(--app-border,#E4E8EB);border-radius:14px;background:var(--app-white,#fff);text-align:left;color:inherit;font:inherit;cursor:pointer}
+  #sidebar .drawer-avatar{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border-radius:50%;background:#ECFAEE;color:#2E8B3D;font-weight:750;font-size:15px}
+  #sidebar .drawer-who{display:flex;flex-direction:column;min-width:0}
+  #sidebar .drawer-who strong{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #sidebar .drawer-who span{font-size:13px;color:var(--app-muted-strong,#5E6870)}
+  #sidebar .nav-item[data-page]:not(.active)::after{content:"›";margin-left:auto;font-size:20px;line-height:1;color:#A3ACB2}
+  #sidebar .drawer-theme{display:flex;align-items:center;justify-content:space-between;gap:12px;width:calc(100% - 16px);min-height:48px;margin:6px 8px 4px;padding:0 12px;border:0;border-radius:12px;background:transparent;color:inherit;font:inherit;font-size:16px;font-weight:550;cursor:pointer}
+  #sidebar .drawer-switch{position:relative;width:44px;height:26px;border-radius:13px;background:#D5DBDF;transition:background .2s}
+  #sidebar .drawer-switch i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s}
+  #sidebar .drawer-theme[aria-checked="true"] .drawer-switch{background:#63D471}
+  #sidebar .drawer-theme[aria-checked="true"] .drawer-switch i{transform:translateX(18px)}
+  html[data-theme="dark"] #sidebar .drawer-profile{background:var(--dk-raised,#21272C);border-color:var(--dk-line,#2E363C)}
+  html[data-theme="dark"] #sidebar .drawer-avatar{background:#1E3324;color:#7FDB8B}
+  html[data-theme="dark"] #sidebar .drawer-who span{color:#AEB8BF}
+  html[data-theme="dark"] #sidebar .drawer-switch{background:#3A444B}
+}
+@media(prefers-reduced-motion:reduce){#sidebar .drawer-switch,#sidebar .drawer-switch i{transition:none}}
+
+/* Factuur maken (style C, screen 6): avatars in front of the customer choices. */
+#mainApp .mobile-invoice-choice.has-avatar,#modalRoot .mobile-invoice-choice.has-avatar{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:12px;text-align:left}
+:is(#mainApp,#modalRoot) .mobile-invoice-choice.has-avatar .party-avatar{width:38px;height:38px;flex:0 0 38px;font-size:13px}
+:is(#mainApp,#modalRoot) .mobile-invoice-choice-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+#mainApp#mainApp .mobile-invoice-choice.has-avatar .mobile-invoice-choice-text,#modalRoot#modalRoot .mobile-invoice-choice.has-avatar .mobile-invoice-choice-text{color:var(--app-ink,#17201B);font-size:17px;font-weight:600}
+#mainApp#mainApp .mobile-invoice-choice.has-avatar .mobile-invoice-choice-text strong,#modalRoot#modalRoot .mobile-invoice-choice.has-avatar .mobile-invoice-choice-text strong{color:var(--app-ink,#17201B)}
+#mainApp#mainApp .mobile-invoice-choice.has-avatar .mobile-invoice-choice-text span,#modalRoot#modalRoot .mobile-invoice-choice.has-avatar .mobile-invoice-choice-text span{font-size:14px;font-weight:500;color:var(--app-muted-strong,#5E6870)}
+html[data-theme="dark"] :is(#mainApp,#modalRoot) .mobile-invoice-choice.has-avatar .mobile-invoice-choice-text,html[data-theme="dark"] :is(#mainApp,#modalRoot) .mobile-invoice-choice.has-avatar .mobile-invoice-choice-text strong{color:var(--dk-ink,#E9EDEF)!important}
+
+/* 18 month in short, 24 free to spend, 28 receipts: calm note cards. */
+#mainApp .look-notes{display:grid;gap:12px;margin:0 0 16px}
+#mainApp .look-notes:empty{display:none}
+#mainApp .look-note-card{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px;margin:0 0 16px}
+#mainApp .look-notes .look-note-card{margin:0}
+#mainApp .look-note-text{display:flex;flex-direction:column;gap:3px;min-width:0}
+#mainApp .look-note-text strong{font-size:16px}
+#mainApp .look-note-text>span{font-size:14px;color:var(--app-muted-strong,#5E6870)}
+#mainApp .look-note-text .look-note-eyebrow{font-size:13px;font-weight:650;color:var(--app-muted-strong,#5E6870)}
+#mainApp .look-note-text .month-card-value,#mainApp .look-note-text .free-card-value{font-size:24px;font-weight:780;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+#mainApp .look-note-actions{display:flex;gap:8px;flex:0 0 auto}
+@media(max-width:820px){
+  #mainApp .look-note-card{flex-direction:column;align-items:stretch}
+  #mainApp .look-note-actions{justify-content:flex-end}
+}
+html[data-theme="dark"] #mainApp .look-note-text>span,html[data-theme="dark"] #mainApp .look-note-text .look-note-eyebrow{color:#AEB8BF}
+
+/* 17. One search for everything. */
+#mainApp .topbar .global-search-btn{width:40px;height:40px;min-height:40px;display:inline-grid;place-items:center;border-radius:12px}
+#modalRoot .global-search input[type="search"]{width:100%;min-height:48px;font-size:17px}
+#modalRoot #globalSearchResults{margin-top:12px;display:grid;gap:14px}
+#modalRoot .global-search-hint{margin:6px 2px;font-size:14px;color:var(--app-muted-strong,#5E6870)}
+#modalRoot .global-search-group h3{margin:0 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--app-muted-strong,#5E6870)}
+#modalRoot .global-search-item{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:52px;padding:8px 4px;border:0;border-top:1px solid var(--app-border,#EEF0F2);background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+#modalRoot .global-search-item>span{display:flex;flex-direction:column;min-width:0}
+#modalRoot .global-search-item>span strong{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#modalRoot .global-search-item>span span{font-size:13px;color:var(--app-muted-strong,#5E6870)}
+#modalRoot .global-search-value{font-variant-numeric:tabular-nums;white-space:nowrap}
+html[data-theme="dark"] #modalRoot .global-search-item{border-color:var(--dk-line,#2E363C)}
+html[data-theme="dark"] #modalRoot .global-search-item>span span,html[data-theme="dark"] #modalRoot .global-search-hint{color:#AEB8BF}
+
+/* 21. Pull down to refresh (phone). */
+.pull-refresh{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 64px);z-index:60;display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:var(--app-white,#fff);border:1px solid var(--app-border,#E4E8EB);font-size:14px;font-weight:600;color:var(--app-ink,#17201B);transform:translate(-50%,-140%);opacity:0;pointer-events:none;transition:transform .15s,opacity .15s}
+.pull-refresh.is-visible{opacity:1}
+.pull-refresh .pull-refresh-spin{width:14px;height:14px;border-radius:50%;border:2px solid #C9D0D5;border-top-color:#63D471}
+.pull-refresh.is-loading .pull-refresh-spin{animation:boekuna-pull-spin .8s linear infinite}
+@keyframes boekuna-pull-spin{to{transform:rotate(360deg)}}
+html[data-theme="dark"] .pull-refresh{background:var(--dk-raised,#21272C);border-color:var(--dk-line,#2E363C);color:var(--dk-ink,#E9EDEF)}
+@media(prefers-reduced-motion:reduce){.pull-refresh{transition:none}.pull-refresh.is-loading .pull-refresh-spin{animation:none}}
+/* 24 lives in the Winst tile; the occasional note cards stay off the one-screen desktop overview. */
+#mainApp .kpi-free{margin-top:10px;font-size:14px;color:var(--app-muted-strong,#5E6870)}
+#mainApp .kpi-free strong{color:var(--app-ink,#17201B);font-variant-numeric:tabular-nums}
+#mainApp .kpi-free span{display:block;font-size:12px}
+html[data-theme="dark"] #mainApp .kpi-free{color:#AEB8BF}
+html[data-theme="dark"] #mainApp .kpi-free strong{color:var(--dk-ink,#E9EDEF)}
+@media(min-width:1101px){#mainApp .look-notes{display:none}}

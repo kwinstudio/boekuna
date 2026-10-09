@@ -68,7 +68,7 @@ assert.ok(source.includes("'1300':'Debiteuren'"),'Internal journal account contr
 assert.ok(source.includes("'1600':'Crediteuren'"),'Internal journal account contract must keep the established Crediteuren label');
 assert.ok(source.includes("'1300':'Nog te ontvangen van klanten'"),'Ledger presentation map must expose the customer receivables label in plain language');
 assert.ok(source.includes("'1600':'Nog te betalen aan leveranciers'"),'Ledger presentation map must expose the supplier payables label in plain language');
-assert.ok(source.includes('<strong>Factuur</strong></button>'),'Quick-create invoice action must avoid the Verkoopfactuur jargon label');
+assert.ok(source.includes("quickActionButton('Factuur',"),'Quick-create invoice action must avoid the Verkoopfactuur jargon label');
 assert.ok(source.includes("openUploadSourcePicker('purchase')"),'Bon toevoegen must preserve the existing native upload path');
 assert.ok(source.includes('sendEmailHandoff'),'Invoice email handoff must remain present');
 assert.equal(/accounts\.google\.com|Sign in with Google|Doorgaan met Google/.test(source),false,'Google account login must stay off');
@@ -228,7 +228,7 @@ try{
       assert.deepEqual(await page.locator('.dashboard-kpi-label').allTextContents(),['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen']);
       assert.equal(await page.locator('#dashboardPeriod').inputValue(),'month');
       assert.equal(await page.locator('.dashboard-kpi-profit .metric-sub').count(),0,'Compact dashboard must hide repeated profit explanation by default');
-      assert.equal(await page.locator('.dashboard-kpi-secondary .metric-sub').count(),0,'Compact dashboard must hide repeated KPI helper copy when no warning exists');
+      assert.equal(await page.locator('.dashboard-kpi-secondary .metric-sub:not(.kpi-deadline)').count(),0,'Compact dashboard must hide repeated KPI helper copy when no warning exists');
       assert.notEqual(await page.locator('.dashboard-kpi .metric-icon').first().evaluate(el=>getComputedStyle(el).display),'none','Desktop dashboard KPI icons must remain visible');
       assert.deepEqual((await page.locator('.dashboard-chart-card .chart-legend span').allTextContents()).map(v=>v.trim()),['Omzet','Kosten','Winst']);
       const dashboardChartColours=await page.evaluate(()=>({
@@ -276,8 +276,7 @@ try{
       assert.equal(await page.getByRole('button',{name:'Factuur maken',exact:true}).count(),1,browserName+' Inkomsten primary action');
       assert.equal(await page.getByRole('button',{name:'Factuur uploaden',exact:true}).count(),1,browserName+' Inkomsten secondary action');
       const incomeToneClasses=await page.locator('.product-kpi').evaluateAll(cards=>cards.map(card=>card.className));
-      assert.ok(incomeToneClasses[2].includes('kpi-tone-neutral'),browserName+' ordinary Openstaand must remain neutral, not info-coloured');
-      assert.ok(incomeToneClasses[3].includes('kpi-tone-neutral'),browserName+' zero overdue must remain neutral instead of error-red');
+      assert.ok(incomeToneClasses[1].includes('kpi-tone-neutral'),browserName+' Nog te krijgen must remain neutral, not info-coloured or error-red');
       const openBadge=page.locator('.financial-table .badge').filter({hasText:'Openstaand'}).first();
       if(await openBadge.count()){
         assert.notEqual(await openBadge.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(234, 241, 254)',browserName+' ordinary Openstaand status must not use info blue');
@@ -348,8 +347,8 @@ try{
       await page.screenshot({path:path.join(evidence,'vat-1440-'+browserName+'.png'),fullPage:true});
 
       const coreKpis={
-        invoices:['Omzet','Betaald','Openstaand','Te laat'],
-        expenses:['Kosten','Btw die je terugkrijgt'],
+        invoices:['Gefactureerd','Nog te krijgen'],
+        expenses:['Kosten','Waaraan'],
         documents:['Te verwerken','Controle nodig','Verwerkt deze maand','Totaal documenten'],
         vat:['Te betalen btw','Ontvangen btw','Btw die je kunt terugvragen','Controle nodig'],
         reports:['Omzet','Kosten','Winst','Winstmarge'],
@@ -478,10 +477,16 @@ try{
         await page.evaluate(route=>navigate(route),route);
         const header=await page.locator('.product-page-head').evaluate(head=>{
           const title=head.querySelector('h1'),period=head.querySelector('.page-period-slot'),a=title?.getBoundingClientRect(),b=period?.getBoundingClientRect();
-          return {title:a?{left:a.left,top:a.top,bottom:a.bottom}:null,period:b?{left:b.left,top:b.top,bottom:b.bottom}:null};
+          return {segmented:!!period?.querySelector('.period-seg'),title:a?{left:a.left,top:a.top,bottom:a.bottom}:null,period:b?{left:b.left,top:b.top,bottom:b.bottom,width:b.width}:null,headWidth:head.getBoundingClientRect().width};
         });
-        assert.ok(header.period&&header.period.left>header.title.left,browserName+' mobile '+route+' period must remain right of title');
-        assert.ok(Math.abs(header.period.top-header.title.top)<36,browserName+' mobile '+route+' title and period must remain on one row');
+        if(header.segmented){
+          // Week / Maand / Kwartaal / Jaar / Alles sits as one full-width row under the title on a phone.
+          assert.ok(header.period&&header.period.top>=header.title.bottom-2,browserName+' mobile '+route+' period buttons must sit under the title');
+          assert.ok(header.period.width>=header.headWidth-2,browserName+' mobile '+route+' period buttons must use the full width');
+        }else{
+          assert.ok(header.period&&header.period.left>header.title.left,browserName+' mobile '+route+' period must remain right of title');
+          assert.ok(Math.abs(header.period.top-header.title.top)<36,browserName+' mobile '+route+' title and period must remain on one row');
+        }
         await noOverflow(page,browserName+' mobile '+route+' header');
       }
       await page.evaluate(()=>navigate('reports'));
@@ -525,7 +530,7 @@ try{
       await page.evaluate(()=>navigate('dashboard'));
       await page.getByRole('heading',{name:'Overzicht'}).waitFor();
       assert.ok((await page.locator('.dashboard-kpi .metric-icon').count())>0,'Dashboard KPI icon nodes should remain available');
-      assert.ok(await page.locator('.dashboard-kpi .metric-icon').evaluateAll(nodes=>nodes.every(el=>getComputedStyle(el).display!=='none')),'Mobile dashboard KPI icons must stay visible at the card top-right');
+      assert.ok(await page.locator('.dashboard-kpi:not(.dashboard-kpi-profit) .metric-icon').evaluateAll(nodes=>nodes.every(el=>getComputedStyle(el).display==='none')),'Mobile overview tiles (style C) carry a small visual instead of the corner icon');
       assert.equal(await page.locator('.dashboard-kpis').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length),2,'390px mobile dashboard must pair Omzet and Kosten');
       assert.equal(await page.locator('#content').evaluate(el=>getComputedStyle(el).paddingTop),'14px','390px mobile content padding must use the compact app-only contract');
       assert.equal(await page.locator('.dashboard-chart-card').isVisible(),false,'Large chart belongs on mobile Reports');

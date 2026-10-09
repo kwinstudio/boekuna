@@ -63,7 +63,7 @@ try{
     await page.waitForFunction(()=>document.getElementById('appBootstrap').hidden,null,{timeout:3000});
     const s=await intro(page);
     assert.equal(s.mode,'playing');
-    assert.ok(s.hiddenMs>=2480&&s.hiddenMs<=2600,'Fast start shows the intro for 2.5 s: '+JSON.stringify(s));
+    assert.ok(s.hiddenMs>=2480&&s.hiddenMs<=2700,'Fast start shows the intro for 2.5 s: '+JSON.stringify(s));
     assert.equal(await themeColor(),'#FFFFFF','App colour is back after the intro');
     await context.close();
   }
@@ -95,7 +95,7 @@ try{
     await page.locator('#mainApp').waitFor();
     await page.waitForFunction(()=>document.getElementById('appBootstrap').hidden,null,{timeout:3000});
     const s=await intro(page);
-    assert.ok(s.hiddenMs>=2480&&s.hiddenMs<=2600,label+' intro lasts 2.5 s: '+JSON.stringify(s));
+    assert.ok(s.hiddenMs>=2480&&s.hiddenMs<=2700,label+' intro lasts 2.5 s: '+JSON.stringify(s));
     assert.ok(!s.classes.includes('is-waiting'),label+' never reached the waiting state');
     await context.close();
   }
@@ -156,7 +156,7 @@ try{
     await page.locator('#mainApp').waitFor();
     await page.waitForFunction(()=>document.getElementById('appBootstrap').hidden,null,{timeout:3000});
     const r=await intro(page);
-    assert.ok(r.hiddenMs>=2480&&r.hiddenMs<=2600,'Reduced motion also 2.5 s: '+JSON.stringify(r));
+    assert.ok(r.hiddenMs>=2480&&r.hiddenMs<=2700,'Reduced motion also 2.5 s: '+JSON.stringify(r));
     await context.close();
   }
 

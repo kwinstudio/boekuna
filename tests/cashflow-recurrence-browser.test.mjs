@@ -115,8 +115,8 @@ try{
  });
  assert.deepEqual(isolation,{selected:null,insertDenied:true,updateDenied:true,deleteDenied:true,transferDenied:true,bUnchanged:true,ownId:'b-private',aHidden:null});
  await page.evaluate(id=>deletePlannedCash(id),id);
- await page.getByRole('heading',{name:'Wil je dit verwijderen?',exact:true}).waitFor();
- await page.getByRole('button',{name:'Bevestig verwijderen',exact:true}).click();
+ // Deleted at once, with a short "Ongedaan maken" instead of a confirm question.
+ await page.locator('#toastRoot .toast-undo .toast-action',{hasText:'Ongedaan maken'}).waitFor();
  await page.evaluate(()=>syncCloudStateNow());
  assert.equal(await page.evaluate(()=>state.plannedCash.length),1);
  assert.equal(await page.evaluate(()=>window.__db['account-a'].state.plannedCash.length),1);

@@ -160,6 +160,15 @@
     invoiceResume={draft:structuredClone(draft),before:new Set((state.contacts||[]).map(function(c){return c.id}))};
     newContact();
   }
+  // Style C (screen 6): the customer's avatar (or own-site logo) in front of each choice.
+  function withAvatar(target,contact){
+    if(typeof partyAvatarHtml!=='function'||!contact)return;
+    var holder=document.createElement('span');
+    holder.innerHTML=partyAvatarHtml(contact.name,typeof partyLogoDomain==='function'?partyLogoDomain(contact):'');
+    var text=node('span','mobile-invoice-choice-text');
+    while(target.firstChild)text.append(target.firstChild);
+    target.append(holder.firstChild,text);target.classList.add('has-avatar');
+  }
   function invoiceStepOne(form){
     var section=invoiceSectionFor(form,'#invoiceCustomer');if(!section)return null;
     var step=node('section','mobile-invoice-step');step.dataset.step='1';
@@ -176,12 +185,13 @@
       },'mobile-invoice-choice mobile-flow-action');
       quickButton.append(node('strong','','Zelfde als vorige factuur'));
       quickButton.append(node('span','',[customer?.name||'Klant',(last.lines||[])[0]?.desc||'',moneyText(typeof invoiceGross==='function'?invoiceGross(last):0)].filter(Boolean).join(' · ')));
+      if(customer)withAvatar(quickButton,customer);
       quick.append(quickButton);step.append(quick);
     }
     var recent=recentCustomers();
     if(recent.length){
       var block=node('div','mobile-invoice-recent');block.append(node('span','mobile-flow-eyebrow','Recente klanten'));
-      recent.forEach(function(c){block.append(button(c.name,function(){selectInvoiceCustomer(form,c.id)},'mobile-invoice-choice mobile-flow-action'))});
+      recent.forEach(function(c){var choice=button(c.name,function(){selectInvoiceCustomer(form,c.id)},'mobile-invoice-choice mobile-flow-action');withAvatar(choice,c);block.append(choice)});
       step.append(block);
     }
     var newCustomer=button('Nieuwe klant',function(){startMobileCustomerFromInvoice(form)},'btn mobile-new-customer mobile-flow-action');

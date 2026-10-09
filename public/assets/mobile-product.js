@@ -59,6 +59,30 @@
     if (job) return function () { openPersistentDocumentReview(job.id); };
     return item.fileId ? function () { openDocumentPreview(item.id); } : null;
   }
+  // Bonnen grid (style C, screen 9): a calm tile per file, no file downloads just to draw a thumbnail.
+  function documentThumbHtml(item) {
+    var name = String(item.name || '').toLowerCase(), type = String(item.mimeType || item.type || '');
+    var photo = item.type === 'receipt' || /^image\//.test(type) || /\.(jpe?g|png|heic|heif|webp)$/.test(name);
+    return '<span class="doc-thumb ' + (photo ? 'is-photo' : 'is-file') + '" aria-hidden="true"><svg class="icon"><use href="#' + (photo ? 'i-receipt' : 'i-file') + '"/></svg></span>';
+  }
+  function documentAmount(item) {
+    if (!item.linkedId) return null;
+    if (item.linkedType === 'expense' && typeof expenseGross === 'function') {
+      var expense = (state.expenses || []).find(function (x) { return x.id === item.linkedId; });
+      return expense ? money(expenseGross(expense)) : null;
+    }
+    if (item.linkedType === 'invoice' && typeof invoiceGross === 'function') {
+      var invoice = (state.invoices || []).find(function (x) { return x.id === item.linkedId; });
+      return invoice ? money(invoiceGross(invoice)) : null;
+    }
+    return null;
+  }
+  function monthGroupLabel(day) {
+    var d = new Date(day + 'T00:00:00'), now = new Date();
+    var month = new Intl.DateTimeFormat('nl-NL', {month: 'long'}).format(d);
+    month = month.charAt(0).toUpperCase() + month.slice(1);
+    return d.getFullYear() === now.getFullYear() ? month : month + ' ' + d.getFullYear();
+  }
   function row(title, amount, detail, status, action, actionText, lead) {
     var wrapper = element('div', 'mobile-card-row');
     var main = action ? button('', action, 'mobile-card-main') : element('div', 'mobile-card-main');
@@ -81,6 +105,18 @@
     wrapper.append(main, side);
     return wrapper;
   }
+  function dayGroupLabel(day) {
+    var now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var d = new Date(day + 'T00:00:00'), diff = Math.round((today - d) / 864e5);
+    if (diff <= 0) return 'Vandaag';
+    if (diff === 1) return 'Gisteren';
+    var weekStart = new Date(today); weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+    if (d >= weekStart) return 'Eerder deze week';
+    if (d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth()) return 'Eerder deze maand';
+    var month = new Intl.DateTimeFormat('nl-NL', {month: 'long'}).format(d);
+    month = month.charAt(0).toUpperCase() + month.slice(1);
+    return d.getFullYear() === today.getFullYear() ? month : month + ' ' + d.getFullYear();
+  }
   function mobileLists(root) {
     var selector = {invoices:'.mobile-invoices',expenses:'.mobile-expenses',bank:'.mobile-bank',income:'.mobile-bank',outgoings:'.mobile-bank',documents:'.mobile-documents'}[page];
     if (!selector) return;
@@ -88,19 +124,49 @@
     if (!table || table.dataset.mobileCards) return;
     var items = page === 'income' ? directionalBankRows('income') : page === 'outgoings' ? directionalBankRows('out') : getListRows(page);
     if (!items.length) return; // Keep existing authoritative empty state and CTA.
-    var list = element('div', 'mobile-card-list');
+    var list = element('div', 'mobile-card-list' + (page === 'documents' ? ' mobile-doc-grid' : ''));
     list.setAttribute('role', 'list');
+    // Newest first: show calm day headers ("Vandaag", "Gisteren", ...) like a bank app.
+    var dayOf = function (item) { return String((page === 'invoices' ? item.issueDate : item.date) || '').slice(0, 10); };
+    var days = items.map(dayOf);
+    var grouped = items.length > 1 && days.every(function (d, i) { return /^\d{4}-\d{2}-\d{2}$/.test(d) && (i === 0 || d <= days[i - 1]); });
+    var lastGroup = '';
     items.forEach(function (item) {
       var entry;
+      if (grouped) {
+        var label = page === 'documents' ? monthGroupLabel(dayOf(item)) : dayGroupLabel(dayOf(item));
+        if (label !== lastGroup) {
+          var header = element('div', 'mobile-card-group', label);
+          header.setAttribute('role', 'listitem');
+          list.append(header);
+          lastGroup = label;
+        }
+      }
       if (page === 'invoices') {
         entry = row(getContact(item.customerId).name || 'Klant', money(invoiceGross(item)),
           (item.number || 'Concept') + ' · ' + (invoiceEffectiveStatus(item)==='paid' ? ((typeof invoicePaymentSummary==='function' && invoicePaymentSummary(item)) || dateNL(item.issueDate)) : 'Vervalt ' + dateNL(item.dueDate)),
           statusBadge(invoiceEffectiveStatus(item)), function () { viewInvoice(item.id); }, null,
           typeof partyAvatarHtml === 'function' ? partyAvatarHtml(getContact(item.customerId).name, typeof partyLogoDomain === 'function' ? partyLogoDomain(getContact(item.customerId)) : '') : '');
+        // 63. Money coming in: "+ € x" in green (credit notes stay as they are).
+        if (item.kind !== 'credit' && invoiceGross(item) > 0) {
+          var invoiceValue = entry.querySelector('.mobile-card-value');
+          if (invoiceValue) { invoiceValue.textContent = '+ ' + invoiceValue.textContent; invoiceValue.classList.add('money-positive'); }
+        }
         var actions = button('', function () { invoiceActions(item.id); }, 'icon-btn');
         actions.innerHTML = icon('i-more');
         actions.setAttribute('aria-label', 'Factuuracties voor ' + (item.number || 'concept'));
         entry.lastChild.append(actions);
+        var paidPart = typeof invoicePaidAmount === 'function' ? invoicePaidAmount(item) : 0, gross = invoiceGross(item);
+        if (paidPart > 0.02 && gross - paidPart > 0.02) {
+          // Partly paid: "€ x van € y binnen" with a thin bar.
+          metadata(entry.firstChild, money(paidPart) + ' van ' + money(gross) + ' binnen');
+          var bar = element('span', 'mobile-paid-bar');
+          bar.setAttribute('aria-hidden', 'true');
+          var fill = element('i');
+          fill.style.width = Math.min(100, Math.round(paidPart / gross * 100)) + '%';
+          bar.append(fill);
+          entry.firstChild.append(bar);
+        }
       } else if (page === 'expenses') {
         entry = row(item.vendor || 'Leverancier', money(expenseGross(item)), dateNL(item.date) + ' · ' + (item.category || 'Categorie controleren'),
           '', function () { expenseActions(item.id); }, null,
@@ -108,9 +174,10 @@
         metadata(entry.firstChild, 'Btw ' + expenseVatRateLabel(item));
       } else if (page === 'documents') {
         var docLink = typeof listLinkedDocumentInfo === 'function' && item.linkedId ? listLinkedDocumentInfo(item) : null;
-        entry = row(item.name || 'Document', null, [dateNL(item.date), typeof documentTypeLabel === 'function' ? documentTypeLabel(item.type) : (item.type || 'Document')].join(' · '), documentStatus(item),
-          documentOpenAction(item));
-        if (docLink) metadata(entry.firstChild, [docLink.party, docLink.number].filter(Boolean).join(' · '));
+        var party = docLink && docLink.party ? String(docLink.party) : '';
+        entry = row(party || item.name || 'Document', documentAmount(item), party ? item.name || 'Document' : [dateNL(item.date), typeof documentTypeLabel === 'function' ? documentTypeLabel(item.type) : (item.type || 'Document')].join(' · '), documentStatus(item),
+          documentOpenAction(item), null, documentThumbHtml(item));
+        if (party) metadata(entry.firstChild, dateNL(item.date));
         var originalRow = Array.from(table.querySelectorAll('tbody tr')).find(function (_, index) { return items[index] === item; });
         var originalActions = originalRow && originalRow.lastElementChild;
         if (originalActions) {

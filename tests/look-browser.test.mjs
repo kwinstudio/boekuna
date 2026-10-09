@@ -1,5 +1,6 @@
 // Calm look (look.js/.css + app markup): greeting, smaller cents, initials/logo and cost icons,
-// status dots, the all-done moment and friendly empty lists. Runs in Chromium and WebKit.
+// status dots, the all-done moment and friendly empty lists, plus round 2 (period buttons, tiles,
+// round Nieuw button, day headers, partly paid bar). Runs in Chromium and WebKit.
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
@@ -85,6 +86,87 @@ try{
   assert.equal(await page.locator('.dashboard-page-head .page-status').innerText(),'Alles loopt.');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth),0);
   await context.close();
+
+  // Round 2 on a phone: period buttons (8), overview tiles in style C with the VAT deadline (12),
+  // the round Nieuw button (14), day headers (9), partly paid bar (10) and "+ €" for money coming in (63).
+  {
+    const {context,page}=await openApp(390,844);
+    const seg=page.locator('.dashboard-page-head .period-seg');
+    assert.deepEqual((await seg.locator('.period-seg-btn').allTextContents()).map(s=>s.trim()),['Week','Maand','Kwartaal','Jaar','Alles']);
+    await seg.getByRole('button',{name:'Jaar',exact:true}).click();
+    await page.locator('.dashboard-page-head .period-seg-btn.on',{hasText:'Jaar'}).waitFor();
+    assert.equal(await page.locator('.dashboard-page-head .period-seg-btn',{hasText:'Jaar'}).getAttribute('aria-pressed'),'true');
+    const head=await page.locator('.dashboard-page-head').evaluate(el=>({title:el.querySelector('h1').getBoundingClientRect().bottom,seg:el.querySelector('.period-seg').getBoundingClientRect()}));
+    assert.ok(head.seg.top>=head.title-2,'Period buttons sit under the greeting on a phone');
+    assert.equal(await page.locator('.dashboard-kpi .kpi-bars rect').count(),6,'Omzet shows six small month bars');
+    assert.equal(await page.locator('.dashboard-kpi .kpi-ring').count(),1,'Kosten shows a small ring');
+    assert.match(await page.locator('.dashboard-kpi .kpi-ring-legend').innerText(),/Reiskosten/);
+    assert.equal(await page.locator('.dashboard-kpi .kpi-share').count(),1,'Nog te ontvangen shows a thin bar');
+    assert.match(await page.locator('.dashboard-kpi .kpi-deadline').innerText(),/^Aangifte Q[1-4] vóór \d{1,2} [a-z]+ · (vandaag|nog 1 dag|nog \d+ dagen)$/);
+    const fab=await page.locator('#quickNew').evaluate(el=>{const r=el.getBoundingClientRect(),c=getComputedStyle(el);return {right:innerWidth-r.right,bottom:innerHeight-r.bottom,w:r.width,h:r.height,position:c.position}});
+    assert.equal(fab.position,'fixed');
+    assert.ok(fab.w===56&&fab.h===56&&Math.abs(fab.right-16)<=1&&fab.bottom>=80,'Nieuw is a round button bottom-right: '+JSON.stringify(fab));
+    await page.evaluate(()=>{state.invoices[0].payments=[{id:'p1',date:state.invoices[0].issueDate,amount:300,method:'bank'}];navigate('invoices')});
+    await page.locator('.mobile-card-list .mobile-card-group').first().waitFor();
+    assert.deepEqual(await page.locator('.mobile-card-list .mobile-card-group').allTextContents(),['Vandaag']);
+    const partly=page.locator('.mobile-card-row',{hasText:'Bakkerij de Vries'});
+    assert.match(await partly.innerText(),/€\s?300,00 van €\s?1\.452,00 binnen/);
+    assert.equal(await partly.locator('.mobile-paid-bar i').count(),1);
+    assert.match(await partly.locator('.mobile-card-value').textContent(),/^\+ €\s?1\.452,00$/);
+    assert.ok(await partly.locator('.mobile-card-value.money-positive').count()===1);
+    await page.evaluate(()=>navigate('settings'));
+    assert.notEqual(await page.locator('#quickNew').evaluate(el=>getComputedStyle(el).position),'fixed','No floating button over the settings switches');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth),0);
+    await context.close();
+  }
+
+  // Buttons on a phone: quick buttons (45), delete with undo (42), busy button (41), Alles / Een deel (48),
+  // copy (49), send channels (50), round back button (51) and the error under the field itself (61).
+  {
+    const {context,page}=await openApp(390,844);
+    assert.deepEqual((await page.locator('.dashboard-quick-btn').allTextContents()).map(s=>s.trim()),['Scan','Factuur','Rit','Vraag']);
+    await page.evaluate(()=>{const day=new Date().toISOString().slice(0,10);state.invoices.push({id:'dq',number:'CONCEPT-1',customerId:'c1',status:'draft',kind:'invoice',issueDate:day,dueDate:day,lines:[{desc:'Fictief',qty:1,unit:10,vat:21}],payments:[]});deleteInvoice('dq')});
+    assert.equal(await page.evaluate(()=>state.invoices.some(i=>i.id==='dq')),false,'A draft is deleted at once');
+    await page.locator('#toastRoot .toast-undo .toast-action',{hasText:'Ongedaan maken'}).click();
+    assert.equal(await page.evaluate(()=>state.invoices.some(i=>i.id==='dq')),true,'Ongedaan maken brings it back');
+    await page.evaluate(()=>{window.__calls=0;window.syncOfflineDrafts=function(){window.__calls++;return new Promise(r=>setTimeout(r,900))};boekunaBusy.wrap('syncOfflineDrafts');modal('Test','<p>Test</p>','<button class="btn primary" id="slowBtn" onclick="syncOfflineDrafts()">Opslaan</button>')});
+    await page.locator('#slowBtn').dblclick();
+    await page.locator('#slowBtn.is-busy').waitFor();
+    assert.equal(await page.locator('#slowBtn').getAttribute('aria-busy'),'true');
+    assert.equal(await page.evaluate(()=>window.__calls),1,'A second tap while busy does nothing');
+    await page.locator('#slowBtn:not(.is-busy)').waitFor();
+    assert.equal(await page.locator('#slowBtn').isEnabled(),true);
+    await page.evaluate(()=>{closeModal();registerPayment('i1')});
+    await page.locator('.payment-share-btn',{hasText:'Een deel'}).click();
+    assert.equal(await page.locator('#paymentAmount').inputValue(),'');
+    await page.locator('#paymentAmount').fill('20');
+    await page.locator('.payment-share-btn',{hasText:'Alles'}).click();
+    assert.equal(await page.locator('#paymentAmount').inputValue(),'1452.00');
+    assert.equal(await page.locator('.payment-share-btn.on').innerText(),'Alles');
+    await page.evaluate(()=>{closeModal();viewInvoice('i1')});
+    assert.deepEqual(await page.locator('.invoice-copy-strip .copy-chip-label').allTextContents(),['Factuurnummer','IBAN']);
+    if(browserName==='chromium'){
+      await context.grantPermissions(['clipboard-read','clipboard-write'],{origin:url});
+      await page.locator('.copy-chip-btn').last().click();
+      await page.locator('.copy-chip-btn.is-copied',{hasText:'Gekopieerd'}).waitFor();
+      assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),'NL91ABNA0417164300');
+    }
+    await page.evaluate(()=>{closeModal();const i=state.invoices.find(x=>x.id==='i1');i.supplyDate=i.issueDate;openInvoiceEmailShare('i1')});
+    await page.locator('.send-channels').waitFor();
+    assert.deepEqual((await page.locator('.send-channel').allTextContents()).map(s=>s.trim()),['Mail','WhatsApp','Kopiëren']);
+    await page.evaluate(()=>{closeModal();navigate('settings')});
+    await page.locator('.settings-center-row[data-settings-open="app"]').click();
+    const back=await page.locator('#settings-panel-app .settings-center-back').evaluate(el=>{const r=el.getBoundingClientRect();return {w:r.width,h:r.height,radius:getComputedStyle(el).borderRadius}});
+    assert.ok(back.w===44&&back.h===44&&back.radius==='50%','Back is a round 44px button: '+JSON.stringify(back));
+    await page.evaluate(()=>newContact());
+    await page.locator('#modalRoot .modal-foot .btn.primary').click();
+    await page.locator('#modalRoot .field.has-error .field-error-text',{hasText:'Vul dit in.'}).first().waitFor();
+    const invalid=page.locator('#modalRoot [aria-invalid="true"]').first();
+    await invalid.fill('Nieuwe klant BV');
+    assert.equal(await page.locator('#modalRoot .field.has-error').count(),0,'The error goes away once it is filled in');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth),0);
+    await context.close();
+  }
 
   // Desktop table: avatar next to the customer, cents in the amount cells.
   {
