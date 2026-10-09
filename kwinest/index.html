@@ -2023,7 +2023,7 @@ img.bookuna-logo-icon,
     #mainApp .page-head h1{font-size:30px!important}
     #mainApp .page-actions{width:100%;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important}
     #mainApp .page-actions .btn{justify-content:center!important;width:100%!important}
-    #mainApp .dashboard-page-head{display:flex!important;flex-direction:row!important;align-items:flex-end!important;min-width:0}#mainApp .dashboard-page-head>div{min-width:0;flex:1}#mainApp .dashboard-page-head .page-status{overflow-wrap:anywhere;word-break:break-word}#mainApp .dashboard-page-head .period-chip{flex:0 0 auto}
+    #mainApp .dashboard-page-head{display:flex!important;flex-direction:row!important;align-items:flex-end!important;min-width:0}#mainApp .dashboard-page-head>div{min-width:0;flex:1}#mainApp .dashboard-page-head .page-status{overflow-wrap:anywhere;word-break:break-word}#mainApp .dashboard-page-head h1{overflow-wrap:anywhere;word-break:break-word}#mainApp .dashboard-page-head .period-chip{flex:0 0 auto}
     #mainApp .dashboard-kpis{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}
     #mainApp .metric{min-height:132px!important;padding:16px!important}#mainApp .metric-value{font-size:26px!important}#mainApp .metric-icon{width:30px;height:30px}
     #mainApp .dashboard-main-grid{display:grid!important;grid-template-columns:1fr!important;gap:10px!important;margin-top:10px!important}#mainApp .dashboard-attention{order:-1}
@@ -3526,6 +3526,40 @@ function inQuarter(date,q,year=currentBookYear()){const d=new Date(date+'T12:00:
 function currentQuarter(){return Math.min(4,Math.ceil((new Date().getMonth()+1)/3))}
 function getContact(id){return state.contacts.find(c=>c.id===id)||{name:'Onbekende relatie',email:'',address:'',postal:'',city:''}}
 function icon(id){return `<svg class="icon"><use href="#${id}"/></svg>`}
+// Rustige look: initials for a customer or shop, and one line icon per kind of cost.
+function partyInitials(name){const words=String(name||'').replace(/[^\p{L}\p{N}\s&-]/gu,' ').split(/\s+/).filter(w=>w&&!/^(b\.?v|bv|v\.?o\.?f|vof|holding|de|het|van|der|den|en|&)$/i.test(w));if(!words.length)return '?';const first=[...words[0]],last=[...words[words.length-1]];return (words.length>1?first[0]+last[0]:first.slice(0,2).join('')).toUpperCase()}
+// A logo only comes from the relation's own website (no logo service), so no customer data goes to a third party.
+const FREE_MAIL_DOMAINS=/^(gmail|googlemail|hotmail|outlook|live|msn|icloud|me|mac|yahoo|ymail|aol|proton|protonmail|pm|gmx|ziggo|kpn|kpnmail|planet|home|hetnet|xs4all|chello|zeelandnet|casema|quicknet|upcmail|telfort|tele2|online|caiway|kpnplanet|mail|web)\./i;
+function partyLogoDomain(contact){
+ const site=String(contact?.website||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').split(/[/?#]/)[0];
+ if(/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(site))return site;
+ const mail=String(contact?.email||'').trim().toLowerCase().split('@')[1]||'';
+ return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(mail)&&!FREE_MAIL_DOMAINS.test(mail)?mail:''
+}
+const partyLogoState=new Map();
+function partyLogoSources(domain){return ['https://'+domain+'/apple-touch-icon.png','https://www.'+domain+'/apple-touch-icon.png','https://'+domain+'/favicon.ico']}
+function partyLogoLoaded(img){const box=img.closest('.party-avatar');if(img.naturalWidth<24){partyLogoFailed(img);return}partyLogoState.set(img.dataset.domain,img.currentSrc||img.src);box?.classList.add('has-logo')}
+function partyLogoFailed(img){const next=Number(img.dataset.try||0)+1,sources=partyLogoSources(img.dataset.domain);if(next<sources.length){img.dataset.try=String(next);img.src=sources[next];return}partyLogoState.set(img.dataset.domain,false);img.remove()}
+function partyAvatarHtml(name,domain=''){
+ let h=0;for(const c of String(name||'').toLowerCase())h=(h*31+c.codePointAt(0))>>>0;
+ const known=domain?partyLogoState.get(domain):false,src=known||(known===undefined&&domain?partyLogoSources(domain)[0]:'');
+ const logo=src?'<img src="'+esc(src)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-domain="'+esc(domain)+'" onload="partyLogoLoaded(this)" onerror="partyLogoFailed(this)">':'';
+ return '<span class="party-avatar tone-'+(h%4)+(known?' has-logo':'')+'" aria-hidden="true"><span class="party-initials">'+esc(partyInitials(name))+'</span>'+logo+'</span>'
+}
+function contactByName(name){const n=String(name||'').trim().toLowerCase();return n?state.contacts.find(c=>String(c.name||'').trim().toLowerCase()===n):null}
+function expenseLeadHtml(e){const domain=partyLogoDomain(contactByName(e.vendor));return domain?partyAvatarHtml(e.vendor,domain):expenseCategoryIconHtml(e.category)}
+const EXPENSE_CATEGORY_ICONS=[
+ [/reis|vervoer|travel|brandstof|tank|parkeer|auto|trein/,'<path d="M5 16h14l-1.5-5.5A2 2 0 0 0 15.6 9H8.4a2 2 0 0 0-1.9 1.5z"/><path d="M5 16v2.5M19 16v2.5M3.5 12.5H5M19 12.5h1.5"/><circle cx="8" cy="16" r=".6"/><circle cx="16" cy="16" r=".6"/>'],
+ [/software|abonnement|subscription|hosting|licentie/,'<rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8.5 20h7M12 16.5V20"/>'],
+ [/telefoon|internet|mobiel|phone/,'<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M11 18h2"/>'],
+ [/marketing|reclame|advert/,'<path d="M4 10v4h3l6 4V6L7 10z"/><path d="M16.5 9.5a3.5 3.5 0 0 1 0 5"/>'],
+ [/represent|eten|drinken|lunch|diner|horeca/,'<path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16M8 3v3M11 3v3"/>'],
+ [/huisvest|huur|energie|kantoorruimte/,'<path d="M4 11l8-6.5 8 6.5"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/>'],
+ [/bank|factoring|platform|rente/,'<path d="M3.5 9.5L12 4.5l8.5 5"/><path d="M5 10v7M9.5 10v7M14.5 10v7M19 10v7M3.5 20h17"/>'],
+ [/inkoop|purchase|voorraad|materiaal/,'<path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/>'],
+ [/kantoor|office/,'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>']
+];
+function expenseCategoryIconHtml(category){const c=String(category||'').toLowerCase(),hit=EXPENSE_CATEGORY_ICONS.find(([rx])=>rx.test(c));const path=hit?hit[1]:'<path d="M6 2.5h12v19l-3-2-3 2-3-2-3 2z"/><path d="M9 7.5h6M9 11h6M9 14.5h3"/>';return '<span class="party-avatar category-icon" aria-hidden="true"><svg viewBox="0 0 24 24">'+path+'</svg></span>'}
 function statusBadge(s){const map={paid:['Betaald','good'],partial:['Deels betaald','warn'],sent:['Openstaand','info'],draft:['Concept',''],overdue:['Te laat','bad'],cancelled:['Geannuleerd',''],credit:['Credit','info'],credited:['Verrekend','good'],matched:['Gekoppeld','good'],unmatched:['Te verwerken','warn']};const x=map[s]||[s,''];return `<span class="badge ${x[1]}">${x[0]}</span>`}
 function defaultListState(name){return structuredClone(LIST_DEFAULTS[name]||{query:'',filters:{},sort:''})}
 function loadListState(){
@@ -3927,6 +3961,14 @@ function wireListToolbar(){
     const toolbar=content.querySelector('[data-list-page]');if(!toolbar)return;clearOneListFilter(toolbar.dataset.listPage,btn.dataset.listClearFilter);render()
   }))
 }
+const EMPTY_LIST_ICONS={
+ invoices:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
+ expenses:'<path d="M6 2.5h12v19l-3-2-3 2-3-2-3 2z"/><path d="M9 7.5h6M9 11h6M9 14.5h3"/>',
+ bank:'<path d="M3.5 9.5L12 4.5l8.5 5"/><path d="M5 10v7M9.5 10v7M14.5 10v7M19 10v7M3.5 20h17"/>',
+ contacts:'<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>',
+ documents:'<path d="M3.5 7a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>'
+};
+function emptyListIcon(name){return EMPTY_LIST_ICONS[name]?'<svg class="empty-icon" viewBox="0 0 24 24" aria-hidden="true">'+EMPTY_LIST_ICONS[name]+'</svg>':''}
 function listEmptyHtml(name,ctaHtml=''){
   const source=listSource(name),s=listPageState(name),ui=LIST_UI[name]||{},q=String(s.query||'').trim(),filtered=listHasActiveFilters(name);
   if(source.length===0){
@@ -3937,13 +3979,18 @@ function listEmptyHtml(name,ctaHtml=''){
     contacts:{title:'Je hebt nog geen relaties.',body:'Voeg een klant of leverancier toe zodra je die nodig hebt.',action:'<button type="button" class="btn primary" onclick="newContact()">Relatie toevoegen</button>'},
     documents:{title:'Je hebt nog geen documenten.',body:'Upload een bon of factuur. Boekuna leest hem uit en laat zien wat je moet controleren.',action:'<button type="button" class="btn primary" onclick="openDocumentUpload()">Document uploaden</button>'}
    }[name];
-   if(firstUse)return '<div class="empty beginner-empty-state"><strong>'+esc(firstUse.title)+'</strong><div class="help">'+esc(firstUse.body)+'</div><div class="beginner-empty-action">'+(ctaHtml||firstUse.action)+'</div></div>';
+   if(firstUse)return '<div class="empty beginner-empty-state">'+emptyListIcon(name)+'<strong>'+esc(firstUse.title)+'</strong><div class="help">'+esc(firstUse.body)+'</div><div class="beginner-empty-action">'+(ctaHtml||firstUse.action)+'</div></div>';
    return '<div class="empty"><strong>'+esc(ui.empty||('Nog geen '+(ui.entity||'gegevens')+'.'))+'</strong>'+(ctaHtml?'<div style="margin-top:12px">'+ctaHtml+'</div>':'')+'</div>'
   }
   if(q&&filtered)return '<div class="empty"><strong>Geen resultaten voor “'+esc(q)+'” binnen deze filters.</strong><div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="btn small" data-list-clear-search>Zoekopdracht wissen</button><button type="button" class="btn small" data-list-clear-filters>Filters wissen</button></div></div>';
   if(q)return '<div class="empty"><strong>Geen '+esc(ui.entity||'resultaten')+' gevonden voor “'+esc(q)+'”.</strong><div style="margin-top:12px"><button type="button" class="btn small" data-list-clear-search>Zoekopdracht wissen</button></div></div>';
   if(filtered)return '<div class="empty"><strong>Geen '+esc(ui.entity||'resultaten')+' binnen deze filters.</strong><div style="margin-top:12px"><button type="button" class="btn small" data-list-clear-filters>Filters wissen</button></div></div>';
-  return '<div class="empty"><strong>Geen '+esc(ui.entity||'resultaten')+' gevonden.</strong></div>'
+  const periodEmpty={
+   invoices:{title:'Nog geen facturen in deze periode',body:'Maak een factuur, Boekuna houdt bij wat nog openstaat.',action:'<button type="button" class="btn primary" onclick="newInvoice()">Factuur maken</button>'},
+   expenses:{title:'Nog geen kosten in deze periode',body:'Scan een bonnetje, de rest doet Boekuna.',action:'<button type="button" class="btn primary" onclick="openUploadSourcePicker(\'purchase\')">Bonnetje scannen</button>'}
+  }[name];
+  if(periodEmpty)return '<div class="empty">'+emptyListIcon(name)+'<strong>'+esc(periodEmpty.title)+'</strong><div class="help">'+esc(periodEmpty.body)+'</div><div class="empty-action">'+(ctaHtml||periodEmpty.action)+'</div></div>';
+  return '<div class="empty">'+emptyListIcon(name)+'<strong>Geen '+esc(ui.entity||'resultaten')+' gevonden.</strong></div>'
 }
 function toast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;document.getElementById('toastRoot').appendChild(el);setTimeout(()=>el.remove(),2600)}
 function modal(title,body,foot='',wide=false){const active=document.activeElement;if(active&&active!==document.body)modalReturnFocus=active;document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal ${wide?'wide':''}" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-head"><h3 id="modalTitle">${title}</h3><button class="modal-close" onclick="closeModal()" aria-label="Sluiten">×</button></div><div class="modal-body">${body}</div>${foot?`<div class="modal-foot">${foot}</div>`:''}</div></div>`;enhanceAppInterface(document.getElementById('modalRoot'));const dialog=document.querySelector('#modalRoot .modal');if(dialog?.querySelector('.quick-action-grid')){dialog.classList.add('quick-action-modal');dialog.closest('.modal-backdrop')?.classList.add('quick-action-backdrop')}requestAnimationFrame(()=>{if(!dialog?.isConnected||dialog.contains(document.activeElement))return;const first=dialog.querySelector('.modal-body input:not([type=hidden]),.modal-body select,.modal-body textarea,.modal-body button,.modal-close');first?.focus()})}
@@ -4020,7 +4067,7 @@ function renderAttentionCenter(openAmount){
   if(docLoading)body+='<div class="dashboard-attention-meta">Documentstatus bijwerken…</div>';else if(docError)body+='<div class="dashboard-attention-meta error">Documentstatus niet bijgewerkt. <button class="link-btn" type="button" onclick="retryDocumentAttentionFetch()">Opnieuw proberen</button></div>'
  }else if(docError)body='<div class="dashboard-attention-state error"><strong>Aandachtspunten niet bijgewerkt</strong><button class="btn small" type="button" onclick="retryDocumentAttentionFetch()">Opnieuw proberen</button></div>';
  else if(docLoading)body='<div class="dashboard-attention-state loading" aria-live="polite"><span class="dashboard-attention-skeleton"></span><strong>Aandachtspunten bijwerken…</strong></div>';
- else body='<div class="dashboard-attention-state success"><span aria-hidden="true">✓</span><div><strong>Alles bijgewerkt</strong>'+(extraHelpVisible()?'<span>Er zijn momenteel geen acties die je aandacht nodig hebben.</span>':'')+'</div></div>';
+ else body='<div class="dashboard-attention-state success"><span aria-hidden="true">✓</span><div><strong>Alles bijgewerkt</strong><span>Je bent helemaal bij. Geniet van je dag.</span></div></div>';
  const total=attentionRows().length,more=total>3?'<button class="link-btn dashboard-attention-all" type="button" onclick="navigate(\'control\')">Alle aandachtspunten ('+total+')</button>':'',openInfo=openAmount>.02?'<div><span>Openstaand</span><strong>'+money(openAmount)+'</strong></div>':'';
  const heading=total?'Nog te doen':'Aandachtspunten';
  return '<section class="dashboard-attention card" aria-labelledby="dashboardAttentionTitle"><div class="section-head"><h2 id="dashboardAttentionTitle">'+heading+'</h2><span class="badge '+(items.length?'neutral':'good')+'">'+(items.length?items.length:'Klaar')+'</span></div>'+body+((openInfo||more)?'<div class="dashboard-attention-footer">'+openInfo+more+'</div>':'')+'</section>'
@@ -4202,6 +4249,12 @@ function dashboardKpiViewModel(preset=String(sessionStorage.getItem('dashboardPe
  }
 }
 
+function dashboardStatusLine(kpi){
+ const overdue=Number(kpi.overdueInvoiceCount||0),open=Number(kpi.openInvoiceCount||0);
+ if(overdue>0)return overdue===1?'1 factuur is te laat.':overdue+' facturen zijn te laat.';
+ if(open>0)return open===1?'1 factuur wacht nog op betaling.':open+' facturen wachten nog op betaling.';
+ return 'Alles loopt.'
+}
 function renderDashboard(){
  const kpi=dashboardKpiViewModel(),period=kpi.period,sales=kpi.revenue,costs=kpi.costs,profit=kpi.profit,open=kpi.receivables,overdue=kpi.overdueInvoiceCount,vat=kpi.vatReserve;
  const chart=dashboardChartBuckets(period.preset),max=Math.max(1,...chart.flatMap(x=>[Math.abs(x.sales),Math.abs(x.costs),Math.abs(x.profit)])),isEmpty=!state.invoices.length&&!state.expenses.length&&!state.transactions.length&&!state.contacts.length,greeting=dashboardGreeting(),bankTotal=state.transactions.length,bankMatched=state.transactions.filter(t=>t.status==='matched').length,bankOpen=state.transactions.filter(t=>t.status==='unmatched').length,bankPct=bankTotal?Math.round(bankMatched/bankTotal*100):null;
@@ -4211,7 +4264,7 @@ function renderDashboard(){
   :`<div class="card dashboard-onboarding"><div class="section-head"><div><h2>Kies je eerste stap</h2><p>Start met iets dat je nu echt wilt vastleggen.</p></div></div><div class="dashboard-onboarding-actions"><button class="btn primary" onclick="newInvoice()">Eerste factuur maken</button><button class="btn" onclick="openUploadSourcePicker('purchase')">Bon of inkoopfactuur uploaden</button></div></div>`):'';
  const profileReminder=!isEmpty&&needsProfile?'<div class="notice info dashboard-profile-reminder"><strong>Bedrijfsgegevens aanvullen</strong><span>Nodig voordat je een definitieve factuur kunt opslaan.</span><button class="link-btn" onclick="navigate(\'profile\')">Aanvullen</button></div>':'';
  const periodControl=financialPeriodSelect('dashboardPeriod');
- return '<div class="page-head dashboard-page-head"><div><h1>Overzicht</h1><p class="page-status">'+esc(greeting.title)+(extraHelpVisible()?' · je administratie in één oogopslag':'')+'</p></div><div class="dashboard-period-control page-period-slot">'+periodControl+'</div></div>'+
+ return '<div class="page-head dashboard-page-head"><div><h1>'+esc(greeting.title)+'</h1><p class="page-status">'+esc(dashboardStatusLine(kpi))+'</p></div><div class="dashboard-period-control page-period-slot">'+periodControl+'</div></div>'+
  welcomeCard+profileReminder+
  '<div class="grid dashboard-kpis dashboard-kpis-v12">'+
   '<button type="button" class="card metric dashboard-kpi dashboard-kpi-profit kpi-tone-primary" onclick="navigate(\'reports\')"><div class="metric-head"><span class="dashboard-kpi-label">Winst</span><span class="metric-icon" aria-hidden="true">'+icon('i-chart')+'</span></div><div class="metric-value">'+money(profit)+'</div>'+optionalCopyHtml('Omzet minus kosten')+'</button>'+
@@ -4243,7 +4296,7 @@ function renderInvoices(){
   productKpi('Te laat',money(overdue),'','i-clock','error')
  ])}
  ${listToolbar('invoices')}
- <div class="card table-card workspace-table"><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-invoices"><thead><tr><th>Factuurnr.</th><th>Klant</th><th>Factuurdatum</th><th>Vervaldatum</th><th>Status</th><th class="right">Excl.</th><th class="right">Incl.</th><th></th></tr></thead><tbody>${list.length?list.map(i=>`<tr><td class="cell-nowrap"><button class="link-btn" onclick="viewInvoice('${i.id}')">${esc(i.number||'Concept')}</button><span class="financial-mobile-meta" aria-hidden="true"> · ${dateNL(i.issueDate)}</span></td><td class="cell-name"><strong title="${esc(getContact(i.customerId).name)}">${esc(getContact(i.customerId).name)}</strong></td><td class="cell-nowrap">${dateNL(i.issueDate)}</td><td class="cell-nowrap">${dateNL(i.dueDate)}</td><td class="cell-nowrap">${statusBadge(invoiceEffectiveStatus(i))}${i.kind!=='credit'&&invoicePaymentMethodsText(i)?`<div class="help invoice-payment-method">${esc(invoicePaymentMethodsText(i))}</div>`:''}</td><td class="right money cell-nowrap">${money(invoiceNet(i))}</td><td class="right money cell-nowrap">${money(invoiceGross(i))}</td><td class="right financial-actions cell-nowrap"><button class="icon-btn" aria-label="Factuuracties" aria-haspopup="dialog" onclick="invoiceActions('${i.id}')">${icon('i-more')}</button></td></tr>`).join(''):`<tr><td colspan="8">${listEmptyHtml('invoices')}</td></tr>`}</tbody></table></div></div>`
+ <div class="card table-card workspace-table"><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-invoices"><thead><tr><th>Factuurnr.</th><th>Klant</th><th>Factuurdatum</th><th>Vervaldatum</th><th>Status</th><th class="right">Excl.</th><th class="right">Incl.</th><th></th></tr></thead><tbody>${list.length?list.map(i=>`<tr><td class="cell-nowrap"><button class="link-btn" onclick="viewInvoice('${i.id}')">${esc(i.number||'Concept')}</button><span class="financial-mobile-meta" aria-hidden="true"> · ${dateNL(i.issueDate)}</span></td><td class="cell-name"><span class="cell-with-avatar">${partyAvatarHtml(getContact(i.customerId).name,partyLogoDomain(getContact(i.customerId)))}<strong title="${esc(getContact(i.customerId).name)}">${esc(getContact(i.customerId).name)}</strong></span></td><td class="cell-nowrap">${dateNL(i.issueDate)}</td><td class="cell-nowrap">${dateNL(i.dueDate)}</td><td class="cell-nowrap">${statusBadge(invoiceEffectiveStatus(i))}${i.kind!=='credit'&&invoicePaymentMethodsText(i)?`<div class="help invoice-payment-method">${esc(invoicePaymentMethodsText(i))}</div>`:''}</td><td class="right money cell-nowrap">${money(invoiceNet(i))}</td><td class="right money cell-nowrap">${money(invoiceGross(i))}</td><td class="right financial-actions cell-nowrap"><button class="icon-btn" aria-label="Factuuracties" aria-haspopup="dialog" onclick="invoiceActions('${i.id}')">${icon('i-more')}</button></td></tr>`).join(''):`<tr><td colspan="8">${listEmptyHtml('invoices')}</td></tr>`}</tbody></table></div></div>`
 }
 function renderExpenses(){
  syncFinancialListPeriod('expenses');
@@ -4257,7 +4310,7 @@ function renderExpenses(){
   ...(review?[productKpi('Te controleren',String(review),'','i-check','warning')]:[])
  ],review?'grid-3':'grid-2')}
  ${listToolbar('expenses')}
- <div class="card table-card workspace-table"><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-expenses"><thead><tr><th>Datum</th><th>Leverancier</th><th>Factuurnr.</th><th>Categorie</th><th>Betaalwijze</th><th>Btw</th><th class="right">Excl.</th><th class="right">Incl.</th><th></th></tr></thead><tbody>${list.length?list.map(e=>`<tr><td class="cell-nowrap">${dateNL(e.date)}</td><td class="cell-name"><strong title="${esc(e.vendor)}">${esc(e.vendor)}</strong><div class="help">${esc(e.notes||'')}</div></td><td class="cell-nowrap">${esc(e.invoiceNumber||'—')}</td><td>${esc(e.category)}</td><td class="cell-nowrap">${esc(e.paymentMethod||'—')}</td><td class="cell-nowrap">${esc(expenseVatRateLabel(e))}</td><td class="right money cell-nowrap">${money(e.exVat)}</td><td class="right money cell-nowrap">${money(expenseGross(e))}</td><td class="right financial-actions cell-nowrap"><button class="icon-btn" aria-label="Kostenacties" aria-haspopup="dialog" onclick="expenseActions('${e.id}')">${icon('i-more')}</button></td></tr>`).join(''):`<tr><td colspan="9">${listEmptyHtml('expenses')}</td></tr>`}</tbody></table></div></div>`
+ <div class="card table-card workspace-table"><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-expenses"><thead><tr><th>Datum</th><th>Leverancier</th><th>Factuurnr.</th><th>Categorie</th><th>Betaalwijze</th><th>Btw</th><th class="right">Excl.</th><th class="right">Incl.</th><th></th></tr></thead><tbody>${list.length?list.map(e=>`<tr><td class="cell-nowrap">${dateNL(e.date)}</td><td class="cell-name"><span class="cell-with-avatar">${expenseLeadHtml(e)}<span class="cell-with-avatar-text"><strong title="${esc(e.vendor)}">${esc(e.vendor)}</strong><div class="help">${esc(e.notes||'')}</div></span></span></td><td class="cell-nowrap">${esc(e.invoiceNumber||'—')}</td><td>${esc(e.category)}</td><td class="cell-nowrap">${esc(e.paymentMethod||'—')}</td><td class="cell-nowrap">${esc(expenseVatRateLabel(e))}</td><td class="right money cell-nowrap">${money(e.exVat)}</td><td class="right money cell-nowrap">${money(expenseGross(e))}</td><td class="right financial-actions cell-nowrap"><button class="icon-btn" aria-label="Kostenacties" aria-haspopup="dialog" onclick="expenseActions('${e.id}')">${icon('i-more')}</button></td></tr>`).join(''):`<tr><td colspan="9">${listEmptyHtml('expenses')}</td></tr>`}</tbody></table></div></div>`
 }
 function renderBank(){
  const list=getListRows('bank'),balance=list.reduce((sum,t)=>roundMoney(sum+Number(t.amount||0)),0),unmatched=list.filter(t=>t.status==='unmatched').length,matched=list.filter(t=>t.status==='matched').length,income=list.filter(t=>Number(t.amount||0)>0).reduce((sum,t)=>roundMoney(sum+Number(t.amount||0)),0),out=list.filter(t=>Number(t.amount||0)<0).reduce((sum,t)=>roundMoney(sum+Math.abs(Number(t.amount||0))),0);
