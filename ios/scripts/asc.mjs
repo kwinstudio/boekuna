@@ -12,8 +12,12 @@ const issuerId = (process.env.ASC_ISSUER_ID || '').trim();
 // Accept the .p8 as pasted text, with escaped newlines, or base64-encoded.
 function normalizeKey(raw) {
   let key = String(raw || '').trim().replace(/\\n/g, '\n');
-  if (key && !key.includes('PRIVATE KEY')) {
-    try { key = Buffer.from(key, 'base64').toString('utf8').trim(); } catch {}
+  if (key && !key.includes('PRIVATE KEY') && /^[A-Za-z0-9+/=\s]+$/.test(key)) {
+    const bytes = Buffer.from(key.replace(/\s+/g, ''), 'base64');
+    const text = bytes.toString('utf8').trim();
+    if (text.includes('PRIVATE KEY')) key = text;
+    // Only the base64 body was pasted, without the BEGIN/END lines: rewrap the DER key.
+    else if (bytes[0] === 0x30 && bytes.length > 64) key = `-----BEGIN PRIVATE KEY-----\n${bytes.toString('base64').match(/.{1,64}/g).join('\n')}\n-----END PRIVATE KEY-----`;
   }
   return key ? `${key}\n` : '';
 }
@@ -24,8 +28,15 @@ function fail(message) {
   process.exit(1);
 }
 
-if (!keyId || !issuerId || !p8.includes('PRIVATE KEY')) {
-  fail('ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8 (contents of the .p8 file) are required.');
+if (!keyId || !issuerId) fail('ASC_KEY_ID and ASC_ISSUER_ID are required.');
+if (!p8.includes('PRIVATE KEY')) {
+  // Describe the shape of the value without revealing it.
+  const raw = String(process.env.ASC_KEY_P8 || '');
+  const shape = `${raw.length} characters, ${raw.split(/\r?\n/).length} line(s), `
+    + (/^[A-Za-z0-9+/=\s]+$/.test(raw) ? 'only base64 characters' : 'not only base64 characters')
+    + (/^[A-Z0-9]{10}$/.test(raw.trim()) ? ', looks like a Key ID' : '')
+    + (/\.p8\s*$/i.test(raw) ? ', looks like a file name' : '');
+  fail(`ASC_KEY_P8 does not contain a .p8 private key (-----BEGIN PRIVATE KEY----- ... -----END PRIVATE KEY-----). Value: ${shape}.`);
 }
 
 const b64url = (value) => Buffer.from(value).toString('base64url');
