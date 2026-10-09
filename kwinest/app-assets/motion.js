@@ -171,7 +171,7 @@
     return b>a?'motion-dir-right':'motion-dir-left';
   }
 
-  // 1-4. A livelier overview: mini-chart, trend, paid ring and profit split.
+  // 1-4. A livelier overview, kept calm: one trend line on profit and a quiet mini-chart.
   function sumPeriod(from,to){
     var inRange=g('inRange'),invoiceNet=g('invoiceNet'),expenseCost=g('expenseAccountingCost'),status=g('invoiceEffectiveStatus'),st=g('state');
     if(!st||!inRange||!invoiceNet||!expenseCost||!status)return null;
@@ -216,18 +216,13 @@
     cards.forEach(function(card){
       if(card.querySelector('.motion-kpi-extra'))return;
       var label=(card.querySelector('.dashboard-kpi-label')||{}).textContent||'';
-      var kind=/winst/i.test(label)?'profit':/omzet/i.test(label)?'sales':/kosten/i.test(label)?'costs':/nog te ontvangen/i.test(label)?'open':'';
+      var kind=/winst/i.test(label)?'profit':/omzet/i.test(label)?'sales':/kosten/i.test(label)?'costs':'';
       if(!kind)return;
       var html='';
-      if(kind==='open'){
-        var paid=paidShare(range);
-        if(paid)html+='<div class="motion-ring-row"><svg class="motion-ring" viewBox="0 0 36 36" aria-hidden="true"><circle class="motion-ring-bg" cx="18" cy="18" r="15"/>'+(paid.share>0?'<circle class="motion-ring-fg" cx="18" cy="18" r="15" pathLength="100" style="stroke-dasharray:'+Math.round(paid.share*100)+' 100"/>':'')+'</svg><span>'+(paid.share>0?Math.round(paid.share*100)+'% van '+esc(paid.label)+' is betaald':'Nog niets betaald van '+esc(paid.label))+'</span></div>';
-      }else{
-        var color=kind==='sales'?'#63D471':kind==='costs'?'#E5534B':'#3B82F6';
-        if(previous)html+=trendHtml(kind,current[kind],previous[kind],PREVIOUS[range.preset]);
-        if(hasHistory)html+=sparkSvg(months.map(function(m){return m[kind]}),color);
-        if(kind==='profit'&&current&&current.sales>0)html+=splitHtml(current);
-      }
+      if(kind!=='profit'&&kind!=='sales'&&kind!=='costs')return;
+      var color=kind==='sales'?'#63D471':kind==='costs'?'#E5534B':'#3B82F6';
+      if(kind==='profit'&&previous)html+=trendHtml(kind,current[kind],previous[kind],PREVIOUS[range.preset]);
+      if(hasHistory)html+=sparkSvg(months.map(function(m){return m[kind]}),color);
       if(!html)return;
       var extra=document.createElement('div');extra.className='motion-kpi-extra'+(entered?' is-entering':'');extra.innerHTML=html;
       card.appendChild(extra);
@@ -240,20 +235,7 @@
     var good=kind==='costs'?diff<=0:diff>=0;
     var text=(before>0&&now>=0)?Math.round(Math.abs(diff)/before*100)+'%':euro.format(Math.abs(diff));
     if(diff===0)return '<span class="motion-trend is-flat">Gelijk aan '+esc(label)+'</span>';
-    return '<span class="motion-trend '+(good?'is-good':'is-bad')+'"><span aria-hidden="true">'+(diff>0?'▲':'▼')+'</span> <span class="motion-sr">'+(diff>0?'hoger, ':'lager, ')+'</span>'+text+' t.o.v. '+esc(label)+'</span>';
-  }
-  function splitHtml(c){
-    var costShare=Math.min(1,Math.max(0,c.costs/c.sales)),keep=Math.max(0,1-costShare);
-    var text=c.profit<0?'Je kosten zijn hoger dan je omzet':Math.round(keep*100)+'% hou je over · '+Math.round(costShare*100)+'% kosten';
-    return '<div class="motion-split" aria-hidden="true"><i class="keep" style="--w:'+(keep*100).toFixed(1)+'%"></i><i class="cost" style="--w:'+(costShare*100).toFixed(1)+'%"></i></div><span class="motion-split-text">'+esc(text)+'</span>';
-  }
-  function paidShare(range){
-    var st=g('state'),gross=g('invoiceGross'),paidFn=g('invoicePaidAmount'),status=g('invoiceEffectiveStatus'),inRange=g('inRange');
-    if(!st||!gross||!paidFn||!status||!inRange||!range||!range.from)return null;
-    var total=0,paid=0;
-    (st.invoices||[]).forEach(function(i){if(i.kind==='credit'||i.status==='draft'||status(i)==='cancelled'||!inRange(i.issueDate,range.from,range.to))return;total+=gross(i);paid+=Math.min(gross(i),paidFn(i))});
-    if(total<=0)return null;
-    return {share:Math.max(0,Math.min(1,paid/total)),label:'je facturen '+String(range.label||'deze periode').toLowerCase()};
+    return '<span class="motion-trend '+(good?'is-good':'is-bad')+'"><span class="motion-arrow" aria-hidden="true">'+(diff>0?'▲':'▼')+'</span><span class="motion-sr">'+(diff>0?'hoger, ':'lager, ')+'</span>'+text+' t.o.v. '+esc(label)+'</span>';
   }
 
   function onRender(content){
