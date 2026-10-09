@@ -86,7 +86,7 @@ jobs:
       - name: Verify existing App Store Connect app and pick the next build number
         id: asc
         if: steps.access.outputs.signing == 'true'
-        run: ASC_KEY_OUT="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8" node ios/scripts/asc.mjs
+        run: ASC_KEY_OUT="$RUNNER_TEMP/AuthKey.p8" node ios/scripts/asc.mjs
 
       - name: Archive (unsigned; signed during export)
         run: |
@@ -114,7 +114,7 @@ jobs:
       - name: Sign and export .ipa (automatic cloud signing via API key)
         if: steps.access.outputs.signing == 'true'
         run: |
-          KEY_PATH="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          KEY_PATH="$RUNNER_TEMP/AuthKey.p8"
           for KIND in IPA TestFlight; do
             cp "ios/ExportOptions-$KIND.plist" "$RUNNER_TEMP/ExportOptions-$KIND.plist"
             /usr/libexec/PlistBuddy -c "Add :teamID string ${{ steps.asc.outputs.team_id }}" "$RUNNER_TEMP/ExportOptions-$KIND.plist"
@@ -147,7 +147,7 @@ jobs:
       - name: Deliver to TestFlight
         if: steps.access.outputs.signing == 'true' && env.UPLOAD_TO_TESTFLIGHT == 'true'
         run: |
-          KEY_PATH="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          KEY_PATH="$RUNNER_TEMP/AuthKey.p8"
           xcodebuild -exportArchive \
             -archivePath "$BUILD_DIR/Boekuna.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions-TestFlight.plist" \
@@ -186,4 +186,4 @@ jobs:
 
       - name: Remove API key from runner
         if: always()
-        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8
+        run: rm -f "$RUNNER_TEMP"/AuthKey.p8

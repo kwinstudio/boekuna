@@ -29,6 +29,8 @@ function fail(message) {
 }
 
 if (!keyId || !issuerId) fail('ASC_KEY_ID and ASC_ISSUER_ID are required.');
+if (!/^[A-Z0-9]{10}$/.test(keyId)) fail(`ASC_KEY_ID must be the 10-character Key ID (letters and digits), got ${keyId.length} characters${/[a-z]/.test(keyId) ? ' with lowercase letters' : ''}${/[^A-Za-z0-9]/.test(keyId) ? ' with other symbols' : ''}.`);
+if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(issuerId)) fail(`ASC_ISSUER_ID must be the Issuer ID (a UUID like 69a6de7e-...), got ${issuerId.length} characters.`);
 if (!p8.includes('PRIVATE KEY')) {
   // Describe the shape of the value without revealing it.
   const raw = String(process.env.ASC_KEY_P8 || '');
