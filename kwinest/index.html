@@ -5011,6 +5011,8 @@ function fitFinancialCardValues(root){
  if(!root)return;
  const values=[...root.querySelectorAll('.metric .metric-value,.dashboard-summary-value')];
  for(const value of values){
+  // Measure the real size: with reduced motion every property gets a tiny transition, which would hide the new font size.
+  value.style.setProperty('transition','none');
   value.style.removeProperty('font-size');
   if(!value.clientWidth)continue;
   const start=Number.parseFloat(getComputedStyle(value).fontSize)||30,min=value.closest('.dashboard-kpi-profit')?18:15;

@@ -351,6 +351,8 @@ html[data-theme="dark"] #mainApp .look-note-text>span,html[data-theme="dark"] #m
 
 /* 17. One search for everything. */
 #mainApp .topbar .global-search-btn{width:40px;height:40px;min-height:40px;display:inline-grid;place-items:center;border-radius:12px}
+/* The search glass sits on a fractional pixel; its own layer keeps the circle's edge rendered the same every time. */
+#mainApp .topbar .global-search-btn .icon{will-change:transform}
 #modalRoot .global-search input[type="search"]{width:100%;min-height:48px;font-size:17px}
 #modalRoot #globalSearchResults{margin-top:12px;display:grid;gap:14px}
 #modalRoot .global-search-hint{margin:6px 2px;font-size:14px;color:var(--app-muted-strong,#5E6870)}
