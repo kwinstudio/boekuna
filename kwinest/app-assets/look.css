@@ -102,7 +102,7 @@ html[data-theme="dark"] #mainApp .kpi-ring .ring-track,html[data-theme="dark"] #
   #mainApp#mainApp .dashboard-kpis .dashboard-kpi:last-child:not(.dashboard-kpi-profit){grid-column:auto!important}
   #mainApp#mainApp .dashboard-kpis .dashboard-kpi:not(.dashboard-kpi-profit) .metric-icon{display:none!important}
 }
-@media(max-width:359px){#mainApp .kpi-ring svg{width:34px;height:34px;flex-basis:34px}}
+@media(max-width:359px){#mainApp .kpi-ring svg{width:34px;height:34px;flex-basis:34px}#mainApp .product-kpis.grid-2{grid-template-columns:1fr!important;grid-auto-rows:1fr}}
 
 /* 14. Phone: Nieuw is a round green button bottom-right, where your thumb is. */
 @media(max-width:820px){
