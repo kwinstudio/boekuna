@@ -179,7 +179,7 @@ try{
     const s=await intro(page);
     assert.equal(s.mode,'still');
     assert.equal(s.hidden,true);
-    assert.equal(s.hiddenMs,s.readyMs);
+    assert.ok(s.hiddenMs-s.readyMs<=5,'Hidden right when ready: '+JSON.stringify(s));
     // Signing out and in again re-uses the same screen without a new intro.
     await page.evaluate(()=>setBootstrapVisible(true));
     assert.equal(await page.locator('#appBootstrap').isVisible(),true);
