@@ -57,9 +57,9 @@ assert.equal(/(?:linear|radial)-gradient\(/i.test(ui),false,'Master-reference la
 assert.equal(/backdrop-filter:(?!none)/i.test(ui),false,'Master-reference layer must not introduce glassmorphism');
 assert.ok(ui.includes('@media(prefers-reduced-motion:reduce)'),'Reduced-motion handling missing');
 for(const label of ['Overzicht','Inkomsten','Kosten','Bank','Btw','Rapportages','Bonnetjes','Instellingen'])assert.ok(source.includes('>'+label+'</button>')||source.includes('>'+label+'</span>'),'Primary product navigation missing '+label);
-for(const label of ['Overzicht','Inkomsten','Kosten','Btw','Bonnen'])assert.ok(source.includes('<span>'+label+'</span>'),'Mobile reference navigation missing '+label);
-assert.equal((source.match(/class="mobile-bottom-nav-item/g)||[]).length,5,'Mobile navigation must expose exactly five primary destinations');
-assert.ok(source.includes("function mobilePrimarySection(p=page){return ['dashboard','invoices','expenses','vat','documents'].includes(p)?p:'more'}"),'Bonnen is a primary mobile destination; the rest lives in the menu');
+for(const label of ['Overzicht','Inkomsten','Kosten','Btw'])assert.ok(source.includes('<span>'+label+'</span>'),'Mobile reference navigation missing '+label);
+assert.equal((source.match(/class="mobile-bottom-nav-item/g)||[]).length,4,'Mobile navigation must expose exactly four primary destinations around the Nieuw button');
+assert.ok(source.includes("function mobilePrimarySection(p=page){return ['dashboard','invoices','expenses','vat'].includes(p)?p:'more'}"),'Four primary mobile destinations; Bonnen and the rest live in the menu');
 assert.ok(source.includes("invoices:'Inkomsten'"),'The user-facing invoices route title must be Inkomsten while the internal route stays invoices');
 assert.ok(source.includes("income:'Ontvangsten'"),'The bank income drill-down must be distinguished from the primary Inkomsten route');
 assert.ok(source.includes('data-page="invoices"'),'The internal invoices route must remain intact');
@@ -514,7 +514,7 @@ try{
         await page.setViewportSize({width,height:844});
         await page.evaluate(()=>navigate('dashboard'));
         await page.getByRole('heading',{name:'Overzicht'}).waitFor();
-        assert.deepEqual((await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents()).map(v=>v.trim()),['Overzicht','Inkomsten','Kosten','Btw','Bonnen']);
+        assert.deepEqual((await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents()).map(v=>v.trim()),['Overzicht','Inkomsten','Kosten','Btw']);
         const activeMobileNav=page.locator('#mobileBottomNav .mobile-bottom-nav-item.active[aria-current="page"]');
         await page.waitForFunction(()=>getComputedStyle(document.querySelector('#mobileBottomNav .mobile-bottom-nav-item.active[aria-current="page"]')).backgroundColor==='rgb(236, 250, 238)');
         const activeMobileStyle=await activeMobileNav.evaluate(el=>{const s=getComputedStyle(el);return {background:s.backgroundColor,color:s.color,boxShadow:s.boxShadow,borderTopColor:s.borderTopColor,borderTopWidth:s.borderTopWidth,fontWeight:s.fontWeight}});

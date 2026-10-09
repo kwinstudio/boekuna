@@ -41,23 +41,6 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
 })();
 
-/* 14. The round Nieuw button only floats on the pages where you add things; settings and reports keep their own controls free. */
-(function(){
-  'use strict';
-  var FAB_PAGES={dashboard:1,invoices:1,expenses:1,documents:1,bank:1,contacts:1,income:1,outgoings:1};
-  function sync(){
-    var app=document.getElementById('mainApp');if(!app)return;
-    var current='';try{current=typeof page!=='undefined'?String(page):''}catch(e){}
-    if(FAB_PAGES[current])app.setAttribute('data-fab','');else app.removeAttribute('data-fab');
-  }
-  function install(){
-    var content=document.getElementById('content');
-    if(!content)return;
-    sync();
-    new MutationObserver(sync).observe(content,{childList:true});
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
-})();
 
 /* 41. A button that starts something slow shows a small spinner and can't be pressed twice.
    Wraps the app's own async actions; the button is the one just clicked (or the form's submit button). */

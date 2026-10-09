@@ -293,7 +293,7 @@
   }
   function flyToDocuments(){
     if(reduced.matches)return;
-    var target=document.querySelector(phone.matches?'#mobileBottomNav [data-mobile-page="documents"]':'.nav-item[data-page="documents"]');
+    var target=document.querySelector(phone.matches?'#mobileMenu':'.nav-item[data-page="documents"]');
     if(!target)return;
     var t=target.getBoundingClientRect();if(!t.width)return;
     var chip=document.createElement('div');chip.className='motion-fly';chip.setAttribute('aria-hidden','true');

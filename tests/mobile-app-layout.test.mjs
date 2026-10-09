@@ -20,8 +20,9 @@ function replaceLast(source,needle,replacement){
   return source.slice(0,i)+replacement+source.slice(i+needle.length);
 }
 
-assert.equal((original.match(/class="mobile-bottom-nav-item/g)||[]).length,5,'Mobile bottom navigation must contain exactly five destinations');
-for(const label of ['Overzicht','Inkomsten','Kosten','Btw','Bonnen'])assert.match(original,new RegExp('<span>'+label+'</span>'),'Missing mobile nav label '+label);
+assert.equal((original.match(/class="mobile-bottom-nav-item/g)||[]).length,4,'Mobile bottom navigation must contain exactly four destinations around the Nieuw button');
+assert.equal((original.match(/class="mobile-bottom-nav-gap"/g)||[]).length,1,'The bottom bar keeps one middle slot for the round Nieuw button');
+for(const label of ['Overzicht','Inkomsten','Kosten','Btw'])assert.match(original,new RegExp('<span>'+label+'</span>'),'Missing mobile nav label '+label);
 
 const logoutSource=original.slice(original.indexOf('async function logoutUser'),original.indexOf('async function requireMfaForUser'));
 assert.match(logoutSource,/try\{await syncCloudStateNow\(\)\}catch/,'Final sync must be isolated from logout');
@@ -104,7 +105,7 @@ try{
   assert.equal(pageErrors.length,0,'Mobile dashboard must load without JavaScript errors: '+pageErrors.join(' | '));
 
   const navLabels=await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents();
-  assert.deepEqual(navLabels.map(v=>v.trim()),['Overzicht','Inkomsten','Kosten','Btw','Bonnen']);
+  assert.deepEqual(navLabels.map(v=>v.trim()),['Overzicht','Inkomsten','Kosten','Btw']);
   assert.notEqual(await page.locator('#mobileBottomNav').evaluate(el=>getComputedStyle(el).display),'none','Bottom navigation must be visible on mobile');
   assert.equal(await page.locator('[data-mobile-page="dashboard"]').getAttribute('aria-current'),'page');
 
@@ -229,9 +230,11 @@ try{
   await page.waitForFunction(()=>document.activeElement?.id==='mobileMenu');
   assert.equal(await page.locator('#mobileMenu').getAttribute('aria-expanded'),'false','Escape close must restore trigger state');
 
-  // Bonnen sits in the bottom bar; everything else is reachable from the menu at the top left.
-  await page.locator('#mobileBottomNav [data-mobile-page="documents"]').click();
-  assert.equal(await page.locator('#mobileBottomNav [data-mobile-page="documents"]').getAttribute('aria-current'),'page','Bonnen is a direct bottom nav destination');
+  // Nieuw sits in the middle of the bottom bar; Bonnen and everything else is reachable from the menu at the top left.
+  assert.equal(await page.locator('#mobileBottomNav [data-mobile-page="documents"]').count(),0,'Bonnen moved from the bottom bar to the menu');
+  assert.equal(await page.locator('#mobileBottomNav > *').nth(2).getAttribute('class'),'mobile-bottom-nav-gap','The middle of the bottom bar is kept free for the round Nieuw button (styled in look.css)');
+  await page.evaluate(async()=>{await navigate('documents')});
+  assert.equal(await page.locator('#mobileBottomNav [aria-current="page"]').count(),0,'Bonnen highlights no bottom nav item');
   await page.evaluate(async()=>{await navigate('settings')});
   assert.equal(await page.locator('#mobileBottomNav [aria-current="page"]').count(),0,'Secondary screens highlight no bottom nav item');
   await page.evaluate(async()=>{await navigate('dashboard')});

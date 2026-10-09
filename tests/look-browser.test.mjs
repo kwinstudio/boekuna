@@ -105,7 +105,7 @@ try{
     assert.match(await page.locator('.dashboard-kpi .kpi-deadline').innerText(),/^Aangifte Q[1-4] vóór \d{1,2} [a-z]+ · (vandaag|nog 1 dag|nog \d+ dagen)$/);
     const fab=await page.locator('#quickNew').evaluate(el=>{const r=el.getBoundingClientRect(),c=getComputedStyle(el);return {right:innerWidth-r.right,bottom:innerHeight-r.bottom,w:r.width,h:r.height,position:c.position}});
     assert.equal(fab.position,'fixed');
-    assert.ok(fab.w===56&&fab.h===56&&Math.abs(fab.right-16)<=1&&fab.bottom>=80,'Nieuw is a round button bottom-right: '+JSON.stringify(fab));
+    assert.ok(fab.w===56&&fab.h===56&&Math.abs(fab.right-(390-56)/2)<=1&&fab.bottom>=20&&fab.bottom<=30,'Nieuw is a round button in the middle of the bottom bar: '+JSON.stringify(fab));
     await page.evaluate(()=>{state.invoices[0].payments=[{id:'p1',date:state.invoices[0].issueDate,amount:300,method:'bank'}];navigate('invoices')});
     await page.locator('.mobile-card-list .mobile-card-group').first().waitFor();
     assert.deepEqual(await page.locator('.mobile-card-list .mobile-card-group').allTextContents(),['Vandaag']);
@@ -115,7 +115,8 @@ try{
     assert.match(await partly.locator('.mobile-card-value').textContent(),/^\+ €\s?1\.452,00$/);
     assert.ok(await partly.locator('.mobile-card-value.money-positive').count()===1);
     await page.evaluate(()=>navigate('settings'));
-    assert.notEqual(await page.locator('#quickNew').evaluate(el=>getComputedStyle(el).position),'fixed','No floating button over the settings switches');
+    const bar=await page.locator('#mobileBottomNav').boundingBox(),plusBox=await page.locator('#quickNew').boundingBox();
+    assert.ok(plusBox.y+plusBox.height>bar.y+20,'On settings Nieuw sits in the bottom bar, not over the switches');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth),0);
     await context.close();
   }

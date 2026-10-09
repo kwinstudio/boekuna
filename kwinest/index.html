@@ -2443,9 +2443,9 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
 <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Hoofdnavigatie">
   <button class="mobile-bottom-nav-item" type="button" data-mobile-page="dashboard" aria-label="Overzicht"><svg class="icon"><use href="#i-home"/></svg><span>Overzicht</span></button>
   <button class="mobile-bottom-nav-item" type="button" data-mobile-page="invoices" aria-label="Inkomsten"><svg class="icon"><use href="#i-file"/></svg><span>Inkomsten</span></button>
+  <span class="mobile-bottom-nav-gap" aria-hidden="true"></span>
   <button class="mobile-bottom-nav-item" type="button" data-mobile-page="expenses" aria-label="Kosten"><svg class="icon"><use href="#i-receipt"/></svg><span>Kosten</span></button>
   <button class="mobile-bottom-nav-item" type="button" data-mobile-page="vat" aria-label="Btw"><svg class="icon"><use href="#i-tax"/></svg><span>Btw</span></button>
-  <button class="mobile-bottom-nav-item" type="button" data-mobile-page="documents" aria-label="Bonnen"><svg class="icon"><use href="#i-folder"/></svg><span>Bonnen</span></button>
 </nav>
 <div id="modalRoot"></div><div class="toast-wrap" id="toastRoot"></div>
 <input class="hidden" type="file" id="invoicePdfFile" multiple accept="image/*,application/pdf,.pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,text/csv,application/csv,.csv" />
@@ -4024,7 +4024,7 @@ function modal(title,body,foot='',wide=false){const active=document.activeElemen
 function closeModal(){if(reportPreviewHistory){const token=reportPreviewHistory;reportPreviewHistory=null;if(history.state?.boekunaReportPreview===token)history.back()}if(documentProcessingSession&&!documentProcessingSession.persistent&&activeDocumentTransfers>0)documentProcessingSession.modalHidden=true;else if(documentProcessingSession&&!documentProcessingSession.persistent)cleanupDocumentProcessingSession();document.getElementById('modalRoot').innerHTML='';const el=modalReturnFocus;modalReturnFocus=null;if(el?.setAttribute)el.setAttribute('aria-expanded','false');if(el?.isConnected)setTimeout(()=>el.focus(),0)}
 function download(name,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
 
-function mobilePrimarySection(p=page){return ['dashboard','invoices','expenses','vat','documents'].includes(p)?p:'more'}
+function mobilePrimarySection(p=page){return ['dashboard','invoices','expenses','vat'].includes(p)?p:'more'}
 function mobileDrawerFocusable(){const sidebar=document.getElementById('sidebar');if(!sidebar)return[];return [...sidebar.querySelectorAll('button:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])')].filter(el=>el.offsetParent!==null)}
 function mobileAccountName(){
  const meta=currentUser?.supabaseUser?.user_metadata||{},company=state.company||{};
