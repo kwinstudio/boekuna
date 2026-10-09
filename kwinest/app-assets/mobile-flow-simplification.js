@@ -8,7 +8,7 @@
   var invoiceResume=null;
   var nextInvoiceStep=null;
   var mobileIssueReviewRequested=false;
-  var DIRECT_FIELDS=['net','vatAmount','gross','vatRate','vatLines','currency','exchangeRateToEur','vatTreatmentChoice'];
+  var DIRECT_FIELDS=['reviewAmount','net','vatAmount','gross','vatRate','vatLines','currency','exchangeRateToEur','vatTreatmentChoice'];
 
   function node(tag,className,text){
     var el=document.createElement(tag);
@@ -315,7 +315,7 @@
     flow.querySelector('.mobile-single-issue-review')?.setAttribute('hidden','');
     flow.querySelectorAll('.mobile-single-issue-actions').forEach(function(el){el.remove()});
     var field=String(issue?.field||'');
-    var amountFields=['net','vatAmount','gross','vatRate','vatLines','currency','exchangeRateToEur','vatTreatmentChoice'];
+    var amountFields=['reviewAmount','net','vatAmount','gross','vatRate','vatLines','currency','exchangeRateToEur','vatTreatmentChoice'];
     var step=amountFields.includes(field)?2:1;
     if(typeof setDocumentReviewStep==='function'){
       setDocumentReviewStep(step);

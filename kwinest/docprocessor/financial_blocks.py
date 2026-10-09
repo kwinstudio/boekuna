@@ -11,7 +11,7 @@ MONEY_RE = re.compile(
 NET_RE = re.compile(
     r"\b(?:bedrag\s*(?:ex|excl)\.?\s*(?:(?:0|9|21)(?:[.,]0+)?\s*%\s*)?(?:btw|vat)|"
     r"totaal\s*(?:ex|excl\.?|exclusief)\s*(?:(?:0|9|21)(?:[.,]0+)?\s*%\s*)?(?:btw|vat)|"
-    r"total\s*excl\.?\s*vat|tax\s*exclusive|net\s*amount|subtotaal|subtotal|^\s*excl\.?)\b",
+    r"(?:total|amount)\s*(?:excl\.?|excluding|exclusive\s*of|before)\s*(?:vat|tax)|tax\s*exclusive|net\s*amount|subtotaal|subtotal|^\s*excl\.?)\b",
     re.I,
 )
 VAT_RE = re.compile(r"\b(?:btw|vat|tax)\b", re.I)
@@ -267,6 +267,13 @@ def parse_financial_blocks(raw_lines: list[str]) -> dict[str, Any]:
                 break
         if gross is not None and vat is None:
             vat = round(float(gross) - float(net), 2)
+        # A printed net and gross pin the VAT down. A VAT candidate that breaks
+        # net + VAT = gross was read from the wrong row (for example a repeated
+        # "Total excluding tax" line), so the difference wins.
+        if gross is not None and vat is not None and (_cents(net) or 0) + (_cents(vat) or 0) != _cents(gross):
+            derived = round(float(gross) - float(net), 2)
+            if 0 <= derived <= abs(float(gross)):
+                vat = derived
         if gross is None and vat is not None:
             gross = round(float(net) + float(vat), 2)
         if gross is None or vat is None:

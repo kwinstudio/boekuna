@@ -3,7 +3,7 @@ import re
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 
-NET_TOTAL_LABELS=["totaal excl. btw","totaal exclusief btw","bedrag ex btw","bedrag excl. btw","bedrag exclusief btw","total excl. vat","tax exclusive","net amount","netto bedrag","subtotaal","subtotal"]
+NET_TOTAL_LABELS=["totaal excl. btw","totaal exclusief btw","bedrag ex btw","bedrag excl. btw","bedrag exclusief btw","total excl. vat","total excluding tax","total excluding vat","tax exclusive","net amount","netto bedrag","subtotaal","subtotal"]
 VAT_TOTAL_LABELS=["totaal btw","btw totaal","vat total","tax amount","btw-bedrag","btw bedrag"]
 
 

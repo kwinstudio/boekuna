@@ -34,5 +34,7 @@ jobs:
           ns = runpy.run_path("tests/document-user-supplied-edge-regressions.test.py")
           ns["test_advance_payment_preserves_invoice_total_and_open_status"]()
           ns["test_foreign_twenty_percent_vat_is_not_silently_rewritten_to_dutch_rate"]()
+          ns["test_total_excluding_tax_row_is_not_read_as_vat_amount"]()
+          ns["test_table_header_is_never_a_party_name_and_own_issuer_means_sale"]()
           print("user-supplied document edge regressions: PASS")
           PY

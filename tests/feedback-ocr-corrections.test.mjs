@@ -66,8 +66,8 @@ try{
   await page.locator('[data-review-page="1"] [name="party"]').fill('Echte Leverancier BV');
   await page.locator('[data-review-page="1"] [name="issueDate"]').fill('2026-10-04');
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
-  await page.locator('[data-review-page="2"] [name="gross"]').fill('133,10');
-  await page.locator('[data-review-page="2"] [name="vatAmount"]').fill('23,10');
+  // Only the total is typed; at 21% Boekuna calculates 110,00 + 23,10.
+  await page.locator('[data-review-page="2"] [name="reviewAmount"]').fill('133,10');
   await page.waitForTimeout(300);
   await page.screenshot({path:shotDir+'/ocr-review-hint-'+browserName+'.png'});
   assert.equal(await page.evaluate(()=>__fb.inserts),0,'correcting alone sends nothing');

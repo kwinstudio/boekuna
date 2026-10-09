@@ -235,7 +235,73 @@ function confirmFinancialReviewAnchor(key){
   updateBeginnerReviewState()
 }
 
-function rateSelectValue(d){return d?.mixedRates||d?.vatRate==null?'':String(Number(d.vatRate))}
+function rateSelectValue(d){return d?.mixedRates||d?.vatRate==null||d?.vatRate===''||!Number.isFinite(Number(d.vatRate))?'':String(Number(d.vatRate))}
+// Simple amount entry: the user checks one amount (incl. or excl. VAT) and the VAT rate.
+// Boekuna derives net, VAT and gross from those two; documents with several VAT rates keep the detailed fields.
+function simpleAmountMode(d){return !!d&&!d.mixedRates&&!!document.querySelector('#pdfImportForm [data-simple-amount-entry]')}
+function simpleAmountInitial(d){
+  const grossC=cents(d?.gross),netC=cents(d?.net);
+  if(grossC==null&&netC!=null)return {basis:'excl',amount:netC};
+  return {basis:'incl',amount:grossC}
+}
+function simpleAmountValues(f){
+  const basis=f.querySelector('input[name="amountBasis"]:checked')?.value==='excl'?'excl':'incl';
+  const amountC=cents(f.elements.namedItem('reviewAmount')?.value),rateRaw=String(f.elements.namedItem('vatRate')?.value??'').trim(),rate=rateRaw===''?null:Number(rateRaw);
+  return {basis,amountC,rate:Number.isFinite(rate)?rate:null}
+}
+function updateSimpleAmountBreakdown(){
+  const el=document.getElementById('reviewAmountBreakdown'),f=document.getElementById('pdfImportForm'),d=pendingPdfImport?.parsed;if(!el||!f||!d)return;
+  const netC=cents(f.elements.namedItem('net')?.value),vatC=cents(f.elements.namedItem('vatAmount')?.value),grossC=cents(f.elements.namedItem('gross')?.value),{rate}=simpleAmountValues(f);
+  if(netC==null||vatC==null||grossC==null||netC+vatC!==grossC){el.hidden=true;el.innerHTML='';return}
+  const show=c=>esc(typeof sourceMoney==='function'?sourceMoney(c/100,d.currency||'EUR'):money(c/100));
+  el.hidden=false;
+  el.innerHTML='<div><span>Excl. btw</span><strong>'+show(netC)+'</strong></div><div><span>Btw'+(rate!=null?' '+esc(num(rate))+'%':'')+'</span><strong>'+show(vatC)+'</strong></div><div><span>Incl. btw</span><strong>'+show(grossC)+'</strong></div>'
+}
+// Fills the hidden net, VAT and gross fields. On opening, amounts from the document that already add up at the
+// chosen rate are kept as printed (a VAT amount can differ a cent from the calculation); otherwise they are recalculated.
+function applySimpleAmountEntry(changedKey=null){
+  const d=pendingPdfImport?.parsed,f=document.getElementById('pdfImportForm');if(!d||!f||!simpleAmountMode(d))return;
+  let {basis,amountC,rate}=simpleAmountValues(f);const anchor=basis==='excl'?'net':'gross';
+  const fields={net:f.elements.namedItem('net'),vatAmount:f.elements.namedItem('vatAmount'),gross:f.elements.namedItem('gross')};
+  if(!d.fieldProvenance||typeof d.fieldProvenance!=='object')d.fieldProvenance={};
+  const provenance=d.fieldProvenance,now=new Date().toISOString();
+  if(changedKey==='reviewAmount'||changedKey==='amountBasis')provenance[anchor]={source:'user',confirmed:true,confidence:null,confirmedAt:now};
+  if(changedKey==='vatRate'&&rate!=null)provenance.vatRate={source:'user',confirmed:true,confidence:null,confirmedAt:now};
+  d.vatRate=rate;
+  const clearDerived=()=>{
+    for(const [key,el] of Object.entries(fields)){const value=key===anchor&&amountC!=null?formatCents(amountC):'';if(el)el.value=value;d[key]=value===''?'':Number(value)}
+    updateSimpleAmountBreakdown()
+  };
+  if(amountC==null||typeof BookunaFinancialCorrection==='undefined')return clearDerived();
+  let printed=null;
+  if(!changedKey){
+    // The amount and the printed VAT decide; a net amount that does not add up is not trusted.
+    const g=cents(fields.gross?.value),v=cents(fields.vatAmount?.value),n=cents(fields.net?.value);
+    if(basis==='incl'&&g!=null&&v!=null&&g===amountC)printed={net:g-v,vatAmount:v,gross:g};
+    else if(basis==='excl'&&n!=null&&v!=null&&n===amountC)printed={net:n,vatAmount:v,gross:n+v};
+    if(printed&&!(rate!=null&&BookunaFinancialCorrection.candidateFitsRate(printed,rate,1))){
+      // A misread rate with a printed VAT amount that fits 9% or 21% exactly: the amounts win over the rate.
+      const inferred=BookunaFinancialCorrection.inferKnownRate(printed,BookunaFinancialCorrection.DEFAULT_RATES,1),rateMeta=provenance.vatRate||{};
+      const rateTrusted=(rateMeta.source==='user'&&rateMeta.confirmed)||Number(rateMeta.confidence??d.fieldConfidence?.vatRate??0)>=85;
+      const select=f.elements.namedItem('vatRate');
+      if(inferred!=null&&(rate==null||!rateTrusted)&&select){
+        select.value=String(inferred);rate=inferred;d.vatRate=inferred;
+        provenance.vatRate={source:'calculated',confirmed:false,confidence:null,derivedFrom:[anchor,'vatAmount'],calculatedAt:now}
+      }else printed=null
+    }
+  }
+  if(rate==null)return clearDerived();
+  const keepPrinted=!!printed;
+  const result=keepPrinted?printed:(basis==='excl'?BookunaFinancialCorrection.deriveFromNetRate(amountC,rate):BookunaFinancialCorrection.deriveFromGrossRate(amountC,rate));
+  if(!result){updateSimpleAmountBreakdown();return}
+  for(const key of ['net','vatAmount','gross']){
+    const changed=cents(fields[key]?.value)!==result[key];
+    if(fields[key])fields[key].value=formatCents(result[key]);d[key]=result[key]/100;
+    if(key!==anchor&&(!keepPrinted||changed))provenance[key]={source:'calculated',confirmed:false,confidence:null,derivedFrom:[anchor,'vatRate'],calculatedAt:now}
+  }
+  if(!keepPrinted&&typeof financialReviewEvent==='function')financialReviewEvent('financial_recalculation_applied',['net','vatAmount','gross'].filter(k=>k!==anchor));
+  updateSimpleAmountBreakdown()
+}
 function specialRateSelected(d){return !d?.mixedRates&&Number(d?.vatRate)===0}
 function mixedLineRow(line,index){
   const rate=Number(line?.rate);
@@ -323,6 +389,7 @@ function chooseZeroVat(){
   const rate=f.elements.namedItem('vatRate');if(rate)rate.value='0';
   d.vatRate=0;
   const vat=f.elements.namedItem('vatAmount');if(vat&&!String(vat.value||'').trim())vat.value='0.00';
+  applySimpleAmountEntry('vatRate');
   if(typeof syncFinancialReviewStateFromForm==='function')syncFinancialReviewStateFromForm('vatRate');
   specialVatPanel(false);updateBeginnerReviewState();if(typeof updateFinancialReviewPanel==='function')updateFinancialReviewPanel()
 }
@@ -353,6 +420,13 @@ function financialBlockingIssues(d){
     if(!value(key))issues.push({field:key,message:(LABELS[key]||key)+' ontbreekt.'})
   }
   const netC=cents(value('net')),vatC=cents(value('vatAmount')),grossC=cents(value('gross'));
+  if(simpleAmountMode(d)){
+    const amountC=cents(value('reviewAmount')),rateRaw=value('vatRate'),rate=rateRaw===''?null:Number(rateRaw);
+    if(amountC==null||amountC===0)issues.push({field:'reviewAmount',message:'Vul het totaalbedrag in.'});
+    else if(rate==null||!Number.isFinite(rate))issues.push({field:'vatRate',message:'Kies het btw-percentage.'});
+    else if(!NL_BOOKABLE_RATES.includes(rate)&&d?.accountingVatTreatment!=='review_required')issues.push({field:'vatRate',message:'Kies 21%, 9% of geen btw. Is dit buitenlandse btw? Kies dan bij btw "Buitenlandse btw".'});
+    else if(netC==null||vatC==null||grossC==null||netC+vatC!==grossC)issues.push({field:'reviewAmount',message:'Controleer het totaalbedrag.'});
+  }else{
   if(required.has('net')&&netC==null)issues.push({field:'net',message:'Controleer het bedrag excl. btw.'});
   if(required.has('vatAmount')&&vatC==null)issues.push({field:'vatAmount',message:'Controleer het btw-bedrag.'});
   if(required.has('gross')&&(grossC==null||grossC===0))issues.push({field:'gross',message:'Controleer het totaal.'});
@@ -366,6 +440,7 @@ function financialBlockingIssues(d){
     else if(typeof BookunaFinancialCorrection!=='undefined'&&!BookunaFinancialCorrection.candidateFitsRate({net:netC,vatAmount:vatC,gross:grossC},rate,1)){
       issues.push({field:d?.accountingVatTreatment==='review_required'?'vatRate':'vatAmount',message:d?.accountingVatTreatment==='review_required'?'Het btw-percentage past niet bij deze bedragen.':'Controleer het btw-bedrag op het document.'})
     }
+  }
   }
   if(d?.mixedRates){const mixed=mixedVatValidation();if(!mixed.ok)issues.push({field:mixed.field||'vatLines',message:mixed.message})}
   const duplicateEl=f.elements.namedItem('confirmDuplicate');
@@ -455,7 +530,7 @@ function updateBeginnerReviewState(){
     netEditor.hidden=!needsExplicitNet;netEditor.style.display=needsExplicitNet?'':'none'
   }
   const rateField=document.querySelector('[data-review-field="vatRate"]');
-  if(rateField&&!d.mixedRates){
+  if(rateField&&!d.mixedRates&&!simpleAmountMode(d)){
     const needsRate=amountIssues.some(x=>x.field==='vatRate')||d.accountingVatTreatment==='review_required';
     rateField.hidden=!needsRate;rateField.style.display=needsRate?'':'none'
   }
@@ -527,6 +602,7 @@ function applyTreatmentRate(){
   select.value=String(rate);d.vatRate=rate;
   if(!d.fieldProvenance||typeof d.fieldProvenance!=='object')d.fieldProvenance={};
   d.fieldProvenance.vatRate={source:'calculated',confirmed:false,confidence:null,derivedFrom:['net','vatAmount'],calculatedAt:new Date().toISOString()};
+  applySimpleAmountEntry();
   if(typeof syncFinancialReviewStateFromForm==='function')syncFinancialReviewStateFromForm('vatRate');
   const field=select.closest('[data-review-field]');if(field){field.hidden=false;field.style.display=''}
 }
@@ -546,6 +622,11 @@ function onGenericReviewInput(event){
     setDeferredFields(d,deferredFields(d).filter(x=>x!==key))
   }
   if(key==='vatTreatmentChoice')applyTreatmentRate();
+  if(simpleAmountMode(d)&&['reviewAmount','amountBasis','vatRate'].includes(key)){
+    applySimpleAmountEntry(key);
+    if(typeof syncFinancialReviewStateFromForm==='function')syncFinancialReviewStateFromForm(null);
+    updateForeignCurrencyPreview();updateBeginnerReviewState();return
+  }
   if(['net','vatAmount','gross','vatRate'].includes(key)&&typeof syncFinancialReviewStateFromForm==='function'){syncFinancialReviewStateFromForm(key);reconcileSimpleReviewAmounts(key)}
   if(typeof updateFinancialReviewPanel==='function'&&['net','vatAmount','gross','vatRate'].includes(key))updateFinancialReviewPanel();
   if(['currency','exchangeRateToEur','net','vatAmount','gross'].includes(key))updateForeignCurrencyPreview();
@@ -554,7 +635,7 @@ function onGenericReviewInput(event){
 function bindBeginnerReview(){
   const f=document.getElementById('pdfImportForm'),d=pendingPdfImport?.parsed;if(!f||!d)return;
   f.querySelectorAll('input,select,textarea').forEach(el=>{if(el.closest('#mixedVatRows'))return;el.addEventListener('input',onGenericReviewInput);el.addEventListener('change',onGenericReviewInput)});
-  if(d.mixedRates)renderMixedVatRows();else reconcileSimpleReviewAmounts();
+  if(d.mixedRates)renderMixedVatRows();else if(simpleAmountMode(d))applySimpleAmountEntry();else reconcileSimpleReviewAmounts();
   const financialPanel=document.getElementById('financialCorrectionPanel');
   if(financialPanel){
     const observer=new MutationObserver(()=>queueMicrotask(()=>updateBeginnerReviewState()));
@@ -810,8 +891,8 @@ function reviewWizardField(d,key,label,full=false){
   if(key==='vatAmount')return '<div class="'+cls+'" data-review-field="vatAmount"><label>'+safeLabel+'</label><input id="pdfImportVatAmount" name="vatAmount" inputmode="decimal" autocomplete="off" value="'+esc(d.vatAmount!==''&&d.vatAmount!=null?Number(d.vatAmount).toFixed(2):'')+'" required></div>';
   if(key==='gross')return '<div class="'+cls+'" data-review-field="gross"><label>'+safeLabel+'</label><input id="pdfImportGross" name="gross" inputmode="decimal" autocomplete="off" value="'+esc(d.gross!==''&&d.gross!=null?Number(d.gross).toFixed(2):'')+'" required></div>';
   if(key==='vatRate'){
-    const rate=rateSelectValue(d),special=d.vatRate!=null&&!NORMAL_RATES.includes(Number(d.vatRate));
-    return '<div class="'+cls+(d.mixedRates?' review-hidden-scalar':'')+'" data-review-field="vatRate"><label>'+safeLabel+'</label><select id="pdfImportVatRate" name="vatRate" '+(d.mixedRates?'disabled':'')+'><option value="">Kies</option><option value="21" '+(rate==='21'?'selected':'')+'>21%</option><option value="9" '+(rate==='9'?'selected':'')+'>9%</option>'+(special?'<option value="'+esc(String(d.vatRate))+'" selected>'+esc(String(d.vatRate))+'%</option>':'')+'<option value="0" '+(Number(d.vatRate)===0?'selected':'')+'>Geen btw / 0%</option></select>'+(Number(d.vatRate)===0?'<div class="help review-zero-vat-note">Geen btw (0%)</div>':'')+'</div>'
+    const rate=rateSelectValue(d),special=rate!==""&&!["0","9","21"].includes(rate);
+    return '<div class="'+cls+(d.mixedRates?' review-hidden-scalar':'')+'" data-review-field="vatRate"><label>'+safeLabel+'</label><select id="pdfImportVatRate" name="vatRate" '+(d.mixedRates?'disabled':'')+'><option value="">Kies</option><option value="21" '+(rate==='21'?'selected':'')+'>21%</option><option value="9" '+(rate==='9'?'selected':'')+'>9%</option>'+(special?'<option value="'+esc(String(d.vatRate))+'" selected>'+esc(String(d.vatRate))+'%</option>':'')+'<option value="0" '+(rate==='0'?'selected':'')+'>Geen btw / 0%</option></select>'+(rate==='0'?'<div class="help review-zero-vat-note">Geen btw (0%)</div>':'')+'</div>'
   }
   return ''
 }
@@ -857,8 +938,17 @@ function showPdfImportReview(d){
   ].join('');
   const basisIssues=basisSpecial.map(x=>reviewIssuePanelForStep(d,x)).join('');
 
+  const simpleAmounts=!d.mixedRates;
   const netControl=reviewWizardField(d,'net','Bedrag excl. btw').replace('data-review-field="net"','data-review-field="net" data-review-net-editor hidden style="display:none"');
-  const amountControls=[
+  const initial=simpleAmountInitial(d),hiddenAmount=key=>'<input type="hidden" name="'+key+'" value="'+esc(d[key]!==''&&d[key]!=null&&Number.isFinite(Number(d[key]))?Number(d[key]).toFixed(2):'')+'">';
+  const basisChoice=(value,label)=>'<label class="review-choice"><input type="radio" name="amountBasis" value="'+value+'" '+(initial.basis===value?'checked':'')+'><span><strong>'+label+'</strong></span></label>';
+  const amountControls=simpleAmounts?[
+    '<div class="field full" data-review-field="reviewAmount" data-simple-amount-entry><label for="pdfImportAmount">Totaalbedrag</label><input id="pdfImportAmount" name="reviewAmount" inputmode="decimal" autocomplete="off" value="'+esc(initial.amount==null?'':formatCents(initial.amount))+'"></div>',
+    '<div class="field full" data-review-field="amountBasis"><div class="review-choice-group review-basis-choice" role="radiogroup" aria-label="Is dit bedrag inclusief of exclusief btw?">'+basisChoice('incl','Incl. btw')+basisChoice('excl','Excl. btw')+'</div></div>',
+    reviewWizardField(d,'vatRate','Btw',true),
+    hiddenAmount('net'),hiddenAmount('vatAmount'),hiddenAmount('gross'),
+    '<div id="reviewAmountBreakdown" class="review-amount-breakdown field full" role="status" aria-live="polite" hidden></div>'
+  ].join(''):[
     reviewWizardField(d,'gross','Totaal incl. btw',true),
     reviewWizardField(d,'vatAmount','Btw-bedrag'),
     reviewWizardField(d,'vatRate','Btw-percentage'),
@@ -889,10 +979,10 @@ function showPdfImportReview(d){
       '<div class="review-wizard-head"><div><span class="review-kicker">'+esc(isReceipt?'Bon controleren':'Factuur controleren')+'</span><h4 id="documentReviewStepLabel" tabindex="-1">Stap 1 van 2 · Basis</h4></div><button type="button" class="icon-btn review-original-toggle-icon" data-review-original-toggle aria-label="Origineel document bekijken" title="Origineel document" aria-expanded="false" onclick="toggleDocumentOriginal()"><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg></button></div>'+
       '<div class="review-wizard-progress" aria-hidden="true"><span class="active"></span><span></span></div>'+
       '<section class="review-wizard-page" data-review-page="1"><div class="review-page-copy"><h4 tabindex="-1">Basisgegevens</h4><p>Controleer alleen wat nodig is om deze '+(isReceipt?'bon':'factuur')+' te herkennen.</p></div><div class="form-grid review-wizard-grid">'+basisControls+'</div>'+basisIssues+'<div id="reviewBasisState" class="beginner-review-state bad" role="status" aria-live="polite" hidden></div></section>'+
-      '<section class="review-wizard-page" data-review-page="2" hidden><div class="review-page-copy"><h4 tabindex="-1">Bedragen</h4><p>Controleer alleen het totaal en de btw. Boekuna berekent de rest.</p></div>'+
+      '<section class="review-wizard-page" data-review-page="2" hidden><div class="review-page-copy"><h4 tabindex="-1">Bedragen</h4><p>'+(simpleAmounts?'Controleer het totaalbedrag en de btw. Boekuna rekent de rest uit.':'Controleer alleen het totaal en de btw. Boekuna berekent de rest.')+'</p></div>'+
 
         '<div class="form-grid review-wizard-grid review-amount-grid">'+amountControls+'</div>'+
-        '<div id="reviewAmountIssueText" class="notice warn compact-review-warning" role="status" hidden></div>'+amountIssues+mixed+payment+financialPanel+
+        '<div id="reviewAmountIssueText" class="notice warn compact-review-warning" role="status" hidden></div>'+amountIssues+mixed+payment+(simpleAmounts?'':financialPanel)+
         (adjustTotal>0?'<label class="review-checkbox compact-adjustment"><input type="checkbox" name="bookAdjustments" checked> <span>Gedetecteerde kosten ('+money(adjustTotal)+') apart boeken</span></label>':'')+
         '<div id="reviewBlockingState" class="beginner-review-state" role="status" aria-live="polite"></div>'+
       '</section>'+

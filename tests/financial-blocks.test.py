@@ -56,4 +56,19 @@ eq(r["adjustments"][0]["vatTotal"], 1.14)
 eq(r["adjustments"][0]["total"], 6.58)
 eq(r["settlementAmount"], 180.97)
 
+# Regression from a Stripe/Link tax invoice (Higgsfield): "Total excluding tax"
+# repeats the net and must not be read as the VAT amount (was 59.00 instead of 12.39).
+link_invoice = [
+    "Subtotal €59.00",
+    "Total excluding tax €59.00",
+    "VAT - Netherlands (21% on €59.00) €12.39",
+    "Total €71.39",
+    "Amount due €71.39",
+]
+r = parse_financial_blocks(link_invoice)
+assert r["verified"] is True, r
+eq(r["primary"]["subtotal"], 59.00)
+eq(r["primary"]["vatTotal"], 12.39)
+eq(r["primary"]["total"], 71.39)
+
 print("Financial block regressions: PASS")

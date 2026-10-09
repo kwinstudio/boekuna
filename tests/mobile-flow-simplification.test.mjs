@@ -151,18 +151,28 @@ try{
   await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'09-factuur-stap-3-'+browserName+'.png')});
   await page.evaluate(()=>closeModal());
 
-  // Amounts that do not add up go straight to the amounts step: a "Ja, klopt" there could not resolve it.
+  // A missing total goes straight to the amounts step: a "Ja, klopt" there could not resolve it.
   await page.evaluate(()=>{
     pendingPdfImport={file:new File(['qa'],'bedrag.pdf',{type:'application/pdf'}),previewUrl:null,sha256:'qa-amount',sourceClientRef:'f-q-0',sourceDocumentId:'d-q-0',processingJobId:'j-q-0',parsed:null};
-    const parsed={confidenceScore:75,sourceQuality:'processor-v2',documentType:'receipt',party:'Jumbo',invoiceNumber:'',issueDate:'2026-10-04',net:14.61,vatAmount:1.32,gross:15.94,vatRate:9,mixedRates:false,vatLines:[],lineItems:[],adjustments:[],fieldProvenance:{gross:{source:'recognition',confidence:40}}};
+    const parsed={confidenceScore:75,sourceQuality:'processor-v2',documentType:'receipt',party:'Jumbo',invoiceNumber:'',issueDate:'2026-10-04',net:null,vatAmount:1.32,gross:null,vatRate:9,mixedRates:false,vatLines:[],lineItems:[],adjustments:[]};
     pendingPdfImport.parsed=parsed;showPdfImportReview(parsed);
   });
   await page.locator('#documentReviewStepLabel',{hasText:'Stap 2 van 2'}).waitFor();
   // The review first renders step 1 and moves to the amounts step a frame later; wait for the field itself.
-  await page.locator('[name="gross"]:visible').waitFor();
+  await page.locator('[name="reviewAmount"]:visible').waitFor();
   assert.equal(await page.locator('.mobile-single-issue-review:visible').count(),0,'amount problems open the amounts step, not a yes/no question');
-  assert.equal(await page.locator('[name="gross"]:visible').count(),1);
-  assert.match(await page.locator('#reviewBlockingState').innerText(),/De bedragen kloppen nog niet/);
+  assert.equal(await page.locator('[name="reviewAmount"]:visible').count(),1);
+  assert.equal(await page.locator('[name="vatRate"]:visible').count(),1,'total and rate sit together on the amounts step');
+  assert.match(await page.locator('#reviewBlockingState').innerText(),/Vul het totaalbedrag in/);
+  // A Jumbo bon where OCR misread the net: total and 9% decide, the scanned net does not block.
+  await page.evaluate(()=>closeModal());
+  await page.evaluate(()=>{
+    pendingPdfImport={file:new File(['qa'],'bedrag2.pdf',{type:'application/pdf'}),previewUrl:null,sha256:'qa-amount-2',sourceClientRef:'f-q-0b',sourceDocumentId:'d-q-0b',processingJobId:'j-q-0b',parsed:null};
+    const parsed={confidenceScore:75,sourceQuality:'processor-v2',documentType:'receipt',party:'Jumbo',invoiceNumber:'',issueDate:'2026-10-04',category:'Inkoop',net:14.61,vatAmount:1.32,gross:15.94,vatRate:9,mixedRates:false,vatLines:[],lineItems:[],adjustments:[]};
+    pendingPdfImport.parsed=parsed;showPdfImportReview(parsed);
+  });
+  await page.waitForFunction(()=>document.querySelector('#pdfImportForm [name="net"]')?.value==='14.62');
+  assert.deepEqual(await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed)),[]);
   await page.evaluate(()=>closeModal());
 
   await page.evaluate(()=>{
