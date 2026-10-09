@@ -100,7 +100,8 @@ html[data-theme="dark"] #mainApp .kpi-ring .ring-track,html[data-theme="dark"] #
   #mainApp .dashboard-kpis .dashboard-kpi-receivables{order:4}
   #mainApp .dashboard-kpis .dashboard-kpi[onclick*="'vat'"]{order:5}
   #mainApp#mainApp .dashboard-kpis .dashboard-kpi:last-child:not(.dashboard-kpi-profit){grid-column:auto!important}
-  #mainApp#mainApp .dashboard-kpis .dashboard-kpi:not(.dashboard-kpi-profit) .metric-icon{display:none!important}
+  /* No corner icons on the phone, also not on the Winst block (Kwin 2026-10-09); the dot before the label says enough. */
+  #mainApp#mainApp .dashboard-kpis .dashboard-kpi .metric-icon{display:none!important}
 }
 @media(max-width:359px){#mainApp .kpi-ring svg{width:34px;height:34px;flex-basis:34px}#mainApp .product-kpis.grid-2{grid-template-columns:1fr!important;grid-auto-rows:1fr}}
 
@@ -147,19 +148,6 @@ html[data-theme="dark"] :is(#mainApp,#modalRoot) .btn.danger:not(#confirmDeleteA
 /* 44. Filters on? The count sits on the button as a small green circle. */
 .filter-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;margin-left:6px;border-radius:999px;background:#63D471;color:#10331A;font-size:11.5px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
 .btn.has-filters{border-color:#63D471!important}
-
-/* 45. Phone: round quick buttons on the overview (Scan, Factuur, Rit, Vraag). */
-@media(max-width:820px){
-  #mainApp#mainApp .dashboard-quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 16px}
-  #mainApp .dashboard-quick-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 0;border:0;background:transparent;color:var(--app-ink,#17201B);font-size:12.5px;font-weight:650;cursor:pointer;min-width:0}
-  #mainApp .dashboard-quick-icon{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--app-white,#fff);border:1px solid var(--app-border,#E4E8EB)}
-  #mainApp .dashboard-quick-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-  #mainApp .dashboard-quick-btn:first-child .dashboard-quick-icon{background:#63D471;border-color:#63D471;color:#10331A}
-  #mainApp .dashboard-quick-btn:focus-visible{outline:none}
-  #mainApp .dashboard-quick-btn:focus-visible .dashboard-quick-icon{outline:2px solid #63D471;outline-offset:2px}
-  html[data-theme="dark"] #mainApp .dashboard-quick-btn{color:var(--dk-ink,#E9EDEF)}
-  html[data-theme="dark"] #mainApp .dashboard-quick-icon{background:var(--dk-raised,#21272C);border-color:var(--dk-line,#2E363C)}
-}
 
 /* 48. Paid: "Alles" or "Een deel" as two buttons above the amount. */
 #modalRoot .payment-share{display:flex;gap:4px;padding:3px;margin-bottom:8px;border-radius:12px;background:var(--app-surface,#F6F7F8);border:1px solid var(--app-border,#E4E8EB)}
@@ -455,6 +443,11 @@ html[data-theme="dark"] #mainApp .kpi-free strong{color:var(--dk-ink,#E9EDEF)}
   #mainApp#mainApp #content .product-page-actions>.btn:not(.primary){min-height:44px!important;margin-top:4px;border:0!important;background:transparent!important;box-shadow:none!important;color:#2F7D3B!important;font-size:15px!important;font-weight:700!important}
   #mainApp#mainApp #content .product-page-actions>.btn:not(.primary) .icon{display:none!important}
   html[data-theme="dark"] #mainApp#mainApp #content .product-page-actions>.btn:not(.primary){color:#7FDB8B!important}
+  /* Kwin 2026-10-09: on the phone, making and adding goes through Nieuw in the bottom bar, so the pages have no own main button.
+     What stays: "Terug naar Bank" on Inkomsten/Uitgaven and removing demo customers on Relaties. */
+  #mainApp#mainApp #content:is([data-page="invoices"],[data-page="expenses"],[data-page="bank"]) .product-page-actions{display:none!important}
+  #mainApp#mainApp #content:is([data-page="income"],[data-page="outgoings"],[data-page="contacts"]) .product-page-actions>.btn.primary{display:none!important}
+  #mainApp#mainApp #content:is([data-page="income"],[data-page="outgoings"],[data-page="contacts"]) .product-page-actions>.btn:not(.primary){margin-top:0}
 
   /* Search and one filter button on one row; quick filters as pills under it (still 44px to tap). */
   #mainApp#mainApp #content .list-toolbar{padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
@@ -522,7 +515,8 @@ html[data-theme="dark"] #mainApp .kpi-free strong{color:var(--dk-ink,#E9EDEF)}
   #mainApp#mainApp #content .phone-row-link::after{content:"";flex:0 0 7px;width:7px;height:7px;margin-left:2px;border-top:2px solid #B4BAC0;border-right:2px solid #B4BAC0;transform:rotate(45deg)}
   #mainApp#mainApp #content :is(.mobile-contacts,.mobile-services) .row-action-trigger{display:none!important}
   #mainApp#mainApp #content[data-page="services"]>.page-head{display:block!important}
-  #mainApp#mainApp #content[data-page="services"]>.page-head>.btn.primary{display:flex!important;justify-content:center;width:100%!important;min-height:50px!important;margin-top:12px;font-size:17px!important;border-radius:14px!important}
+  /* Nieuwe dienst is under Nieuw > Dienst on the phone. */
+  #mainApp#mainApp #content[data-page="services"]>.page-head>.btn.primary{display:none!important}
   #mainApp#mainApp #content[data-page="services"] .list-toolbar-quick{display:none!important}
   html[data-theme="dark"] #mainApp#mainApp #content :is(.mobile-contacts,.mobile-services) tbody tr{border-color:#2C3338!important}
   html[data-theme="dark"] #mainApp#mainApp #content .phone-row-text>strong{color:#E9EDEF}
@@ -615,4 +609,29 @@ html[data-theme="dark"] #mainApp .kpi-free strong{color:var(--dk-ink,#E9EDEF)}
   html[data-theme="dark"] :is(#mainApp,#modalRoot) .invoice-customer-search{background:#1A1F23;border-color:#2C3338}
   html[data-theme="dark"] :is(#mainApp,#modalRoot) .mobile-invoice-choice.is-selected{background:#1E3324!important}
   html[data-theme="dark"] #mainApp#mainApp .mobile-new-customer,html[data-theme="dark"] #modalRoot#modalRoot .mobile-new-customer{color:#7FDB8B!important}
+}
+
+/* 16. Active filters: each filter ("Verlopen ×") and "Filters wissen" are the same calm grey pill, on every page and width. */
+html body #mainApp#mainApp :is(.list-filter-chip,.list-clear-filters){display:inline-flex!important;align-items:center;gap:6px;height:32px!important;min-height:32px!important;padding:0 12px!important;border:0!important;border-radius:999px!important;background:#EEF0F2!important;box-shadow:none!important;color:#3D454C!important;font-size:12px!important;font-weight:600!important;line-height:1!important;text-decoration:none!important;cursor:pointer}
+html body #mainApp#mainApp :is(.list-filter-chip,.list-clear-filters):hover{background:#E4E7EA!important}
+html body #mainApp#mainApp :is(.list-filter-chip,.list-clear-filters):focus-visible{outline:2px solid #63D471!important;outline-offset:2px}
+html body #mainApp#mainApp .list-filter-chip>span{font-size:14px;line-height:1;color:#5E6870}
+html[data-theme="dark"] body #mainApp#mainApp :is(.list-filter-chip,.list-clear-filters){background:#2A3136!important;color:#D5DCE0!important}
+html[data-theme="dark"] body #mainApp#mainApp :is(.list-filter-chip,.list-clear-filters):hover{background:#333B41!important}
+html[data-theme="dark"] body #mainApp#mainApp .list-filter-chip>span{color:#AEB8BF}
+@media(max-width:820px){
+  /* 44px to tap, the grey pill itself stays 32px like the quick filters. */
+  html body #mainApp#mainApp :is(.list-filter-chip,.list-clear-filters){height:44px!important;min-height:44px!important;border-style:solid!important;border-color:transparent!important;border-width:6px 0!important;background-clip:padding-box!important;font-size:14px!important}
+  html[data-theme="dark"] body #mainApp#mainApp :is(.list-filter-chip,.list-clear-filters){border-style:solid!important;border-color:transparent!important;border-width:6px 0!important;background-clip:padding-box!important}
+}
+
+/* 17. Kwin 2026-10-09 "te veel tekst": on the phone, sentences that only explain are gone.
+   Labels, amounts, statuses, error messages, what a delete does and the VAT line "Boekuna verstuurt deze aangifte niet" stay.
+   Instellingen > App > "Extra uitleg tonen" still adds its explanations for whoever turns it on. */
+@media(max-width:820px){
+  #mainApp#mainApp #content :is(.dashboard-attention,.page-todo)>.section-head p{display:none!important}
+  #mainApp#mainApp #content :is(.dashboard-attention-copy,.assistant-insight-copy)>span{display:none!important}
+  #mainApp#mainApp #content:is([data-page="income"],[data-page="outgoings"]) .product-page-head .page-status{display:none!important}
+  #mainApp#mainApp #content .vat-return-card>.section-head .section-meta,#mainApp#mainApp #content .vat-return-card>.help{display:none!important}
+  #mainApp#mainApp #content .settings-center-panel-head p,#mainApp#mainApp #content .settings-hint{display:none!important}
 }
