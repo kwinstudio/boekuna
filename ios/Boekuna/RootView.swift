@@ -26,27 +26,34 @@ struct RootView: View {
     }
 }
 
-/// Plain background in the colour of the web welcome screen, so starting the app
-/// shows one welcome screen instead of two. A spinner only appears when loading
-/// takes a while.
+/// Plain background in the colour of the web intro, so starting the app shows one
+/// brand intro instead of two (the page draws the animated Boekuna intro itself).
+/// Only when the page is slow to arrive does a calm breathing green dot appear,
+/// in the middle of the screen; never a generic spinner.
 private struct LoadingView: View {
-    @State private var showSpinner = false
+    @State private var showDot = false
+    @State private var dimmed = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
-            if showSpinner {
-                ProgressView()
-                    .controlSize(.large)
-                    .tint(Color(red: 99 / 255, green: 212 / 255, blue: 113 / 255))
+            if showDot {
+                Circle()
+                    .fill(Color(red: 99 / 255, green: 212 / 255, blue: 113 / 255))
+                    .frame(width: 10, height: 10)
+                    .opacity(dimmed ? 0.4 : 1)
                     .accessibilityLabel("Boekuna laden")
                     .transition(.opacity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color("LaunchBackground"))
+        .ignoresSafeArea(.container, edges: .bottom)
         .task {
             try? await Task.sleep(nanoseconds: 1_500_000_000)
-            withAnimation(.easeOut(duration: 0.2)) { showSpinner = true }
+            withAnimation(.easeOut(duration: 0.3)) { showDot = true }
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) { dimmed = true }
         }
     }
 }
@@ -76,7 +83,7 @@ private struct FailureView: View {
         }
         .padding(28)
         .frame(maxWidth: 420)
-        .background(.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(Color(uiColor: .systemBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: .black.opacity(0.08), radius: 18, y: 8)
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

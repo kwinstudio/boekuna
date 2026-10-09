@@ -1,36 +1,5 @@
-/* BOEKUNA calm UX: welcome screen, a still page behind open windows, simpler forms and fewer colours.
+/* BOEKUNA calm UX: a still page behind open windows, simpler forms and fewer colours.
    App-only presentation layer, loaded last. */
-
-/* Welcome screen while the app starts. */
-.app-bootstrap{
-  background:radial-gradient(120% 70% at 50% 0%,#EAF8EC 0%,#F6F7F8 62%)!important;
-  transition:opacity .35s ease;
-}
-.app-bootstrap.is-leaving{opacity:0;pointer-events:none}
-.app-bootstrap-inner{gap:8px!important;max-width:320px}
-.app-bootstrap-symbol{width:64px;height:64px;margin-bottom:10px;animation:boekuna-welcome-pop .7s cubic-bezier(.2,.9,.3,1.25) both}
-.app-bootstrap-wordmark{font-size:34px!important;animation:boekuna-welcome-rise .5s .12s ease both}
-.app-bootstrap-greeting{margin:14px 0 0;color:#1B1F23;font-size:19px;font-weight:750;letter-spacing:-.01em;animation:boekuna-welcome-rise .5s .3s ease both}
-.app-bootstrap-copy{color:#5E6870!important;font-size:15px!important;font-weight:500!important;animation:boekuna-welcome-rise .5s .42s ease both}
-.app-bootstrap-loader{
-  position:relative;
-  width:132px!important;
-  height:4px!important;
-  margin-top:22px;
-  overflow:hidden;
-  border:0!important;
-  border-radius:999px!important;
-  background:#E1E5E8!important;
-  animation:none!important;
-}
-.app-bootstrap-loader span{position:absolute;inset:0 auto 0 0;width:45%;border-radius:inherit;background:#63D471;animation:boekuna-welcome-bar 1.3s ease-in-out infinite}
-@keyframes boekuna-welcome-pop{from{opacity:0;transform:scale(.55) rotate(-8deg)}to{opacity:1;transform:none}}
-@keyframes boekuna-welcome-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-@keyframes boekuna-welcome-bar{from{transform:translateX(-110%)}to{transform:translateX(230%)}}
-@media(prefers-reduced-motion:reduce){
-  .app-bootstrap,.app-bootstrap *{animation:none!important;transition:none!important}
-  .app-bootstrap-loader span{width:100%}
-}
 
 /* The page behind an open window stays put; only the window scrolls. */
 html.modal-scroll-locked,html.modal-scroll-locked body{overscroll-behavior:none}
