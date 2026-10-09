@@ -3299,8 +3299,8 @@ function showAuth(mode='login',prefillEmail=''){
  if(register)updateNewPasswordState('registerPassword')
 }
 function setProductUiAuthenticated(active){const authenticated=active===true;document.body.dataset.productAuthenticated=authenticated?'true':'false';const nav=document.getElementById('mobileBottomNav');if(nav){nav.setAttribute('aria-hidden',authenticated?'false':'true');nav.toggleAttribute('inert',!authenticated)}}
-// The boot screen is the Boekuna intro (app-assets/boot-intro.js): it leaves the moment the app has a
-// screen to show, never with a minimum time; after 2.5 s it turns into a quiet loading state.
+// The boot screen is the Boekuna intro (app-assets/boot-intro.js): on a real start it plays its full
+// 2.5 s, then hands over; if the app is not ready by then it turns into a quiet loading state.
 function setBootstrapVisible(visible){const intro=window.BoekunaIntro;if(intro){if(visible)intro.show();else intro.finish();return}const bootstrap=document.getElementById('appBootstrap');if(bootstrap)bootstrap.hidden=!visible}
 function showAuthSurface(){setBootstrapVisible(false);setProductUiAuthenticated(false);const main=document.getElementById('mainApp');if(main)main.style.display='none';if(typeof setMobileMenuOpen==='function')setMobileMenuOpen(false,{restoreFocus:false})}
 function showVerificationState(email=pendingVerificationEmail(),message=''){

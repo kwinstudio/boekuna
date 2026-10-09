@@ -1,6 +1,6 @@
-// Boekuna intro (app-assets/boot-intro.*): plays only on a real start, leaves the moment the app is
-// ready (no minimum time), never stays longer than 2.5 s as an intro, and turns into a quiet loading
-// state when the app is slow. Automated browsers get a still intro; ?intro=1 turns the intro on here.
+// Boekuna intro (app-assets/boot-intro.*): plays only on a real start, always lasts the full 2.5 s
+// (ending exactly then when the app is ready earlier), and turns into a quiet loading state when the
+// app is slow; a reload in the same tab leaves the moment the app is ready. Automated browsers get a still intro; ?intro=1 turns the intro on here.
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
@@ -54,7 +54,7 @@ const markBox=page=>page.locator('.boot-intro-mark').boundingBox();
 const shot=async(page,name)=>{if(evidence)await page.screenshot({path:path.join(evidence,name+'-'+browserName+'.png')})};
 
 try{
-  // Fast start with an existing session: the intro leaves as soon as the app is ready.
+  // Fast start with an existing session: the intro still plays its full 2.5 s, then ends.
   {
     const {context,page}=await open({query:'intro=1&ready=150'});
     const themeColor=()=>page.evaluate(()=>document.querySelector('meta[name="theme-color"]').getAttribute('content'));
@@ -63,8 +63,7 @@ try{
     await page.waitForFunction(()=>document.getElementById('appBootstrap').hidden,null,{timeout:3000});
     const s=await intro(page);
     assert.equal(s.mode,'playing');
-    assert.ok(s.hiddenMs-s.readyMs<=360,'No extra wait after ready: '+JSON.stringify(s));
-    assert.ok(s.hiddenMs<2500,'Fast start leaves well within 2.5 s: '+s.hiddenMs);
+    assert.ok(s.hiddenMs>=2480&&s.hiddenMs<=2600,'Fast start shows the intro for 2.5 s: '+JSON.stringify(s));
     assert.equal(await themeColor(),'#FFFFFF','App colour is back after the intro');
     await context.close();
   }
@@ -88,7 +87,7 @@ try{
     await page.locator('#mainApp').waitFor();
     await page.waitForFunction(()=>document.getElementById('appBootstrap').hidden,null,{timeout:3000});
     const s=await intro(page);
-    assert.ok(s.hiddenMs<=2500,label+' intro gone by 2.5 s: '+JSON.stringify(s));
+    assert.ok(s.hiddenMs>=2480&&s.hiddenMs<=2600,label+' intro lasts 2.5 s: '+JSON.stringify(s));
     assert.ok(!s.classes.includes('is-waiting'),label+' never reached the waiting state');
     await context.close();
   }
@@ -139,7 +138,7 @@ try{
     await context.close();
   }
 
-  // Reduced motion: a still wordmark, no animations, instant hand-over.
+  // Reduced motion: a still wordmark, no animations, no fade at the end of the 2.5 s.
   {
     const {context,page}=await open({query:'intro=1&ready=800',reducedMotion:'reduce'});
     await page.waitForTimeout(100);
@@ -147,7 +146,9 @@ try{
     assert.equal(await page.evaluate(()=>document.getElementById('appBootstrap').getAnimations({subtree:true}).length),0);
     await shot(page,'intro-reduced-motion');
     await page.locator('#mainApp').waitFor();
-    await page.waitForFunction(()=>document.getElementById('appBootstrap').hidden,null,{timeout:500});
+    await page.waitForFunction(()=>document.getElementById('appBootstrap').hidden,null,{timeout:3000});
+    const r=await intro(page);
+    assert.ok(r.hiddenMs>=2480&&r.hiddenMs<=2600,'Reduced motion also 2.5 s: '+JSON.stringify(r));
     await context.close();
   }
 
@@ -169,6 +170,9 @@ try{
     const s=await intro(page);
     assert.equal(s.mode,'repeat','Reload shows the still wordmark');
     assert.equal(await page.locator('.boot-intro-word').evaluate(e=>getComputedStyle(e).opacity),'1');
+    await page.waitForFunction(()=>document.getElementById('appBootstrap').hidden,null,{timeout:3000});
+    const r=await intro(page);
+    assert.ok(r.hiddenMs-r.readyMs<=360,'Reload leaves as soon as the app is ready: '+JSON.stringify(r));
     await context.close();
   }
 
