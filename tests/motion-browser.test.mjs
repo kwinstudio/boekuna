@@ -1,4 +1,4 @@
-// App motion (motion.js/.css): page entrance, counting totals, success check, "Betaald" pop, bottom sheet on phones.
+// App motion (motion.js/.css): page entrance, counting totals, success check, "Betaald" pop.
 // Motion is off for automated browsers; ?motion=1 turns it on here. Runs in Chromium and WebKit.
 import fs from 'node:fs';
 import http from 'node:http';
@@ -67,14 +67,14 @@ try{
   assert.equal(await page.locator('#toastRoot .toast.motion-success').count(),1,'Error toasts get no check');
   await context.close();
 
-  // Phone: the Nieuw menu is a bottom sheet.
+  // Phone: the Nieuw menu stays the centred pop-up it was; motion must not move it to the bottom.
   const phone=await openApp({width:390,height:844});
   await phone.page.locator('#quickNew').click();
   await phone.page.locator('#modalRoot .quick-action-modal').waitFor();
   await phone.page.waitForTimeout(450);
   const box=await phone.page.locator('#modalRoot .quick-action-modal').boundingBox();
-  assert.ok(Math.abs(box.y+box.height-844)<=2,'Sheet sits on the bottom edge: '+JSON.stringify(box));
-  assert.ok(box.width>=388,'Sheet is full width');
+  assert.ok(box.y>40&&box.y+box.height<804,'Nieuw pop-up stays in the middle: '+JSON.stringify(box));
+  assert.equal(await phone.page.evaluate(()=>getComputedStyle(document.querySelector('#modalRoot .quick-action-modal')).animationName.includes('boekuna-motion')),false,'No motion animation on the pop-up');
   assert.equal(await phone.page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth),0);
   await phone.context.close();
 

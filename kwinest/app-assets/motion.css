@@ -41,13 +41,6 @@ html.boekuna-motion .toast.motion-success{display:flex;align-items:center;gap:9p
 @keyframes boekuna-motion-pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
 @keyframes boekuna-motion-draw{from{stroke-dashoffset:16}to{stroke-dashoffset:0}}
 
-/* 7. On a phone, short choice menus (Nieuw, factuuracties) slide up from the bottom. */
-@media (max-width:820px){
-  html.boekuna-motion #modalRoot .modal-backdrop:has(> .modal :is(.quick-action-grid,.action-list)){align-items:end!important;place-items:end stretch!important;padding:0!important}
-  html.boekuna-motion #modalRoot .modal:has(:is(.quick-action-grid,.action-list)){width:100%!important;max-width:none!important;max-height:min(80dvh,620px)!important;border-bottom:0!important;border-radius:20px 20px 0 0!important;padding-bottom:env(safe-area-inset-bottom,0px);animation:boekuna-motion-sheet .3s cubic-bezier(.2,.8,.2,1) both}
-}
-@keyframes boekuna-motion-sheet{from{transform:translateY(100%)}to{transform:none}}
-
 /* 8. A status that just became "Betaald" pops once. */
 html.boekuna-motion .badge.motion-paid{animation:boekuna-motion-stamp .45s cubic-bezier(.2,.8,.2,1)}
 @keyframes boekuna-motion-stamp{0%{transform:scale(1)}40%{transform:scale(1.22)}100%{transform:scale(1)}}
@@ -55,7 +48,6 @@ html.boekuna-motion .badge.motion-paid{animation:boekuna-motion-stamp .45s cubic
 @media (prefers-reduced-motion:reduce){
   html.boekuna-motion #content.motion-enter,
   html.boekuna-motion #content.motion-enter *,
-  html.boekuna-motion #modalRoot .modal,
   html.boekuna-motion .badge.motion-paid,
   .motion-check circle,.motion-check path{animation:none!important}
   html.boekuna-motion :is(#mainApp,#modalRoot) :is(.btn,.icon-btn,.nav-item,.mobile-bottom-nav-item,button.card,.dashboard-attention-item,.quick-action,.action-row,.mobile-card-main,.modal-close):active:not(:disabled){transform:none!important}
