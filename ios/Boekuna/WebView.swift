@@ -404,9 +404,10 @@ struct BoekunaWebView: UIViewRepresentable {
     }
 }
 
-/// Mail text for the share sheet. Gmail's share extension drops plain-text line
-/// breaks, so Gmail gets the same text as paragraphs in rich text; every other
-/// app keeps the text exactly as the page sent it.
+/// Mail text for the share sheet. Mail apps show the subject separately, so the
+/// first line goes when it repeats it. Gmail drops plain-text line breaks and
+/// Outlook doubles them, so those two get the mail as HTML; other apps get
+/// plain text with one blank line between paragraphs.
 private final class ShareTextItem: NSObject, UIActivityItemSource {
     let title: String
     let text: String
@@ -416,21 +417,34 @@ private final class ShareTextItem: NSObject, UIActivityItemSource {
         self.text = text
     }
 
+    private static func wantsHTML(_ activityType: UIActivity.ActivityType?) -> Bool {
+        guard let type = activityType?.rawValue.lowercased() else { return false }
+        return type.contains("gmail") || type.contains("outlook")
+    }
+
     func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
         text
     }
 
     func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
-        guard let type = activityType?.rawValue, type.lowercased().contains("gmail") else { return text }
-        return NSAttributedString(string: Self.gmailBody(title: title, text: text), attributes: [
-            .font: UIFont.systemFont(ofSize: 15),
-        ])
+        let blocks = Self.mailBlocks(title: title, text: text)
+        if Self.wantsHTML(activityType) {
+            return Data(Self.html(blocks).utf8)
+        }
+        return blocks.map { $0.joined(separator: "\n") }.joined(separator: "\n\n")
     }
 
-    /// Gmail already shows the subject, so the first line goes when it repeats it.
-    /// "Label: value" lines and the closing with signature stay together; other
-    /// lines get one blank line between them.
-    static func gmailBody(title: String, text: String) -> String {
+    func activityViewController(_ activityViewController: UIActivityViewController, dataTypeIdentifierForActivityType activityType: UIActivity.ActivityType?) -> String {
+        Self.wantsHTML(activityType) ? "public.html" : "public.plain-text"
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController, subjectForActivityType activityType: UIActivity.ActivityType?) -> String {
+        title
+    }
+
+    /// Paragraphs of the mail. "Label: value" lines stay together, as do the
+    /// closing and the signature under it.
+    static func mailBlocks(title: String, text: String) -> [[String]] {
         var lines = text.components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
@@ -442,21 +456,29 @@ private final class ShareTextItem: NSObject, UIActivityItemSource {
             let label = line[..<colon]
             return !label.isEmpty && label.count <= 30 && line.index(after: colon) < line.endIndex
         }
-        var body = ""
+        var blocks: [[String]] = []
         var inClosing = false
-        for (index, line) in lines.enumerated() {
-            if index > 0 {
-                let previous = lines[index - 1]
-                body += inClosing || (isDetail(previous) && isDetail(line)) ? "\n" : "\n\n"
+        for line in lines {
+            if let previous = blocks.last?.last, inClosing || (isDetail(previous) && isDetail(line)) {
+                blocks[blocks.count - 1].append(line)
+            } else {
+                blocks.append([line])
             }
-            body += line
             if line.lowercased().hasPrefix("met vriendelijke groet") { inClosing = true }
         }
-        return body
+        return blocks
     }
 
-    func activityViewController(_ activityViewController: UIActivityViewController, subjectForActivityType activityType: UIActivity.ActivityType?) -> String {
-        title
+    static func html(_ blocks: [[String]]) -> String {
+        func escape(_ value: String) -> String {
+            value.replacingOccurrences(of: "&", with: "&amp;")
+                .replacingOccurrences(of: "<", with: "&lt;")
+                .replacingOccurrences(of: ">", with: "&gt;")
+        }
+        let paragraphs = blocks.map { block in
+            "<p style=\"margin:0 0 1em 0\">" + block.map(escape).joined(separator: "<br>") + "</p>"
+        }
+        return "<html><body>" + paragraphs.joined() + "</body></html>"
     }
 }
 
