@@ -231,6 +231,10 @@ jobs:
         run: |
           node tests/app-legal-routes-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/app-legal-routes-browser.test.mjs
+      - name: Beweging (pagina's, bedragen, vinkje, Betaald, menu van onder) — Chromium and WebKit
+        run: |
+          node tests/motion-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/motion-browser.test.mjs
       - name: Thema (Automatisch, Licht, Donker) — Chromium and WebKit
         run: |
           node tests/theme-browser.test.mjs
