@@ -1,0 +1,22 @@
+# Manual build control from a Windows browser; no signing credentials or publishing.
+workflows:
+  boekuna-ios-preflight:
+    name: BOEKUNA iOS - buildcontrole zonder signing
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      xcode: "26.6"
+      node: "22"
+    scripts:
+      - name: Exacte commit, native navigatietests en Xcode-builds
+        script: |
+          set -euo pipefail
+          cd "$(git -C "$CM_BUILD_DIR" rev-parse --show-toplevel)"
+          git rev-parse HEAD
+          ./ios/scripts/preflight.sh
+      - name: Companion-betaalbeveiliging en signing-inputcontroles
+        script: |
+          set -euo pipefail
+          cd "$(git -C "$CM_BUILD_DIR" rev-parse --show-toplevel)"
+          node tests/ios-companion-contract.test.mjs
+          node tests/ios-archive-guards.test.mjs

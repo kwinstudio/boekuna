@@ -1,0 +1,189 @@
+name: Boekuna iOS release
+
+# Signed iOS build in the cloud, for Windows operators without a Mac.
+# - Without App Store Connect secrets: unsigned archive + simulator smoke test only.
+# - With secrets: cloud-signed .ipa as a build artifact.
+# - TestFlight upload only on a manual run with "upload_to_testflight", or on a PR with the "testflight" label.
+# Never submits for App Review or releases to the App Store.
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload_to_testflight:
+        description: "Upload the signed build to TestFlight (no App Review, no publication)"
+        type: boolean
+        default: true
+      marketing_version:
+        description: "App version shown in the App Store (empty = version in the Xcode project)"
+        type: string
+        default: ""
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - "ios/**"
+      - ".github/workflows/boekuna-ios-release.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios-release:
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      UPLOAD_TO_TESTFLIGHT: ${{ (github.event_name == 'workflow_dispatch' && inputs.upload_to_testflight) || contains(github.event.pull_request.labels.*.name, 'testflight') }}
+      MARKETING_VERSION_INPUT: ${{ inputs.marketing_version }}
+      BUILD_DIR: ${{ github.workspace }}/ios/build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Xcode and SDK meet App Store requirements
+        run: |
+          xcodebuild -version
+          XCODE_MAJOR="$(xcodebuild -version | awk '/^Xcode / {split($2,v,".");print v[1]}')"
+          SDK_MAJOR="$(xcrun --sdk iphoneos --show-sdk-version | cut -d. -f1)"
+          if [[ "$XCODE_MAJOR" -lt 26 || "$SDK_MAJOR" -lt 26 ]]; then
+            echo "::error::App Store Connect requires Xcode 26+ and the iOS 26 SDK."
+            exit 1
+          fi
+          python3 ios/scripts/validate.py
+          node tests/ios-companion-contract.test.mjs
+
+      - name: Check signing access
+        id: access
+        run: |
+          # Pasted values often carry a trailing newline or space; strip it.
+          KEY_ID="$(printf '%s' "$ASC_KEY_ID" | tr -d '[:space:]')"
+          ISSUER_ID="$(printf '%s' "$ASC_ISSUER_ID" | tr -d '[:space:]')"
+          echo "ASC_KEY_ID=$KEY_ID" >> "$GITHUB_ENV"
+          echo "ASC_ISSUER_ID=$ISSUER_ID" >> "$GITHUB_ENV"
+          MISSING=()
+          [[ -n "$KEY_ID" ]] || MISSING+=(ASC_KEY_ID)
+          [[ -n "$ISSUER_ID" ]] || MISSING+=(ASC_ISSUER_ID)
+          [[ -n "$ASC_KEY_P8" ]] || MISSING+=(ASC_KEY_P8)
+          if [[ ${#MISSING[@]} -eq 0 ]]; then
+            echo "signing=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "signing=false" >> "$GITHUB_OUTPUT"
+            if [[ ${#MISSING[@]} -lt 3 ]]; then
+              echo "::error::GitHub Secret(s) missing or empty: ${MISSING[*]}. Add them under Settings > Secrets and variables > Actions > Repository secrets."
+              exit 1
+            fi
+            echo "::notice::No App Store Connect API key in GitHub Secrets (ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8). Building unsigned only; no .ipa and no TestFlight upload."
+          fi
+
+      - name: Verify existing App Store Connect app and pick the next build number
+        id: asc
+        if: steps.access.outputs.signing == 'true'
+        run: ASC_KEY_OUT="$RUNNER_TEMP/AuthKey.p8" node ios/scripts/asc.mjs
+
+      - name: Archive (unsigned; signed during export)
+        run: |
+          BUILD_NUMBER="${{ steps.asc.outputs.next_build }}"
+          BUILD_NUMBER="${BUILD_NUMBER:-${{ github.run_number }}}"
+          EXTRA=()
+          if [[ -n "$MARKETING_VERSION_INPUT" ]]; then
+            [[ "$MARKETING_VERSION_INPUT" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]] || { echo "::error::marketing_version must look like 1.0.1"; exit 1; }
+            EXTRA+=("MARKETING_VERSION=$MARKETING_VERSION_INPUT")
+          fi
+          xcodebuild \
+            -project ios/Boekuna.xcodeproj \
+            -scheme Boekuna \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$BUILD_DIR/Boekuna.xcarchive" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            DEVELOPMENT_TEAM="${{ steps.asc.outputs.team_id }}" \
+            CODE_SIGNING_ALLOWED=NO \
+            "${EXTRA[@]}" \
+            archive
+          PLIST="$BUILD_DIR/Boekuna.xcarchive/Products/Applications/Boekuna.app/Info.plist"
+          echo "Built $(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST") $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST") ($(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST")) from ${GITHUB_SHA}" | tee "$BUILD_DIR/build-identity.txt"
+
+      - name: Sign and export .ipa (automatic cloud signing via API key)
+        if: steps.access.outputs.signing == 'true'
+        run: |
+          KEY_PATH="$RUNNER_TEMP/AuthKey.p8"
+          for KIND in IPA TestFlight; do
+            cp "ios/ExportOptions-$KIND.plist" "$RUNNER_TEMP/ExportOptions-$KIND.plist"
+            /usr/libexec/PlistBuddy -c "Add :teamID string ${{ steps.asc.outputs.team_id }}" "$RUNNER_TEMP/ExportOptions-$KIND.plist"
+          done
+          xcodebuild -exportArchive \
+            -archivePath "$BUILD_DIR/Boekuna.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions-IPA.plist" \
+            -exportPath "$BUILD_DIR/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          IPA="$(ls "$BUILD_DIR"/export/*.ipa)"
+          rm -rf "$RUNNER_TEMP/ipa-check" && mkdir "$RUNNER_TEMP/ipa-check" && unzip -q "$IPA" -d "$RUNNER_TEMP/ipa-check"
+          codesign --verify --strict --verbose=2 "$RUNNER_TEMP"/ipa-check/Payload/Boekuna.app
+          codesign -dvv "$RUNNER_TEMP"/ipa-check/Payload/Boekuna.app 2>&1 | grep -E "^(Authority|TeamIdentifier|Identifier)="
+          cp "$BUILD_DIR/build-identity.txt" "$BUILD_DIR/export/"
+
+      - name: Upload .ipa as build artifact
+        if: steps.access.outputs.signing == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: boekuna-ios-${{ steps.asc.outputs.next_build }}
+          path: |
+            ios/build/export/*.ipa
+            ios/build/export/build-identity.txt
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Deliver to TestFlight
+        if: steps.access.outputs.signing == 'true' && env.UPLOAD_TO_TESTFLIGHT == 'true'
+        run: |
+          KEY_PATH="$RUNNER_TEMP/AuthKey.p8"
+          xcodebuild -exportArchive \
+            -archivePath "$BUILD_DIR/Boekuna.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions-TestFlight.plist" \
+            -exportPath "$BUILD_DIR/upload" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          echo "::notice::Build ${{ steps.asc.outputs.next_build }} uploaded to App Store Connect. It appears in TestFlight after Apple's processing. Not submitted for review."
+
+      - name: Simulator smoke test (app starts and loads app.boekuna.nl)
+        run: |
+          xcodebuild -project ios/Boekuna.xcodeproj -scheme Boekuna -configuration Release \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$BUILD_DIR/sim" CODE_SIGNING_ALLOWED=NO build -quiet
+          APP="$BUILD_DIR/sim/Build/Products/Release-iphonesimulator/Boekuna.app"
+          UDID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for k,v in sorted(d.items(), reverse=True) if "iOS" in k for x in v if x["name"].startswith("iPhone")))')"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl launch "$UDID" nl.boekuna.app
+          sleep 25
+          mkdir -p "$BUILD_DIR/smoke"
+          xcrun simctl io "$UDID" screenshot "$BUILD_DIR/smoke/start.png"
+          xcrun simctl spawn "$UDID" launchctl list | grep -q "nl.boekuna.app" || { echo "::error::Boekuna is not running after launch"; exit 1; }
+          echo "Boekuna still running after 25 s; screenshot saved."
+
+      - name: Upload smoke screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boekuna-ios-simulator-smoke
+          path: ios/build/smoke/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Remove API key from runner
+        if: always()
+        run: rm -f "$RUNNER_TEMP"/AuthKey.p8
