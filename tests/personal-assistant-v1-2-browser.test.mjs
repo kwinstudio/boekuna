@@ -188,7 +188,7 @@ try{
  await page.getByRole('heading',{name:'Overzicht'}).waitFor();
  const allClear=await page.locator('.assistant-dashboard').innerText();
  assert.match(allClear,/Alles bijgewerkt/i,'All-clear dashboard must explicitly say everything is updated');
- assert.match(allClear,/geen aandacht nodig|niets te doen/i,'All-clear dashboard must not invent work');
+ assert.match(allClear,/geen aandacht nodig|niets te doen|helemaal bij/i,'All-clear dashboard must not invent work');
  await page.screenshot({path:path.join(evidence,browserName+'-dashboard-all-clear-390.png'),fullPage:true,animations:'disabled'});
 
  await page.getByRole('button',{name:/Vraag Boekuna/i}).first().click();

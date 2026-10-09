@@ -276,7 +276,7 @@ if(Object.keys(disabledPageFallbacks).length){
 }
 
 if(assistantEnabled){
-  appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script src="/assets/personal-insights.js?v=20261004b"></script>\n<script src="/assets/personal-assistant-qna.js?v=20261004a"></script>\n<script src="/assets/personal-insights-ui.js?v=20261004c"></script>'+assistantRuntimeMarker);
+  appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script src="/assets/personal-insights.js?v=20261004b"></script>\n<script src="/assets/personal-assistant-qna.js?v=20261004a"></script>\n<script src="/assets/personal-insights-ui.js?v=20261009a"></script>'+assistantRuntimeMarker);
 }else{
   removeBuiltSourceLine('dashboard-ask-bookuna','Assistant disable');
   const summaryGridMarker='#mainApp .dashboard-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));';
@@ -387,7 +387,7 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/theme.js?v=2026
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/feedback.js?v=20261008c"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-viewer.js?v=20261008f"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/native-local-first.js?v=20261008a"></script>\n');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/look.js?v=20261009a"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/look.js?v=20261009b"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/motion.js?v=20261009e"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});

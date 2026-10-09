@@ -31,7 +31,11 @@
     if(!content)return;
     scan(content);
     new MutationObserver(function(records){
-      records.forEach(function(r){r.addedNodes.forEach(function(n){if(n.nodeType===1)scan(n)})});
+      records.forEach(function(r){
+        r.addedNodes.forEach(function(n){if(n.nodeType===1)scan(n)});
+        // An amount whose text was replaced in place (e.g. the phone layout restoring a value).
+        if(r.target.nodeType===1&&r.target.matches(SELECTOR))cents(r.target);
+      });
     }).observe(content,{childList:true,subtree:true});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();

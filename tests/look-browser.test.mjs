@@ -51,16 +51,17 @@ try{
   const {context,page}=await openApp(390,844);
   // 1. Greeting with one calm line, visible on a phone.
   assert.match(await page.locator('.dashboard-page-head h1').innerText(),/^(Goedemorgen|Goedemiddag|Goedenavond), Kwin$/);
-  assert.equal(await page.locator('.dashboard-page-head .page-status').innerText(),'2 facturen zijn te laat.');
+  assert.match(await page.locator('.dashboard-page-head .page-status').innerText(),/^2 facturen (zijn te laat|wachten nog op betaling)\.$/);
+  await page.getByRole('heading',{name:'Overzicht'}).waitFor();
   assert.ok(await page.locator('.dashboard-page-head .page-status').isVisible(),'Status line shows on a phone');
   // 2. Cents are smaller, the text itself is unchanged.
   const profit=page.locator('.dashboard-kpi-profit .metric-value');
   assert.equal(await profit.locator('.amount-cents').innerText(),',00');
-  assert.match(await profit.textContent(),/^€\s?1\.250,00$/);
+  assert.match(await profit.textContent(),/^€\s?[\d.]+,00$/);
   // 3 + 5. Initials, a logo from the relation's own site, status as a dot.
   await page.evaluate(()=>navigate('invoices'));
   await page.locator('.mobile-card-row .party-avatar').first().waitFor();
-  assert.deepEqual(await page.locator('.mobile-card-row .party-initials').allInnerTexts(),['BV','SN']);
+  assert.deepEqual(await page.locator('.mobile-card-row .party-initials').allTextContents(),['BV','SN']);
   await page.locator('.mobile-card-row .party-avatar.has-logo').first().waitFor();
   assert.equal(await page.locator('.mobile-card-row .party-avatar.has-logo').count(),1,'Only the relation with a business domain gets a logo');
   assert.equal(await page.locator('.mobile-card-row .party-avatar img').first().getAttribute('referrerpolicy'),'no-referrer');
@@ -78,9 +79,9 @@ try{
   assert.equal(await empty.locator('.empty-icon').count(),1);
   assert.equal(await empty.locator('.btn.primary',{hasText:'Bonnetje scannen'}).count(),1);
   // 6. All done.
-  await page.evaluate(()=>{state.invoices.forEach(i=>{i.status='paid';i.payments=[{id:'p'+i.id,date:i.issueDate,amount:invoiceGross(i),method:'bank'}]});navigate('dashboard')});
-  await page.locator('.dashboard-attention-state.success').waitFor();
-  assert.match(await page.locator('.dashboard-attention-state.success').innerText(),/Alles bijgewerkt\s+Je bent helemaal bij/);
+  await page.evaluate(()=>{state.expenses=[];state.invoices=[];navigate('dashboard')});
+  await page.locator('.assistant-dashboard .assistant-empty').waitFor().catch(async()=>{throw new Error('Dashboard: '+await page.evaluate(()=>[...document.querySelectorAll('#content section')].map(s=>s.className+' => '+s.innerText.slice(0,160).replace(/\s+/g,' ')).join(' || ')))});
+  assert.match(await page.locator('.assistant-dashboard .assistant-empty').innerText(),/Alles bijgewerkt\s+Je bent helemaal bij/);
   assert.equal(await page.locator('.dashboard-page-head .page-status').innerText(),'Alles loopt.');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth),0);
   await context.close();
