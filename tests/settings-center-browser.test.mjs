@@ -140,8 +140,14 @@ try{
     assert.equal(await page.locator('.settings-center-panels').isVisible(),false,'Mobile starts on the index only');
     assert.ok(await overflow(page)<=0,'No horizontal overflow on the index at '+width);
     if(width===390){assert.deepEqual(await axe(page),[],'axe mobile index');await page.screenshot({path:shotDir+'/02-home-mobile.png',fullPage:true})}
+    // Phone: there is no separate Gevaarzone row; it opens from Account and going back returns to Account.
+    assert.equal(await page.locator('.settings-center-row[data-settings-open="danger"]').isVisible(),false,'No Gevaarzone row on a phone');
+    assert.equal(await page.locator('.settings-profile-card').isVisible(),true,'Profile card on top of the phone index');
     for(const key of ['business','invoices','email','notifications','app','security','data','billing','help','account','danger']){
-      await page.locator('.settings-center-row[data-settings-open="'+key+'"]').click();
+      if(key==='danger'){
+        await page.locator('.settings-center-row[data-settings-open="account"]').click();
+        await page.locator('#settings-panel-account [data-settings-open="danger"]').click();
+      }else await page.locator('.settings-center-row[data-settings-open="'+key+'"]').click();
       assert.equal(await page.locator('#settings-panel-'+key).isVisible(),true);
       assert.equal(await page.locator('.settings-center-nav').isVisible(),false);
       await page.locator('#settings-panel-'+key+' details').evaluateAll(list=>list.forEach(d=>{d.open=true}));
@@ -154,6 +160,13 @@ try{
       const back=page.locator('#settings-panel-'+key+' .settings-center-back');
       assert.equal(await back.isVisible(),true);
       await back.click();
+      if(key==='danger'){
+        assert.equal(await page.locator('#settings-panel-account').isVisible(),true,'Back from Gevaarzone returns to Account');
+        assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('data-settings-open')),'danger','Focus returns to the Account row that opened it');
+        await page.locator('#settings-panel-account .settings-center-back').click();
+        assert.equal(await page.locator('.settings-center-nav').isVisible(),true);
+        continue;
+      }
       assert.equal(await page.locator('.settings-center-nav').isVisible(),true);
       assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('data-settings-open')),key,'Back returns focus to the row');
     }

@@ -213,7 +213,7 @@ try{
   assert.deepEqual((await page.locator('#vatFilterPeriod option').allTextContents()).slice(0,4).map(t=>t.slice(0,2)),['1e','2e','3e','4e'],'Filters offer the quarters');
   await page.locator('#vatFilterPeriod').selectOption('year');
   await page.locator('button[form="vatFilterForm"]').click();
-  assert.equal((await page.locator('.premium-split .section-meta').first().innerText()).trim(),String(new Date().getFullYear()),'VAT year view must clearly identify the selected year');
+  assert.equal((await page.locator('.vat-period-label').innerText()).trim(),String(new Date().getFullYear()),'VAT year view must clearly identify the selected year');
 
   // Compact copy is the default. Help is an account-level setting, never a financial calculation toggle.
   await navigateTo('dashboard');

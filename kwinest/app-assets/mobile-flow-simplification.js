@@ -169,6 +169,16 @@
     while(target.firstChild)text.append(target.firstChild);
     target.append(holder.firstChild,text);target.classList.add('has-avatar');
   }
+  function customerChoice(form,c){
+    var choice=button(c.name,function(){selectInvoiceCustomer(form,c.id)},'mobile-invoice-choice mobile-flow-action');
+    choice.dataset.customerId=String(c.id);withAvatar(choice,c);return choice;
+  }
+  // The chosen customer is marked in the list, and the address preview shows once a customer is picked.
+  function syncCustomerChoice(form){
+    var id=String(form.elements.namedItem('customerId')?.value||'');
+    if(id&&id!=='__new__')form.dataset.customerPicked='1';else delete form.dataset.customerPicked;
+    form.querySelectorAll('.mobile-invoice-choice[data-customer-id]').forEach(function(b){var on=b.dataset.customerId===id;b.classList.toggle('is-selected',on);b.setAttribute('aria-pressed',String(on))});
+  }
   function invoiceStepOne(form){
     var section=invoiceSectionFor(form,'#invoiceCustomer');if(!section)return null;
     var step=node('section','mobile-invoice-step');step.dataset.step='1';
@@ -191,12 +201,38 @@
     var recent=recentCustomers();
     if(recent.length){
       var block=node('div','mobile-invoice-recent');block.append(node('span','mobile-flow-eyebrow','Recente klanten'));
-      recent.forEach(function(c){var choice=button(c.name,function(){selectInvoiceCustomer(form,c.id)},'mobile-invoice-choice mobile-flow-action');withAvatar(choice,c);block.append(choice)});
+      recent.forEach(function(c){block.append(customerChoice(form,c))});
       step.append(block);
+    }
+    // Search every customer (Kwin's pick, 2026-10-09); matches show as the same choice buttons.
+    var customers=(state.contacts||[]).filter(function(c){return c&&c.id&&c.type==='customer'});
+    if(customers.length){
+      var search=node('label','invoice-customer-search');
+      search.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
+      var query=node('input');query.type='search';query.placeholder='Zoek een klant';query.autocomplete='off';query.setAttribute('aria-label','Zoek een klant');
+      search.append(query);
+      var results=node('div','invoice-customer-results');results.setAttribute('aria-live','polite');
+      query.addEventListener('input',function(){
+        var q=query.value.trim().toLowerCase();results.textContent='';
+        if(!q)return;
+        var found=customers.filter(function(c){return [c.name,c.email,c.city].filter(Boolean).join(' ').toLowerCase().indexOf(q)>=0}).slice(0,6);
+        found.forEach(function(c){results.append(customerChoice(form,c))});
+        if(!found.length)results.append(node('p','mobile-flow-hint','Geen klant gevonden. Maak hieronder een nieuwe klant.'));
+        syncCustomerChoice(form);
+      });
+      step.append(search,results);
     }
     var newCustomer=button('Nieuwe klant',function(){startMobileCustomerFromInvoice(form)},'btn mobile-new-customer mobile-flow-action');
     step.append(newCustomer);
+    // The dropdown stays for screen readers and keyboards; on screen the choices above do the work.
+    section.classList.add('invoice-customer-section');
+    var select=form.elements.namedItem('customerId');
+    if(select){
+      select.classList.add('invoice-customer-select-sr');select.closest('.field')?.querySelector('label')?.classList.add('invoice-customer-select-sr');
+      if(!select.dataset.mobileChoiceSync){select.dataset.mobileChoiceSync='1';select.addEventListener('change',function(){syncCustomerChoice(form)})}
+    }
     move(step,section);
+    syncCustomerChoice(form);
     var nav=node('div','mobile-invoice-nav');
     nav.append(button('Volgende',function(){
       var value=form.elements.namedItem('customerId')?.value;

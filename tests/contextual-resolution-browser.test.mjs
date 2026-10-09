@@ -83,7 +83,8 @@ try{
  const logout=page.getByRole('button',{name:'Uitloggen',exact:true});assert.ok(await logout.isVisible());assert.equal(await logout.evaluate(el=>el.classList.contains('danger')),false);
  await page.locator('#settings-panel-account .settings-center-back').click();
  const zone=page.locator('.settings-danger-group');
- async function openDanger(){if(await page.locator('.settings-center-nav').isVisible())await page.locator('.settings-nav-item').filter({hasText:'Gevaarzone'}).click()}
+ // Phone: Gevaarzone opens from Account (no separate row on the index).
+ async function openDanger(){if(await page.locator('.settings-center-nav').isVisible()){const row=page.locator('.settings-nav-item').filter({hasText:'Gevaarzone'});if(await row.isVisible())await row.click();else{await page.locator('.settings-nav-item').filter({hasText:/^Account/}).click();await page.locator('#settings-panel-account [data-settings-open="danger"]').click()}}}
  await openDanger();assert.ok(await zone.getByRole('button',{name:'Administratie wissen',exact:true}).isVisible());assert.ok(await zone.getByRole('button',{name:'Account verwijderen',exact:true}).isVisible());assert.equal(await zone.getByRole('button',{name:'Uitloggen',exact:true}).count(),0);
  await openDanger();await zone.getByRole('button',{name:'Administratie wissen',exact:true}).click();const destructive=page.getByRole('button',{name:'Administratie definitief wissen',exact:true});assert.equal(await destructive.isDisabled(),true);
  for(const value of ['wis administratie','WIS ADMINISTRATIE ','WIS']){await page.fill('#resetAdministrationConfirmation',value);assert.equal(await destructive.isDisabled(),true)}
