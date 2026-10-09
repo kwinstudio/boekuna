@@ -405,9 +405,12 @@ struct BoekunaWebView: UIViewRepresentable {
 }
 
 /// Mail text for the share sheet. Mail apps show the subject separately, so the
-/// first line goes when it repeats it. Gmail drops plain-text line breaks and
-/// Outlook doubles them, so those two get the mail as HTML; other apps get
-/// plain text with one blank line between paragraphs.
+/// first line goes when it repeats it. Both Gmail and Outlook ignore HTML here,
+/// so every app gets plain text, shaped per app:
+/// - Gmail turns every enter into a space, so lines also carry U+2028 (line
+///   separator), which a web view still breaks on.
+/// - Outlook turns every enter into a new paragraph, so single enters only.
+/// - Other apps: lines together, one blank line between paragraphs.
 private final class ShareTextItem: NSObject, UIActivityItemSource {
     let title: String
     let text: String
@@ -417,25 +420,20 @@ private final class ShareTextItem: NSObject, UIActivityItemSource {
         self.text = text
     }
 
-    private static func wantsHTML(_ activityType: UIActivity.ActivityType?) -> Bool {
-        guard let type = activityType?.rawValue.lowercased() else { return false }
-        return type.contains("gmail") || type.contains("outlook")
-    }
-
     func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
         text
     }
 
     func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
         let blocks = Self.mailBlocks(title: title, text: text)
-        if Self.wantsHTML(activityType) {
-            return Data(Self.html(blocks).utf8)
+        let type = activityType?.rawValue.lowercased() ?? ""
+        if type.contains("gmail") {
+            return blocks.map { $0.joined(separator: "\n\u{2028}") }.joined(separator: "\n\u{2028}\u{2028}")
+        }
+        if type.contains("outlook") {
+            return blocks.flatMap { $0 }.joined(separator: "\n")
         }
         return blocks.map { $0.joined(separator: "\n") }.joined(separator: "\n\n")
-    }
-
-    func activityViewController(_ activityViewController: UIActivityViewController, dataTypeIdentifierForActivityType activityType: UIActivity.ActivityType?) -> String {
-        Self.wantsHTML(activityType) ? "public.html" : "public.plain-text"
     }
 
     func activityViewController(_ activityViewController: UIActivityViewController, subjectForActivityType activityType: UIActivity.ActivityType?) -> String {
@@ -467,18 +465,6 @@ private final class ShareTextItem: NSObject, UIActivityItemSource {
             if line.lowercased().hasPrefix("met vriendelijke groet") { inClosing = true }
         }
         return blocks
-    }
-
-    static func html(_ blocks: [[String]]) -> String {
-        func escape(_ value: String) -> String {
-            value.replacingOccurrences(of: "&", with: "&amp;")
-                .replacingOccurrences(of: "<", with: "&lt;")
-                .replacingOccurrences(of: ">", with: "&gt;")
-        }
-        let paragraphs = blocks.map { block in
-            "<p style=\"margin:0 0 1em 0\">" + block.map(escape).joined(separator: "<br>") + "</p>"
-        }
-        return "<html><body>" + paragraphs.joined() + "</body></html>"
     }
 }
 
