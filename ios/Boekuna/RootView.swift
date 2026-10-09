@@ -5,8 +5,10 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
+            // Keep the web page below the status bar (like Safari); only the
+            // bottom edge runs under the home indicator.
             BoekunaWebView(model: browser)
-                .ignoresSafeArea(.container)
+                .ignoresSafeArea(.container, edges: .bottom)
 
             if browser.isLoading {
                 LoadingView()
@@ -18,27 +20,34 @@ struct RootView: View {
                     .transition(.opacity)
             }
         }
-        .background(Color("LaunchBackground"))
+        .background(browser.statusBarColor.ignoresSafeArea())
         .animation(.easeOut(duration: 0.18), value: browser.isLoading)
         .animation(.easeOut(duration: 0.18), value: browser.failureMessage)
     }
 }
 
+/// Plain background in the colour of the web welcome screen, so starting the app
+/// shows one welcome screen instead of two. A spinner only appears when loading
+/// takes a while.
 private struct LoadingView: View {
-    var body: some View {
-        VStack(spacing: 18) {
-            Text("Boekuna.")
-                .font(.system(size: 30, weight: .bold, design: .rounded))
-                .foregroundStyle(Color(red: 27 / 255, green: 31 / 255, blue: 35 / 255))
+    @State private var showSpinner = false
 
-            ProgressView()
-                .controlSize(.large)
-                .tint(Color(red: 99 / 255, green: 212 / 255, blue: 113 / 255))
-                .accessibilityLabel("Boekuna laden")
+    var body: some View {
+        ZStack {
+            if showSpinner {
+                ProgressView()
+                    .controlSize(.large)
+                    .tint(Color(red: 99 / 255, green: 212 / 255, blue: 113 / 255))
+                    .accessibilityLabel("Boekuna laden")
+                    .transition(.opacity)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color("LaunchBackground"))
-        .accessibilityElement(children: .combine)
+        .task {
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            withAnimation(.easeOut(duration: 0.2)) { showSpinner = true }
+        }
     }
 }
 

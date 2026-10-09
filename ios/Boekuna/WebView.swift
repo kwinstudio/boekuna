@@ -5,13 +5,21 @@ import WebKit
 final class BrowserModel: ObservableObject {
     @Published var isLoading = true
     @Published var failureMessage: String?
+    /// Fills the strip behind the status bar; follows the page's theme-color.
+    @Published var statusBarColor = Color.white
 
     fileprivate weak var webView: WKWebView?
     fileprivate let startURL = URL(string: "https://app.boekuna.nl/?login=1&app=1")!
+    private var themeColorObservation: NSKeyValueObservation?
     private var triedOfflineCopy = false
 
     fileprivate func attach(_ webView: WKWebView) {
         self.webView = webView
+        themeColorObservation = webView.observe(\.themeColor, options: [.initial, .new]) { [weak self] webView, _ in
+            DispatchQueue.main.async {
+                self?.statusBarColor = webView.themeColor.map { Color(uiColor: $0) } ?? .white
+            }
+        }
         guard webView.url == nil else { return }
         loadStartPage(in: webView)
     }
@@ -61,6 +69,10 @@ struct BoekunaWebView: UIViewRepresentable {
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = true
         configuration.userContentController.add(context.coordinator, name: "boekunaPrint")
+        configuration.userContentController.add(context.coordinator, name: "boekunaShare")
+        configuration.userContentController.addUserScript(WKUserScript(
+            source: NativeShareBridge.script, injectionTime: .atDocumentStart, forMainFrameOnly: true
+        ))
         if LocalFirstFlags.enabled {
             LocalFirstBridge.install(in: configuration, bridge: LocalFirstBridge())
         }
@@ -101,6 +113,12 @@ struct BoekunaWebView: UIViewRepresentable {
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
             model.failureMessage = nil
             model.isLoading = true
+        }
+
+        // The page paints its own welcome screen as soon as it commits; don't
+        // keep the native loader on top of it until every resource is in.
+        func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+            model.isLoading = false
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -241,10 +259,15 @@ struct BoekunaWebView: UIViewRepresentable {
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-            // Render the existing report locally; no document content leaves this bridge.
-            guard message.name == "boekunaPrint", message.frameInfo.isMainFrame,
+            guard message.frameInfo.isMainFrame,
                   message.frameInfo.securityOrigin.host == "app.boekuna.nl",
-                  message.frameInfo.securityOrigin.protocol == "https",
+                  message.frameInfo.securityOrigin.protocol == "https" else { return }
+            if message.name == "boekunaShare" {
+                share(message.body, from: message.webView)
+                return
+            }
+            // Render the existing report locally; no document content leaves this bridge.
+            guard message.name == "boekunaPrint",
                   let body = message.body as? [String: Any],
                   let html = body["html"] as? String, !html.isEmpty,
                   topViewController() != nil else { return }
@@ -255,6 +278,58 @@ struct BoekunaWebView: UIViewRepresentable {
             controller.printInfo = info
             controller.printFormatter = UIMarkupTextPrintFormatter(markupText: html)
             controller.present(animated: true) { _, _, _ in }
+        }
+
+        /// navigator.share replacement: same share sheet, but mail text that survives Gmail.
+        private func share(_ body: Any, from webView: WKWebView?) {
+            guard let body = body as? [String: Any], let id = body["id"] as? String,
+                  id.allSatisfy(\.isNumber) else { return }
+            func finish(_ ok: Bool, _ error: String = "AbortError") {
+                webView?.evaluateJavaScript("window.__boekunaShareDone && window.__boekunaShareDone('\(id)', \(ok), '\(error)')")
+            }
+
+            let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+            var items: [Any] = []
+            let title = body["title"] as? String ?? ""
+            let text = body["text"] as? String ?? ""
+            if !text.isEmpty || !title.isEmpty {
+                items.append(ShareTextItem(title: title, text: text))
+            }
+            if let link = body["url"] as? String, let url = URL(string: link), url.scheme == "https" {
+                items.append(url)
+            }
+            for file in body["files"] as? [[String: Any]] ?? [] {
+                guard let base64 = file["data"] as? String, let data = Data(base64Encoded: base64) else { continue }
+                let name = ((file["name"] as? String ?? "") as NSString).lastPathComponent
+                let safeName = name.isEmpty || name.hasPrefix(".") ? "Boekuna-bestand" : name
+                let url = folder.appendingPathComponent(safeName)
+                do {
+                    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                    try data.write(to: url, options: .completeFileProtection)
+                    items.append(url)
+                } catch {
+                    continue
+                }
+            }
+
+            guard !items.isEmpty, let presenter = topViewController() else {
+                try? FileManager.default.removeItem(at: folder)
+                finish(false, items.isEmpty ? "DataError" : "AbortError")
+                return
+            }
+            let files = items.compactMap { $0 as? URL }.filter(\.isFileURL)
+            let gmail = GmailComposeActivity(subject: title, blocks: ShareTextItem.mailBlocks(title: title, text: text), files: files)
+            let sheet = UIActivityViewController(activityItems: items, applicationActivities: [gmail])
+            sheet.completionWithItemsHandler = { _, completed, _, _ in
+                try? FileManager.default.removeItem(at: folder)
+                finish(completed)
+            }
+            if let popover = sheet.popoverPresentationController, let webView {
+                popover.sourceView = webView
+                popover.sourceRect = CGRect(x: webView.bounds.midX, y: webView.bounds.midY, width: 1, height: 1)
+                popover.permittedArrowDirections = []
+            }
+            presenter.present(sheet, animated: true)
         }
 
         private func presentAlert(title: String, message: String, actions: [UIAlertAction], fallback: @escaping () -> Void) {
@@ -335,4 +410,168 @@ struct BoekunaWebView: UIViewRepresentable {
             model.failureMessage = "Het bestand kon niet worden gedownload. Probeer het opnieuw."
         }
     }
+}
+
+/// Mail text for the share sheet. Mail apps show the subject separately, so the
+/// first line goes when it repeats it. Both Gmail and Outlook ignore HTML here,
+/// so every app gets plain text, shaped per app:
+/// - Gmail turns every enter into a space, so lines also carry U+2028 (line
+///   separator), which a web view still breaks on.
+/// - Outlook turns every enter into a new paragraph, so single enters only.
+/// - Other apps: lines together, one blank line between paragraphs.
+private final class ShareTextItem: NSObject, UIActivityItemSource {
+    let title: String
+    let text: String
+
+    init(title: String, text: String) {
+        self.title = title
+        self.text = text
+    }
+
+    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
+        text
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
+        let blocks = Self.mailBlocks(title: title, text: text)
+        let type = activityType?.rawValue.lowercased() ?? ""
+        if type.contains("gmail") {
+            return blocks.map { $0.joined(separator: "\n\u{2028}") }.joined(separator: "\n\u{2028}\u{2028}")
+        }
+        if type.contains("outlook") {
+            return blocks.flatMap { $0 }.joined(separator: "\n")
+        }
+        return blocks.map { $0.joined(separator: "\n") }.joined(separator: "\n\n")
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController, subjectForActivityType activityType: UIActivity.ActivityType?) -> String {
+        title
+    }
+
+    /// Paragraphs of the mail. "Label: value" lines stay together, as do the
+    /// closing and the signature under it.
+    static func mailBlocks(title: String, text: String) -> [[String]] {
+        var lines = text.components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        if let first = lines.first, first == title.trimmingCharacters(in: .whitespaces) {
+            lines.removeFirst()
+        }
+        func isDetail(_ line: String) -> Bool {
+            guard let colon = line.firstIndex(of: ":") else { return false }
+            let label = line[..<colon]
+            return !label.isEmpty && label.count <= 30 && line.index(after: colon) < line.endIndex
+        }
+        var blocks: [[String]] = []
+        var inClosing = false
+        for line in lines {
+            if let previous = blocks.last?.last, inClosing || (isDetail(previous) && isDetail(line)) {
+                blocks[blocks.count - 1].append(line)
+            } else {
+                blocks.append([line])
+            }
+            if line.lowercased().hasPrefix("met vriendelijke groet") { inClosing = true }
+        }
+        return blocks
+    }
+}
+
+/// "Gmail (nette tekst)" in the share sheet. Gmail's own share extension turns
+/// every enter into a space, so this opens Gmail's compose screen with the text
+/// in the link instead. A link cannot carry the PDF, so it is first saved in
+/// Bestanden > Op mijn iPhone > Boekuna > Facturen, where Gmail's paperclip finds it.
+private final class GmailComposeActivity: UIActivity {
+    private let subject: String
+    private let blocks: [[String]]
+    private let files: [URL]
+
+    init(subject: String, blocks: [[String]], files: [URL]) {
+        self.subject = subject
+        self.blocks = blocks
+        self.files = files
+        super.init()
+    }
+
+    override class var activityCategory: UIActivity.Category { .share }
+    override var activityType: UIActivity.ActivityType? { UIActivity.ActivityType("nl.boekuna.app.gmail-compose") }
+    override var activityTitle: String? { "Gmail (nette tekst)" }
+    override var activityImage: UIImage? { UIImage(systemName: "envelope.fill") }
+
+    override func canPerform(withActivityItems activityItems: [Any]) -> Bool {
+        guard let url = URL(string: "googlegmail:///co") else { return false }
+        return UIApplication.shared.canOpenURL(url)
+    }
+
+    override func perform() {
+        if let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let folder = documents.appendingPathComponent("Facturen", isDirectory: true)
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            for file in files {
+                let target = folder.appendingPathComponent(file.lastPathComponent)
+                try? FileManager.default.removeItem(at: target)
+                try? FileManager.default.copyItem(at: file, to: target)
+            }
+        }
+        let body = blocks.map { $0.joined(separator: "\n") }.joined(separator: "\n\n")
+        var allowed = CharacterSet.alphanumerics
+        allowed.insert(charactersIn: "-._~")
+        func encode(_ value: String) -> String {
+            value.addingPercentEncoding(withAllowedCharacters: allowed) ?? ""
+        }
+        guard let url = URL(string: "googlegmail:///co?subject=\(encode(subject))&body=\(encode(body))") else {
+            activityDidFinish(false)
+            return
+        }
+        UIApplication.shared.open(url) { [weak self] opened in
+            self?.activityDidFinish(opened)
+        }
+    }
+}
+
+/// Replaces navigator.share/canShare in the app so sharing goes through the
+/// native share sheet above. Files travel as base64 to the app only.
+enum NativeShareBridge {
+    static let script = """
+    (function () {
+      var handler = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.boekunaShare;
+      if (!handler) return;
+      var pending = {}, seq = 0;
+      window.__boekunaShareDone = function (id, ok, errorName) {
+        var entry = pending[id];
+        if (!entry) return;
+        delete pending[id];
+        if (ok) entry.resolve();
+        else entry.reject(new DOMException(errorName === 'AbortError' ? 'Share canceled' : 'Share failed', errorName || 'AbortError'));
+      };
+      function readFile(file) {
+        return new Promise(function (resolve, reject) {
+          var reader = new FileReader();
+          reader.onload = function () {
+            var value = String(reader.result || '');
+            resolve({ name: file.name || 'Boekuna-bestand', type: file.type || 'application/octet-stream', data: value.slice(value.indexOf(',') + 1) });
+          };
+          reader.onerror = function () { reject(reader.error); };
+          reader.readAsDataURL(file);
+        });
+      }
+      function canShare(data) {
+        if (!data) return false;
+        if (data.files && data.files.length) return true;
+        return !!(data.text || data.url || data.title);
+      }
+      function share(data) {
+        data = data || {};
+        if (!canShare(data)) return Promise.reject(new TypeError('Nothing to share'));
+        return Promise.all(Array.prototype.map.call(data.files || [], readFile)).then(function (files) {
+          return new Promise(function (resolve, reject) {
+            var id = String(++seq);
+            pending[id] = { resolve: resolve, reject: reject };
+            handler.postMessage({ id: id, title: String(data.title || ''), text: String(data.text || ''), url: String(data.url || ''), files: files });
+          });
+        });
+      }
+      Object.defineProperty(navigator, 'share', { value: share, configurable: true, writable: true });
+      Object.defineProperty(navigator, 'canShare', { value: canShare, configurable: true, writable: true });
+    })();
+    """
 }
