@@ -2898,14 +2898,37 @@ function normalizeState(x){
  out.plannedCash=out.plannedCash.map(normalizePlannedCash);
  return out
 }
+// iPhone app with local-first on (native flag BOEKUNA_LOCAL_FIRST): set NATIVE_LOCAL_FIRST_OFF to true and
+// deploy the web app to switch every local-first behaviour off without an app update.
+const NATIVE_LOCAL_FIRST_OFF=false;
+function nativeLocalFirstShell(){try{return !NATIVE_LOCAL_FIRST_OFF&&window.BoekunaNativeLocalFirst?.version===1}catch(e){return false}}
+// Which cloud version the local copy is based on (base) and whether it holds changes the cloud has not
+// confirmed yet (rev > synced). Only bookkeeping; the cloud stays the source of truth.
+function syncMetaKey(id){return 'boekuna-sync-meta-'+id}
+function readSyncMeta(id){try{const m=JSON.parse(localStorage.getItem(syncMetaKey(id))||'null')||{};return {base:Number(m.base)||0,rev:Number(m.rev)||0,synced:Number(m.synced)||0}}catch(e){return {base:0,rev:0,synced:0}}}
+function writeSyncMeta(id,m){try{localStorage.setItem(syncMetaKey(id),JSON.stringify(m))}catch(e){}}
+function localChangesPending(id){const m=readSyncMeta(id);return m.rev>m.synced}
+function looksLikeNetworkFailure(err){return !navigator.onLine||err instanceof TypeError||/failed to fetch|load failed|network|fetch/i.test(String(err?.message||err||''))}
+let offlineStartUserId='';
 function load(){try{if(!currentUser)return structuredClone(DEFAULT);const raw=JSON.parse(localStorage.getItem(userDataKey()));return normalizeState(raw)}catch(e){return structuredClone(DEFAULT)}}
-function save(){if(!currentUser)return;localStorage.setItem(userDataKey(),JSON.stringify(state));if(TEST_MODE_NO_AUTH){setCloudSyncStatus('saved');return}queueCloudSave()}
+function save(){if(!currentUser)return;localStorage.setItem(userDataKey(),JSON.stringify(state));if(TEST_MODE_NO_AUTH){setCloudSyncStatus('saved');return}const m=readSyncMeta(currentUser.id);m.rev++;writeSyncMeta(currentUser.id,m);queueCloudSave()}
 function queueCloudSave(){if(TEST_MODE_NO_AUTH){setCloudSyncStatus('saved');return}clearTimeout(cloudSaveTimer);setCloudSyncStatus(navigator.onLine?'saving':'offline');cloudSaveTimer=setTimeout(()=>syncCloudStateNow().catch(err=>{console.warn('Cloudsync mislukt',err);setCloudSyncStatus(navigator.onLine?'error':'offline')}),350)}
 async function performCloudStateSync(requestedUserId){
  if(!currentUser||currentUser.id!==requestedUserId)return;
  if(!navigator.onLine){setCloudSyncStatus('offline');return}
  setCloudSyncStatus('saving');
- const sb=await getSupabase(),snapshot=structuredClone(state),expectedVersion=cloudVersion;
+ const sb=await getSupabase(),snapshot=structuredClone(state),expectedVersion=cloudVersion,snapshotRev=readSyncMeta(requestedUserId).rev;
+ if(offlineStartUserId===requestedUserId){
+  // Opened offline from the local copy. Nothing changed here: take the newest cloud copy instead of
+  // pushing the older local one (which would look like a conflict).
+  offlineStartUserId='';
+  if(snapshotRev<=readSyncMeta(requestedUserId).synced){
+   const {data:remote,error:remoteErr}=await sb.from('ledger_state').select('state,version').eq('user_id',requestedUserId).maybeSingle();
+   if(remoteErr){offlineStartUserId=requestedUserId;throw remoteErr}
+   if(remote&&currentUser?.id===requestedUserId&&Number(remote.version||1)!==cloudVersion){state=normalizeState(remote.state||{});cloudVersion=Number(remote.version||1);localStorage.setItem(userDataKey(),JSON.stringify(state));writeSyncMeta(requestedUserId,{base:cloudVersion,rev:0,synced:0});render()}
+   setCloudSyncStatus('saved');return
+  }
+ }
  let {data,error}=await sb.rpc('save_ledger_state',{p_expected_version:expectedVersion,p_state:snapshot});
  if(error)throw error;
  if(data==null){
@@ -2914,14 +2937,14 @@ async function performCloudStateSync(requestedUserId){
   if(!remote){
    const {error:insertErr}=await sb.from('ledger_state').insert({user_id:requestedUserId,state:snapshot,version:1});
    if(insertErr)throw insertErr;
-   cloudVersion=1;setCloudSyncStatus('saved');return
+   cloudVersion=1;writeSyncMeta(requestedUserId,{...readSyncMeta(requestedUserId),base:1,synced:snapshotRev});setCloudSyncStatus('saved');return
   }
   setCloudSyncStatus('conflict');
   const conflictKey=conflictBackupKey();if(conflictKey)localStorage.setItem(conflictKey,JSON.stringify({savedAt:new Date().toISOString(),state:snapshot}));
   toast('Syncconflict: je lokale wijziging is veilig als herstelkopie bewaard.');
-  state=normalizeState(remote.state||{});cloudVersion=Number(remote.version||1);localStorage.setItem(userDataKey(),JSON.stringify(state));render();return
+  state=normalizeState(remote.state||{});cloudVersion=Number(remote.version||1);localStorage.setItem(userDataKey(),JSON.stringify(state));writeSyncMeta(requestedUserId,{base:cloudVersion,rev:0,synced:0});render();return
  }
- cloudVersion=Number(data);setCloudSyncStatus('saved')
+ cloudVersion=Number(data);const done=readSyncMeta(requestedUserId);writeSyncMeta(requestedUserId,{...done,base:cloudVersion,synced:Math.max(done.synced,snapshotRev)});setCloudSyncStatus('saved')
 }
 function syncCloudStateNow(){
  if(!currentUser)return Promise.resolve();
@@ -2954,7 +2977,20 @@ function loadSignedInUser(user){
  signedInLoad=load;
  return load.promise.then(()=>true);
 }
-async function hydrateCloudAccount(user){currentUser={id:user.id,email:user.email||'',supabaseUser:user};state=load();const sb=await getSupabase();const [{data:profileRow,error:profileErr},{data:ledgerRow,error:ledgerErr}]=await Promise.all([sb.from('profiles').select('company').eq('user_id',user.id).maybeSingle(),sb.from('ledger_state').select('state,version').eq('user_id',user.id).maybeSingle()]);if(profileErr)throw profileErr;if(ledgerErr)throw ledgerErr;cloudVersion=Number(ledgerRow?.version||1);const cloudState=ledgerRow?.state&&Object.keys(ledgerRow.state).length?ledgerRow.state:null;const legacy=!cloudState?legacySnapshotForEmail(user.email):null;state=normalizeState(cloudState||legacy||{});if(profileRow?.company)state.company={...state.company,...profileRow.company};localStorage.setItem(userDataKey(),JSON.stringify(state));localStorage.setItem(userProfileKey(),JSON.stringify(state.company||{}));if(!cloudState){await syncCloudProfile(state.company);await syncCloudStateNow();if(legacy){const moved=await migrateLegacyFilesToCloud();clearLegacyLocalAccount(user.email);toast(`Je bestaande administratie is naar de cloud gekopieerd${moved?` · ${moved} document(en) meegenomen`:''}`)}}setCloudSyncStatus('saved')}
+async function hydrateCloudAccount(user){currentUser={id:user.id,email:user.email||'',supabaseUser:user};state=load();const sb=await getSupabase();let profileRow=null,ledgerRow=null;try{const [{data:p,error:profileErr},{data:l,error:ledgerErr}]=await Promise.all([sb.from('profiles').select('company').eq('user_id',user.id).maybeSingle(),sb.from('ledger_state').select('state,version').eq('user_id',user.id).maybeSingle()]);if(profileErr)throw profileErr;if(ledgerErr)throw ledgerErr;profileRow=p;ledgerRow=l}catch(err){
+ // iPhone local-first: without a connection, open this account's own local copy instead of the login screen.
+ if(nativeLocalFirstShell()&&looksLikeNetworkFailure(err)&&localStorage.getItem(userDataKey())){cloudVersion=readSyncMeta(user.id).base||1;offlineStartUserId=user.id;setCloudSyncStatus('offline');return}
+ throw err}
+ cloudVersion=Number(ledgerRow?.version||1);const syncMeta=readSyncMeta(user.id),localRaw=localStorage.getItem(userDataKey());
+ // iPhone local-first: changes made offline on top of the current cloud version are kept and sent; if the
+ // cloud moved on in the meantime they are kept as a recovery copy, as with any other sync conflict.
+ if(nativeLocalFirstShell()&&localRaw&&syncMeta.rev>syncMeta.synced&&ledgerRow?.state){
+  if(syncMeta.base===cloudVersion){setCloudSyncStatus('saving');queueCloudSave();return}
+  const conflictKey=conflictBackupKey();if(conflictKey)localStorage.setItem(conflictKey,JSON.stringify({savedAt:new Date().toISOString(),state:normalizeState(JSON.parse(localRaw))}));
+  toast('Syncconflict: je offline wijzigingen zijn veilig als herstelkopie bewaard.')
+ }
+ writeSyncMeta(user.id,{base:cloudVersion,rev:0,synced:0});
+ const cloudState=ledgerRow?.state&&Object.keys(ledgerRow.state).length?ledgerRow.state:null;const legacy=!cloudState?legacySnapshotForEmail(user.email):null;state=normalizeState(cloudState||legacy||{});if(profileRow?.company)state.company={...state.company,...profileRow.company};localStorage.setItem(userDataKey(),JSON.stringify(state));localStorage.setItem(userProfileKey(),JSON.stringify(state.company||{}));if(!cloudState){await syncCloudProfile(state.company);await syncCloudStateNow();if(legacy){const moved=await migrateLegacyFilesToCloud();clearLegacyLocalAccount(user.email);toast(`Je bestaande administratie is naar de cloud gekopieerd${moved?` · ${moved} document(en) meegenomen`:''}`)}}setCloudSyncStatus('saved')}
 function logEvent(action,detail='',entityType='',entityId='',oldValue=null,newValue=null){if(!Array.isArray(state.audit))state.audit=[];state.audit.unshift({id:uid('a'),at:new Date().toISOString(),actorId:String(currentUser?.id||''),actorEmail:String(currentUser?.email||''),action:String(action||''),detail:String(detail||''),entityType:String(entityType||''),entityId:String(entityId||''),oldValue:oldValue==null?null:structuredClone(oldValue),newValue:newValue==null?null:structuredClone(newValue)});state.audit=state.audit.slice(0,1000)}
 function invoiceEffectiveStatus(i){if(!i)return 'draft';if(i.status==='cancelled')return 'cancelled';if(i.status==='draft')return 'draft';const paid=invoicePaidAmount(i),out=invoiceOutstanding(i);if(toCents(out)===0&&invoiceCreditOffset(i)>0)return 'credited';if(toCents(out)===0&&Math.abs(invoiceGross(i))>0)return 'paid';if(paid>0&&toCents(out)>0)return 'partial';if(i.dueDate&&i.dueDate<today())return 'overdue';return i.status||'sent'}
 function invoiceIsOverdueOpen(i){return !!i&&i.status!=='draft'&&i.kind!=='credit'&&invoiceEffectiveStatus(i)!=='cancelled'&&invoiceOutstanding(i)>.02&&!!i.dueDate&&i.dueDate<today()}
@@ -3354,7 +3390,7 @@ async function logoutUser(trigger=null){
  // copy (ledger and company profile) is removed from this device. If saving failed it
  // stays, so unsaved work is never thrown away.
  if(leavingUserId&&!TEST_MODE_NO_AUTH){
-  if(cloudCopyConfirmed){try{localStorage.removeItem(DATA_KEY_PREFIX+leavingUserId);localStorage.removeItem(PROFILE_KEY_PREFIX+leavingUserId)}catch(e){}}
+  if(cloudCopyConfirmed){try{localStorage.removeItem(DATA_KEY_PREFIX+leavingUserId);localStorage.removeItem(PROFILE_KEY_PREFIX+leavingUserId);localStorage.removeItem(syncMetaKey(leavingUserId))}catch(e){}}
   else toast('Niet alles was opgeslagen. Je laatste wijzigingen blijven op dit apparaat staan.');
  }
  currentUser=null;state=structuredClone(DEFAULT);pendingMfaUser=null;pendingMfaFactorId=null;
@@ -4705,6 +4741,7 @@ function renderDocuments(){
   productKpi('Totaal documenten',String(docs.length),extraHelpVisible()?'In je administratie':'','i-folder','neutral')
  ])}</div>
  ${renderDocumentProcessingBoard()}
+ ${localFirstPanelHtml()}
  <div class="documents-toolbar">${listToolbar('documents')}</div><div class="card documents-workspace">${docs.length?`<button type="button" class="dropzone premium-dropzone" onclick="document.getElementById('docFile').click()">${icon('i-upload')}<strong>Sleep document hierheen</strong><span>of kies bestand</span></button><div class="divider"></div>`:''}<div class="section-head"><div><h2>Bestanden · ${list.length}${list.length!==state.documents.length?' van '+state.documents.length:''}</h2></div></div><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-documents"><thead><tr><th>Naam</th><th>Type</th><th>Datum</th><th>Gekoppeld aan</th><th>Status</th><th></th></tr></thead><tbody>${list.length?list.map(d=>{const link=listLinkedDocumentInfo(d);return `<tr><td>${d.fileId?`<button type="button" class="link-btn document-name-open" onclick="openDocumentPreview('${esc(d.id)}')"><strong>${esc(d.name)}</strong></button>`:`<strong>${esc(d.name)}</strong>`}</td><td>${esc(documentTypeLabel(d.type))}</td><td>${dateNL(d.date)}</td><td>${d.linkedId?(d.linkedType==='expense'&&state.expenses.some(x=>x.id===d.linkedId)?`<button class="link-btn" onclick="expenseActions('${esc(d.linkedId)}')">${esc([link.party,link.number].filter(Boolean).join(' · ')||'Gekoppeld')}</button>`:d.linkedType==='invoice'&&state.invoices.some(x=>x.id===d.linkedId)?`<button class="link-btn" onclick="viewInvoice('${esc(d.linkedId)}')">${esc([link.party,link.number].filter(Boolean).join(' · ')||'Gekoppeld')}</button>`:esc([link.party,link.number].filter(Boolean).join(' · ')||'Gekoppeld')):'—'}</td><td>${documentVerificationBadge(d)}</td><td class="right financial-actions">${persistentDocumentReviewActionForFile(d)}${d.verification?`<button class="link-btn" onclick="openDocumentVerification('${d.id}')">Controle</button> `:''}${d.fileId?`<button class="icon-btn" aria-label="Document openen" title="Document openen" onclick="openStoredDocument('${d.fileId}')">${icon('i-eye')}</button>`:'—'} ${documentDeleteActionHtml(d)}</td></tr>`}).join(''):`<tr><td colspan="6">${listEmptyHtml('documents')}</td></tr>`}</tbody></table></div></div>`
 }
 
@@ -5890,7 +5927,7 @@ async function invokeDocumentProcessing(action,payload={}){
 function cleanupDocumentBackgroundProcessing(){
  if(documentProcessingPollTimer){clearTimeout(documentProcessingPollTimer);documentProcessingPollTimer=null}
  if(documentProcessingChannel&&supabaseClient){try{supabaseClient.removeChannel(documentProcessingChannel)}catch(e){}}
- documentProcessingChannel=null;documentProcessingJobs=[];documentProcessingInitialized=false;documentProcessingFetchError=false;documentProcessingLastSummary={active:0,attention:0,terminal:0};renderGlobalDocumentIndicator()
+ documentProcessingChannel=null;documentProcessingJobs=[];documentProcessingInitialized=false;documentProcessingFetchError=false;documentProcessingLastSummary={active:0,attention:0,terminal:0};offlineDraftList=[];renderGlobalDocumentIndicator()
 }
 function schedulePersistentDocumentPoll(){
  if(documentProcessingPollTimer){clearTimeout(documentProcessingPollTimer);documentProcessingPollTimer=null}
@@ -5910,6 +5947,7 @@ async function initDocumentBackgroundProcessing(){
   console.warn('Documentstatus ophalen',err)
  }
  invokeDocumentProcessing('resume').then(()=>fetchDocumentProcessingJobs()).catch(err=>console.warn('Documentverwerking hervatten',err));
+ void initLocalFirstForUser();
  if(typeof sb?.channel!=='function'){schedulePersistentDocumentPoll();return}
  documentProcessingChannel=sb.channel('document-processing-'+currentUser.id).on('postgres_changes',{event:'*',schema:'public',table:'document_processing_jobs',filter:'user_id=eq.'+currentUser.id},()=>{fetchDocumentProcessingJobs().catch(()=>{})}).subscribe(function(status){
   if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){documentProcessingConnectivityLost=true;renderGlobalDocumentIndicator();schedulePersistentDocumentPoll()}
@@ -5954,7 +5992,10 @@ async function persistSelectedDocument(item,batchId){
  const sb=await getSupabase(),clientRef=item.clientRef||uid('file');item.clientRef=clientRef;
  const path=currentUser.id+'/'+clientRef+'-'+safeStorageName(item.file.name);item.storagePath=path;
  documentProcessingTransition(item,'uploading');setDocumentProcessingMessage(item,'Uploaden…','Je bestand wordt veilig ontvangen.');
- await uploadPersistentDocumentBlob(item.file,path,item);
+ try{await uploadPersistentDocumentBlob(item.file,path,item)}catch(err){
+  // A resent offline draft can already be in storage from the interrupted attempt; the row check below reuses it.
+  if(!(item.offlineDraftId&&String(err?.code||'')==='DUPLICATE_UPLOAD'))throw err
+ }
  item.uploaded=true;item.uploadPercent=100;documentProcessingTransition(item,'uploaded');setDocumentProcessingMessage(item,'Bestand opgeslagen','De verwerkingsopdracht wordt aangemaakt.');
  const {data:existing}=await sb.from('documents').select('id,client_ref,storage_path').eq('user_id',currentUser.id).eq('client_ref',clientRef).maybeSingle();
  let row=existing;
@@ -5976,17 +6017,19 @@ async function persistSelectedDocument(item,batchId){
 }
 async function startPersistentDocumentProcessingQueue(files,kind='auto',options={}){
  const list=[...files].filter(Boolean);if(!list.length){toast('Geen bestand geselecteerd');return}if(list.length>DOCUMENT_PROCESSING_MAX_FILES){toast('Kies maximaal '+DOCUMENT_PROCESSING_MAX_FILES+' documenten tegelijk.');return}
+ if(!navigator.onLine&&!options.offlineDrafts&&localFirstReady())return saveFilesAsOfflineDrafts(list,kind);
  if(documentProcessingSession)cleanupDocumentProcessingSession();
  const batchId='batch-'+(crypto.randomUUID?crypto.randomUUID():uid('bg'));
- const session=documentProcessingSession={id:batchId,items:list.map(file=>{const item=createDocumentProcessingItem(file,kind);item.sourceInputId=String(options.sourceInputId||'');return item}),smart:!!options.smart,reviewingItemId:null,startedAt:Date.now(),persistent:true,allReceived:false,modalHidden:false};
- if(page!=='documents')await navigate('documents');else render();renderGlobalDocumentIndicator();
- const work=[...session.items],worker=async()=>{while(work.length){const item=work.shift();if(!item)continue;try{await persistSelectedDocument(item,batchId)}catch(err){console.error('Persistent upload failed',err);item.error=err;if(item.documentPersisted){item.state='queued';documentProcessingConnectivityLost=documentProcessingConnectivityLost||!navigator.onLine||String(err?.code||'')==='NETWORK_ERROR';setDocumentProcessingMessage(item,'Wacht',item.receivedPersisted?'Bestand ontvangen. De verwerking wordt hervat zodra de verbinding beschikbaar is.':'Bestand opgeslagen. De verwerkingsopdracht wordt hersteld zodra de verbinding beschikbaar is.');setTimeout(()=>{if(currentUser)invokeDocumentProcessing('resume').then(()=>fetchDocumentProcessingJobs()).catch(()=>{})},5000)}else if(!['failed'].includes(item.state)){try{documentProcessingTransition(item,'failed')}catch{item.state='failed';scheduleDocumentProcessingRender()}}}}};
+ const session=documentProcessingSession={id:batchId,items:list.map((file,index)=>{const item=createDocumentProcessingItem(file,kind);item.sourceInputId=String(options.sourceInputId||'');const draft=options.offlineDrafts?.[index];if(draft){item.clientRef=draft.clientRef;item.offlineDraftId=draft.id}return item}),smart:!!options.smart,reviewingItemId:null,startedAt:Date.now(),persistent:true,allReceived:false,modalHidden:false};
+ if(options.background){if(page==='documents')render()}else if(page!=='documents')await navigate('documents');else render();renderGlobalDocumentIndicator();
+ const work=[...session.items],worker=async()=>{while(work.length){const item=work.shift();if(!item)continue;try{await persistSelectedDocument(item,batchId)}catch(err){console.error('Persistent upload failed',err);item.error=err;if(item.documentPersisted){item.state='queued';documentProcessingConnectivityLost=documentProcessingConnectivityLost||!navigator.onLine||String(err?.code||'')==='NETWORK_ERROR';setDocumentProcessingMessage(item,'Wacht',item.receivedPersisted?'Bestand ontvangen. De verwerking wordt hervat zodra de verbinding beschikbaar is.':'Bestand opgeslagen. De verwerkingsopdracht wordt hersteld zodra de verbinding beschikbaar is.');setTimeout(()=>{if(currentUser)invokeDocumentProcessing('resume').then(()=>fetchDocumentProcessingJobs()).catch(()=>{})},5000)}else if(await keepInterruptedUploadOffline(item,err)){}else if(!['failed'].includes(item.state)){try{documentProcessingTransition(item,'failed')}catch{item.state='failed';scheduleDocumentProcessingRender()}}}}};
  await Promise.all(Array.from({length:Math.min(DOCUMENT_PROCESSING_MAX_PARALLEL,list.length)},()=>worker()));
  session.allReceived=session.items.every(x=>x.receivedPersisted);
  const receivedCount=session.items.filter(x=>x.receivedPersisted).length;
  if(session.allReceived)toast('Je documenten zijn ontvangen. Je kunt ondertussen verder werken.');else if(receivedCount)toast(receivedCount+' document'+(receivedCount===1?'':'en')+' ontvangen.');
  await fetchDocumentProcessingJobs().catch(()=>{});
  scheduleDocumentProcessingRender();renderGlobalDocumentIndicator();
+ return session
 }
 async function retryPersistentDocument(jobId){
  try{await invokeDocumentProcessing('retry',{job_id:jobId});toast('Dit document wordt opnieuw verwerkt.');await fetchDocumentProcessingJobs()}catch(err){toast(err?.code==='RETRY_LIMIT_REACHED'?'Maximaal aantal pogingen bereikt.':'Opnieuw verwerken kon niet worden gestart.')}
@@ -6042,6 +6085,90 @@ async function openPersistentDocumentReview(jobId,forceType=''){
   requestAnimationFrame(()=>{const name=map[fields[0]];if(!name)return;const el=document.querySelector('#pdfImportForm [name="'+name+'"]');el?.focus();el?.scrollIntoView?.({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})})
  }catch(err){console.error(err);toast('Document kon niet voor controle worden geopend.')}
 }
+
+// iPhone local-first (iOS app with BOEKUNA_LOCAL_FIRST on; inactive everywhere else).
+// Without a connection a document is kept as an offline draft on the iPhone and sent through
+// the normal upload and server processing once the connection is back. Text read on the
+// iPhone is only shown as unconfirmed text; amounts come from the server and the user's review.
+let offlineDraftList=[],offlineDraftSyncing=false,localFirstScanner=false;
+function localFirstReady(){return !!(window.BoekunaLocalFirst?.available()&&currentUser?.id)}
+function isConnectionFailure(err){const code=String(err?.code||'');return !navigator.onLine||code==='NETWORK_ERROR'||code==='PROCESSING_TIMEOUT'||err instanceof TypeError}
+async function initLocalFirstForUser(){
+ if(!localFirstReady())return;
+ const caps=await window.BoekunaLocalFirst.capabilities();localFirstScanner=!!caps?.scanner;
+ await refreshOfflineDrafts();void syncOfflineDrafts()
+}
+async function refreshOfflineDrafts(){
+ if(!localFirstReady()){offlineDraftList=[];return offlineDraftList}
+ const userId=currentUser.id;
+ try{const list=await window.BoekunaLocalFirst.listDrafts(userId);if(currentUser?.id!==userId)return [];const changed=list.length!==offlineDraftList.length;offlineDraftList=list;if(changed&&page==='documents')render()}catch(err){console.warn('Offline documenten ophalen',err?.code||err)}
+ return offlineDraftList
+}
+async function saveFilesAsOfflineDrafts(files,kind='auto'){
+ const userId=currentUser.id;let saved=0,failed=0;
+ toast('Geen verbinding. Je document'+(files.length===1?' wordt':'en worden')+' op deze iPhone bewaard…');
+ for(const file of files){try{await window.BoekunaLocalFirst.saveDraft(userId,file,kind);saved++}catch(err){console.warn('Offline bewaren',err?.code||err);failed++}}
+ if(currentUser?.id!==userId)return;
+ await refreshOfflineDrafts();if(page==='documents')render();
+ if(failed)toast(saved?'Niet alles kon worden bewaard. Kies de overige documenten opnieuw zodra je verbinding hebt.':'Bewaren op deze iPhone lukte niet. Probeer het opnieuw zodra je verbinding hebt.');
+ else toast(saved===1?'Offline bewaard. Boekuna verstuurt het zodra je weer verbinding hebt.':saved+' documenten offline bewaard. Boekuna verstuurt ze zodra je weer verbinding hebt.')
+}
+// An upload that broke off on the network is kept as a draft instead of failing.
+async function keepInterruptedUploadOffline(item,err){
+ if(item.documentPersisted||item.offlineDraftId||!localFirstReady()||!isConnectionFailure(err))return false;
+ try{
+  await window.BoekunaLocalFirst.saveDraft(currentUser.id,item.file,item.kind||'auto',item.uploaded?item.clientRef:'');
+  item.offlineSaved=true;item.state='queued';setDocumentProcessingMessage(item,'Offline bewaard','Boekuna verstuurt dit document zodra je weer verbinding hebt.');void refreshOfflineDrafts();return true
+ }catch(saveErr){console.warn('Offline bewaren',saveErr?.code||saveErr);return false}
+}
+async function syncOfflineDrafts(force=false){
+ if(!localFirstReady()||!navigator.onLine||offlineDraftSyncing)return;
+ if(documentProcessingSession?.items?.some(x=>!x.receivedPersisted&&!x.offlineSaved&&!['failed','completed','ready','review_required'].includes(x.state)))return;
+ offlineDraftSyncing=true;const userId=currentUser.id;
+ try{
+  const due=(await window.BoekunaLocalFirst.listDrafts(userId)).filter(d=>force||window.BoekunaLocalFirst.retryDue(d));
+  for(const kind of [...new Set(due.map(d=>d.kind||'auto'))]){
+   const drafts=[];
+   for(const meta of due.filter(d=>(d.kind||'auto')===kind).slice(0,DOCUMENT_PROCESSING_MAX_FILES)){try{drafts.push({meta,file:(await window.BoekunaLocalFirst.readDraft(userId,meta.id)).file})}catch(err){console.warn('Offline document lezen',err?.code||err)}}
+   if(!drafts.length||currentUser?.id!==userId||!navigator.onLine)continue;
+   const session=await startPersistentDocumentProcessingQueue(drafts.map(d=>d.file),kind,{smart:true,background:true,offlineDrafts:drafts.map(d=>d.meta)});
+   for(const item of session?.items||[]){
+    if(!item.offlineDraftId)continue;
+    // Only removed once the server has the file and its processing job; otherwise it is tried again later.
+    if(item.receivedPersisted)await window.BoekunaLocalFirst.deleteDraft(userId,item.offlineDraftId).catch(()=>{});
+    else await window.BoekunaLocalFirst.markAttempt(userId,item.offlineDraftId,item.error?.code||'NOT_RECEIVED').catch(()=>{});
+   }
+  }
+ }catch(err){console.warn('Offline documenten versturen',err?.code||err)}
+ finally{offlineDraftSyncing=false;if(currentUser?.id===userId)void refreshOfflineDrafts()}
+}
+function localFirstPanelHtml(){
+ if(!localFirstReady()||(!localFirstScanner&&!offlineDraftList.length))return '';
+ const n=offlineDraftList.length;
+ return `<div class="notice info local-first-panel" style="margin:12px 0;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap">${n?`<div><strong>${n} document${n===1?'':'en'} offline bewaard op deze iPhone.</strong><br><span class="help">${navigator.onLine?'Boekuna verstuurt ze nu.':'Boekuna verstuurt ze zodra je weer verbinding hebt.'}</span></div>`:'<div><strong>Scan een bon of factuur met je iPhone.</strong></div>'}<div style="display:flex;gap:8px;flex-wrap:wrap">${n?'<button type="button" class="btn" onclick="openOfflineDrafts()">Bekijken</button>':''}${localFirstScanner?`<button type="button" class="btn primary" onclick="scanDocumentWithIPhone()">${icon('i-upload')} Scannen</button>`:''}</div></div>`
+}
+async function scanDocumentWithIPhone(){
+ if(!planAllows(1)){const ok=await requirePlanAccess(1,'Bonnetjes en documenten');if(!ok)return}
+ try{
+  const file=await window.BoekunaLocalFirst.scan();if(!file)return;
+  pendingUploadKind='auto';await startDocumentProcessingQueue([file],'auto',{smart:true,sourceInputId:'nativeScan'})
+ }catch(err){toast(String(err?.code||'')==='CAMERA_PERMISSION_DENIED'?'Boekuna mag de camera niet gebruiken. Zet dit aan via Instellingen › Boekuna › Camera.':'Scannen lukte niet. Probeer het opnieuw of kies een foto.')}
+}
+async function openOfflineDrafts(){
+ const list=await refreshOfflineDrafts();
+ const rows=list.map(d=>`<div class="legal-item"><strong>${esc(d.name)}</strong><p>${dateNL(String(d.createdAt||'').slice(0,10))} · ${d.ocrCharacters>0?'tekst gelezen op deze iPhone':'nog niet gelezen'}${d.attempts?' · '+d.attempts+'× geprobeerd':''}</p><div style="display:flex;gap:8px;flex-wrap:wrap">${d.ocrCharacters>0?`<button type="button" class="btn small" onclick="showOfflineDraftText(${esc(JSON.stringify(d.id))})">Gelezen tekst</button>`:''}<button type="button" class="btn small danger" onclick="removeOfflineDraft(${esc(JSON.stringify(d.id))})">Verwijderen</button></div></div>`).join('');
+ modal('Offline bewaard',`<p class="help">Deze documenten staan alleen op deze iPhone. Zodra je verbinding hebt, verwerkt Boekuna ze zoals elke upload en vraagt je om te controleren.</p>${rows||'<div class="empty"><strong>Niets offline bewaard</strong></div>'}`,`<button class="btn" onclick="closeModal()">Sluiten</button>${list.length&&navigator.onLine?'<button class="btn primary" onclick="closeModal();syncOfflineDrafts(true)">Nu versturen</button>':''}`)
+}
+async function showOfflineDraftText(id){
+ try{const text=await window.BoekunaLocalFirst.draftText(currentUser.id,id);modal('Gelezen tekst',`<div class="notice warn" style="margin-bottom:12px">Nog niet gecontroleerd. Bedragen en gegevens worden pas overgenomen na verwerking en jouw controle.</div><pre style="white-space:pre-wrap;font:inherit;font-size:13px;max-height:50vh;overflow:auto">${esc(text||'Geen tekst gevonden.')}</pre>`,'<button class="btn" onclick="openOfflineDrafts()">Terug</button>')}catch(err){toast('Tekst kon niet worden geopend.')}
+}
+async function removeOfflineDraft(id){
+ if(!confirm('Dit document staat alleen op deze iPhone. Verwijderen?'))return;
+ try{await window.BoekunaLocalFirst.deleteDraft(currentUser.id,id);toast('Verwijderd van deze iPhone.')}catch(err){toast('Verwijderen lukte niet.')}
+ await openOfflineDrafts();if(page==='documents')render()
+}
+window.addEventListener('online',()=>setTimeout(()=>void syncOfflineDrafts(),1500));
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void syncOfflineDrafts()});
 
 function triggerInvoiceUpload(kind='auto'){
  openUploadSourcePicker(kind)
@@ -7209,7 +7336,7 @@ function deleteAccountBillingNotice(){const b=typeof billingSnapshot!=='undefine
 function deleteAccountDialog(){modal('Account definitief verwijderen',`<div class="notice warn" style="margin-bottom:14px"><strong>Dit kan niet ongedaan worden gemaakt.</strong> Je account, administratie, bedrijfsprofiel en privé-documenten worden definitief verwijderd.</div>${deleteAccountBillingNotice()}<div class="legal-item" style="margin-bottom:14px"><strong>Bewaar eerst je administratie</strong><p>Als ondernemer moet je je administratie 7 jaar bewaren. Download daarom eerst een volledige back-up en, via Instellingen › Data &amp; export, je facturen en kosten.</p><button class="btn" type="button" onclick="exportBackup()">Volledige back-up downloaden</button></div><form id="deleteAccountForm" class="form-grid"><div class="field full"><label>Wachtwoord *</label><input name="password" type="password" required></div><div class="field full"><label>Typ VERWIJDER *</label><input name="confirm" required autocomplete="off" oninput="document.getElementById('confirmDeleteAccount').disabled=this.value!=='VERWIJDER'"></div></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn danger" id="confirmDeleteAccount" disabled onclick="deleteAccountNow()">Definitief verwijderen</button>`)}
 async function deleteAccountNow(){const f=document.getElementById('deleteAccountForm');if(!f?.reportValidity()||!currentUser)return;const d=new FormData(f),password=String(d.get('password')||'');if(String(d.get('confirm')||'')!=='VERWIJDER')return toast('Typ VERWIJDER om te bevestigen');
 // signOut tells the SIGNED_OUT listener before it resolves, and that listener clears currentUser: keep the deleted user here.
-const old=currentUser;try{const sb=await getSupabase();const {error:reauthError}=await sb.auth.signInWithPassword({email:old.email,password});if(reauthError)throw new Error('Wachtwoord is niet correct');const {error}=await sb.functions.invoke('delete-account',{body:{confirm:true}});if(error){let message='';try{const body=await error.context?.json?.();message=String(body?.error||'')}catch(e){}throw new Error(message||'Account kon niet worden verwijderd. Er is niets verwijderd.')}try{const {error:signOutError}=await sb.auth.signOut({scope:'local'});if(signOutError)console.warn('Lokale Supabase-sessie kon niet volledig worden afgemeld',signOutError)}catch(signOutError){console.warn('Lokale Supabase-sessie kon niet volledig worden afgemeld',signOutError)}localStorage.removeItem(DATA_KEY_PREFIX+old.id);localStorage.removeItem(PROFILE_KEY_PREFIX+old.id);localStorage.removeItem('boekhouden-cloud-conflict-v1-'+old.id);const legacy=getUsers().find(u=>String(u.email||'').toLowerCase()===String(old.email||'').toLowerCase());if(legacy){localStorage.removeItem(DATA_KEY_PREFIX+legacy.id);localStorage.removeItem(PROFILE_KEY_PREFIX+legacy.id);saveUsers(getUsers().filter(u=>u.id!==legacy.id))}currentUser=null;state=structuredClone(DEFAULT);closeModal();showAuth('login');toast('Account en cloudgegevens definitief verwijderd')}catch(err){toast(err?.message||'Account kon niet worden verwijderd')}}
+const old=currentUser;try{const sb=await getSupabase();const {error:reauthError}=await sb.auth.signInWithPassword({email:old.email,password});if(reauthError)throw new Error('Wachtwoord is niet correct');const {error}=await sb.functions.invoke('delete-account',{body:{confirm:true}});if(error){let message='';try{const body=await error.context?.json?.();message=String(body?.error||'')}catch(e){}throw new Error(message||'Account kon niet worden verwijderd. Er is niets verwijderd.')}await window.BoekunaLocalFirst?.clearDrafts(old.id).catch(()=>{});try{const {error:signOutError}=await sb.auth.signOut({scope:'local'});if(signOutError)console.warn('Lokale Supabase-sessie kon niet volledig worden afgemeld',signOutError)}catch(signOutError){console.warn('Lokale Supabase-sessie kon niet volledig worden afgemeld',signOutError)}localStorage.removeItem(DATA_KEY_PREFIX+old.id);localStorage.removeItem(PROFILE_KEY_PREFIX+old.id);localStorage.removeItem(syncMetaKey(old.id));localStorage.removeItem('boekhouden-cloud-conflict-v1-'+old.id);const legacy=getUsers().find(u=>String(u.email||'').toLowerCase()===String(old.email||'').toLowerCase());if(legacy){localStorage.removeItem(DATA_KEY_PREFIX+legacy.id);localStorage.removeItem(PROFILE_KEY_PREFIX+legacy.id);saveUsers(getUsers().filter(u=>u.id!==legacy.id))}currentUser=null;state=structuredClone(DEFAULT);closeModal();showAuth('login');toast('Account en cloudgegevens definitief verwijderd')}catch(err){toast(err?.message||'Account kon niet worden verwijderd')}}
 document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>b.dataset.page&&navigate(b.dataset.page)));
 document.querySelectorAll('[data-mobile-page]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.mobilePage)));
 document.querySelector('[data-mobile-more]')?.addEventListener('click',()=>setMobileMenuOpen(true));
