@@ -311,7 +311,7 @@
   }
   function setShellFoot(flow,on){flow?.closest('.modal')?.classList.toggle('mobile-single-issue-active',!!on)}
   function showFullReview(flow,issue){
-    restoreReviewPages(flow);flow.dataset.mobileSimpleReview='full';setShellFoot(flow,false);
+    restoreReviewPages(flow);flow.dataset.mobileSimpleReview='full';delete flow.dataset.mobileHoldField;setShellFoot(flow,false);
     flow.querySelector('.mobile-single-issue-review')?.setAttribute('hidden','');
     flow.querySelectorAll('.mobile-single-issue-actions').forEach(function(el){el.remove()});
     var field=String(issue?.field||'');
@@ -385,6 +385,9 @@
     if(issues.length&&DIRECT_FIELDS.includes(first)&&flow.dataset.mobileSimpleReview!=='active'){showFullReview(flow,issues[0]);mobileIssueReviewRequested=false;return}
     var issueSignature=JSON.stringify(issues.map(function(issue){return [issue?.field,issue?.message,issue?.code]}));
     var shell=flow.querySelector('.mobile-single-issue-review');
+    // While the user fills an empty field, the question stays put until they tap "Volgende". Moving on at the
+    // first change hid the field mid-entry: the iPhone date picker reports a date as soon as it opens and closed.
+    if(shell&&flow.dataset.mobileSimpleReview==='active'&&flow.dataset.mobileHoldField)return;
     if(shell&&flow.dataset.mobileSimpleReview==='active'&&flow.dataset.mobileIssueSignature===issueSignature)return;
     flow.dataset.mobileIssueSignature=issueSignature;
     restoreReviewPages(flow);
@@ -430,8 +433,14 @@
     }else if(['currency','exchangeRateToEur','vatLines','vatTreatmentChoice'].includes(field)){
       actions.append(button('Aanpassen',function(){showFullReview(flow,issue)},'btn primary mobile-flow-action'));
     }else if(!empty){
-      // An empty field has nothing to confirm: typing in the field is the answer.
       actions.append(button('Ja, klopt',function(){confirmReviewIssue(flow,issue)},'btn primary mobile-flow-action'));
+    }else{
+      // An empty field has nothing to confirm: the user fills it and then goes on.
+      flow.dataset.mobileHoldField=field;
+      actions.append(button('Volgende',function(){
+        if(!String(input?.value||'').trim()){input?.focus();return}
+        delete flow.dataset.mobileHoldField;flow.dataset.mobileIssueSignature='';schedule();
+      },'btn primary mobile-flow-action'));
     }
     if(field!=='confirmDuplicate')more.append(button('Bekijk document',function(){toggleDocumentOriginal(true)},'btn mobile-flow-action'));
     if(field!=='confirmDuplicate')more.append(button('Alle gegevens',function(){showFullReview(flow,issue)},'btn mobile-flow-action'));
@@ -483,7 +492,7 @@
     document.querySelectorAll('[data-mobile-invoice-flow]').forEach(function(form){delete form.dataset.mobileInvoiceFlow;delete form.dataset.mobileInvoiceStep});
     document.querySelectorAll('.mobile-invoice-original-foot').forEach(function(el){el.classList.remove('mobile-invoice-original-foot')});
     document.querySelectorAll('.mobile-vat-native-select,.mobile-invoice-unit-label').forEach(function(el){el.classList.remove('mobile-vat-native-select','mobile-invoice-unit-label')});
-    document.querySelectorAll('[data-mobile-simple-review]').forEach(function(flow){delete flow.dataset.mobileSimpleReview;delete flow.dataset.mobileIssueSignature});
+    document.querySelectorAll('[data-mobile-simple-review]').forEach(function(flow){delete flow.dataset.mobileSimpleReview;delete flow.dataset.mobileIssueSignature;delete flow.dataset.mobileHoldField});
   }
   function install(){
     ['content','modalRoot'].forEach(function(id){var root=document.getElementById(id);if(root)new MutationObserver(schedule).observe(root,{childList:true,subtree:true})});
