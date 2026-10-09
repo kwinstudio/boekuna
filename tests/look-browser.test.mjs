@@ -1,5 +1,6 @@
 // Calm look (look.js/.css + app markup): greeting, smaller cents, initials/logo and cost icons,
-// status dots, the all-done moment and friendly empty lists. Runs in Chromium and WebKit.
+// status dots, the all-done moment and friendly empty lists, plus round 2 (period buttons, tiles,
+// round Nieuw button, day headers, partly paid bar). Runs in Chromium and WebKit.
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
@@ -85,6 +86,39 @@ try{
   assert.equal(await page.locator('.dashboard-page-head .page-status').innerText(),'Alles loopt.');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth),0);
   await context.close();
+
+  // Round 2 on a phone: period buttons (8), overview tiles in style C with the VAT deadline (12),
+  // the round Nieuw button (14), day headers (9), partly paid bar (10) and "+ €" for money coming in (63).
+  {
+    const {context,page}=await openApp(390,844);
+    const seg=page.locator('.dashboard-page-head .period-seg');
+    assert.deepEqual((await seg.locator('.period-seg-btn').allTextContents()).map(s=>s.trim()),['Week','Maand','Kwartaal','Jaar','Alles']);
+    await seg.getByRole('button',{name:'Jaar',exact:true}).click();
+    await page.locator('.dashboard-page-head .period-seg-btn.on',{hasText:'Jaar'}).waitFor();
+    assert.equal(await page.locator('.dashboard-page-head .period-seg-btn',{hasText:'Jaar'}).getAttribute('aria-pressed'),'true');
+    const head=await page.locator('.dashboard-page-head').evaluate(el=>({title:el.querySelector('h1').getBoundingClientRect().bottom,seg:el.querySelector('.period-seg').getBoundingClientRect()}));
+    assert.ok(head.seg.top>=head.title-2,'Period buttons sit under the greeting on a phone');
+    assert.equal(await page.locator('.dashboard-kpi .kpi-bars rect').count(),6,'Omzet shows six small month bars');
+    assert.equal(await page.locator('.dashboard-kpi .kpi-ring').count(),1,'Kosten shows a small ring');
+    assert.match(await page.locator('.dashboard-kpi .kpi-ring-legend').innerText(),/Reiskosten/);
+    assert.equal(await page.locator('.dashboard-kpi .kpi-share').count(),1,'Nog te ontvangen shows a thin bar');
+    assert.match(await page.locator('.dashboard-kpi .kpi-deadline').innerText(),/^Aangifte Q[1-4] vóór \d{1,2} [a-z]+ · (vandaag|nog 1 dag|nog \d+ dagen)$/);
+    const fab=await page.locator('#quickNew').evaluate(el=>{const r=el.getBoundingClientRect(),c=getComputedStyle(el);return {right:innerWidth-r.right,bottom:innerHeight-r.bottom,w:r.width,h:r.height,position:c.position}});
+    assert.equal(fab.position,'fixed');
+    assert.ok(fab.w===56&&fab.h===56&&Math.abs(fab.right-16)<=1&&fab.bottom>=80,'Nieuw is a round button bottom-right: '+JSON.stringify(fab));
+    await page.evaluate(()=>{state.invoices[0].payments=[{id:'p1',date:state.invoices[0].issueDate,amount:300,method:'bank'}];navigate('invoices')});
+    await page.locator('.mobile-card-list .mobile-card-group').first().waitFor();
+    assert.deepEqual(await page.locator('.mobile-card-list .mobile-card-group').allTextContents(),['Vandaag']);
+    const partly=page.locator('.mobile-card-row',{hasText:'Bakkerij de Vries'});
+    assert.match(await partly.innerText(),/€\s?300,00 van €\s?1\.452,00 binnen/);
+    assert.equal(await partly.locator('.mobile-paid-bar i').count(),1);
+    assert.match(await partly.locator('.mobile-card-value').textContent(),/^\+ €\s?1\.452,00$/);
+    assert.ok(await partly.locator('.mobile-card-value.money-positive').count()===1);
+    await page.evaluate(()=>navigate('settings'));
+    assert.notEqual(await page.locator('#quickNew').evaluate(el=>getComputedStyle(el).position),'fixed','No floating button over the settings switches');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth),0);
+    await context.close();
+  }
 
   // Desktop table: avatar next to the customer, cents in the amount cells.
   {

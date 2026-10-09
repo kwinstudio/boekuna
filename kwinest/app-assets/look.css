@@ -64,3 +64,57 @@ html[data-theme="dark"] #mainApp{
 /* 7. Empty lists: an icon, one sentence and one button. */
 #mainApp .empty .empty-icon{display:block;width:34px;height:34px;margin:0 auto 10px;fill:none;stroke:var(--app-muted,#8A968F);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 #mainApp .empty .empty-action{margin-top:14px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+
+/* Overview style C: a blue-tinted Winst card and tiles with one small picture each. */
+#mainApp#mainApp .dashboard-kpis .dashboard-kpi-profit{background:#EEF4FE!important;border-color:transparent!important}
+html[data-theme="dark"] #mainApp#mainApp .dashboard-kpis .dashboard-kpi-profit{background:#1B2740!important}
+#mainApp .dashboard-kpis .dashboard-kpi-label{display:inline-flex;align-items:center;gap:6px}
+#mainApp .dashboard-kpis .dashboard-kpi-label::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--kpi-dot,#8A949B);flex:0 0 8px}
+#mainApp .dashboard-kpi-profit{--kpi-dot:#3B82F6}
+#mainApp .dashboard-kpi[onclick*="invoices'"]:not(.dashboard-kpi-receivables){--kpi-dot:#63D471}
+#mainApp .dashboard-kpi[onclick*="expenses"]{--kpi-dot:#E5534B}
+#mainApp .dashboard-kpi-receivables{--kpi-dot:#D99A1C}
+#mainApp .dashboard-kpi[onclick*="'vat'"]{--kpi-dot:#3B82F6}
+#mainApp .kpi-visual{display:block;margin-top:8px;pointer-events:none}
+#mainApp .kpi-bars svg{display:block;width:100%;max-width:140px;height:26px}
+#mainApp .kpi-bars rect{fill:#63D471}
+#mainApp .kpi-bars rect.is-past{opacity:.35}
+#mainApp .kpi-ring{display:flex;align-items:center;gap:8px;min-width:0}
+#mainApp .kpi-ring svg{width:40px;height:40px;flex:0 0 40px}
+#mainApp .kpi-ring circle{fill:none;stroke-width:6}
+#mainApp .kpi-ring .ring-track{stroke:var(--app-surface,#F6F7F8)}
+#mainApp .kpi-ring .ring-0{stroke:#E5534B;background:#E5534B}
+#mainApp .kpi-ring .ring-1{stroke:#F19A94;background:#F19A94}
+#mainApp .kpi-ring .ring-2{stroke:#F7C6C2;background:#F7C6C2}
+#mainApp .kpi-ring-legend{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:11px;font-weight:500;color:var(--app-muted-strong,#5E6870)}
+#mainApp .kpi-ring-legend span{display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mainApp .kpi-ring-legend .ring-dot{width:6px;height:6px;border-radius:50%;flex:0 0 6px}
+#mainApp .kpi-share{display:flex;height:5px;border-radius:99px;overflow:hidden;background:var(--app-surface,#F6F7F8)}
+#mainApp .kpi-share i{display:block;height:100%}
+#mainApp .kpi-share .is-late{background:#E5534B}
+#mainApp .kpi-share .is-open{background:#D99A1C;opacity:.55}
+#mainApp .kpi-deadline{color:var(--app-muted-strong,#5E6870)}
+html[data-theme="dark"] #mainApp .kpi-ring .ring-track,html[data-theme="dark"] #mainApp .kpi-share{stroke:#2E363C;background:#2E363C}
+@media(max-width:820px){
+  /* Phone: Winst on top, then Omzet, Kosten, Nog te ontvangen and Btw as 2 x 2 tiles. */
+  #mainApp .dashboard-kpis .dashboard-kpi-receivables{order:4}
+  #mainApp .dashboard-kpis .dashboard-kpi[onclick*="'vat'"]{order:5}
+  #mainApp#mainApp .dashboard-kpis .dashboard-kpi:last-child:not(.dashboard-kpi-profit){grid-column:auto!important}
+  #mainApp#mainApp .dashboard-kpis .dashboard-kpi:not(.dashboard-kpi-profit) .metric-icon{display:none!important}
+}
+@media(max-width:359px){#mainApp .kpi-ring svg{width:34px;height:34px;flex-basis:34px}}
+
+/* 14. Phone: Nieuw is a round green button bottom-right, where your thumb is. */
+@media(max-width:820px){
+  #mainApp#mainApp[data-fab] .topbar #quickNew{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));width:56px;height:56px;min-width:56px;min-height:56px;padding:0!important;border-radius:50%!important;border:0!important;background:#63D471!important;color:#10331A!important;display:grid!important;place-items:center;z-index:45;margin:0!important}
+  #mainApp#mainApp[data-fab] .topbar #quickNew span{display:none!important}
+  #mainApp#mainApp[data-fab] .topbar #quickNew .icon{width:24px;height:24px;stroke-width:2.2}
+  #mainApp[data-fab] .content{padding-bottom:calc(150px + env(safe-area-inset-bottom))!important}
+}
+
+/* 9 + 10. Phone lists: day headers and a thin bar on partly paid invoices. */
+#mainApp .mobile-card-group{padding:14px 16px 4px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--app-muted-strong,#5E6870)}
+#mainApp .mobile-card-group:first-child{padding-top:2px}
+#mainApp .mobile-paid-bar{display:block;height:4px;border-radius:99px;background:var(--app-surface,#F6F7F8);overflow:hidden;margin-top:6px;max-width:180px}
+#mainApp .mobile-paid-bar i{display:block;height:100%;background:#63D471;border-radius:99px}
+html[data-theme="dark"] #mainApp .mobile-paid-bar{background:#2E363C}

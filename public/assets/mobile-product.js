@@ -81,6 +81,18 @@
     wrapper.append(main, side);
     return wrapper;
   }
+  function dayGroupLabel(day) {
+    var now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var d = new Date(day + 'T00:00:00'), diff = Math.round((today - d) / 864e5);
+    if (diff <= 0) return 'Vandaag';
+    if (diff === 1) return 'Gisteren';
+    var weekStart = new Date(today); weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+    if (d >= weekStart) return 'Eerder deze week';
+    if (d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth()) return 'Eerder deze maand';
+    var month = new Intl.DateTimeFormat('nl-NL', {month: 'long'}).format(d);
+    month = month.charAt(0).toUpperCase() + month.slice(1);
+    return d.getFullYear() === today.getFullYear() ? month : month + ' ' + d.getFullYear();
+  }
   function mobileLists(root) {
     var selector = {invoices:'.mobile-invoices',expenses:'.mobile-expenses',bank:'.mobile-bank',income:'.mobile-bank',outgoings:'.mobile-bank',documents:'.mobile-documents'}[page];
     if (!selector) return;
@@ -90,17 +102,47 @@
     if (!items.length) return; // Keep existing authoritative empty state and CTA.
     var list = element('div', 'mobile-card-list');
     list.setAttribute('role', 'list');
+    // Newest first: show calm day headers ("Vandaag", "Gisteren", ...) like a bank app.
+    var dayOf = function (item) { return String((page === 'invoices' ? item.issueDate : item.date) || '').slice(0, 10); };
+    var days = items.map(dayOf);
+    var grouped = items.length > 1 && days.every(function (d, i) { return /^\d{4}-\d{2}-\d{2}$/.test(d) && (i === 0 || d <= days[i - 1]); });
+    var lastGroup = '';
     items.forEach(function (item) {
       var entry;
+      if (grouped) {
+        var label = dayGroupLabel(dayOf(item));
+        if (label !== lastGroup) {
+          var header = element('div', 'mobile-card-group', label);
+          header.setAttribute('role', 'listitem');
+          list.append(header);
+          lastGroup = label;
+        }
+      }
       if (page === 'invoices') {
         entry = row(getContact(item.customerId).name || 'Klant', money(invoiceGross(item)),
           (item.number || 'Concept') + ' · ' + (invoiceEffectiveStatus(item)==='paid' ? ((typeof invoicePaymentSummary==='function' && invoicePaymentSummary(item)) || dateNL(item.issueDate)) : 'Vervalt ' + dateNL(item.dueDate)),
           statusBadge(invoiceEffectiveStatus(item)), function () { viewInvoice(item.id); }, null,
           typeof partyAvatarHtml === 'function' ? partyAvatarHtml(getContact(item.customerId).name, typeof partyLogoDomain === 'function' ? partyLogoDomain(getContact(item.customerId)) : '') : '');
+        // 63. Money coming in: "+ € x" in green (credit notes stay as they are).
+        if (item.kind !== 'credit' && invoiceGross(item) > 0) {
+          var invoiceValue = entry.querySelector('.mobile-card-value');
+          if (invoiceValue) { invoiceValue.textContent = '+ ' + invoiceValue.textContent; invoiceValue.classList.add('money-positive'); }
+        }
         var actions = button('', function () { invoiceActions(item.id); }, 'icon-btn');
         actions.innerHTML = icon('i-more');
         actions.setAttribute('aria-label', 'Factuuracties voor ' + (item.number || 'concept'));
         entry.lastChild.append(actions);
+        var paidPart = typeof invoicePaidAmount === 'function' ? invoicePaidAmount(item) : 0, gross = invoiceGross(item);
+        if (paidPart > 0.02 && gross - paidPart > 0.02) {
+          // Partly paid: "€ x van € y binnen" with a thin bar.
+          metadata(entry.firstChild, money(paidPart) + ' van ' + money(gross) + ' binnen');
+          var bar = element('span', 'mobile-paid-bar');
+          bar.setAttribute('aria-hidden', 'true');
+          var fill = element('i');
+          fill.style.width = Math.min(100, Math.round(paidPart / gross * 100)) + '%';
+          bar.append(fill);
+          entry.firstChild.append(bar);
+        }
       } else if (page === 'expenses') {
         entry = row(item.vendor || 'Leverancier', money(expenseGross(item)), dateNL(item.date) + ' · ' + (item.category || 'Categorie controleren'),
           '', function () { expenseActions(item.id); }, null,

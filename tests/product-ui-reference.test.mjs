@@ -228,7 +228,7 @@ try{
       assert.deepEqual(await page.locator('.dashboard-kpi-label').allTextContents(),['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen']);
       assert.equal(await page.locator('#dashboardPeriod').inputValue(),'month');
       assert.equal(await page.locator('.dashboard-kpi-profit .metric-sub').count(),0,'Compact dashboard must hide repeated profit explanation by default');
-      assert.equal(await page.locator('.dashboard-kpi-secondary .metric-sub').count(),0,'Compact dashboard must hide repeated KPI helper copy when no warning exists');
+      assert.equal(await page.locator('.dashboard-kpi-secondary .metric-sub:not(.kpi-deadline)').count(),0,'Compact dashboard must hide repeated KPI helper copy when no warning exists');
       assert.notEqual(await page.locator('.dashboard-kpi .metric-icon').first().evaluate(el=>getComputedStyle(el).display),'none','Desktop dashboard KPI icons must remain visible');
       assert.deepEqual((await page.locator('.dashboard-chart-card .chart-legend span').allTextContents()).map(v=>v.trim()),['Omzet','Kosten','Winst']);
       const dashboardChartColours=await page.evaluate(()=>({
@@ -478,10 +478,16 @@ try{
         await page.evaluate(route=>navigate(route),route);
         const header=await page.locator('.product-page-head').evaluate(head=>{
           const title=head.querySelector('h1'),period=head.querySelector('.page-period-slot'),a=title?.getBoundingClientRect(),b=period?.getBoundingClientRect();
-          return {title:a?{left:a.left,top:a.top,bottom:a.bottom}:null,period:b?{left:b.left,top:b.top,bottom:b.bottom}:null};
+          return {segmented:!!period?.querySelector('.period-seg'),title:a?{left:a.left,top:a.top,bottom:a.bottom}:null,period:b?{left:b.left,top:b.top,bottom:b.bottom,width:b.width}:null,headWidth:head.getBoundingClientRect().width};
         });
-        assert.ok(header.period&&header.period.left>header.title.left,browserName+' mobile '+route+' period must remain right of title');
-        assert.ok(Math.abs(header.period.top-header.title.top)<36,browserName+' mobile '+route+' title and period must remain on one row');
+        if(header.segmented){
+          // Week / Maand / Kwartaal / Jaar / Alles sits as one full-width row under the title on a phone.
+          assert.ok(header.period&&header.period.top>=header.title.bottom-2,browserName+' mobile '+route+' period buttons must sit under the title');
+          assert.ok(header.period.width>=header.headWidth-2,browserName+' mobile '+route+' period buttons must use the full width');
+        }else{
+          assert.ok(header.period&&header.period.left>header.title.left,browserName+' mobile '+route+' period must remain right of title');
+          assert.ok(Math.abs(header.period.top-header.title.top)<36,browserName+' mobile '+route+' title and period must remain on one row');
+        }
         await noOverflow(page,browserName+' mobile '+route+' header');
       }
       await page.evaluate(()=>navigate('reports'));

@@ -2337,6 +2337,29 @@ img.bookuna-logo-icon,
     #mainApp .product-page-shell>.product-page-actions{grid-template-columns:1fr!important}
   }
 </style>
+<style id="period-seg-style">
+/* 8. Period as one row of buttons (Week / Maand / Kwartaal / Jaar / Alles). */
+#mainApp .page-head:has(.period-seg){flex-wrap:wrap}
+#mainApp .period-seg{position:relative;display:inline-flex;align-items:center;gap:2px;padding:3px;border-radius:12px;background:var(--app-surface,#F6F7F8);border:1px solid var(--app-border,#E4E8EB);max-width:100%;overflow-x:auto;scrollbar-width:none}
+#mainApp .period-seg::-webkit-scrollbar{display:none}
+#mainApp .period-seg-btn{flex:1 0 auto;height:34px;padding:0 12px;border:0;border-radius:9px;background:transparent;color:var(--app-muted-strong,#5E6870);font-size:13px;font-weight:650;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+#mainApp .period-seg-btn:hover{color:var(--app-ink,#17201B)}
+#mainApp .period-seg-btn.on{background:var(--app-white,#fff);color:var(--app-ink,#17201B);box-shadow:inset 0 0 0 1px var(--app-border,#E4E8EB)}
+#mainApp .period-seg-btn:focus-visible{outline:2px solid #63D471;outline-offset:1px}
+#mainApp .period-seg-custom{cursor:default}
+#mainApp .period-seg .period-seg-select{position:absolute!important;width:1px!important;height:1px!important;min-width:0!important;min-height:0!important;padding:0!important;margin:0!important;border:0!important;opacity:0;pointer-events:none;overflow:hidden;clip-path:inset(50%)}
+#mainApp .page-period-stack:has(.period-seg){align-items:flex-end}
+@media(max-width:820px){
+  #mainApp#mainApp .page-head:has(.period-seg) .page-period-slot{flex:1 1 100%!important;margin:0!important;justify-content:stretch}
+  #mainApp#mainApp .page-head:has(.period-seg) .page-period-slot>.period-seg,#mainApp#mainApp .page-head:has(.period-seg) .page-period-stack{width:100%}
+  #mainApp#mainApp .page-period-stack:has(.period-seg){align-items:stretch}
+  #mainApp#mainApp .period-seg{display:flex;width:100%}
+  #mainApp#mainApp .period-seg-btn{flex:1 1 0;min-width:0;height:38px;padding:0 6px}
+}
+html[data-theme="dark"] #mainApp .period-seg{background:var(--dk-bg,#121619);border-color:var(--dk-line,#2E363C)}
+html[data-theme="dark"] #mainApp .period-seg-btn{color:var(--dk-muted,#A7B1B8)}
+html[data-theme="dark"] #mainApp .period-seg-btn.on{background:var(--dk-raised,#21272C);color:var(--dk-ink,#E9EDEF);box-shadow:inset 0 0 0 1px var(--dk-line-strong,#424C54)}
+</style>
 </head>
 <body>
 <script src="/assets/financial-correction.js?v=20260929a"></script>
@@ -4146,8 +4169,15 @@ function financialPeriodContains(dateValue,range=financialPeriodRange()){return 
 // Quick period choice: one dropdown at the top right, the same size on every page. A custom period lives under Filters.
 // options: [[value,label,disabled?]]; onPick: a global function (expression) that receives the value.
 // A value outside the options (a custom period) shows as its own selected line, e.g. "1 jan – 8 okt".
+// Week/Maand/Kwartaal/Jaar/Alles show as one row of buttons; the dropdown stays (visually hidden) for keyboards and tests.
+const PERIOD_SEGMENT_LABELS={'Deze week':'Week','Deze maand':'Maand','Dit kwartaal':'Kwartaal','Dit jaar':'Jaar','Alles':'Alles'};
 function periodQuickHtml({id='',label='Periode',value='',options=PERIOD_QUICK_OPTIONS,onPick='setFinancialPeriod',customLabel='Aangepaste periode'}={}){
  const known=options.some(([v])=>String(v)===String(value));
+ if(options.every(([,l,disabled])=>PERIOD_SEGMENT_LABELS[l]&&!disabled)){
+  const buttons=options.map(([v,l])=>{const on=String(v)===String(value);return '<button type="button" class="period-seg-btn'+(on?' on':'')+'" aria-pressed="'+on+'" title="'+esc(l)+'" onclick="'+esc(onPick)+'('+esc(JSON.stringify(String(v)).replace(/"/g,"'"))+')">'+esc(PERIOD_SEGMENT_LABELS[l])+'</button>'}).join('');
+  const custom=known?'':'<span class="period-seg-btn on period-seg-custom" aria-current="true">'+esc(customLabel)+'</span>';
+  return '<div class="financial-period-control period-quick period-seg" role="group" aria-label="'+esc(label)+'">'+buttons+custom+'<select'+(id?' id="'+esc(id)+'"':'')+' class="period-seg-select" tabindex="-1" aria-hidden="true" onchange="'+esc(onPick)+'(this.value)">'+(known?'':'<option value="'+esc(value)+'" selected disabled>'+esc(customLabel)+'</option>')+options.map(([v,l])=>'<option value="'+esc(v)+'"'+(String(v)===String(value)?' selected':'')+'>'+esc(l)+'</option>').join('')+'</select></div>'
+ }
  return '<label class="financial-period-control period-quick"><span class="sr-only">'+esc(label)+'</span><select'+(id?' id="'+esc(id)+'"':'')+' class="dashboard-period-select financial-period-select period-quick-select" aria-label="'+esc(label)+'" onchange="'+esc(onPick)+'(this.value)">'+(known?'':'<option value="'+esc(value)+'" selected disabled>'+esc(customLabel)+'</option>')+options.map(([v,l,disabled])=>'<option value="'+esc(v)+'"'+(String(v)===String(value)?' selected':'')+(disabled?' disabled':'')+'>'+esc(l)+'</option>').join('')+'</select></label>'
 }
 window.periodQuickHtml=periodQuickHtml;
@@ -4255,8 +4285,50 @@ function dashboardStatusLine(kpi){
  if(open>0)return open===1?'1 factuur wacht nog op betaling.':open+' facturen wachten nog op betaling.';
  return 'Alles loopt.'
 }
+// Overview tiles (style C): each tile gets one small picture that explains its number.
+function dashboardMonthlyTotals(count=6){
+ const now=new Date(),out=[];
+ for(let i=count-1;i>=0;i--){
+  const lo=dashboardIsoDate(new Date(now.getFullYear(),now.getMonth()-i,1)),hi=dashboardIsoDate(i?new Date(now.getFullYear(),now.getMonth()-i+1,0):now);
+  const sales=state.invoices.filter(x=>x.status!=='draft'&&invoiceEffectiveStatus(x)!=='cancelled'&&inRange(x.issueDate,lo,hi)).reduce((sum,x)=>roundMoney(sum+invoiceNet(x)),0);
+  const costs=state.expenses.filter(e=>inRange(e.date,lo,hi)).reduce((sum,e)=>roundMoney(sum+expenseAccountingCost(e)),0);
+  out.push({sales,costs})
+ }
+ return out
+}
+function kpiBarsHtml(values){
+ if(!values.some(v=>v>0))return '';
+ const max=Math.max(...values.map(v=>Math.max(0,v)),1),w=100/values.length;
+ return '<span class="kpi-visual kpi-bars" aria-hidden="true"><svg viewBox="0 0 100 26" preserveAspectRatio="none">'+values.map((v,i)=>{const h=Math.max(2,Math.max(0,v)/max*26);return '<rect x="'+(i*w+1.5).toFixed(1)+'" y="'+(26-h).toFixed(1)+'" width="'+(w-3).toFixed(1)+'" height="'+h.toFixed(1)+'" rx="2.5"'+(i===values.length-1?'':' class="is-past"')+'/>'}).join('')+'</svg></span>'
+}
+function dashboardCostCategories(period){
+ const totals=new Map();
+ for(const e of state.expenses){if(period.preset!=='all'&&!inRange(e.date,period.from,period.to))continue;const key=String(e.category||'Overig').trim()||'Overig';totals.set(key,roundMoney((totals.get(key)||0)+expenseAccountingCost(e)))}
+ const sorted=[...totals].filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]),top=sorted.slice(0,2),rest=sorted.slice(2).reduce((sum,[,v])=>roundMoney(sum+v),0);
+ if(rest>0)top.push(['Overig',rest]);
+ return top
+}
+function kpiRingHtml(categories){
+ const total=categories.reduce((sum,[,v])=>sum+v,0);if(!(total>0))return '';
+ const c=2*Math.PI*14;let offset=0;
+ const arcs=categories.map(([,v],i)=>{const len=v/total*c,arc='<circle cx="18" cy="18" r="14" class="ring-part ring-'+i+'" stroke-dasharray="'+len.toFixed(2)+' '+c.toFixed(2)+'" stroke-dashoffset="'+(-offset).toFixed(2)+'"/>';offset+=len;return arc}).join('');
+ return '<span class="kpi-visual kpi-ring" aria-hidden="true"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="14" class="ring-track"/><g transform="rotate(-90 18 18)">'+arcs+'</g></svg><span class="kpi-ring-legend">'+categories.map(([name],i)=>'<span><i class="ring-dot ring-'+i+'"></i>'+esc(name.charAt(0).toUpperCase()+name.slice(1))+'</span>').join('')+'</span></span>'
+}
+function kpiShareBarHtml(part,total){
+ if(!(total>0))return '';
+ const pct=Math.min(100,Math.max(0,part/total*100));
+ return '<span class="kpi-visual kpi-share" aria-hidden="true"><i class="is-late" style="width:'+pct.toFixed(1)+'%"></i><i class="is-open" style="width:'+(100-pct).toFixed(1)+'%"></i></span>'
+}
+// Next quarterly VAT return: the previous quarter in the first month of a quarter, otherwise the current one.
+function vatDeadlineInfo(now=new Date()){
+ const m=now.getMonth(),y=now.getFullYear(),firstMonth=m%3===0;
+ let q=Math.floor(m/3),qy=y;if(firstMonth){q-=1;if(q<0){q=3;qy=y-1}}
+ const due=firstMonth?new Date(y,m+1,0):new Date(y,q*3+4,0),today=new Date(y,m,now.getDate());
+ const days=Math.round((due-today)/864e5),date=new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short'}).format(due).replace('.','');
+ return {quarter:'Q'+(q+1),year:qy,due,days,text:'Aangifte Q'+(q+1)+' vóór '+date+' · '+(days<=0?'vandaag':days===1?'nog 1 dag':'nog '+days+' dagen')}
+}
 function renderDashboard(){
- const kpi=dashboardKpiViewModel(),period=kpi.period,sales=kpi.revenue,costs=kpi.costs,profit=kpi.profit,open=kpi.receivables,overdue=kpi.overdueInvoiceCount,vat=kpi.vatReserve;
+ const kpi=dashboardKpiViewModel(),months=dashboardMonthlyTotals(),period=kpi.period,sales=kpi.revenue,costs=kpi.costs,profit=kpi.profit,open=kpi.receivables,overdue=kpi.overdueInvoiceCount,vat=kpi.vatReserve;
  const chart=dashboardChartBuckets(period.preset),max=Math.max(1,...chart.flatMap(x=>[Math.abs(x.sales),Math.abs(x.costs),Math.abs(x.profit)])),isEmpty=!state.invoices.length&&!state.expenses.length&&!state.transactions.length&&!state.contacts.length,greeting=dashboardGreeting(),bankTotal=state.transactions.length,bankMatched=state.transactions.filter(t=>t.status==='matched').length,bankOpen=state.transactions.filter(t=>t.status==='unmatched').length,bankPct=bankTotal?Math.round(bankMatched/bankTotal*100):null;
  const profileMissing=requirementsFor('invoice-finalize',{taxTreatment:state.company.kor?'kor':'standard'}),needsProfile=profileMissing.length>0;
  const welcomeCard=isEmpty?(needsProfile
@@ -4268,10 +4340,10 @@ function renderDashboard(){
  welcomeCard+profileReminder+
  '<div class="grid dashboard-kpis dashboard-kpis-v12">'+
   '<button type="button" class="card metric dashboard-kpi dashboard-kpi-profit kpi-tone-primary" onclick="navigate(\'reports\')"><div class="metric-head"><span class="dashboard-kpi-label">Winst</span><span class="metric-icon" aria-hidden="true">'+icon('i-chart')+'</span></div><div class="metric-value">'+money(profit)+'</div>'+optionalCopyHtml('Omzet minus kosten')+'</button>'+
-  '<button type="button" class="card metric dashboard-kpi dashboard-kpi-secondary kpi-tone-support" onclick="navigate(\'invoices\')"><div class="metric-head"><span class="dashboard-kpi-label">Omzet</span><span class="metric-icon" aria-hidden="true">'+icon('i-chart')+'</span></div><div class="metric-value">'+money(sales)+'</div>'+optionalCopyHtml('Excl. btw')+'</button>'+
-  '<button type="button" class="card metric dashboard-kpi dashboard-kpi-secondary kpi-tone-warning" onclick="navigate(\'expenses\')"><div class="metric-head"><span class="dashboard-kpi-label">Kosten</span><span class="metric-icon" aria-hidden="true">'+icon('i-receipt')+'</span></div><div class="metric-value">'+money(costs)+'</div>'+optionalCopyHtml('Excl. btw')+'</button>'+
-  '<button type="button" class="card metric dashboard-kpi dashboard-kpi-secondary kpi-tone-support" onclick="navigate(\'vat\')"><div class="metric-head"><span class="dashboard-kpi-label">Btw apartzetten</span><span class="metric-icon" aria-hidden="true">'+icon('i-tax')+'</span></div><div class="metric-value">'+money(vat)+'</div>'+(kpi.vatUncertain?'<div class="metric-sub">Kan nog veranderen door '+kpi.vatUnresolvedDocumentCount+' document'+(kpi.vatUnresolvedDocumentCount===1?'':'en')+'</div>':optionalCopyHtml(vat>=0?'Op basis van je huidige administratie':'Indicatief terug te vragen'))+'</button>'+
-  '<button type="button" class="card metric dashboard-kpi dashboard-kpi-secondary dashboard-kpi-receivables '+(kpi.overdueReceivables>0?'has-attention ':'')+'kpi-tone-support" onclick="navigateWithFilter(\'invoices\',\'status\',\'open\')"><div class="metric-head"><span class="dashboard-kpi-label">Nog te ontvangen</span><span class="metric-icon" aria-hidden="true">'+icon('i-file')+'</span></div><div class="metric-value">'+money(open)+'</div>'+(kpi.overdueReceivables>0?'<div class="metric-sub">'+money(kpi.overdueReceivables)+' te laat</div>':optionalCopyHtml(kpi.openInvoiceCount+' open factuur'+(kpi.openInvoiceCount===1?'':'en')))+'</button>'+
+  '<button type="button" class="card metric dashboard-kpi dashboard-kpi-secondary kpi-tone-support" onclick="navigate(\'invoices\')"><div class="metric-head"><span class="dashboard-kpi-label">Omzet</span><span class="metric-icon" aria-hidden="true">'+icon('i-chart')+'</span></div><div class="metric-value">'+money(sales)+'</div>'+optionalCopyHtml('Excl. btw')+kpiBarsHtml(months.map(x=>x.sales))+'</button>'+
+  '<button type="button" class="card metric dashboard-kpi dashboard-kpi-secondary kpi-tone-warning" onclick="navigate(\'expenses\')"><div class="metric-head"><span class="dashboard-kpi-label">Kosten</span><span class="metric-icon" aria-hidden="true">'+icon('i-receipt')+'</span></div><div class="metric-value">'+money(costs)+'</div>'+optionalCopyHtml('Excl. btw')+kpiRingHtml(dashboardCostCategories(period))+'</button>'+
+  '<button type="button" class="card metric dashboard-kpi dashboard-kpi-secondary kpi-tone-support" onclick="navigate(\'vat\')"><div class="metric-head"><span class="dashboard-kpi-label">Btw apartzetten</span><span class="metric-icon" aria-hidden="true">'+icon('i-tax')+'</span></div><div class="metric-value">'+money(vat)+'</div>'+(state.company?.kor?'':'<div class="metric-sub kpi-deadline">'+esc(vatDeadlineInfo().text)+'</div>')+(kpi.vatUncertain?'<div class="metric-sub">Kan nog veranderen door '+kpi.vatUnresolvedDocumentCount+' document'+(kpi.vatUnresolvedDocumentCount===1?'':'en')+'</div>':optionalCopyHtml(vat>=0?'Op basis van je huidige administratie':'Indicatief terug te vragen'))+'</button>'+
+  '<button type="button" class="card metric dashboard-kpi dashboard-kpi-secondary dashboard-kpi-receivables '+(kpi.overdueReceivables>0?'has-attention ':'')+'kpi-tone-support" onclick="navigateWithFilter(\'invoices\',\'status\',\'open\')"><div class="metric-head"><span class="dashboard-kpi-label">Nog te ontvangen</span><span class="metric-icon" aria-hidden="true">'+icon('i-file')+'</span></div><div class="metric-value">'+money(open)+'</div>'+kpiShareBarHtml(kpi.overdueReceivables,open)+(kpi.overdueReceivables>0?'<div class="metric-sub">'+money(kpi.overdueReceivables)+' te laat</div>':optionalCopyHtml(kpi.openInvoiceCount+' open factuur'+(kpi.openInvoiceCount===1?'':'en')))+'</button>'+
  '</div>'+
  '<div class="dashboard-main-grid">'+
   '<div class="card dashboard-chart-card"><div class="section-head"><div><h2>Resultaat</h2><p>'+esc(period.label)+' · excl. btw</p></div></div><div class="chart dashboard-result-chart" aria-label="Omzet, kosten en winst per periode">'+chart.map(x=>'<button type="button" class="bar-group" data-chart-values="'+esc(JSON.stringify({month:x.period,sales:money(x.sales),costs:money(x.costs),profit:money(x.profit)}))+'" aria-describedby="dashboardChartValues" aria-pressed="false" aria-label="'+esc(x.period)+': omzet '+esc(money(x.sales))+', kosten '+esc(money(x.costs))+', winst '+esc(money(x.profit))+'"><span class="bar sales" style="height:'+Math.max(3,Math.abs(x.sales)/max*100)+'%"></span><span class="bar costs" style="height:'+Math.max(3,Math.abs(x.costs)/max*100)+'%"></span><span class="bar profit '+(x.profit<0?'loss':'')+'" style="height:'+Math.max(3,Math.abs(x.profit)/max*100)+'%"></span><span class="bar-label">'+esc(x.lab)+'</span></button>').join('')+'</div><div class="chart-values" id="dashboardChartValues" role="tooltip" hidden></div><div class="chart-legend"><span><i class="legend-dot"></i>Omzet</span><span><i class="legend-dot cost"></i>Kosten</span><span><i class="legend-dot profit"></i>Winst</span></div></div>'+
