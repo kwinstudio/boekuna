@@ -35,8 +35,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--bk-dark-green);
 .tour-copy ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
 .tour-copy li{display:flex;gap:10px;align-items:flex-start;font-size:14px;font-weight:600;color:#33453B}
 .tour-copy li .icon{width:17px;height:17px;color:#2AA445;stroke-width:2.6;margin-top:2px}
-.tour-shot{margin:0;justify-self:center;width:100%;max-width:330px;border:7px solid #1E2326;border-radius:30px;background:#1E2326;overflow:hidden;box-shadow:0 28px 50px -30px rgba(10,30,18,.5)}
-.tour-shot img{display:block;width:100%;height:auto;border-radius:22px;background:#F4F6F5}
+.tour-shot{margin:0;justify-self:center;width:100%}
+.tour-shot img{display:block;width:100%;height:auto;background:#F4F6F5}
 .tour-note{margin:26px 0 0;font-size:12px;color:#5A6B62;text-align:center}
 .tour-cta{display:flex;justify-content:center;margin-top:18px}
 
@@ -85,8 +85,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--bk-dark-green);
 }
 @media(min-width:768px){
  .tour-panel{grid-template-columns:minmax(0,.8fr) minmax(0,2fr);gap:40px}
- .tour-shot{max-width:none;border:1px solid #DCE3DE;border-radius:14px;background:#fff}
- .tour-shot img{border-radius:0}
+ .tour-shot{border:1px solid #DCE3DE;border-radius:14px;background:#fff;overflow:hidden;box-shadow:0 28px 50px -30px rgba(10,30,18,.5)}
  .tour-tabs{justify-content:center;overflow:visible}
 }
 @media(min-width:1024px){
@@ -212,9 +211,15 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--bk-dark-green);
  .footer-brand{grid-column:auto}
 }
 @media(max-width:767px){
- .page-shot{max-width:330px;justify-self:center;width:100%;border:7px solid #1E2326;border-radius:30px;background:#1E2326}
+ .page-shot{justify-self:center;width:100%}
  .page-shot .browser-bar{display:none}
- .page-shot img{border-radius:22px}
+ /* Phones: the real mobile screenshot sits in a phone body with status bar, island, side buttons and home bar */
+ .tour-shot,.page-shot{position:relative;overflow:visible;max-width:236px;padding:6px;border:0;border-radius:38px;background:linear-gradient(150deg,#2C3034,#101214 45%,#1C1F22);box-shadow:0 0 0 1px #868C91,0 0 0 2px #2A2E31,inset 0 0 0 1px rgba(255,255,255,.12),0 24px 44px -26px rgba(10,30,18,.45),0 8px 18px -14px rgba(10,30,18,.25)}
+ .tour-shot::before,.page-shot::before{content:"";position:absolute;left:-3px;top:17%;width:2px;height:27%;border-radius:2px 0 0 2px;background:linear-gradient(#5D6267 0 13%,transparent 13% 29%,#5D6267 29% 61%,transparent 61% 70%,#5D6267 70%)}
+ .tour-shot::after,.page-shot::after{content:"";position:absolute;right:-3px;top:27%;width:2px;height:13%;border-radius:0 2px 2px 0;background:#5D6267}
+ .tour-shot picture,.page-shot picture{display:block;overflow:hidden;border-radius:32px;padding:12.8% 0 4.6%;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 50'%3E%3Ctext x='54' y='33' text-anchor='middle' font-family='-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif' font-size='16.5' font-weight='600' fill='%23111'%3E9:41%3C/text%3E%3Crect x='137' y='11' width='116' height='33' rx='16.5' fill='%23000'/%3E%3Cg fill='%23111'%3E%3Crect x='288' y='29' width='3.2' height='4.5' rx='1'/%3E%3Crect x='293' y='26.5' width='3.2' height='7' rx='1'/%3E%3Crect x='298' y='24' width='3.2' height='9.5' rx='1'/%3E%3Crect x='303' y='21.5' width='3.2' height='12' rx='1'/%3E%3C/g%3E%3Cg fill='none' stroke='%23111' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M314 25.4a11.4 11.4 0 0 1 16 0'/%3E%3Cpath d='M317.2 28.7a6.9 6.9 0 0 1 9.6 0'/%3E%3C/g%3E%3Ccircle cx='322' cy='32' r='1.8' fill='%23111'/%3E%3Crect x='337.5' y='22' width='24' height='12' rx='3.6' fill='none' stroke='%23111' stroke-opacity='.38'/%3E%3Crect x='339.5' y='24' width='20' height='8' rx='2' fill='%23111'/%3E%3Crect x='362.8' y='26' width='1.7' height='4' rx='.85' fill='%23111' fill-opacity='.4'/%3E%3C/svg%3E") top center/100% auto no-repeat,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 5'%3E%3Crect width='140' height='5' rx='2.5' fill='%23111'/%3E%3C/svg%3E") bottom 3px center/35% auto no-repeat,var(--phone-screen,#fff)}
+ .tour-shot img,.page-shot img{border-radius:0;background:#fff}
+ .shot-dim{--phone-screen:linear-gradient(#ACAEB0 0 50%,#fff 50%)}
  .page-hero-media{display:grid;justify-items:center}
  .page-hero-media .shot-note{text-align:center}
 }
@@ -298,7 +303,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--bk-dark-green);
 .site-footer-full .brand-word{font-size:26px}
 /* Hero: rustige foto met twee kleine meldingen */
 .hero-calm{position:relative;padding:18px 10px 26px}
-.calm-photo{margin:0;border-radius:24px;overflow:hidden;aspect-ratio:5/4;background:#EEF3EF}
+.calm-photo{position:relative;margin:0;-webkit-mask:var(--blob-front) center/100% 100% no-repeat;mask:var(--blob-front) center/100% 100% no-repeat;overflow:hidden;aspect-ratio:5/4;background:#EEF3EF}
+.hero-calm::before{content:"";position:absolute;inset:6% -1% 2% 14%;background:#E4F5E7;-webkit-mask:var(--blob-back) center/100% 100% no-repeat;mask:var(--blob-back) center/100% 100% no-repeat}
 .calm-photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 30%}
 .calm-note{position:absolute;display:flex;align-items:center;gap:11px;padding:11px 15px 11px 11px;border:1px solid #E6EDE7;border-radius:14px;background:rgba(255,255,255,.97);color:var(--bk-ink);box-shadow:0 14px 34px -22px rgba(10,25,13,.55)}
 .calm-note strong{display:block;font-size:13px;line-height:1.25}
@@ -308,3 +314,20 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--bk-dark-green);
 .calm-note-top{top:0;right:0}
 .calm-note-bottom{bottom:0;left:0}
 @media(min-width:980px){.hero-calm{padding:26px 18px 34px}.calm-note{padding:13px 18px 13px 13px}.calm-note strong{font-size:14px}.calm-note small{font-size:12px}.calm-note-top{right:-6px}.calm-note-bottom{left:-6px}}
+
+/* Soft organic photo shapes */
+.hero-calm,.people-shot{--blob-front:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M20 19C35 6 63 1 81 5C95 8 100 24 99 43C98 63 86 81 67 92C51 101 33 98 21 86C7 72 0 54 3 38C5 29 11 25 20 19Z'/%3E%3C/svg%3E");--blob-back:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M28 6C46 -1 72 2 87 14C99 24 101 44 95 63C89 82 73 97 52 99C33 101 15 92 7 76C0 62 3 44 10 31C14 21 19 10 28 6Z'/%3E%3C/svg%3E")}
+/* People: real entrepreneurs in soft shapes, with a small card that says something true about Boekuna */
+.people-grid{display:grid;gap:30px;align-items:center}
+.people-shot{position:relative;margin:0 auto;width:100%;max-width:480px;padding:5% 2% 8% 7%}
+.people-shot::before{content:"";position:absolute;inset:0 0 3% 14%;background:#E4F5E7;-webkit-mask:var(--blob-back) center/100% 100% no-repeat;mask:var(--blob-back) center/100% 100% no-repeat}
+.people-shot img{position:relative;display:block;width:100%;height:auto;aspect-ratio:900/780;object-fit:cover;-webkit-mask:var(--blob-front) center/100% 100% no-repeat;mask:var(--blob-front) center/100% 100% no-repeat;background:#EEF3EF}
+.people-badge{position:absolute;left:0;bottom:13%;display:flex;align-items:center;gap:11px;padding:11px 16px 11px 11px;border:1px solid #E6EDE7;border-radius:14px;background:rgba(255,255,255,.97);color:var(--bk-ink);box-shadow:0 14px 34px -22px rgba(10,25,13,.55)}
+.people-badge strong{display:block;font-size:14px;line-height:1.25}
+.people-badge small{display:block;font-size:12px;color:var(--bk-muted)}
+.eu-mark{display:block;width:38px;height:38px;flex:none}
+.people-copy h2{font-family:var(--bk-heading);font-weight:750;letter-spacing:-.05em;font-size:clamp(29px,7vw,42px);line-height:1.1;margin:14px 0}
+.people-copy h2 span{color:#2F9D49}
+.people-copy p{color:#4E5E56;font-size:16px;line-height:1.7;margin:0 0 18px;max-width:46ch}
+.people-copy .check-list{margin-bottom:20px}
+@media(min-width:900px){.people-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:64px}.people-badge{left:-8px}}
