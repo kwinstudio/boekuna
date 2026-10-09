@@ -1,0 +1,62 @@
+/* BOEKUNA motion — short, calm movement so the app responds to what you do.
+   Everything sits under html.boekuna-motion (set by motion.js) and stops for prefers-reduced-motion. */
+
+/* 1. Buttons and cards give way a little while pressed. */
+html.boekuna-motion :is(#mainApp,#modalRoot) :is(.btn,.icon-btn,.nav-item,.mobile-bottom-nav-item,button.card,.dashboard-attention-item,.quick-action,.action-row,.mobile-card-main,.modal-close){
+  transition:transform .12s ease,background-color .18s ease,border-color .18s ease,color .18s ease!important;
+}
+html.boekuna-motion :is(#mainApp,#modalRoot) :is(.btn,.icon-btn,.nav-item,.mobile-bottom-nav-item,button.card,.dashboard-attention-item,.quick-action,.action-row,.mobile-card-main,.modal-close):active:not(:disabled){
+  transform:scale(.97)!important;
+}
+
+/* 2. A new page eases in. */
+html.boekuna-motion #content.motion-enter{animation:boekuna-motion-rise .28s cubic-bezier(.2,.8,.2,1) both}
+@keyframes boekuna-motion-rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* 4. Chart bars grow up from the baseline, one group after the other. */
+html.boekuna-motion #content.motion-enter .bar{transform-origin:bottom;animation:boekuna-motion-grow .6s cubic-bezier(.2,.8,.2,1) both}
+html.boekuna-motion #content.motion-enter .bar-group:nth-child(2) .bar{animation-delay:.06s}
+html.boekuna-motion #content.motion-enter .bar-group:nth-child(3) .bar{animation-delay:.12s}
+html.boekuna-motion #content.motion-enter .bar-group:nth-child(4) .bar{animation-delay:.18s}
+html.boekuna-motion #content.motion-enter .bar-group:nth-child(5) .bar{animation-delay:.24s}
+html.boekuna-motion #content.motion-enter .bar-group:nth-child(n+6) .bar{animation-delay:.3s}
+@keyframes boekuna-motion-grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+
+/* 6. List rows arrive one after the other (only the first rows; the rest are already there). */
+html.boekuna-motion #content.motion-enter :is(tbody tr,.mobile-card-row,.dashboard-attention-item){animation:boekuna-motion-rise .3s cubic-bezier(.2,.8,.2,1) both}
+html.boekuna-motion #content.motion-enter :is(tbody tr,.mobile-card-row,.dashboard-attention-item):nth-child(1){animation-delay:.04s}
+html.boekuna-motion #content.motion-enter :is(tbody tr,.mobile-card-row,.dashboard-attention-item):nth-child(2){animation-delay:.08s}
+html.boekuna-motion #content.motion-enter :is(tbody tr,.mobile-card-row,.dashboard-attention-item):nth-child(3){animation-delay:.12s}
+html.boekuna-motion #content.motion-enter :is(tbody tr,.mobile-card-row,.dashboard-attention-item):nth-child(4){animation-delay:.16s}
+html.boekuna-motion #content.motion-enter :is(tbody tr,.mobile-card-row,.dashboard-attention-item):nth-child(5){animation-delay:.2s}
+html.boekuna-motion #content.motion-enter :is(tbody tr,.mobile-card-row,.dashboard-attention-item):nth-child(6){animation-delay:.24s}
+html.boekuna-motion #content.motion-enter :is(tbody tr,.mobile-card-row,.dashboard-attention-item):nth-child(7){animation-delay:.28s}
+html.boekuna-motion #content.motion-enter :is(tbody tr,.mobile-card-row,.dashboard-attention-item):nth-child(n+8){animation:none}
+
+/* 5. A check mark draws itself in toasts that confirm something worked. */
+html.boekuna-motion .toast.motion-success{display:flex;align-items:center;gap:9px}
+.motion-check{width:20px;height:20px;flex:0 0 20px}
+.motion-check circle{fill:#63D471;transform-origin:center;animation:boekuna-motion-pop .32s cubic-bezier(.2,.8,.2,1) both}
+.motion-check path{fill:none;stroke:#0E2A16;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:16;animation:boekuna-motion-draw .3s .18s cubic-bezier(.2,.8,.2,1) both}
+@keyframes boekuna-motion-pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes boekuna-motion-draw{from{stroke-dashoffset:16}to{stroke-dashoffset:0}}
+
+/* 7. On a phone, short choice menus (Nieuw, factuuracties) slide up from the bottom. */
+@media (max-width:820px){
+  html.boekuna-motion #modalRoot .modal-backdrop:has(> .modal :is(.quick-action-grid,.action-list)){align-items:end!important;place-items:end stretch!important;padding:0!important}
+  html.boekuna-motion #modalRoot .modal:has(:is(.quick-action-grid,.action-list)){width:100%!important;max-width:none!important;max-height:min(80dvh,620px)!important;border-bottom:0!important;border-radius:20px 20px 0 0!important;padding-bottom:env(safe-area-inset-bottom,0px);animation:boekuna-motion-sheet .3s cubic-bezier(.2,.8,.2,1) both}
+}
+@keyframes boekuna-motion-sheet{from{transform:translateY(100%)}to{transform:none}}
+
+/* 8. A status that just became "Betaald" pops once. */
+html.boekuna-motion .badge.motion-paid{animation:boekuna-motion-stamp .45s cubic-bezier(.2,.8,.2,1)}
+@keyframes boekuna-motion-stamp{0%{transform:scale(1)}40%{transform:scale(1.22)}100%{transform:scale(1)}}
+
+@media (prefers-reduced-motion:reduce){
+  html.boekuna-motion #content.motion-enter,
+  html.boekuna-motion #content.motion-enter *,
+  html.boekuna-motion #modalRoot .modal,
+  html.boekuna-motion .badge.motion-paid,
+  .motion-check circle,.motion-check path{animation:none!important}
+  html.boekuna-motion :is(#mainApp,#modalRoot) :is(.btn,.icon-btn,.nav-item,.mobile-bottom-nav-item,button.card,.dashboard-attention-item,.quick-action,.action-row,.mobile-card-main,.modal-close):active:not(:disabled){transform:none!important}
+}
