@@ -138,7 +138,8 @@ try{
     await base.route('**/app',async route=>{const r=await route.fetch();await route.fulfill({response:r,body:strip(await r.text())})});
     await page.goto(url);await ready(page);await base.goto(baseUrl);await ready(base);
     assert.equal(await base.locator('link[href*="theme-dark"]').count(),0,'comparison build has no Dark Mode CSS');assert.equal(await page.locator('link[href*="theme-dark"]').count(),2);
-    const snap=p=>p.evaluate(()=>[...document.querySelectorAll('#mainApp *')].filter(el=>el.getClientRects().length).slice(0,1500).map(el=>{const s=getComputedStyle(el);return el.tagName+'|'+s.color+'|'+s.backgroundColor+'|'+s.borderTopColor}).join('\n'));
+    // Relation logos load from the relation's own website, so they arrive at different moments on both pages.
+    const snap=p=>p.evaluate(()=>[...document.querySelectorAll('#mainApp *')].filter(el=>el.getClientRects().length&&!el.closest('.party-avatar')).slice(0,1500).map(el=>{const s=getComputedStyle(el);return el.tagName+'|'+s.color+'|'+s.backgroundColor+'|'+s.borderTopColor}).join('\n'));
     for(const p of PAGES){
       await page.evaluate(p=>navigate(p),p);await base.evaluate(p=>navigate(p),p);
       await page.waitForTimeout(150);await base.waitForTimeout(150);
