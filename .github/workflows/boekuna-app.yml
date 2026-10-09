@@ -27,6 +27,10 @@ on:
       - "kwinest/app-assets/theme.js"
       - "kwinest/app-assets/theme-dark.css"
       - "kwinest/app-assets/feedback.*"
+      - "kwinest/app-assets/look.*"
+      - "kwinest/app-assets/motion.*"
+      - "public/assets/personal-insights-ui.js"
+      - "tests/look-browser.test.mjs"
       - "scripts/theme-dark-generate.mjs"
       - "supabase/migrations/20261007200000_in_app_feedback.sql"
       - "tests/theme-browser.test.mjs"
@@ -235,6 +239,10 @@ jobs:
         run: |
           node tests/motion-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/motion-browser.test.mjs
+      - name: Rustige look (groet, centen, logo's, stippen, klaar, lege lijsten) — Chromium and WebKit
+        run: |
+          node tests/look-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/look-browser.test.mjs
       - name: Thema (Automatisch, Licht, Donker) — Chromium and WebKit
         run: |
           node tests/theme-browser.test.mjs

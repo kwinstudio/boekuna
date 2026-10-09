@@ -108,8 +108,9 @@ try{
   assert.notEqual(await page.locator('#mobileBottomNav').evaluate(el=>getComputedStyle(el).display),'none','Bottom navigation must be visible on mobile');
   assert.equal(await page.locator('[data-mobile-page="dashboard"]').getAttribute('aria-current'),'page');
 
-  const greeting=await page.locator('.dashboard-page-head .page-status').innerText();
-  assert.match(greeting,/^(Goedemorgen|Goedemiddag|Goedenavond), Kwin$/,'Dashboard context must use local daypart and first name');
+  const greeting=await page.locator('.dashboard-page-head h1').innerText();
+  assert.match(greeting,/^(Goedemorgen|Goedemiddag|Goedenavond), Kwin$/,'Dashboard greets with local daypart and first name');
+  assert.match(await page.locator('.dashboard-page-head .page-status').innerText(),/^(Alles loopt\.|\d+ factu(ur|ren) .+\.)$/,'Dashboard shows one calm status line under the greeting');
 
   await page.locator('.dashboard-attention h2').filter({hasText:'Nog te doen'}).waitFor();
   const attentionText=await page.locator('.dashboard-attention').innerText();

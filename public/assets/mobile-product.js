@@ -59,9 +59,15 @@
     if (job) return function () { openPersistentDocumentReview(job.id); };
     return item.fileId ? function () { openDocumentPreview(item.id); } : null;
   }
-  function row(title, amount, detail, status, action, actionText) {
+  function row(title, amount, detail, status, action, actionText, lead) {
     var wrapper = element('div', 'mobile-card-row');
     var main = action ? button('', action, 'mobile-card-main') : element('div', 'mobile-card-main');
+    if (lead) {
+      // Trusted avatar/icon markup from the app's own partyAvatarHtml/expenseCategoryIconHtml.
+      var holder = document.createElement('span');
+      holder.innerHTML = lead;
+      if (holder.firstChild) { main.append(holder.firstChild); main.classList.add('has-lead'); }
+    }
     main.append(element('strong', 'mobile-card-title', title));
     metadata(main, detail);
     var side = element('div', 'mobile-card-side');
@@ -89,14 +95,16 @@
       if (page === 'invoices') {
         entry = row(getContact(item.customerId).name || 'Klant', money(invoiceGross(item)),
           (item.number || 'Concept') + ' · ' + (invoiceEffectiveStatus(item)==='paid' ? ((typeof invoicePaymentSummary==='function' && invoicePaymentSummary(item)) || dateNL(item.issueDate)) : 'Vervalt ' + dateNL(item.dueDate)),
-          statusBadge(invoiceEffectiveStatus(item)), function () { viewInvoice(item.id); });
+          statusBadge(invoiceEffectiveStatus(item)), function () { viewInvoice(item.id); }, null,
+          typeof partyAvatarHtml === 'function' ? partyAvatarHtml(getContact(item.customerId).name, typeof partyLogoDomain === 'function' ? partyLogoDomain(getContact(item.customerId)) : '') : '');
         var actions = button('', function () { invoiceActions(item.id); }, 'icon-btn');
         actions.innerHTML = icon('i-more');
         actions.setAttribute('aria-label', 'Factuuracties voor ' + (item.number || 'concept'));
         entry.lastChild.append(actions);
       } else if (page === 'expenses') {
         entry = row(item.vendor || 'Leverancier', money(expenseGross(item)), dateNL(item.date) + ' · ' + (item.category || 'Categorie controleren'),
-          '', function () { expenseActions(item.id); });
+          '', function () { expenseActions(item.id); }, null,
+          typeof expenseLeadHtml === 'function' ? expenseLeadHtml(item) : '');
         metadata(entry.firstChild, 'Btw ' + expenseVatRateLabel(item));
       } else if (page === 'documents') {
         var docLink = typeof listLinkedDocumentInfo === 'function' && item.linkedId ? listLinkedDocumentInfo(item) : null;

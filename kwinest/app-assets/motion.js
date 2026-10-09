@@ -55,11 +55,14 @@
     if(!parsed||reduced.matches)return;
     var target=parsed.value,start=performance.now(),duration=700,original=el.textContent;
     if(from===target||(from===0&&target===0))return;
+    var look=window.boekunaLook;
+    el.dataset.counting='1';
     function frame(now){
       if(!el.isConnected)return;
       var p=Math.min(1,(now-start)/duration),eased=1-Math.pow(1-p,3);
-      if(p>=1){el.textContent=original;return}
-      el.textContent=formatLike(parsed,from+(target-from)*eased);
+      if(p>=1){delete el.dataset.counting;el.textContent=original;if(look)look.cents(el);return}
+      var text=formatLike(parsed,from+(target-from)*eased);
+      if(look)look.setAmount(el,text);else el.textContent=text;
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
