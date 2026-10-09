@@ -121,6 +121,45 @@ try{
     await context.close();
   }
 
+  // Round 3 on a phone (Kwin's picks, 2026-10-09): one block and tile style on every page, calm rows without a ⋯,
+  // Gevaarzone under Account, a profile card on Instellingen, day chips for a cost and a folded A4 invoice.
+  {
+    const {context,page}=await openApp(390,844);
+    for(const route of ['invoices','expenses','bank','vat','reports']){
+      await page.evaluate(r=>navigate(r),route);
+      const tiles=await page.locator('.product-kpis .product-kpi').evaluateAll(list=>list.map(el=>({dot:el.dataset.kpiDot||'',hero:el.classList.contains('kpi-hero'),radius:getComputedStyle(el).borderTopLeftRadius,icon:getComputedStyle(el.querySelector('.product-kpi-icon')).display})));
+      assert.ok(tiles.length&&tiles.every(t=>t.dot&&t.radius==='12px'&&t.icon==='none'),route+' tiles share one style with a coloured dot: '+JSON.stringify(tiles));
+      if(['bank','vat','reports'].includes(route))assert.equal(tiles.filter(t=>t.hero).length,1,route+' has one light-blue block on top');
+    }
+    await page.evaluate(()=>navigate('invoices'));
+    await page.locator('.mobile-card-list .mobile-card-row').first().waitFor();
+    assert.equal(await page.locator('.mobile-card-list .mobile-card-side .icon-btn').first().isVisible(),false,'No ⋯ on an invoice row; the actions sit in the invoice');
+    await page.evaluate(()=>navigate('contacts'));
+    assert.equal(await page.locator('.mobile-contacts .row-action-trigger').first().isVisible(),false,'No ⋯ on a relation row');
+    await page.locator('.mobile-contacts .phone-row-link',{hasText:'Studio Noord'}).click();
+    await page.getByRole('dialog').waitFor();
+    await page.evaluate(()=>closeModal());
+    await page.evaluate(()=>navigate('settings'));
+    assert.equal(await page.locator('.settings-profile-card').isVisible(),true,'Profile card on top of Instellingen');
+    assert.equal(await page.locator('.settings-center-row[data-settings-open="danger"]').isVisible(),false,'No separate Gevaarzone row on a phone');
+    await page.locator('.settings-center-row[data-settings-open="account"]').click();
+    await page.locator('#settings-panel-account [data-settings-open="danger"]').click();
+    assert.equal(await page.locator('.settings-danger-group').getByRole('button',{name:'Account verwijderen',exact:true}).isVisible(),true,'Account deletion stays reachable under Account');
+    await page.evaluate(()=>newExpense());
+    assert.equal(await page.locator('.expense-day-chip.active').innerText(),'Vandaag');
+    assert.equal(await page.locator('#expenseDate').isVisible(),false,'The date field waits until you pick "Andere dag"');
+    await page.locator('.expense-day-chip',{hasText:'Andere dag'}).click();
+    assert.equal(await page.locator('#expenseDate').isVisible(),true);
+    await page.evaluate(()=>{closeModal();viewInvoice('i1')});
+    const expand=page.locator('#modalRoot .a4-expand');
+    assert.equal(await expand.innerText(),'Hele factuur bekijken');
+    assert.ok(await page.locator('#modalRoot .boekuna-a4-preview.is-collapsed').count()===1,'The A4 page starts folded on a phone');
+    await expand.click();
+    assert.equal(await page.locator('#modalRoot .boekuna-a4-preview.is-collapsed').count(),0);
+    assert.equal(await expand.getAttribute('aria-expanded'),'true');
+    await context.close();
+  }
+
   // Buttons on a phone: quick buttons (45), delete with undo (42), busy button (41), Alles / Een deel (48),
   // copy (49), send channels (50), round back button (51) and the error under the field itself (61).
   {

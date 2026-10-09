@@ -254,6 +254,8 @@
       line('E-mailadres',esc(email||'Niet bekend'),'')
       +line('Wachtwoord en beveiliging','Tweestapsverificatie en wachtwoord wijzigen.','<button class="btn" type="button" data-settings-open="security">Openen</button>')
       +line('Uitloggen','Beëindig je sessie op dit apparaat.','<button class="btn" id="settingsLogoutButton" type="button" onclick="logoutUser(this)">Uitloggen</button>')
+      // Phone: there is no separate Gevaarzone row; account deletion is found here, under Account.
+      +'<div class="settings-account-danger">'+line('Account verwijderen','Of alleen je administratie wissen. Je krijgt altijd eerst een extra controle.','<button class="btn" type="button" data-settings-open="danger">Openen</button>')+'</div>'
     );
   }
 
@@ -289,6 +291,14 @@
     ];
   }
 
+  // Phone: who you are and your plan on top of the index (Kwin's pick, 2026-10-09); a tap opens Mijn bedrijf.
+  function profileCardHtml(){
+    var name=company().name||'Je bedrijf',email=currentUser&&currentUser.email?currentUser.email:'',plan=billingStatus();
+    var initials=String(name).split(/\s+/).filter(Boolean).slice(0,2).map(function(w){return w.charAt(0)}).join('').toUpperCase()||'B';
+    var detail=[plan?(plan==='Testtoegang'?plan:plan+'-abonnement'):'',email].filter(Boolean).join(' · ');
+    return '<button type="button" class="settings-profile-card" data-settings-open="business"><span class="settings-profile-avatar" aria-hidden="true">'+esc(initials)+'</span><span class="settings-profile-text"><strong>'+esc(name)+'</strong>'+(detail?'<span>'+esc(detail)+'</span>':'')+'</span></button>';
+  }
+
   function setupStatusHtml(){
     var missing=missingForInvoice();
     if(!missing.length)return '';
@@ -314,6 +324,7 @@
     var list=sections(),current=active||'business';
     return '<div class="settings-center" id="settingsCenter" data-view="'+(active?'detail':'index')+'">'
       +'<div class="page-head"><div><h1>Instellingen</h1></div></div>'
+      +profileCardHtml()
       +setupStatusHtml()
       +'<div class="settings-center-layout">'
       +'<nav class="settings-center-nav" aria-label="Instellingen">'+navHtml(list,current)+'</nav>'
@@ -338,6 +349,7 @@
       nav.innerHTML=navHtml(sections(),active||'business');
       if(focusedKey){var again=nav.querySelector('[data-settings-open="'+focusedKey+'"]');if(again)again.focus()}
     }
+    var card=el.querySelector('.settings-profile-card');if(card)card.outerHTML=profileCardHtml();
     var setup=el.querySelector('#settingsSetupStatus'),html=setupStatusHtml();
     if(setup&&!html)setup.remove();
     else if(setup&&html)setup.outerHTML=html;
@@ -361,7 +373,10 @@
 
   function back(){
     var el=root();if(!el)return;
-    var key=active;active=null;el.dataset.view='index';
+    var key=active;
+    // Phone: the Gevaarzone is opened from Account, so going back returns there.
+    if(key==='danger'&&window.matchMedia('(max-width:820px)').matches){open('account',{focus:false});var from=el.querySelector('#settings-panel-account [data-settings-open="danger"]');if(from)from.focus();return}
+    active=null;el.dataset.view='index';
     var row=key&&el.querySelector('.settings-center-nav [data-settings-open="'+key+'"]');
     window.scrollTo({top:0,behavior:'instant'});
     if(row)row.focus();

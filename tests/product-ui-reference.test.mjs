@@ -542,7 +542,8 @@ try{
       await page.evaluate(()=>navigate('invoices'));
       await page.getByRole('heading',{name:'Inkomsten'}).waitFor();
       assert.ok((await page.locator('.product-kpi-icon').count())>0,'Product KPI icon nodes should remain available to desktop');
-      assert.ok(await page.locator('.product-kpi-icon').evaluateAll(nodes=>nodes.every(el=>getComputedStyle(el).display!=='none')),'Mobile product KPI icons must stay visible at the card top-right');
+      assert.ok(await page.locator('.product-kpi-icon').evaluateAll(nodes=>nodes.every(el=>getComputedStyle(el).display==='none')),'Mobile product KPI tiles (round 2) carry a coloured dot instead of the corner icon');
+      assert.ok(await page.locator('.product-kpi-label').evaluateAll(nodes=>nodes.every(el=>getComputedStyle(el,'::before').width==='8px')),'Mobile product KPI labels must start with the coloured dot');
       const incomeMobileGeometry=await page.evaluate(()=>{
         const box=selector=>{const el=document.querySelector(selector),r=el?.getBoundingClientRect();return r?{top:Math.round(r.top),bottom:Math.round(r.bottom),height:Math.round(r.height)}:null};
         return {shell:box('.product-page-shell'),kpis:box('.product-kpis'),toolbar:box('.list-toolbar'),list:box('.workspace-table')};

@@ -255,3 +255,32 @@
     pending=action;tries=0;run();return true;
   };
 })();
+
+/* Factuur bekijken on a phone (Kwin's pick, 2026-10-09): the A4 page starts folded under the amount,
+   with "Hele factuur bekijken" to open it. Nothing is removed; the whole page is one tap away. */
+(function(){
+  'use strict';
+  var phone=matchMedia('(max-width:820px)');
+  function fold(root){
+    if(!phone.matches)return;
+    root.querySelectorAll('.boekuna-a4-preview:not([data-fold])').forEach(function(preview){
+      preview.dataset.fold='1';
+      if(preview.scrollHeight<=320)return;
+      preview.classList.add('is-collapsed');
+      var toggle=document.createElement('button');
+      toggle.type='button';toggle.className='a4-expand';toggle.textContent='Hele factuur bekijken';
+      toggle.setAttribute('aria-expanded','false');
+      toggle.addEventListener('click',function(){
+        var open=preview.classList.toggle('is-collapsed')===false;
+        toggle.textContent=open?'Factuur inklappen':'Hele factuur bekijken';
+        toggle.setAttribute('aria-expanded',String(open));
+      });
+      preview.after(toggle);
+    });
+  }
+  function install(){
+    var root=document.getElementById('modalRoot');if(!root)return;
+    new MutationObserver(function(){fold(root)}).observe(root,{childList:true,subtree:true});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+})();
