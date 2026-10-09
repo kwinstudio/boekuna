@@ -160,11 +160,30 @@ try{
     await context.close();
   }
 
-  // Buttons on a phone: quick buttons (45), delete with undo (42), busy button (41), Alles / Een deel (48),
+  // Buttons on a phone: no round quick-button row on the overview (45 removed at Kwin's request), delete with undo (42), busy button (41), Alles / Een deel (48),
   // copy (49), send channels (50), round back button (51) and the error under the field itself (61).
   {
     const {context,page}=await openApp(390,844);
-    assert.deepEqual((await page.locator('.dashboard-quick-btn').allTextContents()).map(s=>s.trim()),['Scan','Factuur','Rit','Vraag']);
+    assert.equal(await page.locator('.dashboard-quick').count(),0,'The overview has no row of round quick buttons; Nieuw in the bottom bar does this');
+    // Kwin 2026-10-09: on a phone the pages have no own main button; Nieuw offers everything they did.
+    for(const route of ['invoices','expenses','bank','contacts','services']){
+      await page.evaluate(r=>navigate(r),route);
+      const mains=await page.locator('#content :is(.product-page-actions,.page-head)>.btn.primary').evaluateAll(nodes=>nodes.filter(el=>el.getBoundingClientRect().height>0).length);
+      assert.equal(mains,0,route+' has no own main button on a phone');
+    }
+    await page.locator('#quickNew').click();
+    const nieuw=(await page.locator('#modalRoot .quick-action strong').allTextContents()).map(v=>v.trim());
+    for(const label of ['Factuur','Factuur uploaden','Scannen','Kosten boeken','Banktransactie','Bankbestand','Relatie','Dienst'])assert.ok(nieuw.includes(label),'Nieuw offers '+label+' on a phone: '+nieuw.join(', '));
+    await page.evaluate(()=>closeModal());
+    // An active filter and "Filters wissen" look the same: one calm grey pill.
+    await page.evaluate(()=>{navigate('invoices');listPageState('invoices').filters={status:'overdue'};render()});
+    const pills=await page.locator('#content :is(.list-filter-chip,.list-clear-filters)').evaluateAll(nodes=>nodes.map(el=>{const s=getComputedStyle(el);return s.backgroundColor+'|'+s.borderRadius+'|'+s.fontSize+'|'+Math.round(el.getBoundingClientRect().height)}));
+    assert.equal(pills.length,2);assert.equal(pills[0],pills[1],'Filter chip and Filters wissen share one style: '+pills.join(' vs '));
+    await page.evaluate(()=>{listPageState('invoices').filters={};render()});
+    // Less text: no explaining sentences under "Nog te doen" or under the VAT table; the VAT legal line stays.
+    await page.evaluate(()=>navigate('vat'));
+    assert.equal(await page.locator('#content .vat-return-card>.help').isVisible(),false,'VAT rounding explanation is gone on a phone');
+    assert.match(await page.locator('#content').innerText(),/niet naar de Belastingdienst/,'The VAT legal line stays');
     await page.evaluate(()=>{const day=new Date().toISOString().slice(0,10);state.invoices.push({id:'dq',number:'CONCEPT-1',customerId:'c1',status:'draft',kind:'invoice',issueDate:day,dueDate:day,lines:[{desc:'Fictief',qty:1,unit:10,vat:21}],payments:[]});deleteInvoice('dq')});
     assert.equal(await page.evaluate(()=>state.invoices.some(i=>i.id==='dq')),false,'A draft is deleted at once');
     await page.locator('#toastRoot .toast-undo .toast-action',{hasText:'Ongedaan maken'}).click();

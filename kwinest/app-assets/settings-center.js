@@ -60,6 +60,8 @@
     return '<details class="settings-disclosure settings-center-more'+(extraClass?' '+extraClass:'')+'"><summary>'+esc(title)+'</summary><div class="settings-center-more-body">'+body+'</div></details>';
   }
   function block(body,title){return '<div class="settings-center-block">'+(title?'<h3>'+esc(title)+'</h3>':'')+body+'</div>'}
+  // Explanation only (no status, no consequence): hidden on the phone, where Kwin wants less text.
+  function hint(text){return '<span class="settings-hint">'+esc(text)+'</span>'}
   function line(title,detail,action,id){
     return '<div class="settings-center-line"'+(id?' id="'+id+'"':'')+'><div><strong>'+esc(title)+'</strong>'+(detail?'<span>'+detail+'</span>':'')+'</div>'+(action||'')+'</div>';
   }
@@ -158,7 +160,7 @@
       +field('emailTemplate.bodyCredit','Bericht creditfactuur',m.bodyCredit,{full:true,required:true,textarea:true,rows:6})
       +'<div class="field full"><div class="help">Alle variabelen: {{klantnaam}}, {{contactpersoon}}, {{factuurnummer}}, {{bedrag}}, {{vervaldatum}}, {{betaalkenmerk}}, {{bedrijfsnaam}}, {{handelsnaam}}, {{iban}}, {{documenttype}}</div></div>'
       +'</div>';
-    return '<div class="settings-center-note">Je verstuurt facturen met je eigen e-mailapp. Boekuna maakt de PDF en het bericht klaar.</div>'
+    return '<div class="settings-center-note settings-hint">Je verstuurt facturen met je eigen e-mailapp. Boekuna maakt de PDF en het bericht klaar.</div>'
       +'<form class="settings-center-form" data-settings-form="email" novalidate>'
       +block(basis)
       +more('Meer instellingen',extra)
@@ -172,7 +174,7 @@
       return '<label class="settings-view-toggle settings-center-switch" for="set-attention-'+t.key+'"><span><strong>'+esc(t.title)+'</strong><span>'+esc(t.detail)+'</span></span><input type="checkbox" role="switch" id="set-attention-'+t.key+'" data-attention-key="'+t.key+'"'+(attentionTypeVisible(t.key)?' checked':'')+'></label>';
     }).join('');
     return block('<fieldset class="settings-center-fieldset"><legend>Laat zien onder "Nog te doen" op Overzicht</legend>'+rows+'</fieldset>')
-      +'<div class="settings-center-note">Deze meldingen zie je in de app. Het Controlecentrum laat altijd alles zien, ook wat je hier uitzet.</div>';
+      +'<div class="settings-center-note settings-hint">Deze meldingen zie je in de app. Het Controlecentrum laat altijd alles zien, ook wat je hier uitzet.</div>';
   }
 
   var THEME_OPTIONS=[
@@ -189,7 +191,7 @@
         var id='set-theme-'+o.value;
         return '<label class="settings-theme-option" for="'+id+'"><input type="radio" name="theme" id="'+id+'" value="'+o.value+'" data-theme-choice'+(o.value===current?' checked':'')+'>'
           +'<span class="settings-theme-swatch settings-theme-swatch-'+o.value+'" aria-hidden="true"></span>'
-          +'<span class="settings-theme-copy"><strong>'+esc(o.label)+'</strong>'+(o.help?'<span>'+esc(o.help)+'</span>':'')+'</span></label>';
+          +'<span class="settings-theme-copy"><strong>'+esc(o.label)+'</strong>'+(o.help?hint(o.help):'')+'</span></label>';
       }).join('')
       +'</div></fieldset>';
   }
@@ -198,8 +200,8 @@
     var current=preferredStartPage();
     var select='<div class="field"><label for="set-startPage">Openen op</label><select id="set-startPage" data-settings-pref="startPage">'
       +startPageOptions().map(function(p){return '<option value="'+p+'"'+(p===current?' selected':'')+'>'+esc(PAGE_TITLES[p]||p)+'</option>'}).join('')
-      +'</select><div class="help">De pagina die je ziet nadat je bent ingelogd.</div></div>';
-    var help='<label class="settings-view-toggle settings-center-switch" for="extraHelpToggle"><span><strong>Extra uitleg tonen</strong><span>Korte uitleg bij cijfers en knoppen. Handig als je net begint.</span></span><input type="checkbox" role="switch" id="extraHelpToggle" aria-label="Extra uitleg tonen" '+(extraHelpVisible()?'checked':'')+' onchange="setExtraHelpEnabled(this.checked)"></label>';
+      +'</select><div class="help settings-hint">De pagina die je ziet nadat je bent ingelogd.</div></div>';
+    var help='<label class="settings-view-toggle settings-center-switch" for="extraHelpToggle"><span><strong>Extra uitleg tonen</strong>'+hint('Korte uitleg bij cijfers en knoppen. Handig als je net begint.')+'</span><input type="checkbox" role="switch" id="extraHelpToggle" aria-label="Extra uitleg tonen" '+(extraHelpVisible()?'checked':'')+' onchange="setExtraHelpEnabled(this.checked)"></label>';
     var assistant=renderAssistantSettingsSafe();
     return block(themeBlock())+block('<div class="form-grid">'+select+'</div>','Startpagina')+block(help,'Uitleg')+(assistant?'<div class="settings-center-embedded">'+assistant+'</div>':'');
   }
@@ -208,10 +210,10 @@
     var mfaText=TEST_MODE_NO_AUTH?'Niet beschikbaar in de testmodus.':mfaEnabled===true?'Aan. Je logt in met je wachtwoord en een code uit je app.':mfaEnabled===false?'Uit. Aanbevolen voor je financiële gegevens.':'Status ophalen…';
     return block(
       line('Tweestapsverificatie','<span data-settings-mfa-text>'+esc(mfaText)+'</span>','<button class="btn" type="button" onclick="accountMenu()">Beheren</button>')
-      +line('Wachtwoord','Je krijgt een veilige link in je e-mail om een nieuw wachtwoord te kiezen.','<button class="btn" type="button" data-settings-action="password-link">Link sturen</button>')
+      +line('Wachtwoord',hint('Je krijgt een veilige link in je e-mail om een nieuw wachtwoord te kiezen.'),'<button class="btn" type="button" data-settings-action="password-link">Link sturen</button>')
     )
-    +block(line('Privacy & veiligheid','Hoe Boekuna je account en administratie beschermt.','<button class="btn" type="button" onclick="showSecurity()">Bekijken</button>'))
-    +'<div class="settings-center-note">Je administratie is afgeschermd per account. Alleen jij kunt erbij.</div>';
+    +block(line('Privacy & veiligheid',hint('Hoe Boekuna je account en administratie beschermt.'),'<button class="btn" type="button" onclick="showSecurity()">Bekijken</button>'))
+    +'<div class="settings-center-note settings-hint">Je administratie is afgeschermd per account. Alleen jij kunt erbij.</div>';
   }
 
   // Everything you can download lives here: one list, each row says what you get.
@@ -243,8 +245,8 @@
   function helpPanel(){
     if(window.BoekunaFeedback)return window.BoekunaFeedback.panelHtml();
     return block(
-      line('Support','Stel je vraag per e-mail. We reageren op werkdagen.','<a class="btn" href="'+SUPPORT_MAILTO+'">'+esc(SUPPORT_EMAIL)+'</a>')
-      +line('Fiscale spelregels','De uitgangspunten die Boekuna gebruikt voor btw en facturen.','<button class="btn" type="button" onclick="showLegal()">Bekijken</button>')
+      line('Support',hint('Stel je vraag per e-mail. We reageren op werkdagen.'),'<a class="btn" href="'+SUPPORT_MAILTO+'">'+esc(SUPPORT_EMAIL)+'</a>')
+      +line('Fiscale spelregels',hint('De uitgangspunten die Boekuna gebruikt voor btw en facturen.'),'<button class="btn" type="button" onclick="showLegal()">Bekijken</button>')
     );
   }
 
@@ -252,10 +254,10 @@
     var email=currentUser&&currentUser.email?currentUser.email:'';
     return block(
       line('E-mailadres',esc(email||'Niet bekend'),'')
-      +line('Wachtwoord en beveiliging','Tweestapsverificatie en wachtwoord wijzigen.','<button class="btn" type="button" data-settings-open="security">Openen</button>')
-      +line('Uitloggen','Beëindig je sessie op dit apparaat.','<button class="btn" id="settingsLogoutButton" type="button" onclick="logoutUser(this)">Uitloggen</button>')
+      +line('Wachtwoord en beveiliging',hint('Tweestapsverificatie en wachtwoord wijzigen.'),'<button class="btn" type="button" data-settings-open="security">Openen</button>')
+      +line('Uitloggen',hint('Beëindig je sessie op dit apparaat.'),'<button class="btn" id="settingsLogoutButton" type="button" onclick="logoutUser(this)">Uitloggen</button>')
       // Phone: there is no separate Gevaarzone row; account deletion is found here, under Account.
-      +'<div class="settings-account-danger">'+line('Account verwijderen','Of alleen je administratie wissen. Je krijgt altijd eerst een extra controle.','<button class="btn" type="button" data-settings-open="danger">Openen</button>')+'</div>'
+      +'<div class="settings-account-danger">'+line('Account verwijderen',hint('Of alleen je administratie wissen. Je krijgt altijd eerst een extra controle.'),'<button class="btn" type="button" data-settings-open="danger">Openen</button>')+'</div>'
     );
   }
 

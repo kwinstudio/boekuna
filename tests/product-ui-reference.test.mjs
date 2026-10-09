@@ -530,7 +530,7 @@ try{
       await page.evaluate(()=>navigate('dashboard'));
       await page.getByRole('heading',{name:'Overzicht'}).waitFor();
       assert.ok((await page.locator('.dashboard-kpi .metric-icon').count())>0,'Dashboard KPI icon nodes should remain available');
-      assert.ok(await page.locator('.dashboard-kpi:not(.dashboard-kpi-profit) .metric-icon').evaluateAll(nodes=>nodes.every(el=>getComputedStyle(el).display==='none')),'Mobile overview tiles (style C) carry a small visual instead of the corner icon');
+      assert.ok(await page.locator('.dashboard-kpi .metric-icon').evaluateAll(nodes=>nodes.every(el=>getComputedStyle(el).display==='none')),'Mobile overview tiles and the Winst block carry no corner icon (Kwin 2026-10-09)');
       assert.equal(await page.locator('.dashboard-kpis').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length),2,'390px mobile dashboard must pair Omzet and Kosten');
       assert.equal(await page.locator('#content').evaluate(el=>getComputedStyle(el).paddingTop),'14px','390px mobile content padding must use the compact app-only contract');
       assert.equal(await page.locator('.dashboard-chart-card').isVisible(),false,'Large chart belongs on mobile Reports');
