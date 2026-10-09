@@ -303,7 +303,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--bk-dark-green);
 .site-footer-full .brand-word{font-size:26px}
 /* Hero: rustige foto met twee kleine meldingen */
 .hero-calm{position:relative;padding:18px 10px 26px}
-.calm-photo{margin:0;border-radius:24px;overflow:hidden;aspect-ratio:5/4;background:#EEF3EF}
+.calm-photo{position:relative;margin:0;-webkit-mask:var(--blob-front) center/100% 100% no-repeat;mask:var(--blob-front) center/100% 100% no-repeat;overflow:hidden;aspect-ratio:5/4;background:#EEF3EF}
+.hero-calm::before{content:"";position:absolute;inset:6% -1% 2% 14%;background:#E4F5E7;-webkit-mask:var(--blob-back) center/100% 100% no-repeat;mask:var(--blob-back) center/100% 100% no-repeat}
 .calm-photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 30%}
 .calm-note{position:absolute;display:flex;align-items:center;gap:11px;padding:11px 15px 11px 11px;border:1px solid #E6EDE7;border-radius:14px;background:rgba(255,255,255,.97);color:var(--bk-ink);box-shadow:0 14px 34px -22px rgba(10,25,13,.55)}
 .calm-note strong{display:block;font-size:13px;line-height:1.25}
@@ -313,3 +314,20 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--bk-dark-green);
 .calm-note-top{top:0;right:0}
 .calm-note-bottom{bottom:0;left:0}
 @media(min-width:980px){.hero-calm{padding:26px 18px 34px}.calm-note{padding:13px 18px 13px 13px}.calm-note strong{font-size:14px}.calm-note small{font-size:12px}.calm-note-top{right:-6px}.calm-note-bottom{left:-6px}}
+
+/* Soft organic photo shapes */
+.hero-calm,.people-shot{--blob-front:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M20 19C35 6 63 1 81 5C95 8 100 24 99 43C98 63 86 81 67 92C51 101 33 98 21 86C7 72 0 54 3 38C5 29 11 25 20 19Z'/%3E%3C/svg%3E");--blob-back:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M28 6C46 -1 72 2 87 14C99 24 101 44 95 63C89 82 73 97 52 99C33 101 15 92 7 76C0 62 3 44 10 31C14 21 19 10 28 6Z'/%3E%3C/svg%3E")}
+/* People: real entrepreneurs in soft shapes, with a small card that says something true about Boekuna */
+.people-grid{display:grid;gap:30px;align-items:center}
+.people-shot{position:relative;margin:0 auto;width:100%;max-width:480px;padding:5% 2% 8% 7%}
+.people-shot::before{content:"";position:absolute;inset:0 0 3% 14%;background:#E4F5E7;-webkit-mask:var(--blob-back) center/100% 100% no-repeat;mask:var(--blob-back) center/100% 100% no-repeat}
+.people-shot img{position:relative;display:block;width:100%;height:auto;aspect-ratio:900/780;object-fit:cover;-webkit-mask:var(--blob-front) center/100% 100% no-repeat;mask:var(--blob-front) center/100% 100% no-repeat;background:#EEF3EF}
+.people-badge{position:absolute;left:0;bottom:13%;display:flex;align-items:center;gap:11px;padding:11px 16px 11px 11px;border:1px solid #E6EDE7;border-radius:14px;background:rgba(255,255,255,.97);color:var(--bk-ink);box-shadow:0 14px 34px -22px rgba(10,25,13,.55)}
+.people-badge strong{display:block;font-size:14px;line-height:1.25}
+.people-badge small{display:block;font-size:12px;color:var(--bk-muted)}
+.eu-mark{display:block;width:38px;height:38px;flex:none}
+.people-copy h2{font-family:var(--bk-heading);font-weight:750;letter-spacing:-.05em;font-size:clamp(29px,7vw,42px);line-height:1.1;margin:14px 0}
+.people-copy h2 span{color:#2F9D49}
+.people-copy p{color:#4E5E56;font-size:16px;line-height:1.7;margin:0 0 18px;max-width:46ch}
+.people-copy .check-list{margin-bottom:20px}
+@media(min-width:900px){.people-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:64px}.people-badge{left:-8px}}
