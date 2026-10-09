@@ -24,13 +24,21 @@
     <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>googlegmail</string>
+    </array>
     <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>LSSupportsOpeningDocumentsInPlace</key>
     <true/>
     <key>NSCameraUsageDescription</key>
     <string>Boekuna gebruikt de camera alleen wanneer je zelf een bon of factuur wilt vastleggen.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Boekuna gebruikt je fotobibliotheek alleen wanneer je zelf een foto van een bon of factuur kiest.</string>
     <key>UIApplicationSupportsIndirectInputEvents</key>
+    <true/>
+    <key>UIFileSharingEnabled</key>
     <true/>
     <key>UILaunchScreen</key>
     <dict>

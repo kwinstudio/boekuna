@@ -317,7 +317,9 @@ struct BoekunaWebView: UIViewRepresentable {
                 finish(false, items.isEmpty ? "DataError" : "AbortError")
                 return
             }
-            let sheet = UIActivityViewController(activityItems: items, applicationActivities: nil)
+            let files = items.compactMap { $0 as? URL }.filter(\.isFileURL)
+            let gmail = GmailComposeActivity(subject: title, blocks: ShareTextItem.mailBlocks(title: title, text: text), files: files)
+            let sheet = UIActivityViewController(activityItems: items, applicationActivities: [gmail])
             sheet.completionWithItemsHandler = { _, completed, _, _ in
                 try? FileManager.default.removeItem(at: folder)
                 finish(completed)
@@ -471,6 +473,58 @@ private final class ShareTextItem: NSObject, UIActivityItemSource {
             if line.lowercased().hasPrefix("met vriendelijke groet") { inClosing = true }
         }
         return blocks
+    }
+}
+
+/// "Gmail (nette tekst)" in the share sheet. Gmail's own share extension turns
+/// every enter into a space, so this opens Gmail's compose screen with the text
+/// in the link instead. A link cannot carry the PDF, so it is first saved in
+/// Bestanden > Op mijn iPhone > Boekuna > Facturen, where Gmail's paperclip finds it.
+private final class GmailComposeActivity: UIActivity {
+    private let subject: String
+    private let blocks: [[String]]
+    private let files: [URL]
+
+    init(subject: String, blocks: [[String]], files: [URL]) {
+        self.subject = subject
+        self.blocks = blocks
+        self.files = files
+        super.init()
+    }
+
+    override class var activityCategory: UIActivity.Category { .share }
+    override var activityType: UIActivity.ActivityType? { UIActivity.ActivityType("nl.boekuna.app.gmail-compose") }
+    override var activityTitle: String? { "Gmail (nette tekst)" }
+    override var activityImage: UIImage? { UIImage(systemName: "envelope.fill") }
+
+    override func canPerform(withActivityItems activityItems: [Any]) -> Bool {
+        guard let url = URL(string: "googlegmail:///co") else { return false }
+        return UIApplication.shared.canOpenURL(url)
+    }
+
+    override func perform() {
+        if let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let folder = documents.appendingPathComponent("Facturen", isDirectory: true)
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            for file in files {
+                let target = folder.appendingPathComponent(file.lastPathComponent)
+                try? FileManager.default.removeItem(at: target)
+                try? FileManager.default.copyItem(at: file, to: target)
+            }
+        }
+        let body = blocks.map { $0.joined(separator: "\n") }.joined(separator: "\n\n")
+        var allowed = CharacterSet.alphanumerics
+        allowed.insert(charactersIn: "-._~")
+        func encode(_ value: String) -> String {
+            value.addingPercentEncoding(withAllowedCharacters: allowed) ?? ""
+        }
+        guard let url = URL(string: "googlegmail:///co?subject=\(encode(subject))&body=\(encode(body))") else {
+            activityDidFinish(false)
+            return
+        }
+        UIApplication.shared.open(url) { [weak self] opened in
+            self?.activityDidFinish(opened)
+        }
     }
 }
 
