@@ -41,6 +41,7 @@ html[data-theme="dark"] #mainApp{
 #mainApp .cell-with-avatar{display:flex;align-items:center;gap:10px;min-width:0}
 #mainApp .cell-with-avatar>strong,#mainApp .cell-with-avatar-text{min-width:0;overflow:hidden;text-overflow:ellipsis}
 #mainApp .cell-with-avatar-text{display:block}
+#mainApp .financial-table .cell-name .cell-with-avatar-text>strong{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #mainApp .mobile-card-main.has-lead{display:grid!important;grid-template-columns:32px minmax(0,1fr);column-gap:12px;row-gap:4px;align-content:center}
 #mainApp .mobile-card-main.has-lead>.party-avatar{grid-column:1;grid-row:1/span 4;align-self:center}
 #mainApp .mobile-card-main.has-lead>:not(.party-avatar){grid-column:2}
