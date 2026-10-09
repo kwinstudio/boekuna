@@ -171,3 +171,81 @@
   document.addEventListener('input',recheck,true);
   document.addEventListener('change',recheck,true);
 })();
+
+/* Meer menu (style C, screen 10): on the phone the drawer shows who you are and your plan on top,
+   and a dark-mode switch at the bottom. Presentation only: the switch uses the existing theme API. */
+(function(){
+  'use strict';
+  function txt(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function who(){
+    var c=(typeof state!=='undefined'&&state&&state.company)||{};
+    var name=c.contactName||c.tradeName||c.name||((typeof currentUser!=='undefined'&&currentUser&&currentUser.email)||'');
+    var plan='';
+    try{var r=typeof currentPlanRank==='function'?currentPlanRank():null;if(r!==null&&typeof PLAN_RANK_LABEL!=='undefined'&&PLAN_RANK_LABEL[r])plan=PLAN_RANK_LABEL[r]+'-abonnement'}catch(e){}
+    var initials=String(name).split(/[\s@.]+/).filter(Boolean).slice(0,2).map(function(w){return w.charAt(0).toUpperCase()}).join('')||'B';
+    return {name:name,plan:plan,initials:initials};
+  }
+  function sync(){
+    var side=document.getElementById('sidebar');if(!side)return;
+    var head=side.querySelector('.drawer-profile');
+    if(!head){
+      head=document.createElement('button');head.type='button';head.className='drawer-profile';
+      head.addEventListener('click',function(){if(typeof navigate==='function')navigate('settings')});
+      var brand=side.querySelector('.brand');if(brand)brand.after(head);else side.prepend(head);
+    }
+    var w=who();
+    head.innerHTML='<span class="drawer-avatar" aria-hidden="true">'+txt(w.initials)+'</span><span class="drawer-who"><strong>'+txt(w.name||'Jouw account')+'</strong>'+(w.plan?'<span>'+txt(w.plan)+'</span>':'')+'</span>';
+    head.setAttribute('aria-label','Account: '+(w.name||'jouw account')+(w.plan?', '+w.plan:''));
+    var sw=side.querySelector('.drawer-theme');
+    if(!sw&&window.BoekunaTheme){
+      sw=document.createElement('button');sw.type='button';sw.className='drawer-theme';sw.setAttribute('role','switch');
+      sw.innerHTML='<span>Donkere modus</span><span class="drawer-switch" aria-hidden="true"><i></i></span>';
+      sw.addEventListener('click',function(){window.BoekunaTheme.set(window.BoekunaTheme.resolved()==='dark'?'light':'dark');sync()});
+      side.appendChild(sw);
+    }
+    if(sw&&window.BoekunaTheme)sw.setAttribute('aria-checked',window.BoekunaTheme.resolved()==='dark'?'true':'false');
+  }
+  document.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('#mobileMenu'))sync()},true);
+  document.addEventListener('boekuna:themechange',sync);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',sync);else sync();
+})();
+
+/* 21. Pull down to refresh on the phone. It reloads the app the normal way (the same as closing
+   and reopening it), and only when everything is saved, so nothing that is still being stored is lost. */
+(function(){
+  'use strict';
+  var phone=matchMedia('(max-width:820px) and (pointer:coarse)');
+  var startY=null,dy=0,pill=null,armed=false,TRIGGER=80;
+  function ui(){
+    if(pill)return pill;
+    pill=document.createElement('div');pill.className='pull-refresh';pill.setAttribute('role','status');pill.setAttribute('aria-live','polite');
+    pill.innerHTML='<span class="pull-refresh-spin" aria-hidden="true"></span><span class="pull-refresh-text"></span>';
+    document.body.appendChild(pill);return pill;
+  }
+  function blocked(target){
+    var app=document.getElementById('mainApp');
+    if(!app||app.classList.contains('hidden')||!phone.matches)return true;
+    if(document.querySelector('#modalRoot .modal-backdrop'))return true;
+    if(document.body.classList.contains('mobile-drawer-open')||document.getElementById('sidebar')?.classList.contains('open'))return true;
+    return !(target&&target.closest&&target.closest('#content'))||(window.scrollY||document.documentElement.scrollTop)>0;
+  }
+  function show(text,y){var p=ui();p.querySelector('.pull-refresh-text').textContent=text;p.classList.add('is-visible');p.style.transform='translate(-50%,'+Math.min(0,y-60)+'px)'}
+  function hide(){if(pill){pill.classList.remove('is-visible','is-loading');pill.style.transform=''}}
+  document.addEventListener('touchstart',function(e){startY=e.touches.length===1&&!blocked(e.target)?e.touches[0].clientY:null;dy=0;armed=false},{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(startY==null)return;
+    dy=e.touches[0].clientY-startY;
+    if(dy<=8||(window.scrollY||0)>0){hide();return}
+    armed=dy>TRIGGER;
+    show(armed?'Laat los om te verversen':'Trek om te verversen',Math.min(dy,TRIGGER+20));
+  },{passive:true});
+  document.addEventListener('touchend',function(){
+    if(startY==null)return;startY=null;
+    if(!armed){hide();return}
+    var status=typeof cloudSyncStatus!=='undefined'?cloudSyncStatus:'saved';
+    if(!navigator.onLine||status==='offline'){show('Geen verbinding',80);setTimeout(hide,1600);return}
+    if(status!=='saved'){show('Even wachten, nog aan het opslaan',80);setTimeout(hide,1800);return}
+    var p=ui();p.classList.add('is-loading');show('Nieuwste ophalen…',80);
+    setTimeout(function(){location.reload()},150);
+  },{passive:true});
+})();

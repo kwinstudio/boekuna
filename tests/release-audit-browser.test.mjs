@@ -361,7 +361,7 @@ try{
     await search.fill('2026-0457');await page.waitForTimeout(400);
     const found=async()=>(await page.locator('#content tbody tr').allInnerTexts()).filter(r=>r.includes('2026-0457')&&!/Geen facturen gevonden/.test(r)).length;
     check('B-21','Zoeken op een oud factuurnummer vindt de factuur ook als de periode op "Deze maand" staat',await found()===1,'"Geen facturen gevonden" zolang de periode op deze maand staat; de melding noemt de periode niet');
-    await page.locator('#content select.financial-period-select').selectOption('all');await page.waitForTimeout(400);
+    if(await page.locator('#content select.financial-period-select').count())await page.locator('#content select.financial-period-select').selectOption('all');else await page.locator('#content .period-seg-btn',{hasText:/^Alles$/}).first().click();await page.waitForTimeout(400);
     await attempt('B-22','Met periode "Alles" vindt zoeken precies die factuur',async()=>{const rows=await page.locator('#content tbody tr').allInnerTexts();return rows.length===1&&rows[0].includes('2026-0457')&&rows[0].includes('Relatie 006 BV')});
     await search.fill('');await page.waitForTimeout(300);
     const drafts=await appState(page,()=>state.invoices.filter(i=>i.status==='draft').length);

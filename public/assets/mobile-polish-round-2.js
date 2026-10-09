@@ -539,8 +539,8 @@
       var i=(state.invoices||[]).find(function(x){return String(x.id)===String(id)});
       if(!i)return;
       modal('Factuur '+esc(i.number||''),
-        (typeof invoiceCopyStripHtml==='function'?invoiceCopyStripHtml(i):'')+(typeof invoicePaymentsHtml==='function'?invoicePaymentsHtml(i):'')+'<div class="invoice-preview boekuna-a4-preview">'+renderInvoiceA4Pages(i)+'</div>',
-        '<button class="btn" aria-label="Factuuracties" aria-haspopup="dialog" onclick="invoiceActions(\''+esc(String(i.id))+'\')">'+icon('i-more')+'</button><button class="btn primary" onclick="closeModal();openSendInvoice(\''+esc(String(i.id))+'\')">Versturen via e-mail</button>',
+        (typeof invoiceViewStatusHtml==='function'?invoiceViewStatusHtml(i):'')+(typeof invoiceCopyStripHtml==='function'?invoiceCopyStripHtml(i):'')+(typeof invoicePaymentsHtml==='function'?invoicePaymentsHtml(i):'')+'<div class="invoice-preview boekuna-a4-preview">'+renderInvoiceA4Pages(i)+'</div>'+(typeof invoiceTimelineHtml==='function'?invoiceTimelineHtml(i):''),
+        typeof invoiceViewFoot==='function'?invoiceViewFoot(i):'<button class="btn" aria-label="Factuuracties" aria-haspopup="dialog" onclick="invoiceActions(\''+esc(String(i.id))+'\')">'+icon('i-more')+'</button><button class="btn primary" onclick="closeModal();openSendInvoice(\''+esc(String(i.id))+'\')">Versturen via e-mail</button>',
         true);
       installA4Observer();requestAnimationFrame(sizeInvoiceA4Preview);
     };

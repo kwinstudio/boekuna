@@ -59,6 +59,30 @@
     if (job) return function () { openPersistentDocumentReview(job.id); };
     return item.fileId ? function () { openDocumentPreview(item.id); } : null;
   }
+  // Bonnen grid (style C, screen 9): a calm tile per file, no file downloads just to draw a thumbnail.
+  function documentThumbHtml(item) {
+    var name = String(item.name || '').toLowerCase(), type = String(item.mimeType || item.type || '');
+    var photo = item.type === 'receipt' || /^image\//.test(type) || /\.(jpe?g|png|heic|heif|webp)$/.test(name);
+    return '<span class="doc-thumb ' + (photo ? 'is-photo' : 'is-file') + '" aria-hidden="true"><svg class="icon"><use href="#' + (photo ? 'i-receipt' : 'i-file') + '"/></svg></span>';
+  }
+  function documentAmount(item) {
+    if (!item.linkedId) return null;
+    if (item.linkedType === 'expense' && typeof expenseGross === 'function') {
+      var expense = (state.expenses || []).find(function (x) { return x.id === item.linkedId; });
+      return expense ? money(expenseGross(expense)) : null;
+    }
+    if (item.linkedType === 'invoice' && typeof invoiceGross === 'function') {
+      var invoice = (state.invoices || []).find(function (x) { return x.id === item.linkedId; });
+      return invoice ? money(invoiceGross(invoice)) : null;
+    }
+    return null;
+  }
+  function monthGroupLabel(day) {
+    var d = new Date(day + 'T00:00:00'), now = new Date();
+    var month = new Intl.DateTimeFormat('nl-NL', {month: 'long'}).format(d);
+    month = month.charAt(0).toUpperCase() + month.slice(1);
+    return d.getFullYear() === now.getFullYear() ? month : month + ' ' + d.getFullYear();
+  }
   function row(title, amount, detail, status, action, actionText, lead) {
     var wrapper = element('div', 'mobile-card-row');
     var main = action ? button('', action, 'mobile-card-main') : element('div', 'mobile-card-main');
@@ -100,7 +124,7 @@
     if (!table || table.dataset.mobileCards) return;
     var items = page === 'income' ? directionalBankRows('income') : page === 'outgoings' ? directionalBankRows('out') : getListRows(page);
     if (!items.length) return; // Keep existing authoritative empty state and CTA.
-    var list = element('div', 'mobile-card-list');
+    var list = element('div', 'mobile-card-list' + (page === 'documents' ? ' mobile-doc-grid' : ''));
     list.setAttribute('role', 'list');
     // Newest first: show calm day headers ("Vandaag", "Gisteren", ...) like a bank app.
     var dayOf = function (item) { return String((page === 'invoices' ? item.issueDate : item.date) || '').slice(0, 10); };
@@ -110,7 +134,7 @@
     items.forEach(function (item) {
       var entry;
       if (grouped) {
-        var label = dayGroupLabel(dayOf(item));
+        var label = page === 'documents' ? monthGroupLabel(dayOf(item)) : dayGroupLabel(dayOf(item));
         if (label !== lastGroup) {
           var header = element('div', 'mobile-card-group', label);
           header.setAttribute('role', 'listitem');
@@ -150,9 +174,10 @@
         metadata(entry.firstChild, 'Btw ' + expenseVatRateLabel(item));
       } else if (page === 'documents') {
         var docLink = typeof listLinkedDocumentInfo === 'function' && item.linkedId ? listLinkedDocumentInfo(item) : null;
-        entry = row(item.name || 'Document', null, [dateNL(item.date), typeof documentTypeLabel === 'function' ? documentTypeLabel(item.type) : (item.type || 'Document')].join(' · '), documentStatus(item),
-          documentOpenAction(item));
-        if (docLink) metadata(entry.firstChild, [docLink.party, docLink.number].filter(Boolean).join(' · '));
+        var party = docLink && docLink.party ? String(docLink.party) : '';
+        entry = row(party || item.name || 'Document', documentAmount(item), party ? item.name || 'Document' : [dateNL(item.date), typeof documentTypeLabel === 'function' ? documentTypeLabel(item.type) : (item.type || 'Document')].join(' · '), documentStatus(item),
+          documentOpenAction(item), null, documentThumbHtml(item));
+        if (party) metadata(entry.firstChild, dateNL(item.date));
         var originalRow = Array.from(table.querySelectorAll('tbody tr')).find(function (_, index) { return items[index] === item; });
         var originalActions = originalRow && originalRow.lastElementChild;
         if (originalActions) {
