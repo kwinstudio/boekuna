@@ -67,12 +67,13 @@ try{
   assert.equal(await page.locator('#toastRoot .toast.motion-success').count(),1,'Error toasts get no check');
   await context.close();
 
-  // Overview: trend, mini-chart and profit split; a change you cause shows how much a total moved.
+  // Overview stays calm: one trend line on profit, quiet mini-charts, no ring or split bar.
   {
     const {context,page}=await openApp();
     await page.waitForTimeout(900);
     assert.ok(await page.locator('.dashboard-kpi-profit .motion-kpi-extra .motion-trend').count()===1,'Profit shows a trend');
-    assert.ok(await page.locator('.dashboard-kpi-profit .motion-split').count()===1,'Profit shows the split');
+    assert.equal(await page.locator('#content .motion-trend').count(),1,'Only profit shows a trend');
+    assert.equal(await page.locator('#content .motion-ring, #content .motion-split').count(),0,'No ring or split bar');
     assert.ok(await page.locator('.dashboard-kpi .motion-spark-wrap').count()>=3,'Mini-charts on profit, revenue and costs');
     await page.evaluate(()=>{state.expenses.push({id:'e-new',date:new Date().toISOString().slice(0,10),vendor:'Nieuwe kosten',category:'office',exVat:100,vatRate:21});render()});
     assert.ok(await page.locator('.motion-delta',{hasText:'100,00'}).count()>=1,'Changed total shows the difference');
