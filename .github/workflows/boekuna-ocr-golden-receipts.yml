@@ -56,10 +56,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     # The library-default variant is the gate. The memory-bounded variant is evidence for
-    # the 512 MiB deployment decision: it is expected to keep the golden set at 20/20 but is
-    # known to read one long-receipt date less in the V5 set (27/28 → review), so it reports
-    # without blocking the PR.
-    continue-on-error: ${{ matrix.det.informational }}
+    # the 512 MiB deployment decision: the golden set must stay 20/20 there too, but it is
+    # known to read one long-receipt date less in the V5 set (27/28 → review), so the V5
+    # and party-roles steps report without failing that job.
     strategy:
       fail-fast: false
       matrix:
@@ -87,12 +86,14 @@ jobs:
           BOEKUNA_GOLDEN_REPORT: artifacts/ocr-golden-${{ matrix.det.name }}.json
         run: python tests/ocr-golden-logo-receipts.py
       - name: Existing 28-case V5 benchmark must stay 28/28
+        continue-on-error: ${{ matrix.det.informational }}
         env:
           BOOKUNA_OCR_V5_REPORT: artifacts/ocr-v5-${{ matrix.det.name }}.json
         run: python tests/document-ocr-v5-benchmark.test.py
       - name: Existing V5 regressions
         run: python tests/document-ocr-v5-regressions.test.py
       - name: Supplier/customer party roles (every new WRONG is a blocker)
+        continue-on-error: ${{ matrix.det.informational }}
         run: |
           python tests/document-party-roles-benchmark.py | tee artifacts/party-roles-${{ matrix.det.name }}.txt
           # The benchmark reports but never fails; the known baseline is 0 WRONG with company
