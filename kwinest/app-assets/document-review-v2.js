@@ -991,6 +991,8 @@ function showPdfImportReview(d){
   const vm=buildDocumentReviewViewModel(d),type=reviewDocumentType(d),isReceipt=type==='receipt',isSale=['sale_invoice','sales_invoice'].includes(type)||d.type==='sale',invoiceRequired=!['receipt','other'].includes(type);
   const due=safeDate(d.dueDate,d.issueDate),currency=String(d.currency||'EUR').toUpperCase(),categoryValue=String(d.category||'Inkoop');
   const safeAddress=String(d.address||''),safePostal=String(d.postal||''),safeCity=String(d.city||''),safeEmail=String(d.email||''),safePhone=String(d.phone||''),kvk=safeKvk(d.kvk),vatId=safeVatId(d.vatId),iban=safeIban(d.iban);
+  // A printed web address only travels with the relation when it plausibly matches the party name.
+  const safeWebsite=typeof partyWebsiteSuggestion==='function'?partyWebsiteSuggestion(d.party,d.website):'';
   const adjustTotal=(d.adjustments||[]).reduce((sum,a)=>sum+Number(a.gross||0),0);
   const preview=pendingPdfImport?.previewUrl?(pendingPdfImport.file.type==='application/pdf'||/\.pdf$/i.test(pendingPdfImport.file.name)?'<iframe src="'+esc(pendingPdfImport.previewUrl)+'" title="Origineel document" class="document-review-preview-frame"></iframe>':'<img src="'+esc(pendingPdfImport.previewUrl)+'" alt="Origineel document" class="document-review-preview-image">'):'<div class="beginner-preview-empty"><strong>Document ontvangen</strong><span>Het origineel blijft beschikbaar tijdens de controle.</span></div>';
 
@@ -1040,7 +1042,7 @@ function showPdfImportReview(d){
     !isReceipt?reviewHiddenInput('category',categoryValue):'',
     currency==='EUR'?reviewHiddenInput('currency','EUR'):'',
     reviewHiddenInput('address',safeAddress),reviewHiddenInput('postal',safePostal),reviewHiddenInput('city',safeCity),
-    reviewHiddenInput('email',safeEmail),reviewHiddenInput('phone',safePhone),reviewHiddenInput('kvk',kvk),reviewHiddenInput('vatId',vatId),reviewHiddenInput('iban',iban),
+    reviewHiddenInput('email',safeEmail),reviewHiddenInput('phone',safePhone),reviewHiddenInput('website',safeWebsite),reviewHiddenInput('kvk',kvk),reviewHiddenInput('vatId',vatId),reviewHiddenInput('iban',iban),
     reviewHiddenInput('dueDate',due),reviewHiddenInput('paymentTermDays',d.paymentTermDays??''),reviewHiddenInput('orderNumber',d.orderNumber||''),
     reviewHiddenInput('paymentReference',d.paymentReference||''),reviewHiddenInput('description',d.description||''),
     !d.duplicateCandidate?reviewHiddenInput('confirmDuplicate','on'):''
