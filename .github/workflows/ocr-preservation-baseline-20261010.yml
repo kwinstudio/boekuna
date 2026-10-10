@@ -1,0 +1,45 @@
+name: BOEKUNA Preservation Baseline for OCR Investigation
+on:
+  push:
+    branches:
+      - "test/ocr-logo-realistic-regression-20261010"
+    paths:
+      - ".github/workflows/ocr-preservation-baseline-20261010.yml"
+  workflow_dispatch:
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Original OCR dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r kwinest/docprocessor/requirements.txt
+      - name: Preserve existing OCR V5 regressions
+        env:
+          OMP_NUM_THREADS: "2"
+          OPENBLAS_NUM_THREADS: "2"
+        run: python tests/document-ocr-v5-regressions.test.py
+      - name: Preserve existing 28 case OCR benchmark
+        env:
+          OMP_NUM_THREADS: "2"
+          OPENBLAS_NUM_THREADS: "2"
+          BOOKUNA_OCR_V5_REPORT: artifacts/original-28-case-report.json
+        run: python tests/document-ocr-v5-benchmark.test.py
+      - name: Preserve supplier/customer party role correctness
+        env:
+          OMP_NUM_THREADS: "2"
+          OPENBLAS_NUM_THREADS: "2"
+        run: python tests/document-party-roles-benchmark.py
+      - name: Upload previous benchmark report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boekuna-ocr-preservation-baseline
+          path: artifacts/original-28-case-report.json
+          if-no-files-found: warn
