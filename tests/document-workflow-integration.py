@@ -157,7 +157,9 @@ def enqueue(uid, n, batch=None):
     batch = batch or 'it-' + uuid.uuid4().hex[:12]; jobs = []
     for i in range(n):
         doc, job = str(uuid.uuid4()), str(uuid.uuid4())
-        number = 'IT-' + doc[:8].upper()
+        # The extractor only accepts an invoice number that contains a digit (a pure-letter
+        # token is a word, not a number); a random hex prefix without digits made this flaky.
+        number = 'IT-' + doc[:7].upper() + '7'
         path = f'{uid}/{doc}.pdf'; STORAGE[path] = make_pdf(number, 100 + i)
         sql('insert into public.documents(id,user_id,name,mime_type,storage_path,client_ref) values(%s,%s,%s,%s,%s,%s)',
             (doc, uid, number + '.pdf', 'application/pdf', path, doc), fetch=False)

@@ -101,8 +101,72 @@ def money_tokens(line: str) -> list[float]:
     return out
 
 
+def _bare_amount_line(line: str) -> bool:
+    """Only an amount (plus currency), e.g. a right-aligned column value on its own OCR line."""
+    return bool(money_tokens(line)) and not re.search(r"[A-Za-zÀ-ÖØ-öø-ÿ]{3,}", re.sub(r"\b(?:eur|euro)\b", "", str(line or ""), flags=re.I))
+
+
+def _mangled_amount(line: str) -> bool:
+    """Digits that are not a readable amount (an OCR-broken "86'9"): the amount was on
+    this line, so a neighbouring line must not be read in its place. Percentages are
+    not amounts."""
+    tail = re.sub(r"\d+(?:[.,]\d+)?\s*%", "", str(line or ""))
+    tail = re.sub(r"\([^)]*\)|\b(?:19|20)\d{2}\b|\b\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}\b|\b\d{1,3}\s*(?:artikel\w*|items?|stuks?|st\.?|x)\b", "", tail)
+    return bool(re.search(r"\d", tail)) and not money_tokens(tail)
+
+
+_CONVENTION: str | None = "auto"
+_PAYMENT_STATUS_LINE_RE = re.compile(r"\b(?:betaald|paid|pin|ideal|contant|cash|voldaan)\b", re.I)
+_AMOUNT_LABEL_HINT_RE = re.compile(r"\b(?:totaal|total|subtotaal|subtotal|btw|vat|tax|te betalen|te voldoen|amount due|bedrag|amount|betaald|paid|pin|korting|discount|verzendkosten|shipping)\b", re.I)
+
+
+def _amount_line_convention(lines: list[str]) -> str | None:
+    """"after" when this document prints amounts under their labels, "before" when a
+    column receipt's right-aligned amounts came out above their labels, None when the
+    unambiguous label lines give no majority. Mirrors app.amount_line_convention."""
+    after = before = 0
+    for i, line in enumerate(lines):
+        if not _AMOUNT_LABEL_HINT_RE.search(line) or money_tokens(line) or _bare_amount_line(line):
+            continue
+        if _PAYMENT_STATUS_LINE_RE.search(line) and not re.search(r"\b(?:totaal|total)\b", line, re.I):
+            continue
+        if re.search(r"\d", re.sub(r"\d+(?:[.,]\d+)?\s*%", "", line)):
+            continue
+        nxt = lines[i + 1] if i + 1 < len(lines) else None
+        prv = lines[i - 1] if i > 0 else None
+        next_bare = _bare_amount_line(nxt) if nxt is not None else None
+        prev_bare = _bare_amount_line(prv) if prv is not None else None
+        if next_bare and prev_bare is False:
+            after += 1
+        elif prev_bare and next_bare is False:
+            before += 1
+    if after > before and after >= 2:
+        return "after"
+    if before > after and before >= 2:
+        return "before"
+    return None
+
+
 def _amount_on_or_after(lines: list[str], i: int, max_ahead: int = 1, *, prefer_first: bool = False) -> float | None:
-    for j in range(i, min(len(lines), i + max_ahead + 1)):
+    own = money_tokens(lines[i])
+    if own:
+        return own[0] if prefer_first else own[-1]
+    if max_ahead >= 1 and _mangled_amount(lines[i]):
+        return None
+    if max_ahead >= 1:
+        # A label without an amount: OCR may have put a right-aligned amount on the
+        # line above as well as below. With two bare-amount neighbours the document's
+        # own convention decides; without one, no value is read rather than a guess.
+        nxt = lines[i + 1] if i + 1 < len(lines) else ""
+        prv = lines[i - 1] if i > 0 else ""
+        if _bare_amount_line(nxt) and _bare_amount_line(prv):
+            convention = _CONVENTION if _CONVENTION != "auto" else _amount_line_convention(lines)
+            if convention == "before":
+                vals = money_tokens(prv)
+                return vals[0] if prefer_first else vals[-1]
+            if convention != "after":
+                return None
+    for j in range(i + 1, min(len(lines), i + max_ahead + 1)):
         vals = money_tokens(lines[j])
         if vals:
             return vals[0] if prefer_first else vals[-1]
@@ -236,8 +300,12 @@ def _infer_rate(net: float | None, vat: float | None) -> float | None:
     return None
 
 
-def parse_financial_blocks(raw_lines: list[str]) -> dict[str, Any]:
+def parse_financial_blocks(raw_lines: list[str], convention: str | None = "auto") -> dict[str, Any]:
+    """convention: "after" (native text: amount under its label), "before" (column OCR whose
+    boxes came apart), None (unknown) or "auto" (judge from the lines)."""
+    global _CONVENTION
     lines = [_norm(x) for x in raw_lines if _norm(x)]
+    _CONVENTION = _amount_line_convention(lines) if convention == "auto" else convention
     sections: list[dict[str, Any]] = []
 
     # 1) Find explicit net -> VAT -> gross groups. This catches ordinary invoice
