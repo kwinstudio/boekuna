@@ -107,7 +107,7 @@ function overdueRule(context){
     id:'OVERDUE_INVOICE:group',ruleId:'INVOICE_OVERDUE_V1',type:'OVERDUE_INVOICE',category:'invoices',priority:'P1',
     title,summary:'Er staat nog '+money(total)+' open.',
     detail:rows.length===1?(String(rows[0].number||'Factuur')+' · vervaldatum '+String(rows[0].dueDate||'')):(maxDays?'De oudste staat '+maxDays+' dagen open na de vervaldatum.':'Controleer de openstaande facturen.'),
-    reason:rows.length+' open factuur'+(rows.length===1?'':'en')+' met vervaldatum vóór vandaag en resterend bedrag groter dan nul.',
+    reason:rows.length+' open '+(rows.length===1?'factuur':'facturen')+' met vervaldatum vóór vandaag en resterend bedrag groter dan nul.',
     sourceFacts:{invoiceCount:rows.length,totalOutstanding:total,maxDaysOverdue:maxDays},
     actionLabel:'Bekijk facturen',actionTarget:action('invoices',{status:'overdue'}),score:Math.min(95,maxDays)+Math.min(100,total/100)
   })];
@@ -139,7 +139,7 @@ function highOutstandingRule(context,baselines){
   if(relative!=null&&relative<0.5)return [];
   return [insight({
     id:'HIGH_OUTSTANDING:current',ruleId:'HIGH_OUTSTANDING_V1',type:'HIGH_OUTSTANDING',category:'invoices',priority:'P2',
-    title:'Er staat '+money(total)+' open',summary:rows.length+' open factuur'+(rows.length===1?'':'en')+'.',
+    title:'Er staat '+money(total)+' open',summary:rows.length+' open '+(rows.length===1?'factuur':'facturen')+'.',
     detail:relative!=null?'Dit is '+Math.round(relative*100)+'% van je gemiddelde maandomzet over de gebruikte vergelijkingsperiode.':'Bekijk welke facturen nog betaald moeten worden.',
     reason:relative!=null?'Openstaand bedrag vergeleken met je eigen recente maandomzet.':'Openstaand bedrag boven de centrale signaleringsdrempel.',
     sourceFacts:{invoiceCount:rows.length,totalOutstanding:total,baselineRevenue:baselines.revenue||null},
