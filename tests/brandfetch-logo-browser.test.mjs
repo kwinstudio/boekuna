@@ -112,6 +112,7 @@ try{
     await page.waitForFunction(()=>partyLogoState.get('ikea.com')===false).catch(async e=>{throw new Error('IKEA logo chain did not finish: '+JSON.stringify({state:await page.evaluate(()=>String(partyLogoState.get('ikea.com'))),img:await rowFor('IKEA').locator('.party-avatar').innerHTML(),requests:outside.filter(r=>r.path.includes('ikea')||r.host.includes('ikea'))})+' '+e.message)});
     assert.equal(await rowFor('IKEA').locator('.party-avatar.has-logo').count(),0);
     assert.equal(await rowFor('IKEA').locator('.party-avatar .party-initials').innerText(),'IK');
+    assert.ok(!outside.some(r=>r.path.endsWith('/favicon.ico')),'with Brandfetch the favicon.ico step is skipped');
     // 5. Ten cost lines at once: one request per domain at most, no duplicates.
     const bf=outside.filter(r=>r.host==='cdn.brandfetch.io');
     assert.equal(new Set(bf.map(r=>r.path)).size,bf.length,'every Brandfetch URL is requested once');
