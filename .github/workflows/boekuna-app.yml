@@ -104,6 +104,7 @@ on:
       - "tests/financial-logic-v1.test.mjs"
       - "tests/scan-edit-after-confirmation-browser.test.mjs"
       - "tests/delete-credit-totals-browser.test.mjs"
+      - "tests/paid-without-sending-browser.test.mjs"
       - "tests/cashflow-recurrence.test.mjs"
       - "tests/cashflow-recurrence-browser.test.mjs"
       - "tests/planned-cash-sql-isolation.test.mjs"
@@ -365,6 +366,8 @@ jobs:
           BOOKUNA_BROWSER=webkit node tests/scan-edit-after-confirmation-browser.test.mjs
           node tests/delete-credit-totals-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/delete-credit-totals-browser.test.mjs
+          node tests/paid-without-sending-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/paid-without-sending-browser.test.mjs
       - name: Storage status and conflict-safe retry
         run: node tests/app-ux-status.test.mjs
       - name: Generated app UX and plain Dutch · Chromium
