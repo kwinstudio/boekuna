@@ -1,0 +1,121 @@
+name: BOEKUNA OCR golden receipts and logo evidence
+
+# Gates from the 10 October 2026 OCR/logo audit:
+# - label/amount layout association (text-level, exact),
+# - 20 golden logo-styled receipt analyses (JPG + raster PDF) must be 20/20,
+# - the existing 28-case V5 benchmark, V5 regressions and party-roles benchmark must hold,
+# - amount-candidate evidence and first-party icon reachability are reported as artifacts
+#   (reachability says nothing about brand identity and is not a gate).
+# The detector pre-resize is measured in two variants: the library default and the
+# memory-bounded "max/1000" variant that is proposed for the 512 MiB Render service.
+
+on:
+  pull_request:
+    paths:
+      - "kwinest/docprocessor/**"
+      - "tests/ocr-golden-logo-receipts.py"
+      - "tests/document-ocr-layout-amounts.test.py"
+      - "tests/ocr-amount-candidate-diagnostics.py"
+      - "tests/logo-url-smoke.py"
+      - "tests/document-ocr-v5-benchmark.test.py"
+      - "tests/document-ocr-v5-regressions.test.py"
+      - "tests/document-party-roles-benchmark.py"
+      - ".github/workflows/boekuna-ocr-golden-receipts.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "kwinest/docprocessor/**"
+  workflow_dispatch:
+
+concurrency:
+  group: ocr-golden-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  layout-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Processor dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r kwinest/docprocessor/requirements.txt
+      - name: Label/amount layout association (exact, no OCR engine)
+        run: python tests/document-ocr-layout-amounts.test.py
+      - name: Financial blocks and receipt arithmetic
+        run: |
+          python tests/financial-blocks.test.py
+          python tests/receipt-math.test.py
+
+  golden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        det:
+          - { name: "library-default", type: "min", side: "736" }
+          - { name: "bounded-max-1000", type: "max", side: "1000" }
+    env:
+      OMP_NUM_THREADS: "2"
+      OPENBLAS_NUM_THREADS: "2"
+      OCR_DET_LIMIT_TYPE: ${{ matrix.det.type }}
+      OCR_DET_LIMIT_SIDE: ${{ matrix.det.side }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Fonts for fixture rendering
+        run: test -e /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf || (sudo apt-get update && sudo apt-get install -y fonts-dejavu-core)
+      - name: Processor dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r kwinest/docprocessor/requirements.txt
+      - name: Golden gate — 20 logo-styled receipt analyses must be fully correct
+        env:
+          BOEKUNA_GOLDEN_REPORT: artifacts/ocr-golden-${{ matrix.det.name }}.json
+        run: python tests/ocr-golden-logo-receipts.py
+      - name: Existing 28-case V5 benchmark must stay 28/28
+        env:
+          BOOKUNA_OCR_V5_REPORT: artifacts/ocr-v5-${{ matrix.det.name }}.json
+        run: python tests/document-ocr-v5-benchmark.test.py
+      - name: Existing V5 regressions
+        run: python tests/document-ocr-v5-regressions.test.py
+      - name: Supplier/customer party roles (every new WRONG is a blocker)
+        run: python tests/document-party-roles-benchmark.py | tee artifacts/party-roles-${{ matrix.det.name }}.txt
+      - name: Amount-candidate evidence (diagnostic artifact)
+        if: always()
+        run: python tests/ocr-amount-candidate-diagnostics.py || true
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boekuna-ocr-golden-${{ matrix.det.name }}
+          path: artifacts/
+          if-no-files-found: warn
+
+  logo-url-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Pillow
+        run: python -m pip install Pillow==11.2.1
+      - name: First-party icon URL reachability (evidence only, not identity)
+        run: python tests/logo-url-smoke.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: boekuna-logo-url-evidence
+          path: artifacts/boekuna-logo-url-smoke.json
+          if-no-files-found: warn
