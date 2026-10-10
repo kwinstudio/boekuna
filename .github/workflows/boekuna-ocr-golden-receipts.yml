@@ -93,7 +93,20 @@ jobs:
       - name: Existing V5 regressions
         run: python tests/document-ocr-v5-regressions.test.py
       - name: Supplier/customer party roles (every new WRONG is a blocker)
-        run: python tests/document-party-roles-benchmark.py | tee artifacts/party-roles-${{ matrix.det.name }}.txt
+        run: |
+          python tests/document-party-roles-benchmark.py | tee artifacts/party-roles-${{ matrix.det.name }}.txt
+          # The benchmark reports but never fails; the known baseline is 0 WRONG with company
+          # context and 2 WRONG without. Any number above that blocks.
+          python - <<'PY'
+          import re,sys
+          text=open("artifacts/party-roles-${{ matrix.det.name }}.txt",encoding="utf-8").read()
+          wrong=[int(m) for m in re.findall(r"summary \{[^}]*'WRONG': (\d+)",text)]
+          assert len(wrong)>=2,("party-roles summary lines missing",wrong)
+          baseline=[0,2]
+          bad=[(got,base) for got,base in zip(wrong,baseline) if got>base]
+          print("party-roles WRONG counts:",wrong,"baseline:",baseline)
+          sys.exit(1 if bad else 0)
+          PY
       - name: Amount-candidate evidence (diagnostic artifact)
         if: always()
         run: python tests/ocr-amount-candidate-diagnostics.py || true

@@ -108,6 +108,8 @@ OCR_WORKING_MAX_SIDE = int(os.getenv("OCR_WORKING_MAX_SIDE", "1000"))
 # the detector at the working size. Defaults stay at the library behaviour; the
 # alternative is measured per deployment before it is switched on.
 OCR_DET_LIMIT_TYPE = (os.getenv("OCR_DET_LIMIT_TYPE", "min").strip().lower() or "min")
+if OCR_DET_LIMIT_TYPE not in {"min","max"}:
+    OCR_DET_LIMIT_TYPE = "min"
 OCR_DET_LIMIT_SIDE = int(os.getenv("OCR_DET_LIMIT_SIDE", "736"))
 Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 SUPPORTED_IMAGE_EXTENSIONS = frozenset({".jpg",".jpeg",".png",".webp",".heic",".heif",".tif",".tiff",".bmp",".gif"})
@@ -584,17 +586,24 @@ def bare_amount_line(line:str)->bool:
     return bool(money_tokens(line)) and not re.search(r"[A-Za-zÀ-ÖØ-öø-ÿ]{3,}",re.sub(r"\b(?:eur|euro)\b","",str(line or ""),flags=re.I))
 
 AMOUNT_LABEL_HINT_RE=re.compile(r"\b(?:totaal|total|subtotaal|subtotal|btw|vat|tax|te betalen|te voldoen|amount due|bedrag|amount|betaald|paid|pin|korting|discount|verzendkosten|shipping)\b",re.I)
+PAYMENT_STATUS_LINE_RE=re.compile(r"\b(?:betaald|paid|pin|ideal|contant|cash|voldaan)\b",re.I)
 
 def amount_line_convention(lines:list[str])->str|None:
     """Does this document print a label's amount on the line after it, or before it?
 
     Decided from the label lines whose neighbours are unambiguous (exactly one bare
-    amount next to them). A column receipt whose boxes came apart yields "before"
-    (… "Betaald per PIN EUR" followed by a text line), a native PDF that puts every
-    amount under its label yields "after". No evidence: None (stay ambiguous)."""
+    amount next to them). A column receipt whose boxes came apart yields "before",
+    a native PDF that puts every amount under its label yields "after". A payment
+    status line ("Betaald via iDEAL") sits under the total by design and never votes;
+    a verdict needs at least two votes and a majority. No evidence: None.
+
+    This only describes OCR text: native PDF text keeps its own order, so callers pass
+    "after" for documents that were not OCR'd."""
     after=before=0
     for i,line in enumerate(lines or []):
         if not AMOUNT_LABEL_HINT_RE.search(line) or money_tokens(line) or bare_amount_line(line):
+            continue
+        if PAYMENT_STATUS_LINE_RE.search(line) and not re.search(r"\b(?:totaal|total)\b",line,re.I):
             continue
         if re.search(r"\d",re.sub(r"\d+(?:[.,]\d+)?\s*%","",line)):
             continue
@@ -604,8 +613,8 @@ def amount_line_convention(lines:list[str])->str|None:
         prev_bare=bare_amount_line(prv) if prv is not None else None
         if next_bare and prev_bare is False:after+=1
         elif prev_bare and next_bare is False:before+=1
-    if after>before:return "after"
-    if before>after:return "before"
+    if after>before and after>=2:return "after"
+    if before>after and before>=2:return "before"
     return None
 
 def mangled_amount_after(line:str,label:str)->bool:
@@ -616,11 +625,15 @@ def mangled_amount_after(line:str,label:str)->bool:
     low=str(line or "").lower();pos=low.find(label.lower())
     tail=low[pos+len(label):] if pos>=0 else low
     tail=re.sub(r"\d+(?:[.,]\d+)?\s*%","",tail)
+    tail=re.sub(r"\([^)]*\)|\b\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}\b|\b(?:19|20)\d{2}\b|\b\d{1,3}\s*(?:artikel\w*|items?|stuks?|st\.?|x)\b","",tail)
     return bool(re.search(r"\d",tail)) and not money_tokens(tail)
 
-def labeled_amount(lines:list[str], labels:list[str], exclude:list[str]=[]) -> tuple[float|None,float]:
+def labeled_amount(lines:list[str], labels:list[str], exclude:list[str]=[], convention:str|None="auto") -> tuple[float|None,float]:
+    """convention: "after" (amount under its label; native text), "before" (column OCR whose
+    boxes came apart), None (unknown) or "auto" (derive from the lines themselves)."""
     candidates=[]
-    convention=None;convention_known=False
+    convention_known=convention!="auto"
+    if convention=="auto":convention=None
     for i,line in enumerate(lines):
         low=line.lower()
         if any(x in low for x in exclude): continue
@@ -650,9 +663,18 @@ def labeled_amount(lines:list[str], labels:list[str], exclude:list[str]=[]) -> t
                         else:
                             vals=money_tokens(nxt);score=min(score,.80)
                     elif prev_bare:
-                        # The line below is another labelled row (or no amount at all):
-                        # the bare amount above belongs to this label.
-                        vals=money_tokens(prv);score-=.01
+                        # A bare amount above only belongs to this label when the document
+                        # is known to print amounts above (column OCR) or the line below is
+                        # another labelled row. A lone bare line above a label-only line
+                        # (an unread bold total) is read, but never trusted enough to anchor
+                        # or to book without review.
+                        if not convention_known:
+                            convention=amount_line_convention(lines);convention_known=True
+                        vals=money_tokens(prv)
+                        if convention=="before" or (nxt and AMOUNT_LABEL_HINT_RE.search(nxt) and not money_tokens(nxt) and not PAYMENT_STATUS_LINE_RE.search(nxt)):
+                            score-=.01
+                        else:
+                            score=min(score,.80)
                     elif nxt:
                         vals=money_tokens(nxt)
                 if vals:
@@ -1269,7 +1291,7 @@ def get_ocr_engine():
             "Det.lang_type": LangDet.CH,
             "Det.model_type": ModelType.SMALL,
             "Det.ocr_version": OCRVersion.PPOCRV6,
-            "Det.limit_type": OCR_DET_LIMIT_TYPE if OCR_DET_LIMIT_TYPE in {"min","max"} else "min",
+            "Det.limit_type": OCR_DET_LIMIT_TYPE,
             "Det.limit_side_len": OCR_DET_LIMIT_SIDE,
             "Rec.engine_type": EngineType.ONNXRUNTIME,
             "Rec.lang_type": LangRec.CH,
@@ -1945,6 +1967,12 @@ def extract_image(raw:bytes) -> dict[str,Any]:
                 context={"max_image_pixels":MAX_IMAGE_PIXELS,"max_image_side":MAX_IMAGE_SIDE},
                 internal_code="IMAGE_DIMENSION_LIMIT",
             )
+        # A 12 MP phone JPEG decoded in full costs ~60 MB per RGB copy before anything is
+        # resized to the 1000 px working size. JPEG can decode at a DCT-scaled size, so ask
+        # the decoder for at least twice the working size and never pay for the rest.
+        if (img.format or "").upper()=="JPEG" and max(width,height)>2*OCR_WORKING_MAX_SIDE:
+            factor=(2*OCR_WORKING_MAX_SIDE)/float(max(width,height))
+            img.draft("RGB",(max(1,int(width*factor)),max(1,int(height*factor))))
         img.load()
     except BoekunaDocumentError:
         raise
@@ -2273,10 +2301,18 @@ def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tu
     data["_evidence"]={"source":src[0] if src else None,"label":matched_label,"sourceText":(src[1] if src else None)}
     return data,conf
 
+# A banner that says the document is not real. "Demo Media B.V." or "Sample Solutions" are
+# company names, so a bare demo/sample/voorbeeld only counts next to fictief/test/geen echt.
 DISCLAIMER_LINE_RE=re.compile(
-    r"\b(?:demo|fictie\w*|fictitious|voorbeeld(?:bon|factuur|document)?|specimen|sample|disclaimer|"
-    r"test\s*(?:document|bon|factuur|data)|geen\s+(?:echt|geldig)|niet\s+(?:echt|geldig)|not\s+a\s+(?:real|valid)|"
-    r"ter\s+illustratie|for\s+illustration)\b",re.I,
+    r"\b(?:fictie\w*|fictitious|disclaimer|test\s*(?:document|bon|factuur|data)|voorbeeld(?:bon|factuur|document)|"
+    r"geen\s+(?:echt|geldig)|niet\s+(?:echt|geldig)|not\s+a\s+(?:real|valid)|ter\s+illustratie|for\s+illustration|"
+    r"sample\s+(?:invoice|receipt|document))\b"
+    r"|\b(?:demo|voorbeeld|sample)\b[^\n]*\b(?:fictie\w*|test|geen\s+echt|niet\s+echt|not\s+real)\b"
+    r"|^\s*(?:demo|specimen|sample|voorbeeld)\s*$",re.I,
+)
+STREET_LINE_RE=re.compile(
+    r"^[A-Za-zÀ-ÖØ-öø-ÿ'.\- ]{0,50}(?:straat|laan|weg|plein|dijk|kade|singel|gracht|dreef|hof|markt|steeg|pad|baan|boulevard|"
+    r"avenue|street|road|lane|drive|allee|erf|park)\s+\d{1,4}\s*[A-Za-z]?(?:\s*[-/]\s*\d{1,4})?\.?$",re.I,
 )
 
 def receipt_merchant_name(lines:list[str], company:dict)->str|None:
@@ -2289,8 +2325,9 @@ def receipt_merchant_name(lines:list[str], company:dict)->str|None:
         if skip.search(cand) or "@" in cand or re.fullmatch(r"[\d\s€$£.,:+*/#-]+",cand):continue
         # A disclaimer or demo banner above the merchant line is never the merchant.
         if DISCLAIMER_LINE_RE.search(cand):continue
-        # A street line ("Kerkstraat 21", "Dorpsstraat 12a") is the address, not the shop.
-        if re.fullmatch(r"[A-Za-zÀ-ÖØ-öø-ÿ'.\- ]{3,60}\s+\d{1,4}\s*[A-Za-z]?(?:\s*[-/]\s*\d{1,4})?\.?",cand):continue
+        # A street line ("Kerkstraat 21", "Dorpsstraat 12a") is the address, not the shop;
+        # "Albert Heijn 1089" (a store number) is not a street.
+        if STREET_LINE_RE.match(cand):continue
         if re.match(r"^-{2,}\s*page\s+\d+\s*-{0,}$",cand,re.I):continue
         if re.search(r"\b\d{4}\s?[A-Z]{2}\b|\b\d{2}[:.]\d{2}\b|\b(?:kvk|btw|vat|iban|tel|phone)\b",cand,re.I):continue
         if any(o and o in low for o in own_names):continue
@@ -2352,10 +2389,11 @@ def extract_description(doc:dict,lines:list[str])->tuple[str|None,float,str|None
                 return cleaned[:500],.82,"text-after-header"
     return None,.20,None
 
-def strong_total_anchor(lines:list[str])->tuple[float|None,float]:
+def strong_total_anchor(lines:list[str],convention:str|None="auto")->tuple[float|None,float]:
     """Find a receipt total that is explicitly labelled, avoiding VAT/subtotal rows."""
     candidates=[]
-    convention=None;convention_known=False
+    convention_known=convention!="auto"
+    if convention=="auto":convention=None
     for i,line in enumerate(lines or []):
         low=line.lower()
         if not re.search(r"\b(?:eindtotaal|totaal|total amount|total|te betalen|amount due|grand total)\b",low,re.I):
@@ -2381,6 +2419,13 @@ def strong_total_anchor(lines:list[str])->tuple[float|None,float]:
                 next_bare=convention=="after"
             elif next_bare==prev_bare:
                 continue
+            elif prev_bare:
+                # Only a column OCR document, or a labelled row right below, makes the bare
+                # amount above this label its total. Anything else is not an anchor.
+                if not convention_known:
+                    convention=amount_line_convention(lines);convention_known=True
+                if convention!="before" and not (nxt and AMOUNT_LABEL_HINT_RE.search(nxt) and not money_tokens(nxt) and not PAYMENT_STATUS_LINE_RE.search(nxt)):
+                    continue
             vals=money_tokens(nxt if next_bare else prv);adjacent=True
         score=.955
         if re.search(r"\b(?:te betalen|amount due|grand total|eindtotaal|total amount)\b",low,re.I):score=.985
@@ -2571,12 +2616,15 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     order_raw,_=line_after_label(lines,["bestelnummer","ordernummer","order number","purchase order","po number"]); order_no=order_raw[:60] if order_raw else None
     ref_raw,_=line_after_label(lines,["betalingskenmerk","payment reference","payment ref","kenmerk"]); payref=ref_raw[:80] if ref_raw else None
 
-    total,total_conf=labeled_amount(amount_lines,["totaal te betalen","te voldoen","amount due","balance due","grand total","eindtotaal","total amount","totaal incl. btw","totaal inclusief btw","total incl. vat","invoice total","factuurbedrag","factuurtotaal"],["subtotaal","subtotal","excl"])
-    subtotal,sub_conf=labeled_amount(amount_lines,NET_TOTAL_LABELS)
-    vat_total,vat_conf=labeled_amount(amount_lines,VAT_TOTAL_LABELS,["btw nr","btw-id","vat id"])
-    discount,disc_conf=labeled_amount(amount_lines,["korting","discount"])
-    shipping,ship_conf=labeled_amount(amount_lines,["verzendkosten","shipping","freight"])
-    strong_total,strong_total_conf=strong_total_anchor(amount_lines)
+    # Native PDF text keeps each amount under its label; only OCR text can have the
+    # right-aligned amount box above its label, so only there the layout is judged.
+    line_convention="after" if not doc.get("ocrPages") else amount_line_convention(amount_lines)
+    total,total_conf=labeled_amount(amount_lines,["totaal te betalen","te voldoen","amount due","balance due","grand total","eindtotaal","total amount","totaal incl. btw","totaal inclusief btw","total incl. vat","invoice total","factuurbedrag","factuurtotaal"],["subtotaal","subtotal","excl"],line_convention)
+    subtotal,sub_conf=labeled_amount(amount_lines,NET_TOTAL_LABELS,[],line_convention)
+    vat_total,vat_conf=labeled_amount(amount_lines,VAT_TOTAL_LABELS,["btw nr","btw-id","vat id"],line_convention)
+    discount,disc_conf=labeled_amount(amount_lines,["korting","discount"],[],line_convention)
+    shipping,ship_conf=labeled_amount(amount_lines,["verzendkosten","shipping","freight"],[],line_convention)
+    strong_total,strong_total_conf=strong_total_anchor(amount_lines,line_convention)
     if strong_total is not None and strong_total_conf>total_conf:
         total,total_conf=strong_total,strong_total_conf
     if total is None:
@@ -2592,7 +2640,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     if total is None and subtotal is not None and vat_total is not None: total,total_conf=round(subtotal+vat_total,2),.76
     if subtotal is None and total is not None and vat_total is not None: subtotal,sub_conf=round(total-vat_total,2),.76
 
-    financial_structure=parse_financial_blocks(amount_lines)
+    financial_structure=parse_financial_blocks(amount_lines,convention=line_convention)
     structured_primary=financial_structure.get("primary") or {}
     if structured_primary:
         subtotal=structured_primary.get("subtotal")

@@ -70,14 +70,30 @@ passed("ocr_rows_to_lines merges a right-aligned amount with its label")
 # 2. A label without an amount takes the bare amount above it when the line below is
 #    not an amount; both neighbours bare (the detector order) means the value is read
 #    below the arithmetic anchor threshold, so it can never silently drive the others.
+# A lone bare amount above a label-only line is read, but a labelled row with its own amount
+# below is no proof that the amount above is ours (it could be an item price above an unread
+# bold total), so the read stays below the anchor threshold and goes to review.
 net, net_conf = app.labeled_amount(["Balpennen", "9,50", "Subtotaal excl. btw EUR", "BTW 21% EUR 1,99"], NET_TOTAL_LABELS)
+assert net == 9.5 and net_conf <= .80, (net, net_conf)
+# A labelled row without an amount right below (the column layout came apart) is proof.
+net, net_conf = app.labeled_amount(["Balpennen", "9,50", "Subtotaal excl. btw EUR", "BTW 21% EUR", "1,99"], NET_TOTAL_LABELS, [], None)
 assert net == 9.5 and net_conf >= .94, (net, net_conf)
-# In the full detector order "Betaald per PIN EUR" (bare amount above, text below) proves the
-# "before" convention, so the net is read above its label with full confidence.
+# The bare detector order alone is ambiguous (every label has bare amounts on both sides and a
+# payment line never votes), so nothing there may anchor: the value stays below 0.80.
 net, net_conf = app.labeled_amount(HEMA_DETECTOR_ORDER, NET_TOTAL_LABELS)
-assert net == 9.5 and net_conf >= .94, (net, net_conf)
-assert app.amount_line_convention(HEMA_DETECTOR_ORDER) == "before"
+assert net_conf <= .80, (net, net_conf)
+assert app.amount_line_convention(HEMA_DETECTOR_ORDER) is None
 assert app.amount_line_convention(["9,50", "Subtotaal excl. btw EUR", "1,99"]) is None
+# With the layout known to be "before" (column OCR), the same lines read 9,50 in full confidence.
+net, net_conf = app.labeled_amount(HEMA_DETECTOR_ORDER, NET_TOTAL_LABELS, [], "before")
+assert net == 9.5 and net_conf >= .94, (net, net_conf)
+# A lone bare amount above a label-only line (an unread bold total on a native PDF) is never
+# a confident read: the reviewer's taxi case must not book 12,00.
+taxi = ["Rit Schiphol - Utrecht", "84,50", "Wachttijd", "12,00", "Totaal", "Betaald via iDEAL", "Bedankt"]
+value, conf = app.labeled_amount(taxi, ["totaal"], [], "after")
+assert value is None or conf <= .80, (value, conf)
+assert app.strong_total_anchor(taxi, "after") == (None, 0.0)
+assert app.strong_total_anchor(["Koffie", "3,50", "Broodje", "4,50", "Totaal", "Betaald per PIN"], None) == (None, 0.0)
 value, conf = app.labeled_amount(["Totaal te betalen:", "EUR 121,00"], TOTAL_LABELS, TOTAL_EXCLUDE)
 assert value == 121.0 and conf >= .94, (value, conf)
 passed("labeled_amount reads the neighbouring bare amount with layout evidence")
@@ -87,10 +103,12 @@ total, total_conf = app.strong_total_anchor(["TOTAAL INCL. BTW EUR 11,49"])
 assert total == 11.49 and total_conf >= .96, (total, total_conf)
 assert app.strong_total_anchor(["BTW 21% EUR 1,99"]) == (None, 0.0)
 assert app.strong_total_anchor(["Totaal excl. btw EUR 9,50"]) == (None, 0.0)
-total, total_conf = app.strong_total_anchor(["11,49", "TOTAAL INCL. BTW EUR", "Betaald per PIN EUR"])
+total, total_conf = app.strong_total_anchor(["11,49", "TOTAAL INCL. BTW EUR", "Betaald per PIN EUR"], "before")
 assert total == 11.49 and total_conf >= .94, (total, total_conf)
+assert app.strong_total_anchor(["11,49", "TOTAAL INCL. BTW EUR", "Betaald per PIN EUR"], None) == (None, 0.0)
 assert app.strong_total_anchor(["11,49", "TOTAAL INCL. BTW EUR", "11,49"]) == (None, 0.0)
-total, total_conf = app.strong_total_anchor(HEMA_DETECTOR_ORDER)
+assert app.strong_total_anchor(HEMA_DETECTOR_ORDER) == (None, 0.0), "ambiguous detector order never anchors"
+total, total_conf = app.strong_total_anchor(HEMA_DETECTOR_ORDER, "before")
 assert total == 11.49 and total_conf >= .94, (total, total_conf)
 passed("strong_total_anchor keeps explicit inclusive totals and rejects VAT rows")
 
@@ -100,8 +118,10 @@ doc = {"kind": "image", "pageCount": 1, "text": "\n".join(HEMA_DETECTOR_ORDER), 
        "layout": [], "tables": [], "ocrPages": [1], "processingHints": {}}
 result = app.heuristic_extract(doc, "hema.jpg", {"name": "Demo Ondernemer"})
 amounts = result.amounts
-assert (amounts.subtotal, amounts.vatTotal, amounts.total) == (9.5, 1.99, 11.49), amounts.model_dump(exclude_none=True)
-assert not result.warnings, result.warnings
+assert amounts.total != 2.41, amounts.model_dump(exclude_none=True)
+if (amounts.subtotal, amounts.vatTotal, amounts.total) != (9.5, 1.99, 11.49):
+    assert result.confidence["total"] < .85 and result.confidence["subtotal"] < .94, (amounts.model_dump(exclude_none=True), result.confidence)
+    assert not result.processing["amountDerivation"]["used"], result.processing["amountDerivation"]
 assert result.supplier.name and "hema" in result.supplier.name.lower(), result.supplier
 # The same text with the boxes merged books the printed amounts.
 merged = {**doc, "text": "\n".join(HEMA_DETECTOR_ORDER[:11] + ["Subtotaal excl. btw EUR 9,50", "BTW 21% EUR 1,99", "TOTAAL INCL. BTW EUR 11,49", "Betaald per PIN EUR 11,49", "Dank voor uw aankoop"])}
@@ -176,6 +196,10 @@ print("OK document-ocr-layout-amounts (mangled)")
 merchant = app.receipt_merchant_name(["Kerkstraat 21", "SUPERMARKT DE HOEK", "3511 AB Utrecht", "Kassabon 08-10-2026"], {"name": "Kwinest"})
 assert merchant == "SUPERMARKT DE HOEK", merchant
 assert app.receipt_merchant_name(["Dorpsstraat 12a", "1234 AB Dorp"], {}) is None
+assert app.receipt_merchant_name(["Demo Media B.V.", "KASSABON"], {}) == "Demo Media B.V.", "a company called Demo is a company"
+assert app.receipt_merchant_name(["Sample Solutions", "KASSABON"], {}) == "Sample Solutions"
+assert app.receipt_merchant_name(["Albert Heijn 1089", "KASSABON"], {}) == "Albert Heijn 1089", "a store number is not a street"
+assert app.receipt_merchant_name(["DEMO - FICTIEF TESTDOCUMENT", "HEMA"], {}) == "HEMA"
 passed("street lines are never the merchant")
 print("OK document-ocr-layout-amounts (address)")
 
@@ -184,10 +208,25 @@ print("OK document-ocr-layout-amounts (address)")
 solid = ["Factuur 22486", "Datum 24-11-2025", "Leverancier: Solid Health Club", "Product / Dienst",
          "Solid tennis - MAAND (2025-12-03 - 2026-01-02)", "Totaal exclusief BTW", "27.52", "BTW 9% - 9.00% BTW", "2.48",
          "Totaal inclusief BTW", "30.00", "Te voldoen in EUR", "30.00"]
-assert app.amount_line_convention(solid) == "after"
+assert app.amount_line_convention(solid) is None, "one vote is no verdict; native text gets \"after\" from the caller"
 doc_solid = {**doc, "text": "\n".join(solid), "ocrPages": []}
 result = app.heuristic_extract(doc_solid, "solid.pdf", {"name": "Demo Ondernemer"})
 assert (result.amounts.subtotal, result.amounts.vatTotal, result.amounts.total) == (27.52, 2.48, 30.0), result.amounts.model_dump(exclude_none=True)
 assert not result.warnings, result.warnings
 passed("amount-under-label documents keep their convention")
 print("OK document-ocr-layout-amounts (convention)")
+
+# 12. Review probes: a native webshop PDF keeps "after" even though a payment line follows the
+#     total, and counts/dates on a label line are not a broken amount.
+webshop = ["Koffiebonen 1kg", "2", "3,69", "7,38", "Bezorgkosten", "0,00", "Subtotaal", "100,00", "BTW 21%", "21,00",
+           "Totaal", "121,00", "Betaald via iDEAL", "Bedankt voor je bestelling"]
+doc_web = {**doc, "text": "\n".join(["FACTUUR", "Leverancier: Webshop BV", "Factuurnummer: WS-2026-77", "Factuurdatum: 01-10-2026"] + webshop), "ocrPages": []}
+result = app.heuristic_extract(doc_web, "webshop.pdf", {"name": "Demo Ondernemer"})
+assert (result.amounts.subtotal, result.amounts.vatTotal, result.amounts.total) == (100.0, 21.0, 121.0), result.amounts.model_dump(exclude_none=True)
+assert not result.warnings, result.warnings
+value, conf = app.labeled_amount(["Totaal te betalen (3 artikelen)", "EUR 45,00"], TOTAL_LABELS, TOTAL_EXCLUDE, "after")
+assert value == 45.0 and conf >= .94, (value, conf)
+value, conf = app.labeled_amount(["Totaal te betalen voor 15-10-2026", "EUR 45,00"], TOTAL_LABELS, TOTAL_EXCLUDE, "after")
+assert value == 45.0 and conf >= .94, (value, conf)
+passed("native PDFs keep amount-under-label; counts and dates are not broken amounts")
+print("OK document-ocr-layout-amounts (review probes)")

@@ -3579,9 +3579,13 @@ function partyAvatarHtml(name,domain=''){
 function partyNameKey(name){return String(name||'').toLowerCase().replace(/\b(?:b\.?v\.?|n\.?v\.?|v\.?o\.?f\.?|c\.?v\.?|holding|bvba|gmbh|ltd|limited|inc)\b/g,' ').replace(/[^\p{L}\p{N}]+/gu,'')}
 function contactByName(name){const key=partyNameKey(name);if(!key)return null;const matches=state.contacts.filter(c=>partyNameKey(c.name)===key);if(matches.length===1)return matches[0];if(!matches.length)return null;const domains=new Set(matches.map(c=>partyLogoDomain(c)));return domains.size===1?matches[0]:null}
 // A web address printed on the document counts as the party's domain only when it plausibly matches the party name (initials or a name word in the host); anything else is left for the user to fill in.
-function partyWebsiteSuggestion(name,website){
+function partyWebsiteHost(website){
  const host=String(website||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').split(/[/?#]/)[0];
- if(!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host)||FREE_MAIL_DOMAINS.test(host))return '';
+ return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host)&&!FREE_MAIL_DOMAINS.test(host)?host:''
+}
+function partyWebsiteSuggestion(name,website){
+ const host=partyWebsiteHost(website);
+ if(!host)return '';
  const label=host.split('.').slice(0,-1).join('').replace(/-/g,''),words=String(name||'').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').split(/\s+/).filter(w=>w&&!/^(b\.?v|bv|n\.?v|nv|v\.?o\.?f|vof|holding|de|het|van|der|den|en|the|and)$/i.test(w));
  if(!label||!words.length)return '';
  const joined=words.join(''),initials=words.map(w=>w[0]).join('');
@@ -7573,10 +7577,14 @@ function trustedVatLinesForImport(parsed,net,vat,rate){
 function findOrCreateContact(type,data){
  const name=(data.party||'').trim(),vat=(data.vatId||'').replace(/\s/g,'').toLowerCase(),email=(data.email||'').trim().toLowerCase(),norm=name.toLowerCase().replace(/[^a-z0-9]/g,'');
  let c=state.contacts.find(x=>vat&&String(x.vat||'').replace(/\s/g,'').toLowerCase()===vat)||state.contacts.find(x=>email&&String(x.email||'').toLowerCase()===email)||state.contacts.find(x=>String(x.name||'').toLowerCase().replace(/[^a-z0-9]/g,'')===norm);
- const website=partyWebsiteSuggestion(name,data.website);
- const patch={type,name,email:data.email||'',phone:data.phone||'',kvk:data.kvk||'',address:data.address||'',postal:data.postal||'',city:data.city||'',vat:data.vatId||'',iban:ibanValid(data.iban)===true?String(data.iban).replace(/\\s/g,'').toUpperCase():'',website,...(website?{websiteSource:'document',websiteSeenAt:new Date().toISOString()}:{})};
- if(c){for(const [k,v] of Object.entries(patch))if(v&&!c[k])c[k]=v;if(type)c.type=type;return c}
- const cnew={id:uid('c'),...patch};state.contacts.unshift(cnew);return cnew
+ // A website typed by the user is kept as typed (source 'user'); the address printed on the
+ // document only travels along when it plausibly matches the name (source 'document').
+ const printedWebsite=partyWebsiteSuggestion(name,pendingPdfImport?.parsed?.website),typedWebsite=partyWebsiteHost(data.website);
+ const website=typedWebsite&&typedWebsite!==printedWebsite?typedWebsite:(typedWebsite?printedWebsite:''),websiteSource=website?(website===printedWebsite&&printedWebsite?'document':'user'):'';
+ const patch={type,name,email:data.email||'',phone:data.phone||'',kvk:data.kvk||'',address:data.address||'',postal:data.postal||'',city:data.city||'',vat:data.vatId||'',iban:ibanValid(data.iban)===true?String(data.iban).replace(/\\s/g,'').toUpperCase():''};
+ const stampWebsite=contact=>{if(website&&!contact.website){contact.website=website;contact.websiteSource=websiteSource;contact.websiteSeenAt=new Date().toISOString()}return contact};
+ if(c){for(const [k,v] of Object.entries(patch))if(v&&!c[k])c[k]=v;if(type)c.type=type;return stampWebsite(c)}
+ const cnew={id:uid('c'),...patch};state.contacts.unshift(cnew);return stampWebsite(cnew)
 }
 async function savePdfInvoiceImport(){
  if(!pendingPdfImport)return;const importContext=pendingPdfImport,importLedger=state,importOwner=currentUser?.id;const processingJobId=String(pendingPdfImport.processingJobId||''),sourceClientRef=String(pendingPdfImport.sourceClientRef||'');const f=document.getElementById('pdfImportForm');if(!f)return;if(!f.checkValidity()){const bad=f.querySelector(':invalid'),step=Number(bad?.closest('[data-review-step]')?.dataset.reviewStep||4);setDocumentReviewStep(step);requestAnimationFrame(()=>bad?.reportValidity());return}const preSaveFinancialState=syncFinancialReviewStateFromForm();if(preSaveFinancialState.invalid?.length)return toast('Controleer de gemarkeerde bedragen. Gebruik bijvoorbeeld 128,66 of 128.66.');const fd=new FormData(f),d=Object.fromEntries(fd.entries()),type=d.type,docType=d.documentType||'purchase_invoice',statusRaw=d.status||'sent',isCredit=statusRaw==='credit'||docType==='credit_invoice';if(['receipt','other'].includes(docType)&&!String(d.invoiceNumber||'').trim())d.invoiceNumber=`BON-${String(d.issueDate||today()).replace(/-/g,'')}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
