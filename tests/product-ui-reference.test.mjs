@@ -477,12 +477,12 @@ try{
         await page.evaluate(route=>navigate(route),route);
         const header=await page.locator('.product-page-head').evaluate(head=>{
           const title=head.querySelector('h1'),period=head.querySelector('.page-period-slot'),a=title?.getBoundingClientRect(),b=period?.getBoundingClientRect();
-          return {segmented:!!period?.querySelector('.period-seg'),title:a?{left:a.left,top:a.top,bottom:a.bottom}:null,period:b?{left:b.left,top:b.top,bottom:b.bottom,width:b.width}:null,headWidth:head.getBoundingClientRect().width};
+          return {segmented:!!period?.querySelector('.period-seg'),title:a?{left:a.left,right:a.right,top:a.top,bottom:a.bottom}:null,period:b?{left:b.left,right:b.right,top:b.top,bottom:b.bottom,width:b.width}:null,headRight:head.getBoundingClientRect().right};
         });
         if(header.segmented){
-          // Week / Maand / Kwartaal / Jaar / Alles sits as one full-width row under the title on a phone.
-          assert.ok(header.period&&header.period.top>=header.title.bottom-2,browserName+' mobile '+route+' period buttons must sit under the title');
-          assert.ok(header.period.width>=header.headWidth-2,browserName+' mobile '+route+' period buttons must use the full width');
+          // Kwin 2026-10-10: on a phone the period is one "Deze maand ⌄" button on the title row, right of the title.
+          assert.ok(header.period&&header.period.left>=header.title.right-2&&header.period.top<header.title.bottom,browserName+' mobile '+route+' period button must sit next to the title');
+          assert.ok(header.period.right<=header.headRight+2,browserName+' mobile '+route+' period button must stay inside the page');
         }else{
           assert.ok(header.period&&header.period.left>header.title.left,browserName+' mobile '+route+' period must remain right of title');
           assert.ok(Math.abs(header.period.top-header.title.top)<36,browserName+' mobile '+route+' title and period must remain on one row');
@@ -516,14 +516,15 @@ try{
         await page.getByRole('heading',{name:'Overzicht'}).waitFor();
         assert.deepEqual((await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents()).map(v=>v.trim()),['Overzicht','Inkomsten','Kosten','Btw']);
         const activeMobileNav=page.locator('#mobileBottomNav .mobile-bottom-nav-item.active[aria-current="page"]');
-        await page.waitForFunction(()=>getComputedStyle(document.querySelector('#mobileBottomNav .mobile-bottom-nav-item.active[aria-current="page"]')).backgroundColor==='rgb(236, 250, 238)');
-        const activeMobileStyle=await activeMobileNav.evaluate(el=>{const s=getComputedStyle(el);return {background:s.backgroundColor,color:s.color,boxShadow:s.boxShadow,borderTopColor:s.borderTopColor,borderTopWidth:s.borderTopWidth,fontWeight:s.fontWeight}});
-        assert.equal(activeMobileStyle.background,'rgb(236, 250, 238)',browserName+' mobile '+width+' active destination must use the soft BOEKUNA-green selected state');
-        assert.equal(activeMobileStyle.color,'rgb(27, 31, 35)',browserName+' mobile '+width+' active destination label must remain anthracite');
+        // Kwin 2026-10-10 (calmer on white): the open page is a green icon and word, without a block or a line.
+        const activeMobileStyle=await activeMobileNav.evaluate(el=>{const s=getComputedStyle(el),label=getComputedStyle(el.querySelector('span'));return {background:s.backgroundColor,color:label.color,boxShadow:s.boxShadow,borderTopWidth:s.borderTopWidth,fontWeight:label.fontWeight}});
+        assert.equal(activeMobileStyle.background,'rgba(0, 0, 0, 0)',browserName+' mobile '+width+' active destination has no block behind it');
+        assert.equal(activeMobileStyle.color,'rgb(47, 125, 59)',browserName+' mobile '+width+' active destination label is BOEKUNA green');
         assert.equal(activeMobileStyle.boxShadow,'none',browserName+' mobile '+width+' active destination must not use a decorative shadow');
-        assert.equal(activeMobileStyle.borderTopColor,'rgb(99, 212, 113)',browserName+' mobile '+width+' active destination must use a border cue');
-        assert.equal(activeMobileStyle.borderTopWidth,'2px',browserName+' mobile '+width+' active destination border cue must remain visible');
+        assert.equal(activeMobileStyle.borderTopWidth,'0px',browserName+' mobile '+width+' active destination has no line on top');
         assert.ok(Number.parseInt(activeMobileStyle.fontWeight,10)>=700,browserName+' mobile '+width+' active destination must retain a font-weight selection cue');
+        const idleMobileColor=await page.locator('#mobileBottomNav .mobile-bottom-nav-item:not(.active) span').first().evaluate(el=>getComputedStyle(el).color);
+        assert.notEqual(idleMobileColor,activeMobileStyle.color,browserName+' mobile '+width+' the open page differs from the others by colour');
         await noOverflow(page,browserName+' mobile dashboard active nav '+width);
       }
       await page.setViewportSize({width:390,height:844});

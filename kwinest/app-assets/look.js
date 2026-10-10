@@ -284,3 +284,29 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
+
+/* Period on a phone (Kwin 2026-10-10): one "Deze maand ⌄" button that opens the phone's own picker.
+   That picker is the period select that already sits next to the five buttons; on a phone it is the one people use,
+   so it must be reachable and named. On wider screens the buttons are used and the select stays out of the way. */
+(function(){
+  'use strict';
+  var phone=matchMedia('(max-width:820px)');
+  function sync(){
+    document.querySelectorAll('#content .period-seg .period-seg-select').forEach(function(select){
+      if(phone.matches){
+        if(select.getAttribute('tabindex')==='-1')select.removeAttribute('tabindex');
+        if(select.hasAttribute('aria-hidden'))select.removeAttribute('aria-hidden');
+        if(!select.hasAttribute('aria-label')){var group=select.closest('[role="group"]');select.setAttribute('aria-label',(group&&group.getAttribute('aria-label'))||'Periode')}
+      }else if(select.getAttribute('aria-hidden')!=='true'){
+        select.setAttribute('tabindex','-1');select.setAttribute('aria-hidden','true');
+      }
+    });
+  }
+  function install(){
+    var content=document.getElementById('content');if(!content)return;
+    sync();
+    new MutationObserver(sync).observe(content,{childList:true,subtree:true});
+    if(phone.addEventListener)phone.addEventListener('change',sync);else if(phone.addListener)phone.addListener(sync);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+})();
