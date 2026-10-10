@@ -23,7 +23,7 @@ Niet gevonden: geen aanwijzing dat verkeerde bedragen **zonder** menselijke beve
 ## 2. Commits, branch, PR, runs
 
 - Branch `fix/ocr-amount-layout-logo-20261010` (vanaf `main` `3deb7ec`), PR #306.
-- Commits: `13491e8` (lay-out-koppeling + parserdefensies + tests), `2f69f54` (golden-gate, diagnose, icon-bewijs, workflow), `326054c` (kapot bedrag op labelregel), `31fb81b` (leverancierswebsite als logobewijs), `6565615` (detectie-instelling in `/health`).
+- Commits: `13491e8` (lay-out-koppeling + parserdefensies + tests), `2f69f54` (golden-gate, diagnose, icon-bewijs, workflow), `326054c` (kapot bedrag op labelregel), `31fb81b` (leverancierswebsite als logobewijs), `6565615` (detectie-instelling in `/health`), `a20be9d` (documentconventie, straatregel, tegels op werkformaat, rapport), `e814102` (tegels terug naar 1500, headerband op werkformaat), `b4d37ed` (integratietest-fixture), `82d0c22`/`dd4b8f3` (begrensde CI-variant informatief voor V5 en party-roles), `48b60f2` (reviewbevindingen verwerkt), `549a7d2` (rapport).
 - Reproduceerbare failing tests (rood op `main`, groen op de branch): `tests/document-ocr-layout-amounts.test.py` (exact, zonder OCR-engine) en `tests/ocr-golden-logo-receipts.py` (7/20 op `main`, 20/20 op de branch).
 - Nieuwe workflow: `.github/workflows/boekuna-ocr-golden-receipts.yml` — draait de gate, de bestaande 28-case V5-benchmark, V5-regressies en party-roles in twee detectievarianten.
 - Audit-runs waarop dit bouwt: 38058431229 (7/20), 38058779027 (kandidaatdiagnose), 38058633910 (28/28, party-roles), 38058693049 (icon-URL's).
@@ -69,7 +69,7 @@ Per document (branch): alle 20 PASS op alle velden; route blijft `FULL_REVIEW` (
 
 | Suite | `main` | Branch min/736 | Branch max/1000 |
 |---|---|---|---|
-| V5-benchmark 28 cases | 28/28 (p95-gate faalt lokaal: 10,1 s > 6 s door CPU-deling; in CI 38058633910 groen) | **28/28** (p95 lokaal 9,9 s, zelfde oorzaak) | **27/28**: `receipt-long` datum MISSING → controle, bedragen correct |
+| V5-benchmark 28 cases | 28/28 (p95-gate faalt lokaal: 10,1 s > 6 s door CPU-deling; in CI 38058633910 groen) | **28/28** (p95 lokaal 10,0 s, zelfde oorzaak) | **27/28**: `receipt-long` datum MISSING → controle, bedragen correct |
 | V5-regressies | PASS | PASS | PASS |
 | Party-roles met bedrijfscontext | 438 C / 2 N / 6 M / 0 W | 438 / 2 / 6 / **0** (identiek) | 438 / 2 / 6 / **0** (identiek) |
 | Party-roles zonder context | 436 C / 2 N / 6 M / 2 W | 436 / 2 / 6 / 2 (identiek) | 436 / 2 / 6 / 2 (identiek) |
@@ -109,10 +109,22 @@ Gelijktijdigheid: `/analyze` is `async def` met een **synchrone** `analyze_docum
 
 Icon-bereikbaarheid van echte domeinen (CI-job `logo-url-evidence`, informatief): dit zegt niets over merkidentiteit en is geen gate. Visuele logo-correctheid is niet automatisch te bewijzen; de keten toont alleen iconen van de eigen site van de relatie.
 
-### 4.5 Resultaten die nog worden ingevuld
+### 4.5 Definitieve meetronde op de eindcode (`549a7d2`/`dd4b8f3`) en CI
 
-- V5-benchmark, V5-regressies en party-roles op de branch in beide detectievarianten (lokaal en CI-run van PR #306).
-- Pytest-suites uit de backend-/integrity-workflows (lokaal).
+Lokaal, vers proces per suite, `OMP_NUM_THREADS=2`:
+
+| Suite | Standaard (`min/736`) | Begrensd (`max/1000`) |
+|---|---|---|
+| Golden-set | 20/20, piek 531 MB, mediaan 4,7 s | 20/20, piek 431 MB, mediaan 3,3 s |
+| V5-benchmark 28 cases | 28/28, p50 5,1 s, p95 10,0 s (alleen de lokale p95-gate < 6 s faalt door CPU-deling) | 27/28 (`receipt-long` datum MISSING → controle), p50 3,9 s, p95 8,8 s |
+| V5-regressies | 5/5 PASS | 5/5 PASS |
+| Party-roles met/zonder bedrijfscontext | 438/2/6/**0** en 436/2/6/**2** (identiek aan baseline) | 438/2/6/**0** en 436/2/6/**2** (identiek aan baseline) |
+
+CI op PR #306 (head `dd4b8f3`): alle 15 checks groen — `golden (library-default)` (20/20, 28/28, regressies, party-roles-gate), `golden (bounded-max-1000)` (20/20; V5- en party-roles-stap informatief), `layout-unit`, `logo-url-evidence`, `backend`, `regressions`, `workflow_integration`, `document_browser`, `document-integrity`, `user-document-edge-cases`, `app` (incl. logo-browsertest, desktop-freeze en premium-simplification in Chromium en WebKit), `vision-benchmark`, `swift-tests-and-builds`, `ios-simulator-build` en `Developer Mode security regression`. Run-id's: 38063136828 (OCR golden), 38063136877 (app), 38063136841 (document), 38063136807 (integrity).
+
+Twee eerdere rode `app`-jobs (heads `a20be9d` en `b4d37ed`) faalden niet op code uit deze PR:
+- `tests/mobile-desktop-freeze.test.mjs`: "chromium desktop pixels changed: dashboard-1920 (8 pixels, max delta 23)". Op de branch slaagt de test lokaal (68 byte-identieke schermparen); op een schone checkout van `main` `3deb7ec` faalt dezelfde vergelijking lokaal met 15 pixels (max delta 15). De vergelijking is dus al op `main` instabiel; het diff van `kwinest/index.html` in deze PR bevat alleen de website-logica, geen opmaak.
+- `tests/premium-app-simplification.test.mjs`: "No global horizontal overflow at 320px on reports" door de zwevende grafiek-tooltip `#reportChartValues`. Die opmaak is niet door deze PR geraakt; lokaal slaagt de test op de branch (Chromium; WebKit is lokaal niet geïnstalleerd). Beide tests zijn niet aangepast, uitgeschakeld of herhaald via lege commits; op `dd4b8f3` slagen ze in CI in beide browsers.
 
 ## 5. Risico's, blinde vlekken, kosten, rollback, advies
 
