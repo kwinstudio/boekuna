@@ -197,7 +197,9 @@ function updateForeignCurrencyPreview(){
   const d=pendingPdfImport?.parsed,card=document.querySelector('[data-review-issue="currency"]');if(!d||!card)return;
   const f=document.getElementById('pdfImportForm'),currency=normalizeCurrencyCode(f?.elements.namedItem('currency')?.value||d.currency||'EUR');
   card.querySelectorAll('[data-fx-source-code]').forEach(el=>{el.textContent=currency});
-  const state=foreignCurrencyReviewState(d),preview=card.querySelector('[data-fx-preview]'),status=card.querySelector('[data-fx-status]');
+  const state=foreignCurrencyReviewState(d),preview=card.querySelector('[data-fx-preview]'),status=card.querySelector('[data-fx-status]'),confirmAction=card.querySelector('[data-fx-confirm]');
+  // De bevestigknop verschijnt alleen als er een koers staat die nog niet bevestigd is.
+  if(confirmAction)confirmAction.hidden=currency==='EUR'||!state.rate||state.confirmed;
   if(!preview||!status)return;
   if(currency==='EUR'){
     status.textContent='EUR: geen wisselkoers nodig.';status.className='exchange-rate-status good';preview.innerHTML='';return
@@ -846,7 +848,7 @@ function canonicalFieldControl(d,key,issue=false){
 function issuePanel(d,issue){
   if(issue.field==='currency'||issue.field==='exchangeRateToEur'){
     const currency=normalizeCurrencyCode(d.currency||'EUR'),rate=parseExchangeRateToEur(d.exchangeRateToEur||''),confirmed=!!rate&&d.exchangeRateConfirmed===true;
-    return '<section class="review-issue-card attention foreign-currency-review" data-review-issue="currency"><h5>Bedrag in <span data-fx-source-code>'+esc(currency)+'</span></h5><div class="foreign-currency-fields"><div class="field"><label>Valuta</label><input name="currency" value="'+esc(currency)+'" maxlength="3" autocomplete="off" inputmode="text"></div><div class="field"><label for="exchangeRateToEur">Wisselkoers</label><div class="foreign-rate-equation"><span>1 <strong data-fx-source-code>'+esc(currency)+'</strong> =</span><input id="exchangeRateToEur" name="exchangeRateToEur" inputmode="decimal" autocomplete="off" placeholder="0,92" value="'+esc(rate?.normalized||'')+'"><span>EUR</span></div></div></div><input type="hidden" name="exchangeRateConfirmed" value="'+(confirmed?'on':'')+'"><div class="review-issue-actions"><button type="button" class="btn small" onclick="confirmExchangeRate()">Wisselkoers bevestigen</button></div><div data-fx-status class="exchange-rate-status" role="status" aria-live="polite"></div><div data-fx-preview class="exchange-rate-preview" aria-live="polite"></div></section>'
+    return '<section class="review-issue-card attention foreign-currency-review" data-review-issue="currency"><h5>Bedrag in <span data-fx-source-code>'+esc(currency)+'</span></h5><div class="foreign-currency-fields"><div class="field"><label>Valuta</label><input name="currency" value="'+esc(currency)+'" maxlength="3" autocomplete="off" inputmode="text"></div><div class="field"><label for="exchangeRateToEur">Wisselkoers</label><div class="foreign-rate-equation"><span>1 <strong data-fx-source-code>'+esc(currency)+'</strong> =</span><input id="exchangeRateToEur" name="exchangeRateToEur" inputmode="decimal" autocomplete="off" placeholder="0,92" value="'+esc(rate?.normalized||'')+'"><span>EUR</span></div></div></div><input type="hidden" name="exchangeRateConfirmed" value="'+(confirmed?'on':'')+'"><div class="review-issue-actions" data-fx-confirm'+(confirmed||!rate?' hidden':'')+'><button type="button" class="btn small" onclick="confirmExchangeRate()">Wisselkoers bevestigen</button></div><div data-fx-status class="exchange-rate-status" role="status" aria-live="polite"></div><div data-fx-preview class="exchange-rate-preview" aria-live="polite"></div></section>'
   }
   if(issue.field==='vatTreatmentChoice'){
     const rate=d.vatRate!=null&&d.vatRate!==''&&Number.isFinite(Number(d.vatRate))?num(Number(d.vatRate))+'% ':'';
