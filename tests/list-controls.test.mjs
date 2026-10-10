@@ -358,10 +358,10 @@ try{
   await page.evaluate(()=>navigate('invoices'));
   const mobileQuick=page.locator('[data-list-page="invoices"] .list-toolbar-quick');
   assert.equal(await mobileQuick.isVisible(),true,'Mobile quick filters must remain visible');
-  assert.equal(await page.getByRole('button',{name:'Openstaand',exact:true}).isVisible(),true,'Openstaand quick filter must be reachable on mobile');
+  assert.equal(await page.getByRole('button',{name:'Open',exact:true}).isVisible(),true,'Open quick filter must be reachable on mobile (phone words: Alle, Open, Te laat, Betaald)');
   assert.ok(await mobileQuick.evaluate(el=>el.scrollWidth>=el.clientWidth),'Mobile quick filters may scroll within their own row');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+2),'Mobile quick filters must not add page overflow');
-  await page.getByRole('button',{name:'Openstaand',exact:true}).click();
+  await page.getByRole('button',{name:'Open',exact:true}).click();
   assert.equal(await page.evaluate(()=>listPageState('invoices').filters.status),'open','Mobile quick filter must keep existing filter behavior');
   await page.locator('[data-list-clear-filters]').click();
 

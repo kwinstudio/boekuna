@@ -249,7 +249,7 @@ try{
     await page.evaluate(()=>navigate('documents'));
     await page.locator('#pageTitle').filter({hasText:'Bonnetjes'}).waitFor();
     const chooserEvent=page.waitForEvent('filechooser');
-    await page.getByRole('button',{name:'Document uploaden',exact:true}).click();
+    await page.getByRole('button',{name:'Bon scannen',exact:true}).click(); // phone words (Kwin 2026-10-10): the same upload picker
     const chooser=await chooserEvent;
     assert.equal(chooser.isMultiple(),true);
     assert.equal(await page.locator('.source-picker').count(),0);
