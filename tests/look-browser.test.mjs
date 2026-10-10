@@ -91,13 +91,20 @@ try{
   // the round Nieuw button (14), day headers (9), partly paid bar (10) and "+ €" for money coming in (63).
   {
     const {context,page}=await openApp(390,844);
+    // Kwin 2026-10-10: on a phone the period is one quiet "Deze maand ⌄" button next to the greeting that opens the phone's own picker;
+    // the five buttons stay for wider screens.
     const seg=page.locator('.dashboard-page-head .period-seg');
     assert.deepEqual((await seg.locator('.period-seg-btn').allTextContents()).map(s=>s.trim()),['Week','Maand','Kwartaal','Jaar','Alles']);
-    await seg.getByRole('button',{name:'Jaar',exact:true}).click();
-    await page.locator('.dashboard-page-head .period-seg-btn.on',{hasText:'Jaar'}).waitFor();
-    assert.equal(await page.locator('.dashboard-page-head .period-seg-btn',{hasText:'Jaar'}).getAttribute('aria-pressed'),'true');
-    const head=await page.locator('.dashboard-page-head').evaluate(el=>({title:el.querySelector('h1').getBoundingClientRect().bottom,seg:el.querySelector('.period-seg').getBoundingClientRect()}));
-    assert.ok(head.seg.top>=head.title-2,'Period buttons sit under the greeting on a phone');
+    assert.equal(await seg.locator('.period-seg-btn').first().isVisible(),false,'The five period buttons are folded into one on a phone');
+    const pick=page.getByRole('combobox',{name:'Periode'});
+    assert.equal(await pick.isVisible(),true,'The period picker is visible and named on a phone');
+    assert.equal(await pick.getAttribute('tabindex'),null,'The period picker can be reached with the keyboard');
+    assert.deepEqual(await pick.locator('option').allTextContents(),['Deze week','Deze maand','Dit kwartaal','Dit jaar','Alles']);
+    await pick.selectOption('year');
+    await page.locator('.dashboard-page-head .period-seg-btn.on',{hasText:'Jaar'}).waitFor({state:'attached'});
+    assert.equal(await page.locator('#dashboardPeriod').inputValue(),'year');
+    const head=await page.locator('.dashboard-page-head').evaluate(el=>({title:el.querySelector('h1').getBoundingClientRect(),pick:el.querySelector('.period-seg-select').getBoundingClientRect()}));
+    assert.ok(head.pick.left>=head.title.right&&head.pick.top<head.title.bottom&&head.pick.right<=390,'The period button sits next to the greeting: '+JSON.stringify(head));
     assert.equal(await page.locator('.dashboard-kpi .kpi-bars rect').count(),6,'Omzet shows six small month bars');
     assert.equal(await page.locator('.dashboard-kpi .kpi-ring').count(),1,'Kosten shows a small ring');
     assert.match(await page.locator('.dashboard-kpi .kpi-ring-legend').innerText(),/Reiskosten/);
@@ -105,7 +112,7 @@ try{
     assert.match(await page.locator('.dashboard-kpi .kpi-deadline').innerText(),/^Aangifte Q[1-4] vóór \d{1,2} [a-z]+ · (vandaag|nog 1 dag|nog \d+ dagen)$/);
     const fab=await page.locator('#quickNew').evaluate(el=>{const r=el.getBoundingClientRect(),c=getComputedStyle(el);return {right:innerWidth-r.right,bottom:innerHeight-r.bottom,w:r.width,h:r.height,position:c.position}});
     assert.equal(fab.position,'fixed');
-    assert.ok(fab.w===56&&fab.h===56&&Math.abs(fab.right-(390-56)/2)<=1&&fab.bottom>=20&&fab.bottom<=30,'Nieuw is a round button in the middle of the bottom bar: '+JSON.stringify(fab));
+    assert.ok(fab.w===48&&fab.h===48&&Math.abs(fab.right-(390-48)/2)<=1&&fab.bottom>=6&&fab.bottom<=12,'Nieuw is a round button inside the middle of the bottom bar: '+JSON.stringify(fab));
     await page.evaluate(()=>{state.invoices[0].payments=[{id:'p1',date:state.invoices[0].issueDate,amount:300,method:'bank'}];navigate('invoices')});
     await page.locator('.mobile-card-list .mobile-card-group').first().waitFor();
     assert.deepEqual(await page.locator('.mobile-card-list .mobile-card-group').allTextContents(),['Vandaag']);
@@ -128,7 +135,7 @@ try{
     for(const route of ['invoices','expenses','bank','vat','reports']){
       await page.evaluate(r=>navigate(r),route);
       const tiles=await page.locator('.product-kpis .product-kpi').evaluateAll(list=>list.map(el=>({dot:el.dataset.kpiDot||'',hero:el.classList.contains('kpi-hero'),radius:getComputedStyle(el).borderTopLeftRadius,icon:getComputedStyle(el.querySelector('.product-kpi-icon')).display})));
-      assert.ok(tiles.length&&tiles.every(t=>t.dot&&t.radius==='12px'&&t.icon==='none'),route+' tiles share one style with a coloured dot: '+JSON.stringify(tiles));
+      assert.ok(tiles.length&&tiles.every(t=>t.dot&&(t.hero?t.radius==='18px':t.radius==='16px')&&t.icon==='none'),route+' tiles share one style with a coloured dot: '+JSON.stringify(tiles));
       if(['bank','vat','reports'].includes(route))assert.equal(tiles.filter(t=>t.hero).length,1,route+' has one light-blue block on top');
     }
     await page.evaluate(()=>navigate('invoices'));
@@ -160,6 +167,33 @@ try{
     await context.close();
   }
 
+  // Calmer on white (Kwin 2026-10-10): the same look with fewer boxes, lines and capitals; the tiles keep their small charts; dark mode stays dark.
+  {
+    const {context,page}=await openApp(390,844);
+    const bg=sel=>page.locator(sel).first().evaluate(el=>getComputedStyle(el).backgroundColor);
+    assert.equal(await bg('#content'),'rgb(255, 255, 255)','The page is plain white on a phone');
+    assert.equal(await page.locator('#mobileMenu').evaluate(el=>getComputedStyle(el).borderTopWidth+'|'+getComputedStyle(el).backgroundColor),'0px|rgba(0, 0, 0, 0)','Menu is just the icon');
+    assert.equal(await page.locator('.dashboard-kpi .kpi-bars').isVisible(),true,'Omzet keeps its small bars');
+    assert.equal(await page.locator('.dashboard-kpi .kpi-ring').isVisible(),true,'Kosten keeps its small ring');
+    const todo=page.locator('#content .dashboard-attention-item').first();
+    if(await todo.count()){
+      assert.equal(await todo.locator('.dashboard-attention-cta').evaluate(el=>getComputedStyle(el).fontSize),'0px','Nog te doen is one row with an arrow');
+      assert.ok((await todo.getAttribute('aria-label')||await todo.innerText()).length>0);
+    }
+    await page.evaluate(()=>navigate('invoices'));
+    await page.locator('.mobile-card-list .mobile-card-row').first().waitFor();
+    assert.equal(await page.locator('#content .workspace-table').evaluate(el=>getComputedStyle(el).borderTopWidth),'0px','No frame around the list');
+    assert.equal(await page.locator('.mobile-card-list .mobile-card-group').first().evaluate(el=>getComputedStyle(el).textTransform),'none','Day headers in normal letters');
+    await page.evaluate(()=>navigate('documents'));
+    const mains=await page.locator('#content :is(.product-page-actions,.page-head) .btn.primary').evaluateAll(nodes=>nodes.filter(el=>el.getBoundingClientRect().height>0).length);
+    assert.equal(mains,0,'Bonnetjes has no own upload button on a phone; Scannen and Factuur uploaden sit under Nieuw');
+    await page.evaluate(()=>{window.BoekunaTheme&&BoekunaTheme.set('dark');navigate('dashboard')});
+    assert.notEqual(await bg('#content'),'rgb(255, 255, 255)','Dark mode stays dark');
+    assert.notEqual(await bg('.dashboard-kpi:not(.dashboard-kpi-profit)'),'rgb(255, 255, 255)','Dark tiles stay dark');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth),0);
+    await context.close();
+  }
+
   // Buttons on a phone: no round quick-button row on the overview (45 removed at Kwin's request), delete with undo (42), busy button (41), Alles / Een deel (48),
   // copy (49), send channels (50), round back button (51) and the error under the field itself (61).
   {
@@ -173,7 +207,7 @@ try{
     }
     await page.locator('#quickNew').click();
     const nieuw=(await page.locator('#modalRoot .quick-action strong').allTextContents()).map(v=>v.trim());
-    for(const label of ['Factuur','Factuur uploaden','Scannen','Kosten boeken','Banktransactie','Bankbestand','Relatie','Dienst'])assert.ok(nieuw.includes(label),'Nieuw offers '+label+' on a phone: '+nieuw.join(', '));
+    for(const label of ['Factuur','Factuur uploaden','Document uploaden','Scannen','Kosten boeken','Banktransactie','Bankbestand','Relatie','Dienst'])assert.ok(nieuw.includes(label),'Nieuw offers '+label+' on a phone: '+nieuw.join(', '));
     await page.evaluate(()=>closeModal());
     // An active filter and "Filters wissen" look the same: one calm grey pill.
     await page.evaluate(()=>{navigate('invoices');listPageState('invoices').filters={status:'overdue'};render()});

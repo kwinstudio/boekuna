@@ -41,7 +41,9 @@ const MEASURE=`(()=>{
     for(let i=0;i<kids.length;i++)for(let j=i+1;j<kids.length;j++){const a=kids[i],b=kids[j];if(a.left<b.right-1&&b.left<a.right-1&&a.top<b.bottom-1&&b.top<a.bottom-1)out.overlaps.push(sig(g))}
   }
   for(const t of c.querySelectorAll('.card.metric,.card.dashboard-summary-card'))if(vis(t))out.tiles.push(getComputedStyle(t).paddingLeft);
-  for(const k of c.querySelectorAll('.card:not(.metric):not(.table-card):not(.dashboard-summary-card):not(.report-filterbar)'))if(vis(k))out.cards.push(getComputedStyle(k).paddingLeft+' '+sig(k));
+  // A section drawn without a frame (no border, no fill; e.g. Nog te doen on a phone) is not a card, so it has no card padding.
+  const framed=el=>{const s=getComputedStyle(el);return parseFloat(s.borderTopWidth)>0||s.backgroundColor!=='rgba(0, 0, 0, 0)'};
+  for(const k of c.querySelectorAll('.card:not(.metric):not(.table-card):not(.dashboard-summary-card):not(.report-filterbar)'))if(vis(k)&&framed(k))out.cards.push(getComputedStyle(k).paddingLeft+' '+sig(k));
   for(const t of c.querySelectorAll('.table-card')){
     const h=t.querySelector('.section-head h2'),cell=[...t.querySelectorAll('tbody td')].find(vis);
     if(h&&cell&&vis(h)){const inner=cell.querySelector('.mobile-cell-label')&&vis(cell.querySelector('.mobile-cell-label'))?cell.querySelector('.mobile-cell-label'):cell;const left=inner===cell?cell.getBoundingClientRect().left+parseFloat(getComputedStyle(cell).paddingLeft):inner.getBoundingClientRect().left;out.tableEdges.push(Math.round(left-h.getBoundingClientRect().left))}

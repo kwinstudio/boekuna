@@ -635,3 +635,106 @@ html[data-theme="dark"] body #mainApp#mainApp .list-filter-chip>span{color:#AEB8
   #mainApp#mainApp #content .vat-return-card>.section-head .section-meta,#mainApp#mainApp #content .vat-return-card>.help{display:none!important}
   #mainApp#mainApp #content .settings-center-panel-head p,#mainApp#mainApp #content .settings-hint{display:none!important}
 }
+
+/* 18. Kwin 2026-10-10: the same look, calmer and neater on white (phone). Fewer boxes, lines and capitals;
+   the tiles keep their small charts. Colours come from the --calm-* tokens so dark mode stays dark. */
+@media(max-width:820px){
+  :root{--calm-surface:#FFFFFF;--calm-line:#ECEEF0;--calm-hair:#EEF0F2;--calm-soft:#F2F3F5;--calm-ink:#1B1F23;--calm-muted:#667179;--calm-label:#5E6870;--calm-green:#2F7D3B;--calm-chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231B1F23' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}
+  html[data-theme="dark"]{--calm-surface:var(--dk-surface,#1A1F23);--calm-line:var(--dk-line,#2E363C);--calm-hair:var(--dk-line,#2E363C);--calm-soft:var(--dk-raised,#21272C);--calm-ink:var(--dk-ink,#E9EDEF);--calm-muted:var(--dk-faint,#8C979F);--calm-label:var(--dk-muted,#A7B1B8);--calm-green:var(--dk-green-ink,#7FE08B);--calm-chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E9EDEF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}
+
+  /* White page (the light theme only; dark stays charcoal) and no line under the top bar. */
+  html:not([data-theme="dark"]) body,html:not([data-theme="dark"]) body #mainApp#mainApp,html:not([data-theme="dark"]) body #mainApp#mainApp :is(.main,.content,#appMain,#content,.topbar){background:#FFFFFF!important}
+  html body #mainApp#mainApp .topbar{border-bottom:0!important;box-shadow:none!important}
+  /* Menu and search: just the icon. */
+  html body #mainApp#mainApp .topbar :is(#mobileMenu,#globalSearchButton){border:0!important;background:transparent!important;box-shadow:none!important}
+
+  /* Period: one quiet button next to the title ("Deze maand ⌄"), the phone's own picker; the five buttons stay for wider screens. */
+  html body #mainApp#mainApp #content .page-head:has(.period-seg){display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:flex-start!important;justify-content:space-between!important;gap:12px!important}
+  html body #mainApp#mainApp #content .page-head:has(.period-seg)>div:first-child{min-width:0;padding-right:0!important}
+  html body #mainApp#mainApp #content .page-head .page-period-slot:has(.period-seg){flex:0 0 auto!important;width:auto!important;display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center;gap:2px;margin:4px 0 0!important}
+  html body #mainApp#mainApp #content .page-period-stack:has(.period-seg) .page-filter-btn{position:static!important}
+  html body #mainApp#mainApp #content .period-seg{display:block!important;width:auto!important;min-width:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+  html body #mainApp#mainApp #content .period-seg .period-seg-btn{display:none!important}
+  html body #mainApp#mainApp #content .period-seg .period-seg-select{display:block!important;position:static!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;overflow:visible!important;clip-path:none!important;field-sizing:content;width:auto!important;min-width:0!important;max-width:46vw;height:36px!important;min-height:36px!important;margin:0!important;padding:0 30px 0 14px!important;border:0!important;border-radius:999px!important;background:var(--calm-soft) var(--calm-chevron) right 11px center/13px no-repeat!important;-webkit-appearance:none!important;appearance:none!important;box-shadow:none!important;color:var(--calm-ink)!important;font:inherit!important;font-size:15px!important;font-weight:600!important;line-height:36px!important;text-overflow:ellipsis;cursor:pointer}
+  html body #mainApp#mainApp #content .period-seg .period-seg-select:focus-visible{outline:2px solid #63D471!important;outline-offset:2px}
+
+  /* Tiles: a thin light border and rounder corners; the small charts stay (Kwin 2026-10-10). */
+  html body #mainApp#mainApp #content :is(.dashboard-kpis .dashboard-kpi,.product-kpis .product-kpi):not(.kpi-hero):not(.dashboard-kpi-profit){border:1px solid var(--calm-line)!important;border-radius:16px!important;background:var(--calm-surface)!important}
+  html body #mainApp#mainApp #content :is(.dashboard-kpi-profit,.product-kpi.kpi-hero){border-radius:18px!important}
+
+  /* Nog te doen: no frame, one row per item with a grey arrow; the row itself is the button (its action word stays for screen readers). */
+  html body #mainApp#mainApp #content .dashboard-attention{padding:4px 0 0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+  html body #mainApp#mainApp #content .dashboard-attention>.section-head{display:flex!important;align-items:baseline!important;justify-content:flex-start!important;gap:8px!important;margin:0 0 2px!important;padding:0!important}
+  html body #mainApp#mainApp #content .dashboard-attention>.section-head h2{font-size:17px!important;font-weight:650!important}
+  html body #mainApp#mainApp #content .dashboard-attention>.section-head .badge{min-width:0!important;height:auto!important;padding:0!important;border:0!important;background:transparent!important;color:var(--calm-muted)!important;font-size:15px!important;font-weight:600!important}
+  html body #mainApp#mainApp #content .dashboard-attention-list{gap:0!important}
+  html body #mainApp#mainApp #content .dashboard-attention-item,html body #mainApp#mainApp #content .dashboard-attention-item:is(.urgent,.review,.soon){grid-template-columns:8px minmax(0,1fr) 10px!important;align-items:center!important;column-gap:12px!important;min-height:52px!important;padding:12px 2px!important;border:0!important;border-bottom:1px solid var(--calm-hair)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+  html body #mainApp#mainApp #content .dashboard-attention-item:last-child{border-bottom:0!important}
+  html body #mainApp#mainApp #content .dashboard-attention-item .dashboard-attention-icon{margin-top:0!important;align-self:center!important}
+  html body #mainApp#mainApp #content .dashboard-attention-copy strong{font-size:15px!important;font-weight:550!important;color:var(--calm-ink)!important}
+  html body #mainApp#mainApp #content .dashboard-attention-cta{grid-column:3!important;grid-row:1!important;justify-self:end!important;margin:0!important;font-size:0!important;color:var(--calm-muted)!important}
+  html body #mainApp#mainApp #content .dashboard-attention-cta::after{width:7px!important;height:7px!important}
+
+  /* Lists: no frame around the list, thin lines between rows, day headers in normal letters; amounts on Inkomsten in ink (green stays for money in on Bank). */
+  html body #mainApp#mainApp #content :is(.card.table-card.workspace-table,.mobile-contacts,.mobile-services){border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+  html body #mainApp#mainApp #content .mobile-card-group{padding:18px 2px 4px!important;font-size:13px!important;font-weight:600!important;letter-spacing:0!important;text-transform:none!important;color:var(--calm-muted)!important}
+  html body #mainApp#mainApp #content .mobile-card-group:first-child{padding-top:6px!important}
+  html body #mainApp#mainApp #content .mobile-card-list:not(.mobile-doc-grid)>.mobile-card-row{padding:12px 2px!important;border:0!important;border-bottom:1px solid var(--calm-hair)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+  html body #mainApp#mainApp #content .mobile-card-list:not(.mobile-doc-grid)>.mobile-card-row:last-child{border-bottom:0!important}
+  html body #mainApp#mainApp #content :is(.mobile-contacts,.mobile-services) tbody tr{border-color:var(--calm-hair)!important}
+  html body #mainApp#mainApp #content .phone-row-link{padding:12px 2px!important}
+  html body #mainApp#mainApp #content[data-page="invoices"] .mobile-card-value.money-positive{color:var(--calm-ink)!important}
+  html body #mainApp#mainApp #content .mobile-card-side .badge{padding:0!important;background:transparent!important;border:0!important}
+  html body #mainApp#mainApp #content .party-avatar{width:36px!important;height:36px!important;flex-basis:36px!important;font-size:12px!important}
+
+  /* Search: a soft grey field; filter is just the icon; quick filters are words and the chosen one gets a soft pill. */
+  html body #mainApp#mainApp #content .list-search-box{border:0!important;background:var(--calm-soft)!important;border-radius:12px!important}
+  html body #mainApp#mainApp #content .list-toolbar-actions>.btn:is([data-list-open-filters],[data-list-open-sort]),html body #mainApp#mainApp #content .page-period-stack .page-filter-btn{border:0!important;background:transparent!important;width:40px!important;min-width:40px!important;color:var(--calm-ink)!important}
+  html body #mainApp#mainApp #content .list-toolbar-quick .filter-btn{padding:0 12px!important;background:transparent!important;color:var(--calm-label)!important;font-weight:600!important}
+  html body #mainApp#mainApp #content .list-toolbar-quick .filter-btn.active{background:var(--calm-soft)!important;background-clip:padding-box!important;color:var(--calm-ink)!important}
+
+  /* Bank: two lines per payment; Koppelen and the bin sit under the amount. */
+  html body #mainApp#mainApp #content[data-page="bank"] .mobile-card-row>.mobile-card-main{grid-row:1/3!important}
+  html body #mainApp#mainApp #content[data-page="bank"] .mobile-card-actions{grid-column:2!important;grid-row:2!important;justify-content:flex-end!important;gap:2px!important;width:auto!important;margin:-10px -10px -12px 0!important}
+  html body #mainApp#mainApp #content[data-page="bank"] .mobile-card-actions>.btn{font-size:14px!important}
+  html body #mainApp#mainApp #content[data-page="bank"] .mobile-card-actions>.bank-delete-action{margin-left:0!important;color:var(--calm-muted)!important}
+  html body #mainApp#mainApp #content .bank-list-head{padding:6px 2px 2px!important}
+  html body #mainApp#mainApp #content .bank-list-title span{display:none!important}
+
+  /* Bonnetjes: uploading goes through Nieuw like on the other pages; no frame around the files. */
+  html body #mainApp#mainApp #content[data-page="documents"] :is(.product-page-actions,.page-head .btn.primary){display:none!important}
+  html body #mainApp#mainApp #content[data-page="documents"] .documents-workspace{border:0!important;background:transparent!important;padding:0!important;box-shadow:none!important}
+  html body #mainApp#mainApp #content .mobile-doc-grid>.mobile-card-row{border-color:var(--calm-line)!important;border-radius:16px!important;box-shadow:none!important}
+
+  /* Cards that stay (Rapportages, Btw, Instellingen): a thin light border. */
+  html body #mainApp#mainApp #content .card:not(.table-card):not(.dashboard-attention):not(.metric),html body #mainApp#mainApp #content .vat-return-card{border-color:var(--calm-line)!important;box-shadow:none!important}
+
+  /* Bottom bar: no shadow; the open page is a green icon and word (no block or line); + sits in the bar. */
+  html body #mobileBottomNav#mobileBottomNav{background:var(--calm-surface)!important;border-top:1px solid var(--calm-hair)!important;box-shadow:none!important}
+  html body #mobileBottomNav#mobileBottomNav .mobile-bottom-nav-item{border-top:0!important;box-shadow:none!important;background:transparent!important;color:var(--calm-muted)!important;font-weight:600!important}
+  html body #mobileBottomNav#mobileBottomNav .mobile-bottom-nav-item :is(.icon,span){color:var(--calm-muted)!important;transition:none!important}
+  html body #mobileBottomNav#mobileBottomNav .mobile-bottom-nav-item:is(.active,[aria-current="page"]){color:var(--calm-green)!important;font-weight:700!important}
+  html body #mobileBottomNav#mobileBottomNav .mobile-bottom-nav-item:is(.active,[aria-current="page"]) :is(.icon,span){color:var(--calm-green)!important;font-weight:700!important}
+  html body #mainApp#mainApp .topbar #quickNew{left:calc(50% - 24px)!important;bottom:calc(9px + env(safe-area-inset-bottom))!important;width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;border:0!important}
+  html body #mainApp#mainApp .topbar #quickNew span{display:none!important}
+
+  /* Nieuw: plain rows with their icon, headings in normal letters. */
+  html body #modalRoot#modalRoot .quick-action-modal .quick-action{min-height:60px!important;padding:8px 2px!important;border:0!important;border-bottom:1px solid var(--calm-hair)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+  html body #modalRoot#modalRoot .quick-action-modal .quick-action-grid{gap:0!important}
+  html body #modalRoot#modalRoot .quick-action-modal .quick-action-grid>.quick-action:last-child{border-bottom:0!important}
+  html body #modalRoot#modalRoot .quick-action-modal .quick-action-heading{margin:6px 0 0!important;font-size:13px!important;font-weight:600!important;letter-spacing:0!important;text-transform:none!important;color:var(--calm-muted)!important}
+  html body #modalRoot#modalRoot .quick-action-modal .quick-action-group+.quick-action-group{margin-top:10px!important;padding-top:0!important;border-top:0!important}
+  html body #modalRoot#modalRoot .quick-action-modal .modal-head{border-bottom:0!important}
+  /* Pop-ups: labels and small headings in normal letters. */
+  html body #modalRoot#modalRoot .modal-body :is(label,legend,h3):not(.invoice-customer-select-sr){text-transform:none!important;letter-spacing:0!important}
+  html body #modalRoot#modalRoot .modal-body :is(.field>label,fieldset>legend){font-size:14px!important;font-weight:600!important;color:var(--calm-label)!important}
+
+  /* Menu: words with their icon, no arrows; the open page is green on soft green, without the side line. */
+  html body #mainApp#mainApp .sidebar .nav-item::after{display:none!important}
+  html body #mainApp#mainApp .sidebar .nav-item.active{border-left:0!important;box-shadow:none!important;border-radius:12px!important;color:var(--calm-green)!important}
+  html body #mainApp#mainApp .sidebar .nav-item.active svg{color:var(--calm-green)!important}
+
+  /* Instellingen: group names in normal letters; nothing looks selected on the list itself. */
+  html body #mainApp#mainApp .settings-center-group-label{font-size:13px!important;font-weight:600!important;letter-spacing:0!important;text-transform:none!important;color:var(--calm-muted)!important}
+  html body #mainApp#mainApp .settings-center[data-view="index"] .settings-center-row[aria-current="true"]{background:transparent!important}
+}

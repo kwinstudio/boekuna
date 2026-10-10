@@ -192,10 +192,10 @@ try{
   await page.evaluate(()=>navigate('dashboard'));
   const quickTrigger=page.locator('#quickNew');await quickTrigger.focus();await quickTrigger.click();
   await page.locator('#modalRoot .quick-action-modal').waitFor();
-  // Phone (Kwin 2026-10-09): the pages have no own main button, so Nieuw also offers what they used to (Factuur uploaden, Bankbestand, Dienst).
-  assert.equal(await page.locator('#modalRoot .quick-action').count(),8,'Mobile quick-create must expose the five Release 1 actions plus the three page actions');
+  // Phone (Kwin 2026-10-09/10): the pages have no own main button, so Nieuw also offers what they used to (Factuur uploaden, Document uploaden, Bankbestand, Dienst).
+  assert.equal(await page.locator('#modalRoot .quick-action').count(),9,'Mobile quick-create must expose the five Release 1 actions plus the four page actions');
   const quickLabels=(await page.locator('#modalRoot .quick-action').allTextContents()).map(v=>v.trim().replace(/\s+/g,' '));
-  for(const core of ['Scannen','Factuur','Kosten boeken','Banktransactie','Relatie','Factuur uploaden','Bankbestand','Dienst'])assert.ok(quickLabels.some(v=>v.includes(core)),'Mobile quick-create missing '+core);
+  for(const core of ['Scannen','Factuur','Kosten boeken','Banktransactie','Relatie','Factuur uploaden','Document uploaden','Bankbestand','Dienst'])assert.ok(quickLabels.some(v=>v.includes(core)),'Mobile quick-create missing '+core);
   const quickGeometry=await page.locator('#modalRoot .quick-action-modal').evaluate(el=>{const r=el.getBoundingClientRect(),b=getComputedStyle(el.closest('.modal-backdrop'));return {top:r.top,bottom:r.bottom,height:r.height,align:b.alignItems,radius:getComputedStyle(el).borderRadius}});
   assert.equal(quickGeometry.align,'center','Mobile quick-create backdrop must center the dialog');
   assert.ok(quickGeometry.top>24&&quickGeometry.bottom<820,'Mobile quick-create must float centrally instead of attaching to the bottom edge: '+JSON.stringify(quickGeometry));
