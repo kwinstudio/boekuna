@@ -2366,7 +2366,7 @@ html[data-theme="dark"] #mainApp .period-seg-btn.on{background:var(--dk-raised,#
 <script id="boekuna-boot-intro"></script>
 <script src="/assets/financial-correction.js?v=20260929a"></script>
 <script src="/assets/document-intelligence.js?v=20261004a"></script>
-<script>window.BOEKUNA_KVK_PREVIEW=false;window.BOEKUNA_KVK_LOOKUP=false;</script>
+<script>window.BOEKUNA_KVK_PREVIEW=false;window.BOEKUNA_KVK_LOOKUP=false;window.BOEKUNA_BRANDFETCH_CLIENT_ID='';</script>
 <script src="/assets/kvk-company-lookup.js?v=20261001a"></script>
 <script>
 window.BOEKUNA_DEV_MODE_CONFIG=Object.freeze({enabled:false,environment:'production',allowedOrigins:[]});
@@ -3554,30 +3554,50 @@ function getContact(id){return state.contacts.find(c=>c.id===id)||{name:'Onbeken
 function icon(id){return `<svg class="icon"><use href="#${id}"/></svg>`}
 // Rustige look: initials for a customer or shop, and one line icon per kind of cost.
 function partyInitials(name){const words=String(name||'').replace(/[^\p{L}\p{N}\s&-]/gu,' ').split(/\s+/).filter(w=>w&&!/^(b\.?v|bv|v\.?o\.?f|vof|holding|de|het|van|der|den|en|&)$/i.test(w));if(!words.length)return '?';const first=[...words[0]],last=[...words[words.length-1]];return (words.length>1?first[0]+last[0]:first.slice(0,2).join('')).toUpperCase()}
-// A logo only comes from the relation's own website (no logo service), so no customer data goes to a third party.
+// A logo belongs to a domain we can trust: the relation's own website or business mail domain, or the fixed list of well-known suppliers below (exact name only).
+// With a Brandfetch Client ID (build env BOEKUNA_BRANDFETCH_CLIENT_ID) the image comes straight from the Brandfetch CDN; only the domain leaves the device, never names or amounts.
 const FREE_MAIL_DOMAINS=/^(gmail|googlemail|hotmail|outlook|live|msn|icloud|me|mac|yahoo|ymail|aol|proton|protonmail|pm|gmx|ziggo|kpn|kpnmail|planet|home|hetnet|xs4all|chello|zeelandnet|casema|quicknet|upcmail|telfort|tele2|online|caiway|kpnplanet|mail|web)\./i;
+// Verified supplier -> domain pairs. Only an exact name match counts (legal form, punctuation and a trailing branch number ignored), so "Bakkerij Jumbo" never gets the Jumbo logo.
+// Payment services and marketplaces are left out on purpose: they are not the supplier of what was bought.
+const KNOWN_SUPPLIER_DOMAINS={albertheijn:'ah.nl',ah:'ah.nl',jumbo:'jumbo.com',lidl:'lidl.nl',aldi:'aldi.nl',plus:'plus.nl',dirk:'dirk.nl',dirkvandenbroek:'dirk.nl',hema:'hema.nl',action:'action.com',kruidvat:'kruidvat.nl',etos:'etos.nl',blokker:'blokker.nl',ikea:'ikea.com',gamma:'gamma.nl',praxis:'praxis.nl',karwei:'karwei.nl',hornbach:'hornbach.nl',coolblue:'coolblue.nl',bolcom:'bol.com',bol:'bol.com',mediamarkt:'mediamarkt.nl',bcc:'bcc.nl',alternate:'alternate.nl',wehkamp:'wehkamp.nl',zalando:'zalando.nl',decathlon:'decathlon.nl',makro:'makro.nl',sligro:'sligro.nl',hanos:'hanos.nl',gallgall:'gall.nl',staples:'staples.nl',apple:'apple.com',google:'google.com',microsoft:'microsoft.com',adobe:'adobe.com',dropbox:'dropbox.com',spotify:'spotify.com',netflix:'netflix.com',canva:'canva.com',slack:'slack.com',zoom:'zoom.us',github:'github.com',notion:'notion.so',openai:'openai.com',anthropic:'anthropic.com',transip:'transip.nl',kpn:'kpn.com',vodafone:'vodafone.nl',vodafoneziggo:'vodafoneziggo.nl',ziggo:'ziggo.nl',odido:'odido.nl',ns:'ns.nl',nederlandsespoorwegen:'ns.nl',shell:'shell.com',bp:'bp.com',esso:'esso.nl',tinq:'tinq.nl',tango:'tango.nl',totalenergies:'totalenergies.nl',qpark:'q-park.nl',postnl:'postnl.nl',dhl:'dhl.com',uber:'uber.com',thuisbezorgd:'thuisbezorgd.nl',vattenfall:'vattenfall.nl',eneco:'eneco.nl',essent:'essent.nl',greenchoice:'greenchoice.nl'};
+function knownSupplierDomain(name){const key=partyNameKey(name).replace(/\d+$/,'');return key&&Object.prototype.hasOwnProperty.call(KNOWN_SUPPLIER_DOMAINS,key)?KNOWN_SUPPLIER_DOMAINS[key]:''}
+// The own company never gets a supplier logo, so a mixed-up customer/supplier block can not show up dressed as a brand.
+function isOwnCompanyName(name){const key=partyNameKey(name),c=state?.company||{};return !!key&&[c.name,c.tradeName].some(n=>partyNameKey(n)===key)}
 function partyLogoDomain(contact){
+ if(contact&&isOwnCompanyName(contact.name))return '';
  const site=String(contact?.website||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').split(/[/?#]/)[0];
  if(/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(site))return site;
  const mail=String(contact?.email||'').trim().toLowerCase().split('@')[1]||'';
- return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(mail)&&!FREE_MAIL_DOMAINS.test(mail)?mail:''
+ return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(mail)&&!FREE_MAIL_DOMAINS.test(mail)?mail:knownSupplierDomain(contact?.name)
 }
-const partyLogoState=new Map(),PARTY_LOGO_CACHE_KEY='boekuna.partyLogos.v1';
+const partyLogoState=new Map(),PARTY_LOGO_CACHE_KEY='boekuna.partyLogos.v2'+(String(window.BOEKUNA_BRANDFETCH_CLIENT_ID||'').trim()?'.bf':'');
 // Uitkomst per domein wordt onthouden (alleen het domein, geen klantgegevens), zodat een site zonder logo niet bij elke start opnieuw wordt bevraagd.
 (function loadPartyLogoCache(){try{const raw=JSON.parse(localStorage.getItem(PARTY_LOGO_CACHE_KEY)||'{}'),now=Date.now();for(const [domain,entry] of Object.entries(raw&&typeof raw==='object'?raw:{})){if(entry&&typeof entry==='object'&&Number(entry.until)>now)partyLogoState.set(domain,typeof entry.src==='string'&&entry.src?entry.src:false)}}catch(_){}})();
 function partyLogoRemember(domain,src){if(!domain)return;partyLogoState.set(domain,src);try{const raw=JSON.parse(localStorage.getItem(PARTY_LOGO_CACHE_KEY)||'{}'),all=raw&&typeof raw==='object'?raw:{};all[domain]={src:src||false,until:Date.now()+(src?30:7)*864e5};const keys=Object.keys(all);for(const k of keys.slice(0,Math.max(0,keys.length-200)))delete all[k];localStorage.setItem(PARTY_LOGO_CACHE_KEY,JSON.stringify(all))}catch(_){}}
-function partyLogoSources(domain){return ['https://'+domain+'/apple-touch-icon.png','https://www.'+domain+'/apple-touch-icon.png','https://'+domain+'/favicon.ico']}
+function brandfetchClientId(){const id=String(window.BOEKUNA_BRANDFETCH_CLIENT_ID||'').trim();return /^[A-Za-z0-9_-]{8,80}$/.test(id)?id:''}
+// Brandfetch first (square brand icon, 404 instead of a generated placeholder), then the relation's own site; any failure ends in initials.
+function partyLogoSources(domain){const id=brandfetchClientId();return [...(id?['https://cdn.brandfetch.io/'+encodeURIComponent(domain)+'/w/96/h/96/fallback/404/icon?c='+encodeURIComponent(id)]:[]),'https://'+domain+'/apple-touch-icon.png','https://www.'+domain+'/apple-touch-icon.png','https://'+domain+'/favicon.ico']}
+// Brandfetch requires the app's origin as Referer (hotlinking rule); the relation's own site gets no referrer at all.
+function isBrandfetchLogo(src){return String(src||'').startsWith('https://cdn.brandfetch.io/')}
+function partyLogoReferrer(src){return isBrandfetchLogo(src)?'strict-origin':'no-referrer'}
 function partyLogoLoaded(img){const box=img.closest('.party-avatar');if(img.naturalWidth<24){partyLogoFailed(img);return}partyLogoRemember(img.dataset.domain,img.currentSrc||img.src);box?.classList.add('has-logo')}
-function partyLogoFailed(img){const next=Number(img.dataset.try||0)+1,sources=partyLogoSources(img.dataset.domain);if(next<sources.length){img.dataset.try=String(next);img.src=sources[next];return}partyLogoRemember(img.dataset.domain,false);img.remove()}
+function partyLogoFailed(img){const next=Number(img.dataset.try||0)+1,sources=partyLogoSources(img.dataset.domain);if(next<sources.length){img.dataset.try=String(next);img.referrerPolicy=partyLogoReferrer(sources[next]);img.classList.toggle('is-brand',isBrandfetchLogo(sources[next]));img.src=sources[next];return}partyLogoRemember(img.dataset.domain,false);img.remove()}
 function partyAvatarHtml(name,domain=''){
  let h=0;for(const c of String(name||'').toLowerCase())h=(h*31+c.codePointAt(0))>>>0;
  const known=domain?partyLogoState.get(domain):false,src=known||(known===undefined&&domain?partyLogoSources(domain)[0]:'');
- const logo=src?'<img src="'+esc(src)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-domain="'+esc(domain)+'" onload="partyLogoLoaded(this)" onerror="partyLogoFailed(this)">':'';
+ const logo=src?'<img'+(isBrandfetchLogo(src)?' class="is-brand"':'')+' src="'+esc(src)+'" alt="" loading="lazy" decoding="async" referrerpolicy="'+partyLogoReferrer(src)+'" width="32" height="32" data-domain="'+esc(domain)+'" onload="partyLogoLoaded(this)" onerror="partyLogoFailed(this)">':'';
  return '<span class="party-avatar tone-'+(h%4)+(known?' has-logo':'')+'" aria-hidden="true"><span class="party-initials">'+esc(partyInitials(name))+'</span>'+logo+'</span>'
 }
 // One relation per name: legal-form suffixes and punctuation do not count, but two different relations with the same name give no match (and so no logo) rather than a guess.
 function partyNameKey(name){return String(name||'').toLowerCase().replace(/\b(?:b\.?v\.?|n\.?v\.?|v\.?o\.?f\.?|c\.?v\.?|holding|bvba|gmbh|ltd|limited|inc)\b/g,' ').replace(/[^\p{L}\p{N}]+/gu,'')}
 function contactByName(name){const key=partyNameKey(name);if(!key)return null;const matches=state.contacts.filter(c=>partyNameKey(c.name)===key);if(matches.length===1)return matches[0];if(!matches.length)return null;const domains=new Set(matches.map(c=>partyLogoDomain(c)));return domains.size===1?matches[0]:null}
+// Logo domain for a supplier name on a cost line: the relation decides when there is one; same-name relations with different domains give none; otherwise only the verified list.
+function vendorLogoDomain(name){
+ const key=partyNameKey(name);if(!key||isOwnCompanyName(name))return '';
+ const matches=state.contacts.filter(c=>partyNameKey(c.name)===key);
+ if(matches.length){const contact=contactByName(name);return contact?partyLogoDomain(contact):''}
+ return knownSupplierDomain(name)
+}
 // A web address printed on the document counts as the party's domain only when it plausibly matches the party name (initials or a name word in the host); anything else is left for the user to fill in.
 function partyWebsiteHost(website){
  const host=String(website||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').split(/[/?#]/)[0];
@@ -3592,7 +3612,7 @@ function partyWebsiteSuggestion(name,website){
  const ok=words.some(w=>w.length>=4&&label.includes(w))||(joined.length>=4&&label.length>=4&&(label.includes(joined)||joined.includes(label)))||(initials.length>=2&&label===initials);
  return ok?host:''
 }
-function expenseLeadHtml(e){const domain=partyLogoDomain(contactByName(e.vendor));return domain?partyAvatarHtml(e.vendor,domain):expenseCategoryIconHtml(e.category)}
+function expenseLeadHtml(e){const domain=vendorLogoDomain(e.vendor);return domain?partyAvatarHtml(e.vendor,domain):expenseCategoryIconHtml(e.category)}
 const EXPENSE_CATEGORY_ICONS=[
  [/reis|vervoer|travel|brandstof|tank|parkeer|auto|trein/,'<path d="M5 16h14l-1.5-5.5A2 2 0 0 0 15.6 9H8.4a2 2 0 0 0-1.9 1.5z"/><path d="M5 16v2.5M19 16v2.5M3.5 12.5H5M19 12.5h1.5"/><circle cx="8" cy="16" r=".6"/><circle cx="16" cy="16" r=".6"/>'],
  [/software|abonnement|subscription|hosting|licentie/,'<rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8.5 20h7M12 16.5V20"/>'],

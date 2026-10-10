@@ -32,6 +32,7 @@ on:
       - "public/assets/personal-insights-ui.js"
       - "tests/look-browser.test.mjs"
       - "tests/supplier-logo-evidence-browser.test.mjs"
+      - "tests/brandfetch-logo-browser.test.mjs"
       - "scripts/theme-dark-generate.mjs"
       - "supabase/migrations/20261007200000_in_app_feedback.sql"
       - "tests/theme-browser.test.mjs"
@@ -254,6 +255,10 @@ jobs:
           BOOKUNA_BROWSER=webkit node tests/look-browser.test.mjs
       - name: Supplier logo evidence (printed website, provenance, negative cases)
         run: node tests/supplier-logo-evidence-browser.test.mjs
+      - name: Brandfetch supplier logos (verified domains, fallbacks, no data change) — Chromium and WebKit
+        run: |
+          node tests/brandfetch-logo-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/brandfetch-logo-browser.test.mjs
       - name: Thema (Automatisch, Licht, Donker) — Chromium and WebKit
         run: |
           node tests/theme-browser.test.mjs

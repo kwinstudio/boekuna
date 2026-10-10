@@ -33,6 +33,7 @@ html[data-theme="dark"] #mainApp,html[data-theme="dark"] #modalRoot{
 :is(#mainApp,#modalRoot) .party-avatar.tone-2{background:var(--look-tone-2);color:var(--look-ink-2)}
 :is(#mainApp,#modalRoot) .party-avatar.tone-3{background:var(--look-tone-3);color:var(--look-ink-3)}
 :is(#mainApp,#modalRoot) .party-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:4px;background:#fff;opacity:0}
+:is(#mainApp,#modalRoot) .party-avatar img.is-brand{padding:0;object-fit:cover}
 :is(#mainApp,#modalRoot) .party-avatar.has-logo{box-shadow:inset 0 0 0 1px var(--app-border,#E4E7EA)}
 :is(#mainApp,#modalRoot) .party-avatar.has-logo img{opacity:1}
 :is(#mainApp,#modalRoot) .party-avatar.has-logo .party-initials{visibility:hidden}
