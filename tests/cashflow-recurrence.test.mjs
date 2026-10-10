@@ -9,6 +9,7 @@ const source=html.slice(start,html.indexOf('function renderCashflow(',start));
 const context=vm.createContext({
   state:{invoices:[],plannedCash:[],transactions:[{amount:1000}],expenses:[],settlements:[]},
   today:()=> '2026-01-31',cashBalance:()=>1000,invoiceOutstanding:i=>i.outstanding,
+  invoiceCounts:i=>!!i&&i.status!=='draft'&&i.status!=='cancelled',toCents:v=>Math.round(Number(v||0)*100),
 });
 vm.runInContext(source,context);
 const run=(code)=>JSON.parse(JSON.stringify(vm.runInContext(code,context)));

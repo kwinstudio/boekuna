@@ -224,7 +224,7 @@ const bootIntroJs=fs.readFileSync(path.join(root,'kwinest','app-assets','boot-in
 if(/<\/(style|script)/i.test(bootIntroCss+bootIntroJs))throw new Error('Boot intro assets must not close their own inline tag');
 appHtml=appHtml.replace(bootIntroScript,'<script id="boekuna-boot-intro">'+bootIntroJs+'</script>');
 appHtml=appHtml.replace(themeMetaMarker,themeMetaMarker+'\n<style id="boekuna-boot-intro-style">'+bootIntroCss+'</style>');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review-v2.js?v=20261009a"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review-v2.js?v=20261010b"></script>\n');
 const mobileHeadBoundary='</head>\n<body>';
 if(!appHtml.includes(mobileHeadBoundary))throw new Error('Mobile app head boundary changed');
 appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261009a">\n<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261007a" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/product-color-polish.css?v=20261006a">\n<style id="boekuna-app-mobile-compact-overrides">@media (max-width:820px){#mainApp #appMain #content.content{padding-top:14px!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active{-webkit-appearance:none!important;appearance:none!important;background:transparent!important;background-color:transparent!important;background-image:none!important;color:#2F7D3B!important;box-shadow:none!important;border-top:0!important;font-weight:700!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active .icon,#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active span{color:#2F7D3B!important}}@media (max-width:359px){#mainApp .product-kpis.grid-4{grid-template-columns:1fr!important}}</style>\n<link rel="stylesheet" href="/assets/product-ux-polish-round-3.css?v=20261009i">\n<link rel="stylesheet" href="/assets/mobile-flow-simplification.css?v=20261008e" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/calm-ux.css?v=20261009i">\n<link rel="stylesheet" href="/assets/settings-center.css?v=20261008a">\n<link rel="stylesheet" href="/assets/exports-filters.css?v=20261007a">\n<link rel="stylesheet" href="/assets/period-filters.css?v=20261008d">\n<link rel="stylesheet" href="/assets/feedback.css?v=20261007a">\n<link rel="stylesheet" href="/assets/theme-dark.css?v=20261007a">\n<link rel="stylesheet" href="/assets/document-viewer.css?v=20261008c">\n<link rel="stylesheet" href="/assets/bank-documents.css?v=20261008a">\n<link rel="stylesheet" href="/assets/motion.css?v=20261009d">\n<link rel="stylesheet" href="/assets/look.css?v=20261010c">\n'+mobileHeadBoundary);
@@ -285,7 +285,7 @@ if(Object.keys(disabledPageFallbacks).length){
 }
 
 if(assistantEnabled){
-  appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script src="/assets/personal-insights.js?v=20261004b"></script>\n<script src="/assets/personal-assistant-qna.js?v=20261004a"></script>\n<script src="/assets/personal-insights-ui.js?v=20261009a"></script>'+assistantRuntimeMarker);
+  appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script src="/assets/personal-insights.js?v=20261010a"></script>\n<script src="/assets/personal-assistant-qna.js?v=20261004a"></script>\n<script src="/assets/personal-insights-ui.js?v=20261010a"></script>'+assistantRuntimeMarker);
 }else{
   removeBuiltSourceLine('dashboard-ask-bookuna','Assistant disable');
   const summaryGridMarker='#mainApp .dashboard-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));';
@@ -386,7 +386,7 @@ for(const [needle,replacement] of productToneReplacements){
 const releaseRuntime="const BOEKUNA_RELEASE_PROFILE=Object.freeze("+JSON.stringify({name:releaseProfile.name,features:releaseFeatures})+");\nfunction releaseFeatureEnabled(key){return BOEKUNA_RELEASE_PROFILE.features?.[key]===true}\n";
 if(!appHtml.includes(assistantRuntimeMarker))throw new Error('Release runtime marker changed');
 appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script>\n'+releaseRuntime+'const USERS_KEY=');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-product.js?v=20261010a"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-product.js?v=20261010b"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-flow-simplification.js?v=20261010a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/calm-ux.js?v=20261007a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/settings-center.js?v=20261009b"></script>\n');
@@ -578,6 +578,12 @@ if(!isReleaseFeatureEnabled(releaseFeatures,'advancedReports')){
     "    deletePlannedCash=function(id){if(!releaseFeatureEnabled('advancedReports'))return;"
   );
 }
+// A confirmed scan can be corrected later from its row menu (Bonnetjes), next to Bekijken.
+patchBuiltAppAsset(
+  'mobile-polish-round-2.js',
+  "      items.push({label:'Bestandsnaam bewerken',action:function(){openDocumentRename(d.id)}});",
+  "      if(typeof scannedDocumentEditState==='function'&&scannedDocumentEditState(d).ok)items.push({label:'Bewerken',action:function(){editScannedDocument(d.id)}});\n      items.push({label:'Bestandsnaam bewerken',action:function(){openDocumentRename(d.id)}});"
+);
 patchBuiltAppAsset(
   'mobile-product.css',
   "  #mainApp .dashboard-kpi-profit, #mainApp .dashboard-kpi:last-child { grid-column:1/-1!important; }",

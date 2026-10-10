@@ -95,7 +95,7 @@ function insight(input){
   };
 }
 function overdueRule(context){
-  const rows=(context.invoices||[]).filter(i=>i&&i.kind!=='credit'&&!['draft','cancelled','paid'].includes(String(i.effectiveStatus||''))&&finite(i.outstanding)>0.02&&daysBetween(i.dueDate,context.now)>0);
+  const rows=(context.invoices||[]).filter(i=>i&&i.kind!=='credit'&&!['draft','cancelled','paid'].includes(String(i.effectiveStatus||''))&&Math.round(finite(i.outstanding)*100)>0&&daysBetween(i.dueDate,context.now)>0);
   if(!rows.length)return [];
   const total=round(rows.reduce((s,i)=>s+finite(i.outstanding),0));
   const lateDays=rows.map(i=>daysBetween(i.dueDate,context.now)).filter(Number.isFinite).map(x=>Math.max(0,x));
@@ -114,7 +114,7 @@ function overdueRule(context){
 }
 function nearlyDueRule(context){
   const rows=(context.invoices||[]).filter(i=>{
-    if(!i||i.kind==='credit'||finite(i.outstanding)<=0.02||['overdue','paid','cancelled'].includes(String(i.effectiveStatus||'')))return false;
+    if(!i||i.kind==='credit'||Math.round(finite(i.outstanding)*100)<=0||['overdue','paid','cancelled'].includes(String(i.effectiveStatus||'')))return false;
     const d=daysBetween(context.now,i.dueDate);
     return Number.isFinite(d)&&d>=0&&d<=THRESHOLDS.NEARLY_DUE_DAYS;
   });
@@ -132,7 +132,7 @@ function nearlyDueRule(context){
   })];
 }
 function highOutstandingRule(context,baselines){
-  const rows=(context.invoices||[]).filter(i=>i&&i.kind!=='credit'&&finite(i.outstanding)>0.02&&!['paid','cancelled'].includes(String(i.effectiveStatus||'')));
+  const rows=(context.invoices||[]).filter(i=>i&&i.kind!=='credit'&&Math.round(finite(i.outstanding)*100)>0&&!['paid','cancelled'].includes(String(i.effectiveStatus||'')));
   const total=round(rows.reduce((s,i)=>s+finite(i.outstanding),0));
   if(!rows.length||total<THRESHOLDS.HIGH_OUTSTANDING_MIN)return [];
   const relative=baselines.eligible&&baselines.revenue>0?total/baselines.revenue:null;
