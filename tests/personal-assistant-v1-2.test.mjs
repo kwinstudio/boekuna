@@ -140,13 +140,15 @@ assert.match(app,/function dashboardKpiViewModel\s*\(/,'Dashboard must expose on
 assert.match(app,/const\s+kpi\s*=\s*dashboardKpiViewModel\(/,'Dashboard must consume the KPI view model');
 for(const label of ['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen'])assert.ok(app.includes(label),'Dashboard missing KPI '+label);
 assert.match(app,/receivables:[^\n]*invoiceOutstanding|openInvoices[^\n]*invoiceOutstanding/s,'Receivables must derive from invoiceOutstanding');
-assert.match(app,/invoiceEffectiveStatus\(i\)!==['"]cancelled['"]/,'Cancelled invoices must be excluded by effective status in KPI revenue selection');
+assert.match(app,/function invoiceCounts\(i\)\{return !!i&&i\.status!==['"]draft['"]&&i\.status!==['"]cancelled['"]\}/,'One rule must exclude concepts and cancelled invoices');
+const kpiSource=app.slice(app.indexOf('function dashboardKpiViewModel'),app.indexOf('function dashboardKpiViewModel')+1500);
+assert.match(kpiSource,/state\.invoices\.filter\(i=>invoiceCounts\(i\)/,'Cancelled invoices must be excluded in KPI revenue selection');
 assert.match(app,/vatReserve/,'KPI view model must expose VAT reserve');
 assert.match(app,/financialReliable/,'Assistant facts must explicitly carry financial reliability');
 const assistantUi=fs.readFileSync(path.join(root,'public','assets','personal-insights-ui.js'),'utf8');
 assert.match(assistantUi,/vat:\{reserve:\(typeof dashboardKpiViewModel===['"]function['"]\?dashboardKpiViewModel\(['"]quarter['"]\)\.vatReserve:quarterVatPosition\(\)\)/,'Voor jou VAT reserve must share the V1.2 KPI truth when available');
 assert.match(assistantUi,/sourceStatus\?\.documentsReliable!==false/,'Ask Boekuna must fail closed when document source reliability is false');
 const dashboardChartSource=app.slice(app.indexOf('function dashboardChartBuckets'),app.indexOf('function productKpi'));
-assert.match(dashboardChartSource,/invoiceEffectiveStatus\(i\)!==['"]cancelled['"]/,'Dashboard chart must exclude cancelled invoices just like the KPI view model');
+assert.match(dashboardChartSource,/invoiceCounts\(i\)/,'Dashboard chart must exclude cancelled invoices just like the KPI view model');
 
 console.log('BOEKUNA Personal Assistant V1.2 unit contracts: PASS');
