@@ -1,0 +1,28 @@
+name: BOEKUNA Logo URL Retrieval Investigation
+on:
+  push:
+    branches:
+      - "test/ocr-logo-realistic-regression-20261010"
+    paths:
+      - ".github/workflows/boekuna-logo-url-investigation-20261010.yml"
+  workflow_dispatch:
+jobs:
+  url-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install Pillow only
+        run: python -m pip install Pillow
+      - name: Read-only verify ten supplier icon URL candidates
+        run: python tests/boekuna-logo-url-smoke-20261010.py
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boekuna-logo-url-retrieval
+          path: artifacts/boekuna-logo-url-smoke.json
+          if-no-files-found: warn
