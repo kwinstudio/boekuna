@@ -385,9 +385,9 @@ try{
     const m=page.locator('#modalRoot');
     await attempt('M-01','Onderbalk met hoofdmenu is zichtbaar',async()=>await page.locator('#mobileBottomNav').isVisible());
     await page.locator('#quickNew').click();
-    await m.locator('.quick-action',{hasText:'Factuur'}).click();
+    await m.locator('.quick-tile',{hasText:'Factuur'}).click();
+    // Tapping the customer goes straight on to the invoice lines (Kwin 2026-10-10).
     await m.getByRole('button',{name:'Klant Een BV'}).click();
-    await m.getByRole('button',{name:'Volgende'}).click();
     const row=m.locator('#invoiceLines .line-item').nth(0);
     await row.locator('[data-k=desc]').fill('Taart');await row.locator('[data-k=unit]').fill('22.50');
     await attempt('M-02','Stap 2 toont het juiste totaal (€ 27,23)',async()=>plain(await m.innerText()).includes('Totaal te betalen € 27,23'));

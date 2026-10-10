@@ -97,7 +97,8 @@ try{
 
  assert.equal(await page.locator('.dashboard-kpis-v12 .dashboard-kpi').count(),5,'Dashboard must expose exactly five core KPI cards');
  const kpiLabels=await page.locator('.dashboard-kpis-v12 .dashboard-kpi-label').allTextContents();
- assert.deepEqual(kpiLabels.map(x=>x.trim()),['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen'],'Core KPI labels must be unique and ordered');
+ assert.deepEqual(kpiLabels.map(x=>x.trim()).filter((_,i)=>i!==3),['Winst','Omzet','Kosten','Nog te ontvangen'],'Core KPI labels must be unique and ordered');
+ assert.match(kpiLabels[3].trim(),/^Btw (apartzetten|Q[1-4] (apartzetten|betalen|terug))$/,'The VAT tile names the quarter that is due');
  const receivables=await page.locator('.dashboard-kpi-receivables').innerText();
  assert.match(receivables,/910/,'Partial payment must leave €910 receivable');
  assert.match(receivables,/te laat/i,'A partially paid invoice past its due date must keep overdue context');

@@ -738,3 +738,89 @@ html[data-theme="dark"] body #mainApp#mainApp .list-filter-chip>span{color:#AEB8
   html body #mainApp#mainApp .settings-center-group-label{font-size:13px!important;font-weight:600!important;letter-spacing:0!important;text-transform:none!important;color:var(--calm-muted)!important}
   html body #mainApp#mainApp .settings-center[data-view="index"] .settings-center-row[aria-current="true"]{background:transparent!important}
 }
+
+/* 19. Kwin 2026-10-10 "makkelijker": fewer taps and clearer words. The table header for older open invoices shows at every width;
+   the rest is the phone (Nieuw tiles, bank proposal, invoice lines, Betaald, relation form, start card). */
+#mainApp .table-group-row th{padding:18px 12px 8px!important;background:transparent!important;border-bottom:1px solid #ECEEF0!important;text-align:left;font-size:13px!important;font-weight:600!important;letter-spacing:0!important;text-transform:none!important;color:#5E6870!important}
+html[data-theme="dark"] #mainApp .table-group-row th{border-bottom-color:var(--dk-line,#2E363C)!important;color:var(--dk-muted,#A7B1B8)!important}
+#mainApp .kpi-next{color:var(--app-muted-strong,#5E6870)}
+html[data-theme="dark"] #mainApp :is(.kpi-next,.kpi-deadline){color:var(--dk-muted,#A7B1B8)}
+@media(min-width:821px){
+  #modalRoot :is(.payment-amount-text,.payment-part-link,.contact-type-pills){display:none!important}
+}
+@media(max-width:820px){
+  /* Nieuw: the three daily actions as big tiles; everything else folds under Meer. */
+  html body #modalRoot#modalRoot .quick-action-modal .quick-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:2px 0 10px}
+  html body #modalRoot#modalRoot .quick-action-modal .quick-tiles>.quick-action.quick-tile{flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:8px!important;min-height:112px!important;padding:14px 6px!important;border:1px solid var(--calm-line)!important;border-radius:16px!important;background:var(--calm-surface)!important;text-align:center!important}
+  html body #modalRoot#modalRoot .quick-tile .quick-action-icon{width:44px;height:44px;flex:0 0 44px;border-radius:14px;background:#ECFAEE;color:#2E8B3D}
+  html body #modalRoot#modalRoot .quick-tile .quick-action-icon .icon{width:22px;height:22px}
+  html body #modalRoot#modalRoot .quick-tile .quick-action-text{align-items:center}
+  html body #modalRoot#modalRoot .quick-tile .quick-action-text strong{font-size:15px}
+  html body #modalRoot#modalRoot .quick-tile .quick-action-text span{font-size:13px;line-height:1.25}
+  html[data-theme="dark"] body #modalRoot#modalRoot .quick-tile .quick-action-icon{background:#1E3324;color:#7FDB8B}
+  html body #modalRoot#modalRoot .quick-more{border-top:1px solid var(--calm-hair)}
+  html body #modalRoot#modalRoot .quick-more>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:58px;padding:6px 2px;list-style:none;cursor:pointer}
+  html body #modalRoot#modalRoot .quick-more>summary::-webkit-details-marker{display:none}
+  html body #modalRoot#modalRoot .quick-more>summary::after{content:"";flex:0 0 14px;width:14px;height:14px;background:var(--calm-chevron) center/14px no-repeat;transition:transform .2s ease}
+  html body #modalRoot#modalRoot .quick-more[open]>summary::after{transform:rotate(180deg)}
+  html body #modalRoot#modalRoot .quick-more>summary:focus-visible{outline:2px solid #63D471;outline-offset:2px;border-radius:10px}
+  html body #modalRoot#modalRoot .quick-more-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+  html body #modalRoot#modalRoot .quick-more-text strong{font-size:15px;color:var(--calm-ink)}
+  html body #modalRoot#modalRoot .quick-more-text span{font-size:13px;color:var(--calm-muted)}
+
+  /* Bank: what Boekuna found stands under the payment, green when it is one clear match; Klopt is the green pill. */
+  html body #mainApp#mainApp #content .mobile-bank-proposal{display:block;margin-top:3px;font-size:13px;font-weight:600;line-height:1.35;color:var(--calm-muted);overflow-wrap:anywhere}
+  html body #mainApp#mainApp #content .mobile-bank-proposal.is-match{color:var(--calm-green)}
+  html body #mainApp#mainApp #content[data-page="bank"] .mobile-card-actions>.btn.mobile-bank-confirm{min-height:36px!important;height:36px!important;padding:0 16px!important;border:0!important;border-radius:999px!important;background:#63D471!important;background-clip:padding-box!important;box-shadow:none!important;color:#10331A!important;font-weight:700!important}
+  html body #mainApp#mainApp #content[data-page="bank"] .mobile-card-actions>.btn.mobile-bank-confirm::after{display:none!important}
+
+  /* Factuur maken: Aantal and Prijs side by side; "+ Nog een regel" is a green link under the lines; the real number gets a small note. */
+  html body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] #invoiceLines .line-item{grid-template-columns:minmax(76px,.42fr) minmax(0,1fr)!important;grid-auto-flow:row dense!important}
+  html body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] #invoiceLines .line-item .field:has([data-k="qty"]){grid-column:1!important}
+  html body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] #invoiceLines .line-item .field:has([data-k="unit"]){grid-column:2!important}
+  html body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] #invoiceLines .line-item .field:has([data-k="vat"]){grid-column:1/-1!important}
+  html body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] #invoiceLines .line-item>.icon-btn{grid-column:2!important;justify-self:end!important}
+  html body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] #invoiceLines .line-item>.line-save-service{grid-column:1!important;align-self:center;justify-self:start}
+  html body #modalRoot#modalRoot .mobile-invoice-add-line{display:inline-flex!important;align-items:center;justify-content:flex-start!important;width:auto!important;min-height:44px!important;margin:4px 0 0!important;padding:0 2px!important;border:0!important;background:transparent!important;box-shadow:none!important;color:#2F7D3B!important;font-size:16px!important;font-weight:700!important}
+  html[data-theme="dark"] body #modalRoot#modalRoot .mobile-invoice-add-line{color:#7FDB8B!important}
+  html body #modalRoot#modalRoot .mobile-invoice-summary-value{display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right}
+  html body #modalRoot#modalRoot .mobile-invoice-summary-value small{font-size:12px;font-weight:500;color:var(--calm-muted)}
+
+  /* Betaald: the amount as text ("€ 459,80 · alles"); "Een deel betaald?" opens the field. */
+  html body #modalRoot#modalRoot #paymentForm .payment-amount-text{margin:2px 0 0;font-size:17px;color:var(--calm-muted)}
+  html body #modalRoot#modalRoot #paymentForm .payment-amount-text strong{color:var(--calm-ink);font-weight:700}
+  html body #modalRoot#modalRoot #paymentForm .payment-part-link{display:inline-flex!important;align-items:center;justify-content:flex-start!important;align-self:flex-start;width:auto!important;min-height:44px!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;color:var(--calm-green)!important;font-size:15px!important;font-weight:600!important;text-decoration:none!important}
+  html body #modalRoot#modalRoot #paymentForm:not(.is-part) :is(.payment-share,#paymentAmount){display:none!important}
+  html body #modalRoot#modalRoot #paymentForm.is-part :is(.payment-amount-text,.payment-part-link){display:none!important}
+  html body #modalRoot#modalRoot #paymentForm .field:has(#paymentAmount)>.help{display:none!important}
+
+  /* Relatie: Klant / Leverancier as two pills; Postcode and Plaats on one row. */
+  html body #modalRoot#modalRoot #contactForm .contact-type-field select{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important}
+  html body #modalRoot#modalRoot #contactForm .contact-type-pills{display:flex;gap:4px;padding:3px;border-radius:12px;background:var(--calm-soft)}
+  html body #modalRoot#modalRoot #contactForm .contact-type-pill{flex:1 1 0;height:42px;border:0;border-radius:9px;background:transparent;color:var(--calm-label);font:inherit;font-size:15px;font-weight:650;cursor:pointer}
+  html body #modalRoot#modalRoot #contactForm .contact-type-pill.on{background:var(--calm-surface);color:var(--calm-ink);box-shadow:inset 0 0 0 1px var(--calm-line)}
+  html body #modalRoot#modalRoot #contactForm .contact-type-pill:focus-visible{outline:2px solid #63D471;outline-offset:1px}
+  html body #modalRoot#modalRoot #contactForm.form-grid{grid-template-columns:minmax(0,2fr) minmax(0,3fr)!important}
+  html body #modalRoot#modalRoot #contactForm.form-grid>*{grid-column:1/-1!important}
+  html body #modalRoot#modalRoot #contactForm.form-grid>.field:has(#contactPostal){grid-column:1!important}
+  html body #modalRoot#modalRoot #contactForm.form-grid>.field:has(#contactCity){grid-column:2!important}
+
+  /* Empty account: "Zo begin je" in three steps instead of tiles full of zeros. */
+  html body #mainApp#mainApp #content .dashboard-start{margin:14px 0 0!important;padding:18px 18px 6px!important;border:1px solid var(--calm-line)!important;border-radius:18px!important;background:var(--calm-surface)!important;box-shadow:none!important}
+  html body #mainApp#mainApp #content .dashboard-start h2{margin:0 0 4px;font-size:20px;color:var(--calm-ink)}
+  html body #mainApp#mainApp #content .dashboard-start>p{margin:0 0 6px;font-size:14px;color:var(--calm-muted)}
+  html body #mainApp#mainApp #content .dashboard-start-steps{margin:0;padding:0;list-style:none}
+  html body #mainApp#mainApp #content .dashboard-start-step{border-top:1px solid var(--calm-hair)}
+  html body #mainApp#mainApp #content :is(.dashboard-start-step:not(:has(.dashboard-start-row)),.dashboard-start-row){display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;min-height:64px;padding:12px 0}
+  html body #mainApp#mainApp #content .dashboard-start-row{border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+  html body #mainApp#mainApp #content .dashboard-start-row:focus-visible{outline:2px solid #63D471;outline-offset:2px;border-radius:12px}
+  html body #mainApp#mainApp #content .dashboard-start-num{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--calm-soft);color:var(--calm-ink);font-weight:700}
+  html body #mainApp#mainApp #content .dashboard-start-num.is-done{background:#E5F5E8;color:#2F7D3B}
+  html[data-theme="dark"] body #mainApp#mainApp #content .dashboard-start-num.is-done{background:#1E3324;color:#7FDB8B}
+  html body #mainApp#mainApp #content .dashboard-start-text{min-width:0}
+  html body #mainApp#mainApp #content .dashboard-start-text strong{display:block;font-size:16px;color:var(--calm-ink)}
+  html body #mainApp#mainApp #content .dashboard-start-text span{display:block;font-size:14px;line-height:1.35;color:var(--calm-muted)}
+  html body #mainApp#mainApp #content .dashboard-start-go{width:8px;height:8px;margin-right:4px;border-right:2px solid var(--calm-muted);border-bottom:2px solid var(--calm-muted);transform:rotate(-45deg)}
+  html body #mainApp#mainApp #content .dashboard-start-btn{min-height:40px!important;padding:0 16px!important;border-radius:999px!important}
+}
+@media(prefers-reduced-motion:reduce){#modalRoot .quick-more>summary::after{transition:none!important}}

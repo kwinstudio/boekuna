@@ -77,7 +77,9 @@ assert.ok(source.includes('function setDashboardPeriod('),'Dashboard period swit
 assert.ok(source.includes('--app-support:var(--status-info)'),'Supporting accent must reuse the existing info role');
 assert.ok(source.includes('function productKpi(')&&source.includes('function productKpiGrid('),'Shared KPI component helpers missing');
 assert.ok(source.includes('function renderIncome()')&&source.includes('function renderOutgoings()'),'Income and outgoings subpages missing');
-for(const label of ['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen'])assert.ok(source.includes('dashboard-kpi-label">'+label+'</span>'),'Dashboard KPI missing '+label);
+for(const label of ['Winst','Omzet','Kosten','Nog te ontvangen'])assert.ok(source.includes('dashboard-kpi-label">'+label+'</span>'),'Dashboard KPI missing '+label);
+// The VAT tile names the quarter that is due (Kwin 2026-10-10); with KOR it stays "Btw apartzetten".
+assert.ok(source.includes("function dashboardVatTileHtml(")&&source.includes("tile('Btw apartzetten'")&&source.includes("' apartzetten'"),'Dashboard VAT tile missing');
 for(const label of ['Administratie','Vraag Boekuna','Nieuwe factuur'])assert.ok(source.includes('dashboard-summary-title">'+label+'</span>'),'Dashboard bottom summary missing '+label);
 for(const option of ["['week','Deze week']","['month','Deze maand']","['quarter','Dit kwartaal']","['year','Dit jaar']","['all','Alles']","['custom','Aangepaste periode']"])assert.ok(source.includes(option),'Shared financial period option missing '+option);
 for(const marker of ['product-page-shell','page-period-slot','product-page-actions'])assert.ok(source.includes(marker),'Shared product header pattern missing '+marker);
@@ -225,10 +227,12 @@ try{
       assert.equal(semanticColours.info.color,'rgb(37, 99, 235)',browserName+' info must use blue');
       assert.equal(semanticColours.primary.background,'rgb(99, 212, 113)',browserName+' primary action must use BOEKUNA green');
       assert.equal(semanticColours.primary.color,'rgb(27, 31, 35)',browserName+' green primary action must use accessible anthracite text');
-      assert.deepEqual(await page.locator('.dashboard-kpi-label').allTextContents(),['Winst','Omzet','Kosten','Btw apartzetten','Nog te ontvangen']);
+      const dashboardLabels=await page.locator('.dashboard-kpi-label').allTextContents();
+      assert.deepEqual(dashboardLabels.filter((_,i)=>i!==3),['Winst','Omzet','Kosten','Nog te ontvangen']);
+      assert.match(dashboardLabels[3],/^Btw (apartzetten|Q[1-4] (apartzetten|betalen|terug))$/);
       assert.equal(await page.locator('#dashboardPeriod').inputValue(),'month');
       assert.equal(await page.locator('.dashboard-kpi-profit .metric-sub').count(),0,'Compact dashboard must hide repeated profit explanation by default');
-      assert.equal(await page.locator('.dashboard-kpi-secondary .metric-sub:not(.kpi-deadline)').count(),0,'Compact dashboard must hide repeated KPI helper copy when no warning exists');
+      assert.equal(await page.locator('.dashboard-kpi-secondary .metric-sub:not(.kpi-deadline):not(.kpi-next)').count(),0,'Compact dashboard must hide repeated KPI helper copy when no warning exists');
       assert.notEqual(await page.locator('.dashboard-kpi .metric-icon').first().evaluate(el=>getComputedStyle(el).display),'none','Desktop dashboard KPI icons must remain visible');
       assert.deepEqual((await page.locator('.dashboard-chart-card .chart-legend span').allTextContents()).map(v=>v.trim()),['Omzet','Kosten','Winst']);
       const dashboardChartColours=await page.evaluate(()=>({
@@ -276,7 +280,7 @@ try{
       assert.equal(await page.getByRole('button',{name:'Factuur maken',exact:true}).count(),1,browserName+' Inkomsten primary action');
       assert.equal(await page.getByRole('button',{name:'Factuur uploaden',exact:true}).count(),1,browserName+' Inkomsten secondary action');
       const incomeToneClasses=await page.locator('.product-kpi').evaluateAll(cards=>cards.map(card=>card.className));
-      assert.ok(incomeToneClasses[1].includes('kpi-tone-neutral'),browserName+' Nog te krijgen must remain neutral, not info-coloured or error-red');
+      assert.ok(incomeToneClasses[1].includes('kpi-tone-neutral'),browserName+' Nog te ontvangen must remain neutral, not info-coloured or error-red');
       const openBadge=page.locator('.financial-table .badge').filter({hasText:'Openstaand'}).first();
       if(await openBadge.count()){
         assert.notEqual(await openBadge.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(234, 241, 254)',browserName+' ordinary Openstaand status must not use info blue');
@@ -347,7 +351,7 @@ try{
       await page.screenshot({path:path.join(evidence,'vat-1440-'+browserName+'.png'),fullPage:true});
 
       const coreKpis={
-        invoices:['Gefactureerd','Nog te krijgen'],
+        invoices:['Gefactureerd','Nog te ontvangen'],
         expenses:['Kosten','Waaraan'],
         documents:['Te verwerken','Controle nodig','Verwerkt deze maand','Totaal documenten'],
         vat:['Te betalen btw','Ontvangen btw','Btw die je kunt terugvragen','Controle nodig'],

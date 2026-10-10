@@ -170,7 +170,8 @@
     target.append(holder.firstChild,text);target.classList.add('has-avatar');
   }
   function customerChoice(form,c){
-    var choice=button(c.name,function(){selectInvoiceCustomer(form,c.id)},'mobile-invoice-choice mobile-flow-action');
+    // Kwin 2026-10-10: tapping a customer is the choice, so the invoice goes straight on to step 2.
+    var choice=button(c.name,function(){selectInvoiceCustomer(form,c.id);setInvoiceStep(form,2)},'mobile-invoice-choice mobile-flow-action');
     choice.dataset.customerId=String(c.id);withAvatar(choice,c);return choice;
   }
   // The chosen customer is marked in the list, and the address preview shows once a customer is picked.
@@ -264,8 +265,14 @@
       addVatChoices(row);
       var unitLabel=row.querySelector('[data-k="unitLabel"]')?.closest('.field');if(unitLabel)unitLabel.classList.add('mobile-invoice-unit-label');
       var price=row.querySelector('[data-k="unit"]')?.closest('.field')?.querySelector('label');if(price)rememberText(price,'Prijs excl. btw');
+      // A new, empty line starts without a price (not 0), so typing the price needs no clearing first.
+      var unit=row.querySelector('[data-k="unit"]'),desc=row.querySelector('[data-k="desc"]');
+      if(unit&&!row.dataset.mobilePriceReady){
+        row.dataset.mobilePriceReady='1';unit.placeholder='0,00';unit.inputMode='decimal';
+        if(unit.value==='0'&&!String(desc?.value||'').trim())unit.value='';
+      }
     });
-    var add=form.querySelector('.invoice-editor-section:has(#invoiceLines) .section-head .btn');if(add)rememberText(add,'+ Regel toevoegen');
+    var add=form.querySelector('.invoice-editor-section:has(#invoiceLines) .section-head .btn');if(add)rememberText(add,'+ Nog een regel');
   }
   function invoiceStepTwo(form){
     var lines=invoiceSectionFor(form,'#invoiceLines');if(!lines)return null;
@@ -273,6 +280,9 @@
     var step=node('section','mobile-invoice-step');step.dataset.step='2';
     step.append(node('h2','','Wat heb je gedaan?'));
     move(step,lines);
+    // "+ Nog een regel" sits under the last line, where you look when one line is done.
+    var add=lines.querySelector('.section-head .btn'),list=lines.querySelector('#invoiceLines');
+    if(add&&list){move(list.parentElement,add,list.nextSibling);add.classList.add('mobile-invoice-add-line')}
     var total=form.querySelector('.invoice-editor-summary');if(total)move(step,total);
     var nav=node('div','mobile-invoice-nav');
     nav.append(button('Vorige',function(){setInvoiceStep(form,1)},'btn mobile-flow-action'));
@@ -280,6 +290,8 @@
       var draft=collectInvoiceDraft(),checks=invoiceDraftChecks(draft,editingInvoiceId||'');
       var lineError=checks.errors.find(function(x){return /^Regel|Factuurregels/.test(x.label)});
       if(lineError){updateInvoiceCheck();toast(lineError.msg||'Controleer de factuurregel.');return}
+      var emptyPrice=Array.from(form.querySelectorAll('#invoiceLines [data-k="unit"]')).find(function(input){return input.value===''});
+      if(emptyPrice){emptyPrice.focus();toast('Vul de prijs in (0 mag ook).');return}
       setInvoiceStep(form,3);
     },'btn primary mobile-flow-action'));
     step.append(nav);return step;
@@ -289,13 +301,17 @@
     var draft=collectInvoiceDraft(),customer=draft.customer||getContact(draft.customerId)||{};
     var total=form.querySelector('#formTotals .grand strong')?.textContent||'—';
     var first=(draft.lines||[])[0]?.desc||'Factuur';
-    var number=String(draft.number||'Concept');
+    var number=String(draft.number||'Concept'),numberNote='';
+    // A concept gets its real number when it is sent; show that number instead of CONCEPT-….
+    if(typeof isManagedDraftNumber==='function'&&isManagedDraftNumber(number)&&typeof nextInvoiceNumber==='function'){number=nextInvoiceNumber();numberNote='krijgt dit nummer bij versturen'}
     var date=draft.issueDate===today()?'Vandaag':dateText(draft.issueDate);
     box.replaceChildren();
     var top=node('div','mobile-invoice-summary-top');top.append(node('strong','',customer.name||'Klant'),node('strong','',total));box.append(top);
     box.append(node('p','',first));
-    [['Factuurnummer',number],['Datum',date],['Betalen binnen',Number(draft.paymentDays||0)+' dagen']].forEach(function(pair){
-      var row=node('div','mobile-invoice-summary-row');row.append(node('span','',pair[0]),node('strong','',pair[1]));box.append(row);
+    [['Factuurnummer',number,numberNote],['Datum',date],['Betalen binnen',Number(draft.paymentDays||0)+' dagen']].forEach(function(pair){
+      var row=node('div','mobile-invoice-summary-row'),value=node('strong','',pair[1]);
+      if(pair[2]){value=node('span','mobile-invoice-summary-value');value.append(node('strong','',pair[1]),node('small','',pair[2]))}
+      row.append(node('span','',pair[0]),value);box.append(row);
     });
   }
   async function saveMobileInvoiceConcept(form,openPreview,quiet){
@@ -320,7 +336,7 @@
     if(advanced){
       var disclosure=advanced.querySelector('.disclosure-body')||advanced;
       if(dateSection)move(disclosure,dateSection,disclosure.firstChild);
-      var advancedLabel=advanced.querySelector('summary');if(advancedLabel)rememberText(advancedLabel,'Wijzig of voeg korting, referentie of notitie toe');
+      var advancedLabel=advanced.querySelector('summary');if(advancedLabel)rememberText(advancedLabel,'Korting, referentie of notitie');
       move(step,advanced);
     }else if(dateSection)move(step,dateSection);
     step.append(button('Bekijk PDF',function(){saveMobileInvoiceConcept(form,true)},'btn mobile-invoice-pdf mobile-flow-action'));
