@@ -106,10 +106,21 @@ def _bare_amount_line(line: str) -> bool:
     return bool(money_tokens(line)) and not re.search(r"[A-Za-zÀ-ÖØ-öø-ÿ]{3,}", re.sub(r"\b(?:eur|euro)\b", "", str(line or ""), flags=re.I))
 
 
+def _mangled_amount(line: str) -> bool:
+    """Digits that are not a readable amount (an OCR-broken "86'9"): the amount was on
+    this line, so a neighbouring line must not be read in its place. Percentages are
+    not amounts."""
+    tail = re.sub(r"\d+(?:[.,]\d+)?\s*%", "", str(line or ""))
+    tail = re.sub(r"\b(?:19|20)\d{2}\b|\b\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}\b", "", tail)
+    return bool(re.search(r"\d", tail)) and not money_tokens(tail)
+
+
 def _amount_on_or_after(lines: list[str], i: int, max_ahead: int = 1, *, prefer_first: bool = False) -> float | None:
     own = money_tokens(lines[i])
     if own:
         return own[0] if prefer_first else own[-1]
+    if max_ahead >= 1 and _mangled_amount(lines[i]):
+        return None
     if max_ahead >= 1:
         # A label without an amount: OCR may have put a right-aligned amount on the
         # line above as well as below. Two bare-amount neighbours are ambiguous (the

@@ -583,6 +583,16 @@ def bare_amount_line(line:str)->bool:
     """A line that is only an amount (plus currency), e.g. a right-aligned column value."""
     return bool(money_tokens(line)) and not re.search(r"[A-Za-zÀ-ÖØ-öø-ÿ]{3,}",re.sub(r"\b(?:eur|euro)\b","",str(line or ""),flags=re.I))
 
+def mangled_amount_after(line:str,label:str)->bool:
+    """True when the label line carries digits that are not a readable amount (e.g. "86'9").
+
+    The amount was on this line but OCR broke it; reading a neighbouring line instead
+    would pair the label with another row's amount. Percentages are not amounts."""
+    low=str(line or "").lower();pos=low.find(label.lower())
+    tail=low[pos+len(label):] if pos>=0 else low
+    tail=re.sub(r"\d+(?:[.,]\d+)?\s*%","",tail)
+    return bool(re.search(r"\d",tail)) and not money_tokens(tail)
+
 def labeled_amount(lines:list[str], labels:list[str], exclude:list[str]=[]) -> tuple[float|None,float]:
     candidates=[]
     for i,line in enumerate(lines):
@@ -592,6 +602,8 @@ def labeled_amount(lines:list[str], labels:list[str], exclude:list[str]=[]) -> t
             if lab in low:
                 vals=money_tokens(line)
                 score=0.98-rank*0.015 + (0.01 if i>len(lines)*.5 else 0)
+                if not vals and mangled_amount_after(line,lab):
+                    continue
                 if not vals:
                     # The label stands alone: its amount sits on a neighbouring line. Which
                     # neighbour is layout evidence, not a rule. OCR can emit a right-aligned

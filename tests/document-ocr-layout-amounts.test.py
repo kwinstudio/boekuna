@@ -149,3 +149,21 @@ tall_box = [row("KASSABON", 76, 100, 300, 136), row("x", 400, 60, 460, 300), row
 assert app.ocr_rows_to_lines(tall_box) == ["x", "KASSABON 9,50"] or app.ocr_rows_to_lines(tall_box) == ["KASSABON 9,50", "x"], app.ocr_rows_to_lines(tall_box)
 passed("vertical, oversized and stacked boxes stay separate lines")
 print("OK document-ocr-layout-amounts (geometry)")
+
+# 9. An OCR-broken amount on the label line ("86'9") is unreadable, not an invitation to
+#    read the next row's amount as this label's value.
+from financial_blocks import parse_financial_blocks  # noqa: E402
+mangled = ["Subtotaal excl. btw EUR 86'9", "BTW 21% EUR 1,46", "TOTAAL INCL. BTW EUR 8,44"]
+assert app.labeled_amount(mangled, NET_TOTAL_LABELS) == (None, 0.0), app.labeled_amount(mangled, NET_TOTAL_LABELS)
+primary = parse_financial_blocks(mangled).get("primary")
+assert not primary or primary.get("subtotal") != 1.46, primary
+doc_mangled = {**doc, "text": "\n".join(["KRUIDVAT", "KASSABON", "Datum: 10-10-2026"] + mangled), "financialText": "\n".join(mangled)}
+result = app.heuristic_extract(doc_mangled, "kruidvat.jpg", {"name": "Demo Ondernemer"})
+assert result.amounts.subtotal != 1.46, result.amounts.model_dump(exclude_none=True)
+# A clean full-text block next to a broken focus block wins without a conflict.
+doc_both = {**doc_mangled, "text": "\n".join(["KRUIDVAT", "KASSABON", "Datum: 10-10-2026", "Subtotaal excl. btw EUR 6,98", "BTW 21% EUR 1,46", "TOTAAL INCL. BTW EUR 8,44"])}
+result = app.heuristic_extract(doc_both, "kruidvat.jpg", {"name": "Demo Ondernemer"})
+assert (result.amounts.subtotal, result.amounts.vatTotal, result.amounts.total) == (6.98, 1.46, 8.44), result.amounts.model_dump(exclude_none=True)
+assert not result.warnings, result.warnings
+passed("a broken amount on the label line never borrows the next row's amount")
+print("OK document-ocr-layout-amounts (mangled)")
