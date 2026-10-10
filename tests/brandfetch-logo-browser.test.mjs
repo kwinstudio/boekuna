@@ -63,7 +63,8 @@ async function openApp(width,height,scheme){
     const req=route.request(),u=new URL(req.url());
     outside.push({host:u.host,path:u.pathname,query:u.search,referer:req.headers()['referer']||''});
     if(u.host==='cdn.brandfetch.io'){
-      if(u.pathname.startsWith('/ikea.com/'))return route.abort('connectionfailed');
+      // Brandfetch temporarily down for this domain (server error, no image).
+      if(u.pathname.startsWith('/ikea.com/'))return route.fulfill({status:503,body:''});
       if(/^\/(coolblue\.nl|ah\.nl|kpn\.com|jumbo\.com)\//.test(u.pathname))return route.fulfill({status:200,contentType:'image/png',body:logoPng});
       return route.fulfill({status:404,body:''});
     }
@@ -108,7 +109,7 @@ try{
     // 4. Brandfetch unreachable: falls through to initials, the list stays usable.
     // Lazy images only load near the viewport (WebKit uses a small margin), so bring the row into view first.
     await rowFor('IKEA').scrollIntoViewIfNeeded();
-    await page.waitForFunction(()=>partyLogoState.get('ikea.com')===false);
+    await page.waitForFunction(()=>partyLogoState.get('ikea.com')===false).catch(async e=>{throw new Error('IKEA logo chain did not finish: '+JSON.stringify({state:await page.evaluate(()=>String(partyLogoState.get('ikea.com'))),img:await rowFor('IKEA').locator('.party-avatar').innerHTML(),requests:outside.filter(r=>r.path.includes('ikea')||r.host.includes('ikea'))})+' '+e.message)});
     assert.equal(await rowFor('IKEA').locator('.party-avatar.has-logo').count(),0);
     assert.equal(await rowFor('IKEA').locator('.party-avatar .party-initials').innerText(),'IK');
     // 5. Ten cost lines at once: one request per domain at most, no duplicates.
