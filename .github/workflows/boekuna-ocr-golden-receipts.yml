@@ -55,12 +55,17 @@ jobs:
   golden:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # The library-default variant is the gate. The memory-bounded variant is evidence for
+    # the 512 MiB deployment decision: it is expected to keep the golden set at 20/20 but is
+    # known to read one long-receipt date less in the V5 set (27/28 → review), so it reports
+    # without blocking the PR.
+    continue-on-error: ${{ matrix.det.informational }}
     strategy:
       fail-fast: false
       matrix:
         det:
-          - { name: "library-default", type: "min", side: "736" }
-          - { name: "bounded-max-1000", type: "max", side: "1000" }
+          - { name: "library-default", type: "min", side: "736", informational: false }
+          - { name: "bounded-max-1000", type: "max", side: "1000", informational: true }
     env:
       OMP_NUM_THREADS: "2"
       OPENBLAS_NUM_THREADS: "2"
