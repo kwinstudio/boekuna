@@ -3581,7 +3581,9 @@ function partyLogoSources(domain){const id=brandfetchClientId();return [...(id?[
 function isBrandfetchLogo(src){return String(src||'').startsWith('https://cdn.brandfetch.io/')}
 function partyLogoReferrer(src){return isBrandfetchLogo(src)?'strict-origin':'no-referrer'}
 function partyLogoLoaded(img){const box=img.closest('.party-avatar');if(img.naturalWidth<24){partyLogoFailed(img);return}partyLogoRemember(img.dataset.domain,img.currentSrc||img.src);box?.classList.add('has-logo')}
-function partyLogoFailed(img){const next=Number(img.dataset.try||0)+1,sources=partyLogoSources(img.dataset.domain);if(next<sources.length){img.dataset.try=String(next);img.referrerPolicy=partyLogoReferrer(sources[next]);img.classList.toggle('is-brand',isBrandfetchLogo(sources[next]));img.src=sources[next];return}partyLogoRemember(img.dataset.domain,false);img.remove()}
+function partyLogoFreshImg(img){const fresh=document.createElement('img');for(const a of img.attributes)if(a.name!=='src')fresh.setAttribute(a.name,a.value);return fresh}
+// Safari/WebKit reloads the current image when its referrer policy changes, which mixes up the fallback steps; so a policy change gets a fresh <img>.
+function partyLogoFailed(img){const next=Number(img.dataset.try||0)+1,sources=partyLogoSources(img.dataset.domain);if(next<sources.length){const src=sources[next],policy=partyLogoReferrer(src),target=policy===img.getAttribute('referrerpolicy')?img:partyLogoFreshImg(img);target.dataset.try=String(next);target.setAttribute('referrerpolicy',policy);target.classList.toggle('is-brand',isBrandfetchLogo(src));target.src=src;if(target!==img)img.replaceWith(target);return}partyLogoRemember(img.dataset.domain,false);img.remove()}
 function partyAvatarHtml(name,domain=''){
  let h=0;for(const c of String(name||'').toLowerCase())h=(h*31+c.codePointAt(0))>>>0;
  const known=domain?partyLogoState.get(domain):false,src=known||(known===undefined&&domain?partyLogoSources(domain)[0]:'');
