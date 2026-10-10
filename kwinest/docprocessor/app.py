@@ -1647,7 +1647,9 @@ def targeted_header_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any,qual
     trigger=(len(top_rows)<2 or top_conf<.74 or missing_invoice_candidate or ("IMAGE_SKEW" in flags and top_conf<.82 and not metadata_evidence))
     if not trigger:
         return {"text":"","rows":[],"confidence":None,"used":False}
-    crop=img.crop((0,0,img.width,max(220,int(img.height*.46))))
+    # The header of a long receipt is its top band, not 46% of 5000 px: a crop taller
+    # than the working size would only be shrunk by the detector again.
+    crop=img.crop((0,0,img.width,max(220,min(int(img.height*.46),OCR_WORKING_MAX_SIDE))))
     if crop.width<OCR_WORKING_MAX_SIDE:
         scale=min(2.0,OCR_WORKING_MAX_SIDE/max(1,crop.width))
         resized=crop.resize((max(1,int(crop.width*scale)),max(1,int(crop.height*scale))),Image.Resampling.LANCZOS)
@@ -1752,7 +1754,7 @@ def run_best_ocr(img:Image.Image, *, already_prepared:bool=False, quality:dict|N
 
         need_financial_retry=(conf1<.88 or len(re.sub(r"\s+","",text1))<150 or money1<2 or not keywords1)
         if is_tall and need_financial_retry:
-            tiled=ocr_tiled_rows(engine,working,tile_height=OCR_WORKING_MAX_SIDE,overlap=150)
+            tiled=ocr_tiled_rows(engine,working,tile_height=1500,overlap=180)
             tiled_score=ocr_candidate_score(tiled)
             if tiled_score>best_score+.5:
                 best_rows,best_score,best_variant=tiled,tiled_score,"tiled-color"
