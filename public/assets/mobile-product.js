@@ -147,7 +147,7 @@
       actions.setAttribute('aria-label', 'Factuuracties voor ' + (item.number || 'concept'));
       entry.lastChild.append(actions);
       var paidPart = typeof invoicePaidAmount === 'function' ? invoicePaidAmount(item) : 0, gross = invoiceGross(item);
-      if (paidPart > 0.02 && gross - paidPart > 0.02) {
+      if (Math.round(paidPart * 100) > 0 && Math.round((gross - paidPart) * 100) > 0) {
         // Partly paid: "€ x van € y binnen" with a thin bar.
         metadata(entry.firstChild, money(paidPart) + ' van ' + money(gross) + ' binnen');
         var bar = element('span', 'mobile-paid-bar');

@@ -85,6 +85,18 @@ const cancelled = inv('X-1', { status: 'cancelled' });
 reset([cancelled]);
 eq([app.invoiceCounts(cancelled), c(app.invoiceOutstanding(cancelled)), app.invoiceHasOpenAmount(cancelled), app.invoiceIsOverdueOpen(cancelled)], [false, 0, false, false]);
 assert.equal(c(app.quarterVatPosition()), 0, 'cancelled invoice adds no VAT to the tax reserve');
+app.syncInvoiceStatus(cancelled);
+assert.equal(cancelled.status, 'cancelled', 'a payment change never turns a cancelled invoice into paid');
+{
+  // Money that already arrived for an invoice that was cancelled later still sits in the bank.
+  const ledger = loadApp([...financialNames, 'generatedJournal', 'journalEntry', 'addSignedLine', 'jl', 'paymentLedgerAccount', 'validateJournalEntry'],
+    { journalIntegrityIssues: [], LEDGER_ACCOUNT_NAMES: {}, today: () => '2026-10-10' });
+  Object.assign(ledger.state, { invoices: [inv('X-2', { status: 'cancelled' })], expenses: [], settlements: [],
+    transactions: [{ id: 't', status: 'matched', matchType: 'invoice', matchId: 'X-2', amount: 121, date: '2026-10-05' }] });
+  const rows = ledger.generatedJournal().flatMap(e => e.lines);
+  eq(rows.filter(l => l.account === '1100').map(l => c(l.debit)), [12100], 'bank receipt stays in the ledger');
+  assert.ok(!rows.some(l => l.account === '8000' || l.account === '1520'), 'but no revenue or VAT for the cancelled invoice');
+}
 const draft = inv('D-1', { status: 'draft' });
 assert.equal(app.invoiceCounts(draft), false, 'a concept never counts');
 

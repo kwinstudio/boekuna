@@ -111,7 +111,7 @@ function snapshot(){
 function qnaEngine(){return root.BoekunaAssistantQna||null}
 function assistantQuestionFacts(existingSnapshot=null){
   const s=existingSnapshot||snapshot(),kpi=typeof dashboardKpiViewModel==='function'?dashboardKpiViewModel('month'):null;
-  const invoices=s?.context?.invoices||[],overdue=invoices.filter(i=>i?.overdueOpen===true&&Number(i?.outstanding||0)>.02);
+  const invoices=s?.context?.invoices||[],overdue=invoices.filter(i=>i?.overdueOpen===true&&Math.round(Number(i?.outstanding||0)*100)>0);
   const overdueOutstanding=roundMoney(overdue.reduce((sum,i)=>sum+Number(i.outstanding||0),0));
   const todayDate=new Date(today()+'T12:00:00');
   const overdueInvoices=overdue.slice(0,5).map(i=>{

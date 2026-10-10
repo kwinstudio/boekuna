@@ -1170,9 +1170,9 @@ function persistentDocumentReviewActionForFile(d){
 // ---- Bevestigde scans achteraf bewerken ----
 // Reuses the same two-step check. The original file is never touched: only the booking that came from it
 // (and the saved check) change, and every change is kept in the document's edit history and the audit log.
-const SCAN_EDIT_FIELDS=['party','issueDate','invoiceNumber','category','dueDate','description','paymentReference','net','vatAmount','gross','vatRate','vatLines'];
-const SCAN_EDIT_LABELS={...LABELS,dueDate:'Vervaldatum',description:'Omschrijving',paymentReference:'Betaalkenmerk'};
-const SCAN_AMOUNT_FIELDS=['net','vatAmount','gross','vatRate','vatLines'];
+const SCAN_EDIT_FIELDS=['party','issueDate','invoiceNumber','category','dueDate','description','paymentReference','net','vatAmount','gross','vatRate','vatLines','vatTreatmentChoice'];
+const SCAN_EDIT_LABELS={...LABELS,dueDate:'Vervaldatum',description:'Omschrijving',paymentReference:'Betaalkenmerk',vatTreatmentChoice:'Soort btw'};
+const SCAN_AMOUNT_FIELDS=['net','vatAmount','gross','vatRate','vatLines','vatTreatmentChoice'];
 function scanLinkedRecord(doc){
   if(!doc?.linkedId)return null;
   if(doc.linkedType==='expense')return state.expenses.find(x=>x.id===doc.linkedId)||null;
@@ -1193,10 +1193,12 @@ function scannedDocumentEditState(doc){
     if(linked.correctedAt)return no('Deze kosten zijn weggehaald. Scan de bon opnieuw als hij toch klopt.');
     if(linked.correctionFor)return no('Dit is een correctie. Die kun je niet aanpassen.');
     if(linked.settlementId)return no('Deze kosten horen bij een afrekening. Pas ze daar aan.');
-    return {ok:true,linked,amountsLocked:''}
+    const payments=(state.transactions||[]).filter(t=>t.status==='matched'&&t.matchType==='expense'&&t.matchId===linked.id).length,adjustments=state.expenses.some(x=>x.id!==linked.id&&x.documentId===doc.id&&['document-import-adjustment','pdf-import-adjustment'].includes(x.source));
+    return {ok:true,linked,amountsLocked:payments>1?'Deze bon is in delen betaald. Het bedrag kun je hier niet aanpassen.':adjustments?'Bij deze bon zijn kosten apart geboekt. Het bedrag kun je hier niet aanpassen.':''}
   }
+  if(linked.status==='cancelled')return no('Deze factuur is geannuleerd en telt niet mee.');
   if(linked.source!=='document-import')return no('Deze factuur is in Boekuna gemaakt. Pas hem aan met "Factuur aanpassen".');
-  const credited=state.invoices.some(c=>c.kind==='credit'&&c.creditFor===linked.id&&c.status!=='cancelled'),adjustments=state.expenses.some(x=>x.documentId===doc.id&&x.source==='document-import-adjustment');
+  const credited=state.invoices.some(c=>c.kind==='credit'&&c.creditFor===linked.id&&c.status!=='cancelled'),adjustments=state.expenses.some(x=>x.documentId===doc.id&&['document-import-adjustment','pdf-import-adjustment'].includes(x.source));
   const amountsLocked=invoicePaidAmount(linked)>0||credited?'Deze factuur is al (deels) betaald of gecrediteerd. Het bedrag pas je aan met een creditnota.':adjustments?'Bij deze factuur zijn kosten apart geboekt. Het bedrag kun je hier niet aanpassen.':'';
   return {ok:true,linked,amountsLocked}
 }
@@ -1214,7 +1216,9 @@ function scanEditValues(doc,linked){
     dueDate:String(linked.dueDate||s.dueDate||''),
     description:String(s.description||''),
     paymentReference:String(linked.paymentReference||s.paymentReference||''),
-    net,vatAmount,gross,vatRate:rate,mixedRates:mixed,vatLines:mixed?lines:[]
+    net,vatAmount,gross,vatRate:rate,mixedRates:mixed,vatLines:mixed?lines:[],
+    // Only receipts with a non-Dutch VAT rate ask for this; an edit can switch it.
+    vatTreatmentChoice:isExpense&&s.accountingVatTreatment==='review_required'?(linked.taxTreatment==='foreign'?'foreign':'standard'):''
   }
 }
 function scanEditComparable(values,key){
@@ -1230,6 +1234,7 @@ function scanEditDisplay(values,key){
   if(key==='vatRate')return num(Number(v))+'%';
   if(key==='vatLines')return canonicalFinancialVatLines(v).map(x=>num(Number(x.rate))+'% '+money(Number(x.vatAmount))).join(' · ')||'—';
   if(['issueDate','dueDate'].includes(key))return dateNL(v);
+  if(key==='vatTreatmentChoice')return v==='foreign'?'Buitenlandse btw':'Nederlandse btw';
   return String(v)
 }
 // A VAT quarter that has ended may already be in a VAT return. The app does not know whether it was filed, so it asks.
@@ -1274,6 +1279,8 @@ function switchReviewVatMode(mixed){
   const d=pendingPdfImport?.parsed,f=document.getElementById('pdfImportForm');if(!d||!f||!!d.mixedRates===!!mixed)return;
   syncMixedVatFromDomWithoutRender();
   const val=k=>f.elements.namedItem(k)?.value;
+  // Everything else the user typed or picked comes back after the rebuild; only the VAT part changes.
+  const amountKeys=/^(net|vatAmount|gross|vatRate|reviewAmount|amountBasis)$|^vatLine|^mixed/i,kept=[...f.elements].filter(el=>el.name&&!amountKeys.test(el.name)&&el.type!=='file'&&el.type!=='hidden').map(el=>({name:el.name,type:el.type,value:el.value,checked:el.checked}));
   for(const k of ['party','issueDate','invoiceNumber','category','dueDate','description','paymentReference'])if(f.elements.namedItem(k))d[k]=String(val(k)??'');
   const n=cents(val('net')),v=cents(val('vatAmount')),g=cents(val('gross'));
   if(n!=null)d.net=n/100;if(v!=null)d.vatAmount=v/100;if(g!=null)d.gross=g/100;
@@ -1287,6 +1294,8 @@ function switchReviewVatMode(mixed){
   if(!d.fieldProvenance||typeof d.fieldProvenance!=='object')d.fieldProvenance={};
   d.fieldProvenance.vatLines={source:'user',confirmed:true,confidence:null,confirmedAt:new Date().toISOString()};
   showPdfImportReview(d);
+  const nf=document.getElementById('pdfImportForm');
+  if(nf)for(const k of kept){const el=[...nf.elements].find(x=>x.name===k.name&&x.type===k.type&&(!['radio','checkbox'].includes(k.type)||x.value===k.value));if(!el)continue;const radio=['radio','checkbox'].includes(k.type);if(radio?el.checked===k.checked:el.value===k.value)continue;if(radio)el.checked=k.checked;else el.value=k.value;el.dispatchEvent(new Event('change',{bubbles:true}))}
   requestAnimationFrame(()=>setReviewWizardStep(2,false))
 }
 async function saveScannedDocumentEdit(ctx){
@@ -1306,7 +1315,7 @@ async function saveScannedDocumentEdit(ctx){
   const net=netC/100,vat=vatC/100,gross=grossC/100,lineResult=trustedVatLinesForImport(d,net,vat,rate);
   if(!lineResult.ok)return showSaveRefusal(lineResult.reason);
   const party=String(snap.party||'').trim();if(!party)return showSaveRefusal('Vul de '+(doc.linkedType==='invoice'?'klant':'leverancier')+' in.');
-  const after={party,issueDate:snap.issueDate,invoiceNumber:String(snap.invoiceNumber||'').trim(),category:snap.category||d.editOriginal.category,dueDate:snap.dueDate||'',description:snap.description||'',paymentReference:snap.paymentReference||'',net,vatAmount:vat,gross,vatRate:rate,vatLines:mixed?lineResult.lines:[]};
+  const after={party,issueDate:snap.issueDate,invoiceNumber:String(snap.invoiceNumber||'').trim(),category:snap.category||d.editOriginal.category,dueDate:snap.dueDate||'',description:snap.description||'',paymentReference:snap.paymentReference||'',net,vatAmount:vat,gross,vatRate:rate,vatLines:mixed?lineResult.lines:[],vatTreatmentChoice:doc.linkedType==='expense'&&d.accountingVatTreatment==='review_required'?(snap.vatTreatmentChoice==='foreign'?'foreign':'standard'):''};
   const before=d.editOriginal,changes=SCAN_EDIT_FIELDS.filter(k=>scanEditComparable(before,k)!==scanEditComparable(after,k)).map(k=>({field:k,label:SCAN_EDIT_LABELS[k]||k,from:before[k]??null,to:after[k]??null}));
   if(!changes.length){cleanupPendingImport();closeModal();return toast('Er is niets veranderd.')}
   const amountsChanged=changes.some(c=>SCAN_AMOUNT_FIELDS.includes(c.field)),dateChanged=changes.some(c=>c.field==='issueDate'),linked=check.linked,isExpense=doc.linkedType==='expense';

@@ -204,6 +204,17 @@ try{
   assert.deepEqual(await ledger(),beforeInvalid,label+': invalid amount saves nothing');
   assert.ok(await page.locator('#modalTitle',{hasText:'Bon aanpassen'}).isVisible(),label+': check stays open after refusal');
 
+  // 9. Hand-made costs: special VAT stays locked even when paid by bank; a wrong VAT split is refused, not dropped.
+  await page.evaluate(()=>{closeModal();state.expenses.push({id:'e-foreign',vendor:'Shop DE',date:today(),category:'Inkoop',paymentMethod:'Bank',exVat:100,vatAmount:0,gross:100,vatRate:0,taxTreatment:'foreign'},{id:'e-mixed',vendor:'Super',date:today(),category:'Inkoop',paymentMethod:'Bank',exVat:60,vatAmount:6.6,gross:66.6,vatRate:null,mixedRates:true,taxTreatment:'standard',vatLines:[{rate:9,taxableAmount:50,vatAmount:4.5},{rate:21,taxableAmount:10,vatAmount:2.1}]});state.transactions.push({id:'tx-de',date:today(),description:'Shop DE',amount:-100,status:'matched',matchType:'expense',matchId:'e-foreign'});save();newExpense('e-foreign')});
+  await page.locator('#expenseForm').waitFor();
+  assert.equal(await page.locator('#expenseForm input[name=vatRate]').count(),0,label+': foreign VAT on a bank-linked cost cannot be changed by hand');
+  await page.evaluate(()=>{closeModal();newExpense('e-mixed')});await page.locator('#expenseVat21').waitFor();
+  await page.locator('#expenseVat21').fill('');
+  await page.evaluate(()=>saveExpense());await waitIdle();
+  const kept=await page.evaluate(()=>{const e=state.expenses.find(x=>x.id==='e-mixed');return [Math.round(e.vatAmount*100),e.vatLines.length,!!document.getElementById('expenseForm')]});
+  assert.deepEqual(kept,[660,2,true],label+': a VAT split that does not fit is refused and the form stays open');
+  await page.evaluate(()=>closeModal());
+
   assert.equal(await page.evaluate(()=>localStorage.getItem(DATA_KEY_PREFIX+'other-user')),otherBefore,label+': other account untouched');
   const overflow=await page.evaluate(()=>({vw:innerWidth,doc:document.documentElement.scrollWidth}));
   assert.ok(overflow.doc<=overflow.vw+2,label+': no horizontal overflow '+JSON.stringify(overflow));
