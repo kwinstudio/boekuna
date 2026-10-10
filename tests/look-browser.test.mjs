@@ -207,7 +207,7 @@ try{
     }
     await page.locator('#quickNew').click();
     const nieuw=(await page.locator('#modalRoot .quick-action strong').allTextContents()).map(v=>v.trim());
-    for(const label of ['Factuur','Factuur uploaden','Scannen','Kosten boeken','Banktransactie','Bankbestand','Relatie','Dienst'])assert.ok(nieuw.includes(label),'Nieuw offers '+label+' on a phone: '+nieuw.join(', '));
+    for(const label of ['Factuur','Factuur uploaden','Document uploaden','Scannen','Kosten boeken','Banktransactie','Bankbestand','Relatie','Dienst'])assert.ok(nieuw.includes(label),'Nieuw offers '+label+' on a phone: '+nieuw.join(', '));
     await page.evaluate(()=>closeModal());
     // An active filter and "Filters wissen" look the same: one calm grey pill.
     await page.evaluate(()=>{navigate('invoices');listPageState('invoices').filters={status:'overdue'};render()});
