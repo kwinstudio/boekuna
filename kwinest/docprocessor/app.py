@@ -583,6 +583,31 @@ def bare_amount_line(line:str)->bool:
     """A line that is only an amount (plus currency), e.g. a right-aligned column value."""
     return bool(money_tokens(line)) and not re.search(r"[A-Za-zÀ-ÖØ-öø-ÿ]{3,}",re.sub(r"\b(?:eur|euro)\b","",str(line or ""),flags=re.I))
 
+AMOUNT_LABEL_HINT_RE=re.compile(r"\b(?:totaal|total|subtotaal|subtotal|btw|vat|tax|te betalen|te voldoen|amount due|bedrag|amount|betaald|paid|pin|korting|discount|verzendkosten|shipping)\b",re.I)
+
+def amount_line_convention(lines:list[str])->str|None:
+    """Does this document print a label's amount on the line after it, or before it?
+
+    Decided from the label lines whose neighbours are unambiguous (exactly one bare
+    amount next to them). A column receipt whose boxes came apart yields "before"
+    (… "Betaald per PIN EUR" followed by a text line), a native PDF that puts every
+    amount under its label yields "after". No evidence: None (stay ambiguous)."""
+    after=before=0
+    for i,line in enumerate(lines or []):
+        if not AMOUNT_LABEL_HINT_RE.search(line) or money_tokens(line) or bare_amount_line(line):
+            continue
+        if re.search(r"\d",re.sub(r"\d+(?:[.,]\d+)?\s*%","",line)):
+            continue
+        nxt=lines[i+1] if i+1<len(lines) else None
+        prv=lines[i-1] if i>0 else None
+        next_bare=bare_amount_line(nxt) if nxt is not None else None
+        prev_bare=bare_amount_line(prv) if prv is not None else None
+        if next_bare and prev_bare is False:after+=1
+        elif prev_bare and next_bare is False:before+=1
+    if after>before:return "after"
+    if before>after:return "before"
+    return None
+
 def mangled_amount_after(line:str,label:str)->bool:
     """True when the label line carries digits that are not a readable amount (e.g. "86'9").
 
@@ -595,6 +620,7 @@ def mangled_amount_after(line:str,label:str)->bool:
 
 def labeled_amount(lines:list[str], labels:list[str], exclude:list[str]=[]) -> tuple[float|None,float]:
     candidates=[]
+    convention=None;convention_known=False
     for i,line in enumerate(lines):
         low=line.lower()
         if any(x in low for x in exclude): continue
@@ -615,7 +641,14 @@ def labeled_amount(lines:list[str], labels:list[str], exclude:list[str]=[]) -> t
                     prv=lines[i-1] if i>0 else ""
                     next_bare=bare_amount_line(nxt);prev_bare=bare_amount_line(prv)
                     if next_bare and prev_bare:
-                        vals=money_tokens(nxt);score=min(score,.80)
+                        if not convention_known:
+                            convention=amount_line_convention(lines);convention_known=True
+                        if convention=="before":
+                            vals=money_tokens(prv);score-=.01
+                        elif convention=="after":
+                            vals=money_tokens(nxt)
+                        else:
+                            vals=money_tokens(nxt);score=min(score,.80)
                     elif prev_bare:
                         # The line below is another labelled row (or no amount at all):
                         # the bare amount above belongs to this label.
@@ -1719,7 +1752,7 @@ def run_best_ocr(img:Image.Image, *, already_prepared:bool=False, quality:dict|N
 
         need_financial_retry=(conf1<.88 or len(re.sub(r"\s+","",text1))<150 or money1<2 or not keywords1)
         if is_tall and need_financial_retry:
-            tiled=ocr_tiled_rows(engine,working,tile_height=1500,overlap=180)
+            tiled=ocr_tiled_rows(engine,working,tile_height=OCR_WORKING_MAX_SIDE,overlap=150)
             tiled_score=ocr_candidate_score(tiled)
             if tiled_score>best_score+.5:
                 best_rows,best_score,best_variant=tiled,tiled_score,"tiled-color"
@@ -2254,6 +2287,8 @@ def receipt_merchant_name(lines:list[str], company:dict)->str|None:
         if skip.search(cand) or "@" in cand or re.fullmatch(r"[\d\s€$£.,:+*/#-]+",cand):continue
         # A disclaimer or demo banner above the merchant line is never the merchant.
         if DISCLAIMER_LINE_RE.search(cand):continue
+        # A street line ("Kerkstraat 21", "Dorpsstraat 12a") is the address, not the shop.
+        if re.fullmatch(r"[A-Za-zÀ-ÖØ-öø-ÿ'.\- ]{3,60}\s+\d{1,4}\s*[A-Za-z]?(?:\s*[-/]\s*\d{1,4})?\.?",cand):continue
         if re.match(r"^-{2,}\s*page\s+\d+\s*-{0,}$",cand,re.I):continue
         if re.search(r"\b\d{4}\s?[A-Z]{2}\b|\b\d{2}[:.]\d{2}\b|\b(?:kvk|btw|vat|iban|tel|phone)\b",cand,re.I):continue
         if any(o and o in low for o in own_names):continue
@@ -2318,6 +2353,7 @@ def extract_description(doc:dict,lines:list[str])->tuple[str|None,float,str|None
 def strong_total_anchor(lines:list[str])->tuple[float|None,float]:
     """Find a receipt total that is explicitly labelled, avoiding VAT/subtotal rows."""
     candidates=[]
+    convention=None;convention_known=False
     for i,line in enumerate(lines or []):
         low=line.lower()
         if not re.search(r"\b(?:eindtotaal|totaal|total amount|total|te betalen|amount due|grand total)\b",low,re.I):
@@ -2335,7 +2371,13 @@ def strong_total_anchor(lines:list[str])->tuple[float|None,float]:
             nxt=lines[i+1] if i+1<len(lines) else ""
             prv=lines[i-1] if i>0 else ""
             next_bare=bare_amount_line(nxt);prev_bare=bare_amount_line(prv)
-            if next_bare==prev_bare:
+            if next_bare and prev_bare:
+                if not convention_known:
+                    convention=amount_line_convention(lines);convention_known=True
+                if convention is None:
+                    continue
+                next_bare=convention=="after"
+            elif next_bare==prev_bare:
                 continue
             vals=money_tokens(nxt if next_bare else prv);adjacent=True
         score=.955

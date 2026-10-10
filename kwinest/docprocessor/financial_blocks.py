@@ -115,6 +115,34 @@ def _mangled_amount(line: str) -> bool:
     return bool(re.search(r"\d", tail)) and not money_tokens(tail)
 
 
+_AMOUNT_LABEL_HINT_RE = re.compile(r"\b(?:totaal|total|subtotaal|subtotal|btw|vat|tax|te betalen|te voldoen|amount due|bedrag|amount|betaald|paid|pin|korting|discount|verzendkosten|shipping)\b", re.I)
+
+
+def _amount_line_convention(lines: list[str]) -> str | None:
+    """"after" when this document prints amounts under their labels, "before" when a
+    column receipt's right-aligned amounts came out above their labels, None when the
+    unambiguous label lines give no majority. Mirrors app.amount_line_convention."""
+    after = before = 0
+    for i, line in enumerate(lines):
+        if not _AMOUNT_LABEL_HINT_RE.search(line) or money_tokens(line) or _bare_amount_line(line):
+            continue
+        if re.search(r"\d", re.sub(r"\d+(?:[.,]\d+)?\s*%", "", line)):
+            continue
+        nxt = lines[i + 1] if i + 1 < len(lines) else None
+        prv = lines[i - 1] if i > 0 else None
+        next_bare = _bare_amount_line(nxt) if nxt is not None else None
+        prev_bare = _bare_amount_line(prv) if prv is not None else None
+        if next_bare and prev_bare is False:
+            after += 1
+        elif prev_bare and next_bare is False:
+            before += 1
+    if after > before:
+        return "after"
+    if before > after:
+        return "before"
+    return None
+
+
 def _amount_on_or_after(lines: list[str], i: int, max_ahead: int = 1, *, prefer_first: bool = False) -> float | None:
     own = money_tokens(lines[i])
     if own:
@@ -123,12 +151,17 @@ def _amount_on_or_after(lines: list[str], i: int, max_ahead: int = 1, *, prefer_
         return None
     if max_ahead >= 1:
         # A label without an amount: OCR may have put a right-aligned amount on the
-        # line above as well as below. Two bare-amount neighbours are ambiguous (the
-        # column layout came apart), so no value is read rather than a guessed one.
+        # line above as well as below. With two bare-amount neighbours the document's
+        # own convention decides; without one, no value is read rather than a guess.
         nxt = lines[i + 1] if i + 1 < len(lines) else ""
         prv = lines[i - 1] if i > 0 else ""
         if _bare_amount_line(nxt) and _bare_amount_line(prv):
-            return None
+            convention = _amount_line_convention(lines)
+            if convention == "before":
+                vals = money_tokens(prv)
+                return vals[0] if prefer_first else vals[-1]
+            if convention != "after":
+                return None
     for j in range(i + 1, min(len(lines), i + max_ahead + 1)):
         vals = money_tokens(lines[j])
         if vals:
