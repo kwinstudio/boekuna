@@ -168,3 +168,43 @@ Een onafhankelijke reviewer (senior Python/OCR + financiële QA, aparte sessie, 
 | Minor 7 | Logo-browsertest niet in CI; party-roles kon niet falen; begrensde variant blokkeerde de PR; `/health` toonde de ruwe env-waarde. | Browsertest in `boekuna-app.yml`; party-roles faalt boven baseline (0/2 WRONG); begrensde variant `continue-on-error`; `/health` toont de effectieve instelling. |
 
 Niet overgenomen: geen. Scope-oordeel van de reviewer: geen boekhoud-, btw-, auth-, RLS- of billingwijzigingen; `website` is additief; de regel-samenvoeging is "the right fix" en beschadigt partijblokken niet (eigen skew-simulatie 1,5–3°).
+
+## 7. Nalevering (10 oktober, avond): websitebewijs werd nooit gelezen
+
+**Melding.** Na de uitrol van PR #306 meldde de eigenaar dat logo's bij Kosten niet herkend worden.
+
+**Onderzoek (alleen telwaarden uit de eigen administratie gelezen, niets gewijzigd).**
+
+| Meting | Waarde |
+|---|---|
+| Relaties / leveranciers / leveranciers met site of zakelijk e-mail | 27 / 17 / 2 |
+| Relaties met herkomst `document` | 0 |
+| Dubbele relatienamen | 0 (hypothese "dubbele relaties blokkeren het logo" ontkracht en weggegooid) |
+| Kostenregels / met een relatie die een logo kán tonen | 70 / 1 |
+| Verwerkingsjobs vandaag / na de deploy van 16:19 UTC | 11 / 4 |
+| Jobs na de deploy met gelezen `supplier.website` | 0 van 4 (het veld bestaat, de waarde is leeg) |
+
+**Root cause R10 (P1).** `printed_website()` zocht alleen in het gelabelde partijblok. Op een bon bestaat dat blok uit de regels onder "Leverancier:" (hier drie: leverancier, datum, bonnummer). Het webadres staat bovenaan bij de naam of onderaan in de voettekst en werd nooit bekeken. Lokale reproductie met een synthetische HEMA-bon: adres in de kop, in de voettekst ("Kijk op www.hema.nl") en kaal ("hema.nl") gaven alle drie `website: null`, terwijl leverancier en totaal correct waren.
+
+**Waarom de gates dit niet zagen.** De golden-set controleerde leverancier, datum, bedragen en btw, maar nooit `website`; de fixtures drukten het adres buiten het partijblok af, dus ook daar was het veld in alle 20 analyses leeg (het rapport van §4.1 bevat het veld niet). De browsertest kreeg de website als gegeven aangereikt. De claim in §4.4 dat de keten "op bewijs" werkt, gold daardoor alleen voor de app-kant; de processorkant was niet bewezen. Dat is hierbij gecorrigeerd.
+
+**Fix (branch `fix/leverancierswebsite-hele-tekst`).**
+- Processor: `document_website()` zoekt webadressen in de hele tekst (kop én voettekst). Uitgesloten: e-mailadressen, IBAN/BIC-regels, bestandsnamen, betaal-, platform- en social-hosts (`PLATFORM_HOST_RE`), de host van een gelabeld klantblok en de site of het e-maildomein van de eigen onderneming. Alleen een host die bij de leveranciersnaam past (naamwoord ≥ 4 tekens in het label, samengevoegde naam en label bevatten elkaar bij ≥ 4 tekens, of label = initialen van de letterwoorden) wordt doorgegeven. Het blokresultaat gaat voor; op verkoopfacturen blijft de eigen site bij de uitgever en krijgt de klant nooit een gokje.
+- App: dezelfde naamregel aangescherpt (initialen alleen uit letterwoorden, zodat "Albert Heijn 1089" bij `ah.nl` past; bevatten-regel alleen bij een label van ≥ 4 tekens).
+- Tests: sectie 13 in `tests/document-ocr-layout-amounts.test.py` (16 tekstgevallen plus twee doorlopen van de volledige extractor). De golden-gate controleert nu `website` voor alle 20 analyses en voert twee extra voettekst-varianten uit die hard moeten slagen (`footerWebsite` in het rapport).
+
+**Resultaten op de fix** (lokaal, vers proces per suite, `OMP_NUM_THREADS=2`, commit `9caa105`).
+
+| Suite | Standaard `min/736` | Begrensd `max/1000` |
+|---|---|---|
+| Golden-set 20 analyses | 20/20, veld `website` 20/20 | 20/20, veld `website` 20/20 |
+| Voettekst-varianten (Albert Heijn → `ah.nl`, HEMA → `hema.nl`) | 2/2 | 2/2 |
+| OCR-reproductie HEMA kop / voettekst / kaal | hema.nl / hema.nl / hema.nl | hema.nl / hema.nl / hema.nl |
+| V5-benchmark 28 cases | 28/28, p50 4,9 s, p95 9,8 s (lokale p95-gate) | 27/28 (`receipt-long` datum → controle), p50 3,7 s, p95 8,4 s |
+| V5-regressies | 5/5 | n.v.t. |
+| Party-roles met/zonder context | 438/2/6/**0** en 436/2/6/**2** (identiek) | 438/2/6/**0** en 436/2/6/**2** (identiek) |
+| Piek-RSS golden-run | 467 MB | 369 MB |
+| Unit-tests (layout/website, financial blocks, receipt math) | PASS | n.v.t. |
+| Browsertest logo-keten (Chromium) | ok | n.v.t. |
+
+Niet gedekt: echte bonnen van de eigenaar (niet gelezen; alleen telwaarden). Of een echte bon een webadres afdrukt dat bij de naam past, blijkt pas in gebruik; zonder passend adres blijft de relatie zonder website en kan de gebruiker die zelf invullen.
