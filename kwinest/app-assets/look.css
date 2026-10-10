@@ -712,7 +712,7 @@ html[data-theme="dark"] body #mainApp#mainApp .list-filter-chip>span{color:#AEB8
   /* Bottom bar: no shadow; the open page is a green icon and word (no block or line); + sits in the bar. */
   html body #mobileBottomNav#mobileBottomNav{background:var(--calm-surface)!important;border-top:1px solid var(--calm-hair)!important;box-shadow:none!important}
   html body #mobileBottomNav#mobileBottomNav .mobile-bottom-nav-item{border-top:0!important;box-shadow:none!important;background:transparent!important;color:var(--calm-muted)!important;font-weight:600!important}
-  html body #mobileBottomNav#mobileBottomNav .mobile-bottom-nav-item :is(.icon,span){color:var(--calm-muted)!important}
+  html body #mobileBottomNav#mobileBottomNav .mobile-bottom-nav-item :is(.icon,span){color:var(--calm-muted)!important;transition:none!important}
   html body #mobileBottomNav#mobileBottomNav .mobile-bottom-nav-item:is(.active,[aria-current="page"]){color:var(--calm-green)!important;font-weight:700!important}
   html body #mobileBottomNav#mobileBottomNav .mobile-bottom-nav-item:is(.active,[aria-current="page"]) :is(.icon,span){color:var(--calm-green)!important;font-weight:700!important}
   html body #mainApp#mainApp .topbar #quickNew{left:calc(50% - 24px)!important;bottom:calc(9px + env(safe-area-inset-bottom))!important;width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;border:0!important}
