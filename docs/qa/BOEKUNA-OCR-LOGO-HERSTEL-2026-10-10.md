@@ -193,7 +193,7 @@ Niet overgenomen: geen. Scope-oordeel van de reviewer: geen boekhoud-, btw-, aut
 - App: dezelfde naamregel aangescherpt (initialen alleen uit letterwoorden, zodat "Albert Heijn 1089" bij `ah.nl` past; bevatten-regel alleen bij een label van ≥ 4 tekens).
 - Tests: sectie 13 in `tests/document-ocr-layout-amounts.test.py` (16 tekstgevallen plus twee doorlopen van de volledige extractor). De golden-gate controleert nu `website` voor alle 20 analyses en voert twee extra voettekst-varianten uit die hard moeten slagen (`footerWebsite` in het rapport).
 
-**Resultaten op de fix** (lokaal, vers proces per suite, `OMP_NUM_THREADS=2`, commit `9caa105`).
+**Resultaten op de fix** (lokaal, vers proces per suite, `OMP_NUM_THREADS=2`, branch `fix/leverancierswebsite-hele-tekst`).
 
 | Suite | Standaard `min/736` | Begrensd `max/1000` |
 |---|---|---|
