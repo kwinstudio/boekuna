@@ -106,6 +106,8 @@ try{
     assert.equal(await rowFor('Bakkerij Janssen').locator('.party-avatar').count(),1);
     assert.ok(!outside.some(r=>/action\.com|gamma|coolbluefietsen/.test(r.host+r.path)),'no lookup for own company, ambiguous or look-alike names: '+outside.map(r=>r.host+r.path).join(', '));
     // 4. Brandfetch unreachable: falls through to initials, the list stays usable.
+    // Lazy images only load near the viewport (WebKit uses a small margin), so bring the row into view first.
+    await rowFor('IKEA').scrollIntoViewIfNeeded();
     await page.waitForFunction(()=>partyLogoState.get('ikea.com')===false);
     assert.equal(await rowFor('IKEA').locator('.party-avatar.has-logo').count(),0);
     assert.equal(await rowFor('IKEA').locator('.party-avatar .party-initials').innerText(),'IK');
