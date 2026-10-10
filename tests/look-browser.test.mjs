@@ -121,7 +121,7 @@ try{
     const partly=page.locator('.mobile-card-row',{hasText:'Bakkerij de Vries'});
     assert.match(await partly.innerText(),/€\s?300,00 van €\s?1\.452,00 binnen/);
     assert.equal(await partly.locator('.mobile-paid-bar i').count(),1);
-    assert.match(await partly.locator('.mobile-card-value').textContent(),/^\+ €\s?1\.452,00$/);
+    assert.match(await partly.locator('.mobile-card-value').textContent(),/^€\s?1\.452,00$/,'No "+" before the amount (Kwin 2026-10-10)');
     assert.ok(await partly.locator('.mobile-card-value.money-positive').count()===1);
     await page.evaluate(()=>navigate('settings'));
     const bar=await page.locator('#mobileBottomNav').boundingBox(),plusBox=await page.locator('#quickNew').boundingBox();
@@ -247,13 +247,8 @@ try{
     assert.equal(await page.locator('.payment-share-btn.on').textContent(),'Alles');
     assert.equal(await page.locator('#paymentForm .payment-amount-text').isVisible(),true,'Alles folds back to the amount as text');
     await page.evaluate(()=>{closeModal();viewInvoice('i1')});
-    assert.deepEqual(await page.locator('.invoice-copy-strip .copy-chip-label').allTextContents(),['Factuurnummer','IBAN']);
-    if(browserName==='chromium'){
-      await context.grantPermissions(['clipboard-read','clipboard-write'],{origin:url});
-      await page.locator('.copy-chip-btn').last().click();
-      await page.locator('.copy-chip-btn.is-copied',{hasText:'Gekopieerd'}).waitFor();
-      assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),'NL91ABNA0417164300');
-    }
+    // Kwin 2026-10-10: the Factuurnummer/IBAN copy chips are gone on the phone (they stay on wider screens).
+    assert.equal(await page.locator('.invoice-copy-strip').count(),0,'No copy chips on the phone');
     await page.evaluate(()=>{closeModal();const i=state.invoices.find(x=>x.id==='i1');i.supplyDate=i.issueDate;openInvoiceEmailShare('i1')});
     await page.locator('.send-channels').waitFor();
     assert.deepEqual((await page.locator('.send-channel').allTextContents()).map(s=>s.trim()),['Mail','WhatsApp','Kopiëren']);
@@ -277,6 +272,15 @@ try{
     await page.evaluate(()=>navigate('invoices'));
     await page.locator('.financial-table .cell-with-avatar .party-avatar').first().waitFor();
     assert.ok(await page.locator('.financial-table td.money .amount-cents').count()>=2);
+    // The copy chips (Factuurnummer, IBAN) still work on wider screens.
+    await page.evaluate(()=>viewInvoice('i1'));
+    assert.deepEqual(await page.locator('.invoice-copy-strip .copy-chip-label').allTextContents(),['Factuurnummer','IBAN']);
+    if(browserName==='chromium'){
+      await context.grantPermissions(['clipboard-read','clipboard-write'],{origin:url});
+      await page.locator('.copy-chip-btn').last().click();
+      await page.locator('.copy-chip-btn.is-copied',{hasText:'Gekopieerd'}).waitFor();
+      assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),'NL91ABNA0417164300');
+    }
     await context.close();
   }
   assert.deepEqual(errors,[]);

@@ -825,3 +825,91 @@ html[data-theme="dark"] #mainApp :is(.kpi-next,.kpi-deadline){color:var(--dk-mut
   html body #mainApp#mainApp #content .dashboard-start-btn{min-height:40px!important;padding:0 16px!important;border-radius:999px!important}
 }
 @media(prefers-reduced-motion:reduce){#modalRoot .quick-more>summary::after{transition:none!important}}
+
+/* 20. Kwin 2026-10-10 "verfijnen": the same look, a few words and steps fewer (phone). Nothing is removed, only folded. */
+@media(min-width:821px){
+  #modalRoot :is(.payment-method-text,.expense-memory){display:none!important}
+}
+@media(max-width:820px){
+  /* Kosten toevoegen: at a shop you know, btw and category are one row ("Net als vorige keer bij NS") with Wijzigen. */
+  html body #modalRoot#modalRoot #expenseForm.has-memory>fieldset.choice-group{display:none!important}
+  html body #modalRoot#modalRoot .expense-memory{grid-column:1/-1!important}
+  html body #modalRoot#modalRoot .expense-memory-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px;padding:12px 16px;border:1px solid var(--calm-line);border-radius:14px;background:var(--calm-surface)}
+  html body #modalRoot#modalRoot .expense-memory-text{display:grid;gap:2px;min-width:0}
+  html body #modalRoot#modalRoot .expense-memory-text strong{font-size:16px;color:var(--calm-ink)}
+  html body #modalRoot#modalRoot .expense-memory-text span{font-size:14px;color:var(--calm-muted)}
+  html body #modalRoot#modalRoot .expense-memory-change{flex:0 0 auto;min-height:44px!important;margin:0!important;padding:0 2px!important;border:0!important;background:transparent!important;color:#2F7D3B!important;font-weight:700!important;font-size:15px!important;white-space:nowrap}
+  html[data-theme="dark"] body #modalRoot#modalRoot .expense-memory-change{color:#7FDB8B!important}
+  /* Kosten bekijken: the Bon row is a green link ("Geen bon · toevoegen"). */
+  html body #modalRoot#modalRoot .expense-receipt-link{display:inline!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;color:#2F7D3B!important;font:inherit!important;font-weight:700!important}
+  html[data-theme="dark"] body #modalRoot#modalRoot .expense-receipt-link{color:#7FDB8B!important}
+  /* Factuur maken, step 2: the services sit on the white page; one line has no ×; Bewaar als dienst waits for a description. */
+  html body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] .invoice-service-picker{margin:0 0 6px!important;padding:0!important;border:0!important;background:transparent!important}
+  html body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] #invoiceLines .line-item:only-child>.icon-btn{display:none!important}
+  html body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] #invoiceLines .line-item:not(.has-desc)>.line-save-service{display:none!important}
+  /* Betaald: Vandaag / Gisteren / Andere dag like Kosten; the method is one line until "Anders betaald?". */
+  html body #modalRoot#modalRoot #paymentForm .payment-method-group:not(.is-open) .choice-chips{display:none!important}
+  html body #modalRoot#modalRoot #paymentForm .payment-method-group.is-open .payment-method-text{display:none!important}
+  html body #modalRoot#modalRoot #paymentForm .payment-method-text{margin:2px 0 0;font-size:17px;color:var(--calm-muted)}
+  html body #modalRoot#modalRoot #paymentForm .payment-method-text strong{color:var(--calm-ink);font-weight:700}
+  html body #modalRoot#modalRoot #paymentForm .payment-method-link{display:inline!important;min-height:44px!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;color:#2F7D3B!important;font:inherit!important;font-weight:700!important}
+  html[data-theme="dark"] body #modalRoot#modalRoot #paymentForm .payment-method-link{color:#7FDB8B!important}
+  /* Rapportages: eight more blocks with small charts (Kwin 2026-10-10). Colours: omzet green, kosten red, winst blue, btw purple. */
+  html body #mainApp#mainApp #content .report-extra-card .section-head{margin-bottom:8px}
+  html body #mainApp#mainApp #content .report-duo{margin:4px 0 10px}
+  html body #mainApp#mainApp #content .report-duo .total-line{padding:4px 0}
+  html body #mainApp#mainApp #content .report-duo-change{font-size:13px;font-weight:600;margin-left:4px}
+  html body #mainApp#mainApp #content .report-duo-change.up{color:#2F7D3B}
+  html body #mainApp#mainApp #content .report-duo-change.down{color:#B42318}
+  html body #mainApp#mainApp #content .report-duo-bars{display:grid;gap:4px}
+  html body #mainApp#mainApp #content .report-duo-bar{display:block;height:10px;width:var(--w,0%);min-width:2px;border-radius:5px;background:var(--c,#63D471)}
+  html body #mainApp#mainApp #content .report-duo-bar.is-prev{height:6px;background:#D5DAE0}
+  html body #mainApp#mainApp #content .report-duo-prev{margin-top:4px;font-size:13px;color:var(--calm-muted)}
+  html body #mainApp#mainApp #content .report-duo-legend{margin-top:4px}
+  html body #mainApp#mainApp #content .report-dot-now{background:#1B1F23!important}
+  html body #mainApp#mainApp #content .report-dot-prev{background:#D5DAE0!important}
+  html body #mainApp#mainApp #content .report-vbars{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;align-items:end;height:150px;margin:6px 0 8px}
+  html body #mainApp#mainApp #content .report-vbar{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-width:0;height:100%}
+  html body #mainApp#mainApp #content .report-vbar-value{max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--calm-ink);white-space:nowrap}
+  html body #mainApp#mainApp #content .report-vbar-col{display:block;width:100%;height:var(--h,0%);min-height:3px;border-radius:6px 6px 2px 2px;background:var(--c,#63D471)}
+  html body #mainApp#mainApp #content .report-vbar.is-soft .report-vbar-col{opacity:.45}
+  html body #mainApp#mainApp #content .report-vbar-label{display:grid;justify-items:center;font-size:12px;color:var(--calm-muted);line-height:1.2;text-align:center}
+  html body #mainApp#mainApp #content .report-vbar-label small{font-size:10px}
+  html body #mainApp#mainApp #content .report-stack{display:flex;gap:2px;height:12px;margin:6px 0 10px;border-radius:6px;overflow:hidden;background:var(--calm-soft)}
+  html body #mainApp#mainApp #content .report-stack span{display:block;width:var(--w,0%);background:var(--c,#63D471)}
+  html body #mainApp#mainApp #content .report-legend{display:grid;gap:6px;margin-bottom:6px}
+  html body #mainApp#mainApp #content .report-legend-row{display:grid;grid-template-columns:10px minmax(0,1fr) auto;align-items:center;gap:8px;font-size:14px;color:var(--calm-ink)}
+  html body #mainApp#mainApp #content .report-legend-row.is-empty{color:var(--calm-muted)}
+  html body #mainApp#mainApp #content .report-legend-row i{width:10px;height:10px;border-radius:50%;background:var(--c,#63D471)}
+  html body #mainApp#mainApp #content .report-legend-row.is-empty i{opacity:.35}
+  html body #mainApp#mainApp #content .report-legend-row strong{font-variant-numeric:tabular-nums;font-weight:600}
+  html body #mainApp#mainApp #content .report-legend-row small,html body #mainApp#mainApp #content .report-open-customers small{font-size:12px;font-weight:500;color:var(--calm-muted)}
+  html body #mainApp#mainApp #content .report-open-customers{margin-top:6px;padding-top:6px;border-top:1px solid var(--calm-hair)}
+  html body #mainApp#mainApp #content .report-balance{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:4px 0 10px}
+  html body #mainApp#mainApp #content .report-balance>div{display:grid;gap:6px;min-width:0}
+  html body #mainApp#mainApp #content .report-extra-card :is(strong,.report-vbar-value,.report-legend-row){min-width:0;overflow-wrap:anywhere}
+  html body #mainApp#mainApp #content .report-balance-label{font-size:13px;color:var(--calm-muted)}
+  html body #mainApp#mainApp #content .report-balance-bar{display:block;height:12px;width:var(--w,0%);min-width:6px;border-radius:6px;background:var(--c,#63D471)}
+  html body #mainApp#mainApp #content .report-balance strong{font-size:17px;font-variant-numeric:tabular-nums;color:var(--calm-ink);overflow-wrap:anywhere}
+  html body #mainApp#mainApp #content .report-hbar{margin:6px 0}
+  html body #mainApp#mainApp #content .report-hbar .total-line{padding:3px 0}
+  html body #mainApp#mainApp #content .report-hbar.is-grand .total-line{font-weight:700;font-size:16px}
+  html body #mainApp#mainApp #content .report-hbar-track{display:block;height:8px;border-radius:4px;background:var(--calm-soft);overflow:hidden}
+  html body #mainApp#mainApp #content .report-hbar-track i{display:block;height:100%;width:var(--w,0%);border-radius:4px;background:#3B82F6}
+  html body #mainApp#mainApp #content .report-hbar.is-muted .report-hbar-track i{background:#CBD2D8}
+  html body #mainApp#mainApp #content .report-month-table{width:100%;margin-top:10px;border-collapse:collapse;table-layout:fixed;font-size:13px;font-variant-numeric:tabular-nums}
+  html body #mainApp#mainApp #content .report-month-table th:first-child{width:3.2em}
+  html body #mainApp#mainApp #content .report-month-table td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html body #mainApp#mainApp #content .report-extra-card>.help{margin:8px 0 0;font-size:12px;color:var(--calm-muted)}
+  html body #mainApp#mainApp #content .report-month-table th{padding:6px 0;font-size:12px;font-weight:600;color:var(--calm-muted);text-align:right;text-transform:none;letter-spacing:0;border-bottom:1px solid var(--calm-hair)}
+  html body #mainApp#mainApp #content .report-month-table th:first-child,html body #mainApp#mainApp #content .report-month-table td:first-child{text-align:left}
+  html body #mainApp#mainApp #content .report-month-table td{padding:8px 0;text-align:right;border-top:1px solid var(--calm-hair);color:var(--calm-ink)}
+  html body #mainApp#mainApp #content .report-month-table td.is-cost{color:#B42318}
+  html body #mainApp#mainApp #content .report-month-table td.is-profit{font-weight:700}
+  html body #mainApp#mainApp #content .report-share-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+  html[data-theme="dark"] body #mainApp#mainApp #content :is(.report-duo-bar.is-prev,.report-dot-prev){background:#3A434A!important}
+  html[data-theme="dark"] body #mainApp#mainApp #content .report-dot-now{background:#7FDB8B!important}
+  html[data-theme="dark"] body #mainApp#mainApp #content .report-hbar.is-muted .report-hbar-track i{background:#4A545C}
+  html[data-theme="dark"] body #mainApp#mainApp #content :is(.report-duo-change.up){color:#7FDB8B}
+  html[data-theme="dark"] body #mainApp#mainApp #content :is(.report-duo-change.down,.report-month-table td.is-cost){color:#F28B82}
+}

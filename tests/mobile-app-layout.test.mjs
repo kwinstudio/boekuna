@@ -115,7 +115,7 @@ try{
 
   await page.locator('.dashboard-attention h2').filter({hasText:'Nog te doen'}).waitFor();
   const attentionText=await page.locator('.dashboard-attention').innerText();
-  assert.match(attentionText,/Factuur 2026-0001 is nog niet betaald/);
+  assert.match(attentionText,/heeft factuur 2026-0001 nog niet betaald/);
   assert.match(attentionText,/1 bankregel koppelen/);
   assert.doesNotMatch(attentionText,/Btw Q\d+ controleren/,'Generic VAT action must not appear');
 
@@ -144,7 +144,7 @@ try{
   await page.locator('.nav-item[data-page="documents"]').click();
   await page.locator('#pageTitle').filter({hasText:'Bonnetjes'}).waitFor();
   const scanChooserEvent=page.waitForEvent('filechooser');
-  await page.getByRole('button',{name:'Document uploaden',exact:true}).click();
+  await page.getByRole('button',{name:'Bon scannen',exact:true}).click();
   const scanChooser=await scanChooserEvent;
   assert.equal(scanChooser.isMultiple(),true,'Document upload supports multiple documents');
   assert.equal(await page.locator('.source-picker').count(),0,'Document upload opens the native chooser directly');

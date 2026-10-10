@@ -187,7 +187,7 @@
     var last=latestReusableInvoice();
     if(last){
       var quick=node('div','mobile-invoice-quick');
-      quick.append(node('span','mobile-flow-eyebrow','Snelste optie'));
+      quick.append(node('span','mobile-flow-eyebrow','Snelste optie · tik en je gaat door'));
       var customer=getContact(last.customerId);
       var quickButton=button('',function(){
         var draft=collectInvoiceDraft();
@@ -230,18 +230,18 @@
     var select=form.elements.namedItem('customerId');
     if(select){
       select.classList.add('invoice-customer-select-sr');select.closest('.field')?.querySelector('label')?.classList.add('invoice-customer-select-sr');
-      if(!select.dataset.mobileChoiceSync){select.dataset.mobileChoiceSync='1';select.addEventListener('change',function(){syncCustomerChoice(form)})}
+      // Choosing is going on (Kwin 2026-10-10): no Volgende button on step 1. The dropdown (keyboard, screen reader) goes on too.
+      if(!select.dataset.mobileChoiceSync){select.dataset.mobileChoiceSync='1';select.addEventListener('change',function(){
+        syncCustomerChoice(form);
+        if(form.dataset.mobileInvoiceStep!=='1')return;
+        var value=select.value;
+        if(value==='__new__'){startMobileCustomerFromInvoice(form);return}
+        if(value)setInvoiceStep(form,2);
+      })}
     }
     move(step,section);
     syncCustomerChoice(form);
-    var nav=node('div','mobile-invoice-nav');
-    nav.append(button('Volgende',function(){
-      var value=form.elements.namedItem('customerId')?.value;
-      if(!value){form.elements.namedItem('customerId')?.reportValidity?.();return}
-      if(value==='__new__'){startMobileCustomerFromInvoice(form);return}
-      setInvoiceStep(form,2);
-    },'btn primary mobile-flow-action'));
-    step.append(nav);return step;
+    return step;
   }
   function addVatChoices(row){
     var select=row.querySelector('[data-k="vat"]');if(!select||row.querySelector('.mobile-vat-choice'))return;
@@ -271,6 +271,8 @@
         row.dataset.mobilePriceReady='1';unit.placeholder='0,00';unit.inputMode='decimal';
         if(unit.value==='0'&&!String(desc?.value||'').trim())unit.value='';
       }
+      // "Bewaar als dienst" only once the line says what it is.
+      if(desc&&!row.dataset.mobileDescSync){row.dataset.mobileDescSync='1';var syncDesc=function(){row.classList.toggle('has-desc',!!String(desc.value||'').trim())};desc.addEventListener('input',syncDesc);syncDesc()}
     });
     var add=form.querySelector('.invoice-editor-section:has(#invoiceLines) .section-head .btn');if(add)rememberText(add,'+ Nog een regel');
   }

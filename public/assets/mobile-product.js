@@ -133,15 +133,22 @@
     var days = items.map(dayOf);
     var grouped = items.length > 1 && days.every(function (d, i) { return /^\d{4}-\d{2}-\d{2}$/.test(d) && (i === 0 || d <= days[i - 1]); });
     function invoiceEntry(item) {
-      var entry = row(getContact(item.customerId).name || 'Klant', money(invoiceGross(item)),
-        (item.number || 'Concept') + ' · ' + (invoiceEffectiveStatus(item)==='paid' ? ((typeof invoicePaymentSummary==='function' && invoicePaymentSummary(item)) || dateNL(item.issueDate)) : 'Vervalt ' + dateNL(item.dueDate)),
-        statusBadge(invoiceEffectiveStatus(item)), function () { viewInvoice(item.id); }, null,
-        typeof partyAvatarHtml === 'function' ? partyAvatarHtml(getContact(item.customerId).name, typeof partyLogoDomain === 'function' ? partyLogoDomain(getContact(item.customerId)) : '') : '');
-      // 63. Money coming in: "+ € x" in green (credit notes stay as they are).
-      if (item.kind !== 'credit' && invoiceGross(item) > 0) {
-        var invoiceValue = entry.querySelector('.mobile-card-value');
-        if (invoiceValue) { invoiceValue.textContent = '+ ' + invoiceValue.textContent; invoiceValue.classList.add('money-positive'); }
+      // Kwin 2026-10-10: short dates ("vervalt 4 okt"), an overdue invoice says how many days late, no "+" before the amount.
+      var short = typeof dateShortNL === 'function' ? dateShortNL : dateNL;
+      var status = invoiceEffectiveStatus(item), overdue = typeof invoiceIsOverdueOpen === 'function' && invoiceIsOverdueOpen(item);
+      var when = status === 'paid' ? ((typeof invoicePaymentSummary === 'function' && invoicePaymentSummary(item)) || short(item.issueDate))
+        : status === 'draft' ? short(item.issueDate)
+        : (overdue ? 'vervallen ' : 'vervalt ') + short(item.dueDate);
+      var badge = statusBadge(status);
+      if (overdue && typeof daysUntil === 'function') {
+        var late = -daysUntil(item.dueDate);
+        if (late > 0) badge = badge.replace('>Te laat<', '>' + late + (late === 1 ? ' dag te laat' : ' dagen te laat') + '<');
       }
+      var entry = row(getContact(item.customerId).name || 'Klant', money(invoiceGross(item)),
+        (item.number || 'Concept') + ' · ' + when,
+        badge, function () { viewInvoice(item.id); }, null,
+        typeof partyAvatarHtml === 'function' ? partyAvatarHtml(getContact(item.customerId).name, typeof partyLogoDomain === 'function' ? partyLogoDomain(getContact(item.customerId)) : '') : '');
+      if (item.kind !== 'credit' && invoiceGross(item) > 0) entry.querySelector('.mobile-card-value').classList.add('money-positive');
       var actions = button('', function () { invoiceActions(item.id); }, 'icon-btn');
       actions.innerHTML = icon('i-more');
       actions.setAttribute('aria-label', 'Factuuracties voor ' + (item.number || 'concept'));

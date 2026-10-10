@@ -134,9 +134,12 @@ try{
   assert.equal(await page.locator('.mobile-invoice-step[data-step="2"] .mobile-invoice-add-line').innerText(),'+ Nog een regel');
   assert.equal(await page.locator('#invoiceLines [data-k="unit"]').first().getAttribute('placeholder'),'0,00');
   await page.getByRole('button',{name:'Vorige',exact:true}).click();
+  // Kwin 2026-10-10: step 1 has no Volgende; choosing in the dropdown goes on as well.
+  assert.equal(await page.locator('.mobile-invoice-step[data-step="1"] .mobile-invoice-nav').count(),0,'step 1 has no Volgende button');
   await page.locator('#invoiceCustomer').selectOption('c1');
-  await page.getByRole('button',{name:'Volgende',exact:true}).click();
+  assert.equal(await page.locator('#invoiceForm').getAttribute('data-mobile-invoice-step'),'2');
   assert.match(await page.locator('.mobile-invoice-step[data-step="2"]').innerText(),/Wat heb je gedaan\?/);
+  assert.equal(await page.locator('#invoiceLines .line-item .icon-btn').first().isVisible(),false,'one line: no × to remove it');
   assert.equal(await page.locator('.mobile-invoice-step[data-step="2"] details.invoice-advanced-options').count(),0,'advanced invoice options belong to step 3, not step 2');
   assert.deepEqual((await page.locator('.mobile-vat-choice button').allTextContents()).map(x=>x.trim()),['21%','9%','Geen']);
   await page.locator('#modalRoot .modal').screenshot({path:path.join(evidenceDir,'08-factuur-stap-2-'+browserName+'.png')});
@@ -289,7 +292,7 @@ try{
   await page.locator('[data-k="desc"]').focus();
   await page.setViewportSize({width:390,height:620});
   await noOverflow(page,browserName+' invoice keyboard viewport');
-  assert.ok(await page.getByRole('button',{name:'Volgende',exact:true}).count()===1,'invoice CTA remains present with soft-keyboard sized viewport');
+  assert.ok(await page.locator('.mobile-invoice-step[data-step="1"] .mobile-new-customer').count()===1,'invoice CTA (Nieuwe klant; step 1 has no Volgende since 2026-10-10) remains present with soft-keyboard sized viewport');
   await page.evaluate(()=>closeModal());
 
   await page.setViewportSize({width:1024,height:900});
