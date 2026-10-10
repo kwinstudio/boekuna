@@ -264,16 +264,27 @@ try{
   }
   await page.setViewportSize({width:390,height:844});
 
-  await page.evaluate(()=>{state.invoices=[];state.transactions=[];state.documents=[];state.contacts=[];state.bookings=[];documentProcessingJobs=[];documentProcessingConnectivityLost=false;documentProcessingInitialized=true;render()});
-  await page.getByRole('heading',{name:'Aandachtspunten',exact:true}).waitFor();
+  // One relation stays, so this is an account with data and nothing to do (an empty account gets "Zo begin je", below).
+  await page.evaluate(()=>{state.invoices=[];state.transactions=[];state.documents=[];state.bookings=[];documentProcessingJobs=[];documentProcessingConnectivityLost=false;documentProcessingInitialized=true;render()});
+  await page.getByRole('heading',{name:'Nog te doen',exact:true}).waitFor();
   await page.getByText('Alles bijgewerkt',{exact:true}).waitFor();
 
   await page.evaluate(()=>{documentProcessingConnectivityLost=true;render()});
-  await page.getByText('Aandachtspunten niet bijgewerkt').waitFor();
+  await page.getByText('Nog te doen niet bijgewerkt').waitFor();
   assert.equal(await page.getByText('Alles bijgewerkt',{exact:true}).count(),0);
 
   await page.evaluate(()=>{state.invoices=[];documentProcessingConnectivityLost=false;render();openDashboardAttention('overdue','stale')});
   await page.getByText('Dit aandachtspunt is inmiddels bijgewerkt.').waitFor();
+
+  // Kwin 2026-10-10: an empty account shows three steps instead of tiles full of zeros; a document problem still shows.
+  await page.evaluate(()=>{window.__contacts=state.contacts;state.contacts=[];render()});
+  await page.getByRole('heading',{name:'Zo begin je',exact:true}).waitFor();
+  assert.equal(await page.locator('#content .dashboard-kpis').count(),0,'No tiles full of zeros on an empty account');
+  assert.equal(await page.getByText('Alles bijgewerkt',{exact:true}).count(),0,'An empty account shows the start steps, not "Alles bijgewerkt"');
+  assert.equal(await page.getByRole('button',{name:'Bedrijfsgegevens invullen'}).count()+await page.locator('.dashboard-start-step.is-done').count(),1,'Step 1 is either to do or done');
+  await page.evaluate(()=>{documentProcessingConnectivityLost=true;render()});
+  await page.getByText('Nog te doen niet bijgewerkt').waitFor();
+  await page.evaluate(()=>{documentProcessingConnectivityLost=false;state.contacts=window.__contacts;render()});
 
   for(const width of [320,360,375,390,393,430,768,820]){
     await page.setViewportSize({width,height:Math.max(700,Math.round(width*1.9))});
@@ -290,11 +301,13 @@ try{
   await page.setViewportSize({width:390,height:844});
   await page.goto(base+'/fetch-failure',{waitUntil:'domcontentloaded'});
   await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
-  await page.getByText('Aandachtspunten niet bijgewerkt').waitFor();
+  await page.getByText('Nog te doen niet bijgewerkt').waitFor();
   assert.equal(await page.getByText('Alles bijgewerkt',{exact:true}).count(),0,'Initial fetch failure must not look like a clean empty state');
   assert.equal(await page.evaluate(()=>documentProcessingFetchError),true,'Initial document fetch failure must set explicit error state');
   await page.getByRole('button',{name:'Opnieuw proberen'}).click();
-  await page.getByRole('heading',{name:'Aandachtspunten',exact:true}).waitFor();
+  // This account is empty, so after a good retry the start steps show without the error.
+  await page.getByRole('heading',{name:'Zo begin je',exact:true}).waitFor();
+  assert.equal(await page.getByText('Nog te doen niet bijgewerkt').count(),0);
   assert.equal(await page.evaluate(()=>window.__docFetchAttempts),2,'Retry must perform a second document fetch');
   assert.equal(await page.evaluate(()=>documentProcessingFetchError),false,'Successful retry must clear explicit fetch error');
   assert.equal(await page.evaluate(()=>documentProcessingInitialized),true,'Successful retry must restore initialized document state');

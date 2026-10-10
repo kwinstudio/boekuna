@@ -104,9 +104,10 @@ try{
   // Quick actions: retain all capabilities but group daily vs secondary actions.
   await page.evaluate(()=>quickMenu());
   const quick=page.locator('#modalRoot');
-  assert.ok(await quick.getByText('Dagelijks',{exact:true}).count(),'Quick actions need a Daily group');
+  // Phone (Kwin 2026-10-10): the daily actions are three big tiles, the rest folds under Meer.
+  assert.equal(await quick.locator('.quick-tiles .quick-tile').count(),3,'Quick actions need the three daily tiles');
   assert.ok(await quick.getByText('Meer',{exact:true}).count(),'Quick actions need a secondary group');
-  for(const label of ['Scannen','Factuur','Kosten boeken','Relatie','Dienst','Boeking']){
+  for(const label of ['Bon','Factuur','Kosten','Relatie','Dienst','Boeking']){
     assert.ok(await quick.getByText(label,{exact:false}).count(),label+' must remain reachable');
   }
   await page.evaluate(()=>closeModal());

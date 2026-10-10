@@ -128,6 +128,12 @@ try{
   assert.equal(await page.evaluate(()=>state.invoices.length),invoiceCountBeforeQuick,'same-as-previous must only prefill UI, not persist a new draft');
   assert.equal(await page.locator('#invoiceForm').getAttribute('data-mobile-invoice-step'),'2');
   await page.getByRole('button',{name:'Vorige',exact:true}).click();
+  // Kwin 2026-10-10: tapping a customer is the choice and goes on to step 2.
+  await page.locator('.mobile-invoice-recent .mobile-invoice-choice').first().click();
+  assert.equal(await page.locator('#invoiceForm').getAttribute('data-mobile-invoice-step'),'2');
+  assert.equal(await page.locator('.mobile-invoice-step[data-step="2"] .mobile-invoice-add-line').innerText(),'+ Nog een regel');
+  assert.equal(await page.locator('#invoiceLines [data-k="unit"]').first().getAttribute('placeholder'),'0,00');
+  await page.getByRole('button',{name:'Vorige',exact:true}).click();
   await page.locator('#invoiceCustomer').selectOption('c1');
   await page.getByRole('button',{name:'Volgende',exact:true}).click();
   assert.match(await page.locator('.mobile-invoice-step[data-step="2"]').innerText(),/Wat heb je gedaan\?/);
@@ -142,9 +148,11 @@ try{
   assert.match(await page.locator('.mobile-invoice-summary').innerText(),/Studio Noord/);
   assert.match(await page.locator('.mobile-invoice-summary').innerText(),/Websiteonderhoud oktober/);
   assert.match(await page.locator('.mobile-invoice-summary').innerText(),/Factuurnummer/);
+  assert.match(await page.locator('.mobile-invoice-summary').innerText(),/krijgt dit nummer bij versturen/);
+  assert.doesNotMatch(await page.locator('.mobile-invoice-summary').innerText(),/CONCEPT-/);
   assert.match(await page.locator('.mobile-invoice-summary').innerText(),/Betalen binnen/);
   assert.equal(await page.locator('.mobile-invoice-step[data-step="3"] details.invoice-advanced-options').count(),1,'step 3 must contain the optional invoice edits');
-  assert.match(await page.locator('.mobile-invoice-step[data-step="3"] details.invoice-advanced-options summary').innerText(),/Wijzig of voeg korting, referentie of notitie toe/);
+  assert.match(await page.locator('.mobile-invoice-step[data-step="3"] details.invoice-advanced-options summary').innerText(),/^Korting, referentie of notitie$/);
   assert.equal(await page.getByRole('button',{name:'Bekijk PDF',exact:true}).count(),1);
   assert.equal(await page.getByRole('button',{name:'Versturen',exact:true}).count(),1);
   assert.equal(await page.getByRole('button',{name:'Bewaar als concept',exact:true}).count(),1);

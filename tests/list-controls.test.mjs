@@ -172,8 +172,11 @@ try{
 
   await applyFilters({status:'open',customer:'all',period:'year'});
   rows=await visibleRowTexts();
-  assert.ok(rows.some(x=>x.includes('0002')),'Open + current year must include current open invoice');
-  assert.ok(rows.every(x=>!x.includes(String(new Date().getFullYear()-1)+'-0099')),'Period + status must exclude previous year');
+  // Kwin 2026-10-10: open invoices from before the period stay in sight under their own header "Nog open van eerder".
+  const earlierAt=rows.findIndex(x=>/Nog open van eerder/i.test(x)),inPeriod=earlierAt<0?rows:rows.slice(0,earlierAt),earlier=earlierAt<0?[]:rows.slice(earlierAt+1);
+  assert.ok(inPeriod.some(x=>x.includes('0002')),'Open + current year must include current open invoice');
+  assert.ok(inPeriod.every(x=>!x.includes(String(new Date().getFullYear()-1)+'-0099')),'Period + status must exclude previous year from the period rows');
+  assert.ok(earlier.some(x=>x.includes(String(new Date().getFullYear()-1)+'-0099')),'An open invoice from last year stays visible under Nog open van eerder');
 
   await page.locator('[data-list-clear-filters]').click();
   await page.getByRole('button',{name:'Betaald'}).click();

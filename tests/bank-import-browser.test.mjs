@@ -98,12 +98,20 @@ async function run(viewport, label) {
     const after = await page.evaluate(() => ({ ing: state.transactions.find(t => t.amount === 1210), t30: state.transactions.find(t => t.id === 'tx30'), i30: state.invoices.find(i => i.id === 'i30').status }));
     assert.equal(after.ing.matchId, 'i14'); assert.equal(after.ing.matchConfidence, 'high');
     assert.equal(after.t30.status, 'unmatched'); assert.equal(after.t30.matchSuggestion.id, 'i30'); assert.equal(after.i30, 'sent', 'suggestion books nothing');
-    await page.getByText('Mogelijke koppeling: F2026-030 Voorbeeld Klant BV').filter({ visible: true }).waitFor();
-    await shot('6-suggestion');
-    const card = label === 'mobile' ? page.locator('.mobile-card-row', { hasText: 'Mogelijke koppeling: F2026-030' }) : page.getByRole('row', { name: /Mogelijke koppeling: F2026-030/ });
-    await card.getByRole('button', { name: 'Controleren' }).click();
-    assert.equal(await page.getByLabel('Kies boeking').inputValue(), 'invoice:i30');
-    await dialog.getByRole('button', { name: 'Koppelen' }).click();
+    if (label === 'mobile') {
+      // Phone (Kwin 2026-10-10): the proposal stands under the payment and one tap on Klopt links it.
+      const card = page.locator('.mobile-card-row', { hasText: 'Hoort bij factuur F2026-030 · Voorbeeld Klant BV' });
+      await card.waitFor();
+      await shot('6-suggestion');
+      await card.getByRole('button', { name: 'Klopt', exact: true }).click();
+    } else {
+      await page.getByText('Mogelijke koppeling: F2026-030 Voorbeeld Klant BV').filter({ visible: true }).waitFor();
+      await shot('6-suggestion');
+      const card = page.getByRole('row', { name: /Mogelijke koppeling: F2026-030/ });
+      await card.getByRole('button', { name: 'Controleren' }).click();
+      assert.equal(await page.getByLabel('Kies boeking').inputValue(), 'invoice:i30');
+      await dialog.getByRole('button', { name: 'Koppelen' }).click();
+    }
     assert.deepEqual(await page.evaluate(() => [state.transactions.find(t => t.id === 'tx30').matchConfidence, state.invoices.find(i => i.id === 'i30').status]), ['manual', 'paid']);
     assert.deepEqual(errors, [], 'No browser errors during the flows');
   } finally { await page.close(); }

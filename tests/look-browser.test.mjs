@@ -109,7 +109,9 @@ try{
     assert.equal(await page.locator('.dashboard-kpi .kpi-ring').count(),1,'Kosten shows a small ring');
     assert.match(await page.locator('.dashboard-kpi .kpi-ring-legend').innerText(),/Reiskosten/);
     assert.equal(await page.locator('.dashboard-kpi .kpi-share').count(),1,'Nog te ontvangen shows a thin bar');
-    assert.match(await page.locator('.dashboard-kpi .kpi-deadline').innerText(),/^Aangifte Q[1-4] vóór \d{1,2} [a-z]+ · (vandaag|nog 1 dag|nog \d+ dagen)$/);
+    assert.match(await page.locator('.dashboard-kpi .kpi-deadline').innerText(),/^Aangifte vóór \d{1,2} [a-z]+ · (vandaag|nog 1 dag|nog \d+ dagen)$/);
+    // Kwin 2026-10-10: the VAT tile names the quarter that is due ("Btw Q3 betalen" in the filing month, else "Btw Q4 apartzetten").
+    assert.match(await page.locator('.dashboard-kpi:has(.kpi-deadline) .dashboard-kpi-label').innerText(),/^Btw Q[1-4] (betalen|terug|apartzetten)$/);
     const fab=await page.locator('#quickNew').evaluate(el=>{const r=el.getBoundingClientRect(),c=getComputedStyle(el);return {right:innerWidth-r.right,bottom:innerHeight-r.bottom,w:r.width,h:r.height,position:c.position}});
     assert.equal(fab.position,'fixed');
     assert.ok(fab.w===48&&fab.h===48&&Math.abs(fab.right-(390-48)/2)<=1&&fab.bottom>=6&&fab.bottom<=12,'Nieuw is a round button inside the middle of the bottom bar: '+JSON.stringify(fab));
@@ -207,7 +209,10 @@ try{
     }
     await page.locator('#quickNew').click();
     const nieuw=(await page.locator('#modalRoot .quick-action strong').allTextContents()).map(v=>v.trim());
-    for(const label of ['Factuur','Factuur uploaden','Document uploaden','Scannen','Kosten boeken','Banktransactie','Bankbestand','Relatie','Dienst'])assert.ok(nieuw.includes(label),'Nieuw offers '+label+' on a phone: '+nieuw.join(', '));
+    // Kwin 2026-10-10: three big tiles (Factuur maken, Bon scannen, Kosten zonder bon); the rest sits under Meer.
+    assert.deepEqual((await page.locator('#modalRoot .quick-tiles .quick-tile').allTextContents()).map(v=>v.trim()),['Factuurmaken','Bonscannen','Kostenzonder bon']);
+    assert.equal(await page.locator('#modalRoot details.quick-more').getAttribute('open'),null,'Meer starts folded');
+    for(const label of ['Factuur','Factuur uploaden','Document uploaden','Bon','Kosten','Banktransactie','Bankbestand','Relatie','Dienst'])assert.ok(nieuw.includes(label),'Nieuw offers '+label+' on a phone: '+nieuw.join(', '));
     await page.evaluate(()=>closeModal());
     // An active filter and "Filters wissen" look the same: one calm grey pill.
     await page.evaluate(()=>{navigate('invoices');listPageState('invoices').filters={status:'overdue'};render()});
@@ -230,12 +235,17 @@ try{
     await page.locator('#slowBtn:not(.is-busy)').waitFor();
     assert.equal(await page.locator('#slowBtn').isEnabled(),true);
     await page.evaluate(()=>{closeModal();registerPayment('i1')});
+    // Kwin 2026-10-10: the amount shows as text ("€ 1.452,00 · alles"); "Een deel betaald?" opens the field.
+    assert.match(await page.locator('#paymentForm .payment-amount-text').innerText(),/€\s?1\.452,00 · alles/);
+    assert.equal(await page.locator('#paymentAmount').isVisible(),false);
+    await page.locator('#paymentForm .payment-part-link').click();
     await page.locator('.payment-share-btn',{hasText:'Een deel'}).click();
     assert.equal(await page.locator('#paymentAmount').inputValue(),'');
     await page.locator('#paymentAmount').fill('20');
     await page.locator('.payment-share-btn',{hasText:'Alles'}).click();
     assert.equal(await page.locator('#paymentAmount').inputValue(),'1452.00');
-    assert.equal(await page.locator('.payment-share-btn.on').innerText(),'Alles');
+    assert.equal(await page.locator('.payment-share-btn.on').textContent(),'Alles');
+    assert.equal(await page.locator('#paymentForm .payment-amount-text').isVisible(),true,'Alles folds back to the amount as text');
     await page.evaluate(()=>{closeModal();viewInvoice('i1')});
     assert.deepEqual(await page.locator('.invoice-copy-strip .copy-chip-label').allTextContents(),['Factuurnummer','IBAN']);
     if(browserName==='chromium'){

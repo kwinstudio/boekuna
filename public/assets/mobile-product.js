@@ -123,14 +123,43 @@
     var table = root.querySelector(selector);
     if (!table || table.dataset.mobileCards) return;
     var items = page === 'income' ? directionalBankRows('income') : page === 'outgoings' ? directionalBankRows('out') : getListRows(page);
-    if (!items.length) return; // Keep existing authoritative empty state and CTA.
+    // Open invoices from before the period (Kwin 2026-10-10) follow under their own header.
+    var earlier = page === 'invoices' && typeof invoiceEarlierOpenRows === 'function' ? invoiceEarlierOpenRows(true) : [];
+    if (!items.length && !earlier.length) return; // Keep existing authoritative empty state and CTA.
     var list = element('div', 'mobile-card-list' + (page === 'documents' ? ' mobile-doc-grid' : ''));
     list.setAttribute('role', 'list');
     // Newest first: show calm day headers ("Vandaag", "Gisteren", ...) like a bank app.
     var dayOf = function (item) { return String((page === 'invoices' ? item.issueDate : item.date) || '').slice(0, 10); };
     var days = items.map(dayOf);
     var grouped = items.length > 1 && days.every(function (d, i) { return /^\d{4}-\d{2}-\d{2}$/.test(d) && (i === 0 || d <= days[i - 1]); });
-    var lastGroup = '';
+    function invoiceEntry(item) {
+      var entry = row(getContact(item.customerId).name || 'Klant', money(invoiceGross(item)),
+        (item.number || 'Concept') + ' · ' + (invoiceEffectiveStatus(item)==='paid' ? ((typeof invoicePaymentSummary==='function' && invoicePaymentSummary(item)) || dateNL(item.issueDate)) : 'Vervalt ' + dateNL(item.dueDate)),
+        statusBadge(invoiceEffectiveStatus(item)), function () { viewInvoice(item.id); }, null,
+        typeof partyAvatarHtml === 'function' ? partyAvatarHtml(getContact(item.customerId).name, typeof partyLogoDomain === 'function' ? partyLogoDomain(getContact(item.customerId)) : '') : '');
+      // 63. Money coming in: "+ € x" in green (credit notes stay as they are).
+      if (item.kind !== 'credit' && invoiceGross(item) > 0) {
+        var invoiceValue = entry.querySelector('.mobile-card-value');
+        if (invoiceValue) { invoiceValue.textContent = '+ ' + invoiceValue.textContent; invoiceValue.classList.add('money-positive'); }
+      }
+      var actions = button('', function () { invoiceActions(item.id); }, 'icon-btn');
+      actions.innerHTML = icon('i-more');
+      actions.setAttribute('aria-label', 'Factuuracties voor ' + (item.number || 'concept'));
+      entry.lastChild.append(actions);
+      var paidPart = typeof invoicePaidAmount === 'function' ? invoicePaidAmount(item) : 0, gross = invoiceGross(item);
+      if (paidPart > 0.02 && gross - paidPart > 0.02) {
+        // Partly paid: "€ x van € y binnen" with a thin bar.
+        metadata(entry.firstChild, money(paidPart) + ' van ' + money(gross) + ' binnen');
+        var bar = element('span', 'mobile-paid-bar');
+        bar.setAttribute('aria-hidden', 'true');
+        var fill = element('i');
+        fill.style.width = Math.min(100, Math.round(paidPart / gross * 100)) + '%';
+        bar.append(fill);
+        entry.firstChild.append(bar);
+      }
+      return entry;
+    }
+    var lastGroup = '', proposalBudget = 60; // Matching every row is costly; beyond this the row keeps the plain Koppelen button.
     items.forEach(function (item) {
       var entry;
       if (grouped) {
@@ -143,30 +172,7 @@
         }
       }
       if (page === 'invoices') {
-        entry = row(getContact(item.customerId).name || 'Klant', money(invoiceGross(item)),
-          (item.number || 'Concept') + ' · ' + (invoiceEffectiveStatus(item)==='paid' ? ((typeof invoicePaymentSummary==='function' && invoicePaymentSummary(item)) || dateNL(item.issueDate)) : 'Vervalt ' + dateNL(item.dueDate)),
-          statusBadge(invoiceEffectiveStatus(item)), function () { viewInvoice(item.id); }, null,
-          typeof partyAvatarHtml === 'function' ? partyAvatarHtml(getContact(item.customerId).name, typeof partyLogoDomain === 'function' ? partyLogoDomain(getContact(item.customerId)) : '') : '');
-        // 63. Money coming in: "+ € x" in green (credit notes stay as they are).
-        if (item.kind !== 'credit' && invoiceGross(item) > 0) {
-          var invoiceValue = entry.querySelector('.mobile-card-value');
-          if (invoiceValue) { invoiceValue.textContent = '+ ' + invoiceValue.textContent; invoiceValue.classList.add('money-positive'); }
-        }
-        var actions = button('', function () { invoiceActions(item.id); }, 'icon-btn');
-        actions.innerHTML = icon('i-more');
-        actions.setAttribute('aria-label', 'Factuuracties voor ' + (item.number || 'concept'));
-        entry.lastChild.append(actions);
-        var paidPart = typeof invoicePaidAmount === 'function' ? invoicePaidAmount(item) : 0, gross = invoiceGross(item);
-        if (paidPart > 0.02 && gross - paidPart > 0.02) {
-          // Partly paid: "€ x van € y binnen" with a thin bar.
-          metadata(entry.firstChild, money(paidPart) + ' van ' + money(gross) + ' binnen');
-          var bar = element('span', 'mobile-paid-bar');
-          bar.setAttribute('aria-hidden', 'true');
-          var fill = element('i');
-          fill.style.width = Math.min(100, Math.round(paidPart / gross * 100)) + '%';
-          bar.append(fill);
-          entry.firstChild.append(bar);
-        }
+        entry = invoiceEntry(item);
       } else if (page === 'expenses') {
         entry = row(item.vendor || 'Leverancier', money(expenseGross(item)), dateNL(item.date) + ' · ' + (item.category || 'Categorie controleren'),
           '', function () { expenseActions(item.id); }, null,
@@ -192,13 +198,22 @@
       } else {
         var value = Number(item.amount || 0);
         var linked = listTransactionLinkText(item);
-        entry = row(item.description || 'Banktransactie', (value >= 0 ? '+ ' : '− ') + money(Math.abs(value)), dateNL(item.date), statusBadge(item.status), null);
+        // Kwin 2026-10-10: what Boekuna found stands under the payment; Klopt links it, tapping the payment lets you choose.
+        var proposal = item.status === 'unmatched' && proposalBudget-- > 0 && typeof bankMatchProposal === 'function' ? bankMatchProposal(item) : null;
+        entry = row(item.description || 'Banktransactie', (value >= 0 ? '+ ' : '− ') + money(Math.abs(value)), dateNL(item.date), statusBadge(item.status), item.status === 'unmatched' ? function () { matchTransaction(item.id); } : null);
         entry.lastChild.firstChild.classList.add(value >= 0 ? 'money-positive' : 'money-negative');
         metadata(entry.firstChild, linked);
-        if (item.status === 'unmatched' && typeof bankSuggestionText === 'function') metadata(entry.firstChild, bankSuggestionText(item));
         var bankActions = element('div', 'mobile-card-actions');
-        if (item.status === 'unmatched') bankActions.append(button(item.matchSuggestion ? 'Controleren' : 'Koppelen', function () { matchTransaction(item.id); }, 'btn small'));
-        else bankActions.append(button('Ontkoppelen', function () { confirmUnlink(item.id); }, 'btn small'));
+        if (proposal) {
+          entry.firstChild.append(element('span', 'mobile-bank-proposal' + (proposal.id ? ' is-match' : ''), proposal.text));
+          if (proposal.id) bankActions.append(button('Klopt', function () { applyBankMatch(item.id, proposal.type, proposal.id); }, 'btn small primary mobile-bank-confirm'));
+          else if (proposal.none && value < 0 && typeof bookBankExpense === 'function') bankActions.append(button('Kosten boeken', function () { bookBankExpense(item.id); }, 'btn small mobile-bank-book'));
+          else bankActions.append(button(proposal.count ? 'Kiezen' : 'Koppelen', function () { matchTransaction(item.id); }, 'btn small'));
+        } else {
+          if (item.status === 'unmatched' && typeof bankSuggestionText === 'function') metadata(entry.firstChild, bankSuggestionText(item));
+          if (item.status === 'unmatched') bankActions.append(button(item.matchSuggestion ? 'Controleren' : 'Koppelen', function () { matchTransaction(item.id); }, 'btn small'));
+          else bankActions.append(button('Ontkoppelen', function () { confirmUnlink(item.id); }, 'btn small'));
+        }
         if (page === 'bank' && typeof requestTransactionDelete === 'function') {
           var remove = button('', function () { requestTransactionDelete(item.id); }, 'icon-btn bank-delete-action');
           remove.innerHTML = icon('i-trash');
@@ -210,6 +225,12 @@
       entry.setAttribute('role', 'listitem');
       list.append(entry);
     });
+    if (earlier.length) {
+      var earlierHeader = element('div', 'mobile-card-group mobile-card-group-earlier', 'Nog open van eerder');
+      earlierHeader.setAttribute('role', 'listitem');
+      list.append(earlierHeader);
+      earlier.forEach(function (item) { var entry = invoiceEntry(item); entry.setAttribute('role', 'listitem'); list.append(entry); });
+    }
     table.dataset.mobileCards = '1';
     table.closest('.mobile-stack-wrap').before(list);
   }
