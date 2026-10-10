@@ -42,7 +42,7 @@ function assistantMonthMetrics(){
 function assistantRecurringVendors(){
   const groups=new Map();
   for(const e of state.expenses||[]){
-    if(!e?.vendor||!e?.date||Number(e.exVat||0)<=0)continue;
+    if(!e?.vendor||!e?.date||e.correctedAt||e.correctionFor||Number(e.exVat||0)<=0)continue;
     const normalized=String(e.vendor).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
     if(!normalized)continue;
     const g=groups.get(normalized)||{key:normalized,vendor:String(e.vendor),months:new Map(),occurrences:0};
@@ -248,7 +248,7 @@ function groupSection(title,items,iconId){
 function renderWeekly(summary){
   return '<aside class="card assistant-week"><div class="section-head"><div><h2>Je week in Boekuna</h2><p>Stand van deze maand</p></div></div><div class="assistant-week-grid">'+
     [['Omzet',money(summary.revenue)],['Kosten',money(summary.costs)],['Winst',money(summary.profit)],['Btw apartzetten',money(summary.vatReserve)]].map(([label,value])=>'<div class="assistant-week-stat"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong></div>').join('')+
-    '</div><div class="help" style="margin-top:10px">'+(summary.overdueInvoices?summary.overdueInvoices+' factuur'+(summary.overdueInvoices===1?'':'en')+' te laat · ':'')+(summary.documentsToReview?summary.documentsToReview+' document'+(summary.documentsToReview===1?'':'en')+' controleren':'Geen open documentcontrole')+'</div></aside>'
+    '</div><div class="help" style="margin-top:10px">'+(summary.overdueInvoices?summary.overdueInvoices+' '+(summary.overdueInvoices===1?'factuur':'facturen')+' te laat · ':'')+(summary.documentsToReview?summary.documentsToReview+' document'+(summary.documentsToReview===1?'':'en')+' controleren':'Geen open documentcontrole')+'</div></aside>'
 }
 function renderMonthEnd(s){
   const month=new Intl.DateTimeFormat('nl-NL',{month:'long'}).format(new Date((s.context?.now||today())+'T12:00:00'));

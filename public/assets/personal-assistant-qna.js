@@ -133,13 +133,13 @@ function answer(question,facts={},options={}){
   const period=String(facts.periodLabel||'Deze periode');
   if(intent===INTENTS.CURRENT_STATUS){
     const state=allClear(facts)?'CALM':attentionState(facts);
-    const tail=allClear(facts)?'Je hoeft nu niets te doen.':(finite(facts.overdueInvoiceCount)>0?finite(facts.overdueInvoiceCount)+' factuur'+(finite(facts.overdueInvoiceCount)===1?' is':'en zijn')+' te laat.':'Er zijn nog een paar dingen om bij te werken.');
+    const tail=allClear(facts)?'Je hoeft nu niets te doen.':(finite(facts.overdueInvoiceCount)>0?finite(facts.overdueInvoiceCount)+' '+(finite(facts.overdueInvoiceCount)===1?'factuur is':'facturen zijn')+' te laat.':'Er zijn nog een paar dingen om bij te werken.');
     return response(intent,state,period+' staat je winst op '+money(facts.profit)+'. Omzet: '+money(facts.revenue)+'. Kosten: '+money(facts.costs)+'. Nog te ontvangen: '+money(facts.outstandingTotal)+'.',tail,'Bekijk Voor jou',{page:'insights'});
   }
   if(intent===INTENTS.TODAY_ACTIONS){
     const actions=[];
     if(finite(facts.vatUnresolvedDocumentCount)>0)actions.push(finite(facts.vatUnresolvedDocumentCount)+' document'+(finite(facts.vatUnresolvedDocumentCount)===1?'':'en')+' kan je btw-overzicht nog veranderen.');
-    if(finite(facts.overdueInvoiceCount)>0)actions.push(finite(facts.overdueInvoiceCount)+' factuur'+(finite(facts.overdueInvoiceCount)===1?' is':'en zijn')+' te laat.');
+    if(finite(facts.overdueInvoiceCount)>0)actions.push(finite(facts.overdueInvoiceCount)+' '+(finite(facts.overdueInvoiceCount)===1?'factuur is':'facturen zijn')+' te laat.');
     if(finite(facts.documentReviewCount)>0&&!finite(facts.vatUnresolvedDocumentCount))actions.push(finite(facts.documentReviewCount)+' document'+(finite(facts.documentReviewCount)===1?' moet':'en moeten')+' gecontroleerd worden.');
     if(finite(facts.unmatchedTransactionCount)>0)actions.push(finite(facts.unmatchedTransactionCount)+' banktransactie'+(finite(facts.unmatchedTransactionCount)===1?' moet':'s moeten')+' nog gekoppeld worden.');
     if(!actions.length)return response(intent,'CALM','Alles bijgewerkt.','Je hoeft nu niets te doen.','','',true);
@@ -149,7 +149,7 @@ function answer(question,facts={},options={}){
     const count=Math.max(0,Math.round(finite(facts.overdueInvoiceCount))),rows=Array.isArray(facts.overdueInvoices)?facts.overdueInvoices.slice(0,3):[];
     if(!count)return response(intent,'CALM','Er zijn geen te late facturen.','Op basis van je huidige administratie.','Bekijk facturen',{page:'invoices',filter:{status:'open'}});
     const detail=rows.map(row=>String(row.number||'Factuur')+': '+money(row.outstanding)+' · '+Math.max(0,Math.round(finite(row.daysOverdue)))+' dagen te laat').join(' · ');
-    return response(intent,'ACTION',count+' factuur'+(count===1?' is':'en zijn')+' te laat, samen '+money(facts.overdueOutstanding)+'.',detail,'Bekijk facturen',{page:'invoices',filter:{status:'overdue'}});
+    return response(intent,'ACTION',count+' '+(count===1?'factuur is':'facturen zijn')+' te laat, samen '+money(facts.overdueOutstanding)+'.',detail,'Bekijk facturen',{page:'invoices',filter:{status:'overdue'}});
   }
   if(intent===INTENTS.OUTSTANDING){
     const overdue=finite(facts.overdueOutstanding);

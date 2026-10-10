@@ -285,7 +285,7 @@ if(Object.keys(disabledPageFallbacks).length){
 }
 
 if(assistantEnabled){
-  appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script src="/assets/personal-insights.js?v=20261010a"></script>\n<script src="/assets/personal-assistant-qna.js?v=20261004a"></script>\n<script src="/assets/personal-insights-ui.js?v=20261010a"></script>'+assistantRuntimeMarker);
+  appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script src="/assets/personal-insights.js?v=20261010b"></script>\n<script src="/assets/personal-assistant-qna.js?v=20261010a"></script>\n<script src="/assets/personal-insights-ui.js?v=20261010b"></script>'+assistantRuntimeMarker);
 }else{
   removeBuiltSourceLine('dashboard-ask-bookuna','Assistant disable');
   const summaryGridMarker='#mainApp .dashboard-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));';
@@ -370,7 +370,7 @@ const productToneReplacements=[
   ["productKpi('Deze maand uitgegeven',money(spent),monthRows.length+' bankregel'+(monthRows.length===1?'':'s'),'i-receipt','warning')","productKpi('Deze maand uitgegeven',money(spent),monthRows.length+' bankregel'+(monthRows.length===1?'':'s'),'i-receipt','neutral')"],
   ["productKpi('Winstmarge',margin+'%',extraHelpVisible()?'Van omzet':'','i-chart',margin<0?'error':'primary')","productKpi('Winstmarge',margin+'%',extraHelpVisible()?'Van omzet':'','i-chart',margin<0?'warning':'primary')"],
   ["dashboard-kpi dashboard-kpi-secondary kpi-tone-warning\" onclick=\"navigate(\\'expenses\\')","dashboard-kpi dashboard-kpi-secondary kpi-tone-neutral\" onclick=\"navigate(\\'expenses\\')"],
-  ["productKpi('Nog te ontvangen',money(open),openRows.length+' open factuur'+(openRows.length===1?'':'en'),'i-file','support')","productKpi('Nog te ontvangen',money(open),openRows.length+' open factuur'+(openRows.length===1?'':'en'),'i-file','neutral')"],
+  ["productKpi('Nog te ontvangen',money(open),openRows.length+' open '+(openRows.length===1?'factuur':'facturen'),'i-file','support')","productKpi('Nog te ontvangen',money(open),openRows.length+' open '+(openRows.length===1?'factuur':'facturen'),'i-file','neutral')"],
   ["productKpi('Ontvangen btw',money(output),'','i-chart','support')","productKpi('Ontvangen btw',money(output),'','i-chart','neutral')"],
   ["productKpi('Btw die je kunt terugvragen',money(input),'','i-receipt','support')","productKpi('Btw die je kunt terugvragen',money(input),'','i-receipt','neutral')"],
   ["productKpi('Te verwerken',String(toProcess),extraHelpVisible()?'Nog niet gekoppeld':'','i-upload','support')","productKpi('Te verwerken',String(toProcess),extraHelpVisible()?'Nog niet gekoppeld':'','i-upload','neutral')"],

@@ -108,4 +108,27 @@ for (const name of ['quarterVatPosition', 'renderVat', 'renderVatHistory', 'rend
   assert.ok(!/invoiceOutstanding\([a-z]+\)\s*(>|<=)\s*0?\.0[12]/.test(src), `${name} must use the one-cent rule`);
 }
 assert.ok(!appSource.includes('Die krijg je terug'), 'no promise that receipt VAT comes back');
+{
+  // Removing a cost reverses it on its own date. Older reversals made on the removal day move back while
+  // that quarter's VAT return is not due yet; after the deadline they stay where they are.
+  const fix = loadApp([...financialNames, 'redateWithdrawnExpenseCorrections', 'vatQuarterReturnDue', 'closedVatQuarterLabel'], { today: () => '2026-10-10' });
+  const pair = (id, date, at, extra = {}) => [{ id, date, exVat: 100, vatAmount: 21, gross: 121, correctedAt: '2026-10-03T10:00:00Z' },
+    { id: id + '-c', date: at, exVat: -100, vatAmount: -21, gross: -121, correctionFor: id, source: 'expense-correction', ...extra }];
+  const rows = [...pair('sep', '2026-09-15', '2026-10-03'), ...pair('jun', '2026-06-10', '2026-10-03'), ...pair('odd', '2026-09-20', '2026-10-03', { exVat: -50, gross: -60.5 })];
+  fix.redateWithdrawnExpenseCorrections(rows);
+  eq(rows.filter(e => e.correctionFor).map(e => [e.id, e.date]), [['sep-c', '2026-09-15'], ['jun-c', '2026-10-03'], ['odd-c', '2026-10-03']], 'only balanced reversals before the VAT deadline move back');
+  assert.equal(rows[1].redatedFrom, '2026-10-03', 'the old date is kept');
+  eq([fix.vatQuarterReturnDue('2026-09-15'), fix.vatQuarterReturnDue('2026-12-01'), fix.closedVatQuarterLabel('2026-09-15'), fix.closedVatQuarterLabel('2026-10-01')], ['2026-10-31', '2027-01-31', 'Q3 2026', '']);
+}
+{
+  // Vrij te besteden: money received by hand and via the bank, minus refunds still owed on credit notes.
+  const fts = loadApp([...financialNames, 'freeToSpend', 'currentBookYear', 'expenseDeductibleVat', 'expenseAccountingCost'], { today: () => '2026-10-10' });
+  const sale = (id, extra) => ({ id, number: id, kind: 'invoice', status: 'sent', taxTreatment: 'standard', issueDate: '2026-10-02', lines: [{ qty: 10, unit: 100, vat: 21 }], ...extra });
+  Object.assign(fts.state, { meta: { taxReservePct: 30 }, company: {}, expenses: [], invoices: [sale('a', { payments: [{ amount: 1210, date: '2026-10-05' }] }), sale('b')],
+    transactions: [{ status: 'matched', matchType: 'invoice', matchId: 'b', amount: 1210, date: '2026-10-06' }] });
+  assert.equal(c(fts.freeToSpend().free), 140000, 'bank receipts count as received');
+  fts.state.invoices.push({ id: 'cr', kind: 'credit', creditFor: 'a', status: 'sent', taxTreatment: 'standard', issueDate: '2026-10-07', lines: [{ qty: 10, unit: 100, vat: 21, sourceLineIndex: 0 }] });
+  assert.equal(c(fts.freeToSpend().free), 70000, 'a refund owed on a credit note is not free money');
+}
+assert.ok(!/date:today\(\),notes:`Correctie op/.test(declaration(appSource, 'correctExpense')), 'a removed cost is reversed on its own date');
 console.log('financial logic v1: ok');

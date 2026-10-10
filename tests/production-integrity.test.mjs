@@ -85,7 +85,7 @@ assert.equal(edge.email('bad address@example.org'), '', 'Whitespace must be reje
 assert.equal(edge.email('not-an-email'), '');
 
 const events = [];
-const corrections = loadApp([...financialNames, 'logEvent', 'correctExpense'], {
+const corrections = loadApp([...financialNames, 'logEvent', 'correctExpense', 'closedVatQuarterLabel'], {
   currentUser: { id: 'test-actor', email: 'actor@example.org' },
   uid: prefix => prefix + '-test', confirm: () => true, money: v => String(v), dateNL: v => v,
   save: () => events.push('save'), closeModal: () => {}, render: () => {}, toast: () => {},

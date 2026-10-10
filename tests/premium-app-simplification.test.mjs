@@ -70,6 +70,8 @@ async function navigateTo(name){
 }
 async function assertNoGlobalOverflow(width,label=''){
   await page.setViewportSize({width,height:Math.max(700,Math.round(width*1.8))});
+  // Let resize handlers (e.g. a chart tooltip under the pointer) re-position before measuring.
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   const layout=await page.evaluate(()=>({
     scrollWidth:document.documentElement.scrollWidth,
     innerWidth:window.innerWidth,
