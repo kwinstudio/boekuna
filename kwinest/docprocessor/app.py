@@ -102,6 +102,13 @@ MAX_PDF_PAGES = int(os.getenv("MAX_PDF_PAGES", "50"))
 MAX_IMAGE_PIXELS = int(os.getenv("MAX_IMAGE_PIXELS", "40000000"))
 MAX_IMAGE_SIDE = int(os.getenv("MAX_IMAGE_SIDE", "12000"))
 OCR_WORKING_MAX_SIDE = int(os.getenv("OCR_WORKING_MAX_SIDE", "1000"))
+# Detection pre-resize inside RapidOCR. The library default ("min", 736) scales every
+# image up until its short side is 736 px, so a narrow receipt pass of 213x1000 px is
+# detected at 736x3455 px and even the warm-up grows. "max" with a side limit keeps
+# the detector at the working size. Defaults stay at the library behaviour; the
+# alternative is measured per deployment before it is switched on.
+OCR_DET_LIMIT_TYPE = (os.getenv("OCR_DET_LIMIT_TYPE", "min").strip().lower() or "min")
+OCR_DET_LIMIT_SIDE = int(os.getenv("OCR_DET_LIMIT_SIDE", "736"))
 Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 SUPPORTED_IMAGE_EXTENSIONS = frozenset({".jpg",".jpeg",".png",".webp",".heic",".heif",".tif",".tiff",".bmp",".gif"})
 SUPPORTED_IMAGE_MIME_TYPES = frozenset({"image/jpeg","image/png","image/webp","image/heic","image/heif","image/tiff","image/bmp","image/gif"})
@@ -251,6 +258,9 @@ class Supplier(BaseModel):
     vatNumber: str | None = None
     iban: str | None = None
     email: str | None = None
+    # Web address printed in the party block. Evidence of the party's domain, not a
+    # verified identity: the app only uses it when it plausibly matches the name.
+    website: str | None = None
 
 class Customer(BaseModel):
     name: str | None = None
@@ -261,6 +271,7 @@ class Customer(BaseModel):
     kvk: str | None = None
     vatNumber: str | None = None
     email: str | None = None
+    website: str | None = None
 
 class InvoiceMeta(BaseModel):
     referencedInvoiceNumber: str | None = None
@@ -568,6 +579,10 @@ def invoice_number_after_label(lines:list[str], labels:list[str]) -> tuple[str|N
     if len(candidates)==1:return candidates[0]['value'],candidates[0]['line']
     return None,None
 
+def bare_amount_line(line:str)->bool:
+    """A line that is only an amount (plus currency), e.g. a right-aligned column value."""
+    return bool(money_tokens(line)) and not re.search(r"[A-Za-zÀ-ÖØ-öø-ÿ]{3,}",re.sub(r"\b(?:eur|euro)\b","",str(line or ""),flags=re.I))
+
 def labeled_amount(lines:list[str], labels:list[str], exclude:list[str]=[]) -> tuple[float|None,float]:
     candidates=[]
     for i,line in enumerate(lines):
@@ -576,9 +591,26 @@ def labeled_amount(lines:list[str], labels:list[str], exclude:list[str]=[]) -> t
         for rank,lab in enumerate(labels):
             if lab in low:
                 vals=money_tokens(line)
-                if not vals and i+1<len(lines): vals=money_tokens(lines[i+1])
+                score=0.98-rank*0.015 + (0.01 if i>len(lines)*.5 else 0)
+                if not vals:
+                    # The label stands alone: its amount sits on a neighbouring line. Which
+                    # neighbour is layout evidence, not a rule. OCR can emit a right-aligned
+                    # amount on the line *before* its label, so a bare amount above counts
+                    # when the line below is not one. When both neighbours are bare amounts
+                    # the column layout fell apart: keep the legacy choice, but below the
+                    # arithmetic anchor threshold so it can never silently drive the others.
+                    nxt=lines[i+1] if i+1<len(lines) else ""
+                    prv=lines[i-1] if i>0 else ""
+                    next_bare=bare_amount_line(nxt);prev_bare=bare_amount_line(prv)
+                    if next_bare and prev_bare:
+                        vals=money_tokens(nxt);score=min(score,.80)
+                    elif prev_bare:
+                        # The line below is another labelled row (or no amount at all):
+                        # the bare amount above belongs to this label.
+                        vals=money_tokens(prv);score-=.01
+                    elif nxt:
+                        vals=money_tokens(nxt)
                 if vals:
-                    score=0.98-rank*0.015 + (0.01 if i>len(lines)*.5 else 0)
                     candidates.append((vals[-1],min(score,.99)))
     return max(candidates,key=lambda x:x[1]) if candidates else (None,0.0)
 
@@ -862,6 +894,7 @@ def layout_legal_entity_name(doc:dict,company:dict)->str|None:
         for m in LEGAL_ENTITY_RE.finditer(frag["text"]):
             name=_clean_party_candidate(m.group(1))
             if len(name)<3 or own_matches({"name":name},company):continue
+            if DISCLAIMER_LINE_RE.search(frag["text"]):continue
             score=1.0-(min(float(frag["y0"]),330.0)/3300.0)
             candidates.append((score,name))
     if candidates:
@@ -1191,6 +1224,8 @@ def get_ocr_engine():
             "Det.lang_type": LangDet.CH,
             "Det.model_type": ModelType.SMALL,
             "Det.ocr_version": OCRVersion.PPOCRV6,
+            "Det.limit_type": OCR_DET_LIMIT_TYPE if OCR_DET_LIMIT_TYPE in {"min","max"} else "min",
+            "Det.limit_side_len": OCR_DET_LIMIT_SIDE,
             "Rec.engine_type": EngineType.ONNXRUNTIME,
             "Rec.lang_type": LangRec.CH,
             "Rec.model_type": ModelType.SMALL,
@@ -1276,6 +1311,56 @@ def ocr_rows(engine: Any, img: Image.Image) -> list[dict[str,Any]]:
             return (1e9,1e9)
     rows.sort(key=pos)
     return rows
+
+def ocr_rows_to_lines(rows:list[dict[str,Any]])->list[str]:
+    """Rebuild reading-order lines from OCR boxes: rows by baseline overlap, left to right.
+
+    RapidOCR returns one box per text fragment, sorted by top edge. On a receipt the
+    right-aligned amount box often starts a few pixels above its label box, so the
+    amount came out as its own line *before* the label ("9,50" / "Subtotaal excl.
+    btw EUR") and the parser paired every label with the wrong neighbour. Boxes whose
+    vertical extents overlap by at least half of the smaller box are one line, as the
+    PDF word path (horizontal_page_text) already does. Boxes without usable positions
+    keep their own line in the original order."""
+    heights=sorted((b[3]-b[1]) for b in (_ocr_row_bounds(r) for r in rows or []) if b and b[3]>b[1])
+    line_h=heights[len(heights)//2] if heights else 0.0
+    lines:list[dict[str,Any]]=[]
+    for row in rows or []:
+        text=norm_text(str(row.get("text") or ""))
+        if not text:
+            continue
+        bounds=_ocr_row_bounds(row)
+        if bounds is None or bounds[3]<=bounds[1]:
+            lines.append({"y0":None,"y1":None,"parts":[(0.0,text,0.0)]})
+            continue
+        x0,y0,x1,y1=bounds
+        h=y1-y0;w=x1-x0
+        # Only line-shaped boxes join a line: a vertical box (rotated text) or a box far
+        # taller than the typical line would swallow every neighbour it crosses.
+        line_like=(w>=h*0.9 or len(text)<=2) and (line_h<=0 or h<=line_h*2.2)
+        target=None
+        if line_like:
+            for line in reversed(lines[-6:]):
+                if line["y0"] is None or not line.get("anchor"):
+                    continue
+                overlap=min(line["y1"],y1)-max(line["y0"],y0)
+                if overlap<0.5*min(line["y1"]-line["y0"],h):
+                    continue
+                # Boxes that overlap horizontally are stacked rows on a skewed image, not
+                # one line.
+                if any(min(px1,x1)-max(px0,x0)>0.4*min(px1-px0,w) for px0,_,px1 in line["parts"]):
+                    continue
+                target=line;break
+        if target is None:
+            lines.append({"y0":y0,"y1":y1,"parts":[(x0,text,x1)],"anchor":line_like})
+        else:
+            # The first box keeps the line's vertical extent, so a line never grows into
+            # a chain that absorbs the rows below it.
+            target["parts"].append((x0,text,x1))
+    return [" ".join(part for _,part,_ in sorted(line["parts"],key=lambda p:p[0])) for line in lines]
+
+def ocr_rows_text(rows:list[dict[str,Any]])->str:
+    return "\n".join(ocr_rows_to_lines(rows))
 
 def ocr_tiled_rows(engine:Any,img:Image.Image,*,tile_height:int=900,overlap:int=140,enhance:bool=False)->list[dict[str,Any]]:
     """OCR a tall document in overlapping vertical tiles without retaining crops."""
@@ -1404,6 +1489,9 @@ def _ocr_orientation_score(rows:list[dict[str,Any]]) -> tuple[float,bool]:
         width=max(1.0,bounds[2]-bounds[0]);height=max(1.0,bounds[3]-bounds[1])
         if height>width*1.25:vertical+=1
     vertical_ratio=(vertical/measured) if measured else 0.0
+    # Boxes that are taller than wide are rotated text: a candidate orientation that
+    # produces them is the wrong one, however its keywords happen to score.
+    score-=10.0*vertical_ratio
     suspicious=vertical_ratio>=.35 or (title is not None and title>max(2,int(count*.55))) or score<0
     return score,suspicious
 
@@ -1419,8 +1507,9 @@ def _orthogonal_retry(img:Image.Image,rows:list[dict[str,Any]],engine:Any)->dict
     for angle in (90,180,270):
         rotated=img.rotate(angle,resample=Image.Resampling.BICUBIC,expand=True,fillcolor="white")
         try:
-            tall=rotated.height>rotated.width*2.8
-            candidate=ocr_resized_rows(engine,rotated) if tall else ocr_rows(engine,rotated)
+            # A rotated long receipt is a wide image; keep every retry at the working size
+            # instead of handing the engine a 4000 px wide array.
+            candidate=ocr_resized_rows(engine,rotated)
             orientation_score,_=_ocr_orientation_score(candidate)
             composite=ocr_candidate_score(candidate)+orientation_score*3
         except Exception:
@@ -1466,7 +1555,7 @@ def targeted_financial_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any)-
     finally:
         enhanced.close()
         crop.close()
-    text="\n".join(r["text"] for r in focus_rows)
+    text=ocr_rows_text(focus_rows)
     if len(MONEY_RE.findall(text))<1:
         return {"text":"","rows":[],"confidence":None,"used":False}
     confs=[float(r.get("confidence") or 0) for r in focus_rows]
@@ -1481,7 +1570,7 @@ def targeted_header_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any,qual
         b=_ocr_row_bounds(row)
         if b and b[1] <= h*.45:top_rows.append(row)
     top_conf=sum(float(r.get("confidence") or 0) for r in top_rows)/len(top_rows) if top_rows else 0
-    top_text="\n".join(str(r.get("text") or "") for r in top_rows)
+    top_text=ocr_rows_text(top_rows)
     metadata_evidence=bool(re.search(
         r"\b(?:factuurnummer|factuurnr|invoice\s*(?:number|no|#)|factuurdatum|invoice\s*date|"
         r"datum|date|kvk|btw|vat|iban)\b",
@@ -1531,7 +1620,7 @@ def targeted_header_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any,qual
         return {"text":"","rows":[],"confidence":None,"used":False}
     confs=[float(r.get("confidence") or 0) for r in header_rows]
     conf=sum(confs)/len(confs) if confs else 0
-    text="\n".join(r["text"] for r in header_rows)
+    text=ocr_rows_text(header_rows)
 
     def has_number_candidate(value:str)->bool:
         check_lines=[norm_text(x) for x in str(value or "").splitlines() if norm_text(x)]
@@ -1569,7 +1658,7 @@ def targeted_header_ocr(img:Image.Image,rows:list[dict[str,Any]],engine:Any,qual
                     number_rows=ocr_rows(engine,number_enhanced)
                 finally:
                     number_enhanced.close();number_crop.close()
-                number_text="\n".join(r["text"] for r in number_rows)
+                number_text=ocr_rows_text(number_rows)
                 if number_rows and has_number_candidate(number_text):
                     header_rows.extend(number_rows)
                     text=(text+"\n"+number_text).strip()
@@ -1599,7 +1688,7 @@ def run_best_ocr(img:Image.Image, *, already_prepared:bool=False, quality:dict|N
         rows1=orientation.get("rows") or rows1
         is_tall=working.height>working.width*2.8
         score1=ocr_candidate_score(rows1)
-        text1="\n".join(r["text"] for r in rows1)
+        text1=ocr_rows_text(rows1)
         conf1=sum(float(r.get("confidence") or 0) for r in rows1)/len(rows1) if rows1 else 0
         money1=len(MONEY_RE.findall(text1))
         keywords1=bool(re.search(r"\b(?:totaal|total|te betalen|amount due)\b",text1,re.I))
@@ -1609,7 +1698,7 @@ def run_best_ocr(img:Image.Image, *, already_prepared:bool=False, quality:dict|N
         if abs(deskew)>=1.5 and abs(deskew)<=4.5 and "IMAGE_SKEW" in set((quality or {}).get("flags") or []):
             rotated=working.rotate(deskew,resample=Image.Resampling.BICUBIC,expand=False,fillcolor="white")
             try:
-                rowsd=ocr_resized_rows(engine,rotated) if is_tall else ocr_rows(engine,rotated)
+                rowsd=ocr_resized_rows(engine,rotated)
             finally:
                 rotated.close()
             scored=ocr_candidate_score(rowsd)
@@ -1630,7 +1719,7 @@ def run_best_ocr(img:Image.Image, *, already_prepared:bool=False, quality:dict|N
             if score2>best_score+.5:
                 best_rows,best_score,best_variant=rows2,score2,"enhanced-grayscale"
 
-        text="\n".join(r["text"] for r in best_rows)
+        text=ocr_rows_text(best_rows)
         confs=[float(r.get("confidence") or 0) for r in best_rows]
         focus=targeted_financial_ocr(working,best_rows,engine)
         header=targeted_header_ocr(working,best_rows,engine,quality)
@@ -2021,6 +2110,26 @@ def select_unlabelled_party_block(lines:list[str],company:dict,role:str)->list[s
         pick=plain[0] if len(plain)==1 else None
     return pick["lines"] if pick else []
 
+WEBSITE_RE=re.compile(r"(?<![\w@.-])(?:https?://)?(?:www\.)?([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,24})(?:/[^\s]*)?(?![\w@-])",re.I)
+
+def printed_website(lines:list[str])->str|None:
+    """The first web address printed in a party block, as a bare lowercase host.
+
+    E-mail addresses, bank/ID codes and document-looking tokens are skipped. The host
+    is reported as evidence only; whether it belongs to the party is for the app and
+    the user to decide."""
+    for line in lines or []:
+        if "@" in line or re.search(r"\b(?:iban|kvk|btw|vat)\b",line,re.I):
+            continue
+        for m in WEBSITE_RE.finditer(line):
+            host=m.group(1).lower()
+            if re.search(r"\.(?:pdf|jpg|jpeg|png|heic|docx|xlsx|csv|txt)$",host):
+                continue
+            if host.count(".")>4 or re.fullmatch(r"[\d.]+",host):
+                continue
+            return host
+    return None
+
 def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tuple[dict,float]:
     idx=None;matched_label=None
     for i,line in enumerate(lines[:120]):
@@ -2111,10 +2220,17 @@ def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tu
                 if name and not head.casefold().startswith(name.casefold()):continue
                 name=head;src=("footer",raw);break
     data={"name":name,"address":address,"postalCode":f"{postal[1]} {postal[2].upper()}" if postal else None,"city":postal[3].strip() if postal and postal[3] else None,"country":"Nederland" if postal else None,
-          "kvk":kvks[0] if kvks else None,"vatNumber":nl_vats[0] if nl_vats else None,"iban":next((x for x in ibans if valid_iban(x)),None),"email":emails[0] if emails else None}
+          "kvk":kvks[0] if kvks else None,"vatNumber":nl_vats[0] if nl_vats else None,"iban":next((x for x in ibans if valid_iban(x)),None),"email":emails[0] if emails else None,
+          "website":printed_website(block)}
     conf=.97 if idx is not None and name else (.62 if name else .20)
     data["_evidence"]={"source":src[0] if src else None,"label":matched_label,"sourceText":(src[1] if src else None)}
     return data,conf
+
+DISCLAIMER_LINE_RE=re.compile(
+    r"\b(?:demo|fictie\w*|fictitious|voorbeeld(?:bon|factuur|document)?|specimen|sample|disclaimer|"
+    r"test\s*(?:document|bon|factuur|data)|geen\s+(?:echt|geldig)|niet\s+(?:echt|geldig)|not\s+a\s+(?:real|valid)|"
+    r"ter\s+illustratie|for\s+illustration)\b",re.I,
+)
 
 def receipt_merchant_name(lines:list[str], company:dict)->str|None:
     own_names=[norm_text(str(company.get(k) or "")).lower() for k in ("name","tradeName")]
@@ -2124,6 +2240,8 @@ def receipt_merchant_name(lines:list[str], company:dict)->str|None:
         low=cand.lower()
         if not (2<=len(cand)<=90):continue
         if skip.search(cand) or "@" in cand or re.fullmatch(r"[\d\s€$£.,:+*/#-]+",cand):continue
+        # A disclaimer or demo banner above the merchant line is never the merchant.
+        if DISCLAIMER_LINE_RE.search(cand):continue
         if re.match(r"^-{2,}\s*page\s+\d+\s*-{0,}$",cand,re.I):continue
         if re.search(r"\b\d{4}\s?[A-Z]{2}\b|\b\d{2}[:.]\d{2}\b|\b(?:kvk|btw|vat|iban|tel|phone)\b",cand,re.I):continue
         if any(o and o in low for o in own_names):continue
@@ -2192,16 +2310,28 @@ def strong_total_anchor(lines:list[str])->tuple[float|None,float]:
         low=line.lower()
         if not re.search(r"\b(?:eindtotaal|totaal|total amount|total|te betalen|amount due|grand total)\b",low,re.I):
             continue
-        if re.search(r"\b(?:subtotaal|subtotal|btw|vat|tax|excl|korting|discount)\b",low,re.I):
+        if re.search(r"\b(?:subtotaal|subtotal|excl|korting|discount)\b",low,re.I):
+            continue
+        # "Totaal incl. btw" names the gross total; only a VAT row itself is excluded.
+        inclusive=re.search(r"\b(?:incl\.?|inclusief|including|inclusive(?:\s+of)?)(?:\s*(?:0|9|21)(?:[.,]0+)?\s*%)?\s*(?:btw|vat|tax)\b",low,re.I)
+        if re.search(r"\b(?:btw|vat|tax)\b",low,re.I) and not inclusive:
             continue
         vals=money_tokens(line)
+        adjacent=False
         if not vals:
-            continue
+            # Label-only line: accept exactly one bare-amount neighbour (above or below).
+            nxt=lines[i+1] if i+1<len(lines) else ""
+            prv=lines[i-1] if i>0 else ""
+            next_bare=bare_amount_line(nxt);prev_bare=bare_amount_line(prv)
+            if next_bare==prev_bare:
+                continue
+            vals=money_tokens(nxt if next_bare else prv);adjacent=True
         score=.955
         if re.search(r"\b(?:te betalen|amount due|grand total|eindtotaal|total amount)\b",low,re.I):score=.985
         elif re.match(r"^\s*(?:eindtotaal|totaal|total amount|total)\b",low,re.I):score=.975
         if "€" in line or re.search(r"\b(?:eur|euro)\b",low,re.I):score=min(.99,score+.005)
         if i>=max(0,len(lines)-12):score=min(.99,score+.005)
+        if adjacent:score-=.02
         candidates.append((abs(vals[-1]),score))
     return max(candidates,key=lambda x:x[1]) if candidates else (None,0.0)
 
@@ -2230,7 +2360,10 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
     amount_lines=[];seen_amount_lines=set()
     for line in financial_lines+lines:
         key=line.lower()
-        if key not in seen_amount_lines:
+        # Repeated label lines from the financial re-scan are dropped once, but a bare
+        # amount is structure, not a duplicate: "11,49" prints under both "Totaal" and
+        # "Betaald per PIN", and dropping the second one breaks that adjacency.
+        if bare_amount_line(line) or key not in seen_amount_lines:
             seen_amount_lines.add(key);amount_lines.append(line)
     low=text.lower()
     self_billing=bool(re.search(r"factuur\s+uitgereikt\s+door\s+afnemer|self[- ]?billing|self[- ]?billed",low))
@@ -2539,7 +2672,15 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         for field in derivation.get("derivedFields",[]):
             if field in confidence:
                 confidence[field]=max(confidence[field],max(.70,min(.98,anchor_conf*.985)))
+        # A gross total that was never read but extrapolated upward from one net or VAT
+        # read inherits that single read's risk (a mispaired label books 2,41 for 11,49).
+        # It stays below the booking threshold so the total is always checked.
+        if anchor_key!="total" and "total" in derivation.get("derivedFields",[]):
+            confidence["total"]=min(confidence["total"],.84)
     derivation_warnings=[]
+    if derivation.get("used") and derivation.get("anchorField") in {"subtotal","vatTotal"} and "total" in derivation.get("derivedFields",[]):
+        anchor_label={"subtotal":"het bedrag excl. btw","vatTotal":"het btw-bedrag"}[derivation["anchorField"]]
+        derivation_warnings.append(f"Het totaal is niet op het document gelezen en is berekend uit {anchor_label}. Controleer het totaal op het origineel.")
     for conflict in derivation.get("conflicts",[]):
         if isinstance(conflict.get("read"),dict):
             derivation_warnings.append("Expliciete bedragen spreken elkaar rekenkundig tegen; controleer netto, btw en totaal.")

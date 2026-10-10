@@ -101,8 +101,24 @@ def money_tokens(line: str) -> list[float]:
     return out
 
 
+def _bare_amount_line(line: str) -> bool:
+    """Only an amount (plus currency), e.g. a right-aligned column value on its own OCR line."""
+    return bool(money_tokens(line)) and not re.search(r"[A-Za-zÀ-ÖØ-öø-ÿ]{3,}", re.sub(r"\b(?:eur|euro)\b", "", str(line or ""), flags=re.I))
+
+
 def _amount_on_or_after(lines: list[str], i: int, max_ahead: int = 1, *, prefer_first: bool = False) -> float | None:
-    for j in range(i, min(len(lines), i + max_ahead + 1)):
+    own = money_tokens(lines[i])
+    if own:
+        return own[0] if prefer_first else own[-1]
+    if max_ahead >= 1:
+        # A label without an amount: OCR may have put a right-aligned amount on the
+        # line above as well as below. Two bare-amount neighbours are ambiguous (the
+        # column layout came apart), so no value is read rather than a guessed one.
+        nxt = lines[i + 1] if i + 1 < len(lines) else ""
+        prv = lines[i - 1] if i > 0 else ""
+        if _bare_amount_line(nxt) and _bare_amount_line(prv):
+            return None
+    for j in range(i + 1, min(len(lines), i + max_ahead + 1)):
         vals = money_tokens(lines[j])
         if vals:
             return vals[0] if prefer_first else vals[-1]
