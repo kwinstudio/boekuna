@@ -1,6 +1,6 @@
 # BOEKUNA — OCR- en leverancierslogo-herstel (10 oktober 2026)
 
-Status: **wacht op review en akkoord** (PR #306, branch `fix/ocr-amount-layout-logo-20261010`). Niets is uitgerold; productie draait nog Render-deploy `ef257b0e`. Dit rapport bevat alleen lokaal en in CI gemeten cijfers; "live" of "100 % accuraat" wordt nergens geclaimd.
+Status: **wacht op akkoord voor merge; geen uitrol** (PR #306, branch `fix/ocr-amount-layout-logo-20261010`). Onafhankelijke code-review uitgevoerd en verwerkt (§6). Niets is uitgerold; productie draait nog Render-deploy `ef257b0e`. Dit rapport bevat alleen lokaal en in CI gemeten cijfers; "live" of "100 % accuraat" wordt nergens geclaimd.
 
 Uitgangspunt: de onafhankelijke audit van 10 oktober (`BOEKUNA_OCR_ONDERZOEK_2026-10-10.md`) en de QA-branch `test/ocr-logo-realistic-regression-20261010`. Beide zijn gebaseerd op de Render-SHA `ef257b0e`. De processorcode op `main` (`3deb7ec`) is byte-identiek aan die SHA voor `kwinest/docprocessor/`, dus de audit beschrijft de huidige code.
 
@@ -61,6 +61,7 @@ App (`kwinest/index.html`, `document-review-v2.js`):
 | Netto / btw / totaal | 9 / 7 / 10 | 20 / 20 / 20 | 20 / 20 / 20 |
 | Piek-RSS hele run (20 docs, sequentieel) | 531 MB | 531 MB | **431 MB** |
 | Mediaan ms per document (lokaal, 2 threads, onder CPU-deling) | ≈ 5,0 s | ≈ 4,8 s | ≈ 3,4 s |
+| Piek-RSS 28-case V5-run in één proces | 925 MB | 921 MB | **550 MB** |
 
 Per document (branch): alle 20 PASS op alle velden; route blijft `FULL_REVIEW` (bevestiging verplicht), zoals in de audit.
 
@@ -68,10 +69,11 @@ Per document (branch): alle 20 PASS op alle velden; route blijft `FULL_REVIEW` (
 
 | Suite | `main` | Branch min/736 | Branch max/1000 |
 |---|---|---|---|
-| V5-benchmark 28 cases | 28/28 (p95-gate faalt lokaal: 10,1 s > 6 s door CPU-deling; in CI 38058633910 groen) | zie §4.5 | zie §4.5 |
-| V5-regressies | PASS | PASS | zie §4.5 |
-| Party-roles met bedrijfscontext | 438 C / 2 N / 6 M / 0 W | zie §4.5 | zie §4.5 |
-| Party-roles zonder context | 436 C / 2 N / 6 M / 2 W | zie §4.5 | zie §4.5 |
+| V5-benchmark 28 cases | 28/28 (p95-gate faalt lokaal: 10,1 s > 6 s door CPU-deling; in CI 38058633910 groen) | **28/28** (p95 lokaal 9,9 s, zelfde oorzaak) | **27/28**: `receipt-long` datum MISSING → controle, bedragen correct |
+| V5-regressies | PASS | PASS | PASS |
+| Party-roles met bedrijfscontext | 438 C / 2 N / 6 M / 0 W | 438 / 2 / 6 / **0** (identiek) | 438 / 2 / 6 / **0** (identiek) |
+| Party-roles zonder context | 436 C / 2 N / 6 M / 2 W | 436 / 2 / 6 / 2 (identiek) | 436 / 2 / 6 / 2 (identiek) |
+| Processor-pytests uit backend-/integrity-/v6-/edge-workflows (18 bestanden) | — | alle PASS lokaal | — |
 | `financial-blocks`, `receipt-math` | PASS | PASS | PASS |
 | Nieuw: `document-ocr-layout-amounts` | **faalt** (R1–R7) | PASS | PASS |
 
@@ -79,17 +81,19 @@ Tussentijds werd één regressie gevonden en verholpen: party-roles case 13 ("sl
 
 ### 4.3 Geheugen (vers proces per document, `ru_maxrss`, Python 3.13, onnxruntime 1.30, rapidocr 3.9.2)
 
-| Document | RSS na engine + warm-up | Piek min/736 (huidig) | Piek max/1000 |
-|---|---|---|---|
-| Gewone bon JPG (1050×1640) | 365 MB | 542 MB | **415 MB** |
-| Zelfde als raster-PDF | 367 MB | 543 MB | ≈ 415 MB |
-| HEIC (fixture `scan-invoice.heic`) | 365 MB | 542 MB | ≈ 415 MB |
-| 12 MP-foto | 365 MB | 542 MB | ≈ 415 MB |
-| Lange bon (1050×4920) | 371 MB | **747 MB** | **428 MB** |
-| 40 MP-foto | — | geweigerd (`DOCUMENT_TOO_LARGE`, bestaande limiet) | idem |
-| 28-case V5-run in één proces | 290 MB start | 925 MB | zie §4.5 |
+Fixtures worden buiten het gemeten proces opgebouwd; de piek is dus alleen decodering + OCR.
 
-Oorzaak van de piek: de eerste detectie-inferentie met `limit_type=min` (736) — niet de beeldgrootte. Met `max/1000` blijft de detector op werkformaat.
+| Document | Piek min/736 (huidig gedrag) | Piek max/1000 |
+|---|---|---|
+| Gewone bon JPG (1050×1640) | 533 MB | **414 MB** |
+| Zelfde als raster-PDF | 537 MB | **413 MB** |
+| HEIC (fixture `scan-invoice.heic`, 1190×1684 — géén 12 MP-telefoonfoto) | 534 MB | **427 MB** |
+| 12 MP-JPEG (3570×5576), vóór begrensde decodering | 534 MB | 523 MB |
+| 12 MP-JPEG (3570×5576), mét begrensde decodering (`draft`, deze PR) | 534 MB | **415 MB** |
+| Lange bon (1050×4920) | **708 MB** | **404 MB** |
+| 40 MP-foto | geweigerd (`DOCUMENT_TOO_LARGE`, bestaande limiet) | idem |
+
+Oorzaak van de piek bij de huidige instelling: de detectie-voorbewerking schaalt naar 736 px korte zijde, dus de eerste inferentie (zelfs de warm-up) kost ≈ 240 MB extra; de beeldgrootte doet er daarna nauwelijks toe. Met `max/1000` blijft de detector op werkformaat. Een 12 MP-JPEG kostte daarnaast ≈ 110 MB aan volledige decodering; die wordt nu via DCT-schaling op minimaal 2× het werkformaat gedecodeerd. HEIC kent zo'n schaalbare decodering niet: een echte 12 MP-HEIC (4032×3024) kost naar schatting +36 MB per RGB-kopie en is hier **niet** gemeten.
 
 Gelijktijdigheid: `/analyze` is `async def` met een **synchrone** `analyze_document`, dus binnen één uvicorn-proces worden aanvragen serieel afgehandeld (geen overlap, wel wachtrij). De Edge Function houdt `PROCESSING_CONCURRENCY=1` per gebruiker. De pieken hierboven zijn dus de realistische per-instantie pieken; de 20-jobs-run (§4.1) is de representatieve "20 uploads achter elkaar". Het Render-startcommando staat niet in de repo; aanname: één worker.
 
@@ -121,7 +125,7 @@ Risico's en blinde vlekken
 - Logo: een document kan een platformdomein afdrukken dat toevallig op de naam lijkt; de gebruiker ziet het veld en kan corrigeren. Pixel-logoherkenning is niet gebouwd en wordt ook niet gesuggereerd.
 
 Kosten
-- Zonder planwijziging: met `OCR_DET_LIMIT_TYPE=max` en `OCR_DET_LIMIT_SIDE=1000` blijft de gemeten piek 415–431 MB onder 512 MiB (marge ≈ 80 MB; glibc-fragmentatie en HEIC-decodering van grote foto's zijn niet gedekt door deze meting).
+- Zonder planwijziging: met `OCR_DET_LIMIT_TYPE=max` en `OCR_DET_LIMIT_SIDE=1000` blijft de gemeten piek 404–431 MB onder 512 MiB (marge ≈ 80 MB). Niet gedekt: glibc-fragmentatie over lange tijd, 12 MP-HEIC-decodering (niet gemeten) en de bekende 27/28 op de lange V5-bon (datum naar controle).
 - Met de huidige detectie-instelling is 512 MiB aantoonbaar te krap (542–747 MB). Een Render-plan met 1 GiB (bijv. "Standard", indicatief ≈ $25/maand tegenover ≈ $7 voor "Starter"; exacte prijs in het Render-dashboard) lost dit op zonder accuraatheidsrisico. **Geen planwijziging zonder akkoord.**
 
 Rollback
@@ -130,6 +134,25 @@ Rollback
 - Render: "Deploys → Rollback" naar de huidige deploy `ef257b0e` (runbook `docs/production-recovery.md`).
 
 Advies
-- Code: **GO voor merge na review**, onder de gate 20/20 + 28/28 + regressies + party-roles zonder nieuwe WRONG in CI.
-- Uitrol: pas na expliciet akkoord. Twee opties die beide een akkoord vragen: (a) uitrol met `OCR_DET_LIMIT_TYPE=max`/`1000` op 512 MiB, gevalideerd met de CI-variant "bounded-max-1000"; (b) uitrol op 1 GiB met de standaardinstelling. Voorkeur: (a) als de CI-variant volledig groen is, anders (b).
+- Code: **GO voor merge na review**: de gate (20/20 + 28/28 + regressies + party-roles zonder nieuwe WRONG) is lokaal gehaald en wordt in CI bevestigd.
+- Uitrol: pas na expliciet akkoord. Twee opties:
+  (a) **1 GiB-plan met de standaardinstelling** — geen enkel accuraatheidsverlies (28/28, 20/20), piek ≤ 708 MB gemeten; kost een planwijziging.
+  (b) **512 MiB met `OCR_DET_LIMIT_TYPE=max`/`OCR_DET_LIMIT_SIDE=1000`** — piek 404–431 MB, maar één bekende datum-miss op een lange bon (gaat naar controle, geen fout bedrag) en 12 MP-HEIC ongemeten.
+  Advies: (a) als de kosten acceptabel zijn; anders (b) met de /health-controle van de instelling na uitrol en een geheugenalert op Render.
 - Brandfetch of andere logodiensten: **niet** geactiveerd, conform afspraak.
+
+## 6. Onafhankelijke code-review (uitgevoerd op de branch, bevindingen verwerkt)
+
+Een onafhankelijke reviewer (senior Python/OCR + financiële QA, aparte sessie, read-only op de branch) beoordeelde de diff tegen `main` en reproduceerde eigen probes op beide bomen. Verdict vóór verwerking: *not ready* (3 majors). Alle punten zijn verwerkt in commit `48b60f2`; de probes zijn als tests toegevoegd (`tests/document-ocr-layout-amounts.test.py`, onderdeel "review probes").
+
+| # | Bevinding | Verwerking |
+|---|---|---|
+| Major 1 | Eén kaal bedrag boven een label zonder bedrag werd een zelfverzekerd totaal (taxi-PDF met vetgedrukt, ongelezen totaal → 12,00 op 0,96, geen controle). | Alleen een bekende kolomlay-out ("voor") of een labelregel zonder bedrag direct eronder maakt het bewijs; anders score ≤ 0,80 (onder ankerdrempel 0,94 en reviewdrempels), nooit een brutoanker. Test toegevoegd. |
+| Major 2 | De lay-outconventie sloeg op native PDF's om naar "voor" door één "Betaald via iDEAL"-regel. | Conventie alleen voor OCR-tekst (native tekst = "na"); betaalstatusregels stemmen niet; oordeel vereist ≥ 2 stemmen en meerderheid. Webshop-probe als test. |
+| Major 3 | Disclaimer- en straatfilter te breed: "Demo Media B.V.", "Sample Solutions", "Albert Heijn 1089" vielen weg als leverancier. | Disclaimer alleen voor echte banners (fictief/testdocument/geen echt, of demo/sample in combinatie daarmee, of een losse banner-regel); straatfilter vereist een straatwoord. Tests toegevoegd. |
+| Minor 4 | "Totaal te betalen (3 artikelen)" / "voor 15-10-2026" werd als kapot bedrag gezien. | Tellingen, data en jaartallen worden eerst gestript, in beide modules gelijk. Test toegevoegd. |
+| Minor 5 | Afgeleide-totaalcap (≤ 0,84) is correct; routing niet door de benchmark gedekt. | Gedocumenteerd; de app-reviewtest dekt de routing van een onzeker totaal. |
+| Minor 6 | Zelf getypte website werd door de naamcheck weggegooid of als "document" gestempeld; herkomst kon op een bestaande relatie worden gezet zonder website te schrijven. | Getypte website blijft staan met bron `user`; herkomst alleen bij daadwerkelijk schrijven. Browsertest opnieuw groen. |
+| Minor 7 | Logo-browsertest niet in CI; party-roles kon niet falen; begrensde variant blokkeerde de PR; `/health` toonde de ruwe env-waarde. | Browsertest in `boekuna-app.yml`; party-roles faalt boven baseline (0/2 WRONG); begrensde variant `continue-on-error`; `/health` toont de effectieve instelling. |
+
+Niet overgenomen: geen. Scope-oordeel van de reviewer: geen boekhoud-, btw-, auth-, RLS- of billingwijzigingen; `website` is additief; de regel-samenvoeging is "the right fix" en beschadigt partijblokken niet (eigen skew-simulatie 1,5–3°).
