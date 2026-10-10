@@ -1,0 +1,35 @@
+name: BOEKUNA OCR 100 Independent Audit
+
+on:
+  push:
+    branches:
+      - "test/ocr-100-independent-audit-20261010"
+    paths:
+      - "tests/ocr-100-independent-audit.py"
+      - ".github/workflows/boekuna-ocr-100-independent-audit.yml"
+
+jobs:
+  ocr100:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install original BOEKUNA OCR dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r kwinest/docprocessor/requirements.txt
+      - name: Run 100-file synthetic audit using original analyze_document
+        env:
+          OMP_NUM_THREADS: "2"
+          OPENBLAS_NUM_THREADS: "2"
+        run: python tests/ocr-100-independent-audit.py
+      - name: Upload full JSON report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: boekuna-ocr-100-independent-audit
+          path: artifacts/ocr-100-audit.json
+          if-no-files-found: warn
