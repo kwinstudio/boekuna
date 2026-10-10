@@ -230,3 +230,38 @@ value, conf = app.labeled_amount(["Totaal te betalen voor 15-10-2026", "EUR 45,0
 assert value == 45.0 and conf >= .94, (value, conf)
 passed("native PDFs keep amount-under-label; counts and dates are not broken amounts")
 print("OK document-ocr-layout-amounts (review probes)")
+
+# 13. The supplier's web address is read from the whole document (header or footer), never
+#     from e-mail addresses, bank lines, the customer, the own company, payment providers or
+#     platforms, and only when the host matches the supplier name.
+W = app.document_website
+assert W(["HEMA", "www.hema.nl", "KASSABON", "Leverancier: HEMA", "Datum: 10-10-2026"], "HEMA") == "hema.nl"
+assert W(["HEMA", "KASSABON", "TOTAAL 11,49", "Bedankt voor je bezoek!", "Kijk op www.hema.nl", "Ruilen binnen 30 dagen"], "HEMA") == "hema.nl"
+assert W(["HEMA", "KASSABON", "hema.nl"], "HEMA") == "hema.nl"
+assert W(["Albert Heijn 1089", "www.ah.nl"], "Albert Heijn 1089") == "ah.nl", "initials of the alphabetic name words"
+assert W(["MediaMarkt", "www.mediamarkt.nl/service"], "MediaMarkt") == "mediamarkt.nl"
+assert W(["Praxis", "https://www.praxis.nl"], "Praxis Bouwmarkt B.V.") == "praxis.nl"
+assert W(["HEMA", "info@hema.nl"], "HEMA") is None, "an e-mail address is not a web address"
+assert W(["Bakker Jansen", "Betaald via ideal.nl", "www.marktplaats.nl"], "Bakker Jansen") is None, "payment and platform hosts never count"
+assert W(["Bakker Jansen", "www.korenbloem-brood.nl"], "Bakker Jansen") is None, "a host that does not match the name is left to the user"
+assert W(["Bahco Tools", "www.ah.nl"], "Bahco Tools") is None, "a two-letter label never matches by containment"
+assert W(["HEMA", "IBAN NL91ABNA0417164300 hema.nl"], "HEMA") is None, "bank lines are skipped"
+assert W(["HEMA", "bon.pdf", "www.hema.nl"], "HEMA") == "hema.nl"
+assert W(["HEMA", "www.demo-ondernemer.nl", "www.hema.nl"], "HEMA", exclude=("demo-ondernemer.nl",)) == "hema.nl"
+assert W(["HEMA", "www.demo-ondernemer.nl"], "HEMA", exclude=("demo-ondernemer.nl",)) is None
+assert W(["www.hema.nl"], None) is None
+# Through the full extractor: a receipt with the address in the footer reports it on the supplier.
+receipt_lines = ["HEMA", "KASSABON", "Leverancier: HEMA", "Datum: 10-10-2026", "Bonnummer: TEST-2026-001", "Notitieblok", "4,99",
+                 "Subtotaal excl. btw", "9,50", "BTW 21%", "1,99", "TOTAAL INCL. BTW", "11,49", "Betaald via PIN", "11,49",
+                 "Bedankt voor je bezoek!", "Kijk op www.hema.nl"]
+doc_receipt = {**doc, "text": "\n".join(receipt_lines), "ocrPages": []}
+result = app.heuristic_extract(doc_receipt, "hema-bon.jpg", {"name": "Demo Ondernemer", "website": "www.demo-ondernemer.nl"})
+assert result.supplier.name == "HEMA" and result.supplier.website == "hema.nl", (result.supplier.name, result.supplier.website)
+assert result.amounts.total == 11.49, result.amounts.model_dump(exclude_none=True)
+# On a sales invoice the own company's site stays with the issuer; the customer never gets it.
+doc_sale = {**doc, "text": "\n".join(["FACTUUR", "Demo Ondernemer", "www.demo-ondernemer.nl", "Factuur aan: Klant BV", "Factuurnummer: 2026-0001", "Factuurdatum: 01-10-2026", "Totaal", "121,00"]), "ocrPages": []}
+result = app.heuristic_extract(doc_sale, "verkoop.pdf", {"name": "Demo Ondernemer", "website": "www.demo-ondernemer.nl"})
+assert result.documentType == "sales_invoice" and result.customer.name == "Klant BV", (result.documentType, result.customer.name)
+assert (result.customer.website or None) is None, result.customer.model_dump(exclude_none=True)
+passed("supplier web address from the whole document, matched to the name, never the customer or a platform")
+print("OK document-ocr-layout-amounts (website evidence)")

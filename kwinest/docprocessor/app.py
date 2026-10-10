@@ -2205,6 +2205,49 @@ def printed_website(lines:list[str])->str|None:
             return host
     return None
 
+# Payment providers, platforms, authorities and social networks print their own addresses on
+# receipts and invoices; none of them is the supplier's site.
+PLATFORM_HOST_RE=re.compile(r"(?:^|\.)(?:ideal|paypal|mollie|klarna|adyen|buckaroo|tikkie|afterpay|riverty|in3|billink|visa|mastercard|maestro|ccv|pin|belastingdienst|kvk|google|apple|facebook|instagram|linkedin|twitter|x|youtube|whatsapp|marktplaats|thuiswinkel|webwinkelkeur|trustpilot|kiyoh)\.[a-z]{2,}$",re.I)
+_NAME_NOISE_RE=re.compile(r"^(?:b\.?v\.?|bv|n\.?v\.?|nv|v\.?o\.?f\.?|vof|holding|de|het|van|der|den|en|the|and)$",re.I)
+
+def website_matches_name(host:str,name:str)->bool:
+    """Same rule as the app: a host belongs to a party name when a name word of four or more
+    characters is in the host label, the joined name and the label contain each other (both at
+    least four characters), or the label equals the initials of the alphabetic name words."""
+    label="".join(str(host or "").lower().split(".")[:-1]).replace("-","")
+    words=[w for w in re.sub(r"[^\w\s]"," ",str(name or "").lower()).split() if w and not _NAME_NOISE_RE.match(w)]
+    if not label or not words:
+        return False
+    alpha=[w for w in words if re.search(r"[a-z]",w)]
+    joined="".join(words);initials="".join(w[0] for w in alpha)
+    if any(len(w)>=4 and w in label for w in words):
+        return True
+    if len(joined)>=4 and len(label)>=4 and (joined in label or label in joined):
+        return True
+    return len(initials)>=2 and label==initials
+
+def document_website(lines:list[str],name:str|None,exclude:tuple[str,...]|list[str]|set[str]=())->str|None:
+    """The first web address printed anywhere on the document (header or footer) whose host
+    matches the supplier name. E-mail addresses, bank lines, file names, platform and payment
+    hosts and the excluded hosts (customer, own company) never count. Evidence only; the app
+    shows it and the user can correct it."""
+    if not name:
+        return None
+    excluded={str(h or "").lower() for h in exclude if h}
+    for line in lines or []:
+        clean=re.sub(r"\S+@\S+"," ",line)
+        if re.search(r"\b(?:iban|bic)\b",clean,re.I):
+            continue
+        for m in WEBSITE_RE.finditer(clean):
+            host=m.group(1).lower()
+            if re.search(r"\.(?:pdf|jpg|jpeg|png|heic|docx|xlsx|csv|txt)$",host) or host.count(".")>4 or re.fullmatch(r"[\d.]+",host):
+                continue
+            if host in excluded or PLATFORM_HOST_RE.search(host):
+                continue
+            if website_matches_name(host,name):
+                return host
+    return None
+
 def contact_block(lines:list[str], labels:list[str], company:dict, role:str)->tuple[dict,float]:
     idx=None;matched_label=None
     for i,line in enumerate(lines[:120]):
@@ -2521,6 +2564,15 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         supplier={k:None for k in supplier};sev={**sev,"source":None,"doubt":"OWN_COMPANY_NOT_SUPPLIER"}
     if customer_own and dtype=="sales_invoice":
         customer={k:None for k in customer};cev={**cev,"source":None,"doubt":"OWN_COMPANY_NOT_CUSTOMER"}
+    # A web address printed anywhere on the document (receipts print it in the header or the
+    # footer, outside the party block) is evidence for the supplier's site when its host
+    # matches the supplier name. The customer's and the own company's hosts never count.
+    if supplier.get("name") and not supplier.get("website"):
+        own_host=re.sub(r"^www\.","",re.sub(r"^https?://","",str(company.get("website") or "").strip().lower())).split("/")[0]
+        own_mail=str(company.get("email") or "").strip().lower().split("@")[-1] if "@" in str(company.get("email") or "") else ""
+        # Only a labelled customer block speaks for the customer; a fallback block may hold the supplier's own footer.
+        customer_host=customer.get("website") if cconf>=.9 else None
+        supplier["website"]=document_website(lines,supplier.get("name"),(customer_host,own_host,own_mail))
 
     invoice_number_labels=INVOICE_NUMBER_LABELS
     if dtype=="credit_invoice":

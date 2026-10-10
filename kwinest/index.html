@@ -3588,8 +3588,8 @@ function partyWebsiteSuggestion(name,website){
  if(!host)return '';
  const label=host.split('.').slice(0,-1).join('').replace(/-/g,''),words=String(name||'').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').split(/\s+/).filter(w=>w&&!/^(b\.?v|bv|n\.?v|nv|v\.?o\.?f|vof|holding|de|het|van|der|den|en|the|and)$/i.test(w));
  if(!label||!words.length)return '';
- const joined=words.join(''),initials=words.map(w=>w[0]).join('');
- const ok=words.some(w=>w.length>=4&&label.includes(w))||(joined.length>=4&&(label.includes(joined)||joined.includes(label)))||(initials.length>=2&&label===initials);
+ const joined=words.join(''),initials=words.filter(w=>/\p{L}/u.test(w)).map(w=>w[0]).join('');
+ const ok=words.some(w=>w.length>=4&&label.includes(w))||(joined.length>=4&&label.length>=4&&(label.includes(joined)||joined.includes(label)))||(initials.length>=2&&label===initials);
  return ok?host:''
 }
 function expenseLeadHtml(e){const domain=partyLogoDomain(contactByName(e.vendor));return domain?partyAvatarHtml(e.vendor,domain):expenseCategoryIconHtml(e.category)}

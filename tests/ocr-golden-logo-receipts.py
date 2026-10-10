@@ -42,7 +42,7 @@ def q(x): return x.quantize(D(".01"),rounding=ROUND_HALF_UP)
 def cents(v): return None if v is None else int(q(D(str(v)))*100)
 def equal(s,t):
  return "".join(c for c in str(s or "").lower() if c.isalnum())=="".join(c for c in str(t or "").lower() if c.isalnum())
-def render(name,domain,short,color,idx,items,rate):
+def render(name,domain,short,color,idx,items,rate,website_at="header"):
  w,h=1050,1640
  im=Image.new("RGB",(w,h),"white");d=ImageDraw.Draw(im)
  def txt(p,s,ff,fill="#20242a",anchor=None):d.text(p,s,font=ff,fill=fill,anchor=anchor)
@@ -54,7 +54,7 @@ def render(name,domain,short,color,idx,items,rate):
  d.rounded_rectangle((418,65,630,177),radius=18,fill=color)
  txt((525,97),short,f(37,True),fill="#ffffff",anchor="mt")
  txt((525,205),name.upper(),f(52,True),anchor="ma")
- txt((525,275),"Website: www."+domain,f(30),anchor="ma")
+ if website_at=="header":txt((525,275),"Website: www."+domain,f(30),anchor="ma")
  txt((525,310),"KASSABON",f(49,True),anchor="ma")
  rule(380)
  txt((80,418),"Leverancier: "+name,f(32))
@@ -76,13 +76,13 @@ def render(name,domain,short,color,idx,items,rate):
  row(1137,"TOTAAL INCL. BTW EUR",total,True)
  row(1213,"Betaald per PIN EUR",total)
  rule(1282)
- txt((525,1350),"Dank voor uw aankoop",f(27),anchor="ma")
+ txt((525,1350),"Dank voor uw aankoop" if website_at=="header" else "Kijk op www."+domain,f(27),anchor="ma")
  d.rounded_rectangle((80,1405,970,1533),radius=14,fill="#f2f5f3",outline="#bbc9bc",width=2)
  txt((525,1438),"DEMO - FICTIEF TESTDOCUMENT",f(31,True),fill="#355b43",anchor="ma")
  txt((525,1493),"Geen echt aankoopbewijs",f(25),fill="#4f5e57",anchor="ma")
  txt((525,1600),"BOEKUNA OCR- EN LOGOTEST",f(24),fill="#707b83",anchor="ma")
  out=io.BytesIO();im.save(out,format="JPEG",quality=93,subsampling=0,optimize=True)
- return out.getvalue(), {"supplier":name,"date":"2026-10-10","subtotal":net,"vat":vat,"total":total,"vatRate":rate, "receipt":True}
+ return out.getvalue(), {"supplier":name,"date":"2026-10-10","subtotal":net,"vat":vat,"total":total,"vatRate":rate, "receipt":True, "website":domain}
 
 CASES=[
  ("Albert Heijn","ah.nl","AH","#1956b8",[("Kantoorwater",D("4.95")),("Koffie",D("7.38"))],9),
@@ -119,12 +119,12 @@ def run():
     d=raw["data"];a=d.get("amounts") or {};invoice=d.get("invoice") or {};sup=d.get("supplier") or {}
     actual={"supplier":sup.get("name"),"date":invoice.get("invoiceDate"),"subtotal":a.get("subtotal"),
       "vat":a.get("vatTotal"),"total":a.get("total"),"vatRate":next(iter([v.get("rate") for v in (a.get("vatLines") or []) if v.get("rate") is not None]),None),
-      "receipt":d.get("documentType")=="receipt"}
+      "receipt":d.get("documentType")=="receipt","website":sup.get("website")}
     grades={}
     for key,want in expect.items():
      got=actual[key]
      if key in ("subtotal","vat","total"):passed=got is not None and cents(got)==cents(want)
-     elif key=="supplier":passed=equal(got,want)
+     elif key in ("supplier","website"):passed=equal(got,want)
      elif key=="vatRate":passed=got is not None and float(got)==float(want)
      else:passed=(got==want)
      grades[key]="PASS" if passed else ("MISSING" if got is None else "WRONG")
@@ -140,6 +140,17 @@ def run():
    print("AUDIT_PROGRESS",label,"pass="+str(rec["fullyCorrect"]),
     "expected="+str(float(expect["total"])),"actual="+str(rec.get("actual",{}).get("total")),
     "route="+str(rec.get("route")),"ms="+str(rec["processingMs"]),flush=True)
+ # Real receipts print the web address in the footer, outside the party block: two footer
+ # variants must still report the supplier's host (hard check, not part of the 20 analyses).
+ footer=[]
+ for idx in (1,3):
+  name,domain,short,color,items,rate=CASES[idx-1]
+  jpg,expect=render(name,domain,short,color,idx,items,rate,website_at="footer")
+  raw=analyze_document(jpg,f"{idx:02d}_{domain.split('.')[0]}_FOOTER.jpg","image/jpeg",{"name":"Demo Ondernemer","tradeName":"","kvk":"","vat":""},[],allow_external_ai=False)
+  sup=(raw["data"].get("supplier") or {})
+  rec={"file":f"{idx:02d}_{domain.split('.')[0]}_FOOTER.jpg","supplier":sup.get("name"),"website":sup.get("website"),"expectedWebsite":domain,
+       "pass":equal(sup.get("name"),name) and equal(sup.get("website"),domain)}
+  footer.append(rec);print("FOOTER_WEBSITE",json.dumps(rec,ensure_ascii=False),flush=True)
  from collections import defaultdict
  per_field=defaultdict(Counter)
  for r in results:
@@ -155,14 +166,15 @@ def run():
   "correctDate":sum(r.get("grades",{}).get("date")=="PASS" for r in results),
   "correctVat":sum(r.get("grades",{}).get("vat")=="PASS" for r in results),
   "perField":{k:dict(c) for k,c in per_field.items()},
+  "footerWebsite":{"docs":len(footer),"correct":sum(r["pass"] for r in footer)},
   "medianMs":round(statistics.median(r["processingMs"] for r in results)),
   "elapsedS":round(time.perf_counter()-started)}
  dest=Path(os.environ.get("BOEKUNA_GOLDEN_REPORT","artifacts/ocr-logo-regression.json"))
  dest.parent.mkdir(exist_ok=True)
- dest.write_text(json.dumps({"summary":summary,"results":results},indent=2,ensure_ascii=False))
+ dest.write_text(json.dumps({"summary":summary,"results":results,"footerWebsite":footer},indent=2,ensure_ascii=False))
  print("BOEKUNA_LOGO_OCR_AUDIT_SUMMARY="+json.dumps(summary,ensure_ascii=False),flush=True)
  for r in results:
   if not r["fullyCorrect"]:print("GOLDEN_FAIL",r["file"],json.dumps({k:v for k,v in r.items() if k in("expected","actual","grades","error")},ensure_ascii=False,default=str),flush=True)
- if summary["fullyCorrect"]!=summary["docs"] and os.environ.get("BOEKUNA_GOLDEN_REPORT_ONLY")!="1":
-  raise SystemExit(f"GOLDEN GATE FAILED: {summary['fullyCorrect']}/{summary['docs']} fully correct")
+ if (summary["fullyCorrect"]!=summary["docs"] or summary["footerWebsite"]["correct"]!=summary["footerWebsite"]["docs"]) and os.environ.get("BOEKUNA_GOLDEN_REPORT_ONLY")!="1":
+  raise SystemExit(f"GOLDEN GATE FAILED: {summary['fullyCorrect']}/{summary['docs']} fully correct, footer website {summary['footerWebsite']['correct']}/{summary['footerWebsite']['docs']}")
 if __name__=="__main__":run()
