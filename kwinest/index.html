@@ -3562,10 +3562,13 @@ function partyLogoDomain(contact){
  const mail=String(contact?.email||'').trim().toLowerCase().split('@')[1]||'';
  return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(mail)&&!FREE_MAIL_DOMAINS.test(mail)?mail:''
 }
-const partyLogoState=new Map();
+const partyLogoState=new Map(),PARTY_LOGO_CACHE_KEY='boekuna.partyLogos.v1';
+// Uitkomst per domein wordt onthouden (alleen het domein, geen klantgegevens), zodat een site zonder logo niet bij elke start opnieuw wordt bevraagd.
+(function loadPartyLogoCache(){try{const raw=JSON.parse(localStorage.getItem(PARTY_LOGO_CACHE_KEY)||'{}'),now=Date.now();for(const [domain,entry] of Object.entries(raw&&typeof raw==='object'?raw:{})){if(entry&&typeof entry==='object'&&Number(entry.until)>now)partyLogoState.set(domain,typeof entry.src==='string'&&entry.src?entry.src:false)}}catch(_){}})();
+function partyLogoRemember(domain,src){if(!domain)return;partyLogoState.set(domain,src);try{const raw=JSON.parse(localStorage.getItem(PARTY_LOGO_CACHE_KEY)||'{}'),all=raw&&typeof raw==='object'?raw:{};all[domain]={src:src||false,until:Date.now()+(src?30:7)*864e5};const keys=Object.keys(all);for(const k of keys.slice(0,Math.max(0,keys.length-200)))delete all[k];localStorage.setItem(PARTY_LOGO_CACHE_KEY,JSON.stringify(all))}catch(_){}}
 function partyLogoSources(domain){return ['https://'+domain+'/apple-touch-icon.png','https://www.'+domain+'/apple-touch-icon.png','https://'+domain+'/favicon.ico']}
-function partyLogoLoaded(img){const box=img.closest('.party-avatar');if(img.naturalWidth<24){partyLogoFailed(img);return}partyLogoState.set(img.dataset.domain,img.currentSrc||img.src);box?.classList.add('has-logo')}
-function partyLogoFailed(img){const next=Number(img.dataset.try||0)+1,sources=partyLogoSources(img.dataset.domain);if(next<sources.length){img.dataset.try=String(next);img.src=sources[next];return}partyLogoState.set(img.dataset.domain,false);img.remove()}
+function partyLogoLoaded(img){const box=img.closest('.party-avatar');if(img.naturalWidth<24){partyLogoFailed(img);return}partyLogoRemember(img.dataset.domain,img.currentSrc||img.src);box?.classList.add('has-logo')}
+function partyLogoFailed(img){const next=Number(img.dataset.try||0)+1,sources=partyLogoSources(img.dataset.domain);if(next<sources.length){img.dataset.try=String(next);img.src=sources[next];return}partyLogoRemember(img.dataset.domain,false);img.remove()}
 function partyAvatarHtml(name,domain=''){
  let h=0;for(const c of String(name||'').toLowerCase())h=(h*31+c.codePointAt(0))>>>0;
  const known=domain?partyLogoState.get(domain):false,src=known||(known===undefined&&domain?partyLogoSources(domain)[0]:'');

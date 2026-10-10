@@ -79,6 +79,14 @@ const browserName=process.env.BOOKUNA_BROWSER==='webkit'?'webkit':'chromium';
 const browser=await browserType.launch({headless:true});
 const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'});
 const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+// The automatic ECB rate lookup is deterministic in this test: 'down' makes the lookup fail (manual
+// rate stays the fallback), 'ecb' answers like api.frankfurter.dev does for a weekend invoice date.
+const fx={mode:'down',requests:[]};
+await page.route(/api\.frankfurter\.dev/,route=>{
+  fx.requests.push(route.request().url());
+  if(fx.mode!=='ecb')return route.abort('failed');
+  route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({amount:1,base:'USD',date:'2026-10-02',rates:{EUR:0.89087}})});
+});
 
 async function openReview(overrides={}){
   await page.evaluate(overrides=>{
@@ -323,6 +331,59 @@ try{
     edge:BookunaDocumentReviewV2.convertSourceCentsToEur(5,'0.333')
   }));
   assert.deepEqual(fxRounding,{one:1,edge:2});
+  assert.ok(fx.requests.length>=1,'a non-EUR document must try the automatic ECB rate once');
+
+  // AUTOMATIC RATE — when the ECB rate for the invoice date is available it is filled in and
+  // counts as confirmed (source, date and rate are stored); the user can still overrule it.
+  fx.mode='ecb';fx.requests.length=0;
+  await openReview({
+    documentType:'purchase_invoice',invoiceNumber:'USD-2026-102',party:'Northwind Tools LLC',category:'Inkoop',
+    currency:'USD',net:100,vatAmount:21,gross:121,vatRate:21,issueDate:'2026-10-03',
+    reviewRouting:{mode:'FULL_REVIEW',fields:['currency'],count:1,autoBook:false},
+    fieldConfidence:{party:99,invoiceNumber:99,issueDate:99,net:99,vatAmount:99,gross:99,vatRate:99,vatLines:99,currency:99,category:90}
+  });
+  await page.getByRole('button',{name:'Volgende',exact:true}).click();
+  const autoCard=page.locator('[data-review-issue="currency"]');
+  await autoCard.locator('[data-fx-status]').filter({hasText:/ECB-koers van 0?2 okt/}).waitFor();
+  assert.deepEqual(fx.requests.map(u=>new URL(u).pathname+new URL(u).search),['/v1/2026-10-03?base=USD&symbols=EUR'],'lookup uses the invoice date and only sends currency + date');
+  assert.equal(await autoCard.locator('[name="exchangeRateToEur"]').inputValue(),'0.89087');
+  assert.deepEqual(await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed)),[],'an automatic ECB rate needs no extra confirmation click');
+  assert.equal(await page.locator('[data-review-save]:visible').first().isDisabled(),false);
+  assert.match(await autoCard.innerText(),/1 USD = 0,89087 EUR/);
+  // Overruling: typing a different rate revokes the automatic one and asks for an explicit confirmation again.
+  await autoCard.locator('[name="exchangeRateToEur"]').fill('0,9');
+  assert.ok((await page.evaluate(()=>BookunaDocumentReviewV2.financialBlockingIssues(pendingPdfImport.parsed))).some(x=>x.field==='exchangeRateToEur'));
+  await autoCard.locator('[name="exchangeRateToEur"]').fill('0.89087');
+  await autoCard.getByRole('button',{name:'Wisselkoers bevestigen',exact:true}).click();
+  assert.equal((await page.evaluate(()=>pendingPdfImport.parsed.exchangeRateSource?.provider)),'user','a hand-confirmed rate is stored as the user\'s own rate');
+  // Changing the currency drops the user rate confirmation and fetches the ECB rate for the new currency.
+  await autoCard.locator('[name="currency"]').fill('GBP');
+  await page.waitForTimeout(600);
+  assert.equal(fx.requests.length,1,'a user-entered rate is never overwritten by a lookup');
+  await autoCard.locator('[name="currency"]').fill('USD');
+  await autoCard.locator('[name="exchangeRateToEur"]').fill('');
+  await page.evaluate(()=>BookunaDocumentReviewV2.autoFillExchangeRate(pendingPdfImport.parsed));
+  await autoCard.locator('[data-fx-status]').filter({hasText:/ECB-koers van 0?2 okt/}).waitFor();
+  await page.locator('[data-review-save]:visible').first().click();
+  await page.waitForFunction(()=>state.documents.some(d=>d.reviewSnapshot?.invoiceNumber==='USD-2026-102'));
+  const savedAuto=await page.evaluate(()=>{
+    const doc=state.documents.find(d=>d.reviewSnapshot?.invoiceNumber==='USD-2026-102'),expense=state.expenses.find(e=>e.id===doc?.linkedId);
+    return {snapshot:doc.reviewSnapshot.exchangeRateSource,rate:doc.reviewSnapshot.exchangeRateToEur,booking:doc.reviewSnapshot.bookingAmountsEur,docSource:doc.exchangeRateSource,expenseSource:expense?.exchangeRateSource,expenseRate:expense?.exchangeRateToEur,gross:expense?.gross};
+  });
+  assert.equal(savedAuto.rate,'0.89087');
+  assert.equal(savedAuto.snapshot.provider,'ECB');
+  assert.equal(savedAuto.snapshot.rateDate,'2026-10-02');
+  assert.equal(savedAuto.snapshot.requestedDate,'2026-10-03');
+  assert.ok(savedAuto.snapshot.fetchedAt,'the moment of the lookup is stored');
+  assert.deepEqual(savedAuto.booking,{net:89.09,vatAmount:18.71,gross:107.8});
+  assert.equal(savedAuto.docSource.provider,'ECB');
+  assert.equal(savedAuto.expenseSource.provider,'ECB');
+  assert.equal(savedAuto.expenseRate,'0.89087');
+  assert.equal(savedAuto.gross,107.8);
+  await page.evaluate(()=>{openSavedDocumentReview(state.documents.find(d=>d.reviewSnapshot?.invoiceNumber==='USD-2026-102').id)});
+  assert.match(await page.locator('#modalRoot').innerText(),/ECB-koers van 0?2 okt/,'the saved review names the source and date of the rate');
+  await page.evaluate(()=>closeModal());
+  fx.mode='down';
 
   // VAT MISMATCH — 10 total / 5 VAT / 21%: the scanned VAT cannot be right, so Boekuna
   // calculates it from the total and the rate. The user only checks total and rate.
@@ -375,7 +436,7 @@ try{
     {name:'missing total',overrides:{gross:null,net:null},field:'reviewAmount',selector:'[name="reviewAmount"]'},
     {name:'missing VAT rate',overrides:{vatRate:null,vatAmount:null},field:'vatRate',selector:'[name="vatRate"]'},
     {name:'VAT treatment',overrides:{vatRate:20,net:100,vatAmount:20,gross:120,accountingVatTreatment:'review_required'},field:'vatTreatmentChoice',selector:'[name="vatTreatmentChoice"]'},
-    {name:'foreign currency',overrides:{currency:'USD'},field:'exchangeRateToEur',selector:'[name="exchangeRateToEur"]'}
+    {name:'foreign currency',overrides:{currency:'GBP'},field:'exchangeRateToEur',selector:'[name="exchangeRateToEur"]'}
   ];
   for(const scenario of blockerScenarios){
     await openReview(scenario.overrides);

@@ -95,6 +95,70 @@ function convertSourceCentsToEur(sourceCents,rateText){
   if(out==null)return null;
   const n=Number(out);return Number.isSafeInteger(n)?n:null
 }
+// Automatische wisselkoers: ECB-referentiekoers op de documentdatum via api.frankfurter.dev (geen sleutel).
+// Alleen valutacode en datum verlaten het apparaat. Lukt het niet, dan blijft de handmatige koers werken.
+const EXCHANGE_RATE_API='https://api.frankfurter.dev/v1/';
+const EXCHANGE_RATE_CACHE_KEY='boekuna.exchangeRates.v1';
+const exchangeRateMemory=new Map();
+let exchangeRateLookupVersion=0,exchangeRateLookupTimer=null;
+function exchangeRateCacheRead(){try{const raw=JSON.parse(localStorage.getItem(EXCHANGE_RATE_CACHE_KEY)||'{}');return raw&&typeof raw==='object'?raw:{}}catch(_){return {}}}
+function exchangeRateCacheWrite(key,entry){
+  try{const all=exchangeRateCacheRead();all[key]=entry;const keys=Object.keys(all);for(const k of keys.slice(0,Math.max(0,keys.length-60)))delete all[k];localStorage.setItem(EXCHANGE_RATE_CACHE_KEY,JSON.stringify(all))}catch(_){}
+}
+function normalizeLookupRate(value){
+  const n=Number(value);if(!Number.isFinite(n)||n<=0)return null;
+  return parseExchangeRateToEur(n.toFixed(8).replace(/0+$/,'').replace(/\.$/,''))?.normalized||null
+}
+async function lookupExchangeRateToEur(currency,date){
+  const code=normalizeCurrencyCode(currency);
+  if(!/^[A-Z]{3}$/.test(code)||code==='EUR')return null;
+  const todayKey=typeof today==='function'?today():new Date().toISOString().slice(0,10);
+  const requestedDate=safeDate(date)||todayKey,key=code+'@'+requestedDate;
+  if(exchangeRateMemory.has(key))return exchangeRateMemory.get(key);
+  const cached=exchangeRateCacheRead()[key];
+  if(cached&&cached.provider&&parseExchangeRateToEur(cached.rate)){exchangeRateMemory.set(key,cached);return cached}
+  if(typeof navigator!=='undefined'&&navigator.onLine===false)return null;
+  let result=null;
+  try{
+    const signal=typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout==='function'?AbortSignal.timeout(4000):undefined;
+    const response=await fetch(EXCHANGE_RATE_API+requestedDate+'?base='+encodeURIComponent(code)+'&symbols=EUR',{signal,cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer'});
+    if(response.ok){
+      const data=await response.json(),rate=normalizeLookupRate(data?.rates?.EUR),rateDate=safeDate(data?.date)||requestedDate;
+      if(rate&&normalizeCurrencyCode(data?.base)===code)result={provider:'ECB',rate,rateDate,requestedDate,fetchedAt:new Date().toISOString()}
+    }
+  }catch(_){result=null}
+  // Een koers van een eerdere dag staat vast; de koers van vandaag kan later nog verschijnen.
+  if(result){exchangeRateMemory.set(key,result);if(requestedDate<todayKey)exchangeRateCacheWrite(key,result)}
+  return result
+}
+function exchangeRateIsAutomatic(d){return genericProvenance(d).exchangeRateToEur?.source==='ecb'}
+function exchangeRateIsUserEntered(d){return genericProvenance(d).exchangeRateToEur?.source==='user'}
+function scheduleExchangeRateLookup(d){
+  clearTimeout(exchangeRateLookupTimer);
+  exchangeRateLookupTimer=setTimeout(()=>{if(pendingPdfImport?.parsed===d)void autoFillExchangeRate(d)},350)
+}
+async function autoFillExchangeRate(d){
+  const f=document.getElementById('pdfImportForm'),input=f?.elements.namedItem('exchangeRateToEur'),confirmedEl=f?.elements.namedItem('exchangeRateConfirmed');if(!d||!input||!confirmedEl)return;
+  const currency=normalizeCurrencyCode(f.elements.namedItem('currency')?.value||d.currency||'EUR');
+  if(!/^[A-Z]{3}$/.test(currency)||currency==='EUR')return;
+  // Een koers die de gebruiker zelf typte of bevestigde wordt nooit overschreven.
+  if(exchangeRateIsUserEntered(d)||(String(input.value||'').trim()&&!exchangeRateIsAutomatic(d)))return;
+  const version=++exchangeRateLookupVersion,date=String(f.elements.namedItem('issueDate')?.value||d.issueDate||'');
+  d.exchangeRateLookupPending=true;d.exchangeRateLookupFailed=false;updateForeignCurrencyPreview();
+  const result=await lookupExchangeRateToEur(currency,date);
+  if(version!==exchangeRateLookupVersion||pendingPdfImport?.parsed!==d||!input.isConnected)return;
+  d.exchangeRateLookupPending=false;
+  if(!result){d.exchangeRateLookupFailed=true;updateForeignCurrencyPreview();updateBeginnerReviewState();return}
+  input.setCustomValidity('');input.value=result.rate;d.exchangeRateToEur=result.rate;d.exchangeRateConfirmed=true;d.exchangeRateConfirmedAt=result.fetchedAt;confirmedEl.value='on';
+  d.exchangeRateSource={provider:result.provider,rateDate:result.rateDate,requestedDate:result.requestedDate,fetchedAt:result.fetchedAt};
+  genericProvenance(d).exchangeRateToEur={source:'ecb',confirmed:true,confirmedAt:result.fetchedAt,provider:result.provider,rateDate:result.rateDate,requestedDate:result.requestedDate};
+  updateForeignCurrencyPreview();updateBeginnerReviewState()
+}
+function exchangeRateSourceLabel(source,rateText,currency){
+  const rate='1 '+currency+' = '+String(rateText||'').replace('.',',')+' EUR';
+  if(source?.provider==='ECB'){const day=safeDate(source.rateDate);return 'ECB-koers'+(day?' van '+(typeof dateNL==='function'?dateNL(day):day):'')+' · '+rate}
+  return 'Bevestigd: '+rate
+}
 function sourceMoney(value,currency='EUR'){
   const code=normalizeCurrencyCode(currency);
   try{return new Intl.NumberFormat('nl-NL',{style:'currency',currency:/^[A-Z]{3}$/.test(code)?code:'EUR'}).format(Number(value||0))}
@@ -133,18 +197,20 @@ function updateForeignCurrencyPreview(){
   const d=pendingPdfImport?.parsed,card=document.querySelector('[data-review-issue="currency"]');if(!d||!card)return;
   const f=document.getElementById('pdfImportForm'),currency=normalizeCurrencyCode(f?.elements.namedItem('currency')?.value||d.currency||'EUR');
   card.querySelectorAll('[data-fx-source-code]').forEach(el=>{el.textContent=currency});
-  const state=foreignCurrencyReviewState(d),preview=card.querySelector('[data-fx-preview]'),status=card.querySelector('[data-fx-status]');
+  const state=foreignCurrencyReviewState(d),preview=card.querySelector('[data-fx-preview]'),status=card.querySelector('[data-fx-status]'),confirmAction=card.querySelector('[data-fx-confirm]');
+  // De bevestigknop verschijnt alleen als er een koers staat die nog niet bevestigd is.
+  if(confirmAction)confirmAction.hidden=currency==='EUR'||!state.rate||state.confirmed;
   if(!preview||!status)return;
   if(currency==='EUR'){
-    status.textContent='Valuta staat op EUR; er is geen wisselkoers nodig.';status.className='exchange-rate-status good';preview.innerHTML='';return
+    status.textContent='EUR: geen wisselkoers nodig.';status.className='exchange-rate-status good';preview.innerHTML='';return
   }
   if(!state.rate){
-    status.textContent='Vul eerst de koers in die je voor deze boeking gebruikt.';status.className='exchange-rate-status';preview.innerHTML='';return
+    status.textContent=d.exchangeRateLookupPending?'Koers ophalen…':(d.exchangeRateLookupFailed?'Geen koers gevonden. ':'')+'Vul in hoeveel EUR 1 '+currency+' is.';status.className='exchange-rate-status';preview.innerHTML='';return
   }
   if(!state.confirmed){
-    status.textContent='Koers ingevuld. Bevestig hem expliciet voordat je opslaat.';status.className='exchange-rate-status warn';preview.innerHTML='';return
+    status.textContent='Bevestig deze koers voordat je opslaat.';status.className='exchange-rate-status warn';preview.innerHTML='';return
   }
-  status.textContent='Bevestigd: 1 '+currency+' = '+state.rate.normalized.replace('.',',')+' EUR';status.className='exchange-rate-status good';
+  status.textContent=exchangeRateSourceLabel(d.exchangeRateSource,state.rate.normalized,currency);status.className='exchange-rate-status good';
   const b=state.bookingAmountsEur;
   preview.innerHTML=b?'<strong>Boeking in EUR</strong><span>Excl. '+esc(money(b.net))+' · btw '+esc(money(b.vatAmount))+' · totaal '+esc(money(b.gross))+'</span>':'<strong>Koers bevestigd</strong><span>Corrigeer eerst de bedragen om de EUR-boeking te berekenen.</span>'
 }
@@ -153,6 +219,7 @@ function confirmExchangeRate(){
   const rate=parseExchangeRateToEur(input.value);
   if(!rate){input.setCustomValidity('Vul een positieve wisselkoers in, bijvoorbeeld 0,92.');input.reportValidity();return}
   input.setCustomValidity('');input.value=rate.normalized;d.exchangeRateToEur=rate.normalized;d.exchangeRateConfirmed=true;d.exchangeRateConfirmedAt=new Date().toISOString();confirmed.value='on';
+  exchangeRateLookupVersion++;d.exchangeRateLookupPending=false;d.exchangeRateSource={provider:'user',confirmedAt:d.exchangeRateConfirmedAt};
   genericProvenance(d).exchangeRateToEur={source:'user',confirmed:true,confirmedAt:d.exchangeRateConfirmedAt};
   updateForeignCurrencyPreview();updateBeginnerReviewState()
 }
@@ -611,12 +678,20 @@ function onGenericReviewInput(event){
   if(['party','category','issueDate','invoiceNumber','documentType','type'].includes(key))d[key]=String(event.target?.value??'');
   if(key==='currency'){
     d.currency=normalizeCurrencyCode(event.target?.value||'EUR');event.target.value=d.currency;d.exchangeRateConfirmed=false;d.exchangeRateConfirmedAt=null;
-    const confirmed=document.getElementById('pdfImportForm')?.elements.namedItem('exchangeRateConfirmed');if(confirmed)confirmed.value=''
+    const f=document.getElementById('pdfImportForm'),confirmed=f?.elements.namedItem('exchangeRateConfirmed');if(confirmed)confirmed.value='';
+    // Een automatische koers hoort bij de vorige valuta; die gaat weg en wordt opnieuw opgehaald.
+    if(exchangeRateIsAutomatic(d)){delete genericProvenance(d).exchangeRateToEur;d.exchangeRateToEur='';d.exchangeRateSource=null;const rateEl=f?.elements.namedItem('exchangeRateToEur');if(rateEl)rateEl.value=''}
+    exchangeRateLookupVersion++;d.exchangeRateLookupPending=false;
+    if(d.currency!=='EUR'&&/^[A-Z]{3}$/.test(d.currency))scheduleExchangeRateLookup(d)
   }
   if(key==='exchangeRateToEur'){
     d.exchangeRateToEur=String(event.target?.value??'').trim().replace(',','.');d.exchangeRateConfirmed=false;d.exchangeRateConfirmedAt=null;event.target.setCustomValidity('');
-    const confirmed=document.getElementById('pdfImportForm')?.elements.namedItem('exchangeRateConfirmed');if(confirmed)confirmed.value=''
+    const confirmed=document.getElementById('pdfImportForm')?.elements.namedItem('exchangeRateConfirmed');if(confirmed)confirmed.value='';
+    // Zelf getypt wint altijd van de automatische koers.
+    exchangeRateLookupVersion++;d.exchangeRateLookupPending=false;d.exchangeRateSource=null;
+    if(d.exchangeRateToEur)genericProvenance(d).exchangeRateToEur={source:'user',confirmed:false};else delete genericProvenance(d).exchangeRateToEur
   }
+  if(key==='issueDate'&&exchangeRateIsAutomatic(d))scheduleExchangeRateLookup(d);
   if(['party','category','issueDate','invoiceNumber'].includes(key)){
     genericProvenance(d)[key]={source:'user',confirmed:true,confirmedAt:new Date().toISOString()};
     setDeferredFields(d,deferredFields(d).filter(x=>x!==key))
@@ -642,7 +717,8 @@ function bindBeginnerReview(){
     observer.observe(financialPanel,{childList:true,subtree:true,characterData:true});
   }
   if(typeof updateFinancialReviewPanel==='function')updateFinancialReviewPanel();
-  updateForeignCurrencyPreview();updateBeginnerReviewState()
+  updateForeignCurrencyPreview();updateBeginnerReviewState();
+  if(normalizeCurrencyCode(d.currency)!=='EUR'&&d.exchangeRateConfirmed!==true)void autoFillExchangeRate(d)
 }
 
 function applyFinancialCorrectionProposal(){
@@ -772,7 +848,7 @@ function canonicalFieldControl(d,key,issue=false){
 function issuePanel(d,issue){
   if(issue.field==='currency'||issue.field==='exchangeRateToEur'){
     const currency=normalizeCurrencyCode(d.currency||'EUR'),rate=parseExchangeRateToEur(d.exchangeRateToEur||''),confirmed=!!rate&&d.exchangeRateConfirmed===true;
-    return '<section class="review-issue-card attention foreign-currency-review" data-review-issue="currency"><h5>Bedrag in <span data-fx-source-code>'+esc(currency)+'</span></h5><p>Vul de koers in die je voor deze boeking gebruikt.</p><div class="foreign-currency-fields"><div class="field"><label>Valuta</label><input name="currency" value="'+esc(currency)+'" maxlength="3" autocomplete="off" inputmode="text"></div><div class="field"><label for="exchangeRateToEur">Wisselkoers</label><div class="foreign-rate-equation"><span>1 <strong data-fx-source-code>'+esc(currency)+'</strong> =</span><input id="exchangeRateToEur" name="exchangeRateToEur" inputmode="decimal" autocomplete="off" placeholder="0,92" value="'+esc(rate?.normalized||'')+'"><span>EUR</span></div></div></div><input type="hidden" name="exchangeRateConfirmed" value="'+(confirmed?'on':'')+'"><div class="review-issue-actions"><button type="button" class="btn small" onclick="confirmExchangeRate()">Wisselkoers bevestigen</button></div><div data-fx-status class="exchange-rate-status" role="status" aria-live="polite"></div><div data-fx-preview class="exchange-rate-preview" aria-live="polite"></div></section>'
+    return '<section class="review-issue-card attention foreign-currency-review" data-review-issue="currency"><h5>Bedrag in <span data-fx-source-code>'+esc(currency)+'</span></h5><div class="foreign-currency-fields"><div class="field"><label>Valuta</label><input name="currency" value="'+esc(currency)+'" maxlength="3" autocomplete="off" inputmode="text"></div><div class="field"><label for="exchangeRateToEur">Wisselkoers</label><div class="foreign-rate-equation"><span>1 <strong data-fx-source-code>'+esc(currency)+'</strong> =</span><input id="exchangeRateToEur" name="exchangeRateToEur" inputmode="decimal" autocomplete="off" placeholder="0,92" value="'+esc(rate?.normalized||'')+'"><span>EUR</span></div></div></div><input type="hidden" name="exchangeRateConfirmed" value="'+(confirmed?'on':'')+'"><div class="review-issue-actions" data-fx-confirm'+(confirmed||!rate?' hidden':'')+'><button type="button" class="btn small" onclick="confirmExchangeRate()">Wisselkoers bevestigen</button></div><div data-fx-status class="exchange-rate-status" role="status" aria-live="polite"></div><div data-fx-preview class="exchange-rate-preview" aria-live="polite"></div></section>'
   }
   if(issue.field==='vatTreatmentChoice'){
     const rate=d.vatRate!=null&&d.vatRate!==''&&Number.isFinite(Number(d.vatRate))?num(Number(d.vatRate))+'% ':'';
@@ -1009,6 +1085,7 @@ function captureReviewSnapshot(){
     vatLines:typeof canonicalFinancialVatLines==='function'?canonicalFinancialVatLines(d.vatLines):structuredClone(d.vatLines||[]),
     vatId:String(fd.vatId||d.vatId||''),iban:String(fd.iban||''),currency,description:String(fd.description||''),dueDate:String(fd.dueDate||''),
     exchangeRateToEur:currency==='EUR'?null:(fx.rate?.normalized||null),exchangeRateConfirmed:currency!=='EUR'&&fx.confirmed,exchangeRateConfirmedAt:currency!=='EUR'&&fx.confirmed?(d.exchangeRateConfirmedAt||null):null,
+    exchangeRateSource:currency!=='EUR'&&fx.confirmed?structuredClone(d.exchangeRateSource||{provider:'user'}):null,
     bookingCurrency:'EUR',bookingAmountsEur:currency==='EUR'?sourceAmounts:structuredClone(fx.bookingAmountsEur),bookingVatLinesEur:currency==='EUR'?[]:structuredClone(fx.bookingVatLinesEur||[]),
     sourcePaymentAmounts:{advancePayment:d.advancePayment??null,alreadyPaid:d.alreadyPaid??null,outstandingAmount:d.outstandingAmount??null,amountDue:d.amountDue??null,payout:d.payout??null},
     sourceAdjustments:structuredClone(d.adjustments||[]),sourceLineItems:structuredClone(d.lineItems||[]),
@@ -1045,7 +1122,7 @@ function prepareForeignCurrencyLegacyBooking(d,snapshot){
 }
 function annotateForeignCurrencyBooking(doc,snapshot){
   if(!doc||!snapshot||snapshot.currency==='EUR'||!snapshot.exchangeRateConfirmed)return;
-  const meta={sourceCurrency:snapshot.currency,exchangeRateToEur:snapshot.exchangeRateToEur,exchangeRateConfirmedAt:snapshot.exchangeRateConfirmedAt||snapshot.reviewedAt,sourceAmounts:structuredClone(snapshot.sourceAmounts),sourcePaymentAmounts:structuredClone(snapshot.sourcePaymentAmounts||{}),bookingCurrency:'EUR',bookingAmountsEur:structuredClone(snapshot.bookingAmountsEur)};
+  const meta={sourceCurrency:snapshot.currency,exchangeRateToEur:snapshot.exchangeRateToEur,exchangeRateConfirmedAt:snapshot.exchangeRateConfirmedAt||snapshot.reviewedAt,exchangeRateSource:structuredClone(snapshot.exchangeRateSource||{provider:'user'}),sourceAmounts:structuredClone(snapshot.sourceAmounts),sourcePaymentAmounts:structuredClone(snapshot.sourcePaymentAmounts||{}),bookingCurrency:'EUR',bookingAmountsEur:structuredClone(snapshot.bookingAmountsEur)};
   Object.assign(doc,meta);
   doc.sourceFieldProvenance=structuredClone(snapshot.fieldProvenance||{});
   if(!doc.fieldProvenance||typeof doc.fieldProvenance!=='object')doc.fieldProvenance={};
@@ -1117,7 +1194,7 @@ function openSavedDocumentReview(id){
   const doc=state.documents.find(x=>x.id===id),s=doc?.reviewSnapshot;if(!doc||!s)return toast('De opgeslagen controle is niet beschikbaar.');
   const rows=[['Leverancier / relatie','party'],['Datum','issueDate'],['Factuurnummer','invoiceNumber'],['Valuta','currency'],['Bedrag excl. btw','net'],['Btw','vatAmount'],['Totaal','gross']];
   const vat=s.mixedRates?'<div class="saved-review-vat"><strong>Btw-verdeling</strong>'+((s.vatLines||[]).map(x=>'<span>'+esc(num(x.rate))+'% · excl. '+esc(sourceMoney(x.taxableAmount,s.currency))+' · btw '+esc(sourceMoney(x.vatAmount,s.currency))+'</span>').join('')||'<span>—</span>')+'</div>':'<div class="saved-review-row"><span>Btw-percentage</span><strong>'+esc(savedReviewValue(s,'vatRate'))+'</strong></div>';
-  const fx=s.currency&&s.currency!=='EUR'&&s.exchangeRateConfirmed?'<div class="saved-review-fx"><strong>Bevestigde wisselkoers</strong><span>1 '+esc(s.currency)+' = '+esc(String(s.exchangeRateToEur||'').replace('.',','))+' EUR</span>'+(s.bookingAmountsEur?'<span>EUR-boeking · excl. '+esc(money(s.bookingAmountsEur.net))+' · btw '+esc(money(s.bookingAmountsEur.vatAmount))+' · totaal '+esc(money(s.bookingAmountsEur.gross))+'</span>':'')+'</div>':'';
+  const fx=s.currency&&s.currency!=='EUR'&&s.exchangeRateConfirmed?'<div class="saved-review-fx"><strong>'+(s.exchangeRateSource?.provider==='ECB'?'ECB-koers'+(safeDate(s.exchangeRateSource.rateDate)?' van '+esc(typeof dateNL==='function'?dateNL(s.exchangeRateSource.rateDate):s.exchangeRateSource.rateDate):''):'Bevestigde wisselkoers')+'</strong><span>1 '+esc(s.currency)+' = '+esc(String(s.exchangeRateToEur||'').replace('.',','))+' EUR</span>'+(s.bookingAmountsEur?'<span>EUR-boeking · excl. '+esc(money(s.bookingAmountsEur.net))+' · btw '+esc(money(s.bookingAmountsEur.vatAmount))+' · totaal '+esc(money(s.bookingAmountsEur.gross))+'</span>':'')+'</div>':'';
   const attention=Array.isArray(doc.reviewAttentionFields)&&doc.reviewAttentionFields.length?'<div class="notice warn"><strong>Later controleren</strong><br>'+doc.reviewAttentionFields.map(x=>esc(LABELS[x]||x)).join(' · ')+'</div>':'';
   modal('Opgeslagen controle','<div class="saved-review-card">'+rows.map(([label,key])=>'<div class="saved-review-row"><span>'+esc(label)+'</span><strong>'+esc(savedReviewValue(s,key))+'</strong></div>').join('')+vat+fx+'</div>'+attention,'<button class="btn" onclick="closeModal()">Sluiten</button>'+(scannedDocumentEditState(doc).ok?'<button class="btn'+(doc.reviewAttentionFields?.length?'':' primary')+'" onclick="editScannedDocument(\''+esc(doc.id)+'\')">Bewerken</button>':'')+(doc.reviewAttentionFields?.length?'<button class="btn primary" onclick="openDeferredDocumentReview(\''+esc(doc.id)+'\')">Nu controleren</button>':''),true)
 }
@@ -1371,7 +1448,7 @@ async function saveScannedDocumentEdit(ctx){
   return true
 }
 
-global.BookunaDocumentReviewV2=Object.freeze({requirementsFor,financialBlockingIssues,mixedVatValidation,captureReviewSnapshot,buildDocumentReviewViewModel,parseExchangeRateToEur,convertSourceCentsToEur,foreignCurrencyReviewState});
+global.BookunaDocumentReviewV2=Object.freeze({requirementsFor,financialBlockingIssues,mixedVatValidation,captureReviewSnapshot,buildDocumentReviewViewModel,parseExchangeRateToEur,convertSourceCentsToEur,foreignCurrencyReviewState,lookupExchangeRateToEur,autoFillExchangeRate});
 global.requirementsForDocumentReview=requirementsFor;
 global.setDocumentReviewStep=setDocumentReviewStep;
 global.goToReviewWizardStep=goToReviewWizardStep;
