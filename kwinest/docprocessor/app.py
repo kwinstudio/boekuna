@@ -3391,7 +3391,7 @@ def health():
         "billingQuota":True,
         "version":PROCESSOR_VERSION,
         "revision":PROCESSOR_REVISION,
-        "limits":{"maxSizeMb":MAX_SIZE_MB,"maxPdfPages":MAX_PDF_PAGES,"maxImagePixels":MAX_IMAGE_PIXELS,"maxImageSide":MAX_IMAGE_SIDE,"ocrWorkingMaxSide":OCR_WORKING_MAX_SIDE},
+        "limits":{"maxSizeMb":MAX_SIZE_MB,"maxPdfPages":MAX_PDF_PAGES,"maxImagePixels":MAX_IMAGE_PIXELS,"maxImageSide":MAX_IMAGE_SIDE,"ocrWorkingMaxSide":OCR_WORKING_MAX_SIDE,"ocrDetLimitType":OCR_DET_LIMIT_TYPE,"ocrDetLimitSide":OCR_DET_LIMIT_SIDE},
         "supportedExtensions":list(SUPPORTED_DOCUMENT_EXTENSIONS),
         "supportedMimeTypes":list(SUPPORTED_DOCUMENT_MIME_TYPES),
     }
