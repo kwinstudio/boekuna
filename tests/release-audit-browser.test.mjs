@@ -206,7 +206,9 @@ try{
     await f.locator('[name=vendor]').fill('Groothandel Test');
     const g=cents('60.50'),split=(gross,rate)=>Math.floor((2*gross*rate+100+rate)/(2*(100+rate)));
     const vat21=split(g,21),vat9=split(g,9);
-    await attempt('A-40','Kostenformulier toont de btw die je terugkrijgt ('+eur(vat21)+')',async()=>plain(await f.innerText()).includes('Hiervan is '+eur(vat21)+' btw'));
+    // Boekuna no longer assumes 21%: the user picks the rate on the receipt.
+    await f.locator('.choice-chip',{hasText:'21%'}).click();
+    await attempt('A-40','Kostenformulier toont de btw op de bon ('+eur(vat21)+')',async()=>plain(await f.innerText()).includes('Btw op deze bon: '+eur(vat21)));
     await page.locator('#modalRoot').getByRole('button',{name:'Opslaan'}).click();
     let e=await appState(page,()=>state.expenses.map(x=>({id:x.id,ex:Math.round(x.exVat*100),vat:Math.round(x.vatAmount*100),gross:Math.round(x.gross*100)})));
     check('A-41','Kosten opgeslagen: excl. '+eur(g-vat21)+', btw '+eur(vat21),e.length===1&&e[0].ex===g-vat21&&e[0].vat===vat21&&e[0].gross===g,JSON.stringify(e));
@@ -232,16 +234,16 @@ try{
       await page.evaluate(()=>closeModal());
     }
     await page.evaluate(()=>newExpense());
-    await page.locator('#expenseForm [name=gross]').fill('12.10');await page.locator('#expenseForm [name=vendor]').fill('Zonder datum');await page.locator('#expenseForm [name=date]').fill('');
+    await page.locator('#expenseForm [name=gross]').fill('12.10');await page.locator('#expenseForm [name=vendor]').fill('Zonder datum');await page.locator('#expenseForm .choice-chip',{hasText:'21%'}).click();await page.locator('#expenseForm [name=date]').fill('');
     await page.locator('#modalRoot').getByRole('button',{name:'Opslaan'}).click();
     await attempt('C-22','Kosten zonder datum worden niet opgeslagen',async()=>!(await appState(page,()=>state.expenses.some(x=>x.vendor==='Zonder datum'))));
     await page.evaluate(()=>closeModal());
     await page.evaluate(()=>newExpense());
-    await page.locator('#expenseForm [name=gross]').fill('24.20');await page.locator('#expenseForm [name=vendor]').fill('Dubbel');
+    await page.locator('#expenseForm [name=gross]').fill('24.20');await page.locator('#expenseForm [name=vendor]').fill('Dubbel');await page.locator('#expenseForm .choice-chip',{hasText:'21%'}).click();
     await page.locator('#modalRoot').getByRole('button',{name:'Opslaan'}).dblclick();
     await attempt('C-23','Dubbelklik op Opslaan maakt één kostenpost',async()=>(await appState(page,()=>state.expenses.filter(x=>x.vendor==='Dubbel').length))===1);
     await page.evaluate(()=>newExpense());
-    await page.locator('#expenseForm [name=gross]').fill('12.10');await page.locator('#expenseForm [name=vendor]').fill('Jaar 2206');await page.locator('#expenseForm [name=date]').fill('2206-01-01');
+    await page.locator('#expenseForm [name=gross]').fill('12.10');await page.locator('#expenseForm [name=vendor]').fill('Jaar 2206');await page.locator('#expenseForm .choice-chip',{hasText:'21%'}).click();await page.locator('#expenseForm [name=date]').fill('2206-01-01');
     await page.locator('#modalRoot').getByRole('button',{name:'Opslaan'}).click();
     check('C-24','Datum ver in de toekomst (2206) wordt geweigerd of gemeld',!(await appState(page,()=>state.expenses.some(x=>x.vendor==='Jaar 2206'))),'opgeslagen op 2206-01-01 zonder melding');
     await page.evaluate(()=>closeModal&&closeModal());

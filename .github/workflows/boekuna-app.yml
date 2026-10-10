@@ -100,6 +100,8 @@ on:
       - "tests/invoice-legal-content.test.mjs"
       - "supabase/functions/send-invoice/index.ts"
       - "tests/vat-return-boxes.test.mjs"
+      - "tests/financial-logic-v1.test.mjs"
+      - "tests/scan-edit-after-confirmation-browser.test.mjs"
       - "tests/cashflow-recurrence.test.mjs"
       - "tests/cashflow-recurrence-browser.test.mjs"
       - "tests/planned-cash-sql-isolation.test.mjs"
@@ -174,6 +176,8 @@ jobs:
         run: node tests/logout-local-data.test.mjs
       - name: VAT return boxes and receipt-amount expenses
         run: node tests/vat-return-boxes.test.mjs
+      - name: Financial logic (cancelled invoices, one-cent open amounts, receipt VAT choice)
+        run: node tests/financial-logic-v1.test.mjs
       - name: Mandatory invoice content on print/PDF and shared PDF
         run: node tests/invoice-legal-content.test.mjs
       - name: Recurrence date and forecast invariants
@@ -351,6 +355,10 @@ jobs:
         run: node tests/document-background-processing.test.mjs
       - name: WebKit document review regressions
         run: BOOKUNA_BROWSER=webkit node tests/document-upload-browser.test.mjs
+      - name: Correct a confirmed scan afterwards — Chromium desktop + WebKit iPhone
+        run: |
+          node tests/scan-edit-after-confirmation-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/scan-edit-after-confirmation-browser.test.mjs
       - name: Storage status and conflict-safe retry
         run: node tests/app-ux-status.test.mjs
       - name: Generated app UX and plain Dutch · Chromium
