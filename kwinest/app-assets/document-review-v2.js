@@ -972,6 +972,45 @@ function reviewWizardField(d,key,label,full=false){
   }
   return ''
 }
+// What the document is: Kosten or Inkoop (both costs, only the category differs) or a Verkoopfactuur (income).
+// The upload button is only a first guess, so the user can always switch here, also later via Bewerken.
+const REVIEW_KINDS=[['cost','Kosten'],['purchase','Inkoop'],['sale','Verkoopfactuur (omzet)']];
+const REVIEW_KIND_LABELS={cost:'Kosten',purchase:'Inkoop',sale:'Verkoopfactuur'};
+function reviewBookingKind(d){return d?.type==='sale'?'sale':String(d?.category||'Inkoop')==='Inkoop'?'purchase':'cost'}
+function reviewKindField(d){
+  const kind=reviewBookingKind(d);
+  return '<div class="field" data-review-field="bookingKind"><label for="pdfImportKind">Soort</label><select id="pdfImportKind" name="bookingKind" onchange="changeReviewBookingKind(this.value)">'+REVIEW_KINDS.map(([value,label])=>'<option value="'+value+'"'+(value===kind?' selected':'')+'>'+esc(label)+'</option>').join('')+'</select></div>'
+}
+function bindReviewKindSync(){
+  const f=document.getElementById('pdfImportForm'),cat=f?.querySelector('select[name="category"]'),kind=document.getElementById('pdfImportKind'),d=pendingPdfImport?.parsed;
+  if(!cat||!kind||!d||d.type==='sale')return;
+  cat.addEventListener('change',()=>{d.category=cat.value;kind.value=reviewBookingKind(d)})
+}
+function changeReviewBookingKind(kind){
+  const d=pendingPdfImport?.parsed,f=document.getElementById('pdfImportForm');if(!d||!f||!REVIEW_KIND_LABELS[kind])return;
+  if(!d.fieldProvenance||typeof d.fieldProvenance!=='object')d.fieldProvenance={};
+  d.fieldProvenance.type={source:'user',confirmed:true,confidence:null,confirmedAt:new Date().toISOString()};
+  const cat=f.elements.namedItem('category'),current=String(cat?.value||d.category||'');
+  if(current&&current!=='Inkoop')d.costCategory=current;
+  if(kind!=='sale'){d.category=kind==='purchase'?'Inkoop':(d.costCategory||'Overig');if(cat)cat.value=d.category}
+  const toSale=kind==='sale';
+  if((d.type==='sale')===toSale)return;
+  // Switching between cost and income rebuilds the check (Klant/Leverancier, factuurnummer) and keeps what was typed.
+  syncMixedVatFromDomWithoutRender();
+  const val=k=>f.elements.namedItem(k)?.value,kept=[...f.elements].filter(el=>el.name&&!['bookingKind','category'].includes(el.name)&&el.type!=='file'&&el.type!=='hidden').map(el=>({name:el.name,type:el.type,value:el.value,checked:el.checked}));
+  for(const k of ['party','issueDate','invoiceNumber','dueDate','description','paymentReference'])if(f.elements.namedItem(k))d[k]=String(val(k)??'');
+  const n=cents(val('net')),v=cents(val('vatAmount')),g=cents(val('gross'));
+  if(n!=null)d.net=n/100;if(v!=null)d.vatAmount=v/100;if(g!=null)d.gross=g/100;
+  if(!d.kindOriginalDocumentType)d.kindOriginalDocumentType=String(d.documentType||'other');
+  const credit=d.documentType==='credit_invoice',original=d.kindOriginalDocumentType;
+  d.type=toSale?'sale':'purchase';
+  d.documentType=credit?'credit_invoice':toSale?'sale_invoice':(['sale_invoice','sales_invoice'].includes(original)?'purchase_invoice':original);
+  if(!toSale&&!d.category)d.category='Inkoop';
+  showPdfImportReview(d);
+  const nf=document.getElementById('pdfImportForm');
+  if(nf)for(const k of kept){const el=[...nf.elements].find(x=>x.name===k.name&&x.type===k.type&&(!['radio','checkbox'].includes(k.type)||x.value===k.value));if(!el)continue;const radio=['radio','checkbox'].includes(k.type);if(radio?el.checked===k.checked:el.value===k.value)continue;if(radio)el.checked=k.checked;else el.value=k.value;el.dispatchEvent(new Event('change',{bubbles:true}))}
+  requestAnimationFrame(()=>document.getElementById('pdfImportKind')?.focus())
+}
 function reviewIssuePanelForStep(d,issue){
   if(['confirmDuplicate','confirmAnomaly','vatTreatmentChoice','currency'].includes(issue.field))return issuePanel(d,issue);
   return ''
@@ -1012,7 +1051,8 @@ function showPdfImportReview(d){
   const basisControls=[
     reviewWizardField(d,'party',isSale?'Klant':'Leverancier',true),
     reviewWizardField(d,'issueDate',isReceipt?'Datum bon':'Factuurdatum'),
-    isReceipt?reviewWizardField(d,'category','Categorie'):reviewWizardField(d,'invoiceNumber','Factuurnummer')
+    isReceipt?reviewWizardField(d,'category','Categorie'):reviewWizardField(d,'invoiceNumber','Factuurnummer'),
+    reviewKindField(d)
   ].join('');
   const basisIssues=basisSpecial.map(x=>reviewIssuePanelForStep(d,x)).join('');
 
@@ -1070,7 +1110,7 @@ function showPdfImportReview(d){
   const foot='<div class="desktop-review-actions review-wizard-actions"><button class="btn" type="button" data-review-prev hidden onclick="goToReviewWizardStep(1)">Vorige</button><button class="btn primary" type="button" data-review-next onclick="goToReviewWizardStep(2)">Volgende</button><button class="btn primary" type="button" data-review-save hidden aria-label="Gecontroleerd & opslaan" onclick="savePdfInvoiceImport()">'+saveLabel+'</button></div>'+
     '<div class="mobile-review-actions review-wizard-actions"><button class="btn" type="button" data-review-prev hidden onclick="goToReviewWizardStep(1)">Vorige</button><button class="btn primary" type="button" data-review-next onclick="goToReviewWizardStep(2)">Volgende</button><button class="btn primary" type="button" data-review-save hidden aria-label="Gecontroleerd & opslaan" onclick="savePdfInvoiceImport()">'+saveLabel+'</button></div>';
   modal('Document controleren',body,foot,true);applyScanEditChrome();
-  requestAnimationFrame(()=>{bindBeginnerReview();setReviewWizardStep(1,false);mountReviewPreview()})
+  requestAnimationFrame(()=>{bindBeginnerReview();bindReviewKindSync();setReviewWizardStep(1,false);mountReviewPreview()})
 }
 
 function captureReviewSnapshot(){
@@ -1163,7 +1203,7 @@ async function savePdfInvoiceImport(){
   const form=document.getElementById('pdfImportForm'),invalid=form&&!form.checkValidity()?form.querySelector(':invalid'):null;
   if(invalid){restoreForeign();showSaveRefusal((invalid.closest('.field')?.querySelector('label')?.textContent||'Een veld')+' ontbreekt nog.',invalid);return}
   let result,refusal='';const originalToast=global.toast;
-  global.toast=function(message,...rest){refusal=String(message||'');return originalToast?.apply(this,[message,...rest])};
+  global.toast=function(message,...rest){refusal=String(message||'');if(importContext.quietSaveToast)return;return originalToast?.apply(this,[message,...rest])};
   try{result=await legacySavePdfInvoiceImport()}finally{global.toast=originalToast;if(pendingPdfImport===importContext)restoreForeign()}
   if(currentUser?.id!==accountId||state!==ledger)return result;
   if(pendingPdfImport){if(pendingPdfImport===importContext)showSaveRefusal(refusal||'Opslaan lukte niet. Controleer de gegevens en probeer het opnieuw.');return result}
@@ -1393,7 +1433,8 @@ async function saveScannedDocumentEdit(ctx){
   }
   const net=netC/100,vat=vatC/100,gross=grossC/100,lineResult=trustedVatLinesForImport(d,net,vat,rate);
   if(!lineResult.ok)return showSaveRefusal(lineResult.reason);
-  const party=String(snap.party||'').trim();if(!party)return showSaveRefusal('Vul de '+(doc.linkedType==='invoice'?'klant':'leverancier')+' in.');
+  const party=String(snap.party||'').trim();if(!party)return showSaveRefusal('Vul de '+(d.type==='sale'?'klant':'leverancier')+' in.');
+  if((d.type==='sale')!==(doc.linkedType==='invoice'))return convertScannedDocumentKind(ctx,doc,check);
   const after={party,issueDate:snap.issueDate,invoiceNumber:String(snap.invoiceNumber||'').trim(),category:snap.category||d.editOriginal.category,dueDate:snap.dueDate||'',description:snap.description||'',paymentReference:snap.paymentReference||'',net,vatAmount:vat,gross,vatRate:rate,vatLines:mixed?lineResult.lines:[],vatTreatmentChoice:doc.linkedType==='expense'&&d.accountingVatTreatment==='review_required'?(snap.vatTreatmentChoice==='foreign'?'foreign':'standard'):''};
   const before=d.editOriginal,changes=SCAN_EDIT_FIELDS.filter(k=>scanEditComparable(before,k)!==scanEditComparable(after,k)).map(k=>({field:k,label:SCAN_EDIT_LABELS[k]||k,from:before[k]??null,to:after[k]??null}));
   if(!changes.length){cleanupPendingImport();closeModal();return toast('Er is niets veranderd.')}
@@ -1450,7 +1491,46 @@ async function saveScannedDocumentEdit(ctx){
   return true
 }
 
-global.BookunaDocumentReviewV2=Object.freeze({requirementsFor,financialBlockingIssues,mixedVatValidation,captureReviewSnapshot,buildDocumentReviewViewModel,parseExchangeRateToEur,convertSourceCentsToEur,foreignCurrencyReviewState,lookupExchangeRateToEur,autoFillExchangeRate});
+// Bewerken with another Soort moves the booking between Kosten and Inkomsten. The old booking is not deleted:
+// a cost is reversed (as with Weghalen), an imported sales invoice is cancelled. The document stays the same file
+// and keeps its history; if saving the new booking is refused, nothing changes.
+async function convertScannedDocumentKind(ctx,doc,check){
+  const isExpense=doc.linkedType==='expense',linked=check.linked,toSale=ctx.parsed.type==='sale';
+  const from=isExpense?REVIEW_KIND_LABELS[String(linked.category||'Inkoop')==='Inkoop'?'purchase':'cost']:REVIEW_KIND_LABELS.sale,to=REVIEW_KIND_LABELS[reviewBookingKind(ctx.parsed)];
+  if(!doc.fileId)return showSaveRefusal('Het originele bestand ontbreekt. Haal de boeking weg en voeg het document opnieuw toe.');
+  if(check.amountsLocked)return showSaveRefusal(isExpense?'Deze bon is in delen betaald of heeft apart geboekte kosten. Daarom kun je de soort niet meer wijzigen.':'Deze factuur is al (deels) betaald of gecrediteerd. Daarom kun je de soort niet meer wijzigen.');
+  const period=[...new Set([scanEditClosedVatPeriod(isExpense?linked.date:linked.issueDate),scanEditClosedVatPeriod(ctx.parsed.issueDate)].filter(Boolean))].join(' en '),tx=scanBankLink(doc);
+  if(period&&!confirm('Dit document hoort bij '+period+'. Die btw-periode is al voorbij. Heb je daar al btw-aangifte voor gedaan? Neem het verschil dan mee in je volgende aangifte.\n\nSoort wijzigen naar '+to+'?'))return;
+  if(tx&&!confirm('Deze bon is gekoppeld aan een betaling van '+money(Math.abs(Number(tx.amount||0)))+' op '+dateNL(tx.date)+'. De koppeling wordt losgemaakt. De betaling blijft gewoon bij je bank staan.\n\nSoort wijzigen naar '+to+'?'))return;
+  const keys=['expenses','invoices','transactions','documents','contacts','audit'],backup=Object.fromEntries(keys.map(k=>[k,structuredClone(state[k]||[])])),ledger=state;
+  const docId=doc.id,fileId=doc.fileId,beforeSnapshot=structuredClone(doc.reviewSnapshot),beforeLinked=structuredClone(linked),now=new Date().toISOString();
+  if(isExpense){reverseExpenseBooking(linked,'Kosten weggehaald: soort gewijzigd naar '+to);linked.typeChangedAt=now}
+  else{Object.assign(linked,{status:'cancelled',cancelledAt:now,typeChangedAt:now,cancelReason:'Soort gewijzigd naar '+to});logEvent('Factuur geannuleerd: soort gewijzigd naar '+to,linked.number||linked.id,'invoice',linked.id,beforeLinked,structuredClone(linked))}
+  doc.linkedType=null;doc.linkedId=null;
+  delete ctx.editDocumentId;delete ctx.editAmountsLocked;ctx.sourceClientRef=fileId;
+  // The refusal (if any) is shown in the check itself; the success message comes below.
+  ctx.quietSaveToast=true;
+  try{await savePdfInvoiceImport()}finally{delete ctx.quietSaveToast}
+  if(state!==ledger)return;
+  if(pendingPdfImport===ctx){
+    for(const k of keys)state[k]=backup[k];
+    ctx.editDocumentId=docId;ctx.editAmountsLocked=check.amountsLocked;delete ctx.sourceClientRef;
+    return
+  }
+  const saved=state.documents.find(x=>x.id===docId)||state.documents.find(x=>String(x.fileId||'')===String(fileId));
+  if(saved){
+    if(!Array.isArray(saved.editHistory))saved.editHistory=[];
+    const changes=[{field:'type',label:'Soort',from,to}];
+    saved.editHistory.push({at:now,actorId:String(currentUser?.id||''),documentId:saved.id,linkedType:saved.linkedType,linkedId:saved.linkedId,previousLinkedType:isExpense?'expense':'invoice',previousLinkedId:beforeLinked.id,changes,previousSnapshot:beforeSnapshot,vatPeriod:period||null,reason:'Soort gewijzigd van '+from+' naar '+to,bankTransactionUnlinked:tx?tx.id:null});
+    saved.editedAt=now;
+    logEvent('Soort document gewijzigd',(saved.name||saved.id)+' · '+from+' → '+to,'document',saved.id,{document:beforeSnapshot,booking:beforeLinked},{document:structuredClone(saved.reviewSnapshot||null),linkedType:saved.linkedType,linkedId:saved.linkedId,changes});
+    save();render()
+  }
+  toast(toSale?'Soort gewijzigd. Dit document staat nu bij Inkomsten.':'Soort gewijzigd. Dit document staat nu bij Kosten.'+(tx?' Koppel de betaling opnieuw bij Bank.':''));
+  return true
+}
+
+global.BookunaDocumentReviewV2=Object.freeze({bookingKindLabel:d=>REVIEW_KIND_LABELS[reviewBookingKind(d)],requirementsFor,financialBlockingIssues,mixedVatValidation,captureReviewSnapshot,buildDocumentReviewViewModel,parseExchangeRateToEur,convertSourceCentsToEur,foreignCurrencyReviewState,lookupExchangeRateToEur,autoFillExchangeRate});
 global.requirementsForDocumentReview=requirementsFor;
 global.setDocumentReviewStep=setDocumentReviewStep;
 global.goToReviewWizardStep=goToReviewWizardStep;
@@ -1483,6 +1563,7 @@ global.openDeferredDocumentReview=openDeferredDocumentReview;
 global.saveDeferredDocumentReview=saveDeferredDocumentReview;
 global.editScannedDocument=editScannedDocument;
 global.switchReviewVatMode=switchReviewVatMode;
+global.changeReviewBookingKind=changeReviewBookingKind;
 global.scannedDocumentEditState=scannedDocumentEditState;
 global.openPersistentDocumentReview=openPersistentDocumentReview;
 global.attentionRows=attentionRows;

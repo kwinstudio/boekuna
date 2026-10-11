@@ -462,7 +462,8 @@
     if(!issues.length){
       shell.append(node('span','mobile-flow-eyebrow','Controle afgerond'));
       shell.append(node('h4','mobile-single-issue-question','Alles klopt'));
-      shell.append(node('p','','Je kunt deze bon nu veilig opslaan.'));
+      var kindLabel=window.BookunaDocumentReviewV2?.bookingKindLabel?.(parsed);
+      shell.append(node('p','',kindLabel?'Je kunt dit nu veilig opslaan als '+kindLabel.toLowerCase()+'. Klopt dat niet? Kies de soort bij Alle gegevens.':'Je kunt deze bon nu veilig opslaan.'));
       shell.append(button('Opslaan',function(){savePdfInvoiceImport()},'btn primary mobile-flow-action'));
       shell.append(button('Alle gegevens bekijken',function(){showFullReview(flow,issue)},'btn link-btn mobile-flow-action'));
       return;
