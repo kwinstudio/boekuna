@@ -130,5 +130,5 @@ assert.ok(!appSource.includes('Die krijg je terug'), 'no promise that receipt VA
   fts.state.invoices.push({ id: 'cr', kind: 'credit', creditFor: 'a', status: 'sent', taxTreatment: 'standard', issueDate: '2026-10-07', lines: [{ qty: 10, unit: 100, vat: 21, sourceLineIndex: 0 }] });
   assert.equal(c(fts.freeToSpend().free), 70000, 'a refund owed on a credit note is not free money');
 }
-assert.ok(!/date:today\(\),notes:`Correctie op/.test(declaration(appSource, 'correctExpense')), 'a removed cost is reversed on its own date');
+assert.ok(!/date:today\(\),notes:`Correctie op/.test(declaration(appSource, 'reverseExpenseBooking')), 'a removed cost is reversed on its own date');
 console.log('financial logic v1: ok');
