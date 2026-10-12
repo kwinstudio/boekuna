@@ -150,6 +150,7 @@ try{
     await tile('coolblue.jpg').locator('.doc-thumb.has-logo img').waitFor();
     assert.match(await tile('coolblue.jpg').locator('.doc-thumb img').getAttribute('src'),/^https:\/\/cdn\.brandfetch\.io\/coolblue\.nl\//);
     assert.equal(await tile('coolblue.jpg').locator('.doc-thumb .icon').evaluate(el=>getComputedStyle(el).visibility),'hidden');
+    assert.equal(await tile('coolblue.jpg').locator('.doc-thumb').evaluate(el=>getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)','a logo stands on its own, no tile background');
     for(const name of ['bakker.jpg','los.jpg']){
       assert.equal(await tile(name).locator('.doc-thumb.has-logo').count(),0,name+' keeps the receipt icon');
       assert.equal(await tile(name).locator('.doc-thumb .icon').evaluate(el=>getComputedStyle(el).visibility),'visible');

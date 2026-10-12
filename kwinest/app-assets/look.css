@@ -288,8 +288,9 @@ html[data-theme="dark"] #modalRoot .invoice-event span:not(.invoice-event-dot){c
   #mainApp#mainApp .mobile-doc-grid .doc-thumb .icon{width:28px;height:28px}
   /* Supplier logo instead of the receipt icon; hidden until it has really loaded, so a missing logo leaves the icon. */
   #mainApp#mainApp .mobile-doc-grid .doc-thumb{position:relative}
-  #mainApp#mainApp .mobile-doc-grid .doc-thumb img{position:absolute;top:50%;left:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:12px;object-fit:contain;box-sizing:border-box;padding:4px;background:#fff;border:1px solid var(--app-border,#E4E7EA);opacity:0}
-  #mainApp#mainApp .mobile-doc-grid .doc-thumb img.is-brand{padding:0;object-fit:cover}
+  #mainApp#mainApp .mobile-doc-grid .doc-thumb img{position:absolute;top:50%;left:50%;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:14px;object-fit:contain;opacity:0}
+  /* Doubled class: wins over the light and dark photo-tile backgrounds below. */
+  :is(html,html[data-theme="dark"]) #mainApp#mainApp .mobile-doc-grid .doc-thumb.has-logo.has-logo{background:transparent}
   #mainApp#mainApp .mobile-doc-grid .doc-thumb.has-logo img{opacity:1}
   #mainApp#mainApp .mobile-doc-grid .doc-thumb.has-logo .icon{visibility:hidden}
   #mainApp#mainApp .mobile-doc-grid .mobile-card-row{border:1px solid var(--app-border,#E4E8EB)!important;border-radius:14px!important;background:var(--app-white,#fff)}
