@@ -63,7 +63,8 @@
   function documentThumbHtml(item) {
     var name = String(item.name || '').toLowerCase(), type = String(item.mimeType || item.type || '');
     var photo = item.type === 'receipt' || /^image\//.test(type) || /\.(jpe?g|png|heic|heif|webp)$/.test(name);
-    return '<span class="doc-thumb ' + (photo ? 'is-photo' : 'is-file') + '" aria-hidden="true"><svg class="icon"><use href="#' + (photo ? 'i-receipt' : 'i-file') + '"/></svg></span>';
+    var logo = typeof documentLogoHtml === 'function' ? documentLogoHtml(item) : {html: '', known: false};
+    return '<span class="doc-thumb ' + (photo ? 'is-photo' : 'is-file') + (logo.known ? ' has-logo' : '') + '" aria-hidden="true"><svg class="icon"><use href="#' + (photo ? 'i-receipt' : 'i-file') + '"/></svg>' + logo.html + '</span>';
   }
   function documentAmount(item) {
     if (!item.linkedId) return null;

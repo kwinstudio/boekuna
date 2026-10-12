@@ -3591,15 +3591,24 @@ function partyLogoSources(domain){const id=brandfetchClientId(),own=['https://'+
 // Brandfetch requires the app's origin as Referer (hotlinking rule); the relation's own site gets no referrer at all.
 function isBrandfetchLogo(src){return String(src||'').startsWith('https://cdn.brandfetch.io/')}
 function partyLogoReferrer(src){return isBrandfetchLogo(src)?'strict-origin':'no-referrer'}
-function partyLogoLoaded(img){const box=img.closest('.party-avatar');if(img.naturalWidth<24){partyLogoFailed(img);return}partyLogoRemember(img.dataset.domain,img.currentSrc||img.src);box?.classList.add('has-logo')}
+function partyLogoLoaded(img){const box=img.closest('.party-avatar,.doc-thumb');if(img.naturalWidth<24){partyLogoFailed(img);return}partyLogoRemember(img.dataset.domain,img.currentSrc||img.src);box?.classList.add('has-logo')}
 function partyLogoFreshImg(img){const fresh=document.createElement('img');for(const a of img.attributes)if(a.name!=='src')fresh.setAttribute(a.name,a.value);return fresh}
 // Safari/WebKit reloads the current image when its referrer policy changes, which mixes up the fallback steps; so a policy change gets a fresh <img>.
 function partyLogoFailed(img){const next=Number(img.dataset.try||0)+1,sources=partyLogoSources(img.dataset.domain);if(next<sources.length){const src=sources[next],policy=partyLogoReferrer(src),target=policy===img.getAttribute('referrerpolicy')?img:partyLogoFreshImg(img);target.dataset.try=String(next);target.setAttribute('referrerpolicy',policy);target.classList.toggle('is-brand',isBrandfetchLogo(src));target.src=src;if(target!==img)img.replaceWith(target);return}partyLogoRemember(img.dataset.domain,false);img.remove()}
 function partyAvatarHtml(name,domain=''){
  let h=0;for(const c of String(name||'').toLowerCase())h=(h*31+c.codePointAt(0))>>>0;
+ const known=domain?partyLogoState.get(domain):false;
+ return '<span class="party-avatar tone-'+(h%4)+(known?' has-logo':'')+'" aria-hidden="true"><span class="party-initials">'+esc(partyInitials(name))+'</span>'+partyLogoImgHtml(domain,32)+'</span>'
+}
+function partyLogoImgHtml(domain,size){
  const known=domain?partyLogoState.get(domain):false,src=known||(known===undefined&&domain?partyLogoSources(domain)[0]:'');
- const logo=src?'<img'+(isBrandfetchLogo(src)?' class="is-brand"':'')+' src="'+esc(src)+'" alt="" loading="lazy" decoding="async" referrerpolicy="'+partyLogoReferrer(src)+'" width="32" height="32" data-domain="'+esc(domain)+'" onload="partyLogoLoaded(this)" onerror="partyLogoFailed(this)">':'';
- return '<span class="party-avatar tone-'+(h%4)+(known?' has-logo':'')+'" aria-hidden="true"><span class="party-initials">'+esc(partyInitials(name))+'</span>'+logo+'</span>'
+ return src?'<img'+(isBrandfetchLogo(src)?' class="is-brand"':'')+' src="'+esc(src)+'" alt="" loading="lazy" decoding="async" referrerpolicy="'+partyLogoReferrer(src)+'" width="'+size+'" height="'+size+'" data-domain="'+esc(domain)+'" onload="partyLogoLoaded(this)" onerror="partyLogoFailed(this)">':''
+}
+// Bonnen tile: the supplier logo of the linked cost replaces the receipt icon; without a logo the icon stays. Same chain and cache as the avatars.
+function documentLogoHtml(d){
+ if(d?.linkedType!=='expense')return {html:'',known:false};
+ const e=state.expenses.find(x=>x.id===d.linkedId),domain=e?vendorLogoDomain(e.vendor):'';
+ return {html:partyLogoImgHtml(domain,48),known:!!(domain&&partyLogoState.get(domain))}
 }
 // One relation per name: legal-form suffixes and punctuation do not count, but two different relations with the same name give no match (and so no logo) rather than a guess.
 function partyNameKey(name){return String(name||'').toLowerCase().replace(/\b(?:b\.?v\.?|n\.?v\.?|v\.?o\.?f\.?|c\.?v\.?|holding|bvba|gmbh|ltd|limited|inc)\b/g,' ').replace(/[^\p{L}\p{N}]+/gu,'')}

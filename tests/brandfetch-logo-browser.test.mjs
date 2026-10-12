@@ -36,6 +36,8 @@ appHtml=replaceLast(appHtml,'initAuth();',[
   "state.contacts=[{id:'s1',type:'supplier',name:'Studio Noord',website:'https://www.studio-noord.test/contact'},{id:'g1',type:'supplier',name:'Gamma',website:'gamma-one.test'},{id:'g2',type:'supplier',name:'Gamma B.V.',website:'gamma-two.test'}];",
   "const d0=new Date().toISOString().slice(0,10);",
   "state.expenses="+JSON.stringify(vendors)+".map((vendor,i)=>({id:'e'+i,date:d0,vendor,category:'Inkoop',exVat:10+i,vatRate:21,invoiceNumber:'F-'+i}));",
+  // Bonnen: a receipt for Coolblue, one for an unknown bakery and one not linked yet.
+  "state.documents=[{id:'d0',name:'coolblue.jpg',date:d0,type:'receipt',mimeType:'image/jpeg',fileId:'f0',linkedType:'expense',linkedId:'e0'},{id:'d2',name:'bakker.jpg',date:d0,type:'receipt',mimeType:'image/jpeg',fileId:'f2',linkedType:'expense',linkedId:'e2'},{id:'d9',name:'los.jpg',date:d0,type:'receipt',mimeType:'image/jpeg',fileId:'f9'}];",
   "documentProcessingJobs=[];documentProcessingInitialized=true;documentProcessingConnectivityLost=false;documentProcessingFetchError=false;",
   "enterApp();"
 ].join('\n'));
@@ -142,6 +144,20 @@ try{
     assert.ok(box&&Math.abs(box.width-box.height)<0.5&&box.width<=40,'logo stays a small round avatar on a phone');
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
     assert.ok(overflow<=0,'no sideways scroll on a phone');
+    // Bonnen tiles: the supplier logo replaces the receipt icon; no logo keeps the icon, same tile size.
+    await page.evaluate(()=>navigate('documents'));
+    const tile=name=>page.locator('.mobile-doc-grid .mobile-card-row').filter({hasText:name}).first();
+    await tile('coolblue.jpg').locator('.doc-thumb.has-logo img').waitFor();
+    assert.match(await tile('coolblue.jpg').locator('.doc-thumb img').getAttribute('src'),/^https:\/\/cdn\.brandfetch\.io\/coolblue\.nl\//);
+    assert.equal(await tile('coolblue.jpg').locator('.doc-thumb .icon').evaluate(el=>getComputedStyle(el).visibility),'hidden');
+    assert.equal(await tile('coolblue.jpg').locator('.doc-thumb').evaluate(el=>getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)','a logo stands on its own, no tile background');
+    for(const name of ['bakker.jpg','los.jpg']){
+      assert.equal(await tile(name).locator('.doc-thumb.has-logo').count(),0,name+' keeps the receipt icon');
+      assert.equal(await tile(name).locator('.doc-thumb .icon').evaluate(el=>getComputedStyle(el).visibility),'visible');
+    }
+    const thumbs=await page.locator('.mobile-doc-grid .doc-thumb').evaluateAll(els=>[...new Set(els.map(el=>{const r=el.getBoundingClientRect();return Math.round(r.width)+'x'+Math.round(r.height)}))]);
+    assert.equal(thumbs.length,1,'all bon tiles keep one thumb size: '+thumbs.join(', '));
+    await page.screenshot({path:path.join(root,'tests','artifacts','brandfetch-bonnen-'+browserName+'.png')}).catch(()=>{});
     assert.deepEqual(errors,[],'no page errors on a phone');
     await context.close();
   }
