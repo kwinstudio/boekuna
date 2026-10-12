@@ -33,6 +33,7 @@ on:
       - "tests/look-browser.test.mjs"
       - "tests/trips-and-todo-links.test.mjs"
       - "tests/supplier-logo-evidence-browser.test.mjs"
+      - "tests/expense-category-dropdown-browser.test.mjs"
       - "tests/brandfetch-logo-browser.test.mjs"
       - "scripts/theme-dark-generate.mjs"
       - "supabase/migrations/20261007200000_in_app_feedback.sql"
@@ -263,6 +264,10 @@ jobs:
           BOOKUNA_BROWSER=webkit node tests/trips-and-todo-links.test.mjs
       - name: Supplier logo evidence (printed website, provenance, negative cases)
         run: node tests/supplier-logo-evidence-browser.test.mjs
+      - name: Kosten category dropdown (phone, memory row, custom category)
+        run: |
+          node tests/expense-category-dropdown-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/expense-category-dropdown-browser.test.mjs
       - name: Brandfetch supplier logos (verified domains, fallbacks, no data change) — Chromium and WebKit
         run: |
           node tests/brandfetch-logo-browser.test.mjs

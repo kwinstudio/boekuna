@@ -839,7 +839,7 @@ html[data-theme="dark"] #mainApp :is(.kpi-next,.kpi-deadline){color:var(--dk-mut
 }
 @media(max-width:820px){
   /* Kosten toevoegen: at a shop you know, btw and category are one row ("Net als vorige keer bij NS") with Wijzigen. */
-  html body #modalRoot#modalRoot #expenseForm.has-memory>fieldset.choice-group{display:none!important}
+  html body #modalRoot#modalRoot #expenseForm.has-memory>:is(fieldset.choice-group,.expense-category-field){display:none!important}
   html body #modalRoot#modalRoot .expense-memory{grid-column:1/-1!important}
   html body #modalRoot#modalRoot .expense-memory-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px;padding:12px 16px;border:1px solid var(--calm-line);border-radius:14px;background:var(--calm-surface)}
   html body #modalRoot#modalRoot .expense-memory-text{display:grid;gap:2px;min-width:0}
