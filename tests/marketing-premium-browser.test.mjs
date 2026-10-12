@@ -13,14 +13,17 @@ const server=await serveMarketing('dist/marketing');
 const widths=[320,375,390,430,768,1024,1280,1440];
 
 try{
-  for(const [name,engine] of [['chromium',chromium],['webkit',webkit]]){
+  for(const [name,engine] of [['chromium',chromium],['webkit',webkit]].filter(([n])=>!process.env.BOOKUNA_BROWSERS||process.env.BOOKUNA_BROWSERS.split(',').includes(n))){
     const browser=await engine.launch({headless:true});
     try{
       for(const width of widths){
         const page=await browser.newPage({viewport:{width,height:width<600?844:900},reducedMotion:'reduce'});
         const errors=[];page.on('pageerror',e=>errors.push(String(e)));
         await page.goto(server.base+'/',{waitUntil:'networkidle'});
-        assert.equal(await page.locator('h1').textContent(),'Zo simpel kan het zijn.');
+        assert.equal(await page.locator('h1').textContent(),'Boekhouden zonder boekhoudtaal.');
+        // Real app screens in the hero, loaded at the right size for the viewport.
+        const hero=page.locator('.hero-visual img').first();
+        assert.ok(await hero.evaluate(img=>img.complete&&img.naturalWidth>0),name+'/'+width+' hero app screenshot loads');
         assert.equal(await page.locator('img:not([src^="/assets/site/"])').count(),0,'Only first-party Boekuna images');
         assert.equal(await page.locator('img:not([alt])').count(),0,'Every image has alt text');
         assert.equal(await page.locator('script:not([src="/assets/site/site.js"]):not([type="application/ld+json"])').count(),0,'Only the first-party site script');
@@ -36,12 +39,12 @@ try{
           await page.addScriptTag({content:axeSource});
           const result=await page.evaluate(async()=> (await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa']}})).violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})));
           assert.deepEqual(result,[],name+'/'+width+' Axe');
-          await page.screenshot({path:path.join(evidence,'landing-v4-'+width+'-'+name+'.png'),fullPage:true});
+          await page.screenshot({path:path.join(evidence,'landing-'+width+'-'+name+'.png'),fullPage:true});
         }
         assert.deepEqual(errors,[],name+'/'+width+' runtime errors');
         await page.close();
       }
     } finally {await browser.close()}
   }
-  console.log('BOEKUNA V4 landing visual QA: PASS (Chromium + WebKit, 8 widths, canonical palette, Axe, first-party imagery and site script only)');
+  console.log('BOEKUNA landing visual QA: PASS (8 widths, canonical palette, Axe, first-party imagery and site script only)');
 } finally {await server.close()}
