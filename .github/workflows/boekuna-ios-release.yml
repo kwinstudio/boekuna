@@ -76,6 +76,13 @@ jobs:
       - name: Check signing access
         id: access
         run: |
+          # Ordinary PR validation needs only an unsigned archive; never consume
+          # Apple signing permissions or generate a signed artifact by default.
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" && "$UPLOAD_TO_TESTFLIGHT" != "true" ]]; then
+            echo "signing=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::PR validation only; Apple signing and TestFlight upload are skipped."
+            exit 0
+          fi
           # Pasted values often carry a trailing newline or space; strip it.
           KEY_ID="$(printf '%s' "$ASC_KEY_ID" | tr -d '[:space:]')"
           ISSUER_ID="$(printf '%s' "$ASC_ISSUER_ID" | tr -d '[:space:]')"
