@@ -17,6 +17,10 @@ on:
         description: "App version shown in the App Store (empty = version in the Xcode project)"
         type: string
         default: ""
+      enable_local_first:
+        description: "TestFlight only: native camera scanner, Apple Vision preview and offline drafts (requires real-iPhone testing)"
+        type: boolean
+        default: false
   pull_request:
     types: [opened, synchronize, reopened, labeled]
     paths:
@@ -40,6 +44,7 @@ jobs:
       ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
       UPLOAD_TO_TESTFLIGHT: ${{ (github.event_name == 'workflow_dispatch' && inputs.upload_to_testflight) || contains(github.event.pull_request.labels.*.name, 'testflight') }}
       MARKETING_VERSION_INPUT: ${{ inputs.marketing_version }}
+      ENABLE_LOCAL_FIRST: ${{ github.event_name == 'workflow_dispatch' && inputs.enable_local_first }}
       BUILD_DIR: ${{ github.workspace }}/ios/build
     steps:
       - uses: actions/checkout@v4
@@ -59,6 +64,14 @@ jobs:
           fi
           python3 ios/scripts/validate.py
           node tests/ios-companion-contract.test.mjs
+
+      - name: Check local-first code when explicitly enabled
+        if: github.event_name == 'workflow_dispatch' && inputs.enable_local_first
+        run: |
+          # A green build is NOT a substitute for the real-iPhone acceptance checklist.
+          xcrun swiftc -O ios/Boekuna/LocalFirstOCR.swift ios/Boekuna/LocalFirstDraftStore.swift ios/Tests/LocalFirstTests.swift -o "$RUNNER_TEMP/local-first-tests"
+          "$RUNNER_TEMP/local-first-tests"
+          node --check kwinest/app-assets/native-local-first.js
 
       - name: Check signing access
         id: access
@@ -97,6 +110,12 @@ jobs:
             [[ "$MARKETING_VERSION_INPUT" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]] || { echo "::error::marketing_version must look like 1.0.1"; exit 1; }
             EXTRA+=("MARKETING_VERSION=$MARKETING_VERSION_INPUT")
           fi
+          # Never activate untested native functions on PR builds or by default.
+          if [[ "$ENABLE_LOCAL_FIRST" == "true" ]]; then
+            EXTRA+=("BOEKUNA_LOCAL_FIRST=YES")
+          else
+            EXTRA+=("BOEKUNA_LOCAL_FIRST=NO")
+          fi
           xcodebuild \
             -project ios/Boekuna.xcodeproj \
             -scheme Boekuna \
@@ -109,6 +128,11 @@ jobs:
             "${EXTRA[@]}" \
             archive
           PLIST="$BUILD_DIR/Boekuna.xcarchive/Products/Applications/Boekuna.app/Info.plist"
+          EXPECTED_LOCAL_FIRST=NO
+          [[ "$ENABLE_LOCAL_FIRST" == "true" ]] && EXPECTED_LOCAL_FIRST=YES
+          ACTUAL_LOCAL_FIRST="$(/usr/libexec/PlistBuddy -c 'Print :BoekunaLocalFirst' "$PLIST")"
+          [[ "$ACTUAL_LOCAL_FIRST" == "$EXPECTED_LOCAL_FIRST" ]] || { echo "::error::Wrong native local-first flag in archived app"; exit 1; }
+          echo "Local-first in archive: $ACTUAL_LOCAL_FIRST (manual opt-in only)"
           echo "Built $(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST") $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST") ($(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST")) from ${GITHUB_SHA}" | tee "$BUILD_DIR/build-identity.txt"
 
       - name: Sign and export .ipa (automatic cloud signing via API key)
@@ -160,10 +184,14 @@ jobs:
 
       - name: Simulator smoke test (app starts and loads app.boekuna.nl)
         run: |
+          SIM_LOCAL_FIRST=NO
+          [[ "$ENABLE_LOCAL_FIRST" == "true" ]] && SIM_LOCAL_FIRST=YES
           xcodebuild -project ios/Boekuna.xcodeproj -scheme Boekuna -configuration Release \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath "$BUILD_DIR/sim" CODE_SIGNING_ALLOWED=NO build -quiet
+            -derivedDataPath "$BUILD_DIR/sim" CODE_SIGNING_ALLOWED=NO "BOEKUNA_LOCAL_FIRST=$SIM_LOCAL_FIRST" build -quiet
           APP="$BUILD_DIR/sim/Build/Products/Release-iphonesimulator/Boekuna.app"
+          SIM_ACTUAL="$(/usr/libexec/PlistBuddy -c 'Print :BoekunaLocalFirst' "$APP/Info.plist")"
+          [[ "$SIM_ACTUAL" == "$SIM_LOCAL_FIRST" ]] || { echo "::error::Simulator flag does not match archive"; exit 1; }
           UDID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for k,v in sorted(d.items(), reverse=True) if "iOS" in k for x in v if x["name"].startswith("iPhone")))')"
           xcrun simctl boot "$UDID"
           xcrun simctl bootstatus "$UDID" -b
