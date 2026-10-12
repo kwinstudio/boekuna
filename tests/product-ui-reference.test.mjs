@@ -57,9 +57,9 @@ assert.equal(/(?:linear|radial)-gradient\(/i.test(ui),false,'Master-reference la
 assert.equal(/backdrop-filter:(?!none)/i.test(ui),false,'Master-reference layer must not introduce glassmorphism');
 assert.ok(ui.includes('@media(prefers-reduced-motion:reduce)'),'Reduced-motion handling missing');
 for(const label of ['Overzicht','Inkomsten','Kosten','Bank','Btw','Rapportages','Bonnetjes','Instellingen'])assert.ok(source.includes('>'+label+'</button>')||source.includes('>'+label+'</span>'),'Primary product navigation missing '+label);
-for(const label of ['Overzicht','Inkomsten','Kosten','Btw'])assert.ok(source.includes('<span>'+label+'</span>'),'Mobile reference navigation missing '+label);
+for(const label of ['Overzicht','Inkomsten','Kosten','Bonnen'])assert.ok(source.includes('<span>'+label+'</span>'),'Mobile reference navigation missing '+label);
 assert.equal((source.match(/class="mobile-bottom-nav-item/g)||[]).length,4,'Mobile navigation must expose exactly four primary destinations around the Nieuw button');
-assert.ok(source.includes("function mobilePrimarySection(p=page){return ['dashboard','invoices','expenses','vat'].includes(p)?p:'more'}"),'Four primary mobile destinations; Bonnen and the rest live in the menu');
+assert.ok(source.includes("function mobilePrimarySection(p=page){return ['dashboard','invoices','expenses','documents'].includes(p)?p:'more'}"),'Four primary mobile destinations; Bonnen in the bar, Btw and the rest in the menu');
 assert.ok(source.includes("invoices:'Inkomsten'"),'The user-facing invoices route title must be Inkomsten while the internal route stays invoices');
 assert.ok(source.includes("income:'Ontvangsten'"),'The bank income drill-down must be distinguished from the primary Inkomsten route');
 assert.ok(source.includes('data-page="invoices"'),'The internal invoices route must remain intact');
@@ -518,7 +518,7 @@ try{
         await page.setViewportSize({width,height:844});
         await page.evaluate(()=>navigate('dashboard'));
         await page.getByRole('heading',{name:'Overzicht'}).waitFor();
-        assert.deepEqual((await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents()).map(v=>v.trim()),['Overzicht','Inkomsten','Kosten','Btw']);
+        assert.deepEqual((await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents()).map(v=>v.trim()),['Overzicht','Inkomsten','Kosten','Bonnen']);
         const activeMobileNav=page.locator('#mobileBottomNav .mobile-bottom-nav-item.active[aria-current="page"]');
         // Kwin 2026-10-10 (calmer on white): the open page is a green icon and word, without a block or a line.
         const activeMobileStyle=await activeMobileNav.evaluate(el=>{const s=getComputedStyle(el),label=getComputedStyle(el.querySelector('span'));return {background:s.backgroundColor,color:label.color,boxShadow:s.boxShadow,borderTopWidth:s.borderTopWidth,fontWeight:label.fontWeight}});
