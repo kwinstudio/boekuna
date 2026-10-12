@@ -193,10 +193,10 @@ try{
   const quickTrigger=page.locator('#quickNew');await quickTrigger.focus();await quickTrigger.click();
   await page.locator('#modalRoot .quick-action-modal').waitFor();
   // Phone (Kwin 2026-10-09/10): the pages have no own main button, so Nieuw also offers what they used to (Factuur uploaden, Document uploaden, Bankbestand, Dienst).
-  assert.equal(await page.locator('#modalRoot .quick-action').count(),9,'Mobile quick-create must expose the five Release 1 actions plus the four page actions');
+  assert.equal(await page.locator('#modalRoot .quick-action').count(),10,'Mobile quick-create must expose the five Release 1 actions, Rit, plus the four page actions');
   const quickLabels=(await page.locator('#modalRoot .quick-action').allTextContents()).map(v=>v.trim().replace(/\s+/g,' '));
   // Kwin 2026-10-10: Factuur, Bon (scannen) and Kosten (zonder bon) are the three big tiles; the rest is under Meer.
-  for(const core of ['Bon','Factuur','Kosten','Banktransactie','Relatie','Factuur uploaden','Document uploaden','Bankbestand','Dienst'])assert.ok(quickLabels.some(v=>v.includes(core)),'Mobile quick-create missing '+core);
+  for(const core of ['Bon','Factuur','Kosten','Banktransactie','Relatie','Rit','Factuur uploaden','Document uploaden','Bankbestand','Dienst'])assert.ok(quickLabels.some(v=>v.includes(core)),'Mobile quick-create missing '+core);
   assert.equal(await page.locator('#modalRoot .quick-tiles .quick-tile').count(),3,'Mobile quick-create shows three big daily tiles');
   const quickGeometry=await page.locator('#modalRoot .quick-action-modal').evaluate(el=>{const r=el.getBoundingClientRect(),b=getComputedStyle(el.closest('.modal-backdrop'));return {top:r.top,bottom:r.bottom,height:r.height,align:b.alignItems,radius:getComputedStyle(el).borderRadius}});
   assert.equal(quickGeometry.align,'center','Mobile quick-create backdrop must center the dialog');
@@ -207,7 +207,7 @@ try{
   const focusRestored=await page.waitForFunction(()=>document.activeElement===document.getElementById('quickNew'),null,{timeout:2000}).then(()=>true,()=>false);
   assert.equal(focusRestored,true,'Closing quick-create must restore focus to the + button');
   const mobileNav=(await page.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents()).map(v=>v.trim());
-  assert.deepEqual(mobileNav,['Overzicht','Inkomsten','Kosten','Btw']);
+  assert.deepEqual(mobileNav,['Overzicht','Inkomsten','Kosten','Bonnen']);
   await page.locator('#mobileMenu').click();
   const drawer=(await page.locator('#sidebar .nav-item').allTextContents()).map(v=>v.trim());
   for(const disabled of ['Voor jou','Controlecentrum','Cashflow','Grootboek','Boekingen','Uren & ritten'])assert.equal(drawer.includes(disabled),false,'Disabled mobile drawer item leaked '+disabled);

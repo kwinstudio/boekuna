@@ -2394,6 +2394,7 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
 <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
 <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-7 7-7s7 3 7 7"/><path d="M16 5a4 4 0 0 1 0 7M18 15c2.5.8 4 2.8 4 6"/></symbol>
 <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></symbol>
+<symbol id="i-car" viewBox="0 0 24 24"><path d="M5 16l1.5-5.5A2 2 0 0 1 8.4 9h7.2a2 2 0 0 1 1.9 1.5L19 16"/><path d="M3 16h18v3H3z"/><circle cx="7" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></symbol>
 <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v12H3z"/></symbol>
 <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.5 3h-5L9 6.1a7 7 0 0 0-1.7 1L5 6.1 3 9.5 5.1 11a7 7 0 0 0 0 2L3 14.5l2 3.4 2.3-1a7 7 0 0 0 1.7 1l.5 3.1h5l.5-3.1a7 7 0 0 0 1.7-1l2.3 1 2-3.4-2.1-1.5c.1-.3.1-.7.1-1z"/></symbol>
 <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
@@ -2425,6 +2426,7 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
   <button class="nav-item" data-page="ledger"><svg class="icon"><use href="#i-file"/></svg>Grootboek</button>
   <button class="nav-item" data-page="contacts"><svg class="icon"><use href="#i-users"/></svg>Relaties</button>
   <button class="nav-item" data-page="services"><svg class="icon"><use href="#i-file"/></svg>Diensten</button>
+  <button class="nav-item" data-page="trips"><svg class="icon"><use href="#i-car"/></svg>Ritten</button>
   <button class="nav-item" data-page="bookings"><svg class="icon"><use href="#i-clock"/></svg>Boekingen</button>
   <button class="nav-item" data-page="hours"><svg class="icon"><use href="#i-clock"/></svg>Uren & ritten</button>
   <div class="sidebar-spacer"></div>
@@ -2444,7 +2446,7 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
   <button class="mobile-bottom-nav-item" type="button" data-mobile-page="invoices" aria-label="Inkomsten"><svg class="icon"><use href="#i-file"/></svg><span>Inkomsten</span></button>
   <span class="mobile-bottom-nav-gap" aria-hidden="true"></span>
   <button class="mobile-bottom-nav-item" type="button" data-mobile-page="expenses" aria-label="Kosten"><svg class="icon"><use href="#i-receipt"/></svg><span>Kosten</span></button>
-  <button class="mobile-bottom-nav-item" type="button" data-mobile-page="vat" aria-label="Btw"><svg class="icon"><use href="#i-tax"/></svg><span>Btw</span></button>
+  <button class="mobile-bottom-nav-item" type="button" data-mobile-page="documents" aria-label="Bonnen"><svg class="icon"><use href="#i-folder"/></svg><span>Bonnen</span></button>
 </nav>
 <div id="modalRoot"></div><div class="toast-wrap" id="toastRoot"></div>
 <input class="hidden" type="file" id="invoicePdfFile" multiple accept="image/*,application/pdf,.pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,text/csv,application/csv,.csv" />
@@ -2856,7 +2858,7 @@ async function retryCloudSave(){
  if(cloudSyncStatus==='conflict'){restoreConflictDialog();return}
  try{await syncCloudStateNow()}catch(err){toast('Opslaan lukt nog niet. Probeer opnieuw.')}
 }
-const PAGE_TITLES={dashboard:'Overzicht',insights:'Voor jou',invoices:'Inkomsten',expenses:'Kosten',bank:'Bank',income:'Ontvangsten',outgoings:'Uitgaven',vat:'Btw',reports:'Rapportages',ledger:'Grootboek',control:'Controlecentrum',cashflow:'Cashflow',bookings:'Boekingen',contacts:'Relaties',services:'Diensten',hours:'Uren & ritten',documents:'Bonnetjes',profile:'Bedrijfsgegevens',settings:'Instellingen'};
+const PAGE_TITLES={dashboard:'Overzicht',insights:'Voor jou',invoices:'Inkomsten',expenses:'Kosten',bank:'Bank',income:'Ontvangsten',outgoings:'Uitgaven',vat:'Btw',reports:'Rapportages',ledger:'Grootboek',control:'Controlecentrum',cashflow:'Cashflow',bookings:'Boekingen',contacts:'Relaties',services:'Diensten',trips:'Ritten',hours:'Uren & ritten',documents:'Bonnetjes',profile:'Bedrijfsgegevens',settings:'Instellingen'};
 const uid=(p='id')=>p+'-'+Math.random().toString(36).slice(2,9);
 function localDateOnly(value=new Date()){
  const d=value instanceof Date?value:new Date(value);if(Number.isNaN(d.getTime()))return '';
@@ -2894,8 +2896,8 @@ const DEFAULT_ASSISTANT_STATE=window.BoekunaPersonalInsights?.defaultPreferences
 const DEFAULT={meta:{nextInvoice:1,taxReservePct:30,extraHelpEnabled:false,decimalRounding:true},assistant:structuredClone(DEFAULT_ASSISTANT_STATE),company:{name:'',tradeName:'',contactName:'',kvk:'',vat:'',iban:'',bic:'',bankAccountName:'',email:'',phone:'',website:'',address:'',postal:'',city:'',country:'Nederland',invoicePrefix:(new Date().getFullYear()+'-'),paymentDays:14,kor:false,peppolId:'',emailTemplate:structuredClone(DEFAULT_EMAIL_TEMPLATE),invoiceDesign:structuredClone(DEFAULT_INVOICE_DESIGN)},contacts:[],services:[],invoices:[],expenses:[],transactions:[],hours:[],mileage:[],documents:[],bookings:[],plannedCash:[],settlements:[],audit:[]};
 let state=structuredClone(DEFAULT);let page='dashboard';let pendingInvoiceDraft=null,pendingPdfImport=null,pendingUploadKind='auto',editingInvoiceId=null;let documentVerificationInFlight=new Set();
 const LIST_STATE_KEY='boekuna-list-state-v1';
-const LIST_DEFAULTS={"invoices":{"query":"","filters":{"status":"all","customer":"all","period":"all","type":"all"},"sort":"issue-desc"},"expenses":{"query":"","filters":{"vendor":"all","period":"all","category":"all","docType":"all"},"sort":"date-desc"},"bank":{"query":"","filters":{"status":"all","direction":"all","period":"all","from":"","to":""},"sort":"date-desc"},"contacts":{"query":"","filters":{"type":"all","city":"all","open":"all","activity":"all","details":"all","vat":"all"},"sort":"name-asc"},"services":{"query":"","filters":{"status":"all"},"sort":"name-asc"},"documents":{"query":"","filters":{"linked":"all","type":"all","status":"all","period":"all","from":"","to":""},"sort":"date-desc"},"bookings":{"query":"","filters":{"status":"all","time":"all","period":"all","from":"","to":""},"sort":"upcoming"},"ledger":{"query":"","filters":{},"sort":"date-desc"}};
-const LIST_UI={"invoices":{"placeholder":"Zoek op factuurnummer, klant of bedrag","entity":"facturen","empty":"Je hebt nog geen facturen gemaakt.","sorts":[["issue-desc","Nieuwste factuurdatum"],["issue-asc","Oudste factuurdatum"],["due-asc","Vervaldatum eerst"],["amount-desc","Bedrag hoog → laag"],["amount-asc","Bedrag laag → hoog"],["customer-asc","Klant A–Z"],["customer-desc","Klant Z–A"]]},"expenses":{"placeholder":"Zoek op leverancier, factuurnummer of bedrag","entity":"kosten","empty":"Je hebt nog geen kosten geboekt.","sorts":[["date-desc","Nieuwste datum"],["date-asc","Oudste datum"],["vendor-asc","Leverancier A–Z"],["vendor-desc","Leverancier Z–A"],["amount-desc","Bedrag hoog → laag"],["amount-asc","Bedrag laag → hoog"]]},"bank":{"placeholder":"Zoek in transacties","entity":"transacties","empty":"Je hebt nog geen banktransacties.","sorts":[["date-desc","Nieuwste datum"],["date-asc","Oudste datum"],["amount-desc","Bedrag hoog → laag"],["amount-asc","Bedrag laag → hoog"]]},"contacts":{"placeholder":"Zoek op naam, e-mail of plaats","entity":"relaties","empty":"Je hebt nog geen relaties toegevoegd.","sorts":[["name-asc","Naam A–Z"],["name-desc","Naam Z–A"],["open-desc","Meeste openstaand"],["revenue-desc","Meeste omzet (12 mnd)"],["recent-desc","Laatst gefactureerd"]]},"services":{"placeholder":"Zoek diensten","entity":"diensten","empty":"Je hebt nog geen diensten toegevoegd.","sorts":[["name-asc","Naam A–Z"],["name-desc","Naam Z–A"],["price-asc","Prijs laag → hoog"],["price-desc","Prijs hoog → laag"]]},"documents":{"placeholder":"Zoek op bestand, leverancier of factuurnummer","entity":"documenten","empty":"Je hebt nog geen documenten geüpload.","sorts":[["date-desc","Nieuwste datum"],["date-asc","Oudste datum"],["name-asc","Naam A–Z"],["name-desc","Naam Z–A"]]},"bookings":{"placeholder":"Zoek op klant of dienst","entity":"boekingen","empty":"Je hebt nog geen boekingen.","sorts":[["upcoming","Eerstvolgende afspraak"],["newest","Nieuwste"],["oldest","Oudste"],["customer-asc","Klant A–Z"]]},"ledger":{"placeholder":"Zoek rekening, referentie of omschrijving","entity":"boekingsregels","empty":"Nog geen boekingsregels.","sorts":[["date-desc","Nieuwste eerst"]]}};
+const LIST_DEFAULTS={"invoices":{"query":"","filters":{"status":"all","customer":"all","period":"all","type":"all"},"sort":"issue-desc"},"expenses":{"query":"","filters":{"vendor":"all","period":"all","category":"all","docType":"all","receipt":"all"},"sort":"date-desc"},"bank":{"query":"","filters":{"status":"all","direction":"all","period":"all","from":"","to":""},"sort":"date-desc"},"contacts":{"query":"","filters":{"type":"all","city":"all","open":"all","activity":"all","details":"all","vat":"all"},"sort":"name-asc"},"services":{"query":"","filters":{"status":"all"},"sort":"name-asc"},"documents":{"query":"","filters":{"linked":"all","type":"all","status":"all","period":"all","from":"","to":""},"sort":"date-desc"},"bookings":{"query":"","filters":{"status":"all","time":"all","period":"all","from":"","to":""},"sort":"upcoming"},"ledger":{"query":"","filters":{},"sort":"date-desc"},"trips":{"query":"","filters":{"period":"all","from":"","to":""},"sort":"date-desc"}};
+const LIST_UI={"invoices":{"placeholder":"Zoek op factuurnummer, klant of bedrag","entity":"facturen","empty":"Je hebt nog geen facturen gemaakt.","sorts":[["issue-desc","Nieuwste factuurdatum"],["issue-asc","Oudste factuurdatum"],["due-asc","Vervaldatum eerst"],["amount-desc","Bedrag hoog → laag"],["amount-asc","Bedrag laag → hoog"],["customer-asc","Klant A–Z"],["customer-desc","Klant Z–A"]]},"expenses":{"placeholder":"Zoek op leverancier, factuurnummer of bedrag","entity":"kosten","empty":"Je hebt nog geen kosten geboekt.","sorts":[["date-desc","Nieuwste datum"],["date-asc","Oudste datum"],["vendor-asc","Leverancier A–Z"],["vendor-desc","Leverancier Z–A"],["amount-desc","Bedrag hoog → laag"],["amount-asc","Bedrag laag → hoog"]]},"bank":{"placeholder":"Zoek in transacties","entity":"transacties","empty":"Je hebt nog geen banktransacties.","sorts":[["date-desc","Nieuwste datum"],["date-asc","Oudste datum"],["amount-desc","Bedrag hoog → laag"],["amount-asc","Bedrag laag → hoog"]]},"contacts":{"placeholder":"Zoek op naam, e-mail of plaats","entity":"relaties","empty":"Je hebt nog geen relaties toegevoegd.","sorts":[["name-asc","Naam A–Z"],["name-desc","Naam Z–A"],["open-desc","Meeste openstaand"],["revenue-desc","Meeste omzet (12 mnd)"],["recent-desc","Laatst gefactureerd"]]},"services":{"placeholder":"Zoek diensten","entity":"diensten","empty":"Je hebt nog geen diensten toegevoegd.","sorts":[["name-asc","Naam A–Z"],["name-desc","Naam Z–A"],["price-asc","Prijs laag → hoog"],["price-desc","Prijs hoog → laag"]]},"documents":{"placeholder":"Zoek op bestand, leverancier of factuurnummer","entity":"documenten","empty":"Je hebt nog geen documenten geüpload.","sorts":[["date-desc","Nieuwste datum"],["date-asc","Oudste datum"],["name-asc","Naam A–Z"],["name-desc","Naam Z–A"]]},"bookings":{"placeholder":"Zoek op klant of dienst","entity":"boekingen","empty":"Je hebt nog geen boekingen.","sorts":[["upcoming","Eerstvolgende afspraak"],["newest","Nieuwste"],["oldest","Oudste"],["customer-asc","Klant A–Z"]]},"ledger":{"placeholder":"Zoek rekening, referentie of omschrijving","entity":"boekingsregels","empty":"Nog geen boekingsregels.","sorts":[["date-desc","Nieuwste eerst"]]},"trips":{"placeholder":"Zoek op plaats, postcode of doel","entity":"ritten","empty":"Je hebt nog geen ritten.","sorts":[["date-desc","Nieuwste datum"],["date-asc","Oudste datum"],["km-desc","Kilometers hoog → laag"]]}};
 let listState=loadListState();let listSearchTimer=null,modalReturnFocus=null;
 function readCurrentUser(){try{const id=localStorage.getItem(SESSION_KEY);if(!id)return null;return getUsers().find(u=>u.id===id)||null}catch(e){return null}}
 function getUsers(){try{return JSON.parse(localStorage.getItem(USERS_KEY))||[]}catch(e){return []}}
@@ -3724,6 +3726,7 @@ function listSearchHaystack(name,item){
   if(name==='services')return [item.name,item.description,item.unitLabel].join(' ');
   if(name==='documents'){const x=listLinkedDocumentInfo(item);return [item.name,item.type,documentTypeLabel(item.type),x.party,x.number].join(' ')}
   if(name==='bookings')return [getContact(item.customerId).name,item.service].join(' ');
+  if(name==='trips')return [item.from,item.to,item.fromPostal,item.toPostal,item.purpose].join(' ');
   return ''
 }
 function invoiceListStatusMatch(i,status){
@@ -3743,7 +3746,7 @@ function contactListStats(c){
   const lastActivity=[last,purchases].filter(Boolean).sort().pop()||'';
   return {open:open.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),overdue:open.some(invoiceIsOverdueOpen),revenue:invoices.filter(i=>String(i.issueDate||'')>=yearAgo).reduce((sum,i)=>roundMoney(sum+invoiceNet(i)),0),last,recent:!!lastActivity&&lastActivity>=yearAgo}
 }
-function contactMissingDetails(c){return !String(c.name||'').trim()||(c.type==='customer'&&(!String(c.email||'').trim()||!String(c.address||'').trim()||!String(c.city||'').trim()))}
+function contactMissingDetails(c){return !String(c.name||'').trim()||(c.type==='customer'&&(!String(c.email||'').trim()||!String(c.address||'').trim()||!String(c.postal||'').trim()||!String(c.city||'').trim()))}
 function listMatchesFilters(name,item){
   const f=listPageState(name).filters||{},bounds=listPeriodBounds(name,f);
   if(name==='invoices'){
@@ -3759,6 +3762,7 @@ function listMatchesFilters(name,item){
     if(!listPeriodMatch(item.date,f.period,bounds.from,bounds.to))return false;
     if(f.category!=='all'&&String(item.category||'')!==f.category)return false;
     if(f.docType!=='all'&&expenseListType(item)!==f.docType)return false;
+    if(f.receipt&&f.receipt!=='all'&&(expenseHasReceipt(item)?'with':'missing')!==f.receipt)return false;
     return true
   }
   if(name==='bank'){
@@ -3788,6 +3792,7 @@ function listMatchesFilters(name,item){
     return true
   }
   if(name==='services')return f.status==='all'||(f.status==='active'?item.active!==false:item.active===false);
+  if(name==='trips')return listPeriodMatch(item.date,f.period,bounds.from,bounds.to);
   if(name==='documents'){
     if(f.linked==='linked'&&!item.linkedId)return false;
     if(f.linked==='unlinked'&&item.linkedId)return false;
@@ -3859,13 +3864,18 @@ function listSortCompare(name,a,b){
     if(af!==bf)return af?-1:1;
     return af?ad-bd:bd-ad
   }
+  if(name==='trips'){
+    if(sort==='date-asc')return text(a.date,b.date);
+    if(sort==='km-desc')return Number(b.km||0)-Number(a.km||0);
+    return text(b.date,a.date)
+  }
   return 0
 }
 function listSource(name){
   if(name==='ledger')return journalFlatRows(generatedJournal());
   return ({
     invoices:state.invoices,expenses:state.expenses.filter(e=>!expenseIsWithdrawn(e)),bank:state.transactions,contacts:state.contacts,
-    services:state.services,documents:state.documents,bookings:state.bookings
+    services:state.services,documents:state.documents,bookings:state.bookings,trips:state.mileage
   })[name]||[]
 }
 function getListRows(name){
@@ -3891,7 +3901,8 @@ function listFilterFields(name){
     {key:'vendor',label:'Leverancier',options:[['all','Alle leveranciers'],...[...new Set(state.expenses.map(e=>String(e.vendor||'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'nl',{sensitivity:'base'})).map(v=>[v,v])]},
     {key:'period',label:'Periode',options:listPeriodOptions()},...LIST_PERIOD_RANGE,
     {key:'category',label:'Categorie',options:[['all','Alle categorieën'],...[...new Set(state.expenses.map(e=>String(e.category||'')).filter(Boolean))].sort().map(v=>[v,v])]},
-    {key:'docType',label:'Documenttype',options:[['all','Alle types'],['invoice','Inkoopfactuur'],['receipt','Bon'],['manual','Handmatig']]}
+    {key:'docType',label:'Documenttype',options:[['all','Alle types'],['invoice','Inkoopfactuur'],['receipt','Bon'],['manual','Handmatig']]},
+    {key:'receipt',label:'Bon',options:[['all','Met en zonder bon'],['missing','Zonder bon'],['with','Met bon']]}
   ];
   if(name==='bank')return [
     {key:'status',label:'Status',options:[['all','Alle'],['unmatched','Te verwerken'],['matched','Gekoppeld']]},
@@ -3907,6 +3918,7 @@ function listFilterFields(name){
     {key:'vat',label:'Btw-id',options:[['all','Alle'],['with','Met btw-id'],['without','Zonder btw-id']]}
   ];
   if(name==='services')return [{key:'status',label:'Status',options:[['all','Alle'],['active','Actief'],['inactive','Inactief']]}];
+  if(name==='trips')return [{key:'period',label:'Periode',options:listPeriodOptions()},...LIST_PERIOD_RANGE];
   if(name==='documents')return [
     {key:'linked',label:'Koppeling',options:[['all','Alle'],['linked','Gekoppeld'],['unlinked','Niet gekoppeld']]},
     {key:'type',label:'Documenttype',options:[['all','Alle types'],...[...new Set(state.documents.map(d=>String(d.type||'')).filter(Boolean))].sort().map(v=>[v,documentTypeLabel(v)])]},
@@ -3960,7 +3972,7 @@ function listFilterChipEntries(name){
   return out
 }
 // Phone: a short search text that fits the field (Kwin 2026-10-10).
-const LIST_PHONE_PLACEHOLDER={invoices:'Zoek factuur of klant',expenses:'Zoek kosten',documents:'Zoek een bon',contacts:'Zoek een relatie',services:'Zoek een dienst',bookings:'Zoek een boeking'};
+const LIST_PHONE_PLACEHOLDER={invoices:'Zoek factuur of klant',expenses:'Zoek kosten',documents:'Zoek een bon',contacts:'Zoek een relatie',services:'Zoek een dienst',bookings:'Zoek een boeking',trips:'Zoek een rit'};
 function listToolbar(name,extraHtml=''){
   const s=listPageState(name),ui={...(LIST_UI[name]||{}),...(phoneLayout()&&LIST_PHONE_PLACEHOLDER[name]?{placeholder:LIST_PHONE_PLACEHOLDER[name]}:{})},count=activeListFilterCount(name),quick=listQuickFilters(name),fields=listFilterFields(name),sorts=ui.sorts||[];
   const q=String(s.query||''),chips=listFilterChipEntries(name);
@@ -4069,6 +4081,7 @@ function listEmptyHtml(name,ctaHtml=''){
     expenses:{title:'Je hebt nog geen kosten.',body:'Upload een bon of inkoopfactuur. Boekuna zet de gegevens klaar om te controleren.',action:'<button type="button" class="btn primary" onclick="openUploadSourcePicker(\'purchase\')">Bon of factuur toevoegen</button>'},
     bank:{title:'Nog geen banktransacties.',body:'Importeer een CSV-bankbestand om transacties te bekijken en te koppelen.',action:'<button type="button" class="btn primary" onclick="document.getElementById(\'csvFile\').click()">Bankbestand importeren</button>'},
     contacts:{title:'Je hebt nog geen relaties.',body:'Voeg een klant of leverancier toe zodra je die nodig hebt.',action:'<button type="button" class="btn primary" onclick="newContact()">Relatie toevoegen</button>'},
+    trips:{title:'Je hebt nog geen ritten.',body:'Vul twee postcodes in; Boekuna rekent de kilometers uit.',action:'<button type="button" class="btn primary" onclick="newTrip()">Eerste rit toevoegen</button>'},
     documents:phoneLayout()?{title:'Nog geen bonnetjes.',body:'Scan een bon of upload een factuur. Boekuna leest hem uit en zet de bedragen klaar.',action:'<button type="button" class="btn primary" onclick="openDocumentUpload()">Bon scannen</button>'}:{title:'Je hebt nog geen documenten.',body:'Upload een bon of factuur. Boekuna leest hem uit en laat zien wat je moet controleren.',action:'<button type="button" class="btn primary" onclick="openDocumentUpload()">Document uploaden</button>'}
    }[name];
    if(firstUse)return '<div class="empty beginner-empty-state">'+emptyListIcon(name)+'<strong>'+esc(firstUse.title)+'</strong><div class="help">'+esc(firstUse.body)+'</div><div class="beginner-empty-action">'+(ctaHtml||firstUse.action)+'</div></div>';
@@ -4092,7 +4105,7 @@ function modal(title,body,foot='',wide=false){const active=document.activeElemen
 function closeModal(){if(reportPreviewHistory){const token=reportPreviewHistory;reportPreviewHistory=null;if(history.state?.boekunaReportPreview===token)history.back()}if(documentProcessingSession&&!documentProcessingSession.persistent&&activeDocumentTransfers>0)documentProcessingSession.modalHidden=true;else if(documentProcessingSession&&!documentProcessingSession.persistent)cleanupDocumentProcessingSession();document.getElementById('modalRoot').innerHTML='';const el=modalReturnFocus;modalReturnFocus=null;if(el?.setAttribute)el.setAttribute('aria-expanded','false');if(el?.isConnected)setTimeout(()=>el.focus(),0)}
 function download(name,text,type='application/json'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
 
-function mobilePrimarySection(p=page){return ['dashboard','invoices','expenses','vat'].includes(p)?p:'more'}
+function mobilePrimarySection(p=page){return ['dashboard','invoices','expenses','documents'].includes(p)?p:'more'}
 function mobileDrawerFocusable(){const sidebar=document.getElementById('sidebar');if(!sidebar)return[];return [...sidebar.querySelectorAll('button:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])')].filter(el=>el.offsetParent!==null)}
 function mobileAccountName(){
  const meta=currentUser?.supabaseUser?.user_metadata||{},company=state.company||{};
@@ -4132,7 +4145,7 @@ function navigateWithFilter(target,key,value){
 function dashboardAttentionItems(){
  const items=[],overdue=state.invoices.filter(invoiceIsOverdueOpen),unmatched=state.transactions.filter(t=>t.status==='unmatched');
  const jobs=(documentProcessingJobs||[]).filter(j=>(persistentDocumentNeedsReview(j)||j.state==='failed')),jobRefs=new Set(jobs.map(j=>String(j.client_ref||'')).filter(Boolean)),localReview=state.documents.filter(d=>d?.verification?.status==='needs_review'&&!jobRefs.has(String(d.fileId||''))),failed=jobs.filter(j=>String(j.state||'')==='failed'),review=jobs.filter(persistentDocumentNeedsReview),contactsMissing=attentionRows().some(row=>row.category==='contacts'),health=dataHealthIssues().filter(i=>!(contactsMissing&&i.key==='contact-addresses')),upcoming=state.bookings.filter(b=>['planned','confirmed'].includes(b.status)&&daysUntil(b.date)>=0&&daysUntil(b.date)<=2&&!b.reminderSent);
- const additional=attentionRows().filter(row=>row.category==='contacts');if(additional.length)items.push({key:'contacts',priority:3,tone:'review',icon:'✓',title:additional.length===1?'1 klant mist gegevens':additional.length+' klanten missen gegevens',detail:'Nodig om een factuur te kunnen sturen',cta:'Aanvullen',action:()=>openAttentionCategory('contacts')});
+ const additional=attentionRows().filter(row=>row.category==='contacts');if(additional.length)items.push({key:'contacts',priority:3,tone:'review',icon:'✓',title:additional.length===1?'1 klant mist gegevens':additional.length+' klanten missen gegevens',detail:'Nodig om een factuur te kunnen sturen',cta:'Aanvullen',action:()=>openMissingContactDetails()});
  if(overdue.length)items.push({key:'overdue',priority:1,tone:'urgent',icon:'!',title:overdue.length===1?getContact(overdue[0].customerId).name+' heeft factuur '+overdue[0].number+' nog niet betaald':overdue.length+' facturen zijn nog niet betaald',detail:overdue.length===1?money(invoiceOutstanding(overdue[0]))+' · had betaald moeten zijn op '+dateNL(overdue[0].dueDate):'De betaaltermijn is voorbij',cta:overdue.length===1?'Herinnering sturen':'Bekijken',action:()=>overdue.length===1&&typeof openReminder==='function'?openReminder(overdue[0].id):openDashboardAttention('overdue','')});
  if(attentionRows().some(row=>row.category==='documents')){const total=attentionRows().filter(row=>row.category==='documents').length;items.push({key:'documents',priority:failed.length?1:2,tone:failed.length?'urgent':'review',icon:failed.length?'!':'✓',title:total===1?'1 bon controleren':total+' bonnen controleren',detail:failed.length?'Niet alles kon worden gelezen':'Kijk even of de bedragen kloppen',cta:'Controleren',action:()=>openDashboardAttention('documents',total===1?(failed[0]?.id||review[0]?.id||localReview[0]?.id||''):'')})}
  if(unmatched.length)items.push({key:'bank',priority:2,tone:'review',icon:'↔',title:unmatched.length===1?'1 bankregel koppelen':unmatched.length+' bankregels koppelen',detail:'Geef aan bij welke factuur of kosten '+(unmatched.length===1?'hij':'ze')+' horen',cta:'Koppelen',action:()=>openDashboardAttention('bank')});
@@ -4157,7 +4170,7 @@ function attentionItemHtml(item){return '<button type="button" class="dashboard-
 // Phone: a page's to-dos in the same "Nog te doen" block as on the overview (dot, text, one green link).
 function pageTodoHtml(items){items=items.filter(Boolean);return items.length?'<section class="dashboard-attention card page-todo"><div class="section-head"><h2>Nog te doen</h2><span class="badge neutral">'+items.length+'</span></div><div class="dashboard-attention-list">'+items.map(attentionItemHtml).join('')+'</div></section>':''}
 // "Betalingen zonder bon" as a to-do (phone). force: also when it was put off with "Later" this week (Kosten page).
-function missingReceiptsTodo(force=false){const list=expensesWithoutReceipt();if(!list.length||(!force&&lookFlag('receipts-asked')===isoWeekKey()))return null;const names=[...new Set(list.map(e=>e.vendor).filter(Boolean))].slice(0,3).join(', ');return {key:'receipts',tone:'soon',icon:'•',title:list.length+' '+(list.length===1?'betaling':'betalingen')+' zonder bon',detail:names,cta:'Toevoegen',onclick:"openUploadSourcePicker('purchase')"}}
+function missingReceiptsTodo(force=false){const list=expensesWithoutReceipt();if(!list.length||(!force&&lookFlag('receipts-asked')===isoWeekKey()))return null;const names=[...new Set(list.map(e=>e.vendor).filter(Boolean))].slice(0,3).join(', ');return {key:'receipts',tone:'soon',icon:'•',title:list.length+' '+(list.length===1?'betaling':'betalingen')+' zonder bon',detail:names,cta:'Bekijken',onclick:"openMissingReceipts()"}}
 function renderAttentionCenter(openAmount){
  const receipts=page==='dashboard'&&phoneLayout()?missingReceiptsTodo():null;
  const items=[receipts,...dashboardAttentionItems().filter(item=>attentionTypeVisible(item.key))].filter(Boolean),visible=items,docLoading=!TEST_MODE_NO_AUTH&&!documentProcessingInitialized&&!documentProcessingFetchError,docError=documentProcessingFetchError||documentProcessingConnectivityLost;
@@ -4199,7 +4212,7 @@ function preferredStartPage(){const p=String(state.meta?.startPage||'dashboard')
 function attentionTypeVisible(key){const hidden=state.meta?.attentionHidden;return !(Array.isArray(hidden)&&hidden.includes(key))}
 function optionalCopyHtml(copy,cls='metric-sub',tag='div'){return extraHelpVisible()?'<'+tag+' class="'+cls+'">'+esc(copy)+'</'+tag+'>':''}
 function setExtraHelpEnabled(enabled){if(!state.meta||typeof state.meta!=='object')state.meta={};state.meta.extraHelpEnabled=enabled===true;save();if(page!=='settings')render()}
-function render(){const fn={dashboard:renderDashboard,insights:renderAssistantInsightsSafe,invoices:renderInvoices,expenses:renderExpenses,bank:renderBank,income:renderIncome,outgoings:renderOutgoings,vat:renderVat,reports:renderReports,ledger:renderLedger,control:renderControl,cashflow:renderCashflow,bookings:renderBookings,contacts:renderContacts,services:renderServices,hours:renderHours,documents:renderDocuments,profile:renderProfile,settings:renderSettings}[page]||renderDashboard;const content=document.getElementById('content');content.dataset.page=page;content.innerHTML=fn();wirePage();if(page==='dashboard')wireDashboardAttention();renderGlobalDocumentIndicator();syncMobileNavigationState()}
+function render(){const fn={dashboard:renderDashboard,insights:renderAssistantInsightsSafe,invoices:renderInvoices,expenses:renderExpenses,bank:renderBank,income:renderIncome,outgoings:renderOutgoings,vat:renderVat,reports:renderReports,ledger:renderLedger,control:renderControl,cashflow:renderCashflow,bookings:renderBookings,contacts:renderContacts,services:renderServices,trips:renderTrips,hours:renderHours,documents:renderDocuments,profile:renderProfile,settings:renderSettings}[page]||renderDashboard;const content=document.getElementById('content');content.dataset.page=page;content.innerHTML=fn();wirePage();if(page==='dashboard')wireDashboardAttention();renderGlobalDocumentIndicator();syncMobileNavigationState()}
 // Phone pages (Kwin's picks, 2026-10-09) show calmer blocks; render() runs again when the width crosses 820px.
 function phoneLayout(){return window.matchMedia('(max-width:820px)').matches}
 function dashboardIsoDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -4424,8 +4437,13 @@ function dashboardVatTileHtml(kpi){
 // 18, 24, 28: calm extra cards. Dismissals are per device (localStorage), nothing is saved to the administration.
 function lookFlag(key,value){try{if(value===undefined)return localStorage.getItem('boekuna-'+key)||'';localStorage.setItem('boekuna-'+key,value)}catch(e){return ''}}
 function isoWeekKey(d=new Date()){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())),day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const y=t.getUTCFullYear(),w=Math.ceil(((t-Date.UTC(y,0,1))/864e5+1)/7);return y+'-W'+w}
-function expensesWithoutReceipt(days=60){const from=new Date();from.setDate(from.getDate()-days);const cut=from.toISOString().slice(0,10);return state.expenses.filter(e=>String(e.date||'')>=cut&&expenseGross(e)>0&&!e.correctionFor&&!e.correctedAt&&!state.documents.some(d=>d.fileId&&((d.linkedType==='expense'&&d.linkedId===e.id)||(e.documentId&&d.id===e.documentId)))).sort((a,b)=>String(b.date).localeCompare(String(a.date)))}
-function missingReceiptsCardHtml(force=false){const list=expensesWithoutReceipt();if(!list.length||(!force&&lookFlag('receipts-asked')===isoWeekKey()))return '';const names=[...new Set(list.map(e=>e.vendor).filter(Boolean))].slice(0,3).join(', ');return `<div class="card look-note-card missing-receipts-card"><div class="look-note-text"><strong>${list.length} ${list.length===1?'betaling':'betalingen'} zonder bon</strong><span>${esc(names)}</span></div><div class="look-note-actions">${force?'':`<button class="btn" type="button" onclick="lookFlag('receipts-asked',isoWeekKey());render()">Later</button>`}<button class="btn primary" type="button" onclick="openUploadSourcePicker('purchase')">Toevoegen</button></div></div>`}
+function expenseHasReceipt(e){return state.documents.some(d=>d.fileId&&((d.linkedType==='expense'&&d.linkedId===e.id)||(e.documentId&&d.id===e.documentId)))}
+function expensesWithoutReceipt(days=60){const from=new Date();from.setDate(from.getDate()-days);const cut=from.toISOString().slice(0,10);return state.expenses.filter(e=>String(e.date||'')>=cut&&expenseGross(e)>0&&!e.correctionFor&&!e.correctedAt&&!expenseHasReceipt(e)).sort((a,b)=>String(b.date).localeCompare(String(a.date)))}
+// "x betalingen zonder bon" opens the Kosten list with only those payments (every period), not the camera.
+function openMissingReceipts(){storeFinancialPeriod('all');const list=listPageState('expenses');list.filters.receipt='missing';persistListState();return navigate('expenses')}
+// "x klanten missen gegevens" opens Relaties with only the customers that still miss something.
+function openMissingContactDetails(){const list=listPageState('contacts');list.filters.type='customer';list.filters.details='missing';persistListState();return navigate('contacts')}
+function missingReceiptsCardHtml(force=false){const list=expensesWithoutReceipt();if(!list.length||(!force&&lookFlag('receipts-asked')===isoWeekKey()))return '';const names=[...new Set(list.map(e=>e.vendor).filter(Boolean))].slice(0,3).join(', ');return `<div class="card look-note-card missing-receipts-card"><div class="look-note-text"><strong>${list.length} ${list.length===1?'betaling':'betalingen'} zonder bon</strong><span>${esc(names)}</span></div><div class="look-note-actions">${force?'':`<button class="btn" type="button" onclick="lookFlag('receipts-asked',isoWeekKey());render()">Later</button>`}<button class="btn" type="button" onclick="openMissingReceipts()">Bekijken</button><button class="btn primary" type="button" onclick="openUploadSourcePicker('purchase')">Toevoegen</button></div></div>`}
 function monthCardHtml(){const now=new Date();if(now.getDate()>7)return '';const key=monthKeyOffset(-1);if(lookFlag('month-card')===key)return '';const inMonth=d=>String(d||'').startsWith(key);const inv=state.invoices.filter(i=>invoiceCounts(i)&&inMonth(i.issueDate)),exp=state.expenses.filter(e=>inMonth(e.date));if(!inv.length&&!exp.length)return '';const sales=inv.reduce((s,i)=>roundMoney(s+invoiceNet(i)),0),costs=exp.reduce((s,e)=>roundMoney(s+expenseAccountingCost(e)),0),open=state.invoices.filter(i=>invoiceCounts(i)&&i.kind!=='credit'&&toCents(invoiceOutstanding(i))>0).length;const d=new Date(key+'-01T12:00:00'),name=new Intl.DateTimeFormat('nl-NL',{month:'long'}).format(d);return `<div class="card look-note-card month-card"><div class="look-note-text"><span class="look-note-eyebrow">${esc(name.charAt(0).toUpperCase()+name.slice(1))} in het kort</span><strong class="month-card-value">${money(roundMoney(sales-costs))} winst</strong><span>${money(sales)} omzet · ${money(costs)} kosten${open?` · ${open} ${open===1?'factuur staat':'facturen staan'} nog open`:''}</span></div><div class="look-note-actions"><button class="btn" type="button" onclick="lookFlag('month-card','${key}');render()">Gezien</button></div></div>`}
 function freeToSpend(){const y=String(currentBookYear()),inYear=d=>String(d||'').startsWith(y);const bankIn=i=>state.transactions.filter(t=>t.status==='matched'&&t.matchType==='invoice'&&t.matchId===i.id&&inYear(t.date)).reduce((s,t)=>s+Math.abs(Number(t.amount||0)),0),owed=state.invoices.filter(i=>i.kind==='credit'&&invoiceCounts(i)).reduce((s,i)=>s+invoiceOutstanding(i),0),received=roundMoney(state.invoices.filter(i=>i.kind!=='credit').reduce((s,i)=>s+(i.payments||[]).filter(p=>inYear(p.date)).reduce((t,p)=>t+Math.abs(Number(p.amount||0)),0)+bankIn(i),0)-owed);if(received<=0)return null;const exp=state.expenses.filter(e=>inYear(e.date)),inv=state.invoices.filter(i=>invoiceCounts(i)&&inYear(i.issueDate));const spent=exp.reduce((s,e)=>s+expenseGross(e),0),vat=Math.max(0,roundMoney(inv.reduce((s,i)=>s+invoiceVat(i),0)-exp.reduce((s,e)=>s+expenseDeductibleVat(e),0))),profit=inv.reduce((s,i)=>s+invoiceNet(i),0)-exp.reduce((s,e)=>s+expenseAccountingCost(e),0),pct=Number(state.meta?.taxReservePct??30),tax=roundMoney(Math.max(0,profit)*pct/100);return {free:roundMoney(received-spent-vat-tax),vat,tax,pct}}
 function freeToSpendLineHtml(){const f=freeToSpend();if(!f)return '';return `<div class="kpi-free" title="Wat dit jaar binnenkwam min wat je uitgaf, na btw (${money(f.vat)}) en een schatting van ${f.pct}% inkomstenbelasting (${money(f.tax)}).">Vrij te besteden <strong>${money(f.free)}</strong><span>dit jaar, na btw en geschatte belasting</span></div>`}
@@ -5065,6 +5083,79 @@ function renderContacts(){
   const phone=phoneLayout(),list=getListRows('contacts'),demoCount=state.contacts.filter(c=>c.demo).length;
   return `<div class="product-page-shell"><div class="page-head product-page-head"><div><h1>Relaties</h1></div></div>${state.contacts.length?`<div class="page-actions product-page-actions"><button class="btn primary" onclick="newContact()">${icon('i-plus')} Nieuwe relatie</button>${demoCount?`<button class="btn" onclick="removeDemoCustomers()">Verwijder ${demoCount} demo-klanten</button>`:''}</div>`:''}</div>${listToolbar('contacts')}<div class="card table-card workspace-table"><div class="table-wrap mobile-stack-wrap"><table class="table contacts-table mobile-stack-table mobile-contacts"><thead><tr><th>Naam</th><th>Type</th><th class="contacts-secondary">Contactpersoon</th><th>E-mail</th><th class="contacts-secondary">Adres</th><th class="contacts-secondary">Btw-id</th><th></th></tr></thead><tbody>${list.length?list.map(c=>`<tr><td>${phone?phoneContactRowHtml(c):`${c.type==='customer'?`<button type="button" class="link-btn contact-card-link" onclick="openCustomerCard('${c.id}')"><strong>${esc(c.name)}</strong></button>`:`<strong>${esc(c.name)}</strong>`}${c.demo?' <span class="badge">Demo</span>':''}`}</td><td><span class="badge">${c.type==='customer'?'Klant':'Leverancier'}</span></td><td class="contacts-secondary">${esc(c.contactPerson||'—')}</td><td>${esc(c.email||'—')}</td><td class="contacts-secondary">${esc([c.address,c.postal,c.city].filter(Boolean).join(', ')||'—')}</td><td class="contacts-secondary">${esc(c.vat||'—')}${c.peppolId?`<div class="help">E-factuur: ${esc(c.peppolId)}</div>`:''}</td><td class="right"><button class="link-btn" onclick="editContact('${c.id}')">Bewerk</button></td></tr>`).join(''):`<tr><td colspan="7">${listEmptyHtml('contacts')}</td></tr>`}</tbody></table></div></div>`
 }
+// Ritten: zakelijke kilometers, in dezelfde stijl als Diensten. Rijen leven in state.mileage (bestond al voor Uren & ritten).
+const TRIP_KM_RATE=0.23; // onbelaste kilometervergoeding per km (Belastingdienst, 2024-2026)
+function tripLabel(t){return (t.from||t.fromPostal||'?')+' → '+(t.to||t.toPostal||'?')}
+function renderTrips(){
+  const phone=phoneLayout(),list=getListRows('trips'),year=String(currentBookYear()),yearRows=state.mileage.filter(t=>String(t.date||'').startsWith(year)),kmYear=yearRows.reduce((sum,t)=>sum+Number(t.km||0),0),kmList=list.reduce((sum,t)=>sum+Number(t.km||0),0);
+  const kpis=phone?productKpiGrid([productKpiHero('Kilometers in '+year,num(kmYear)+' km',yearRows.length?money(roundMoney(kmYear*TRIP_KM_RATE))+' bij € 0,23 per km':'Nog geen ritten dit jaar','kosten')],'grid-1'):productKpiGrid([productKpi('Kilometers in '+year,num(kmYear)+' km',yearRows.length+' '+(yearRows.length===1?'rit':'ritten'),'i-car','primary'),productKpi('Kilometervergoeding',money(roundMoney(kmYear*TRIP_KM_RATE)),'€ 0,23 per km, onbelast','i-chart','support')],'grid-2');
+  return `<div class="product-page-shell"><div class="page-head product-page-head"><div><h1>Ritten</h1>${optionalCopyHtml('Vul twee postcodes in; Boekuna rekent de kilometers uit.','page-status','p')}</div></div>${state.mileage.length?`<div class="page-actions product-page-actions"><button class="btn primary" onclick="newTrip()">${icon('i-plus')} Rit toevoegen</button></div>`:''}</div>${kpis}${listToolbar('trips')}<div class="card table-card workspace-table"><div class="table-wrap mobile-stack-wrap"><table class="table mobile-stack-table mobile-services mobile-trips"><thead><tr><th>Datum</th><th>Rit</th><th>Doel</th><th class="right">Km</th><th></th></tr></thead><tbody>${list.length?list.map(t=>`<tr><td>${phone?`<button type="button" class="phone-row-link" onclick="newTrip('${esc(t.id)}')"><span class="phone-row-text"><strong>${esc(tripLabel(t))}</strong><span>${esc(dateNL(t.date))}${t.purpose?' · '+esc(t.purpose):''}${t.retour?' · retour':''}</span></span><span class="phone-row-amount">${num(t.km)} km</span></button>`:esc(dateNL(t.date))}</td><td><strong>${esc(tripLabel(t))}</strong>${t.retour?'<div class="help">Heen en terug</div>':''}</td><td>${esc(t.purpose||'—')}</td><td class="right money">${num(t.km)}</td><td class="right"><button class="link-btn" onclick="newTrip('${esc(t.id)}')">Bewerk</button></td></tr>`).join('')+(list.length>1?`<tr class="table-total-row"><td></td><td><strong>Totaal</strong></td><td></td><td class="right money"><strong>${num(kmList)}</strong></td><td></td></tr>`:''):`<tr><td colspan="5">${listEmptyHtml('trips')}</td></tr>`}</tbody></table></div></div></div>`
+}
+function newTrip(editId=''){
+  const t=editId?state.mileage.find(x=>x.id===editId):null;
+  modal(t?'Rit bewerken':'Rit toevoegen',`<form id="tripForm" class="form-grid"><div class="field full"><label>Datum</label><input type="date" name="date" value="${esc(t?.date||today())}" required></div><div class="field"><label>Van (postcode)</label><input name="fromPostal" value="${esc(t?.fromPostal||'')}" placeholder="3011 AA" autocomplete="postal-code" inputmode="text" maxlength="7"><div class="help" data-trip-place="from">${esc(t?.from||'')}</div></div><div class="field"><label>Naar (postcode)</label><input name="toPostal" value="${esc(t?.toPostal||'')}" placeholder="1012 AB" autocomplete="postal-code" inputmode="text" maxlength="7"><div class="help" data-trip-place="to">${esc(t?.to||'')}</div></div><div class="field"><label>Kilometers</label><input type="number" step="0.1" min="0" name="km" value="${t?Number(t.km||0):''}" placeholder="wordt berekend" required><div class="help" data-trip-km-note>${esc(t?.kmNote||'')}</div></div><div class="field"><label style="display:flex;align-items:center;gap:9px;text-transform:none;letter-spacing:0;min-height:44px"><input type="checkbox" name="retour" style="width:auto" ${t?.retour?'checked':''}> Heen en terug (dubbele afstand)</label></div><div class="field full"><label>Doel</label><input name="purpose" value="${esc(t?.purpose||'')}" placeholder="Bijv. klantbezoek" maxlength="120"></div></form>`,
+    `<button class="btn" onclick="closeModal()">Annuleren</button>${t?`<button class="btn danger" onclick="deleteTrip('${esc(t.id)}')">Verwijder</button>`:''}<button class="btn primary" onclick="saveTrip('${esc(editId)}')">Opslaan</button>`);
+  wireTripForm()
+}
+function saveTrip(id=''){
+  const f=document.getElementById('tripForm');if(!f?.reportValidity())return;const d=new FormData(f);
+  const obj={id:id||uid('m'),date:String(d.get('date')||today()),fromPostal:formatPostal(d.get('fromPostal')),toPostal:formatPostal(d.get('toPostal')),km:Math.round(Number(d.get('km')||0)*10)/10,retour:d.get('retour')==='on',purpose:String(d.get('purpose')||'').trim(),from:f.querySelector('[data-trip-place="from"]').dataset.place||formatPostal(d.get('fromPostal')),to:f.querySelector('[data-trip-place="to"]').dataset.place||formatPostal(d.get('toPostal')),kmSource:f.dataset.kmSource||'manual',kmNote:f.querySelector('[data-trip-km-note]').textContent.trim()};
+  if(!(obj.km>0)){toast('Vul de kilometers in.');f.km.focus();return}
+  if(id){const idx=state.mileage.findIndex(x=>x.id===id);if(idx<0)return;state.mileage[idx]={...state.mileage[idx],...obj}}else state.mileage.unshift(obj);
+  logEvent(id?'Rit bijgewerkt':'Rit toegevoegd',tripLabel(obj)+' · '+num(obj.km)+' km','trip',obj.id);save();closeModal();if(page!=='trips')navigate('trips');else render();toast(id?'Rit bijgewerkt':'Rit opgeslagen')
+}
+function deleteTrip(id){const t=state.mileage.find(x=>x.id===id);if(!t)return;const index=state.mileage.indexOf(t);state.mileage=state.mileage.filter(x=>x.id!==id);logEvent('Rit verwijderd',tripLabel(t),'trip',id);save();closeModal();render();undoableToast('Rit verwijderd',()=>{if(!restoreRemoved('mileage',t,index))return;save();render();toast('Rit teruggezet')})}
+// Afstand: PDOK Locatieserver (gratis, zonder sleutel) zet een postcode om in een punt; OSRM rekent de wegafstand. Alleen de postcodes gaan naar buiten.
+function formatPostal(v){const s=String(v||'').toUpperCase().replace(/\s+/g,'');return /^[1-9][0-9]{3}[A-Z]{2}$/.test(s)?s.slice(0,4)+' '+s.slice(4):String(v||'').trim()}
+function postalKey(v){const s=String(v||'').toUpperCase().replace(/\s+/g,'');return /^[1-9][0-9]{3}[A-Z]{2}$/.test(s)?s:''}
+const tripGeoCache=new Map();
+async function lookupPostalPoint(postal){
+  const key=postalKey(postal);if(!key)return null;if(tripGeoCache.has(key))return tripGeoCache.get(key);
+  const job=(async()=>{
+    const r=await fetch('https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?fq=type:postcode&fl=woonplaatsnaam,straatnaam,centroide_ll&rows=1&q=postcode:'+encodeURIComponent(key));
+    if(!r.ok)throw new Error('Postcode opzoeken mislukt');
+    const doc=(await r.json())?.response?.docs?.[0],m=/POINT\(([-\d.]+) ([-\d.]+)\)/.exec(doc?.centroide_ll||'');
+    if(!doc||!m)return null;
+    return {postal:key.slice(0,4)+' '+key.slice(4),place:String(doc.woonplaatsnaam||''),street:String(doc.straatnaam||''),lon:Number(m[1]),lat:Number(m[2])}
+  })();
+  tripGeoCache.set(key,job);job.catch(()=>tripGeoCache.delete(key));return job
+}
+function haversineKm(a,b){const R=6371,rad=x=>x*Math.PI/180,dLat=rad(b.lat-a.lat),dLon=rad(b.lon-a.lon),h=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+async function routeDistanceKm(a,b){
+  try{
+    const r=await fetch('https://router.project-osrm.org/route/v1/driving/'+a.lon+','+a.lat+';'+b.lon+','+b.lat+'?overview=false');
+    const km=Number((await r.json())?.routes?.[0]?.distance)/1000;
+    if(r.ok&&Number.isFinite(km)&&km>=0)return {km:Math.round(km*10)/10,source:'route'}
+  }catch(_){}
+  // Geen route-service bereikbaar: hemelsbreed plus 30% voor de weg, duidelijk als schatting.
+  return {km:Math.round(haversineKm(a,b)*1.3*10)/10,source:'estimate'}
+}
+function wireTripForm(){
+  const f=document.getElementById('tripForm');if(!f)return;
+  const km=f.km,note=f.querySelector('[data-trip-km-note]'),retour=f.retour,places={from:f.querySelector('[data-trip-place="from"]'),to:f.querySelector('[data-trip-place="to"]')};
+  if(f.dataset.wired)return;f.dataset.wired='1';f.dataset.kmSource=km.value?'manual':'';
+  let run=0,oneWay=null;
+  const apply=()=>{if(oneWay==null||f.dataset.kmSource==='manual')return;km.value=Math.round(oneWay*(retour.checked?2:1)*10)/10};
+  const update=async()=>{
+    const fromKey=postalKey(f.fromPostal.value),toKey=postalKey(f.toPostal.value),id=++run;
+    if(!fromKey||!toKey)return;
+    note.textContent='Afstand berekenen…';
+    try{
+      const [a,b]=await Promise.all([lookupPostalPoint(fromKey),lookupPostalPoint(toKey)]);
+      if(id!==run)return;
+      if(!a||!b){note.textContent='Postcode niet gevonden, vul de kilometers zelf in.';return}
+      for(const [k,p] of [['from',a],['to',b]]){places[k].textContent=p.place?p.place+(p.street?' · '+p.street:''):'';places[k].dataset.place=p.place||p.postal}
+      const d=await routeDistanceKm(a,b);if(id!==run)return;
+      oneWay=d.km;if(f.dataset.kmSource!=='manual')f.dataset.kmSource='auto';apply();
+      note.textContent=(d.source==='route'?num(d.km)+' km via de weg':num(d.km)+' km (schatting, hemelsbreed)')+' enkele reis · pas aan als het anders is'
+    }catch(_){if(id===run)note.textContent='Afstand kon niet worden berekend, vul de kilometers zelf in.'}
+  };
+  const onPostal=e=>{const el=e.target;if(postalKey(el.value))el.value=formatPostal(el.value);const k=el.name==='fromPostal'?'from':'to';places[k].textContent='';delete places[k].dataset.place;if(f.dataset.kmSource!=='manual'){km.value='';oneWay=null}update()};
+  f.fromPostal.addEventListener('input',onPostal);f.toPostal.addEventListener('input',onPostal);
+  km.addEventListener('input',()=>{f.dataset.kmSource=km.value?'manual':'';if(!km.value){oneWay=null;update()}});
+  retour.addEventListener('change',apply);
+  if(postalKey(f.fromPostal.value)&&postalKey(f.toPostal.value)&&!km.value)update()
+}
 function renderHours(){
   const hoursTotal=state.hours.reduce((sum,h)=>sum+Number(h.hours),0),kmTotal=state.mileage.reduce((sum,m)=>sum+Number(m.km),0),hoursRows=state.hours.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))),mileRows=state.mileage.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
   return `<div class="page-head"><div><h1>Uren & ritten</h1></div><div class="page-actions"><button class="btn" onclick="newMileage()">Rit toevoegen</button><button class="btn primary" onclick="newHour()">${icon('i-plus')} Uren boeken</button></div></div><div class="grid grid-2 compact-metrics"><div class="card metric"><div class="metric-head"><span>Uren</span></div><div class="metric-value">${num(hoursTotal)} uur</div></div><div class="card metric"><div class="metric-head"><span>Kilometers</span></div><div class="metric-value">${num(kmTotal)} km</div></div></div><div class="grid grid-2 premium-grid"><div class="card table-card"><div class="table-toolbar"><strong>Uren</strong></div><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-time"><thead><tr><th>Datum</th><th>Project</th><th>Omschrijving</th><th class="right">Uren</th></tr></thead><tbody>${hoursRows.map(h=>`<tr><td>${dateNL(h.date)}</td><td><strong>${esc(h.project)}</strong></td><td>${esc(h.desc)}</td><td class="right money">${num(h.hours)}</td></tr>`).join('')}</tbody></table></div></div><div class="card table-card"><div class="table-toolbar"><strong>Ritten</strong></div><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-time"><thead><tr><th>Datum</th><th>Route</th><th>Doel</th><th class="right">Km</th></tr></thead><tbody>${mileRows.map(m=>`<tr><td>${dateNL(m.date)}</td><td><strong>${esc(m.from)} → ${esc(m.to)}</strong></td><td>${esc(m.purpose)}</td><td class="right money">${num(m.km)}</td></tr>`).join('')}</tbody></table></div></div></div>`
@@ -5305,9 +5396,9 @@ function quickImportBank(){
 // Phone Nieuw (Kwin 2026-10-10): three big tiles for what you do most; everything else stays one tap away under Meer.
 function quickMenuPhoneHtml(full=false){
  const tile=(label,sub,ic,call)=>`<button class="quick-action quick-tile" onclick="closeModal();${call}"><span class="quick-action-icon" aria-hidden="true"><svg class="icon"><use href="#${ic}"/></svg></span><span class="quick-action-text"><strong>${label}</strong><span>${sub}</span></span></button>`;
- return `<div class="quick-tiles">${tile('Factuur','maken','i-file','newInvoice()')}${tile('Bon','scannen','i-upload',"openUploadSourcePicker('auto')")}${tile('Kosten','zonder bon','i-receipt','newExpense()')}</div><details class="quick-more"><summary><span class="quick-more-text"><strong>Meer</strong><span>Relatie, dienst, bankbestand, uploaden</span></span></summary><div class="quick-action-grid">${quickActionButton('Banktransactie','Een betaling invoeren','i-bank','newTransaction()')}${quickActionButton('Relatie','Klant of leverancier','i-users','newContact()')}${full?quickActionButton('Boeking','','i-chart','newBooking()')+quickActionButton('Gemengde afrekening','Omzet + kosten','i-receipt','newSettlement()'):''}${quickMenuPhoneExtras(true)}</div></details>`
+ return `<div class="quick-tiles">${tile('Factuur','maken','i-file','newInvoice()')}${tile('Bon','scannen','i-upload',"openUploadSourcePicker('auto')")}${tile('Kosten','zonder bon','i-receipt','newExpense()')}</div><details class="quick-more"><summary><span class="quick-more-text"><strong>Meer</strong><span>Relatie, rit, dienst, bankbestand, uploaden</span></span></summary><div class="quick-action-grid">${quickActionButton('Banktransactie','Een betaling invoeren','i-bank','newTransaction()')}${quickActionButton('Relatie','Klant of leverancier','i-users','newContact()')}${quickActionButton('Rit','Van en naar, km automatisch','i-car','newTrip()')}${full?quickActionButton('Boeking','','i-chart','newBooking()')+quickActionButton('Gemengde afrekening','Omzet + kosten','i-receipt','newSettlement()'):''}${quickMenuPhoneExtras(true)}</div></details>`
 }
-function quickMenu(){if(phoneLayout())return modal('Nieuw',quickMenuPhoneHtml(true));modal('Nieuw',`<div class="quick-action-group"><div class="quick-action-heading">Dagelijks</div><div class="quick-action-grid">${quickActionButton('Scannen','Foto van je bon, de rest doet Boekuna','i-upload',"openUploadSourcePicker('auto')",true)}${quickActionButton('Factuur','In een minuut klaar','i-file','newInvoice()',true)}${quickActionButton('Kosten boeken','Zonder bon, met de hand','i-receipt','newExpense()')}${quickActionButton('Banktransactie','Een betaling invoeren','i-bank','newTransaction()')}</div></div><div class="quick-action-group"><div class="quick-action-heading">Meer</div><div class="quick-action-grid">${quickActionButton('Relatie','Klant of leverancier','i-users','newContact()')}${quickActionButton('Dienst','','i-file','newService()')}${quickActionButton('Boeking','','i-chart','newBooking()')}${quickActionButton('Gemengde afrekening','Omzet + kosten','i-receipt','newSettlement()')}${quickMenuPhoneExtras()}</div></div>`)}
+function quickMenu(){if(phoneLayout())return modal('Nieuw',quickMenuPhoneHtml(true));modal('Nieuw',`<div class="quick-action-group"><div class="quick-action-heading">Dagelijks</div><div class="quick-action-grid">${quickActionButton('Scannen','Foto van je bon, de rest doet Boekuna','i-upload',"openUploadSourcePicker('auto')",true)}${quickActionButton('Factuur','In een minuut klaar','i-file','newInvoice()',true)}${quickActionButton('Kosten boeken','Zonder bon, met de hand','i-receipt','newExpense()')}${quickActionButton('Banktransactie','Een betaling invoeren','i-bank','newTransaction()')}</div></div><div class="quick-action-group"><div class="quick-action-heading">Meer</div><div class="quick-action-grid">${quickActionButton('Relatie','Klant of leverancier','i-users','newContact()')}${quickActionButton('Rit','Van en naar, km automatisch','i-car','newTrip()')}${quickActionButton('Dienst','','i-file','newService()')}${quickActionButton('Boeking','','i-chart','newBooking()')}${quickActionButton('Gemengde afrekening','Omzet + kosten','i-receipt','newSettlement()')}${quickMenuPhoneExtras()}</div></div>`)}
 function nextInvoiceNumber(){const next=String(state.meta.nextInvoice||1).padStart(4,'0');return (state.company.invoicePrefix||((new Date().getFullYear())+'-'))+next}
 function conceptNumber(kind='invoice'){return `CONCEPT-${kind==='credit'?'CR-':''}${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`}
 async function reserveFinalInvoiceNumber(issueDate=today()){const year=Number(String(issueDate||today()).slice(0,4))||currentBookYear(),prefix=String(state.company.invoicePrefix||(`${year}-`)).trim()||`${year}-`;if(TEST_MODE_NO_AUTH){const n=nextInvoiceNumber();state.meta.nextInvoice=Number(state.meta.nextInvoice||1)+1;return n}const sb=await getSupabase(),{data,error}=await sb.rpc('reserve_invoice_number',{p_year:year,p_prefix:prefix});if(error)throw error;const number=String(data||'').trim();if(!number)throw new Error('Factuurnummer kon niet worden gereserveerd.');const m=number.match(/(\d+)$/);if(m)state.meta.nextInvoice=Math.max(Number(state.meta.nextInvoice||1),Number(m[1])+1);return number}

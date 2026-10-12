@@ -453,7 +453,7 @@ html[data-theme="dark"] #mainApp .kpi-free strong{color:var(--dk-ink,#E9EDEF)}
   html[data-theme="dark"] #mainApp#mainApp #content .product-page-actions>.btn:not(.primary){color:#7FDB8B!important}
   /* Kwin 2026-10-09: on the phone, making and adding goes through Nieuw in the bottom bar, so the pages have no own main button.
      What stays: "Terug naar Bank" on Inkomsten/Uitgaven and removing demo customers on Relaties. */
-  #mainApp#mainApp #content:is([data-page="invoices"],[data-page="expenses"],[data-page="bank"]) .product-page-actions{display:none!important}
+  #mainApp#mainApp #content:is([data-page="invoices"],[data-page="expenses"],[data-page="bank"],[data-page="trips"]) .product-page-actions{display:none!important}
   #mainApp#mainApp #content:is([data-page="income"],[data-page="outgoings"],[data-page="contacts"]) .product-page-actions>.btn.primary{display:none!important}
   #mainApp#mainApp #content:is([data-page="income"],[data-page="outgoings"],[data-page="contacts"]) .product-page-actions>.btn:not(.primary){margin-top:0}
 
