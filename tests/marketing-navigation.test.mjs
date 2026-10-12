@@ -3,11 +3,11 @@ import {chromium,webkit} from 'playwright';
 import {serveMarketing} from './helpers/marketing-site.mjs';
 
 const server=await serveMarketing('dist/marketing');
-const retired=['/assistent/','/scanner/','/rapportages/','/mobiel/'];
-const pages=['/functies/','/facturen/','/bonnen/','/btw/','/bank/','/hoe-het-werkt/','/prijzen/','/veiligheid/','/faq/','/over-ons/','/kennisbank/','/kennisbank/factuur-eisen/','/kennisbank/btw-aangifte-per-kwartaal/','/kennisbank/kleineondernemersregeling/','/kennisbank/bewaarplicht/','/kennisbank/zakelijke-kosten-en-btw/'];
+const moved={'/assistent/':'/functies/','/scanner/':'/slim-scannen/','/mobiel/':'/functies/','/contact/':'/support/'};
+const pages=['/functies/','/facturen/','/bonnen/','/slim-scannen/','/btw/','/bank/','/rapportages/','/hoe-het-werkt/','/zzp/','/prijzen/','/veiligheid/','/faq/','/over-ons/','/kennisbank/','/kennisbank/administratie-bijhouden-zzp/','/kennisbank/factuur-eisen/','/kennisbank/btw-aangifte-per-kwartaal/','/kennisbank/kleineondernemersregeling/','/kennisbank/bewaarplicht/','/kennisbank/zakelijke-kosten-en-btw/'];
 const preserved=['/privacy/','/voorwaarden/','/support/','/account-verwijderen/'];
 try{
-  for(const [name,engine] of [['chromium',chromium],['webkit',webkit]]){
+  for(const [name,engine] of [['chromium',chromium],['webkit',webkit]].filter(([n])=>!process.env.BOOKUNA_BROWSERS||process.env.BOOKUNA_BROWSERS.split(',').includes(n))){
     const browser=await engine.launch();
     try{
       for(const width of [320,390,768,1440]){
@@ -17,14 +17,13 @@ try{
         if(width<980)await page.locator('.mobile-nav summary').click();
         assert.equal(await page.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).getAttribute('href'),'https://app.boekuna.nl/?login=1');
         for(const href of ['/privacy/','/voorwaarden/','/support/'])assert.equal((await page.request.get(server.base+href)).status(),200,href);
-        for(const route of retired){
-          await page.goto(server.base+route,{waitUntil:'networkidle'});
-          assert.equal(await page.locator('h1').innerText(),'Nieuwe website in ontwikkeling.',name+' '+route);
-          assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'),'noindex,follow',route);
-          assert.equal(await page.locator('.editorial-hero,.detail-hero,.project-grid,.editorial-pricing,.audience-grid').count(),0,route+' old UI returned');
-          const size=await page.evaluate(()=>document.documentElement.scrollWidth);
-          assert.ok(size<=width+1,`${name} ${route} ${width} overflow`);
+        for(const [route,to] of Object.entries(moved)){
+          await page.goto(server.base+route);
+          await page.waitForURL(server.base+to);
+          assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'),'index,follow',route+' lands on an indexable page');
         }
+        // Every "Begin gratis" opens the real sign-up flow.
+        for(const href of await page.locator('a:has-text("Begin gratis")').evaluateAll(as=>as.map(a=>a.getAttribute('href'))))assert.equal(href,'https://app.boekuna.nl/?register=1','Begin gratis must open sign-up');
         for(const route of [...pages,...preserved]){
           await page.goto(server.base+route,{waitUntil:'networkidle'});
           assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'),'index,follow',route);
@@ -40,5 +39,5 @@ try{
       }
     }finally{await browser.close()}
   }
-  console.log('Clean marketing navigation QA: PASS (retired routes hold, all pages live with business details and working links, both engines, four widths)');
+  console.log('Clean marketing navigation QA: PASS (moved routes forward, all pages live with business details and working links, both engines, four widths)');
 }finally{await server.close()}

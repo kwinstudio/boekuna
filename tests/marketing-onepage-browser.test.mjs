@@ -12,10 +12,11 @@ const dist=path.join(root,'dist','marketing');
 const evidence=path.join(root,'tests','artifacts','multipage');
 fs.mkdirSync(evidence,{recursive:true});
 const server=await serveMarketing(dist);
-const engines=[['chromium',chromium],['webkit',webkit]];
+// BOOKUNA_BROWSERS=chromium runs one engine locally; CI runs both.
+const engines=[['chromium',chromium],['webkit',webkit]].filter(([n])=>!process.env.BOOKUNA_BROWSERS||process.env.BOOKUNA_BROWSERS.split(',').includes(n));
 const widths=[320,375,390,430,768,1024,1280,1440];
-const preserved=['/privacy/','/voorwaarden/','/support/','/account-verwijderen/','/functies/','/facturen/','/bonnen/','/btw/','/bank/','/hoe-het-werkt/','/prijzen/','/veiligheid/','/faq/','/over-ons/','/kennisbank/','/kennisbank/factuur-eisen/','/kennisbank/btw-aangifte-per-kwartaal/','/kennisbank/kleineondernemersregeling/','/kennisbank/bewaarplicht/','/kennisbank/zakelijke-kosten-en-btw/'];
-const retired=['/assistent/','/scanner/','/rapportages/','/mobiel/'];
+const preserved=['/privacy/','/voorwaarden/','/support/','/account-verwijderen/','/functies/','/facturen/','/bonnen/','/slim-scannen/','/btw/','/bank/','/rapportages/','/hoe-het-werkt/','/zzp/','/prijzen/','/veiligheid/','/faq/','/over-ons/','/kennisbank/','/kennisbank/administratie-bijhouden-zzp/','/kennisbank/factuur-eisen/','/kennisbank/btw-aangifte-per-kwartaal/','/kennisbank/kleineondernemersregeling/','/kennisbank/bewaarplicht/','/kennisbank/zakelijke-kosten-en-btw/'];
+const moved={'/assistent/':'/functies/','/scanner/':'/slim-scannen/','/mobiel/':'/functies/','/contact/':'/support/'};
 
 async function noOverflow(page,label){
   const s=await page.evaluate(()=>({vw:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth}));
@@ -42,7 +43,8 @@ try{
         const errors=[]; page.on('pageerror',e=>errors.push(String(e)));
         const response=await page.goto(server.base+'/',{waitUntil:'networkidle'});
         assert.equal(response.status(),200,name+' root '+width);
-        assert.equal(await page.locator('h1').textContent(),'Zo simpel kan het zijn.');
+        assert.equal(await page.locator('h1').textContent(),'Boekhouden zonder boekhoudtaal.');
+        assert.equal(await page.getByRole('link',{name:/^Begin gratis/}).first().getAttribute('href'),'https://app.boekuna.nl/?register=1','Primary CTA opens the real sign-up');
         if(width<980)await page.locator('.mobile-nav summary').click();
         assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'),'index,follow');
         assert.ok(await page.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).isVisible());
@@ -54,7 +56,7 @@ try{
         const login=await page.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).getAttribute('href');
         assert.equal(login,'https://app.boekuna.nl/?login=1');
         assert.deepEqual(errors,[]);
-        if(width===390||width===1440){if(width<980)await page.locator('.mobile-nav summary').click();await page.screenshot({path:path.join(evidence,'landing-v4-'+width+'-'+name+'.png'),fullPage:true});}
+        if(width===390||width===1440){if(width<980)await page.locator('.mobile-nav summary').click();await page.screenshot({path:path.join(evidence,'landing-'+width+'-'+name+'.png'),fullPage:true});}
         await page.close();
       }
 
@@ -72,18 +74,18 @@ try{
         await page.close();
       }
 
-      for(const route of retired){
+      for(const [route,to] of Object.entries(moved)){
         const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
-        const response=await page.goto(server.base+route,{waitUntil:'networkidle'});
+        const response=await page.request.get(server.base+route);
         assert.equal(response.status(),200,name+' '+route);
-        assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'),'noindex,follow');
-        assert.equal(await page.locator('h1').innerText(),'Nieuwe website in ontwikkeling.');
-        assert.equal(await page.locator('.editorial-hero,.project-grid,.editorial-pricing,.audience-grid,.detail-hero').count(),0,route+' old marketing UI returned');
-        await noOverflow(page,name+' '+route);
-        await axe(page,name+' '+route);
+        const html=await response.text();
+        assert.ok(html.includes('<meta name="robots" content="noindex,follow">'),route+' moved page must be noindex');
+        await page.goto(server.base+route);
+        await page.waitForURL(server.base+to);
+        assert.equal(await page.locator('h1').count(),1,route+' forwards to a real page');
         await page.close();
       }
     } finally { await browser.close(); }
   }
-  console.log('BOEKUNA V4 landing browser QA: PASS (Chromium + WebKit, 8 widths, legal/support, retired-route holdings, Axe)');
+  console.log('BOEKUNA landing browser QA: PASS ('+engines.map(([n])=>n).join(' + ')+', 8 widths, all pages, moved routes, Axe)');
 } finally { await server.close(); }

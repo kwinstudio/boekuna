@@ -6,12 +6,15 @@ on:
       - "public/index.html"
       - "public/404.html"
       - "public/*/index.html"
+      - "public/kennisbank/*/index.html"
+      - "public/favicon.ico"
       - "public/robots.txt"
       - "public/sitemap.xml"
       - "public/assets/baseline.css"
       - "public/assets/favicon.svg"
       - "public/assets/site/**"
       - "scripts/build-marketing.mjs"
+      - "scripts/marketing-site/**"
       - "vercel.json"
       - "tests/marketing-pages.test.mjs"
       - "tests/pricing-v2-website.test.mjs"
@@ -48,6 +51,8 @@ jobs:
           node-version: "22"
       - name: CI scope contract
         run: node tests/split-ci-scopes.test.mjs
+      - name: Generated pages match their source
+        run: node scripts/marketing-site/build.mjs --check
       - name: Install browser test dependencies
         run: npm ci --prefix tests --ignore-scripts
       - name: Install Playwright + Axe
@@ -92,5 +97,5 @@ jobs:
           path: |
             tests/artifacts/multipage/
             tests/artifacts/premium-marketing/
-            tests/artifacts/brand-clean-slate-*.png
+            tests/artifacts/brand-*.png
           if-no-files-found: warn

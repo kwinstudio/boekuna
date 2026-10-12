@@ -8,7 +8,7 @@ import {serveMarketing} from './helpers/marketing-site.mjs';
 const read=p=>fs.readFileSync(p,'utf8');
 const home=read('public/index.html'),prices=read('public/prijzen/index.html'),terms=read('public/voorwaarden/index.html'),faq=read('public/faq/index.html');
 const copy=JSON.parse(read('docs/marketing/pricing-v2-copy.json'));
-const all=[home,prices,faq,...['bonnen','facturen','hoe-het-werkt','functies','btw','bank'].map(s=>read(`public/${s}/index.html`))].join('\n');
+const all=[home,prices,faq,...['bonnen','facturen','slim-scannen','hoe-het-werkt','functies','btw','bank','rapportages','zzp'].map(s=>read(`public/${s}/index.html`))].join('\n');
 
 // Static: every price shown equals the server-side config; hidden plans are not shown at all.
 const hiddenPlans=Object.keys(PLANS).filter(id=>PLANS[id].paid&&!DEFAULT_SELLABLE_PLANS.includes(id));
@@ -45,7 +45,10 @@ for(const [id,p] of Object.entries(copy.plans)){
   assert.equal(p.yearly,formatEuro(PLANS[id].prices.year),'Klaviyo copy '+id+' yearly');
   assert.equal(p.yearlyPerMonth,formatEuro(yearlyMonthlyEquivalentCents(id)),'Klaviyo copy '+id+' per month');
 }
-const ld=JSON.parse(prices.match(/<script type="application\/ld\+json">(\{"@context":"https:\/\/schema.org","@type":"SoftwareApplication"[\s\S]*?)<\/script>/)[1]);
+const ldNodes=html=>[...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].flatMap(m=>{const d=JSON.parse(m[1]);return d['@graph']||[d]});
+const ld=ldNodes(prices).find(n=>n['@type']==='SoftwareApplication');
+assert.ok(ld,'pricing page has SoftwareApplication structured data');
+assert.ok(!JSON.stringify(ldNodes(prices)).includes('aggregateRating'),'no ratings in structured data');
 assert.deepEqual(ld.offers.map(o=>[o.name,o.price]),[['Start','0'],['ZZP maandelijks','9.95'],['ZZP jaarlijks','99.50'],['Pro maandelijks','19.95'],['Pro jaarlijks','199.50']],'structured data lists only purchasable offers');
 
 // Honest claims only.

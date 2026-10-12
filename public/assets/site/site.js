@@ -64,6 +64,12 @@
     drop.addEventListener('focusout',e=>{if(e.relatedTarget&&!drop.contains(e.relatedTarget))close()});
   });
 
+  // Mobile menu: close on Escape and after choosing a link on the same page.
+  document.querySelectorAll('.mobile-nav').forEach(nav=>{
+    nav.addEventListener('keydown',e=>{if(e.key==='Escape'&&nav.open){nav.open=false;nav.querySelector('summary').focus()}});
+    nav.querySelectorAll('a[href^="/#"],a[href^="#"]').forEach(a=>a.addEventListener('click',()=>{nav.open=false}));
+  });
+
   // Gentle reveal while scrolling. Content stays visible without JS or with reduced motion.
   if(!reduce&&'IntersectionObserver' in window){
     document.documentElement.classList.add('js-motion');
