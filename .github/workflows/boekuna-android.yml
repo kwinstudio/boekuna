@@ -1,0 +1,131 @@
+name: Boekuna Android
+
+# Pull requests: build check + WebView shim test (no secrets needed).
+# Run workflow (Actions tab > Boekuna Android > Run workflow): signed boekuna-release.aab to download.
+on:
+  pull_request:
+    paths:
+      - "mobile/**"
+      - "tests/android-shell-browser.test.mjs"
+      - ".github/workflows/boekuna-android.yml"
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: "Versienaam die gebruikers zien (bijv. 1.0.1)"
+        required: true
+        default: "1.0.0"
+      version_code:
+        description: "Versiecode, moet hoger zijn dan de vorige upload. Leeg = 100 + runnummer."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: boekuna-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shim:
+    name: WebView shim in the real app
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BOEKUNA_RELEASE_PROFILE: full
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install test dependencies
+        run: |
+          npm ci --prefix tests --ignore-scripts
+          npm install --prefix tests --no-save playwright@1.56.1
+          ./tests/node_modules/.bin/playwright install --with-deps chromium
+      - name: Android shell file actions
+        run: node tests/android-shell-browser.test.mjs
+
+  android:
+    name: Build Android app
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install Capacitor
+        working-directory: mobile
+        run: |
+          npm ci
+          npx cap sync android
+
+      - name: Version
+        id: version
+        env:
+          INPUT_CODE: ${{ inputs.version_code }}
+          INPUT_NAME: ${{ inputs.version_name }}
+        run: |
+          code="${INPUT_CODE:-$((100 + GITHUB_RUN_NUMBER))}"
+          name="${INPUT_NAME:-1.0.0}"
+          [[ "$code" =~ ^[0-9]+$ ]] || { echo "::error::version_code moet een getal zijn"; exit 1; }
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      - name: Upload key from secrets
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.BOEKUNA_UPLOAD_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Secret BOEKUNA_UPLOAD_KEYSTORE_BASE64 ontbreekt. Zie mobile/README.md."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/upload.jks"
+          echo "BOEKUNA_KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+
+      - name: Build
+        working-directory: mobile/android
+        env:
+          BOEKUNA_VERSION_CODE: ${{ steps.version.outputs.code }}
+          BOEKUNA_VERSION_NAME: ${{ steps.version.outputs.name }}
+          BOEKUNA_KEYSTORE_PASSWORD: ${{ secrets.BOEKUNA_UPLOAD_KEYSTORE_PASSWORD }}
+          BOEKUNA_KEY_ALIAS: ${{ secrets.BOEKUNA_UPLOAD_KEY_ALIAS }}
+          BOEKUNA_KEY_PASSWORD: ${{ secrets.BOEKUNA_UPLOAD_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon assembleDebug lintDebug bundleRelease
+
+      - name: Check bundle (package, version, signature)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          EXPECT_CODE: ${{ steps.version.outputs.code }}
+          EXPECT_NAME: ${{ steps.version.outputs.name }}
+        run: |
+          aab=mobile/android/app/build/outputs/bundle/release/app-release.aab
+          curl -sSL -o "$RUNNER_TEMP/bundletool.jar" https://github.com/google/bundletool/releases/download/1.18.1/bundletool-all-1.18.1.jar
+          manifest() { java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle "$aab" --xpath "$1"; }
+          pkg=$(manifest /manifest/@package); code=$(manifest /manifest/@android:versionCode); name=$(manifest /manifest/@android:versionName)
+          echo "package=$pkg versionCode=$code versionName=$name"
+          [ "$pkg" = "nl.boekuna.app" ] || { echo "::error::verkeerde package $pkg"; exit 1; }
+          [ "$code" = "$EXPECT_CODE" ] || { echo "::error::versionCode $code"; exit 1; }
+          [ "$name" = "$EXPECT_NAME" ] || { echo "::error::versionName $name"; exit 1; }
+          jarsigner -verify "$aab" | tee "$RUNNER_TEMP/verify.txt"
+          grep -q "jar verified" "$RUNNER_TEMP/verify.txt" || { echo "::error::bundle is niet ondertekend"; exit 1; }
+          jarsigner -verify -verbose -certs "$aab" | grep -q "CN=Android Debug" && { echo "::error::ondertekend met debug-sleutel"; exit 1; } || true
+          keytool -printcert -jarfile "$aab" | grep -E "Owner|SHA256:" | head -2
+          mkdir -p dist-android
+          cp "$aab" dist-android/boekuna-release.aab
+
+      - name: Download boekuna-release.aab
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: boekuna-release-${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}
+          path: dist-android/boekuna-release.aab
+          if-no-files-found: error
+          retention-days: 30
