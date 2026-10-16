@@ -1,6 +1,6 @@
 // Knowledge base: short, checked articles that link to the product pages they belong to.
 import fs from 'node:fs';
-import {render,ORGANIZATION,SITE,icon,arrow,sectionHead,ctaBand,pageHero,breadcrumbLd} from '../layout.mjs';
+import {render,ORGANIZATION,SITE,icon,arrow,sectionHead,ctaBand,pageHero,breadcrumbLd,HERO_BG,dotH1} from '../layout.mjs';
 
 const OP='https://ondernemersplein.overheid.nl/wetten-en-regels/';
 // Articles checked against belastingdienst.nl and ondernemersplein.overheid.nl.
@@ -28,7 +28,7 @@ export function article(a){
   const path=`/kennisbank/${a.slug}/`;
   const crumbs=[{name:'Kennisbank',href:'/kennisbank/'},{name:a.h1,href:path}];
   const more=articles.filter(x=>x.slug!==a.slug).slice(0,3);
-  const body=`<section class="page-hero article-hero"><div class="shell narrow"><nav class="crumbs" aria-label="Kruimelpad"><ol><li><a href="/">Home</a></li><li><a href="/kennisbank/">Kennisbank</a></li><li aria-current="page">${a.h1}</li></ol></nav><p class="eyebrow">Kennisbank · ${a.read} minuten lezen</p><h1>${a.h1}</h1><p class="lead">${a.lead}</p><p class="article-date">Bijgewerkt op ${dateNl(a.modified)}</p></div></section>
+  const body=`<section class="page-hero article-hero">${HERO_BG}<div class="shell narrow"><nav class="crumbs rise" style="--rd:0ms" aria-label="Kruimelpad"><ol><li><a href="/">Home</a></li><li><a href="/kennisbank/">Kennisbank</a></li><li aria-current="page">${a.h1}</li></ol></nav><p class="eyebrow rise" style="--rd:120ms">Kennisbank · ${a.read} minuten lezen</p><h1 class="rise" style="--rd:200ms">${dotH1(a.h1)}</h1><p class="lead rise" style="--rd:310ms">${a.lead}</p><p class="article-date rise" style="--rd:420ms">Bijgewerkt op ${dateNl(a.modified)}</p></div></section>
 <article class="section article"><div class="shell article-grid"><aside class="article-aside"><nav class="article-toc" aria-label="Op deze pagina"><p>Op deze pagina</p>${a.toc.map(([h,t])=>`<a href="${h}">${t}</a>`).join('')}</nav></aside><div class="article-body">${a.body}
 <aside class="article-boekuna" aria-label="Zo helpt Boekuna"><p class="article-boekuna-title">Zo helpt Boekuna</p><p>${a.help}</p><a class="text-link" href="${a.helpHref}">${helpName[a.helpHref]||'Meer over deze functie'} ${arrow}</a></aside>
 <section class="article-sources" aria-labelledby="bronnen-${a.slug}"><h2 id="bronnen-${a.slug}">Bronnen</h2>${a.sources}</section></div></div></article>

@@ -1,6 +1,6 @@
 // Legal pages, support and account deletion. The forms post to the existing support_requests endpoint.
 import fs from 'node:fs';
-import {render,ORGANIZATION,LOGIN,REGISTER,icon,arrow,btn,sectionHead,pageHero,breadcrumbLd,related} from '../layout.mjs';
+import {render,ORGANIZATION,LOGIN,REGISTER,icon,arrow,btn,sectionHead,pageHero,breadcrumbLd,related,HERO_BG,dotH1} from '../layout.mjs';
 
 const fragment=name=>fs.readFileSync(new URL(`../content/${name}.html`,import.meta.url),'utf8');
 const SUPABASE=`const SUPABASE_URL='https://vuwfyhtejsxhdfyvkkeq.supabase.co';
@@ -80,7 +80,7 @@ form.addEventListener('submit',async e=>{e.preventDefault();if(!form.reportValid
 }
 
 export function notFound(){
-  return render({path:'/404.html',robots:'noindex,follow',title:'Pagina niet gevonden | Boekuna',description:'Deze pagina bestaat niet (meer).',body:`<section class="page-hero"><div class="shell narrow center-text"><p class="eyebrow">404</p><h1>Deze pagina bestaat niet (meer).</h1><p class="lead">Misschien is de pagina verhuisd. Kies hieronder waar je naartoe wilt.</p><div class="actions center">${btn('Naar de homepagina','/','primary')}${btn('Alle functies','/functies/','ghost')}${btn('Inloggen',LOGIN,'ghost')}</div></div></section>`});
+  return render({path:'/404.html',robots:'noindex,follow',title:'Pagina niet gevonden | Boekuna',description:'Deze pagina bestaat niet (meer).',body:`<section class="page-hero">${HERO_BG}<div class="shell narrow center-text"><p class="eyebrow">404</p><h1>${dotH1('Deze pagina bestaat niet (meer).')}</h1><p class="lead">Misschien is de pagina verhuisd. Kies hieronder waar je naartoe wilt.</p><div class="actions center">${btn('Naar de homepagina','/','primary')}${btn('Alle functies','/functies/','ghost')}${btn('Inloggen',LOGIN,'ghost')}</div></div></section>`});
 }
 
 // Old URLs that moved: a tiny page that sends visitors (and search engines, via canonical) on.
