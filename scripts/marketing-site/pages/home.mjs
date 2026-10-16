@@ -47,9 +47,9 @@ const words=(text,cls='')=>text.split(' ').map(w=>`<span class="w${cls}">${w}</s
 
 export default function home(){
   const body=`
-<section class="s-hero s-flux" id="home" aria-labelledby="hero-titel">
- <div class="s-flux-bg" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
- <div class="s-flux-scrim" aria-hidden="true"></div>
+<section class="s-hero s-flux s-flux--video" id="home" aria-labelledby="hero-titel">
+ <video class="s-flux-video" data-hero-video muted loop playsinline preload="none" poster="/assets/site/hero-klimmer.webp" aria-hidden="true" tabindex="-1"><source src="/assets/site/hero-klimmer.webm" type="video/webm"><source src="/assets/site/hero-klimmer.mp4" type="video/mp4"></video>
+ <div class="s-flux-shade" aria-hidden="true"></div>
  <div class="s-flux-inner">
   <p class="s-flux-kicker rise" style="--rd:300ms">Online boekhoudprogramma voor zzp'ers</p>
   <h1 id="hero-titel" class="rise" style="--rd:380ms">Boekhouden zonder boekhoudtaal<span class="dot">.</span></h1>

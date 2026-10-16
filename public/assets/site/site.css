@@ -934,3 +934,16 @@ main .section.dark .eyebrow::before,main .cta-band .eyebrow::before{background:v
 /* "Wat Boekuna niet doet": calm stone panel, same as the homepage cards */
 .limits{background:var(--stone);border:0;border-radius:1.5rem}
 .limits ul{color:rgba(17,17,17,.7)}
+/* Full-screen video hero on the homepage (Kwin 2026-10-16): the video fills the screen, white type on a soft dark shade. */
+.studio .s-flux--video{position:relative;overflow:hidden;background:#2a1a0e;color:#fff}
+.s-flux-video{position:absolute;inset:0;z-index:0;width:100%;height:100%;object-fit:cover;object-position:55% 50%}
+.s-flux-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(to bottom,rgba(10,8,6,.55),rgba(10,8,6,.18) 30%,rgba(10,8,6,.22) 62%,rgba(10,8,6,.7)),radial-gradient(ellipse at 50% 48%,rgba(10,8,6,.35),rgba(10,8,6,0) 65%)}
+.studio .s-flux--video h1{color:#fff;text-shadow:0 2px 30px rgba(0,0,0,.25)}
+.s-flux--video .s-flux-kicker,.s-flux--video .s-flux-meta{color:rgba(255,255,255,.82)}
+.s-flux--video .s-flux-sub{color:rgba(255,255,255,.88)}
+.s-flux--video .s-flux-link{color:#fff}.s-flux--video .s-flux-link:hover{color:#bff0c6}
+.s-flux--video .s-flux-ctas .pill{box-shadow:0 10px 30px -10px rgba(0,0,0,.5)}
+/* Header over the video: white text, green button stays */
+.studio .site-header--over .brand,.studio .site-header--over .desktop-links>a,.studio .site-header--over .nav-drop>summary,.studio .site-header--over .nav-signin,.studio .site-header--over .menu-toggle{color:#fff}
+.studio .site-header--over .brand-dot{color:var(--green)}
+.studio .site-header--over .mobile-nav:not([open])>summary{color:#fff}
