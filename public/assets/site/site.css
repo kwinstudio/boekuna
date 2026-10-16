@@ -758,3 +758,29 @@ html.studio{font-size:16px}
  .studio .s-about-note{order:3}
 }
 @media (max-width:639px){.s-trust{padding-block:2rem}.s-trust li{font-size:.875rem;align-items:flex-start}.s-trust .icon{margin-top:.125rem}}
+
+/* Roast Room round: steps with a line of explanation instead of loose words. */
+.s-steps{list-style:none;margin:var(--head-gap) 0 0;padding:0;display:grid;gap:2rem}
+@media (min-width:768px){.s-steps{grid-template-columns:repeat(3,1fr);gap:1.25rem}}
+.s-steps .s-band-t{height:7rem}
+@media (min-width:768px){.s-steps .s-band-t{height:9rem}}
+.s-steps .s-band-t.dark{font-size:1.875rem}
+@media (min-width:640px){.s-steps .s-band-t.dark{font-size:2.25rem}}
+.s-steps p{margin:1rem .25rem 0;max-width:22rem;font-size:.9375rem;line-height:1.5;color:rgba(17,17,17,.7)}
+.s-steps p b{color:#111;font-weight:600}
+@media (max-width:639px){.s-steps .s-band-t{height:5rem;font-size:1.5rem}.s-steps .s-band-t.dark{font-size:1.5rem}.s-steps{gap:1.75rem}}
+/* Audience cards: no empty black void. */
+.studio .s-card{min-height:15rem}
+@media (min-width:640px){.studio .s-card{min-height:17rem}}
+@media (max-width:639px){.studio .s-card{min-height:14rem}}
+/* "Waarom": one column on every screen, sentence carries the block. */
+.studio .s-about-grid{display:flex;flex-direction:column;align-items:stretch;gap:1.5rem}
+.studio .s-about-left{display:contents}
+.studio .s-about-left .s-eyebrow{order:1;margin:0}
+.studio .s-about-right{order:2;max-width:52rem}
+.studio .s-about-note{order:3}
+@media (min-width:1024px){.studio .s-about-right h2{font-size:2.5rem;line-height:1.2;letter-spacing:-.02em}}
+/* Footer: the watermark sits under the text, not behind it. */
+.site-footer{padding-bottom:clamp(96px,14vw,210px)}
+.studio .s-card{display:flex;flex-direction:column;gap:2rem}
+.studio .s-card-body{position:static;margin-top:auto}

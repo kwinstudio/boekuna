@@ -20,11 +20,6 @@ export const HOME_FAQ=[
 // page scales with the viewport (html.studio in site.css). Every number on it is a fact.
 const pill=(label,href,kind='green',arrowIcon='arrow',extra='')=>`<a class="pill pill-${kind}${arrowIcon?' pill-arrow':''}" href="${href}"${extra}><span>${label}${arrowIcon?`<span class="pill-badge">${icon(arrowIcon)}</span>`:''}</span></a>`;
 
-const slides=[
-  ['Bonnetjes','Foto. Check. Klaar.'],
-  ['Btw','Klaar om over te nemen.'],
-  ['Facturen','Verstuurd in een paar tikken.']
-];
 const hints=['Nederlands','Opslag in de EU','Geen tracking','Alles exporteren','Tweestapsverificatie','Telefoon en computer'];
 
 const audience=[
@@ -67,15 +62,6 @@ export default function home(){
    <p class="s-assure rv" style="--d:650ms">${icon('check')}Gratis beginnen, geen betaalkaart nodig</p>
    <div class="s-ctas rv" style="--d:750ms">${pill('Begin gratis',REGISTER)}${pill('Bekijk functies','#functies','outline','')}</div>
   </div>
-  <div class="s-hero-side">
-   <div class="s-hcard rv" style="--d:400ms;--from:translateY(16px) scale(.96)" data-slides>
-    <div class="s-hcard-tile" aria-hidden="true"><b>B<span>.</span></b></div>
-    <div class="s-hcard-panel">
-     <div class="s-hcard-slot" aria-live="polite">${slides.map(([c,t],i)=>`<div class="s-hcard-item"${i?' hidden':''}><p class="s-hcard-cap">${c}</p><p class="s-hcard-title">${t}</p></div>`).join('')}</div>
-     <div class="s-hcard-bottom"><div class="s-dots" aria-hidden="true">${slides.map((_,i)=>`<i${i?'':' class="on"'}></i>`).join('')}</div><div class="s-hcard-nav"><button type="button" data-slide="-1" aria-label="Vorige">${icon('arrow','icon flip')}</button><button type="button" data-slide="1" aria-label="Volgende">${icon('arrow')}</button></div></div>
-    </div>
-   </div>
-  </div>
  </div>
  <p class="s-photo-note">Foto ter illustratie, geen klant van Boekuna</p>
 </section>
@@ -87,7 +73,6 @@ export default function home(){
 <section class="s-about" id="waarom" aria-labelledby="waarom-titel">
  <div class="s-shell s-about-grid">
   <div class="s-about-left">
-   <span class="s-about-big" aria-hidden="true"><b>B<span>.</span></b></span>
    <p class="s-eyebrow">Waarom Boekuna</p>
    <p class="s-about-note rv">${icon('building')}<span>Een Nederlands product van ${COMPANY.name}, ${COMPANY.city}.</span></p>
   </div>
@@ -98,13 +83,16 @@ export default function home(){
  </div>
 </section>
 
-<section class="s-band" aria-label="Foto, check, klaar">
- <ul class="s-shell">
-  <li class="rv" style="--from:translateY(28px);--d:0ms"><span class="s-band-t light">Foto</span></li>
-  <li class="rv" style="--from:translateY(28px);--d:120ms"><span class="s-band-t accent">Check</span></li>
-  <li class="rv" style="--from:translateY(28px);--d:240ms"><span class="s-band-t dark">${icon('arrow')}<span class="sr-only">en dan</span></span></li>
-  <li class="rv" style="--from:translateY(28px);--d:360ms"><span class="s-band-t ghost">Klaar</span></li>
- </ul>
+<section class="s-band" aria-labelledby="stappen-titel">
+ <div class="s-shell">
+  <p class="s-eyebrow rv">Zo werkt een bonnetje</p>
+  <h2 id="stappen-titel" class="s-h2 rv">Foto. Check. Klaar.</h2>
+  <ol class="s-steps">
+   <li class="rv" style="--from:translateY(28px);--d:0ms"><span class="s-band-t light" aria-hidden="true">Foto</span><p><b>1. Foto</b> Maak een foto van je bon of upload de pdf.</p></li>
+   <li class="rv" style="--from:translateY(28px);--d:120ms"><span class="s-band-t accent" aria-hidden="true">Check</span><p><b>2. Check</b> Boekuna leest bedrag, datum en btw. Jij kijkt even mee.</p></li>
+   <li class="rv" style="--from:translateY(28px);--d:240ms"><span class="s-band-t dark" aria-hidden="true">Klaar</span><p><b>3. Klaar</b> De kosten staan erin en de bon blijft 7 jaar bewaard.</p></li>
+  </ol>
+ </div>
 </section>
 
 <section class="s-works" id="voor-wie" aria-labelledby="wie-titel">
