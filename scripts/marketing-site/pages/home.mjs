@@ -75,10 +75,13 @@ export default function home(){
      <div class="s-hcard-bottom"><div class="s-dots" aria-hidden="true">${slides.map((_,i)=>`<i${i?'':' class="on"'}></i>`).join('')}</div><div class="s-hcard-nav"><button type="button" data-slide="-1" aria-label="Vorige">${icon('arrow','icon flip')}</button><button type="button" data-slide="1" aria-label="Volgende">${icon('arrow')}</button></div></div>
     </div>
    </div>
-   <div class="s-hints rv" style="--d:550ms"><p>Goed om te weten</p><ul>${hints.map(h=>`<li>${icon('dot')}${h}</li>`).join('')}</ul></div>
   </div>
  </div>
- <div class="s-shell"><div class="s-status rv" style="--d:900ms;--from:none"><span>Gemaakt in Nederland</span><span class="s-status-mid">Foto ter illustratie, geen klant van Boekuna</span><span class="s-status-end">Scroll verder ↓</span></div></div>
+ <p class="s-photo-note">Foto ter illustratie, geen klant van Boekuna</p>
+</section>
+
+<section class="s-trust" aria-label="Goed om te weten">
+ <ul class="s-shell">${hints.map((h,i)=>`<li class="rv" style="--d:${i*60}ms">${icon('dot')}<span>${h}</span></li>`).join('')}</ul>
 </section>
 
 <section class="s-about" id="waarom" aria-labelledby="waarom-titel">
@@ -106,7 +109,7 @@ export default function home(){
 
 <section class="s-works" id="voor-wie" aria-labelledby="wie-titel">
  <div class="s-shell">
-  <p class="s-eyebrow s-eyebrow-pill rv">Voor wie</p>
+  <p class="s-eyebrow rv">Voor wie</p>
   <h2 id="wie-titel" class="s-h2 lines" data-delay="120"><span class="ln"><span>Gemaakt voor jou</span></span></h2>
   <ul class="s-cards">${audience.map(([meta,title,text,tags],i)=>`<li class="rv" style="--from:translateY(48px);--d:${i*90}ms"><a class="s-card" href="/zzp/"><span class="s-card-meta"><span>${meta}</span><span class="s-card-badge">${icon('arrow-ur')}</span></span><span class="s-card-mark" aria-hidden="true"><b>B<span>.</span></b></span><span class="s-card-body"><span class="s-card-title">${title}</span><span class="s-card-text">${text}</span><span class="s-tags">${tags.map(t=>`<span>${t}</span>`).join('')}</span></span></a></li>`).join('')}</ul>
  </div>
