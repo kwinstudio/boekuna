@@ -55,8 +55,8 @@ export default function home(){
 `;
   const body=`
 <section class="s-hero" id="home" aria-labelledby="hero-titel">
- <div class="s-hero-media" data-liquid>
-  <img class="s-hero-base" src="/assets/site/foto-ondernemer.webp" width="1100" height="880" alt="Een lachende ondernemer staat met de armen over elkaar in haar eigen zaak" fetchpriority="high" decoding="async">
+ <div class="s-hero-media">
+  <img class="s-hero-base" src="/assets/site/foto-studio.webp" width="1600" height="900" alt="Een ondernemer werkt op haar laptop in haar zonnige studio" fetchpriority="high" decoding="async">
  </div>
  <div class="s-hero-veil" aria-hidden="true"></div>
  <div class="s-hero-mark rv" style="--d:300ms" aria-hidden="true"></div>
@@ -147,7 +147,7 @@ export default function home(){
     title:"Boekuna — Online boekhoudprogramma voor zzp'ers | Gratis beginnen",
     ogTitle:'Boekuna — Boekhouden zonder boekhoudtaal',
     description:"Boekuna is het eenvoudige boekhoudprogramma voor zzp'ers en kleine ondernemers. Facturen maken, bonnetjes scannen, btw-overzicht per kwartaal. Start gratis.",
-    preloadImage:'<link rel="preload" as="image" href="/assets/site/foto-ondernemer.webp" fetchpriority="high">\n',
+    preloadImage:'<link rel="preload" as="image" href="/assets/site/foto-studio.webp" fetchpriority="high">\n',
     ld:[ORGANIZATION,{"@type":"WebSite","@id":SITE+"/#website","url":SITE+"/","name":"Boekuna","inLanguage":"nl-NL","publisher":{"@id":SITE+"/#org"}},softwareLd()],
     body
   });

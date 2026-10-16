@@ -14,7 +14,7 @@ assert.match(home,/<meta name="robots" content="index,follow">/i);
 assert.ok([...home.matchAll(/<img\b[^>]*>/gi)].every(m=>/src="\/assets\/site\//.test(m[0])&&/\balt="[^"]+"/.test(m[0])&&/\bwidth="\d+"/.test(m[0])),'Images are first-party, sized and described');
 // Every image the landing references ships with the build and stays inside the transfer budget.
 for(const m of home.matchAll(/(?:src|srcset)="([^"]+)"/g))for(const part of m[1].split(',')){const url=part.trim().split(' ')[0];if(!url.startsWith('/assets/site/'))continue;const file=path.join(dist,url);assert.ok(fs.existsSync(file),'Referenced image missing from build: '+url);assert.ok(fs.statSync(file).size<120000,'Image too large: '+url)}
-assert.ok(home.includes('foto-ondernemer.webp'),'People photo must be on the landing');
+assert.ok(home.includes('foto-studio.webp'),'People photo must be on the landing');
 // Decision 2026-10-16 (Kwin): the homepage sells the feeling, so no app screens there; the photo is labelled honestly.
 assert.equal(home.includes('/assets/site/app-desktop-dashboard'),false,'Homepage shows no app screens');
 assert.ok(home.includes('Foto ter illustratie, geen klant van Boekuna'),'Landing photo labeled honestly');

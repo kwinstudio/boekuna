@@ -120,7 +120,7 @@ const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{cwd:root
 assert.equal(build.status,0,'Marketing build failed: '+(build.stderr||build.stdout));
 const dist=path.join(root,'dist','marketing');
 
-for(const file of ['index.html','404.html','robots.txt','sitemap.xml','assets/baseline.css','favicon.ico','assets/favicon.svg','assets/site/site.css','assets/site/site.js','assets/site/app-desktop-dashboard.webp','assets/site/app-mobile-review.webp','assets/site/foto-ondernemer.webp','assets/site/og-boekuna.png','assets/fonts/inter-var-latin.woff2','assets/boekuna-symbol.svg','assets/boekuna-favicon.svg']){
+for(const file of ['index.html','404.html','robots.txt','sitemap.xml','assets/baseline.css','favicon.ico','assets/favicon.svg','assets/site/site.css','assets/site/site.js','assets/site/app-desktop-dashboard.webp','assets/site/app-mobile-review.webp','assets/site/foto-studio.webp','assets/site/og-boekuna.png','assets/fonts/inter-var-latin.woff2','assets/boekuna-symbol.svg','assets/boekuna-favicon.svg']){
   assert.ok(fs.existsSync(path.join(dist,file)),'Built baseline missing '+file);
 }
 for(const f of fs.readdirSync(path.join(dist,'assets/site')).filter(f=>f.endsWith('.webp')))assert.ok(fs.statSync(path.join(dist,'assets/site',f)).size<120000,'Image exceeds marketing transfer budget: '+f);
