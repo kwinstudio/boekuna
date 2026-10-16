@@ -62,8 +62,12 @@ export function limits(title,items){
 export function ctaBand({title='Probeer het zelf. Gratis.',text='Maak een account, vul je bedrijfsgegevens in en maak je eerste factuur. Je hebt geen betaalkaart nodig.',label='Begin gratis'}={}){
   return `<section class="section cta-band" aria-labelledby="cta-titel"><div class="shell cta-inner"><div><h2 id="cta-titel">${title}</h2><p>${text}</p></div><div class="cta-actions">${startCta(label)}<a class="cta-login" href="${LOGIN}">Al een account? Inloggen</a></div></div></section>`;
 }
+// Light hero (same as the homepage): soft pastel wash behind centred type, staggered entrance.
+export const HERO_BG='<div class="s-flux-bg" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div class="s-flux-scrim" aria-hidden="true"></div>';
+export const dotH1=h=>h.replace(/\.$/,'<span class="dot">.</span>');
+const rise=(html,ms)=>html?html.replace(/^<(\w+)(\s+class=")?/,(m,tag,cls)=>cls?`<${tag} style="--rd:${ms}ms" class="rise `:`<${tag} class="rise" style="--rd:${ms}ms"`):'';
 export function pageHero({crumbs,eyebrow,h1,lead,visual='',actions,note=''}){
-  return `<section class="page-hero${visual?' has-visual':''}"><div class="shell page-hero-grid"><div class="page-hero-copy">${breadcrumbHtml(crumbs)}${eyebrow?`<p class="eyebrow">${eyebrow}</p>`:''}<h1>${h1}</h1>${lead?`<p class="lead">${lead}</p>`:''}${actions===false?'':`<div class="actions">${actions||startCta()+btn('Bekijk de prijzen','/prijzen/','ghost')}</div>`}${note}</div>${visual?`<div class="page-hero-visual">${visual}</div>`:''}</div></section>`;
+  return `<section class="page-hero${visual?' has-visual':''}">${HERO_BG}<div class="shell page-hero-grid"><div class="page-hero-copy">${rise(breadcrumbHtml(crumbs),0)}${eyebrow?`<p class="eyebrow rise" style="--rd:120ms">${eyebrow}</p>`:''}<h1 class="rise" style="--rd:200ms">${dotH1(h1)}</h1>${lead?`<p class="lead rise" style="--rd:310ms">${lead}</p>`:''}${actions===false?'':`<div class="actions rise" style="--rd:420ms">${actions||startCta()+btn('Bekijk de prijzen','/prijzen/','ghost')}</div>`}${note}</div>${visual?`<div class="page-hero-visual rise" style="--rd:540ms">${visual}</div>`:''}</div></section>`;
 }
 function breadcrumbHtml(crumbs){
   if(!crumbs||!crumbs.length)return '';
