@@ -21,9 +21,12 @@ try{
         const errors=[];page.on('pageerror',e=>errors.push(String(e)));
         await page.goto(server.base+'/',{waitUntil:'networkidle'});
         assert.equal(await page.locator('h1').textContent(),'Boekhouden zonder boekhoudtaal.');
-        // The hero photo loads (grey base; colour follows the mouse on desktop).
-        const hero=page.locator('.s-hero-base').first();
-        assert.ok(await hero.evaluate(img=>img.complete&&img.naturalWidth>0),name+'/'+width+' hero photo loads');
+        // The people photo (in "Waarom", lazy) loads once it is scrolled into view.
+        const photo=page.locator('.s-photo img').first();
+        await photo.scrollIntoViewIfNeeded();
+        await photo.evaluate(img=>img.complete&&img.naturalWidth>0||new Promise(r=>{img.addEventListener('load',r,{once:true});img.addEventListener('error',r,{once:true})}));
+        assert.ok(await photo.evaluate(img=>img.complete&&img.naturalWidth>0),name+'/'+width+' people photo loads');
+        await page.evaluate(()=>scrollTo(0,0));
         assert.equal(await page.locator('[data-loader]').evaluate(el=>getComputedStyle(el).display),'none','Loader skipped with reduced motion');
         assert.equal(await page.locator('img:not([src^="/assets/site/"])').count(),0,'Only first-party Boekuna images');
         assert.equal(await page.locator('img:not([alt])').count(),0,'Every image has alt text');
