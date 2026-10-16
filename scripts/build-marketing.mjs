@@ -11,7 +11,7 @@ const movedRoutes={assistent:'/functies/',scanner:'/slim-scannen/',mobiel:'/func
 const fixed=['robots.txt','sitemap.xml','favicon.ico','assets/apple-touch-icon.png','assets/favicon.svg','assets/boekuna-favicon.svg','assets/boekuna-symbol.svg','assets/site/og-boekuna.png','assets/site/site.js','assets/fonts/LICENSE-Inter.txt','assets/fonts/LICENSE-SpaceGrotesk.txt'];
 // Copy every page plus every /assets/ file the pages and stylesheets reference, nothing else.
 const assetRefs=new Set();
-const collect=text=>{for(const m of text.matchAll(/\/(assets\/[A-Za-z0-9_\-./]+?\.(?:css|js|webp|png|svg|woff2|ico|jpg))\b/g))assetRefs.add(m[1])};
+const collect=text=>{for(const m of text.matchAll(/\/(assets\/[A-Za-z0-9_\-./]+?\.(?:css|js|webp|png|svg|woff2|ico|jpg|mp4|webm))\b/g))assetRefs.add(m[1])};
 for(const rel of PAGE_FILES){const file=path.join(source,rel);if(!fs.existsSync(file))throw new Error('Missing marketing page, run node scripts/marketing-site/build.mjs: '+rel);collect(fs.readFileSync(file,'utf8'))}
 for(const css of ['assets/baseline.css','assets/site/site.css'])collect(fs.readFileSync(path.join(source,css),'utf8'));
 const preserved=[...new Set([...PAGE_FILES,...fixed,...assetRefs])].sort();
@@ -28,6 +28,7 @@ if(!home.includes('/assets/site/site.css'))throw new Error('Site styles missing'
 if(/\/assets\/site\/app-(desktop|mobile)-/.test(fs.readFileSync(path.join(target,'functies','index.html'),'utf8')))throw new Error('Kwin 2026-10-16: no app screenshots on the website');
 for(const p of pages){const html=fs.readFileSync(path.join(target,p,'index.html'),'utf8');if(!html.includes('<meta name="robots" content="index,follow">')||!html.includes('KVK 74542893'))throw new Error('Public page incomplete: '+p)}
 for(const f of fs.readdirSync(path.join(target,'assets/site')))if(f.endsWith('.webp')&&fs.statSync(path.join(target,'assets/site',f)).size>120000)throw new Error('Marketing image exceeds budget: '+f);
+for(const f of fs.readdirSync(path.join(target,'assets/site')))if(/\.(mp4|webm)$/.test(f)&&fs.statSync(path.join(target,'assets/site',f)).size>1500000)throw new Error('Marketing video exceeds budget: '+f);
 if(!home.includes('https://app.boekuna.nl/?login=1'))throw new Error('Landing page must link to isolated app login');
 if(!home.includes('https://app.boekuna.nl/?register=1'))throw new Error('Landing page must link to the app sign-up');
 if(['editorial-hero','editorial-pricing','project-grid'].some(token=>home.includes(token)))throw new Error('Old marketing homepage structure returned');

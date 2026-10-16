@@ -86,6 +86,12 @@
   let started=false;const waiting=[];
   const whenReady=fn=>started?fn():waiting.push(fn);
   const start=()=>{if(started)return;started=true;root.classList.add('hero-go');waiting.splice(0).forEach(f=>f())};
+  // Full-screen hero video: plays muted and looped, unless the visitor asks for less motion or data.
+  const heroVideo=document.querySelector('[data-hero-video]');
+  if(heroVideo){
+    const calm=matchMedia('(prefers-reduced-motion: reduce)').matches||(navigator.connection&&navigator.connection.saveData);
+    if(!calm){heroVideo.preload='auto';heroVideo.autoplay=true;const p=heroVideo.play();if(p&&p.catch)p.catch(()=>{})}
+  }
 
   // Loader: counts 000 to 100 once per browser session, then slides up.
   const loader=document.querySelector('[data-loader]');
