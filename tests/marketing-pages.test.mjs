@@ -13,15 +13,15 @@ const preserved=['privacy','voorwaarden','support','account-verwijderen'];
 
 const home=fs.readFileSync(path.join(source,'index.html'),'utf8');
 assert.match(home,/<meta name="robots" content="index,follow">/i,'Landing page must be indexable');
-assert.match(home,/<h1>Boekhouden zonder boekhoudtaal\.<\/h1>/,'Homepage H1 must say Boekuna is bookkeeping software');
+assert.equal((home.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)||[,''])[1].replace(/<[^>]+>/g,'').trim(),'Boekhouden zonder boekhoudtaal.','Homepage H1 must say Boekuna is bookkeeping software');
 assert.ok(home.includes("Online boekhoudprogramma voor zzp'ers"),'Hero must name the product category and audience');
 assert.ok(home.includes('Zo simpel kan het zijn.'),'Closing line from Kwin\'s website direction missing');
 assert.ok(home.includes('https://app.boekuna.nl/?login=1'),'App login handoff missing');
 assert.ok(home.includes('https://app.boekuna.nl/?register=1'),'App registration handoff missing');
 assert.ok(home.includes('aria-label="Hoofdnavigatie"'),'Accessible primary navigation missing');
 assert.ok(home.includes('class="mobile-nav"'),'Native mobile menu missing');
-for(const section of ['id="voordelen"','id="hoe-het-werkt"','id="mogelijkheden"','id="tarieven"','id="voor-wie"','id="vertrouwen"','id="vragen"']){
-  assert.ok(home.includes(section),'V3 landing section missing '+section);
+for(const section of ['id="waarom"','id="voor-wie"','id="functies"','id="cijfers"','id="tarieven"']){
+  assert.ok(home.includes(section),'Landing section missing '+section);
 }
 for(const price of ['€ 0','€ 9,95','€ 99,50','€ 19,95','€ 199,50']){
   assert.ok(home.includes(price),'Verified public plan price missing '+price);
@@ -29,11 +29,11 @@ for(const price of ['€ 0','€ 9,95','€ 99,50','€ 19,95','€ 199,50']){
 for(const oldPlan of ['€ 6,95','€ 14,95','Unlimited','documentchecks per maand']){
   assert.ok(!home.includes(oldPlan),'Stale historic plan price appeared '+oldPlan);
 }
-assert.equal((home.match(/<details>/g)||[]).length,9,'Nine accessible FAQ disclosures expected');
-for(const q of ['Is Boekuna geschikt voor zzp','Kan ik gratis beginnen?','Heb ik boekhoudkennis nodig?','Hoe werkt het scannen van bonnetjes?','Kan ik facturen maken?','Kan ik mijn gegevens exporteren?','Kan ik Boekuna op mijn telefoon gebruiken?','Hoe veilig zijn mijn gegevens?','Kan ik mijn abonnement opzeggen?'])assert.ok(home.includes(q),'Homepage FAQ question missing: '+q);
-assert.ok(home.includes('/assets/site/app-desktop-dashboard'),'Hero must show the real app');
-assert.ok(home.includes('voorbeeldgegevens van een fictief bedrijf'),'Homepage app screens must be labeled as sample data');
-assert.ok(home.includes('Dit zijn geen klanten van Boekuna'),'Stock photos must not pose as customers');
+// The FAQ lives on /faq/ since the 2026-10-16 homepage redesign.
+const faq=fs.readFileSync(path.join(source,'faq','index.html'),'utf8');
+for(const q of ['Is Boekuna geschikt voor zzp','Kan ik gratis beginnen?','Heb ik boekhoudkennis nodig?','Hoe werkt het scannen van bonnetjes?','Kan ik facturen maken?','Kan ik mijn gegevens exporteren?','Kan ik Boekuna op mijn telefoon gebruiken?','Hoe veilig zijn mijn gegevens?','Kan ik mijn abonnement opzeggen?'])assert.ok(faq.includes(q),'FAQ question missing: '+q);
+assert.equal(home.includes('/assets/site/app-desktop-dashboard'),false,'Homepage sells the feeling, app screens live on the feature pages');
+assert.ok(home.includes('Foto ter illustratie, geen klant van Boekuna'),'Stock photos must not pose as customers');
 for(const fake of ['aggregateRating','reviewCount','ratingValue','klanten gingen je voor','tevreden klanten'])assert.ok(!home.includes(fake),'No fake social proof: '+fake);
 for(const claim of ['automatische bankkoppeling is nu beschikbaar','100% correcte herkenning','direct btw-aangifte indienen']){
   assert.ok(!home.toLowerCase().includes(claim),'Unverified feature claim: '+claim);
@@ -70,7 +70,7 @@ for(const slug of pages){
   for(const detail of ['Kwinest','KVK 74542893','NL002477565B57','support@boekuna.nl','href="/privacy/"','href="/voorwaarden/"'])assert.ok(html.includes(detail),slug+': footer business detail missing '+detail);
   assert.deepEqual(scriptsOf(html),['<script src="/assets/site/site.js" defer>'],slug+': only the deferred first-party site script');
   for(const m of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g))JSON.parse(m[1]);
-  assert.ok(html.includes('/assets/fonts/inter-var-latin.woff2'),slug+': self-hosted font preload missing');
+  assert.ok(html.includes('/assets/fonts/onest-var-latin.woff2'),slug+': self-hosted font preload missing');
   assert.ok(html.includes('og-boekuna.png'),slug+': share image missing');
   if(slug.startsWith('kennisbank/')){assert.ok(html.includes('geen fiscaal advies'),slug+': disclaimer missing');assert.ok(/href="https:\/\/(www\.belastingdienst\.nl|ondernemersplein\.overheid\.nl)/.test(html),slug+': official source missing');assert.equal(html.includes('ondernemersplein.kvk.nl'),false,slug+': outdated Ondernemersplein URL')}
   for(const claim of ['automatische bankkoppeling is nu beschikbaar','100% correcte herkenning','direct btw-aangifte indienen','offertes maken','koppeling met je bank via psd2'])assert.ok(!html.toLowerCase().includes(claim),slug+': unverified feature claim '+claim);
@@ -120,7 +120,7 @@ const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{cwd:root
 assert.equal(build.status,0,'Marketing build failed: '+(build.stderr||build.stdout));
 const dist=path.join(root,'dist','marketing');
 
-for(const file of ['index.html','404.html','robots.txt','sitemap.xml','assets/baseline.css','favicon.ico','assets/favicon.svg','assets/site/site.css','assets/site/site.js','assets/site/app-desktop-dashboard.webp','assets/site/app-mobile-review.webp','assets/site/foto-ondernemer.webp','assets/site/og-boekuna.png','assets/fonts/inter-var-latin.woff2','assets/boekuna-symbol.svg','assets/boekuna-favicon.svg']){
+for(const file of ['index.html','404.html','robots.txt','sitemap.xml','assets/baseline.css','favicon.ico','assets/favicon.svg','assets/site/site.css','assets/site/site.js','assets/site/app-desktop-dashboard.webp','assets/site/app-mobile-review.webp','assets/site/foto-ondernemer-tablet.webp','assets/site/og-boekuna.png','assets/fonts/inter-var-latin.woff2','assets/boekuna-symbol.svg','assets/boekuna-favicon.svg']){
   assert.ok(fs.existsSync(path.join(dist,file)),'Built baseline missing '+file);
 }
 for(const f of fs.readdirSync(path.join(dist,'assets/site')).filter(f=>f.endsWith('.webp')))assert.ok(fs.statSync(path.join(dist,'assets/site',f)).size<120000,'Image exceeds marketing transfer budget: '+f);

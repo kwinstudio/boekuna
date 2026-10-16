@@ -29,9 +29,13 @@ try{
   const nojs=await browser.newPage({javaScriptEnabled:false,viewport:{width:390,height:844}});
   await nojs.goto(server.base);
   assert.equal(await nojs.locator('h1').textContent(),'Boekhouden zonder boekhoudtaal.');
-  // Without JavaScript every tour step and every FAQ answer stays reachable.
-  assert.equal(await nojs.locator('[role=tabpanel]').count(),4,'tour steps present in the HTML');
-  assert.equal(await nojs.locator('#vragen details').count(),9,'FAQ works as native disclosures');
+  // Without JavaScript there is no loader, every section is visible and the numbers show their real value.
+  assert.equal(await nojs.locator('[data-loader]').evaluate(el=>getComputedStyle(el).display),'none','No loader without JavaScript');
+  for(const sel of ['#hero-titel .ln>span','#waarom-titel .w','#tarieven .pricing-card'])assert.equal(await nojs.locator(sel).first().evaluate(el=>getComputedStyle(el).opacity),'1',sel+' visible without JavaScript');
+  for(const el of await nojs.locator('[data-count]').all())assert.equal(await el.textContent(),await el.getAttribute('data-count'),'Real numbers in the HTML');
+  await nojs.goto(server.base+'/faq/');
+  assert.ok(await nojs.locator('details').count()>=9,'FAQ works as native disclosures');
+  await nojs.goto(server.base);
   await nojs.locator('.mobile-nav summary').click();
   assert.ok(await nojs.getByRole('navigation',{name:'Hoofdnavigatie'}).getByRole('link',{name:'Inloggen'}).isVisible());
   for(const route of ['/privacy/','/voorwaarden/','/support/','/account-verwijderen/']){

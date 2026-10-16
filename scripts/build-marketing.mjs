@@ -23,7 +23,7 @@ for(const [slug,to] of Object.entries(movedRoutes)){const dir=path.join(target,s
 for(const forbidden of ['assets/site.css','assets/site.js','assets/editorial-marketing.css','assets/editorial-marketing.js','assets/premium-marketing.css','assets/premium-marketing.js','assets/onepage.css','assets/marketing.js','assets/landing-v4.css','assets/marketing-people','assets/stories','assets/product','manifest.webmanifest','oauth'])if(fs.existsSync(path.join(target,forbidden)))throw new Error('Obsolete marketing artifact leaked into build: '+forbidden);
 const home=fs.readFileSync(path.join(target,'index.html'),'utf8');
 if(!home.includes('<meta name="robots" content="index,follow">'))throw new Error('Public landing page must be indexable');
-if(!/<h1[^>]*>[^<]*Boekhouden/.test(home))throw new Error('Homepage H1 must say what Boekuna is');
+if(!/^Boekhouden/.test((home.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)||[,''])[1].replace(/<[^>]+>/g,'').trim()))throw new Error('Homepage H1 must say what Boekuna is');
 if(!home.includes('/assets/site/site.css'))throw new Error('Site styles missing');
 if(!fs.readFileSync(path.join(target,'functies','index.html'),'utf8').includes('/assets/site/app-desktop-dashboard.webp'))throw new Error('Real app screenshot missing from the features page');
 for(const p of pages){const html=fs.readFileSync(path.join(target,p,'index.html'),'utf8');if(!html.includes('<meta name="robots" content="index,follow">')||!html.includes('KVK 74542893'))throw new Error('Public page incomplete: '+p)}

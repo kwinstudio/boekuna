@@ -78,4 +78,101 @@
     }),{rootMargin:'0px 0px -8% 0px',threshold:.08});
     document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
   }
+
+  // ---- Homepage (studio) ----------------------------------------------------------
+  // Everything below only acts when its hooks exist, so other pages are untouched.
+  const root=document.documentElement;
+  const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+  let started=false;const waiting=[];
+  const whenReady=fn=>started?fn():waiting.push(fn);
+  const start=()=>{if(started)return;started=true;waiting.splice(0).forEach(f=>f())};
+
+  // Loader: counts 000 to 100 once per browser session, then slides up.
+  const loader=document.querySelector('[data-loader]');
+  if(loader){
+    let seen=false;
+    try{seen=sessionStorage.getItem('bk-intro')==='1';sessionStorage.setItem('bk-intro','1')}catch(e){}
+    const out=()=>{
+      loader.classList.add('is-out');
+      setTimeout(start,250);
+      setTimeout(()=>loader.classList.add('is-gone'),800);
+    };
+    if(reduce){loader.classList.add('is-gone');start()}
+    else if(seen){requestAnimationFrame(out)}
+    else{
+      const fill=loader.querySelector('[data-loader-fill]'),num=loader.querySelector('[data-loader-num]');
+      const t0=performance.now(),dur=1300;
+      const tick=now=>{
+        const p=Math.min(1,(now-t0)/dur),v=Math.round(ease(p)*100);
+        if(fill)fill.style.width=v+'%';
+        if(num)num.textContent=String(v).padStart(3,'0');
+        if(p<1)requestAnimationFrame(tick);else setTimeout(out,120);
+      };
+      requestAnimationFrame(tick);
+    }
+  }else start();
+
+  // Reveals: blocks (.rv), headline lines (.lines) and words (.words).
+  if(root.classList.contains('studio')){
+    const show=el=>{
+      if(el.classList.contains('lines')){
+        const d=+el.dataset.delay||0,st=+el.dataset.stagger||100;
+        el.querySelectorAll('.ln>span').forEach((s,i)=>{s.style.transitionDelay=(d+i*st)+'ms'});
+      }else if(el.classList.contains('words')){
+        el.querySelectorAll('.w').forEach((w,i)=>{w.style.transitionDelay=(i*35)+'ms'});
+      }
+      el.classList.add('in');
+    };
+    const els=[...document.querySelectorAll('.studio .rv,.studio .lines,.studio .words')];
+    if(reduce||!('IntersectionObserver' in window))els.forEach(show);
+    else whenReady(()=>{
+      const io=new IntersectionObserver(entries=>entries.forEach(en=>{
+        if(en.isIntersecting){show(en.target);io.unobserve(en.target)}
+      }),{rootMargin:'0px 0px -6% 0px',threshold:.12});
+      els.forEach(el=>io.observe(el));
+    });
+  }
+
+  // Hero card: three short slides with previous/next buttons.
+  document.querySelectorAll('[data-slides]').forEach(card=>{
+    const items=[...card.querySelectorAll('.s-hcard-item')],dots=[...card.querySelectorAll('.s-dots i')];
+    let i=0;
+    const go=dir=>{
+      i=(i+dir+items.length)%items.length;
+      items.forEach((it,n)=>{it.hidden=n!==i});
+      dots.forEach((d,n)=>d.classList.toggle('on',n===i));
+    };
+    card.querySelectorAll('[data-slide]').forEach(b=>b.addEventListener('click',()=>go(+b.dataset.slide)));
+  });
+
+  // Numbers count up while their row scrolls into the middle of the screen.
+  const counts=[...document.querySelectorAll('[data-count]')];
+  if(counts.length&&!reduce){
+    const fmt=n=>n.toLocaleString('nl-NL');
+    let last=0;
+    const paint=()=>{
+      const vh=innerHeight;
+      counts.forEach(el=>{
+        const r=el.getBoundingClientRect(),target=+el.dataset.count;
+        const p=Math.max(0,Math.min(1,(vh-r.top)/(vh/2+r.height/2)));
+        el.textContent=fmt(Math.round(target*ease(p)));
+      });
+    };
+    const onScroll=()=>{const now=Date.now();if(now-last<30)return;last=now;requestAnimationFrame(paint)};
+    paint();
+    addEventListener('scroll',onScroll,{passive:true});
+    addEventListener('resize',onScroll,{passive:true});
+    addEventListener('scrollend',()=>requestAnimationFrame(paint),{passive:true});
+  }
+
+  // Header clock: local time in the Netherlands.
+  const clock=document.querySelector('[data-clock]');
+  if(clock){
+    const t=clock.querySelector('[data-clock-time]'),d=clock.querySelector('[data-clock-date]');
+    const tf=new Intl.DateTimeFormat('nl-NL',{timeZone:'Europe/Amsterdam',hour:'2-digit',minute:'2-digit'});
+    const df=new Intl.DateTimeFormat('nl-NL',{timeZone:'Europe/Amsterdam',day:'numeric',month:'short'});
+    const set=()=>{const now=new Date();t.textContent=tf.format(now);d.textContent=df.format(now).replace('.','')};
+    set();clock.hidden=false;setInterval(set,15000);
+  }
+
 })();

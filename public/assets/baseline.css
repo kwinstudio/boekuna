@@ -1,11 +1,12 @@
 /* Boekuna marketing baseline: brand tokens, fonts, reset, buttons. Shared by every public page. */
+@font-face{font-family:Onest;font-style:normal;font-weight:400 700;font-display:swap;src:url(/assets/fonts/onest-var-latin.woff2) format("woff2")}
 @font-face{font-family:Inter;font-style:normal;font-weight:100 900;font-display:swap;src:url(/assets/fonts/inter-var-latin.woff2) format("woff2")}
 @font-face{font-family:"Space Grotesk";font-style:normal;font-weight:300 700;font-display:swap;src:url(/assets/fonts/space-grotesk-var-latin.woff2) format("woff2")}
 :root{
  --ink:#1B1F23;--green:#63D471;--paper:#FFFFFF;--soft:#F6F7F8;--brand-muted:#8A949C;
  --muted:#545E66;--line:#E2E6E9;--line-strong:#CBD2D7;--green-ink:#1D7A38;--green-soft:#EAF8EC;--night:#15191C;--night-2:#22282D;--amber:#B86E00;
- --display:"Space Grotesk",Inter,ui-sans-serif,system-ui,sans-serif;--text:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
- --max:1200px;--gutter:clamp(20px,4vw,40px);--radius:14px;--radius-lg:22px;--ease:cubic-bezier(.2,.7,.2,1);
+ --display:Onest,ui-sans-serif,system-ui,sans-serif;--text:Onest,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+ --max:1200px;--gutter:clamp(20px,4vw,40px);--radius:14px;--radius-lg:22px;--ease:cubic-bezier(.2,.7,.2,1);--deep:#0a0a0a;--stone:#f1f0ee;--stone-2:#e3e2df;--hairline:#e6e5e2;--spring:cubic-bezier(.22,1,.36,1);
  color-scheme:light}
 *,*::before,*::after{box-sizing:border-box}
 html{background:var(--paper);-webkit-text-size-adjust:100%;scroll-padding-top:88px}
@@ -22,15 +23,16 @@ button,input,select,textarea{font:inherit;color:inherit}
 .icon-library{position:absolute;width:0;height:0;overflow:hidden}
 .icon{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:12px 22px;border:1.5px solid transparent;border-radius:12px;font-family:var(--text);font-size:16px;font-weight:650;line-height:1.2;text-decoration:none;cursor:pointer;transition:background-color .18s var(--ease),border-color .18s var(--ease),transform .18s var(--ease),color .18s var(--ease);white-space:nowrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:12px 22px;border:1.5px solid transparent;border-radius:999px;font-family:var(--text);font-size:16px;font-weight:550;line-height:1.2;text-decoration:none;cursor:pointer;transition:background-color .18s var(--ease),border-color .18s var(--ease),transform .18s var(--ease),color .18s var(--ease);white-space:nowrap}
 .btn .icon{width:18px;height:18px;transition:transform .18s var(--ease)}
 .btn:hover .icon{transform:translateX(3px)}
-.btn:active{transform:translateY(1px)}
+.btn:active{transform:scale(.98)}
+@media (hover:hover){.btn:hover{transform:scale(1.03)}}
 .btn-primary{background:var(--green);color:var(--ink);border-color:var(--green)}.btn-primary:hover{background:#55C964;border-color:#55C964}
 .btn-ghost{background:var(--paper);color:var(--ink);border-color:var(--line-strong)}.btn-ghost:hover{border-color:var(--ink)}
-.btn-dark{background:var(--ink);color:#fff;border-color:var(--ink)}.btn-dark:hover{background:#000}
+.btn-dark{background:var(--deep);color:#fff;border-color:var(--deep)}.btn-dark:hover{background:#000}
 .btn-ghost-light{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}.btn-ghost-light:hover{border-color:#fff}
-.btn-small{min-height:42px;padding:8px 16px;font-size:15px;border-radius:10px}
+.btn-small{min-height:40px;padding:8px 18px;font-size:14.5px}
 .btn[disabled]{opacity:.6;cursor:progress}
 
 /* Small holding page for moved URLs. */
