@@ -21,9 +21,10 @@ try{
         const errors=[];page.on('pageerror',e=>errors.push(String(e)));
         await page.goto(server.base+'/',{waitUntil:'networkidle'});
         assert.equal(await page.locator('h1').textContent(),'Boekhouden zonder boekhoudtaal.');
-        // Real app screens in the hero, loaded at the right size for the viewport.
-        const hero=page.locator('.hero-visual img').first();
-        assert.ok(await hero.evaluate(img=>img.complete&&img.naturalWidth>0),name+'/'+width+' hero app screenshot loads');
+        // The hero photo loads (grey base; colour follows the mouse on desktop).
+        const hero=page.locator('.s-hero-base').first();
+        assert.ok(await hero.evaluate(img=>img.complete&&img.naturalWidth>0),name+'/'+width+' hero photo loads');
+        assert.equal(await page.locator('[data-loader]').evaluate(el=>getComputedStyle(el).display),'none','Loader skipped with reduced motion');
         assert.equal(await page.locator('img:not([src^="/assets/site/"])').count(),0,'Only first-party Boekuna images');
         assert.equal(await page.locator('img:not([alt])').count(),0,'Every image has alt text');
         assert.equal(await page.locator('script:not([src="/assets/site/site.js"]):not([type="application/ld+json"])').count(),0,'Only the first-party site script');

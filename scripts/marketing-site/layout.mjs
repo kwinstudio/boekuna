@@ -72,27 +72,29 @@ function breadcrumbHtml(crumbs){
 
 const BRAND=`<span class="brand-word">Boekuna<span class="brand-dot" aria-hidden="true">.</span></span>`;
 
-function header(){
+function header({over=false}={}){
   const drop=FEATURES.map(f=>`<a href="${f.href}"><span class="nav-drop-icon">${icon(f.icon)}</span><span><strong>${f.name}</strong><small>${f.sub}</small></span></a>`).join('');
-  return `<header class="site-header">
+  return `<header class="site-header${over?' site-header--over':''}">
  <nav class="shell nav-shell" aria-label="Hoofdnavigatie">
   <a class="brand" href="/" aria-label="Boekuna, naar de homepagina">${BRAND}</a>
   <div class="desktop-links"><details class="nav-drop"><summary>Functies ${icon('chev','icon chev')}</summary><div class="nav-drop-panel"><div class="nav-drop-grid">${drop}</div><a class="nav-drop-all" href="/functies/">Alle functies bekijken ${arrow}</a></div></details><a href="/hoe-het-werkt/">Hoe het werkt</a><a href="/zzp/">Voor zzp'ers</a><a href="/prijzen/">Prijzen</a><a href="/veiligheid/">Veiligheid</a><a href="/kennisbank/">Kennisbank</a></div>
-  <div class="nav-actions"><a class="nav-signin" href="${LOGIN}">Inloggen</a><a class="btn btn-primary btn-small nav-join" href="${REGISTER}">Begin gratis</a></div>
-  <details class="mobile-nav"><summary aria-label="Menu openen">${icon('menu','icon open')}${icon('close','icon shut')}<span>Menu</span></summary><div class="mobile-nav-panel"><nav class="mobile-nav-links" aria-label="Mobiele navigatie"><p class="mobile-nav-label">Functies</p>${FEATURES.map(f=>`<a href="${f.href}">${icon(f.icon)}${f.name}</a>`).join('')}<a href="/functies/">${icon('arrow')}Alle functies</a><p class="mobile-nav-label">Boekuna</p><a href="/hoe-het-werkt/">Hoe het werkt</a><a href="/zzp/">Voor zzp'ers</a><a href="/prijzen/">Prijzen</a><a href="/veiligheid/">Veiligheid en privacy</a><a href="/kennisbank/">Kennisbank</a><a href="/faq/">Veelgestelde vragen</a><a href="/over-ons/">Over Boekuna</a><a href="/support/">Contact en support</a><div class="mobile-nav-footer"><a class="btn btn-ghost" href="${LOGIN}">Inloggen</a><a class="btn btn-primary" href="${REGISTER}">Begin gratis ${arrow}</a></div></nav></div></details>
+  <div class="nav-actions">${over?'<p class="nav-clock" data-clock hidden><span>Lokale tijd</span><b data-clock-time></b><i aria-hidden="true">•</i><b data-clock-date></b></p>':''}<a class="nav-signin" href="${LOGIN}">Inloggen</a><a class="btn btn-primary btn-small nav-join" href="${REGISTER}">Begin gratis</a></div>
+  <details class="mobile-nav"><summary aria-label="Menu openen">${icon('menu','icon open')}${icon('close','icon shut')}<span class="menu-word" aria-hidden="true">Menu</span><span class="menu-word-shut" aria-hidden="true">Sluiten</span></summary><div class="mobile-nav-panel"><nav class="mobile-nav-links" aria-label="Mobiele navigatie"><p class="mobile-nav-label">Functies</p>${FEATURES.map(f=>`<a href="${f.href}">${icon(f.icon)}${f.name}</a>`).join('')}<a href="/functies/">${icon('arrow')}Alle functies</a><p class="mobile-nav-label">Boekuna</p><a href="/hoe-het-werkt/">Hoe het werkt</a><a href="/zzp/">Voor zzp'ers</a><a href="/prijzen/">Prijzen</a><a href="/veiligheid/">Veiligheid en privacy</a><a href="/kennisbank/">Kennisbank</a><a href="/faq/">Veelgestelde vragen</a><a href="/over-ons/">Over Boekuna</a><a href="/support/">Contact en support</a><div class="mobile-nav-footer"><a class="btn btn-ghost" href="${LOGIN}">Inloggen</a><a class="btn btn-primary" href="${REGISTER}">Begin gratis ${arrow}</a></div></nav></div></details>
  </nav>
 </header>`;
 }
 
 function footer(){
   return `<footer class="site-footer">
+ <div class="shell footer-cta"><p class="footer-cta-title">Zo simpel kan het zijn.</p><a class="btn btn-primary" href="${REGISTER}">Begin gratis ${arrow}</a></div>
  <div class="shell footer-columns">
-  <div class="footer-brand"><a class="brand" href="/" aria-label="Boekuna, naar de homepagina">${BRAND}</a><p>Online boekhoudprogramma voor zzp'ers en kleine ondernemers. Facturen, bonnetjes, kosten en btw op één plek, in gewone taal.</p>${btn('Begin gratis',REGISTER,'primary')}</div>
+  <div class="footer-brand"><a class="brand" href="/" aria-label="Boekuna, naar de homepagina">${BRAND}</a><p>Online boekhoudprogramma voor zzp'ers en kleine ondernemers. Facturen, bonnetjes, kosten en btw op één plek, in gewone taal.</p></div>
   <nav aria-label="Product"><h2>Product</h2><a href="/functies/">Alle functies</a>${FEATURES.map(f=>`<a href="${f.href}">${f.name}</a>`).join('')}<a href="/prijzen/">Prijzen</a></nav>
   <nav aria-label="Boekuna"><h2>Boekuna</h2><a href="/hoe-het-werkt/">Hoe het werkt</a><a href="/zzp/">Voor zzp'ers</a><a href="/veiligheid/">Veiligheid en privacy</a><a href="/over-ons/">Over Boekuna</a><a href="/support/">Contact en support</a><a href="/faq/">Veelgestelde vragen</a><a href="/kennisbank/">Kennisbank</a></nav>
   <nav aria-label="Juridisch"><h2>Juridisch</h2><a href="/privacy/">Privacyverklaring</a><a href="/voorwaarden/">Algemene voorwaarden</a><a href="/account-verwijderen/">Account verwijderen</a><a href="${LOGIN}">Inloggen</a></nav>
  </div>
  <div class="shell footer-legal"><p>Boekuna is een product van ${COMPANY.name} · ${COMPANY.street}, ${COMPANY.postal} ${COMPANY.city} · KVK ${COMPANY.kvk} · Btw-id ${COMPANY.vat} · <a href="mailto:${COMPANY.email}">${COMPANY.email}</a></p><p>© 2026 ${COMPANY.name} · Boekuna is bedoeld voor ondernemers. Prijzen zijn inclusief btw.</p></div>
+ <div class="footer-watermark" aria-hidden="true"></div>
 </footer>`;
 }
 
@@ -103,11 +105,11 @@ export function breadcrumbLd(path,crumbs){
 }
 
 // One full HTML document. `ld` is a list of schema.org nodes; `scripts` only for the support forms.
-export function render({path,title,description,body,ld=[],robots='index,follow',ogTitle,ogType='website',inlineScript='',preloadImage=''}){
+export function render({path,title,description,body,ld=[],robots='index,follow',ogTitle,ogType='website',inlineScript='',preloadImage='',studio=false,before=''}){
   const url=SITE+path;
   const graph=ld.length?`<script type="application/ld+json">${JSON.stringify({"@context":"https://schema.org","@graph":ld})}</script>\n`:'';
   return `<!doctype html>
-<html lang="nl">
+<html lang="nl"${studio?' class="studio"':''}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -128,8 +130,7 @@ export function render({path,title,description,body,ld=[],robots='index,follow',
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Boekuna, online boekhouden voor zzp'ers">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="preload" href="/assets/fonts/inter-var-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/assets/fonts/space-grotesk-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/onest-var-latin.woff2" as="font" type="font/woff2" crossorigin>
 ${preloadImage}<link rel="icon" href="/assets/boekuna-favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
@@ -140,7 +141,7 @@ ${graph}</head>
 <body>
 <a class="skip-link" href="#inhoud">Ga naar inhoud</a>
 <svg class="icon-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">${ICON_SYMBOLS}</svg>
-${header()}
+${before}${header({over:studio})}
 <main id="inhoud">
 ${body}
 </main>

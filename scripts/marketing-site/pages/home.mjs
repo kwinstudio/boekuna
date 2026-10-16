@@ -1,6 +1,8 @@
-import {render,REGISTER,LOGIN,ORGANIZATION,SITE,icon,arrow,btn,startCta,shotDesktop,shotPhone,photo,sampleNote,sectionHead,checks,faqList,COMPANY} from '../layout.mjs';
+import {render,REGISTER,LOGIN,ORGANIZATION,SITE,icon,COMPANY} from '../layout.mjs';
 import {pricingCards,softwareLd} from '../pricing.mjs';
+import {DOCUMENT_LIMITS} from '../../../supabase/functions/_shared/pricing.mjs';
 
+// The FAQ lives on /faq/; these answers are shared with that page.
 export const HOME_FAQ=[
   ["Is Boekuna geschikt voor zzp'ers?","Ja. Boekuna is gemaakt voor zzp'ers, eenmanszaken en kleine ondernemers in Nederland die zelf hun administratie bijhouden. Je maakt facturen, legt kosten en bonnetjes vast en ziet per kwartaal je btw. Boekuna is bedoeld voor zakelijk gebruik."],
   ['Kan ik gratis beginnen?','Ja. Met Start maak je gratis facturen en houd je je klanten en betalingen bij, zonder betaalkaart. Wil je ook je kosten, bonnetjes, btw-overzicht en bank in Boekuna? Dan kies je ZZP voor € 9,95 per maand of € 99,50 per jaar, inclusief btw.'],
@@ -13,138 +15,139 @@ export const HOME_FAQ=[
   ['Kan ik mijn abonnement opzeggen?','Ja, zelf in de app via Abonnement. Je houdt toegang tot het einde van de betaalde maand of het betaalde jaar; een lopende periode wordt niet terugbetaald. Je gegevens blijven daarna bewaard en je kunt alles exporteren.']
 ];
 
-const benefits=[
-  ['scan','Minder overtypen','Maak een foto van je bon. Boekuna vult leverancier, datum, bedragen en btw voor je in. Jij kijkt alleen of het klopt.'],
-  ['monitor','Alles op één plek','Facturen, kosten, bonnetjes, bank en btw staan bij elkaar. Op je telefoon en je computer, altijd met dezelfde gegevens.'],
-  ['chart','Direct zien waar je staat','Je overzicht laat je winst, wat nog binnen moet komen en welke btw je opzij zet zien. Zonder spreadsheet.']
-];
+// Homepage in the studio style Kwin picked on 2026-10-16: one big idea per block, white and
+// warm-grey surfaces, black cards, Boekuna green as the only accent. Sizes are in rem so the
+// page scales with the viewport (html.studio in site.css). Every number on it is a fact.
+const pill=(label,href,kind='green',arrowIcon='arrow',extra='')=>`<a class="pill pill-${kind}${arrowIcon?' pill-arrow':''}" href="${href}"${extra}><span>${label}${arrowIcon?`<span class="pill-badge">${icon(arrowIcon)}</span>`:''}</span></a>`;
 
-const demo=[
-  {tab:'Toevoegen',title:'Foto of bestand. Meer niet.',text:'Maak met je telefoon een foto van een bonnetje of upload een PDF van een inkoopfactuur. PDF, JPG, PNG, WebP en HEIC van een iPhone werken.',visual:`<figure class="demo-receipt"><img src="/assets/site/bon-voorbeeld.webp" width="600" height="900" alt="Voorbeeldbon van een fictieve papierwinkel met een totaal van 50 euro" loading="lazy" decoding="async"><figcaption>Fictieve voorbeeldbon</figcaption></figure>`},
-  {tab:'Herkennen',title:'Boekuna vult het voor je in.',text:'Leverancier, datum, categorie en soort staan al klaar. Je ziet de bon en de gegevens naast elkaar, dus vergelijken gaat snel.',visual:shotPhone('review','Stap 1 van het controleren van een bon: leverancier, datum en categorie zijn al ingevuld')},
-  {tab:'Controleren',title:'Jij houdt de controle.',text:'In de tweede stap check je het totaal en de btw. Boekuna rekent het bedrag zonder btw uit en zegt het als iets niet sluit. Klopt het? Dan sla je op.',visual:shotPhone('review2','Stap 2 van het controleren: totaal 50 euro inclusief 21 procent btw, met de melding Klaar om op te slaan')},
-  {tab:'Bewaard',title:'Netjes in je administratie.',text:'De kostenpost telt mee in je overzicht en je btw. De bon staat bij Bonnetjes, zodat je hem altijd terugvindt voor de bewaarplicht van 7 jaar.',visual:shotPhone('documents','Bonnetjes-overzicht met elf bewaarde bonnen van een fictief bedrijf')}
+const slides=[
+  ['Bonnetjes','Foto. Check. Klaar.'],
+  ['Btw','Klaar om over te nemen.'],
+  ['Facturen','Verstuurd in een paar tikken.']
 ];
-
-const features=[
-  {id:'facturen',eyebrow:'Facturen maken',title:'Een nette factuur in een paar tikken.',text:'Kies je klant, zet je vaste diensten erop en deel de PDF vanuit je eigen e-mail. Boekuna houdt bij wat betaald is en wat nog openstaat.',items:['Verplichte gegevens en btw staan er automatisch op','Creditfactuur bij een fout, met verwijzing','Herinnering sturen bij een te late factuur'],shot:shotDesktop('composer','Nieuwe factuur maken voor een klant, met vaste diensten om met één tik toe te voegen'),href:'/facturen/',link:'Meer over facturen maken'},
-  {id:'kosten',eyebrow:'Bonnetjes en kosten',title:'Al je uitgaven en bonnen op een rij.',text:'Elke kostenpost heeft een leverancier, categorie en btw-tarief. Je bonnen staan in één archief, gekoppeld aan de kosten waar ze bij horen.',items:['Zien welke betalingen nog geen bon hebben','Zoeken op leverancier, bestand of factuurnummer','Originele bestanden altijd downloaden'],shot:shotDesktop('expenses','Kostenoverzicht met huur, software, kantoorartikelen en reizen van een fictief bedrijf'),href:'/bonnen/',link:'Meer over bonnetjes en kosten'},
-  {id:'btw',eyebrow:'Btw-overzicht',title:'Je btw-aangifte zonder rekenwerk.',text:'Boekuna telt je facturen en kosten per kwartaal op en zet de bedragen in dezelfde rubrieken als de aangifte bij de Belastingdienst. Jij neemt ze over.',items:['Rubriek 1a, 1b, 1e, 3b en 5b','Ondersteunt btw verlegd, EU-levering en de KOR','Knop om alle bedragen te kopiëren'],shot:shotDesktop('vat','Btw-overzicht van het derde kwartaal met de bedragen per rubriek'),href:'/btw/',link:'Meer over het btw-overzicht'},
-  {id:'bank',eyebrow:'Bankimport',title:'Je bank en je boekhouding kloppen.',text:'Download een bankbestand bij je bank en lees het in. Boekuna zoekt bij elke betaling de factuur of kostenpost die erbij hoort.',items:['Een gekoppelde bijschrijving zet de factuur op betaald','Waarschuwing als een regel al is ingelezen','Wat overblijft, staat bij Te verwerken'],shot:shotDesktop('bank','Bankscherm met ingelezen betalingen die aan facturen en kosten zijn gekoppeld'),href:'/bank/',link:'Meer over bankimport'},
-  {id:'rapportages',eyebrow:'Rapportages',title:'Zien hoe je bedrijf ervoor staat.',text:'Kies een maand, kwartaal of jaar. Je ziet omzet, kosten en winst in een grafiek, plus winst en verlies en wat er nog openstaat.',items:['Winstmarge en kosten per categorie','Openstaande facturen in één oogopslag','Bewaren als PDF'],shot:shotDesktop('reports','Rapportage van dit jaar met omzet, kosten en winst per maand'),href:'/rapportages/',link:'Meer over rapportages'}
-];
-
-const extras=[
-  ['tag','Diensten','Je vaste diensten en prijzen, met één tik op een factuur.'],
-  ['users','Klanten en leveranciers','Adres, KVK en e-mail op één plek.'],
-  ['car','Ritten','Twee postcodes erin, de kilometers komen er vanzelf bij.'],
-  ['phone','Op je telefoon','Overzicht, inkomsten, kosten en bonnen onder je duim.'],
-  ['download','Export en back-up','CSV, volledige back-up en je originele bestanden.'],
-  ['lock','Tweestapsverificatie','Een extra slot op je account met een authenticator-app.']
-];
+const hints=['Nederlands','Opslag in de EU','Geen tracking','Alles exporteren','Tweestapsverificatie','Telefoon en computer'];
 
 const audience=[
-  ['foto-gezicht-ontwerp.webp','Een freelance ontwerper werkt lachend op haar laptop aan een tafel bij het raam',560,560,'Freelancers en creatieven','Ontwerpers, fotografen, tekstschrijvers. Je factureert per project of per uur en wilt dat het netjes is.'],
-  ['foto-ondernemer.webp','Een ondernemer met schort staat met gekruiste armen in haar eigen zaak',1100,880,'Winkels en horeca-starters','Veel kleine bonnetjes en leveranciers. Foto maken, controleren, klaar.'],
-  ['foto-vakman.webp','Handen van een vakman die een stuk hout schaaft in de werkplaats',810,540,'Vakmensen en dienstverleners','Klussers, kappers, coaches. Je bent liever met je vak bezig dan met papier.'],
-  ['foto-gezicht-foto.webp','Een fotograaf maakt buiten een foto met een spiegelreflexcamera',560,560,'Startende zzp\'ers','Net ingeschreven bij de KVK? Begin gratis met facturen en groei door naar je hele boekhouding.']
+  ['Freelancers — Creatief','Ontwerpers en fotografen','Je factureert per project of per uur en wilt dat het er netjes uitziet.',['Facturen','Diensten','Btw']],
+  ['Winkels — Horeca','Winkels en horeca-starters','Veel kleine bonnetjes en leveranciers. Foto maken, controleren, klaar.',['Bonnetjes','Kosten','Bank']],
+  ['Vakmensen — Diensten','Klussers, kappers en coaches','Je bent liever met je vak bezig dan met papier. Dat mag.',['Facturen','Ritten','Overzicht']],
+  ['Starters — Nieuw','Net ingeschreven bij de KVK','Begin gratis met facturen en groei door naar je hele boekhouding.',['Gratis start','Facturen']]
 ];
 
-const trust=[
-  ['building','Een Nederlands bedrijf',`Boekuna is een product van ${COMPANY.name} in ${COMPANY.city}, KVK ${COMPANY.kvk}.`],
-  ['lock','Opslag in de EU','Je administratie en documenten staan op servers in Frankfurt, Duitsland.'],
-  ['shield','Alleen jij ziet je gegevens','Elk account is afgeschermd in de database. Documenten staan in privé-opslag.'],
-  ['scan','Bonnen blijven bij ons','Bonnen worden uitgelezen op de eigen documentserver, niet door externe AI-diensten.'],
-  ['eye','Geen tracking','De website en de app gebruiken geen advertentie- of trackingcookies.'],
-  ['download','Jouw data, jouw keuze','Alles exporteren of je account verwijderen doe je zelf in de app.']
+const rows=[
+  ['/facturen/','Facturen maken','Klant kiezen, diensten erop, versturen. Boekuna houdt bij wat nog openstaat.'],
+  ['/bonnen/','Bonnetjes en kosten','Foto maken, Boekuna vult de bedragen in. Jij controleert, de bon blijft 7 jaar bewaard.'],
+  ['/btw/','Btw-overzicht','De bedragen per rubriek, klaar om over te nemen in je aangifte bij de Belastingdienst.'],
+  ['/bank/','Bankimport','Bankbestand inlezen. Boekuna koppelt de betalingen aan je facturen en kosten.']
 ];
 
-const notYet=['Geen live bankkoppeling: je leest zelf een bankbestand in.','De btw-aangifte doe je zelf bij de Belastingdienst, met de bedragen uit Boekuna.','Nog geen offertes en terugkerende facturen.','Geen salarisadministratie en geen meerdere gebruikers in één account.'];
+const stats=[
+  ['€ ',0,'','om te beginnen, zonder betaalkaart'],
+  ['',7,' jaar','bewaarplicht, en je bonnen staan veilig in één archief'],
+  ['',DOCUMENT_LIMITS.zzp,'','slimme scans per maand met ZZP, met Pro zonder limiet'],
+  ['',0,'','tracking- of advertentiecookies op de site en in de app']
+];
+
+const words=(text,cls='')=>text.split(' ').map(w=>`<span class="w${cls}">${w}</span>`).join(' ');
 
 export default function home(){
+  const loader=`<div class="loader" data-loader aria-hidden="true"><div class="loader-center"><p class="loader-brand">Boekuna<span>.</span></p><p class="loader-tag">Boekhouden zonder boekhoudtaal.</p></div><div class="loader-progress"><div class="loader-track"><div class="loader-fill" data-loader-fill></div></div><div class="loader-row"><span>Laden</span><span class="loader-num" data-loader-num>000</span></div></div></div>
+`;
   const body=`
-<section class="hero">
- <div class="shell hero-grid">
-  <div class="hero-copy">
-   <p class="eyebrow">Online boekhoudprogramma voor zzp'ers</p>
-   <h1>Boekhouden zonder boekhoudtaal.</h1>
-   <p class="lead">Facturen maken, bonnetjes scannen en je btw-overzicht klaar hebben. In gewone woorden, op je telefoon en je computer.</p>
-   <div class="actions">${startCta()}${btn('Bekijk hoe het werkt','#hoe-het-werkt','ghost')}</div>
-   <ul class="hero-assure"><li>${icon('check')}Start is gratis</li><li>${icon('check')}Geen betaalkaart nodig</li><li>${icon('check')}Gegevens in de EU</li></ul>
+<section class="s-hero" id="home" aria-labelledby="hero-titel">
+ <div class="s-hero-media" data-liquid>
+  <img class="s-hero-base" src="/assets/site/foto-ondernemer.webp" width="1100" height="880" alt="Een lachende ondernemer staat met de armen over elkaar in haar eigen zaak" fetchpriority="high" decoding="async">
+ </div>
+ <div class="s-hero-veil" aria-hidden="true"></div>
+ <div class="s-hero-mark rv" style="--d:300ms" aria-hidden="true"></div>
+ <div class="s-shell s-hero-grid">
+  <div class="s-hero-copy">
+   <p class="s-eyebrow rv" style="--d:200ms">Online boekhoudprogramma voor zzp'ers</p>
+   <h1 id="hero-titel" class="lines" data-delay="250" data-stagger="120"><span class="ln"><span>Boekhouden </span></span><span class="ln"><span>zonder </span></span><span class="ln"><span>boekhoudtaal.</span></span></h1>
+   <p class="s-assure rv" style="--d:650ms">${icon('check')}Gratis beginnen, geen betaalkaart nodig</p>
+   <div class="s-ctas rv" style="--d:750ms">${pill('Begin gratis',REGISTER)}${pill('Bekijk functies','#functies','outline','')}</div>
   </div>
-  <div class="hero-visual">
-   ${shotDesktop('dashboard','Het overzicht in Boekuna met winst, omzet, kosten, btw en wat nog binnen moet komen',{eager:true,sizes:'(min-width: 1100px) 700px, 94vw'})}
-   ${shotPhone('review2','Een bon controleren op de telefoon: totaal en btw kloppen, klaar om op te slaan',{eager:true,sizes:'(min-width: 768px) 230px, 40vw'})}
+  <div class="s-hero-side">
+   <div class="s-hcard rv" style="--d:400ms;--from:translateY(16px) scale(.96)" data-slides>
+    <div class="s-hcard-tile" aria-hidden="true"><b>B<span>.</span></b></div>
+    <div class="s-hcard-panel">
+     <div class="s-hcard-slot" aria-live="polite">${slides.map(([c,t],i)=>`<div class="s-hcard-item"${i?' hidden':''}><p class="s-hcard-cap">${c}</p><p class="s-hcard-title">${t}</p></div>`).join('')}</div>
+     <div class="s-hcard-bottom"><div class="s-dots" aria-hidden="true">${slides.map((_,i)=>`<i${i?'':' class="on"'}></i>`).join('')}</div><div class="s-hcard-nav"><button type="button" data-slide="-1" aria-label="Vorige">${icon('arrow','icon flip')}</button><button type="button" data-slide="1" aria-label="Volgende">${icon('arrow')}</button></div></div>
+    </div>
+   </div>
+   <div class="s-hints rv" style="--d:550ms"><p>Goed om te weten</p><ul>${hints.map(h=>`<li>${icon('dot')}${h}</li>`).join('')}</ul></div>
   </div>
  </div>
- <div class="shell">${sampleNote()}</div>
+ <div class="s-shell"><div class="s-status rv" style="--d:900ms;--from:none"><span>Gemaakt in Nederland</span><span class="s-status-mid">Foto ter illustratie, geen klant van Boekuna</span><span class="s-status-end">Scroll verder ↓</span></div></div>
 </section>
 
-<section class="section facts" aria-label="Kort over Boekuna"><div class="shell"><ul class="fact-strip">
- <li>${icon('building')}<span><strong>Nederlands</strong> product van ${COMPANY.name}</span></li>
- <li>${icon('lock')}<span><strong>Opslag in de EU</strong> in Frankfurt</span></li>
- <li>${icon('eye')}<span><strong>Geen tracking</strong>cookies</span></li>
- <li>${icon('download')}<span><strong>Alles exporteren</strong> wanneer je wilt</span></li>
-</ul></div></section>
-
-<section class="section" aria-labelledby="voordelen"><div class="shell">
- ${sectionHead({eyebrow:'Waarom Boekuna',title:'Je hoeft geen boekhouder te zijn.',id:'voordelen',lead:'Boekuna doet het rekenwerk en zegt in gewone taal wat er nog moet gebeuren. Jij houdt overzicht en tijd over voor je werk.'})}
- <div class="benefits">${benefits.map(([i,t,p])=>`<article class="benefit">${icon(i,'icon benefit-icon')}<h3>${t}</h3><p>${p}</p></article>`).join('')}</div>
-</div></section>
-
-<section class="section dark demo" id="hoe-het-werkt" aria-labelledby="hoe-titel"><div class="shell">
- ${sectionHead({eyebrow:'Hoe werkt Boekuna?',title:'Van bonnetje naar boekhouding in vier stappen.',id:'hoe-titel',lead:'Zo verwerk je een bon of inkoopfactuur. Echte schermen uit de app, met een fictieve voorbeeldbon.'})}
- <div class="tour" data-tour>
-  <div class="tour-tabs" role="tablist" aria-label="Stappen">${demo.map((d,i)=>`<button type="button" role="tab" id="tab-${i}" aria-controls="stap-${i}" aria-selected="${i===0}" tabindex="${i===0?0:-1}"><span class="tour-num">${i+1}</span>${d.tab}</button>`).join('')}</div>
-  ${demo.map((d,i)=>`<div class="tour-panel" role="tabpanel" id="stap-${i}" aria-labelledby="tab-${i}" tabindex="0"${i?' hidden':''}><div class="tour-text"><p class="tour-step">Stap ${i+1} van 4</p><h3>${d.title}</h3><p>${d.text}</p></div><div class="tour-visual">${d.visual}</div></div>`).join('')}
+<section class="s-about" id="waarom" aria-labelledby="waarom-titel">
+ <div class="s-shell s-about-grid">
+  <div class="s-about-left">
+   <span class="s-about-big" aria-hidden="true"><b>B<span>.</span></b></span>
+   <p class="s-eyebrow">Waarom Boekuna</p>
+   <p class="s-about-note rv">${icon('building')}<span>Een Nederlands product van ${COMPANY.name}, ${COMPANY.city}.</span></p>
+  </div>
+  <div class="s-about-right">
+   <h2 id="waarom-titel" class="words">${words('Je begon voor de vrijheid, niet voor de administratie.')} ${words('Boekuna doet het rekenwerk en zegt in gewone woorden wat er nog moet gebeuren.',' mu')}</h2>
+   <div class="s-about-foot rv" style="--d:200ms"><div><p class="s-label">Vragen? Mail ons</p><a class="s-mail" href="mailto:${COMPANY.email}">${COMPANY.email}</a></div>${pill('Over Boekuna','/over-ons/','outline')}</div>
+  </div>
  </div>
- <div class="honest"><p>${icon('info')}<span><strong>Eerlijk over herkenning.</strong> Een vage foto of een ongewone bon kan verkeerd gelezen worden. Daarom komt er niets in je administratie zonder jouw controle. Met ZZP worden 100 documenten per maand slim uitgelezen, met Pro is er geen maandlimiet.</span></p><a class="link-light" href="/slim-scannen/">Meer over slim scannen ${arrow}</a></div>
-</div></section>
+</section>
 
-<section class="section" id="mogelijkheden" aria-labelledby="functies-titel"><div class="shell">
- ${sectionHead({eyebrow:'Functies',title:'Alles voor je administratie. Niets wat je niet nodig hebt.',id:'functies-titel',lead:'Boekuna heeft een vast aantal duidelijke schermen. Dit zijn de belangrijkste.'})}
- ${features.map((f,i)=>`<article class="feature${i%2?' flip':''}" id="${f.id}"><div class="feature-copy"><p class="eyebrow">${f.eyebrow}</p><h3>${f.title}</h3><p>${f.text}</p>${checks(f.items)}<a class="text-link" href="${f.href}">${f.link} ${arrow}</a></div><div class="feature-visual">${f.shot}</div></article>`).join('')}
- <div class="extras">${extras.map(([i,t,p])=>`<div class="extra">${icon(i)}<div><h3>${t}</h3><p>${p}</p></div></div>`).join('')}</div>
- <p class="center-link"><a class="text-link" href="/functies/">Bekijk alle functies ${arrow}</a></p>
-</div></section>
+<section class="s-band" aria-label="Foto, check, klaar">
+ <ul class="s-shell">
+  <li class="rv" style="--from:translateY(28px);--d:0ms"><span class="s-band-t light">Foto</span></li>
+  <li class="rv" style="--from:translateY(28px);--d:120ms"><span class="s-band-t accent">Check</span></li>
+  <li class="rv" style="--from:translateY(28px);--d:240ms"><span class="s-band-t dark">${icon('arrow')}<span class="sr-only">en dan</span></span></li>
+  <li class="rv" style="--from:translateY(28px);--d:360ms"><span class="s-band-t ghost">Klaar</span></li>
+ </ul>
+</section>
 
-<section class="section soft" id="voor-wie" aria-labelledby="wie-titel"><div class="shell">
- ${sectionHead({eyebrow:'Voor wie',title:'Gemaakt voor zelfstandigen die liever ondernemen.',id:'wie-titel',lead:'Boekuna is er voor zzp\'ers, eenmanszaken en kleine ondernemers in Nederland die hun administratie zelf willen bijhouden, zonder boekhoudkennis.'})}
- <div class="audience">${audience.map(([f,a,w,h,t,p])=>`<article class="person">${photo(f,a,{w,h})}<h3>${t}</h3><p>${p}</p></article>`).join('')}</div>
- <p class="photo-note">Foto's ter illustratie. Dit zijn geen klanten van Boekuna.</p>
- <div class="fit"><div><h3>Boekuna past bij je als je</h3>${checks(['zelf je facturen maakt en je bonnen wilt bewaren','per kwartaal btw-aangifte doet','in één oogopslag wilt zien hoe je ervoor staat'])}</div><div><h3>Wat Boekuna (nog) niet doet</h3><ul class="crosses">${notYet.map(n=>`<li>${icon('x')}<span>${n}</span></li>`).join('')}</ul></div></div>
- <p class="center-link"><a class="text-link" href="/zzp/">Boekhouden als zzp'er ${arrow}</a></p>
-</div></section>
+<section class="s-works" id="voor-wie" aria-labelledby="wie-titel">
+ <div class="s-shell">
+  <p class="s-eyebrow s-eyebrow-pill rv">Voor wie</p>
+  <h2 id="wie-titel" class="s-h2 lines" data-delay="120"><span class="ln"><span>Gemaakt voor jou</span></span></h2>
+  <ul class="s-cards">${audience.map(([meta,title,text,tags],i)=>`<li class="rv" style="--from:translateY(48px);--d:${i*90}ms"><a class="s-card" href="/zzp/"><span class="s-card-meta"><span>${meta}</span><span class="s-card-badge">${icon('arrow-ur')}</span></span><span class="s-card-mark" aria-hidden="true"><b>B<span>.</span></b></span><span class="s-card-body"><span class="s-card-title">${title}</span><span class="s-card-text">${text}</span><span class="s-tags">${tags.map(t=>`<span>${t}</span>`).join('')}</span></span></a></li>`).join('')}</ul>
+ </div>
+</section>
 
-<section class="section" id="vertrouwen" aria-labelledby="vertrouwen-titel"><div class="shell">
- ${sectionHead({eyebrow:'Veiligheid en vertrouwen',title:'Je administratie is van jou. En blijft van jou.',id:'vertrouwen-titel',lead:'Boekuna is een jong merk. Daarom zeggen we precies hoe het zit, zonder keurmerken of cijfers die we niet kunnen laten zien.'})}
- <div class="trust-grid">${trust.map(([i,t,p])=>`<div class="trust-item">${icon(i)}<h3>${t}</h3><p>${p}</p></div>`).join('')}</div>
- <div class="company-card"><div><h3>Wie zit erachter?</h3><p>Boekuna wordt gemaakt en verbeterd door ${COMPANY.name}, een Nederlandse onderneming. Je mailt met mensen, in het Nederlands.</p></div><dl><div><dt>Bedrijf</dt><dd>${COMPANY.name}</dd></div><div><dt>Adres</dt><dd>${COMPANY.street}, ${COMPANY.postal} ${COMPANY.city}</dd></div><div><dt>KVK</dt><dd>${COMPANY.kvk}</dd></div><div><dt>Contact</dt><dd><a href="mailto:${COMPANY.email}">${COMPANY.email}</a></dd></div></dl></div>
- <p class="center-link"><a class="text-link" href="/veiligheid/">Lees hoe je gegevens beschermd zijn ${arrow}</a></p>
-</div></section>
+<section class="s-rows" id="functies" aria-labelledby="functies-titel">
+ <div class="s-shell">
+  <p class="s-eyebrow rv">Functies</p>
+  <h2 id="functies-titel" class="s-h2 lines" data-delay="120"><span class="ln"><span>Wat Boekuna </span></span><span class="ln"><span>voor je doet</span></span></h2>
+  <ul>${rows.map(([href,title,text],i)=>`<li class="rv" style="--from:translateY(24px);--d:${i*80}ms"><a href="${href}"><span class="s-row-ix">0${i+1}</span><span class="s-row-title">${title}</span><span class="s-row-text">${text}</span><span class="s-row-badge">${icon('arrow-ur')}</span></a></li>`).join('')}</ul>
+  <p class="s-more rv"><a href="/functies/">Bekijk alle functies ${icon('arrow')}</a></p>
+ </div>
+</section>
 
-<section class="section soft pricing-section" id="tarieven" aria-labelledby="prijzen-titel"><div class="shell">
- ${sectionHead({eyebrow:'Prijzen',title:'Eenvoudige prijzen.',id:'prijzen-titel',center:true,lead:'Gratis factureren, of je hele boekhouding voor een vast bedrag.'})}
- ${pricingCards()}
- <p class="center-link"><a class="text-link" href="/prijzen/">Pakketten vergelijken ${arrow}</a></p>
-</div></section>
+<section class="s-stats" id="cijfers" aria-labelledby="cijfers-titel">
+ <div class="s-shell">
+  <div class="s-stats-panel rv" style="--from:translateY(40px) scale(.99)">
+   <p class="s-eyebrow light">In cijfers</p>
+   <h2 id="cijfers-titel" class="lines" data-delay="120"><span class="ln"><span>Geen beloftes. Gewoon feiten.</span></span></h2>
+   <ul class="s-stats-grid">${stats.map(([pre,n,post,label],i)=>`<li class="rv" style="--from:translateY(20px);--d:${i*90}ms"><p class="s-stat">${pre?`<em>${pre.trim()}</em> `:''}<span data-count="${n}">${n}</span>${post}</p><p class="s-stat-label">${label}</p></li>`).join('')}</ul>
+  </div>
+ </div>
+</section>
 
-<section class="section" id="vragen" aria-labelledby="vragen-titel"><div class="shell faq-layout">
- <div>${sectionHead({eyebrow:'Veelgestelde vragen',title:'Goed om te weten.',id:'vragen-titel',lead:'Staat je vraag er niet bij? Mail <a href="mailto:support@boekuna.nl">support@boekuna.nl</a>.'})}<a class="text-link" href="/faq/">Alle vragen en antwoorden ${arrow}</a></div>
- ${faqList(HOME_FAQ)}
-</div></section>
-
-<section class="section final" aria-labelledby="slot-titel"><div class="shell final-inner">
- <h2 id="slot-titel">Zo simpel kan het zijn.</h2>
- <p>Maak gratis een account en verstuur vandaag je eerste factuur. Je hebt geen betaalkaart nodig.</p>
- <div class="actions center">${startCta()}<a class="btn btn-ghost-light" href="${LOGIN}">Inloggen</a></div>
-</div></section>`;
+<section class="s-prices pricing-section" id="tarieven" aria-labelledby="prijzen-titel">
+ <div class="s-shell">
+  <p class="s-eyebrow rv">Prijzen</p>
+  <h2 id="prijzen-titel" class="s-h2 lines" data-delay="120"><span class="ln"><span>Eenvoudige prijzen.</span></span></h2>
+  <p class="s-lead rv">Gratis factureren, of je hele boekhouding voor een vast bedrag.</p>
+  ${pricingCards()}
+  <p class="s-more"><a href="/prijzen/">Pakketten vergelijken ${icon('arrow')}</a></p>
+ </div>
+</section>`;
   return render({
     path:'/',
+    studio:true,
+    before:loader,
     title:"Boekuna — Online boekhoudprogramma voor zzp'ers | Gratis beginnen",
     ogTitle:'Boekuna — Boekhouden zonder boekhoudtaal',
     description:"Boekuna is het eenvoudige boekhoudprogramma voor zzp'ers en kleine ondernemers. Facturen maken, bonnetjes scannen, btw-overzicht per kwartaal. Start gratis.",
-    preloadImage:'<link rel="preload" as="image" href="/assets/site/app-desktop-dashboard-720.webp" imagesrcset="/assets/site/app-desktop-dashboard-720.webp 720w, /assets/site/app-desktop-dashboard.webp 1440w" imagesizes="(min-width: 1100px) 700px, 94vw" fetchpriority="high">\n',
+    preloadImage:'<link rel="preload" as="image" href="/assets/site/foto-ondernemer.webp" fetchpriority="high">\n',
     ld:[ORGANIZATION,{"@type":"WebSite","@id":SITE+"/#website","url":SITE+"/","name":"Boekuna","inLanguage":"nl-NL","publisher":{"@id":SITE+"/#org"}},softwareLd()],
     body
   });
