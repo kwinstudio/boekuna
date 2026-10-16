@@ -32,19 +32,23 @@ export const startCta=(label='Begin gratis')=>btn(label,REGISTER,'primary');
 // In-page desktop screenshots switch to the phone version of the same screen on small screens,
 // where a scaled-down desktop is unreadable. Hidden lazy images are not downloaded.
 const hasPhoneShot=name=>fs.existsSync(new URL(`../../public/assets/site/app-mobile-${name}-390.webp`,import.meta.url));
+// Kwin 2026-10-16: no app screenshots anywhere on the website, so these render nothing.
+const NO_SCREENSHOTS=true;
 export function shotDesktop(name,alt,{eager=false,sizes='(min-width: 1100px) 640px, 92vw',bar=true,single=false}={}){
+  if(NO_SCREENSHOTS)return '';
   const base=`/assets/site/app-desktop-${name}`;
   if(!single&&!eager&&hasPhoneShot(name))return `<div class="shot-switch">${shotDesktop(name,alt,{eager,sizes,bar,single:true})}${shotPhone(name,alt,{sizes:'62vw'})}</div>`;
   return `<figure class="shot shot-desktop">${bar?'<div class="shot-bar" aria-hidden="true"><span></span><span></span><span></span><em>app.boekuna.nl</em></div>':''}<img src="${base}-720.webp" srcset="${base}-720.webp 720w, ${base}.webp 1440w" sizes="${sizes}" width="1440" height="900" alt="${esc(alt)}" ${eager?'fetchpriority="high"':'loading="lazy"'} decoding="async"></figure>`;
 }
 export function shotPhone(name,alt,{eager=false,sizes='(min-width: 768px) 280px, 62vw'}={}){
+  if(NO_SCREENSHOTS)return '';
   const base=`/assets/site/app-mobile-${name}`;
   return `<figure class="shot-phone"><img src="${base}-390.webp" srcset="${base}-390.webp 390w, ${base}.webp 780w" sizes="${sizes}" width="390" height="844" alt="${esc(alt)}" ${eager?'':'loading="lazy" '}decoding="async"></figure>`;
 }
 export function photo(file,alt,{w,h,cls='photo',eager=false}={}){
   return `<img class="${cls}" src="/assets/site/${file}" width="${w}" height="${h}" alt="${esc(alt)}" ${eager?'':'loading="lazy" '}decoding="async">`;
 }
-export const sampleNote=(text=SAMPLE_NOTE)=>`<p class="sample-note">${icon('info')}<span>${text}</span></p>`;
+export const sampleNote=(text=SAMPLE_NOTE)=>NO_SCREENSHOTS?'':`<p class="sample-note">${icon('info')}<span>${text}</span></p>`;
 
 export function sectionHead({eyebrow,title,lead,id,center=false,level=2}){
   return `<div class="section-head${center?' center':''}">${eyebrow?`<p class="eyebrow">${eyebrow}</p>`:''}<h${level}${id?` id="${id}"`:''}>${title}</h${level}>${lead?`<p class="lead">${lead}</p>`:''}</div>`;
@@ -67,6 +71,7 @@ export const HERO_BG='<div class="s-flux-bg" aria-hidden="true"><i></i><i></i><i
 export const dotH1=h=>h.replace(/\.$/,'<span class="dot">.</span>');
 const rise=(html,ms)=>html?html.replace(/^<(\w+)(\s+class=")?/,(m,tag,cls)=>cls?`<${tag} style="--rd:${ms}ms" class="rise `:`<${tag} class="rise" style="--rd:${ms}ms"`):'';
 export function pageHero({crumbs,eyebrow,h1,lead,visual='',actions,note=''}){
+  if(visual&&!/<img|<svg/.test(visual))visual='';
   return `<section class="page-hero${visual?' has-visual':''}">${HERO_BG}<div class="shell page-hero-grid"><div class="page-hero-copy">${rise(breadcrumbHtml(crumbs),0)}${eyebrow?`<p class="eyebrow rise" style="--rd:120ms">${eyebrow}</p>`:''}<h1 class="rise" style="--rd:200ms">${dotH1(h1)}</h1>${lead?`<p class="lead rise" style="--rd:310ms">${lead}</p>`:''}${actions===false?'':`<div class="actions rise" style="--rd:420ms">${actions||startCta()+btn('Bekijk de prijzen','/prijzen/','ghost')}</div>`}${note}</div>${visual?`<div class="page-hero-visual rise" style="--rd:540ms">${visual}</div>`:''}</div></section>`;
 }
 function breadcrumbHtml(crumbs){

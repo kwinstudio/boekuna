@@ -45,7 +45,8 @@ for(const old of ['editorial-hero','editorial-pricing','project-grid','Uploaden.
 assert.ok(home.includes('/assets/baseline.css'),'Marketing baseline stylesheet required');
 assert.ok(home.includes('/assets/site/site.css'),'Site stylesheet missing');
 assert.equal(home.includes('/assets/landing-v4.css'),false,'Old V4 landing stylesheet still active');
-{const features=fs.readFileSync(path.join(source,'functies','index.html'),'utf8');assert.ok(features.includes('/assets/site/app-desktop-dashboard.webp'),'Real app screenshot missing');assert.ok(features.includes('voorbeeldgegevens van een fictief bedrijf'),'App screenshots must be clearly labeled as sample data');}
+// Kwin 2026-10-16: no app screenshots and no loading screen anywhere on the website.
+for(const f of fs.readdirSync(source,{recursive:true}).filter(f=>f.endsWith('.html'))){const h=fs.readFileSync(path.join(source,f),'utf8');assert.equal(/\/assets\/site\/app-(desktop|mobile)-/.test(h),false,f+': no app screenshots');assert.equal(h.includes('data-loader'),false,f+': no loading screen');}
 const scriptsOf=html=>[...html.matchAll(/<script\b[^>]*>/gi)].map(m=>m[0]).filter(t=>t!=='<script type="application/ld+json">');
 for(const m of home.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g))JSON.parse(m[1]);
 assert.deepEqual(scriptsOf(home),['<script src="/assets/site/site.js" defer>'],'Only the deferred first-party site script (plus structured data)');
@@ -120,7 +121,7 @@ const build=spawnSync(process.execPath,['scripts/build-marketing.mjs'],{cwd:root
 assert.equal(build.status,0,'Marketing build failed: '+(build.stderr||build.stdout));
 const dist=path.join(root,'dist','marketing');
 
-for(const file of ['index.html','404.html','robots.txt','sitemap.xml','assets/baseline.css','favicon.ico','assets/favicon.svg','assets/site/site.css','assets/site/site.js','assets/site/app-desktop-dashboard.webp','assets/site/app-mobile-review.webp','assets/site/foto-ondernemer-tablet.webp','assets/site/og-boekuna.png','assets/fonts/inter-var-latin.woff2','assets/boekuna-symbol.svg','assets/boekuna-favicon.svg']){
+for(const file of ['index.html','404.html','robots.txt','sitemap.xml','assets/baseline.css','favicon.ico','assets/favicon.svg','assets/site/site.css','assets/site/site.js','assets/site/foto-ondernemer-tablet.webp','assets/site/og-boekuna.png','assets/fonts/inter-var-latin.woff2','assets/boekuna-symbol.svg','assets/boekuna-favicon.svg']){
   assert.ok(fs.existsSync(path.join(dist,file)),'Built baseline missing '+file);
 }
 for(const f of fs.readdirSync(path.join(dist,'assets/site')).filter(f=>f.endsWith('.webp')))assert.ok(fs.statSync(path.join(dist,'assets/site',f)).size<120000,'Image exceeds marketing transfer budget: '+f);

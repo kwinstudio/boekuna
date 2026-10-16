@@ -27,7 +27,7 @@ try{
         await photo.evaluate(img=>img.complete&&img.naturalWidth>0||new Promise(r=>{img.addEventListener('load',r,{once:true});img.addEventListener('error',r,{once:true})}));
         assert.ok(await photo.evaluate(img=>img.complete&&img.naturalWidth>0),name+'/'+width+' people photo loads');
         await page.evaluate(()=>scrollTo(0,0));
-        assert.equal(await page.locator('[data-loader]').evaluate(el=>getComputedStyle(el).display),'none','Loader skipped with reduced motion');
+        assert.equal(await page.locator('[data-loader]').count(),0,'No loading screen');
         assert.equal(await page.locator('img:not([src^="/assets/site/"])').count(),0,'Only first-party Boekuna images');
         assert.equal(await page.locator('img:not([alt])').count(),0,'Every image has alt text');
         assert.equal(await page.locator('script:not([src="/assets/site/site.js"]):not([type="application/ld+json"])').count(),0,'Only the first-party site script');
