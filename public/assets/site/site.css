@@ -667,18 +667,21 @@ html.studio{font-size:16px}
 .s-hero-veil{background:linear-gradient(to bottom,rgba(255,255,255,.55),rgba(255,255,255,0) 22%),linear-gradient(to right,rgba(255,255,255,.92),rgba(255,255,255,.72) 34%,rgba(255,255,255,0) 58%)}
 @media (min-width:1024px){.s-hero-side{justify-content:flex-end!important}}
 @media (max-width:1023px){
+ /* Phone and tablet: big full-screen photo, text on a white fade at the bottom of the first screen. */
  .s-hero{display:flex;flex-direction:column;background:#fff}
  .s-hero-grid{display:contents}
- .s-hero-copy{order:1;padding:7.5rem 1.25rem 2rem}
- .s-hero-media{order:2;position:relative;inset:auto;height:22rem;margin-inline:1.25rem;border-radius:1.5rem;overflow:hidden}
- .s-hero-side{order:3;padding:2rem 1.25rem 1rem}
- .s-hero>.s-shell:last-child{order:4}
- .s-hero-veil,.s-hero-mark{display:none}
+ .s-hero-media{position:absolute;inset:0 0 auto 0;height:max(100svh,40rem)}
+ .s-hero-veil{display:block;inset:0 0 auto 0;height:max(100svh,40rem);background:linear-gradient(to bottom,rgba(255,255,255,.75),rgba(255,255,255,0) 12%,rgba(255,255,255,0) 46%,rgba(255,255,255,.88) 62%,#fff 74%)}
+ .s-hero-copy{order:1;position:relative;z-index:20;min-height:max(100svh,40rem);justify-content:flex-end;padding:7rem 1.25rem 2.5rem}
+ .s-hero-side{order:2;position:relative;z-index:20;padding:1rem 1.25rem 1rem}
+ .s-hero>.s-shell:last-child{order:3}
+ .s-hero-mark{display:none}
  .s-hcard{background:var(--stone)}
 }
-@media (min-width:640px) and (max-width:1023px){.s-hero-copy,.s-hero-side{padding-inline:2rem}.s-hero-media{margin-inline:2rem;height:28rem}}
+@media (min-width:640px) and (max-width:1023px){.s-hero-copy,.s-hero-side{padding-inline:2rem}}
 @media (min-width:1024px){
  .s-hero-mark{display:none}
  .s-hints{border-radius:1.25rem;padding:1rem 1.125rem;background:rgba(255,255,255,.82);box-shadow:0 0 0 1px rgba(230,229,226,.7);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
  .s-hints p{text-align:left}
 }
+@media (max-width:639px){.s-hero .s-ctas{gap:.5rem}.s-hero .pill>span{padding:.7rem 1.1rem;font-size:.875rem;gap:.5rem}.s-hero-copy{gap:1.25rem}}
