@@ -417,7 +417,7 @@
 .mobile-nav .menu-word-shut{display:none}.mobile-nav[open] .menu-word-shut{display:inline}.mobile-nav[open] .menu-word{display:none}
 .mobile-nav .icon{width:16px;height:16px}
 @media (max-width:419px){.mobile-nav>summary{padding:0 10px}.mobile-nav>summary span.menu-word,.mobile-nav>summary span.menu-word-shut{display:none!important}}
-.mobile-nav[open]>summary{background:transparent;color:#fff;border-color:rgba(255,255,255,.2)}
+.mobile-nav[open]>summary{background:var(--deep);color:#fff;border-color:rgba(255,255,255,.2)}
 .mobile-nav-panel{position:fixed;inset:0;top:0;z-index:60;max-height:none;height:100svh;background:var(--deep);color:#fff;border:0;box-shadow:none;padding-top:72px;animation:menu-in .45s var(--spring)}
 @keyframes menu-in{from{opacity:0}to{opacity:1}}
 .mobile-nav-links{padding:12px var(--gutter) 32px}
