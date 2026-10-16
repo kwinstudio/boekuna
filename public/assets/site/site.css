@@ -686,3 +686,5 @@ html.studio{font-size:16px}
  .s-hints p{text-align:left}
 }
 @media (max-width:639px){.s-hero .s-ctas{gap:.5rem}.s-hero .pill>span{padding:.7rem 1.1rem;font-size:.875rem;gap:.5rem}.s-hero-copy{gap:1.25rem}}
+/* Decorative button words come from CSS; the button itself is labelled "Menu openen". */
+.menu-word::before{content:"Menu"}.menu-word-shut::before{content:"Sluiten"}
