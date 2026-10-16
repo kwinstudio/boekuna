@@ -85,7 +85,7 @@
   const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
   let started=false;const waiting=[];
   const whenReady=fn=>started?fn():waiting.push(fn);
-  const start=()=>{if(started)return;started=true;waiting.splice(0).forEach(f=>f())};
+  const start=()=>{if(started)return;started=true;root.classList.add('hero-go');waiting.splice(0).forEach(f=>f())};
 
   // Loader: counts 000 to 100 once per browser session, then slides up.
   const loader=document.querySelector('[data-loader]');

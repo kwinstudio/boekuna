@@ -784,3 +784,51 @@ html.studio{font-size:16px}
 .site-footer{padding-bottom:clamp(96px,14vw,210px)}
 .studio .s-card{display:flex;flex-direction:column;gap:2rem}
 .studio .s-card-body{position:static;margin-top:auto}
+
+/* Hero (2026-10-16, FLUX direction): light, centred, soft pastel liquid washed almost to white.
+   The liquid is drawn with blurred blobs in CSS, so there is no third-party video. */
+.studio .s-flux{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100svh;border-radius:0;background:#fff;padding:6.5rem clamp(1.25rem,4vw,3.75rem) 1.75rem;text-align:center}
+.s-flux-bg{position:absolute;inset:-10%;z-index:0;overflow:hidden;filter:blur(64px) saturate(1.06);transform:scale(1.06)}
+.s-flux-bg i{position:absolute;display:block;border-radius:50%;opacity:1;will-change:transform}
+.s-flux-bg i:nth-child(1){width:55vmax;height:55vmax;left:-12%;top:-18%;background:radial-gradient(circle at 40% 40%,#9fe6ab,rgba(159,230,171,0) 70%);animation:fluxA 26s ease-in-out infinite alternate}
+.s-flux-bg i:nth-child(2){width:50vmax;height:50vmax;right:-14%;top:-8%;background:radial-gradient(circle at 50% 50%,#b5d6ff,rgba(181,214,255,0) 68%);animation:fluxB 30s ease-in-out infinite alternate}
+.s-flux-bg i:nth-child(3){width:46vmax;height:46vmax;left:8%;bottom:-26%;background:radial-gradient(circle at 50% 50%,#ffe9a8,rgba(255,233,168,0) 66%);animation:fluxC 24s ease-in-out infinite alternate}
+.s-flux-bg i:nth-child(4){width:42vmax;height:42vmax;right:2%;bottom:-22%;background:radial-gradient(circle at 50% 50%,#c2f0dc,rgba(194,240,220,0) 68%);animation:fluxD 28s ease-in-out infinite alternate}
+@keyframes fluxA{to{transform:translate(14vw,10vh) rotate(40deg) scale(1.12)}}
+@keyframes fluxB{to{transform:translate(-12vw,14vh) rotate(-30deg) scale(.92)}}
+@keyframes fluxC{to{transform:translate(10vw,-12vh) rotate(25deg) scale(1.1)}}
+@keyframes fluxD{to{transform:translate(-14vw,-8vh) rotate(-35deg) scale(1.08)}}
+.s-flux-scrim{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(to bottom,rgba(255,255,255,.85),rgba(255,255,255,0) 18%,rgba(255,255,255,0) 82%,rgba(255,255,255,.9)),radial-gradient(ellipse at 50% 44%,rgba(255,255,255,.94) 0%,rgba(255,255,255,.8) 30%,rgba(255,255,255,.38) 58%,rgba(255,255,255,.08) 100%)}
+.s-flux-scrim::after{content:"";position:absolute;left:50%;top:46%;width:640px;height:640px;max-width:120vw;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(99,212,113,.12),rgba(99,212,113,0) 62%);filter:blur(40px)}
+.s-flux-inner{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%}
+.s-flux-kicker{display:inline-flex;align-items:center;gap:.875rem;margin:0 0 1.875rem;font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.75rem;font-weight:500;text-transform:uppercase;letter-spacing:.3em;color:#5f6670}
+.s-flux-kicker::before,.s-flux-kicker::after{content:"";width:26px;height:1px;background:var(--green)}
+.studio .s-flux h1{margin:0;max-width:16ch;font-family:var(--display);font-size:clamp(3rem,7.4vw,7.5rem);font-weight:700;line-height:.92;letter-spacing:-.045em;color:#111}
+.s-flux h1 .dot{color:var(--green)}
+.s-flux-sub{margin:1.75rem 0 2.5rem;max-width:27.5rem;font-size:clamp(1.0625rem,1.4vw,1.25rem);line-height:1.5;color:#5f6670}
+.s-flux-ctas{display:flex;align-items:center;justify-content:center;gap:1.625rem}
+.s-flux-ctas .pill{border-radius:999px;box-shadow:0 10px 30px -10px rgba(29,122,56,.45),0 2px 6px rgba(17,17,17,.06);transition:transform .3s var(--spring),box-shadow .3s}
+@media (hover:hover){.s-flux-ctas .pill:hover{transform:translateY(-2px)}.s-flux-ctas .pill:hover .pill-badge{transform:translateX(3px)}}
+.s-flux-ctas .pill-badge{transition:transform .3s var(--spring)}
+.s-flux-link{display:inline-flex;align-items:center;gap:.5rem;font-weight:500;color:#111;text-decoration:none;transition:color .2s}
+.s-flux-link::after{content:"";width:.45em;height:.45em;border-top:2px solid var(--green);border-right:2px solid var(--green);transform:rotate(45deg);transition:transform .25s var(--spring)}
+.s-flux-link:hover{color:var(--green-ink)}.s-flux-link:hover::after{transform:translateX(4px) rotate(45deg)}
+.s-flux-meta{position:relative;z-index:2;list-style:none;margin:2rem 0 0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:.5rem 1rem;font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.71875rem;text-transform:uppercase;letter-spacing:.16em;color:#6f7680}
+.s-flux-meta li{display:inline-flex;align-items:center;gap:1rem}
+.s-flux-meta li+li::before{content:"";width:4px;height:4px;border-radius:50%;background:var(--green)}
+@media (max-width:719px){
+ .studio .s-flux h1{font-size:clamp(2.75rem,13vw,4rem);line-height:.98}
+ .s-flux-ctas{flex-direction:column;gap:1.25rem}
+ .s-flux-kicker{letter-spacing:.08em;font-size:.6875rem;margin-bottom:1.5rem}
+ .s-flux-kicker::before,.s-flux-kicker::after{display:none}
+ .s-flux-meta{font-size:.625rem;letter-spacing:.08em;gap:.375rem 1rem}.s-flux-meta li+li::before{display:none}
+}
+/* Staggered blur-rise entrance; waits for the loader when scripts run. */
+@keyframes blurRise{from{opacity:0;filter:blur(16px);transform:translateY(30px)}to{opacity:1;filter:blur(0);transform:translateY(0)}}
+@media (scripting:enabled){.s-flux .rise{opacity:0;animation:blurRise 1s cubic-bezier(.2,.7,.2,1) var(--rd,0ms) forwards}html.studio:not(.hero-go) .s-flux .rise{animation-play-state:paused}}
+@media (prefers-reduced-motion:reduce){.s-flux .rise{opacity:1;animation:none}.s-flux-bg i{animation:none}.s-flux-bg{filter:blur(64px) saturate(1.06)}}
+/* Photo now sits in "Waarom", with its honest caption. */
+.s-photo{margin:0;order:4}
+.s-photo img{display:block;width:100%;height:auto;aspect-ratio:3/2;object-fit:cover;border-radius:1.5rem}
+@media (min-width:1024px){.s-photo img{aspect-ratio:21/9;object-position:60% 35%;border-radius:2rem}}
+.s-photo figcaption{margin-top:.75rem;font-size:.75rem;color:rgba(17,17,17,.62)}

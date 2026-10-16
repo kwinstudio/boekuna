@@ -49,21 +49,16 @@ export default function home(){
   const loader=`<div class="loader" data-loader aria-hidden="true"><div class="loader-center"><p class="loader-brand">Boekuna<span>.</span></p><p class="loader-tag">Boekhouden zonder boekhoudtaal.</p></div><div class="loader-progress"><div class="loader-track"><div class="loader-fill" data-loader-fill></div></div><div class="loader-row"><span>Laden</span><span class="loader-num" data-loader-num>000</span></div></div></div>
 `;
   const body=`
-<section class="s-hero" id="home" aria-labelledby="hero-titel">
- <div class="s-hero-media">
-  <img class="s-hero-base" src="/assets/site/foto-ondernemer-tablet.webp" width="1600" height="1067" alt="Een lachende ondernemer zit met haar tablet aan tafel in haar zaak" fetchpriority="high" decoding="async">
+<section class="s-hero s-flux" id="home" aria-labelledby="hero-titel">
+ <div class="s-flux-bg" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+ <div class="s-flux-scrim" aria-hidden="true"></div>
+ <div class="s-flux-inner">
+  <p class="s-flux-kicker rise" style="--rd:300ms">Online boekhoudprogramma voor zzp'ers</p>
+  <h1 id="hero-titel" class="rise" style="--rd:380ms">Boekhouden zonder boekhoudtaal<span class="dot">.</span></h1>
+  <p class="s-flux-sub rise" style="--rd:490ms">Facturen, bonnetjes en btw op één plek. In gewone woorden.</p>
+  <div class="s-flux-ctas rise" style="--rd:600ms">${pill('Begin gratis',REGISTER)}<a class="s-flux-link" href="#functies">Bekijk functies</a></div>
  </div>
- <div class="s-hero-veil" aria-hidden="true"></div>
- <div class="s-hero-mark rv" style="--d:300ms" aria-hidden="true"></div>
- <div class="s-shell s-hero-grid">
-  <div class="s-hero-copy">
-   <p class="s-eyebrow rv" style="--d:200ms">Online boekhoudprogramma voor zzp'ers</p>
-   <h1 id="hero-titel" class="lines" data-delay="250" data-stagger="120"><span class="ln"><span>Boekhouden </span></span><span class="ln"><span>zonder </span></span><span class="ln"><span>boekhoudtaal.</span></span></h1>
-   <p class="s-assure rv" style="--d:650ms">${icon('check')}Gratis beginnen, geen betaalkaart nodig</p>
-   <div class="s-ctas rv" style="--d:750ms">${pill('Begin gratis',REGISTER)}${pill('Bekijk functies','#functies','outline','')}</div>
-  </div>
- </div>
- <p class="s-photo-note">Foto ter illustratie, geen klant van Boekuna</p>
+ <ul class="s-flux-meta rise" style="--rd:720ms" aria-label="Goed om te weten"><li>Gratis beginnen</li><li>Geen betaalkaart nodig</li><li>Gemaakt in Nederland</li></ul>
 </section>
 
 <section class="s-trust" aria-label="Goed om te weten">
@@ -78,6 +73,7 @@ export default function home(){
   </div>
   <div class="s-about-right">
    <h2 id="waarom-titel" class="words">${words('Je begon voor de vrijheid, niet voor de administratie.')} ${words('Boekuna doet het rekenwerk en zegt in gewone woorden wat er nog moet gebeuren.',' mu')}</h2>
+   <figure class="s-photo rv"><img src="/assets/site/foto-ondernemer-tablet.webp" width="1600" height="1067" alt="Een lachende ondernemer zit met haar tablet aan tafel in haar zaak" loading="lazy" decoding="async"><figcaption>Foto ter illustratie, geen klant van Boekuna</figcaption></figure>
    <div class="s-about-foot rv" style="--d:200ms"><div><p class="s-label">Vragen? Mail ons</p><a class="s-mail" href="mailto:${COMPANY.email}">${COMPANY.email}</a></div>${pill('Over Boekuna','/over-ons/','outline')}</div>
   </div>
  </div>
@@ -138,7 +134,6 @@ export default function home(){
     title:"Boekuna — Online boekhoudprogramma voor zzp'ers | Gratis beginnen",
     ogTitle:'Boekuna — Boekhouden zonder boekhoudtaal',
     description:"Boekuna is het eenvoudige boekhoudprogramma voor zzp'ers en kleine ondernemers. Facturen maken, bonnetjes scannen, btw-overzicht per kwartaal. Start gratis.",
-    preloadImage:'<link rel="preload" as="image" href="/assets/site/foto-ondernemer-tablet.webp" fetchpriority="high">\n',
     ld:[ORGANIZATION,{"@type":"WebSite","@id":SITE+"/#website","url":SITE+"/","name":"Boekuna","inLanguage":"nl-NL","publisher":{"@id":SITE+"/#org"}},softwareLd()],
     body
   });
