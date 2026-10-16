@@ -46,8 +46,6 @@ const stats=[
 const words=(text,cls='')=>text.split(' ').map(w=>`<span class="w${cls}">${w}</span>`).join(' ');
 
 export default function home(){
-  const loader=`<div class="loader" data-loader aria-hidden="true"><div class="loader-center"><p class="loader-brand">Boekuna<span>.</span></p><p class="loader-tag">Boekhouden zonder boekhoudtaal.</p></div><div class="loader-progress"><div class="loader-track"><div class="loader-fill" data-loader-fill></div></div><div class="loader-row"><span>Laden</span><span class="loader-num" data-loader-num>000</span></div></div></div>
-`;
   const body=`
 <section class="s-hero s-flux" id="home" aria-labelledby="hero-titel">
  <div class="s-flux-bg" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
@@ -130,7 +128,6 @@ export default function home(){
   return render({
     path:'/',
     studio:true,
-    before:loader,
     title:"Boekuna — Online boekhoudprogramma voor zzp'ers | Gratis beginnen",
     ogTitle:'Boekuna — Boekhouden zonder boekhoudtaal',
     description:"Boekuna is het eenvoudige boekhoudprogramma voor zzp'ers en kleine ondernemers. Facturen maken, bonnetjes scannen, btw-overzicht per kwartaal. Start gratis.",

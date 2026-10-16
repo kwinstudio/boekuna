@@ -853,3 +853,6 @@ html.studio{font-size:16px}
 @media (max-width:719px){.page-hero .eyebrow{letter-spacing:.1em;font-size:11px}.page-hero .eyebrow::before,.page-hero .eyebrow::after{display:none}}
 @media (scripting:enabled){.page-hero .rise{opacity:0;animation:blurRise 1s cubic-bezier(.2,.7,.2,1) var(--rd,0ms) forwards}html:not(.hero-go) .page-hero .rise{animation-play-state:paused}}
 @media (prefers-reduced-motion:reduce){.page-hero .rise{opacity:1;animation:none}}
+/* Feature blocks without a screenshot: one calm text column. */
+@media (min-width:900px){.feature.no-visual,.feature.no-visual.flip{grid-template-columns:minmax(0,1fr)}.feature.no-visual.flip .feature-copy{order:0}}
+.feature.no-visual .feature-copy{max-width:44rem}

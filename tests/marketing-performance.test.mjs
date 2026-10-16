@@ -29,8 +29,8 @@ try{
   const nojs=await browser.newPage({javaScriptEnabled:false,viewport:{width:390,height:844}});
   await nojs.goto(server.base);
   assert.equal(await nojs.locator('h1').textContent(),'Boekhouden zonder boekhoudtaal.');
-  // Without JavaScript there is no loader, every section is visible and the numbers show their real value.
-  assert.equal(await nojs.locator('[data-loader]').evaluate(el=>getComputedStyle(el).display),'none','No loader without JavaScript');
+  // There is no loading screen (Kwin 2026-10-16); every section is visible and the numbers show their real value.
+  assert.equal(await nojs.locator('[data-loader]').count(),0,'No loading screen');
   for(const sel of ['#hero-titel','#waarom-titel .w','#tarieven .pricing-card'])assert.equal(await nojs.locator(sel).first().evaluate(el=>getComputedStyle(el).opacity),'1',sel+' visible without JavaScript');
   for(const el of await nojs.locator('[data-count]').all())assert.equal(await el.textContent(),await el.getAttribute('data-count'),'Real numbers in the HTML');
   await nojs.goto(server.base+'/faq/');

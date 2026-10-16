@@ -25,7 +25,7 @@ const home=fs.readFileSync(path.join(target,'index.html'),'utf8');
 if(!home.includes('<meta name="robots" content="index,follow">'))throw new Error('Public landing page must be indexable');
 if(!/^Boekhouden/.test((home.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)||[,''])[1].replace(/<[^>]+>/g,'').trim()))throw new Error('Homepage H1 must say what Boekuna is');
 if(!home.includes('/assets/site/site.css'))throw new Error('Site styles missing');
-if(!fs.readFileSync(path.join(target,'functies','index.html'),'utf8').includes('/assets/site/app-desktop-dashboard.webp'))throw new Error('Real app screenshot missing from the features page');
+if(/\/assets\/site\/app-(desktop|mobile)-/.test(fs.readFileSync(path.join(target,'functies','index.html'),'utf8')))throw new Error('Kwin 2026-10-16: no app screenshots on the website');
 for(const p of pages){const html=fs.readFileSync(path.join(target,p,'index.html'),'utf8');if(!html.includes('<meta name="robots" content="index,follow">')||!html.includes('KVK 74542893'))throw new Error('Public page incomplete: '+p)}
 for(const f of fs.readdirSync(path.join(target,'assets/site')))if(f.endsWith('.webp')&&fs.statSync(path.join(target,'assets/site',f)).size>120000)throw new Error('Marketing image exceeds budget: '+f);
 if(!home.includes('https://app.boekuna.nl/?login=1'))throw new Error('Landing page must link to isolated app login');
