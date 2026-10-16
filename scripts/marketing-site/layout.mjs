@@ -58,7 +58,7 @@ export function faqList(items,{headingLevel=3}={}){
   return `<div class="faq">${items.map(([q,a])=>`<details><summary><span>${q}</span>${icon('chev','icon chev')}</summary><div class="faq-body">${a.startsWith('<')?a:`<p>${a}</p>`}</div></details>`).join('')}</div>`;
 }
 export function related(links){
-  return `<section class="section related" aria-labelledby="lees-verder"><div class="shell"><h2 class="h-small" id="lees-verder">Lees verder</h2><div class="related-grid">${links.map(l=>`<a class="related-card" href="${l.href}">${icon(l.icon||'arrow')}<span><strong>${l.name}</strong><small>${l.sub}</small></span>${arrow}</a>`).join('')}</div></div></section>`;
+  return `<section class="section related" aria-labelledby="lees-verder"><div class="shell"><p class="eyebrow">Lees verder</p><h2 class="h-small" id="lees-verder">Meer over Boekuna</h2><ul class="related-rows">${links.map((l,i)=>`<li><a href="${l.href}"><span class="s-row-ix">0${i+1}</span><span class="related-copy"><strong>${l.name}</strong><small>${l.sub}</small></span><span class="s-row-badge">${icon('arrow-ur')}</span></a></li>`).join('')}</ul></div></section>`;
 }
 export function limits(title,items){
   return `<aside class="limits" aria-label="${esc(title)}"><h3>${icon('info')}${title}</h3><ul>${items.map(i=>`<li>${i}</li>`).join('')}</ul></aside>`;

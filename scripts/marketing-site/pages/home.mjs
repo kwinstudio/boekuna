@@ -81,11 +81,7 @@ export default function home(){
  <div class="s-shell">
   <p class="s-eyebrow rv">Zo werkt een bonnetje</p>
   <h2 id="stappen-titel" class="s-h2 rv">Foto. Check. Klaar.</h2>
-  <ol class="s-steps">
-   <li class="rv" style="--from:translateY(28px);--d:0ms"><span class="s-band-t light" aria-hidden="true">Foto</span><p><b>1. Foto</b> Maak een foto van je bon of upload de pdf.</p></li>
-   <li class="rv" style="--from:translateY(28px);--d:120ms"><span class="s-band-t accent" aria-hidden="true">Check</span><p><b>2. Check</b> Boekuna leest bedrag, datum en btw. Jij kijkt even mee.</p></li>
-   <li class="rv" style="--from:translateY(28px);--d:240ms"><span class="s-band-t dark" aria-hidden="true">Klaar</span><p><b>3. Klaar</b> De kosten staan erin en de bon blijft 7 jaar bewaard.</p></li>
-  </ol>
+  <ol class="s-steps">${[['Foto','Maak een foto van je bon of upload de pdf.'],['Check','Boekuna leest bedrag, datum en btw. Jij kijkt even mee.'],['Klaar','De kosten staan erin en de bon blijft 7 jaar bewaard.']].map(([t,x],i)=>`<li class="rv" style="--from:translateY(24px);--d:${i*80}ms"><span class="s-row-ix">0${i+1}</span><div><h3>${t}</h3><p>${x}</p></div></li>`).join('')}</ol>
  </div>
 </section>
 
