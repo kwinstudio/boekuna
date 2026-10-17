@@ -1,6 +1,6 @@
 // Knowledge base: short, checked articles that link to the product pages they belong to.
 import fs from 'node:fs';
-import {render,ORGANIZATION,SITE,icon,arrow,sectionHead,ctaBand,pageHero,breadcrumbLd,HERO_BG,dotH1} from '../layout.mjs';
+import {render,ORGANIZATION,SITE,icon,arrow,sectionHead,pageHero,breadcrumbLd,HERO_BG,dotH1} from '../layout.mjs';
 
 const OP='https://ondernemersplein.overheid.nl/wetten-en-regels/';
 // Articles checked against belastingdienst.nl and ondernemersplein.overheid.nl.
@@ -20,7 +20,7 @@ const helpName={'/facturen/':'Facturen maken','/btw/':'Btw-overzicht','/bonnen/'
 
 export function kennisbank(){
   const crumbs=[{name:'Kennisbank',href:'/kennisbank/'}];
-  const body=`<section class="section"><div class="shell"><div class="article-cards">${articles.map(a=>`<a class="article-card" href="/kennisbank/${a.slug}/"><span class="article-meta">${icon('clock')}${a.read} minuten lezen</span><h2>${a.h1}</h2><p>${a.lead}</p><span class="text-link">Lees artikel ${arrow}</span></a>`).join('')}</div><p class="disclaimer">${icon('info')}<span>Algemene uitleg, geen fiscaal advies. Bij elk artikel staan de officiële bronnen. Twijfel je over je eigen situatie, vraag het dan na bij de Belastingdienst of een adviseur.</span></p></div></section>${ctaBand()}`;
+  const body=`<section class="section"><div class="shell"><div class="article-cards">${articles.map(a=>`<a class="article-card" href="/kennisbank/${a.slug}/"><span class="article-meta">${icon('clock')}${a.read} minuten lezen</span><h2>${a.h1}</h2><p>${a.lead}</p><span class="text-link">Lees artikel ${arrow}</span></a>`).join('')}</div><p class="disclaimer">${icon('info')}<span>Algemene uitleg, geen fiscaal advies. Bij elk artikel staan de officiële bronnen. Twijfel je over je eigen situatie, vraag het dan na bij de Belastingdienst of een adviseur.</span></p></div></section>`;
   return render({path:'/kennisbank/',title:"Kennisbank: facturen, btw en administratie voor zzp'ers | Boekuna",description:"Heldere uitleg voor zzp'ers over facturen, btw-aangifte, de KOR, zakelijke kosten en bewaarplicht. Gecontroleerd met officiële bronnen van de Belastingdienst.",ld:[ORGANIZATION,breadcrumbLd('/kennisbank/',crumbs)],body:pageHero({crumbs,eyebrow:'Kennisbank',h1:'Je administratie in gewone taal.',lead:"Korte uitleg over de regels die je als zzp'er tegenkomt. Gecontroleerd met de officiële bronnen.",actions:false})+body});
 }
 
@@ -32,6 +32,6 @@ export function article(a){
 <article class="section article"><div class="shell article-grid"><aside class="article-aside"><nav class="article-toc" aria-label="Op deze pagina"><p>Op deze pagina</p>${a.toc.map(([h,t])=>`<a href="${h}">${t}</a>`).join('')}</nav></aside><div class="article-body">${a.body}
 <aside class="article-boekuna" aria-label="Zo helpt Boekuna"><p class="article-boekuna-title">Zo helpt Boekuna</p><p>${a.help}</p><a class="text-link" href="${a.helpHref}">${helpName[a.helpHref]||'Meer over deze functie'} ${arrow}</a></aside>
 <section class="article-sources" aria-labelledby="bronnen-${a.slug}"><h2 id="bronnen-${a.slug}">Bronnen</h2>${a.sources}</section></div></div></article>
-<section class="section soft related" aria-labelledby="meer"><div class="shell"><h2 class="h-small" id="meer">Meer artikelen</h2><div class="related-grid">${more.map(m=>`<a class="related-card" href="/kennisbank/${m.slug}/">${icon('book')}<span><strong>${m.h1}</strong><small>${m.read} minuten lezen</small></span>${arrow}</a>`).join('')}</div></div></section>${ctaBand()}`;
+<section class="section soft related" aria-labelledby="meer"><div class="shell"><h2 class="h-small" id="meer">Meer artikelen</h2><div class="related-grid">${more.map(m=>`<a class="related-card" href="/kennisbank/${m.slug}/">${icon('book')}<span><strong>${m.h1}</strong><small>${m.read} minuten lezen</small></span>${arrow}</a>`).join('')}</div></div></section>`;
   return render({path,title:a.title,description:a.description,ogType:'article',ld:[ORGANIZATION,breadcrumbLd(path,crumbs),{"@type":"Article","headline":a.h1,"description":a.description,"inLanguage":"nl-NL","dateModified":a.modified,"author":{"@id":SITE+"/#org"},"publisher":{"@id":SITE+"/#org"},"mainEntityOfPage":SITE+path,"image":SITE+"/assets/site/og-boekuna.png"}],body});
 }
