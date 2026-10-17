@@ -208,7 +208,7 @@ try{
   await navigateTo('vat');
   const vat=await page.locator('#content').innerText();
   assert.match(vat,/geen officiële indiening|niet naar de Belastingdienst/i,'VAT must retain not-submitted meaning');
-  assert.match(vat,/indicati(?:e|ef)/i,'VAT must retain indicative meaning');
+  // Kwin 2026-10-17 (minder tekst): the phone drops the word "indicatie"; the not-submitted line above keeps the meaning.
   assert.equal(await page.locator('#vatPeriodQuick').count(),0,'Btw has one Filters button, no separate dropdown');
   assert.match(await page.locator('.vat-period-label').innerText(),/^Q[1-4] \d{4}$/,'The chosen quarter is shown under the title');
   await page.locator('.page-filter-btn').click();
@@ -231,8 +231,13 @@ try{
   await helpSwitch.check();
   assert.equal(await page.evaluate(()=>extraHelpVisible()),true,'Switch turns help on for the current account');
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem(userDataKey())).meta.extraHelpEnabled),true,'Extra help setting must be saved with the account');
+  // Kwin 2026-10-17 (minder tekst): the formula is computer-only; the phone leaves it out.
   await navigateTo('dashboard');
-  assert.match(await page.locator('#content').innerText(),/Omzet minus kosten/,'Explanation should be visible when enabled');
+  assert.doesNotMatch(await page.locator('#content').innerText(),/Omzet minus kosten/,'Phone leaves the profit formula out');
+  await page.setViewportSize({width:1280,height:900});
+  await navigateTo('dashboard');
+  assert.match(await page.locator('#content').innerText(),/Omzet minus kosten/,'Explanation should be visible on the computer when enabled');
+  await page.setViewportSize({width:390,height:844});
   await navigateTo('settings');
   await page.getByRole('switch',{name:'Extra uitleg tonen'}).uncheck();
   assert.equal(await page.evaluate(()=>extraHelpVisible()),false,'Compact mode is restored');

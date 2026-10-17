@@ -30,6 +30,8 @@
     {key:'health',title:'Gegevens die niet kloppen',detail:'Boekuna ziet iets in je administratie dat niet helemaal klopt.'}
   ];
 
+  // Kwin 2026-10-17 (minder tekst, alleen telefoon): shorter explanations on the phone.
+  function phone(){return typeof phoneLayout==='function'&&phoneLayout()}
   function icon(key){return '<svg class="settings-center-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+(ICONS[key]||'')+'</svg>'}
   function meta(){if(!state.meta||typeof state.meta!=='object')state.meta={};return state.meta}
   function company(){return state.company||{}}
@@ -101,7 +103,7 @@
     var c=company(),inv=design();
     var basis='<div class="form-grid">'
       +field('company.paymentDays','Standaard betaaltermijn (dagen)',Number(c.paymentDays||14),{type:'number',min:0,max:365,inputmode:'numeric'})
-      +field('company.invoicePrefix','Begin van je factuurnummer',c.invoicePrefix||(new Date().getFullYear()+'-'),{help:'Bijvoorbeeld 2026- geeft 2026-0001. Geldt voor nieuwe facturen.'})
+      +field('company.invoicePrefix','Begin van je factuurnummer',c.invoicePrefix||(new Date().getFullYear()+'-'),{help:phone()?'2026- geeft 2026-0001.':'Bijvoorbeeld 2026- geeft 2026-0001. Geldt voor nieuwe facturen.'})
       +'<div class="field"><label for="set-invoiceDesign-layout">Layout</label><select id="set-invoiceDesign-layout" name="invoiceDesign.layout">'
       +[['modern','Modern'],['classic','Klassiek'],['minimal','Minimal']].map(function(o){return '<option value="'+o[0]+'"'+(inv.layout===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')
       +'</select></div>'
@@ -171,7 +173,7 @@
 
   function notificationsPanel(){
     var rows=ATTENTION_TYPES.map(function(t){
-      return '<label class="settings-view-toggle settings-center-switch" for="set-attention-'+t.key+'"><span><strong>'+esc(t.title)+'</strong><span>'+esc(t.detail)+'</span></span><input type="checkbox" role="switch" id="set-attention-'+t.key+'" data-attention-key="'+t.key+'"'+(attentionTypeVisible(t.key)?' checked':'')+'></label>';
+      return '<label class="settings-view-toggle settings-center-switch" for="set-attention-'+t.key+'"><span><strong>'+esc(t.title)+'</strong>'+(phone()?'':'<span>'+esc(t.detail)+'</span>')+'</span><input type="checkbox" role="switch" id="set-attention-'+t.key+'" data-attention-key="'+t.key+'"'+(attentionTypeVisible(t.key)?' checked':'')+'></label>';
     }).join('');
     return block('<fieldset class="settings-center-fieldset"><legend>Laat zien onder "Nog te doen" op Overzicht</legend>'+rows+'</fieldset>')
       +'<div class="settings-center-note settings-hint">Deze meldingen zie je in de app. Het Controlecentrum laat altijd alles zien, ook wat je hier uitzet.</div>';
@@ -222,10 +224,10 @@
     var period='<div class="settings-export-period"><div class="field"><span class="settings-center-field-label" aria-hidden="true">Periode voor rapportage en journaal</span>'+(typeof reportPeriodDropdown==='function'?reportPeriodDropdown('exportPeriodPreset'):reportPeriodSelect('exportPeriodPreset'))+'</div>'
       +(preset==='custom'?periodRangeFieldsHtml('export',range.from,range.to):'<div class="help">'+esc(reportCompactDateLabel(range.from,range.to))+'</div>')+'</div>';
     var everyday=period+'<div class="settings-export-list">'
-      +line('Rapportage','Omzet, kosten, winst en btw als PDF. Je ziet hem eerst, daarna kun je hem bewaren of printen.','<button class="btn" type="button" onclick="printReport()">PDF bekijken</button>')
-      +line('Facturen','Al je facturen en creditfacturen als CSV-bestand voor Excel of je boekhouder.','<button class="btn" type="button" onclick="exportInvoicesCSV()">Downloaden</button>')
+      +line('Rapportage',phone()?'Omzet, kosten, winst en btw als PDF.':'Omzet, kosten, winst en btw als PDF. Je ziet hem eerst, daarna kun je hem bewaren of printen.','<button class="btn" type="button" onclick="printReport()">PDF bekijken</button>')
+      +line('Facturen',phone()?'Facturen voor Excel.':'Al je facturen en creditfacturen als CSV-bestand voor Excel of je boekhouder.','<button class="btn" type="button" onclick="exportInvoicesCSV()">Downloaden</button>')
       +line('Kosten','Al je kosten met btw als CSV-bestand.','<button class="btn" type="button" onclick="exportExpensesCSV()">Downloaden</button>')
-      +line('Volledige back-up','Je hele administratie in één bestand. Hiermee kun je later alles terugzetten.','<button class="btn" type="button" onclick="exportBackup()">Downloaden</button>')
+      +line('Volledige back-up',phone()?'Alles in één bestand, om terug te zetten.':'Je hele administratie in één bestand. Hiermee kun je later alles terugzetten.','<button class="btn" type="button" onclick="exportBackup()">Downloaden</button>')
       +'</div>';
     var restore='<div class="settings-export-grid">'
       +'<button type="button" class="btn" onclick="document.getElementById(\'backupFile\').click()">Back-up importeren</button>'
@@ -236,7 +238,7 @@
       +line('Journaal','Alle boekingsregels in de gekozen periode als CSV.','<button class="btn" type="button" onclick="exportJournalCSV()">Downloaden</button>')
       +line('Auditlog','Wat er wanneer is gewijzigd, als CSV.','<button class="btn" type="button" onclick="exportAuditCSV()">Downloaden</button>')
       +(hasConflictBackup()?line('Lokale herstelkopie','Een kopie die op dit apparaat is bewaard.','<button class="btn" type="button" onclick="restoreConflictDialog()">Bekijken</button>'):'')
-      +'</div><div class="help">Voor je boekhouder of een controle. Je dagelijkse administratie heeft deze niet nodig.</div>';
+      +'</div>'+(phone()?'':'<div class="help">Voor je boekhouder of een controle. Je dagelijkse administratie heeft deze niet nodig.</div>');
     return block(everyday+more('Meer exports voor je boekhouder',advanced,'settings-advanced-exports'),'Exporteren')+block(restore,'Herstellen');
   }
 

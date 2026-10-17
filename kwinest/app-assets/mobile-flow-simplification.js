@@ -187,7 +187,6 @@
     var last=latestReusableInvoice();
     if(last){
       var quick=node('div','mobile-invoice-quick');
-      quick.append(node('span','mobile-flow-eyebrow','Snelste optie · tik en je gaat door'));
       var customer=getContact(last.customerId);
       var quickButton=button('',function(){
         var draft=collectInvoiceDraft();

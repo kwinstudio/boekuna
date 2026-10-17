@@ -559,7 +559,8 @@ try{
       await page.getByRole('heading',{name:'Btw'}).waitFor();
       const vatStatus=page.locator('.product-page-head .page-status').first();
       assert.ok(await vatStatus.isVisible(),browserName+' mobile VAT financial context must remain visible');
-      assert.match(await vatStatus.innerText(),/indicatie|indicatief|ingediend/i,browserName+' mobile VAT status must preserve filing context');
+      // Kwin 2026-10-17 (minder tekst): the phone title says only the quarter; the filing context stays in the note.
+      assert.match(await page.locator('.vat-phone-note').innerText(),/verstuurt deze aangifte niet/i,browserName+' mobile VAT page must preserve filing context');
 
       await openReviewFixture(page);
       await noOverflow(page,browserName+' mobile document review');

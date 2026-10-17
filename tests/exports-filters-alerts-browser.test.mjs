@@ -158,7 +158,9 @@ try{
     await page.evaluate(()=>{setVatPeriod('all');navigate('vat')});
     assert.match(await page.locator('.product-kpis').innerText(),/Te betalen btw|Terug te vragen btw/);
     assert.doesNotMatch(await page.locator('#content').innerText(),/Waarschijnlijk/);
-    assert.match(await page.locator('.page-status').innerText(),/Indicatie/,'The page still says it is an indication');
+    // Kwin 2026-10-17 (minder tekst): on the phone the title line is only the period; the note keeps the filing context.
+    if(width<=820)assert.match(await page.locator('.vat-phone-note').innerText(),/verstuurt deze aangifte niet/,'The phone still says Boekuna does not file');
+    else assert.match(await page.locator('.page-status').innerText(),/Indicatie/,'The page still says it is an indication');
     const card=await page.locator('.vat-history-table').boundingBox(),title=await page.locator('.vat-history-table h2').boundingBox();
     assert.ok(title.x-card.x>=14&&title.y-card.y>=14,'Per jaar title has room inside its card');
     await page.screenshot({path:`${shotDir}/${browserName}-${tag}-btw.png`,fullPage:true});
