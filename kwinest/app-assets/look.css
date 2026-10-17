@@ -920,3 +920,12 @@ html[data-theme="dark"] #mainApp :is(.kpi-next,.kpi-deadline){color:var(--dk-mut
   html[data-theme="dark"] body #mainApp#mainApp #content :is(.report-duo-change.up){color:#7FDB8B}
   html[data-theme="dark"] body #mainApp#mainApp #content :is(.report-duo-change.down,.report-month-table td.is-cost){color:#F28B82}
 }
+
+/* 21. Kwin 2026-10-17 "minder keuzes" (Hick): fewer options at once on the phone; the rest is one tap further. */
+@media(max-width:820px){
+  html body #mainApp#mainApp .dashboard-attention:not(.show-all) .dashboard-attention-item.is-extra{display:none!important}
+  html body #mainApp#mainApp #content .dashboard-attention-more{align-self:center;margin:6px auto 0;padding:10px 12px;border:0;background:transparent;color:var(--calm-green)!important;font:inherit;font-size:16px;font-weight:600;text-decoration:none!important;cursor:pointer}
+  html body #modalRoot#modalRoot .choice-chips:not(.show-more) .choice-chip.is-more{display:none!important}
+  html body #modalRoot#modalRoot .choice-chip-more{border:0;background:transparent;font:inherit;cursor:pointer;color:inherit}
+  html body #modalRoot#modalRoot .choice-chip-more:focus-visible span{outline:3px solid var(--app-focus,#2E7D3A);outline-offset:2px}
+}

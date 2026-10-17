@@ -192,11 +192,13 @@ try{
   await page.evaluate(()=>navigate('dashboard'));
   const quickTrigger=page.locator('#quickNew');await quickTrigger.focus();await quickTrigger.click();
   await page.locator('#modalRoot .quick-action-modal').waitFor();
-  // Phone (Kwin 2026-10-09/10): the pages have no own main button, so Nieuw also offers what they used to (Factuur uploaden, Document uploaden, Bankbestand, Dienst).
-  assert.equal(await page.locator('#modalRoot .quick-action').count(),10,'Mobile quick-create must expose the five Release 1 actions, Rit, plus the four page actions');
+  // Phone (Kwin 2026-10-09/10): the pages have no own main button, so Nieuw also offers what they used to.
+  // Kwin 2026-10-17 (fewer choices): one Uploaden (factuur, bon or document) and one Bank (bankbestand or losse betaling).
+  assert.equal(await page.locator('#modalRoot .quick-action').count(),8,'Mobile quick-create: three tiles plus Uploaden, Bank, Relatie, Rit and Dienst');
   const quickLabels=(await page.locator('#modalRoot .quick-action').allTextContents()).map(v=>v.trim().replace(/\s+/g,' '));
   // Kwin 2026-10-10: Factuur, Bon (scannen) and Kosten (zonder bon) are the three big tiles; the rest is under Meer.
-  for(const core of ['Bon','Factuur','Kosten','Banktransactie','Relatie','Rit','Factuur uploaden','Document uploaden','Bankbestand','Dienst'])assert.ok(quickLabels.some(v=>v.includes(core)),'Mobile quick-create missing '+core);
+  for(const core of ['Bon','Factuur','Kosten','Uploaden','Bank','Relatie','Rit','Dienst'])assert.ok(quickLabels.some(v=>v.includes(core)),'Mobile quick-create missing '+core);
+  for(const merged of ['Banktransactie','Document uploaden','Factuur uploaden'])assert.ok(!quickLabels.some(v=>v.includes(merged)),'Merged into Uploaden or Bank: '+merged);
   assert.equal(await page.locator('#modalRoot .quick-tiles .quick-tile').count(),3,'Mobile quick-create shows three big daily tiles');
   const quickGeometry=await page.locator('#modalRoot .quick-action-modal').evaluate(el=>{const r=el.getBoundingClientRect(),b=getComputedStyle(el.closest('.modal-backdrop'));return {top:r.top,bottom:r.bottom,height:r.height,align:b.alignItems,radius:getComputedStyle(el).borderRadius}});
   assert.equal(quickGeometry.align,'center','Mobile quick-create backdrop must center the dialog');

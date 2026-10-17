@@ -372,7 +372,9 @@ try{
   const modalBox=await modal.boundingBox();
   assert.ok(modalBox && modalBox.width<=375.5,'Mobile filter dialog must fit viewport');
   assert.equal(await modal.evaluate(el=>getComputedStyle(el).overflowY),'auto','Mobile filter dialog must be scrollable');
-  await page.locator('#listFilterForm [name="status"]').selectOption('overdue');
+  // Kwin 2026-10-17: on the phone Status stays on the page (quick filters); the dialog asks Klant and Sorteren.
+  assert.equal(await page.locator('#listFilterForm select[name="status"]').count(),0,'Phone filter dialog leaves Status to the quick filters');
+  await page.locator('#listFilterForm [name="customer"]').selectOption({index:1});
   await page.getByRole('button',{name:'Toepassen'}).click();
   assert.equal(await filterTrigger.locator('.filter-count').innerText(),'1','Active filter count must be visible');
   assert.equal(await filterTrigger.getAttribute('aria-label'),'Filters, 1 aan','Active filter count must be announced');

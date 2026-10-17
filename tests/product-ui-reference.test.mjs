@@ -232,7 +232,7 @@ try{
       assert.match(dashboardLabels[3],/^Btw (apartzetten|Q[1-4] (apartzetten|betalen|terug))$/);
       assert.equal(await page.locator('#dashboardPeriod').inputValue(),'month');
       assert.equal(await page.locator('.dashboard-kpi-profit .metric-sub').count(),0,'Compact dashboard must hide repeated profit explanation by default');
-      assert.equal(await page.locator('.dashboard-kpi-secondary .metric-sub:not(.kpi-deadline):not(.kpi-next)').count(),0,'Compact dashboard must hide repeated KPI helper copy when no warning exists');
+      assert.equal(await page.locator('.dashboard-kpi-secondary:not(.has-attention) .metric-sub:not(.kpi-deadline):not(.kpi-next)').count(),0,'Compact dashboard must hide repeated KPI helper copy when no warning exists');
       assert.notEqual(await page.locator('.dashboard-kpi .metric-icon').first().evaluate(el=>getComputedStyle(el).display),'none','Desktop dashboard KPI icons must remain visible');
       assert.deepEqual((await page.locator('.dashboard-chart-card .chart-legend span').allTextContents()).map(v=>v.trim()),['Omzet','Kosten','Winst']);
       const dashboardChartColours=await page.evaluate(()=>({

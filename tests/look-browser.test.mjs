@@ -212,7 +212,9 @@ try{
     // Kwin 2026-10-10: three big tiles (Factuur maken, Bon scannen, Kosten zonder bon); the rest sits under Meer.
     assert.deepEqual((await page.locator('#modalRoot .quick-tiles .quick-tile').allTextContents()).map(v=>v.trim()),['Factuurmaken','Bonscannen','Kostenzonder bon']);
     assert.equal(await page.locator('#modalRoot details.quick-more').getAttribute('open'),null,'Meer starts folded');
-    for(const label of ['Factuur','Factuur uploaden','Document uploaden','Bon','Kosten','Banktransactie','Bankbestand','Relatie','Dienst'])assert.ok(nieuw.includes(label),'Nieuw offers '+label+' on a phone: '+nieuw.join(', '));
+    // Kwin 2026-10-17 (fewer choices): Factuur uploaden + Document uploaden are one Uploaden, Banktransactie + Bankbestand one Bank.
+    for(const label of ['Factuur','Bon','Kosten','Uploaden','Bank','Relatie','Dienst'])assert.ok(nieuw.includes(label),'Nieuw offers '+label+' on a phone: '+nieuw.join(', '));
+    for(const label of ['Factuur uploaden','Document uploaden','Banktransactie','Bankbestand'])assert.ok(!nieuw.includes(label),'Merged on a phone: '+label);
     await page.evaluate(()=>closeModal());
     // An active filter and "Filters wissen" look the same: one calm grey pill.
     await page.evaluate(()=>{navigate('invoices');listPageState('invoices').filters={status:'overdue'};render()});
