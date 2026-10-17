@@ -32,6 +32,7 @@ on:
       - "public/assets/personal-insights-ui.js"
       - "tests/look-browser.test.mjs"
       - "tests/trips-and-todo-links.test.mjs"
+      - "tests/fewer-choices-phone-browser.test.mjs"
       - "tests/supplier-logo-evidence-browser.test.mjs"
       - "tests/expense-category-dropdown-browser.test.mjs"
       - "tests/brandfetch-logo-browser.test.mjs"
@@ -262,6 +263,10 @@ jobs:
         run: |
           node tests/trips-and-todo-links.test.mjs
           BOOKUNA_BROWSER=webkit node tests/trips-and-todo-links.test.mjs
+      - name: Minder keuzes op de telefoon (Nieuw, filters, btw, Nog te doen) — Chromium and WebKit
+        run: |
+          node tests/fewer-choices-phone-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/fewer-choices-phone-browser.test.mjs
       - name: Supplier logo evidence (printed website, provenance, negative cases)
         run: node tests/supplier-logo-evidence-browser.test.mjs
       - name: Kosten category dropdown (phone, memory row, custom category)
