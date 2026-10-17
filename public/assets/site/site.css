@@ -593,7 +593,7 @@ html.studio{font-size:16px}
 @media (min-width:768px){.s-cards{grid-template-columns:1fr 1fr}}
 .s-card{position:relative;display:block;min-height:22rem;overflow:hidden;border-radius:2rem;background:var(--deep);padding:1.5rem;color:#fff;text-decoration:none;box-shadow:0 0 0 1px rgba(255,255,255,.05);transition:transform .45s cubic-bezier(.2,.8,.2,1)}
 @media (min-width:640px){.s-card{min-height:26rem;padding:2rem}}
-@media (hover:hover){.s-card:hover{transform:translateY(-8px) scale(1.012)}.s-card:hover .s-card-badge{transform:rotate(45deg) scale(1.08)}}
+@media (hover:hover){a.s-card:hover{transform:translateY(-8px) scale(1.012)}a.s-card:hover .s-card-badge{transform:rotate(45deg) scale(1.08)}}
 .s-card-meta{display:flex;justify-content:space-between;align-items:flex-start;font-size:.75rem;text-transform:uppercase;letter-spacing:.025em;color:rgba(255,255,255,.66)}
 .s-card-badge{width:2.75rem;height:2.75rem;display:grid;place-items:center;border-radius:9999px;background:rgba(255,255,255,.1);color:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.15);transition:transform .4s cubic-bezier(.2,.8,.2,1)}
 .s-card-mark{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;font-size:4.5rem;font-weight:700;letter-spacing:-.05em}

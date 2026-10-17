@@ -1,5 +1,5 @@
 // Product pages: one page per feature, plus the overview at /functies/.
-import {render,ORGANIZATION,FEATURES,icon,arrow,btn,startCta,shotDesktop,shotPhone,sampleNote,sectionHead,checks,faqList,related,limits,ctaBand,pageHero,breadcrumbLd} from '../layout.mjs';
+import {render,ORGANIZATION,FEATURES,icon,arrow,btn,startCta,shotDesktop,shotPhone,sampleNote,sectionHead,checks,faqList,related,limits,pageHero,breadcrumbLd} from '../layout.mjs';
 import {softwareLd} from '../pricing.mjs';
 
 const rel=(...hrefs)=>related(hrefs.map(h=>{
@@ -37,7 +37,7 @@ export function functies(){
 ${split('Op je telefoon net zo makkelijk.','Boekuna werkt in de browser op je telefoon, tablet en computer, met dezelfde gegevens. Een bon fotografeer je direct met je telefoon, een factuur maak je in drie korte stappen.',['Dezelfde administratie op al je apparaten','Bon fotograferen met de camera','Je kunt Boekuna op je beginscherm zetten'],`<div class="phones">${shotPhone('dashboard','Overzicht op de telefoon met winst, omzet en kosten')}${shotPhone('composer','Factuur maken op de telefoon: kies voor wie de factuur is')}</div>`,{eyebrow:'Mobiel'})}
 ${grid('Jouw administratie blijft van jou.',[['download','Back-up','Download in Instellingen een volledige back-up van je administratie en zet die later terug.'],['file','CSV-export','Exporteer facturen, kosten en de logboekregels als CSV voor je boekhouder of Excel.'],['receipt','Originele bestanden','Elk bonnetje en document kun je los downloaden vanuit Bonnetjes.']],{eyebrow:'Export',id:'export',soft:true})}
 <section class="section"><div class="shell">${limits('Wat Boekuna (nog) niet doet',['Geen offertes en geen terugkerende facturen.','Geen live bankkoppeling: je leest een bankbestand in.','Geen btw-aangifte indienen bij de Belastingdienst: dat doe je zelf met de bedragen uit Boekuna.','Geen toegang voor een boekhouder of meerdere gebruikers in één account.','Geen app in de App Store of Play Store: Boekuna werkt in de browser op je telefoon en computer.'])}</div></section>
-${rel('/facturen/','/slim-scannen/','/prijzen/')}${ctaBand()}`;
+${rel('/facturen/','/slim-scannen/','/prijzen/')}`;
   return render({path:'/functies/',title:"Functies van het boekhoudprogramma voor zzp'ers | Boekuna",description:'Facturen, kosten, bonnetjes scannen, bankimport, btw-overzicht en rapportages. Bekijk alle functies van Boekuna met echte schermen uit de app.',ld:[ORGANIZATION,softwareLd(),breadcrumbLd('/functies/',crumbs)],body:pageHero({crumbs,eyebrow:'Functies',h1:'Alles voor je administratie. Niets wat je niet nodig hebt.',lead:'Boekuna heeft een vast aantal duidelijke schermen. Hier zie je wat elk scherm doet, met echte schermafbeeldingen uit de app.',visual:visual('dashboard','Overzicht met winst, omzet, kosten, btw en nog te ontvangen bedragen','dashboard','Overzicht op de telefoon'),note:sampleNote()})+body});
 }
 
@@ -49,7 +49,7 @@ ${split('Alles wat er wettelijk op moet.','Een factuur moet aan regels voldoen. 
 ${grid('Delen, volgen, herinneren.',[['mail','Via je eigen e-mail','Boekuna opent je eigen e-mailapp of het deelmenu van je telefoon, met de PDF erbij. Je klant krijgt de factuur van jou. Boekuna krijgt geen toegang tot je inbox.'],['wallet','Betalingen bijhouden','Leg een betaling vast of koppel een bijschrijving van de bank. Je ziet direct wat nog openstaat.'],['clock','Herinnering sturen','Is een factuur te laat? Dan zie je dat op je overzicht en stuur je met één klik een herinnering.'],['tag','Je eigen diensten','Leg je diensten één keer vast met eenheid, prijs en btw-tarief, per uur, stuk of dagdeel.'],['file','Creditfacturen','Een fout herstel je met een creditfactuur die naar de oorspronkelijke factuur verwijst.'],['pen','Jouw stijl','Zet je logo op de factuur (PNG, JPG of WebP) en kies een opmaak: modern, klassiek of minimaal.']],{eyebrow:'Na het maken',id:'na-maken',soft:true})}
 <section class="section"><div class="shell">${limits('Goed om te weten',['Boekuna verstuurt zelf geen e-mail. Je verstuurt de factuur vanuit je eigen e-mail, zodat je klant hem van jou krijgt.','Offertes en terugkerende facturen zitten nog niet in Boekuna.'])}</div></section>
 ${faqSection([['Is factureren echt gratis?','Ja. Facturen en creditfacturen maken, klanten en betalingen bijhouden en exporteren kan gratis met Start, zonder betaalkaart.'],['Wat moet er op een factuur?','Onder meer je naam, adres, KVK-nummer en btw-id, de gegevens van je klant, een uniek factuurnummer, de datums en de btw per tarief. <a href="/kennisbank/factuur-eisen/">Lees de volledige lijst in de kennisbank</a>.'],['Hoe corrigeer ik een verstuurde factuur?','Met een creditfactuur. Die verwijst naar de oorspronkelijke factuur, zodat je administratie klopt. Boekuna maakt hem voor je klaar.']])}
-${rel('/bank/','/btw/','/prijzen/')}${ctaBand({title:'Je eerste factuur staat zo klaar.',text:'Maak gratis een account, vul je bedrijfsgegevens in en verstuur vandaag nog je eerste factuur.'})}`});
+${rel('/bank/','/btw/','/prijzen/')}`});
 }
 
 export function bonnen(){
@@ -59,7 +59,7 @@ export function bonnen(){
 ${split('Bonnetjes: je archief.','Alle bonnen en documenten staan bij elkaar. Zoek op bestand, leverancier of factuurnummer en open het origineel wanneer je wilt.',['Zien aan welke kostenpost een bon gekoppeld is','Originele bestanden downloaden','Waarschuwing als een bon al eerder is verwerkt'],shotDesktop('documents','Bonnetjes-scherm met alle bewaarde documenten en hun status'),{flip:true,eyebrow:'Bonnetjes'})}
 ${grid('Een bon toevoegen gaat snel.',[['phone','Foto met je telefoon','Gebruik de camera van je telefoon of kies een bestand. PDF, JPG, PNG, WebP en HEIC werken.'],['scan','Gegevens worden ingevuld','Boekuna leest leverancier, datum, factuurnummer, bedragen en btw uit. Jij controleert en slaat op.'],['clock','7 jaar terug te vinden','Als ondernemer moet je je administratie 7 jaar bewaren. Je bonnen blijven in Boekuna zolang je account bestaat.']],{eyebrow:'Toevoegen',id:'toevoegen',soft:true})}
 <section class="section"><div class="shell">${limits('Goed om te weten',['Kosten en bonnetjes zitten in ZZP en Pro. Met Start maak je gratis facturen.','Download een back-up of je originele bestanden voordat je je account verwijdert.'])}<p class="center-link"><a class="text-link" href="/slim-scannen/">Lees hoe slim scannen werkt ${arrow}</a></p></div></section>
-${rel('/slim-scannen/','/btw/','/bank/')}${ctaBand()}`});
+${rel('/slim-scannen/','/btw/','/bank/')}`});
 }
 
 export function slimScannen(){
@@ -71,7 +71,7 @@ ${grid('Eerlijk over herkenning.',[['eye','Jij houdt de controle','Een vage foto
 ${grid('Je bonnen blijven bij ons.',[['lock','Eigen documentserver','Bonnen worden uitgelezen op de eigen documentserver van Boekuna. Ze worden niet naar externe AI-diensten gestuurd.'],['shield','Opslag in de EU','Je documenten staan in privé-opslag in Frankfurt, Duitsland, en zijn alleen voor jou bereikbaar.'],['download','Origineel altijd beschikbaar','Het originele bestand blijft bewaard en kun je altijd openen of downloaden.']],{eyebrow:'Privacy',id:'privacy-scan'})}
 <section class="section"><div class="shell">${limits('Hoeveel documenten?',['Met ZZP worden 100 documenten per kalendermaand slim uitgelezen. Met Pro is er geen maandlimiet.','Om het systeem stabiel te houden, verwerkt Boekuna documenten in een wachtrij. Is je limiet op, dan kun je documenten nog steeds uploaden en zelf invullen.','Slim scannen zit niet in het gratis pakket Start.'])}</div></section>
 ${faqSection([['Welke bestanden kan ik uploaden?','PDF en foto’s, zoals JPG, PNG, WebP en HEIC van een iPhone.'],['Wordt een bon automatisch opgeslagen?','Nee. Boekuna vult de gegevens in, maar jij controleert en drukt zelf op opslaan.'],['Wat als de herkenning niet klopt?','Je past het veld aan voordat je opslaat. Ook na opslaan kun je een bon nog wijzigen.']])}
-${rel('/bonnen/','/btw/','/veiligheid/')}${ctaBand()}`});
+${rel('/bonnen/','/btw/','/veiligheid/')}`});
 }
 
 export function btw(){
@@ -81,7 +81,7 @@ export function btw(){
 <div class="table-scroll" tabindex="0" role="region" aria-label="Rubrieken van de btw-aangifte"><table class="plain-table"><thead><tr><th scope="col">Rubriek</th><th scope="col">Wat erin staat</th></tr></thead><tbody><tr><th scope="row">1a</th><td>Omzet en btw tegen het hoge tarief (21%)</td></tr><tr><th scope="row">1b</th><td>Omzet en btw tegen het lage tarief (9%)</td></tr><tr><th scope="row">1e</th><td>Omzet met 0% of omzet die niet bij jou belast is, zoals btw verlegd</td></tr><tr><th scope="row">3b</th><td>Leveringen en diensten aan zakelijke klanten in andere EU-landen</td></tr><tr><th scope="row">5b</th><td>Voorbelasting: de btw op je kosten die je terugvraagt</td></tr><tr><th scope="row">Totaal</th><td>Wat je moet betalen of terugkrijgt</td></tr></tbody></table></div></div></section>
 ${grid('Rekening met jouw situatie.',[['clock','Per kwartaal of jaar','Kies Q1 tot en met Q4 of het hele jaar. Je overzicht laat ook zien vóór welke datum je aangifte moet doen.'],['tag','KOR','Doe je mee aan de kleineondernemersregeling? Zet het aan in Instellingen. Nieuwe facturen krijgen dan geen btw en de juiste vermelding.'],['up','Btw verlegd en EU','Kies per factuur de juiste btw-behandeling. Boekuna zet de bedragen in de goede rubriek.']],{eyebrow:'Instellingen',id:'situatie',soft:true})}
 <section class="section"><div class="shell">${limits('Goed om te weten',['Boekuna dient je aangifte niet in. Je doet de aangifte zelf, met de bedragen uit Boekuna.','Aankopen uit het buitenland (rubriek 4a en 4b) zitten niet in het overzicht. Boekuna waarschuwt je daarvoor.','Het overzicht is zo goed als wat je invoert. Controleer je facturen en kosten voordat je aangifte doet.','Het btw-overzicht zit in ZZP en Pro.'])}<p class="center-link"><a class="text-link" href="/kennisbank/btw-aangifte-per-kwartaal/">Btw-aangifte per kwartaal: zo doe je het ${arrow}</a></p></div></section>
-${rel('/facturen/','/bonnen/','/rapportages/')}${ctaBand()}`});
+${rel('/facturen/','/bonnen/','/rapportages/')}`});
 }
 
 export function bank(){
@@ -90,7 +90,7 @@ export function bank(){
   body:`${steps('Importeren, koppelen, klaar.',[['Bankbestand downloaden','Download bij je bank een overzicht van je transacties als CSV-bestand.'],['Inlezen','Kies in Boekuna bij Bank voor Bankbestand importeren. Boekuna waarschuwt als een regel er al in staat.'],['Koppelen','Met Automatisch koppelen zoekt Boekuna de passende factuur of kostenpost. Wat overblijft, staat bij Te verwerken.']])}
 ${grid('Zeker weten dat het klopt.',[['check','Betaalde facturen','Een bijschrijving gekoppeld aan een factuur zet die factuur op betaald.'],['receipt','Kosten zonder bon','Zie welke afschrijvingen nog geen kostenpost of bon hebben.'],['pen','Handmatig toevoegen','Een losse betaling voeg je zelf toe met Transactie toevoegen.']],{eyebrow:'Waarom koppelen',id:'koppelen'})}
 <section class="section"><div class="shell">${limits('Goed om te weten',['Er is nog geen live bankkoppeling. Je leest zelf een bankbestand in.','Boekuna leest CSV-bestanden van onder meer ING, Rabobank, ABN AMRO en Knab. Het CAMT.053-formaat wordt nog niet ondersteund.','Bankimport zit in ZZP en Pro.'])}</div></section>
-${rel('/facturen/','/bonnen/','/veiligheid/')}${ctaBand()}`});
+${rel('/facturen/','/bonnen/','/veiligheid/')}`});
 }
 
 export function rapportages(){
@@ -99,5 +99,5 @@ export function rapportages(){
   body:`${grid('Wat je in een rapportage ziet.',[['chart','Omzet, kosten en winst','Per maand in een grafiek, met de winstmarge erbij: hoeveel van je omzet blijft er over.'],['file','Winst en verlies','Omzet, creditfacturen en kosten onder elkaar, zoals een accountant het ook zou laten zien.'],['wallet','Financiële positie','Wat nog binnen moet komen en welke btw je opzij zet.'],['receipt','Kosten per categorie','Zie waar je geld naartoe gaat: huur, software, reizen of inkoop.'],['clock','Elke periode','Kies week, maand, kwartaal, jaar of alles.'],['download','Bewaren als PDF','Sla het rapport op als PDF voor je eigen archief of je boekhouder.']],{eyebrow:'Inhoud',id:'inhoud'})}
 ${split('Je overzicht, elke dag.','Op het overzicht in de app zie je direct je winst en wat je vrij kunt besteden na btw en een geschatte belasting. Plus wat er nog moet gebeuren, zoals een factuur die te laat is of een betaling zonder bon.',['Begroeting met wat er vandaag speelt','Winst, omzet en kosten van de gekozen periode','Nog te doen, met één tik naar de juiste lijst'],shotDesktop('dashboard','Overzicht met winst, omzet, kosten, btw en nog te doen'),{flip:true,eyebrow:'Overzicht'})}
 <section class="section"><div class="shell">${limits('Goed om te weten',['De geschatte belasting op je overzicht is een indicatie, geen aangifte inkomstenbelasting.','Rapportages zitten in ZZP en Pro.'])}</div></section>
-${rel('/btw/','/bank/','/prijzen/')}${ctaBand()}`});
+${rel('/btw/','/bank/','/prijzen/')}`});
 }

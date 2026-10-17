@@ -72,7 +72,7 @@ export default function home(){
   <div class="s-about-right">
    <h2 id="waarom-titel" class="words">${words('Je begon voor de vrijheid, niet voor de administratie.')} ${words('Boekuna doet het rekenwerk en zegt in gewone woorden wat er nog moet gebeuren.',' mu')}</h2>
    <figure class="s-photo rv"><img src="/assets/site/foto-ondernemer-tablet.webp" width="1600" height="1067" alt="Een lachende ondernemer zit met haar tablet aan tafel in haar zaak" loading="lazy" decoding="async"><figcaption>Foto ter illustratie, geen klant van Boekuna</figcaption></figure>
-   <div class="s-about-foot rv" style="--d:200ms"><div><p class="s-label">Vragen? Mail ons</p><a class="s-mail" href="mailto:${COMPANY.email}">${COMPANY.email}</a></div>${pill('Over Boekuna','/over-ons/','outline')}</div>
+   <div class="s-about-foot rv" style="--d:200ms"><div><p class="s-label">Vragen? Mail ons</p><a class="s-mail" href="mailto:${COMPANY.email}">${COMPANY.email}</a></div></div>
   </div>
  </div>
 </section>
@@ -89,7 +89,8 @@ export default function home(){
  <div class="s-shell">
   <p class="s-eyebrow rv">Voor wie</p>
   <h2 id="wie-titel" class="s-h2 lines" data-delay="120"><span class="ln"><span>Gemaakt voor jou</span></span></h2>
-  <ul class="s-cards">${audience.map(([meta,title,text,tags],i)=>`<li class="rv" style="--from:translateY(48px);--d:${i*90}ms"><a class="s-card" href="/zzp/"><span class="s-card-meta"><span>${meta}</span><span class="s-card-badge">${icon('arrow-ur')}</span></span><span class="s-card-mark" aria-hidden="true"><b>B<span>.</span></b></span><span class="s-card-body"><span class="s-card-title">${title}</span><span class="s-card-text">${text}</span><span class="s-tags">${tags.map(t=>`<span>${t}</span>`).join('')}</span></span></a></li>`).join('')}</ul>
+  <ul class="s-cards">${audience.map(([meta,title,text,tags],i)=>`<li class="rv" style="--from:translateY(48px);--d:${i*90}ms"><div class="s-card"><span class="s-card-meta"><span>${meta}</span></span><span class="s-card-mark" aria-hidden="true"><b>B<span>.</span></b></span><span class="s-card-body"><span class="s-card-title">${title}</span><span class="s-card-text">${text}</span><span class="s-tags">${tags.map(t=>`<span>${t}</span>`).join('')}</span></span></div></li>`).join('')}</ul>
+  <p class="s-more rv"><a href="/zzp/">Meer voor zzp'ers ${icon('arrow')}</a></p>
  </div>
 </section>
 
