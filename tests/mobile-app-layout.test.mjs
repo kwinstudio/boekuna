@@ -194,7 +194,8 @@ try{
   await extraHelp.check();
   assert.equal(await page.evaluate(()=>state.meta.extraHelpEnabled),true,'Extra explanation preference must be saved in account state');
   await page.evaluate(()=>navigate('dashboard'));
-  assert.equal((await page.locator('.dashboard-kpi-profit .metric-sub').innerText()).trim(),'Omzet minus kosten','Enabled extra explanation must show the profit hint');
+  // Kwin 2026-10-17 (minder tekst): the phone leaves the profit formula out even with extra explanation on.
+  assert.equal(await page.locator('.dashboard-kpi-profit .metric-sub').count(),0,'Phone dashboard must not repeat the profit formula');
   await page.evaluate(()=>navigate('settings'));
   await page.locator('#extraHelpToggle').uncheck();
   await page.evaluate(()=>navigate('dashboard'));

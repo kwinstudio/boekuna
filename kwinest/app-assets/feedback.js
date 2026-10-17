@@ -451,7 +451,8 @@
 
   // Settings → Hulp & feedback panel.
   function panelHtml(){
-    return '<div class="settings-center-block fb-panel-give"><div class="fb-give"><div><h3>Feedback geven</h3><p>Werkt iets niet, klopt iets niet of heb je een idee? Laat het ons weten.</p></div><button type="button" class="btn primary" data-fb-open>Feedback geven</button></div></div>'
+    var phone=typeof phoneLayout==='function'&&phoneLayout();
+    return '<div class="settings-center-block fb-panel-give"><div class="fb-give"><div><h3>Feedback geven</h3>'+(phone?'':'<p>Werkt iets niet, klopt iets niet of heb je een idee? Laat het ons weten.</p>')+'</div><button type="button" class="btn primary" data-fb-open>Feedback geven</button></div></div>'
       +'<div class="settings-center-block"><h3 id="fbMyReportsTitle" tabindex="-1">Mijn meldingen</h3><div data-fb-reports aria-live="polite"><p class="fb-empty">Meldingen laden…</p></div></div>'
       +'<div class="settings-center-block"><h3>Hulp nodig</h3>'
       +'<div class="settings-center-line"><div><strong>Mail ons</strong><span>We reageren op werkdagen.</span></div><a class="btn" href="'+esc(typeof SUPPORT_MAILTO!=='undefined'?SUPPORT_MAILTO:'mailto:support@boekuna.nl')+'">'+esc(typeof SUPPORT_EMAIL!=='undefined'?SUPPORT_EMAIL:'support@boekuna.nl')+'</a></div>'
@@ -463,10 +464,11 @@
   // Privacy, terms and deletion info live on boekuna.nl; the build passes the URLs in
   // window.BOEKUNA_PUBLIC_LINKS (generated from the same map as all other public links).
   function legalLinksHtml(){
+    var phone=typeof phoneLayout==='function'&&phoneLayout();
     var links=window.BOEKUNA_PUBLIC_LINKS||{};
     var rows=[['/privacy/','Privacyverklaring','Welke gegevens Boekuna gebruikt en waarom.'],['/voorwaarden/','Algemene voorwaarden','De afspraken over het gebruik van Boekuna.'],['/account-verwijderen/','Account en gegevens verwijderen','Wat er gebeurt als je je account verwijdert.']];
     var html='';
-    rows.forEach(function(r){var href=links[r[0]]||('https://boekuna.nl'+r[0]);html+='<div class="settings-center-line"><div><strong>'+esc(r[1])+'</strong><span>'+esc(r[2])+'</span></div><a class="btn" href="'+esc(href)+'" target="_blank" rel="noopener">Openen</a></div>'});
+    rows.forEach(function(r){var href=links[r[0]]||('https://boekuna.nl'+r[0]);html+='<div class="settings-center-line"><div><strong>'+esc(r[1])+'</strong>'+(phone?'':'<span>'+esc(r[2])+'</span>')+'</div><a class="btn" href="'+esc(href)+'" target="_blank" rel="noopener">Openen</a></div>'});
     return '<div class="settings-center-block"><h3>Privacy en voorwaarden</h3>'+html+'</div>';
   }
 

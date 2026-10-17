@@ -34,6 +34,8 @@
     });
     return details;
   }
+  // Kwin 2026-10-17 (minder tekst): "3 okt" instead of "03 okt 2026 · Upload".
+  function shortDate(value) { return typeof dateShortNL === 'function' ? dateShortNL(value) : dateNL(value); }
   function metadata(node, text) {
     if (text) node.append(element('span', 'mobile-card-metadata', text));
   }
@@ -189,9 +191,9 @@
       } else if (page === 'documents') {
         var docLink = typeof listLinkedDocumentInfo === 'function' && item.linkedId ? listLinkedDocumentInfo(item) : null;
         var party = docLink && docLink.party ? String(docLink.party) : '';
-        entry = row(party || item.name || 'Document', documentAmount(item), party ? item.name || 'Document' : [dateNL(item.date), typeof documentTypeLabel === 'function' ? documentTypeLabel(item.type) : (item.type || 'Document')].join(' · '), documentStatus(item),
+        entry = row(party || item.name || 'Document', documentAmount(item), party ? item.name || 'Document' : shortDate(item.date), documentStatus(item),
           documentOpenAction(item), null, documentThumbHtml(item));
-        if (party) metadata(entry.firstChild, dateNL(item.date));
+        if (party) metadata(entry.firstChild, shortDate(item.date));
         var originalRow = Array.from(table.querySelectorAll('tbody tr')).find(function (_, index) { return items[index] === item; });
         var originalActions = originalRow && originalRow.lastElementChild;
         if (originalActions) {
