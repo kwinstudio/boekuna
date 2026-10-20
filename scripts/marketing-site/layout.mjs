@@ -63,16 +63,13 @@ export function related(links){
 export function limits(title,items){
   return `<aside class="limits" aria-label="${esc(title)}"><h3>${icon('info')}${title}</h3><ul>${items.map(i=>`<li>${i}</li>`).join('')}</ul></aside>`;
 }
-export function ctaBand({title='Probeer het zelf. Gratis.',text='Maak een account, vul je bedrijfsgegevens in en maak je eerste factuur. Je hebt geen betaalkaart nodig.',label='Begin gratis'}={}){
-  return `<section class="section cta-band" aria-labelledby="cta-titel"><div class="shell cta-inner"><div><h2 id="cta-titel">${title}</h2><p>${text}</p></div><div class="cta-actions">${startCta(label)}<a class="cta-login" href="${LOGIN}">Al een account? Inloggen</a></div></div></section>`;
-}
 // Light hero (same as the homepage): soft pastel wash behind centred type, staggered entrance.
 export const HERO_BG='<div class="s-flux-bg" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div class="s-flux-scrim" aria-hidden="true"></div>';
 export const dotH1=h=>h.replace(/\.$/,'<span class="dot">.</span>');
 const rise=(html,ms)=>html?html.replace(/^<(\w+)(\s+class=")?/,(m,tag,cls)=>cls?`<${tag} style="--rd:${ms}ms" class="rise `:`<${tag} class="rise" style="--rd:${ms}ms"`):'';
 export function pageHero({crumbs,eyebrow,h1,lead,visual='',actions,note=''}){
   if(visual&&!/<img|<svg/.test(visual))visual='';
-  return `<section class="page-hero${visual?' has-visual':''}">${HERO_BG}<div class="shell page-hero-grid"><div class="page-hero-copy">${rise(breadcrumbHtml(crumbs),0)}${eyebrow?`<p class="eyebrow rise" style="--rd:120ms">${eyebrow}</p>`:''}<h1 class="rise" style="--rd:200ms">${dotH1(h1)}</h1>${lead?`<p class="lead rise" style="--rd:310ms">${lead}</p>`:''}${actions===false?'':`<div class="actions rise" style="--rd:420ms">${actions||startCta()+btn('Bekijk de prijzen','/prijzen/','ghost')}</div>`}${note}</div>${visual?`<div class="page-hero-visual rise" style="--rd:540ms">${visual}</div>`:''}</div></section>`;
+  return `<section class="page-hero${visual?' has-visual':''}">${HERO_BG}<div class="shell page-hero-grid"><div class="page-hero-copy">${rise(breadcrumbHtml(crumbs),0)}${eyebrow?`<p class="eyebrow rise" style="--rd:120ms">${eyebrow}</p>`:''}<h1 class="rise" style="--rd:200ms">${dotH1(h1)}</h1>${lead?`<p class="lead rise" style="--rd:310ms">${lead}</p>`:''}${actions===false?'':`<div class="actions rise" style="--rd:420ms">${actions||startCta()}</div>`}${note}</div>${visual?`<div class="page-hero-visual rise" style="--rd:540ms">${visual}</div>`:''}</div></section>`;
 }
 function breadcrumbHtml(crumbs){
   if(!crumbs||!crumbs.length)return '';
@@ -81,14 +78,14 @@ function breadcrumbHtml(crumbs){
 
 const BRAND=`<span class="brand-word">Boekuna<span class="brand-dot" aria-hidden="true">.</span></span>`;
 
+// Hick's law (Kwin 2026-10-17): few menu choices; the rest lives in the footer.
 function header({over=false}={}){
-  const drop=FEATURES.map(f=>`<a href="${f.href}"><span class="nav-drop-icon">${icon(f.icon)}</span><span><strong>${f.name}</strong><small>${f.sub}</small></span></a>`).join('');
   return `<header class="site-header${over?' site-header--over':''}">
  <nav class="shell nav-shell" aria-label="Hoofdnavigatie">
   <a class="brand" href="/" aria-label="Boekuna, naar de homepagina">${BRAND}</a>
-  <div class="desktop-links"><details class="nav-drop"><summary>Functies ${icon('chev','icon chev')}</summary><div class="nav-drop-panel"><div class="nav-drop-grid">${drop}</div><a class="nav-drop-all" href="/functies/">Alle functies bekijken ${arrow}</a></div></details><a href="/hoe-het-werkt/">Hoe het werkt</a><a href="/zzp/">Voor zzp'ers</a><a href="/prijzen/">Prijzen</a><a href="/veiligheid/">Veiligheid</a><a href="/kennisbank/">Kennisbank</a></div>
+  <div class="desktop-links"><a href="/functies/">Functies</a><a href="/prijzen/">Prijzen</a><a href="/veiligheid/">Veiligheid</a></div>
   <div class="nav-actions">${over?'<p class="nav-clock" data-clock hidden><span>Lokale tijd</span><b data-clock-time></b><i aria-hidden="true">•</i><b data-clock-date></b></p>':''}<a class="nav-signin" href="${LOGIN}">Inloggen</a><a class="btn btn-primary btn-small nav-join" href="${REGISTER}">Begin gratis</a></div>
-  <details class="mobile-nav"><summary aria-label="Menu openen">${icon('menu','icon open')}${icon('close','icon shut')}<span class="menu-word" aria-hidden="true"></span><span class="menu-word-shut" aria-hidden="true"></span></summary><div class="mobile-nav-panel"><nav class="mobile-nav-links" aria-label="Mobiele navigatie"><p class="mobile-nav-label">Functies</p>${FEATURES.map(f=>`<a href="${f.href}">${icon(f.icon)}${f.name}</a>`).join('')}<a href="/functies/">${icon('arrow')}Alle functies</a><p class="mobile-nav-label">Boekuna</p><a href="/hoe-het-werkt/">Hoe het werkt</a><a href="/zzp/">Voor zzp'ers</a><a href="/prijzen/">Prijzen</a><a href="/veiligheid/">Veiligheid en privacy</a><a href="/kennisbank/">Kennisbank</a><a href="/faq/">Veelgestelde vragen</a><a href="/over-ons/">Over Boekuna</a><a href="/support/">Contact en support</a><div class="mobile-nav-footer"><a class="btn btn-ghost" href="${LOGIN}">Inloggen</a><a class="btn btn-primary" href="${REGISTER}">Begin gratis ${arrow}</a></div></nav></div></details>
+  <details class="mobile-nav"><summary aria-label="Menu openen">${icon('menu','icon open')}${icon('close','icon shut')}<span class="menu-word" aria-hidden="true"></span><span class="menu-word-shut" aria-hidden="true"></span></summary><div class="mobile-nav-panel"><nav class="mobile-nav-links" aria-label="Mobiele navigatie"><a href="/functies/">Functies</a><a href="/hoe-het-werkt/">Hoe het werkt</a><a href="/prijzen/">Prijzen</a><a href="/veiligheid/">Veiligheid en privacy</a><a href="/faq/">Veelgestelde vragen</a><a href="/support/">Contact en support</a><div class="mobile-nav-footer"><a class="btn btn-ghost" href="${LOGIN}">Inloggen</a><a class="btn btn-primary" href="${REGISTER}">Begin gratis ${arrow}</a></div></nav></div></details>
  </nav>
 </header>`;
 }
