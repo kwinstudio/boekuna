@@ -324,12 +324,35 @@
     }).join('');
   }
 
+  // Instellingen on a phone, voorstel B (Kwin 2026-10-21): a search field on top and the four things people open most.
+  // Everything else stays in the list under it ("Alle instellingen"); the search filters that list.
+  var SEARCH_WORDS={business:'bedrijf kvk iban adres btw-nummer bank naam',invoices:'factuur facturen nummer nummering betaaltermijn layout logo kleur',email:'mail e-mail bericht delen sjabloon',notifications:'meldingen nog te doen herinnering',app:'thema donker licht weergave startpagina uitleg',security:'wachtwoord tweestap mfa privacy beveiliging',data:'export backup back-up herstel csv',billing:'abonnement plan betalen prijs gebruik',help:'hulp feedback vraag',account:'account uitloggen e-mailadres',danger:'verwijderen wissen gevaar'};
+  function quickHtml(){
+    if(!window.matchMedia('(max-width:820px)').matches)return '';
+    var tile=function(key,label){return '<button type="button" class="settings-quick-tile" data-settings-open="'+key+'">'+icon(key)+'<strong>'+esc(label)+'</strong></button>'};
+    return '<div class="settings-quick"><label class="settings-search"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input type="search" placeholder="Zoek een instelling" aria-label="Zoek een instelling" oninput="boekunaSettingsSearch(this.value)"></label>'
+      +'<p class="settings-quick-label">Vaak gebruikt</p><div class="settings-quick-tiles">'+tile('business','Mijn bedrijf')+tile('invoices','Factuur-look')+tile('billing','Abonnement')+tile('app','Weergave')+'</div>'
+      +'<p class="settings-quick-label settings-all-label">Alle instellingen</p><p class="settings-search-empty" hidden>Niets gevonden. Probeer een ander woord.</p></div>';
+  }
+  window.boekunaSettingsSearch=function(q){
+    var el=root();if(!el)return;q=String(q||'').trim().toLowerCase();
+    var any=false;
+    el.querySelectorAll('.settings-center-nav [data-settings-open]').forEach(function(b){
+      var key=b.getAttribute('data-settings-open'),text=(b.textContent+' '+(SEARCH_WORDS[key]||'')).toLowerCase(),hit=!q||text.indexOf(q)>=0;
+      var li=b.closest('li');if(li)li.hidden=!hit;if(hit)any=true;
+    });
+    el.querySelectorAll('.settings-center-nav .settings-center-group').forEach(function(g){g.hidden=!!q&&!g.querySelector('li:not([hidden])')});
+    el.classList.toggle('is-searching',!!q);
+    var empty=el.querySelector('.settings-search-empty');if(empty)empty.hidden=any;
+  };
+
   function renderSettingsCenter(){
     var list=sections(),current=active||'business';
     return '<div class="settings-center" id="settingsCenter" data-view="'+(active?'detail':'index')+'">'
       +'<div class="page-head"><div><h1>Instellingen</h1></div></div>'
       +profileCardHtml()
       +setupStatusHtml()
+      +quickHtml()
       +'<div class="settings-center-layout">'
       +'<nav class="settings-center-nav" aria-label="Instellingen">'+navHtml(list,current)+'</nav>'
       +'<div class="settings-center-panels">'

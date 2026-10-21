@@ -33,7 +33,7 @@ try{
   gone(await text(phone,'expenses'),['Bekijk en controleer je zakelijke kosten'],'Kosten');
   const docs=await text(phone,'documents');
   gone(docs,['Ondersteund:','· Upload','2026 ·'],'Bonnetjes');
-  kept(docs,['7 jaar lang','Bonnetjes · 2'],'Bonnetjes');
+  /* Kwin 2026-10-21 (Bonnen A): the tiles start right under the search, without a "Bonnetjes · 2" heading. */kept(docs,['7 jaar lang'],'Bonnetjes');
   const bank=await text(phone,'bank');
   gone(bank,['Controleer bij- en afschrijvingen','1 betaling','Geen bon of kosten gevonden'],'Bank');
   kept(bank,['Geen bon gevonden','2026-0002 Studio Voorbeeld'],'Bank');
@@ -47,12 +47,11 @@ try{
   gone(await text(phone,'trips'),['Nog geen ritten dit jaar'],'Ritten');
   assert.equal(await phone.locator('#content .page-head .page-status').count(),0,'Ritten has no subtitle on the phone');
 
-  // Nieuw > Meer
+  // Nieuw (Kwin 2026-10-21, voorstel A): three tiles and plain rows, names only.
   await phone.evaluate(()=>{closeModal();navigate('dashboard');quickMenu()});
-  await phone.locator('#modalRoot details.quick-more summary').click();
   const meer=await phone.locator('#modalRoot').innerText();
   gone(meer,['Boekuna herkent het soort','km automatisch','met je prijs'],'Nieuw');
-  kept(meer,['Factuur, bon of document','Klant of leverancier'],'Nieuw');
+  kept(meer,['Uploaden','Relatie'],'Nieuw');
 
   // Kosten toevoegen
   await phone.evaluate(()=>{closeModal();newExpense()});

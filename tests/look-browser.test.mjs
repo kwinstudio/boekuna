@@ -138,7 +138,9 @@ try{
       await page.evaluate(r=>navigate(r),route);
       const tiles=await page.locator('.product-kpis .product-kpi').evaluateAll(list=>list.map(el=>({dot:el.dataset.kpiDot||'',hero:el.classList.contains('kpi-hero'),radius:getComputedStyle(el).borderTopLeftRadius,icon:getComputedStyle(el.querySelector('.product-kpi-icon')).display})));
       assert.ok(tiles.length&&tiles.every(t=>t.dot&&(t.hero?t.radius==='18px':t.radius==='16px')&&t.icon==='none'),route+' tiles share one style with a coloured dot: '+JSON.stringify(tiles));
-      if(['bank','vat','reports'].includes(route))assert.equal(tiles.filter(t=>t.hero).length,1,route+' has one light-blue block on top');
+      if(['bank','vat'].includes(route))assert.equal(tiles.filter(t=>t.hero).length,1,route+' has one light-blue block on top');
+      // Kwin 2026-10-21 (Rapportages B): the winst is the big number with a line over the year above the tiles.
+      if(route==='reports')assert.equal(await page.locator('#content .report-story .report-story-amount').count(),1,'reports opens with the winst story');
     }
     await page.evaluate(()=>navigate('invoices'));
     await page.locator('.mobile-card-list .mobile-card-row').first().waitFor();
@@ -209,17 +211,18 @@ try{
     }
     await page.locator('#quickNew').click();
     const nieuw=(await page.locator('#modalRoot .quick-action strong').allTextContents()).map(v=>v.trim());
-    // Kwin 2026-10-10: three big tiles (Factuur maken, Bon scannen, Kosten zonder bon); the rest sits under Meer.
-    assert.deepEqual((await page.locator('#modalRoot .quick-tiles .quick-tile').allTextContents()).map(v=>v.trim()),['Factuurmaken','Bonscannen','Kostenzonder bon']);
-    assert.equal(await page.locator('#modalRoot details.quick-more').getAttribute('open'),null,'Meer starts folded');
+    // Kwin 2026-10-21 (voorstel A): three big tiles, camera first; the rest are plain rows under them (no Meer fold).
+    assert.deepEqual((await page.locator('#modalRoot .quick-tiles .quick-tile').allTextContents()).map(v=>v.trim()),['Bon scannen','Factuur','Kosten']);
+    assert.equal(await page.locator('#modalRoot details.quick-more').count(),0,'No Meer fold');
     // Kwin 2026-10-17 (fewer choices): Factuur uploaden + Document uploaden are one Uploaden, Banktransactie + Bankbestand one Bank.
-    for(const label of ['Factuur','Bon','Kosten','Uploaden','Bank','Relatie','Dienst'])assert.ok(nieuw.includes(label),'Nieuw offers '+label+' on a phone: '+nieuw.join(', '));
+    for(const label of ['Factuur','Bon scannen','Kosten','Uploaden','Bank','Relatie','Dienst'])assert.ok(nieuw.includes(label),'Nieuw offers '+label+' on a phone: '+nieuw.join(', '));
     for(const label of ['Factuur uploaden','Document uploaden','Banktransactie','Bankbestand'])assert.ok(!nieuw.includes(label),'Merged on a phone: '+label);
     await page.evaluate(()=>closeModal());
-    // An active filter and "Filters wissen" look the same: one calm grey pill.
-    await page.evaluate(()=>{navigate('invoices');listPageState('invoices').filters={status:'overdue'};render()});
-    const pills=await page.locator('#content :is(.list-filter-chip,.list-clear-filters)').evaluateAll(nodes=>nodes.map(el=>{const s=getComputedStyle(el);return s.backgroundColor+'|'+s.borderRadius+'|'+s.fontSize+'|'+Math.round(el.getBoundingClientRect().height)}));
-    assert.equal(pills.length,2);assert.equal(pills[0],pills[1],'Filter chip and Filters wissen share one style: '+pills.join(' vs '));
+    // Kwin 2026-10-21 (Filters A): an active filter is a green chip with ×, and Wissen clears everything at once.
+    await page.evaluate(()=>{navigate('invoices');const c=state.contacts.find(x=>x.type==='customer');listPageState('invoices').filters={status:'overdue',customer:c.id};render()});
+    assert.equal(await page.locator('#content .list-chip-row .list-chip-on').count(),1,'The customer filter is one green chip');
+    assert.equal(await page.locator('#content .list-chip-row [data-list-clear-filters]').count(),1,'Wissen sits in the same row');
+    assert.equal(await page.locator('#content .list-chip-row .list-chip-on').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(227, 244, 230)');
     await page.evaluate(()=>{listPageState('invoices').filters={};render()});
     // Less text: no explaining sentences under "Nog te doen" or under the VAT table; the VAT legal line stays.
     await page.evaluate(()=>navigate('vat'));
