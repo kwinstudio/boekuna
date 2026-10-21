@@ -150,7 +150,8 @@ try{
   await page.locator('#modalRoot button',{hasText:'Aanpassen'}).click();
   await page.locator('#modalTitle',{hasText:'Bon aanpassen'}).waitFor();
   await nextStep();
-  await page.locator('#modalRoot [data-review-vat-mode]').click();
+  // Kwin 2026-10-21 (Bon scannen A): on the phone the btw chip 'Anders…' opens the same mixed-VAT check.
+  if(isWebkit)await page.locator('#modalRoot [data-vat-chip="other"]').click();else await page.locator('#modalRoot [data-review-vat-mode]').click();
   await page.locator('.mixed-vat-row').nth(1).waitFor();
   const rows=page.locator('.mixed-vat-row');
   await rows.nth(0).locator('[data-vat-line-rate]').selectOption('21');

@@ -929,3 +929,314 @@ html[data-theme="dark"] #mainApp :is(.kpi-next,.kpi-deadline){color:var(--dk-mut
   html body #modalRoot#modalRoot .choice-chip-more{border:0;background:transparent;font:inherit;cursor:pointer;color:inherit}
   html body #modalRoot#modalRoot .choice-chip-more:focus-visible span{outline:3px solid var(--app-focus,#2E7D3A);outline-offset:2px}
 }
+
+/* 22. Kwin 2026-10-21 "alle schermen moderner" (picks from the keuzepagina, phone only). Same white look; calmer and on one level. */
+@media(max-width:820px){
+  /* Nieuw (A): a sheet from the bottom with three big tiles and plain rows under them; no "Meer" fold. */
+  html body #modalRoot#modalRoot .modal-backdrop.quick-action-backdrop{align-items:flex-end!important;padding:0!important}
+  html body #modalRoot#modalRoot .modal.quick-action-modal{width:100%!important;max-width:none!important;max-height:88dvh!important;border:0!important;border-radius:24px 24px 0 0!important;padding-bottom:env(safe-area-inset-bottom,0px)}
+  html body #modalRoot#modalRoot .quick-action-modal .quick-tiles{margin:0 0 6px}
+  html body #modalRoot#modalRoot .quick-action-modal .quick-tiles>.quick-action.quick-tile{min-height:96px!important;border:0!important;background:#F0FAF1!important}
+  html body #modalRoot#modalRoot .quick-tile .quick-action-icon{background:transparent;width:32px;height:32px;flex-basis:32px}
+  html body #modalRoot#modalRoot .quick-tile .quick-action-icon .icon{width:28px;height:28px}
+  html body #modalRoot#modalRoot .quick-tile .quick-action-text strong{font-size:14.5px}
+  html body #modalRoot#modalRoot .quick-rows .quick-action{min-height:54px!important}
+  html body #modalRoot#modalRoot .quick-rows .quick-action-icon{width:36px;height:36px;flex:0 0 36px;border-radius:11px;background:var(--calm-soft,#F3F5F6)!important;color:var(--calm-ink)!important}
+  html body #modalRoot#modalRoot .quick-rows .quick-action-text span:empty{display:none}
+  html[data-theme="dark"] body #modalRoot#modalRoot .quick-action-modal .quick-tiles>.quick-action.quick-tile{background:#1E3324!important}
+  html[data-theme="dark"] body #modalRoot#modalRoot .quick-rows .quick-action-icon{background:#232A2E!important}
+  /* Diensten (A): price big on the right with "per uur" under it; one "+ Dienst toevoegen" row at the end. */
+  html body #mainApp#mainApp #content .phone-row-side{display:flex;flex-direction:column;align-items:flex-end;gap:1px;flex:0 0 auto}
+  html body #mainApp#mainApp #content .phone-row-side .phone-row-amount{font-size:16px;font-weight:650}
+  html body #mainApp#mainApp #content .phone-row-unit{font-size:12.5px;color:var(--calm-muted);white-space:nowrap}
+  html body #mainApp#mainApp #content .phone-row-link:has(.phone-row-side)::after{display:none}
+  html body #mainApp#mainApp #content .phone-add-row{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:8px 2px;border:0;background:transparent;color:var(--calm-green);font:inherit;font-size:16px;font-weight:600;cursor:pointer}
+  html body #mainApp#mainApp #content .phone-add-row .icon{width:20px;height:20px}
+  /* Ritten (A): km and the deductible amount side by side; each trip with a car icon, route, purpose and date. */
+  html body #mainApp#mainApp #content .trip-duo{display:grid;grid-template-columns:1fr 1fr;background:var(--app-blue-soft,#EEF4FE);border-radius:20px}
+  html body #mainApp#mainApp #content .trip-duo>div{display:flex;flex-direction:column;gap:4px;padding:16px 18px}
+  html body #mainApp#mainApp #content .trip-duo>div+div{border-left:1px solid rgba(59,130,246,.14)}
+  html body #mainApp#mainApp #content .trip-duo span{font-size:14px;font-weight:600;color:var(--calm-muted)}
+  html body #mainApp#mainApp #content .trip-duo strong{font-size:24px;letter-spacing:-.02em;color:var(--calm-ink)}
+  html body #mainApp#mainApp #content .trip-duo strong.metric-value{font-size:24px!important;line-height:1.2!important}
+  html body #mainApp#mainApp #content .trip-rate{margin:-4px 0 4px;font-size:13px;color:var(--calm-muted)}
+  html body #mainApp#mainApp #content .trip-icon{display:grid;place-items:center;width:40px;height:40px;flex:0 0 40px;border-radius:12px;background:#E9F7EC;color:#2E8B3D}
+  html body #mainApp#mainApp #content .trip-icon .icon{width:20px;height:20px}
+  html[data-theme="dark"] body #mainApp#mainApp #content .trip-duo{background:#1B2638}
+  html[data-theme="dark"] body #mainApp#mainApp #content .trip-icon{background:#1E3324;color:#7FDB8B}
+  /* Relaties (A): A-Z letters, the open amount in amber (late in red). */
+  html body #mainApp#mainApp #content .contact-letter-row td{display:block!important;text-align:left!important;padding:14px 2px 2px!important;border:0!important;font-size:13.5px;font-weight:700;color:var(--calm-green);background:transparent!important}
+  html body #mainApp#mainApp #content .mobile-contacts tr.contact-letter-row{display:block!important;border:0!important;box-shadow:none!important;background:transparent!important;min-height:0!important;padding:0!important;margin:0!important}
+  html body #mainApp#mainApp #content .phone-row-amount.is-open{color:#A86412}
+  html body #mainApp#mainApp #content .phone-row-amount.is-late{color:#C2392F}
+  html[data-theme="dark"] body #mainApp#mainApp #content .phone-row-amount.is-open{color:#F2B640}
+  html[data-theme="dark"] body #mainApp#mainApp #content .phone-row-amount.is-late{color:#F28B82}
+  /* Klantkaart (A): a full page with the name in the middle and three actions. */
+  html body #modalRoot#modalRoot .modal-backdrop.customer-page-backdrop{padding:0!important;align-items:stretch!important}
+  html body #modalRoot#modalRoot .modal.customer-page{display:flex!important;flex-direction:column!important;width:100%!important;max-width:none!important;height:100dvh!important;max-height:none!important;border-radius:0!important;border:0!important}
+  html body #modalRoot#modalRoot .customer-page .modal-head{border:0!important;padding-top:calc(10px + env(safe-area-inset-top,0px))!important}
+  html body #modalRoot#modalRoot .customer-page .modal-head h3{visibility:hidden}
+  html body #modalRoot#modalRoot .customer-page .modal-body{flex:1 1 auto!important;overflow:auto}
+  html body #modalRoot#modalRoot .customer-page .modal-foot{padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))!important}
+  html body #modalRoot#modalRoot .customer-page .customer-card-head{flex-direction:column;text-align:center;gap:8px}
+  html body #modalRoot#modalRoot .customer-page .customer-card-head .party-avatar{width:76px;height:76px;flex-basis:76px;font-size:26px}
+  html body #modalRoot#modalRoot .customer-page .customer-card-head>div>strong{display:block!important;font-size:24px;letter-spacing:-.02em}
+  html body #modalRoot#modalRoot .customer-quick{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  html body #modalRoot#modalRoot .customer-quick-action{display:flex;flex-direction:column;align-items:center;gap:4px;min-height:64px;justify-content:center;border-radius:14px;background:var(--calm-soft);color:var(--calm-green);font-size:13.5px;font-weight:600;text-decoration:none}
+  html body #modalRoot#modalRoot .customer-quick-action .icon{width:22px;height:22px}
+  html body #modalRoot#modalRoot .customer-quick-action.is-off{color:var(--calm-muted)}
+  /* Bonnen (A): three paper tiles per row with shop and amount; an amber dot when something needs a check. "Klaar" is not repeated. */
+  html body #mainApp#mainApp #content .mobile-card-list.mobile-doc-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px 10px!important}
+  html body #mainApp#mainApp #content .mobile-doc-grid>.mobile-card-row{position:relative;border:0!important;background:transparent!important;padding:0!important;gap:2px!important;box-shadow:none!important}
+  html body #mainApp#mainApp #content .mobile-doc-grid .doc-thumb{height:auto!important;aspect-ratio:3/4;margin:0 0 6px!important;border:1px solid var(--calm-line);border-radius:12px!important;background:#FAFAF7!important;color:#B9BDB4!important}
+  html body #mainApp#mainApp #content .mobile-doc-grid .doc-thumb .icon{width:24px!important;height:24px!important}
+  html body #mainApp#mainApp #content .mobile-doc-grid .mobile-card-title{font-size:14px!important;font-weight:600!important}
+  html body #mainApp#mainApp #content .mobile-doc-grid .mobile-card-metadata{display:none!important}
+  html body #mainApp#mainApp #content .mobile-doc-grid .mobile-card-side{display:flex!important;align-items:center;justify-content:flex-start!important;gap:4px}
+  html body #mainApp#mainApp #content .mobile-doc-grid .mobile-card-side .badge::before{display:none!important}
+  html body #mainApp#mainApp #content .mobile-doc-grid .mobile-card-side .mobile-card-value{font-size:13px!important;font-weight:500!important;color:var(--calm-muted)!important}
+  html body #mainApp#mainApp #content .mobile-doc-grid .mobile-card-side .badge.good{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important;border:0!important}
+  html body #mainApp#mainApp #content .mobile-doc-grid .mobile-card-side .badge:not(.good){position:absolute;top:8px;left:8px;width:10px;height:10px;min-height:0!important;padding:0!important;border:0!important;border-radius:50%!important;overflow:hidden;font-size:0!important;color:transparent!important;background:#E0A030!important;box-shadow:0 0 0 2px #fff}
+  html body #mainApp#mainApp #content .mobile-doc-grid .mobile-card-side .badge.bad{background:#E5534B!important}
+  html body #mainApp#mainApp #content .mobile-doc-grid .mobile-card-side .badge.info{background:#3B82F6!important}
+  html body #mainApp#mainApp #content .mobile-doc-grid .mobile-card-side :is(.icon-btn,.row-action-trigger){position:absolute;top:2px;right:2px;width:30px!important;height:30px!important;min-height:30px!important;background:transparent!important;color:#9AA3A9!important}
+  html body #mainApp#mainApp #content .documents-workspace .section-head{display:none!important}
+  html[data-theme="dark"] body #mainApp#mainApp #content .mobile-doc-grid .doc-thumb{background:#262B2F!important;color:#7D878E!important}
+  :is(html,html[data-theme="dark"]) body #mainApp#mainApp #content .mobile-doc-grid .doc-thumb.has-logo{background:transparent!important;border-color:transparent!important}
+  html[data-theme="dark"] body #mainApp#mainApp #content .mobile-doc-grid .mobile-card-side .badge:not(.good){box-shadow:0 0 0 2px #262B2F}
+  /* Zoeken (A): the whole screen, chips per kind, recent searches, the found word marked. */
+  html body #modalRoot#modalRoot .modal-backdrop.global-search-backdrop{padding:0!important;align-items:stretch!important}
+  html body #modalRoot#modalRoot .modal.global-search-page{width:100%!important;max-width:none!important;height:100dvh!important;max-height:none!important;border-radius:0!important;border:0!important;display:flex!important;flex-direction:column!important}
+  html body #modalRoot#modalRoot .global-search-page .modal-head{border:0!important;padding-top:calc(8px + env(safe-area-inset-top,0px))!important}
+  html body #modalRoot#modalRoot .global-search-page .modal-body{flex:1 1 auto!important;overflow:auto}
+  html body #modalRoot#modalRoot .global-search-page #globalSearchInput{width:100%;height:48px;border:0!important;border-radius:14px!important;background:var(--calm-soft)!important;padding:0 14px!important;font-size:17px!important;box-shadow:none!important}
+  html body #modalRoot#modalRoot .global-search-chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:12px -2px 6px;padding:0 2px}
+  html body #modalRoot#modalRoot .global-search-chips button{flex:none;min-height:36px;padding:0 14px;border:1px solid var(--calm-line);border-radius:999px;background:transparent;color:var(--calm-muted);font:inherit;font-size:14.5px;font-weight:500;cursor:pointer}
+  html body #modalRoot#modalRoot .global-search-chips button[aria-pressed="true"]{background:var(--calm-ink);border-color:var(--calm-ink);color:var(--calm-surface)}
+  html body #modalRoot#modalRoot .global-search-page mark{background:#FFF0B3;color:inherit;border-radius:3px}
+  html[data-theme="dark"] body #modalRoot#modalRoot .global-search-page mark{background:#5A4A12}
+  /* Filters (A): no sheet; each filter is a chip in the quick-filter row. A chosen filter turns green. */
+  html body #mainApp#mainApp #content .list-chip-row{display:flex!important;flex-wrap:nowrap!important;gap:8px!important;overflow-x:auto;scrollbar-width:none;margin-top:10px}
+  html body #mainApp#mainApp #content .list-chip-row::-webkit-scrollbar{display:none}
+  html body #mainApp#mainApp #content .list-chip-gap{flex:0 0 1px;align-self:stretch;margin:6px 2px;background:var(--calm-line)}
+  html body #mainApp#mainApp #content .list-chip-select{position:relative;flex:none;display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 30px 0 14px;border:1px solid var(--calm-line);border-radius:999px;background:transparent var(--calm-chevron) right 11px center/12px no-repeat;color:var(--calm-ink);font-size:14.5px;font-weight:500;white-space:nowrap;cursor:pointer}
+  html body #mainApp#mainApp #content .list-chip-select.is-on{border-color:transparent;background-color:#E3F4E6;color:#1F7A33;font-weight:600}
+  html body #mainApp#mainApp #content .list-chip-row .list-chip-on{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:36px!important;padding:0 12px 0 14px!important;margin:0!important;border:0!important;border-radius:999px!important;background:#E3F4E6!important;color:#1F7A33!important;font:inherit;font-size:15px!important;font-weight:600!important;white-space:nowrap}
+  html body #mainApp#mainApp #content .list-chip-row .list-chip-more,html body #mainApp#mainApp #content .list-chip-row .list-chip-clear{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:36px!important;padding:0 14px!important;margin:0!important;border:1px solid var(--calm-line)!important;border-radius:999px!important;background:transparent!important;color:inherit!important;font:inherit;font-size:15px!important;font-weight:500!important;white-space:nowrap;text-decoration:none!important}
+  html body #mainApp#mainApp #content .list-chip-row .list-chip-clear{border-color:transparent!important;color:var(--calm-muted,#6B7280)!important}
+  html[data-theme="dark"] body #mainApp#mainApp #content .list-chip-row .list-chip-on{background:#16301D!important;color:#7FDB8B!important}
+  html body #mainApp#mainApp #content .list-chip-select select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
+  html body #mainApp#mainApp #content .list-chip-select:focus-within{outline:2px solid #63D471;outline-offset:2px}
+  html body #mainApp#mainApp #content .list-toolbar-chips .list-toolbar-main{display:flex!important;width:100%}
+  html body #mainApp#mainApp #content .list-toolbar-chips .list-search-box{flex:1 1 auto!important;width:100%!important;max-width:none!important}
+  html[data-theme="dark"] body #mainApp#mainApp #content .list-chip-select.is-on{background-color:#1E3324;color:#7FDB8B}
+
+/* Bon scannen A: the review as tidy rows (step 1) and one big amount with chips (step 2). Same fields, same checks. */
+#modalRoot .two-step-review .review-wizard-head .review-kicker{display:none}
+#modalRoot .two-step-review .review-page-copy{display:none}
+#modalRoot .two-step-review [data-review-page="1"] .review-wizard-grid{display:block;border:1px solid var(--line,#E6E8EB);border-radius:16px;padding:0 14px;background:var(--surface,#fff)}
+#modalRoot .two-step-review [data-review-page="1"] .review-wizard-grid>.field{display:flex;align-items:center;gap:12px;min-height:52px;margin:0;padding:4px 0;border-bottom:1px solid var(--line,#EEF0F2)}
+#modalRoot .two-step-review [data-review-page="1"] .review-wizard-grid>.field:last-child{border-bottom:0}
+#modalRoot .two-step-review [data-review-page="1"] .review-wizard-grid>.field>label{flex:0 0 auto;margin:0;font-size:15px;font-weight:500;color:var(--muted,#6B7280)}
+#modalRoot .two-step-review [data-review-page="1"] .review-wizard-grid>.field>input,
+#modalRoot .two-step-review [data-review-page="1"] .review-wizard-grid>.field>select{flex:1 1 auto;min-width:0;border:0;background-color:transparent;box-shadow:none;text-align:right;text-align-last:right;font-size:16px;font-weight:600;padding:8px 0;min-height:44px}
+#modalRoot .two-step-review [data-review-page="1"] .review-wizard-grid>.field>select{padding-right:22px;background-position:right 2px center}
+#modalRoot .two-step-review [data-review-page="1"] .review-wizard-grid>.field>input::-webkit-date-and-time-value{text-align:right}
+#modalRoot .two-step-review [data-review-page="1"] .review-wizard-grid>.field>.help{display:none}
+#modalRoot .two-step-review [data-review-page="2"] [data-review-field="reviewAmount"]{text-align:center;background:var(--soft,#F5F6F7);border-radius:18px;padding:16px 14px 6px;margin-bottom:0}
+#modalRoot .two-step-review [data-review-page="2"] [data-review-field="reviewAmount"]>label{display:block;text-align:center;font-size:14px;font-weight:500;color:var(--muted,#6B7280);margin:0}
+#modalRoot .two-step-review #pdfImportAmount{border:0;background:transparent;box-shadow:none;text-align:center;font-size:36px;font-weight:700;letter-spacing:-.02em;min-height:56px;padding:0}
+#modalRoot .two-step-review [data-review-field="amountBasis"]{background:var(--soft,#F5F6F7);border-radius:0 0 18px 18px;margin-top:-14px;padding:0 14px 14px}
+#modalRoot .two-step-review .review-basis-choice{display:grid;grid-template-columns:1fr 1fr;gap:0;background:#E9EBEE;border-radius:12px;padding:3px}
+#modalRoot .two-step-review .review-basis-choice .review-choice{border:0;background:transparent;border-radius:10px;min-height:38px;display:flex;align-items:center;justify-content:center;padding:0}
+#modalRoot .two-step-review .review-basis-choice .review-choice:has(input:checked){background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+#modalRoot .two-step-review .review-basis-choice .review-choice strong{font-size:14px;font-weight:600;color:var(--ink,#111)}
+#modalRoot .two-step-review .review-basis-choice input{position:absolute;opacity:0;pointer-events:none}
+#modalRoot .two-step-review .has-vat-chips>select{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+#modalRoot .two-step-review .review-vat-chips{display:flex;gap:8px;flex-wrap:wrap}
+#modalRoot .two-step-review .review-vat-chips button{min-height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--line,#E2E5E9);background:#fff;font:inherit;font-size:15px;font-weight:600;color:var(--ink,#111)}
+#modalRoot .two-step-review .review-vat-chips button[aria-pressed="true"]{background:#111827;border-color:#111827;color:#fff}
+#modalRoot .two-step-review [data-review-field="vatRate"]>label{font-size:14px;font-weight:600;color:var(--muted,#6B7280)}
+#modalRoot .two-step-review .review-amount-breakdown{background:transparent;border:1px solid var(--line,#E6E8EB);border-radius:16px;padding:6px 14px}
+#modalRoot .two-step-review .review-amount-breakdown>div{padding:8px 0;font-size:15px}
+#modalRoot .two-step-review #reviewBlockingState.good{background:transparent;border:0;padding:4px 0;display:flex;align-items:center;gap:6px}
+#modalRoot .two-step-review #reviewBlockingState.good strong{font-size:15px;color:#1F7A33}
+#modalRoot .two-step-review #reviewBlockingState.good span{display:none}
+/* Only the 'Meerdere btw-tarieven' link: the Anders… chip does that. 'Toch één btw-tarief?' stays, so mixed mode can be undone. */
+#modalRoot .two-step-review [data-review-vat-mode][onclick*="(true)"]{display:none}
+#modalRoot .scan-done-modal .modal-head h3{visibility:hidden}
+#modalRoot .scan-done{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:18px 8px 6px}
+#modalRoot .scan-done-check{width:64px;height:64px;border-radius:50%;background:#E3F4E6;color:#1F7A33;display:flex;align-items:center;justify-content:center;margin-bottom:6px}
+#modalRoot .scan-done-check .icon{width:30px;height:30px;stroke-width:2.4}
+#modalRoot .scan-done strong{font-size:22px;letter-spacing:-.01em}
+#modalRoot .scan-done p{margin:0;color:var(--muted,#6B7280);font-size:15px;line-height:1.5}
+#modalRoot .scan-done p span{display:block;color:#1F7A33;font-weight:600}
+#modalRoot .scan-done-modal .modal-foot{display:grid;grid-template-columns:1fr 1.4fr;gap:10px}
+html[data-theme="dark"] #modalRoot .two-step-review .review-basis-choice{background:#2A2D31}
+html[data-theme="dark"] #modalRoot .two-step-review .review-basis-choice .review-choice:has(input:checked){background:#3A3E44}
+html[data-theme="dark"] #modalRoot .two-step-review .review-vat-chips button{background:transparent;color:inherit}
+html[data-theme="dark"] #modalRoot .two-step-review .review-vat-chips button{border-color:#3A3F44}
+html[data-theme="dark"] #modalRoot .two-step-review .review-vat-chips button[aria-pressed="true"]{background:#16301D;border-color:#16301D;color:#7FDB8B}
+
+#modalRoot .two-step-review [data-review-field="reviewAmount"] #pdfImportAmount{border:0!important;background:transparent!important;box-shadow:none!important;outline-offset:4px}
+#modalRoot .two-step-review [data-review-field="amountBasis"]{margin-top:-18px;padding-top:4px}
+body:has(#modalRoot .scan-done-modal) #toastRoot{opacity:0}
+
+#modalRoot .two-step-review [data-review-page="2"] [data-review-field="reviewAmount"],#modalRoot .two-step-review [data-review-page="2"] [data-review-field="amountBasis"]{background:#F3F5F6!important;border:0!important;box-shadow:none!important}
+#modalRoot .two-step-review [data-review-field="reviewAmount"] #pdfImportAmount{font-size:36px!important;font-weight:700!important;min-height:58px!important}
+html[data-theme="dark"] #modalRoot .two-step-review [data-review-page="2"] [data-review-field="reviewAmount"],html[data-theme="dark"] #modalRoot .two-step-review [data-review-page="2"] [data-review-field="amountBasis"]{background:#202326!important}
+
+/* Factuur bekijken A: the invoice is its own page on the phone (full screen), big amount, status, timeline. */
+html body #modalRoot#modalRoot .modal-backdrop.invoice-page-backdrop{padding:0!important;align-items:stretch!important}
+html body #modalRoot#modalRoot .modal.invoice-page{display:flex!important;flex-direction:column!important;width:100%!important;max-width:none!important;height:100dvh!important;max-height:none!important;border-radius:0!important;border:0!important}
+html body #modalRoot#modalRoot .invoice-page .modal-head{border:0!important;padding-top:calc(10px + env(safe-area-inset-top,0px))!important}
+html body #modalRoot#modalRoot .invoice-page .modal-head h3{font-size:15px!important;font-weight:600;color:var(--muted,#6B7280)}
+html body #modalRoot#modalRoot .invoice-page .modal-body{flex:1 1 auto!important;overflow:auto}
+html body #modalRoot#modalRoot .invoice-page .modal-foot{padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))!important}
+html body #modalRoot#modalRoot .invoice-page .invoice-view-summary{text-align:left;align-items:flex-start;padding:4px 2px 14px}
+html body #modalRoot#modalRoot .invoice-page .invoice-view-amount{font-size:40px;letter-spacing:-.03em}
+html body #modalRoot#modalRoot .invoice-page .invoice-view-status{justify-content:flex-start}
+
+/* Bankregel A: one sheet per payment, best match on top, other ways under it, delete apart. */
+#modalRoot .bank-sheet-backdrop{align-items:flex-end!important;padding:0!important}
+#modalRoot .modal.bank-sheet-modal{width:100%!important;max-width:none!important;border-radius:24px 24px 0 0!important;padding-bottom:env(safe-area-inset-bottom,0px)}
+#modalRoot .bank-sheet-date{margin:-6px 0 12px;color:var(--muted,#6B7280);font-size:14px}
+#modalRoot .bank-sheet-label{margin:14px 0 8px;font-size:13px;font-weight:600;color:var(--muted,#6B7280)}
+#modalRoot .bank-sheet-match{display:flex;align-items:center;gap:12px;padding:14px;border:1.5px solid #63D471;border-radius:16px;background:#F3FBF4;margin-bottom:10px}
+#modalRoot .bank-sheet-match strong{font-size:15px;line-height:1.35}
+#modalRoot .bank-sheet-confirm{width:100%;min-height:50px}
+#modalRoot .bank-sheet-rows{border:1px solid var(--line,#E6E8EB);border-radius:16px;overflow:hidden}
+#modalRoot .bank-sheet-row{display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:0 14px;border:0;border-bottom:1px solid var(--line,#EEF0F2);background:transparent;font:inherit;font-size:15px;font-weight:600;color:inherit;text-align:left}
+#modalRoot .bank-sheet-row:last-child{border-bottom:0}
+#modalRoot .bank-sheet-row>span:nth-child(2){flex:1}
+#modalRoot .bank-sheet-icon{width:34px;height:34px;flex:0 0 34px;border-radius:10px;background:#F1F3F5;display:flex;align-items:center;justify-content:center}
+#modalRoot .bank-sheet-icon.is-good{background:#E3F4E6;color:#1F7A33;border-radius:50%}
+#modalRoot .bank-sheet-icon .icon{width:18px;height:18px}
+#modalRoot .bank-sheet-chev{width:16px;height:16px;color:var(--muted,#9CA3AF)}
+#modalRoot .bank-sheet-delete{display:block;margin:18px auto 4px;color:#C2392F!important;font-weight:600;text-decoration:none}
+html[data-theme="dark"] #modalRoot .bank-sheet-match{background:#16301D}
+html[data-theme="dark"] #modalRoot .bank-sheet-icon{background:#2A2D31}
+
+#modalRoot .bank-sheet .bank-sheet-confirm{display:flex;justify-content:center;align-items:center}
+#modalRoot .bank-sheet button.link-btn.bank-sheet-delete{color:#C2392F!important;text-decoration:none!important}
+
+/* Kosten zonder bon B: Waarvoor as chips; from a bank payment the payment is a card and only btw + Waarvoor are asked. */
+#modalRoot #expenseForm .has-category-chips>select{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+#modalRoot #expenseForm .expense-category-chips{display:flex;flex-wrap:wrap;gap:8px}
+#modalRoot #expenseForm .expense-category-chips button{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line,#E2E5E9);background:#fff;font:inherit;font-size:15px;font-weight:600;color:var(--ink,#111)}
+#modalRoot #expenseForm .expense-category-chips button[aria-pressed="true"]{background:#111827;border-color:#111827;color:#fff}
+#modalRoot #expenseForm.from-bank .expense-amount-field,#modalRoot #expenseForm.from-bank .expense-date-field,#modalRoot #expenseForm.from-bank .field:has(>input[name="vendor"]){position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);opacity:0}
+#modalRoot #expenseForm .expense-bank-card{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:18px 14px 12px;border-radius:18px;background:#F3F5F6}
+#modalRoot #expenseForm .expense-bank-avatar{width:48px;height:48px;border-radius:14px;background:#111827;color:#fff;font-weight:700;font-size:20px;display:flex;align-items:center;justify-content:center;margin-bottom:6px}
+#modalRoot #expenseForm .expense-bank-meta{font-size:13px;color:var(--muted,#6B7280)}
+#modalRoot #expenseForm .expense-bank-amount{font-size:32px;letter-spacing:-.02em}
+#modalRoot #expenseForm .expense-bank-name{font-size:16px}
+#modalRoot #expenseForm .expense-bank-edit{margin-top:4px;font-size:14px}
+html[data-theme="dark"] #modalRoot #expenseForm .expense-bank-card{background:#202326}
+html[data-theme="dark"] #modalRoot #expenseForm .expense-category-chips button{background:transparent;color:inherit}
+html[data-theme="dark"] #modalRoot #expenseForm .expense-category-chips button{border-color:#3A3F44}
+html[data-theme="dark"] #modalRoot #expenseForm .expense-category-chips button[aria-pressed="true"]{background:#16301D;border-color:#16301D;color:#7FDB8B}
+
+/* Factuur maken A: services as small chips, the total stays in view at the bottom, step 3 looks like the invoice itself. */
+html body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] .invoice-service-picker>.help{display:none}
+html body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] .service-chips{display:flex!important;flex-wrap:nowrap!important;gap:8px!important;overflow-x:auto;scrollbar-width:none;margin:0 -16px!important;padding:0 16px 2px!important}
+html body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] .service-chips::-webkit-scrollbar{display:none}
+html body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] .service-chip{flex:0 0 auto!important;display:inline-flex!important;flex-direction:row!important;align-items:center!important;gap:6px!important;min-height:40px!important;height:40px!important;padding:0 14px!important;border-radius:999px!important;line-height:1!important;border:1px solid var(--line,#E2E5E9)!important;background:#fff!important;white-space:nowrap}
+html body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] .service-chip strong{font-size:15px!important}
+html body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] .service-chip strong::before{content:"+ ";color:#2F7D3B}
+html body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] .service-chip small{font-size:13px!important;color:var(--muted,#6B7280)}
+html body #modalRoot#modalRoot .mobile-invoice-step[data-step="2"] .invoice-editor-summary{position:sticky;bottom:64px;z-index:2;background:var(--surface,#fff)}
+html body #modalRoot#modalRoot .mobile-invoice-step[data-step="2"] .mobile-invoice-nav{position:sticky;bottom:0;z-index:2;background:var(--surface,#fff);padding-bottom:6px}
+html body #modalRoot#modalRoot .mobile-invoice-summary{position:relative;background:#fff!important;border:1px solid var(--line,#E6E8EB)!important;border-radius:6px!important;padding-top:44px!important}
+html body #modalRoot#modalRoot .mobile-invoice-summary::before{content:"FACTUUR";position:absolute;top:16px;left:16px;font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--muted,#6B7280)}
+html body #modalRoot#modalRoot .mobile-invoice-summary::after{content:"";position:absolute;top:22px;right:16px;width:44px;height:4px;border-radius:2px;background:#63D471}
+html body #modalRoot#modalRoot .mobile-invoice-summary-top strong:last-child{font-size:22px}
+html[data-theme="dark"] body #modalRoot#modalRoot .mobile-invoice-summary,html[data-theme="dark"] body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] .service-chip{background:#1B1D20!important}
+html[data-theme="dark"] body #modalRoot#modalRoot .mobile-invoice-step[data-step="2"] .invoice-editor-summary,html[data-theme="dark"] body #modalRoot#modalRoot .mobile-invoice-step[data-step="2"] .mobile-invoice-nav{background:#1B1D20}
+
+/* Rapportages B: one line that adds up the winst, the period before dotted, three short facts. */
+#mainApp #content .report-story{margin:4px 0 16px;min-width:0;max-width:100%;overflow:hidden}
+#mainApp #content .report-story-amount{display:block;font-size:40px;font-weight:700;letter-spacing:-.03em;line-height:1.1}
+#mainApp #content .report-story-label{margin:2px 0 12px;color:var(--muted,#6B7280);font-size:15px}
+#mainApp #content .report-story-line{display:block;width:100%;height:130px;overflow:visible}
+#mainApp #content .report-story-legend{display:flex;gap:16px;margin:8px 0 14px;font-size:13px;color:var(--muted,#6B7280)}
+#mainApp #content .report-story-legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle;background:#3B82F6}
+#mainApp #content .report-story-legend i.is-before{background:repeating-linear-gradient(90deg,#9AA6B2 0 4px,transparent 4px 7px)}
+#mainApp #content .report-story-facts{border:1px solid var(--line,#E6E8EB);border-radius:16px;padding:2px 14px}
+#mainApp #content .report-story-facts>div{display:flex;align-items:center;gap:12px;min-height:52px;border-bottom:1px solid var(--line,#EEF0F2);font-size:15px;line-height:1.35}
+#mainApp #content .report-story-facts>div:last-child{border-bottom:0}
+#mainApp #content .report-story-icon{width:32px;height:32px;flex:0 0 32px;border-radius:10px;background:#EEF4FF;color:#3B82F6;display:flex;align-items:center;justify-content:center}
+#mainApp #content .report-story-icon .icon{width:17px;height:17px}
+html[data-theme="dark"] #mainApp #content .report-story-icon{background:#1B2740}
+
+/* Btw B: the return one rubriek per screen, with a big Kopieer per amount. */
+#mainApp #content .vat-return-card .vat-step-start{display:flex;justify-content:center;align-items:center;width:calc(100% - 40px);min-height:50px;margin:14px 20px 4px}
+html body #modalRoot#modalRoot .modal-backdrop:has(.vat-step-modal){padding:0!important;align-items:stretch!important}
+html body #modalRoot#modalRoot .modal.vat-step-modal{display:flex!important;flex-direction:column!important;width:100%!important;max-width:none!important;height:100dvh!important;max-height:none!important;border-radius:0!important;border:0!important}
+html body #modalRoot#modalRoot .vat-step-modal .modal-head{border:0!important;padding-top:calc(10px + env(safe-area-inset-top,0px))!important}
+html body #modalRoot#modalRoot .vat-step-modal .modal-body{flex:1 1 auto!important;overflow:auto}
+html body #modalRoot#modalRoot .vat-step-modal .modal-foot{padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))!important}
+#modalRoot .vat-step-kicker{margin:4px 0 6px;font-size:14px;color:var(--muted,#6B7280)}
+#modalRoot .vat-step-title{margin:0 0 20px;font-size:24px;line-height:1.25;letter-spacing:-.02em}
+#modalRoot .vat-step-copy{display:flex;align-items:center;gap:12px;padding:16px;border:1px solid var(--line,#E6E8EB);border-radius:16px;margin-bottom:10px}
+#modalRoot .vat-step-copy>span{flex:0 0 64px;color:var(--muted,#6B7280);font-size:15px}
+#modalRoot .vat-step-copy>strong{flex:1;font-size:26px;letter-spacing:-.02em}
+#modalRoot .vat-step-copy-btn{min-height:40px;padding:0 16px}
+#modalRoot .vat-step-copy-btn.is-copied{background:#E3F4E6!important;color:#1F7A33!important;border-color:#E3F4E6!important}
+#modalRoot .vat-step-note{margin:12px 0 0;font-size:14px;color:var(--muted,#6B7280);line-height:1.45}
+#modalRoot .vat-step-total{display:block;font-size:40px;letter-spacing:-.03em;margin:-8px 0 8px}
+#modalRoot .vat-step-dots{display:flex;justify-content:center;gap:6px;margin-top:24px}
+#modalRoot .vat-step-dots i{width:7px;height:7px;border-radius:50%;background:#D9DDE2}
+#modalRoot .vat-step-dots i.on{background:#7C5CFA}
+
+/* Instellingen B: search + "Vaak gebruikt" tiles on the start view; the list stays under "Alle instellingen". */
+#mainApp #content .settings-center[data-view="detail"] .settings-quick{display:none}
+#mainApp #content .settings-search{display:flex;align-items:center;gap:10px;min-height:48px;padding:0 14px;border-radius:14px;background:#F1F3F5;margin:4px 0 16px}
+#mainApp #content .settings-search .icon{width:18px;height:18px;color:var(--muted,#6B7280)}
+#mainApp #content .settings-search input{flex:1;min-width:0;border:0!important;background:transparent!important;box-shadow:none!important;font:inherit;font-size:16px;padding:0;min-height:44px}
+#mainApp #content .settings-quick-label{margin:0 4px 8px;font-size:14px;font-weight:600;color:var(--muted,#6B7280)}
+#mainApp #content .settings-quick-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+#mainApp #content .settings-quick-tile{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-height:88px;padding:14px;border:1px solid var(--line,#E6E8EB);border-radius:16px;background:var(--surface,#fff);font:inherit;color:inherit;text-align:left}
+#mainApp #content .settings-quick-tile .settings-center-icon{width:22px;height:22px;color:#2F7D3B}
+#mainApp #content .settings-quick-tile strong{font-size:15px}
+#mainApp #content .settings-center.is-searching .settings-quick-tiles,#mainApp #content .settings-center.is-searching .settings-quick-label:not(.settings-all-label),#mainApp #content .settings-center.is-searching .settings-profile-card,#mainApp #content .settings-center.is-searching #settingsSetupStatus{display:none}
+#mainApp #content .settings-search-empty{margin:4px 4px 12px;color:var(--muted,#6B7280)}
+html[data-theme="dark"] #mainApp #content .settings-search{background:#202326}
+#mainApp #content .settings-quick-label.settings-all-label{font-size:18px;font-weight:700;color:var(--ink,#111);margin-top:4px}
+
+/* Inloggen A (twijfel-ronde, Kwin 2026-10-21): wordmark and the promise on top, calm fields, one green button. */
+#authRoot .auth-phone-brand{display:block;margin:0 0 28px}
+#authRoot .auth-wordmark{display:block;font-size:30px;font-weight:800;letter-spacing:-.03em;color:var(--ink,#111)}
+#authRoot .auth-wordmark span{color:#63D471}
+#authRoot .auth-phone-brand p{margin:6px 0 0!important;font-size:17px!important;color:var(--muted,#6B7280)!important}
+#authRoot .auth-form .auth-phone-brand~.eyebrow,#authRoot .auth-form .auth-phone-brand~h2+p{display:none}
+#authRoot .auth-form .auth-phone-brand~h2{font-size:26px!important;margin-bottom:18px!important}
+#authRoot .auth-form .auth-field input{border:1px solid #E3E6E9!important;background:#F6F7F8!important;box-shadow:none!important;border-radius:14px!important}
+#authRoot .auth-form .auth-field input:focus{background:#fff!important;border-color:#63D471!important}
+html[data-theme="dark"] #authRoot .auth-wordmark{color:#F3F4F6}
+html[data-theme="dark"] #authRoot .auth-form .auth-field input{background:#202326!important;border-color:#33383D!important}
+
+/* 22: rit B - vaste routes bovenaan, postcodes eerst */
+#tripForm{display:flex;flex-direction:column;gap:12px}
+#tripForm>*{width:100%;margin:0}
+#tripForm .trip-retour label,#tripForm .trip-save-route label{min-height:36px!important}
+#tripForm .trip-routes{order:0}
+#tripForm .trip-from{order:1}
+#tripForm .trip-to{order:2}
+#tripForm .trip-km{order:3}
+#tripForm .trip-retour{order:4}
+#tripForm .trip-save-route{order:5}
+#tripForm .trip-date{order:6}
+#tripForm .trip-purpose{order:7}
+#tripForm .trip-km input{font-size:28px;font-weight:800;letter-spacing:-.01em;min-height:56px}
+.trip-route-chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.trip-route-chips::-webkit-scrollbar{display:none}
+.trip-route-chip{flex:0 0 auto;border:1px solid #E3E6E9;background:#fff;color:#111827;border-radius:14px;padding:9px 14px;font:inherit;font-size:14px;min-height:44px;white-space:nowrap;display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left}
+.trip-route-chip strong{font-weight:700}
+.trip-route-chip span{color:#6B7280;font-size:12px}
+.trip-route-chip:active{background:#EAF7EC;border-color:#63D471}
+html[data-theme="dark"] .trip-route-chip{background:#1A1D21;border-color:#2B3036;color:#F3F4F6}
+html[data-theme="dark"] .trip-route-chip:active{background:#16301D;color:#7FDB8B}
+}
+/* Only the phone shows the login wordmark block (section 22). */
+@media(min-width:821px){#authRoot .auth-phone-brand{display:none}}

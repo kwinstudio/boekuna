@@ -310,3 +310,112 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
+
+/* 22. Bon scannen, voorstel A (Kwin 2026-10-21), phone only. The review keeps its two steps and checks;
+   on step 2 the btw select gets four chips (21% / 9% / Geen / Anders…) that drive that same select,
+   and after a bon is saved a short "Bon opgeslagen" screen offers "Nog een scannen" or "Klaar". */
+(function(){
+  'use strict';
+  var phone=matchMedia('(max-width:820px)');
+  function chips(root){
+    var select=root.querySelector('#pdfImportVatRate');
+    if(!select||!phone.matches)return;
+    var field=select.closest('.field');if(!field)return;
+    var row=field.querySelector('.review-vat-chips');
+    if(!row){
+      row=document.createElement('div');row.className='review-vat-chips';row.setAttribute('role','group');row.setAttribute('aria-label','Btw');
+      [['21','21%'],['9','9%'],['0','Geen'],['other','Anders…']].forEach(function(c){
+        var b=document.createElement('button');b.type='button';b.dataset.vatChip=c[0];b.textContent=c[1];row.appendChild(b);
+      });
+      row.addEventListener('click',function(e){
+        var b=e.target.closest('button[data-vat-chip]');if(!b)return;
+        var sel=field.querySelector('#pdfImportVatRate');if(!sel)return;
+        if(b.dataset.vatChip==='other'){
+          var mode=document.querySelector('#modalRoot [data-review-vat-mode]');if(mode)mode.click();return;
+        }
+        sel.value=b.dataset.vatChip;
+        sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));
+        mark(field);
+      });
+      select.after(row);field.classList.add('has-vat-chips');
+      select.addEventListener('change',function(){mark(field)});
+    }
+    mark(field);
+  }
+  function mark(field){
+    var sel=field.querySelector('#pdfImportVatRate');if(!sel)return;
+    field.querySelectorAll('[data-vat-chip]').forEach(function(b){
+      var v=b.dataset.vatChip,on=v===sel.value||(v==='other'&&sel.value!==''&&['21','9','0'].indexOf(sel.value)<0);
+      b.setAttribute('aria-pressed',on?'true':'false');
+    });
+  }
+  function doneSheet(doc){
+    if(typeof modal!=='function')return;
+    var expense=doc.linkedType==='expense'?(state.expenses||[]).find(function(x){return x.id===doc.linkedId}):null;
+    var invoice=doc.linkedType==='invoice'?(state.invoices||[]).find(function(x){return x.id===doc.linkedId}):null;
+    var s=doc.reviewSnapshot||{},what=expense?'Bon':invoice?'Factuur':'Document';
+    var bits=[s.party||doc.name||'',s.gross!=null&&typeof money==='function'?money(Number(s.gross)):'',expense&&expense.category||''].filter(Boolean).map(esc).join(' · ');
+    var back=expense&&s.vatAmount>0&&typeof money==='function'?'<span>'+esc(money(Number(s.vatAmount)))+' btw terug</span>':'';
+    modal(what+' opgeslagen','<div class="scan-done"><span class="scan-done-check" aria-hidden="true"><svg class="icon"><use href="#i-check"/></svg></span><strong>'+what+' opgeslagen</strong><p>'+bits+back+'</p></div>',
+      '<button class="btn" onclick="closeModal()">Klaar</button><button class="btn primary" onclick="closeModal();openUploadSourcePicker(\'auto\')">Nog een scannen</button>');
+    var dialog=document.querySelector('#modalRoot .modal');if(dialog)dialog.classList.add('scan-done-modal');
+  }
+  // Factuur bekijken A: on a phone the invoice opens as a full page instead of a floating window.
+  function invoicePage(root){
+    if(!phone.matches)return;
+    var dialog=root.querySelector('.modal');
+    if(!dialog||dialog.classList.contains('invoice-page')||!dialog.querySelector(':scope>.modal-body>.invoice-view-summary'))return;
+    dialog.classList.add('invoice-page');var bd=dialog.closest('.modal-backdrop');if(bd)bd.classList.add('invoice-page-backdrop');
+  }
+  // Kosten zonder bon, voorstel B: "Waarvoor" as chips; started from a bank payment, the payment itself stands
+  // on top as a card (amount, shop and date already known) and you only pick btw and Waarvoor. "Aanpassen" shows the fields again.
+  var SHORT={Software:'Software',Reiskosten:'Reizen',Marketing:'Reclame',Representatie:'Eten en drinken',Huisvesting:'Huur en energie'};
+  function expense(root){
+    var form=root.querySelector('#expenseForm');
+    if(!form||!phone.matches||form.dataset.lookDone)return;
+    form.dataset.lookDone='1';
+    var select=form.querySelector('#expenseCategory'),field=select&&select.closest('.field');
+    if(field){
+      var row=document.createElement('div');row.className='expense-category-chips';row.setAttribute('role','group');row.setAttribute('aria-label','Waarvoor?');
+      Array.from(select.options).forEach(function(o){
+        var b=document.createElement('button');b.type='button';b.dataset.category=o.value;b.textContent=SHORT[o.value]||o.textContent;row.appendChild(b);
+      });
+      var markCat=function(){row.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.category===select.value?'true':'false')})};
+      row.addEventListener('click',function(e){var b=e.target.closest('button[data-category]');if(!b)return;select.value=b.dataset.category;select.dispatchEvent(new Event('change',{bubbles:true}));markCat()});
+      select.addEventListener('change',markCat);select.after(row);field.classList.add('has-category-chips');markCat();
+    }
+    if(!form.dataset.bankTransaction)return;
+    var t=(state.transactions||[]).find(function(x){return x.id===form.dataset.bankTransaction});if(!t)return;
+    var name=String(form.elements.vendor&&form.elements.vendor.value||t.description||'Betaling');
+    var card=document.createElement('div');card.className='expense-bank-card';
+    card.innerHTML='<span class="expense-bank-avatar" aria-hidden="true">'+esc(name.trim().charAt(0).toUpperCase())+'</span><span class="expense-bank-meta">Van je bank · '+esc(typeof dateNL==='function'?dateNL(t.date):t.date)+'</span><strong class="expense-bank-amount">'+esc(typeof money==='function'?money(Math.abs(Number(t.amount||0))):'')+'</strong><strong class="expense-bank-name">'+esc(name)+'</strong><button type="button" class="link-btn expense-bank-edit">Aanpassen</button>';
+    card.querySelector('.expense-bank-edit').addEventListener('click',function(){form.classList.remove('from-bank');card.remove()});
+    if(!String(form.elements.vendor&&form.elements.vendor.value||'').trim())return;
+    form.prepend(card);form.classList.add('from-bank');
+    var title=document.getElementById('modalTitle');if(title)title.textContent='Kosten boeken';
+  }
+  function pending(){try{return typeof pendingPdfImport!=='undefined'?pendingPdfImport:null}catch(e){return null}}
+  function wrapSave(){
+    var original=window.savePdfInvoiceImport;
+    if(typeof original!=='function'||original.boekunaDone)return;
+    var wrapped=function(){
+      var before=new Set((state.documents||[]).map(function(d){return d.id})),editing=!!(pending()&&pending().editDocumentId);
+      var result=original.apply(this,arguments);
+      Promise.resolve(result).then(function(){
+        if(editing||!phone.matches||pending())return;
+        var root=document.getElementById('modalRoot');if(root&&root.children.length)return; // Something else (the next bon) is open.
+        var doc=(state.documents||[]).find(function(d){return !before.has(d.id)&&d.linkedId&&d.reviewSnapshot});
+        if(doc)doneSheet(doc);
+      },function(){});
+      return result;
+    };
+    wrapped.boekunaDone=true;wrapped.boekunaBusy=original.boekunaBusy;
+    window.savePdfInvoiceImport=wrapped;
+  }
+  function install(){
+    var root=document.getElementById('modalRoot');if(!root)return;
+    new MutationObserver(function(){chips(root);invoicePage(root);expense(root)}).observe(root,{childList:true,subtree:true});
+    setTimeout(wrapSave,0);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+})();

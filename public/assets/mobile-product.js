@@ -210,7 +210,7 @@
         var linked = listTransactionLinkText(item);
         // Kwin 2026-10-10: what Boekuna found stands under the payment; Klopt links it, tapping the payment lets you choose.
         var proposal = item.status === 'unmatched' && proposalBudget-- > 0 && typeof bankMatchProposal === 'function' ? bankMatchProposal(item) : null;
-        entry = row(item.description || 'Banktransactie', (value >= 0 ? '+ ' : '− ') + money(Math.abs(value)), dateNL(item.date), statusBadge(item.status), item.status === 'unmatched' ? function () { matchTransaction(item.id); } : null);
+        entry = row(item.description || 'Banktransactie', (value >= 0 ? '+ ' : '− ') + money(Math.abs(value)), dateNL(item.date), statusBadge(item.status), item.status === 'unmatched' ? function () { if (typeof bankRowSheet === 'function') bankRowSheet(item.id); else matchTransaction(item.id); } : null);
         entry.lastChild.firstChild.classList.add(value >= 0 ? 'money-positive' : 'money-negative');
         metadata(entry.firstChild, linked);
         var bankActions = element('div', 'mobile-card-actions');

@@ -200,9 +200,11 @@ try{
   for(const core of ['Bon','Factuur','Kosten','Uploaden','Bank','Relatie','Rit','Dienst'])assert.ok(quickLabels.some(v=>v.includes(core)),'Mobile quick-create missing '+core);
   for(const merged of ['Banktransactie','Document uploaden','Factuur uploaden'])assert.ok(!quickLabels.some(v=>v.includes(merged)),'Merged into Uploaden or Bank: '+merged);
   assert.equal(await page.locator('#modalRoot .quick-tiles .quick-tile').count(),3,'Mobile quick-create shows three big daily tiles');
+  await page.waitForTimeout(450); // Let the sheet finish sliding in.
   const quickGeometry=await page.locator('#modalRoot .quick-action-modal').evaluate(el=>{const r=el.getBoundingClientRect(),b=getComputedStyle(el.closest('.modal-backdrop'));return {top:r.top,bottom:r.bottom,height:r.height,align:b.alignItems,radius:getComputedStyle(el).borderRadius}});
-  assert.equal(quickGeometry.align,'center','Mobile quick-create backdrop must center the dialog');
-  assert.ok(quickGeometry.top>24&&quickGeometry.bottom<820,'Mobile quick-create must float centrally instead of attaching to the bottom edge: '+JSON.stringify(quickGeometry));
+  // Kwin 2026-10-21 (voorstel A): Nieuw is one sheet from the bottom with everything on one level.
+  assert.equal(quickGeometry.align,'flex-end','Mobile quick-create is a bottom sheet');
+  assert.ok(quickGeometry.top>24&&Math.abs(quickGeometry.bottom-844)<=2,'Mobile quick-create sits on the bottom edge and fits the screen: '+JSON.stringify(quickGeometry));
   await page.screenshot({path:path.join(evidence,'quick-popup-390-first-release-'+browserName+'.png'),fullPage:true});
   await page.keyboard.press('Escape');await page.locator('#modalRoot .modal').waitFor({state:'detached'});
   // closeModal() restores focus in a setTimeout(0) after removing the modal, so wait for it instead of reading it in the same tick.

@@ -106,13 +106,13 @@ try{
     await context.close();
   }
 
-  // Phone: the Nieuw menu stays the centred pop-up it was; motion must not move it to the bottom.
+  // Phone (Kwin 2026-10-21, voorstel A): Nieuw is a sheet from the bottom; it must fit the screen.
   const phone=await openApp({width:390,height:844});
   await phone.page.locator('#quickNew').click();
   await phone.page.locator('#modalRoot .quick-action-modal').waitFor();
   await phone.page.waitForTimeout(450);
   const box=await phone.page.locator('#modalRoot .quick-action-modal').boundingBox();
-  assert.ok(box.y>40&&box.y+box.height<804,'Nieuw pop-up stays in the middle: '+JSON.stringify(box));
+  assert.ok(box.y>40&&Math.abs(box.y+box.height-844)<=2,'Nieuw sheet sits on the bottom edge: '+JSON.stringify(box));
   assert.equal(await phone.page.evaluate(()=>getComputedStyle(document.querySelector('#modalRoot .quick-action-modal')).animationName.includes('boekuna-motion')),false,'No motion animation on the pop-up');
   assert.equal(await phone.page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth),0);
   await phone.context.close();

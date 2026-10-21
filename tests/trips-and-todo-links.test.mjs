@@ -111,9 +111,8 @@ try{
   assert.deepEqual(names.map(v=>v.trim()).sort(),['Zonder Adres','Zonder Mail']);
   await phone.screenshot({path:`tests/artifacts/todo-klanten-${browserName}.png`,fullPage:true});
 
-  // Ritten on the phone: Nieuw > Meer > Rit, two postcodes, km filled in automatically.
+  // Ritten on the phone: Nieuw > Rit (Kwin 2026-10-21: no Meer fold), two postcodes, km filled in automatically.
   await phone.evaluate(()=>quickMenu());
-  await phone.locator('#modalRoot details.quick-more summary').click();
   await phone.locator('#modalRoot .quick-action').filter({hasText:'Rit'}).first().click();
   await phone.locator('#tripForm').waitFor();
   await phone.locator('#tripForm [name="fromPostal"]').fill('3011aa');
@@ -132,8 +131,9 @@ try{
   await phone.locator('#pageTitle').filter({hasText:'Ritten'}).waitFor();
   const row=await phone.locator('#content tbody .phone-row-link').first().innerText();
   assert.match(row,/Rotterdam → Amsterdam/);assert.match(row,/152,8 km/);assert.match(row,/Klantbezoek/);
-  assert.match(await phone.locator('.kpi-hero').innerText(),/152,8 km/);
-  assert.match(await phone.locator('.kpi-hero').innerText(),/35,14/,'€ 0,23 per km');
+  // Kwin 2026-10-21 (voorstel A): kilometers and aftrekbaar side by side in one block.
+  assert.match(await phone.locator('.trip-duo').innerText(),/152,8/);
+  assert.match(await phone.locator('.trip-duo').innerText(),/35,14/,'€ 0,23 per km');
   await phone.screenshot({path:`tests/artifacts/ritten-phone-${browserName}.png`,fullPage:true});
 
   // A corrected km value is kept when the user types it; saving keeps the manual value.

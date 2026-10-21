@@ -38,11 +38,11 @@ try{
   await more.click();
   assert.equal(await phone.locator('#content .dashboard-attention-item:visible').count(),total,'all to-dos after Nog bekijken');
 
-  // Nieuw > Meer: one Uploaden, one Bank (which then offers bankbestand or losse betaling).
+  // Nieuw: one Uploaden, one Bank (which then offers bankbestand or losse betaling).
+  // Kwin 2026-10-21 (voorstel A): no Meer fold; they are the first rows under the three tiles.
   await phone.locator('#quickNew').click();
-  await phone.locator('#modalRoot details.quick-more summary').click();
-  const meer=await labels(phone,'#modalRoot .quick-more .quick-action strong');
-  assert.deepEqual(meer.slice(0,2),['Uploaden','Bank'],'Meer starts with Uploaden and Bank: '+meer.join(', '));
+  const meer=await labels(phone,'#modalRoot .quick-rows .quick-action strong');
+  assert.deepEqual(meer.slice(0,2),['Uploaden','Bank'],'Rows start with Uploaden and Bank: '+meer.join(', '));
   for(const gone of ['Banktransactie','Bankbestand','Factuur uploaden','Document uploaden'])assert.ok(!meer.includes(gone),'merged: '+gone);
   assert.match(await phone.locator('#modalRoot .quick-action').filter({hasText:'Uploaden'}).getAttribute('onclick'),/openDocumentUpload\(\)/);
   await phone.locator('#modalRoot .quick-action').filter({hasText:'Bank'}).first().click();
