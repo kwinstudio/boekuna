@@ -40,31 +40,6 @@ try:
 except Exception:
     RapidOCR = None
 
-def _disable_onnx_memory_pattern() -> None:
-    """Turn off ONNX Runtime's per-shape memory plans for the OCR sessions.
-
-    Recognition runs on crops of many different widths. With memory patterns on,
-    ONNX keeps a planned block per new input shape, which raised the peak by
-    ~17 MB per scan series on the 512 MB service. RapidOCR offers no option for
-    it, so its session-options factory is wrapped once; results are unchanged.
-    """
-    try:
-        from rapidocr.inference_engine.onnxruntime import main as rapidocr_ort
-    except Exception:
-        return
-    factory = rapidocr_ort.OrtInferSession._init_sess_opts
-    if getattr(factory, "_boekuna_no_mem_pattern", False):
-        return
-    def init_sess_opts(cfg):
-        options = factory(cfg)
-        options.enable_mem_pattern = False
-        return options
-    init_sess_opts._boekuna_no_mem_pattern = True
-    rapidocr_ort.OrtInferSession._init_sess_opts = staticmethod(init_sess_opts)
-
-if RapidOCR is not None:
-    _disable_onnx_memory_pattern()
-
 _OCR_ENGINE = None
 _OCR_ENGINE_ERROR = None
 # One document at a time: two OCR runs side by side do not fit in the 512 MB service.
