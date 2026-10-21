@@ -25,8 +25,6 @@ try:
     register_heif_opener()
 except Exception:
     pass
-from docx import Document as DocxDocument
-from openpyxl import load_workbook
 from receipt_math import detect_vat_rates, has_complex_adjustments, derive_single_rate_amounts, enforce_single_rate_consistency
 from financial_blocks import parse_financial_blocks
 from image_quality import inspect_image_quality, quality_advice
@@ -40,6 +38,31 @@ try:
     RAPIDOCR_GENERATION = "v3"
 except Exception:
     RapidOCR = None
+
+def _disable_onnx_memory_pattern() -> None:
+    """Turn off ONNX Runtime's per-shape memory plans for the OCR sessions.
+
+    Recognition runs on crops of many different widths. With memory patterns on,
+    ONNX keeps a planned block per new input shape, which raised the peak by
+    ~17 MB per scan series on the 512 MB service. RapidOCR offers no option for
+    it, so its session-options factory is wrapped once; results are unchanged.
+    """
+    try:
+        from rapidocr.inference_engine.onnxruntime import main as rapidocr_ort
+    except Exception:
+        return
+    factory = rapidocr_ort.OrtInferSession._init_sess_opts
+    if getattr(factory, "_boekuna_no_mem_pattern", False):
+        return
+    def init_sess_opts(cfg):
+        options = factory(cfg)
+        options.enable_mem_pattern = False
+        return options
+    init_sess_opts._boekuna_no_mem_pattern = True
+    rapidocr_ort.OrtInferSession._init_sess_opts = staticmethod(init_sess_opts)
+
+if RapidOCR is not None:
+    _disable_onnx_memory_pattern()
 
 _OCR_ENGINE = None
 _OCR_ENGINE_ERROR = None
@@ -2009,6 +2032,7 @@ def extract_image(raw:bytes) -> dict[str,Any]:
     }
 
 def extract_docx(raw:bytes)->dict[str,Any]:
+    from docx import Document as DocxDocument
     doc=DocxDocument(io.BytesIO(raw)); chunks=[]; tables=[]
     for p in doc.paragraphs:
         if norm_text(p.text):chunks.append(norm_text(p.text))
@@ -2018,6 +2042,7 @@ def extract_docx(raw:bytes)->dict[str,Any]:
     return {"kind":"docx","pageCount":1,"pages":[{"page":1,"text":text,"charCount":len(text),"ocr":False,"tables":tables}],"text":text,"layout":[],"tables":tables,"ocrPages":[]}
 
 def extract_xlsx(raw:bytes)->dict[str,Any]:
+    from openpyxl import load_workbook
     wb=load_workbook(io.BytesIO(raw),data_only=True,read_only=True); lines=[]; tables=[]
     for ws in wb.worksheets:
         rows=[]
