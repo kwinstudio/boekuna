@@ -1202,4 +1202,40 @@ html body #modalRoot#modalRoot .vat-step-modal .modal-foot{padding-bottom:calc(1
 #mainApp #content .settings-search-empty{margin:4px 4px 12px;color:var(--muted,#6B7280)}
 html[data-theme="dark"] #mainApp #content .settings-search{background:#202326}
 #mainApp #content .settings-quick-label.settings-all-label{font-size:18px;font-weight:700;color:var(--ink,#111);margin-top:4px}
+
+/* Inloggen A (twijfel-ronde, Kwin 2026-10-21): wordmark and the promise on top, calm fields, one green button. */
+#authRoot .auth-phone-brand{display:block;margin:0 0 28px}
+#authRoot .auth-wordmark{display:block;font-size:30px;font-weight:800;letter-spacing:-.03em;color:var(--ink,#111)}
+#authRoot .auth-wordmark span{color:#63D471}
+#authRoot .auth-phone-brand p{margin:6px 0 0!important;font-size:17px!important;color:var(--muted,#6B7280)!important}
+#authRoot .auth-form .auth-phone-brand~.eyebrow,#authRoot .auth-form .auth-phone-brand~h2+p{display:none}
+#authRoot .auth-form .auth-phone-brand~h2{font-size:26px!important;margin-bottom:18px!important}
+#authRoot .auth-form .auth-field input{border:1px solid #E3E6E9!important;background:#F6F7F8!important;box-shadow:none!important;border-radius:14px!important}
+#authRoot .auth-form .auth-field input:focus{background:#fff!important;border-color:#63D471!important}
+html[data-theme="dark"] #authRoot .auth-wordmark{color:#F3F4F6}
+html[data-theme="dark"] #authRoot .auth-form .auth-field input{background:#202326!important;border-color:#33383D!important}
+
+/* 22: rit B - vaste routes bovenaan, postcodes eerst */
+#tripForm{display:flex;flex-direction:column;gap:12px}
+#tripForm>*{width:100%;margin:0}
+#tripForm .trip-retour label,#tripForm .trip-save-route label{min-height:36px!important}
+#tripForm .trip-routes{order:0}
+#tripForm .trip-from{order:1}
+#tripForm .trip-to{order:2}
+#tripForm .trip-km{order:3}
+#tripForm .trip-retour{order:4}
+#tripForm .trip-save-route{order:5}
+#tripForm .trip-date{order:6}
+#tripForm .trip-purpose{order:7}
+#tripForm .trip-km input{font-size:28px;font-weight:800;letter-spacing:-.01em;min-height:56px}
+.trip-route-chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.trip-route-chips::-webkit-scrollbar{display:none}
+.trip-route-chip{flex:0 0 auto;border:1px solid #E3E6E9;background:#fff;color:#111827;border-radius:14px;padding:9px 14px;font:inherit;font-size:14px;min-height:44px;white-space:nowrap;display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left}
+.trip-route-chip strong{font-weight:700}
+.trip-route-chip span{color:#6B7280;font-size:12px}
+.trip-route-chip:active{background:#EAF7EC;border-color:#63D471}
+html[data-theme="dark"] .trip-route-chip{background:#1A1D21;border-color:#2B3036;color:#F3F4F6}
+html[data-theme="dark"] .trip-route-chip:active{background:#16301D;color:#7FDB8B}
 }
+/* Only the phone shows the login wordmark block (section 22). */
+@media(min-width:821px){#authRoot .auth-phone-brand{display:none}}
