@@ -3898,9 +3898,9 @@ function listFilterFields(name){
     {key:'type',label:'Type',options:[['all','Alle types'],['invoice','Factuur'],['credit','Creditfactuur']]}
   ];
   if(name==='expenses')return [
-    {key:'vendor',label:'Leverancier',options:[['all','Alle leveranciers'],...[...new Set(state.expenses.map(e=>String(e.vendor||'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'nl',{sensitivity:'base'})).map(v=>[v,v])]},
+    {key:'vendor',label:'Leverancier',options:[['all','Alle leveranciers'],...[...new Set(listSource('expenses').map(e=>String(e.vendor||'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'nl',{sensitivity:'base'})).map(v=>[v,v])]},
     {key:'period',label:'Periode',options:listPeriodOptions()},...LIST_PERIOD_RANGE,
-    {key:'category',label:'Categorie',options:[['all','Alle categorieën'],...[...new Set(state.expenses.map(e=>String(e.category||'')).filter(Boolean))].sort().map(v=>[v,v])]},
+    {key:'category',label:'Categorie',options:[['all','Alle categorieën'],...[...new Set(listSource('expenses').map(e=>String(e.category||'')).filter(Boolean))].sort().map(v=>[v,v])]},
     {key:'docType',label:'Documenttype',options:[['all','Alle types'],['invoice','Inkoopfactuur'],['receipt','Bon'],['manual','Handmatig']]},
     {key:'receipt',label:'Bon',options:[['all','Met en zonder bon'],['missing','Zonder bon'],['with','Met bon']]}
   ];
