@@ -159,7 +159,7 @@ try{
   assert.ok(rows.some(x=>x.includes('0001')),'Amount search must find formatted €121 invoice');
   await clearSearch();
 
-  await page.getByRole('button',{name:'Verlopen'}).click();
+  await page.getByRole('button',{name:'Te laat',exact:true}).click();
   rows=await visibleRowTexts();
   assert.equal(rows.length,1,'Overdue quick filter must return exactly the overdue invoice');
   assert.match(rows[0],/0001/);
@@ -194,7 +194,7 @@ try{
   assert.match(rows[0],/0003/,'Amount low→high must put smallest invoice first');
 
   await search('Jansen');
-  await page.getByRole('button',{name:'Verlopen'}).click();
+  await page.getByRole('button',{name:'Te laat',exact:true}).click();
   await setSort('amount-desc');
   const beforeClear=await page.evaluate(()=>structuredClone(listPageState('invoices')));
   await page.locator('[data-list-clear-filters]').click();
@@ -208,7 +208,7 @@ try{
 
   // Distinct combined empty state.
   await search('niemand-bestaat');
-  await page.getByRole('button',{name:'Verlopen'}).click();
+  await page.getByRole('button',{name:'Te laat',exact:true}).click();
   assert.match(await page.locator('.empty').innerText(),/binnen deze filters/);
   await clearSearch();
   await page.locator('[data-list-clear-filters]').click();

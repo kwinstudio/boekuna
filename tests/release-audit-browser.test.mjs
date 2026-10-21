@@ -271,7 +271,7 @@ try{
     check('C-13','Escape halverwege een factuur: invoer blijft bewaard of er komt een waarschuwing',kept==='Halverwege'||asked>0,'ingevulde factuur is zonder vraag weg');
     await page.evaluate(()=>closeModal());
     await page.evaluate(()=>navigate('bestaat-niet'));
-    await attempt('C-14','Onbekende pagina valt terug op het overzicht',async()=>/Overzicht/.test(await content(page)));
+    await attempt('C-14','Onbekende pagina valt terug op het overzicht',async()=>(await page.locator('#pageTitle').innerText())==='Overzicht'&&(await page.locator('#content').getAttribute('data-page'))==='dashboard');
     await page.evaluate(()=>navigate('invoices'));await page.evaluate(()=>navigate('expenses'));
     const backTo=await page.goBack({timeout:5000}).then(()=>page.url()).catch(()=>page.url());
     check('C-15','Terugknop van de browser blijft in de app',backTo.startsWith(base+'/app'),'terugknop verlaat de app: '+backTo);
