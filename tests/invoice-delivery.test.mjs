@@ -99,6 +99,18 @@ assert.ok(drawn.some(x=>x.startsWith('Btw 9% over ')));
 assert.ok(drawn.some(x=>x.startsWith('Btw 21% over ')));
 assert.ok(drawn.includes('Pagina 1 / 1'));
 
+// Helvetica only knows WinAnsi: names and lines outside it must not break the PDF.
+drawn.length = 0;
+const foreignPdf = await edge.pdfBytes({
+  invoice: { ...mixedInvoice, id: 'foreign', number: 'INT-1', lines: [{ qty: 1, unit: 50, vat: 21, desc: 'Montage → keuken 🙂' }], vatLines: [] },
+  company: { name: 'Testbedrijf', iban: 'NL91ABNA0417164300' },
+  customer: { name: 'Şahin İnşaat', address: 'ul. Łódzka 1', city: 'Łódź' },
+});
+assert.equal((await PDFDocument.load(foreignPdf)).getPageCount(), 1);
+assert.ok(drawn.includes('Sahin Insaat'), 'Turkish name keeps its letters without accents');
+assert.ok(drawn.includes('ul. Lódzka 1'), 'Polish L-stroke becomes L, ó stays');
+assert.ok(drawn.some(x => x.startsWith('Montage -> keuken ?')), 'arrow and emoji get a plain twin');
+
 drawn.length = 0;
 const longInvoice = {
   id:'long',number:'LONG-1',kind:'invoice',taxTreatment:'standard',issueDate:'2026-09-29',dueDate:'2026-10-13',

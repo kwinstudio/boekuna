@@ -1,4 +1,4 @@
-import base64, ctypes, gc, csv, hashlib, io, json, logging, math, os, platform, re, secrets, tempfile, time
+import base64, ctypes, gc, threading, csv, hashlib, io, json, logging, math, os, platform, re, secrets, tempfile, time
 from datetime import datetime, date
 from importlib.metadata import PackageNotFoundError, version as package_version
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
@@ -17,6 +17,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field, ValidationError, field_validator
 from PIL import Image, ImageOps, ImageEnhance, ImageFilter
 import numpy as np
@@ -25,8 +26,6 @@ try:
     register_heif_opener()
 except Exception:
     pass
-from docx import Document as DocxDocument
-from openpyxl import load_workbook
 from receipt_math import detect_vat_rates, has_complex_adjustments, derive_single_rate_amounts, enforce_single_rate_consistency
 from financial_blocks import parse_financial_blocks
 from image_quality import inspect_image_quality, quality_advice
@@ -41,8 +40,44 @@ try:
 except Exception:
     RapidOCR = None
 
+def _disable_onnx_memory_pattern() -> None:
+    """Turn off ONNX Runtime's per-shape memory plans for the OCR sessions.
+
+    Recognition runs on crops of many different widths. With memory patterns on,
+    ONNX keeps a planned block per new input shape, which raised the peak by
+    ~17 MB per scan series on the 512 MB service. RapidOCR offers no option for
+    it, so its session-options factory is wrapped once; results are unchanged.
+    """
+    try:
+        from rapidocr.inference_engine.onnxruntime import main as rapidocr_ort
+    except Exception:
+        return
+    factory = rapidocr_ort.OrtInferSession._init_sess_opts
+    if getattr(factory, "_boekuna_no_mem_pattern", False):
+        return
+    def init_sess_opts(cfg):
+        options = factory(cfg)
+        options.enable_mem_pattern = False
+        return options
+    init_sess_opts._boekuna_no_mem_pattern = True
+    rapidocr_ort.OrtInferSession._init_sess_opts = staticmethod(init_sess_opts)
+
+if RapidOCR is not None:
+    _disable_onnx_memory_pattern()
+
 _OCR_ENGINE = None
 _OCR_ENGINE_ERROR = None
+# One document at a time: two OCR runs side by side do not fit in the 512 MB service.
+# The work runs in a worker thread so /health, CORS preflights and auth keep answering.
+_DOCUMENT_WORK_LOCK = threading.Lock()
+
+def _locked_document_work(fn, *args, **kwargs):
+    with _DOCUMENT_WORK_LOCK:
+        return fn(*args, **kwargs)
+
+async def run_document_work(fn, *args, **kwargs):
+    return await run_in_threadpool(_locked_document_work, fn, *args, **kwargs)
+
 OCR_MODEL_NAME = "PP-OCRv6-small"
 PROCESSOR_VERSION = "4.3.0"
 PROCESSOR_REVISION = (os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or "unknown")[:64]
@@ -2009,6 +2044,7 @@ def extract_image(raw:bytes) -> dict[str,Any]:
     }
 
 def extract_docx(raw:bytes)->dict[str,Any]:
+    from docx import Document as DocxDocument
     doc=DocxDocument(io.BytesIO(raw)); chunks=[]; tables=[]
     for p in doc.paragraphs:
         if norm_text(p.text):chunks.append(norm_text(p.text))
@@ -2018,6 +2054,7 @@ def extract_docx(raw:bytes)->dict[str,Any]:
     return {"kind":"docx","pageCount":1,"pages":[{"page":1,"text":text,"charCount":len(text),"ocr":False,"tables":tables}],"text":text,"layout":[],"tables":tables,"ocrPages":[]}
 
 def extract_xlsx(raw:bytes)->dict[str,Any]:
+    from openpyxl import load_workbook
     wb=load_workbook(io.BytesIO(raw),data_only=True,read_only=True); lines=[]; tables=[]
     for ws in wb.worksheets:
         rows=[]
@@ -3603,7 +3640,7 @@ async def verify_document(request:Request,file:UploadFile=File(...),company_json
         company={}
     started=time.time()
     set_processing_meta(request,stage="extract")
-    doc=extract_document(file.filename or "document",file.content_type or "",raw)
+    doc=await run_document_work(extract_document,file.filename or "document",file.content_type or "",raw)
     heur=heuristic_extract(doc,file.filename or "document",company)
     set_processing_meta(request,stage="ai_verify")
     ai,ai_failure=ai_extract(doc,file.filename or "document",company,heur,independent=True,raw=raw,content_type=file.content_type or "")
@@ -3771,7 +3808,7 @@ async def analyze(request:Request,file:UploadFile=File(...),company_json:str=For
         existing=json.loads(existing_json or "[]")
     except Exception:
         existing=[]
-    payload=analyze_document(raw,file.filename or "document",file.content_type or "",company,existing,ocr_text,request=request,user=user)
+    payload=await run_document_work(analyze_document,raw,file.filename or "document",file.content_type or "",company,existing,ocr_text,request=request,user=user)
     usage=record_billing_usage(request)
     if usage:
         payload["data"]["processing"]["billing"]={"plan":usage.get("plan"),"monthlyLimit":usage.get("monthly_limit"),"used":usage.get("used"),"remaining":usage.get("remaining")}
