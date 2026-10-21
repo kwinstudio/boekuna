@@ -4238,24 +4238,21 @@ async function navigate(p,opts={}){
  if(!opts.fromHistory)rememberPageInHistory(p)
 }
 // Release audit C-15: each page is a step in the browser history, so the back button (or an iPhone swipe)
-// goes to the previous page in the app instead of leaving it. The address stays the same.
+// goes to the previous page in the app instead of leaving it. The address gets the page as #fragment.
 function rememberPageInHistory(p){
  const app=document.getElementById('mainApp');if(!app||app.style.display==='none')return;
- const current=history.state||{};if(current.boekunaPage===p)return;
- try{if(current.boekunaPage==null)history.replaceState({...current,boekunaPage:p},'');else history.pushState({boekunaPage:p},'')}catch(_){}
+ // A page step is a #page fragment without a history state object: WebKit can crash restoring script-set states on reload or back.
+ const current=location.hash.slice(1);if(current===p)return;
+ try{if(PAGE_TITLES[current])location.hash=p;else history.replaceState(history.state,'',location.pathname+location.search+'#'+p)}catch(_){}
 }
-// Overlays (document viewer, A4 preview) push their own step and close themselves on back; that step is not a page step.
-let lastHistoryState=history.state;
-for(const method of ['pushState','replaceState']){const original=history[method].bind(history);history[method]=function(state,...rest){const result=original(state,...rest);lastHistoryState=history.state;return result}}
 function onAppHistoryBack(event){
- const left=lastHistoryState;lastHistoryState=history.state;
- if(left&&(left.boekunaDocumentViewer||left.boekunaReportPreview))return;
- const target=event.state?.boekunaPage,app=document.getElementById('mainApp');
- if(!target||!app||app.style.display==='none'||document.documentElement.classList.contains('docviewer-open'))return;
+ const target=location.hash.slice(1),app=document.getElementById('mainApp');
+ // Overlays (document viewer, A4 preview) push a step on top of the current page and close themselves on back; landing on the same page is that step.
+ if(!PAGE_TITLES[target]||target===page||!app||app.style.display==='none'||document.documentElement.classList.contains('docviewer-open'))return;
  // The first step back closes what is open on top (a window or the menu) and stays on the page.
- if(document.getElementById('modalRoot')?.children.length){closeModal();try{history.pushState({boekunaPage:page},'')}catch(_){}return}
- if(document.body.classList.contains('mobile-drawer-open')){setMobileMenuOpen(false,{restoreFocus:false});try{history.pushState({boekunaPage:page},'')}catch(_){}return}
- if(target!==page)navigate(target,{fromHistory:true});
+ if(document.getElementById('modalRoot')?.children.length){closeModal();location.hash=page;return}
+ if(document.body.classList.contains('mobile-drawer-open')){setMobileMenuOpen(false,{restoreFocus:false});location.hash=page;return}
+ navigate(target,{fromHistory:true});
 }
 function renderAssistantInsightsSafe(){return typeof window.renderInsights==='function'?window.renderInsights():'<div class="page-head"><div><h1>Voor jou</h1><p>Persoonlijke administratiehulp is tijdelijk niet beschikbaar.</p></div></div>'}
 function renderAssistantDashboardSafe(){return typeof window.renderAssistantDashboard==='function'?window.renderAssistantDashboard():renderAttentionCenter(0)}
