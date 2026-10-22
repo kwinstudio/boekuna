@@ -119,7 +119,7 @@ try{
     await page.locator('#set-attention-bank').uncheck();
     assert.deepEqual(await page.evaluate(()=>state.meta.attentionHidden),['bank']);
     assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem(userDataKey())).meta.attentionHidden),['bank'],'Saved with the account data');
-    assert.equal(await page.locator('.settings-center-row[data-settings-open="notifications"] .settings-center-status').innerText(),'4 van 5 aan');
+    assert.equal(await page.locator('.settings-center-row[data-settings-open="notifications"] .settings-center-status').innerText(),'5 van 6 aan');
     assert.doesNotMatch(await page.evaluate(()=>renderAttentionCenter(0)),/bankregel/i,'Hidden type no longer shows under Nog te doen');
     await page.evaluate(()=>window.openSettingsSection('app'));
     await page.locator('#set-startPage').selectOption('invoices');

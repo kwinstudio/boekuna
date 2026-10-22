@@ -138,7 +138,7 @@ try {
    // Kwin 2026-10-22 ("rustiger" A): one full-width Winst block, then one list of four amounts.
    const winst=await page.locator('.dashboard-kpi-profit').evaluate(e=>Math.round(e.getBoundingClientRect().width-e.parentElement.getBoundingClientRect().width));
    assert.equal(winst,0,'The Winst block spans the width');
-   assert.equal(await page.locator('.calm-list .calm-row').count(),4);
+   assert.ok([4,5].includes(await page.locator('.calm-list .calm-row').count()),'Four amounts, plus Vrij te besteden once money came in');
    await page.evaluate(()=>newInvoice());await page.waitForTimeout(50);
    await inspect(browserName+' invoice editor '+width);
    const fields=page.locator('#invoiceForm .line-item [data-k]');

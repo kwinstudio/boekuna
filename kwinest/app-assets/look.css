@@ -1342,3 +1342,11 @@ html[data-theme="dark"] #mainApp input[type="search"]::-webkit-search-cancel-but
 #modalRoot .unsaved-invoice-actions{display:flex;gap:8px;margin-left:auto}
 html[data-theme="dark"] #modalRoot .unsaved-invoice-offer{border-color:#2B3036;background:#1A1D21}
 html[data-theme="dark"] #modalRoot .unsaved-invoice-offer strong{color:#F3F4F6}
+
+/* Kwin 2026-10-22 (concurrenten, m1): days left for the btw return next to Btw in the menu. */
+#mainApp .nav-item .vat-due-badge{margin-left:auto;padding:2px 8px;border-radius:999px;background:#FDECEA;color:#B42318;font-size:12px;font-weight:700;white-space:nowrap}
+html[data-theme="dark"] #mainApp .nav-item .vat-due-badge{background:#3A1F1C;color:#F4A79B}
+/* Btw page: mark the return as done so the to-do goes away. */
+#mainApp .vat-filed-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:0 20px 18px}
+#mainApp .vat-filed-done{font-weight:600;color:var(--app-ink,#17201B)}
+html[data-theme="dark"] #mainApp .vat-filed-done{color:var(--dk-ink,#E9EDEF)}

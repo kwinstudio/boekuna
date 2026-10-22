@@ -27,7 +27,8 @@
     {key:'documents',title:'Bonnen om te controleren',detail:'Een bon kon niet goed worden gelezen of moet je nog nakijken.'},
     {key:'bank',title:'Bankregels om te koppelen',detail:'Na een bankimport, voor regels zonder factuur of kosten.'},
     {key:'contacts',title:'Klanten met ontbrekende gegevens',detail:'Een klant mist gegevens die op een factuur moeten.'},
-    {key:'health',title:'Gegevens die niet kloppen',detail:'Boekuna ziet iets in je administratie dat niet helemaal klopt.'}
+    {key:'health',title:'Gegevens die niet kloppen',detail:'Boekuna ziet iets in je administratie dat niet helemaal klopt.'},
+    {key:'vat',title:'Btw-aangifte',detail:'In de laatste twee weken voor de deadline, tot je hem op gedaan zet.'}
   ];
 
   // Kwin 2026-10-17 (minder tekst, alleen telefoon): shorter explanations on the phone.

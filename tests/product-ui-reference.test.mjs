@@ -537,7 +537,7 @@ try{
       await page.getByRole('heading',{name:'Overzicht'}).waitFor();
       // Kwin 2026-10-22 ("rustiger" A): one Winst block without a corner icon, then one list of four amounts.
       assert.equal(await page.locator('.dashboard-kpi .metric-icon').count(),0,'The Winst block carries no corner icon');
-      assert.equal(await page.locator('.calm-list .calm-row').count(),4,'390px mobile overview lists Omzet, Kosten, Te ontvangen and Btw');
+      assert.ok([4,5].includes(await page.locator('.calm-list .calm-row').count()),'390px mobile overview lists Omzet, Kosten, Te ontvangen and Btw, plus Vrij te besteden once money came in');
       const calmRows=await page.locator('.calm-list .calm-row').evaluateAll(nodes=>nodes.map(el=>el.getBoundingClientRect().height));
       assert.ok(calmRows.every(h=>h>=44),'Overview rows are full touch targets: '+calmRows.join(', '));
       assert.equal(await page.locator('#content').evaluate(el=>getComputedStyle(el).paddingTop),'14px','390px mobile content padding must use the compact app-only contract');
