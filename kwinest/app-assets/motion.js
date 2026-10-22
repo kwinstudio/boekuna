@@ -180,7 +180,7 @@
     if(!st||!inRange||!invoiceNet||!expenseCost||!status)return null;
     var sales=0,costs=0;
     (st.invoices||[]).forEach(function(i){if(i.status!=='draft'&&status(i)!=='cancelled'&&inRange(i.issueDate,from,to))sales+=invoiceNet(i)});
-    (st.expenses||[]).forEach(function(e){if(inRange(e.date,from,to))costs+=expenseCost(e)});
+    var between=g('expenseCostsBetween');if(between)costs=between(from,to);else (st.expenses||[]).forEach(function(e){if(inRange(e.date,from,to))costs+=expenseCost(e)});
     sales=Math.round(sales*100)/100;costs=Math.round(costs*100)/100;
     return {sales:sales,costs:costs,profit:Math.round((sales-costs)*100)/100};
   }

@@ -407,7 +407,7 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/feedback.js?v=2
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-viewer.js?v=20261008f"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/native-local-first.js?v=20261008a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/look.js?v=20261021a"></script>\n');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/motion.js?v=20261009f"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/motion.js?v=20261022a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});
