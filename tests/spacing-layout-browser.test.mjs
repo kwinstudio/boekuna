@@ -73,7 +73,8 @@ try{
       }
       // Dashboard: the chart card and "Nog te doen" end on the same line when they sit side by side.
       await page.evaluate(()=>navigate('dashboard'));await page.waitForTimeout(150);
-      const bottoms=await page.evaluate(()=>{const a=document.querySelector('.dashboard-chart-card').getBoundingClientRect(),b=document.querySelector('.dashboard-attention').getBoundingClientRect();return {side:Math.abs(a.top-b.top)<2,diff:Math.round(a.bottom-b.bottom)}});
+      // The phone overview has no chart card (Kwin 2026-10-22), so there is nothing to line up there.
+      const bottoms=await page.evaluate(()=>{const c=document.querySelector('.dashboard-chart-card'),d=document.querySelector('.dashboard-attention');if(!c||!d)return {side:false,diff:0};const a=c.getBoundingClientRect(),b=d.getBoundingClientRect();return {side:Math.abs(a.top-b.top)<2,diff:Math.round(a.bottom-b.bottom)}});
       if(bottoms.side&&Math.abs(bottoms.diff)>1)problems.push('dashboard cards end '+bottoms.diff+'px apart');
       // Phone: a single page action spans the row instead of wrapping in half.
       if(phone){

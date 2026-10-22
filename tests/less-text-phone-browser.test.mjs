@@ -26,17 +26,19 @@ try{
   const phone=await open({width:390,height:844});
   const dash=await text(phone,'dashboard');
   gone(dash,['Omzet minus kosten','na btw en geschatte belasting','Excl. btw','tot nu:','Op basis van je huidige administratie'],'Overzicht');
-  kept(dash,['dit jaar, schatting','Aangifte vóór']," Overzicht");
-  assert.equal((await phone.locator('#content .dashboard-kpi-receivables .metric-sub').innerText()).trim(),'Te laat','everything open is late');
+  // Kwin 2026-10-22 ("rustiger" A): only the Winst block and four labelled amounts; no sub lines under them.
+  gone(dash,['dit jaar, schatting','Aangifte vóór','Te laat'],'Overzicht');
+  kept(dash,['Winst','Omzet','Kosten','Te ontvangen'],'Overzicht');
 
   gone(await text(phone,'invoices'),['Maak facturen en houd bij'],'Inkomsten');
   gone(await text(phone,'expenses'),['Bekijk en controleer je zakelijke kosten'],'Kosten');
   const docs=await text(phone,'documents');
   gone(docs,['Ondersteund:','· Upload','2026 ·'],'Bonnetjes');
-  /* Kwin 2026-10-21 (Bonnen A): the tiles start right under the search, without a "Bonnetjes · 2" heading. */kept(docs,['7 jaar lang'],'Bonnetjes');
+  /* Kwin 2026-10-22: one block with the count, then calm rows without second lines. */gone(docs,['7 jaar lang'],'Bonnetjes');
   const bank=await text(phone,'bank');
   gone(bank,['Controleer bij- en afschrijvingen','1 betaling','Geen bon of kosten gevonden'],'Bank');
-  kept(bank,['Geen bon gevonden','2026-0002 Studio Voorbeeld'],'Bank');
+  // Rows show name, amount and a dot; what a payment belongs to shows when you tap it.
+  gone(bank,['Geen bon gevonden','2026-0002 Studio Voorbeeld'],'Bank');
   const vat=await text(phone,'vat');
   gone(vat,['indicatie','Over €','Uit 2 bonnen'],'Btw');
   kept(vat,['Boekuna verstuurt deze aangifte niet'],'Btw');

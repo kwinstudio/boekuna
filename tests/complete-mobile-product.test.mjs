@@ -135,9 +135,10 @@ try {
   if(width<=820){
    await nav('dashboard');
    assert.equal(await page.locator('.dashboard-chart-card').isVisible(),false);
-   assert.equal(await page.locator('.dashboard-kpi-profit').evaluate(e=>getComputedStyle(e).gridColumnStart),'1');
-   const columns=await page.locator('.dashboard-kpis').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length);
-   assert.equal(columns,width<360?1:2);
+   // Kwin 2026-10-22 ("rustiger" A): one full-width Winst block, then one list of four amounts.
+   const winst=await page.locator('.dashboard-kpi-profit').evaluate(e=>Math.round(e.getBoundingClientRect().width-e.parentElement.getBoundingClientRect().width));
+   assert.equal(winst,0,'The Winst block spans the width');
+   assert.equal(await page.locator('.calm-list .calm-row').count(),4);
    await page.evaluate(()=>newInvoice());await page.waitForTimeout(50);
    await inspect(browserName+' invoice editor '+width);
    const fields=page.locator('#invoiceForm .line-item [data-k]');
@@ -174,19 +175,22 @@ try {
  await page.evaluate(data=>{state.documents=data},documents);
  // Unlink requires deliberate confirmation; cancelling leaves the match intact.
  await page.evaluate(()=>{state.transactions[0].status='matched';state.transactions[0].matchId='i1';state.transactions[0].matchType='invoice'});
- await nav('bank');await page.locator('.mobile-card-list').getByRole('button',{name:'Ontkoppelen',exact:true}).click();
+ // Kwin 2026-10-22: bank rows carry no buttons; the row opens a sheet with Ontkoppelen, which still asks to confirm.
+ const unlinkFromSheet=async()=>{await page.evaluate(()=>bankRowSheet(state.transactions[0].id));await page.getByRole('dialog').getByRole('button',{name:'Ontkoppelen',exact:true}).click()};
+ await nav('bank');assert.equal(await page.locator('.mobile-card-list').getByRole('button',{name:'Ontkoppelen',exact:true}).count(),0,'No Ontkoppelen button inside bank rows');
+ await unlinkFromSheet();
  assert.equal(await page.evaluate(()=>state.transactions[0].status),'matched');
  await page.getByRole('dialog').getByRole('button',{name:'Annuleren',exact:true}).click();
  assert.equal(await page.evaluate(()=>state.transactions[0].status),'matched');
- await page.locator('.mobile-card-list').getByRole('button',{name:'Ontkoppelen',exact:true}).click();
+ await unlinkFromSheet();
  await page.getByRole('dialog').getByRole('button',{name:'Ontkoppelen',exact:true}).click();
  assert.equal(await page.evaluate(()=>state.transactions[0].status),'unmatched');
  await nav('invoices');
  await page.locator('.mobile-card-main').click();await page.getByRole('dialog').waitFor();
  assert.match(await page.getByRole('dialog').innerText(),/2026-0001/);
  await page.evaluate(()=>closeModal());
- // Phone: the "Nog te ontvangen" tile opens the open invoices (the summary buttons are gone on a phone).
- await nav('dashboard');await page.locator('.dashboard-kpi-receivables').click();
+ // Phone: the "Te ontvangen" row opens the open invoices (Kwin 2026-10-22, one calm list on the overview).
+ await nav('dashboard');await page.locator('.calm-row',{hasText:'Te ontvangen'}).click();
  assert.equal(await page.evaluate(()=>listPageState('invoices').filters.status),'open');
  await nav('settings');
  // Instellingen: category index first, one category at a time, a clear way back.

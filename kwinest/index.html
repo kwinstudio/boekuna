@@ -4550,6 +4550,28 @@ function dashboardStartHtml(needsProfile){
  const three='<li class="dashboard-start-step"><button type="button" class="dashboard-start-row" onclick="quickImportBank()">'+num(3)+text('Bankbestand inlezen','Zo ziet Boekuna wat er betaald is. Mag later.')+chevron+'</button></li>';
  return '<section class="card dashboard-start" aria-labelledby="dashboardStartTitle"><h2 id="dashboardStartTitle">Zo begin je</h2><p>Drie stappen. Je ziet je cijfers zodra er iets in staat.</p><ol class="dashboard-start-steps">'+one+two+three+'</ol></section>'
 }
+// Phone overview (Kwin 2026-10-22, "rustiger" A): one Winst block, then one calm list of four amounts, and the to-dos behind one "N te doen" button.
+function dashboardVatRow(kpi){
+ if(state.company?.kor)return {label:'Btw',value:kpi.vatReserve};
+ const due=vatDeadlineInfo(),amount=vatQuarterAmount(due.q,due.year);
+ return {label:'Btw '+due.quarter,value:Math.abs(amount)}
+}
+function dashboardTodoCount(){return [missingReceiptsTodo(),...dashboardAttentionItems().filter(item=>attentionTypeVisible(item.key))].filter(Boolean).length}
+function dashboardCalmPhoneHtml(kpi,greeting,periodControl,notices){
+ // A fetch problem is never folded away: the retry stays in sight.
+ const vat=dashboardVatRow(kpi),todo=dashboardTodoCount(),docError=documentProcessingFetchError||documentProcessingConnectivityLost;
+ const rowHtml=(dot,label,value,action,extra='')=>'<button type="button" class="calm-row'+extra+'" data-kpi-dot="'+dot+'" onclick="'+action+'"><span class="calm-label">'+esc(label)+'</span><strong class="calm-value">'+money(value)+'</strong>'+icon('i-chevron')+'</button>';
+ return '<div class="page-head dashboard-page-head calm-head"><div><h1 aria-label="'+esc('Overzicht, '+greeting.title)+'">Overzicht</h1></div><div class="dashboard-period-control page-period-slot">'+periodControl+'</div></div>'+notices+
+ '<div class="grid dashboard-kpis dashboard-kpis-calm"><button type="button" class="card metric dashboard-kpi dashboard-kpi-profit kpi-tone-primary kpi-hero" data-kpi-dot="winst" onclick="navigate(\'reports\')"><div class="metric-head"><span class="dashboard-kpi-label">Winst</span></div><div class="metric-value">'+money(kpi.profit)+'</div></button></div>'+
+ '<div class="calm-list">'+
+  rowHtml('omzet','Omzet',kpi.revenue,"navigate('invoices')")+
+  rowHtml('kosten','Kosten',kpi.costs,"navigate('expenses')")+
+  rowHtml('open','Te ontvangen',kpi.receivables,"navigateWithFilter('invoices','status','open')",kpi.overdueReceivables>0?' has-attention':'')+
+  rowHtml('btw',vat.label,vat.value,"navigate('vat')")+
+ '</div>'+
+ // With the assistant on (not in the first release) the button stays when nothing is left, so Vraag Boekuna remains reachable.
+ (todo||(typeof openAskBoekuna==='function'&&!docError)?'<details class="calm-todo'+(todo?'':' is-clear')+'"'+(docError?' open':'')+'><summary><span class="calm-todo-dot" aria-hidden="true"></span><strong>'+(todo?todo+' te doen':'Niets te doen')+'</strong>'+icon('i-chevron')+'</summary>'+renderAssistantDashboardSafe()+'</details>':(docError?renderAssistantDashboardSafe():''))
+}
 function renderDashboard(){
  const kpi=dashboardKpiViewModel(),months=dashboardMonthlyTotals(),period=kpi.period,sales=kpi.revenue,costs=kpi.costs,profit=kpi.profit,open=kpi.receivables,overdue=kpi.overdueInvoiceCount,vat=kpi.vatReserve;
  const chart=dashboardChartBuckets(period.preset),max=Math.max(1,...chart.flatMap(x=>[Math.abs(x.sales),Math.abs(x.costs),Math.abs(x.profit)])),isEmpty=!state.invoices.length&&!state.expenses.length&&!state.transactions.length&&!state.contacts.length,greeting=dashboardGreeting(),bankTotal=state.transactions.length,bankMatched=state.transactions.filter(t=>t.status==='matched').length,bankOpen=state.transactions.filter(t=>t.status==='unmatched').length,bankPct=bankTotal?Math.round(bankMatched/bankTotal*100):null;
@@ -4564,6 +4586,7 @@ function renderDashboard(){
   const todo=dashboardAttentionItems().some(item=>attentionTypeVisible(item.key))||documentProcessingFetchError||documentProcessingConnectivityLost;
   return '<div class="page-head dashboard-page-head"><div><h1 aria-label="'+esc('Overzicht, '+greeting.title)+'">'+esc(greeting.title)+'</h1><p class="page-status">Welkom bij Boekuna.</p></div></div>'+dashboardStartHtml(needsProfile)+(todo?renderAttentionCenter(0):'');
  }
+ if(phoneLayout())return dashboardCalmPhoneHtml(kpi,greeting,periodControl,welcomeCard+profileReminder);
  return '<div class="page-head dashboard-page-head"><div><h1 aria-label="'+esc('Overzicht, '+greeting.title)+'">'+esc(greeting.title)+'</h1><p class="page-status">'+esc(dashboardStatusLine(kpi))+'</p></div><div class="dashboard-period-control page-period-slot">'+periodControl+'</div></div>'+
  welcomeCard+profileReminder+
  '<div class="grid dashboard-kpis dashboard-kpis-v12">'+
@@ -4599,7 +4622,7 @@ function renderInvoices(){
  const period=financialPeriodRange(),list=getListRows('invoices'),earlierRows=invoiceEarlierOpenRows(true,period),earlierAll=invoiceEarlierOpenRows(false,period),periodInvoices=state.invoices.filter(i=>financialPeriodContains(i.issueDate,period)),all=periodInvoices.filter(i=>i.kind!=='credit'),finalRows=periodInvoices.filter(i=>invoiceCounts(i)),revenue=finalRows.reduce((sum,i)=>roundMoney(sum+invoiceNet(i)),0),openRows=[...all.filter(i=>invoiceCounts(i)&&toCents(invoiceOutstanding(i))>0),...earlierAll],open=openRows.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),overdueRows=openRows.filter(invoiceIsOverdueOpen),overdue=overdueRows.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),paidRows=all.filter(i=>invoiceCounts(i)&&invoiceEffectiveStatus(i)==='paid'),paid=paidRows.reduce((sum,i)=>roundMoney(sum+invoiceGross(i)),0);
  return `<div class="product-page-shell"><div class="page-head product-page-head financial-page-head"><div><h1>Inkomsten</h1>${deskCopyHtml('Maak facturen en houd bij wat nog binnenkomt.','page-status','p')}</div><div class="page-period-slot">${financialPeriodSelect('incomePeriod')}</div></div>${state.invoices.length?`<div class="page-actions product-page-actions"><button class="btn primary" onclick="newInvoice()">${icon('i-plus')} Factuur maken</button><button class="btn" onclick="triggerInvoiceUpload('sale')">${icon('i-upload')} Factuur uploaden</button></div>`:''}</div>
  ${financialPeriodRangeHtml()}
- ${productKpiGrid([
+ ${phoneLayout()?productKpiGrid([productKpiHero('Te ontvangen',money(open),'','open')],'grid-1 calm-kpis'):productKpiGrid([
   productKpi('Gefactureerd',money(revenue),'','i-chart','support',kpiBarsHtml(dashboardMonthlyTotals().map(x=>x.sales)),'omzet'),
   productKpi('Nog te ontvangen',money(open),overdue>0?(phoneLayout()&&toCents(overdue)>=toCents(open)?'Te laat':money(overdue)+' te laat'):'','i-file','neutral',kpiShareBarHtml(overdue,open),'open')
  ],'grid-2')}
@@ -4612,23 +4635,19 @@ function renderExpenses(){
  const review=rows.filter(e=>!String(e.vendor||'').trim()||!String(e.category||'').trim()||!Number.isFinite(Number(e.exVat))).length,costRing=kpiRingHtml(dashboardCostCategories(period));
  return `<div class="product-page-shell"><div class="page-head product-page-head financial-page-head"><div><h1>Kosten</h1>${deskCopyHtml('Bekijk en controleer je zakelijke kosten.','page-status','p')}</div><div class="page-period-slot">${financialPeriodSelect('expensePeriod')}</div></div>${state.expenses.length?`<div class="page-actions product-page-actions"><button class="btn primary" onclick="openUploadSourcePicker('purchase')">${icon('i-upload')} Bon toevoegen</button><button class="btn" onclick="newExpense()">${icon('i-plus')} Zelf invullen</button></div>`:''}</div>
  ${financialPeriodRangeHtml()}
- ${productKpiGrid([
+ ${phoneLayout()?productKpiGrid([productKpiHero('Kosten',money(net),'','kosten')],'grid-1 calm-kpis'):productKpiGrid([
   productKpi('Kosten',money(net),vat>0?'waarvan '+money(vat)+' btw terug':'','i-receipt','neutral','','kosten'),
   ...(costRing?[productKpi('Waaraan',null,'','i-chart','neutral',costRing,'kosten')]:[]),
   ...(review?[productKpi('Te controleren',String(review),'','i-check','warning','','open')]:[])
  ],'grid-'+(1+(costRing?1:0)+(review?1:0)))}
- ${phoneLayout()?pageTodoHtml([missingReceiptsTodo(true)]):missingReceiptsCardHtml(true)}
+ ${phoneLayout()?'':missingReceiptsCardHtml(true)}
  ${listToolbar('expenses')}
  <div class="card table-card workspace-table"><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-expenses"><thead><tr><th>Datum</th><th>Leverancier</th><th>Factuurnr.</th><th>Categorie</th><th>Betaalwijze</th><th>Btw</th><th class="right">Excl.</th><th class="right">Incl.</th><th></th></tr></thead><tbody>${list.length?list.map(e=>`<tr><td class="cell-nowrap">${dateNL(e.date)}</td><td class="cell-name"><span class="cell-with-avatar">${expenseLeadHtml(e)}<span class="cell-with-avatar-text"><strong title="${esc(e.vendor)}">${esc(e.vendor)}</strong><div class="help">${esc(e.notes||'')}</div></span></span></td><td class="cell-nowrap">${esc(e.invoiceNumber||'—')}</td><td>${esc(expenseCategoryLabel(e.category))}</td><td class="cell-nowrap">${esc(e.paymentMethod||'—')}</td><td class="cell-nowrap">${esc(expenseVatRateLabel(e))}</td><td class="right money cell-nowrap">${money(e.exVat)}</td><td class="right money cell-nowrap">${money(expenseGross(e))}</td><td class="right financial-actions cell-nowrap"><button class="icon-btn" aria-label="Kostenacties" aria-haspopup="dialog" onclick="expenseActions('${e.id}')">${icon('i-more')}</button></td></tr>`).join(''):`<tr><td colspan="9">${listEmptyHtml('expenses')}</td></tr>`}</tbody></table></div></div>`
 }
 function renderBank(){
  const phone=phoneLayout(),list=getListRows('bank'),balance=list.reduce((sum,t)=>roundMoney(sum+Number(t.amount||0)),0),unmatched=list.filter(t=>t.status==='unmatched').length,inCount=list.filter(t=>Number(t.amount||0)>0).length,outCount=list.filter(t=>Number(t.amount||0)<0).length,matched=list.filter(t=>t.status==='matched').length,income=list.filter(t=>Number(t.amount||0)>0).reduce((sum,t)=>roundMoney(sum+Number(t.amount||0)),0),out=list.filter(t=>Number(t.amount||0)<0).reduce((sum,t)=>roundMoney(sum+Math.abs(Number(t.amount||0))),0);
  return `<div class="product-page-shell"><div class="page-head product-page-head financial-page-head"><div><h1>Bank</h1>${deskCopyHtml('Controleer bij- en afschrijvingen en koppelingen.','page-status','p')}</div><div class="page-period-slot">${listPeriodQuickHtml('bank')}</div></div>${state.transactions.length?`<div class="page-actions product-page-actions"><button class="btn primary" onclick="document.getElementById('csvFile').click()">${icon('i-upload')} Bankbestand importeren</button><button class="btn" onclick="newTransaction()">${icon('i-plus')} Transactie toevoegen</button></div>`:''}<input type="file" id="csvFile" accept=".csv,.tab,.txt,text/csv,text/plain" class="hidden"></div>
- ${phone?productKpiGrid([
-  productKpiHero('Saldo van je bankregels',money(balance),'','neutral'),
-  productKpi('Erbij',money(income),'','i-chart','support','','omzet'),
-  productKpi('Eraf',money(out),'','i-receipt','warning','','kosten')
- ],'grid-2'):productKpiGrid([
+ ${phone?productKpiGrid([productKpiHero('Saldo',money(balance),'','winst')],'grid-1 calm-kpis'):productKpiGrid([
   productKpi('Importsaldo',money(balance),extraHelpVisible()?'Alle zichtbare bankregels':'','i-bank','primary'),
   productKpi('Bijgeschreven',money(income),extraHelpVisible()?'Positieve bankregels':'','i-chart','support'),
   productKpi('Uitgaven',money(out),extraHelpVisible()?'Negatieve bankregels':'','i-receipt','warning'),
@@ -5370,7 +5389,8 @@ function documentsPeriodSelect(){
 function setDocumentsPeriod(value){const s=listPageState('documents');s.filters.period=value;if(value!=='custom'){s.filters.from='';s.filters.to=''}persistListState();render()}
 function renderDocuments(){
  const list=getListRows('documents'),docs=state.documents,monthKey=monthKeyOffset(0),toProcess=docs.filter(d=>!d.linkedId&&!d.verification).length,review=docs.filter(d=>{const st=String(d.verification?.status||'');return st==='needs_review'||st==='error'||(!d.linkedId&&!!d.verification)||!!documentReviewJob(d)}).length,processed=docs.filter(d=>!!d.linkedId&&String(d.date||'').startsWith(monthKey)).length;
- return `<div class="product-page-shell"><div class="page-head product-page-head financial-page-head"><div><h1>Bonnetjes</h1>${docs.length?`<p class="page-status documents-safe">${docs.length} ${docs.length===1?'document':'documenten'} veilig bewaard, 7 jaar lang.</p>`:''}${deskCopyHtml('Ondersteund: PDF, JPG, PNG, HEIC, DOCX, XLSX en CSV.','page-status','p')}</div>${docs.length?`<div class="page-period-slot">${documentsPeriodSelect()}</div>`:''}</div>${docs.length?`<div class="page-actions product-page-actions"><button class="btn primary" onclick="openDocumentUpload()">${icon('i-upload')} Document uploaden</button></div>`:''}<input class="hidden" type="file" id="docFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"><input class="hidden" type="file" id="archiveFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"></div>
+ return `<div class="product-page-shell"><div class="page-head product-page-head financial-page-head"><div><h1>Bonnetjes</h1>${docs.length&&!phoneLayout()?`<p class="page-status documents-safe">${docs.length} ${docs.length===1?'document':'documenten'} veilig bewaard, 7 jaar lang.</p>`:''}${deskCopyHtml('Ondersteund: PDF, JPG, PNG, HEIC, DOCX, XLSX en CSV.','page-status','p')}</div>${docs.length?`<div class="page-period-slot">${documentsPeriodSelect()}</div>`:''}</div>${docs.length?`<div class="page-actions product-page-actions"><button class="btn primary" onclick="openDocumentUpload()">${icon('i-upload')} Document uploaden</button></div>`:''}<input class="hidden" type="file" id="docFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"><input class="hidden" type="file" id="archiveFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"></div>
+ ${docs.length&&phoneLayout()?productKpiGrid([productKpiHero(docs.length===1?'Bon':'Bonnen',String(docs.length),'','omzet')],'grid-1 calm-kpis documents-calm-kpis'):''}
  <div class="documents-kpis">${productKpiGrid([
   productKpi('Te verwerken',String(toProcess),extraHelpVisible()?'Nog niet gekoppeld':'','i-upload','support'),
   productKpi('Controle nodig',String(review),extraHelpVisible()?'Documenten met aandacht':'','i-check',review?'warning':'success'),
@@ -5980,10 +6000,12 @@ function bookBankExpense(id){
 function bankRowSheet(id){
  const t=state.transactions.find(x=>x.id===id);if(!t)return;
  if(!phoneLayout())return matchTransaction(id);
- const p=bankMatchProposal(t),out=Number(t.amount||0)<0,row=(label,ic,call)=>`<button class="bank-sheet-row" type="button" onclick="${call}"><span class="bank-sheet-icon" aria-hidden="true"><svg class="icon"><use href="#${ic}"/></svg></span><span>${label}</span><svg class="icon bank-sheet-chev" aria-hidden="true"><use href="#i-chevron"/></svg></button>`;
+ const linked=t.status!=='unmatched',p=linked?null:bankMatchProposal(t),out=Number(t.amount||0)<0,row=(label,ic,call)=>`<button class="bank-sheet-row" type="button" onclick="${call}"><span class="bank-sheet-icon" aria-hidden="true"><svg class="icon"><use href="#${ic}"/></svg></span><span>${label}</span><svg class="icon bank-sheet-chev" aria-hidden="true"><use href="#i-chevron"/></svg></button>`;
  const best=p&&p.id?`<p class="bank-sheet-label">Beste match</p><div class="bank-sheet-match"><span class="bank-sheet-icon is-good" aria-hidden="true"><svg class="icon"><use href="#i-check"/></svg></span><strong>${esc(p.text)}</strong></div><button class="btn primary bank-sheet-confirm" type="button" onclick="applyBankMatch('${esc(id)}','${esc(p.type)}','${esc(p.id)}')">Klopt, koppelen</button><p class="bank-sheet-label">Of</p>`:'';
- const rows=(out?row('Bon scannen','i-camera',"closeModal();openUploadSourcePicker('auto')")+row('Kosten boeken zonder bon','i-receipt',`closeModal();bookBankExpense('${esc(id)}')`):'')+row(p&&p.id?'Iets anders kiezen':(out?'Koppelen aan kosten':'Koppelen aan factuur'),'i-link',`matchTransaction('${esc(id)}')`);
- modal(esc(t.description||'Betaling'),`<div class="bank-sheet"><p class="bank-sheet-date"><strong class="bank-sheet-amount${out?'':' in'}">${out?'− ':'+ '}${money(Math.abs(Number(t.amount||0)))}</strong> · ${dateNL(t.date)}</p>${best}<div class="bank-sheet-rows">${rows}</div><button class="link-btn bank-sheet-delete" type="button" onclick="closeModal();requestTransactionDelete('${esc(id)}')">Regel verwijderen</button></div>`);
+ // A linked payment (Kwin 2026-10-22, rows without buttons): the sheet says what it belongs to and offers Ontkoppelen.
+ const linkText=linked?(listTransactionLinkText(t)||''):'',linkedBlock=linked&&linkText?`<p class="bank-sheet-label">Gekoppeld aan</p><div class="bank-sheet-match"><span class="bank-sheet-icon is-good" aria-hidden="true"><svg class="icon"><use href="#i-check"/></svg></span><strong>${esc(linkText)}</strong></div>`:'';
+ const rows=linked?row('Ontkoppelen','i-link',`closeModal();bankConfirmUnlink('${esc(id)}')`):(out?row('Bon scannen','i-camera',"closeModal();openUploadSourcePicker('auto')")+row('Kosten boeken zonder bon','i-receipt',`closeModal();bookBankExpense('${esc(id)}')`):'')+row(p&&p.id?'Iets anders kiezen':(out?'Koppelen aan kosten':'Koppelen aan factuur'),'i-link',`matchTransaction('${esc(id)}')`);
+ modal(esc(t.description||'Betaling'),`<div class="bank-sheet"><p class="bank-sheet-date"><strong class="bank-sheet-amount${out?'':' in'}">${out?'− ':'+ '}${money(Math.abs(Number(t.amount||0)))}</strong> · ${dateNL(t.date)}</p>${best}${linkedBlock}<div class="bank-sheet-rows">${rows}</div><button class="link-btn bank-sheet-delete" type="button" onclick="closeModal();requestTransactionDelete('${esc(id)}')">Regel verwijderen</button></div>`);
  document.querySelector('#modalRoot .modal')?.classList.add('bank-sheet-modal');document.querySelector('#modalRoot .modal-backdrop')?.classList.add('bank-sheet-backdrop')
 }
 function unmatchTransaction(id){const t=state.transactions.find(x=>x.id===id);let linked=null;if(t.matchType==='invoice')linked=state.invoices.find(x=>x.id===t.matchId);delete t.matchType;delete t.matchId;t.status='unmatched';if(linked)syncInvoiceStatus(linked);save();render();toast('Koppeling verwijderd')}

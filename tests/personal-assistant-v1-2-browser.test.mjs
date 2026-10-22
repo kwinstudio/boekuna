@@ -80,7 +80,10 @@ async function axe(label){
  const result=await page.evaluate(async()=>await axe.run(document.getElementById('mainApp'),{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']}}));
  assert.deepEqual(result.violations.map(v=>({id:v.id,nodes:v.nodes.length})),[],label+' Axe violations');
 }
+// On a phone the to-dos and the Ask Boekuna entry sit behind the "N te doen" button (Kwin 2026-10-22).
+async function openTodo(){const todo=page.locator('#content details.calm-todo:not([open]) summary');if(await todo.count())await todo.click()}
 async function ask(question){
+ await openTodo();
  await page.getByRole('button',{name:/Vraag Boekuna/i}).first().click();
  await page.getByRole('dialog').waitFor();
  const input=page.locator('#assistantQuestion');
@@ -95,20 +98,19 @@ try{
  await page.goto(base,{waitUntil:'networkidle'});
  await page.getByRole('heading',{name:'Overzicht'}).waitFor();
 
- assert.equal(await page.locator('.dashboard-kpis-v12 .dashboard-kpi').count(),5,'Dashboard must expose exactly five core KPI cards');
- const kpiLabels=await page.locator('.dashboard-kpis-v12 .dashboard-kpi-label').allTextContents();
- assert.deepEqual(kpiLabels.map(x=>x.trim()).filter((_,i)=>i!==3),['Winst','Omzet','Kosten','Nog te ontvangen'],'Core KPI labels must be unique and ordered');
- assert.match(kpiLabels[3].trim(),/^Btw (apartzetten|Q[1-4] (apartzetten|betalen|terug))$/,'The VAT tile names the quarter that is due');
- const receivables=await page.locator('.dashboard-kpi-receivables').innerText();
- assert.match(receivables,/910/,'Partial payment must leave €910 receivable');
- assert.match(receivables,/te laat/i,'A partially paid invoice past its due date must keep overdue context');
- const revenue=await page.locator('.dashboard-kpis-v12 .dashboard-kpi').filter({has:page.locator('.dashboard-kpi-label',{hasText:/^Omzet$/})}).innerText();
- assert.match(revenue,/1\.000|1,000|1000/,'Revenue KPI must use active invoice revenue');
- assert.doesNotMatch(revenue,/10\.999|10999/,'Cancelled invoice must not inflate revenue KPI');
- assert.equal(await page.locator('.dashboard-summary-title').filter({hasText:'Nog te ontvangen'}).count(),0,'Receivables must not be duplicated as a summary card');
+ // Phone overview (Kwin 2026-10-22, "rustiger" A): one Winst block, then Omzet, Kosten, Te ontvangen and Btw as one calm list.
+ assert.equal(await page.locator('.dashboard-kpis-calm .dashboard-kpi-profit').count(),1,'One Winst block');
+ const calmLabels=(await page.locator('.calm-list .calm-label').allTextContents()).map(x=>x.trim());
+ assert.deepEqual(calmLabels.slice(0,3),['Omzet','Kosten','Te ontvangen'],'Core amounts must be unique and ordered');
+ assert.match(calmLabels[3],/^Btw( Q[1-4])?$/,'The VAT row names the quarter that is due');
+ const receivables=page.locator('.calm-row',{hasText:'Te ontvangen'});
+ assert.match(await receivables.innerText(),/910/,'Partial payment must leave €910 receivable');
+ assert.equal(await receivables.evaluate(el=>el.classList.contains('has-attention')),true,'A partially paid invoice past its due date must keep overdue context');
+ const revenue=await page.locator('.calm-row',{hasText:'Omzet'}).innerText();
+ assert.match(revenue,/1\.000|1,000|1000/,'Revenue must use active invoice revenue');
+ assert.doesNotMatch(revenue,/10\.999|10999/,'Cancelled invoice must not inflate revenue');
+ await openTodo();
  assert.equal(await page.getByRole('button',{name:/Vraag Boekuna/i}).count()>=1,true,'Ask Boekuna entry must be visible');
- const receivableGrid=await page.locator('.dashboard-kpi-receivables').evaluate(el=>({start:getComputedStyle(el).gridColumnStart,end:getComputedStyle(el).gridColumnEnd}));
- assert.notEqual(receivableGrid.end,'-1','Only the primary profit KPI may span the full mobile KPI grid');
 
  let answer=await ask('Hoe sta ik ervoor?');
  assert.match(await answer.innerText(),/winst/i);
@@ -116,6 +118,7 @@ try{
  await page.screenshot({path:path.join(evidence,browserName+'-ask-personal-390.png'),fullPage:true,animations:'disabled'});
  await closeDialog();
 
+ await openTodo();
  await page.getByRole('button',{name:/Vraag Boekuna/i}).first().click();
  await page.getByRole('dialog').waitFor();
  assert.equal(await page.getByRole('dialog').getByRole('button',{name:'Waarom kan mijn btw nog veranderen?',exact:true}).count(),1,'VAT attention must create a dynamic suggested question');
@@ -163,7 +166,7 @@ try{
   await page.waitForTimeout(40);
   await noOverflow(browserName+' dashboard '+width);
   if(width===320){
-   const columns=await page.locator('.dashboard-kpis-v12').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length);
+   const columns=await page.locator('.dashboard-kpis-v12,.dashboard-kpis-calm').first().evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length);
    assert.equal(columns,1,'320px dashboard must preserve the existing single-column narrow-screen fallback');
   }
   if(width===390||width===1440){
@@ -172,6 +175,7 @@ try{
   }
  }
  await page.setViewportSize({width:390,height:844});
+ await openTodo();
  await page.getByRole('button',{name:/Vraag Boekuna/i}).first().click();
  const suggestion=page.getByRole('dialog').locator('.assistant-question-suggestion').first();
  assert.ok((await suggestion.evaluate(el=>el.getBoundingClientRect().height))>=44,'Mobile suggested questions must be at least 44px high');
@@ -187,6 +191,7 @@ try{
  });
  await page.setViewportSize({width:390,height:844});
  await page.getByRole('heading',{name:'Overzicht'}).waitFor();
+ await openTodo();
  const allClear=await page.locator('.assistant-dashboard').innerText();
  assert.match(allClear,/Alles bijgewerkt/i,'All-clear dashboard must explicitly say everything is updated');
  assert.match(allClear,/geen aandacht nodig|niets te doen|helemaal bij/i,'All-clear dashboard must not invent work');

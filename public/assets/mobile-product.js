@@ -44,6 +44,7 @@
       '<button class="btn" type="button" onclick="closeModal()">Annuleren</button><button class="btn primary" type="button" id="mobileConfirmUnlink">Ontkoppelen</button>');
     document.getElementById('mobileConfirmUnlink').addEventListener('click',function(){closeModal();unmatchTransaction(id)});
   }
+  window.bankConfirmUnlink = confirmUnlink;
   function documentStatus(item) {
     var status=(item.verification && item.verification.status)||item.verificationStatus;
     var processing=String(item.processingState||'');
@@ -129,7 +130,9 @@
     // Open invoices from before the period (Kwin 2026-10-10) follow under their own header.
     var earlier = page === 'invoices' && typeof invoiceEarlierOpenRows === 'function' ? invoiceEarlierOpenRows(true) : [];
     if (!items.length && !earlier.length) return; // Keep existing authoritative empty state and CTA.
-    var list = element('div', 'mobile-card-list' + (page === 'documents' ? ' mobile-doc-grid' : ''));
+    // Kwin 2026-10-22 ("rustiger" A): every list is the same calm rows (lead, name, amount, status dot), Bonnen too.
+    var calm = ['invoices', 'expenses', 'bank', 'documents'].indexOf(page) >= 0;
+    var list = element('div', 'mobile-card-list' + (calm ? ' calm-rows' : ''));
     list.setAttribute('role', 'list');
     // Newest first: show calm day headers ("Vandaag", "Gisteren", ...) like a bank app.
     var dayOf = function (item) { return String((page === 'invoices' ? item.issueDate : item.date) || '').slice(0, 10); };
@@ -210,6 +213,14 @@
         var linked = listTransactionLinkText(item);
         // Kwin 2026-10-10: what Boekuna found stands under the payment; Klopt links it, tapping the payment lets you choose.
         var proposal = item.status === 'unmatched' && proposalBudget-- > 0 && typeof bankMatchProposal === 'function' ? bankMatchProposal(item) : null;
+        if (page === 'bank' && typeof bankRowSheet === 'function') {
+          // No buttons in the row: a tap opens the sheet with Klopt, other choices, Ontkoppelen and delete.
+          entry = row(item.description || 'Banktransactie', (value >= 0 ? '+ ' : '− ') + money(Math.abs(value)), dateNL(item.date), statusBadge(item.status), function () { bankRowSheet(item.id); });
+          entry.lastChild.firstChild.classList.add(value >= 0 ? 'money-positive' : 'money-negative');
+          entry.setAttribute('role', 'listitem');
+          list.append(entry);
+          return;
+        }
         entry = row(item.description || 'Banktransactie', (value >= 0 ? '+ ' : '− ') + money(Math.abs(value)), dateNL(item.date), statusBadge(item.status), item.status === 'unmatched' ? function () { if (typeof bankRowSheet === 'function') bankRowSheet(item.id); else matchTransaction(item.id); } : null);
         entry.lastChild.firstChild.classList.add(value >= 0 ? 'money-positive' : 'money-negative');
         metadata(entry.firstChild, linked);

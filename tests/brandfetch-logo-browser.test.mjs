@@ -144,9 +144,9 @@ try{
     assert.ok(box&&Math.abs(box.width-box.height)<0.5&&box.width<=40,'logo stays a small round avatar on a phone');
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
     assert.ok(overflow<=0,'no sideways scroll on a phone');
-    // Bonnen tiles: the supplier logo replaces the receipt icon; no logo keeps the icon, same tile size.
+    // Bonnen rows (Kwin 2026-10-22, a list like the other pages): the supplier logo replaces the receipt icon; no logo keeps the icon, same size.
     await page.evaluate(()=>navigate('documents'));
-    const tile=name=>page.locator('.mobile-doc-grid .mobile-card-row').filter({hasText:name}).first();
+    const tile=name=>page.locator('.calm-rows .mobile-card-row').filter({hasText:name}).first();
     await tile('coolblue.jpg').locator('.doc-thumb.has-logo img').waitFor();
     assert.match(await tile('coolblue.jpg').locator('.doc-thumb img').getAttribute('src'),/^https:\/\/cdn\.brandfetch\.io\/coolblue\.nl\//);
     assert.equal(await tile('coolblue.jpg').locator('.doc-thumb .icon').evaluate(el=>getComputedStyle(el).visibility),'hidden');
@@ -155,7 +155,7 @@ try{
       assert.equal(await tile(name).locator('.doc-thumb.has-logo').count(),0,name+' keeps the receipt icon');
       assert.equal(await tile(name).locator('.doc-thumb .icon').evaluate(el=>getComputedStyle(el).visibility),'visible');
     }
-    const thumbs=await page.locator('.mobile-doc-grid .doc-thumb').evaluateAll(els=>[...new Set(els.map(el=>{const r=el.getBoundingClientRect();return Math.round(r.width)+'x'+Math.round(r.height)}))]);
+    const thumbs=await page.locator('.calm-rows .doc-thumb').evaluateAll(els=>[...new Set(els.map(el=>{const r=el.getBoundingClientRect();return Math.round(r.width)+'x'+Math.round(r.height)}))]);
     assert.equal(thumbs.length,1,'all bon tiles keep one thumb size: '+thumbs.join(', '));
     await page.screenshot({path:path.join(root,'tests','artifacts','brandfetch-bonnen-'+browserName+'.png')}).catch(()=>{});
     assert.deepEqual(errors,[],'no page errors on a phone');

@@ -1272,6 +1272,67 @@ html[data-theme="dark"] #mainApp input[type="search"]::-webkit-search-cancel-but
   #modalRoot .bank-sheet-amount.in{color:#2F7D3B}
   html[data-theme="dark"] #modalRoot .bank-sheet-amount{color:#F3F4F6}
   html[data-theme="dark"] #modalRoot .bank-sheet-amount.in{color:#7FDB8B}
+
+  /* 23. Rustiger A (Kwin 2026-10-22): every phone page is title, one blue block, search, chips, then calm rows with a status dot. */
+  html body #mainApp#mainApp #content .dashboard-kpis-calm{display:block!important}
+  html body #mainApp#mainApp #content .dashboard-kpis-calm .dashboard-kpi-profit{display:flex!important;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;width:100%;min-height:112px!important;border:0!important;border-radius:18px!important;text-align:left;font:inherit;cursor:pointer}
+  html body #mainApp#mainApp #content .dashboard-kpis-calm .metric-label{font-size:15px!important;font-weight:600!important;color:var(--calm-label)!important}
+  html body #mainApp#mainApp #content .dashboard-kpis-calm .metric-value{max-width:100%;overflow-wrap:anywhere;margin:0!important;font-size:clamp(24px,8.6vw,34px)!important;line-height:1.12!important;letter-spacing:-1.4px!important;font-weight:700!important;color:var(--calm-ink)!important}
+  html body #mainApp#mainApp #content .calm-list{display:block;margin:14px 0 0;border:1px solid var(--calm-line);border-radius:18px;background:var(--calm-surface);overflow:hidden}
+  html body #mainApp#mainApp #content .calm-row{display:grid;grid-template-columns:8px minmax(0,1fr) auto 14px;align-items:center;column-gap:12px;width:100%;min-height:56px;margin:0;padding:0 16px;border:0;border-bottom:1px solid var(--calm-hair);border-radius:0;background:transparent;color:var(--calm-ink);font:inherit;text-align:left;cursor:pointer;box-shadow:none}
+  html body #mainApp#mainApp #content .calm-row:last-child{border-bottom:0}
+  html body #mainApp#mainApp #content .calm-row::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--kpi-dot,#8A949B)}
+  html body #mainApp#mainApp #content .calm-row .calm-label{font-size:16px;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html body #mainApp#mainApp #content .calm-row .calm-value{font-size:16px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+  html body #mainApp#mainApp #content .calm-row.has-attention .calm-value{color:#C0392B}
+  html body #mainApp#mainApp #content .calm-row>.icon,html body #mainApp#mainApp #content .calm-todo>summary>.icon{width:14px;height:14px;color:var(--calm-muted)}
+  html body #mainApp#mainApp #content .calm-todo{margin:14px 0 0}
+  html body #mainApp#mainApp #content .calm-todo>summary{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border-radius:999px;background:#FDECEA;color:#9F2D22;list-style:none;cursor:pointer;font-size:15px}
+  html body #mainApp#mainApp #content .calm-todo>summary::-webkit-details-marker{display:none}
+  html body #mainApp#mainApp #content .calm-todo>summary .icon{color:inherit;transform:rotate(90deg);transition:transform .2s}
+  html body #mainApp#mainApp #content .calm-todo[open]>summary .icon{transform:rotate(-90deg)}
+  html body #mainApp#mainApp #content .calm-todo-dot{width:8px;height:8px;border-radius:50%;background:#E5534B}
+  html body #mainApp#mainApp #content .calm-todo>:not(summary){margin-top:10px!important}
+  html body #mainApp#mainApp #content .calm-todo.is-clear>summary{background:var(--calm-soft);color:var(--calm-ink)}
+  html body #mainApp#mainApp #content .calm-todo.is-clear .calm-todo-dot{background:#63D471}
+  html[data-theme="dark"] body #mainApp#mainApp #content .calm-todo>summary{background:#3A1D1A;color:#F2A49B}
+  html[data-theme="dark"] body #mainApp#mainApp #content .calm-todo.is-clear>summary{background:var(--calm-soft);color:var(--calm-ink)}
+  html[data-theme="dark"] body #mainApp#mainApp #content .calm-row.has-attention .calm-value{color:#F2A49B}
+  html body #mainApp#mainApp #content .calm-kpis{display:block!important}
+  html body #mainApp#mainApp #content .calm-kpis .product-kpi.kpi-hero{min-height:104px!important}
+  html body #mainApp#mainApp #content .calm-kpis .kpi-hero .metric-sub:empty{display:none!important}
+  /* Rows: name and amount only, the status is a small dot after the amount. */
+  html body #mainApp#mainApp #content .calm-rows .mobile-card-metadata,html body #mainApp#mainApp #content .calm-rows .mobile-paid-bar,html body #mainApp#mainApp #content .calm-rows .mobile-bank-proposal,html body #mainApp#mainApp #content .calm-rows .mobile-card-actions{display:none!important}
+  html body #mainApp#mainApp #content .calm-rows{grid-template-columns:minmax(0,1fr)!important}
+  html body #mainApp#mainApp #content .calm-rows>.mobile-card-row{display:flex!important;align-items:center!important;gap:12px!important;min-height:60px;min-width:0!important}
+  html body #mainApp#mainApp #content .calm-rows .mobile-card-main{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;flex:1 1 0%!important;min-width:0!important;max-width:100%;text-align:left!important}
+  html body #mainApp#mainApp #content .calm-rows .mobile-card-main>:first-child:not(.mobile-card-title){flex:none;margin:0!important}
+  html body #mainApp#mainApp #content .calm-rows .mobile-card-title{flex:1 1 0%!important;min-width:0!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px!important;font-weight:550!important}
+  html body #mainApp#mainApp #content .calm-rows .mobile-card-side{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-end!important;gap:10px!important;flex:none;text-align:right}
+  html body #mainApp#mainApp #content[data-page] .calm-rows>.mobile-card-row>.mobile-card-side{display:flex!important}
+  html body #mainApp#mainApp #content[data-page] .calm-rows .mobile-card-side>.mobile-card-value{align-self:center!important}
+  html body #mainApp#mainApp #content[data-page] .calm-rows .mobile-card-side>span:not([class]){display:inline-flex!important}
+  html body #mainApp#mainApp #content .calm-rows .mobile-card-side .mobile-card-value{font-size:16px!important;font-weight:650!important;white-space:nowrap}
+  html body #mainApp#mainApp #content .calm-rows .mobile-card-side .badge{display:inline-flex!important;width:8px;min-width:8px;height:8px;gap:0!important;overflow:hidden;font-size:0!important;line-height:0!important}
+  html body #mainApp#mainApp #content .calm-rows .mobile-card-side .badge::before{display:block!important;flex:0 0 8px!important;width:8px!important;height:8px!important;background:#8A949B}
+  html body #mainApp#mainApp #content .calm-rows .mobile-card-side .badge.good::before{background:#63D471!important}
+  html body #mainApp#mainApp #content .calm-rows .mobile-card-side .badge.warn::before{background:#E0A030!important}
+  html body #mainApp#mainApp #content .calm-rows .mobile-card-side .badge.bad::before{background:#E5534B!important}
+  html body #mainApp#mainApp #content .calm-rows .mobile-card-side .badge.info::before{background:#3B82F6!important}
+  html body #mainApp#mainApp #content .calm-rows .mobile-card-side :is(.icon-btn,.row-action-trigger){width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;color:#8A949B!important}
+  html body #mainApp#mainApp #content .calm-rows .doc-thumb{position:relative;display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;margin:0!important;border:1px solid var(--calm-line);border-radius:12px;background:#FAFAF7;color:#B9BDB4;overflow:hidden}
+  html body #mainApp#mainApp #content .calm-rows .doc-thumb .icon{width:20px;height:20px}
+  html body #mainApp#mainApp #content .calm-rows .doc-thumb img{position:absolute;inset:4px;width:30px;height:30px;border-radius:8px;object-fit:contain;opacity:0}
+  html body #mainApp#mainApp #content .calm-rows .doc-thumb.has-logo{border-color:transparent;background:transparent}
+  html body #mainApp#mainApp #content .calm-rows .doc-thumb.has-logo img{opacity:1}
+  html body #mainApp#mainApp #content .calm-rows .doc-thumb.has-logo .icon{visibility:hidden}
+  html[data-theme="dark"] body #mainApp#mainApp #content .calm-rows .doc-thumb{background:var(--dk-raised,#21272C);color:#8A949B}
+  /* One chip shape everywhere: a soft grey 36px pill. The chosen quick filter is dark; a chosen filter stays the green chip with × (Kwin 2026-10-21, Filters A). */
+  html body #mainApp#mainApp #content :is(.list-toolbar-quick .filter-btn,.list-chip-row .filter-btn,.list-chip-select,.list-chip-row .list-chip-more){min-height:36px!important;height:36px;border:0!important;border-radius:999px!important;background-color:var(--calm-soft)!important;color:var(--calm-ink)!important;font-size:14.5px!important;font-weight:500!important}
+  html body #mainApp#mainApp #content .list-chip-select.is-on{background-color:#E3F4E6!important;color:#1F7A33!important;font-weight:600!important}
+  html[data-theme="dark"] body #mainApp#mainApp #content .list-chip-select.is-on{background-color:#1E3324!important;color:#7FDB8B!important}
+  html body #mainApp#mainApp #content :is(.list-toolbar-quick .filter-btn.active,.list-chip-row .filter-btn.active){background-color:var(--calm-ink)!important;color:var(--calm-surface)!important;font-weight:600!important}
+  html[data-theme="dark"] body #mainApp#mainApp #content :is(.list-toolbar-quick .filter-btn.active,.list-chip-row .filter-btn.active){background-color:#3A444C!important;color:#F3F4F6!important}
 }
 /* Release audit C-13: a half-filled new invoice that was closed is offered back once. */
 #modalRoot .unsaved-invoice-offer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 14px;padding:12px 14px;border:1px solid #E4E7EA;border-radius:14px;background:#F7F8F9}

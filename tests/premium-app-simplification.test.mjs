@@ -118,10 +118,9 @@ try{
   assert.doesNotMatch(dashboard,/Werk op uitzonderingen, niet op alles/,'Dashboard should not contain marketing-like smart-card copy');
   assert.match(dashboard,/Omzet/);
   assert.match(dashboard,/Kosten/);
-  assert.match(dashboard,/Resultaat/);
+  assert.match(dashboard,/Winst/); // Phone overview (Kwin 2026-10-22): a Winst block instead of the Resultaat chart.
   assert.match(dashboard,/Btw/);
-  const mobileChartHeight=await page.locator('.dashboard-chart-card .chart').evaluate(el=>parseFloat(getComputedStyle(el).height));
-  assert.ok(mobileChartHeight<=190,'Mobile dashboard chart should stay compact (<=190px), got '+mobileChartHeight+'px');
+  assert.equal(await page.locator('.dashboard-chart-card').count(),0,'No chart on the phone overview');
   await page.screenshot({path:`tests/artifacts/premium-dashboard-${browserName}-390.png`,fullPage:true});
   await page.setViewportSize({width:430,height:900});
   await page.screenshot({path:`tests/artifacts/premium-dashboard-${browserName}-430.png`,fullPage:true});
@@ -191,10 +190,13 @@ try{
   assert.equal(await page.evaluate(()=>deleteDocumentNow('d-linked')),false,'Document linked to definitive bookkeeping must be protected from deletion');
   assert.equal(await page.evaluate(()=>state.documents.some(d=>d.id==='d-linked')),true);
 
+  // The summary actions live on the wider overview; the phone overview is the calm list (Kwin 2026-10-22).
+  await page.setViewportSize({width:1280,height:900});
   await navigateTo('dashboard');
   assert.equal(await page.locator('.dashboard-summary-card').count(),3,'Dashboard must replace the old recent-invoices table with three summary actions');
   assert.deepEqual(await page.locator('.dashboard-summary-title').allTextContents(),['Administratie','Vraag Boekuna','Nieuwe factuur']);
   assert.ok(await page.locator('.dashboard-summary-card').evaluateAll(nodes=>nodes.every(node=>node.tagName==='BUTTON')),'Dashboard summary actions must remain keyboard-native buttons');
+  await page.setViewportSize({width:390,height:844});
 
   for(const [route,selector] of [
     ['expenses','.mobile-expenses'],

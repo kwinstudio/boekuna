@@ -109,9 +109,13 @@ try{
   assert.notEqual(await page.locator('#mobileBottomNav').evaluate(el=>getComputedStyle(el).display),'none','Bottom navigation must be visible on mobile');
   assert.equal(await page.locator('[data-mobile-page="dashboard"]').getAttribute('aria-current'),'page');
 
-  const greeting=await page.locator('.dashboard-page-head h1').innerText();
-  assert.match(greeting,/^(Goedemorgen|Goedemiddag|Goedenavond), Kwin$/,'Dashboard greets with local daypart and first name');
-  assert.match(await page.locator('.dashboard-page-head .page-status').innerText(),/^(Alles loopt\.|\d+ factu(ur|ren) .+\.)$/,'Dashboard shows one calm status line under the greeting');
+  // Kwin 2026-10-22 ("rustiger" A): title, one Winst block, one list of four amounts, to-dos behind one "N te doen" button.
+  assert.equal(await page.locator('.dashboard-page-head h1').innerText(),'Overzicht');
+  assert.match(await page.locator('.dashboard-page-head h1').getAttribute('aria-label'),/^Overzicht, (Goedemorgen|Goedemiddag|Goedenavond), Kwin$/,'The greeting stays for screen readers');
+  assert.deepEqual(await page.locator('.calm-list .calm-label').allTextContents(),['Omzet','Kosten','Te ontvangen',await page.locator('.calm-list .calm-label').nth(3).textContent()]);
+  assert.match(await page.locator('.calm-list .calm-label').nth(3).textContent(),/^Btw( Q[1-4])?$/);
+  assert.match(await page.locator('.calm-todo summary').innerText(),/^\d+ te doen$/);
+  await page.locator('.calm-todo summary').click();
 
   await page.locator('.dashboard-attention h2').filter({hasText:'Nog te doen'}).waitFor();
   const attentionText=await page.locator('.dashboard-attention').innerText();
@@ -267,8 +271,9 @@ try{
 
   // One relation stays, so this is an account with data and nothing to do (an empty account gets "Zo begin je", below).
   await page.evaluate(()=>{state.invoices=[];state.transactions=[];state.documents=[];state.bookings=[];documentProcessingJobs=[];documentProcessingConnectivityLost=false;documentProcessingInitialized=true;render()});
-  await page.getByRole('heading',{name:'Nog te doen',exact:true}).waitFor();
-  await page.getByText('Alles bijgewerkt',{exact:true}).waitFor();
+  // Phone overview (Kwin 2026-10-22): nothing to do means no "te doen" button at all; a fetch problem still shows.
+  await page.locator('.calm-list').waitFor();
+  assert.equal(await page.locator('.calm-todo:not(.is-clear)').count(),0);
 
   await page.evaluate(()=>{documentProcessingConnectivityLost=true;render()});
   await page.getByText('Nog te doen niet bijgewerkt').waitFor();

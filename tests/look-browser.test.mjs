@@ -50,11 +50,10 @@ async function openApp(width,height){
 
 try{
   const {context,page}=await openApp(390,844);
-  // 1. Greeting with one calm line, visible on a phone.
-  assert.match(await page.locator('.dashboard-page-head h1').innerText(),/^(Goedemorgen|Goedemiddag|Goedenavond), Kwin$/);
-  assert.match(await page.locator('.dashboard-page-head .page-status').innerText(),/^2 facturen (zijn te laat|wachten nog op betaling)\.$/);
-  await page.getByRole('heading',{name:'Overzicht'}).waitFor();
-  assert.ok(await page.locator('.dashboard-page-head .page-status').isVisible(),'Status line shows on a phone');
+  // 1. Kwin 2026-10-22 ("rustiger" A): the phone overview is titled Overzicht, without a greeting or status line.
+  assert.equal(await page.locator('.dashboard-page-head h1').innerText(),'Overzicht');
+  assert.match(await page.locator('.dashboard-page-head h1').getAttribute('aria-label'),/^Overzicht, (Goedemorgen|Goedemiddag|Goedenavond), Kwin$/);
+  assert.equal(await page.locator('.dashboard-page-head .page-status').count(),0,'No status line under the title on a phone');
   // 2. Cents are smaller, the text itself is unchanged.
   const profit=page.locator('.dashboard-kpi-profit .metric-value');
   assert.equal(await profit.locator('.amount-cents').innerText(),',00');
@@ -69,7 +68,8 @@ try{
   assert.ok(logoRequests.every(r=>r.startsWith('bakkerij-logo.test/')||r.startsWith('www.bakkerij-logo.test/')),'No request to a logo service or a free mail domain: '+logoRequests.join(', '));
   const badge=page.locator('.mobile-card-row .badge').first();
   assert.equal(await badge.evaluate(el=>getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)','Status is a dot with text, not a block');
-  assert.equal(await badge.evaluate(el=>getComputedStyle(el,'::before').width),'7px');
+  assert.equal(await badge.evaluate(el=>getComputedStyle(el,'::before').width),'8px');
+  assert.equal(await badge.evaluate(el=>getComputedStyle(el).fontSize),'0px','On a phone the status is only the dot');
   // 4. A line icon per kind of cost.
   await page.evaluate(()=>navigate('expenses'));
   await page.locator('.mobile-card-row .party-avatar.category-icon svg').first().waitFor();
@@ -81,9 +81,8 @@ try{
   assert.equal(await empty.locator('.btn.primary',{hasText:'Bonnetje scannen'}).count(),1);
   // 6. All done.
   await page.evaluate(()=>{state.expenses=[];state.invoices=[];navigate('dashboard')});
-  await page.locator('.assistant-dashboard .assistant-empty').waitFor().catch(async()=>{throw new Error('Dashboard: '+await page.evaluate(()=>[...document.querySelectorAll('#content section')].map(s=>s.className+' => '+s.innerText.slice(0,160).replace(/\s+/g,' ')).join(' || ')))});
-  assert.match(await page.locator('.assistant-dashboard .assistant-empty').innerText(),/Alles bijgewerkt\s+Je bent helemaal bij/);
-  assert.equal(await page.locator('.dashboard-page-head .page-status').innerText(),'Alles loopt.');
+  await page.locator('.calm-list').waitFor();
+  assert.equal(await page.locator('.calm-todo:not(.is-clear)').count(),0,'Nothing to do: no "te doen" button on a phone');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth),0);
   await context.close();
 
@@ -105,13 +104,10 @@ try{
     assert.equal(await page.locator('#dashboardPeriod').inputValue(),'year');
     const head=await page.locator('.dashboard-page-head').evaluate(el=>({title:el.querySelector('h1').getBoundingClientRect(),pick:el.querySelector('.period-seg-select').getBoundingClientRect()}));
     assert.ok(head.pick.left>=head.title.right&&head.pick.top<head.title.bottom&&head.pick.right<=390,'The period button sits next to the greeting: '+JSON.stringify(head));
-    assert.equal(await page.locator('.dashboard-kpi .kpi-bars rect').count(),6,'Omzet shows six small month bars');
-    assert.equal(await page.locator('.dashboard-kpi .kpi-ring').count(),1,'Kosten shows a small ring');
-    assert.match(await page.locator('.dashboard-kpi .kpi-ring-legend').innerText(),/Reizen/);
-    assert.equal(await page.locator('.dashboard-kpi .kpi-share').count(),1,'Nog te ontvangen shows a thin bar');
-    assert.match(await page.locator('.dashboard-kpi .kpi-deadline').innerText(),/^Aangifte vóór \d{1,2} [a-z]+ · (vandaag|nog 1 dag|nog \d+ dagen)$/);
-    // Kwin 2026-10-10: the VAT tile names the quarter that is due ("Btw Q3 betalen" in the filing month, else "Btw Q4 apartzetten").
-    assert.match(await page.locator('.dashboard-kpi:has(.kpi-deadline) .dashboard-kpi-label').innerText(),/^Btw Q[1-4] (betalen|terug|apartzetten)$/);
+    // Kwin 2026-10-22 ("rustiger" A): one Winst block and one calm list of four amounts instead of tiles with charts.
+    assert.equal(await page.locator('.dashboard-kpis-calm .dashboard-kpi').count(),1,'Only the Winst block');
+    assert.equal(await page.locator('.calm-list .calm-row').count(),4);
+    assert.match(await page.locator('.calm-list .calm-row').nth(3).innerText(),/^Btw Q[1-4]\s/,'The VAT row names the quarter that is due');
     const fab=await page.locator('#quickNew').evaluate(el=>{const r=el.getBoundingClientRect(),c=getComputedStyle(el);return {right:innerWidth-r.right,bottom:innerHeight-r.bottom,w:r.width,h:r.height,position:c.position}});
     assert.equal(fab.position,'fixed');
     assert.ok(fab.w===48&&fab.h===48&&Math.abs(fab.right-(390-48)/2)<=1&&fab.bottom>=6&&fab.bottom<=12,'Nieuw is a round button inside the middle of the bottom bar: '+JSON.stringify(fab));
@@ -119,8 +115,9 @@ try{
     await page.locator('.mobile-card-list .mobile-card-group').first().waitFor();
     assert.deepEqual(await page.locator('.mobile-card-list .mobile-card-group').allTextContents(),['Vandaag']);
     const partly=page.locator('.mobile-card-row',{hasText:'Bakkerij de Vries'});
-    assert.match(await partly.innerText(),/€\s?300,00 van €\s?1\.452,00 binnen/);
-    assert.equal(await partly.locator('.mobile-paid-bar i').count(),1);
+    // Kwin 2026-10-22: rows show name, amount and a status dot only; the part paid shows inside the invoice.
+    assert.equal(await partly.locator('.mobile-paid-bar').isVisible(),false);
+    assert.doesNotMatch(await partly.innerText(),/binnen/);
     assert.match(await partly.locator('.mobile-card-value').textContent(),/^€\s?1\.452,00$/,'No "+" before the amount (Kwin 2026-10-10)');
     assert.ok(await partly.locator('.mobile-card-value.money-positive').count()===1);
     await page.evaluate(()=>navigate('settings'));
@@ -177,8 +174,7 @@ try{
     const bg=sel=>page.locator(sel).first().evaluate(el=>getComputedStyle(el).backgroundColor);
     assert.equal(await bg('#content'),'rgb(255, 255, 255)','The page is plain white on a phone');
     assert.equal(await page.locator('#mobileMenu').evaluate(el=>getComputedStyle(el).borderTopWidth+'|'+getComputedStyle(el).backgroundColor),'0px|rgba(0, 0, 0, 0)','Menu is just the icon');
-    assert.equal(await page.locator('.dashboard-kpi .kpi-bars').isVisible(),true,'Omzet keeps its small bars');
-    assert.equal(await page.locator('.dashboard-kpi .kpi-ring').isVisible(),true,'Kosten keeps its small ring');
+    assert.equal(await page.locator('.calm-list').isVisible(),true,'One calm list under the Winst block');
     const todo=page.locator('#content .dashboard-attention-item').first();
     if(await todo.count()){
       assert.equal(await todo.locator('.dashboard-attention-cta').evaluate(el=>getComputedStyle(el).fontSize),'0px','Nog te doen is one row with an arrow');
@@ -193,7 +189,7 @@ try{
     assert.equal(mains,0,'Bonnetjes has no own upload button on a phone; Scannen and Factuur uploaden sit under Nieuw');
     await page.evaluate(()=>{window.BoekunaTheme&&BoekunaTheme.set('dark');navigate('dashboard')});
     assert.notEqual(await bg('#content'),'rgb(255, 255, 255)','Dark mode stays dark');
-    assert.notEqual(await bg('.dashboard-kpi:not(.dashboard-kpi-profit)'),'rgb(255, 255, 255)','Dark tiles stay dark');
+    assert.notEqual(await bg('.calm-list'),'rgb(255, 255, 255)','The dark list stays dark');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth),0);
     await context.close();
   }
