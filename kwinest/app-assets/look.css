@@ -1387,3 +1387,15 @@ html[data-theme="dark"] .year-close-steps li{border-color:var(--dk-line,#2E363C)
 .auth-switch-steps{margin:16px 0 20px;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
 .auth-switch-steps li{display:flex;flex-direction:column;gap:2px;font-size:15px;line-height:1.4}
 .auth-switch-steps li span{color:#5F6B7A;font-size:14px}
+/* Uren: richting 1.225 uur */
+#mainApp [data-kpi-dot="uren"]{--kpi-dot:#A78BFA}
+.hours-sheet-total{display:flex;align-items:baseline;gap:8px}
+.hours-sheet-total strong{font-size:34px;font-weight:800;letter-spacing:-.02em}
+.hours-sheet-total span{color:var(--app-muted,#5F6B7A)}
+.hours-sheet-bar{display:block;height:8px;border-radius:99px;background:#EEF1F4;margin:10px 0 12px;overflow:hidden}
+.hours-sheet-bar i{display:block;height:100%;width:var(--w);background:#8B6CEF;border-radius:inherit}
+.hours-sheet-list{margin-top:12px;border-top:1px solid var(--app-border,#E4E8EB)}
+.hours-sheet-row{display:flex;align-items:center;gap:10px;min-height:52px;border-bottom:1px solid var(--app-border,#E4E8EB)}
+.hours-sheet-row>span{flex:1;display:flex;flex-direction:column;font-size:15px}
+.hours-sheet-row>span span{color:var(--app-muted,#5F6B7A);font-size:13px}
+html[data-theme="dark"] .hours-sheet-bar{background:#2E363C}

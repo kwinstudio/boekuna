@@ -13,7 +13,7 @@ const CORE_FEATURES=Object.freeze({
 export const FIRST_RELEASE_FEATURES=Object.freeze({
   ...CORE_FEATURES,
   personalAssistant:false,
-  timeTracking:false,
+  timeTracking:true,
   mileage:false,
   projects:false,
   quotes:false,
