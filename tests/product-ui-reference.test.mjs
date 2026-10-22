@@ -535,9 +535,11 @@ try{
       await page.setViewportSize({width:390,height:844});
       await page.evaluate(()=>navigate('dashboard'));
       await page.getByRole('heading',{name:'Overzicht'}).waitFor();
-      assert.ok((await page.locator('.dashboard-kpi .metric-icon').count())>0,'Dashboard KPI icon nodes should remain available');
-      assert.ok(await page.locator('.dashboard-kpi .metric-icon').evaluateAll(nodes=>nodes.every(el=>getComputedStyle(el).display==='none')),'Mobile overview tiles and the Winst block carry no corner icon (Kwin 2026-10-09)');
-      assert.equal(await page.locator('.dashboard-kpis').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length),2,'390px mobile dashboard must pair Omzet and Kosten');
+      // Kwin 2026-10-22 ("rustiger" A): one Winst block without a corner icon, then one list of four amounts.
+      assert.equal(await page.locator('.dashboard-kpi .metric-icon').count(),0,'The Winst block carries no corner icon');
+      assert.equal(await page.locator('.calm-list .calm-row').count(),4,'390px mobile overview lists Omzet, Kosten, Te ontvangen and Btw');
+      const calmRows=await page.locator('.calm-list .calm-row').evaluateAll(nodes=>nodes.map(el=>el.getBoundingClientRect().height));
+      assert.ok(calmRows.every(h=>h>=44),'Overview rows are full touch targets: '+calmRows.join(', '));
       assert.equal(await page.locator('#content').evaluate(el=>getComputedStyle(el).paddingTop),'14px','390px mobile content padding must use the compact app-only contract');
       assert.equal(await page.locator('.dashboard-chart-card').isVisible(),false,'Large chart belongs on mobile Reports');
       const targets=await page.locator('#mobileBottomNav .mobile-bottom-nav-item').evaluateAll(nodes=>nodes.map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height})));

@@ -128,11 +128,15 @@ try{
   }
  }
  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>{page='bank';render()});
- const mobileUnlink=page.locator('.mobile-card-list').getByRole('button',{name:'Ontkoppelen',exact:true}).first();
+ // Kwin 2026-10-22: bank rows carry no buttons; tapping a linked payment opens the sheet with Ontkoppelen as text.
  // Mobile cards are installed by a MutationObserver; WebKit may flush that observer after the viewport transition returns.
- await mobileUnlink.waitFor({state:'visible',timeout:2000});
- assert.equal(await mobileUnlink.isVisible(),true,'Mobile bank action must keep Ontkoppelen as visible text');
- assert.equal(await mobileUnlink.locator('svg').count(),0,'Mobile bank action should favor text over icon-only meaning');
+ const linkedBankRow=page.locator('.mobile-card-list .mobile-card-row').filter({has:page.locator('.badge.good')}).first();
+ await linkedBankRow.waitFor({state:'visible',timeout:2000});
+ assert.equal(await page.locator('.mobile-card-list').getByRole('button',{name:'Ontkoppelen',exact:true}).count(),0,'No buttons inside bank rows');
+ await linkedBankRow.locator(".mobile-card-main").click();
+ const mobileUnlink=page.getByRole('dialog').getByRole('button',{name:'Ontkoppelen',exact:true});
+ assert.equal(await mobileUnlink.isVisible(),true,'Mobile bank sheet must keep Ontkoppelen as visible text');
+ await page.evaluate(()=>closeModal());
  await page.evaluate(()=>{page='expenses';render()});
  const mobileExpenseRow=page.locator('.mobile-expenses tbody tr').first();
  assert.equal(await mobileExpenseRow.getAttribute('onclick'),null,'Mobile expense row remains non-clickable');
