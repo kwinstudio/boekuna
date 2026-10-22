@@ -118,6 +118,7 @@
       +'<input type="file" id="settingsLogoFile" class="settings-center-file" accept="image/png,image/jpeg" tabindex="-1" aria-hidden="true"><button type="button" class="btn" data-settings-action="pick-logo" aria-describedby="settingsLogoLabel">'+(inv.logoDataUrl?'Ander logo kiezen':'Logo kiezen')+'</button>'
       +(inv.logoDataUrl?'<button type="button" class="link-btn" data-settings-action="remove-logo">Verwijderen</button>':'')
       +'</div><div class="help">PNG of JPG, maximaal 600 KB.</div></div>'
+      +(state.invoices.some(function(i){return i.status!=='draft'})?'':field('meta.nextInvoice','Volgende nummer',Number(state.meta&&state.meta.nextInvoice||1),{type:'number',min:1,max:999999,inputmode:'numeric',help:'Kom je van een ander pakket? Ga verder waar je was.'}))
       +'</div>'
       +check('company.invoiceYearReset','Elk jaar opnieuw nummeren',!!c.invoiceYearReset,'Op 1 januari begint het weer bij 0001, met het nieuwe jaar ervoor.');
     var extra='<div class="form-grid">'
@@ -234,6 +235,7 @@
       +line('Rapportage',phone()?'Omzet, kosten, winst en btw als PDF.':'Omzet, kosten, winst en btw als PDF. Je ziet hem eerst, daarna kun je hem bewaren of printen.','<button class="btn" type="button" onclick="printReport()">PDF bekijken</button>')
       +line('Facturen',phone()?'Facturen voor Excel.':'Al je facturen en creditfacturen als CSV-bestand voor Excel of je boekhouder.','<button class="btn" type="button" onclick="exportInvoicesCSV()">Downloaden</button>')
       +line('Kosten','Al je kosten met btw als CSV-bestand.','<button class="btn" type="button" onclick="exportExpensesCSV()">Downloaden</button>')
+      +line('Overstappen',phone()?'Klanten en leveranciers uit een CSV.':'Klanten en leveranciers uit een CSV van je oude pakket (Moneybird, e-Boekhouden, Jortt). Bestaande relaties worden aangevuld.','<button class="btn" type="button" onclick="document.getElementById(\'contactsCsvFile\').click()">CSV kiezen</button><input type="file" id="contactsCsvFile" accept=".csv,text/csv" class="hidden" onchange="importContactsCsv(this)">')
       +line('Volledige back-up',phone()?'Alles in één bestand, om terug te zetten.':'Je hele administratie in één bestand. Hiermee kun je later alles terugzetten.','<button class="btn" type="button" onclick="exportBackup()">Downloaden</button>')
       +'</div>';
     var restore='<div class="settings-export-grid">'
@@ -420,6 +422,7 @@
   function setPath(path,value){
     var parts=path.split('.'),c=state.company||(state.company={});
     if(parts[0]==='company'){c[parts[1]]=value;return}
+    if(path==='meta.nextInvoice'){var next=Math.round(Number(value));if(Number.isFinite(next)&&next>=1){state.meta=state.meta||{};state.meta.nextInvoice=Math.min(999999,next)}return}
     if(parts[0]==='invoiceDesign'){c.invoiceDesign=Object.assign({},DEFAULT_INVOICE_DESIGN,c.invoiceDesign||{});c.invoiceDesign[parts[1]]=value;return}
     if(parts[0]==='emailTemplate'){c.emailTemplate=Object.assign({},DEFAULT_EMAIL_TEMPLATE,c.emailTemplate||{});c.emailTemplate[parts[1]]=value}
   }

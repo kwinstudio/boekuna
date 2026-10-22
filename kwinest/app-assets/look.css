@@ -1383,3 +1383,7 @@ html.hide-amounts:not(.amounts-peek) .kpi-hero{cursor:pointer}
 .year-close-steps li.is-done>span:nth-child(2){color:var(--app-muted,#5F6B7A)}
 .year-close-btn{margin:0 20px 18px;width:calc(100% - 40px)}
 html[data-theme="dark"] .year-close-steps li{border-color:var(--dk-line,#2E363C)}
+/* Overstappen: vier stappen op het inlogscherm */
+.auth-switch-steps{margin:16px 0 20px;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
+.auth-switch-steps li{display:flex;flex-direction:column;gap:2px;font-size:15px;line-height:1.4}
+.auth-switch-steps li span{color:#5F6B7A;font-size:14px}
