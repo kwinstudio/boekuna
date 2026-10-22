@@ -130,8 +130,27 @@ function creditNote(invoice:any){
   const reference=safe(invoice?.reference,160).trim();
   return reference?"Creditfactuur · "+reference:"";
 }
+// The PDF uses the standard Helvetica font, which only knows WinAnsi (cp1252). One other
+// character (a Turkish or Polish name, an arrow, an emoji) made pdf-lib throw, so the whole
+// invoice could not be shared. Letters lose their accent, a few symbols get a plain twin,
+// anything else becomes "?".
+const WIN_ANSI_EXTRA=new Set("€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ");
+const PDF_TEXT_SWAPS:Record<string,string>={"Ł":"L","ł":"l","ı":"i","Đ":"D","đ":"d","Ħ":"H","ħ":"h","→":"->","←":"<-","≤":"<=","≥":">=","−":"-","‐":"-","‑":"-","′":"'","″":"\""};
+const winAnsi=(ch:string)=>{const code=ch.codePointAt(0)||0;return (code>=0x20&&code<=0x7e)||(code>=0xa0&&code<=0xff)||WIN_ANSI_EXTRA.has(ch)};
+function pdfText(value:any){
+  let out="";
+  for(const ch of String(value??"")){
+    if(ch==="\n"){out+=ch;continue}
+    if(winAnsi(ch)){out+=ch;continue}
+    if(PDF_TEXT_SWAPS[ch]){out+=PDF_TEXT_SWAPS[ch];continue}
+    if(/\s/.test(ch)){out+=" ";continue}
+    const plain=ch.normalize("NFKD").replace(/[\u0300-\u036f]/g,"");
+    out+=plain&&[...plain].every(winAnsi)?plain:"?";
+  }
+  return out;
+}
 function wrapText(value:string,font:any,size:number,width:number){
-  const words=safe(value,2000).replace(/\s+/g," ").trim().split(" ");
+  const words=pdfText(safe(value,2000)).replace(/\s+/g," ").trim().split(" ");
   const lines:string[]=[];let current="";
   for(const word of words){
     const next=current?current+" "+word:word;
@@ -148,8 +167,8 @@ async function pdfBytes(data:any){
   const accent=rgb(ar,ag,ab), ink=rgb(.09,.14,.12), muted=rgb(.4,.46,.43);
   const zeroVat=zeroVatTreatment(taxTreatment(invoice));
   let page=pdf.addPage([595.28,841.89]); let y=790;
-  const text=(t:string,x:number,yy:number,size=10,font=regular,color=ink)=>page.drawText(safe(t,1000),{x,y:yy,size,font,color,maxWidth:500});
-  const right=(t:string,xRight:number,yy:number,size=9,font=regular,color=ink)=>{const v=safe(t,200);page.drawText(v,{x:xRight-font.widthOfTextAtSize(v,size),y:yy,size,font,color})};
+  const text=(t:string,x:number,yy:number,size=10,font=regular,color=ink)=>page.drawText(pdfText(safe(t,1000)),{x,y:yy,size,font,color,maxWidth:500});
+  const right=(t:string,xRight:number,yy:number,size=9,font=regular,color=ink)=>{const v=pdfText(safe(t,200));page.drawText(v,{x:xRight-font.widthOfTextAtSize(v,size),y:yy,size,font,color})};
   const newPage=()=>{page=pdf.addPage([595.28,841.89]);y=790};
   const tableHeader=()=>{text("Omschrijving",46,y,8,bold,muted);text("Aantal",300,y,8,bold,muted);right("Prijs excl. btw",425,y,8,bold,muted);right("Btw",465,y,8,bold,muted);right("Bedrag",549,y,8,bold,muted);page.drawLine({start:{x:46,y:y-10},end:{x:549,y:y-10},thickness:1,color:accent});y-=30;};
   text(safe(company.tradeName||company.name,120).toUpperCase(),46,y,9,bold,accent); text(invoice.kind==="credit"?"CREDITFACTUUR":"FACTUUR",46,y-34,26,bold,ink);
@@ -189,7 +208,7 @@ async function pdfBytes(data:any){
     text(invoice.kind==="credit"?"Wordt verrekend of terugbetaald":safe(company.iban,80),58,y-34,10,bold,rgb(1,1,1));
     text("REFERENTIE",330,y-17,7,bold,rgb(1,1,1)); text(safe(invoice.paymentReference||invoice.number,80),330,y-34,10,bold,rgb(1,1,1));
   }
-  const footer=[safe(company.name,120),company.kvk?"KVK "+safe(company.kvk,30):"",company.vat?"Btw-id "+safe(company.vat,40):""].filter(Boolean).join(" · ");
+  const footer=pdfText([safe(company.name,120),company.kvk?"KVK "+safe(company.kvk,30):"",company.vat?"Btw-id "+safe(company.vat,40):""].filter(Boolean).join(" · "));
   const pages=pdf.getPages();
   pages.forEach((p:any,i:number)=>{p.drawText(footer,{x:46,y:40,size:7,font:regular,color:muted,maxWidth:500});p.drawText("Pagina "+String(i+1)+" / "+String(pages.length),{x:46,y:28,size:7,font:regular,color:muted})});
   return await pdf.save();

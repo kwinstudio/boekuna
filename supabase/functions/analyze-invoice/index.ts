@@ -4,6 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const DOCUMENT_PROCESSOR_URL=(Deno.env.get("DOCUMENT_PROCESSOR_URL")||"https://kwinest-docprocessor.onrender.com").replace(/\/$/,"");
 const EXTERNAL_AI_ENABLED=["1","true","yes","on"].includes((Deno.env.get("BOOKUNA_ENABLE_EXTERNAL_AI")||"").trim().toLowerCase());
 const ALLOWED_ORIGINS = new Set([
+  "https://app.boekuna.nl",
   "https://boekuna-boekhouding.onrender.com",
   "https://kwinest-boekhouding.onrender.com",
   "https://boekuna-qa-staging.onrender.com",

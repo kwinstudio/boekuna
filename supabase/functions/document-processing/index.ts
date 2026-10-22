@@ -324,6 +324,10 @@ async function resume(req:Request,a:{user:any,auth:string},developer:DeveloperCo
   for(const job of stale||[]){
     await sb.from("document_processing_jobs").update({state:"queued",phase:"queued",updated_at:new Date().toISOString()}).eq("id",job.id).in("state",["processing","validating"]);
   }
+  // A job whose last attempt died mid-run (processor restart, worker killed) has no
+  // attempt left to requeue; without this it would show "bezig" forever.
+  const {data:exhausted}=await sb.from("document_processing_jobs").select("id").eq("user_id",a.user.id).eq("execution_mode","legacy").in("state",["processing","validating"]).lt("updated_at",threshold).gte("attempt",3).limit(10);
+  for(const job of exhausted||[])await markFailed(sb,job.id,"PROCESSING_TIMEOUT",504);
   const started=await kickUser(a.user.id,a.auth,developer);
   return out(req,{ok:true,resumed:(queued?.length||0)+(stale?.length||0),started});
 }
