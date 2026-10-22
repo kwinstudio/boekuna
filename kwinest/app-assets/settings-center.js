@@ -243,6 +243,7 @@
       +'</div>';
     var advanced='<div class="settings-export-list">'
       +line('Journaal','Alle boekingsregels in de gekozen periode als CSV.','<button class="btn" type="button" onclick="exportJournalCSV()">Downloaden</button>')
+      +line('Auditfile (XAF)','Grootboek en boekingen in de gekozen periode, voor je boekhouder of de Belastingdienst.','<button class="btn" type="button" onclick="exportAuditfileXAF()">Downloaden</button>')
       +line('Auditlog','Wat er wanneer is gewijzigd, als CSV.','<button class="btn" type="button" onclick="exportAuditCSV()">Downloaden</button>')
       +(hasConflictBackup()?line('Lokale herstelkopie','Een kopie die op dit apparaat is bewaard.','<button class="btn" type="button" onclick="restoreConflictDialog()">Bekijken</button>'):'')
       +'</div>'+(phone()?'':'<div class="help">Voor je boekhouder of een controle. Je dagelijkse administratie heeft deze niet nodig.</div>');

@@ -1368,3 +1368,18 @@ html[data-theme="dark"] #modalRoot .email-copy-self{color:var(--dk-ink,#E9EDEF)}
 /* Bedragen verbergen: vaag op het overzicht tot je op het grote getal tikt */
 html.hide-amounts:not(.amounts-peek) .dashboard-kpis .metric-value,html.hide-amounts:not(.amounts-peek) .calm-list .calm-value{filter:blur(9px);user-select:none}
 html.hide-amounts:not(.amounts-peek) .kpi-hero{cursor:pointer}
+/* Btw: kwartaal veranderd na je aangifte */
+.vat-correction{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px}
+.vat-correction strong{display:block}
+.vat-correction span{font-size:14px}
+/* Rapportages: jaar afsluiten in stappen */
+.year-close-card{margin-top:16px}
+.year-close-steps{list-style:none;margin:6px 0 0;padding:0 20px 16px;display:flex;flex-direction:column}
+.year-close-steps li{display:flex;align-items:center;gap:10px;min-height:44px;border-top:1px solid var(--app-border,#E4E8EB);font-size:15px}
+.year-close-steps li:first-child{border-top:0}
+.year-close-steps li>span:nth-child(2){flex:1}
+.year-close-mark{width:22px;height:22px;border-radius:50%;border:1.5px solid #C9D1D8;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex:0 0 auto}
+.year-close-steps li.is-done .year-close-mark{background:#63D471;border-color:#63D471}
+.year-close-steps li.is-done>span:nth-child(2){color:var(--app-muted,#5F6B7A)}
+.year-close-btn{margin:0 20px 18px;width:calc(100% - 40px)}
+html[data-theme="dark"] .year-close-steps li{border-color:var(--dk-line,#2E363C)}
