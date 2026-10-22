@@ -16,7 +16,7 @@ export const FIRST_RELEASE_FEATURES=Object.freeze({
   timeTracking:true,
   mileage:false,
   projects:false,
-  quotes:false,
+  quotes:true,
   recurringInvoices:false,
   inventory:false,
   advancedCRM:false,

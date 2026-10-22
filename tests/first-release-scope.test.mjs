@@ -12,9 +12,9 @@ import {
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 
-const core=['dashboard','invoices','expenses','documents','bankImport','vatOverview','simpleReports','settings','contacts','serviceCatalog','timeTracking'];
+const core=['dashboard','invoices','expenses','documents','bankImport','vatOverview','simpleReports','settings','contacts','serviceCatalog','timeTracking','quotes'];
 const disabled=[
-  'personalAssistant','mileage','projects','quotes','recurringInvoices',
+  'personalAssistant','mileage','projects','recurringInvoices',
   'inventory','advancedCRM','bookings','psd2','peppol','vatSubmission','advancedReports',
   'advancedDocumentExceptions','foreignVatAdvancedUX','developerMode','googleIntegration'
 ];
