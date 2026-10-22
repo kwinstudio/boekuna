@@ -1228,6 +1228,8 @@ html[data-theme="dark"] #authRoot .auth-form .auth-field input{background:#20232
 #tripForm .trip-save-route{order:5}
 #tripForm .trip-date{order:6}
 #tripForm .trip-purpose{order:7}
+#tripForm .trip-bill{order:8}
+#tripForm .trip-bill label{min-height:36px!important}
 #tripForm .trip-km input{font-size:28px;font-weight:800;letter-spacing:-.01em;min-height:56px}
 .trip-route-chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
 .trip-route-chips::-webkit-scrollbar{display:none}
@@ -1350,3 +1352,12 @@ html[data-theme="dark"] #mainApp .nav-item .vat-due-badge{background:#3A1F1C;col
 #mainApp .vat-filed-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:0 20px 18px}
 #mainApp .vat-filed-done{font-weight:600;color:var(--app-ink,#17201B)}
 html[data-theme="dark"] #mainApp .vat-filed-done{color:var(--dk-ink,#E9EDEF)}
+/* Kwin 2026-10-22 (concurrenten, i2): bank line found for an open invoice. */
+#modalRoot .invoice-bank-found{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+#modalRoot .invoice-bank-found strong{display:block}
+#modalRoot .invoice-bank-found span{font-size:14px}
+/* Versturen: tekst kiezen bij een verlopen factuur, en een kopie naar jezelf */
+#modalRoot .send-text-field{margin:0 0 4px}
+#modalRoot .email-copy-self{display:flex;align-items:center;gap:9px;min-height:44px;margin-top:4px;font-size:14px;color:var(--app-ink,#17201B);cursor:pointer}
+#modalRoot .email-copy-self input{width:auto;margin:0}
+html[data-theme="dark"] #modalRoot .email-copy-self{color:var(--dk-ink,#E9EDEF)}
