@@ -254,8 +254,37 @@
 
   function billingPanel(){return renderBillingCard()}
 
+  // set-help. Short answers to what people ask most, searchable. Each answer points to where it happens.
+  var HELP=[
+    ['Hoe scan ik een bon?','Tik op de groene + en kies Bon scannen. Boekuna leest bedrag, btw en winkel; jij controleert en bevestigt.','openUploadSourcePicker(\'auto\')'],
+    ['Hoe maak ik een factuur?','Tik op + en kies Factuur. Kies de klant, zet erop wat je deed en tik op Versturen. Het nummer komt er bij versturen op.','newInvoice()'],
+    ['Wat is btw verlegd?','Bij onderaanneming in de bouw en bij diensten aan een ondernemer in een ander EU-land reken je geen btw; de klant draagt hem af. Op de factuur staat dan Btw verlegd.',''],
+    ['Wat is de KOR?','De kleineondernemersregeling: onder € 20.000 omzet per jaar kun je je laten vrijstellen van btw. Zet hem aan bij Instellingen > Bedrijf > Geavanceerd als je je hebt aangemeld.','openSettingsSection(\'business\')'],
+    ['Wanneer moet ik btw-aangifte doen?','Per kwartaal, uiterlijk de laatste dag van de maand erna (Q3 voor 31 oktober). Op de Btw-pagina staan de bedragen per rubriek; zet daarna Aangifte gedaan aan.','navigate(\'vat\')'],
+    ['Wat is het urencriterium?','Werk je 1.225 uur of meer per jaar aan je bedrijf, dan krijg je zelfstandigenaftrek. Schrijf je uren via + > Uren; het overzicht houdt de stand bij.','newHour()'],
+    ['Wat is de startersaftrek?','Extra aftrek in je eerste vijf jaar, hooguit drie keer, als je het urencriterium haalt. Vul je startdatum in bij Instellingen > Bedrijf.','openSettingsSection(\'business\')'],
+    ['Hoe koppel ik mijn bank?','Download bij je bank een CSV-bestand en lees het in via Bank > Bankbestand importeren. Boekuna stelt koppelingen met facturen en kosten voor.','navigate(\'bank\')'],
+    ['Wat doe ik met een overboeking naar mijn spaarrekening?','Tik op de regel bij Bank en kies Privé. Dan telt hij niet als kosten.','navigate(\'bank\')'],
+    ['Hoe maak ik een offerte?','Tik op + en kies Offerte. Gaat de klant akkoord, dan maak je er bij de offerte met één tik een factuur van.','typeof newQuote===\'function\'&&newQuote()'],
+    ['Hoe lang moet ik bonnen bewaren?','Zeven jaar. Boekuna bewaart je bonnen en facturen zo lang voor je.','navigate(\'documents\')'],
+    ['Wat stuur ik naar mijn boekhouder?','Bij Instellingen > Data staan de rapportage, je facturen en kosten, het journaal en de auditfile.','openSettingsSection(\'data\')'],
+    ['Hoe sluit ik het jaar af?','Bij Rapportages staat vanaf oktober een lijstje met vijf stappen. Boekuna vinkt af wat klaar is.','navigate(\'reports\')'],
+    ['Kan ik inloggen zonder wachtwoord?','Ja, kies op het inlogscherm Stuur mij een inloglink. Je krijgt een link in je mail die één keer werkt.','']
+  ];
+  function helpSearchHtml(){
+    return '<div class="settings-center-block help-search"><h3>Zoeken in hulp</h3><label class="help-search-box"><span class="sr-only">Zoek in hulp</span><input type="search" placeholder="Bijv. btw verlegd" oninput="filterHelpAnswers(this.value)"></label><div class="help-answers">'
+      +HELP.map(function(h){return '<details class="help-answer" data-q="'+attr((h[0]+' '+h[1]).toLowerCase())+'"><summary>'+esc(h[0])+'</summary><p>'+esc(h[1])+'</p>'+(h[2]?'<button type="button" class="link-btn" onclick="closeModal();'+attr(h[2])+'">Ga erheen</button>':'')+'</details>'}).join('')
+      +'<p class="help help-none" hidden>Niets gevonden. Mail ons gerust, hieronder.</p></div></div>';
+  }
+  window.filterHelpAnswers=function(q){
+    q=String(q||'').trim().toLowerCase();var shown=0;
+    // Words match from their start, so "uren" finds Uren and not versturen.
+    var words=q.split(/\s+/).filter(Boolean).map(function(w){return new RegExp('(^|[^a-z0-9à-ÿ])'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'))});
+    document.querySelectorAll('.help-answer').forEach(function(d){var hit=words.every(function(re){return re.test(d.dataset.q)});d.hidden=!hit;if(hit)shown++;d.open=!!q&&hit&&shown<=2});
+    var none=document.querySelector('.help-none');if(none)none.hidden=shown>0;
+  };
   function helpPanel(){
-    if(window.BoekunaFeedback)return window.BoekunaFeedback.panelHtml();
+    if(window.BoekunaFeedback)return helpSearchHtml()+window.BoekunaFeedback.panelHtml();
     return block(
       line('Support',hint('Stel je vraag per e-mail. We reageren op werkdagen.'),'<a class="btn" href="'+SUPPORT_MAILTO+'">'+esc(SUPPORT_EMAIL)+'</a>')
       +line('Fiscale spelregels',hint('De uitgangspunten die Boekuna gebruikt voor btw en facturen.'),'<button class="btn" type="button" onclick="showLegal()">Bekijken</button>')

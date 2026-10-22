@@ -1410,3 +1410,12 @@ html[data-theme="dark"] .hours-sheet-bar{background:#2E363C}
 .quote-detail-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .quote-delete{color:#C2412D;margin-left:auto}
 html body #modalRoot#modalRoot form[data-quote] .mobile-invoice-summary::before{content:"OFFERTE"}
+/* Hulp: zoeken in korte antwoorden */
+.help-search-box input{width:100%;min-height:44px;border-radius:12px;border:1px solid var(--app-border,#E4E8EB);background:var(--app-soft,#F3F5F7);padding:0 14px;font:inherit;font-size:16px}
+.help-answers{margin-top:8px}
+.help-answer{border-bottom:1px solid var(--app-border,#E4E8EB)}
+.help-answer summary{min-height:44px;display:flex;align-items:center;font-weight:600;cursor:pointer;list-style:none}
+.help-answer summary::-webkit-details-marker{display:none}
+.help-answer p{margin:0 0 8px;color:var(--app-muted,#5F6B7A);line-height:1.45}
+.help-answer .link-btn{margin-bottom:12px}
+html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272C);border-color:var(--dk-line,#2E363C);color:var(--dk-ink,#E9EDEF)}
