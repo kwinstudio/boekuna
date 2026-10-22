@@ -1240,3 +1240,44 @@ html[data-theme="dark"] .trip-route-chip:active{background:#16301D;color:#7FDB8B
 }
 /* Only the phone shows the login wordmark block (section 22). */
 @media(min-width:821px){#authRoot .auth-phone-brand{display:none}}
+
+/* 23. Kwin 2026-10-21 "UI en UX volledig kloppen": small fixes from a full walk-through, same look.
+   A status in a table is a dot with text at every width; "Betaald"/"Gekoppeld" had a green block left from calm-ux. */
+html body #mainApp#mainApp :is(.financial-table,.mobile-card-row) .badge.good{background:transparent!important}
+/* Number columns: the header sits above the right-aligned amounts. */
+html body #mainApp#mainApp .table th.right{text-align:right!important}
+/* Omzet per klant is green (omzet) at every width, like the chart; red stays for kosten. */
+html body #mainApp#mainApp .report-customers-card .category-row .progress span{background:#63D471!important}
+/* An empty list explains itself in readable text, with room before its button. */
+html body #mainApp#mainApp #content .empty>.help{font-size:14px;line-height:1.45;max-width:36ch;margin:0 auto 14px}
+/* Chrome's own clear button in search fields is blue; make it the calm grey of the rest. */
+#mainApp input[type="search"]::-webkit-search-cancel-button{filter:grayscale(1) brightness(.75);cursor:pointer}
+html[data-theme="dark"] #mainApp input[type="search"]::-webkit-search-cancel-button{filter:grayscale(1) invert(1) brightness(.85)}
+@media(max-width:820px){
+  /* Ritten: kilometers and the deductible amount start on the same line. */
+  html body #mainApp#mainApp #content .trip-duo strong,html body #mainApp#mainApp #content .trip-duo strong.metric-value{margin:0!important;line-height:1.2!important}
+  /* With a sheet open, a message shows at the top so it never covers the sheet's buttons. */
+  html body:has(#modalRoot>*) #toastRoot.toast-wrap,html body:has(#modalRoot>*) #toastRoot{top:calc(12px + env(safe-area-inset-top))!important;bottom:auto!important}
+  /* Kosten: the day choice looks like the other choices in the same form (Waarvoor). */
+  #modalRoot .expense-day-chip{min-height:40px;border:1px solid #E4E7EA;background:#fff;color:#1B1F23;font-size:15px}
+  #modalRoot .expense-day-chip.active{border-color:#111827;background:#111827;color:#fff}
+  html[data-theme="dark"] #modalRoot .expense-day-chip{border-color:#3A3F44;background:transparent;color:#E9EDEF}
+  html[data-theme="dark"] #modalRoot .expense-day-chip.active{border-color:#16301D;background:#16301D;color:#7FDB8B}
+  /* Menu: the close button is the same grey square as in every sheet; Donkere modus lines up with the menu items. */
+  html body #mobileDrawerClose.mobile-drawer-close{border:0!important;border-radius:9px!important;background:#F1F3F4!important;color:#1B1F23!important;font-size:20px!important;font-weight:400!important}
+  html[data-theme="dark"] body #mobileDrawerClose.mobile-drawer-close{background:#21272C!important;color:#DFE2E4!important}
+  #sidebar .drawer-theme{width:100%;margin:6px 0 4px;padding:0 10px}
+  /* Bank sheet: the amount sits next to the date, so a long description never splits it. */
+  #modalRoot .bank-sheet-amount{color:var(--calm-ink,#1B1F23);font-weight:700}
+  #modalRoot .bank-sheet-amount.in{color:#2F7D3B}
+  html[data-theme="dark"] #modalRoot .bank-sheet-amount{color:#F3F4F6}
+  html[data-theme="dark"] #modalRoot .bank-sheet-amount.in{color:#7FDB8B}
+}
+/* Release audit C-13: a half-filled new invoice that was closed is offered back once. */
+#modalRoot .unsaved-invoice-offer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 14px;padding:12px 14px;border:1px solid #E4E7EA;border-radius:14px;background:#F7F8F9}
+#modalRoot .unsaved-invoice-offer>div:first-child{display:flex;flex-direction:column;gap:2px;min-width:0}
+#modalRoot .unsaved-invoice-offer strong{font-size:14px;color:var(--calm-ink,#1B1F23)}
+#modalRoot .unsaved-invoice-offer span{font-size:13px;color:var(--calm-muted,#667179);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#modalRoot .unsaved-invoice-actions{display:flex;gap:8px;margin-left:auto}
+html[data-theme="dark"] #modalRoot .unsaved-invoice-offer{border-color:#2B3036;background:#1A1D21}
+html[data-theme="dark"] #modalRoot .unsaved-invoice-offer strong{color:#F3F4F6}

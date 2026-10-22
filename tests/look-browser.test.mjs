@@ -107,7 +107,7 @@ try{
     assert.ok(head.pick.left>=head.title.right&&head.pick.top<head.title.bottom&&head.pick.right<=390,'The period button sits next to the greeting: '+JSON.stringify(head));
     assert.equal(await page.locator('.dashboard-kpi .kpi-bars rect').count(),6,'Omzet shows six small month bars');
     assert.equal(await page.locator('.dashboard-kpi .kpi-ring').count(),1,'Kosten shows a small ring');
-    assert.match(await page.locator('.dashboard-kpi .kpi-ring-legend').innerText(),/Reiskosten/);
+    assert.match(await page.locator('.dashboard-kpi .kpi-ring-legend').innerText(),/Reizen/);
     assert.equal(await page.locator('.dashboard-kpi .kpi-share').count(),1,'Nog te ontvangen shows a thin bar');
     assert.match(await page.locator('.dashboard-kpi .kpi-deadline').innerText(),/^Aangifte vóór \d{1,2} [a-z]+ · (vandaag|nog 1 dag|nog \d+ dagen)$/);
     // Kwin 2026-10-10: the VAT tile names the quarter that is due ("Btw Q3 betalen" in the filing month, else "Btw Q4 apartzetten").

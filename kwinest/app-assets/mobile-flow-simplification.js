@@ -148,6 +148,11 @@
     if(step===3)renderInvoiceSummary(form);
     rootScrollTop(form);
   }
+  // A restored unsaved invoice (Verder invullen) already has its customer: continue at the lines.
+  document.addEventListener('boekuna:invoice-restored',function(){
+    var form=document.getElementById('invoiceForm');
+    if(form&&form.dataset.mobileInvoiceFlow&&form.elements.namedItem('customerId')?.value)setInvoiceStep(form,2);
+  });
   function rootScrollTop(form){
     form.closest('.modal')?.querySelector('.modal-body')?.scrollTo?.({top:0,behavior:'auto'});
   }

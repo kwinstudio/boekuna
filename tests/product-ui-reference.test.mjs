@@ -381,7 +381,8 @@ try{
             sales:'rgb(99, 212, 113)',costs:'rgb(229, 83, 75)',profit:'rgb(59, 130, 246)',
             salesLegend:'rgb(99, 212, 113)',costsLegend:'rgb(229, 83, 75)',profitLegend:'rgb(59, 130, 246)'
           },browserName+' reports chart must use green for omzet, red for kosten and blue for winst');
-          const categoryCostColours=await page.locator('.category-row .progress span').evaluateAll(nodes=>nodes.map(el=>getComputedStyle(el).backgroundColor));
+          const categoryCostColours=await page.locator('.category-row .progress span').evaluateAll(nodes=>nodes.filter(el=>!el.closest('.report-customers-card')).map(el=>getComputedStyle(el).backgroundColor));
+          // Omzet per klant is omzet, so green; the cost categories stay red.
           assert.ok(categoryCostColours.length>0,browserName+' reports category costs must render a progress bar');
           for(const colour of categoryCostColours){
             assert.equal(colour,'rgb(229, 83, 75)',browserName+' reports category cost progress must use the kosten colour');

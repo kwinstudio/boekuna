@@ -32,7 +32,7 @@ const mixedCredit=vat.trustedVatLinesForImport({isCredit:true,mixedRates:true,va
 assert.equal(mixedCredit.ok,true,'signed mixed credit must remain saveable');
 
 const foreignExpense={id:'foreign',date:'2026-10-03',vendor:'Foreign Test',invoiceNumber:'BE-1',category:'Software',exVat:1350,vatAmount:270,gross:1620,taxTreatment:'foreign'};
-const accounting=loadApp([...financialNames,'expenseDeductibleVat','expenseAccountingCost','quarterVatPosition','buildReportPreview','generatedJournal','expenseLedgerAccount','expenseCounterAccount','addSignedLine','jl','journalEntry','validateJournalEntry'],{state:{company:{},invoices:[],expenses:[foreignExpense],transactions:[]},currentQuarter:()=>4,currentBookYear:()=>2026,inQuarter:()=>true,reportRange:()=>({from:'2026-10-01',to:'2026-12-31'}),inRange:()=>true,money:v=>Number(v).toFixed(2),dateNL:v=>v,esc:v=>String(v??''),getContact:()=>({name:''}),LEDGER_ACCOUNT_NAMES:{},console});
+const accounting=loadApp([...financialNames,'expenseDeductibleVat','expenseAccountingCost','quarterVatPosition','buildReportPreview','generatedJournal','expenseLedgerAccount','expenseCounterAccount','addSignedLine','jl','journalEntry','validateJournalEntry'],{state:{company:{},invoices:[],expenses:[foreignExpense],transactions:[]},currentQuarter:()=>4,currentBookYear:()=>2026,inQuarter:()=>true,reportRange:()=>({from:'2026-10-01',to:'2026-12-31'}),inRange:()=>true,money:v=>Number(v).toFixed(2),dateNL:v=>v,expenseCategoryLabel:v=>v,esc:v=>String(v??''),getContact:()=>({name:''}),LEDGER_ACCOUNT_NAMES:{},console});
 assert.equal(accounting.quarterVatPosition(),0);
 const report=accounting.buildReportPreview();
 assert.match(report,/<span>Kosten[^<]*<\/span><b>1620.00<\/b>/);
