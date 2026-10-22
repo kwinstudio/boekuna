@@ -116,7 +116,7 @@ try{
 
   await page.evaluate(()=>navigate('dashboard'));
   const before=await page.evaluate(()=>({bookings:state.bookings.length,hours:state.hours.length,mileage:state.mileage.length,settlements:state.settlements.length,services:state.services.length,plannedCash:state.plannedCash.length,reminderSent:state.bookings[0].reminderSent}));
-  await page.evaluate(async()=>{newBooking();newHour();newMileage();newSettlement();deletePlannedCash('pc1');markBookingReminder('b1');await confirmBookingReminder('b1')});
+  await page.evaluate(async()=>{newBooking();newMileage();newSettlement();deletePlannedCash('pc1');markBookingReminder('b1');await confirmBookingReminder('b1')});
   assert.equal(await page.locator('#modalRoot .modal').count(),0,'Direct calls to disabled create flows must fail closed');
   const after=await page.evaluate(()=>({bookings:state.bookings.length,hours:state.hours.length,mileage:state.mileage.length,settlements:state.settlements.length,services:state.services.length,plannedCash:state.plannedCash.length,reminderSent:state.bookings[0].reminderSent}));
   assert.deepEqual(after,before,'Disabled direct calls must preserve existing data and create nothing');
@@ -194,10 +194,11 @@ try{
   await page.locator('#modalRoot .quick-action-modal').waitFor();
   // Phone (Kwin 2026-10-09/10): the pages have no own main button, so Nieuw also offers what they used to.
   // Kwin 2026-10-17 (fewer choices): one Uploaden (factuur, bon or document) and one Bank (bankbestand or losse betaling).
-  assert.equal(await page.locator('#modalRoot .quick-action').count(),8,'Mobile quick-create: three tiles plus Uploaden, Bank, Relatie, Rit and Dienst');
+  // Kwin 2026-10-22 (concurrenten n1/n4): Offerte and Uren joined the rows.
+  assert.equal(await page.locator('#modalRoot .quick-action').count(),10,'Mobile quick-create: three tiles plus Uploaden, Bank, Relatie, Offerte, Rit, Uren and Dienst');
   const quickLabels=(await page.locator('#modalRoot .quick-action').allTextContents()).map(v=>v.trim().replace(/\s+/g,' '));
   // Kwin 2026-10-10: Factuur, Bon (scannen) and Kosten (zonder bon) are the three big tiles; the rest is under Meer.
-  for(const core of ['Bon','Factuur','Kosten','Uploaden','Bank','Relatie','Rit','Dienst'])assert.ok(quickLabels.some(v=>v.includes(core)),'Mobile quick-create missing '+core);
+  for(const core of ['Bon','Factuur','Kosten','Uploaden','Bank','Relatie','Offerte','Rit','Uren','Dienst'])assert.ok(quickLabels.some(v=>v.includes(core)),'Mobile quick-create missing '+core);
   for(const merged of ['Banktransactie','Document uploaden','Factuur uploaden'])assert.ok(!quickLabels.some(v=>v.includes(merged)),'Merged into Uploaden or Bank: '+merged);
   assert.equal(await page.locator('#modalRoot .quick-tiles .quick-tile').count(),3,'Mobile quick-create shows three big daily tiles');
   await page.waitForTimeout(450); // Let the sheet finish sliding in.

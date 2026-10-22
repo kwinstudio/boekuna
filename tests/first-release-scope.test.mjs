@@ -12,9 +12,9 @@ import {
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 
-const core=['dashboard','invoices','expenses','documents','bankImport','vatOverview','simpleReports','settings','contacts','serviceCatalog'];
+const core=['dashboard','invoices','expenses','documents','bankImport','vatOverview','simpleReports','settings','contacts','serviceCatalog','timeTracking','quotes'];
 const disabled=[
-  'personalAssistant','timeTracking','mileage','projects','quotes','recurringInvoices',
+  'personalAssistant','mileage','projects','recurringInvoices',
   'inventory','advancedCRM','bookings','psd2','peppol','vatSubmission','advancedReports',
   'advancedDocumentExceptions','foreignVatAdvancedUX','developerMode','googleIntegration'
 ];
@@ -83,8 +83,6 @@ assert.ok(html.includes('<input type="hidden" name="taxTreatment" id="taxTreatme
 for(const guard of [
   "function newBooking(){if(!releaseFeatureEnabled(\"bookings\"))return;",
   "function saveBooking(){if(!releaseFeatureEnabled(\"bookings\"))return;",
-  "function newHour(){if(!releaseFeatureEnabled(\"timeTracking\"))return;",
-  "function saveHour(){if(!releaseFeatureEnabled(\"timeTracking\"))return;",
   "function newMileage(){if(!releaseFeatureEnabled(\"mileage\"))return;",
   "function saveMileage(){if(!releaseFeatureEnabled(\"mileage\"))return;",
   "function newSettlement(){if(!releaseFeatureEnabled(\"advancedDocumentExceptions\"))return;"

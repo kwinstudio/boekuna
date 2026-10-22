@@ -1228,6 +1228,8 @@ html[data-theme="dark"] #authRoot .auth-form .auth-field input{background:#20232
 #tripForm .trip-save-route{order:5}
 #tripForm .trip-date{order:6}
 #tripForm .trip-purpose{order:7}
+#tripForm .trip-bill{order:8}
+#tripForm .trip-bill label{min-height:36px!important}
 #tripForm .trip-km input{font-size:28px;font-weight:800;letter-spacing:-.01em;min-height:56px}
 .trip-route-chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
 .trip-route-chips::-webkit-scrollbar{display:none}
@@ -1342,3 +1344,78 @@ html[data-theme="dark"] #mainApp input[type="search"]::-webkit-search-cancel-but
 #modalRoot .unsaved-invoice-actions{display:flex;gap:8px;margin-left:auto}
 html[data-theme="dark"] #modalRoot .unsaved-invoice-offer{border-color:#2B3036;background:#1A1D21}
 html[data-theme="dark"] #modalRoot .unsaved-invoice-offer strong{color:#F3F4F6}
+
+/* Kwin 2026-10-22 (concurrenten, m1): days left for the btw return next to Btw in the menu. */
+#mainApp .nav-item .vat-due-badge{margin-left:auto;padding:2px 8px;border-radius:999px;background:#FDECEA;color:#B42318;font-size:12px;font-weight:700;white-space:nowrap}
+html[data-theme="dark"] #mainApp .nav-item .vat-due-badge{background:#3A1F1C;color:#F4A79B}
+/* Btw page: mark the return as done so the to-do goes away. */
+#mainApp .vat-filed-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:0 20px 18px}
+#mainApp .vat-filed-done{font-weight:600;color:var(--app-ink,#17201B)}
+html[data-theme="dark"] #mainApp .vat-filed-done{color:var(--dk-ink,#E9EDEF)}
+/* Kwin 2026-10-22 (concurrenten, i2): bank line found for an open invoice. */
+#modalRoot .invoice-bank-found{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+#modalRoot .invoice-bank-found strong{display:block}
+#modalRoot .invoice-bank-found span{font-size:14px}
+/* Versturen: tekst kiezen bij een verlopen factuur, en een kopie naar jezelf */
+#modalRoot .send-text-field{margin:0 0 4px}
+#modalRoot .email-copy-self{display:flex;align-items:center;gap:9px;min-height:44px;margin-top:4px;font-size:14px;color:var(--app-ink,#17201B);cursor:pointer}
+#modalRoot .email-copy-self input{width:auto;margin:0}
+html[data-theme="dark"] #modalRoot .email-copy-self{color:var(--dk-ink,#E9EDEF)}
+/* Diensten: meest verdiend dit jaar */
+.services-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;margin:0 0 12px;font-size:15px}
+.services-top span{color:var(--app-muted-strong,#5E6870)}
+.services-top strong{text-align:right}
+/* Bedragen verbergen: vaag op het overzicht tot je op het grote getal tikt */
+html.hide-amounts:not(.amounts-peek) .dashboard-kpis .metric-value,html.hide-amounts:not(.amounts-peek) .calm-list .calm-value{filter:blur(9px);user-select:none}
+html.hide-amounts:not(.amounts-peek) .kpi-hero{cursor:pointer}
+/* Btw: kwartaal veranderd na je aangifte */
+.vat-correction{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px}
+.vat-correction strong{display:block}
+.vat-correction span{font-size:14px}
+/* Rapportages: jaar afsluiten in stappen */
+.year-close-card{margin-top:16px}
+.year-close-steps{list-style:none;margin:6px 0 0;padding:0 20px 16px;display:flex;flex-direction:column}
+.year-close-steps li{display:flex;align-items:center;gap:10px;min-height:44px;border-top:1px solid var(--app-border,#E4E8EB);font-size:15px}
+.year-close-steps li:first-child{border-top:0}
+.year-close-steps li>span:nth-child(2){flex:1}
+.year-close-mark{width:22px;height:22px;border-radius:50%;border:1.5px solid #C9D1D8;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex:0 0 auto}
+.year-close-steps li.is-done .year-close-mark{background:#63D471;border-color:#63D471}
+.year-close-steps li.is-done>span:nth-child(2){color:var(--app-muted-strong,#5E6870)}
+.year-close-btn{margin:0 20px 18px;width:calc(100% - 40px)}
+html[data-theme="dark"] .year-close-steps li{border-color:var(--dk-line,#2E363C)}
+/* Overstappen: vier stappen op het inlogscherm */
+.auth-switch-steps{margin:16px 0 20px;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
+.auth-switch-steps li{display:flex;flex-direction:column;gap:2px;font-size:15px;line-height:1.4}
+.auth-switch-steps li span{color:#5F6B7A;font-size:14px}
+/* Uren: richting 1.225 uur */
+#mainApp [data-kpi-dot="uren"]{--kpi-dot:#A78BFA}
+.hours-sheet-total{display:flex;align-items:baseline;gap:8px}
+.hours-sheet-total strong{font-size:34px;font-weight:800;letter-spacing:-.02em}
+.hours-sheet-total span{color:var(--app-muted-strong,#5E6870)}
+.hours-sheet-bar{display:block;height:8px;border-radius:99px;background:#EEF1F4;margin:10px 0 12px;overflow:hidden}
+.hours-sheet-bar i{display:block;height:100%;width:var(--w);background:#8B6CEF;border-radius:inherit}
+.hours-sheet-list{margin-top:12px;border-top:1px solid var(--app-border,#E4E8EB)}
+.hours-sheet-row{display:flex;align-items:center;gap:10px;min-height:52px;border-bottom:1px solid var(--app-border,#E4E8EB)}
+.hours-sheet-row>span{flex:1;display:flex;flex-direction:column;font-size:15px}
+.hours-sheet-row>span span{color:var(--app-muted-strong,#5E6870);font-size:13px}
+html[data-theme="dark"] .hours-sheet-bar{background:#2E363C}
+/* Offertes */
+.quote-strip-wrap{margin:0 0 14px}
+.quote-list{display:flex;flex-direction:column}
+.quote-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:8px 2px;border:0;border-bottom:1px solid var(--app-border,#E4E8EB);background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.quote-row>span{display:flex;flex-direction:column}
+.quote-row>span span{color:var(--app-muted-strong,#5E6870);font-size:13px}
+.quote-detail-amount{font-size:34px;font-weight:800;letter-spacing:-.02em}
+.quote-detail-sub{margin:4px 0 12px;color:var(--app-muted-strong,#5E6870)}
+.quote-detail-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.quote-delete{color:#C2412D;margin-left:auto}
+html body #modalRoot#modalRoot form[data-quote] .mobile-invoice-summary::before{content:"OFFERTE"}
+/* Hulp: zoeken in korte antwoorden */
+.help-search-box input{width:100%;min-height:44px;border-radius:12px;border:1px solid var(--app-border,#E4E8EB);background:var(--app-soft,#F3F5F7);padding:0 14px;font:inherit;font-size:16px}
+.help-answers{margin-top:8px}
+.help-answer{border-bottom:1px solid var(--app-border,#E4E8EB)}
+.help-answer summary{min-height:44px;display:flex;align-items:center;font-weight:600;cursor:pointer;list-style:none}
+.help-answer summary::-webkit-details-marker{display:none}
+.help-answer p{margin:0 0 8px;color:var(--app-muted-strong,#5E6870);line-height:1.45}
+.help-answer .link-btn{margin-bottom:12px}
+html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272C);border-color:var(--dk-line,#2E363C);color:var(--dk-ink,#E9EDEF)}

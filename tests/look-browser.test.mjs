@@ -106,7 +106,7 @@ try{
     assert.ok(head.pick.left>=head.title.right&&head.pick.top<head.title.bottom&&head.pick.right<=390,'The period button sits next to the greeting: '+JSON.stringify(head));
     // Kwin 2026-10-22 ("rustiger" A): one Winst block and one calm list of four amounts instead of tiles with charts.
     assert.equal(await page.locator('.dashboard-kpis-calm .dashboard-kpi').count(),1,'Only the Winst block');
-    assert.equal(await page.locator('.calm-list .calm-row').count(),4);
+    assert.ok([4,5].includes(await page.locator('.calm-list .calm-row').count()),'Four amounts, plus Vrij te besteden once money came in');
     assert.match(await page.locator('.calm-list .calm-row').nth(3).innerText(),/^Btw Q[1-4]\s/,'The VAT row names the quarter that is due');
     const fab=await page.locator('#quickNew').evaluate(el=>{const r=el.getBoundingClientRect(),c=getComputedStyle(el);return {right:innerWidth-r.right,bottom:innerHeight-r.bottom,w:r.width,h:r.height,position:c.position}});
     assert.equal(fab.position,'fixed');

@@ -7,6 +7,8 @@
   var textChanges=[];
   var invoiceResume=null;
   var nextInvoiceStep=null;
+  // Another flow (an accepted quote) can open the invoice at the step that still needs the user.
+  window.setNextInvoiceStep=function(step){nextInvoiceStep=step};
   var mobileIssueReviewRequested=false;
   var DIRECT_FIELDS=['reviewAmount','net','vatAmount','gross','vatRate','vatLines','currency','exchangeRateToEur','vatTreatmentChoice'];
 
@@ -314,7 +316,10 @@
     box.replaceChildren();
     var top=node('div','mobile-invoice-summary-top');top.append(node('strong','',customer.name||'Klant'),node('strong','',total));box.append(top);
     box.append(node('p','',first));
-    [['Factuurnummer',number,numberNote],['Datum',date],['Betalen binnen',Number(draft.paymentDays||0)+' dagen']].forEach(function(pair){
+    var rows=[['Factuurnummer',number,numberNote],['Datum',date],['Betalen binnen',Number(draft.paymentDays||0)+' dagen']];
+    // A quote (quotes.js) uses the same form: its own number and how long it is valid.
+    if(form.dataset.quote)rows=[['Offertenummer',typeof window.quoteNumberPreview==='function'?window.quoteNumberPreview():''],['Datum',date],['Geldig tot',dateText(draft.dueDate)]];
+    rows.forEach(function(pair){
       var row=node('div','mobile-invoice-summary-row'),value=node('strong','',pair[1]);
       if(pair[2]){value=node('span','mobile-invoice-summary-value');value.append(node('strong','',pair[1]),node('small','',pair[2]))}
       row.append(node('span','',pair[0]),value);box.append(row);

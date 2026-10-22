@@ -27,7 +27,8 @@
     {key:'documents',title:'Bonnen om te controleren',detail:'Een bon kon niet goed worden gelezen of moet je nog nakijken.'},
     {key:'bank',title:'Bankregels om te koppelen',detail:'Na een bankimport, voor regels zonder factuur of kosten.'},
     {key:'contacts',title:'Klanten met ontbrekende gegevens',detail:'Een klant mist gegevens die op een factuur moeten.'},
-    {key:'health',title:'Gegevens die niet kloppen',detail:'Boekuna ziet iets in je administratie dat niet helemaal klopt.'}
+    {key:'health',title:'Gegevens die niet kloppen',detail:'Boekuna ziet iets in je administratie dat niet helemaal klopt.'},
+    {key:'vat',title:'Btw-aangifte',detail:'In de laatste twee weken voor de deadline, tot je hem op gedaan zet.'}
   ];
 
   // Kwin 2026-10-17 (minder tekst, alleen telefoon): shorter explanations on the phone.
@@ -90,10 +91,14 @@
       +field('company.contactName','Contactpersoon',c.contactName,{autocomplete:'name'})
       +field('company.country','Land',c.country||'Nederland',{autocomplete:'country-name'})
       +'</div>';
+    var startYear=Number(String(c.startDate||'').slice(0,4)),starterYears=startYear?new Date().getFullYear()-startYear:99;
+    var started='<div class="form-grid">'+field('company.startDate','Gestart op',c.startDate||'',{type:'date',help:startYear?(starterYears<=4?'Je bent nog geen 5 jaar bezig: startersaftrek kan nog.':'Startersaftrek kan alleen in je eerste 5 jaar.'):'Voor de schatting van je inkomstenbelasting.'})+'</div>'
+      +(starterYears<=4?check('company.starterDeduction','Startersaftrek meenemen in de schatting',!!c.starterDeduction,'Kan hooguit 3 keer, als je 1.225 uur haalt.'):'');
     var advanced=check('company.kor','Ik doe mee aan de kleineondernemersregeling (KOR)',!!c.kor,'Dan reken je geen btw op je facturen.');
     return '<form class="settings-center-form" data-settings-form="company" novalidate>'
       +block(basis)
       +more('Meer bedrijfsgegevens',extra)
+      +more('Start en aftrek',started)
       +more('Geavanceerd',advanced)
       +saveBar('Bedrijfsgegevens opslaan')
       +'</form>';
@@ -113,7 +118,9 @@
       +'<input type="file" id="settingsLogoFile" class="settings-center-file" accept="image/png,image/jpeg" tabindex="-1" aria-hidden="true"><button type="button" class="btn" data-settings-action="pick-logo" aria-describedby="settingsLogoLabel">'+(inv.logoDataUrl?'Ander logo kiezen':'Logo kiezen')+'</button>'
       +(inv.logoDataUrl?'<button type="button" class="link-btn" data-settings-action="remove-logo">Verwijderen</button>':'')
       +'</div><div class="help">PNG of JPG, maximaal 600 KB.</div></div>'
-      +'</div>';
+      +(state.invoices.some(function(i){return i.status!=='draft'})?'':field('meta.nextInvoice','Volgende nummer',Number(state.meta&&state.meta.nextInvoice||1),{type:'number',min:1,max:999999,inputmode:'numeric',help:'Kom je van een ander pakket? Ga verder waar je was.'}))
+      +'</div>'
+      +check('company.invoiceYearReset','Elk jaar opnieuw nummeren',!!c.invoiceYearReset,'Op 1 januari begint het weer bij 0001, met het nieuwe jaar ervoor.');
     var extra='<div class="form-grid">'
       +field('invoiceDesign.footerText','Voettekst op je factuur',inv.footerText,{full:true,placeholder:'Bijv. Bedankt voor uw vertrouwen.'})
       +'</div>'
@@ -204,8 +211,9 @@
       +startPageOptions().map(function(p){return '<option value="'+p+'"'+(p===current?' selected':'')+'>'+esc(PAGE_TITLES[p]||p)+'</option>'}).join('')
       +'</select><div class="help settings-hint">De pagina die je ziet nadat je bent ingelogd.</div></div>';
     var help='<label class="settings-view-toggle settings-center-switch" for="extraHelpToggle"><span><strong>Extra uitleg tonen</strong>'+hint('Korte uitleg bij cijfers en knoppen. Handig als je net begint.')+'</span><input type="checkbox" role="switch" id="extraHelpToggle" aria-label="Extra uitleg tonen" '+(extraHelpVisible()?'checked':'')+' onchange="setExtraHelpEnabled(this.checked)"></label>';
+    var hide='<label class="settings-view-toggle settings-center-switch" for="hideAmountsToggle"><span><strong>Bedragen verbergen</strong>'+hint('Op het overzicht staan bedragen vaag tot je op het grote getal tikt. Handig in de trein.')+'</span><input type="checkbox" role="switch" id="hideAmountsToggle" aria-label="Bedragen verbergen" '+(state.meta&&state.meta.hideAmounts?'checked':'')+' onchange="setHideAmounts(this.checked)"></label>';
     var assistant=renderAssistantSettingsSafe();
-    return block(themeBlock())+block('<div class="form-grid">'+select+'</div>','Startpagina')+block(help,'Uitleg')+(assistant?'<div class="settings-center-embedded">'+assistant+'</div>':'');
+    return block(themeBlock())+block('<div class="form-grid">'+select+'</div>','Startpagina')+block(help+hide,'Uitleg')+(assistant?'<div class="settings-center-embedded">'+assistant+'</div>':'');
   }
 
   function securityPanel(){
@@ -227,6 +235,7 @@
       +line('Rapportage',phone()?'Omzet, kosten, winst en btw als PDF.':'Omzet, kosten, winst en btw als PDF. Je ziet hem eerst, daarna kun je hem bewaren of printen.','<button class="btn" type="button" onclick="printReport()">PDF bekijken</button>')
       +line('Facturen',phone()?'Facturen voor Excel.':'Al je facturen en creditfacturen als CSV-bestand voor Excel of je boekhouder.','<button class="btn" type="button" onclick="exportInvoicesCSV()">Downloaden</button>')
       +line('Kosten','Al je kosten met btw als CSV-bestand.','<button class="btn" type="button" onclick="exportExpensesCSV()">Downloaden</button>')
+      +line('Overstappen',phone()?'Klanten en leveranciers uit een CSV.':'Klanten en leveranciers uit een CSV van je oude pakket (Moneybird, e-Boekhouden, Jortt). Bestaande relaties worden aangevuld.','<button class="btn" type="button" onclick="document.getElementById(\'contactsCsvFile\').click()">CSV kiezen</button><input type="file" id="contactsCsvFile" accept=".csv,text/csv" class="hidden" onchange="importContactsCsv(this)">')
       +line('Volledige back-up',phone()?'Alles in één bestand, om terug te zetten.':'Je hele administratie in één bestand. Hiermee kun je later alles terugzetten.','<button class="btn" type="button" onclick="exportBackup()">Downloaden</button>')
       +'</div>';
     var restore='<div class="settings-export-grid">'
@@ -236,6 +245,7 @@
       +'</div>';
     var advanced='<div class="settings-export-list">'
       +line('Journaal','Alle boekingsregels in de gekozen periode als CSV.','<button class="btn" type="button" onclick="exportJournalCSV()">Downloaden</button>')
+      +line('Auditfile (XAF)','Grootboek en boekingen in de gekozen periode, voor je boekhouder of de Belastingdienst.','<button class="btn" type="button" onclick="exportAuditfileXAF()">Downloaden</button>')
       +line('Auditlog','Wat er wanneer is gewijzigd, als CSV.','<button class="btn" type="button" onclick="exportAuditCSV()">Downloaden</button>')
       +(hasConflictBackup()?line('Lokale herstelkopie','Een kopie die op dit apparaat is bewaard.','<button class="btn" type="button" onclick="restoreConflictDialog()">Bekijken</button>'):'')
       +'</div>'+(phone()?'':'<div class="help">Voor je boekhouder of een controle. Je dagelijkse administratie heeft deze niet nodig.</div>');
@@ -244,8 +254,37 @@
 
   function billingPanel(){return renderBillingCard()}
 
+  // set-help. Short answers to what people ask most, searchable. Each answer points to where it happens.
+  var HELP=[
+    ['Hoe scan ik een bon?','Tik op de groene + en kies Bon scannen. Boekuna leest bedrag, btw en winkel; jij controleert en bevestigt.','openUploadSourcePicker(\'auto\')'],
+    ['Hoe maak ik een factuur?','Tik op + en kies Factuur. Kies de klant, zet erop wat je deed en tik op Versturen. Het nummer komt er bij versturen op.','newInvoice()'],
+    ['Wat is btw verlegd?','Bij onderaanneming in de bouw en bij diensten aan een ondernemer in een ander EU-land reken je geen btw; de klant draagt hem af. Op de factuur staat dan Btw verlegd.',''],
+    ['Wat is de KOR?','De kleineondernemersregeling: onder € 20.000 omzet per jaar kun je je laten vrijstellen van btw. Zet hem aan bij Instellingen > Bedrijf > Geavanceerd als je je hebt aangemeld.','openSettingsSection(\'business\')'],
+    ['Wanneer moet ik btw-aangifte doen?','Per kwartaal, uiterlijk de laatste dag van de maand erna (Q3 voor 31 oktober). Op de Btw-pagina staan de bedragen per rubriek; zet daarna Aangifte gedaan aan.','navigate(\'vat\')'],
+    ['Wat is het urencriterium?','Werk je 1.225 uur of meer per jaar aan je bedrijf, dan krijg je zelfstandigenaftrek. Schrijf je uren via + > Uren; het overzicht houdt de stand bij.','newHour()'],
+    ['Wat is de startersaftrek?','Extra aftrek in je eerste vijf jaar, hooguit drie keer, als je het urencriterium haalt. Vul je startdatum in bij Instellingen > Bedrijf.','openSettingsSection(\'business\')'],
+    ['Hoe koppel ik mijn bank?','Download bij je bank een CSV-bestand en lees het in via Bank > Bankbestand importeren. Boekuna stelt koppelingen met facturen en kosten voor.','navigate(\'bank\')'],
+    ['Wat doe ik met een overboeking naar mijn spaarrekening?','Tik op de regel bij Bank en kies Privé. Dan telt hij niet als kosten.','navigate(\'bank\')'],
+    ['Hoe maak ik een offerte?','Tik op + en kies Offerte. Gaat de klant akkoord, dan maak je er bij de offerte met één tik een factuur van.','typeof newQuote===\'function\'&&newQuote()'],
+    ['Hoe lang moet ik bonnen bewaren?','Zeven jaar. Boekuna bewaart je bonnen en facturen zo lang voor je.','navigate(\'documents\')'],
+    ['Wat stuur ik naar mijn boekhouder?','Bij Instellingen > Data staan de rapportage, je facturen en kosten, het journaal en de auditfile.','openSettingsSection(\'data\')'],
+    ['Hoe sluit ik het jaar af?','Bij Rapportages staat vanaf oktober een lijstje met vijf stappen. Boekuna vinkt af wat klaar is.','navigate(\'reports\')'],
+    ['Kan ik inloggen zonder wachtwoord?','Ja, kies op het inlogscherm Stuur mij een inloglink. Je krijgt een link in je mail die één keer werkt.','']
+  ];
+  function helpSearchHtml(){
+    return '<div class="settings-center-block help-search"><h3>Zoeken in hulp</h3><label class="help-search-box"><span class="sr-only">Zoek in hulp</span><input type="search" placeholder="Bijv. btw verlegd" oninput="filterHelpAnswers(this.value)"></label><div class="help-answers">'
+      +HELP.map(function(h){return '<details class="help-answer" data-q="'+attr((h[0]+' '+h[1]).toLowerCase())+'"><summary>'+esc(h[0])+'</summary><p>'+esc(h[1])+'</p>'+(h[2]?'<button type="button" class="link-btn" onclick="closeModal();'+attr(h[2])+'">Ga erheen</button>':'')+'</details>'}).join('')
+      +'<p class="help help-none" hidden>Niets gevonden. Mail ons gerust, hieronder.</p></div></div>';
+  }
+  window.filterHelpAnswers=function(q){
+    q=String(q||'').trim().toLowerCase();var shown=0;
+    // Words match from their start, so "uren" finds Uren and not versturen.
+    var words=q.split(/\s+/).filter(Boolean).map(function(w){return new RegExp('(^|[^a-z0-9à-ÿ])'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'))});
+    document.querySelectorAll('.help-answer').forEach(function(d){var hit=words.every(function(re){return re.test(d.dataset.q)});d.hidden=!hit;if(hit)shown++;d.open=!!q&&hit&&shown<=2});
+    var none=document.querySelector('.help-none');if(none)none.hidden=shown>0;
+  };
   function helpPanel(){
-    if(window.BoekunaFeedback)return window.BoekunaFeedback.panelHtml();
+    if(window.BoekunaFeedback)return helpSearchHtml()+window.BoekunaFeedback.panelHtml();
     return block(
       line('Support',hint('Stel je vraag per e-mail. We reageren op werkdagen.'),'<a class="btn" href="'+SUPPORT_MAILTO+'">'+esc(SUPPORT_EMAIL)+'</a>')
       +line('Fiscale spelregels',hint('De uitgangspunten die Boekuna gebruikt voor btw en facturen.'),'<button class="btn" type="button" onclick="showLegal()">Bekijken</button>')
@@ -412,6 +451,7 @@
   function setPath(path,value){
     var parts=path.split('.'),c=state.company||(state.company={});
     if(parts[0]==='company'){c[parts[1]]=value;return}
+    if(path==='meta.nextInvoice'){var next=Math.round(Number(value));if(Number.isFinite(next)&&next>=1){state.meta=state.meta||{};state.meta.nextInvoice=Math.min(999999,next)}return}
     if(parts[0]==='invoiceDesign'){c.invoiceDesign=Object.assign({},DEFAULT_INVOICE_DESIGN,c.invoiceDesign||{});c.invoiceDesign[parts[1]]=value;return}
     if(parts[0]==='emailTemplate'){c.emailTemplate=Object.assign({},DEFAULT_EMAIL_TEMPLATE,c.emailTemplate||{});c.emailTemplate[parts[1]]=value}
   }
