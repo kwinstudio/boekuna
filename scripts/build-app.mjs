@@ -401,7 +401,7 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-product.
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-flow-simplification.js?v=20261022b"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/calm-ux.js?v=20261007a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/settings-center.js?v=20261022f"></script>\n');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/quotes.js?v=20261022b"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/quotes.js?v=20261022c"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/theme.js?v=20261009i"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/feedback.js?v=20261017a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-viewer.js?v=20261008f"></script>\n');

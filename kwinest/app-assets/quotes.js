@@ -6,7 +6,8 @@
   if(typeof releaseFeatureEnabled==='function'&&!releaseFeatureEnabled('quotes'))return;
 
   var VALID_DAYS=30;
-  function quotes(){if(!Array.isArray(state.quotes))state.quotes=[];return state.quotes}
+  function quotes(){return Array.isArray(state.quotes)?state.quotes:[]}
+  function quoteList(){if(!Array.isArray(state.quotes))state.quotes=[];return state.quotes}
   function find(id){return quotes().find(function(q){return q.id===id})}
   function nextNumber(){
     var prefix='OFF-'+new Date().getFullYear()+'-',max=0;
@@ -57,7 +58,7 @@
     var q=editingQuote&&find(editingQuote.id),now=new Date().toISOString();
     var data={customerId:customerId,issueDate:d.issueDate||today(),supplyDate:d.supplyDate||d.issueDate||today(),validUntil:d.dueDate||addDateOnlyDays(today(),VALID_DAYS),dueDate:d.dueDate||'',taxTreatment:d.taxTreatment||'standard',reference:d.reference||'',discountType:d.discountType||'none',discountValue:Number(d.discountValue||0),notes:d.notes||'',lines:lines,updatedAt:now};
     if(q)Object.assign(q,data);
-    else{q=Object.assign({id:uid('q'),number:nextNumber(),status:'open',createdAt:now},data);quotes().unshift(q)}
+    else{q=Object.assign({id:uid('q'),number:nextNumber(),status:'open',createdAt:now},data);quoteList().unshift(q)}
     logEvent(editingQuote?'Offerte aangepast':'Offerte gemaakt',q.number+' · '+money(total(q)),'quote',q.id);
     editingQuote=null;
     var form2=document.getElementById('invoiceForm');if(form2)form2.remove(); // nothing left to stash as an invoice concept
