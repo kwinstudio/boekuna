@@ -1361,3 +1361,10 @@ html[data-theme="dark"] #mainApp .vat-filed-done{color:var(--dk-ink,#E9EDEF)}
 #modalRoot .email-copy-self{display:flex;align-items:center;gap:9px;min-height:44px;margin-top:4px;font-size:14px;color:var(--app-ink,#17201B);cursor:pointer}
 #modalRoot .email-copy-self input{width:auto;margin:0}
 html[data-theme="dark"] #modalRoot .email-copy-self{color:var(--dk-ink,#E9EDEF)}
+/* Diensten: meest verdiend dit jaar */
+.services-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;margin:0 0 12px;font-size:15px}
+.services-top span{color:var(--app-muted,#5F6B7A)}
+.services-top strong{text-align:right}
+/* Bedragen verbergen: vaag op het overzicht tot je op het grote getal tikt */
+html.hide-amounts:not(.amounts-peek) .dashboard-kpis .metric-value,html.hide-amounts:not(.amounts-peek) .calm-list .calm-value{filter:blur(9px);user-select:none}
+html.hide-amounts:not(.amounts-peek) .kpi-hero{cursor:pointer}

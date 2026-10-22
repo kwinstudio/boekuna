@@ -91,10 +91,14 @@
       +field('company.contactName','Contactpersoon',c.contactName,{autocomplete:'name'})
       +field('company.country','Land',c.country||'Nederland',{autocomplete:'country-name'})
       +'</div>';
+    var startYear=Number(String(c.startDate||'').slice(0,4)),starterYears=startYear?new Date().getFullYear()-startYear:99;
+    var started='<div class="form-grid">'+field('company.startDate','Gestart op',c.startDate||'',{type:'date',help:startYear?(starterYears<=4?'Je bent nog geen 5 jaar bezig: startersaftrek kan nog.':'Startersaftrek kan alleen in je eerste 5 jaar.'):'Voor de schatting van je inkomstenbelasting.'})+'</div>'
+      +(starterYears<=4?check('company.starterDeduction','Startersaftrek meenemen in de schatting',!!c.starterDeduction,'Kan hooguit 3 keer, als je 1.225 uur haalt.'):'');
     var advanced=check('company.kor','Ik doe mee aan de kleineondernemersregeling (KOR)',!!c.kor,'Dan reken je geen btw op je facturen.');
     return '<form class="settings-center-form" data-settings-form="company" novalidate>'
       +block(basis)
       +more('Meer bedrijfsgegevens',extra)
+      +more('Start en aftrek',started)
       +more('Geavanceerd',advanced)
       +saveBar('Bedrijfsgegevens opslaan')
       +'</form>';
@@ -114,7 +118,8 @@
       +'<input type="file" id="settingsLogoFile" class="settings-center-file" accept="image/png,image/jpeg" tabindex="-1" aria-hidden="true"><button type="button" class="btn" data-settings-action="pick-logo" aria-describedby="settingsLogoLabel">'+(inv.logoDataUrl?'Ander logo kiezen':'Logo kiezen')+'</button>'
       +(inv.logoDataUrl?'<button type="button" class="link-btn" data-settings-action="remove-logo">Verwijderen</button>':'')
       +'</div><div class="help">PNG of JPG, maximaal 600 KB.</div></div>'
-      +'</div>';
+      +'</div>'
+      +check('company.invoiceYearReset','Elk jaar opnieuw nummeren',!!c.invoiceYearReset,'Op 1 januari begint het weer bij 0001, met het nieuwe jaar ervoor.');
     var extra='<div class="form-grid">'
       +field('invoiceDesign.footerText','Voettekst op je factuur',inv.footerText,{full:true,placeholder:'Bijv. Bedankt voor uw vertrouwen.'})
       +'</div>'
@@ -205,8 +210,9 @@
       +startPageOptions().map(function(p){return '<option value="'+p+'"'+(p===current?' selected':'')+'>'+esc(PAGE_TITLES[p]||p)+'</option>'}).join('')
       +'</select><div class="help settings-hint">De pagina die je ziet nadat je bent ingelogd.</div></div>';
     var help='<label class="settings-view-toggle settings-center-switch" for="extraHelpToggle"><span><strong>Extra uitleg tonen</strong>'+hint('Korte uitleg bij cijfers en knoppen. Handig als je net begint.')+'</span><input type="checkbox" role="switch" id="extraHelpToggle" aria-label="Extra uitleg tonen" '+(extraHelpVisible()?'checked':'')+' onchange="setExtraHelpEnabled(this.checked)"></label>';
+    var hide='<label class="settings-view-toggle settings-center-switch" for="hideAmountsToggle"><span><strong>Bedragen verbergen</strong>'+hint('Op het overzicht staan bedragen vaag tot je op het grote getal tikt. Handig in de trein.')+'</span><input type="checkbox" role="switch" id="hideAmountsToggle" aria-label="Bedragen verbergen" '+(state.meta&&state.meta.hideAmounts?'checked':'')+' onchange="setHideAmounts(this.checked)"></label>';
     var assistant=renderAssistantSettingsSafe();
-    return block(themeBlock())+block('<div class="form-grid">'+select+'</div>','Startpagina')+block(help,'Uitleg')+(assistant?'<div class="settings-center-embedded">'+assistant+'</div>':'');
+    return block(themeBlock())+block('<div class="form-grid">'+select+'</div>','Startpagina')+block(help+hide,'Uitleg')+(assistant?'<div class="settings-center-embedded">'+assistant+'</div>':'');
   }
 
   function securityPanel(){
