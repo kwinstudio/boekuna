@@ -30,6 +30,8 @@ await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const url='http://127.0.0.1:'+server.address().port;
 const browser=await (browserName==='webkit'?webkit:chromium).launch();
 const errors=[];
+// WebKit's innerText keeps line breaks between flex children; compare words only.
+const text=async loc=>(await loc.innerText()).replace(/\s+/g,' ').trim();
 
 async function openApp(width,height,colorScheme='light'){
   const context=await browser.newContext({viewport:{width,height},locale:'nl-NL',colorScheme});
@@ -47,19 +49,19 @@ try{
   // 1. The overview opens exactly as before: the five default widgets, in the R1D order.
   assert.deepEqual(await page.locator('#content .r1d-bento .r1d-w').evaluateAll(els=>els.map(e=>e.dataset.widget)),['omzet','kosten','open','vrij','recent']);
   assert.equal(await page.locator('#content .r1d-custom-btn').count(),2,'Widgets and Thema pills under the blocks');
-  assert.equal(await page.locator('#content .r1d-custom').innerText(),'Widgets\nThema');
+  assert.equal(await text(page.locator('#content .r1d-custom')),'Widgets Thema');
   // The hours pill stays while Uren is not a widget.
-  assert.equal(await page.locator('#content .r1d-hours').innerText(),'6 / 1.225 uur');
+  assert.equal(await text(page.locator('#content .r1d-hours')),'6 / 1.225 uur');
 
   // 2. Widgets sheet: every widget as a live preview, the five defaults on, the rest off; the drag library is there.
   await page.locator('#content .r1d-custom-btn',{hasText:'Widgets'}).click();
   const sheet=page.locator('#modalRoot .modal.widget-sheet');
   await sheet.waitFor();
-  assert.equal(await sheet.locator('#modalTitle').innerText(),'Widgets');
+  assert.equal(await text(sheet.locator('#modalTitle')),'Widgets');
   assert.equal(await sheet.locator('.r1d-wcard').count(),11);
   assert.equal(await sheet.locator('.r1d-wcard.is-on').count(),5);
-  assert.match(await sheet.locator('.r1d-wcard[data-widget="omzet"] .calm-value').innerText(),/^€\s?1\.000,00$/);
-  assert.equal(await sheet.locator('.r1d-wcard[data-widget="uren"] .r1d-text').innerText(),'6');
+  assert.match(await text(sheet.locator('.r1d-wcard[data-widget="omzet"] .calm-value')),/^€\s?1\.000,00$/);
+  assert.equal(await text(sheet.locator('.r1d-wcard[data-widget="uren"] .r1d-text')),'6');
   assert.ok(await page.evaluate(()=>typeof Sortable==='function'),'SortableJS loaded for drag ordering');
   // No focus ring on the close button after a tap.
   assert.notEqual(await page.evaluate(()=>document.activeElement?.className||''),'modal-close');
@@ -72,7 +74,7 @@ try{
   await sheet.locator('.r1d-wdone').click();
   await page.locator('#modalRoot .modal').waitFor({state:'detached'});
   assert.deepEqual(await page.locator('#content .r1d-bento .r1d-w').evaluateAll(els=>els.map(e=>e.dataset.widget)),['omzet','open','vrij','recent','uren']);
-  assert.equal(await page.locator('#content .r1d-w[data-widget="uren"] .r1d-text').innerText(),'6');
+  assert.equal(await text(page.locator('#content .r1d-w[data-widget="uren"] .r1d-text')),'6');
   assert.equal(await page.locator('#content .r1d-hours').count(),0,'The hours pill is gone once Uren is a widget');
   assert.equal(await page.locator('#content .r1d-w[data-widget="kosten"]').count(),0);
   // The grid never leaves a widget half hidden: a wide widget spans both columns.
@@ -92,12 +94,12 @@ try{
   const theme=page.locator('#modalRoot .modal.theme-sheet');
   await theme.waitFor();
   assert.equal(await theme.locator('.r1d-swatch').count(),6);
-  assert.equal(await theme.locator('.r1d-swatch.is-on').innerText(),'Groen');
+  assert.equal(await text(theme.locator('.r1d-swatch.is-on')),'Groen');
   await theme.locator('.r1d-swatch[data-band="nacht"]').click();
   assert.equal(await page.evaluate(()=>document.documentElement.dataset.band),'nacht');
   assert.equal(await page.evaluate(()=>localStorage.getItem('boekuna-band')),'nacht');
   assert.equal(await page.evaluate(()=>state.meta.band),'nacht');
-  assert.equal(await theme.locator('.r1d-swatch.is-on').innerText(),'Nacht');
+  assert.equal(await text(theme.locator('.r1d-swatch.is-on')),'Nacht');
   const bandTop=await page.locator('#content .r1d-hero').evaluate(el=>getComputedStyle(el).getPropertyValue('--r1d-top').trim());
   assert.equal(bandTop,'#0E1013');
   await theme.locator('.r1d-segbtn',{hasText:'Donker'}).click();
@@ -115,10 +117,10 @@ try{
   await page.evaluate(()=>navigate('settings'));
   await page.locator('.settings-nav-item[data-settings-open="app"]').click();
   await page.locator('.settings-band-option.is-on').waitFor();
-  assert.equal(await page.locator('.settings-band-option.is-on').innerText(),'Oceaan');
+  assert.equal(await text(page.locator('.settings-band-option.is-on')),'Oceaan');
   await page.locator('.settings-band-option[data-band-choice="smaragd"]').click();
   assert.equal(await page.evaluate(()=>document.documentElement.dataset.band),'smaragd');
-  assert.equal(await page.locator('.settings-band-option.is-on').innerText(),'Smaragd');
+  assert.equal(await text(page.locator('.settings-band-option.is-on')),'Smaragd');
   await context.close();
 
   // 6. Desktop is untouched: no widgets grid, no pills, no band attribute effect on the dashboard.
