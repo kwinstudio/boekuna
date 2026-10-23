@@ -379,3 +379,18 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
+
+/* 25. Band colour (Kwin 2026-10-23, "thema zoals Revolut"): this device's last choice goes on <html data-band>
+   before the first render; the account choice (state.meta.band) wins once the administration is loaded. */
+(function(){
+  'use strict';
+  var KEY='boekuna-band';
+  function readLocal(){try{return localStorage.getItem(KEY)||''}catch(e){return ''}}
+  function apply(id){if(!id||id==='groen')delete document.documentElement.dataset.band;else document.documentElement.dataset.band=id}
+  apply(readLocal());
+  function sync(){
+    try{var b=typeof state!=='undefined'&&state&&state.meta?state.meta.band:'';if(typeof b==='string'&&b&&b!==readLocal()){try{localStorage.setItem(KEY,b)}catch(e){}apply(b)}}catch(e){}
+  }
+  function install(){if(typeof render!=='function')return;var original=render;render=function(){sync();return original.apply(this,arguments)}}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+})();

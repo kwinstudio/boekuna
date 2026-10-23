@@ -31,6 +31,8 @@ on:
       - "kwinest/app-assets/motion.*"
       - "public/assets/personal-insights-ui.js"
       - "tests/look-browser.test.mjs"
+      - "tests/revolut-widgets-browser.test.mjs"
+      - "kwinest/app-assets/sortable.min.js"
       - "tests/trips-and-todo-links.test.mjs"
       - "tests/fewer-choices-phone-browser.test.mjs"
       - "tests/less-text-phone-browser.test.mjs"
@@ -262,6 +264,10 @@ jobs:
         run: |
           node tests/look-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/look-browser.test.mjs
+      - name: Widgets en Thema op het overzicht (Revolut-gevoel) — Chromium and WebKit
+        run: |
+          node tests/revolut-widgets-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/revolut-widgets-browser.test.mjs
       - name: Bonnen in de tabbalk, Nog te doen opent de lijst, Ritten met automatische afstand — Chromium and WebKit
         run: |
           node tests/trips-and-todo-links.test.mjs
