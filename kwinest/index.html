@@ -4651,6 +4651,14 @@ function applyPhoneBand(content){
  band.insertAdjacentHTML('beforeend',phoneBandActionsHtml(PHONE_BAND_ACTIONS[page]?.()||[]));
  head.classList.add('r1d-moved');content.insertBefore(band,content.firstChild)
 }
+// Revolut-style "Recent" (Kwin 2026-10-23): the last few invoices and costs, newest first; a tap opens the item.
+function dashboardRecentHtml(limit=4){
+ const rows=[...state.invoices.filter(i=>invoiceCounts(i)).map(i=>{const c=state.contacts.find(x=>x.id===i.customerId),name=c?.name||'Factuur';return {date:i.issueDate||'',name,sub:'Factuur '+(i.number||'concept'),amount:invoiceGross(i),avatar:partyAvatarHtml(name,c?partyLogoDomain(c):''),open:"viewInvoice('"+esc(i.id)+"')"}}),
+  ...state.expenses.map(e=>({date:e.date||'',name:e.vendor||e.category||'Kosten',sub:e.category||'Kosten',amount:-expenseGross(e),avatar:expenseLeadHtml(e),open:"editExpense('"+esc(e.id)+"')"}))]
+  .sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,limit);
+ if(!rows.length)return '';
+ return '<section class="r1d-recent" aria-label="Recent"><h2>Recent</h2>'+rows.map(r=>'<button type="button" class="r1d-recent-row" onclick="'+r.open+'">'+r.avatar+'<span class="r1d-recent-text"><strong>'+esc(r.name)+'</strong><span>'+esc(r.date?new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short'}).format(parseDateOnly(r.date)||new Date(r.date)).replace('.',''):'')+' · '+esc(r.sub)+'</span></span><span class="r1d-recent-amount'+(r.amount>0?' is-in':'')+'">'+(r.amount>0?'+ ':'')+money(r.amount)+'</span></button>').join('')+'</section>'
+}
 let phoneOverviewTodo=false;
 function dashboardCalmPhoneHtml(kpi,greeting,periodControl,notices){
  // A fetch problem is never folded away: the retry stays in sight.
@@ -4675,6 +4683,7 @@ function dashboardCalmPhoneHtml(kpi,greeting,periodControl,notices){
   // Kwin 2026-10-22 (concurrenten, o2): what is left after btw and the tax estimate, the same number as on Rapportages. Before money comes in, the btw to set aside takes its place.
   (free?tile('r1d-free calm-row','winst','Vrij te besteden',free.free,"navigate('reports')",bar('is-free',pct(free.free,free.received))):tile('r1d-free calm-row','btw',vat.label,vat.value,"navigate('vat')"))+
  '</div>'+
+ dashboardRecentHtml()+
  '<div class="r1d-pills">'+
  // Kwin 2026-10-23: the "te doen" pill is off the overview for now (phoneOverviewTodo brings it back); a scan problem still shows its retry.
  (phoneOverviewTodo&&(todo||(typeof openAskBoekuna==='function'&&!docError))?'<details class="calm-todo'+(todo?'':' is-clear')+'"'+(docError?' open':'')+'><summary><span class="calm-todo-dot" aria-hidden="true"></span><strong>'+(todo?todo+' te doen':'Niets te doen')+'</strong>'+icon('i-chevron')+'</summary>'+renderAssistantDashboardSafe()+'</details>':(docError?renderAssistantDashboardSafe():''))+
