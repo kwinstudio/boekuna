@@ -2,7 +2,7 @@
    Only touches elements whose whole text is one amount, so innerText/textContent stay exactly the same. */
 (function(){
   'use strict';
-  var SELECTOR='.metric-value,.mobile-card-value,td.money,.product-kpi-value,.dashboard-summary-value';
+  var SELECTOR='.r1d-tile .calm-value,.metric-value,.mobile-card-value,td.money,.product-kpi-value,.dashboard-summary-value';
   var AMOUNT=/^([^\d]*-?\s?€?\s?-?\d[\d.]*)(,\d{2})$/;
 
   function set(el,text){

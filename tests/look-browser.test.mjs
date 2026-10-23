@@ -112,7 +112,7 @@ try{
     assert.deepEqual((await page.locator('.r1d-action').allInnerTexts()).map(s=>s.trim()),['Factuur','Bon','Bank','Meer']);
     assert.equal(await page.locator('.dashboard-kpis-calm .dashboard-kpi').count(),1,'Only the Winst block');
     assert.deepEqual((await page.locator('.r1d-bento .calm-label').allTextContents()).map(s=>s.trim()).slice(0,3),['Omzet','Kosten','Te ontvangen']);
-    assert.match(await page.locator('.r1d-bento .calm-label').nth(3).innerText(),/^(Vrij|Btw Q[1-4])$/,'The fourth block is Vrij, or the btw of the quarter that is due');
+    assert.match(await page.locator('.r1d-bento .calm-label').nth(3).innerText(),/^(Vrij te besteden|Btw Q[1-4])$/,'The fourth block is Vrij, or the btw of the quarter that is due');
     const tiles=await page.locator('.r1d-bento .r1d-tile').evaluateAll(list=>list.map(el=>{const r=el.getBoundingClientRect();return {w:Math.round(r.width),h:Math.round(r.height),left:Math.round(r.left)}}));
     assert.ok(tiles[0].w>tiles[1].w*1.8,'Omzet is wide: '+JSON.stringify(tiles));
     assert.ok(tiles[1].h>tiles[2].h*1.6&&tiles[2].left>tiles[1].left,'Kosten is tall, Te ontvangen sits beside it: '+JSON.stringify(tiles));
@@ -180,8 +180,9 @@ try{
   {
     const {context,page}=await openApp(390,844);
     const bg=sel=>page.locator(sel).first().evaluate(el=>getComputedStyle(el).backgroundColor);
-    assert.equal(await bg('#content'),'rgb(255, 255, 255)','The page is plain white on a phone');
-    assert.equal(await page.locator('#mobileMenu').evaluate(el=>getComputedStyle(el).borderTopWidth+'|'+getComputedStyle(el).backgroundColor),'0px|rgba(0, 0, 0, 0)','Menu is just the icon');
+    // Kwin 2026-10-23 (R1D as picked): the overview is light grey with white cards; menu and search are round buttons on the green.
+    assert.equal(await bg('#content'),'rgb(242, 243, 245)','The overview is light grey on a phone');
+    assert.equal(await page.locator('#mobileMenu').evaluate(el=>getComputedStyle(el).borderTopWidth+'|'+getComputedStyle(el).backgroundColor),'0px|rgba(255, 255, 255, 0.12)','Menu is a round button on the green band');
     assert.equal(await page.locator('.calm-list').isVisible(),true,'One calm list under the Winst block');
     const todo=page.locator('#content .dashboard-attention-item').first();
     if(await todo.count()){
