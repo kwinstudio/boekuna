@@ -92,7 +92,7 @@ try{
     const {context,page}=await openApp(390,844);
     // Kwin 2026-10-10: on a phone the period is one quiet "Deze maand ⌄" button next to the greeting that opens the phone's own picker;
     // the five buttons stay for wider screens.
-    const seg=page.locator('.dashboard-page-head .period-seg');
+    const seg=page.locator('.dashboard-period-control .period-seg'); // R1D (Kwin 2026-10-23): the period sits under Winst in the green band
     assert.deepEqual((await seg.locator('.period-seg-btn').allTextContents()).map(s=>s.trim()),['Week','Maand','Kwartaal','Jaar','Alles']);
     assert.equal(await seg.locator('.period-seg-btn').first().isVisible(),false,'The five period buttons are folded into one on a phone');
     const pick=page.getByRole('combobox',{name:'Periode'});
@@ -100,14 +100,22 @@ try{
     assert.equal(await pick.getAttribute('tabindex'),null,'The period picker can be reached with the keyboard');
     assert.deepEqual(await pick.locator('option').allTextContents(),['Deze week','Deze maand','Dit kwartaal','Dit jaar','Alles']);
     await pick.selectOption('year');
-    await page.locator('.dashboard-page-head .period-seg-btn.on',{hasText:'Jaar'}).waitFor({state:'attached'});
+    await page.locator('.dashboard-period-control .period-seg-btn.on',{hasText:'Jaar'}).waitFor({state:'attached'});
     assert.equal(await page.locator('#dashboardPeriod').inputValue(),'year');
-    const head=await page.locator('.dashboard-page-head').evaluate(el=>({title:el.querySelector('h1').getBoundingClientRect(),pick:el.querySelector('.period-seg-select').getBoundingClientRect()}));
-    assert.ok(head.pick.left>=head.title.right&&head.pick.top<head.title.bottom&&head.pick.right<=390,'The period button sits next to the greeting: '+JSON.stringify(head));
-    // Kwin 2026-10-22 ("rustiger" A): one Winst block and one calm list of four amounts instead of tiles with charts.
+    // Kwin 2026-10-23 (own sketch, "R1D Diep groen"): Winst large on a deep green band with the period right under it and four
+    // round shortcuts; then blocks: Omzet wide, Kosten tall, Te ontvangen and Btw (Vrij once money came in) beside it.
+    const hero=await page.locator('.r1d-hero').evaluate(el=>{const r=el.getBoundingClientRect(),w=el.querySelector('.dashboard-kpi-profit').getBoundingClientRect(),p=el.querySelector('.period-seg-select').getBoundingClientRect(),bar=document.querySelector('.topbar');return {left:r.left,right:r.right,top:r.top,barBottom:bar.getBoundingClientRect().bottom,winstBottom:w.bottom,pickTop:p.top,pickRight:p.right,bg:getComputedStyle(el).backgroundImage,barBg:getComputedStyle(bar).backgroundColor}});
+    assert.ok(hero.left===0&&hero.right===390&&Math.abs(hero.top-hero.barBottom)<=1,'The green band runs edge to edge, right under the top bar: '+JSON.stringify(hero));
+    assert.match(hero.bg,/linear-gradient/,'The band is a green gradient');
+    assert.equal(hero.barBg,'rgb(15, 42, 26)','The top bar takes the dark green of the band');
+    assert.ok(hero.pickTop>=hero.winstBottom&&hero.pickRight<=390,'The period button sits under Winst: '+JSON.stringify(hero));
+    assert.deepEqual((await page.locator('.r1d-action').allInnerTexts()).map(s=>s.trim()),['Factuur','Bon','Bank','Meer']);
     assert.equal(await page.locator('.dashboard-kpis-calm .dashboard-kpi').count(),1,'Only the Winst block');
-    assert.ok([4,5].includes(await page.locator('.calm-list .calm-row').count()),'Four amounts, plus Vrij te besteden once money came in');
-    assert.match(await page.locator('.calm-list .calm-row').nth(3).innerText(),/^Btw Q[1-4]\s/,'The VAT row names the quarter that is due');
+    assert.deepEqual((await page.locator('.r1d-bento .calm-label').allTextContents()).map(s=>s.trim()).slice(0,3),['Omzet','Kosten','Te ontvangen']);
+    assert.match(await page.locator('.r1d-bento .calm-label').nth(3).innerText(),/^(Vrij te besteden|Btw Q[1-4])$/,'The fourth block is Vrij, or the btw of the quarter that is due');
+    const tiles=await page.locator('.r1d-bento .r1d-tile').evaluateAll(list=>list.map(el=>{const r=el.getBoundingClientRect();return {w:Math.round(r.width),h:Math.round(r.height),left:Math.round(r.left)}}));
+    assert.ok(tiles[0].w>tiles[1].w*1.8,'Omzet is wide: '+JSON.stringify(tiles));
+    assert.ok(tiles[1].h>tiles[2].h*1.6&&tiles[2].left>tiles[1].left,'Kosten is tall, Te ontvangen sits beside it: '+JSON.stringify(tiles));
     const fab=await page.locator('#quickNew').evaluate(el=>{const r=el.getBoundingClientRect(),c=getComputedStyle(el);return {right:innerWidth-r.right,bottom:innerHeight-r.bottom,w:r.width,h:r.height,position:c.position}});
     assert.equal(fab.position,'fixed');
     assert.ok(fab.w===48&&fab.h===48&&Math.abs(fab.right-(390-48)/2)<=1&&fab.bottom>=6&&fab.bottom<=12,'Nieuw is a round button inside the middle of the bottom bar: '+JSON.stringify(fab));
@@ -133,8 +141,8 @@ try{
     const {context,page}=await openApp(390,844);
     for(const route of ['invoices','expenses','bank','vat','reports']){
       await page.evaluate(r=>navigate(r),route);
-      const tiles=await page.locator('.product-kpis .product-kpi').evaluateAll(list=>list.map(el=>({dot:el.dataset.kpiDot||'',hero:el.classList.contains('kpi-hero'),radius:getComputedStyle(el).borderTopLeftRadius,icon:getComputedStyle(el.querySelector('.product-kpi-icon')).display})));
-      assert.ok(tiles.length&&tiles.every(t=>t.dot&&(t.hero?t.radius==='18px':t.radius==='16px')&&t.icon==='none'),route+' tiles share one style with a coloured dot: '+JSON.stringify(tiles));
+      const tiles=await page.locator('.product-kpis .product-kpi').evaluateAll(list=>list.map(el=>({dot:el.dataset.kpiDot||'',hero:el.classList.contains('kpi-hero'),band:!!el.closest('.r1d-hero'),radius:getComputedStyle(el).borderTopLeftRadius,icon:getComputedStyle(el.querySelector('.product-kpi-icon')).display})));
+      assert.ok(tiles.length&&tiles.every(t=>t.dot&&(t.hero?t.band&&t.radius==='0px':t.radius==='16px')&&t.icon==='none'),route+' tiles share one style with a coloured dot (the hero number sits in the green band): '+JSON.stringify(tiles));
       if(['bank','vat'].includes(route))assert.equal(tiles.filter(t=>t.hero).length,1,route+' has one light-blue block on top');
       // Kwin 2026-10-21 (Rapportages B): the winst is the big number with a line over the year above the tiles.
       if(route==='reports')assert.equal(await page.locator('#content .report-story .report-story-amount').count(),1,'reports opens with the winst story');
@@ -172,8 +180,9 @@ try{
   {
     const {context,page}=await openApp(390,844);
     const bg=sel=>page.locator(sel).first().evaluate(el=>getComputedStyle(el).backgroundColor);
-    assert.equal(await bg('#content'),'rgb(255, 255, 255)','The page is plain white on a phone');
-    assert.equal(await page.locator('#mobileMenu').evaluate(el=>getComputedStyle(el).borderTopWidth+'|'+getComputedStyle(el).backgroundColor),'0px|rgba(0, 0, 0, 0)','Menu is just the icon');
+    // Kwin 2026-10-23 (R1D as picked): the overview is light grey with white cards; menu and search are round buttons on the green.
+    assert.equal(await bg('#content'),'rgb(242, 243, 245)','The overview is light grey on a phone');
+    assert.equal(await page.locator('#mobileMenu').evaluate(el=>getComputedStyle(el).borderTopWidth+'|'+getComputedStyle(el).backgroundColor),'0px|rgba(255, 255, 255, 0.12)','Menu is a round button on the green band');
     assert.equal(await page.locator('.calm-list').isVisible(),true,'One calm list under the Winst block');
     const todo=page.locator('#content .dashboard-attention-item').first();
     if(await todo.count()){

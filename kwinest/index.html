@@ -2405,7 +2405,7 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
 <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></symbol><symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/></symbol>
 <symbol id="i-unlink" viewBox="0 0 24 24"><path d="M9 8H7a4 4 0 0 0 0 8h2"/><path d="M15 8h2a4 4 0 0 1 0 8h-2"/><path d="M8 12h8"/><path d="m7 4 10 16"/></symbol>
 <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
-<symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></symbol><symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol><symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol><symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h2l2-2h4l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></symbol><symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></symbol><symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></symbol><symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol><symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol><symbol id="i-scan" viewBox="0 0 24 24"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M8 12h8"/></symbol><symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h2l2-2h4l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></symbol><symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></symbol><symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z"/></symbol>
 <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></symbol>
 </svg>
 <div id="authRoot"></div>
@@ -4308,7 +4308,7 @@ function setHideAmounts(on){if(!state.meta||typeof state.meta!=='object')state.m
 function applyHideAmounts(){document.documentElement.classList.toggle('hide-amounts',!!state.meta?.hideAmounts)}
 document.addEventListener('click',e=>{if(!document.documentElement.classList.contains('hide-amounts')||document.documentElement.classList.contains('amounts-peek'))return;const hero=e.target.closest?.('.kpi-hero');if(!hero)return;e.preventDefault();e.stopPropagation();document.documentElement.classList.add('amounts-peek')},true);
 function setExtraHelpEnabled(enabled){if(!state.meta||typeof state.meta!=='object')state.meta={};state.meta.extraHelpEnabled=enabled===true;save();if(page!=='settings')render()}
-function render(){const fn={dashboard:renderDashboard,insights:renderAssistantInsightsSafe,invoices:renderInvoices,expenses:renderExpenses,bank:renderBank,income:renderIncome,outgoings:renderOutgoings,vat:renderVat,reports:renderReports,ledger:renderLedger,control:renderControl,cashflow:renderCashflow,bookings:renderBookings,contacts:renderContacts,services:renderServices,trips:renderTrips,hours:renderHours,documents:renderDocuments,profile:renderProfile,settings:renderSettings}[page]||renderDashboard;const content=document.getElementById('content');content.dataset.page=page;content.innerHTML=fn();wirePage();if(page==='dashboard')wireDashboardAttention();renderGlobalDocumentIndicator();updateVatNavBadge();applyHideAmounts();syncMobileNavigationState()}
+function render(){const fn={dashboard:renderDashboard,insights:renderAssistantInsightsSafe,invoices:renderInvoices,expenses:renderExpenses,bank:renderBank,income:renderIncome,outgoings:renderOutgoings,vat:renderVat,reports:renderReports,ledger:renderLedger,control:renderControl,cashflow:renderCashflow,bookings:renderBookings,contacts:renderContacts,services:renderServices,trips:renderTrips,hours:renderHours,documents:renderDocuments,profile:renderProfile,settings:renderSettings}[page]||renderDashboard;const content=document.getElementById('content');content.dataset.page=page;content.innerHTML=fn();applyPhoneBand(content);wirePage();if(page==='dashboard')wireDashboardAttention();renderGlobalDocumentIndicator();updateVatNavBadge();applyHideAmounts();syncMobileNavigationState()}
 // Phone pages (Kwin's picks, 2026-10-09) show calmer blocks; render() runs again when the width crosses 820px.
 function phoneLayout(){return window.matchMedia('(max-width:820px)').matches}
 function dashboardIsoDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -4553,7 +4553,7 @@ function openMissingReceipts(){storeFinancialPeriod('all');const list=listPageSt
 function openMissingContactDetails(){const list=listPageState('contacts');list.filters.type='customer';list.filters.details='missing';persistListState();return navigate('contacts')}
 function missingReceiptsCardHtml(force=false){const list=expensesWithoutReceipt();if(!list.length||(!force&&lookFlag('receipts-asked')===isoWeekKey()))return '';const names=[...new Set(list.map(e=>e.vendor).filter(Boolean))].slice(0,3).join(', ');return `<div class="card look-note-card missing-receipts-card"><div class="look-note-text"><strong>${list.length} ${list.length===1?'betaling':'betalingen'} zonder bon</strong><span>${esc(names)}</span></div><div class="look-note-actions">${force?'':`<button class="btn" type="button" onclick="lookFlag('receipts-asked',isoWeekKey());render()">Later</button>`}<button class="btn" type="button" onclick="openMissingReceipts()">Bekijken</button><button class="btn primary" type="button" onclick="openUploadSourcePicker('purchase')">Toevoegen</button></div></div>`}
 function monthCardHtml(){const now=new Date();if(now.getDate()>7)return '';const key=monthKeyOffset(-1);if(lookFlag('month-card')===key)return '';const inMonth=d=>String(d||'').startsWith(key);const inv=state.invoices.filter(i=>invoiceCounts(i)&&inMonth(i.issueDate)),exp=state.expenses.filter(e=>inMonth(e.date));if(!inv.length&&!exp.length)return '';const sales=inv.reduce((s,i)=>roundMoney(s+invoiceNet(i)),0),costs=expenseCostsBetween(key+'-01',key+'-31'),open=state.invoices.filter(i=>invoiceCounts(i)&&i.kind!=='credit'&&toCents(invoiceOutstanding(i))>0).length;const d=new Date(key+'-01T12:00:00'),name=new Intl.DateTimeFormat('nl-NL',{month:'long'}).format(d);return `<div class="card look-note-card month-card"><div class="look-note-text"><span class="look-note-eyebrow">${esc(name.charAt(0).toUpperCase()+name.slice(1))} in het kort</span><strong class="month-card-value">${money(roundMoney(sales-costs))} winst</strong><span>${money(sales)} omzet · ${money(costs)} kosten${open?` · ${open} ${open===1?'factuur staat':'facturen staan'} nog open`:''}</span></div><div class="look-note-actions"><button class="btn" type="button" onclick="lookFlag('month-card','${key}');render()">Gezien</button></div></div>`}
-function freeToSpend(){const y=String(currentBookYear()),inYear=d=>String(d||'').startsWith(y);const bankIn=i=>state.transactions.filter(t=>t.status==='matched'&&t.matchType==='invoice'&&t.matchId===i.id&&inYear(t.date)).reduce((s,t)=>s+Math.abs(Number(t.amount||0)),0),owed=state.invoices.filter(i=>i.kind==='credit'&&invoiceCounts(i)).reduce((s,i)=>s+invoiceOutstanding(i),0),received=roundMoney(state.invoices.filter(i=>i.kind!=='credit').reduce((s,i)=>s+(i.payments||[]).filter(p=>inYear(p.date)).reduce((t,p)=>t+Math.abs(Number(p.amount||0)),0)+bankIn(i),0)-owed);if(received<=0)return null;const exp=state.expenses.filter(e=>inYear(e.date)),inv=state.invoices.filter(i=>invoiceCounts(i)&&inYear(i.issueDate));const spent=exp.reduce((s,e)=>s+expenseGross(e),0),vat=Math.max(0,roundMoney(inv.reduce((s,i)=>s+invoiceVat(i),0)-exp.reduce((s,e)=>s+expenseDeductibleVat(e),0))),profit=inv.reduce((s,i)=>s+invoiceNet(i),0)-expenseCostsBetween(y+'-01-01',y+'-12-31'),pct=Number(state.meta?.taxReservePct??30),tax=roundMoney(Math.max(0,profit)*pct/100);return {free:roundMoney(received-spent-vat-tax),vat,tax,pct}}
+function freeToSpend(){const y=String(currentBookYear()),inYear=d=>String(d||'').startsWith(y);const bankIn=i=>state.transactions.filter(t=>t.status==='matched'&&t.matchType==='invoice'&&t.matchId===i.id&&inYear(t.date)).reduce((s,t)=>s+Math.abs(Number(t.amount||0)),0),owed=state.invoices.filter(i=>i.kind==='credit'&&invoiceCounts(i)).reduce((s,i)=>s+invoiceOutstanding(i),0),received=roundMoney(state.invoices.filter(i=>i.kind!=='credit').reduce((s,i)=>s+(i.payments||[]).filter(p=>inYear(p.date)).reduce((t,p)=>t+Math.abs(Number(p.amount||0)),0)+bankIn(i),0)-owed);if(received<=0)return null;const exp=state.expenses.filter(e=>inYear(e.date)),inv=state.invoices.filter(i=>invoiceCounts(i)&&inYear(i.issueDate));const spent=exp.reduce((s,e)=>s+expenseGross(e),0),vat=Math.max(0,roundMoney(inv.reduce((s,i)=>s+invoiceVat(i),0)-exp.reduce((s,e)=>s+expenseDeductibleVat(e),0))),profit=inv.reduce((s,i)=>s+invoiceNet(i),0)-expenseCostsBetween(y+'-01-01',y+'-12-31'),pct=Number(state.meta?.taxReservePct??30),tax=roundMoney(Math.max(0,profit)*pct/100);return {free:roundMoney(received-spent-vat-tax),vat,tax,pct,received}}
 function freeToSpendLineHtml(){const f=freeToSpend();if(!f)return '';return `<div class="kpi-free" title="Wat dit jaar binnenkwam min wat je uitgaf, na btw (${money(f.vat)}) en een schatting van ${f.pct}% inkomstenbelasting (${money(f.tax)}).">Vrij te besteden <strong>${money(f.free)}</strong><span>${phoneLayout()?'dit jaar, schatting':'dit jaar, na btw en geschatte belasting'}</span></div>`}
 // z2. What was on the receipt (line texts only, short), so search can find "toner" or "laptop".
 function receiptItemsText(items){return (Array.isArray(items)?items:[]).map(x=>String(x?.desc||x?.description||'').replace(/\s+/g,' ').trim()).filter(Boolean).join(' · ').slice(0,500)}
@@ -4614,24 +4614,90 @@ function dashboardVatRow(kpi){
  return {label:'Btw '+due.quarter,value:Math.abs(amount)}
 }
 function dashboardTodoCount(){return [missingReceiptsTodo(),...dashboardAttentionItems().filter(item=>attentionTypeVisible(item.key))].filter(Boolean).length}
+// Kwin 2026-10-23 (own sketch, picked "R1D Diep groen"): Winst large on a deep green band with the period and
+// four round shortcuts, then blocks in different sizes: Omzet wide, Kosten tall, Te ontvangen and Vrij beside it.
+// Every number already existed; Vrij is always the whole year because tax is per year.
+function dashboardPreviousProfit(period){
+ if(!period?.from||!period?.to||period.preset==='all')return null;
+ const from=new Date(period.from+'T12:00:00'),to=new Date(period.to+'T12:00:00'),days=Math.round((to-from)/86400000)+1;if(!(days>0))return null;
+ const end=new Date(from);end.setDate(end.getDate()-1);const start=new Date(end);start.setDate(start.getDate()-days+1);
+ const lo=dashboardIsoDate(start),hi=dashboardIsoDate(end),sales=state.invoices.filter(i=>invoiceCounts(i)&&inRange(i.issueDate,lo,hi)).reduce((s,i)=>roundMoney(s+invoiceNet(i)),0);
+ return roundMoney(sales-expenseCostsBetween(lo,hi))
+}
+function dashboardProfitTrend(kpi){
+ // Kwin 2026-10-23: the % sits next to the period. A loss last period still compares (against its size); only an empty last period has nothing to compare.
+ const prev=dashboardPreviousProfit(kpi.period);if(prev==null||!prev)return null;
+ const pct=Math.round((kpi.profit-prev)/Math.abs(prev)*100);return Number.isFinite(pct)?pct:null
+}
+function dashboardCostBars(buckets){
+ const list=buckets.slice(-7),max=Math.max(0,...list.map(b=>b.costs));if(!(max>0))return '';
+ return '<span class="r1d-bars" aria-hidden="true">'+list.map((b,i)=>'<i'+(i===list.length-1?' class="is-now"':'')+' style="height:'+Math.max(6,Math.round(b.costs/max*100))+'%"></i>').join('')+'</span>'
+}
+// Kwin 2026-10-23 ("A, en kies voor consistentie"): every phone page gets the deep green band of the overview, with the
+// page title, its one main number, the period and round shortcuts. The pages render as before; this only moves their
+// title, hero number and period into the band, so desktop and the page logic stay the same.
+const PHONE_BAND_ACTIONS={
+ invoices:()=>[['Factuur','i-file','newInvoice()'],...(typeof newQuote==='function'?[['Offerte','i-file','newQuote()']]:[]),['Uploaden','i-upload',"triggerInvoiceUpload('sale')"]],
+ expenses:()=>[['Bon','i-camera',"openUploadSourcePicker('purchase')"],['Kosten','i-receipt','newExpense()'],['Bank','i-bank','quickBankChoice()']],
+ documents:()=>[['Scannen','i-camera',"openUploadSourcePicker('auto')"],['Uploaden','i-upload',"planAllows(1)?openDocumentUpload():triggerInvoiceUpload('sale')"]],
+ bank:()=>state.transactions.length?[['Koppelen','i-link','autoMatch()'],['Importeren','i-upload','quickImportBank()'],['Betaling','i-plus','newTransaction()']]:[['Importeren','i-upload','quickImportBank()'],['Betaling','i-plus','newTransaction()']],
+ vat:()=>state.company?.kor?[]:[['Aangifte','i-tax','vatStepper(0)']],
+ contacts:()=>[['Nieuw','i-users','newContact()']],
+ services:()=>[['Nieuw','i-plus','newService()']],
+ trips:()=>[['Rit','i-car','newTrip()']],
+ hours:()=>[['Uren','i-clock','newHour()']]
+};
+function phoneBandActionsHtml(list){return list.length?'<div class="r1d-actions">'+list.map(([label,iconId,call])=>'<button type="button" class="r1d-action" onclick="'+call+'"><span class="r1d-action-icon" aria-hidden="true">'+icon(iconId)+'</span><span>'+esc(label)+'</span></button>').join('')+'</div>':''}
+function applyPhoneBand(content){
+ if(!phoneLayout()||!content||content.querySelector('.r1d-hero'))return;
+ const head=content.querySelector('.page-head');const h1=head?.querySelector('h1');if(!h1)return;
+ const band=document.createElement('section');band.className='r1d-hero r1d-page';band.dataset.r1dPage=page;
+ const title=document.createElement('div');title.className='r1d-title';title.appendChild(h1);head.querySelectorAll('.page-status').forEach(p=>title.appendChild(p));band.appendChild(title);
+ const hero=content.querySelector('.kpi-hero');
+ if(hero){const grid=hero.parentElement;if(grid&&grid.children.length===1)band.appendChild(grid);else{const wrap=document.createElement('div');wrap.className='grid grid-1 compact-metrics product-kpis calm-kpis';wrap.appendChild(hero);band.appendChild(wrap)}}
+ const slot=head.querySelector('.page-period-slot');if(slot){const row=document.createElement('div');row.className='r1d-period';row.appendChild(slot);band.appendChild(row)}
+ band.insertAdjacentHTML('beforeend',phoneBandActionsHtml(PHONE_BAND_ACTIONS[page]?.()||[]));
+ head.classList.add('r1d-moved');content.insertBefore(band,content.firstChild)
+}
+// Revolut-style "Recent" (Kwin 2026-10-23): the last few invoices and costs, newest first; a tap opens the item.
+function dashboardRecentHtml(limit=4){
+ const rows=[...state.invoices.filter(i=>invoiceCounts(i)).map(i=>{const c=state.contacts.find(x=>x.id===i.customerId),name=c?.name||'Factuur';return {date:i.issueDate||'',name,sub:'Factuur '+(i.number||'concept'),amount:invoiceGross(i),avatar:partyAvatarHtml(name,c?partyLogoDomain(c):''),open:"viewInvoice('"+esc(i.id)+"')"}}),
+  ...state.expenses.map(e=>({date:e.date||'',name:e.vendor||e.category||'Kosten',sub:e.category||'Kosten',amount:-expenseGross(e),avatar:expenseLeadHtml(e),open:"editExpense('"+esc(e.id)+"')"}))]
+  .sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,limit);
+ if(!rows.length)return '';
+ return '<section class="r1d-recent" aria-label="Recent"><h2>Recent</h2>'+rows.map(r=>'<button type="button" class="r1d-recent-row" onclick="'+r.open+'">'+r.avatar+'<span class="r1d-recent-text"><strong>'+esc(r.name)+'</strong><span>'+esc(r.date?new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short'}).format(parseDateOnly(r.date)||new Date(r.date)).replace('.',''):'')+' · '+esc(r.sub)+'</span></span><span class="r1d-recent-amount'+(r.amount>0?' is-in':'')+'">'+(r.amount>0?'+ ':'')+money(r.amount)+'</span></button>').join('')+'</section>'
+}
+let phoneOverviewTodo=false;
 function dashboardCalmPhoneHtml(kpi,greeting,periodControl,notices){
  // A fetch problem is never folded away: the retry stays in sight.
  const vat=dashboardVatRow(kpi),free=freeToSpend(),todo=dashboardTodoCount(),docError=documentProcessingFetchError||documentProcessingConnectivityLost;
- const rowHtml=(dot,label,value,action,extra='')=>'<button type="button" class="calm-row'+extra+'" data-kpi-dot="'+dot+'" onclick="'+action+'"><span class="calm-label">'+esc(label)+'</span><strong class="calm-value">'+money(value)+'</strong>'+icon('i-chevron')+'</button>';
- return '<div class="page-head dashboard-page-head calm-head"><div><h1 aria-label="'+esc('Overzicht, '+greeting.title)+'">Overzicht</h1></div><div class="dashboard-period-control page-period-slot">'+periodControl+'</div></div>'+notices+
- '<div class="grid dashboard-kpis dashboard-kpis-calm"><button type="button" class="card metric dashboard-kpi dashboard-kpi-profit kpi-tone-primary kpi-hero" data-kpi-dot="winst" onclick="navigate(\'reports\')"><div class="metric-head"><span class="dashboard-kpi-label">Winst</span></div><div class="metric-value">'+money(kpi.profit)+'</div></button></div>'+
- '<div class="calm-list">'+
-  rowHtml('omzet','Omzet',kpi.revenue,"navigate('invoices')")+
-  rowHtml('kosten','Kosten',kpi.costs,"navigate('expenses')")+
-  rowHtml('open','Te ontvangen',kpi.receivables,"navigateWithFilter('invoices','status','open')",kpi.overdueReceivables>0?' has-attention':'')+
-  rowHtml('btw',vat.label,vat.value,"navigate('vat')")+
-  // Kwin 2026-10-22 (concurrenten, o2): what is left after btw and the tax estimate, the same number as on Rapportages.
-  (free?rowHtml('winst','Vrij te besteden',free.free,"navigate('reports')"):'')+
-  // o4: hours towards the 1.225 for zelfstandigenaftrek, once you log hours.
-  (hoursThisYear()>0?'<button type="button" class="calm-row" data-kpi-dot="uren" onclick="openHoursSheet()"><span class="calm-label">Uren '+new Date().getFullYear()+'</span><strong class="calm-value">'+num(hoursThisYear())+' / 1.225</strong>'+icon('i-chevron')+'</button>':'')+
+ const buckets=dashboardChartBuckets(kpi.period.preset),trend=dashboardProfitTrend(kpi);
+ const tile=(cls,dot,label,value,action,inner='',extra='')=>'<button type="button" class="r1d-tile '+cls+extra+'" data-kpi-dot="'+dot+'" onclick="'+action+'"><span class="calm-label">'+esc(label)+'</span>'+inner+'<strong class="calm-value">'+money(value)+'</strong></button>';
+ // Bars as in Kwin's R1D pick: Te ontvangen = the part of this year's invoices still open; Vrij = the part of what came in this year that is yours to spend.
+ const y=String(currentBookYear()),yearInvoices=state.invoices.filter(i=>invoiceCounts(i)&&i.kind!=='credit'&&String(i.issueDate||'').startsWith(y)),yearGross=yearInvoices.reduce((s,i)=>roundMoney(s+invoiceGross(i)),0),yearOpen=yearInvoices.reduce((s,i)=>roundMoney(s+invoiceOutstanding(i)),0);
+ const pct=(part,whole)=>whole>0?Math.max(0,Math.min(100,Math.round(part/whole*100))):0,bar=(cls,w)=>'<span class="r1d-meter '+cls+'" aria-hidden="true"><i style="width:'+w+'%"></i></span>';
+ const act=(label,iconId,call)=>'<button type="button" class="r1d-action" onclick="'+call+'"><span class="r1d-action-icon" aria-hidden="true">'+icon(iconId)+'</span><span>'+esc(label)+'</span></button>';
+ const hours=hoursThisYear();
+ return '<div class="page-head dashboard-page-head calm-head r1d-head"><div><h1 class="sr-only" aria-label="'+esc('Overzicht, '+greeting.title)+'">Overzicht</h1></div></div>'+notices+
+ '<section class="r1d-hero">'+
+  '<div class="grid dashboard-kpis dashboard-kpis-calm"><button type="button" class="card metric dashboard-kpi dashboard-kpi-profit kpi-hero" data-kpi-dot="winst" onclick="navigate(\'reports\')"><div class="metric-head"><span class="dashboard-kpi-label">Winst</span></div><div class="metric-value">'+money(kpi.profit)+'</div></button></div>'+
+  '<div class="r1d-period"><div class="r1d-pill">'+(trend==null?'':'<span class="r1d-trend'+(trend<0?' is-down':'')+'">'+(trend<0?'↓ ':'↑ ')+Math.abs(trend)+'% ·</span>')+'<div class="dashboard-period-control page-period-slot">'+periodControl+'</div></div></div>'+
+  '<div class="r1d-actions">'+act('Factuur','i-plus','newInvoice()')+act('Bon','i-scan',"openUploadSourcePicker('auto')")+act('Bank','i-bank','quickBankChoice()')+act('Meer','i-more','quickMenu()')+'</div>'+
+ '</section>'+
+ '<div class="calm-list r1d-bento">'+
+  tile('r1d-omzet calm-row','omzet','Omzet',kpi.revenue,"navigate('invoices')")+
+  tile('r1d-kosten calm-row','kosten','Kosten',kpi.costs,"navigate('expenses')",dashboardCostBars(buckets))+
+  tile('r1d-open calm-row','open','Te ontvangen',kpi.receivables,"navigateWithFilter('invoices','status','open')",bar('is-open',pct(yearOpen,yearGross)),kpi.overdueReceivables>0?' has-attention':'')+
+  // Kwin 2026-10-22 (concurrenten, o2): what is left after btw and the tax estimate, the same number as on Rapportages. Before money comes in, the btw to set aside takes its place.
+  (free?tile('r1d-free calm-row','winst','Vrij te besteden',free.free,"navigate('reports')",bar('is-free',pct(free.free,free.received))):tile('r1d-free calm-row','btw',vat.label,vat.value,"navigate('vat')"))+
  '</div>'+
- // With the assistant on (not in the first release) the button stays when nothing is left, so Vraag Boekuna remains reachable.
- (todo||(typeof openAskBoekuna==='function'&&!docError)?'<details class="calm-todo'+(todo?'':' is-clear')+'"'+(docError?' open':'')+'><summary><span class="calm-todo-dot" aria-hidden="true"></span><strong>'+(todo?todo+' te doen':'Niets te doen')+'</strong>'+icon('i-chevron')+'</summary>'+renderAssistantDashboardSafe()+'</details>':(docError?renderAssistantDashboardSafe():''))
+ dashboardRecentHtml()+
+ '<div class="r1d-pills">'+
+ // Kwin 2026-10-23: the "te doen" pill is off the overview for now (phoneOverviewTodo brings it back); a scan problem still shows its retry.
+ (phoneOverviewTodo&&(todo||(typeof openAskBoekuna==='function'&&!docError))?'<details class="calm-todo'+(todo?'':' is-clear')+'"'+(docError?' open':'')+'><summary><span class="calm-todo-dot" aria-hidden="true"></span><strong>'+(todo?todo+' te doen':'Niets te doen')+'</strong>'+icon('i-chevron')+'</summary>'+renderAssistantDashboardSafe()+'</details>':(docError?renderAssistantDashboardSafe():''))+
+ // o4: hours towards the 1.225 for zelfstandigenaftrek, once you log hours.
+ (hours>0?'<button type="button" class="r1d-hours" onclick="openHoursSheet()">'+num(hours)+' / 1.225 uur</button>':'')+
+ '</div>'
 }
 function renderDashboard(){
  const kpi=dashboardKpiViewModel(),months=dashboardMonthlyTotals(),period=kpi.period,sales=kpi.revenue,costs=kpi.costs,profit=kpi.profit,open=kpi.receivables,overdue=kpi.overdueInvoiceCount,vat=kpi.vatReserve;

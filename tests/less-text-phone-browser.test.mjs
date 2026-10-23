@@ -42,12 +42,12 @@ try{
   const vat=await text(phone,'vat');
   gone(vat,['indicatie','Over €','Uit 2 bonnen'],'Btw');
   kept(vat,['Boekuna verstuurt deze aangifte niet'],'Btw');
-  assert.equal((await phone.locator('#content .product-page-head .page-status').first().innerText()).trim(),(await phone.locator('.vat-period-label').innerText()).trim(),'Btw title line is only the quarter');
+  assert.equal((await phone.locator('#content :is(.product-page-head,.r1d-title) .page-status').first().innerText()).trim(),(await phone.locator('.vat-period-label').innerText()).trim(),'Btw title line is only the quarter');
   const reports=await text(phone,'reports');
   gone(reports,['Inzicht in je omzet','Omzet · Kosten · Winst','beide jaren','Dit jaar · te betalen',"Hele euro",'Voor je eigen archief','Je rapport als document','klanten · excl. btw','je neemt de bedragen over'],'Rapportages');
   kept(reports,['Zelfstandigenaftrek alleen bij 1.225 uur of meer. Boekuna verstuurt deze aangifte niet.','Naar Data & export'],'Rapportages');
   gone(await text(phone,'trips'),['Nog geen ritten dit jaar'],'Ritten');
-  assert.equal(await phone.locator('#content .page-head .page-status').count(),0,'Ritten has no subtitle on the phone');
+  assert.equal(await phone.locator('#content :is(.page-head,.r1d-title) .page-status').count(),0,'Ritten has no subtitle on the phone');
 
   // Nieuw (Kwin 2026-10-21, voorstel A): three tiles and plain rows, names only.
   await phone.evaluate(()=>{closeModal();navigate('dashboard');quickMenu()});

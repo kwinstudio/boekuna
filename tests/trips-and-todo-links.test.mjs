@@ -88,6 +88,7 @@ try{
   await phone.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
 
   // "x betalingen zonder bon" opens the Kosten list filtered on missing receipts, not the camera.
+  await phone.evaluate(()=>{phoneOverviewTodo=true;render()}); // the pill is off the overview for now (Kwin 2026-10-23); the links still work
   await phone.locator('#content .calm-todo summary').click(); // to-dos sit behind "N te doen" (Kwin 2026-10-22)
   const receipts=phone.locator('.dashboard-attention-item[data-attention-key="receipts"]');
   assert.match(await receipts.innerText(),/1 betaling zonder bon/);

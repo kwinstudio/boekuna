@@ -27,6 +27,7 @@ try{
   const phone=await open({width:390,height:844});
 
   // Nog te doen sits behind one "N te doen" button (Kwin 2026-10-22); inside: three, most urgent first, then "Nog N bekijken" shows the rest.
+  await phone.evaluate(()=>{phoneOverviewTodo=true;render()}); // the pill is off the overview for now (Kwin 2026-10-23)
   await phone.locator('#content .calm-todo summary').click();
   const items=phone.locator('#content .dashboard-attention-item');
   const total=await items.count();

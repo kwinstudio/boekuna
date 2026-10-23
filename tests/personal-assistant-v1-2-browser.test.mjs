@@ -81,7 +81,7 @@ async function axe(label){
  assert.deepEqual(result.violations.map(v=>({id:v.id,nodes:v.nodes.length})),[],label+' Axe violations');
 }
 // On a phone the to-dos and the Ask Boekuna entry sit behind the "N te doen" button (Kwin 2026-10-22).
-async function openTodo(){const todo=page.locator('#content details.calm-todo:not([open]) summary');if(await todo.count())await todo.click()}
+async function openTodo(){await page.evaluate(()=>{if(!phoneOverviewTodo){phoneOverviewTodo=true;render()}});const todo=page.locator('#content details.calm-todo:not([open]) summary');if(await todo.count())await todo.click()}
 async function ask(question){
  await openTodo();
  await page.getByRole('button',{name:/Vraag Boekuna/i}).first().click();
@@ -98,11 +98,12 @@ try{
  await page.goto(base,{waitUntil:'networkidle'});
  await page.getByRole('heading',{name:'Overzicht'}).waitFor();
 
- // Phone overview (Kwin 2026-10-22, "rustiger" A): one Winst block, then Omzet, Kosten, Te ontvangen and Btw as one calm list.
+ // Phone overview (Kwin 2026-10-23, "R1D"): Winst in the green band, then blocks for Omzet, Kosten, Te ontvangen and Vrij
+ // (the btw to set aside takes the fourth place until money has come in).
  assert.equal(await page.locator('.dashboard-kpis-calm .dashboard-kpi-profit').count(),1,'One Winst block');
  const calmLabels=(await page.locator('.calm-list .calm-label').allTextContents()).map(x=>x.trim());
  assert.deepEqual(calmLabels.slice(0,3),['Omzet','Kosten','Te ontvangen'],'Core amounts must be unique and ordered');
- assert.match(calmLabels[3],/^Btw( Q[1-4])?$/,'The VAT row names the quarter that is due');
+ assert.match(calmLabels[3],/^(Vrij te besteden|Btw( Q[1-4])?)$/,'The fourth block is Vrij, or the btw of the quarter that is due');
  const receivables=page.locator('.calm-row',{hasText:'Te ontvangen'});
  assert.match(await receivables.innerText(),/910/,'Partial payment must leave €910 receivable');
  assert.equal(await receivables.evaluate(el=>el.classList.contains('has-attention')),true,'A partially paid invoice past its due date must keep overdue context');

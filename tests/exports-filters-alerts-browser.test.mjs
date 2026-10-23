@@ -156,7 +156,7 @@ try{
 
     // Flow 5: Btw says "Te betalen" and the yearly overview sits inside its card.
     await page.evaluate(()=>{setVatPeriod('all');navigate('vat')});
-    assert.match(await page.locator('.product-kpis').innerText(),/Te betalen btw|Terug te vragen btw/);
+    assert.match(await page.locator('.product-kpis').first().innerText(),/Te betalen btw|Terug te vragen btw/);
     assert.doesNotMatch(await page.locator('#content').innerText(),/Waarschijnlijk/);
     // Kwin 2026-10-17 (minder tekst): on the phone the title line is only the period; the note keeps the filing context.
     if(width<=820)assert.match(await page.locator('.vat-phone-note').innerText(),/verstuurt deze aangifte niet/,'The phone still says Boekuna does not file');

@@ -1204,7 +1204,7 @@ html body #modalRoot#modalRoot .vat-step-modal .modal-foot{padding-bottom:calc(1
 html[data-theme="dark"] #mainApp #content .settings-search{background:#202326}
 #mainApp #content .settings-quick-label.settings-all-label{font-size:18px;font-weight:700;color:var(--ink,#111);margin-top:4px}
 
-/* Inloggen (twijfel-ronde, Kwin 2026-10-21): calm fields, one green button. The opening screen above the form is section 24. */
+/* Inloggen (twijfel-ronde, Kwin 2026-10-21): calm fields, one green button. The opening screen above the form is section 25. */
 #authRoot .auth-form .auth-field input{border:1px solid #E3E6E9!important;background:#F6F7F8!important;box-shadow:none!important;border-radius:14px!important}
 #authRoot .auth-form .auth-field input:focus{background:#fff!important;border-color:#63D471!important}
 html[data-theme="dark"] #authRoot .auth-form .auth-field input{background:#202326!important;border-color:#33383D!important}
@@ -1272,7 +1272,7 @@ html[data-theme="dark"] #mainApp input[type="search"]::-webkit-search-cancel-but
   html body #mainApp#mainApp #content .dashboard-kpis-calm .metric-label{font-size:15px!important;font-weight:600!important;color:var(--calm-label)!important}
   html body #mainApp#mainApp #content .dashboard-kpis-calm .metric-value{max-width:100%;overflow-wrap:anywhere;margin:0!important;font-size:clamp(24px,8.6vw,34px)!important;line-height:1.12!important;letter-spacing:-1.4px!important;font-weight:700!important;color:var(--calm-ink)!important}
   html body #mainApp#mainApp #content .calm-list{display:block;margin:14px 0 0;border:1px solid var(--calm-line);border-radius:18px;background:var(--calm-surface);overflow:hidden}
-  html body #mainApp#mainApp #content .calm-row{display:grid;grid-template-columns:8px minmax(0,1fr) auto 14px;align-items:center;column-gap:12px;width:100%;min-height:56px;margin:0;padding:0 16px;border:0;border-bottom:1px solid var(--calm-hair);border-radius:0;background:transparent;color:var(--calm-ink);font:inherit;text-align:left;cursor:pointer;box-shadow:none}
+  html body #mainApp#mainApp #content .calm-row{display:grid;grid-template-columns:8px minmax(0,1fr) auto 14px;align-items:center;column-gap:12px;width:100%;min-height:56px;margin:0;padding:0 16px;border:0;border-bottom:1px solid var(--calm-hair);border-radius:0;background:transparent;color:var(--calm-ink);font:inherit;text-align:left;cursor:pointer;overflow:hidden;box-shadow:none}
   html body #mainApp#mainApp #content .calm-row:last-child{border-bottom:0}
   html body #mainApp#mainApp #content .calm-row::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--kpi-dot,#8A949B)}
   html body #mainApp#mainApp #content .calm-row .calm-label{font-size:16px;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1411,7 +1411,122 @@ html body #modalRoot#modalRoot form[data-quote] .mobile-invoice-summary::before{
 .help-answer .link-btn{margin-bottom:12px}
 html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272C);border-color:var(--dk-line,#2E363C);color:var(--dk-ink,#E9EDEF)}
 
-/* 24. Kwin 2026-10-23 "inlogscherm in museumstijl" (pick C1, without the receipt), phone only.
+/* 24. Overzicht naar eigen schets, "R1D Diep groen" (Kwin 2026-10-23), phone only: Winst large on a deep green band
+   with the period and four round shortcuts, then blocks in different sizes (Omzet wide, Kosten tall, Te ontvangen and
+   Vrij beside it). The band runs behind the top bar; tiles use the --calm-* tokens so dark mode stays dark. */
+@media (max-width:820px){
+  :root{--r1d-top:#0F2A1A;--r1d-bottom:#1F7A4A}
+  html body #mainApp#mainApp:has(#content .r1d-hero) .topbar{position:relative!important;top:auto!important;background:var(--r1d-top)!important;border-bottom:0!important;box-shadow:none!important}
+  html body #mainApp#mainApp:has(#content .r1d-hero) .topbar :is(.mobile-menu,.top-actions>button:not(#quickNew)){width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;border:0!important;border-radius:50%!important;color:#fff!important;background:#ffffff1f!important}
+  html body #mainApp#mainApp:has(#content .r1d-hero) .topbar :is(.mobile-menu,.top-actions>button:not(#quickNew)) .icon{color:#fff!important}
+  html body #mainApp#mainApp #content .r1d-head{position:absolute!important;margin:0!important;padding:0!important;min-height:0!important}
+  html body #mainApp#mainApp #content .r1d-hero{margin:-14px -12px 0!important;padding:14px 12px 24px;background:linear-gradient(180deg,var(--r1d-top) 0%,var(--r1d-bottom) 100%);color:#fff;text-align:center;overflow:hidden}
+  html body #mainApp#mainApp #content .r1d-hero .dashboard-kpis-calm{display:block!important;margin:0!important}
+  html body #mainApp#mainApp #content .r1d-hero .dashboard-kpi-profit{display:flex!important;flex-direction:column;align-items:center!important;justify-content:center;gap:4px;width:100%;min-height:0!important;padding:4px 12px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;text-align:center!important}
+  html body #mainApp#mainApp #content .r1d-hero .dashboard-kpi-profit .metric-head{justify-content:center!important;margin:0!important}
+  html body #mainApp#mainApp #content .r1d-hero .dashboard-kpi-profit .dashboard-kpi-label{font-size:14px!important;font-weight:600!important;color:#CFE5D7!important}
+  html body #mainApp#mainApp #content .r1d-hero .dashboard-kpi-profit .dashboard-kpi-label::before{display:none!important}
+  html body #mainApp#mainApp #content .r1d-hero .dashboard-kpi-profit .metric-value{color:#fff!important;font-size:clamp(34px,12vw,48px)!important;letter-spacing:-.03em!important;font-weight:700!important;line-height:1.05!important}
+  html body #mainApp#mainApp #content .r1d-hero .dashboard-kpi-profit .metric-value .amount-cents{color:#ffffffa6!important}
+  html body #mainApp#mainApp #content .r1d-hero .motion-kpi-extra{display:none!important}
+  html body #mainApp#mainApp #content .r1d-period{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:10px}
+  html body #mainApp#mainApp #content .r1d-trend{display:inline-flex;align-items:center;min-height:32px;padding:0 11px;border-radius:999px;background:#ffffff1f;color:#fff;font-size:13px;font-weight:650;font-variant-numeric:tabular-nums}
+  html body #mainApp#mainApp #content .r1d-period .dashboard-period-control{flex:0 0 auto!important;width:auto!important;justify-content:center!important;margin:0!important}
+  html body #mainApp#mainApp #content .r1d-period .period-seg .period-seg-select{background-color:#ffffff1f!important;color:#fff!important;border:0!important}
+  html body #mainApp#mainApp #content .r1d-actions{display:flex;justify-content:space-around;margin-top:18px}
+  html body #mainApp#mainApp #content .r1d-action{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:64px;padding:0;border:0;background:transparent;color:#fff;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+  html body #mainApp#mainApp #content .r1d-action-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:#ffffff1f}
+  html body #mainApp#mainApp #content .r1d-action-icon .icon{width:20px;height:20px;color:#fff}
+  html body #mainApp#mainApp #content .r1d-action:active .r1d-action-icon{background:#ffffff38}
+  html body #mainApp#mainApp #content .r1d-bento{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr 1fr;gap:8px;margin:12px 0 0!important;border:0;background:transparent;overflow:visible;position:relative}
+  html body #mainApp#mainApp #content .r1d-bento .r1d-tile{display:flex;flex-direction:column;align-items:stretch;justify-content:space-between;gap:8px;min-width:0;min-height:96px;margin:0;padding:14px 15px;border:0;border-radius:20px;background:var(--calm-surface);color:var(--calm-ink);font:inherit;text-align:left;cursor:pointer;overflow:hidden;box-shadow:none!important;border:0!important;border-radius:24px!important;background:var(--calm-surface)!important}
+  html body #mainApp#mainApp #content .r1d-bento .r1d-tile::before{display:none}
+  html body #mainApp#mainApp #content .r1d-bento .calm-label{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:var(--calm-label)}
+  html body #mainApp#mainApp #content .r1d-bento .calm-label::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--kpi-dot,#8A949B)}
+  html body #mainApp#mainApp #content .r1d-bento .calm-value{min-width:0;font-size:clamp(16px,5.2vw,20px);font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:normal!important;overflow-wrap:anywhere}
+  html body #mainApp#mainApp #content .r1d-bento .r1d-tile.has-attention .calm-value{color:#C0392B}
+  html body #mainApp#mainApp #content .r1d-omzet{grid-column:1/3}
+  html body #mainApp#mainApp #content .r1d-omzet .calm-value{font-size:clamp(20px,6.8vw,26px)}
+  html body #mainApp#mainApp #content .r1d-kosten{grid-row:2/4;min-height:220px!important}
+  html body #mainApp#mainApp #content .r1d-kosten .calm-value{font-size:clamp(17px,6vw,23px)}
+  html body #mainApp#mainApp #content .r1d-bars{flex:1;display:flex;align-items:flex-end;gap:5px;min-height:70px}
+  html body #mainApp#mainApp #content .r1d-bars i{flex:1;border-radius:5px;background:#FBE3E1}
+  html body #mainApp#mainApp #content .r1d-bars i.is-now{background:#E5534B}
+  html body #mainApp#mainApp #content .r1d-meter{display:block;height:6px;border-radius:6px;background:var(--calm-soft,#EEF0F2);overflow:hidden}
+  html body #mainApp#mainApp #content .r1d-meter i{display:block;height:100%;border-radius:6px;background:#F2B233}
+  html body #mainApp#mainApp #content .r1d-meter.is-free i{background:#3B82F6}
+  html body #mainApp#mainApp #content .r1d-note{font-size:12px;font-weight:500;color:var(--calm-muted)}
+  html body #mainApp#mainApp #content .r1d-pills{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;margin-top:14px}
+  html body #mainApp#mainApp #content .r1d-pills .calm-todo{margin:0;flex:1 1 100%}
+  html body #mainApp#mainApp #content .r1d-pills .calm-todo:not([open]){flex:0 0 auto}
+  html body #mainApp#mainApp #content .r1d-hours{min-height:40px;padding:0 14px;border:0;border-radius:999px;background:var(--calm-soft);color:var(--calm-ink);font:inherit;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;cursor:pointer}
+  /* The same band on every phone page: title, the page's one number, period and shortcuts (Kwin: "A, en kies voor consistentie"). */
+  html body #mainApp#mainApp #content .r1d-moved{position:absolute!important;width:1px!important;height:1px!important;margin:0!important;padding:0!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important}
+  html body #mainApp#mainApp #content .r1d-title h1{margin:0!important;font-size:17px!important;font-weight:650!important;letter-spacing:0!important;line-height:1.3!important;color:#fff!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .calm-kpis{display:block!important;margin:6px 0 0!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero{display:flex!important;flex-direction:column!important;align-items:center!important;gap:2px!important;min-height:0!important;padding:4px 12px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;text-align:center!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero .metric-head{justify-content:center!important;margin:0!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero :is(.product-kpi-label,.product-kpi-label span){font-size:14px!important;font-weight:600!important;color:#CFE5D7!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero .product-kpi-label::before{display:none!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero .product-kpi-icon{display:none!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero .metric-value{color:#fff!important;font-size:clamp(32px,11vw,44px)!important;letter-spacing:-.03em!important;font-weight:700!important;line-height:1.05!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero .metric-value .amount-cents{color:#ffffffa6!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero .metric-sub{color:#CFE5D7!important;font-size:13px!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero .metric-sub.is-empty{display:none!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero .motion-kpi-extra{display:none!important}
+  html body #mainApp#mainApp #content .r1d-page .r1d-period .page-period-slot{display:flex!important;flex-direction:row!important;align-items:center!important;gap:8px!important;justify-content:center!important;width:auto!important;margin:0!important}
+  html body #mainApp#mainApp #content .r1d-page .r1d-period :is(.period-seg-select,select,.btn){background-color:#ffffff1f!important;color:#fff!important;border:0!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero :is(.kpi-time,.kpi-time span){background:#ffffff26!important;color:#fff!important}
+  html body #mainApp#mainApp #content .r1d-page .r1d-period .btn svg{color:#fff!important;stroke:currentColor}
+  html body #mainApp#mainApp #content>.r1d-hero+.product-page-shell{height:0!important;margin:0!important;overflow:hidden!important}
+  /* Kwin 2026-10-23 ("dit lijkt er niet op"): closer to his R1D pick. Grey page, white cards that start on the green, small grey cents, one pill for trend and period, and a top bar that scrolls away with the band. */
+  html:has(#content>.r1d-hero:not(.r1d-page)) body,html body #mainApp#mainApp:has(#content>.r1d-hero:not(.r1d-page)) :is(.main,#content){background:#F2F3F5!important}
+  html body #mainApp#mainApp #content>.r1d-hero:not(.r1d-page){position:relative;overflow:visible;overflow-x:clip;padding-bottom:22px}
+  html body #mainApp#mainApp #content>.r1d-hero:not(.r1d-page)::after{content:"";position:absolute;left:0;right:0;top:100%;height:52px;background:var(--r1d-bottom);pointer-events:none}
+  html body #mainApp#mainApp #content .r1d-bento{z-index:1}
+  html body #mainApp#mainApp #content .r1d-bento .r1d-tile{padding:16px 18px!important}
+  html body #mainApp#mainApp #content .r1d-bento .calm-value .amount-cents{font-size:.62em;font-weight:600;letter-spacing:0;color:var(--calm-label)}
+  html body #mainApp#mainApp #content .r1d-omzet{min-height:0!important;gap:4px!important}
+  html body #mainApp#mainApp #content .r1d-omzet .calm-value{font-size:clamp(24px,8vw,30px)!important}
+  html body #mainApp#mainApp #content :is(.r1d-open,.r1d-free) .calm-value{font-size:clamp(18px,6vw,22px)}
+  html body #mainApp#mainApp #content .r1d-pill{display:inline-flex;align-items:center;gap:2px;min-height:36px;padding:0 2px 0 12px;border-radius:999px;background:#ffffff26}
+  html body #mainApp#mainApp #content .r1d-pill:not(:has(.r1d-trend)){padding-left:2px}
+  html body #mainApp#mainApp #content .r1d-pill .r1d-trend{min-height:0;padding:0;background:transparent;font-size:15px}
+  html body #mainApp#mainApp #content .r1d-pill .period-seg .period-seg-select{background-color:transparent!important;font-size:15px!important;font-weight:650!important;padding-left:6px!important}
+  html body #mainApp#mainApp #content .r1d-hero .dashboard-kpi-profit .metric-value{font-size:clamp(40px,14vw,56px)!important}
+  html body #mainApp#mainApp #content .r1d-hero .dashboard-kpi-profit .dashboard-kpi-label{font-size:17px!important;color:#fff!important}
+  html body #mainApp#mainApp #content .r1d-action-icon{width:52px;height:52px}
+  html body #mainApp#mainApp #content .r1d-action{font-size:13px}
+  html body #mainApp#mainApp .topbar #quickNew{background:#16191C!important;color:#fff!important}
+  html body #mainApp#mainApp .topbar #quickNew .icon{color:#fff!important}
+  html[data-theme="dark"]:has(#content>.r1d-hero:not(.r1d-page)) body,html[data-theme="dark"] body #mainApp#mainApp:has(#content>.r1d-hero:not(.r1d-page)) :is(.main,#content){background:var(--calm-bg,#0F1214)!important}
+  html[data-theme="dark"] body #mainApp#mainApp .topbar #quickNew{background:#2E353B!important;color:#fff!important}
+  html[data-theme="dark"] body #mainApp#mainApp .topbar #quickNew .icon{color:#fff!important}
+  html[data-theme="dark"] body #mainApp#mainApp:has(#content .r1d-hero) .topbar :is(.mobile-menu,.top-actions>button:not(#quickNew)){border-radius:50%!important;background:#ffffff1f!important;color:#fff!important}
+  /* Kwin 2026-10-23 "inspiratie van Revolut": a search pill in the top bar and a Recent card under the blocks. */
+  html body #mainApp#mainApp:has(#content .r1d-hero) .topbar .top-actions{flex:1 1 auto!important;max-width:none!important;justify-content:flex-end!important;margin-left:12px!important}
+  html body #mainApp#mainApp:has(#content .r1d-hero) .topbar .top-actions>#globalSearchButton#globalSearchButton{display:flex!important;flex-direction:row!important;align-items:center!important;flex:1 1 auto!important;width:auto!important;max-width:none!important;justify-content:flex-start!important;gap:8px!important;padding:0 14px!important;border-radius:999px!important}
+  html body #mainApp#mainApp:has(#content .r1d-hero) .topbar .top-actions>#globalSearchButton#globalSearchButton::after{content:"Zoeken";font-size:15px;font-weight:500;color:#ffffffc7}
+  html body #mainApp#mainApp #content .r1d-recent{margin:12px 0 0!important;padding:8px 6px;border-radius:24px;background:var(--calm-surface)}
+  html body #mainApp#mainApp #content .r1d-recent h2{margin:6px 12px 4px!important;font-size:15px!important;font-weight:650!important;color:var(--calm-label)!important}
+  html body #mainApp#mainApp #content .r1d-recent-row{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;padding:8px 12px;border:0;border-radius:16px;background:transparent;color:var(--calm-ink);font:inherit;text-align:left;cursor:pointer}
+  html body #mainApp#mainApp #content .r1d-recent-row:active{background:var(--calm-soft)}
+  html body #mainApp#mainApp #content .r1d-recent-row>:first-child{flex:0 0 auto;width:40px!important;height:40px!important}
+  html body #mainApp#mainApp #content .r1d-recent-text{display:flex;flex-direction:column;flex:1;min-width:0}
+  html body #mainApp#mainApp #content .r1d-recent-text strong{overflow:hidden;font-size:15px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+  html body #mainApp#mainApp #content .r1d-recent-text span{overflow:hidden;font-size:13px;color:var(--calm-muted);text-overflow:ellipsis;white-space:nowrap}
+  html body #mainApp#mainApp #content .r1d-recent-amount{flex:0 0 auto;font-size:15px;font-weight:650;font-variant-numeric:tabular-nums}
+  html body #mainApp#mainApp #content .r1d-recent-amount.is-in{color:#1F7A4A}
+  html[data-theme="dark"] body #mainApp#mainApp #content .r1d-recent-amount.is-in{color:#63D471}
+  html body #mainApp#mainApp #content .r1d-title .page-status{margin:2px 0 0!important;font-size:13px!important;color:#CFE5D7!important}
+  html body #mainApp#mainApp #content .r1d-hero .kpi-hero .metric-value{max-width:100%;white-space:normal!important;overflow-wrap:anywhere}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero.metric-wide .metric-value{font-size:clamp(24px,8vw,32px)!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero.metric-huge .metric-value{font-size:clamp(20px,6.4vw,26px)!important}
+  html[data-theme="dark"]{--r1d-top:#07150D;--r1d-bottom:#17583A}
+  html[data-theme="dark"] body #mainApp#mainApp #content .r1d-bars i{background:#3A2422}
+  html[data-theme="dark"] body #mainApp#mainApp #content .r1d-bars i.is-now{background:#E5534B}
+
+/* 25. Kwin 2026-10-23 "inlogscherm in museumstijl" (pick C1, without the receipt), phone only.
    The login opens on a white screen: "Boe / ku / na." in a serif over a marble statue (Pietro Bernini, Flora,
    The Met, public domain), the promise and one green Inloggen button. The existing form becomes a sheet.
    Desktop keeps the form as it was. */
