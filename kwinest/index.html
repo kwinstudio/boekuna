@@ -4659,6 +4659,61 @@ function dashboardRecentHtml(limit=4){
  if(!rows.length)return '';
  return '<section class="r1d-recent" aria-label="Recent"><h2>Recent</h2>'+rows.map(r=>'<button type="button" class="r1d-recent-row" onclick="'+r.open+'">'+r.avatar+'<span class="r1d-recent-text"><strong>'+esc(r.name)+'</strong><span>'+esc(r.date?new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short'}).format(parseDateOnly(r.date)||new Date(r.date)).replace('.',''):'')+' · '+esc(r.sub)+'</span></span><span class="r1d-recent-amount'+(r.amount>0?' is-in':'')+'">'+(r.amount>0?'+ ':'')+money(r.amount)+'</span></button>').join('')+'</section>'
 }
+// 25. Widgets on the phone overview (Kwin 2026-10-23, "premium zoals Revolut"): every block is a widget. Which ones show,
+// and in what order, is the user's choice (state.meta.overviewWidgets); the numbers come from the functions that already existed.
+const PHONE_WIDGET_DEFAULT=['omzet','kosten','open','vrij','recent'];
+const PHONE_WIDGETS={
+ omzet:{label:'Omzet',size:'wide',render:c=>c.tile('r1d-omzet','omzet','Omzet',c.kpi.revenue,"navigate('invoices')")},
+ kosten:{label:'Kosten',size:'tall',render:c=>c.tile('r1d-kosten','kosten','Kosten',c.kpi.costs,"navigate('expenses')",dashboardCostBars(c.buckets))},
+ open:{label:'Te ontvangen',render:c=>c.tile('r1d-open','open','Te ontvangen',c.kpi.receivables,"navigateWithFilter('invoices','status','open')",c.bar('is-open',c.pct(c.yearOpen,c.yearGross)),c.kpi.overdueReceivables>0?' has-attention':'')},
+ vrij:{label:'Vrij te besteden',render:c=>c.free?c.tile('r1d-free','winst','Vrij te besteden',c.free.free,"navigate('reports')",c.bar('is-free',c.pct(c.free.free,c.free.received))):(phoneWidgetIds().includes('btw')?'':c.tile('r1d-free','btw',c.vat.label,c.vat.value,"navigate('vat')"))},
+ btw:{label:'Btw',render:c=>{const d=vatDeadlineInfo();return c.tile('r1d-btw','btw',c.vat.label,c.vat.value,"navigate('vat')",'<span class="r1d-note">'+esc(state.company?.kor?'Opzij zetten':'Vóór '+new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short'}).format(d.due).replace('.',''))+'</span>')}},
+ recent:{label:'Recent',size:'full',render:c=>dashboardRecentHtml()},
+ todo:{label:'Te doen',render:c=>{const n=dashboardTodoCount();return c.plain('r1d-todo','open','Te doen',n?n+' '+(n===1?'punt':'punten'):'Niets',"quickTodo()",n?'':' is-clear')}},
+ uren:{label:'Uren',render:c=>{const h=hoursThisYear();return c.plain('r1d-uren','winst','Uren',num(h),"openHoursSheet()",'',c.bar('is-free',c.pct(h,HOURS_CRITERION))+'<span class="r1d-note">van 1.225</span>')}},
+ ritten:{label:'Ritten',render:c=>{const y=String(currentBookYear()),km=state.mileage.filter(t=>String(t.date||'').startsWith(y)).reduce((s,t)=>s+Number(t.km||0),0);return c.plain('r1d-ritten','kosten','Ritten',num(km)+' km',"navigate('trips')",'','<span class="r1d-note">'+money(roundMoney(km*0.23))+' aftrek</span>')}},
+ bank:{label:'Bank',render:c=>{const n=state.transactions.filter(t=>t.status==='unmatched').length;return c.plain('r1d-bank','btw','Bank',n?n+' te koppelen':'Alles gekoppeld',"navigate('bank')",n?' has-attention':' is-clear')}},
+ klant:{label:'Beste klant',render:c=>{const y=String(currentBookYear()),sum={};state.invoices.filter(i=>invoiceCounts(i)&&i.kind!=='credit'&&String(i.issueDate||'').startsWith(y)).forEach(i=>{sum[i.customerId]=(sum[i.customerId]||0)+invoiceNet(i)});const top=Object.entries(sum).sort((a,b)=>b[1]-a[1])[0],name=top?state.contacts.find(x=>x.id===top[0])?.name||'Klant':'Nog niemand';return c.plain('r1d-klant','omzet','Beste klant',name,"navigate('contacts')",'',top?'<span class="r1d-note">'+money(top[1])+' dit jaar</span>':'')}}
+};
+function phoneWidgetIds(){const list=Array.isArray(state.meta?.overviewWidgets)?state.meta.overviewWidgets.filter(id=>PHONE_WIDGETS[id]):null;return list&&list.length?list:PHONE_WIDGET_DEFAULT.slice()}
+function phoneWidgetContext(kpi){
+ const vat=dashboardVatRow(kpi),free=freeToSpend(),buckets=dashboardChartBuckets(kpi.period.preset);
+ const y=String(currentBookYear()),yearInvoices=state.invoices.filter(i=>invoiceCounts(i)&&i.kind!=='credit'&&String(i.issueDate||'').startsWith(y)),yearGross=yearInvoices.reduce((s,i)=>roundMoney(s+invoiceGross(i)),0),yearOpen=yearInvoices.reduce((s,i)=>roundMoney(s+invoiceOutstanding(i)),0);
+ const tile=(cls,dot,label,value,action,inner='',extra='')=>'<button type="button" class="r1d-tile '+cls+' calm-row'+extra+'" data-kpi-dot="'+dot+'" onclick="'+action+'"><span class="calm-label">'+esc(label)+'</span>'+inner+'<strong class="calm-value">'+money(value)+'</strong></button>';
+ const plain=(cls,dot,label,text,action,extra='',after='')=>'<button type="button" class="r1d-tile '+cls+' calm-row'+extra+'" data-kpi-dot="'+dot+'" onclick="'+action+'"><span class="calm-label">'+esc(label)+'</span><strong class="r1d-text">'+esc(text)+'</strong>'+after+'</button>';
+ const pct=(part,whole)=>whole>0?Math.max(0,Math.min(100,Math.round(part/whole*100))):0,bar=(cls,w)=>'<span class="r1d-meter '+cls+'" aria-hidden="true"><i style="width:'+w+'%"></i></span>';
+ return {kpi,vat,free,buckets,yearGross,yearOpen,tile,plain,pct,bar}
+}
+function phoneWidgetHtml(id,ctx){const w=PHONE_WIDGETS[id];if(!w)return '';const html=w.render(ctx);if(!html)return '';return '<div class="r1d-w r1d-w-'+(w.size||'small')+'" data-widget="'+id+'">'+html+'</div>'}
+function phoneWidgetsHtml(kpi){const ctx=phoneWidgetContext(kpi);return '<div class="calm-list r1d-bento">'+phoneWidgetIds().map(id=>phoneWidgetHtml(id,ctx)).join('')+'</div>'}
+function setPhoneWidgets(ids){if(!state.meta||typeof state.meta!=='object')state.meta={};state.meta.overviewWidgets=ids.filter(id=>PHONE_WIDGETS[id]);save()}
+function quickTodo(){phoneOverviewTodo=true;render();document.querySelector('#content .calm-todo')?.setAttribute('open','')}
+// The widget sheet (Revolut-style): one grid with every widget as a live preview; a tap switches it on or off,
+// holding and dragging changes the order. The overview behind it follows when the sheet closes.
+function openWidgetSheet(){
+ const kpi=dashboardKpiViewModel(),ctx=phoneWidgetContext(kpi),on=phoneWidgetIds(),ids=[...on,...Object.keys(PHONE_WIDGETS).filter(id=>!on.includes(id))];
+ const cards=ids.map(id=>{const w=PHONE_WIDGETS[id],active=on.includes(id);return '<div class="r1d-wcard'+(active?' is-on':'')+(w.size==='full'?' r1d-wcard-full':'')+'" data-widget="'+id+'"><div class="r1d-wprev" inert>'+(w.render(ctx)||'<span class="r1d-wempty">'+esc(w.label)+'</span>')+'</div><div class="r1d-wfoot"><span class="r1d-wname">'+esc(w.label)+'</span><button type="button" class="r1d-wtoggle" aria-pressed="'+active+'" aria-label="'+esc(w.label+(active?' verbergen':' tonen'))+'" onclick="toggleWidget(\''+id+'\',this)">'+icon(active?'i-check':'i-plus')+'</button></div></div>'}).join('');
+ modal('Widgets','<div class="r1d-wgrid" id="widgetGrid">'+cards+'</div><p class="r1d-whint">Tik om te tonen of te verbergen. Houd vast om te verslepen.</p>','<button type="button" class="btn primary r1d-wdone" onclick="closeWidgetSheet()">Klaar</button>');
+ const dialog=document.querySelector('#modalRoot .modal');dialog?.classList.add('widget-sheet');dialog?.closest('.modal-backdrop')?.classList.add('widget-sheet-backdrop');sheetBlurAutofocus(dialog);
+ if(window.Sortable)Sortable.create(document.getElementById('widgetGrid'),{animation:180,delay:160,delayOnTouchOnly:true,ghostClass:'is-ghost',chosenClass:'is-lifted',onEnd:()=>commitWidgetSheet()});
+}
+function toggleWidget(id,btn){const card=btn.closest('.r1d-wcard'),on=card.classList.toggle('is-on');btn.setAttribute('aria-pressed',on);btn.innerHTML=icon(on?'i-check':'i-plus');btn.setAttribute('aria-label',PHONE_WIDGETS[id].label+(on?' verbergen':' tonen'));commitWidgetSheet()}
+function commitWidgetSheet(){const ids=[...document.querySelectorAll('#widgetGrid .r1d-wcard.is-on')].map(c=>c.dataset.widget);setPhoneWidgets(ids)}
+function closeWidgetSheet(){closeModal();render()}
+// Thema (Revolut-style): light/dark/auto plus the colour of the green band, live behind the sheet.
+const PHONE_BANDS=[['groen','Groen','#0F2A1A','#1F7A4A'],['smaragd','Smaragd','#0B3D2E','#159A72'],['nacht','Nacht','#0E1013','#262C33'],['oceaan','Oceaan','#0B1F3A','#1D5FB8'],['paars','Paars','#231040','#6D3FB8'],['zand','Zand','#3E2F1F','#8C6B43']];
+function phoneBand(){const id=document.documentElement.dataset.band||'groen';return PHONE_BANDS.some(b=>b[0]===id)?id:'groen'}
+function setPhoneBand(id){if(!PHONE_BANDS.some(b=>b[0]===id))id='groen';if(id==='groen')delete document.documentElement.dataset.band;else document.documentElement.dataset.band=id;try{localStorage.setItem('boekuna-band',id)}catch(e){}if(!state.meta||typeof state.meta!=='object')state.meta={};if(state.meta.band!==id){state.meta.band=id;save()}document.querySelectorAll('#modalRoot .r1d-swatch').forEach(b=>b.classList.toggle('is-on',b.dataset.band===id))}
+function openThemeSheet(){
+ const pref=window.BoekunaTheme?BoekunaTheme.preference():'system',band=phoneBand();
+ const seg=[['system','Automatisch'],['light','Licht'],['dark','Donker']].map(([v,l])=>'<button type="button" class="r1d-segbtn'+(v===pref?' is-on':'')+'" onclick="setThemeFromSheet(\''+v+'\',this)">'+l+'</button>').join('');
+ const sw=PHONE_BANDS.map(([id,label,a,b])=>'<button type="button" class="r1d-swatch'+(id===band?' is-on':'')+'" data-band="'+id+'" style="--a:'+a+';--b:'+b+'" onclick="setPhoneBand(\''+id+'\')"><span class="r1d-swatch-chip" aria-hidden="true"></span><span>'+label+'</span></button>').join('');
+ modal('Thema','<div class="r1d-tlabel">Weergave</div><div class="r1d-seg">'+seg+'</div><div class="r1d-tlabel">Kleur</div><div class="r1d-swatches">'+sw+'</div>');
+ const dialog=document.querySelector('#modalRoot .modal');dialog?.classList.add('theme-sheet');dialog?.closest('.modal-backdrop')?.classList.add('theme-sheet-backdrop');sheetBlurAutofocus(dialog);
+}
+// A sheet opened by a tap shows no focus ring on its close button (keyboard users still get one on Tab).
+function sheetBlurAutofocus(dialog){if(!dialog)return;dialog.tabIndex=-1;requestAnimationFrame(()=>requestAnimationFrame(()=>{if(dialog.contains(document.activeElement)&&document.activeElement!==dialog)dialog.focus({preventScroll:true})}))}
+function setThemeFromSheet(v,btn){if(window.BoekunaTheme)BoekunaTheme.set(v);btn.parentElement.querySelectorAll('.r1d-segbtn').forEach(b=>b.classList.toggle('is-on',b===btn))}
 let phoneOverviewTodo=false;
 function dashboardCalmPhoneHtml(kpi,greeting,periodControl,notices){
  // A fetch problem is never folded away: the retry stays in sight.
@@ -4676,20 +4731,15 @@ function dashboardCalmPhoneHtml(kpi,greeting,periodControl,notices){
   '<div class="r1d-period"><div class="r1d-pill">'+(trend==null?'':'<span class="r1d-trend'+(trend<0?' is-down':'')+'">'+(trend<0?'↓ ':'↑ ')+Math.abs(trend)+'% ·</span>')+'<div class="dashboard-period-control page-period-slot">'+periodControl+'</div></div></div>'+
   '<div class="r1d-actions">'+act('Factuur','i-plus','newInvoice()')+act('Bon','i-scan',"openUploadSourcePicker('auto')")+act('Bank','i-bank','quickBankChoice()')+act('Meer','i-more','quickMenu()')+'</div>'+
  '</section>'+
- '<div class="calm-list r1d-bento">'+
-  tile('r1d-omzet calm-row','omzet','Omzet',kpi.revenue,"navigate('invoices')")+
-  tile('r1d-kosten calm-row','kosten','Kosten',kpi.costs,"navigate('expenses')",dashboardCostBars(buckets))+
-  tile('r1d-open calm-row','open','Te ontvangen',kpi.receivables,"navigateWithFilter('invoices','status','open')",bar('is-open',pct(yearOpen,yearGross)),kpi.overdueReceivables>0?' has-attention':'')+
-  // Kwin 2026-10-22 (concurrenten, o2): what is left after btw and the tax estimate, the same number as on Rapportages. Before money comes in, the btw to set aside takes its place.
-  (free?tile('r1d-free calm-row','winst','Vrij te besteden',free.free,"navigate('reports')",bar('is-free',pct(free.free,free.received))):tile('r1d-free calm-row','btw',vat.label,vat.value,"navigate('vat')"))+
- '</div>'+
- dashboardRecentHtml()+
+ phoneWidgetsHtml(kpi)+
  '<div class="r1d-pills">'+
  // Kwin 2026-10-23: the "te doen" pill is off the overview for now (phoneOverviewTodo brings it back); a scan problem still shows its retry.
  (phoneOverviewTodo&&(todo||(typeof openAskBoekuna==='function'&&!docError))?'<details class="calm-todo'+(todo?'':' is-clear')+'"'+(docError?' open':'')+'><summary><span class="calm-todo-dot" aria-hidden="true"></span><strong>'+(todo?todo+' te doen':'Niets te doen')+'</strong>'+icon('i-chevron')+'</summary>'+renderAssistantDashboardSafe()+'</details>':(docError?renderAssistantDashboardSafe():''))+
  // o4: hours towards the 1.225 for zelfstandigenaftrek, once you log hours.
- (hours>0?'<button type="button" class="r1d-hours" onclick="openHoursSheet()">'+num(hours)+' / 1.225 uur</button>':'')+
- '</div>'
+ (hours>0&&!phoneWidgetIds().includes('uren')?'<button type="button" class="r1d-hours" onclick="openHoursSheet()">'+num(hours)+' / 1.225 uur</button>':'')+
+ '</div>'+
+ // Revolut-style: the overview is yours. Widgets and the colour live under the blocks, out of the way.
+ '<div class="r1d-custom"><button type="button" class="r1d-custom-btn" onclick="openWidgetSheet()">'+icon('i-plus')+'<span>Widgets</span></button><button type="button" class="r1d-custom-btn" onclick="openThemeSheet()"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg><span>Thema</span></button></div>'
 }
 function renderDashboard(){
  const kpi=dashboardKpiViewModel(),months=dashboardMonthlyTotals(),period=kpi.period,sales=kpi.revenue,costs=kpi.costs,profit=kpi.profit,open=kpi.receivables,overdue=kpi.overdueInvoiceCount,vat=kpi.vatReserve;

@@ -204,6 +204,14 @@
           +'<span class="settings-theme-swatch settings-theme-swatch-'+o.value+'" aria-hidden="true"></span>'
           +'<span class="settings-theme-copy"><strong>'+esc(o.label)+'</strong>'+(o.help?hint(o.help):'')+'</span></label>';
       }).join('')
+      +'</div></fieldset>'+bandBlock();
+  }
+  // Kwin 2026-10-23 ("thema zoals Revolut"): the colour of the band on the phone, the same choice as in the Thema sheet.
+  function bandBlock(){
+    if(typeof PHONE_BANDS==='undefined'||typeof phoneBand!=='function')return '';
+    var current=phoneBand();
+    return '<fieldset class="settings-center-fieldset settings-band"><legend>Kleur op je telefoon</legend><div class="settings-band-options">'
+      +PHONE_BANDS.map(function(b){return '<button type="button" class="settings-band-option'+(b[0]===current?' is-on':'')+'" data-band-choice="'+b[0]+'" style="--a:'+b[2]+';--b:'+b[3]+'" aria-pressed="'+(b[0]===current)+'"><span class="settings-band-chip" aria-hidden="true"></span><span>'+esc(b[1])+'</span></button>'}).join('')
       +'</div></fieldset>';
   }
 
@@ -526,6 +534,8 @@
     var el=root();if(!el||el.dataset.wired)return;
     el.dataset.wired='1';
     el.addEventListener('click',function(event){
+      var t0=event.target,bandBtn=t0.closest&&t0.closest('[data-band-choice]');
+      if(bandBtn){setPhoneBand(bandBtn.getAttribute('data-band-choice'));bandBtn.parentElement.querySelectorAll('[data-band-choice]').forEach(function(b){var on=b===bandBtn;b.classList.toggle('is-on',on);b.setAttribute('aria-pressed',on)});toast('Opgeslagen');return}
       var opener=event.target.closest('[data-settings-open]');
       if(opener&&el.contains(opener)){event.preventDefault();open(opener.getAttribute('data-settings-open'));return}
       if(event.target.closest('[data-settings-back]')){event.preventDefault();back();return}

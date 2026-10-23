@@ -1531,3 +1531,111 @@ html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272
   html[data-theme="dark"] body #mainApp#mainApp #content .r1d-bars i{background:#3A2422}
   html[data-theme="dark"] body #mainApp#mainApp #content .r1d-bars i.is-now{background:#E5534B}
 }
+
+/* 25. Premium zoals Revolut (Kwin 2026-10-23), phone only: the overview blocks are widgets (on/off, own order),
+   a Widgets sheet with live previews, a Thema sheet with the band colour, and Revolut's dark bands as choices. */
+@media (max-width:820px){
+  html[data-band="smaragd"]{--r1d-top:#0B3D2E;--r1d-bottom:#159A72}
+  html[data-band="nacht"]{--r1d-top:#0E1013;--r1d-bottom:#262C33}
+  html[data-band="oceaan"]{--r1d-top:#0B1F3A;--r1d-bottom:#1D5FB8}
+  html[data-band="paars"]{--r1d-top:#231040;--r1d-bottom:#6D3FB8}
+  html[data-band="zand"]{--r1d-top:#3E2F1F;--r1d-bottom:#8C6B43}
+  html[data-theme="dark"][data-band="smaragd"]{--r1d-top:#07241B;--r1d-bottom:#117A5A}
+  html[data-theme="dark"][data-band="nacht"]{--r1d-top:#0A0C0E;--r1d-bottom:#1C2126}
+  html[data-theme="dark"][data-band="oceaan"]{--r1d-top:#07142A;--r1d-bottom:#174A90}
+  html[data-theme="dark"][data-band="paars"]{--r1d-top:#180A2E;--r1d-bottom:#55309A}
+  html[data-theme="dark"][data-band="zand"]{--r1d-top:#2A1F14;--r1d-bottom:#6E5334}
+  /* Widgets: the bento is now a dense grid; a widget declares its own size. */
+  html body #mainApp#mainApp #content .r1d-bento{grid-template-rows:none;grid-auto-rows:minmax(96px,auto);grid-auto-flow:row dense;align-items:stretch}
+  html body #mainApp#mainApp #content .r1d-w{display:flex;min-width:0;min-height:0}
+  html body #mainApp#mainApp #content .r1d-w>*{flex:1 1 auto;min-width:0}
+  html body #mainApp#mainApp #content .r1d-w-wide,html body #mainApp#mainApp #content .r1d-w-full{grid-column:1/3}
+  html body #mainApp#mainApp #content .r1d-w-tall{grid-row:span 2}
+  html body #mainApp#mainApp #content .r1d-w .r1d-kosten{min-height:200px!important}
+  html body #mainApp#mainApp #content .r1d-w .r1d-recent{margin:0!important}
+  html body #mainApp#mainApp #content .r1d-bento .r1d-text{min-width:0;font-size:clamp(17px,5.6vw,21px);font-weight:700;letter-spacing:-.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html body #mainApp#mainApp #content .r1d-bento .is-clear .r1d-text{color:var(--calm-muted);font-weight:600}
+  html body #mainApp#mainApp #content .r1d-bento .has-attention .r1d-text{color:#C0392B}
+  html body #mainApp#mainApp #content .r1d-bento .r1d-tile .r1d-note{margin-top:-4px}
+  /* Widgets + Thema under the blocks: two quiet pills, as Revolut's "Widgets toevoegen". */
+  html body #mainApp#mainApp #content .r1d-custom{display:flex;justify-content:center;gap:8px;margin:18px 0 6px}
+  html body #mainApp#mainApp #content .r1d-custom-btn{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 16px 0 13px;border:0;border-radius:999px;background:var(--calm-surface);color:var(--calm-label);font:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:transform .12s ease,background .12s ease}
+  html body #mainApp#mainApp #content .r1d-custom-btn .icon{width:17px;height:17px;color:var(--calm-label)}
+  html body #mainApp#mainApp #content .r1d-custom-btn:active{transform:scale(.97);background:var(--calm-soft)}
+  /* The Widgets sheet: nearly full height, close top-left, live previews in two columns. */
+  html body #modalRoot#modalRoot .modal-backdrop.widget-sheet-backdrop,html body #modalRoot#modalRoot .modal-backdrop.theme-sheet-backdrop{align-items:flex-end!important;padding:0!important;background:rgba(10,14,12,.5)!important}
+  html body #modalRoot#modalRoot .modal.widget-sheet,html body #modalRoot#modalRoot .modal.theme-sheet{outline:none;display:flex;flex-direction:column;width:100%!important;max-width:none!important;border:0!important;border-radius:28px 28px 0 0!important;background:#F2F3F5!important;box-shadow:0 -12px 40px rgba(0,0,0,.18)!important}
+  html body #modalRoot#modalRoot .modal.widget-sheet{height:calc(var(--mobile-viewport-height,100dvh) - 56px);max-height:none!important}
+  html body #modalRoot#modalRoot .modal.theme-sheet{padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+  html body #modalRoot#modalRoot :is(.widget-sheet,.theme-sheet) .modal-head{flex-direction:row-reverse;justify-content:flex-end;gap:12px;padding:16px 18px 6px!important;border:0!important;background:transparent!important}
+  html body #modalRoot#modalRoot :is(.widget-sheet,.theme-sheet) .modal-head h3{font-size:26px!important;font-weight:750!important;letter-spacing:-.03em!important}
+  html body #modalRoot#modalRoot :is(.widget-sheet,.theme-sheet) .modal-close{width:38px!important;height:38px!important;border-radius:50%!important;background:#fff!important;font-size:18px!important;color:var(--calm-ink)!important;flex:0 0 auto}
+  html body #modalRoot#modalRoot .widget-sheet .modal-body{flex:1 1 auto;padding:10px 12px 20px!important;overflow:auto;overscroll-behavior:contain}
+  html body #modalRoot#modalRoot .widget-sheet .modal-foot{border:0!important;background:transparent!important;justify-content:stretch!important;padding:8px 16px calc(12px + env(safe-area-inset-bottom,0px))!important}
+  html body #modalRoot#modalRoot .widget-sheet .r1d-wdone{width:100%;min-height:52px;border-radius:999px!important;font-size:16px!important}
+  html body #modalRoot#modalRoot .r1d-wgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  html body #modalRoot#modalRoot .r1d-wcard{position:relative;display:flex;flex-direction:column;min-width:0;border-radius:22px;background:#fff;overflow:hidden;opacity:.62;transition:opacity .18s ease,transform .18s ease;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+  html body #modalRoot#modalRoot .r1d-wcard.is-on{opacity:1}
+  html body #modalRoot#modalRoot .r1d-wcard.is-lifted{transform:scale(1.04);box-shadow:0 14px 30px rgba(0,0,0,.18);z-index:2}
+  html body #modalRoot#modalRoot .r1d-wcard.is-ghost{opacity:.25}
+  html body #modalRoot#modalRoot .r1d-wcard-full{grid-column:1/3}
+  html body #modalRoot#modalRoot .r1d-wprev{flex:1 1 auto;min-height:112px;pointer-events:none}
+  html body #modalRoot#modalRoot .r1d-wprev .r1d-tile{display:flex;flex-direction:column;justify-content:space-between;gap:6px;width:100%;height:100%;min-height:112px;padding:14px 16px 10px;border:0;border-radius:0;background:transparent;color:var(--calm-ink);font:inherit;text-align:left}
+  html body #modalRoot#modalRoot .r1d-wprev .calm-label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--calm-label)}
+  html body #modalRoot#modalRoot .r1d-wprev .calm-label::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--kpi-dot,#8A949B)}
+  html body #modalRoot#modalRoot .r1d-wprev .calm-value,html body #modalRoot#modalRoot .r1d-wprev .r1d-text{font-size:20px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html body #modalRoot#modalRoot .r1d-wprev .calm-value .amount-cents{font-size:.62em;font-weight:600;color:var(--calm-label)}
+  html body #modalRoot#modalRoot .r1d-wprev .r1d-bars{display:flex;align-items:flex-end;gap:4px;height:44px}
+  html body #modalRoot#modalRoot .r1d-wprev .r1d-bars i{flex:1;border-radius:4px;background:#FBE3E1}
+  html body #modalRoot#modalRoot .r1d-wprev .r1d-bars i.is-now{background:#E5534B}
+  html body #modalRoot#modalRoot .r1d-wprev .r1d-meter{display:block;height:5px;border-radius:5px;background:var(--calm-soft);overflow:hidden}
+  html body #modalRoot#modalRoot .r1d-wprev .r1d-meter i{display:block;height:100%;border-radius:5px;background:#F2B233}
+  html body #modalRoot#modalRoot .r1d-wprev .r1d-meter.is-free i{background:#3B82F6}
+  html body #modalRoot#modalRoot .r1d-wprev .r1d-note{font-size:12px;color:var(--calm-muted)}
+  html body #modalRoot#modalRoot .r1d-wprev .has-attention :is(.calm-value,.r1d-text){color:#C0392B}
+  html body #modalRoot#modalRoot .r1d-wprev .is-clear .r1d-text{color:var(--calm-muted);font-weight:600}
+  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent{padding:12px 16px 6px}
+  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent h2{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--calm-label)}
+  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent-row{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:4px 0;border:0;background:transparent;color:var(--calm-ink);font:inherit;text-align:left}
+  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent-row:nth-child(n+4){display:none}
+  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent-row>:first-child{flex:0 0 auto;width:30px!important;height:30px!important;font-size:11px}
+  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent-text{display:flex;flex-direction:column;flex:1;min-width:0}
+  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent-text strong{overflow:hidden;font-size:14px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent-text span{display:none}
+  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent-amount{font-size:14px;font-weight:650;font-variant-numeric:tabular-nums}
+  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent-amount.is-in{color:#1F7A4A}
+  html body #modalRoot#modalRoot .r1d-wempty{display:block;padding:16px;font-size:14px;color:var(--calm-muted)}
+  html body #modalRoot#modalRoot .r1d-wfoot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 10px 10px 16px}
+  html body #modalRoot#modalRoot .r1d-wname{font-size:13px;font-weight:600;color:var(--calm-muted)}
+  html body #modalRoot#modalRoot .r1d-wtoggle{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:50%;background:var(--calm-soft);color:var(--calm-ink);cursor:pointer;transition:transform .12s ease,background .12s ease}
+  html body #modalRoot#modalRoot .r1d-wtoggle .icon{width:16px;height:16px;stroke-width:2.4}
+  html body #modalRoot#modalRoot .r1d-wcard.is-on .r1d-wtoggle{background:#1F7A4A;color:#fff}
+  html body #modalRoot#modalRoot .r1d-wtoggle:active{transform:scale(.9)}
+  html body #modalRoot#modalRoot .r1d-whint{margin:16px 6px 0;text-align:center;font-size:13px;color:var(--calm-muted)}
+  /* The Thema sheet: one segmented choice, then the colours as round chips. */
+  html body #modalRoot#modalRoot .theme-sheet .modal-body{padding:6px 18px 14px!important}
+  html body #modalRoot#modalRoot .r1d-tlabel{margin:12px 2px 8px;font-size:13px;font-weight:600;color:var(--calm-muted)}
+  html body #modalRoot#modalRoot .r1d-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:999px;background:#E6E8EB}
+  html body #modalRoot#modalRoot .r1d-segbtn{min-height:40px;border:0;border-radius:999px;background:transparent;color:var(--calm-label);font:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s ease,color .15s ease}
+  html body #modalRoot#modalRoot .r1d-segbtn.is-on{background:#fff;color:var(--calm-ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  html body #modalRoot#modalRoot .r1d-swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  html body #modalRoot#modalRoot .r1d-swatch{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:104px;padding:14px 8px 12px;border:2px solid transparent;border-radius:20px;background:#fff;color:var(--calm-label);font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:transform .12s ease,border-color .15s ease}
+  html body #modalRoot#modalRoot .r1d-swatch:active{transform:scale(.96)}
+  html body #modalRoot#modalRoot .r1d-swatch.is-on{border-color:var(--calm-ink);color:var(--calm-ink)}
+  html body #modalRoot#modalRoot .r1d-swatch-chip{width:44px;height:44px;border-radius:50%;background:linear-gradient(160deg,var(--a) 0%,var(--b) 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+  html[data-theme="dark"] body #modalRoot#modalRoot .modal.widget-sheet,html[data-theme="dark"] body #modalRoot#modalRoot .modal.theme-sheet{background:var(--calm-bg,#0F1214)!important}
+  html[data-theme="dark"] body #modalRoot#modalRoot :is(.widget-sheet,.theme-sheet) .modal-close,html[data-theme="dark"] body #modalRoot#modalRoot .r1d-wcard,html[data-theme="dark"] body #modalRoot#modalRoot .r1d-swatch,html[data-theme="dark"] body #modalRoot#modalRoot .r1d-segbtn.is-on{background:var(--calm-surface)!important}
+  html[data-theme="dark"] body #modalRoot#modalRoot .r1d-seg{background:var(--calm-soft)}
+  html[data-theme="dark"] body #modalRoot#modalRoot .r1d-swatch.is-on{border-color:#fff}
+  html[data-theme="dark"] body #modalRoot#modalRoot .r1d-wprev .r1d-bars i{background:#3A2422}
+  html[data-theme="dark"] body #modalRoot#modalRoot .r1d-wprev .r1d-bars i.is-now{background:#E5534B}
+  html[data-theme="dark"] body #modalRoot#modalRoot .r1d-wprev .r1d-recent-amount.is-in{color:#63D471}
+}
+/* 25b. Instellingen > App: the band colour as round chips, the same choice as the Thema sheet on the phone. */
+.settings-band-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:420px}
+.settings-band-option{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:92px;padding:12px 8px 10px;border:2px solid transparent;border-radius:18px;background:var(--calm-soft,#F2F3F5);color:var(--calm-label,#5E6870);font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:transform .12s ease,border-color .15s ease}
+.settings-band-option:active{transform:scale(.96)}
+.settings-band-option.is-on{border-color:var(--calm-ink,#1B1F23);color:var(--calm-ink,#1B1F23)}
+.settings-band-chip{width:40px;height:40px;border-radius:50%;background:linear-gradient(160deg,var(--a) 0%,var(--b) 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+html[data-theme="dark"] .settings-band-option.is-on{border-color:#fff}
+.settings-band{margin-top:14px}
