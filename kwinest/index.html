@@ -4634,8 +4634,8 @@ const PHONE_BAND_ACTIONS={
  documents:()=>[['Scannen','i-camera',"openUploadSourcePicker('auto')"],['Uploaden','i-upload',"planAllows(1)?openDocumentUpload():triggerInvoiceUpload('sale')"]],
  bank:()=>state.transactions.length?[['Koppelen','i-link','autoMatch()'],['Importeren','i-upload','quickImportBank()'],['Betaling','i-plus','newTransaction()']]:[['Importeren','i-upload','quickImportBank()'],['Betaling','i-plus','newTransaction()']],
  vat:()=>state.company?.kor?[]:[['Aangifte','i-tax','vatStepper(0)']],
- contacts:()=>[['Nieuw','i-users','newContact()']],
- services:()=>[['Nieuw','i-plus','newService()']],
+ contacts:()=>[['Relatie','i-users','newContact()']],
+ services:()=>[['Dienst','i-plus','newService()']],
  trips:()=>[['Rit','i-car','newTrip()']],
  hours:()=>[['Uren','i-clock','newHour()']]
 };
@@ -4647,7 +4647,13 @@ function applyPhoneBand(content){
  const title=document.createElement('div');title.className='r1d-title';title.appendChild(h1);head.querySelectorAll('.page-status').forEach(p=>title.appendChild(p));band.appendChild(title);
  const hero=content.querySelector('.kpi-hero');
  if(hero){const grid=hero.parentElement;if(grid&&grid.children.length===1)band.appendChild(grid);else{const wrap=document.createElement('div');wrap.className='grid grid-1 compact-metrics product-kpis calm-kpis';wrap.appendChild(hero);band.appendChild(wrap)}}
- const slot=head.querySelector('.page-period-slot');if(slot){const row=document.createElement('div');row.className='r1d-period';row.appendChild(slot);band.appendChild(row)}
+ // Rapportages: the big total moves into the band like every other page's main number.
+ if(!hero){const amt=content.querySelector('.report-story>.report-story-amount');if(amt){const wrap=document.createElement('div');wrap.className='r1d-story-hero';wrap.appendChild(amt);const lab=content.querySelector('.report-story>.report-story-label');if(lab)wrap.appendChild(lab);band.appendChild(wrap)}}
+ const slot=head.querySelector('.page-period-slot');
+ if(slot){
+  // Btw: the period is a pill like on the other pages (it opens the same filters), not a lone filter icon under the title.
+  if(page==='vat'){const label=title.querySelector('.vat-period-label');const filter=slot.querySelector('.page-filter-btn,[onclick*="openVatFilters"]');if(label&&filter){const pill=document.createElement('button');pill.type='button';pill.className='r1d-pill r1d-pill-btn';pill.setAttribute('aria-label','Periode kiezen');const status=label.closest('.page-status');pill.appendChild(label);pill.insertAdjacentHTML('beforeend',icon('i-chevron'));pill.onclick=()=>openVatFilters();filter.replaceWith(pill);status?.remove()}}
+  const row=document.createElement('div');row.className='r1d-period';row.appendChild(slot);band.appendChild(row)}
  band.insertAdjacentHTML('beforeend',phoneBandActionsHtml(PHONE_BAND_ACTIONS[page]?.()||[]));
  head.classList.add('r1d-moved');content.insertBefore(band,content.firstChild)
 }
@@ -4695,7 +4701,13 @@ function openWidgetSheet(){
  const cards=ids.map(id=>{const w=PHONE_WIDGETS[id],active=on.includes(id);return '<div class="r1d-wcard'+(active?' is-on':'')+(w.size==='full'?' r1d-wcard-full':'')+'" data-widget="'+id+'"><div class="r1d-wprev" inert>'+(w.render(ctx)||'<span class="r1d-wempty">'+esc(w.label)+'</span>')+'</div><div class="r1d-wfoot"><span class="r1d-wname">'+esc(w.label)+'</span><button type="button" class="r1d-wtoggle" aria-pressed="'+active+'" aria-label="'+esc(w.label+(active?' verbergen':' tonen'))+'" onclick="toggleWidget(\''+id+'\',this)">'+icon(active?'i-check':'i-plus')+'</button></div></div>'}).join('');
  modal('Widgets','<div class="r1d-wgrid" id="widgetGrid">'+cards+'</div><p class="r1d-whint">Tik om te tonen of te verbergen. Houd vast om te verslepen.</p>','<button type="button" class="btn primary r1d-wdone" onclick="closeWidgetSheet()">Klaar</button>');
  const dialog=document.querySelector('#modalRoot .modal');dialog?.classList.add('widget-sheet');dialog?.closest('.modal-backdrop')?.classList.add('widget-sheet-backdrop');sheetBlurAutofocus(dialog);
- if(window.Sortable)Sortable.create(document.getElementById('widgetGrid'),{animation:180,delay:160,delayOnTouchOnly:true,ghostClass:'is-ghost',chosenClass:'is-lifted',onEnd:()=>commitWidgetSheet()});
+ if(window.Sortable)Sortable.create(document.getElementById('widgetGrid'),{
+  // Hold, then the card follows the finger (fallback on every browser, so iOS and desktop feel the same);
+  // a small wobble during the hold no longer cancels it, neighbours slide over with an ease-out, the sheet autoscrolls near its edges.
+  animation:220,easing:'cubic-bezier(.2,.8,.2,1)',delay:150,delayOnTouchOnly:true,touchStartThreshold:8,fallbackTolerance:3,forceFallback:true,fallbackOnBody:true,
+  ghostClass:'is-ghost',chosenClass:'is-lifted',dragClass:'is-dragging',fallbackClass:'is-dragging',
+  swapThreshold:.65,invertSwap:true,scroll:true,scrollSensitivity:90,scrollSpeed:14,bubbleScroll:true,
+  onChoose:()=>{try{navigator.vibrate&&navigator.vibrate(8)}catch(e){}},onEnd:()=>commitWidgetSheet()});
 }
 function toggleWidget(id,btn){const card=btn.closest('.r1d-wcard'),on=card.classList.toggle('is-on');btn.setAttribute('aria-pressed',on);btn.innerHTML=icon(on?'i-check':'i-plus');btn.setAttribute('aria-label',PHONE_WIDGETS[id].label+(on?' verbergen':' tonen'));commitWidgetSheet()}
 function commitWidgetSheet(){const ids=[...document.querySelectorAll('#widgetGrid .r1d-wcard.is-on')].map(c=>c.dataset.widget);setPhoneWidgets(ids)}
@@ -5589,7 +5601,7 @@ function documentsPeriodSelect(){
 function setDocumentsPeriod(value){const s=listPageState('documents');s.filters.period=value;if(value!=='custom'){s.filters.from='';s.filters.to=''}persistListState();render()}
 function renderDocuments(){
  const list=getListRows('documents'),docs=state.documents,monthKey=monthKeyOffset(0),toProcess=docs.filter(d=>!d.linkedId&&!d.verification).length,review=docs.filter(d=>{const st=String(d.verification?.status||'');return st==='needs_review'||st==='error'||(!d.linkedId&&!!d.verification)||!!documentReviewJob(d)}).length,processed=docs.filter(d=>!!d.linkedId&&String(d.date||'').startsWith(monthKey)).length;
- return `<div class="product-page-shell"><div class="page-head product-page-head financial-page-head"><div><h1>Bonnetjes</h1>${docs.length&&!phoneLayout()?`<p class="page-status documents-safe">${docs.length} ${docs.length===1?'document':'documenten'} veilig bewaard, 7 jaar lang.</p>`:''}${deskCopyHtml('Ondersteund: PDF, JPG, PNG, HEIC, DOCX, XLSX en CSV.','page-status','p')}</div>${docs.length?`<div class="page-period-slot">${documentsPeriodSelect()}</div>`:''}</div>${docs.length?`<div class="page-actions product-page-actions"><button class="btn primary" onclick="openDocumentUpload()">${icon('i-upload')} Document uploaden</button></div>`:''}<input class="hidden" type="file" id="docFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"><input class="hidden" type="file" id="archiveFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"></div>
+ return `<div class="product-page-shell"><div class="page-head product-page-head financial-page-head"><div><h1>${phoneLayout()?'Bonnen':'Bonnetjes'}</h1>${docs.length&&!phoneLayout()?`<p class="page-status documents-safe">${docs.length} ${docs.length===1?'document':'documenten'} veilig bewaard, 7 jaar lang.</p>`:''}${deskCopyHtml('Ondersteund: PDF, JPG, PNG, HEIC, DOCX, XLSX en CSV.','page-status','p')}</div>${docs.length?`<div class="page-period-slot">${documentsPeriodSelect()}</div>`:''}</div>${docs.length?`<div class="page-actions product-page-actions"><button class="btn primary" onclick="openDocumentUpload()">${icon('i-upload')} Document uploaden</button></div>`:''}<input class="hidden" type="file" id="docFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"><input class="hidden" type="file" id="archiveFile" multiple accept="application/pdf,image/*,.heic,.heif,.tif,.tiff,.bmp,.docx,.xlsx,.csv,text/csv"></div>
  ${docs.length&&phoneLayout()?productKpiGrid([productKpiHero(docs.length===1?'Bon':'Bonnen',String(docs.length),'','omzet')],'grid-1 calm-kpis documents-calm-kpis'):''}
  <div class="documents-kpis">${productKpiGrid([
   productKpi('Te verwerken',String(toProcess),extraHelpVisible()?'Nog niet gekoppeld':'','i-upload','support'),

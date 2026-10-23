@@ -122,6 +122,21 @@ try{
   await page.locator('.settings-band-option[data-band-choice="smaragd"]').click();
   assert.equal(await page.evaluate(()=>document.documentElement.dataset.band),'smaragd');
   assert.equal(await text(page.locator('.settings-band-option.is-on')),'Smaragd');
+  // 7. Round 2 (Kwin 2026-10-23 'fix'): one logic on every band page, no second button with the same name.
+  assert.ok(generated.includes('fallbackOnBody:true')&&generated.includes('touchStartThreshold:8'),'drag follows the finger from <body> and tolerates a wobble while holding');
+  await page.evaluate(()=>navigate('vat'));
+  assert.equal(await text(page.locator('#content .r1d-hero .r1d-pill-btn')),await text(page.locator('#content .r1d-hero .r1d-pill-btn .vat-period-label')),'Btw band shows the period as a pill');
+  assert.ok((await text(page.locator('#content .r1d-hero .r1d-pill-btn'))).length>0,'period pill has text');
+  assert.equal(await page.locator('#content .r1d-hero .page-filter-btn').count(),0,'no lone filter icon in the Btw band');
+  await page.evaluate(()=>navigate('documents'));
+  assert.equal(await text(page.locator('#content .r1d-hero h1')),'Bonnen','phone title matches the tab bar');
+  await page.evaluate(()=>navigate('contacts'));
+  assert.equal(await text(page.locator('#content .r1d-hero .r1d-action')),'Relatie');
+  await page.evaluate(()=>navigate('services'));
+  assert.equal(await text(page.locator('#content .r1d-hero .r1d-action')),'Dienst');
+  await page.evaluate(()=>navigate('reports'));
+  assert.match(await text(page.locator('#content .r1d-hero .r1d-story-hero .report-story-amount')),/^€/,'Rapportages total sits in the band');
+  assert.equal(await page.locator('#content .report-story .report-story-amount').count(),0);
   await context.close();
 
   // 6. Desktop is untouched: no widgets grid, no pills, no band attribute effect on the dashboard.

@@ -1574,39 +1574,51 @@ html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272
   html body #modalRoot#modalRoot .r1d-wcard.is-on{opacity:1}
   html body #modalRoot#modalRoot .r1d-wcard.is-lifted{transform:scale(1.04);box-shadow:0 14px 30px rgba(0,0,0,.18);z-index:2}
   html body #modalRoot#modalRoot .r1d-wcard.is-ghost{opacity:.25}
+  html body #modalRoot#modalRoot .r1d-wcard.is-dragging{opacity:1;transform:scale(1.06) rotate(1deg);box-shadow:0 18px 40px rgba(0,0,0,.24);transition:none;cursor:grabbing}
+  html body #modalRoot#modalRoot .r1d-wcard{-webkit-touch-callout:none}
+  /* The card that follows the finger lives on <body> (SortableJS fallbackOnBody), so the sheet cannot clip it. */
+  html body>.r1d-wcard.is-dragging{position:fixed;display:flex;flex-direction:column;min-width:0;border-radius:22px;background:#fff;overflow:hidden;opacity:1!important;transform:scale(1.06) rotate(1deg);box-shadow:0 18px 40px rgba(0,0,0,.24);z-index:10000;pointer-events:none;font-family:var(--sans)}
+  html[data-theme="dark"] body>.r1d-wcard.is-dragging{background:var(--calm-surface)}
+  /* Btw: the period pill in the band (same filters as before). */
+  html body #mainApp#mainApp #content .r1d-hero .r1d-pill-btn{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px 0 14px;border:0;border-radius:999px;background:rgba(255,255,255,.14);color:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+  html body #mainApp#mainApp #content .r1d-hero .r1d-pill-btn .icon{width:14px;height:14px;opacity:.85;transform:rotate(90deg)}
+  /* Rapportages: the total sits in the band like the main number on every other page. */
+  html body #mainApp#mainApp #content .r1d-hero .r1d-story-hero{text-align:center;margin:4px 0 2px}
+  html body #mainApp#mainApp #content .r1d-hero .r1d-story-hero .report-story-amount{display:block;margin:0;font-size:36px;font-weight:750;letter-spacing:-.03em;line-height:1.1;color:#fff;font-variant-numeric:tabular-nums}
+  html body #mainApp#mainApp #content .r1d-hero .r1d-story-hero .report-story-label{margin:4px 0 0;font-size:13px;font-weight:500;color:rgba(255,255,255,.78)}
   html body #modalRoot#modalRoot .r1d-wcard-full{grid-column:1/3}
-  html body #modalRoot#modalRoot .r1d-wprev{flex:1 1 auto;min-height:112px;pointer-events:none}
-  html body #modalRoot#modalRoot .r1d-wprev .r1d-tile{display:flex;flex-direction:column;justify-content:space-between;gap:6px;width:100%;height:100%;min-height:112px;padding:14px 16px 10px;border:0;border-radius:0;background:transparent;color:var(--calm-ink);font:inherit;text-align:left}
-  html body #modalRoot#modalRoot .r1d-wprev .calm-label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--calm-label)}
-  html body #modalRoot#modalRoot .r1d-wprev .calm-label::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--kpi-dot,#8A949B)}
-  html body #modalRoot#modalRoot .r1d-wprev .calm-value,html body #modalRoot#modalRoot .r1d-wprev .r1d-text{font-size:20px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  html body #modalRoot#modalRoot .r1d-wprev .calm-value .amount-cents{font-size:.62em;font-weight:600;color:var(--calm-label)}
-  html body #modalRoot#modalRoot .r1d-wprev .r1d-bars{display:flex;align-items:flex-end;gap:4px;height:44px}
-  html body #modalRoot#modalRoot .r1d-wprev .r1d-bars i{flex:1;border-radius:4px;background:#FBE3E1}
-  html body #modalRoot#modalRoot .r1d-wprev .r1d-bars i.is-now{background:#E5534B}
-  html body #modalRoot#modalRoot .r1d-wprev .r1d-meter{display:block;height:5px;border-radius:5px;background:var(--calm-soft);overflow:hidden}
-  html body #modalRoot#modalRoot .r1d-wprev .r1d-meter i{display:block;height:100%;border-radius:5px;background:#F2B233}
-  html body #modalRoot#modalRoot .r1d-wprev .r1d-meter.is-free i{background:#3B82F6}
-  html body #modalRoot#modalRoot .r1d-wprev .r1d-note{font-size:12px;color:var(--calm-muted)}
-  html body #modalRoot#modalRoot .r1d-wprev .has-attention :is(.calm-value,.r1d-text){color:#C0392B}
-  html body #modalRoot#modalRoot .r1d-wprev .is-clear .r1d-text{color:var(--calm-muted);font-weight:600}
-  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent{padding:12px 16px 6px}
-  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent h2{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--calm-label)}
-  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent-row{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:4px 0;border:0;background:transparent;color:var(--calm-ink);font:inherit;text-align:left}
-  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent-row:nth-child(n+4){display:none}
-  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent-row>:first-child{flex:0 0 auto;width:30px!important;height:30px!important;font-size:11px}
-  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent-text{display:flex;flex-direction:column;flex:1;min-width:0}
-  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent-text strong{overflow:hidden;font-size:14px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
-  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent-text span{display:none}
-  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent-amount{font-size:14px;font-weight:650;font-variant-numeric:tabular-nums}
-  html body #modalRoot#modalRoot .r1d-wprev .r1d-recent-amount.is-in{color:#1F7A4A}
-  html body #modalRoot#modalRoot .r1d-wempty{display:block;padding:16px;font-size:14px;color:var(--calm-muted)}
-  html body #modalRoot#modalRoot .r1d-wfoot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 10px 10px 16px}
-  html body #modalRoot#modalRoot .r1d-wname{font-size:13px;font-weight:600;color:var(--calm-muted)}
-  html body #modalRoot#modalRoot .r1d-wtoggle{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:50%;background:var(--calm-soft);color:var(--calm-ink);cursor:pointer;transition:transform .12s ease,background .12s ease}
-  html body #modalRoot#modalRoot .r1d-wtoggle .icon{width:16px;height:16px;stroke-width:2.4}
-  html body #modalRoot#modalRoot .r1d-wcard.is-on .r1d-wtoggle{background:#1F7A4A;color:#fff}
-  html body #modalRoot#modalRoot .r1d-wtoggle:active{transform:scale(.9)}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev{flex:1 1 auto;min-height:112px;pointer-events:none}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-tile{display:flex;flex-direction:column;justify-content:space-between;gap:6px;width:100%;height:100%;min-height:112px;padding:14px 16px 10px;border:0;border-radius:0;background:transparent;color:var(--calm-ink);font:inherit;text-align:left}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .calm-label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--calm-label)}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .calm-label::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--kpi-dot,#8A949B)}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .calm-value,html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-text{font-size:20px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .calm-value .amount-cents{font-size:.62em;font-weight:600;color:var(--calm-label)}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-bars{display:flex;align-items:flex-end;gap:4px;height:44px}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-bars i{flex:1;border-radius:4px;background:#FBE3E1}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-bars i.is-now{background:#E5534B}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-meter{display:block;height:5px;border-radius:5px;background:var(--calm-soft);overflow:hidden}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-meter i{display:block;height:100%;border-radius:5px;background:#F2B233}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-meter.is-free i{background:#3B82F6}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-note{font-size:12px;color:var(--calm-muted)}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .has-attention :is(.calm-value,.r1d-text){color:#C0392B}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .is-clear .r1d-text{color:var(--calm-muted);font-weight:600}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-recent{padding:12px 16px 6px}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-recent h2{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--calm-label)}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-recent-row{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:4px 0;border:0;background:transparent;color:var(--calm-ink);font:inherit;text-align:left}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-recent-row:nth-child(n+4){display:none}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-recent-row>:first-child{flex:0 0 auto;width:30px!important;height:30px!important;font-size:11px}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-recent-text{display:flex;flex-direction:column;flex:1;min-width:0}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-recent-text strong{overflow:hidden;font-size:14px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-recent-text span{display:none}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-recent-amount{font-size:14px;font-weight:650;font-variant-numeric:tabular-nums}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-recent-amount.is-in{color:#1F7A4A}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wempty{display:block;padding:16px;font-size:14px;color:var(--calm-muted)}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wfoot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 10px 10px 16px}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wname{font-size:13px;font-weight:600;color:var(--calm-muted)}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wtoggle{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:50%;background:var(--calm-soft);color:var(--calm-ink);cursor:pointer;transition:transform .12s ease,background .12s ease}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wtoggle .icon{width:16px;height:16px;stroke-width:2.4}
+  html body :is(#modalRoot#modalRoot .r1d-wcard.is-on,.r1d-wcard.is-dragging.is-on) .r1d-wtoggle{background:#1F7A4A;color:#fff}
+  html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wtoggle:active{transform:scale(.9)}
   html body #modalRoot#modalRoot .r1d-whint{margin:16px 6px 0;text-align:center;font-size:13px;color:var(--calm-muted)}
   /* The Thema sheet: one segmented choice, then the colours as round chips. */
   html body #modalRoot#modalRoot .theme-sheet .modal-body{padding:6px 18px 14px!important}
