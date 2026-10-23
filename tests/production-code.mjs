@@ -34,7 +34,7 @@ export function loadApp(names = financialNames, overrides = {}) {
     structuredClone, today: () => '2026-09-27', ...overrides,
   });
   // Depreciation (k2) helpers spread an asset's cost over its years; every profit total goes through them.
-  const optional = ['allocateDiscountCents', 'withInvoiceRounding', 'inRange', 'expenseAccountingCost', 'expenseDepreciationYears', 'bookMonthIndex', 'depreciationUpTo', 'expenseCostInRange', 'expenseCostsBetween', 'expenseCostGroup'].filter(n => appSource.includes(`function ${n}(`));
+  const optional = ['allocateDiscountCents', 'withInvoiceRounding', 'inRange', 'expenseAccountingCost', 'expenseDepreciationYears', 'bookMonthIndex', 'depreciationUpTo', 'expenseCostInRange', 'expenseCostsBetween', 'expenseCostGroup', 'invoicePaymentLink', 'epcPaymentPayload', 'invoicePaymentQr', 'paymentQrSvg'].filter(n => appSource.includes(`function ${n}(`));
   // toCents reads this switch; withInvoiceRounding turns it on for invoices that keep the old rounding.
   const prelude = appSource.includes('let legacyInvoiceCents=') ? 'var legacyInvoiceCents=false;\n' : '';
   const depreciation = appSource.match(/^const DEPRECIATION_THRESHOLD=[^\n]*$/m);

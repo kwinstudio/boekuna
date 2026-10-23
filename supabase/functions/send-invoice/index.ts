@@ -159,6 +159,8 @@ function wrapText(value:string,font:any,size:number,width:number){
   if(current)lines.push(current);
   return lines.length?lines:[""];
 }
+const paymentQr=(v:any)=>{const size=Math.round(num(v?.size)),bits=String(v?.bits||"");return size>=21&&size<=177&&bits.length===size*size&&/^[01]+$/.test(bits)?{size,bits}:null};
+const paymentLink=(v:any)=>{const s=safe(v,300).trim();return /^https:\/\/[^\s<>"']{4,}$/i.test(s)?s:""};
 async function pdfBytes(data:any){
   const {company={},customer={},invoice={}}=data; const c=calc(invoice);
   const pdf=await PDFDocument.create(); const regular=await pdf.embedFont(StandardFonts.Helvetica); const bold=await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -203,10 +205,23 @@ async function pdfBytes(data:any){
   for(const line of legend){text(line,46,y,9,bold,ink);y-=14}
   if(legend.length)y-=8;
   if(company?.invoiceDesign?.showPaymentBlock!==false){
-    page.drawRectangle({x:46,y:y-54,width:503,height:54,color:accent});
+    // f1: SEPA payment QR (built in the app from the invoice) and the user's own payment link.
+    const qr=invoice.kind==="credit"?null:paymentQr(data.paymentQr),link=invoice.kind==="credit"?"":paymentLink(data.paymentLink);
+    const h=qr?96:54,need=h+(link?22:0)+10;
+    if(y-need<60)newPage();
+    page.drawRectangle({x:46,y:y-h,width:503,height:h,color:accent});
     text(invoice.kind==="credit"?"CREDIT / VERREKENING":"BETALEN AAN",58,y-17,7,bold,rgb(1,1,1));
     text(invoice.kind==="credit"?"Wordt verrekend of terugbetaald":safe(company.iban,80),58,y-34,10,bold,rgb(1,1,1));
-    text("REFERENTIE",330,y-17,7,bold,rgb(1,1,1)); text(safe(invoice.paymentReference||invoice.number,80),330,y-34,10,bold,rgb(1,1,1));
+    const refX=qr?250:330;
+    text("REFERENTIE",refX,y-17,7,bold,rgb(1,1,1)); text(safe(invoice.paymentReference||invoice.number,80),refX,y-34,10,bold,rgb(1,1,1));
+    if(qr){
+      const box=84,bx=549-box-6,by=y-h+6,quiet=4,cell=box/(qr.size+quiet*2);
+      page.drawRectangle({x:bx,y:by,width:box,height:box,color:rgb(1,1,1)});
+      for(let r=0;r<qr.size;r++)for(let c=0;c<qr.size;c++)if(qr.bits.charCodeAt(r*qr.size+c)===49)page.drawRectangle({x:bx+(c+quiet)*cell,y:by+box-(r+quiet+1)*cell,width:cell+.02,height:cell+.02,color:rgb(0,0,0)});
+      text("Scan met je bank-app",58,y-h+12,8,regular,rgb(1,1,1));
+    }
+    y-=h;
+    if(link){y-=16;text("Online betalen: "+link,46,y,9,regular,ink);}
   }
   const footer=pdfText([safe(company.name,120),company.kvk?"KVK "+safe(company.kvk,30):"",company.vat?"Btw-id "+safe(company.vat,40):""].filter(Boolean).join(" · "));
   const pages=pdf.getPages();
