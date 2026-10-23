@@ -480,18 +480,14 @@ try{
       await page.getByRole('heading',{name:'Overzicht'}).waitFor();
       for(const route of ['invoices','expenses','vat','reports']){
         await page.evaluate(route=>navigate(route),route);
-        const header=await page.locator('.product-page-head').evaluate(head=>{
-          const title=head.querySelector('h1'),period=head.querySelector('.page-period-slot'),a=title?.getBoundingClientRect(),b=period?.getBoundingClientRect();
-          return {segmented:!!period?.querySelector('.period-seg'),title:a?{left:a.left,right:a.right,top:a.top,bottom:a.bottom}:null,period:b?{left:b.left,right:b.right,top:b.top,bottom:b.bottom,width:b.width}:null,headRight:head.getBoundingClientRect().right};
+        // Kwin 2026-10-23 (R1D, "A en kies voor consistentie"): on a phone the title and the period sit in the green band, the period under the title.
+        const header=await page.locator('#content .r1d-hero').evaluate(band=>{
+          const title=band.querySelector('h1'),period=band.querySelector('.page-period-slot'),a=title?.getBoundingClientRect(),b=period?.getBoundingClientRect(),r=band.getBoundingClientRect();
+          return {title:a?{left:a.left,right:a.right,top:a.top,bottom:a.bottom}:null,period:b?{left:b.left,right:b.right,top:b.top,bottom:b.bottom}:null,left:r.left,right:r.right};
         });
-        if(header.segmented){
-          // Kwin 2026-10-10: on a phone the period is one "Deze maand ⌄" button on the title row, right of the title.
-          assert.ok(header.period&&header.period.left>=header.title.right-2&&header.period.top<header.title.bottom,browserName+' mobile '+route+' period button must sit next to the title');
-          assert.ok(header.period.right<=header.headRight+2,browserName+' mobile '+route+' period button must stay inside the page');
-        }else{
-          assert.ok(header.period&&header.period.left>header.title.left,browserName+' mobile '+route+' period must remain right of title');
-          assert.ok(Math.abs(header.period.top-header.title.top)<36,browserName+' mobile '+route+' title and period must remain on one row');
-        }
+        assert.ok(header.title&&header.period,browserName+' mobile '+route+' band has the title and the period');
+        assert.ok(header.period.top>=header.title.bottom-2,browserName+' mobile '+route+' period sits under the title');
+        assert.ok(header.period.left>=header.left-1&&header.period.right<=header.right+1,browserName+' mobile '+route+' period stays inside the page');
         await noOverflow(page,browserName+' mobile '+route+' header');
       }
       await page.evaluate(()=>navigate('reports'));
@@ -560,7 +556,7 @@ try{
       assert.ok(firstContentTop<844,browserName+' mobile Inkomsten main list should begin inside the first viewport: '+JSON.stringify(incomeMobileGeometry));
       await page.evaluate(()=>navigate('vat'));
       await page.getByRole('heading',{name:'Btw'}).waitFor();
-      const vatStatus=page.locator('.product-page-head .page-status').first();
+      const vatStatus=page.locator('#content :is(.product-page-head,.r1d-title) .page-status').first();
       assert.ok(await vatStatus.isVisible(),browserName+' mobile VAT financial context must remain visible');
       // Kwin 2026-10-17 (minder tekst): the phone title says only the quarter; the filing context stays in the note.
       assert.match(await page.locator('.vat-phone-note').innerText(),/verstuurt deze aangifte niet/i,browserName+' mobile VAT page must preserve filing context');

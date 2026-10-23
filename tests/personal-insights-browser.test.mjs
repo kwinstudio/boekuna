@@ -87,6 +87,8 @@ async function nav(route){await page.evaluate(r=>navigate(r),route);await page.w
 try{
  await page.goto(base,{waitUntil:'networkidle'});
  await page.getByRole('heading',{name:'Overzicht'}).waitFor();
+ // On a phone the "te doen" pill (with Voor jou inside) is off the overview for now (Kwin 2026-10-23); the flag brings it back.
+ await page.evaluate(()=>{phoneOverviewTodo=true;render()});
  assert.equal(await page.locator('.assistant-dashboard').count(),1,'Dashboard must expose Voor jou');
  assert.ok(await page.locator('.assistant-dashboard .assistant-insight-card').count()<=3,'Dashboard must cap insights at three');
  assert.equal((await page.locator('.assistant-dashboard').innerText()).includes('RAW OCR SECRET'),false,'Raw OCR must never render');
