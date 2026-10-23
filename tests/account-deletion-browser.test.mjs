@@ -68,7 +68,7 @@ try{
     assert.equal(await page.locator('#deleteAccountForm').count(),0,'the delete dialog closes after a successful deletion');
     assert.equal(await page.evaluate(()=>currentUser),null);
     assert.equal(await page.evaluate(key=>localStorage.getItem(key),dataKey),null,'the local copy of the deleted administration is removed');
-    assert.ok(await page.locator('#loginEmail').isVisible(),'the login screen is shown');
+    assert.ok(await page.locator(tag==='mobiel'?'.auth-museum-cta':'#loginEmail').isVisible(),'the login screen is shown');
     await page.waitForTimeout(300);
     await page.screenshot({path:`${shotDir}/${browserName}-${tag}-3-verwijderd.png`});
     await page.close();
