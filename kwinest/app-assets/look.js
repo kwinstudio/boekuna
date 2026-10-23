@@ -193,46 +193,6 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',sync);else sync();
 })();
 
-/* 21. Pull down to refresh on the phone. It reloads the app the normal way (the same as closing
-   and reopening it), and only when everything is saved, so nothing that is still being stored is lost. */
-(function(){
-  'use strict';
-  var phone=matchMedia('(max-width:820px) and (pointer:coarse)');
-  var startY=null,dy=0,pill=null,armed=false,TRIGGER=80;
-  function ui(){
-    if(pill)return pill;
-    pill=document.createElement('div');pill.className='pull-refresh';pill.setAttribute('role','status');pill.setAttribute('aria-live','polite');
-    pill.innerHTML='<span class="pull-refresh-spin" aria-hidden="true"></span><span class="pull-refresh-text"></span>';
-    document.body.appendChild(pill);return pill;
-  }
-  function blocked(target){
-    var app=document.getElementById('mainApp');
-    if(!app||app.classList.contains('hidden')||!phone.matches)return true;
-    if(document.querySelector('#modalRoot .modal-backdrop'))return true;
-    if(document.body.classList.contains('mobile-drawer-open')||document.getElementById('sidebar')?.classList.contains('open'))return true;
-    return !(target&&target.closest&&target.closest('#content'))||(window.scrollY||document.documentElement.scrollTop)>0;
-  }
-  function show(text,y){var p=ui();p.querySelector('.pull-refresh-text').textContent=text;p.classList.add('is-visible');p.style.transform='translate(-50%,'+Math.min(0,y-60)+'px)'}
-  function hide(){if(pill){pill.classList.remove('is-visible','is-loading');pill.style.transform=''}}
-  document.addEventListener('touchstart',function(e){startY=e.touches.length===1&&!blocked(e.target)?e.touches[0].clientY:null;dy=0;armed=false},{passive:true});
-  document.addEventListener('touchmove',function(e){
-    if(startY==null)return;
-    dy=e.touches[0].clientY-startY;
-    if(dy<=8||(window.scrollY||0)>0){hide();return}
-    armed=dy>TRIGGER;
-    show(armed?'Laat los om te verversen':'Trek om te verversen',Math.min(dy,TRIGGER+20));
-  },{passive:true});
-  document.addEventListener('touchend',function(){
-    if(startY==null)return;startY=null;
-    if(!armed){hide();return}
-    var status=typeof cloudSyncStatus!=='undefined'?cloudSyncStatus:'saved';
-    if(!navigator.onLine||status==='offline'){show('Geen verbinding',80);setTimeout(hide,1600);return}
-    if(status!=='saved'){show('Even wachten, nog aan het opslaan',80);setTimeout(hide,1800);return}
-    var p=ui();p.classList.add('is-loading');show('Nieuwste ophalen…',80);
-    setTimeout(function(){location.reload()},150);
-  },{passive:true});
-})();
-
 /* 16. iPhone quick actions (hold the app icon): the native shell calls boekunaQuickAction('scan'|'invoice').
    It waits until you are logged in. Scanning asks for one tap, because iOS only opens the camera after a tap. */
 (function(){
