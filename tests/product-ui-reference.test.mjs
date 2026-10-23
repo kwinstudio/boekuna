@@ -556,7 +556,8 @@ try{
       assert.ok(firstContentTop<844,browserName+' mobile Inkomsten main list should begin inside the first viewport: '+JSON.stringify(incomeMobileGeometry));
       await page.evaluate(()=>navigate('vat'));
       await page.getByRole('heading',{name:'Btw'}).waitFor();
-      const vatStatus=page.locator('#content :is(.product-page-head,.r1d-title) .page-status').first();
+      // On a phone the quarter is the period pill in the band (round 2, 2026-10-23).
+      const vatStatus=page.locator('#content :is(.product-page-head .page-status,.r1d-title .page-status,.r1d-hero .r1d-pill-btn)').first();
       assert.ok(await vatStatus.isVisible(),browserName+' mobile VAT financial context must remain visible');
       // Kwin 2026-10-17 (minder tekst): the phone title says only the quarter; the filing context stays in the note.
       assert.match(await page.locator('.vat-phone-note').innerText(),/verstuurt deze aangifte niet/i,browserName+' mobile VAT page must preserve filing context');

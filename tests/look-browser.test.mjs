@@ -145,7 +145,7 @@ try{
       assert.ok(tiles.length&&tiles.every(t=>t.dot&&(t.hero?t.band&&t.radius==='0px':t.radius==='16px')&&t.icon==='none'),route+' tiles share one style with a coloured dot (the hero number sits in the green band): '+JSON.stringify(tiles));
       if(['bank','vat'].includes(route))assert.equal(tiles.filter(t=>t.hero).length,1,route+' has one light-blue block on top');
       // Kwin 2026-10-21 (Rapportages B): the winst is the big number with a line over the year above the tiles.
-      if(route==='reports')assert.equal(await page.locator('#content .report-story .report-story-amount').count(),1,'reports opens with the winst story');
+      if(route==='reports')assert.equal(await page.locator('#content :is(.report-story,.r1d-story-hero) .report-story-amount').count(),1,'reports opens with the winst story (the total sits in the band on a phone)');
     }
     await page.evaluate(()=>navigate('invoices'));
     await page.locator('.mobile-card-list .mobile-card-row').first().waitFor();
