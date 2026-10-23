@@ -1204,16 +1204,9 @@ html body #modalRoot#modalRoot .vat-step-modal .modal-foot{padding-bottom:calc(1
 html[data-theme="dark"] #mainApp #content .settings-search{background:#202326}
 #mainApp #content .settings-quick-label.settings-all-label{font-size:18px;font-weight:700;color:var(--ink,#111);margin-top:4px}
 
-/* Inloggen A (twijfel-ronde, Kwin 2026-10-21): wordmark and the promise on top, calm fields, one green button. */
-#authRoot .auth-phone-brand{display:block;margin:0 0 28px}
-#authRoot .auth-wordmark{display:block;font-size:30px;font-weight:800;letter-spacing:-.03em;color:var(--ink,#111)}
-#authRoot .auth-wordmark span{color:#63D471}
-#authRoot .auth-phone-brand p{margin:6px 0 0!important;font-size:17px!important;color:var(--muted,#6B7280)!important}
-#authRoot .auth-form .auth-phone-brand~.eyebrow,#authRoot .auth-form .auth-phone-brand~h2+p{display:none}
-#authRoot .auth-form .auth-phone-brand~h2{font-size:26px!important;margin-bottom:18px!important}
+/* Inloggen (twijfel-ronde, Kwin 2026-10-21): calm fields, one green button. The opening screen above the form is section 25. */
 #authRoot .auth-form .auth-field input{border:1px solid #E3E6E9!important;background:#F6F7F8!important;box-shadow:none!important;border-radius:14px!important}
 #authRoot .auth-form .auth-field input:focus{background:#fff!important;border-color:#63D471!important}
-html[data-theme="dark"] #authRoot .auth-wordmark{color:#F3F4F6}
 html[data-theme="dark"] #authRoot .auth-form .auth-field input{background:#202326!important;border-color:#33383D!important}
 
 /* 22: rit B - vaste routes bovenaan, postcodes eerst */
@@ -1240,8 +1233,6 @@ html[data-theme="dark"] #authRoot .auth-form .auth-field input{background:#20232
 html[data-theme="dark"] .trip-route-chip{background:#1A1D21;border-color:#2B3036;color:#F3F4F6}
 html[data-theme="dark"] .trip-route-chip:active{background:#16301D;color:#7FDB8B}
 }
-/* Only the phone shows the login wordmark block (section 22). */
-@media(min-width:821px){#authRoot .auth-phone-brand{display:none}}
 
 /* 23. Kwin 2026-10-21 "UI en UX volledig kloppen": small fixes from a full walk-through, same look.
    A status in a table is a dot with text at every width; "Betaald"/"Gekoppeld" had a green block left from calm-ux. */
@@ -1534,4 +1525,40 @@ html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272
   html[data-theme="dark"]{--r1d-top:#07150D;--r1d-bottom:#17583A}
   html[data-theme="dark"] body #mainApp#mainApp #content .r1d-bars i{background:#3A2422}
   html[data-theme="dark"] body #mainApp#mainApp #content .r1d-bars i.is-now{background:#E5534B}
+
+/* 25. Kwin 2026-10-23 "inlogscherm in museumstijl" (pick C1, without the receipt), phone only.
+   The login opens on a white screen: "Boe / ku / na." in a serif over a marble statue (Pietro Bernini, Flora,
+   The Met, public domain), the promise and one green Inloggen button. The existing form becomes a sheet.
+   Desktop keeps the form as it was. */
+@font-face{font-family:"Boekuna Serif";src:url("/assets/app-PlayfairDisplay-latin.woff2") format("woff2");font-style:normal;font-weight:400;font-display:swap}
+#authRoot .auth-museum,#authRoot .auth-sheet-grab{display:none}
+@media(max-width:820px){
+  #authRoot .auth-form:has(>.auth-museum){--museum-bg:#FFFFFF;--museum-ink:#14201A;--museum-muted:#5E6A63;--museum-sheet:#FFFFFF}
+  #authRoot .auth-museum{display:block;position:fixed;inset:0;z-index:20;background:var(--museum-bg);overflow:hidden}
+  #authRoot .auth-museum-beeld{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 4dvh);height:min(66dvh,600px);width:auto;max-width:none;transform:translateX(-44%);pointer-events:none;user-select:none;-webkit-mask-image:linear-gradient(to bottom,#000 78%,transparent 99%);mask-image:linear-gradient(to bottom,#000 78%,transparent 99%)}
+  #authRoot .auth-museum-word{position:absolute;z-index:1;left:max(22px,env(safe-area-inset-left,0px));top:calc(env(safe-area-inset-top,0px) + 9dvh);margin:0;font-family:"Boekuna Serif","Playfair Display",Georgia,"Times New Roman",serif!important;font-weight:400;font-size:min(36vw,19dvh,170px);line-height:.8;letter-spacing:-.02em;color:var(--museum-ink)}
+  #authRoot .auth-museum-word span,#authRoot .auth-museum-word i{font-family:inherit!important}
+  #authRoot .auth-museum-word span{display:block}
+  #authRoot .auth-museum-word span:nth-child(2){margin-left:.8em}
+  #authRoot .auth-museum-word span:nth-child(3){margin-left:.12em}
+  #authRoot .auth-museum-word i{font-style:normal;color:#63D471}
+  #authRoot .auth-museum-foot{position:absolute;z-index:2;left:max(24px,env(safe-area-inset-left,0px));right:max(24px,env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 24px);display:grid;gap:12px}
+  #authRoot .auth-museum-tag{margin:0!important;text-align:center;font-family:"Boekuna Serif","Playfair Display",Georgia,serif!important;font-size:18px!important;line-height:1.3;color:var(--museum-ink)!important}
+  #authRoot .auth-museum .auth-museum-cta{display:flex;align-items:center;justify-content:center;text-align:center;width:100%;min-height:54px;border-radius:14px;font-size:17px;margin:0}
+  #authRoot .auth-museum-link{border:0;background:transparent;min-height:44px;font:inherit;font-size:15px;font-weight:600;color:var(--museum-muted)}
+  #authRoot .auth-museum-backdrop{position:absolute;inset:0;z-index:3;border:0;padding:0;margin:0;background:rgba(10,16,12,.32);opacity:0;pointer-events:none;transition:opacity .25s ease}
+  #authRoot .auth-form.is-sheet-open .auth-museum-backdrop{opacity:1;pointer-events:auto}
+  #authRoot .auth-sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;max-height:92dvh;overflow-y:auto;background:var(--museum-sheet);border-radius:22px 22px 0 0;padding:8px max(24px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 24px) max(24px,env(safe-area-inset-left,0px));transform:translateY(104%);visibility:hidden;transition:transform .34s cubic-bezier(.2,.8,.2,1),visibility 0s linear .34s}
+  #authRoot .auth-form.is-sheet-open .auth-sheet{transform:none;visibility:visible;transition:transform .34s cubic-bezier(.2,.8,.2,1),visibility 0s}
+  /* Fields inside take visibility from the sheet at once (their own "transition:all" would keep them hidden for a moment, so focus failed). */
+  #authRoot .auth-sheet *{transition-property:background-color,border-color,color,box-shadow,opacity!important}
+  #authRoot .auth-sheet-grab{display:block;width:100%;height:28px;margin:0 0 6px;border:0;background:transparent;position:relative}
+  #authRoot .auth-sheet-grab::after{content:"";position:absolute;left:50%;top:10px;width:40px;height:5px;margin-left:-20px;border-radius:3px;background:#D5D9D6}
+  #authRoot .auth-sheet>.eyebrow,#authRoot .auth-sheet>h2+p{display:none}
+  #authRoot .auth-sheet>h2{font-family:"Boekuna Serif","Playfair Display",Georgia,serif!important;font-weight:400!important;font-size:30px!important;letter-spacing:-.01em;margin:0 0 16px!important}
+  html[data-theme="dark"] #authRoot .auth-form:has(>.auth-museum){--museum-bg:#0F1311;--museum-ink:#F1F3F2;--museum-muted:#A3ADA7;--museum-sheet:#171B19}
+  html[data-theme="dark"] #authRoot .auth-sheet-grab::after{background:#3A413D}
+}
+@media(max-width:820px) and (prefers-reduced-motion:reduce){
+  #authRoot .auth-sheet,#authRoot .auth-form.is-sheet-open .auth-sheet,#authRoot .auth-museum-backdrop{transition:none}
 }
