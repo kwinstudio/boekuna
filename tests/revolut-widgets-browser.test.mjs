@@ -127,7 +127,8 @@ try{
   await page.evaluate(()=>navigate('vat'));
   assert.equal(await text(page.locator('#content .r1d-hero .r1d-pill-btn')),await text(page.locator('#content .r1d-hero .r1d-pill-btn .vat-period-label')),'Btw band shows the period as a pill');
   assert.ok((await text(page.locator('#content .r1d-hero .r1d-pill-btn'))).length>0,'period pill has text');
-  assert.equal(await page.locator('#content .r1d-hero .page-filter-btn').count(),0,'no lone filter icon in the Btw band');
+  assert.equal(await page.locator('#content .r1d-hero .page-period-stack .page-filter-btn').count(),0,'no lone filter icon in the Btw band');
+  assert.ok((await page.locator('#content .r1d-hero .r1d-pill-btn.page-filter-btn').count())===1,'the period pill is the Btw filter button');
   await page.evaluate(()=>navigate('documents'));
   assert.equal(await text(page.locator('#content .r1d-hero h1')),'Bonnen','phone title matches the tab bar');
   await page.evaluate(()=>navigate('contacts'));

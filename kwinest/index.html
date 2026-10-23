@@ -4652,8 +4652,11 @@ function applyPhoneBand(content){
  const slot=head.querySelector('.page-period-slot');
  if(slot){
   // Btw: the period is a pill like on the other pages (it opens the same filters), not a lone filter icon under the title.
-  if(page==='vat'){const label=title.querySelector('.vat-period-label');const filter=slot.querySelector('.page-filter-btn,[onclick*="openVatFilters"]');if(label&&filter){const pill=document.createElement('button');pill.type='button';pill.className='r1d-pill r1d-pill-btn';pill.setAttribute('aria-label','Periode kiezen');const status=label.closest('.page-status');pill.appendChild(label);pill.insertAdjacentHTML('beforeend',icon('i-chevron'));pill.onclick=()=>openVatFilters();filter.replaceWith(pill);status?.remove()}}
-  const row=document.createElement('div');row.className='r1d-period';row.appendChild(slot);band.appendChild(row)}
+  const row=document.createElement('div');row.className='r1d-period';
+  if(page==='vat'){const label=title.querySelector('.vat-period-label');const filter=slot.querySelector('.page-filter-btn,[onclick*="openVatFilters"]');if(label&&filter){
+   // The pill keeps the page-filter-btn class (same hook for tests and scripts); the slot drops page-period-stack, whose styles make that class an icon-only button.
+   const pill=document.createElement('button');pill.type='button';pill.className='r1d-pill r1d-pill-btn page-filter-btn';pill.setAttribute('aria-haspopup','dialog');pill.setAttribute('aria-label','Periode kiezen');const status=label.closest('.page-status');pill.appendChild(label);pill.insertAdjacentHTML('beforeend',icon('i-chevron'));pill.onclick=()=>openVatFilters();slot.classList.remove('page-period-stack');filter.replaceWith(pill);status?.remove()}}
+  row.appendChild(slot);band.appendChild(row)}
  band.insertAdjacentHTML('beforeend',phoneBandActionsHtml(PHONE_BAND_ACTIONS[page]?.()||[]));
  head.classList.add('r1d-moved');content.insertBefore(band,content.firstChild)
 }
