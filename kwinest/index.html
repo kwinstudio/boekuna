@@ -4644,7 +4644,7 @@ function applyPhoneBand(content){
  if(!phoneLayout()||!content||content.querySelector('.r1d-hero'))return;
  const head=content.querySelector('.page-head');const h1=head?.querySelector('h1');if(!h1)return;
  const band=document.createElement('section');band.className='r1d-hero r1d-page';band.dataset.r1dPage=page;
- const title=document.createElement('div');title.className='r1d-title';title.appendChild(h1);band.appendChild(title);
+ const title=document.createElement('div');title.className='r1d-title';title.appendChild(h1);head.querySelectorAll('.page-status').forEach(p=>title.appendChild(p));band.appendChild(title);
  const hero=content.querySelector('.kpi-hero');
  if(hero){const grid=hero.parentElement;if(grid&&grid.children.length===1)band.appendChild(grid);else{const wrap=document.createElement('div');wrap.className='grid grid-1 compact-metrics product-kpis calm-kpis';wrap.appendChild(hero);band.appendChild(wrap)}}
  const slot=head.querySelector('.page-period-slot');if(slot){const row=document.createElement('div');row.className='r1d-period';row.appendChild(slot);band.appendChild(row)}
