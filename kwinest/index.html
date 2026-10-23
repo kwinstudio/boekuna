@@ -4300,7 +4300,7 @@ function setHideAmounts(on){if(!state.meta||typeof state.meta!=='object')state.m
 function applyHideAmounts(){document.documentElement.classList.toggle('hide-amounts',!!state.meta?.hideAmounts)}
 document.addEventListener('click',e=>{if(!document.documentElement.classList.contains('hide-amounts')||document.documentElement.classList.contains('amounts-peek'))return;const hero=e.target.closest?.('.kpi-hero');if(!hero)return;e.preventDefault();e.stopPropagation();document.documentElement.classList.add('amounts-peek')},true);
 function setExtraHelpEnabled(enabled){if(!state.meta||typeof state.meta!=='object')state.meta={};state.meta.extraHelpEnabled=enabled===true;save();if(page!=='settings')render()}
-function render(){const fn={dashboard:renderDashboard,insights:renderAssistantInsightsSafe,invoices:renderInvoices,expenses:renderExpenses,bank:renderBank,income:renderIncome,outgoings:renderOutgoings,vat:renderVat,reports:renderReports,ledger:renderLedger,control:renderControl,cashflow:renderCashflow,bookings:renderBookings,contacts:renderContacts,services:renderServices,trips:renderTrips,hours:renderHours,documents:renderDocuments,profile:renderProfile,settings:renderSettings}[page]||renderDashboard;const content=document.getElementById('content');content.dataset.page=page;content.innerHTML=fn();wirePage();if(page==='dashboard')wireDashboardAttention();renderGlobalDocumentIndicator();updateVatNavBadge();applyHideAmounts();syncMobileNavigationState()}
+function render(){const fn={dashboard:renderDashboard,insights:renderAssistantInsightsSafe,invoices:renderInvoices,expenses:renderExpenses,bank:renderBank,income:renderIncome,outgoings:renderOutgoings,vat:renderVat,reports:renderReports,ledger:renderLedger,control:renderControl,cashflow:renderCashflow,bookings:renderBookings,contacts:renderContacts,services:renderServices,trips:renderTrips,hours:renderHours,documents:renderDocuments,profile:renderProfile,settings:renderSettings}[page]||renderDashboard;const content=document.getElementById('content');content.dataset.page=page;content.innerHTML=fn();applyPhoneBand(content);wirePage();if(page==='dashboard')wireDashboardAttention();renderGlobalDocumentIndicator();updateVatNavBadge();applyHideAmounts();syncMobileNavigationState()}
 // Phone pages (Kwin's picks, 2026-10-09) show calmer blocks; render() runs again when the width crosses 820px.
 function phoneLayout(){return window.matchMedia('(max-width:820px)').matches}
 function dashboardIsoDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -4628,6 +4628,32 @@ function dashboardSparkline(values){
 function dashboardCostBars(buckets){
  const list=buckets.slice(-7),max=Math.max(0,...list.map(b=>b.costs));if(!(max>0))return '';
  return '<span class="r1d-bars" aria-hidden="true">'+list.map((b,i)=>'<i'+(i===list.length-1?' class="is-now"':'')+' style="height:'+Math.max(6,Math.round(b.costs/max*100))+'%"></i>').join('')+'</span>'
+}
+// Kwin 2026-10-23 ("A, en kies voor consistentie"): every phone page gets the deep green band of the overview, with the
+// page title, its one main number, the period and round shortcuts. The pages render as before; this only moves their
+// title, hero number and period into the band, so desktop and the page logic stay the same.
+const PHONE_BAND_ACTIONS={
+ invoices:()=>[['Factuur','i-file','newInvoice()'],...(typeof newQuote==='function'?[['Offerte','i-file','newQuote()']]:[]),['Uploaden','i-upload',"triggerInvoiceUpload('sale')"]],
+ expenses:()=>[['Bon','i-camera',"openUploadSourcePicker('purchase')"],['Kosten','i-receipt','newExpense()'],['Bank','i-bank','quickBankChoice()']],
+ documents:()=>[['Scannen','i-camera',"openUploadSourcePicker('auto')"],['Uploaden','i-upload',"planAllows(1)?openDocumentUpload():triggerInvoiceUpload('sale')"]],
+ bank:()=>state.transactions.length?[['Koppelen','i-link','autoMatch()'],['Importeren','i-upload','quickImportBank()'],['Betaling','i-plus','newTransaction()']]:[['Importeren','i-upload','quickImportBank()'],['Betaling','i-plus','newTransaction()']],
+ vat:()=>state.company?.kor?[]:[['Aangifte','i-tax','vatStepper(0)']],
+ contacts:()=>[['Nieuw','i-users','newContact()']],
+ services:()=>[['Nieuw','i-plus','newService()']],
+ trips:()=>[['Rit','i-car','newTrip()']],
+ hours:()=>[['Uren','i-clock','newHour()']]
+};
+function phoneBandActionsHtml(list){return list.length?'<div class="r1d-actions">'+list.map(([label,iconId,call])=>'<button type="button" class="r1d-action" onclick="'+call+'"><span class="r1d-action-icon" aria-hidden="true">'+icon(iconId)+'</span><span>'+esc(label)+'</span></button>').join('')+'</div>':''}
+function applyPhoneBand(content){
+ if(!phoneLayout()||!content||content.querySelector('.r1d-hero'))return;
+ const head=content.querySelector('.page-head');const h1=head?.querySelector('h1');if(!h1)return;
+ const band=document.createElement('section');band.className='r1d-hero r1d-page';band.dataset.r1dPage=page;
+ const title=document.createElement('div');title.className='r1d-title';title.appendChild(h1);band.appendChild(title);
+ const hero=content.querySelector('.kpi-hero');
+ if(hero){const grid=hero.parentElement;if(grid&&grid.children.length===1)band.appendChild(grid);else{const wrap=document.createElement('div');wrap.className='grid grid-1 compact-metrics product-kpis calm-kpis';wrap.appendChild(hero);band.appendChild(wrap)}}
+ const slot=head.querySelector('.page-period-slot');if(slot){const row=document.createElement('div');row.className='r1d-period';row.appendChild(slot);band.appendChild(row)}
+ band.insertAdjacentHTML('beforeend',phoneBandActionsHtml(PHONE_BAND_ACTIONS[page]?.()||[]));
+ head.classList.add('r1d-moved');content.insertBefore(band,content.firstChild)
 }
 function dashboardCalmPhoneHtml(kpi,greeting,periodControl,notices){
  // A fetch problem is never folded away: the retry stays in sight.

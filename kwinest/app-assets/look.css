@@ -1469,6 +1469,25 @@ html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272
   html body #mainApp#mainApp #content .r1d-pills .calm-todo{margin:0;flex:1 1 100%}
   html body #mainApp#mainApp #content .r1d-pills .calm-todo:not([open]){flex:0 0 auto}
   html body #mainApp#mainApp #content .r1d-hours{min-height:40px;padding:0 14px;border:0;border-radius:999px;background:var(--calm-soft);color:var(--calm-ink);font:inherit;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;cursor:pointer}
+  /* The same band on every phone page: title, the page's one number, period and shortcuts (Kwin: "A, en kies voor consistentie"). */
+  html body #mainApp#mainApp #content .r1d-moved{position:absolute!important;width:1px!important;height:1px!important;margin:0!important;padding:0!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important}
+  html body #mainApp#mainApp #content .r1d-title h1{margin:0!important;font-size:17px!important;font-weight:650!important;letter-spacing:0!important;line-height:1.3!important;color:#fff!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .calm-kpis{display:block!important;margin:6px 0 0!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero{display:flex!important;flex-direction:column!important;align-items:center!important;gap:2px!important;min-height:0!important;padding:4px 12px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;text-align:center!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero .metric-head{justify-content:center!important;margin:0!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero :is(.product-kpi-label,.product-kpi-label span){font-size:14px!important;font-weight:600!important;color:#CFE5D7!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero .product-kpi-label::before{display:none!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero .product-kpi-icon{display:none!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero .metric-value{color:#fff!important;font-size:clamp(32px,11vw,44px)!important;letter-spacing:-.03em!important;font-weight:700!important;line-height:1.05!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero .metric-value .amount-cents{color:#ffffffa6!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero .metric-sub{color:#CFE5D7!important;font-size:13px!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero .metric-sub.is-empty{display:none!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero .motion-kpi-extra{display:none!important}
+  html body #mainApp#mainApp #content .r1d-page .r1d-period .page-period-slot{display:flex!important;flex-direction:row!important;align-items:center!important;gap:8px!important;justify-content:center!important;width:auto!important;margin:0!important}
+  html body #mainApp#mainApp #content .r1d-page .r1d-period :is(.period-seg-select,select,.btn){background-color:#ffffff1f!important;color:#fff!important;border:0!important}
+  html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero :is(.kpi-time,.kpi-time span){background:#ffffff26!important;color:#fff!important}
+  html body #mainApp#mainApp #content .r1d-page .r1d-period .btn svg{color:#fff!important;stroke:currentColor}
+  html body #mainApp#mainApp #content>.r1d-hero+.product-page-shell{height:0!important;margin:0!important;overflow:hidden!important}
   html[data-theme="dark"]{--r1d-top:#07150D;--r1d-bottom:#17583A}
   html[data-theme="dark"] body #mainApp#mainApp #content .r1d-bars i{background:#3A2422}
   html[data-theme="dark"] body #mainApp#mainApp #content .r1d-bars i.is-now{background:#E5534B}
