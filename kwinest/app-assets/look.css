@@ -1554,7 +1554,7 @@ html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272
   html body #mainApp#mainApp #content .r1d-bento .has-attention .r1d-text{color:#C0392B}
   html body #mainApp#mainApp #content .r1d-bento .r1d-tile .r1d-note{margin-top:-4px}
   /* Widgets + Thema under the blocks: two quiet pills, as Revolut's "Widgets toevoegen". */
-  html body #mainApp#mainApp #content .r1d-custom{display:flex;justify-content:center;gap:8px;margin:18px 0 6px}
+  html body #mainApp#mainApp #content .r1d-custom{display:flex;justify-content:center;gap:8px;margin:0 0 6px}
   html body #mainApp#mainApp #content .r1d-custom-btn{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 16px 0 13px;border:0;border-radius:999px;background:var(--calm-surface);color:var(--calm-label);font:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:transform .12s ease,background .12s ease}
   html body #mainApp#mainApp #content .r1d-custom-btn .icon{width:17px;height:17px;color:var(--calm-label)}
   html body #mainApp#mainApp #content .r1d-custom-btn:active{transform:scale(.97);background:var(--calm-soft)}
