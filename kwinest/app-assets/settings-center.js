@@ -52,7 +52,7 @@
       :'<input id="'+id+'" name="'+name+'" type="'+(opts.type||'text')+'" value="'+attr(value)+'"'
         +(opts.required?' required':'')+(opts.autocomplete?' autocomplete="'+opts.autocomplete+'"':'')
         +(opts.inputmode?' inputmode="'+opts.inputmode+'"':'')+(opts.placeholder?' placeholder="'+attr(opts.placeholder)+'"':'')
-        +(opts.min!=null?' min="'+opts.min+'"':'')+(opts.max!=null?' max="'+opts.max+'"':'')+'>';
+        +(opts.min!=null?' min="'+opts.min+'"':'')+(opts.max!=null?' max="'+opts.max+'"':'')+(opts.pattern?' pattern="'+attr(opts.pattern)+'"':'')+'>';
     return '<div class="field'+(opts.full?' full':'')+'"><label for="'+id+'">'+esc(label)+'</label>'+input+(opts.help?'<div class="help">'+opts.help+'</div>':'')+'</div>';
   }
   function check(name,label,checked,help){
@@ -120,7 +120,9 @@
       +'</div><div class="help">PNG of JPG, maximaal 600 KB.</div></div>'
       +(state.invoices.some(function(i){return i.status!=='draft'})?'':field('meta.nextInvoice','Volgende nummer',Number(state.meta&&state.meta.nextInvoice||1),{type:'number',min:1,max:999999,inputmode:'numeric',help:'Kom je van een ander pakket? Ga verder waar je was.'}))
       +'</div>'
-      +check('company.invoiceYearReset','Elk jaar opnieuw nummeren',!!c.invoiceYearReset,'Op 1 januari begint het weer bij 0001, met het nieuwe jaar ervoor.');
+      +check('company.invoiceYearReset','Elk jaar opnieuw nummeren',!!c.invoiceYearReset,'Op 1 januari begint het weer bij 0001, met het nieuwe jaar ervoor.')
+      +check('company.showPaymentQr','Betaal-QR op je factuur',c.showPaymentQr!==false,'Je klant scant hem met de bank-app; bedrag, IBAN en kenmerk staan dan al klaar.')
+      +'<div class="form-grid">'+field('company.paymentLink','Eigen betaallink',c.paymentLink||'',{type:'url',full:true,pattern:'https://.+',inputmode:'url',placeholder:'https://tikkie.me/…',help:'Van Tikkie, Mollie of bunq. Komt op je factuur en in de mail. Leeg laten mag.'})+'</div>';
     var extra='<div class="form-grid">'
       +field('invoiceDesign.footerText','Voettekst op je factuur',inv.footerText,{full:true,placeholder:'Bijv. Bedankt voor uw vertrouwen.'})
       +'</div>'
