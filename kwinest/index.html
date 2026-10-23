@@ -4300,7 +4300,7 @@ function setHideAmounts(on){if(!state.meta||typeof state.meta!=='object')state.m
 function applyHideAmounts(){document.documentElement.classList.toggle('hide-amounts',!!state.meta?.hideAmounts)}
 document.addEventListener('click',e=>{if(!document.documentElement.classList.contains('hide-amounts')||document.documentElement.classList.contains('amounts-peek'))return;const hero=e.target.closest?.('.kpi-hero');if(!hero)return;e.preventDefault();e.stopPropagation();document.documentElement.classList.add('amounts-peek')},true);
 function setExtraHelpEnabled(enabled){if(!state.meta||typeof state.meta!=='object')state.meta={};state.meta.extraHelpEnabled=enabled===true;save();if(page!=='settings')render()}
-function render(){const fn={dashboard:renderDashboard,insights:renderAssistantInsightsSafe,invoices:renderInvoices,expenses:renderExpenses,bank:renderBank,income:renderIncome,outgoings:renderOutgoings,vat:renderVat,reports:renderReports,ledger:renderLedger,control:renderControl,cashflow:renderCashflow,bookings:renderBookings,contacts:renderContacts,services:renderServices,trips:renderTrips,hours:renderHours,documents:renderDocuments,profile:renderProfile,settings:renderSettings}[page]||renderDashboard;const content=document.getElementById('content');content.dataset.page=page;content.innerHTML=fn();wirePage();if(page==='dashboard')wireDashboardAttention();renderGlobalDocumentIndicator();updateVatNavBadge();applyHideAmounts();syncMobileNavigationState()}
+function render(){const fn={dashboard:renderDashboard,insights:renderAssistantInsightsSafe,invoices:renderInvoices,expenses:renderExpenses,bank:renderBank,income:renderIncome,outgoings:renderOutgoings,vat:renderVat,reports:renderReports,ledger:renderLedger,control:renderControl,cashflow:renderCashflow,bookings:renderBookings,contacts:renderContacts,services:renderServices,trips:renderTrips,hours:renderHours,documents:renderDocuments,profile:renderProfile,settings:renderSettings}[page]||renderDashboard;const content=document.getElementById('content');content.dataset.page=page;content.innerHTML=fn();applyPhoneBand(content);wirePage();if(page==='dashboard')wireDashboardAttention();renderGlobalDocumentIndicator();updateVatNavBadge();applyHideAmounts();syncMobileNavigationState()}
 // Phone pages (Kwin's picks, 2026-10-09) show calmer blocks; render() runs again when the width crosses 820px.
 function phoneLayout(){return window.matchMedia('(max-width:820px)').matches}
 function dashboardIsoDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -4606,24 +4606,83 @@ function dashboardVatRow(kpi){
  return {label:'Btw '+due.quarter,value:Math.abs(amount)}
 }
 function dashboardTodoCount(){return [missingReceiptsTodo(),...dashboardAttentionItems().filter(item=>attentionTypeVisible(item.key))].filter(Boolean).length}
+// Kwin 2026-10-23 (own sketch, picked "R1D Diep groen"): Winst large on a deep green band with the period and
+// four round shortcuts, then blocks in different sizes: Omzet wide, Kosten tall, Te ontvangen and Vrij beside it.
+// Every number already existed; Vrij is always the whole year because tax is per year.
+function dashboardPreviousProfit(period){
+ if(!period?.from||!period?.to||period.preset==='all')return null;
+ const from=new Date(period.from+'T12:00:00'),to=new Date(period.to+'T12:00:00'),days=Math.round((to-from)/86400000)+1;if(!(days>0))return null;
+ const end=new Date(from);end.setDate(end.getDate()-1);const start=new Date(end);start.setDate(start.getDate()-days+1);
+ const lo=dashboardIsoDate(start),hi=dashboardIsoDate(end),sales=state.invoices.filter(i=>invoiceCounts(i)&&inRange(i.issueDate,lo,hi)).reduce((s,i)=>roundMoney(s+invoiceNet(i)),0);
+ return roundMoney(sales-expenseCostsBetween(lo,hi))
+}
+function dashboardProfitTrend(kpi){
+ const prev=dashboardPreviousProfit(kpi.period);if(!(prev>0))return null;
+ const pct=Math.round((kpi.profit-prev)/prev*100);return Number.isFinite(pct)?pct:null
+}
+function dashboardSparkline(values){
+ if(values.length<2||values.every(v=>!v))return '';const max=Math.max(...values),min=Math.min(0,...values),span=max-min||1;
+ const pts=values.map((v,i)=>(i/(values.length-1)*100).toFixed(1)+','+(28-(v-min)/span*24).toFixed(1)).join(' ');
+ return '<svg class="r1d-spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"><polyline points="'+pts+'" vector-effect="non-scaling-stroke"/></svg>'
+}
+function dashboardCostBars(buckets){
+ const list=buckets.slice(-7),max=Math.max(0,...list.map(b=>b.costs));if(!(max>0))return '';
+ return '<span class="r1d-bars" aria-hidden="true">'+list.map((b,i)=>'<i'+(i===list.length-1?' class="is-now"':'')+' style="height:'+Math.max(6,Math.round(b.costs/max*100))+'%"></i>').join('')+'</span>'
+}
+// Kwin 2026-10-23 ("A, en kies voor consistentie"): every phone page gets the deep green band of the overview, with the
+// page title, its one main number, the period and round shortcuts. The pages render as before; this only moves their
+// title, hero number and period into the band, so desktop and the page logic stay the same.
+const PHONE_BAND_ACTIONS={
+ invoices:()=>[['Factuur','i-file','newInvoice()'],...(typeof newQuote==='function'?[['Offerte','i-file','newQuote()']]:[]),['Uploaden','i-upload',"triggerInvoiceUpload('sale')"]],
+ expenses:()=>[['Bon','i-camera',"openUploadSourcePicker('purchase')"],['Kosten','i-receipt','newExpense()'],['Bank','i-bank','quickBankChoice()']],
+ documents:()=>[['Scannen','i-camera',"openUploadSourcePicker('auto')"],['Uploaden','i-upload',"planAllows(1)?openDocumentUpload():triggerInvoiceUpload('sale')"]],
+ bank:()=>state.transactions.length?[['Koppelen','i-link','autoMatch()'],['Importeren','i-upload','quickImportBank()'],['Betaling','i-plus','newTransaction()']]:[['Importeren','i-upload','quickImportBank()'],['Betaling','i-plus','newTransaction()']],
+ vat:()=>state.company?.kor?[]:[['Aangifte','i-tax','vatStepper(0)']],
+ contacts:()=>[['Nieuw','i-users','newContact()']],
+ services:()=>[['Nieuw','i-plus','newService()']],
+ trips:()=>[['Rit','i-car','newTrip()']],
+ hours:()=>[['Uren','i-clock','newHour()']]
+};
+function phoneBandActionsHtml(list){return list.length?'<div class="r1d-actions">'+list.map(([label,iconId,call])=>'<button type="button" class="r1d-action" onclick="'+call+'"><span class="r1d-action-icon" aria-hidden="true">'+icon(iconId)+'</span><span>'+esc(label)+'</span></button>').join('')+'</div>':''}
+function applyPhoneBand(content){
+ if(!phoneLayout()||!content||content.querySelector('.r1d-hero'))return;
+ const head=content.querySelector('.page-head');const h1=head?.querySelector('h1');if(!h1)return;
+ const band=document.createElement('section');band.className='r1d-hero r1d-page';band.dataset.r1dPage=page;
+ const title=document.createElement('div');title.className='r1d-title';title.appendChild(h1);band.appendChild(title);
+ const hero=content.querySelector('.kpi-hero');
+ if(hero){const grid=hero.parentElement;if(grid&&grid.children.length===1)band.appendChild(grid);else{const wrap=document.createElement('div');wrap.className='grid grid-1 compact-metrics product-kpis calm-kpis';wrap.appendChild(hero);band.appendChild(wrap)}}
+ const slot=head.querySelector('.page-period-slot');if(slot){const row=document.createElement('div');row.className='r1d-period';row.appendChild(slot);band.appendChild(row)}
+ band.insertAdjacentHTML('beforeend',phoneBandActionsHtml(PHONE_BAND_ACTIONS[page]?.()||[]));
+ head.classList.add('r1d-moved');content.insertBefore(band,content.firstChild)
+}
 function dashboardCalmPhoneHtml(kpi,greeting,periodControl,notices){
  // A fetch problem is never folded away: the retry stays in sight.
  const vat=dashboardVatRow(kpi),free=freeToSpend(),todo=dashboardTodoCount(),docError=documentProcessingFetchError||documentProcessingConnectivityLost;
- const rowHtml=(dot,label,value,action,extra='')=>'<button type="button" class="calm-row'+extra+'" data-kpi-dot="'+dot+'" onclick="'+action+'"><span class="calm-label">'+esc(label)+'</span><strong class="calm-value">'+money(value)+'</strong>'+icon('i-chevron')+'</button>';
- return '<div class="page-head dashboard-page-head calm-head"><div><h1 aria-label="'+esc('Overzicht, '+greeting.title)+'">Overzicht</h1></div><div class="dashboard-period-control page-period-slot">'+periodControl+'</div></div>'+notices+
- '<div class="grid dashboard-kpis dashboard-kpis-calm"><button type="button" class="card metric dashboard-kpi dashboard-kpi-profit kpi-tone-primary kpi-hero" data-kpi-dot="winst" onclick="navigate(\'reports\')"><div class="metric-head"><span class="dashboard-kpi-label">Winst</span></div><div class="metric-value">'+money(kpi.profit)+'</div></button></div>'+
- '<div class="calm-list">'+
-  rowHtml('omzet','Omzet',kpi.revenue,"navigate('invoices')")+
-  rowHtml('kosten','Kosten',kpi.costs,"navigate('expenses')")+
-  rowHtml('open','Te ontvangen',kpi.receivables,"navigateWithFilter('invoices','status','open')",kpi.overdueReceivables>0?' has-attention':'')+
-  rowHtml('btw',vat.label,vat.value,"navigate('vat')")+
-  // Kwin 2026-10-22 (concurrenten, o2): what is left after btw and the tax estimate, the same number as on Rapportages.
-  (free?rowHtml('winst','Vrij te besteden',free.free,"navigate('reports')"):'')+
-  // o4: hours towards the 1.225 for zelfstandigenaftrek, once you log hours.
-  (hoursThisYear()>0?'<button type="button" class="calm-row" data-kpi-dot="uren" onclick="openHoursSheet()"><span class="calm-label">Uren '+new Date().getFullYear()+'</span><strong class="calm-value">'+num(hoursThisYear())+' / 1.225</strong>'+icon('i-chevron')+'</button>':'')+
+ const buckets=dashboardChartBuckets(kpi.period.preset),trend=dashboardProfitTrend(kpi);
+ let sum=0;const salesLine=buckets.map(b=>(sum=roundMoney(sum+b.sales)));
+ const tile=(cls,dot,label,value,action,inner='',extra='')=>'<button type="button" class="r1d-tile '+cls+extra+'" data-kpi-dot="'+dot+'" onclick="'+action+'"><span class="calm-label">'+esc(label)+'</span>'+inner+'<strong class="calm-value">'+money(value)+'</strong></button>';
+ const overduePct=kpi.receivables>0?Math.min(100,Math.round(kpi.overdueReceivables/kpi.receivables*100)):0;
+ const act=(label,iconId,call)=>'<button type="button" class="r1d-action" onclick="'+call+'"><span class="r1d-action-icon" aria-hidden="true">'+icon(iconId)+'</span><span>'+esc(label)+'</span></button>';
+ const hours=hoursThisYear();
+ return '<div class="page-head dashboard-page-head calm-head r1d-head"><div><h1 class="sr-only" aria-label="'+esc('Overzicht, '+greeting.title)+'">Overzicht</h1></div></div>'+notices+
+ '<section class="r1d-hero">'+
+  '<div class="grid dashboard-kpis dashboard-kpis-calm"><button type="button" class="card metric dashboard-kpi dashboard-kpi-profit kpi-hero" data-kpi-dot="winst" onclick="navigate(\'reports\')"><div class="metric-head"><span class="dashboard-kpi-label">Winst</span></div><div class="metric-value">'+money(kpi.profit)+'</div></button></div>'+
+  '<div class="r1d-period">'+(trend==null?'':'<span class="r1d-trend'+(trend<0?' is-down':'')+'">'+(trend<0?'↓ ':'↑ ')+Math.abs(trend)+'%</span>')+'<div class="dashboard-period-control page-period-slot">'+periodControl+'</div></div>'+
+  '<div class="r1d-actions">'+act('Factuur','i-file','newInvoice()')+act('Bon','i-camera',"openUploadSourcePicker('auto')")+act('Bank','i-bank','quickBankChoice()')+act('Meer','i-more','quickMenu()')+'</div>'+
+ '</section>'+
+ '<div class="calm-list r1d-bento">'+
+  tile('r1d-omzet calm-row','omzet','Omzet',kpi.revenue,"navigate('invoices')",dashboardSparkline(salesLine))+
+  tile('r1d-kosten calm-row','kosten','Kosten',kpi.costs,"navigate('expenses')",dashboardCostBars(buckets))+
+  tile('r1d-open calm-row','open','Te ontvangen',kpi.receivables,"navigateWithFilter('invoices','status','open')",'<span class="r1d-meter" aria-hidden="true"><i style="width:'+overduePct+'%"></i></span>',kpi.overdueReceivables>0?' has-attention':'')+
+  // Kwin 2026-10-22 (concurrenten, o2): what is left after btw and the tax estimate, the same number as on Rapportages. Before money comes in, the btw to set aside takes its place.
+  (free?tile('r1d-free calm-row','winst','Vrij',free.free,"navigate('reports')",'<span class="r1d-note">dit jaar</span>'):tile('r1d-free calm-row','btw',vat.label,vat.value,"navigate('vat')"))+
  '</div>'+
+ '<div class="r1d-pills">'+
  // With the assistant on (not in the first release) the button stays when nothing is left, so Vraag Boekuna remains reachable.
- (todo||(typeof openAskBoekuna==='function'&&!docError)?'<details class="calm-todo'+(todo?'':' is-clear')+'"'+(docError?' open':'')+'><summary><span class="calm-todo-dot" aria-hidden="true"></span><strong>'+(todo?todo+' te doen':'Niets te doen')+'</strong>'+icon('i-chevron')+'</summary>'+renderAssistantDashboardSafe()+'</details>':(docError?renderAssistantDashboardSafe():''))
+ (todo||(typeof openAskBoekuna==='function'&&!docError)?'<details class="calm-todo'+(todo?'':' is-clear')+'"'+(docError?' open':'')+'><summary><span class="calm-todo-dot" aria-hidden="true"></span><strong>'+(todo?todo+' te doen':'Niets te doen')+'</strong>'+icon('i-chevron')+'</summary>'+renderAssistantDashboardSafe()+'</details>':(docError?renderAssistantDashboardSafe():''))+
+ // o4: hours towards the 1.225 for zelfstandigenaftrek, once you log hours.
+ (hours>0?'<button type="button" class="r1d-hours" onclick="openHoursSheet()">'+num(hours)+' / 1.225 uur</button>':'')+
+ '</div>'
 }
 function renderDashboard(){
  const kpi=dashboardKpiViewModel(),months=dashboardMonthlyTotals(),period=kpi.period,sales=kpi.revenue,costs=kpi.costs,profit=kpi.profit,open=kpi.receivables,overdue=kpi.overdueInvoiceCount,vat=kpi.vatReserve;
