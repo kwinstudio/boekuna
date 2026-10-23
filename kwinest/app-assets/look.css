@@ -530,8 +530,6 @@ html[data-theme="dark"] #mainApp .kpi-free strong{color:var(--dk-ink,#E9EDEF)}
   html[data-theme="dark"] #mainApp#mainApp #content .phone-row-text>strong{color:#E9EDEF}
   html[data-theme="dark"] #mainApp#mainApp #content .phone-row-text>span{color:#AEB8BF}
 
-  /* Rapportages: omzet green and kosten red in the chart (winst is the block on top). */
-  #mainApp#mainApp #content[data-page="reports"] .bar.profit,#mainApp#mainApp #content[data-page="reports"] span:has(>.legend-dot.profit){display:none!important}
   /* The chart tooltip stays inside its card, also in the moment the phone turns and it has not moved yet. */
   #mainApp#mainApp #content :is(.report-result-card,.dashboard-chart-card){overflow:clip}
   #mainApp#mainApp #content .section-meta{font-size:13px;font-weight:500;color:#5E6870}
@@ -1154,21 +1152,6 @@ html body #modalRoot#modalRoot .mobile-invoice-summary-top strong:last-child{fon
 html[data-theme="dark"] body #modalRoot#modalRoot .mobile-invoice-summary,html[data-theme="dark"] body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] .service-chip{background:#1B1D20!important}
 html[data-theme="dark"] body #modalRoot#modalRoot .mobile-invoice-step[data-step="2"] .invoice-editor-summary,html[data-theme="dark"] body #modalRoot#modalRoot .mobile-invoice-step[data-step="2"] .mobile-invoice-nav{background:#1B1D20}
 
-/* Rapportages B: one line that adds up the winst, the period before dotted, three short facts. */
-#mainApp #content .report-story{margin:4px 0 16px;min-width:0;max-width:100%;overflow:hidden}
-#mainApp #content .report-story-amount{display:block;font-size:40px;font-weight:700;letter-spacing:-.03em;line-height:1.1}
-#mainApp #content .report-story-label{margin:2px 0 12px;color:var(--muted,#6B7280);font-size:15px}
-#mainApp #content .report-story-line{display:block;width:100%;height:130px;overflow:visible}
-#mainApp #content .report-story-legend{display:flex;gap:16px;margin:8px 0 14px;font-size:13px;color:var(--muted,#6B7280)}
-#mainApp #content .report-story-legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle;background:#3B82F6}
-#mainApp #content .report-story-legend i.is-before{background:repeating-linear-gradient(90deg,#9AA6B2 0 4px,transparent 4px 7px)}
-#mainApp #content .report-story-facts{border:1px solid var(--line,#E6E8EB);border-radius:16px;padding:2px 14px}
-#mainApp #content .report-story-facts>div{display:flex;align-items:center;gap:12px;min-height:52px;border-bottom:1px solid var(--line,#EEF0F2);font-size:15px;line-height:1.35}
-#mainApp #content .report-story-facts>div:last-child{border-bottom:0}
-#mainApp #content .report-story-icon{width:32px;height:32px;flex:0 0 32px;border-radius:10px;background:#EEF4FF;color:#3B82F6;display:flex;align-items:center;justify-content:center}
-#mainApp #content .report-story-icon .icon{width:17px;height:17px}
-html[data-theme="dark"] #mainApp #content .report-story-icon{background:#1B2740}
-
 /* Btw B: the return one rubriek per screen, with a big Kopieer per amount. */
 #mainApp #content .vat-return-card .vat-step-start{display:flex;justify-content:center;align-items:center;width:calc(100% - 40px);min-height:50px;margin:14px 20px 4px}
 html body #modalRoot#modalRoot .modal-backdrop:has(.vat-step-modal){padding:0!important;align-items:stretch!important}
@@ -1419,3 +1402,27 @@ html body #modalRoot#modalRoot form[data-quote] .mobile-invoice-summary::before{
 .help-answer p{margin:0 0 8px;color:var(--app-muted-strong,#5E6870);line-height:1.45}
 .help-answer .link-btn{margin-bottom:12px}
 html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272C);border-color:var(--dk-line,#2E363C);color:var(--dk-ink,#E9EDEF)}
+
+/* Rapportages C (Kwin 2026-10-23, phone only): Omzet/Kosten/Winst switch, one big total, one bar per month
+   (this month full colour, the rest soft), then a table per month. Colours: omzet #63D471, kosten #E5534B, winst #3B82F6. */
+#mainApp #content .report-metric{display:flex;flex-direction:column;gap:2px;margin:4px 0 12px;min-width:0}
+#mainApp #content .report-metric-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:3px;margin-bottom:14px;border-radius:12px;background:var(--calm-soft,#F2F3F5)}
+#mainApp #content .report-metric-seg button{min-height:40px;border:0;border-radius:10px;background:transparent;color:var(--calm-ink,#1B1F23);font:inherit;font-size:15px;font-weight:500;cursor:pointer}
+#mainApp #content .report-metric-seg button[aria-pressed="true"]{background:var(--calm-surface,#FFFFFF);box-shadow:0 0 0 1px var(--calm-line,#ECEEF0);font-weight:600}
+#mainApp #content .report-metric-seg button:focus-visible{outline:2px solid #3B82F6;outline-offset:2px}
+#mainApp #content .report-metric-total{display:block;font-size:40px;font-weight:700;letter-spacing:-.03em;line-height:1.1;font-variant-numeric:tabular-nums}
+#mainApp #content .report-metric-sub{margin:2px 0 0;color:var(--calm-muted,#667179);font-size:15px}
+#mainApp#mainApp #content .report-metric-card{border:0!important;padding:0!important;background:transparent!important;margin-top:0!important}
+#mainApp#mainApp #content .report-metric-card .chart{height:190px!important;gap:6px!important;padding-top:22px!important;margin-bottom:22px;border-bottom:1px solid var(--calm-line,#ECEEF0)}
+#mainApp#mainApp #content .report-metric-chart .bar-group{height:100%}
+#mainApp#mainApp #content .report-metric-chart .bar{border-radius:5px 5px 1px 1px!important;opacity:.35}
+#mainApp#mainApp #content .report-metric-chart .is-current .bar{opacity:1}
+#mainApp#mainApp #content .report-metric-chart .bar.sales{background:#63D471!important}
+#mainApp#mainApp #content .report-metric-chart .bar.costs{background:#E5534B!important}
+#mainApp#mainApp #content .report-metric-chart .bar.profit{background:#3B82F6!important}
+#mainApp#mainApp #content .report-metric-chart .bar.profit.loss{background:#E5534B!important}
+#mainApp#mainApp #content .report-metric-chart .bar-label{bottom:-20px;font-size:11px}
+#mainApp #content .report-metric-value{position:absolute;left:50%;transform:translateX(-50%);font-size:11px;font-weight:600;white-space:nowrap;color:var(--calm-ink,#1B1F23);font-variant-numeric:tabular-nums}
+#mainApp #content .report-metric-best{margin:8px 0 14px;font-size:13px;color:var(--calm-muted,#667179)}
+#mainApp#mainApp #content .report-metric-table td.is-profit{color:#2563EB}
+html[data-theme="dark"] #mainApp#mainApp #content .report-metric-table td.is-profit{color:#7AAAF8}
