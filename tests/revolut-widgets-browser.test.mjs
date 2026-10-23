@@ -64,7 +64,8 @@ try{
   assert.equal(await text(sheet.locator('.r1d-wcard[data-widget="uren"] .r1d-text')),'6');
   assert.ok(await page.evaluate(()=>typeof Sortable==='function'),'SortableJS loaded for drag ordering');
   // No focus ring on the close button after a tap.
-  assert.notEqual(await page.evaluate(()=>document.activeElement?.className||''),'modal-close');
+  // The sheet moves focus off the close button two frames after opening; WebKit can be a frame late.
+  await page.waitForFunction(()=>(document.activeElement?.className||'')!=='modal-close');
   // 3. A tap switches a widget on; the choice is saved on the account; the overview follows after Klaar.
   await sheet.locator('.r1d-wcard[data-widget="uren"] .r1d-wtoggle').click();
   assert.equal(await sheet.locator('.r1d-wcard[data-widget="uren"]').getAttribute('class'),'r1d-wcard is-on');
