@@ -151,6 +151,10 @@ def main():
     summary = summarize(rapid, vision, reader, vision_rows.calls)
     (out / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
     print("IOS_VISION_BENCHMARK_JSON=" + json.dumps(summary, sort_keys=True))
+    # Persist both engines' evidence before enforcing the authoritative server
+    # gate. Vision remains an informational preview, but a failed RapidOCR
+    # reference must never make CI green merely because its assertion was caught.
+    return 0 if rapid["gate"] == "PASS" else 1
 
 
 if __name__ == "__main__":
