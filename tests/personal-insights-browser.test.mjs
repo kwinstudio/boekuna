@@ -87,10 +87,9 @@ async function nav(route){await page.evaluate(r=>navigate(r),route);await page.w
 try{
  await page.goto(base,{waitUntil:'networkidle'});
  await page.getByRole('heading',{name:'Overzicht'}).waitFor();
- // Kwin 2026-10-23 (#338): the phone overview no longer carries the "te doen" block by default; it opens on demand (quickTodo) and then shows Voor jou.
- assert.equal(await page.locator('.assistant-dashboard').count(),0,'Phone overview stays calm: no Voor jou block until the to-dos are opened');
- await page.evaluate(()=>quickTodo());
- assert.equal(await page.locator('.assistant-dashboard').count(),1,'Dashboard must expose Voor jou once the to-dos are opened');
+ // On a phone the "te doen" pill (with Voor jou inside) is off the overview for now (Kwin 2026-10-23); the flag brings it back.
+ await page.evaluate(()=>{phoneOverviewTodo=true;render()});
+ assert.equal(await page.locator('.assistant-dashboard').count(),1,'Dashboard must expose Voor jou');
  assert.ok(await page.locator('.assistant-dashboard .assistant-insight-card').count()<=3,'Dashboard must cap insights at three');
  assert.equal((await page.locator('.assistant-dashboard').innerText()).includes('RAW OCR SECRET'),false,'Raw OCR must never render');
  const safeContext=await page.evaluate(()=>JSON.stringify(window.__boekunaAssistantTest.context()));
