@@ -1425,8 +1425,8 @@ html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272
    Vrij beside it). The band runs behind the top bar; tiles use the --calm-* tokens so dark mode stays dark. */
 @media (max-width:820px){
   :root{--r1d-top:#0F2A1A;--r1d-bottom:#1F7A4A}
-  html body #mainApp#mainApp:has(#content .r1d-hero) .topbar{background:var(--r1d-top)!important;border-bottom:0!important}
-  html body #mainApp#mainApp:has(#content .r1d-hero) .topbar :is(.mobile-menu,.top-actions>button:not(#quickNew)){color:#fff!important;background:transparent!important}
+  html body #mainApp#mainApp:has(#content .r1d-hero) .topbar{position:relative!important;top:auto!important;background:var(--r1d-top)!important;border-bottom:0!important;box-shadow:none!important}
+  html body #mainApp#mainApp:has(#content .r1d-hero) .topbar :is(.mobile-menu,.top-actions>button:not(#quickNew)){width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;border:0!important;border-radius:50%!important;color:#fff!important;background:#ffffff1f!important}
   html body #mainApp#mainApp:has(#content .r1d-hero) .topbar :is(.mobile-menu,.top-actions>button:not(#quickNew)) .icon{color:#fff!important}
   html body #mainApp#mainApp #content .r1d-head{position:absolute!important;margin:0!important;padding:0!important;min-height:0!important}
   html body #mainApp#mainApp #content .r1d-hero{margin:-14px -12px 0!important;padding:14px 12px 24px;background:linear-gradient(180deg,var(--r1d-top) 0%,var(--r1d-bottom) 100%);color:#fff;text-align:center;overflow:hidden}
@@ -1448,7 +1448,7 @@ html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272
   html body #mainApp#mainApp #content .r1d-action-icon .icon{width:20px;height:20px;color:#fff}
   html body #mainApp#mainApp #content .r1d-action:active .r1d-action-icon{background:#ffffff38}
   html body #mainApp#mainApp #content .r1d-bento{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr 1fr;gap:8px;margin:12px 0 0!important;border:0;background:transparent;overflow:visible;position:relative}
-  html body #mainApp#mainApp #content .r1d-bento .r1d-tile{display:flex;flex-direction:column;align-items:stretch;justify-content:space-between;gap:8px;min-width:0;min-height:96px;margin:0;padding:14px 15px;border:0;border-radius:20px;background:var(--calm-surface);color:var(--calm-ink);font:inherit;text-align:left;cursor:pointer;overflow:hidden;box-shadow:0 0 0 1px var(--calm-line)!important;border:0!important;background:var(--calm-surface)!important}
+  html body #mainApp#mainApp #content .r1d-bento .r1d-tile{display:flex;flex-direction:column;align-items:stretch;justify-content:space-between;gap:8px;min-width:0;min-height:96px;margin:0;padding:14px 15px;border:0;border-radius:20px;background:var(--calm-surface);color:var(--calm-ink);font:inherit;text-align:left;cursor:pointer;overflow:hidden;box-shadow:none!important;border:0!important;border-radius:24px!important;background:var(--calm-surface)!important}
   html body #mainApp#mainApp #content .r1d-bento .r1d-tile::before{display:none}
   html body #mainApp#mainApp #content .r1d-bento .calm-label{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:var(--calm-label)}
   html body #mainApp#mainApp #content .r1d-bento .calm-label::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--kpi-dot,#8A949B)}
@@ -1458,12 +1458,12 @@ html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272
   html body #mainApp#mainApp #content .r1d-omzet .calm-value{font-size:clamp(20px,6.8vw,26px)}
   html body #mainApp#mainApp #content .r1d-kosten{grid-row:2/4;min-height:220px!important}
   html body #mainApp#mainApp #content .r1d-kosten .calm-value{font-size:clamp(17px,6vw,23px)}
-  html body #mainApp#mainApp #content .r1d-spark{display:block;width:100%;height:30px;fill:none;stroke:#63D471;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   html body #mainApp#mainApp #content .r1d-bars{flex:1;display:flex;align-items:flex-end;gap:5px;min-height:70px}
   html body #mainApp#mainApp #content .r1d-bars i{flex:1;border-radius:5px;background:#FBE3E1}
   html body #mainApp#mainApp #content .r1d-bars i.is-now{background:#E5534B}
-  html body #mainApp#mainApp #content .r1d-meter{display:block;height:5px;border-radius:5px;background:#F2B233;overflow:hidden}
-  html body #mainApp#mainApp #content .r1d-meter i{display:block;height:100%;background:#E5534B}
+  html body #mainApp#mainApp #content .r1d-meter{display:block;height:6px;border-radius:6px;background:var(--calm-soft,#EEF0F2);overflow:hidden}
+  html body #mainApp#mainApp #content .r1d-meter i{display:block;height:100%;border-radius:6px;background:#F2B233}
+  html body #mainApp#mainApp #content .r1d-meter.is-free i{background:#3B82F6}
   html body #mainApp#mainApp #content .r1d-note{font-size:12px;font-weight:500;color:var(--calm-muted)}
   html body #mainApp#mainApp #content .r1d-pills{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;margin-top:14px}
   html body #mainApp#mainApp #content .r1d-pills .calm-todo{margin:0;flex:1 1 100%}
@@ -1488,6 +1488,45 @@ html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272
   html body #mainApp#mainApp #content .r1d-hero.r1d-page .product-kpi.kpi-hero :is(.kpi-time,.kpi-time span){background:#ffffff26!important;color:#fff!important}
   html body #mainApp#mainApp #content .r1d-page .r1d-period .btn svg{color:#fff!important;stroke:currentColor}
   html body #mainApp#mainApp #content>.r1d-hero+.product-page-shell{height:0!important;margin:0!important;overflow:hidden!important}
+  /* Kwin 2026-10-23 ("dit lijkt er niet op"): closer to his R1D pick. Grey page, white cards that start on the green, small grey cents, one pill for trend and period, and a top bar that scrolls away with the band. */
+  html:has(#content>.r1d-hero:not(.r1d-page)) body,html body #mainApp#mainApp:has(#content>.r1d-hero:not(.r1d-page)) :is(.main,#content){background:#F2F3F5!important}
+  html body #mainApp#mainApp #content>.r1d-hero:not(.r1d-page){position:relative;overflow:visible;overflow-x:clip;padding-bottom:22px}
+  html body #mainApp#mainApp #content>.r1d-hero:not(.r1d-page)::after{content:"";position:absolute;left:0;right:0;top:100%;height:52px;background:var(--r1d-bottom);pointer-events:none}
+  html body #mainApp#mainApp #content .r1d-bento{z-index:1}
+  html body #mainApp#mainApp #content .r1d-bento .r1d-tile{padding:16px 18px!important}
+  html body #mainApp#mainApp #content .r1d-bento .calm-value .amount-cents{font-size:.62em;font-weight:600;letter-spacing:0;color:var(--calm-label)}
+  html body #mainApp#mainApp #content .r1d-omzet{min-height:0!important;gap:4px!important}
+  html body #mainApp#mainApp #content .r1d-omzet .calm-value{font-size:clamp(24px,8vw,30px)!important}
+  html body #mainApp#mainApp #content :is(.r1d-open,.r1d-free) .calm-value{font-size:clamp(18px,6vw,22px)}
+  html body #mainApp#mainApp #content .r1d-pill{display:inline-flex;align-items:center;gap:2px;min-height:36px;padding:0 2px 0 12px;border-radius:999px;background:#ffffff26}
+  html body #mainApp#mainApp #content .r1d-pill:not(:has(.r1d-trend)){padding-left:2px}
+  html body #mainApp#mainApp #content .r1d-pill .r1d-trend{min-height:0;padding:0;background:transparent;font-size:15px}
+  html body #mainApp#mainApp #content .r1d-pill .period-seg .period-seg-select{background-color:transparent!important;font-size:15px!important;font-weight:650!important;padding-left:6px!important}
+  html body #mainApp#mainApp #content .r1d-hero .dashboard-kpi-profit .metric-value{font-size:clamp(40px,14vw,56px)!important}
+  html body #mainApp#mainApp #content .r1d-hero .dashboard-kpi-profit .dashboard-kpi-label{font-size:17px!important;color:#fff!important}
+  html body #mainApp#mainApp #content .r1d-action-icon{width:52px;height:52px}
+  html body #mainApp#mainApp #content .r1d-action{font-size:13px}
+  html body #mainApp#mainApp .topbar #quickNew{background:#16191C!important;color:#fff!important}
+  html body #mainApp#mainApp .topbar #quickNew .icon{color:#fff!important}
+  html[data-theme="dark"]:has(#content>.r1d-hero:not(.r1d-page)) body,html[data-theme="dark"] body #mainApp#mainApp:has(#content>.r1d-hero:not(.r1d-page)) :is(.main,#content){background:var(--calm-bg,#0F1214)!important}
+  html[data-theme="dark"] body #mainApp#mainApp .topbar #quickNew{background:#F2F3F5!important;color:#16191C!important}
+  html[data-theme="dark"] body #mainApp#mainApp .topbar #quickNew .icon{color:#16191C!important}
+  html[data-theme="dark"] body #mainApp#mainApp:has(#content .r1d-hero) .topbar :is(.mobile-menu,.top-actions>button:not(#quickNew)){border-radius:50%!important;background:#ffffff1f!important;color:#fff!important}
+  /* Kwin 2026-10-23 "inspiratie van Revolut": a search pill in the top bar and a Recent card under the blocks. */
+  html body #mainApp#mainApp:has(#content .r1d-hero) .topbar .top-actions{flex:1 1 auto!important;max-width:none!important;justify-content:flex-end!important;margin-left:12px!important}
+  html body #mainApp#mainApp:has(#content .r1d-hero) .topbar .top-actions>#globalSearchButton#globalSearchButton{display:flex!important;flex-direction:row!important;align-items:center!important;flex:1 1 auto!important;width:auto!important;max-width:none!important;justify-content:flex-start!important;gap:8px!important;padding:0 14px!important;border-radius:999px!important}
+  html body #mainApp#mainApp:has(#content .r1d-hero) .topbar .top-actions>#globalSearchButton#globalSearchButton::after{content:"Zoeken";font-size:15px;font-weight:500;color:#ffffffc7}
+  html body #mainApp#mainApp #content .r1d-recent{margin:12px 0 0!important;padding:8px 6px;border-radius:24px;background:var(--calm-surface)}
+  html body #mainApp#mainApp #content .r1d-recent h2{margin:6px 12px 4px!important;font-size:15px!important;font-weight:650!important;color:var(--calm-label)!important}
+  html body #mainApp#mainApp #content .r1d-recent-row{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;padding:8px 12px;border:0;border-radius:16px;background:transparent;color:var(--calm-ink);font:inherit;text-align:left;cursor:pointer}
+  html body #mainApp#mainApp #content .r1d-recent-row:active{background:var(--calm-soft)}
+  html body #mainApp#mainApp #content .r1d-recent-row>:first-child{flex:0 0 auto;width:40px!important;height:40px!important}
+  html body #mainApp#mainApp #content .r1d-recent-text{display:flex;flex-direction:column;flex:1;min-width:0}
+  html body #mainApp#mainApp #content .r1d-recent-text strong{overflow:hidden;font-size:15px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+  html body #mainApp#mainApp #content .r1d-recent-text span{overflow:hidden;font-size:13px;color:var(--calm-muted);text-overflow:ellipsis;white-space:nowrap}
+  html body #mainApp#mainApp #content .r1d-recent-amount{flex:0 0 auto;font-size:15px;font-weight:650;font-variant-numeric:tabular-nums}
+  html body #mainApp#mainApp #content .r1d-recent-amount.is-in{color:#1F7A4A}
+  html[data-theme="dark"] body #mainApp#mainApp #content .r1d-recent-amount.is-in{color:#63D471}
   html[data-theme="dark"]{--r1d-top:#07150D;--r1d-bottom:#17583A}
   html[data-theme="dark"] body #mainApp#mainApp #content .r1d-bars i{background:#3A2422}
   html[data-theme="dark"] body #mainApp#mainApp #content .r1d-bars i.is-now{background:#E5534B}

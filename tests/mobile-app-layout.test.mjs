@@ -114,6 +114,8 @@ try{
   assert.match(await page.locator('.dashboard-page-head h1').getAttribute('aria-label'),/^Overzicht, (Goedemorgen|Goedemiddag|Goedenavond), Kwin$/,'The greeting stays for screen readers');
   assert.deepEqual(await page.locator('.calm-list .calm-label').allTextContents(),['Omzet','Kosten','Te ontvangen',await page.locator('.calm-list .calm-label').nth(3).textContent()]);
   assert.match(await page.locator('.calm-list .calm-label').nth(3).textContent(),/^Btw( Q[1-4])?$/);
+  assert.equal(await page.locator('.calm-todo').count(),0,'No "te doen" pill on the overview for now (Kwin 2026-10-23)');
+  await page.evaluate(()=>{phoneOverviewTodo=true;render()});
   assert.match(await page.locator('.calm-todo summary').innerText(),/^\d+ te doen$/);
   await page.locator('.calm-todo summary').click();
 
