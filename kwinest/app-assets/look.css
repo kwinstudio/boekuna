@@ -1541,8 +1541,8 @@ html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272
   html[data-theme="dark"][data-band="oceaan"]{--r1d-top:#07142A;--r1d-bottom:#174A90}
   html[data-theme="dark"][data-band="paars"]{--r1d-top:#180A2E;--r1d-bottom:#55309A}
   html[data-theme="dark"][data-band="zand"]{--r1d-top:#2A1F14;--r1d-bottom:#6E5334}
-  /* Widgets: the bento is now a dense grid; a widget declares its own size. */
-  html body #mainApp#mainApp #content .r1d-bento{grid-template-rows:none;grid-auto-rows:minmax(96px,auto);grid-auto-flow:row dense;align-items:stretch}
+  /* Widgets: the blocks keep the chosen order (no dense packing); phoneWidgetSizes() grows a block instead of leaving a gap. */
+  html body #mainApp#mainApp #content .r1d-bento{grid-template-rows:none;grid-auto-rows:minmax(96px,auto);grid-auto-flow:row;align-items:stretch}
   html body #mainApp#mainApp #content .r1d-w{display:flex;min-width:0;min-height:0}
   html body #mainApp#mainApp #content .r1d-w>*{flex:1 1 auto;min-width:0}
   html body #mainApp#mainApp #content .r1d-w-wide,html body #mainApp#mainApp #content .r1d-w-full{grid-column:1/3}
@@ -1586,7 +1586,8 @@ html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272
   html body #mainApp#mainApp #content .r1d-hero .r1d-story-hero{text-align:center;margin:4px 0 2px}
   html body #mainApp#mainApp #content .r1d-hero .r1d-story-hero .report-story-amount{display:block;margin:0;font-size:36px;font-weight:750;letter-spacing:-.03em;line-height:1.1;color:#fff;font-variant-numeric:tabular-nums}
   html body #mainApp#mainApp #content .r1d-hero .r1d-story-hero .report-story-label{margin:4px 0 0;font-size:13px;font-weight:500;color:rgba(255,255,255,.78)}
-  html body #modalRoot#modalRoot .r1d-wcard-full{grid-column:1/3}
+  html body #modalRoot#modalRoot :is(.r1d-wcard-full,.r1d-wcard-wide){grid-column:1/3}
+  html body #modalRoot#modalRoot .r1d-wcard-tall{grid-row:span 2}
   html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev{flex:1 1 auto;min-height:112px;pointer-events:none}
   html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-tile{display:flex;flex-direction:column;justify-content:space-between;gap:6px;width:100%;height:100%;min-height:112px;padding:14px 16px 10px;border:0;border-radius:0;background:transparent;color:var(--calm-ink);font:inherit;text-align:left}
   html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .calm-label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--calm-label)}

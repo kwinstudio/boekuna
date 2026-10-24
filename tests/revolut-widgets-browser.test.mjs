@@ -68,7 +68,7 @@ try{
   await page.waitForFunction(()=>(document.activeElement?.className||'')!=='modal-close');
   // 3. A tap switches a widget on; the choice is saved on the account; the overview follows after Klaar.
   await sheet.locator('.r1d-wcard[data-widget="uren"] .r1d-wtoggle').click();
-  assert.equal(await sheet.locator('.r1d-wcard[data-widget="uren"]').getAttribute('class'),'r1d-wcard is-on');
+  assert.match(await sheet.locator('.r1d-wcard[data-widget="uren"]').getAttribute('class'),/\bis-on\b/);
   assert.equal(await sheet.locator('.r1d-wcard[data-widget="uren"] .r1d-wtoggle').getAttribute('aria-pressed'),'true');
   await sheet.locator('.r1d-wcard[data-widget="kosten"] .r1d-wtoggle').click();
   assert.deepEqual(await page.evaluate(()=>state.meta.overviewWidgets),['omzet','open','vrij','recent','uren']);
