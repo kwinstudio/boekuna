@@ -1723,13 +1723,14 @@ html[data-theme="dark"] :is(.r1d-sfeer-btn,.settings-sfeer-option).is-on .r1d-sf
   html body #mainApp#mainApp#mainApp #content .list-chip-row .list-chip-select :is(select,span){background-color:transparent!important;color:var(--r1d-on)!important}
   html body #mainApp#mainApp#mainApp #content .list-chip-row .filter-btn.active{background:#fff!important;color:#16191C!important}
   html body #mainApp#mainApp#mainApp #content .list-chip-row .list-chip-gap{background:rgba(255,255,255,.3)!important}
-  html body #mainApp#mainApp#mainApp #content#content :is(.card.table-card,.card.documents-workspace,.report-story,.report-story-facts,.dashboard-attention,#content>.card){background:var(--calm-surface)!important;border:0!important;border-radius:24px!important;box-shadow:none!important;color:var(--calm-ink)}
+  html body #mainApp#mainApp#mainApp #content#content :is(.card.table-card,.card.documents-workspace,.report-story,.report-story-facts,.dashboard-attention,#content>.card,#profileForm>.profile-section,#profileForm>.profile-more){background:var(--calm-surface)!important;border:0!important;border-radius:24px!important;box-shadow:none!important;color:var(--calm-ink)}
   html body #mainApp#mainApp#mainApp #content#content .card.table-card{padding:6px 14px!important;overflow:hidden}
-  html body #mainApp#mainApp#mainApp #content#content :is(.card.documents-workspace,.dashboard-attention,#content>.card:not(.table-card)){padding:16px!important}
+  html body #mainApp#mainApp#mainApp #content#content :is(.card.documents-workspace,.dashboard-attention,#content>.card:not(.table-card),#profileForm>.profile-section,#profileForm>.profile-more){padding:16px!important}
+  html body #mainApp#mainApp#mainApp #content#content #profileForm>.profile-more{margin-top:12px!important}
   html body #mainApp#mainApp#mainApp #content#content .report-story{padding:14px 14px 10px!important;margin-top:12px!important}
   html body #mainApp#mainApp#mainApp #content :is(.settings-quick-label,.settings-center-group-label,.vat-phone-note,.trip-rate,.bank-list-title,.bank-list-title *){color:var(--r1d-on)!important}
   html body #mainApp#mainApp#mainApp #content :is(.vat-phone-note,.trip-rate){color:var(--r1d-on-soft)!important}
-  html body #mainApp#mainApp#mainApp #content .assistant-disclaimer:not(.card *,.r1d-recent *){color:var(--r1d-on-soft)!important}
+  html body #mainApp#mainApp#mainApp #content :is(.assistant-disclaimer:not(.card *,.r1d-recent *),#content>.help){color:var(--r1d-on-soft)!important}
   html body #mainApp#mainApp#mainApp #content .settings-profile-card{border:0!important;border-radius:24px!important}
   html body #mainApp#mainApp#mainApp #content .settings-quick-tile{border:0!important;border-radius:22px!important}
   html body #mainApp#mainApp#mainApp #content .settings-center-group>:not(h2){border:0!important;border-radius:22px!important}
