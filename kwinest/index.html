@@ -4719,11 +4719,17 @@ function closeWidgetSheet(){closeModal();render()}
 const PHONE_BANDS=[['groen','Groen','#0F2A1A','#1F7A4A'],['smaragd','Smaragd','#0B3D2E','#159A72'],['nacht','Nacht','#0E1013','#262C33'],['oceaan','Oceaan','#0B1F3A','#1D5FB8'],['paars','Paars','#231040','#6D3FB8'],['zand','Zand','#3E2F1F','#8C6B43']];
 function phoneBand(){const id=document.documentElement.dataset.band||'groen';return PHONE_BANDS.some(b=>b[0]===id)?id:'groen'}
 function setPhoneBand(id){if(!PHONE_BANDS.some(b=>b[0]===id))id='groen';if(id==='groen')delete document.documentElement.dataset.band;else document.documentElement.dataset.band=id;try{localStorage.setItem('boekuna-band',id)}catch(e){}if(!state.meta||typeof state.meta!=='object')state.meta={};if(state.meta.band!==id){state.meta.band=id;save()}document.querySelectorAll('#modalRoot .r1d-swatch').forEach(b=>b.classList.toggle('is-on',b.dataset.band===id))}
+// Sfeer (Kwin 2026-10-24, "B sfeer"): a photo behind the overview band, like Revolut's account backgrounds. 'geen' = the plain band.
+const PHONE_SFEER=[['geen','Geen'],['noorderlicht','Poollicht'],['nachthemel','Sterren'],['zonsondergang','Avondrood'],['marmer','Marmer']];
+function phoneSfeer(){const id=document.documentElement.dataset.sfeer||'geen';return PHONE_SFEER.some(b=>b[0]===id)?id:'geen'}
+function setPhoneSfeer(id){if(!PHONE_SFEER.some(b=>b[0]===id))id='geen';if(id==='geen')delete document.documentElement.dataset.sfeer;else document.documentElement.dataset.sfeer=id;try{localStorage.setItem('boekuna-sfeer',id)}catch(e){}if(!state.meta||typeof state.meta!=='object')state.meta={};if(state.meta.sfeer!==id){state.meta.sfeer=id;save()}document.querySelectorAll('#modalRoot .r1d-sfeer-btn').forEach(b=>b.classList.toggle('is-on',b.dataset.sfeer===id))}
+function sfeerOptionsHtml(cls,attr,current,onclick){return PHONE_SFEER.map(([id,label])=>'<button type="button" class="'+cls+(id===current?' is-on':'')+'" '+attr+'="'+id+'"'+(onclick?' onclick="setPhoneSfeer(\''+id+'\')"':'')+' aria-pressed="'+(id===current)+'"><span class="r1d-sfeer-thumb'+(id==='geen'?' is-plain':'')+'" aria-hidden="true"'+(id==='geen'?'':' style="background-image:url(/assets/sfeer-'+id+'.webp)"')+'></span><span>'+label+'</span></button>').join('')}
 function openThemeSheet(){
  const pref=window.BoekunaTheme?BoekunaTheme.preference():'system',band=phoneBand();
  const seg=[['system','Automatisch'],['light','Licht'],['dark','Donker']].map(([v,l])=>'<button type="button" class="r1d-segbtn'+(v===pref?' is-on':'')+'" onclick="setThemeFromSheet(\''+v+'\',this)">'+l+'</button>').join('');
  const sw=PHONE_BANDS.map(([id,label,a,b])=>'<button type="button" class="r1d-swatch'+(id===band?' is-on':'')+'" data-band="'+id+'" style="--a:'+a+';--b:'+b+'" onclick="setPhoneBand(\''+id+'\')"><span class="r1d-swatch-chip" aria-hidden="true"></span><span>'+label+'</span></button>').join('');
- modal('Thema','<div class="r1d-tlabel">Weergave</div><div class="r1d-seg">'+seg+'</div><div class="r1d-tlabel">Kleur</div><div class="r1d-swatches">'+sw+'</div>');
+ const sf=sfeerOptionsHtml('r1d-sfeer-btn','data-sfeer',phoneSfeer(),true);
+ modal('Thema','<div class="r1d-tlabel">Weergave</div><div class="r1d-seg">'+seg+'</div><div class="r1d-tlabel">Kleur</div><div class="r1d-swatches">'+sw+'</div><div class="r1d-tlabel">Sfeer op het overzicht</div><div class="r1d-sfeer">'+sf+'</div>');
  const dialog=document.querySelector('#modalRoot .modal');dialog?.classList.add('theme-sheet');dialog?.closest('.modal-backdrop')?.classList.add('theme-sheet-backdrop');sheetBlurAutofocus(dialog);
 }
 // A sheet opened by a tap shows no focus ring on its close button (keyboard users still get one on Tab).

@@ -212,6 +212,13 @@
     var current=phoneBand();
     return '<fieldset class="settings-center-fieldset settings-band"><legend>Kleur op je telefoon</legend><div class="settings-band-options">'
       +PHONE_BANDS.map(function(b){return '<button type="button" class="settings-band-option'+(b[0]===current?' is-on':'')+'" data-band-choice="'+b[0]+'" style="--a:'+b[2]+';--b:'+b[3]+'" aria-pressed="'+(b[0]===current)+'"><span class="settings-band-chip" aria-hidden="true"></span><span>'+esc(b[1])+'</span></button>'}).join('')
+      +'</div></fieldset>'+sfeerBlock();
+  }
+  // Kwin 2026-10-24 ("B sfeer"): the photo behind the overview band, the same choice as in the Thema sheet.
+  function sfeerBlock(){
+    if(typeof PHONE_SFEER==='undefined'||typeof sfeerOptionsHtml!=='function')return '';
+    return '<fieldset class="settings-center-fieldset settings-sfeer"><legend>Sfeer op het overzicht</legend><div class="settings-sfeer-options">'
+      +sfeerOptionsHtml('settings-sfeer-option','data-sfeer-choice',phoneSfeer(),false)
       +'</div></fieldset>';
   }
 
@@ -536,6 +543,8 @@
     el.addEventListener('click',function(event){
       var t0=event.target,bandBtn=t0.closest&&t0.closest('[data-band-choice]');
       if(bandBtn){setPhoneBand(bandBtn.getAttribute('data-band-choice'));bandBtn.parentElement.querySelectorAll('[data-band-choice]').forEach(function(b){var on=b===bandBtn;b.classList.toggle('is-on',on);b.setAttribute('aria-pressed',on)});toast('Opgeslagen');return}
+      var sfeerBtn=t0.closest&&t0.closest('[data-sfeer-choice]');
+      if(sfeerBtn){setPhoneSfeer(sfeerBtn.getAttribute('data-sfeer-choice'));sfeerBtn.parentElement.querySelectorAll('[data-sfeer-choice]').forEach(function(b){var on=b===sfeerBtn;b.classList.toggle('is-on',on);b.setAttribute('aria-pressed',on)});toast('Opgeslagen');return}
       var opener=event.target.closest('[data-settings-open]');
       if(opener&&el.contains(opener)){event.preventDefault();open(opener.getAttribute('data-settings-open'));return}
       if(event.target.closest('[data-settings-back]')){event.preventDefault();back();return}

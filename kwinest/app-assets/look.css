@@ -1647,3 +1647,51 @@ html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272
 .settings-band-chip{width:40px;height:40px;border-radius:50%;background:linear-gradient(160deg,var(--a) 0%,var(--b) 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
 html[data-theme="dark"] .settings-band-option.is-on{border-color:#fff}
 .settings-band{margin-top:14px}
+
+/* 26. Accentkleur B + Sfeer (Kwin 2026-10-24, "B sfeer"), phone only. Groen keeps today's look: these rules only exist for the other bands. */
+@media (max-width:820px){
+  /* The accent of a band: dark enough for white text on it, light enough as text on white; in Donker a lighter tint with dark ink. */
+  html[data-band="smaragd"]{--r1d-accent:#0F7556;--r1d-accent-ink:#FFFFFF;--r1d-accent-soft:#E3F4EC}
+  html[data-band="nacht"]{--r1d-accent:#262C33;--r1d-accent-ink:#FFFFFF;--r1d-accent-soft:#E9EBEE}
+  html[data-band="oceaan"]{--r1d-accent:#1D5FB8;--r1d-accent-ink:#FFFFFF;--r1d-accent-soft:#E4ECF9}
+  html[data-band="paars"]{--r1d-accent:#6D3FB8;--r1d-accent-ink:#FFFFFF;--r1d-accent-soft:#EEE7F9}
+  html[data-band="zand"]{--r1d-accent:#7A5B37;--r1d-accent-ink:#FFFFFF;--r1d-accent-soft:#F1EAE1}
+  html[data-theme="dark"][data-band="smaragd"]{--r1d-accent:#3CCB9C;--r1d-accent-ink:#10150F;--r1d-accent-soft:#163A2F}
+  html[data-theme="dark"][data-band="nacht"]{--r1d-accent:#E6E8EB;--r1d-accent-ink:#0E1013;--r1d-accent-soft:#2A3036}
+  html[data-theme="dark"][data-band="oceaan"]{--r1d-accent:#6FA3EE;--r1d-accent-ink:#10150F;--r1d-accent-soft:#1B2E4A}
+  html[data-theme="dark"][data-band="paars"]{--r1d-accent:#B49AEB;--r1d-accent-ink:#10150F;--r1d-accent-soft:#2E2444}
+  html[data-theme="dark"][data-band="zand"]{--r1d-accent:#D2B08A;--r1d-accent-ink:#1A130B;--r1d-accent-soft:#3A2F22}
+  /* Everything that is "calm green" today (active tab, text links, add rows) follows the band. */
+  html[data-band]{--calm-green:var(--r1d-accent)}
+  html[data-band] body :is(#mainApp#mainApp,#modalRoot#modalRoot) :is(.btn.primary,.btn.accent){background:var(--r1d-accent)!important;border-color:var(--r1d-accent)!important;color:var(--r1d-accent-ink)!important}
+  html[data-band] body :is(#mainApp#mainApp,#modalRoot#modalRoot) :is(.btn.primary,.btn.accent) :is(.icon,svg){color:var(--r1d-accent-ink)!important}
+  html[data-band] body #mobileBottomNav#mobileBottomNav .mobile-bottom-nav-item:is(.active,[aria-current="page"]),html[data-band] body #mobileBottomNav#mobileBottomNav .mobile-bottom-nav-item:is(.active,[aria-current="page"]) :is(.icon,span){color:var(--r1d-accent)!important}
+  html[data-band] body :is(#mainApp#mainApp,#modalRoot#modalRoot) :is(.dashboard-attention-cta,.product-page-actions>.btn:not(.primary),[data-page="bank"] .mobile-card-actions>.btn,.bank-automatch,.invoice-copy-strip .copy-chip-btn,.a4-expand,.mobile-new-customer,.mobile-invoice-add-line,.expense-memory-change,.expense-receipt-link,#paymentForm .payment-method-link,.settings-quick-tile .settings-center-icon){color:var(--r1d-accent)!important}
+  html[data-band] body #modalRoot#modalRoot #invoiceForm[data-mobile-invoice-flow] .service-chip strong::before{color:var(--r1d-accent)}
+  html[data-band] body #mainApp#mainApp #content .dashboard-start-num.is-done{background:var(--r1d-accent-soft);color:var(--r1d-accent)}
+  html[data-band] body :is(#modalRoot#modalRoot .r1d-wcard.is-on,.r1d-wcard.is-dragging.is-on) .r1d-wtoggle{background:var(--r1d-accent);color:var(--r1d-accent-ink)}
+
+  /* Sfeer: a photo behind the overview band, running under the top bar (look.js measures the bar, safe area included). */
+  html[data-sfeer="noorderlicht"]{--r1d-sfeer-img:url(/assets/sfeer-noorderlicht.webp)}
+  html[data-sfeer="nachthemel"]{--r1d-sfeer-img:url(/assets/sfeer-nachthemel.webp)}
+  html[data-sfeer="zonsondergang"]{--r1d-sfeer-img:url(/assets/sfeer-zonsondergang.webp)}
+  html[data-sfeer="marmer"]{--r1d-sfeer-img:url(/assets/sfeer-marmer.webp)}
+  html[data-sfeer] body #mainApp#mainApp:has(#content>.r1d-hero:not(.r1d-page)) .topbar{background:transparent!important;z-index:3}
+  html[data-sfeer] body #mainApp#mainApp #content>.r1d-hero:not(.r1d-page){margin-top:calc(-14px - var(--r1d-topbar-h,60px))!important;padding-top:calc(14px + var(--r1d-topbar-h,60px));background:linear-gradient(180deg,rgba(0,0,0,.2) 0%,rgba(0,0,0,.48) 100%),var(--r1d-sfeer-img) center 30%/cover no-repeat,var(--r1d-top)}
+  html[data-sfeer] body #mainApp#mainApp #content>.r1d-hero:not(.r1d-page)::after{background:transparent}
+  /* The choice: five small tiles (Geen = the band itself) in the Thema sheet. */
+  html body #modalRoot#modalRoot .r1d-sfeer{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+  html body #modalRoot#modalRoot .r1d-sfeer-btn{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:0;min-width:0;padding:2px;border:0;border-radius:18px;background:transparent;color:var(--calm-label);font:inherit;font-size:11px;font-weight:600;line-height:1.2;text-align:center;overflow-wrap:anywhere;cursor:pointer;transition:transform .12s ease}
+  html body #modalRoot#modalRoot .r1d-sfeer-btn:active{transform:scale(.96)}
+  html body #modalRoot#modalRoot .r1d-sfeer-btn.is-on{color:var(--calm-ink)}
+}
+.r1d-sfeer-thumb{display:block;width:100%;aspect-ratio:1;border-radius:16px;background:linear-gradient(160deg,var(--r1d-top,#0F2A1A) 0%,var(--r1d-bottom,#1F7A4A) 100%) center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+.r1d-sfeer-thumb:not(.is-plain){background-size:cover;background-position:center 30%}
+:is(.r1d-sfeer-btn,.settings-sfeer-option).is-on .r1d-sfeer-thumb{box-shadow:0 0 0 2px var(--calm-surface,#fff),0 0 0 4px var(--calm-ink,#1B1F23)}
+html[data-theme="dark"] :is(.r1d-sfeer-btn,.settings-sfeer-option).is-on .r1d-sfeer-thumb{box-shadow:0 0 0 2px var(--calm-bg,#0F1214),0 0 0 4px #fff}
+/* 26b. Instellingen > App: the same Sfeer choice as in the Thema sheet. */
+.settings-sfeer-options{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;max-width:420px}
+.settings-sfeer-option{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:0;min-width:0;padding:2px;border:0;border-radius:18px;background:transparent;color:var(--calm-label,#5E6870);font:inherit;font-size:11px;font-weight:600;line-height:1.2;text-align:center;overflow-wrap:anywhere;cursor:pointer;transition:transform .12s ease}
+.settings-sfeer-option:active{transform:scale(.96)}
+.settings-sfeer-option.is-on{color:var(--calm-ink,#1B1F23)}
+.settings-sfeer{margin-top:14px}

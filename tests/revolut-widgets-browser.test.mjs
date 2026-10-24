@@ -138,6 +138,55 @@ try{
   await page.evaluate(()=>navigate('reports'));
   assert.match(await text(page.locator('#content .r1d-hero .r1d-story-hero .report-story-amount')),/^€/,'Rapportages total sits in the band');
   assert.equal(await page.locator('#content .report-story .report-story-amount').count(),0);
+
+  // 8. Round 3 (Kwin 2026-10-24 'B sfeer'): the accent follows the band colour, and a photo can sit behind the overview band.
+  const rgb=h=>'rgb('+[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)).join(', ')+')';
+  await page.evaluate(()=>{setPhoneBand('groen');setPhoneSfeer('geen');navigate('documents')});
+  const primary=page.locator('#content .btn.primary').first();
+  // Buttons animate their colour, so each check waits for the transition to land.
+  const settles=async(loc,prop,value,msg)=>{const el=await loc.elementHandle();try{await page.waitForFunction(([e,p,v])=>getComputedStyle(e)[p]===v,[el,prop,value],{timeout:4000})}catch(e){}assert.equal(await loc.evaluate((e,p)=>getComputedStyle(e)[p],prop),value,msg)};
+  await settles(primary,'backgroundColor',rgb('#63D471'),'Groen keeps the green primary button');
+  await page.evaluate(()=>setPhoneBand('oceaan'));
+  await settles(primary,'backgroundColor',rgb('#1D5FB8'),'Oceaan: the primary button takes the band accent');
+  await settles(primary,'color',rgb('#FFFFFF'),'white text on the accent');
+  await settles(page.locator('#mobileBottomNav .mobile-bottom-nav-item.active span').first(),'color',rgb('#1D5FB8'),'the active tab follows the band');
+  await page.evaluate(()=>BoekunaTheme.set('dark'));
+  await settles(primary,'backgroundColor',rgb('#6FA3EE'),'Donker: a lighter accent');
+  await settles(primary,'color',rgb('#10150F'),'dark ink on the light accent');
+  await page.evaluate(()=>{BoekunaTheme.set('light');setPhoneBand('groen');navigate('dashboard')});
+  await page.locator('#content .r1d-custom-btn',{hasText:'Thema'}).click();
+  const theme2=page.locator('#modalRoot .modal.theme-sheet');
+  await theme2.waitFor();
+  assert.equal(await theme2.locator('.r1d-sfeer-btn').count(),5,'Geen plus four photos');
+  assert.equal(await text(theme2.locator('.r1d-sfeer-btn.is-on')),'Geen');
+  await theme2.locator('.r1d-sfeer-btn[data-sfeer="noorderlicht"]').click();
+  assert.equal(await page.evaluate(()=>document.documentElement.dataset.sfeer),'noorderlicht');
+  assert.equal(await page.evaluate(()=>localStorage.getItem('boekuna-sfeer')),'noorderlicht');
+  assert.equal(await page.evaluate(()=>state.meta.sfeer),'noorderlicht');
+  assert.equal(await text(theme2.locator('.r1d-sfeer-btn.is-on')),'Poollicht');
+  await page.evaluate(()=>closeModal());
+  const hero=page.locator('#content>.r1d-hero');
+  assert.match(await hero.evaluate(el=>getComputedStyle(el).backgroundImage),/sfeer-noorderlicht\.webp/,'the overview band shows the photo');
+  assert.equal(await page.locator('#mainApp .topbar').evaluate(el=>getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)','the top bar lets the photo through');
+  const [heroTop,barTop,barH]=await page.evaluate(()=>{const h=document.querySelector('#content>.r1d-hero').getBoundingClientRect(),b=document.querySelector('#mainApp .topbar').getBoundingClientRect();return [h.top,b.top,b.height]});
+  assert.ok(Math.abs(heroTop-barTop)<=1,'the band starts under the top bar (hero '+heroTop+', bar '+barTop+')');
+  assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--r1d-topbar-h').trim()),barH+'px','look.js measured the top bar');
+  await page.evaluate(()=>navigate('vat'));
+  assert.doesNotMatch(await page.locator('#content .r1d-hero').evaluate(el=>getComputedStyle(el).backgroundImage),/sfeer-/,'other pages keep the plain band');
+  assert.equal(await page.locator('#mainApp .topbar').evaluate(el=>getComputedStyle(el).backgroundColor),rgb('#0F2A1A'),'and their top bar keeps the band colour');
+  // Instellingen > App offers the same choice, and the account value wins on the next device.
+  await page.evaluate(()=>navigate('settings'));
+  await page.locator('.settings-nav-item[data-settings-open="app"]').click();
+  await page.locator('.settings-sfeer-option.is-on').waitFor();
+  assert.equal(await text(page.locator('.settings-sfeer-option.is-on')),'Poollicht');
+  await page.locator('.settings-sfeer-option[data-sfeer-choice="geen"]').click();
+  assert.equal(await page.evaluate(()=>'sfeer' in document.documentElement.dataset),false,'Geen is the default and needs no attribute');
+  assert.equal(await page.evaluate(()=>localStorage.getItem('boekuna-sfeer')),'geen');
+  await page.evaluate(()=>{localStorage.removeItem('boekuna-sfeer');state.meta.sfeer='marmer';render()});
+  assert.equal(await page.evaluate(()=>document.documentElement.dataset.sfeer),'marmer');
+  assert.ok(generated.includes("localStorage.getItem('boekuna-sfeer')"),'the boot script sets the photo before the first paint');
+  for(const f of ['noorderlicht','nachthemel','zonsondergang','marmer'])assert.ok(fs.statSync('dist/app/assets/sfeer-'+f+'.webp').size<200000,'sfeer-'+f+'.webp stays small');
+  await page.evaluate(()=>{setPhoneSfeer('geen');setPhoneBand('groen')});
   await context.close();
 
   // 6. Desktop is untouched: no widgets grid, no pills, no band attribute effect on the dashboard.
