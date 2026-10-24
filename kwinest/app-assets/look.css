@@ -1775,4 +1775,14 @@ html[data-theme="dark"] :is(.r1d-sfeer-btn,.settings-sfeer-option).is-on .r1d-sf
   html body #sidebar#sidebar#sidebar :is(.drawer-theme,.drawer-switch,.drawer-theme *){color:var(--r1d-on)!important}
   html body #sidebar#sidebar .drawer-profile{background:var(--r1d-glass)!important;border:0!important;border-radius:20px!important}
   html body #sidebar#sidebar .mobile-drawer-close{background:var(--r1d-glass)!important;color:var(--r1d-on)!important;border:0!important;border-radius:50%!important}
+  /* 6. Kwin 2026-10-24 (iPhone): the iPhone strip behind the clock takes the page's top colour, so the page's top colour is the
+     top of the photo; the photo fades in from that colour. The round + stays above the bottom bar with a photo too. */
+  html[data-sfeer="noorderlicht"]{--r1d-strip:#0F3E37}
+  html[data-sfeer="nachthemel"]{--r1d-strip:#040A1B}
+  html[data-sfeer="zonsondergang"]{--r1d-strip:#4C3133}
+  html[data-sfeer="marmer"]{--r1d-strip:#253330}
+  html[data-sfeer]{--r1d-canvas:linear-gradient(180deg,var(--r1d-strip) 0,transparent 40px),linear-gradient(180deg,rgba(0,0,0,.16) 0%,rgba(0,0,0,.42) 45%,rgba(0,0,0,.6) 100%),var(--r1d-sfeer-img) center 30%/cover no-repeat,var(--r1d-top)}
+  html[data-sfeer]:has(#mainApp:not(.hidden)){background:var(--r1d-strip)!important}
+  html[data-sfeer] body #mainApp#mainApp#mainApp:has(#content>.r1d-hero) .topbar{z-index:56!important}
+  html.is-pointer body #mainApp#mainApp .topbar .mobile-menu:focus-visible{outline:none!important;box-shadow:none!important}
 }
