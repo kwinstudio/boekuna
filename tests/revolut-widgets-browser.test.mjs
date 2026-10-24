@@ -179,6 +179,9 @@ try{
   assert.equal(await page.evaluate(()=>getComputedStyle(document.body,'::before').position),'fixed','the photo stays put while the page scrolls');
   assert.equal(await page.locator('#content>.r1d-hero').evaluate(el=>getComputedStyle(el).backgroundImage),'none','the band itself is see-through');
   assert.equal(await page.locator('#mainApp .topbar').evaluate(el=>getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)','the top bar lets the photo through');
+  // Kwin's iPhone (2026-10-24): with a photo the round + stayed hidden under the bottom bar; and the strip behind the clock takes the top colour of the photo.
+  assert.ok(await page.evaluate(()=>{const b=document.getElementById('quickNew'),r=b.getBoundingClientRect();return b.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))}),'the round + is on top with a photo');
+  assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).backgroundColor),rgb('#0F3E37'),'the page top colour (the iPhone strip) matches the top of the photo');
   const barH=await page.evaluate(()=>document.querySelector('#mainApp .topbar').getBoundingClientRect().height);
   assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--r1d-topbar-h').trim()),barH+'px','look.js measured the top bar');
   await page.evaluate(()=>navigate('vat'));

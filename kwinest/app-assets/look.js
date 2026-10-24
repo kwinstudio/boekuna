@@ -399,3 +399,12 @@
   function install(){watchTopbar();if(typeof render!=='function')return;var original=render;render=function(){sync();var out=original.apply(this,arguments);measureTopbar();return out}}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
+
+/* 27. Kwin 2026-10-24 (iPhone screenshot): after a tap the menu button got its keyboard ring back when the menu closed.
+   Remember whether the last input was touch/mouse or keys; the ring only shows for keys. */
+(function(){
+  'use strict';
+  var root=document.documentElement;
+  document.addEventListener('pointerdown',function(){root.classList.add('is-pointer')},true);
+  document.addEventListener('keydown',function(e){if(e.key==='Tab'||e.key==='Escape'||e.key==='Enter'||e.key===' ')root.classList.remove('is-pointer')},true);
+})();
