@@ -68,7 +68,7 @@ try{
   await page.waitForFunction(()=>(document.activeElement?.className||'')!=='modal-close');
   // 3. A tap switches a widget on; the choice is saved on the account; the overview follows after Klaar.
   await sheet.locator('.r1d-wcard[data-widget="uren"] .r1d-wtoggle').click();
-  assert.equal(await sheet.locator('.r1d-wcard[data-widget="uren"]').getAttribute('class'),'r1d-wcard is-on');
+  assert.match(await sheet.locator('.r1d-wcard[data-widget="uren"]').getAttribute('class'),/\bis-on\b/);
   assert.equal(await sheet.locator('.r1d-wcard[data-widget="uren"] .r1d-wtoggle').getAttribute('aria-pressed'),'true');
   await sheet.locator('.r1d-wcard[data-widget="kosten"] .r1d-wtoggle').click();
   assert.deepEqual(await page.evaluate(()=>state.meta.overviewWidgets),['omzet','open','vrij','recent','uren']);
@@ -89,6 +89,12 @@ try{
   assert.deepEqual(await page.evaluate(()=>state.meta.overviewWidgets),['uren','omzet','open','vrij','recent']);
   await page.evaluate(()=>closeWidgetSheet());
   assert.equal(await page.locator('#content .r1d-bento .r1d-w').first().getAttribute('data-widget'),'uren');
+  // Kwin 2026-10-24 ("slepen klopt niet"): what you see follows the chosen order exactly; no block jumps forward into a gap.
+  await page.evaluate(()=>{setPhoneWidgets(['open','omzet','vrij','kosten','recent']);render()});
+  const seen=await page.locator('#content .r1d-bento .r1d-w').evaluateAll(els=>els.map(e=>{const r=e.getBoundingClientRect();return {id:e.dataset.widget,y:Math.round(r.top),x:Math.round(r.left)}}).sort((a,b)=>a.y-b.y||a.x-b.x).map(o=>o.id));
+  assert.deepEqual(seen,['open','omzet','vrij','kosten','recent'],'reading order on screen = chosen order');
+  assert.ok(await page.locator('#content .r1d-w[data-widget="open"]').evaluate(el=>el.classList.contains('r1d-w-wide')),'a small block alone on its row fills the row');
+  await page.evaluate(()=>{setPhoneWidgets(['uren','omzet','open','vrij','recent']);render()});
 
   // 4. Thema sheet: light/dark/auto plus the band colour, live and saved on this device and on the account.
   await page.locator('#content .r1d-custom-btn',{hasText:'Thema'}).click();
@@ -143,6 +149,8 @@ try{
   const rgb=h=>'rgb('+[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)).join(', ')+')';
   await page.evaluate(()=>{setPhoneBand('groen');setPhoneSfeer('geen');navigate('documents')});
   const primary=page.locator('#content .btn.primary').first();
+  // The pointer rests where the last tap was; keep it off the button so its hover colour does not count.
+  await page.mouse.move(1,1);
   // Buttons animate their colour, so each check waits for the transition to land.
   const settles=async(loc,prop,value,msg)=>{const el=await loc.elementHandle();try{await page.waitForFunction(([e,p,v])=>getComputedStyle(e)[p]===v,[el,prop,value],{timeout:4000})}catch(e){}assert.equal(await loc.evaluate((e,p)=>getComputedStyle(e)[p],prop),value,msg)};
   await settles(primary,'backgroundColor',rgb('#63D471'),'Groen keeps the green primary button');
@@ -165,15 +173,17 @@ try{
   assert.equal(await page.evaluate(()=>state.meta.sfeer),'noorderlicht');
   assert.equal(await text(theme2.locator('.r1d-sfeer-btn.is-on')),'Poollicht');
   await page.evaluate(()=>closeModal());
-  const hero=page.locator('#content>.r1d-hero');
-  assert.match(await hero.evaluate(el=>getComputedStyle(el).backgroundImage),/sfeer-noorderlicht\.webp/,'the overview band shows the photo');
+  // Kwin 2026-10-24 ("over heel de scherm"): the photo is the whole screen, fixed behind the page, on every page.
+  const canvas=()=>page.evaluate(()=>getComputedStyle(document.body,'::before').backgroundImage);
+  assert.match(await canvas(),/sfeer-noorderlicht\.webp/,'the whole screen shows the photo');
+  assert.equal(await page.evaluate(()=>getComputedStyle(document.body,'::before').position),'fixed','the photo stays put while the page scrolls');
+  assert.equal(await page.locator('#content>.r1d-hero').evaluate(el=>getComputedStyle(el).backgroundImage),'none','the band itself is see-through');
   assert.equal(await page.locator('#mainApp .topbar').evaluate(el=>getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)','the top bar lets the photo through');
-  const [heroTop,barTop,barH]=await page.evaluate(()=>{const h=document.querySelector('#content>.r1d-hero').getBoundingClientRect(),b=document.querySelector('#mainApp .topbar').getBoundingClientRect();return [h.top,b.top,b.height]});
-  assert.ok(Math.abs(heroTop-barTop)<=1,'the band starts under the top bar (hero '+heroTop+', bar '+barTop+')');
+  const barH=await page.evaluate(()=>document.querySelector('#mainApp .topbar').getBoundingClientRect().height);
   assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--r1d-topbar-h').trim()),barH+'px','look.js measured the top bar');
   await page.evaluate(()=>navigate('vat'));
-  assert.doesNotMatch(await page.locator('#content .r1d-hero').evaluate(el=>getComputedStyle(el).backgroundImage),/sfeer-/,'other pages keep the plain band');
-  assert.equal(await page.locator('#mainApp .topbar').evaluate(el=>getComputedStyle(el).backgroundColor),rgb('#0F2A1A'),'and their top bar keeps the band colour');
+  assert.match(await canvas(),/sfeer-noorderlicht\.webp/,'other pages share the same background');
+  assert.equal(await page.locator('#mainApp .topbar').evaluate(el=>getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)','and their top bar is see-through too');
   // Instellingen > App offers the same choice, and the account value wins on the next device.
   await page.evaluate(()=>navigate('settings'));
   await page.locator('.settings-nav-item[data-settings-open="app"]').click();

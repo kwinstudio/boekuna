@@ -1541,8 +1541,8 @@ html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272
   html[data-theme="dark"][data-band="oceaan"]{--r1d-top:#07142A;--r1d-bottom:#174A90}
   html[data-theme="dark"][data-band="paars"]{--r1d-top:#180A2E;--r1d-bottom:#55309A}
   html[data-theme="dark"][data-band="zand"]{--r1d-top:#2A1F14;--r1d-bottom:#6E5334}
-  /* Widgets: the bento is now a dense grid; a widget declares its own size. */
-  html body #mainApp#mainApp #content .r1d-bento{grid-template-rows:none;grid-auto-rows:minmax(96px,auto);grid-auto-flow:row dense;align-items:stretch}
+  /* Widgets: the blocks keep the chosen order (no dense packing); phoneWidgetSizes() grows a block instead of leaving a gap. */
+  html body #mainApp#mainApp #content .r1d-bento{grid-template-rows:none;grid-auto-rows:minmax(96px,auto);grid-auto-flow:row;align-items:stretch}
   html body #mainApp#mainApp #content .r1d-w{display:flex;min-width:0;min-height:0}
   html body #mainApp#mainApp #content .r1d-w>*{flex:1 1 auto;min-width:0}
   html body #mainApp#mainApp #content .r1d-w-wide,html body #mainApp#mainApp #content .r1d-w-full{grid-column:1/3}
@@ -1586,7 +1586,8 @@ html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272
   html body #mainApp#mainApp #content .r1d-hero .r1d-story-hero{text-align:center;margin:4px 0 2px}
   html body #mainApp#mainApp #content .r1d-hero .r1d-story-hero .report-story-amount{display:block;margin:0;font-size:36px;font-weight:750;letter-spacing:-.03em;line-height:1.1;color:#fff;font-variant-numeric:tabular-nums}
   html body #mainApp#mainApp #content .r1d-hero .r1d-story-hero .report-story-label{margin:4px 0 0;font-size:13px;font-weight:500;color:rgba(255,255,255,.78)}
-  html body #modalRoot#modalRoot .r1d-wcard-full{grid-column:1/3}
+  html body #modalRoot#modalRoot :is(.r1d-wcard-full,.r1d-wcard-wide){grid-column:1/3}
+  html body #modalRoot#modalRoot .r1d-wcard-tall{grid-row:span 2}
   html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev{flex:1 1 auto;min-height:112px;pointer-events:none}
   html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .r1d-tile{display:flex;flex-direction:column;justify-content:space-between;gap:6px;width:100%;height:100%;min-height:112px;padding:14px 16px 10px;border:0;border-radius:0;background:transparent;color:var(--calm-ink);font:inherit;text-align:left}
   html body :is(#modalRoot#modalRoot,.r1d-wcard.is-dragging) .r1d-wprev .calm-label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--calm-label)}
@@ -1695,3 +1696,83 @@ html[data-theme="dark"] :is(.r1d-sfeer-btn,.settings-sfeer-option).is-on .r1d-sf
 .settings-sfeer-option:active{transform:scale(.96)}
 .settings-sfeer-option.is-on{color:var(--calm-ink,#1B1F23)}
 .settings-sfeer{margin-top:14px}
+
+/* 27. Overzicht-stijl overal (Kwin 2026-10-24, "top"), phone only: the band colour (or the Sfeer photo) is the whole screen,
+   fixed behind the page; on it text is white, search and filters are glass pills like the period pill, content sits in
+   white blocks like the widgets; every sheet looks like the Widgets sheet; Factuur bekijken and the menu open on the colour. */
+@media (max-width:820px){
+  :root{--r1d-canvas:linear-gradient(180deg,var(--r1d-top) 0%,var(--r1d-bottom) 45%,color-mix(in srgb,var(--r1d-bottom) 50%,var(--r1d-top)) 100%);--r1d-glass:rgba(255,255,255,.14);--r1d-on:#fff;--r1d-on-soft:rgba(255,255,255,.76);--r1d-sheet:#F2F3F5}
+  html[data-theme="dark"]{--r1d-sheet:var(--calm-bg,#0F1214)}
+  html[data-sfeer]{--r1d-canvas:linear-gradient(180deg,rgba(0,0,0,.16) 0%,rgba(0,0,0,.42) 45%,rgba(0,0,0,.6) 100%),var(--r1d-sfeer-img) center 30%/cover no-repeat,var(--r1d-top)}
+  /* 1. The colour (or Sfeer photo) is the whole screen, fixed behind everything; the page scrolls over it. */
+  html:has(#mainApp:not(.hidden)){background:var(--r1d-top)!important}
+  html:root:has(#mainApp:not(.hidden)):has(#content) body:has(#mainApp:not(.hidden)){background:transparent!important}
+  html body:has(#mainApp:not(.hidden))::before{content:"";position:fixed;inset:0;z-index:-1;background:var(--r1d-canvas);pointer-events:none}
+  html body #mainApp#mainApp#mainApp,html body #mainApp#mainApp#mainApp:is(*,:has(#content>.r1d-hero)):has(#content) :is(#appMain,#content){background:transparent!important}
+  html body #mainApp#mainApp#mainApp:has(#content .r1d-hero) .topbar{background:transparent!important}
+  html body #mainApp#mainApp#mainApp #content>.r1d-hero,html[data-sfeer] body #mainApp#mainApp#mainApp #content>.r1d-hero:not(.r1d-page){background:transparent!important;margin-top:-14px!important;padding-top:14px!important}
+  html body #mainApp#mainApp#mainApp #content>.r1d-hero::after{display:none!important}
+  /* 2. On the colour: text white, controls glass (like the period pill), content in white cards (like the widgets). */
+  html body #mainApp#mainApp #content .r1d-custom-btn,html body #mainApp#mainApp #content .r1d-hours{background:var(--r1d-glass);color:var(--r1d-on)}
+  html body #mainApp#mainApp #content .r1d-custom-btn .icon{color:var(--r1d-on)}
+  html body #mainApp#mainApp#mainApp #content :is(.list-search-box,.settings-search){background:var(--r1d-glass)!important;border:0!important;color:var(--r1d-on)!important;border-radius:999px!important;box-shadow:none!important}
+  html body #mainApp#mainApp#mainApp #content :is(.list-search-box,.settings-search) input{background:transparent!important;color:var(--r1d-on)!important;border:0!important;box-shadow:none!important}
+  html body #mainApp#mainApp#mainApp #content :is(.list-search-box,.settings-search) input::placeholder{color:var(--r1d-on-soft)!important}
+  html body #mainApp#mainApp#mainApp #content :is(.list-search-box,.settings-search) :is(.icon,svg){color:var(--r1d-on-soft)!important}
+  html body #mainApp#mainApp#mainApp #content .list-chip-row :is(.filter-btn,.list-chip-select,.list-chip-more){background-color:var(--r1d-glass)!important;color:var(--r1d-on)!important;border:0!important;box-shadow:none!important}
+  html body #mainApp#mainApp#mainApp #content .list-chip-row .list-chip-select :is(select,span){background-color:transparent!important;color:var(--r1d-on)!important}
+  html body #mainApp#mainApp#mainApp #content .list-chip-row .filter-btn.active{background:#fff!important;color:#16191C!important}
+  html body #mainApp#mainApp#mainApp #content .list-chip-row .list-chip-gap{background:rgba(255,255,255,.3)!important}
+  html body #mainApp#mainApp#mainApp #content#content :is(.card.table-card,.card.documents-workspace,.report-story,.report-story-facts,.dashboard-attention,#content>.card,#profileForm>.profile-section,#profileForm>.profile-more){background:var(--calm-surface)!important;border:0!important;border-radius:24px!important;box-shadow:none!important;color:var(--calm-ink)}
+  html body #mainApp#mainApp#mainApp #content#content .card.table-card{padding:6px 14px!important;overflow:hidden}
+  html body #mainApp#mainApp#mainApp #content#content :is(.card.documents-workspace,.dashboard-attention,#content>.card:not(.table-card),#profileForm>.profile-section,#profileForm>.profile-more){padding:16px!important}
+  html body #mainApp#mainApp#mainApp #content#content #profileForm>.profile-more{margin-top:12px!important}
+  html body #mainApp#mainApp#mainApp #content#content .report-story{padding:14px 14px 10px!important;margin-top:12px!important}
+  html body #mainApp#mainApp#mainApp #content :is(.settings-quick-label,.settings-center-group-label,.vat-phone-note,.trip-rate,.bank-list-title,.bank-list-title *){color:var(--r1d-on)!important}
+  html body #mainApp#mainApp#mainApp #content :is(.vat-phone-note,.trip-rate){color:var(--r1d-on-soft)!important}
+  html body #mainApp#mainApp#mainApp #content :is(.assistant-disclaimer:not(.card *,.r1d-recent *),#content>.help){color:var(--r1d-on-soft)!important}
+  html body #mainApp#mainApp#mainApp #content .settings-profile-card{border:0!important;border-radius:24px!important}
+  html body #mainApp#mainApp#mainApp #content .settings-quick-tile{border:0!important;border-radius:22px!important}
+  html body #mainApp#mainApp#mainApp #content .settings-center-group>:not(h2){border:0!important;border-radius:22px!important}
+  html body #mainApp#mainApp#mainApp #content .r1d-bento .r1d-tile{border-radius:24px!important}
+
+  /* 3. Every sheet looks the same: light grey, round top, big title on the left edge of the fields, a round close button, white blocks. */
+  html body #modalRoot#modalRoot .modal-backdrop:not(.invoice-page-backdrop){align-items:flex-end!important;padding:0!important;background:rgba(10,14,12,.5)!important}
+  html body #modalRoot#modalRoot .modal:not(.invoice-page){width:100%!important;max-width:none!important;border:0!important;border-radius:28px 28px 0 0!important;background:var(--r1d-sheet)!important;box-shadow:0 -12px 40px rgba(0,0,0,.18)!important}
+  html body #modalRoot#modalRoot .modal .modal-head{flex-direction:row!important;justify-content:space-between!important;align-items:center!important;gap:12px!important;padding:16px 16px 6px!important;border:0!important;background:transparent!important}
+  html body #modalRoot#modalRoot .modal .modal-head h3{font-size:24px!important;font-weight:750!important;letter-spacing:-.03em!important;color:var(--calm-ink)!important}
+  html body #modalRoot#modalRoot .modal .modal-close{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;border:0!important;border-radius:50%!important;background:var(--calm-surface)!important;font-size:18px!important;color:var(--calm-ink)!important;box-shadow:none!important;outline:none!important;flex:0 0 auto}
+  html body #modalRoot#modalRoot .modal:not(.invoice-page) .modal-body{background:transparent!important}
+  html body #modalRoot#modalRoot .modal:not(.invoice-page) .modal-foot{border:0!important;background:transparent!important}
+  html body #modalRoot#modalRoot .modal :is(.modal-foot .btn.primary){border-radius:999px!important;min-height:50px}
+  html body #modalRoot#modalRoot .quick-action-modal .quick-tile{background:var(--calm-surface)!important;border:0!important;border-radius:22px!important}
+  html body #modalRoot#modalRoot .quick-action-modal .quick-rows{margin-top:12px!important;padding:4px 14px!important;border-radius:22px!important;background:var(--calm-surface)!important}
+  html body #modalRoot#modalRoot .quick-action-modal .quick-rows .quick-action:last-child{border-bottom:0!important}
+  html body #modalRoot#modalRoot .modal:not(.invoice-page) :is(input:not([type=checkbox]):not([type=radio]),select,textarea){background-color:var(--calm-surface)!important;border-color:transparent!important;border-radius:14px!important}
+  html body #modalRoot#modalRoot .modal:not(.invoice-page) .expense-form :is(.chip,.choice-chip,button[aria-pressed="false"]){background:var(--calm-surface)!important;border-color:transparent!important}
+
+  /* 4. Full-screen pages (Factuur bekijken) open on the same colour: title and amount white, blocks white. */
+  html body #modalRoot#modalRoot .modal.invoice-page{background:var(--r1d-canvas)!important;color:var(--r1d-on)}
+  html body #modalRoot#modalRoot .modal.invoice-page :is(.modal-head,.modal-body){background:transparent!important}
+  html body #modalRoot#modalRoot .modal.invoice-page .modal-head h3{color:var(--r1d-on)!important;font-size:17px!important;font-weight:650!important}
+  html body #modalRoot#modalRoot .modal.invoice-page .modal-close{background:var(--r1d-glass)!important;color:var(--r1d-on)!important}
+  html body #modalRoot#modalRoot .modal.invoice-page .invoice-view-summary{text-align:center;align-items:center!important}
+  html body #modalRoot#modalRoot .modal.invoice-page :is(.invoice-view-who,.invoice-view-status,.invoice-view-status *:not(.badge)){color:var(--r1d-on-soft)!important;justify-content:center}
+  html body #modalRoot#modalRoot .modal.invoice-page .invoice-view-amount{color:var(--r1d-on)!important;font-size:clamp(34px,11vw,44px)!important}
+  html body #modalRoot#modalRoot .modal.invoice-page .invoice-view-status .badge{background:var(--r1d-glass)!important;color:var(--r1d-on)!important;border:0!important}
+  html body #modalRoot#modalRoot .modal.invoice-page .invoice-preview{border-radius:24px!important;border:0!important}
+  html body #modalRoot#modalRoot .modal.invoice-page .invoice-timeline{margin-top:12px!important;padding:16px!important;border-radius:24px!important;background:var(--calm-surface)!important;color:var(--calm-ink)}
+  html body #modalRoot#modalRoot .modal.invoice-page .a4-expand{color:var(--calm-ink)!important}
+  html body #modalRoot#modalRoot .modal.invoice-page .modal-foot{background:var(--calm-surface)!important;border:0!important;border-radius:28px 28px 0 0!important}
+
+  /* 5. The menu: the same colour, white text, the open page as a glass pill. */
+  html body #sidebar#sidebar{background:var(--r1d-canvas)!important;border:0!important;color:var(--r1d-on)}
+  html body #sidebar#sidebar :is(.bookuna-wordmark,.bookuna-wordmark *,.nav-item,.nav-item .icon,.drawer-who strong){color:var(--r1d-on)!important}
+  html body #sidebar#sidebar :is(.nav-group,.bookuna-wordmark small,.drawer-who span){color:var(--r1d-on-soft)!important}
+  html body #sidebar#sidebar .nav-item{background:transparent!important;border-radius:14px!important}
+  html body #sidebar#sidebar .nav-item.active{background:var(--r1d-glass)!important}
+  html body #sidebar#sidebar#sidebar .nav-item.active,html body #sidebar#sidebar#sidebar .nav-item.active :is(.icon,svg,span){color:#fff!important}
+  html body #sidebar#sidebar#sidebar :is(.drawer-theme,.drawer-switch,.drawer-theme *){color:var(--r1d-on)!important}
+  html body #sidebar#sidebar .drawer-profile{background:var(--r1d-glass)!important;border:0!important;border-radius:20px!important}
+  html body #sidebar#sidebar .mobile-drawer-close{background:var(--r1d-glass)!important;color:var(--r1d-on)!important;border:0!important;border-radius:50%!important}
+}
