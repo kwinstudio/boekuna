@@ -106,8 +106,10 @@ try{
     // round shortcuts; then blocks: Omzet wide, Kosten tall, Te ontvangen and Btw (Vrij once money came in) beside it.
     const hero=await page.locator('.r1d-hero').evaluate(el=>{const r=el.getBoundingClientRect(),w=el.querySelector('.dashboard-kpi-profit').getBoundingClientRect(),p=el.querySelector('.period-seg-select').getBoundingClientRect(),bar=document.querySelector('.topbar');return {left:r.left,right:r.right,top:r.top,barBottom:bar.getBoundingClientRect().bottom,winstBottom:w.bottom,pickTop:p.top,pickRight:p.right,bg:getComputedStyle(el).backgroundImage,barBg:getComputedStyle(bar).backgroundColor}});
     assert.ok(hero.left===0&&hero.right===390&&Math.abs(hero.top-hero.barBottom)<=1,'The green band runs edge to edge, right under the top bar: '+JSON.stringify(hero));
-    assert.match(hero.bg,/linear-gradient/,'The band is a green gradient');
-    assert.equal(hero.barBg,'rgb(15, 42, 26)','The top bar takes the dark green of the band');
+    // Kwin 2026-10-24 ("de achtergrond over heel de scherm"): the green gradient is the whole screen, behind a see-through band and top bar.
+    assert.match(await page.evaluate(()=>getComputedStyle(document.body,'::before').backgroundImage),/linear-gradient/,'The screen is a green gradient');
+    assert.equal(hero.bg,'none','The band lets the screen colour through');
+    assert.equal(hero.barBg,'rgba(0, 0, 0, 0)','The top bar lets the screen colour through');
     assert.ok(hero.pickTop>=hero.winstBottom&&hero.pickRight<=390,'The period button sits under Winst: '+JSON.stringify(hero));
     assert.deepEqual((await page.locator('.r1d-action').allInnerTexts()).map(s=>s.trim()),['Factuur','Bon','Bank','Meer']);
     assert.equal(await page.locator('.dashboard-kpis-calm .dashboard-kpi').count(),1,'Only the Winst block');
@@ -181,7 +183,8 @@ try{
     const {context,page}=await openApp(390,844);
     const bg=sel=>page.locator(sel).first().evaluate(el=>getComputedStyle(el).backgroundColor);
     // Kwin 2026-10-23 (R1D as picked): the overview is light grey with white cards; menu and search are round buttons on the green.
-    assert.equal(await bg('#content'),'rgb(242, 243, 245)','The overview is light grey on a phone');
+    // Kwin 2026-10-24: the band colour is now the whole screen, so the page itself is see-through over it.
+    assert.equal(await bg('#content'),'rgba(0, 0, 0, 0)','The overview lets the screen colour through on a phone');
     assert.equal(await page.locator('#mobileMenu').evaluate(el=>getComputedStyle(el).borderTopWidth+'|'+getComputedStyle(el).backgroundColor),'0px|rgba(255, 255, 255, 0.12)','Menu is a round button on the green band');
     assert.equal(await page.locator('.calm-list').isVisible(),true,'One calm list under the Winst block');
     const todo=page.locator('#content .dashboard-attention-item').first();
