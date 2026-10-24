@@ -384,13 +384,18 @@
    before the first render; the account choice (state.meta.band) wins once the administration is loaded. */
 (function(){
   'use strict';
-  var KEY='boekuna-band';
-  function readLocal(){try{return localStorage.getItem(KEY)||''}catch(e){return ''}}
-  function apply(id){if(!id||id==='groen')delete document.documentElement.dataset.band;else document.documentElement.dataset.band=id}
-  apply(readLocal());
+  // The same for the Sfeer photo behind the overview band (Kwin 2026-10-24): key boekuna-sfeer, attribute data-sfeer, 'geen' = none.
+  var CHOICES=[['boekuna-band','band','groen'],['boekuna-sfeer','sfeer','geen']];
+  function readLocal(key){try{return localStorage.getItem(key)||''}catch(e){return ''}}
+  function apply(attr,id,none){if(!id||id===none)delete document.documentElement.dataset[attr];else document.documentElement.dataset[attr]=id}
+  CHOICES.forEach(function(c){apply(c[1],readLocal(c[0]),c[2])});
   function sync(){
-    try{var b=typeof state!=='undefined'&&state&&state.meta?state.meta.band:'';if(typeof b==='string'&&b&&b!==readLocal()){try{localStorage.setItem(KEY,b)}catch(e){}apply(b)}}catch(e){}
+    CHOICES.forEach(function(c){try{var v=typeof state!=='undefined'&&state&&state.meta?state.meta[c[1]]:'';if(typeof v==='string'&&v&&v!==readLocal(c[0])){try{localStorage.setItem(c[0],v)}catch(e){}apply(c[1],v,c[2])}}catch(e){}});
   }
-  function install(){if(typeof render!=='function')return;var original=render;render=function(){sync();return original.apply(this,arguments)}}
+  // The Sfeer photo runs under the top bar, so the overview band is pulled up by the bar's real height (safe area included).
+  function measureTopbar(){try{var bar=document.querySelector('#mainApp .topbar');if(bar)document.documentElement.style.setProperty('--r1d-topbar-h',bar.offsetHeight+'px')}catch(e){}}
+  window.addEventListener('resize',measureTopbar);window.addEventListener('load',measureTopbar);
+  function watchTopbar(){try{var bar=document.querySelector('#mainApp .topbar');if(bar&&'ResizeObserver' in window)new ResizeObserver(measureTopbar).observe(bar)}catch(e){}measureTopbar()}
+  function install(){watchTopbar();if(typeof render!=='function')return;var original=render;render=function(){sync();var out=original.apply(this,arguments);measureTopbar();return out}}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
