@@ -111,7 +111,8 @@ try{
   await phone.page.locator('#quickNew').click();
   await phone.page.locator('#modalRoot .quick-action-modal').waitFor();
   // Kwin 2026-10-26 (roast room M1): the sheet slides up from below; measure it once the slide has finished.
-  await phone.page.waitForFunction(()=>{const m=document.querySelector('#modalRoot .quick-action-modal');return m&&m.getAnimations().every(a=>a.playState==='finished')});
+  // Wait for the end position (a slow runner can start the slide a few frames late); then check it.
+  await phone.page.waitForFunction(()=>{const m=document.querySelector('#modalRoot .quick-action-modal');return m&&Math.abs(m.getBoundingClientRect().bottom-innerHeight)<=2},null,{timeout:3000}).catch(()=>{});
   const box=await phone.page.locator('#modalRoot .quick-action-modal').boundingBox();
   assert.ok(box.y>40&&Math.abs(box.y+box.height-844)<=2,'Nieuw sheet sits on the bottom edge: '+JSON.stringify(box));
   assert.equal(await phone.page.evaluate(()=>getComputedStyle(document.querySelector('#modalRoot .quick-action-modal')).animationName.includes('boekuna-motion')),false,'No motion animation on the pop-up');
