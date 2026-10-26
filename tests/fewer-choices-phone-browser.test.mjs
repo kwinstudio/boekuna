@@ -40,14 +40,16 @@ try{
   await more.click();
   assert.equal(await phone.locator('#content .dashboard-attention-item:visible').count(),total,'all to-dos after Nog bekijken');
 
-  // Nieuw: one Uploaden, one Bank (which then offers bankbestand or losse betaling).
-  // Kwin 2026-10-21 (voorstel A): no Meer fold; they are the first rows under the three tiles.
+  // Nieuw: one Uploaden. Kwin 2026-10-21 (voorstel A): no Meer fold; it is the first row under the three tiles.
+  // Kwin 2026-10-26 (roast room U3): Bank left Nieuw; the round Bank button on the overview offers bankbestand or losse betaling.
   await phone.locator('#quickNew').click();
   const meer=await labels(phone,'#modalRoot .quick-rows .quick-action strong');
-  assert.deepEqual(meer.slice(0,2),['Uploaden','Bank'],'Rows start with Uploaden and Bank: '+meer.join(', '));
+  assert.deepEqual(meer.slice(0,3),['Uploaden','Rit','Uren'],'Rows: '+meer.join(', '));
+  for(const gone of ['Bank','Relatie','Offerte','Dienst'])assert.ok(!meer.includes(gone),'made elsewhere: '+gone);
   for(const gone of ['Banktransactie','Bankbestand','Factuur uploaden','Document uploaden'])assert.ok(!meer.includes(gone),'merged: '+gone);
   assert.match(await phone.locator('#modalRoot .quick-action').filter({hasText:'Uploaden'}).getAttribute('onclick'),/openDocumentUpload\(\)/);
-  await phone.locator('#modalRoot .quick-action').filter({hasText:'Bank'}).first().click();
+  await phone.evaluate(()=>{closeModal();navigate('dashboard')});
+  await phone.locator('#content .r1d-action').filter({hasText:'Bank'}).click();
   await phone.locator('#modalRoot .quick-bank-choice').waitFor();
   assert.deepEqual(await labels(phone,'#modalRoot .quick-bank-choice strong'),['Bankbestand','Losse betaling']);
   await phone.locator('#modalRoot .quick-action').filter({hasText:'Losse betaling'}).click();

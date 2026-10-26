@@ -157,7 +157,8 @@ try{
   await page.evaluate(()=>setPhoneBand('oceaan'));
   await settles(primary,'backgroundColor',rgb('#1D5FB8'),'Oceaan: the primary button takes the band accent');
   await settles(primary,'color',rgb('#FFFFFF'),'white text on the accent');
-  await settles(page.locator('#mobileBottomNav .mobile-bottom-nav-item.active span').first(),'color',rgb('#1D5FB8'),'the active tab follows the band');
+  // Kwin 2026-10-26 (roast room V1): the bottom bar is a glass pill in the band colour, so the open tab is white in every band.
+  await settles(page.locator('#mobileBottomNav .mobile-bottom-nav-item.active span').first(),'color',rgb('#FFFFFF'),'the active tab is white on the glass bar');
   await page.evaluate(()=>BoekunaTheme.set('dark'));
   await settles(primary,'backgroundColor',rgb('#6FA3EE'),'Donker: a lighter accent');
   await settles(primary,'color',rgb('#10150F'),'dark ink on the light accent');
