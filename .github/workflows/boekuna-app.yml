@@ -32,6 +32,7 @@ on:
       - "public/assets/personal-insights-ui.js"
       - "tests/look-browser.test.mjs"
       - "tests/revolut-widgets-browser.test.mjs"
+      - "tests/roast-room-phone-browser.test.mjs"
       - "kwinest/app-assets/sortable.min.js"
       - "tests/trips-and-todo-links.test.mjs"
       - "tests/fewer-choices-phone-browser.test.mjs"
@@ -268,6 +269,10 @@ jobs:
         run: |
           node tests/revolut-widgets-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/revolut-widgets-browser.test.mjs
+      - name: Roast room top 5 (sheets glijden, winst-%, te laat, minder knoppen, glazen tabbalk) — Chromium and WebKit
+        run: |
+          node tests/roast-room-phone-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/roast-room-phone-browser.test.mjs
       - name: Bonnen in de tabbalk, Nog te doen opent de lijst, Ritten met automatische afstand — Chromium and WebKit
         run: |
           node tests/trips-and-todo-links.test.mjs

@@ -520,7 +520,8 @@ try{
         // Kwin 2026-10-10 (calmer on white): the open page is a green icon and word, without a block or a line.
         const activeMobileStyle=await activeMobileNav.evaluate(el=>{const s=getComputedStyle(el),label=getComputedStyle(el.querySelector('span'));return {background:s.backgroundColor,color:label.color,boxShadow:s.boxShadow,borderTopWidth:s.borderTopWidth,fontWeight:label.fontWeight}});
         assert.equal(activeMobileStyle.background,'rgba(0, 0, 0, 0)',browserName+' mobile '+width+' active destination has no block behind it');
-        assert.equal(activeMobileStyle.color,'rgb(47, 125, 59)',browserName+' mobile '+width+' active destination label is BOEKUNA green');
+        // Kwin 2026-10-26 (roast room V1): the bar is a glass pill in the band colour; the open page is white, the others soft white.
+        assert.equal(activeMobileStyle.color,'rgb(255, 255, 255)',browserName+' mobile '+width+' active destination label is white on the glass bar');
         assert.equal(activeMobileStyle.boxShadow,'none',browserName+' mobile '+width+' active destination must not use a decorative shadow');
         assert.equal(activeMobileStyle.borderTopWidth,'0px',browserName+' mobile '+width+' active destination has no line on top');
         assert.ok(Number.parseInt(activeMobileStyle.fontWeight,10)>=700,browserName+' mobile '+width+' active destination must retain a font-weight selection cue');
