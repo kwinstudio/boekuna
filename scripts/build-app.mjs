@@ -11,24 +11,12 @@ const target=path.join(root,'dist','app');
 const appSource=path.join(root,'kwinest','index.html');
 const manifestSource=path.join(root,'public','manifest.webmanifest');
 const assetsSource=path.join(root,'public','assets');
-const appFontCache=path.join(root,'.cache','app-fonts');
-const SPACE_GROTESK_COMMIT='9710da1eacb3be272583c3224dcb70f9da6eadbb';
-const SPACE_GROTESK_URL='https://raw.githubusercontent.com/google/fonts/'+SPACE_GROTESK_COMMIT+'/ofl/spacegrotesk/SpaceGrotesk%5Bwght%5D.ttf';
 const releaseProfile=resolveReleaseProfile();
 const releaseFeatures=releaseProfile.features;
 const assistantFlag=String(process.env.BOEKUNA_ASSISTANT_ENABLED??'true').trim().toLowerCase();
 const assistantRequested=!['0','false','no','off'].includes(assistantFlag);
 const assistantEnabled=isReleaseFeatureEnabled(releaseFeatures,'personalAssistant')&&assistantRequested;
 
-async function cacheAppFont(url,name){
-  fs.mkdirSync(appFontCache,{recursive:true});
-  const file=path.join(appFontCache,name);
-  if(fs.existsSync(file)&&fs.statSync(file).size>1000)return file;
-  const response=await fetch(url,{redirect:'follow'});
-  if(!response.ok)throw new Error('Could not fetch pinned app font '+name+': HTTP '+response.status);
-  fs.writeFileSync(file,Buffer.from(await response.arrayBuffer()));
-  return file;
-}
 const appAssets=[
   'boekuna-app-icon-180.png',
   'boekuna-app-icon-192.png',
@@ -58,9 +46,9 @@ for(const file of [appSource,manifestSource,assetsSource]){
   if(!fs.existsSync(file))throw new Error('Missing app build source: '+path.relative(root,file));
 }
 
-const spaceGroteskFont=await cacheAppFont(SPACE_GROTESK_URL,'SpaceGrotesk-Variable.ttf');
-const interFontSource=path.join(assetsSource,'marketing-editorial','InterVariable.woff2');
-if(!fs.existsSync(interFontSource))throw new Error('Missing app Inter font source');
+// App fonts: Latin subsets with only the weight axis (Inter 87 kB, Space Grotesk 33 kB instead of 344 + 134 kB).
+const appFonts=['app-inter-var.woff2','app-space-grotesk-var.woff2'].map(name=>path.join(assetsSource,'fonts',name));
+for(const file of appFonts)if(!fs.existsSync(file))throw new Error('Missing app font source: '+path.relative(root,file));
 
 let appHtml=fs.readFileSync(appSource,'utf8');
 
@@ -409,6 +397,11 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-viewer
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/native-local-first.js?v=20261008a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/sortable.min.js?v=1.15.6" defer></script>\n<script src="/assets/look.js?v=20261024b"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/motion.js?v=20261022a"></script>\n');
+// Press feel (Kwin 2026-10-26): buttons sink under a finger and tick on a phone. Its stylesheet goes last in the document's
+// own <head> (the first </head>; later ones sit inside print templates in the script).
+{const headEnd=appHtml.indexOf('</head>');if(headEnd<0)throw new Error('Missing app document marker: </head>');
+appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/press.css?v=20261026a">\n'+appHtml.slice(headEnd);}
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/press.js?v=20261026a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});
@@ -438,6 +431,7 @@ for(const asset of ['boekuna-app-favicon.svg','document-review-v2.js','document-
   if(!fs.existsSync(sourceFile))throw new Error('Missing app-only review asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
 }
+for(const asset of ['press.css','press.js'])fs.copyFileSync(path.join(root,'kwinest','app-assets',asset),path.join(appAssetsTarget,asset));
 
 // Assistant integration is app-only. Keep shared public mobile assets byte-identical
 // to the marketing source and patch only the generated product artifact.
@@ -626,7 +620,6 @@ patchBuiltAppAsset(
   fs.writeFileSync(indexFile,builtHtml,'utf8');
 }
 
-fs.copyFileSync(interFontSource,path.join(appAssetsTarget,'app-InterVariable.woff2'));
-fs.copyFileSync(spaceGroteskFont,path.join(appAssetsTarget,'app-SpaceGrotesk-Variable.ttf'));
+for(const file of appFonts)fs.copyFileSync(file,path.join(appAssetsTarget,path.basename(file)));
 
 console.log('App build complete:',path.relative(root,target),'with system UI typography polish');
