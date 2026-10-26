@@ -193,46 +193,6 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',sync);else sync();
 })();
 
-/* 21. Pull down to refresh on the phone. It reloads the app the normal way (the same as closing
-   and reopening it), and only when everything is saved, so nothing that is still being stored is lost. */
-(function(){
-  'use strict';
-  var phone=matchMedia('(max-width:820px) and (pointer:coarse)');
-  var startY=null,dy=0,pill=null,armed=false,TRIGGER=80;
-  function ui(){
-    if(pill)return pill;
-    pill=document.createElement('div');pill.className='pull-refresh';pill.setAttribute('role','status');pill.setAttribute('aria-live','polite');
-    pill.innerHTML='<span class="pull-refresh-spin" aria-hidden="true"></span><span class="pull-refresh-text"></span>';
-    document.body.appendChild(pill);return pill;
-  }
-  function blocked(target){
-    var app=document.getElementById('mainApp');
-    if(!app||app.classList.contains('hidden')||!phone.matches)return true;
-    if(document.querySelector('#modalRoot .modal-backdrop'))return true;
-    if(document.body.classList.contains('mobile-drawer-open')||document.getElementById('sidebar')?.classList.contains('open'))return true;
-    return !(target&&target.closest&&target.closest('#content'))||(window.scrollY||document.documentElement.scrollTop)>0;
-  }
-  function show(text,y){var p=ui();p.querySelector('.pull-refresh-text').textContent=text;p.classList.add('is-visible');p.style.transform='translate(-50%,'+Math.min(0,y-60)+'px)'}
-  function hide(){if(pill){pill.classList.remove('is-visible','is-loading');pill.style.transform=''}}
-  document.addEventListener('touchstart',function(e){startY=e.touches.length===1&&!blocked(e.target)?e.touches[0].clientY:null;dy=0;armed=false},{passive:true});
-  document.addEventListener('touchmove',function(e){
-    if(startY==null)return;
-    dy=e.touches[0].clientY-startY;
-    if(dy<=8||(window.scrollY||0)>0){hide();return}
-    armed=dy>TRIGGER;
-    show(armed?'Laat los om te verversen':'Trek om te verversen',Math.min(dy,TRIGGER+20));
-  },{passive:true});
-  document.addEventListener('touchend',function(){
-    if(startY==null)return;startY=null;
-    if(!armed){hide();return}
-    var status=typeof cloudSyncStatus!=='undefined'?cloudSyncStatus:'saved';
-    if(!navigator.onLine||status==='offline'){show('Geen verbinding',80);setTimeout(hide,1600);return}
-    if(status!=='saved'){show('Even wachten, nog aan het opslaan',80);setTimeout(hide,1800);return}
-    var p=ui();p.classList.add('is-loading');show('Nieuwste ophalen…',80);
-    setTimeout(function(){location.reload()},150);
-  },{passive:true});
-})();
-
 /* 16. iPhone quick actions (hold the app icon): the native shell calls boekunaQuickAction('scan'|'invoice').
    It waits until you are logged in. Scanning asks for one tap, because iOS only opens the camera after a tap. */
 (function(){
@@ -418,4 +378,33 @@
     setTimeout(wrapSave,0);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+})();
+
+/* 25. Band colour (Kwin 2026-10-23, "thema zoals Revolut"): this device's last choice goes on <html data-band>
+   before the first render; the account choice (state.meta.band) wins once the administration is loaded. */
+(function(){
+  'use strict';
+  // The same for the Sfeer photo behind the overview band (Kwin 2026-10-24): key boekuna-sfeer, attribute data-sfeer, 'geen' = none.
+  var CHOICES=[['boekuna-band','band','groen'],['boekuna-sfeer','sfeer','geen']];
+  function readLocal(key){try{return localStorage.getItem(key)||''}catch(e){return ''}}
+  function apply(attr,id,none){if(!id||id===none)delete document.documentElement.dataset[attr];else document.documentElement.dataset[attr]=id}
+  CHOICES.forEach(function(c){apply(c[1],readLocal(c[0]),c[2])});
+  function sync(){
+    CHOICES.forEach(function(c){try{var v=typeof state!=='undefined'&&state&&state.meta?state.meta[c[1]]:'';if(typeof v==='string'&&v&&v!==readLocal(c[0])){try{localStorage.setItem(c[0],v)}catch(e){}apply(c[1],v,c[2])}}catch(e){}});
+  }
+  // The Sfeer photo runs under the top bar, so the overview band is pulled up by the bar's real height (safe area included).
+  function measureTopbar(){try{var bar=document.querySelector('#mainApp .topbar');if(bar)document.documentElement.style.setProperty('--r1d-topbar-h',bar.offsetHeight+'px')}catch(e){}}
+  window.addEventListener('resize',measureTopbar);window.addEventListener('load',measureTopbar);
+  function watchTopbar(){try{var bar=document.querySelector('#mainApp .topbar');if(bar&&'ResizeObserver' in window)new ResizeObserver(measureTopbar).observe(bar)}catch(e){}measureTopbar()}
+  function install(){watchTopbar();if(typeof render!=='function')return;var original=render;render=function(){sync();var out=original.apply(this,arguments);measureTopbar();return out}}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+})();
+
+/* 27. Kwin 2026-10-24 (iPhone screenshot): after a tap the menu button got its keyboard ring back when the menu closed.
+   Remember whether the last input was touch/mouse or keys; the ring only shows for keys. */
+(function(){
+  'use strict';
+  var root=document.documentElement;
+  document.addEventListener('pointerdown',function(){root.classList.add('is-pointer')},true);
+  document.addEventListener('keydown',function(e){if(e.key==='Tab'||e.key==='Escape'||e.key==='Enter'||e.key===' ')root.classList.remove('is-pointer')},true);
 })();

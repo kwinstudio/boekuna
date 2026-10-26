@@ -42,7 +42,9 @@ try{
   const vat=await text(phone,'vat');
   gone(vat,['indicatie','Over €','Uit 2 bonnen'],'Btw');
   kept(vat,['Boekuna verstuurt deze aangifte niet'],'Btw');
-  assert.equal((await phone.locator('#content :is(.product-page-head,.r1d-title) .page-status').first().innerText()).trim(),(await phone.locator('.vat-period-label').innerText()).trim(),'Btw title line is only the quarter');
+  // The quarter is the period pill in the band (round 2, 2026-10-23); the title line carries nothing else.
+  assert.equal((await phone.locator('#content .r1d-hero .r1d-pill-btn').first().innerText()).trim(),(await phone.locator('.vat-period-label').innerText()).trim(),'Btw band shows only the quarter as its period pill');
+  assert.equal(await phone.locator('#content .r1d-title .page-status').count(),0,'Btw title line has no subtitle on the phone');
   const reports=await text(phone,'reports');
   gone(reports,['Inzicht in je omzet','Omzet · Kosten · Winst','beide jaren','Dit jaar · te betalen',"Hele euro",'Voor je eigen archief','Je rapport als document','klanten · excl. btw','je neemt de bedragen over'],'Rapportages');
   kept(reports,['Zelfstandigenaftrek alleen bij 1.225 uur of meer. Boekuna verstuurt deze aangifte niet.','Naar Data & export'],'Rapportages');
