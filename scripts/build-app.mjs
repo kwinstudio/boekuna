@@ -47,7 +47,7 @@ for(const file of [appSource,manifestSource,assetsSource]){
 }
 
 // App fonts: Latin subsets with only the weight axis (Inter 87 kB, Space Grotesk 33 kB instead of 344 + 134 kB).
-const appFonts=['app-inter-var.woff2','app-space-grotesk-var.woff2'].map(name=>path.join(assetsSource,'fonts',name));
+const appFonts=['app-inter-var.woff2','app-space-grotesk-var.woff2'].map(name=>path.join(root,'kwinest','app-assets',name));
 for(const file of appFonts)if(!fs.existsSync(file))throw new Error('Missing app font source: '+path.relative(root,file));
 
 let appHtml=fs.readFileSync(appSource,'utf8');
