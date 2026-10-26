@@ -110,7 +110,8 @@ try{
   const phone=await openApp({width:390,height:844});
   await phone.page.locator('#quickNew').click();
   await phone.page.locator('#modalRoot .quick-action-modal').waitFor();
-  await phone.page.waitForTimeout(450);
+  // Kwin 2026-10-26 (roast room M1): the sheet slides up from below; measure it once the slide has finished.
+  await phone.page.waitForFunction(()=>{const m=document.querySelector('#modalRoot .quick-action-modal');return m&&m.getAnimations().every(a=>a.playState==='finished')});
   const box=await phone.page.locator('#modalRoot .quick-action-modal').boundingBox();
   assert.ok(box.y>40&&Math.abs(box.y+box.height-844)<=2,'Nieuw sheet sits on the bottom edge: '+JSON.stringify(box));
   assert.equal(await phone.page.evaluate(()=>getComputedStyle(document.querySelector('#modalRoot .quick-action-modal')).animationName.includes('boekuna-motion')),false,'No motion animation on the pop-up');
