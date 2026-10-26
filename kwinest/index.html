@@ -4788,7 +4788,7 @@ function dashboardCalmPhoneHtml(kpi,greeting,periodControl,notices){
  // Kwin 2026-10-23: the "te doen" pill is off the overview for now (phoneOverviewTodo brings it back); a scan problem still shows its retry.
  (phoneOverviewTodo&&(todo||(typeof openAskBoekuna==='function'&&!docError))?'<details class="calm-todo'+(todo?'':' is-clear')+'"'+(docError?' open':'')+'><summary><span class="calm-todo-dot" aria-hidden="true"></span><strong>'+(todo?todo+' te doen':'Niets te doen')+'</strong>'+icon('i-chevron')+'</summary>'+renderAssistantDashboardSafe()+'</details>':(docError?renderAssistantDashboardSafe():''))+
  // o4: hours towards the 1.225 for zelfstandigenaftrek, once you log hours.
- (hours>0&&!phoneWidgetIds().includes('uren')?'<button type="button" class="r1d-hours" onclick="openHoursSheet()">'+num(hours)+' / 1.225 uur</button>':'');
+ (hours>0&&!phoneWidgetIds().includes('uren')?'<button type="button" class="r1d-hours" onclick="openHoursSheet()" aria-label="'+esc(num(hours)+' van 1.225 uur voor de zelfstandigenaftrek')+'">'+icon('i-clock')+'<span>'+num(hours)+' / 1.225 uur</span></button>':'');
  return '<div class="page-head dashboard-page-head calm-head r1d-head"><div><h1 class="sr-only" aria-label="'+esc('Overzicht, '+greeting.title)+'">Overzicht</h1></div></div>'+notices+
  '<section class="r1d-hero">'+
   '<div class="grid dashboard-kpis dashboard-kpis-calm"><button type="button" class="card metric dashboard-kpi dashboard-kpi-profit kpi-hero" data-kpi-dot="winst" onclick="navigate(\'reports\')"><div class="metric-head"><span class="dashboard-kpi-label">Winst</span></div><div class="metric-value">'+money(kpi.profit)+'</div></button></div>'+
@@ -4864,7 +4864,7 @@ function renderExpenses(){
  const review=rows.filter(e=>!String(e.vendor||'').trim()||!String(e.category||'').trim()||!Number.isFinite(Number(e.exVat))).length,costRing=kpiRingHtml(dashboardCostCategories(period));
  return `<div class="product-page-shell"><div class="page-head product-page-head financial-page-head"><div><h1>Kosten</h1>${deskCopyHtml('Bekijk en controleer je zakelijke kosten.','page-status','p')}</div><div class="page-period-slot">${financialPeriodSelect('expensePeriod')}</div></div>${state.expenses.length?`<div class="page-actions product-page-actions"><button class="btn primary" onclick="openUploadSourcePicker('purchase')">${icon('i-upload')} Bon toevoegen</button><button class="btn" onclick="newExpense()">${icon('i-plus')} Zelf invullen</button></div>`:''}</div>
  ${financialPeriodRangeHtml()}
- ${phoneLayout()?productKpiGrid([productKpiHero('Kosten',money(net),'','kosten')],'grid-1 calm-kpis'):productKpiGrid([
+ ${phoneLayout()?productKpiGrid([productKpiHero('Uitgegeven excl. btw',money(net),'','kosten')],'grid-1 calm-kpis'):productKpiGrid([
   productKpi('Kosten',money(net),vat>0?'waarvan '+money(vat)+' btw terug':'','i-receipt','neutral','','kosten'),
   ...(costRing?[productKpi('Waaraan',null,'','i-chart','neutral',costRing,'kosten')]:[]),
   ...(review?[productKpi('Te controleren',String(review),'','i-check','warning','','open')]:[])

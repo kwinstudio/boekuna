@@ -36,6 +36,7 @@ on:
       - "tests/look-browser.test.mjs"
       - "tests/revolut-widgets-browser.test.mjs"
       - "tests/roast-room-phone-browser.test.mjs"
+      - "tests/netjes-snel-phone-browser.test.mjs"
       - "kwinest/app-assets/sortable.min.js"
       - "tests/trips-and-todo-links.test.mjs"
       - "tests/fewer-choices-phone-browser.test.mjs"
@@ -280,6 +281,10 @@ jobs:
         run: |
           node tests/roast-room-phone-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/roast-room-phone-browser.test.mjs
+      - name: Netjes en snel (snelle overgangen, sheet direct gevuld, kleine details) — Chromium and WebKit
+        run: |
+          node tests/netjes-snel-phone-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/netjes-snel-phone-browser.test.mjs
       - name: Bonnen in de tabbalk, Nog te doen opent de lijst, Ritten met automatische afstand — Chromium and WebKit
         run: |
           node tests/trips-and-todo-links.test.mjs
