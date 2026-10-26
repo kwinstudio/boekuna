@@ -90,7 +90,7 @@ assert.ok(source.includes('#mainApp .kpi-tone-success .metric-value{color:var(--
 const build=spawnSync(process.execPath,['scripts/build-app.mjs'],{cwd:root,encoding:'utf8'});
 assert.equal(build.status,0,'App build failed: '+(build.stderr||build.stdout));
 const dist=path.join(root,'dist','app');
-for(const file of ['index.html','manifest.webmanifest','assets/app-InterVariable.woff2','assets/app-SpaceGrotesk-Variable.ttf','assets/product-color-polish.css','assets/product-ux-polish-round-3.css'])assert.ok(fs.existsSync(path.join(dist,file)),'Built app asset missing '+file);
+for(const file of ['index.html','manifest.webmanifest','assets/app-inter-var.woff2','assets/app-space-grotesk-var.woff2','assets/product-color-polish.css','assets/product-ux-polish-round-3.css'])assert.ok(fs.existsSync(path.join(dist,file)),'Built app asset missing '+file);
 let appHtml=fs.readFileSync(path.join(dist,'index.html'),'utf8');
 assert.ok(appHtml.includes('boekuna-product-ui-reference-20261003'),'Built artifact must contain the new product UI layer');
 assert.ok(appHtml.includes('/assets/product-color-polish.css?v=20261006a'),'Built artifact must load the app-only colour polish layer');

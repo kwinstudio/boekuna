@@ -12,7 +12,7 @@ const axeSource=fs.readFileSync(require.resolve('axe-core/axe.min.js'),'utf8');
 const build=spawnSync(process.execPath,['scripts/build-app.mjs'],{cwd:root,encoding:'utf8'});
 assert.equal(build.status,0,'App build failed: '+(build.stderr||build.stdout));
 const dist=path.join(root,'dist','app');
-for(const file of ['index.html','manifest.webmanifest','assets/app-InterVariable.woff2','assets/app-SpaceGrotesk-Variable.ttf'])assert.ok(fs.existsSync(path.join(dist,file)),'Built app asset missing '+file);
+for(const file of ['index.html','manifest.webmanifest','assets/app-inter-var.woff2','assets/app-space-grotesk-var.woff2'])assert.ok(fs.existsSync(path.join(dist,file)),'Built app asset missing '+file);
 let appHtml=fs.readFileSync(path.join(dist,'index.html'),'utf8');
 assert.ok(appHtml.includes('mobile-product.js'),'Mobile app asset missing');
 assert.equal(appHtml.includes('function showMarketingPage'),false,'App artifact must remain free of marketing runtime');

@@ -1,12 +1,9 @@
 /* BOEKUNA motion — short, calm movement so the app responds to what you do.
    Everything sits under html.boekuna-motion (set by motion.js) and stops for prefers-reduced-motion. */
 
-/* 1. Buttons and cards give way a little while pressed. */
+/* 1. Buttons and cards change colour smoothly; the press itself (sink and spring back) lives in press.css. */
 html.boekuna-motion :is(#mainApp,#modalRoot) :is(.btn,.icon-btn,.nav-item,.mobile-bottom-nav-item,button.card,.dashboard-attention-item,.quick-action,.action-row,.mobile-card-main,.modal-close){
   transition:transform .12s ease,background-color .18s ease,border-color .18s ease,color .18s ease!important;
-}
-html.boekuna-motion :is(#mainApp,#modalRoot) :is(.btn,.icon-btn,.nav-item,.mobile-bottom-nav-item,button.card,.dashboard-attention-item,.quick-action,.action-row,.mobile-card-main,.modal-close):active:not(:disabled){
-  transform:scale(.97)!important;
 }
 
 /* 2. A new page eases in. */

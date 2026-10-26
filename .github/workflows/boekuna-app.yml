@@ -29,6 +29,9 @@ on:
       - "kwinest/app-assets/feedback.*"
       - "kwinest/app-assets/look.*"
       - "kwinest/app-assets/motion.*"
+      - "kwinest/app-assets/press.*"
+      - "kwinest/app-assets/app-*.woff2"
+      - "tests/press-browser.test.mjs"
       - "public/assets/personal-insights-ui.js"
       - "tests/look-browser.test.mjs"
       - "tests/revolut-widgets-browser.test.mjs"
@@ -257,6 +260,10 @@ jobs:
         run: |
           node tests/motion-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/motion-browser.test.mjs
+      - name: Knoppen met gewicht (indrukken, terugveren, tik op telefoon) en kleine lettertypes — Chromium and WebKit
+        run: |
+          node tests/press-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/press-browser.test.mjs
       - name: Intro bij opstarten (max 2,5 s, traag laden, reduced motion) — Chromium and WebKit
         run: |
           node tests/boot-intro-browser.test.mjs

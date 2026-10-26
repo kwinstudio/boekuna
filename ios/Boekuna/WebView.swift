@@ -88,6 +88,7 @@ struct BoekunaWebView: UIViewRepresentable {
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = true
         configuration.userContentController.add(context.coordinator, name: "boekunaPrint")
         configuration.userContentController.add(context.coordinator, name: "boekunaShare")
+        configuration.userContentController.add(context.coordinator, name: "boekunaHaptic")
         configuration.userContentController.addUserScript(WKUserScript(
             source: NativeShareBridge.script, injectionTime: .atDocumentStart, forMainFrameOnly: true
         ))
@@ -123,6 +124,7 @@ struct BoekunaWebView: UIViewRepresentable {
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKDownloadDelegate, WKScriptMessageHandler {
         private let model: BrowserModel
         private var downloadURLs: [ObjectIdentifier: URL] = [:]
+        private let haptic = UIImpactFeedbackGenerator(style: .light)
 
         init(model: BrowserModel) {
             self.model = model
@@ -283,6 +285,12 @@ struct BoekunaWebView: UIViewRepresentable {
                   message.frameInfo.securityOrigin.protocol == "https" else { return }
             if message.name == "boekunaShare" {
                 share(message.body, from: message.webView)
+                return
+            }
+            // A light tick when a button is tapped (press.js); carries no data.
+            if message.name == "boekunaHaptic" {
+                haptic.impactOccurred()
+                haptic.prepare()
                 return
             }
             // Render the existing report locally; no document content leaves this bridge.
