@@ -110,9 +110,9 @@ try{
   const phone=await openApp({width:390,height:844});
   await phone.page.locator('#quickNew').click();
   await phone.page.locator('#modalRoot .quick-action-modal').waitFor();
-  // Kwin 2026-10-26 (roast room M1): the sheet slides up from below; measure it once the slide has finished.
-  // Wait for the end position (a slow runner can start the slide a few frames late); then check it.
-  await phone.page.waitForFunction(()=>{const m=document.querySelector('#modalRoot .quick-action-modal');return m&&Math.abs(m.getBoundingClientRect().bottom-innerHeight)<=2},null,{timeout:3000}).catch(()=>{});
+  // Kwin 2026-10-26 (roast room M1): the sheet slides up from below.
+  // Headless WebKit on CI advances CSS animations very slowly, so jump the slide to its end before measuring where it lands.
+  await phone.page.evaluate(()=>document.querySelector('#modalRoot .quick-action-modal').getAnimations().forEach(a=>a.finish()));
   const box=await phone.page.locator('#modalRoot .quick-action-modal').boundingBox();
   assert.ok(box.y>40&&Math.abs(box.y+box.height-844)<=2,'Nieuw sheet sits on the bottom edge: '+JSON.stringify(box));
   assert.equal(await phone.page.evaluate(()=>getComputedStyle(document.querySelector('#modalRoot .quick-action-modal')).animationName.includes('boekuna-motion')),false,'No motion animation on the pop-up');
