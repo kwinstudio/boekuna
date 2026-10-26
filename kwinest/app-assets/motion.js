@@ -53,7 +53,7 @@
   function countTo(el,from){
     var parsed=parseAmount(el.textContent);
     if(!parsed||reduced.matches)return;
-    var target=parsed.value,start=performance.now(),duration=700,original=el.textContent;
+    var target=parsed.value,start=performance.now(),duration=420,original=el.textContent;
     if(from===target||(from===0&&target===0))return;
     var look=window.boekunaLook;
     el.dataset.counting='1';
@@ -317,12 +317,24 @@
     var modal=document.querySelector('#modalRoot .modal');
     if(!modal||modal.dataset.motionSeen)return;
     modal.dataset.motionSeen='1';
+    if(records&&!records.some(function(r){return r.removedNodes.length}))markSheetEntering(modal);
     // One sheet replaced by the next in the same tap (Nieuw > Factuur, a step of a form): the new one is just there, no second slide.
     if(records&&records.some(function(r){return r.removedNodes.length})){modal.classList.add('motion-sheet-swap');var bd=modal.closest('.modal-backdrop');if(bd)bd.classList.add('motion-sheet-swap');return}
     if(!lastTap||Date.now()-lastTap.time>900||reduced.matches)return;
     var m=modal.getBoundingClientRect(),r=lastTap.rect;lastTap=null;
     modal.style.transformOrigin=Math.round(r.left+r.width/2-m.left)+'px '+Math.round(r.top+r.height/2-m.top)+'px';
     modal.classList.add('motion-from-row');
+  }
+
+  // While a phone sheet slides in, its body is not a scroll area yet (see motion.css): iPhone Safari would leave the part that
+  // started below the screen unpainted until the first touch. Lifting it when the slide ends repaints the whole sheet.
+  function markSheetEntering(modal){
+    if(!phone.matches||reduced.matches||!isSheet(modal))return;
+    modal.classList.add('sheet-entering');
+    var done=function(){modal.classList.remove('sheet-entering');modal.removeEventListener('animationend',onEnd)};
+    var onEnd=function(e){if(e.target===modal)done()};
+    modal.addEventListener('animationend',onEnd);
+    setTimeout(done,400);
   }
 
   // Toasts that confirm something worked get a check mark that draws itself.
@@ -369,7 +381,7 @@
       if(root.children.length)return; // Another sheet took its place: that one is just there.
       root.appendChild(ghost);if(kept)kept.scrollTop=top;
       ghost.addEventListener('animationend',function(e){if(e.target===kept)done()});
-      setTimeout(done,450);
+      setTimeout(done,320);
     });
   }
   function installSheetMotion(){
@@ -410,7 +422,7 @@
     function settle(dialog){
       dialog.classList.add('is-settling');dialog.style.transform='';
       var backdrop=dialog.closest('.modal-backdrop');if(backdrop)backdrop.style.removeProperty('--sheet-dim');
-      setTimeout(function(){dialog.classList.remove('is-settling')},320);
+      setTimeout(function(){dialog.classList.remove('is-settling')},260);
     }
     document.addEventListener('pointerup',end,true);
     document.addEventListener('pointercancel',end,true);

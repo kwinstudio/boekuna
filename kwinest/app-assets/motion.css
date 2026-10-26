@@ -3,32 +3,23 @@
 
 /* 1. Buttons and cards change colour smoothly; the press itself (sink and spring back) lives in press.css. */
 html.boekuna-motion :is(#mainApp,#modalRoot) :is(.btn,.icon-btn,.nav-item,.mobile-bottom-nav-item,button.card,.dashboard-attention-item,.quick-action,.action-row,.mobile-card-main,.modal-close){
-  transition:transform .12s ease,background-color .18s ease,border-color .18s ease,color .18s ease!important;
+  transition:transform .1s ease,background-color .12s ease,border-color .12s ease,color .12s ease!important;
 }
 
-/* 2. A new page eases in. */
-html.boekuna-motion #content.motion-enter{animation:boekuna-motion-rise .28s cubic-bezier(.2,.8,.2,1) both}
-@keyframes boekuna-motion-rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* 2. A new page eases in, quickly (Kwin 2026-10-26: switching pages felt slow). It starts half visible, so it is never blank. */
+html.boekuna-motion #content.motion-enter{animation:boekuna-motion-rise .16s cubic-bezier(.2,.8,.2,1) both}
+@keyframes boekuna-motion-rise{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 /* 4. Chart bars grow up from the baseline, one group after the other. */
-html.boekuna-motion #content.motion-enter .bar{transform-origin:bottom;animation:boekuna-motion-grow .6s cubic-bezier(.2,.8,.2,1) both}
-html.boekuna-motion #content.motion-enter .bar-group:nth-child(2) .bar{animation-delay:.06s}
-html.boekuna-motion #content.motion-enter .bar-group:nth-child(3) .bar{animation-delay:.12s}
-html.boekuna-motion #content.motion-enter .bar-group:nth-child(4) .bar{animation-delay:.18s}
-html.boekuna-motion #content.motion-enter .bar-group:nth-child(5) .bar{animation-delay:.24s}
-html.boekuna-motion #content.motion-enter .bar-group:nth-child(n+6) .bar{animation-delay:.3s}
+html.boekuna-motion #content.motion-enter .bar{transform-origin:bottom;animation:boekuna-motion-grow .36s cubic-bezier(.2,.8,.2,1) both}
+html.boekuna-motion #content.motion-enter .bar-group:nth-child(2) .bar{animation-delay:.03s}
+html.boekuna-motion #content.motion-enter .bar-group:nth-child(3) .bar{animation-delay:.06s}
+html.boekuna-motion #content.motion-enter .bar-group:nth-child(4) .bar{animation-delay:.09s}
+html.boekuna-motion #content.motion-enter .bar-group:nth-child(5) .bar{animation-delay:.12s}
+html.boekuna-motion #content.motion-enter .bar-group:nth-child(n+6) .bar{animation-delay:.15s}
 @keyframes boekuna-motion-grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 
-/* 6. List rows arrive one after the other (only the first rows; the rest are already there). */
-html.boekuna-motion #content.motion-enter :is(tbody tr,.mobile-card-row,.dashboard-attention-item){animation:boekuna-motion-rise .3s cubic-bezier(.2,.8,.2,1) both}
-html.boekuna-motion #content.motion-enter :is(tbody tr,.mobile-card-row,.dashboard-attention-item):nth-child(1){animation-delay:.04s}
-html.boekuna-motion #content.motion-enter :is(tbody tr,.mobile-card-row,.dashboard-attention-item):nth-child(2){animation-delay:.08s}
-html.boekuna-motion #content.motion-enter :is(tbody tr,.mobile-card-row,.dashboard-attention-item):nth-child(3){animation-delay:.12s}
-html.boekuna-motion #content.motion-enter :is(tbody tr,.mobile-card-row,.dashboard-attention-item):nth-child(4){animation-delay:.16s}
-html.boekuna-motion #content.motion-enter :is(tbody tr,.mobile-card-row,.dashboard-attention-item):nth-child(5){animation-delay:.2s}
-html.boekuna-motion #content.motion-enter :is(tbody tr,.mobile-card-row,.dashboard-attention-item):nth-child(6){animation-delay:.24s}
-html.boekuna-motion #content.motion-enter :is(tbody tr,.mobile-card-row,.dashboard-attention-item):nth-child(7){animation-delay:.28s}
-html.boekuna-motion #content.motion-enter :is(tbody tr,.mobile-card-row,.dashboard-attention-item):nth-child(n+8){animation:none}
+/* 6. List rows come with their page (no row-by-row stagger: the list is complete at once). */
 
 /* 5. A check mark draws itself in toasts that confirm something worked. */
 html.boekuna-motion .toast.motion-success{display:flex;align-items:center;gap:9px}
@@ -44,11 +35,11 @@ html.boekuna-motion .badge.motion-paid{animation:boekuna-motion-stamp .45s cubic
 
 /* C. On a phone a new screen comes from the side of the tab you tapped. */
 @media (max-width:820px){
-  html.boekuna-motion #content.motion-enter.motion-dir-right{animation:boekuna-motion-from-right .3s cubic-bezier(.2,.8,.2,1) both}
-  html.boekuna-motion #content.motion-enter.motion-dir-left{animation:boekuna-motion-from-left .3s cubic-bezier(.2,.8,.2,1) both}
+  html.boekuna-motion #content.motion-enter.motion-dir-right{animation:boekuna-motion-from-right .18s cubic-bezier(.2,.8,.2,1) both}
+  html.boekuna-motion #content.motion-enter.motion-dir-left{animation:boekuna-motion-from-left .18s cubic-bezier(.2,.8,.2,1) both}
 }
-@keyframes boekuna-motion-from-right{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
-@keyframes boekuna-motion-from-left{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}
+@keyframes boekuna-motion-from-right{from{opacity:.4;transform:translateX(14px)}to{opacity:1;transform:none}}
+@keyframes boekuna-motion-from-left{from{opacity:.4;transform:translateX(-14px)}to{opacity:1;transform:none}}
 
 /* A. A new item slides into its place and lights up green for a moment. */
 html.boekuna-motion :is(tr,.mobile-card-row).motion-new{animation:boekuna-motion-slot .4s cubic-bezier(.2,.8,.2,1) both,boekuna-motion-glow 1.6s ease-out both}
@@ -67,7 +58,7 @@ html.boekuna-motion .motion-bump{animation:boekuna-motion-bump .45s cubic-bezier
 @keyframes boekuna-motion-bump{40%{transform:scale(1.18)}}
 
 /* E. A detail window grows out of the row you tapped (motion.js sets the origin). */
-html.boekuna-motion #modalRoot .modal.motion-from-row{animation:boekuna-motion-grow-in .3s cubic-bezier(.2,.8,.2,1) both!important}
+html.boekuna-motion #modalRoot .modal.motion-from-row{animation:boekuna-motion-grow-in .2s cubic-bezier(.2,.8,.2,1) both!important}
 @keyframes boekuna-motion-grow-in{from{opacity:0;transform:scale(.88,.4)}to{opacity:1;transform:none}}
 
 /* 5. A total that changed shows how much it moved. */
@@ -117,16 +108,21 @@ html[data-theme="dark"] .motion-delta.is-down{background:#33201E;color:#FF9A92}
 @media (max-width:820px){
   /* The dim is a layer behind the sheet, so the sheet itself never fades. */
   html.boekuna-motion body #modalRoot#modalRoot .modal-backdrop:not(.invoice-page-backdrop){background:transparent!important}
-  html.boekuna-motion body #modalRoot#modalRoot .modal-backdrop:not(.invoice-page-backdrop)::before{content:"";position:fixed;inset:0;background:rgba(10,14,12,.5);opacity:var(--sheet-dim,1);animation:boekuna-sheet-fade .3s ease backwards;pointer-events:none}
+  html.boekuna-motion body #modalRoot#modalRoot .modal-backdrop:not(.invoice-page-backdrop)::before{content:"";position:fixed;inset:0;background:rgba(10,14,12,.5);opacity:var(--sheet-dim,1);animation:boekuna-sheet-fade .2s ease backwards;pointer-events:none}
   html.boekuna-motion body #modalRoot#modalRoot .modal-backdrop:not(.invoice-page-backdrop)>.modal{position:relative;z-index:1}
-  html.boekuna-motion body #modalRoot#modalRoot .modal:not(.invoice-page),html.boekuna-motion body #modalRoot#modalRoot .modal.motion-from-row:not(.invoice-page){animation:boekuna-sheet-up .42s cubic-bezier(.32,.72,0,1) both!important}
+  html.boekuna-motion body #modalRoot#modalRoot .modal:not(.invoice-page),html.boekuna-motion body #modalRoot#modalRoot .modal.motion-from-row:not(.invoice-page){animation:boekuna-sheet-up .3s cubic-bezier(.32,.72,0,1) both!important}
   html.boekuna-motion body #modalRoot#modalRoot :is(.modal-backdrop,.modal).motion-sheet-swap,html.boekuna-motion body #modalRoot#modalRoot .motion-sheet-swap::before{animation:none!important}
   html.boekuna-motion body #modalRoot#modalRoot .modal-backdrop.motion-sheet-ghost{pointer-events:none}
-  html.boekuna-motion body #modalRoot#modalRoot .modal-backdrop.motion-sheet-ghost::before{animation:boekuna-sheet-fade-out .26s ease forwards}
-  html.boekuna-motion body #modalRoot#modalRoot .motion-sheet-ghost .modal{animation:boekuna-sheet-down .26s cubic-bezier(.32,.72,0,1) forwards!important}
+  html.boekuna-motion body #modalRoot#modalRoot .modal-backdrop.motion-sheet-ghost::before{animation:boekuna-sheet-fade-out .2s ease forwards}
+  html.boekuna-motion body #modalRoot#modalRoot .motion-sheet-ghost .modal{animation:boekuna-sheet-down .2s cubic-bezier(.32,.72,0,1) forwards!important}
   html.boekuna-motion body #modalRoot#modalRoot .modal.is-dragging{animation:none!important;transition:none!important}
-  html.boekuna-motion body #modalRoot#modalRoot .modal.is-settling{transition:transform .3s cubic-bezier(.32,.72,0,1)!important}
+  html.boekuna-motion body #modalRoot#modalRoot .modal.is-settling{transition:transform .24s cubic-bezier(.32,.72,0,1)!important}
   html.boekuna-motion body #modalRoot#modalRoot .modal:not(.invoice-page) .modal-head{-webkit-user-select:none;user-select:none}
+  /* iPhone Safari paints a scroll area that starts below the screen only up to the old screen edge, so the bottom of a sliding
+     sheet stayed empty until you touched it (Kwin 2026-10-26, + > Bon). While the sheet slides in, its body is not a scroll area
+     yet; motion.js lifts that when the slide ends, which also makes the browser paint the whole sheet. */
+  html.boekuna-motion body #modalRoot#modalRoot .modal.sheet-entering :is(.modal-body,.modal-foot){overflow:hidden!important}
+  html.boekuna-motion body #modalRoot#modalRoot .modal:not(.invoice-page){-webkit-backface-visibility:hidden;backface-visibility:hidden}
 }
 @keyframes boekuna-sheet-up{from{transform:translateY(100%)}to{transform:none}}
 @keyframes boekuna-sheet-down{from{transform:translateY(var(--sheet-from,0))}to{transform:translateY(100%)}}
