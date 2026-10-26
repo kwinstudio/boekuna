@@ -195,10 +195,11 @@ try{
   // Phone (Kwin 2026-10-09/10): the pages have no own main button, so Nieuw also offers what they used to.
   // Kwin 2026-10-17 (fewer choices): one Uploaden (factuur, bon or document) and one Bank (bankbestand or losse betaling).
   // Kwin 2026-10-22 (concurrenten n1/n4): Offerte and Uren joined the rows.
-  assert.equal(await page.locator('#modalRoot .quick-action').count(),10,'Mobile quick-create: three tiles plus Uploaden, Bank, Relatie, Offerte, Rit, Uren and Dienst');
+  // Kwin 2026-10-26 (roast room U3): only what you add on the go; Bank, Relatie, Offerte and Dienst live on their own page.
+  assert.equal(await page.locator('#modalRoot .quick-action').count(),6,'Mobile quick-create: three tiles plus Uploaden, Rit and Uren');
   const quickLabels=(await page.locator('#modalRoot .quick-action').allTextContents()).map(v=>v.trim().replace(/\s+/g,' '));
   // Kwin 2026-10-10: Factuur, Bon (scannen) and Kosten (zonder bon) are the three big tiles; the rest is under Meer.
-  for(const core of ['Bon','Factuur','Kosten','Uploaden','Bank','Relatie','Offerte','Rit','Uren','Dienst'])assert.ok(quickLabels.some(v=>v.includes(core)),'Mobile quick-create missing '+core);
+  for(const core of ['Bon','Factuur','Kosten','Uploaden','Rit','Uren'])assert.ok(quickLabels.some(v=>v.includes(core)),'Mobile quick-create missing '+core);
   for(const merged of ['Banktransactie','Document uploaden','Factuur uploaden'])assert.ok(!quickLabels.some(v=>v.includes(merged)),'Merged into Uploaden or Bank: '+merged);
   assert.equal(await page.locator('#modalRoot .quick-tiles .quick-tile').count(),3,'Mobile quick-create shows three big daily tiles');
   await page.waitForTimeout(450); // Let the sheet finish sliding in.

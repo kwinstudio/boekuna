@@ -114,3 +114,28 @@ html[data-theme="dark"] .motion-delta.is-down{background:#33201E;color:#FF9A92}
   html.boekuna-motion #modalRoot .modal.motion-from-row{animation:none!important}
   html.boekuna-motion :is(#mainApp,#modalRoot) :is(.btn,.icon-btn,.nav-item,.mobile-bottom-nav-item,button.card,.dashboard-attention-item,.quick-action,.action-row,.mobile-card-main,.modal-close):active:not(:disabled){transform:none!important}
 }
+
+/* M1 (roast room, Kwin 2026-10-26), phone only: a sheet slides up from below the screen like on iOS and slides back down when it
+   closes (motion.js keeps a copy of it on screen for that); a swipe down on its top closes it. */
+@media (max-width:820px){
+  /* The dim is a layer behind the sheet, so the sheet itself never fades. */
+  html.boekuna-motion body #modalRoot#modalRoot .modal-backdrop:not(.invoice-page-backdrop){background:transparent!important}
+  html.boekuna-motion body #modalRoot#modalRoot .modal-backdrop:not(.invoice-page-backdrop)::before{content:"";position:fixed;inset:0;background:rgba(10,14,12,.5);opacity:var(--sheet-dim,1);animation:boekuna-sheet-fade .3s ease backwards;pointer-events:none}
+  html.boekuna-motion body #modalRoot#modalRoot .modal-backdrop:not(.invoice-page-backdrop)>.modal{position:relative;z-index:1}
+  html.boekuna-motion body #modalRoot#modalRoot .modal:not(.invoice-page),html.boekuna-motion body #modalRoot#modalRoot .modal.motion-from-row:not(.invoice-page){animation:boekuna-sheet-up .42s cubic-bezier(.32,.72,0,1) both!important}
+  html.boekuna-motion body #modalRoot#modalRoot :is(.modal-backdrop,.modal).motion-sheet-swap,html.boekuna-motion body #modalRoot#modalRoot .motion-sheet-swap::before{animation:none!important}
+  html.boekuna-motion body #modalRoot#modalRoot .modal-backdrop.motion-sheet-ghost{pointer-events:none}
+  html.boekuna-motion body #modalRoot#modalRoot .modal-backdrop.motion-sheet-ghost::before{animation:boekuna-sheet-fade-out .26s ease forwards}
+  html.boekuna-motion body #modalRoot#modalRoot .motion-sheet-ghost .modal{animation:boekuna-sheet-down .26s cubic-bezier(.32,.72,0,1) forwards!important}
+  html.boekuna-motion body #modalRoot#modalRoot .modal.is-dragging{animation:none!important;transition:none!important}
+  html.boekuna-motion body #modalRoot#modalRoot .modal.is-settling{transition:transform .3s cubic-bezier(.32,.72,0,1)!important}
+  html.boekuna-motion body #modalRoot#modalRoot .modal:not(.invoice-page) .modal-head{-webkit-user-select:none;user-select:none}
+}
+@keyframes boekuna-sheet-up{from{transform:translateY(100%)}to{transform:none}}
+@keyframes boekuna-sheet-down{from{transform:translateY(var(--sheet-from,0))}to{transform:translateY(100%)}}
+@keyframes boekuna-sheet-fade{from{opacity:0}to{opacity:1}}
+@keyframes boekuna-sheet-fade-out{to{opacity:0}}
+@media (prefers-reduced-motion:reduce){
+  html.boekuna-motion body #modalRoot#modalRoot .modal-backdrop,html.boekuna-motion body #modalRoot#modalRoot .modal{animation:none!important}
+  html.boekuna-motion body #modalRoot#modalRoot .modal-backdrop::before{animation:none!important}
+}

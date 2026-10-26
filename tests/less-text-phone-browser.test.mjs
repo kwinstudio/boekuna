@@ -55,7 +55,7 @@ try{
   await phone.evaluate(()=>{closeModal();navigate('dashboard');quickMenu()});
   const meer=await phone.locator('#modalRoot').innerText();
   gone(meer,['Boekuna herkent het soort','km automatisch','met je prijs'],'Nieuw');
-  kept(meer,['Uploaden','Relatie'],'Nieuw');
+  kept(meer,['Uploaden','Rit'],'Nieuw');
 
   // Kosten toevoegen
   await phone.evaluate(()=>{closeModal();newExpense()});

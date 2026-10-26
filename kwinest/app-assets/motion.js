@@ -313,10 +313,12 @@
     var row=event.target&&event.target.closest&&event.target.closest('#content tbody tr,#content .mobile-card-row,#content .dashboard-attention-item');
     lastTap=row?{rect:row.getBoundingClientRect(),time:Date.now()}:null;
   }
-  function onModal(){
+  function onModal(records){
     var modal=document.querySelector('#modalRoot .modal');
     if(!modal||modal.dataset.motionSeen)return;
     modal.dataset.motionSeen='1';
+    // One sheet replaced by the next in the same tap (Nieuw > Factuur, a step of a form): the new one is just there, no second slide.
+    if(records&&records.some(function(r){return r.removedNodes.length})){modal.classList.add('motion-sheet-swap');var bd=modal.closest('.modal-backdrop');if(bd)bd.classList.add('motion-sheet-swap');return}
     if(!lastTap||Date.now()-lastTap.time>900||reduced.matches)return;
     var m=modal.getBoundingClientRect(),r=lastTap.rect;lastTap=null;
     modal.style.transformOrigin=Math.round(r.left+r.width/2-m.left)+'px '+Math.round(r.top+r.height/2-m.top)+'px';
@@ -345,8 +347,74 @@
     var modalRoot=document.getElementById('modalRoot');
     if(modalRoot)new MutationObserver(onModal).observe(modalRoot,{childList:true});
     document.addEventListener('pointerdown',rememberTap,true);
+    installSheetMotion();
     // Uploads can finish without a page render; a light check keeps the Bonnen flight honest.
     setInterval(function(){if(document.visibilityState==='visible'&&seenDocs!==null)watchDocuments()},2000);
   }
+  // M1 (roast room, Kwin 2026-10-26), phone only. A sheet that closes stays on screen as a copy that slides down, while
+  // closeModal itself still empties #modalRoot at once (the app often opens the next sheet straight after). The copy goes back
+  // into the empty #modalRoot one frame later (so it keeps the sheet look), and only if no new sheet took its place.
+  // A swipe down on the top of a sheet closes it through its own close button.
+  var sheetGhostSkip=false;
+  function isSheet(dialog){return !!dialog&&!dialog.classList.contains('invoice-page')}
+  function slideOutCopy(from){
+    var root=document.getElementById('modalRoot'),backdrop=root&&root.querySelector('.modal-backdrop'),dialog=backdrop&&backdrop.querySelector('.modal');
+    if(!phone.matches||reduced.matches||!isSheet(dialog))return;
+    var ghost=backdrop.cloneNode(true),kept=ghost.querySelector('.modal'),top=dialog.scrollTop;
+    ghost.classList.add('motion-sheet-ghost');ghost.removeAttribute('onclick');ghost.setAttribute('aria-hidden','true');ghost.inert=true;
+    ghost.querySelectorAll('[id],[name],[onclick]').forEach(function(el){el.removeAttribute('id');el.removeAttribute('name');el.removeAttribute('onclick')});
+    ghost.classList.remove('motion-sheet-swap');if(kept){kept.classList.remove('motion-from-row','motion-sheet-swap','is-dragging','is-settling');kept.style.setProperty('--sheet-from',(from||0)+'px')}
+    var done=function(){ghost.remove()};
+    requestAnimationFrame(function(){
+      if(root.children.length)return; // Another sheet took its place: that one is just there.
+      root.appendChild(ghost);if(kept)kept.scrollTop=top;
+      ghost.addEventListener('animationend',function(e){if(e.target===kept)done()});
+      setTimeout(done,450);
+    });
+  }
+  function installSheetMotion(){
+    var original=window.closeModal;
+    if(typeof original!=='function'||original.boekunaSheet)return;
+    var wrapped=function(){var from=sheetGhostSkip;sheetGhostSkip=false;if(from!==true)slideOutCopy(typeof from==='number'?from:0);return original.apply(this,arguments)};
+    wrapped.boekunaSheet=true;window.closeModal=wrapped;
+    var drag=null;
+    document.addEventListener('pointerdown',function(e){
+      if(!phone.matches||reduced.matches||(e.pointerType==='mouse'&&e.button!==0))return;
+      var head=e.target.closest&&e.target.closest('#modalRoot .modal .modal-head'),dialog=head&&head.closest('.modal');
+      if(!isSheet(dialog)||e.target.closest('button,a,input,select,textarea'))return;
+      drag={dialog:dialog,y:e.clientY,t:performance.now(),dy:0,id:e.pointerId,v:0};
+    },true);
+    document.addEventListener('pointermove',function(e){
+      if(!drag||e.pointerId!==drag.id)return;
+      var dy=Math.max(0,e.clientY-drag.y),now=performance.now();
+      if(!drag.dialog.classList.contains('is-dragging')&&dy<6)return;
+      drag.v=(dy-drag.dy)/Math.max(1,now-drag.t);drag.dy=dy;drag.t=now;
+      drag.dialog.classList.add('is-dragging');drag.dialog.style.transform='translateY('+dy+'px)';
+      var backdrop=drag.dialog.closest('.modal-backdrop');if(backdrop)backdrop.style.setProperty('--sheet-dim',String(Math.max(.2,1-dy/(drag.dialog.offsetHeight||600))));
+    },true);
+    var end=function(e){
+      if(!drag||e.pointerId!==drag.id)return;
+      var d=drag;drag=null;
+      if(!d.dialog.classList.contains('is-dragging'))return;
+      d.dialog.classList.remove('is-dragging');
+      if(d.dy>110||(d.v>.6&&d.dy>40)){ // far enough, or a quick flick
+        var close=d.dialog.querySelector('.modal-head .modal-close');sheetGhostSkip=d.dy;
+        if(close)close.click();else window.closeModal();
+        sheetGhostSkip=false;
+        // A sheet that asked first (unsaved changes) is still there: let it settle back.
+        if(d.dialog.isConnected)settle(d.dialog);
+        return;
+      }
+      settle(d.dialog);
+    };
+    function settle(dialog){
+      dialog.classList.add('is-settling');dialog.style.transform='';
+      var backdrop=dialog.closest('.modal-backdrop');if(backdrop)backdrop.style.removeProperty('--sheet-dim');
+      setTimeout(function(){dialog.classList.remove('is-settling')},320);
+    }
+    document.addEventListener('pointerup',end,true);
+    document.addEventListener('pointercancel',end,true);
+  }
+
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
