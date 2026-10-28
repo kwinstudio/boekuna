@@ -26,7 +26,7 @@ state.documents=[{id:'d1',fileId:'f1',name:'bon-kantoor.pdf',type:'Upload',date:
 documentProcessingJobs=[];documentProcessingInitialized=true;documentProcessingConnectivityLost=false;documentProcessingFetchError=false;
 `;
 
-const MIME={'.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.ttf':'font/ttf','.woff2':'font/woff2','.webmanifest':'application/manifest+json'};
+const MIME={'.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.ttf':'font/ttf','.woff2':'font/woff2','.webmanifest':'application/manifest+json'};
 
 export function buildApp(){execFileSync(process.execPath,['scripts/build-app.mjs'],{stdio:'pipe'})}
 

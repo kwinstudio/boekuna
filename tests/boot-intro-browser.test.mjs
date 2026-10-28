@@ -29,7 +29,7 @@ documentProcessingJobs=[];documentProcessingInitialized=true;documentProcessingC
 const boot=`setBootstrapVisible(true);(function(){const q=new URL(location.href).searchParams,ms=Number(q.get('ready')||0);
 setTimeout(()=>{if(q.get('auth')==='login'){showAuth('login');return}${appBoot}enterApp()},ms)})();`;
 const html=generated.replace('const TEST_MODE_NO_AUTH=false;','const TEST_MODE_NO_AUTH=true;').replace(/initAuth\(\);(?![\s\S]*initAuth\(\);)/,boot);
-const types={'.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.woff2':'font/woff2','.ttf':'font/ttf'};
+const types={'.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.webp':'image/webp','.woff2':'font/woff2','.ttf':'font/ttf'};
 const server=http.createServer((req,res)=>{
   const p=new URL(req.url,'http://localhost').pathname;
   if(p.startsWith('/assets/')){const f=path.resolve('dist/app'+p);if(fs.existsSync(f)){res.setHeader('Content-Type',types[path.extname(f)]||'image/png');return res.end(fs.readFileSync(f))}res.writeHead(404);return res.end()}
@@ -132,9 +132,12 @@ try{
   // No session: the login screen takes over, without a white or empty frame in between.
   {
     const {context,page}=await open({query:'intro=1&ready=900&auth=login'});
-    await page.locator('#authForm').waitFor();
+    await page.locator('#authForm').waitFor({state:'attached'});
     await page.waitForFunction(()=>document.getElementById('appBootstrap').hidden,null,{timeout:2000});
-    assert.equal(await page.locator('#loginEmail').isVisible(),true);
+    // Phone: the login opens on the museum screen; Inloggen opens the form (Kwin 2026-10-23).
+    assert.equal(await page.locator('.auth-museum-cta').isVisible(),true);
+    await page.locator('.auth-museum-cta').click();
+    await page.locator('#loginEmail').waitFor({state:'visible'});
     await context.close();
   }
 
