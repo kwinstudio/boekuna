@@ -1,0 +1,35 @@
+name: Fotoswipe TestFlight status
+# Read-mostly App Store Connect check: processing state, export compliance,
+# and internal-group availability of the newest Fotoswipe build. No uploads, no App Review.
+on:
+  push:
+    branches: [claude/fotoswipe-testflight-status]
+  workflow_dispatch:
+    inputs:
+      target_build:
+        description: "Build number to check (empty = newest)"
+        type: string
+        default: ""
+permissions:
+  contents: read
+concurrency:
+  group: fotoswipe-testflight-status
+  cancel-in-progress: false
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check processing and internal TestFlight availability
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          TARGET_BUILD: ${{ inputs.target_build || '4' }}
+          WAIT_MINUTES: "30"
+          WHAT_TO_TEST: "Nieuw in build 4: snellere stapel met 20 vooraf geladen voorbeelden, Later beslissen, favoriet maken en aan album toevoegen via Meer, filteren op categorieën/albums/maanden/video's/willekeurig, vergelijkbare foto's zoeken, consistente sortering. Test vooral: swipen zonder wachten, iCloud-foto's, beperkte fototoegang en de verwijderbevestiging."
+        run: node fotoswipe/scripts/asc-testflight-status.mjs
