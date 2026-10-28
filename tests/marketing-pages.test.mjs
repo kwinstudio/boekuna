@@ -74,7 +74,9 @@ for(const slug of pages){
   assert.ok(html.includes('/assets/fonts/onest-var-latin.woff2'),slug+': self-hosted font preload missing');
   assert.ok(html.includes('og-boekuna.png'),slug+': share image missing');
   if(slug.startsWith('kennisbank/')){assert.ok(html.includes('geen fiscaal advies'),slug+': disclaimer missing');assert.ok(/href="https:\/\/(www\.belastingdienst\.nl|ondernemersplein\.overheid\.nl)/.test(html),slug+': official source missing');assert.equal(html.includes('ondernemersplein.kvk.nl'),false,slug+': outdated Ondernemersplein URL')}
-  for(const claim of ['automatische bankkoppeling is nu beschikbaar','100% correcte herkenning','direct btw-aangifte indienen','offertes maken','koppeling met je bank via psd2'])assert.ok(!html.toLowerCase().includes(claim),slug+': unverified feature claim '+claim);
+  for(const claim of ['automatische bankkoppeling is nu beschikbaar','100% correcte herkenning','direct btw-aangifte indienen','koppeling met je bank via psd2'])assert.ok(!html.toLowerCase().includes(claim),slug+': unverified feature claim '+claim);
+  // Offertes (2026-10-22) and terugkerende facturen (2026-10-28) are in the app: the site may not deny them.
+  for(const stale of ['geen offertes','offertes en terugkerende facturen zitten nog niet'])assert.ok(!html.toLowerCase().includes(stale),slug+': outdated limit '+stale);
   for(const m of html.matchAll(/<img\b[^>]*>/g))assert.match(m[0],/alt="[^"]+"/,slug+': image without alt text');
 }
 for(const detail of ['Kwinest','KVK 74542893','NL002477565B57'])assert.ok(home.includes(detail),'Home footer business detail missing '+detail);

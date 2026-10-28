@@ -8,8 +8,8 @@ const perMonth=id=>formatEuro(yearlyMonthlyEquivalentCents(id));
 
 // Card features: only what the plan split in the app gives (kwinest/index.html PAGE_MIN_PLAN).
 const CARDS={
-  start:{tag:'Gratis factureren',features:["Facturen en creditnota's",'Klanten en betalingen','Export en back-up']},
-  zzp:{tag:'Je hele boekhouding',features:['Alles van Start','Kosten, bonnetjes en btw-overzicht','Bankimport en rapporten',`${DOCUMENT_LIMITS.zzp} slimme documentherkenningen per maand`]},
+  start:{tag:'Gratis factureren',features:["Facturen, offertes en creditnota's",'Klanten, betalingen en herinneringen','KOR-instelling','Export en back-up']},
+  zzp:{tag:'Je hele boekhouding',features:['Alles van Start','Kosten, bonnetjes en btw-overzicht','Terugkerende facturen','Bankimport en rapporten',`${DOCUMENT_LIMITS.zzp} slimme documentherkenningen per maand`]},
   pro:{tag:'Voor veel documenten',features:['Alles van ZZP','Documentherkenning zonder maandlimiet','Herstelpunten']}
 };
 const list=items=>`<ul>${items.map(f=>`<li>${icon('check')} ${f.replaceAll("'",'&#39;')}</li>`).join('')}</ul>`;
@@ -30,10 +30,11 @@ export function pricingCompare(){
   return `<div class="table-scroll" tabindex="0" role="region" aria-label="Vergelijking van de pakketten"><table class="compare-plans"><caption class="sr-only">Wat zit in welk pakket</caption><thead><tr><th scope="col">Functie</th><th scope="col">Start</th><th scope="col">ZZP</th><th scope="col">Pro</th></tr></thead><tbody>
 ${row('Prijs per maand',['€ 0',price('zzp','month'),price('pro','month')])}
 ${row('Prijs per jaar (vooruit)',['€ 0',price('zzp','year'),price('pro','year')])}
-${row("Facturen en creditnota's",[yes,yes,yes])}
+${row("Facturen, offertes en creditnota's",[yes,yes,yes])}
 ${row('Klanten, diensten en betalingen',[yes,yes,yes])}
 ${row('Export en back-up',[yes,yes,yes])}
 ${row('Kosten, bonnetjes en btw-overzicht',[no,yes,yes])}
+${row('Terugkerende facturen',[no,yes,yes])}
 ${row('Bankimport en rapporten',[no,yes,yes])}
 ${row('Slimme documentherkenning',[no,DOCUMENT_LIMITS.zzp+' per maand','Geen limiet'])}
 ${row('Herstelpunten',[no,no,yes])}
