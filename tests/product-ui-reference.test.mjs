@@ -274,8 +274,9 @@ try{
       await page.getByRole('heading',{name:'Inkomsten'}).waitFor();
       const invoicePrimary=page.getByRole('button',{name:/Nieuwe factuur|Factuur maken/});
       assert.ok(await invoicePrimary.isVisible());
-      assert.equal(await invoicePrimary.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(99, 212, 113)');
-      assert.equal(await invoicePrimary.evaluate(el=>getComputedStyle(el).color),'rgb(27, 31, 35)');
+      // Desktop keuze A (Kwin 2026-10-28): the page's main button sits on the green band as a white pill with deep green text.
+      assert.equal(await invoicePrimary.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
+      assert.equal(await invoicePrimary.evaluate(el=>getComputedStyle(el).color),'rgb(15, 42, 26)');
       assert.notEqual(await page.locator('.product-kpi-icon').first().evaluate(el=>getComputedStyle(el).display),'none','Desktop product KPI icons must remain visible');
       assert.equal(await page.getByRole('button',{name:'Factuur maken',exact:true}).count(),1,browserName+' Inkomsten primary action');
       assert.equal(await page.getByRole('button',{name:'Factuur uploaden',exact:true}).count(),1,browserName+' Inkomsten secondary action');
