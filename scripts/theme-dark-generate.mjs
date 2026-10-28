@@ -239,7 +239,8 @@ export function appCssSources(appHtml,readAsset){
     const tag=m[0];const href=(tag.match(/href="([^"]+)"/)||[])[1]||'';
     const media=(tag.match(/media="([^"]+)"/)||[])[1]||null;
     const file=href.replace(/^\/assets\//,'').replace(/\?.*$/,'');
-    if(!href.startsWith('/assets/')||/theme-dark/.test(file))continue;
+    // desktop.css paints its own dark mode (its colours are variables), so it gets no generated dark copy.
+    if(!href.startsWith("/assets/")||/theme-dark|^desktop\.css$/.test(file))continue;
     const css=readAsset(file);if(css!=null)sources.push({css,media});
   }
   return sources;

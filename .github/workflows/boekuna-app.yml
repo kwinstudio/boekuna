@@ -41,6 +41,9 @@ on:
       - "tests/revolut-widgets-browser.test.mjs"
       - "tests/roast-room-phone-browser.test.mjs"
       - "tests/netjes-snel-phone-browser.test.mjs"
+      - "kwinest/app-assets/desktop.css"
+      - "kwinest/app-assets/desktop.js"
+      - "tests/desktop-band-browser.test.mjs"
       - "kwinest/app-assets/recurring-invoices.js"
       - "tests/recurring-invoices-browser.test.mjs"
       - "kwinest/app-assets/sortable.min.js"
@@ -300,6 +303,10 @@ jobs:
         run: |
           node tests/netjes-snel-phone-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/netjes-snel-phone-browser.test.mjs
+      - name: Desktop in de stijl van de telefoon (groene band) — Chromium and WebKit
+        run: |
+          node tests/desktop-band-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/desktop-band-browser.test.mjs
       - name: Terugkerende facturen en uitleg per bank (gebruikerssimulatie) — Chromium and WebKit
         run: |
           node tests/recurring-invoices-browser.test.mjs
