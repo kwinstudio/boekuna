@@ -105,9 +105,12 @@ try{
     assert.notEqual(await page.evaluate(()=>document.activeElement.name),'name','Enter goes to the next field');
     assert.equal(await page.evaluate(()=>!!document.querySelector('#modalRoot [role=dialog]')),true,'Enter does not save half a relation');
     // 5: a tap just next to the small close button still closes.
-    const b=await page.locator('#modalRoot .modal-close').boundingBox();
-    await page.touchscreen.tap(b.x-8,b.y+b.height/2);
-    await page.waitForFunction(()=>!document.querySelector('#modalRoot [role=dialog]'));
+    // Playwright's WebKit on Linux sends no click after a touch tap (an iPhone does), so this one runs in Chromium.
+    if(browserName==='chromium'){
+      const b=await page.locator('#modalRoot .modal-close').boundingBox();
+      await page.touchscreen.tap(b.x-8,b.y+b.height/2);
+      await page.waitForFunction(()=>!document.querySelector('#modalRoot [role=dialog]'));
+    }
     await context.close();
   }
 
