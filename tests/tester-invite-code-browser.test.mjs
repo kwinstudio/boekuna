@@ -102,6 +102,19 @@ try{
   assert.equal(await page.locator('#testerInviteCode').count(),0,'paid account must not see tester-code input');
   assert.ok(await page.getByRole('button',{name:'Beheer abonnement'}).isVisible());
 
+  // 14 dagen ZZP proberen for new accounts: end date, no card, and choosing a plan still works.
+  await page.evaluate(()=>{
+    billingSnapshot={plan:'zzp',status:'free',entitlement_status:'paid',monthly_limit:100,used:0,remaining:100,tester_access_used:false,access_source:'trial',access_ends_at:'2026-11-11T10:00:00Z',can_manage_subscription:false};
+    const card=document.getElementById('billingCard');if(card)card.outerHTML=renderBillingCard();
+  });
+  await page.getByText('Je probeert ZZP gratis',{exact:true}).waitFor();
+  assert.ok(await page.getByText('ZZP · Gratis proberen').isVisible());
+  assert.ok(await page.getByText(/Je kunt ZZP gratis gebruiken tot 11 nov/).isVisible(),'trial shows its end date');
+  assert.ok(await page.getByRole('button',{name:'Kies ZZP'}).isVisible(),'a trial user can choose a plan');
+  assert.equal(await page.locator('#testerInviteCode').count(),0,'no tester code during the trial');
+  assert.equal(await page.locator('.billing-facts').count(),0,'no subscription facts without a subscription');
+  assert.equal(await page.evaluate(()=>deleteAccountBillingNotice()),'','deleting a trial account cancels nothing');
+
   console.log('BOEKUNA tester invite-code browser ('+browserName+'): PASS');
 } finally {
   await browser.close();
