@@ -1393,6 +1393,7 @@ html[data-theme="dark"] .year-close-steps li{border-color:var(--dk-line,#2E363C)
 html[data-theme="dark"] .hours-sheet-bar{background:#2E363C}
 /* Offertes */
 .quote-strip-wrap{margin:0 0 14px}
+.quote-strip-wrap.is-under-list{margin:14px 0 0}
 .quote-list{display:flex;flex-direction:column}
 .quote-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:8px 2px;border:0;border-bottom:1px solid var(--app-border,#E4E8EB);background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
 .quote-row>span{display:flex;flex-direction:column}
@@ -1400,6 +1401,17 @@ html[data-theme="dark"] .hours-sheet-bar{background:#2E363C}
 .quote-detail-amount{font-size:34px;font-weight:800;letter-spacing:-.02em}
 .quote-detail-sub{margin:4px 0 12px;color:var(--app-muted-strong,#5E6870)}
 .quote-detail-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+/* Bankbestand: waar vind ik het */
+.bank-download-help{margin:0}
+.bank-download-help>div{padding:10px 0;border-bottom:1px solid var(--app-border,#E4E8EB)}
+.bank-download-help dt{font-weight:700;margin:0 0 2px}
+.bank-download-help dd{margin:0;color:var(--app-muted-strong,#5E6870);font-size:14px;line-height:1.45}
+/* Terugkerende facturen */
+.recurring-intro{margin:0 0 14px;color:var(--app-muted-strong,#5E6870)}
+.recurring-choices{display:flex;flex-direction:column;gap:0;margin:0 0 14px;padding:0;border:0}
+.recurring-choices legend{margin:0 0 6px;font-weight:700}
+.recurring-choice{display:flex;align-items:center;gap:12px;min-height:48px;border-bottom:1px solid var(--app-border,#E4E8EB);font-size:15px;cursor:pointer}
+.recurring-choice input{width:20px;height:20px;margin:0;accent-color:var(--brand,#2F8F5B)}
 .quote-delete{color:#C2412D;margin-left:auto}
 html body #modalRoot#modalRoot form[data-quote] .mobile-invoice-summary::before{content:"OFFERTE"}
 /* Hulp: zoeken in korte antwoorden */
