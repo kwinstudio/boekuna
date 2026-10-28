@@ -29,7 +29,7 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          TARGET_BUILD: ${{ inputs.target_build || '6' }}
+          TARGET_BUILD: ${{ inputs.target_build || '7' }}
           WAIT_MINUTES: "40"
-          WHAT_TO_TEST: "Nieuw in build 6: Focusmodus (knop Focus rechtsboven). Alleen de foto op het hele scherm. Rechts bewaren, links wegleggen, omhoog later, omlaag vorige terug, dubbeltik favoriet, vasthouden zoomt in, één tik toont de knoppen. De schermrand kleurt mee en je voelt een tik zodra een veeg telt. Test vooral: of de gebaren natuurlijk voelen en niet per ongeluk afgaan."
+          WHAT_TO_TEST: "Nieuw in build 7: Bijna dubbel (stapels met de beste foto voorgekozen, een veeg bevestigt), Rommel (wazig, bonnetjes, screenshots vooraan), dagelijkse herinnering op jouw tijd, sessiegrootte 15/30/50, Bewaar de rest (via Meer) en een berichtje over wat nieuw is. Test vooral: of de voorgekozen foto klopt, of Rommel geen goede foto's toont, en of de herinnering op tijd komt."
         run: node fotoswipe/scripts/asc-testflight-status.mjs
