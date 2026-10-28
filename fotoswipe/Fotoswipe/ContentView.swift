@@ -94,7 +94,7 @@ struct ContentView: View {
     private var header: some View {
         HStack(spacing: 10) {
             Text("fotoswipe").font(.system(size: 28, weight: .heavy, design: .rounded)).tracking(-1)
-                .foregroundStyle(Palette.brand)
+                .foregroundStyle(Palette.brand).lineLimit(1).minimumScaleFactor(0.7).layoutPriority(1)
             Spacer()
             if library.hasAccess {
                 let days = library.streakDays
@@ -110,7 +110,7 @@ struct ContentView: View {
             }
             if library.hasAccess {
                 Button { focus = true } label: {
-                    Label("Focus", systemImage: "arrow.up.left.and.arrow.down.right").font(.subheadline.weight(.heavy))
+                    Label("Focus", systemImage: "arrow.up.left.and.arrow.down.right").font(.subheadline.weight(.heavy)).lineLimit(1)
                         .foregroundStyle(.white).padding(.horizontal, 12).frame(minHeight: 36)
                         .pop(radius: 18, fill: Palette.brand, shadow: 2)
                 }
@@ -121,8 +121,11 @@ struct ContentView: View {
                 .foregroundStyle(Palette.ink).accessibilityLabel("Over Fotoswipe")
         }
     }
+    /// Scrolls instead of truncating: on an iPhone SE or with large text, every line stays readable.
     private var permissionContent: some View {
-        VStack(spacing: 22) {
+        GeometryReader { geometry in
+        ScrollView(showsIndicators: false) {
+        VStack(spacing: 18) {
             Spacer()
             ZStack {
                 RoundedRectangle(cornerRadius: 22).fill(Palette.reward).frame(width: 120, height: 150)
@@ -132,26 +135,31 @@ struct ContentView: View {
                     .overlay(Image(systemName: "photo").font(.system(size: 40, weight: .bold)).foregroundStyle(.white).offset(x: 26, y: 6))
             }.accessibilityHidden(true)
             Text("Bewaar het mooie.\nSwipe de rest.")
-                .font(.system(size: 36, weight: .heavy, design: .rounded)).tracking(-1.2).multilineTextAlignment(.center)
+                .font(.system(size: 36, weight: .heavy, design: .rounded)).tracking(-1.2).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                 .minimumScaleFactor(0.75).fixedSize(horizontal: false, vertical: true).layoutPriority(1)
             Text("Een paar minuten per dag, en je bibliotheek blijft licht. Je foto's blijven in je eigen fotobibliotheek.")
-                .foregroundStyle(Palette.muted).multilineTextAlignment(.center)
+                .foregroundStyle(Palette.muted).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             if library.authorization == .notDetermined {
                 Button("Kies toegang tot je foto's") { library.requestAccess() }.buttonStyle(PrimaryStyle())
                 Text("Kies volledige toegang voor je hele bibliotheek, of geef alleen toegang tot geselecteerde foto's.")
-                    .font(.caption).foregroundStyle(Palette.muted).multilineTextAlignment(.center)
+                    .font(.caption).foregroundStyle(Palette.muted).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             } else if library.authorization == .restricted {
                 Text("Fototoegang is beperkt op dit apparaat. Controleer Schermtijd of het apparaatbeheer.")
-                    .foregroundStyle(Palette.muted).multilineTextAlignment(.center)
+                    .foregroundStyle(Palette.muted).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             } else {
                 Text("Geef Fotoswipe toegang bij Instellingen om te beginnen.")
-                    .foregroundStyle(Palette.muted).multilineTextAlignment(.center)
+                    .foregroundStyle(Palette.muted).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                 Button("Open Instellingen") { openSettings() }.buttonStyle(PrimaryStyle())
             }
             Spacer()
-            Text("Geen reclame. Geen abonnement. Geen swipe-limiet.\nAlles blijft op je iPhone.").multilineTextAlignment(.center)
+            Text("Geen reclame. Geen abonnement. Geen swipe-limiet.\nAlles blijft op je iPhone.").multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                 .font(.caption).foregroundStyle(Palette.muted).padding(.bottom, 20)
-        }.foregroundStyle(Palette.ink)
+        }
+        .foregroundStyle(Palette.ink)
+        .frame(minHeight: geometry.size.height)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        }
     }
     private var libraryContent: some View {
         VStack(spacing: 12) {
