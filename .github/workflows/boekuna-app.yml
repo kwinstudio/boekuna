@@ -34,6 +34,8 @@ on:
       - "kwinest/app-assets/press.*"
       - "kwinest/app-assets/handig.*"
       - "tests/handig-browser.test.mjs"
+      - "kwinest/app-assets/vegen.js"
+      - "tests/vegen-browser.test.mjs"
       - "kwinest/app-assets/app-*.woff2"
       - "tests/press-browser.test.mjs"
       - "public/assets/personal-insights-ui.js"
@@ -279,6 +281,10 @@ jobs:
         run: |
           node tests/handig-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/handig-browser.test.mjs
+      - name: Schermen vegen tussen de tabs (rij-acties, randen en sheets blijven) — Chromium and WebKit
+        run: |
+          node tests/vegen-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/vegen-browser.test.mjs
       - name: Intro bij opstarten (max 2,5 s, traag laden, reduced motion) — Chromium and WebKit
         run: |
           node tests/boot-intro-browser.test.mjs
