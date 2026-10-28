@@ -45,9 +45,12 @@ try{
   // The quarter is the period pill in the band (round 2, 2026-10-23); the title line carries nothing else.
   assert.equal((await phone.locator('#content .r1d-hero .r1d-pill-btn').first().innerText()).trim(),(await phone.locator('.vat-period-label').innerText()).trim(),'Btw band shows only the quarter as its period pill');
   assert.equal(await phone.locator('#content .r1d-title .page-status').count(),0,'Btw title line has no subtitle on the phone');
-  const reports=await text(phone,'reports');
+  await text(phone,'reports');
+  // 2026-10-28 (overzichtelijker): details sit in closed rows under "Meer cijfers"; open them so their lines are read too.
+  await phone.evaluate(()=>document.querySelectorAll('#content details.report-fold').forEach(d=>d.open=true));
+  const reports=await phone.locator('#content').innerText();
   gone(reports,['Inzicht in je omzet','Omzet · Kosten · Winst','beide jaren','Dit jaar · te betalen',"Hele euro",'Voor je eigen archief','Je rapport als document','klanten · excl. btw','je neemt de bedragen over'],'Rapportages');
-  kept(reports,['Zelfstandigenaftrek alleen bij 1.225 uur of meer. Boekuna verstuurt deze aangifte niet.','Naar Data & export'],'Rapportages');
+  kept(reports,['Zelfstandigenaftrek alleen bij 1.225 uur of meer. Boekuna verstuurt deze aangifte niet.','Delen en bewaren'],'Rapportages');
   gone(await text(phone,'trips'),['Nog geen ritten dit jaar'],'Ritten');
   assert.equal(await phone.locator('#content :is(.page-head,.r1d-title) .page-status').count(),0,'Ritten has no subtitle on the phone');
 

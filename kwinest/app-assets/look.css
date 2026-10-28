@@ -1879,3 +1879,21 @@ html[data-theme="dark"] :is(.r1d-sfeer-btn,.settings-sfeer-option).is-on .r1d-sf
   #sidebar .drawer-theme-label{display:inline-flex;align-items:center;gap:11px;min-width:0}
   #sidebar .drawer-theme-label .icon{flex:0 0 auto;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 }
+
+/* Rapportages "overzichtelijker" (Kwin 2026-10-28, phone only): the detail cards fold into one "Meer cijfers" list.
+   One row per subject with its amount on the right; a tap opens the same content. */
+#mainApp #content .report-folds{padding-bottom:4px}
+#mainApp #content .report-fold{border-top:1px solid var(--calm-hair,#EEF0F2)}
+#mainApp #content .report-folds>.section-head+.report-fold{border-top:0}
+#mainApp #content .report-fold>summary{display:flex;align-items:center;gap:10px;min-height:52px;list-style:none;cursor:pointer;font-size:15px;color:var(--calm-ink,#1B1F23)}
+#mainApp #content .report-fold>summary::-webkit-details-marker{display:none}
+#mainApp #content .report-fold>summary:focus-visible{outline:2px solid #3B82F6;outline-offset:2px;border-radius:8px}
+#mainApp #content .report-fold-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mainApp #content .report-fold-value{font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+#mainApp #content .report-fold-chevron{display:inline-flex;color:var(--calm-muted,#667179);transition:transform .2s}
+#mainApp #content .report-fold-chevron .icon{width:16px;height:16px}
+#mainApp #content .report-fold[open]>summary .report-fold-chevron{transform:rotate(90deg)}
+#mainApp #content .report-fold-body{padding:0 0 14px}
+#mainApp #content .report-fold-body>.section-meta{margin:0 0 8px}
+#mainApp #content .report-share-actions{display:flex;justify-content:center;margin:12px 0 4px}
+@media (prefers-reduced-motion:reduce){#mainApp #content .report-fold-chevron{transition:none}}
