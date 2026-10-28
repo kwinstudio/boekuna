@@ -5,7 +5,7 @@ import {DOCUMENT_LIMITS} from '../../../supabase/functions/_shared/pricing.mjs';
 // The FAQ lives on /faq/; these answers are shared with that page.
 export const HOME_FAQ=[
   ["Is Boekuna geschikt voor zzp'ers?","Ja. Boekuna is gemaakt voor zzp'ers, eenmanszaken en kleine ondernemers in Nederland die zelf hun administratie bijhouden. Je maakt facturen, legt kosten en bonnetjes vast en ziet per kwartaal je btw. Boekuna is bedoeld voor zakelijk gebruik."],
-  ['Kan ik gratis beginnen?','Ja. Met Start maak je gratis facturen en houd je je klanten en betalingen bij, zonder betaalkaart. Wil je ook je kosten, bonnetjes, btw-overzicht en bank in Boekuna? Dan kies je ZZP voor € 9,95 per maand of € 99,50 per jaar, inclusief btw.'],
+  ['Kan ik gratis beginnen?','Ja. Met Start maak je gratis facturen en houd je je klanten en betalingen bij, zonder betaalkaart. Wil je ook je kosten, bonnetjes, btw-overzicht en bank in Boekuna? Dan kies je ZZP voor € 9,95 per maand of € 99,50 per jaar, inclusief btw. Een nieuw account krijgt de eerste 14 dagen ZZP gratis. Er wordt niets afgeschreven: daarna ga je vanzelf naar Start, tenzij je zelf ZZP kiest.'],
   ['Heb ik boekhoudkennis nodig?','Nee. Boekuna gebruikt woorden als inkomsten, kosten en bonnetjes in plaats van boekhoudtermen, en laat zien wat er nog moet gebeuren. Je blijft wel zelf verantwoordelijk voor een juiste administratie en je aangifte.'],
   ['Hoe werkt het scannen van bonnetjes?','Je maakt een foto of uploadt een PDF. Boekuna leest de leverancier, datum, bedragen en btw uit en zet die naast de bon. Jij controleert in twee korte stappen en slaat op. Herkenning kan fouten maken bij een vage foto of een ongewone bon, daarom wordt niets opgeslagen zonder jouw controle.'],
   ['Kan ik facturen maken?',"Ja. Je kiest een klant, zet je diensten erop en deelt de PDF vanuit je eigen e-mail. Boekuna zet de verplichte gegevens erop, maakt creditfacturen en laat zien welke facturen nog openstaan. Je maakt ook offertes die je met één tik omzet naar een factuur, en met ZZP terugkerende facturen."],
@@ -56,7 +56,7 @@ export default function home(){
   <p class="s-flux-sub rise" style="--rd:490ms">Facturen, bonnetjes en btw op één plek. In gewone woorden.</p>
   <div class="s-flux-ctas rise" style="--rd:600ms">${pill('Begin gratis',REGISTER)}<a class="s-flux-link" href="#functies">Bekijk functies</a></div>
  </div>
- <ul class="s-flux-meta rise" style="--rd:720ms" aria-label="Goed om te weten"><li>Gratis beginnen</li><li>Geen betaalkaart nodig</li><li>Gemaakt in Nederland</li></ul>
+ <ul class="s-flux-meta rise" style="--rd:720ms" aria-label="Goed om te weten"><li>14 dagen ZZP gratis</li><li>Geen betaalkaart nodig</li><li>Gemaakt in Nederland</li></ul>
 </section>
 
 <section class="s-trust" aria-label="Goed om te weten">
