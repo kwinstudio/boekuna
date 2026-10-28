@@ -1,5 +1,5 @@
-import {render,REGISTER,LOGIN,ORGANIZATION,SITE,icon,COMPANY} from '../layout.mjs';
-import {pricingCards,softwareLd} from '../pricing.mjs';
+import {render,REGISTER,LOGIN,ORGANIZATION,SITE,icon,COMPANY,faqList} from '../layout.mjs';
+import {pricingCards,softwareLd,PRICING_DOUBTS} from '../pricing.mjs';
 import {DOCUMENT_LIMITS} from '../../../supabase/functions/_shared/pricing.mjs';
 
 // The FAQ lives on /faq/; these answers are shared with that page.
@@ -51,12 +51,12 @@ export default function home(){
  <video class="s-flux-video" data-hero-video muted loop playsinline preload="none" poster="/assets/site/hero-klimmer.webp" aria-hidden="true" tabindex="-1"><source src="/assets/site/hero-klimmer.webm" type="video/webm"><source src="/assets/site/hero-klimmer.mp4" type="video/mp4"></video>
  <div class="s-flux-shade" aria-hidden="true"></div>
  <div class="s-flux-inner">
-  <p class="s-flux-kicker rise" style="--rd:300ms">Online boekhoudprogramma voor zzp'ers</p>
-  <h1 id="hero-titel" class="rise" style="--rd:380ms">Boekhouden zonder boekhoudtaal<span class="dot">.</span></h1>
-  <p class="s-flux-sub rise" style="--rd:490ms">Facturen, bonnetjes en btw op één plek. In gewone woorden.</p>
-  <div class="s-flux-ctas rise" style="--rd:600ms">${pill('Begin gratis',REGISTER)}<a class="s-flux-link" href="#functies">Bekijk functies</a></div>
+  <p class="s-flux-kicker rise" style="--rd:0ms">Online boekhoudprogramma voor zzp'ers</p>
+  <h1 id="hero-titel" class="rise" style="--rd:60ms">Boekhouden zonder boekhoudtaal<span class="dot">.</span></h1>
+  <p class="s-flux-sub rise" style="--rd:120ms">Facturen, bonnetjes en btw op één plek. In gewone woorden.</p>
+  <div class="s-flux-ctas rise" style="--rd:180ms">${pill('Begin gratis',REGISTER)}<a class="s-flux-link" href="#functies">Bekijk functies</a></div>
  </div>
- <ul class="s-flux-meta rise" style="--rd:720ms" aria-label="Goed om te weten"><li>14 dagen ZZP gratis</li><li>Geen betaalkaart nodig</li><li>Gemaakt in Nederland</li></ul>
+ <ul class="s-flux-meta rise" style="--rd:240ms" aria-label="Goed om te weten"><li>14 dagen ZZP gratis</li><li>Geen betaalkaart nodig</li><li>Daarna vanzelf gratis</li></ul>
 </section>
 
 <section class="s-trust" aria-label="Goed om te weten">
@@ -82,6 +82,15 @@ export default function home(){
   <p class="s-eyebrow rv">Zo werkt een bonnetje</p>
   <h2 id="stappen-titel" class="s-h2 rv">Foto. Check. Klaar.</h2>
   <ol class="s-steps">${[['Foto','Maak een foto van je bon of upload de pdf.'],['Check','Boekuna leest bedrag, datum en btw. Jij kijkt even mee.'],['Klaar','De kosten staan erin en de bon blijft 7 jaar bewaard.']].map(([t,x],i)=>`<li class="rv" style="--from:translateY(24px);--d:${i*80}ms"><span class="s-row-ix">0${i+1}</span><div><h3>${t}</h3><p>${x}</p></div></li>`).join('')}</ol>
+  <figure class="s-bon rv" aria-label="Voorbeeld: Boekuna leest datum, btw en totaal van een bon">
+   <div class="s-bon-pic">
+    <img src="/assets/site/bon-voorbeeld.webp" width="450" height="675" alt="Voorbeeldbon van Papierwinkel De Linde, totaal € 50,00 waarvan € 8,68 btw" loading="lazy" decoding="async">
+    <span class="s-bon-mark" style="top:20.9%" aria-hidden="true"><span>Datum 03-10-2026</span></span>
+    <span class="s-bon-mark s-bon-up" style="top:50.7%" aria-hidden="true"><span>Btw € 8,68</span></span>
+    <span class="s-bon-mark s-bon-down" style="top:55.9%" aria-hidden="true"><span>Totaal € 50,00</span></span>
+   </div>
+   <figcaption>Fictieve voorbeeldbon</figcaption>
+  </figure>
  </div>
 </section>
 
@@ -119,12 +128,14 @@ export default function home(){
   <h2 id="prijzen-titel" class="s-h2 lines" data-delay="120"><span class="ln"><span>Eenvoudige prijzen.</span></span></h2>
   <p class="s-lead rv">Gratis factureren, of je hele boekhouding voor een vast bedrag.</p>
   ${pricingCards()}
+  <div class="pricing-faq"><h3>Twijfel je nog?</h3>${faqList(PRICING_DOUBTS)}</div>
   <p class="s-more"><a href="/prijzen/">Pakketten vergelijken ${icon('arrow')}</a></p>
  </div>
 </section>`;
   return render({
     path:'/',
     studio:true,
+    preloadImage:'<link rel="preload" as="image" href="/assets/site/hero-klimmer.webp" fetchpriority="high">\n',
     title:"Boekuna — Online boekhoudprogramma voor zzp'ers | Gratis beginnen",
     ogTitle:'Boekuna — Boekhouden zonder boekhoudtaal',
     description:"Boekuna is het eenvoudige boekhoudprogramma voor zzp'ers en kleine ondernemers. Facturen maken, bonnetjes scannen, btw-overzicht per kwartaal. Start gratis.",

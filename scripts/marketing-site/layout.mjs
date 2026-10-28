@@ -26,6 +26,8 @@ export const FEATURES=[
 export function btn(label,href,kind='primary',extra=''){
   return `<a class="btn btn-${kind}" href="${href}"${extra}>${label}${kind==='primary'||kind==='light'?' '+arrow:''}</a>`;
 }
+// What cannot go wrong, said right at the button (loss aversion). All three are true: see the FAQ.
+export const REASSURE='Geen betaalkaart nodig · 14 dagen ZZP gratis · daarna vanzelf terug naar gratis Start';
 export const startCta=(label='Begin gratis')=>btn(label,REGISTER,'primary');
 
 // Real app screenshots. Desktop images come in 1440 and 720 wide, phone images in 780 and 390 wide.
@@ -69,7 +71,7 @@ export const dotH1=h=>h.replace(/\.$/,'<span class="dot">.</span>');
 const rise=(html,ms)=>html?html.replace(/^<(\w+)(\s+class=")?/,(m,tag,cls)=>cls?`<${tag} style="--rd:${ms}ms" class="rise `:`<${tag} class="rise" style="--rd:${ms}ms"`):'';
 export function pageHero({crumbs,eyebrow,h1,lead,visual='',actions,note=''}){
   if(visual&&!/<img|<svg/.test(visual))visual='';
-  return `<section class="page-hero${visual?' has-visual':''}">${HERO_BG}<div class="shell page-hero-grid"><div class="page-hero-copy">${rise(breadcrumbHtml(crumbs),0)}${eyebrow?`<p class="eyebrow rise" style="--rd:120ms">${eyebrow}</p>`:''}<h1 class="rise" style="--rd:200ms">${dotH1(h1)}</h1>${lead?`<p class="lead rise" style="--rd:310ms">${lead}</p>`:''}${actions===false?'':`<div class="actions rise" style="--rd:420ms">${actions||startCta()}</div>`}${note}</div>${visual?`<div class="page-hero-visual rise" style="--rd:540ms">${visual}</div>`:''}</div></section>`;
+  return `<section class="page-hero${visual?' has-visual':''}">${HERO_BG}<div class="shell page-hero-grid"><div class="page-hero-copy">${rise(breadcrumbHtml(crumbs),0)}${eyebrow?`<p class="eyebrow rise" style="--rd:50ms">${eyebrow}</p>`:''}<h1 class="rise" style="--rd:90ms">${dotH1(h1)}</h1>${lead?`<p class="lead rise" style="--rd:140ms">${lead}</p>`:''}${actions===false?'':`<div class="actions rise" style="--rd:190ms">${actions||startCta()}</div>${actions?'':`<p class="cta-reassure rise" style="--rd:240ms">${REASSURE}</p>`}`}${note}</div>${visual?`<div class="page-hero-visual rise" style="--rd:240ms">${visual}</div>`:''}</div></section>`;
 }
 function breadcrumbHtml(crumbs){
   if(!crumbs||!crumbs.length)return '';
@@ -92,7 +94,7 @@ function header({over=false}={}){
 
 function footer(){
   return `<footer class="site-footer">
- <div class="shell footer-cta"><p class="footer-cta-title">Zo simpel kan het zijn.</p><a class="btn btn-primary" href="${REGISTER}">Begin gratis ${arrow}</a></div>
+ <div class="shell footer-cta"><div><p class="footer-cta-title">Zo simpel kan het zijn.</p><p class="footer-cta-sub">Probeer ZZP 14 dagen gratis. Daarna ga je vanzelf naar gratis Start, dus je zit nergens aan vast.</p></div><a class="btn btn-primary" href="${REGISTER}">Begin gratis ${arrow}</a></div>
  <div class="shell footer-columns">
   <div class="footer-brand"><a class="brand" href="/" aria-label="Boekuna, naar de homepagina">${BRAND}</a><p>Online boekhoudprogramma voor zzp'ers en kleine ondernemers. Facturen, bonnetjes, kosten en btw op één plek, in gewone taal.</p></div>
   <nav aria-label="Product"><h2>Product</h2><a href="/functies/">Alle functies</a>${FEATURES.map(f=>`<a href="${f.href}">${f.name}</a>`).join('')}<a href="/prijzen/">Prijzen</a></nav>
@@ -103,6 +105,12 @@ function footer(){
  <div class="footer-watermark" aria-hidden="true"></div>
 </footer>`;
 }
+
+// Phone-only bar with the main button in thumb reach (site.js shows it after the hero).
+// Not on legal and support pages, where people come to read or to leave.
+const NO_STICKY=new Set(['/privacy/','/voorwaarden/','/account-verwijderen/','/support/','/404.html']);
+const stickyCta=()=>`<div class="sticky-cta" data-sticky-cta hidden><p><b>14 dagen ZZP gratis</b>Geen betaalkaart nodig</p><a class="btn btn-primary" href="${REGISTER}">Begin gratis ${arrow}</a></div>
+`;
 
 export const ORGANIZATION={"@type":"Organization","@id":SITE+"/#org","name":COMPANY.name,"brand":{"@type":"Brand","name":"Boekuna"},"url":SITE+"/","logo":SITE+"/assets/boekuna-symbol.svg","email":COMPANY.email,"vatID":COMPANY.vat,"address":{"@type":"PostalAddress","streetAddress":COMPANY.street,"postalCode":COMPANY.postal,"addressLocality":COMPANY.city,"addressCountry":"NL"},"identifier":{"@type":"PropertyValue","propertyID":"KVK","value":COMPANY.kvk},"contactPoint":{"@type":"ContactPoint","contactType":"customer support","email":COMPANY.email,"availableLanguage":"nl"}};
 
@@ -151,7 +159,7 @@ ${before}${header({over:studio})}
 <main id="inhoud">
 ${body}
 </main>
-${inlineScript}${footer()}
+${inlineScript}${NO_STICKY.has(path)?'':stickyCta()}${footer()}
 </body>
 </html>
 `;

@@ -30,7 +30,7 @@ for(const page of [home,prices]){
 }
 // Cards list only the main features, matching the plan split in the app.
 const card=id=>{const from=prices.indexOf(`data-plan="${id}"`);return prices.slice(from,prices.indexOf('</article>',from))};
-const cardFeatures={start:["Facturen, offertes en creditnota's",'Klanten, betalingen en herinneringen','KOR-instelling','Export en back-up'],zzp:['Alles van Start','Kosten, bonnetjes en btw-overzicht','Terugkerende facturen','Bankimport en rapporten','100 slimme documentherkenningen per maand'],pro:['Alles van ZZP','Documentherkenning zonder maandlimiet','Herstelpunten']};
+const cardFeatures={start:["Facturen, offertes en creditnota's",'Klanten, betalingen en herinneringen','KOR-instelling','Export en back-up'],zzp:['Alles van Start','Kosten, bonnetjes en btw-overzicht','Terugkerende facturen','Bankbestand inlezen en rapporten','100 slimme scans van bonnen per maand'],pro:['Alles van ZZP','Slimme scans zonder maandlimiet','Herstelpunten: terug naar een eerder moment']};
 for(const [id,features] of Object.entries(cardFeatures)){
   const html=card(id).replaceAll('&#39;',"'");
   assert.equal((html.match(/<li>/g)||[]).length,features.length,id+' card lists only its main features');
