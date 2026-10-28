@@ -30,6 +30,6 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           TARGET_BUILD: ${{ inputs.target_build || '5' }}
-          WAIT_MINUTES: "30"
+          WAIT_MINUTES: "40"
           WHAT_TO_TEST: "Nieuw in build 5: Pop-stijl, sessies van 30 met voortgangsbalk en eindscherm, dagreeks (een dag overslaan mag), geschatte MB per item en totaal, Grootste eerst, snelkeuzes (Op deze dag, Video's, Screenshots), grote knoppen met trilling, later-knop. Test vooral: swipen en trillingen, eindscherm na 30 items, MB-teller en verwijderen."
         run: node fotoswipe/scripts/asc-testflight-status.mjs

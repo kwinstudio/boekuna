@@ -67,10 +67,16 @@ let builds = await listBuilds();
 for (const b of builds) note(`Build ${b.version} (${b.build}): processing=${b.processing}, internal=${b.internal}, external=${b.external}, expired=${b.expired}, uploaded=${b.uploaded}`);
 if (!builds.length) fail('No builds found for the app.');
 
-let target = TARGET ? builds.find((b) => b.build === TARGET) : builds[0];
-if (!target) fail(`Build ${TARGET} not found in App Store Connect.`);
-
 const deadline = Date.now() + WAIT_MIN * 60_000;
+let target = TARGET ? builds.find((b) => b.build === TARGET) : builds[0];
+// A fresh upload can take a while before App Store Connect lists it.
+while (!target && Date.now() < deadline) {
+  await sleep(60_000);
+  builds = await listBuilds();
+  target = builds.find((b) => b.build === TARGET);
+}
+if (!target) fail(`Build ${TARGET} not found in App Store Connect after ${WAIT_MIN} minutes.`);
+note(`Build ${TARGET} found in App Store Connect.`);
 while (target.processing === 'PROCESSING' && Date.now() < deadline) {
   await sleep(60_000);
   builds = await listBuilds();
