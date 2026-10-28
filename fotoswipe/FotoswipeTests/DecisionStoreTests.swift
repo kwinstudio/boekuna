@@ -176,3 +176,37 @@ final class PhotoDateFilterTests: XCTestCase {
         XCTAssertEqual(PhotoDateFilter.monthStarts(in: dates, calendar: calendar), [date(2025, 1, 1), date(2024, 2, 1)])
     }
 }
+
+final class LaterDecisionTests: XCTestCase {
+    func testLaterChoiceSurvivesRelaunchAndUndoAfterTrashRestoresLater() throws {
+        var state = DecisionStore()
+        state.decide("unsure", .later)
+        let encoded = try JSONEncoder().encode(state)
+        var restored = try JSONDecoder().decode(DecisionStore.self, from: encoded)
+        XCTAssertEqual(restored.decisions["unsure"], .later)
+        restored.decide("unsure", .trash)
+        XCTAssertEqual(restored.undo(), "unsure")
+        XCTAssertEqual(restored.decisions["unsure"], .later)
+    }
+    func testLegacyBuildThreeJSONStillDecodesWithoutLosingChoices() throws {
+        let data = Data(#"{"decisions":{"a":"keep","b":"trash"},"history":[{"id":"a"}]}"#.utf8)
+        var state = try JSONDecoder().decode(DecisionStore.self, from: data)
+        XCTAssertEqual(state.decisions["a"], .keep)
+        XCTAssertEqual(state.decisions["b"], .trash)
+        state.decide("c", .later)
+        state.resetKept()
+        XCTAssertNil(state.decisions["a"])
+        XCTAssertEqual(state.decisions["b"], .trash)
+        XCTAssertEqual(state.decisions["c"], .later)
+    }
+    func testRestoringLaterDoesNotChangeOtherSelections() {
+        var state = DecisionStore()
+        state.decide("later", .later)
+        state.decide("keep", .keep)
+        state.decide("trash", .trash)
+        state.restore("later")
+        XCTAssertNil(state.decisions["later"])
+        XCTAssertEqual(state.decisions["keep"], .keep)
+        XCTAssertEqual(state.decisions["trash"], .trash)
+    }
+}
