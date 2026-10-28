@@ -147,3 +147,32 @@ final class CategoryDecisionTests: XCTestCase {
         XCTAssertEqual(restored.decisions.count, 1)
     }
 }
+
+final class PhotoDateFilterTests: XCTestCase {
+    private var calendar: Calendar {
+        var value = Calendar(identifier: .gregorian)
+        value.timeZone = TimeZone(secondsFromGMT: 0)!
+        return value
+    }
+    private func date(_ year: Int, _ month: Int, _ day: Int) -> Date {
+        calendar.date(from: DateComponents(year: year, month: month, day: day))!
+    }
+    func testMonthIncludesLeapDayButExcludesNextMonthAndUnknownDates() {
+        let filter = PhotoDateFilter.month(date(2024, 2, 1))
+        XCTAssertTrue(filter.includes(date(2024, 2, 29), calendar: calendar))
+        XCTAssertFalse(filter.includes(date(2024, 3, 1), calendar: calendar))
+        XCTAssertFalse(filter.includes(nil, calendar: calendar))
+        XCTAssertTrue(PhotoDateFilter.all.includes(nil, calendar: calendar))
+    }
+    func testOnThisDayOnlyIncludesSameDayInEarlierYears() {
+        let today = date(2026, 10, 28)
+        XCTAssertTrue(PhotoDateFilter.onThisDay.includes(date(2024, 10, 28), now: today, calendar: calendar))
+        XCTAssertFalse(PhotoDateFilter.onThisDay.includes(today, now: today, calendar: calendar))
+        XCTAssertFalse(PhotoDateFilter.onThisDay.includes(date(2024, 10, 27), now: today, calendar: calendar))
+        XCTAssertFalse(PhotoDateFilter.onThisDay.includes(nil, now: today, calendar: calendar))
+    }
+    func testMonthCatalogDeduplicatesAndSortsNewestFirst() {
+        let dates = [date(2024, 2, 1), date(2024, 2, 29), date(2025, 1, 2), nil]
+        XCTAssertEqual(PhotoDateFilter.monthStarts(in: dates, calendar: calendar), [date(2025, 1, 1), date(2024, 2, 1)])
+    }
+}
