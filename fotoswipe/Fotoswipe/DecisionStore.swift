@@ -1,6 +1,6 @@
 import Foundation
 
-enum PhotoDecision: String, Codable { case keep, trash }
+enum PhotoDecision: String, Codable { case keep, trash, later }
 struct SwipeRecord: Codable, Equatable {
     let id: String
     let previous: PhotoDecision?
@@ -99,9 +99,11 @@ enum PhotoDateFilter: Equatable {
 }
 
 enum PhotoOrder: String, CaseIterable, Identifiable {
-    case newest, oldest
+    case newest, oldest, random
     var id: String { rawValue }
-    var title: String { self == .newest ? "Nieuwste eerst" : "Oudste eerst" }
+    var title: String {
+        switch self { case .newest: return "Nieuwste eerst"; case .oldest: return "Oudste eerst"; case .random: return "Willekeurige volgorde" }
+    }
 }
 
 struct PhotoProgress {
