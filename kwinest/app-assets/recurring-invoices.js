@@ -9,7 +9,9 @@
   var EVERY={month:{months:1,label:'Elke maand',short:'maandelijks'},quarter:{months:3,label:'Elk kwartaal',short:'per kwartaal'},year:{months:12,label:'Elk jaar',short:'jaarlijks'}};
   var MAX_PER_RUN=6; // app not opened for a long time: catch up, but never flood the list
 
-  function list(){if(!Array.isArray(state.recurringInvoices))state.recurringInvoices=[];return state.recurringInvoices}
+  // Reading never writes: rendering must leave state byte for byte the same.
+  function list(){return Array.isArray(state.recurringInvoices)?state.recurringInvoices:[]}
+  function writableList(){if(!Array.isArray(state.recurringInvoices))state.recurringInvoices=[];return state.recurringInvoices}
   function active(){return list().filter(function(r){return r&&!r.stoppedAt})}
   function forInvoice(id){
     return active().find(function(r){return r.sourceId===id||(Array.isArray(r.invoiceIds)&&r.invoiceIds.indexOf(id)>=0)});
@@ -110,7 +112,7 @@
     if(start<today())return toast('Kies vandaag of een dag in de toekomst.');
     var r=forInvoice(id),now=new Date().toISOString();
     if(r){r.every=every;r.start=start;r.made=0;r.updatedAt=now}
-    else{r={id:uid('r'),sourceId:id,every:every,start:start,made:0,invoiceIds:[],createdAt:now};list().push(r)}
+    else{r={id:uid('r'),sourceId:id,every:every,start:start,made:0,invoiceIds:[],createdAt:now};writableList().push(r)}
     logEvent('Terugkerende factuur ingesteld',EVERY[every].short+' vanaf '+dateNL(start),'invoice',id);
     save();closeModal();run();render();
     toast('Herhaalt '+EVERY[every].short+'. Volgende op '+dateNL(start));
