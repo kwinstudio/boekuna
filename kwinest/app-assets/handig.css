@@ -1,0 +1,16 @@
+/* BOEKUNA handig — styling for the small tricks in handig.js (swipe in lists, hints, shortcut list). */
+.boekuna-handig .mobile-card-row.bk-swiping{position:relative;overflow:hidden}
+.boekuna-handig .mobile-card-row.bk-swiping>.mobile-card-main,.boekuna-handig .mobile-card-row.bk-swiping>.mobile-card-side{position:relative;z-index:1;will-change:transform}
+.bk-swipe-back{position:absolute;inset:0;z-index:0;pointer-events:none}
+.bk-swipe-back span{position:absolute;top:0;bottom:0;display:flex;align-items:center;overflow:hidden;white-space:nowrap;font-weight:650;font-size:14px;color:#fff;width:var(--bk-dx,0px)}
+.bk-swipe-r{left:0;justify-content:flex-start;padding-left:16px;background:#1F8A5B}
+.bk-swipe-l{right:0;justify-content:flex-end;padding-right:16px;background:#5B6770}
+.mobile-card-row[data-bk-tone="danger"] .bk-swipe-l{background:#D23F3F}
+.mobile-card-row:not(.bk-swipe-right) .bk-swipe-r,.mobile-card-row:not(.bk-swipe-left) .bk-swipe-l{visibility:hidden}
+.bk-swipe-back span{opacity:.75;transition:opacity .12s}
+.mobile-card-row.bk-swipe-armed .bk-swipe-back span{opacity:1}
+.bk-hint{margin-top:4px}
+.bk-keys{display:grid;gap:8px;min-width:240px}
+.bk-key-row{display:flex;align-items:center;gap:12px}
+.bk-key-row kbd{min-width:38px;text-align:center;font:600 13px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;border:1px solid var(--line,#DDE3E7);border-bottom-width:2px;border-radius:7px;padding:1px 8px;background:var(--app-white,#fff)}
+@media (prefers-reduced-motion:reduce){.boekuna-handig .mobile-card-row>.mobile-card-main,.boekuna-handig .mobile-card-row>.mobile-card-side{transition:none!important}}

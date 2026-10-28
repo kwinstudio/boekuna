@@ -403,6 +403,10 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/motion.js?v=202
 {const headEnd=appHtml.indexOf('</head>');if(headEnd<0)throw new Error('Missing app document marker: </head>');
 appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/press.css?v=20261026b">\n'+appHtml.slice(headEnd);}
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/press.js?v=20261026b"></script>\n');
+// Handige trucjes (Kwin 2026-10-28): right keyboard per field, Enter goes to the next field, amounts as you type them,
+// smart pre-fill, bigger tap areas, swipe and long press in lists, shortcuts on a computer. Stylesheet next to press.css.
+{const headEnd=appHtml.indexOf('</head>');appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/handig.css?v=20261028a">\n'+appHtml.slice(headEnd);}
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/handig.js?v=20261028a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});
@@ -432,7 +436,7 @@ for(const asset of ['boekuna-app-favicon.svg','document-review-v2.js','document-
   if(!fs.existsSync(sourceFile))throw new Error('Missing app-only review asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
 }
-for(const asset of ['press.css','press.js'])fs.copyFileSync(path.join(root,'kwinest','app-assets',asset),path.join(appAssetsTarget,asset));
+for(const asset of ['press.css','press.js','handig.css','handig.js'])fs.copyFileSync(path.join(root,'kwinest','app-assets',asset),path.join(appAssetsTarget,asset));
 
 // Assistant integration is app-only. Keep shared public mobile assets byte-identical
 // to the marketing source and patch only the generated product artifact.
@@ -454,6 +458,9 @@ patchBuiltAppAsset(
     }`,
   `    // Btw stays an information screen; document review remains available from Bonnetjes/attention flows.`
 );
+// Phone list rows say which invoice or cost they show, so handig.js can swipe and long-press them.
+patchBuiltAppAsset('mobile-product.js','        entry = invoiceEntry(item);\n','        entry = invoiceEntry(item);\n        entry.dataset.bkInvoice = item.id;\n');
+patchBuiltAppAsset('mobile-product.js',"        metadata(entry.firstChild, 'Btw ' + expenseVatRateLabel(item));\n","        metadata(entry.firstChild, 'Btw ' + expenseVatRateLabel(item));\n        entry.dataset.bkExpense = item.id;\n");
 // Phone cost rows show the category the way you picked it ("Reclame", not the stored key "Marketing").
 patchBuiltAppAsset(
   'mobile-product.js',
