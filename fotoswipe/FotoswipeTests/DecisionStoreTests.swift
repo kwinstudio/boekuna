@@ -343,3 +343,48 @@ final class FocusGestureTests: XCTestCase {
     }
 }
 
+final class SmartCleanupTests: XCTestCase {
+    func testFavouriteWinsThenScore() {
+        let q: [String: PhotoQuality] = [
+            "a": PhotoQuality(sharpness: 0.001, aesthetic: 0.1, utility: false),
+            "b": PhotoQuality(sharpness: 0.006, aesthetic: 0.4, utility: false),
+            "c": PhotoQuality(sharpness: 0.0005, aesthetic: -0.5, utility: false)
+        ]
+        XCTAssertEqual(SmartPick.best(["a", "b", "c"], quality: q, favorites: []), "b")
+        XCTAssertEqual(SmartPick.best(["a", "b", "c"], quality: q, favorites: ["c"]), "c")
+        XCTAssertEqual(SmartPick.best(["x", "y"], quality: [:], favorites: []), "x")
+    }
+    func testStackNeverRemovesEverything() {
+        XCTAssertTrue(SmartPick.decisions(group: ["a", "b"], keep: []).isEmpty)
+        XCTAssertTrue(SmartPick.decisions(group: ["a", "b"], keep: ["z"]).isEmpty)
+        let result = SmartPick.decisions(group: ["a", "b", "c"], keep: ["b"])
+        XCTAssertEqual(result.map(\.0), ["a", "b", "c"])
+        XCTAssertEqual(result.map(\.1), [.trash, .keep, .trash])
+    }
+    func testClutterIsConservative() {
+        let sharp = PhotoQuality(sharpness: 0.01, aesthetic: 0.3, utility: false)
+        let soft = PhotoQuality(sharpness: 0.0003, aesthetic: -0.6, utility: false)
+        let softButNice = PhotoQuality(sharpness: 0.0003, aesthetic: 0.4, utility: false)
+        let receipt = PhotoQuality(sharpness: 0.02, aesthetic: -0.1, utility: true)
+        XCTAssertNil(ClutterReason.classify(isScreenshot: false, isFavorite: false, quality: sharp))
+        XCTAssertEqual(ClutterReason.classify(isScreenshot: false, isFavorite: false, quality: soft), .blurry)
+        XCTAssertNil(ClutterReason.classify(isScreenshot: false, isFavorite: false, quality: softButNice))
+        XCTAssertEqual(ClutterReason.classify(isScreenshot: false, isFavorite: false, quality: receipt), .document)
+        XCTAssertEqual(ClutterReason.classify(isScreenshot: true, isFavorite: false, quality: nil), .screenshot)
+        XCTAssertNil(ClutterReason.classify(isScreenshot: true, isFavorite: true, quality: soft))
+        let olderOS = PhotoQuality(sharpness: 0.0004, aesthetic: nil, utility: false)
+        XCTAssertEqual(ClutterReason.classify(isScreenshot: false, isFavorite: false, quality: olderOS), .blurry)
+    }
+    func testReminderSkipsTodayWhenDoneOrPast() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Amsterdam")!
+        let morning = calendar.date(from: DateComponents(year: 2026, month: 10, day: 28, hour: 9))!
+        XCTAssertEqual(ReminderPlan.dates(now: morning, hour: 20, minute: 0, doneToday: false, calendar: calendar).count, 7)
+        XCTAssertEqual(ReminderPlan.dates(now: morning, hour: 20, minute: 0, doneToday: true, calendar: calendar).count, 6)
+        let night = calendar.date(from: DateComponents(year: 2026, month: 10, day: 28, hour: 21))!
+        let dates = ReminderPlan.dates(now: night, hour: 20, minute: 0, doneToday: false, calendar: calendar)
+        XCTAssertEqual(dates.count, 6)
+        XCTAssertEqual(calendar.component(.day, from: dates[0]), 29)
+        XCTAssertEqual(calendar.component(.hour, from: dates[0]), 20)
+    }
+}

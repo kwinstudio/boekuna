@@ -13,6 +13,7 @@ struct ContentView: View {
 
     @State private var reviewAfterSession = false
     @State private var focus = false
+    @State private var stacksOpen = false
 
     var body: some View {
         NavigationStack {
@@ -25,7 +26,14 @@ struct ContentView: View {
             .background(Palette.background.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $review) { ReviewView().environmentObject(library) }
-            .sheet(isPresented: $info) { InfoView() }
+            .sheet(isPresented: $info) { InfoView().environmentObject(library) }
+            .onReceive(Reminders.shared.$openOnThisDay) { open in
+                guard open else { return }
+                Reminders.shared.openOnThisDay = false
+                review = false; info = false; stacksOpen = false
+                library.openOnThisDay()
+                focus = true
+            }
             .sheet(item: $tool) { destination in
                 switch destination {
                 case .album(let asset): AlbumDestinationView(asset: asset).environmentObject(library)
@@ -41,7 +49,8 @@ struct ContentView: View {
                     .ignoresSafeArea()
             }
             .fullScreenCover(isPresented: $focus) { FocusSwipeView().environmentObject(library) }
-            .sheet(isPresented: Binding(get: { library.sessionFinished && !focus }, set: { library.sessionFinished = $0 }), onDismiss: {
+            .fullScreenCover(isPresented: $stacksOpen) { StackReviewView().environmentObject(library) }
+            .sheet(isPresented: Binding(get: { library.sessionFinished && !focus && !stacksOpen }, set: { library.sessionFinished = $0 }), onDismiss: {
                 library.startNewSession()
                 if reviewAfterSession { reviewAfterSession = false; review = true }
             }) {
@@ -50,7 +59,7 @@ struct ContentView: View {
                     library.sessionFinished = false
                 }.environmentObject(library)
             }
-            .alert("Fotoswipe", isPresented: Binding(get: { library.message != nil && !review && !library.sessionFinished && !focus }, set: { if !$0 { library.message = nil } })) {
+            .alert("Fotoswipe", isPresented: Binding(get: { library.message != nil && !review && !library.sessionFinished && !focus && !stacksOpen }, set: { if !$0 { library.message = nil } })) {
                 Button("OK") { library.message = nil }
             } message: { Text(library.message ?? "") }
             .onChange(of: scenePhase) { _, phase in
@@ -163,6 +172,18 @@ struct ContentView: View {
                 Spacer()
                 ProgressView("Je bibliotheek ophalen…").tint(Palette.brand).foregroundStyle(Palette.muted)
                 Spacer()
+            } else if library.selectedCategory.id == "clutter" && !library.smart.finished {
+                Spacer()
+                VStack(spacing: 12) {
+                    Image(systemName: "wand.and.stars").font(.system(size: 46)).foregroundStyle(Palette.brand)
+                    Text("Rommel zoeken").font(.system(.title2, design: .rounded).weight(.heavy))
+                    ProgressView(value: Double(library.smart.processed), total: Double(max(1, library.smart.total))).tint(Palette.brand)
+                    Text("\(library.smart.processed) van \(library.smart.total) recente foto's · alleen op je iPhone")
+                        .font(.footnote.weight(.semibold)).foregroundStyle(Palette.muted).monospacedDigit()
+                    Text("Wazige foto's, bonnetjes, notities en screenshots komen vooraan. Jij beslist.")
+                        .font(.footnote).foregroundStyle(Palette.muted).multilineTextAlignment(.center)
+                }.foregroundStyle(Palette.ink).padding(.horizontal, 12)
+                Spacer()
             } else if library.current != nil {
                 ZStack {
                     ForEach(Array(library.deck.reversed()), id: \.localIdentifier) { asset in
@@ -172,6 +193,7 @@ struct ContentView: View {
                             depth: library.deck.firstIndex(where: { $0.localIdentifier == asset.localIdentifier }) ?? 0,
                             command: library.swipeCommand,
                             disabled: library.deleting || library.loading || library.mutating,
+                            note: library.clutterReason(asset),
                             onOpen: { tool = .preview(asset) }
                         ) { choice, id, revision in library.decide(choice, expectedID: id, expectedRevision: revision) }
                     }
@@ -231,6 +253,7 @@ struct ContentView: View {
                 }.buttonStyle(ChipStyle(selected: true))
                     .disabled(library.deleting)
                     .accessibilityLabel("Categorie kiezen: \(library.selectedCategory.title)")
+                chip("Bijna dubbel", icon: "square.stack.3d.up", selected: false) { stacksOpen = true }
                 chip("Grootste eerst", icon: "arrow.down.circle", selected: library.order == .largest) {
                     library.selectOrder(library.order == .largest ? .newest : .largest)
                 }
@@ -241,7 +264,7 @@ struct ContentView: View {
         }.disabled(library.loading || library.deleting || library.mutating)
     }
     private var quickCategories: [PhotoCategory] {
-        let wanted = ["on-this-day", "Video's", "Screenshots", "random30", "later"]
+        let wanted = ["clutter", "on-this-day", "Video's", "Screenshots", "random30", "later"]
         return wanted.compactMap { key in
             library.categories.first { ($0.id == key || ($0.title == key && !$0.isAlbum)) && $0.id != library.selectedCategory.id }
         }
@@ -319,6 +342,7 @@ private struct SmoothSwipeCard: View {
     let depth: Int
     let command: SwipeCommand?
     let disabled: Bool
+    var note: String? = nil
     let onOpen: () -> Void
     let onCommit: (PhotoDecision, String, UUID) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -416,6 +440,7 @@ private struct SmoothSwipeCard: View {
             parts.append("Video · \(Int(asset.duration) / 60):\(String(format: "%02d", Int(asset.duration) % 60))")
         } else { parts.append("Foto") }
         parts.append(ByteText.format(PhotoLibrary.fileSize(asset)))
+        if let note { parts.append(note) }
         return parts.joined(separator: " · ")
     }
     private func commit(_ choice: PhotoDecision, width: CGFloat) {
@@ -584,6 +609,7 @@ struct SessionEndView: View {
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }
+                ReminderCard().environmentObject(library)
                 if !library.pending.isEmpty {
                     Button("Controleer \(library.pending.count) items\(library.pendingBytes > 0 ? " · " + ByteText.format(library.pendingBytes) : "")") { onClose(true) }
                         .buttonStyle(PrimaryStyle(fill: Palette.trash, text: Palette.ink))
@@ -729,7 +755,7 @@ struct FocusSwipeView: View {
                             if library.isFavorite(asset) { Image(systemName: "heart.fill").foregroundStyle(Palette.trash) }
                             Text(asset.creationDate?.formatted(date: .long, time: .omitted) ?? "Zonder datum").font(.subheadline.weight(.heavy))
                         }
-                        Text(asset.mediaType == .video ? "Video · \(ByteText.format(PhotoLibrary.fileSize(asset)))" : "Foto · \(ByteText.format(PhotoLibrary.fileSize(asset)))")
+                        Text((asset.mediaType == .video ? "Video · " : "Foto · ") + ByteText.format(PhotoLibrary.fileSize(asset)) + (library.clutterReason(asset).map { " · " + $0 } ?? ""))
                             .font(.caption.weight(.semibold)).opacity(0.85)
                     }
                     .foregroundStyle(.white).padding(.horizontal, 12).padding(.vertical, 8)
@@ -971,5 +997,38 @@ struct GestureGuideView: View {
             }.padding(.horizontal, 22).foregroundStyle(Palette.ink)
         }
         .background(Palette.background.ignoresSafeArea())
+    }
+}
+
+
+/// Asked at the peak moment (end of a session): pick your own moment for tomorrow.
+struct ReminderCard: View {
+    @EnvironmentObject private var library: PhotoLibrary
+    @ObservedObject private var reminders = Reminders.shared
+    @State private var time = Reminders.shared.time
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if reminders.enabled {
+                Label("Herinnering staat aan om \(reminders.timeText)", systemImage: "bell.fill")
+                    .font(.subheadline.weight(.heavy))
+                Text("Eén melding per dag, niet als je al klaar bent.").font(.caption).foregroundStyle(Palette.muted)
+            } else {
+                Text("Morgen weer 2 minuten?").font(.headline.weight(.heavy))
+                Text("Kies je eigen moment, bijvoorbeeld na het eten. Eén melding per dag.").font(.footnote).foregroundStyle(Palette.muted)
+                HStack {
+                    DatePicker("Tijd", selection: $time, displayedComponents: .hourAndMinute).labelsHidden()
+                    Spacer()
+                    Button("Herinner me") {
+                        reminders.setTime(time) { }
+                        reminders.setEnabled(true) { library.rescheduleReminders() }
+                    }.buttonStyle(SecondaryStyle())
+                }
+                if reminders.denied {
+                    Text("Meldingen staan uit voor Fotoswipe. Zet ze aan in Instellingen.").font(.caption).foregroundStyle(Palette.muted)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14).pop(radius: 16, fill: Palette.surface, shadow: 3)
     }
 }

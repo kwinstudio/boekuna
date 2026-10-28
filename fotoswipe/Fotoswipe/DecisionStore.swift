@@ -254,5 +254,74 @@ enum FocusGesture: Equatable {
     /// Live feedback while dragging, before release.
     static func preview(dx: CGFloat, dy: CGFloat, width: CGFloat, height: CGFloat) -> FocusGesture {
         classify(dx: dx, dy: dy, predictedDX: dx, predictedDY: dy, width: width, height: height)
+/// Per-photo quality from an on-device thumbnail. Never persisted or uploaded.
+struct PhotoQuality: Sendable, Equatable {
+    /// Variance of the Laplacian on a small grayscale thumbnail (0...1 intensities). Low = soft or blurred.
+    let sharpness: Double
+    /// Apple's aesthetics score (-1...1), iOS 18 and later; nil on iOS 17.
+    let aesthetic: Double?
+    /// Apple marks receipts, documents, notes and similar "utility" images (iOS 18 and later).
+    let utility: Bool
+}
+
+/// Default effect: the best shot is preselected, so one confirmation handles a whole stack.
+enum SmartPick {
+    static let blurThreshold = 0.0009
+    static func score(_ quality: PhotoQuality?) -> Double {
+        guard let quality else { return 0 }
+        return (quality.aesthetic ?? 0) * 2 + min(quality.sharpness / 0.004, 1.5)
+    }
+    /// Favourites always win; otherwise the highest score; ties keep the earliest photo.
+    static func best(_ ids: [String], quality: [String: PhotoQuality], favorites: Set<String>) -> String? {
+        var winner: String?
+        var top = -Double.infinity
+        for id in ids {
+            let value = score(quality[id]) + (favorites.contains(id) ? 100 : 0)
+            if value > top { top = value; winner = id }
+        }
+        return winner
+    }
+    /// Everything not kept is set aside for review. At least one photo of a stack always stays.
+    static func decisions(group: [String], keep: Set<String>) -> [(String, PhotoDecision)] {
+        let keepers = keep.intersection(group)
+        guard !keepers.isEmpty else { return [] }
+        return group.map { ($0, keepers.contains($0) ? .keep : .trash) }
+    }
+}
+
+enum ClutterReason: Int, Comparable {
+    case document, screenshot, blurry
+    static func < (lhs: ClutterReason, rhs: ClutterReason) -> Bool { lhs.rawValue < rhs.rawValue }
+    var label: String {
+        switch self {
+        case .document: return "Bonnetje of notitie"
+        case .screenshot: return "Screenshot"
+        case .blurry: return "Mogelijk wazig"
+        }
+    }
+    /// Conservative on purpose: a wrong guess costs one extra swipe, never a deletion.
+    static func classify(isScreenshot: Bool, isFavorite: Bool, quality: PhotoQuality?) -> ClutterReason? {
+        if isFavorite { return nil }
+        if isScreenshot { return .screenshot }
+        guard let quality else { return nil }
+        if quality.utility { return .document }
+        if let aesthetic = quality.aesthetic {
+            return quality.sharpness < SmartPick.blurThreshold * 2 && aesthetic < -0.2 ? .blurry : nil
+        }
+        return quality.sharpness < SmartPick.blurThreshold ? .blurry : nil
+    }
+}
+
+/// One reminder per day at a time the user picked; skipped on days already done.
+enum ReminderPlan {
+    static func dates(now: Date, hour: Int, minute: Int, days: Int = 7, doneToday: Bool,
+                      calendar: Calendar = .current) -> [Date] {
+        let today = calendar.startOfDay(for: now)
+        return (0..<days).compactMap { offset -> Date? in
+            guard let day = calendar.date(byAdding: .day, value: offset, to: today),
+                  let fire = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day) else { return nil }
+            if offset == 0 && (doneToday || fire <= now) { return nil }
+            return fire
+        }
     }
 }

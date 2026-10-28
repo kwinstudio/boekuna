@@ -1,8 +1,10 @@
 import SwiftUI
 import UIKit
+import UserNotifications
 
 @main struct FotoswipeApp: App {
     @StateObject private var library = PhotoLibrary()
+    init() { UNUserNotificationCenter.current().delegate = Reminders.shared }
     var body: some Scene {
         WindowGroup { ContentView().environmentObject(library).preferredColorScheme(.light) }
     }
@@ -67,4 +69,89 @@ enum Haptics {
     }
     static func threshold() { UISelectionFeedbackGenerator().selectionChanged() }
     static func success() { UINotificationFeedbackGenerator().notificationOccurred(.success) }
+}
+
+
+/// Local daily reminder at a time the user picked (an implementation intention: "after dinner I swipe").
+/// Scheduled on the device only; at most one per day, skipped once the day is done.
+@MainActor final class Reminders: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
+    static let shared = Reminders()
+    @Published var openOnThisDay = false
+    @Published private(set) var enabled: Bool
+    @Published private(set) var hour: Int
+    @Published private(set) var minute: Int
+    @Published private(set) var denied = false
+    private static let count = 7
+
+    override init() {
+        let defaults = UserDefaults.standard
+        enabled = defaults.bool(forKey: "fotoswipe.reminder.on")
+        hour = defaults.object(forKey: "fotoswipe.reminder.hour") as? Int ?? 20
+        minute = defaults.object(forKey: "fotoswipe.reminder.minute") as? Int ?? 0
+        super.init()
+    }
+
+    var time: Date {
+        Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
+    }
+    var timeText: String { String(format: "%02d:%02d", hour, minute) }
+
+    /// Asks permission only at the moment the user turns the reminder on.
+    func setEnabled(_ on: Bool, then reschedule: @escaping () -> Void) {
+        guard on else {
+            enabled = false
+            save()
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: Self.ids)
+            return
+        }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            Task { @MainActor in
+                let reminders = Reminders.shared
+                reminders.denied = !granted
+                reminders.enabled = granted
+                reminders.save()
+                if granted { reschedule() }
+            }
+        }
+    }
+    func setTime(_ date: Date, then reschedule: () -> Void) {
+        let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+        hour = parts.hour ?? 20
+        minute = parts.minute ?? 0
+        save()
+        if enabled { reschedule() }
+    }
+    func schedule(_ items: [(Date, String)]) {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: Self.ids)
+        guard enabled else { return }
+        for (index, item) in items.prefix(Self.count).enumerated() {
+            let content = UNMutableNotificationContent()
+            content.title = "Je 2 minuten staan klaar"
+            content.body = item.1
+            content.sound = .default
+            content.userInfo = ["open": "on-this-day"]
+            let parts = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: item.0)
+            let request = UNNotificationRequest(identifier: Self.ids[index], content: content,
+                                                trigger: UNCalendarNotificationTrigger(dateMatching: parts, repeats: false))
+            center.add(request)
+        }
+    }
+    private static var ids: [String] { (0..<count).map { "fotoswipe.reminder.\($0)" } }
+    private func save() {
+        let defaults = UserDefaults.standard
+        defaults.set(enabled, forKey: "fotoswipe.reminder.on")
+        defaults.set(hour, forKey: "fotoswipe.reminder.hour")
+        defaults.set(minute, forKey: "fotoswipe.reminder.minute")
+    }
+
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
+                                            withCompletionHandler completionHandler: @escaping () -> Void) {
+        Task { @MainActor in Reminders.shared.openOnThisDay = true }
+        completionHandler()
+    }
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+                                            withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([])
+    }
 }

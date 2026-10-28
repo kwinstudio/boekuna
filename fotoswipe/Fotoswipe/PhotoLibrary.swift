@@ -2,6 +2,7 @@ import SwiftUI
 import Photos
 import PhotosUI
 import UIKit
+import Combine
 
 private final class LibraryObserver: NSObject, PHPhotoLibraryChangeObserver {
     var onChange: (() -> Void)?
@@ -42,7 +43,8 @@ struct PhotoCategory: Identifiable {
         var result = [PhotoCategory.all,
             PhotoCategory(id: "later", title: "Later beslissen", icon: "bookmark", collection: nil, isAlbum: false),
             PhotoCategory(id: "random30", title: "30 willekeurige items", icon: "shuffle", collection: nil, isAlbum: false),
-            PhotoCategory(id: "on-this-day", title: "Op deze dag", icon: "calendar", collection: nil, isAlbum: false, dateFilter: .onThisDay)]
+            PhotoCategory(id: "on-this-day", title: "Op deze dag", icon: "calendar", collection: nil, isAlbum: false, dateFilter: .onThisDay),
+            PhotoCategory(id: "clutter", title: "Rommel", icon: "wand.and.stars", collection: nil, isAlbum: false)]
         for (type, title, icon) in types {
             if let collection = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: type, options: nil).firstObject {
                 result.append(PhotoCategory(id: collection.localIdentifier, title: title, icon: icon, collection: collection, isAlbum: false))
@@ -68,7 +70,13 @@ struct PhotoCategory: Identifiable {
     @Published private(set) var keptInCategory = 0
     @Published private(set) var order = PhotoOrder.newest
     @Published private(set) var monthProgress: [String: PhotoProgress] = [:]
-    private var allAssets: [PHAsset] = []
+    private var allAssets: [PHAsset] = [] {
+        didSet { assetIndex = Dictionary(allAssets.map { ($0.localIdentifier, $0) }, uniquingKeysWith: { first, _ in first }) }
+    }
+    private var assetIndex: [String: PHAsset] = [:]
+    /// On-device scan for near-duplicate stacks and clutter; results live in memory only.
+    let smart = SmartScanner()
+    private var smartObserver: AnyCancellable?
     @Published private(set) var deferred: [PHAsset] = []
     @Published private(set) var mutating = false
     @Published private(set) var status: String?
@@ -123,6 +131,7 @@ struct PhotoCategory: Identifiable {
         }
         if let data = UserDefaults.standard.data(forKey: Self.streakKey),
            let saved = try? JSONDecoder().decode(StreakStore.self, from: data) { streak = saved }
+        smartObserver = smart.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
         observer.onChange = { [weak self] in self?.libraryDidChange() }
         PHPhotoLibrary.shared().register(observer)
         refresh()
@@ -141,6 +150,69 @@ struct PhotoCategory: Identifiable {
         selectedCategory = category
         if category.id == "random30" { randomSession.restart() }
         refresh()
+        if category.id == "clutter" && !smart.finished { startSmartScan() }
+    }
+    /// From a reminder: straight to today's memories from earlier years.
+    func openOnThisDay() {
+        guard !deleting, !mutating else { return }
+        selectedCategory = PhotoCategory(id: "on-this-day", title: "Op deze dag", icon: "calendar", collection: nil, isAlbum: false, dateFilter: .onThisDay)
+        refresh()
+    }
+    func asset(id: String) -> PHAsset? { assetIndex[id] }
+    func clutterReason(_ asset: PHAsset) -> String? { smart.reasons[asset.localIdentifier]?.label }
+    func startSmartScan() {
+        guard hasAccess, !smart.scanning else { return }
+        let candidates = allAssets
+            .filter { state.decisions[$0.localIdentifier] == nil }
+            .sorted { ($0.creationDate ?? .distantPast) > ($1.creationDate ?? .distantPast) }
+        let favorites = Set(candidates.prefix(SmartScanner.limit * 2).filter { isFavorite($0) }.map(\.localIdentifier))
+        smart.onFinish = { [weak self] in
+            guard let self, self.selectedCategory.id == "clutter" else { return }
+            self.refresh(showLoading: false)
+        }
+        smart.start(candidates, favorites: favorites)
+    }
+    /// One decision for a whole stack: keepers kept, the rest set aside for review.
+    func applyStack(_ group: [String], keep: Set<String>) {
+        guard !deleting, !mutating else { return }
+        let decisions = SmartPick.decisions(group: group, keep: keep)
+        guard !decisions.isEmpty else { return }
+        let wasActive = streak.isActive(Date())
+        for (id, choice) in decisions where state.decisions[id] == nil {
+            state.decide(id, choice)
+            session.record(id, choice)
+            streak.recordChoice()
+        }
+        rebuildPresentation()
+        save()
+        Haptics.choice(decisions.contains { $0.1 == .trash } ? .trash : .keep)
+        if session.isComplete { streak.markActive() }
+        saveStreak()
+        if !wasActive && streak.isActive(Date()) { rescheduleReminders() }
+        if session.isComplete && !sessionFinished { sessionFinished = true; Haptics.success() }
+    }
+    func bestInStack(_ group: [String]) -> String? {
+        let favorites = Set(group.filter { id in assetIndex[id].map { isFavorite($0) } ?? false })
+        return SmartPick.best(group, quality: smart.quality, favorites: favorites)
+    }
+
+    /// Plans the next 7 reminders with a personal line; skips today once the day is done.
+    func rescheduleReminders() {
+        let reminders = Reminders.shared
+        guard reminders.enabled else { return }
+        let now = Date()
+        let dates = ReminderPlan.dates(now: now, hour: reminders.hour, minute: reminders.minute, doneToday: streak.isActive(now))
+        let days = streak.current(now: now)
+        let created = allAssets.map(\.creationDate)
+        let items = dates.map { date -> (Date, String) in
+            let count = created.reduce(0) { $0 + (PhotoDateFilter.onThisDay.includes($1, now: date) ? 1 : 0) }
+            if count > 0 {
+                return (date, "\(count) foto's van \(date.formatted(.dateTime.day().month(.wide))) uit eerdere jaren wachten op je. Even 2 minuten?")
+            }
+            if days > 0 { return (date, "Houd je reeks van \(days) dagen vast: 30 foto's, 2 minuten.") }
+            return (date, "30 foto's, 2 minuten. Maak ruimte voor nieuwe herinneringen.")
+        }
+        reminders.schedule(items)
     }
 
     func selectOrder(_ order: PhotoOrder) {
@@ -201,7 +273,10 @@ struct PhotoCategory: Identifiable {
                 guard let self = self, self.generation == request, !self.mutating else { return }
                 self.allAssets = fetched
                 self.favoriteOverrides.removeAll()
-                if selected.id == "later" {
+                if selected.id == "clutter" {
+                    let lookup = Dictionary(fetched.map { ($0.localIdentifier, $0) }, uniquingKeysWith: { first, _ in first })
+                    filtered = self.smart.clutter.compactMap { lookup[$0] }
+                } else if selected.id == "later" {
                     filtered = fetched.filter { self.state.decisions[$0.localIdentifier] == .later }
                 } else if selected.id == "random30" {
                     let candidates = fetched.filter { self.state.decisions[$0.localIdentifier] == nil }.map(\.localIdentifier)
@@ -232,6 +307,7 @@ struct PhotoCategory: Identifiable {
                 self.selectedCategory = selected
                 self.loading = false
                 self.rebuildPresentation(invalidate: showLoading)
+                self.rescheduleReminders()
             }
         }
     }
@@ -265,12 +341,16 @@ struct PhotoCategory: Identifiable {
         updateCache()
         Haptics.choice(choice)
         session.record(asset.localIdentifier, choice)
+        let wasActive = streak.isActive(Date())
         streak.recordChoice()
+        if !wasActive && streak.isActive(Date()) { rescheduleReminders() }
         if session.isComplete || (remainingCount == 0 && session.count > 0) { finishSession() }
         else { saveStreak() }
     }
     private func finishSession() {
+        let wasActive = streak.isActive(Date())
         streak.markActive()
+        if !wasActive { rescheduleReminders() }
         saveStreak()
         guard !sessionFinished else { return }
         sessionFinished = true

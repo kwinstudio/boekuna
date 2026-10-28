@@ -2,6 +2,7 @@ import Foundation
 import Photos
 import UIKit
 import Combine
+import Vision
 
 /// Transient descriptors only; never persisted or uploaded.
 struct SimilarPhotoDescriptor: Sendable {
@@ -148,7 +149,7 @@ struct SimilarPhotoGroup: Identifiable {
     }
 
     /// Raster work runs off the UI thread; only a single small thumbnail is held per request.
-    nonisolated private static func describe(_ image: CGImage, id: String, date: Date, aspect: Double) async -> SimilarPhotoDescriptor? {
+    nonisolated static func describe(_ image: CGImage, id: String, date: Date, aspect: Double) async -> SimilarPhotoDescriptor? {
         await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 let descriptor: SimilarPhotoDescriptor? = autoreleasepool {
@@ -187,5 +188,149 @@ struct SimilarPhotoGroup: Identifiable {
                 continuation.resume(returning: descriptor)
             }
         }
+    }
+}
+
+
+/// One on-device pass over recent, undecided photos: finds near-duplicate stacks and likely clutter.
+/// Uses small local thumbnails only (no iCloud download, nothing stored or uploaded).
+@MainActor final class SmartScanner: ObservableObject {
+    static let limit = 1200
+    @Published private(set) var scanning = false
+    @Published private(set) var finished = false
+    @Published private(set) var processed = 0
+    @Published private(set) var total = 0
+    @Published private(set) var stacks: [[String]] = []
+    @Published private(set) var clutter: [String] = []
+    private(set) var reasons: [String: ClutterReason] = [:]
+    private(set) var quality: [String: PhotoQuality] = [:]
+    var onFinish: (() -> Void)?
+    private var task: Task<Void, Never>?
+
+    private struct Input {
+        let id: String
+        let asset: PHAsset
+        let date: Date
+        let aspect: Double
+        let screenshot: Bool
+        let favorite: Bool
+    }
+    private final class ImageBox { var image: CGImage? }
+
+    /// `assets` should be ordered newest first; only the first `limit` photos are scanned.
+    func start(_ assets: [PHAsset], favorites: Set<String>) {
+        guard !scanning else { return }
+        task?.cancel()
+        let inputs = assets.lazy.filter { $0.mediaType == .image }.prefix(Self.limit).map { asset in
+            Input(id: asset.localIdentifier, asset: asset, date: asset.creationDate ?? .distantPast,
+                  aspect: Double(asset.pixelWidth) / Double(max(1, asset.pixelHeight)),
+                  screenshot: asset.mediaSubtypes.contains(.photoScreenshot),
+                  favorite: favorites.contains(asset.localIdentifier))
+        }
+        let list = Array(inputs)
+        scanning = true; finished = false; processed = 0; total = list.count
+        task = Task.detached(priority: .utility) { [weak self] in
+            let manager = PHImageManager.default()
+            let options = PHImageRequestOptions()
+            options.isSynchronous = true
+            options.isNetworkAccessAllowed = false
+            options.deliveryMode = .highQualityFormat
+            options.resizeMode = .fast
+            var descriptors: [SimilarPhotoDescriptor] = []
+            var quality: [String: PhotoQuality] = [:]
+            var reasons: [String: ClutterReason] = [:]
+            for (index, input) in list.enumerated() {
+                if Task.isCancelled { return }
+                let box = ImageBox()
+                autoreleasepool {
+                    manager.requestImage(for: input.asset, targetSize: CGSize(width: 256, height: 256),
+                                         contentMode: .aspectFit, options: options) { result, _ in box.image = result?.cgImage }
+                }
+                var measured: PhotoQuality?
+                if let image = box.image {
+                    if let descriptor = await SimilarPhotoService.describe(image, id: input.id, date: input.date, aspect: input.aspect) {
+                        descriptors.append(descriptor)
+                    }
+                    let value = await SmartScanner.measure(image)
+                    quality[input.id] = value
+                    measured = value
+                }
+                if let reason = ClutterReason.classify(isScreenshot: input.screenshot, isFavorite: input.favorite, quality: measured) {
+                    reasons[input.id] = reason
+                }
+                if index % 20 == 19 || index == list.count - 1 {
+                    let done = index + 1
+                    await MainActor.run { self?.processed = done }
+                }
+            }
+            let groups = SimilarPhotoGrouping.groups(descriptors, isCancelled: { Task.isCancelled })
+            let order = list.map(\.id)
+            let rank = Dictionary(order.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
+            // Newest stacks first; clutter grouped by reason, newest first within a reason.
+            let sortedStacks = groups.sorted { (rank[$0.first ?? ""] ?? 0) < (rank[$1.first ?? ""] ?? 0) }
+            let clutterIDs = order.filter { reasons[$0] != nil }
+                .enumerated()
+                .sorted { lhs, rhs in
+                    let l = reasons[lhs.element]!, r = reasons[rhs.element]!
+                    return l == r ? lhs.offset < rhs.offset : l < r
+                }
+                .map(\.element)
+            await MainActor.run {
+                guard let self else { return }
+                self.quality = quality
+                self.reasons = reasons
+                self.stacks = sortedStacks
+                self.clutter = clutterIDs
+                self.processed = list.count
+                self.scanning = false
+                self.finished = true
+                self.task = nil
+                self.onFinish?()
+            }
+        }
+    }
+
+    func cancel() {
+        task?.cancel(); task = nil
+        scanning = false
+    }
+
+    /// Sharpness on a 96x96 grayscale copy plus, from iOS 18, Apple's on-device aesthetics score.
+    nonisolated static func measure(_ image: CGImage) async -> PhotoQuality {
+        let sharp = sharpness(image)
+        var aesthetic: Double?
+        var utility = false
+        if #available(iOS 18.0, *) {
+            if let observation = try? await CalculateImageAestheticsScoresRequest().perform(on: image) {
+                aesthetic = Double(observation.overallScore)
+                utility = observation.isUtility
+            }
+        }
+        return PhotoQuality(sharpness: sharp, aesthetic: aesthetic, utility: utility)
+    }
+
+    nonisolated static func sharpness(_ image: CGImage) -> Double {
+        let width = 96, height = 96
+        var pixels = [UInt8](repeating: 0, count: width * height)
+        let drawn = pixels.withUnsafeMutableBytes { bytes -> Bool in
+            guard let context = CGContext(data: bytes.baseAddress, width: width, height: height, bitsPerComponent: 8,
+                                          bytesPerRow: width, space: CGColorSpaceCreateDeviceGray(),
+                                          bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return false }
+            context.interpolationQuality = .medium
+            context.draw(image, in: CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height)))
+            return true
+        }
+        guard drawn else { return 1 }
+        var sum = 0.0, squares = 0.0, count = 0.0
+        for y in 1..<(height - 1) {
+            for x in 1..<(width - 1) {
+                let i = y * width + x
+                let laplacian = (Double(pixels[i - 1]) + Double(pixels[i + 1]) + Double(pixels[i - width])
+                                 + Double(pixels[i + width]) - 4 * Double(pixels[i])) / 255
+                sum += laplacian; squares += laplacian * laplacian; count += 1
+            }
+        }
+        let mean = sum / count
+        return squares / count - mean * mean
     }
 }

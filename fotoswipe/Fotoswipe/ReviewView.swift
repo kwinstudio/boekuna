@@ -85,15 +85,29 @@ struct ReviewView: View {
 
 struct InfoView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var library: PhotoLibrary
+    @ObservedObject private var reminders = Reminders.shared
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    Toggle("Dagelijkse herinnering", isOn: Binding(get: { reminders.enabled }, set: { on in
+                        reminders.setEnabled(on) { library.rescheduleReminders() }
+                    }))
+                    DatePicker("Tijd", selection: Binding(get: { reminders.time }, set: { date in
+                        reminders.setTime(date) { library.rescheduleReminders() }
+                    }), displayedComponents: .hourAndMinute)
+                    .disabled(!reminders.enabled)
+                } header: { Text("Herinnering") } footer: {
+                    Text(reminders.denied ? "Meldingen staan uit voor Fotoswipe. Zet ze aan in Instellingen." : "Eén melding per dag op jouw moment, met foto's van die dag uit eerdere jaren. Geen melding als je al klaar bent.")
+                }
                 Section("Zo werkt Fotoswipe") {
                     Label("Links of kruisje: wegleggen voor controle", systemImage: "arrow.left")
                     Label("Rechts of vinkje: bewaren", systemImage: "arrow.right")
                     Label("Klokje: later beslissen", systemImage: "clock")
                     Label("Terugpijl: laatste keuze herstellen", systemImage: "arrow.uturn.backward")
                     Text("Een sessie is 30 items. Kies je elke dag minstens 10 items of maak je een sessie af, dan groeit je reeks. Eén dag overslaan mag.")
+                    Text("Bijna dubbel zoekt foto's die vlak na elkaar zijn gemaakt en op elkaar lijken. De beste staat alvast aangevinkt; met één veeg naar rechts bewaar je die en gaan de andere naar Bekijken. Rommel zet wazige foto's, bonnetjes, notities en screenshots vooraan. Beide werken alleen op je iPhone.")
                     Text("Focus (rechtsboven) toont alleen de foto op het hele scherm. Veeg rechts om te bewaren, links om weg te leggen, omhoog voor later en omlaag om de vorige terug te zetten. Dubbeltik maakt favoriet, vasthouden zoomt in, één tik toont de knoppen.")
                     Text("Grootste eerst zet video's en grote foto's vooraan, zodat je snel veel ruimte wint. De volgorde is een schatting op basis van resolutie en duur.")
                     Text("Open 'Bekijken' om je selectie te controleren. Er wordt pas iets verwijderd nadat je dit bevestigt, ook in het venster van Apple.")
