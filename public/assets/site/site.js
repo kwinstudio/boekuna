@@ -90,7 +90,10 @@
   const heroVideo=document.querySelector('[data-hero-video]');
   if(heroVideo){
     const calm=matchMedia('(prefers-reduced-motion: reduce)').matches||(navigator.connection&&navigator.connection.saveData);
-    if(!calm){heroVideo.preload='auto';heroVideo.autoplay=true;const p=heroVideo.play();if(p&&p.catch)p.catch(()=>{})}
+    // The still poster paints first; the video only loads once the page itself has finished, and not on 2G.
+    const slow=navigator.connection&&/(^|-)2g$/.test(navigator.connection.effectiveType||'');
+    const go=()=>{heroVideo.preload='auto';heroVideo.autoplay=true;const p=heroVideo.play();if(p&&p.catch)p.catch(()=>{})};
+    if(!calm&&!slow){if(document.readyState==='complete')setTimeout(go,200);else addEventListener('load',()=>setTimeout(go,200),{once:true})}
   }
 
   // Loader: counts 000 to 100 once per browser session, then slides up.
@@ -125,7 +128,7 @@
         const d=+el.dataset.delay||0,st=+el.dataset.stagger||100;
         el.querySelectorAll('.ln>span').forEach((s,i)=>{s.style.transitionDelay=(d+i*st)+'ms'});
       }else if(el.classList.contains('words')){
-        el.querySelectorAll('.w').forEach((w,i)=>{w.style.transitionDelay=(i*35)+'ms'});
+        el.querySelectorAll('.w').forEach((w,i)=>{w.style.transitionDelay=(i*15)+'ms'});
       }
       el.classList.add('in');
     };
@@ -169,6 +172,19 @@
     addEventListener('scroll',onScroll,{passive:true});
     addEventListener('resize',onScroll,{passive:true});
     addEventListener('scrollend',()=>requestAnimationFrame(paint),{passive:true});
+  }
+
+  // Phone: the one main button stays in thumb reach once the hero has scrolled away. It steps
+  // aside at the footer (which has the same button) and while the menu is open.
+  const sticky=document.querySelector('[data-sticky-cta]');
+  if(sticky&&'IntersectionObserver' in window){
+    const hero=document.querySelector('.s-hero,.page-hero'),foot=document.querySelector('.footer-cta'),nav=document.querySelector('.mobile-nav');
+    let past=!hero,atFoot=false;
+    const update=()=>{const on=past&&!atFoot&&!(nav&&nav.open);sticky.classList.toggle('is-on',on);sticky.inert=!on;sticky.setAttribute('aria-hidden',String(!on))};
+    if(hero)new IntersectionObserver(([en])=>{past=!en.isIntersecting&&en.boundingClientRect.top<0;update()}).observe(hero);
+    if(foot)new IntersectionObserver(([en])=>{atFoot=en.isIntersecting||en.boundingClientRect.top<0;update()}).observe(foot);
+    if(nav)nav.addEventListener('toggle',update);
+    sticky.hidden=false;update();
   }
 
   // Header clock: local time in the Netherlands.
