@@ -107,7 +107,8 @@ try{
   // Phone (Kwin 2026-10-10): the daily actions are three big tiles. Kwin 2026-10-21 (voorstel A): the rest are plain rows under them, no Meer fold.
   assert.equal(await quick.locator('.quick-tiles .quick-tile').count(),3,'Quick actions need the three daily tiles');
   assert.ok(await quick.locator('.quick-rows .quick-action').count(),'Quick actions need a secondary group');
-  for(const label of ['Bon','Factuur','Kosten','Relatie','Dienst','Boeking']){
+  // Kwin 2026-10-26 (roast room U3): Relatie, Offerte and Dienst are made on their own page (round button in the band).
+  for(const label of ['Bon','Factuur','Kosten','Uploaden','Rit','Uren','Boeking']){
     assert.ok(await quick.getByText(label,{exact:false}).count(),label+' must remain reachable');
   }
   await page.evaluate(()=>closeModal());

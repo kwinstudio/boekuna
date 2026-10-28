@@ -111,7 +111,7 @@ try{
     assert.equal(hero.bg,'none','The band lets the screen colour through');
     assert.equal(hero.barBg,'rgba(0, 0, 0, 0)','The top bar lets the screen colour through');
     assert.ok(hero.pickTop>=hero.winstBottom&&hero.pickRight<=390,'The period button sits under Winst: '+JSON.stringify(hero));
-    assert.deepEqual((await page.locator('.r1d-action').allInnerTexts()).map(s=>s.trim()),['Factuur','Bon','Bank','Meer']);
+    assert.deepEqual((await page.locator('.r1d-action').allInnerTexts()).map(s=>s.trim()),['Factuur','Bon','Bank']);
     assert.equal(await page.locator('.dashboard-kpis-calm .dashboard-kpi').count(),1,'Only the Winst block');
     assert.deepEqual((await page.locator('.r1d-bento .calm-label').allTextContents()).map(s=>s.trim()).slice(0,3),['Omzet','Kosten','Te ontvangen']);
     assert.match(await page.locator('.r1d-bento .calm-label').nth(3).innerText(),/^(Vrij te besteden|Btw Q[1-4])$/,'The fourth block is Vrij, or the btw of the quarter that is due');
@@ -120,7 +120,8 @@ try{
     assert.ok(tiles[1].h>tiles[2].h*1.6&&tiles[2].left>tiles[1].left,'Kosten is tall, Te ontvangen sits beside it: '+JSON.stringify(tiles));
     const fab=await page.locator('#quickNew').evaluate(el=>{const r=el.getBoundingClientRect(),c=getComputedStyle(el);return {right:innerWidth-r.right,bottom:innerHeight-r.bottom,w:r.width,h:r.height,position:c.position}});
     assert.equal(fab.position,'fixed');
-    assert.ok(fab.w===48&&fab.h===48&&Math.abs(fab.right-(390-48)/2)<=1&&fab.bottom>=6&&fab.bottom<=12,'Nieuw is a round button inside the middle of the bottom bar: '+JSON.stringify(fab));
+    // Kwin 2026-10-26 (roast room V1): the bar floats as a glass pill 8px above the edge; the + is 52px in its middle.
+    assert.ok(fab.w===52&&fab.h===52&&Math.abs(fab.right-(390-52)/2)<=1&&fab.bottom>=12&&fab.bottom<=16,'Nieuw is a round button inside the middle of the bottom bar: '+JSON.stringify(fab));
     await page.evaluate(()=>{state.invoices[0].payments=[{id:'p1',date:state.invoices[0].issueDate,amount:300,method:'bank'}];navigate('invoices')});
     await page.locator('.mobile-card-list .mobile-card-group').first().waitFor();
     assert.deepEqual(await page.locator('.mobile-card-list .mobile-card-group').allTextContents(),['Vandaag']);
@@ -223,7 +224,8 @@ try{
     assert.deepEqual((await page.locator('#modalRoot .quick-tiles .quick-tile').allTextContents()).map(v=>v.trim()),['Bon scannen','Factuur','Kosten']);
     assert.equal(await page.locator('#modalRoot details.quick-more').count(),0,'No Meer fold');
     // Kwin 2026-10-17 (fewer choices): Factuur uploaden + Document uploaden are one Uploaden, Banktransactie + Bankbestand one Bank.
-    for(const label of ['Factuur','Bon scannen','Kosten','Uploaden','Bank','Relatie','Dienst'])assert.ok(nieuw.includes(label),'Nieuw offers '+label+' on a phone: '+nieuw.join(', '));
+    // Kwin 2026-10-26 (roast room U3): Bank, Relatie, Offerte and Dienst left Nieuw (overview button, own pages).
+    for(const label of ['Factuur','Bon scannen','Kosten','Uploaden','Rit','Uren'])assert.ok(nieuw.includes(label),'Nieuw offers '+label+' on a phone: '+nieuw.join(', '));
     for(const label of ['Factuur uploaden','Document uploaden','Banktransactie','Bankbestand'])assert.ok(!nieuw.includes(label),'Merged on a phone: '+label);
     await page.evaluate(()=>closeModal());
     // Kwin 2026-10-21 (Filters A): an active filter is a green chip with ×, and Wissen clears everything at once.

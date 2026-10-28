@@ -1384,6 +1384,7 @@ html[data-theme="dark"] .year-close-steps li{border-color:var(--dk-line,#2E363C)
 html[data-theme="dark"] .hours-sheet-bar{background:#2E363C}
 /* Offertes */
 .quote-strip-wrap{margin:0 0 14px}
+.quote-strip-wrap.is-under-list{margin:14px 0 0}
 .quote-list{display:flex;flex-direction:column}
 .quote-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:8px 2px;border:0;border-bottom:1px solid var(--app-border,#E4E8EB);background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
 .quote-row>span{display:flex;flex-direction:column}
@@ -1391,6 +1392,17 @@ html[data-theme="dark"] .hours-sheet-bar{background:#2E363C}
 .quote-detail-amount{font-size:34px;font-weight:800;letter-spacing:-.02em}
 .quote-detail-sub{margin:4px 0 12px;color:var(--app-muted-strong,#5E6870)}
 .quote-detail-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+/* Bankbestand: waar vind ik het */
+.bank-download-help{margin:0}
+.bank-download-help>div{padding:10px 0;border-bottom:1px solid var(--app-border,#E4E8EB)}
+.bank-download-help dt{font-weight:700;margin:0 0 2px}
+.bank-download-help dd{margin:0;color:var(--app-muted-strong,#5E6870);font-size:14px;line-height:1.45}
+/* Terugkerende facturen */
+.recurring-intro{margin:0 0 14px;color:var(--app-muted-strong,#5E6870)}
+.recurring-choices{display:flex;flex-direction:column;gap:0;margin:0 0 14px;padding:0;border:0}
+.recurring-choices legend{margin:0 0 6px;font-weight:700}
+.recurring-choice{display:flex;align-items:center;gap:12px;min-height:48px;border-bottom:1px solid var(--app-border,#E4E8EB);font-size:15px;cursor:pointer}
+.recurring-choice input{width:20px;height:20px;margin:0;accent-color:var(--brand,#2F8F5B)}
 .quote-delete{color:#C2412D;margin-left:auto}
 html body #modalRoot#modalRoot form[data-quote] .mobile-invoice-summary::before{content:"OFFERTE"}
 /* Hulp: zoeken in korte antwoorden */
@@ -1812,4 +1824,58 @@ html[data-theme="dark"] :is(.r1d-sfeer-btn,.settings-sfeer-option).is-on .r1d-sf
   html[data-sfeer]:has(#mainApp:not(.hidden)){background:var(--r1d-strip)!important}
   html[data-sfeer] body #mainApp#mainApp#mainApp:has(#content>.r1d-hero) .topbar{z-index:56!important}
   html.is-pointer body #mainApp#mainApp .topbar .mobile-menu:focus-visible{outline:none!important;box-shadow:none!important}
+}
+
+/* 28. Roast room top 5 (Kwin 2026-10-26, "bouw"), phone only.
+   V1: the bottom bar floats as a glass pill in the band colour, so the colour (or Sfeer photo) runs to the bottom of the screen;
+   the round + is white with the band colour inside. U2: one glass line under the band for what cannot wait (a late invoice).
+   M1: sheets get a grip at the top (the slide itself lives in motion.css, the swipe in motion.js). */
+@media (max-width:820px){
+  :root{--r1d-bar:color-mix(in srgb,var(--r1d-top) 70%,transparent);--r1d-bar-gap:10px}
+  html body #mobileBottomNav#mobileBottomNav{left:var(--r1d-bar-gap)!important;right:var(--r1d-bar-gap)!important;bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;min-height:64px!important;padding:4px 6px!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:32px!important;background:var(--r1d-bar)!important;-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);box-shadow:0 10px 30px rgba(0,0,0,.28)!important}
+  html[data-sfeer] body #mobileBottomNav#mobileBottomNav{--r1d-bar:color-mix(in srgb,var(--r1d-strip,#000) 62%,transparent)}
+  html:is(*,[data-band]) body #mobileBottomNav#mobileBottomNav .mobile-bottom-nav-item,html:is(*,[data-band]) body #mobileBottomNav#mobileBottomNav .mobile-bottom-nav-item :is(.icon,span){color:rgba(255,255,255,.62)!important}
+  html:is(*,[data-band]) body #mobileBottomNav#mobileBottomNav .mobile-bottom-nav-item:is(.active,[aria-current="page"]),html:is(*,[data-band]) body #mobileBottomNav#mobileBottomNav .mobile-bottom-nav-item:is(.active,[aria-current="page"]) :is(.icon,span){color:#fff!important}
+  html body #mainApp#mainApp#mainApp .topbar #quickNew{bottom:calc(14px + env(safe-area-inset-bottom,0px))!important;width:52px!important;height:52px!important;min-width:52px!important;min-height:52px!important;left:calc(50% - 26px)!important;border-radius:50%!important;background:#fff!important;color:var(--r1d-bottom)!important;box-shadow:0 6px 18px rgba(0,0,0,.25)!important}
+  html body #mainApp#mainApp#mainApp .topbar #quickNew .icon{color:var(--r1d-bottom)!important;width:24px!important;height:24px!important}
+  /* In Donker no white surfaces: the + and the alert button take the bright accent of the band (groen: the omzet green). */
+  html[data-theme="dark"] body #mainApp#mainApp#mainApp .topbar #quickNew{background:var(--r1d-accent,#63D471)!important;color:var(--r1d-accent-ink,#0E2A16)!important}
+  html[data-theme="dark"] body #mainApp#mainApp#mainApp .topbar #quickNew .icon{color:var(--r1d-accent-ink,#0E2A16)!important}
+  html[data-theme="dark"] body #mainApp#mainApp #content .r1d-alert-cta{background:var(--r1d-accent,#63D471);color:var(--r1d-accent-ink,#0E2A16)}
+  html body #mainApp#mainApp #content{padding-bottom:calc(104px + env(safe-area-inset-bottom,0px))!important}
+
+  html body #mainApp#mainApp #content .r1d-alert{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:12px 12px 12px 16px;border:0;border-radius:22px;background:var(--r1d-glass,rgba(255,255,255,.14));color:#fff;text-align:left;font:inherit;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+  html body #mainApp#mainApp #content .r1d-alert-dot{flex:0 0 10px;width:10px;height:10px;border-radius:50%;background:#FF6B5E;box-shadow:0 0 0 4px rgba(255,107,94,.25)}
+  html body #mainApp#mainApp #content .r1d-alert-copy{display:flex;flex-direction:column;gap:1px;flex:1 1 auto;min-width:0}
+  html body #mainApp#mainApp #content .r1d-alert-copy strong{font-size:15px;font-weight:700;line-height:1.25;color:#fff}
+  html body #mainApp#mainApp #content .r1d-alert-copy>span{font-size:13px;line-height:1.3;color:rgba(255,255,255,.76);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html body #mainApp#mainApp #content .r1d-alert-more{margin-left:6px;padding:1px 7px;border-radius:999px;background:rgba(255,255,255,.2);font-size:12px;font-weight:700;vertical-align:1px}
+  html body #mainApp#mainApp #content .r1d-alert-cta{flex:0 0 auto;padding:8px 14px;border-radius:999px;background:#fff;color:#16191C;font-size:14px;font-weight:700;white-space:nowrap}
+
+  html body #modalRoot#modalRoot .modal:not(.invoice-page){position:relative}
+  html body #modalRoot#modalRoot .modal:not(.invoice-page)::before{content:"";position:absolute;top:7px;left:50%;width:38px;height:5px;margin-left:-19px;border-radius:3px;background:color-mix(in srgb,var(--calm-ink) 22%,transparent);pointer-events:none;z-index:2}
+  html body #modalRoot#modalRoot .modal:not(.invoice-page) .modal-head{touch-action:none}
+}
+
+/* 29. Netjes (Kwin 2026-10-26, "alles moet gewoon netjes eruit zien"), phone only: small details that broke the one look. */
+@media (max-width:820px){
+  /* Btw on Kosten toevoegen: round chips without a white square behind them, borderless like the Waarvoor chips below. */
+  html body #modalRoot#modalRoot .modal:not(.invoice-page) .expense-form label.choice-chip{background:transparent!important;border-radius:999px}
+  html body #modalRoot#modalRoot .modal:not(.invoice-page) .expense-form .choice-chip input:not(:checked)+span{border-color:transparent!important}
+  html body #modalRoot#modalRoot .modal:not(.invoice-page) .expense-form button.choice-chip-more{background:transparent!important}
+  html body #modalRoot#modalRoot .modal:not(.invoice-page) .expense-form button.choice-chip-more span{border-color:transparent!important}
+  /* Rit toevoegen: "wordt berekend" is a hint, not a value. */
+  html body #modalRoot#modalRoot input[name="km"]::placeholder{font-weight:500}
+  /* Filter chips that run off the screen fade out, so they read as "scroll for more" instead of cut off. */
+  html body #mainApp#mainApp #content .list-chip-row{padding-right:28px;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent)}
+  /* Empty states: the button has the same round shape as every other main button. */
+  html body #mainApp#mainApp #content .beginner-empty-action .btn{border-radius:999px}
+  /* Overview: the hours pill looks like the Widgets and Thema buttons, with a clock, centred like them. */
+  html body #mainApp#mainApp #content .r1d-pills:has(>.r1d-hours:only-child){justify-content:center}
+  html body #mainApp#mainApp #content .r1d-hours{display:inline-flex;align-items:center;gap:7px;padding:0 16px 0 13px;font-size:14px}
+  html body #mainApp#mainApp #content .r1d-hours .icon{width:18px;height:18px}
+  /* Menu: Donkere modus is a row like the others, with an icon and the same letters. */
+  #sidebar .drawer-theme{font-size:13px;font-weight:600}
+  #sidebar .drawer-theme-label{display:inline-flex;align-items:center;gap:11px;min-width:0}
+  #sidebar .drawer-theme-label .icon{flex:0 0 auto;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 }

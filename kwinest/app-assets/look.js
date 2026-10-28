@@ -182,7 +182,7 @@
     var sw=side.querySelector('.drawer-theme');
     if(!sw&&window.BoekunaTheme){
       sw=document.createElement('button');sw.type='button';sw.className='drawer-theme';sw.setAttribute('role','switch');
-      sw.innerHTML='<span>Donkere modus</span><span class="drawer-switch" aria-hidden="true"><i></i></span>';
+      sw.innerHTML='<span class="drawer-theme-label"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg><span>Donkere modus</span></span><span class="drawer-switch" aria-hidden="true"><i></i></span>';
       sw.addEventListener('click',function(){window.BoekunaTheme.set(window.BoekunaTheme.resolved()==='dark'?'light':'dark');sync()});
       side.appendChild(sw);
     }

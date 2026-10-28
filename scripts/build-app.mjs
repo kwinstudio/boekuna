@@ -11,24 +11,12 @@ const target=path.join(root,'dist','app');
 const appSource=path.join(root,'kwinest','index.html');
 const manifestSource=path.join(root,'public','manifest.webmanifest');
 const assetsSource=path.join(root,'public','assets');
-const appFontCache=path.join(root,'.cache','app-fonts');
-const SPACE_GROTESK_COMMIT='9710da1eacb3be272583c3224dcb70f9da6eadbb';
-const SPACE_GROTESK_URL='https://raw.githubusercontent.com/google/fonts/'+SPACE_GROTESK_COMMIT+'/ofl/spacegrotesk/SpaceGrotesk%5Bwght%5D.ttf';
 const releaseProfile=resolveReleaseProfile();
 const releaseFeatures=releaseProfile.features;
 const assistantFlag=String(process.env.BOEKUNA_ASSISTANT_ENABLED??'true').trim().toLowerCase();
 const assistantRequested=!['0','false','no','off'].includes(assistantFlag);
 const assistantEnabled=isReleaseFeatureEnabled(releaseFeatures,'personalAssistant')&&assistantRequested;
 
-async function cacheAppFont(url,name){
-  fs.mkdirSync(appFontCache,{recursive:true});
-  const file=path.join(appFontCache,name);
-  if(fs.existsSync(file)&&fs.statSync(file).size>1000)return file;
-  const response=await fetch(url,{redirect:'follow'});
-  if(!response.ok)throw new Error('Could not fetch pinned app font '+name+': HTTP '+response.status);
-  fs.writeFileSync(file,Buffer.from(await response.arrayBuffer()));
-  return file;
-}
 const appAssets=[
   'boekuna-app-icon-180.png',
   'boekuna-app-icon-192.png',
@@ -58,9 +46,9 @@ for(const file of [appSource,manifestSource,assetsSource]){
   if(!fs.existsSync(file))throw new Error('Missing app build source: '+path.relative(root,file));
 }
 
-const spaceGroteskFont=await cacheAppFont(SPACE_GROTESK_URL,'SpaceGrotesk-Variable.ttf');
-const interFontSource=path.join(assetsSource,'marketing-editorial','InterVariable.woff2');
-if(!fs.existsSync(interFontSource))throw new Error('Missing app Inter font source');
+// App fonts: Latin subsets with only the weight axis (Inter 87 kB, Space Grotesk 33 kB instead of 344 + 134 kB).
+const appFonts=['app-inter-var.woff2','app-space-grotesk-var.woff2'].map(name=>path.join(root,'kwinest','app-assets',name));
+for(const file of appFonts)if(!fs.existsSync(file))throw new Error('Missing app font source: '+path.relative(root,file));
 
 let appHtml=fs.readFileSync(appSource,'utf8');
 
@@ -238,7 +226,7 @@ appHtml=appHtml.replace(themeMetaMarker,themeMetaMarker+'\n<style id="boekuna-bo
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-review-v2.js?v=20261011a"></script>\n');
 const mobileHeadBoundary='</head>\n<body>';
 if(!appHtml.includes(mobileHeadBoundary))throw new Error('Mobile app head boundary changed');
-appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261009a">\n<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261007a" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/product-color-polish.css?v=20261006a">\n<style id="boekuna-app-mobile-compact-overrides">@media (max-width:820px){#mainApp #appMain #content.content{padding-top:14px!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active{-webkit-appearance:none!important;appearance:none!important;background:transparent!important;background-color:transparent!important;background-image:none!important;color:#2F7D3B!important;box-shadow:none!important;border-top:0!important;font-weight:700!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active .icon,#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active span{color:#2F7D3B!important}}@media (max-width:359px){#mainApp .product-kpis.grid-4{grid-template-columns:1fr!important}}</style>\n<link rel="stylesheet" href="/assets/product-ux-polish-round-3.css?v=20261009i">\n<link rel="stylesheet" href="/assets/mobile-flow-simplification.css?v=20261008e" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/calm-ux.css?v=20261009i">\n<link rel="stylesheet" href="/assets/settings-center.css?v=20261008a">\n<link rel="stylesheet" href="/assets/exports-filters.css?v=20261007a">\n<link rel="stylesheet" href="/assets/period-filters.css?v=20261008d">\n<link rel="stylesheet" href="/assets/feedback.css?v=20261007a">\n<link rel="stylesheet" href="/assets/theme-dark.css?v=20261007a">\n<link rel="stylesheet" href="/assets/document-viewer.css?v=20261008c">\n<link rel="stylesheet" href="/assets/bank-documents.css?v=20261008a">\n<link rel="stylesheet" href="/assets/motion.css?v=20261009d">\n<link rel="stylesheet" href="/assets/look.css?v=20261026a">\n'+mobileHeadBoundary);
+appHtml=appHtml.replace(mobileHeadBoundary,'<link rel="stylesheet" href="/assets/document-review-v2.css?v=20261009a">\n<link rel="stylesheet" href="/assets/personal-insights.css?v=20261004c">\n<link rel="stylesheet" href="/assets/mobile-product.css?v=20261007a" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/product-color-polish.css?v=20261006a">\n<style id="boekuna-app-mobile-compact-overrides">@media (max-width:820px){#mainApp #appMain #content.content{padding-top:14px!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active{-webkit-appearance:none!important;appearance:none!important;background:transparent!important;background-color:transparent!important;background-image:none!important;color:#2F7D3B!important;box-shadow:none!important;border-top:0!important;font-weight:700!important}#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active .icon,#mobileBottomNav.mobile-bottom-nav .mobile-bottom-nav-item.active span{color:#2F7D3B!important}}@media (max-width:359px){#mainApp .product-kpis.grid-4{grid-template-columns:1fr!important}}</style>\n<link rel="stylesheet" href="/assets/product-ux-polish-round-3.css?v=20261009i">\n<link rel="stylesheet" href="/assets/mobile-flow-simplification.css?v=20261008e" media="(max-width:820px)">\n<link rel="stylesheet" href="/assets/calm-ux.css?v=20261009i">\n<link rel="stylesheet" href="/assets/settings-center.css?v=20261008a">\n<link rel="stylesheet" href="/assets/exports-filters.css?v=20261007a">\n<link rel="stylesheet" href="/assets/period-filters.css?v=20261008d">\n<link rel="stylesheet" href="/assets/feedback.css?v=20261007a">\n<link rel="stylesheet" href="/assets/theme-dark.css?v=20261007a">\n<link rel="stylesheet" href="/assets/document-viewer.css?v=20261008c">\n<link rel="stylesheet" href="/assets/bank-documents.css?v=20261008a">\n<link rel="stylesheet" href="/assets/motion.css?v=20261026c">\n<link rel="stylesheet" href="/assets/look.css?v=20261028m">\n'+mobileHeadBoundary);
 const mobileNavStateMarker="function syncMobileNavigationState(){\n const current=mobilePrimarySection(page);\n document.querySelectorAll('[data-mobile-page]').forEach(btn=>{const active=btn.dataset.mobilePage===current;btn.classList.toggle('active',active);if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current')});\n const more=document.querySelector('[data-mobile-more]');if(more){const active=current==='more';more.classList.toggle('active',active);if(active)more.setAttribute('aria-current','page');else more.removeAttribute('aria-current')}\n updateMobileAccountIdentity()\n}";
 if(!appHtml.includes(mobileNavStateMarker))throw new Error('Mobile navigation state marker changed');
 appHtml=appHtml.replace(mobileNavStateMarker,"function syncMobileNavigationState(){\n const current=mobilePrimarySection(page);\n document.querySelectorAll('[data-mobile-page]').forEach(btn=>{const active=btn.dataset.mobilePage===current;btn.classList.toggle('active',active);btn.style.setProperty('background-color','transparent','important');if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current')});\n const more=document.querySelector('[data-mobile-more]');if(more){const active=current==='more';more.classList.toggle('active',active);more.style.setProperty('background-color','transparent','important');if(active)more.setAttribute('aria-current','page');else more.removeAttribute('aria-current')}\n updateMobileAccountIdentity()\n}");
@@ -400,15 +388,21 @@ appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script>\n'+releaseRuntime+'co
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-product.js?v=20261022a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-flow-simplification.js?v=20261022b"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/calm-ux.js?v=20261007a"></script>\n');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/settings-center.js?v=20261024a"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/settings-center.js?v=20261028a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/quotes.js?v=20261022c"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/recurring-invoices.js?v=20261028a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/qrcode.js?v=20261023a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/theme.js?v=20261009i"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/feedback.js?v=20261017a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-viewer.js?v=20261008f"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/native-local-first.js?v=20261008a"></script>\n');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/sortable.min.js?v=1.15.6" defer></script>\n<script src="/assets/look.js?v=20261024b"></script>\n');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/motion.js?v=20261022a"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/sortable.min.js?v=1.15.6" defer></script>\n<script src="/assets/look.js?v=20261026a"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/motion.js?v=20261026b"></script>\n');
+// Press feel (Kwin 2026-10-26): buttons sink under a finger and tick on a phone. Its stylesheet goes last in the document's
+// own <head> (the first </head>; later ones sit inside print templates in the script).
+{const headEnd=appHtml.indexOf('</head>');if(headEnd<0)throw new Error('Missing app document marker: </head>');
+appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/press.css?v=20261026b">\n'+appHtml.slice(headEnd);}
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/press.js?v=20261026b"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});
@@ -433,11 +427,12 @@ for(const asset of appAssets){
 }
 
 // Document review is app-only. Keep the shared public/marketing copies byte-identical.
-for(const asset of ['boekuna-app-favicon.svg','document-review-v2.js','document-review-v2.css','product-color-polish.css','product-ux-polish-round-3.css','mobile-flow-simplification.js','mobile-flow-simplification.css','calm-ux.js','calm-ux.css','settings-center.js','quotes.js','qrcode.js','settings-center.css','theme.js','theme-dark.css','period-filters.css','feedback.js','feedback.css','exports-filters.css','document-viewer.js','document-viewer.css','bank-documents.css','native-local-first.js','motion.css','look.js','look.css','motion.js','sortable.min.js','sfeer-noorderlicht.webp','sfeer-nachthemel.webp','sfeer-zonsondergang.webp','sfeer-marmer.webp','login-museumbeeld.webp','app-PlayfairDisplay-latin.woff2']){
+for(const asset of ['boekuna-app-favicon.svg','document-review-v2.js','document-review-v2.css','product-color-polish.css','product-ux-polish-round-3.css','mobile-flow-simplification.js','mobile-flow-simplification.css','calm-ux.js','calm-ux.css','settings-center.js','quotes.js','recurring-invoices.js','qrcode.js','settings-center.css','theme.js','theme-dark.css','period-filters.css','feedback.js','feedback.css','exports-filters.css','document-viewer.js','document-viewer.css','bank-documents.css','native-local-first.js','motion.css','look.js','look.css','motion.js','sortable.min.js','sfeer-noorderlicht.webp','sfeer-nachthemel.webp','sfeer-zonsondergang.webp','sfeer-marmer.webp','login-museumbeeld.webp','app-PlayfairDisplay-latin.woff2']){
   const sourceFile=path.join(root,'kwinest','app-assets',asset);
   if(!fs.existsSync(sourceFile))throw new Error('Missing app-only review asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
 }
+for(const asset of ['press.css','press.js'])fs.copyFileSync(path.join(root,'kwinest','app-assets',asset),path.join(appAssetsTarget,asset));
 
 // Assistant integration is app-only. Keep shared public mobile assets byte-identical
 // to the marketing source and patch only the generated product artifact.
@@ -626,7 +621,6 @@ patchBuiltAppAsset(
   fs.writeFileSync(indexFile,builtHtml,'utf8');
 }
 
-fs.copyFileSync(interFontSource,path.join(appAssetsTarget,'app-InterVariable.woff2'));
-fs.copyFileSync(spaceGroteskFont,path.join(appAssetsTarget,'app-SpaceGrotesk-Variable.ttf'));
+for(const file of appFonts)fs.copyFileSync(file,path.join(appAssetsTarget,path.basename(file)));
 
 console.log('App build complete:',path.relative(root,target),'with system UI typography polish');

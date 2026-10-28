@@ -90,7 +90,7 @@ assert.ok(source.includes('#mainApp .kpi-tone-success .metric-value{color:var(--
 const build=spawnSync(process.execPath,['scripts/build-app.mjs'],{cwd:root,encoding:'utf8'});
 assert.equal(build.status,0,'App build failed: '+(build.stderr||build.stdout));
 const dist=path.join(root,'dist','app');
-for(const file of ['index.html','manifest.webmanifest','assets/app-InterVariable.woff2','assets/app-SpaceGrotesk-Variable.ttf','assets/product-color-polish.css','assets/product-ux-polish-round-3.css'])assert.ok(fs.existsSync(path.join(dist,file)),'Built app asset missing '+file);
+for(const file of ['index.html','manifest.webmanifest','assets/app-inter-var.woff2','assets/app-space-grotesk-var.woff2','assets/product-color-polish.css','assets/product-ux-polish-round-3.css'])assert.ok(fs.existsSync(path.join(dist,file)),'Built app asset missing '+file);
 let appHtml=fs.readFileSync(path.join(dist,'index.html'),'utf8');
 assert.ok(appHtml.includes('boekuna-product-ui-reference-20261003'),'Built artifact must contain the new product UI layer');
 assert.ok(appHtml.includes('/assets/product-color-polish.css?v=20261006a'),'Built artifact must load the app-only colour polish layer');
@@ -520,7 +520,8 @@ try{
         // Kwin 2026-10-10 (calmer on white): the open page is a green icon and word, without a block or a line.
         const activeMobileStyle=await activeMobileNav.evaluate(el=>{const s=getComputedStyle(el),label=getComputedStyle(el.querySelector('span'));return {background:s.backgroundColor,color:label.color,boxShadow:s.boxShadow,borderTopWidth:s.borderTopWidth,fontWeight:label.fontWeight}});
         assert.equal(activeMobileStyle.background,'rgba(0, 0, 0, 0)',browserName+' mobile '+width+' active destination has no block behind it');
-        assert.equal(activeMobileStyle.color,'rgb(47, 125, 59)',browserName+' mobile '+width+' active destination label is BOEKUNA green');
+        // Kwin 2026-10-26 (roast room V1): the bar is a glass pill in the band colour; the open page is white, the others soft white.
+        assert.equal(activeMobileStyle.color,'rgb(255, 255, 255)',browserName+' mobile '+width+' active destination label is white on the glass bar');
         assert.equal(activeMobileStyle.boxShadow,'none',browserName+' mobile '+width+' active destination must not use a decorative shadow');
         assert.equal(activeMobileStyle.borderTopWidth,'0px',browserName+' mobile '+width+' active destination has no line on top');
         assert.ok(Number.parseInt(activeMobileStyle.fontWeight,10)>=700,browserName+' mobile '+width+' active destination must retain a font-weight selection cue');

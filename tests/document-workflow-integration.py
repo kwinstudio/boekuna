@@ -149,6 +149,8 @@ def setup():
 def user(plan=None):
     uid = str(uuid.uuid4())
     sql('insert into auth.users(id,email) values(%s,%s)', (uid, uid[:8] + '@synthetic.invalid'), fetch=False)
+    # Scenarios set the plan themselves: drop the 14-day ZZP signup trial (20261028120000_zzp_signup_trial).
+    sql("delete from public.billing_entitlements where user_id=%s and provider='trial'", (uid,), fetch=False)
     if plan: sql("insert into public.internal_access_grants(user_id,plan,reason) values(%s,%s,'integration')", (uid, plan), fetch=False)
     return uid
 

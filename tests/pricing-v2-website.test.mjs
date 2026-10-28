@@ -30,7 +30,7 @@ for(const page of [home,prices]){
 }
 // Cards list only the main features, matching the plan split in the app.
 const card=id=>{const from=prices.indexOf(`data-plan="${id}"`);return prices.slice(from,prices.indexOf('</article>',from))};
-const cardFeatures={start:["Facturen en creditnota's",'Klanten en betalingen','Export en back-up'],zzp:['Alles van Start','Kosten, bonnetjes en btw-overzicht','Bankimport en rapporten','100 slimme documentherkenningen per maand'],pro:['Alles van ZZP','Documentherkenning zonder maandlimiet','Herstelpunten']};
+const cardFeatures={start:["Facturen, offertes en creditnota's",'Klanten, betalingen en herinneringen','KOR-instelling','Export en back-up'],zzp:['Alles van Start','Kosten, bonnetjes en btw-overzicht','Terugkerende facturen','Bankimport en rapporten','100 slimme documentherkenningen per maand'],pro:['Alles van ZZP','Documentherkenning zonder maandlimiet','Herstelpunten']};
 for(const [id,features] of Object.entries(cardFeatures)){
   const html=card(id).replaceAll('&#39;',"'");
   assert.equal((html.match(/<li>/g)||[]).length,features.length,id+' card lists only its main features');
@@ -58,7 +58,8 @@ for(const banned of ['meest gekozen','populairst','unlimited','documentchecks pe
   assert.ok(!lower.includes(banned),'banned or stale pricing copy: '+banned);
 // Plan cards and the comparison list only existing features: no roadmap items or "soon" promises.
 const homePricing=home.slice(home.indexOf('id="tarieven"'),home.indexOf('</section>',home.indexOf('id="tarieven"')));
-for(const block of [homePricing,prices])for(const roadmap of ['binnenkort','terugkerende facturen','boekingsregels','meerdere gebruikers','batchverwerking','automatische betalingsherinnering','rollen'])
+for(const block of [homePricing,prices])// Terugkerende facturen are in the app since #350 (2026-10-28).
+for(const roadmap of ['binnenkort','boekingsregels','meerdere gebruikers','batchverwerking','automatische betalingsherinnering','rollen'])
   assert.ok(!block.toLowerCase().includes(roadmap),'pricing must not promise a feature that does not exist: '+roadmap);
 for(const q of ['Kan ik later upgraden?','Hoe werkt het jaarabonnement?','Kan ik opzeggen?','Hoeveel documenten kan ik verwerken?','Wat gebeurt er met mijn gegevens na opzegging?','Zijn de prijzen inclusief of exclusief btw?'])
   assert.ok(prices.includes(q),'pricing FAQ missing: '+q);

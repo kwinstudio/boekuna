@@ -31,9 +31,16 @@ on:
       - "kwinest/app-assets/login-museumbeeld.webp"
       - "kwinest/app-assets/app-PlayfairDisplay-latin.woff2"
       - "kwinest/app-assets/motion.*"
+      - "kwinest/app-assets/press.*"
+      - "kwinest/app-assets/app-*.woff2"
+      - "tests/press-browser.test.mjs"
       - "public/assets/personal-insights-ui.js"
       - "tests/look-browser.test.mjs"
       - "tests/revolut-widgets-browser.test.mjs"
+      - "tests/roast-room-phone-browser.test.mjs"
+      - "tests/netjes-snel-phone-browser.test.mjs"
+      - "kwinest/app-assets/recurring-invoices.js"
+      - "tests/recurring-invoices-browser.test.mjs"
       - "kwinest/app-assets/sortable.min.js"
       - "tests/trips-and-todo-links.test.mjs"
       - "tests/fewer-choices-phone-browser.test.mjs"
@@ -259,6 +266,10 @@ jobs:
         run: |
           node tests/motion-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/motion-browser.test.mjs
+      - name: Knoppen met gewicht (indrukken, terugveren, tik op telefoon) en kleine lettertypes — Chromium and WebKit
+        run: |
+          node tests/press-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/press-browser.test.mjs
       - name: Intro bij opstarten (max 2,5 s, traag laden, reduced motion) — Chromium and WebKit
         run: |
           node tests/boot-intro-browser.test.mjs
@@ -275,6 +286,18 @@ jobs:
         run: |
           node tests/revolut-widgets-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/revolut-widgets-browser.test.mjs
+      - name: Roast room top 5 (sheets glijden, winst-%, te laat, minder knoppen, glazen tabbalk) — Chromium and WebKit
+        run: |
+          node tests/roast-room-phone-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/roast-room-phone-browser.test.mjs
+      - name: Netjes en snel (snelle overgangen, sheet direct gevuld, kleine details) — Chromium and WebKit
+        run: |
+          node tests/netjes-snel-phone-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/netjes-snel-phone-browser.test.mjs
+      - name: Terugkerende facturen en uitleg per bank (gebruikerssimulatie) — Chromium and WebKit
+        run: |
+          node tests/recurring-invoices-browser.test.mjs
+          BOOKUNA_BROWSER=webkit SKIP_APP_BUILD=1 node tests/recurring-invoices-browser.test.mjs
       - name: Bonnen in de tabbalk, Nog te doen opent de lijst, Ritten met automatische afstand — Chromium and WebKit
         run: |
           node tests/trips-and-todo-links.test.mjs

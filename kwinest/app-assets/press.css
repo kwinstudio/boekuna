@@ -1,0 +1,12 @@
+/* BOEKUNA press — every button gives way under your finger and springs back when you let go, so a tap feels like a press.
+   press.js sets .is-pressed / .is-released; the `scale` property stacks on top of any transform a button already has. */
+html.boekuna-press :is(#mainApp,#modalRoot) .is-pressed{animation:boekuna-press-in .07s cubic-bezier(.3,0,.5,1) forwards!important}
+html.boekuna-press :is(#mainApp,#modalRoot) .is-released{animation:boekuna-press-out .22s cubic-bezier(.34,1.56,.64,1) both!important}
+/* Rows and cards are wide, so they sink less; their background darkens a little instead. */
+html.boekuna-press :is(#mainApp,#modalRoot) :is(.mobile-card-row,.mobile-card-main,.r1d-recent-row,.settings-center-row,.action-row,.dashboard-attention-item){--press-scale:.985}
+@keyframes boekuna-press-in{to{scale:var(--press-scale,.95);filter:brightness(.93)}}
+@keyframes boekuna-press-out{from{scale:var(--press-scale,.95);filter:brightness(.93)}to{scale:1;filter:none}}
+@media (prefers-reduced-motion:reduce){
+  html.boekuna-press :is(#mainApp,#modalRoot) :is(.is-pressed,.is-released){animation:none!important}
+  html.boekuna-press :is(#mainApp,#modalRoot) .is-pressed{filter:brightness(.93)}
+}
