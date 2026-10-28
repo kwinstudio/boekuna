@@ -191,6 +191,25 @@ struct PhotoCategory: Identifiable {
         if !wasActive && streak.isActive(Date()) { rescheduleReminders() }
         if session.isComplete && !sessionFinished { sessionFinished = true; Haptics.success() }
     }
+    #if DEBUG
+    /// Screenshot tooling only (Debug builds): fills screens with sample state. Never saved.
+    func debugSetAside(_ count: Int) {
+        for asset in assets.prefix(count) where state.decisions[asset.localIdentifier] == nil {
+            state.decide(asset.localIdentifier, .trash)
+        }
+        rebuildPresentation()
+    }
+    func debugSimulateSession() {
+        for (index, asset) in assets.prefix(ReviewSession.size).enumerated() {
+            let choice: PhotoDecision = index % 3 == 0 ? .trash : (index % 7 == 0 ? .later : .keep)
+            state.decide(asset.localIdentifier, choice)
+            session.record(asset.localIdentifier, choice)
+        }
+        streak.markActive()
+        rebuildPresentation()
+        sessionFinished = true
+    }
+    #endif
     /// Undecided items left in the current category.
     var remainingInCategory: Int { remainingCount }
     /// "Keep the rest": for people who do not want to judge every photo. Safe default: keeping never deletes.

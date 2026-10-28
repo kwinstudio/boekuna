@@ -41,6 +41,9 @@ struct ContentView: View {
                 Button("Bewaar de rest") { library.keepRemaining() }
                 Button("Annuleren", role: .cancel) {}
             } message: { Text("Er wordt niets verwijderd. Je kunt het per item terugdraaien in Bekijken.") }
+            #if DEBUG
+            .task { await openDebugScreen() }
+            #endif
             .onAppear {
                 // Only for people updating, not on a first install.
                 if whatsNewSeen != WhatsNewView.version && library.hasAccess && !library.state.decisions.isEmpty {
@@ -323,6 +326,26 @@ struct ContentView: View {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
     }
+    #if DEBUG
+    /// Screenshot tooling only: `-FSScreen focus|stacks|review|end|whatsnew|info|clutter`.
+    private func openDebugScreen() async {
+        let arguments = CommandLine.arguments
+        guard let index = arguments.firstIndex(of: "-FSScreen"), index + 1 < arguments.count else { return }
+        let screen = arguments[index + 1]
+        try? await Task.sleep(for: .seconds(3))
+        switch screen {
+        case "focus": focus = true
+        case "stacks": stacksOpen = true
+        case "review": library.debugSetAside(6); review = true
+        case "end": library.debugSimulateSession()
+        case "whatsnew": whatsNew = true
+        case "info": info = true
+        case "clutter":
+            if let category = library.categories.first(where: { $0.id == "clutter" }) { library.selectCategory(category) }
+        default: break
+        }
+    }
+    #endif
 }
 
 struct PrimaryStyle: ButtonStyle {

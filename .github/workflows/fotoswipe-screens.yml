@@ -1,0 +1,72 @@
+name: Fotoswipe screenshots per iPhone size
+# Debug build on simulators of three sizes with synthetic sample photos.
+# Screenshots are pushed to the claude/fotoswipe-screens branch for review. No signing, no upload.
+on:
+  push:
+    branches: [claude/fotoswipe-pop]
+    paths: ['fotoswipe/**', '.github/workflows/fotoswipe-screens.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: fotoswipe-screens
+  cancel-in-progress: true
+jobs:
+  screens:
+    runs-on: macos-26
+    timeout-minutes: 50
+    defaults:
+      run:
+        working-directory: fotoswipe
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build for simulator (Debug)
+        run: |
+          set -o pipefail
+          mkdir -p build
+          xcodebuild -project Fotoswipe.xcodeproj -scheme Fotoswipe -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build/DD \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build/build.log | tail -5 || {
+            grep -E "error:" build/build.log | sort -u | head -30 | while IFS= read -r l; do echo "::error title=Fotoswipe screens::$l"; done; exit 1; }
+      - name: Sample photos
+        run: |
+          python3 -m pip install --quiet --break-system-packages pillow || python3 -m pip install --quiet pillow
+          python3 scripts/make_sample_photos.py build/media
+      - name: Screenshots on three sizes
+        run: |
+          APP=build/DD/Build/Products/Debug-iphonesimulator/Fotoswipe.app
+          BUNDLE=nl.zichtwerfstudio.fotoswipe
+          RUNTIME=$(xcrun simctl list runtimes available -j | python3 -c 'import json,sys; r=[x for x in json.load(sys.stdin)["runtimes"] if x["platform"]=="iOS"]; print(r[-1]["identifier"])')
+          mkdir -p "$RUNNER_TEMP/shots"
+          pick() { xcrun simctl list devicetypes -j | python3 -c "import json,sys,re; t=[d for d in json.load(sys.stdin)['devicetypes'] if re.search(r'$1', d['name'])]; print(t[-1]['identifier'] if t else '')"; }
+          for SIZE in "se:iPhone SE" "regular:^iPhone 1[6-9]\$" "promax:Pro Max"; do
+            NAME=${SIZE%%:*}; PATTERN=${SIZE#*:}
+            TYPE=$(pick "$PATTERN")
+            [[ -n "$TYPE" ]] || { echo "::warning title=Fotoswipe screens::No device type for $NAME"; continue; }
+            UDID=$(xcrun simctl create "fs-$NAME" "$TYPE" "$RUNTIME") || { echo "::warning title=Fotoswipe screens::Cannot create $NAME"; continue; }
+            xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
+            xcrun simctl install "$UDID" "$APP"
+            xcrun simctl addmedia "$UDID" build/media/*.jpg
+            xcrun simctl privacy "$UDID" grant photos "$BUNDLE" || true
+            xcrun simctl privacy "$UDID" grant all "$BUNDLE" || true
+            for SCREEN in main focus stacks review end whatsnew info clutter; do
+              xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
+              if [[ "$SCREEN" == "main" ]]; then
+                xcrun simctl launch "$UDID" "$BUNDLE" -fotoswipe.focusGuideSeen YES >/dev/null
+              else
+                xcrun simctl launch "$UDID" "$BUNDLE" -fotoswipe.focusGuideSeen YES -FSScreen "$SCREEN" >/dev/null
+              fi
+              sleep 9
+              xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/$NAME-$SCREEN.png" >/dev/null 2>&1
+            done
+            xcrun simctl shutdown "$UDID" || true
+            echo "::notice title=Fotoswipe screens::$NAME done ($TYPE)"
+          done
+          ls "$RUNNER_TEMP/shots" | wc -l | xargs -I{} echo "::notice title=Fotoswipe screens::{} screenshots"
+      - name: Publish screenshots to review branch
+        run: |
+          cd "$RUNNER_TEMP/shots"
+          git init -q && git checkout -q -b claude/fotoswipe-screens
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com add .
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -q -m "Screens ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" claude/fotoswipe-screens
