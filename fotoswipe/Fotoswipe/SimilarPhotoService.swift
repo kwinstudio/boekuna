@@ -50,10 +50,11 @@ enum SimilarPhotoGrouping {
 
 struct SimilarPhotoSelection {
     private(set) var rejected: Set<String> = []
-    @discardableResult mutating func toggle(_ id: String, in group: [String]) -> Bool {
+    @discardableResult mutating func toggle(_ id: String, in group: [String], ready: Set<String>? = nil) -> Bool {
         guard group.contains(id) else { return false }
         if rejected.contains(id) { rejected.remove(id); return true }
-        guard group.filter({ !rejected.contains($0) }).count > 1 else { return false }
+        guard ready?.contains(id) ?? true,
+              group.filter({ !rejected.contains($0) }).count > 1 else { return false }
         rejected.insert(id)
         return true
     }

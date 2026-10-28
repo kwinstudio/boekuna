@@ -110,3 +110,38 @@ struct PhotoProgress {
     var total = 0
     var reviewed = 0
 }
+
+
+/// Membership is fixed until the user explicitly starts another random session.
+struct RandomReviewSession {
+    let limit: Int
+    private var identifiers: [String]?
+    init(limit: Int) { self.limit = max(0, limit) }
+    mutating func restart() { identifiers = nil }
+    mutating func select(candidates: [String], available: Set<String>) -> [String] {
+        if identifiers == nil {
+            var unique: [String] = []
+            var seen = Set<String>()
+            for id in candidates where seen.insert(id).inserted { unique.append(id) }
+            identifiers = Array(unique.shuffled().prefix(max(0, limit)))
+        }
+        return (identifiers ?? []).filter { available.contains($0) }
+    }
+}
+
+/// A delayed external refresh must recheck this gate after a Photos mutation starts.
+struct LibraryRefreshGate {
+    private(set) var needsRefresh = false
+    private var mutating = false
+    private var suppressOwnObserver = false
+    var canRunScheduledRefresh: Bool { !mutating && !suppressOwnObserver }
+    mutating func didChange() -> Bool { needsRefresh = true; return canRunScheduledRefresh }
+    mutating func beginMutation() { mutating = true; suppressOwnObserver = true }
+    mutating func endMutation() { mutating = false; needsRefresh = true }
+    mutating func refreshStarted() { needsRefresh = false; suppressOwnObserver = false }
+}
+
+enum SwipeCommitPolicy {
+    /// A previously issued, visible-card swipe may finish during a metadata-only write.
+    static func canFinish(deleting: Bool, loading: Bool, mutating: Bool) -> Bool { !deleting && !loading }
+}

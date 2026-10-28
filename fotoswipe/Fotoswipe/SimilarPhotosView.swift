@@ -13,6 +13,7 @@ struct SimilarPhotosView: View {
     @State private var hasScanned = false
     @State private var cancelled = false
     @State private var preview: Preview?
+    @State private var readyIDs: Set<String> = []
 
     init(assets: [PHAsset], manager: PHCachingImageManager, onTrash: @escaping ([String]) -> Void) {
         self.assets = assets
@@ -41,7 +42,7 @@ struct SimilarPhotosView: View {
                     }
                 } else {
                     Button(hasScanned ? "Opnieuw scannen" : "Zoek vergelijkbare foto's") {
-                        selection = SimilarPhotoSelection(); submittedGroups = []; queuedCount = 0
+                        selection = SimilarPhotoSelection(); submittedGroups = []; queuedCount = 0; readyIDs = []
                         hasScanned = true; cancelled = false
                         service.start(assets)
                     }.buttonStyle(.borderedProminent)
@@ -72,6 +73,7 @@ struct SimilarPhotosView: View {
                 if !selection.rejected.isEmpty {
                     Button("Leg \(selection.rejected.count) foto's weg voor controle") { submit() }
                         .buttonStyle(PrimaryStyle())
+                        .disabled(!selection.rejected.isSubset(of: readyIDs))
                     Text("Je selectie wordt nog niet verwijderd.").font(.caption).foregroundStyle(Palette.muted)
                 }
             }
@@ -100,21 +102,24 @@ struct SimilarPhotosView: View {
                     let remaining = ids.filter { !selection.rejected.contains($0) }.count
                     VStack(spacing: 8) {
                         Button { preview = Preview(asset: asset) } label: {
-                            AssetImage(asset: asset, manager: manager, thumbnail: true)
+                            AssetImage(asset: asset, manager: manager, thumbnail: true, onReady: { ready in
+                                if ready { readyIDs.insert(asset.localIdentifier) }
+                                else { readyIDs.remove(asset.localIdentifier) }
+                            })
                                 .frame(height: 170).clipShape(RoundedRectangle(cornerRadius: 12))
                         }.accessibilityLabel("Foto groter bekijken")
                         if let date = asset.creationDate {
                             Text(date.formatted(date: .abbreviated, time: .standard)).font(.caption2)
                         }
                         Button {
-                            selection.toggle(asset.localIdentifier, in: ids)
+                            selection.toggle(asset.localIdentifier, in: ids, ready: readyIDs)
                         } label: {
                             Label(selected ? "Wegleggen" : "Bewaren", systemImage: selected ? "checkmark.circle.fill" : "circle")
                                 .font(.caption)
                         }
                         .buttonStyle(.bordered)
                         .tint(selected ? .orange : .green)
-                        .disabled(!selected && remaining <= 1)
+                        .disabled(!selected && (remaining <= 1 || !readyIDs.contains(asset.localIdentifier)))
                         .accessibilityLabel(selected ? "Weggelegd; tik om te bewaren" : "Bewaard; tik om weg te leggen")
                         .accessibilityHint(!selected && remaining <= 1 ? "Minstens één foto per groep blijft bewaard" : "")
                     }
@@ -129,7 +134,7 @@ struct SimilarPhotosView: View {
         // Validate against the current groups again at the action boundary.
         var ids: [String] = []
         for group in visibleGroups {
-            let rejects = group.assets.map(\.localIdentifier).filter { selection.rejected.contains($0) }
+            let rejects = group.assets.map(\.localIdentifier).filter { selection.rejected.contains($0) && readyIDs.contains($0) }
             guard !rejects.isEmpty, rejects.count < group.assets.count else { continue }
             ids.append(contentsOf: rejects)
             submittedGroups.insert(group.id)

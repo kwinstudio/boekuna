@@ -11,7 +11,7 @@ struct ReviewView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                Text("Dit is je selectie uit alle categorieën. Tik op een foto om die groter te bekijken. Met Herstel zet je die terug.")
+                Text("Dit is je selectie uit alle categorieën. Tik op een item om het te bekijken of af te spelen. Met Herstel zet je die terug.")
                     .font(.subheadline).foregroundStyle(Palette.muted)
                 Picker("Selectie", selection: $selection) {
                     Text("Weggelegd (\(library.pending.count))").tag(0)

@@ -210,3 +210,34 @@ final class LaterDecisionTests: XCTestCase {
         XCTAssertEqual(state.decisions["trash"], .trash)
     }
 }
+
+final class CleanupSessionRegressionTests: XCTestCase {
+    func testRandomSessionRetainsMembershipAfterChoicesAndRefresh() {
+        var session = RandomReviewSession(limit: 30)
+        let all = (0..<100).map(String.init)
+        let first = session.select(candidates: all, available: Set(all))
+        XCTAssertEqual(first.count, 30)
+        let stillUndecided = all.filter { !Set(first.prefix(5)).contains($0) }
+        XCTAssertEqual(session.select(candidates: stillUndecided, available: Set(all)), first)
+        let deleted = first[0]
+        XCTAssertEqual(session.select(candidates: all, available: Set(all).subtracting([deleted])), Array(first.dropFirst()))
+    }
+    func testScheduledRefreshCannotRunAfterOwnMutationStarts() {
+        var gate = LibraryRefreshGate()
+        XCTAssertTrue(gate.didChange())
+        gate.beginMutation()
+        XCTAssertFalse(gate.canRunScheduledRefresh)
+        XCTAssertFalse(gate.didChange())
+        gate.endMutation()
+        XCTAssertFalse(gate.canRunScheduledRefresh)
+        XCTAssertTrue(gate.needsRefresh)
+        gate.refreshStarted()
+        XCTAssertTrue(gate.canRunScheduledRefresh)
+        XCTAssertFalse(gate.needsRefresh)
+    }
+    func testAlreadyVisibleSwipeCanFinishDuringMetadataMutation() {
+        XCTAssertTrue(SwipeCommitPolicy.canFinish(deleting: false, loading: false, mutating: true))
+        XCTAssertFalse(SwipeCommitPolicy.canFinish(deleting: true, loading: false, mutating: false))
+        XCTAssertFalse(SwipeCommitPolicy.canFinish(deleting: false, loading: true, mutating: false))
+    }
+}

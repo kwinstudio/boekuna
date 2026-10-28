@@ -72,8 +72,8 @@ struct PhotoCategory: Identifiable {
     @Published private(set) var deferred: [PHAsset] = []
     @Published private(set) var mutating = false
     @Published private(set) var status: String?
-    private var libraryDirty = false
-    private var suppressObserverRefresh = false
+    private var refreshGate = LibraryRefreshGate()
+    private var randomSession = RandomReviewSession(limit: 30)
     private var refreshTask: Task<Void, Never>?
     private var favoriteOverrides: [String: Bool] = [:]
     lazy var imagePipeline = SwipeImagePipeline(manager: images)
@@ -130,6 +130,7 @@ struct PhotoCategory: Identifiable {
     func selectCategory(_ category: PhotoCategory) {
         guard !deleting, !mutating, category.id != selectedCategory.id || category.id == "random30" else { return }
         selectedCategory = category
+        if category.id == "random30" { randomSession.restart() }
         refresh()
     }
 
@@ -142,15 +143,15 @@ struct PhotoCategory: Identifiable {
     func activate() {
         let access = PHPhotoLibrary.authorizationStatus(for: .readWrite)
         guard !mutating, !deleting else { return }
-        if authorization != access || libraryDirty { refresh(showLoading: assets.isEmpty) }
+        if authorization != access || refreshGate.needsRefresh { refresh(showLoading: assets.isEmpty) }
     }
     private func libraryDidChange() {
-        libraryDirty = true
-        guard !mutating, !deleting, !suppressObserverRefresh else { return }
+        guard refreshGate.didChange(), !mutating, !deleting else { return }
         refreshTask?.cancel()
         refreshTask = Task { [weak self] in
             do { try await Task.sleep(for: .milliseconds(400)) } catch { return }
-            guard let self, !Task.isCancelled else { return }
+            guard let self, !Task.isCancelled, !self.mutating, !self.deleting,
+                  self.refreshGate.canRunScheduledRefresh else { return }
             self.refresh(showLoading: false)
         }
     }
@@ -162,8 +163,7 @@ struct PhotoCategory: Identifiable {
         let selectedOrder = order
         let ascending = order == .oldest
         if showLoading { deckRevision = UUID(); swipeCommand = nil }
-        libraryDirty = false
-        suppressObserverRefresh = false
+        refreshGate.refreshStarted()
         guard hasAccess else {
             assets = []; allAssets = []; scopeIDs = []; categories = [.all]; selectedCategory = .all; loading = false
             rebuildPresentation()
@@ -189,13 +189,16 @@ struct PhotoCategory: Identifiable {
                 filtered = fetched.filter { selected.dateFilter.includes($0.creationDate, now: now) }
             }
             DispatchQueue.main.async {
-                guard let self = self, self.generation == request else { return }
+                guard let self = self, self.generation == request, !self.mutating else { return }
                 self.allAssets = fetched
                 self.favoriteOverrides.removeAll()
                 if selected.id == "later" {
                     filtered = fetched.filter { self.state.decisions[$0.localIdentifier] == .later }
                 } else if selected.id == "random30" {
-                    filtered = Array(fetched.filter { self.state.decisions[$0.localIdentifier] == nil }.shuffled().prefix(30))
+                    let candidates = fetched.filter { self.state.decisions[$0.localIdentifier] == nil }.map(\.localIdentifier)
+                    let lookup = Dictionary(fetched.map { ($0.localIdentifier, $0) }, uniquingKeysWith: { first, _ in first })
+                    let ids = self.randomSession.select(candidates: candidates, available: Set(lookup.keys))
+                    filtered = ids.compactMap { lookup[$0] }
                 } else if selectedOrder == .random { filtered.shuffle() }
                 self.assets = filtered
                 self.scopeIDs = Set(filtered.map(\.localIdentifier))
@@ -213,7 +216,7 @@ struct PhotoCategory: Identifiable {
         swipeCommand = SwipeCommand(assetID: asset.localIdentifier, choice: choice)
     }
     func decide(_ choice: PhotoDecision, expectedID: String? = nil, expectedRevision: UUID? = nil) {
-        guard !deleting, !mutating, !loading, let asset = current else { return }
+        guard SwipeCommitPolicy.canFinish(deleting: deleting, loading: loading, mutating: mutating), let asset = current else { return }
         // A delayed animation must never apply to a newer deck or category.
         guard expectedRevision == nil || expectedRevision == deckRevision else { return }
         guard expectedID == nil || expectedID == asset.localIdentifier else { return }
@@ -250,7 +253,11 @@ struct PhotoCategory: Identifiable {
     }
     func reviewKeptAgain() {
         guard !deleting, !mutating else { return }
-        state.resetKept(in: scopeIDs)
+        if selectedCategory.id == "later" {
+            for asset in assets where state.decisions[asset.localIdentifier] == .keep {
+                state.decide(asset.localIdentifier, .later)
+            }
+        } else { state.resetKept(in: scopeIDs) }
         rebuildPresentation()
         save()
     }
@@ -260,7 +267,7 @@ struct PhotoCategory: Identifiable {
         // Snapshot: any later library refresh cannot change the requested batch.
         let batch = pending
         guard batch.allSatisfy({ $0.canPerform(.delete) }) else {
-            message = "Deze selectie bevat foto's die Apple niet door deze app laat verwijderen. Herstel die foto's eerst, bijvoorbeeld foto's uit een gesynchroniseerd album."
+            message = "Deze selectie bevat items die Apple niet door deze app laat verwijderen. Herstel die items eerst, bijvoorbeeld items uit een gesynchroniseerd album."
             return
         }
         deleting = true
@@ -362,21 +369,23 @@ struct PhotoCategory: Identifiable {
             message = "Dit item kan niet als favoriet worden aangepast."; return
         }
         let favorite = !isFavorite(asset)
+        refreshTask?.cancel(); refreshTask = nil
+        generation += 1 // Invalidate any metadata fetch that began before the mutation.
         mutating = true
-        suppressObserverRefresh = true
+        refreshGate.beginMutation()
         PHPhotoLibrary.shared().performChanges({
             PHAssetChangeRequest(for: asset).isFavorite = favorite
         }) { [weak self] success, error in
             Task { @MainActor in
                 guard let self else { return }
                 self.mutating = false
+                self.refreshGate.endMutation()
                 if success {
                     self.favoriteOverrides[asset.localIdentifier] = favorite
                     self.status = favorite ? "Toegevoegd aan Favorieten in Foto's." : "Verwijderd uit Favorieten in Foto's."
                 } else { self.message = error?.localizedDescription ?? "Favoriet wijzigen is niet gelukt." }
                 // Do not rebuild the deck in response to our own metadata write.
                 // A later category change or activation reconciles Photos collections.
-                self.libraryDirty = true
             }
         }
     }
@@ -387,8 +396,10 @@ struct PhotoCategory: Identifiable {
         guard collection?.canPerform(.addContent) == true || (title?.isEmpty == false) else {
             completion("Kies een bewerkbaar album of geef een albumnaam op."); return
         }
+        refreshTask?.cancel(); refreshTask = nil
+        generation += 1 // Invalidate any metadata fetch that began before the mutation.
         mutating = true
-        suppressObserverRefresh = true
+        refreshGate.beginMutation()
         PHPhotoLibrary.shared().performChanges({
             let request: PHAssetCollectionChangeRequest?
             if let collection { request = PHAssetCollectionChangeRequest(for: collection) }
@@ -397,9 +408,27 @@ struct PhotoCategory: Identifiable {
         }) { [weak self] success, error in
             Task { @MainActor in
                 guard let self else { return }
-                self.mutating = false; self.libraryDirty = true
-                if success { self.status = "Toegevoegd aan album in Foto's."; completion(nil) }
-                else { completion(error?.localizedDescription ?? "Toevoegen is niet gelukt. Je keuzes zijn bewaard.") }
+                if success, title != nil {
+                    self.refreshAlbumCatalog {
+                        self.mutating = false; self.refreshGate.endMutation()
+                        self.status = "Toegevoegd aan album in Foto's."; completion(nil)
+                    }
+                } else {
+                    self.mutating = false; self.refreshGate.endMutation()
+                    if success { self.status = "Toegevoegd aan album in Foto's."; completion(nil) }
+                    else { completion(error?.localizedDescription ?? "Toevoegen is niet gelukt. Je keuzes zijn bewaard.") }
+                }
+            }
+        }
+    }
+
+    private func refreshAlbumCatalog(completion: @escaping () -> Void) {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let catalog = PhotoCategory.available(dates: [])
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.categories = catalog + self.categories.filter(\.isMonth)
+                completion()
             }
         }
     }

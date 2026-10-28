@@ -53,3 +53,18 @@ final class SimilarPhotoTests: XCTestCase {
         XCTAssertFalse(selection.toggle("c", in: ["a", "b"]))
     }
 }
+
+final class ComparisonReadinessTests: XCTestCase {
+    func testUnseenCandidateCannotBeRejectedAndVisibleCandidateCan() {
+        var selection = SimilarPhotoSelection()
+        XCTAssertFalse(selection.toggle("a", in: ["a", "b"], ready: []))
+        XCTAssertTrue(selection.toggle("a", in: ["a", "b"], ready: ["a", "b"]))
+        XCTAssertFalse(selection.toggle("b", in: ["a", "b"], ready: ["a", "b"]))
+    }
+    func testSelectionCanBeRestoredEvenIfItsPreviewIsNoLongerReady() {
+        var selection = SimilarPhotoSelection()
+        XCTAssertTrue(selection.toggle("a", in: ["a", "b"], ready: ["a"]))
+        XCTAssertTrue(selection.toggle("a", in: ["a", "b"], ready: []))
+        XCTAssertTrue(selection.rejected.isEmpty)
+    }
+}

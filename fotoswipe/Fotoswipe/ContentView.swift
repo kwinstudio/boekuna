@@ -169,7 +169,7 @@ struct ContentView: View {
                     .foregroundStyle(Palette.muted).multilineTextAlignment(.center)
                 if library.canUndo { Button("Laatste keuze terugzetten") { library.undo() }.buttonStyle(.bordered) }
                 if library.keptInCategory > 0 {
-                    Button("Bewaarde foto's opnieuw bekijken") { library.reviewKeptAgain() }.buttonStyle(.bordered)
+                    Button("Bewaarde items opnieuw bekijken") { library.reviewKeptAgain() }.buttonStyle(.bordered)
                 }
                 Button("Ververs bibliotheek") { library.refresh() }.font(.caption)
                 Spacer()
@@ -333,7 +333,7 @@ private struct CategoryPickerView: View {
                     ForEach(filtered.filter(\.isMonth)) { category in row(category) }
                 }
                 Section {
-                    Text("Je keuzes blijven behouden als je wisselt. Weggelegde foto's uit alle categorieën controleer je samen in Bekijken.")
+                    Text("Je keuzes blijven behouden als je wisselt. Weggelegde items uit alle categorieën controleer je samen in Bekijken.")
                         .font(.footnote).foregroundStyle(Palette.muted)
                 }
             }

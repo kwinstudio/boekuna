@@ -89,6 +89,7 @@ final class SwipeImagePipeline: ObservableObject {
     private let previewBudget: Int
     private let sharpBudget: Int
     private var identifiers: [String] = []
+    private var recent: [String] = []
     private var previews: [String: UIImage] = [:]
     private var sharp: [String: UIImage] = [:]
     private var attemptedLocal = Set<String>()
@@ -129,21 +130,39 @@ final class SwipeImagePipeline: ObservableObject {
     /// Identifier-based scheduling also allows the PhotoKit boundary to be substituted in tests.
     func prepare(identifiers supplied: [String]) {
         var seen = Set<String>()
-        let next = Array(supplied.lazy.filter { seen.insert($0).inserted }.prefix(20))
+        var next: [String] = []
+        // Eager loop: lazy Collection predicates can be evaluated more than once.
+        for id in supplied where seen.insert(id).inserted {
+            next.append(id)
+            if next.count == 20 { break }
+        }
         guard next != identifiers else { pump(); return }
+        let previousFirst = identifiers.first
+        let nextSet = Set(next)
+        recent = Array((identifiers.filter { !nextSet.contains($0) && previews[$0] != nil } + recent)
+            .filter { !nextSet.contains($0) }.reduce(into: [String]()) { result, id in
+                if !result.contains(id) { result.append(id) }
+            }.prefix(5))
         identifiers = next
         let scope = Set(next)
+        let retainedScope = scope.union(recent)
         let sharpScope = Set(next.prefix(3))
         for id in Array(running.keys) {
             guard let job = running[id] else { continue }
             if !scope.contains(id) || (job.stage == .sharp && !sharpScope.contains(id)) { cancel(id) }
         }
-        previews = previews.filter { scope.contains($0.key) }
+        previews = previews.filter { retainedScope.contains($0.key) }
         sharp = sharp.filter { sharpScope.contains($0.key) }
         attemptedLocal.formIntersection(scope)
         attemptedNetwork.formIntersection(scope)
         attemptedSharp.formIntersection(sharpScope)
         failures.formIntersection(scope)
+        if let current = next.first, current != previousFirst, !isReady(current) {
+            // An evicted/distant failed attempt gets one fresh chance on promotion.
+            cancel(current)
+            attemptedLocal.remove(current); attemptedNetwork.remove(current); attemptedSharp.remove(current)
+            failures.remove(current)
+        }
         revision &+= 1
         pump()
     }
@@ -168,7 +187,7 @@ final class SwipeImagePipeline: ObservableObject {
     func clear() {
         // Invalidate tokens before cancellation; cancelled requests can still call back.
         for id in Array(running.keys) { cancel(id) }
-        identifiers.removeAll()
+        identifiers.removeAll(); recent.removeAll()
         previews.removeAll()
         sharp.removeAll()
         attemptedLocal.removeAll()
@@ -236,7 +255,7 @@ final class SwipeImagePipeline: ObservableObject {
         if stage == .sharp { sharp[id] = image }
         else { previews[id] = image }
         // Farthest cards lose memory first. Normal-sized twenty-card previews fit the budget.
-        for victim in identifiers.reversed() {
+        for victim in Array(recent.reversed()) + Array(identifiers.reversed()) {
             if stage == .sharp {
                 guard sharpBytes > budget else { break }
                 sharp.removeValue(forKey: victim)

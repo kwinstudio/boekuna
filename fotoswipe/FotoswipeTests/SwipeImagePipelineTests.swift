@@ -115,6 +115,37 @@ final class SwipeImagePipelineTests: XCTestCase {
         XCTAssertTrue(pipeline.isReady("failed"))
     }
 
+    func testUndoReusesARecentlyDisplayedPreview() {
+        let provider = ControlledImages()
+        let pipeline = SwipeImagePipeline(provider: provider)
+        pipeline.prepare(identifiers: ["a", "b"])
+        let preview = makeImage()
+        provider.finish("a", stage: .local, image: preview)
+        pipeline.prepare(identifiers: ["b", "c"])
+        pipeline.prepare(identifiers: ["a", "b", "c"])
+        XCTAssertTrue(pipeline.image(for: "a") === preview)
+    }
+
+    func testEvictedPreviewRetriesAutomaticallyWhenItBecomesCurrent() {
+        let provider = ControlledImages()
+        let fixture = makeImage()
+        let budget = fixture.cgImage!.bytesPerRow * fixture.cgImage!.height * 2
+        let pipeline = SwipeImagePipeline(provider: provider, previewBudget: budget, sharpBudget: 0)
+        pipeline.prepare(identifiers: ["a", "b", "c"])
+        provider.finish("a", stage: .local, image: fixture)
+        provider.finish("b", stage: .local, image: fixture)
+        provider.finish("c", stage: .local, image: fixture)
+        provider.finish("a", stage: .sharp, image: nil)
+        provider.finish("c", stage: .network, image: fixture)
+        provider.finish("b", stage: .sharp, image: nil)
+        XCTAssertFalse(pipeline.isReady("c"))
+        pipeline.prepare(identifiers: ["c"])
+        XCTAssertEqual(provider.pending.last?.identifier, "c")
+        XCTAssertEqual(provider.pending.last?.stage, .local)
+        provider.finish("c", stage: .local, image: fixture)
+        XCTAssertTrue(pipeline.isReady("c"))
+    }
+
     private func makeImage(size: CGSize = CGSize(width: 10, height: 10)) -> UIImage {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
