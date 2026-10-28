@@ -1,0 +1,42 @@
+name: Fotoswipe iOS build
+on:
+  push:
+    branches: [codex/fotoswipe-testflight-20261028]
+    paths: ['fotoswipe/**', '.github/workflows/fotoswipe-ios-check.yml']
+permissions:
+  contents: read
+concurrency:
+  group: fotoswipe-build-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: fotoswipe
+    steps:
+      - uses: actions/checkout@v4
+      - name: Xcode version and project checks
+        run: |
+          xcodebuild -version
+          python3 scripts/validate_project.py
+      - name: Swift and simulator unit tests
+        run: bash scripts/test.sh
+      - name: Unsigned iPhone archive
+        run: |
+          xcodebuild -project Fotoswipe.xcodeproj -scheme Fotoswipe \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath build/Fotoswipe.xcarchive \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            DEVELOPMENT_TEAM=4PUWX9ZXQL CODE_SIGNING_ALLOWED=NO archive
+          ditto -c -k --keepParent build/Fotoswipe.xcarchive build/Fotoswipe-unsigned.xcarchive.zip
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fotoswipe-ios-build-${{ github.run_number }}
+          path: |
+            fotoswipe/build/Fotoswipe-unsigned.xcarchive.zip
+            fotoswipe/build/DerivedData/Logs/Test/*.xcresult
+          if-no-files-found: ignore
+          retention-days: 7
