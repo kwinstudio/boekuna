@@ -337,6 +337,8 @@
     if(!swipe||e.pointerId!==swipe.id)return;
     var mx=e.clientX-swipe.x,my=e.clientY-swipe.y;
     if(!swipe.axis&&Math.abs(mx)+Math.abs(my)>8){swipe.axis=Math.abs(mx)>Math.abs(my)*1.3?'x':'y';clearHold()}
+    // No action that way: the row lets go, so the swipe can change screens (vegen.js).
+    if(swipe.axis==='x'&&!swipe.row.classList.contains('bk-swiping')&&!swipe.info[mx>0?'right':'left']&&root.classList.contains('boekuna-vegen')){swipe=null;return}
     if(swipe.axis!=='x')return;
     var row=swipe.row,info=swipe.info,dir=mx>0?'right':'left',action=info[dir];
     var dx=action?mx:mx*0.2;
