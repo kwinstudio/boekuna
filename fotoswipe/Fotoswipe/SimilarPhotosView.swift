@@ -188,7 +188,11 @@ struct StackReviewView: View {
                     Text(library.smart.finished ? "\(stacks.count) over" : " ").font(.subheadline.weight(.heavy)).monospacedDigit()
                         .frame(minWidth: 44)
                 }
-                if library.smart.scanning || !library.smart.finished {
+                if !library.hasAccess {
+                    Spacer()
+                    Text("Geef Fotoswipe eerst toegang tot je foto's.").font(.headline).multilineTextAlignment(.center)
+                    Spacer()
+                } else if library.smart.scanning || !library.smart.finished {
                     scanningView
                 } else if let group = stacks.first {
                     stackView(group)

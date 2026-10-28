@@ -133,6 +133,7 @@ struct ContentView: View {
             }.accessibilityHidden(true)
             Text("Bewaar het mooie.\nSwipe de rest.")
                 .font(.system(size: 36, weight: .heavy, design: .rounded)).tracking(-1.2).multilineTextAlignment(.center)
+                .minimumScaleFactor(0.75).fixedSize(horizontal: false, vertical: true).layoutPriority(1)
             Text("Een paar minuten per dag, en je bibliotheek blijft licht. Je foto's blijven in je eigen fotobibliotheek.")
                 .foregroundStyle(Palette.muted).multilineTextAlignment(.center)
             if library.authorization == .notDetermined {
@@ -673,7 +674,7 @@ struct SessionEndView: View {
     }
     private var durationText: String {
         let seconds = max(1, Int(duration.rounded()))
-        if seconds < 60 { return "\(seconds) seconden" }
+        if seconds < 60 { return seconds == 1 ? "1 seconde" : "\(seconds) seconden" }
         let minutes = seconds / 60, rest = seconds % 60
         return rest == 0 ? "\(minutes) min" : "\(minutes) min \(rest) sec"
     }

@@ -64,7 +64,9 @@ jobs:
               echo "::warning title=Fotoswipe screens::No TCC.db on $NAME"
             fi
             xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
-            xcrun simctl privacy "$UDID" grant photos "$BUNDLE" || true
+            OUT=$(xcrun simctl privacy "$UDID" grant photos "$BUNDLE" 2>&1) || echo "::warning title=Fotoswipe screens::privacy grant failed on $NAME: $OUT"
+            ROWS=$(sqlite3 "$TCC" "SELECT service, client, auth_value FROM access WHERE client='$BUNDLE';" 2>&1 | tr '\n' ';')
+            echo "::notice title=Fotoswipe screens::TCC on $NAME: $ROWS"
             for SCREEN in main focus stacks review end whatsnew info clutter; do
               xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
               if [[ "$SCREEN" == "main" ]]; then
