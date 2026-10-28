@@ -251,14 +251,16 @@ final class EngagementTests: XCTestCase {
     private func day(_ offset: Int, from base: Date) -> Date { calendar.date(byAdding: .day, value: offset, to: base)! }
     private var base: Date { calendar.date(from: DateComponents(year: 2026, month: 10, day: 28, hour: 12))! }
 
-    func testSessionCompletesAtThirtyAndUndoRemovesFromTally() {
+    func testSessionCompletesAtGoalAndUndoRemovesFromTally() {
+        let size = ReviewSession.size
+        XCTAssertEqual(size, 100, "Default session is 100 items")
         var session = ReviewSession()
-        for i in 0..<29 { session.record("p\(i)", i % 3 == 0 ? .trash : .keep) }
+        for i in 0..<(size - 1) { session.record("p\(i)", i % 3 == 0 ? .trash : .keep) }
         XCTAssertFalse(session.isComplete)
         session.remove("p0")
-        XCTAssertEqual(session.count, 28)
+        XCTAssertEqual(session.count, size - 2)
         session.record("p0", .later)
-        session.record("p29", .keep)
+        session.record("p\(size - 1)", .keep)
         XCTAssertTrue(session.isComplete)
         XCTAssertEqual(session.progress, 1)
         XCTAssertEqual(session.later, ["p0"])

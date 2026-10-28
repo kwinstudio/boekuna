@@ -127,7 +127,7 @@ enum Haptics {
         guard enabled else { return }
         for (index, item) in items.prefix(Self.count).enumerated() {
             let content = UNMutableNotificationContent()
-            content.title = "Je 2 minuten staan klaar"
+            content.title = "Je swipe-moment staat klaar"
             content.body = item.1
             content.sound = .default
             content.userInfo = ["open": "on-this-day"]

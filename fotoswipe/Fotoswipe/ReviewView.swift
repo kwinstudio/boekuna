@@ -87,7 +87,7 @@ struct InfoView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var library: PhotoLibrary
     @ObservedObject private var reminders = Reminders.shared
-    @AppStorage("fotoswipe.sessionSize") private var sessionSize = 30
+    @AppStorage("fotoswipe.sessionSize") private var sessionSize = 100
     var body: some View {
         NavigationStack {
             List {
@@ -114,7 +114,7 @@ struct InfoView: View {
                     Label("Rechts of vinkje: bewaren", systemImage: "arrow.right")
                     Label("Klokje: later beslissen", systemImage: "clock")
                     Label("Terugpijl: laatste keuze herstellen", systemImage: "arrow.uturn.backward")
-                    Text("Een sessie is 30 items. Kies je elke dag minstens 10 items of maak je een sessie af, dan groeit je reeks. Eén dag overslaan mag.")
+                    Text("Een sessie is standaard 100 items; kies 30 of 50 als je korter wilt. Kies je elke dag minstens 10 items of maak je een sessie af, dan groeit je reeks. Eén dag overslaan mag.")
                     Text("Bijna dubbel zoekt foto's die vlak na elkaar zijn gemaakt en op elkaar lijken. De beste staat alvast aangevinkt; met één veeg naar rechts bewaar je die en gaan de andere naar Bekijken. Rommel zet wazige foto's, bonnetjes, notities en screenshots vooraan. Beide werken alleen op je iPhone.")
                     Text("Focus (rechtsboven) toont alleen de foto op het hele scherm. Veeg rechts om te bewaren, links om weg te leggen, omhoog voor later en omlaag om de vorige terug te zetten. Dubbeltik maakt favoriet, vasthouden zoomt in, één tik toont de knoppen.")
                     Text("Grootste eerst zet video's en grote foto's vooraan, zodat je snel veel ruimte wint. De volgorde is een schatting op basis van resolutie en duur.")
@@ -130,7 +130,7 @@ struct InfoView: View {
                     Text("Met Nieuwste eerst of Oudste eerst verander je de volgorde. Bewaren is een keuze in Fotoswipe; via Meer kun je een item ook echt favoriet maken in Foto's, aan een album toevoegen of voor later bewaren. Weggelegde items uit alle categorieën staan samen in Bekijken.")
                 }
                 Section("Meer mogelijkheden") {
-                    Text("Later beslissen bewaart twijfelgevallen voor de categorie Later. Kies 30 willekeurige items voor een korte sessie, of zet de volgorde op Willekeurig.")
+                    Text("Later beslissen bewaart twijfelgevallen voor de categorie Later. Kies een willekeurige sessie, of zet de volgorde op Willekeurig.")
                     Text("Vergelijkbare foto's zoeken start je zelf via Meer. Alleen lokaal beschikbare voorbeeldbeelden worden bekeken, zonder foto's te uploaden. Kandidaten zijn niet gegarandeerd identiek; je kiest zelf wat weg mag en houdt minstens één item per groep.")
                 }
                 Section("Goed om te weten") {

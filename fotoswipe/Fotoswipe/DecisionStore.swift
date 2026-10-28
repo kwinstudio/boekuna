@@ -125,11 +125,11 @@ enum SizeEstimate {
 
 /// One short, finishable session: progress toward a small goal keeps swiping fast.
 struct ReviewSession: Equatable {
-    static let sizes = [15, 30, 50]
-    /// People asked for their own batch size; 30 is the default.
+    static let sizes = [30, 50, 100]
+    /// People asked for their own batch size; 100 is the default.
     static var size: Int {
         let stored = UserDefaults.standard.integer(forKey: "fotoswipe.sessionSize")
-        return sizes.contains(stored) ? stored : 30
+        return sizes.contains(stored) ? stored : 100
     }
     private(set) var kept: [String] = []
     private(set) var trashed: [String] = []

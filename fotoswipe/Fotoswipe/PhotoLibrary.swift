@@ -42,7 +42,7 @@ struct PhotoCategory: Identifiable {
         ]
         var result = [PhotoCategory.all,
             PhotoCategory(id: "later", title: "Later beslissen", icon: "bookmark", collection: nil, isAlbum: false),
-            PhotoCategory(id: "random30", title: "30 willekeurige items", icon: "shuffle", collection: nil, isAlbum: false),
+            PhotoCategory(id: "random30", title: "\(ReviewSession.size) willekeurige items", icon: "shuffle", collection: nil, isAlbum: false),
             PhotoCategory(id: "on-this-day", title: "Op deze dag", icon: "calendar", collection: nil, isAlbum: false, dateFilter: .onThisDay),
             PhotoCategory(id: "clutter", title: "Rommel", icon: "wand.and.stars", collection: nil, isAlbum: false)]
         for (type, title, icon) in types {
@@ -81,7 +81,7 @@ struct PhotoCategory: Identifiable {
     @Published private(set) var mutating = false
     @Published private(set) var status: String?
     private var refreshGate = LibraryRefreshGate()
-    private var randomSession = RandomReviewSession(limit: 30)
+    private var randomSession = RandomReviewSession(limit: ReviewSession.size)
     private var refreshTask: Task<Void, Never>?
     private var favoriteOverrides: [String: Bool] = [:]
     lazy var imagePipeline = SwipeImagePipeline(manager: images)
@@ -159,7 +159,7 @@ struct PhotoCategory: Identifiable {
     func selectCategory(_ category: PhotoCategory) {
         guard !deleting, !mutating, category.id != selectedCategory.id || category.id == "random30" else { return }
         selectedCategory = category
-        if category.id == "random30" { randomSession.restart() }
+        if category.id == "random30" { randomSession = RandomReviewSession(limit: ReviewSession.size) }
         refresh()
         if category.id == "clutter" && !smart.finished { startSmartScan() }
     }
@@ -264,8 +264,8 @@ struct PhotoCategory: Identifiable {
                 if count > 0 {
                     return (date, "\(count) foto's van \(date.formatted(.dateTime.day().month(.wide))) uit eerdere jaren wachten op je. Even 2 minuten?")
                 }
-                if days > 0 { return (date, "Houd je reeks van \(days) dagen vast: 30 foto's, 2 minuten.") }
-                return (date, "30 foto's, 2 minuten. Maak ruimte voor nieuwe herinneringen.")
+                if days > 0 { return (date, "Houd je reeks van \(days) dagen vast. Een paar minuten swipen?") }
+                return (date, "Een paar minuten swipen en ruimte maken voor nieuwe herinneringen.")
             }
             guard !Task.isCancelled else { return }
             await MainActor.run { Reminders.shared.schedule(items) }

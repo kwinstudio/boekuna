@@ -1062,7 +1062,7 @@ struct ReminderCard: View {
                     .font(.subheadline.weight(.heavy))
                 Text("Eén melding per dag, niet als je al klaar bent.").font(.caption).foregroundStyle(Palette.muted)
             } else {
-                Text("Morgen weer 2 minuten?").font(.headline.weight(.heavy))
+                Text("Morgen weer even swipen?").font(.headline.weight(.heavy))
                 Text("Kies je eigen moment, bijvoorbeeld na het eten. Eén melding per dag.").font(.footnote).foregroundStyle(Palette.muted)
                 HStack {
                     DatePicker("Tijd", selection: $time, displayedComponents: .hourAndMinute).labelsHidden()
@@ -1095,7 +1095,7 @@ struct WhatsNewView: View {
         Item(icon: "square.stack.3d.up.fill", title: "Bijna dubbel", text: "Vijf bijna gelijke foto's? De beste staat al klaar. Eén veeg en klaar.", fill: Palette.brand, tint: .white),
         Item(icon: "wand.and.stars", title: "Rommel", text: "Wazige foto's, bonnetjes en screenshots vooraan. Snel ruimte winnen.", fill: Palette.reward, tint: Palette.ink),
         Item(icon: "bell.fill", title: "Jouw moment", text: "Eén herinnering per dag, op de tijd die jij kiest.", fill: Palette.keep, tint: .white),
-        Item(icon: "slider.horizontal.3", title: "Jij bepaalt het tempo", text: "Kies 15, 30 of 50 per sessie, of bewaar de rest in één keer.", fill: Palette.surface, tint: Palette.ink)
+        Item(icon: "slider.horizontal.3", title: "Jij bepaalt het tempo", text: "100 per sessie, of kies 30 of 50. Of bewaar de rest in één keer.", fill: Palette.surface, tint: Palette.ink)
     ]
     var body: some View {
         ScrollView {
