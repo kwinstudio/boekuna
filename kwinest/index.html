@@ -2918,7 +2918,7 @@ function normalizeState(x){
  const out={...base,...v,meta:{...base.meta,...(v.meta||{})},company:companyRaw};
  const assistantRaw=v.assistant&&typeof v.assistant==='object'?v.assistant:{};
  out.assistant={...DEFAULT_ASSISTANT_STATE,...assistantRaw,goals:Array.isArray(assistantRaw.goals)?assistantRaw.goals:[],hiddenTypes:Array.isArray(assistantRaw.hiddenTypes)?assistantRaw.hiddenTypes:[],dismissed:assistantRaw.dismissed&&typeof assistantRaw.dismissed==='object'?assistantRaw.dismissed:{},feedback:assistantRaw.feedback&&typeof assistantRaw.feedback==='object'?assistantRaw.feedback:{}};
- for(const k of ['contacts','services','invoices','quotes','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])if(!Array.isArray(out[k]))out[k]=[];
+ for(const k of ['contacts','services','invoices','quotes','recurringInvoices','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])if(!Array.isArray(out[k]))out[k]=[];
  out.expenses=redateWithdrawnExpenseCorrections(out.expenses.map(normalizeExpenseVatSemantics));
  if(!v.meta?.decimalRounding)markLegacyRoundedInvoices(out.invoices);
  out.meta.decimalRounding=true;
@@ -2985,7 +2985,7 @@ function syncCloudStateNow(){
  return run
 }
 async function syncCloudProfile(profile){if(!currentUser||TEST_MODE_NO_AUTH)return;const sb=await getSupabase();const {error}=await sb.from('profiles').upsert({user_id:currentUser.id,company:profile||{}},{onConflict:'user_id'});if(error)throw error}
-function legacySnapshotForEmail(email){try{const u=getUsers().find(x=>String(x.email||'').toLowerCase()===String(email||'').toLowerCase());if(!u)return null;const raw=JSON.parse(localStorage.getItem(DATA_KEY_PREFIX+u.id)||'null'),profile=JSON.parse(localStorage.getItem(PROFILE_KEY_PREFIX+u.id)||'{}');if(!raw&&!Object.keys(profile||{}).length)return null;const base=structuredClone(DEFAULT),v=raw&&raw.meta?raw:{};const out={...base,...v,meta:{...base.meta,...(v.meta||{})},company:{...base.company,...(v.company||{}),...(profile||{})}};for(const k of ['contacts','services','invoices','quotes','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])if(!Array.isArray(out[k]))out[k]=[];return out}catch(e){return null}}
+function legacySnapshotForEmail(email){try{const u=getUsers().find(x=>String(x.email||'').toLowerCase()===String(email||'').toLowerCase());if(!u)return null;const raw=JSON.parse(localStorage.getItem(DATA_KEY_PREFIX+u.id)||'null'),profile=JSON.parse(localStorage.getItem(PROFILE_KEY_PREFIX+u.id)||'{}');if(!raw&&!Object.keys(profile||{}).length)return null;const base=structuredClone(DEFAULT),v=raw&&raw.meta?raw:{};const out={...base,...v,meta:{...base.meta,...(v.meta||{})},company:{...base.company,...(v.company||{}),...(profile||{})}};for(const k of ['contacts','services','invoices','quotes','recurringInvoices','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])if(!Array.isArray(out[k]))out[k]=[];return out}catch(e){return null}}
 function legacyUserForEmail(email){return getUsers().find(x=>String(x.email||'').toLowerCase()===String(email||'').toLowerCase())||null}
 function openLegacyFileDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open('boekhouden-files-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('files'))r.result.createObjectStore('files',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function getLegacyStoredFile(id){try{const db=await openLegacyFileDB();return await new Promise((resolve,reject)=>{const r=db.transaction('files','readonly').objectStore('files').get(id);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)})}catch(e){return null}}
@@ -4138,7 +4138,7 @@ function listEmptyHtml(name,ctaHtml=''){
    const firstUse={
     invoices:{title:'Je hebt nog geen facturen.',body:'Maak je eerste factuur. Boekuna houdt daarna bij wat nog openstaat.',action:'<button type="button" class="btn primary" onclick="newInvoice()">Eerste factuur maken</button>'},
     expenses:{title:'Je hebt nog geen kosten.',body:'Upload een bon of inkoopfactuur. Boekuna zet de gegevens klaar om te controleren.',action:'<button type="button" class="btn primary" onclick="openUploadSourcePicker(\'purchase\')">Bon of factuur toevoegen</button><button type="button" class="btn" onclick="newExpense()">Zelf invullen</button>'},
-    bank:{title:'Nog geen banktransacties.',body:'Importeer een CSV-bankbestand om transacties te bekijken en te koppelen.',action:'<button type="button" class="btn primary" onclick="document.getElementById(\'csvFile\').click()">Bankbestand importeren</button>'},
+    bank:{title:'Nog geen banktransacties.',body:'Download je betalingen bij je bank als CSV-bestand en kies dat bestand hier. Boekuna koppelt ze aan je facturen en kosten.',action:'<button type="button" class="btn primary" onclick="document.getElementById(\'csvFile\').click()">Bankbestand importeren</button><button type="button" class="btn" onclick="openBankDownloadHelp()">Waar vind ik dit bestand?</button>'},
     contacts:{title:'Je hebt nog geen relaties.',body:'Voeg een klant of leverancier toe zodra je die nodig hebt.',action:'<button type="button" class="btn primary" onclick="newContact()">Relatie toevoegen</button>'},
     trips:{title:'Je hebt nog geen ritten.',body:'Vul twee postcodes in; Boekuna rekent de kilometers uit.',action:'<button type="button" class="btn primary" onclick="newTrip()">Eerste rit toevoegen</button>'},
     documents:phoneLayout()?{title:'Nog geen bonnetjes.',body:'Scan een bon of upload een factuur. Boekuna leest hem uit en zet de bedragen klaar.',action:'<button type="button" class="btn primary" onclick="openDocumentUpload()">Bon scannen</button>'}:{title:'Je hebt nog geen documenten.',body:'Upload een bon of factuur. Boekuna leest hem uit en laat zien wat je moet controleren.',action:'<button type="button" class="btn primary" onclick="openDocumentUpload()">Document uploaden</button>'}
@@ -4875,7 +4875,7 @@ function renderExpenses(){
 }
 function renderBank(){
  const phone=phoneLayout(),list=getListRows('bank'),balance=list.reduce((sum,t)=>roundMoney(sum+Number(t.amount||0)),0),unmatched=list.filter(t=>t.status==='unmatched').length,inCount=list.filter(t=>Number(t.amount||0)>0).length,outCount=list.filter(t=>Number(t.amount||0)<0).length,matched=list.filter(t=>t.status==='matched').length,income=list.filter(t=>Number(t.amount||0)>0).reduce((sum,t)=>roundMoney(sum+Number(t.amount||0)),0),out=list.filter(t=>Number(t.amount||0)<0).reduce((sum,t)=>roundMoney(sum+Math.abs(Number(t.amount||0))),0);
- return `<div class="product-page-shell"><div class="page-head product-page-head financial-page-head"><div><h1>Bank</h1>${deskCopyHtml('Controleer bij- en afschrijvingen en koppelingen.','page-status','p')}</div><div class="page-period-slot">${listPeriodQuickHtml('bank')}</div></div>${state.transactions.length?`<div class="page-actions product-page-actions"><button class="btn primary" onclick="document.getElementById('csvFile').click()">${icon('i-upload')} Bankbestand importeren</button><button class="btn" onclick="newTransaction()">${icon('i-plus')} Transactie toevoegen</button></div>`:''}<input type="file" id="csvFile" accept=".csv,.tab,.txt,text/csv,text/plain" class="hidden"></div>
+ return `<div class="product-page-shell"><div class="page-head product-page-head financial-page-head"><div><h1>Bank</h1>${deskCopyHtml('Controleer bij- en afschrijvingen en koppelingen.','page-status','p')}</div><div class="page-period-slot">${listPeriodQuickHtml('bank')}</div></div>${state.transactions.length?`<div class="page-actions product-page-actions"><button class="btn primary" onclick="document.getElementById('csvFile').click()">${icon('i-upload')} Bankbestand importeren</button><button class="btn" onclick="newTransaction()">${icon('i-plus')} Transactie toevoegen</button><button class="link-btn" type="button" onclick="openBankDownloadHelp()">Waar vind ik mijn bankbestand?</button></div>`:''}<input type="file" id="csvFile" accept=".csv,.tab,.txt,text/csv,text/plain" class="hidden"></div>
  ${phone?productKpiGrid([productKpiHero('Saldo',money(balance),'','winst')],'grid-1 calm-kpis'):productKpiGrid([
   productKpi('Importsaldo',money(balance),extraHelpVisible()?'Alle zichtbare bankregels':'','i-bank','primary'),
   productKpi('Bijgeschreven',money(income),extraHelpVisible()?'Positieve bankregels':'','i-chart','support'),
@@ -6483,6 +6483,19 @@ function bankImportErrorText(code){return ({
  too_large:'Dit bestand heeft meer dan 20.000 regels. Download bij je bank een kortere periode.',
  read:'BOEKUNA kon dit bestand niet openen. Probeer het opnieuw of kies een ander bestand.'
 })[code]||'BOEKUNA kon dit bestand niet lezen. Kies een ander bestand.'}
+// Where the bank file is (gebruikerssimulatie 2026-10-28: CSV import scored lowest because people could not find it).
+// Menu names differ per bank and change now and then, so each line names the words to look for, not a fixed path.
+const BANK_DOWNLOAD_HELP=[
+ ['ING','Log in op ing.nl, open je rekening en kies <strong>Af- en bijschrijvingen downloaden</strong>. Kies het formaat CSV.'],
+ ['Rabobank','Log in op rabobank.nl, open je rekening en kies <strong>Transacties downloaden</strong>. Kies CSV.'],
+ ['ABN AMRO','Log in op abnamro.nl, open je rekening en kies <strong>Mutaties downloaden</strong>. Kies TXT (TAB) of CSV.'],
+ ['Knab','Open je rekening in Knab, ga naar je transacties en kies <strong>Exporteren</strong>. Kies CSV.'],
+ ['bunq','Open je rekening in de bunq-app, kies <strong>Afschrift</strong> of <strong>Exporteren</strong> en kies CSV.'],
+ ['Andere bank','Zoek in internetbankieren naar <strong>downloaden</strong> of <strong>exporteren</strong> bij je transacties en kies CSV. Een PDF-afschrift werkt niet.']
+];
+function bankDownloadHelpHtml(){return `<p class="help" style="margin:0 0 10px">Je downloadt je betalingen bij je eigen bank als bestand en kiest dat bestand hier. Lukt het niet in de app van je bank, dan gaat het bijna altijd wel via de website op een computer.</p><dl class="bank-download-help">${BANK_DOWNLOAD_HELP.map(([bank,how])=>`<div><dt>${esc(bank)}</dt><dd>${how}</dd></div>`).join('')}</dl>`}
+function openBankDownloadHelp(){modal('Waar vind ik mijn bankbestand?',bankDownloadHelpHtml(),`<button class="btn" onclick="closeModal()">Sluiten</button><button class="btn primary" type="button" onclick="closeModal();quickImportBank()">Bestand kiezen</button>`)}
+function bankDownloadHelpButton(){return `<button class="btn" type="button" onclick="closeModal();openBankDownloadHelp()">Waar vind ik dit bestand?</button>`}
 function bankPickFileButton(label='Ander bestand kiezen'){return `<button class="btn" type="button" onclick="closeModal();document.getElementById('csvFile').click()">${label}</button>`}
 function handleCSV(e){
  const input=e.target,f=input.files[0];if(!f)return;
@@ -6498,7 +6511,7 @@ function startBankImport(text,name,layout){
  pendingBankImport={text,name,parsed,plan:bankImportPlan(parsed,state.transactions)};
  showBankImportPreview();
 }
-function showBankImportError(code){pendingBankImport=null;modal('Bankbestand importeren',`<div class="notice warn" role="alert">${esc(bankImportErrorText(code))}</div>`,`<button class="btn" onclick="closeModal()">Sluiten</button>${bankPickFileButton()}`)}
+function showBankImportError(code){pendingBankImport=null;modal('Bankbestand importeren',`<div class="notice warn" role="alert">${esc(bankImportErrorText(code))}</div>`,`<button class="btn" onclick="closeModal()">Sluiten</button>${['pdf','spreadsheet','camt','columns','empty'].includes(code)?bankDownloadHelpButton():''}${bankPickFileButton()}`)}
 function showBankImportPreview(){
  const p=pendingBankImport;if(!p)return;const plan=p.plan,lay=p.parsed.layout,n=plan.ready.length;
  const rowsHtml=plan.ready.slice(0,100).map(r=>`<tr><td class="cell-nowrap">${dateNL(r.tx.date)}</td><td>${esc(r.tx.description)}</td><td class="right money cell-nowrap" style="color:${r.tx.amount<0?'var(--bad)':'var(--good)'}">${money(r.tx.amount)}</td></tr>`).join('');
