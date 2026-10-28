@@ -105,6 +105,9 @@ struct PhotoCategory: Identifiable {
     @Published var sessionFinished = false
     @Published private(set) var streak = StreakStore()
     @Published private(set) var pendingBytes: Int64 = 0
+    /// Cached streak length: computed when the streak changes, not on every redraw.
+    @Published private(set) var streakDays = 0
+    private var reminderTask: Task<Void, Never>?
     private var sizeCache: [String: Int64] = [:]
     private var sizeGeneration = 0
     private static let streakKey = "fotoswipe.streak.v1"
@@ -131,6 +134,7 @@ struct PhotoCategory: Identifiable {
         }
         if let data = UserDefaults.standard.data(forKey: Self.streakKey),
            let saved = try? JSONDecoder().decode(StreakStore.self, from: data) { streak = saved }
+        streakDays = streak.current()
         smartObserver = smart.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
         observer.onChange = { [weak self] in self?.libraryDidChange() }
         PHPhotoLibrary.shared().register(observer)
@@ -234,17 +238,31 @@ struct PhotoCategory: Identifiable {
         guard reminders.enabled else { return }
         let now = Date()
         let dates = ReminderPlan.dates(now: now, hour: reminders.hour, minute: reminders.minute, doneToday: streak.isActive(now))
-        let days = streak.current(now: now)
+        let days = streakDays
         let created = allAssets.map(\.creationDate)
-        let items = dates.map { date -> (Date, String) in
-            let count = created.reduce(0) { $0 + (PhotoDateFilter.onThisDay.includes($1, now: date) ? 1 : 0) }
-            if count > 0 {
-                return (date, "\(count) foto's van \(date.formatted(.dateTime.day().month(.wide))) uit eerdere jaren wachten op je. Even 2 minuten?")
+        reminderTask?.cancel()
+        // Counting runs off the main thread: one pass over the library, then 7 lookups.
+        reminderTask = Task.detached(priority: .utility) {
+            let calendar = Calendar.current
+            var years: [Int: [Int]] = [:]   // month*100+day -> photo years
+            for date in created {
+                guard let date else { continue }
+                let parts = calendar.dateComponents([.year, .month, .day], from: date)
+                years[(parts.month ?? 0) * 100 + (parts.day ?? 0), default: []].append(parts.year ?? 0)
             }
-            if days > 0 { return (date, "Houd je reeks van \(days) dagen vast: 30 foto's, 2 minuten.") }
-            return (date, "30 foto's, 2 minuten. Maak ruimte voor nieuwe herinneringen.")
+            let items = dates.map { date -> (Date, String) in
+                let parts = calendar.dateComponents([.year, .month, .day], from: date)
+                let year = parts.year ?? 0
+                let count = (years[(parts.month ?? 0) * 100 + (parts.day ?? 0)] ?? []).filter { $0 < year }.count
+                if count > 0 {
+                    return (date, "\(count) foto's van \(date.formatted(.dateTime.day().month(.wide))) uit eerdere jaren wachten op je. Even 2 minuten?")
+                }
+                if days > 0 { return (date, "Houd je reeks van \(days) dagen vast: 30 foto's, 2 minuten.") }
+                return (date, "30 foto's, 2 minuten. Maak ruimte voor nieuwe herinneringen.")
+            }
+            guard !Task.isCancelled else { return }
+            await MainActor.run { Reminders.shared.schedule(items) }
         }
-        reminders.schedule(items)
     }
 
     func selectOrder(_ order: PhotoOrder) {
@@ -254,6 +272,8 @@ struct PhotoCategory: Identifiable {
     }
 
     func activate() {
+        let days = streak.current()
+        if days != streakDays { streakDays = days }   // a new day may have started while the app was open
         let access = PHPhotoLibrary.authorizationStatus(for: .readWrite)
         guard !mutating, !deleting else { return }
         if authorization != access || refreshGate.needsRefresh { refresh(showLoading: assets.isEmpty) }
@@ -433,6 +453,8 @@ struct PhotoCategory: Identifiable {
     }
     private func saveStreak() {
         if let data = try? JSONEncoder().encode(streak) { UserDefaults.standard.set(data, forKey: Self.streakKey) }
+        let days = streak.current()
+        if days != streakDays { streakDays = days }
     }
     func restore(_ id: String) {
         guard !deleting, !mutating else { return }

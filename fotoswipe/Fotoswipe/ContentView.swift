@@ -97,7 +97,7 @@ struct ContentView: View {
                 .foregroundStyle(Palette.brand)
             Spacer()
             if library.hasAccess {
-                let days = library.streak.current()
+                let days = library.streakDays
                 HStack(spacing: 5) {
                     Image(systemName: "flame.fill")
                     Text("\(days)").monospacedDigit()
@@ -688,7 +688,7 @@ struct SessionEndView: View {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let days = (0..<7).compactMap { calendar.date(byAdding: .day, value: $0 - 6, to: today) }
-        let streak = library.streak.current()
+        let streak = library.streakDays
         return VStack(spacing: 8) {
             HStack {
                 Label(streak == 1 ? "1 dag op rij" : "\(streak) dagen op rij", systemImage: "flame.fill").font(.subheadline.weight(.heavy))
