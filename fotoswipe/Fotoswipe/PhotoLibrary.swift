@@ -10,9 +10,20 @@ private final class LibraryObserver: NSObject, PHPhotoLibraryChangeObserver {
     }
 }
 
+struct SwipeCommand: Identifiable {
+    let id = UUID()
+    let assetID: String
+    let choice: PhotoDecision
+}
+
 @MainActor final class PhotoLibrary: ObservableObject {
     @Published private(set) var authorization = PHPhotoLibrary.authorizationStatus(for: .readWrite)
     @Published private(set) var assets: [PHAsset] = []
+    @Published private(set) var deck: [PHAsset] = []
+    @Published private(set) var remainingCount = 0
+    @Published private(set) var swipeCommand: SwipeCommand?
+    @Published private(set) var pending: [PHAsset] = []
+    @Published private(set) var kept: [PHAsset] = []
     @Published private(set) var state = DecisionStore()
     @Published private(set) var loading = false
     @Published private(set) var deleting = false
@@ -22,19 +33,20 @@ private final class LibraryObserver: NSObject, PHPhotoLibraryChangeObserver {
     private let observer = LibraryObserver()
     private let stateURL: URL
     private var generation = 0
+    private var queue = ReviewQueue<PHAsset>()
+    private var preheated: [PHAsset] = []
+    private let persistence: DecisionPersistence
 
     var hasAccess: Bool { authorization == .authorized || authorization == .limited }
-    var remaining: [PHAsset] { assets.filter { state.decisions[$0.localIdentifier] == nil } }
-    var current: PHAsset? { remaining.first }
-    var pending: [PHAsset] { assets.filter { state.decisions[$0.localIdentifier] == .trash } }
-    var kept: [PHAsset] { assets.filter { state.decisions[$0.localIdentifier] == .keep } }
-    var reviewed: Int { assets.count - remaining.count }
+    var current: PHAsset? { deck.first }
+    var reviewed: Int { assets.count - remainingCount }
     var canUndo: Bool { !state.history.isEmpty && !deleting }
 
     init() {
         let folder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Fotoswipe", isDirectory: true)
         stateURL = folder.appendingPathComponent("decisions.json")
+        persistence = DecisionPersistence(url: stateURL)
         if FileManager.default.fileExists(atPath: stateURL.path) {
             do { state = try JSONDecoder().decode(DecisionStore.self, from: Data(contentsOf: stateURL)) }
             catch { persistenceWarning = "Je opgeslagen keuzes konden niet worden gelezen. Verwijder pas foto's nadat je je selectie opnieuw hebt gecontroleerd." }
@@ -56,7 +68,11 @@ private final class LibraryObserver: NSObject, PHPhotoLibraryChangeObserver {
         authorization = PHPhotoLibrary.authorizationStatus(for: .readWrite)
         generation += 1
         let request = generation
-        guard hasAccess else { assets = []; loading = false; return }
+        guard hasAccess else {
+            assets = []; loading = false
+            rebuildPresentation()
+            return
+        }
         loading = true
         // Fetch metadata off the UI thread. No full-size image scan.
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -69,14 +85,23 @@ private final class LibraryObserver: NSObject, PHPhotoLibraryChangeObserver {
                 guard let self = self, self.generation == request else { return }
                 self.assets = fetched
                 self.loading = false
-                self.updateCache()
+                self.rebuildPresentation()
             }
         }
     }
 
-    func decide(_ choice: PhotoDecision) {
+    func requestSwipe(_ choice: PhotoDecision) {
         guard !deleting, !loading, let asset = current else { return }
+        swipeCommand = SwipeCommand(assetID: asset.localIdentifier, choice: choice)
+    }
+    func decide(_ choice: PhotoDecision, expectedID: String? = nil) {
+        guard !deleting, !loading, let asset = current else { return }
+        // A delayed animation must never apply its decision to a newer photo.
+        guard expectedID == nil || expectedID == asset.localIdentifier else { return }
         state.decide(asset.localIdentifier, choice)
+        if choice == .keep { kept.append(asset) } else { pending.append(asset) }
+        queue.advance()
+        publishDeck()
         save()
         updateCache()
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -84,20 +109,20 @@ private final class LibraryObserver: NSObject, PHPhotoLibraryChangeObserver {
     func undo() {
         guard canUndo else { return }
         state.undo()
+        rebuildPresentation()
         save()
-        updateCache()
     }
     func restore(_ id: String) {
         guard !deleting else { return }
         state.restore(id)
+        rebuildPresentation()
         save()
-        updateCache()
     }
     func reviewKeptAgain() {
         guard !deleting else { return }
         state.resetKept()
+        rebuildPresentation()
         save()
-        updateCache()
     }
 
     func deletePending() {
@@ -119,6 +144,7 @@ private final class LibraryObserver: NSObject, PHPhotoLibraryChangeObserver {
                 if success {
                     self.state.finishDeletion(ids)
                     self.assets.removeAll { ids.contains($0.localIdentifier) }
+                    self.rebuildPresentation()
                     self.save()
                     self.message = "\(batch.count) foto's verwijderd. Je kunt ze normaal tot 30 dagen terugzetten via 'Recent verwijderd' in Foto's."
                     self.refresh()
@@ -130,21 +156,56 @@ private final class LibraryObserver: NSObject, PHPhotoLibraryChangeObserver {
     }
 
     private func save() {
-        do {
-            try FileManager.default.createDirectory(at: stateURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-            let data = try JSONEncoder().encode(state)
-            try data.write(to: stateURL, options: .atomic)
-        } catch {
-            persistenceWarning = "Je keuzes konden niet worden opgeslagen. Houd de app open en probeer later opnieuw."
+        persistence.save(state) { [weak self] error in
+            guard error != nil else { return }
+            DispatchQueue.main.async {
+                self?.persistenceWarning = "Je keuzes konden niet worden opgeslagen. Houd de app open en probeer later opnieuw."
+            }
         }
     }
+    func finishPendingWrites() {
+        let task = UIApplication.shared.beginBackgroundTask(withName: "Fotoswipe keuzes opslaan", expirationHandler: nil)
+        persistence.flush {
+            DispatchQueue.main.async {
+                if task != .invalid { UIApplication.shared.endBackgroundTask(task) }
+            }
+        }
+    }
+    private func rebuildPresentation() {
+        var unreviewed: [PHAsset] = []
+        var saved: [PHAsset] = []
+        var trash: [PHAsset] = []
+        for asset in assets {
+            switch state.decisions[asset.localIdentifier] {
+            case .keep: saved.append(asset)
+            case .trash: trash.append(asset)
+            case nil: unreviewed.append(asset)
+            }
+        }
+        queue.replace(unreviewed)
+        kept = saved
+        pending = trash
+        publishDeck()
+        updateCache()
+    }
+    private func publishDeck() {
+        remainingCount = queue.remainingCount
+        deck = Array(queue.preview(limit: 3))
+    }
     private func updateCache() {
-        images.stopCachingImagesForAllAssets()
-        let next = Array(remaining.prefix(4))
-        let options = PHImageRequestOptions()
-        options.deliveryMode = .opportunistic
-        options.isNetworkAccessAllowed = false
-        images.startCachingImages(for: next, targetSize: CGSize(width: 1000, height: 1400), contentMode: .aspectFit, options: options)
+        let next = Array(queue.preview(limit: 8))
+        let nextIDs = Set(next.map(\.localIdentifier))
+        let previousIDs = Set(preheated.map(\.localIdentifier))
+        let removed = preheated.filter { !nextIDs.contains($0.localIdentifier) }
+        let added = next.filter { !previousIDs.contains($0.localIdentifier) }
+        let options = PhotoImageConfiguration.options()
+        if !removed.isEmpty {
+            images.stopCachingImages(for: removed, targetSize: PhotoImageConfiguration.cardSize, contentMode: .aspectFit, options: options)
+        }
+        if !added.isEmpty {
+            images.startCachingImages(for: added, targetSize: PhotoImageConfiguration.cardSize, contentMode: .aspectFit, options: options)
+        }
+        preheated = next
     }
 }
 

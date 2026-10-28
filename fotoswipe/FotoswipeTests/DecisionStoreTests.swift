@@ -58,3 +58,92 @@ final class DecisionStoreTests: XCTestCase {
         XCTAssertEqual(state.decisions.count, 500)
     }
 }
+
+final class SwipePipelineTests: XCTestCase {
+    func testLargeLibraryAdvancesWithoutRebuildingOrDroppingTheNextCards() {
+        var queue = ReviewQueue(Array(0..<100_000))
+        for expected in 0..<10_000 {
+            XCTAssertEqual(queue.current, expected)
+            XCTAssertEqual(Array(queue.preview(limit: 3)), [expected, expected + 1, expected + 2])
+            queue.advance()
+        }
+        XCTAssertEqual(queue.remainingCount, 90_000)
+        XCTAssertEqual(queue.current, 10_000)
+    }
+    func testQueueHandlesLastPhotoAndEmptyLibrary() {
+        var queue = ReviewQueue(["last"])
+        XCTAssertEqual(Array(queue.preview(limit: 3)), ["last"])
+        queue.advance()
+        queue.advance()
+        XCTAssertNil(queue.current)
+        XCTAssertEqual(queue.remainingCount, 0)
+        XCTAssertTrue(queue.preview(limit: 8).isEmpty)
+        queue.replace(["restored", "next"])
+        XCTAssertEqual(queue.current, "restored")
+        XCTAssertEqual(queue.remainingCount, 2)
+    }
+    func testBackgroundPersistenceKeepsNewestSnapshotInOrder() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appendingPathComponent("decisions.json")
+        let writer = DecisionPersistence(url: url)
+        let completed = expectation(description: "Serial writes completed off the main thread")
+        completed.expectedFulfillmentCount = 3
+        var state = DecisionStore()
+        for i in 0..<3 {
+            state.decide("photo-\(i)", i == 1 ? .trash : .keep)
+            writer.save(state) { error in
+                XCTAssertFalse(Thread.isMainThread)
+                XCTAssertNil(error)
+                completed.fulfill()
+            }
+        }
+        wait(for: [completed], timeout: 5)
+        let restored = try JSONDecoder().decode(DecisionStore.self, from: Data(contentsOf: url))
+        XCTAssertEqual(restored.decisions.count, 3)
+        XCTAssertEqual(restored.decisions["photo-1"], .trash)
+        XCTAssertEqual(restored.history.map(\.id), ["photo-0", "photo-1", "photo-2"])
+    }
+}
+
+
+final class CategoryDecisionTests: XCTestCase {
+    func testReviewingFavoritesAgainPreservesKeptPhotosOutsideThatCategoryAndTrash() {
+        var state = DecisionStore()
+        state.decide("favorite", .keep)
+        state.decide("other-album", .keep)
+        state.decide("pending", .trash)
+        state.resetKept(in: ["favorite", "pending"])
+        XCTAssertNil(state.decisions["favorite"])
+        XCTAssertEqual(state.decisions["other-album"], .keep)
+        XCTAssertEqual(state.decisions["pending"], .trash)
+        XCTAssertEqual(state.history.map(\.id), ["other-album", "pending"])
+    }
+    func testUndoInAnAlbumSkipsNewerDecisionsInOtherAlbums() {
+        var state = DecisionStore()
+        state.decide("album-photo", .keep)
+        state.decide("other-photo", .trash)
+        XCTAssertEqual(state.undo(in: ["album-photo"]), "album-photo")
+        XCTAssertNil(state.decisions["album-photo"])
+        XCTAssertEqual(state.decisions["other-photo"], .trash)
+        XCTAssertEqual(state.undo(), "other-photo")
+    }
+    func testEmptyCategoryCannotChangeDecisionsFromOtherCategories() {
+        var state = DecisionStore()
+        state.decide("outside", .keep)
+        XCTAssertNil(state.undo(in: []))
+        state.resetKept(in: [])
+        XCTAssertEqual(state.decisions["outside"], .keep)
+        XCTAssertEqual(state.history.count, 1)
+    }
+    func testOverlappingAlbumsShareOneDecisionAcrossRelaunch() throws {
+        var state = DecisionStore()
+        state.decide("shared-photo", .keep)
+        state.decide("shared-photo", .trash)
+        let data = try JSONEncoder().encode(state)
+        var restored = try JSONDecoder().decode(DecisionStore.self, from: data)
+        XCTAssertEqual(restored.undo(in: ["shared-photo"]), "shared-photo")
+        XCTAssertEqual(restored.decisions["shared-photo"], .keep)
+        XCTAssertEqual(restored.decisions.count, 1)
+    }
+}

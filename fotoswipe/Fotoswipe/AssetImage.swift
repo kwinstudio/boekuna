@@ -1,6 +1,17 @@
 import SwiftUI
 import Photos
 
+enum PhotoImageConfiguration {
+    static let cardSize = CGSize(width: 1000, height: 1400)
+    static func options() -> PHImageRequestOptions {
+        let options = PHImageRequestOptions()
+        options.isNetworkAccessAllowed = true
+        options.deliveryMode = .opportunistic
+        options.resizeMode = .fast
+        return options
+    }
+}
+
 struct AssetImage: View {
     let asset: PHAsset
     let manager: PHCachingImageManager
@@ -16,11 +27,6 @@ struct AssetImage: View {
             ZStack {
                 Color(red: 0.16, green: 0.19, blue: 0.14)
                 if let image {
-                    if !thumbnail {
-                        Image(uiImage: image).resizable().scaledToFill()
-                            .frame(width: geometry.size.width, height: geometry.size.height).clipped()
-                            .blur(radius: 25).opacity(0.5)
-                    }
                     Image(uiImage: image).resizable()
                         .aspectRatio(contentMode: thumbnail ? .fill : .fit)
                         .frame(width: geometry.size.width, height: geometry.size.height).clipped()
@@ -54,12 +60,9 @@ struct AssetImage: View {
         failed = false
         let token = UUID()
         activeID = token
-        let options = PHImageRequestOptions()
-        options.isNetworkAccessAllowed = true
-        options.deliveryMode = .opportunistic
-        options.resizeMode = .fast
+        let options = PhotoImageConfiguration.options()
         requestID = manager.requestImage(for: asset,
-            targetSize: thumbnail ? CGSize(width: 360, height: 360) : CGSize(width: 1400, height: 1800),
+            targetSize: thumbnail ? CGSize(width: 360, height: 360) : PhotoImageConfiguration.cardSize,
             contentMode: thumbnail ? .aspectFill : .aspectFit, options: options) { result, info in
                 DispatchQueue.main.async {
                     guard activeID == token else { return }
