@@ -64,7 +64,7 @@ async function listBuilds() {
 }
 
 let builds = await listBuilds();
-for (const b of builds) note(`Build ${b.version} (${b.build}): processing=${b.processing}, internal=${b.internal}, external=${b.external}, expired=${b.expired}, uploaded=${b.uploaded}`);
+// GitHub shows at most 10 notices per step: keep output to the target build only.
 if (!builds.length) fail('No builds found for the app.');
 
 const deadline = Date.now() + WAIT_MIN * 60_000;
