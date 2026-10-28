@@ -14,6 +14,9 @@ struct ContentView: View {
     @State private var reviewAfterSession = false
     @State private var focus = false
     @State private var stacksOpen = false
+    @State private var keepRestConfirm = false
+    @State private var whatsNew = false
+    @AppStorage("fotoswipe.whatsNewSeen") private var whatsNewSeen = ""
 
     var body: some View {
         NavigationStack {
@@ -27,6 +30,23 @@ struct ContentView: View {
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $review) { ReviewView().environmentObject(library) }
             .sheet(isPresented: $info) { InfoView().environmentObject(library) }
+            .sheet(isPresented: $whatsNew, onDismiss: { whatsNewSeen = WhatsNewView.version }) {
+                WhatsNewView { tryStacks in
+                    whatsNewSeen = WhatsNewView.version
+                    whatsNew = false
+                    if tryStacks { DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { stacksOpen = true } }
+                }
+            }
+            .confirmationDialog("De overige \(library.remainingInCategory) items in \(library.selectedCategory.title) bewaren?", isPresented: $keepRestConfirm, titleVisibility: .visible) {
+                Button("Bewaar de rest") { library.keepRemaining() }
+                Button("Annuleren", role: .cancel) {}
+            } message: { Text("Er wordt niets verwijderd. Je kunt het per item terugdraaien in Bekijken.") }
+            .onAppear {
+                // Only for people updating, not on a first install.
+                if whatsNewSeen != WhatsNewView.version && library.hasAccess && !library.state.decisions.isEmpty {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { whatsNew = true }
+                } else if whatsNewSeen.isEmpty { whatsNewSeen = WhatsNewView.version }
+            }
             .onReceive(Reminders.shared.$openOnThisDay) { open in
                 guard open else { return }
                 Reminders.shared.openOnThisDay = false
@@ -163,7 +183,13 @@ struct ContentView: View {
                             Label(asset.mediaType == .video ? "Video afspelen" : "Foto groter bekijken", systemImage: asset.mediaType == .video ? "play.circle" : "arrow.up.left.and.arrow.down.right")
                         }
                     }
-                    Button { comparing = true } label: { Label("Vergelijkbare foto's", systemImage: "square.on.square") }
+                    Button { stacksOpen = true } label: { Label("Bijna dubbele foto's", systemImage: "square.stack.3d.up") }
+                    if library.remainingInCategory > 1 {
+                        Button { keepRestConfirm = true } label: {
+                            Label("Bewaar de rest (\(library.remainingInCategory))", systemImage: "checkmark.circle")
+                        }
+                    }
+                    Button { comparing = true } label: { Label("Vergelijkbare foto's (handmatig)", systemImage: "square.on.square") }
                 } label: { Label("Meer", systemImage: "ellipsis.circle").font(.caption.weight(.semibold)) }
                     .disabled(library.deleting || library.loading || library.mutating)
             }.foregroundStyle(Palette.ink)
@@ -1030,5 +1056,52 @@ struct ReminderCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14).pop(radius: 16, fill: Palette.surface, shadow: 3)
+    }
+}
+
+
+/// Shown once after an update: four short lines and one clear next step (curiosity, not a manual).
+struct WhatsNewView: View {
+    static var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0" }
+    let onClose: (_ tryStacks: Bool) -> Void
+    private struct Item: Identifiable {
+        let icon: String, title: String, text: String, fill: Color, tint: Color
+        var id: String { title }
+    }
+    private let items: [Item] = [
+        Item(icon: "square.stack.3d.up.fill", title: "Bijna dubbel", text: "Vijf bijna gelijke foto's? De beste staat al klaar. Eén veeg en klaar.", fill: Palette.brand, tint: .white),
+        Item(icon: "wand.and.stars", title: "Rommel", text: "Wazige foto's, bonnetjes en screenshots vooraan. Snel ruimte winnen.", fill: Palette.reward, tint: Palette.ink),
+        Item(icon: "bell.fill", title: "Jouw moment", text: "Eén herinnering per dag, op de tijd die jij kiest.", fill: Palette.keep, tint: .white),
+        Item(icon: "slider.horizontal.3", title: "Jij bepaalt het tempo", text: "Kies 15, 30 of 50 per sessie, of bewaar de rest in één keer.", fill: Palette.surface, tint: Palette.ink)
+    ]
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("NIEUW IN FOTOSWIPE").font(.caption.weight(.heavy)).foregroundStyle(Palette.muted).padding(.top, 28)
+                Text("Minder beslissen,\nmeer ruimte.").font(.system(size: 32, weight: .heavy, design: .rounded)).tracking(-1)
+                ForEach(items) { item in
+                    HStack(alignment: .top, spacing: 14) {
+                        Image(systemName: item.icon).font(.system(size: 19, weight: .heavy)).foregroundStyle(item.tint)
+                            .frame(width: 46, height: 46)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(item.fill))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.ink, lineWidth: 2))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.title).font(.headline.weight(.heavy))
+                            Text(item.text).font(.subheadline).foregroundStyle(Palette.muted)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(12).pop(radius: 16, fill: Palette.surface, shadow: 3)
+                    .accessibilityElement(children: .combine)
+                }
+                Text("Nog steeds: geen reclame, geen abonnement, geen limiet. Alles blijft op je iPhone.")
+                    .font(.footnote.weight(.semibold)).foregroundStyle(Palette.ink).padding(.top, 2)
+                Button("Probeer Bijna dubbel") { onClose(true) }.buttonStyle(PrimaryStyle()).padding(.top, 6)
+                Button("Later") { onClose(false) }.font(.subheadline.weight(.bold)).foregroundStyle(Palette.brand)
+                    .frame(maxWidth: .infinity, minHeight: 44).padding(.bottom, 20)
+            }.padding(.horizontal, 22).foregroundStyle(Palette.ink)
+        }
+        .background(Palette.background.ignoresSafeArea())
+        .presentationDragIndicator(.visible)
     }
 }

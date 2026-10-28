@@ -191,6 +191,19 @@ struct PhotoCategory: Identifiable {
         if !wasActive && streak.isActive(Date()) { rescheduleReminders() }
         if session.isComplete && !sessionFinished { sessionFinished = true; Haptics.success() }
     }
+    /// Undecided items left in the current category.
+    var remainingInCategory: Int { remainingCount }
+    /// "Keep the rest": for people who do not want to judge every photo. Safe default: keeping never deletes.
+    func keepRemaining() {
+        guard !deleting, !mutating, !loading else { return }
+        let rest = assets.filter { state.decisions[$0.localIdentifier] == nil }
+        guard !rest.isEmpty else { return }
+        for asset in rest { state.decide(asset.localIdentifier, .keep) }
+        rebuildPresentation()
+        save()
+        Haptics.success()
+        status = "\(rest.count) items bewaard. Met Bekijken kun je dit per item terugdraaien."
+    }
     func bestInStack(_ group: [String]) -> String? {
         let favorites = Set(group.filter { id in assetIndex[id].map { isFavorite($0) } ?? false })
         return SmartPick.best(group, quality: smart.quality, favorites: favorites)
