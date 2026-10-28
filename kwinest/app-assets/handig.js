@@ -1,7 +1,10 @@
 /* BOEKUNA handig — small tricks you feel but do not see (Kwin 2026-10-28, "trucjes" 1-12, 14).
    The right keyboard per field, Enter jumps to the next field, amounts read the way you type them (12,50 · 1.234,56 ·
    3 x 45 · 100 + 21%), smart pre-fill, invisible bigger tap areas, swipe and long press in lists, the save button stays
-   above the keyboard, shortcuts on a computer and a form error takes you to the field. Styling lives in handig.css.
+   above the keyboard, shortcuts on a computer and a form error takes you to the field. Round 2 (17-27, 29): dates in plain
+   language, the + menu learns, paste fills a whole address, tap to copy, hold to send, a small celebration at "betaald",
+   tap an amount for with/without btw, focus after a service, lists remember where you were, tap the top to go up,
+   "zelfde als vorige keer" and a cost typed or spoken in one line. Styling lives in handig.css.
    Search that forgives typos (13) and the kept half invoice (15) live in the app itself. */
 (function(){
   'use strict';
@@ -16,7 +19,8 @@
   var phone=window.matchMedia?window.matchMedia('(max-width: 820px)'):{matches:false};
   var coarse=window.matchMedia?window.matchMedia('(pointer: coarse)'):{matches:false};
   // App helpers are global functions; state and editingInvoiceId are global let-bindings, read by name.
-  function app(name){return typeof window[name]==='function'?window[name]:null}
+  // money is a const in the app script, so it is not on window; reach it by name.
+  function app(name){if(typeof window[name]==='function')return window[name];if(name==='money'){try{return typeof money==='function'?money:null}catch(e){return null}}return null}
   function call(name){var fn=app(name);if(!fn)return false;fn.apply(null,[].slice.call(arguments,1));return true}
   function appState(){try{return typeof state!=='undefined'?state:null}catch(e){return null}}
   function editingInvoice(){try{return typeof editingInvoiceId!=='undefined'?editingInvoiceId:null}catch(e){return null}}
@@ -121,6 +125,8 @@
     el.dataset.bkField='1';
     var type=(el.getAttribute('type')||'text').toLowerCase(),name=fieldName(el);
     if(type==='number'){makeAmountField(el);return}
+    // Phones keep their own date wheel (and the Vandaag/Gisteren chips); on a computer you can type "gisteren".
+    if(type==='date'){if(!coarse.matches&&!el.classList.contains('bk-date-native')&&!inReview(el)&&!el.closest('.period-range-fields'))makeDateField(el);return}
     if(type!=='text'&&type!=='search'&&type!=='email'&&type!=='tel')return;
     if(/(^| )(phone|telefoon|tel)\b|phone/.test(name)&&type==='text'){el.type='tel';if(!el.getAttribute('autocomplete'))el.setAttribute('autocomplete','tel')}
     else if(/iban|\bvat\b|btw|postal|postcode|zip/.test(name)){el.setAttribute('autocapitalize','characters');el.setAttribute('autocorrect','off');el.setAttribute('spellcheck','false')}
@@ -139,7 +145,7 @@
   if(NativeFormData&&!NativeFormData.__boekuna){
     var BoekunaFormData=function(form,submitter){
       var fd=submitter===undefined?new NativeFormData(form):new NativeFormData(form,submitter);
-      if(form&&form.elements){for(var i=0;i<form.elements.length;i++){var el=form.elements[i];if(el.dataset&&el.dataset.bkNum&&el.name&&!el.disabled)fd.set(el.name,el.value)}}
+      if(form&&form.elements){for(var i=0;i<form.elements.length;i++){var el=form.elements[i];if(el.dataset&&(el.dataset.bkNum||el.dataset.bkDate)&&el.name&&!el.disabled)fd.set(el.name,el.value)}}
       return fd;
     };
     BoekunaFormData.prototype=NativeFormData.prototype;
@@ -232,9 +238,17 @@
       }
       parts=parts.filter(Boolean);
       var hint=form.querySelector('.bk-hint');
-      if(parts.length){
-        if(!hint){hint=document.createElement('div');hint.className='help bk-hint';vendor.closest('.field').appendChild(hint)}
-        hint.textContent='Zoals vorige keer: '+parts.join(', ');
+      if(hint&&!parts.length&&hint.dataset.bkFor===String(last.id))return; // already shown for this supplier
+      if(!hint){hint=document.createElement('div');hint.className='help bk-hint';vendor.closest('.field').appendChild(hint)}
+      hint.dataset.bkFor=String(last.id);
+      hint.textContent=parts.length?'Zoals vorige keer: '+parts.join(', '):'';
+      // 27. Same as last time: one tap fills the amount of the previous cost too.
+      var gross=form.elements.gross,amount=0;try{amount=app('expenseGross')?app('expenseGross')(last):0}catch(e){}
+      if(gross&&amount>0&&!String(gross.value||'').trim()){
+        var again=document.createElement('button');again.type='button';again.className='btn small bk-again';
+        again.textContent='Zelfde als vorige keer · '+(app('money')?app('money')(amount):amount.toFixed(2));
+        again.addEventListener('click',function(){gross.value=amount.toFixed(2);gross.dispatchEvent(new Event('input',{bubbles:true}));gross.dispatchEvent(new Event('change',{bubbles:true}));again.remove();hint.textContent='Ingevuld zoals vorige keer. Pas aan wat anders is.'});
+        hint.appendChild(document.createElement('br'));hint.appendChild(again);
       }
     }
     vendor.addEventListener('change',apply);
@@ -407,6 +421,322 @@
       if(m.type==='attributes'&&m.target.classList&&m.target.classList.contains('field-error')&&String(m.oldValue||'').indexOf('field-error')<0){clearTimeout(errorTimer);errorTimer=setTimeout(goToError,30);break}}
   }).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class'],attributeOldValue:true});
 
+  /* ---------- 17. Dates in plain language ---------- */
+  var DAYS=['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
+  var MONTHS={jan:1,feb:2,mrt:3,maa:3,apr:4,mei:5,jun:6,jul:7,aug:8,sep:9,okt:10,oct:10,nov:11,dec:12};
+  function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+  function make(y,m,d){var x=new Date(y,m-1,d,12);return x.getFullYear()===y&&x.getMonth()===m-1&&x.getDate()===d?iso(x):null}
+  function readDate(raw){
+    var s=String(raw==null?'':raw).trim().toLowerCase().replace(/\s+/g,' ');if(!s)return null;
+    var now=new Date();now.setHours(12,0,0,0);
+    var rel={vandaag:0,gisteren:-1,eergisteren:-2,morgen:1,overmorgen:2}[s];
+    if(rel!=null){now.setDate(now.getDate()+rel);return iso(now)}
+    var m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);if(m)return make(+m[1],+m[2],+m[3]);
+    m=s.match(/^(?:(?:ma|di|wo|do|vr|za|zo)[a-z]*\.?\s+)?(\d{1,2})[\/\-. ](\d{1,2})(?:[\/\-. ](\d{2,4}))?$/);
+    if(m){var y=m[3]?+m[3]:now.getFullYear();if(y<100)y+=2000;return make(y,+m[2],+m[1])}
+    m=s.match(/^(?:(?:ma|di|wo|do|vr|za|zo)[a-z]*\.?\s+)?(\d{1,2})\s*([a-z]{3})[a-z]*\.?(?:\s+(\d{4}))?$/);
+    if(m&&MONTHS[m[2]])return make(m[3]?+m[3]:now.getFullYear(),MONTHS[m[2]],+m[1]);
+    m=s.match(/^(vorige\s+)?(zondag|maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag)$/);
+    if(m){var back=(now.getDay()-DAYS.indexOf(m[2])+7)%7;if(m[1]&&back===0)back=7;now.setDate(now.getDate()-back);return iso(now)}
+    m=s.match(/^(\d{1,3}) dag(?:en)? geleden$/);if(m){now.setDate(now.getDate()-Number(m[1]));return iso(now)}
+    return null;
+  }
+  window.boekunaReadDate=readDate;
+  function showDate(isoDate){var m=String(isoDate||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+'-'+m[2]+'-'+m[1]:String(isoDate||'')}
+  function longDate(isoDate){try{return new Date(isoDate+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}catch(e){return isoDate}}
+  function makeDateField(el){
+    var start=nativeValue.get.call(el);
+    el.dataset.bkDate='1';
+    el.type='text';
+    el.setAttribute('inputmode','text');el.setAttribute('autocomplete','off');el.setAttribute('autocorrect','off');el.setAttribute('spellcheck','false');
+    if(!el.placeholder)el.placeholder='dd-mm-jjjj of "gisteren"';
+    Object.defineProperty(el,'value',{configurable:true,
+      get:function(){var raw=nativeValue.get.call(this);if(!String(raw).trim())return '';return readDate(raw)||''},
+      set:function(v){nativeValue.set.call(this,showDate(v==null?'':String(v)))}
+    });
+    nativeValue.set.call(el,showDate(start));
+    // The calendar stays one tap away: a native date picker sits under a small calendar button.
+    var wrap=document.createElement('span');wrap.className='bk-date-wrap';
+    el.parentNode.insertBefore(wrap,el);wrap.appendChild(el);
+    var pick=document.createElement('span');pick.className='bk-date-pick';pick.setAttribute('aria-hidden','true');
+    pick.innerHTML='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>';
+    var native=document.createElement('input');native.type='date';native.tabIndex=-1;native.className='bk-date-native';native.setAttribute('aria-label','Kies een datum in de kalender');
+    pick.appendChild(native);wrap.appendChild(pick);
+    native.addEventListener('focus',function(){native.value=el.value||iso(new Date());if(el.min)native.min=el.min;if(el.max)native.max=el.max});
+    native.addEventListener('change',function(){if(!native.value)return;el.value=native.value;checkDate(el);el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}))});
+    if(el.disabled||el.readOnly)pick.hidden=true;
+  }
+  function checkDate(el){
+    var raw=nativeValue.get.call(el),msg='';
+    if(String(raw).trim()){
+      var d=readDate(raw);
+      if(!d)msg='Typ een datum, bijvoorbeeld 12-10-2026 of "gisteren".';
+      else if(el.min&&d<el.min)msg='Kies een datum vanaf '+showDate(el.min)+'.';
+      else if(el.max&&d>el.max)msg='Kies een datum tot en met '+showDate(el.max)+'.';
+    }
+    el.setCustomValidity(msg);
+    var help=el.closest('.bk-date-wrap')&&el.closest('.bk-date-wrap').nextElementSibling;
+    if(help&&help.classList.contains('bk-date-read'))help.remove();
+    if(document.activeElement===el&&String(raw).trim()&&!/^\d{1,2}-\d{1,2}-\d{4}$/.test(raw)){
+      var d2=readDate(raw),note=document.createElement('div');note.className='help bk-date-read';
+      note.textContent=d2?longDate(d2):'Dit snap ik nog niet';
+      el.closest('.bk-date-wrap').after(note);
+    }
+  }
+  document.addEventListener('input',function(e){var el=e.target;if(el&&el.dataset&&el.dataset.bkDate)checkDate(el)},true);
+  document.addEventListener('focusout',function(e){
+    var el=e.target;if(!el||!el.dataset||!el.dataset.bkDate)return;
+    var raw=nativeValue.get.call(el),d=readDate(raw);
+    if(d&&showDate(d)!==raw)nativeValue.set.call(el,showDate(d));
+    checkDate(el);
+    var w=el.closest('.bk-date-wrap');if(w&&w.nextElementSibling&&w.nextElementSibling.classList.contains('bk-date-read'))w.nextElementSibling.remove();
+  },true);
+
+  /* ---------- 18. The + menu learns what you do most ---------- */
+  var QUICK_KEY='boekuna.quickUse';
+  function quickUse(){try{return JSON.parse(localStorage.getItem(QUICK_KEY)||'{}')||{}}catch(e){return {}}}
+  function quickLabel(btn){var t=btn.querySelector('strong');return (t?t.textContent:btn.textContent).trim()}
+  document.addEventListener('click',function(e){
+    var tile=e.target.closest&&e.target.closest('#modalRoot .quick-tiles .quick-tile');if(!tile)return;
+    var use=quickUse(),k=quickLabel(tile);use[k]=(use[k]||0)+1;try{localStorage.setItem(QUICK_KEY,JSON.stringify(use))}catch(err){}
+  },true);
+  function orderQuickTiles(box){
+    if(box.dataset.bkOrdered)return;box.dataset.bkOrdered='1';
+    var use=quickUse(),tiles=[].slice.call(box.querySelectorAll('.quick-tile'));
+    var total=tiles.reduce(function(n,t){return n+(use[quickLabel(t)]||0)},0);if(total<5)return; // learn slowly
+    var sorted=tiles.slice().sort(function(a,b){return (use[quickLabel(b)]||0)-(use[quickLabel(a)]||0)});
+    // Only move a tile up when it is clearly used more, so the order stays calm.
+    if((use[quickLabel(sorted[0])]||0)<(use[quickLabel(tiles[0])]||0)*1.5+1)return;
+    sorted.forEach(function(t){box.appendChild(t)});
+  }
+
+  /* ---------- 19. Paste fills a whole address ---------- */
+  function splitContact(t){
+    var out={},lines=String(t).split(/\r?\n|·|\|/).map(function(x){return x.trim()}).filter(Boolean),flat=String(t).replace(/\s+/g,' ');
+    var m=flat.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);if(m)out.email=m[0];
+    m=flat.match(/\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]{4}){3,7}(?:\s?[A-Z0-9]{1,3})?\b/);if(m)out.iban=m[0].replace(/\s/g,'');
+    m=flat.match(/\bkvk(?:[- ]?(?:nummer|nr\.?))?[:\s]*([0-9]{8})\b/i);if(m)out.kvk=m[1];
+    m=flat.match(/\b(?:btw(?:[- ]?(?:id|nummer|nr\.?))?|vat)[:\s]*(NL\s?\d{9}\s?B\s?\d{2})\b/i)||flat.match(/\b(NL\d{9}B\d{2})\b/);if(m)out.vat=m[1].replace(/\s/g,'').toUpperCase();
+    m=flat.match(/(?:\+31|0031|\b0)[\s-]?6(?:[\s-]?\d){8}\b|(?:\+31|0031|\b0)[1-9]\d(?:[\s-]?\d){7}\b/);if(m)out.phone=m[0].trim();
+    for(var i=0;i<lines.length;i++){var pc=lines[i].match(/^(\d{4})\s?([A-Za-z]{2})\b\s*(.*)$/);if(pc&&!/^(\d{4})\s?(AB|NL)$/i.test(lines[i])){out.postal=pc[1]+' '+pc[2].toUpperCase();if(pc[3])out.city=pc[3].replace(/[,;].*$/,'').trim();break}}
+    var street=lines.find(function(l){return /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'.\- ]+\s\d+\s?[a-zA-Z]?(?:[-\s]\d+)?$/.test(l)});if(street)out.address=street;
+    var name=lines.find(function(l){return l!==street&&!/@|\d{4}\s?[A-Za-z]{2}\b|kvk|btw|iban|^NL\d|\+31|^0\d|^tel|^www\.|https?:/i.test(l)&&/[a-z]/i.test(l)});if(name)out.name=name;
+    return out;
+  }
+  window.boekunaSplitContact=splitContact;
+  var FIELD_KEYS={name:'name',naam:'name',companyname:'name',email:'email',address:'address',adres:'address',street:'address',postal:'postal',postcode:'postal',zip:'postal',city:'city',plaats:'city',phone:'phone',telefoon:'phone',kvk:'kvk',vat:'vat',btw:'vat',iban:'iban'};
+  function keyOf(el){var n=String(el.name||'').toLowerCase().replace(/^newcustomer/,'').replace(/^company/,'');return FIELD_KEYS[n]||null}
+  document.addEventListener('paste',function(e){
+    var el=e.target;if(!el||el.tagName!=='INPUT'&&el.tagName!=='TEXTAREA')return;
+    var own=keyOf(el);if(!own)return;
+    var text=(e.clipboardData||window.clipboardData).getData('text');if(!text)return;
+    var found=splitContact(text),kinds=['email','iban','kvk','postal','phone','address','vat'].filter(function(k){return found[k]});
+    if(kinds.length<2)return;
+    var scope=el.closest('#newCustomerFields')||el.form||el.closest('.modal');if(!scope)return;
+    e.preventDefault();
+    var filled=0;
+    [].slice.call(scope.querySelectorAll('input,textarea')).forEach(function(f){
+      var k=keyOf(f);if(!k||!found[k])return;
+      if(f!==el&&String(f.value||'').trim())return; // never overwrite what you typed
+      f.value=found[k];f.dispatchEvent(new Event('input',{bubbles:true}));f.dispatchEvent(new Event('change',{bubbles:true}));filled++;
+    });
+    if(found[own]==null&&own==='name'&&!String(el.value||'').trim()){el.value=text.split(/\r?\n/)[0].trim();el.dispatchEvent(new Event('input',{bubbles:true}))}
+    if(filled)call('toast',filled+(filled===1?' veld':' velden')+' ingevuld uit wat je plakte');
+  },true);
+
+  /* ---------- 20. Tap a number to copy it ---------- */
+  var COPY_RX=/\b(NL\d{2}\s?[A-Z]{4}(?:\s?\d{4}){2}\s?\d{2}|NL\s?\d{9}\s?B\s?\d{2})\b/g;
+  var SKIP_COPY='input,textarea,select,option,button,a,script,style,[contenteditable],.bk-copy,svg,code,pre,.invoice-paper,iframe,label';
+  function decorateCopy(root){
+    if(!root||!root.querySelectorAll)return;
+    var walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:function(n){COPY_RX.lastIndex=0;if(!COPY_RX.test(n.nodeValue))return NodeFilter.FILTER_SKIP;var p=n.parentElement;return p&&!p.closest(SKIP_COPY)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_SKIP}});
+    var nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+    nodes.forEach(function(n){
+      var frag=document.createDocumentFragment(),text=n.nodeValue,last=0;COPY_RX.lastIndex=0;var m;
+      while((m=COPY_RX.exec(text))){
+        if(m.index>last)frag.appendChild(document.createTextNode(text.slice(last,m.index)));
+        var b=document.createElement('button');b.type='button';b.className='bk-copy';b.textContent=m[0];b.setAttribute('aria-label',m[0]+' kopiëren');b.dataset.copy=m[0].replace(/\s/g,'');
+        frag.appendChild(b);last=m.index+m[0].length;
+      }
+      if(last<text.length)frag.appendChild(document.createTextNode(text.slice(last)));
+      n.parentNode.replaceChild(frag,n);
+    });
+  }
+  document.addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('.bk-copy');if(!b)return;
+    e.preventDefault();e.stopPropagation();
+    var done=function(){b.classList.add('is-copied');tick();call('toast','Gekopieerd');setTimeout(function(){b.classList.remove('is-copied')},1400)};
+    try{navigator.clipboard.writeText(b.dataset.copy).then(done,function(){})}catch(err){}
+  },true);
+  var copyTimer=0;
+  function scheduleCopy(){clearTimeout(copyTimer);copyTimer=setTimeout(function(){decorateCopy(document.querySelector('#modalRoot .modal-body'));decorateCopy(document.getElementById('content'))},120)}
+
+  /* ---------- 21. Hold to send ---------- */
+  var HOLD_MS=650,holdOk=null;
+  function holdButton(el){
+    var b=el&&el.closest&&el.closest('#modalRoot .btn.primary');
+    if(!b||!b.closest('#modalRoot')||!b.closest('#modalRoot').querySelector('#invoiceForm'))return null;
+    return /^Versturen$/.test(b.textContent.trim())?b:null;
+  }
+  document.addEventListener('pointerdown',function(e){
+    if(e.pointerType!=='touch'&&e.pointerType!=='pen')return;
+    var b=holdButton(e.target);if(!b)return;
+    b.classList.add('bk-holding');b.style.setProperty('--bk-hold',HOLD_MS+'ms');
+    var timer=setTimeout(function(){b.classList.remove('bk-holding');tick();holdOk=b;b.click()},HOLD_MS);
+    var stop=function(){clearTimeout(timer);b.classList.remove('bk-holding');document.removeEventListener('pointerup',stop,true);document.removeEventListener('pointercancel',stop,true)};
+    document.addEventListener('pointerup',stop,true);document.addEventListener('pointercancel',stop,true);
+  },{capture:true,passive:true});
+  document.addEventListener('click',function(e){
+    var b=holdButton(e.target);if(!b||lastPointer!=='touch')return;
+    if(holdOk===b){holdOk=null;return}
+    e.preventDefault();e.stopImmediatePropagation();
+    var hint=b.parentNode.querySelector('.bk-hold-hint');
+    if(!hint){hint=document.createElement('div');hint.className='bk-hold-hint';hint.textContent='Houd de knop even vast om te versturen';b.parentNode.appendChild(hint)}
+    hint.classList.remove('is-shown');void hint.offsetWidth;hint.classList.add('is-shown');
+  },true);
+
+  /* ---------- 22. A small celebration at "betaald" ---------- */
+  var SOUND_KEY='boekuna.sound';
+  function soundOn(){try{return localStorage.getItem(SOUND_KEY)!=='off'}catch(e){return true}}
+  var audio=null;
+  function kaChing(){
+    if(!soundOn())return;
+    try{
+      audio=audio||new (window.AudioContext||window.webkitAudioContext)();
+      var t=audio.currentTime;
+      [[1318.5,0],[1760,0.09]].forEach(function(n){
+        var o=audio.createOscillator(),g=audio.createGain();o.type='triangle';o.frequency.value=n[0];
+        g.gain.setValueAtTime(0.0001,t+n[1]);g.gain.exponentialRampToValueAtTime(0.18,t+n[1]+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+n[1]+0.35);
+        o.connect(g);g.connect(audio.destination);o.start(t+n[1]);o.stop(t+n[1]+0.4);
+      });
+    }catch(e){}
+  }
+  function celebrate(){tick();setTimeout(tick,110);kaChing()}
+  window.boekunaCelebrate=celebrate;
+  function watchToasts(){
+    var root=document.getElementById('toastRoot');if(!root||root.dataset.bkWatch)return;root.dataset.bkWatch='1';
+    new MutationObserver(function(list){list.forEach(function(m){[].forEach.call(m.addedNodes,function(n){if(n.nodeType===1&&/staat op betaald|^Btw-aangifte (gedaan|staat op gedaan)/i.test(n.textContent||''))celebrate()})})}).observe(root,{childList:true});
+  }
+  function addSoundSetting(node){
+    var hide=node.querySelector&&node.querySelector('label[for="hideAmountsToggle"]');if(!hide||document.getElementById('bkSoundToggle'))return;
+    var label=document.createElement('label');label.className=hide.className;label.setAttribute('for','bkSoundToggle');
+    label.innerHTML='<span><strong>Geluidje bij betaald</strong><span class="help settings-hint">Een zacht kassa-geluid als een klant betaalt.</span></span><input type="checkbox" role="switch" id="bkSoundToggle" aria-label="Geluidje bij betaald">';
+    var input=label.querySelector('input');input.checked=soundOn();
+    input.addEventListener('change',function(){try{localStorage.setItem(SOUND_KEY,input.checked?'on':'off')}catch(e){}if(input.checked)kaChing()});
+    hide.after(label);
+  }
+
+  /* ---------- 23. Tap an amount: with or without btw ---------- */
+  var VAT_KEY='boekuna.listExVat';
+  function exVatMode(){try{return sessionStorage.getItem(VAT_KEY)==='1'}catch(e){return false}}
+  function rowNet(row){
+    var st=appState();if(!st)return null;
+    if(row.dataset.bkInvoice){var inv=(st.invoices||[]).find(function(x){return x.id===row.dataset.bkInvoice});return inv&&app('invoiceNet')?app('invoiceNet')(inv):null}
+    if(row.dataset.bkExpense){var ex=(st.expenses||[]).find(function(x){return x.id===row.dataset.bkExpense});return ex?Number(ex.exVat||0):null}
+    return null;
+  }
+  function applyVatMode(scope){
+    var on=exVatMode(),money=app('money');if(!money)return;
+    [].forEach.call((scope||document).querySelectorAll('#content .mobile-card-row[data-bk-invoice] .mobile-card-value,#content .mobile-card-row[data-bk-expense] .mobile-card-value'),function(v){
+      if(!v.dataset.bkGross)v.dataset.bkGross=v.innerHTML;
+      if(on){var net=rowNet(v.closest('.mobile-card-row'));if(net==null)return;v.innerHTML=money(net).replace(/,(\d{2})$/,'<span class="amount-cents">,$1</span>')+'<small class="bk-exvat">excl.</small>'}
+      else v.innerHTML=v.dataset.bkGross;
+      v.classList.add('bk-vat-flip');v.setAttribute('role','button');v.setAttribute('tabindex','0');v.setAttribute('aria-label',(on?'Zonder btw':'Met btw')+', tik om te wisselen');
+    });
+  }
+  document.addEventListener('click',function(e){
+    var v=e.target.closest&&e.target.closest('#content .bk-vat-flip');if(!v)return;
+    e.preventDefault();e.stopPropagation();
+    try{sessionStorage.setItem(VAT_KEY,exVatMode()?'0':'1')}catch(err){}
+    applyVatMode();tick();call('toast',exVatMode()?'Bedragen zonder btw':'Bedragen met btw');
+  },true);
+
+  /* ---------- 24. After a service, the cursor waits at the amount ---------- */
+  document.addEventListener('click',function(e){
+    var chip=e.target.closest&&e.target.closest('#invoiceForm .service-chip');if(!chip)return;
+    setTimeout(function(){var q=document.querySelector('#invoiceLines .line-item:last-child [data-k=qty]');if(visible(q)){q.focus();try{q.select()}catch(err){}}},80);
+  });
+
+  /* ---------- 25 and 26. Lists remember where you were; tap the top to go up ---------- */
+  var scrollMem={},navByTab=0;
+  function currentPage(){try{return typeof page==='string'?page:null}catch(e){return null}}
+  document.addEventListener('click',function(e){
+    var tab=e.target.closest&&e.target.closest('.mobile-bottom-nav-item,#sidebar .nav-item');if(!tab)return;
+    if(tab.classList.contains('active')&&phone.matches&&window.scrollY>0){e.preventDefault();e.stopImmediatePropagation();window.scrollTo({top:0,behavior:'smooth'});return}
+    navByTab=Date.now();
+  },true);
+  document.addEventListener('click',function(e){
+    if(!phone.matches||window.scrollY<200)return;
+    var top=e.target.closest&&e.target.closest('.topbar,#pageTitle');if(!top||e.target.closest('button,a,input'))return;
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+  function wrapNavigate(){
+    var orig=window.navigate;if(typeof orig!=='function'||orig.__bk)return;
+    var wrapped=function(next){
+      var from=currentPage();if(from)scrollMem[from]={y:window.scrollY,t:Date.now()};
+      var result=orig.apply(this,arguments);
+      var mem=scrollMem[next],byTab=Date.now()-navByTab<800;
+      if(byTab&&mem&&next!==from&&Date.now()-mem.t<15*60e3&&mem.y>0)requestAnimationFrame(function(){requestAnimationFrame(function(){window.scrollTo({top:mem.y,behavior:'instant'})})});
+      return result;
+    };
+    wrapped.__bk=true;window.navigate=wrapped;
+  }
+  wrapNavigate();
+
+  /* ---------- 29. A cost in one line, typed or spoken ---------- */
+  var CATEGORY_WORDS=[[/park|tank|benzine|diesel|ns\b|trein|ov|taxi|uber|q-park|shell|bp\b|esso|parkeer|kilometer|km\b/,'Reiskosten'],[/lunch|diner|koffie|restaurant|eten|drinken|borrel/,'Representatie'],[/software|abonnement|adobe|microsoft|google|apple|licentie|hosting|domein/,'Software'],[/reclame|advertentie|facebook|instagram|flyer|drukwerk|marketing/,'Marketing'],[/huur|energie|stroom|gas|water|kantoorruimte/,'Huisvesting'],[/inkoop|materiaal|voorraad|bouwmarkt|gamma|praxis|hornbach/,'Inkoop'],[/kantoor|papier|printer|pennen|bureau/,'Kantoor']];
+  var WORD_NUMBERS={een:1,twee:2,drie:3,vier:4,vijf:5,zes:6,zeven:7,acht:8,negen:9,tien:10,elf:11,twaalf:12,dertien:13,veertien:14,vijftien:15,twintig:20,dertig:30,veertig:40,vijftig:50,honderd:100};
+  function readCostLine(text){
+    var s=' '+String(text||'').toLowerCase().replace(/€/g,' euro ').replace(/\s+/g,' ')+' ',out={};
+    var m=s.match(/(\d+(?:[.,]\d{1,2})?)\s*(?:euro|eur\b)?/);
+    if(m){try{out.amount=readAmount(m[1])}catch(e){}}
+    else{var w=s.match(/\b(een|twee|drie|vier|vijf|zes|zeven|acht|negen|tien|elf|twaalf|dertien|veertien|vijftien|twintig|dertig|veertig|vijftig|honderd)\s+euro/);if(w)out.amount=WORD_NUMBERS[w[1]]}
+    var v=s.match(/\b(?:bij|van|aan)\s+([a-z0-9&'.\- ]+?)(?=\s+(?:voor|op|gisteren|vandaag|eergisteren|met)\b|\s*$)/);
+    if(v)out.vendor=v[1].trim().replace(/\b\w/g,function(c){return c.toUpperCase()});
+    for(var i=0;i<CATEGORY_WORDS.length;i++)if(CATEGORY_WORDS[i][0].test(s)){out.category=CATEGORY_WORDS[i][1];break}
+    if(/\bgisteren\b/.test(s))out.date=readDate('gisteren');else if(/\beergisteren\b/.test(s))out.date=readDate('eergisteren');
+    return out;
+  }
+  window.boekunaReadCostLine=readCostLine;
+  function fillExpense(found,text){
+    call('newExpense');
+    setTimeout(function(){
+      var f=document.getElementById('expenseForm');if(!f)return;
+      var set=function(el,v){if(!el||v==null)return;el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}))};
+      set(f.elements.vendor,found.vendor);
+      if(found.amount!=null)set(f.elements.gross,Number(found.amount).toFixed(2));
+      if(found.category&&f.elements.category&&f.elements.category.querySelector('option[value="'+found.category+'"]'))set(f.elements.category,found.category);
+      if(found.date&&f.elements.date)set(f.elements.date,found.date);
+      if(f.elements.notes&&!f.elements.notes.value)set(f.elements.notes,text);
+      call('toast','Controleer en sla op');
+    },60);
+  }
+  function quickCostSheet(){
+    var speech=window.SpeechRecognition||window.webkitSpeechRecognition;
+    call('modal','Kost in één zin','<form id="bkQuickCost" class="bk-quick-cost"><label for="bkQuickCostText">Typ of zeg wat je kocht</label><div class="bk-quick-row"><input id="bkQuickCostText" class="bk-quick-input" placeholder="12 euro parkeren bij Q-Park" autocomplete="off" enterkeyhint="go">'+(speech?'<button type="button" class="btn bk-mic" id="bkMic" aria-label="Inspreken"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>':'')+'</div><div class="help" id="bkQuickCostRead">Bedrag, waar en waarvoor. Je controleert het daarna.</div></form>','<button class="btn" type="button" onclick="closeModal()">Annuleren</button><button class="btn primary" type="button" id="bkQuickCostGo">Verder</button>');
+    var input=document.getElementById('bkQuickCostText'),read=document.getElementById('bkQuickCostRead');
+    var show=function(){var f=readCostLine(input.value),parts=[];if(f.amount!=null)parts.push((app('money')?app('money')(f.amount):f.amount));if(f.vendor)parts.push(f.vendor);if(f.category)parts.push(f.category);read.textContent=parts.length?'Boekuna leest: '+parts.join(' · '):'Bedrag, waar en waarvoor. Je controleert het daarna.'};
+    input.addEventListener('input',show);
+    var go=function(){var text=input.value.trim();if(!text){input.focus();return}var f=readCostLine(text);call('closeModal');fillExpense(f,text)};
+    document.getElementById('bkQuickCostGo').addEventListener('click',go);
+    document.getElementById('bkQuickCost').addEventListener('submit',function(e){e.preventDefault();go()});
+    var mic=document.getElementById('bkMic');
+    if(mic&&speech)mic.addEventListener('click',function(){
+      try{var r=new speech();r.lang='nl-NL';r.interimResults=true;mic.classList.add('is-listening');
+        r.onresult=function(ev){input.value=[].map.call(ev.results,function(x){return x[0].transcript}).join(' ');show()};
+        r.onend=function(){mic.classList.remove('is-listening')};r.onerror=function(){mic.classList.remove('is-listening')};r.start()}catch(err){mic.classList.remove('is-listening')}
+    });
+    setTimeout(function(){try{input.focus()}catch(e){}},120);
+  }
+  window.boekunaQuickCost=quickCostSheet;
+  function addQuickCostTile(box){
+    if(box.querySelector('.bk-quick-cost-tile'))return;
+    var row=document.createElement('button');row.type='button';row.className='quick-action bk-quick-cost-tile';
+    row.innerHTML='<span class="quick-action-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span><span class="quick-action-text"><strong>Kost in één zin</strong><small>Typ of spreek in</small></span>';
+    row.addEventListener('click',function(){call('closeModal');setTimeout(quickCostSheet,30)});
+    box.prepend(row);
+  }
+
   /* ---------- Watch new screens and sheets ---------- */
   function onAdded(node){
     if(!node||node.nodeType!==1)return;
@@ -415,9 +745,15 @@
     if(sel&&!editingInvoice())prefillInvoice(sel)
     var ef=node.id==='expenseForm'?node:node.querySelector&&node.querySelector('#expenseForm');
     if(ef)prefillExpense(ef);
+    var tiles=node.classList&&node.classList.contains('quick-tiles')?node:node.querySelector&&node.querySelector('#modalRoot .quick-tiles,.quick-tiles');
+    if(tiles&&tiles.closest('#modalRoot')){orderQuickTiles(tiles);var rows=tiles.parentNode.querySelector('.quick-rows');if(rows)addQuickCostTile(rows)}
+    addSoundSetting(node);
+    if(node.closest&&(node.closest('#content')||node.closest('#modalRoot'))||node.id==='content'||node.id==='modalRoot'||node===document.body)scheduleCopy();
+    if(node.querySelector&&node.querySelector('.mobile-card-row[data-bk-invoice],.mobile-card-row[data-bk-expense]')||node.classList&&node.classList.contains('mobile-card-row'))applyVatMode();
   }
   new MutationObserver(function(list){
     for(var i=0;i<list.length;i++){var added=list[i].addedNodes;for(var j=0;j<added.length;j++)onAdded(added[j])}
   }).observe(document.body,{childList:true,subtree:true});
   onAdded(document.body);
+  watchToasts();
 })();

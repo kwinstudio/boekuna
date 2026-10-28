@@ -182,6 +182,101 @@ try{
     assert.equal(await page.evaluate(()=>searchTextHit('Fictieve Telecom','bakker')),false);
     await context.close();
   }
+  // 17: on a computer a date field takes "gisteren" or "3 okt"; the app still reads 2026-10-03.
+  {
+    const {context,page}=await openApp({phone:false});
+    const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const y=new Date();y.setDate(y.getDate()-1);
+    assert.equal(await page.evaluate(()=>boekunaReadDate('3 okt 2026')),'2026-10-03');
+    assert.equal(await page.evaluate(()=>boekunaReadDate('12-10-2026')),'2026-10-12');
+    assert.equal(await page.evaluate(()=>boekunaReadDate('31-02-2026')),null,'No made-up dates');
+    assert.equal(await page.evaluate(()=>boekunaReadDate('gisteren')),iso(y));
+    await page.evaluate(()=>newInvoice());
+    const issue=page.locator('#invoiceForm [name=issueDate]');
+    assert.equal(await issue.getAttribute('type'),'text');
+    assert.match(await raw(page,'#invoiceForm [name=issueDate]'),/^\d{2}-\d{2}-\d{4}$/,'Shown the Dutch way');
+    await issue.fill('gisteren');
+    assert.equal(await issue.evaluate(el=>el.value),iso(y),'The app reads ISO');
+    assert.match(await page.locator('.bk-date-read').textContent(),/\d{4}/,'You see which day it is');
+    assert.equal(await page.evaluate(()=>new FormData(document.getElementById('invoiceForm')).get('issueDate')),iso(y));
+    await issue.fill('morgenochtend');
+    assert.match(await issue.evaluate(el=>el.validationMessage),/datum/);
+    await issue.fill('3 okt 2026');await page.locator('#invoiceForm [name=dueDate]').focus();
+    assert.equal(await raw(page,'#invoiceForm [name=issueDate]'),'03-10-2026','Tidied when you leave the field');
+    assert.equal(await page.locator('#invoiceForm .bk-date-native').count()>0,true,'The calendar is one tap away');
+    // 19: pasting a whole address block fills the other fields of a new customer.
+    const found=await page.evaluate(()=>boekunaSplitContact('Fictieve Bakkerij\nDorpsstraat 12\n3011 AB Rotterdam\ninfo@bakkerij.test\nKVK 12345678\nNL123456789B01'));
+    assert.deepEqual([found.name,found.address,found.postal,found.city,found.email,found.kvk,found.vat],['Fictieve Bakkerij','Dorpsstraat 12','3011 AB','Rotterdam','info@bakkerij.test','12345678','NL123456789B01']);
+    if(browserName==='chromium'){
+      await page.selectOption('#invoiceCustomer','__new__');
+      await page.evaluate(()=>{const dt=new DataTransfer();dt.setData('text/plain','Fictieve Bakkerij\nDorpsstraat 12\n3011 AB Rotterdam\ninfo@bakkerij.test');document.querySelector('[name=newCustomerName]').dispatchEvent(new ClipboardEvent('paste',{clipboardData:dt,bubbles:true,cancelable:true}))});
+      assert.deepEqual(await page.evaluate(()=>['newCustomerAddress','newCustomerPostal','newCustomerCity','newCustomerEmail'].map(n=>document.querySelector('[name='+n+']').value)),['Dorpsstraat 12','3011 AB','Rotterdam','info@bakkerij.test']);
+      assert.match(await page.locator('#toastRoot').textContent(),/velden ingevuld/);
+    }
+    await page.evaluate(()=>closeModal());
+    // 20: an IBAN on screen is one tap to copy.
+    await page.evaluate(()=>document.getElementById('content').insertAdjacentHTML('beforeend','<p id="bkCopyTest">Betaal naar NL91 ABNA 0417 1643 00 graag</p>'));
+    await page.locator('#bkCopyTest .bk-copy').waitFor();
+    assert.equal(await page.locator('#bkCopyTest .bk-copy').getAttribute('data-copy'),'NL91ABNA0417164300');
+    assert.equal(await page.locator('#bkCopyTest').textContent(),'Betaal naar NL91 ABNA 0417 1643 00 graag','The text stays the same');
+    // 22: the sound setting sits next to "Bedragen verbergen".
+    await page.evaluate(()=>openSettingsSection('app'));
+    await page.locator('#bkSoundToggle').waitFor({state:'attached'});
+    await page.evaluate(()=>{const t=document.getElementById('bkSoundToggle');t.checked=false;t.dispatchEvent(new Event('change',{bubbles:true}))});
+    assert.equal(await page.evaluate(()=>localStorage.getItem('boekuna.sound')),'off');
+    await context.close();
+  }
+  // Phones keep their own date wheel.
+  {
+    const {context,page}=await openApp();
+    await page.evaluate(()=>newExpense());
+    assert.equal(await page.locator('#expenseDate').getAttribute('type'),'date');
+    await page.evaluate(()=>closeModal());
+    // 18 + 29: the + menu puts what you use most first and has "Kost in één zin".
+    await page.evaluate(()=>{localStorage.setItem('boekuna.quickUse',JSON.stringify({Kosten:6,Factuur:1}));quickMenu()});
+    await page.locator('#modalRoot .bk-quick-cost-tile').waitFor();
+    assert.equal(await page.locator('#modalRoot .quick-tiles .quick-tile').first().textContent(),'Kosten');
+    await page.locator('#modalRoot .bk-quick-cost-tile').click();
+    await page.locator('#bkQuickCostText').waitFor();
+    await page.locator('#bkQuickCostText').fill('12,50 euro parkeren bij Q-Park gisteren');
+    assert.match(await page.locator('#bkQuickCostRead').textContent(),/12,50.*Q-Park.*Reiskosten/);
+    await page.locator('#bkQuickCostGo').click();
+    await page.locator('#expenseForm').waitFor();
+    await page.waitForFunction(()=>document.querySelector('#expenseForm [name=vendor]').value==='Q-Park');
+    assert.deepEqual(await page.evaluate(()=>{const f=document.getElementById('expenseForm');return [f.elements.gross.value,f.elements.category.value,f.elements.date.value]}),['12.5','Reiskosten',(d=>{d.setDate(d.getDate()-1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})(new Date())]);
+    assert.equal(await page.evaluate(()=>boekunaReadCostLine('vijf euro koffie bij De Hoek').amount),5);
+    await page.evaluate(()=>closeModal());
+    // 27: the same supplier again offers last time's amount in one tap.
+    await page.evaluate(()=>newExpense());
+    await page.locator('#expenseForm [name=vendor]').fill('Kantoorwinkel');
+    await page.locator('#expenseForm [name=vendor]').dispatchEvent('change');
+    await page.locator('#expenseForm .bk-again').click();
+    assert.equal(await page.evaluate(()=>document.querySelector('#expenseForm [name=gross]').value),'60.5');
+    await page.evaluate(()=>closeModal());
+    // 23: tap an amount in a list to see it without btw.
+    await page.evaluate(()=>navigate('invoices'));
+    const value=page.locator('#content .mobile-card-row[data-bk-invoice="i1"] .mobile-card-value');
+    await page.locator('#content .mobile-card-row[data-bk-invoice="i1"] .bk-vat-flip').waitFor();
+    const gross=await value.textContent();
+    await value.click();
+    assert.match(await value.textContent(),/1\.200,00.*excl\./,'Shown without btw');
+    await value.click();
+    assert.equal(await value.textContent(),gross,'And back');
+    // 21: the last "Versturen" of an invoice needs a short hold, a quick tap shows how.
+    await page.evaluate(()=>newInvoice());
+    const sendBtn=page.locator('#modalRoot .btn.primary',{hasText:/^Versturen$/});
+    if(await sendBtn.count()){
+      await page.evaluate(()=>{const b=[...document.querySelectorAll('#modalRoot .btn.primary')].find(x=>x.textContent.trim()==='Versturen');window.__sent=0;b.addEventListener('click',()=>window.__sent++);b.id='bkSendTest'});
+      await touch(page,'#bkSendTest','pointerdown',10,10);await touch(page,'#bkSendTest','pointerup',10,10);
+      await page.evaluate(()=>document.getElementById('bkSendTest').click());
+      assert.equal(await page.evaluate(()=>window.__sent),0,'A quick tap does not send');
+      assert.equal(await page.locator('#modalRoot .bk-hold-hint').count(),1);
+      await touch(page,'#bkSendTest','pointerdown',10,10);
+      await page.waitForTimeout(800);
+      assert.equal(await page.evaluate(()=>window.__sent),1,'Holding sends');
+    }else assert.fail('The phone invoice has a Versturen button');
+    await context.close();
+  }
   assert.deepEqual(errors,[]);
   console.log('Handige trucjes: OK ('+browserName+')');
 }finally{
