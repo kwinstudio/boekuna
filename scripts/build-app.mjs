@@ -403,6 +403,9 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/motion.js?v=202
 {const headEnd=appHtml.indexOf('</head>');if(headEnd<0)throw new Error('Missing app document marker: </head>');
 appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/press.css?v=20261026b">\n'+appHtml.slice(headEnd);}
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/press.js?v=20261026b"></script>\n');
+// Desktop in the phone's style (Kwin 2026-10-28, keuze A): last in the head so it paints over the older desktop rules; only from 821px.
+{const headEnd=appHtml.indexOf('</head>');appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/desktop.css?v=20261028a">\n'+appHtml.slice(headEnd);}
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/desktop.js?v=20261028a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});
@@ -432,7 +435,7 @@ for(const asset of ['boekuna-app-favicon.svg','document-review-v2.js','document-
   if(!fs.existsSync(sourceFile))throw new Error('Missing app-only review asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
 }
-for(const asset of ['press.css','press.js'])fs.copyFileSync(path.join(root,'kwinest','app-assets',asset),path.join(appAssetsTarget,asset));
+for(const asset of ['press.css','press.js','desktop.css','desktop.js'])fs.copyFileSync(path.join(root,'kwinest','app-assets',asset),path.join(appAssetsTarget,asset));
 
 // Assistant integration is app-only. Keep shared public mobile assets byte-identical
 // to the marketing source and patch only the generated product artifact.
