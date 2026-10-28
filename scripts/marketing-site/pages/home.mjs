@@ -8,7 +8,7 @@ export const HOME_FAQ=[
   ['Kan ik gratis beginnen?','Ja. Met Start maak je gratis facturen en houd je je klanten en betalingen bij, zonder betaalkaart. Wil je ook je kosten, bonnetjes, btw-overzicht en bank in Boekuna? Dan kies je ZZP voor € 9,95 per maand of € 99,50 per jaar, inclusief btw.'],
   ['Heb ik boekhoudkennis nodig?','Nee. Boekuna gebruikt woorden als inkomsten, kosten en bonnetjes in plaats van boekhoudtermen, en laat zien wat er nog moet gebeuren. Je blijft wel zelf verantwoordelijk voor een juiste administratie en je aangifte.'],
   ['Hoe werkt het scannen van bonnetjes?','Je maakt een foto of uploadt een PDF. Boekuna leest de leverancier, datum, bedragen en btw uit en zet die naast de bon. Jij controleert in twee korte stappen en slaat op. Herkenning kan fouten maken bij een vage foto of een ongewone bon, daarom wordt niets opgeslagen zonder jouw controle.'],
-  ['Kan ik facturen maken?',"Ja. Je kiest een klant, zet je diensten erop en deelt de PDF vanuit je eigen e-mail. Boekuna zet de verplichte gegevens erop, maakt creditfacturen en laat zien welke facturen nog openstaan. Offertes en terugkerende facturen zitten nog niet in Boekuna."],
+  ['Kan ik facturen maken?',"Ja. Je kiest een klant, zet je diensten erop en deelt de PDF vanuit je eigen e-mail. Boekuna zet de verplichte gegevens erop, maakt creditfacturen en laat zien welke facturen nog openstaan. Je maakt ook offertes die je met één tik omzet naar een factuur, en met ZZP terugkerende facturen."],
   ['Kan ik mijn gegevens exporteren?','Ja. Je downloadt in Instellingen een volledige back-up, exporteert facturen en kosten als CSV en downloadt je originele bonnen en documenten. Je administratie blijft van jou.'],
   ['Kan ik Boekuna op mijn telefoon gebruiken?','Ja. Boekuna werkt in de browser op je telefoon, tablet en computer, met dezelfde gegevens. Op je telefoon maak je met de camera direct een foto van een bon. Er is nog geen app in de App Store of Play Store.'],
   ['Hoe veilig zijn mijn gegevens?','Je administratie en documenten staan op servers in Frankfurt, in de EU. Elk account is in de database afgeschermd en documenten staan in privé-opslag. Je kunt tweestapsverificatie aanzetten. Boekuna gebruikt geen tracking- of advertentiecookies. <a href="/veiligheid/">Lees meer over veiligheid</a>.'],
@@ -24,8 +24,8 @@ const hints=['Nederlands','Opslag in de EU','Geen tracking','Alles exporteren','
 
 const audience=[
   ['Freelancers — Creatief','Ontwerpers en fotografen','Je factureert per project of per uur en wilt dat het er netjes uitziet.',['Facturen','Diensten','Btw']],
-  ['Winkels — Horeca','Winkels en horeca-starters','Veel kleine bonnetjes en leveranciers. Foto maken, controleren, klaar.',['Bonnetjes','Kosten','Bank']],
-  ['Vakmensen — Diensten','Klussers, kappers en coaches','Je bent liever met je vak bezig dan met papier. Dat mag.',['Facturen','Ritten','Overzicht']],
+  ['Vakmensen — Onderweg','Klussers, loodgieters en schilders','Bon fotograferen vanuit de bus, kilometers erbij, offerte en factuur op je telefoon.',['Bonnetjes','Ritten','Offertes']],
+  ['Diensten — Vaste klanten','Coaches, developers en adviseurs','Elke maand dezelfde klant? Boekuna zet de factuur voor je klaar.',['Facturen','Terugkerend','Overzicht']],
   ['Starters — Nieuw','Net ingeschreven bij de KVK','Begin gratis met facturen en groei door naar je hele boekhouding.',['Gratis start','Facturen']]
 ];
 
