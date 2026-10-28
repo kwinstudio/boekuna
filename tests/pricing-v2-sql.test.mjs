@@ -8,6 +8,7 @@ import {DOCUMENT_LIMITS} from '../supabase/functions/_shared/pricing.mjs';
 const db=new PGlite();
 const testerMigration=fs.readFileSync('supabase/migrations/20261007101500_tester_invite_code_access.sql','utf8');
 const pricingMigration=fs.readFileSync('supabase/migrations/20261008170000_pricing_v2_plans_and_intervals.sql','utf8');
+const trialMigration=fs.readFileSync('supabase/migrations/20261028120000_zzp_signup_trial.sql','utf8');
 const U=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const [LEGACY_BOEKUNA,LEGACY_PRO,NEW_ZZP,NEW_BIZ,FREE,INTERNAL,OTHER,TESTER]=[1,2,3,4,5,6,7,8].map(U);
 
@@ -187,6 +188,30 @@ try{
   const t=(await one('select public.redeem_tester_invite_code($1) r',[code])).r;
   assert.equal(t.ok,true);
   assert.equal(await effective(TESTER),'zzp','tester access is ZZP');
+
+  // 14 dagen ZZP proberen: only accounts created after the migration, no card, Start again afterwards.
+  await db.exec('reset role');
+  await db.exec(trialMigration);
+  await db.exec(trialMigration);
+  await service();
+  assert.equal(Number((await one("select count(*) n from public.billing_entitlements where provider='trial'")).n),0,'existing accounts get no trial');
+  const [TRIAL,TRIAL_PAID,TRIAL_OLD]=[9,10,11].map(U);
+  await db.exec('reset role');
+  await db.query('insert into auth.users(id,email_confirmed_at) select x,null from unnest($1::uuid[]) x',[[TRIAL,TRIAL_PAID,TRIAL_OLD]]);
+  assert.equal(await effective(TRIAL),'zzp','a new account can use ZZP');
+  await actor(TRIAL);
+  const trial=await one("select *,round(extract(epoch from access_ends_at-now())/86400) as days from public.get_billing_summary()");
+  assert.deepEqual([trial.plan,trial.access_source,Number(trial.days),trial.monthly_limit,trial.tester_access_used],['zzp','trial',14,100,false],'summary shows the trial and its end');
+  await assert.rejects(db.query("update public.billing_entitlements set valid_until=now()+interval '1 year' where user_id=$1",[TRIAL]),'users cannot extend their own trial');
+  // After 14 days: Start again.
+  await db.exec('reset role');
+  await db.query("update public.billing_entitlements set valid_until=now()-interval '1 minute' where user_id=$1 and provider='trial'",[TRIAL_OLD]);
+  assert.equal(await effective(TRIAL_OLD),'free','an ended trial is Start');
+  // Buying during the trial: the paid subscription wins.
+  assert.equal(await applyV2(TRIAL_PAID,{plan:'zzp',interval:'month',price:'price_zzp_month',amount:995,created:500,days:30}),true);
+  await actor(TRIAL_PAID);
+  const bought=await one('select * from public.get_billing_summary()');
+  assert.deepEqual([bought.plan,bought.access_source],['zzp','stripe']);
 
   console.log('Pricing V2 SQL migration: PASS');
 }finally{

@@ -331,6 +331,7 @@
     var b=typeof billingSnapshot!=='undefined'?billingSnapshot:null;
     if(!b)return '';
     if(b.access_source==='tester_code')return 'Testtoegang';
+    if(b.access_source==='trial')return 'ZZP proberen';
     return billingPlanLabel(b.plan);
   }
 

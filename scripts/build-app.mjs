@@ -388,7 +388,7 @@ appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script>\n'+releaseRuntime+'co
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-product.js?v=20261022a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-flow-simplification.js?v=20261022b"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/calm-ux.js?v=20261007a"></script>\n');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/settings-center.js?v=20261024a"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/settings-center.js?v=20261028a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/quotes.js?v=20261022c"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/recurring-invoices.js?v=20261028a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/qrcode.js?v=20261023a"></script>\n');

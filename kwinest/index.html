@@ -2684,14 +2684,14 @@ function renderBillingCard(){
  if(!b)return `<div class="card" id="billingCard" style="margin-bottom:16px"><div class="section-head"><h2>Abonnement</h2><span class="badge">Laden…</span></div></div>`;
  const d=b.details||{};
  const plan=String(b.plan||'free'),status=String(b.status||'free'),entitlement=String(b.entitlement_status||((plan!=='free'&&status==='active')?'paid':'free')),accessSource=String(b.access_source||''),testerUsed=b.tester_access_used===true,limit=b.monthly_limit==null?null:Number(b.monthly_limit),used=Number(b.used||0),noLimit=limit===null,remaining=noLimit?null:Math.max(0,Number(b.remaining??Math.max(0,(limit??0)-used))),pct=noLimit?0:Math.min(100,Math.round((used/Math.max(1,limit??1))*100));
- const paid=entitlement==='paid',tester=paid&&accessSource==='tester_code';
+ const paid=entitlement==='paid',tester=paid&&accessSource==='tester_code',trial=paid&&accessSource==='trial';
  const hasSubscriptionStatus=['trialing','active','past_due','unpaid','paused','incomplete'].includes(status);
  const canManageSubscription=b.can_manage_subscription===true&&hasSubscriptionStatus&&!isNativeStoreShell();
  const statusClass=paid?'good':['past_due','unpaid','paused'].includes(status)?'warn':'';
  const interval=String(d.billing_interval||''),amount=d.unit_amount_cents==null?null:Number(d.unit_amount_cents);
- const badge=tester?'ZZP · Testtoegang':paid?`${billingPlanLabel(plan)} · ${billingStatusLabel(status)}`:'Start · gratis';
- const period=tester&&b.access_ends_at?`Je kunt ZZP gratis gebruiken tot ${billingDate(b.access_ends_at)}. Daarna ga je terug naar Start${isNativeStoreShell()?'.':', tenzij je zelf een abonnement kiest.'}`:'';
- const facts=paid&&!tester&&accessSource!=='internal'?[
+ const badge=tester?'ZZP · Testtoegang':trial?'ZZP · Gratis proberen':paid?`${billingPlanLabel(plan)} · ${billingStatusLabel(status)}`:'Start · gratis';
+ const period=(tester||trial)&&b.access_ends_at?`Je kunt ZZP gratis gebruiken tot ${billingDate(b.access_ends_at)}. Daarna ga je terug naar Start${isNativeStoreShell()?'.':', tenzij je zelf een abonnement kiest.'}`:'';
+ const facts=paid&&!tester&&!trial&&accessSource!=='internal'?[
    ['Pakket',billingPlanLabel(plan)],
    ['Betaalperiode',billingIntervalLabel(interval)||'—'],
    ['Bedrag',amount!=null&&interval?`${euroCents(amount)} per ${interval==='year'?'jaar':'maand'} incl. btw`:'—'],
@@ -2701,6 +2701,8 @@ function renderBillingCard(){
  const factList=facts.length?`<dl class="billing-facts" style="display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:12px 0 0">${facts.map(([k,v])=>`<dt class="help">${esc(k)}</dt><dd style="margin:0;font-weight:600">${esc(v)}</dd>`).join('')}</dl>`:'';
  const invite=tester
   ?`<div class="notice success" style="margin-top:14px"><strong>Testtoegang actief</strong><br>${esc(period)}</div>`
+  :trial
+   ?`<div class="notice success" style="margin-top:14px"><strong>Je probeert ZZP gratis</strong><br>${esc(period)} Kies je eerder een pakket, dan gaat dat meteen in. Je gegevens blijven altijd bewaard.</div>`
   :testerUsed
    ?`<div class="notice info" style="margin-top:14px"><strong>Testperiode gebruikt</strong><br>Je hebt je gratis testperiode al gebruikt.</div>`
    :paid
@@ -2708,7 +2710,7 @@ function renderBillingCard(){
     :`<div class="legal-item" style="margin-top:14px"><strong>Heb je een testcode?</strong><p>Een geldige code geeft 30 dagen toegang tot het ZZP-pakket. Geen kaart en geen automatische betaling.</p><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input id="testerInviteCode" class="input" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="BOEKUNA-…" aria-label="Testcode" style="max-width:260px"><button id="testerInviteActivate" type="button" class="btn" onclick="activateTesterCode()">Code activeren</button></div><div id="testerInviteStatus" class="help" role="status" aria-live="polite" style="margin-top:7px"></div></div>`;
  const actions=canManageSubscription
   ?`<button class="btn" onclick="openBillingPortal()">Beheer abonnement</button>`
-  :tester?`<span class="help">Geen kaart gekoppeld. Er start geen automatische betaling.</span>`
+  :tester||trial?`<span class="help">Geen kaart gekoppeld. Er start geen automatische betaling.</span>`
   :paid?`<span class="help">${isNativeStoreShell()?'Je accounttoegang is actief.':'Je toegang is actief. Er is geen Stripe-abonnement om hier te beheren.'}</span>`:'';
  return `<div class="card" id="billingCard" style="margin-bottom:16px">
    <div class="section-head"><h2>Abonnement</h2><span class="badge ${statusClass}">${esc(badge)}</span></div>
@@ -2718,8 +2720,9 @@ function renderBillingCard(){
      ${isNativeStoreShell()?'':`<a class="btn" href="https://boekuna.nl/prijzen/" target="_blank" rel="noopener">Prijzen</a>`}
    </div></div>
    ${canManageSubscription?`<p class="help" style="margin-top:10px">Via Beheer abonnement wissel je van pakket of betaalperiode of zeg je op. Een upgrade gaat direct in; je betaalt dan alleen het verschil voor de rest van je periode. Een downgrade of overstap van jaar naar maand gaat in na je betaalde periode.</p>`:''}
-   ${!paid?renderPlanChooser():''}
-   ${invite}
+   ${trial?invite:''}
+   ${!paid||trial?renderPlanChooser():''}
+   ${trial?'':invite}
    ${b.cancel_at_period_end?`<div class="notice warn" style="margin-top:14px"><strong>Opzegging gepland.</strong> Je betaalde toegang loopt door tot ${b.current_period_end?billingDate(b.current_period_end):'het einde van de betaalde periode'}. Daarna ga je terug naar Start. Je gegevens blijven bewaard.</div>`:''}
    ${status==='past_due'||status==='unpaid'?`<div class="notice warn" style="margin-top:14px"><strong>Betaling is niet gelukt.</strong> ${isNativeStoreShell()?'Neem contact op met support@boekuna.nl als je hulp nodig hebt.':'Werk je betaalgegevens bij via Beheer abonnement.'} Je gegevens blijven bewaard.</div>`:''}
  </div>`
@@ -8506,7 +8509,7 @@ async function deleteStoredFile(id){
   return true
  }catch(e){console.warn(e);return false}
 }
-function deleteAccountBillingNotice(){const b=typeof billingSnapshot!=='undefined'?billingSnapshot:null,status=String(b?.status||'');if(!b||!['trialing','active','past_due','unpaid','paused','incomplete'].includes(status)||String(b.access_source||'')==='tester_code')return '';return `<div class="notice info" style="margin-bottom:14px"><strong>Je abonnement stopt direct.</strong> Bij verwijderen zeggen we je abonnement meteen op, zodat er daarna niets meer wordt afgeschreven. Lukt dat niet, dan verwijderen we niets.</div>`}
+function deleteAccountBillingNotice(){const b=typeof billingSnapshot!=='undefined'?billingSnapshot:null,status=String(b?.status||'');if(!b||!['trialing','active','past_due','unpaid','paused','incomplete'].includes(status)||['tester_code','trial'].includes(String(b.access_source||'')))return '';return `<div class="notice info" style="margin-bottom:14px"><strong>Je abonnement stopt direct.</strong> Bij verwijderen zeggen we je abonnement meteen op, zodat er daarna niets meer wordt afgeschreven. Lukt dat niet, dan verwijderen we niets.</div>`}
 function deleteAccountDialog(){modal('Account definitief verwijderen',`<div class="notice warn" style="margin-bottom:14px"><strong>Dit kan niet ongedaan worden gemaakt.</strong> Je account, administratie, bedrijfsprofiel en privé-documenten worden definitief verwijderd.</div>${deleteAccountBillingNotice()}<div class="legal-item" style="margin-bottom:14px"><strong>Bewaar eerst je administratie</strong><p>Als ondernemer moet je je administratie 7 jaar bewaren. Download daarom eerst een volledige back-up en, via Instellingen › Data &amp; export, je facturen en kosten.</p><button class="btn" type="button" onclick="exportBackup()">Volledige back-up downloaden</button></div><form id="deleteAccountForm" class="form-grid"><div class="field full"><label>Wachtwoord *</label><input name="password" type="password" required></div><div class="field full"><label>Typ VERWIJDER *</label><input name="confirm" required autocomplete="off" oninput="document.getElementById('confirmDeleteAccount').disabled=this.value!=='VERWIJDER'"></div></form>`,`<button class="btn" onclick="closeModal()">Annuleren</button><button class="btn danger" id="confirmDeleteAccount" disabled onclick="deleteAccountNow()">Definitief verwijderen</button>`)}
 async function deleteAccountNow(){const f=document.getElementById('deleteAccountForm');if(!f?.reportValidity()||!currentUser)return;const d=new FormData(f),password=String(d.get('password')||'');if(String(d.get('confirm')||'')!=='VERWIJDER')return toast('Typ VERWIJDER om te bevestigen');
 // signOut tells the SIGNED_OUT listener before it resolves, and that listener clears currentUser: keep the deleted user here.
