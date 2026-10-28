@@ -149,6 +149,17 @@ try{
       if(['bank','vat'].includes(route))assert.equal(tiles.filter(t=>t.hero).length,1,route+' has one light-blue block on top');
       // Kwin 2026-10-21 (Rapportages B): the winst is the big number with a line over the year above the tiles.
       if(route==='reports')assert.equal(await page.locator('#content :is(.report-story,.r1d-story-hero) .report-story-amount').count(),1,'reports opens with the winst story (the total sits in the band on a phone)');
+      // Kwin 2026-10-28 ("overzichtelijker"): the detail cards fold into one "Meer cijfers" list; a tap opens one.
+      if(route==='reports'){
+        const folds=page.locator('#content .report-folds .report-fold');
+        assert.ok(await folds.count()>=7,'reports folds its details into one list');
+        assert.equal(await page.locator('#content .report-extras').count(),0,'no separate detail cards on a phone');
+        const vat=folds.filter({hasText:'Btw per kwartaal'});
+        assert.equal(await vat.locator('.report-vbars').isVisible(),false,'a fold starts closed');
+        await vat.locator('summary').click();
+        assert.equal(await vat.locator('.report-vbars').isVisible(),true,'a tap opens the fold');
+        await vat.locator('summary').click();
+      }
     }
     await page.evaluate(()=>navigate('invoices'));
     await page.locator('.mobile-card-list .mobile-card-row').first().waitFor();
