@@ -199,7 +199,16 @@ struct PhotoCategory: Identifiable {
                     let lookup = Dictionary(fetched.map { ($0.localIdentifier, $0) }, uniquingKeysWith: { first, _ in first })
                     let ids = self.randomSession.select(candidates: candidates, available: Set(lookup.keys))
                     filtered = ids.compactMap { lookup[$0] }
-                } else if selectedOrder == .random { filtered.shuffle() }
+                    if selectedOrder != .random {
+                        filtered.sort { lhs, rhs in
+                            let left = lhs.creationDate ?? .distantPast
+                            let right = rhs.creationDate ?? .distantPast
+                            if left == right { return lhs.localIdentifier < rhs.localIdentifier }
+                            return selectedOrder == .oldest ? left < right : left > right
+                        }
+                    }
+                }
+                if selectedOrder == .random && selected.id != "random30" { filtered.shuffle() }
                 self.assets = filtered
                 self.scopeIDs = Set(filtered.map(\.localIdentifier))
                 self.categories = available

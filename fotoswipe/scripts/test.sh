@@ -10,7 +10,6 @@ if [ -z "$simulator_id" ]; then
   echo 'Installeer eerst een iPhone-simulator via Xcode > Settings > Components.' >&2
   exit 1
 fi
-xcrun simctl boot "$simulator_id" >/dev/null 2>&1 || true
 xcodebuild -project Fotoswipe.xcodeproj -scheme Fotoswipe \
   -destination "platform=iOS Simulator,id=$simulator_id" \
   -derivedDataPath build/DerivedData CODE_SIGNING_ALLOWED=NO test

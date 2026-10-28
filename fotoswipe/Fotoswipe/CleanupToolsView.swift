@@ -16,7 +16,7 @@ struct AssetPreviewView: View {
             .navigationTitle(asset.mediaType == .video ? "Video bekijken" : "Foto bekijken")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Klaar") { dismiss() } } }
-        }
+        }.preferredColorScheme(.dark)
     }
 }
 
