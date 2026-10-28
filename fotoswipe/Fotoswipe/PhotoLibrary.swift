@@ -137,11 +137,18 @@ struct PhotoCategory: Identifiable {
         streakDays = streak.current()
         smartObserver = smart.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
         observer.onChange = { [weak self] in self?.libraryDidChange() }
-        PHPhotoLibrary.shared().register(observer)
+        // Registering a change observer makes iOS ask for photo access at once, so wait until access exists.
+        startObservingIfAllowed()
         refresh()
     }
 
     deinit { PHPhotoLibrary.shared().unregisterChangeObserver(observer) }
+    private var observing = false
+    private func startObservingIfAllowed() {
+        guard !observing, hasAccess else { return }
+        PHPhotoLibrary.shared().register(observer)
+        observing = true
+    }
 
     func requestAccess() {
         PHPhotoLibrary.requestAuthorization(for: .readWrite) { [weak self] _ in
@@ -290,6 +297,7 @@ struct PhotoCategory: Identifiable {
     }
     func refresh(showLoading: Bool = true) {
         authorization = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        startObservingIfAllowed()
         generation += 1
         let request = generation
         let selectedID = selectedCategory.id

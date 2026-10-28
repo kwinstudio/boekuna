@@ -38,17 +38,33 @@ jobs:
           BUNDLE=nl.zichtwerfstudio.fotoswipe
           RUNTIME=$(xcrun simctl list runtimes available -j | python3 -c 'import json,sys; r=[x for x in json.load(sys.stdin)["runtimes"] if x["platform"]=="iOS"]; print(r[-1]["identifier"])')
           mkdir -p "$RUNNER_TEMP/shots"
-          pick() { xcrun simctl list devicetypes -j | python3 -c "import json,sys,re; t=[d for d in json.load(sys.stdin)['devicetypes'] if re.search(r'$1', d['name'])]; print(t[-1]['identifier'] if t else '')"; }
-          for SIZE in "se:iPhone SE" "regular:^iPhone 1[6-9]\$" "promax:Pro Max"; do
-            NAME=${SIZE%%:*}; PATTERN=${SIZE#*:}
-            TYPE=$(pick "$PATTERN")
-            [[ -n "$TYPE" ]] || { echo "::warning title=Fotoswipe screens::No device type for $NAME"; continue; }
-            UDID=$(xcrun simctl create "fs-$NAME" "$TYPE" "$RUNTIME") || { echo "::warning title=Fotoswipe screens::Cannot create $NAME"; continue; }
+          create() {
+            for TYPE in "$@"; do
+              UDID=$(xcrun simctl create "fs-$NAME" "com.apple.CoreSimulator.SimDeviceType.$TYPE" "$RUNTIME" 2>/dev/null) && { echo "$UDID"; return 0; }
+            done
+            return 1
+          }
+          for SIZE in "se:iPhone-SE-3rd-generation" "regular:iPhone-17 iPhone-16" "promax:iPhone-17-Pro-Max iPhone-16-Pro-Max"; do
+            NAME=${SIZE%%:*}; TYPES=${SIZE#*:}
+            UDID=$(create $TYPES) || { echo "::warning title=Fotoswipe screens::Cannot create $NAME ($TYPES)"; continue; }
             xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
             xcrun simctl install "$UDID" "$APP"
             xcrun simctl addmedia "$UDID" build/media/*.jpg
+            # First launch without access: the welcome screen must show without a system prompt.
+            xcrun simctl launch "$UDID" "$BUNDLE" >/dev/null; sleep 7
+            xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/$NAME-welcome.png" >/dev/null 2>&1
+            xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
+            # Grant full photo access in the simulator's privacy database (CI only).
+            xcrun simctl shutdown "$UDID"
+            TCC="$HOME/Library/Developer/CoreSimulator/Devices/$UDID/data/Library/TCC/TCC.db"
+            if [[ -f "$TCC" ]]; then
+              sqlite3 "$TCC" "INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, flags, last_modified) VALUES ('kTCCServicePhotos', '$BUNDLE', 0, 2, 2, 1, 0, CAST(strftime('%s','now') AS INTEGER));" \
+                || echo "::warning title=Fotoswipe screens::TCC insert failed on $NAME"
+            else
+              echo "::warning title=Fotoswipe screens::No TCC.db on $NAME"
+            fi
+            xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
             xcrun simctl privacy "$UDID" grant photos "$BUNDLE" || true
-            xcrun simctl privacy "$UDID" grant all "$BUNDLE" || true
             for SCREEN in main focus stacks review end whatsnew info clutter; do
               xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
               if [[ "$SCREEN" == "main" ]]; then
@@ -60,7 +76,7 @@ jobs:
               xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/$NAME-$SCREEN.png" >/dev/null 2>&1
             done
             xcrun simctl shutdown "$UDID" || true
-            echo "::notice title=Fotoswipe screens::$NAME done ($TYPE)"
+            echo "::notice title=Fotoswipe screens::$NAME done"
           done
           ls "$RUNNER_TEMP/shots" | wc -l | xargs -I{} echo "::notice title=Fotoswipe screens::{} screenshots"
       - name: Publish screenshots to review branch
