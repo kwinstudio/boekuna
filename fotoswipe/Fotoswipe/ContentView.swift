@@ -7,6 +7,7 @@ struct ContentView: View {
     @State private var review = false
     @State private var info = false
     @State private var limitedPicker = false
+    @State private var categoryPicker = false
 
     var body: some View {
         NavigationStack {
@@ -20,6 +21,7 @@ struct ContentView: View {
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $review) { ReviewView().environmentObject(library) }
             .sheet(isPresented: $info) { InfoView() }
+            .sheet(isPresented: $categoryPicker) { CategoryPickerView().environmentObject(library) }
             .sheet(isPresented: $limitedPicker, onDismiss: { library.refresh() }) {
                 LimitedLibraryPicker { limitedPicker = false; library.refresh() }
                     .ignoresSafeArea()
@@ -70,6 +72,19 @@ struct ContentView: View {
     }
     private var libraryContent: some View {
         VStack(spacing: 14) {
+            Button { categoryPicker = true } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: library.selectedCategory.icon).font(.title3)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Categorie").font(.caption).foregroundStyle(Palette.muted)
+                        Text(library.selectedCategory.title).font(.headline).lineLimit(1)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.down").font(.subheadline.bold())
+                }.foregroundStyle(Palette.ink).padding(14)
+                    .background(.white.opacity(0.7), in: RoundedRectangle(cornerRadius: 16))
+            }.disabled(library.deleting)
+                .accessibilityLabel("Categorie kiezen: \(library.selectedCategory.title)")
             if library.authorization == .limited {
                 HStack {
                     Text("Alleen geselecteerde foto's").font(.caption)
@@ -81,9 +96,18 @@ struct ContentView: View {
                 Text(warning).font(.caption).foregroundStyle(.red).accessibilityLabel("Waarschuwing: \(warning)")
             }
             HStack {
+                Menu {
+                    Picker("Volgorde", selection: Binding(get: { library.order }, set: { library.selectOrder($0) })) {
+                        ForEach(PhotoOrder.allCases) { order in Text(order.title).tag(order) }
+                    }
+                } label: { Label(library.order.title, systemImage: "arrow.up.arrow.down").font(.caption) }
+                    .disabled(library.loading || library.deleting)
+                Spacer()
+            }.foregroundStyle(Palette.muted)
+            HStack {
                 Text("\(library.reviewed) van \(library.assets.count) bekeken")
                 Spacer()
-                Text("\(library.kept.count) bewaard")
+                Text("\(library.keptInCategory) bewaard")
             }.font(.caption).foregroundStyle(Palette.muted)
             ProgressView(value: Double(library.reviewed), total: Double(max(1, library.assets.count)))
                 .tint(Palette.muted).accessibilityLabel("Voortgang")
@@ -95,13 +119,14 @@ struct ContentView: View {
                 ZStack {
                     ForEach(Array(library.deck.reversed()), id: \.localIdentifier) { asset in
                         SmoothSwipeCard(
-                            asset: asset, manager: library.images,
+                            asset: asset, manager: library.images, revision: library.deckRevision,
                             depth: library.deck.firstIndex(where: { $0.localIdentifier == asset.localIdentifier }) ?? 0,
                             command: library.swipeCommand,
                             disabled: library.deleting || library.loading
-                        ) { choice, id in library.decide(choice, expectedID: id) }
+                        ) { choice, id, revision in library.decide(choice, expectedID: id, expectedRevision: revision) }
                     }
                 }
+                .id(library.deckRevision)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .frame(minHeight: 160)
                 Text("← wegleggen     ·     bewaren →").font(.caption).foregroundStyle(Palette.muted)
@@ -114,12 +139,12 @@ struct ContentView: View {
             } else {
                 Spacer()
                 Image(systemName: library.assets.isEmpty ? "photo" : "sparkles").font(.system(size: 52)).foregroundStyle(Palette.muted)
-                Text(library.assets.isEmpty ? "Nog geen foto's" : "Alles bekeken.")
+                Text(library.assets.isEmpty ? "Geen foto's in deze categorie" : "Alles bekeken.")
                     .font(.largeTitle.bold()).foregroundStyle(Palette.ink)
-                Text(library.assets.isEmpty ? "Voeg foto's toe of pas je fototoegang aan." : "Controleer je weggelegde foto's voordat je ze verwijdert.")
+                Text(library.assets.isEmpty ? "Kies een andere categorie of pas je fototoegang aan." : "Deze categorie is klaar. Kies een andere categorie of controleer je selectie.")
                     .foregroundStyle(Palette.muted).multilineTextAlignment(.center)
                 if library.canUndo { Button("Laatste keuze terugzetten") { library.undo() }.buttonStyle(.bordered) }
-                if !library.kept.isEmpty {
+                if library.keptInCategory > 0 {
                     Button("Bewaarde foto's opnieuw bekijken") { library.reviewKeptAgain() }.buttonStyle(.bordered)
                 }
                 Button("Ververs bibliotheek") { library.refresh() }.font(.caption)
@@ -128,7 +153,7 @@ struct ContentView: View {
             Button { review = true } label: {
                 HStack {
                     Image(systemName: "tray")
-                    Text("\(library.pending.count) foto's weggelegd")
+                    Text("\(library.pending.count) weggelegd · alle categorieën")
                     Spacer()
                     Text("Bekijken").fontWeight(.semibold)
                     Image(systemName: "arrow.up.right")
@@ -165,10 +190,11 @@ struct PrimaryStyle: ButtonStyle {
 private struct SmoothSwipeCard: View {
     let asset: PHAsset
     let manager: PHCachingImageManager
+    let revision: UUID
     let depth: Int
     let command: SwipeCommand?
     let disabled: Bool
-    let onCommit: (PhotoDecision, String) -> Void
+    let onCommit: (PhotoDecision, String, UUID) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var offset: CGFloat = 0
     @State private var exiting = false
@@ -235,14 +261,69 @@ private struct SmoothSwipeCard: View {
         guard isTop, !disabled, !exiting else { return }
         exiting = true
         let id = asset.localIdentifier
-        if reduceMotion { onCommit(choice, id); return }
+        if reduceMotion { onCommit(choice, id, revision); return }
         withAnimation(.easeOut(duration: 0.18), completionCriteria: .logicallyComplete) {
             offset = (choice == .keep ? 1 : -1) * max(width * 1.6, 600)
         } completion: {
             // The next card is already mounted with its decoded image.
             var transaction = Transaction()
             transaction.disablesAnimations = true
-            withTransaction(transaction) { onCommit(choice, id) }
+            withTransaction(transaction) { onCommit(choice, id, revision) }
         }
+    }
+}
+
+
+private struct CategoryPickerView: View {
+    @EnvironmentObject private var library: PhotoLibrary
+    @Environment(\.dismiss) private var dismiss
+    @State private var search = ""
+    private var filtered: [PhotoCategory] {
+        library.categories.filter { search.isEmpty || $0.title.localizedCaseInsensitiveContains(search) }
+    }
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    ForEach(filtered.filter { !$0.isAlbum && !$0.isMonth }) { category in row(category) }
+                } header: { Text("Categorieën") }
+                Section {
+                    ForEach(filtered.filter(\.isAlbum)) { category in row(category) }
+                } header: { Text("Je albums") } footer: {
+                    Text(library.authorization == .limited
+                         ? "Bij beperkte fototoegang zijn sommige categorieën en albums niet beschikbaar. Via Wijzig of Instellingen pas je de toegang aan."
+                         : "Je albums komen uit Foto's. Alleen foto's en Live Photos worden getoond.")
+                }
+                Section("Per maand") {
+                    ForEach(filtered.filter(\.isMonth)) { category in row(category) }
+                }
+                Section {
+                    Text("Je keuzes blijven behouden als je wisselt. Weggelegde foto's uit alle categorieën controleer je samen in Bekijken.")
+                        .font(.footnote).foregroundStyle(Palette.muted)
+                }
+            }
+            .searchable(text: $search, prompt: "Zoek een categorie of album")
+            .navigationTitle("Kies een categorie")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Klaar") { dismiss() } } }
+        }
+    }
+    private func row(_ category: PhotoCategory) -> some View {
+        Button {
+            library.selectCategory(category)
+            dismiss()
+        } label: {
+            HStack {
+                Label(category.title, systemImage: category.icon)
+                Spacer()
+                if let progress = library.monthProgress[category.id] {
+                    Text("\(progress.reviewed)/\(progress.total)").font(.caption).foregroundStyle(Palette.muted)
+                    if progress.total == progress.reviewed { Image(systemName: "checkmark.circle.fill").foregroundStyle(Palette.muted) }
+                }
+                if category.id == library.selectedCategory.id {
+                    Image(systemName: "checkmark").fontWeight(.semibold)
+                }
+            }.foregroundStyle(Palette.ink).padding(.vertical, 5)
+        }.accessibilityAddTraits(category.id == library.selectedCategory.id ? .isSelected : [])
     }
 }

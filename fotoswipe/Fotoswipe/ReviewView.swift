@@ -11,7 +11,7 @@ struct ReviewView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                Text("Tik op een foto om die groter te bekijken. Met de terugpijl zet je die terug in de stapel.")
+                Text("Dit is je selectie uit alle categorieën. Tik op een foto om die groter te bekijken. Met Herstel zet je die terug.")
                     .font(.subheadline).foregroundStyle(Palette.muted)
                 Picker("Selectie", selection: $showingKept) {
                     Text("Weggelegd (\(library.pending.count))").tag(false)
@@ -86,6 +86,10 @@ struct InfoView: View {
                     Text("Geen login, advertenties, analytics of eigen server. Fotoswipe bewaart alleen fotokenmerken (lokale identifiers) en je keuzes op dit apparaat. Er worden door Fotoswipe geen foto's geüpload.")
                     Text("Een foto die alleen in iCloud staat, kan door Apple's Foto's-framework worden opgehaald om die te tonen. Daarvoor kan internet nodig zijn.")
                     Text("Je voortgang blijft bewaard als je de app sluit. Deze gegevens kunnen deel uitmaken van de normale apparaatback-up. Verwijderen van de app verwijdert ook je lokale voortgang.")
+                }
+                Section("Categorieën en volgorde") {
+                    Text("Kies boven de stapel Favorieten, Screenshots, een ander fototype, je eigen album of een maand. De maandlijst toont hoeveel foto's je al hebt bekeken. Op deze dag toont foto's van dezelfde datum uit eerdere jaren.")
+                    Text("Met Nieuwste eerst of Oudste eerst verander je de volgorde. Bewaren is een keuze in Fotoswipe; het maakt een foto niet automatisch favoriet in Foto's. Weggelegde foto's uit alle categorieën staan samen in Bekijken.")
                 }
                 Section("Goed om te weten") {
                     Text("Bij beperkte toegang zie je alleen de foto's die je hebt toegestaan. Via 'Wijzig' kun je die selectie aanpassen; volledige toegang regel je via Instellingen.")

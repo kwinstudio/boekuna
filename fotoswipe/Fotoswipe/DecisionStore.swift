@@ -16,8 +16,9 @@ struct DecisionStore: Codable {
         if history.count > 200 { history.removeFirst(history.count - 200) }
         decisions[id] = decision
     }
-    @discardableResult mutating func undo() -> String? {
-        guard let last = history.popLast() else { return nil }
+    @discardableResult mutating func undo(in ids: Set<String>? = nil) -> String? {
+        guard let index = history.lastIndex(where: { ids?.contains($0.id) ?? true }) else { return nil }
+        let last = history.remove(at: index)
         decisions[last.id] = last.previous
         return last.id
     }
@@ -29,9 +30,9 @@ struct DecisionStore: Codable {
         decisions = decisions.filter { !ids.contains($0.key) }
         history.removeAll { ids.contains($0.id) }
     }
-    mutating func resetKept() {
-        let kept = Set(decisions.filter { $0.value == .keep }.map(\.key))
-        decisions = decisions.filter { $0.value != .keep }
+    mutating func resetKept(in ids: Set<String>? = nil) {
+        let kept = Set(decisions.filter { $0.value == .keep && (ids?.contains($0.key) ?? true) }.map(\.key))
+        decisions = decisions.filter { !kept.contains($0.key) }
         history.removeAll { kept.contains($0.id) }
     }
 }
@@ -66,4 +67,44 @@ final class DecisionPersistence {
         }
     }
     func flush(completion: @escaping () -> Void) { queue.async(execute: completion) }
+}
+
+
+/// Date filtering uses calendar intervals, including leap days and DST boundaries.
+enum PhotoDateFilter: Equatable {
+    case all
+    case month(Date)
+    case onThisDay
+    func includes(_ date: Date?, now: Date = Date(), calendar: Calendar = .current) -> Bool {
+        if case .all = self { return true }
+        guard let date else { return false }
+        switch self {
+        case .all: return true
+        case .month(let start):
+            guard let interval = calendar.dateInterval(of: .month, for: start) else { return false }
+            return date >= interval.start && date < interval.end
+        case .onThisDay:
+            let photo = calendar.dateComponents([.year, .month, .day], from: date)
+            let today = calendar.dateComponents([.year, .month, .day], from: now)
+            return photo.month == today.month && photo.day == today.day && (photo.year ?? Int.max) < (today.year ?? Int.min)
+        }
+    }
+    static func monthStarts(in dates: [Date?], calendar: Calendar = .current) -> [Date] {
+        Set(dates.compactMap { date in date.flatMap { calendar.dateInterval(of: .month, for: $0)?.start } }).sorted(by: >)
+    }
+    static func monthID(for date: Date, calendar: Calendar = .current) -> String {
+        let start = calendar.dateInterval(of: .month, for: date)?.start ?? date
+        return "month:\(start.timeIntervalSince1970)"
+    }
+}
+
+enum PhotoOrder: String, CaseIterable, Identifiable {
+    case newest, oldest
+    var id: String { rawValue }
+    var title: String { self == .newest ? "Nieuwste eerst" : "Oudste eerst" }
+}
+
+struct PhotoProgress {
+    var total = 0
+    var reviewed = 0
 }
