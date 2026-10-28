@@ -11,14 +11,16 @@ struct ContentView: View {
     @State private var tool: MediaTool?
     @State private var comparing = false
 
+    @State private var reviewAfterSession = false
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 16) {
+            VStack(spacing: 12) {
                 header
                 if library.hasAccess { libraryContent }
                 else { permissionContent }
             }
-            .padding(.horizontal, 22).padding(.top, 10)
+            .padding(.horizontal, 20).padding(.top, 8)
             .background(Palette.background.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $review) { ReviewView().environmentObject(library) }
@@ -37,7 +39,16 @@ struct ContentView: View {
                 LimitedLibraryPicker { limitedPicker = false; library.refresh() }
                     .ignoresSafeArea()
             }
-            .alert("Fotoswipe", isPresented: Binding(get: { library.message != nil && !review }, set: { if !$0 { library.message = nil } })) {
+            .sheet(isPresented: $library.sessionFinished, onDismiss: {
+                library.startNewSession()
+                if reviewAfterSession { reviewAfterSession = false; review = true }
+            }) {
+                SessionEndView { openReview in
+                    reviewAfterSession = openReview
+                    library.sessionFinished = false
+                }.environmentObject(library)
+            }
+            .alert("Fotoswipe", isPresented: Binding(get: { library.message != nil && !review && !library.sessionFinished }, set: { if !$0 { library.message = nil } })) {
                 Button("OK") { library.message = nil }
             } message: { Text(library.message ?? "") }
             .onChange(of: scenePhase) { _, phase in
@@ -47,22 +58,39 @@ struct ContentView: View {
         }
     }
     private var header: some View {
-        HStack {
-            Image(systemName: "rectangle.on.rectangle.angled")
-                .font(.title2).padding(10).background(Palette.sage, in: RoundedRectangle(cornerRadius: 12))
-            Text("fotoswipe").font(.system(size: 27, weight: .bold, design: .rounded)).tracking(-1)
+        HStack(spacing: 10) {
+            Text("fotoswipe").font(.system(size: 28, weight: .heavy, design: .rounded)).tracking(-1)
+                .foregroundStyle(Palette.brand)
             Spacer()
+            if library.hasAccess {
+                let days = library.streak.current()
+                HStack(spacing: 5) {
+                    Image(systemName: "flame.fill")
+                    Text(days == 1 ? "1 dag" : "\(days) dagen")
+                }
+                .font(.subheadline.weight(.heavy)).foregroundStyle(Palette.ink)
+                .padding(.horizontal, 12).padding(.vertical, 7)
+                .pop(radius: 18, fill: days > 0 ? Palette.reward : Palette.surface, shadow: 2)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Reeks: \(days) dagen. Eén dag overslaan mag.")
+            }
             Button { info = true } label: { Image(systemName: "info.circle").font(.title3).frame(width: 44, height: 44) }
-                .accessibilityLabel("Over Fotoswipe")
-        }.foregroundStyle(Palette.ink)
+                .foregroundStyle(Palette.ink).accessibilityLabel("Over Fotoswipe")
+        }
     }
     private var permissionContent: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 22) {
             Spacer()
-            Image(systemName: "photo.stack").font(.system(size: 64)).foregroundStyle(Palette.muted)
+            ZStack {
+                RoundedRectangle(cornerRadius: 22).fill(Palette.reward).frame(width: 120, height: 150)
+                    .rotationEffect(.degrees(-8)).pop(radius: 22, fill: Palette.reward)
+                RoundedRectangle(cornerRadius: 22).fill(Palette.brand).frame(width: 120, height: 150)
+                    .rotationEffect(.degrees(6)).offset(x: 26, y: 6)
+                    .overlay(Image(systemName: "photo").font(.system(size: 40, weight: .bold)).foregroundStyle(.white).offset(x: 26, y: 6))
+            }.accessibilityHidden(true)
             Text("Bewaar het mooie.\nSwipe de rest.")
-                .font(.system(size: 38, weight: .semibold, design: .rounded)).tracking(-1.5).multilineTextAlignment(.center)
-            Text("Maak ruimte voor nieuwe herinneringen. Je foto's blijven in je eigen fotobibliotheek.")
+                .font(.system(size: 36, weight: .heavy, design: .rounded)).tracking(-1.2).multilineTextAlignment(.center)
+            Text("Een paar minuten per dag, en je bibliotheek blijft licht. Je foto's blijven in je eigen fotobibliotheek.")
                 .foregroundStyle(Palette.muted).multilineTextAlignment(.center)
             if library.authorization == .notDetermined {
                 Button("Kies toegang tot je foto's") { library.requestAccess() }.buttonStyle(PrimaryStyle())
@@ -82,41 +110,31 @@ struct ContentView: View {
         }.foregroundStyle(Palette.ink)
     }
     private var libraryContent: some View {
-        VStack(spacing: 14) {
-            Button { categoryPicker = true } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: library.selectedCategory.icon).font(.title3)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Categorie").font(.caption).foregroundStyle(Palette.muted)
-                        Text(library.selectedCategory.title).font(.headline).lineLimit(1)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.down").font(.subheadline.bold())
-                }.foregroundStyle(Palette.ink).padding(14)
-                    .background(.white.opacity(0.7), in: RoundedRectangle(cornerRadius: 16))
-            }.disabled(library.deleting)
-                .accessibilityLabel("Categorie kiezen: \(library.selectedCategory.title)")
+        VStack(spacing: 12) {
+            quickChips
             if library.authorization == .limited {
                 HStack {
-                    Text("Alleen geselecteerde foto's").font(.caption)
+                    Text("Alleen geselecteerde foto's").font(.caption.weight(.semibold))
                     Spacer()
-                    Button("Wijzig") { limitedPicker = true }.font(.caption.bold())
-                }.padding(12).background(Palette.sage.opacity(0.45), in: RoundedRectangle(cornerRadius: 12))
+                    Button("Wijzig") { limitedPicker = true }.font(.caption.bold()).foregroundStyle(Palette.brand)
+                }.foregroundStyle(Palette.ink).padding(10).pop(radius: 12, fill: Palette.surface, shadow: 2)
             }
             if let warning = library.persistenceWarning {
                 Text(warning).font(.caption).foregroundStyle(.red).accessibilityLabel("Waarschuwing: \(warning)")
             }
-            HStack {
+            sessionBar
+            HStack(spacing: 14) {
+                Text("\(library.reviewed) van \(library.assets.count) bekeken").font(.caption).foregroundStyle(Palette.muted)
+                Spacer()
                 Menu {
                     Picker("Volgorde", selection: Binding(get: { library.order }, set: { library.selectOrder($0) })) {
                         ForEach(PhotoOrder.allCases) { order in Text(order.title).tag(order) }
                     }
-                } label: { Label(library.order.title, systemImage: "arrow.up.arrow.down").font(.caption) }
+                } label: { Label(library.order.title, systemImage: "arrow.up.arrow.down").font(.caption.weight(.semibold)) }
                     .disabled(library.loading || library.deleting)
-                Spacer()
                 Menu {
                     if let asset = library.current {
-                        Button { library.deferCurrent() } label: { Label("Later beslissen", systemImage: "bookmark") }
+                        Button { library.deferCurrent() } label: { Label("Later beslissen", systemImage: "clock") }
                         Button { library.toggleFavorite() } label: {
                             Label(library.isFavorite(asset) ? "Verwijder favoriet in Foto's" : "Maak favoriet in Foto's", systemImage: "star")
                         }
@@ -126,20 +144,13 @@ struct ContentView: View {
                         }
                     }
                     Button { comparing = true } label: { Label("Vergelijkbare foto's", systemImage: "square.on.square") }
-                } label: { Label("Meer", systemImage: "ellipsis.circle").font(.subheadline) }
+                } label: { Label("Meer", systemImage: "ellipsis.circle").font(.caption.weight(.semibold)) }
                     .disabled(library.deleting || library.loading || library.mutating)
-            }.foregroundStyle(Palette.muted)
+            }.foregroundStyle(Palette.ink)
             if let status = library.status { Text(status).font(.caption).foregroundStyle(Palette.muted).accessibilityAddTraits(.updatesFrequently) }
-            HStack {
-                Text("\(library.reviewed) van \(library.assets.count) bekeken")
-                Spacer()
-                Text("\(library.keptInCategory) bewaard")
-            }.font(.caption).foregroundStyle(Palette.muted)
-            ProgressView(value: Double(library.reviewed), total: Double(max(1, library.assets.count)))
-                .tint(Palette.muted).accessibilityLabel("Voortgang")
             if library.loading {
                 Spacer()
-                ProgressView("Je bibliotheek ophalen…").tint(Palette.muted)
+                ProgressView("Je bibliotheek ophalen…").tint(Palette.brand).foregroundStyle(Palette.muted)
                 Spacer()
             } else if library.current != nil {
                 ZStack {
@@ -155,45 +166,98 @@ struct ContentView: View {
                     }
                 }
                 .id(library.deckRevision)
+                .padding(.trailing, 6).padding(.bottom, 6)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .frame(minHeight: 160)
-                Text("← wegleggen     ·     bewaren →").font(.caption).foregroundStyle(Palette.muted)
+                if library.session.count < 3 {
+                    Text("← wegleggen     ·     bewaren →").font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
+                }
                 SwipeControls(pipeline: library.imagePipeline).environmentObject(library)
-
             } else {
                 Spacer()
-                Image(systemName: library.assets.isEmpty ? "photo" : "sparkles").font(.system(size: 52)).foregroundStyle(Palette.muted)
+                Image(systemName: library.assets.isEmpty ? "photo" : "checkmark.seal.fill").font(.system(size: 52))
+                    .foregroundStyle(library.assets.isEmpty ? Palette.muted : Palette.keep)
                 Text(library.assets.isEmpty ? "Geen items in deze categorie" : "Alles bekeken.")
-                    .font(.largeTitle.bold()).foregroundStyle(Palette.ink)
+                    .font(.system(.largeTitle, design: .rounded).weight(.heavy)).foregroundStyle(Palette.ink)
+                    .multilineTextAlignment(.center)
                 Text(library.assets.isEmpty ? "Kies een andere categorie of pas je fototoegang aan." : "Deze categorie is klaar. Kies een andere categorie of controleer je selectie.")
                     .foregroundStyle(Palette.muted).multilineTextAlignment(.center)
-                if library.canUndo { Button("Laatste keuze terugzetten") { library.undo() }.buttonStyle(.bordered) }
+                if library.canUndo { Button("Laatste keuze terugzetten") { library.undo() }.buttonStyle(SecondaryStyle()) }
                 if library.keptInCategory > 0 {
-                    Button("Bewaarde items opnieuw bekijken") { library.reviewKeptAgain() }.buttonStyle(.bordered)
+                    Button("Bewaarde items opnieuw bekijken") { library.reviewKeptAgain() }.buttonStyle(SecondaryStyle())
                 }
-                Button("Ververs bibliotheek") { library.refresh() }.font(.caption)
+                Button("Ververs bibliotheek") { library.refresh() }.font(.caption.weight(.semibold)).foregroundStyle(Palette.brand)
                 Spacer()
             }
             Button { review = true } label: {
-                HStack {
-                    Image(systemName: "tray")
-                    Text("\(library.pending.count) weggelegd · alle categorieën")
+                HStack(spacing: 8) {
+                    Image(systemName: "tray.full.fill").foregroundStyle(Palette.trash)
+                    Text("\(library.pending.count) weggelegd").fontWeight(.heavy)
+                    if library.pendingBytes > 0 {
+                        Text("· \(ByteText.format(library.pendingBytes))").foregroundStyle(Palette.muted)
+                    }
                     Spacer()
-                    Text("Bekijken").fontWeight(.semibold)
-                    Image(systemName: "arrow.up.right")
-                }.font(.subheadline).padding(17)
-                    .background(.white.opacity(0.7), in: RoundedRectangle(cornerRadius: 16))
-                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Palette.sage))
+                    Text("Bekijken").fontWeight(.heavy).foregroundStyle(Palette.brand)
+                }.font(.subheadline).padding(.horizontal, 16).frame(minHeight: 52)
+                    .pop(radius: 16, fill: Palette.surface, shadow: 3)
             }.foregroundStyle(Palette.ink).disabled(library.loading || library.deleting)
+                .accessibilityLabel("\(library.pending.count) weggelegd, \(ByteText.format(library.pendingBytes)). Bekijken")
             Text("Een swipe verwijdert nog niets.").font(.caption2).foregroundStyle(Palette.muted)
-                .padding(.bottom, 10)
+                .padding(.bottom, 8)
         }
     }
-    private func circleButton(_ title: String, icon: String, color: Color, size: CGFloat = 64, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: icon).font(.system(size: size / 2.7, weight: .medium))
-                .frame(width: size, height: size).background(color, in: Circle())
-        }.foregroundStyle(Palette.ink).accessibilityLabel(title)
+
+    /// One tap to the categories with the biggest wins; the full list stays one tap away.
+    private var quickChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                Button { categoryPicker = true } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: library.selectedCategory.icon)
+                        Text(library.selectedCategory.title).lineLimit(1)
+                        Image(systemName: "chevron.down").font(.caption.bold())
+                    }
+                }.buttonStyle(ChipStyle(selected: true))
+                    .disabled(library.deleting)
+                    .accessibilityLabel("Categorie kiezen: \(library.selectedCategory.title)")
+                chip("Grootste eerst", icon: "arrow.down.circle", selected: library.order == .largest) {
+                    library.selectOrder(library.order == .largest ? .newest : .largest)
+                }
+                ForEach(quickCategories) { category in
+                    chip(category.title, icon: category.icon, selected: false) { library.selectCategory(category) }
+                }
+            }.padding(.vertical, 4).padding(.trailing, 4)
+        }.disabled(library.loading || library.deleting || library.mutating)
+    }
+    private var quickCategories: [PhotoCategory] {
+        let wanted = ["on-this-day", "Video's", "Screenshots", "random30", "later"]
+        return wanted.compactMap { key in
+            library.categories.first { ($0.id == key || ($0.title == key && !$0.isAlbum)) && $0.id != library.selectedCategory.id }
+        }
+    }
+    private func chip(_ title: String, icon: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) { Label(title, systemImage: icon).lineLimit(1) }
+            .buttonStyle(ChipStyle(selected: selected))
+            .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    /// A small goal of 30 per session; the bar fills toward it.
+    private var sessionBar: some View {
+        HStack(spacing: 10) {
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Palette.surface)
+                    Capsule().fill(Palette.reward)
+                        .frame(width: max(0, geometry.size.width * library.session.progress))
+                    Capsule().stroke(Palette.ink, lineWidth: 2)
+                }
+            }.frame(height: 14)
+            Text("\(library.session.count)/\(ReviewSession.size)").font(.subheadline.weight(.heavy)).monospacedDigit()
+                .foregroundStyle(Palette.ink)
+        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.9), value: library.session.count)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Sessie: \(library.session.count) van \(ReviewSession.size)")
     }
     private func openSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
@@ -202,10 +266,34 @@ struct ContentView: View {
 }
 
 struct PrimaryStyle: ButtonStyle {
+    var fill: Color = Palette.brand
+    var text: Color = .white
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.font(.headline).padding(.vertical, 17).padding(.horizontal, 24)
-            .frame(maxWidth: .infinity).foregroundStyle(.white)
-            .background(Palette.ink.opacity(configuration.isPressed ? 0.75 : 1), in: Capsule())
+        configuration.label.font(.headline.weight(.heavy)).padding(.vertical, 16).padding(.horizontal, 22)
+            .frame(maxWidth: .infinity, minHeight: 54).foregroundStyle(text)
+            .pop(radius: 27, fill: fill, shadow: configuration.isPressed ? 1 : 4)
+            .offset(x: configuration.isPressed ? 3 : 0, y: configuration.isPressed ? 3 : 0)
+    }
+}
+
+struct SecondaryStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.font(.subheadline.weight(.bold)).padding(.vertical, 12).padding(.horizontal, 18)
+            .frame(minHeight: 44).foregroundStyle(Palette.ink)
+            .pop(radius: 22, fill: Palette.surface, shadow: configuration.isPressed ? 1 : 3)
+            .offset(x: configuration.isPressed ? 2 : 0, y: configuration.isPressed ? 2 : 0)
+    }
+}
+
+struct ChipStyle: ButtonStyle {
+    let selected: Bool
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.font(.subheadline.weight(.bold))
+            .padding(.horizontal, 14).frame(minHeight: 40)
+            .foregroundStyle(selected ? Color.white : Palette.ink)
+            .pop(radius: 20, fill: selected ? Palette.brand : Palette.surface, shadow: configuration.isPressed ? 0 : 2)
+            .offset(x: configuration.isPressed ? 2 : 0, y: configuration.isPressed ? 2 : 0)
+            .padding(.vertical, 2)
     }
 }
 
@@ -225,6 +313,7 @@ private struct SmoothSwipeCard: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var offset: CGFloat = 0
     @State private var exiting = false
+    @State private var pastThreshold = false
     private var isTop: Bool { depth == 0 }
 
     var body: some View {
@@ -238,27 +327,39 @@ private struct SmoothSwipeCard: View {
                     }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                         .accessibilityLabel("Video afspelen")
                 }
-                LinearGradient(colors: [.clear, .black.opacity(0.65)], startPoint: .center, endPoint: .bottom)
-                    .allowsHitTesting(false)
-                VStack(alignment: .leading, spacing: 5) {
-                    if favorite { Label("Favoriet", systemImage: "heart.fill").font(.caption) }
-                    Text(asset.creationDate?.formatted(date: .long, time: .omitted) ?? "Zonder datum")
-                        .font(.headline)
-                    Text(asset.mediaType == .video ? "Video · \(Int(asset.duration) / 60):\(String(format: "%02d", Int(asset.duration) % 60))" : "\(asset.pixelWidth) × \(asset.pixelHeight)").font(.caption).opacity(0.8)
-                }.foregroundStyle(.white).padding(22).allowsHitTesting(false)
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        if favorite { Image(systemName: "heart.fill").foregroundStyle(Palette.trash) }
+                        Text(asset.creationDate?.formatted(date: .long, time: .omitted) ?? "Zonder datum")
+                            .font(.headline.weight(.heavy))
+                    }
+                    Text(detail).font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
+                }
+                .foregroundStyle(Palette.ink).padding(.horizontal, 12).padding(.vertical, 9)
+                .pop(radius: 12, fill: Palette.surface, shadow: 2)
+                .padding(14).allowsHitTesting(false)
                 VStack {
-                    Text(offset >= 0 ? "BEWAREN" : "WEGLEGGEN")
-                        .font(.title2.bold()).padding(12)
-                        .background(offset >= 0 ? Palette.sage : Palette.coral, in: RoundedRectangle(cornerRadius: 10))
-                        .opacity(isTop ? min(abs(offset) / 90, 1) : 0)
+                    HStack {
+                        if offset < 0 { Spacer() }
+                        Text(offset >= 0 ? "BEWAREN" : "WEGLEGGEN")
+                            .font(.system(.title3, design: .rounded).weight(.heavy)).tracking(1)
+                            .foregroundStyle(offset >= 0 ? Color.white : Palette.ink)
+                            .padding(.horizontal, 14).padding(.vertical, 8)
+                            .pop(radius: 12, fill: offset >= 0 ? Palette.keep : Palette.trash, shadow: 3)
+                            .rotationEffect(.degrees(offset >= 0 ? -10 : 10))
+                            .scaleEffect(pastThreshold ? 1.08 : 1)
+                            .opacity(isTop ? min(abs(offset) / 70, 1) : 0)
+                        if offset >= 0 { Spacer() }
+                    }
                     Spacer()
-                }.padding(24).allowsHitTesting(false)
+                }.padding(22).allowsHitTesting(false)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 26))
-            .shadow(color: .black.opacity(0.1), radius: 12, y: 6)
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .overlay(RoundedRectangle(cornerRadius: 24).stroke(Palette.ink, lineWidth: 3))
+            .background(RoundedRectangle(cornerRadius: 24).fill(Palette.ink).offset(x: 6, y: 6).opacity(depth == 0 ? 1 : 0))
             .scaleEffect(1 - CGFloat(depth) * 0.025)
             .offset(x: isTop ? offset : 0, y: CGFloat(depth) * 5)
-            .rotationEffect(.degrees(reduceMotion || !isTop ? 0 : Double(offset / 24)))
+            .rotationEffect(.degrees(reduceMotion || !isTop ? Double(depth) * 2.5 : Double(offset / 22)))
             .animation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.88), value: depth)
             .contentShape(Rectangle())
             .allowsHitTesting(isTop && !disabled && !exiting)
@@ -266,6 +367,11 @@ private struct SmoothSwipeCard: View {
                 .onChanged { value in
                     guard isTop, !disabled, !exiting, pipeline.isReady(asset.localIdentifier) else { return }
                     offset = value.translation.width
+                    let crossed = abs(offset) > max(65, geometry.size.width * 0.23)
+                    if crossed != pastThreshold {
+                        pastThreshold = crossed
+                        if crossed { Haptics.threshold() }
+                    }
                 }
                 .onEnded { value in
                     guard isTop, !disabled, !exiting, pipeline.isReady(asset.localIdentifier) else { return }
@@ -276,6 +382,7 @@ private struct SmoothSwipeCard: View {
                         let travel = abs(distance) > threshold ? distance : predicted
                         commit(travel > 0 ? .keep : .trash, width: geometry.size.width)
                     } else {
+                        pastThreshold = false
                         withAnimation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.85)) { offset = 0 }
                     }
                 })
@@ -283,7 +390,7 @@ private struct SmoothSwipeCard: View {
                 guard isTop, let command, command.assetID == asset.localIdentifier else { return }
                 commit(command.choice, width: geometry.size.width)
             }
-            .onChange(of: isTop) { _, _ in offset = 0; exiting = false }
+            .onChange(of: isTop) { _, _ in offset = 0; exiting = false; pastThreshold = false }
             .accessibilityElement(children: .ignore)
             .accessibilityHidden(!isTop)
             .accessibilityLabel("Item van \(asset.creationDate?.formatted(date: .long, time: .omitted) ?? "onbekende datum")\(favorite ? ", favoriet" : "")")
@@ -291,6 +398,14 @@ private struct SmoothSwipeCard: View {
             .accessibilityAction(named: Text("Bewaren")) { commit(.keep, width: geometry.size.width) }
             .accessibilityAction(named: Text("Wegleggen")) { commit(.trash, width: geometry.size.width) }
         }.zIndex(Double(3 - depth))
+    }
+    private var detail: String {
+        var parts: [String] = []
+        if asset.mediaType == .video {
+            parts.append("Video · \(Int(asset.duration) / 60):\(String(format: "%02d", Int(asset.duration) % 60))")
+        } else { parts.append("Foto") }
+        parts.append(ByteText.format(PhotoLibrary.fileSize(asset)))
+        return parts.joined(separator: " · ")
     }
     private func commit(_ choice: PhotoDecision, width: CGFloat) {
         guard isTop, !disabled, !exiting, pipeline.isReady(asset.localIdentifier) else { return }
@@ -373,24 +488,140 @@ private enum MediaTool: Identifiable {
 }
 
 /// Only this child observes image-ready changes; no library-wide redraw on every decoded preview.
+/// The two main actions are large and sit in the thumb zone; secondary actions are smaller.
 private struct SwipeControls: View {
     @EnvironmentObject private var library: PhotoLibrary
     @ObservedObject var pipeline: SwipeImagePipeline
     private var ready: Bool { library.current.map { pipeline.isReady($0.localIdentifier) } ?? false }
     var body: some View {
-        HStack(spacing: 28) {
-            control("Laatste keuze ongedaan maken", icon: "arrow.uturn.backward", color: .gray.opacity(0.1), size: 46) { library.undo() }
-                .disabled(!library.canUndo || library.mutating)
-            control("Item wegleggen", icon: "xmark", color: Palette.coral, size: 64) { library.requestSwipe(.trash) }
+        HStack(spacing: 18) {
+            control("Wegleggen", icon: "xmark", fill: Palette.trash, tint: Palette.ink, size: 72) { library.requestSwipe(.trash) }
                 .disabled(!ready || library.mutating)
-            control("Item bewaren", icon: "heart", color: Palette.sage, size: 64) { library.requestSwipe(.keep) }
+            control("Laatste keuze terugzetten", icon: "arrow.uturn.backward", fill: Palette.surface, tint: Palette.ink, size: 50) { library.undo() }
+                .disabled(!library.canUndo || library.mutating)
+            control("Later beslissen", icon: "clock", fill: Palette.surface, tint: Palette.ink, size: 50) { library.deferCurrent() }
+                .disabled(library.current == nil || library.mutating)
+            control("Bewaren", icon: "checkmark", fill: Palette.keep, tint: .white, size: 72) { library.requestSwipe(.keep) }
                 .disabled(!ready || library.mutating)
         }.disabled(library.deleting || library.loading)
     }
-    private func control(_ title: String, icon: String, color: Color, size: CGFloat, action: @escaping () -> Void) -> some View {
+    private func control(_ title: String, icon: String, fill: Color, tint: Color, size: CGFloat, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: icon).font(.system(size: size / 2.7, weight: .medium))
-                .frame(width: size, height: size).background(color, in: Circle())
-        }.foregroundStyle(Palette.ink).accessibilityLabel(title)
+            Image(systemName: icon).font(.system(size: size / 2.6, weight: .heavy))
+                .foregroundStyle(tint).frame(width: size, height: size)
+        }
+        .buttonStyle(RoundPopStyle(fill: fill, size: size))
+        .accessibilityLabel(title)
+    }
+}
+
+private struct RoundPopStyle: ButtonStyle {
+    let fill: Color
+    let size: CGFloat
+    @Environment(\.isEnabled) private var isEnabled
+    func makeBody(configuration: Configuration) -> some View {
+        let shadow: CGFloat = size > 60 ? 4 : 3
+        configuration.label
+            .background(Circle().fill(fill))
+            .overlay(Circle().stroke(Palette.ink, lineWidth: 3))
+            .background(Circle().fill(Palette.ink).offset(x: configuration.isPressed ? 1 : shadow, y: configuration.isPressed ? 1 : shadow))
+            .offset(x: configuration.isPressed ? shadow - 1 : 0, y: configuration.isPressed ? shadow - 1 : 0)
+            .opacity(isEnabled ? 1 : 0.4)
+    }
+}
+
+/// The last moment of a session is what people remember: show the win, the streak and a few kept highlights.
+struct SessionEndView: View {
+    @EnvironmentObject private var library: PhotoLibrary
+    let onClose: (_ openReview: Bool) -> Void
+    @State private var duration: TimeInterval = 0
+    var body: some View {
+        let session = library.session
+        let bytes = library.sessionTrashedBytes
+        ScrollView {
+            VStack(spacing: 18) {
+                Image(systemName: "checkmark").font(.system(size: 38, weight: .heavy)).foregroundStyle(Palette.ink)
+                    .frame(width: 84, height: 84).background(Circle().fill(Palette.reward))
+                    .overlay(Circle().stroke(Palette.ink, lineWidth: 3))
+                    .padding(.top, 28).accessibilityHidden(true)
+                Text("Sessie klaar!").font(.system(size: 34, weight: .heavy, design: .rounded)).tracking(-1)
+                Text("\(session.count) items in \(durationText)").foregroundStyle(Palette.muted)
+                VStack(spacing: 2) {
+                    Text(session.trashed.isEmpty ? "JE BEWAARDE ALLES" : "KLAAR OM VRIJ TE MAKEN").font(.caption.weight(.heavy)).foregroundStyle(Palette.muted)
+                    Text(session.trashed.isEmpty ? "\(session.kept.count) bewaard" : ByteText.format(bytes))
+                        .font(.system(size: 44, weight: .heavy, design: .rounded)).tracking(-1)
+                    if library.streak.freedBytes > 0 {
+                        Text("Totaal al vrijgemaakt: \(ByteText.format(library.streak.freedBytes))").font(.footnote).foregroundStyle(Palette.muted)
+                    }
+                }.frame(maxWidth: .infinity).padding(.vertical, 18).pop(radius: 20, fill: Palette.reward, shadow: 4)
+                HStack(spacing: 10) {
+                    stat("\(session.kept.count)", "bewaard", Palette.keep)
+                    stat("\(session.trashed.count)", "weggelegd", Palette.trash)
+                    stat("\(session.later.count)", "later", Palette.surface)
+                }
+                weekRow
+                let highlights = library.sessionHighlights
+                if !highlights.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Mooi teruggevonden").font(.headline.weight(.heavy))
+                        HStack(spacing: 8) {
+                            ForEach(highlights, id: \.localIdentifier) { asset in
+                                AssetImage(asset: asset, manager: library.images, thumbnail: true)
+                                    .frame(height: 104).clipShape(RoundedRectangle(cornerRadius: 12))
+                                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.ink, lineWidth: 2))
+                            }
+                        }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }
+                if !library.pending.isEmpty {
+                    Button("Controleer \(library.pending.count) items\(library.pendingBytes > 0 ? " · " + ByteText.format(library.pendingBytes) : "")") { onClose(true) }
+                        .buttonStyle(PrimaryStyle(fill: Palette.trash, text: Palette.ink))
+                }
+                Button("Nog \(ReviewSession.size) doen") { onClose(false) }.buttonStyle(SecondaryStyle())
+                    .padding(.bottom, 20)
+            }.padding(.horizontal, 22).foregroundStyle(Palette.ink)
+        }
+        .background(Palette.background.ignoresSafeArea())
+        .onAppear { duration = library.session.duration() }
+        .presentationDragIndicator(.visible)
+    }
+    private var durationText: String {
+        let seconds = max(1, Int(duration.rounded()))
+        if seconds < 60 { return "\(seconds) seconden" }
+        let minutes = seconds / 60, rest = seconds % 60
+        return rest == 0 ? "\(minutes) min" : "\(minutes) min \(rest) sec"
+    }
+    private func stat(_ value: String, _ label: String, _ fill: Color) -> some View {
+        VStack(spacing: 2) {
+            Text(value).font(.title2.weight(.heavy)).foregroundStyle(fill == Palette.keep ? Color.white : Palette.ink)
+            Text(label).font(.caption.weight(.semibold)).foregroundStyle(fill == Palette.keep ? Color.white : Palette.ink)
+        }.frame(maxWidth: .infinity).padding(.vertical, 12).pop(radius: 16, fill: fill, shadow: 3)
+    }
+    /// Last 7 days; one missed day does not break the streak.
+    private var weekRow: some View {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let days = (0..<7).compactMap { calendar.date(byAdding: .day, value: $0 - 6, to: today) }
+        let streak = library.streak.current()
+        return VStack(spacing: 8) {
+            HStack {
+                Label(streak == 1 ? "1 dag op rij" : "\(streak) dagen op rij", systemImage: "flame.fill").font(.subheadline.weight(.heavy))
+                Spacer()
+                Text("Eén dag overslaan mag").font(.caption).foregroundStyle(Palette.muted)
+            }
+            HStack(spacing: 6) {
+                ForEach(days, id: \.self) { day in
+                    let active = library.streak.isActive(day)
+                    VStack(spacing: 4) {
+                        Circle().fill(active ? Palette.reward : Palette.surface)
+                            .overlay(Circle().stroke(Palette.ink, lineWidth: 2))
+                            .frame(width: 30, height: 30)
+                        Text(day.formatted(.dateTime.weekday(.narrow))).font(.caption2.weight(.bold)).foregroundStyle(Palette.muted)
+                    }.frame(maxWidth: .infinity)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("\(day.formatted(.dateTime.weekday(.wide))): \(active ? "actief" : "niet actief")")
+                }
+            }
+        }
     }
 }

@@ -93,6 +93,13 @@ struct PhotoCategory: Identifiable {
     @Published private(set) var deleting = false
     @Published var message: String?
     @Published var persistenceWarning: String?
+    @Published private(set) var session = ReviewSession()
+    @Published var sessionFinished = false
+    @Published private(set) var streak = StreakStore()
+    @Published private(set) var pendingBytes: Int64 = 0
+    private var sizeCache: [String: Int64] = [:]
+    private var sizeGeneration = 0
+    private static let streakKey = "fotoswipe.streak.v1"
     let images = PHCachingImageManager()
     private let observer = LibraryObserver()
     private let stateURL: URL
@@ -114,6 +121,8 @@ struct PhotoCategory: Identifiable {
             do { state = try JSONDecoder().decode(DecisionStore.self, from: Data(contentsOf: stateURL)) }
             catch { persistenceWarning = "Je opgeslagen keuzes konden niet worden gelezen. Verwijder pas foto's nadat je je selectie opnieuw hebt gecontroleerd." }
         }
+        if let data = UserDefaults.standard.data(forKey: Self.streakKey),
+           let saved = try? JSONDecoder().decode(StreakStore.self, from: data) { streak = saved }
         observer.onChange = { [weak self] in self?.libraryDidChange() }
         PHPhotoLibrary.shared().register(observer)
         refresh()
@@ -199,7 +208,7 @@ struct PhotoCategory: Identifiable {
                     let lookup = Dictionary(fetched.map { ($0.localIdentifier, $0) }, uniquingKeysWith: { first, _ in first })
                     let ids = self.randomSession.select(candidates: candidates, available: Set(lookup.keys))
                     filtered = ids.compactMap { lookup[$0] }
-                    if selectedOrder != .random {
+                    if selectedOrder == .newest || selectedOrder == .oldest {
                         filtered.sort { lhs, rhs in
                             let left = lhs.creationDate ?? .distantPast
                             let right = rhs.creationDate ?? .distantPast
@@ -209,6 +218,14 @@ struct PhotoCategory: Identifiable {
                     }
                 }
                 if selectedOrder == .random && selected.id != "random30" { filtered.shuffle() }
+                if selectedOrder == .largest {
+                    filtered.sort { lhs, rhs in
+                        let left = PhotoLibrary.fileSize(lhs)
+                        let right = PhotoLibrary.fileSize(rhs)
+                        if left == right { return lhs.localIdentifier < rhs.localIdentifier }
+                        return left > right
+                    }
+                }
                 self.assets = filtered
                 self.scopeIDs = Set(filtered.map(\.localIdentifier))
                 self.categories = available
@@ -239,20 +256,71 @@ struct PhotoCategory: Identifiable {
         deferred.removeAll { $0.localIdentifier == asset.localIdentifier }
         switch choice {
         case .keep: kept.append(asset); keptInCategory += 1
-        case .trash: pending.append(asset)
+        case .trash: pending.append(asset); updatePendingBytes()
         case .later: deferred.append(asset)
         }
         queue.advance()
         publishDeck()
         save()
         updateCache()
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        Haptics.choice(choice)
+        session.record(asset.localIdentifier, choice)
+        streak.recordChoice()
+        if session.isComplete || (remainingCount == 0 && session.count > 0) { finishSession() }
+        else { saveStreak() }
+    }
+    private func finishSession() {
+        streak.markActive()
+        saveStreak()
+        guard !sessionFinished else { return }
+        sessionFinished = true
+        Haptics.success()
+    }
+    /// Starts a fresh goal of 30; choices already made stay as they are.
+    func startNewSession() {
+        session = ReviewSession()
+        sessionFinished = false
+    }
+    var sessionTrashedBytes: Int64 { session.trashed.reduce(0) { $0 + (sizeCache[$1] ?? 0) } }
+    var sessionHighlights: [PHAsset] {
+        let ids = Set(session.kept)
+        let picks = kept.filter { ids.contains($0.localIdentifier) }
+        return Array((picks.filter { isFavorite($0) } + picks.filter { !isFavorite($0) }).prefix(3))
     }
     func undo() {
         guard canUndo, !mutating else { return }
-        state.undo(in: scopeIDs)
+        if let id = state.undo(in: scopeIDs) { session.remove(id) }
         rebuildPresentation()
         save()
+    }
+
+    /// Estimated size from public PHAsset metadata. Never reads image data or uses private API.
+    nonisolated static func fileSize(_ asset: PHAsset) -> Int64 {
+        Int64(SizeEstimate.bytes(isVideo: asset.mediaType == .video, pixelWidth: asset.pixelWidth, pixelHeight: asset.pixelHeight,
+                                 duration: asset.duration, isLive: asset.mediaSubtypes.contains(.photoLive)))
+    }
+    private func updatePendingBytes() {
+        let batch = pending
+        let cached = sizeCache
+        sizeGeneration += 1
+        let request = sizeGeneration
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            var results: [String: Int64] = [:]
+            var total: Int64 = 0
+            for asset in batch {
+                let size = cached[asset.localIdentifier] ?? PhotoLibrary.fileSize(asset)
+                results[asset.localIdentifier] = size
+                total += size
+            }
+            DispatchQueue.main.async {
+                guard let self, self.sizeGeneration == request else { return }
+                self.sizeCache.merge(results) { _, new in new }
+                self.pendingBytes = total
+            }
+        }
+    }
+    private func saveStreak() {
+        if let data = try? JSONEncoder().encode(streak) { UserDefaults.standard.set(data, forKey: Self.streakKey) }
     }
     func restore(_ id: String) {
         guard !deleting, !mutating else { return }
@@ -288,13 +356,17 @@ struct PhotoCategory: Identifiable {
                 guard let self else { return }
                 self.deleting = false
                 if success {
+                    let freed = batch.reduce(Int64(0)) { $0 + (self.sizeCache[$1.localIdentifier] ?? 0) }
+                    self.streak.freedBytes += freed
+                    self.saveStreak()
+                    Haptics.success()
                     self.state.finishDeletion(ids)
                     self.assets.removeAll { ids.contains($0.localIdentifier) }
                     self.allAssets.removeAll { ids.contains($0.localIdentifier) }
                     self.scopeIDs.subtract(ids)
                     self.rebuildPresentation()
                     self.save()
-                    self.message = "\(batch.count) items verwijderd. Je kunt ze normaal tot 30 dagen terugzetten via 'Recent verwijderd' in Foto's."
+                    self.message = "\(batch.count) items verwijderd\(freed > 0 ? ", \(ByteText.format(freed)) vrijgemaakt" : ""). Je kunt ze normaal tot 30 dagen terugzetten via 'Recent verwijderd' in Foto's."
                     self.refresh()
                 } else {
                     self.message = "Er is niets door Fotoswipe verwijderd. Je selectie is bewaard. \(error?.localizedDescription ?? "De verwijdering is geannuleerd.")"
@@ -345,9 +417,12 @@ struct PhotoCategory: Identifiable {
         } else { queue.replace(assets.filter { state.decisions[$0.localIdentifier] == nil }) }
         keptInCategory = assets.reduce(0) { $0 + (state.decisions[$1.localIdentifier] == .keep ? 1 : 0) }
         kept = saved
+        let pendingChanged = pending.map(\.localIdentifier) != trash.map(\.localIdentifier)
         pending = trash
         deferred = later
         monthProgress = progress
+        if pendingChanged || (pendingBytes == 0 && !trash.isEmpty) { updatePendingBytes() }
+        if trash.isEmpty { pendingBytes = 0 }
         publishDeck()
         updateCache()
     }

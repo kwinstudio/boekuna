@@ -11,8 +11,17 @@ struct ReviewView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                Text("Dit is je selectie uit alle categorieën. Tik op een item om het te bekijken of af te spelen. Met Herstel zet je die terug.")
-                    .font(.subheadline).foregroundStyle(Palette.muted)
+                if selection == 0 && !library.pending.isEmpty {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(library.pending.count) items\(library.pendingBytes > 0 ? " · " + ByteText.format(library.pendingBytes) : "")")
+                            .font(.system(size: 30, weight: .heavy, design: .rounded)).tracking(-0.8)
+                        Text("Tik op een item om het te bekijken. Met Terug zet je het terug in de stapel.")
+                            .font(.subheadline).foregroundStyle(Palette.muted)
+                    }.frame(maxWidth: .infinity, alignment: .leading).foregroundStyle(Palette.ink)
+                } else {
+                    Text("Je selectie uit alle categorieën. Tik op een item om het te bekijken of af te spelen.")
+                        .font(.subheadline).foregroundStyle(Palette.muted).frame(maxWidth: .infinity, alignment: .leading)
+                }
                 Picker("Selectie", selection: $selection) {
                     Text("Weggelegd (\(library.pending.count))").tag(0)
                     Text("Bewaard (\(library.kept.count))").tag(1)
@@ -29,26 +38,31 @@ struct ReviewView: View {
                                         AssetImage(asset: asset, manager: library.images, thumbnail: true)
                                             .id(asset.localIdentifier).frame(height: 135)
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
+                                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.ink, lineWidth: 2))
                                     }.accessibilityLabel("Item bekijken")
                                     Button { library.restore(asset.localIdentifier) } label: {
-                                        Label("Herstel", systemImage: "arrow.uturn.backward").font(.caption)
-                                    }.disabled(library.deleting).accessibilityLabel("Item terugzetten in de stapel")
+                                        Label("Terug", systemImage: "arrow.uturn.backward").font(.caption.weight(.bold))
+                                            .frame(minHeight: 32)
+                                    }.foregroundStyle(Palette.brand).disabled(library.deleting).accessibilityLabel("Item terugzetten in de stapel")
                                 }
                             }
                         }
                     }
                 }
                 if selection == 0 && !library.pending.isEmpty {
-                    Text("Bij iCloud-items wordt de verwijdering gesynchroniseerd met je andere apparaten. Verwijderde items staan normaal nog 30 dagen in 'Recent verwijderd'.")
-                        .font(.caption).foregroundStyle(Palette.muted)
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "arrow.uturn.backward.circle.fill").font(.title3).foregroundStyle(Palette.keep)
+                        Text("Niets is meteen weg: verwijderde items staan nog 30 dagen in 'Recent verwijderd' in Foto's. Bij iCloud geldt dit ook voor je andere apparaten.")
+                            .font(.footnote).foregroundStyle(Palette.ink)
+                    }.padding(12).frame(maxWidth: .infinity, alignment: .leading).pop(radius: 14, fill: Palette.surface, shadow: 2)
                     Button { confirm = true } label: {
                         HStack {
-                            if library.deleting { ProgressView().tint(.white) }
-                            Text(library.deleting ? "Verwijderen…" : "Verwijder \(library.pending.count) items")
+                            if library.deleting { ProgressView().tint(Palette.ink) }
+                            Text(library.deleting ? "Verwijderen…" : "Verwijder \(library.pending.count) items\(library.pendingBytes > 0 ? " · " + ByteText.format(library.pendingBytes) : "")")
                         }
-                    }.buttonStyle(PrimaryStyle()).disabled(library.deleting || library.loading)
+                    }.buttonStyle(PrimaryStyle(fill: Palette.trash, text: Palette.ink)).disabled(library.deleting || library.loading)
                 }
-            }.padding(20).background(Palette.background)
+            }.padding(20).background(Palette.background.ignoresSafeArea())
                 .navigationTitle("Jouw selectie").navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Klaar") { dismiss() }.disabled(library.deleting) } }
                 .confirmationDialog("\(library.pending.count) items verwijderen uit Foto's?", isPresented: $confirm, titleVisibility: .visible) {
@@ -75,9 +89,12 @@ struct InfoView: View {
         NavigationStack {
             List {
                 Section("Zo werkt Fotoswipe") {
-                    Label("Links: wegleggen voor controle", systemImage: "arrow.left")
-                    Label("Rechts: bewaren", systemImage: "arrow.right")
+                    Label("Links of kruisje: wegleggen voor controle", systemImage: "arrow.left")
+                    Label("Rechts of vinkje: bewaren", systemImage: "arrow.right")
+                    Label("Klokje: later beslissen", systemImage: "clock")
                     Label("Terugpijl: laatste keuze herstellen", systemImage: "arrow.uturn.backward")
+                    Text("Een sessie is 30 items. Kies je elke dag minstens 10 items of maak je een sessie af, dan groeit je reeks. Eén dag overslaan mag.")
+                    Text("Grootste eerst zet video's en grote foto's vooraan, zodat je snel veel ruimte wint. De volgorde is een schatting op basis van resolutie en duur.")
                     Text("Open 'Bekijken' om je selectie te controleren. Er wordt pas iets verwijderd nadat je dit bevestigt, ook in het venster van Apple.")
                 }
                 Section("Privacy") {

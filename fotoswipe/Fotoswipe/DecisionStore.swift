@@ -99,10 +99,99 @@ enum PhotoDateFilter: Equatable {
 }
 
 enum PhotoOrder: String, CaseIterable, Identifiable {
-    case newest, oldest, random
+    case newest, oldest, largest, random
     var id: String { rawValue }
     var title: String {
-        switch self { case .newest: return "Nieuwste eerst"; case .oldest: return "Oudste eerst"; case .random: return "Willekeurige volgorde" }
+        switch self {
+        case .newest: return "Nieuwste eerst"
+        case .oldest: return "Oudste eerst"
+        case .largest: return "Grootste eerst"
+        case .random: return "Willekeurige volgorde"
+        }
+    }
+}
+
+/// Size estimate from public metadata only (no file reads, no private API).
+/// Photos: about 0.3 byte per pixel (HEIC/JPEG), plus the short movie of a Live Photo.
+/// Videos: about 0.6 byte per pixel per second (typical iPhone HEVC/H.264 bitrates).
+enum SizeEstimate {
+    static let livePhotoMovie = 1_500_000.0
+    static func bytes(isVideo: Bool, pixelWidth: Int, pixelHeight: Int, duration: Double, isLive: Bool = false) -> Double {
+        let pixels = Double(max(0, pixelWidth)) * Double(max(0, pixelHeight))
+        if isVideo { return pixels * max(1, duration) * 0.6 }
+        return pixels * 0.3 + (isLive ? livePhotoMovie : 0)
+    }
+}
+
+/// One short, finishable session: progress toward a small goal keeps swiping fast.
+struct ReviewSession: Equatable {
+    static let size = 30
+    private(set) var kept: [String] = []
+    private(set) var trashed: [String] = []
+    private(set) var later: [String] = []
+    private(set) var startedAt: Date?
+    var count: Int { kept.count + trashed.count + later.count }
+    var isComplete: Bool { count >= Self.size }
+    var progress: Double { min(1, Double(count) / Double(Self.size)) }
+
+    mutating func record(_ id: String, _ choice: PhotoDecision, now: Date = Date()) {
+        if startedAt == nil { startedAt = now }
+        remove(id)
+        switch choice {
+        case .keep: kept.append(id)
+        case .trash: trashed.append(id)
+        case .later: later.append(id)
+        }
+    }
+    /// Undo removes the item from this session's tally.
+    mutating func remove(_ id: String) {
+        kept.removeAll { $0 == id }; trashed.removeAll { $0 == id }; later.removeAll { $0 == id }
+    }
+    func duration(now: Date = Date()) -> TimeInterval { startedAt.map { now.timeIntervalSince($0) } ?? 0 }
+}
+
+/// A forgiving daily streak: one missed day in between does not break it.
+struct StreakStore: Codable, Equatable {
+    static let dailyGoal = 10
+    private(set) var activeDays: [String] = []
+    private(set) var countDay = ""
+    private(set) var countToday = 0
+    var freedBytes: Int64 = 0
+
+    static func key(_ date: Date, calendar: Calendar = .current) -> String {
+        let c = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
+    }
+    /// Counts choices; a day becomes active at the daily goal or when a session is finished.
+    mutating func recordChoice(now: Date = Date(), calendar: Calendar = .current) {
+        let today = Self.key(now, calendar: calendar)
+        if countDay != today { countDay = today; countToday = 0 }
+        countToday += 1
+        if countToday >= Self.dailyGoal { markActive(now, calendar: calendar) }
+    }
+    mutating func markActive(_ now: Date = Date(), calendar: Calendar = .current) {
+        let today = Self.key(now, calendar: calendar)
+        if activeDays.last != today { activeDays.append(today) }
+        if activeDays.count > 400 { activeDays.removeFirst(activeDays.count - 400) }
+    }
+    func isActive(_ date: Date, calendar: Calendar = .current) -> Bool { activeDays.contains(Self.key(date, calendar: calendar)) }
+    func current(now: Date = Date(), calendar: Calendar = .current) -> Int {
+        let active = Set(activeDays)
+        var day = calendar.startOfDay(for: now)
+        // Today may still be in progress: start from yesterday when today is not active yet.
+        if !active.contains(Self.key(day, calendar: calendar)) {
+            guard let yesterday = calendar.date(byAdding: .day, value: -1, to: day) else { return 0 }
+            day = yesterday
+        }
+        var streak = 0
+        var misses = 0
+        for _ in 0..<800 {
+            if active.contains(Self.key(day, calendar: calendar)) { streak += 1; misses = 0 }
+            else { misses += 1; if misses > 1 { break } }
+            guard let previous = calendar.date(byAdding: .day, value: -1, to: day) else { break }
+            day = previous
+        }
+        return streak
     }
 }
 

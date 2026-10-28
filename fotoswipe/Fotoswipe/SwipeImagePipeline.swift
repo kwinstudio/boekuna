@@ -282,7 +282,7 @@ struct BufferedAssetImage: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                Color(red: 0.16, green: 0.19, blue: 0.14)
+                Palette.ink
                 if let image = pipeline.image(for: asset.localIdentifier) {
                     Image(uiImage: image).resizable().aspectRatio(contentMode: .fit)
                         .frame(width: geometry.size.width, height: geometry.size.height).clipped()

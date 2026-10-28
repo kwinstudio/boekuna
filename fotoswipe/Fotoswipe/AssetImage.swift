@@ -26,7 +26,7 @@ struct AssetImage: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                Color(red: 0.16, green: 0.19, blue: 0.14)
+                Palette.ink
                 if let image {
                     Image(uiImage: image).resizable()
                         .aspectRatio(contentMode: thumbnail ? .fill : .fit)

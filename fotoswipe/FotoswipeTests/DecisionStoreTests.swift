@@ -241,3 +241,78 @@ final class CleanupSessionRegressionTests: XCTestCase {
         XCTAssertFalse(SwipeCommitPolicy.canFinish(deleting: false, loading: true, mutating: false))
     }
 }
+
+final class EngagementTests: XCTestCase {
+    private var calendar: Calendar {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Europe/Amsterdam")!
+        return c
+    }
+    private func day(_ offset: Int, from base: Date) -> Date { calendar.date(byAdding: .day, value: offset, to: base)! }
+    private var base: Date { calendar.date(from: DateComponents(year: 2026, month: 10, day: 28, hour: 12))! }
+
+    func testSessionCompletesAtThirtyAndUndoRemovesFromTally() {
+        var session = ReviewSession()
+        for i in 0..<29 { session.record("p\(i)", i % 3 == 0 ? .trash : .keep) }
+        XCTAssertFalse(session.isComplete)
+        session.remove("p0")
+        XCTAssertEqual(session.count, 28)
+        session.record("p0", .later)
+        session.record("p29", .keep)
+        XCTAssertTrue(session.isComplete)
+        XCTAssertEqual(session.progress, 1)
+        XCTAssertEqual(session.later, ["p0"])
+    }
+    func testChangingAChoiceDoesNotCountTwice() {
+        var session = ReviewSession()
+        session.record("a", .keep)
+        session.record("a", .trash)
+        XCTAssertEqual(session.count, 1)
+        XCTAssertEqual(session.trashed, ["a"])
+        XCTAssertTrue(session.kept.isEmpty)
+    }
+    func testDayBecomesActiveAtDailyGoal() {
+        var streak = StreakStore()
+        for _ in 0..<(StreakStore.dailyGoal - 1) { streak.recordChoice(now: base, calendar: calendar) }
+        XCTAssertFalse(streak.isActive(base, calendar: calendar))
+        streak.recordChoice(now: base, calendar: calendar)
+        XCTAssertTrue(streak.isActive(base, calendar: calendar))
+        XCTAssertEqual(streak.current(now: base, calendar: calendar), 1)
+    }
+    func testStreakForgivesOneMissedDayButNotTwo() {
+        var streak = StreakStore()
+        streak.markActive(day(-4, from: base), calendar: calendar)
+        streak.markActive(day(-3, from: base), calendar: calendar)
+        // -2 missed: forgiven
+        streak.markActive(day(-1, from: base), calendar: calendar)
+        streak.markActive(base, calendar: calendar)
+        XCTAssertEqual(streak.current(now: base, calendar: calendar), 4)
+        var broken = StreakStore()
+        broken.markActive(day(-5, from: base), calendar: calendar)
+        broken.markActive(day(-2, from: base), calendar: calendar)
+        XCTAssertEqual(broken.current(now: base, calendar: calendar), 1)
+    }
+    func testTodayInProgressDoesNotBreakStreak() {
+        var streak = StreakStore()
+        streak.markActive(day(-2, from: base), calendar: calendar)
+        streak.markActive(day(-1, from: base), calendar: calendar)
+        XCTAssertEqual(streak.current(now: base, calendar: calendar), 2)
+        XCTAssertEqual(StreakStore().current(now: base, calendar: calendar), 0)
+    }
+    func testStreakSurvivesRelaunch() throws {
+        var streak = StreakStore()
+        streak.markActive(base, calendar: calendar)
+        streak.freedBytes = 1_234
+        let restored = try JSONDecoder().decode(StreakStore.self, from: JSONEncoder().encode(streak))
+        XCTAssertEqual(restored, streak)
+    }
+    func testLargestFirstEstimateRanksVideosByLengthAndResolution() {
+        let photo = SizeEstimate.bytes(isVideo: false, pixelWidth: 4032, pixelHeight: 3024, duration: 0)
+        let shortClip = SizeEstimate.bytes(isVideo: true, pixelWidth: 1920, pixelHeight: 1080, duration: 10)
+        let longClip = SizeEstimate.bytes(isVideo: true, pixelWidth: 1920, pixelHeight: 1080, duration: 120)
+        XCTAssertGreaterThan(longClip, shortClip)
+        XCTAssertGreaterThan(shortClip, photo)
+        XCTAssertTrue(PhotoOrder.allCases.contains(.largest))
+    }
+}
+

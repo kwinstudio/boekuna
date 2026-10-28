@@ -1,0 +1,50 @@
+name: Fotoswipe check (annotated)
+# Compile, unit-test and archive on a macOS runner; compiler and test failures
+# are surfaced as annotations so they are readable without raw logs. No signing, no upload.
+on:
+  push:
+    branches: [claude/fotoswipe-pop]
+    paths: ['fotoswipe/**', '.github/workflows/fotoswipe-pop-check.yml']
+permissions:
+  contents: read
+concurrency:
+  group: fotoswipe-pop-check-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: macos-26
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: fotoswipe
+    steps:
+      - uses: actions/checkout@v4
+      - name: Project checks
+        run: python3 scripts/validate_project.py
+      - name: Compile and run unit tests on iPhone simulator
+        run: |
+          set -o pipefail
+          mkdir -p build
+          bash scripts/test.sh 2>&1 | tee build/test.log || {
+            grep -E "error:|: error|failed \(|XCTAssert|Fatal error" build/test.log | sort -u | head -40 | while IFS= read -r line; do echo "::error title=Fotoswipe test::${line}"; done
+            exit 1
+          }
+          grep -E "Executed [0-9]+ tests?" build/test.log | tail -1 | while IFS= read -r line; do echo "::notice title=Fotoswipe test::${line}"; done
+      - name: Simulator screenshot
+        run: bash scripts/smoke.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fotoswipe-pop-screen
+          path: fotoswipe/build/smoke/*.png
+          retention-days: 7
+      - name: Unsigned Release archive
+        run: |
+          set -o pipefail
+          mkdir -p build
+          xcodebuild -project Fotoswipe.xcodeproj -scheme Fotoswipe -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath build/Fotoswipe.xcarchive \
+            CODE_SIGNING_ALLOWED=NO archive 2>&1 | tee build/archive.log || {
+            grep -E "error:|: error" build/archive.log | sort -u | head -40 | while IFS= read -r line; do echo "::error title=Fotoswipe archive::${line}"; done
+            exit 1
+          }
+          echo "::notice title=Fotoswipe archive::Release archive succeeded"
