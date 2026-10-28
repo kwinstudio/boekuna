@@ -133,6 +133,7 @@
     else if(/email/.test(name)){if(type==='text')el.setAttribute('inputmode','email');el.setAttribute('autocapitalize','off');el.setAttribute('autocorrect','off');el.setAttribute('spellcheck','false')}
     else if(/\bkvk\b|kvk/.test(name)){el.setAttribute('inputmode','numeric');el.setAttribute('autocorrect','off')}
     if(el.getAttribute('inputmode')==='decimal'&&!inReview(el))el.dataset.bkSum='1';
+    autofillLabels(el);
   }
   function scan(node){
     if(!node||node.nodeType!==1)return;
@@ -736,6 +737,121 @@
     row.addEventListener('click',function(){call('closeModal');setTimeout(quickCostSheet,30)});
     box.prepend(row);
   }
+
+  /* ---------- 33. Your own details in one tap ---------- */
+  // The phone keyboard and the browser offer saved details when a field says what it is. Your own company gets plain
+  // labels; a customer gets them in a separate "klant" section, so the phone can offer a contact instead of your own card.
+  var OWN_FILL={name:'organization',tradename:'organization',contactperson:'name',bankaccountname:'name',email:'email',phone:'tel',address:'street-address',postal:'postal-code',city:'address-level2',country:'country-name'};
+  function autofillLabels(el){
+    if(el.getAttribute('autocomplete')||inReview(el))return;
+    var n=String(el.name||'').toLowerCase(),klant=el.closest('#contactForm,#newCustomerFields,#bookingNewCustomer');
+    if(klant){n=n.replace(/^newcustomer/,'').replace(/^new(?=[a-z])/,'');if(n==='contact')n='contactperson'}
+    else if(!el.closest('#profileForm'))return;
+    var token=OWN_FILL[n];if(!token)return;
+    el.setAttribute('autocomplete',(klant?'section-klant ':'')+token);
+  }
+
+  /* ---------- 31. Postcode and house number fill in the street and town ---------- */
+  var POSTAL_RX=/^\s*([1-9]\d{3})\s?([a-zA-Z]{2})\s*$/,POSTAL_NR_RX=/^\s*([1-9]\d{3})\s?([a-zA-Z]{2})\s*,?\s+(\d{1,5}\s?[a-zA-Z]?(?:\s?-\s?\d{1,4}|\s?[a-zA-Z]{1,4})?)\s*$/,HOUSE_NR_RX=/^\d{1,5}\s?[a-zA-Z]?(?:\s?-\s?\d{1,4}|\s[a-zA-Z]{1,4})?$/;
+  function setVal(el,v){el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}))}
+  function addressFields(el){
+    var scope=el.closest('#newCustomerFields')||el.form||el.closest('.modal');if(!scope)return null;
+    var pick=function(k){return [].slice.call(scope.querySelectorAll('input')).filter(function(f){return keyOf(f)===k&&f.type!=='hidden'})[0]||null};
+    var t={postal:pick('postal'),address:pick('address'),city:pick('city')},country=scope.querySelector('input[name$="ountry"]');
+    if(country&&String(country.value||'').trim()&&!/^(nl|nederland|the netherlands|netherlands)$/i.test(String(country.value).trim()))return null; // only Dutch postcodes
+    return t.postal&&t.address&&t.city&&!inReview(el)?t:null;
+  }
+  var looked=new WeakMap();
+  function fillAddress(t,postal,houseNr,from){
+    var key=postal[1]+postal[2].toUpperCase(),look=app('lookupPostalPoint');if(!look)return;
+    if(looked.get(t.postal)===key+'|'+(houseNr||''))return;looked.set(t.postal,key+'|'+(houseNr||''));
+    look(key).then(function(r){
+      if(!r||!t.postal.isConnected)return;
+      var addr=String(t.address.value||'').trim(),nr=houseNr||(HOUSE_NR_RX.test(addr)?addr:''),done=[];
+      if(r.street&&(from==='address'||!addr||nr)){setVal(t.address,r.street+' '+(nr||''));done.push('straat')}
+      if(r.place&&(from==='address'||!String(t.city.value||'').trim())){setVal(t.city,r.place);done.push('plaats')}
+      if(String(t.postal.value||'').trim()!==r.postal)setVal(t.postal,r.postal);
+      if(!done.length)return;
+      showNote(from==='address'?t.address:t.postal,'ok',(done.length===2?'Straat en plaats':done[0]==='straat'?'Straat':'Plaats')+' ingevuld'+(r.street&&!nr?'. Vul nog je huisnummer in.':'.'));
+      if(r.street&&!nr&&document.activeElement!==t.postal){try{t.address.focus();t.address.setSelectionRange(t.address.value.length,t.address.value.length)}catch(e){}}
+    }).catch(function(){looked.delete(t.postal)});
+  }
+  var postalTimer=0;
+  document.addEventListener('input',function(e){
+    var el=e.target;if(!e.isTrusted||!el||el.tagName!=='INPUT'||keyOf(el)!=='postal')return;
+    var m=String(el.value||'').match(POSTAL_RX),t=m&&addressFields(el);if(!t)return;
+    clearTimeout(postalTimer);postalTimer=setTimeout(function(){fillAddress(t,m,'','postal')},250);
+  },true);
+  document.addEventListener('focusout',function(e){
+    var el=e.target;if(!el||el.tagName!=='INPUT'||keyOf(el)!=='address')return;
+    var m=String(el.value||'').match(POSTAL_NR_RX),t=m&&addressFields(el);if(!t)return;
+    fillAddress(t,m,m[3].replace(/\s+/g,''),'address');
+  },true);
+
+  /* ---------- 32 and 34. A tick when a field is right, a calm question when it is not ---------- */
+  var MAIL_DOMAINS=['gmail.com','hotmail.com','hotmail.nl','outlook.com','outlook.nl','live.nl','live.com','icloud.com','me.com','ziggo.nl','kpnmail.nl','kpnplanet.nl','planet.nl','xs4all.nl','yahoo.com','home.nl','telfort.nl','upcmail.nl','protonmail.com','proton.me','msn.com'];
+  var MAIL_FIX={'gmail.nl':'gmail.com','gmail.co':'gmail.com','hotmail.co':'hotmail.com','outlook.co':'outlook.com','icloud.nl':'icloud.com'};
+  function editDistance(a,b){var p=[],i,j;for(j=0;j<=b.length;j++)p[j]=j;for(i=1;i<=a.length;i++){var prev=p[0];p[0]=i;for(j=1;j<=b.length;j++){var tmp=p[j];p[j]=Math.min(p[j]+1,p[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));prev=tmp}}return p[b.length]}
+  function mailSuggestion(v){
+    var m=String(v||'').trim().match(/^([^@\s]+)@([^@\s]+)$/);if(!m)return null;
+    var dom=m[2].toLowerCase(),fixed=null;
+    if(MAIL_DOMAINS.indexOf(dom)>=0)return null;
+    if(MAIL_FIX[dom])fixed=MAIL_FIX[dom];
+    else if(dom.indexOf('.')<0)fixed=MAIL_DOMAINS.find(function(d){return d.replace('.','')===dom})||null;
+    if(!fixed){var best=null,bestD=3;MAIL_DOMAINS.forEach(function(d){var x=editDistance(dom,d);if(x<bestD){best=d;bestD=x}});if(best&&bestD<=2&&dom.length>=5)fixed=best}
+    if(!fixed){var t=dom.match(/^(.+)\.(con|cmo|comm|vom|xom|cpm|om|nll|nk)$/);if(t)fixed=t[1]+'.'+(/^(nll|nk)$/.test(t[2])?'nl':'com')}
+    return fixed&&fixed!==dom?m[1]+'@'+fixed:null;
+  }
+  window.boekunaMailSuggestion=mailSuggestion;
+  function checkKind(el){
+    if(!el||el.tagName!=='INPUT'||el.readOnly||el.disabled||inReview(el)||el.closest('#authForm,.auth-root,.period-range-fields'))return null;
+    if(el.type==='email'||/email/i.test(el.name||''))return 'email';
+    var k=keyOf(el);
+    if(k==='iban'||k==='vat'||k==='kvk'||k==='phone')return k;
+    if(k==='postal'){var t=addressFields(el);return t?'postal':null}
+    return null;
+  }
+  function checkValue(kind,v){
+    var s=String(v||'').trim();if(!s)return {state:''};
+    var flat=s.replace(/[\s.\-]/g,'').toUpperCase();
+    if(kind==='email'){if(!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(s))return {state:'bad',text:'Dit is nog geen heel e-mailadres.'};var sug=mailSuggestion(s);return sug?{state:'ask',fix:sug}:{state:'ok'}}
+    if(kind==='iban'){var ok=app('ibanValid')?app('ibanValid')(s):/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(flat);return ok?{state:'ok'}:{state:'bad',text:'Dit IBAN klopt niet. Kijk nog even naar de cijfers.'}}
+    if(kind==='vat'){if(/^NL/.test(flat))return /^NL\d{9}B\d{2}$/.test(flat)?{state:'ok'}:{state:'bad',text:'Een btw-nummer ziet eruit als NL123456789B01.'};return /^[A-Z]{2}[0-9A-Z]{8,12}$/.test(flat)?{state:'ok'}:{state:'bad',text:'Dit btw-nummer klopt nog niet.'}}
+    if(kind==='kvk')return /^\d{8}$/.test(flat)?{state:'ok'}:{state:'bad',text:'Een KVK-nummer heeft 8 cijfers.'};
+    if(kind==='postal')return POSTAL_RX.test(s)?{state:'ok'}:{state:'bad',text:'Een postcode ziet eruit als 1234 AB.'};
+    if(kind==='phone'){var d=s.replace(/[^\d+]/g,'');return /^(0\d{9}|\+\d{9,15}|00\d{9,15})$/.test(d)?{state:'ok'}:{state:'bad',text:'Dit telefoonnummer lijkt nog niet compleet.'}}
+    return {state:''};
+  }
+  function noteAnchor(el){return el.closest('.bk-date-wrap,.expense-amount-input')||el}
+  function showNote(el,state,text,fix){
+    var anchor=noteAnchor(el),note=anchor.nextElementSibling&&anchor.nextElementSibling.classList.contains('bk-check')?anchor.nextElementSibling:null;
+    el.classList.toggle('bk-ok',state==='ok');el.classList.toggle('bk-bad',state==='bad');el.classList.toggle('bk-ask',state==='ask');
+    if(state==='bad')el.setAttribute('aria-invalid','true');else if(el.getAttribute('aria-invalid')==='true'&&!el.classList.contains('field-error'))el.removeAttribute('aria-invalid');
+    if(!text&&!fix){if(note)note.remove();el.removeAttribute('aria-describedby');return}
+    if(!note){note=document.createElement('div');note.className='help bk-check';note.id='bkCheck'+Math.random().toString(36).slice(2,8);note.setAttribute('aria-live','polite');anchor.after(note)}
+    note.dataset.state=state;note.textContent='';
+    if(fix){
+      note.appendChild(document.createTextNode('Bedoel je '));
+      var b=document.createElement('button');b.type='button';b.className='link-btn bk-fix';b.textContent=fix;
+      b.addEventListener('click',function(){setVal(el,fix);runCheck(el,true);try{el.focus()}catch(e){}});
+      note.appendChild(b);note.appendChild(document.createTextNode('?'));
+    }else note.textContent=text;
+    el.setAttribute('aria-describedby',note.id);
+  }
+  function runCheck(el,left){
+    var kind=checkKind(el);if(!kind)return;
+    var r=checkValue(kind,el.value);
+    // Reward early, warn late: a fix shows right away while you type, a problem only once you leave the field.
+    if(!left&&r.state!=='ok'){
+      if(el.classList.contains('bk-bad')||el.classList.contains('bk-ask'))showNote(el,r.state,r.text,r.fix);
+      else if(el.classList.contains('bk-ok'))showNote(el,'');
+      return;
+    }
+    if(r.state==='ok'&&el.classList.contains('bk-ok'))return;
+    showNote(el,r.state,r.text,r.fix);
+  }
+  document.addEventListener('focusout',function(e){runCheck(e.target,true)},true);
+  document.addEventListener('input',function(e){var el=e.target;if(el&&el.classList&&(el.classList.contains('bk-bad')||el.classList.contains('bk-ask')||el.classList.contains('bk-ok')))runCheck(el,false)},true);
 
   /* ---------- Watch new screens and sheets ---------- */
   function onAdded(node){

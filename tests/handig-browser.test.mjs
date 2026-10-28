@@ -280,6 +280,68 @@ try{
     }else assert.fail('The phone invoice has a Versturen button');
     await context.close();
   }
+  // 31-34: postcode fills the address, "Bedoel je gmail.com?", the right autofill labels, a tick when a field is right.
+  {
+    const {context,page}=await openApp({phone:false});
+    let lookups=0;
+    await context.route('https://api.pdok.nl/**',route=>{lookups++;route.fulfill({contentType:'application/json',body:JSON.stringify({response:{docs:[{woonplaatsnaam:'Rotterdam',straatnaam:'Coolsingel',centroide_ll:'POINT(4.47 51.92)'}]}})})});
+    // 33: a customer gets labels in a "klant" section; your own company gets plain ones.
+    await page.evaluate(()=>newContact());
+    assert.equal(await page.locator('#contactForm [name=name]').getAttribute('autocomplete'),'section-klant organization');
+    assert.equal(await page.locator('#contactForm [name=postal]').getAttribute('autocomplete'),'section-klant postal-code');
+    assert.equal(await page.locator('#contactForm [name=contactPerson]').getAttribute('autocomplete'),'section-klant name');
+    // 31: a postcode fills street and town; the cursor waits for the house number.
+    await page.locator('#contactForm [name=postal]').pressSequentially('3011ab');
+    await page.waitForFunction(()=>document.querySelector('#contactForm [name=city]').value==='Rotterdam');
+    assert.equal(await page.locator('#contactForm [name=address]').inputValue(),'Coolsingel ');
+    assert.equal(await page.locator('#contactForm [name=postal]').inputValue(),'3011 AB');
+    assert.match(await page.locator('#contactForm .bk-check').first().textContent(),/Straat en plaats ingevuld/);
+    // Typing "postcode huisnummer" in the street field works too.
+    await page.locator('#contactForm [name=address]').fill('3011 AB 12');
+    await page.locator('#contactForm [name=city]').focus();
+    await page.waitForFunction(()=>document.querySelector('#contactForm [name=address]').value==='Coolsingel 12');
+    assert.equal(lookups,1,'One lookup per postcode');
+    // Never for an address abroad.
+    await page.locator('#contactForm [name=country]').fill('België');
+    await page.locator('#contactForm [name=address]').fill('1000 AB 5');
+    await page.locator('#contactForm [name=city]').focus();
+    await page.waitForTimeout(300);
+    assert.equal(await page.locator('#contactForm [name=address]').inputValue(),'1000 AB 5');
+    // 32: an e-mail typo gets a calm question with a one-tap fix.
+    assert.equal(await page.evaluate(()=>boekunaMailSuggestion('jan@gmial.com')),'jan@gmail.com');
+    assert.equal(await page.evaluate(()=>boekunaMailSuggestion('jan@hotmailnl')),'jan@hotmail.nl');
+    assert.equal(await page.evaluate(()=>boekunaMailSuggestion('jan@bakkerij.nl')),null,'A company domain is left alone');
+    assert.equal(await page.evaluate(()=>boekunaMailSuggestion('jan@gmail.con')),'jan@gmail.com');
+    const email=page.locator('#contactForm [name=email]');
+    await email.fill('jan@gmial.com');await email.blur();
+    await page.locator('#contactForm .bk-fix').click();
+    assert.equal(await email.inputValue(),'jan@gmail.com');
+    assert.equal(await email.evaluate(el=>el.classList.contains('bk-ok')),true,'A tick once it is right');
+    // 34: a wrong KVK number is named when you leave the field, and the note goes as soon as it is right.
+    const kvk=page.locator('#contactForm [name=kvk]');
+    await kvk.fill('1234');
+    assert.equal(await kvk.evaluate(el=>el.classList.contains('bk-bad')),false,'No nagging while you type');
+    await kvk.blur();
+    assert.equal(await kvk.getAttribute('aria-invalid'),'true');
+    assert.match(await kvk.evaluate(el=>document.getElementById(el.getAttribute('aria-describedby')).textContent),/8 cijfers/);
+    await kvk.pressSequentially('5678');
+    assert.equal(await kvk.evaluate(el=>el.classList.contains('bk-ok')),true);
+    assert.equal(await kvk.getAttribute('aria-invalid'),null);
+    const vat=page.locator('#contactForm [name=vat]');
+    await vat.fill('NL123456789B01');await vat.blur();
+    assert.equal(await vat.evaluate(el=>el.classList.contains('bk-ok')),true);
+    await page.evaluate(()=>closeModal());
+    await page.evaluate(()=>navigate('profile'));
+    await page.locator('#profileForm').waitFor();
+    assert.equal(await page.locator('#profileForm [name=bankAccountName]').getAttribute('autocomplete'),'name');
+    assert.equal(await page.locator('#profileForm [name=name]').getAttribute('autocomplete'),'organization');
+    const ownIban=page.locator('#profileForm [name=iban]');
+    await ownIban.fill('NL91ABNA0417164301');await ownIban.blur();
+    assert.match(await page.locator('#profileForm .bk-check').textContent(),/IBAN klopt niet/);
+    await ownIban.fill('NL91ABNA0417164300');
+    assert.equal(await ownIban.evaluate(el=>el.classList.contains('bk-ok')),true);
+    await context.close();
+  }
   assert.deepEqual(errors,[]);
   console.log('Handige trucjes: OK ('+browserName+')');
 }finally{
