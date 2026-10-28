@@ -94,6 +94,7 @@ struct InfoView: View {
                     Label("Klokje: later beslissen", systemImage: "clock")
                     Label("Terugpijl: laatste keuze herstellen", systemImage: "arrow.uturn.backward")
                     Text("Een sessie is 30 items. Kies je elke dag minstens 10 items of maak je een sessie af, dan groeit je reeks. Eén dag overslaan mag.")
+                    Text("Focus (rechtsboven) toont alleen de foto op het hele scherm. Veeg rechts om te bewaren, links om weg te leggen, omhoog voor later en omlaag om de vorige terug te zetten. Dubbeltik maakt favoriet, vasthouden zoomt in, één tik toont de knoppen.")
                     Text("Grootste eerst zet video's en grote foto's vooraan, zodat je snel veel ruimte wint. De volgorde is een schatting op basis van resolutie en duur.")
                     Text("Open 'Bekijken' om je selectie te controleren. Er wordt pas iets verwijderd nadat je dit bevestigt, ook in het venster van Apple.")
                 }

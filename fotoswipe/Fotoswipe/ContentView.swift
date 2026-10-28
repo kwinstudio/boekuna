@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var comparing = false
 
     @State private var reviewAfterSession = false
+    @State private var focus = false
 
     var body: some View {
         NavigationStack {
@@ -39,7 +40,8 @@ struct ContentView: View {
                 LimitedLibraryPicker { limitedPicker = false; library.refresh() }
                     .ignoresSafeArea()
             }
-            .sheet(isPresented: $library.sessionFinished, onDismiss: {
+            .fullScreenCover(isPresented: $focus) { FocusSwipeView().environmentObject(library) }
+            .sheet(isPresented: Binding(get: { library.sessionFinished && !focus }, set: { library.sessionFinished = $0 }), onDismiss: {
                 library.startNewSession()
                 if reviewAfterSession { reviewAfterSession = false; review = true }
             }) {
@@ -48,7 +50,7 @@ struct ContentView: View {
                     library.sessionFinished = false
                 }.environmentObject(library)
             }
-            .alert("Fotoswipe", isPresented: Binding(get: { library.message != nil && !review && !library.sessionFinished }, set: { if !$0 { library.message = nil } })) {
+            .alert("Fotoswipe", isPresented: Binding(get: { library.message != nil && !review && !library.sessionFinished && !focus }, set: { if !$0 { library.message = nil } })) {
                 Button("OK") { library.message = nil }
             } message: { Text(library.message ?? "") }
             .onChange(of: scenePhase) { _, phase in
@@ -66,13 +68,22 @@ struct ContentView: View {
                 let days = library.streak.current()
                 HStack(spacing: 5) {
                     Image(systemName: "flame.fill")
-                    Text(days == 1 ? "1 dag" : "\(days) dagen")
+                    Text("\(days)").monospacedDigit()
                 }
                 .font(.subheadline.weight(.heavy)).foregroundStyle(Palette.ink)
                 .padding(.horizontal, 12).padding(.vertical, 7)
                 .pop(radius: 18, fill: days > 0 ? Palette.reward : Palette.surface, shadow: 2)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Reeks: \(days) dagen. Eén dag overslaan mag.")
+            }
+            if library.hasAccess {
+                Button { focus = true } label: {
+                    Label("Focus", systemImage: "arrow.up.left.and.arrow.down.right").font(.subheadline.weight(.heavy))
+                        .foregroundStyle(.white).padding(.horizontal, 12).frame(minHeight: 36)
+                        .pop(radius: 18, fill: Palette.brand, shadow: 2)
+                }
+                .disabled(library.loading || library.current == nil)
+                .accessibilityLabel("Focusmodus: alleen de foto, volledig scherm")
             }
             Button { info = true } label: { Image(systemName: "info.circle").font(.title3).frame(width: 44, height: 44) }
                 .foregroundStyle(Palette.ink).accessibilityLabel("Over Fotoswipe")
@@ -623,5 +634,342 @@ struct SessionEndView: View {
                 }
             }
         }
+    }
+}
+
+/// Full-screen focus mode: only the photo, colour at the edge, controls on demand.
+/// Gestures: right keep, left set aside, up later, down undo, double tap favourite, hold to zoom.
+struct FocusSwipeView: View {
+    @EnvironmentObject private var library: PhotoLibrary
+    @Environment(\.dismiss) private var dismiss
+    @State private var controlsVisible = false
+    @State private var hideTask: Task<Void, Never>?
+    @State private var review = false
+    @State private var reviewAfterSession = false
+    @State private var preview: PHAsset?
+    @State private var guide = false
+    @AppStorage("fotoswipe.focusGuideSeen") private var guideSeen = false
+
+    var body: some View {
+        ZStack {
+            Palette.ink.ignoresSafeArea()
+            if library.current != nil && !library.loading {
+                ZStack {
+                    ForEach(Array(library.deck.reversed()), id: \.localIdentifier) { asset in
+                        FocusCard(
+                            asset: asset, pipeline: library.imagePipeline,
+                            depth: library.deck.firstIndex(where: { $0.localIdentifier == asset.localIdentifier }) ?? 0,
+                            revision: library.deckRevision, command: library.swipeCommand,
+                            disabled: library.deleting || library.loading || library.mutating,
+                            onTap: { toggleControls() },
+                            onDoubleTap: { library.toggleFavorite() },
+                            onOpen: { preview = asset },
+                            onUndo: { library.undo() }
+                        ) { choice, id, revision in library.decide(choice, expectedID: id, expectedRevision: revision) }
+                    }
+                }
+                .id(library.deckRevision)
+                .ignoresSafeArea()
+            } else if library.loading {
+                ProgressView().tint(.white)
+            } else {
+                VStack(spacing: 14) {
+                    Image(systemName: "checkmark.seal.fill").font(.system(size: 52)).foregroundStyle(Palette.reward)
+                    Text("Alles bekeken").font(.system(.title, design: .rounded).weight(.heavy)).foregroundStyle(.white)
+                    Text("Kies een andere categorie op het hoofdscherm.").foregroundStyle(.white.opacity(0.8))
+                    Button("Terug naar overzicht") { dismiss() }.buttonStyle(SecondaryStyle())
+                }.padding(24)
+            }
+            overlay
+        }
+        .statusBarHidden(true)
+        .persistentSystemOverlays(.hidden)
+        .sheet(isPresented: $review) { ReviewView().environmentObject(library) }
+        .sheet(item: Binding(get: { preview.map(FocusPreview.init) }, set: { preview = $0?.asset })) { item in
+            AssetPreviewView(asset: item.asset, manager: library.images)
+        }
+        .sheet(isPresented: $guide, onDismiss: { guideSeen = true }) { GestureGuideView() }
+        .sheet(isPresented: $library.sessionFinished, onDismiss: {
+            library.startNewSession()
+            if reviewAfterSession { reviewAfterSession = false; review = true }
+        }) {
+            SessionEndView { openReview in
+                reviewAfterSession = openReview
+                library.sessionFinished = false
+            }.environmentObject(library)
+        }
+        .onAppear { if !guideSeen { guide = true } }
+        .onDisappear { hideTask?.cancel() }
+    }
+
+    private var overlay: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark").font(.system(size: 15, weight: .heavy)).foregroundStyle(.white)
+                        .frame(width: 44, height: 44).background(Circle().fill(Palette.ink.opacity(0.72)))
+                }.accessibilityLabel("Focusmodus sluiten")
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Palette.ink.opacity(0.45))
+                        Capsule().fill(Palette.reward).frame(width: geometry.size.width * library.session.progress)
+                    }
+                }.frame(height: 6)
+                Text("\(library.session.count)/\(ReviewSession.size)").font(.footnote.weight(.heavy)).monospacedDigit()
+                    .foregroundStyle(.white).padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(Capsule().fill(Palette.ink.opacity(0.72)))
+            }
+            .padding(.horizontal, 14).padding(.top, 6)
+            .accessibilityElement(children: .contain)
+            Spacer()
+            if let asset = library.current {
+                HStack {
+                    VStack(alignment: .leading, spacing: 1) {
+                        HStack(spacing: 5) {
+                            if library.isFavorite(asset) { Image(systemName: "heart.fill").foregroundStyle(Palette.trash) }
+                            Text(asset.creationDate?.formatted(date: .long, time: .omitted) ?? "Zonder datum").font(.subheadline.weight(.heavy))
+                        }
+                        Text(asset.mediaType == .video ? "Video · \(ByteText.format(PhotoLibrary.fileSize(asset)))" : "Foto · \(ByteText.format(PhotoLibrary.fileSize(asset)))")
+                            .font(.caption.weight(.semibold)).opacity(0.85)
+                    }
+                    .foregroundStyle(.white).padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Palette.ink.opacity(0.72)))
+                    Spacer()
+                }.padding(.horizontal, 14).padding(.bottom, 12).allowsHitTesting(false)
+            }
+            if controlsVisible {
+                SwipeControls(pipeline: library.imagePipeline).environmentObject(library)
+                    .padding(.bottom, 10)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .simultaneousGesture(TapGesture().onEnded { scheduleHide() })
+            }
+            Button { review = true } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "tray.full.fill").foregroundStyle(Palette.trash)
+                    Text("\(library.pending.count) weg")
+                    if library.pendingBytes > 0 { Text("· \(ByteText.format(library.pendingBytes))") }
+                }
+                .font(.subheadline.weight(.heavy)).foregroundStyle(Palette.ink)
+                .padding(.horizontal, 16).frame(minHeight: 44)
+                .pop(radius: 22, fill: Palette.surface, shadow: 3)
+            }
+            .accessibilityLabel("\(library.pending.count) weggelegd. Bekijken")
+            .padding(.bottom, 12)
+        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.9), value: controlsVisible)
+    }
+
+    private func toggleControls() {
+        controlsVisible.toggle()
+        if controlsVisible { scheduleHide() } else { hideTask?.cancel() }
+    }
+    private func scheduleHide() {
+        hideTask?.cancel()
+        hideTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3))
+            if !Task.isCancelled { controlsVisible = false }
+        }
+    }
+    private struct FocusPreview: Identifiable {
+        let asset: PHAsset
+        var id: String { asset.localIdentifier }
+    }
+}
+
+/// One full-screen card. The photo follows the finger 1:1; the screen edge shows the outcome in peripheral vision.
+private struct FocusCard: View {
+    let asset: PHAsset
+    @ObservedObject var pipeline: SwipeImagePipeline
+    let depth: Int
+    let revision: UUID
+    let command: SwipeCommand?
+    let disabled: Bool
+    let onTap: () -> Void
+    let onDoubleTap: () -> Void
+    let onOpen: () -> Void
+    let onUndo: () -> Void
+    let onCommit: (PhotoDecision, String, UUID) -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var drag: CGSize = .zero
+    @State private var exiting = false
+    @State private var zoomed = false
+    @State private var armed: FocusGesture = .none
+    private var isTop: Bool { depth == 0 }
+
+    var body: some View {
+        GeometryReader { geometry in
+            let size = geometry.size
+            let intent = isTop ? FocusGesture.preview(dx: drag.width, dy: drag.height, width: size.width, height: size.height) : .none
+            ZStack {
+                Palette.ink
+                BufferedAssetImage(asset: asset, pipeline: pipeline)
+                    .scaleEffect(zoomed ? 2.2 : 1)
+                    .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85), value: zoomed)
+                if asset.mediaType == .video && isTop && pipeline.isReady(asset.localIdentifier) {
+                    Button(action: onOpen) {
+                        Image(systemName: "play.circle.fill").font(.system(size: 64)).foregroundStyle(.white)
+                    }.accessibilityLabel("Video afspelen")
+                }
+                if isTop { stamp(for: intent).allowsHitTesting(false) }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: isTop && drag != .zero ? 28 : 0))
+            .offset(isTop ? drag : .zero)
+            .rotationEffect(.degrees(reduceMotion || !isTop ? 0 : Double(drag.width / 26)), anchor: .bottom)
+            .overlay(alignment: .leading) { edge(Palette.trash, active: isTop && drag.width < 0, strength: -drag.width / max(65, size.width * 0.23)) }
+            .overlay(alignment: .trailing) { edge(Palette.keep, active: isTop && drag.width > 0, strength: drag.width / max(65, size.width * 0.23)) }
+            .contentShape(Rectangle())
+            .allowsHitTesting(isTop && !disabled && !exiting)
+            .onTapGesture(count: 2) { if isTop { Haptics.threshold(); onDoubleTap() } }
+            .onTapGesture { if isTop { onTap() } }
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.3, maximumDistance: 8)
+                    .sequenced(before: DragGesture(minimumDistance: 0))
+                    .onChanged { value in
+                        if case .second(true, _) = value, isTop, drag == .zero, !zoomed { zoomed = true }
+                    }
+                    .onEnded { _ in zoomed = false })
+            .gesture(DragGesture(minimumDistance: 8)
+                .onChanged { value in
+                    guard isTop, !disabled, !exiting else { return }
+                    zoomed = false
+                    drag = value.translation
+                    let now = FocusGesture.preview(dx: drag.width, dy: drag.height, width: size.width, height: size.height)
+                    if now != armed {
+                        armed = now
+                        if now != .none { Haptics.threshold() }
+                    }
+                }
+                .onEnded { value in
+                    guard isTop, !disabled, !exiting else { return }
+                    let result = FocusGesture.classify(dx: value.translation.width, dy: value.translation.height,
+                                                       predictedDX: value.predictedEndTranslation.width,
+                                                       predictedDY: value.predictedEndTranslation.height,
+                                                       width: size.width, height: size.height)
+                    armed = .none
+                    switch result {
+                    case .keep: commit(.keep, size: size)
+                    case .trash: commit(.trash, size: size)
+                    case .later: commit(.later, size: size)
+                    case .undo:
+                        reset()
+                        onUndo()
+                    case .none: reset()
+                    }
+                })
+            .onChange(of: command?.id) { _, _ in
+                guard isTop, let command, command.assetID == asset.localIdentifier else { return }
+                commit(command.choice, size: size)
+            }
+            .onChange(of: isTop) { _, _ in drag = .zero; exiting = false; zoomed = false; armed = .none }
+            .accessibilityElement(children: .ignore)
+            .accessibilityHidden(!isTop)
+            .accessibilityLabel("Item van \(asset.creationDate?.formatted(date: .long, time: .omitted) ?? "onbekende datum")")
+            .accessibilityHint("Veeg naar rechts om te bewaren, naar links om weg te leggen, omhoog voor later.")
+            .accessibilityAction(named: Text("Bewaren")) { commit(.keep, size: size) }
+            .accessibilityAction(named: Text("Wegleggen")) { commit(.trash, size: size) }
+            .accessibilityAction(named: Text("Later beslissen")) { commit(.later, size: size) }
+            .accessibilityAction(named: Text("Vorige terug")) { onUndo() }
+            .accessibilityAction(named: Text(asset.mediaType == .video ? "Video afspelen" : "Knoppen tonen")) {
+                if asset.mediaType == .video { onOpen() } else { onTap() }
+            }
+        }
+        .zIndex(Double(3 - depth))
+    }
+
+    @ViewBuilder private func stamp(for intent: FocusGesture) -> some View {
+        let label: (String, Color, Color)? = {
+            switch intent {
+            case .keep: return ("BEWAREN", Palette.keep, .white)
+            case .trash: return ("WEGLEGGEN", Palette.trash, Palette.ink)
+            case .later: return ("LATER", Palette.reward, Palette.ink)
+            case .undo: return ("VORIGE TERUG", Palette.surface, Palette.ink)
+            case .none: return nil
+            }
+        }()
+        if let label {
+            Text(label.0)
+                .font(.system(size: 30, weight: .heavy, design: .rounded)).tracking(1)
+                .foregroundStyle(label.2)
+                .padding(.horizontal, 18).padding(.vertical, 10)
+                .pop(radius: 14, fill: label.1, shadow: 4)
+                .rotationEffect(.degrees(intent == .keep ? -10 : (intent == .trash ? 10 : 0)))
+                .transition(.scale(scale: 0.8).combined(with: .opacity))
+        }
+    }
+
+    private func edge(_ color: Color, active: Bool, strength: CGFloat) -> some View {
+        Rectangle().fill(color)
+            .frame(width: 22)
+            .opacity(active ? Double(min(max(strength, 0), 1)) : 0)
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+    }
+
+    private func reset() {
+        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { drag = .zero }
+    }
+
+    private func commit(_ choice: PhotoDecision, size: CGSize) {
+        guard isTop, !disabled, !exiting else { return }
+        guard choice == .later || pipeline.isReady(asset.localIdentifier) else { reset(); return }
+        exiting = true
+        let id = asset.localIdentifier
+        if reduceMotion { onCommit(choice, id, revision); return }
+        let target: CGSize
+        switch choice {
+        case .keep: target = CGSize(width: max(size.width * 1.6, 700), height: drag.height)
+        case .trash: target = CGSize(width: -max(size.width * 1.6, 700), height: drag.height)
+        case .later: target = CGSize(width: drag.width, height: -max(size.height * 1.3, 1000))
+        }
+        withAnimation(.easeOut(duration: 0.14), completionCriteria: .logicallyComplete) {
+            drag = target
+        } completion: {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { onCommit(choice, id, revision) }
+        }
+    }
+}
+
+/// Shown once on first use of focus mode; also reachable from the info screen.
+struct GestureGuideView: View {
+    @Environment(\.dismiss) private var dismiss
+    private struct Row: Identifiable {
+        let icon: String, gesture: String, result: String, fill: Color, tint: Color
+        var id: String { gesture }
+    }
+    private let rows: [Row] = [
+        Row(icon: "arrow.right", gesture: "Naar rechts", result: "Bewaren", fill: Palette.keep, tint: .white),
+        Row(icon: "arrow.left", gesture: "Naar links", result: "Wegleggen voor controle", fill: Palette.trash, tint: Palette.ink),
+        Row(icon: "arrow.up", gesture: "Omhoog", result: "Later beslissen", fill: Palette.reward, tint: Palette.ink),
+        Row(icon: "arrow.down", gesture: "Omlaag", result: "Vorige terug", fill: Palette.surface, tint: Palette.ink),
+        Row(icon: "heart", gesture: "Dubbeltik", result: "Favoriet in Foto's", fill: Palette.surface, tint: Palette.ink),
+        Row(icon: "plus.magnifyingglass", gesture: "Vasthouden", result: "Inzoomen, loslaten is terug", fill: Palette.surface, tint: Palette.ink),
+        Row(icon: "hand.tap", gesture: "Eén tik", result: "Knoppen tonen", fill: Palette.surface, tint: Palette.ink)
+    ]
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Zo swipe je").font(.system(size: 32, weight: .heavy, design: .rounded)).padding(.top, 28)
+                Text("Alles met één duim. Je vindt dit later ook onder het i-knopje.").foregroundStyle(Palette.muted)
+                ForEach(rows) { row in
+                    HStack(spacing: 14) {
+                        Image(systemName: row.icon).font(.system(size: 20, weight: .heavy)).foregroundStyle(row.tint)
+                            .frame(width: 46, height: 46)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(row.fill))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.ink, lineWidth: 2))
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(row.gesture).font(.headline.weight(.heavy))
+                            Text(row.result).font(.subheadline).foregroundStyle(Palette.muted)
+                        }
+                        Spacer()
+                    }
+                    .padding(12).pop(radius: 16, fill: Palette.surface, shadow: 3)
+                    .accessibilityElement(children: .combine)
+                }
+                Button("Begin met swipen") { dismiss() }.buttonStyle(PrimaryStyle()).padding(.top, 8).padding(.bottom, 24)
+            }.padding(.horizontal, 22).foregroundStyle(Palette.ink)
+        }
+        .background(Palette.background.ignoresSafeArea())
     }
 }

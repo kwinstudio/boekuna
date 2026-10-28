@@ -316,3 +316,30 @@ final class EngagementTests: XCTestCase {
     }
 }
 
+final class FocusGestureTests: XCTestCase {
+    private let w: CGFloat = 393, h: CGFloat = 852
+    private func classify(_ dx: CGFloat, _ dy: CGFloat, _ pdx: CGFloat? = nil, _ pdy: CGFloat? = nil) -> FocusGesture {
+        FocusGesture.classify(dx: dx, dy: dy, predictedDX: pdx ?? dx, predictedDY: pdy ?? dy, width: w, height: h)
+    }
+    func testHorizontalSwipesKeepOrSetAside() {
+        XCTAssertEqual(classify(120, 10), .keep)
+        XCTAssertEqual(classify(-120, -30), .trash)
+        XCTAssertEqual(classify(40, 0), .none)
+    }
+    func testFastFlickCountsEvenWhenShort() {
+        XCTAssertEqual(classify(30, 0, 400, 0), .keep)
+        XCTAssertEqual(classify(-30, 0, -400, 0), .trash)
+        XCTAssertEqual(classify(10, 0, 400, 0), .none)
+    }
+    func testVerticalSwipesLaterAndUndo() {
+        XCTAssertEqual(classify(10, -160), .later)
+        XCTAssertEqual(classify(-5, 160), .undo)
+        XCTAssertEqual(classify(0, -40, 0, -500), .later)
+        XCTAssertEqual(classify(0, 60), .none)
+    }
+    func testDiagonalUsesDominantAxis() {
+        XCTAssertEqual(classify(140, -100), .keep)
+        XCTAssertEqual(classify(80, -170), .later)
+    }
+}
+

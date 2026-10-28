@@ -234,3 +234,25 @@ enum SwipeCommitPolicy {
     /// A previously issued, visible-card swipe may finish during a metadata-only write.
     static func canFinish(deleting: Bool, loading: Bool, mutating: Bool) -> Bool { !deleting && !loading }
 }
+
+/// Focus mode: the whole photo is the target. Direction decides, a fast flick also counts.
+enum FocusGesture: Equatable {
+    case keep, trash, later, undo, none
+    static func classify(dx: CGFloat, dy: CGFloat, predictedDX: CGFloat, predictedDY: CGFloat,
+                         width: CGFloat, height: CGFloat) -> FocusGesture {
+        if abs(dx) >= abs(dy) {
+            let threshold = max(65, width * 0.23)
+            if abs(dx) > threshold { return dx > 0 ? .keep : .trash }
+            if abs(dx) > 18 && abs(predictedDX) > width * 0.65 { return predictedDX > 0 ? .keep : .trash }
+            return .none
+        }
+        let threshold = max(90, height * 0.14)
+        if dy < -threshold || (dy < -18 && predictedDY < -height * 0.45) { return .later }
+        if dy > threshold || (dy > 18 && predictedDY > height * 0.45) { return .undo }
+        return .none
+    }
+    /// Live feedback while dragging, before release.
+    static func preview(dx: CGFloat, dy: CGFloat, width: CGFloat, height: CGFloat) -> FocusGesture {
+        classify(dx: dx, dy: dy, predictedDX: dx, predictedDY: dy, width: width, height: height)
+    }
+}
