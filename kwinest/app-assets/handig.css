@@ -1,0 +1,54 @@
+/* BOEKUNA handig — styling for the small tricks in handig.js (swipe in lists, hints, shortcut list). */
+.boekuna-handig .mobile-card-row.bk-swiping{position:relative;overflow:hidden}
+.boekuna-handig .mobile-card-row.bk-swiping>.mobile-card-main,.boekuna-handig .mobile-card-row.bk-swiping>.mobile-card-side{position:relative;z-index:1;will-change:transform}
+.bk-swipe-back{position:absolute;inset:0;z-index:0;pointer-events:none}
+.bk-swipe-back span{position:absolute;top:0;bottom:0;display:flex;align-items:center;overflow:hidden;white-space:nowrap;font-weight:650;font-size:14px;color:#fff;width:var(--bk-dx,0px)}
+.bk-swipe-r{left:0;justify-content:flex-start;padding-left:16px;background:#1F8A5B}
+.bk-swipe-l{right:0;justify-content:flex-end;padding-right:16px;background:#5B6770}
+.mobile-card-row[data-bk-tone="danger"] .bk-swipe-l{background:#D23F3F}
+.mobile-card-row:not(.bk-swipe-right) .bk-swipe-r,.mobile-card-row:not(.bk-swipe-left) .bk-swipe-l{visibility:hidden}
+.bk-swipe-back span{opacity:.75;transition:opacity .12s}
+.mobile-card-row.bk-swipe-armed .bk-swipe-back span{opacity:1}
+.bk-hint{margin-top:4px}
+.bk-keys{display:grid;gap:8px;min-width:240px}
+.bk-key-row{display:flex;align-items:center;gap:12px}
+.bk-key-row kbd{min-width:38px;text-align:center;font:600 13px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;border:1px solid var(--line,#DDE3E7);border-bottom-width:2px;border-radius:7px;padding:1px 8px;background:var(--app-white,#fff)}
+@media (prefers-reduced-motion:reduce){.boekuna-handig .mobile-card-row>.mobile-card-main,.boekuna-handig .mobile-card-row>.mobile-card-side{transition:none!important}}
+/* 17 dates in plain words */
+.bk-date-wrap{position:relative;display:block}
+.bk-date-wrap>input:not(.bk-date-native){padding-right:44px}
+.bk-date-pick{position:absolute;top:0;right:0;bottom:0;width:44px;display:flex;align-items:center;justify-content:center;color:var(--muted,#6B757C);overflow:hidden}
+.bk-date-pick[hidden]{display:none}
+.bk-date-native{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0;margin:0}
+.bk-date-native::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:100%;height:100%;cursor:pointer}
+.bk-date-read{margin-top:4px}
+@media (max-width:820px){
+  #modalRoot .expense-date-field:not(.show-date) .bk-date-wrap{display:none!important}
+  #modalRoot .expense-date-field.show-date .bk-date-wrap{margin-top:8px}
+  #modalRoot .expense-date-field .bk-date-wrap input[type="date"]{display:block!important;margin:0!important}
+}
+/* 20 tap to copy IBAN / btw-nummer */
+.bk-copy{all:unset;cursor:copy;border-bottom:1px dotted currentColor;border-radius:2px;transition:background-color .2s}
+.bk-copy:focus-visible{outline:2px solid #63D471;outline-offset:2px}
+.bk-copy.is-copied{background:rgba(99,212,113,.22)}
+/* 21 hold to send */
+.bk-holding{position:relative;overflow:hidden}
+.bk-holding::after{content:"";position:absolute;inset:0;background:rgba(255,255,255,.28);transform-origin:left;animation:bk-hold var(--bk-hold,650ms) linear forwards;pointer-events:none}
+@keyframes bk-hold{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.bk-hold-hint{flex-basis:100%;width:100%;text-align:center;font-size:13px;color:var(--muted,#6B757C);margin-top:6px;opacity:0}
+.bk-hold-hint.is-shown{animation:bk-hint 2.4s ease forwards}
+@keyframes bk-hint{0%,80%{opacity:1}100%{opacity:0}}
+/* 23 with or without btw in lists */
+.bk-vat-flip{cursor:pointer;border-radius:6px}
+.bk-vat-flip:focus-visible{outline:2px solid #63D471;outline-offset:2px}
+.bk-exvat{margin-left:4px;font-size:11px;font-weight:600;color:var(--muted,#6B757C);letter-spacing:.02em}
+/* 27 same as last time */
+.bk-again{margin-top:8px}
+/* 29 a cost in one sentence */
+.bk-quick-cost{display:grid;gap:8px}
+.bk-quick-row{display:flex;gap:8px;align-items:center}
+.bk-quick-row .bk-quick-input{flex:1;min-width:0}
+.bk-mic{flex:none;width:48px;height:48px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:999px}
+.bk-mic.is-listening{background:#D23F3F;color:#fff;border-color:#D23F3F;animation:bk-pulse 1.2s ease-in-out infinite}
+@keyframes bk-pulse{50%{box-shadow:0 0 0 8px rgba(210,63,63,.18)}}
+@media (prefers-reduced-motion:reduce){.bk-holding::after{animation:none;transform:scaleX(1)}.bk-mic.is-listening{animation:none}.bk-hold-hint.is-shown{animation:none;opacity:1}}

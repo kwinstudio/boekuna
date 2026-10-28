@@ -32,6 +32,8 @@ on:
       - "kwinest/app-assets/app-PlayfairDisplay-latin.woff2"
       - "kwinest/app-assets/motion.*"
       - "kwinest/app-assets/press.*"
+      - "kwinest/app-assets/handig.*"
+      - "tests/handig-browser.test.mjs"
       - "kwinest/app-assets/app-*.woff2"
       - "tests/press-browser.test.mjs"
       - "public/assets/personal-insights-ui.js"
@@ -273,6 +275,10 @@ jobs:
         run: |
           node tests/press-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/press-browser.test.mjs
+      - name: Handige trucjes (toetsenbord, bedragen, vegen, vasthouden, sneltoetsen, zoeken met tikfouten) — Chromium and WebKit
+        run: |
+          node tests/handig-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/handig-browser.test.mjs
       - name: Intro bij opstarten (max 2,5 s, traag laden, reduced motion) — Chromium and WebKit
         run: |
           node tests/boot-intro-browser.test.mjs
