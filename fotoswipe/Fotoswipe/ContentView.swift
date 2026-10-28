@@ -125,7 +125,7 @@ struct ContentView: View {
                 Button("Open Instellingen") { openSettings() }.buttonStyle(PrimaryStyle())
             }
             Spacer()
-            Text("Geen login. Geen abonnement. Geen eigen server.")
+            Text("Geen reclame. Geen abonnement. Geen swipe-limiet.\nAlles blijft op je iPhone.").multilineTextAlignment(.center)
                 .font(.caption).foregroundStyle(Palette.muted).padding(.bottom, 20)
         }.foregroundStyle(Palette.ink)
     }

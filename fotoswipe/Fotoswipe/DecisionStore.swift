@@ -125,7 +125,12 @@ enum SizeEstimate {
 
 /// One short, finishable session: progress toward a small goal keeps swiping fast.
 struct ReviewSession: Equatable {
-    static let size = 30
+    static let sizes = [15, 30, 50]
+    /// People asked for their own batch size; 30 is the default.
+    static var size: Int {
+        let stored = UserDefaults.standard.integer(forKey: "fotoswipe.sessionSize")
+        return sizes.contains(stored) ? stored : 30
+    }
     private(set) var kept: [String] = []
     private(set) var trashed: [String] = []
     private(set) var later: [String] = []
@@ -254,8 +259,11 @@ enum FocusGesture: Equatable {
     /// Live feedback while dragging, before release.
     static func preview(dx: CGFloat, dy: CGFloat, width: CGFloat, height: CGFloat) -> FocusGesture {
         classify(dx: dx, dy: dy, predictedDX: dx, predictedDY: dy, width: width, height: height)
-/// Per-photo quality from an on-device thumbnail. Never persisted or uploaded.
-struct PhotoQuality: Sendable, Equatable {
+    }
+}
+
+/// Per-photo quality from an on-device thumbnail. Only these numbers are cached on the device; never images, never uploaded.
+struct PhotoQuality: Sendable, Equatable, Codable {
     /// Variance of the Laplacian on a small grayscale thumbnail (0...1 intensities). Low = soft or blurred.
     let sharpness: Double
     /// Apple's aesthetics score (-1...1), iOS 18 and later; nil on iOS 17.

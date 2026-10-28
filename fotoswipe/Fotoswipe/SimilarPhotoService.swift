@@ -5,7 +5,7 @@ import Combine
 import Vision
 
 /// Transient descriptors only; never persisted or uploaded.
-struct SimilarPhotoDescriptor: Sendable {
+struct SimilarPhotoDescriptor: Sendable, Codable {
     let id: String
     let date: Date
     let hash: UInt64
@@ -217,7 +217,24 @@ struct SimilarPhotoGroup: Identifiable {
     }
     private final class ImageBox { var image: CGImage? }
 
-    /// `assets` should be ordered newest first; only the first `limit` photos are scanned.
+    /// Remembered results (numbers only) so a scan never starts over: only new photos are analysed.
+    private struct Cache: Codable {
+        var quality: [String: PhotoQuality] = [:]
+        var descriptors: [String: SimilarPhotoDescriptor] = [:]
+    }
+    private var cache = Cache()
+    private static var cacheURL: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Fotoswipe", isDirectory: true).appendingPathComponent("smart-scan.json")
+    }
+
+    init() {
+        if let data = try? Data(contentsOf: Self.cacheURL), let saved = try? JSONDecoder().decode(Cache.self, from: data) {
+            cache = saved
+        }
+    }
+
+    /// `assets` should be ordered newest first; only the first `limit` photos are considered.
     func start(_ assets: [PHAsset], favorites: Set<String>) {
         guard !scanning else { return }
         task?.cancel()
@@ -228,7 +245,10 @@ struct SimilarPhotoGroup: Identifiable {
                   favorite: favorites.contains(asset.localIdentifier))
         }
         let list = Array(inputs)
-        scanning = true; finished = false; processed = 0; total = list.count
+        let known = cache
+        let toScan = list.filter { known.quality[$0.id] == nil }
+        scanning = true; finished = false; processed = 0; total = toScan.count
+        let url = Self.cacheURL
         task = Task.detached(priority: .utility) { [weak self] in
             let manager = PHImageManager.default()
             let options = PHImageRequestOptions()
@@ -236,33 +256,34 @@ struct SimilarPhotoGroup: Identifiable {
             options.isNetworkAccessAllowed = false
             options.deliveryMode = .highQualityFormat
             options.resizeMode = .fast
-            var descriptors: [SimilarPhotoDescriptor] = []
-            var quality: [String: PhotoQuality] = [:]
-            var reasons: [String: ClutterReason] = [:]
-            for (index, input) in list.enumerated() {
+            var quality = known.quality
+            var descriptorByID = known.descriptors
+            for (index, input) in toScan.enumerated() {
                 if Task.isCancelled { return }
                 let box = ImageBox()
                 autoreleasepool {
                     manager.requestImage(for: input.asset, targetSize: CGSize(width: 256, height: 256),
                                          contentMode: .aspectFit, options: options) { result, _ in box.image = result?.cgImage }
                 }
-                var measured: PhotoQuality?
                 if let image = box.image {
                     if let descriptor = await SimilarPhotoService.describe(image, id: input.id, date: input.date, aspect: input.aspect) {
-                        descriptors.append(descriptor)
+                        descriptorByID[input.id] = descriptor
                     }
-                    let value = await SmartScanner.measure(image)
-                    quality[input.id] = value
-                    measured = value
+                    quality[input.id] = await SmartScanner.measure(image)
                 }
-                if let reason = ClutterReason.classify(isScreenshot: input.screenshot, isFavorite: input.favorite, quality: measured) {
-                    reasons[input.id] = reason
-                }
-                if index % 20 == 19 || index == list.count - 1 {
+                if index % 20 == 19 || index == toScan.count - 1 {
                     let done = index + 1
                     await MainActor.run { self?.processed = done }
                 }
             }
+            var reasons: [String: ClutterReason] = [:]
+            for input in list {
+                if let reason = ClutterReason.classify(isScreenshot: input.screenshot, isFavorite: input.favorite, quality: quality[input.id]) {
+                    reasons[input.id] = reason
+                }
+            }
+            let ids = Set(list.map(\.id))
+            let descriptors = list.compactMap { descriptorByID[$0.id] }
             let groups = SimilarPhotoGrouping.groups(descriptors, isCancelled: { Task.isCancelled })
             let order = list.map(\.id)
             let rank = Dictionary(order.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
@@ -275,13 +296,20 @@ struct SimilarPhotoGroup: Identifiable {
                     return l == r ? lhs.offset < rhs.offset : l < r
                 }
                 .map(\.element)
+            // Keep the cache small: only photos that are still candidates.
+            let saved = Cache(quality: quality.filter { ids.contains($0.key) }, descriptors: descriptorByID.filter { ids.contains($0.key) })
+            if let data = try? JSONEncoder().encode(saved) {
+                try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try? data.write(to: url, options: .atomic)
+            }
             await MainActor.run {
                 guard let self else { return }
-                self.quality = quality
+                self.cache = saved
+                self.quality = saved.quality
                 self.reasons = reasons
                 self.stacks = sortedStacks
                 self.clutter = clutterIDs
-                self.processed = list.count
+                self.processed = toScan.count
                 self.scanning = false
                 self.finished = true
                 self.task = nil

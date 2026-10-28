@@ -87,9 +87,17 @@ struct InfoView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var library: PhotoLibrary
     @ObservedObject private var reminders = Reminders.shared
+    @AppStorage("fotoswipe.sessionSize") private var sessionSize = 30
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    Picker("Items per sessie", selection: $sessionSize) {
+                        ForEach(ReviewSession.sizes, id: \.self) { size in Text("\(size)").tag(size) }
+                    }.pickerStyle(.segmented)
+                } header: { Text("Sessie") } footer: {
+                    Text("Kort en vaak werkt het best. Je keuzes blijven bewaard, dus je gaat altijd verder waar je was.")
+                }
                 Section {
                     Toggle("Dagelijkse herinnering", isOn: Binding(get: { reminders.enabled }, set: { on in
                         reminders.setEnabled(on) { library.rescheduleReminders() }
@@ -131,7 +139,10 @@ struct InfoView: View {
                     Text("Als je iCloud-items gebruikt, geldt verwijderen ook voor je andere gekoppelde apparaten.")
                     Text("Verwijder nooit items die je nog nodig hebt zonder een eigen back-up.")
                 }
-                Section { Text("Fotoswipe 1.0 · testversie").foregroundStyle(Palette.muted) }
+                Section("Feedback") {
+                    Text("Iets raars gezien of een idee? Maak een screenshot in Fotoswipe en kies 'Deel bèta-feedback'. Of open TestFlight, kies Fotoswipe en tik op 'Stuur bèta-feedback'.")
+                }
+                Section { Text("Fotoswipe 1.0 · testversie · geen reclame, geen abonnement, geen limiet").foregroundStyle(Palette.muted) }
             }.navigationTitle("Over Fotoswipe").navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Klaar") { dismiss() } } }
         }
