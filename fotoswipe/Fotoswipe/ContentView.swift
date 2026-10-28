@@ -8,6 +8,8 @@ struct ContentView: View {
     @State private var info = false
     @State private var limitedPicker = false
     @State private var categoryPicker = false
+    @State private var tool: MediaTool?
+    @State private var comparing = false
 
     var body: some View {
         NavigationStack {
@@ -21,6 +23,15 @@ struct ContentView: View {
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $review) { ReviewView().environmentObject(library) }
             .sheet(isPresented: $info) { InfoView() }
+            .sheet(item: $tool) { destination in
+                switch destination {
+                case .album(let asset): AlbumDestinationView(asset: asset).environmentObject(library)
+                case .preview(let asset): AssetPreviewView(asset: asset, manager: library.images)
+                }
+            }
+            .sheet(isPresented: $comparing) {
+                SimilarPhotosView(assets: library.comparisonAssets, manager: library.images) { library.queueForReview($0) }
+            }
             .sheet(isPresented: $categoryPicker) { CategoryPickerView().environmentObject(library) }
             .sheet(isPresented: $limitedPicker, onDismiss: { library.refresh() }) {
                 LimitedLibraryPicker { limitedPicker = false; library.refresh() }
@@ -30,7 +41,7 @@ struct ContentView: View {
                 Button("OK") { library.message = nil }
             } message: { Text(library.message ?? "") }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active { library.refresh() }
+                if phase == .active { library.activate() }
                 else { library.finishPendingWrites() }
             }
         }
@@ -103,7 +114,22 @@ struct ContentView: View {
                 } label: { Label(library.order.title, systemImage: "arrow.up.arrow.down").font(.caption) }
                     .disabled(library.loading || library.deleting)
                 Spacer()
+                Menu {
+                    if let asset = library.current {
+                        Button { library.deferCurrent() } label: { Label("Later beslissen", systemImage: "bookmark") }
+                        Button { library.toggleFavorite() } label: {
+                            Label(library.isFavorite(asset) ? "Verwijder favoriet in Foto's" : "Maak favoriet in Foto's", systemImage: "star")
+                        }
+                        Button { tool = .album(asset) } label: { Label("Voeg toe aan album", systemImage: "rectangle.stack.badge.plus") }
+                        Button { tool = .preview(asset) } label: {
+                            Label(asset.mediaType == .video ? "Video afspelen" : "Foto groter bekijken", systemImage: asset.mediaType == .video ? "play.circle" : "arrow.up.left.and.arrow.down.right")
+                        }
+                    }
+                    Button { comparing = true } label: { Label("Vergelijkbare foto's", systemImage: "square.on.square") }
+                } label: { Label("Meer", systemImage: "ellipsis.circle").font(.subheadline) }
+                    .disabled(library.deleting || library.loading || library.mutating)
             }.foregroundStyle(Palette.muted)
+            if let status = library.status { Text(status).font(.caption).foregroundStyle(Palette.muted).accessibilityAddTraits(.updatesFrequently) }
             HStack {
                 Text("\(library.reviewed) van \(library.assets.count) bekeken")
                 Spacer()
@@ -113,16 +139,18 @@ struct ContentView: View {
                 .tint(Palette.muted).accessibilityLabel("Voortgang")
             if library.loading {
                 Spacer()
-                ProgressView("Je foto's ophalen…").tint(Palette.muted)
+                ProgressView("Je bibliotheek ophalen…").tint(Palette.muted)
                 Spacer()
             } else if library.current != nil {
                 ZStack {
                     ForEach(Array(library.deck.reversed()), id: \.localIdentifier) { asset in
                         SmoothSwipeCard(
-                            asset: asset, manager: library.images, revision: library.deckRevision,
+                            asset: asset, manager: library.images, pipeline: library.imagePipeline,
+                            favorite: library.isFavorite(asset), revision: library.deckRevision,
                             depth: library.deck.firstIndex(where: { $0.localIdentifier == asset.localIdentifier }) ?? 0,
                             command: library.swipeCommand,
-                            disabled: library.deleting || library.loading
+                            disabled: library.deleting || library.loading || library.mutating,
+                            onOpen: { tool = .preview(asset) }
                         ) { choice, id, revision in library.decide(choice, expectedID: id, expectedRevision: revision) }
                     }
                 }
@@ -130,22 +158,18 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .frame(minHeight: 160)
                 Text("← wegleggen     ·     bewaren →").font(.caption).foregroundStyle(Palette.muted)
-                HStack(spacing: 28) {
-                    circleButton("Laatste keuze ongedaan maken", icon: "arrow.uturn.backward", color: .gray.opacity(0.1), size: 46) { library.undo() }
-                        .disabled(!library.canUndo)
-                    circleButton("Foto wegleggen", icon: "xmark", color: Palette.coral) { library.requestSwipe(.trash) }
-                    circleButton("Foto bewaren", icon: "heart", color: Palette.sage) { library.requestSwipe(.keep) }
-                }.disabled(library.deleting)
+                SwipeControls(pipeline: library.imagePipeline).environmentObject(library)
+
             } else {
                 Spacer()
                 Image(systemName: library.assets.isEmpty ? "photo" : "sparkles").font(.system(size: 52)).foregroundStyle(Palette.muted)
-                Text(library.assets.isEmpty ? "Geen foto's in deze categorie" : "Alles bekeken.")
+                Text(library.assets.isEmpty ? "Geen items in deze categorie" : "Alles bekeken.")
                     .font(.largeTitle.bold()).foregroundStyle(Palette.ink)
                 Text(library.assets.isEmpty ? "Kies een andere categorie of pas je fototoegang aan." : "Deze categorie is klaar. Kies een andere categorie of controleer je selectie.")
                     .foregroundStyle(Palette.muted).multilineTextAlignment(.center)
                 if library.canUndo { Button("Laatste keuze terugzetten") { library.undo() }.buttonStyle(.bordered) }
                 if library.keptInCategory > 0 {
-                    Button("Bewaarde foto's opnieuw bekijken") { library.reviewKeptAgain() }.buttonStyle(.bordered)
+                    Button("Bewaarde items opnieuw bekijken") { library.reviewKeptAgain() }.buttonStyle(.bordered)
                 }
                 Button("Ververs bibliotheek") { library.refresh() }.font(.caption)
                 Spacer()
@@ -190,10 +214,13 @@ struct PrimaryStyle: ButtonStyle {
 private struct SmoothSwipeCard: View {
     let asset: PHAsset
     let manager: PHCachingImageManager
+    @ObservedObject var pipeline: SwipeImagePipeline
+    let favorite: Bool
     let revision: UUID
     let depth: Int
     let command: SwipeCommand?
     let disabled: Bool
+    let onOpen: () -> Void
     let onCommit: (PhotoDecision, String, UUID) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var offset: CGFloat = 0
@@ -203,14 +230,21 @@ private struct SmoothSwipeCard: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .bottomLeading) {
-                AssetImage(asset: asset, manager: manager)
+                BufferedAssetImage(asset: asset, pipeline: pipeline)
+                if asset.mediaType == .video && isTop && pipeline.isReady(asset.localIdentifier) {
+                    Button(action: onOpen) {
+                        Image(systemName: "play.circle.fill").font(.system(size: 60))
+                            .foregroundStyle(.white).shadow(radius: 8)
+                    }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                        .accessibilityLabel("Video afspelen")
+                }
                 LinearGradient(colors: [.clear, .black.opacity(0.65)], startPoint: .center, endPoint: .bottom)
                     .allowsHitTesting(false)
                 VStack(alignment: .leading, spacing: 5) {
-                    if asset.isFavorite { Label("Favoriet", systemImage: "heart.fill").font(.caption) }
+                    if favorite { Label("Favoriet", systemImage: "heart.fill").font(.caption) }
                     Text(asset.creationDate?.formatted(date: .long, time: .omitted) ?? "Zonder datum")
                         .font(.headline)
-                    Text("\(asset.pixelWidth) × \(asset.pixelHeight)").font(.caption).opacity(0.8)
+                    Text(asset.mediaType == .video ? "Video · \(Int(asset.duration) / 60):\(String(format: "%02d", Int(asset.duration) % 60))" : "\(asset.pixelWidth) × \(asset.pixelHeight)").font(.caption).opacity(0.8)
                 }.foregroundStyle(.white).padding(22).allowsHitTesting(false)
                 VStack {
                     Text(offset >= 0 ? "BEWAREN" : "WEGLEGGEN")
@@ -230,11 +264,11 @@ private struct SmoothSwipeCard: View {
             .allowsHitTesting(isTop && !disabled && !exiting)
             .gesture(DragGesture(minimumDistance: 5)
                 .onChanged { value in
-                    guard isTop, !disabled, !exiting else { return }
+                    guard isTop, !disabled, !exiting, pipeline.isReady(asset.localIdentifier) else { return }
                     offset = value.translation.width
                 }
                 .onEnded { value in
-                    guard isTop, !disabled, !exiting else { return }
+                    guard isTop, !disabled, !exiting, pipeline.isReady(asset.localIdentifier) else { return }
                     let distance = value.translation.width
                     let predicted = value.predictedEndTranslation.width
                     let threshold = max(65, geometry.size.width * 0.23)
@@ -252,17 +286,18 @@ private struct SmoothSwipeCard: View {
             .onChange(of: isTop) { _, _ in offset = 0; exiting = false }
             .accessibilityElement(children: .ignore)
             .accessibilityHidden(!isTop)
-            .accessibilityLabel("Foto van \(asset.creationDate?.formatted(date: .long, time: .omitted) ?? "onbekende datum")\(asset.isFavorite ? ", favoriet" : "")")
+            .accessibilityLabel("Item van \(asset.creationDate?.formatted(date: .long, time: .omitted) ?? "onbekende datum")\(favorite ? ", favoriet" : "")")
+            .accessibilityAction(named: Text(asset.mediaType == .video ? "Video afspelen" : "Groter bekijken")) { onOpen() }
             .accessibilityAction(named: Text("Bewaren")) { commit(.keep, width: geometry.size.width) }
             .accessibilityAction(named: Text("Wegleggen")) { commit(.trash, width: geometry.size.width) }
         }.zIndex(Double(3 - depth))
     }
     private func commit(_ choice: PhotoDecision, width: CGFloat) {
-        guard isTop, !disabled, !exiting else { return }
+        guard isTop, !disabled, !exiting, pipeline.isReady(asset.localIdentifier) else { return }
         exiting = true
         let id = asset.localIdentifier
         if reduceMotion { onCommit(choice, id, revision); return }
-        withAnimation(.easeOut(duration: 0.18), completionCriteria: .logicallyComplete) {
+        withAnimation(.easeOut(duration: 0.12), completionCriteria: .logicallyComplete) {
             offset = (choice == .keep ? 1 : -1) * max(width * 1.6, 600)
         } completion: {
             // The next card is already mounted with its decoded image.
@@ -292,13 +327,13 @@ private struct CategoryPickerView: View {
                 } header: { Text("Je albums") } footer: {
                     Text(library.authorization == .limited
                          ? "Bij beperkte fototoegang zijn sommige categorieën en albums niet beschikbaar. Via Wijzig of Instellingen pas je de toegang aan."
-                         : "Je albums komen uit Foto's. Alleen foto's en Live Photos worden getoond.")
+                         : "Je albums komen uit Foto's. Je kunt foto's, Live Photos en video's beoordelen.")
                 }
                 Section("Per maand") {
                     ForEach(filtered.filter(\.isMonth)) { category in row(category) }
                 }
                 Section {
-                    Text("Je keuzes blijven behouden als je wisselt. Weggelegde foto's uit alle categorieën controleer je samen in Bekijken.")
+                    Text("Je keuzes blijven behouden als je wisselt. Weggelegde items uit alle categorieën controleer je samen in Bekijken.")
                         .font(.footnote).foregroundStyle(Palette.muted)
                 }
             }
@@ -325,5 +360,37 @@ private struct CategoryPickerView: View {
                 }
             }.foregroundStyle(Palette.ink).padding(.vertical, 5)
         }.accessibilityAddTraits(category.id == library.selectedCategory.id ? .isSelected : [])
+    }
+}
+
+
+private enum MediaTool: Identifiable {
+    case album(PHAsset), preview(PHAsset)
+    var id: String {
+        switch self { case .album(let asset): return "album-" + asset.localIdentifier
+        case .preview(let asset): return "preview-" + asset.localIdentifier }
+    }
+}
+
+/// Only this child observes image-ready changes; no library-wide redraw on every decoded preview.
+private struct SwipeControls: View {
+    @EnvironmentObject private var library: PhotoLibrary
+    @ObservedObject var pipeline: SwipeImagePipeline
+    private var ready: Bool { library.current.map { pipeline.isReady($0.localIdentifier) } ?? false }
+    var body: some View {
+        HStack(spacing: 28) {
+            control("Laatste keuze ongedaan maken", icon: "arrow.uturn.backward", color: .gray.opacity(0.1), size: 46) { library.undo() }
+                .disabled(!library.canUndo || library.mutating)
+            control("Item wegleggen", icon: "xmark", color: Palette.coral, size: 64) { library.requestSwipe(.trash) }
+                .disabled(!ready || library.mutating)
+            control("Item bewaren", icon: "heart", color: Palette.sage, size: 64) { library.requestSwipe(.keep) }
+                .disabled(!ready || library.mutating)
+        }.disabled(library.deleting || library.loading)
+    }
+    private func control(_ title: String, icon: String, color: Color, size: CGFloat, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon).font(.system(size: size / 2.7, weight: .medium))
+                .frame(width: size, height: size).background(color, in: Circle())
+        }.foregroundStyle(Palette.ink).accessibilityLabel(title)
     }
 }

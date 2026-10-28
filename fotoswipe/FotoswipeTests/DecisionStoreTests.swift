@@ -176,3 +176,68 @@ final class PhotoDateFilterTests: XCTestCase {
         XCTAssertEqual(PhotoDateFilter.monthStarts(in: dates, calendar: calendar), [date(2025, 1, 1), date(2024, 2, 1)])
     }
 }
+
+final class LaterDecisionTests: XCTestCase {
+    func testLaterChoiceSurvivesRelaunchAndUndoAfterTrashRestoresLater() throws {
+        var state = DecisionStore()
+        state.decide("unsure", .later)
+        let encoded = try JSONEncoder().encode(state)
+        var restored = try JSONDecoder().decode(DecisionStore.self, from: encoded)
+        XCTAssertEqual(restored.decisions["unsure"], .later)
+        restored.decide("unsure", .trash)
+        XCTAssertEqual(restored.undo(), "unsure")
+        XCTAssertEqual(restored.decisions["unsure"], .later)
+    }
+    func testLegacyBuildThreeJSONStillDecodesWithoutLosingChoices() throws {
+        let data = Data(#"{"decisions":{"a":"keep","b":"trash"},"history":[{"id":"a"}]}"#.utf8)
+        var state = try JSONDecoder().decode(DecisionStore.self, from: data)
+        XCTAssertEqual(state.decisions["a"], .keep)
+        XCTAssertEqual(state.decisions["b"], .trash)
+        state.decide("c", .later)
+        state.resetKept()
+        XCTAssertNil(state.decisions["a"])
+        XCTAssertEqual(state.decisions["b"], .trash)
+        XCTAssertEqual(state.decisions["c"], .later)
+    }
+    func testRestoringLaterDoesNotChangeOtherSelections() {
+        var state = DecisionStore()
+        state.decide("later", .later)
+        state.decide("keep", .keep)
+        state.decide("trash", .trash)
+        state.restore("later")
+        XCTAssertNil(state.decisions["later"])
+        XCTAssertEqual(state.decisions["keep"], .keep)
+        XCTAssertEqual(state.decisions["trash"], .trash)
+    }
+}
+
+final class CleanupSessionRegressionTests: XCTestCase {
+    func testRandomSessionRetainsMembershipAfterChoicesAndRefresh() {
+        var session = RandomReviewSession(limit: 30)
+        let all = (0..<100).map(String.init)
+        let first = session.select(candidates: all, available: Set(all))
+        XCTAssertEqual(first.count, 30)
+        let stillUndecided = all.filter { !Set(first.prefix(5)).contains($0) }
+        XCTAssertEqual(session.select(candidates: stillUndecided, available: Set(all)), first)
+        let deleted = first[0]
+        XCTAssertEqual(session.select(candidates: all, available: Set(all).subtracting([deleted])), Array(first.dropFirst()))
+    }
+    func testScheduledRefreshCannotRunAfterOwnMutationStarts() {
+        var gate = LibraryRefreshGate()
+        XCTAssertTrue(gate.didChange())
+        gate.beginMutation()
+        XCTAssertFalse(gate.canRunScheduledRefresh)
+        XCTAssertFalse(gate.didChange())
+        gate.endMutation()
+        XCTAssertFalse(gate.canRunScheduledRefresh)
+        XCTAssertTrue(gate.needsRefresh)
+        gate.refreshStarted()
+        XCTAssertTrue(gate.canRunScheduledRefresh)
+        XCTAssertFalse(gate.needsRefresh)
+    }
+    func testAlreadyVisibleSwipeCanFinishDuringMetadataMutation() {
+        XCTAssertTrue(SwipeCommitPolicy.canFinish(deleting: false, loading: false, mutating: true))
+        XCTAssertFalse(SwipeCommitPolicy.canFinish(deleting: true, loading: false, mutating: false))
+        XCTAssertFalse(SwipeCommitPolicy.canFinish(deleting: false, loading: true, mutating: false))
+    }
+}

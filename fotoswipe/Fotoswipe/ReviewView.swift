@@ -4,21 +4,22 @@ import Photos
 struct ReviewView: View {
     @EnvironmentObject private var library: PhotoLibrary
     @Environment(\.dismiss) private var dismiss
-    @State private var showingKept = false
+    @State private var selection = 0
     @State private var confirm = false
     @State private var preview: PreviewItem?
-    private var visible: [PHAsset] { showingKept ? library.kept : library.pending }
+    private var visible: [PHAsset] { selection == 0 ? library.pending : (selection == 1 ? library.kept : library.deferred) }
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                Text("Dit is je selectie uit alle categorieën. Tik op een foto om die groter te bekijken. Met Herstel zet je die terug.")
+                Text("Dit is je selectie uit alle categorieën. Tik op een item om het te bekijken of af te spelen. Met Herstel zet je die terug.")
                     .font(.subheadline).foregroundStyle(Palette.muted)
-                Picker("Selectie", selection: $showingKept) {
-                    Text("Weggelegd (\(library.pending.count))").tag(false)
-                    Text("Bewaard (\(library.kept.count))").tag(true)
+                Picker("Selectie", selection: $selection) {
+                    Text("Weggelegd (\(library.pending.count))").tag(0)
+                    Text("Bewaard (\(library.kept.count))").tag(1)
+                    Text("Later (\(library.deferred.count))").tag(2)
                 }.pickerStyle(.segmented).disabled(library.deleting)
                 if visible.isEmpty {
-                    ContentUnavailableView(showingKept ? "Nog niets bewaard" : "Niets weggelegd", systemImage: "photo.on.rectangle")
+                    ContentUnavailableView(selection == 0 ? "Niets weggelegd" : (selection == 1 ? "Nog niets bewaard" : "Niets voor later"), systemImage: "photo.on.rectangle")
                 } else {
                     ScrollView {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 95))], spacing: 12) {
@@ -28,37 +29,34 @@ struct ReviewView: View {
                                         AssetImage(asset: asset, manager: library.images, thumbnail: true)
                                             .id(asset.localIdentifier).frame(height: 135)
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    }.accessibilityLabel("Foto bekijken")
+                                    }.accessibilityLabel("Item bekijken")
                                     Button { library.restore(asset.localIdentifier) } label: {
                                         Label("Herstel", systemImage: "arrow.uturn.backward").font(.caption)
-                                    }.disabled(library.deleting).accessibilityLabel("Foto terugzetten in de stapel")
+                                    }.disabled(library.deleting).accessibilityLabel("Item terugzetten in de stapel")
                                 }
                             }
                         }
                     }
                 }
-                if !showingKept && !library.pending.isEmpty {
-                    Text("Bij iCloud-foto's wordt de verwijdering gesynchroniseerd met je andere apparaten. Verwijderde foto's staan normaal nog 30 dagen in 'Recent verwijderd'.")
+                if selection == 0 && !library.pending.isEmpty {
+                    Text("Bij iCloud-items wordt de verwijdering gesynchroniseerd met je andere apparaten. Verwijderde items staan normaal nog 30 dagen in 'Recent verwijderd'.")
                         .font(.caption).foregroundStyle(Palette.muted)
                     Button { confirm = true } label: {
                         HStack {
                             if library.deleting { ProgressView().tint(.white) }
-                            Text(library.deleting ? "Verwijderen…" : "Verwijder \(library.pending.count) foto's")
+                            Text(library.deleting ? "Verwijderen…" : "Verwijder \(library.pending.count) items")
                         }
                     }.buttonStyle(PrimaryStyle()).disabled(library.deleting || library.loading)
                 }
             }.padding(20).background(Palette.background)
                 .navigationTitle("Jouw selectie").navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Klaar") { dismiss() }.disabled(library.deleting) } }
-                .confirmationDialog("\(library.pending.count) foto's verwijderen uit Foto's?", isPresented: $confirm, titleVisibility: .visible) {
+                .confirmationDialog("\(library.pending.count) items verwijderen uit Foto's?", isPresented: $confirm, titleVisibility: .visible) {
                     Button("Verwijder uit Foto's", role: .destructive) { library.deletePending() }
                     Button("Annuleren", role: .cancel) {}
                 } message: { Text("Apple vraagt hierna nog om bevestiging. Controleer je selectie eerst.") }
                 .sheet(item: $preview) { item in
-                    NavigationStack {
-                        AssetImage(asset: item.asset, manager: library.images).background(.black)
-                            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Sluiten") { preview = nil } } }
-                    }
+                    AssetPreviewView(asset: item.asset, manager: library.images)
                 }
                 .alert("Fotoswipe", isPresented: Binding(get: { library.message != nil }, set: { if !$0 { library.message = nil } })) {
                     Button("OK") { library.message = nil }
@@ -83,19 +81,23 @@ struct InfoView: View {
                     Text("Open 'Bekijken' om je selectie te controleren. Er wordt pas iets verwijderd nadat je dit bevestigt, ook in het venster van Apple.")
                 }
                 Section("Privacy") {
-                    Text("Geen login, advertenties, analytics of eigen server. Fotoswipe bewaart alleen fotokenmerken (lokale identifiers) en je keuzes op dit apparaat. Er worden door Fotoswipe geen foto's geüpload.")
+                    Text("Geen login, advertenties, analytics of eigen server. Fotoswipe bewaart alleen fotokenmerken (lokale identifiers) en je keuzes op dit apparaat. Er worden door Fotoswipe geen items geüpload.")
                     Text("Een foto die alleen in iCloud staat, kan door Apple's Foto's-framework worden opgehaald om die te tonen. Daarvoor kan internet nodig zijn.")
                     Text("Je voortgang blijft bewaard als je de app sluit. Deze gegevens kunnen deel uitmaken van de normale apparaatback-up. Verwijderen van de app verwijdert ook je lokale voortgang.")
                 }
                 Section("Categorieën en volgorde") {
-                    Text("Kies boven de stapel Favorieten, Screenshots, een ander fototype, je eigen album of een maand. De maandlijst toont hoeveel foto's je al hebt bekeken. Op deze dag toont foto's van dezelfde datum uit eerdere jaren.")
-                    Text("Met Nieuwste eerst of Oudste eerst verander je de volgorde. Bewaren is een keuze in Fotoswipe; het maakt een foto niet automatisch favoriet in Foto's. Weggelegde foto's uit alle categorieën staan samen in Bekijken.")
+                    Text("Kies boven de stapel Favorieten, Screenshots, een ander fototype, je eigen album of een maand. De maandlijst toont hoeveel items je al hebt bekeken. Op deze dag toont items van dezelfde datum uit eerdere jaren.")
+                    Text("Met Nieuwste eerst of Oudste eerst verander je de volgorde. Bewaren is een keuze in Fotoswipe; via Meer kun je een item ook echt favoriet maken in Foto's, aan een album toevoegen of voor later bewaren. Weggelegde items uit alle categorieën staan samen in Bekijken.")
+                }
+                Section("Meer mogelijkheden") {
+                    Text("Later beslissen bewaart twijfelgevallen voor de categorie Later. Kies 30 willekeurige items voor een korte sessie, of zet de volgorde op Willekeurig.")
+                    Text("Vergelijkbare foto's zoeken start je zelf via Meer. Alleen lokaal beschikbare voorbeeldbeelden worden bekeken, zonder foto's te uploaden. Kandidaten zijn niet gegarandeerd identiek; je kiest zelf wat weg mag en houdt minstens één item per groep.")
                 }
                 Section("Goed om te weten") {
-                    Text("Bij beperkte toegang zie je alleen de foto's die je hebt toegestaan. Via 'Wijzig' kun je die selectie aanpassen; volledige toegang regel je via Instellingen.")
-                    Text("Deze versie sorteert foto's en Live Photos; video's worden niet getoond. Een Live Photo wordt als volledig item verwijderd, inclusief het bewegende deel.")
-                    Text("Als je iCloud-foto's gebruikt, geldt verwijderen ook voor je andere gekoppelde apparaten.")
-                    Text("Verwijder nooit foto's die je nog nodig hebt zonder een eigen back-up.")
+                    Text("Bij beperkte toegang zie je alleen de items die je hebt toegestaan. Via 'Wijzig' kun je die selectie aanpassen; volledige toegang regel je via Instellingen.")
+                    Text("Je kunt foto's, Live Photos en video's beoordelen. Video's spelen pas af wanneer je dat kiest. Een Live Photo wordt als volledig item verwijderd, inclusief het bewegende deel.")
+                    Text("Als je iCloud-items gebruikt, geldt verwijderen ook voor je andere gekoppelde apparaten.")
+                    Text("Verwijder nooit items die je nog nodig hebt zonder een eigen back-up.")
                 }
                 Section { Text("Fotoswipe 1.0 · testversie").foregroundStyle(Palette.muted) }
             }.navigationTitle("Over Fotoswipe").navigationBarTitleDisplayMode(.inline)

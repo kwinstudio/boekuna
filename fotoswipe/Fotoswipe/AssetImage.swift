@@ -16,6 +16,7 @@ struct AssetImage: View {
     let asset: PHAsset
     let manager: PHCachingImageManager
     var thumbnail = false
+    var onReady: ((Bool) -> Void)? = nil
     @State private var image: UIImage?
     @State private var failed = false
     @State private var requestID: PHImageRequestID = PHInvalidImageRequestID
@@ -57,6 +58,7 @@ struct AssetImage: View {
     private func load() {
         cancel()
         image = nil
+        onReady?(false)
         failed = false
         let token = UUID()
         activeID = token
@@ -66,10 +68,11 @@ struct AssetImage: View {
             contentMode: thumbnail ? .aspectFill : .aspectFit, options: options) { result, info in
                 DispatchQueue.main.async {
                     guard activeID == token else { return }
-                    if let result { image = result; failed = false }
+                    if let result { image = result; failed = false; onReady?(true) }
                     else if (info?[PHImageCancelledKey] as? Bool) != true,
                             (info?[PHImageResultIsDegradedKey] as? Bool) != true {
                         failed = true
+                        onReady?(false)
                     }
                 }
             }

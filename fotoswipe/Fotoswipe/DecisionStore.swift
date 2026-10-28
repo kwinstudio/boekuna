@@ -1,6 +1,6 @@
 import Foundation
 
-enum PhotoDecision: String, Codable { case keep, trash }
+enum PhotoDecision: String, Codable { case keep, trash, later }
 struct SwipeRecord: Codable, Equatable {
     let id: String
     let previous: PhotoDecision?
@@ -99,12 +99,49 @@ enum PhotoDateFilter: Equatable {
 }
 
 enum PhotoOrder: String, CaseIterable, Identifiable {
-    case newest, oldest
+    case newest, oldest, random
     var id: String { rawValue }
-    var title: String { self == .newest ? "Nieuwste eerst" : "Oudste eerst" }
+    var title: String {
+        switch self { case .newest: return "Nieuwste eerst"; case .oldest: return "Oudste eerst"; case .random: return "Willekeurige volgorde" }
+    }
 }
 
 struct PhotoProgress {
     var total = 0
     var reviewed = 0
+}
+
+
+/// Membership is fixed until the user explicitly starts another random session.
+struct RandomReviewSession {
+    let limit: Int
+    private var identifiers: [String]?
+    init(limit: Int) { self.limit = max(0, limit) }
+    mutating func restart() { identifiers = nil }
+    mutating func select(candidates: [String], available: Set<String>) -> [String] {
+        if identifiers == nil {
+            var unique: [String] = []
+            var seen = Set<String>()
+            for id in candidates where seen.insert(id).inserted { unique.append(id) }
+            identifiers = Array(unique.shuffled().prefix(max(0, limit)))
+        }
+        return (identifiers ?? []).filter { available.contains($0) }
+    }
+}
+
+/// A delayed external refresh must recheck this gate after a Photos mutation starts.
+struct LibraryRefreshGate {
+    private(set) var needsRefresh = false
+    private var mutating = false
+    private var suppressOwnObserver = false
+    var canRunScheduledRefresh: Bool { !mutating && !suppressOwnObserver }
+    mutating func didChange() -> Bool { needsRefresh = true; return canRunScheduledRefresh }
+    mutating func beginMutation() { mutating = true; suppressOwnObserver = true }
+    mutating func endMutation() { mutating = false; needsRefresh = true }
+    mutating func refreshStarted() { needsRefresh = false; suppressOwnObserver = false }
+}
+
+enum SwipeCommitPolicy {
+    /// A previously issued, visible-card swipe may finish during a metadata-only write.
+    static func canFinish(deleting: Bool, loading: Bool, mutating: Bool) -> Bool { !deleting && !loading }
 }

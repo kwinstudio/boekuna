@@ -25,6 +25,14 @@ jobs:
           xcodebuild -version
           python3 scripts/validate_project.py
           bash scripts/test.sh
+      - name: Capture seeded iPhone simulator screen
+        run: bash scripts/smoke.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fotoswipe-simulator-screen
+          path: fotoswipe/build/smoke/*.png
+          if-no-files-found: error
+          retention-days: 7
       - name: Check existing Apple app and signing access
         id: asc
         env:

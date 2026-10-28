@@ -19,3 +19,5 @@ Inspected public MIT source: https://github.com/noluyorAbi/photoswipe-ios , spec
 Selected additional functionality for this update: months with reviewed/total indicators, On This Day in earlier years, and newest/oldest ordering. These extend the user's category request without a full-library pixel scan, network service or photo uploads. Duplicate scanning, AI editing, compression, widgets and album mutations are separate future features, not implemented or claimed in this update.
 
 Date-filter tests cover leap-day month boundaries, missing metadata, calendar-day anniversaries and deduplicated monthly grouping. Existing selections and file format remain compatible.
+
+The image-only limitation above describes build 3. The subsequent fast-cleanup release adds video posters/playback, Later, random sessions and the independent comparison flow; see FAST-CLEANUP-RELEASE.md and docs/superpowers/specs/2026-10-28-fast-cleanup-design.md.
