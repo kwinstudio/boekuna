@@ -406,7 +406,7 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/press.js?v=2026
 // Handige trucjes (Kwin 2026-10-28): right keyboard per field, Enter goes to the next field, amounts as you type them,
 // smart pre-fill, bigger tap areas, swipe and long press in lists, shortcuts on a computer. Stylesheet next to press.css.
 {const headEnd=appHtml.indexOf('</head>');appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/handig.css?v=20261028b">\n'+appHtml.slice(headEnd);}
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/handig.js?v=20261028b"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/handig.js?v=20261028c"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});

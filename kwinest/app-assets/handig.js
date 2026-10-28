@@ -258,6 +258,8 @@
   /* ---------- 5. Invisible bigger tap areas ---------- */
   var lastPointer='mouse';
   document.addEventListener('pointerdown',function(e){lastPointer=e.pointerType||'mouse'},{capture:true,passive:true});
+  // Some WebKit builds send a touch without a touch pointer event; the touch itself is enough to know.
+  document.addEventListener('touchstart',function(){lastPointer='touch'},{capture:true,passive:true});
   var TAP_TARGETS='button,a[href],[role="button"],input[type="checkbox"],input[type="radio"],label.choice-chip,select';
   var SMALL=44,SLOP=12,LIKELY_SLOP=24;
   function likelyButton(scope){
