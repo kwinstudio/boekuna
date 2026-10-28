@@ -58,3 +58,50 @@ final class DecisionStoreTests: XCTestCase {
         XCTAssertEqual(state.decisions.count, 500)
     }
 }
+
+final class SwipePipelineTests: XCTestCase {
+    func testLargeLibraryAdvancesWithoutRebuildingOrDroppingTheNextCards() {
+        var queue = ReviewQueue(Array(0..<100_000))
+        for expected in 0..<10_000 {
+            XCTAssertEqual(queue.current, expected)
+            XCTAssertEqual(Array(queue.preview(limit: 3)), [expected, expected + 1, expected + 2])
+            queue.advance()
+        }
+        XCTAssertEqual(queue.remainingCount, 90_000)
+        XCTAssertEqual(queue.current, 10_000)
+    }
+    func testQueueHandlesLastPhotoAndEmptyLibrary() {
+        var queue = ReviewQueue(["last"])
+        XCTAssertEqual(Array(queue.preview(limit: 3)), ["last"])
+        queue.advance()
+        queue.advance()
+        XCTAssertNil(queue.current)
+        XCTAssertEqual(queue.remainingCount, 0)
+        XCTAssertTrue(queue.preview(limit: 8).isEmpty)
+        queue.replace(["restored", "next"])
+        XCTAssertEqual(queue.current, "restored")
+        XCTAssertEqual(queue.remainingCount, 2)
+    }
+    func testBackgroundPersistenceKeepsNewestSnapshotInOrder() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appendingPathComponent("decisions.json")
+        let writer = DecisionPersistence(url: url)
+        let completed = expectation(description: "Serial writes completed off the main thread")
+        completed.expectedFulfillmentCount = 3
+        var state = DecisionStore()
+        for i in 0..<3 {
+            state.decide("photo-\(i)", i == 1 ? .trash : .keep)
+            writer.save(state) { error in
+                XCTAssertFalse(Thread.isMainThread)
+                XCTAssertNil(error)
+                completed.fulfill()
+            }
+        }
+        wait(for: [completed], timeout: 5)
+        let restored = try JSONDecoder().decode(DecisionStore.self, from: Data(contentsOf: url))
+        XCTAssertEqual(restored.decisions.count, 3)
+        XCTAssertEqual(restored.decisions["photo-1"], .trash)
+        XCTAssertEqual(restored.history.map(\.id), ["photo-0", "photo-1", "photo-2"])
+    }
+}

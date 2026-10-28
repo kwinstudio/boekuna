@@ -35,3 +35,35 @@ struct DecisionStore: Codable {
         history.removeAll { kept.contains($0.id) }
     }
 }
+
+/// Moving through the library changes an index, never shifts/copies the library.
+struct ReviewQueue<Element> {
+    private var elements: [Element]
+    private var position = 0
+    init(_ elements: [Element] = []) { self.elements = elements }
+    var remainingCount: Int { elements.count - position }
+    var current: Element? { position < elements.count ? elements[position] : nil }
+    func preview(limit: Int) -> ArraySlice<Element> {
+        elements[position..<min(elements.count, position + max(0, limit))]
+    }
+    mutating func advance() { if position < elements.count { position += 1 } }
+    mutating func replace(_ elements: [Element]) { self.elements = elements; position = 0 }
+}
+
+/// JSON encoding and atomic disk writes never run on the swipe/UI thread.
+/// The serial queue preserves ordering even when the user swipes rapidly.
+final class DecisionPersistence {
+    private let url: URL
+    private let queue = DispatchQueue(label: "nl.zichtwerfstudio.fotoswipe.persistence", qos: .utility)
+    init(url: URL) { self.url = url }
+    func save(_ snapshot: DecisionStore, completion: @escaping (Error?) -> Void) {
+        queue.async { [url] in
+            do {
+                try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try JSONEncoder().encode(snapshot).write(to: url, options: .atomic)
+                completion(nil)
+            } catch { completion(error) }
+        }
+    }
+    func flush(completion: @escaping () -> Void) { queue.async(execute: completion) }
+}

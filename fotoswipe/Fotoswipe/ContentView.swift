@@ -4,11 +4,9 @@ import Photos
 struct ContentView: View {
     @EnvironmentObject private var library: PhotoLibrary
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var review = false
     @State private var info = false
     @State private var limitedPicker = false
-    @State private var offset: CGSize = .zero
 
     var body: some View {
         NavigationStack {
@@ -31,8 +29,8 @@ struct ContentView: View {
             } message: { Text(library.message ?? "") }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { library.refresh() }
+                else { library.finishPendingWrites() }
             }
-            .onChange(of: library.current?.localIdentifier) { _, _ in offset = .zero }
         }
     }
     private var header: some View {
@@ -93,14 +91,25 @@ struct ContentView: View {
                 Spacer()
                 ProgressView("Je foto's ophalen…").tint(Palette.muted)
                 Spacer()
-            } else if let asset = library.current {
-                card(asset)
+            } else if library.current != nil {
+                ZStack {
+                    ForEach(Array(library.deck.reversed()), id: \.localIdentifier) { asset in
+                        SmoothSwipeCard(
+                            asset: asset, manager: library.images,
+                            depth: library.deck.firstIndex(where: { $0.localIdentifier == asset.localIdentifier }) ?? 0,
+                            command: library.swipeCommand,
+                            disabled: library.deleting || library.loading
+                        ) { choice, id in library.decide(choice, expectedID: id) }
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(minHeight: 160)
                 Text("← wegleggen     ·     bewaren →").font(.caption).foregroundStyle(Palette.muted)
                 HStack(spacing: 28) {
                     circleButton("Laatste keuze ongedaan maken", icon: "arrow.uturn.backward", color: .gray.opacity(0.1), size: 46) { library.undo() }
                         .disabled(!library.canUndo)
-                    circleButton("Foto wegleggen", icon: "xmark", color: Palette.coral) { decide(.trash) }
-                    circleButton("Foto bewaren", icon: "heart", color: Palette.sage) { decide(.keep) }
+                    circleButton("Foto wegleggen", icon: "xmark", color: Palette.coral) { library.requestSwipe(.trash) }
+                    circleButton("Foto bewaren", icon: "heart", color: Palette.sage) { library.requestSwipe(.keep) }
                 }.disabled(library.deleting)
             } else {
                 Spacer()
@@ -131,49 +140,6 @@ struct ContentView: View {
                 .padding(.bottom, 10)
         }
     }
-    private func card(_ asset: PHAsset) -> some View {
-        ZStack(alignment: .bottomLeading) {
-            AssetImage(asset: asset, manager: library.images).id(asset.localIdentifier)
-            LinearGradient(colors: [.clear, .black.opacity(0.65)], startPoint: .center, endPoint: .bottom)
-                .allowsHitTesting(false)
-            VStack(alignment: .leading, spacing: 5) {
-                if asset.isFavorite { Label("Favoriet", systemImage: "heart.fill").font(.caption) }
-                Text(asset.creationDate?.formatted(date: .long, time: .omitted) ?? "Zonder datum")
-                    .font(.headline)
-                Text("\(asset.pixelWidth) × \(asset.pixelHeight)").font(.caption).opacity(0.8)
-            }.foregroundStyle(.white).padding(22).allowsHitTesting(false)
-            VStack {
-                Text(offset.width >= 0 ? "BEWAREN" : "WEGLEGGEN")
-                    .font(.title2.bold()).padding(12)
-                    .background(offset.width >= 0 ? Palette.sage : Palette.coral, in: RoundedRectangle(cornerRadius: 10))
-                    .opacity(min(abs(offset.width) / 90, 1))
-                Spacer()
-            }.padding(24).allowsHitTesting(false)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 26))
-        .shadow(color: .black.opacity(0.1), radius: 15, y: 8)
-        .offset(x: offset.width)
-        .rotationEffect(.degrees(reduceMotion ? 0 : Double(offset.width / 24)))
-        .frame(maxWidth: .infinity, maxHeight: .infinity).frame(minHeight: 160)
-        .contentShape(Rectangle())
-        .gesture(DragGesture(minimumDistance: 15)
-            .onChanged { value in
-                guard !library.deleting else { return }
-                offset = CGSize(width: value.translation.width, height: 0)
-            }
-            .onEnded { value in
-                if abs(value.translation.width) > 85 { decide(value.translation.width > 0 ? .keep : .trash) }
-                else { withAnimation(reduceMotion ? nil : .spring(response: 0.3)) { offset = .zero } }
-            })
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Foto van \(asset.creationDate?.formatted(date: .long, time: .omitted) ?? "onbekende datum")\(asset.isFavorite ? ", favoriet" : "")")
-        .accessibilityAction(named: Text("Bewaren")) { decide(.keep) }
-        .accessibilityAction(named: Text("Wegleggen")) { decide(.trash) }
-    }
-    private func decide(_ decision: PhotoDecision) {
-        library.decide(decision)
-        offset = .zero
-    }
     private func circleButton(_ title: String, icon: String, color: Color, size: CGFloat = 64, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon).font(.system(size: size / 2.7, weight: .medium))
@@ -191,5 +157,92 @@ struct PrimaryStyle: ButtonStyle {
         configuration.label.font(.headline).padding(.vertical, 17).padding(.horizontal, 24)
             .frame(maxWidth: .infinity).foregroundStyle(.white)
             .background(Palette.ink.opacity(configuration.isPressed ? 0.75 : 1), in: Capsule())
+    }
+}
+
+
+/// Gesture state stays local: dragging never invalidates library lists or counters.
+private struct SmoothSwipeCard: View {
+    let asset: PHAsset
+    let manager: PHCachingImageManager
+    let depth: Int
+    let command: SwipeCommand?
+    let disabled: Bool
+    let onCommit: (PhotoDecision, String) -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var offset: CGFloat = 0
+    @State private var exiting = false
+    private var isTop: Bool { depth == 0 }
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .bottomLeading) {
+                AssetImage(asset: asset, manager: manager)
+                LinearGradient(colors: [.clear, .black.opacity(0.65)], startPoint: .center, endPoint: .bottom)
+                    .allowsHitTesting(false)
+                VStack(alignment: .leading, spacing: 5) {
+                    if asset.isFavorite { Label("Favoriet", systemImage: "heart.fill").font(.caption) }
+                    Text(asset.creationDate?.formatted(date: .long, time: .omitted) ?? "Zonder datum")
+                        .font(.headline)
+                    Text("\(asset.pixelWidth) × \(asset.pixelHeight)").font(.caption).opacity(0.8)
+                }.foregroundStyle(.white).padding(22).allowsHitTesting(false)
+                VStack {
+                    Text(offset >= 0 ? "BEWAREN" : "WEGLEGGEN")
+                        .font(.title2.bold()).padding(12)
+                        .background(offset >= 0 ? Palette.sage : Palette.coral, in: RoundedRectangle(cornerRadius: 10))
+                        .opacity(isTop ? min(abs(offset) / 90, 1) : 0)
+                    Spacer()
+                }.padding(24).allowsHitTesting(false)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 26))
+            .shadow(color: .black.opacity(0.1), radius: 12, y: 6)
+            .scaleEffect(1 - CGFloat(depth) * 0.025)
+            .offset(x: isTop ? offset : 0, y: CGFloat(depth) * 5)
+            .rotationEffect(.degrees(reduceMotion || !isTop ? 0 : Double(offset / 24)))
+            .animation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.88), value: depth)
+            .contentShape(Rectangle())
+            .allowsHitTesting(isTop && !disabled && !exiting)
+            .gesture(DragGesture(minimumDistance: 5)
+                .onChanged { value in
+                    guard isTop, !disabled, !exiting else { return }
+                    offset = value.translation.width
+                }
+                .onEnded { value in
+                    guard isTop, !disabled, !exiting else { return }
+                    let distance = value.translation.width
+                    let predicted = value.predictedEndTranslation.width
+                    let threshold = max(65, geometry.size.width * 0.23)
+                    if abs(distance) > threshold || (abs(distance) > 18 && abs(predicted) > geometry.size.width * 0.65) {
+                        let travel = abs(distance) > threshold ? distance : predicted
+                        commit(travel > 0 ? .keep : .trash, width: geometry.size.width)
+                    } else {
+                        withAnimation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.85)) { offset = 0 }
+                    }
+                })
+            .onChange(of: command?.id) { _, _ in
+                guard isTop, let command, command.assetID == asset.localIdentifier else { return }
+                commit(command.choice, width: geometry.size.width)
+            }
+            .onChange(of: isTop) { _, _ in offset = 0; exiting = false }
+            .accessibilityElement(children: .ignore)
+            .accessibilityHidden(!isTop)
+            .accessibilityLabel("Foto van \(asset.creationDate?.formatted(date: .long, time: .omitted) ?? "onbekende datum")\(asset.isFavorite ? ", favoriet" : "")")
+            .accessibilityAction(named: Text("Bewaren")) { commit(.keep, width: geometry.size.width) }
+            .accessibilityAction(named: Text("Wegleggen")) { commit(.trash, width: geometry.size.width) }
+        }.zIndex(Double(3 - depth))
+    }
+    private func commit(_ choice: PhotoDecision, width: CGFloat) {
+        guard isTop, !disabled, !exiting else { return }
+        exiting = true
+        let id = asset.localIdentifier
+        if reduceMotion { onCommit(choice, id); return }
+        withAnimation(.easeOut(duration: 0.18), completionCriteria: .logicallyComplete) {
+            offset = (choice == .keep ? 1 : -1) * max(width * 1.6, 600)
+        } completion: {
+            // The next card is already mounted with its decoded image.
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { onCommit(choice, id) }
+        }
     }
 }
