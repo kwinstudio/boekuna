@@ -390,3 +390,32 @@ final class SmartCleanupTests: XCTestCase {
         XCTAssertEqual(calendar.component(.hour, from: dates[0]), 20)
     }
 }
+
+final class CompleteAppTests: XCTestCase {
+    private var calendar: Calendar {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Europe/Amsterdam")!
+        return c
+    }
+    func testLongestStreakForgivesOneMissedDay() {
+        var streak = StreakStore()
+        XCTAssertEqual(streak.longest(calendar: calendar), 0)
+        let base = calendar.date(from: DateComponents(year: 2026, month: 10, day: 1, hour: 12))!
+        for offset in [0, 1, 3, 4, 10, 11] {
+            streak.markActive(calendar.date(byAdding: .day, value: offset, to: base)!, calendar: calendar)
+        }
+        XCTAssertEqual(streak.longest(calendar: calendar), 4)
+    }
+    func testReviewPromptOnlyAfterWinsAndRarely() {
+        let now = Date()
+        XCTAssertFalse(ReviewPrompt.shouldAsk(completedSessions: 1, setAsideThisSession: 20, lastAsked: nil, lastAskedVersion: nil, version: "9", now: now))
+        XCTAssertFalse(ReviewPrompt.shouldAsk(completedSessions: 3, setAsideThisSession: 2, lastAsked: nil, lastAskedVersion: nil, version: "9", now: now))
+        XCTAssertTrue(ReviewPrompt.shouldAsk(completedSessions: 3, setAsideThisSession: 8, lastAsked: nil, lastAskedVersion: nil, version: "9", now: now))
+        XCTAssertFalse(ReviewPrompt.shouldAsk(completedSessions: 3, setAsideThisSession: 8, lastAsked: nil, lastAskedVersion: "9", version: "9", now: now))
+        let recent = now.addingTimeInterval(-30 * 24 * 3600)
+        XCTAssertFalse(ReviewPrompt.shouldAsk(completedSessions: 3, setAsideThisSession: 8, lastAsked: recent, lastAskedVersion: "8", version: "9", now: now))
+        let old = now.addingTimeInterval(-200 * 24 * 3600)
+        XCTAssertTrue(ReviewPrompt.shouldAsk(completedSessions: 3, setAsideThisSession: 8, lastAsked: old, lastAskedVersion: "8", version: "9", now: now))
+    }
+}
+

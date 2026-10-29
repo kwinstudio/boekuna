@@ -180,6 +180,24 @@ struct StreakStore: Codable, Equatable {
         if activeDays.count > 400 { activeDays.removeFirst(activeDays.count - 400) }
     }
     func isActive(_ date: Date, calendar: Calendar = .current) -> Bool { activeDays.contains(Self.key(date, calendar: calendar)) }
+    /// Longest run ever, with the same forgiving rule (one missed day in between is fine).
+    func longest(calendar: Calendar = .current) -> Int {
+        let days = activeDays.compactMap { key -> Date? in
+            let parts = key.split(separator: "-").compactMap { Int($0) }
+            guard parts.count == 3 else { return nil }
+            return calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2]))
+        }.sorted()
+        guard var previous = days.first else { return 0 }
+        var best = 1, run = 1
+        for day in days.dropFirst() {
+            let gap = calendar.dateComponents([.day], from: previous, to: day).day ?? 0
+            if gap == 0 { continue }
+            run = gap <= 2 ? run + 1 : 1
+            best = max(best, run)
+            previous = day
+        }
+        return best
+    }
     func current(now: Date = Date(), calendar: Calendar = .current) -> Int {
         let active = Set(activeDays)
         var day = calendar.startOfDay(for: now)
@@ -331,5 +349,17 @@ enum ReminderPlan {
             if offset == 0 && (doneToday || fire <= now) { return nil }
             return fire
         }
+    }
+}
+
+
+/// Ask for an App Store rating only after a clear win, rarely, and never twice for one version.
+/// (iOS itself also limits how often the prompt appears.)
+enum ReviewPrompt {
+    static func shouldAsk(completedSessions: Int, setAsideThisSession: Int, lastAsked: Date?,
+                          lastAskedVersion: String?, version: String, now: Date = Date()) -> Bool {
+        guard completedSessions >= 2, setAsideThisSession >= 5, lastAskedVersion != version else { return false }
+        if let lastAsked, now.timeIntervalSince(lastAsked) < 120 * 24 * 3600 { return false }
+        return true
     }
 }

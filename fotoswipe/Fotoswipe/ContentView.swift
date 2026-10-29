@@ -1,5 +1,6 @@
 import SwiftUI
 import Photos
+import StoreKit
 
 struct ContentView: View {
     @EnvironmentObject private var library: PhotoLibrary
@@ -15,6 +16,7 @@ struct ContentView: View {
     @State private var focus = false
     @State private var stacksOpen = false
     @State private var keepRestConfirm = false
+    @State private var stats = false
     @State private var whatsNew = false
     @AppStorage("fotoswipe.whatsNewSeen") private var whatsNewSeen = ""
 
@@ -23,6 +25,7 @@ struct ContentView: View {
             VStack(spacing: 12) {
                 header
                 if library.hasAccess { libraryContent }
+                else if library.authorization == .notDetermined { OnboardingView(onAllow: { library.requestAccess() }, startPage: onboardingStartPage) }
                 else { permissionContent }
             }
             .padding(.horizontal, 20).padding(.top, 8)
@@ -30,6 +33,7 @@ struct ContentView: View {
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $review) { ReviewView().environmentObject(library) }
             .sheet(isPresented: $info) { InfoView().environmentObject(library) }
+            .sheet(isPresented: $stats) { StatsView().environmentObject(library) }
             .sheet(isPresented: $whatsNew, onDismiss: { whatsNewSeen = WhatsNewView.version }) {
                 WhatsNewView { tryStacks in
                     whatsNewSeen = WhatsNewView.version
@@ -105,8 +109,13 @@ struct ContentView: View {
                 .font(.subheadline.weight(.heavy)).foregroundStyle(Palette.ink)
                 .padding(.horizontal, 12).padding(.vertical, 7)
                 .pop(radius: 18, fill: days > 0 ? Palette.reward : Palette.surface, shadow: 2)
+                .contentShape(Rectangle())
+                .onTapGesture { stats = true }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Reeks: \(days) dagen. Eén dag overslaan mag.")
+                .accessibilityHint("Opent je overzicht")
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction { stats = true }
             }
             if library.hasAccess {
                 Button { focus = true } label: {
@@ -335,6 +344,13 @@ struct ContentView: View {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
     }
+    private var onboardingStartPage: Int {
+        #if DEBUG
+        let arguments = CommandLine.arguments
+        if let index = arguments.firstIndex(of: "-FSOnboardingPage"), index + 1 < arguments.count { return Int(arguments[index + 1]) ?? 0 }
+        #endif
+        return 0
+    }
     #if DEBUG
     /// Screenshot tooling only: `-FSScreen focus|stacks|review|end|whatsnew|info|clutter`.
     private func openDebugScreen() async {
@@ -349,6 +365,7 @@ struct ContentView: View {
         case "end": library.debugSimulateSession()
         case "whatsnew": whatsNew = true
         case "info": info = true
+        case "stats": stats = true
         case "clutter":
             if let category = library.categories.first(where: { $0.id == "clutter" }) { library.selectCategory(category) }
         default: break
@@ -627,6 +644,7 @@ private struct RoundPopStyle: ButtonStyle {
 /// The last moment of a session is what people remember: show the win, the streak and a few kept highlights.
 struct SessionEndView: View {
     @EnvironmentObject private var library: PhotoLibrary
+    @Environment(\.requestReview) private var requestReview
     let onClose: (_ openReview: Bool) -> Void
     @State private var duration: TimeInterval = 0
     var body: some View {
@@ -677,8 +695,24 @@ struct SessionEndView: View {
             }.padding(.horizontal, 22).foregroundStyle(Palette.ink)
         }
         .background(Palette.background.ignoresSafeArea())
-        .onAppear { duration = library.session.duration() }
+        .onAppear {
+            duration = library.session.duration()
+            askForReviewIfEarned()
+        }
         .presentationDragIndicator(.visible)
+    }
+    /// Peak moment after a real win; rare, and at most once per version.
+    private func askForReviewIfEarned() {
+        let defaults = UserDefaults.standard
+        let version = WhatsNewView.version
+        guard ReviewPrompt.shouldAsk(completedSessions: library.completedSessions,
+                                     setAsideThisSession: library.session.trashed.count,
+                                     lastAsked: defaults.object(forKey: "fotoswipe.review.lastAsked") as? Date,
+                                     lastAskedVersion: defaults.string(forKey: "fotoswipe.review.version"),
+                                     version: version) else { return }
+        defaults.set(Date(), forKey: "fotoswipe.review.lastAsked")
+        defaults.set(version, forKey: "fotoswipe.review.version")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { requestReview() }
     }
     private var durationText: String {
         let seconds = max(1, Int(duration.rounded()))
@@ -1135,5 +1169,379 @@ struct WhatsNewView: View {
         }
         .background(Palette.background.ignoresSafeArea())
         .presentationDragIndicator(.visible)
+    }
+}
+
+// MARK: - Onboarding
+
+/// Three short steps: the benefit, a practice card you swipe yourself (learning by doing), then the access request.
+/// Apple's photo prompt appears only after the user taps the button on the last step.
+struct OnboardingView: View {
+    let onAllow: () -> Void
+    @State private var page: Int
+    @State private var step = 0          // 0: swipe right, 1: swipe left, 2: done
+    @State private var drag: CGFloat = 0
+    @State private var hint: String?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    init(onAllow: @escaping () -> Void, startPage: Int = 0) {
+        self.onAllow = onAllow
+        _page = State(initialValue: startPage)
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 18) {
+                    HStack(spacing: 6) {
+                        ForEach(0..<3, id: \.self) { index in
+                            Capsule().fill(index <= page ? Palette.brand : Palette.track)
+                                .frame(width: index == page ? 26 : 10, height: 10)
+                        }
+                        Spacer()
+                        if page < 2 {
+                            Button("Overslaan") { withAnimation { page = 2 } }
+                                .font(.subheadline.weight(.bold)).foregroundStyle(Palette.brand).frame(minHeight: 44)
+                        }
+                    }
+                    .accessibilityElement(children: .contain)
+                    Group {
+                        switch page {
+                        case 0: benefit
+                        case 1: practice
+                        default: access
+                        }
+                    }
+                    .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
+                }
+                .padding(.vertical, 8)
+                .frame(minHeight: geometry.size.height)
+                .foregroundStyle(Palette.ink)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+        .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.9), value: page)
+    }
+
+    private var benefit: some View {
+        VStack(spacing: 18) {
+            Spacer(minLength: 8)
+            StackIllustration().frame(height: 170).accessibilityHidden(true)
+            Text("Bewaar het mooie.\nSwipe de rest.")
+                .font(.system(size: 34, weight: .heavy, design: .rounded)).tracking(-1.1)
+                .multilineTextAlignment(.center).minimumScaleFactor(0.75).fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 10) {
+                row("timer", "Een paar minuten per dag houdt je bibliotheek licht.")
+                row("checkmark.shield", "Niets is meteen weg: jij controleert eerst, iOS vraagt nog om bevestiging.")
+                row("iphone", "Geen reclame, geen abonnement. Alles blijft op je iPhone.")
+            }
+            Spacer(minLength: 8)
+            Button("Volgende") { withAnimation { page = 1 } }.buttonStyle(PrimaryStyle())
+        }
+    }
+
+    private func row(_ icon: String, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon).font(.system(size: 17, weight: .heavy)).foregroundStyle(Palette.brand).frame(width: 26)
+            Text(text).font(.body).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var instruction: String {
+        switch step {
+        case 0: return "Veeg de kaart naar rechts om te bewaren"
+        case 1: return "Nu naar links om weg te leggen"
+        default: return "Top! Zo simpel is het."
+        }
+    }
+
+    private var practice: some View {
+        VStack(spacing: 16) {
+            Text("Probeer het even").font(.system(size: 30, weight: .heavy, design: .rounded)).tracking(-0.8)
+            Text(hint ?? instruction).font(.headline).multilineTextAlignment(.center)
+                .foregroundStyle(hint == nil ? Palette.ink : Palette.trash)
+                .frame(minHeight: 44).accessibilityAddTraits(.updatesFrequently)
+            ZStack {
+                PracticeCard(variant: step == 0 ? 0 : 1)
+                    .overlay(alignment: .top) {
+                        if drag != 0 {
+                            Text(drag > 0 ? "BEWAREN" : "WEGLEGGEN")
+                                .font(.system(.title3, design: .rounded).weight(.heavy))
+                                .foregroundStyle(drag > 0 ? Color.white : Palette.ink)
+                                .padding(.horizontal, 14).padding(.vertical, 8)
+                                .pop(radius: 12, fill: drag > 0 ? Palette.keep : Palette.trash, shadow: 3)
+                                .opacity(min(abs(drag) / 70, 1)).padding(.top, 18)
+                        }
+                    }
+                    .offset(x: drag)
+                    .rotationEffect(.degrees(reduceMotion ? 0 : Double(drag / 22)))
+                    .gesture(DragGesture(minimumDistance: 6)
+                        .onChanged { value in guard step < 2 else { return }; drag = value.translation.width; hint = nil }
+                        .onEnded { value in finish(value.translation.width, predicted: value.predictedEndTranslation.width) })
+                    .opacity(step == 2 ? 0.35 : 1)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Oefenkaart")
+                    .accessibilityHint(instruction)
+                    .accessibilityAction(named: Text("Bewaren")) { complete(.keep) }
+                    .accessibilityAction(named: Text("Wegleggen")) { complete(.trash) }
+            }
+            .frame(height: 300)
+            if step == 2 {
+                Button("Volgende") { withAnimation { page = 2 } }.buttonStyle(PrimaryStyle())
+            } else {
+                HStack(spacing: 18) {
+                    Button { tap(.trash) } label: {
+                        Image(systemName: "xmark").font(.system(size: 24, weight: .heavy)).foregroundStyle(Palette.ink)
+                            .frame(width: 64, height: 64)
+                    }.buttonStyle(RoundOnboardingStyle(fill: Palette.trash)).accessibilityLabel("Wegleggen")
+                    Button { tap(.keep) } label: {
+                        Image(systemName: "checkmark").font(.system(size: 26, weight: .heavy)).foregroundStyle(.white)
+                            .frame(width: 64, height: 64)
+                    }.buttonStyle(RoundOnboardingStyle(fill: Palette.keep)).accessibilityLabel("Bewaren")
+                }
+                Text("Of tik op de knoppen.").font(.caption).foregroundStyle(Palette.muted)
+            }
+        }
+    }
+
+    private func finish(_ distance: CGFloat, predicted: CGFloat) {
+        guard step < 2 else { return }
+        let travel = abs(distance) > 100 ? distance : (abs(predicted) > 260 && abs(distance) > 18 ? predicted : 0)
+        if travel > 0 { complete(.keep) }
+        else if travel < 0 { complete(.trash) }
+        else { withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { drag = 0 } }
+    }
+    private func tap(_ choice: PhotoDecision) { complete(choice) }
+    private func complete(_ choice: PhotoDecision) {
+        let expected: PhotoDecision = step == 0 ? .keep : .trash
+        guard choice == expected else {
+            hint = step == 0 ? "Andere kant op: naar rechts is bewaren" : "Andere kant op: naar links is wegleggen"
+            Haptics.threshold()
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { drag = 0 }
+            return
+        }
+        Haptics.choice(choice)
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) { drag = choice == .keep ? 520 : -520 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + (reduceMotion ? 0 : 0.2)) {
+            drag = 0
+            step += 1
+            if step == 2 { Haptics.success() }
+        }
+    }
+
+    private var access: some View {
+        VStack(spacing: 18) {
+            Spacer(minLength: 8)
+            Image(systemName: "photo.on.rectangle.angled").font(.system(size: 56, weight: .bold)).foregroundStyle(Palette.brand)
+                .accessibilityHidden(true)
+            Text("Fotoswipe heeft je foto's nodig").font(.system(size: 28, weight: .heavy, design: .rounded)).tracking(-0.8)
+                .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 10) {
+                row("lock.shield", "Je foto's blijven op je iPhone. Er wordt niets geüpload.")
+                row("hand.raised", "Alleen jij beslist wat weg mag.")
+                row("square.grid.2x2", "Tip: kies volledige toegang om je hele bibliotheek op te ruimen. Een selectie kan ook.")
+            }
+            Spacer(minLength: 8)
+            Button("Geef toegang tot mijn foto's") { onAllow() }.buttonStyle(PrimaryStyle())
+            Text("Je kunt dit later altijd wijzigen in Instellingen.").font(.caption).foregroundStyle(Palette.muted)
+        }
+    }
+}
+
+private struct RoundOnboardingStyle: ButtonStyle {
+    let fill: Color
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(Circle().fill(fill))
+            .overlay(Circle().stroke(Palette.ink, lineWidth: 3))
+            .background(Circle().fill(Palette.ink).offset(x: configuration.isPressed ? 1 : 4, y: configuration.isPressed ? 1 : 4))
+            .offset(x: configuration.isPressed ? 3 : 0, y: configuration.isPressed ? 3 : 0)
+    }
+}
+
+/// The two stacked cards from the app icon, drawn in code.
+struct StackIllustration: View {
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 22).fill(Palette.reward).frame(width: 120, height: 150)
+                .rotationEffect(.degrees(-8)).pop(radius: 22, fill: Palette.reward)
+            RoundedRectangle(cornerRadius: 22).fill(Palette.brand).frame(width: 120, height: 150)
+                .overlay(RoundedRectangle(cornerRadius: 22).stroke(Palette.ink, lineWidth: 2))
+                .overlay(Image(systemName: "photo").font(.system(size: 40, weight: .bold)).foregroundStyle(.white))
+                .rotationEffect(.degrees(6)).offset(x: 26, y: 6)
+        }
+    }
+}
+
+/// A drawn practice "photo" (no real images in onboarding).
+private struct PracticeCard: View {
+    let variant: Int
+    var body: some View {
+        ZStack {
+            Rectangle().fill(variant == 0 ? Color(hex: 0x7DB4D2) : Color(hex: 0xE3A574))
+            Circle().fill(Color(hex: 0xFFE2A6)).frame(width: 64, height: 64).offset(x: 52, y: -70)
+            HillShape(peak: 0.35).fill(variant == 0 ? Color(hex: 0x3F6B57) : Color(hex: 0x8C4F3A))
+            HillShape(peak: 0.62).fill(variant == 0 ? Color(hex: 0x2C4F40) : Color(hex: 0x6B3A2B)).opacity(0.9)
+        }
+        .frame(width: 220, height: 290)
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .overlay(RoundedRectangle(cornerRadius: 22).stroke(Palette.ink, lineWidth: 3))
+        .background(RoundedRectangle(cornerRadius: 22).fill(Palette.ink).offset(x: 6, y: 6))
+    }
+}
+
+private struct HillShape: Shape {
+    let peak: Double
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.height * 0.72))
+        path.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.height * 0.68),
+                          control: CGPoint(x: rect.width * peak, y: rect.height * 0.4))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.closeSubpath()
+        return path
+    }
+}
+
+// MARK: - Stats
+
+/// Overview for motivation, plus a share card without any personal photos.
+struct StatsView: View {
+    @EnvironmentObject private var library: PhotoLibrary
+    @Environment(\.dismiss) private var dismiss
+    @State private var shareImage: UIImage?
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(spacing: 2) {
+                        Text("VRIJGEMAAKT").font(.caption.weight(.heavy)).foregroundStyle(Palette.ink)
+                        Text(library.streak.freedBytes > 0 ? ByteText.format(library.streak.freedBytes) : "Nog niets")
+                            .font(.system(size: 40, weight: .heavy, design: .rounded)).tracking(-1)
+                            .minimumScaleFactor(0.6).lineLimit(1)
+                        Text("na bevestigd verwijderen").font(.caption).foregroundStyle(Palette.ink)
+                    }
+                    .frame(maxWidth: .infinity).padding(.vertical, 18).pop(radius: 20, fill: Palette.reward, shadow: 4)
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                        tile("\(library.totalReviewed)", "items bekeken")
+                        tile("\(library.completedSessions)", library.completedSessions == 1 ? "sessie afgerond" : "sessies afgerond")
+                        tile("\(library.streakDays)", "dagen reeks nu")
+                        tile("\(library.streak.longest())", "langste reeks")
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Bibliotheek bekeken").font(.headline.weight(.heavy))
+                            Spacer()
+                            Text("\(Int((library.libraryProgress * 100).rounded()))%").font(.headline.weight(.heavy)).monospacedDigit()
+                        }
+                        bar(library.libraryProgress, Palette.brand)
+                        Text("\(library.totalReviewed) van \(library.libraryCount) items").font(.caption).foregroundStyle(Palette.muted)
+                    }
+                    .padding(14).pop(radius: 16, fill: Palette.surface, shadow: 3)
+                    let months = library.recentMonths()
+                    if !months.isEmpty {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Per maand").font(.headline.weight(.heavy))
+                            ForEach(Array(months.enumerated()), id: \.offset) { _, month in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text(month.title.capitalized).font(.subheadline.weight(.semibold))
+                                        Spacer()
+                                        Text("\(month.reviewed)/\(month.total)").font(.caption.weight(.bold)).monospacedDigit()
+                                    }
+                                    bar(month.total == 0 ? 0 : Double(month.reviewed) / Double(month.total),
+                                        month.reviewed == month.total ? Palette.keep : Palette.reward)
+                                }
+                                .accessibilityElement(children: .combine)
+                            }
+                        }
+                        .padding(14).pop(radius: 16, fill: Palette.surface, shadow: 3)
+                    }
+                    if let shareImage {
+                        let image = Image(uiImage: shareImage)
+                        ShareLink(item: image, preview: SharePreview("Mijn Fotoswipe", image: image)) {
+                            Label("Deel je resultaat", systemImage: "square.and.arrow.up")
+                        }
+                        .buttonStyle(PrimaryStyle())
+                        .padding(.top, 4)
+                        Text("Het deelkaartje bevat alleen getallen, geen foto's.").font(.caption).foregroundStyle(Palette.muted)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .padding(20).foregroundStyle(Palette.ink)
+            }
+            .background(Palette.background.ignoresSafeArea())
+            .navigationTitle("Jouw overzicht").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Klaar") { dismiss() } } }
+            .onAppear { renderShareCard() }
+        }
+    }
+
+    private func tile(_ value: String, _ label: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value).font(.system(.title, design: .rounded).weight(.heavy)).monospacedDigit().minimumScaleFactor(0.6).lineLimit(1)
+            Text(label).font(.caption.weight(.semibold)).multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, 14)
+        .pop(radius: 16, fill: Palette.surface, shadow: 3)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func bar(_ value: Double, _ color: Color) -> some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Palette.track)
+                Capsule().fill(color).frame(width: geometry.size.width * min(max(value, 0), 1))
+                Capsule().stroke(Palette.ink, lineWidth: 1.5)
+            }
+        }
+        .frame(height: 10)
+        .accessibilityHidden(true)
+    }
+
+    @MainActor private func renderShareCard() {
+        let card = ShareCard(freed: library.streak.freedBytes, reviewed: library.totalReviewed,
+                             streak: library.streak.longest(), sessions: library.completedSessions)
+            .frame(width: 360, height: 450)
+        let renderer = ImageRenderer(content: card)
+        renderer.scale = 3
+        shareImage = renderer.uiImage
+    }
+}
+
+/// Numbers only; never a photo from the library.
+private struct ShareCard: View {
+    let freed: Int64
+    let reviewed: Int
+    let streak: Int
+    let sessions: Int
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("fotoswipe").font(.system(size: 26, weight: .heavy, design: .rounded)).foregroundStyle(Palette.brand)
+            Text(freed > 0 ? "Ik heb \(ByteText.format(freed)) vrijgemaakt" : "Ik ruim mijn fotorol op")
+                .font(.system(size: 30, weight: .heavy, design: .rounded)).tracking(-0.8).foregroundStyle(Palette.ink)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 10) {
+                stat("\(reviewed)", "bekeken", Palette.surface)
+                stat("\(streak)", "dagen reeks", Palette.reward)
+                stat("\(sessions)", "sessies", Palette.surface)
+            }
+            Spacer()
+            Text("Bewaar het mooie. Swipe de rest.").font(.system(size: 15, weight: .bold)).foregroundStyle(Palette.muted)
+        }
+        .padding(26)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(Palette.background)
+    }
+    private func stat(_ value: String, _ label: String, _ fill: Color) -> some View {
+        VStack(spacing: 2) {
+            Text(value).font(.system(size: 24, weight: .heavy, design: .rounded)).foregroundStyle(Palette.ink)
+            Text(label).font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.ink)
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, 12)
+        .pop(radius: 14, fill: fill, shadow: 3)
     }
 }

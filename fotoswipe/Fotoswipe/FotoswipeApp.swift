@@ -60,15 +60,18 @@ enum ByteText {
 
 /// Distinct, short haptics make each decision feel confirmed without looking.
 enum Haptics {
+    /// Can be switched off under the info button; on by default.
+    static var enabled: Bool { UserDefaults.standard.object(forKey: "fotoswipe.haptics") as? Bool ?? true }
     static func choice(_ choice: PhotoDecision) {
+        guard enabled else { return }
         switch choice {
         case .keep: UIImpactFeedbackGenerator(style: .light).impactOccurred()
         case .trash: UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
         case .later: UIImpactFeedbackGenerator(style: .soft).impactOccurred()
         }
     }
-    static func threshold() { UISelectionFeedbackGenerator().selectionChanged() }
-    static func success() { UINotificationFeedbackGenerator().notificationOccurred(.success) }
+    static func threshold() { guard enabled else { return }; UISelectionFeedbackGenerator().selectionChanged() }
+    static func success() { guard enabled else { return }; UINotificationFeedbackGenerator().notificationOccurred(.success) }
 }
 
 

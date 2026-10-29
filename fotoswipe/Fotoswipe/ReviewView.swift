@@ -88,6 +88,14 @@ struct InfoView: View {
     @EnvironmentObject private var library: PhotoLibrary
     @ObservedObject private var reminders = Reminders.shared
     @AppStorage("fotoswipe.sessionSize") private var sessionSize = 100
+    @AppStorage("fotoswipe.haptics") private var haptics = true
+    @State private var confirmResetKept = false
+    @State private var confirmResetAll = false
+    @State private var stats = false
+    private var versionText: String {
+        let info = Bundle.main.infoDictionary
+        return "Fotoswipe \(info?["CFBundleShortVersionString"] as? String ?? "1.0") (\(info?["CFBundleVersion"] as? String ?? "1"))"
+    }
     var body: some View {
         NavigationStack {
             List {
@@ -139,11 +147,31 @@ struct InfoView: View {
                     Text("Als je iCloud-items gebruikt, geldt verwijderen ook voor je andere gekoppelde apparaten.")
                     Text("Verwijder nooit items die je nog nodig hebt zonder een eigen back-up.")
                 }
+                Section {
+                    Button { stats = true } label: { Label("Jouw overzicht", systemImage: "chart.bar.fill") }
+                    Toggle("Trillen bij keuzes", isOn: $haptics)
+                } header: { Text("Overzicht en gevoel") }
+                Section {
+                    Button("Bewaarde foto's opnieuw bekijken") { confirmResetKept = true }
+                    Button("Alle keuzes wissen", role: .destructive) { confirmResetAll = true }
+                } header: { Text("Opnieuw beginnen") } footer: {
+                    Text("Dit verandert alleen je keuzes in Fotoswipe. Je foto's in Foto's blijven zoals ze zijn. Je voortgang zit in de gewone back-up van je iPhone.")
+                }
                 Section("Feedback") {
                     Text("Iets raars gezien of een idee? Maak een screenshot in Fotoswipe en kies 'Deel bèta-feedback'. Of open TestFlight, kies Fotoswipe en tik op 'Stuur bèta-feedback'.")
                 }
-                Section { Text("Fotoswipe 1.0 · testversie · geen reclame, geen abonnement, geen limiet").foregroundStyle(Palette.muted) }
-            }.navigationTitle("Over Fotoswipe").navigationBarTitleDisplayMode(.inline)
+                Section { Text("\(versionText) · geen reclame, geen abonnement, geen limiet").foregroundStyle(Palette.muted) }
+            }
+                .confirmationDialog("Alle bewaarde foto's opnieuw bekijken?", isPresented: $confirmResetKept, titleVisibility: .visible) {
+                    Button("Opnieuw bekijken") { library.resetAllKept() }
+                    Button("Annuleren", role: .cancel) {}
+                } message: { Text("Ze komen terug in de stapels. Weggelegde items blijven weggelegd.") }
+                .confirmationDialog("Alle keuzes wissen?", isPresented: $confirmResetAll, titleVisibility: .visible) {
+                    Button("Wis alle keuzes", role: .destructive) { library.resetAllChoices() }
+                    Button("Annuleren", role: .cancel) {}
+                } message: { Text("Bewaard, weggelegd en later worden gewist. Er wordt niets uit Foto's verwijderd.") }
+                .sheet(isPresented: $stats) { StatsView().environmentObject(library) }
+                .navigationTitle("Over Fotoswipe").navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Klaar") { dismiss() } } }
         }
     }

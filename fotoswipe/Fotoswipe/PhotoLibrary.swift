@@ -221,6 +221,37 @@ struct PhotoCategory: Identifiable {
         sessionFinished = true
     }
     #endif
+    // MARK: Stats
+    var totalReviewed: Int { state.decisions.count }
+    var libraryCount: Int { allAssets.count }
+    var libraryProgress: Double { allAssets.isEmpty ? 0 : min(1, Double(state.decisions.count) / Double(allAssets.count)) }
+    /// Most recent months with their progress, newest first.
+    func recentMonths(limit: Int = 6) -> [(title: String, reviewed: Int, total: Int)] {
+        categories.filter(\.isMonth).prefix(limit).compactMap { category in
+            guard let progress = monthProgress[category.id] else { return nil }
+            return (category.title, progress.reviewed, progress.total)
+        }
+    }
+
+    // MARK: Start over
+    /// Kept items come back into the stacks; set-aside items stay set aside.
+    func resetAllKept() {
+        guard !deleting, !mutating else { return }
+        state.resetKept()
+        rebuildPresentation()
+        save()
+        status = "Bewaarde items staan weer in de stapels."
+    }
+    /// Clears every choice (kept, set aside and later). Nothing in Photos is changed.
+    func resetAllChoices() {
+        guard !deleting, !mutating else { return }
+        state = DecisionStore()
+        session = ReviewSession()
+        rebuildPresentation()
+        save()
+        status = "Alle keuzes gewist. Je foto's zelf zijn niet aangepast."
+    }
+
     /// Undecided items left in the current category.
     var remainingInCategory: Int { remainingCount }
     /// "Keep the rest": for people who do not want to judge every photo. Safe default: keeping never deletes.
@@ -407,7 +438,10 @@ struct PhotoCategory: Identifiable {
         if session.isComplete || (remainingCount == 0 && session.count > 0) { finishSession() }
         else { saveStreak() }
     }
+    /// Sessions finished in total; used for stats and for when to ask for a rating.
+    var completedSessions: Int { UserDefaults.standard.integer(forKey: "fotoswipe.sessionsCompleted") }
     private func finishSession() {
+        UserDefaults.standard.set(completedSessions + 1, forKey: "fotoswipe.sessionsCompleted")
         let wasActive = streak.isActive(Date())
         streak.markActive()
         if !wasActive { rescheduleReminders() }

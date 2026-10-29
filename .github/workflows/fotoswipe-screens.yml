@@ -51,9 +51,20 @@ jobs:
             xcrun simctl install "$UDID" "$APP"
             xcrun simctl addmedia "$UDID" build/media/*.jpg
             # First launch without access: the welcome screen must show without a system prompt.
-            xcrun simctl launch "$UDID" "$BUNDLE" >/dev/null; sleep 7
-            xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/$NAME-welcome.png" >/dev/null 2>&1
-            xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
+            for PAGE in 0 1 2; do
+              xcrun simctl launch "$UDID" "$BUNDLE" -FSOnboardingPage $PAGE >/dev/null; sleep 7
+              xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/$NAME-onboarding$PAGE.png" >/dev/null 2>&1
+              xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
+            done
+            if [[ "$NAME" == "se" ]]; then
+              xcrun simctl ui "$UDID" content_size accessibility-extra-large || echo "::warning title=Fotoswipe screens::content_size not supported"
+              for PAGE in 0 2; do
+                xcrun simctl launch "$UDID" "$BUNDLE" -FSOnboardingPage $PAGE >/dev/null; sleep 7
+                xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/se-largetext-onboarding$PAGE.png" >/dev/null 2>&1
+                xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
+              done
+              xcrun simctl ui "$UDID" content_size large || true
+            fi
             # Grant full photo access in the simulator's privacy database (CI only).
             xcrun simctl shutdown "$UDID"
             TCC="$HOME/Library/Developer/CoreSimulator/Devices/$UDID/data/Library/TCC/TCC.db"
@@ -67,7 +78,7 @@ jobs:
             OUT=$(xcrun simctl privacy "$UDID" grant photos "$BUNDLE" 2>&1) || echo "::warning title=Fotoswipe screens::privacy grant failed on $NAME: $OUT"
             ROWS=$(sqlite3 "$TCC" "SELECT service, client, auth_value FROM access WHERE client='$BUNDLE';" 2>&1 | tr '\n' ';')
             echo "::notice title=Fotoswipe screens::TCC on $NAME: $ROWS"
-            for SCREEN in main focus stacks review end whatsnew info clutter; do
+            for SCREEN in main focus stacks review end whatsnew info clutter stats; do
               xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
               if [[ "$SCREEN" == "main" ]]; then
                 xcrun simctl launch "$UDID" "$BUNDLE" -fotoswipe.focusGuideSeen YES >/dev/null
