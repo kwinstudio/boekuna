@@ -29,7 +29,7 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          TARGET_BUILD: ${{ inputs.target_build || '7' }}
+          TARGET_BUILD: ${{ inputs.target_build || '8' }}
           WAIT_MINUTES: "40"
-          WHAT_TO_TEST: "Nieuw in build 7: Bijna dubbel (stapels met de beste foto voorgekozen, een veeg bevestigt), Rommel (wazig, bonnetjes, screenshots vooraan), dagelijkse herinnering op jouw tijd, sessiegrootte 15/30/50, Bewaar de rest (via Meer) en een berichtje over wat nieuw is. Test vooral: of de voorgekozen foto klopt, of Rommel geen goede foto's toont, en of de herinnering op tijd komt."
+          WHAT_TO_TEST: "Nieuw in build 8: sessies van 100 (kies 30, 50 of 100 onder het i-knopje). De app vraagt pas om fototoegang als je op de knop tikt. Welkomstscherm past op elke iPhone (ook SE), lichtere berekeningen tijdens swipen. Test vooral: eerste start na herinstallatie, een sessie van 100 en het swipen op een kleine iPhone."
         run: node fotoswipe/scripts/asc-testflight-status.mjs
