@@ -132,3 +132,17 @@ html[data-theme="dark"] .motion-delta.is-down{background:#33201E;color:#FF9A92}
   html.boekuna-motion body #modalRoot#modalRoot .modal-backdrop,html.boekuna-motion body #modalRoot#modalRoot .modal{animation:none!important}
   html.boekuna-motion body #modalRoot#modalRoot .modal-backdrop::before{animation:none!important}
 }
+
+/* Soepeler (Kwin 2026-10-29: "alles moet een beetje soepel zijn").
+   Only cheap properties change smoothly: colours, opacity, a transform. A tab or button that also eased its letter weight, size
+   or padding re-laid the page out on every frame (the tab bar did, because it sits outside #mainApp). */
+html.boekuna-motion :is(a,button,input,select,textarea){transition-property:color,background-color,border-color,box-shadow,opacity,transform}
+html.boekuna-motion #mobileBottomNav .mobile-bottom-nav-item{transition-property:color,background-color,opacity,transform!important}
+/* Totals that count up keep every digit the same width, so the number does not wobble while it runs. */
+html.boekuna-motion :is(.metric-value,.dashboard-summary-value){font-variant-numeric:tabular-nums}
+/* Long lists open faster on a phone: rows below the screen are only laid out and painted once you scroll to them. The tables
+   behind Inkomsten, Kosten, Bank and Bonnen are swapped for calm rows (mobile-product.js), so their own rows never need it. */
+@media (max-width:820px){
+  html.boekuna-motion #content .mobile-card-list>.mobile-card-row{content-visibility:auto;contain-intrinsic-size:auto 89px}
+  html.boekuna-motion #content :is(.mobile-invoices,.mobile-expenses,.mobile-bank,.mobile-documents)>tbody>tr{content-visibility:auto;contain-intrinsic-size:auto 168px}
+}

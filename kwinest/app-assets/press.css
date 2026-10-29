@@ -10,3 +10,5 @@ html.boekuna-press :is(#mainApp,#modalRoot) :is(.mobile-card-row,.mobile-card-ma
   html.boekuna-press :is(#mainApp,#modalRoot) :is(.is-pressed,.is-released){animation:none!important}
   html.boekuna-press :is(#mainApp,#modalRoot) .is-pressed{filter:brightness(.93)}
 }
+/* The press itself is the feedback, so no grey flash box over what you tap (like native iPhone apps). */
+html.boekuna-press{-webkit-tap-highlight-color:transparent}

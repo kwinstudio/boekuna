@@ -297,8 +297,10 @@
   function keyboardCheck(){
     if(!vv)return;
     var top=phone.matches?Math.max(0,Math.round(vv.offsetTop)):0;
-    root.style.setProperty('--mobile-viewport-offset-top',top+'px');
-    root.classList.toggle('bk-keyboard',phone.matches&&window.innerHeight-vv.height>120);
+    // Only when it changed: a new value on <html> restyles the whole page, and this runs on every scroll of the visible area.
+    if(root.style.getPropertyValue('--mobile-viewport-offset-top')!==top+'px')root.style.setProperty('--mobile-viewport-offset-top',top+'px');
+    var keyboard=phone.matches&&window.innerHeight-vv.height>120;
+    if(keyboard!==root.classList.contains('bk-keyboard'))root.classList.toggle('bk-keyboard',keyboard);
   }
   if(vv){vv.addEventListener('resize',keyboardCheck);vv.addEventListener('scroll',keyboardCheck);keyboardCheck()}
 
@@ -661,7 +663,7 @@
   });
 
   /* ---------- 25 and 26. Lists remember where you were; tap the top to go up ---------- */
-  var scrollMem={},navByTab=0;
+  var scrollMem={},navByTab=0,TAB_PAGES=['dashboard','invoices','expenses','documents'];
   function currentPage(){try{return typeof page==='string'?page:null}catch(e){return null}}
   document.addEventListener('click',function(e){
     var tab=e.target.closest&&e.target.closest('.mobile-bottom-nav-item,#sidebar .nav-item');if(!tab)return;
@@ -675,11 +677,20 @@
   });
   function wrapNavigate(){
     var orig=window.navigate;if(typeof orig!=='function'||orig.__bk)return;
+    // Soepeler (2026-10-29): a new page is put in place before it is painted. It opens at its top, or where you left it when you
+    // come back by tab or by swiping between tabs. Before, it opened at the old page's scroll height and jumped two frames later.
     var wrapped=function(next){
       var from=currentPage();if(from)scrollMem[from]={y:window.scrollY,t:Date.now()};
       var result=orig.apply(this,arguments);
-      var mem=scrollMem[next],byTab=Date.now()-navByTab<800;
-      if(byTab&&mem&&next!==from&&Date.now()-mem.t<15*60e3&&mem.y>0)requestAnimationFrame(function(){requestAnimationFrame(function(){window.scrollTo({top:mem.y,behavior:'instant'})})});
+      var byTab=Date.now()-navByTab<800||(TAB_PAGES.indexOf(from)>=0&&TAB_PAGES.indexOf(next)>=0),placed=false;
+      var place=function(){
+        if(placed||currentPage()!==next||next===from)return;
+        placed=true;
+        var mem=scrollMem[next],y=byTab&&mem&&Date.now()-mem.t<15*60e3?mem.y:0;
+        if(Math.abs(window.scrollY-y)>1)window.scrollTo({top:y,behavior:'instant'});
+      };
+      place();
+      if(result&&typeof result.then==='function')result.then(place,function(){});
       return result;
     };
     wrapped.__bk=true;window.navigate=wrapped;
