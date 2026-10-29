@@ -1182,6 +1182,8 @@ struct OnboardingView: View {
     @State private var step = 0          // 0: swipe right, 1: swipe left, 2: done
     @State private var drag: CGFloat = 0
     @State private var hint: String?
+    /// Short screens (iPhone SE): smaller illustration and title so the main button stays visible.
+    @State private var compact = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(onAllow: @escaping () -> Void, startPage: Int = 0) {
@@ -1219,18 +1221,20 @@ struct OnboardingView: View {
                 .foregroundStyle(Palette.ink)
             }
             .scrollBounceBehavior(.basedOnSize)
+            .onAppear { compact = geometry.size.height < 640 }
+            .onChange(of: geometry.size.height) { _, height in compact = height < 640 }
         }
         .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.9), value: page)
     }
 
     private var benefit: some View {
-        VStack(spacing: 18) {
-            Spacer(minLength: 8)
-            StackIllustration().frame(height: 170).accessibilityHidden(true)
+        VStack(spacing: compact ? 12 : 18) {
+            Spacer(minLength: compact ? 0 : 8)
+            StackIllustration().scaleEffect(compact ? 0.72 : 1).frame(height: compact ? 120 : 170).accessibilityHidden(true)
             Text("Bewaar het mooie.\nSwipe de rest.")
-                .font(.system(size: 34, weight: .heavy, design: .rounded)).tracking(-1.1)
+                .font(.system(size: compact ? 28 : 34, weight: .heavy, design: .rounded)).tracking(-1.1)
                 .multilineTextAlignment(.center).minimumScaleFactor(0.75).fixedSize(horizontal: false, vertical: true)
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: compact ? 6 : 10) {
                 row("timer", "Een paar minuten per dag houdt je bibliotheek licht.")
                 row("checkmark.shield", "Niets is meteen weg: jij controleert eerst, iOS vraagt nog om bevestiging.")
                 row("iphone", "Geen reclame, geen abonnement. Alles blijft op je iPhone.")
@@ -1286,7 +1290,8 @@ struct OnboardingView: View {
                     .accessibilityAction(named: Text("Bewaren")) { complete(.keep) }
                     .accessibilityAction(named: Text("Wegleggen")) { complete(.trash) }
             }
-            .frame(height: 300)
+            .frame(height: compact ? 250 : 300)
+            .scaleEffect(compact ? 0.86 : 1)
             if step == 2 {
                 Button("Volgende") { withAnimation { page = 2 } }.buttonStyle(PrimaryStyle())
             } else {
