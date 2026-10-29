@@ -113,11 +113,16 @@ try{
   for(const forbidden of ['companyName','address','kvk','vat','iban'])assert.equal(await page.locator(`#authForm [name="${forbidden}"]`).count(),0,`Signup must not collect ${forbidden}`);
   const submit=page.getByRole('button',{name:'Account aanmaken'});
   await page.locator('#registerPassword').fill('kort');
-  assert.equal(await submit.isDisabled(),true);
+  // Trucje 35: no grey dead-end button. A tap too early stays on the form and puts you in the password field.
+  assert.equal(await submit.isDisabled(),false);
+  assert.equal(await submit.getAttribute('data-ready'),'false');
   assert.match(await page.locator('#registerPasswordHelp').innerText(),/minimaal 12/i);
   await page.locator('#registerEmail').fill('new@example.test');
+  await submit.click();
+  assert.equal(await page.evaluate(()=>document.activeElement?.id),'registerPassword');
+  assert.equal(await page.evaluate(()=>window.__signupArgs),null,'Not sent yet');
   await page.locator('#registerPassword').fill('lang-genoeg-123');
-  assert.equal(await submit.isDisabled(),false);
+  assert.equal(await submit.getAttribute('data-ready'),'true');
   assert.match(await page.locator('#registerPasswordHelp').innerText(),/lang genoeg/i);
   await submit.click();
   await page.getByRole('heading',{name:'Controleer je e-mail'}).waitFor();
@@ -187,9 +192,9 @@ try{
   await page.getByRole('heading',{name:'Kies een nieuw wachtwoord'}).waitFor();
   assert.equal(await page.locator('#resetPasswordForm input[type="password"]').count(),1);
   await page.locator('#recoveryPassword').fill('te-kort');
-  assert.equal(await page.getByRole('button',{name:'Wachtwoord opslaan'}).isDisabled(),true);
+  assert.equal(await page.getByRole('button',{name:'Wachtwoord opslaan'}).getAttribute('data-ready'),'false');
   await page.locator('#recoveryPassword').fill('nieuw-wachtwoord-123');
-  assert.equal(await page.getByRole('button',{name:'Wachtwoord opslaan'}).isDisabled(),false);
+  assert.equal(await page.getByRole('button',{name:'Wachtwoord opslaan'}).getAttribute('data-ready'),'true');
 
   // Progressive onboarding: empty profile still reaches dashboard.
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});

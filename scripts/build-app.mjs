@@ -405,8 +405,8 @@ appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/press.css
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/press.js?v=20261026b"></script>\n');
 // Handige trucjes (Kwin 2026-10-28): right keyboard per field, Enter goes to the next field, amounts as you type them,
 // smart pre-fill, bigger tap areas, swipe and long press in lists, shortcuts on a computer. Stylesheet next to press.css.
-{const headEnd=appHtml.indexOf('</head>');appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/handig.css?v=20261028b">\n'+appHtml.slice(headEnd);}
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/handig.js?v=20261028e"></script>\n');
+{const headEnd=appHtml.indexOf('</head>');appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/handig.css?v=20261028d">\n'+appHtml.slice(headEnd);}
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/handig.js?v=20261028f"></script>\n');
 // Swipe left and right between the phone tabs (Kwin 2026-10-28). After handig.js, so a list row's own swipe goes first.
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/vegen.js?v=20261028a"></script>\n');
 // Desktop in the phone's style (Kwin 2026-10-28, keuze A): last in the head so it paints over the older desktop rules; only from 821px.
