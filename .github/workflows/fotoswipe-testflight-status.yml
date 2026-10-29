@@ -29,7 +29,7 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          TARGET_BUILD: ${{ inputs.target_build || '8' }}
+          TARGET_BUILD: ${{ inputs.target_build || '9' }}
           WAIT_MINUTES: "40"
-          WHAT_TO_TEST: "Nieuw in build 8: sessies van 100 (kies 30, 50 of 100 onder het i-knopje). De app vraagt pas om fototoegang als je op de knop tikt. Welkomstscherm past op elke iPhone (ook SE), lichtere berekeningen tijdens swipen. Test vooral: eerste start na herinstallatie, een sessie van 100 en het swipen op een kleine iPhone."
+          WHAT_TO_TEST: "Nieuw in build 9: onboarding in 3 stappen met een oefenkaart (verwijder de app en installeer opnieuw om die te zien), startscherm in Pop-kleuren, Jouw overzicht met statistieken en deelkaart (tik op de vlam rechtsboven), beoordelingsvraag na een geslaagde sessie, opnieuw beginnen en trillen uitzetten onder het i-knopje. Test vooral: de onboarding, het deelkaartje en het wissen van keuzes."
         run: node fotoswipe/scripts/asc-testflight-status.mjs
