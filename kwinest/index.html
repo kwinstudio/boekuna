@@ -2880,8 +2880,10 @@ const today=()=>localDateOnly(new Date());
 const money=n=>{const v=Number(n||0),text=new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR'}).format(Math.abs(v));return v<0&&text!=='€\u00a00,00'?'− '+text:text};
 const num=n=>new Intl.NumberFormat('nl-NL',{maximumFractionDigits:2}).format(Number(n||0));
 // Short date for a phone row: "4 okt" this year, "4 okt 2025" for another year (withYear forces the year).
-const dateShortNL=(d,withYear=false)=>{if(!d)return '—';const date=parseDateOnly(d)||new Date(d);if(Number.isNaN(date.getTime()))return '—';const sameYear=date.getFullYear()===new Date().getFullYear();return new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short',...(withYear||!sameYear?{year:'numeric'}:{})}).format(date).replace('.','')};
-const dateNL=d=>{if(!d)return '—';const date=parseDateOnly(d)||new Date(d);return Number.isNaN(date.getTime())?'—':new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short',year:'numeric'}).format(date)};
+// One formatter per style, made once: creating an Intl.DateTimeFormat per date made long lists slow to open (soepeler, 2026-10-29).
+const DATE_NL_SHORT=new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short'}),DATE_NL_FULL=new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short',year:'numeric'});
+const dateShortNL=(d,withYear=false)=>{if(!d)return '—';const date=parseDateOnly(d)||new Date(d);if(Number.isNaN(date.getTime()))return '—';const sameYear=date.getFullYear()===new Date().getFullYear();return (withYear||!sameYear?DATE_NL_FULL:DATE_NL_SHORT).format(date).replace('.','')};
+const dateNL=d=>{if(!d)return '—';const date=parseDateOnly(d)||new Date(d);return Number.isNaN(date.getTime())?'—':DATE_NL_FULL.format(date)};
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));
 const DEMO_CUSTOMERS=[
 {id:'demo-customer-01',type:'customer',demo:true,name:'Nova Studio Demo B.V.',contactPerson:'Emma Jansen',email:'demo1@example.com',phone:'010 200 00 01',kvk:'DEMO0001',vat:'DEMO-BTW-001',peppolId:'',address:'Demostraat 1',postal:'3011 AA',city:'Rotterdam'},
@@ -4223,7 +4225,8 @@ function navigateWithFilter(target,key,value){
  if(next?.filters&&Object.prototype.hasOwnProperty.call(next.filters,key)){next.filters[key]=value;persistListState()}
  return navigate(target)
 }
-function dashboardAttentionItems(){
+function dashboardAttentionItems(){return renderMemoized('dashboardAttentionItems',dashboardAttentionItemsNow)}
+function dashboardAttentionItemsNow(){
  const items=[],overdue=state.invoices.filter(invoiceIsOverdueOpen),unmatched=state.transactions.filter(t=>t.status==='unmatched');
  const jobs=(documentProcessingJobs||[]).filter(j=>(persistentDocumentNeedsReview(j)||j.state==='failed')),jobRefs=new Set(jobs.map(j=>String(j.client_ref||'')).filter(Boolean)),localReview=state.documents.filter(d=>d?.verification?.status==='needs_review'&&!jobRefs.has(String(d.fileId||''))),failed=jobs.filter(j=>String(j.state||'')==='failed'),review=jobs.filter(persistentDocumentNeedsReview),contactsMissing=attentionRows().some(row=>row.category==='contacts'),health=dataHealthIssues().filter(i=>!(contactsMissing&&i.key==='contact-addresses')),upcoming=state.bookings.filter(b=>['planned','confirmed'].includes(b.status)&&daysUntil(b.date)>=0&&daysUntil(b.date)<=2&&!b.reminderSent);
  const additional=attentionRows().filter(row=>row.category==='contacts');if(additional.length)items.push({key:'contacts',priority:3,tone:'review',icon:'✓',title:additional.length===1?'1 klant mist gegevens':additional.length+' klanten missen gegevens',detail:'Nodig om een factuur te kunnen sturen',cta:'Aanvullen',action:()=>openMissingContactDetails()});
@@ -4322,7 +4325,11 @@ function setHideAmounts(on){if(!state.meta||typeof state.meta!=='object')state.m
 function applyHideAmounts(){document.documentElement.classList.toggle('hide-amounts',!!state.meta?.hideAmounts)}
 document.addEventListener('click',e=>{if(!document.documentElement.classList.contains('hide-amounts')||document.documentElement.classList.contains('amounts-peek'))return;const hero=e.target.closest?.('.kpi-hero');if(!hero)return;e.preventDefault();e.stopPropagation();document.documentElement.classList.add('amounts-peek')},true);
 function setExtraHelpEnabled(enabled){if(!state.meta||typeof state.meta!=='object')state.meta={};state.meta.extraHelpEnabled=enabled===true;save();if(page!=='settings')render()}
-function render(){const fn={dashboard:renderDashboard,insights:renderAssistantInsightsSafe,invoices:renderInvoices,expenses:renderExpenses,bank:renderBank,income:renderIncome,outgoings:renderOutgoings,vat:renderVat,reports:renderReports,ledger:renderLedger,control:renderControl,cashflow:renderCashflow,bookings:renderBookings,contacts:renderContacts,services:renderServices,trips:renderTrips,hours:renderHours,documents:renderDocuments,profile:renderProfile,settings:renderSettings}[page]||renderDashboard;const content=document.getElementById('content');content.dataset.page=page;content.innerHTML=fn();applyPhoneBand(content);wirePage();if(page==='dashboard')wireDashboardAttention();renderGlobalDocumentIndicator();updateVatNavBadge();applyHideAmounts();syncMobileNavigationState()}
+// While one page renders, the to-do list is worked out once instead of for every card that asks (soepeler, 2026-10-29).
+let renderMemo=null;
+function renderMemoized(key,compute){if(!renderMemo)return compute();if(!renderMemo.has(key))renderMemo.set(key,compute());return renderMemo.get(key).slice()}
+function render(){const outerMemo=renderMemo;renderMemo=outerMemo||new Map();try{renderPage()}finally{if(!outerMemo)renderMemo=null}}
+function renderPage(){const fn={dashboard:renderDashboard,insights:renderAssistantInsightsSafe,invoices:renderInvoices,expenses:renderExpenses,bank:renderBank,income:renderIncome,outgoings:renderOutgoings,vat:renderVat,reports:renderReports,ledger:renderLedger,control:renderControl,cashflow:renderCashflow,bookings:renderBookings,contacts:renderContacts,services:renderServices,trips:renderTrips,hours:renderHours,documents:renderDocuments,profile:renderProfile,settings:renderSettings}[page]||renderDashboard;const content=document.getElementById('content');content.dataset.page=page;content.innerHTML=fn();applyPhoneBand(content);wirePage();if(page==='dashboard')wireDashboardAttention();renderGlobalDocumentIndicator();updateVatNavBadge();applyHideAmounts();syncMobileNavigationState()}
 // Phone pages (Kwin's picks, 2026-10-09) show calmer blocks; render() runs again when the width crosses 820px.
 function phoneLayout(){return window.matchMedia('(max-width:820px)').matches}
 function dashboardIsoDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -5296,7 +5303,8 @@ function exportAuditfileXAF(){const {from,to}=reportRange(),x=v=>String(v??'').r
  download(`auditfile-${from}-${to}.xaf`,xml,'application/xml');logEvent('Auditfile gedownload',`${from} t/m ${to}`,'export','xaf')}
 function exportJournalCSV(){const {from,to}=reportRange(),rows=journalFlatRows(generatedJournal().filter(e=>inRange(e.date,from,to))),out=[['Datum','Journaal','Referentie','Omschrijving','Rekening','Rekeningnaam','Debet','Credit','Bron'],...rows.map(r=>[r.date,r.journalId,r.reference,r.description,r.account,r.name,r.debit.toFixed(2),r.credit.toFixed(2),r.sourceType])];download(`journaal-${from}-${to}.csv`,out.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(';')).join('\n'),'text/csv')}
 let controlListState={userId:'',category:'all',query:'',page:1};
-function attentionRows(){
+function attentionRows(){return renderMemoized('attentionRows',attentionRowsNow)}
+function attentionRowsNow(){
  const rows=[],add=(key,category,title,detail,action,label)=>rows.push({key,category,title,detail,action,label});
  state.invoices.filter(invoiceIsOverdueOpen).forEach(i=>add('invoice-'+i.id,'overdue',i.number+' · '+getContact(i.customerId).name,money(invoiceOutstanding(i))+' open · vervallen '+dateNL(i.dueDate),()=>viewInvoice(i.id),'Bekijk'));
  state.transactions.filter(t=>t.status==='unmatched').forEach(t=>add('bank-'+t.id,'bank',t.description,dateNL(t.date)+' · '+money(t.amount)+' · nog niet gekoppeld',()=>openBankAttention(t.id),'Koppelen'));
@@ -5740,12 +5748,14 @@ let appControlId=0;
 function fitFinancialCardValues(root){
  if(!root)return;
  const values=[...root.querySelectorAll('.metric .metric-value,.dashboard-summary-value')];
- for(const value of values){
-  value.style.removeProperty('font-size');
-  if(!value.clientWidth)continue;
-  const start=Number.parseFloat(getComputedStyle(value).fontSize)||30,min=value.closest('.dashboard-kpi-profit')?18:15;
+ // Reset all first and measure all at once: one layout for the whole page instead of one per amount (soepeler, 2026-10-29).
+ values.forEach(value=>value.style.removeProperty('font-size'));
+ const measured=values.map(value=>({value,width:value.clientWidth,fits:value.scrollWidth<=value.clientWidth+1,start:value.clientWidth?Number.parseFloat(getComputedStyle(value).fontSize)||30:0}));
+ for(const {value,width,fits,start} of measured){
+  if(!width)continue;
+  const min=value.closest('.dashboard-kpi-profit')?18:15;
   let size=start;
-  while(value.scrollWidth>value.clientWidth+1&&size>min){
+  if(!fits)while(value.scrollWidth>value.clientWidth+1&&size>min){
    size=Math.max(min,size-1);
    value.style.setProperty('font-size',size+'px','important');
   }
@@ -9642,7 +9652,8 @@ window.addEventListener('pageshow',e=>{if(e.persisted)void checkForNewAppBuild()
  function syncKeyboardOffset(){
   const style=document.documentElement.style;
   if(!narrow.matches){style.removeProperty('--mobile-viewport-offset-top');return}
-  style.setProperty('--mobile-viewport-offset-top',Math.round(window.visualViewport.offsetTop||0)+'px');
+  const top=Math.round(window.visualViewport.offsetTop||0)+'px';
+  if(style.getPropertyValue('--mobile-viewport-offset-top')!==top)style.setProperty('--mobile-viewport-offset-top',top); // same value: no restyle on every scroll
  }
  function keepFocusedModalFieldVisible(target=document.activeElement){
   if(!narrow.matches||!target?.matches?.('input,select,textarea')||!target.closest('#modalRoot .modal'))return;

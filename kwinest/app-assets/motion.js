@@ -62,7 +62,7 @@
       var p=Math.min(1,(now-start)/duration),eased=1-Math.pow(1-p,3);
       if(p>=1){delete el.dataset.counting;el.textContent=original;if(look)look.cents(el);return}
       var text=formatLike(parsed,from+(target-from)*eased);
-      if(look)look.setAmount(el,text);else el.textContent=text;
+      if(look)look.setAmount(el,text);else if(el.childNodes.length===1&&el.firstChild.nodeType===3)el.firstChild.data=text;else el.textContent=text;
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
@@ -105,7 +105,7 @@
   }
   function snapshotRows(content){
     var list=[];
-    content.querySelectorAll(ROW_SELECTOR).forEach(function(row){if(row.closest('.motion-ghost'))return;list.push({key:rowKey(row),html:row.outerHTML,row:row})});
+    content.querySelectorAll(ROW_SELECTOR).forEach(function(row){if(row.closest('.motion-ghost'))return;list.push({key:rowKey(row),row:row})});
     return list;
   }
   function countKeys(list){var c={};list.forEach(function(r){c[r.key]=(c[r.key]||0)+1});return c}
@@ -115,7 +115,7 @@
     before.forEach(function(r){
       var kind=r.key.charAt(0);kindIndex[kind]=(kindIndex[kind]||0);
       seenB[r.key]=(seenB[r.key]||0)+1;
-      if(seenB[r.key]>(a[r.key]||0))removed.push({key:r.key,html:r.html,index:kindIndex[kind],kind:kind});
+      if(seenB[r.key]>(a[r.key]||0))removed.push({key:r.key,row:r.row,index:kindIndex[kind],kind:kind});
       kindIndex[kind]++;
     });
     return {added:added,removed:removed};
@@ -129,10 +129,13 @@
       var anchor=sameKind[r.index]||null;
       var parent=anchor?anchor.parentElement:(sameKind.length?sameKind[sameKind.length-1].parentElement:null);
       if(!parent||!parent.getClientRects().length)return;
-      var holder=document.createElement(r.kind==='t'?'tbody':'div');holder.innerHTML=r.html;
-      var ghost=holder.firstElementChild;if(!ghost)return;
+      // The old row element is kept (not its HTML text, which was slow to make for every row on every render).
+      var ghost=r.row&&r.row.cloneNode(true);if(!ghost)return;
       ghost.classList.add('motion-ghost');ghost.setAttribute('aria-hidden','true');ghost.setAttribute('inert','');
-      ghost.classList.remove('motion-new');
+      // It leaves as it looked in the list, not half swiped.
+      ghost.classList.remove('motion-new','bk-swiping','bk-swipe-left','bk-swipe-right','bk-swipe-armed','is-pressed','is-released');
+      ghost.querySelectorAll('.bk-swipe-back').forEach(function(el){el.remove()});
+      [ghost].concat(Array.prototype.slice.call(ghost.querySelectorAll('[style]'))).forEach(function(el){el.style.removeProperty('transform');el.style.removeProperty('transition')});
       parent.insertBefore(ghost,anchor&&anchor.parentElement===parent?anchor:null);
       var done=false;
       function finish(){
@@ -271,7 +274,7 @@
       if(!entered&&d.removed.length&&d.removed.length<=2&&!d.added.length&&-grew===d.removed.length)ghostRemoved(content,rows,d.removed);
     }
     lastBadges=badges;
-    rowsByPage[now]=rows.map(function(r){return {key:r.key,html:r.html}});
+    rowsByPage[now]=rows;
     if(now==='dashboard')decorateDashboard(content,entered);
     animateValues(content,now,!entered);
     watchDocuments();

@@ -6,7 +6,15 @@
   var AMOUNT=/^([^\d]*-?\s?€?\s?-?\d[\d.]*)(,\d{2})$/;
 
   function set(el,text){
-    var m=AMOUNT.exec(text);
+    var m=AMOUNT.exec(text),first=el.firstChild,span=el.lastChild;
+    // Same shape as the frame before (a total counting up): change only the text. Adding and removing the cents element on
+    // every frame made the browser restyle the whole page each time (soepeler, 2026-10-29).
+    if(m&&el.childNodes.length===2&&first.nodeType===3&&span.nodeType===1&&span.className==='amount-cents'&&span.childNodes.length===1&&span.firstChild.nodeType===3){
+      if(first.data!==m[1])first.data=m[1];
+      if(span.firstChild.data!==m[2])span.firstChild.data=m[2];
+      return;
+    }
+    if(!m&&el.childNodes.length===1&&first.nodeType===3){if(first.data!==text)first.data=text;return}
     if(!m){el.textContent=text;return}
     el.textContent=m[1];
     var cents=document.createElement('span');
