@@ -299,6 +299,6 @@ struct BufferedAssetImage: View {
                 }
             }.clipped()
         }
-        .accessibilityLabel(asset.creationDate.map { "Item van \($0.formatted(date: .long, time: .omitted))" } ?? "Item")
+        .accessibilityLabel(asset.creationDate.map { String(localized: "Item van \($0.formatted(Date.FormatStyle(date: .long, time: .omitted, locale: AppLocale.locale)))", bundle: .app) } ?? String(localized: "Item", bundle: .app))
     }
 }

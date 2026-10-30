@@ -13,7 +13,7 @@ struct ReviewView: View {
             VStack(spacing: 16) {
                 if selection == 0 && !library.pending.isEmpty {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("\(library.pending.count) items\(library.pendingBytes > 0 ? " · " + ByteText.format(library.pendingBytes) : "")")
+                        Text(String(localized: "\(library.pending.count) items", bundle: .app) + (library.pendingBytes > 0 ? " · " + ByteText.format(library.pendingBytes) : ""))
                             .font(.system(size: 30, weight: .heavy, design: .rounded)).tracking(-0.8)
                         Text("Tik op een item om het te bekijken. Met Terug zet je het terug in de stapel.")
                             .font(.subheadline).foregroundStyle(Palette.muted)
@@ -28,7 +28,7 @@ struct ReviewView: View {
                     Text("Later (\(library.deferred.count))").tag(2)
                 }.pickerStyle(.segmented).disabled(library.deleting)
                 if visible.isEmpty {
-                    ContentUnavailableView(selection == 0 ? "Niets weggelegd" : (selection == 1 ? "Nog niets bewaard" : "Niets voor later"), systemImage: "photo.on.rectangle")
+                    ContentUnavailableView(selection == 0 ? String(localized: "Niets weggelegd", bundle: .app) : (selection == 1 ? String(localized: "Nog niets bewaard", bundle: .app) : String(localized: "Niets voor later", bundle: .app)), systemImage: "photo.on.rectangle")
                 } else {
                     ScrollView {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 95))], spacing: 12) {
@@ -58,7 +58,7 @@ struct ReviewView: View {
                     Button { confirm = true } label: {
                         HStack {
                             if library.deleting { ProgressView().tint(Palette.ink) }
-                            Text(library.deleting ? "Verwijderen…" : "Verwijder \(library.pending.count) items\(library.pendingBytes > 0 ? " · " + ByteText.format(library.pendingBytes) : "")")
+                            Text(library.deleting ? String(localized: "Verwijderen…", bundle: .app) : String(localized: "Verwijder \(library.pending.count) items", bundle: .app) + (library.pendingBytes > 0 ? " · " + ByteText.format(library.pendingBytes) : ""))
                         }
                     }.buttonStyle(PrimaryStyle(fill: Palette.trash, text: Palette.ink)).disabled(library.deleting || library.loading)
                 }
@@ -94,6 +94,7 @@ struct InfoView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var library: PhotoLibrary
     @ObservedObject private var reminders = Reminders.shared
+    @ObservedObject private var languages = LanguageStore.shared
     @AppStorage("fotoswipe.sessionSize") private var sessionSize = 100
     @AppStorage("fotoswipe.haptics") private var haptics = true
     @State private var confirmResetKept = false
@@ -111,6 +112,13 @@ struct InfoView: View {
                     Button { stats = true } label: { Label("Jouw overzicht", systemImage: "chart.bar.fill") }
                 }
                 Section {
+                    Picker(selection: Binding(get: { languages.language }, set: { language in
+                        languages.set(language)
+                        library.refresh(showLoading: false)
+                        library.rescheduleReminders()
+                    })) {
+                        ForEach(AppLanguage.allCases) { language in Text(verbatim: language.nativeName).tag(language) }
+                    } label: { Label("Taal", systemImage: "globe") }
                     Picker("Items per sessie", selection: $sessionSize) {
                         ForEach(ReviewSession.sizes, id: \.self) { size in Text("\(size)").tag(size) }
                     }
@@ -159,30 +167,30 @@ struct HelpView: View {
     @EnvironmentObject private var library: PhotoLibrary
     @State private var practice = false
     private let faq: [(String, String)] = [
-        ("Is een foto meteen weg als ik swipe?", "Nee. Naar links leggen zet een foto alleen opzij. Pas als je in Bekijken op Verwijder tikt en iOS dat bevestigt, gaat hij naar 'Recent verwijderd'. Daar staat hij nog 30 dagen."),
-        ("Waarom komt de ruimte niet direct vrij?", "Verwijderde foto's blijven 30 dagen in Foto's > Albums > Recent verwijderd. Wil je de ruimte meteen? Kies daar Verwijder alles. Een app mag dat album niet zelf legen."),
-        ("Hoe weet Fotoswipe wat rommel of bijna dubbel is?", "Fotoswipe bekijkt kleine voorbeelden van je recentste foto's, alleen op je iPhone. Het is een voorstel: jij beslist altijd zelf, en favorieten komen nooit in Rommel."),
-        ("Wat gebeurt er bij iCloud-foto's?", "Verwijderen geldt ook voor je andere apparaten met dezelfde iCloud-fotobibliotheek. Foto's die alleen in iCloud staan, worden even opgehaald om ze te tonen."),
-        ("Ik gaf alleen toegang tot een paar foto's", "Dan zie je alleen die foto's. Tik op 'Wijzig' boven de stapel om meer te kiezen, of geef volledige toegang in Instellingen > Privacy > Foto's."),
-        ("Raak ik mijn voortgang kwijt?", "Nee, je keuzes worden op je iPhone bewaard en gaan mee in je gewone iPhone-back-up. Als je de app verwijdert, is je voortgang weg; je foto's niet."),
-        ("Wat kost Fotoswipe?", "Niets. Geen reclame, geen abonnement en geen limiet op het aantal swipes.")
+        (String(localized: "Is een foto meteen weg als ik swipe?", bundle: .app), String(localized: "Nee. Naar links leggen zet een foto alleen opzij. Pas als je in Bekijken op Verwijder tikt en iOS dat bevestigt, gaat hij naar 'Recent verwijderd'. Daar staat hij nog 30 dagen.", bundle: .app)),
+        (String(localized: "Waarom komt de ruimte niet direct vrij?", bundle: .app), String(localized: "Verwijderde foto's blijven 30 dagen in Foto's > Albums > Recent verwijderd. Wil je de ruimte meteen? Kies daar Verwijder alles. Een app mag dat album niet zelf legen.", bundle: .app)),
+        (String(localized: "Hoe weet Fotoswipe wat rommel of bijna dubbel is?", bundle: .app), String(localized: "Fotoswipe bekijkt kleine voorbeelden van je recentste foto's, alleen op je iPhone. Het is een voorstel: jij beslist altijd zelf, en favorieten komen nooit in Rommel.", bundle: .app)),
+        (String(localized: "Wat gebeurt er bij iCloud-foto's?", bundle: .app), String(localized: "Verwijderen geldt ook voor je andere apparaten met dezelfde iCloud-fotobibliotheek. Foto's die alleen in iCloud staan, worden even opgehaald om ze te tonen.", bundle: .app)),
+        (String(localized: "Ik gaf alleen toegang tot een paar foto's", bundle: .app), String(localized: "Dan zie je alleen die foto's. Tik op 'Wijzig' boven de stapel om meer te kiezen, of geef volledige toegang in Instellingen > Privacy > Foto's.", bundle: .app)),
+        (String(localized: "Raak ik mijn voortgang kwijt?", bundle: .app), String(localized: "Nee, je keuzes worden op je iPhone bewaard en gaan mee in je gewone iPhone-back-up. Als je de app verwijdert, is je voortgang weg; je foto's niet.", bundle: .app)),
+        (String(localized: "Wat kost Fotoswipe?", bundle: .app), String(localized: "Niets. Geen reclame, geen abonnement en geen limiet op het aantal swipes.", bundle: .app))
     ]
     var body: some View {
         List {
             Section {
-                step(1, "Swipe", "Rechts is bewaren, links is wegleggen. Twijfel? Tik op het klokje voor later.")
-                step(2, "Controleer", "Tik op 'Weggelegd' onderaan. Tik op een foto om hem toch te bewaren.")
-                step(3, "Verwijder", "Tik op Verwijder en bevestig in het venster van iOS.")
-                step(4, "Maak ruimte vrij", "Leeg 'Recent verwijderd' in Foto's, of wacht 30 dagen.")
+                step(1, String(localized: "Swipe", bundle: .app), String(localized: "Rechts is bewaren, links is wegleggen. Twijfel? Tik op het klokje voor later.", bundle: .app))
+                step(2, String(localized: "Controleer", bundle: .app), String(localized: "Tik op 'Weggelegd' onderaan. Tik op een foto om hem toch te bewaren.", bundle: .app))
+                step(3, String(localized: "Verwijder", bundle: .app), String(localized: "Tik op Verwijder en bevestig in het venster van iOS.", bundle: .app))
+                step(4, String(localized: "Maak ruimte vrij", bundle: .app), String(localized: "Leeg 'Recent verwijderd' in Foto's, of wacht 30 dagen.", bundle: .app))
                 Button { practice = true } label: { Label("Oefen het swipen", systemImage: "hand.draw") }
             } header: { Text("In 4 stappen") }
             Section {
-                gesture("arrow.right", "Naar rechts", "Bewaren")
-                gesture("arrow.left", "Naar links", "Wegleggen")
-                gesture("arrow.up", "Omhoog", "Later beslissen")
-                gesture("arrow.down", "Omlaag", "Vorige terug")
-                gesture("hand.tap", "Dubbeltik", "Favoriet in Foto's")
-                gesture("plus.magnifyingglass", "Vasthouden", "Inzoomen")
+                gesture("arrow.right", String(localized: "Naar rechts", bundle: .app), String(localized: "Bewaren", bundle: .app))
+                gesture("arrow.left", String(localized: "Naar links", bundle: .app), String(localized: "Wegleggen", bundle: .app))
+                gesture("arrow.up", String(localized: "Omhoog", bundle: .app), String(localized: "Later beslissen", bundle: .app))
+                gesture("arrow.down", String(localized: "Omlaag", bundle: .app), String(localized: "Vorige terug", bundle: .app))
+                gesture("hand.tap", String(localized: "Dubbeltik", bundle: .app), String(localized: "Favoriet in Foto's", bundle: .app))
+                gesture("plus.magnifyingglass", String(localized: "Vasthouden", bundle: .app), String(localized: "Inzoomen", bundle: .app))
             } header: { Text("Gebaren in Focus") } footer: {
                 Text("Focus (rechtsboven) toont alleen de foto op het hele scherm. Eén tik toont de knoppen.")
             }

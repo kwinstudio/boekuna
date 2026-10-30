@@ -27,29 +27,29 @@ struct PhotoCategory: Identifiable {
     let isAlbum: Bool
     var dateFilter: PhotoDateFilter = .all
     var isMonth: Bool { if case .month = dateFilter { return true }; return false }
-    static let all = PhotoCategory(id: "all", title: "Alle foto's en video's", icon: "photo.on.rectangle", collection: nil, isAlbum: false)
+    static let all = PhotoCategory(id: "all", title: String(localized: "Alle foto's en video's", bundle: .app), icon: "photo.on.rectangle", collection: nil, isAlbum: false)
 
     static func available(dates: [Date?]) -> [PhotoCategory] {
         let types: [(PHAssetCollectionSubtype, String, String)] = [
-            (.smartAlbumVideos, "Video's", "video"),
-            (.smartAlbumFavorites, "Favorieten", "heart"),
-            (.smartAlbumScreenshots, "Screenshots", "viewfinder"),
-            (.smartAlbumSelfPortraits, "Selfies", "person.crop.square"),
-            (.smartAlbumDepthEffect, "Portretten", "person.crop.rectangle"),
-            (.smartAlbumLivePhotos, "Live Photos", "livephoto"),
-            (.smartAlbumPanoramas, "Panorama's", "pano"),
-            (.smartAlbumRAW, "RAW", "camera"),
-            (.smartAlbumRecentlyAdded, "Recent toegevoegd", "clock")
+            (.smartAlbumVideos, String(localized: "Video's", bundle: .app), "video"),
+            (.smartAlbumFavorites, String(localized: "Favorieten", bundle: .app), "heart"),
+            (.smartAlbumScreenshots, String(localized: "Screenshots", bundle: .app), "viewfinder"),
+            (.smartAlbumSelfPortraits, String(localized: "Selfies", bundle: .app), "person.crop.square"),
+            (.smartAlbumDepthEffect, String(localized: "Portretten", bundle: .app), "person.crop.rectangle"),
+            (.smartAlbumLivePhotos, String(localized: "Live Photos", bundle: .app), "livephoto"),
+            (.smartAlbumPanoramas, String(localized: "Panorama's", bundle: .app), "pano"),
+            (.smartAlbumRAW, String(localized: "RAW", bundle: .app), "camera"),
+            (.smartAlbumRecentlyAdded, String(localized: "Recent toegevoegd", bundle: .app), "clock")
         ]
         var result = [PhotoCategory.all,
-            PhotoCategory(id: "later", title: "Later beslissen", icon: "bookmark", collection: nil, isAlbum: false),
-            PhotoCategory(id: "random30", title: "\(ReviewSession.size) willekeurige items", icon: "shuffle", collection: nil, isAlbum: false),
-            PhotoCategory(id: "on-this-day", title: "Op deze dag", icon: "calendar", collection: nil, isAlbum: false, dateFilter: .onThisDay),
-            PhotoCategory(id: "clutter", title: "Rommel", icon: "wand.and.stars", collection: nil, isAlbum: false),
-            PhotoCategory(id: "accidental", title: "Per ongeluk", icon: "eye.slash", collection: nil, isAlbum: false),
-            PhotoCategory(id: "old-screenshots", title: "Oude screenshots", icon: "clock.arrow.circlepath", collection: nil, isAlbum: false),
-            PhotoCategory(id: "from-apps", title: "Uit apps", icon: "bubble.left.and.bubble.right.fill", collection: nil, isAlbum: false),
-            PhotoCategory(id: "small", title: "Kleine plaatjes en GIF's", icon: "photo.badge.arrow.down", collection: nil, isAlbum: false)]
+            PhotoCategory(id: "later", title: String(localized: "Later beslissen", bundle: .app), icon: "bookmark", collection: nil, isAlbum: false),
+            PhotoCategory(id: "random30", title: String(localized: "\(ReviewSession.size) willekeurige items", bundle: .app), icon: "shuffle", collection: nil, isAlbum: false),
+            PhotoCategory(id: "on-this-day", title: String(localized: "Op deze dag", bundle: .app), icon: "calendar", collection: nil, isAlbum: false, dateFilter: .onThisDay),
+            PhotoCategory(id: "clutter", title: String(localized: "Rommel", bundle: .app), icon: "wand.and.stars", collection: nil, isAlbum: false),
+            PhotoCategory(id: "accidental", title: String(localized: "Per ongeluk", bundle: .app), icon: "eye.slash", collection: nil, isAlbum: false),
+            PhotoCategory(id: "old-screenshots", title: String(localized: "Oude screenshots", bundle: .app), icon: "clock.arrow.circlepath", collection: nil, isAlbum: false),
+            PhotoCategory(id: "from-apps", title: String(localized: "Uit apps", bundle: .app), icon: "bubble.left.and.bubble.right.fill", collection: nil, isAlbum: false),
+            PhotoCategory(id: "small", title: String(localized: "Kleine plaatjes en GIF's", bundle: .app), icon: "photo.badge.arrow.down", collection: nil, isAlbum: false)]
         for (type, title, icon) in types {
             if let collection = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: type, options: nil).firstObject {
                 result.append(PhotoCategory(id: collection.localIdentifier, title: title, icon: icon, collection: collection, isAlbum: false))
@@ -57,10 +57,10 @@ struct PhotoCategory: Identifiable {
         }
         var albums: [PhotoCategory] = []
         PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: nil).enumerateObjects { collection, _, _ in
-            albums.append(PhotoCategory(id: collection.localIdentifier, title: collection.localizedTitle ?? "Naamloos album", icon: "rectangle.stack", collection: collection, isAlbum: true))
+            albums.append(PhotoCategory(id: collection.localIdentifier, title: collection.localizedTitle ?? String(localized: "Naamloos album", bundle: .app), icon: "rectangle.stack", collection: collection, isAlbum: true))
         }
         let months = PhotoDateFilter.monthStarts(in: dates).map { date in
-            PhotoCategory(id: PhotoDateFilter.monthID(for: date), title: date.formatted(.dateTime.month(.wide).year()), icon: "calendar", collection: nil, isAlbum: false, dateFilter: .month(date))
+            PhotoCategory(id: PhotoDateFilter.monthID(for: date), title: date.formatted(Date.FormatStyle(locale: AppLocale.locale).month(.wide).year()), icon: "calendar", collection: nil, isAlbum: false, dateFilter: .month(date))
         }
         return result + albums.sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending } + months
     }
@@ -151,7 +151,7 @@ struct PhotoCategory: Identifiable {
         persistence = DecisionPersistence(url: stateURL)
         if FileManager.default.fileExists(atPath: stateURL.path) {
             do { state = try JSONDecoder().decode(DecisionStore.self, from: Data(contentsOf: stateURL)) }
-            catch { persistenceWarning = "Je opgeslagen keuzes konden niet worden gelezen. Verwijder pas foto's nadat je je selectie opnieuw hebt gecontroleerd." }
+            catch { persistenceWarning = String(localized: "Je opgeslagen keuzes konden niet worden gelezen. Verwijder pas foto's nadat je je selectie opnieuw hebt gecontroleerd.", bundle: .app) }
         }
         if let data = UserDefaults.standard.data(forKey: Self.streakKey),
            let saved = try? JSONDecoder().decode(StreakStore.self, from: data) { streak = saved }
@@ -187,7 +187,7 @@ struct PhotoCategory: Identifiable {
     /// From a reminder: straight to today's memories from earlier years.
     func openOnThisDay() {
         guard !deleting, !mutating else { return }
-        selectedCategory = PhotoCategory(id: "on-this-day", title: "Op deze dag", icon: "calendar", collection: nil, isAlbum: false, dateFilter: .onThisDay)
+        selectedCategory = PhotoCategory(id: "on-this-day", title: String(localized: "Op deze dag", bundle: .app), icon: "calendar", collection: nil, isAlbum: false, dateFilter: .onThisDay)
         refresh()
     }
     func asset(id: String) -> PHAsset? { assetIndex[id] }
@@ -262,7 +262,7 @@ struct PhotoCategory: Identifiable {
         state.resetKept()
         rebuildPresentation()
         save()
-        status = "Bewaarde items staan weer in de stapels."
+        status = String(localized: "Bewaarde items staan weer in de stapels.", bundle: .app)
     }
     /// Clears every choice (kept, set aside and later). Nothing in Photos is changed.
     func resetAllChoices() {
@@ -271,7 +271,7 @@ struct PhotoCategory: Identifiable {
         session = ReviewSession()
         rebuildPresentation()
         save()
-        status = "Alle keuzes gewist. Je foto's zelf zijn niet aangepast."
+        status = String(localized: "Alle keuzes gewist. Je foto's zelf zijn niet aangepast.", bundle: .app)
     }
 
     // MARK: Smart groups
@@ -390,7 +390,7 @@ struct PhotoCategory: Identifiable {
     /// Saves a smaller HEVC copy of a video (max 1080p) and sets the original aside for review.
     func compressVideo(_ asset: PHAsset) {
         guard asset.mediaType == .video, converting == nil, !mutating, !deleting else { return }
-        converting = "Video verkleinen…"
+        converting = String(localized: "Video verkleinen…", bundle: .app)
         Task { @MainActor in
             let message = await self.runCompression(asset)
             self.converting = nil
@@ -408,9 +408,9 @@ struct PhotoCategory: Identifiable {
                 continuation.resume(returning: avAsset)
             }
         }
-        guard let video else { return "Deze video kon niet worden geladen. Staat hij alleen in iCloud? Probeer het met internet opnieuw." }
+        guard let video else { return String(localized: "Deze video kon niet worden geladen. Staat hij alleen in iCloud? Probeer het met internet opnieuw.", bundle: .app) }
         guard let session = AVAssetExportSession(asset: video, presetName: AVAssetExportPresetHEVC1920x1080) else {
-            return "Verkleinen is voor deze video niet mogelijk."
+            return String(localized: "Verkleinen is voor deze video niet mogelijk.", bundle: .app)
         }
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension("mov")
         defer { try? FileManager.default.removeItem(at: url) }
@@ -421,29 +421,29 @@ struct PhotoCategory: Identifiable {
                 session.outputURL = url
                 session.outputFileType = .mov
                 await session.export()
-                guard session.status == .completed else { return "Verkleinen is niet gelukt. Er is niets veranderd." }
+                guard session.status == .completed else { return String(localized: "Verkleinen is niet gelukt. Er is niets veranderd.", bundle: .app) }
             }
         } catch {
-            return "Verkleinen is niet gelukt. Er is niets veranderd."
+            return String(localized: "Verkleinen is niet gelukt. Er is niets veranderd.", bundle: .app)
         }
         let newSize = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.int64Value ?? 0
         let estimate = PhotoLibrary.fileSize(asset)
         guard newSize > 0, Double(newSize) < Double(estimate) * 0.8 else {
-            return "Deze video is al compact. Er is niets veranderd."
+            return String(localized: "Deze video is al compact. Er is niets veranderd.", bundle: .app)
         }
         return await saveReplacement(for: asset, resource: .video, fileURL: url,
-                                     done: "Kleinere versie opgeslagen (\(ByteText.format(newSize))). Het origineel staat bij Weggelegd, zodat jij beslist.")
+                                     done: String(localized: "Kleinere versie opgeslagen (\(ByteText.format(newSize))). Het origineel staat bij Weggelegd, zodat jij beslist.", bundle: .app))
     }
 
     /// Saves the still image of a Live Photo as a normal photo and sets the original aside for review.
     func convertLiveToStill(_ asset: PHAsset) {
         guard asset.mediaSubtypes.contains(.photoLive), converting == nil, !mutating, !deleting else { return }
-        converting = "Omzetten naar gewone foto…"
+        converting = String(localized: "Omzetten naar gewone foto…", bundle: .app)
         Task { @MainActor in
             let resources = PHAssetResource.assetResources(for: asset)
             guard let photo = resources.first(where: { $0.type == .fullSizePhoto }) ?? resources.first(where: { $0.type == .photo }) else {
                 self.converting = nil
-                self.message = "Deze Live Photo kon niet worden omgezet."
+                self.message = String(localized: "Deze Live Photo kon niet worden omgezet.", bundle: .app)
                 return
             }
             let ext = (photo.originalFilename as NSString).pathExtension
@@ -456,11 +456,11 @@ struct PhotoCategory: Identifiable {
                 try await PHAssetResourceManager.default().writeData(for: photo, toFile: url, options: options)
             } catch {
                 self.converting = nil
-                self.message = "De foto kon niet worden geladen. Staat hij alleen in iCloud? Probeer het met internet opnieuw."
+                self.message = String(localized: "De foto kon niet worden geladen. Staat hij alleen in iCloud? Probeer het met internet opnieuw.", bundle: .app)
                 return
             }
             let message = await self.saveReplacement(for: asset, resource: .photo, fileURL: url,
-                                                     done: "Gewone foto opgeslagen, zonder het bewegende deel (ca. 1,5 MB kleiner). Het origineel staat bij Weggelegd, zodat jij beslist.")
+                                                     done: String(localized: "Gewone foto opgeslagen, zonder het bewegende deel (ca. 1,5 MB kleiner). Het origineel staat bij Weggelegd, zodat jij beslist.", bundle: .app))
             self.converting = nil
             self.message = message
             self.refresh(showLoading: false)
@@ -486,7 +486,7 @@ struct PhotoCategory: Identifiable {
         } catch {
             mutating = false
             refreshGate.endMutation()
-            return "Opslaan is niet gelukt. Er is niets veranderd."
+            return String(localized: "Opslaan is niet gelukt. Er is niets veranderd.", bundle: .app)
         }
         mutating = false
         refreshGate.endMutation()
@@ -509,7 +509,7 @@ struct PhotoCategory: Identifiable {
         rebuildPresentation()
         save()
         Haptics.success()
-        status = "\(rest.count) items bewaard. Met Bekijken kun je dit per item terugdraaien."
+        status = String(localized: "\(rest.count) items bewaard. Met Bekijken kun je dit per item terugdraaien.", bundle: .app)
     }
     func bestInStack(_ group: [String]) -> String? {
         let favorites = Set(group.filter { id in assetIndex[id].map { isFavorite($0) } ?? false })
@@ -539,10 +539,10 @@ struct PhotoCategory: Identifiable {
                 let year = parts.year ?? 0
                 let count = (years[(parts.month ?? 0) * 100 + (parts.day ?? 0)] ?? []).filter { $0 < year }.count
                 if count > 0 {
-                    return (date, "\(count) foto's van \(date.formatted(.dateTime.day().month(.wide))) uit eerdere jaren wachten op je. Even 2 minuten?")
+                    return (date, String(localized: "\(count) foto's van \(date.formatted(Date.FormatStyle(locale: AppLocale.locale).day().month(.wide))) uit eerdere jaren wachten op je. Even 2 minuten?", bundle: .app))
                 }
-                if days > 0 { return (date, "Houd je reeks van \(days) dagen vast. Een paar minuten swipen?") }
-                return (date, "Een paar minuten swipen en ruimte maken voor nieuwe herinneringen.")
+                if days > 0 { return (date, String(localized: "Houd je reeks van \(days) dagen vast. Een paar minuten swipen?", bundle: .app)) }
+                return (date, String(localized: "Een paar minuten swipen en ruimte maken voor nieuwe herinneringen.", bundle: .app))
             }
             guard !Task.isCancelled else { return }
             await MainActor.run { Reminders.shared.schedule(items) }
@@ -778,7 +778,7 @@ struct PhotoCategory: Identifiable {
         // Snapshot: any later library refresh cannot change the requested batch.
         let batch = pending
         guard batch.allSatisfy({ $0.canPerform(.delete) }) else {
-            message = "Deze selectie bevat items die Apple niet door deze app laat verwijderen. Herstel die items eerst, bijvoorbeeld items uit een gesynchroniseerd album."
+            message = String(localized: "Deze selectie bevat items die Apple niet door deze app laat verwijderen. Herstel die items eerst, bijvoorbeeld items uit een gesynchroniseerd album.", bundle: .app)
             return
         }
         deleting = true
@@ -800,7 +800,7 @@ struct PhotoCategory: Identifiable {
                     self.scopeIDs.subtract(ids)
                     self.rebuildPresentation()
                     self.save()
-                    self.message = "\(batch.count) items verwijderd\(freed > 0 ? " (\(ByteText.format(freed)))" : ""). Ze staan nog 30 dagen in 'Recent verwijderd' in Foto's; pas daarna komt de ruimte vrij. Wil je de ruimte nu al? Open Foto's, ga naar Albums > Recent verwijderd en kies Verwijder alles."
+                    self.message = String(localized: "\(batch.count) items verwijderd", bundle: .app) + (freed > 0 ? " (\(ByteText.format(freed)))" : "") + ". " + String(localized: "Ze staan nog 30 dagen in 'Recent verwijderd' in Foto's; pas daarna komt de ruimte vrij. Wil je de ruimte nu al? Open Foto's, ga naar Albums > Recent verwijderd en kies Verwijder alles.", bundle: .app)
                     self.refresh()
                 } else {
                     self.message = "Er is niets door Fotoswipe verwijderd. Je selectie is bewaard. \(error?.localizedDescription ?? "De verwijdering is geannuleerd.")"
@@ -813,7 +813,7 @@ struct PhotoCategory: Identifiable {
         persistence.save(state) { [weak self] error in
             guard error != nil else { return }
             DispatchQueue.main.async {
-                self?.persistenceWarning = "Je keuzes konden niet worden opgeslagen. Houd de app open en probeer later opnieuw."
+                self?.persistenceWarning = String(localized: "Je keuzes konden niet worden opgeslagen. Houd de app open en probeer later opnieuw.", bundle: .app)
             }
         }
     }
@@ -886,13 +886,13 @@ struct PhotoCategory: Identifiable {
         }
         rebuildPresentation()
         save()
-        status = "Selectie weggelegd. Controleer alle items in Bekijken."
+        status = String(localized: "Selectie weggelegd. Controleer alle items in Bekijken.", bundle: .app)
     }
 
     func toggleFavorite() {
         guard !loading, !deleting, !mutating, let asset = current else { return }
         guard asset.canPerform(.properties) else {
-            message = "Dit item kan niet als favoriet worden aangepast."; return
+            message = String(localized: "Dit item kan niet als favoriet worden aangepast.", bundle: .app); return
         }
         let favorite = !isFavorite(asset)
         refreshTask?.cancel(); refreshTask = nil
@@ -908,8 +908,8 @@ struct PhotoCategory: Identifiable {
                 self.refreshGate.endMutation()
                 if success {
                     self.favoriteOverrides[asset.localIdentifier] = favorite
-                    self.status = favorite ? "Toegevoegd aan Favorieten in Foto's." : "Verwijderd uit Favorieten in Foto's."
-                } else { self.message = error?.localizedDescription ?? "Favoriet wijzigen is niet gelukt." }
+                    self.status = favorite ? String(localized: "Toegevoegd aan Favorieten in Foto's.", bundle: .app) : String(localized: "Verwijderd uit Favorieten in Foto's.", bundle: .app)
+                } else { self.message = error?.localizedDescription ?? String(localized: "Favoriet wijzigen is niet gelukt.", bundle: .app) }
                 // Do not rebuild the deck in response to our own metadata write.
                 // A later category change or activation reconciles Photos collections.
             }
@@ -917,10 +917,10 @@ struct PhotoCategory: Identifiable {
     }
 
     func add(_ asset: PHAsset, to collection: PHAssetCollection?, newTitle: String?, completion: @escaping (String?) -> Void) {
-        guard !mutating, !deleting else { completion("Er wordt nog een wijziging verwerkt."); return }
+        guard !mutating, !deleting else { completion(String(localized: "Er wordt nog een wijziging verwerkt.", bundle: .app)); return }
         let title = newTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
         guard collection?.canPerform(.addContent) == true || (title?.isEmpty == false) else {
-            completion("Kies een bewerkbaar album of geef een albumnaam op."); return
+            completion(String(localized: "Kies een bewerkbaar album of geef een albumnaam op.", bundle: .app)); return
         }
         refreshTask?.cancel(); refreshTask = nil
         generation += 1 // Invalidate any metadata fetch that began before the mutation.
@@ -929,7 +929,7 @@ struct PhotoCategory: Identifiable {
         PHPhotoLibrary.shared().performChanges({
             let request: PHAssetCollectionChangeRequest?
             if let collection { request = PHAssetCollectionChangeRequest(for: collection) }
-            else { request = PHAssetCollectionChangeRequest.creationRequestForAssetCollection(withTitle: title ?? "Album") }
+            else { request = PHAssetCollectionChangeRequest.creationRequestForAssetCollection(withTitle: title ?? String(localized: "Album", bundle: .app)) }
             request?.addAssets([asset] as NSArray)
         }) { [weak self] success, error in
             Task { @MainActor in
@@ -937,12 +937,12 @@ struct PhotoCategory: Identifiable {
                 if success, title != nil {
                     self.refreshAlbumCatalog {
                         self.mutating = false; self.refreshGate.endMutation()
-                        self.status = "Toegevoegd aan album in Foto's."; completion(nil)
+                        self.status = String(localized: "Toegevoegd aan album in Foto's.", bundle: .app); completion(nil)
                     }
                 } else {
                     self.mutating = false; self.refreshGate.endMutation()
-                    if success { self.status = "Toegevoegd aan album in Foto's."; completion(nil) }
-                    else { completion(error?.localizedDescription ?? "Toevoegen is niet gelukt. Je keuzes zijn bewaard.") }
+                    if success { self.status = String(localized: "Toegevoegd aan album in Foto's.", bundle: .app); completion(nil) }
+                    else { completion(error?.localizedDescription ?? String(localized: "Toevoegen is niet gelukt. Je keuzes zijn bewaard.", bundle: .app)) }
                 }
             }
         }

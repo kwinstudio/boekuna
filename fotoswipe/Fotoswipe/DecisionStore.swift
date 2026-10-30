@@ -103,10 +103,10 @@ enum PhotoOrder: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .newest: return "Nieuwste eerst"
-        case .oldest: return "Oudste eerst"
-        case .largest: return "Grootste eerst"
-        case .random: return "Willekeurige volgorde"
+        case .newest: return String(localized: "Nieuwste eerst", bundle: .app)
+        case .oldest: return String(localized: "Oudste eerst", bundle: .app)
+        case .largest: return String(localized: "Grootste eerst", bundle: .app)
+        case .random: return String(localized: "Willekeurige volgorde", bundle: .app)
         }
     }
 }
@@ -323,10 +323,10 @@ enum ClutterReason: Int, Comparable {
     static func < (lhs: ClutterReason, rhs: ClutterReason) -> Bool { lhs.rawValue < rhs.rawValue }
     var label: String {
         switch self {
-        case .document: return "Bonnetje of notitie"
-        case .screenshot: return "Screenshot"
-        case .blurry: return "Mogelijk wazig"
-        case .accidental: return "Per ongeluk?"
+        case .document: return String(localized: "Bonnetje of notitie", bundle: .app)
+        case .screenshot: return String(localized: "Screenshot", bundle: .app)
+        case .blurry: return String(localized: "Mogelijk wazig", bundle: .app)
+        case .accidental: return String(localized: "Per ongeluk?", bundle: .app)
         }
     }
     /// Conservative on purpose: a wrong guess costs one extra swipe, never a deletion.
@@ -378,26 +378,26 @@ enum SmartGroup: String, CaseIterable, Identifiable {
     var needsScan: Bool { self == .similar || self == .copies || self == .clutter || self == .accidental }
     var title: String {
         switch self {
-        case .similar: return "Bijna dubbel"
-        case .bursts: return "Burstfoto's"
-        case .copies: return "Exacte kopieën"
-        case .clutter: return "Rommel"
-        case .accidental: return "Per ongeluk"
-        case .oldScreenshots: return "Oude screenshots"
-        case .fromApps: return "Uit apps"
-        case .small: return "Kleine plaatjes en GIF's"
+        case .similar: return String(localized: "Bijna dubbel", bundle: .app)
+        case .bursts: return String(localized: "Burstfoto's", bundle: .app)
+        case .copies: return String(localized: "Exacte kopieën", bundle: .app)
+        case .clutter: return String(localized: "Rommel", bundle: .app)
+        case .accidental: return String(localized: "Per ongeluk", bundle: .app)
+        case .oldScreenshots: return String(localized: "Oude screenshots", bundle: .app)
+        case .fromApps: return String(localized: "Uit apps", bundle: .app)
+        case .small: return String(localized: "Kleine plaatjes en GIF's", bundle: .app)
         }
     }
     var detail: String {
         switch self {
-        case .similar: return "Bijna gelijke foto's; de beste staat al klaar"
-        case .bursts: return "iOS weet zelf welke foto de beste is"
-        case .copies: return "Dezelfde foto twee keer opgeslagen"
-        case .clutter: return "Wazig, bonnetjes, notities, screenshots"
-        case .accidental: return "Bijna zwart, leeg, of video korter dan 3 sec."
-        case .oldScreenshots: return "Ouder dan \(SmartRules.oldScreenshotDays) dagen"
-        case .fromApps: return "WhatsApp, Telegram, Instagram en meer"
-        case .small: return "Lage resolutie, memes en gedownloade plaatjes"
+        case .similar: return String(localized: "Bijna gelijke foto's; de beste staat al klaar", bundle: .app)
+        case .bursts: return String(localized: "iOS weet zelf welke foto de beste is", bundle: .app)
+        case .copies: return String(localized: "Dezelfde foto twee keer opgeslagen", bundle: .app)
+        case .clutter: return String(localized: "Wazig, bonnetjes, notities, screenshots", bundle: .app)
+        case .accidental: return String(localized: "Bijna zwart, leeg, of video korter dan 3 sec.", bundle: .app)
+        case .oldScreenshots: return String(localized: "Ouder dan \(SmartRules.oldScreenshotDays) dagen", bundle: .app)
+        case .fromApps: return String(localized: "WhatsApp, Telegram, Instagram en meer", bundle: .app)
+        case .small: return String(localized: "Lage resolutie, memes en gedownloade plaatjes", bundle: .app)
         }
     }
     var icon: String {

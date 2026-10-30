@@ -5,7 +5,9 @@ import TipKit
 
 @main struct FotoswipeApp: App {
     @StateObject private var library = PhotoLibrary()
+    @ObservedObject private var languages = LanguageStore.shared
     init() {
+        AppLocale.install()
         UNUserNotificationCenter.current().delegate = Reminders.shared
         #if DEBUG
         // Screenshot runs show clean screens without tips.
@@ -14,7 +16,12 @@ import TipKit
         try? Tips.configure([.displayFrequency(.hourly)])
     }
     var body: some Scene {
-        WindowGroup { ContentView().environmentObject(library).preferredColorScheme(.light) }
+        WindowGroup {
+            // A new id rebuilds every screen in the chosen language at once.
+            ContentView().environmentObject(library).preferredColorScheme(.light)
+                .environment(\.locale, AppLocale.locale)
+                .id(languages.language)
+        }
     }
 }
 
@@ -62,7 +69,10 @@ extension View {
 /// Sizes are estimates from resolution and duration, so they are always shown as "ca.".
 enum ByteText {
     static func format(_ bytes: Int64) -> String {
-        "ca. " + ByteCountFormatter.string(fromByteCount: max(0, bytes), countStyle: .file)
+        String(localized: "ca. \(plain(bytes))", bundle: .app)
+    }
+    static func plain(_ bytes: Int64) -> String {
+        ByteCountFormatter.string(fromByteCount: max(0, bytes), countStyle: .file)
     }
 }
 
@@ -138,7 +148,7 @@ enum Haptics {
         guard enabled else { return }
         for (index, item) in items.prefix(Self.count).enumerated() {
             let content = UNMutableNotificationContent()
-            content.title = "Je swipe-moment staat klaar"
+            content.title = String(localized: "Je swipe-moment staat klaar", bundle: .app)
             content.body = item.1
             content.sound = .default
             content.userInfo = ["open": "on-this-day"]

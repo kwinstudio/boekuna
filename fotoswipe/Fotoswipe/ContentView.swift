@@ -205,7 +205,7 @@ struct ContentView: View {
                 Menu {
                     if let asset = library.current {
                         Button { library.toggleFavorite() } label: {
-                            Label(library.isFavorite(asset) ? "Verwijder favoriet in Foto's" : "Maak favoriet in Foto's", systemImage: "star")
+                            Label(library.isFavorite(asset) ? String(localized: "Verwijder favoriet in Foto's", bundle: .app) : String(localized: "Maak favoriet in Foto's", bundle: .app), systemImage: "star")
                         }
                         Button { tool = .album(asset) } label: { Label("Voeg toe aan album", systemImage: "rectangle.stack.badge.plus") }
                         if asset.mediaType == .video {
@@ -217,7 +217,7 @@ struct ContentView: View {
                             Button { library.convertLiveToStill(asset) } label: { Label("Bewaar als gewone foto (kleiner)", systemImage: "livephoto.slash") }
                         }
                         Button { tool = .preview(asset) } label: {
-                            Label(asset.mediaType == .video ? "Video afspelen" : "Foto groter bekijken", systemImage: asset.mediaType == .video ? "play.circle" : "arrow.up.left.and.arrow.down.right")
+                            Label(asset.mediaType == .video ? String(localized: "Video afspelen", bundle: .app) : String(localized: "Foto groter bekijken", bundle: .app), systemImage: asset.mediaType == .video ? "play.circle" : "arrow.up.left.and.arrow.down.right")
                         }
                     }
                     if library.remainingInCategory > 1 {
@@ -281,10 +281,10 @@ struct ContentView: View {
                 Spacer()
                 Image(systemName: library.assets.isEmpty ? "photo" : "checkmark.seal.fill").font(.system(size: 52))
                     .foregroundStyle(library.assets.isEmpty ? Palette.muted : Palette.keep)
-                Text(library.assets.isEmpty ? "Geen items in deze categorie" : "Alles bekeken.")
+                Text(library.assets.isEmpty ? String(localized: "Geen items in deze categorie", bundle: .app) : String(localized: "Alles bekeken.", bundle: .app))
                     .font(.system(.largeTitle, design: .rounded).weight(.heavy)).foregroundStyle(Palette.ink)
                     .multilineTextAlignment(.center)
-                Text(library.assets.isEmpty ? "Kies een andere categorie of pas je fototoegang aan." : "Deze categorie is klaar. Kies een andere categorie of controleer je selectie.")
+                Text(library.assets.isEmpty ? String(localized: "Kies een andere categorie of pas je fototoegang aan.", bundle: .app) : String(localized: "Deze categorie is klaar. Kies een andere categorie of controleer je selectie.", bundle: .app))
                     .foregroundStyle(Palette.muted).multilineTextAlignment(.center)
                 if library.canUndo { Button("Laatste keuze terugzetten") { library.undo() }.buttonStyle(SecondaryStyle()) }
                 if library.keptInCategory > 0 {
@@ -340,7 +340,7 @@ struct ContentView: View {
         }.disabled(library.loading || library.deleting || library.mutating)
     }
     private var quickCategories: [PhotoCategory] {
-        let wanted = ["on-this-day", "Video's", "Screenshots", "random30", "later"]
+        let wanted = ["on-this-day", String(localized: "Video's", bundle: .app), String(localized: "Screenshots", bundle: .app), "random30", "later"]
         return wanted.compactMap { key in
             library.categories.first { ($0.id == key || ($0.title == key && !$0.isAlbum)) && $0.id != library.selectedCategory.id }
         }
@@ -471,7 +471,7 @@ private struct SmoothSwipeCard: View {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
                         if favorite { Image(systemName: "heart.fill").foregroundStyle(Palette.trash) }
-                        Text(asset.creationDate?.formatted(date: .long, time: .omitted) ?? "Zonder datum")
+                        Text(asset.creationDate?.formatted(Date.FormatStyle(date: .long, time: .omitted, locale: AppLocale.locale)) ?? String(localized: "Zonder datum", bundle: .app))
                             .font(.headline.weight(.heavy))
                     }
                     Text(detail).font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
@@ -482,7 +482,7 @@ private struct SmoothSwipeCard: View {
                 VStack {
                     HStack {
                         if offset < 0 { Spacer() }
-                        Text(offset >= 0 ? "BEWAREN" : "WEGLEGGEN")
+                        Text(offset >= 0 ? String(localized: "BEWAREN", bundle: .app) : String(localized: "WEGLEGGEN", bundle: .app))
                             .font(.system(.title3, design: .rounded).weight(.heavy)).tracking(1)
                             .foregroundStyle(offset >= 0 ? Color.white : Palette.ink)
                             .padding(.horizontal, 14).padding(.vertical, 8)
@@ -534,8 +534,8 @@ private struct SmoothSwipeCard: View {
             .onChange(of: isTop) { _, _ in offset = 0; exiting = false; pastThreshold = false }
             .accessibilityElement(children: .ignore)
             .accessibilityHidden(!isTop)
-            .accessibilityLabel("Item van \(asset.creationDate?.formatted(date: .long, time: .omitted) ?? "onbekende datum")\(favorite ? ", favoriet" : "")")
-            .accessibilityAction(named: Text(asset.mediaType == .video ? "Video afspelen" : "Groter bekijken")) { onOpen() }
+            .accessibilityLabel(String(localized: "Item van \(asset.creationDate?.formatted(Date.FormatStyle(date: .long, time: .omitted, locale: AppLocale.locale)) ?? String(localized: "onbekende datum", bundle: .app))", bundle: .app) + (favorite ? String(localized: ", favoriet", bundle: .app) : ""))
+            .accessibilityAction(named: Text(asset.mediaType == .video ? String(localized: "Video afspelen", bundle: .app) : String(localized: "Groter bekijken", bundle: .app))) { onOpen() }
             .accessibilityAction(named: Text("Bewaren")) { commit(.keep, width: geometry.size.width) }
             .accessibilityAction(named: Text("Wegleggen")) { commit(.trash, width: geometry.size.width) }
         }.zIndex(Double(3 - depth))
@@ -543,8 +543,8 @@ private struct SmoothSwipeCard: View {
     private var detail: String {
         var parts: [String] = []
         if asset.mediaType == .video {
-            parts.append("Video · \(Int(asset.duration) / 60):\(String(format: "%02d", Int(asset.duration) % 60))")
-        } else { parts.append("Foto") }
+            parts.append(String(localized: "Video", bundle: .app) + " · \(Int(asset.duration) / 60):" + String(format: "%02d", Int(asset.duration) % 60))
+        } else { parts.append(String(localized: "Foto", bundle: .app)) }
         parts.append(ByteText.format(PhotoLibrary.fileSize(asset)))
         if let note { parts.append(note) }
         return parts.joined(separator: " · ")
@@ -590,8 +590,8 @@ private struct CategoryPickerView: View {
                     ForEach(filtered.filter(\.isAlbum)) { category in row(category) }
                 } header: { Text("Je albums") } footer: {
                     Text(library.authorization == .limited
-                         ? "Bij beperkte fototoegang zijn sommige categorieën en albums niet beschikbaar. Via Wijzig of Instellingen pas je de toegang aan."
-                         : "Je albums komen uit Foto's. Je kunt foto's, Live Photos en video's beoordelen.")
+                         ? String(localized: "Bij beperkte fototoegang zijn sommige categorieën en albums niet beschikbaar. Via Wijzig of Instellingen pas je de toegang aan.", bundle: .app)
+                         : String(localized: "Je albums komen uit Foto's. Je kunt foto's, Live Photos en video's beoordelen.", bundle: .app))
                 }
                 Section("Per maand") {
                     ForEach(filtered.filter(\.isMonth)) { category in row(category) }
@@ -644,13 +644,13 @@ private struct SwipeControls: View {
     private var ready: Bool { library.current.map { pipeline.isReady($0.localIdentifier) } ?? false }
     var body: some View {
         HStack(spacing: 18) {
-            control("Wegleggen", icon: "xmark", fill: Palette.trash, tint: Palette.ink, size: 72) { library.requestSwipe(.trash) }
+            control(String(localized: "Wegleggen", bundle: .app), icon: "xmark", fill: Palette.trash, tint: Palette.ink, size: 72) { library.requestSwipe(.trash) }
                 .disabled(!ready || library.mutating)
-            control("Laatste keuze terugzetten", icon: "arrow.uturn.backward", fill: Palette.surface, tint: Palette.ink, size: 50) { library.undo() }
+            control(String(localized: "Laatste keuze terugzetten", bundle: .app), icon: "arrow.uturn.backward", fill: Palette.surface, tint: Palette.ink, size: 50) { library.undo() }
                 .disabled(!library.canUndo || library.mutating)
-            control("Later beslissen", icon: "clock", fill: Palette.surface, tint: Palette.ink, size: 50) { library.deferCurrent() }
+            control(String(localized: "Later beslissen", bundle: .app), icon: "clock", fill: Palette.surface, tint: Palette.ink, size: 50) { library.deferCurrent() }
                 .disabled(library.current == nil || library.mutating)
-            control("Bewaren", icon: "checkmark", fill: Palette.keep, tint: .white, size: 72) { library.requestSwipe(.keep) }
+            control(String(localized: "Bewaren", bundle: .app), icon: "checkmark", fill: Palette.keep, tint: .white, size: 72) { library.requestSwipe(.keep) }
                 .disabled(!ready || library.mutating)
         }.disabled(library.deleting || library.loading)
     }
@@ -697,8 +697,8 @@ struct SessionEndView: View {
                 Text("Sessie klaar!").font(.system(size: 34, weight: .heavy, design: .rounded)).tracking(-1)
                 Text("\(session.count) items in \(durationText)").foregroundStyle(Palette.muted)
                 VStack(spacing: 2) {
-                    Text(session.trashed.isEmpty ? "JE BEWAARDE ALLES" : "KLAAR OM VRIJ TE MAKEN").font(.caption.weight(.heavy)).foregroundStyle(Palette.muted)
-                    Text(session.trashed.isEmpty ? "\(session.kept.count) bewaard" : ByteText.format(bytes))
+                    Text(session.trashed.isEmpty ? String(localized: "JE BEWAARDE ALLES", bundle: .app) : String(localized: "KLAAR OM VRIJ TE MAKEN", bundle: .app)).font(.caption.weight(.heavy)).foregroundStyle(Palette.muted)
+                    Text(session.trashed.isEmpty ? String(localized: "\(session.kept.count) bewaard", bundle: .app) : ByteText.format(bytes))
                         .font(.system(size: 44, weight: .heavy, design: .rounded)).tracking(-1)
                     if library.streak.freedBytes > 0 {
                         Text("Totaal al vrijgemaakt: \(ByteText.format(library.streak.freedBytes))").font(.footnote).foregroundStyle(Palette.muted)
@@ -725,7 +725,7 @@ struct SessionEndView: View {
                 }
                 ReminderCard().environmentObject(library)
                 if !library.pending.isEmpty {
-                    Button("Controleer \(library.pending.count) items\(library.pendingBytes > 0 ? " · " + ByteText.format(library.pendingBytes) : "")") { onClose(true) }
+                    Button(String(localized: "Controleer \(library.pending.count) items", bundle: .app) + (library.pendingBytes > 0 ? " · " + ByteText.format(library.pendingBytes) : "")) { onClose(true) }
                         .buttonStyle(PrimaryStyle(fill: Palette.trash, text: Palette.ink))
                 }
                 Button("Nog \(ReviewSession.size) doen") { onClose(false) }.buttonStyle(SecondaryStyle())
@@ -754,9 +754,9 @@ struct SessionEndView: View {
     }
     private var durationText: String {
         let seconds = max(1, Int(duration.rounded()))
-        if seconds < 60 { return seconds == 1 ? "1 seconde" : "\(seconds) seconden" }
+        if seconds < 60 { return seconds == 1 ? String(localized: "1 seconde", bundle: .app) : String(localized: "\(seconds) seconden", bundle: .app) }
         let minutes = seconds / 60, rest = seconds % 60
-        return rest == 0 ? "\(minutes) min" : "\(minutes) min \(rest) sec"
+        return rest == 0 ? String(localized: "\(minutes) min", bundle: .app) : String(localized: "\(minutes) min \(rest) sec", bundle: .app)
     }
     private func stat(_ value: String, _ label: String, _ fill: Color) -> some View {
         VStack(spacing: 2) {
@@ -772,7 +772,7 @@ struct SessionEndView: View {
         let streak = library.streakDays
         return VStack(spacing: 8) {
             HStack {
-                Label(streak == 1 ? "1 dag op rij" : "\(streak) dagen op rij", systemImage: "flame.fill").font(.subheadline.weight(.heavy))
+                Label(streak == 1 ? String(localized: "1 dag op rij", bundle: .app) : String(localized: "\(streak) dagen op rij", bundle: .app), systemImage: "flame.fill").font(.subheadline.weight(.heavy))
                 Spacer()
                 Text("Eén dag overslaan mag").font(.caption).foregroundStyle(Palette.muted)
             }
@@ -783,10 +783,10 @@ struct SessionEndView: View {
                         Circle().fill(active ? Palette.reward : Palette.surface)
                             .overlay(Circle().stroke(Palette.ink, lineWidth: 2))
                             .frame(width: 30, height: 30)
-                        Text(day.formatted(.dateTime.weekday(.narrow))).font(.caption2.weight(.bold)).foregroundStyle(Palette.muted)
+                        Text(day.formatted(Date.FormatStyle(locale: AppLocale.locale).weekday(.narrow))).font(.caption2.weight(.bold)).foregroundStyle(Palette.muted)
                     }.frame(maxWidth: .infinity)
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("\(day.formatted(.dateTime.weekday(.wide))): \(active ? "actief" : "niet actief")")
+                    .accessibilityLabel(day.formatted(Date.FormatStyle(locale: AppLocale.locale).weekday(.wide)) + ": " + (active ? String(localized: "actief", bundle: .app) : String(localized: "niet actief", bundle: .app)))
                 }
             }
         }
@@ -883,9 +883,9 @@ struct FocusSwipeView: View {
                     VStack(alignment: .leading, spacing: 1) {
                         HStack(spacing: 5) {
                             if library.isFavorite(asset) { Image(systemName: "heart.fill").foregroundStyle(Palette.trash) }
-                            Text(asset.creationDate?.formatted(date: .long, time: .omitted) ?? "Zonder datum").font(.subheadline.weight(.heavy))
+                            Text(asset.creationDate?.formatted(Date.FormatStyle(date: .long, time: .omitted, locale: AppLocale.locale)) ?? String(localized: "Zonder datum", bundle: .app)).font(.subheadline.weight(.heavy))
                         }
-                        Text((asset.mediaType == .video ? "Video · " : "Foto · ") + ByteText.format(PhotoLibrary.fileSize(asset)) + (library.clutterReason(asset).map { " · " + $0 } ?? ""))
+                        Text((asset.mediaType == .video ? String(localized: "Video · ", bundle: .app) : String(localized: "Foto · ", bundle: .app)) + ByteText.format(PhotoLibrary.fileSize(asset)) + (library.clutterReason(asset).map { " · " + $0 } ?? ""))
                             .font(.caption.weight(.semibold)).opacity(0.85)
                     }
                     .foregroundStyle(.white).padding(.horizontal, 12).padding(.vertical, 8)
@@ -1019,13 +1019,13 @@ private struct FocusCard: View {
             .onChange(of: isTop) { _, _ in drag = .zero; exiting = false; zoomed = false; armed = .none }
             .accessibilityElement(children: .ignore)
             .accessibilityHidden(!isTop)
-            .accessibilityLabel("Item van \(asset.creationDate?.formatted(date: .long, time: .omitted) ?? "onbekende datum")")
+            .accessibilityLabel(String(localized: "Item van \(asset.creationDate?.formatted(Date.FormatStyle(date: .long, time: .omitted, locale: AppLocale.locale)) ?? String(localized: "onbekende datum", bundle: .app))", bundle: .app))
             .accessibilityHint("Veeg naar rechts om te bewaren, naar links om weg te leggen, omhoog voor later.")
             .accessibilityAction(named: Text("Bewaren")) { commit(.keep, size: size) }
             .accessibilityAction(named: Text("Wegleggen")) { commit(.trash, size: size) }
             .accessibilityAction(named: Text("Later beslissen")) { commit(.later, size: size) }
             .accessibilityAction(named: Text("Vorige terug")) { onUndo() }
-            .accessibilityAction(named: Text(asset.mediaType == .video ? "Video afspelen" : "Knoppen tonen")) {
+            .accessibilityAction(named: Text(asset.mediaType == .video ? String(localized: "Video afspelen", bundle: .app) : String(localized: "Knoppen tonen", bundle: .app))) {
                 if asset.mediaType == .video { onOpen() } else { onTap() }
             }
         }
@@ -1035,10 +1035,10 @@ private struct FocusCard: View {
     @ViewBuilder private func stamp(for intent: FocusGesture) -> some View {
         let label: (String, Color, Color)? = {
             switch intent {
-            case .keep: return ("BEWAREN", Palette.keep, .white)
-            case .trash: return ("WEGLEGGEN", Palette.trash, Palette.ink)
-            case .later: return ("LATER", Palette.reward, Palette.ink)
-            case .undo: return ("VORIGE TERUG", Palette.surface, Palette.ink)
+            case .keep: return (String(localized: "BEWAREN", bundle: .app), Palette.keep, .white)
+            case .trash: return (String(localized: "WEGLEGGEN", bundle: .app), Palette.trash, Palette.ink)
+            case .later: return (String(localized: "LATER", bundle: .app), Palette.reward, Palette.ink)
+            case .undo: return (String(localized: "VORIGE TERUG", bundle: .app), Palette.surface, Palette.ink)
             case .none: return nil
             }
         }()
@@ -1095,13 +1095,13 @@ struct GestureGuideView: View {
         var id: String { gesture }
     }
     private let rows: [Row] = [
-        Row(icon: "arrow.right", gesture: "Naar rechts", result: "Bewaren", fill: Palette.keep, tint: .white),
-        Row(icon: "arrow.left", gesture: "Naar links", result: "Wegleggen voor controle", fill: Palette.trash, tint: Palette.ink),
-        Row(icon: "arrow.up", gesture: "Omhoog", result: "Later beslissen", fill: Palette.reward, tint: Palette.ink),
-        Row(icon: "arrow.down", gesture: "Omlaag", result: "Vorige terug", fill: Palette.surface, tint: Palette.ink),
-        Row(icon: "heart", gesture: "Dubbeltik", result: "Favoriet in Foto's", fill: Palette.surface, tint: Palette.ink),
-        Row(icon: "plus.magnifyingglass", gesture: "Vasthouden", result: "Inzoomen, loslaten is terug", fill: Palette.surface, tint: Palette.ink),
-        Row(icon: "hand.tap", gesture: "Eén tik", result: "Knoppen tonen", fill: Palette.surface, tint: Palette.ink)
+        Row(icon: "arrow.right", gesture: String(localized: "Naar rechts", bundle: .app), result: String(localized: "Bewaren", bundle: .app), fill: Palette.keep, tint: .white),
+        Row(icon: "arrow.left", gesture: String(localized: "Naar links", bundle: .app), result: String(localized: "Wegleggen voor controle", bundle: .app), fill: Palette.trash, tint: Palette.ink),
+        Row(icon: "arrow.up", gesture: String(localized: "Omhoog", bundle: .app), result: String(localized: "Later beslissen", bundle: .app), fill: Palette.reward, tint: Palette.ink),
+        Row(icon: "arrow.down", gesture: String(localized: "Omlaag", bundle: .app), result: String(localized: "Vorige terug", bundle: .app), fill: Palette.surface, tint: Palette.ink),
+        Row(icon: "heart", gesture: String(localized: "Dubbeltik", bundle: .app), result: String(localized: "Favoriet in Foto's", bundle: .app), fill: Palette.surface, tint: Palette.ink),
+        Row(icon: "plus.magnifyingglass", gesture: String(localized: "Vasthouden", bundle: .app), result: String(localized: "Inzoomen, loslaten is terug", bundle: .app), fill: Palette.surface, tint: Palette.ink),
+        Row(icon: "hand.tap", gesture: String(localized: "Eén tik", bundle: .app), result: String(localized: "Knoppen tonen", bundle: .app), fill: Palette.surface, tint: Palette.ink)
     ]
     var body: some View {
         ScrollView {
@@ -1173,10 +1173,10 @@ struct WhatsNewView: View {
         var id: String { title }
     }
     private let items: [Item] = [
-        Item(icon: "wand.and.stars", title: "Slim opruimen", text: "Alle slimme groepen op één plek, met de grootste winst bovenaan.", fill: Palette.reward, tint: Palette.ink),
-        Item(icon: "square.stack.fill", title: "Burstfoto's en kopieën", text: "iOS weet welke burstfoto de beste is. Kopieën vind je in één keer.", fill: Palette.brand, tint: .white),
-        Item(icon: "eye.slash", title: "Per ongeluk en uit apps", text: "Zwarte foto's, minivideo's, oude screenshots en WhatsApp-plaatjes.", fill: Palette.surface, tint: Palette.ink),
-        Item(icon: "arrow.down.right.and.arrow.up.left", title: "Kleiner zonder verwijderen", text: "Video verkleinen of een Live Photo als gewone foto bewaren, via Meer.", fill: Palette.keep, tint: .white)
+        Item(icon: "wand.and.stars", title: String(localized: "Slim opruimen", bundle: .app), text: String(localized: "Alle slimme groepen op één plek, met de grootste winst bovenaan.", bundle: .app), fill: Palette.reward, tint: Palette.ink),
+        Item(icon: "square.stack.fill", title: String(localized: "Burstfoto's en kopieën", bundle: .app), text: String(localized: "iOS weet welke burstfoto de beste is. Kopieën vind je in één keer.", bundle: .app), fill: Palette.brand, tint: .white),
+        Item(icon: "eye.slash", title: String(localized: "Per ongeluk en uit apps", bundle: .app), text: String(localized: "Zwarte foto's, minivideo's, oude screenshots en WhatsApp-plaatjes.", bundle: .app), fill: Palette.surface, tint: Palette.ink),
+        Item(icon: "arrow.down.right.and.arrow.up.left", title: String(localized: "Kleiner zonder verwijderen", bundle: .app), text: String(localized: "Video verkleinen of een Live Photo als gewone foto bewaren, via Meer.", bundle: .app), fill: Palette.keep, tint: .white)
     ]
     var body: some View {
         ScrollView {
@@ -1244,7 +1244,7 @@ struct OnboardingView: View {
                         }
                         Spacer()
                         if page < 2 {
-                            Button(replay ? "Sluiten" : "Overslaan") { if replay { onAllow() } else { withAnimation { page = 2 } } }
+                            Button(replay ? String(localized: "Sluiten", bundle: .app) : String(localized: "Overslaan", bundle: .app)) { if replay { onAllow() } else { withAnimation { page = 2 } } }
                                 .font(.subheadline.weight(.bold)).foregroundStyle(Palette.brand).frame(minHeight: 44)
                         }
                     }
@@ -1277,9 +1277,9 @@ struct OnboardingView: View {
                 .font(.system(size: compact ? 28 : 34, weight: .heavy, design: .rounded)).tracking(-1.1)
                 .multilineTextAlignment(.center).minimumScaleFactor(0.75).fixedSize(horizontal: false, vertical: true)
             VStack(alignment: .leading, spacing: compact ? 6 : 10) {
-                row("timer", "Een paar minuten per dag houdt je bibliotheek licht.")
-                row("checkmark.shield", "Niets is meteen weg: jij controleert eerst, iOS vraagt nog om bevestiging.")
-                row("iphone", "Geen reclame, geen abonnement. Alles blijft op je iPhone.")
+                row("timer", String(localized: "Een paar minuten per dag houdt je bibliotheek licht.", bundle: .app))
+                row("checkmark.shield", String(localized: "Niets is meteen weg: jij controleert eerst, iOS vraagt nog om bevestiging.", bundle: .app))
+                row("iphone", String(localized: "Geen reclame, geen abonnement. Alles blijft op je iPhone.", bundle: .app))
             }
             Spacer(minLength: 8)
             Button("Volgende") { withAnimation { page = 1 } }.buttonStyle(PrimaryStyle())
@@ -1296,9 +1296,9 @@ struct OnboardingView: View {
 
     private var instruction: String {
         switch step {
-        case 0: return "Veeg de kaart naar rechts om te bewaren"
-        case 1: return "Nu naar links om weg te leggen"
-        default: return "Top! Zo simpel is het."
+        case 0: return String(localized: "Veeg de kaart naar rechts om te bewaren", bundle: .app)
+        case 1: return String(localized: "Nu naar links om weg te leggen", bundle: .app)
+        default: return String(localized: "Top! Zo simpel is het.", bundle: .app)
         }
     }
 
@@ -1312,7 +1312,7 @@ struct OnboardingView: View {
                 PracticeCard(variant: step == 0 ? 0 : 1)
                     .overlay(alignment: .top) {
                         if drag != 0 {
-                            Text(drag > 0 ? "BEWAREN" : "WEGLEGGEN")
+                            Text(drag > 0 ? String(localized: "BEWAREN", bundle: .app) : String(localized: "WEGLEGGEN", bundle: .app))
                                 .font(.system(.title3, design: .rounded).weight(.heavy))
                                 .foregroundStyle(drag > 0 ? Color.white : Palette.ink)
                                 .padding(.horizontal, 14).padding(.vertical, 8)
@@ -1335,7 +1335,7 @@ struct OnboardingView: View {
             .frame(height: compact ? 250 : 300)
             .scaleEffect(compact ? 0.86 : 1)
             if step == 2 {
-                Button(replay ? "Klaar" : "Volgende") { if replay { onAllow() } else { withAnimation { page = 2 } } }.buttonStyle(PrimaryStyle())
+                Button(replay ? String(localized: "Klaar", bundle: .app) : String(localized: "Volgende", bundle: .app)) { if replay { onAllow() } else { withAnimation { page = 2 } } }.buttonStyle(PrimaryStyle())
             } else {
                 HStack(spacing: 18) {
                     Button { tap(.trash) } label: {
@@ -1363,7 +1363,7 @@ struct OnboardingView: View {
     private func complete(_ choice: PhotoDecision) {
         let expected: PhotoDecision = step == 0 ? .keep : .trash
         guard choice == expected else {
-            hint = step == 0 ? "Andere kant op: naar rechts is bewaren" : "Andere kant op: naar links is wegleggen"
+            hint = step == 0 ? String(localized: "Andere kant op: naar rechts is bewaren", bundle: .app) : String(localized: "Andere kant op: naar links is wegleggen", bundle: .app)
             Haptics.threshold()
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { drag = 0 }
             return
@@ -1385,9 +1385,9 @@ struct OnboardingView: View {
             Text("Fotoswipe heeft je foto's nodig").font(.system(size: 28, weight: .heavy, design: .rounded)).tracking(-0.8)
                 .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             VStack(alignment: .leading, spacing: 10) {
-                row("lock.shield", "Je foto's blijven op je iPhone. Er wordt niets geüpload.")
-                row("hand.raised", "Alleen jij beslist wat weg mag.")
-                row("square.grid.2x2", "Tip: kies volledige toegang om je hele bibliotheek op te ruimen. Een selectie kan ook.")
+                row("lock.shield", String(localized: "Je foto's blijven op je iPhone. Er wordt niets geüpload.", bundle: .app))
+                row("hand.raised", String(localized: "Alleen jij beslist wat weg mag.", bundle: .app))
+                row("square.grid.2x2", String(localized: "Tip: kies volledige toegang om je hele bibliotheek op te ruimen. Een selectie kan ook.", bundle: .app))
             }
             Spacer(minLength: 8)
             Button("Geef toegang tot mijn foto's") { onAllow() }.buttonStyle(PrimaryStyle())
@@ -1466,17 +1466,17 @@ struct StatsView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     VStack(spacing: 2) {
                         Text("VRIJGEMAAKT").font(.caption.weight(.heavy)).foregroundStyle(Palette.ink)
-                        Text(library.streak.freedBytes > 0 ? ByteText.format(library.streak.freedBytes) : "Nog niets")
+                        Text(library.streak.freedBytes > 0 ? ByteText.format(library.streak.freedBytes) : String(localized: "Nog niets", bundle: .app))
                             .font(.system(size: 40, weight: .heavy, design: .rounded)).tracking(-1)
                             .minimumScaleFactor(0.6).lineLimit(1)
                         Text("na bevestigd verwijderen").font(.caption).foregroundStyle(Palette.ink)
                     }
                     .frame(maxWidth: .infinity).padding(.vertical, 18).pop(radius: 20, fill: Palette.reward, shadow: 4)
                     LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                        tile("\(library.totalReviewed)", "items bekeken")
-                        tile("\(library.completedSessions)", library.completedSessions == 1 ? "sessie afgerond" : "sessies afgerond")
-                        tile("\(library.streakDays)", "dagen reeks nu")
-                        tile("\(library.streak.longest())", "langste reeks")
+                        tile("\(library.totalReviewed)", String(localized: "items bekeken", bundle: .app))
+                        tile("\(library.completedSessions)", library.completedSessions == 1 ? String(localized: "sessie afgerond", bundle: .app) : String(localized: "sessies afgerond", bundle: .app))
+                        tile("\(library.streakDays)", String(localized: "dagen reeks nu", bundle: .app))
+                        tile("\(library.streak.longest())", String(localized: "langste reeks", bundle: .app))
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -1509,7 +1509,7 @@ struct StatsView: View {
                     }
                     if let shareImage {
                         let image = Image(uiImage: shareImage)
-                        ShareLink(item: image, preview: SharePreview("Mijn Fotoswipe", image: image)) {
+                        ShareLink(item: image, preview: SharePreview(String(localized: "Mijn Fotoswipe", bundle: .app), image: image)) {
                             Label("Deel je resultaat", systemImage: "square.and.arrow.up")
                         }
                         .buttonStyle(PrimaryStyle())
@@ -1568,12 +1568,12 @@ private struct ShareCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("fotoswipe").font(.system(size: 26, weight: .heavy, design: .rounded)).foregroundStyle(Palette.brand)
-            Text(freed > 0 ? "Ik heb \(ByteText.format(freed)) vrijgemaakt" : "Ik ruim mijn fotorol op")
+            Text(freed > 0 ? String(localized: "Ik heb \(ByteText.format(freed)) vrijgemaakt", bundle: .app) : String(localized: "Ik ruim mijn fotorol op", bundle: .app))
                 .font(.system(size: 30, weight: .heavy, design: .rounded)).tracking(-0.8).foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 10) {
                 stat("\(reviewed)", "bekeken", Palette.surface)
-                stat("\(streak)", "dagen reeks", Palette.reward)
+                stat("\(streak)", String(localized: "dagen reeks", bundle: .app), Palette.reward)
                 stat("\(sessions)", "sessies", Palette.surface)
             }
             Spacer()

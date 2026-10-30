@@ -48,7 +48,7 @@ struct AssetImage: View {
         }
         .task(id: "\(asset.localIdentifier)-\(retry)") { load() }
         .onDisappear { cancel() }
-        .accessibilityLabel(asset.creationDate.map { "Foto van \($0.formatted(date: .long, time: .omitted))" } ?? "Foto")
+        .accessibilityLabel(asset.creationDate.map { String(localized: "Foto van \($0.formatted(Date.FormatStyle(date: .long, time: .omitted, locale: AppLocale.locale)))", bundle: .app) } ?? String(localized: "Foto", bundle: .app))
     }
     private func cancel() {
         activeID = nil

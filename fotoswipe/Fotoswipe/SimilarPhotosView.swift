@@ -42,7 +42,7 @@ struct SimilarPhotosView: View {
                         Button("Stop scan") { service.cancel(); cancelled = true }
                     }
                 } else {
-                    Button(hasScanned ? "Opnieuw scannen" : "Zoek vergelijkbare foto's") {
+                    Button(hasScanned ? String(localized: "Opnieuw scannen", bundle: .app) : String(localized: "Zoek vergelijkbare foto's", bundle: .app)) {
                         selection = SimilarPhotoSelection(); submittedGroups = []; readyIDs = []
                         hasScanned = true; cancelled = false
                         service.start(assets.filter { !queuedIDs.contains($0.localIdentifier) })
@@ -60,7 +60,7 @@ struct SimilarPhotosView: View {
                         .font(.subheadline).accessibilityAddTraits(.updatesFrequently)
                 }
                 if !service.scanning && hasScanned && !cancelled && visibleGroups.isEmpty {
-                    ContentUnavailableView(queuedCount > 0 ? "Selectie weggelegd" : "Geen kandidaten gevonden", systemImage: "photo.on.rectangle.angled",
+                    ContentUnavailableView(queuedCount > 0 ? String(localized: "Selectie weggelegd", bundle: .app) : String(localized: "Geen kandidaten gevonden", bundle: .app), systemImage: "photo.on.rectangle.angled",
                         description: Text("Er wordt alleen gezocht tussen foto's die binnen twee minuten van elkaar zijn gemaakt. De scan kan vergelijkbare foto's missen."))
                 } else {
                     ScrollView {
@@ -110,19 +110,19 @@ struct SimilarPhotosView: View {
                                 .frame(height: 170).clipShape(RoundedRectangle(cornerRadius: 12))
                         }.accessibilityLabel("Foto groter bekijken")
                         if let date = asset.creationDate {
-                            Text(date.formatted(date: .abbreviated, time: .standard)).font(.caption2)
+                            Text(date.formatted(Date.FormatStyle(date: .abbreviated, time: .standard, locale: AppLocale.locale))).font(.caption2)
                         }
                         Button {
                             selection.toggle(asset.localIdentifier, in: ids, ready: readyIDs)
                         } label: {
-                            Label(selected ? "Wegleggen" : "Bewaren", systemImage: selected ? "checkmark.circle.fill" : "circle")
+                            Label(selected ? String(localized: "Wegleggen", bundle: .app) : String(localized: "Bewaren", bundle: .app), systemImage: selected ? "checkmark.circle.fill" : "circle")
                                 .font(.caption)
                         }
                         .buttonStyle(.bordered)
                         .tint(selected ? .orange : .green)
                         .disabled(!selected && (remaining <= 1 || !readyIDs.contains(asset.localIdentifier)))
-                        .accessibilityLabel(selected ? "Weggelegd; tik om te bewaren" : "Bewaard; tik om weg te leggen")
-                        .accessibilityHint(!selected && remaining <= 1 ? "Minstens één foto per groep blijft bewaard" : "")
+                        .accessibilityLabel(selected ? String(localized: "Weggelegd; tik om te bewaren", bundle: .app) : String(localized: "Bewaard; tik om weg te leggen", bundle: .app))
+                        .accessibilityHint(!selected && remaining <= 1 ? String(localized: "Minstens één foto per groep blijft bewaard", bundle: .app) : "")
                     }
                 }
             }
@@ -189,7 +189,7 @@ struct StackReviewView: View {
                     Spacer()
                     Text(group.title).font(.system(.headline, design: .rounded).weight(.heavy))
                     Spacer()
-                    Text(!loadingGroup ? "\(stacks.count) over" : " ").font(.subheadline.weight(.heavy)).monospacedDigit()
+                    Text(!loadingGroup ? String(localized: "\(stacks.count) over", bundle: .app) : " ").font(.subheadline.weight(.heavy)).monospacedDigit()
                         .frame(minWidth: 44)
                 }
                 if !library.hasAccess {
@@ -220,7 +220,7 @@ struct StackReviewView: View {
         VStack(spacing: 16) {
             Spacer()
             Image(systemName: group.icon).font(.system(size: 54)).foregroundStyle(Palette.brand)
-            Text(group == .bursts ? "Burstfoto's ophalen" : "\(group.title) zoeken").font(.system(.title2, design: .rounded).weight(.heavy))
+            Text(group == .bursts ? String(localized: "Burstfoto's ophalen", bundle: .app) : String(localized: "\(group.title) zoeken", bundle: .app)).font(.system(.title2, design: .rounded).weight(.heavy))
             if group == .bursts {
                 ProgressView().tint(Palette.brand)
             } else {
@@ -250,11 +250,11 @@ struct StackReviewView: View {
                     .overlay(RoundedRectangle(cornerRadius: 20).stroke(Palette.ink, lineWidth: 3))
                 HStack(spacing: 6) {
                     if suggested.contains(shown.localIdentifier) {
-                        Label(library.isFavorite(shown) ? "Favoriet" : (self.group == .bursts ? "Gekozen door iOS" : "Beste keuze"), systemImage: "star.fill")
+                        Label(library.isFavorite(shown) ? String(localized: "Favoriet", bundle: .app) : (self.group == .bursts ? String(localized: "Gekozen door iOS", bundle: .app) : String(localized: "Beste keuze", bundle: .app)), systemImage: "star.fill")
                             .font(.caption.weight(.heavy)).padding(.horizontal, 10).padding(.vertical, 6)
                             .pop(radius: 10, fill: Palette.reward, shadow: 2)
                     }
-                    Text(keep.contains(shown.localIdentifier) ? "Bewaren" : "Weg")
+                    Text(keep.contains(shown.localIdentifier) ? String(localized: "Bewaren", bundle: .app) : String(localized: "Weg", bundle: .app))
                         .font(.caption.weight(.heavy))
                         .foregroundStyle(keep.contains(shown.localIdentifier) ? Color.white : Palette.ink)
                         .padding(.horizontal, 10).padding(.vertical, 6)
@@ -273,14 +273,14 @@ struct StackReviewView: View {
                     else { withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { drag = 0 } }
                 })
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Foto \((ids.firstIndex(of: shown.localIdentifier) ?? 0) + 1) van \(ids.count)\(shown.localIdentifier == best ? ", beste keuze" : ""), \(keep.contains(shown.localIdentifier) ? "bewaren" : "weg")")
+            .accessibilityLabel(String(localized: "Foto \((ids.firstIndex(of: shown.localIdentifier) ?? 0) + 1) van \(ids.count)", bundle: .app) + (shown.localIdentifier == best ? String(localized: ", beste keuze", bundle: .app) : "") + ", " + (keep.contains(shown.localIdentifier) ? String(localized: "bewaren", bundle: .app) : String(localized: "weg", bundle: .app)))
             .accessibilityAction(named: Text("Bevestigen")) { confirm(ids) }
             .accessibilityAction(named: Text("Overslaan")) { skip(ids) }
 
             Button {
                 toggle(shown.localIdentifier, in: ids)
             } label: {
-                Label(keep.contains(shown.localIdentifier) ? "Toch weg" : "Deze ook bewaren",
+                Label(keep.contains(shown.localIdentifier) ? String(localized: "Toch weg", bundle: .app) : String(localized: "Deze ook bewaren", bundle: .app),
                       systemImage: keep.contains(shown.localIdentifier) ? "xmark" : "checkmark")
             }
             .buttonStyle(SecondaryStyle())
@@ -326,7 +326,7 @@ struct StackReviewView: View {
             Image(systemName: "checkmark").font(.system(size: 38, weight: .heavy))
                 .frame(width: 84, height: 84).background(Circle().fill(Palette.reward))
                 .overlay(Circle().stroke(Palette.ink, lineWidth: 3))
-            Text(settled == 0 ? "Niets gevonden in \(group.title)" : "Alle stapels gedaan")
+            Text(settled == 0 ? String(localized: "Niets gevonden in \(group.title)", bundle: .app) : String(localized: "Alle stapels gedaan", bundle: .app))
                 .font(.system(.title2, design: .rounded).weight(.heavy)).multilineTextAlignment(.center)
             if setAside > 0 {
                 Text("\(setAside) foto's weggelegd. Controleer ze in Bekijken voordat je iets verwijdert.")
@@ -341,9 +341,9 @@ struct StackReviewView: View {
 
     private func headline(_ count: Int) -> String {
         switch group {
-        case .bursts: return "\(count) foto's in deze burst"
-        case .copies: return "\(count) keer dezelfde foto"
-        default: return "\(count) bijna gelijke foto's"
+        case .bursts: return String(localized: "\(count) foto's in deze burst", bundle: .app)
+        case .copies: return String(localized: "\(count) keer dezelfde foto", bundle: .app)
+        default: return String(localized: "\(count) bijna gelijke foto's", bundle: .app)
         }
     }
     private func reset(_ ids: [String], keep suggested: Set<String>) {
@@ -411,7 +411,7 @@ struct SmartCleanView: View {
                         }
                         .padding(12).pop(radius: 14, fill: Palette.surface, shadow: 2)
                     } else if totalBytes > 0 {
-                        Text("Samen ongeveer \(ByteText.format(totalBytes).replacingOccurrences(of: "ca. ", with: "")) te winnen")
+                        Text("Samen ongeveer \(ByteText.plain(totalBytes)) te winnen")
                             .font(.headline.weight(.heavy))
                     }
                     ForEach(ordered) { group in
@@ -474,15 +474,15 @@ struct SmartCleanView: View {
         .pop(radius: 16, fill: Palette.surface, shadow: empty ? 0 : 3)
         .opacity(empty ? 0.55 : 1)
         .accessibilityElement(children: .combine)
-        .accessibilityHint(empty ? "Niets gevonden" : "Openen")
+        .accessibilityHint(empty ? String(localized: "Niets gevonden", bundle: .app) : String(localized: "Openen", bundle: .app))
     }
 
     private var tips: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Goed om te weten").font(.headline.weight(.heavy)).padding(.top, 8)
-            tip("trash.slash", "Ruimte komt pas vrij na 'Recent verwijderd'", "Verwijderde foto's blijven 30 dagen in Foto's > Albums > Recent verwijderd. Wil je de ruimte meteen? Kies daar Verwijder alles. Een app mag dat album niet zelf legen.")
-            tip("square.on.square", "Exacte duplicaten samenvoegen", "Ook de Foto's-app vindt exacte duplicaten: Albums > Duplicaten > Voeg samen.")
-            tip("film", "Video's en Live Photos", "Open een video of Live Photo en kies via Meer 'Video verkleinen' of 'Bewaar als gewone foto'. Het origineel gaat eerst naar Weggelegd.")
+            tip("trash.slash", String(localized: "Ruimte komt pas vrij na 'Recent verwijderd'", bundle: .app), String(localized: "Verwijderde foto's blijven 30 dagen in Foto's > Albums > Recent verwijderd. Wil je de ruimte meteen? Kies daar Verwijder alles. Een app mag dat album niet zelf legen.", bundle: .app))
+            tip("square.on.square", String(localized: "Exacte duplicaten samenvoegen", bundle: .app), String(localized: "Ook de Foto's-app vindt exacte duplicaten: Albums > Duplicaten > Voeg samen.", bundle: .app))
+            tip("film", String(localized: "Video's en Live Photos", bundle: .app), String(localized: "Open een video of Live Photo en kies via Meer 'Video verkleinen' of 'Bewaar als gewone foto'. Het origineel gaat eerst naar Weggelegd.", bundle: .app))
         }
     }
     private func tip(_ icon: String, _ title: String, _ text: String) -> some View {

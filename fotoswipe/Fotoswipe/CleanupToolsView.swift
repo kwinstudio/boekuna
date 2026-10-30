@@ -13,7 +13,7 @@ struct AssetPreviewView: View {
                 else { AssetImage(asset: asset, manager: manager) }
             }
             .background(.black)
-            .navigationTitle(asset.mediaType == .video ? "Video bekijken" : "Foto bekijken")
+            .navigationTitle(asset.mediaType == .video ? String(localized: "Video bekijken", bundle: .app) : String(localized: "Foto bekijken", bundle: .app))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Klaar") { dismiss() } } }
         }.preferredColorScheme(.dark)
@@ -75,7 +75,7 @@ private struct VideoAssetView: View {
             } else {
                 VStack(spacing: 14) {
                     ProgressView().tint(.white)
-                    Text(playback.progress > 0 ? "Video ophalen: \(Int(playback.progress * 100))%" : "Video voorbereiden…")
+                    Text(playback.progress > 0 ? String(localized: "Video ophalen: \(Int(playback.progress * 100))%", bundle: .app) : String(localized: "Video voorbereiden…", bundle: .app))
                         .foregroundStyle(.white)
                 }
             }

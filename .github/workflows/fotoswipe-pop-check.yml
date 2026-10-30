@@ -30,6 +30,20 @@ jobs:
             exit 1
           }
           grep -E "Executed [0-9]+ tests?" build/test.log | tail -1 | while IFS= read -r line; do echo "::notice title=Fotoswipe test::${line}"; done
+      - name: Export source strings
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          xcodebuild -exportLocalizations -project Fotoswipe.xcodeproj -localizationPath build/loc -exportLanguage en \
+            -sdk iphonesimulator CODE_SIGNING_ALLOWED=NO 2>&1 | tail -5
+          mkdir -p "$RUNNER_TEMP/loc" && find build/loc -name "*.xliff" -exec cp {} "$RUNNER_TEMP/loc/" \;
+          find build/loc -name "*.xcstrings" -exec cp {} "$RUNNER_TEMP/loc/" \; || true
+          cd "$RUNNER_TEMP/loc" && ls -la
+          git init -q && git checkout -q -b claude/fotoswipe-loc
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com add .
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -q -m "Exported strings ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" claude/fotoswipe-loc
+          echo "::notice title=Strings::exported $(grep -c '<trans-unit' *.xliff | tail -1)"
       - name: Simulator screenshot
         run: bash scripts/smoke.sh
       - name: Publish screenshot to a review branch
