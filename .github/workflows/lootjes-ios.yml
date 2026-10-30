@@ -1,0 +1,98 @@
+name: Lootjes iOS
+# Builds, tests and screenshots the Lootjes app on a cloud Mac; uploads to TestFlight once the
+# App Store Connect app record exists. Never submits for App Review.
+on:
+  push:
+    branches: [claude/lootjes]
+    paths: ['lootjes/**', '.github/workflows/lootjes-ios.yml']
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: "Upload to TestFlight (when the app exists)"
+        type: boolean
+        default: true
+permissions:
+  contents: read
+concurrency:
+  group: lootjes-ios
+  cancel-in-progress: false
+jobs:
+  build-test-upload:
+    if: github.repository == 'kwinstudio/boekuna'
+    runs-on: macos-26
+    timeout-minutes: 75
+    defaults:
+      run:
+        working-directory: lootjes
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Generate Xcode project
+        run: |
+          xcodebuild -version
+          brew install xcodegen >/dev/null 2>&1 || brew install xcodegen
+          xcodegen generate
+      - name: Unit tests on iPhone simulator
+        run: |
+          SIM=$(xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin); c=[v for k,vs in d["devices"].items() if "iOS" in k for v in vs if v["name"].startswith("iPhone") and "Pro Max" in v["name"]] or [v for k,vs in d["devices"].items() if "iOS" in k for v in vs if v["name"].startswith("iPhone")]; print(c[-1]["udid"])')
+          echo "SIM=$SIM" >> "$GITHUB_ENV"
+          status=0
+          xcodebuild -project Lootjes.xcodeproj -scheme Lootjes -destination "platform=iOS Simulator,id=$SIM" \
+            -derivedDataPath build/DerivedData CODE_SIGNING_ALLOWED=NO test > build-test.log 2>&1 || status=$?
+          grep -E "error:|Test Case .*failed|Executed [0-9]+ tests|\*\* (BUILD|TEST)" build-test.log | tail -80 || true
+          grep -E "error:" build-test.log | sort -u | head -40 | while IFS= read -r line; do echo "::error title=Build::${line}"; done
+          grep -E "Test Case .*failed|XCTAssert.*failed" build-test.log | sort -u | head -20 | while IFS= read -r line; do echo "::error title=Test::${line}"; done
+          grep -E "Executed [0-9]+ tests" build-test.log | tail -1 | while IFS= read -r line; do echo "::notice title=Tests::${line}"; done
+          exit $status
+      - name: Simulator screenshots
+        if: always()
+        run: bash scripts/screens.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lootjes-screens
+          path: lootjes/build/screens/*.png
+          retention-days: 7
+      - name: App Store Connect preflight
+        id: asc
+        if: github.event_name == 'push' || inputs.upload
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          ASC_KEY_OUT: ${{ runner.temp }}/LootjesAuthKey.p8
+        run: node scripts/asc.mjs preflight
+      - name: Archive, sign and upload to TestFlight
+        if: steps.asc.outputs.app_exists == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          xcodebuild -project Lootjes.xcodeproj -scheme Lootjes -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath build/Lootjes.xcarchive \
+            CURRENT_PROJECT_VERSION=${{ steps.asc.outputs.next_build }} DEVELOPMENT_TEAM=${{ steps.asc.outputs.team_id }} \
+            -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/LootjesAuthKey.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" archive 2>&1 | tee build-archive.log | tail -30 || true
+          grep -E "error:" build-archive.log | sort -u | head -20 | while IFS= read -r line; do echo "::error title=Archive::${line}"; done
+          test -d build/Lootjes.xcarchive/Products/Applications/Lootjes.app
+          cp ExportOptions-TestFlight.plist "$RUNNER_TEMP/ExportOptions.plist"
+          /usr/libexec/PlistBuddy -c 'Add :teamID string ${{ steps.asc.outputs.team_id }}' "$RUNNER_TEMP/ExportOptions.plist"
+          xcodebuild -exportArchive -archivePath build/Lootjes.xcarchive -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath build/upload -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/LootjesAuthKey.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" 2>&1 | tail -20
+          echo "::notice title=Upload::Build ${{ steps.asc.outputs.next_build }} uploaded to App Store Connect."
+      - name: TestFlight availability
+        if: steps.asc.outputs.app_exists == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          TARGET_BUILD: ${{ steps.asc.outputs.next_build }}
+          WHAT_TO_TEST: "Eerste versie van Lootjes. Test: een groep maken, mensen uitnodigen via de link, lootjes trekken, je lootje openkrassen, verlanglijstje, anonieme vragen, gedichthulp en 'Iedereen is hier' (telefoon doorgeven)."
+        run: node scripts/asc.mjs testflight
+      - name: Remove signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/LootjesAuthKey.p8"
