@@ -95,6 +95,7 @@ struct InfoView: View {
     @EnvironmentObject private var library: PhotoLibrary
     @ObservedObject private var reminders = Reminders.shared
     @ObservedObject private var languages = LanguageStore.shared
+    @ObservedObject private var quickAlbums = QuickAlbumStore.shared
     @AppStorage("fotoswipe.sessionSize") private var sessionSize = 100
     @AppStorage("fotoswipe.haptics") private var haptics = true
     @State private var confirmResetKept = false
@@ -119,6 +120,11 @@ struct InfoView: View {
                     })) {
                         ForEach(AppLanguage.allCases) { language in Text(verbatim: language.nativeName).tag(language) }
                     } label: { Label("Taal", systemImage: "globe") }
+                    NavigationLink { QuickAlbumSettingsView().environmentObject(library) } label: {
+                        LabeledContent { Text("\(quickAlbums.ids.count)/\(QuickAlbumStore.limit)") } label: {
+                            Label("Snelle albums", systemImage: "rectangle.stack.badge.plus")
+                        }
+                    }
                     Picker("Items per sessie", selection: $sessionSize) {
                         ForEach(ReviewSession.sizes, id: \.self) { size in Text("\(size)").tag(size) }
                     }

@@ -388,6 +388,8 @@ struct SmartCleanView: View {
     @Environment(\.dismiss) private var dismiss
     let onOpenCategory: (String) -> Void
     @State private var stackGroup: SmartGroup?
+    @State private var placesOpen = false
+    @State private var contactsOpen = false
 
     private var ordered: [SmartGroup] {
         SmartGroup.allCases.sorted { lhs, rhs in
@@ -423,13 +425,23 @@ struct SmartCleanView: View {
                             .buttonStyle(.plain)
                             .disabled(empty || pendingScan || pendingBursts)
                     }
+                    Text("Meer opruimen").font(.headline.weight(.heavy)).padding(.top, 8)
+                    Button { placesOpen = true } label: {
+                        extraCard("map.fill", String(localized: "Reiskaart", bundle: .app), String(localized: "Je foto's per plek en reis. Ruim één reis tegelijk op.", bundle: .app))
+                    }.buttonStyle(.plain)
+                    Button { contactsOpen = true } label: {
+                        extraCard("person.2.fill", String(localized: "Dubbele contacten", bundle: .app), String(localized: "Contacten die er twee keer in staan samenvoegen.", bundle: .app))
+                    }.buttonStyle(.plain)
                     tips
                 }
                 .padding(20).foregroundStyle(Palette.ink)
+                .frame(maxWidth: 640).frame(maxWidth: .infinity)
             }
             .background(Palette.background.ignoresSafeArea())
             .navigationTitle("Slim opruimen").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Klaar") { dismiss() } } }
+            .sheet(isPresented: $placesOpen) { PlacesView(onOpen: onOpenCategory).environmentObject(library) }
+            .sheet(isPresented: $contactsOpen) { DuplicateContactsView() }
             .fullScreenCover(item: $stackGroup, onDismiss: { library.updateSmartSummary() }) { group in
                 StackReviewView(group: group).environmentObject(library)
             }
@@ -475,6 +487,24 @@ struct SmartCleanView: View {
         .opacity(empty ? 0.55 : 1)
         .accessibilityElement(children: .combine)
         .accessibilityHint(empty ? String(localized: "Niets gevonden", bundle: .app) : String(localized: "Openen", bundle: .app))
+    }
+
+    private func extraCard(_ icon: String, _ title: String, _ detail: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon).font(.system(size: 18, weight: .heavy)).foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Palette.keep))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.ink, lineWidth: 2))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.headline.weight(.heavy))
+                Text(detail).font(.caption).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 6)
+            Image(systemName: "chevron.right").font(.caption.weight(.heavy)).foregroundStyle(Palette.muted)
+        }
+        .padding(12)
+        .pop(radius: 16, fill: Palette.surface, shadow: 3)
+        .accessibilityElement(children: .combine)
     }
 
     private var tips: some View {

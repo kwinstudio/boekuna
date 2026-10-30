@@ -20,10 +20,23 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>nl.zichtwerfstudio.fotoswipe</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fotoswipe</string>
+			</array>
+		</dict>
+	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSContactsUsageDescription</key>
+	<string>Fotoswipe zoekt contacten die er dubbel in staan. Pas na jouw bevestiging worden ze samengevoegd. Je contacten blijven op je iPhone.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Fotoswipe toont je foto's zodat je ze kunt bewaren of wegleggen. Alleen na jouw bevestiging worden geselecteerde foto's verwijderd.</string>
 	<key>PHPhotoLibraryPreventAutomaticLimitedAccessAlert</key>
@@ -45,6 +58,13 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 </dict>
 </plist>

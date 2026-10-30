@@ -30,6 +30,9 @@ struct ContentView: View {
                 else if library.authorization == .notDetermined { OnboardingView(onAllow: { library.requestAccess() }, startPage: onboardingStartPage) }
                 else { permissionContent }
             }
+            // iPad: one comfortable column instead of a stretched card.
+            .frame(maxWidth: 620)
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, 20).padding(.top, 8)
             .background(Palette.background.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
@@ -102,7 +105,11 @@ struct ContentView: View {
             } message: { Text(library.message ?? "") }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { library.activate() }
-                else { library.finishPendingWrites() }
+                else { library.finishPendingWrites(); if phase == .background { library.updateWidget() } }
+            }
+            .onOpenURL { url in
+                // From the home screen widget.
+                if url.scheme == "fotoswipe", url.host == "on-this-day" { Reminders.shared.openOnThisDay = true }
             }
         }
     }
@@ -209,7 +216,14 @@ struct ContentView: View {
                         }
                         Button { tool = .album(asset) } label: { Label("Voeg toe aan album", systemImage: "rectangle.stack.badge.plus") }
                         if asset.mediaType == .video {
-                            Button { library.compressVideo(asset) } label: {
+                            Menu {
+                                ForEach(VideoQuality.allCases) { quality in
+                                    Button { library.compressVideo(asset, quality: quality) } label: {
+                                        Text(verbatim: quality.title)
+                                        Text("Wordt \(ByteText.format(Int64(Double(PhotoLibrary.fileSize(asset)) * quality.expectedShare)))")
+                                    }
+                                }
+                            } label: {
                                 Label("Video verkleinen (\(ByteText.format(PhotoLibrary.fileSize(asset))))", systemImage: "arrow.down.right.and.arrow.up.left")
                             }
                         }
@@ -276,6 +290,7 @@ struct ContentView: View {
                 if library.session.count < 3 {
                     Text("← wegleggen     ·     bewaren →").font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
                 }
+                QuickAlbumBar().environmentObject(library)
                 SwipeControls(pipeline: library.imagePipeline).environmentObject(library)
             } else {
                 Spacer()
@@ -894,6 +909,7 @@ struct FocusSwipeView: View {
                 }.padding(.horizontal, 14).padding(.bottom, 12).allowsHitTesting(false)
             }
             if controlsVisible {
+                QuickAlbumBar().environmentObject(library).padding(.horizontal, 16).transition(.opacity)
                 SwipeControls(pipeline: library.imagePipeline).environmentObject(library)
                     .padding(.bottom, 10)
                     .transition(.move(edge: .bottom).combined(with: .opacity))

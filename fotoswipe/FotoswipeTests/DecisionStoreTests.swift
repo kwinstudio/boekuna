@@ -459,6 +459,57 @@ final class SmartGroupTests: XCTestCase {
         let d = SimilarPhotoDescriptor(id: "d", date: Date(timeIntervalSince1970: 60), hash: 0x1234, colors: colors, contrast: 0.2, aspect: 0.75)
         XCTAssertEqual(SimilarPhotoGrouping.exactCopies([a, b, c, d]), [["a", "b"]])
     }
+    func testBigVideosAndQualityPresets() {
+        // 4K for one minute is far over 50 MB; a 5-second 720p clip is not.
+        XCTAssertTrue(SmartRules.isBigVideo(AssetFacts(id: "4k", isVideo: true, pixelWidth: 3840, pixelHeight: 2160, duration: 60)))
+        XCTAssertFalse(SmartRules.isBigVideo(AssetFacts(id: "clip", isVideo: true, pixelWidth: 1280, pixelHeight: 720, duration: 5)))
+        XCTAssertFalse(SmartRules.isBigVideo(AssetFacts(id: "photo", pixelWidth: 8000, pixelHeight: 6000)))
+        XCTAssertEqual(VideoQuality.allCases.map(\.preset), ["AVAssetExportPresetHEVC1920x1080", "AVAssetExportPreset1280x720", "AVAssetExportPreset960x540"])
+        XCTAssertGreaterThan(VideoQuality.high.expectedShare, VideoQuality.low.expectedShare)
+    }
+    func testQuickAlbumsKeepOrderAndLimit() {
+        var ids: [String] = []
+        for id in ["a", "b", "c", "d"] { ids = QuickAlbumRules.toggled(ids, id) }
+        XCTAssertEqual(ids, ["a", "b", "c"])
+        ids = QuickAlbumRules.toggled(ids, "b")
+        XCTAssertEqual(ids, ["a", "c"])
+        ids = QuickAlbumRules.toggled(ids, "d")
+        XCTAssertEqual(ids, ["a", "c", "d"])
+    }
+    func testPlacesSplitTripsAndKeepHomeTogether() {
+        let day = 86_400.0
+        var points: [PlacePoint] = []
+        // Home (Amsterdam): many photos spread over months.
+        for i in 0..<40 { points.append(PlacePoint(id: "h\(i)", latitude: 52.37, longitude: 4.89, date: Date(timeIntervalSince1970: Double(i) * 10 * day))) }
+        // Barcelona: two separate trips a year apart.
+        for i in 0..<5 { points.append(PlacePoint(id: "b\(i)", latitude: 41.39, longitude: 2.17, date: Date(timeIntervalSince1970: 100 * day + Double(i) * 3600))) }
+        for i in 0..<4 { points.append(PlacePoint(id: "c\(i)", latitude: 41.40, longitude: 2.16, date: Date(timeIntervalSince1970: 465 * day + Double(i) * 3600))) }
+        // A single photo somewhere is not a trip; no location (0,0) is ignored.
+        points.append(PlacePoint(id: "x", latitude: 48.85, longitude: 2.35, date: Date(timeIntervalSince1970: 200 * day)))
+        points.append(PlacePoint(id: "z", latitude: 0, longitude: 0, date: Date(timeIntervalSince1970: 300 * day)))
+        let clusters = PlaceClustering.clusters(points)
+        XCTAssertEqual(clusters.count, 3)
+        XCTAssertEqual(clusters.last?.isHome, true)
+        XCTAssertEqual(clusters.last?.ids.count, 40)
+        XCTAssertEqual(clusters.first?.ids.count, 4, "Newest trip first")
+        XCTAssertEqual(clusters[1].ids.count, 5)
+    }
+    func testDuplicateContactsAreFoundConservatively() {
+        let contacts = [
+            ContactInfo(id: "1", name: "Anna de Vries", phones: ["+31 6 1234 5678", "010 1234567"], richness: 3),
+            ContactInfo(id: "2", name: "anna  de vries", emails: ["anna@example.com"], richness: 1),
+            ContactInfo(id: "3", name: "", phones: ["06-12345678"]),
+            ContactInfo(id: "4", name: "Bram de Vries", phones: ["0101234567"]),   // shared landline, another name
+            ContactInfo(id: "5", name: "Céline", emails: ["c@x.nl"]),
+            ContactInfo(id: "6", name: "Celine", emails: ["C@X.nl "], richness: 4)
+        ]
+        let groups = ContactDuplicates.groups(contacts)
+        XCTAssertEqual(groups.count, 2)
+        XCTAssertEqual(Set(groups[0]), ["1", "2", "3"])
+        XCTAssertEqual(groups[0].first, "1", "The fullest card stays")
+        XCTAssertEqual(groups[1], ["6", "5"])
+        XCTAssertEqual(ContactDuplicates.normalizedPhone("+31 6 1234 5678"), ContactDuplicates.normalizedPhone("06-12345678"))
+    }
     func testAccidentalWinsOverOtherClutterReasons() {
         let pocket = PhotoQuality(sharpness: 0.0004, aesthetic: -0.8, utility: false, brightness: 0.02, contrast: 0.01)
         XCTAssertEqual(ClutterReason.classify(isScreenshot: false, isFavorite: false, quality: pocket), .accidental)

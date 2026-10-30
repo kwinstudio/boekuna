@@ -4,6 +4,7 @@ import PhotosUI
 import UIKit
 import Combine
 import AVFoundation
+import CoreLocation
 
 private final class LibraryObserver: NSObject, PHPhotoLibraryChangeObserver {
     var onChange: (() -> Void)?
@@ -49,6 +50,7 @@ struct PhotoCategory: Identifiable {
             PhotoCategory(id: "accidental", title: String(localized: "Per ongeluk", bundle: .app), icon: "eye.slash", collection: nil, isAlbum: false),
             PhotoCategory(id: "old-screenshots", title: String(localized: "Oude screenshots", bundle: .app), icon: "clock.arrow.circlepath", collection: nil, isAlbum: false),
             PhotoCategory(id: "from-apps", title: String(localized: "Uit apps", bundle: .app), icon: "bubble.left.and.bubble.right.fill", collection: nil, isAlbum: false),
+            PhotoCategory(id: "big-videos", title: String(localized: "Grote video's", bundle: .app), icon: "film.stack", collection: nil, isAlbum: false),
             PhotoCategory(id: "small", title: String(localized: "Kleine plaatjes en GIF's", bundle: .app), icon: "photo.badge.arrow.down", collection: nil, isAlbum: false)]
         for (type, title, icon) in types {
             if let collection = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: type, options: nil).firstObject {
@@ -139,6 +141,7 @@ struct PhotoCategory: Identifiable {
     private var queue = ReviewQueue<PHAsset>()
     private let persistence: DecisionPersistence
 
+    var allLibraryAssets: [PHAsset] { allAssets }
     var hasAccess: Bool { authorization == .authorized || authorization == .limited }
     var current: PHAsset? { deck.first }
     var reviewed: Int { assets.count - remainingCount }
@@ -292,7 +295,63 @@ struct PhotoCategory: Identifiable {
         }
         return ids
     }
-    func category(_ id: String) -> PhotoCategory? { categories.first { $0.id == id } }
+    func category(_ id: String) -> PhotoCategory? { categories.first { $0.id == id } ?? placeCategories[id] }
+
+    // MARK: Places ("Reiskaart")
+
+    @Published private(set) var places: [PlaceCluster] = []
+    @Published private(set) var placesLoading = false
+    @Published private(set) var placeNames: [String: String] = [:]
+    private var placeCategories: [String: PhotoCategory] = [:]
+    private var placeScopes: [String: Set<String>] = [:]
+    private let geocoder = CLGeocoder()
+
+    func loadPlaces() {
+        guard hasAccess, !placesLoading else { return }
+        placesLoading = true
+        let assets = allAssets
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let points = assets.compactMap { asset -> PlacePoint? in
+                guard let location = asset.location, let date = asset.creationDate else { return nil }
+                return PlacePoint(id: asset.localIdentifier, latitude: location.coordinate.latitude,
+                                  longitude: location.coordinate.longitude, date: date)
+            }
+            let clusters = PlaceClustering.clusters(points)
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.places = clusters
+                self.placesLoading = false
+                self.nameNextPlace(Array(clusters.prefix(25)))
+            }
+        }
+    }
+    /// Place names come from Apple's map service, one at a time (it limits how many requests an app may send).
+    private func nameNextPlace(_ queue: [PlaceCluster]) {
+        guard let place = queue.first(where: { placeNames[$0.id] == nil }) else { return }
+        let rest = queue.filter { $0.id != place.id }
+        let location = CLLocation(latitude: place.latitude, longitude: place.longitude)
+        geocoder.reverseGeocodeLocation(location, preferredLocale: AppLocale.locale) { [weak self] marks, _ in
+            Task { @MainActor in
+                guard let self else { return }
+                let mark = marks?.first
+                let name = mark?.locality ?? mark?.subAdministrativeArea ?? mark?.administrativeArea ?? mark?.country
+                self.placeNames[place.id] = name ?? ""
+                self.nameNextPlace(rest)
+            }
+        }
+    }
+    func placeName(_ place: PlaceCluster) -> String {
+        if let name = placeNames[place.id], !name.isEmpty { return name }
+        return place.isHome ? String(localized: "Thuis", bundle: .app)
+            : place.start.formatted(Date.FormatStyle(locale: AppLocale.locale).month(.wide).year())
+    }
+    func undecidedCount(_ ids: [String]) -> Int { ids.filter { state.decisions[$0] == nil }.count }
+    /// Makes a temporary category for one place and returns its id.
+    func preparePlace(_ place: PlaceCluster) -> String {
+        placeScopes[place.id] = Set(place.ids)
+        placeCategories[place.id] = PhotoCategory(id: place.id, title: placeName(place), icon: "map", collection: nil, isAlbum: false)
+        return place.id
+    }
 
     /// Loads all burst frames once; the frames iOS or you picked are kept by default.
     func loadBursts() {
@@ -366,6 +425,7 @@ struct PhotoCategory: Identifiable {
             }
             add(.oldScreenshots, assets.filter { SmartRules.isOldScreenshot(PhotoLibrary.facts($0), now: now) })
             add(.small, assets.filter { SmartRules.isSmall(PhotoLibrary.facts($0)) })
+            add(.bigVideos, assets.filter { SmartRules.isBigVideo(PhotoLibrary.facts($0)) })
             add(.fromApps, assets.filter { appIDs.contains($0.localIdentifier) })
             let shortVideos = assets.filter { SmartRules.isShortVideo(PhotoLibrary.facts($0)) }
             if scanFinished {
@@ -388,17 +448,17 @@ struct PhotoCategory: Identifiable {
     private final class Box<T> { var value: T?; init() {} }
 
     /// Saves a smaller HEVC copy of a video (max 1080p) and sets the original aside for review.
-    func compressVideo(_ asset: PHAsset) {
+    func compressVideo(_ asset: PHAsset, quality: VideoQuality = .high) {
         guard asset.mediaType == .video, converting == nil, !mutating, !deleting else { return }
         converting = String(localized: "Video verkleinen…", bundle: .app)
         Task { @MainActor in
-            let message = await self.runCompression(asset)
+            let message = await self.runCompression(asset, quality: quality)
             self.converting = nil
             self.message = message
             self.refresh(showLoading: false)
         }
     }
-    private func runCompression(_ asset: PHAsset) async -> String {
+    private func runCompression(_ asset: PHAsset, quality: VideoQuality) async -> String {
         let options = PHVideoRequestOptions()
         options.isNetworkAccessAllowed = true
         options.deliveryMode = .highQualityFormat
@@ -409,7 +469,7 @@ struct PhotoCategory: Identifiable {
             }
         }
         guard let video else { return String(localized: "Deze video kon niet worden geladen. Staat hij alleen in iCloud? Probeer het met internet opnieuw.", bundle: .app) }
-        guard let session = AVAssetExportSession(asset: video, presetName: AVAssetExportPresetHEVC1920x1080) else {
+        guard let session = AVAssetExportSession(asset: video, presetName: quality.preset) else {
             return String(localized: "Verkleinen is voor deze video niet mogelijk.", bundle: .app)
         }
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension("mov")
@@ -578,6 +638,8 @@ struct PhotoCategory: Identifiable {
         generation += 1
         let request = generation
         let selectedID = selectedCategory.id
+        let placeScope = placeScopes[selectedID]
+        let placeCategory = placeCategories[selectedID]
         let selectedOrder = order
         let ascending = order == .oldest
         if showLoading { deckRevision = UUID(); swipeCommand = nil }
@@ -598,7 +660,7 @@ struct PhotoCategory: Identifiable {
             result.enumerateObjects { asset, _, _ in fetched.append(asset) }
             let available = PhotoCategory.available(dates: fetched.map(\.creationDate))
             // Deleted/inaccessible albums fall back to the full accessible library.
-            let selected = available.first { $0.id == selectedID } ?? .all
+            let selected = available.first { $0.id == selectedID } ?? placeCategory ?? .all
             var filtered: [PHAsset] = []
             let appIDs: Set<String> = selected.id == "from-apps" ? PhotoLibrary.appAlbumAssetIDs() : []
             if let collection = selected.collection {
@@ -621,6 +683,10 @@ struct PhotoCategory: Identifiable {
                 } else if selected.id == "old-screenshots" {
                     let now = Date()
                     filtered = fetched.filter { SmartRules.isOldScreenshot(PhotoLibrary.facts($0), now: now) }
+                } else if let placeScope, selected.id == selectedID, placeCategory != nil {
+                    filtered = fetched.filter { placeScope.contains($0.localIdentifier) }
+                } else if selected.id == "big-videos" {
+                    filtered = fetched.filter { SmartRules.isBigVideo(PhotoLibrary.facts($0)) }
                 } else if selected.id == "small" {
                     filtered = fetched.filter { SmartRules.isSmall(PhotoLibrary.facts($0)) }
                 } else if selected.id == "from-apps" {
@@ -642,7 +708,7 @@ struct PhotoCategory: Identifiable {
                     }
                 }
                 if selectedOrder == .random && selected.id != "random30" { filtered.shuffle() }
-                if selectedOrder == .largest {
+                if selectedOrder == .largest || (selected.id == "big-videos" && selectedOrder != .random) {
                     filtered.sort { lhs, rhs in
                         let left = PhotoLibrary.fileSize(lhs)
                         let right = PhotoLibrary.fileSize(rhs)
@@ -944,6 +1010,20 @@ struct PhotoCategory: Identifiable {
                     if success { self.status = String(localized: "Toegevoegd aan album in Foto's.", bundle: .app); completion(nil) }
                     else { completion(error?.localizedDescription ?? String(localized: "Toevoegen is niet gelukt. Je keuzes zijn bewaard.", bundle: .app)) }
                 }
+            }
+        }
+    }
+
+    /// Creates an empty album in Photos and returns its id (for pinning as a quick album).
+    func createAlbum(named name: String, completion: @escaping (String?) -> Void) {
+        var placeholder: String?
+        PHPhotoLibrary.shared().performChanges({
+            placeholder = PHAssetCollectionChangeRequest.creationRequestForAssetCollection(withTitle: name)
+                .placeholderForCreatedAssetCollection.localIdentifier
+        }) { [weak self] success, _ in
+            Task { @MainActor in
+                guard let self, success else { completion(nil); return }
+                self.refreshAlbumCatalog { completion(placeholder) }
             }
         }
     }

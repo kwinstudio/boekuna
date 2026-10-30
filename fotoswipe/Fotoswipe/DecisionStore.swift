@@ -372,7 +372,7 @@ enum ReviewPrompt {
 
 /// Smart groups shown on "Slim opruimen". Swipe groups open as a category; stack groups open as stacks.
 enum SmartGroup: String, CaseIterable, Identifiable {
-    case similar, bursts, copies, clutter, accidental, oldScreenshots = "old-screenshots", fromApps = "from-apps", small
+    case similar, bursts, copies, bigVideos = "big-videos", clutter, accidental, oldScreenshots = "old-screenshots", fromApps = "from-apps", small
     var id: String { rawValue }
     var isStack: Bool { self == .similar || self == .bursts || self == .copies }
     var needsScan: Bool { self == .similar || self == .copies || self == .clutter || self == .accidental }
@@ -386,6 +386,7 @@ enum SmartGroup: String, CaseIterable, Identifiable {
         case .oldScreenshots: return String(localized: "Oude screenshots", bundle: .app)
         case .fromApps: return String(localized: "Uit apps", bundle: .app)
         case .small: return String(localized: "Kleine plaatjes en GIF's", bundle: .app)
+        case .bigVideos: return String(localized: "Grote video's", bundle: .app)
         }
     }
     var detail: String {
@@ -398,6 +399,7 @@ enum SmartGroup: String, CaseIterable, Identifiable {
         case .oldScreenshots: return String(localized: "Ouder dan \(SmartRules.oldScreenshotDays) dagen", bundle: .app)
         case .fromApps: return String(localized: "WhatsApp, Telegram, Instagram en meer", bundle: .app)
         case .small: return String(localized: "Lage resolutie, memes en gedownloade plaatjes", bundle: .app)
+        case .bigVideos: return String(localized: "Groter dan ca. 50 MB. Weg of kleiner maken", bundle: .app)
         }
     }
     var icon: String {
@@ -410,6 +412,7 @@ enum SmartGroup: String, CaseIterable, Identifiable {
         case .oldScreenshots: return "clock.arrow.circlepath"
         case .fromApps: return "bubble.left.and.bubble.right.fill"
         case .small: return "photo.badge.arrow.down"
+        case .bigVideos: return "film.stack"
         }
     }
 }
@@ -441,6 +444,11 @@ enum SmartRules {
         guard !facts.isVideo, !facts.isScreenshot else { return false }
         return facts.isAnimated || (facts.pixelWidth * facts.pixelHeight > 0 && facts.pixelWidth * facts.pixelHeight < smallPixels)
     }
+    static let bigVideoBytes = 50_000_000.0
+    static func isBigVideo(_ facts: AssetFacts) -> Bool {
+        facts.isVideo && SizeEstimate.bytes(isVideo: true, pixelWidth: facts.pixelWidth, pixelHeight: facts.pixelHeight,
+                                            duration: facts.duration) >= bigVideoBytes
+    }
     static func isShortVideo(_ facts: AssetFacts) -> Bool {
         facts.isVideo && facts.duration > 0 && facts.duration < shortVideoSeconds
     }
@@ -458,5 +466,34 @@ enum SmartRules {
         if !kept.isEmpty { return kept }
         if let representative, ids.contains(representative) { return [representative] }
         return ids.first.map { [$0] } ?? []
+    }
+}
+
+
+/// How much smaller a video becomes. "High" keeps 1080p (HEVC), the others lower the resolution too.
+enum VideoQuality: String, CaseIterable, Identifiable {
+    case high, medium, low
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .high: return String(localized: "Hoog (1080p)", bundle: .app)
+        case .medium: return String(localized: "Midden (720p)", bundle: .app)
+        case .low: return String(localized: "Laag (540p)", bundle: .app)
+        }
+    }
+    var preset: String {
+        switch self {
+        case .high: return "AVAssetExportPresetHEVC1920x1080"
+        case .medium: return "AVAssetExportPreset1280x720"
+        case .low: return "AVAssetExportPreset960x540"
+        }
+    }
+    /// Rough share of the original size that remains, shown before the user picks.
+    var expectedShare: Double {
+        switch self {
+        case .high: return 0.5
+        case .medium: return 0.3
+        case .low: return 0.15
+        }
     }
 }
