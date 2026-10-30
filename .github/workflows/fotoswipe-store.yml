@@ -30,4 +30,5 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           TARGET_BUILD: ${{ inputs.target_build || '' }}
+          UPLOAD_SCREENSHOTS: "1"
         run: node fotoswipe/scripts/asc-store-setup.mjs

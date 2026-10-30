@@ -119,3 +119,59 @@ if (TARGET) {
   } else note(`Build ${TARGET} not processed yet; select it later`);
 }
 flush();
+
+// Screenshots (6.9-inch iPhone, 1320x2868) from store/screenshots/<locale>/1..5.png. Replaces the set only when asked.
+if (process.env.UPLOAD_SCREENSHOTS === '1') {
+  const root = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'store', 'screenshots');
+  const freshLocs = (await api(`/v1/appStoreVersions/${version.id}/appStoreVersionLocalizations?limit=50`)).data;
+  for (const locale of Object.keys(listing.locales)) {
+    const dir = path.join(root, locale);
+    if (!fs.existsSync(dir)) continue;
+    const loc = freshLocs.find((l) => l.attributes.locale === locale);
+    if (!loc) { note(`${locale}: no version language for screenshots`); continue; }
+    const files = fs.readdirSync(dir).filter((f) => f.endsWith('.png')).sort();
+    let uploaded = 0, failed = '';
+    for (const displayType of ['APP_IPHONE_67', 'APP_IPHONE_69']) {
+      try {
+        const sets = (await api(`/v1/appStoreVersionLocalizations/${loc.id}/appScreenshotSets?limit=50`)).data;
+        let set = sets.find((s) => s.attributes.screenshotDisplayType === displayType);
+        if (set) {
+          const old = (await api(`/v1/appScreenshotSets/${set.id}/appScreenshots?limit=50`)).data;
+          for (const shot of old) await api(`/v1/appScreenshots/${shot.id}`, { method: 'DELETE' });
+        } else {
+          set = (await api('/v1/appScreenshotSets', { method: 'POST', body: { data: { type: 'appScreenshotSets',
+            attributes: { screenshotDisplayType: displayType },
+            relationships: { appStoreVersionLocalization: { data: { type: 'appStoreVersionLocalizations', id: loc.id } } } } } })).data;
+        }
+        for (const file of files) {
+          const bytes = fs.readFileSync(path.join(dir, file));
+          const shot = (await api('/v1/appScreenshots', { method: 'POST', body: { data: { type: 'appScreenshots',
+            attributes: { fileName: `${locale}-${file}`, fileSize: bytes.length },
+            relationships: { appScreenshotSet: { data: { type: 'appScreenshotSets', id: set.id } } } } } })).data;
+          for (const op of shot.attributes.uploadOperations) {
+            const headers = Object.fromEntries((op.requestHeaders || []).map((h) => [h.name, h.value]));
+            const res = await fetch(op.url, { method: op.method, headers, body: bytes.subarray(op.offset, op.offset + op.length) });
+            if (!res.ok) throw new Error(`upload part ${res.status}`);
+          }
+          const md5 = crypto.createHash('md5').update(bytes).digest('hex');
+          await api(`/v1/appScreenshots/${shot.id}`, { method: 'PATCH', body: { data: { type: 'appScreenshots', id: shot.id,
+            attributes: { uploaded: true, sourceFileChecksum: md5 } } } });
+          uploaded++;
+        }
+        failed = '';
+        note(`${locale}: ${uploaded} screenshots uploaded as ${displayType}`);
+        break;
+      } catch (e) { failed = short(e); uploaded = 0; }
+    }
+    if (failed) note(`${locale}: screenshots failed (${failed})`);
+  }
+  await sleep(20_000);
+  for (const locale of Object.keys(listing.locales)) {
+    const loc = freshLocs.find((l) => l.attributes.locale === locale);
+    if (!loc) continue;
+    const sets = (await api(`/v1/appStoreVersionLocalizations/${loc.id}/appScreenshotSets?include=appScreenshots&limit=50`));
+    const states = (sets.included || []).map((s) => s.attributes.assetDeliveryState?.state).filter(Boolean);
+    note(`${locale}: screenshot states ${[...new Set(states)].join('/') || 'none'} (${states.length})`);
+  }
+  flush();
+}
