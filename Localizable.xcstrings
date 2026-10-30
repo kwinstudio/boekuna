@@ -1,0 +1,5323 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    ", beste keuze" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", best pick"
+          }
+        }
+      }
+    },
+    ", favoriet" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", favorite"
+          }
+        }
+      }
+    },
+    "· %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "· %@"
+          }
+        }
+      }
+    },
+    "%@\nGeen reclame, geen abonnement, geen limiet. Je foto's blijven op je iPhone." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@\nNo ads, no subscription, no limits. Your photos stay on your iPhone."
+          }
+        }
+      }
+    },
+    "%@ zoeken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search %@"
+          }
+        }
+      }
+    },
+    "%lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld"
+          }
+        }
+      }
+    },
+    "%lld bewaard" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld kept"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld kept"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld bijna gelijke foto's" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld nearly identical photo"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld nearly identical photos"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld blijven bewaard" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld stays kept"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld stay kept"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld dagen op rij" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day in a row"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days in a row"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld foto's bekeken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld photo reviewed"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld photos reviewed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld foto's in deze burst" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld photo in this burst"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld photos in this burst"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld foto's overgeslagen: voorbeeld niet lokaal beschikbaar of niet leesbaar." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld photo skipped: preview not available locally or not readable."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld photos skipped: preview not available locally or not readable."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld foto's van %@ uit eerdere jaren wachten op je. Even 2 minuten?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld photos from %2$@ in past years are waiting for you. Got 2 minutes?"
+          }
+        }
+      }
+    },
+    "%lld foto's weggelegd. Controleer ze in Bekijken voordat je iets verwijdert." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld photo set aside. Check it in Review before you delete anything."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld photos set aside. Check them in Review before you delete anything."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld groepen samengevoegd" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld group merged"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld groups merged"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld groepen samenvoegen?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Merge %lld group?"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Merge %lld groups?"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld herinneringen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld memory"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld memories"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld items" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld item"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld items"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld items bewaard. Met Bekijken kun je dit per item terugdraaien." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld item kept. You can undo this per item in Review."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld items kept. You can undo this per item in Review."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld items in %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld items in %@"
+          }
+        }
+      }
+    },
+    "%lld items verwijderd" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld item deleted"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld items deleted"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld items verwijderen uit Foto's?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Delete %lld item from Photos?"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Delete %lld items from Photos?"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld kandidaten" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld candidate"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld candidates"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld keer dezelfde foto" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Same photo %lld times"
+          }
+        }
+      }
+    },
+    "%lld min" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld min"
+          }
+        }
+      }
+    },
+    "%lld min %lld sec" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld min %lld sec"
+          }
+        }
+      }
+    },
+    "%lld over" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld left"
+          }
+        }
+      }
+    },
+    "%lld seconden" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld second"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld seconds"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld te doen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld to go"
+          }
+        }
+      }
+    },
+    "%lld van %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld of %lld"
+          }
+        }
+      }
+    },
+    "%lld van %lld bekeken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld of %lld reviewed"
+          }
+        }
+      }
+    },
+    "%lld van %lld items" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld of %lld items"
+          }
+        }
+      }
+    },
+    "%lld van %lld recente foto's · alleen op je iPhone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld of %lld recent photos · only on your iPhone"
+          }
+        }
+      }
+    },
+    "%lld van %lld recente foto's bekeken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld of %lld recent photos reviewed"
+          }
+        }
+      }
+    },
+    "%lld weg" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld set aside"
+          }
+        }
+      }
+    },
+    "%lld weggelegd" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld set aside"
+          }
+        }
+      }
+    },
+    "%lld weggelegd, %@. Bekijken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld set aside, %@. Review"
+          }
+        }
+      }
+    },
+    "%lld weggelegd. Bekijken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld set aside. Review"
+          }
+        }
+      }
+    },
+    "%lld willekeurige items" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld random item"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld random items"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld/%lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/%lld"
+          }
+        }
+      }
+    },
+    "%lld/%lld bekeken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/%lld reviewed"
+          }
+        }
+      }
+    },
+    "%lld%%" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%%"
+          }
+        }
+      }
+    },
+    "← wegleggen     ·     bewaren →" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "← set aside     ·     keep →"
+          }
+        }
+      }
+    },
+    "1 dag op rij" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 day in a row"
+          }
+        }
+      }
+    },
+    "1 seconde" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 second"
+          }
+        }
+      }
+    },
+    "actief" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "active"
+          }
+        }
+      }
+    },
+    "Album" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Album"
+          }
+        }
+      }
+    },
+    "Alle bewaarde foto's opnieuw bekijken?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review all kept photos again?"
+          }
+        }
+      }
+    },
+    "Alle foto's en video's" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All photos and videos"
+          }
+        }
+      }
+    },
+    "Alle keuzes gewist. Je foto's zelf zijn niet aangepast." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All choices cleared. Your photos themselves haven't been changed."
+          }
+        }
+      }
+    },
+    "Alle keuzes wissen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear all choices"
+          }
+        }
+      }
+    },
+    "Alle keuzes wissen?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear all choices?"
+          }
+        }
+      }
+    },
+    "Alle stapels gedaan" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All stacks done"
+          }
+        }
+      }
+    },
+    "Alleen de foto" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo only"
+          }
+        }
+      }
+    },
+    "Alleen geselecteerde foto's" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only selected photos"
+          }
+        }
+      }
+    },
+    "Alleen je keuzes in Fotoswipe veranderen. Je foto's blijven zoals ze zijn." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only your choices in Fotoswipe change. Your photos stay as they are."
+          }
+        }
+      }
+    },
+    "Alleen jij beslist wat weg mag." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only you decide what goes."
+          }
+        }
+      }
+    },
+    "Alles bekeken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All reviewed"
+          }
+        }
+      }
+    },
+    "Alles bekeken." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All reviewed."
+          }
+        }
+      }
+    },
+    "Alles met één duim. Je vindt dit later ook onder het i-knopje." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everything with one thumb. You can also find this later under the i button."
+          }
+        }
+      }
+    },
+    "Andere kant op: naar links is wegleggen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other way: left is set aside"
+          }
+        }
+      }
+    },
+    "Andere kant op: naar rechts is bewaren" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other way: right is keep"
+          }
+        }
+      }
+    },
+    "Andere vraag? Neem contact op" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other question? Get in touch"
+          }
+        }
+      }
+    },
+    "Annuleren" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        }
+      }
+    },
+    "Apple vraagt hierna nog om bevestiging. Controleer je selectie eerst." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple will ask you to confirm next. Check your selection first."
+          }
+        }
+      }
+    },
+    "Begin met swipen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start swiping"
+          }
+        }
+      }
+    },
+    "Bekijk selectie" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View selection"
+          }
+        }
+      }
+    },
+    "Bekijken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review"
+          }
+        }
+      }
+    },
+    "Bestaand album" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Existing album"
+          }
+        }
+      }
+    },
+    "Beste keuze" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best pick"
+          }
+        }
+      }
+    },
+    "Bevestigen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm"
+          }
+        }
+      }
+    },
+    "Bewaar als gewone foto (kleiner)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep as regular photo (smaller)"
+          }
+        }
+      }
+    },
+    "Bewaar de rest" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the rest"
+          }
+        }
+      }
+    },
+    "Bewaar de rest (%lld)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the rest (%lld)"
+          }
+        }
+      }
+    },
+    "Bewaar het mooie.\nSwipe de rest." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the good ones.\nSwipe the rest."
+          }
+        }
+      }
+    },
+    "Bewaar het mooie. Swipe de rest." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the good ones. Swipe the rest."
+          }
+        }
+      }
+    },
+    "Bewaard (%lld)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kept (%lld)"
+          }
+        }
+      }
+    },
+    "Bewaard, weggelegd en later worden gewist. Er wordt niets uit Foto's verwijderd." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kept, set aside and later will be cleared. Nothing is deleted from Photos."
+          }
+        }
+      }
+    },
+    "Bewaard; tik om weg te leggen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kept; tap to set aside"
+          }
+        }
+      }
+    },
+    "Bewaarde foto's opnieuw bekijken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review kept photos again"
+          }
+        }
+      }
+    },
+    "Bewaarde items opnieuw bekijken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review kept items again"
+          }
+        }
+      }
+    },
+    "Bewaarde items staan weer in de stapels." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kept items are back in the stacks."
+          }
+        }
+      }
+    },
+    "bewaren" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "keep"
+          }
+        }
+      }
+    },
+    "Bewaren" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep"
+          }
+        }
+      }
+    },
+    "BEWAREN" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KEEP"
+          }
+        }
+      }
+    },
+    "Bibliotheek bekeken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Library reviewed"
+          }
+        }
+      }
+    },
+    "Bij beperkte fototoegang zijn sommige categorieën en albums niet beschikbaar. Via Wijzig of Instellingen pas je de toegang aan." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With limited photo access, some categories and albums aren't available. Change access via Edit or Settings."
+          }
+        }
+      }
+    },
+    "Bijna dubbel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Near duplicates"
+          }
+        }
+      }
+    },
+    "Bijna dubbel, burstfoto's, rommel en meer, grootste winst eerst" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Near duplicates, burst photos, clutter and more, biggest savings first"
+          }
+        }
+      }
+    },
+    "Bijna gelijke foto's; de beste staat al klaar" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nearly identical photos; the best one is already picked"
+          }
+        }
+      }
+    },
+    "Bijna zwart, leeg, of video korter dan 3 sec." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nearly black, empty, or video shorter than 3 sec."
+          }
+        }
+      }
+    },
+    "Bonnetje of notitie" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receipt or note"
+          }
+        }
+      }
+    },
+    "Burstfoto's" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Burst photos"
+          }
+        }
+      }
+    },
+    "Burstfoto's ophalen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading burst photos"
+          }
+        }
+      }
+    },
+    "ca. %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "approx. %@"
+          }
+        }
+      }
+    },
+    "Categorie kiezen: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose category: %@"
+          }
+        }
+      }
+    },
+    "Categorieën" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Categories"
+          }
+        }
+      }
+    },
+    "Contacten bekijken…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking contacts…"
+          }
+        }
+      }
+    },
+    "Contacten die er twee keer in staan samenvoegen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merge contacts that appear twice."
+          }
+        }
+      }
+    },
+    "Controleer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review"
+          }
+        }
+      }
+    },
+    "Controleer %lld items" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Review %lld item"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Review %lld items"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Controleer je internet voor foto's in iCloud." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check your internet connection for photos in iCloud."
+          }
+        }
+      }
+    },
+    "Controleer je internet voor items in iCloud." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check your internet connection for items in iCloud."
+          }
+        }
+      }
+    },
+    "Controleer je verbinding en probeer opnieuw." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check your connection and try again."
+          }
+        }
+      }
+    },
+    "Controleer je weggelegde foto's en verwijder ze in één keer." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review your set-aside photos and delete them all at once."
+          }
+        }
+      }
+    },
+    "Dagelijkse herinnering" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily reminder"
+          }
+        }
+      }
+    },
+    "dagen reeks" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "day streak"
+          }
+        }
+      }
+    },
+    "dagen reeks nu" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "day streak now"
+          }
+        }
+      }
+    },
+    "Dan zie je alleen die foto's. Tik op 'Wijzig' boven de stapel om meer te kiezen, of geef volledige toegang in Instellingen > Privacy > Foto's." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Then you'll only see those photos. Tap 'Edit' above the stack to choose more, or give full access in Settings > Privacy > Photos."
+          }
+        }
+      }
+    },
+    "De foto kon niet worden geladen. Staat hij alleen in iCloud? Probeer het met internet opnieuw." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The photo couldn't be loaded. Is it only in iCloud? Try again with an internet connection."
+          }
+        }
+      }
+    },
+    "De overige %lld items in %@ bewaren?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the other %1$lld items in %2$@?"
+          }
+        }
+      }
+    },
+    "De scan werkt op dit apparaat met kleine, lokaal beschikbare voorbeelden. Foto's die alleen in iCloud staan worden overgeslagen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The scan runs on this device using small, locally available previews. Photos that are only in iCloud are skipped."
+          }
+        }
+      }
+    },
+    "Deel je resultaat" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share your result"
+          }
+        }
+      }
+    },
+    "Deze categorie is klaar. Kies een andere categorie of controleer je selectie." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This category is done. Choose another category or review your selection."
+          }
+        }
+      }
+    },
+    "Deze Live Photo kon niet worden omgezet." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This Live Photo couldn't be converted."
+          }
+        }
+      }
+    },
+    "Deze ook bewaren" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep this one too"
+          }
+        }
+      }
+    },
+    "Deze selectie bevat items die Apple niet door deze app laat verwijderen. Herstel die items eerst, bijvoorbeeld items uit een gesynchroniseerd album." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This selection includes items Apple doesn't let this app delete. Restore those items first, such as items from a synced album."
+          }
+        }
+      }
+    },
+    "Deze video is al compact. Er is niets veranderd." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This video is already compact. Nothing was changed."
+          }
+        }
+      }
+    },
+    "Deze video kon niet worden geladen. Staat hij alleen in iCloud? Probeer het met internet opnieuw." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This video couldn't be loaded. Is it only in iCloud? Try again with an internet connection."
+          }
+        }
+      }
+    },
+    "Dezelfde foto twee keer opgeslagen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Same photo saved twice"
+          }
+        }
+      }
+    },
+    "Dit gebeurt alleen op je iPhone, met kleine voorbeelden. Er wordt niets geüpload of verwijderd." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This only happens on your iPhone, using small previews. Nothing is uploaded or deleted."
+          }
+        }
+      }
+    },
+    "Dit item kan niet als favoriet worden aangepast." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This item can't be changed to a favorite."
+          }
+        }
+      }
+    },
+    "Dubbele contacten" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplicate contacts"
+          }
+        }
+      }
+    },
+    "Dubbeltik" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Double-tap"
+          }
+        }
+      }
+    },
+    "Eén dag overslaan mag" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skipping one day is fine"
+          }
+        }
+      }
+    },
+    "Eén melding per dag, niet als je al klaar bent." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One notification a day, not if you're already done."
+          }
+        }
+      }
+    },
+    "Een paar minuten per dag houdt je bibliotheek licht." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A few minutes a day keeps your library light."
+          }
+        }
+      }
+    },
+    "Een paar minuten per dag, en je bibliotheek blijft licht. Je foto's blijven in je eigen fotobibliotheek." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A few minutes a day, and your library stays light. Your photos stay in your own photo library."
+          }
+        }
+      }
+    },
+    "Een paar minuten swipen en ruimte maken voor nieuwe herinneringen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swipe for a few minutes and make room for new memories."
+          }
+        }
+      }
+    },
+    "Een swipe verwijdert nog niets." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A swipe doesn't delete anything yet."
+          }
+        }
+      }
+    },
+    "Eén tik" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One tap"
+          }
+        }
+      }
+    },
+    "Engels, Nederlands, Spaans, Duits, Frans of Japans. Kies je taal bij Instellingen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English, Dutch, Spanish, German, French or Japanese. Choose your language in Settings."
+          }
+        }
+      }
+    },
+    "Er staan geen contacten dubbel in je lijst." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None of your contacts appear twice."
+          }
+        }
+      }
+    },
+    "Er wordt alleen gezocht tussen foto's die binnen twee minuten van elkaar zijn gemaakt. De scan kan vergelijkbare foto's missen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only photos taken within two minutes of each other are compared. The scan may miss similar photos."
+          }
+        }
+      }
+    },
+    "Er wordt niets verwijderd. Je kunt het per item terugdraaien in Bekijken." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing is deleted. You can undo this per item in Review."
+          }
+        }
+      }
+    },
+    "Er wordt nog een wijziging verwerkt." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another change is still being processed."
+          }
+        }
+      }
+    },
+    "Exacte duplicaten samenvoegen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merge exact duplicates"
+          }
+        }
+      }
+    },
+    "Exacte kopieën" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exact copies"
+          }
+        }
+      }
+    },
+    "Favoriet" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favorite"
+          }
+        }
+      }
+    },
+    "Favoriet in Foto's" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favorite in Photos"
+          }
+        }
+      }
+    },
+    "Favoriet wijzigen is niet gelukt." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't change favorite."
+          }
+        }
+      }
+    },
+    "Favorieten" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favorites"
+          }
+        }
+      }
+    },
+    "Focus" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus"
+          }
+        }
+      }
+    },
+    "Focus (rechtsboven) toont alleen de foto op het hele scherm. Eén tik toont de knoppen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus (top right) shows only the photo, full screen. One tap shows the buttons."
+          }
+        }
+      }
+    },
+    "Focusmodus sluiten" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close Focus mode"
+          }
+        }
+      }
+    },
+    "Focusmodus: alleen de foto, volledig scherm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus mode: just the photo, full screen"
+          }
+        }
+      }
+    },
+    "Foto" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo"
+          }
+        }
+      }
+    },
+    "Foto · " : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo · "
+          }
+        }
+      }
+    },
+    "Foto %lld van %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo %lld of %lld"
+          }
+        }
+      }
+    },
+    "Foto bekijken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View photo"
+          }
+        }
+      }
+    },
+    "Foto bekijken, %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View photo, %@"
+          }
+        }
+      }
+    },
+    "Foto groter bekijken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View photo larger"
+          }
+        }
+      }
+    },
+    "Foto laden" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading photo"
+          }
+        }
+      }
+    },
+    "Foto niet beschikbaar" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo not available"
+          }
+        }
+      }
+    },
+    "Foto van %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo from %@"
+          }
+        }
+      }
+    },
+    "Foto's analyseren…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analyzing photos…"
+          }
+        }
+      }
+    },
+    "Foto's zonder locatie verschijnen hier niet. Zet locatie aan in de Camera-instellingen voor nieuwe foto's." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photos without a location don't appear here. Turn on location for the Camera to include new photos."
+          }
+        }
+      }
+    },
+    "fotoswipe" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "fotoswipe"
+          }
+        }
+      }
+    },
+    "Fotoswipe" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotoswipe"
+          }
+        }
+      }
+    },
+    "Fotoswipe bekijkt kleine voorbeelden van je recentste foto's, alleen op je iPhone. Het is een voorstel: jij beslist altijd zelf, en favorieten komen nooit in Rommel." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotoswipe looks at small previews of your most recent photos, only on your iPhone. It's a suggestion: you always decide, and favorites never end up in Clutter."
+          }
+        }
+      }
+    },
+    "Fotoswipe heeft je foto's nodig" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotoswipe needs your photos"
+          }
+        }
+      }
+    },
+    "Fototoegang is beperkt op dit apparaat. Controleer Schermtijd of het apparaatbeheer." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo access is restricted on this device. Check Screen Time or device management."
+          }
+        }
+      }
+    },
+    "Gebaren in Focus" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestures in Focus"
+          }
+        }
+      }
+    },
+    "Geef Fotoswipe eerst toegang tot je foto's." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Give Fotoswipe access to your photos first."
+          }
+        }
+      }
+    },
+    "Geef Fotoswipe toegang bij Instellingen om te beginnen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Give Fotoswipe access in Settings to get started."
+          }
+        }
+      }
+    },
+    "Geef Fotoswipe toegang in Instellingen om dubbele contacten te vinden. Je contacten blijven op je iPhone." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Give Fotoswipe access in Settings to find duplicate contacts. Your contacts stay on your iPhone."
+          }
+        }
+      }
+    },
+    "Geef toegang tot mijn foto's" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Give access to my photos"
+          }
+        }
+      }
+    },
+    "Geen dubbele contacten" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No duplicate contacts"
+          }
+        }
+      }
+    },
+    "Geen items in deze categorie" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No items in this category"
+          }
+        }
+      }
+    },
+    "Geen kandidaten gevonden" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No candidates found"
+          }
+        }
+      }
+    },
+    "Geen passend bewerkbaar album gevonden." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No matching editable album found."
+          }
+        }
+      }
+    },
+    "Geen plekken gevonden" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No places found"
+          }
+        }
+      }
+    },
+    "Geen reclame, geen abonnement. Alles blijft op je iPhone." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No ads, no subscription. Everything stays on your iPhone."
+          }
+        }
+      }
+    },
+    "Geen reclame. Geen abonnement. Geen swipe-limiet.\nAlles blijft op je iPhone." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No ads. No subscription. No swipe limit.\nEverything stays on your iPhone."
+          }
+        }
+      }
+    },
+    "Geen toegang tot contacten" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No access to contacts"
+          }
+        }
+      }
+    },
+    "Gekozen door iOS" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chosen by iOS"
+          }
+        }
+      }
+    },
+    "Gewone foto opgeslagen, zonder het bewegende deel (ca. 1,5 MB kleiner). Het origineel staat bij Weggelegd, zodat jij beslist." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regular photo saved, without the moving part (approx. 1.5 MB smaller). The original is in Set aside, so you decide."
+          }
+        }
+      }
+    },
+    "Goed om te weten" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Good to know"
+          }
+        }
+      }
+    },
+    "Grootste eerst" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biggest first"
+          }
+        }
+      }
+    },
+    "Grootste eerst zet video's en grote foto's vooraan: snel veel ruimte." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biggest first puts videos and large photos up front: lots of space, fast."
+          }
+        }
+      }
+    },
+    "Grootste winst eerst. Alles gebeurt op je iPhone, en jij beslist per foto of per stapel." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biggest savings first. Everything happens on your iPhone, and you decide per photo or per stack."
+          }
+        }
+      }
+    },
+    "Grote video's" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Big videos"
+          }
+        }
+      }
+    },
+    "Groter bekijken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View larger"
+          }
+        }
+      }
+    },
+    "Groter dan ca. 50 MB. Weg of kleiner maken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Over approx. 50 MB. Remove or shrink"
+          }
+        }
+      }
+    },
+    "Herinner me" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remind me"
+          }
+        }
+      }
+    },
+    "Herinnering staat aan om %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reminder is on at %@"
+          }
+        }
+      }
+    },
+    "Het bovenste contact blijft en krijgt de gegevens van de andere. Tik om een groep over te slaan." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The top contact stays and gets the details of the others. Tap a group to skip it."
+          }
+        }
+      }
+    },
+    "Het deelkaartje bevat alleen getallen, geen foto's." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The share card only contains numbers, no photos."
+          }
+        }
+      }
+    },
+    "Hoe weet Fotoswipe wat rommel of bijna dubbel is?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How does Fotoswipe know what's clutter or a near duplicate?"
+          }
+        }
+      }
+    },
+    "Hoe werkt Fotoswipe?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How does Fotoswipe work?"
+          }
+        }
+      }
+    },
+    "Hoog (1080p)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High (1080p)"
+          }
+        }
+      }
+    },
+    "Hou %lld, leg %lld weg" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep %lld, set aside %lld"
+          }
+        }
+      }
+    },
+    "Houd je reeks van %lld dagen vast. Een paar minuten swipen?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Keep your %lld-day streak going. Swipe for a few minutes?"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Keep your %lld-day streak going. Swipe for a few minutes?"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Hulp en contact" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Help and contact"
+          }
+        }
+      }
+    },
+    "Ik gaf alleen toegang tot een paar foto's" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I only gave access to a few photos"
+          }
+        }
+      }
+    },
+    "Ik heb %@ vrijgemaakt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I freed up %@"
+          }
+        }
+      }
+    },
+    "Ik ruim mijn fotorol op" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I'm cleaning up my camera roll"
+          }
+        }
+      }
+    },
+    "In 4 stappen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In 4 steps"
+          }
+        }
+      }
+    },
+    "In jouw taal" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In your language"
+          }
+        }
+      }
+    },
+    "Instellingen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        }
+      }
+    },
+    "Inzoomen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom in"
+          }
+        }
+      }
+    },
+    "Inzoomen, loslaten is terug" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom in, let go to go back"
+          }
+        }
+      }
+    },
+    "iOS weet zelf welke foto de beste is" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS knows which photo is best"
+          }
+        }
+      }
+    },
+    "Is een foto meteen weg als ik swipe?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Is a photo gone right away when I swipe?"
+          }
+        }
+      }
+    },
+    "Item" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Item"
+          }
+        }
+      }
+    },
+    "Item bekijken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View item"
+          }
+        }
+      }
+    },
+    "Item niet beschikbaar" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Item not available"
+          }
+        }
+      }
+    },
+    "Item terugzetten in de stapel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Put item back in the stack"
+          }
+        }
+      }
+    },
+    "Item van %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Item from %@"
+          }
+        }
+      }
+    },
+    "items bekeken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "items reviewed"
+          }
+        }
+      }
+    },
+    "Items per sessie" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Items per session"
+          }
+        }
+      }
+    },
+    "Je albums" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your albums"
+          }
+        }
+      }
+    },
+    "Je albums komen uit Foto's. Je kunt foto's, Live Photos en video's beoordelen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your albums come from Photos. You can review photos, Live Photos and videos."
+          }
+        }
+      }
+    },
+    "JE BEWAARDE ALLES" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "YOU KEPT EVERYTHING"
+          }
+        }
+      }
+    },
+    "Je bibliotheek ophalen…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading your library…"
+          }
+        }
+      }
+    },
+    "Je contacten zijn bijgewerkt." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your contacts have been updated."
+          }
+        }
+      }
+    },
+    "Je foto's blijven op je iPhone. Er wordt niets geüpload." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your photos stay on your iPhone. Nothing is uploaded."
+          }
+        }
+      }
+    },
+    "Je foto's per plek en reis. Ruim één reis tegelijk op." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your photos by place and trip. Clean up one trip at a time."
+          }
+        }
+      }
+    },
+    "Je grootste video's op een rij. Verklein ze in laag, midden of hoog." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your biggest videos in one list. Shrink them in low, medium or high."
+          }
+        }
+      }
+    },
+    "Je hebt nog geen eigen albums. Maak er hieronder een." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You don't have any albums of your own yet. Make one below."
+          }
+        }
+      }
+    },
+    "Je keuzes blijven behouden als je wisselt. Weggelegde items uit alle categorieën controleer je samen in Bekijken." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your choices are kept when you switch. You review set-aside items from all categories together in Review."
+          }
+        }
+      }
+    },
+    "Je keuzes konden niet worden opgeslagen. Houd de app open en probeer later opnieuw." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your choices couldn't be saved. Keep the app open and try again later."
+          }
+        }
+      }
+    },
+    "Je kunt dit later altijd wijzigen in Instellingen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can always change this later in Settings."
+          }
+        }
+      }
+    },
+    "Je opgeslagen keuzes konden niet worden gelezen. Verwijder pas foto's nadat je je selectie opnieuw hebt gecontroleerd." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your saved choices couldn't be read. Only delete photos after you've reviewed your selection again."
+          }
+        }
+      }
+    },
+    "Je reeks en de foto's van vandaag in eerdere jaren." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your streak and today's photos from past years."
+          }
+        }
+      }
+    },
+    "Je reeks en Op deze dag op je beginscherm." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your streak and On This Day on your Home Screen."
+          }
+        }
+      }
+    },
+    "Je selectie uit alle categorieën. Tik op een item om het te bekijken of af te spelen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your selection from all categories. Tap an item to view or play it."
+          }
+        }
+      }
+    },
+    "Je selectie wordt nog niet verwijderd." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your selection isn't being deleted yet."
+          }
+        }
+      }
+    },
+    "Je swipe-moment staat klaar" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time for your swipe moment"
+          }
+        }
+      }
+    },
+    "Jouw overzicht" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your overview"
+          }
+        }
+      }
+    },
+    "Jouw selectie" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your selection"
+          }
+        }
+      }
+    },
+    "Kies een andere categorie of pas je fototoegang aan." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose another category or change your photo access."
+          }
+        }
+      }
+    },
+    "Kies een andere categorie op het hoofdscherm." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose another category on the home screen."
+          }
+        }
+      }
+    },
+    "Kies een bewerkbaar album of geef een albumnaam op." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose an editable album or enter an album name."
+          }
+        }
+      }
+    },
+    "Kies een categorie" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a category"
+          }
+        }
+      }
+    },
+    "Kies je eigen moment, bijvoorbeeld na het eten. Eén melding per dag." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick your own moment, like after dinner. One notification a day."
+          }
+        }
+      }
+    },
+    "Kies toegang tot je foto's" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose access to your photos"
+          }
+        }
+      }
+    },
+    "Kies tot 3 albums" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose up to 3 albums"
+          }
+        }
+      }
+    },
+    "Kies volledige toegang voor je hele bibliotheek, of geef alleen toegang tot geselecteerde foto's." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose full access for your whole library, or give access to selected photos only."
+          }
+        }
+      }
+    },
+    "Klaar" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        }
+      }
+    },
+    "Klaar om ruimte te maken?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready to make some room?"
+          }
+        }
+      }
+    },
+    "KLAAR OM VRIJ TE MAKEN" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "READY TO FREE UP"
+          }
+        }
+      }
+    },
+    "Kleine plaatjes en GIF's" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Small images and GIFs"
+          }
+        }
+      }
+    },
+    "Kleinere versie opgeslagen (%@). Het origineel staat bij Weggelegd, zodat jij beslist." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smaller version saved (%@). The original is in Set aside, so you decide."
+          }
+        }
+      }
+    },
+    "Knoppen tonen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show buttons"
+          }
+        }
+      }
+    },
+    "Laag (540p)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Low (540p)"
+          }
+        }
+      }
+    },
+    "Laatste keuze terugzetten" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo last choice"
+          }
+        }
+      }
+    },
+    "Lage resolutie, memes en gedownloade plaatjes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Low resolution, memes and downloaded images"
+          }
+        }
+      }
+    },
+    "langste reeks" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "longest streak"
+          }
+        }
+      }
+    },
+    "Later" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later"
+          }
+        }
+      }
+    },
+    "LATER" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LATER"
+          }
+        }
+      }
+    },
+    "Later (%lld)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later (%lld)"
+          }
+        }
+      }
+    },
+    "Later beslissen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decide later"
+          }
+        }
+      }
+    },
+    "Leeg 'Recent verwijderd' in Foto's, of wacht 30 dagen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empty 'Recently Deleted' in Photos, or wait 30 days."
+          }
+        }
+      }
+    },
+    "Leg %lld foto's weg voor controle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Set aside %lld photo for review"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Set aside %lld photos for review"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Live Photos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Photos"
+          }
+        }
+      }
+    },
+    "Maak album" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create album"
+          }
+        }
+      }
+    },
+    "Maak album en voeg toe" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create album and add"
+          }
+        }
+      }
+    },
+    "Maak favoriet in Foto's" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add to Favorites in Photos"
+          }
+        }
+      }
+    },
+    "Maak ruimte vrij" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free up space"
+          }
+        }
+      }
+    },
+    "Meer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More"
+          }
+        }
+      }
+    },
+    "Meer opruimen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More cleanup"
+          }
+        }
+      }
+    },
+    "Meldingen staan uit voor Fotoswipe. Zet ze aan in Instellingen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications are off for Fotoswipe. Turn them on in Settings."
+          }
+        }
+      }
+    },
+    "Midden (720p)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medium (720p)"
+          }
+        }
+      }
+    },
+    "Mijn Fotoswipe" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My Fotoswipe"
+          }
+        }
+      }
+    },
+    "Minstens één foto per groep blijft bewaard" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At least one photo per group is kept"
+          }
+        }
+      }
+    },
+    "Mogelijk wazig" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Possibly blurry"
+          }
+        }
+      }
+    },
+    "Mooi teruggevonden" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A nice find"
+          }
+        }
+      }
+    },
+    "Morgen weer even swipen?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swipe again tomorrow?"
+          }
+        }
+      }
+    },
+    "na bevestigd verwijderen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "after confirmed deletion"
+          }
+        }
+      }
+    },
+    "Naam van het album" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Album name"
+          }
+        }
+      }
+    },
+    "Naamloos album" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untitled album"
+          }
+        }
+      }
+    },
+    "Naar links" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Left"
+          }
+        }
+      }
+    },
+    "Naar rechts" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Right"
+          }
+        }
+      }
+    },
+    "Nee, je keuzes worden op je iPhone bewaard en gaan mee in je gewone iPhone-back-up. Als je de app verwijdert, is je voortgang weg; je foto's niet." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No, your choices are saved on your iPhone and included in your regular iPhone backup. If you delete the app, your progress is gone; your photos aren't."
+          }
+        }
+      }
+    },
+    "Nee. Naar links leggen zet een foto alleen opzij. Pas als je in Bekijken op Verwijder tikt en iOS dat bevestigt, gaat hij naar 'Recent verwijderd'. Daar staat hij nog 30 dagen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No. Swiping left only sets a photo aside. Only when you tap Delete in Review and iOS confirms does it go to 'Recently Deleted'. It stays there for 30 more days."
+          }
+        }
+      }
+    },
+    "niet actief" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "inactive"
+          }
+        }
+      }
+    },
+    "Niets" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing"
+          }
+        }
+      }
+    },
+    "Niets gevonden" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing found"
+          }
+        }
+      }
+    },
+    "Niets gevonden in %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing found in %@"
+          }
+        }
+      }
+    },
+    "Niets is meteen weg: jij controleert eerst, iOS vraagt nog om bevestiging." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing is gone right away: you review first, and iOS asks you to confirm."
+          }
+        }
+      }
+    },
+    "Niets is meteen weg: verwijderde items staan nog 30 dagen in 'Recent verwijderd' in Foto's. Bij iCloud geldt dit ook voor je andere apparaten." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing is gone right away: deleted items stay in 'Recently Deleted' in Photos for 30 days. With iCloud, this also applies to your other devices."
+          }
+        }
+      }
+    },
+    "Niets voor later" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing for later"
+          }
+        }
+      }
+    },
+    "Niets weggelegd" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing set aside"
+          }
+        }
+      }
+    },
+    "Niets. Geen reclame, geen abonnement en geen limiet op het aantal swipes." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing. No ads, no subscription and no limit on the number of swipes."
+          }
+        }
+      }
+    },
+    "Nieuw album" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New album"
+          }
+        }
+      }
+    },
+    "NIEUW IN FOTOSWIPE" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NEW IN FOTOSWIPE"
+          }
+        }
+      }
+    },
+    "Nieuwste eerst" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Newest first"
+          }
+        }
+      }
+    },
+    "Nog %lld doen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld left to do"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld left to do"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Nog niets" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing yet"
+          }
+        }
+      }
+    },
+    "Nog niets bewaard" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing kept yet"
+          }
+        }
+      }
+    },
+    "Nog steeds: geen reclame, geen abonnement, geen limiet. Alles blijft op je iPhone." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Still: no ads, no subscription, no limits. Everything stays on your iPhone."
+          }
+        }
+      }
+    },
+    "Nu naar links om weg te leggen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Now left to set aside"
+          }
+        }
+      }
+    },
+    "Oefen het swipen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Practice swiping"
+          }
+        }
+      }
+    },
+    "Oefenkaart" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Practice card"
+          }
+        }
+      }
+    },
+    "Of tik op de knoppen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Or tap the buttons."
+          }
+        }
+      }
+    },
+    "OK" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
+    "Omhoog" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Up"
+          }
+        }
+      }
+    },
+    "Omlaag" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Down"
+          }
+        }
+      }
+    },
+    "Omzetten naar gewone foto…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Converting to regular photo…"
+          }
+        }
+      }
+    },
+    "onbekende datum" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "unknown date"
+          }
+        }
+      }
+    },
+    "Ook de Foto's-app vindt exacte duplicaten: Albums > Duplicaten > Voeg samen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Photos app also finds exact duplicates: Albums > Duplicates > Merge."
+          }
+        }
+      }
+    },
+    "Op deze dag" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On This Day"
+          }
+        }
+      }
+    },
+    "Open een video of Live Photo en kies via Meer 'Video verkleinen' of 'Bewaar als gewone foto'. Het origineel gaat eerst naar Weggelegd." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open a video or Live Photo and choose 'Shrink video' or 'Keep as regular photo' under More. The original goes to Set aside first."
+          }
+        }
+      }
+    },
+    "Open Fotoswipe om te beginnen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Fotoswipe to get started"
+          }
+        }
+      }
+    },
+    "Open Instellingen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Settings"
+          }
+        }
+      }
+    },
+    "Open Slim opruimen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Smart Clean"
+          }
+        }
+      }
+    },
+    "Openen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open"
+          }
+        }
+      }
+    },
+    "Opent je overzicht" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens your overview"
+          }
+        }
+      }
+    },
+    "Opnieuw beginnen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start over"
+          }
+        }
+      }
+    },
+    "Opnieuw bekijken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review again"
+          }
+        }
+      }
+    },
+    "Opnieuw proberen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        }
+      }
+    },
+    "Opnieuw scannen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan again"
+          }
+        }
+      }
+    },
+    "Opnieuw zoeken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search again"
+          }
+        }
+      }
+    },
+    "Opslaan is niet gelukt. Er is niets veranderd." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't save. Nothing was changed."
+          }
+        }
+      }
+    },
+    "Oude screenshots" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Old screenshots"
+          }
+        }
+      }
+    },
+    "Ouder dan %lld dagen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Older than %lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Older than %lld days"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Oudste eerst" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oldest first"
+          }
+        }
+      }
+    },
+    "Over Fotoswipe" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About Fotoswipe"
+          }
+        }
+      }
+    },
+    "Overslaan" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip"
+          }
+        }
+      }
+    },
+    "Panorama's" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panoramas"
+          }
+        }
+      }
+    },
+    "Per groep blijft één contact over met alle nummers en adressen. De andere worden verwijderd. Dit kan Fotoswipe niet terugdraaien. Gebruik je iCloud, dan kun je contacten op iCloud.com tot 30 dagen terugzetten." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each group becomes one contact with all numbers and addresses. The others are deleted. Fotoswipe can't undo this. If you use iCloud, you can restore contacts on iCloud.com for up to 30 days."
+          }
+        }
+      }
+    },
+    "Per maand" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per month"
+          }
+        }
+      }
+    },
+    "Per ongeluk" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accidental"
+          }
+        }
+      }
+    },
+    "Per ongeluk?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accidental?"
+          }
+        }
+      }
+    },
+    "Plekken zoeken…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finding places…"
+          }
+        }
+      }
+    },
+    "Portretten" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Portraits"
+          }
+        }
+      }
+    },
+    "Privacybeleid" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy Policy"
+          }
+        }
+      }
+    },
+    "Probeer het even" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Give it a try"
+          }
+        }
+      }
+    },
+    "Raak ik mijn voortgang kwijt?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Will I lose my progress?"
+          }
+        }
+      }
+    },
+    "RAW" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RAW"
+          }
+        }
+      }
+    },
+    "Recent toegevoegd" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recently Added"
+          }
+        }
+      }
+    },
+    "Rechts is bewaren, links is wegleggen. Twijfel? Tik op het klokje voor later." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Right is keep, left is set aside. Not sure? Tap the clock for later."
+          }
+        }
+      }
+    },
+    "Reeks: %lld dagen. Eén dag overslaan mag." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Streak: %lld day. Skipping one day is fine."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Streak: %lld days. Skipping one day is fine."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Reiskaart" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Travel Map"
+          }
+        }
+      }
+    },
+    "Reiskaart en contacten" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Travel Map and contacts"
+          }
+        }
+      }
+    },
+    "Rommel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clutter"
+          }
+        }
+      }
+    },
+    "Rommel zoeken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find clutter"
+          }
+        }
+      }
+    },
+    "Ruim één reis tegelijk op en voeg dubbele contacten samen, in Slim opruimen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean up one trip at a time and merge duplicate contacts, in Smart Clean."
+          }
+        }
+      }
+    },
+    "Ruimte komt pas vrij na 'Recent verwijderd'" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Space is only freed after 'Recently Deleted'"
+          }
+        }
+      }
+    },
+    "Samen ongeveer %@ te winnen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About %@ to save in total"
+          }
+        }
+      }
+    },
+    "Samenvoegen…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merging…"
+          }
+        }
+      }
+    },
+    "Scan gestopt. Start opnieuw om groepen te zoeken." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan stopped. Start again to find groups."
+          }
+        }
+      }
+    },
+    "Screenshot" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshot"
+          }
+        }
+      }
+    },
+    "Screenshots" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshots"
+          }
+        }
+      }
+    },
+    "Selectie" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selection"
+          }
+        }
+      }
+    },
+    "Selectie weggelegd" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selection set aside"
+          }
+        }
+      }
+    },
+    "Selectie weggelegd. Controleer alle items in Bekijken." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selection set aside. Review all items in Review."
+          }
+        }
+      }
+    },
+    "Selfies" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selfies"
+          }
+        }
+      }
+    },
+    "sessie afgerond" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "session completed"
+          }
+        }
+      }
+    },
+    "Sessie klaar!" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Session complete!"
+          }
+        }
+      }
+    },
+    "Sessie: %lld van %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Session: %lld of %lld"
+          }
+        }
+      }
+    },
+    "sessies afgerond" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sessions completed"
+          }
+        }
+      }
+    },
+    "Sla over" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip"
+          }
+        }
+      }
+    },
+    "Slim opruimen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smart Clean"
+          }
+        }
+      }
+    },
+    "Slim opruimen zet burstfoto's, kopieën en rommel klaar, met de grootste winst bovenaan." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smart Clean lines up burst photos, copies and clutter, with the biggest savings at the top."
+          }
+        }
+      }
+    },
+    "Slimmer opruimen,\nmeer ruimte." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smarter cleanup,\nmore space."
+          }
+        }
+      }
+    },
+    "Sluiten" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        }
+      }
+    },
+    "Snel veel ruimte" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lots of space, fast"
+          }
+        }
+      }
+    },
+    "Snelle albums" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick albums"
+          }
+        }
+      }
+    },
+    "Stop scan" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop scan"
+          }
+        }
+      }
+    },
+    "Swipe" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swipe"
+          }
+        }
+      }
+    },
+    "Taal" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language"
+          }
+        }
+      }
+    },
+    "Taal van je iPhone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone language"
+          }
+        }
+      }
+    },
+    "Terug" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        }
+      }
+    },
+    "Terug naar overzicht" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to overview"
+          }
+        }
+      }
+    },
+    "Thuis" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home"
+          }
+        }
+      }
+    },
+    "Thuis en omgeving" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home and nearby"
+          }
+        }
+      }
+    },
+    "Tijd" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time"
+          }
+        }
+      }
+    },
+    "Tik op 'Weggelegd' onderaan. Tik op een foto om hem toch te bewaren." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap 'Set aside' at the bottom. Tap a photo to keep it after all."
+          }
+        }
+      }
+    },
+    "Tik op een foto om details te bekijken. Kies daarna welke je wilt wegleggen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap a photo to see details. Then choose which ones to set aside."
+          }
+        }
+      }
+    },
+    "Tik op een item om het te bekijken. Met Terug zet je het terug in de stapel." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap an item to view it. Tap Back to put it back in the stack."
+          }
+        }
+      }
+    },
+    "Tik op Focus: de foto vult het scherm en je swipet met gebaren." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap Focus: the photo fills the screen and you swipe with gestures."
+          }
+        }
+      }
+    },
+    "Tik op Verwijder en bevestig in het venster van iOS." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap Delete and confirm in the iOS dialog."
+          }
+        }
+      }
+    },
+    "Tip: kies volledige toegang om je hele bibliotheek op te ruimen. Een selectie kan ook." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tip: choose full access to clean up your whole library. A selection works too."
+          }
+        }
+      }
+    },
+    "Toch weg" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set aside after all"
+          }
+        }
+      }
+    },
+    "Toegevoegd aan album in Foto's." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added to album in Photos."
+          }
+        }
+      }
+    },
+    "Toegevoegd aan Favorieten in Foto's." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added to Favorites in Photos."
+          }
+        }
+      }
+    },
+    "Toevoegen is niet gelukt. Je keuzes zijn bewaard." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't add. Your choices have been saved."
+          }
+        }
+      }
+    },
+    "Toevoegen niet gelukt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't add"
+          }
+        }
+      }
+    },
+    "Toevoegen…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adding…"
+          }
+        }
+      }
+    },
+    "Top! Zo simpel is het." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nice! It's that simple."
+          }
+        }
+      }
+    },
+    "Totaal al vrijgemaakt: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total freed up: %@"
+          }
+        }
+      }
+    },
+    "Trillen bij keuzes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haptics on choices"
+          }
+        }
+      }
+    },
+    "Uit apps" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From apps"
+          }
+        }
+      }
+    },
+    "Vandaag" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        }
+      }
+    },
+    "Vasthouden" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold"
+          }
+        }
+      }
+    },
+    "Veeg de kaart naar rechts om te bewaren" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swipe the card right to keep"
+          }
+        }
+      }
+    },
+    "Veeg naar rechts om te bewaren, naar links om weg te leggen, omhoog voor later." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swipe right to keep, left to set aside, up for later."
+          }
+        }
+      }
+    },
+    "Veelgestelde vragen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FAQ"
+          }
+        }
+      }
+    },
+    "Vergelijkbare foto's" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Similar photos"
+          }
+        }
+      }
+    },
+    "Vergelijkbare foto's zijn kandidaten, geen bewezen duplicaten. Vergelijk zelf en bewaar minstens één foto per groep." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Similar photos are candidates, not proven duplicates. Compare them yourself and keep at least one photo per group."
+          }
+        }
+      }
+    },
+    "Verkleinen is niet gelukt. Er is niets veranderd." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't shrink. Nothing was changed."
+          }
+        }
+      }
+    },
+    "Verkleinen is voor deze video niet mogelijk." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This video can't be shrunk."
+          }
+        }
+      }
+    },
+    "Ververs bibliotheek" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refresh library"
+          }
+        }
+      }
+    },
+    "Verwijder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        }
+      }
+    },
+    "Verwijder %lld items" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Delete %lld item"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Delete %lld items"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Verwijder favoriet in Foto's" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove favorite in Photos"
+          }
+        }
+      }
+    },
+    "Verwijder uit Foto's" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete from Photos"
+          }
+        }
+      }
+    },
+    "Verwijderd uit Favorieten in Foto's." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removed from Favorites in Photos."
+          }
+        }
+      }
+    },
+    "Verwijderde foto's blijven 30 dagen in Foto's > Albums > Recent verwijderd. Wil je de ruimte meteen? Kies daar Verwijder alles. Een app mag dat album niet zelf legen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deleted photos stay in Photos > Albums > Recently Deleted for 30 days. Want the space right away? Choose Delete All there. Apps aren't allowed to empty that album themselves."
+          }
+        }
+      }
+    },
+    "Verwijderen geldt ook voor je andere apparaten met dezelfde iCloud-fotobibliotheek. Foto's die alleen in iCloud staan, worden even opgehaald om ze te tonen." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deleting also applies to your other devices with the same iCloud Photos library. Photos that are only in iCloud are briefly downloaded to show them."
+          }
+        }
+      }
+    },
+    "Verwijderen…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deleting…"
+          }
+        }
+      }
+    },
+    "Video" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video"
+          }
+        }
+      }
+    },
+    "Video · " : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video · "
+          }
+        }
+      }
+    },
+    "Video afspelen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play video"
+          }
+        }
+      }
+    },
+    "Video bekijken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View video"
+          }
+        }
+      }
+    },
+    "Video niet beschikbaar" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video not available"
+          }
+        }
+      }
+    },
+    "Video ophalen: %lld%%" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading video: %lld%%"
+          }
+        }
+      }
+    },
+    "Video verkleinen (%@)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shrink video (%@)"
+          }
+        }
+      }
+    },
+    "Video verkleinen…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shrinking video…"
+          }
+        }
+      }
+    },
+    "Video voorbereiden…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparing video…"
+          }
+        }
+      }
+    },
+    "Video's" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Videos"
+          }
+        }
+      }
+    },
+    "Video's en Live Photos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Videos and Live Photos"
+          }
+        }
+      }
+    },
+    "Voeg %lld groepen samen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Merge %lld group"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Merge %lld groups"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Voeg samen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merge"
+          }
+        }
+      }
+    },
+    "Voeg toe aan album" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add to album"
+          }
+        }
+      }
+    },
+    "Volgende" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next"
+          }
+        }
+      }
+    },
+    "Volgorde" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Order"
+          }
+        }
+      }
+    },
+    "Voorbeeld laden" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading preview"
+          }
+        }
+      }
+    },
+    "Vorige terug" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo last"
+          }
+        }
+      }
+    },
+    "VORIGE TERUG" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UNDO LAST"
+          }
+        }
+      }
+    },
+    "VRIJGEMAAKT" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FREED UP"
+          }
+        }
+      }
+    },
+    "Waarom komt de ruimte niet direct vrij?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Why isn't the space freed up right away?"
+          }
+        }
+      }
+    },
+    "Waarschuwing: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warning: %@"
+          }
+        }
+      }
+    },
+    "Wat gebeurt er bij iCloud-foto's?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What happens with iCloud photos?"
+          }
+        }
+      }
+    },
+    "Wat kost Fotoswipe?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What does Fotoswipe cost?"
+          }
+        }
+      }
+    },
+    "Wazig, bonnetjes, notities, screenshots" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blurry, receipts, notes, screenshots"
+          }
+        }
+      }
+    },
+    "Wazige foto's, bonnetjes, notities en screenshots komen vooraan. Jij beslist." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blurry photos, receipts, notes and screenshots come first. You decide."
+          }
+        }
+      }
+    },
+    "weg" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "set aside"
+          }
+        }
+      }
+    },
+    "Weg" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set aside"
+          }
+        }
+      }
+    },
+    "Weggelegd (%lld)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set aside (%lld)"
+          }
+        }
+      }
+    },
+    "Weggelegd gaat eerst naar Bekijken" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set-aside items go to Review first"
+          }
+        }
+      }
+    },
+    "Weggelegd; tik om te bewaren" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set aside; tap to keep"
+          }
+        }
+      }
+    },
+    "Wegleggen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set aside"
+          }
+        }
+      }
+    },
+    "WEGLEGGEN" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SET ASIDE"
+          }
+        }
+      }
+    },
+    "Wegleggen voor controle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set aside for review"
+          }
+        }
+      }
+    },
+    "WhatsApp, Telegram, Instagram en meer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WhatsApp, Telegram, Instagram and more"
+          }
+        }
+      }
+    },
+    "Widget" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Widget"
+          }
+        }
+      }
+    },
+    "Wijzig" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
+          }
+        }
+      }
+    },
+    "Willekeurige volgorde" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Random order"
+          }
+        }
+      }
+    },
+    "Wis alle keuzes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear all choices"
+          }
+        }
+      }
+    },
+    "Wordt %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Becomes %@"
+          }
+        }
+      }
+    },
+    "Ze komen terug in de stapels. Weggelegde items blijven weggelegd." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "They go back into the stacks. Set-aside items stay set aside."
+          }
+        }
+      }
+    },
+    "Ze staan als knoppen onder de foto. Eén tik zet de foto in dat album en gaat door naar de volgende." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "They appear as buttons under the photo. One tap files the photo in that album and moves on to the next."
+          }
+        }
+      }
+    },
+    "Ze staan nog 30 dagen in 'Recent verwijderd' in Foto's; pas daarna komt de ruimte vrij. Wil je de ruimte nu al? Open Foto's, ga naar Albums > Recent verwijderd en kies Verwijder alles." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "They stay in 'Recently Deleted' in Photos for 30 days; only then is the space freed up. Want the space now? Open Photos, go to Albums > Recently Deleted and choose Delete All."
+          }
+        }
+      }
+    },
+    "Zet in album %@ en bewaar" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add to album %@ and keep"
+          }
+        }
+      }
+    },
+    "Zet tot 3 albums onder de foto. Eén tik en hij staat erin." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pin up to 3 albums under the photo. One tap and it's in."
+          }
+        }
+      }
+    },
+    "Zo swipe je" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How to swipe"
+          }
+        }
+      }
+    },
+    "Zoek een album" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search for an album"
+          }
+        }
+      }
+    },
+    "Zoek een categorie of album" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search for a category or album"
+          }
+        }
+      }
+    },
+    "Zoek vergelijkbare foto's" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find similar photos"
+          }
+        }
+      }
+    },
+    "Zonder datum" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No date"
+          }
+        }
+      }
+    },
+    "Zonder naam" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No name"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

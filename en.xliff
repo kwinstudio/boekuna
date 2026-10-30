@@ -1,0 +1,2467 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 http://docs.oasis-open.org/xliff/v1.2/os/xliff-core-1.2-strict.xsd">
+  <file original="Fotoswipe/InfoPlist.xcstrings" source-language="en" target-language="en" datatype="plaintext">
+    <header>
+      <tool tool-id="com.apple.dt.xcode" tool-name="Xcode" tool-version="26.6" build-num="17F113"/>
+    </header>
+    <body>
+      <trans-unit id="CFBundleDisplayName" xml:space="preserve">
+        <source>Fotoswipe</source>
+        <target state="translated">Fotoswipe</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="CFBundleName" xml:space="preserve">
+        <source>Fotoswipe</source>
+        <target state="translated">Fotoswipe</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="NSContactsUsageDescription" xml:space="preserve">
+        <source>Fotoswipe looks for contacts that appear more than once. They're only merged after you confirm. Your contacts stay on your iPhone.</source>
+        <target state="translated">Fotoswipe looks for contacts that appear more than once. They're only merged after you confirm. Your contacts stay on your iPhone.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="NSPhotoLibraryUsageDescription" xml:space="preserve">
+        <source>Fotoswipe shows your photos so you can keep them or set them aside. Selected photos are only deleted after you confirm.</source>
+        <target state="translated">Fotoswipe shows your photos so you can keep them or set them aside. Selected photos are only deleted after you confirm.</target>
+        <note/>
+      </trans-unit>
+    </body>
+  </file>
+  <file original="Fotoswipe/Localizable.xcstrings" source-language="en" target-language="en" datatype="plaintext">
+    <header>
+      <tool tool-id="com.apple.dt.xcode" tool-name="Xcode" tool-version="26.6" build-num="17F113"/>
+    </header>
+    <body>
+      <trans-unit id="%@&#10;Geen reclame, geen abonnement, geen limiet. Je foto's blijven op je iPhone." xml:space="preserve">
+        <source>%@
+No ads, no subscription, no limits. Your photos stay on your iPhone.</source>
+        <target state="translated">%@
+No ads, no subscription, no limits. Your photos stay on your iPhone.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%@ zoeken" xml:space="preserve">
+        <source>Search %@</source>
+        <target state="translated">Search %@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld" xml:space="preserve">
+        <source>%lld</source>
+        <target state="translated">%lld</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld bewaard|==|plural.one" xml:space="preserve">
+        <source>%lld kept</source>
+        <target state="translated">%lld kept</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld bewaard|==|plural.other" xml:space="preserve">
+        <source>%lld kept</source>
+        <target state="translated">%lld kept</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld bijna gelijke foto's|==|plural.one" xml:space="preserve">
+        <source>%lld nearly identical photo</source>
+        <target state="translated">%lld nearly identical photo</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld bijna gelijke foto's|==|plural.other" xml:space="preserve">
+        <source>%lld nearly identical photos</source>
+        <target state="translated">%lld nearly identical photos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld blijven bewaard|==|plural.one" xml:space="preserve">
+        <source>%lld stays kept</source>
+        <target state="translated">%lld stays kept</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld blijven bewaard|==|plural.other" xml:space="preserve">
+        <source>%lld stay kept</source>
+        <target state="translated">%lld stay kept</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld dagen op rij|==|plural.one" xml:space="preserve">
+        <source>%lld day in a row</source>
+        <target state="translated">%lld day in a row</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld dagen op rij|==|plural.other" xml:space="preserve">
+        <source>%lld days in a row</source>
+        <target state="translated">%lld days in a row</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld foto's bekeken|==|plural.one" xml:space="preserve">
+        <source>%lld photo reviewed</source>
+        <target state="translated">%lld photo reviewed</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld foto's bekeken|==|plural.other" xml:space="preserve">
+        <source>%lld photos reviewed</source>
+        <target state="translated">%lld photos reviewed</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld foto's in deze burst|==|plural.one" xml:space="preserve">
+        <source>%lld photo in this burst</source>
+        <target state="translated">%lld photo in this burst</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld foto's in deze burst|==|plural.other" xml:space="preserve">
+        <source>%lld photos in this burst</source>
+        <target state="translated">%lld photos in this burst</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld foto's overgeslagen: voorbeeld niet lokaal beschikbaar of niet leesbaar.|==|plural.one" xml:space="preserve">
+        <source>%lld photo skipped: preview not available locally or not readable.</source>
+        <target state="translated">%lld photo skipped: preview not available locally or not readable.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld foto's overgeslagen: voorbeeld niet lokaal beschikbaar of niet leesbaar.|==|plural.other" xml:space="preserve">
+        <source>%lld photos skipped: preview not available locally or not readable.</source>
+        <target state="translated">%lld photos skipped: preview not available locally or not readable.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld foto's van %@ uit eerdere jaren wachten op je. Even 2 minuten?" xml:space="preserve">
+        <source>%1$lld photos from %2$@ in past years are waiting for you. Got 2 minutes?</source>
+        <target state="translated">%1$lld photos from %2$@ in past years are waiting for you. Got 2 minutes?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld foto's weggelegd. Controleer ze in Bekijken voordat je iets verwijdert.|==|plural.one" xml:space="preserve">
+        <source>%lld photo set aside. Check it in Review before you delete anything.</source>
+        <target state="translated">%lld photo set aside. Check it in Review before you delete anything.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld foto's weggelegd. Controleer ze in Bekijken voordat je iets verwijdert.|==|plural.other" xml:space="preserve">
+        <source>%lld photos set aside. Check them in Review before you delete anything.</source>
+        <target state="translated">%lld photos set aside. Check them in Review before you delete anything.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld groepen samengevoegd|==|plural.one" xml:space="preserve">
+        <source>%lld group merged</source>
+        <target state="translated">%lld group merged</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld groepen samengevoegd|==|plural.other" xml:space="preserve">
+        <source>%lld groups merged</source>
+        <target state="translated">%lld groups merged</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld groepen samenvoegen?|==|plural.one" xml:space="preserve">
+        <source>Merge %lld group?</source>
+        <target state="translated">Merge %lld group?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld groepen samenvoegen?|==|plural.other" xml:space="preserve">
+        <source>Merge %lld groups?</source>
+        <target state="translated">Merge %lld groups?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld herinneringen|==|plural.one" xml:space="preserve">
+        <source>%lld memory</source>
+        <target state="translated">%lld memory</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld herinneringen|==|plural.other" xml:space="preserve">
+        <source>%lld memories</source>
+        <target state="translated">%lld memories</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld items bewaard. Met Bekijken kun je dit per item terugdraaien.|==|plural.one" xml:space="preserve">
+        <source>%lld item kept. You can undo this per item in Review.</source>
+        <target state="translated">%lld item kept. You can undo this per item in Review.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld items bewaard. Met Bekijken kun je dit per item terugdraaien.|==|plural.other" xml:space="preserve">
+        <source>%lld items kept. You can undo this per item in Review.</source>
+        <target state="translated">%lld items kept. You can undo this per item in Review.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld items in %@" xml:space="preserve">
+        <source>%lld items in %@</source>
+        <target state="translated">%lld items in %@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld items verwijderd|==|plural.one" xml:space="preserve">
+        <source>%lld item deleted</source>
+        <target state="translated">%lld item deleted</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld items verwijderd|==|plural.other" xml:space="preserve">
+        <source>%lld items deleted</source>
+        <target state="translated">%lld items deleted</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld items verwijderen uit Foto's?|==|plural.one" xml:space="preserve">
+        <source>Delete %lld item from Photos?</source>
+        <target state="translated">Delete %lld item from Photos?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld items verwijderen uit Foto's?|==|plural.other" xml:space="preserve">
+        <source>Delete %lld items from Photos?</source>
+        <target state="translated">Delete %lld items from Photos?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld items|==|plural.one" xml:space="preserve">
+        <source>%lld item</source>
+        <target state="translated">%lld item</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld items|==|plural.other" xml:space="preserve">
+        <source>%lld items</source>
+        <target state="translated">%lld items</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld kandidaten|==|plural.one" xml:space="preserve">
+        <source>%lld candidate</source>
+        <target state="translated">%lld candidate</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld kandidaten|==|plural.other" xml:space="preserve">
+        <source>%lld candidates</source>
+        <target state="translated">%lld candidates</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld keer dezelfde foto" xml:space="preserve">
+        <source>Same photo %lld times</source>
+        <target state="translated">Same photo %lld times</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld min" xml:space="preserve">
+        <source>%lld min</source>
+        <target state="translated">%lld min</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld min %lld sec" xml:space="preserve">
+        <source>%lld min %lld sec</source>
+        <target state="translated">%lld min %lld sec</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld over" xml:space="preserve">
+        <source>%lld left</source>
+        <target state="translated">%lld left</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld seconden|==|plural.one" xml:space="preserve">
+        <source>%lld second</source>
+        <target state="translated">%lld second</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld seconden|==|plural.other" xml:space="preserve">
+        <source>%lld seconds</source>
+        <target state="translated">%lld seconds</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld te doen" xml:space="preserve">
+        <source>%lld to go</source>
+        <target state="translated">%lld to go</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld van %lld" xml:space="preserve">
+        <source>%lld of %lld</source>
+        <target state="translated">%lld of %lld</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld van %lld bekeken" xml:space="preserve">
+        <source>%lld of %lld reviewed</source>
+        <target state="translated">%lld of %lld reviewed</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld van %lld items" xml:space="preserve">
+        <source>%lld of %lld items</source>
+        <target state="translated">%lld of %lld items</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld van %lld recente foto's bekeken" xml:space="preserve">
+        <source>%lld of %lld recent photos reviewed</source>
+        <target state="translated">%lld of %lld recent photos reviewed</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld van %lld recente foto's · alleen op je iPhone" xml:space="preserve">
+        <source>%lld of %lld recent photos · only on your iPhone</source>
+        <target state="translated">%lld of %lld recent photos · only on your iPhone</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld weg" xml:space="preserve">
+        <source>%lld set aside</source>
+        <target state="translated">%lld set aside</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld weggelegd" xml:space="preserve">
+        <source>%lld set aside</source>
+        <target state="translated">%lld set aside</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld weggelegd, %@. Bekijken" xml:space="preserve">
+        <source>%lld set aside, %@. Review</source>
+        <target state="translated">%lld set aside, %@. Review</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld weggelegd. Bekijken" xml:space="preserve">
+        <source>%lld set aside. Review</source>
+        <target state="translated">%lld set aside. Review</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld willekeurige items|==|plural.one" xml:space="preserve">
+        <source>%lld random item</source>
+        <target state="translated">%lld random item</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld willekeurige items|==|plural.other" xml:space="preserve">
+        <source>%lld random items</source>
+        <target state="translated">%lld random items</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld%%" xml:space="preserve">
+        <source>%lld%%</source>
+        <target state="translated">%lld%%</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld/%lld" xml:space="preserve">
+        <source>%lld/%lld</source>
+        <target state="translated">%lld/%lld</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld/%lld bekeken" xml:space="preserve">
+        <source>%lld/%lld reviewed</source>
+        <target state="translated">%lld/%lld reviewed</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id=", beste keuze" xml:space="preserve">
+        <source>, best pick</source>
+        <target state="translated">, best pick</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id=", favoriet" xml:space="preserve">
+        <source>, favorite</source>
+        <target state="translated">, favorite</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="1 dag op rij" xml:space="preserve">
+        <source>1 day in a row</source>
+        <target state="translated">1 day in a row</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="1 seconde" xml:space="preserve">
+        <source>1 second</source>
+        <target state="translated">1 second</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Album" xml:space="preserve">
+        <source>Album</source>
+        <target state="translated">Album</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Alle bewaarde foto's opnieuw bekijken?" xml:space="preserve">
+        <source>Review all kept photos again?</source>
+        <target state="translated">Review all kept photos again?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Alle foto's en video's" xml:space="preserve">
+        <source>All photos and videos</source>
+        <target state="translated">All photos and videos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Alle keuzes gewist. Je foto's zelf zijn niet aangepast." xml:space="preserve">
+        <source>All choices cleared. Your photos themselves haven't been changed.</source>
+        <target state="translated">All choices cleared. Your photos themselves haven't been changed.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Alle keuzes wissen" xml:space="preserve">
+        <source>Clear all choices</source>
+        <target state="translated">Clear all choices</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Alle keuzes wissen?" xml:space="preserve">
+        <source>Clear all choices?</source>
+        <target state="translated">Clear all choices?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Alle stapels gedaan" xml:space="preserve">
+        <source>All stacks done</source>
+        <target state="translated">All stacks done</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Alleen de foto" xml:space="preserve">
+        <source>Photo only</source>
+        <target state="translated">Photo only</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Alleen geselecteerde foto's" xml:space="preserve">
+        <source>Only selected photos</source>
+        <target state="translated">Only selected photos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Alleen je keuzes in Fotoswipe veranderen. Je foto's blijven zoals ze zijn." xml:space="preserve">
+        <source>Only your choices in Fotoswipe change. Your photos stay as they are.</source>
+        <target state="translated">Only your choices in Fotoswipe change. Your photos stay as they are.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Alleen jij beslist wat weg mag." xml:space="preserve">
+        <source>Only you decide what goes.</source>
+        <target state="translated">Only you decide what goes.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Alles bekeken" xml:space="preserve">
+        <source>All reviewed</source>
+        <target state="translated">All reviewed</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Alles bekeken." xml:space="preserve">
+        <source>All reviewed.</source>
+        <target state="translated">All reviewed.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Alles met één duim. Je vindt dit later ook onder het i-knopje." xml:space="preserve">
+        <source>Everything with one thumb. You can also find this later under the i button.</source>
+        <target state="translated">Everything with one thumb. You can also find this later under the i button.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Andere kant op: naar links is wegleggen" xml:space="preserve">
+        <source>Other way: left is set aside</source>
+        <target state="translated">Other way: left is set aside</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Andere kant op: naar rechts is bewaren" xml:space="preserve">
+        <source>Other way: right is keep</source>
+        <target state="translated">Other way: right is keep</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Andere vraag? Neem contact op" xml:space="preserve">
+        <source>Other question? Get in touch</source>
+        <target state="translated">Other question? Get in touch</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Annuleren" xml:space="preserve">
+        <source>Cancel</source>
+        <target state="translated">Cancel</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Apple vraagt hierna nog om bevestiging. Controleer je selectie eerst." xml:space="preserve">
+        <source>Apple will ask you to confirm next. Check your selection first.</source>
+        <target state="translated">Apple will ask you to confirm next. Check your selection first.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="BEWAREN" xml:space="preserve">
+        <source>KEEP</source>
+        <target state="translated">KEEP</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Begin met swipen" xml:space="preserve">
+        <source>Start swiping</source>
+        <target state="translated">Start swiping</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bekijk selectie" xml:space="preserve">
+        <source>View selection</source>
+        <target state="translated">View selection</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bekijken" xml:space="preserve">
+        <source>Review</source>
+        <target state="translated">Review</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bestaand album" xml:space="preserve">
+        <source>Existing album</source>
+        <target state="translated">Existing album</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Beste keuze" xml:space="preserve">
+        <source>Best pick</source>
+        <target state="translated">Best pick</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bevestigen" xml:space="preserve">
+        <source>Confirm</source>
+        <target state="translated">Confirm</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bewaar als gewone foto (kleiner)" xml:space="preserve">
+        <source>Keep as regular photo (smaller)</source>
+        <target state="translated">Keep as regular photo (smaller)</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bewaar de rest" xml:space="preserve">
+        <source>Keep the rest</source>
+        <target state="translated">Keep the rest</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bewaar de rest (%lld)" xml:space="preserve">
+        <source>Keep the rest (%lld)</source>
+        <target state="translated">Keep the rest (%lld)</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bewaar het mooie.&#10;Swipe de rest." xml:space="preserve">
+        <source>Keep the good ones.
+Swipe the rest.</source>
+        <target state="translated">Keep the good ones.
+Swipe the rest.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bewaar het mooie. Swipe de rest." xml:space="preserve">
+        <source>Keep the good ones. Swipe the rest.</source>
+        <target state="translated">Keep the good ones. Swipe the rest.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bewaard (%lld)" xml:space="preserve">
+        <source>Kept (%lld)</source>
+        <target state="translated">Kept (%lld)</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bewaard, weggelegd en later worden gewist. Er wordt niets uit Foto's verwijderd." xml:space="preserve">
+        <source>Kept, set aside and later will be cleared. Nothing is deleted from Photos.</source>
+        <target state="translated">Kept, set aside and later will be cleared. Nothing is deleted from Photos.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bewaard; tik om weg te leggen" xml:space="preserve">
+        <source>Kept; tap to set aside</source>
+        <target state="translated">Kept; tap to set aside</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bewaarde foto's opnieuw bekijken" xml:space="preserve">
+        <source>Review kept photos again</source>
+        <target state="translated">Review kept photos again</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bewaarde items opnieuw bekijken" xml:space="preserve">
+        <source>Review kept items again</source>
+        <target state="translated">Review kept items again</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bewaarde items staan weer in de stapels." xml:space="preserve">
+        <source>Kept items are back in the stacks.</source>
+        <target state="translated">Kept items are back in the stacks.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bewaren" xml:space="preserve">
+        <source>Keep</source>
+        <target state="translated">Keep</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bibliotheek bekeken" xml:space="preserve">
+        <source>Library reviewed</source>
+        <target state="translated">Library reviewed</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bij beperkte fototoegang zijn sommige categorieën en albums niet beschikbaar. Via Wijzig of Instellingen pas je de toegang aan." xml:space="preserve">
+        <source>With limited photo access, some categories and albums aren't available. Change access via Edit or Settings.</source>
+        <target state="translated">With limited photo access, some categories and albums aren't available. Change access via Edit or Settings.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bijna dubbel" xml:space="preserve">
+        <source>Near duplicates</source>
+        <target state="translated">Near duplicates</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bijna dubbel, burstfoto's, rommel en meer, grootste winst eerst" xml:space="preserve">
+        <source>Near duplicates, burst photos, clutter and more, biggest savings first</source>
+        <target state="translated">Near duplicates, burst photos, clutter and more, biggest savings first</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bijna gelijke foto's; de beste staat al klaar" xml:space="preserve">
+        <source>Nearly identical photos; the best one is already picked</source>
+        <target state="translated">Nearly identical photos; the best one is already picked</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bijna zwart, leeg, of video korter dan 3 sec." xml:space="preserve">
+        <source>Nearly black, empty, or video shorter than 3 sec.</source>
+        <target state="translated">Nearly black, empty, or video shorter than 3 sec.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bonnetje of notitie" xml:space="preserve">
+        <source>Receipt or note</source>
+        <target state="translated">Receipt or note</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Burstfoto's" xml:space="preserve">
+        <source>Burst photos</source>
+        <target state="translated">Burst photos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Burstfoto's ophalen" xml:space="preserve">
+        <source>Loading burst photos</source>
+        <target state="translated">Loading burst photos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Categorie kiezen: %@" xml:space="preserve">
+        <source>Choose category: %@</source>
+        <target state="translated">Choose category: %@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Categorieën" xml:space="preserve">
+        <source>Categories</source>
+        <target state="translated">Categories</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Contacten bekijken…" xml:space="preserve">
+        <source>Checking contacts…</source>
+        <target state="translated">Checking contacts…</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Contacten die er twee keer in staan samenvoegen." xml:space="preserve">
+        <source>Merge contacts that appear twice.</source>
+        <target state="translated">Merge contacts that appear twice.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Controleer" xml:space="preserve">
+        <source>Review</source>
+        <target state="translated">Review</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Controleer %lld items|==|plural.one" xml:space="preserve">
+        <source>Review %lld item</source>
+        <target state="translated">Review %lld item</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Controleer %lld items|==|plural.other" xml:space="preserve">
+        <source>Review %lld items</source>
+        <target state="translated">Review %lld items</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Controleer je internet voor foto's in iCloud." xml:space="preserve">
+        <source>Check your internet connection for photos in iCloud.</source>
+        <target state="translated">Check your internet connection for photos in iCloud.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Controleer je internet voor items in iCloud." xml:space="preserve">
+        <source>Check your internet connection for items in iCloud.</source>
+        <target state="translated">Check your internet connection for items in iCloud.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Controleer je verbinding en probeer opnieuw." xml:space="preserve">
+        <source>Check your connection and try again.</source>
+        <target state="translated">Check your connection and try again.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Controleer je weggelegde foto's en verwijder ze in één keer." xml:space="preserve">
+        <source>Review your set-aside photos and delete them all at once.</source>
+        <target state="translated">Review your set-aside photos and delete them all at once.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Dagelijkse herinnering" xml:space="preserve">
+        <source>Daily reminder</source>
+        <target state="translated">Daily reminder</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Dan zie je alleen die foto's. Tik op 'Wijzig' boven de stapel om meer te kiezen, of geef volledige toegang in Instellingen &gt; Privacy &gt; Foto's." xml:space="preserve">
+        <source>Then you'll only see those photos. Tap 'Edit' above the stack to choose more, or give full access in Settings &gt; Privacy &gt; Photos.</source>
+        <target state="translated">Then you'll only see those photos. Tap 'Edit' above the stack to choose more, or give full access in Settings &gt; Privacy &gt; Photos.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="De foto kon niet worden geladen. Staat hij alleen in iCloud? Probeer het met internet opnieuw." xml:space="preserve">
+        <source>The photo couldn't be loaded. Is it only in iCloud? Try again with an internet connection.</source>
+        <target state="translated">The photo couldn't be loaded. Is it only in iCloud? Try again with an internet connection.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="De overige %lld items in %@ bewaren?" xml:space="preserve">
+        <source>Keep the other %1$lld items in %2$@?</source>
+        <target state="translated">Keep the other %1$lld items in %2$@?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="De scan werkt op dit apparaat met kleine, lokaal beschikbare voorbeelden. Foto's die alleen in iCloud staan worden overgeslagen." xml:space="preserve">
+        <source>The scan runs on this device using small, locally available previews. Photos that are only in iCloud are skipped.</source>
+        <target state="translated">The scan runs on this device using small, locally available previews. Photos that are only in iCloud are skipped.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Deel je resultaat" xml:space="preserve">
+        <source>Share your result</source>
+        <target state="translated">Share your result</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Deze Live Photo kon niet worden omgezet." xml:space="preserve">
+        <source>This Live Photo couldn't be converted.</source>
+        <target state="translated">This Live Photo couldn't be converted.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Deze categorie is klaar. Kies een andere categorie of controleer je selectie." xml:space="preserve">
+        <source>This category is done. Choose another category or review your selection.</source>
+        <target state="translated">This category is done. Choose another category or review your selection.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Deze ook bewaren" xml:space="preserve">
+        <source>Keep this one too</source>
+        <target state="translated">Keep this one too</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Deze selectie bevat items die Apple niet door deze app laat verwijderen. Herstel die items eerst, bijvoorbeeld items uit een gesynchroniseerd album." xml:space="preserve">
+        <source>This selection includes items Apple doesn't let this app delete. Restore those items first, such as items from a synced album.</source>
+        <target state="translated">This selection includes items Apple doesn't let this app delete. Restore those items first, such as items from a synced album.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Deze video is al compact. Er is niets veranderd." xml:space="preserve">
+        <source>This video is already compact. Nothing was changed.</source>
+        <target state="translated">This video is already compact. Nothing was changed.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Deze video kon niet worden geladen. Staat hij alleen in iCloud? Probeer het met internet opnieuw." xml:space="preserve">
+        <source>This video couldn't be loaded. Is it only in iCloud? Try again with an internet connection.</source>
+        <target state="translated">This video couldn't be loaded. Is it only in iCloud? Try again with an internet connection.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Dezelfde foto twee keer opgeslagen" xml:space="preserve">
+        <source>Same photo saved twice</source>
+        <target state="translated">Same photo saved twice</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Dit gebeurt alleen op je iPhone, met kleine voorbeelden. Er wordt niets geüpload of verwijderd." xml:space="preserve">
+        <source>This only happens on your iPhone, using small previews. Nothing is uploaded or deleted.</source>
+        <target state="translated">This only happens on your iPhone, using small previews. Nothing is uploaded or deleted.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Dit item kan niet als favoriet worden aangepast." xml:space="preserve">
+        <source>This item can't be changed to a favorite.</source>
+        <target state="translated">This item can't be changed to a favorite.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Dubbele contacten" xml:space="preserve">
+        <source>Duplicate contacts</source>
+        <target state="translated">Duplicate contacts</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Dubbeltik" xml:space="preserve">
+        <source>Double-tap</source>
+        <target state="translated">Double-tap</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Een paar minuten per dag houdt je bibliotheek licht." xml:space="preserve">
+        <source>A few minutes a day keeps your library light.</source>
+        <target state="translated">A few minutes a day keeps your library light.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Een paar minuten per dag, en je bibliotheek blijft licht. Je foto's blijven in je eigen fotobibliotheek." xml:space="preserve">
+        <source>A few minutes a day, and your library stays light. Your photos stay in your own photo library.</source>
+        <target state="translated">A few minutes a day, and your library stays light. Your photos stay in your own photo library.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Een paar minuten swipen en ruimte maken voor nieuwe herinneringen." xml:space="preserve">
+        <source>Swipe for a few minutes and make room for new memories.</source>
+        <target state="translated">Swipe for a few minutes and make room for new memories.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Een swipe verwijdert nog niets." xml:space="preserve">
+        <source>A swipe doesn't delete anything yet.</source>
+        <target state="translated">A swipe doesn't delete anything yet.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Eén dag overslaan mag" xml:space="preserve">
+        <source>Skipping one day is fine</source>
+        <target state="translated">Skipping one day is fine</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Eén melding per dag, niet als je al klaar bent." xml:space="preserve">
+        <source>One notification a day, not if you're already done.</source>
+        <target state="translated">One notification a day, not if you're already done.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Eén tik" xml:space="preserve">
+        <source>One tap</source>
+        <target state="translated">One tap</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Engels, Nederlands, Spaans, Duits, Frans of Japans. Kies je taal bij Instellingen." xml:space="preserve">
+        <source>English, Dutch, Spanish, German, French or Japanese. Choose your language in Settings.</source>
+        <target state="translated">English, Dutch, Spanish, German, French or Japanese. Choose your language in Settings.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Er staan geen contacten dubbel in je lijst." xml:space="preserve">
+        <source>None of your contacts appear twice.</source>
+        <target state="translated">None of your contacts appear twice.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Er wordt alleen gezocht tussen foto's die binnen twee minuten van elkaar zijn gemaakt. De scan kan vergelijkbare foto's missen." xml:space="preserve">
+        <source>Only photos taken within two minutes of each other are compared. The scan may miss similar photos.</source>
+        <target state="translated">Only photos taken within two minutes of each other are compared. The scan may miss similar photos.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Er wordt niets verwijderd. Je kunt het per item terugdraaien in Bekijken." xml:space="preserve">
+        <source>Nothing is deleted. You can undo this per item in Review.</source>
+        <target state="translated">Nothing is deleted. You can undo this per item in Review.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Er wordt nog een wijziging verwerkt." xml:space="preserve">
+        <source>Another change is still being processed.</source>
+        <target state="translated">Another change is still being processed.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Exacte duplicaten samenvoegen" xml:space="preserve">
+        <source>Merge exact duplicates</source>
+        <target state="translated">Merge exact duplicates</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Exacte kopieën" xml:space="preserve">
+        <source>Exact copies</source>
+        <target state="translated">Exact copies</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Favoriet" xml:space="preserve">
+        <source>Favorite</source>
+        <target state="translated">Favorite</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Favoriet in Foto's" xml:space="preserve">
+        <source>Favorite in Photos</source>
+        <target state="translated">Favorite in Photos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Favoriet wijzigen is niet gelukt." xml:space="preserve">
+        <source>Couldn't change favorite.</source>
+        <target state="translated">Couldn't change favorite.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Favorieten" xml:space="preserve">
+        <source>Favorites</source>
+        <target state="translated">Favorites</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Focus" xml:space="preserve">
+        <source>Focus</source>
+        <target state="translated">Focus</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Focus (rechtsboven) toont alleen de foto op het hele scherm. Eén tik toont de knoppen." xml:space="preserve">
+        <source>Focus (top right) shows only the photo, full screen. One tap shows the buttons.</source>
+        <target state="translated">Focus (top right) shows only the photo, full screen. One tap shows the buttons.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Focusmodus sluiten" xml:space="preserve">
+        <source>Close Focus mode</source>
+        <target state="translated">Close Focus mode</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Focusmodus: alleen de foto, volledig scherm" xml:space="preserve">
+        <source>Focus mode: just the photo, full screen</source>
+        <target state="translated">Focus mode: just the photo, full screen</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Foto" xml:space="preserve">
+        <source>Photo</source>
+        <target state="translated">Photo</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Foto %lld van %lld" xml:space="preserve">
+        <source>Photo %lld of %lld</source>
+        <target state="translated">Photo %lld of %lld</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Foto bekijken" xml:space="preserve">
+        <source>View photo</source>
+        <target state="translated">View photo</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Foto bekijken, %@" xml:space="preserve">
+        <source>View photo, %@</source>
+        <target state="translated">View photo, %@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Foto groter bekijken" xml:space="preserve">
+        <source>View photo larger</source>
+        <target state="translated">View photo larger</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Foto laden" xml:space="preserve">
+        <source>Loading photo</source>
+        <target state="translated">Loading photo</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Foto niet beschikbaar" xml:space="preserve">
+        <source>Photo not available</source>
+        <target state="translated">Photo not available</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Foto van %@" xml:space="preserve">
+        <source>Photo from %@</source>
+        <target state="translated">Photo from %@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Foto · " xml:space="preserve">
+        <source>Photo · </source>
+        <target state="translated">Photo · </target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Foto's analyseren…" xml:space="preserve">
+        <source>Analyzing photos…</source>
+        <target state="translated">Analyzing photos…</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Foto's zonder locatie verschijnen hier niet. Zet locatie aan in de Camera-instellingen voor nieuwe foto's." xml:space="preserve">
+        <source>Photos without a location don't appear here. Turn on location for the Camera to include new photos.</source>
+        <target state="translated">Photos without a location don't appear here. Turn on location for the Camera to include new photos.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Fotoswipe" xml:space="preserve">
+        <source>Fotoswipe</source>
+        <target state="translated">Fotoswipe</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Fotoswipe bekijkt kleine voorbeelden van je recentste foto's, alleen op je iPhone. Het is een voorstel: jij beslist altijd zelf, en favorieten komen nooit in Rommel." xml:space="preserve">
+        <source>Fotoswipe looks at small previews of your most recent photos, only on your iPhone. It's a suggestion: you always decide, and favorites never end up in Clutter.</source>
+        <target state="translated">Fotoswipe looks at small previews of your most recent photos, only on your iPhone. It's a suggestion: you always decide, and favorites never end up in Clutter.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Fotoswipe heeft je foto's nodig" xml:space="preserve">
+        <source>Fotoswipe needs your photos</source>
+        <target state="translated">Fotoswipe needs your photos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Fototoegang is beperkt op dit apparaat. Controleer Schermtijd of het apparaatbeheer." xml:space="preserve">
+        <source>Photo access is restricted on this device. Check Screen Time or device management.</source>
+        <target state="translated">Photo access is restricted on this device. Check Screen Time or device management.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Gebaren in Focus" xml:space="preserve">
+        <source>Gestures in Focus</source>
+        <target state="translated">Gestures in Focus</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Geef Fotoswipe eerst toegang tot je foto's." xml:space="preserve">
+        <source>Give Fotoswipe access to your photos first.</source>
+        <target state="translated">Give Fotoswipe access to your photos first.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Geef Fotoswipe toegang bij Instellingen om te beginnen." xml:space="preserve">
+        <source>Give Fotoswipe access in Settings to get started.</source>
+        <target state="translated">Give Fotoswipe access in Settings to get started.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Geef Fotoswipe toegang in Instellingen om dubbele contacten te vinden. Je contacten blijven op je iPhone." xml:space="preserve">
+        <source>Give Fotoswipe access in Settings to find duplicate contacts. Your contacts stay on your iPhone.</source>
+        <target state="translated">Give Fotoswipe access in Settings to find duplicate contacts. Your contacts stay on your iPhone.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Geef toegang tot mijn foto's" xml:space="preserve">
+        <source>Give access to my photos</source>
+        <target state="translated">Give access to my photos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Geen dubbele contacten" xml:space="preserve">
+        <source>No duplicate contacts</source>
+        <target state="translated">No duplicate contacts</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Geen items in deze categorie" xml:space="preserve">
+        <source>No items in this category</source>
+        <target state="translated">No items in this category</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Geen kandidaten gevonden" xml:space="preserve">
+        <source>No candidates found</source>
+        <target state="translated">No candidates found</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Geen passend bewerkbaar album gevonden." xml:space="preserve">
+        <source>No matching editable album found.</source>
+        <target state="translated">No matching editable album found.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Geen plekken gevonden" xml:space="preserve">
+        <source>No places found</source>
+        <target state="translated">No places found</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Geen reclame, geen abonnement. Alles blijft op je iPhone." xml:space="preserve">
+        <source>No ads, no subscription. Everything stays on your iPhone.</source>
+        <target state="translated">No ads, no subscription. Everything stays on your iPhone.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Geen reclame. Geen abonnement. Geen swipe-limiet.&#10;Alles blijft op je iPhone." xml:space="preserve">
+        <source>No ads. No subscription. No swipe limit.
+Everything stays on your iPhone.</source>
+        <target state="translated">No ads. No subscription. No swipe limit.
+Everything stays on your iPhone.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Geen toegang tot contacten" xml:space="preserve">
+        <source>No access to contacts</source>
+        <target state="translated">No access to contacts</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Gekozen door iOS" xml:space="preserve">
+        <source>Chosen by iOS</source>
+        <target state="translated">Chosen by iOS</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Gewone foto opgeslagen, zonder het bewegende deel (ca. 1,5 MB kleiner). Het origineel staat bij Weggelegd, zodat jij beslist." xml:space="preserve">
+        <source>Regular photo saved, without the moving part (approx. 1.5 MB smaller). The original is in Set aside, so you decide.</source>
+        <target state="translated">Regular photo saved, without the moving part (approx. 1.5 MB smaller). The original is in Set aside, so you decide.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Goed om te weten" xml:space="preserve">
+        <source>Good to know</source>
+        <target state="translated">Good to know</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Grootste eerst" xml:space="preserve">
+        <source>Biggest first</source>
+        <target state="translated">Biggest first</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Grootste eerst zet video's en grote foto's vooraan: snel veel ruimte." xml:space="preserve">
+        <source>Biggest first puts videos and large photos up front: lots of space, fast.</source>
+        <target state="translated">Biggest first puts videos and large photos up front: lots of space, fast.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Grootste winst eerst. Alles gebeurt op je iPhone, en jij beslist per foto of per stapel." xml:space="preserve">
+        <source>Biggest savings first. Everything happens on your iPhone, and you decide per photo or per stack.</source>
+        <target state="translated">Biggest savings first. Everything happens on your iPhone, and you decide per photo or per stack.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Grote video's" xml:space="preserve">
+        <source>Big videos</source>
+        <target state="translated">Big videos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Groter bekijken" xml:space="preserve">
+        <source>View larger</source>
+        <target state="translated">View larger</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Groter dan ca. 50 MB. Weg of kleiner maken" xml:space="preserve">
+        <source>Over approx. 50 MB. Remove or shrink</source>
+        <target state="translated">Over approx. 50 MB. Remove or shrink</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Herinner me" xml:space="preserve">
+        <source>Remind me</source>
+        <target state="translated">Remind me</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Herinnering staat aan om %@" xml:space="preserve">
+        <source>Reminder is on at %@</source>
+        <target state="translated">Reminder is on at %@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Het bovenste contact blijft en krijgt de gegevens van de andere. Tik om een groep over te slaan." xml:space="preserve">
+        <source>The top contact stays and gets the details of the others. Tap a group to skip it.</source>
+        <target state="translated">The top contact stays and gets the details of the others. Tap a group to skip it.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Het deelkaartje bevat alleen getallen, geen foto's." xml:space="preserve">
+        <source>The share card only contains numbers, no photos.</source>
+        <target state="translated">The share card only contains numbers, no photos.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Hoe weet Fotoswipe wat rommel of bijna dubbel is?" xml:space="preserve">
+        <source>How does Fotoswipe know what's clutter or a near duplicate?</source>
+        <target state="translated">How does Fotoswipe know what's clutter or a near duplicate?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Hoe werkt Fotoswipe?" xml:space="preserve">
+        <source>How does Fotoswipe work?</source>
+        <target state="translated">How does Fotoswipe work?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Hoog (1080p)" xml:space="preserve">
+        <source>High (1080p)</source>
+        <target state="translated">High (1080p)</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Hou %lld, leg %lld weg" xml:space="preserve">
+        <source>Keep %lld, set aside %lld</source>
+        <target state="translated">Keep %lld, set aside %lld</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Houd je reeks van %lld dagen vast. Een paar minuten swipen?|==|plural.one" xml:space="preserve">
+        <source>Keep your %lld-day streak going. Swipe for a few minutes?</source>
+        <target state="translated">Keep your %lld-day streak going. Swipe for a few minutes?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Houd je reeks van %lld dagen vast. Een paar minuten swipen?|==|plural.other" xml:space="preserve">
+        <source>Keep your %lld-day streak going. Swipe for a few minutes?</source>
+        <target state="translated">Keep your %lld-day streak going. Swipe for a few minutes?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Hulp en contact" xml:space="preserve">
+        <source>Help and contact</source>
+        <target state="translated">Help and contact</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Ik gaf alleen toegang tot een paar foto's" xml:space="preserve">
+        <source>I only gave access to a few photos</source>
+        <target state="translated">I only gave access to a few photos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Ik heb %@ vrijgemaakt" xml:space="preserve">
+        <source>I freed up %@</source>
+        <target state="translated">I freed up %@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Ik ruim mijn fotorol op" xml:space="preserve">
+        <source>I'm cleaning up my camera roll</source>
+        <target state="translated">I'm cleaning up my camera roll</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="In 4 stappen" xml:space="preserve">
+        <source>In 4 steps</source>
+        <target state="translated">In 4 steps</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="In jouw taal" xml:space="preserve">
+        <source>In your language</source>
+        <target state="translated">In your language</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Instellingen" xml:space="preserve">
+        <source>Settings</source>
+        <target state="translated">Settings</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Inzoomen" xml:space="preserve">
+        <source>Zoom in</source>
+        <target state="translated">Zoom in</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Inzoomen, loslaten is terug" xml:space="preserve">
+        <source>Zoom in, let go to go back</source>
+        <target state="translated">Zoom in, let go to go back</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Is een foto meteen weg als ik swipe?" xml:space="preserve">
+        <source>Is a photo gone right away when I swipe?</source>
+        <target state="translated">Is a photo gone right away when I swipe?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Item" xml:space="preserve">
+        <source>Item</source>
+        <target state="translated">Item</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Item bekijken" xml:space="preserve">
+        <source>View item</source>
+        <target state="translated">View item</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Item niet beschikbaar" xml:space="preserve">
+        <source>Item not available</source>
+        <target state="translated">Item not available</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Item terugzetten in de stapel" xml:space="preserve">
+        <source>Put item back in the stack</source>
+        <target state="translated">Put item back in the stack</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Item van %@" xml:space="preserve">
+        <source>Item from %@</source>
+        <target state="translated">Item from %@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Items per sessie" xml:space="preserve">
+        <source>Items per session</source>
+        <target state="translated">Items per session</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="JE BEWAARDE ALLES" xml:space="preserve">
+        <source>YOU KEPT EVERYTHING</source>
+        <target state="translated">YOU KEPT EVERYTHING</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Je albums" xml:space="preserve">
+        <source>Your albums</source>
+        <target state="translated">Your albums</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Je albums komen uit Foto's. Je kunt foto's, Live Photos en video's beoordelen." xml:space="preserve">
+        <source>Your albums come from Photos. You can review photos, Live Photos and videos.</source>
+        <target state="translated">Your albums come from Photos. You can review photos, Live Photos and videos.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Je bibliotheek ophalen…" xml:space="preserve">
+        <source>Loading your library…</source>
+        <target state="translated">Loading your library…</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Je contacten zijn bijgewerkt." xml:space="preserve">
+        <source>Your contacts have been updated.</source>
+        <target state="translated">Your contacts have been updated.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Je foto's blijven op je iPhone. Er wordt niets geüpload." xml:space="preserve">
+        <source>Your photos stay on your iPhone. Nothing is uploaded.</source>
+        <target state="translated">Your photos stay on your iPhone. Nothing is uploaded.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Je foto's per plek en reis. Ruim één reis tegelijk op." xml:space="preserve">
+        <source>Your photos by place and trip. Clean up one trip at a time.</source>
+        <target state="translated">Your photos by place and trip. Clean up one trip at a time.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Je grootste video's op een rij. Verklein ze in laag, midden of hoog." xml:space="preserve">
+        <source>Your biggest videos in one list. Shrink them in low, medium or high.</source>
+        <target state="translated">Your biggest videos in one list. Shrink them in low, medium or high.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Je hebt nog geen eigen albums. Maak er hieronder een." xml:space="preserve">
+        <source>You don't have any albums of your own yet. Make one below.</source>
+        <target state="translated">You don't have any albums of your own yet. Make one below.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Je keuzes blijven behouden als je wisselt. Weggelegde items uit alle categorieën controleer je samen in Bekijken." xml:space="preserve">
+        <source>Your choices are kept when you switch. You review set-aside items from all categories together in Review.</source>
+        <target state="translated">Your choices are kept when you switch. You review set-aside items from all categories together in Review.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Je keuzes konden niet worden opgeslagen. Houd de app open en probeer later opnieuw." xml:space="preserve">
+        <source>Your choices couldn't be saved. Keep the app open and try again later.</source>
+        <target state="translated">Your choices couldn't be saved. Keep the app open and try again later.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Je kunt dit later altijd wijzigen in Instellingen." xml:space="preserve">
+        <source>You can always change this later in Settings.</source>
+        <target state="translated">You can always change this later in Settings.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Je opgeslagen keuzes konden niet worden gelezen. Verwijder pas foto's nadat je je selectie opnieuw hebt gecontroleerd." xml:space="preserve">
+        <source>Your saved choices couldn't be read. Only delete photos after you've reviewed your selection again.</source>
+        <target state="translated">Your saved choices couldn't be read. Only delete photos after you've reviewed your selection again.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Je reeks en Op deze dag op je beginscherm." xml:space="preserve">
+        <source>Your streak and On This Day on your Home Screen.</source>
+        <target state="translated">Your streak and On This Day on your Home Screen.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Je reeks en de foto's van vandaag in eerdere jaren." xml:space="preserve">
+        <source>Your streak and today's photos from past years.</source>
+        <target state="translated">Your streak and today's photos from past years.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Je selectie uit alle categorieën. Tik op een item om het te bekijken of af te spelen." xml:space="preserve">
+        <source>Your selection from all categories. Tap an item to view or play it.</source>
+        <target state="translated">Your selection from all categories. Tap an item to view or play it.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Je selectie wordt nog niet verwijderd." xml:space="preserve">
+        <source>Your selection isn't being deleted yet.</source>
+        <target state="translated">Your selection isn't being deleted yet.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Je swipe-moment staat klaar" xml:space="preserve">
+        <source>Time for your swipe moment</source>
+        <target state="translated">Time for your swipe moment</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Jouw overzicht" xml:space="preserve">
+        <source>Your overview</source>
+        <target state="translated">Your overview</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Jouw selectie" xml:space="preserve">
+        <source>Your selection</source>
+        <target state="translated">Your selection</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="KLAAR OM VRIJ TE MAKEN" xml:space="preserve">
+        <source>READY TO FREE UP</source>
+        <target state="translated">READY TO FREE UP</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Kies een andere categorie of pas je fototoegang aan." xml:space="preserve">
+        <source>Choose another category or change your photo access.</source>
+        <target state="translated">Choose another category or change your photo access.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Kies een andere categorie op het hoofdscherm." xml:space="preserve">
+        <source>Choose another category on the home screen.</source>
+        <target state="translated">Choose another category on the home screen.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Kies een bewerkbaar album of geef een albumnaam op." xml:space="preserve">
+        <source>Choose an editable album or enter an album name.</source>
+        <target state="translated">Choose an editable album or enter an album name.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Kies een categorie" xml:space="preserve">
+        <source>Choose a category</source>
+        <target state="translated">Choose a category</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Kies je eigen moment, bijvoorbeeld na het eten. Eén melding per dag." xml:space="preserve">
+        <source>Pick your own moment, like after dinner. One notification a day.</source>
+        <target state="translated">Pick your own moment, like after dinner. One notification a day.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Kies toegang tot je foto's" xml:space="preserve">
+        <source>Choose access to your photos</source>
+        <target state="translated">Choose access to your photos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Kies tot 3 albums" xml:space="preserve">
+        <source>Choose up to 3 albums</source>
+        <target state="translated">Choose up to 3 albums</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Kies volledige toegang voor je hele bibliotheek, of geef alleen toegang tot geselecteerde foto's." xml:space="preserve">
+        <source>Choose full access for your whole library, or give access to selected photos only.</source>
+        <target state="translated">Choose full access for your whole library, or give access to selected photos only.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Klaar" xml:space="preserve">
+        <source>Done</source>
+        <target state="translated">Done</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Klaar om ruimte te maken?" xml:space="preserve">
+        <source>Ready to make some room?</source>
+        <target state="translated">Ready to make some room?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Kleine plaatjes en GIF's" xml:space="preserve">
+        <source>Small images and GIFs</source>
+        <target state="translated">Small images and GIFs</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Kleinere versie opgeslagen (%@). Het origineel staat bij Weggelegd, zodat jij beslist." xml:space="preserve">
+        <source>Smaller version saved (%@). The original is in Set aside, so you decide.</source>
+        <target state="translated">Smaller version saved (%@). The original is in Set aside, so you decide.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Knoppen tonen" xml:space="preserve">
+        <source>Show buttons</source>
+        <target state="translated">Show buttons</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="LATER" xml:space="preserve">
+        <source>LATER</source>
+        <target state="translated">LATER</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Laag (540p)" xml:space="preserve">
+        <source>Low (540p)</source>
+        <target state="translated">Low (540p)</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Laatste keuze terugzetten" xml:space="preserve">
+        <source>Undo last choice</source>
+        <target state="translated">Undo last choice</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Lage resolutie, memes en gedownloade plaatjes" xml:space="preserve">
+        <source>Low resolution, memes and downloaded images</source>
+        <target state="translated">Low resolution, memes and downloaded images</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Later" xml:space="preserve">
+        <source>Later</source>
+        <target state="translated">Later</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Later (%lld)" xml:space="preserve">
+        <source>Later (%lld)</source>
+        <target state="translated">Later (%lld)</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Later beslissen" xml:space="preserve">
+        <source>Decide later</source>
+        <target state="translated">Decide later</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Leeg 'Recent verwijderd' in Foto's, of wacht 30 dagen." xml:space="preserve">
+        <source>Empty 'Recently Deleted' in Photos, or wait 30 days.</source>
+        <target state="translated">Empty 'Recently Deleted' in Photos, or wait 30 days.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Leg %lld foto's weg voor controle|==|plural.one" xml:space="preserve">
+        <source>Set aside %lld photo for review</source>
+        <target state="translated">Set aside %lld photo for review</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Leg %lld foto's weg voor controle|==|plural.other" xml:space="preserve">
+        <source>Set aside %lld photos for review</source>
+        <target state="translated">Set aside %lld photos for review</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Live Photos" xml:space="preserve">
+        <source>Live Photos</source>
+        <target state="translated">Live Photos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Maak album" xml:space="preserve">
+        <source>Create album</source>
+        <target state="translated">Create album</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Maak album en voeg toe" xml:space="preserve">
+        <source>Create album and add</source>
+        <target state="translated">Create album and add</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Maak favoriet in Foto's" xml:space="preserve">
+        <source>Add to Favorites in Photos</source>
+        <target state="translated">Add to Favorites in Photos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Maak ruimte vrij" xml:space="preserve">
+        <source>Free up space</source>
+        <target state="translated">Free up space</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Meer" xml:space="preserve">
+        <source>More</source>
+        <target state="translated">More</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Meer opruimen" xml:space="preserve">
+        <source>More cleanup</source>
+        <target state="translated">More cleanup</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Meldingen staan uit voor Fotoswipe. Zet ze aan in Instellingen." xml:space="preserve">
+        <source>Notifications are off for Fotoswipe. Turn them on in Settings.</source>
+        <target state="translated">Notifications are off for Fotoswipe. Turn them on in Settings.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Midden (720p)" xml:space="preserve">
+        <source>Medium (720p)</source>
+        <target state="translated">Medium (720p)</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Mijn Fotoswipe" xml:space="preserve">
+        <source>My Fotoswipe</source>
+        <target state="translated">My Fotoswipe</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Minstens één foto per groep blijft bewaard" xml:space="preserve">
+        <source>At least one photo per group is kept</source>
+        <target state="translated">At least one photo per group is kept</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Mogelijk wazig" xml:space="preserve">
+        <source>Possibly blurry</source>
+        <target state="translated">Possibly blurry</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Mooi teruggevonden" xml:space="preserve">
+        <source>A nice find</source>
+        <target state="translated">A nice find</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Morgen weer even swipen?" xml:space="preserve">
+        <source>Swipe again tomorrow?</source>
+        <target state="translated">Swipe again tomorrow?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="NIEUW IN FOTOSWIPE" xml:space="preserve">
+        <source>NEW IN FOTOSWIPE</source>
+        <target state="translated">NEW IN FOTOSWIPE</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Naam van het album" xml:space="preserve">
+        <source>Album name</source>
+        <target state="translated">Album name</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Naamloos album" xml:space="preserve">
+        <source>Untitled album</source>
+        <target state="translated">Untitled album</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Naar links" xml:space="preserve">
+        <source>Left</source>
+        <target state="translated">Left</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Naar rechts" xml:space="preserve">
+        <source>Right</source>
+        <target state="translated">Right</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Nee, je keuzes worden op je iPhone bewaard en gaan mee in je gewone iPhone-back-up. Als je de app verwijdert, is je voortgang weg; je foto's niet." xml:space="preserve">
+        <source>No, your choices are saved on your iPhone and included in your regular iPhone backup. If you delete the app, your progress is gone; your photos aren't.</source>
+        <target state="translated">No, your choices are saved on your iPhone and included in your regular iPhone backup. If you delete the app, your progress is gone; your photos aren't.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Nee. Naar links leggen zet een foto alleen opzij. Pas als je in Bekijken op Verwijder tikt en iOS dat bevestigt, gaat hij naar 'Recent verwijderd'. Daar staat hij nog 30 dagen." xml:space="preserve">
+        <source>No. Swiping left only sets a photo aside. Only when you tap Delete in Review and iOS confirms does it go to 'Recently Deleted'. It stays there for 30 more days.</source>
+        <target state="translated">No. Swiping left only sets a photo aside. Only when you tap Delete in Review and iOS confirms does it go to 'Recently Deleted'. It stays there for 30 more days.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Niets" xml:space="preserve">
+        <source>Nothing</source>
+        <target state="translated">Nothing</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Niets gevonden" xml:space="preserve">
+        <source>Nothing found</source>
+        <target state="translated">Nothing found</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Niets gevonden in %@" xml:space="preserve">
+        <source>Nothing found in %@</source>
+        <target state="translated">Nothing found in %@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Niets is meteen weg: jij controleert eerst, iOS vraagt nog om bevestiging." xml:space="preserve">
+        <source>Nothing is gone right away: you review first, and iOS asks you to confirm.</source>
+        <target state="translated">Nothing is gone right away: you review first, and iOS asks you to confirm.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Niets is meteen weg: verwijderde items staan nog 30 dagen in 'Recent verwijderd' in Foto's. Bij iCloud geldt dit ook voor je andere apparaten." xml:space="preserve">
+        <source>Nothing is gone right away: deleted items stay in 'Recently Deleted' in Photos for 30 days. With iCloud, this also applies to your other devices.</source>
+        <target state="translated">Nothing is gone right away: deleted items stay in 'Recently Deleted' in Photos for 30 days. With iCloud, this also applies to your other devices.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Niets voor later" xml:space="preserve">
+        <source>Nothing for later</source>
+        <target state="translated">Nothing for later</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Niets weggelegd" xml:space="preserve">
+        <source>Nothing set aside</source>
+        <target state="translated">Nothing set aside</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Niets. Geen reclame, geen abonnement en geen limiet op het aantal swipes." xml:space="preserve">
+        <source>Nothing. No ads, no subscription and no limit on the number of swipes.</source>
+        <target state="translated">Nothing. No ads, no subscription and no limit on the number of swipes.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Nieuw album" xml:space="preserve">
+        <source>New album</source>
+        <target state="translated">New album</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Nieuwste eerst" xml:space="preserve">
+        <source>Newest first</source>
+        <target state="translated">Newest first</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Nog %lld doen|==|plural.one" xml:space="preserve">
+        <source>%lld left to do</source>
+        <target state="translated">%lld left to do</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Nog %lld doen|==|plural.other" xml:space="preserve">
+        <source>%lld left to do</source>
+        <target state="translated">%lld left to do</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Nog niets" xml:space="preserve">
+        <source>Nothing yet</source>
+        <target state="translated">Nothing yet</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Nog niets bewaard" xml:space="preserve">
+        <source>Nothing kept yet</source>
+        <target state="translated">Nothing kept yet</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Nog steeds: geen reclame, geen abonnement, geen limiet. Alles blijft op je iPhone." xml:space="preserve">
+        <source>Still: no ads, no subscription, no limits. Everything stays on your iPhone.</source>
+        <target state="translated">Still: no ads, no subscription, no limits. Everything stays on your iPhone.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Nu naar links om weg te leggen" xml:space="preserve">
+        <source>Now left to set aside</source>
+        <target state="translated">Now left to set aside</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="OK" xml:space="preserve">
+        <source>OK</source>
+        <target state="translated">OK</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Oefen het swipen" xml:space="preserve">
+        <source>Practice swiping</source>
+        <target state="translated">Practice swiping</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Oefenkaart" xml:space="preserve">
+        <source>Practice card</source>
+        <target state="translated">Practice card</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Of tik op de knoppen." xml:space="preserve">
+        <source>Or tap the buttons.</source>
+        <target state="translated">Or tap the buttons.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Omhoog" xml:space="preserve">
+        <source>Up</source>
+        <target state="translated">Up</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Omlaag" xml:space="preserve">
+        <source>Down</source>
+        <target state="translated">Down</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Omzetten naar gewone foto…" xml:space="preserve">
+        <source>Converting to regular photo…</source>
+        <target state="translated">Converting to regular photo…</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Ook de Foto's-app vindt exacte duplicaten: Albums &gt; Duplicaten &gt; Voeg samen." xml:space="preserve">
+        <source>The Photos app also finds exact duplicates: Albums &gt; Duplicates &gt; Merge.</source>
+        <target state="translated">The Photos app also finds exact duplicates: Albums &gt; Duplicates &gt; Merge.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Op deze dag" xml:space="preserve">
+        <source>On This Day</source>
+        <target state="translated">On This Day</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Open Fotoswipe om te beginnen" xml:space="preserve">
+        <source>Open Fotoswipe to get started</source>
+        <target state="translated">Open Fotoswipe to get started</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Open Instellingen" xml:space="preserve">
+        <source>Open Settings</source>
+        <target state="translated">Open Settings</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Open Slim opruimen" xml:space="preserve">
+        <source>Open Smart Clean</source>
+        <target state="translated">Open Smart Clean</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Open een video of Live Photo en kies via Meer 'Video verkleinen' of 'Bewaar als gewone foto'. Het origineel gaat eerst naar Weggelegd." xml:space="preserve">
+        <source>Open a video or Live Photo and choose 'Shrink video' or 'Keep as regular photo' under More. The original goes to Set aside first.</source>
+        <target state="translated">Open a video or Live Photo and choose 'Shrink video' or 'Keep as regular photo' under More. The original goes to Set aside first.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Openen" xml:space="preserve">
+        <source>Open</source>
+        <target state="translated">Open</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Opent je overzicht" xml:space="preserve">
+        <source>Opens your overview</source>
+        <target state="translated">Opens your overview</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Opnieuw beginnen" xml:space="preserve">
+        <source>Start over</source>
+        <target state="translated">Start over</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Opnieuw bekijken" xml:space="preserve">
+        <source>Review again</source>
+        <target state="translated">Review again</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Opnieuw proberen" xml:space="preserve">
+        <source>Try again</source>
+        <target state="translated">Try again</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Opnieuw scannen" xml:space="preserve">
+        <source>Scan again</source>
+        <target state="translated">Scan again</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Opnieuw zoeken" xml:space="preserve">
+        <source>Search again</source>
+        <target state="translated">Search again</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Opslaan is niet gelukt. Er is niets veranderd." xml:space="preserve">
+        <source>Couldn't save. Nothing was changed.</source>
+        <target state="translated">Couldn't save. Nothing was changed.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Oude screenshots" xml:space="preserve">
+        <source>Old screenshots</source>
+        <target state="translated">Old screenshots</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Ouder dan %lld dagen|==|plural.one" xml:space="preserve">
+        <source>Older than %lld day</source>
+        <target state="translated">Older than %lld day</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Ouder dan %lld dagen|==|plural.other" xml:space="preserve">
+        <source>Older than %lld days</source>
+        <target state="translated">Older than %lld days</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Oudste eerst" xml:space="preserve">
+        <source>Oldest first</source>
+        <target state="translated">Oldest first</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Over Fotoswipe" xml:space="preserve">
+        <source>About Fotoswipe</source>
+        <target state="translated">About Fotoswipe</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Overslaan" xml:space="preserve">
+        <source>Skip</source>
+        <target state="translated">Skip</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Panorama's" xml:space="preserve">
+        <source>Panoramas</source>
+        <target state="translated">Panoramas</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Per groep blijft één contact over met alle nummers en adressen. De andere worden verwijderd. Dit kan Fotoswipe niet terugdraaien. Gebruik je iCloud, dan kun je contacten op iCloud.com tot 30 dagen terugzetten." xml:space="preserve">
+        <source>Each group becomes one contact with all numbers and addresses. The others are deleted. Fotoswipe can't undo this. If you use iCloud, you can restore contacts on iCloud.com for up to 30 days.</source>
+        <target state="translated">Each group becomes one contact with all numbers and addresses. The others are deleted. Fotoswipe can't undo this. If you use iCloud, you can restore contacts on iCloud.com for up to 30 days.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Per maand" xml:space="preserve">
+        <source>Per month</source>
+        <target state="translated">Per month</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Per ongeluk" xml:space="preserve">
+        <source>Accidental</source>
+        <target state="translated">Accidental</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Per ongeluk?" xml:space="preserve">
+        <source>Accidental?</source>
+        <target state="translated">Accidental?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Plekken zoeken…" xml:space="preserve">
+        <source>Finding places…</source>
+        <target state="translated">Finding places…</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Portretten" xml:space="preserve">
+        <source>Portraits</source>
+        <target state="translated">Portraits</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Privacybeleid" xml:space="preserve">
+        <source>Privacy Policy</source>
+        <target state="translated">Privacy Policy</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Probeer het even" xml:space="preserve">
+        <source>Give it a try</source>
+        <target state="translated">Give it a try</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="RAW" xml:space="preserve">
+        <source>RAW</source>
+        <target state="translated">RAW</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Raak ik mijn voortgang kwijt?" xml:space="preserve">
+        <source>Will I lose my progress?</source>
+        <target state="translated">Will I lose my progress?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Recent toegevoegd" xml:space="preserve">
+        <source>Recently Added</source>
+        <target state="translated">Recently Added</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Rechts is bewaren, links is wegleggen. Twijfel? Tik op het klokje voor later." xml:space="preserve">
+        <source>Right is keep, left is set aside. Not sure? Tap the clock for later.</source>
+        <target state="translated">Right is keep, left is set aside. Not sure? Tap the clock for later.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Reeks: %lld dagen. Eén dag overslaan mag.|==|plural.one" xml:space="preserve">
+        <source>Streak: %lld day. Skipping one day is fine.</source>
+        <target state="translated">Streak: %lld day. Skipping one day is fine.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Reeks: %lld dagen. Eén dag overslaan mag.|==|plural.other" xml:space="preserve">
+        <source>Streak: %lld days. Skipping one day is fine.</source>
+        <target state="translated">Streak: %lld days. Skipping one day is fine.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Reiskaart" xml:space="preserve">
+        <source>Travel Map</source>
+        <target state="translated">Travel Map</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Reiskaart en contacten" xml:space="preserve">
+        <source>Travel Map and contacts</source>
+        <target state="translated">Travel Map and contacts</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Rommel" xml:space="preserve">
+        <source>Clutter</source>
+        <target state="translated">Clutter</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Rommel zoeken" xml:space="preserve">
+        <source>Find clutter</source>
+        <target state="translated">Find clutter</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Ruim één reis tegelijk op en voeg dubbele contacten samen, in Slim opruimen." xml:space="preserve">
+        <source>Clean up one trip at a time and merge duplicate contacts, in Smart Clean.</source>
+        <target state="translated">Clean up one trip at a time and merge duplicate contacts, in Smart Clean.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Ruimte komt pas vrij na 'Recent verwijderd'" xml:space="preserve">
+        <source>Space is only freed after 'Recently Deleted'</source>
+        <target state="translated">Space is only freed after 'Recently Deleted'</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Samen ongeveer %@ te winnen" xml:space="preserve">
+        <source>About %@ to save in total</source>
+        <target state="translated">About %@ to save in total</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Samenvoegen…" xml:space="preserve">
+        <source>Merging…</source>
+        <target state="translated">Merging…</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Scan gestopt. Start opnieuw om groepen te zoeken." xml:space="preserve">
+        <source>Scan stopped. Start again to find groups.</source>
+        <target state="translated">Scan stopped. Start again to find groups.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Screenshot" xml:space="preserve">
+        <source>Screenshot</source>
+        <target state="translated">Screenshot</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Screenshots" xml:space="preserve">
+        <source>Screenshots</source>
+        <target state="translated">Screenshots</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Selectie" xml:space="preserve">
+        <source>Selection</source>
+        <target state="translated">Selection</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Selectie weggelegd" xml:space="preserve">
+        <source>Selection set aside</source>
+        <target state="translated">Selection set aside</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Selectie weggelegd. Controleer alle items in Bekijken." xml:space="preserve">
+        <source>Selection set aside. Review all items in Review.</source>
+        <target state="translated">Selection set aside. Review all items in Review.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Selfies" xml:space="preserve">
+        <source>Selfies</source>
+        <target state="translated">Selfies</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Sessie klaar!" xml:space="preserve">
+        <source>Session complete!</source>
+        <target state="translated">Session complete!</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Sessie: %lld van %lld" xml:space="preserve">
+        <source>Session: %lld of %lld</source>
+        <target state="translated">Session: %lld of %lld</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Sla over" xml:space="preserve">
+        <source>Skip</source>
+        <target state="translated">Skip</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Slim opruimen" xml:space="preserve">
+        <source>Smart Clean</source>
+        <target state="translated">Smart Clean</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Slim opruimen zet burstfoto's, kopieën en rommel klaar, met de grootste winst bovenaan." xml:space="preserve">
+        <source>Smart Clean lines up burst photos, copies and clutter, with the biggest savings at the top.</source>
+        <target state="translated">Smart Clean lines up burst photos, copies and clutter, with the biggest savings at the top.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Slimmer opruimen,&#10;meer ruimte." xml:space="preserve">
+        <source>Smarter cleanup,
+more space.</source>
+        <target state="translated">Smarter cleanup,
+more space.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Sluiten" xml:space="preserve">
+        <source>Close</source>
+        <target state="translated">Close</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Snel veel ruimte" xml:space="preserve">
+        <source>Lots of space, fast</source>
+        <target state="translated">Lots of space, fast</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Snelle albums" xml:space="preserve">
+        <source>Quick albums</source>
+        <target state="translated">Quick albums</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Stop scan" xml:space="preserve">
+        <source>Stop scan</source>
+        <target state="translated">Stop scan</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Swipe" xml:space="preserve">
+        <source>Swipe</source>
+        <target state="translated">Swipe</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Taal" xml:space="preserve">
+        <source>Language</source>
+        <target state="translated">Language</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Taal van je iPhone" xml:space="preserve">
+        <source>iPhone language</source>
+        <target state="translated">iPhone language</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Terug" xml:space="preserve">
+        <source>Back</source>
+        <target state="translated">Back</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Terug naar overzicht" xml:space="preserve">
+        <source>Back to overview</source>
+        <target state="translated">Back to overview</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Thuis" xml:space="preserve">
+        <source>Home</source>
+        <target state="translated">Home</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Thuis en omgeving" xml:space="preserve">
+        <source>Home and nearby</source>
+        <target state="translated">Home and nearby</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Tijd" xml:space="preserve">
+        <source>Time</source>
+        <target state="translated">Time</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Tik op 'Weggelegd' onderaan. Tik op een foto om hem toch te bewaren." xml:space="preserve">
+        <source>Tap 'Set aside' at the bottom. Tap a photo to keep it after all.</source>
+        <target state="translated">Tap 'Set aside' at the bottom. Tap a photo to keep it after all.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Tik op Focus: de foto vult het scherm en je swipet met gebaren." xml:space="preserve">
+        <source>Tap Focus: the photo fills the screen and you swipe with gestures.</source>
+        <target state="translated">Tap Focus: the photo fills the screen and you swipe with gestures.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Tik op Verwijder en bevestig in het venster van iOS." xml:space="preserve">
+        <source>Tap Delete and confirm in the iOS dialog.</source>
+        <target state="translated">Tap Delete and confirm in the iOS dialog.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Tik op een foto om details te bekijken. Kies daarna welke je wilt wegleggen." xml:space="preserve">
+        <source>Tap a photo to see details. Then choose which ones to set aside.</source>
+        <target state="translated">Tap a photo to see details. Then choose which ones to set aside.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Tik op een item om het te bekijken. Met Terug zet je het terug in de stapel." xml:space="preserve">
+        <source>Tap an item to view it. Tap Back to put it back in the stack.</source>
+        <target state="translated">Tap an item to view it. Tap Back to put it back in the stack.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Tip: kies volledige toegang om je hele bibliotheek op te ruimen. Een selectie kan ook." xml:space="preserve">
+        <source>Tip: choose full access to clean up your whole library. A selection works too.</source>
+        <target state="translated">Tip: choose full access to clean up your whole library. A selection works too.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Toch weg" xml:space="preserve">
+        <source>Set aside after all</source>
+        <target state="translated">Set aside after all</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Toegevoegd aan Favorieten in Foto's." xml:space="preserve">
+        <source>Added to Favorites in Photos.</source>
+        <target state="translated">Added to Favorites in Photos.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Toegevoegd aan album in Foto's." xml:space="preserve">
+        <source>Added to album in Photos.</source>
+        <target state="translated">Added to album in Photos.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Toevoegen is niet gelukt. Je keuzes zijn bewaard." xml:space="preserve">
+        <source>Couldn't add. Your choices have been saved.</source>
+        <target state="translated">Couldn't add. Your choices have been saved.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Toevoegen niet gelukt" xml:space="preserve">
+        <source>Couldn't add</source>
+        <target state="translated">Couldn't add</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Toevoegen…" xml:space="preserve">
+        <source>Adding…</source>
+        <target state="translated">Adding…</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Top! Zo simpel is het." xml:space="preserve">
+        <source>Nice! It's that simple.</source>
+        <target state="translated">Nice! It's that simple.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Totaal al vrijgemaakt: %@" xml:space="preserve">
+        <source>Total freed up: %@</source>
+        <target state="translated">Total freed up: %@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Trillen bij keuzes" xml:space="preserve">
+        <source>Haptics on choices</source>
+        <target state="translated">Haptics on choices</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Uit apps" xml:space="preserve">
+        <source>From apps</source>
+        <target state="translated">From apps</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="VORIGE TERUG" xml:space="preserve">
+        <source>UNDO LAST</source>
+        <target state="translated">UNDO LAST</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="VRIJGEMAAKT" xml:space="preserve">
+        <source>FREED UP</source>
+        <target state="translated">FREED UP</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Vandaag" xml:space="preserve">
+        <source>Today</source>
+        <target state="translated">Today</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Vasthouden" xml:space="preserve">
+        <source>Hold</source>
+        <target state="translated">Hold</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Veeg de kaart naar rechts om te bewaren" xml:space="preserve">
+        <source>Swipe the card right to keep</source>
+        <target state="translated">Swipe the card right to keep</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Veeg naar rechts om te bewaren, naar links om weg te leggen, omhoog voor later." xml:space="preserve">
+        <source>Swipe right to keep, left to set aside, up for later.</source>
+        <target state="translated">Swipe right to keep, left to set aside, up for later.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Veelgestelde vragen" xml:space="preserve">
+        <source>FAQ</source>
+        <target state="translated">FAQ</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Vergelijkbare foto's" xml:space="preserve">
+        <source>Similar photos</source>
+        <target state="translated">Similar photos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Vergelijkbare foto's zijn kandidaten, geen bewezen duplicaten. Vergelijk zelf en bewaar minstens één foto per groep." xml:space="preserve">
+        <source>Similar photos are candidates, not proven duplicates. Compare them yourself and keep at least one photo per group.</source>
+        <target state="translated">Similar photos are candidates, not proven duplicates. Compare them yourself and keep at least one photo per group.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Verkleinen is niet gelukt. Er is niets veranderd." xml:space="preserve">
+        <source>Couldn't shrink. Nothing was changed.</source>
+        <target state="translated">Couldn't shrink. Nothing was changed.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Verkleinen is voor deze video niet mogelijk." xml:space="preserve">
+        <source>This video can't be shrunk.</source>
+        <target state="translated">This video can't be shrunk.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Ververs bibliotheek" xml:space="preserve">
+        <source>Refresh library</source>
+        <target state="translated">Refresh library</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Verwijder" xml:space="preserve">
+        <source>Delete</source>
+        <target state="translated">Delete</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Verwijder %lld items|==|plural.one" xml:space="preserve">
+        <source>Delete %lld item</source>
+        <target state="translated">Delete %lld item</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Verwijder %lld items|==|plural.other" xml:space="preserve">
+        <source>Delete %lld items</source>
+        <target state="translated">Delete %lld items</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Verwijder favoriet in Foto's" xml:space="preserve">
+        <source>Remove favorite in Photos</source>
+        <target state="translated">Remove favorite in Photos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Verwijder uit Foto's" xml:space="preserve">
+        <source>Delete from Photos</source>
+        <target state="translated">Delete from Photos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Verwijderd uit Favorieten in Foto's." xml:space="preserve">
+        <source>Removed from Favorites in Photos.</source>
+        <target state="translated">Removed from Favorites in Photos.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Verwijderde foto's blijven 30 dagen in Foto's &gt; Albums &gt; Recent verwijderd. Wil je de ruimte meteen? Kies daar Verwijder alles. Een app mag dat album niet zelf legen." xml:space="preserve">
+        <source>Deleted photos stay in Photos &gt; Albums &gt; Recently Deleted for 30 days. Want the space right away? Choose Delete All there. Apps aren't allowed to empty that album themselves.</source>
+        <target state="translated">Deleted photos stay in Photos &gt; Albums &gt; Recently Deleted for 30 days. Want the space right away? Choose Delete All there. Apps aren't allowed to empty that album themselves.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Verwijderen geldt ook voor je andere apparaten met dezelfde iCloud-fotobibliotheek. Foto's die alleen in iCloud staan, worden even opgehaald om ze te tonen." xml:space="preserve">
+        <source>Deleting also applies to your other devices with the same iCloud Photos library. Photos that are only in iCloud are briefly downloaded to show them.</source>
+        <target state="translated">Deleting also applies to your other devices with the same iCloud Photos library. Photos that are only in iCloud are briefly downloaded to show them.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Verwijderen…" xml:space="preserve">
+        <source>Deleting…</source>
+        <target state="translated">Deleting…</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Video" xml:space="preserve">
+        <source>Video</source>
+        <target state="translated">Video</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Video afspelen" xml:space="preserve">
+        <source>Play video</source>
+        <target state="translated">Play video</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Video bekijken" xml:space="preserve">
+        <source>View video</source>
+        <target state="translated">View video</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Video niet beschikbaar" xml:space="preserve">
+        <source>Video not available</source>
+        <target state="translated">Video not available</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Video ophalen: %lld%%" xml:space="preserve">
+        <source>Downloading video: %lld%%</source>
+        <target state="translated">Downloading video: %lld%%</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Video verkleinen (%@)" xml:space="preserve">
+        <source>Shrink video (%@)</source>
+        <target state="translated">Shrink video (%@)</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Video verkleinen…" xml:space="preserve">
+        <source>Shrinking video…</source>
+        <target state="translated">Shrinking video…</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Video voorbereiden…" xml:space="preserve">
+        <source>Preparing video…</source>
+        <target state="translated">Preparing video…</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Video · " xml:space="preserve">
+        <source>Video · </source>
+        <target state="translated">Video · </target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Video's" xml:space="preserve">
+        <source>Videos</source>
+        <target state="translated">Videos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Video's en Live Photos" xml:space="preserve">
+        <source>Videos and Live Photos</source>
+        <target state="translated">Videos and Live Photos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Voeg %lld groepen samen|==|plural.one" xml:space="preserve">
+        <source>Merge %lld group</source>
+        <target state="translated">Merge %lld group</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Voeg %lld groepen samen|==|plural.other" xml:space="preserve">
+        <source>Merge %lld groups</source>
+        <target state="translated">Merge %lld groups</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Voeg samen" xml:space="preserve">
+        <source>Merge</source>
+        <target state="translated">Merge</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Voeg toe aan album" xml:space="preserve">
+        <source>Add to album</source>
+        <target state="translated">Add to album</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Volgende" xml:space="preserve">
+        <source>Next</source>
+        <target state="translated">Next</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Volgorde" xml:space="preserve">
+        <source>Order</source>
+        <target state="translated">Order</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Voorbeeld laden" xml:space="preserve">
+        <source>Loading preview</source>
+        <target state="translated">Loading preview</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Vorige terug" xml:space="preserve">
+        <source>Undo last</source>
+        <target state="translated">Undo last</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="WEGLEGGEN" xml:space="preserve">
+        <source>SET ASIDE</source>
+        <target state="translated">SET ASIDE</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Waarom komt de ruimte niet direct vrij?" xml:space="preserve">
+        <source>Why isn't the space freed up right away?</source>
+        <target state="translated">Why isn't the space freed up right away?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Waarschuwing: %@" xml:space="preserve">
+        <source>Warning: %@</source>
+        <target state="translated">Warning: %@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Wat gebeurt er bij iCloud-foto's?" xml:space="preserve">
+        <source>What happens with iCloud photos?</source>
+        <target state="translated">What happens with iCloud photos?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Wat kost Fotoswipe?" xml:space="preserve">
+        <source>What does Fotoswipe cost?</source>
+        <target state="translated">What does Fotoswipe cost?</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Wazig, bonnetjes, notities, screenshots" xml:space="preserve">
+        <source>Blurry, receipts, notes, screenshots</source>
+        <target state="translated">Blurry, receipts, notes, screenshots</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Wazige foto's, bonnetjes, notities en screenshots komen vooraan. Jij beslist." xml:space="preserve">
+        <source>Blurry photos, receipts, notes and screenshots come first. You decide.</source>
+        <target state="translated">Blurry photos, receipts, notes and screenshots come first. You decide.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Weg" xml:space="preserve">
+        <source>Set aside</source>
+        <target state="translated">Set aside</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Weggelegd (%lld)" xml:space="preserve">
+        <source>Set aside (%lld)</source>
+        <target state="translated">Set aside (%lld)</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Weggelegd gaat eerst naar Bekijken" xml:space="preserve">
+        <source>Set-aside items go to Review first</source>
+        <target state="translated">Set-aside items go to Review first</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Weggelegd; tik om te bewaren" xml:space="preserve">
+        <source>Set aside; tap to keep</source>
+        <target state="translated">Set aside; tap to keep</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Wegleggen" xml:space="preserve">
+        <source>Set aside</source>
+        <target state="translated">Set aside</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Wegleggen voor controle" xml:space="preserve">
+        <source>Set aside for review</source>
+        <target state="translated">Set aside for review</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="WhatsApp, Telegram, Instagram en meer" xml:space="preserve">
+        <source>WhatsApp, Telegram, Instagram and more</source>
+        <target state="translated">WhatsApp, Telegram, Instagram and more</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Widget" xml:space="preserve">
+        <source>Widget</source>
+        <target state="translated">Widget</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Wijzig" xml:space="preserve">
+        <source>Edit</source>
+        <target state="translated">Edit</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Willekeurige volgorde" xml:space="preserve">
+        <source>Random order</source>
+        <target state="translated">Random order</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Wis alle keuzes" xml:space="preserve">
+        <source>Clear all choices</source>
+        <target state="translated">Clear all choices</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Wordt %@" xml:space="preserve">
+        <source>Becomes %@</source>
+        <target state="translated">Becomes %@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Ze komen terug in de stapels. Weggelegde items blijven weggelegd." xml:space="preserve">
+        <source>They go back into the stacks. Set-aside items stay set aside.</source>
+        <target state="translated">They go back into the stacks. Set-aside items stay set aside.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Ze staan als knoppen onder de foto. Eén tik zet de foto in dat album en gaat door naar de volgende." xml:space="preserve">
+        <source>They appear as buttons under the photo. One tap files the photo in that album and moves on to the next.</source>
+        <target state="translated">They appear as buttons under the photo. One tap files the photo in that album and moves on to the next.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Ze staan nog 30 dagen in 'Recent verwijderd' in Foto's; pas daarna komt de ruimte vrij. Wil je de ruimte nu al? Open Foto's, ga naar Albums &gt; Recent verwijderd en kies Verwijder alles." xml:space="preserve">
+        <source>They stay in 'Recently Deleted' in Photos for 30 days; only then is the space freed up. Want the space now? Open Photos, go to Albums &gt; Recently Deleted and choose Delete All.</source>
+        <target state="translated">They stay in 'Recently Deleted' in Photos for 30 days; only then is the space freed up. Want the space now? Open Photos, go to Albums &gt; Recently Deleted and choose Delete All.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Zet in album %@ en bewaar" xml:space="preserve">
+        <source>Add to album %@ and keep</source>
+        <target state="translated">Add to album %@ and keep</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Zet tot 3 albums onder de foto. Eén tik en hij staat erin." xml:space="preserve">
+        <source>Pin up to 3 albums under the photo. One tap and it's in.</source>
+        <target state="translated">Pin up to 3 albums under the photo. One tap and it's in.</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Zo swipe je" xml:space="preserve">
+        <source>How to swipe</source>
+        <target state="translated">How to swipe</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Zoek een album" xml:space="preserve">
+        <source>Search for an album</source>
+        <target state="translated">Search for an album</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Zoek een categorie of album" xml:space="preserve">
+        <source>Search for a category or album</source>
+        <target state="translated">Search for a category or album</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Zoek vergelijkbare foto's" xml:space="preserve">
+        <source>Find similar photos</source>
+        <target state="translated">Find similar photos</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Zonder datum" xml:space="preserve">
+        <source>No date</source>
+        <target state="translated">No date</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Zonder naam" xml:space="preserve">
+        <source>No name</source>
+        <target state="translated">No name</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="actief" xml:space="preserve">
+        <source>active</source>
+        <target state="translated">active</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="bewaren" xml:space="preserve">
+        <source>keep</source>
+        <target state="translated">keep</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="ca. %@" xml:space="preserve">
+        <source>approx. %@</source>
+        <target state="translated">approx. %@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="dagen reeks" xml:space="preserve">
+        <source>day streak</source>
+        <target state="translated">day streak</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="dagen reeks nu" xml:space="preserve">
+        <source>day streak now</source>
+        <target state="translated">day streak now</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="fotoswipe" xml:space="preserve">
+        <source>fotoswipe</source>
+        <target state="translated">fotoswipe</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="iOS weet zelf welke foto de beste is" xml:space="preserve">
+        <source>iOS knows which photo is best</source>
+        <target state="translated">iOS knows which photo is best</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="items bekeken" xml:space="preserve">
+        <source>items reviewed</source>
+        <target state="translated">items reviewed</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="langste reeks" xml:space="preserve">
+        <source>longest streak</source>
+        <target state="translated">longest streak</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="na bevestigd verwijderen" xml:space="preserve">
+        <source>after confirmed deletion</source>
+        <target state="translated">after confirmed deletion</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="niet actief" xml:space="preserve">
+        <source>inactive</source>
+        <target state="translated">inactive</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="onbekende datum" xml:space="preserve">
+        <source>unknown date</source>
+        <target state="translated">unknown date</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="sessie afgerond" xml:space="preserve">
+        <source>session completed</source>
+        <target state="translated">session completed</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="sessies afgerond" xml:space="preserve">
+        <source>sessions completed</source>
+        <target state="translated">sessions completed</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="weg" xml:space="preserve">
+        <source>set aside</source>
+        <target state="translated">set aside</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="· %@" xml:space="preserve">
+        <source>· %@</source>
+        <target state="translated">· %@</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="← wegleggen     ·     bewaren →" xml:space="preserve">
+        <source>← set aside     ·     keep →</source>
+        <target state="translated">← set aside     ·     keep →</target>
+        <note/>
+      </trans-unit>
+    </body>
+  </file>
+  <file original="FotoswipeWidget/en.lproj/InfoPlist.strings" source-language="en" target-language="en" datatype="plaintext">
+    <header>
+      <tool tool-id="com.apple.dt.xcode" tool-name="Xcode" tool-version="26.6" build-num="17F113"/>
+    </header>
+    <body>
+      <trans-unit id="CFBundleDisplayName" xml:space="preserve">
+        <source>Fotoswipe</source>
+        <target>Fotoswipe</target>
+        <note>Bundle display name</note>
+      </trans-unit>
+      <trans-unit id="CFBundleName" xml:space="preserve">
+        <source>FotoswipeWidget</source>
+        <target>FotoswipeWidget</target>
+        <note>Bundle name</note>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
