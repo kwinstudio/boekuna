@@ -44,53 +44,31 @@ jobs:
             done
             return 1
           }
-          for SIZE in "se:iPhone-SE-3rd-generation" "regular:iPhone-17 iPhone-16" "promax:iPhone-17-Pro-Max iPhone-16-Pro-Max"; do
-            NAME=${SIZE%%:*}; TYPES=${SIZE#*:}
-            UDID=$(create $TYPES) || { echo "::warning title=Fotoswipe screens::Cannot create $NAME ($TYPES)"; continue; }
+          # name : device types : languages : screens
+          shoot() {
+            local NAME=$1 TYPES=$2 LANGS=$3 SCREENS=$4
+            UDID=$(create $TYPES) || { echo "::warning title=Fotoswipe screens::Cannot create $NAME ($TYPES)"; return 0; }
             xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
             xcrun simctl install "$UDID" "$APP"
-            xcrun simctl addmedia "$UDID" build/media/*.jpg
-            # First launch without access: the welcome screen must show without a system prompt.
-            for PAGE in 0 1 2; do
-              xcrun simctl launch "$UDID" "$BUNDLE" -FSOnboardingPage $PAGE >/dev/null; sleep 7
-              xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/$NAME-onboarding$PAGE.png" >/dev/null 2>&1
-              xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
-            done
-            if [[ "$NAME" == "se" ]]; then
-              xcrun simctl ui "$UDID" content_size accessibility-extra-large || echo "::warning title=Fotoswipe screens::content_size not supported"
-              for PAGE in 0 2; do
-                xcrun simctl launch "$UDID" "$BUNDLE" -FSOnboardingPage $PAGE >/dev/null; sleep 7
-                xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/se-largetext-onboarding$PAGE.png" >/dev/null 2>&1
+            for LANG in $LANGS; do
+              for SCREEN in $SCREENS; do
                 xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
+                case "$SCREEN" in
+                  onboarding*) xcrun simctl launch "$UDID" "$BUNDLE" -FSLanguage "$LANG" -FSOnboardingPage "${SCREEN#onboarding}" >/dev/null ;;
+                  *) xcrun simctl launch "$UDID" "$BUNDLE" -FSLanguage "$LANG" -fotoswipe.focusGuideSeen YES -FSScreen "$SCREEN" >/dev/null ;;
+                esac
+                sleep 8
+                xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/$NAME-$LANG-$SCREEN.png" >/dev/null 2>&1
               done
-              xcrun simctl ui "$UDID" content_size large || true
-            fi
-            # Grant full photo access in the simulator's privacy database (CI only).
-            xcrun simctl shutdown "$UDID"
-            TCC="$HOME/Library/Developer/CoreSimulator/Devices/$UDID/data/Library/TCC/TCC.db"
-            if [[ -f "$TCC" ]]; then
-              sqlite3 "$TCC" "INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, flags, last_modified) VALUES ('kTCCServicePhotos', '$BUNDLE', 0, 2, 2, 1, 0, CAST(strftime('%s','now') AS INTEGER));" \
-                || echo "::warning title=Fotoswipe screens::TCC insert failed on $NAME"
-            else
-              echo "::warning title=Fotoswipe screens::No TCC.db on $NAME"
-            fi
-            xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
-            OUT=$(xcrun simctl privacy "$UDID" grant photos "$BUNDLE" 2>&1) || echo "::warning title=Fotoswipe screens::privacy grant failed on $NAME: $OUT"
-            ROWS=$(sqlite3 "$TCC" "SELECT service, client, auth_value FROM access WHERE client='$BUNDLE';" 2>&1 | tr '\n' ';')
-            echo "::notice title=Fotoswipe screens::TCC on $NAME: $ROWS"
-            for SCREEN in main focus stacks review end whatsnew info clutter stats smart; do
-              xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
-              if [[ "$SCREEN" == "main" ]]; then
-                xcrun simctl launch "$UDID" "$BUNDLE" -fotoswipe.focusGuideSeen YES >/dev/null
-              else
-                xcrun simctl launch "$UDID" "$BUNDLE" -fotoswipe.focusGuideSeen YES -FSScreen "$SCREEN" >/dev/null
-              fi
-              sleep 9
-              xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/shots/$NAME-$SCREEN.png" >/dev/null 2>&1
             done
             xcrun simctl shutdown "$UDID" || true
             echo "::notice title=Fotoswipe screens::$NAME done"
-          done
+          }
+          echo "::notice title=iPad types::$(xcrun simctl list devicetypes | grep -i "ipad pro 13\|ipad air 13" | sed -E "s/.*\((com[^)]*)\).*/\1/" | sed "s/com.apple.CoreSimulator.SimDeviceType.//" | tr "\n" " ")"
+          NAME=se; shoot se "iPhone-SE-3rd-generation" "nl" "onboarding0 onboarding1 onboarding2"
+          NAME=regular; shoot regular "iPhone-17 iPhone-16" "en de ja" "onboarding0 info smart whatsnew"
+          NAME=regular2; shoot regular2 "iPhone-17 iPhone-16" "es fr nl" "onboarding0 smart"
+          NAME=ipad; shoot ipad "iPad-Pro-13-inch-M5-12GB iPad-Pro-13-inch-M4-8GB iPad-Air-13-inch-M3 iPad-Air-13-inch-M2" "en" "onboarding0 onboarding1 onboarding2 info smart whatsnew"
           ls "$RUNNER_TEMP/shots" | wc -l | xargs -I{} echo "::notice title=Fotoswipe screens::{} screenshots"
       - name: Publish screenshots to review branch
         run: |

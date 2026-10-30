@@ -1189,10 +1189,11 @@ struct WhatsNewView: View {
         var id: String { title }
     }
     private let items: [Item] = [
-        Item(icon: "wand.and.stars", title: String(localized: "Slim opruimen", bundle: .app), text: String(localized: "Alle slimme groepen op één plek, met de grootste winst bovenaan.", bundle: .app), fill: Palette.reward, tint: Palette.ink),
-        Item(icon: "square.stack.fill", title: String(localized: "Burstfoto's en kopieën", bundle: .app), text: String(localized: "iOS weet welke burstfoto de beste is. Kopieën vind je in één keer.", bundle: .app), fill: Palette.brand, tint: .white),
-        Item(icon: "eye.slash", title: String(localized: "Per ongeluk en uit apps", bundle: .app), text: String(localized: "Zwarte foto's, minivideo's, oude screenshots en WhatsApp-plaatjes.", bundle: .app), fill: Palette.surface, tint: Palette.ink),
-        Item(icon: "arrow.down.right.and.arrow.up.left", title: String(localized: "Kleiner zonder verwijderen", bundle: .app), text: String(localized: "Video verkleinen of een Live Photo als gewone foto bewaren, via Meer.", bundle: .app), fill: Palette.keep, tint: .white)
+        Item(icon: "globe", title: String(localized: "In jouw taal", bundle: .app), text: String(localized: "Engels, Nederlands, Spaans, Duits, Frans of Japans. Kies je taal bij Instellingen.", bundle: .app), fill: Palette.reward, tint: Palette.ink),
+        Item(icon: "film.stack", title: String(localized: "Grote video's", bundle: .app), text: String(localized: "Je grootste video's op een rij. Verklein ze in laag, midden of hoog.", bundle: .app), fill: Palette.brand, tint: .white),
+        Item(icon: "rectangle.stack.badge.plus", title: String(localized: "Snelle albums", bundle: .app), text: String(localized: "Zet tot 3 albums onder de foto. Eén tik en hij staat erin.", bundle: .app), fill: Palette.surface, tint: Palette.ink),
+        Item(icon: "map.fill", title: String(localized: "Reiskaart en contacten", bundle: .app), text: String(localized: "Ruim één reis tegelijk op en voeg dubbele contacten samen, in Slim opruimen.", bundle: .app), fill: Palette.keep, tint: .white),
+        Item(icon: "square.grid.2x2.fill", title: String(localized: "Widget", bundle: .app), text: String(localized: "Je reeks en Op deze dag op je beginscherm.", bundle: .app), fill: Palette.surface, tint: Palette.ink)
     ]
     var body: some View {
         ScrollView {
