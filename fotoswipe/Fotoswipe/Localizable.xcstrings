@@ -2195,7 +2195,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld gone"
+            "value": "%lld set aside"
           }
         },
         "nl": {
@@ -2207,31 +2207,19 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld fuera"
+            "value": "%lld apartadas"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld weg"
+            "value": "%lld beiseite"
           }
         },
         "fr": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld supprimé"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld supprimés"
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld de côté"
           }
         },
         "ja": {
@@ -16051,7 +16039,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Remove anyway"
+            "value": "Set aside after all"
           }
         },
         "nl": {
@@ -16063,25 +16051,25 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apartar de todos modos"
+            "value": "Apartar igualmente"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Doch weg"
+            "value": "Doch beiseitelegen"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Supprimer quand même"
+            "value": "Mettre de côté"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "やはりよける"
+            "value": "やっぱりよける"
           }
         }
       }
@@ -18402,7 +18390,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gone"
+            "value": "Set aside"
           }
         },
         "nl": {
@@ -18414,19 +18402,19 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fuera"
+            "value": "Apartar"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Weg"
+            "value": "Beiseite"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Supprimé"
+            "value": "De côté"
           }
         },
         "ja": {
@@ -19919,7 +19907,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "gone"
+            "value": "set aside"
           }
         },
         "nl": {
@@ -19931,25 +19919,25 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "fuera"
+            "value": "apartar"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "weg"
+            "value": "beiseite"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "supprimés"
+            "value": "de côté"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "よけた"
+            "value": "よける"
           }
         }
       }

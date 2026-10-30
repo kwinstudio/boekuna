@@ -73,10 +73,7 @@
  "%lld van %lld items": "%lld éléments sur %lld",
  "%lld van %lld recente foto's bekeken": "%lld photos récentes vues sur %lld",
  "%lld van %lld recente foto's · alleen op je iPhone": "%lld photos récentes sur %lld · seulement sur ton iPhone",
- "%lld weg": {
-  "one": "%lld supprimé",
-  "other": "%lld supprimés"
- },
+ "%lld weg": "%lld de côté",
  "%lld weggelegd": {
   "one": "%lld mis de côté",
   "other": "%lld mis de côté"
@@ -398,7 +395,7 @@
  "Tik op een foto om details te bekijken. Kies daarna welke je wilt wegleggen.": "Touche une photo pour voir les détails. Choisis ensuite celles à mettre de côté.",
  "Tik op een item om het te bekijken. Met Terug zet je het terug in de stapel.": "Touche un élément pour le voir. Avec Retour, tu le remets dans la pile.",
  "Tip: kies volledige toegang om je hele bibliotheek op te ruimen. Een selectie kan ook.": "Astuce : choisis l'accès complet pour nettoyer toute ta photothèque. Une sélection, c'est possible aussi.",
- "Toch weg": "Supprimer quand même",
+ "Toch weg": "Mettre de côté",
  "Toegevoegd aan Favorieten in Foto's.": "Ajouté aux Favoris dans Photos.",
  "Toegevoegd aan album in Foto's.": "Ajouté à l'album dans Photos.",
  "Toevoegen is niet gelukt. Je keuzes zijn bewaard.": "Échec de l'ajout. Tes choix sont conservés.",
@@ -454,7 +451,7 @@
  "Wat kost Fotoswipe?": "Combien coûte Fotoswipe ?",
  "Wazig, bonnetjes, notities, screenshots": "Flou, tickets, notes, captures d'écran",
  "Wazige foto's, bonnetjes, notities en screenshots komen vooraan. Jij beslist.": "Les photos floues, tickets, notes et captures d'écran passent en premier. C'est toi qui décides.",
- "Weg": "Supprimé",
+ "Weg": "De côté",
  "Weggelegd (%lld)": "De côté (%lld)",
  "Weggelegd gaat eerst naar Bekijken": "Ce qui est mis de côté passe d'abord par Vérifier",
  "Weggelegd; tik om te bewaren": "Mis de côté ; touche pour garder",
@@ -487,7 +484,7 @@
  "onbekende datum": "date inconnue",
  "sessie afgerond": "session terminée",
  "sessies afgerond": "sessions terminées",
- "weg": "supprimés",
+ "weg": "de côté",
  "· %@": "· %@",
  "← wegleggen     ·     bewaren →": "← de côté     ·     garder →",
  "NSContactsUsageDescription": "Fotoswipe recherche les contacts en double. Ils ne sont fusionnés qu'après ta confirmation. Tes contacts restent sur ton iPhone.",

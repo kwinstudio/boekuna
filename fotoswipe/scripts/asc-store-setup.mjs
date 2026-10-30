@@ -122,8 +122,11 @@ flush();
 
 // Screenshots (6.9-inch iPhone, 1320x2868) from store/screenshots/<locale>/1..5.png. Replaces the set only when asked.
 if (process.env.UPLOAD_SCREENSHOTS === '1') {
-  const root = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'store', 'screenshots');
   const freshLocs = (await api(`/v1/appStoreVersions/${version.id}/appStoreVersionLocalizations?limit=50`)).data;
+  // iPhone 6.9-inch and iPad 13-inch; languages without their own folder use the primary language's screenshots.
+  const groups = [['screenshots', ['APP_IPHONE_67', 'APP_IPHONE_69']], ['screenshots-ipad', ['APP_IPAD_PRO_3GEN_129']]];
+  for (const [folder, displayTypes] of groups) {
+  const root = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'store', folder);
   for (const locale of Object.keys(listing.locales)) {
     const dir = path.join(root, locale);
     if (!fs.existsSync(dir)) continue;
@@ -131,7 +134,7 @@ if (process.env.UPLOAD_SCREENSHOTS === '1') {
     if (!loc) { note(`${locale}: no version language for screenshots`); continue; }
     const files = fs.readdirSync(dir).filter((f) => f.endsWith('.png')).sort();
     let uploaded = 0, failed = '';
-    for (const displayType of ['APP_IPHONE_67', 'APP_IPHONE_69']) {
+    for (const displayType of displayTypes) {
       try {
         const sets = (await api(`/v1/appStoreVersionLocalizations/${loc.id}/appScreenshotSets?limit=50`)).data;
         let set = sets.find((s) => s.attributes.screenshotDisplayType === displayType);
@@ -164,6 +167,7 @@ if (process.env.UPLOAD_SCREENSHOTS === '1') {
       } catch (e) { failed = short(e); uploaded = 0; }
     }
     if (failed) note(`${locale}: screenshots failed (${failed})`);
+  }
   }
   await sleep(20_000);
   for (const locale of Object.keys(listing.locales)) {
