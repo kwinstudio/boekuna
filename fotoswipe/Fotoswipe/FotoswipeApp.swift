@@ -1,10 +1,18 @@
 import SwiftUI
 import UIKit
 import UserNotifications
+import TipKit
 
 @main struct FotoswipeApp: App {
     @StateObject private var library = PhotoLibrary()
-    init() { UNUserNotificationCenter.current().delegate = Reminders.shared }
+    init() {
+        UNUserNotificationCenter.current().delegate = Reminders.shared
+        #if DEBUG
+        // Screenshot runs show clean screens without tips.
+        if CommandLine.arguments.contains("-FSScreen") || CommandLine.arguments.contains("-FSOnboardingPage") { Tips.hideAllTipsForTesting() }
+        #endif
+        try? Tips.configure([.displayFrequency(.hourly)])
+    }
     var body: some Scene {
         WindowGroup { ContentView().environmentObject(library).preferredColorScheme(.light) }
     }
@@ -157,4 +165,31 @@ enum Haptics {
                                             withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([])
     }
+}
+
+
+// MARK: - Tips (progressive disclosure: each feature is introduced once, at the moment it helps)
+
+struct SmartCleanTip: Tip {
+    @Parameter static var sessionsDone: Int = 0
+    var title: Text { Text("Snel veel ruimte") }
+    var message: Text? { Text("Slim opruimen zet burstfoto's, kopieën en rommel klaar, met de grootste winst bovenaan.") }
+    var image: Image? { Image(systemName: "wand.and.stars") }
+    var rules: [Rule] { #Rule(Self.$sessionsDone) { $0 >= 1 } }
+}
+
+struct FocusTip: Tip {
+    @Parameter static var swipes: Int = 0
+    var title: Text { Text("Alleen de foto") }
+    var message: Text? { Text("Tik op Focus: de foto vult het scherm en je swipet met gebaren.") }
+    var image: Image? { Image(systemName: "arrow.up.left.and.arrow.down.right") }
+    var rules: [Rule] { #Rule(Self.$swipes) { $0 >= 15 } }
+}
+
+struct ReviewNudgeTip: Tip {
+    @Parameter static var pending: Int = 0
+    var title: Text { Text("Klaar om ruimte te maken?") }
+    var message: Text? { Text("Controleer je weggelegde foto's en verwijder ze in één keer.") }
+    var image: Image? { Image(systemName: "tray.full.fill") }
+    var rules: [Rule] { #Rule(Self.$pending) { $0 >= 25 } }
 }

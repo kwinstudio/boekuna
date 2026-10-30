@@ -83,6 +83,13 @@ struct ReviewView: View {
     }
 }
 
+/// Fixed public pages required by the App Store.
+enum AppLinks {
+    static let privacy = URL(string: "https://fotoswipe.onrender.com/privacy.html")!
+    static let support = URL(string: "https://fotoswipe.onrender.com/support.html")!
+}
+
+/// Short on purpose (Hick's law): help first, then a few settings. Long explanations live in "Hoe werkt Fotoswipe?".
 struct InfoView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var library: PhotoLibrary
@@ -100,79 +107,122 @@ struct InfoView: View {
         NavigationStack {
             List {
                 Section {
-                    Picker("Items per sessie", selection: $sessionSize) {
-                        ForEach(ReviewSession.sizes, id: \.self) { size in Text("\(size)").tag(size) }
-                    }.pickerStyle(.segmented)
-                } header: { Text("Sessie") } footer: {
-                    Text("Kort en vaak werkt het best. Je keuzes blijven bewaard, dus je gaat altijd verder waar je was.")
+                    NavigationLink { HelpView().environmentObject(library) } label: { Label("Hoe werkt Fotoswipe?", systemImage: "questionmark.circle") }
+                    Button { stats = true } label: { Label("Jouw overzicht", systemImage: "chart.bar.fill") }
                 }
                 Section {
+                    Picker("Items per sessie", selection: $sessionSize) {
+                        ForEach(ReviewSession.sizes, id: \.self) { size in Text("\(size)").tag(size) }
+                    }
                     Toggle("Dagelijkse herinnering", isOn: Binding(get: { reminders.enabled }, set: { on in
                         reminders.setEnabled(on) { library.rescheduleReminders() }
                     }))
-                    DatePicker("Tijd", selection: Binding(get: { reminders.time }, set: { date in
-                        reminders.setTime(date) { library.rescheduleReminders() }
-                    }), displayedComponents: .hourAndMinute)
-                    .disabled(!reminders.enabled)
-                } header: { Text("Herinnering") } footer: {
-                    Text(reminders.denied ? "Meldingen staan uit voor Fotoswipe. Zet ze aan in Instellingen." : "Eén melding per dag op jouw moment, met foto's van die dag uit eerdere jaren. Geen melding als je al klaar bent.")
-                }
-                Section("Zo werkt Fotoswipe") {
-                    Label("Links of kruisje: wegleggen voor controle", systemImage: "arrow.left")
-                    Label("Rechts of vinkje: bewaren", systemImage: "arrow.right")
-                    Label("Klokje: later beslissen", systemImage: "clock")
-                    Label("Terugpijl: laatste keuze herstellen", systemImage: "arrow.uturn.backward")
-                    Text("Een sessie is standaard 100 items; kies 30 of 50 als je korter wilt. Kies je elke dag minstens 10 items of maak je een sessie af, dan groeit je reeks. Eén dag overslaan mag.")
-                    Text("Bijna dubbel zoekt foto's die vlak na elkaar zijn gemaakt en op elkaar lijken. De beste staat alvast aangevinkt; met één veeg naar rechts bewaar je die en gaan de andere naar Bekijken. Rommel zet wazige foto's, bonnetjes, notities en screenshots vooraan. Beide werken alleen op je iPhone.")
-                    Text("Focus (rechtsboven) toont alleen de foto op het hele scherm. Veeg rechts om te bewaren, links om weg te leggen, omhoog voor later en omlaag om de vorige terug te zetten. Dubbeltik maakt favoriet, vasthouden zoomt in, één tik toont de knoppen.")
-                    Text("Grootste eerst zet video's en grote foto's vooraan, zodat je snel veel ruimte wint. De volgorde is een schatting op basis van resolutie en duur.")
-                    Text("Open 'Bekijken' om je selectie te controleren. Er wordt pas iets verwijderd nadat je dit bevestigt, ook in het venster van Apple.")
-                }
-                Section("Privacy") {
-                    Text("Geen login, advertenties, analytics of eigen server. Fotoswipe bewaart alleen fotokenmerken (lokale identifiers) en je keuzes op dit apparaat. Er worden door Fotoswipe geen items geüpload.")
-                    Text("Een foto die alleen in iCloud staat, kan door Apple's Foto's-framework worden opgehaald om die te tonen. Daarvoor kan internet nodig zijn.")
-                    Text("Je voortgang blijft bewaard als je de app sluit. Deze gegevens kunnen deel uitmaken van de normale apparaatback-up. Verwijderen van de app verwijdert ook je lokale voortgang.")
-                }
-                Section("Categorieën en volgorde") {
-                    Text("Kies boven de stapel Favorieten, Screenshots, een ander fototype, je eigen album of een maand. De maandlijst toont hoeveel items je al hebt bekeken. Op deze dag toont items van dezelfde datum uit eerdere jaren.")
-                    Text("Met Nieuwste eerst of Oudste eerst verander je de volgorde. Bewaren is een keuze in Fotoswipe; via Meer kun je een item ook echt favoriet maken in Foto's, aan een album toevoegen of voor later bewaren. Weggelegde items uit alle categorieën staan samen in Bekijken.")
-                }
-                Section("Meer mogelijkheden") {
-                    Text("Later beslissen bewaart twijfelgevallen voor de categorie Later. Kies een willekeurige sessie, of zet de volgorde op Willekeurig.")
-                    Text("Vergelijkbare foto's zoeken start je zelf via Meer. Alleen lokaal beschikbare voorbeeldbeelden worden bekeken, zonder foto's te uploaden. Kandidaten zijn niet gegarandeerd identiek; je kiest zelf wat weg mag en houdt minstens één item per groep.")
-                }
-                Section("Goed om te weten") {
-                    Text("Bij beperkte toegang zie je alleen de items die je hebt toegestaan. Via 'Wijzig' kun je die selectie aanpassen; volledige toegang regel je via Instellingen.")
-                    Text("Je kunt foto's, Live Photos en video's beoordelen. Video's spelen pas af wanneer je dat kiest. Een Live Photo wordt als volledig item verwijderd, inclusief het bewegende deel.")
-                    Text("Als je iCloud-items gebruikt, geldt verwijderen ook voor je andere gekoppelde apparaten.")
-                    Text("Verwijder nooit items die je nog nodig hebt zonder een eigen back-up.")
-                }
-                Section {
-                    Button { stats = true } label: { Label("Jouw overzicht", systemImage: "chart.bar.fill") }
+                    if reminders.enabled {
+                        DatePicker("Tijd", selection: Binding(get: { reminders.time }, set: { date in
+                            reminders.setTime(date) { library.rescheduleReminders() }
+                        }), displayedComponents: .hourAndMinute)
+                    }
                     Toggle("Trillen bij keuzes", isOn: $haptics)
-                } header: { Text("Overzicht en gevoel") }
+                } header: { Text("Instellingen") } footer: {
+                    if reminders.denied { Text("Meldingen staan uit voor Fotoswipe. Zet ze aan in Instellingen.") }
+                }
                 Section {
                     Button("Bewaarde foto's opnieuw bekijken") { confirmResetKept = true }
                     Button("Alle keuzes wissen", role: .destructive) { confirmResetAll = true }
                 } header: { Text("Opnieuw beginnen") } footer: {
-                    Text("Dit verandert alleen je keuzes in Fotoswipe. Je foto's in Foto's blijven zoals ze zijn. Je voortgang zit in de gewone back-up van je iPhone.")
+                    Text("Alleen je keuzes in Fotoswipe veranderen. Je foto's blijven zoals ze zijn.")
                 }
-                Section("Feedback") {
-                    Text("Iets raars gezien of een idee? Maak een screenshot in Fotoswipe en kies 'Deel bèta-feedback'. Of open TestFlight, kies Fotoswipe en tik op 'Stuur bèta-feedback'.")
+                Section {
+                    Link(destination: AppLinks.support) { Label("Hulp en contact", systemImage: "envelope") }
+                    Link(destination: AppLinks.privacy) { Label("Privacybeleid", systemImage: "hand.raised") }
+                } footer: {
+                    Text("\(versionText)\nGeen reclame, geen abonnement, geen limiet. Je foto's blijven op je iPhone.")
                 }
-                Section { Text("\(versionText) · geen reclame, geen abonnement, geen limiet").foregroundStyle(Palette.muted) }
             }
-                .confirmationDialog("Alle bewaarde foto's opnieuw bekijken?", isPresented: $confirmResetKept, titleVisibility: .visible) {
-                    Button("Opnieuw bekijken") { library.resetAllKept() }
-                    Button("Annuleren", role: .cancel) {}
-                } message: { Text("Ze komen terug in de stapels. Weggelegde items blijven weggelegd.") }
-                .confirmationDialog("Alle keuzes wissen?", isPresented: $confirmResetAll, titleVisibility: .visible) {
-                    Button("Wis alle keuzes", role: .destructive) { library.resetAllChoices() }
-                    Button("Annuleren", role: .cancel) {}
-                } message: { Text("Bewaard, weggelegd en later worden gewist. Er wordt niets uit Foto's verwijderd.") }
-                .sheet(isPresented: $stats) { StatsView().environmentObject(library) }
-                .navigationTitle("Over Fotoswipe").navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Klaar") { dismiss() } } }
+            .confirmationDialog("Alle bewaarde foto's opnieuw bekijken?", isPresented: $confirmResetKept, titleVisibility: .visible) {
+                Button("Opnieuw bekijken") { library.resetAllKept() }
+                Button("Annuleren", role: .cancel) {}
+            } message: { Text("Ze komen terug in de stapels. Weggelegde items blijven weggelegd.") }
+            .confirmationDialog("Alle keuzes wissen?", isPresented: $confirmResetAll, titleVisibility: .visible) {
+                Button("Wis alle keuzes", role: .destructive) { library.resetAllChoices() }
+                Button("Annuleren", role: .cancel) {}
+            } message: { Text("Bewaard, weggelegd en later worden gewist. Er wordt niets uit Foto's verwijderd.") }
+            .sheet(isPresented: $stats) { StatsView().environmentObject(library) }
+            .navigationTitle("Fotoswipe").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Klaar") { dismiss() } } }
         }
+    }
+}
+
+/// "Hoe werkt het": four steps, the gestures, and the questions people actually ask.
+struct HelpView: View {
+    @EnvironmentObject private var library: PhotoLibrary
+    @State private var practice = false
+    private let faq: [(String, String)] = [
+        ("Is een foto meteen weg als ik swipe?", "Nee. Naar links leggen zet een foto alleen opzij. Pas als je in Bekijken op Verwijder tikt en iOS dat bevestigt, gaat hij naar 'Recent verwijderd'. Daar staat hij nog 30 dagen."),
+        ("Waarom komt de ruimte niet direct vrij?", "Verwijderde foto's blijven 30 dagen in Foto's > Albums > Recent verwijderd. Wil je de ruimte meteen? Kies daar Verwijder alles. Een app mag dat album niet zelf legen."),
+        ("Hoe weet Fotoswipe wat rommel of bijna dubbel is?", "Fotoswipe bekijkt kleine voorbeelden van je recentste foto's, alleen op je iPhone. Het is een voorstel: jij beslist altijd zelf, en favorieten komen nooit in Rommel."),
+        ("Wat gebeurt er bij iCloud-foto's?", "Verwijderen geldt ook voor je andere apparaten met dezelfde iCloud-fotobibliotheek. Foto's die alleen in iCloud staan, worden even opgehaald om ze te tonen."),
+        ("Ik gaf alleen toegang tot een paar foto's", "Dan zie je alleen die foto's. Tik op 'Wijzig' boven de stapel om meer te kiezen, of geef volledige toegang in Instellingen > Privacy > Foto's."),
+        ("Raak ik mijn voortgang kwijt?", "Nee, je keuzes worden op je iPhone bewaard en gaan mee in je gewone iPhone-back-up. Als je de app verwijdert, is je voortgang weg; je foto's niet."),
+        ("Wat kost Fotoswipe?", "Niets. Geen reclame, geen abonnement en geen limiet op het aantal swipes.")
+    ]
+    var body: some View {
+        List {
+            Section {
+                step(1, "Swipe", "Rechts is bewaren, links is wegleggen. Twijfel? Tik op het klokje voor later.")
+                step(2, "Controleer", "Tik op 'Weggelegd' onderaan. Tik op een foto om hem toch te bewaren.")
+                step(3, "Verwijder", "Tik op Verwijder en bevestig in het venster van iOS.")
+                step(4, "Maak ruimte vrij", "Leeg 'Recent verwijderd' in Foto's, of wacht 30 dagen.")
+                Button { practice = true } label: { Label("Oefen het swipen", systemImage: "hand.draw") }
+            } header: { Text("In 4 stappen") }
+            Section {
+                gesture("arrow.right", "Naar rechts", "Bewaren")
+                gesture("arrow.left", "Naar links", "Wegleggen")
+                gesture("arrow.up", "Omhoog", "Later beslissen")
+                gesture("arrow.down", "Omlaag", "Vorige terug")
+                gesture("hand.tap", "Dubbeltik", "Favoriet in Foto's")
+                gesture("plus.magnifyingglass", "Vasthouden", "Inzoomen")
+            } header: { Text("Gebaren in Focus") } footer: {
+                Text("Focus (rechtsboven) toont alleen de foto op het hele scherm. Eén tik toont de knoppen.")
+            }
+            Section {
+                ForEach(faq, id: \.0) { item in
+                    DisclosureGroup {
+                        Text(item.1).font(.subheadline).foregroundStyle(Palette.muted)
+                    } label: { Text(item.0).font(.subheadline.weight(.semibold)) }
+                }
+            } header: { Text("Veelgestelde vragen") }
+            Section {
+                Link(destination: AppLinks.support) { Label("Andere vraag? Neem contact op", systemImage: "envelope") }
+            }
+        }
+        .navigationTitle("Hoe werkt Fotoswipe?").navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $practice) {
+            OnboardingView(onAllow: { practice = false }, startPage: 1, replay: true)
+                .padding(.horizontal, 20)
+                .background(Palette.background.ignoresSafeArea())
+        }
+    }
+    private func step(_ number: Int, _ title: String, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text("\(number)").font(.headline.weight(.heavy)).foregroundStyle(Palette.ink)
+                .frame(width: 30, height: 30).background(Circle().fill(Palette.reward))
+                .overlay(Circle().stroke(Palette.ink, lineWidth: 2))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.headline)
+                Text(text).font(.subheadline).foregroundStyle(Palette.muted)
+            }
+        }
+        .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
+    }
+    private func gesture(_ icon: String, _ name: String, _ result: String) -> some View {
+        HStack {
+            Label(name, systemImage: icon)
+            Spacer()
+            Text(result).foregroundStyle(Palette.muted)
+        }
+        .accessibilityElement(children: .combine)
     }
 }

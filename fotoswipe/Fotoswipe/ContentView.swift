@@ -1,6 +1,7 @@
 import SwiftUI
 import Photos
 import StoreKit
+import TipKit
 
 struct ContentView: View {
     @EnvironmentObject private var library: PhotoLibrary
@@ -55,6 +56,9 @@ struct ContentView: View {
             #if DEBUG
             .task { await openDebugScreen() }
             #endif
+            .onChange(of: library.session.count) { _, count in FocusTip.swipes = max(FocusTip.swipes, count) }
+            .onChange(of: library.pending.count) { _, count in ReviewNudgeTip.pending = count }
+            .onChange(of: library.sessionFinished) { _, _ in SmartCleanTip.sessionsDone = library.completedSessions }
             .onAppear {
                 // Only for people updating, not on a first install.
                 if whatsNewSeen != WhatsNewView.version && library.hasAccess && !library.state.decisions.isEmpty {
@@ -125,13 +129,17 @@ struct ContentView: View {
                 .accessibilityAction { stats = true }
             }
             if library.hasAccess {
-                Button { focus = true } label: {
+                Button {
+                    FocusTip().invalidate(reason: .actionPerformed)
+                    focus = true
+                } label: {
                     Label("Focus", systemImage: "arrow.up.left.and.arrow.down.right").font(.subheadline.weight(.heavy)).lineLimit(1)
                         .foregroundStyle(.white).padding(.horizontal, 12).frame(minHeight: 36)
                         .pop(radius: 18, fill: Palette.brand, shadow: 2)
                 }
                 .disabled(library.loading || library.current == nil)
                 .accessibilityLabel("Focusmodus: alleen de foto, volledig scherm")
+                .popoverTip(FocusTip())
             }
             Button { info = true } label: { Image(systemName: "info.circle").font(.title3).frame(width: 44, height: 44) }
                 .foregroundStyle(Palette.ink).accessibilityLabel("Over Fotoswipe")
@@ -195,14 +203,7 @@ struct ContentView: View {
                 Text("\(library.reviewed) van \(library.assets.count) bekeken").font(.caption).foregroundStyle(Palette.muted)
                 Spacer()
                 Menu {
-                    Picker("Volgorde", selection: Binding(get: { library.order }, set: { library.selectOrder($0) })) {
-                        ForEach(PhotoOrder.allCases) { order in Text(order.title).tag(order) }
-                    }
-                } label: { Label(library.order.title, systemImage: "arrow.up.arrow.down").font(.caption.weight(.semibold)) }
-                    .disabled(library.loading || library.deleting)
-                Menu {
                     if let asset = library.current {
-                        Button { library.deferCurrent() } label: { Label("Later beslissen", systemImage: "clock") }
                         Button { library.toggleFavorite() } label: {
                             Label(library.isFavorite(asset) ? "Verwijder favoriet in Foto's" : "Maak favoriet in Foto's", systemImage: "star")
                         }
@@ -219,13 +220,12 @@ struct ContentView: View {
                             Label(asset.mediaType == .video ? "Video afspelen" : "Foto groter bekijken", systemImage: asset.mediaType == .video ? "play.circle" : "arrow.up.left.and.arrow.down.right")
                         }
                     }
-                    Button { stacksOpen = true } label: { Label("Bijna dubbele foto's", systemImage: "square.stack.3d.up") }
                     if library.remainingInCategory > 1 {
                         Button { keepRestConfirm = true } label: {
                             Label("Bewaar de rest (\(library.remainingInCategory))", systemImage: "checkmark.circle")
                         }
                     }
-                    Button { comparing = true } label: { Label("Vergelijkbare foto's (handmatig)", systemImage: "square.on.square") }
+
                 } label: { Label("Meer", systemImage: "ellipsis.circle").font(.caption.weight(.semibold)) }
                     .disabled(library.deleting || library.loading || library.mutating)
             }.foregroundStyle(Palette.ink)
@@ -293,7 +293,10 @@ struct ContentView: View {
                 Button("Ververs bibliotheek") { library.refresh() }.font(.caption.weight(.semibold)).foregroundStyle(Palette.brand)
                 Spacer()
             }
-            Button { review = true } label: {
+            Button {
+                ReviewNudgeTip().invalidate(reason: .actionPerformed)
+                review = true
+            } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "tray.full.fill").foregroundStyle(Palette.trash)
                     Text("\(library.pending.count) weggelegd").fontWeight(.heavy)
@@ -306,6 +309,7 @@ struct ContentView: View {
                     .pop(radius: 16, fill: Palette.surface, shadow: 3)
             }.foregroundStyle(Palette.ink).disabled(library.loading || library.deleting)
                 .accessibilityLabel("\(library.pending.count) weggelegd, \(ByteText.format(library.pendingBytes)). Bekijken")
+                .popoverTip(ReviewNudgeTip(), arrowEdge: .bottom)
             Text("Een swipe verwijdert nog niets.").font(.caption2).foregroundStyle(Palette.muted)
                 .padding(.bottom, 8)
         }
@@ -324,15 +328,14 @@ struct ContentView: View {
                 }.buttonStyle(ChipStyle(selected: true))
                     .disabled(library.deleting)
                     .accessibilityLabel("Categorie kiezen: \(library.selectedCategory.title)")
-                Button { smartOpen = true } label: { Label("Slim opruimen", systemImage: "wand.and.stars").lineLimit(1) }
+                Button {
+                    SmartCleanTip().invalidate(reason: .actionPerformed)
+                    smartOpen = true
+                } label: { Label("Slim opruimen", systemImage: "wand.and.stars").lineLimit(1) }
                     .buttonStyle(ChipStyle(selected: false, fill: Palette.reward))
+                    .popoverTip(SmartCleanTip())
                     .accessibilityHint("Bijna dubbel, burstfoto's, rommel en meer, grootste winst eerst")
-                chip("Grootste eerst", icon: "arrow.down.circle", selected: library.order == .largest) {
-                    library.selectOrder(library.order == .largest ? .newest : .largest)
-                }
-                ForEach(quickCategories) { category in
-                    chip(category.title, icon: category.icon, selected: false) { library.selectCategory(category) }
-                }
+
             }.padding(.vertical, 4).padding(.trailing, 4)
         }.disabled(library.loading || library.deleting || library.mutating)
     }
@@ -573,6 +576,13 @@ private struct CategoryPickerView: View {
     var body: some View {
         NavigationStack {
             List {
+                if search.isEmpty {
+                    Section {
+                        Picker("Volgorde", selection: Binding(get: { library.order }, set: { library.selectOrder($0) })) {
+                            ForEach(PhotoOrder.allCases) { order in Text(order.title).tag(order) }
+                        }
+                    } footer: { Text("Grootste eerst zet video's en grote foto's vooraan: snel veel ruimte.") }
+                }
                 Section {
                     ForEach(filtered.filter { !$0.isAlbum && !$0.isMonth }) { category in row(category) }
                 } header: { Text("Categorieën") }
@@ -1214,8 +1224,12 @@ struct OnboardingView: View {
     @State private var compact = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(onAllow: @escaping () -> Void, startPage: Int = 0) {
+    /// Replay from "Hoe werkt het": practice only, then close.
+    let replay: Bool
+
+    init(onAllow: @escaping () -> Void, startPage: Int = 0, replay: Bool = false) {
         self.onAllow = onAllow
+        self.replay = replay
         _page = State(initialValue: startPage)
     }
 
@@ -1230,7 +1244,7 @@ struct OnboardingView: View {
                         }
                         Spacer()
                         if page < 2 {
-                            Button("Overslaan") { withAnimation { page = 2 } }
+                            Button(replay ? "Sluiten" : "Overslaan") { if replay { onAllow() } else { withAnimation { page = 2 } } }
                                 .font(.subheadline.weight(.bold)).foregroundStyle(Palette.brand).frame(minHeight: 44)
                         }
                     }
@@ -1321,7 +1335,7 @@ struct OnboardingView: View {
             .frame(height: compact ? 250 : 300)
             .scaleEffect(compact ? 0.86 : 1)
             if step == 2 {
-                Button("Volgende") { withAnimation { page = 2 } }.buttonStyle(PrimaryStyle())
+                Button(replay ? "Klaar" : "Volgende") { if replay { onAllow() } else { withAnimation { page = 2 } } }.buttonStyle(PrimaryStyle())
             } else {
                 HStack(spacing: 18) {
                     Button { tap(.trash) } label: {
