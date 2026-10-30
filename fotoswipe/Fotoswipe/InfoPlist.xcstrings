@@ -1,0 +1,170 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "CFBundleDisplayName": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CFBundleDisplayName"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe"
+          }
+        }
+      }
+    },
+    "CFBundleName": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CFBundleName"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe"
+          }
+        }
+      }
+    },
+    "NSContactsUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe looks for contacts that appear more than once. They're only merged after you confirm. Your contacts stay on your iPhone."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe zoekt contacten die er dubbel in staan. Pas na jouw bevestiging worden ze samengevoegd. Je contacten blijven op je iPhone."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe busca contactos duplicados. Solo se combinan cuando tú lo confirmas. Tus contactos se quedan en tu iPhone."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe sucht Kontakte, die doppelt vorhanden sind. Erst nach deiner Bestätigung werden sie zusammengeführt. Deine Kontakte bleiben auf deinem iPhone."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe recherche les contacts en double. Ils ne sont fusionnés qu'après ta confirmation. Tes contacts restent sur ton iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipeは重複している連絡先を探します。あなたが確認した後にのみ結合されます。連絡先はiPhoneに保存されたままです。"
+          }
+        }
+      }
+    },
+    "NSPhotoLibraryUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe shows your photos so you can keep them or set them aside. Selected photos are only deleted after you confirm."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe toont je foto's zodat je ze kunt bewaren of wegleggen. Alleen na jouw bevestiging worden geselecteerde foto's verwijderd."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe muestra tus fotos para que puedas conservarlas o apartarlas. Las fotos seleccionadas solo se eliminan cuando tú lo confirmas."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe zeigt dir deine Fotos, damit du sie behalten oder beiseitelegen kannst. Ausgewählte Fotos werden erst nach deiner Bestätigung gelöscht."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe affiche tes photos pour que tu puisses les garder ou les mettre de côté. Les photos sélectionnées ne sont supprimées qu'après ta confirmation."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipeは写真を表示して、残すかよけるかを選べるようにします。選択した写真は、あなたが確認した後にのみ削除されます。"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
