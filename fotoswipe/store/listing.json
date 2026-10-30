@@ -1,0 +1,23 @@
+{
+  "nameCandidates": ["Fotoswipe: Photo Cleaner", "Fotoswipe - Swipe & Declutter", "Fotoswipe Camera Roll Cleaner"],
+  "copyright": "2026 Zichtwerf Studio",
+  "primaryCategory": "PHOTO_AND_VIDEO",
+  "secondaryCategory": "UTILITIES",
+  "privacyPolicyUrl": "https://fotoswipe.onrender.com/privacy.html",
+  "supportUrl": "https://fotoswipe.onrender.com/support.html",
+  "marketingUrl": "https://fotoswipe.onrender.com/",
+  "locales": {
+    "nl-NL": {
+      "subtitle": "Swipe je fotorol leeg",
+      "promotionalText": "Bewaar het mooie, swipe de rest. Slim opruimen zet bijna-dubbele foto's, burstfoto's en rommel klaar. Geen reclame, geen abonnement.",
+      "keywords": "foto,opruimen,verwijderen,opslag,ruimte,dubbel,duplicaten,screenshots,swipe,galerij,video,burst",
+      "description": "Je fotorol vol? Met Fotoswipe ruim je hem op in een paar minuten per dag. Rechts is bewaren, links is wegleggen. Zo simpel is het.\n\nSLIM OPRUIMEN\nFotoswipe zet de grootste winst bovenaan:\n• Bijna dubbel: bijna gelijke foto's als één stapel, de beste staat al klaar\n• Burstfoto's: iOS weet welke de beste is, de rest leg je in één veeg weg\n• Exacte kopieën, oude screenshots en plaatjes uit WhatsApp en andere apps\n• Rommel: wazige foto's, bonnetjes en notities\n• Per ongeluk: zwarte foto's en minivideo's van een paar seconden\n\nNIETS IS METEEN WEG\nEen swipe legt een foto alleen opzij. Je controleert eerst, en iOS vraagt nog om bevestiging. Verwijderde foto's staan daarna nog 30 dagen in Recent verwijderd.\n\nFOCUS\nAlleen de foto, op het hele scherm. Veeg opzij, omhoog voor later, omlaag om terug te gaan. Je voelt een tik zodra een veeg telt.\n\nKLEINER ZONDER VERWIJDEREN\nVerklein een grote video of bewaar een Live Photo als gewone foto.\n\nBLIJF OP GANG\nSessies van 100, een eindscherm met wat je vrijmaakt, een dagreeks waarbij één dag overslaan mag, en een herinnering op jouw moment.\n\nPRIVACY\nGeen account, geen reclame, geen analytics, geen server. Alles gebeurt op je iPhone. Er worden geen foto's geüpload.\n\nGeen abonnement. Geen swipe-limiet."
+    },
+    "en-US": {
+      "subtitle": "Swipe your camera roll clean",
+      "promotionalText": "Keep the best, swipe the rest. Smart cleanup lines up near-duplicates, bursts and clutter. No ads, no subscription.",
+      "keywords": "photo,cleaner,delete,storage,space,duplicates,similar,screenshots,swipe,gallery,camera roll,burst",
+      "description": "Camera roll full? Fotoswipe helps you clean it up in a few minutes a day. Swipe right to keep, left to set aside. That's it.\n\nSMART CLEANUP\nThe biggest wins come first:\n• Near-duplicates as one stack, with the best shot already picked\n• Bursts: iOS knows which frame is best, set the rest aside in one swipe\n• Exact copies, old screenshots and images saved from WhatsApp and other apps\n• Clutter: blurry photos, receipts and notes\n• Accidental shots: black photos and videos of a few seconds\n\nNOTHING IS GONE STRAIGHT AWAY\nA swipe only sets a photo aside. You review first, and iOS asks for confirmation. Deleted photos stay in Recently Deleted for 30 days.\n\nFOCUS MODE\nJust the photo, full screen. Swipe sideways, up for later, down to undo. A gentle tap tells you when a swipe counts.\n\nSMALLER WITHOUT DELETING\nShrink a large video or keep a Live Photo as a still photo.\n\nKEEP GOING\nSessions of 100, a summary of the space you free, a forgiving daily streak and a reminder at your own time.\n\nPRIVACY\nNo account, no ads, no analytics, no servers. Everything happens on your iPhone. No photos are uploaded.\n\nThe app itself is in Dutch.\n\nNo subscription. No swipe limit."
+    }
+  }
+}

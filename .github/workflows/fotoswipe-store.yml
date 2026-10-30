@@ -1,0 +1,33 @@
+name: Fotoswipe App Store listing
+# Fills name, subtitle, texts, URLs, categories and copyright from fotoswipe/store/listing.json,
+# and optionally selects a processed build. Never submits for review.
+on:
+  push:
+    branches: [claude/fotoswipe-store]
+  workflow_dispatch:
+    inputs:
+      target_build:
+        description: "Build number to select for version 1.0 (empty = only texts)"
+        type: string
+        default: ""
+permissions:
+  contents: read
+concurrency:
+  group: fotoswipe-store
+  cancel-in-progress: false
+jobs:
+  listing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Fill App Store listing
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          TARGET_BUILD: ${{ inputs.target_build || '' }}
+        run: node fotoswipe/scripts/asc-store-setup.mjs
