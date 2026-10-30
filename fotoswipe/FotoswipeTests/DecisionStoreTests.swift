@@ -419,3 +419,49 @@ final class CompleteAppTests: XCTestCase {
     }
 }
 
+final class SmartGroupTests: XCTestCase {
+    func testOldScreenshotsAndSmallImages() {
+        let now = Date()
+        let old = AssetFacts(id: "a", isScreenshot: true, created: now.addingTimeInterval(-40 * 24 * 3600))
+        let fresh = AssetFacts(id: "b", isScreenshot: true, created: now.addingTimeInterval(-3 * 24 * 3600))
+        XCTAssertTrue(SmartRules.isOldScreenshot(old, now: now))
+        XCTAssertFalse(SmartRules.isOldScreenshot(fresh, now: now))
+        XCTAssertTrue(SmartRules.isSmall(AssetFacts(id: "c", pixelWidth: 500, pixelHeight: 500)))
+        XCTAssertTrue(SmartRules.isSmall(AssetFacts(id: "d", isAnimated: true, pixelWidth: 2000, pixelHeight: 2000)))
+        XCTAssertFalse(SmartRules.isSmall(AssetFacts(id: "e", pixelWidth: 4032, pixelHeight: 3024)))
+        XCTAssertFalse(SmartRules.isSmall(AssetFacts(id: "f", isScreenshot: true, pixelWidth: 500, pixelHeight: 500)))
+        XCTAssertFalse(SmartRules.isSmall(AssetFacts(id: "g", isVideo: true, pixelWidth: 320, pixelHeight: 240)))
+    }
+    func testShortVideosAndAccidentalLooks() {
+        XCTAssertTrue(SmartRules.isShortVideo(AssetFacts(id: "v", isVideo: true, duration: 1.4)))
+        XCTAssertFalse(SmartRules.isShortVideo(AssetFacts(id: "w", isVideo: true, duration: 12)))
+        XCTAssertTrue(SmartRules.looksAccidental(PhotoQuality(sharpness: 0.001, aesthetic: nil, utility: false, brightness: 0.02, contrast: 0.01)))
+        XCTAssertTrue(SmartRules.looksAccidental(PhotoQuality(sharpness: 0.0005, aesthetic: nil, utility: false, brightness: 0.5, contrast: 0.01)))
+        XCTAssertFalse(SmartRules.looksAccidental(PhotoQuality(sharpness: 0.01, aesthetic: nil, utility: false, brightness: 0.4, contrast: 0.2)))
+        // A dark but detailed night photo is not accidental.
+        XCTAssertFalse(SmartRules.looksAccidental(PhotoQuality(sharpness: 0.006, aesthetic: nil, utility: false, brightness: 0.12, contrast: 0.15)))
+    }
+    func testAppAlbumsAndBurstKeep() {
+        XCTAssertTrue(SmartRules.isAppAlbum("WhatsApp"))
+        XCTAssertTrue(SmartRules.isAppAlbum("Telegram "))
+        XCTAssertTrue(SmartRules.isAppAlbum("WhatsApp Business"))
+        XCTAssertFalse(SmartRules.isAppAlbum("Vakantie Italië"))
+        XCTAssertFalse(SmartRules.isAppAlbum("Xmas 2024"))
+        XCTAssertEqual(SmartRules.burstKeep(["a", "b", "c"], picked: ["b"], representative: "a"), ["b"])
+        XCTAssertEqual(SmartRules.burstKeep(["a", "b", "c"], picked: [], representative: "c"), ["c"])
+        XCTAssertEqual(SmartRules.burstKeep(["a", "b"], picked: ["z"], representative: nil), ["a"])
+    }
+    func testExactCopiesIgnoreTimeButNeedSameImage() {
+        let colors = Array(repeating: 0.4, count: 48)
+        let a = SimilarPhotoDescriptor(id: "a", date: Date(timeIntervalSince1970: 0), hash: 0xABCD, colors: colors, contrast: 0.2, aspect: 0.75)
+        let b = SimilarPhotoDescriptor(id: "b", date: Date(timeIntervalSince1970: 86_400 * 90), hash: 0xABCD, colors: colors, contrast: 0.2, aspect: 0.75)
+        let c = SimilarPhotoDescriptor(id: "c", date: Date(timeIntervalSince1970: 50), hash: 0xABCD, colors: colors.map { $0 + 0.2 }, contrast: 0.2, aspect: 0.75)
+        let d = SimilarPhotoDescriptor(id: "d", date: Date(timeIntervalSince1970: 60), hash: 0x1234, colors: colors, contrast: 0.2, aspect: 0.75)
+        XCTAssertEqual(SimilarPhotoGrouping.exactCopies([a, b, c, d]), [["a", "b"]])
+    }
+    func testAccidentalWinsOverOtherClutterReasons() {
+        let pocket = PhotoQuality(sharpness: 0.0004, aesthetic: -0.8, utility: false, brightness: 0.02, contrast: 0.01)
+        XCTAssertEqual(ClutterReason.classify(isScreenshot: false, isFavorite: false, quality: pocket), .accidental)
+    }
+}
+

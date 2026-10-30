@@ -17,6 +17,7 @@ struct ContentView: View {
     @State private var stacksOpen = false
     @State private var keepRestConfirm = false
     @State private var stats = false
+    @State private var smartOpen = false
     @State private var whatsNew = false
     @AppStorage("fotoswipe.whatsNewSeen") private var whatsNewSeen = ""
 
@@ -34,11 +35,17 @@ struct ContentView: View {
             .sheet(isPresented: $review) { ReviewView().environmentObject(library) }
             .sheet(isPresented: $info) { InfoView().environmentObject(library) }
             .sheet(isPresented: $stats) { StatsView().environmentObject(library) }
+            .sheet(isPresented: $smartOpen) {
+                SmartCleanView { id in
+                    smartOpen = false
+                    if let category = library.category(id) { library.selectCategory(category) }
+                }.environmentObject(library)
+            }
             .sheet(isPresented: $whatsNew, onDismiss: { whatsNewSeen = WhatsNewView.version }) {
                 WhatsNewView { tryStacks in
                     whatsNewSeen = WhatsNewView.version
                     whatsNew = false
-                    if tryStacks { DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { stacksOpen = true } }
+                    if tryStacks { DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { smartOpen = true } }
                 }
             }
             .confirmationDialog("De overige \(library.remainingInCategory) items in \(library.selectedCategory.title) bewaren?", isPresented: $keepRestConfirm, titleVisibility: .visible) {
@@ -77,7 +84,7 @@ struct ContentView: View {
             }
             .fullScreenCover(isPresented: $focus) { FocusSwipeView().environmentObject(library) }
             .fullScreenCover(isPresented: $stacksOpen) { StackReviewView().environmentObject(library) }
-            .sheet(isPresented: Binding(get: { library.sessionFinished && !focus && !stacksOpen }, set: { library.sessionFinished = $0 }), onDismiss: {
+            .sheet(isPresented: Binding(get: { library.sessionFinished && !focus && !stacksOpen && !smartOpen }, set: { library.sessionFinished = $0 }), onDismiss: {
                 library.startNewSession()
                 if reviewAfterSession { reviewAfterSession = false; review = true }
             }) {
@@ -86,7 +93,7 @@ struct ContentView: View {
                     library.sessionFinished = false
                 }.environmentObject(library)
             }
-            .alert("Fotoswipe", isPresented: Binding(get: { library.message != nil && !review && !library.sessionFinished && !focus && !stacksOpen }, set: { if !$0 { library.message = nil } })) {
+            .alert("Fotoswipe", isPresented: Binding(get: { library.message != nil && !review && !library.sessionFinished && !focus && !stacksOpen && !smartOpen }, set: { if !$0 { library.message = nil } })) {
                 Button("OK") { library.message = nil }
             } message: { Text(library.message ?? "") }
             .onChange(of: scenePhase) { _, phase in
@@ -200,6 +207,14 @@ struct ContentView: View {
                             Label(library.isFavorite(asset) ? "Verwijder favoriet in Foto's" : "Maak favoriet in Foto's", systemImage: "star")
                         }
                         Button { tool = .album(asset) } label: { Label("Voeg toe aan album", systemImage: "rectangle.stack.badge.plus") }
+                        if asset.mediaType == .video {
+                            Button { library.compressVideo(asset) } label: {
+                                Label("Video verkleinen (\(ByteText.format(PhotoLibrary.fileSize(asset))))", systemImage: "arrow.down.right.and.arrow.up.left")
+                            }
+                        }
+                        if asset.mediaSubtypes.contains(.photoLive) {
+                            Button { library.convertLiveToStill(asset) } label: { Label("Bewaar als gewone foto (kleiner)", systemImage: "livephoto.slash") }
+                        }
                         Button { tool = .preview(asset) } label: {
                             Label(asset.mediaType == .video ? "Video afspelen" : "Foto groter bekijken", systemImage: asset.mediaType == .video ? "play.circle" : "arrow.up.left.and.arrow.down.right")
                         }
@@ -214,6 +229,15 @@ struct ContentView: View {
                 } label: { Label("Meer", systemImage: "ellipsis.circle").font(.caption.weight(.semibold)) }
                     .disabled(library.deleting || library.loading || library.mutating)
             }.foregroundStyle(Palette.ink)
+            if let converting = library.converting {
+                HStack(spacing: 10) {
+                    ProgressView().tint(Palette.brand)
+                    Text(converting).font(.subheadline.weight(.bold))
+                    Spacer()
+                }
+                .foregroundStyle(Palette.ink).padding(12).pop(radius: 14, fill: Palette.surface, shadow: 2)
+                .accessibilityElement(children: .combine).accessibilityAddTraits(.updatesFrequently)
+            }
             if let status = library.status { Text(status).font(.caption).foregroundStyle(Palette.muted).accessibilityAddTraits(.updatesFrequently) }
             if library.loading {
                 Spacer()
@@ -300,7 +324,9 @@ struct ContentView: View {
                 }.buttonStyle(ChipStyle(selected: true))
                     .disabled(library.deleting)
                     .accessibilityLabel("Categorie kiezen: \(library.selectedCategory.title)")
-                chip("Bijna dubbel", icon: "square.stack.3d.up", selected: false) { stacksOpen = true }
+                Button { smartOpen = true } label: { Label("Slim opruimen", systemImage: "wand.and.stars").lineLimit(1) }
+                    .buttonStyle(ChipStyle(selected: false, fill: Palette.reward))
+                    .accessibilityHint("Bijna dubbel, burstfoto's, rommel en meer, grootste winst eerst")
                 chip("Grootste eerst", icon: "arrow.down.circle", selected: library.order == .largest) {
                     library.selectOrder(library.order == .largest ? .newest : .largest)
                 }
@@ -311,7 +337,7 @@ struct ContentView: View {
         }.disabled(library.loading || library.deleting || library.mutating)
     }
     private var quickCategories: [PhotoCategory] {
-        let wanted = ["clutter", "on-this-day", "Video's", "Screenshots", "random30", "later"]
+        let wanted = ["on-this-day", "Video's", "Screenshots", "random30", "later"]
         return wanted.compactMap { key in
             library.categories.first { ($0.id == key || ($0.title == key && !$0.isAlbum)) && $0.id != library.selectedCategory.id }
         }
@@ -366,6 +392,7 @@ struct ContentView: View {
         case "whatsnew": whatsNew = true
         case "info": info = true
         case "stats": stats = true
+        case "smart": smartOpen = true
         case "clutter":
             if let category = library.categories.first(where: { $0.id == "clutter" }) { library.selectCategory(category) }
         default: break
@@ -396,11 +423,12 @@ struct SecondaryStyle: ButtonStyle {
 
 struct ChipStyle: ButtonStyle {
     let selected: Bool
+    var fill: Color? = nil
     func makeBody(configuration: Configuration) -> some View {
         configuration.label.font(.subheadline.weight(.bold))
             .padding(.horizontal, 14).frame(minHeight: 40)
             .foregroundStyle(selected ? Color.white : Palette.ink)
-            .pop(radius: 20, fill: selected ? Palette.brand : Palette.surface, shadow: configuration.isPressed ? 0 : 2)
+            .pop(radius: 20, fill: selected ? Palette.brand : (fill ?? Palette.surface), shadow: configuration.isPressed ? 0 : 2)
             .offset(x: configuration.isPressed ? 2 : 0, y: configuration.isPressed ? 2 : 0)
             .padding(.vertical, 2)
     }
@@ -1135,16 +1163,16 @@ struct WhatsNewView: View {
         var id: String { title }
     }
     private let items: [Item] = [
-        Item(icon: "square.stack.3d.up.fill", title: "Bijna dubbel", text: "Vijf bijna gelijke foto's? De beste staat al klaar. Eén veeg en klaar.", fill: Palette.brand, tint: .white),
-        Item(icon: "wand.and.stars", title: "Rommel", text: "Wazige foto's, bonnetjes en screenshots vooraan. Snel ruimte winnen.", fill: Palette.reward, tint: Palette.ink),
-        Item(icon: "bell.fill", title: "Jouw moment", text: "Eén herinnering per dag, op de tijd die jij kiest.", fill: Palette.keep, tint: .white),
-        Item(icon: "slider.horizontal.3", title: "Jij bepaalt het tempo", text: "100 per sessie, of kies 30 of 50. Of bewaar de rest in één keer.", fill: Palette.surface, tint: Palette.ink)
+        Item(icon: "wand.and.stars", title: "Slim opruimen", text: "Alle slimme groepen op één plek, met de grootste winst bovenaan.", fill: Palette.reward, tint: Palette.ink),
+        Item(icon: "square.stack.fill", title: "Burstfoto's en kopieën", text: "iOS weet welke burstfoto de beste is. Kopieën vind je in één keer.", fill: Palette.brand, tint: .white),
+        Item(icon: "eye.slash", title: "Per ongeluk en uit apps", text: "Zwarte foto's, minivideo's, oude screenshots en WhatsApp-plaatjes.", fill: Palette.surface, tint: Palette.ink),
+        Item(icon: "arrow.down.right.and.arrow.up.left", title: "Kleiner zonder verwijderen", text: "Video verkleinen of een Live Photo als gewone foto bewaren, via Meer.", fill: Palette.keep, tint: .white)
     ]
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 Text("NIEUW IN FOTOSWIPE").font(.caption.weight(.heavy)).foregroundStyle(Palette.muted).padding(.top, 28)
-                Text("Minder beslissen,\nmeer ruimte.").font(.system(size: 32, weight: .heavy, design: .rounded)).tracking(-1)
+                Text("Slimmer opruimen,\nmeer ruimte.").font(.system(size: 32, weight: .heavy, design: .rounded)).tracking(-1)
                 ForEach(items) { item in
                     HStack(alignment: .top, spacing: 14) {
                         Image(systemName: item.icon).font(.system(size: 19, weight: .heavy)).foregroundStyle(item.tint)
@@ -1162,7 +1190,7 @@ struct WhatsNewView: View {
                 }
                 Text("Nog steeds: geen reclame, geen abonnement, geen limiet. Alles blijft op je iPhone.")
                     .font(.footnote.weight(.semibold)).foregroundStyle(Palette.ink).padding(.top, 2)
-                Button("Probeer Bijna dubbel") { onClose(true) }.buttonStyle(PrimaryStyle()).padding(.top, 6)
+                Button("Open Slim opruimen") { onClose(true) }.buttonStyle(PrimaryStyle()).padding(.top, 6)
                 Button("Later") { onClose(false) }.font(.subheadline.weight(.bold)).foregroundStyle(Palette.brand)
                     .frame(maxWidth: .infinity, minHeight: 44).padding(.bottom, 20)
             }.padding(.horizontal, 22).foregroundStyle(Palette.ink)

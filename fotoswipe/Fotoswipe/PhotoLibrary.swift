@@ -3,6 +3,7 @@ import Photos
 import PhotosUI
 import UIKit
 import Combine
+import AVFoundation
 
 private final class LibraryObserver: NSObject, PHPhotoLibraryChangeObserver {
     var onChange: (() -> Void)?
@@ -44,7 +45,11 @@ struct PhotoCategory: Identifiable {
             PhotoCategory(id: "later", title: "Later beslissen", icon: "bookmark", collection: nil, isAlbum: false),
             PhotoCategory(id: "random30", title: "\(ReviewSession.size) willekeurige items", icon: "shuffle", collection: nil, isAlbum: false),
             PhotoCategory(id: "on-this-day", title: "Op deze dag", icon: "calendar", collection: nil, isAlbum: false, dateFilter: .onThisDay),
-            PhotoCategory(id: "clutter", title: "Rommel", icon: "wand.and.stars", collection: nil, isAlbum: false)]
+            PhotoCategory(id: "clutter", title: "Rommel", icon: "wand.and.stars", collection: nil, isAlbum: false),
+            PhotoCategory(id: "accidental", title: "Per ongeluk", icon: "eye.slash", collection: nil, isAlbum: false),
+            PhotoCategory(id: "old-screenshots", title: "Oude screenshots", icon: "clock.arrow.circlepath", collection: nil, isAlbum: false),
+            PhotoCategory(id: "from-apps", title: "Uit apps", icon: "bubble.left.and.bubble.right.fill", collection: nil, isAlbum: false),
+            PhotoCategory(id: "small", title: "Kleine plaatjes en GIF's", icon: "photo.badge.arrow.down", collection: nil, isAlbum: false)]
         for (type, title, icon) in types {
             if let collection = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: type, options: nil).firstObject {
                 result.append(PhotoCategory(id: collection.localIdentifier, title: title, icon: icon, collection: collection, isAlbum: false))
@@ -71,8 +76,24 @@ struct PhotoCategory: Identifiable {
     @Published private(set) var order = PhotoOrder.newest
     @Published private(set) var monthProgress: [String: PhotoProgress] = [:]
     private var allAssets: [PHAsset] = [] {
-        didSet { assetIndex = Dictionary(allAssets.map { ($0.localIdentifier, $0) }, uniquingKeysWith: { first, _ in first }) }
+        didSet { rebuildIndex() }
     }
+    /// Burst frames that the normal fetch hides; only loaded for "Burstfoto's" so set-aside frames can be reviewed and deleted.
+    private var extraAssets: [PHAsset] = [] {
+        didSet { rebuildIndex() }
+    }
+    private func rebuildIndex() {
+        assetIndex = Dictionary((allAssets + extraAssets).map { ($0.localIdentifier, $0) }, uniquingKeysWith: { first, _ in first })
+    }
+    /// Burst groups (all frames) and what to keep by default.
+    @Published private(set) var burstStacks: [[String]] = []
+    private var burstKeep: [String: Set<String>] = [:]
+    @Published private(set) var burstsLoaded = false
+    /// Per smart group: undecided items and their estimated size.
+    @Published private(set) var smartSummary: [SmartGroup: (count: Int, bytes: Int64)] = [:]
+    @Published private(set) var summaryLoading = false
+    /// Progress text while a video is compressed or a Live Photo is converted.
+    @Published private(set) var converting: String?
     private var assetIndex: [String: PHAsset] = [:]
     /// On-device scan for near-duplicate stacks and clutter; results live in memory only.
     let smart = SmartScanner()
@@ -161,7 +182,7 @@ struct PhotoCategory: Identifiable {
         selectedCategory = category
         if category.id == "random30" { randomSession = RandomReviewSession(limit: ReviewSession.size) }
         refresh()
-        if category.id == "clutter" && !smart.finished { startSmartScan() }
+        if (category.id == "clutter" || category.id == "accidental") && !smart.finished { startSmartScan() }
     }
     /// From a reminder: straight to today's memories from earlier years.
     func openOnThisDay() {
@@ -178,8 +199,9 @@ struct PhotoCategory: Identifiable {
             .sorted { ($0.creationDate ?? .distantPast) > ($1.creationDate ?? .distantPast) }
         let favorites = Set(candidates.prefix(SmartScanner.limit * 2).filter { isFavorite($0) }.map(\.localIdentifier))
         smart.onFinish = { [weak self] in
-            guard let self, self.selectedCategory.id == "clutter" else { return }
-            self.refresh(showLoading: false)
+            guard let self else { return }
+            self.updateSmartSummary()
+            if self.selectedCategory.id == "clutter" || self.selectedCategory.id == "accidental" { self.refresh(showLoading: false) }
         }
         smart.start(candidates, favorites: favorites)
     }
@@ -250,6 +272,230 @@ struct PhotoCategory: Identifiable {
         rebuildPresentation()
         save()
         status = "Alle keuzes gewist. Je foto's zelf zijn niet aangepast."
+    }
+
+    // MARK: Smart groups
+
+    nonisolated static func facts(_ asset: PHAsset) -> AssetFacts {
+        AssetFacts(id: asset.localIdentifier, isVideo: asset.mediaType == .video,
+                   isScreenshot: asset.mediaSubtypes.contains(.photoScreenshot),
+                   isAnimated: asset.playbackStyle == .imageAnimated,
+                   pixelWidth: asset.pixelWidth, pixelHeight: asset.pixelHeight,
+                   duration: asset.duration, created: asset.creationDate)
+    }
+    /// Items in albums made by messaging and social apps (WhatsApp, Telegram, ...).
+    nonisolated static func appAlbumAssetIDs() -> Set<String> {
+        var ids = Set<String>()
+        PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: nil).enumerateObjects { collection, _, _ in
+            guard SmartRules.isAppAlbum(collection.localizedTitle ?? "") else { return }
+            PHAsset.fetchAssets(in: collection, options: nil).enumerateObjects { asset, _, _ in ids.insert(asset.localIdentifier) }
+        }
+        return ids
+    }
+    func category(_ id: String) -> PhotoCategory? { categories.first { $0.id == id } }
+
+    /// Loads all burst frames once; the frames iOS or you picked are kept by default.
+    func loadBursts() {
+        guard hasAccess, !burstsLoaded else { return }
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let options = PHFetchOptions()
+            // burstIdentifier is a supported fetch key; without includeAllBurstAssets only one photo per burst is returned.
+            options.predicate = NSPredicate(format: "burstIdentifier != nil")
+            options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+            var stacks: [[String]] = []
+            var keep: [String: Set<String>] = [:]
+            var frames: [PHAsset] = []
+            PHAsset.fetchAssets(with: .image, options: options).enumerateObjects { representative, _, _ in
+                guard representative.representsBurst, let burst = representative.burstIdentifier else { return }
+                let all = PHFetchOptions()
+                all.includeAllBurstAssets = true
+                var members: [PHAsset] = []
+                PHAsset.fetchAssets(withBurstIdentifier: burst, options: all).enumerateObjects { asset, _, _ in members.append(asset) }
+                guard members.count > 1 else { return }
+                let ids = members.map(\.localIdentifier)
+                let picked = Set(members.filter { !$0.burstSelectionTypes.intersection([.autoPick, .userPick]).isEmpty }.map(\.localIdentifier))
+                keep[ids[0]] = SmartRules.burstKeep(ids, picked: picked, representative: representative.localIdentifier)
+                stacks.append(ids)
+                frames.append(contentsOf: members.filter { $0.localIdentifier != representative.localIdentifier })
+            }
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.extraAssets = frames
+                self.burstStacks = stacks
+                self.burstKeep = keep
+                self.burstsLoaded = true
+                self.rebuildPresentation(invalidate: false)
+                self.updateSmartSummary()
+            }
+        }
+    }
+
+    func stacks(for group: SmartGroup) -> [[String]] {
+        switch group {
+        case .similar: return smart.stacks
+        case .copies: return smart.copies
+        case .bursts: return burstStacks
+        default: return []
+        }
+    }
+    /// What is preselected to keep in a stack: picked burst frames, otherwise the best shot.
+    func defaultKeep(for ids: [String], in group: SmartGroup) -> Set<String> {
+        if group == .bursts, let first = ids.first, let keep = burstKeep[first] { return keep.intersection(ids) }
+        return bestInStack(ids).map { [$0] } ?? []
+    }
+
+    /// Counts and estimated sizes per group, for undecided items. Runs off the main thread.
+    func updateSmartSummary() {
+        guard hasAccess else { return }
+        summaryLoading = true
+        let assets = allAssets.filter { state.decisions[$0.localIdentifier] == nil }
+        let decided = Set(state.decisions.keys)
+        let index = assetIndex
+        let scanned: [SmartGroup: [String]] = [
+            .clutter: smart.clutter, .accidental: smart.accidental,
+            .similar: smart.stacks.flatMap { $0 }, .copies: smart.copies.flatMap { $0 }
+        ]
+        let burstFrames = burstStacks.flatMap { $0 }
+        let scanFinished = smart.finished
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let now = Date()
+            let appIDs = PhotoLibrary.appAlbumAssetIDs()
+            var result: [SmartGroup: (count: Int, bytes: Int64)] = [:]
+            func add(_ group: SmartGroup, _ list: [PHAsset]) {
+                result[group] = (list.count, list.reduce(Int64(0)) { $0 + PhotoLibrary.fileSize($1) })
+            }
+            add(.oldScreenshots, assets.filter { SmartRules.isOldScreenshot(PhotoLibrary.facts($0), now: now) })
+            add(.small, assets.filter { SmartRules.isSmall(PhotoLibrary.facts($0)) })
+            add(.fromApps, assets.filter { appIDs.contains($0.localIdentifier) })
+            let shortVideos = assets.filter { SmartRules.isShortVideo(PhotoLibrary.facts($0)) }
+            if scanFinished {
+                for group in [SmartGroup.clutter, .similar, .copies] {
+                    add(group, (scanned[group] ?? []).filter { !decided.contains($0) }.compactMap { index[$0] })
+                }
+                add(.accidental, (scanned[.accidental] ?? []).filter { !decided.contains($0) }.compactMap { index[$0] } + shortVideos)
+            }
+            add(.bursts, burstFrames.filter { !decided.contains($0) }.compactMap { index[$0] })
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.smartSummary = result
+                self.summaryLoading = false
+            }
+        }
+    }
+
+    // MARK: Space without deleting
+
+    private final class Box<T> { var value: T?; init() {} }
+
+    /// Saves a smaller HEVC copy of a video (max 1080p) and sets the original aside for review.
+    func compressVideo(_ asset: PHAsset) {
+        guard asset.mediaType == .video, converting == nil, !mutating, !deleting else { return }
+        converting = "Video verkleinen…"
+        Task { @MainActor in
+            let message = await self.runCompression(asset)
+            self.converting = nil
+            self.message = message
+            self.refresh(showLoading: false)
+        }
+    }
+    private func runCompression(_ asset: PHAsset) async -> String {
+        let options = PHVideoRequestOptions()
+        options.isNetworkAccessAllowed = true
+        options.deliveryMode = .highQualityFormat
+        options.version = .current
+        let video: AVAsset? = await withCheckedContinuation { continuation in
+            PHImageManager.default().requestAVAsset(forVideo: asset, options: options) { avAsset, _, _ in
+                continuation.resume(returning: avAsset)
+            }
+        }
+        guard let video else { return "Deze video kon niet worden geladen. Staat hij alleen in iCloud? Probeer het met internet opnieuw." }
+        guard let session = AVAssetExportSession(asset: video, presetName: AVAssetExportPresetHEVC1920x1080) else {
+            return "Verkleinen is voor deze video niet mogelijk."
+        }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension("mov")
+        defer { try? FileManager.default.removeItem(at: url) }
+        do {
+            if #available(iOS 18.0, *) {
+                try await session.export(to: url, as: .mov)
+            } else {
+                session.outputURL = url
+                session.outputFileType = .mov
+                await session.export()
+                guard session.status == .completed else { return "Verkleinen is niet gelukt. Er is niets veranderd." }
+            }
+        } catch {
+            return "Verkleinen is niet gelukt. Er is niets veranderd."
+        }
+        let newSize = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.int64Value ?? 0
+        let estimate = PhotoLibrary.fileSize(asset)
+        guard newSize > 0, Double(newSize) < Double(estimate) * 0.8 else {
+            return "Deze video is al compact. Er is niets veranderd."
+        }
+        return await saveReplacement(for: asset, resource: .video, fileURL: url,
+                                     done: "Kleinere versie opgeslagen (\(ByteText.format(newSize))). Het origineel staat bij Weggelegd, zodat jij beslist.")
+    }
+
+    /// Saves the still image of a Live Photo as a normal photo and sets the original aside for review.
+    func convertLiveToStill(_ asset: PHAsset) {
+        guard asset.mediaSubtypes.contains(.photoLive), converting == nil, !mutating, !deleting else { return }
+        converting = "Omzetten naar gewone foto…"
+        Task { @MainActor in
+            let resources = PHAssetResource.assetResources(for: asset)
+            guard let photo = resources.first(where: { $0.type == .fullSizePhoto }) ?? resources.first(where: { $0.type == .photo }) else {
+                self.converting = nil
+                self.message = "Deze Live Photo kon niet worden omgezet."
+                return
+            }
+            let ext = (photo.originalFilename as NSString).pathExtension
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+                .appendingPathExtension(ext.isEmpty ? "heic" : ext)
+            defer { try? FileManager.default.removeItem(at: url) }
+            let options = PHAssetResourceRequestOptions()
+            options.isNetworkAccessAllowed = true
+            do {
+                try await PHAssetResourceManager.default().writeData(for: photo, toFile: url, options: options)
+            } catch {
+                self.converting = nil
+                self.message = "De foto kon niet worden geladen. Staat hij alleen in iCloud? Probeer het met internet opnieuw."
+                return
+            }
+            let message = await self.saveReplacement(for: asset, resource: .photo, fileURL: url,
+                                                     done: "Gewone foto opgeslagen, zonder het bewegende deel (ca. 1,5 MB kleiner). Het origineel staat bij Weggelegd, zodat jij beslist.")
+            self.converting = nil
+            self.message = message
+            self.refresh(showLoading: false)
+        }
+    }
+
+    /// Creates the new item with the original date, place and favourite; the original goes to "set aside", never straight to deletion.
+    private func saveReplacement(for asset: PHAsset, resource: PHAssetResourceType, fileURL: URL, done: String) async -> String {
+        refreshTask?.cancel(); refreshTask = nil
+        generation += 1
+        mutating = true
+        refreshGate.beginMutation()
+        let created = Box<String>()
+        do {
+            try await PHPhotoLibrary.shared().performChanges {
+                let request = PHAssetCreationRequest.forAsset()
+                request.addResource(with: resource, fileURL: fileURL, options: nil)
+                request.creationDate = asset.creationDate
+                request.location = asset.location
+                request.isFavorite = asset.isFavorite
+                created.value = request.placeholderForCreatedAsset?.localIdentifier
+            }
+        } catch {
+            mutating = false
+            refreshGate.endMutation()
+            return "Opslaan is niet gelukt. Er is niets veranderd."
+        }
+        mutating = false
+        refreshGate.endMutation()
+        if let newID = created.value { state.decide(newID, .keep) }
+        state.decide(asset.localIdentifier, .trash)
+        rebuildPresentation()
+        save()
+        Haptics.success()
+        return done
     }
 
     /// Undecided items left in the current category.
@@ -354,6 +600,7 @@ struct PhotoCategory: Identifiable {
             // Deleted/inaccessible albums fall back to the full accessible library.
             let selected = available.first { $0.id == selectedID } ?? .all
             var filtered: [PHAsset] = []
+            let appIDs: Set<String> = selected.id == "from-apps" ? PhotoLibrary.appAlbumAssetIDs() : []
             if let collection = selected.collection {
                 PHAsset.fetchAssets(in: collection, options: options).enumerateObjects { asset, _, _ in filtered.append(asset) }
             } else {
@@ -367,6 +614,17 @@ struct PhotoCategory: Identifiable {
                 if selected.id == "clutter" {
                     let lookup = Dictionary(fetched.map { ($0.localIdentifier, $0) }, uniquingKeysWith: { first, _ in first })
                     filtered = self.smart.clutter.compactMap { lookup[$0] }
+                } else if selected.id == "accidental" {
+                    let lookup = Dictionary(fetched.map { ($0.localIdentifier, $0) }, uniquingKeysWith: { first, _ in first })
+                    let shortVideos = fetched.filter { SmartRules.isShortVideo(PhotoLibrary.facts($0)) }
+                    filtered = self.smart.accidental.compactMap { lookup[$0] } + shortVideos
+                } else if selected.id == "old-screenshots" {
+                    let now = Date()
+                    filtered = fetched.filter { SmartRules.isOldScreenshot(PhotoLibrary.facts($0), now: now) }
+                } else if selected.id == "small" {
+                    filtered = fetched.filter { SmartRules.isSmall(PhotoLibrary.facts($0)) }
+                } else if selected.id == "from-apps" {
+                    filtered = fetched.filter { appIDs.contains($0.localIdentifier) }
                 } else if selected.id == "later" {
                     filtered = fetched.filter { self.state.decisions[$0.localIdentifier] == .later }
                 } else if selected.id == "random30" {
@@ -542,7 +800,7 @@ struct PhotoCategory: Identifiable {
                     self.scopeIDs.subtract(ids)
                     self.rebuildPresentation()
                     self.save()
-                    self.message = "\(batch.count) items verwijderd\(freed > 0 ? ", \(ByteText.format(freed)) vrijgemaakt" : ""). Je kunt ze normaal tot 30 dagen terugzetten via 'Recent verwijderd' in Foto's."
+                    self.message = "\(batch.count) items verwijderd\(freed > 0 ? " (\(ByteText.format(freed)))" : ""). Ze staan nog 30 dagen in 'Recent verwijderd' in Foto's; pas daarna komt de ruimte vrij. Wil je de ruimte nu al? Open Foto's, ga naar Albums > Recent verwijderd en kies Verwijder alles."
                     self.refresh()
                 } else {
                     self.message = "Er is niets door Fotoswipe verwijderd. Je selectie is bewaard. \(error?.localizedDescription ?? "De verwijdering is geannuleerd.")"
@@ -581,6 +839,14 @@ struct PhotoCategory: Identifiable {
                 if state.decisions[asset.localIdentifier] != nil { month.reviewed += 1 }
                 progress[key] = month
             }
+            switch state.decisions[asset.localIdentifier] {
+            case .keep: saved.append(asset)
+            case .trash: trash.append(asset)
+            case .later: later.append(asset)
+            case nil: break
+            }
+        }
+        for asset in extraAssets {
             switch state.decisions[asset.localIdentifier] {
             case .keep: saved.append(asset)
             case .trash: trash.append(asset)

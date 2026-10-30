@@ -49,6 +49,28 @@ enum SimilarPhotoGrouping {
     }
 }
 
+extension SimilarPhotoGrouping {
+    /// The same image saved more than once (any date): identical edge hash, near-identical colours, same shape.
+    static func exactCopies(_ descriptors: [SimilarPhotoDescriptor]) -> [[String]] {
+        var byHash: [UInt64: [SimilarPhotoDescriptor]] = [:]
+        for item in descriptors where item.contrast >= 0.035 && item.colors.count == 48 { byHash[item.hash, default: []].append(item) }
+        var groups: [(Date, [String])] = []
+        for items in byHash.values where items.count > 1 {
+            var remaining = items.sorted { $0.date == $1.date ? $0.id < $1.id : $0.date < $1.date }
+            while let first = remaining.first {
+                let same = remaining.filter { other in
+                    abs(other.aspect - first.aspect) <= 0.01 &&
+                    (zip(first.colors, other.colors).map { abs($0 - $1) }.max() ?? 1) <= 0.03
+                }
+                let ids = Set(same.map(\.id))
+                remaining.removeAll { ids.contains($0.id) }
+                if same.count > 1 { groups.append((first.date, same.map(\.id))) }
+            }
+        }
+        return groups.sorted { $0.0 > $1.0 }.map(\.1)
+    }
+}
+
 struct SimilarPhotoSelection {
     private(set) var rejected: Set<String> = []
     @discardableResult mutating func toggle(_ id: String, in group: [String], ready: Set<String>? = nil) -> Bool {
@@ -202,6 +224,8 @@ struct SimilarPhotoGroup: Identifiable {
     @Published private(set) var total = 0
     @Published private(set) var stacks: [[String]] = []
     @Published private(set) var clutter: [String] = []
+    @Published private(set) var accidental: [String] = []
+    @Published private(set) var copies: [[String]] = []
     private(set) var reasons: [String: ClutterReason] = [:]
     private(set) var quality: [String: PhotoQuality] = [:]
     var onFinish: (() -> Void)?
@@ -289,7 +313,9 @@ struct SimilarPhotoGroup: Identifiable {
             let rank = Dictionary(order.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
             // Newest stacks first; clutter grouped by reason, newest first within a reason.
             let sortedStacks = groups.sorted { (rank[$0.first ?? ""] ?? 0) < (rank[$1.first ?? ""] ?? 0) }
-            let clutterIDs = order.filter { reasons[$0] != nil }
+            let copyGroups = SimilarPhotoGrouping.exactCopies(descriptors)
+            let accidentalIDs = order.filter { reasons[$0] == .accidental }
+            let clutterIDs = order.filter { reasons[$0] != nil && reasons[$0] != .accidental }
                 .enumerated()
                 .sorted { lhs, rhs in
                     let l = reasons[lhs.element]!, r = reasons[rhs.element]!
@@ -309,6 +335,8 @@ struct SimilarPhotoGroup: Identifiable {
                 self.reasons = reasons
                 self.stacks = sortedStacks
                 self.clutter = clutterIDs
+                self.accidental = accidentalIDs
+                self.copies = copyGroups
                 self.processed = toScan.count
                 self.scanning = false
                 self.finished = true
@@ -325,7 +353,8 @@ struct SimilarPhotoGroup: Identifiable {
 
     /// Sharpness on a 96x96 grayscale copy plus, from iOS 18, Apple's on-device aesthetics score.
     nonisolated static func measure(_ image: CGImage) async -> PhotoQuality {
-        let sharp = sharpness(image)
+        let stats = luminance(image)
+        let sharp = stats.sharpness
         var aesthetic: Double?
         var utility = false
         if #available(iOS 18.0, *) {
@@ -334,10 +363,14 @@ struct SimilarPhotoGroup: Identifiable {
                 utility = observation.isUtility
             }
         }
-        return PhotoQuality(sharpness: sharp, aesthetic: aesthetic, utility: utility)
+        return PhotoQuality(sharpness: sharp, aesthetic: aesthetic, utility: utility,
+                            brightness: stats.brightness, contrast: stats.contrast)
     }
 
-    nonisolated static func sharpness(_ image: CGImage) -> Double {
+    nonisolated static func sharpness(_ image: CGImage) -> Double { luminance(image).sharpness }
+
+    /// Sharpness (variance of the Laplacian), mean brightness and contrast on a 96x96 grayscale copy.
+    nonisolated static func luminance(_ image: CGImage) -> (sharpness: Double, brightness: Double, contrast: Double) {
         let width = 96, height = 96
         var pixels = [UInt8](repeating: 0, count: width * height)
         let drawn = pixels.withUnsafeMutableBytes { bytes -> Bool in
@@ -348,7 +381,12 @@ struct SimilarPhotoGroup: Identifiable {
             context.draw(image, in: CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height)))
             return true
         }
-        guard drawn else { return 1 }
+        guard drawn else { return (1, 0.5, 0.2) }
+        var total = 0.0, totalSquares = 0.0
+        for value in pixels { let v = Double(value) / 255; total += v; totalSquares += v * v }
+        let pixelCount = Double(pixels.count)
+        let brightness = total / pixelCount
+        let contrast = (max(0, totalSquares / pixelCount - brightness * brightness)).squareRoot()
         var sum = 0.0, squares = 0.0, count = 0.0
         for y in 1..<(height - 1) {
             for x in 1..<(width - 1) {
@@ -359,6 +397,6 @@ struct SimilarPhotoGroup: Identifiable {
             }
         }
         let mean = sum / count
-        return squares / count - mean * mean
+        return (squares / count - mean * mean, brightness, contrast)
     }
 }

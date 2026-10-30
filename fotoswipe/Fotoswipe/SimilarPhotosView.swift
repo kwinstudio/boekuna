@@ -156,6 +156,7 @@ struct SimilarPhotosView: View {
 /// Near-duplicate stacks: the best shot is preselected (default effect), so one swipe settles the whole stack.
 /// Big photo on top for the eyes, thumbnails in the thumb zone below for the hand.
 struct StackReviewView: View {
+    var group: SmartGroup = .similar
     @EnvironmentObject private var library: PhotoLibrary
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -168,8 +169,11 @@ struct StackReviewView: View {
     @State private var settled = 0
     @State private var review = false
 
+    private var loadingGroup: Bool {
+        group == .bursts ? !library.burstsLoaded : (library.smart.scanning || !library.smart.finished)
+    }
     private var stacks: [[PHAsset]] {
-        library.smart.stacks
+        library.stacks(for: group)
             .map { ids in ids.compactMap { library.asset(id: $0) }.filter { library.state.decisions[$0.localIdentifier] == nil } }
             .filter { $0.count > 1 && !skipped.contains($0[0].localIdentifier) }
     }
@@ -183,16 +187,16 @@ struct StackReviewView: View {
                             .frame(width: 44, height: 44).pop(radius: 22, fill: Palette.surface, shadow: 2)
                     }.accessibilityLabel("Sluiten")
                     Spacer()
-                    Text("Bijna dubbel").font(.system(.headline, design: .rounded).weight(.heavy))
+                    Text(group.title).font(.system(.headline, design: .rounded).weight(.heavy))
                     Spacer()
-                    Text(library.smart.finished ? "\(stacks.count) over" : " ").font(.subheadline.weight(.heavy)).monospacedDigit()
+                    Text(!loadingGroup ? "\(stacks.count) over" : " ").font(.subheadline.weight(.heavy)).monospacedDigit()
                         .frame(minWidth: 44)
                 }
                 if !library.hasAccess {
                     Spacer()
                     Text("Geef Fotoswipe eerst toegang tot je foto's.").font(.headline).multilineTextAlignment(.center)
                     Spacer()
-                } else if library.smart.scanning || !library.smart.finished {
+                } else if loadingGroup {
                     scanningView
                 } else if let group = stacks.first {
                     stackView(group)
@@ -206,17 +210,24 @@ struct StackReviewView: View {
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $review) { ReviewView().environmentObject(library) }
         }
-        .onAppear { if !library.smart.finished && !library.smart.scanning { library.startSmartScan() } }
+        .onAppear {
+            if group == .bursts { library.loadBursts() }
+            else if !library.smart.finished && !library.smart.scanning { library.startSmartScan() }
+        }
     }
 
     private var scanningView: some View {
         VStack(spacing: 16) {
             Spacer()
-            Image(systemName: "square.stack.3d.up.fill").font(.system(size: 54)).foregroundStyle(Palette.brand)
-            Text("Bijna gelijke foto's zoeken").font(.system(.title2, design: .rounded).weight(.heavy))
-            ProgressView(value: Double(library.smart.processed), total: Double(max(1, library.smart.total))).tint(Palette.brand)
-            Text("\(library.smart.processed) van \(library.smart.total) recente foto's bekeken")
-                .font(.subheadline.weight(.semibold)).monospacedDigit()
+            Image(systemName: group.icon).font(.system(size: 54)).foregroundStyle(Palette.brand)
+            Text(group == .bursts ? "Burstfoto's ophalen" : "\(group.title) zoeken").font(.system(.title2, design: .rounded).weight(.heavy))
+            if group == .bursts {
+                ProgressView().tint(Palette.brand)
+            } else {
+                ProgressView(value: Double(library.smart.processed), total: Double(max(1, library.smart.total))).tint(Palette.brand)
+                Text("\(library.smart.processed) van \(library.smart.total) recente foto's bekeken")
+                    .font(.subheadline.weight(.semibold)).monospacedDigit()
+            }
             Text("Dit gebeurt alleen op je iPhone, met kleine voorbeelden. Er wordt niets geüpload of verwijderd.")
                 .font(.footnote).foregroundStyle(Palette.muted).multilineTextAlignment(.center)
             Spacer()
@@ -225,11 +236,12 @@ struct StackReviewView: View {
 
     @ViewBuilder private func stackView(_ group: [PHAsset]) -> some View {
         let ids = group.map(\.localIdentifier)
-        let best = library.bestInStack(ids) ?? ids[0]
+        let suggested = library.defaultKeep(for: ids, in: self.group)
+        let best = ids.first { suggested.contains($0) } ?? ids[0]
         let shown = group.first { $0.localIdentifier == (focused ?? best) } ?? group[0]
         let trashCount = ids.filter { !keep.contains($0) }.count
         VStack(spacing: 12) {
-            Text("\(group.count) bijna gelijke foto's").font(.system(size: 26, weight: .heavy, design: .rounded)).tracking(-0.6)
+            Text(headline(group.count)).font(.system(size: 26, weight: .heavy, design: .rounded)).tracking(-0.6)
                 .frame(maxWidth: .infinity, alignment: .leading)
             ZStack(alignment: .topLeading) {
                 AssetImage(asset: shown, manager: library.images)
@@ -237,8 +249,8 @@ struct StackReviewView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                     .overlay(RoundedRectangle(cornerRadius: 20).stroke(Palette.ink, lineWidth: 3))
                 HStack(spacing: 6) {
-                    if shown.localIdentifier == best {
-                        Label(library.isFavorite(shown) ? "Favoriet" : "Beste keuze", systemImage: "star.fill")
+                    if suggested.contains(shown.localIdentifier) {
+                        Label(library.isFavorite(shown) ? "Favoriet" : (self.group == .bursts ? "Gekozen door iOS" : "Beste keuze"), systemImage: "star.fill")
                             .font(.caption.weight(.heavy)).padding(.horizontal, 10).padding(.vertical, 6)
                             .pop(radius: 10, fill: Palette.reward, shadow: 2)
                     }
@@ -304,8 +316,8 @@ struct StackReviewView: View {
                 Text("Weggelegd gaat eerst naar Bekijken").font(.caption).foregroundStyle(Palette.muted)
             }
         }
-        .onAppear { reset(ids, best: best) }
-        .onChange(of: ids.first) { _, _ in reset(ids, best: best) }
+        .onAppear { reset(ids, keep: suggested) }
+        .onChange(of: ids.first) { _, _ in reset(ids, keep: suggested) }
     }
 
     private var doneView: some View {
@@ -314,7 +326,7 @@ struct StackReviewView: View {
             Image(systemName: "checkmark").font(.system(size: 38, weight: .heavy))
                 .frame(width: 84, height: 84).background(Circle().fill(Palette.reward))
                 .overlay(Circle().stroke(Palette.ink, lineWidth: 3))
-            Text(settled == 0 ? "Geen bijna-dubbele foto's gevonden" : "Alle stapels gedaan")
+            Text(settled == 0 ? "Niets gevonden in \(group.title)" : "Alle stapels gedaan")
                 .font(.system(.title2, design: .rounded).weight(.heavy)).multilineTextAlignment(.center)
             if setAside > 0 {
                 Text("\(setAside) foto's weggelegd. Controleer ze in Bekijken voordat je iets verwijdert.")
@@ -327,11 +339,18 @@ struct StackReviewView: View {
         }
     }
 
-    private func reset(_ ids: [String], best: String) {
+    private func headline(_ count: Int) -> String {
+        switch group {
+        case .bursts: return "\(count) foto's in deze burst"
+        case .copies: return "\(count) keer dezelfde foto"
+        default: return "\(count) bijna gelijke foto's"
+        }
+    }
+    private func reset(_ ids: [String], keep suggested: Set<String>) {
         guard currentID != ids.first else { return }
         currentID = ids.first
-        keep = [best]
-        focused = best
+        keep = suggested.isEmpty ? [ids[0]] : suggested
+        focused = ids.first { keep.contains($0) }
         drag = 0
     }
     private func toggle(_ id: String, in ids: [String]) {
@@ -359,5 +378,121 @@ struct StackReviewView: View {
             skipped.insert(ids[0])
             drag = 0
         }
+    }
+}
+
+/// "Slim opruimen": every smart group with its count and estimated size, biggest win first.
+/// One tap opens a group; stack groups open stacks, the rest open as a normal swipe category.
+struct SmartCleanView: View {
+    @EnvironmentObject private var library: PhotoLibrary
+    @Environment(\.dismiss) private var dismiss
+    let onOpenCategory: (String) -> Void
+    @State private var stackGroup: SmartGroup?
+
+    private var ordered: [SmartGroup] {
+        SmartGroup.allCases.sorted { lhs, rhs in
+            let l = library.smartSummary[lhs]?.bytes ?? -1, r = library.smartSummary[rhs]?.bytes ?? -1
+            return l == r ? lhs.rawValue < rhs.rawValue : l > r
+        }
+    }
+    private var totalBytes: Int64 { library.smartSummary.values.reduce(0) { $0 + $1.bytes } }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Grootste winst eerst. Alles gebeurt op je iPhone, en jij beslist per foto of per stapel.")
+                        .font(.subheadline).foregroundStyle(Palette.muted)
+                    if library.smart.scanning {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Foto's analyseren…").font(.subheadline.weight(.heavy))
+                            ProgressView(value: Double(library.smart.processed), total: Double(max(1, library.smart.total))).tint(Palette.brand)
+                            Text("\(library.smart.processed) van \(library.smart.total)").font(.caption).foregroundStyle(Palette.muted).monospacedDigit()
+                        }
+                        .padding(12).pop(radius: 14, fill: Palette.surface, shadow: 2)
+                    } else if totalBytes > 0 {
+                        Text("Samen ongeveer \(ByteText.format(totalBytes).replacingOccurrences(of: "ca. ", with: "")) te winnen")
+                            .font(.headline.weight(.heavy))
+                    }
+                    ForEach(ordered) { group in
+                        let entry = library.smartSummary[group]
+                        let pendingScan = group.needsScan && !library.smart.finished
+                        let pendingBursts = group == .bursts && !library.burstsLoaded
+                        let empty = !(pendingScan || pendingBursts) && (entry?.count ?? 0) == 0
+                        Button { open(group) } label: { card(group, entry: entry, waiting: pendingScan || pendingBursts, empty: empty) }
+                            .buttonStyle(.plain)
+                            .disabled(empty || pendingScan || pendingBursts)
+                    }
+                    tips
+                }
+                .padding(20).foregroundStyle(Palette.ink)
+            }
+            .background(Palette.background.ignoresSafeArea())
+            .navigationTitle("Slim opruimen").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Klaar") { dismiss() } } }
+            .fullScreenCover(item: $stackGroup, onDismiss: { library.updateSmartSummary() }) { group in
+                StackReviewView(group: group).environmentObject(library)
+            }
+        }
+        .onAppear {
+            library.loadBursts()
+            if !library.smart.finished && !library.smart.scanning { library.startSmartScan() }
+            library.updateSmartSummary()
+        }
+    }
+
+    private func open(_ group: SmartGroup) {
+        if group.isStack { stackGroup = group }
+        else { onOpenCategory(group.rawValue) }
+    }
+
+    private func card(_ group: SmartGroup, entry: (count: Int, bytes: Int64)?, waiting: Bool, empty: Bool) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: group.icon).font(.system(size: 18, weight: .heavy))
+                .foregroundStyle(group.isStack ? Color.white : Palette.ink)
+                .frame(width: 44, height: 44)
+                .background(RoundedRectangle(cornerRadius: 12).fill(group.isStack ? Palette.brand : Palette.reward))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.ink, lineWidth: 2))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(group.title).font(.headline.weight(.heavy))
+                Text(group.detail).font(.caption).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 6)
+            VStack(alignment: .trailing, spacing: 2) {
+                if waiting {
+                    ProgressView().tint(Palette.brand)
+                } else if empty {
+                    Text("Niets").font(.subheadline.weight(.bold)).foregroundStyle(Palette.muted)
+                } else if let entry {
+                    Text("\(entry.count)").font(.headline.weight(.heavy)).monospacedDigit()
+                    Text(ByteText.format(entry.bytes)).font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
+                }
+            }
+            if !empty && !waiting { Image(systemName: "chevron.right").font(.caption.weight(.heavy)).foregroundStyle(Palette.muted) }
+        }
+        .padding(12)
+        .pop(radius: 16, fill: Palette.surface, shadow: empty ? 0 : 3)
+        .opacity(empty ? 0.55 : 1)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint(empty ? "Niets gevonden" : "Openen")
+    }
+
+    private var tips: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Goed om te weten").font(.headline.weight(.heavy)).padding(.top, 8)
+            tip("trash.slash", "Ruimte komt pas vrij na 'Recent verwijderd'", "Verwijderde foto's blijven 30 dagen in Foto's > Albums > Recent verwijderd. Wil je de ruimte meteen? Kies daar Verwijder alles. Een app mag dat album niet zelf legen.")
+            tip("square.on.square", "Exacte duplicaten samenvoegen", "Ook de Foto's-app vindt exacte duplicaten: Albums > Duplicaten > Voeg samen.")
+            tip("film", "Video's en Live Photos", "Open een video of Live Photo en kies via Meer 'Video verkleinen' of 'Bewaar als gewone foto'. Het origineel gaat eerst naar Weggelegd.")
+        }
+    }
+    private func tip(_ icon: String, _ title: String, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon).font(.system(size: 16, weight: .heavy)).foregroundStyle(Palette.brand).frame(width: 24)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.subheadline.weight(.heavy))
+                Text(text).font(.footnote).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 }

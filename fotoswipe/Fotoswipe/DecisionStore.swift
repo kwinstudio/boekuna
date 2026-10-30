@@ -288,6 +288,9 @@ struct PhotoQuality: Sendable, Equatable, Codable {
     let aesthetic: Double?
     /// Apple marks receipts, documents, notes and similar "utility" images (iOS 18 and later).
     let utility: Bool
+    /// Mean brightness (0 black ... 1 white) and contrast (standard deviation) of the thumbnail.
+    var brightness: Double = 0.5
+    var contrast: Double = 0.2
 }
 
 /// Default effect: the best shot is preselected, so one confirmation handles a whole stack.
@@ -316,13 +319,14 @@ enum SmartPick {
 }
 
 enum ClutterReason: Int, Comparable {
-    case document, screenshot, blurry
+    case document, screenshot, blurry, accidental
     static func < (lhs: ClutterReason, rhs: ClutterReason) -> Bool { lhs.rawValue < rhs.rawValue }
     var label: String {
         switch self {
         case .document: return "Bonnetje of notitie"
         case .screenshot: return "Screenshot"
         case .blurry: return "Mogelijk wazig"
+        case .accidental: return "Per ongeluk?"
         }
     }
     /// Conservative on purpose: a wrong guess costs one extra swipe, never a deletion.
@@ -330,6 +334,7 @@ enum ClutterReason: Int, Comparable {
         if isFavorite { return nil }
         if isScreenshot { return .screenshot }
         guard let quality else { return nil }
+        if SmartRules.looksAccidental(quality) { return .accidental }
         if quality.utility { return .document }
         if let aesthetic = quality.aesthetic {
             return quality.sharpness < SmartPick.blurThreshold * 2 && aesthetic < -0.2 ? .blurry : nil
@@ -361,5 +366,97 @@ enum ReviewPrompt {
         guard completedSessions >= 2, setAsideThisSession >= 5, lastAskedVersion != version else { return false }
         if let lastAsked, now.timeIntervalSince(lastAsked) < 120 * 24 * 3600 { return false }
         return true
+    }
+}
+
+
+/// Smart groups shown on "Slim opruimen". Swipe groups open as a category; stack groups open as stacks.
+enum SmartGroup: String, CaseIterable, Identifiable {
+    case similar, bursts, copies, clutter, accidental, oldScreenshots = "old-screenshots", fromApps = "from-apps", small
+    var id: String { rawValue }
+    var isStack: Bool { self == .similar || self == .bursts || self == .copies }
+    var needsScan: Bool { self == .similar || self == .copies || self == .clutter || self == .accidental }
+    var title: String {
+        switch self {
+        case .similar: return "Bijna dubbel"
+        case .bursts: return "Burstfoto's"
+        case .copies: return "Exacte kopieën"
+        case .clutter: return "Rommel"
+        case .accidental: return "Per ongeluk"
+        case .oldScreenshots: return "Oude screenshots"
+        case .fromApps: return "Uit apps"
+        case .small: return "Kleine plaatjes en GIF's"
+        }
+    }
+    var detail: String {
+        switch self {
+        case .similar: return "Bijna gelijke foto's; de beste staat al klaar"
+        case .bursts: return "iOS weet zelf welke foto de beste is"
+        case .copies: return "Dezelfde foto twee keer opgeslagen"
+        case .clutter: return "Wazig, bonnetjes, notities, screenshots"
+        case .accidental: return "Bijna zwart, leeg, of video korter dan 3 sec."
+        case .oldScreenshots: return "Ouder dan \(SmartRules.oldScreenshotDays) dagen"
+        case .fromApps: return "WhatsApp, Telegram, Instagram en meer"
+        case .small: return "Lage resolutie, memes en gedownloade plaatjes"
+        }
+    }
+    var icon: String {
+        switch self {
+        case .similar: return "square.stack.3d.up.fill"
+        case .bursts: return "square.stack.fill"
+        case .copies: return "plus.square.on.square"
+        case .clutter: return "wand.and.stars"
+        case .accidental: return "eye.slash"
+        case .oldScreenshots: return "clock.arrow.circlepath"
+        case .fromApps: return "bubble.left.and.bubble.right.fill"
+        case .small: return "photo.badge.arrow.down"
+        }
+    }
+}
+
+/// Metadata-only facts about an item (no image data).
+struct AssetFacts: Equatable {
+    let id: String
+    var isVideo = false
+    var isScreenshot = false
+    var isAnimated = false
+    var pixelWidth = 0
+    var pixelHeight = 0
+    var duration: Double = 0
+    var created: Date?
+}
+
+enum SmartRules {
+    static let oldScreenshotDays = 30
+    static let smallPixels = 600_000
+    static let shortVideoSeconds = 3.0
+    static let appAlbumNames = ["whatsapp", "whatsapp business", "telegram", "messenger", "instagram", "snapchat", "signal",
+                                "facebook", "tiktok", "pinterest", "twitter", "x", "threads", "discord", "wechat", "line", "viber"]
+
+    static func isOldScreenshot(_ facts: AssetFacts, now: Date = Date()) -> Bool {
+        guard facts.isScreenshot, let created = facts.created else { return false }
+        return now.timeIntervalSince(created) > Double(oldScreenshotDays) * 24 * 3600
+    }
+    static func isSmall(_ facts: AssetFacts) -> Bool {
+        guard !facts.isVideo, !facts.isScreenshot else { return false }
+        return facts.isAnimated || (facts.pixelWidth * facts.pixelHeight > 0 && facts.pixelWidth * facts.pixelHeight < smallPixels)
+    }
+    static func isShortVideo(_ facts: AssetFacts) -> Bool {
+        facts.isVideo && facts.duration > 0 && facts.duration < shortVideoSeconds
+    }
+    /// Pocket shots and empty frames: almost black, or flat and soft.
+    static func looksAccidental(_ quality: PhotoQuality) -> Bool {
+        quality.brightness < 0.06 || (quality.contrast < 0.025 && quality.sharpness < SmartPick.blurThreshold * 2)
+    }
+    static func isAppAlbum(_ title: String) -> Bool {
+        let name = title.lowercased().trimmingCharacters(in: .whitespaces)
+        return appAlbumNames.contains(name) || appAlbumNames.contains { name.hasPrefix($0 + " ") }
+    }
+    /// Bursts: keep what iOS or the user picked; otherwise the representative photo.
+    static func burstKeep(_ ids: [String], picked: Set<String>, representative: String?) -> Set<String> {
+        let kept = picked.intersection(ids)
+        if !kept.isEmpty { return kept }
+        if let representative, ids.contains(representative) { return [representative] }
+        return ids.first.map { [$0] } ?? []
     }
 }
