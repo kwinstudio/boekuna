@@ -29,7 +29,7 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          TARGET_BUILD: ${{ inputs.target_build || '9' }}
+          TARGET_BUILD: ${{ inputs.target_build || '10' }}
           WAIT_MINUTES: "40"
-          WHAT_TO_TEST: "Nieuw in build 9: onboarding in 3 stappen met een oefenkaart (verwijder de app en installeer opnieuw om die te zien), startscherm in Pop-kleuren, Jouw overzicht met statistieken en deelkaart (tik op de vlam rechtsboven), beoordelingsvraag na een geslaagde sessie, opnieuw beginnen en trillen uitzetten onder het i-knopje. Test vooral: de onboarding, het deelkaartje en het wissen van keuzes."
+          WHAT_TO_TEST: "Nieuw in build 10: Slim opruimen (gele knop) met burstfoto's, bijna dubbel, exacte kopieën, rommel, per ongeluk, oude screenshots, uit apps en kleine plaatjes. Via Meer: video verkleinen en Live Photo als gewone foto. Rustiger hoofdscherm (minder knoppen), volgorde in de categoriekeuze, Hoe werkt Fotoswipe onder het i-knopje, en tips die één keer verschijnen. Test vooral: Slim opruimen, burstfoto's en video verkleinen."
         run: node fotoswipe/scripts/asc-testflight-status.mjs
