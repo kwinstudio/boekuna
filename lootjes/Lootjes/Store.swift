@@ -26,6 +26,11 @@ final class Store: ObservableObject {
 
     func group(_ id: String) -> SavedGroup? { groups.first { $0.id == id } }
 
+    /// True when this phone created or joined the group itself (so an earlier "opened" was us).
+    func groupJoinedHere(_ id: String) -> Bool { joinedHere.contains(id) }
+    func markJoinedHere(_ id: String) { joinedHere.insert(id) }
+    private var joinedHere = Set<String>()
+
     /// Merge: never throw away a token we already had.
     func upsert(_ g: SavedGroup) {
         if let i = groups.firstIndex(where: { $0.id == g.id }) {

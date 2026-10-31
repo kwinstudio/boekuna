@@ -24,7 +24,7 @@
   input, textarea { width:100%; font:inherit; color:inherit; background:var(--card); border:1.5px solid var(--line); border-radius:14px; padding:13px 14px; outline:none; }
   input:focus, textarea:focus { border-color:var(--accent); }
   textarea { min-height:150px; resize:vertical; }
-  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:54px; border:0; border-radius:18px; background:var(--accent); color:#fff; font:600 17px/1 inherit; font-family:inherit; cursor:pointer; text-decoration:none; transition:transform .12s; }
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:54px; border:0; border-radius:18px; background:var(--accent); color:#fff; font-family:inherit; font-size:17px; font-weight:600; line-height:1; cursor:pointer; text-decoration:none; transition:transform .12s; }
   .btn:active { transform:scale(.97); }
   .btn[disabled] { opacity:.45; }
   .btn.secondary { background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); min-height:48px; }
@@ -158,6 +158,9 @@ async function memberPage(token, justJoined = false) {
   let d;
   try { d = await call("me", { token }); }
   catch (e) { return render(`<h1>Link werkt niet</h1><p>${esc(e.message)}</p>`), bar(""); }
+  let knownHere = false;
+  try { knownHere = !!JSON.parse(localStorage.getItem("lt_links") || "{}")[token]; } catch {}
+  const warnOpened = d.me.openedBefore && !knownHere && !justJoined;
   saveToken(token, d.group.name);
   setAccent(d.group.occasion);
   const o = occ(d.group.occasion);
@@ -190,7 +193,7 @@ async function memberPage(token, justJoined = false) {
       <div class="row" style="margin-top:8px"><input id="in_${t}" maxlength="500" placeholder="${ph}"><button class="btn send" data-thread="${t}" aria-label="Verstuur">↑</button></div></div>`;
 
   render(`
-    ${d.me.openedBefore && !d.me.isOrganizer && !revealed ? `<p class="warn">Deze link is al eerder geopend. Was jij dat niet? Vraag de organisator om een nieuwe link.</p>` : ""}
+    ${warnOpened && !d.me.isOrganizer && !revealed ? `<p class="warn">Deze link is al eerder geopend. Was jij dat niet? Vraag de organisator om een nieuwe link.</p>` : ""}
     <div id="lootje"></div>
     <div class="card"><h2>Verlanglijstje van ${esc(r.name)}</h2>
       ${r.wishlist.trim() ? `<div class="wish">${linkify(r.wishlist)}</div>` : `<p class="muted">${esc(r.name)} heeft nog niets ingevuld. Stel hieronder anoniem een vraag.</p>`}</div>

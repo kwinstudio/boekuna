@@ -19,6 +19,7 @@ struct MemberView: View {
     @State private var showPoem = false
     @State private var chat: ChatMessage.Thread?
     @State private var confirmLeave = false
+    @State private var warnOpened = false
     @AppStorage("revealed") private var revealedRaw = ""
     @Environment(\.dismiss) private var dismiss
 
@@ -121,7 +122,7 @@ struct MemberView: View {
                     markRevealed()
                 }
                 .frame(height: 280)
-                if d.me.openedBefore != nil && !d.me.isOrganizer {
+                if warnOpened && !d.me.isOrganizer {
                     Text("Deze link is al eerder geopend. Was jij dat niet? Vraag de organisator om een nieuwe link.")
                         .font(.footnote).foregroundStyle(.orange)
                 }
@@ -246,6 +247,12 @@ struct MemberView: View {
         guard let token else { loadError = "Deze link staat niet meer op deze telefoon."; return }
         do {
             let d = try await api.me(token)
+            // Warn only when someone else opened this link before this phone ever did.
+            let seenKey = "openedHere.\(groupId)"
+            if !UserDefaults.standard.bool(forKey: seenKey) {
+                warnOpened = d.me.openedBefore != nil && !store.groupJoinedHere(groupId)
+                UserDefaults.standard.set(true, forKey: seenKey)
+            }
             data = d
             loadError = nil
             store.update(groupId) { $0.name = d.group.name; $0.eventDate = d.group.eventDate; $0.myName = d.me.name }

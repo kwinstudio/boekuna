@@ -156,6 +156,7 @@ struct JoinView: View {
             let g = SavedGroup(id: p.group.id, name: p.group.name, occasion: p.group.occasion, eventDate: p.group.eventDate,
                                adminToken: nil, myToken: r.token, myName: r.member.name)
             store.upsert(g)
+            store.markJoinedHere(g.id)
             Reminders.schedule(for: g)
             Haptics.success()
             onDone(store.group(g.id) ?? g)
@@ -199,6 +200,7 @@ struct OpenMemberLinkView: View {
                 let g = SavedGroup(id: me.group.id, name: me.group.name, occasion: me.group.occasion,
                                    eventDate: me.group.eventDate, adminToken: nil, myToken: token, myName: me.me.name)
                 store.upsert(g)
+                if me.me.openedBefore == nil { store.markJoinedHere(g.id) }
                 Reminders.schedule(for: g)
                 onDone(store.group(g.id) ?? g)
             } catch {
