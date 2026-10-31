@@ -8,6 +8,11 @@ struct APIError: LocalizedError, Equatable {
     static let offline = APIError(code: "offline", message: "Geen internet. Controleer je verbinding en probeer het opnieuw.")
 }
 
+private struct ErrorWrapper: Decodable {
+    struct E: Decodable { let code: String; let message: String }
+    let error: E
+}
+
 /// Thin client for the lootjes edge function. Every call is one POST with an action.
 struct API {
     var session: URLSession = .shared
@@ -29,8 +34,7 @@ struct API {
         }
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         if !(200..<300).contains(status) {
-            struct Wrapper: Decodable { struct E: Decodable { let code: String; let message: String }; let error: E }
-            if let w = try? JSONDecoder().decode(Wrapper.self, from: data) {
+            if let w = try? JSONDecoder().decode(ErrorWrapper.self, from: data) {
                 throw APIError(code: w.error.code, message: w.error.message)
             }
             throw APIError(code: "server", message: "Er ging iets mis (\(status)). Probeer het zo opnieuw.")
