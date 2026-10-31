@@ -21,6 +21,10 @@ jobs:
     if: github.repository == 'kwinstudio/boekuna'
     runs-on: macos-26
     timeout-minutes: 90
+    env:
+      # Branch-only workflows have no Run workflow button on GitHub. This explicit
+      # commit marker allows distribution recovery without rebuilding the app.
+      EXISTING_BUILD: ${{ inputs.existing_build || (contains(github.event.head_commit.message, '[quitte-testflight-only]') && 'latest') || '' }}
     defaults:
       run:
         working-directory: quitte
@@ -47,7 +51,7 @@ jobs:
           ASC_KEY_OUT: ${{ runner.temp }}/QuitteAuthKey.p8
         run: node scripts/asc.mjs preflight
       - name: Native iOS-project genereren
-        if: inputs.existing_build == ''
+        if: env.EXISTING_BUILD == ''
         env:
           CI: 1
           EXPO_NO_TELEMETRY: 1
@@ -59,7 +63,7 @@ jobs:
           npx expo prebuild --platform ios --clean
           test -d ios/Quitte.xcworkspace
       - name: Archive, sign en upload naar TestFlight
-        if: steps.asc.outputs.app_exists == 'true' && inputs.existing_build == ''
+        if: steps.asc.outputs.app_exists == 'true' && env.EXISTING_BUILD == ''
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -90,7 +94,7 @@ jobs:
           [ -z "$EXPORT_FAILED" ] || exit 1
           echo "::notice title=Upload::Build ${{ steps.asc.outputs.next_build }} uploaded to App Store Connect."
       - name: Simulator-build (controle zonder app-record)
-        if: steps.asc.outputs.app_exists != 'true' && inputs.existing_build == ''
+        if: steps.asc.outputs.app_exists != 'true' && env.EXISTING_BUILD == ''
         run: |
           set -o pipefail
           xcodebuild -workspace ios/Quitte.xcworkspace -scheme Quitte -configuration Release \
@@ -101,7 +105,7 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          TARGET_BUILD: ${{ inputs.existing_build || steps.asc.outputs.next_build }}
+          TARGET_BUILD: ${{ (env.EXISTING_BUILD == 'latest' && steps.asc.outputs.latest_build) || env.EXISTING_BUILD || steps.asc.outputs.next_build }}
           WHAT_TO_TEST: "Eerste versie van Quitte. Test: een lijst maken, iemand laten meedoen met de code of QR, uitgaven toevoegen en verdelen (gelijk, bedragen, delen), saldi en 'Zo is iedereen quitte', betaling afvinken en ongedaan maken, offline een uitgave toevoegen."
         run: node scripts/asc.mjs testflight
       - name: Signeersleutel verwijderen
