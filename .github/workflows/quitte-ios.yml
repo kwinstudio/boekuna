@@ -68,23 +68,25 @@ jobs:
           xcodebuild -workspace ios/Quitte.xcworkspace -scheme Quitte -configuration Release \
             -destination 'generic/platform=iOS' -archivePath build/Quitte.xcarchive \
             DEVELOPMENT_TEAM=${{ steps.asc.outputs.team_id }} CODE_SIGNING_ALLOWED=NO \
-            archive 2>&1 | tee build-archive.log | tail -40 || true
+            archive 2>&1 | tee build-archive.log | tail -40 || ARCHIVE_FAILED=1
           # Onondertekend archief (geen ontwikkelprofiel of toestel nodig, zoals bij Fotoswipe);
           # de export hieronder ondertekent met een App Store-profiel via de API-sleutel.
           grep -E "error:" build-archive.log | sort -u | head -25 | while IFS= read -r line; do echo "::error title=Archive::${line}"; done || true
+          [ -z "${ARCHIVE_FAILED:-}" ] || exit 1
           if [ ! -d build/Quitte.xcarchive/Products/Applications/Quitte.app ]; then
             tail -25 build-archive.log | while IFS= read -r line; do echo "::error title=Archive tail::${line}"; done
             exit 1
           fi
           V=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' build/Quitte.xcarchive/Products/Applications/Quitte.app/Info.plist)
           echo "::notice title=Archive::CFBundleVersion $V"
+          [ "$V" = '${{ steps.asc.outputs.next_build }}' ] || { echo '::error::Archive build number differs from preflight'; exit 1; }
           cp ExportOptions-TestFlight.plist "$RUNNER_TEMP/ExportOptions.plist"
           /usr/libexec/PlistBuddy -c 'Add :teamID string ${{ steps.asc.outputs.team_id }}' "$RUNNER_TEMP/ExportOptions.plist"
           xcodebuild -exportArchive -archivePath build/Quitte.xcarchive -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
             -exportPath build/upload -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/QuitteAuthKey.p8" \
             -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" > build-export.log 2>&1 || EXPORT_FAILED=1
           tail -40 build-export.log
-          grep -iE "error|failed|agreement|invalid" build-export.log | grep -v "^\s*$" | sort -u | head -25 | while IFS= read -r line; do echo "::error title=Export::${line}"; done || true
+          grep -iE "error|failed|agreement|invalid" build-export.log | grep -iv '^warning:' | grep -v "^\s*$" | sort -u | head -25 | while IFS= read -r line; do echo "::error title=Export::${line}"; done || true
           [ -z "$EXPORT_FAILED" ] || exit 1
           echo "::notice title=Upload::Build ${{ steps.asc.outputs.next_build }} uploaded to App Store Connect."
       - name: Simulator-build (controle zonder app-record)
