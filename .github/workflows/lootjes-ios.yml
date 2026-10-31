@@ -84,9 +84,10 @@ jobs:
           xcodebuild -project Lootjes.xcodeproj -scheme Lootjes -configuration Release \
             -destination 'generic/platform=iOS' -archivePath build/Lootjes.xcarchive \
             CURRENT_PROJECT_VERSION=${{ steps.asc.outputs.next_build }} DEVELOPMENT_TEAM=${{ steps.asc.outputs.team_id }} \
-            -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/LootjesAuthKey.p8" \
-            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" archive 2>&1 | tee build-archive.log | tail -30 || true
-          grep -E "error:" build-archive.log | sort -u | head -20 | while IFS= read -r line; do echo "::error title=Archive::${line}"; done
+            CODE_SIGNING_ALLOWED=NO archive 2>&1 | tee build-archive.log | tail -30 || ARCHIVE_FAILED=1
+          # Match Quitte: archive unsigned, then sign for App Store Connect during export.
+          grep -E "error:" build-archive.log | sort -u | head -20 | while IFS= read -r line; do echo "::error title=Archive::${line}"; done || true
+          [ -z "${ARCHIVE_FAILED:-}" ] || exit 1
           test -d build/Lootjes.xcarchive/Products/Applications/Lootjes.app
           cp ExportOptions-TestFlight.plist "$RUNNER_TEMP/ExportOptions.plist"
           /usr/libexec/PlistBuddy -c 'Add :teamID string ${{ steps.asc.outputs.team_id }}' "$RUNNER_TEMP/ExportOptions.plist"
