@@ -2,10 +2,10 @@ import Foundation
 
 enum AppConfig {
     /// Edge function endpoint (filled in when the backend is deployed).
-    static let apiURL = URL(string: "https://API_HOST/functions/v1/lootjes")!
+    static let apiURL = URL(string: "https://vuwfyhtejsxhdfyvkkeq.supabase.co/functions/v1/lootjes")!
     /// Web pages for people without the app (join + personal lootje page).
-    static let webBase = URL(string: "https://WEB_HOST")!
-    static let privacyURL = URL(string: "https://WEB_HOST/privacy")!
+    static let webBase = URL(string: "https://lootjes-app.vercel.app")!
+    static let privacyURL = URL(string: "https://lootjes-app.vercel.app/privacy")!
     static let supportEmail = "k.phetmanee@gmail.com"
 
     static func joinURL(code: String) -> URL { webBase.appending(path: "j/\(code)") }
