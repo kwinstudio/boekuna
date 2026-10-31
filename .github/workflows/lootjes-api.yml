@@ -1,0 +1,20 @@
+name: Lootjes API smoke
+# End-to-end check of the live lootjes backend. Creates and deletes its own test groups.
+on:
+  push:
+    branches: [claude/lootjes]
+    paths: ['lootjes/scripts/api-smoke.mjs', 'lootjes/supabase/**', '.github/workflows/lootjes-api.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    if: github.repository == 'kwinstudio/boekuna'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node lootjes/scripts/api-smoke.mjs
