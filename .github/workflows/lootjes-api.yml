@@ -1,20 +1,35 @@
 name: Lootjes API smoke
-# End-to-end check of the live lootjes backend. Creates and deletes its own test groups.
+# End-to-end checks of the live lootjes backend and web page. Creates and deletes its own test groups.
 on:
   push:
     branches: [claude/lootjes]
-    paths: ['lootjes/scripts/api-smoke.mjs', 'lootjes/supabase/**', '.github/workflows/lootjes-api.yml']
+    paths: ['lootjes/scripts/*-smoke.mjs', 'lootjes/supabase/**', 'lootjes/web/**', '.github/workflows/lootjes-api.yml']
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   smoke:
     if: github.repository == 'kwinstudio/boekuna'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - run: node lootjes/scripts/api-smoke.mjs
+      - name: Web page in a real browser
+        if: always()
+        run: |
+          sleep 30  # give Vercel time to deploy the pushed web page
+          mkdir -p /tmp/w && cd /tmp/w && npm init -y >/dev/null && npm i playwright@1 >/dev/null && npx playwright install --with-deps chromium >/dev/null
+          cp "$GITHUB_WORKSPACE/lootjes/scripts/web-smoke.mjs" /tmp/w/
+          SHOTS=/tmp/w/shots node /tmp/w/web-smoke.mjs
+      - name: Publish web screenshots to a branch
+        if: always()
+        run: |
+          ls /tmp/w/shots/*.png >/dev/null 2>&1 || exit 0
+          cd /tmp/w/shots && git init -q && git checkout -q -b claude/lootjes-web-shots
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com add .
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -q -m "web screenshots ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" claude/lootjes-web-shots
