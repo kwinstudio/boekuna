@@ -14,7 +14,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: quitte-ios
+  group: quitte-ios-${{ (inputs.existing_build != '' || contains(github.event.head_commit.message, '[quitte-testflight-only]')) && 'distribution' || 'build' }}
   cancel-in-progress: false
 jobs:
   build-upload:
