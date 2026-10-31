@@ -144,3 +144,22 @@ try {
     note(`Identifier ${id}: ${res.data?.length ? 'registered' : 'missing'}; capabilities ${caps.join(', ') || 'none'}`);
   }
 } catch (e) { warn(`Capabilities unknown: ${e.message}`); }
+
+// Screenshot sets of the version being prepared, in one line.
+try {
+  const appId = (await api(`/v1/apps?filter[bundleId]=nl.zichtwerfstudio.fotoswipe`)).data[0].id;
+  const v = (await api(`/v1/apps/${appId}/appStoreVersions?filter[platform]=IOS&limit=5`)).data
+    .find((x) => ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED', 'METADATA_REJECTED'].includes(x.attributes.appStoreState || x.attributes.appVersionState));
+  const locs = (await api(`/v1/appStoreVersions/${v.id}/appStoreVersionLocalizations?limit=50`)).data;
+  const parts = [];
+  for (const l of locs) {
+    const sets = await api(`/v1/appStoreVersionLocalizations/${l.id}/appScreenshotSets?include=appScreenshots&limit=50`);
+    const byType = (sets.data || []).map((s) => {
+      const ids = new Set((s.relationships?.appScreenshots?.data || []).map((d) => d.id));
+      const states = (sets.included || []).filter((i) => ids.has(i.id)).map((i) => i.attributes.assetDeliveryState?.state);
+      return `${s.attributes.screenshotDisplayType}:${states.length}${[...new Set(states)].join('/')}`;
+    });
+    parts.push(`${l.attributes.locale}[${byType.join(' ') || 'none'}]`);
+  }
+  note(`Screenshots ${parts.join(' ')}`);
+} catch (e) { warn(`Screenshots unknown: ${e.message}`); }
