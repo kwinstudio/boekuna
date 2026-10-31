@@ -65,7 +65,10 @@ jobs:
           # Onondertekend archief (geen ontwikkelprofiel of toestel nodig, zoals bij Fotoswipe);
           # de export hieronder ondertekent met een App Store-profiel via de API-sleutel.
           grep -E "error:" build-archive.log | sort -u | head -25 | while IFS= read -r line; do echo "::error title=Archive::${line}"; done
-          test -d build/Quitte.xcarchive/Products/Applications/Quitte.app
+          if [ ! -d build/Quitte.xcarchive/Products/Applications/Quitte.app ]; then
+            tail -25 build-archive.log | while IFS= read -r line; do echo "::error title=Archive tail::${line}"; done
+            exit 1
+          fi
           V=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' build/Quitte.xcarchive/Products/Applications/Quitte.app/Info.plist)
           echo "::notice title=Archive::CFBundleVersion $V"
           cp ExportOptions-TestFlight.plist "$RUNNER_TEMP/ExportOptions.plist"
