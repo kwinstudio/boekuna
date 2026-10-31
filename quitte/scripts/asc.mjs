@@ -104,8 +104,11 @@ if (mode === 'testflight') {
   if (build.attributes.processingState !== 'VALID') fail(`Build is ${build.attributes.processingState}.`);
 
   if (build.attributes.usesNonExemptEncryption == null) {
-    await api(`/v1/builds/${build.id}`, { method: 'PATCH', body: { data: { type: 'builds', id: build.id, attributes: { usesNonExemptEncryption: false } } } }).catch((e) => warn(e.message));
+    await api(`/v1/builds/${build.id}`, { method: 'PATCH', body: { data: { type: 'builds', id: build.id, attributes: { usesNonExemptEncryption: false } } } });
   }
+  const compliance = (await api(`/v1/builds/${build.id}?fields[builds]=usesNonExemptEncryption`)).data;
+  if (compliance.attributes.usesNonExemptEncryption !== false) fail('Expected usesNonExemptEncryption=false.');
+  note('Verified usesNonExemptEncryption=false.');
 
   // What to Test.
   const text = process.env.WHAT_TO_TEST || '';
@@ -122,7 +125,7 @@ if (mode === 'testflight') {
 
   // Internal group, created on first run, with the same testers as Fotoswipe's group.
   let groups = (await api(`/v1/apps/${app.id}/betaGroups?limit=50&fields[betaGroups]=name,isInternalGroup,hasAccessToAllBuilds`)).data || [];
-  let group = groups.find((g) => g.attributes.isInternalGroup);
+  let group = groups.find((g) => g.attributes.isInternalGroup && g.attributes.name === GROUP_NAME);
   if (!group) {
     group = (await api('/v1/betaGroups', { method: 'POST', body: { data: { type: 'betaGroups', attributes: { name: GROUP_NAME, isInternalGroup: true, hasAccessToAllBuilds: true }, relationships: { app: { data: { type: 'apps', id: app.id } } } } } })).data;
     note(`Created internal TestFlight group "${GROUP_NAME}".`);
@@ -136,19 +139,38 @@ if (mode === 'testflight') {
       for (const t of testers) {
         const email = (t.attributes.email || '').toLowerCase();
         if (!email || existing.has(email)) continue;
-        await api(`/v1/betaGroups/${group.id}/relationships/betaTesters`, { method: 'POST', body: { data: [{ type: 'betaTesters', id: t.id }] } })
-          .then(() => { existing.add(email); note('Added an internal tester from the Fotoswipe group.'); })
-          .catch((e) => warn(`Tester not added: ${e.message}`));
+        try {
+          await api(`/v1/betaGroups/${group.id}/relationships/betaTesters`, { method: 'POST', body: { data: [{ type: 'betaTesters', id: t.id }] } });
+        } catch (e) {
+          if (e.status !== 409) throw e;
+          // Inspect eligibility without logging tester names or email addresses.
+          const users = (await api(`/v1/users?filter[username]=${encodeURIComponent(email)}&fields[users]=roles,allAppsVisible&limit=200`)).data || [];
+          for (const user of users) {
+            const visible = user.attributes.allAppsVisible || ((await api(`/v1/users/${user.id}/visibleApps?fields[apps]=bundleId&limit=200`)).data || []).some((a) => a.id === app.id);
+            note(`Template tester eligibility: roles=${user.attributes.roles.join(',')}; Quitte visible=${visible}.`);
+          }
+          // Register by email for this app instead of reusing another app's tester linkage.
+          await api('/v1/betaTesters', { method: 'POST', body: { data: { type: 'betaTesters', attributes: { email, firstName: t.attributes.firstName, lastName: t.attributes.lastName }, relationships: { betaGroups: { data: [{ type: 'betaGroups', id: group.id }] } } } } });
+        }
+        existing.add(email);
+        note('Added an internal tester from the Fotoswipe group.');
       }
     }
-  } catch (e) { warn(`Copying testers: ${e.message}`); }
+  } catch (e) { fail(`Copying internal testers failed: ${e.message}`); }
   const ga = (await api(`/v1/betaGroups/${group.id}?fields[betaGroups]=hasAccessToAllBuilds`)).data.attributes;
   if (!ga.hasAccessToAllBuilds) {
-    await api(`/v1/betaGroups/${group.id}/relationships/builds`, { method: 'POST', body: { data: [{ type: 'builds', id: build.id }] } }).catch((e) => warn(e.message));
+    await api(`/v1/betaGroups/${group.id}/relationships/builds`, { method: 'POST', body: { data: [{ type: 'builds', id: build.id }] } });
   }
-  await sleep(20_000);
-  const detail = await api(`/v1/builds/${build.id}/buildBetaDetail`).catch(() => null);
-  const state = detail?.data?.attributes?.internalBuildState;
-  note(`Build ${build.attributes.version} internal TestFlight state: ${state}; testers in group: ${existing.size}.`);
-  if (state !== 'IN_BETA_TESTING') warn(`Internal state is ${state}, expected IN_BETA_TESTING.`);
+  const verifiedTesters = (await api(`/v1/betaGroups/${group.id}/betaTesters?limit=200&fields[betaTesters]=email`)).data || [];
+  if (!verifiedTesters.length) fail(`Internal group "${GROUP_NAME}" has no testers.`);
+  let state;
+  for (let i = 0; i < 15; i++) {
+    const detail = await api(`/v1/builds/${build.id}/buildBetaDetail`);
+    state = detail.data.attributes.internalBuildState;
+    if (state === 'IN_BETA_TESTING') break;
+    await sleep(20_000);
+  }
+  note(`Build ${build.attributes.version} internal TestFlight state: ${state}; testers in "${GROUP_NAME}": ${verifiedTesters.length}.`);
+  if (state !== 'IN_BETA_TESTING') fail(`Internal state is ${state}, expected IN_BETA_TESTING.`);
 }
+
