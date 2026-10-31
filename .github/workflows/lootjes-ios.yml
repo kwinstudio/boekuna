@@ -12,7 +12,7 @@ on:
         type: boolean
         default: true
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: lootjes-ios
   cancel-in-progress: false
@@ -49,6 +49,16 @@ jobs:
       - name: Simulator screenshots
         if: always()
         run: bash scripts/screens.sh
+      - name: Publish screenshots to a branch
+        if: always()
+        run: |
+          ls build/screens/*.png >/dev/null 2>&1 || exit 0
+          mkdir -p "$RUNNER_TEMP/shots" && cp build/screens/*.png "$RUNNER_TEMP/shots/"
+          cd "$RUNNER_TEMP/shots"
+          git init -q && git checkout -q -b claude/lootjes-shots
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com add .
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -q -m "Lootjes screenshots ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" claude/lootjes-shots
       - uses: actions/upload-artifact@v4
         if: always()
         with:

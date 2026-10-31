@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lootjes</title>
+<meta name="description" content="Lootjes trekken voor Sinterklaas en Kerst. Zonder account, gratis en zonder reclame.">
+<meta name="theme-color" content="#C4142B">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/icon.png">
+<link rel="apple-touch-icon" href="/icon.png">
+<style>
+  :root { --red:#C4142B; --gold:#D9A21B; --green:#1E7A4C; --paper:#FBF6EF; --card:#fff; --ink:#1d1715; --muted:#6f6560; --line:#eee4da; --accent:var(--red); }
+  @media (prefers-color-scheme: dark) { :root { --red:#FF4D5E; --gold:#E8B83A; --green:#3DBF7F; --paper:#141110; --card:#221D1B; --ink:#f5efe9; --muted:#a99f99; --line:#332b28; } }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:var(--paper); color:var(--ink); font:17px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing:antialiased; }
+  main { max-width:520px; margin:0 auto; padding:20px 18px calc(120px + env(safe-area-inset-bottom)); }
+  h1 { font-size:30px; line-height:1.15; margin:8px 0 6px; letter-spacing:-.02em; }
+  h2 { font-size:18px; margin:0 0 6px; }
+  p { margin:0 0 10px; }
+  .muted { color:var(--muted); font-size:15px; }
+  .card { background:var(--card); border-radius:20px; padding:16px; margin:14px 0; box-shadow:0 4px 18px rgba(0,0,0,.06); }
+  .pill { display:inline-flex; gap:6px; align-items:center; font-weight:600; color:var(--accent); font-size:15px; }
+  input, textarea { width:100%; font:inherit; color:inherit; background:var(--card); border:1.5px solid var(--line); border-radius:14px; padding:13px 14px; outline:none; }
+  input:focus, textarea:focus { border-color:var(--accent); }
+  textarea { min-height:150px; resize:vertical; }
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:54px; border:0; border-radius:18px; background:var(--accent); color:#fff; font:600 17px/1 inherit; font-family:inherit; cursor:pointer; text-decoration:none; transition:transform .12s; }
+  .btn:active { transform:scale(.97); }
+  .btn[disabled] { opacity:.45; }
+  .btn.secondary { background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); min-height:48px; }
+  .bar { position:fixed; left:0; right:0; bottom:0; padding:12px 18px calc(12px + env(safe-area-inset-bottom)); background:color-mix(in srgb, var(--paper) 88%, transparent); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
+  .bar > div { max-width:520px; margin:0 auto; display:grid; gap:8px; }
+  .name { font-size:42px; font-weight:800; color:var(--accent); letter-spacing:-.02em; line-height:1.1; overflow-wrap:anywhere; }
+  .scratch { position:relative; height:260px; border-radius:28px; overflow:hidden; background:var(--card); box-shadow:0 10px 30px color-mix(in srgb, var(--accent) 25%, transparent); touch-action:none; user-select:none; -webkit-user-select:none; }
+  .scratch .under { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:16px; }
+  .scratch canvas { position:absolute; inset:0; width:100%; height:100%; transition:opacity .45s; }
+  .bubble { max-width:80%; padding:10px 14px; border-radius:18px; margin:6px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .me { margin-left:auto; background:var(--accent); color:#fff; }
+  .them { background:var(--paper); }
+  .row { display:flex; gap:8px; align-items:flex-end; }
+  .row input { flex:1; }
+  .send { width:52px; min-height:50px; flex:none; }
+  .toggle { display:flex; align-items:center; justify-content:space-between; min-height:44px; font-weight:600; }
+  .toggle input { width:52px; height:30px; accent-color:var(--green); }
+  .error { color:#d33; font-size:15px; margin-top:8px; }
+  .warn { color:#c77700; font-size:14px; }
+  .center { text-align:center; }
+  a { color:var(--accent); }
+  .wish { white-space:pre-wrap; overflow-wrap:anywhere; }
+  .appbanner { display:flex; gap:12px; align-items:center; }
+  .appbanner img { width:52px; height:52px; border-radius:12px; }
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"><p class="muted center" style="margin-top:40vh">Even laden…</p></main>
+<div class="bar" id="bar" hidden><div id="barInner"></div></div>
+<script>
+const API = "__API_URL__";
+const APP_STORE_URL = "__APP_STORE_URL__";
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const linkify = (s) => esc(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener nofollow">$1</a>');
+const euro = (c) => c == null ? "" : new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: c % 100 ? 2 : 0 }).format(c / 100);
+const longDate = (s) => s ? new Date(s + "T12:00:00").toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long" }) : "";
+function countdown(s) {
+  if (!s) return "";
+  const d = Math.round((new Date(s + "T00:00:00") - new Date(new Date().toDateString())) / 864e5);
+  return d < 0 ? "" : d === 0 ? "vandaag" : d === 1 ? "morgen" : `nog ${d} dagen`;
+}
+const occ = (o) => ({ sinterklaas: { word: "pakjesavond", giver: "Sint", color: "var(--red)" }, kerst: { word: "kerst", giver: "Secret Santa", color: "var(--green)" } }[o] || { word: "het feest", giver: "Secret Santa", color: "var(--red)" });
+const vibrate = (ms) => { try { navigator.vibrate && navigator.vibrate(ms); } catch {} };
+
+async function call(action, params = {}) {
+  let r;
+  try {
+    r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...params }) });
+  } catch { throw new Error("Geen internet. Controleer je verbinding en probeer het opnieuw."); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j?.error?.message || "Er ging iets mis. Probeer het opnieuw.");
+  return j;
+}
+
+function bar(html) {
+  const b = $("#bar");
+  if (!html) { b.hidden = true; return; }
+  $("#barInner").innerHTML = html;
+  b.hidden = false;
+}
+function render(html) { $("#app").innerHTML = html; }
+function setAccent(o) { document.documentElement.style.setProperty("--accent", occ(o).color); }
+
+function appBanner(path) {
+  return `<div class="card appbanner">
+    <img src="/icon.png" alt="">
+    <div style="flex:1"><strong>Lootjes-app</strong><div class="muted">Handiger met meldingen en een gedichthulp.</div></div>
+    <a class="btn secondary" style="width:auto;padding:0 16px" href="${APP_STORE_URL !== "__APP_STORE_URL__" ? APP_STORE_URL : "lootjes://" + path}">${APP_STORE_URL !== "__APP_STORE_URL__" ? "Download" : "Open app"}</a>
+  </div>`;
+}
+
+// ---------- Join ----------
+async function joinPage(code) {
+  let p;
+  try { p = await call("groupByCode", { joinCode: code }); }
+  catch (e) { return render(`<h1>Oeps</h1><p>${esc(e.message)}</p>`); }
+  const g = p.group;
+  setAccent(g.occasion);
+  const closed = g.drawnAt || !g.joinOpen;
+  render(`
+    <div class="pill">${g.occasion === "kerst" ? "🎄 Kerst" : g.occasion === "sinterklaas" ? "🎁 Sinterklaas" : "🎉 Lootjes"}</div>
+    <h1>${esc(g.name)}</h1>
+    ${g.eventDate ? `<p class="muted">${esc(longDate(g.eventDate))}${g.budgetCents != null ? " · budget " + euro(g.budgetCents) : ""}</p>` : ""}
+    ${g.note ? `<div class="card">${esc(g.note)}</div>` : ""}
+    ${p.memberNames.length ? `<p class="muted">Doen al mee: ${p.memberNames.map(esc).join(", ")}</p>` : ""}
+    ${closed ? `<div class="card"><strong>Aanmelden is gesloten.</strong><p class="muted">Er is al getrokken. Vraag de organisator om je toe te voegen.</p></div>` : `
+    <div class="card">
+      <label for="nm"><h2>Hoe heet je?</h2></label>
+      <input id="nm" autocomplete="given-name" autocapitalize="words" maxlength="40" placeholder="Je naam">
+      <div id="dupe" class="warn" hidden></div>
+      <div id="err" class="error" role="alert"></div>
+    </div>
+    <p class="muted center">Geen account nodig. Je krijgt meteen je eigen persoonlijke pagina.</p>`}
+  `);
+  if (closed) return bar("");
+  const names = p.memberNames.map((n) => n.toLowerCase());
+  const input = $("#nm");
+  input.value = localStorage.getItem("lt_name") || "";
+  bar(`<button class="btn" id="go">Doe mee</button>`);
+  const go = $("#go");
+  const check = () => {
+    const v = input.value.trim();
+    go.disabled = !v;
+    const d = $("#dupe");
+    d.hidden = !names.includes(v.toLowerCase());
+    d.textContent = "Die naam staat er al in. Ben jij dat? Vraag dan de organisator om jouw persoonlijke link. Iemand anders? Voeg een achternaam toe.";
+  };
+  input.addEventListener("input", check); check();
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") go.click(); });
+  go.onclick = async () => {
+    go.disabled = true; go.textContent = "Even geduld…";
+    try {
+      const r = await call("join", { joinCode: g.joinCode, name: input.value.trim() });
+      localStorage.setItem("lt_name", input.value.trim());
+      saveToken(r.token, g.name);
+      vibrate(20);
+      history.replaceState(null, "", "/m/" + r.token);
+      memberPage(r.token, true);
+    } catch (e) { $("#err").textContent = e.message; go.disabled = false; go.textContent = "Doe mee"; }
+  };
+}
+
+function saveToken(token, name) {
+  try { const all = JSON.parse(localStorage.getItem("lt_links") || "{}"); all[token] = { name, at: Date.now() }; localStorage.setItem("lt_links", JSON.stringify(all)); } catch {}
+}
+
+// ---------- Member ----------
+async function memberPage(token, justJoined = false) {
+  let d;
+  try { d = await call("me", { token }); }
+  catch (e) { return render(`<h1>Link werkt niet</h1><p>${esc(e.message)}</p>`), bar(""); }
+  saveToken(token, d.group.name);
+  setAccent(d.group.occasion);
+  const o = occ(d.group.occasion);
+  const g = d.group;
+  const cd = countdown(g.eventDate);
+  const revealKey = `lt_rev_${token.slice(0, 10)}_${g.drawnAt}`;
+  const info = `<div class="card muted">
+      ${g.eventDate ? `<p>📅 ${esc(longDate(g.eventDate))}${cd ? " · " + cd : ""}</p>` : ""}
+      ${g.note ? `<p>💬 ${esc(g.note)}</p>` : ""}
+      <p style="margin:0">👥 ${d.memberNames.map(esc).join(", ")}</p></div>`;
+  const myWish = `<div class="card"><h2>Mijn verlanglijstje</h2>
+      <textarea id="wish" maxlength="2000" placeholder="Bijv.&#10;- Een goed boek (thriller)&#10;- Warme sokken maat 42&#10;- Iets lekkers, maar geen drop">${esc(d.me.wishlist)}</textarea>
+      <div class="row" style="margin-top:8px"><span class="muted" id="wishState" style="flex:1">${g.budgetCents != null ? "Budget " + euro(g.budgetCents) + ". Links naar webshops werken ook." : "Links naar webshops werken ook."}</span>
+      <button class="btn secondary" style="width:auto;padding:0 18px" id="saveWish">Bewaar</button></div></div>`;
+
+  if (!d.receiver) {
+    render(`<div class="pill">✓ Je doet mee</div><h1>Hoi ${esc(d.me.name)}!</h1>
+      <p class="muted">${justJoined ? "Je bent aangemeld. " : ""}De lootjes worden nog getrokken. Bewaar deze pagina (of deze link) — hier verschijnt straks je lootje.</p>
+      ${myWish}${info}${appBanner("m/" + token)}`);
+    bar("");
+    wireWish(token);
+    return;
+  }
+
+  const r = d.receiver;
+  const revealed = localStorage.getItem(revealKey) === "1";
+  const threads = (t) => d.messages.filter((m) => m.thread === t);
+  const chat = (t, title, sub, ph) => `<div class="card"><h2>${title}</h2><p class="muted">${sub}</p>
+      <div id="msgs_${t}">${threads(t).map((m) => `<div class="bubble ${m.fromMe ? "me" : "them"}">${esc(m.body)}</div>`).join("") || `<p class="muted">Nog geen berichten.</p>`}</div>
+      <div class="row" style="margin-top:8px"><input id="in_${t}" maxlength="500" placeholder="${ph}"><button class="btn send" data-thread="${t}" aria-label="Verstuur">↑</button></div></div>`;
+
+  render(`
+    ${d.me.openedBefore && !d.me.isOrganizer && !revealed ? `<p class="warn">Deze link is al eerder geopend. Was jij dat niet? Vraag de organisator om een nieuwe link.</p>` : ""}
+    <div id="lootje"></div>
+    <div class="card"><h2>Verlanglijstje van ${esc(r.name)}</h2>
+      ${r.wishlist.trim() ? `<div class="wish">${linkify(r.wishlist)}</div>` : `<p class="muted">${esc(r.name)} heeft nog niets ingevuld. Stel hieronder anoniem een vraag.</p>`}</div>
+    ${chat("myLootje", `Vraag ${esc(r.name)} iets`, `${esc(r.name)} ziet niet dat jij het vraagt.`, "Bijv. welke kleur vind je mooi?")}
+    ${chat("mySint", `Je ${o.giver}`, `Vragen van je ${o.giver}. Je kunt gewoon antwoorden.`, "Antwoord")}
+    ${myWish}${info}${appBanner("m/" + token)}`);
+
+  const lootje = $("#lootje");
+  const showResult = () => {
+    lootje.innerHTML = `<div class="card"><p class="muted" style="margin:0">Jij koopt een cadeau voor</p>
+      <div class="name">${esc(r.name)}</div>
+      ${g.budgetCents != null ? `<p class="muted" style="margin:6px 0 0">Budget ${euro(g.budgetCents)}</p>` : ""}
+      <label class="toggle"><span>🎁 Cadeau is klaar</span><input type="checkbox" id="ready" ${d.giftReady ? "checked" : ""}></label></div>`;
+    $("#ready").onchange = async (e) => {
+      try { await call("setGiftReady", { token, ready: e.target.checked }); vibrate(15); } catch (err) { e.target.checked = !e.target.checked; alert(err.message); }
+    };
+  };
+  if (revealed) showResult();
+  else scratchCard(lootje, r.name, () => { localStorage.setItem(revealKey, "1"); setTimeout(showResult, 1400); });
+
+  document.querySelectorAll("[data-thread]").forEach((b) => {
+    const t = b.dataset.thread, input = $("#in_" + t);
+    const send = async () => {
+      const text = input.value.trim(); if (!text) return;
+      b.disabled = true;
+      try {
+        await call("sendMessage", { token, thread: t, body: text });
+        const box = $("#msgs_" + t);
+        if (box.querySelector("p.muted")) box.innerHTML = "";
+        box.insertAdjacentHTML("beforeend", `<div class="bubble me">${esc(text)}</div>`);
+        input.value = ""; vibrate(10);
+      } catch (e) { alert(e.message); }
+      b.disabled = false;
+    };
+    b.onclick = send;
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
+  });
+  wireWish(token);
+  bar("");
+}
+
+function wireWish(token) {
+  const btn = $("#saveWish"), ta = $("#wish"), st = $("#wishState");
+  if (!btn) return;
+  btn.onclick = async () => {
+    btn.disabled = true;
+    try { await call("setWishlist", { token, wishlist: ta.value }); st.textContent = "Opgeslagen ✓"; vibrate(15); }
+    catch (e) { st.textContent = e.message; }
+    btn.disabled = false;
+  };
+}
+
+// Scratch card: canvas layer, reveals at ~50% scratched, or with one tap for keyboard / screen reader users.
+function scratchCard(host, name, done) {
+  host.innerHTML = `<div class="scratch" role="button" tabindex="0" aria-label="Je lootje, nog dicht. Activeer om te openen.">
+    <div class="under"><div class="muted">Jij trekt</div><div class="name">${esc(name)}</div></div>
+    <canvas></canvas></div>
+    <p class="muted center" style="margin-top:10px">Kras met je vinger. Zorg dat niemand meekijkt.</p>`;
+  const box = host.querySelector(".scratch"), c = box.querySelector("canvas"), ctx = c.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const W = box.clientWidth, H = box.clientHeight;
+  c.width = W * dpr; c.height = H * dpr; ctx.scale(dpr, dpr);
+  const grad = ctx.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0, "#D9A21B"); grad.addColorStop(.5, "#E9C25A"); grad.addColorStop(1, "#D9A21B");
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = "rgba(255,255,255,.14)"; ctx.lineWidth = 6;
+  for (let x = -H; x < W; x += 22) { ctx.beginPath(); ctx.moveTo(x, H); ctx.lineTo(x + H, 0); ctx.stroke(); }
+  ctx.fillStyle = "#fff"; ctx.font = "700 22px -apple-system, system-ui, sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("Kras je lootje open", W / 2, H / 2 + 8);
+  ctx.globalCompositeOperation = "destination-out";
+  const N = 12, cells = new Set(); let finished = false, moves = 0;
+  const finish = () => {
+    if (finished) return; finished = true;
+    c.style.opacity = 0; vibrate([20, 40, 30]);
+    box.setAttribute("aria-label", "Jij trekt " + name);
+    setTimeout(() => c.remove(), 500); done();
+  };
+  const at = (e) => { const b = c.getBoundingClientRect(); const p = e.touches ? e.touches[0] : e; return [p.clientX - b.left, p.clientY - b.top]; };
+  const scratch = (e) => {
+    if (finished) return; e.preventDefault();
+    const [x, y] = at(e);
+    ctx.beginPath(); ctx.arc(x, y, 24, 0, Math.PI * 2); ctx.fill();
+    const cx = Math.floor(x / W * N), cy = Math.floor(y / H * N);
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      const X = cx + dx, Y = cy + dy; if (X >= 0 && Y >= 0 && X < N && Y < N) cells.add(Y * N + X);
+    }
+    if (++moves % 8 === 0) vibrate(5);
+    if (cells.size / (N * N) >= .5) finish();
+  };
+  let down = false;
+  c.addEventListener("pointerdown", (e) => { down = true; c.setPointerCapture(e.pointerId); scratch(e); });
+  c.addEventListener("pointermove", (e) => down && scratch(e));
+  c.addEventListener("pointerup", () => (down = false));
+  box.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); finish(); } });
+}
+
+// ---------- Home ----------
+function home() {
+  let links = {};
+  try { links = JSON.parse(localStorage.getItem("lt_links") || "{}"); } catch {}
+  const mine = Object.entries(links).sort((a, b) => b[1].at - a[1].at);
+  render(`<div class="center" style="margin-top:30px"><img src="/icon.png" alt="" width="96" height="96" style="border-radius:22px"></div>
+    <h1 class="center">Lootjes trekken,<br>zonder gedoe</h1>
+    <p class="muted center">Voor Sinterklaas en Kerst. Iedereen krijgt zijn lootje op zijn eigen telefoon. Niemand ziet wie wie heeft, ook de organisator niet. Gratis en zonder reclame.</p>
+    ${mine.length ? `<div class="card"><h2>Mijn lootjes</h2>${mine.map(([t, v]) => `<p><a href="/m/${esc(t)}">${esc(v.name)}</a></p>`).join("")}</div>` : ""}
+    <div class="card"><h2>Heb je een code?</h2><div class="row"><input id="code" maxlength="12" placeholder="Bijv. K7M2QX9" autocapitalize="characters"><button class="btn send" id="go" aria-label="Zoek">→</button></div></div>
+    <p class="muted center"><a href="/privacy">Privacy</a></p>`);
+  const go = () => { const c = $("#code").value.toUpperCase().replace(/[^A-Z0-9]/g, ""); if (c.length === 7) location.href = "/j/" + c; };
+  $("#go").onclick = go; $("#code").addEventListener("keydown", (e) => e.key === "Enter" && go());
+  bar("");
+}
+
+function privacy() {
+  render(`<h1>Privacy</h1>
+    <p>Lootjes is gemaakt door Zichtwerf Studio. We bewaren zo weinig mogelijk.</p>
+    <div class="card"><h2>Wat we bewaren</h2><p>Per groep: de groepsnaam, datum, budget en het bericht van de organisator. Per deelnemer: de naam die je invult, je verlanglijstje, wie je hebt getrokken, of je je cadeau klaar hebt, de anonieme berichten, en wanneer je link geopend is.</p></div>
+    <div class="card"><h2>Wat we niet doen</h2><p>Geen account, geen e-mailadres of telefoonnummer nodig. Geen reclame, geen tracking, geen analysecookies. We verkopen niets door. Ook de organisator kan niet zien wie wie heeft getrokken.</p></div>
+    <div class="card"><h2>Links</h2><p>Iedere deelnemer heeft een geheime persoonlijke link. Wie die link heeft, kan die pagina zien; stuur hem dus niet door. De organisator kan een nieuwe link maken; de oude werkt dan niet meer. We bewaren alleen een versleutelde vingerafdruk van de link, niet de link zelf.</p></div>
+    <div class="card"><h2>Verwijderen</h2><p>De organisator kan de groep op elk moment verwijderen; alles van die groep is dan direct weg. Deelnemers kunnen zichzelf voor de trekking uit de groep halen. Vragen? Mail <a href="mailto:k.phetmanee@gmail.com">k.phetmanee@gmail.com</a>.</p></div>
+    <div class="card"><h2>Waar</h2><p>De gegevens staan bij Supabase in de EU (Frankfurt). Herinneringen in de app worden alleen op je eigen telefoon ingepland.</p></div>
+    <p class="muted">Laatst bijgewerkt: 31 oktober 2026.</p>`);
+  bar("");
+}
+
+const parts = location.pathname.split("/").filter(Boolean);
+if (parts[0] === "j" && parts[1]) joinPage(parts[1].toUpperCase());
+else if (parts[0] === "m" && parts[1]) memberPage(parts[1]);
+else if (parts[0] === "privacy") privacy();
+else home();
+</script>
+</body>
+</html>
