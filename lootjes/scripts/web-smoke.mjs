@@ -37,16 +37,11 @@ try {
 
   await call('draw', { adminToken: g.adminToken });
   await page.reload();
-  await page.locator('.scratch canvas').waitFor();
+  await page.locator('#reveal').waitFor();
   await page.screenshot({ path: `${OUT}/web-scratch.png` });
-  // Scratch with a finger-like drag across the card.
-  const box = await page.locator('.scratch').boundingBox();
-  for (let y = box.y + 20; y < box.y + box.height - 10; y += 30) {
-    await page.mouse.move(box.x + 10, y); await page.mouse.down();
-    await page.mouse.move(box.x + box.width - 10, y, { steps: 8 }); await page.mouse.up();
-  }
+  await page.click('#reveal');
   await page.getByText('Jij koopt een cadeau voor').waitFor({ timeout: 8000 });
-  ok(true, 'scratching opens the lootje');
+  ok(true, 'tapping reveal shows the lootje');
   await page.fill('#in_myLootje', 'Welke kleur vind je mooi?');
   await page.click('[data-thread="myLootje"]');
   await page.locator('#msgs_myLootje .bubble.me').waitFor();

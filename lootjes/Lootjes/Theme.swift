@@ -9,9 +9,8 @@ enum Theme {
     static let card = Color("Card")
     static let ink = Color.primary
 
-    static func accent(for occasion: Occasion) -> Color {
-        occasion == .kerst ? green : red
-    }
+    /// One calm accent everywhere: a service app, not a theme park.
+    static func accent(for occasion: Occasion) -> Color { red }
 }
 
 enum Haptics {
@@ -58,10 +57,10 @@ struct PrimaryButton: View {
                 }
                 Text(title).fontWeight(.semibold)
             }
-            .font(.system(.headline, design: .rounded))
-            .frame(maxWidth: .infinity, minHeight: 54)
+            .font(.headline)
+            .frame(maxWidth: .infinity, minHeight: 50)
             .foregroundStyle(.white)
-            .background(isEnabled ? tint : Color.gray.opacity(0.45), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(isEnabled ? tint : Color.gray.opacity(0.45), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .contentShape(Rectangle())
         }
         .buttonStyle(PressableStyle())
@@ -85,10 +84,11 @@ struct SecondaryButton: View {
             } icon: {
                 if let systemImage { Image(systemName: systemImage) }
             }
-            .font(.system(.body, design: .rounded))
-            .frame(maxWidth: .infinity, minHeight: 50)
+            .font(.body)
+            .frame(maxWidth: .infinity, minHeight: 46)
             .foregroundStyle(tint)
-            .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.primary.opacity(0.08)))
             .contentShape(Rectangle())
         }
         .buttonStyle(PressableStyle())
@@ -108,8 +108,7 @@ struct CardBackground: ViewModifier {
         content
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .shadow(color: .black.opacity(0.06), radius: 10, y: 4)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
@@ -215,7 +214,7 @@ struct InitialsBadge: View {
 
     var body: some View {
         Text(initials)
-            .font(.system(size: size * 0.38, weight: .bold, design: .rounded))
+            .font(.system(size: size * 0.38, weight: .semibold))
             .foregroundStyle(tint)
             .frame(width: size, height: size)
             .background(tint.opacity(0.14), in: Circle())

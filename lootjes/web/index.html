@@ -5,36 +5,36 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lootjes</title>
 <meta name="description" content="Lootjes trekken voor Sinterklaas en Kerst. Zonder account, gratis en zonder reclame.">
-<meta name="theme-color" content="#C4142B">
+<meta name="theme-color" content="#1F5BD6">
 <meta name="robots" content="noindex">
 <link rel="icon" href="/icon.png">
 <link rel="apple-touch-icon" href="/icon.png">
 <style>
-  :root { --red:#C4142B; --gold:#D9A21B; --green:#1E7A4C; --paper:#FBF6EF; --card:#fff; --ink:#1d1715; --muted:#6f6560; --line:#eee4da; --accent:var(--red); }
-  @media (prefers-color-scheme: dark) { :root { --red:#FF4D5E; --gold:#E8B83A; --green:#3DBF7F; --paper:#141110; --card:#221D1B; --ink:#f5efe9; --muted:#a99f99; --line:#332b28; } }
+  :root { --red:#1F5BD6; --gold:#1F5BD6; --green:#1E8E3E; --paper:#F2F2F7; --card:#fff; --ink:#111; --muted:#6b6b70; --line:#dcdce0; --accent:var(--red); }
+  @media (prefers-color-scheme: dark) { :root { --red:#5E8EFF; --gold:#5E8EFF; --green:#34C759; --paper:#000; --card:#1C1C1E; --ink:#f2f2f7; --muted:#98989f; --line:#38383a; } }
   * { box-sizing:border-box; }
   html,body { margin:0; background:var(--paper); color:var(--ink); font:17px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing:antialiased; }
   main { max-width:520px; margin:0 auto; padding:20px 18px calc(120px + env(safe-area-inset-bottom)); }
-  h1 { font-size:30px; line-height:1.15; margin:8px 0 6px; letter-spacing:-.02em; }
+  h1 { font-size:28px; line-height:1.15; margin:8px 0 6px; letter-spacing:-.02em; }
   h2 { font-size:18px; margin:0 0 6px; }
   p { margin:0 0 10px; }
   .muted { color:var(--muted); font-size:15px; }
-  .card { background:var(--card); border-radius:20px; padding:16px; margin:14px 0; box-shadow:0 4px 18px rgba(0,0,0,.06); }
+  .card { background:var(--card); border-radius:12px; padding:16px; margin:12px 0; }
   .pill { display:inline-flex; gap:6px; align-items:center; font-weight:600; color:var(--accent); font-size:15px; }
-  input, textarea { width:100%; font:inherit; color:inherit; background:var(--card); border:1.5px solid var(--line); border-radius:14px; padding:13px 14px; outline:none; }
+  input, textarea { width:100%; font:inherit; color:inherit; background:var(--card); border:1.5px solid var(--line); border-radius:10px; padding:12px 14px; outline:none; }
   input:focus, textarea:focus { border-color:var(--accent); }
   textarea { min-height:150px; resize:vertical; }
-  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:54px; border:0; border-radius:18px; background:var(--accent); color:#fff; font-family:inherit; font-size:17px; font-weight:600; line-height:1; cursor:pointer; text-decoration:none; transition:transform .12s; }
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:50px; border:0; border-radius:12px; background:var(--accent); color:#fff; font-family:inherit; font-size:17px; font-weight:600; line-height:1; cursor:pointer; text-decoration:none; transition:transform .12s; }
   .btn:active { transform:scale(.97); }
   .btn[disabled] { opacity:.45; }
-  .btn.secondary { background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); min-height:48px; }
+  .btn.secondary { background:var(--card); color:var(--accent); border:1px solid var(--line); min-height:44px; }
   .bar { position:fixed; left:0; right:0; bottom:0; padding:12px 18px calc(12px + env(safe-area-inset-bottom)); background:color-mix(in srgb, var(--paper) 88%, transparent); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
   .bar > div { max-width:520px; margin:0 auto; display:grid; gap:8px; }
-  .name { font-size:42px; font-weight:800; color:var(--accent); letter-spacing:-.02em; line-height:1.1; overflow-wrap:anywhere; }
+  .name { font-size:34px; font-weight:700; color:var(--ink); letter-spacing:-.02em; line-height:1.1; overflow-wrap:anywhere; }
   .scratch { position:relative; height:260px; border-radius:28px; overflow:hidden; background:var(--card); box-shadow:0 10px 30px color-mix(in srgb, var(--accent) 25%, transparent); touch-action:none; user-select:none; -webkit-user-select:none; }
   .scratch .under { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:16px; }
   .scratch canvas { position:absolute; inset:0; width:100%; height:100%; transition:opacity .45s; }
-  .bubble { max-width:80%; padding:10px 14px; border-radius:18px; margin:6px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .bubble { max-width:80%; padding:10px 14px; border-radius:16px; margin:6px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
   .me { margin-left:auto; background:var(--accent); color:#fff; }
   .them { background:var(--paper); }
   .row { display:flex; gap:8px; align-items:flex-end; }
@@ -48,7 +48,7 @@
   a { color:var(--accent); }
   .wish { white-space:pre-wrap; overflow-wrap:anywhere; }
   .appbanner { display:flex; gap:12px; align-items:center; }
-  .appbanner img { width:52px; height:52px; border-radius:12px; }
+  .appbanner img { width:48px; height:48px; border-radius:11px; }
   @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
 </style>
 </head>
@@ -107,7 +107,7 @@ async function joinPage(code) {
   setAccent(g.occasion);
   const closed = g.drawnAt || !g.joinOpen;
   render(`
-    <div class="pill">${g.occasion === "kerst" ? "🎄 Kerst" : g.occasion === "sinterklaas" ? "🎁 Sinterklaas" : "🎉 Lootjes"}</div>
+    <div class="pill">${g.occasion === "kerst" ? "Kerst" : g.occasion === "sinterklaas" ? "Sinterklaas" : "Lootjes"}</div>
     <h1>${esc(g.name)}</h1>
     ${g.eventDate ? `<p class="muted">${esc(longDate(g.eventDate))}${g.budgetCents != null ? " · budget " + euro(g.budgetCents) : ""}</p>` : ""}
     ${g.note ? `<div class="card">${esc(g.note)}</div>` : ""}
@@ -168,16 +168,16 @@ async function memberPage(token, justJoined = false) {
   const cd = countdown(g.eventDate);
   const revealKey = `lt_rev_${token.slice(0, 10)}_${g.drawnAt}`;
   const info = `<div class="card muted">
-      ${g.eventDate ? `<p>📅 ${esc(longDate(g.eventDate))}${cd ? " · " + cd : ""}</p>` : ""}
-      ${g.note ? `<p>💬 ${esc(g.note)}</p>` : ""}
-      <p style="margin:0">👥 ${d.memberNames.map(esc).join(", ")}</p></div>`;
+      ${g.eventDate ? `<p>Datum: ${esc(longDate(g.eventDate))}${cd ? " (" + cd + ")" : ""}</p>` : ""}
+      ${g.note ? `<p>Bericht: ${esc(g.note)}</p>` : ""}
+      <p style="margin:0">Deelnemers: ${d.memberNames.map(esc).join(", ")}</p></div>`;
   const myWish = `<div class="card"><h2>Mijn verlanglijstje</h2>
       <textarea id="wish" maxlength="2000" placeholder="Bijv.&#10;- Een goed boek (thriller)&#10;- Warme sokken maat 42&#10;- Iets lekkers, maar geen drop">${esc(d.me.wishlist)}</textarea>
       <div class="row" style="margin-top:8px"><span class="muted" id="wishState" style="flex:1">${g.budgetCents != null ? "Budget " + euro(g.budgetCents) + ". Links naar webshops werken ook." : "Links naar webshops werken ook."}</span>
       <button class="btn secondary" style="width:auto;padding:0 18px" id="saveWish">Bewaar</button></div></div>`;
 
   if (!d.receiver) {
-    render(`<div class="pill">✓ Je doet mee</div><h1>Hoi ${esc(d.me.name)}!</h1>
+    render(`<div class="pill">Je doet mee</div><h1>Hoi ${esc(d.me.name)}!</h1>
       <p class="muted">${justJoined ? "Je bent aangemeld. " : ""}De lootjes worden nog getrokken. Bewaar deze pagina (of deze link) — hier verschijnt straks je lootje.</p>
       ${myWish}${info}${appBanner("m/" + token)}`);
     bar("");
@@ -206,13 +206,13 @@ async function memberPage(token, justJoined = false) {
     lootje.innerHTML = `<div class="card"><p class="muted" style="margin:0">Jij koopt een cadeau voor</p>
       <div class="name">${esc(r.name)}</div>
       ${g.budgetCents != null ? `<p class="muted" style="margin:6px 0 0">Budget ${euro(g.budgetCents)}</p>` : ""}
-      <label class="toggle"><span>🎁 Cadeau is klaar</span><input type="checkbox" id="ready" ${d.giftReady ? "checked" : ""}></label></div>`;
+      <label class="toggle"><span>Cadeau is klaar</span><input type="checkbox" id="ready" ${d.giftReady ? "checked" : ""}></label></div>`;
     $("#ready").onchange = async (e) => {
       try { await call("setGiftReady", { token, ready: e.target.checked }); vibrate(15); } catch (err) { e.target.checked = !e.target.checked; alert(err.message); }
     };
   };
   if (revealed) showResult();
-  else scratchCard(lootje, r.name, () => { localStorage.setItem(revealKey, "1"); setTimeout(showResult, 1400); });
+  else scratchCard(lootje, r.name, () => { localStorage.setItem(revealKey, "1"); setTimeout(showResult, 1200); });
 
   document.querySelectorAll("[data-thread]").forEach((b) => {
     const t = b.dataset.thread, input = $("#in_" + t);
@@ -246,48 +246,17 @@ function wireWish(token) {
   };
 }
 
-// Scratch card: canvas layer, reveals at ~50% scratched, or with one tap for keyboard / screen reader users.
+// Reveal card: the name only appears after an explicit tap, so nobody reads along by accident.
 function scratchCard(host, name, done) {
-  host.innerHTML = `<div class="scratch" role="button" tabindex="0" aria-label="Je lootje, nog dicht. Activeer om te openen.">
-    <div class="under"><div class="muted">Jij trekt</div><div class="name">${esc(name)}</div></div>
-    <canvas></canvas></div>
-    <p class="muted center" style="margin-top:10px">Kras met je vinger. Zorg dat niemand meekijkt.</p>`;
-  const box = host.querySelector(".scratch"), c = box.querySelector("canvas"), ctx = c.getContext("2d");
-  const dpr = window.devicePixelRatio || 1;
-  const W = box.clientWidth, H = box.clientHeight;
-  c.width = W * dpr; c.height = H * dpr; ctx.scale(dpr, dpr);
-  const grad = ctx.createLinearGradient(0, 0, W, H);
-  grad.addColorStop(0, "#D9A21B"); grad.addColorStop(.5, "#E9C25A"); grad.addColorStop(1, "#D9A21B");
-  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = "rgba(255,255,255,.14)"; ctx.lineWidth = 6;
-  for (let x = -H; x < W; x += 22) { ctx.beginPath(); ctx.moveTo(x, H); ctx.lineTo(x + H, 0); ctx.stroke(); }
-  ctx.fillStyle = "#fff"; ctx.font = "700 22px -apple-system, system-ui, sans-serif"; ctx.textAlign = "center";
-  ctx.fillText("Kras je lootje open", W / 2, H / 2 + 8);
-  ctx.globalCompositeOperation = "destination-out";
-  const N = 12, cells = new Set(); let finished = false, moves = 0;
-  const finish = () => {
-    if (finished) return; finished = true;
-    c.style.opacity = 0; vibrate([20, 40, 30]);
-    box.setAttribute("aria-label", "Jij trekt " + name);
-    setTimeout(() => c.remove(), 500); done();
+  host.innerHTML = `<div class="card center reveal">
+    <p style="font-size:26px;margin:4px 0 6px" aria-hidden="true">&#128274;</p>
+    <h2>Je lootje is verborgen</h2>
+    <p class="muted">Zorg dat niemand meekijkt.</p>
+    <button class="btn" id="reveal">Toon mijn lootje</button></div>`;
+  host.querySelector("#reveal").onclick = () => {
+    host.innerHTML = `<div class="card center"><p class="muted" style="margin:0">Jij koopt een cadeau voor</p><div class="name">${esc(name)}</div></div>`;
+    vibrate(20); done();
   };
-  const at = (e) => { const b = c.getBoundingClientRect(); const p = e.touches ? e.touches[0] : e; return [p.clientX - b.left, p.clientY - b.top]; };
-  const scratch = (e) => {
-    if (finished) return; e.preventDefault();
-    const [x, y] = at(e);
-    ctx.beginPath(); ctx.arc(x, y, 24, 0, Math.PI * 2); ctx.fill();
-    const cx = Math.floor(x / W * N), cy = Math.floor(y / H * N);
-    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
-      const X = cx + dx, Y = cy + dy; if (X >= 0 && Y >= 0 && X < N && Y < N) cells.add(Y * N + X);
-    }
-    if (++moves % 8 === 0) vibrate(5);
-    if (cells.size / (N * N) >= .5) finish();
-  };
-  let down = false;
-  c.addEventListener("pointerdown", (e) => { down = true; c.setPointerCapture(e.pointerId); scratch(e); });
-  c.addEventListener("pointermove", (e) => down && scratch(e));
-  c.addEventListener("pointerup", () => (down = false));
-  box.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); finish(); } });
 }
 
 // ---------- Home ----------

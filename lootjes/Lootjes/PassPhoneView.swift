@@ -51,7 +51,7 @@ struct PassPhoneView: View {
                 }
                 .card()
                 Text("Wie heeft de telefoon nu?")
-                    .font(.system(.title3, design: .rounded).weight(.bold))
+                    .font(.title3.weight(.bold))
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 10)], spacing: 10) {
                     ForEach(names, id: \.self) { n in
                         let done = seen.contains(n)
@@ -115,13 +115,11 @@ struct PassPhoneView: View {
 
     private func revealStage(person: String, receiver: String) -> some View {
         VStack(spacing: 24) {
-            Text("Hoi \(person)!")
-                .font(.system(.title, design: .rounded).weight(.bold))
-            ScratchCard(receiverName: receiver, tint: tint) {
+            Text(person)
+                .font(.title2.weight(.bold))
+            RevealCard(receiverName: receiver, tint: tint, caption: "\(person), jij koopt een cadeau voor") {
                 seen.insert(person)
             }
-            .frame(height: 300)
-            .padding(.horizontal, 8)
             Text("Onthoud de naam goed. Daarna verberg je hem weer.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)

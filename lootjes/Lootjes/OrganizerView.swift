@@ -187,7 +187,7 @@ struct OrganizerView: View {
                         .font(.title2).foregroundStyle(tint)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Mijn lootje").font(.headline)
-                        Text("Kras open, bekijk het verlanglijstje en stel anonieme vragen")
+                        Text("Bekijk je lootje, het verlanglijstje en de berichten")
                             .font(.subheadline).foregroundStyle(.secondary)
                     }
                     Spacer()

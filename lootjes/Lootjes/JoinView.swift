@@ -97,7 +97,7 @@ struct JoinView: View {
         VStack(alignment: .leading, spacing: 8) {
             Label(p.group.occasion.title, systemImage: p.group.occasion.symbol)
                 .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.accent(for: p.group.occasion))
-            Text(p.group.name).font(.system(.title2, design: .rounded).weight(.bold))
+            Text(p.group.name).font(.title2.weight(.bold))
             if let d = p.group.date { Text(DayFormat.long(d)).foregroundStyle(.secondary) }
             if let b = p.group.budgetCents { Text("Budget \(b.euroText)").foregroundStyle(.secondary) }
             if !p.memberNames.isEmpty {

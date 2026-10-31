@@ -137,7 +137,7 @@ struct CreateFlowView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 Text("Wat vieren jullie?")
-                    .font(.system(.title2, design: .rounded).weight(.bold))
+                    .font(.title2.weight(.bold))
                 HStack(spacing: 10) {
                     ForEach(Occasion.allCases) { o in
                         Button {
@@ -419,7 +419,7 @@ struct ExclusionsStep: View {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Wie mogen elkaar niet trekken?")
-                        .font(.system(.title2, design: .rounded).weight(.bold))
+                        .font(.title2.weight(.bold))
                     Text("Bijvoorbeeld partners of huisgenoten. Tik op twee namen.")
                         .foregroundStyle(.secondary)
                 }

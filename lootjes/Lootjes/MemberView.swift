@@ -118,10 +118,9 @@ struct MemberView: View {
     private func lootje(_ d: MeResponse, _ r: Receiver) -> some View {
         if !hasRevealed && !revealedNow {
             VStack(spacing: 14) {
-                ScratchCard(receiverName: r.name, tint: tint, caption: "Jij trekt") {
+                RevealCard(receiverName: r.name, tint: tint) {
                     markRevealed()
                 }
-                .frame(height: 280)
                 if warnOpened && !d.me.isOrganizer {
                     Text("Deze link is al eerder geopend. Was jij dat niet? Vraag de organisator om een nieuwe link.")
                         .font(.footnote).foregroundStyle(.orange)
@@ -131,8 +130,7 @@ struct MemberView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Jij koopt een cadeau voor").font(.subheadline).foregroundStyle(.secondary)
                 Text(r.name)
-                    .font(.system(size: 38, weight: .heavy, design: .rounded))
-                    .foregroundStyle(tint)
+                    .font(.title.weight(.bold))
                     .privacySensitive()
                 if let b = d.group.budgetCents {
                     Label("Budget \(b.euroText)", systemImage: "eurosign.circle").font(.subheadline)
@@ -144,7 +142,7 @@ struct MemberView: View {
                 .frame(minHeight: 44)
             }
             .card()
-            .transition(.scale.combined(with: .opacity))
+            .transition(.opacity)
 
             theirWishlist(d, r)
 
@@ -278,7 +276,7 @@ struct MemberView: View {
 
     private func markRevealed() {
         revealedRaw = (revealedRaw.split(separator: ",").map(String.init) + [revealKey]).joined(separator: ",")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) { revealedNow = true }
         }
     }

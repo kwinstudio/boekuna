@@ -72,7 +72,7 @@ struct QuickDrawSetupView: View {
             } header: {
                 Text("Wie doen er mee? (\(names.count))")
             } footer: {
-                Text(names.count < 3 ? "Minstens 3 mensen." : "De telefoon gaat straks rond. Iedereen kiest zijn eigen naam en krast zijn lootje open.")
+                Text(names.count < 3 ? "Minstens 3 mensen." : "De telefoon gaat straks rond. Iedereen kiest zijn eigen naam en bekijkt zijn lootje.")
             }
         }
         .scrollContentBackground(.hidden)
@@ -132,7 +132,7 @@ struct QuickDrawView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Label("Getrokken op deze telefoon", systemImage: "iphone.gen3")
                                 .font(.headline).foregroundStyle(Theme.accent(for: draw.occasion))
-                            Text("Geef de telefoon door. Iedereen kiest zijn eigen naam en krast zijn lootje open. Het blijft op deze telefoon, zonder internet.")
+                            Text("Geef de telefoon door. Iedereen kiest zijn eigen naam en bekijkt zijn lootje. Het blijft op deze telefoon, zonder internet.")
                                 .font(.subheadline).foregroundStyle(.secondary)
                         }
                         .card()
