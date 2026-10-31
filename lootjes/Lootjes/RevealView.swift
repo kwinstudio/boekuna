@@ -52,7 +52,7 @@ struct ScratchCard: View {
                             }
                         }
                         .transition(.opacity)
-                        .gesture(
+                        .highPriorityGesture(
                             DragGesture(minimumDistance: 0)
                                 .onChanged { v in scratch(at: v.location, in: geo.size) }
                         )
@@ -98,7 +98,9 @@ private struct ScratchLayer: View {
     let tint: Color
     var body: some View {
         ZStack {
-            LinearGradient(colors: [Theme.gold, Theme.gold.opacity(0.75), Theme.gold], startPoint: .topLeading, endPoint: .bottomTrailing)
+            // Fully opaque base: nothing underneath may shine through.
+            Rectangle().fill(Theme.gold)
+            LinearGradient(colors: [.clear, .white.opacity(0.22), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)
             Canvas { ctx, size in
                 // Subtle diagonal pattern.
                 var x: CGFloat = -size.height

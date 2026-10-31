@@ -442,7 +442,7 @@ private struct MemberStatusRow: View {
                     Button { send(token) } label: { Label("Stuur link", systemImage: "paperplane") }
                     Button(role: .destructive, action: renew) { Label("Nieuwe link maken", systemImage: "arrow.clockwise") }
                 } label: {
-                    Text(member.linkSentAt == nil ? "Stuur" : "Opnieuw")
+                    Text(member.linkSentAt == nil ? "Stuur" : "Nogmaals")
                         .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, 14)
                         .frame(minHeight: 40)

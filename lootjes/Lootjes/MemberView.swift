@@ -149,9 +149,9 @@ struct MemberView: View {
 
             HStack(spacing: 10) {
                 ThreadButton(title: "Vraag \(r.name) iets", subtitle: "Anoniem", icon: "questionmark.bubble.fill",
-                             count: d.messages.filter { $0.thread == .myLootje && !$0.fromMe }.count, tint: tint) { chat = .myLootje }
+                             count: unread(d, .myLootje), tint: tint) { openChat(d, .myLootje) }
                 ThreadButton(title: "Je \(d.group.occasion.giverWord)", subtitle: "Vragen aan jou", icon: "theatermasks.fill",
-                             count: d.messages.filter { $0.thread == .mySint && !$0.fromMe }.count, tint: tint) { chat = .mySint }
+                             count: unread(d, .mySint), tint: tint) { openChat(d, .mySint) }
             }
 
             if d.group.poems {
@@ -252,6 +252,21 @@ struct MemberView: View {
         } catch {
             if data == nil { loadError = error.localizedDescription } else { toast = ToastData(message: error.localizedDescription) }
         }
+    }
+
+    private func received(_ d: MeResponse, _ t: ChatMessage.Thread) -> Int {
+        d.messages.filter { $0.thread == t && !$0.fromMe }.count
+    }
+
+    private func seenKey(_ t: ChatMessage.Thread) -> String { "chatSeen.\(groupId).\(t.rawValue)" }
+
+    private func unread(_ d: MeResponse, _ t: ChatMessage.Thread) -> Int {
+        max(0, received(d, t) - UserDefaults.standard.integer(forKey: seenKey(t)))
+    }
+
+    private func openChat(_ d: MeResponse, _ t: ChatMessage.Thread) {
+        UserDefaults.standard.set(received(d, t), forKey: seenKey(t))
+        chat = t
     }
 
     private func markRevealed() {
