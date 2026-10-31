@@ -1,0 +1,68 @@
+{
+  "expo": {
+    "name": "Quitte",
+    "slug": "quitte",
+    "scheme": "quitte",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "nl.zichtwerf.quitte",
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSCameraUsageDescription": "Quitte gebruikt de camera om QR-codes van lijsten te scannen.",
+        "CFBundleAllowMixedLocalizations": true,
+        "CFBundleLocalizations": [
+          "nl",
+          "en"
+        ],
+        "CFBundleDevelopmentRegion": "nl"
+      }
+    },
+    "android": {
+      "package": "nl.zichtwerf.quitte",
+      "adaptiveIcon": {
+        "backgroundColor": "#0A6B58",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-localization",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Quitte gebruikt de camera om QR-codes van lijsten te scannen.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 96,
+          "backgroundColor": "#F4F5F1",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#0F1112"
+          }
+        }
+      ],
+      "expo-font",
+      "expo-status-bar"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

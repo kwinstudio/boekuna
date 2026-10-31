@@ -1,0 +1,93 @@
+name: Quitte iOS
+# Bouwt de Quitte-app (Expo) op een cloud-Mac, ondertekent via de App Store Connect API-sleutel
+# en zet hem op TestFlight zodra het app-record in App Store Connect bestaat. Nooit naar App Review.
+on:
+  push:
+    branches: [claude/quitte]
+    paths: ['quitte/**', '.github/workflows/quitte-ios.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: quitte-ios
+  cancel-in-progress: false
+jobs:
+  build-upload:
+    if: github.repository == 'kwinstudio/boekuna'
+    runs-on: macos-26
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: quitte
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: quitte/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Tests en typecheck
+        run: |
+          npm test
+          npx tsc --noEmit
+      - name: App Store Connect preflight
+        id: asc
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          ASC_KEY_OUT: ${{ runner.temp }}/QuitteAuthKey.p8
+        run: node scripts/asc.mjs preflight
+      - name: Native iOS-project genereren
+        env:
+          CI: 1
+          EXPO_NO_TELEMETRY: 1
+          BUILD: ${{ steps.asc.outputs.next_build }}
+        run: |
+          xcodebuild -version
+          node -e "const fs=require('fs');const a=require('./app.json');a.expo.ios.buildNumber=process.env.BUILD||'1';fs.writeFileSync('app.json',JSON.stringify(a,null,2))"
+          pod --version || sudo gem install cocoapods
+          npx expo prebuild --platform ios --clean
+          test -d ios/Quitte.xcworkspace
+      - name: Archive, sign en upload naar TestFlight
+        if: steps.asc.outputs.app_exists == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          xcodebuild -workspace ios/Quitte.xcworkspace -scheme Quitte -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath build/Quitte.xcarchive \
+            DEVELOPMENT_TEAM=${{ steps.asc.outputs.team_id }} CODE_SIGN_STYLE=Automatic \
+            -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/QuitteAuthKey.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" archive 2>&1 | tee build-archive.log | tail -40 || true
+          grep -E "error:" build-archive.log | sort -u | head -25 | while IFS= read -r line; do echo "::error title=Archive::${line}"; done
+          test -d build/Quitte.xcarchive/Products/Applications/Quitte.app
+          V=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' build/Quitte.xcarchive/Products/Applications/Quitte.app/Info.plist)
+          echo "::notice title=Archive::CFBundleVersion $V"
+          cp ExportOptions-TestFlight.plist "$RUNNER_TEMP/ExportOptions.plist"
+          /usr/libexec/PlistBuddy -c 'Add :teamID string ${{ steps.asc.outputs.team_id }}' "$RUNNER_TEMP/ExportOptions.plist"
+          xcodebuild -exportArchive -archivePath build/Quitte.xcarchive -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath build/upload -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/QuitteAuthKey.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" 2>&1 | tail -25
+          echo "::notice title=Upload::Build ${{ steps.asc.outputs.next_build }} uploaded to App Store Connect."
+      - name: Simulator-build (controle zonder app-record)
+        if: steps.asc.outputs.app_exists != 'true'
+        run: |
+          set -o pipefail
+          xcodebuild -workspace ios/Quitte.xcworkspace -scheme Quitte -configuration Release \
+            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build-sim.log | tail -25
+      - name: TestFlight beschikbaarheid
+        if: steps.asc.outputs.app_exists == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          TARGET_BUILD: ${{ steps.asc.outputs.next_build }}
+          WHAT_TO_TEST: "Eerste versie van Quitte. Test: een lijst maken, iemand laten meedoen met de code of QR, uitgaven toevoegen en verdelen (gelijk, bedragen, delen), saldi en 'Zo is iedereen quitte', betaling afvinken en ongedaan maken, offline een uitgave toevoegen."
+        run: node scripts/asc.mjs testflight
+      - name: Signeersleutel verwijderen
+        if: always()
+        run: rm -f "$RUNNER_TEMP/QuitteAuthKey.p8"
