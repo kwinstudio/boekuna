@@ -6,7 +6,8 @@ import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, St
 import QRCode from 'react-native-qrcode-svg';
 import { showToast } from '../../../components/Toast';
 import { Avatar, Button, Card, Row, Screen, SectionLabel, TopBar } from '../../../components/ui';
-import { computeBalances } from '../../../lib/balances';
+import { computeBalances, directTransfers, settle } from '../../../lib/balances';
+import { sharePdf } from '../../../lib/extras';
 import { money } from '../../../lib/domain';
 import { t } from '../../../lib/i18n';
 import { nowIso, uuid } from '../../../lib/ids';
@@ -15,7 +16,7 @@ import { enqueue, removeLocal, setProfile, updateLocal, useList, useStore } from
 import { syncList } from '../../../lib/sync';
 import { radius, useTheme } from '../../../lib/theme';
 
-type Edit = null | { kind: 'listName' } | { kind: 'member'; id: string } | { kind: 'newMember' } | { kind: 'iban' };
+type Edit = null | { kind: 'listName' } | { kind: 'member'; id: string } | { kind: 'newMember' } | { kind: 'iban' } | { kind: 'payLink' };
 
 export default function Manage() {
   const th = useTheme();
@@ -56,6 +57,14 @@ export default function Manage() {
       const iban = v.replace(/\s+/g, ' ').toUpperCase().slice(0, 40);
       enqueue(local.id, { op: 'member', data: { ...meMember, iban: iban || null, updatedAt: ts } });
       setProfile({ iban });
+    } else if (edit.kind === 'payLink' && meMember) {
+      const link = v.slice(0, 300);
+      if (link && !/^https:\/\/\S+$/i.test(link)) {
+        Alert.alert(t('payLinkInvalid'));
+        return;
+      }
+      enqueue(local.id, { op: 'member', data: { ...meMember, payLink: link || null, updatedAt: ts } });
+      setProfile({ payLink: link });
     }
     syncList(local.id);
     setEdit(null);
@@ -84,6 +93,44 @@ export default function Manage() {
     ]);
   };
 
+  const merge = (fromId: string) => {
+    const from = view.members.find((x) => x.id === fromId)!;
+    const targets = members.filter((m) => m.id !== fromId);
+    if (!targets.length) return;
+    Alert.alert(t('mergeTitle', { name: from.name }), t('mergeBody'), [
+      ...targets.slice(0, 6).map((m) => ({
+        text: m.name,
+        onPress: () =>
+          Alert.alert(t('mergeConfirm', { from: from.name, into: m.name }), undefined, [
+            { text: t('cancel'), style: 'cancel' },
+            {
+              text: t('merge'),
+              style: 'destructive',
+              onPress: () => {
+                enqueue(local.id, { op: 'merge', data: { from: fromId, into: m.id, updatedAt: nowIso() }, summary: t('actMerged', { from: from.name, into: m.name }) });
+                if (local.me === fromId) updateLocal(local.id, { me: m.id });
+                syncList(local.id);
+                showToast(t('merged'));
+              },
+            },
+          ]),
+      })),
+      { text: t('cancel'), style: 'cancel' as const },
+    ]);
+  };
+
+  const toggleDirect = () => {
+    const on = !view.list.settings?.directDebts;
+    enqueue(local.id, { op: 'settings', data: { settings: { directDebts: on }, updatedAt: nowIso() }, summary: on ? t('actDirectOn') : t('actDirectOff') });
+    syncList(local.id);
+  };
+
+  const pdf = () => {
+    const order = view.members.map((m) => m.id);
+    const transfers = view.list.settings?.directDebts ? directTransfers(view.entries, order) : settle(balances, order);
+    sharePdf(view, transfers).catch(() => showToast(t('pdfFailed')));
+  };
+
   const toggleArchive = () => {
     const archived = !view.list.archived;
     enqueue(local.id, { op: 'list', data: { archived, updatedAt: nowIso() }, summary: archived ? t('actArchived') : t('actUnarchived') });
@@ -107,7 +154,7 @@ export default function Manage() {
   };
 
   const editTitle =
-    edit?.kind === 'listName' ? t('listName') : edit?.kind === 'newMember' ? t('addPerson') : edit?.kind === 'iban' ? t('yourIban') : t('changeName');
+    edit?.kind === 'listName' ? t('listName') : edit?.kind === 'newMember' ? t('addPerson') : edit?.kind === 'iban' ? t('yourIban') : edit?.kind === 'payLink' ? t('payLink') : t('changeName');
 
   return (
     <Screen>
@@ -141,6 +188,7 @@ export default function Manage() {
                 accessibilityRole="button"
                 accessibilityHint={t('renameHint')}
                 onPress={() => open({ kind: 'member', id: m.id }, m.name)}
+                onLongPress={() => merge(m.id)}
                 style={{ flex: 1, minHeight: 44, justifyContent: 'center' }}
               >
                 <Text style={{ fontSize: 16, fontWeight: '600', color: th.text }}>
@@ -148,18 +196,27 @@ export default function Manage() {
                   {m.id === local.me ? <Text style={{ color: th.sub, fontWeight: '400' }}> ({t('you').toLowerCase()})</Text> : null}
                 </Text>
                 {m.iban ? <Text style={{ fontSize: 12, color: th.sub }}>{m.iban}</Text> : null}
+                {!m.claimed && m.id !== local.me ? <Text style={{ fontSize: 12, color: th.sub }}>{t('notClaimed')}</Text> : null}
               </Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel={t('removeName', { name: m.name })} onPress={() => removeMember(m.id)} hitSlop={6} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
                 <Ionicons name="remove-circle-outline" size={22} color={th.sub} />
               </Pressable>
             </View>
           ))}
-          <Pressable accessibilityRole="button" onPress={() => open({ kind: 'newMember' }, '')} style={styles.row}>
+          <Pressable accessibilityRole="button" onPress={() => open({ kind: 'newMember' }, '')} style={[styles.row, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: th.line }]}>
             <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: th.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
               <Ionicons name="add" size={20} color={th.accent} />
             </View>
             <Text style={{ fontSize: 16, fontWeight: '600', color: th.accent }}>{t('addPerson')}</Text>
           </Pressable>
+          {members.length > 1 ? (
+            <Pressable accessibilityRole="button" onPress={() => Alert.alert(t('mergeWho'), undefined, [...members.slice(0, 8).map((m) => ({ text: m.name, onPress: () => merge(m.id) })), { text: t('cancel'), style: 'cancel' as const }])} style={styles.row}>
+              <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: th.segment, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="git-merge-outline" size={18} color={th.text} />
+              </View>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: th.text }}>{t('mergePeople')}</Text>
+            </Pressable>
+          ) : null}
         </Card>
 
         <SectionLabel>{t('you')}</SectionLabel>
@@ -169,8 +226,8 @@ export default function Manage() {
             label={t('yourIban')}
             value={meMember?.iban ?? t('notSet')}
             onPress={() => open({ kind: 'iban' }, meMember?.iban ?? profile.iban)}
-            last
           />
+          <Row label={t('payLink')} value={meMember?.payLink ? t('set') : t('notSet')} onPress={() => open({ kind: 'payLink' }, meMember?.payLink ?? profile.payLink ?? '')} last />
         </Card>
         <Text style={{ fontSize: 13, color: th.sub, marginTop: 6, paddingHorizontal: 2 }}>{t('ibanHint')}</Text>
 
@@ -180,6 +237,9 @@ export default function Manage() {
           <Row icon="cash-outline" label={t('currency')} value={cur} />
           <Row icon="bar-chart-outline" label={t('stats')} onPress={() => router.push({ pathname: '/list/[id]/stats', params: { id: local.id } })} />
           <Row icon="time-outline" label={t('history')} onPress={() => router.push({ pathname: '/list/[id]/activity', params: { id: local.id } })} />
+          <Row icon="git-network-outline" label={t('directDebts')} value={view.list.settings?.directDebts ? t('on') : t('off')} onPress={toggleDirect} />
+          <Row icon="trash-outline" label={t('trash')} value={view.trash?.length ? String(view.trash.length) : ''} onPress={() => router.push({ pathname: '/list/[id]/trash', params: { id: local.id } })} />
+          <Row icon="document-outline" label={t('exportPdf')} onPress={pdf} />
           <Row icon="document-text-outline" label={t('exportCsv')} onPress={() => shareCsv(view)} />
           <Row icon={view.list.archived ? 'arrow-undo-outline' : 'archive-outline'} label={view.list.archived ? t('unarchive') : t('archive')} onPress={toggleArchive} last />
         </Card>
@@ -199,11 +259,12 @@ export default function Manage() {
               value={text}
               onChangeText={setText}
               autoFocus
-              autoCapitalize={edit?.kind === 'iban' ? 'characters' : 'sentences'}
-              placeholder={edit?.kind === 'iban' ? 'NL00 BANK 0123 4567 89' : ''}
+              autoCapitalize={edit?.kind === 'iban' ? 'characters' : edit?.kind === 'payLink' ? 'none' : 'sentences'}
+              keyboardType={edit?.kind === 'payLink' ? 'url' : 'default'}
+              placeholder={edit?.kind === 'iban' ? 'NL00 BANK 0123 4567 89' : edit?.kind === 'payLink' ? 'https://tikkie.me/…' : ''}
               placeholderTextColor={th.sub}
               onSubmitEditing={submit}
-              maxLength={edit?.kind === 'listName' ? 80 : 40}
+              maxLength={edit?.kind === 'listName' ? 80 : edit?.kind === 'payLink' ? 300 : 40}
               style={{ height: 52, borderRadius: radius.field, borderWidth: 1, borderColor: th.border, backgroundColor: th.field, paddingHorizontal: 16, fontSize: 17, color: th.text }}
             />
             <View style={{ flexDirection: 'row', gap: 10 }}>

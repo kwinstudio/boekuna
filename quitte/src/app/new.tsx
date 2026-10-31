@@ -42,7 +42,7 @@ export default function NewList() {
     setProfile({ name: me.trim() });
     const id = createLocalList(name.slice(0, 80), currency, me.slice(0, 40), all);
     syncList(id);
-    router.replace(`/list/${id}`);
+    router.replace({ pathname: '/list/[id]', params: { id, fresh: '1' } });
   };
 
   const field = {

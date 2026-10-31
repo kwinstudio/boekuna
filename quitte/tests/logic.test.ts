@@ -129,3 +129,40 @@ test('offline wachtrij wordt optimistisch toegepast', () => {
   const s4 = applyOps(base, [{ uid: '5', op: 'list', data: { archived: true, updatedAt: '' } }]);
   assert.equal(s4.list.archived, true);
 });
+
+import { directTransfers, nextPayer, settleProgress } from '../src/lib/balances';
+
+test('directe schulden: A betaalde voor B, B betaalde voor C -> geen vereenvoudiging', () => {
+  const ms = ['A', 'B', 'C'].map(M);
+  const e1 = E('expense', 1000, 'A', [{ m: 'B', a: 1000 }]);
+  const e2 = E('expense', 1000, 'B', [{ m: 'C', a: 1000 }]);
+  const t = directTransfers([e1, e2], ['A', 'B', 'C']);
+  assert.deepEqual(t, [
+    { from: 'B', to: 'A', amount: 1000 },
+    { from: 'C', to: 'B', amount: 1000 },
+  ]);
+  // Vereenvoudigd zou het C -> A zijn:
+  assert.deepEqual(settle(computeBalances([e1, e2], ms), ['A', 'B', 'C']), [{ from: 'C', to: 'A', amount: 1000 }]);
+  // Na terugbetalingen is alles direct quitte.
+  const paid = [...t.map((x) => E('transfer', x.amount, x.from, [{ m: x.to, a: x.amount }]))];
+  assert.equal(directTransfers([e1, e2, ...paid]).length, 0);
+});
+
+test('directe schulden tellen op tot dezelfde saldi', () => {
+  const eq = (amt: number) => splitEqual(amt, order);
+  const entries = [E('expense', 32000, 'S', eq(32000)), E('expense', 5400, 'K', eq(5400)), E('expense', 4800, 'L', eq(4800))];
+  const t = directTransfers(entries, order);
+  const bal: Record<string, number> = { K: 0, S: 0, D: 0, L: 0 };
+  for (const x of t) {
+    bal[x.from] -= x.amount;
+    bal[x.to] += x.amount;
+  }
+  assert.deepEqual(bal, computeBalances(entries, members));
+});
+
+test('wie is aan de beurt en voortgang', () => {
+  assert.equal(nextPayer({ K: -170, S: 17790, D: -8210, L: -9410 }, order), 'L');
+  assert.equal(nextPayer({ K: 0, S: 50 }, ['K', 'S']), null);
+  const p = settleProgress([E('transfer', 500, 'K', [{ m: 'S', a: 500 }])], [{ from: 'D', to: 'S', amount: 1500 }]);
+  assert.deepEqual(p, { paid: 500, remaining: 1500, total: 2000 });
+});

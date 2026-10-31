@@ -44,3 +44,4 @@ yarn-error.*
 credentials.json
 credentials/local/
 dist/
+node_modules

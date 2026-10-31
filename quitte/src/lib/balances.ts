@@ -81,3 +81,69 @@ export function settle(balances: Record<string, number>, order: string[] = Objec
 export function totalSpent(entries: Entry[]): number {
   return entries.filter((e) => !e.deleted && e.kind === 'expense').reduce((s, e) => s + e.amount, 0);
 }
+
+/**
+ * "Alleen directe schulden": iedereen betaalt terug aan wie er echt voor hem betaalde,
+ * zonder schulden via anderen te vereenvoudigen. Per paar wordt netto verrekend.
+ */
+export function directTransfers(entries: Entry[], order: string[] = []): Transfer[] {
+  const owed = new Map<string, number>(); // key "debtor>creditor"
+  const add = (debtor: string, creditor: string, cents: number) => {
+    if (debtor === creditor || cents === 0) return;
+    const k = `${debtor}>${creditor}`;
+    owed.set(k, (owed.get(k) ?? 0) + cents);
+  };
+  for (const e of entries) {
+    if (e.deleted || e.amount <= 0) continue;
+    if (e.kind === 'transfer') {
+      // Van -> aan: de betaler lost schuld bij de ontvanger af.
+      for (const p of e.payers) for (const s of e.shares) add(s.m, p.m, Math.round((p.a * s.a) / e.amount));
+      continue;
+    }
+    for (const s of e.shares) {
+      // Verdeel elk deel naar rato over de betalers (grootste-restmethode, exact in centen).
+      const raw = e.payers.map((p) => ({ m: p.m, exact: (s.a * p.a) / e.amount }));
+      const parts = raw.map((r) => ({ m: r.m, a: Math.floor(r.exact), rem: r.exact - Math.floor(r.exact) }));
+      let rest = s.a - parts.reduce((x, p) => x + p.a, 0);
+      for (const p of [...parts].sort((a, b) => b.rem - a.rem)) {
+        if (rest <= 0) break;
+        p.a += 1;
+        rest -= 1;
+      }
+      for (const p of parts) {
+        if (e.kind === 'income') add(p.m, s.m, p.a);
+        else add(s.m, p.m, p.a);
+      }
+    }
+  }
+  const idx = (id: string) => (order.indexOf(id) === -1 ? 1e9 : order.indexOf(id));
+  const seen = new Set<string>();
+  const out: Transfer[] = [];
+  for (const k of owed.keys()) {
+    const [a, b] = k.split('>');
+    const pair = [a, b].sort().join('|');
+    if (seen.has(pair)) continue;
+    seen.add(pair);
+    const net = (owed.get(`${a}>${b}`) ?? 0) - (owed.get(`${b}>${a}`) ?? 0);
+    if (net > 0) out.push({ from: a, to: b, amount: net });
+    else if (net < 0) out.push({ from: b, to: a, amount: -net });
+  }
+  return out.sort((x, y) => idx(x.from) - idx(y.from) || y.amount - x.amount);
+}
+
+/** Wie is aan de beurt om de volgende rekening te betalen: de persoon met het laagste saldo. */
+export function nextPayer(balances: Record<string, number>, activeIds: string[]): string | null {
+  const ids = activeIds.filter((id) => id in balances);
+  if (ids.length < 2) return null;
+  const sorted = [...ids].sort((a, b) => balances[a] - balances[b] || activeIds.indexOf(a) - activeIds.indexOf(b));
+  const lowest = sorted[0];
+  const highest = sorted[sorted.length - 1];
+  return balances[highest] - balances[lowest] >= 100 ? lowest : null;
+}
+
+/** Voortgang van het verrekenen: al terugbetaald versus nog open. */
+export function settleProgress(entries: Entry[], open: Transfer[]) {
+  const paid = entries.filter((e) => !e.deleted && e.kind === 'transfer').reduce((s, e) => s + e.amount, 0);
+  const remaining = open.reduce((s, t) => s + t.amount, 0);
+  return { paid, remaining, total: paid + remaining };
+}

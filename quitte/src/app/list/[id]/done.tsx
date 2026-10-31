@@ -1,6 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import * as Sharing from 'expo-sharing';
+import { captureRef } from 'react-native-view-shot';
 import { Pressable, Text, View } from 'react-native';
 import { Button, Card, Screen } from '../../../components/ui';
 import { money } from '../../../lib/domain';
@@ -15,6 +17,7 @@ export default function Done() {
   const { id, batch, count, total } = useLocalSearchParams<{ id: string; batch: string; count: string; total: string }>();
   const { view, local } = useList(id);
   const [undoLeft, setUndoLeft] = useState(8);
+  const cardRef = useRef<React.ComponentRef<typeof View>>(null);
 
   useEffect(() => {
     const iv = setInterval(() => setUndoLeft((s) => (s > 0 ? s - 1 : 0)), 1000);
@@ -29,6 +32,14 @@ export default function Done() {
     enqueue(local.id, { op: 'delete_batch', batchId: String(batch), data: { updatedAt: nowIso() }, summary: t('actUndoSettle') });
     syncList(local.id);
     router.back();
+  };
+
+  // Nette afsluitkaart als afbeelding delen (piek-eind: een mooi einde blijft hangen).
+  const shareCard = async () => {
+    try {
+      const uri = await captureRef(cardRef as never, { format: 'png', quality: 1 });
+      await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: view.list.name });
+    } catch {}
   };
 
   const archive = () => {
@@ -48,11 +59,19 @@ export default function Done() {
         <Text style={{ fontSize: 16, lineHeight: 23, color: th.sub, textAlign: 'center', marginTop: 8, marginBottom: 28, maxWidth: 300 }}>
           {t('doneBody', { list: view.list.name })}
         </Text>
-        <Card style={{ alignSelf: 'stretch' }}>
-          <Stat value={money(Number(total) || 0, cur)} label={t('spentTogether')} />
-          <Stat value={String(expenses)} label={t('statExpenses')} />
-          <Stat value={String(count)} label={t('statPayments')} last />
-        </Card>
+        <View ref={cardRef} collapsable={false} style={{ alignSelf: 'stretch', backgroundColor: th.bg, padding: 4 }}>
+          <Card>
+            <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 }}>
+              <Text style={{ fontSize: 13, color: th.sub }}>{t('cardSquared')}</Text>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: th.text }}>{view.list.name}</Text>
+            </View>
+            <Stat value={money(Number(total) || 0, cur)} label={t('spentTogether')} />
+            <Stat value={String(expenses)} label={t('statExpenses')} />
+            <Stat value={String(count)} label={t('statPayments')} last />
+          </Card>
+          <Text style={{ fontSize: 12, color: th.sub, textAlign: 'center', marginTop: 6 }}>Quitte</Text>
+        </View>
+        <Button label={t('shareCard')} kind="ghost" icon="share-outline" onPress={shareCard} style={{ marginTop: 8 }} />
       </View>
       {undoLeft > 0 ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: th.toast, borderRadius: 14, minHeight: 52, paddingLeft: 16, paddingRight: 6, marginBottom: 14 }}>

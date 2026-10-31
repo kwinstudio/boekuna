@@ -6,7 +6,16 @@ import type { ListState, LocalList, Member, Op } from './types';
 
 const KEY = 'quitte:v1';
 
-export type Profile = { name: string; iban: string };
+export type Profile = {
+  name: string;
+  iban: string;
+  payLink?: string;
+  deviceId?: string;
+  /** Sleutel waarmee dit toestel de Apple-backup bijwerkt (na eenmalig inloggen met Apple). */
+  backupKey?: string | null;
+  backupAt?: number | null;
+  monthlyDigest?: boolean;
+};
 
 type State = {
   loaded: boolean;
@@ -53,6 +62,10 @@ export async function loadStore() {
   } catch {
     state = { ...state, loaded: true };
   }
+  if (!state.profile.deviceId) {
+    state = { ...state, profile: { ...state.profile, deviceId: uuid() } };
+    persist();
+  }
   emit();
 }
 
@@ -93,7 +106,7 @@ export function setProfile(p: Partial<Profile>) {
 export function createLocalList(name: string, currency: string, myName: string, others: string[]): string {
   const id = uuid();
   const ts = nowIso();
-  const me: Member = { id: uuid(), name: myName.trim(), updatedAt: ts };
+  const me: Member = { id: uuid(), name: myName.trim(), claimed: true, updatedAt: ts };
   const members: Member[] = [me, ...others.map((n) => ({ id: uuid(), name: n.trim(), updatedAt: ts }))];
   const local: LocalList = {
     id,
@@ -105,7 +118,7 @@ export function createLocalList(name: string, currency: string, myName: string, 
       entries: [],
       activity: [],
     },
-    pending: [],
+    pending: [{ uid: uuid(), op: 'member', data: me }],
     needsCreate: true,
     joinedAt: Date.now(),
   };

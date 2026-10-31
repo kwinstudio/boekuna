@@ -1,16 +1,18 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Alert, Pressable, RefreshControl, ScrollView, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActionSheetIOS, Alert, Platform, Pressable, RefreshControl, ScrollView, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { showToast } from '../../../components/Toast';
 import { Avatar, Button, Card, CategoryIcon, IconButton, Screen, Segmented, TopBar } from '../../../components/ui';
-import { computeBreakdown, settle, totalSpent, type Transfer } from '../../../lib/balances';
+import { computeBreakdown, directTransfers, nextPayer, settle, settleProgress, totalSpent, type Transfer } from '../../../lib/balances';
+import { shareReminder, type Tone } from '../../../lib/extras';
 import { categoryById } from '../../../lib/categories';
 import { activeMembers, money, myShare, nameOf, payerLine } from '../../../lib/domain';
-import { dayLabel, t } from '../../../lib/i18n';
+import { dayLabel, numberLocale, t } from '../../../lib/i18n';
 import { nowIso, todayIso, uuid } from '../../../lib/ids';
-import { shareInvite, shareOverview, shareRequest } from '../../../lib/share';
+import { shareInvite, shareOverview } from '../../../lib/share';
+import { parseMoney } from '../../../lib/money';
 import { enqueue, updateLocal, useList } from '../../../lib/store';
 import { syncList, useLiveList } from '../../../lib/sync';
 import { radius, useTheme } from '../../../lib/theme';
@@ -20,20 +22,48 @@ type Tab = 'expenses' | 'balances';
 
 export default function ListScreen() {
   const th = useTheme();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, fresh } = useLocalSearchParams<{ id: string; fresh?: string }>();
   const { local, view } = useList(id);
   const [tab, setTab] = useState<Tab>('expenses');
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [filterMine, setFilterMine] = useState(false);
   useLiveList(id);
+
+  // Nieuwe lijst: meteen de uitnodiging klaarzetten (de stap waar groepen het vaakst afhaken).
+  useEffect(() => {
+    if (fresh !== '1' || !local || local.invitedAt) return;
+    const tm = setTimeout(() => {
+      updateLocal(local.id, { invitedAt: Date.now() });
+      shareInvite(local.base.list.name, local.token);
+    }, 600);
+    return () => clearTimeout(tm);
+  }, [fresh]);
+
+  // Oude lokale verdeelsleutels delen met de hele lijst.
+  useEffect(() => {
+    if (!local?.splitKeys?.length || !view || (view.list.splitKeys?.length ?? 0) > 0) return;
+    enqueue(local.id, { op: 'list', data: { splitKeys: local.splitKeys, updatedAt: nowIso() } });
+    updateLocal(local.id, { splitKeys: [] });
+    syncList(local.id);
+  }, [local?.id]);
 
   const calc = useMemo(() => {
     if (!view) return null;
     const bd = computeBreakdown(view.entries, view.members);
     const balances = Object.fromEntries(Object.entries(bd).map(([k, v]) => [k, v.balance]));
     const order = view.members.map((m) => m.id);
-    return { bd, balances, transfers: settle(balances, order), total: totalSpent(view.entries) };
+    const transfers = view.list.settings?.directDebts ? directTransfers(view.entries, order) : settle(balances, order);
+    const active = view.members.filter((m) => !m.deleted).map((m) => m.id);
+    return {
+      bd,
+      balances,
+      transfers,
+      total: totalSpent(view.entries),
+      next: view.entries.length >= 2 ? nextPayer(balances, active) : null,
+      progress: settleProgress(view.entries, transfers),
+    };
   }, [view]);
 
   if (!local || !view || !calc) {
@@ -59,6 +89,39 @@ export default function ListScreen() {
   };
 
   const markPaid = (tr: Transfer) => {
+    const opts = [t('paidFull', { amount: money(tr.amount, cur) }), t('paidPart'), t('cancel')];
+    const part = () =>
+      Alert.prompt(
+        t('paidPartTitle'),
+        t('paidPartBody', { from: nameOf(view, tr.from), to: nameOf(view, tr.to), amount: money(tr.amount, cur) }),
+        (v) => {
+          const c = parseMoney(v ?? '');
+          if (!c || c <= 0 || c > tr.amount) return Alert.alert(t('errPart'));
+          recordPaid({ ...tr, amount: c });
+        },
+        'plain-text',
+        '',
+        'decimal-pad',
+      );
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions({ options: opts, cancelButtonIndex: 2 }, (i) => {
+        if (i === 0) recordPaid(tr);
+        if (i === 1) part();
+      });
+    } else recordPaid(tr);
+  };
+
+  const remind = (tr: Transfer) => {
+    const tones: Tone[] = ['friendly', 'short', 'funny'];
+    const opts = [t('toneFriendly'), t('toneShort'), t('toneFunny'), t('cancel')];
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions({ options: opts, cancelButtonIndex: 3, title: t('remindHow') }, (i) => {
+        if (i < 3) shareReminder(view, tr, tones[i]);
+      });
+    } else shareReminder(view, tr, 'friendly');
+  };
+
+  const recordPaid = (tr: Transfer) => {
     const batchId = uuid();
     const ts = nowIso();
     const entry: Entry = {
@@ -235,9 +298,21 @@ export default function ListScreen() {
       </View>
 
       {tab === 'expenses' ? (
-        <Expenses view={view} me={me} query={query} refreshing={refreshing} onRefresh={refresh} listId={local.id} token={local.token} />
+        <Expenses
+          view={view}
+          me={me}
+          query={query}
+          mine={filterMine}
+          onMine={setFilterMine}
+          next={calc.next}
+          invited={!!local.invitedAt}
+          refreshing={refreshing}
+          onRefresh={refresh}
+          listId={local.id}
+          token={local.token}
+        />
       ) : (
-        <Balances view={view} me={me} calc={calc} refreshing={refreshing} onRefresh={refresh} onPaid={markPaid} />
+        <Balances view={view} me={me} calc={calc} refreshing={refreshing} onRefresh={refresh} onPaid={markPaid} onRemind={remind} />
       )}
 
       <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 10 }}>
@@ -266,6 +341,10 @@ function Expenses({
   view,
   me,
   query,
+  mine,
+  onMine,
+  next,
+  invited,
   refreshing,
   onRefresh,
   listId,
@@ -274,6 +353,10 @@ function Expenses({
   view: ListState;
   me: string | null;
   query: string;
+  mine: boolean;
+  onMine: (v: boolean) => void;
+  next: string | null;
+  invited: boolean;
   refreshing: boolean;
   onRefresh: () => void;
   listId: string;
@@ -284,6 +367,7 @@ function Expenses({
   const sections = useMemo(() => {
     const q = query.trim().toLowerCase();
     const filtered = view.entries.filter((e) => {
+      if (mine && me && !e.payers.some((p) => p.m === me) && !e.shares.some((p) => p.m === me)) return false;
       if (!q) return true;
       const cat = categoryById(e.category);
       const hay = [e.title, t(`cat_${cat.id}` as never), ...e.payers.map((p) => nameOf(view, p.m)), ...e.shares.map((p) => nameOf(view, p.m))]
@@ -291,10 +375,16 @@ function Expenses({
         .toLowerCase();
       return hay.includes(q);
     });
+    // Per maand gegroepeerd, met het maandtotaal (alleen uitgaven).
     const map = new Map<string, Entry[]>();
-    for (const e of filtered) map.set(e.date, [...(map.get(e.date) ?? []), e]);
-    return [...map.entries()].map(([date, data]) => ({ title: dayLabel(date), data }));
-  }, [view, query]);
+    for (const e of filtered) map.set(e.date.slice(0, 7), [...(map.get(e.date.slice(0, 7)) ?? []), e]);
+    return [...map.entries()].map(([ym, data]) => {
+      const [y, m] = ym.split('-').map(Number);
+      const label = monthFmt.format(new Date(y, m - 1, 1));
+      const sum = data.filter((e) => e.kind === 'expense').reduce((s, e) => s + e.amount, 0);
+      return { title: label.charAt(0).toUpperCase() + label.slice(1), total: sum, data };
+    });
+  }, [view, query, mine, me]);
 
   if (view.entries.length === 0) {
     return (
@@ -302,11 +392,19 @@ function Expenses({
         contentContainerStyle={{ padding: 20 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={th.sub} />}
       >
-        <Card style={{ padding: 20, alignItems: 'center', gap: 8 }}>
-          <Ionicons name="receipt-outline" size={32} color={th.accent} />
-          <Text style={{ fontSize: 18, fontWeight: '700', color: th.text }}>{t('emptyTitle')}</Text>
-          <Text style={{ fontSize: 15, color: th.sub, textAlign: 'center', lineHeight: 21 }}>{t('emptyBody')}</Text>
-          <Button label={t('inviteOthers')} kind="secondary" icon="person-add-outline" onPress={() => shareInvite(view.list.name, token)} style={{ alignSelf: 'stretch', marginTop: 8 }} />
+        <Card style={{ padding: 16 }}>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: th.text }}>{t('checklistTitle')}</Text>
+          <Text style={{ fontSize: 14, color: th.sub, marginTop: 2, marginBottom: 8 }}>{t('checklistSub', { n: 1 + (invited ? 1 : 0), total: 3 })}</Text>
+          <CheckRow done label={t('checkCreated')} />
+          <CheckRow
+            done={invited}
+            label={t('checkInvite')}
+            onPress={() => {
+              updateLocal(listId, { invitedAt: Date.now() });
+              shareInvite(view.list.name, token);
+            }}
+          />
+          <CheckRow done={false} label={t('checkFirst')} onPress={() => router.push({ pathname: '/list/[id]/entry', params: { id: listId } })} last />
         </Card>
       </ScrollView>
     );
@@ -319,9 +417,45 @@ function Expenses({
       stickySectionHeadersEnabled={false}
       contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 16 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={th.sub} />}
+      ListHeaderComponent={
+        <View style={{ paddingTop: 10, gap: 8 }}>
+          {next && !mine && !query ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityHint={t('nextPayerHint')}
+              onPress={() => router.push({ pathname: '/list/[id]/entry', params: { id: listId, payer: next } })}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: radius.card, backgroundColor: th.card }}
+            >
+              <Ionicons name="repeat-outline" size={20} color={th.accent} />
+              <Text style={{ flex: 1, fontSize: 14, color: th.text }}>
+                {next === me ? t('nextPayerYou') : t('nextPayer', { name: nameOf(view, next) })}
+              </Text>
+              <Ionicons name="chevron-forward" size={16} color={th.sub} />
+            </Pressable>
+          ) : null}
+          {me ? (
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {[false, true].map((v) => (
+                <Pressable
+                  key={String(v)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: mine === v }}
+                  onPress={() => onMine(v)}
+                  style={{ height: 32, paddingHorizontal: 12, borderRadius: radius.chip, justifyContent: 'center', backgroundColor: mine === v ? th.text : th.card }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: mine === v ? th.bg : th.text }}>{v ? t('filterMine') : t('filterAll')}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+        </View>
+      }
       ListEmptyComponent={<Text style={{ color: th.sub, textAlign: 'center', marginTop: 24 }}>{t('noResults')}</Text>}
       renderSectionHeader={({ section }) => (
-        <Text style={{ fontSize: 13, fontWeight: '600', color: th.sub, paddingTop: 14, paddingBottom: 4 }}>{section.title}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 16, paddingBottom: 4 }}>
+          <Text accessibilityRole="header" style={{ fontSize: 13, fontWeight: '600', color: th.sub }}>{section.title}</Text>
+          {section.total ? <Text style={{ fontSize: 13, color: th.sub }}>{money(section.total, cur)}</Text> : null}
+        </View>
       )}
       renderItem={({ item: e }) => {
         const cat = e.kind === 'transfer' ? null : categoryById(e.category);
@@ -356,7 +490,10 @@ function Expenses({
                 {e.kind === 'transfer' ? t('repayment') : e.title || t(`cat_${categoryById(e.category).id}` as never)}
               </Text>
               <Text numberOfLines={1} style={{ fontSize: 13, color: th.sub }}>
-                {payerLine(e, view, me)}
+                {dayLabel(e.date)} · {payerLine(e, view, me)}
+                {e.repeat ? ' · ↻' : ''}
+                {e.photos?.length ? ' · 📎' : ''}
+                {(view.comments ?? []).some((c) => c.entryId === e.id) ? ' · 💬' : ''}
               </Text>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
@@ -380,13 +517,15 @@ function Balances({
   refreshing,
   onRefresh,
   onPaid,
+  onRemind,
 }: {
   view: ListState;
   me: string | null;
-  calc: { bd: ReturnType<typeof computeBreakdown>; balances: Record<string, number>; transfers: Transfer[] };
+  calc: { bd: ReturnType<typeof computeBreakdown>; balances: Record<string, number>; transfers: Transfer[]; progress: { paid: number; remaining: number; total: number } };
   refreshing: boolean;
   onRefresh: () => void;
   onPaid: (tr: Transfer) => void;
+  onRemind: (tr: Transfer) => void;
 }) {
   const th = useTheme();
   const cur = view.list.currency;
@@ -400,6 +539,21 @@ function Balances({
       contentContainerStyle={{ padding: 20, paddingTop: 14 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={th.sub} />}
     >
+      {calc.progress.paid > 0 ? (
+        <Card style={{ padding: 14, marginBottom: 12 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: th.text }}>
+              {calc.progress.remaining === 0 ? t('progressDone') : t('progressLabel', { pct: Math.round((calc.progress.paid / calc.progress.total) * 100) })}
+            </Text>
+            <Text style={{ fontSize: 13, color: th.sub }}>
+              {money(calc.progress.paid, cur)} / {money(calc.progress.total, cur)}
+            </Text>
+          </View>
+          <View style={{ height: 6, borderRadius: 3, backgroundColor: th.segment, overflow: 'hidden' }}>
+            <View style={{ width: `${Math.round((calc.progress.paid / Math.max(1, calc.progress.total)) * 100)}%`, height: 6, backgroundColor: th.gain }} />
+          </View>
+        </Card>
+      ) : null}
       <Card style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
         {sorted.map((m, i) => {
           const b = calc.balances[m.id] ?? 0;
@@ -484,7 +638,7 @@ function Balances({
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={t('remindA11y', { name: nameOf(view, tr.from) })}
-                    onPress={() => shareRequest(view, tr)}
+                    onPress={() => onRemind(tr)}
                     style={[styles.smallBtn, { borderWidth: 1, borderColor: th.border, backgroundColor: th.card }]}
                   >
                     <Text style={{ fontSize: 14, fontWeight: '600', color: th.text }}>{toMe ? t('request') : t('remind')}</Text>
@@ -503,8 +657,29 @@ function Balances({
           })}
         </Card>
       )}
-      <Text style={{ fontSize: 13, color: th.sub, marginTop: 10, lineHeight: 18 }}>{t('settleHint')}</Text>
+      <Text style={{ fontSize: 13, color: th.sub, marginTop: 10, lineHeight: 18 }}>
+        {view.list.settings?.directDebts ? t('settleHintDirect') : t('settleHint')}
+      </Text>
     </ScrollView>
+  );
+}
+
+const monthFmt = new Intl.DateTimeFormat(numberLocale, { month: 'long', year: 'numeric' });
+
+function CheckRow({ done, label, onPress, last }: { done: boolean; label: string; onPress?: () => void; last?: boolean }) {
+  const th = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ checked: done, disabled: !onPress || done }}
+      disabled={!onPress || done}
+      onPress={onPress}
+      style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth, borderBottomColor: th.line }}
+    >
+      <Ionicons name={done ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={done ? th.gain : th.border} />
+      <Text style={{ flex: 1, fontSize: 16, color: done ? th.sub : th.text, textDecorationLine: done ? 'line-through' : 'none' }}>{label}</Text>
+      {!done && onPress ? <Ionicons name="chevron-forward" size={16} color={th.sub} /> : null}
+    </Pressable>
   );
 }
 

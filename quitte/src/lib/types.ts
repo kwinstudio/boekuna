@@ -8,9 +8,25 @@ export type Member = {
   id: string;
   name: string;
   iban?: string | null;
+  payLink?: string | null;
+  claimed?: boolean;
   deleted?: boolean;
   updatedAt: string;
 };
+
+export type Repeat = 'weekly' | 'monthly';
+
+export type Comment = {
+  id: string;
+  entryId: string;
+  memberId: string | null;
+  body?: string | null;
+  emoji?: string | null;
+  at: string;
+  deleted?: boolean;
+};
+
+export type ListSettings = { directDebts?: boolean; defaultSplit?: string | null };
 
 export type Entry = {
   id: string;
@@ -28,7 +44,16 @@ export type Entry = {
   createdBy?: string | null;
   createdAt?: string;
   updatedAt: string;
+  updatedBy?: string | null;
   deleted?: boolean;
+  deletedAt?: string | null;
+  origCurrency?: string | null;
+  origAmount?: number | null;
+  rate?: number | null;
+  photos?: string[];
+  repeat?: Repeat | null;
+  repeatNext?: string | null;
+  repeatParent?: string | null;
 };
 
 export type Activity = { id: number | string; actor: string; summary: string; at: string };
@@ -41,6 +66,8 @@ export type ListInfo = {
   rev: number;
   updatedAt: string;
   createdAt?: string;
+  splitKeys?: SplitKey[];
+  settings?: ListSettings;
 };
 
 export type ListState = {
@@ -48,6 +75,8 @@ export type ListState = {
   members: Member[];
   entries: Entry[];
   activity: Activity[];
+  trash?: Entry[];
+  comments?: Comment[];
 };
 
 export type Op =
@@ -57,9 +86,12 @@ export type Op =
   | {
       uid: string;
       op: 'list';
-      data: { name?: string; archived?: boolean; currency?: string; updatedAt: string };
+      data: { name?: string; archived?: boolean; currency?: string; splitKeys?: SplitKey[]; updatedAt: string };
       summary?: string;
-    };
+    }
+  | { uid: string; op: 'comment'; data: Comment & { updatedAt: string }; summary?: string }
+  | { uid: string; op: 'merge'; data: { from: string; into: string; updatedAt: string }; summary?: string }
+  | { uid: string; op: 'settings'; data: { settings: ListSettings; updatedAt: string }; summary?: string };
 
 export type LocalList = {
   id: string;
@@ -74,8 +106,11 @@ export type LocalList = {
   lastSyncAt?: number;
   syncError?: string | null;
   joinedAt: number;
-  /** Vaste verdeelsleutels (alleen op dit toestel). */
+  /** Oude, lokale verdeelsleutels (worden bij openen naar de gedeelde lijst gekopieerd). */
   splitKeys?: SplitKey[];
+  /** Lokale voorkeuren voor slimme standaarden. */
+  lastPayer?: string | null;
+  invitedAt?: number | null;
 };
 
 export type SplitKey = { id: string; name: string; weights: Record<string, number> };

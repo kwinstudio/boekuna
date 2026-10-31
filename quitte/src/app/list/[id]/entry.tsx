@@ -1,8 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Image } from 'expo-image';
+import { useEffect, useMemo, useState } from 'react';
+import { ActionSheetIOS, ActivityIndicator, Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { Keypad } from '../../../components/Keypad';
 import { showToast } from '../../../components/Toast';
 import { Avatar, Button, Card, CategoryIcon, Segmented, TopBar } from '../../../components/ui';
@@ -10,34 +11,59 @@ import { CATEGORIES, categoryById, guessCategory } from '../../../lib/categories
 import { activeMembers, money, nameOf } from '../../../lib/domain';
 import { dayLabel, isoDay, t } from '../../../lib/i18n';
 import { nowIso, todayIso, uuid } from '../../../lib/ids';
-import { centsToInput, keypadInput, parseMoney } from '../../../lib/money';
+import { CURRENCIES, centsToInput, keypadInput, parseMoney } from '../../../lib/money';
+import { duplicateEntry, fetchRate, moveEntry, pickPhoto, uploadPhoto, usePhotoUrls } from '../../../lib/extras';
 import { splitEqual, splitShares, sumParts } from '../../../lib/split';
-import { enqueue, updateLocal, useList } from '../../../lib/store';
+import { enqueue, getState, updateLocal, useList } from '../../../lib/store';
 import { syncList } from '../../../lib/sync';
 import { radius, useTheme } from '../../../lib/theme';
-import type { Entry, Kind, ListState, Part, SplitMode } from '../../../lib/types';
+import type { Entry, Kind, ListState, Part, Repeat, SplitKey, SplitMode } from '../../../lib/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type Sheet = null | 'payer' | 'split' | 'date' | 'category' | 'to';
+type Sheet = null | 'payer' | 'split' | 'date' | 'category' | 'to' | 'more' | 'comments';
+
+const EMOJI = ['👍', '❤️', '😂', '🙏', '😮'];
+
+function nextDate(iso: string, r: Repeat) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  if (r === 'weekly') dt.setDate(dt.getDate() + 7);
+  else dt.setMonth(dt.getMonth() + 1);
+  return isoDay(dt);
+}
 
 export default function EntryScreen() {
   const th = useTheme();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const params = useLocalSearchParams<{ id: string; entryId?: string; kind?: Kind }>();
+  const params = useLocalSearchParams<{ id: string; entryId?: string; kind?: Kind; payer?: string }>();
   const { local, view } = useList(params.id);
   const existing = view?.entries.find((e) => e.id === params.entryId);
   const me = local?.me ?? null;
   const members = view ? activeMembers(view) : [];
   const order = members.map((m) => m.id);
+  const listKeys: SplitKey[] = view?.list.splitKeys ?? local?.splitKeys ?? [];
+  const defKey = !existing ? listKeys.find((k) => k.id === view?.list.settings?.defaultSplit) : undefined;
+  const [entryId] = useState(existing?.id ?? uuid());
 
   const [kind] = useState<Kind>(existing?.kind ?? params.kind ?? 'expense');
-  const [amountStr, setAmountStr] = useState(existing ? centsToInput(existing.amount) : '');
+  const [amountStr, setAmountStr] = useState(existing ? centsToInput(existing.origAmount ?? existing.amount) : '');
+  const [fx, setFx] = useState<string | null>(existing?.origCurrency ?? null);
+  const [rate, setRate] = useState<number | null>(existing?.rate ?? null);
+  const [rateStr, setRateStr] = useState(existing?.rate ? String(existing.rate).replace('.', ',') : '');
+  const [rateBusy, setRateBusy] = useState(false);
+  const [repeat, setRepeat] = useState<Repeat | null>(existing?.repeat ?? null);
+  const [note, setNote] = useState(existing?.note ?? '');
+  const [photos, setPhotos] = useState<string[]>(existing?.photos ?? []);
+  const [uploading, setUploading] = useState(false);
+  const [comment, setComment] = useState('');
+  const [viewer, setViewer] = useState<string | null>(null);
   const [title, setTitle] = useState(existing?.title ?? '');
   const [category, setCategory] = useState<string | null>(existing?.category ?? null);
   const [catManual, setCatManual] = useState(!!existing?.category);
   const [date, setDate] = useState(existing?.date ?? todayIso());
-  const firstPayer = existing?.payers[0]?.m ?? me ?? order[0];
+  const remembered = local?.lastPayer && order.includes(local.lastPayer) ? local.lastPayer : null;
+  const firstPayer = existing?.payers[0]?.m ?? (params.payer && order.includes(params.payer) ? params.payer : null) ?? remembered ?? me ?? order[0];
   const [multiPay, setMultiPay] = useState((existing?.payers.length ?? 1) > 1);
   const [payer, setPayer] = useState<string>(firstPayer);
   const [payAmounts, setPayAmounts] = useState<Record<string, string>>(
@@ -46,10 +72,10 @@ export default function EntryScreen() {
   const [toId, setToId] = useState<string>(
     existing?.kind === 'transfer' ? existing.shares[0]?.m : (order.find((x) => x !== firstPayer) ?? order[0]),
   );
-  const [mode, setMode] = useState<SplitMode>(existing?.splitMode ?? 'equal');
+  const [mode, setMode] = useState<SplitMode>(existing?.splitMode ?? (defKey ? 'shares' : 'equal'));
   const [included, setIncluded] = useState<string[]>(existing ? existing.shares.map((p) => p.m) : order);
   const [weights, setWeights] = useState<Record<string, number>>(
-    existing?.weights ?? Object.fromEntries(order.map((id) => [id, 1])),
+    existing?.weights ?? (defKey ? { ...Object.fromEntries(order.map((id) => [id, 0])), ...defKey.weights } : Object.fromEntries(order.map((id) => [id, 1]))),
   );
   const [splitAmounts, setSplitAmounts] = useState<Record<string, string>>(
     existing?.splitMode === 'amounts' ? Object.fromEntries(existing.shares.map((p) => [p.m, centsToInput(p.a)])) : {},
@@ -57,7 +83,28 @@ export default function EntryScreen() {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [error, setError] = useState('');
 
-  const amount = parseMoney(amountStr) ?? 0;
+  const typed = parseMoney(amountStr) ?? 0;
+  const listCur = view?.list.currency ?? 'EUR';
+  const foreign = !!fx && fx !== listCur;
+  const amount = foreign ? (rate ? Math.round(typed * rate) : 0) : typed;
+  const photoUrls = usePhotoUrls(local?.token, photos);
+
+  useEffect(() => {
+    if (!foreign || !fx || existing?.origCurrency === fx) return;
+    let off = false;
+    setRateBusy(true);
+    fetchRate(fx, listCur).then((r) => {
+      if (off) return;
+      setRateBusy(false);
+      if (r) {
+        setRate(r);
+        setRateStr(String(Math.round(r * 10000) / 10000).replace('.', ','));
+      }
+    });
+    return () => {
+      off = true;
+    };
+  }, [fx]);
 
   const payers: Part[] = useMemo(() => {
     if (!multiPay) return [{ m: payer, a: amount }];
@@ -80,14 +127,16 @@ export default function EntryScreen() {
   const shareSum = sumParts(shares);
 
   const save = () => {
+    if (foreign && !rate) return setError(t('errRate'));
     if (amount <= 0) return setError(t('errAmount'));
+    if (uploading) return;
     if (multiPay && payerSum !== amount) return setError(t('errPayers', { diff: money(amount - payerSum, cur) }));
     if (shares.length === 0) return setError(t('errNobody'));
     if (shareSum !== amount) return setError(t('errSplit', { diff: money(amount - shareSum, cur) }));
     if (kind === 'transfer' && payers[0]?.m === toId) return setError(t('errSelf'));
     const finalCat = kind === 'transfer' ? null : category ?? guessCategory(title);
     const entry: Entry = {
-      id: existing?.id ?? uuid(),
+      id: entryId,
       kind,
       title: title.trim().slice(0, 120),
       amount,
@@ -101,6 +150,14 @@ export default function EntryScreen() {
       createdBy: existing?.createdBy ?? me,
       createdAt: existing?.createdAt,
       updatedAt: nowIso(),
+      updatedBy: me,
+      note: note.trim().slice(0, 500) || null,
+      photos,
+      origCurrency: foreign ? fx : null,
+      origAmount: foreign ? typed : null,
+      rate: foreign ? rate : null,
+      repeat: kind === 'transfer' ? null : repeat,
+      repeatNext: kind !== 'transfer' && repeat ? (existing?.repeat === repeat && existing.repeatNext ? existing.repeatNext : nextDate(date, repeat)) : null,
     };
     const label = entry.title || (kind === 'transfer' ? t('repayment') : t(`cat_${categoryById(finalCat).id}` as never));
     enqueue(local.id, {
@@ -108,9 +165,99 @@ export default function EntryScreen() {
       data: entry,
       summary: t(existing ? 'actEdited' : 'actAdded', { title: label, amount: money(amount, cur) }),
     });
+    if (!multiPay && kind === 'expense') updateLocal(local.id, { lastPayer: payer });
     syncList(local.id);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     router.back();
+  };
+
+  const saveKeys = (keys: SplitKey[], summary?: string) => {
+    enqueue(local.id, { op: 'list', data: { splitKeys: keys, updatedAt: nowIso() }, summary });
+    syncList(local.id);
+  };
+
+  const addPhoto = async (source: 'camera' | 'library') => {
+    if (local.needsCreate) return showToast(t('photoOffline'));
+    try {
+      const uri = await pickPhoto(source);
+      if (!uri) return;
+      setUploading(true);
+      const path = await uploadPhoto(local.token, entryId, uri);
+      setPhotos((p) => [...p, path]);
+    } catch {
+      showToast(t('photoFailed'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const choosePhoto = () => {
+    const opts = [t('takePhoto'), t('fromLibrary'), t('cancel')];
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions({ options: opts, cancelButtonIndex: 2 }, (i) => {
+        if (i === 0) addPhoto('camera');
+        if (i === 1) addPhoto('library');
+      });
+    } else {
+      Alert.alert(t('addPhoto'), undefined, [
+        { text: opts[0], onPress: () => addPhoto('camera') },
+        { text: opts[1], onPress: () => addPhoto('library') },
+        { text: opts[2], style: 'cancel' },
+      ]);
+    }
+  };
+
+  const comments = (view.comments ?? []).filter((c) => c.entryId === entryId);
+  const sendComment = (body: string | null, emoji: string | null) => {
+    if (!existing) return;
+    if (!body && !emoji) return;
+    enqueue(local.id, {
+      op: 'comment',
+      data: { id: uuid(), entryId, memberId: me, body, emoji, at: nowIso(), updatedAt: nowIso() },
+      summary: body ? t('actCommented', { title: existing.title || t('noTitle') }) : undefined,
+    });
+    syncList(local.id);
+    setComment('');
+  };
+
+  const others = Object.values(getState().lists).filter((l) => l.id !== local.id && !l.base.list.archived);
+  const moreMenu = () => {
+    if (!existing) return;
+    const doMove = () => {
+      if (!others.length) return Alert.alert(t('noOtherLists'));
+      Alert.alert(t('moveTo'), t('moveBody'), [
+        ...others.slice(0, 6).map((l) => ({
+          text: l.base.list.name,
+          onPress: () => {
+            if (moveEntry(local.id, l.id, existing)) {
+              router.back();
+              showToast(t('movedTo', { name: l.base.list.name }));
+            }
+          },
+        })),
+        { text: t('cancel'), style: 'cancel' as const },
+      ]);
+    };
+    const doDup = () => {
+      duplicateEntry(local.id, existing, me);
+      router.back();
+      showToast(t('duplicated'));
+    };
+    const opts = [t('duplicate'), t('moveToList'), t('delete'), t('cancel')];
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions({ options: opts, destructiveButtonIndex: 2, cancelButtonIndex: 3 }, (i) => {
+        if (i === 0) doDup();
+        if (i === 1) doMove();
+        if (i === 2) remove();
+      });
+    } else {
+      Alert.alert(t('more'), undefined, [
+        { text: opts[0], onPress: doDup },
+        { text: opts[1], onPress: doMove },
+        { text: opts[2], style: 'destructive', onPress: remove },
+        { text: opts[3], style: 'cancel' },
+      ]);
+    }
   };
 
   const remove = () => {
@@ -158,6 +305,14 @@ export default function EntryScreen() {
         ? t('byShares')
         : t('byAmounts');
 
+  const extraParts = [
+    foreign ? fx! : null,
+    repeat ? t(repeat === 'weekly' ? 'repeatWeekly' : 'repeatMonthly') : null,
+    photos.length ? t(photos.length === 1 ? 'photosOne' : 'photosMany', { n: photos.length }) : null,
+    note.trim() ? t('note') : null,
+  ].filter(Boolean);
+  const extraLabel = extraParts.length ? extraParts.join(' · ') : t('extraHint');
+
   const perPerson = mode === 'equal' && included.length > 0 && amount > 0 ? Math.floor(amount / included.length) : 0;
 
   return (
@@ -165,16 +320,21 @@ export default function EntryScreen() {
       <TopBar
         backLabel={t('cancel')}
         title={heading}
-        right={existing ? <IconBtn icon="trash-outline" label={t('delete')} onPress={remove} color={th.danger} /> : null}
+        right={existing ? <IconBtn icon="ellipsis-horizontal-circle-outline" label={t('more')} onPress={moreMenu} color={th.accent} /> : null}
       />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 20 }} keyboardShouldPersistTaps="handled">
         <Text
           accessibilityRole="text"
-          accessibilityLabel={t('amountA11y', { amount: money(amount, cur) })}
+          accessibilityLabel={t('amountA11y', { amount: money(foreign ? typed : amount, fx ?? cur) })}
           style={{ textAlign: 'center', fontSize: compact ? 44 : 52, fontWeight: '700', letterSpacing: -1.5, color: amount ? th.text : th.sub, paddingVertical: compact ? 6 : 12 }}
         >
-          {money(amount, cur).replace(/[\d.,]+/, amountStr ? amountStr : '0')}
+          {money(typed, foreign ? fx! : cur).replace(/[\d.,]+/, amountStr ? amountStr : '0')}
         </Text>
+        {foreign ? (
+          <Text style={{ textAlign: 'center', fontSize: 14, color: th.sub, marginTop: -6, marginBottom: 8 }}>
+            {rateBusy ? t('fetchingRate') : rate ? t('convertedTo', { amount: money(amount, cur) }) : t('errRate')}
+          </Text>
+        ) : null}
 
         {kind !== 'transfer' ? (
           <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
@@ -214,8 +374,17 @@ export default function EntryScreen() {
           ) : (
             <SummaryRow label={kind === 'income' ? t('forWhom') : t('splitOver')} value={splitLabel} onPress={() => setSheet('split')} />
           )}
-          <SummaryRow label={t('date')} value={dayLabel(date)} onPress={() => setSheet('date')} last />
+          <SummaryRow label={t('date')} value={dayLabel(date)} onPress={() => setSheet('date')} />
+          <SummaryRow label={t('extra')} value={extraLabel} onPress={() => setSheet('more')} last={!existing} />
+          {existing ? (
+            <SummaryRow label={t('comments')} value={comments.length ? String(comments.length) : t('none')} onPress={() => setSheet('comments')} last />
+          ) : null}
         </Card>
+        {existing?.updatedBy && existing.updatedBy !== existing.createdBy ? (
+          <Text style={{ textAlign: 'center', fontSize: 13, color: th.sub, marginBottom: 6 }}>
+            {t('changedBy', { name: nameOf(view, existing.updatedBy, me) })}
+          </Text>
+        ) : null}
         {perPerson > 0 && kind !== 'transfer' ? (
           <Text style={{ textAlign: 'center', fontSize: 14, fontWeight: '600', color: th.accentText, marginBottom: 6 }}>
             {t('perPerson', { amount: money(perPerson, cur), n: included.length })}
@@ -312,23 +481,26 @@ export default function EntryScreen() {
             { value: 'shares', label: t('modeShares') },
           ]}
         />
-        {mode === 'shares' && (local.splitKeys?.length ?? 0) > 0 ? (
+        {mode === 'shares' && listKeys.length > 0 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingTop: 12 }}>
-            {local.splitKeys!.map((k) => (
+            {listKeys.map((k) => (
               <Pressable
                 key={k.id}
                 accessibilityRole="button"
                 accessibilityLabel={t('useKey', { name: k.name })}
                 onPress={() => setWeights({ ...Object.fromEntries(order.map((id) => [id, 0])), ...k.weights })}
                 onLongPress={() =>
-                  Alert.alert(t('removeKeyTitle', { name: k.name }), undefined, [
+                  Alert.alert(k.name, undefined, [
+                    view.list.settings?.defaultSplit === k.id
+                      ? { text: t('unsetDefaultKey'), onPress: () => { enqueue(local.id, { op: 'settings', data: { settings: { defaultSplit: null }, updatedAt: nowIso() } }); syncList(local.id); } }
+                      : { text: t('setDefaultKey'), onPress: () => { enqueue(local.id, { op: 'settings', data: { settings: { defaultSplit: k.id }, updatedAt: nowIso() }, summary: t('actDefaultKey', { name: k.name }) }); syncList(local.id); showToast(t('defaultKeySet')); } },
+                    { text: t('delete'), style: 'destructive', onPress: () => saveKeys(listKeys.filter((x) => x.id !== k.id)) },
                     { text: t('cancel'), style: 'cancel' },
-                    { text: t('delete'), style: 'destructive', onPress: () => updateLocal(local.id, { splitKeys: local.splitKeys!.filter((x) => x.id !== k.id) }) },
                   ])
                 }
                 style={{ height: 36, paddingHorizontal: 14, borderRadius: 12, backgroundColor: th.accentSoft, justifyContent: 'center' }}
               >
-                <Text style={{ color: th.accentText, fontWeight: '600', fontSize: 14 }}>{k.name}</Text>
+                <Text style={{ color: th.accentText, fontWeight: '600', fontSize: 14 }}>{view.list.settings?.defaultSplit === k.id ? '★ ' : ''}{k.name}</Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -394,9 +566,7 @@ export default function EntryScreen() {
             label={t('saveKey')}
             onPress={() => {
               const nm = order.filter((id) => (weights[id] ?? 0) > 0).map((id) => `${nameOf(view, id)} ${weights[id]}`).join(' · ');
-              updateLocal(local.id, {
-                splitKeys: [...(local.splitKeys ?? []), { id: uuid(), name: nm.slice(0, 40), weights: { ...weights } }],
-              });
+              saveKeys([...listKeys, { id: uuid(), name: nm.slice(0, 40), weights: { ...weights } }].slice(-30), t('actKeySaved'));
               showToast(t('keySaved'));
             }}
             style={{ marginTop: 8 }}
@@ -427,6 +597,189 @@ export default function EntryScreen() {
         </Card>
       </SheetModal>
 
+      {/* Extra: valuta, herhalen, notitie, foto's */}
+      <SheetModal visible={sheet === 'more'} title={t('extra')} onClose={() => setSheet(null)}>
+        {kind !== 'transfer' ? (
+          <Card style={{ overflow: 'hidden' }}>
+            <View style={{ paddingVertical: 10 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: th.sub, paddingHorizontal: 14, marginBottom: 8 }}>{t('currency')}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 14 }}>
+                {[cur, ...CURRENCIES.filter((c) => c !== cur)].map((c) => {
+                  const sel = (fx ?? cur) === c;
+                  return (
+                    <Pressable
+                      key={c}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: sel }}
+                      onPress={() => {
+                        setFx(c === cur ? null : c);
+                        if (c !== cur && c !== fx) setRate(null);
+                      }}
+                      style={{ height: 36, paddingHorizontal: 14, borderRadius: 8, justifyContent: 'center', backgroundColor: sel ? th.accent : th.segment }}
+                    >
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: sel ? '#fff' : th.text }}>{c}</Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+            {foreign ? (
+              <View style={[styles.row, { minHeight: 56, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: th.line }]}>
+                <Text style={{ flex: 1, fontSize: 16, color: th.sub }}>{t('rateLabel', { from: fx!, to: cur })}</Text>
+                <TextInput
+                  accessibilityLabel={t('rateLabel', { from: fx!, to: cur })}
+                  value={rateStr}
+                  onChangeText={(v) => {
+                    const clean = v.replace(/[^\d.,]/g, '');
+                    setRateStr(clean);
+                    const n = Number(clean.replace(',', '.'));
+                    setRate(n > 0 ? n : null);
+                  }}
+                  keyboardType="decimal-pad"
+                  style={{ width: 110, height: 44, borderRadius: 10, borderWidth: 1, borderColor: th.border, backgroundColor: th.field, paddingHorizontal: 12, fontSize: 16, color: th.text, textAlign: 'right' }}
+                />
+              </View>
+            ) : null}
+          </Card>
+        ) : null}
+        {kind !== 'transfer' ? (
+          <>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: th.sub, marginTop: 18, marginBottom: 8 }}>{t('repeat')}</Text>
+            <Segmented<'none' | Repeat>
+              value={repeat ?? 'none'}
+              onChange={(v) => setRepeat(v === 'none' ? null : v)}
+              options={[
+                { value: 'none', label: t('repeatNever') },
+                { value: 'weekly', label: t('repeatWeekly') },
+                { value: 'monthly', label: t('repeatMonthly') },
+              ]}
+            />
+            {repeat ? <Text style={{ fontSize: 13, color: th.sub, marginTop: 8 }}>{t('repeatHint', { date: dayLabel(nextDate(date, repeat)) })}</Text> : null}
+          </>
+        ) : null}
+        <Text style={{ fontSize: 13, fontWeight: '600', color: th.sub, marginTop: 18, marginBottom: 8 }}>{t('note')}</Text>
+        <TextInput
+          accessibilityLabel={t('note')}
+          value={note}
+          onChangeText={setNote}
+          placeholder={t('notePlaceholder')}
+          placeholderTextColor={th.sub}
+          multiline
+          maxLength={500}
+          style={{ minHeight: 80, borderRadius: radius.field, borderWidth: 1, borderColor: th.border, backgroundColor: th.field, padding: 14, fontSize: 16, color: th.text, textAlignVertical: 'top' }}
+        />
+        <Text style={{ fontSize: 13, fontWeight: '600', color: th.sub, marginTop: 18, marginBottom: 8 }}>{t('receipt')}</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+          {photos.map((p) => (
+            <Pressable
+              key={p}
+              accessibilityRole="imagebutton"
+              accessibilityLabel={t('photo')}
+              onLongPress={() =>
+                Alert.alert(t('removePhoto'), undefined, [
+                  { text: t('cancel'), style: 'cancel' },
+                  { text: t('remove'), style: 'destructive', onPress: () => setPhotos((s) => s.filter((x) => x !== p)) },
+                ])
+              }
+              onPress={() => photoUrls[p] && setViewer(photoUrls[p])}
+              style={{ width: 88, height: 88, borderRadius: 10, overflow: 'hidden', backgroundColor: th.card }}
+            >
+              {photoUrls[p] ? <Image source={{ uri: photoUrls[p] }} style={{ width: 88, height: 88 }} contentFit="cover" /> : <ActivityIndicator style={{ flex: 1 }} />}
+            </Pressable>
+          ))}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('addPhoto')}
+            onPress={choosePhoto}
+            disabled={uploading || photos.length >= 6}
+            style={{ width: 88, height: 88, borderRadius: 10, borderWidth: 1, borderStyle: 'dashed', borderColor: th.border, alignItems: 'center', justifyContent: 'center', gap: 4, opacity: photos.length >= 6 ? 0.4 : 1 }}
+          >
+            {uploading ? <ActivityIndicator /> : <Ionicons name="camera-outline" size={24} color={th.accent} />}
+            <Text style={{ fontSize: 12, color: th.sub }}>{t('addPhoto')}</Text>
+          </Pressable>
+        </View>
+      </SheetModal>
+
+      {/* Reacties */}
+      <SheetModal visible={sheet === 'comments'} title={t('comments')} onClose={() => setSheet(null)}>
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+          {EMOJI.map((e) => {
+            const n = comments.filter((c) => c.emoji === e).length;
+            return (
+              <Pressable
+                key={e}
+                accessibilityRole="button"
+                accessibilityLabel={t('react', { emoji: e })}
+                onPress={() => {
+                  const mine = comments.find((c) => c.emoji === e && c.memberId === me);
+                  if (mine) {
+                    enqueue(local.id, { op: 'comment', data: { ...mine, deleted: true, updatedAt: nowIso() } });
+                    syncList(local.id);
+                  } else sendComment(null, e);
+                }}
+                style={{ minWidth: 52, height: 40, borderRadius: 20, backgroundColor: th.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingHorizontal: 10 }}
+              >
+                <Text style={{ fontSize: 18 }}>{e}</Text>
+                {n ? <Text style={{ fontSize: 13, fontWeight: '600', color: th.sub }}>{n}</Text> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+        {comments.filter((c) => c.body).length ? (
+          <Card style={{ paddingHorizontal: 14 }}>
+            {comments
+              .filter((c) => c.body)
+              .map((c, i, arr) => (
+                <Pressable
+                  key={c.id}
+                  onLongPress={() =>
+                    c.memberId === me &&
+                    Alert.alert(t('deleteComment'), undefined, [
+                      { text: t('cancel'), style: 'cancel' },
+                      { text: t('delete'), style: 'destructive', onPress: () => { enqueue(local.id, { op: 'comment', data: { ...c, deleted: true, updatedAt: nowIso() } }); syncList(local.id); } },
+                    ])
+                  }
+                  style={{ paddingVertical: 10, borderBottomWidth: i < arr.length - 1 ? StyleSheet.hairlineWidth : 0, borderBottomColor: th.line }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: th.sub }}>
+                    {c.memberId ? nameOf(view, c.memberId, me) : '?'} · {dayLabel(c.at.slice(0, 10))}
+                  </Text>
+                  <Text style={{ fontSize: 16, color: th.text, marginTop: 2 }}>{c.body}</Text>
+                </Pressable>
+              ))}
+          </Card>
+        ) : (
+          <Text style={{ fontSize: 15, color: th.sub }}>{t('noComments')}</Text>
+        )}
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
+          <TextInput
+            accessibilityLabel={t('writeComment')}
+            value={comment}
+            onChangeText={setComment}
+            placeholder={t('writeComment')}
+            placeholderTextColor={th.sub}
+            maxLength={500}
+            onSubmitEditing={() => sendComment(comment.trim() || null, null)}
+            returnKeyType="send"
+            style={{ flex: 1, height: 46, borderRadius: radius.field, borderWidth: 1, borderColor: th.border, backgroundColor: th.field, paddingHorizontal: 14, fontSize: 16, color: th.text }}
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('send')}
+            onPress={() => sendComment(comment.trim() || null, null)}
+            style={{ width: 46, height: 46, borderRadius: radius.field, backgroundColor: th.accent, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Ionicons name="arrow-up" size={22} color="#fff" />
+          </Pressable>
+        </View>
+      </SheetModal>
+
+      <Modal visible={!!viewer} transparent animationType="fade" onRequestClose={() => setViewer(null)}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('close')} onPress={() => setViewer(null)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', justifyContent: 'center' }}>
+          {viewer ? <Image source={{ uri: viewer }} style={{ width: '100%', height: '80%' }} contentFit="contain" /> : null}
+        </Pressable>
+      </Modal>
+
       {/* Categorie */}
       <SheetModal visible={sheet === 'category'} title={t('category')} onClose={() => setSheet(null)}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
@@ -455,7 +808,7 @@ export default function EntryScreen() {
   );
 }
 
-function IconBtn({ icon, label, onPress, color }: { icon: 'trash-outline'; label: string; onPress: () => void; color: string }) {
+function IconBtn({ icon, label, onPress, color }: { icon: 'ellipsis-horizontal-circle-outline'; label: string; onPress: () => void; color: string }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} hitSlop={8} style={{ width: 44, height: 44, alignItems: 'flex-end', justifyContent: 'center' }}>
       <Ionicons name={icon} size={22} color={color} />

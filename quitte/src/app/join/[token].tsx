@@ -32,7 +32,7 @@ export default function JoinList() {
       }
       setState(s);
       setStatus('ready');
-      const match = s.members.find((m) => !m.deleted && m.name.trim().toLowerCase() === profileName.trim().toLowerCase());
+      const match = s.members.find((m) => !m.deleted && !m.claimed && m.name.trim().toLowerCase() === profileName.trim().toLowerCase());
       if (match) setPicked(match.id);
     } catch (e) {
       setStatus(e instanceof NotFoundError ? 'notfound' : 'offline');
@@ -50,13 +50,19 @@ export default function JoinList() {
       if (!n) return;
       const id = uuid();
       addJoinedList(String(token), state, id);
-      enqueue(state.list.id, { op: 'member', data: { id, name: n.slice(0, 40), updatedAt: nowIso() }, summary: t('actJoined', { name: n }) });
+      enqueue(state.list.id, { op: 'member', data: { id, name: n.slice(0, 40), claimed: true, updatedAt: nowIso() }, summary: t('actJoined', { name: n }) });
       setProfile({ name: n });
       syncList(state.list.id);
       router.replace(`/list/${state.list.id}`);
     } else if (picked) {
       addJoinedList(String(token), state, picked);
-      const name = state.members.find((m) => m.id === picked)?.name;
+      const pm = state.members.find((m) => m.id === picked);
+      const name = pm?.name;
+      // Naam claimen: anderen zien dat deze naam al bij een telefoon hoort.
+      if (pm && !pm.claimed) {
+        enqueue(state.list.id, { op: 'member', data: { ...pm, claimed: true, updatedAt: nowIso() }, summary: t('actJoined', { name: pm.name }) });
+        syncList(state.list.id);
+      }
       if (name && !profileName) setProfile({ name });
       router.replace(`/list/${state.list.id}`);
     }
@@ -96,6 +102,7 @@ export default function JoinList() {
                     key={m.id}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: sel }}
+                    accessibilityHint={m.claimed ? t('claimedHint') : undefined}
                     onPress={() => {
                       setPicked(m.id);
                       setAddingSelf(false);
@@ -103,7 +110,10 @@ export default function JoinList() {
                     style={{ minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: th.line }}
                   >
                     <Avatar name={m.name} index={i} />
-                    <Text style={{ flex: 1, fontSize: 16, fontWeight: '600', color: th.text }}>{m.name}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 16, fontWeight: '600', color: th.text }}>{m.name}</Text>
+                      {m.claimed ? <Text style={{ fontSize: 12, color: th.sub }}>{t('claimed')}</Text> : null}
+                    </View>
                     <Ionicons name={sel ? 'radio-button-on' : 'radio-button-off'} size={22} color={sel ? th.accent : th.border} />
                   </Pressable>
                 );

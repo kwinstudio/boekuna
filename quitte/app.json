@@ -15,13 +15,14 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "NSCameraUsageDescription": "Quitte gebruikt de camera om QR-codes van lijsten te scannen.",
+        "NSCameraUsageDescription": "Quitte gebruikt de camera om QR-codes van lijsten te scannen en bonnetjes te fotograferen.",
         "CFBundleAllowMixedLocalizations": true,
         "CFBundleLocalizations": [
           "nl",
           "en"
         ],
-        "CFBundleDevelopmentRegion": "nl"
+        "CFBundleDevelopmentRegion": "nl",
+        "NSPhotoLibraryUsageDescription": "Quitte gebruikt je fotogalerij om een bonnetje bij een uitgave te bewaren."
       }
     },
     "android": {
@@ -41,7 +42,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Quitte gebruikt de camera om QR-codes van lijsten te scannen.",
+          "cameraPermission": "Quitte gebruikt de camera om QR-codes van lijsten te scannen en bonnetjes te fotograferen.",
           "microphonePermission": false,
           "recordAudioAndroid": false
         }
@@ -59,7 +60,24 @@
         }
       ],
       "expo-font",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Quitte gebruikt je fotogalerij om een bonnetje bij een uitgave te bewaren.",
+          "cameraPermission": "Quitte gebruikt de camera om QR-codes van lijsten te scannen en bonnetjes te fotograferen.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "enableBackgroundRemoteNotifications": false
+        }
+      ],
+      "expo-apple-authentication",
+      "expo-sharing",
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true

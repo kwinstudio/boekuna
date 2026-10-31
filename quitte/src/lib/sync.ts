@@ -64,13 +64,14 @@ async function doSync(listId: string): Promise<void> {
         p_token: l.token,
         p_ops: batch.map(stripOp),
         p_actor: actor,
+        p_device: getState().profile.deviceId ?? null,
       });
       if (error) {
         if (!isServerRejection(error)) throw error;
         // Eén bewerking wordt geweigerd: stuur ze los, sla de foute over zodat de rest niet blijft hangen.
         let last: ListState | null = null;
         for (const op of batch) {
-          const r = await supabase.rpc('quitte_apply', { p_token: l.token, p_ops: [stripOp(op)], p_actor: actor });
+          const r = await supabase.rpc('quitte_apply', { p_token: l.token, p_ops: [stripOp(op)], p_actor: actor, p_device: getState().profile.deviceId ?? null });
           if (r.error && !isServerRejection(r.error)) throw r.error;
           if (!r.error) last = r.data as ListState;
         }

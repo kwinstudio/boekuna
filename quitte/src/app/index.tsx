@@ -3,14 +3,17 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Avatar, Button, Card, IconButton, Screen } from '../components/ui';
-import { computeBalances } from '../lib/balances';
+import { computeBalances, directTransfers, settle } from '../lib/balances';
+import { restoreBackup } from '../lib/extras';
+import { showToast } from '../components/Toast';
+import { Platform } from 'react-native';
 import { money } from '../lib/domain';
 import { plural, t } from '../lib/i18n';
 import { useStore, viewOf } from '../lib/store';
 import { useTheme } from '../lib/theme';
 import type { LocalList } from '../lib/types';
 
-type Row = { local: LocalList; name: string; members: number; entries: number; balance: number; currency: string; archived: boolean };
+type Row = { local: LocalList; name: string; members: number; entries: number; balance: number; currency: string; archived: boolean; open: number };
 
 export default function Home() {
   const th = useTheme();
@@ -21,7 +24,11 @@ export default function Home() {
     return Object.values(lists)
       .map((local) => {
         const v = viewOf(local)!;
-        const bal = local.me ? (computeBalances(v.entries, v.members)[local.me] ?? 0) : 0;
+        const balances = computeBalances(v.entries, v.members);
+        const bal = local.me ? (balances[local.me] ?? 0) : 0;
+        const order = v.members.map((m) => m.id);
+        const trs = v.list.settings?.directDebts ? directTransfers(v.entries, order) : settle(balances, order);
+        const open = local.me ? trs.filter((x) => x.from === local.me || x.to === local.me).length : 0;
         return {
           local,
           name: v.list.name,
@@ -30,6 +37,7 @@ export default function Home() {
           balance: bal,
           currency: v.list.currency,
           archived: v.list.archived,
+          open,
         };
       })
       .sort((a, b) => b.local.joinedAt - a.local.joinedAt);
@@ -109,9 +117,16 @@ function ListRow({ row, index }: { row: Row; index: number }) {
       <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12, minHeight: 64 }}>
         <Avatar name={row.name} index={index + 1} size={40} />
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ fontSize: 17, fontWeight: '600', color: th.text }}>
-            {row.name}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text numberOfLines={1} style={{ fontSize: 17, fontWeight: '600', color: th.text, flexShrink: 1 }}>
+              {row.name}
+            </Text>
+            {row.open > 0 && !row.archived ? (
+              <View accessibilityLabel={t('openBadgeA11y', { n: row.open })} style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6, backgroundColor: th.owe, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>{row.open}</Text>
+              </View>
+            ) : null}
+          </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
             <Text style={{ fontSize: 13, color: th.sub }}>
               {plural(row.members, 'peopleOne', 'peopleMany')} · {plural(row.entries, 'expensesOne', 'expensesMany')}
@@ -159,6 +174,20 @@ function Welcome() {
       </View>
       <Button label={t('newList')} onPress={() => router.push('/new')} style={{ marginBottom: 10 }} />
       <Button label={t('haveInvite')} kind="ghost" onPress={() => router.push('/join')} />
+      {Platform.OS === 'ios' ? (
+        <Button
+          label={t('restoreCta')}
+          kind="ghost"
+          onPress={async () => {
+            try {
+              const n = await restoreBackup();
+              showToast(n ? t('restoredLists', { n }) : t('restoreNone'));
+            } catch {
+              showToast(t('restoreNone'));
+            }
+          }}
+        />
+      ) : null}
     </Screen>
   );
 }
