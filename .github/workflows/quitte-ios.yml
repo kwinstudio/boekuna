@@ -72,7 +72,10 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Add :teamID string ${{ steps.asc.outputs.team_id }}' "$RUNNER_TEMP/ExportOptions.plist"
           xcodebuild -exportArchive -archivePath build/Quitte.xcarchive -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
             -exportPath build/upload -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/QuitteAuthKey.p8" \
-            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" 2>&1 | tail -25
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" > build-export.log 2>&1 || EXPORT_FAILED=1
+          tail -40 build-export.log
+          grep -iE "error|failed|agreement|invalid" build-export.log | grep -v "^\s*$" | sort -u | head -25 | while IFS= read -r line; do echo "::error title=Export::${line}"; done
+          [ -z "$EXPORT_FAILED" ] || exit 1
           echo "::notice title=Upload::Build ${{ steps.asc.outputs.next_build }} uploaded to App Store Connect."
       - name: Simulator-build (controle zonder app-record)
         if: steps.asc.outputs.app_exists != 'true'
