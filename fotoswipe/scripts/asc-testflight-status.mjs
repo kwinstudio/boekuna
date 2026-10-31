@@ -135,3 +135,12 @@ builds = await listBuilds();
 target = builds.find((b) => b.id === target.id);
 note(`FINAL build ${target.version} (${target.build}): processing=${target.processing}, internal=${target.internal}, external=${target.external}`);
 if (target.internal !== 'IN_BETA_TESTING') warn(`Internal state is ${target.internal}, expected IN_BETA_TESTING.`);
+
+// Capabilities of the app and widget identifiers (does the App Group exist for the widget?).
+try {
+  for (const id of ['nl.zichtwerfstudio.fotoswipe', 'nl.zichtwerfstudio.fotoswipe.widget']) {
+    const res = await api(`/v1/bundleIds?filter[identifier]=${id}&include=bundleIdCapabilities&limit=5`);
+    const caps = (res.included || []).map((c) => c.attributes.capabilityType);
+    note(`Identifier ${id}: ${res.data?.length ? 'registered' : 'missing'}; capabilities ${caps.join(', ') || 'none'}`);
+  }
+} catch (e) { warn(`Capabilities unknown: ${e.message}`); }
