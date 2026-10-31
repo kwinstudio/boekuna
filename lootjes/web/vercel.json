@@ -3,15 +3,15 @@
   "rewrites": [
     {
       "source": "/j/:code",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/m/:token",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/privacy",
-      "destination": "/index.html"
+      "destination": "/"
     }
   ],
   "headers": [
