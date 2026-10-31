@@ -114,7 +114,7 @@ export default function JoinList() {
                 onPress={() => setAddingSelf(true)}
                 style={{ minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14 }}
               >
-                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: th.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: th.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
                   <Ionicons name="add" size={20} color={th.accent} />
                 </View>
                 <Text style={{ flex: 1, fontSize: 16, fontWeight: '600', color: th.text }}>{t('notInList')}</Text>

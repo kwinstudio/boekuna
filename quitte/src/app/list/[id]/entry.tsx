@@ -326,7 +326,7 @@ export default function EntryScreen() {
                     { text: t('delete'), style: 'destructive', onPress: () => updateLocal(local.id, { splitKeys: local.splitKeys!.filter((x) => x.id !== k.id) }) },
                   ])
                 }
-                style={{ height: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: th.accentSoft, justifyContent: 'center' }}
+                style={{ height: 36, paddingHorizontal: 14, borderRadius: 12, backgroundColor: th.accentSoft, justifyContent: 'center' }}
               >
                 <Text style={{ color: th.accentText, fontWeight: '600', fontSize: 14 }}>{k.name}</Text>
               </Pressable>
@@ -442,7 +442,7 @@ export default function EntryScreen() {
                   setCatManual(true);
                   setSheet(null);
                 }}
-                style={{ width: '30.5%', flexGrow: 1, alignItems: 'center', gap: 6, paddingVertical: 14, borderRadius: 16, backgroundColor: th.card, borderWidth: 2, borderColor: sel ? th.accent : 'transparent' }}
+                style={{ width: '30.5%', flexGrow: 1, alignItems: 'center', gap: 6, paddingVertical: 14, borderRadius: 12, backgroundColor: th.card, borderWidth: 2, borderColor: sel ? th.accent : 'transparent' }}
               >
                 <CategoryIcon icon={c.icon} tint={c.tint} />
                 <Text style={{ fontSize: 13, color: th.text }}>{t(`cat_${c.id}` as never)}</Text>

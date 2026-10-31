@@ -41,22 +41,18 @@ export default function Done() {
   return (
     <Screen style={{ paddingHorizontal: 20 }}>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <View style={{ width: 112, height: 112, borderRadius: 56, backgroundColor: th.accentSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
-          <View style={{ width: 76, height: 76, borderRadius: 38, backgroundColor: th.accent, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="checkmark" size={44} color={th.onAccent} />
-          </View>
-        </View>
-        <Text accessibilityRole="header" style={{ fontSize: 32, fontWeight: '700', letterSpacing: -0.7, color: th.text, textAlign: 'center' }}>
+        <Ionicons name="checkmark-circle-outline" size={48} color={th.accent} style={{ marginBottom: 14 }} />
+        <Text accessibilityRole="header" style={{ fontSize: 24, fontWeight: '700', color: th.text, textAlign: 'center' }}>
           {t('doneTitle')}
         </Text>
         <Text style={{ fontSize: 16, lineHeight: 23, color: th.sub, textAlign: 'center', marginTop: 8, marginBottom: 28, maxWidth: 300 }}>
           {t('doneBody', { list: view.list.name })}
         </Text>
-        <View style={{ flexDirection: 'row', gap: 8, alignSelf: 'stretch' }}>
+        <Card style={{ alignSelf: 'stretch' }}>
           <Stat value={money(Number(total) || 0, cur)} label={t('spentTogether')} />
           <Stat value={String(expenses)} label={t('statExpenses')} />
-          <Stat value={String(count)} label={t('statPayments')} />
-        </View>
+          <Stat value={String(count)} label={t('statPayments')} last />
+        </Card>
       </View>
       {undoLeft > 0 ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: th.toast, borderRadius: 14, minHeight: 52, paddingLeft: 16, paddingRight: 6, marginBottom: 14 }}>
@@ -74,14 +70,12 @@ export default function Done() {
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
+function Stat({ value, label, last }: { value: string; label: string; last?: boolean }) {
   const th = useTheme();
   return (
-    <Card style={{ flex: 1, paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center' }}>
-      <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 18, fontWeight: '700', color: th.text }}>
-        {value}
-      </Text>
-      <Text style={{ fontSize: 12, color: th.sub, marginTop: 2, textAlign: 'center' }}>{label}</Text>
-    </Card>
+    <View style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, borderBottomWidth: last ? 0 : 1, borderBottomColor: th.line }}>
+      <Text style={{ fontSize: 16, color: th.sub }}>{label.charAt(0).toUpperCase() + label.slice(1)}</Text>
+      <Text style={{ fontSize: 16, fontWeight: '600', color: th.text }}>{value}</Text>
+    </View>
   );
 }

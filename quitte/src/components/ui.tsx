@@ -85,16 +85,16 @@ export function IconButton({
           width: size,
           height: size,
           borderRadius: size === 44 ? 22 : radius.button,
-          borderWidth: filled ? 0 : 1,
+          borderWidth: filled || size === 44 ? 0 : 1,
           borderColor: t.border,
-          backgroundColor: filled ? t.accentSoft : t.card,
+          backgroundColor: filled ? t.accentSoft : size === 44 ? 'transparent' : t.card,
           alignItems: 'center',
           justifyContent: 'center',
         },
         pressed && { opacity: 0.6 },
       ]}
     >
-      <Ionicons name={icon} size={size > 48 ? 24 : 20} color={filled ? t.accent : t.text} />
+      <Ionicons name={icon} size={size > 48 ? 24 : 23} color={filled || size === 44 ? t.accent : t.text} />
     </Pressable>
   );
 }
@@ -131,7 +131,7 @@ export function Button({
       onPress={onPress}
       style={({ pressed }) => [
         {
-          height: kind === 'ghost' || kind === 'danger' ? 48 : 56,
+          height: kind === 'ghost' || kind === 'danger' ? 46 : 50,
           borderRadius: radius.button,
           backgroundColor: bg,
           borderWidth: kind === 'secondary' ? 1 : 0,
@@ -206,7 +206,7 @@ export function Avatar({ name, index, size = 36, dim }: { name: string; index: n
 export function CategoryIcon({ icon, tint, size = 40 }: { icon: IconName; tint: string; size?: number }) {
   const c = useTint(tint);
   return (
-    <View style={{ width: size, height: size, borderRadius: 12, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ width: size, height: size, borderRadius: 8, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center' }}>
       <Ionicons name={icon} size={size * 0.5} color={c.fg} />
     </View>
   );
@@ -266,6 +266,6 @@ const styles = StyleSheet.create({
   back: { flexDirection: 'row', alignItems: 'center', height: 44 },
   backText: { fontSize: 16, fontWeight: '600' },
   topTitle: { fontSize: 16, fontWeight: '600', textAlign: 'center', flexShrink: 1 },
-  segment: { flexDirection: 'row', borderRadius: 12, padding: 4, gap: 4 },
-  segItem: { flex: 1, height: 36, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  segment: { flexDirection: 'row', borderRadius: 9, padding: 2, gap: 2 },
+  segItem: { flex: 1, height: 32, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
 });

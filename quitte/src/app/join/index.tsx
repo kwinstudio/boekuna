@@ -45,7 +45,7 @@ export default function JoinWithCode() {
       <TopBar backLabel={t('back')} title={t('joinTitle')} />
       <KeyboardAvoidingView style={{ flex: 1, paddingHorizontal: 20 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {scanning ? (
-          <View style={{ flex: 1, borderRadius: 24, overflow: 'hidden', marginVertical: 12, backgroundColor: '#000' }}>
+          <View style={{ flex: 1, borderRadius: 12, overflow: 'hidden', marginVertical: 12, backgroundColor: '#000' }}>
             <CameraView
               style={{ flex: 1 }}
               facing="back"

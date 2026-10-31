@@ -180,7 +180,7 @@ export default function ListScreen() {
             <Text style={{ fontSize: 13, color: th.sub }}>
               {myBal === 0 ? t('status') : myBal > 0 ? t('youStillGet') : t('youStillPay')}
             </Text>
-            <Text style={{ fontSize: 24, fontWeight: '700', letterSpacing: -0.4, color: myBal === 0 ? th.text : myBal > 0 ? th.gain : th.owe }}>
+            <Text style={{ fontSize: 21, fontWeight: '600', color: myBal === 0 ? th.text : myBal > 0 ? th.gain : th.owe }}>
               {myBal === 0 ? t('youreSquare') : money(Math.abs(myBal), cur)}
               {myBal < 0 && myOut.length === 1 ? (
                 <Text style={{ fontSize: 16, fontWeight: '600', color: th.text }}> {t('toName', { name: nameOf(view, myOut[0].to) })}</Text>
@@ -249,7 +249,7 @@ export default function ListScreen() {
               style={{ flex: 1 }}
               onPress={() => router.push({ pathname: '/list/[id]/entry', params: { id: local.id } })}
             />
-            <IconButton icon="ellipsis-horizontal" label={t('addOther')} size={56} onPress={addOther} />
+            <IconButton icon="ellipsis-horizontal" label={t('addOther')} size={50} onPress={addOther} />
           </>
         ) : (
           <>
@@ -431,13 +431,13 @@ function Balances({
                 <Text style={{ fontSize: 16, fontWeight: '600', color: th.text }}>{nameOf(view, m.id, me)}</Text>
                 <Text style={{ fontSize: 16, fontWeight: '700', color: b === 0 ? th.sub : b > 0 ? th.gain : th.owe }}>{label}</Text>
               </View>
-              <View style={{ flexDirection: 'row', height: 8 }} accessible={false}>
+              <View style={{ flexDirection: 'row', height: 6 }} accessible={false}>
                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                  {b < 0 ? <View style={{ width, height: 8, borderTopLeftRadius: 4, borderBottomLeftRadius: 4, backgroundColor: th.oweBar }} /> : null}
+                  {b < 0 ? <View style={{ width, height: 6, borderTopLeftRadius: 3, borderBottomLeftRadius: 3, backgroundColor: th.oweBar }} /> : null}
                 </View>
                 <View style={{ width: 1, backgroundColor: th.border }} />
                 <View style={{ flex: 1 }}>
-                  {b > 0 ? <View style={{ width, height: 8, borderTopRightRadius: 4, borderBottomRightRadius: 4, backgroundColor: th.accent }} /> : null}
+                  {b > 0 ? <View style={{ width, height: 6, borderTopRightRadius: 3, borderBottomRightRadius: 3, backgroundColor: th.accent }} /> : null}
                 </View>
               </View>
               {isOpen ? (

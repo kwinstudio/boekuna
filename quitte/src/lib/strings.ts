@@ -240,7 +240,7 @@ export const nl = {
 
   // Afgerond
   doneTitle: 'Iedereen is quitte',
-  doneBody: '{list} is verrekend. Lekker opgeruimd.',
+  doneBody: 'Alle betalingen voor {list} zijn vastgelegd.',
   statExpenses: 'uitgaven',
   statPayments: 'betalingen',
   settleSaved: 'Verrekening opgeslagen',
@@ -521,7 +521,7 @@ export const en: typeof nl = {
   legendShare: 'own share',
 
   doneTitle: 'Everyone is square',
-  doneBody: '{list} is settled. Nice and tidy.',
+  doneBody: 'All payments for {list} have been recorded.',
   statExpenses: 'expenses',
   statPayments: 'payments',
   settleSaved: 'Settlement saved',

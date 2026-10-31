@@ -173,7 +173,7 @@ export default function NewList() {
         <View style={{ flex: 1, backgroundColor: th.bg, paddingTop: 16 }}>
           <TopBar title={t('currency')} right={<Button kind="ghost" label={t('done')} onPress={() => setPickCurrency(false)} />} />
           <ScrollView contentContainerStyle={{ padding: 20 }}>
-            <View style={{ backgroundColor: th.card, borderRadius: 18 }}>
+            <View style={{ backgroundColor: th.card, borderRadius: 12 }}>
               {CURRENCIES.map((c, i) => (
                 <Pressable
                   key={c}

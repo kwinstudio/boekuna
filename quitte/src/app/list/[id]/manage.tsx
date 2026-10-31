@@ -115,12 +115,12 @@ export default function Manage() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 30 }}>
         <SectionLabel>{t('invite')}</SectionLabel>
         <Card style={{ padding: 18, alignItems: 'center', gap: 14 }}>
-          <View style={{ padding: 12, backgroundColor: '#FFFFFF', borderRadius: 16 }} accessible accessibilityLabel={t('qrA11y')}>
+          <View style={{ padding: 12, backgroundColor: '#FFFFFF', borderRadius: 12 }} accessible accessibilityLabel={t('qrA11y')}>
             <QRCode value={inviteLink(local.token)} size={168} color="#14171A" backgroundColor="#FFFFFF" />
           </View>
           <Text style={{ fontSize: 14, color: th.sub, textAlign: 'center' }}>{t('qrHint')}</Text>
-          <View style={{ flexDirection: 'row', gap: 10, alignSelf: 'stretch' }}>
-            <Button label={t('shareInvite')} icon="share-outline" style={{ flex: 1 }} onPress={() => shareInvite(view.list.name, local.token)} />
+          <View style={{ gap: 8, alignSelf: 'stretch' }}>
+            <Button label={t('shareInvite')} icon="share-outline" onPress={() => shareInvite(view.list.name, local.token)} />
             <Button
               label={t('copyCode')}
               kind="secondary"
@@ -155,7 +155,7 @@ export default function Manage() {
             </View>
           ))}
           <Pressable accessibilityRole="button" onPress={() => open({ kind: 'newMember' }, '')} style={styles.row}>
-            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: th.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: th.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
               <Ionicons name="add" size={20} color={th.accent} />
             </View>
             <Text style={{ fontSize: 16, fontWeight: '600', color: th.accent }}>{t('addPerson')}</Text>

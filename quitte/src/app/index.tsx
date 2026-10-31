@@ -50,9 +50,9 @@ export default function Home() {
         <IconButton icon="person-outline" label={t('settings')} onPress={() => router.push('/settings')} />
       </View>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}>
-        <View style={{ backgroundColor: totalEur < 0 ? th.oweSoft : th.accentSoft, borderRadius: 18, padding: 16, marginBottom: 18 }}>
-          <Text style={{ fontSize: 13, fontWeight: '600', color: totalEur < 0 ? th.owe : th.accentText, marginBottom: 2 }}>{t('acrossLists')}</Text>
-          <Text style={{ fontSize: 24, fontWeight: '700', letterSpacing: -0.5, color: totalEur < 0 ? th.owe : th.accentText }}>
+        <View style={{ backgroundColor: th.card, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 18 }}>
+          <Text style={{ fontSize: 13, color: th.sub, marginBottom: 2 }}>{t('acrossLists')}</Text>
+          <Text style={{ fontSize: 22, fontWeight: '600', color: totalEur === 0 ? th.text : totalEur < 0 ? th.owe : th.gain }}>
             {totalEur === 0
               ? t('allSquare')
               : totalEur > 0
@@ -60,7 +60,7 @@ export default function Home() {
                 : t('youPayTotal', { amount: money(-totalEur) })}
           </Text>
         </View>
-        <View style={{ gap: 10 }}>
+        <View style={{ gap: 8 }}>
           {active.map((r, i) => (
             <ListRow key={r.local.id} row={r} index={i} />
           ))}
@@ -88,7 +88,7 @@ export default function Home() {
       </ScrollView>
       <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 8 }}>
         <Button label={t('newList')} icon="add" onPress={() => router.push('/new')} style={{ flex: 1 }} />
-        <IconButton icon="qr-code-outline" label={t('joinWithCode')} size={56} onPress={() => router.push('/join')} />
+        <IconButton icon="qr-code-outline" label={t('joinWithCode')} size={50} onPress={() => router.push('/join')} />
       </View>
     </Screen>
   );
@@ -106,8 +106,8 @@ function ListRow({ row, index }: { row: Row; index: number }) {
       onPress={() => router.push(`/list/${row.local.id}`)}
       style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
     >
-      <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, minHeight: 76 }}>
-        <Avatar name={row.name} index={index + 1} size={46} />
+      <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12, minHeight: 64 }}>
+        <Avatar name={row.name} index={index + 1} size={40} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text numberOfLines={1} style={{ fontSize: 17, fontWeight: '600', color: th.text }}>
             {row.name}
@@ -143,17 +143,15 @@ function Welcome() {
   return (
     <Screen style={{ paddingHorizontal: 24 }}>
       <View style={{ flex: 1, justifyContent: 'center' }}>
-        <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: th.accent, alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
-          <Ionicons name="reorder-two" size={40} color={th.onAccent} />
-        </View>
-        <Text accessibilityRole="header" style={{ fontSize: 34, fontWeight: '700', letterSpacing: -0.8, color: th.text, marginBottom: 10 }}>
+        <Text style={{ fontSize: 15, fontWeight: '600', color: th.accent, marginBottom: 8 }}>Quitte</Text>
+        <Text accessibilityRole="header" style={{ fontSize: 30, fontWeight: '700', color: th.text, marginBottom: 10 }}>
           {t('welcomeTitle')}
         </Text>
         <Text style={{ fontSize: 17, lineHeight: 25, color: th.sub }}>{t('welcomeBody')}</Text>
-        <View style={{ marginTop: 28, gap: 12 }}>
-          {(['welcomePoint1', 'welcomePoint2', 'welcomePoint3'] as const).map((k) => (
-            <View key={k} style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-              <Ionicons name="checkmark-circle" size={22} color={th.accent} />
+        <View style={{ marginTop: 24, backgroundColor: th.card, borderRadius: 12 }}>
+          {(['welcomePoint1', 'welcomePoint2', 'welcomePoint3'] as const).map((k, i) => (
+            <View key={k} style={{ flexDirection: 'row', gap: 12, alignItems: 'center', minHeight: 50, paddingHorizontal: 16, borderBottomWidth: i < 2 ? 1 : 0, borderBottomColor: th.line }}>
+              <Ionicons name="checkmark" size={18} color={th.sub} />
               <Text style={{ fontSize: 16, color: th.text, flex: 1 }}>{t(k)}</Text>
             </View>
           ))}
