@@ -83,6 +83,7 @@ if (mode === 'preflight') {
   const highest = (builds.data || []).reduce((m, b) => Math.max(m, parseInt(String(b.attributes.version), 10) || 0), 0);
   out('app_exists', 'true');
   out('app_id', app.id);
+  out('latest_build', String(highest));
   out('next_build', String(highest + 1));
   note(`App ${app.id} "${app.attributes.name}" found; next build ${highest + 1}.`);
   process.exit(0);
