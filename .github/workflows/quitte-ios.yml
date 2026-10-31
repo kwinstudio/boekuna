@@ -6,6 +6,11 @@ on:
     branches: [claude/quitte]
     paths: ['quitte/**', '.github/workflows/quitte-ios.yml']
   workflow_dispatch:
+    inputs:
+      existing_build:
+        description: 'Bestaande build controleren en intern beschikbaar maken (geen nieuwe upload)'
+        required: false
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -32,6 +37,7 @@ jobs:
         run: |
           npm test
           npx tsc --noEmit
+          node --test scripts/asc.test.mjs
       - name: App Store Connect preflight
         id: asc
         env:
@@ -41,6 +47,7 @@ jobs:
           ASC_KEY_OUT: ${{ runner.temp }}/QuitteAuthKey.p8
         run: node scripts/asc.mjs preflight
       - name: Native iOS-project genereren
+        if: inputs.existing_build == ''
         env:
           CI: 1
           EXPO_NO_TELEMETRY: 1
@@ -52,7 +59,7 @@ jobs:
           npx expo prebuild --platform ios --clean
           test -d ios/Quitte.xcworkspace
       - name: Archive, sign en upload naar TestFlight
-        if: steps.asc.outputs.app_exists == 'true'
+        if: steps.asc.outputs.app_exists == 'true' && inputs.existing_build == ''
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -81,7 +88,7 @@ jobs:
           [ -z "$EXPORT_FAILED" ] || exit 1
           echo "::notice title=Upload::Build ${{ steps.asc.outputs.next_build }} uploaded to App Store Connect."
       - name: Simulator-build (controle zonder app-record)
-        if: steps.asc.outputs.app_exists != 'true'
+        if: steps.asc.outputs.app_exists != 'true' && inputs.existing_build == ''
         run: |
           set -o pipefail
           xcodebuild -workspace ios/Quitte.xcworkspace -scheme Quitte -configuration Release \
@@ -92,9 +99,10 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          TARGET_BUILD: ${{ steps.asc.outputs.next_build }}
+          TARGET_BUILD: ${{ inputs.existing_build || steps.asc.outputs.next_build }}
           WHAT_TO_TEST: "Eerste versie van Quitte. Test: een lijst maken, iemand laten meedoen met de code of QR, uitgaven toevoegen en verdelen (gelijk, bedragen, delen), saldi en 'Zo is iedereen quitte', betaling afvinken en ongedaan maken, offline een uitgave toevoegen."
         run: node scripts/asc.mjs testflight
       - name: Signeersleutel verwijderen
         if: always()
         run: rm -f "$RUNNER_TEMP/QuitteAuthKey.p8"
+
