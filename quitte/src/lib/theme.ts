@@ -13,12 +13,12 @@ const light = {
   segment: '#E5E5EA',
   accent: '#0B5C4F',
   accentText: '#0B5C4F',
-  accentSoft: '#EEF3F2',
+  accentSoft: '#E7F0ED',
   onAccent: '#FFFFFF',
-  owe: '#B42318',
-  oweBar: '#C8553F',
+  owe: '#C0392B',
+  oweBar: '#D9705C',
   oweSoft: '#FFFFFF',
-  gain: '#1B6E43',
+  gain: '#1E7A4C',
   toast: '#1C1C1E',
   toastText: '#FFFFFF',
   toastAction: '#8FD3C2',
@@ -66,4 +66,4 @@ export function useTint(_name: string) {
   return { bg: t.neutralFill, fg: t.neutralIcon };
 }
 
-export const radius = { card: 12, button: 12, field: 10, chip: 8 };
+export const radius = { card: 14, button: 14, field: 12, chip: 10 };

@@ -22,7 +22,7 @@ import { radius, useTheme } from '../../../lib/theme';
 import type { Entry, Kind, ListState, Part, Repeat, SplitKey, SplitMode } from '../../../lib/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type Sheet = null | 'payer' | 'split' | 'date' | 'category' | 'to' | 'more' | 'comments';
+type Sheet = null | 'payer' | 'split' | 'date' | 'category' | 'to' | 'more' | 'comments' | 'items';
 
 const EMOJI = ['👍', '❤️', '😂', '🙏', '😮'];
 
@@ -627,6 +627,9 @@ export default function EntryScreen() {
           })}
         </Card>
         <Progress done={shareSum} total={amount} currency={cur} />
+        {kind === 'expense' && !foreign ? (
+          <Button kind="ghost" icon="receipt-outline" label={t('itemsCta')} onPress={() => setSheet('items')} style={{ marginTop: 8 }} />
+        ) : null}
         {mode === 'shares' ? (
           <Button
             kind="ghost"
@@ -767,6 +770,22 @@ export default function EntryScreen() {
           </Pressable>
         </View>
       </SheetModal>
+
+      {/* Bon per item verdelen */}
+      <ItemsSheet
+        visible={sheet === 'items'}
+        members={members.map((m) => ({ id: m.id, name: nameOf(view, m.id, me) }))}
+        currency={cur}
+        seed={seed}
+        onClose={() => setSheet('split')}
+        onApply={(total, parts) => {
+          setFx(null);
+          setAmountStr(centsToInput(total));
+          setMode('amounts');
+          setSplitAmounts(Object.fromEntries(parts.map((p) => [p.m, centsToInput(p.a)])));
+          setSheet('split');
+        }}
+      />
 
       {/* Reacties */}
       <SheetModal visible={sheet === 'comments'} title={t('comments')} onClose={() => setSheet(null)}>
@@ -1041,3 +1060,119 @@ function SheetModal({
 const styles = StyleSheet.create({
   row: { minHeight: 62, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14 },
 });
+
+type Item = { id: string; name: string; amount: string; who: string[] };
+
+/** Bon per item: wie had wat; fooi/service wordt naar rato verdeeld. */
+function ItemsSheet({
+  visible,
+  members,
+  currency,
+  seed,
+  onClose,
+  onApply,
+}: {
+  visible: boolean;
+  members: { id: string; name: string }[];
+  currency: string;
+  seed: number;
+  onClose: () => void;
+  onApply: (total: number, parts: Part[]) => void;
+}) {
+  const th = useTheme();
+  const all = members.map((m) => m.id);
+  const [items, setItems] = useState<Item[]>([{ id: uuid(), name: '', amount: '', who: all }]);
+  const [extra, setExtra] = useState('');
+  const calc = useMemo(() => {
+    const per = new Map<string, number>();
+    let sum = 0;
+    items.forEach((it, i) => {
+      const a = parseMoney(it.amount) ?? 0;
+      if (a <= 0 || !it.who.length) return;
+      sum += a;
+      for (const p of splitEqual(a, all.filter((id) => it.who.includes(id)), seed + i)) per.set(p.m, (per.get(p.m) ?? 0) + p.a);
+    });
+    const ex = parseMoney(extra) ?? 0;
+    if (ex > 0 && sum > 0) {
+      for (const p of splitShares(ex, Object.fromEntries(per), all, seed)) per.set(p.m, (per.get(p.m) ?? 0) + p.a);
+    }
+    const parts = all.map((m) => ({ m, a: per.get(m) ?? 0 })).filter((p) => p.a > 0);
+    return { total: sum + (sum > 0 ? ex : 0), parts };
+  }, [items, extra, all.join(), seed]);
+  const field = { height: 44, borderRadius: 10, borderWidth: 1, borderColor: th.border, backgroundColor: th.field, paddingHorizontal: 12, fontSize: 16, color: th.text } as const;
+  const upd = (id: string, patch: Partial<Item>) => setItems((s) => s.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+
+  return (
+    <SheetModal visible={visible} title={t('itemsTitle')} subtitle={money(calc.total, currency)} onClose={onClose}>
+      <Text style={{ fontSize: 14, color: th.sub, marginBottom: 12 }}>{t('itemsHint')}</Text>
+      {items.map((it, idx) => (
+        <Card key={it.id} style={{ padding: 12, marginBottom: 10, gap: 10 }}>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TextInput
+              accessibilityLabel={t('itemName')}
+              value={it.name}
+              onChangeText={(v) => upd(it.id, { name: v })}
+              placeholder={t('itemNamePlaceholder', { n: idx + 1 })}
+              placeholderTextColor={th.sub}
+              style={[field, { flex: 1 }]}
+            />
+            <TextInput
+              accessibilityLabel={t('pdfAmount')}
+              value={it.amount}
+              onChangeText={(v) => upd(it.id, { amount: v.replace(/[^\d.,]/g, '') })}
+              keyboardType="decimal-pad"
+              placeholder="0,00"
+              placeholderTextColor={th.sub}
+              style={[field, { width: 96, textAlign: 'right' }]}
+            />
+            {items.length > 1 ? (
+              <Pressable accessibilityRole="button" accessibilityLabel={t('remove')} onPress={() => setItems((s) => s.filter((x) => x.id !== it.id))} style={{ width: 32, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="close" size={20} color={th.sub} />
+              </Pressable>
+            ) : null}
+          </View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {members.map((m) => {
+              const on = it.who.includes(m.id);
+              return (
+                <Pressable
+                  key={m.id}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: on }}
+                  onPress={() => upd(it.id, { who: on ? it.who.filter((x) => x !== m.id) : [...it.who, m.id] })}
+                  style={{ height: 32, paddingHorizontal: 12, borderRadius: 16, justifyContent: 'center', backgroundColor: on ? th.accent : th.segment }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: on ? th.onAccent : th.text }}>{m.name}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </Card>
+      ))}
+      <Button kind="ghost" icon="add" label={t('itemAdd')} onPress={() => setItems((s) => [...s, { id: uuid(), name: '', amount: '', who: all }])} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}>
+        <Text style={{ flex: 1, fontSize: 15, color: th.text }}>{t('itemExtra')}</Text>
+        <TextInput
+          accessibilityLabel={t('itemExtra')}
+          value={extra}
+          onChangeText={(v) => setExtra(v.replace(/[^\d.,]/g, ''))}
+          keyboardType="decimal-pad"
+          placeholder="0,00"
+          placeholderTextColor={th.sub}
+          style={[field, { width: 110, textAlign: 'right' }]}
+        />
+      </View>
+      {calc.parts.length ? (
+        <Card style={{ marginTop: 14, paddingHorizontal: 14 }}>
+          {calc.parts.map((p, i) => (
+            <View key={p.m} style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: i < calc.parts.length - 1 ? StyleSheet.hairlineWidth : 0, borderBottomColor: th.line }}>
+              <Text style={{ fontSize: 16, color: th.text }}>{members.find((m) => m.id === p.m)?.name}</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: th.text }}>{money(p.a, currency)}</Text>
+            </View>
+          ))}
+        </Card>
+      ) : null}
+      <Button label={t('itemsApply')} onPress={() => onApply(calc.total, calc.parts)} disabled={calc.total <= 0} style={{ marginTop: 14 }} />
+    </SheetModal>
+  );
+}

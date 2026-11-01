@@ -84,14 +84,36 @@ jobs:
           V=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' build/Quitte.xcarchive/Products/Applications/Quitte.app/Info.plist)
           echo "::notice title=Archive::CFBundleVersion $V"
           [ "$V" = '${{ steps.asc.outputs.next_build }}' ] || { echo '::error::Archive build number differs from preflight'; exit 1; }
+          # Rechten (Inloggen met Apple, meldingen, universele links) meegeven: het onondertekende archief
+          # krijgt een ad-hoc-handtekening met het entitlements-bestand; de export ondertekent opnieuw met het App Store-profiel.
+          APP=build/Quitte.xcarchive/Products/Applications/Quitte.app
+          ENT=$(ls ios/Quitte/*.entitlements | head -1)
+          if [ -n "$ENT" ]; then
+            echo "::notice title=Entitlements::$(plutil -convert json -o - "$ENT")"
+            codesign --force --sign - --entitlements "$ENT" --generate-entitlement-der "$APP"
+          fi
           cp ExportOptions-TestFlight.plist "$RUNNER_TEMP/ExportOptions.plist"
           /usr/libexec/PlistBuddy -c 'Add :teamID string ${{ steps.asc.outputs.team_id }}' "$RUNNER_TEMP/ExportOptions.plist"
           xcodebuild -exportArchive -archivePath build/Quitte.xcarchive -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
             -exportPath build/upload -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/QuitteAuthKey.p8" \
             -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" > build-export.log 2>&1 || EXPORT_FAILED=1
+          if [ -n "${EXPORT_FAILED:-}" ] && [ -n "$ENT" ]; then
+            # Vangnet: lukt het niet met de extra rechten, upload dan zonder (zoals eerdere builds).
+            grep -iE "error|entitlement|capabilit|profile" build-export.log | sort -u | head -15 | while IFS= read -r line; do echo "::warning title=Export met rechten::${line}"; done || true
+            codesign --remove-signature "$APP" || true
+            EXPORT_FAILED=
+            xcodebuild -exportArchive -archivePath build/Quitte.xcarchive -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+              -exportPath build/upload -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/QuitteAuthKey.p8" \
+              -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" > build-export.log 2>&1 || EXPORT_FAILED=1
+            echo "::warning title=Export::Uploaded WITHOUT extra entitlements (fallback)."
+          fi
           tail -40 build-export.log
           grep -iE "error|failed|agreement|invalid" build-export.log | grep -iv '^warning:' | grep -v "^\s*$" | sort -u | head -25 | while IFS= read -r line; do echo "::error title=Export::${line}"; done || true
           [ -z "$EXPORT_FAILED" ] || exit 1
+          if ls build/upload/*.ipa >/dev/null 2>&1; then
+            mkdir -p "$RUNNER_TEMP/ipa" && unzip -q -o build/upload/*.ipa -d "$RUNNER_TEMP/ipa"
+            codesign -d --entitlements :- "$RUNNER_TEMP"/ipa/Payload/Quitte.app 2>/dev/null | plutil -convert json -o - - | sed 's/^/::notice title=Signed entitlements::/' || true
+          fi
           echo "::notice title=Upload::Build ${{ steps.asc.outputs.next_build }} uploaded to App Store Connect."
       - name: Simulator-build (controle zonder app-record)
         if: steps.asc.outputs.app_exists != 'true' && env.EXISTING_BUILD == ''
@@ -106,7 +128,7 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           TARGET_BUILD: ${{ (env.EXISTING_BUILD == 'latest' && steps.asc.outputs.latest_build) || env.EXISTING_BUILD || steps.asc.outputs.next_build }}
-          WHAT_TO_TEST: "Eerste versie van Quitte. Test: een lijst maken, iemand laten meedoen met de code of QR, uitgaven toevoegen en verdelen (gelijk, bedragen, delen), saldi en 'Zo is iedereen quitte', betaling afvinken en ongedaan maken, offline een uitgave toevoegen."
+          WHAT_TO_TEST: "Test: lijst maken en uitnodigen via de link, uitgaven met rekenmachine, per item verdelen, andere valuta, bonfoto, herhalen, rondjes, stellen samen laten afrekenen, saldi per persoon, betalen via IBAN kopiëren, deelbetaling, prullenbak, PDF, backup met Apple en terugzetten."
         run: node scripts/asc.mjs testflight
       - name: Signeersleutel verwijderen
         if: always()

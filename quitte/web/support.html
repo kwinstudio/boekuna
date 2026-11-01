@@ -1,0 +1,22 @@
+<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hulp en contact – Quitte</title><link rel="stylesheet" href="/style.css"></head><body><main>
+<a class="brand" href="/">Quitte</a><h1>Hulp en contact</h1>
+<h2>Veelgestelde vragen</h2>
+<div class="card">
+<p><b style="color:var(--text)">Hoe nodig ik iemand uit?</b><br>Open de lijst, tik op het personen-icoon en kies "Deel uitnodiging". De ander opent de link of scant de QR-code.</p>
+<p><b style="color:var(--text)">Waarom klopt een bedrag niet op de cent?</b><br>Als een bedrag niet precies deelbaar is, krijgt één persoon een cent meer. Bij Quitte rouleert die cent per uitgave, zodat het eerlijk blijft.</p>
+<p style="margin:0"><b style="color:var(--text)">Nieuwe telefoon?</b><br>Zet in Quitte onder Profiel de backup met Apple aan. Op je nieuwe iPhone kies je "Lijsten terugzetten van backup".</p>
+</div>
+<h2>Stuur een bericht</h2>
+<p>Je bericht komt rechtstreeks bij de maker van Quitte.</p>
+<form id="f"><textarea id="m" rows="5" maxlength="2000" required placeholder="Je vraag of idee"></textarea>
+<input id="c" type="email" maxlength="120" placeholder="Je e-mail (optioneel, voor een antwoord)">
+<button class="btn" type="submit">Versturen</button><p id="r" class="muted"></p></form>
+<footer><a href="/">Home</a><a href="/privacy">Privacy</a></footer>
+</main>
+<script>
+const SB='https://vuwfyhtejsxhdfyvkkeq.supabase.co',KEY='sb_publishable_miAZ6CBZShVcmmNwlnEDgA_aGw1X4aP';
+document.getElementById('f').onsubmit=async(e)=>{e.preventDefault();const r=document.getElementById('r');r.textContent='Versturen…';
+try{const res=await fetch(SB+'/rest/v1/rpc/quitte_send_feedback',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({p_body:document.getElementById('m').value,p_contact:document.getElementById('c').value||null,p_device:(localStorage.q_id||(localStorage.q_id='web-'+Math.random().toString(36).slice(2,12))),p_version:'web'})});
+if(!res.ok)throw 0;r.textContent='Bedankt! Je bericht is verstuurd.';e.target.reset();}catch{r.textContent='Versturen lukte niet. Probeer het later opnieuw.';}};
+</script></body></html>

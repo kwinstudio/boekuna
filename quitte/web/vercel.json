@@ -1,0 +1,8 @@
+{
+  "cleanUrls": true,
+  "rewrites": [{ "source": "/j/:token", "destination": "/j" }],
+  "headers": [
+    { "source": "/.well-known/apple-app-site-association", "headers": [{ "key": "Content-Type", "value": "application/json" }] },
+    { "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "Referrer-Policy", "value": "no-referrer" }] }
+  ]
+}

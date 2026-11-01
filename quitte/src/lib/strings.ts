@@ -88,7 +88,7 @@ export const nl = {
 
   // Lijst
   listGone: 'Deze lijst staat niet meer op dit toestel.',
-  manageList: 'Deelnemers en instellingen',
+  manageList: 'Lijstinstellingen',
   status: 'Status',
   youStillGet: 'Jij krijgt nog',
   youStillPay: 'Nog te verrekenen',
@@ -462,6 +462,18 @@ export const nl = {
   seeAllItems: "Bekijk alle posten",
   statusRejectedList: "Niet opgeslagen: {items}. Tik om te sluiten.",
   times: "Keer",
+  statusAttention: "Let op",
+  statusOfflineShort: "Offline",
+  togetherSpent: "Samen uitgegeven",
+  filterMineActive: "Alleen mijn uitgaven",
+  itemsCta: "Bon per item verdelen",
+  itemsTitle: "Per item",
+  itemsHint: "Vul de items van de bon in en tik aan wie ervan had. Fooi of servicekosten worden naar verhouding verdeeld.",
+  itemName: "Item",
+  itemNamePlaceholder: "Item {n}",
+  itemAdd: "Item toevoegen",
+  itemExtra: "Fooi of service",
+  itemsApply: "Verdeling gebruiken",
 };
 
 export const en: typeof nl = {
@@ -549,7 +561,7 @@ export const en: typeof nl = {
   offlineJoinBody: 'You need internet once to join. After that everything works offline too.',
 
   listGone: 'This list is no longer on this device.',
-  manageList: 'People and settings',
+  manageList: 'List settings',
   status: 'Status',
   youStillGet: "You're owed",
   youStillPay: 'Left to settle',
@@ -914,4 +926,16 @@ export const en: typeof nl = {
   seeAllItems: "See all items",
   statusRejectedList: "Not saved: {items}. Tap to dismiss.",
   times: "Times",
+  statusAttention: "Attention",
+  statusOfflineShort: "Offline",
+  togetherSpent: "Spent together",
+  filterMineActive: "Only my expenses",
+  itemsCta: "Split receipt by item",
+  itemsTitle: "By item",
+  itemsHint: "Enter the receipt items and tap who had them. Tip or service is split proportionally.",
+  itemName: "Item",
+  itemNamePlaceholder: "Item {n}",
+  itemAdd: "Add item",
+  itemExtra: "Tip or service",
+  itemsApply: "Use this split",
 };

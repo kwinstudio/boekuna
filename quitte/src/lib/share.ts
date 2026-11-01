@@ -5,7 +5,14 @@ import { money, nameOf, partyName } from './domain';
 import { t } from './i18n';
 import type { ListState } from './types';
 
+export const WEB_BASE = 'https://quitte-app.vercel.app';
+
+/** Uitnodigingslink: opent de app direct (universele link) of anders de webpagina. */
 export function inviteLink(token: string) {
+  return `${WEB_BASE}/j/${token}`;
+}
+
+export function appLink(token: string) {
   return Linking.createURL(`join/${token}`, { scheme: 'quitte' });
 }
 

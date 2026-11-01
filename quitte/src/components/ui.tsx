@@ -264,8 +264,8 @@ export function Row({
 const styles = StyleSheet.create({
   topbar: { height: 44, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 4 },
   back: { flexDirection: 'row', alignItems: 'center', height: 44 },
-  backText: { fontSize: 16, fontWeight: '600' },
-  topTitle: { fontSize: 16, fontWeight: '600', textAlign: 'center', flexShrink: 1 },
+  backText: { fontSize: 17, fontWeight: '400' },
+  topTitle: { fontSize: 17, fontWeight: '600', textAlign: 'center', flexShrink: 1, maxWidth: '56%' },
   segment: { flexDirection: 'row', borderRadius: 9, padding: 2, gap: 2 },
   segItem: { flex: 1, height: 32, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
 });

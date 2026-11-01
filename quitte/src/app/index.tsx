@@ -57,9 +57,9 @@ export default function Home() {
         <IconButton icon="person-outline" label={t('settings')} onPress={() => router.push('/settings')} />
       </View>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}>
-        <View style={{ backgroundColor: th.card, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 18 }}>
-          <Text style={{ fontSize: 13, color: th.sub, marginBottom: 2 }}>{t('acrossLists')}</Text>
-          <Text style={{ fontSize: 22, fontWeight: '600', color: totalEur === 0 ? th.text : totalEur < 0 ? th.owe : th.gain }}>
+        <View style={{ backgroundColor: th.card, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 18, marginBottom: 22 }}>
+          <Text style={{ fontSize: 13, fontWeight: '500', color: th.sub, marginBottom: 4 }}>{t('acrossLists')}</Text>
+          <Text style={{ fontSize: 26, fontWeight: '700', letterSpacing: -0.5, color: totalEur === 0 ? th.text : totalEur < 0 ? th.owe : th.gain }}>
             {totalEur === 0
               ? t('allSquare')
               : totalEur > 0

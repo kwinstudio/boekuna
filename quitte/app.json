@@ -23,7 +23,10 @@
         ],
         "CFBundleDevelopmentRegion": "nl",
         "NSPhotoLibraryUsageDescription": "Quitte gebruikt je fotogalerij om een bonnetje bij een uitgave te bewaren."
-      }
+      },
+      "associatedDomains": [
+        "applinks:quitte-app.vercel.app"
+      ]
     },
     "android": {
       "package": "nl.zichtwerf.quitte",
@@ -72,6 +75,7 @@
       [
         "expo-notifications",
         {
+          "mode": "production",
           "enableBackgroundRemoteNotifications": false
         }
       ],

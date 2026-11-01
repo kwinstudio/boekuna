@@ -236,6 +236,13 @@ export default function ListScreen() {
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
         right={
           <>
+            {tab === 'expenses' && me ? (
+              <IconButton
+                icon={filterMine ? 'funnel' : 'funnel-outline'}
+                label={filterMine ? t('filterAll') : t('filterMine')}
+                onPress={() => setFilterMine((v) => !v)}
+              />
+            ) : null}
             {tab === 'expenses' ? (
               <IconButton
                 icon={searchOpen ? 'close' : 'search'}
@@ -254,46 +261,53 @@ export default function ListScreen() {
         <Text accessibilityRole="header" numberOfLines={1} style={{ fontSize: 28, fontWeight: '700', letterSpacing: -0.5, color: th.text }}>
           {view.list.name}
         </Text>
-        <Text numberOfLines={1} style={{ fontSize: 14, color: th.sub, marginTop: 2, marginBottom: 12 }}>
-          {names.join(', ')}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2, marginBottom: 14 }}>
+          <Text numberOfLines={1} style={{ fontSize: 15, color: th.sub, flexShrink: 1 }}>
+            {names.join(', ')}
+          </Text>
+          {status ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={status}
+              onPress={() => {
+                if (local.syncError === 'rejected' || local.syncError === 'not_found') Alert.alert(status);
+                updateLocal(local.id, { syncError: null, rejected: [] });
+                syncList(local.id);
+              }}
+              hitSlop={8}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, height: 24, paddingHorizontal: 8, borderRadius: 12, backgroundColor: th.segment }}
+            >
+              <Ionicons name={local.syncError === 'not_found' || local.syncError === 'rejected' ? 'warning-outline' : 'cloud-offline-outline'} size={13} color={th.sub} />
+              <Text style={{ fontSize: 12, fontWeight: '600', color: th.sub }}>
+                {local.syncError === 'not_found' || local.syncError === 'rejected' ? t('statusAttention') : t('statusOfflineShort')}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
 
-        <Card style={{ padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 13, color: th.sub }}>
-              {myBal === 0 ? t('status') : myBal > 0 ? t('youStillGet') : t('youStillPay')}
-            </Text>
-            <Text style={{ fontSize: 21, fontWeight: '600', color: myBal === 0 ? th.text : myBal > 0 ? th.gain : th.owe }}>
-              {myBal === 0 ? t('youreSquare') : money(Math.abs(myBal), cur)}
-              {myBal < 0 && myOut.length === 1 ? (
-                <Text style={{ fontSize: 16, fontWeight: '600', color: th.text }}> {t('toName', { name: partyName(view, myOut[0].to) })}</Text>
-              ) : null}
-            </Text>
-          </View>
+        <Card style={{ paddingHorizontal: 18, paddingVertical: 16, marginBottom: 14 }}>
+          <Text style={{ fontSize: 13, fontWeight: '500', color: th.sub }}>
+            {myBal === 0 ? t('status') : myBal > 0 ? t('youStillGet') : t('youStillPay')}
+          </Text>
+          <Text style={{ fontSize: 30, fontWeight: '700', letterSpacing: -0.6, marginTop: 2, color: myBal === 0 ? th.text : myBal > 0 ? th.gain : th.owe }}>
+            {myBal === 0 ? t('youreSquare') : money(Math.abs(myBal), cur)}
+          </Text>
+          {myBal < 0 && myOut.length === 1 ? (
+            <Text style={{ fontSize: 15, color: th.text, marginTop: 2 }}>{t('toName', { name: partyName(view, myOut[0].to) })}</Text>
+          ) : null}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`${t('together')} ${money(calc.total, cur)}. ${t('stats')}`}
             onPress={() => router.push({ pathname: '/list/[id]/stats', params: { id: local.id } })}
-            style={{ alignItems: 'flex-end', paddingLeft: 12, minHeight: 44, justifyContent: 'center' }}
+            style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44, marginTop: 12, marginBottom: -8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: th.line }, pressed && { opacity: 0.6 }]}
           >
-            <Text style={{ fontSize: 13, color: th.sub }}>{t('together')}</Text>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: th.text }}>{money(calc.total, cur)}</Text>
+            <Text style={{ fontSize: 15, color: th.sub }}>{t('togetherSpent')}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: th.text }}>{money(calc.total, cur)}</Text>
+              <Ionicons name="chevron-forward" size={15} color={th.sub} />
+            </View>
           </Pressable>
         </Card>
-
-        {status ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              updateLocal(local.id, { syncError: null, rejected: [] });
-              syncList(local.id);
-            }}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}
-          >
-            <Ionicons name={local.syncError === 'not_found' ? 'warning-outline' : 'cloud-offline-outline'} size={15} color={th.sub} />
-            <Text style={{ fontSize: 13, color: th.sub, flex: 1 }}>{status}</Text>
-          </Pressable>
-        ) : null}
 
         <Segmented<Tab>
           value={tab}
@@ -303,6 +317,17 @@ export default function ListScreen() {
             { value: 'balances', label: t('tabBalances') },
           ]}
         />
+        {filterMine && tab === 'expenses' ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('filterAll')}
+            onPress={() => setFilterMine(false)}
+            style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: th.accentSoft, marginTop: 10 }}
+          >
+            <Text style={{ fontSize: 14, fontWeight: '600', color: th.accentText }}>{t('filterMineActive')}</Text>
+            <Ionicons name="close" size={15} color={th.accentText} />
+          </Pressable>
+        ) : null}
         {searchOpen && tab === 'expenses' ? (
           <TextInput
             accessibilityLabel={t('search')}
@@ -323,7 +348,6 @@ export default function ListScreen() {
           me={me}
           query={query}
           mine={filterMine}
-          onMine={setFilterMine}
           next={calc.next}
           rounds={rounds}
           invited={!!local.invitedAt}
@@ -364,7 +388,6 @@ function Expenses({
   me,
   query,
   mine,
-  onMine,
   next,
   rounds,
   invited,
@@ -379,7 +402,6 @@ function Expenses({
   me: string | null;
   query: string;
   mine: boolean;
-  onMine: (v: boolean) => void;
   next: string | null;
   rounds: { count: Record<string, number>; next: string } | null;
   invited: boolean;
@@ -444,55 +466,40 @@ function Expenses({
       contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 16 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={th.sub} />}
       ListHeaderComponent={
-        <View style={{ paddingTop: 10, gap: 8 }}>
-          {next && !mine && !query ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityHint={t('nextPayerHint')}
-              onPress={() => router.push({ pathname: '/list/[id]/entry', params: { id: listId, payer: next } })}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: radius.card, backgroundColor: th.card }}
-            >
-              <Ionicons name="repeat-outline" size={20} color={th.accent} />
-              <Text style={{ flex: 1, fontSize: 14, color: th.text }}>
-                {next === me ? t('nextPayerYou') : t('nextPayer', { name: nameOf(view, next) })}
+        // Eén slimme tip tegelijk (Hick): rondjes als die er zijn, anders wie de volgende rekening betaalt.
+        !mine && !query && (rounds || next) ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityHint={rounds ? undefined : t('nextPayerHint')}
+            onPress={() =>
+              router.push({ pathname: '/list/[id]/entry', params: rounds ? { id: listId, round: '1', payer: rounds.next } : { id: listId, payer: next! } })
+            }
+            style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12, borderRadius: radius.card, backgroundColor: th.card, marginTop: 12 }, pressed && { opacity: 0.7 }]}
+          >
+            <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: th.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name={rounds ? 'beer-outline' : 'repeat-outline'} size={17} color={th.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: '500', color: th.text }}>
+                {rounds
+                  ? rounds.next === me
+                    ? t('roundNextYou')
+                    : t('roundNext', { name: nameOf(view, rounds.next) })
+                  : next === me
+                    ? t('nextPayerYou')
+                    : t('nextPayer', { name: nameOf(view, next!) })}
               </Text>
-              <Ionicons name="chevron-forward" size={16} color={th.sub} />
-            </Pressable>
-          ) : null}
-          {rounds && !mine && !query ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push({ pathname: '/list/[id]/entry', params: { id: listId, round: '1', payer: rounds.next } })}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: radius.card, backgroundColor: th.card }}
-            >
-              <Ionicons name="beer-outline" size={20} color={th.accent} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 14, color: th.text }}>{rounds.next === me ? t('roundNextYou') : t('roundNext', { name: nameOf(view, rounds.next) })}</Text>
-                <Text numberOfLines={1} style={{ fontSize: 12, color: th.sub }}>
+              {rounds ? (
+                <Text numberOfLines={1} style={{ fontSize: 13, color: th.sub, marginTop: 1 }}>
                   {Object.entries(rounds.count)
                     .map(([id, n]) => `${nameOf(view, id, me)} ${n}`)
                     .join(' · ')}
                 </Text>
-              </View>
-              <Ionicons name="add-circle-outline" size={22} color={th.accent} />
-            </Pressable>
-          ) : null}
-          {me ? (
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {[false, true].map((v) => (
-                <Pressable
-                  key={String(v)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: mine === v }}
-                  onPress={() => onMine(v)}
-                  style={{ height: 32, paddingHorizontal: 12, borderRadius: radius.chip, justifyContent: 'center', backgroundColor: mine === v ? th.text : th.card }}
-                >
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: mine === v ? th.bg : th.text }}>{v ? t('filterMine') : t('filterAll')}</Text>
-                </Pressable>
-              ))}
+              ) : null}
             </View>
-          ) : null}
-        </View>
+            <Ionicons name={rounds ? 'add' : 'chevron-forward'} size={18} color={th.sub} />
+          </Pressable>
+        ) : undefined
       }
       ListEmptyComponent={<Text style={{ color: th.sub, textAlign: 'center', marginTop: 24 }}>{t('noResults')}</Text>}
       renderSectionHeader={({ section }) => (
@@ -534,11 +541,15 @@ function Expenses({
                 {e.kind === 'transfer' ? t('repayment') : e.title || t(`cat_${categoryById(e.category).id}` as never)}
               </Text>
               <Text numberOfLines={1} style={{ fontSize: 13, color: th.sub }}>
-                {dayLabel(e.date)} · {payerLine(e, view, me)}
-                {e.repeat ? ' · ↻' : ''}
-                {e.photos?.length ? ' · 📎' : ''}
-                {(view.comments ?? []).some((c) => c.entryId === e.id) ? ' · 💬' : ''}
+                {payerLine(e, view, me)} · {shortDay(e.date)}
               </Text>
+              {e.repeat || e.photos?.length || (view.comments ?? []).some((c) => c.entryId === e.id) ? (
+                <View style={{ flexDirection: 'row', gap: 6, marginTop: 3 }}>
+                  {e.repeat ? <Ionicons name="repeat" size={13} color={th.sub} accessibilityLabel={t('repeat')} /> : null}
+                  {e.photos?.length ? <Ionicons name="image-outline" size={13} color={th.sub} accessibilityLabel={t('photo')} /> : null}
+                  {(view.comments ?? []).some((c) => c.entryId === e.id) ? <Ionicons name="chatbubble-outline" size={12} color={th.sub} accessibilityLabel={t('comments')} /> : null}
+                </View>
+              ) : null}
               {pendingIds.has(e.id) ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }} accessibilityLabel={t('notSentYet')}>
                   <Ionicons name="cloud-upload-outline" size={12} color={th.sub} />
@@ -713,43 +724,46 @@ function Balances({
             return (
               <View
                 key={`${tr.from}-${tr.to}`}
-                style={{ minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: i < calc.transfers.length - 1 ? StyleSheet.hairlineWidth : 0, borderBottomColor: th.line }}
+                style={{ paddingVertical: 14, gap: 10, borderBottomWidth: i < calc.transfers.length - 1 ? StyleSheet.hairlineWidth : 0, borderBottomColor: th.line }}
               >
-                <Avatar name={partyName(view, tr.from)} index={view.members.findIndex((m) => m.id === tr.from)} size={30} />
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text numberOfLines={1} style={{ fontSize: 15, color: th.text }}>
-                    <Text style={{ fontWeight: '600' }}>{partyName(view, tr.from, me)}</Text> → {partyName(view, tr.to, me)}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Text style={{ flex: 1, fontSize: 16, color: th.text }}>
+                    <Text style={{ fontWeight: '600' }}>{partyName(view, tr.from, me)}</Text>
+                    <Text style={{ color: th.sub }}>  →  </Text>
+                    <Text style={{ fontWeight: '600' }}>{partyName(view, tr.to, me)}</Text>
                   </Text>
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: th.text }}>{money(tr.amount, cur)}</Text>
+                  <Text style={{ fontSize: 17, fontWeight: '700', color: mine ? th.owe : toMe ? th.gain : th.text }}>{money(tr.amount, cur)}</Text>
                 </View>
-                {mine && payTarget(tr.to) ? (
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {mine && payTarget(tr.to) ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t('payA11y', { name: partyName(view, tr.to), amount: money(tr.amount, cur) })}
+                      onPress={() => pay(tr)}
+                      style={({ pressed }) => [styles.smallBtn, { flex: 1, borderWidth: 1, borderColor: th.border, backgroundColor: th.card }, pressed && { opacity: 0.6 }]}
+                    >
+                      <Text style={{ fontSize: 15, fontWeight: '600', color: th.text }}>{t('pay')}</Text>
+                    </Pressable>
+                  ) : null}
+                  {!mine ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t('remindA11y', { name: partyName(view, tr.from) })}
+                      onPress={() => onRemind(tr)}
+                      style={({ pressed }) => [styles.smallBtn, { flex: 1, borderWidth: 1, borderColor: th.border, backgroundColor: th.card }, pressed && { opacity: 0.6 }]}
+                    >
+                      <Text style={{ fontSize: 15, fontWeight: '600', color: th.text }}>{toMe ? t('request') : t('remind')}</Text>
+                    </Pressable>
+                  ) : null}
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={t('payA11y', { name: partyName(view, tr.to), amount: money(tr.amount, cur) })}
-                    onPress={() => pay(tr)}
-                    style={[styles.smallBtn, { borderWidth: 1, borderColor: th.border, backgroundColor: th.card }]}
+                    accessibilityLabel={t('markPaidA11y', { from: partyName(view, tr.from), to: partyName(view, tr.to), amount: money(tr.amount, cur) })}
+                    onPress={() => onPaid(tr)}
+                    style={({ pressed }) => [styles.smallBtn, { flex: 1, backgroundColor: th.accentSoft }, pressed && { opacity: 0.6 }]}
                   >
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: th.text }}>{t('pay')}</Text>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: th.accentText }}>{toMe ? t('received') : t('paid')}</Text>
                   </Pressable>
-                ) : null}
-                {!mine ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t('remindA11y', { name: partyName(view, tr.from) })}
-                    onPress={() => onRemind(tr)}
-                    style={[styles.smallBtn, { borderWidth: 1, borderColor: th.border, backgroundColor: th.card }]}
-                  >
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: th.text }}>{toMe ? t('request') : t('remind')}</Text>
-                  </Pressable>
-                ) : null}
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t('markPaidA11y', { from: partyName(view, tr.from), to: partyName(view, tr.to), amount: money(tr.amount, cur) })}
-                  onPress={() => onPaid(tr)}
-                  style={[styles.smallBtn, { backgroundColor: th.accentSoft }]}
-                >
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: th.accentText }}>{toMe ? t('received') : t('paid')}</Text>
-                </Pressable>
+                </View>
               </View>
             );
           })}
@@ -763,6 +777,16 @@ function Balances({
 }
 
 const monthFmt = new Intl.DateTimeFormat(numberLocale, { month: 'long', year: 'numeric' });
+const shortFmt = new Intl.DateTimeFormat(numberLocale, { day: 'numeric', month: 'short' });
+function shortDay(iso: string) {
+  const today = new Date();
+  const y = new Date(Date.now() - 864e5);
+  const p = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  if (iso === p(today)) return t('today').toLowerCase();
+  if (iso === p(y)) return t('yesterday').toLowerCase();
+  const [a, b, c] = iso.split('-').map(Number);
+  return shortFmt.format(new Date(a, b - 1, c)).replace('.', '');
+}
 
 function CheckRow({ done, label, onPress, last }: { done: boolean; label: string; onPress?: () => void; last?: boolean }) {
   const th = useTheme();

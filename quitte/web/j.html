@@ -1,0 +1,37 @@
+<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Doe mee in Quitte</title><meta name="robots" content="noindex"><link rel="stylesheet" href="/style.css"></head><body><main>
+<a class="brand" href="/">Quitte</a>
+<div id="app"><p>Lijst laden…</p></div>
+<footer><a href="/">Over Quitte</a><a href="/privacy">Privacy</a></footer>
+</main>
+<script>
+const SB='https://vuwfyhtejsxhdfyvkkeq.supabase.co',KEY='sb_publishable_miAZ6CBZShVcmmNwlnEDgA_aGw1X4aP';
+const token=(location.pathname.split('/j/')[1]||'').replace(/[^A-Za-z0-9]/g,'');
+const el=document.getElementById('app');
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+function settle(bal){const c=[],d=[],out=[];for(const[k,v]of Object.entries(bal)){if(v>0)c.push({k,v});if(v<0)d.push({k,v:-v});}
+ const s=a=>a.sort((x,y)=>y.v-x.v);s(c);s(d);while(c.length&&d.length){const a=Math.min(c[0].v,d[0].v);out.push({from:d[0].k,to:c[0].k,a});c[0].v-=a;d[0].v-=a;if(!c[0].v)c.shift();if(!d[0].v)d.shift();s(c);s(d);}return out;}
+async function load(){
+ if(token.length<24){el.innerHTML='<h1>Ongeldige link</h1><p>Vraag de persoon die je uitnodigde om de link opnieuw te delen.</p>';return;}
+ let st;try{const r=await fetch(SB+'/rest/v1/rpc/quitte_get_state',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({p_token:token})});if(!r.ok)throw r.status;st=await r.json();}
+ catch(e){el.innerHTML='<h1>Lijst niet gevonden</h1><p>De link is misschien verlopen of de lijst is verwijderd.</p>';return;}
+ const cur=st.list.currency||'EUR',fmt=c=>new Intl.NumberFormat('nl-NL',{style:'currency',currency:cur}).format(c/100);
+ const name=id=>(st.members.find(m=>m.id===id)||{}).name||'?';
+ const bal={};for(const m of st.members)bal[m.id]=0;let total=0;
+ for(const e of st.entries){for(const p of e.payers)bal[p.m]=(bal[p.m]||0)+(e.kind==='income'?-p.a:p.a);for(const p of e.shares)bal[p.m]=(bal[p.m]||0)+(e.kind==='income'?p.a:-p.a);if(e.kind==='expense')total+=e.amount;}
+ const hh=(st.list.settings&&st.list.settings.households)||[];const rep={};for(const h of hh)for(const id of h)rep[id]=h[0];
+ const ub={};for(const[k,v]of Object.entries(bal)){const r=rep[k]||k;ub[r]=(ub[r]||0)+v;}
+ const pname=id=>{const h=hh.find(x=>x[0]===id);return h?h.map(name).join(' & '):name(id);};
+ const trs=settle(ub);const active=st.members.filter(m=>!m.deleted);
+ el.innerHTML=`<p class="muted" style="margin:0">Je bent uitgenodigd voor</p><h1>${esc(st.list.name)}</h1>
+ <p>${active.map(m=>esc(m.name)).join(', ')}</p>
+ <a class="btn" href="quitte://join/${token}">Open in Quitte</a>
+ <button class="btn sec" id="copy">Kopieer de code</button>
+ <p class="muted">Nog geen Quitte? De app komt binnenkort in de App Store. Tot die tijd kun je hier meekijken.</p>
+ <div class="card"><div class="muted">Samen uitgegeven</div><div class="big">${fmt(total)}</div></div>
+ <h2>Zo is iedereen quitte</h2><div class="card">${trs.length?trs.map(t=>`<div class="row"><span><b>${esc(pname(t.from))}</b> → ${esc(pname(t.to))}</span><b>${fmt(t.a)}</b></div>`).join(''):'<div class="row">Iedereen staat quitte</div>'}</div>
+ <h2>Laatste uitgaven</h2><div class="card">${st.entries.slice(0,15).map(e=>`<div class="row"><span>${esc(e.kind==='transfer'?'Terugbetaling':(e.title||'Uitgave'))}<br><span class="s">${esc(e.payers.map(p=>name(p.m)).join(', '))} · ${esc(e.date)}</span></span><b>${fmt(e.amount)}</b></div>`).join('')||'<div class="row">Nog geen uitgaven</div>'}</div>`;
+ document.getElementById('copy').onclick=async()=>{try{await navigator.clipboard.writeText(token);document.getElementById('copy').textContent='Code gekopieerd';}catch{prompt('Code',token);}};
+}
+load();
+</script></body></html>

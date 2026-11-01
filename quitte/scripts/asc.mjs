@@ -71,6 +71,32 @@ if (mode === 'preflight') {
   }
   const teamId = bundle.attributes.seedId;
   out('team_id', teamId);
+  note(`Team ${teamId}`);
+
+  // 1b. Mogelijkheden die de app gebruikt (Inloggen met Apple, meldingen, universele links).
+  const wanted = {
+    APPLE_ID_AUTH: [{ key: 'APPLE_ID_AUTH_APP_CONSENT', options: [{ key: 'PRIMARY_APP_CONSENT' }] }],
+    PUSH_NOTIFICATIONS: undefined,
+    ASSOCIATED_DOMAINS: undefined,
+  };
+  try {
+    const caps = await api(`/v1/bundleIds/${bundle.id}/bundleIdCapabilities?limit=50`);
+    const have = new Set((caps.data || []).map((c) => c.attributes.capabilityType));
+    for (const [type, settings] of Object.entries(wanted)) {
+      if (have.has(type)) continue;
+      try {
+        await api('/v1/bundleIdCapabilities', {
+          method: 'POST',
+          body: { data: { type: 'bundleIdCapabilities', attributes: { capabilityType: type, ...(settings ? { settings } : {}) }, relationships: { bundleId: { data: { type: 'bundleIds', id: bundle.id } } } } },
+        });
+        note(`Capability ${type} enabled.`);
+      } catch (e) {
+        warn(`Capability ${type}: ${e.message}`);
+      }
+    }
+  } catch (e) {
+    warn(`Capabilities check: ${e.message}`);
+  }
 
   const app = await findApp(BUNDLE_ID);
   if (!app) {

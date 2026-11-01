@@ -21,7 +21,7 @@ export function newToken(): string {
 /** Haalt een code uit een gedeelde tekst of link (quitte://join/CODE of https://…/join/CODE). */
 export function extractToken(text: string): string | null {
   const t = text.trim();
-  const m = t.match(/join\/([A-Za-z0-9]{24,64})/) ?? t.match(/^([A-Za-z0-9]{24,64})$/) ?? t.match(/\b([A-Za-z0-9]{26})\b/);
+  const m = t.match(/(?:join|\/j)\/([A-Za-z0-9]{24,64})/) ?? t.match(/^([A-Za-z0-9]{24,64})$/) ?? t.match(/\b([A-Za-z0-9]{26})\b/);
   return m ? m[1] : null;
 }
 
