@@ -285,21 +285,131 @@ enum PriceParser {
 struct Shop: Identifiable, Hashable {
     let name: String
     let url: String
+    /// Brand colour for the letter tile shown while (or when) the shop's own icon can't load.
+    let color: UInt32
     var id: String { url }
-    static let all: [Shop] = [
-        Shop(name: "bol.com", url: "https://www.bol.com/nl/nl/"),
-        Shop(name: "Coolblue", url: "https://www.coolblue.nl/"),
-        Shop(name: "Amazon.nl", url: "https://www.amazon.nl/"),
-        Shop(name: "Zalando", url: "https://www.zalando.nl/"),
-        Shop(name: "IKEA", url: "https://www.ikea.com/nl/nl/"),
-        Shop(name: "HEMA", url: "https://www.hema.nl/"),
-        Shop(name: "Intertoys", url: "https://www.intertoys.nl/"),
-        Shop(name: "Douglas", url: "https://www.douglas.nl/"),
-        Shop(name: "Bruna", url: "https://www.bruna.nl/"),
-        Shop(name: "Blokker", url: "https://www.blokker.nl/"),
-        Shop(name: "Rituals", url: "https://www.rituals.com/nl-nl/"),
-        Shop(name: "Google Shopping", url: "https://www.google.com/search?tbm=shop&q=cadeau"),
+    var host: String { URL(string: url)?.host()?.replacingOccurrences(of: "www.", with: "") ?? name }
+    /// The shop's own site icon, the same one Safari shows for a favourite.
+    var iconURL: URL? { URL(string: "https://www.google.com/s2/favicons?sz=128&domain=\(host)") }
+
+    struct Category: Identifiable {
+        let name: String
+        let icon: String
+        let shops: [Shop]
+        var id: String { name }
+    }
+
+    static let categories: [Category] = [
+        Category(name: "Alles onder één dak", icon: "square.grid.2x2", shops: [
+            Shop(name: "bol.com", url: "https://www.bol.com/nl/nl/", color: 0x0000A4),
+            Shop(name: "Amazon.nl", url: "https://www.amazon.nl/", color: 0x232F3E),
+            Shop(name: "HEMA", url: "https://www.hema.nl/", color: 0xE30613),
+            Shop(name: "Wehkamp", url: "https://www.wehkamp.nl/", color: 0xFF4F00),
+            Shop(name: "de Bijenkorf", url: "https://www.debijenkorf.nl/", color: 0x000000),
+            Shop(name: "Google Shopping", url: "https://www.google.com/search?tbm=shop&q=cadeau", color: 0x4285F4),
+        ]),
+        Category(name: "Speelgoed", icon: "teddybear", shops: [
+            Shop(name: "Intertoys", url: "https://www.intertoys.nl/", color: 0xE2001A),
+            Shop(name: "LEGO", url: "https://www.lego.com/nl-nl", color: 0xE3000B),
+            Shop(name: "Lobbes", url: "https://www.lobbes.nl/", color: 0x00A3E0),
+        ]),
+        Category(name: "Elektronica en games", icon: "headphones", shops: [
+            Shop(name: "Coolblue", url: "https://www.coolblue.nl/", color: 0x0090E3),
+            Shop(name: "MediaMarkt", url: "https://www.mediamarkt.nl/", color: 0xDF0000),
+            Shop(name: "Game Mania", url: "https://www.gamemania.nl/", color: 0xE4002B),
+        ]),
+        Category(name: "Mode en sport", icon: "tshirt", shops: [
+            Shop(name: "Zalando", url: "https://www.zalando.nl/", color: 0xFF6900),
+            Shop(name: "H&M", url: "https://www2.hm.com/nl_nl/index.html", color: 0xE50010),
+            Shop(name: "Decathlon", url: "https://www.decathlon.nl/", color: 0x3643BA),
+        ]),
+        Category(name: "Verzorging en parfum", icon: "sparkles", shops: [
+            Shop(name: "Douglas", url: "https://www.douglas.nl/", color: 0x9BDCD2),
+            Shop(name: "Rituals", url: "https://www.rituals.com/nl-nl/", color: 0x3C3C3B),
+            Shop(name: "ICI PARIS XL", url: "https://www.iciparisxl.nl/", color: 0x000000),
+            Shop(name: "Kruidvat", url: "https://www.kruidvat.nl/", color: 0xE4003A),
+            Shop(name: "Etos", url: "https://www.etos.nl/", color: 0x00843D),
+        ]),
+        Category(name: "Wonen en koken", icon: "house", shops: [
+            Shop(name: "IKEA", url: "https://www.ikea.com/nl/nl/", color: 0x0058A3),
+            Shop(name: "Blokker", url: "https://www.blokker.nl/", color: 0xE30613),
+            Shop(name: "Dille & Kamille", url: "https://www.dille-kamille.nl/", color: 0x5A6E3C),
+            Shop(name: "Xenos", url: "https://www.xenos.nl/", color: 0xE4007C),
+        ]),
+        Category(name: "Boeken", icon: "book", shops: [
+            Shop(name: "Bruna", url: "https://www.bruna.nl/", color: 0x00A0DF),
+            Shop(name: "Libris", url: "https://www.libris.nl/", color: 0x7A1F3D),
+        ]),
+        Category(name: "Belevenissen en persoonlijk", icon: "ticket", shops: [
+            Shop(name: "Bongo", url: "https://www.bongo.nl/", color: 0xE6007E),
+            Shop(name: "YourSurprise", url: "https://www.yoursurprise.nl/", color: 0xF0503C),
+            Shop(name: "Tadaaz", url: "https://www.tadaaz.nl/", color: 0x00B3A6),
+        ]),
     ]
+
+    static var all: [Shop] { categories.flatMap(\.shops) }
+
+    /// "coolblue.nl", "www.x.nl/abc" or a full link -> an https URL. Plain words -> nil.
+    static func websiteURL(from input: String) -> URL? {
+        let t = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty, !t.contains(" ") else { return nil }
+        let withScheme = t.lowercased().hasPrefix("http://") || t.lowercased().hasPrefix("https://") ? t : "https://\(t)"
+        guard let u = URL(string: withScheme), let h = u.host(), h.contains("."),
+              let tld = h.split(separator: ".").last, tld.count >= 2, tld.allSatisfy(\.isLetter) else { return nil }
+        return u
+    }
+
+    static func googleShopping(_ query: String) -> URL? {
+        var c = URLComponents(string: "https://www.google.com/search")
+        c?.queryItems = [URLQueryItem(name: "tbm", value: "shop"), URLQueryItem(name: "q", value: query)]
+        return c?.url
+    }
+}
+
+/// Recently used shops, newest first (only on this device).
+enum RecentShops {
+    private static let key = "recentShops"
+    static func load() -> [Shop] {
+        let urls = UserDefaults.standard.stringArray(forKey: key) ?? []
+        return urls.compactMap { u in Shop.all.first { $0.url == u } }
+    }
+    static func add(_ s: Shop) {
+        var urls = UserDefaults.standard.stringArray(forKey: key) ?? []
+        urls.removeAll { $0 == s.url }
+        urls.insert(s.url, at: 0)
+        UserDefaults.standard.set(Array(urls.prefix(4)), forKey: key)
+    }
+}
+
+extension Color {
+    init(hex: UInt32) {
+        self.init(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255, blue: Double(hex & 0xFF) / 255)
+    }
+}
+
+/// Shop icon on a white rounded tile; falls back to the first letter in the brand colour.
+struct ShopIcon: View {
+    let shop: Shop
+    var size: CGFloat = 40
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: size * 0.24, style: .continuous).fill(Color(hex: shop.color))
+            Text(String(shop.name.prefix(1)).uppercased())
+                .font(.system(size: size * 0.48, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+            AsyncImage(url: shop.iconURL, transaction: Transaction(animation: .easeOut(duration: 0.2))) { phase in
+                if case .success(let img) = phase {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: size * 0.24, style: .continuous).fill(.white)
+                        img.resizable().interpolation(.high).scaledToFit().padding(size * 0.16)
+                    }
+                }
+            }
+        }
+        .frame(width: size, height: size)
+        .overlay(RoundedRectangle(cornerRadius: size * 0.24, style: .continuous).strokeBorder(.black.opacity(0.08)))
+        .accessibilityHidden(true)
+    }
 }
 
 /// Reads product name, photo and price from the open page (JSON-LD Product, Open Graph, page title).
@@ -355,38 +465,23 @@ struct ShopBrowserView: View {
     @StateObject private var web = WebState()
     @State private var draft: WishDraft?
     @State private var toast: ToastData?
+    @State private var query = ""
+    @State private var recent = RecentShops.load()
+
+    private func open(_ s: Shop) {
+        Haptics.tap()
+        if Shop.all.contains(s) { RecentShops.add(s); recent = RecentShops.load() }
+        shop = s
+        web.load(s.url)
+    }
 
     var body: some View {
         NavigationStack {
             Group {
                 if shop == nil {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 14) {
-                            Text("Kies een winkel, zoek je cadeau en tik op een product. Daarna tik je op \"Zet op mijn lijstje\": de naam, foto en prijs gaan vanzelf mee.")
-                                .font(.subheadline).foregroundStyle(.secondary)
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
-                                ForEach(Shop.all) { s in
-                                    Button {
-                                        Haptics.tap()
-                                        shop = s
-                                        web.load(s.url)
-                                    } label: {
-                                        HStack {
-                                            Image(systemName: "bag").foregroundStyle(tint)
-                                            Text(s.name).font(.body.weight(.medium)).foregroundStyle(.primary)
-                                            Spacer(minLength: 0)
-                                        }
-                                        .padding(14)
-                                        .frame(minHeight: 54)
-                                        .background(Theme.card, in: RoundedRectangle(cornerRadius: 12))
-                                    }
-                                    .buttonStyle(PressableStyle())
-                                }
-                            }
-                        }
-                        .padding(20)
+                    ShopPicker(tint: tint, query: $query, recent: recent) { s in open(s) } openURL: { u, name in
+                        open(Shop(name: name, url: u.absoluteString, color: 0x8E8E93))
                     }
-                    .background(Theme.paper.ignoresSafeArea())
                 } else {
                     WebView(state: web)
                         .ignoresSafeArea(edges: .bottom)
@@ -434,6 +529,123 @@ struct ShopBrowserView: View {
             }
             .toast($toast)
         }
+    }
+}
+
+/// The shop overview: search/any website on top, recently used, then shops per category.
+private struct ShopPicker: View {
+    let tint: Color
+    @Binding var query: String
+    let recent: [Shop]
+    let open: (Shop) -> Void
+    let openURL: (URL, String) -> Void
+
+    private var q: String { query.trimmingCharacters(in: .whitespaces) }
+    private var filtered: [Shop] {
+        Shop.all.filter { $0.name.localizedCaseInsensitiveContains(q) || $0.host.localizedCaseInsensitiveContains(q) }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                        TextField("Zoek een winkel of typ een webadres", text: $query)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .keyboardType(.webSearch)
+                            .submitLabel(.go)
+                            .onSubmit(submit)
+                        if !q.isEmpty {
+                            Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary) }
+                                .accessibilityLabel("Wis")
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .frame(minHeight: 48)
+                    .background(Theme.card, in: RoundedRectangle(cornerRadius: 12))
+                    Text("Tik op een winkel, open een product en tik op \"Zet op mijn lijstje\". Naam, foto en prijs gaan vanzelf mee.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+
+                if !q.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        if let u = Shop.websiteURL(from: q) {
+                            wideButton(icon: "globe", title: "Open \(u.host() ?? q)", subtitle: "Elke webshop werkt") {
+                                openURL(u, u.host()?.replacingOccurrences(of: "www.", with: "") ?? q)
+                            }
+                        }
+                        grid(filtered)
+                        if let g = Shop.googleShopping(q) {
+                            wideButton(icon: "magnifyingglass", title: "Zoek \"\(q)\" in alle winkels", subtitle: "Via Google Shopping") {
+                                openURL(g, "Google Shopping")
+                            }
+                        }
+                    }
+                } else {
+                    if !recent.isEmpty { section("Laatst gebruikt", icon: "clock", recent) }
+                    ForEach(Shop.categories) { c in section(c.name, icon: c.icon, c.shops) }
+                    Label("Staat je winkel er niet bij? Typ bovenin het webadres, bijvoorbeeld lucardi.nl. Elke webshop werkt.", systemImage: "globe")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+            .padding(20)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .background(Theme.paper.ignoresSafeArea())
+    }
+
+    private func submit() {
+        if let u = Shop.websiteURL(from: q) { openURL(u, u.host()?.replacingOccurrences(of: "www.", with: "") ?? q) }
+        else if let one = filtered.first, filtered.count == 1 { open(one) }
+        else if let g = Shop.googleShopping(q) { openURL(g, "Google Shopping") }
+    }
+
+    private func section(_ title: String, icon: String, _ shops: [Shop]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(title, systemImage: icon)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+            grid(shops)
+        }
+    }
+
+    private func grid(_ shops: [Shop]) -> some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
+            ForEach(shops) { s in
+                Button { open(s) } label: {
+                    HStack(spacing: 12) {
+                        ShopIcon(shop: s, size: 36)
+                        Text(s.name).font(.body.weight(.medium)).foregroundStyle(.primary)
+                            .lineLimit(1).minimumScaleFactor(0.8)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: 60)
+                    .background(Theme.card, in: RoundedRectangle(cornerRadius: 14))
+                }
+                .buttonStyle(PressableStyle())
+                .accessibilityLabel("Open \(s.name)")
+            }
+        }
+    }
+
+    private func wideButton(icon: String, title: String, subtitle: String, action: @escaping () -> Void) -> some View {
+        Button { Haptics.tap(); action() } label: {
+            HStack(spacing: 12) {
+                Image(systemName: icon).font(.title3).foregroundStyle(tint).frame(width: 36, height: 36)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(.body.weight(.medium)).foregroundStyle(.primary).lineLimit(1)
+                    Text(subtitle).font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .frame(minHeight: 60)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(PressableStyle())
     }
 }
 

@@ -264,4 +264,23 @@ final class WishTests: XCTestCase {
         let json = #"{"title":"Iets","image":"http://insecure.example.com/x.jpg","price":null,"url":"https://shop.nl/x"}"#
         XCTAssertNil(ProductPageScript.draft(from: json)?.imageUrl)
     }
+
+final class ShopTests: XCTestCase {
+    func testWebsiteURL() {
+        XCTAssertEqual(Shop.websiteURL(from: "coolblue.nl")?.absoluteString, "https://coolblue.nl")
+        XCTAssertEqual(Shop.websiteURL(from: " https://www.x.nl/abc ")?.host(), "www.x.nl")
+        XCTAssertNil(Shop.websiteURL(from: "warme sokken"))
+        XCTAssertNil(Shop.websiteURL(from: "lego"))
+        XCTAssertNil(Shop.websiteURL(from: "1.2.3.4"))
+    }
+    func testShopsUniqueAndHttps() {
+        let all = Shop.all
+        XCTAssertGreaterThanOrEqual(all.count, 25)
+        XCTAssertEqual(Set(all.map(\.url)).count, all.count)
+        XCTAssertTrue(all.allSatisfy { $0.url.hasPrefix("https://") && $0.iconURL != nil })
+    }
+    func testGoogleShoppingEncodes() {
+        XCTAssertTrue(Shop.googleShopping("lego & duplo")!.absoluteString.contains("lego%20%26%20duplo"))
+    }
 }
+
