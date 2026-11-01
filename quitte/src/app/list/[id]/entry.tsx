@@ -233,6 +233,7 @@ export default function EntryScreen() {
     syncList(local.id);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     router.back();
+    showToast(`✓  ${existing ? t('saved') : t('added')}: ${label} · ${money(amount, cur)}`, undefined, undefined, 2500);
   };
 
   const saveKeys = (keys: SplitKey[], summary?: string) => {

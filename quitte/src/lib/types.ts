@@ -26,7 +26,7 @@ export type Comment = {
   deleted?: boolean;
 };
 
-export type ListSettings = { directDebts?: boolean; defaultSplit?: string | null; households?: string[][] };
+export type ListSettings = { directDebts?: boolean; defaultSplit?: string | null; households?: string[][]; color?: string | null; icon?: string | null };
 
 export type Entry = {
   id: string;

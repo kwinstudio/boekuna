@@ -1,9 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
-import { ActionSheetIOS, Alert, Linking, Platform, Pressable, RefreshControl, ScrollView, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActionSheetIOS, Alert, LayoutAnimation, Linking, Platform, Pressable, useWindowDimensions, RefreshControl, ScrollView, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { showToast } from '../../../components/Toast';
 import { Avatar, Button, Card, CategoryIcon, IconButton, Screen, Segmented, TopBar } from '../../../components/ui';
 import { computeBreakdown, listTransfers, nextPayer, settleProgress, totalSpent, type Transfer } from '../../../lib/balances';
@@ -16,10 +16,14 @@ import { shareInvite, shareOverview } from '../../../lib/share';
 import { parseMoney } from '../../../lib/money';
 import { enqueue, updateLocal, useList } from '../../../lib/store';
 import { syncList, useLiveList } from '../../../lib/sync';
-import { radius, useTheme } from '../../../lib/theme';
+import { radius, usePalette, useTheme } from '../../../lib/theme';
+import { listLook } from '../../../lib/look';
+import { LookPicker } from '../../../components/LookPicker';
+import { Image } from 'expo-image';
+import { usePhotoUrls } from '../../../lib/extras';
 import type { Entry, ListState } from '../../../lib/types';
 
-type Tab = 'expenses' | 'balances';
+type Tab = 'expenses' | 'balances' | 'photos';
 
 export default function ListScreen() {
   const th = useTheme();
@@ -30,6 +34,7 @@ export default function ListScreen() {
   const [query, setQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [filterMine, setFilterMine] = useState(false);
+  const [pickLook, setPickLook] = useState(false);
   useLiveList(id);
 
   // Nieuwe lijst: meteen de uitnodiging klaarzetten (de stap waar groepen het vaakst afhaken).
@@ -80,6 +85,8 @@ export default function ListScreen() {
     const next = [...active].sort((a, b) => count[a] - count[b] || active.indexOf(a) - active.indexOf(b))[0];
     return { count, next };
   }, [view]);
+
+  const lookPal = usePalette(view ? listLook(view.list).hue : 'gray');
 
   if (!local || !view || !calc) {
     return (
@@ -228,6 +235,7 @@ export default function ListScreen() {
           : null;
 
   const pendingIds = new Set(local.pending.flatMap((o) => (o.op === 'entry' ? [o.data.id] : [])));
+  const look = listLook(view.list);
   const names = activeMembers(view).map((m) => (m.id === me ? t('you') : m.name));
 
   return (
@@ -259,56 +267,68 @@ export default function ListScreen() {
         }
       />
       <View style={{ paddingHorizontal: 20 }}>
-        <Text accessibilityRole="header" numberOfLines={1} style={{ fontSize: 28, fontWeight: '700', letterSpacing: -0.5, color: th.text }}>
-          {view.list.name}
-        </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2, marginBottom: 14 }}>
-          <Text numberOfLines={1} style={{ fontSize: 15, color: th.sub, flexShrink: 1 }}>
-            {names.join(', ')}
-          </Text>
-          {status ? (
+        <View style={{ backgroundColor: lookPal.bg, borderRadius: 20, padding: 16, marginBottom: 14 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('lookTitle')} onPress={() => setPickLook(true)}>
+              <View style={{ width: 48, height: 48, borderRadius: 15, backgroundColor: th.card, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name={look.icon} size={25} color={lookPal.strong} />
+              </View>
+            </Pressable>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text accessibilityRole="header" numberOfLines={1} style={{ fontSize: 24, fontWeight: '700', letterSpacing: -0.5, color: lookPal.fg }}>
+                {view.list.name}
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 1 }}>
+                <Text numberOfLines={1} style={{ fontSize: 14, color: lookPal.strong, flexShrink: 1 }}>
+                  {names.join(', ')}
+                </Text>
+                {status ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={status}
+                    onPress={() => {
+                      if (local.syncError === 'rejected' || local.syncError === 'not_found') Alert.alert(status);
+                      updateLocal(local.id, { syncError: null, rejected: [] });
+                      syncList(local.id);
+                    }}
+                    hitSlop={8}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4, height: 22, paddingHorizontal: 8, borderRadius: 11, backgroundColor: th.card }}
+                  >
+                    <Ionicons name={local.syncError === 'not_found' || local.syncError === 'rejected' ? 'warning-outline' : 'cloud-offline-outline'} size={12} color={th.sub} />
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: th.sub }}>
+                      {local.syncError === 'not_found' || local.syncError === 'rejected' ? t('statusAttention') : t('statusOfflineShort')}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
+            <View style={{ flex: 1, backgroundColor: th.card, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 }}>
+              <Text style={{ fontSize: 12, fontWeight: '500', color: th.sub }}>{t('mySaldo')}</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 20, fontWeight: '700', letterSpacing: -0.3, color: myBal === 0 ? th.text : myBal > 0 ? th.gain : th.owe }}>
+                {myBal === 0 ? t('square') : `${myBal > 0 ? '+ ' : '− '}${money(Math.abs(myBal), cur)}`}
+              </Text>
+              {myBal < 0 && myOut.length === 1 ? (
+                <Text numberOfLines={1} style={{ fontSize: 12, color: th.sub }}>{t('toName', { name: partyName(view, myOut[0].to) })}</Text>
+              ) : null}
+            </View>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={status}
-              onPress={() => {
-                if (local.syncError === 'rejected' || local.syncError === 'not_found') Alert.alert(status);
-                updateLocal(local.id, { syncError: null, rejected: [] });
-                syncList(local.id);
-              }}
-              hitSlop={8}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, height: 24, paddingHorizontal: 8, borderRadius: 12, backgroundColor: th.segment }}
+              accessibilityLabel={`${t('total')} ${money(calc.total, cur)}. ${t('stats')}`}
+              onPress={() => router.push({ pathname: '/list/[id]/stats', params: { id: local.id } })}
+              style={({ pressed }) => [{ flex: 1, backgroundColor: th.card, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 }, pressed && { opacity: 0.7 }]}
             >
-              <Ionicons name={local.syncError === 'not_found' || local.syncError === 'rejected' ? 'warning-outline' : 'cloud-offline-outline'} size={13} color={th.sub} />
-              <Text style={{ fontSize: 12, fontWeight: '600', color: th.sub }}>
-                {local.syncError === 'not_found' || local.syncError === 'rejected' ? t('statusAttention') : t('statusOfflineShort')}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 12, fontWeight: '500', color: th.sub }}>{t('total')}</Text>
+                <Ionicons name="stats-chart-outline" size={13} color={th.sub} />
+              </View>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 20, fontWeight: '700', letterSpacing: -0.3, color: th.text }}>
+                {money(calc.total, cur)}
               </Text>
             </Pressable>
-          ) : null}
+          </View>
         </View>
-
-        <Card style={{ paddingHorizontal: 18, paddingVertical: 16, marginBottom: 14 }}>
-          <Text style={{ fontSize: 13, fontWeight: '500', color: th.sub }}>
-            {myBal === 0 ? t('status') : myBal > 0 ? t('youStillGet') : t('youStillPay')}
-          </Text>
-          <Text style={{ fontSize: 30, fontWeight: '700', letterSpacing: -0.6, marginTop: 2, color: myBal === 0 ? th.text : myBal > 0 ? th.gain : th.owe }}>
-            {myBal === 0 ? t('youreSquare') : money(Math.abs(myBal), cur)}
-          </Text>
-          {myBal < 0 && myOut.length === 1 ? (
-            <Text style={{ fontSize: 15, color: th.text, marginTop: 2 }}>{t('toName', { name: partyName(view, myOut[0].to) })}</Text>
-          ) : null}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${t('together')} ${money(calc.total, cur)}. ${t('stats')}`}
-            onPress={() => router.push({ pathname: '/list/[id]/stats', params: { id: local.id } })}
-            style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44, marginTop: 12, marginBottom: -8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: th.line }, pressed && { opacity: 0.6 }]}
-          >
-            <Text style={{ fontSize: 15, color: th.sub }}>{t('togetherSpent')}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Text style={{ fontSize: 15, fontWeight: '600', color: th.text }}>{money(calc.total, cur)}</Text>
-              <Ionicons name="chevron-forward" size={15} color={th.sub} />
-            </View>
-          </Pressable>
-        </Card>
 
         <Segmented<Tab>
           value={tab}
@@ -316,6 +336,7 @@ export default function ListScreen() {
           options={[
             { value: 'expenses', label: t('tabExpenses') },
             { value: 'balances', label: t('tabBalances') },
+            { value: 'photos', label: t('tabPhotos') },
           ]}
         />
         {filterMine && tab === 'expenses' ? (
@@ -358,8 +379,10 @@ export default function ListScreen() {
           token={local.token}
           pendingIds={pendingIds}
         />
-      ) : (
+      ) : tab === 'balances' ? (
         <Balances view={view} me={me} calc={calc} refreshing={refreshing} onRefresh={refresh} onPaid={markPaid} onRemind={remind} />
+      ) : (
+        <Photos view={view} listId={local.id} token={local.token} />
       )}
 
       <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 10 }}>
@@ -373,6 +396,8 @@ export default function ListScreen() {
             />
             <IconButton icon="ellipsis-horizontal" label={t('addOther')} size={50} onPress={addOther} />
           </>
+        ) : tab === 'photos' ? (
+          <Button label={t('expense')} icon="add" style={{ flex: 1 }} onPress={() => router.push({ pathname: '/list/[id]/entry', params: { id: local.id } })} />
         ) : (
           <>
             <Button label={t('share')} kind="secondary" icon="share-outline" style={{ flex: 1 }} onPress={() => shareOverview(view, calc.transfers)} />
@@ -380,6 +405,16 @@ export default function ListScreen() {
           </>
         )}
       </View>
+      <LookPicker
+        visible={pickLook}
+        hue={look.hue}
+        icon={look.icon}
+        onChange={(v) => {
+          enqueue(local.id, { op: 'settings', data: { settings: { color: v.hue, icon: v.icon }, updatedAt: nowIso() } });
+          syncList(local.id);
+        }}
+        onClose={() => setPickLook(false)}
+      />
     </Screen>
   );
 }
@@ -413,6 +448,13 @@ function Expenses({
 }) {
   const th = useTheme();
   const cur = view.list.currency;
+  // Nieuwe of verwijderde uitgaven schuiven soepel op hun plek.
+  const count = view.entries.length;
+  const prevCount = useRef(count);
+  if (prevCount.current !== count) {
+    LayoutAnimation.configureNext(LayoutAnimation.create(220, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
+    prevCount.current = count;
+  }
   const sections = useMemo(() => {
     const q = query.trim().toLowerCase();
     const filtered = view.entries.filter((e) => {
@@ -511,17 +553,24 @@ function Expenses({
       )}
       renderItem={({ item: e }) => {
         const cat = e.kind === 'transfer' ? null : categoryById(e.category);
-        const share = myShare(e, me);
-        const right =
-          e.kind === 'transfer'
-            ? ''
-            : e.kind === 'income'
-              ? share
-                ? t('yourPart', { amount: money(share, cur) })
+        // Wat betekent deze post voor mij: krijg ik geld of leen ik?
+        const fx = me ? entryEffect(e, me) : 0;
+        const isTransfer = e.kind === 'transfer';
+        const right = !me
+          ? ''
+          : isTransfer
+            ? e.shares.some((p) => p.m === me)
+              ? t('paidToYou')
+              : e.payers.some((p) => p.m === me)
+                ? t('youPaidBack')
                 : ''
-              : share
-                ? t('yourPart', { amount: money(share, cur) })
-                : t('notForYou');
+            : fx > 0
+              ? t('youGetShort', { amount: money(fx, cur) })
+              : fx < 0
+                ? t('youOweShort', { amount: money(-fx, cur) })
+                : e.kind === 'expense'
+                  ? t('notForYou')
+                  : '';
         return (
           <Pressable
             accessibilityRole="button"
@@ -541,9 +590,12 @@ function Expenses({
               <Text numberOfLines={1} style={{ fontSize: 16, fontWeight: '600', color: th.text }}>
                 {e.kind === 'transfer' ? t('repayment') : e.title || t(`cat_${categoryById(e.category).id}` as never)}
               </Text>
-              <Text numberOfLines={1} style={{ fontSize: 13, color: th.sub }}>
-                {payerLine(e, view, me)} · {shortDay(e.date)}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 1 }}>
+                <Avatar name={nameOf(view, e.payers[0]?.m ?? '')} size={16} />
+                <Text numberOfLines={1} style={{ fontSize: 13, color: th.sub, flexShrink: 1 }}>
+                  {payerLine(e, view, me)} · {shortDay(e.date)}
+                </Text>
+              </View>
               {e.repeat || e.photos?.length || (view.comments ?? []).some((c) => c.entryId === e.id) ? (
                 <View style={{ flexDirection: 'row', gap: 6, marginTop: 3 }}>
                   {e.repeat ? <Ionicons name="repeat" size={13} color={th.sub} accessibilityLabel={t('repeat')} /> : null}
@@ -563,7 +615,7 @@ function Expenses({
                 {e.kind === 'income' ? '+ ' : ''}
                 {money(e.amount, cur)}
               </Text>
-              {right ? <Text style={{ fontSize: 12, color: th.sub }}>{right}</Text> : null}
+              {right ? <Text style={{ fontSize: 12, fontWeight: fx && !isTransfer ? '600' : '400', color: isTransfer ? th.sub : fx > 0 ? th.gain : fx < 0 ? th.owe : th.sub }}>{right}</Text> : null}
             </View>
           </Pressable>
         );
@@ -775,6 +827,50 @@ function Balances({
       </Text>
     </ScrollView>
   );
+}
+
+function Photos({ view, listId, token }: { view: ListState; listId: string; token: string }) {
+  const th = useTheme();
+  const { width } = useWindowDimensions();
+  const items = useMemo(() => view.entries.flatMap((e) => (e.photos ?? []).map((p) => ({ p, e }))), [view]);
+  const urls = usePhotoUrls(token, items.map((x) => x.p));
+  const size = Math.floor((width - 40 - 16) / 3);
+  if (!items.length) {
+    return (
+      <ScrollView contentContainerStyle={{ padding: 20 }}>
+        <Card style={{ padding: 20, alignItems: 'center', gap: 10 }}>
+          <Ionicons name="images-outline" size={30} color={th.sub} />
+          <Text style={{ fontSize: 15, color: th.sub, textAlign: 'center', lineHeight: 21 }}>{t('photosEmpty')}</Text>
+        </Card>
+      </ScrollView>
+    );
+  }
+  return (
+    <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      {items.map(({ p, e }) => (
+        <Pressable
+          key={p}
+          accessibilityRole="imagebutton"
+          accessibilityLabel={e.title || t('photo')}
+          onPress={() => router.push({ pathname: '/list/[id]/entry', params: { id: listId, entryId: e.id } })}
+          style={{ width: size, height: size, borderRadius: 12, overflow: 'hidden', backgroundColor: th.card }}
+        >
+          {urls[p] ? <Image source={{ uri: urls[p] }} style={{ width: size, height: size }} contentFit="cover" transition={150} /> : null}
+          <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 6, paddingVertical: 4, backgroundColor: 'rgba(0,0,0,0.45)' }}>
+            <Text numberOfLines={1} style={{ fontSize: 11, fontWeight: '600', color: '#fff' }}>
+              {e.title || t('photo')} · {money(e.amount, view.list.currency)}
+            </Text>
+          </View>
+        </Pressable>
+      ))}
+    </ScrollView>
+  );
+}
+
+function entryEffect(e: Entry, m: string): number {
+  const paid = e.payers.filter((p) => p.m === m).reduce((x, p) => x + p.a, 0);
+  const part = e.shares.filter((p) => p.m === m).reduce((x, p) => x + p.a, 0);
+  return e.kind === 'income' ? part - paid : paid - part;
 }
 
 const monthFmt = new Intl.DateTimeFormat(numberLocale, { month: 'long', year: 'numeric' });

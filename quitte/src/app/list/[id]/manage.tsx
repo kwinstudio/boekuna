@@ -8,6 +8,8 @@ import { showToast } from '../../../components/Toast';
 import { Avatar, Button, Card, Row, Screen, SectionLabel, TopBar } from '../../../components/ui';
 import { computeBalances, listTransfers } from '../../../lib/balances';
 import { sharePdf } from '../../../lib/extras';
+import { LookPicker } from '../../../components/LookPicker';
+import { listLook } from '../../../lib/look';
 import { money } from '../../../lib/domain';
 import { t } from '../../../lib/i18n';
 import { nowIso, uuid } from '../../../lib/ids';
@@ -26,6 +28,7 @@ export default function Manage() {
   const [edit, setEdit] = useState<Edit>(null);
   const [text, setText] = useState('');
   const [pickMe, setPickMe] = useState(false);
+  const [pickLook, setPickLook] = useState(false);
 
   if (!local || !view) return null;
   const balances = computeBalances(view.entries, view.members);
@@ -277,6 +280,7 @@ export default function Manage() {
         <SectionLabel>{t('list')}</SectionLabel>
         <Card>
           <Row icon="create-outline" label={t('listName')} value={view.list.name} onPress={() => open({ kind: 'listName' }, view.list.name)} />
+          <Row icon="color-palette-outline" label={t('lookTitle')} onPress={() => setPickLook(true)} />
           <Row icon="cash-outline" label={t('currency')} value={cur} />
           <Row icon="bar-chart-outline" label={t('stats')} onPress={() => router.push({ pathname: '/list/[id]/stats', params: { id: local.id } })} />
           <Row icon="time-outline" label={t('history')} onPress={() => router.push({ pathname: '/list/[id]/activity', params: { id: local.id } })} />
@@ -318,6 +322,17 @@ export default function Manage() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <LookPicker
+        visible={pickLook}
+        hue={listLook(view.list).hue}
+        icon={listLook(view.list).icon}
+        onChange={(v) => {
+          enqueue(local.id, { op: 'settings', data: { settings: { color: v.hue, icon: v.icon }, updatedAt: nowIso() } });
+          syncList(local.id);
+        }}
+        onClose={() => setPickLook(false)}
+      />
 
       <Modal visible={pickMe} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setPickMe(false)}>
         <View style={{ flex: 1, backgroundColor: th.bg, padding: 20 }}>

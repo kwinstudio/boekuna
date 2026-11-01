@@ -1,9 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { ComponentProps, ReactNode } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useRef, type ComponentProps, type ReactNode } from 'react';
+import * as Haptics from 'expo-haptics';
+import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { radius, useTheme, useTint } from '../lib/theme';
+import { hueFor, radius, useTheme, useTint } from '../lib/theme';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -119,43 +120,54 @@ export function Button({
   accessibilityHint?: string;
 }) {
   const t = useTheme();
+  const scale = useRef(new Animated.Value(1)).current;
+  const spring = (to: number) => Animated.spring(scale, { toValue: to, useNativeDriver: true, speed: 50, bounciness: to === 1 ? 6 : 0 }).start();
   const bg = kind === 'primary' ? t.accent : kind === 'secondary' ? t.card : 'transparent';
   const fg = kind === 'primary' ? t.onAccent : kind === 'danger' ? t.danger : kind === 'ghost' ? t.accent : t.text;
+  const flat = StyleSheet.flatten(style) ?? {};
+  const { flex, alignSelf, marginTop, marginBottom, marginLeft, marginRight, margin, marginHorizontal, marginVertical, width, ...inner } = flat as ViewStyle;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityHint={accessibilityHint}
-      accessibilityState={{ disabled: !!disabled }}
-      disabled={disabled || loading}
-      onPress={onPress}
-      style={({ pressed }) => [
-        {
-          height: kind === 'ghost' || kind === 'danger' ? 46 : 50,
-          borderRadius: radius.button,
-          backgroundColor: bg,
-          borderWidth: kind === 'secondary' ? 1 : 0,
-          borderColor: t.border,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-          paddingHorizontal: 16,
-          opacity: disabled ? 0.45 : 1,
-        },
-        pressed && { opacity: 0.75, transform: [{ scale: 0.99 }] },
-        style,
-      ]}
-    >
-      {loading ? (
-        <ActivityIndicator color={fg} />
-      ) : (
-        <>
-          {icon ? <Ionicons name={icon} size={20} color={fg} /> : null}
-          <Text style={{ color: fg, fontSize: kind === 'ghost' || kind === 'danger' ? 16 : 17, fontWeight: '600' }}>{label}</Text>
-        </>
-      )}
-    </Pressable>
+    <Animated.View style={{ flex, alignSelf, marginTop, marginBottom, marginLeft, marginRight, margin, marginHorizontal, marginVertical, width, transform: [{ scale }] }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityHint={accessibilityHint}
+        accessibilityState={{ disabled: !!disabled }}
+        disabled={disabled || loading}
+        onPressIn={() => spring(0.97)}
+        onPressOut={() => spring(1)}
+        onPress={() => {
+          if (kind === 'primary') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          onPress();
+        }}
+        style={({ pressed }) => [
+          {
+            height: kind === 'ghost' || kind === 'danger' ? 46 : 52,
+            borderRadius: radius.button,
+            backgroundColor: bg,
+            borderWidth: kind === 'secondary' ? 1 : 0,
+            borderColor: t.border,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            paddingHorizontal: 16,
+            opacity: disabled ? 0.45 : 1,
+          },
+          pressed && { opacity: 0.85 },
+          inner,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator color={fg} />
+        ) : (
+          <>
+            {icon ? <Ionicons name={icon} size={20} color={fg} /> : null}
+            <Text style={{ color: fg, fontSize: kind === 'ghost' || kind === 'danger' ? 16 : 17, fontWeight: '600' }}>{label}</Text>
+          </>
+        )}
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -178,7 +190,10 @@ export function Segmented<T extends string>({
             key={o.value}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
-            onPress={() => onChange(o.value)}
+            onPress={() => {
+              if (!active) Haptics.selectionAsync().catch(() => {});
+              onChange(o.value);
+            }}
             style={[styles.segItem, active && { backgroundColor: t.card }]}
           >
             <Text style={{ fontSize: 15, fontWeight: '600', color: active ? t.text : t.sub }}>{o.label}</Text>
@@ -189,16 +204,14 @@ export function Segmented<T extends string>({
   );
 }
 
-const avatarTints = ['teal', 'blue', 'sand', 'plum', 'green'];
-
-export function Avatar({ name, index, size = 36, dim }: { name: string; index: number; size?: number; dim?: boolean }) {
-  const tint = useTint(dim ? 'gray' : avatarTints[index % avatarTints.length]);
+export function Avatar({ name, size = 36, dim, ring }: { name: string; index?: number; size?: number; dim?: boolean; ring?: string }) {
+  const tint = useTint(dim ? 'gray' : hueFor(name.trim()));
   return (
     <View
       accessible={false}
-      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: tint.bg, alignItems: 'center', justifyContent: 'center' }}
+      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: tint.bg, alignItems: 'center', justifyContent: 'center', borderWidth: ring ? 2 : 0, borderColor: ring }}
     >
-      <Text style={{ color: tint.fg, fontWeight: '700', fontSize: size * 0.4 }}>{(name.trim()[0] ?? '?').toUpperCase()}</Text>
+      <Text style={{ color: tint.fg, fontWeight: '700', fontSize: size * 0.42 }}>{(name.trim()[0] ?? '?').toUpperCase()}</Text>
     </View>
   );
 }
@@ -206,7 +219,7 @@ export function Avatar({ name, index, size = 36, dim }: { name: string; index: n
 export function CategoryIcon({ icon, tint, size = 40 }: { icon: IconName; tint: string; size?: number }) {
   const c = useTint(tint);
   return (
-    <View style={{ width: size, height: size, borderRadius: 8, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ width: size, height: size, borderRadius: size * 0.3, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center' }}>
       <Ionicons name={icon} size={size * 0.5} color={c.fg} />
     </View>
   );

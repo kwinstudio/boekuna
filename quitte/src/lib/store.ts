@@ -103,7 +103,7 @@ export function setProfile(p: Partial<Profile>) {
   setState((s) => ({ ...s, profile: { ...s.profile, ...p } }));
 }
 
-export function createLocalList(name: string, currency: string, myName: string, others: string[]): string {
+export function createLocalList(name: string, currency: string, myName: string, others: string[], look?: { color: string; icon: string }): string {
   const id = uuid();
   const ts = nowIso();
   const me: Member = { id: uuid(), name: myName.trim(), claimed: true, updatedAt: ts };
@@ -113,12 +113,15 @@ export function createLocalList(name: string, currency: string, myName: string, 
     token: newToken(),
     me: me.id,
     base: {
-      list: { id, name: name.trim(), currency, archived: false, rev: 0, updatedAt: ts, createdAt: ts },
+      list: { id, name: name.trim(), currency, archived: false, rev: 0, updatedAt: ts, createdAt: ts, settings: look ? { ...look } : undefined },
       members,
       entries: [],
       activity: [],
     },
-    pending: [{ uid: uuid(), op: 'member', data: me }],
+    pending: [
+      { uid: uuid(), op: 'member', data: me },
+      ...(look ? [{ uid: uuid(), op: 'settings' as const, data: { settings: { ...look }, updatedAt: ts } }] : []),
+    ],
     needsCreate: true,
     joinedAt: Date.now(),
   };

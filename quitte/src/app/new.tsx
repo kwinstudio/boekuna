@@ -6,6 +6,9 @@ import { Button, Screen, TopBar } from '../components/ui';
 import { t } from '../lib/i18n';
 import { CURRENCIES } from '../lib/money';
 import { createLocalList, setProfile, useStore } from '../lib/store';
+import { ListBadge, LookPicker } from '../components/LookPicker';
+import { guessListIcon, LIST_ICONS } from '../lib/look';
+import { HUES, type Hue } from '../lib/theme';
 import { syncList } from '../lib/sync';
 import { radius, useTheme } from '../lib/theme';
 
@@ -20,6 +23,10 @@ export default function NewList() {
   const [currency, setCurrency] = useState('EUR');
   const [pickCurrency, setPickCurrency] = useState(false);
   const [error, setError] = useState('');
+  const [hue, setHue] = useState<Hue>(HUES[Math.floor(Math.random() * HUES.length)]);
+  const [icon, setIcon] = useState<(typeof LIST_ICONS)[number] | null>(null);
+  const [pickLook, setPickLook] = useState(false);
+  const shownIcon = icon ?? guessListIcon(name);
   const draftRef = useRef<React.ComponentRef<typeof TextInput>>(null);
 
   const addDraft = () => {
@@ -40,7 +47,7 @@ export default function NewList() {
     if (!name.trim()) return setError(t('errListName'));
     if (!me.trim()) return setError(t('errYourName'));
     setProfile({ name: me.trim() });
-    const id = createLocalList(name.slice(0, 80), currency, me.slice(0, 40), all);
+    const id = createLocalList(name.slice(0, 80), currency, me.slice(0, 40), all, { color: hue, icon: shownIcon });
     syncList(id);
     router.replace({ pathname: '/list/[id]', params: { id, fresh: '1' } });
   };
@@ -69,6 +76,10 @@ export default function NewList() {
           <Text nativeID="lblName" style={{ fontSize: 14, fontWeight: '600', color: th.text, marginBottom: 8 }}>
             {t('whatFor')}
           </Text>
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('lookTitle')} onPress={() => setPickLook(true)}>
+            <ListBadge hue={hue} icon={shownIcon} size={52} />
+          </Pressable>
           <TextInput
             accessibilityLabelledBy="lblName"
             accessibilityLabel={t('whatFor')}
@@ -79,11 +90,12 @@ export default function NewList() {
             }}
             placeholder={t('whatForPlaceholder')}
             placeholderTextColor={th.sub}
-            style={[field, { marginBottom: 20 }]}
+            style={[field, { flex: 1 }]}
             autoFocus
             returnKeyType="next"
             maxLength={80}
           />
+          </View>
 
           <Text style={{ fontSize: 14, fontWeight: '600', color: th.text, marginBottom: 8 }}>{t('yourName')}</Text>
           <TextInput
@@ -166,6 +178,16 @@ export default function NewList() {
             <Text style={{ fontSize: 13, color: th.sub }}>{t('noAccountNeeded')}</Text>
           </View>
           <Button label={t('createList')} onPress={create} />
+          <LookPicker
+            visible={pickLook}
+            hue={hue}
+            icon={shownIcon}
+            onChange={(v) => {
+              setHue(v.hue);
+              setIcon(v.icon);
+            }}
+            onClose={() => setPickLook(false)}
+          />
         </View>
       </KeyboardAvoidingView>
 
