@@ -7115,7 +7115,7 @@ async function retryLocalUpload(id){
 function discardLocalUpload(id){
  const s=documentProcessingSession;if(!s)return;s.items=s.items.filter(x=>x.id!==id||x.state!=='failed');scheduleDocumentProcessingRender();renderGlobalDocumentIndicator();if(page==='documents')render()
 }
-window.addEventListener('online',()=>{(documentProcessingSession?.persistent?documentProcessingSession.items:[]).filter(x=>x.state==='failed'&&!x.documentPersisted&&x.file).forEach(x=>{void retryLocalUpload(x.id)})});
+if(typeof window!=='undefined'&&window.addEventListener)window.addEventListener('online',()=>{(documentProcessingSession?.persistent?documentProcessingSession.items:[]).filter(x=>x.state==='failed'&&!x.documentPersisted&&x.file).forEach(x=>{void retryLocalUpload(x.id)})});
 function localUploadCardHtml(item){
  if(item.state==='failed'){const id=esc(JSON.stringify(String(item.id)));return '<div class="document-processing-card" data-state="failed"><span class="document-processing-card-icon" aria-hidden="true">!</span><div class="document-processing-card-main"><strong title="'+esc(item.file?.name||'Document')+'">'+esc(item.file?.name||'Document')+'</strong><span><b>Nog niet verstuurd</b> · '+(navigator.onLine?'het lukte niet, probeer het opnieuw':'geen verbinding, Boekuna probeert het zodra je internet hebt')+'</span></div><div class="document-processing-card-actions"><button type="button" class="btn small primary" onclick="retryLocalUpload('+id+')">Opnieuw</button><button type="button" class="btn small" onclick="discardLocalUpload('+id+')">Weghalen</button></div></div>'}
  const pct=item.uploadPercent==null?'':(' '+item.uploadPercent+'%'),status=item.state==='uploading'?'Uploaden'+pct:'Wacht';
