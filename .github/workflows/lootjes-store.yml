@@ -4,7 +4,7 @@ name: Lootjes App Store listing
 on:
   push:
     branches: [claude/lootjes]
-    paths: ['lootjes/store/**', '.github/workflows/lootjes-store.yml']
+    paths: ['lootjes/store/**', 'lootjes/scripts/asc.mjs', '.github/workflows/lootjes-store.yml']
   workflow_dispatch:
     inputs:
       upload:

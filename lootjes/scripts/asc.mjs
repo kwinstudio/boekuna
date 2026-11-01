@@ -193,9 +193,13 @@ if (mode === 'store') {
     const ar = (await api(`/v1/appInfos/${info.id}/ageRatingDeclaration`)).data;
     const none = ['alcoholTobaccoOrDrugUseOrReferences', 'contests', 'gamblingSimulated', 'horrorOrFearThemes', 'matureOrSuggestiveThemes',
       'medicalOrTreatmentInformation', 'profanityOrCrudeHumor', 'sexualContentGraphicAndNudity', 'sexualContentOrNudity',
-      'violenceCartoonOrFantasy', 'violenceRealistic', 'violenceRealisticProlongedGraphicOrSadistic'];
+      'violenceCartoonOrFantasy', 'violenceRealistic', 'violenceRealisticProlongedGraphicOrSadistic', 'gunsOrOtherWeapons'];
     const attrs = Object.fromEntries(none.map((k) => [k, 'NONE']));
-    Object.assign(attrs, { gambling: false, unrestrictedWebAccess: false, lootBox: false });
+    // Anonymous questions between participants are messaging/user content (with report and block).
+    Object.assign(attrs, {
+      gambling: false, unrestrictedWebAccess: false, lootBox: false, healthOrWellnessTopics: false, parentalControls: false,
+      userGeneratedContent: true, messagingAndChat: true, socialMedia: false, advertising: false, ageAssurance: false,
+    });
     await api(`/v1/ageRatingDeclarations/${ar.id}`, { method: 'PATCH', body: { data: { type: 'ageRatingDeclarations', id: ar.id, attributes: attrs } } });
     note('Age rating answers set (no objectionable content).');
   } catch (e) { warn(`Age rating: ${e.message}. Fill it in by hand in App Store Connect.`); }
