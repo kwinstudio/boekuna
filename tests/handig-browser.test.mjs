@@ -17,8 +17,11 @@ const boot=`currentUser={...TEST_USER,email:'qa@example.test'};state=structuredC
 for(const key of ['contacts','services','invoices','expenses','transactions','hours','mileage','documents','bookings','plannedCash','settlements','audit'])state[key]=[];
 state.company={...state.company,name:'Fictieve QA BV',address:'Teststraat 1',postal:'3011AA',city:'Rotterdam',kvk:'12345678',vat:'NL123456789B01',email:'qa@example.test',iban:'NL91ABNA0417164300'};
 state.contacts=[{id:'c1',type:'customer',name:'Fictieve Schilders',email:'klant@example.test',address:'Klantstraat 2',postal:'3011AB',city:'Rotterdam'},{id:'c2',type:'customer',name:'Albert Voorbeeld',email:'av@example.test',address:'Laan 3',postal:'3011AC',city:'Delft'}];
-const day=new Date().toISOString().slice(0,10),before=new Date(Date.now()-5*864e5).toISOString().slice(0,10);
+// 'before' stays inside this month, so the phone lists (which open on Deze maand) still show it on the 1st.
+const day=new Date().toISOString().slice(0,10),before=[new Date(Date.now()-5*864e5).toISOString().slice(0,10),day.slice(0,8)+'01'].sort().pop();
 state.invoices=[{id:'i1',number:'2026-0001',customerId:'c1',status:'sent',kind:'invoice',issueDate:before,dueDate:day,lines:[{desc:'Fictieve dienst',qty:12,unit:100,unitLabel:'uur',vat:21}],payments:[]},{id:'i2',number:'2026-0002',customerId:'c2',status:'sent',kind:'invoice',issueDate:day,dueDate:day,lines:[{desc:'Advies',qty:2,unit:90,unitLabel:'uur',vat:21}],payments:[]}];
+// On the 1st of a month both invoices share today's date: list i2 (customer c2, invoiced last) first so it stays the most recent.
+state.invoices.reverse();
 state.expenses=[{id:'e1',date:day,vendor:'Fictieve Telecom',category:'Telefoon en internet',exVat:30,vatRate:9},{id:'e2',date:day,vendor:'Kantoorwinkel',category:'office',exVat:50,vatRate:21}];
 documentProcessingJobs=[];documentProcessingInitialized=true;documentProcessingConnectivityLost=false;documentProcessingFetchError=false;enterApp();`;
 const html=generated.replace('const TEST_MODE_NO_AUTH=false;','const TEST_MODE_NO_AUTH=true;').replace(/initAuth\(\);(?![\s\S]*initAuth\(\);)/,boot);
