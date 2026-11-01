@@ -25,8 +25,8 @@ done
 xcrun simctl ui "$SIM" appearance light
 xcrun simctl terminate "$SIM" nl.zichtwerfstudio.lootjes >/dev/null 2>&1 || true
 xcrun simctl launch "$SIM" nl.zichtwerfstudio.lootjes -demoScreen opening >/dev/null
-sleep 1.6
-for i in 1 2 3 4 5 6; do xcrun simctl io "$SIM" screenshot "build/screens/opening-$i.png" >/dev/null; sleep 0.15; done
+sleep 2.2
+for i in 1 2 3 4 5 6; do xcrun simctl io "$SIM" screenshot "build/screens/opening-$i.png" >/dev/null; sleep 0.1; done
 sleep 1.5
 xcrun simctl io "$SIM" screenshot build/screens/opening-done.png >/dev/null
 # Real first launch (empty state) too.

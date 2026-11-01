@@ -55,7 +55,16 @@ struct FestiveParticles: View {
     var count = 26
 
     private struct P { let x: Double; let y: Double; let size: Double; let speed: Double; let sway: Double; let phase: Double }
-    @State private var particles: [P] = []
+    @State private var particles: [P]
+
+    init(season: Season, count: Int = 26) {
+        self.season = season
+        self.count = count
+        _particles = State(initialValue: (0..<count).map { _ in
+            P(x: .random(in: 0...1), y: .random(in: 0...1), size: .random(in: 3...7),
+              speed: .random(in: 8...22), sway: .random(in: 3...10), phase: .random(in: 0...6.28))
+        })
+    }
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1 / 30)) { timeline in
@@ -70,14 +79,6 @@ struct FestiveParticles: View {
                     } else {
                         ctx.fill(star(in: r), with: .color(Color(red: 1, green: 0.84, blue: 0.45).opacity(0.85)))
                     }
-                }
-            }
-        }
-        .onAppear {
-            if particles.isEmpty {
-                particles = (0..<count).map { _ in
-                    P(x: .random(in: 0...1), y: .random(in: 0...1), size: .random(in: 3...7),
-                      speed: .random(in: 8...22), sway: .random(in: 3...10), phase: .random(in: 0...6.28))
                 }
             }
         }
@@ -207,7 +208,7 @@ struct EnvelopeReveal: View {
                 .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .shadow(color: .black.opacity(stage >= 3 ? 0.12 : 0), radius: 12, y: 6)
                 .padding(.horizontal, 14)
-                .offset(y: stage >= 3 ? -36 : 30)
+                .offset(y: stage >= 3 ? 0 : 30)
                 .opacity(stage >= 2 ? 1 : 0)
                 .zIndex(stage >= 3 ? 3 : 1)
 
@@ -221,7 +222,9 @@ struct EnvelopeReveal: View {
 
                 // Flap.
                 FlapShape()
-                    .fill(season.gradient[0].opacity(0.92))
+                    .fill(LinearGradient(colors: [season.gradient[0], season.gradient[0].opacity(0.85)], startPoint: .top, endPoint: .bottom))
+                    .overlay(FlapShape().stroke(.white.opacity(0.18), lineWidth: 1))
+                    .shadow(color: .black.opacity(0.28), radius: 4, y: 3)
                     .frame(height: 80)
                     .rotation3DEffect(.degrees(stage >= 2 ? 180 : 0), axis: (x: 1, y: 0, z: 0), anchor: .top, perspective: 0.6)
                     .offset(y: -15)
@@ -240,7 +243,7 @@ struct EnvelopeReveal: View {
 
                 if sparkle { SparkleBurst(color: Color(red: 0.93, green: 0.76, blue: 0.33)).zIndex(5) }
             }
-            .frame(height: 210)
+            .frame(height: stage >= 3 ? 150 : 210)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(stage >= 3 ? "\(caption) \(receiverName)" : "Je lootje, nog dicht")
 
@@ -254,7 +257,7 @@ struct EnvelopeReveal: View {
         .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .task {
             guard autoOpen else { return }
-            try? await Task.sleep(for: .seconds(1.5))
+            try? await Task.sleep(for: .seconds(2.5))
             open(festive: festive)
         }
     }
