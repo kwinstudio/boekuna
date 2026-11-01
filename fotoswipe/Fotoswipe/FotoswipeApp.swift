@@ -25,17 +25,21 @@ import TipKit
     }
 }
 
-/// "Pop" palette. Every text/background pair used in the app meets WCAG AA (4.5:1 or better).
+/// Calm, Apple-like palette: warm off-white, near-black text, one violet accent.
+/// Every text/background pair used in the app meets WCAG AA (4.5:1 or better).
 enum Palette {
-    static let background = Color(hex: 0xFFF4E8)   // warm paper
+    static let background = Color(hex: 0xF6F4F1)   // warm off-white
     static let surface = Color.white
-    static let ink = Color(hex: 0x1D1A2E)          // text, borders, hard shadows
-    static let muted = Color(hex: 0x5E5A70)        // secondary text, 6.1:1 on background
+    static let ink = Color(hex: 0x17151F)          // text
+    static let muted = Color(hex: 0x66626F)        // secondary text, 5.6:1 on background
     static let brand = Color(hex: 0x5B3DF5)        // violet; white text 6.1:1
-    static let keep = Color(hex: 0x14785A)         // green; white text 5.4:1
-    static let trash = Color(hex: 0xFF7A59)        // coral; ink text 6.6:1
-    static let reward = Color(hex: 0xFFD43B)       // yellow; ink text 11.9:1
-    static let track = Color(hex: 0xEADFD2)
+    static let brandSoft = Color(hex: 0xEEEAFF)    // tinted fills behind violet text
+    static let keep = Color(hex: 0x157F59)         // green; white text 5.0:1
+    static let trash = Color(hex: 0xD93F3A)        // red; white text 4.6:1
+    static let reward = Color(hex: 0xFFC83D)       // streak flame, small accents
+    static let track = Color(hex: 0xE7E3DE)
+    static let hairline = Color(hex: 0x17151F).opacity(0.08)
+    static let shadow = Color(hex: 0x1E1450).opacity(0.14)
     // Older names kept for views that still use them.
     static let sage = reward
     static let coral = trash
@@ -47,16 +51,16 @@ extension Color {
     }
 }
 
-/// Hard-edged Pop look: ink border plus an offset shadow without blur.
+/// A quiet surface: white fill, a hairline edge and a soft shadow (the old hard Pop shadow is gone).
 struct PopFrame: ViewModifier {
     var radius: CGFloat = 16
     var fill: Color = Palette.surface
     var shadow: CGFloat = 4
     func body(content: Content) -> some View {
         content
-            .background(fill, in: RoundedRectangle(cornerRadius: radius))
-            .overlay(RoundedRectangle(cornerRadius: radius).stroke(Palette.ink, lineWidth: 2))
-            .background(RoundedRectangle(cornerRadius: radius).fill(Palette.ink).offset(x: shadow, y: shadow))
+            .background(fill, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).stroke(Palette.hairline, lineWidth: 0.5))
+            .shadow(color: shadow > 0 ? Palette.shadow : .clear, radius: shadow * 2.5, y: shadow)
     }
 }
 

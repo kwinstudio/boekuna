@@ -183,13 +183,13 @@ struct StackReviewView: View {
             VStack(spacing: 14) {
                 HStack {
                     Button { dismiss() } label: {
-                        Image(systemName: "xmark").font(.system(size: 15, weight: .heavy)).foregroundStyle(Palette.ink)
+                        Image(systemName: "xmark").font(.system(size: 15, weight: .bold)).foregroundStyle(Palette.ink)
                             .frame(width: 44, height: 44).pop(radius: 22, fill: Palette.surface, shadow: 2)
                     }.accessibilityLabel("Sluiten")
                     Spacer()
-                    Text(group.title).font(.system(.headline, design: .rounded).weight(.heavy))
+                    Text(group.title).font(.system(.headline).weight(.bold))
                     Spacer()
-                    Text(!loadingGroup ? String(localized: "\(stacks.count) over", bundle: .app) : " ").font(.subheadline.weight(.heavy)).monospacedDigit()
+                    Text(!loadingGroup ? String(localized: "\(stacks.count) over", bundle: .app) : " ").font(.subheadline.weight(.semibold)).monospacedDigit()
                         .frame(minWidth: 44)
                 }
                 if !library.hasAccess {
@@ -220,7 +220,7 @@ struct StackReviewView: View {
         VStack(spacing: 16) {
             Spacer()
             Image(systemName: group.icon).font(.system(size: 54)).foregroundStyle(Palette.brand)
-            Text(group == .bursts ? String(localized: "Burstfoto's ophalen", bundle: .app) : String(localized: "\(group.title) zoeken", bundle: .app)).font(.system(.title2, design: .rounded).weight(.heavy))
+            Text(group == .bursts ? String(localized: "Burstfoto's ophalen", bundle: .app) : String(localized: "\(group.title) zoeken", bundle: .app)).font(.system(.title2).weight(.bold))
             if group == .bursts {
                 ProgressView().tint(Palette.brand)
             } else {
@@ -241,21 +241,21 @@ struct StackReviewView: View {
         let shown = group.first { $0.localIdentifier == (focused ?? best) } ?? group[0]
         let trashCount = ids.filter { !keep.contains($0) }.count
         VStack(spacing: 12) {
-            Text(headline(group.count)).font(.system(size: 26, weight: .heavy, design: .rounded)).tracking(-0.6)
+            Text(headline(group.count)).font(.system(size: 26, weight: .bold)).tracking(-0.6)
                 .frame(maxWidth: .infinity, alignment: .leading)
             ZStack(alignment: .topLeading) {
                 AssetImage(asset: shown, manager: library.images)
                     .id(shown.localIdentifier)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Palette.ink, lineWidth: 3))
+                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Palette.hairline, lineWidth: 0.5))
                 HStack(spacing: 6) {
                     if suggested.contains(shown.localIdentifier) {
                         Label(library.isFavorite(shown) ? String(localized: "Favoriet", bundle: .app) : (self.group == .bursts ? String(localized: "Gekozen door iOS", bundle: .app) : String(localized: "Beste keuze", bundle: .app)), systemImage: "star.fill")
-                            .font(.caption.weight(.heavy)).padding(.horizontal, 10).padding(.vertical, 6)
+                            .font(.caption.weight(.semibold)).padding(.horizontal, 10).padding(.vertical, 6)
                             .pop(radius: 10, fill: Palette.reward, shadow: 2)
                     }
                     Text(keep.contains(shown.localIdentifier) ? String(localized: "Bewaren", bundle: .app) : String(localized: "Weg", bundle: .app))
-                        .font(.caption.weight(.heavy))
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(keep.contains(shown.localIdentifier) ? Color.white : Palette.ink)
                         .padding(.horizontal, 10).padding(.vertical, 6)
                         .pop(radius: 10, fill: keep.contains(shown.localIdentifier) ? Palette.keep : Palette.trash, shadow: 2)
@@ -323,15 +323,15 @@ struct StackReviewView: View {
     private var doneView: some View {
         VStack(spacing: 16) {
             Spacer()
-            Image(systemName: "checkmark").font(.system(size: 38, weight: .heavy))
+            Image(systemName: "checkmark").font(.system(size: 38, weight: .bold))
                 .frame(width: 84, height: 84).background(Circle().fill(Palette.reward))
-                .overlay(Circle().stroke(Palette.ink, lineWidth: 3))
+                .overlay(Circle().stroke(Palette.hairline, lineWidth: 0.5))
             Text(settled == 0 ? String(localized: "Niets gevonden in \(group.title)", bundle: .app) : String(localized: "Alle stapels gedaan", bundle: .app))
-                .font(.system(.title2, design: .rounded).weight(.heavy)).multilineTextAlignment(.center)
+                .font(.system(.title2).weight(.bold)).multilineTextAlignment(.center)
             if setAside > 0 {
                 Text("\(setAside) foto's weggelegd. Controleer ze in Bekijken voordat je iets verwijdert.")
                     .foregroundStyle(Palette.muted).multilineTextAlignment(.center)
-                Button("Bekijk selectie") { review = true }.buttonStyle(PrimaryStyle(fill: Palette.trash, text: Palette.ink))
+                Button("Bekijk selectie") { review = true }.buttonStyle(PrimaryStyle(fill: Palette.trash, text: .white))
             }
             Button("Opnieuw zoeken") { skipped = []; library.startSmartScan() }.font(.subheadline.weight(.bold)).foregroundStyle(Palette.brand)
             Button("Terug") { dismiss() }.buttonStyle(SecondaryStyle())
@@ -407,14 +407,14 @@ struct SmartCleanView: View {
                         .font(.subheadline).foregroundStyle(Palette.muted)
                     if library.smart.scanning {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Foto's analyseren…").font(.subheadline.weight(.heavy))
+                            Text("Foto's analyseren…").font(.subheadline.weight(.semibold))
                             ProgressView(value: Double(library.smart.processed), total: Double(max(1, library.smart.total))).tint(Palette.brand)
                             Text("\(library.smart.processed) van \(library.smart.total)").font(.caption).foregroundStyle(Palette.muted).monospacedDigit()
                         }
                         .padding(12).pop(radius: 14, fill: Palette.surface, shadow: 2)
                     } else if totalBytes > 0 {
                         Text("Samen ongeveer \(ByteText.plain(totalBytes)) te winnen")
-                            .font(.headline.weight(.heavy))
+                            .font(.headline.weight(.semibold))
                     }
                     ForEach(ordered) { group in
                         let entry = library.smartSummary[group]
@@ -425,7 +425,7 @@ struct SmartCleanView: View {
                             .buttonStyle(.plain)
                             .disabled(empty || pendingScan || pendingBursts)
                     }
-                    Text("Meer opruimen").font(.headline.weight(.heavy)).padding(.top, 8)
+                    Text("Meer opruimen").font(.headline.weight(.semibold)).padding(.top, 8)
                     Button { placesOpen = true } label: {
                         extraCard("map.fill", String(localized: "Reiskaart", bundle: .app), String(localized: "Je foto's per plek en reis. Ruim één reis tegelijk op.", bundle: .app))
                     }.buttonStyle(.plain)
@@ -460,13 +460,13 @@ struct SmartCleanView: View {
 
     private func card(_ group: SmartGroup, entry: (count: Int, bytes: Int64)?, waiting: Bool, empty: Bool) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: group.icon).font(.system(size: 18, weight: .heavy))
-                .foregroundStyle(group.isStack ? Color.white : Palette.ink)
+            Image(systemName: group.icon).font(.system(size: 18, weight: .bold))
+                .foregroundStyle(group.isStack ? Color.white : Palette.brand)
                 .frame(width: 44, height: 44)
-                .background(RoundedRectangle(cornerRadius: 12).fill(group.isStack ? Palette.brand : Palette.reward))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.ink, lineWidth: 2))
+                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(group.isStack ? Palette.brand : Palette.brandSoft))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.hairline, lineWidth: 0.5))
             VStack(alignment: .leading, spacing: 2) {
-                Text(group.title).font(.headline.weight(.heavy))
+                Text(group.title).font(.headline.weight(.semibold))
                 Text(group.detail).font(.caption).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 6)
@@ -476,11 +476,11 @@ struct SmartCleanView: View {
                 } else if empty {
                     Text("Niets").font(.subheadline.weight(.bold)).foregroundStyle(Palette.muted)
                 } else if let entry {
-                    Text("\(entry.count)").font(.headline.weight(.heavy)).monospacedDigit()
+                    Text("\(entry.count)").font(.headline.weight(.semibold)).monospacedDigit()
                     Text(ByteText.format(entry.bytes)).font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
                 }
             }
-            if !empty && !waiting { Image(systemName: "chevron.right").font(.caption.weight(.heavy)).foregroundStyle(Palette.muted) }
+            if !empty && !waiting { Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(Palette.muted) }
         }
         .padding(12)
         .pop(radius: 16, fill: Palette.surface, shadow: empty ? 0 : 3)
@@ -491,16 +491,16 @@ struct SmartCleanView: View {
 
     private func extraCard(_ icon: String, _ title: String, _ detail: String) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: icon).font(.system(size: 18, weight: .heavy)).foregroundStyle(.white)
+            Image(systemName: icon).font(.system(size: 18, weight: .bold)).foregroundStyle(.white)
                 .frame(width: 44, height: 44)
                 .background(RoundedRectangle(cornerRadius: 12).fill(Palette.keep))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.ink, lineWidth: 2))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.hairline, lineWidth: 0.5))
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.headline.weight(.heavy))
+                Text(title).font(.headline.weight(.semibold))
                 Text(detail).font(.caption).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 6)
-            Image(systemName: "chevron.right").font(.caption.weight(.heavy)).foregroundStyle(Palette.muted)
+            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
         }
         .padding(12)
         .pop(radius: 16, fill: Palette.surface, shadow: 3)
@@ -509,7 +509,7 @@ struct SmartCleanView: View {
 
     private var tips: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Goed om te weten").font(.headline.weight(.heavy)).padding(.top, 8)
+            Text("Goed om te weten").font(.headline.weight(.semibold)).padding(.top, 8)
             tip("trash.slash", String(localized: "Ruimte komt pas vrij na 'Recent verwijderd'", bundle: .app), String(localized: "Verwijderde foto's blijven 30 dagen in Foto's > Albums > Recent verwijderd. Wil je de ruimte meteen? Kies daar Verwijder alles. Een app mag dat album niet zelf legen.", bundle: .app))
             tip("square.on.square", String(localized: "Exacte duplicaten samenvoegen", bundle: .app), String(localized: "Ook de Foto's-app vindt exacte duplicaten: Albums > Duplicaten > Voeg samen.", bundle: .app))
             tip("film", String(localized: "Video's en Live Photos", bundle: .app), String(localized: "Open een video of Live Photo en kies via Meer 'Video verkleinen' of 'Bewaar als gewone foto'. Het origineel gaat eerst naar Weggelegd.", bundle: .app))
@@ -517,9 +517,9 @@ struct SmartCleanView: View {
     }
     private func tip(_ icon: String, _ title: String, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: icon).font(.system(size: 16, weight: .heavy)).foregroundStyle(Palette.brand).frame(width: 24)
+            Image(systemName: icon).font(.system(size: 16, weight: .bold)).foregroundStyle(Palette.brand).frame(width: 24)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.subheadline.weight(.heavy))
+                Text(title).font(.subheadline.weight(.semibold))
                 Text(text).font(.footnote).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
             }
         }

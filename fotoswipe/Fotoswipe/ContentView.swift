@@ -115,8 +115,14 @@ struct ContentView: View {
     }
     private var header: some View {
         HStack(spacing: 10) {
-            Text("fotoswipe").font(.system(size: 28, weight: .heavy, design: .rounded)).tracking(-1)
-                .foregroundStyle(Palette.brand).lineLimit(1).minimumScaleFactor(0.7).layoutPriority(1)
+            HStack(spacing: 8) {
+                Image("LogoMark").resizable().frame(width: 30, height: 30)
+                    .shadow(color: Palette.shadow, radius: 2, y: 1)
+                Text(verbatim: "Fotoswipe").font(.system(size: 22, weight: .bold)).tracking(-0.3)
+                    .foregroundStyle(Palette.ink).lineLimit(1).minimumScaleFactor(0.7)
+            }
+            .layoutPriority(1)
+            .accessibilityElement(children: .combine)
             Spacer()
             if library.hasAccess {
                 let days = library.streakDays
@@ -124,9 +130,10 @@ struct ContentView: View {
                     Image(systemName: "flame.fill")
                     Text("\(days)").monospacedDigit()
                 }
-                .font(.subheadline.weight(.heavy)).foregroundStyle(Palette.ink)
-                .padding(.horizontal, 12).padding(.vertical, 7)
-                .pop(radius: 18, fill: days > 0 ? Palette.reward : Palette.surface, shadow: 2)
+                .font(.subheadline.weight(.semibold)).foregroundStyle(Palette.ink)
+                .symbolRenderingMode(.multicolor)
+                .padding(.horizontal, 12).frame(minHeight: 44)
+                .pop(radius: 22, fill: Palette.surface, shadow: 1)
                 .contentShape(Rectangle())
                 .onTapGesture { stats = true }
                 .accessibilityElement(children: .ignore)
@@ -140,9 +147,9 @@ struct ContentView: View {
                     FocusTip().invalidate(reason: .actionPerformed)
                     focus = true
                 } label: {
-                    Label("Focus", systemImage: "arrow.up.left.and.arrow.down.right").font(.subheadline.weight(.heavy)).lineLimit(1)
-                        .foregroundStyle(.white).padding(.horizontal, 12).frame(minHeight: 36)
-                        .pop(radius: 18, fill: Palette.brand, shadow: 2)
+                    Image(systemName: "arrow.up.left.and.arrow.down.right").font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Palette.ink).frame(width: 44, height: 44)
+                        .pop(radius: 22, fill: Palette.surface, shadow: 1)
                 }
                 .disabled(library.loading || library.current == nil)
                 .accessibilityLabel("Focusmodus: alleen de foto, volledig scherm")
@@ -158,15 +165,9 @@ struct ContentView: View {
         ScrollView(showsIndicators: false) {
         VStack(spacing: 18) {
             Spacer()
-            ZStack {
-                RoundedRectangle(cornerRadius: 22).fill(Palette.reward).frame(width: 120, height: 150)
-                    .rotationEffect(.degrees(-8)).pop(radius: 22, fill: Palette.reward)
-                RoundedRectangle(cornerRadius: 22).fill(Palette.brand).frame(width: 120, height: 150)
-                    .rotationEffect(.degrees(6)).offset(x: 26, y: 6)
-                    .overlay(Image(systemName: "photo").font(.system(size: 40, weight: .bold)).foregroundStyle(.white).offset(x: 26, y: 6))
-            }.accessibilityHidden(true)
+            StackIllustration().accessibilityHidden(true)
             Text("Bewaar het mooie.\nSwipe de rest.")
-                .font(.system(size: 36, weight: .heavy, design: .rounded)).tracking(-1.2).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+                .font(.system(size: 36, weight: .bold)).tracking(-0.5).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                 .minimumScaleFactor(0.75).fixedSize(horizontal: false, vertical: true).layoutPriority(1)
             Text("Een paar minuten per dag, en je bibliotheek blijft licht. Je foto's blijven in je eigen fotobibliotheek.")
                 .foregroundStyle(Palette.muted).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
@@ -261,7 +262,7 @@ struct ContentView: View {
                 Spacer()
                 VStack(spacing: 12) {
                     Image(systemName: "wand.and.stars").font(.system(size: 46)).foregroundStyle(Palette.brand)
-                    Text("Rommel zoeken").font(.system(.title2, design: .rounded).weight(.heavy))
+                    Text("Rommel zoeken").font(.system(.title2).weight(.bold))
                     ProgressView(value: Double(library.smart.processed), total: Double(max(1, library.smart.total))).tint(Palette.brand)
                     Text("\(library.smart.processed) van \(library.smart.total) recente foto's · alleen op je iPhone")
                         .font(.footnote.weight(.semibold)).foregroundStyle(Palette.muted).monospacedDigit()
@@ -297,7 +298,7 @@ struct ContentView: View {
                 Image(systemName: library.assets.isEmpty ? "photo" : "checkmark.seal.fill").font(.system(size: 52))
                     .foregroundStyle(library.assets.isEmpty ? Palette.muted : Palette.keep)
                 Text(library.assets.isEmpty ? String(localized: "Geen items in deze categorie", bundle: .app) : String(localized: "Alles bekeken.", bundle: .app))
-                    .font(.system(.largeTitle, design: .rounded).weight(.heavy)).foregroundStyle(Palette.ink)
+                    .font(.system(.largeTitle).weight(.bold)).foregroundStyle(Palette.ink)
                     .multilineTextAlignment(.center)
                 Text(library.assets.isEmpty ? String(localized: "Kies een andere categorie of pas je fototoegang aan.", bundle: .app) : String(localized: "Deze categorie is klaar. Kies een andere categorie of controleer je selectie.", bundle: .app))
                     .foregroundStyle(Palette.muted).multilineTextAlignment(.center)
@@ -314,12 +315,12 @@ struct ContentView: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "tray.full.fill").foregroundStyle(Palette.trash)
-                    Text("\(library.pending.count) weggelegd").fontWeight(.heavy)
+                    Text("\(library.pending.count) weggelegd").fontWeight(.semibold)
                     if library.pendingBytes > 0 {
                         Text("· \(ByteText.format(library.pendingBytes))").foregroundStyle(Palette.muted)
                     }
                     Spacer()
-                    Text("Bekijken").fontWeight(.heavy).foregroundStyle(Palette.brand)
+                    Text("Bekijken").fontWeight(.semibold).foregroundStyle(Palette.brand)
                 }.font(.subheadline).padding(.horizontal, 16).frame(minHeight: 52)
                     .pop(radius: 16, fill: Palette.surface, shadow: 3)
             }.foregroundStyle(Palette.ink).disabled(library.loading || library.deleting)
@@ -347,7 +348,7 @@ struct ContentView: View {
                     SmartCleanTip().invalidate(reason: .actionPerformed)
                     smartOpen = true
                 } label: { Label("Slim opruimen", systemImage: "wand.and.stars").lineLimit(1) }
-                    .buttonStyle(ChipStyle(selected: false, fill: Palette.reward))
+                    .buttonStyle(ChipStyle(selected: false, fill: Palette.brandSoft))
                     .popoverTip(SmartCleanTip())
                     .accessibilityHint("Bijna dubbel, burstfoto's, rommel en meer, grootste winst eerst")
 
@@ -371,13 +372,12 @@ struct ContentView: View {
         HStack(spacing: 10) {
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Palette.surface)
-                    Capsule().fill(Palette.reward)
+                    Capsule().fill(Palette.track)
+                    Capsule().fill(Palette.brand)
                         .frame(width: max(0, geometry.size.width * library.session.progress))
-                    Capsule().stroke(Palette.ink, lineWidth: 2)
                 }
-            }.frame(height: 14)
-            Text("\(library.session.count)/\(ReviewSession.size)").font(.subheadline.weight(.heavy)).monospacedDigit()
+            }.frame(height: 5)
+            Text("\(library.session.count)/\(ReviewSession.size)").font(.subheadline.weight(.semibold)).monospacedDigit()
                 .foregroundStyle(Palette.ink)
         }
         .animation(.spring(response: 0.3, dampingFraction: 0.9), value: library.session.count)
@@ -423,19 +423,21 @@ struct PrimaryStyle: ButtonStyle {
     var fill: Color = Palette.brand
     var text: Color = .white
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.font(.headline.weight(.heavy)).padding(.vertical, 16).padding(.horizontal, 22)
+        configuration.label.font(.headline).padding(.vertical, 16).padding(.horizontal, 22)
             .frame(maxWidth: .infinity, minHeight: 54).foregroundStyle(text)
-            .pop(radius: 27, fill: fill, shadow: configuration.isPressed ? 1 : 4)
-            .offset(x: configuration.isPressed ? 3 : 0, y: configuration.isPressed ? 3 : 0)
+            .background(fill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 
 struct SecondaryStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.font(.subheadline.weight(.bold)).padding(.vertical, 12).padding(.horizontal, 18)
+        configuration.label.font(.subheadline.weight(.semibold)).padding(.vertical, 12).padding(.horizontal, 18)
             .frame(minHeight: 44).foregroundStyle(Palette.ink)
-            .pop(radius: 22, fill: Palette.surface, shadow: configuration.isPressed ? 1 : 3)
-            .offset(x: configuration.isPressed ? 2 : 0, y: configuration.isPressed ? 2 : 0)
+            .pop(radius: 14, fill: Palette.surface, shadow: configuration.isPressed ? 0 : 1)
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
     }
 }
 
@@ -443,11 +445,11 @@ struct ChipStyle: ButtonStyle {
     let selected: Bool
     var fill: Color? = nil
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.font(.subheadline.weight(.bold))
-            .padding(.horizontal, 14).frame(minHeight: 40)
-            .foregroundStyle(selected ? Color.white : Palette.ink)
-            .pop(radius: 20, fill: selected ? Palette.brand : (fill ?? Palette.surface), shadow: configuration.isPressed ? 0 : 2)
-            .offset(x: configuration.isPressed ? 2 : 0, y: configuration.isPressed ? 2 : 0)
+        configuration.label.font(.subheadline.weight(.semibold))
+            .padding(.horizontal, 14).frame(minHeight: 44)
+            .foregroundStyle(selected ? Color.white : (fill == nil ? Palette.ink : Palette.brand))
+            .pop(radius: 22, fill: selected ? Palette.ink : (fill ?? Palette.surface), shadow: selected || fill != nil ? 0 : 1)
+            .opacity(configuration.isPressed ? 0.8 : 1)
             .padding(.vertical, 2)
     }
 }
@@ -487,21 +489,23 @@ private struct SmoothSwipeCard: View {
                     HStack(spacing: 6) {
                         if favorite { Image(systemName: "heart.fill").foregroundStyle(Palette.trash) }
                         Text(asset.creationDate?.formatted(Date.FormatStyle(date: .long, time: .omitted, locale: AppLocale.locale)) ?? String(localized: "Zonder datum", bundle: .app))
-                            .font(.headline.weight(.heavy))
+                            .font(.headline.weight(.semibold))
                     }
-                    Text(detail).font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
+                    Text(detail).font(.caption.weight(.medium)).foregroundStyle(.white.opacity(0.8))
                 }
-                .foregroundStyle(Palette.ink).padding(.horizontal, 12).padding(.vertical, 9)
-                .pop(radius: 12, fill: Palette.surface, shadow: 2)
+                .foregroundStyle(.white).padding(.horizontal, 12).padding(.vertical, 9)
+                .background(.ultraThinMaterial.opacity(0.9), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .background(Color.black.opacity(0.25), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .environment(\.colorScheme, .dark)
                 .padding(14).allowsHitTesting(false)
                 VStack {
                     HStack {
                         if offset < 0 { Spacer() }
                         Text(offset >= 0 ? String(localized: "BEWAREN", bundle: .app) : String(localized: "WEGLEGGEN", bundle: .app))
-                            .font(.system(.title3, design: .rounded).weight(.heavy)).tracking(1)
-                            .foregroundStyle(offset >= 0 ? Color.white : Palette.ink)
+                            .font(.headline.weight(.bold)).tracking(1.2)
+                            .foregroundStyle(.white)
                             .padding(.horizontal, 14).padding(.vertical, 8)
-                            .pop(radius: 12, fill: offset >= 0 ? Palette.keep : Palette.trash, shadow: 3)
+                            .background((offset >= 0 ? Palette.keep : Palette.trash).opacity(0.94), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .rotationEffect(.degrees(offset >= 0 ? -10 : 10))
                             .scaleEffect(pastThreshold ? 1.08 : 1)
                             .opacity(isTop ? min(abs(offset) / 70, 1) : 0)
@@ -510,9 +514,9 @@ private struct SmoothSwipeCard: View {
                     Spacer()
                 }.padding(22).allowsHitTesting(false)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 24))
-            .overlay(RoundedRectangle(cornerRadius: 24).stroke(Palette.ink, lineWidth: 3))
-            .background(RoundedRectangle(cornerRadius: 24).fill(Palette.ink).offset(x: 6, y: 6).opacity(depth == 0 ? 1 : 0))
+            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).stroke(Palette.hairline, lineWidth: 0.5))
+            .shadow(color: Color(hex: 0x1E1450).opacity(depth == 0 ? 0.22 : 0.08), radius: depth == 0 ? 22 : 8, y: depth == 0 ? 12 : 4)
             .scaleEffect(1 - CGFloat(depth) * 0.025)
             .offset(x: isTop ? offset : 0, y: CGFloat(depth) * 5)
             .rotationEffect(.degrees(reduceMotion || !isTop ? Double(depth) * 2.5 : Double(offset / 22)))
@@ -659,19 +663,19 @@ private struct SwipeControls: View {
     private var ready: Bool { library.current.map { pipeline.isReady($0.localIdentifier) } ?? false }
     var body: some View {
         HStack(spacing: 18) {
-            control(String(localized: "Wegleggen", bundle: .app), icon: "xmark", fill: Palette.trash, tint: Palette.ink, size: 72) { library.requestSwipe(.trash) }
+            control(String(localized: "Wegleggen", bundle: .app), icon: "xmark", fill: Palette.surface, tint: Palette.trash, size: 72) { library.requestSwipe(.trash) }
                 .disabled(!ready || library.mutating)
-            control(String(localized: "Laatste keuze terugzetten", bundle: .app), icon: "arrow.uturn.backward", fill: Palette.surface, tint: Palette.ink, size: 50) { library.undo() }
+            control(String(localized: "Laatste keuze terugzetten", bundle: .app), icon: "arrow.uturn.backward", fill: Palette.surface, tint: Palette.muted, size: 50) { library.undo() }
                 .disabled(!library.canUndo || library.mutating)
-            control(String(localized: "Later beslissen", bundle: .app), icon: "clock", fill: Palette.surface, tint: Palette.ink, size: 50) { library.deferCurrent() }
+            control(String(localized: "Later beslissen", bundle: .app), icon: "clock", fill: Palette.surface, tint: Palette.muted, size: 50) { library.deferCurrent() }
                 .disabled(library.current == nil || library.mutating)
-            control(String(localized: "Bewaren", bundle: .app), icon: "checkmark", fill: Palette.keep, tint: .white, size: 72) { library.requestSwipe(.keep) }
+            control(String(localized: "Bewaren", bundle: .app), icon: "checkmark", fill: Palette.surface, tint: Palette.keep, size: 72) { library.requestSwipe(.keep) }
                 .disabled(!ready || library.mutating)
         }.disabled(library.deleting || library.loading)
     }
     private func control(_ title: String, icon: String, fill: Color, tint: Color, size: CGFloat, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: icon).font(.system(size: size / 2.6, weight: .heavy))
+            Image(systemName: icon).font(.system(size: size / 2.7, weight: .bold))
                 .foregroundStyle(tint).frame(width: size, height: size)
         }
         .buttonStyle(RoundPopStyle(fill: fill, size: size))
@@ -684,12 +688,12 @@ private struct RoundPopStyle: ButtonStyle {
     let size: CGFloat
     @Environment(\.isEnabled) private var isEnabled
     func makeBody(configuration: Configuration) -> some View {
-        let shadow: CGFloat = size > 60 ? 4 : 3
         configuration.label
             .background(Circle().fill(fill))
-            .overlay(Circle().stroke(Palette.ink, lineWidth: 3))
-            .background(Circle().fill(Palette.ink).offset(x: configuration.isPressed ? 1 : shadow, y: configuration.isPressed ? 1 : shadow))
-            .offset(x: configuration.isPressed ? shadow - 1 : 0, y: configuration.isPressed ? shadow - 1 : 0)
+            .overlay(Circle().stroke(Palette.hairline, lineWidth: 0.5))
+            .shadow(color: Palette.shadow, radius: size > 60 ? 12 : 8, y: size > 60 ? 6 : 3)
+            .scaleEffect(configuration.isPressed ? 0.93 : 1)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
             .opacity(isEnabled ? 1 : 0.4)
     }
 }
@@ -705,20 +709,20 @@ struct SessionEndView: View {
         let bytes = library.sessionTrashedBytes
         ScrollView {
             VStack(spacing: 18) {
-                Image(systemName: "checkmark").font(.system(size: 38, weight: .heavy)).foregroundStyle(Palette.ink)
+                Image(systemName: "checkmark").font(.system(size: 38, weight: .bold)).foregroundStyle(Palette.ink)
                     .frame(width: 84, height: 84).background(Circle().fill(Palette.reward))
-                    .overlay(Circle().stroke(Palette.ink, lineWidth: 3))
+                    .overlay(Circle().stroke(Palette.hairline, lineWidth: 0.5))
                     .padding(.top, 28).accessibilityHidden(true)
-                Text("Sessie klaar!").font(.system(size: 34, weight: .heavy, design: .rounded)).tracking(-1)
+                Text("Sessie klaar!").font(.system(size: 34, weight: .bold)).tracking(-0.5)
                 Text("\(session.count) items in \(durationText)").foregroundStyle(Palette.muted)
                 VStack(spacing: 2) {
-                    Text(session.trashed.isEmpty ? String(localized: "JE BEWAARDE ALLES", bundle: .app) : String(localized: "KLAAR OM VRIJ TE MAKEN", bundle: .app)).font(.caption.weight(.heavy)).foregroundStyle(Palette.muted)
+                    Text(session.trashed.isEmpty ? String(localized: "JE BEWAARDE ALLES", bundle: .app) : String(localized: "KLAAR OM VRIJ TE MAKEN", bundle: .app)).font(.caption.weight(.semibold)).foregroundStyle(Palette.muted)
                     Text(session.trashed.isEmpty ? String(localized: "\(session.kept.count) bewaard", bundle: .app) : ByteText.format(bytes))
-                        .font(.system(size: 44, weight: .heavy, design: .rounded)).tracking(-1)
+                        .font(.system(size: 44, weight: .bold)).tracking(-0.5)
                     if library.streak.freedBytes > 0 {
                         Text("Totaal al vrijgemaakt: \(ByteText.format(library.streak.freedBytes))").font(.footnote).foregroundStyle(Palette.muted)
                     }
-                }.frame(maxWidth: .infinity).padding(.vertical, 18).pop(radius: 20, fill: Palette.reward, shadow: 4)
+                }.frame(maxWidth: .infinity).padding(.vertical, 18).pop(radius: 20, fill: Palette.brandSoft, shadow: 0)
                 HStack(spacing: 10) {
                     stat("\(session.kept.count)", "bewaard", Palette.keep)
                     stat("\(session.trashed.count)", "weggelegd", Palette.trash)
@@ -728,12 +732,12 @@ struct SessionEndView: View {
                 let highlights = library.sessionHighlights
                 if !highlights.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Mooi teruggevonden").font(.headline.weight(.heavy))
+                        Text("Mooi teruggevonden").font(.headline.weight(.semibold))
                         HStack(spacing: 8) {
                             ForEach(highlights, id: \.localIdentifier) { asset in
                                 AssetImage(asset: asset, manager: library.images, thumbnail: true)
                                     .frame(height: 104).clipShape(RoundedRectangle(cornerRadius: 12))
-                                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.ink, lineWidth: 2))
+                                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.hairline, lineWidth: 0.5))
                             }
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
@@ -741,7 +745,7 @@ struct SessionEndView: View {
                 ReminderCard().environmentObject(library)
                 if !library.pending.isEmpty {
                     Button(String(localized: "Controleer \(library.pending.count) items", bundle: .app) + (library.pendingBytes > 0 ? " · " + ByteText.format(library.pendingBytes) : "")) { onClose(true) }
-                        .buttonStyle(PrimaryStyle(fill: Palette.trash, text: Palette.ink))
+                        .buttonStyle(PrimaryStyle(fill: Palette.trash, text: .white))
                 }
                 Button("Nog \(ReviewSession.size) doen") { onClose(false) }.buttonStyle(SecondaryStyle())
                     .padding(.bottom, 20)
@@ -775,7 +779,7 @@ struct SessionEndView: View {
     }
     private func stat(_ value: String, _ label: String, _ fill: Color) -> some View {
         VStack(spacing: 2) {
-            Text(value).font(.title2.weight(.heavy)).foregroundStyle(fill == Palette.keep ? Color.white : Palette.ink)
+            Text(value).font(.title2.weight(.semibold)).foregroundStyle(fill == Palette.keep ? Color.white : Palette.ink)
             Text(label).font(.caption.weight(.semibold)).foregroundStyle(fill == Palette.keep ? Color.white : Palette.ink)
         }.frame(maxWidth: .infinity).padding(.vertical, 12).pop(radius: 16, fill: fill, shadow: 3)
     }
@@ -787,7 +791,7 @@ struct SessionEndView: View {
         let streak = library.streakDays
         return VStack(spacing: 8) {
             HStack {
-                Label(streak == 1 ? String(localized: "1 dag op rij", bundle: .app) : String(localized: "\(streak) dagen op rij", bundle: .app), systemImage: "flame.fill").font(.subheadline.weight(.heavy))
+                Label(streak == 1 ? String(localized: "1 dag op rij", bundle: .app) : String(localized: "\(streak) dagen op rij", bundle: .app), systemImage: "flame.fill").font(.subheadline.weight(.semibold))
                 Spacer()
                 Text("Eén dag overslaan mag").font(.caption).foregroundStyle(Palette.muted)
             }
@@ -796,7 +800,7 @@ struct SessionEndView: View {
                     let active = library.streak.isActive(day)
                     VStack(spacing: 4) {
                         Circle().fill(active ? Palette.reward : Palette.surface)
-                            .overlay(Circle().stroke(Palette.ink, lineWidth: 2))
+                            .overlay(Circle().stroke(Palette.hairline, lineWidth: 0.5))
                             .frame(width: 30, height: 30)
                         Text(day.formatted(Date.FormatStyle(locale: AppLocale.locale).weekday(.narrow))).font(.caption2.weight(.bold)).foregroundStyle(Palette.muted)
                     }.frame(maxWidth: .infinity)
@@ -846,7 +850,7 @@ struct FocusSwipeView: View {
             } else {
                 VStack(spacing: 14) {
                     Image(systemName: "checkmark.seal.fill").font(.system(size: 52)).foregroundStyle(Palette.reward)
-                    Text("Alles bekeken").font(.system(.title, design: .rounded).weight(.heavy)).foregroundStyle(.white)
+                    Text("Alles bekeken").font(.system(.title).weight(.bold)).foregroundStyle(.white)
                     Text("Kies een andere categorie op het hoofdscherm.").foregroundStyle(.white.opacity(0.8))
                     Button("Terug naar overzicht") { dismiss() }.buttonStyle(SecondaryStyle())
                 }.padding(24)
@@ -877,16 +881,16 @@ struct FocusSwipeView: View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
                 Button { dismiss() } label: {
-                    Image(systemName: "xmark").font(.system(size: 15, weight: .heavy)).foregroundStyle(.white)
+                    Image(systemName: "xmark").font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
                         .frame(width: 44, height: 44).background(Circle().fill(Palette.ink.opacity(0.72)))
                 }.accessibilityLabel("Focusmodus sluiten")
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         Capsule().fill(Palette.ink.opacity(0.45))
-                        Capsule().fill(Palette.reward).frame(width: geometry.size.width * library.session.progress)
+                        Capsule().fill(Color.white).frame(width: geometry.size.width * library.session.progress)
                     }
                 }.frame(height: 6)
-                Text("\(library.session.count)/\(ReviewSession.size)").font(.footnote.weight(.heavy)).monospacedDigit()
+                Text("\(library.session.count)/\(ReviewSession.size)").font(.footnote.weight(.semibold)).monospacedDigit()
                     .foregroundStyle(.white).padding(.horizontal, 10).padding(.vertical, 5)
                     .background(Capsule().fill(Palette.ink.opacity(0.72)))
             }
@@ -898,7 +902,7 @@ struct FocusSwipeView: View {
                     VStack(alignment: .leading, spacing: 1) {
                         HStack(spacing: 5) {
                             if library.isFavorite(asset) { Image(systemName: "heart.fill").foregroundStyle(Palette.trash) }
-                            Text(asset.creationDate?.formatted(Date.FormatStyle(date: .long, time: .omitted, locale: AppLocale.locale)) ?? String(localized: "Zonder datum", bundle: .app)).font(.subheadline.weight(.heavy))
+                            Text(asset.creationDate?.formatted(Date.FormatStyle(date: .long, time: .omitted, locale: AppLocale.locale)) ?? String(localized: "Zonder datum", bundle: .app)).font(.subheadline.weight(.semibold))
                         }
                         Text((asset.mediaType == .video ? String(localized: "Video · ", bundle: .app) : String(localized: "Foto · ", bundle: .app)) + ByteText.format(PhotoLibrary.fileSize(asset)) + (library.clutterReason(asset).map { " · " + $0 } ?? ""))
                             .font(.caption.weight(.semibold)).opacity(0.85)
@@ -921,7 +925,7 @@ struct FocusSwipeView: View {
                     Text("\(library.pending.count) weg")
                     if library.pendingBytes > 0 { Text("· \(ByteText.format(library.pendingBytes))") }
                 }
-                .font(.subheadline.weight(.heavy)).foregroundStyle(Palette.ink)
+                .font(.subheadline.weight(.semibold)).foregroundStyle(Palette.ink)
                 .padding(.horizontal, 16).frame(minHeight: 44)
                 .pop(radius: 22, fill: Palette.surface, shadow: 3)
             }
@@ -1060,7 +1064,7 @@ private struct FocusCard: View {
         }()
         if let label {
             Text(label.0)
-                .font(.system(size: 30, weight: .heavy, design: .rounded)).tracking(1)
+                .font(.system(size: 30, weight: .bold)).tracking(1)
                 .foregroundStyle(label.2)
                 .padding(.horizontal, 18).padding(.vertical, 10)
                 .pop(radius: 14, fill: label.1, shadow: 4)
@@ -1122,16 +1126,16 @@ struct GestureGuideView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Zo swipe je").font(.system(size: 32, weight: .heavy, design: .rounded)).padding(.top, 28)
+                Text("Zo swipe je").font(.system(size: 32, weight: .bold)).padding(.top, 28)
                 Text("Alles met één duim. Je vindt dit later ook onder het i-knopje.").foregroundStyle(Palette.muted)
                 ForEach(rows) { row in
                     HStack(spacing: 14) {
-                        Image(systemName: row.icon).font(.system(size: 20, weight: .heavy)).foregroundStyle(row.tint)
+                        Image(systemName: row.icon).font(.system(size: 20, weight: .bold)).foregroundStyle(row.tint)
                             .frame(width: 46, height: 46)
                             .background(RoundedRectangle(cornerRadius: 12).fill(row.fill))
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.ink, lineWidth: 2))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.hairline, lineWidth: 0.5))
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(row.gesture).font(.headline.weight(.heavy))
+                            Text(row.gesture).font(.headline.weight(.semibold))
                             Text(row.result).font(.subheadline).foregroundStyle(Palette.muted)
                         }
                         Spacer()
@@ -1156,10 +1160,10 @@ struct ReminderCard: View {
         VStack(alignment: .leading, spacing: 10) {
             if reminders.enabled {
                 Label("Herinnering staat aan om \(reminders.timeText)", systemImage: "bell.fill")
-                    .font(.subheadline.weight(.heavy))
+                    .font(.subheadline.weight(.semibold))
                 Text("Eén melding per dag, niet als je al klaar bent.").font(.caption).foregroundStyle(Palette.muted)
             } else {
-                Text("Morgen weer even swipen?").font(.headline.weight(.heavy))
+                Text("Morgen weer even swipen?").font(.headline.weight(.semibold))
                 Text("Kies je eigen moment, bijvoorbeeld na het eten. Eén melding per dag.").font(.footnote).foregroundStyle(Palette.muted)
                 HStack {
                     DatePicker("Tijd", selection: $time, displayedComponents: .hourAndMinute).labelsHidden()
@@ -1198,16 +1202,16 @@ struct WhatsNewView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                Text("NIEUW IN FOTOSWIPE").font(.caption.weight(.heavy)).foregroundStyle(Palette.muted).padding(.top, 28)
-                Text("Slimmer opruimen,\nmeer ruimte.").font(.system(size: 32, weight: .heavy, design: .rounded)).tracking(-1)
+                Text("NIEUW IN FOTOSWIPE").font(.caption.weight(.semibold)).foregroundStyle(Palette.muted).padding(.top, 28)
+                Text("Slimmer opruimen,\nmeer ruimte.").font(.system(size: 32, weight: .bold)).tracking(-0.5)
                 ForEach(items) { item in
                     HStack(alignment: .top, spacing: 14) {
-                        Image(systemName: item.icon).font(.system(size: 19, weight: .heavy)).foregroundStyle(item.tint)
+                        Image(systemName: item.icon).font(.system(size: 19, weight: .bold)).foregroundStyle(item.tint)
                             .frame(width: 46, height: 46)
                             .background(RoundedRectangle(cornerRadius: 12).fill(item.fill))
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.ink, lineWidth: 2))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.hairline, lineWidth: 0.5))
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(item.title).font(.headline.weight(.heavy))
+                            Text(item.title).font(.headline.weight(.semibold))
                             Text(item.text).font(.subheadline).foregroundStyle(Palette.muted)
                         }
                         Spacer(minLength: 0)
@@ -1291,7 +1295,7 @@ struct OnboardingView: View {
             Spacer(minLength: compact ? 0 : 8)
             StackIllustration().scaleEffect(compact ? 0.72 : 1).frame(height: compact ? 120 : 170).accessibilityHidden(true)
             Text("Bewaar het mooie.\nSwipe de rest.")
-                .font(.system(size: compact ? 28 : 34, weight: .heavy, design: .rounded)).tracking(-1.1)
+                .font(.system(size: compact ? 28 : 34, weight: .bold)).tracking(-0.5)
                 .multilineTextAlignment(.center).minimumScaleFactor(0.75).fixedSize(horizontal: false, vertical: true)
             VStack(alignment: .leading, spacing: compact ? 6 : 10) {
                 row("timer", String(localized: "Een paar minuten per dag houdt je bibliotheek licht.", bundle: .app))
@@ -1305,7 +1309,7 @@ struct OnboardingView: View {
 
     private func row(_ icon: String, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: icon).font(.system(size: 17, weight: .heavy)).foregroundStyle(Palette.brand).frame(width: 26)
+            Image(systemName: icon).font(.system(size: 17, weight: .bold)).foregroundStyle(Palette.brand).frame(width: 26)
             Text(text).font(.body).fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
@@ -1321,7 +1325,7 @@ struct OnboardingView: View {
 
     private var practice: some View {
         VStack(spacing: 16) {
-            Text("Probeer het even").font(.system(size: 30, weight: .heavy, design: .rounded)).tracking(-0.8)
+            Text("Probeer het even").font(.system(size: 30, weight: .bold)).tracking(-0.8)
             Text(hint ?? instruction).font(.headline).multilineTextAlignment(.center)
                 .foregroundStyle(hint == nil ? Palette.ink : Palette.trash)
                 .frame(minHeight: 44).accessibilityAddTraits(.updatesFrequently)
@@ -1330,7 +1334,7 @@ struct OnboardingView: View {
                     .overlay(alignment: .top) {
                         if drag != 0 {
                             Text(drag > 0 ? String(localized: "BEWAREN", bundle: .app) : String(localized: "WEGLEGGEN", bundle: .app))
-                                .font(.system(.title3, design: .rounded).weight(.heavy))
+                                .font(.system(.title3).weight(.bold))
                                 .foregroundStyle(drag > 0 ? Color.white : Palette.ink)
                                 .padding(.horizontal, 14).padding(.vertical, 8)
                                 .pop(radius: 12, fill: drag > 0 ? Palette.keep : Palette.trash, shadow: 3)
@@ -1356,11 +1360,11 @@ struct OnboardingView: View {
             } else {
                 HStack(spacing: 18) {
                     Button { tap(.trash) } label: {
-                        Image(systemName: "xmark").font(.system(size: 24, weight: .heavy)).foregroundStyle(Palette.ink)
+                        Image(systemName: "xmark").font(.system(size: 24, weight: .bold)).foregroundStyle(Palette.ink)
                             .frame(width: 64, height: 64)
                     }.buttonStyle(RoundOnboardingStyle(fill: Palette.trash)).accessibilityLabel("Wegleggen")
                     Button { tap(.keep) } label: {
-                        Image(systemName: "checkmark").font(.system(size: 26, weight: .heavy)).foregroundStyle(.white)
+                        Image(systemName: "checkmark").font(.system(size: 26, weight: .bold)).foregroundStyle(.white)
                             .frame(width: 64, height: 64)
                     }.buttonStyle(RoundOnboardingStyle(fill: Palette.keep)).accessibilityLabel("Bewaren")
                 }
@@ -1399,7 +1403,7 @@ struct OnboardingView: View {
             Spacer(minLength: 8)
             Image(systemName: "photo.on.rectangle.angled").font(.system(size: 56, weight: .bold)).foregroundStyle(Palette.brand)
                 .accessibilityHidden(true)
-            Text("Fotoswipe heeft je foto's nodig").font(.system(size: 28, weight: .heavy, design: .rounded)).tracking(-0.8)
+            Text("Fotoswipe heeft je foto's nodig").font(.system(size: 28, weight: .bold)).tracking(-0.8)
                 .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             VStack(alignment: .leading, spacing: 10) {
                 row("lock.shield", String(localized: "Je foto's blijven op je iPhone. Er wordt niets geüpload.", bundle: .app))
@@ -1418,23 +1422,16 @@ private struct RoundOnboardingStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background(Circle().fill(fill))
-            .overlay(Circle().stroke(Palette.ink, lineWidth: 3))
-            .background(Circle().fill(Palette.ink).offset(x: configuration.isPressed ? 1 : 4, y: configuration.isPressed ? 1 : 4))
-            .offset(x: configuration.isPressed ? 3 : 0, y: configuration.isPressed ? 3 : 0)
+            .overlay(Circle().stroke(Palette.hairline, lineWidth: 0.5))
+            .shadow(color: Palette.shadow, radius: 12, y: 6)
+            .scaleEffect(configuration.isPressed ? 0.93 : 1)
     }
 }
 
 /// The two stacked cards from the app icon, drawn in code.
 struct StackIllustration: View {
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 22).fill(Palette.reward).frame(width: 120, height: 150)
-                .rotationEffect(.degrees(-8)).pop(radius: 22, fill: Palette.reward)
-            RoundedRectangle(cornerRadius: 22).fill(Palette.brand).frame(width: 120, height: 150)
-                .overlay(RoundedRectangle(cornerRadius: 22).stroke(Palette.ink, lineWidth: 2))
-                .overlay(Image(systemName: "photo").font(.system(size: 40, weight: .bold)).foregroundStyle(.white))
-                .rotationEffect(.degrees(6)).offset(x: 26, y: 6)
-        }
+        Image("StackArt").resizable().scaledToFit().frame(width: 170, height: 180)
     }
 }
 
@@ -1450,8 +1447,8 @@ private struct PracticeCard: View {
         }
         .frame(width: 220, height: 290)
         .clipShape(RoundedRectangle(cornerRadius: 22))
-        .overlay(RoundedRectangle(cornerRadius: 22).stroke(Palette.ink, lineWidth: 3))
-        .background(RoundedRectangle(cornerRadius: 22).fill(Palette.ink).offset(x: 6, y: 6))
+        .overlay(RoundedRectangle(cornerRadius: 22).stroke(Palette.hairline, lineWidth: 0.5))
+        .shadow(color: Palette.shadow, radius: 14, y: 6)
     }
 }
 
@@ -1482,13 +1479,13 @@ struct StatsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     VStack(spacing: 2) {
-                        Text("VRIJGEMAAKT").font(.caption.weight(.heavy)).foregroundStyle(Palette.ink)
+                        Text("VRIJGEMAAKT").font(.caption.weight(.semibold)).foregroundStyle(Palette.ink)
                         Text(library.streak.freedBytes > 0 ? ByteText.format(library.streak.freedBytes) : String(localized: "Nog niets", bundle: .app))
-                            .font(.system(size: 40, weight: .heavy, design: .rounded)).tracking(-1)
+                            .font(.system(size: 40, weight: .bold)).tracking(-0.5)
                             .minimumScaleFactor(0.6).lineLimit(1)
                         Text("na bevestigd verwijderen").font(.caption).foregroundStyle(Palette.ink)
                     }
-                    .frame(maxWidth: .infinity).padding(.vertical, 18).pop(radius: 20, fill: Palette.reward, shadow: 4)
+                    .frame(maxWidth: .infinity).padding(.vertical, 18).pop(radius: 20, fill: Palette.brandSoft, shadow: 0)
                     LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                         tile("\(library.totalReviewed)", String(localized: "items bekeken", bundle: .app))
                         tile("\(library.completedSessions)", library.completedSessions == 1 ? String(localized: "sessie afgerond", bundle: .app) : String(localized: "sessies afgerond", bundle: .app))
@@ -1497,9 +1494,9 @@ struct StatsView: View {
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Bibliotheek bekeken").font(.headline.weight(.heavy))
+                            Text("Bibliotheek bekeken").font(.headline.weight(.semibold))
                             Spacer()
-                            Text("\(Int((library.libraryProgress * 100).rounded()))%").font(.headline.weight(.heavy)).monospacedDigit()
+                            Text("\(Int((library.libraryProgress * 100).rounded()))%").font(.headline.weight(.semibold)).monospacedDigit()
                         }
                         bar(library.libraryProgress, Palette.brand)
                         Text("\(library.totalReviewed) van \(library.libraryCount) items").font(.caption).foregroundStyle(Palette.muted)
@@ -1508,7 +1505,7 @@ struct StatsView: View {
                     let months = library.recentMonths()
                     if !months.isEmpty {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Per maand").font(.headline.weight(.heavy))
+                            Text("Per maand").font(.headline.weight(.semibold))
                             ForEach(Array(months.enumerated()), id: \.offset) { _, month in
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
@@ -1546,7 +1543,7 @@ struct StatsView: View {
 
     private func tile(_ value: String, _ label: String) -> some View {
         VStack(spacing: 2) {
-            Text(value).font(.system(.title, design: .rounded).weight(.heavy)).monospacedDigit().minimumScaleFactor(0.6).lineLimit(1)
+            Text(value).font(.system(.title).weight(.bold)).monospacedDigit().minimumScaleFactor(0.6).lineLimit(1)
             Text(label).font(.caption.weight(.semibold)).multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity).padding(.vertical, 14)
@@ -1559,7 +1556,7 @@ struct StatsView: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(Palette.track)
                 Capsule().fill(color).frame(width: geometry.size.width * min(max(value, 0), 1))
-                Capsule().stroke(Palette.ink, lineWidth: 1.5)
+                Capsule().stroke(Palette.hairline, lineWidth: 0.5)
             }
         }
         .frame(height: 10)
@@ -1584,9 +1581,9 @@ private struct ShareCard: View {
     let sessions: Int
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("fotoswipe").font(.system(size: 26, weight: .heavy, design: .rounded)).foregroundStyle(Palette.brand)
+            Text("fotoswipe").font(.system(size: 26, weight: .bold)).foregroundStyle(Palette.brand)
             Text(freed > 0 ? String(localized: "Ik heb \(ByteText.format(freed)) vrijgemaakt", bundle: .app) : String(localized: "Ik ruim mijn fotorol op", bundle: .app))
-                .font(.system(size: 30, weight: .heavy, design: .rounded)).tracking(-0.8).foregroundStyle(Palette.ink)
+                .font(.system(size: 30, weight: .bold)).tracking(-0.8).foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 10) {
                 stat("\(reviewed)", "bekeken", Palette.surface)
@@ -1602,7 +1599,7 @@ private struct ShareCard: View {
     }
     private func stat(_ value: String, _ label: String, _ fill: Color) -> some View {
         VStack(spacing: 2) {
-            Text(value).font(.system(size: 24, weight: .heavy, design: .rounded)).foregroundStyle(Palette.ink)
+            Text(value).font(.system(size: 24, weight: .bold)).foregroundStyle(Palette.ink)
             Text(label).font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.ink)
         }
         .frame(maxWidth: .infinity).padding(.vertical, 12)

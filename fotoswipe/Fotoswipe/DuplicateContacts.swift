@@ -250,7 +250,7 @@ struct DuplicateContactsView: View {
                 ForEach(Array(group.enumerated()), id: \.offset) { position, contact in
                     VStack(alignment: .leading, spacing: 1) {
                         Text(verbatim: DuplicateContactsModel.name(contact).isEmpty ? String(localized: "Zonder naam", bundle: .app) : DuplicateContactsModel.name(contact))
-                            .font(position == 0 ? .headline.weight(.heavy) : .subheadline)
+                            .font(position == 0 ? .headline.weight(.semibold) : .subheadline)
                             .foregroundStyle(position == 0 ? Palette.ink : Palette.muted)
                         let details = contact.phoneNumbers.map(\.value.stringValue) + contact.emailAddresses.map { $0.value as String }
                         if !details.isEmpty {

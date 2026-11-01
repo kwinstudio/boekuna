@@ -14,7 +14,7 @@ struct ReviewView: View {
                 if selection == 0 && !library.pending.isEmpty {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(String(localized: "\(library.pending.count) items", bundle: .app) + (library.pendingBytes > 0 ? " · " + ByteText.format(library.pendingBytes) : ""))
-                            .font(.system(size: 30, weight: .heavy, design: .rounded)).tracking(-0.8)
+                            .font(.system(size: 30, weight: .bold)).tracking(-0.8)
                         Text("Tik op een item om het te bekijken. Met Terug zet je het terug in de stapel.")
                             .font(.subheadline).foregroundStyle(Palette.muted)
                     }.frame(maxWidth: .infinity, alignment: .leading).foregroundStyle(Palette.ink)
@@ -38,7 +38,7 @@ struct ReviewView: View {
                                         AssetImage(asset: asset, manager: library.images, thumbnail: true)
                                             .id(asset.localIdentifier).frame(height: 135)
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
-                                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.ink, lineWidth: 2))
+                                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.hairline, lineWidth: 0.5))
                                     }.accessibilityLabel("Item bekijken")
                                     Button { library.restore(asset.localIdentifier) } label: {
                                         Label("Terug", systemImage: "arrow.uturn.backward").font(.caption.weight(.bold))
@@ -60,7 +60,7 @@ struct ReviewView: View {
                             if library.deleting { ProgressView().tint(Palette.ink) }
                             Text(library.deleting ? String(localized: "Verwijderen…", bundle: .app) : String(localized: "Verwijder \(library.pending.count) items", bundle: .app) + (library.pendingBytes > 0 ? " · " + ByteText.format(library.pendingBytes) : ""))
                         }
-                    }.buttonStyle(PrimaryStyle(fill: Palette.trash, text: Palette.ink)).disabled(library.deleting || library.loading)
+                    }.buttonStyle(PrimaryStyle(fill: Palette.trash, text: .white)).disabled(library.deleting || library.loading)
                 }
             }.padding(20).background(Palette.background.ignoresSafeArea())
                 .navigationTitle("Jouw selectie").navigationBarTitleDisplayMode(.inline)
@@ -220,9 +220,9 @@ struct HelpView: View {
     }
     private func step(_ number: Int, _ title: String, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            Text("\(number)").font(.headline.weight(.heavy)).foregroundStyle(Palette.ink)
+            Text("\(number)").font(.headline.weight(.semibold)).foregroundStyle(Palette.ink)
                 .frame(width: 30, height: 30).background(Circle().fill(Palette.reward))
-                .overlay(Circle().stroke(Palette.ink, lineWidth: 2))
+                .overlay(Circle().stroke(Palette.hairline, lineWidth: 0.5))
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.headline)
                 Text(text).font(.subheadline).foregroundStyle(Palette.muted)

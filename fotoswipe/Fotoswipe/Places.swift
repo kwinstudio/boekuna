@@ -88,7 +88,7 @@ struct PlacesView: View {
                         ForEach(library.places) { place in
                             Annotation(library.placeName(place), coordinate: place.coordinate) {
                                 Text("\(place.ids.count)")
-                                    .font(.caption.weight(.heavy)).monospacedDigit()
+                                    .font(.caption.weight(.semibold)).monospacedDigit()
                                     .padding(.horizontal, 8).padding(.vertical, 4)
                                     .foregroundStyle(place.isHome ? Palette.ink : .white)
                                     .pop(radius: 10, fill: place.isHome ? Palette.reward : Palette.brand, shadow: 2)
@@ -119,18 +119,18 @@ struct PlacesView: View {
         let open = library.undecidedCount(place.ids)
         return HStack(spacing: 12) {
             Image(systemName: place.isHome ? "house.fill" : "airplane")
-                .font(.system(size: 16, weight: .heavy))
+                .font(.system(size: 16, weight: .bold))
                 .foregroundStyle(place.isHome ? Palette.ink : .white)
                 .frame(width: 40, height: 40)
                 .background(RoundedRectangle(cornerRadius: 10).fill(place.isHome ? Palette.reward : Palette.brand))
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Palette.ink, lineWidth: 2))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Palette.hairline, lineWidth: 0.5))
             VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: library.placeName(place)).font(.headline.weight(.heavy)).foregroundStyle(Palette.ink)
+                Text(verbatim: library.placeName(place)).font(.headline.weight(.semibold)).foregroundStyle(Palette.ink)
                 Text(verbatim: dateText(place)).font(.caption).foregroundStyle(Palette.muted)
             }
             Spacer(minLength: 6)
             VStack(alignment: .trailing, spacing: 2) {
-                Text("\(place.ids.count) items").font(.subheadline.weight(.heavy)).monospacedDigit().foregroundStyle(Palette.ink)
+                Text("\(place.ids.count) items").font(.subheadline.weight(.semibold)).monospacedDigit().foregroundStyle(Palette.ink)
                 Text(open == 0 ? String(localized: "Klaar", bundle: .app) : String(localized: "\(open) te doen", bundle: .app))
                     .font(.caption.weight(.semibold)).foregroundStyle(open == 0 ? Palette.keep : Palette.muted)
             }
