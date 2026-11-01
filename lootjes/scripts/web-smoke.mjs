@@ -40,6 +40,9 @@ try {
   await page.locator('#reveal').waitFor();
   await page.screenshot({ path: `${OUT}/web-scratch.png` });
   await page.click('#reveal');
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: `${OUT}/web-opening.png` });
+  await page.waitForTimeout(2200);
   await page.getByText('Jij koopt een cadeau voor').waitFor({ timeout: 8000 });
   ok(true, 'tapping reveal shows the lootje');
   await page.fill('#in_myLootje', 'Welke kleur vind je mooi?');

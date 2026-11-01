@@ -49,6 +49,21 @@
   .wish { white-space:pre-wrap; overflow-wrap:anywhere; }
   .appbanner { display:flex; gap:12px; align-items:center; }
   .appbanner img { width:48px; height:48px; border-radius:11px; }
+  .fest { position:relative; overflow:hidden; border-radius:16px; padding:18px; color:#fff; margin:6px 0 14px; display:flex; align-items:center; gap:12px; min-height:104px; }
+  .fest.sint { background:linear-gradient(135deg,#B3261E,#731214); }
+  .fest.kerst { background:linear-gradient(135deg,#1F6B4A,#0F3D2B); }
+  .fest canvas { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .fest .t { position:relative; flex:1; } .fest .t b { font-size:17px; } .fest .t div { opacity:.85; font-size:15px; }
+  .fest .n { position:relative; text-align:center; min-width:86px; } .fest .n strong { display:block; font-size:38px; line-height:1; font-variant-numeric:tabular-nums; } .fest .n span { font-size:12px; opacity:.85; }
+  .env { position:relative; height:210px; perspective:700px; margin:6px 0 4px; }
+  .env .body { position:absolute; left:14px; right:14px; bottom:0; height:150px; border-radius:12px; background:var(--envg); transition:opacity .3s .7s; }
+  .env .flap { position:absolute; left:14px; right:14px; top:45px; height:80px; background:var(--envf); clip-path:polygon(0 0,100% 0,50% 100%); transform-origin:top; transition:transform .45s ease-in-out .2s, opacity .3s .7s; z-index:3; }
+  .env .seal { position:absolute; left:50%; top:105px; width:52px; height:52px; margin-left:-26px; border-radius:50%; background:#EDC254; z-index:4; transition:transform .25s cubic-bezier(.3,1.6,.6,1), opacity .25s; display:flex; align-items:center; justify-content:center; font-size:22px; }
+  .env .letter { position:absolute; left:28px; right:28px; top:70px; min-height:120px; background:var(--card); border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px; opacity:0; z-index:2; transition:transform .55s cubic-bezier(.2,.9,.3,1.1) .65s, opacity .2s .45s, box-shadow .3s .8s; }
+  .env.open .seal { transform:scale(.01); opacity:0; }
+  .env.open .flap { transform:rotateX(180deg); opacity:0; }
+  .env.open .body { opacity:0; }
+  .env.open .letter { opacity:1; transform:translateY(-52px); z-index:5; box-shadow:0 10px 24px rgba(0,0,0,.14); }
   @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
 </style>
 </head>
@@ -98,6 +113,54 @@ function appBanner(path) {
   </div>`;
 }
 
+
+// ---------- Festive header ----------
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function seasonOf(occasion) {
+  if (occasion === "kerst") return "kerst";
+  if (occasion === "sinterklaas") return "sint";
+  const n = new Date(), m = n.getMonth() + 1, d = n.getDate();
+  return (m === 12 && d > 5) || (m === 1 && d <= 6) ? "kerst" : "sint";
+}
+function daysTo(s) {
+  if (!s) return null;
+  const d = Math.round((new Date(s + "T00:00:00") - new Date(new Date().toDateString())) / 864e5);
+  return d >= 0 ? d : null;
+}
+function festHeader(g) {
+  const season = seasonOf(g.occasion), days = daysTo(g.eventDate), word = occ(g.occasion).word;
+  const title = g.occasion === "kerst" ? "Kerst" : g.occasion === "sinterklaas" ? "Sinterklaas" : esc(g.name);
+  return `<div class="fest ${season}"><canvas data-season="${season}"></canvas>
+    <div class="t"><b>${title}</b>${g.eventDate ? `<div>${esc(longDate(g.eventDate))}</div>` : ""}${g.budgetCents != null ? `<div>Budget ${euro(g.budgetCents)}</div>` : ""}</div>
+    ${days != null ? `<div class="n"><strong data-count="${days}">${reduced ? days : 0}</strong><span>${days === 1 ? "dag tot " + word : days === 0 ? "het is vandaag!" : "dagen tot " + word}</span></div>` : ""}</div>`;
+}
+function startFestive() {
+  document.querySelectorAll(".fest [data-count]").forEach((el) => {
+    const to = +el.dataset.count; if (reduced || !to) { el.textContent = to; return; }
+    const t0 = performance.now();
+    const step = (t) => { const k = Math.min(1, (t - t0) / 900); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  });
+  if (reduced) return;
+  document.querySelectorAll(".fest canvas").forEach((c) => {
+    const ctx = c.getContext("2d"), dpr = devicePixelRatio || 1, season = c.dataset.season;
+    const W = c.clientWidth, H = c.clientHeight; c.width = W * dpr; c.height = H * dpr; ctx.scale(dpr, dpr);
+    const ps = Array.from({ length: 24 }, () => ({ x: Math.random() * W, y: Math.random() * H, s: 2 + Math.random() * 3, v: 8 + Math.random() * 14, a: 3 + Math.random() * 7, p: Math.random() * 6.28 }));
+    const star = (x, y, r) => { ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5 - Math.PI / 2, q = i % 2 ? r * .45 : r; ctx.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q); } ctx.closePath(); ctx.fill(); };
+    const frame = (t) => {
+      if (!c.isConnected) return;
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = season === "kerst" ? "rgba(255,255,255,.75)" : "rgba(255,214,115,.85)";
+      for (const p of ps) {
+        const y = (p.y + t / 1000 * p.v) % (H + 20) - 10, x = p.x + Math.sin(t / 1250 + p.p) * p.a;
+        if (season === "kerst") { ctx.beginPath(); ctx.arc(x, y, p.s / 2, 0, 6.28); ctx.fill(); } else star(x, y, p.s);
+      }
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  });
+}
+
 // ---------- Join ----------
 async function joinPage(code) {
   let p;
@@ -107,9 +170,8 @@ async function joinPage(code) {
   setAccent(g.occasion);
   const closed = g.drawnAt || !g.joinOpen;
   render(`
-    <div class="pill">${g.occasion === "kerst" ? "Kerst" : g.occasion === "sinterklaas" ? "Sinterklaas" : "Lootjes"}</div>
+    ${festHeader(g)}
     <h1>${esc(g.name)}</h1>
-    ${g.eventDate ? `<p class="muted">${esc(longDate(g.eventDate))}${g.budgetCents != null ? " · budget " + euro(g.budgetCents) : ""}</p>` : ""}
     ${g.note ? `<div class="card">${esc(g.note)}</div>` : ""}
     ${p.memberNames.length ? `<p class="muted">Doen al mee: ${p.memberNames.map(esc).join(", ")}</p>` : ""}
     ${closed ? `<div class="card"><strong>Aanmelden is gesloten.</strong><p class="muted">Er is al getrokken. Vraag de organisator om je toe te voegen.</p></div>` : `
@@ -121,6 +183,7 @@ async function joinPage(code) {
     </div>
     <p class="muted center">Geen account nodig. Je krijgt meteen je eigen persoonlijke pagina.</p>`}
   `);
+  startFestive();
   if (closed) return bar("");
   const names = p.memberNames.map((n) => n.toLowerCase());
   const input = $("#nm");
@@ -177,11 +240,12 @@ async function memberPage(token, justJoined = false) {
       <button class="btn secondary" style="width:auto;padding:0 18px" id="saveWish">Bewaar</button></div></div>`;
 
   if (!d.receiver) {
-    render(`<div class="pill">Je doet mee</div><h1>Hoi ${esc(d.me.name)}!</h1>
+    render(`${festHeader(g)}<div class="pill">Je doet mee</div><h1>Hoi ${esc(d.me.name)}!</h1>
       <p class="muted">${justJoined ? "Je bent aangemeld. " : ""}De lootjes worden nog getrokken. Bewaar deze pagina (of deze link) — hier verschijnt straks je lootje.</p>
       ${myWish}
       ${g.joinOpen ? `<div class="card"><a href="/j/${esc(g.joinCode)}">Ook iemand anders aanmelden, bijvoorbeeld je kind</a></div>` : ""}
       ${info}${appBanner("m/" + token)}`);
+    startFestive();
     bar("");
     wireWish(token);
     return;
@@ -196,6 +260,7 @@ async function memberPage(token, justJoined = false) {
 
   render(`
     ${warnOpened && !d.me.isOrganizer && !revealed ? `<p class="warn">Deze link is al eerder geopend. Was jij dat niet? Vraag de organisator om een nieuwe link.</p>` : ""}
+    ${festHeader(g)}
     <div id="lootje"></div>
     <div class="card"><h2>Verlanglijstje van ${esc(r.name)}</h2>
       ${r.wishlist.trim() ? `<div class="wish">${linkify(r.wishlist)}</div>` : `<p class="muted">${esc(r.name)} heeft nog niets ingevuld. Stel hieronder anoniem een vraag.</p>`}</div>
@@ -203,6 +268,7 @@ async function memberPage(token, justJoined = false) {
     ${chat("mySint", `Je ${o.giver}`, `Vragen van je ${o.giver}. Je kunt gewoon antwoorden.`, "Antwoord")}
     ${myWish}${info}${appBanner("m/" + token)}`);
 
+  startFestive();
   const lootje = $("#lootje");
   const showResult = () => {
     lootje.innerHTML = `<div class="card"><p class="muted" style="margin:0">Jij koopt een cadeau voor</p>
@@ -214,7 +280,7 @@ async function memberPage(token, justJoined = false) {
     };
   };
   if (revealed) showResult();
-  else scratchCard(lootje, r.name, () => { localStorage.setItem(revealKey, "1"); setTimeout(showResult, 1200); });
+  else scratchCard(lootje, r.name, () => { localStorage.setItem(revealKey, "1"); setTimeout(showResult, 2400); }, seasonOf(g.occasion));
 
   document.querySelectorAll("[data-thread]").forEach((b) => {
     const t = b.dataset.thread, input = $("#in_" + t);
@@ -248,16 +314,20 @@ function wireWish(token) {
   };
 }
 
-// Reveal card: the name only appears after an explicit tap, so nobody reads along by accident.
-function scratchCard(host, name, done) {
-  host.innerHTML = `<div class="card center reveal">
-    <p style="font-size:26px;margin:4px 0 6px" aria-hidden="true">&#128274;</p>
-    <h2>Je lootje is verborgen</h2>
-    <p class="muted">Zorg dat niemand meekijkt.</p>
-    <button class="btn" id="reveal">Toon mijn lootje</button></div>`;
+// Envelope reveal: the name only appears after an explicit tap, so nobody reads along by accident.
+function scratchCard(host, name, done, season) {
+  const grad = season === "kerst" ? ["#1F6B4A", "#0F3D2B"] : ["#B3261E", "#731214"];
+  host.innerHTML = `<div class="card center">
+    <div class="env" style="--envg:linear-gradient(#${grad[0].slice(1)},#${grad[1].slice(1)});--envf:${grad[0]}">
+      <div class="letter"><div class="muted">Jij koopt een cadeau voor</div><div class="name">${esc(name)}</div></div>
+      <div class="body"></div><div class="flap"></div><div class="seal" aria-hidden="true">${season === "kerst" ? "&#127876;" : "&#127873;"}</div>
+    </div>
+    <p class="muted" id="hint">Zorg dat niemand meekijkt.</p>
+    <button class="btn" id="reveal">Open mijn lootje</button></div>`;
   host.querySelector("#reveal").onclick = () => {
-    host.innerHTML = `<div class="card center"><p class="muted" style="margin:0">Jij koopt een cadeau voor</p><div class="name">${esc(name)}</div></div>`;
-    vibrate(20); done();
+    host.querySelector(".env").classList.add("open");
+    host.querySelector("#reveal").remove(); host.querySelector("#hint").remove();
+    vibrate([15, 60, 25]); done();
   };
 }
 
