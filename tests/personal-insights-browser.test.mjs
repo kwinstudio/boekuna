@@ -6,6 +6,8 @@ import {execFileSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {chromium,webkit} from 'playwright';
 
+// The fixtures describe October 2026; the page clock is pinned there so the test does not expire with the calendar.
+const TEST_NOW='2026-10-23T12:00:00';
 const root=process.cwd();
 const require=createRequire(import.meta.url);
 const axeSource=fs.readFileSync(require.resolve('axe-core/axe.min.js'),'utf8');
@@ -70,6 +72,7 @@ const base='http://127.0.0.1:'+server.address().port;
 const browserName=process.env.BOOKUNA_BROWSER==='webkit'?'webkit':'chromium';
 const browser=await (browserName==='webkit'?webkit:chromium).launch({headless:true});
 const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
+await page.clock.setFixedTime(new Date(TEST_NOW));
 const errors=[];page.on('pageerror',e=>errors.push(String(e)));page.setDefaultTimeout(5000);
 const evidence=path.join(root,'tests','artifacts','personal-insights');fs.mkdirSync(evidence,{recursive:true});
 

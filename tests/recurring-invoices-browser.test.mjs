@@ -10,10 +10,13 @@ if(!process.env.SKIP_APP_BUILD)buildApp();
 const {server,url}=await startAppServer();
 const browser=await engine.launch({headless:true});
 const errors=[];
+// The fixtures describe October 2026; the page clock is pinned there so the test does not expire with the calendar.
+const TEST_NOW='2026-10-23T12:00:00';
 
 async function openPage(mobile){
   const context=await browser.newContext({viewport:mobile?{width:390,height:844}:{width:1366,height:900}});
   const page=await context.newPage();
+  await page.clock.setFixedTime(new Date(TEST_NOW));
   page.on('pageerror',e=>errors.push(e.message));
   await page.goto(url,{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>typeof window.openRecurringInvoice==='function'&&document.getElementById('mainApp')?.style.display!=='none');
