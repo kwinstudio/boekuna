@@ -124,7 +124,15 @@ struct OrganizerView: View {
         .scrollDismissesKeyboard(.interactively)
         .bottomBar {
             if s.group.isDrawn {
-                PrimaryButton(title: "Iedereen is hier: geef de telefoon door", systemImage: "iphone.gen3.radiowaves.left.and.right", tint: tint) {
+                let todo = unsent(s)
+                if let next = todo.first, let token = saved?.memberTokens[next.id] {
+                    Text("Nog \(todo.count) \(todo.count == 1 ? "link" : "links") te versturen")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    PrimaryButton(title: "Stuur lootje naar \(next.name)", systemImage: "paperplane", tint: tint) {
+                        sendLink(next, token: token, group: s.group)
+                    }
+                }
+                SecondaryButton(title: "Iedereen bij elkaar? Geef de telefoon door", systemImage: "iphone.gen3", tint: tint) {
                     showPassPhone = true
                 }
             } else {
@@ -288,10 +296,7 @@ struct OrganizerView: View {
                     store.markJoinedHere(g.id)
                     toast = ToastData(message: "Het lootje van \(m.name) staat nu op deze telefoon")
                 }) { token in
-                    let url = AppConfig.memberURL(token: token)
-                    Share.present(text: Share.personalMessage(name: m.name, group: s.group.name, occasion: s.group.occasion, url: url)) { done in
-                        if done { Task { try? await api.markLinkSent(saved?.adminToken ?? "", memberId: m.id); await load() } }
-                    }
+                    sendLink(m, token: token, group: s.group)
                 } renew: {
                     Task { await renew(m) }
                 }
@@ -299,6 +304,18 @@ struct OrganizerView: View {
             }
         }
         .card()
+    }
+
+    private func sendLink(_ m: AdminMember, token: String, group: GroupInfo) {
+        let url = AppConfig.memberURL(token: token)
+        Share.present(text: Share.personalMessage(name: m.name, group: group.name, occasion: group.occasion, url: url)) { done in
+            if done { Task { try? await api.markLinkSent(saved?.adminToken ?? "", memberId: m.id); await load() } }
+        }
+    }
+
+    /// People who still need their personal link (the one obvious next step after the draw).
+    private func unsent(_ s: AdminStatus) -> [AdminMember] {
+        s.members.filter { !$0.isOrganizer && $0.linkSentAt == nil && $0.openedAt == nil && saved?.memberTokens[$0.id] != nil }
     }
 
     private func passPhone(_ s: AdminStatus) -> some View {
@@ -505,18 +522,14 @@ private struct ProgressChecklist: View {
     var body: some View {
         let n = status.members.count
         let opened = status.members.filter { $0.openedAt != nil }.count
-        let wish = status.members.filter(\.hasWishlist).count
         let ready = status.members.filter(\.giftReady).count
         let drawn = status.group.isDrawn
+        let checked = status.check?.ok ?? true
         VStack(alignment: .leading, spacing: 10) {
-            Row(done: n >= 3, title: n >= 3 ? "\(n) deelnemers" : "Minstens 3 deelnemers (\(n) nu)")
-            Row(done: drawn, title: "Lootjes getrokken")
+            Row(done: n >= 3, title: n >= 3 ? "\(n) deelnemers" : "Minstens 3 deelnemers (nu \(n))")
+            Row(done: drawn && checked, title: drawn ? (checked ? "Getrokken en gecontroleerd" : "Controle mislukt: trek opnieuw") : "Lootjes trekken")
             Row(done: drawn && opened == n, title: drawn ? "\(opened) van \(n) hebben hun lootje bekeken" : "Iedereen bekijkt zijn lootje")
-            if drawn, let c = status.check {
-                Row(done: c.ok, title: c.ok ? "Gecontroleerd: iedereen geeft en krijgt precies één cadeau" : "Controle mislukt: trek opnieuw")
-            }
             if drawn {
-                Row(done: wish == n, title: "\(wish) van \(n) hebben een verlanglijstje")
                 Row(done: ready == n, title: "\(ready) van \(n) hebben hun cadeau klaar")
             }
         }

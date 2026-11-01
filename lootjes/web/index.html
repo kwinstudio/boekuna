@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lootjes</title>
 <meta name="description" content="Lootjes trekken voor Sinterklaas en Kerst. Zonder account, gratis en zonder reclame.">
-<meta name="theme-color" content="#1F5BD6">
+<meta name="theme-color" content="#B3261E">
 <meta name="robots" content="noindex">
 <link rel="icon" href="/icon.png">
 <link rel="apple-touch-icon" href="/icon.png">
 <style>
-  :root { --red:#1F5BD6; --gold:#1F5BD6; --green:#1E8E3E; --paper:#F2F2F7; --card:#fff; --ink:#111; --muted:#6b6b70; --line:#dcdce0; --accent:var(--red); }
-  @media (prefers-color-scheme: dark) { :root { --red:#5E8EFF; --gold:#5E8EFF; --green:#34C759; --paper:#000; --card:#1C1C1E; --ink:#f2f2f7; --muted:#98989f; --line:#38383a; } }
+  :root { --red:#B3261E; --gold:#B3261E; --green:#1E8E3E; --paper:#F2F2F7; --card:#fff; --ink:#111; --muted:#6b6b70; --line:#dcdce0; --accent:var(--red); }
+  @media (prefers-color-scheme: dark) { :root { --red:#F2726A; --gold:#F2726A; --green:#34C759; --paper:#000; --card:#1C1C1E; --ink:#f2f2f7; --muted:#98989f; --line:#38383a; } }
   * { box-sizing:border-box; }
   html,body { margin:0; background:var(--paper); color:var(--ink); font:17px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing:antialiased; }
   main { max-width:520px; margin:0 auto; padding:20px 18px calc(120px + env(safe-area-inset-bottom)); }
@@ -68,7 +68,7 @@ function countdown(s) {
   const d = Math.round((new Date(s + "T00:00:00") - new Date(new Date().toDateString())) / 864e5);
   return d < 0 ? "" : d === 0 ? "vandaag" : d === 1 ? "morgen" : `nog ${d} dagen`;
 }
-const occ = (o) => ({ sinterklaas: { word: "pakjesavond", giver: "Sint", color: "var(--red)" }, kerst: { word: "kerst", giver: "Secret Santa", color: "var(--green)" } }[o] || { word: "het feest", giver: "Secret Santa", color: "var(--red)" });
+const occ = (o) => ({ sinterklaas: { word: "pakjesavond", giver: "Sint", color: "var(--red)" }, kerst: { word: "kerst", giver: "Secret Santa", color: "var(--red)" } }[o] || { word: "het feest", giver: "Secret Santa", color: "var(--red)" });
 const vibrate = (ms) => { try { navigator.vibrate && navigator.vibrate(ms); } catch {} };
 
 async function call(action, params = {}) {

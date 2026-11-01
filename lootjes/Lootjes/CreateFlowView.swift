@@ -184,24 +184,30 @@ struct CreateFlowView: View {
                     BudgetChips(budget: $budget, tint: Theme.accent(for: occasion))
                 }
 
-                if occasion == .sinterklaas {
-                    Toggle(isOn: $poems) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Met gedicht").font(.subheadline.weight(.semibold))
-                            Text("Je krijgt een gedichthulp bij je lootje.").font(.footnote).foregroundStyle(.secondary)
+                DisclosureGroup("Meer opties") {
+                    VStack(alignment: .leading, spacing: 14) {
+                        if occasion == .sinterklaas {
+                            Toggle(isOn: $poems) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Met gedicht").font(.subheadline.weight(.semibold))
+                                    Text("Iedereen krijgt een gedichthulp bij zijn lootje.").font(.footnote).foregroundStyle(.secondary)
+                                }
+                            }
+                            .tint(Theme.accent(for: occasion))
+                        }
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Bericht voor iedereen").font(.subheadline.weight(.semibold))
+                            TextField("Bijv. we vieren het bij oma", text: $note, axis: .vertical)
+                                .lineLimit(2...4)
+                                .padding(12)
+                                .background(Theme.paper, in: RoundedRectangle(cornerRadius: 10))
                         }
                     }
-                    .tint(Theme.accent(for: occasion))
-                    .card()
+                    .padding(.top, 10)
                 }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Bericht voor iedereen (mag leeg)").font(.subheadline.weight(.semibold))
-                    TextField("Bijv. we vieren het bij oma, neem iets lekkers mee", text: $note, axis: .vertical)
-                        .lineLimit(2...4)
-                        .padding(14)
-                        .background(Theme.card, in: RoundedRectangle(cornerRadius: 14))
-                }
+                .font(.subheadline.weight(.semibold))
+                .tint(.primary)
+                .card()
             }
             .padding(20)
         }
