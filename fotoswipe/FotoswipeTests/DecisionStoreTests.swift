@@ -86,9 +86,10 @@ final class SwipePipelineTests: XCTestCase {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: folder) }
         let url = folder.appendingPathComponent("decisions.json")
-        let writer = DecisionPersistence(url: url)
-        let completed = expectation(description: "Serial writes completed off the main thread")
-        completed.expectedFulfillmentCount = 3
+        let writer = DecisionPersistence(url: url, delay: 0.05)
+        // Rapid saves are coalesced into one write of the newest state.
+        let completed = expectation(description: "One coalesced write off the main thread")
+        completed.expectedFulfillmentCount = 1
         var state = DecisionStore()
         for i in 0..<3 {
             state.decide("photo-\(i)", i == 1 ? .trash : .keep)
@@ -505,6 +506,16 @@ final class SmartGroupTests: XCTestCase {
         ]
         let groups = ContactDuplicates.groups(contacts)
         XCTAssertEqual(groups.count, 2)
+        // Same name but different numbers: two different people, not merged.
+        let namesakes = [ContactInfo(id: "j1", name: "Jan de Vries", phones: ["0611111111"]),
+                         ContactInfo(id: "j2", name: "Jan de Vries", phones: ["0622222222"])]
+        XCTAssertTrue(ContactDuplicates.groups(namesakes).isEmpty)
+        // A nameless card linking two different names is not allowed to chain them together.
+        let chain = [ContactInfo(id: "a", name: "Jan", phones: ["0633333333"]),
+                     ContactInfo(id: "b", name: "", phones: ["0633333333"], emails: ["x@y.nl"]),
+                     ContactInfo(id: "c", name: "Piet", emails: ["x@y.nl"])]
+        XCTAssertTrue(ContactDuplicates.groups(chain).isEmpty)
+        XCTAssertNotEqual(ContactDuplicates.phoneMergeKey("112"), ContactDuplicates.phoneMergeKey("1200"))
         XCTAssertEqual(Set(groups[0]), ["1", "2", "3"])
         XCTAssertEqual(groups[0].first, "1", "The fullest card stays")
         XCTAssertEqual(groups[1], ["6", "5"])

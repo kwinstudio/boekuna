@@ -71,9 +71,13 @@ struct ContentView: View {
             .onReceive(Reminders.shared.$openOnThisDay) { open in
                 guard open else { return }
                 Reminders.shared.openOnThisDay = false
-                review = false; info = false; stacksOpen = false
+                // Close whatever is open first; a full-screen cover can't appear on top of another sheet.
+                let busy = review || info || stacksOpen || smartOpen || stats || whatsNew || categoryPicker || limitedPicker || tool != nil || focus
+                review = false; info = false; stacksOpen = false; smartOpen = false; stats = false
+                whatsNew = false; categoryPicker = false; limitedPicker = false; tool = nil
                 library.openOnThisDay()
-                focus = true
+                if focus { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + (busy ? 0.6 : 0)) { focus = true }
             }
             .sheet(item: $tool) { destination in
                 switch destination {
@@ -258,7 +262,7 @@ struct ContentView: View {
                 Spacer()
                 ProgressView("Je bibliotheek ophalen…").tint(Palette.brand).foregroundStyle(Palette.muted)
                 Spacer()
-            } else if library.selectedCategory.id == "clutter" && !library.smart.finished {
+            } else if ["clutter", "accidental"].contains(library.selectedCategory.id) && !library.smart.finished {
                 Spacer()
                 VStack(spacing: 12) {
                     Image(systemName: "wand.and.stars").font(.system(size: 46)).foregroundStyle(Palette.brand)

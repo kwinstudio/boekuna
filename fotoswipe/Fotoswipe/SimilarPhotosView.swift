@@ -448,7 +448,8 @@ struct SmartCleanView: View {
         }
         .onAppear {
             library.loadBursts()
-            if !library.smart.finished && !library.smart.scanning { library.startSmartScan() }
+            // Incremental: picks up photos taken since the last scan.
+            if !library.smart.scanning { library.startSmartScan() }
             library.updateSmartSummary()
         }
     }

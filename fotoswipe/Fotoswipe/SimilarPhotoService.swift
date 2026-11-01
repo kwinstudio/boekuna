@@ -299,6 +299,11 @@ struct SimilarPhotoGroup: Identifiable {
                     let done = index + 1
                     await MainActor.run { self?.processed = done }
                 }
+                // Checkpoint, so a scan that is stopped halfway does not start from zero next time.
+                if index % 200 == 199, let data = try? JSONEncoder().encode(Cache(quality: quality, descriptors: descriptorByID)) {
+                    try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try? data.write(to: url, options: .atomic)
+                }
             }
             var reasons: [String: ClutterReason] = [:]
             for input in list {

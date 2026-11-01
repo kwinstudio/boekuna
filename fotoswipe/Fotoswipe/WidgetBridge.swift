@@ -4,7 +4,8 @@ import WidgetKit
 
 extension PhotoLibrary {
     /// Writes what the home screen widget shows: streak, today's progress and one photo from this day in earlier years.
-    /// Runs when the app goes to the background, so it never slows down swiping.
+    /// Runs when the app goes to the background and after a session, off the main thread,
+    /// inside a background task so iOS lets it finish.
     func updateWidget() {
         guard hasAccess, WidgetSnapshot.defaults != nil else { return }
         let now = Date()
@@ -15,26 +16,40 @@ extension PhotoLibrary {
         snapshot.goal = StreakStore.dailyGoal
         snapshot.language = AppLocale.code
         snapshot.updated = now
-        let filter = PhotoDateFilter.onThisDay
-        let memories = allLibraryAssets.filter { $0.mediaType == .image && filter.includes($0.creationDate, now: now) }
-        snapshot.onThisDayCount = memories.count
-        guard let pick = memories.randomElement(), let url = WidgetSnapshot.photoURL else {
-            snapshot.save()
-            WidgetCenter.shared.reloadAllTimelines()
-            return
+        let assets = allLibraryAssets
+
+        var task = UIBackgroundTaskIdentifier.invalid
+        let end = {
+            DispatchQueue.main.async {
+                if task != .invalid { UIApplication.shared.endBackgroundTask(task); task = .invalid }
+            }
         }
-        let options = PHImageRequestOptions()
-        options.deliveryMode = .highQualityFormat
-        options.resizeMode = .fast
-        options.isNetworkAccessAllowed = false
-        options.isSynchronous = false
-        PHImageManager.default().requestImage(for: pick, targetSize: CGSize(width: 500, height: 500), contentMode: .aspectFill, options: options) { image, info in
-            if (info?[PHImageResultIsDegradedKey] as? Bool) == true { return }
+        task = UIApplication.shared.beginBackgroundTask(withName: "Fotoswipe widget") { end() }
+
+        DispatchQueue.global(qos: .utility).async {
+            let filter = PhotoDateFilter.onThisDay
+            let memories = assets.filter { $0.mediaType == .image && filter.includes($0.creationDate, now: now) }
+            snapshot.onThisDayCount = memories.count
+            guard let pick = memories.randomElement(), let url = WidgetSnapshot.photoURL else {
+                snapshot.save()
+                WidgetCenter.shared.reloadAllTimelines()
+                end()
+                return
+            }
+            let options = PHImageRequestOptions()
+            options.deliveryMode = .highQualityFormat
+            options.resizeMode = .fast
+            options.isNetworkAccessAllowed = false
+            options.isSynchronous = true
+            var image: UIImage?
+            PHImageManager.default().requestImage(for: pick, targetSize: CGSize(width: 500, height: 500),
+                                                  contentMode: .aspectFill, options: options) { result, _ in image = result }
             if let data = image?.jpegData(compressionQuality: 0.8), (try? data.write(to: url, options: .atomic)) != nil {
                 snapshot.hasPhoto = true
             }
             snapshot.save()
             WidgetCenter.shared.reloadAllTimelines()
+            end()
         }
     }
 }

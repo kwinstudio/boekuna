@@ -52,21 +52,39 @@ struct ReviewQueue<Element> {
 }
 
 /// JSON encoding and atomic disk writes never run on the swipe/UI thread.
-/// The serial queue preserves ordering even when the user swipes rapidly.
-final class DecisionPersistence {
+/// Fast swiping is coalesced: at most one write per second, always of the newest state,
+/// and `flush` writes at once (going to the background, after deleting).
+final class DecisionPersistence: @unchecked Sendable {
     private let url: URL
+    private let delay: TimeInterval
     private let queue = DispatchQueue(label: "nl.zichtwerfstudio.fotoswipe.persistence", qos: .utility)
-    init(url: URL) { self.url = url }
+    private var pending: DecisionStore?
+    private var pendingCompletion: ((Error?) -> Void)?
+    private var scheduled = false
+    init(url: URL, delay: TimeInterval = 1.0) { self.url = url; self.delay = delay }
     func save(_ snapshot: DecisionStore, completion: @escaping (Error?) -> Void) {
-        queue.async { [url] in
-            do {
-                try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-                try JSONEncoder().encode(snapshot).write(to: url, options: .atomic)
-                completion(nil)
-            } catch { completion(error) }
+        queue.async {
+            self.pending = snapshot
+            self.pendingCompletion = completion
+            guard !self.scheduled else { return }
+            self.scheduled = true
+            self.queue.asyncAfter(deadline: .now() + self.delay) { self.writePending() }
         }
     }
-    func flush(completion: @escaping () -> Void) { queue.async(execute: completion) }
+    func flush(completion: @escaping () -> Void) {
+        queue.async { self.writePending(); completion() }
+    }
+    private func writePending() {
+        scheduled = false
+        guard let snapshot = pending else { return }
+        let completion = pendingCompletion
+        pending = nil; pendingCompletion = nil
+        do {
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try JSONEncoder().encode(snapshot).write(to: url, options: .atomic)
+            completion?(nil)
+        } catch { completion?(error) }
+    }
 }
 
 

@@ -58,7 +58,12 @@ enum AppLocale {
 
     private static func load(_ language: AppLanguage) {
         self.language = language
-        if language != .system, let path = Bundle.main.path(forResource: language.rawValue, ofType: "lproj") {
+        // "System" also gets an explicit bundle: after switching back from another language,
+        // Bundle.main would otherwise keep the old one until the app restarts.
+        let code = language != .system ? language.rawValue
+            : (Bundle.preferredLocalizations(from: Bundle.main.localizations.filter { $0 != "Base" },
+                                             forPreferences: Locale.preferredLanguages).first ?? "en")
+        if let path = Bundle.main.path(forResource: code, ofType: "lproj") {
             override = Bundle(path: path)
         } else {
             override = nil

@@ -28,7 +28,7 @@ struct PhotoCategory: Identifiable {
     let isAlbum: Bool
     var dateFilter: PhotoDateFilter = .all
     var isMonth: Bool { if case .month = dateFilter { return true }; return false }
-    static let all = PhotoCategory(id: "all", title: String(localized: "Alle foto's en video's", bundle: .app), icon: "photo.on.rectangle", collection: nil, isAlbum: false)
+    static var all: PhotoCategory { PhotoCategory(id: "all", title: String(localized: "Alle foto's en video's", bundle: .app), icon: "photo.on.rectangle", collection: nil, isAlbum: false) }
 
     static func available(dates: [Date?]) -> [PhotoCategory] {
         let types: [(PHAssetCollectionSubtype, String, String)] = [
@@ -105,6 +105,8 @@ struct PhotoCategory: Identifiable {
     @Published private(set) var status: String?
     private var refreshGate = LibraryRefreshGate()
     private var randomSession = RandomReviewSession(limit: ReviewSession.size)
+    /// "Random order" stays the same during background refreshes; it only changes when you pick it again.
+    private var shuffleRank: [String: UInt32] = [:]
     private var refreshTask: Task<Void, Never>?
     private var favoriteOverrides: [String: Bool] = [:]
     lazy var imagePipeline = SwipeImagePipeline(manager: images)
@@ -154,12 +156,19 @@ struct PhotoCategory: Identifiable {
         persistence = DecisionPersistence(url: stateURL)
         if FileManager.default.fileExists(atPath: stateURL.path) {
             do { state = try JSONDecoder().decode(DecisionStore.self, from: Data(contentsOf: stateURL)) }
-            catch { persistenceWarning = String(localized: "Je opgeslagen keuzes konden niet worden gelezen. Verwijder pas foto's nadat je je selectie opnieuw hebt gecontroleerd.", bundle: .app) }
+            catch {
+                // Keep the unreadable file instead of overwriting it with the next swipe.
+                let stamp = Int(Date().timeIntervalSince1970)
+                try? FileManager.default.moveItem(at: stateURL, to: folder.appendingPathComponent("decisions.unreadable-\(stamp).json"))
+                persistenceWarning = String(localized: "Je opgeslagen keuzes konden niet worden gelezen. Verwijder pas foto's nadat je je selectie opnieuw hebt gecontroleerd.", bundle: .app) }
         }
         if let data = UserDefaults.standard.data(forKey: Self.streakKey),
            let saved = try? JSONDecoder().decode(StreakStore.self, from: data) { streak = saved }
         streakDays = streak.current()
-        smartObserver = smart.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
+        // Scan progress ticks often; passing at most a few updates per second keeps swiping smooth.
+        smartObserver = smart.objectWillChange
+            .throttle(for: .milliseconds(400), scheduler: RunLoop.main, latest: true)
+            .sink { [weak self] _ in self?.objectWillChange.send() }
         observer.onChange = { [weak self] in self?.libraryDidChange() }
         // Registering a change observer makes iOS ask for photo access at once, so wait until access exists.
         startObservingIfAllowed()
@@ -183,6 +192,7 @@ struct PhotoCategory: Identifiable {
     func selectCategory(_ category: PhotoCategory) {
         guard !deleting, !mutating, category.id != selectedCategory.id || category.id == "random30" else { return }
         selectedCategory = category
+        shuffleRank = [:]
         if category.id == "random30" { randomSession = RandomReviewSession(limit: ReviewSession.size) }
         refresh()
         if (category.id == "clutter" || category.id == "accidental") && !smart.finished { startSmartScan() }
@@ -195,19 +205,32 @@ struct PhotoCategory: Identifiable {
     }
     func asset(id: String) -> PHAsset? { assetIndex[id] }
     func clutterReason(_ asset: PHAsset) -> String? { smart.reasons[asset.localIdentifier]?.label }
+    /// Only new photos are analysed (results are cached), so this is cheap to call again.
     func startSmartScan() {
-        guard hasAccess, !smart.scanning else { return }
-        let candidates = allAssets
-            .filter { state.decisions[$0.localIdentifier] == nil }
-            .sorted { ($0.creationDate ?? .distantPast) > ($1.creationDate ?? .distantPast) }
-        let favorites = Set(candidates.prefix(SmartScanner.limit * 2).filter { isFavorite($0) }.map(\.localIdentifier))
-        smart.onFinish = { [weak self] in
-            guard let self else { return }
-            self.updateSmartSummary()
-            if self.selectedCategory.id == "clutter" || self.selectedCategory.id == "accidental" { self.refresh(showLoading: false) }
+        guard hasAccess, !smart.scanning, !scanPreparing else { return }
+        scanPreparing = true
+        let all = allAssets
+        let decided = Set(state.decisions.keys)
+        let overrides = favoriteOverrides
+        let limit = SmartScanner.limit
+        // Picking candidates goes over the whole library, so it runs off the main thread.
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let candidates = all.filter { !decided.contains($0.localIdentifier) }
+                .sorted { ($0.creationDate ?? .distantPast) > ($1.creationDate ?? .distantPast) }
+            let favorites = Set(candidates.prefix(limit * 2).filter { overrides[$0.localIdentifier] ?? $0.isFavorite }.map(\.localIdentifier))
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.scanPreparing = false
+                self.smart.onFinish = { [weak self] in
+                    guard let self else { return }
+                    self.updateSmartSummary()
+                    if self.selectedCategory.id == "clutter" || self.selectedCategory.id == "accidental" { self.refresh(showLoading: false) }
+                }
+                self.smart.start(candidates, favorites: favorites)
+            }
         }
-        smart.start(candidates, favorites: favorites)
     }
+    @Published private(set) var scanPreparing = false
     /// One decision for a whole stack: keepers kept, the rest set aside for review.
     func applyStack(_ group: [String], keep: Set<String>) {
         guard !deleting, !mutating else { return }
@@ -321,6 +344,7 @@ struct PhotoCategory: Identifiable {
                 guard let self else { return }
                 self.places = clusters
                 self.placesLoading = false
+                self.countOpenPlaces()
                 self.nameNextPlace(Array(clusters.prefix(25)))
             }
         }
@@ -345,7 +369,15 @@ struct PhotoCategory: Identifiable {
         return place.isHome ? String(localized: "Thuis", bundle: .app)
             : place.start.formatted(Date.FormatStyle(locale: AppLocale.locale).month(.wide).year())
     }
-    func undecidedCount(_ ids: [String]) -> Int { ids.filter { state.decisions[$0] == nil }.count }
+    /// Open items per place, counted once when the map opens (the home place can hold tens of thousands).
+    @Published private(set) var placeOpenCounts: [String: Int] = [:]
+    func countOpenPlaces() {
+        let places = self.places, decided = Set(state.decisions.keys)
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let counts = Dictionary(uniqueKeysWithValues: places.map { ($0.id, $0.ids.filter { !decided.contains($0) }.count) })
+            DispatchQueue.main.async { self?.placeOpenCounts = counts }
+        }
+    }
     /// Makes a temporary category for one place and returns its id.
     func preparePlace(_ place: PlaceCluster) -> String {
         placeScopes[place.id] = Set(place.ids)
@@ -486,7 +518,7 @@ struct PhotoCategory: Identifiable {
         } catch {
             return String(localized: "Verkleinen is niet gelukt. Er is niets veranderd.", bundle: .app)
         }
-        let newSize = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.int64Value ?? 0
+        let newSize = Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
         let estimate = PhotoLibrary.fileSize(asset)
         guard newSize > 0, Double(newSize) < Double(estimate) * 0.8 else {
             return String(localized: "Deze video is al compact. Er is niets veranderd.", bundle: .app)
@@ -534,13 +566,14 @@ struct PhotoCategory: Identifiable {
         mutating = true
         refreshGate.beginMutation()
         let created = Box<String>()
+        let favorite = isFavorite(asset)
         do {
             try await PHPhotoLibrary.shared().performChanges {
                 let request = PHAssetCreationRequest.forAsset()
                 request.addResource(with: resource, fileURL: fileURL, options: nil)
                 request.creationDate = asset.creationDate
                 request.location = asset.location
-                request.isFavorite = asset.isFavorite
+                request.isFavorite = favorite
                 created.value = request.placeholderForCreatedAsset?.localIdentifier
             }
         } catch {
@@ -612,6 +645,7 @@ struct PhotoCategory: Identifiable {
     func selectOrder(_ order: PhotoOrder) {
         guard !deleting, !mutating, self.order != order else { return }
         self.order = order
+        shuffleRank = [:]
         refresh()
     }
 
@@ -707,7 +741,13 @@ struct PhotoCategory: Identifiable {
                         }
                     }
                 }
-                if selectedOrder == .random && selected.id != "random30" { filtered.shuffle() }
+                if selectedOrder == .random && selected.id != "random30" {
+                    for asset in filtered where self.shuffleRank[asset.localIdentifier] == nil {
+                        self.shuffleRank[asset.localIdentifier] = UInt32.random(in: .min ... .max)
+                    }
+                    let rank = self.shuffleRank
+                    filtered.sort { (rank[$0.localIdentifier] ?? 0) < (rank[$1.localIdentifier] ?? 0) }
+                }
                 if selectedOrder == .largest || (selected.id == "big-videos" && selectedOrder != .random) {
                     filtered.sort { lhs, rhs in
                         let left = PhotoLibrary.fileSize(lhs)
@@ -770,6 +810,7 @@ struct PhotoCategory: Identifiable {
         streak.markActive()
         if !wasActive { rescheduleReminders() }
         saveStreak()
+        updateWidget()
         guard !sessionFinished else { return }
         sessionFinished = true
         Haptics.success()
@@ -866,10 +907,12 @@ struct PhotoCategory: Identifiable {
                     self.scopeIDs.subtract(ids)
                     self.rebuildPresentation()
                     self.save()
+                    self.finishPendingWrites()
                     self.message = String(localized: "\(batch.count) items verwijderd", bundle: .app) + (freed > 0 ? " (\(ByteText.format(freed)))" : "") + ". " + String(localized: "Ze staan nog 30 dagen in 'Recent verwijderd' in Foto's; pas daarna komt de ruimte vrij. Wil je de ruimte nu al? Open Foto's, ga naar Albums > Recent verwijderd en kies Verwijder alles.", bundle: .app)
                     self.refresh()
                 } else {
-                    self.message = "Er is niets door Fotoswipe verwijderd. Je selectie is bewaard. \(error?.localizedDescription ?? "De verwijdering is geannuleerd.")"
+                    self.message = String(localized: "Er is niets door Fotoswipe verwijderd. Je selectie is bewaard.", bundle: .app) + " "
+                        + (error?.localizedDescription ?? String(localized: "De verwijdering is geannuleerd.", bundle: .app))
                 }
             }
         }
@@ -884,12 +927,12 @@ struct PhotoCategory: Identifiable {
         }
     }
     func finishPendingWrites() {
-        let task = UIApplication.shared.beginBackgroundTask(withName: "Fotoswipe keuzes opslaan", expirationHandler: nil)
-        persistence.flush {
-            DispatchQueue.main.async {
-                if task != .invalid { UIApplication.shared.endBackgroundTask(task) }
-            }
+        var task = UIBackgroundTaskIdentifier.invalid
+        let end = {
+            if task != .invalid { UIApplication.shared.endBackgroundTask(task); task = .invalid }
         }
+        task = UIApplication.shared.beginBackgroundTask(withName: "Fotoswipe keuzes opslaan") { end() }
+        persistence.flush { DispatchQueue.main.async { end() } }
     }
     private func rebuildPresentation(invalidate: Bool = true) {
         if invalidate { deckRevision = UUID(); swipeCommand = nil }

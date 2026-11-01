@@ -112,11 +112,11 @@ struct PlacesView: View {
             .navigationTitle("Reiskaart").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Klaar") { dismiss() } } }
         }
-        .onAppear { library.loadPlaces() }
+        .onAppear { library.loadPlaces(); library.countOpenPlaces() }
     }
 
     private func row(_ place: PlaceCluster) -> some View {
-        let open = library.undecidedCount(place.ids)
+        let open = library.placeOpenCounts[place.id] ?? place.ids.count
         return HStack(spacing: 12) {
             Image(systemName: place.isHome ? "house.fill" : "airplane")
                 .font(.system(size: 16, weight: .bold))

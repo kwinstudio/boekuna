@@ -39,10 +39,11 @@ struct ReviewView: View {
                                             .id(asset.localIdentifier).frame(height: 135)
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
                                             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.hairline, lineWidth: 0.5))
-                                    }.accessibilityLabel("Item bekijken")
+                                    }.accessibilityLabel(String(localized: "Item van \(asset.creationDate?.formatted(Date.FormatStyle(date: .long, time: .omitted, locale: AppLocale.locale)) ?? String(localized: "onbekende datum", bundle: .app))", bundle: .app))
+                                    .accessibilityHint("Groter bekijken")
                                     Button { library.restore(asset.localIdentifier) } label: {
                                         Label("Terug", systemImage: "arrow.uturn.backward").font(.caption.weight(.bold))
-                                            .frame(minHeight: 32)
+                                            .frame(maxWidth: .infinity, minHeight: 44)
                                     }.foregroundStyle(Palette.brand).disabled(library.deleting).accessibilityLabel("Item terugzetten in de stapel")
                                 }
                             }
