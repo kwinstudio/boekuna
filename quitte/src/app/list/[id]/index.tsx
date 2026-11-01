@@ -19,6 +19,7 @@ import { syncList, useLiveList } from '../../../lib/sync';
 import { num, radius, usePalette, useTheme } from '../../../lib/theme';
 import { listLook } from '../../../lib/look';
 import { LookPicker } from '../../../components/LookPicker';
+import { PushOffer } from '../../../components/PushOffer';
 import { Image } from 'expo-image';
 import { usePhotoUrls } from '../../../lib/extras';
 import type { Entry, ListState } from '../../../lib/types';
@@ -347,6 +348,7 @@ export default function ListScreen() {
             </Pressable>
           </View>
         ) : null}
+        <PushOffer show={!local.demo && !local.needsCreate && activeMembers(view).length > 1} />
         <Segmented<Tab>
           value={tab}
           onChange={setTab}

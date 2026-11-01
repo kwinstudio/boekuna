@@ -18,6 +18,12 @@ export type Profile = {
   firstOpenAt?: number;
   reviewedVersion?: string;
   ownEntries?: number;
+  /** Pushmeldingen: undefined = nog niet gevraagd. */
+  pushOn?: boolean;
+  pushToken?: string | null;
+  pushAskedAt?: number;
+  /** Stille uren 22:00–08:00 (standaard aan). */
+  quietHours?: boolean;
 };
 
 type State = {

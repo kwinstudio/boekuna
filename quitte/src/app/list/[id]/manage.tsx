@@ -15,6 +15,7 @@ import { t } from '../../../lib/i18n';
 import { nowIso, uuid } from '../../../lib/ids';
 import { inviteLink, shareCsv, shareInvite } from '../../../lib/share';
 import { enqueue, removeLocal, setProfile, updateLocal, useList, useStore } from '../../../lib/store';
+import { setListMuted, unregisterList } from '../../../lib/push';
 import { syncList } from '../../../lib/sync';
 import { radius, useTheme } from '../../../lib/theme';
 
@@ -193,6 +194,7 @@ export default function Manage() {
         onPress: () => {
           router.dismissAll();
           router.replace('/');
+          if (!local.demo && !local.needsCreate) unregisterList(local.token).catch(() => {});
           removeLocal(local.id);
         },
       },
@@ -286,6 +288,9 @@ export default function Manage() {
           <Row icon="time-outline" label={t('history')} onPress={() => router.push({ pathname: '/list/[id]/activity', params: { id: local.id } })} />
           <Row icon="heart-outline" label={t('households')} value={households.length ? households.map((h) => h.map(nameIn).join(' & ')).join(', ') : t('none')} onPress={manageHouseholds} />
           <Row icon="git-network-outline" label={t('directDebts')} value={view.list.settings?.directDebts ? t('on') : t('off')} onPress={toggleDirect} />
+          {profile.pushOn && !local.demo ? (
+            <Row icon={local.muted ? 'notifications-off-outline' : 'notifications-outline'} label={t('muteList')} value={local.muted ? t('off') : t('on')} onPress={() => setListMuted(local.id, !local.muted).catch(() => {})} />
+          ) : null}
           <Row icon="trash-outline" label={t('trash')} value={view.trash?.length ? String(view.trash.length) : ''} onPress={() => router.push({ pathname: '/list/[id]/trash', params: { id: local.id } })} />
           <Row icon="document-outline" label={t('exportPdf')} onPress={pdf} />
           <Row icon="document-text-outline" label={t('exportCsv')} onPress={() => shareCsv(view)} />

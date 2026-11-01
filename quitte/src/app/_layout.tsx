@@ -5,9 +5,10 @@ import { useEffect } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastHost } from '../components/Toast';
-import { loadStore, useStore } from '../lib/store';
+import { getState, loadStore, useStore } from '../lib/store';
 import { useBackgroundSync } from '../lib/sync';
 import { autoBackup } from '../lib/extras';
+import { registerAll, setupPushHandlers } from '../lib/push';
 import { useRef } from 'react';
 import { useTheme } from '../lib/theme';
 
@@ -38,7 +39,16 @@ export default function RootLayout() {
       autoBackup(before.filter((x) => !now.has(x))).catch(() => {});
     }
     prev.current = tokens;
+    // Toestel (opnieuw) aanmelden voor meldingen bij nieuwe lijsten of een nieuw token.
+    if (getState().profile.pushOn !== undefined) registerAll().catch(() => {});
   }, [loaded, tokens]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    let off = () => {};
+    setupPushHandlers().then((f) => (off = f)).catch(() => {});
+    return () => off();
+  }, [loaded]);
 
   if (!loaded) return <View style={{ flex: 1, backgroundColor: t.bg }} />;
 

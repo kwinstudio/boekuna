@@ -115,6 +115,8 @@ export type LocalList = {
   rejected?: string[];
   /** Voorbeeldlijst: alleen op dit toestel, wordt nooit gesynchroniseerd. */
   demo?: boolean;
+  /** Geen pushmeldingen voor deze lijst op dit toestel. */
+  muted?: boolean;
 };
 
 export type SplitKey = { id: string; name: string; weights: Record<string, number> };

@@ -543,6 +543,16 @@ export const nl = {
   greetEvening: "Goedenavond, {name}",
   youGetLower: "je krijgt",
   toSettleLower: "te verrekenen",
+  pushToggle: "Seintje bij wijzigingen",
+  pushToggleHint: "Als iemand iets toevoegt of betaalt",
+  quietToggle: "Stille uren",
+  quietToggleHint: "Geen meldingen tussen 22:00 en 08:00",
+  pushOfferTitle: "Wil je een seintje?",
+  pushOfferBody: "Krijg één rustige melding als iemand iets toevoegt of terugbetaalt. Nooit 's nachts.",
+  pushOfferYes: "Aanzetten",
+  pushOfferNo: "Niet nu",
+  pushOn: "Meldingen staan aan",
+  muteList: "Meldingen voor deze lijst",
 };
 
 export const en: typeof nl = {
@@ -1076,4 +1086,14 @@ export const en: typeof nl = {
   greetEvening: "Good evening, {name}",
   youGetLower: "you get",
   toSettleLower: "to settle",
+  pushToggle: "Ping me about changes",
+  pushToggleHint: "When someone adds or pays something",
+  quietToggle: "Quiet hours",
+  quietToggleHint: "No notifications between 10 pm and 8 am",
+  pushOfferTitle: "Want a heads-up?",
+  pushOfferBody: "Get one calm notification when someone adds an expense or pays back. Never at night.",
+  pushOfferYes: "Turn on",
+  pushOfferNo: "Not now",
+  pushOn: "Notifications are on",
+  muteList: "Notifications for this list",
 };

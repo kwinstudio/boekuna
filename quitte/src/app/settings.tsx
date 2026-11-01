@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { setPush, setQuietHours } from '../lib/push';
 import { showToast } from '../components/Toast';
 import { Button } from '../components/ui';
 import { enableBackup, restoreBackup, setMonthlyDigest } from '../lib/extras';
@@ -85,6 +86,33 @@ export default function Settings() {
           <Text style={{ fontSize: 13, color: th.sub, marginTop: 6 }}>{t('payLinkHint')}</Text>
 
           <SectionLabel>{t('notifications')}</SectionLabel>
+          {Platform.OS === 'ios' ? (
+            <Card style={{ paddingHorizontal: 16, marginBottom: 10 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60 }}>
+                <View style={{ flex: 1, paddingVertical: 10 }}>
+                  <Text style={{ fontSize: 16, color: th.text }}>{t('pushToggle')}</Text>
+                  <Text style={{ fontSize: 13, color: th.sub }}>{t('pushToggleHint')}</Text>
+                </View>
+                <Switch
+                  accessibilityLabel={t('pushToggle')}
+                  value={!!profile.pushOn}
+                  onValueChange={async (v) => {
+                    const ok = await setPush(v).catch(() => false);
+                    if (!ok && v) Alert.alert(t('notifDenied'));
+                  }}
+                />
+              </View>
+              {profile.pushOn ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: th.line }}>
+                  <View style={{ flex: 1, paddingVertical: 10 }}>
+                    <Text style={{ fontSize: 16, color: th.text }}>{t('quietToggle')}</Text>
+                    <Text style={{ fontSize: 13, color: th.sub }}>{t('quietToggleHint')}</Text>
+                  </View>
+                  <Switch accessibilityLabel={t('quietToggle')} value={profile.quietHours !== false} onValueChange={(v) => setQuietHours(v).catch(() => {})} />
+                </View>
+              ) : null}
+            </Card>
+          ) : null}
           <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, minHeight: 60 }}>
             <View style={{ flex: 1, paddingVertical: 10 }}>
               <Text style={{ fontSize: 16, color: th.text }}>{t('monthlyToggle')}</Text>
