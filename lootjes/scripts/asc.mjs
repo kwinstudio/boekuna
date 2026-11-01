@@ -73,7 +73,7 @@ if (mode === 'preflight') {
   out('team_id', teamId);
 
   // Universal Links (invite links open the app) need the Associated Domains capability on the App ID.
-  const caps = await api(`/v1/bundleIds/${bundle.id}/bundleIdCapabilities?limit=50`);
+  const caps = await api(`/v1/bundleIds/${bundle.id}/bundleIdCapabilities`).catch((e) => { warn(`Capabilities: ${e.message}`); return { data: [] }; });
   if (!(caps.data || []).some((c) => c.attributes.capabilityType === 'ASSOCIATED_DOMAINS')) {
     await api('/v1/bundleIdCapabilities', { method: 'POST', body: { data: { type: 'bundleIdCapabilities', attributes: { capabilityType: 'ASSOCIATED_DOMAINS' }, relationships: { bundleId: { data: { type: 'bundleIds', id: bundle.id } } } } } })
       .then(() => note('Enabled Associated Domains on the App ID.'))
