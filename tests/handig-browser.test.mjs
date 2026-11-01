@@ -35,10 +35,13 @@ await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const url='http://127.0.0.1:'+server.address().port;
 const browser=await (browserName==='webkit'?webkit:chromium).launch();
 const errors=[];
+// Pinned to a mid-month day, so "5 days ago" stays in the same month (the lists open on this month).
+const TEST_NOW='2026-10-29T12:00:00';
 
 async function openApp({phone=true,handig=true}={}){
   const context=await browser.newContext({viewport:phone?{width:390,height:844}:{width:1280,height:900},hasTouch:phone,isMobile:phone&&browserName==='chromium',locale:'nl-NL'});
   const page=await context.newPage();
+  await page.clock.setFixedTime(new Date(TEST_NOW));
   page.on('pageerror',e=>errors.push(String(e)));
   page.setDefaultTimeout(5000);
   await page.goto(url+(handig?'/?handig=1':'/'),{waitUntil:'domcontentloaded'});
@@ -125,7 +128,10 @@ try{
     await page.fill('#expenseForm [name=vendor]','Fictieve Telecom');
     await page.locator('#expenseForm [name=vendor]').dispatchEvent('change');
     assert.equal(await page.locator('#expenseForm input[name=vatRate][value="9"]').isChecked(),true);
-    assert.match(await page.locator('.bk-hint').innerText(),/Zoals vorige keer: .*9% btw/);
+    assert.match(await page.locator('.bk-hint').innerText(),/Gekozen omdat Fictieve Telecom vorige keer .*9% btw was/);
+    // Changing the category says it is remembered for this supplier.
+    const other=await page.evaluate(()=>{const s=document.querySelector('#expenseForm [name=category]');const o=[...s.options].find(x=>x.value&&x.value!==s.value);return o?o.value:''});
+    if(other){await page.selectOption('#expenseForm [name=category]',other);assert.match(await page.locator('.bk-hint').innerText(),/Onthouden voor Fictieve Telecom: volgende keer /)}
     // A sum in the amount becomes its answer.
     await page.fill('#expenseForm [name=gross]','10 + 5,25');
     await page.locator('#expenseForm [name=gross]').dispatchEvent('focusout');
@@ -192,7 +198,7 @@ try{
   {
     const {context,page}=await openApp({phone:false});
     const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    const y=new Date();y.setDate(y.getDate()-1);
+    const y=new Date(TEST_NOW);y.setDate(y.getDate()-1);
     assert.equal(await page.evaluate(()=>boekunaReadDate('3 okt 2026')),'2026-10-03');
     assert.equal(await page.evaluate(()=>boekunaReadDate('12-10-2026')),'2026-10-12');
     assert.equal(await page.evaluate(()=>boekunaReadDate('31-02-2026')),null,'No made-up dates');
@@ -249,7 +255,7 @@ try{
     await page.locator('#bkQuickCostGo').click();
     await page.locator('#expenseForm').waitFor();
     await page.waitForFunction(()=>document.querySelector('#expenseForm [name=vendor]').value==='Q-Park');
-    assert.deepEqual(await page.evaluate(()=>{const f=document.getElementById('expenseForm');return [f.elements.gross.value,f.elements.category.value,f.elements.date.value]}),['12.5','Reiskosten',(d=>{d.setDate(d.getDate()-1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})(new Date())]);
+    assert.deepEqual(await page.evaluate(()=>{const f=document.getElementById('expenseForm');return [f.elements.gross.value,f.elements.category.value,f.elements.date.value]}),['12.5','Reiskosten',(d=>{d.setDate(d.getDate()-1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})(new Date(TEST_NOW))]);
     assert.equal(await page.evaluate(()=>boekunaReadCostLine('vijf euro koffie bij De Hoek').amount),5);
     await page.evaluate(()=>closeModal());
     // 27: the same supplier again offers last time's amount in one tap.

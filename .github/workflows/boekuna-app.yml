@@ -38,6 +38,10 @@ on:
       - "tests/gevoel-browser.test.mjs"
       - "kwinest/app-assets/vegen.js"
       - "tests/vegen-browser.test.mjs"
+      - "kwinest/app-assets/vertrouwen.*"
+      - "kwinest/app-assets/feedback.*"
+      - "tests/vertrouwen-browser.test.mjs"
+      - "tests/auth-stays-signed-in-after-update.test.mjs"
       - "tests/soepeler-phone-browser.test.mjs"
       - "kwinest/app-assets/app-*.woff2"
       - "tests/press-browser.test.mjs"
@@ -292,6 +296,12 @@ jobs:
         run: |
           node tests/vegen-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/vegen-browser.test.mjs
+      - name: Vertrouwen (prijsbelofte, opzeggen, btw nakijken, meerdere kosten tegelijk, rustige to-dos) — Chromium and WebKit
+        run: |
+          node tests/vertrouwen-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/vertrouwen-browser.test.mjs
+      - name: Ingelogd blijven na een update (opgeslagen sessie van een oudere versie)
+        run: node tests/auth-stays-signed-in-after-update.test.mjs
       - name: Soepeler (tab op de goede plek, snel rekenwerk, alleen goedkope beweging) — Chromium and WebKit
         run: |
           node tests/soepeler-phone-browser.test.mjs

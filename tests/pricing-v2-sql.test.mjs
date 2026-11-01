@@ -9,6 +9,7 @@ const db=new PGlite();
 const testerMigration=fs.readFileSync('supabase/migrations/20261007101500_tester_invite_code_access.sql','utf8');
 const pricingMigration=fs.readFileSync('supabase/migrations/20261008170000_pricing_v2_plans_and_intervals.sql','utf8');
 const trialMigration=fs.readFileSync('supabase/migrations/20261028120000_zzp_signup_trial.sql','utf8');
+const graceMigration=fs.readFileSync('supabase/migrations/20261101120000_past_due_grace.sql','utf8');
 const U=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const [LEGACY_BOEKUNA,LEGACY_PRO,NEW_ZZP,NEW_BIZ,FREE,INTERNAL,OTHER,TESTER]=[1,2,3,4,5,6,7,8].map(U);
 
@@ -212,6 +213,27 @@ try{
   await actor(TRIAL_PAID);
   const bought=await one('select * from public.get_billing_summary()');
   assert.deepEqual([bought.plan,bought.access_source],['zzp','stripe']);
+
+  // A failed renewal (past_due) keeps ZZP for at most 14 days while Stripe retries; no lock-out, no fee.
+  await db.exec('reset role');
+  await db.exec(graceMigration);
+  await db.exec(graceMigration);
+  const GRACE=U(12);
+  await db.query('insert into auth.users(id,email_confirmed_at) values ($1,now())',[GRACE]);
+  await db.query("delete from public.billing_entitlements where user_id=$1 and provider='trial'",[GRACE]); // no signup trial in the way
+  await applyV2(GRACE,{plan:'zzp',status:'active',created:600,days:30});
+  await applyV2(GRACE,{plan:'zzp',status:'past_due',created:610,days:30});
+  assert.equal(await effective(GRACE),'zzp','past_due keeps paid access during the grace period');
+  await service();
+  const grace=await one("select access_state,round(extract(epoch from valid_until-now())/86400) as days from public.billing_entitlements where user_id=$1 and provider='stripe'",[GRACE]);
+  assert.deepEqual([grace.access_state,Number(grace.days)],['grace',14],'grace lasts 14 days, not the whole new period');
+  await applyV2(GRACE,{plan:'zzp',status:'past_due',created:620,days:3});
+  await service();
+  assert.equal(Number((await one("select round(extract(epoch from valid_until-now())/86400) as d from public.billing_entitlements where user_id=$1 and provider='stripe'",[GRACE])).d),3,'grace never outlasts the paid period');
+  await applyV2(GRACE,{plan:'zzp',status:'unpaid',created:630,days:30});
+  assert.equal(await effective(GRACE),'free','unpaid after the retries ends paid access');
+  await applyV2(GRACE,{plan:'zzp',status:'active',created:640,days:30});
+  assert.equal(await effective(GRACE),'zzp','paying again restores access');
 
   console.log('Pricing V2 SQL migration: PASS');
 }finally{

@@ -41,7 +41,9 @@ const server=http.createServer((req,res)=>{
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const browserName=process.env.BOOKUNA_BROWSER==='webkit'?'webkit':'chromium';
 const browser=await ({chromium,webkit}[browserName]).launch({headless:true});
-const page=await browser.newPage({viewport:{width:390,height:900},hasTouch:true});const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+const page=await browser.newPage({viewport:{width:390,height:900},hasTouch:true});
+// The fixture is dated October 2026; pin the clock so period filters ("this month") keep showing it.
+await page.clock.setFixedTime(new Date('2026-10-23T12:00:00'));const errors=[];page.on('pageerror',e=>errors.push(String(e)));
 const artifactRoot='tests/artifacts/financial-presentation';fs.mkdirSync(artifactRoot,{recursive:true});
 const viewports=[[320,568],[360,800],[375,812],[390,844],[393,852],[430,932],[768,1024],[1024,768],[1280,800],[1366,768],[1440,900],[1920,1080]],routes=['dashboard','insights','invoices','expenses','bank','documents','control','vat','reports','cashflow','ledger','hours','settings'];
 const checks=[];

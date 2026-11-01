@@ -92,7 +92,7 @@ html.fb-scroll-lock,html.fb-scroll-lock body{overflow:hidden}
 .fb-report .fb-chevron{margin-left:0}
 .fb-status{flex:0 0 auto;display:inline-flex;align-items:center;min-height:24px;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:650;white-space:nowrap;background:var(--app-bg,#F6F7F8);color:var(--app-muted-strong,#5E6870);border:1px solid var(--app-border,#E4E7EA)}
 .fb-status-reviewing,.fb-status-in_progress{background:var(--status-info-soft,#EAF1FE);color:var(--status-info,#2563EB);border-color:transparent}
-.fb-status-resolved{background:var(--app-brand-soft,#ECFAEE);color:var(--status-success,#177A31);border-color:transparent}
+.fb-status-answered,.fb-status-resolved{background:var(--app-brand-soft,#ECFAEE);color:var(--status-success,#177A31);border-color:transparent}
 .fb-detail-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--app-muted-strong,#5E6870)}
 .fb-detail-block{display:grid;gap:6px}
 .fb-detail-block strong,.fb-reply strong{font-size:13px}
@@ -143,3 +143,4 @@ html.fb-scroll-lock,html.fb-scroll-lock body{overflow:hidden}
 }
 html[data-theme="dark"] .fb-backdrop{background:rgba(0,0,0,.6)}
 html[data-theme="dark"] .fb-shot img{background:#fff}
+.fb-human{margin:-4px 0 14px;font-size:14px;line-height:1.45;color:var(--text-muted,#5b6660)}
