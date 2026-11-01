@@ -4,12 +4,25 @@ import type { Transfer } from './balances';
 import { money, nameOf, partyName } from './domain';
 import { t } from './i18n';
 import type { ListState } from './types';
+import { getState } from './store';
 
 export const WEB_BASE = 'https://quitte-app.vercel.app';
 
 /** Uitnodigingslink: opent de app direct (universele link) of anders de webpagina. */
-export function inviteLink(token: string) {
-  return `${WEB_BASE}/j/${token}`;
+export function inviteLink(token: string, from?: string | null) {
+  return `${WEB_BASE}/j/${token}${from ? `?van=${encodeURIComponent(from.slice(0, 30))}` : ''}`;
+}
+
+/** Naam van "mij" in de lijst met deze code (voor een persoonlijke uitnodiging). */
+function myNameFor(token: string): string | null {
+  const l = Object.values(getState().lists).find((x) => x.token === token);
+  if (!l) return getState().profile.name || null;
+  return l.base.members.find((m) => m.id === l.me)?.name ?? (getState().profile.name || null);
+}
+
+/** Zachte afzender onder alles wat gedeeld wordt: zo leren ontvangers Quitte kennen. */
+export function signature() {
+  return `\n\n${t('sentWith', { url: WEB_BASE.replace('https://', '') })}`;
 }
 
 export function appLink(token: string) {
@@ -17,7 +30,8 @@ export function appLink(token: string) {
 }
 
 export function shareInvite(listName: string, token: string) {
-  return Share.share({ message: t('inviteMessage', { name: listName, link: inviteLink(token), code: token }) }).catch(() => {});
+  const from = myNameFor(token);
+  return Share.share({ message: t('inviteMessage', { name: listName, link: inviteLink(token, from), code: token }) }).catch(() => {});
 }
 
 function ibanLine(view: ListState, memberId: string) {
@@ -34,7 +48,7 @@ export function shareRequest(view: ListState, tr: Transfer) {
     list: view.list.name,
   });
   const iban = ibanLine(view, tr.to);
-  return Share.share({ message: iban ? `${msg}\n${iban}` : msg }).catch(() => {});
+  return Share.share({ message: (iban ? `${msg}\n${iban}` : msg) + signature() }).catch(() => {});
 }
 
 export function shareOverview(view: ListState, transfers: Transfer[]) {
@@ -44,7 +58,7 @@ export function shareOverview(view: ListState, transfers: Transfer[]) {
   const ibans = [...new Set(transfers.map((tr) => tr.to))].map((id) => ibanLine(view, id)).filter(Boolean);
   const body = transfers.length ? lines.join('\n') : t('everyoneSquare');
   const message = `${t('overviewTitle', { list: view.list.name })}\n\n${body}${ibans.length ? `\n\n${ibans.join('\n')}` : ''}`;
-  return Share.share({ message }).catch(() => {});
+  return Share.share({ message: message + signature() }).catch(() => {});
 }
 
 /** CSV-export als tekst (puntkomma's, Excel-NL-vriendelijk). */

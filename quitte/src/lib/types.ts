@@ -113,6 +113,8 @@ export type LocalList = {
   invitedAt?: number | null;
   /** Wijzigingen die de server weigerde (om te tonen in plaats van stil weg te gooien). */
   rejected?: string[];
+  /** Voorbeeldlijst: alleen op dit toestel, wordt nooit gesynchroniseerd. */
+  demo?: boolean;
 };
 
 export type SplitKey = { id: string; name: string; weights: Record<string, number> };

@@ -19,8 +19,9 @@ function plusMenu() {
     if (i < recent.length) router.push({ pathname: '/list/[id]/entry', params: { id: recent[i].id } });
     else if (i === recent.length) router.push('/new');
     else if (i === recent.length + 1) router.push('/join');
+    else if (i === recent.length + 2) router.push('/import');
   };
-  const opts = [...recent.map((r) => t('addExpenseTo', { name: viewOf(r)?.list.name ?? '' })), t('newList'), t('joinWithCode'), t('cancel')];
+  const opts = [...recent.map((r) => t('addExpenseTo', { name: viewOf(r)?.list.name ?? '' })), t('newList'), t('joinWithCode'), t('importCta'), t('cancel')];
   if (Platform.OS === 'ios') {
     ActionSheetIOS.showActionSheetWithOptions({ options: opts, cancelButtonIndex: opts.length - 1, title: t('whatToAdd') }, (i) => go(i));
   } else {

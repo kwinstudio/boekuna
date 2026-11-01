@@ -28,7 +28,7 @@ export default function RootLayout() {
   useBackgroundSync(loaded);
 
   // Backup stil bijwerken als er lijsten bijkomen of verdwijnen.
-  const tokens = useStore((s) => Object.values(s.lists).filter((l) => !l.needsCreate).map((l) => l.token).sort().join(','));
+  const tokens = useStore((s) => Object.values(s.lists).filter((l) => !l.needsCreate && !l.demo).map((l) => l.token).sort().join(','));
   const prev = useRef<string | null>(null);
   useEffect(() => {
     if (!loaded) return;

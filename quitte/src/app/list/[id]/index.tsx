@@ -14,7 +14,7 @@ import { dayLabel, numberLocale, t } from '../../../lib/i18n';
 import { nowIso, todayIso, uuid } from '../../../lib/ids';
 import { shareInvite, shareOverview } from '../../../lib/share';
 import { parseMoney } from '../../../lib/money';
-import { enqueue, updateLocal, useList } from '../../../lib/store';
+import { enqueue, removeLocal, updateLocal, useList } from '../../../lib/store';
 import { syncList, useLiveList } from '../../../lib/sync';
 import { radius, usePalette, useTheme } from '../../../lib/theme';
 import { listLook } from '../../../lib/look';
@@ -223,8 +223,9 @@ export default function ListScreen() {
     ]);
   };
 
-  const status =
-    local.syncError === 'not_found'
+  const status = local.demo
+    ? null
+    : local.syncError === 'not_found'
       ? t('statusGone')
       : local.syncError === 'rejected'
         ? local.rejected?.length
@@ -234,7 +235,7 @@ export default function ListScreen() {
           ? t('statusOffline')
           : null;
 
-  const pendingIds = new Set(local.pending.flatMap((o) => (o.op === 'entry' ? [o.data.id] : [])));
+  const pendingIds = local.demo ? new Set<string>() : new Set(local.pending.flatMap((o) => (o.op === 'entry' ? [o.data.id] : [])));
   const look = listLook(view.list);
   const names = activeMembers(view).map((m) => (m.id === me ? t('you') : m.name));
 
@@ -330,6 +331,22 @@ export default function ListScreen() {
           </View>
         </View>
 
+        {local.demo ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14, backgroundColor: th.card, marginBottom: 12 }}>
+            <Ionicons name="sparkles-outline" size={20} color={th.accent} />
+            <Text style={{ flex: 1, fontSize: 14, color: th.text, lineHeight: 19 }}>{t('demoBanner')}</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                removeLocal(local.id);
+                router.replace('/new');
+              }}
+              style={{ height: 34, paddingHorizontal: 12, borderRadius: 17, backgroundColor: th.accent, justifyContent: 'center' }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: '600', color: th.onAccent }}>{t('demoReal')}</Text>
+            </Pressable>
+          </View>
+        ) : null}
         <Segmented<Tab>
           value={tab}
           onChange={setTab}

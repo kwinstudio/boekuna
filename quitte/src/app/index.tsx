@@ -1,7 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import * as Clipboard from 'expo-clipboard';
+import { extractToken } from '../lib/ids';
 import { ActionSheetIOS, Alert, Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ListBadge } from '../components/LookPicker';
@@ -14,7 +16,7 @@ import { showToast } from '../components/Toast';
 import { Platform } from 'react-native';
 import { money } from '../lib/domain';
 import { plural, t } from '../lib/i18n';
-import { useStore, viewOf } from '../lib/store';
+import { createDemoList, useStore, viewOf } from '../lib/store';
 import { usePalette, useTheme, type Hue } from '../lib/theme';
 import type { LocalList } from '../lib/types';
 
@@ -162,39 +164,92 @@ function ListRow({ row }: { row: Row }) {
 
 function Welcome() {
   const th = useTheme();
+  const profileName = useStore((s) => s.profile.name);
+  const [hasClip, setHasClip] = useState(false);
+  useEffect(() => {
+    // Alleen kijken óf er iets op het klembord staat (geen melding); plakken gebeurt pas als je tikt.
+    Clipboard.hasStringAsync().then(setHasClip).catch(() => {});
+  }, []);
+
+  const pasteInvite = async () => {
+    const text = await Clipboard.getStringAsync().catch(() => '');
+    const token = extractToken(text ?? '');
+    if (token) router.push({ pathname: '/join/[token]', params: { token } });
+    else router.push('/join');
+  };
+
+  const demo = () => {
+    const id = createDemoList(profileName, {
+      name: t('demoName'),
+      items: [
+        [t('demoItem1'), 6420, 0, 'groceries'],
+        [t('demoItem2'), 36000, 1, 'stay'],
+        [t('demoItem3'), 4800, 2, 'transport'],
+        [t('roundTitle'), 1800, 0, 'drinks'],
+      ],
+    });
+    router.push(`/list/${id}`);
+  };
+
   return (
     <Screen style={{ paddingHorizontal: 24 }}>
       <View style={{ flex: 1, justifyContent: 'center' }}>
         <Text style={{ fontSize: 15, fontWeight: '600', color: th.accent, marginBottom: 8 }}>Quitte</Text>
-        <Text accessibilityRole="header" style={{ fontSize: 30, fontWeight: '700', color: th.text, marginBottom: 10 }}>
+        <Text accessibilityRole="header" style={{ fontSize: 32, fontWeight: '700', letterSpacing: -0.6, color: th.text, marginBottom: 10 }}>
           {t('welcomeTitle')}
         </Text>
         <Text style={{ fontSize: 17, lineHeight: 25, color: th.sub }}>{t('welcomeBody')}</Text>
-        <View style={{ marginTop: 24, backgroundColor: th.card, borderRadius: 12 }}>
+        <View style={{ marginTop: 22, backgroundColor: th.card, borderRadius: 14 }}>
           {(['welcomePoint1', 'welcomePoint2', 'welcomePoint3'] as const).map((k, i) => (
-            <View key={k} style={{ flexDirection: 'row', gap: 12, alignItems: 'center', minHeight: 50, paddingHorizontal: 16, borderBottomWidth: i < 2 ? 1 : 0, borderBottomColor: th.line }}>
-              <Ionicons name="checkmark" size={18} color={th.sub} />
+            <View key={k} style={{ flexDirection: 'row', gap: 12, alignItems: 'center', minHeight: 50, paddingHorizontal: 16, borderBottomWidth: i < 2 ? StyleSheet.hairlineWidth : 0, borderBottomColor: th.line }}>
+              <Ionicons name="checkmark-circle" size={20} color={th.gain} />
               <Text style={{ fontSize: 16, color: th.text, flex: 1 }}>{t(k)}</Text>
             </View>
           ))}
         </View>
+        {hasClip ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={pasteInvite}
+            style={({ pressed }) => [{ marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, backgroundColor: th.accentSoft }, pressed && { opacity: 0.7 }]}
+          >
+            <Ionicons name="mail-open-outline" size={22} color={th.accentText} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: th.accentText }}>{t('pasteInviteTitle')}</Text>
+              <Text style={{ fontSize: 13, color: th.accentText }}>{t('pasteInviteBody')}</Text>
+            </View>
+            <Ionicons name="clipboard-outline" size={20} color={th.accentText} />
+          </Pressable>
+        ) : null}
       </View>
       <Button label={t('newList')} onPress={() => router.push('/new')} style={{ marginBottom: 10 }} />
-      <Button label={t('haveInvite')} kind="ghost" onPress={() => router.push('/join')} />
-      {Platform.OS === 'ios' ? (
-        <Button
-          label={t('restoreCta')}
-          kind="ghost"
-          onPress={async () => {
-            try {
-              const n = await restoreBackup();
-              showToast(n ? t('restoredLists', { n }) : t('restoreNone'));
-            } catch {
-              showToast(t('restoreNone'));
-            }
-          }}
-        />
-      ) : null}
+      <Button label={t('demoCta')} kind="secondary" icon="play-circle-outline" onPress={demo} style={{ marginBottom: 6 }} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: 18 }}>
+        <TextLink label={t('haveInvite')} onPress={() => router.push('/join')} />
+        <TextLink label={t('importCta')} onPress={() => router.push('/import')} />
+        {Platform.OS === 'ios' ? (
+          <TextLink
+            label={t('restoreShort')}
+            onPress={async () => {
+              try {
+                const n = await restoreBackup();
+                showToast(n ? t('restoredLists', { n }) : t('restoreNone'));
+              } catch {
+                showToast(t('restoreNone'));
+              }
+            }}
+          />
+        ) : null}
+      </View>
     </Screen>
+  );
+}
+
+function TextLink({ label, onPress }: { label: string; onPress: () => void }) {
+  const th = useTheme();
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={6} style={({ pressed }) => [{ minHeight: 44, justifyContent: 'center' }, pressed && { opacity: 0.5 }]}>
+      <Text style={{ fontSize: 15, fontWeight: '600', color: th.accent }}>{label}</Text>
+    </Pressable>
   );
 }

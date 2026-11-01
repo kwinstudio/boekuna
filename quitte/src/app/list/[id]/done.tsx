@@ -11,6 +11,7 @@ import { nowIso } from '../../../lib/ids';
 import { enqueue, useList } from '../../../lib/store';
 import { syncList } from '../../../lib/sync';
 import { useTheme } from '../../../lib/theme';
+import { askReviewAtSuccess } from '../../../lib/rating';
 
 export default function Done() {
   const th = useTheme();
@@ -18,6 +19,10 @@ export default function Done() {
   const { view, local } = useList(id);
   const [undoLeft, setUndoLeft] = useState(8);
   const cardRef = useRef<React.ComponentRef<typeof View>>(null);
+
+  useEffect(() => {
+    if (!local?.demo) askReviewAtSuccess(1800);
+  }, []);
 
   useEffect(() => {
     const iv = setInterval(() => setUndoLeft((s) => (s > 0 ? s - 1 : 0)), 1000);
@@ -69,7 +74,7 @@ export default function Done() {
             <Stat value={String(expenses)} label={t('statExpenses')} />
             <Stat value={String(count)} label={t('statPayments')} last />
           </Card>
-          <Text style={{ fontSize: 12, color: th.sub, textAlign: 'center', marginTop: 6 }}>Quitte</Text>
+          <Text style={{ fontSize: 12, color: th.sub, textAlign: 'center', marginTop: 6 }}>{t('cardFooter')}</Text>
         </View>
         <Button label={t('shareCard')} kind="ghost" icon="share-outline" onPress={shareCard} style={{ marginTop: 8 }} />
       </View>

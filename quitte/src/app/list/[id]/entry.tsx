@@ -14,6 +14,7 @@ import { nowIso, todayIso, uuid } from '../../../lib/ids';
 import { CURRENCIES, calcInput, centsToInput, evalAmount, isExpression, parseMoney } from '../../../lib/money';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { seedOf } from '../../../lib/split';
+import { countOwnEntry } from '../../../lib/rating';
 import { parseReceipt, toLines } from '../../../lib/receipt';
 import { ocrAvailable, recognizeText } from '../../../../modules/quitte-ocr';
 import { duplicateEntry, fetchRate, moveEntry, pickPhoto, uploadPhoto, usePhotoUrls } from '../../../lib/extras';
@@ -230,6 +231,7 @@ export default function EntryScreen() {
     });
     if (!multiPay && kind === 'expense') updateLocal(local.id, { lastPayer: payer });
     clearDraft();
+    if (!existing && !local.demo) countOwnEntry();
     syncList(local.id);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     router.back();

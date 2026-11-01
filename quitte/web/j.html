@@ -1,5 +1,5 @@
 <!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Doe mee in Quitte</title><meta name="robots" content="noindex"><link rel="stylesheet" href="/style.css"></head><body><main>
+<title>Doe mee in Quitte</title><meta property="og:title" content="Doe mee in Quitte"><meta property="og:description" content="Houd samen bij wie wat betaalt. Gratis, zonder account."><meta name="robots" content="noindex"><link rel="stylesheet" href="/style.css"></head><body><main>
 <a class="brand" href="/">Quitte</a>
 <div id="app"><p>Lijst laden…</p></div>
 <footer><a href="/">Over Quitte</a><a href="/privacy">Privacy</a></footer>
@@ -7,10 +7,16 @@
 <script>
 const SB='https://vuwfyhtejsxhdfyvkkeq.supabase.co',KEY='sb_publishable_miAZ6CBZShVcmmNwlnEDgA_aGw1X4aP';
 const token=(location.pathname.split('/j/')[1]||'').replace(/[^A-Za-z0-9]/g,'');
+const from=(new URLSearchParams(location.search).get('van')||'').slice(0,30);
 const el=document.getElementById('app');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const HUES={teal:['#E1F5EE','#085041'],blue:['#E6F1FB','#0C447C'],purple:['#EEEDFE','#3C3489'],coral:['#FAECE7','#712B13'],pink:['#FBEAF0','#72243E'],amber:['#FAEEDA','#633806'],green:['#EAF3DE','#27500A']};
+const HK=Object.keys(HUES);
+const hue=t=>{let h=0;for(const c of t.toLowerCase())h=(h*31+c.charCodeAt(0))>>>0;return HK[h%HK.length];};
+const av=(n,size=34)=>{const [bg,fg]=HUES[hue(n.trim())];return `<span style="display:inline-flex;width:${size}px;height:${size}px;border-radius:50%;background:${bg};color:${fg};align-items:center;justify-content:center;font-weight:700;font-size:${Math.round(size*.42)}px;border:2px solid var(--card)">${esc((n.trim()[0]||'?').toUpperCase())}</span>`;};
 function settle(bal){const c=[],d=[],out=[];for(const[k,v]of Object.entries(bal)){if(v>0)c.push({k,v});if(v<0)d.push({k,v:-v});}
  const s=a=>a.sort((x,y)=>y.v-x.v);s(c);s(d);while(c.length&&d.length){const a=Math.min(c[0].v,d[0].v);out.push({from:d[0].k,to:c[0].k,a});c[0].v-=a;d[0].v-=a;if(!c[0].v)c.shift();if(!d[0].v)d.shift();s(c);s(d);}return out;}
+async function copyInvite(btn){const link=location.origin+'/j/'+token;try{await navigator.clipboard.writeText(link);btn.textContent='Gekopieerd ✓ Open nu Quitte';}catch{prompt('Kopieer deze link',link);}}
 async function load(){
  if(token.length<24){el.innerHTML='<h1>Ongeldige link</h1><p>Vraag de persoon die je uitnodigde om de link opnieuw te delen.</p>';return;}
  let st;try{const r=await fetch(SB+'/rest/v1/rpc/quitte_get_state',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({p_token:token})});if(!r.ok)throw r.status;st=await r.json();}
@@ -23,15 +29,25 @@ async function load(){
  const ub={};for(const[k,v]of Object.entries(bal)){const r=rep[k]||k;ub[r]=(ub[r]||0)+v;}
  const pname=id=>{const h=hh.find(x=>x[0]===id);return h?h.map(name).join(' & '):name(id);};
  const trs=settle(ub);const active=st.members.filter(m=>!m.deleted);
- el.innerHTML=`<p class="muted" style="margin:0">Je bent uitgenodigd voor</p><h1>${esc(st.list.name)}</h1>
- <p>${active.map(m=>esc(m.name)).join(', ')}</p>
+ const color=(st.list.settings&&HUES[st.list.settings.color])?st.list.settings.color:'teal';const [lbg,lfg]=HUES[color];
+ const meKey='quitte-me-'+token;let me=localStorage.getItem(meKey);
+ const meUnit=me?(rep[me]||me):null;
+ const myBal=me?(bal[me]||0):null;
+ el.innerHTML=`<div style="background:${lbg};border-radius:20px;padding:18px 18px 16px;margin:6px 0 14px">
+   <p style="margin:0 0 4px;color:${lfg};font-weight:600">${from?esc(from)+' nodigt je uit voor':'Je bent uitgenodigd voor'}</p>
+   <h1 style="color:${lfg};margin:0 0 10px">${esc(st.list.name)}</h1>
+   <div style="display:flex;align-items:center">${active.slice(0,6).map((m,i)=>`<span style="margin-left:${i?-8:0}px">${av(m.name)}</span>`).join('')}<span style="margin-left:10px;color:${lfg};font-size:15px">${active.map(m=>esc(m.name)).join(', ')}</span></div>
+ </div>
  <a class="btn" href="quitte://join/${token}">Open in Quitte</a>
- <button class="btn sec" id="copy">Kopieer de code</button>
- <p class="muted">Nog geen Quitte? De app komt binnenkort in de App Store. Tot die tijd kun je hier meekijken.</p>
+ <button class="btn sec" id="copy">Nog geen app? Kopieer je uitnodiging</button>
+ <p class="muted">Na het installeren opent Quitte de gekopieerde uitnodiging met één tik. Je hebt geen account nodig.</p>
+ <h2>Wie ben jij?</h2><div class="card" style="display:flex;flex-wrap:wrap;gap:8px">${active.map(m=>`<button data-me="${m.id}" style="display:flex;align-items:center;gap:8px;border:1px solid ${me===m.id?'var(--accent)':'var(--line)'};background:${me===m.id?'var(--soft)':'var(--card)'};color:var(--text);border-radius:22px;padding:4px 12px 4px 4px;font:inherit;font-size:15px;cursor:pointer">${av(m.name,28)}${esc(m.name)}</button>`).join('')}</div>
+ ${me?`<div class="card"><div class="muted">Jouw saldo</div><div class="big ${myBal>0?'gain':myBal<0?'owe':''}">${myBal===0?'Je staat quitte':(myBal>0?'Je krijgt ':'Je betaalt nog ')+fmt(Math.abs(myBal))}</div></div>`:''}
  <div class="card"><div class="muted">Samen uitgegeven</div><div class="big">${fmt(total)}</div></div>
- <h2>Zo is iedereen quitte</h2><div class="card">${trs.length?trs.map(t=>`<div class="row"><span><b>${esc(pname(t.from))}</b> → ${esc(pname(t.to))}</span><b>${fmt(t.a)}</b></div>`).join(''):'<div class="row">Iedereen staat quitte</div>'}</div>
- <h2>Laatste uitgaven</h2><div class="card">${st.entries.slice(0,15).map(e=>`<div class="row"><span>${esc(e.kind==='transfer'?'Terugbetaling':(e.title||'Uitgave'))}<br><span class="s">${esc(e.payers.map(p=>name(p.m)).join(', '))} · ${esc(e.date)}</span></span><b>${fmt(e.amount)}</b></div>`).join('')||'<div class="row">Nog geen uitgaven</div>'}</div>`;
- document.getElementById('copy').onclick=async()=>{try{await navigator.clipboard.writeText(token);document.getElementById('copy').textContent='Code gekopieerd';}catch{prompt('Code',token);}};
+ <h2>Zo is iedereen quitte</h2><div class="card">${trs.length?trs.map(t=>`<div class="row" style="${meUnit&&(t.from===meUnit||t.to===meUnit)?'font-weight:600':''}"><span>${esc(pname(t.from))} → ${esc(pname(t.to))}</span><b>${fmt(t.a)}</b></div>`).join(''):'<div class="row">Iedereen staat quitte</div>'}</div>
+ <h2>Laatste uitgaven</h2><div class="card">${st.entries.slice(0,15).map(e=>`<div class="row"><span style="display:flex;gap:10px;align-items:center">${av(name(e.payers[0]?e.payers[0].m:''),28)}<span>${esc(e.kind==='transfer'?'Terugbetaling':(e.title||'Uitgave'))}<br><span class="s">${esc(e.payers.map(p=>name(p.m)).join(', '))} · ${esc(e.date)}</span></span></span><b>${fmt(e.amount)}</b></div>`).join('')||'<div class="row">Nog geen uitgaven</div>'}</div>`;
+ document.getElementById('copy').onclick=e=>copyInvite(e.target);
+ document.querySelectorAll('[data-me]').forEach(b=>b.onclick=()=>{localStorage.setItem(meKey,b.dataset.me);load();});
 }
 load();
 </script></body></html>

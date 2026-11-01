@@ -13,6 +13,7 @@ import { nowIso, todayIso, uuid } from './ids';
 import { addJoinedList, enqueue, getState, setProfile } from './store';
 import { supabase } from './supabase';
 import { fetchState, syncList } from './sync';
+import { signature } from './share';
 import type { Entry, ListState, Part } from './types';
 
 // ---- Foto's -----------------------------------------------------------------
@@ -114,7 +115,7 @@ export function reminderText(view: ListState, tr: Transfer, tone: Tone) {
 }
 
 export function shareReminder(view: ListState, tr: Transfer, tone: Tone) {
-  return Share.share({ message: reminderText(view, tr, tone) }).catch(() => {});
+  return Share.share({ message: reminderText(view, tr, tone) + signature() }).catch(() => {});
 }
 
 // ---- PDF ------------------------------------------------------------------------
@@ -153,7 +154,7 @@ export async function sharePdf(view: ListState, transfers: Transfer[]) {
     <h2>${esc(t('howSquare'))}</h2><ul>${tr}</ul>
     <h2>${esc(t('tabBalances'))}</h2><table><tr><th>${esc(t('pdfName'))}</th><th class="r">${esc(t('pdfPaid'))}</th><th class="r">${esc(t('pdfShare'))}</th><th class="r">${esc(t('pdfBalance'))}</th></tr>${bal}</table>
     <h2>${esc(t('tabExpenses'))}</h2><table><tr><th>${esc(t('date'))}</th><th>${esc(t('description'))}</th><th>${esc(t('paidBy'))}</th><th class="r">${esc(t('pdfAmount'))}</th><th>${esc(t('splitOver'))}</th></tr>${rows}</table>
-    <div class="f">Quitte</div></body></html>`;
+    <div class="f">${esc(t('sentWith', { url: 'quitte-app.vercel.app' }))}</div></body></html>`;
   if (Platform.OS === 'web') return Print.printAsync({ html });
   const { uri } = await Print.printToFileAsync({ html });
   await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: view.list.name });
@@ -184,7 +185,7 @@ export async function setMonthlyDigest(on: boolean): Promise<boolean> {
 
 function backupLists() {
   return Object.values(getState().lists)
-    .filter((l) => !l.needsCreate)
+    .filter((l) => !l.needsCreate && !l.demo)
     .map((l) => ({ token: l.token, me: l.me, name: l.base.list.name }));
 }
 

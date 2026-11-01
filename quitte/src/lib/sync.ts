@@ -5,6 +5,20 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { getState, updateLocal } from './store';
 import type { ListState, Op } from './types';
+import { showToast } from '../components/Toast';
+import { t } from './i18n';
+import * as Haptics from 'expo-haptics';
+
+/** Feestelijk melden als iemand op zijn eigen telefoon meedoet (het moment waarop de app 'werkt'). */
+function announceJoins(listId: string, next: ListState) {
+  const l = getState().lists[listId];
+  if (!l) return;
+  const before = new Map(l.base.members.map((m) => [m.id, m]));
+  const joined = next.members.filter((m) => !m.deleted && m.claimed && m.id !== l.me && !before.get(m.id)?.claimed);
+  if (!joined.length || !l.lastSyncAt) return;
+  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+  showToast(t('joinedToast', { name: joined.map((m) => m.name).join(', '), list: next.list.name }));
+}
 
 type RpcError = { message?: string; code?: string } | null;
 
@@ -42,7 +56,7 @@ function actorName(listId: string): string {
 
 async function doSync(listId: string): Promise<void> {
   let l = getState().lists[listId];
-  if (!l) return;
+  if (!l || l.demo) return;
   const actor = actorName(listId);
   try {
     if (l.needsCreate) {
@@ -92,6 +106,7 @@ async function doSync(listId: string): Promise<void> {
         const done = new Set(batch.map((o) => o.uid));
         const cur = getState().lists[listId];
         if (cur) {
+          announceJoins(listId, data as ListState);
           updateLocal(listId, {
             pending: cur.pending.filter((o) => !done.has(o.uid)),
             base: data as ListState,
@@ -107,6 +122,7 @@ async function doSync(listId: string): Promise<void> {
     }
 
     const fresh = await fetchState(l.token);
+    announceJoins(listId, fresh);
     updateLocal(listId, { base: fresh, lastSyncAt: Date.now(), syncError: null });
   } catch (e) {
     if (e instanceof NotFoundError) {
@@ -144,6 +160,7 @@ export function syncAll() {
 /** Licht pollen: alleen de revisie ophalen en pas bij verschil alles verversen. */
 async function checkRev(listId: string) {
   const l = getState().lists[listId];
+  if (l?.demo) return;
   if (!l || l.needsCreate) return syncList(listId);
   if (l.pending.length) return syncList(listId);
   const { data, error } = await supabase.rpc('quitte_get_rev', { p_token: l.token });

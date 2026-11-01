@@ -15,6 +15,9 @@ export type Profile = {
   backupKey?: string | null;
   backupAt?: number | null;
   monthlyDigest?: boolean;
+  firstOpenAt?: number;
+  reviewedVersion?: string;
+  ownEntries?: number;
 };
 
 type State = {
@@ -62,8 +65,8 @@ export async function loadStore() {
   } catch {
     state = { ...state, loaded: true };
   }
-  if (!state.profile.deviceId) {
-    state = { ...state, profile: { ...state.profile, deviceId: uuid() } };
+  if (!state.profile.deviceId || !state.profile.firstOpenAt) {
+    state = { ...state, profile: { ...state.profile, deviceId: state.profile.deviceId ?? uuid(), firstOpenAt: state.profile.firstOpenAt ?? Date.now() } };
     persist();
   }
   emit();
@@ -124,6 +127,50 @@ export function createLocalList(name: string, currency: string, myName: string, 
     ],
     needsCreate: true,
     joinedAt: Date.now(),
+  };
+  setState((s) => ({ ...s, lists: { ...s.lists, [id]: local } }));
+  return id;
+}
+
+/** Voorbeeldlijst om meteen te zien hoe Quitte werkt (alleen lokaal). */
+export function createDemoList(myName: string, labels: { name: string; items: [string, number, number, string][] }): string {
+  const id = uuid();
+  const ts = nowIso();
+  const names = [myName.trim() || 'Jij', 'Sanne', 'Daan'];
+  const members: Member[] = names.map((n) => ({ id: uuid(), name: n, claimed: true, updatedAt: ts }));
+  const day = (n: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const entries = labels.items.map(([title, cents, payer, cat], i) => {
+    const base = Math.floor(cents / 3);
+    const rest = cents - base * 3;
+    return {
+      id: uuid(),
+      kind: 'expense' as const,
+      title,
+      amount: cents,
+      category: cat,
+      date: day(i),
+      payers: [{ m: members[payer].id, a: cents }],
+      shares: members.map((m, k) => ({ m: m.id, a: base + (k < rest ? 1 : 0) })),
+      splitMode: 'equal' as const,
+      createdBy: members[payer].id,
+      createdAt: ts,
+      updatedAt: ts,
+    };
+  });
+  const local: LocalList = {
+    id,
+    token: newToken(),
+    me: members[0].id,
+    base: { list: { id, name: labels.name, currency: 'EUR', archived: false, rev: 0, updatedAt: ts, createdAt: ts, settings: { color: 'amber', icon: 'sunny-outline' } }, members, entries, activity: [] },
+    pending: [],
+    needsCreate: false,
+    joinedAt: Date.now(),
+    invitedAt: Date.now(),
+    demo: true,
   };
   setState((s) => ({ ...s, lists: { ...s.lists, [id]: local } }));
   return id;

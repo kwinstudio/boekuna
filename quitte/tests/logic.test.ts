@@ -217,3 +217,25 @@ test('bon lezen', () => {
   ]);
   assert.deepEqual(lines, ['Koffie 3,00', 'Taart 4,50']);
 });
+
+import { importCsv, toCents } from '../src/lib/importer';
+test('import splitwise', () => {
+  const csv = 'Date,Description,Category,Cost,Currency,Kwin,Sanne,Daan\n2024-01-01,Pizza,Dining out,30.00,EUR,20.00,-10.00,-10.00\n2024-01-02,Settle,Payment,10.00,EUR,0.00,10.00,-10.00\n\n2024-01-03,Total balance, , ,EUR,20.00,0.00,-20.00\n';
+  const r = importCsv(csv)!;
+  assert.equal(r.source, 'splitwise');
+  assert.deepEqual(r.members, ['Kwin', 'Sanne', 'Daan']);
+  assert.equal(r.entries.length, 2);
+  assert.deepEqual(r.entries[0].payers, [{ name: 'Kwin', a: 3000 }]);
+  assert.equal(r.entries[0].shares.reduce((x, p) => x + p.a, 0), 3000);
+  assert.equal(r.entries[1].kind, 'transfer');
+  assert.deepEqual(r.entries[1].payers, [{ name: 'Sanne', a: 1000 }]);
+  assert.equal(toCents('1.234,56'), 123456);
+  assert.equal(toCents('1,234.56'), 123456);
+});
+test('import breed formaat', () => {
+  const csv = 'Title;Amount;Paid by;Date;Impacted to Kwin;Impacted to Sanne\nBoot;12,00;Sanne;03/08/2025;6,00;6,00\n';
+  const r = importCsv(csv)!;
+  assert.equal(r.source, 'wide');
+  assert.equal(r.entries[0].date, '2025-08-03');
+  assert.deepEqual(r.entries[0].shares, [{ name: 'Kwin', a: 600 }, { name: 'Sanne', a: 600 }]);
+});
