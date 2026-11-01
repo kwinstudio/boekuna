@@ -2,6 +2,9 @@ name: Lootjes App Store listing
 # Builds App Store screenshots from the latest simulator screenshots and updates the store texts,
 # categories, age rating and screenshots in App Store Connect. Never submits for App Review.
 on:
+  push:
+    branches: [claude/lootjes]
+    paths: ['lootjes/store/**', '.github/workflows/lootjes-store.yml']
   workflow_dispatch:
     inputs:
       upload:
@@ -34,7 +37,7 @@ jobs:
           git -c user.name=ci -c user.email=ci@users.noreply.github.com add . && git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -q -m "Store screenshots ${GITHUB_SHA::7}"
           git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" claude/lootjes-store
       - name: Update App Store Connect
-        if: inputs.upload
+        if: github.event_name == 'push' || inputs.upload
         working-directory: lootjes
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
