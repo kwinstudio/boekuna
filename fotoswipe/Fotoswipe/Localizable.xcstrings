@@ -6078,6 +6078,47 @@
         }
       }
     },
+    "Een nieuw icoon en een rustigere vormgeving. Swipen gaat soepeler en dubbele contacten voeg je veiliger samen.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A new icon and a calmer look. Swiping is smoother, and merging duplicate contacts is safer."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een nieuw icoon en een rustigere vormgeving. Swipen gaat soepeler en dubbele contacten voeg je veiliger samen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un icono nuevo y un aspecto más tranquilo. Deslizar es más fluido y combinar contactos duplicados es más seguro."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein neues Symbol und ein ruhigeres Aussehen. Wischen läuft flüssiger und doppelte Kontakte führst du sicherer zusammen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une nouvelle icône et un look plus apaisé. Le swipe est plus fluide et la fusion des contacts en double est plus sûre."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいアイコンと落ち着いたデザイン。スワイプがよりなめらかになり、重複した連絡先もより安全に結合できます。"
+          }
+        }
+      }
+    },
     "Een paar minuten per dag houdt je bibliotheek licht.": {
       "extractionState": "manual",
       "localizations": {
@@ -12718,6 +12759,47 @@
           "stringUnit": {
             "state": "translated",
             "value": "新規アルバム"
+          }
+        }
+      }
+    },
+    "Nieuw, rustiger ontwerp": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A new, calmer design"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nieuw, rustiger ontwerp"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un diseño nuevo y más tranquilo"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neues, ruhigeres Design"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un design nouveau, plus apaisé"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "落ち着いた新デザイン"
           }
         }
       }

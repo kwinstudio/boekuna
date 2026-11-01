@@ -1197,6 +1197,7 @@ struct WhatsNewView: View {
         var id: String { title }
     }
     private let items: [Item] = [
+        Item(icon: "sparkles", title: String(localized: "Nieuw, rustiger ontwerp", bundle: .app), text: String(localized: "Een nieuw icoon en een rustigere vormgeving. Swipen gaat soepeler en dubbele contacten voeg je veiliger samen.", bundle: .app), fill: Palette.brand, tint: .white),
         Item(icon: "globe", title: String(localized: "In jouw taal", bundle: .app), text: String(localized: "Engels, Nederlands, Spaans, Duits, Frans of Japans. Kies je taal bij Instellingen.", bundle: .app), fill: Palette.reward, tint: Palette.ink),
         Item(icon: "film.stack", title: String(localized: "Grote video's", bundle: .app), text: String(localized: "Je grootste video's op een rij. Verklein ze in laag, midden of hoog.", bundle: .app), fill: Palette.brand, tint: .white),
         Item(icon: "rectangle.stack.badge.plus", title: String(localized: "Snelle albums", bundle: .app), text: String(localized: "Zet tot 3 albums onder de foto. Eén tik en hij staat erin.", bundle: .app), fill: Palette.surface, tint: Palette.ink),
