@@ -1,0 +1,84 @@
+/* BOEKUNA gevoel — styling for gevoel.js (psychologische trucjes, Kwin 2026-11-01). The start list (5) is always on;
+   everything else only shows under html.boekuna-gevoel. */
+
+/* 5. Start list: one step already done, and a bar that is never empty. */
+#mainApp .dashboard-start-meter{height:6px;margin:10px 0 4px;border-radius:999px;background:var(--calm-soft,#EEF1EF);overflow:hidden}
+#mainApp .dashboard-start-meter i{display:block;height:100%;border-radius:inherit;background:var(--r1d-accent,#2F9E47);transition:width .5s cubic-bezier(.2,.8,.2,1)}
+#mainApp .dashboard-start-count{display:block;margin:0 0 6px;font-size:13px;font-weight:600;color:var(--calm-muted,#5F6B66)}
+#mainApp .dashboard-start-step.is-given .dashboard-start-row{cursor:default}
+#mainApp .dashboard-start-step.is-given .dashboard-start-num{background:#E5F5E8;color:#2F7D3B}
+html[data-theme="dark"] #mainApp .dashboard-start-step.is-given .dashboard-start-num{background:#1E3324;color:#7FDB8B}
+html[data-band] #mainApp .dashboard-start-step.is-given .dashboard-start-num{background:var(--r1d-accent-soft,#E5F5E8);color:var(--r1d-accent,#2F7D3B)}
+
+/* 1 + 2. Scan: the steps appear one by one, the bar has stripes that run backwards. */
+html.boekuna-gevoel .gv-scan{margin-top:10px}
+html.boekuna-gevoel .gv-steps{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:5px}
+html.boekuna-gevoel .gv-steps li{display:flex;align-items:center;gap:8px;font-size:13.5px;line-height:1.3;color:var(--calm-muted,#6B7570);opacity:.45;transition:opacity .25s ease,color .25s ease}
+html.boekuna-gevoel .gv-steps li.is-done,html.boekuna-gevoel .gv-steps li.is-active{opacity:1}
+html.boekuna-gevoel .gv-steps li.is-active{color:var(--calm-ink,#16191C);font-weight:600}
+html.boekuna-gevoel .gv-step-dot{flex:0 0 18px;width:18px;height:18px;display:grid;place-items:center;border-radius:50%;background:var(--calm-soft,#EEF1EF);font-size:11px;font-weight:800;color:#2F7D3B}
+html.boekuna-gevoel .gv-steps li.is-done .gv-step-dot{background:#E5F5E8}
+html.boekuna-gevoel .gv-steps li.is-active .gv-step-dot{box-sizing:border-box;background:transparent;border:2px solid #2F9E47;border-right-color:transparent;animation:gv-spin .8s linear infinite}
+html.boekuna-gevoel .gv-bar{position:relative;height:6px;border-radius:999px;background:var(--calm-soft,#EEF1EF);overflow:hidden}
+html.boekuna-gevoel .gv-bar i{position:relative;display:block;height:100%;border-radius:inherit;background:#2F9E47;transition:width .35s linear;overflow:hidden}
+/* Harrison e.a. 2010: ribbing that moves against the direction of progress makes the wait feel shorter. */
+html.boekuna-gevoel .gv-bar i::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(-45deg,rgba(255,255,255,.28) 0 6px,transparent 6px 12px);background-size:17px 100%;animation:gv-ribs .7s linear infinite}
+html[data-theme="dark"].boekuna-gevoel .gv-steps li.is-active{color:#F1F4F2}
+html[data-theme="dark"].boekuna-gevoel .gv-steps li.is-done .gv-step-dot{background:#1E3324;color:#7FDB8B}
+@keyframes gv-ribs{from{background-position:0 0}to{background-position:-17px 0}}
+@keyframes gv-spin{to{transform:rotate(360deg)}}
+
+/* 6, 8, 9, 11. One calm glass line in the green band, good news first. */
+html.boekuna-gevoel #mainApp #content .gv-calm{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;margin:12px 0 0;padding:11px 12px 11px 14px;border-radius:22px;background:var(--r1d-glass,rgba(255,255,255,.14));color:#fff;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);text-align:left}
+html.boekuna-gevoel #mainApp #content .gv-calm[role="button"]{cursor:pointer}
+html.boekuna-gevoel #mainApp #content .gv-calm-icon{flex:0 0 34px;width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:rgba(255,255,255,.16);font-size:15px;font-weight:800;color:#fff}
+html.boekuna-gevoel #mainApp #content .gv-calm.is-clear .gv-calm-icon{background:var(--r1d-accent,#63D471);color:var(--r1d-accent-ink,#0E2A16)}
+html.boekuna-gevoel #mainApp #content .gv-calm-icon b{font-size:11.5px;font-weight:800;letter-spacing:-.02em}
+html.boekuna-gevoel #mainApp #content .gv-calm-copy{display:flex;flex-direction:column;gap:2px;flex:1 1 auto;min-width:0}
+html.boekuna-gevoel #mainApp #content .gv-calm-copy strong{font-size:15px;font-weight:700;line-height:1.25;color:#fff}
+html.boekuna-gevoel #mainApp #content .gv-calm-copy>span{font-size:13px;line-height:1.3;color:rgba(255,255,255,.78)}
+html.boekuna-gevoel #mainApp #content .gv-calm-meter{display:block;height:4px;margin-top:6px;border-radius:999px;background:rgba(255,255,255,.18);overflow:hidden}
+html.boekuna-gevoel #mainApp #content .gv-calm-meter i{display:block;height:100%;border-radius:inherit;background:var(--r1d-accent,#63D471)}
+html.boekuna-gevoel #mainApp #content .gv-calm-plan{align-self:flex-start;margin:4px 0 0;padding:0;border:0;background:transparent;color:#fff;font:inherit;font-size:13px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+html.boekuna-gevoel #mainApp #content .gv-calm-cta{flex:0 0 auto;padding:8px 14px;border-radius:999px;background:#fff;color:#16191C;font-size:14px;font-weight:700;white-space:nowrap}
+html[data-theme="dark"].boekuna-gevoel #mainApp #content .gv-calm-cta{background:var(--r1d-accent,#63D471);color:var(--r1d-accent-ink,#0E2A16)}
+@media(min-width:821px){html.boekuna-gevoel #mainApp #content .gv-calm{max-width:560px}}
+
+/* 9. Pick a moment. */
+.gv-moment-why{margin:0 0 14px;color:var(--calm-muted,#5F6B66);font-size:14px;line-height:1.45}
+.gv-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:0 0 14px}
+.gv-day{min-height:44px;border:1px solid var(--calm-line,#E1E5E3);border-radius:14px;background:transparent;color:inherit;font:inherit;font-weight:600;text-transform:capitalize;cursor:pointer}
+.gv-day.is-on{border-color:transparent;background:var(--r1d-accent,#2F9E47);color:var(--r1d-accent-ink,#fff)}
+.gv-moment .field{display:grid;gap:6px;margin:0 0 10px}
+.gv-moment .field>span{font-size:14px;font-weight:600}
+.gv-setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:12px 0;border:0;border-top:1px solid var(--calm-hair,#EDF0EE);background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.gv-setting-row strong{display:block}
+.gv-setting-go{font-size:22px;line-height:1;color:var(--calm-muted,#6B7570)}
+
+/* 7. What it is worth, inside the toast. */
+html.boekuna-gevoel #toastRoot .toast.has-reward{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px}
+html.boekuna-gevoel #toastRoot .gv-reward{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;background:#E5F5E8;color:#1F6B30;font-weight:700;white-space:nowrap;animation:gv-pop .45s cubic-bezier(.2,1.4,.4,1) both .15s}
+html[data-theme="dark"].boekuna-gevoel #toastRoot .gv-reward{background:#1E3324;color:#7FDB8B}
+@keyframes gv-pop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+
+/* 10. A calm end after sending: a card that rises, a check that draws itself. */
+.gv-end{position:fixed;left:50%;bottom:calc(168px + env(safe-area-inset-bottom));z-index:1200;display:flex;align-items:center;gap:12px;width:min(92vw,420px);padding:14px 16px;border-radius:22px;background:#fff;color:#16191C;box-shadow:0 18px 50px rgba(10,30,20,.22),0 2px 6px rgba(10,30,20,.08);transform:translateX(-50%);animation:gv-rise .42s cubic-bezier(.2,.9,.25,1) both;cursor:pointer}
+.gv-end.is-leaving{animation:gv-sink .25s ease-in both}
+.gv-end-check{flex:0 0 40px;width:40px;height:40px;display:grid;place-items:center;border-radius:50%;background:#2F9E47}
+.gv-end-check svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:24;stroke-dashoffset:24;animation:gv-draw .45s ease-out .2s forwards}
+.gv-end-copy{display:flex;flex-direction:column;gap:2px;min-width:0}
+.gv-end-copy strong{font-size:16px;line-height:1.25}
+.gv-end-copy span{font-size:13.5px;line-height:1.35;color:#5F6B66}
+.gv-end.is-first .gv-end-check{background:var(--r1d-accent,#2F9E47);box-shadow:0 0 0 6px rgba(47,158,71,.18)}
+html[data-theme="dark"] .gv-end{background:#1B2420;color:#F1F4F2;box-shadow:0 18px 50px rgba(0,0,0,.5)}
+html[data-theme="dark"] .gv-end-copy span{color:#A9B5AF}
+@media(min-width:821px){.gv-end{bottom:32px}}
+@keyframes gv-rise{from{opacity:0;transform:translate(-50%,24px) scale(.97)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes gv-sink{to{opacity:0;transform:translate(-50%,16px)}}
+@keyframes gv-draw{to{stroke-dashoffset:0}}
+
+@media (prefers-reduced-motion:reduce){
+  html.boekuna-gevoel .gv-bar i::after,html.boekuna-gevoel .gv-steps li.is-active .gv-step-dot,html.boekuna-gevoel #toastRoot .gv-reward,.gv-end,.gv-end.is-leaving{animation:none}
+  .gv-end-check svg{animation:none;stroke-dashoffset:0}
+}
+html.boekuna-gevoel .document-processing-card:has(.gv-scan) .document-processing-card-icon{align-self:flex-start}

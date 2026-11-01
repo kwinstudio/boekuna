@@ -560,7 +560,7 @@
       var frag=document.createDocumentFragment(),text=n.nodeValue,last=0;COPY_RX.lastIndex=0;var m;
       while((m=COPY_RX.exec(text))){
         if(m.index>last)frag.appendChild(document.createTextNode(text.slice(last,m.index)));
-        var b=document.createElement('button');b.type='button';b.className='bk-copy';b.textContent=m[0];b.setAttribute('aria-label',m[0]+' kopiëren');b.dataset.copy=m[0].replace(/\s/g,'');
+        var b=document.createElement('button');b.type='button';b.className='bk-copy';b.textContent=/^NL\d{2}\s?[A-Z]{4}/.test(m[0])&&app('ibanBlocks')?app('ibanBlocks')(m[0]):m[0];b.setAttribute('aria-label',m[0]+' kopiëren');b.dataset.copy=m[0].replace(/\s/g,'');
         frag.appendChild(b);last=m.index+m[0].length;
       }
       if(last<text.length)frag.appendChild(document.createTextNode(text.slice(last)));

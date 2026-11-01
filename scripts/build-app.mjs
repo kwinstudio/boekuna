@@ -406,12 +406,16 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/press.js?v=2026
 // Handige trucjes (Kwin 2026-10-28): right keyboard per field, Enter goes to the next field, amounts as you type them,
 // smart pre-fill, bigger tap areas, swipe and long press in lists, shortcuts on a computer. Stylesheet next to press.css.
 {const headEnd=appHtml.indexOf('</head>');appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/handig.css?v=20261028d">\n'+appHtml.slice(headEnd);}
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/handig.js?v=20261029a"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/handig.js?v=20261101a"></script>\n');
 // Swipe left and right between the phone tabs (Kwin 2026-10-28). After handig.js, so a list row's own swipe goes first.
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/vegen.js?v=20261028a"></script>\n');
 // Desktop in the phone's style (Kwin 2026-10-28, keuze A): last in the head so it paints over the older desktop rules; only from 821px.
 {const headEnd=appHtml.indexOf('</head>');appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/desktop.css?v=20261028a">\n'+appHtml.slice(headEnd);}
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/desktop.js?v=20261028a"></script>\n');
+// Psychologische trucjes (Kwin 2026-11-01): the scan shows its steps with a bar, how long things take, the quarter bar, a fresh
+// start and a fixed bonnenmoment, what a bon is worth, a calm end after sending. Last, so it wraps the app as the others left it.
+{const headEnd=appHtml.indexOf('</head>');appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/gevoel.css?v=20261101a">\n'+appHtml.slice(headEnd);}
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/gevoel.js?v=20261101a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});
@@ -441,7 +445,7 @@ for(const asset of ['boekuna-app-favicon.svg','document-review-v2.js','document-
   if(!fs.existsSync(sourceFile))throw new Error('Missing app-only review asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
 }
-for(const asset of ['press.css','press.js','handig.css','handig.js','vegen.js','desktop.css','desktop.js'])fs.copyFileSync(path.join(root,'kwinest','app-assets',asset),path.join(appAssetsTarget,asset));
+for(const asset of ['press.css','press.js','handig.css','handig.js','vegen.js','desktop.css','desktop.js','gevoel.css','gevoel.js'])fs.copyFileSync(path.join(root,'kwinest','app-assets',asset),path.join(appAssetsTarget,asset));
 
 // Assistant integration is app-only. Keep shared public mobile assets byte-identical
 // to the marketing source and patch only the generated product artifact.
