@@ -534,6 +534,15 @@ export const nl = {
   restoreShort: "Terugzetten",
   pasteInviteTitle: "Uitnodiging gekregen?",
   pasteInviteBody: "Tik om de link te plakken en meteen mee te doen",
+  allSquareShort: "Overal quitte",
+  heroGet: "Je krijgt {amount}",
+  heroOwe: "Te verrekenen {amount}",
+  greetNight: "Goedenacht, {name}",
+  greetMorning: "Goedemorgen, {name}",
+  greetAfternoon: "Goedemiddag, {name}",
+  greetEvening: "Goedenavond, {name}",
+  youGetLower: "je krijgt",
+  toSettleLower: "te verrekenen",
 };
 
 export const en: typeof nl = {
@@ -1058,4 +1067,13 @@ export const en: typeof nl = {
   restoreShort: "Restore",
   pasteInviteTitle: "Got an invite?",
   pasteInviteBody: "Tap to paste the link and join right away",
+  allSquareShort: "All square",
+  heroGet: "You get {amount}",
+  heroOwe: "To settle {amount}",
+  greetNight: "Good night, {name}",
+  greetMorning: "Good morning, {name}",
+  greetAfternoon: "Good afternoon, {name}",
+  greetEvening: "Good evening, {name}",
+  youGetLower: "you get",
+  toSettleLower: "to settle",
 };

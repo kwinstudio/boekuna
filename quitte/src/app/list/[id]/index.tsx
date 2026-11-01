@@ -16,7 +16,7 @@ import { shareInvite, shareOverview } from '../../../lib/share';
 import { parseMoney } from '../../../lib/money';
 import { enqueue, removeLocal, updateLocal, useList } from '../../../lib/store';
 import { syncList, useLiveList } from '../../../lib/sync';
-import { radius, usePalette, useTheme } from '../../../lib/theme';
+import { num, radius, usePalette, useTheme } from '../../../lib/theme';
 import { listLook } from '../../../lib/look';
 import { LookPicker } from '../../../components/LookPicker';
 import { Image } from 'expo-image';
@@ -307,7 +307,7 @@ export default function ListScreen() {
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
             <View style={{ flex: 1, backgroundColor: th.card, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 }}>
               <Text style={{ fontSize: 12, fontWeight: '500', color: th.sub }}>{t('mySaldo')}</Text>
-              <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 20, fontWeight: '700', letterSpacing: -0.3, color: myBal === 0 ? th.text : myBal > 0 ? th.gain : th.owe }}>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={[{ fontSize: 21, fontWeight: '800', letterSpacing: -0.4, color: myBal === 0 ? th.text : myBal > 0 ? th.gain : th.owe }, num]}>
                 {myBal === 0 ? t('square') : `${myBal > 0 ? '+ ' : '− '}${money(Math.abs(myBal), cur)}`}
               </Text>
               {myBal < 0 && myOut.length === 1 ? (
@@ -324,7 +324,7 @@ export default function ListScreen() {
                 <Text style={{ fontSize: 12, fontWeight: '500', color: th.sub }}>{t('total')}</Text>
                 <Ionicons name="stats-chart-outline" size={13} color={th.sub} />
               </View>
-              <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 20, fontWeight: '700', letterSpacing: -0.3, color: th.text }}>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={[{ fontSize: 21, fontWeight: '800', letterSpacing: -0.4, color: th.text }, num]}>
                 {money(calc.total, cur)}
               </Text>
             </Pressable>
@@ -628,7 +628,7 @@ function Expenses({
               ) : null}
             </View>
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={{ fontSize: 16, fontWeight: '600', color: e.kind === 'income' ? th.gain : th.text }}>
+              <Text style={[{ fontSize: 16, fontWeight: '700', color: e.kind === 'income' ? th.gain : th.text }, num]}>
                 {e.kind === 'income' ? '+ ' : ''}
                 {money(e.amount, cur)}
               </Text>

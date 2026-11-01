@@ -17,7 +17,7 @@ import { Platform } from 'react-native';
 import { money } from '../lib/domain';
 import { plural, t } from '../lib/i18n';
 import { createDemoList, useStore, viewOf } from '../lib/store';
-import { usePalette, useTheme, type Hue } from '../lib/theme';
+import { num, usePalette, useTheme, type Hue } from '../lib/theme';
 import type { LocalList } from '../lib/types';
 
 type Row = { local: LocalList; name: string; members: string[]; entries: number; balance: number; currency: string; archived: boolean; open: number; hue: Hue; icon: ReturnType<typeof listLook>['icon'] };
@@ -55,24 +55,41 @@ export default function Home() {
   const active = rows.filter((r) => !r.archived);
   const archived = rows.filter((r) => r.archived);
   const totalEur = active.filter((r) => r.currency === 'EUR').reduce((s, r) => s + r.balance, 0);
-  const hero = usePalette(totalEur < 0 ? 'coral' : 'teal');
+  const getsEur = active.filter((r) => r.currency === 'EUR' && r.balance > 0).reduce((x, r) => x + r.balance, 0);
+  const owesEur = active.filter((r) => r.currency === 'EUR' && r.balance < 0).reduce((x, r) => x - r.balance, 0);
+  const profileName = useStore((s) => s.profile.name);
+  const hour = new Date().getHours();
+  const greeting = t(hour < 6 ? 'greetNight' : hour < 12 ? 'greetMorning' : hour < 18 ? 'greetAfternoon' : 'greetEvening', { name: profileName || '' }).replace(/,\s*$/, '');
 
   if (rows.length === 0) return <Welcome />;
 
   return (
     <Screen bottom={false}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 14, marginTop: 4 }}>
-        <Text accessibilityRole="header" style={{ fontSize: 32, fontWeight: '700', letterSpacing: -0.7, color: th.text }}>
-          {t('lists')}
-        </Text>
-        <IconButton icon="person-circle-outline" label={t('settings')} onPress={() => router.push('/settings')} />
+        <View>
+          <Text style={{ fontSize: 15, fontWeight: '500', color: th.sub }}>{greeting}</Text>
+          <Text accessibilityRole="header" style={{ fontSize: 34, fontWeight: '800', letterSpacing: -1, color: th.text }}>
+            {t('lists')}
+          </Text>
+        </View>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('settings')} onPress={() => router.push('/settings')} hitSlop={8}>
+          <Avatar name={profileName || '?'} size={40} />
+        </Pressable>
       </View>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}>
-        <View style={{ backgroundColor: hero.bg, borderRadius: 18, paddingHorizontal: 18, paddingVertical: 16, marginBottom: 20 }}>
-          <Text style={{ fontSize: 13, fontWeight: '500', color: hero.strong, marginBottom: 2 }}>{t('acrossLists')}</Text>
-          <Text style={{ fontSize: 26, fontWeight: '700', letterSpacing: -0.5, color: hero.fg }}>
-            {totalEur === 0 ? t('allSquare') : totalEur > 0 ? t('youGetTotal', { amount: money(totalEur) }) : t('youPayTotal', { amount: money(-totalEur) })}
+        <View style={{ backgroundColor: th.hero, borderRadius: 24, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 16, marginBottom: 24 }}>
+          <Text style={{ fontSize: 14, fontWeight: '500', color: th.onHero, opacity: 0.85 }}>{t('acrossLists')}</Text>
+          <Text style={[{ fontSize: 36, fontWeight: '800', letterSpacing: -1.2, color: th.onHero, marginTop: 2 }, num]} adjustsFontSizeToFit numberOfLines={1}>
+            {totalEur === 0 ? t('allSquareShort') : `${totalEur > 0 ? '+ ' : '− '}${money(Math.abs(totalEur))}`}
           </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+            <View style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 14, paddingHorizontal: 12, height: 28, justifyContent: 'center' }}>
+              <Text style={[{ fontSize: 13, fontWeight: '700', color: th.onHero }, num]}>{t('heroGet', { amount: money(getsEur) })}</Text>
+            </View>
+            <View style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 14, paddingHorizontal: 12, height: 28, justifyContent: 'center' }}>
+              <Text style={[{ fontSize: 13, fontWeight: '700', color: th.onHero }, num]}>{t('heroOwe', { amount: money(owesEur) })}</Text>
+            </View>
+          </View>
         </View>
         <View style={{ gap: 10 }}>
           {active.map((r) => (
@@ -150,11 +167,12 @@ function ListRow({ row }: { row: Row }) {
             <Text style={{ fontSize: 13, fontWeight: '600', color: th.sub }}>{t('square')}</Text>
           </View>
         ) : (
-          <View style={{ paddingHorizontal: 10, height: 28, borderRadius: 14, backgroundColor: pill.bg, justifyContent: 'center' }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: pill.fg }}>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={[{ fontSize: 16, fontWeight: '800', color: row.balance > 0 ? th.gain : th.owe }, num]}>
               {row.balance > 0 ? '+ ' : '− '}
               {money(Math.abs(row.balance), row.currency)}
             </Text>
+            <Text style={{ fontSize: 12, color: th.sub }}>{row.balance > 0 ? t('youGetLower') : t('toSettleLower')}</Text>
           </View>
         )}
       </Card>

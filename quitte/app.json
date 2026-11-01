@@ -31,7 +31,7 @@
     "android": {
       "package": "nl.zichtwerf.quitte",
       "adaptiveIcon": {
-        "backgroundColor": "#0A6B58",
+        "backgroundColor": "#2563EB",
         "foregroundImage": "./assets/android-icon-foreground.png"
       }
     },
@@ -54,11 +54,11 @@
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",
-          "imageWidth": 96,
-          "backgroundColor": "#F4F5F1",
+          "imageWidth": 120,
+          "backgroundColor": "#FFFFFF",
           "dark": {
             "image": "./assets/splash-icon.png",
-            "backgroundColor": "#0F1112"
+            "backgroundColor": "#0B0F17"
           }
         }
       ],

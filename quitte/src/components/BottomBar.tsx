@@ -59,7 +59,7 @@ export function BottomBar({ active }: { active: 'lists' | 'activity' }) {
         right: 0,
         bottom: 0,
         paddingBottom: Math.max(insets.bottom, 10),
-        backgroundColor: th.card,
+        backgroundColor: th.bg,
         borderTopWidth: StyleSheet.hairlineWidth,
         borderTopColor: th.line,
         flexDirection: 'row',
@@ -87,9 +87,9 @@ function PlusButton({ onPress }: { onPress: () => void }) {
         onPressIn={() => spring(0.9)}
         onPressOut={() => spring(1)}
         onPress={onPress}
-        style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: th.accent, alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: th.bg }}
+        style={{ width: 60, height: 60, borderRadius: 20, backgroundColor: th.ink, alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: th.bg }}
       >
-        <Ionicons name="add" size={32} color={th.onAccent} />
+        <Ionicons name="add" size={32} color={th.onInk} />
       </Pressable>
     </Animated.View>
   );
