@@ -56,7 +56,7 @@ enum WishLine {
 struct GiftSearchSection: View {
     let tint: Color
     var budgetCents: Int? = nil
-    let onAdd: (String) -> Void
+    let onAdd: (WishDraft) -> Void
 
     private let catalog = GiftCatalog.shared
     @State private var category: String? = nil
@@ -101,7 +101,7 @@ struct GiftSearchSection: View {
                 VStack(spacing: 0) {
                     ForEach(results) { p in
                         ProductRow(product: p, tint: tint, added: added.contains(p.id)) {
-                            onAdd(WishLine.line(title: p.title, priceCents: p.price, url: p.url))
+                            onAdd(WishDraft(title: p.title, url: p.url, imageUrl: p.imageUrl, priceCents: p.price))
                             added.insert(p.id)
                             Haptics.success()
                         }
@@ -175,7 +175,7 @@ struct GiftSearchSection: View {
                 IdeaRow(idea: idea, symbol: catalog.category(idea.category)?.symbol ?? "gift", tint: tint,
                         fits: budgetCents.map { idea.minEuro * 100 <= $0 } ?? true,
                         added: added.contains("idea:\(idea.id)")) {
-                    onAdd("- \(idea.name)")
+                    onAdd(WishDraft(title: idea.name))
                     added.insert("idea:\(idea.id)")
                     Haptics.success()
                 } look: {
@@ -249,7 +249,8 @@ struct GiftSearchSection: View {
         }
         // Keep any product name that came along with the link.
         let title = text.replacingOccurrences(of: url.absoluteString, with: "").trimmed
-        onAdd(title.isEmpty || title.count > 120 ? "- \(url.absoluteString)" : "- \(title)\n  \(url.absoluteString)")
+        let name = title.isEmpty || title.count > 120 ? (url.host() ?? url.absoluteString).replacingOccurrences(of: "www.", with: "") : title
+        onAdd(WishDraft(title: name, url: url.absoluteString))
         message = "Link toegevoegd."
         Haptics.success()
     }

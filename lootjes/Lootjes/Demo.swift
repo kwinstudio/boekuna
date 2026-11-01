@@ -39,18 +39,32 @@ enum Demo {
                            exclusions: [["m1", "m2"]], repeatedLastYear: nil)
     }
 
+    static let myItems: [WishItem] = [
+        WishItem(id: "w1", title: "Een goed boek (thriller)", url: nil, imageUrl: nil, priceCents: 2000, note: "Liefst van Nicci French", position: 0),
+        WishItem(id: "w2", title: "Warme sokken", url: nil, imageUrl: nil, priceCents: 1200, note: "Maat 43", position: 1),
+        WishItem(id: "w3", title: "Puzzel van 1000 stukjes", url: "https://www.bol.com/nl/nl/s/?searchtext=puzzel", imageUrl: nil, priceCents: 1800, note: nil, position: 2),
+    ]
+
     static var me: MeResponse {
         MeResponse(group: group,
                    me: MeInfo(id: "m0", name: "Kwin", wishlist: "- Een goed boek (thriller)\n- Warme sokken maat 43", isOrganizer: true, openedBefore: nil),
                    memberNames: names,
-                   receiver: Receiver(id: "m3", name: "Oma Riet",
-                                      wishlist: "- Een mooie plant voor in de vensterbank\n- Puzzel van 1000 stukjes\n- Iets lekkers, maar geen drop\nhttps://www.bol.com",
-                                      wishlistUpdatedAt: "2026-11-12T10:00:00Z"),
+                   receiver: Receiver(id: "m3", name: "Oma Riet", wishlist: "", wishlistUpdatedAt: "2026-10-30T10:00:00Z",
+                                      items: [
+                                        WishItem(id: "r1", title: "Kamerplant voor de vensterbank", url: nil, imageUrl: nil, priceCents: 2000, note: "Iets dat weinig water nodig heeft", position: 0),
+                                        WishItem(id: "r2", title: "Puzzel van 1000 stukjes", url: "https://www.bol.com/nl/nl/s/?searchtext=puzzel", imageUrl: nil, priceCents: 1500, note: nil, position: 1),
+                                        WishItem(id: "r3", title: "Luxe chocolade", url: nil, imageUrl: nil, priceCents: 1000, note: "Puur, geen drop", position: 2),
+                                      ]),
                    giftReady: false,
                    messages: [
                        ChatMessage(id: "1", thread: .myLootje, fromMe: true, body: "Hou je meer van rood of groen?", createdAt: "2026-11-12T10:00:00Z"),
                        ChatMessage(id: "2", thread: .myLootje, fromMe: false, body: "Groen! Net als mijn tuin 🌿", createdAt: "2026-11-12T11:00:00Z"),
                        ChatMessage(id: "3", thread: .mySint, fromMe: false, body: "Welke schoenmaat heb je?", createdAt: "2026-11-13T09:00:00Z"),
+                   ],
+                   myItems: myItems,
+                   shopItems: [
+                    ShopItem(id: "s1", title: "Puzzel van 1000 stukjes", priceCents: 1500, bought: true, wishItemId: "r2", position: 0),
+                    ShopItem(id: "s2", title: "Inpakpapier", priceCents: 300, bought: false, wishItemId: nil, position: 1),
                    ])
     }
 
@@ -108,7 +122,9 @@ struct DemoRoot: View {
                 }
                 .background(Theme.paper.ignoresSafeArea())
             case "wishlist":
-                WishlistEditor(text: "- Een goed boek (thriller)\n- Warme sokken maat 43\n  https://www.apple.com/nl/airpods/", budget: 2500, tint: Theme.red) { _ in }
+                MyWishlistView(token: "demo", budget: 2500, tint: Theme.red, items: .constant(Demo.myItems))
+            case "shops":
+                ShopBrowserView(tint: Theme.red) { _ in }
             case "poem":
                 PoemHelperView(receiverName: "Oma Riet", wishlist: "Een mooie plant", tint: Theme.red)
             case "pass":

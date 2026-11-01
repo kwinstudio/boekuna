@@ -130,7 +130,39 @@ struct Receiver: Codable, Equatable {
     let name: String
     let wishlist: String
     let wishlistUpdatedAt: String?
+    var items: [WishItem]?
 }
+
+struct WishItem: Codable, Equatable, Identifiable, Hashable {
+    let id: String
+    var title: String
+    var url: String?
+    var imageUrl: String?
+    var priceCents: Int?
+    var note: String?
+    var position: Int
+}
+
+struct ShopItem: Codable, Equatable, Identifiable {
+    let id: String
+    var title: String
+    var priceCents: Int?
+    var bought: Bool
+    var wishItemId: String?
+    var position: Int
+}
+
+/// A wish before it is saved (from an idea, a shop page, a link or typed by hand).
+struct WishDraft: Equatable, Identifiable {
+    var id = UUID()
+    var title: String = ""
+    var url: String?
+    var imageUrl: String?
+    var priceCents: Int?
+    var note: String?
+}
+
+struct LinkPreviewInfo: Codable { let title: String?; let imageUrl: String?; let priceCents: Int?; let site: String? }
 
 struct ChatMessage: Codable, Equatable, Identifiable {
     enum Thread: String, Codable { case myLootje, mySint }
@@ -156,6 +188,8 @@ struct MeResponse: Codable, Equatable {
     var receiver: Receiver?
     var giftReady: Bool
     var messages: [ChatMessage]
+    var myItems: [WishItem]?
+    var shopItems: [ShopItem]?
 }
 
 struct JoinPreview: Codable, Equatable {

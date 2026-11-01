@@ -3,6 +3,7 @@
 // The draw happens here on the server, so nobody — also not the organizer — sees who drew whom.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { draw } from "./draw.ts";
+import { ITEM_ACTIONS, itemsAction, migrateText, shopItems, wishItems } from "./items.ts";
 
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
   auth: { persistSession: false },
@@ -75,6 +76,8 @@ async function must<T>(p: PromiseLike<{ data: T; error: unknown }>): Promise<T> 
   return data;
 }
 
+const ctx = { db, must, bad };
+
 async function rateLimit(key: string, max: number, windowSec: number) {
   const now = Date.now();
   const { data } = await db.from("lt_rate").select("window_start,hits").eq("key", key).maybeSingle();
@@ -143,6 +146,8 @@ async function adminView(g: Group) {
     ? ((await must(db.from("lt_assignments").select("giver_id,gift_ready").eq("group_id", g.id))) as { giver_id: string; gift_ready: boolean }[])
     : [];
   const ready = new Map(asg.map((a) => [a.giver_id, a.gift_ready]));
+  const wishRows = (await must(db.from("lt_wish_items").select("member_id").eq("group_id", g.id))) as { member_id: string }[];
+  const withItems = new Set(wishRows.map((w) => w.member_id));
   // Integrity check the organizer can see without seeing any pair:
   // everyone gives exactly one gift and receives exactly one gift.
   let check: { members: number; givers: number; receivers: number; ok: boolean } | null = null;
@@ -160,7 +165,7 @@ async function adminView(g: Group) {
     group: publicGroup(g),
     members: ms.map((m) => ({
       id: m.id, name: m.name, isOrganizer: m.is_organizer, joinedSelf: m.joined_self,
-      hasWishlist: m.wishlist.trim().length > 0, linkSentAt: m.link_sent_at,
+      hasWishlist: m.wishlist.trim().length > 0 || withItems.has(m.id), linkSentAt: m.link_sent_at,
       openedAt: m.first_opened_at, lastSeenAt: m.last_seen_at, giftReady: ready.get(m.id) ?? false,
     })),
     exclusions: ex,
@@ -195,6 +200,7 @@ async function runDraw(g: Group) {
   }
   await must(db.from("lt_assignments").delete().eq("group_id", g.id));
   await must(db.from("lt_messages").delete().eq("group_id", g.id));
+  await must(db.from("lt_shop_items").delete().eq("group_id", g.id)); // shopping lists belong to the old draw
   await must(db.from("lt_assignments").insert(
     [...result.ok.pairs].map(([giver, receiver]) => ({ group_id: g.id, giver_id: giver, receiver_id: receiver })),
   ));
@@ -250,6 +256,11 @@ function metaContent(html: string, keys: string[]): string | null {
 
 async function handle(body: Record<string, unknown>, ip: string) {
   const action = String(body.action ?? "");
+  if (ITEM_ACTIONS.has(action)) {
+    const { me, group } = await memberByToken(body.token);
+    await rateLimit(`items:${me.id}`, 300, 3600);
+    return itemsAction(ctx, action, body, me, group);
+  }
   switch (action) {
     case "createGroup": {
       await rateLimit(`create:${ip}`, 30, 3600);
@@ -383,6 +394,13 @@ async function handle(body: Record<string, unknown>, ip: string) {
           // Carry last year's wishlist over as a starting point (a common complaint elsewhere).
           await must(db.from("lt_members").update({ wishlist: m.wishlist, wishlist_updated_at: m.wishlist_updated_at }).eq("id", member.id));
         }
+        const oldItems = await wishItems(ctx, m.id);
+        if (oldItems.length) {
+          await must(db.from("lt_wish_items").insert(oldItems.map((w) => ({
+            group_id: ng.id, member_id: member.id, title: w.title, url: w.url, image_url: w.imageUrl,
+            price_cents: w.priceCents, note: w.note, position: w.position,
+          }))));
+        }
         idMap.set(m.id, member.id);
         created.push({ id: member.id, name: member.name, token, isOrganizer: m.is_organizer });
       }
@@ -421,18 +439,24 @@ async function handle(body: Record<string, unknown>, ip: string) {
 
     case "me": {
       const { me, group } = await memberByToken(body.token);
+      if (me.wishlist.trim()) { await migrateText(ctx, me); me.wishlist = ""; }
       const now = new Date().toISOString();
       await db.from("lt_members").update({ last_seen_at: now, ...(me.first_opened_at ? {} : { first_opened_at: now }) }).eq("id", me.id);
       const ms = await members(group.id);
-      let receiver: { id: string; name: string; wishlist: string; wishlistUpdatedAt: string | null } | null = null;
+      let receiver: { id: string; name: string; wishlist: string; wishlistUpdatedAt: string | null; items: unknown[] } | null = null;
+      let shop: unknown[] = [];
       let giftReady = false;
       let messages: { id: string; thread: "myLootje" | "mySint"; fromMe: boolean; body: string; createdAt: string }[] = [];
       if (group.drawn_at) {
         const mine = (await must(db.from("lt_assignments").select("receiver_id,gift_ready").eq("group_id", group.id).eq("giver_id", me.id).maybeSingle())) as { receiver_id: string; gift_ready: boolean } | null;
         if (mine) {
           const r = ms.find((m) => m.id === mine.receiver_id);
-          if (r) receiver = { id: r.id, name: r.name, wishlist: r.wishlist, wishlistUpdatedAt: r.wishlist_updated_at };
+          if (r) {
+            if (r.wishlist.trim()) { await migrateText(ctx, r); r.wishlist = ""; }
+            receiver = { id: r.id, name: r.name, wishlist: r.wishlist, wishlistUpdatedAt: r.wishlist_updated_at, items: await wishItems(ctx, r.id) };
+          }
           giftReady = mine.gift_ready;
+          shop = await shopItems(ctx, me.id);
         }
         const sint = (await must(db.from("lt_assignments").select("giver_id").eq("group_id", group.id).eq("receiver_id", me.id).maybeSingle())) as { giver_id: string } | null;
         const threads = [me.id, sint?.giver_id].filter(Boolean) as string[];
@@ -448,6 +472,7 @@ async function handle(body: Record<string, unknown>, ip: string) {
         me: { id: me.id, name: me.name, wishlist: me.wishlist, isOrganizer: me.is_organizer, openedBefore: me.first_opened_at },
         memberNames: ms.map((m) => m.name),
         receiver, giftReady, messages,
+        myItems: await wishItems(ctx, me.id), shopItems: shop,
       };
     }
 
@@ -535,9 +560,30 @@ async function handle(body: Record<string, unknown>, ip: string) {
         }
         const title = metaContent(html, ["og:title", "twitter:title"]) ?? html.match(/<title[^>]*>([^<]{1,200})<\/title>/i)?.[1]?.trim() ?? null;
         let image = metaContent(html, ["og:image", "twitter:image"]);
+        let price: number | null = null;
+        const metaPrice = metaContent(html, ["product:price:amount", "og:price:amount"]);
+        if (metaPrice && !isNaN(Number(metaPrice.replace(",", ".")))) price = Math.round(Number(metaPrice.replace(",", ".")) * 100);
+        if (price === null) {
+          for (const m of html.matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
+            try {
+              const walk = (o: unknown): number | null => {
+                if (!o || typeof o !== "object") return null;
+                const r = o as Record<string, unknown>;
+                const offers = r.offers as Record<string, unknown> | Record<string, unknown>[] | undefined;
+                const off = Array.isArray(offers) ? offers[0] : offers;
+                const p = off && (off.price ?? off.lowPrice);
+                if (p !== undefined && !isNaN(Number(p))) return Math.round(Number(p) * 100);
+                for (const v of Object.values(r)) { const x = Array.isArray(v) ? v.map(walk).find((y) => y !== null) ?? null : walk(v); if (x !== null) return x; }
+                return null;
+              };
+              price = walk(JSON.parse(m[1]));
+              if (price !== null) break;
+            } catch { /* ignore broken JSON-LD */ }
+          }
+        }
         if (image) { try { image = new URL(image, r.url).toString(); } catch { image = null; } }
         if (image && !image.startsWith("https://")) image = null;
-        return { title: title?.slice(0, 160) ?? null, imageUrl: image, site: new URL(r.url).hostname.replace(/^www\./, "") };
+        return { title: title?.slice(0, 160) ?? null, imageUrl: image, priceCents: price, site: new URL(r.url).hostname.replace(/^www\./, "") };
       } catch {
         return { title: null, imageUrl: null, site: u.hostname.replace(/^www\./, "") };
       }

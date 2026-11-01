@@ -133,6 +133,48 @@ struct API {
         try await call("searchProducts", ["query": query, "country": Locale.current.region?.identifier == "BE" ? "BE" : "NL"])
     }
 
+    struct ItemResult<T: Codable>: Codable { let item: T }
+
+    func wishAdd(_ token: String, _ d: WishDraft) async throws -> WishItem {
+        let r: ItemResult<WishItem> = try await call("wishAdd", ["token": token, "title": d.title, "url": d.url, "imageUrl": d.imageUrl, "priceCents": d.priceCents, "note": d.note])
+        return r.item
+    }
+
+    func wishUpdate(_ token: String, id: String, _ d: WishDraft) async throws -> WishItem {
+        let r: ItemResult<WishItem> = try await call("wishUpdate", [
+            "token": token, "id": id, "title": d.title,
+            "url": d.url.map { $0 as Any } ?? NSNull(), "imageUrl": d.imageUrl.map { $0 as Any } ?? NSNull(),
+            "priceCents": d.priceCents.map { $0 as Any } ?? NSNull(), "note": d.note.map { $0 as Any } ?? NSNull(),
+        ])
+        return r.item
+    }
+
+    func wishDelete(_ token: String, id: String) async throws {
+        let _: OK = try await call("wishDelete", ["token": token, "id": id])
+    }
+
+    func wishReorder(_ token: String, ids: [String]) async throws {
+        let _: OK = try await call("wishReorder", ["token": token, "ids": ids])
+    }
+
+    func shopAdd(_ token: String, title: String, priceCents: Int?, wishItemId: String?) async throws -> ShopItem {
+        let r: ItemResult<ShopItem> = try await call("shopAdd", ["token": token, "title": title, "priceCents": priceCents, "wishItemId": wishItemId])
+        return r.item
+    }
+
+    func shopUpdate(_ token: String, id: String, bought: Bool? = nil, title: String? = nil, priceCents: Int? = nil) async throws -> ShopItem {
+        let r: ItemResult<ShopItem> = try await call("shopUpdate", ["token": token, "id": id, "bought": bought, "title": title, "priceCents": priceCents])
+        return r.item
+    }
+
+    func shopDelete(_ token: String, id: String) async throws {
+        let _: OK = try await call("shopDelete", ["token": token, "id": id])
+    }
+
+    func linkPreview(_ url: String) async throws -> LinkPreviewInfo {
+        try await call("linkPreview", ["url": url])
+    }
+
     func leave(_ token: String) async throws {
         let _: OK = try await call("leave", ["token": token])
     }

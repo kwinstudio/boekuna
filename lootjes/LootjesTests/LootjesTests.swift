@@ -241,3 +241,27 @@ final class GiftCatalogTests: XCTestCase {
         XCTAssertTrue(cheap.allSatisfy { $0.minEuro <= 10 })
     }
 }
+
+final class WishTests: XCTestCase {
+    func testPriceParser() {
+        XCTAssertEqual(PriceParser.cents("12,50"), 1250)
+        XCTAssertEqual(PriceParser.cents("€ 20"), 2000)
+        XCTAssertEqual(PriceParser.cents("7.5"), 750)
+        XCTAssertNil(PriceParser.cents(""))
+        XCTAssertNil(PriceParser.cents("abc"))
+    }
+
+    func testProductPageResultBecomesDraft() {
+        let json = #"{"title":"Puzzel 1000 stukjes Grachten | bol","image":"https://media.example.com/p.jpg","price":17.99,"url":"https://www.bol.com/nl/p/123"}"#
+        let d = ProductPageScript.draft(from: json)
+        XCTAssertEqual(d?.title, "Puzzel 1000 stukjes Grachten")
+        XCTAssertEqual(d?.priceCents, 1799)
+        XCTAssertEqual(d?.imageUrl, "https://media.example.com/p.jpg")
+        XCTAssertEqual(d?.url, "https://www.bol.com/nl/p/123")
+    }
+
+    func testInsecureImagesAreDropped() {
+        let json = #"{"title":"Iets","image":"http://insecure.example.com/x.jpg","price":null,"url":"https://shop.nl/x"}"#
+        XCTAssertNil(ProductPageScript.draft(from: json)?.imageUrl)
+    }
+}

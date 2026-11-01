@@ -10,7 +10,7 @@ xcrun simctl bootstatus "$SIM" -b
 xcrun simctl status_bar "$SIM" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 || true
 xcrun simctl install "$SIM" "$APP"
 mkdir -p build/screens
-for screen in ${SCREENS:-home create before organizer scratch member poem pass drawing kerst wishlist}; do
+for screen in ${SCREENS:-home create before organizer scratch member poem pass drawing kerst wishlist shops}; do
   for mode in light dark; do
     xcrun simctl ui "$SIM" appearance "$mode"
     xcrun simctl terminate "$SIM" nl.zichtwerfstudio.lootjes >/dev/null 2>&1 || true

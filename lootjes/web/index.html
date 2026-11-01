@@ -80,6 +80,16 @@
   .idea .pt { flex:1; font-size:15px; } .idea .pt small { display:block; color:var(--muted); font-size:12px; }
   .idea a.look { color:var(--muted); text-decoration:none; padding:8px; }
   .idea button { width:40px; height:40px; border-radius:20px; border:0; background:var(--accent); color:#fff; font-size:20px; flex:none; }
+  .wi { display:flex; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--line); }
+  .wi img, .wi .ph { width:48px; height:48px; border-radius:8px; object-fit:contain; background:#fff; flex:none; border:1px solid var(--line); }
+  .wi .pt { flex:1; font-size:15px; } .wi .pt small { display:block; color:var(--muted); font-size:12px; }
+  .wi .x { border:0; background:none; color:var(--muted); font-size:18px; width:36px; height:40px; }
+  .pill-btn { border:0; border-radius:16px; padding:8px 12px; font:inherit; font-size:13px; font-weight:600; background:var(--accent); color:#fff; text-decoration:none; display:inline-block; }
+  .pill-btn.soft { background:var(--paper); color:var(--ink); } .pill-btn.ok { background:color-mix(in srgb, var(--green) 15%, transparent); color:var(--green); }
+  .si { display:flex; gap:10px; align-items:center; padding:6px 0; }
+  .si input[type=checkbox] { width:24px; height:24px; accent-color:var(--green); flex:none; }
+  .si .pt { flex:1; } .si.done .pt { text-decoration:line-through; color:var(--muted); }
+  .bar2 { height:8px; border-radius:4px; background:var(--line); overflow:hidden; margin:6px 0 2px; } .bar2 div { height:100%; background:var(--accent); }
   @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
 </style>
 </head>
@@ -250,13 +260,14 @@ async function memberPage(token, justJoined = false) {
       ${g.eventDate ? `<p>Datum: ${esc(longDate(g.eventDate))}${cd ? " (" + cd + ")" : ""}</p>` : ""}
       ${g.note ? `<p>Bericht: ${esc(g.note)}</p>` : ""}
       <p style="margin:0">Deelnemers: ${d.memberNames.map(esc).join(", ")}</p></div>`;
-  const myWish = `<div class="card"><h2>Zoek een cadeau</h2>
-      <div class="row"><input id="q" maxlength="80" placeholder="Bijv. warme sokken, puzzel, boek"><button class="btn send" id="qgo" aria-label="Zoek">&#128269;</button></div>
-      <div id="qres"></div></div>
-    <div class="card"><h2>Mijn verlanglijstje</h2>
-      <textarea id="wish" maxlength="2000" placeholder="Bijv.&#10;- Een goed boek (thriller)&#10;- Warme sokken maat 42&#10;- Iets lekkers, maar geen drop">${esc(d.me.wishlist)}</textarea>
-      <div class="row" style="margin-top:8px"><span class="muted" id="wishState" style="flex:1">${g.budgetCents != null ? "Budget " + euro(g.budgetCents) + ". Links naar webshops werken ook." : "Links naar webshops werken ook."}</span>
-      <button class="btn secondary" style="width:auto;padding:0 18px" id="saveWish">Bewaar</button></div></div>`;
+  const myWish = `<div class="card"><h2>Mijn verlanglijstje</h2>
+      <p class="muted" style="font-size:13px">${g.budgetCents != null ? "Budget " + euro(g.budgetCents) + ". " : ""}Je Sint ziet dit lijstje.</p>
+      <div id="mywish"></div>
+      <h2 style="margin-top:14px">Toevoegen</h2>
+      <div class="row"><input id="q" maxlength="80" placeholder="Zoek een idee, bijv. sokken, puzzel"><button class="btn send" id="qgo" aria-label="Zoek">&#128269;</button></div>
+      <div id="qres"></div>
+      <div class="row" style="margin-top:10px"><input id="own" maxlength="160" placeholder="Of typ zelf een wens, of plak een link"><button class="btn send" id="owngo" aria-label="Toevoegen">+</button></div>
+      <p class="muted" id="wishState" style="font-size:13px;margin-top:6px"></p></div>`;
 
   if (!d.receiver) {
     render(`${festHeader(g)}<div class="pill">Je doet mee</div><h1>Hoi ${esc(d.me.name)}!</h1>
@@ -266,7 +277,7 @@ async function memberPage(token, justJoined = false) {
       ${info}${appBanner("m/" + token)}`);
     startFestive();
     bar("");
-    wireWish(token, g.budgetCents);
+    wireWish(token, g.budgetCents, d);
     return;
   }
 
@@ -281,8 +292,8 @@ async function memberPage(token, justJoined = false) {
     ${warnOpened && !d.me.isOrganizer && !revealed ? `<p class="warn">Deze link is al eerder geopend. Was jij dat niet? Vraag de organisator om een nieuwe link.</p>` : ""}
     ${festHeader(g)}
     <div id="lootje"></div>
-    <div class="card"><h2>Verlanglijstje van ${esc(r.name)}</h2>
-      ${r.wishlist.trim() ? `<div class="wish">${linkify(r.wishlist)}</div><div id="previews"></div>` : `<p class="muted">${esc(r.name)} heeft nog niets ingevuld. Stel hieronder anoniem een vraag.</p>`}</div>
+    <div class="card"><h2>Verlanglijstje van ${esc(r.name)}</h2><div id="theirwish"></div></div>
+    <div class="card"><h2>Mijn boodschappen</h2><p class="muted" style="font-size:13px">Alleen jij ziet dit lijstje.</p><div id="shop"></div></div>
     ${chat("myLootje", `Vraag ${esc(r.name)} iets`, `${esc(r.name)} ziet niet dat jij het vraagt.`, "Bijv. welke kleur vind je mooi?")}
     ${chat("mySint", `Je ${o.giver}`, `Vragen van je ${o.giver}. Je kunt gewoon antwoorden.`, "Antwoord")}
     ${myWish}${info}${appBanner("m/" + token)}`);
@@ -318,7 +329,7 @@ async function memberPage(token, justJoined = false) {
     b.onclick = send;
     input.addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
   });
-  wireWish(token, g.budgetCents);
+  wireWish(token, g.budgetCents, d);
   bar("");
 }
 
@@ -367,23 +378,19 @@ function searchIdeas(cat, q, budget) {
   }).filter(Boolean).sort((a, b) => b[1] - a[1] || a[0].n.localeCompare(b[0].n)).slice(0, 12).map((x) => x[0]);
 }
 async function wireSearch(budget) {
-  const q = $("#q"), go = $("#qgo"), out = $("#qres"), ta = $("#wish");
+  const q = $("#q"), go = $("#qgo"), out = $("#qres");
   if (!q) return;
   const cat = await loadIdeas();
   let category = null, showAll = false;
-  const addLine = (line, btn) => {
-    ta.value = ta.value.trim() ? ta.value.trim() + "\n" + line : line;
-    if (btn) { btn.textContent = "✓"; btn.disabled = true; btn.style.background = "var(--green)"; }
-    vibrate(15); $("#wishState").textContent = "Toegevoegd. Vergeet niet op Bewaar te tikken.";
-  };
+  const addLine = (draft, btn) => addWish(draft, btn);
   const shopLinks = (term) => `<p class="muted" style="margin:10px 0 0;font-size:13px;font-weight:600">Iets specifieks zoeken?</p><div class="row2" style="margin-top:6px">
       <a class="btn secondary" target="_blank" rel="noopener" href="https://www.bol.com/nl/nl/s/?searchtext=${encodeURIComponent(term)}">Bij bol.com</a>
       <a class="btn secondary" target="_blank" rel="noopener" href="https://www.google.com/search?tbm=shop&q=${encodeURIComponent(term)}">Op internet</a></div>
-      <p class="muted" style="margin-top:8px;font-size:13px">Gevonden? Kopieer de link en plak hem in je lijstje hieronder.</p>`;
+      <p class="muted" style="margin-top:8px;font-size:13px">Gevonden? Kopieer de link en plak hem hieronder bij "typ zelf of plak een link".</p>`;
   const ideaRows = (list) => list.map((i) => `<div class="idea"><div class="pt">${esc(i.n)}<small>€${i.p[0]}–${i.p[1]}${budget != null && i.p[0] * 100 > budget ? " · boven budget" : ""}</small></div>
       <a class="look" target="_blank" rel="noopener" aria-label="Bekijk in een winkel" href="https://www.bol.com/nl/nl/s/?searchtext=${encodeURIComponent(i.n)}">&#128269;</a>
       <button data-n="${esc(i.n)}" aria-label="Zet op je lijstje">+</button></div>`).join("");
-  const wire = () => out.querySelectorAll("button[data-n]").forEach((b) => b.onclick = () => addLine("- " + b.dataset.n, b));
+  const wire = () => out.querySelectorAll("button[data-n]").forEach((b) => b.onclick = () => addLine({ title: b.dataset.n }, b));
   const render = () => {
     const term = q.value.trim();
     if (term.length >= 2) {
@@ -411,7 +418,7 @@ async function wireSearch(budget) {
         (r.partnerLinks ? `<p class="muted" style="font-size:12px;margin-top:8px">Links naar bol.com zijn partnerlinks: de maker van deze app krijgt een kleine vergoeding, jij betaalt niets extra.</p>` : ""));
       out.querySelectorAll("button[data-p]").forEach((b) => b.onclick = () => {
         const p = r.results[+b.dataset.p];
-        addLine(`- ${p.title}${p.price != null ? " (" + euro(p.price) + ")" : ""}\n  ${p.url}`, b);
+        addLine({ title: p.title.slice(0, 160), url: p.url, imageUrl: p.imageUrl, priceCents: p.price }, b);
       });
     } catch {}
   };
@@ -420,17 +427,92 @@ async function wireSearch(budget) {
   render();
 }
 
-function wireWish(token, budget) {
-  wireSearch(budget);
-  renderPreviews($("#previews"), $("#previews") ? ($(".wish")?.textContent || "") : "");
-  const btn = $("#saveWish"), ta = $("#wish"), st = $("#wishState");
-  if (!btn) return;
-  btn.onclick = async () => {
-    btn.disabled = true;
-    try { await call("setWishlist", { token, wishlist: ta.value }); st.textContent = "Opgeslagen ✓"; vibrate(15); }
-    catch (e) { st.textContent = e.message; }
-    btn.disabled = false;
+// ---------- Wishlist items + private shopping list ----------
+const W = { token: null, budget: null, mine: [], their: null, shop: [] };
+const priceTxt = (c) => c != null ? euro(c) : "";
+const thumb = (u) => u ? `<img src="${esc(u)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : `<div class="ph"></div>`;
+const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } };
+function parsePrice(t) { const v = parseFloat(String(t || "").replace("€", "").replace(",", ".").trim()); return isNaN(v) ? null : Math.round(v * 100); }
+
+function renderMine() {
+  const el = $("#mywish"); if (!el) return;
+  el.innerHTML = W.mine.length ? W.mine.map((w) => `<div class="wi">${thumb(w.imageUrl)}<div class="pt">${esc(w.title)}
+      <small>${[priceTxt(w.priceCents), w.url ? hostOf(w.url) : "", w.note ? esc(w.note) : ""].filter(Boolean).join(" · ")}</small></div>
+      <button class="x" data-del="${w.id}" aria-label="Verwijder ${esc(w.title)}">&times;</button></div>`).join("")
+    : `<p class="muted">Nog leeg. Zoek hieronder een idee of typ zelf iets.</p>`;
+  el.querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => {
+    const id = b.dataset.del; W.mine = W.mine.filter((w) => w.id !== id); renderMine();
+    try { await call("wishDelete", { token: W.token, id }); } catch {}
+  });
+}
+async function addWish(draft, btn) {
+  try {
+    const r = await call("wishAdd", { token: W.token, ...draft });
+    W.mine.push(r.item); renderMine(); vibrate(15);
+    if (btn) { btn.textContent = "✓"; btn.disabled = true; btn.style.background = "var(--green)"; }
+    $("#wishState").textContent = `"${draft.title}" staat op je lijstje.`;
+  } catch (e) { $("#wishState").textContent = e.message; }
+}
+function renderTheir() {
+  const el = $("#theirwish"); if (!el || !W.their) return;
+  const items = W.their.items || [];
+  el.innerHTML = items.length ? items.map((w) => {
+    const on = W.shop.some((s) => s.wishItemId === w.id);
+    return `<div class="wi" style="align-items:flex-start">${thumb(w.imageUrl)}<div class="pt">${esc(w.title)}
+      <small>${[priceTxt(w.priceCents), w.note ? esc(w.note) : ""].filter(Boolean).join(" · ")}</small>
+      <div style="display:flex;gap:6px;margin-top:6px">${w.url ? `<a class="pill-btn soft" target="_blank" rel="noopener nofollow" href="${esc(w.url)}">Bekijk</a>` : ""}
+      ${on ? `<span class="pill-btn ok">Op je boodschappenlijst</span>` : `<button class="pill-btn" data-buy="${w.id}">Ik koop dit</button>`}</div></div></div>`;
+  }).join("") : `<p class="muted">${esc(W.their.name)} heeft nog niets ingevuld. Stel hieronder anoniem een vraag.</p>`;
+  el.querySelectorAll("[data-buy]").forEach((b) => b.onclick = async () => {
+    const w = items.find((x) => x.id === b.dataset.buy); b.disabled = true;
+    try { const r = await call("shopAdd", { token: W.token, title: w.title, priceCents: w.priceCents, wishItemId: w.id }); W.shop.push(r.item); renderTheir(); renderShop(); vibrate(15); }
+    catch (e) { b.disabled = false; alert(e.message); }
+  });
+}
+function renderShop() {
+  const el = $("#shop"); if (!el) return;
+  const total = W.shop.reduce((a, s) => a + (s.priceCents || 0), 0), done = W.shop.filter((s) => s.bought).length;
+  const quick = ["Inpakpapier", "Chocoladeletter", "Surprise-materiaal", "Kaartje"].filter((q) => !W.shop.some((s) => s.title === q));
+  el.innerHTML = (W.budget != null ? `<div class="bar2"><div style="width:${Math.min(100, total / Math.max(W.budget, 1) * 100)}%;${total > W.budget ? "background:#c77700" : ""}"></div></div>
+      <p class="muted" style="font-size:13px">${euro(total)} van ${euro(W.budget)}${total > W.budget ? " · boven budget" : ""}${W.shop.length ? " · " + done + " van " + W.shop.length + " gekocht" : ""}</p>` : "") +
+    W.shop.map((s) => `<div class="si ${s.bought ? "done" : ""}"><input type="checkbox" data-tog="${s.id}" ${s.bought ? "checked" : ""} aria-label="${esc(s.title)} gekocht">
+      <div class="pt">${esc(s.title)}</div><span class="muted">${priceTxt(s.priceCents)}</span><button class="x" data-sdel="${s.id}" aria-label="Verwijder">&times;</button></div>`).join("") +
+    `<div class="row" style="margin-top:8px"><input id="snew" maxlength="160" placeholder="Nog iets kopen…"><input id="sprice" inputmode="decimal" placeholder="€" style="width:70px;flex:none"><button class="btn send" id="sadd" aria-label="Toevoegen">+</button></div>
+    <div class="chips">${quick.map((q) => `<button class="chip" data-q="${q}">+ ${q}</button>`).join("")}</div>` +
+    (W.shop.length && done === W.shop.length ? `<p style="color:var(--green);font-weight:600">Alles gekocht. Je cadeau staat op klaar.</p>` : "");
+  el.querySelectorAll("[data-tog]").forEach((c) => c.onchange = async () => {
+    const s = W.shop.find((x) => x.id === c.dataset.tog); s.bought = c.checked; renderShop(); vibrate(10);
+    try { await call("shopUpdate", { token: W.token, id: s.id, bought: s.bought }); } catch {}
+  });
+  el.querySelectorAll("[data-sdel]").forEach((b) => b.onclick = async () => {
+    const id = b.dataset.sdel; W.shop = W.shop.filter((x) => x.id !== id); renderShop(); renderTheir();
+    try { await call("shopDelete", { token: W.token, id }); } catch {}
+  });
+  const addShop = async (title, price) => {
+    if (!title.trim()) return;
+    try { const r = await call("shopAdd", { token: W.token, title: title.trim(), priceCents: price }); W.shop.push(r.item); renderShop(); vibrate(10); } catch (e) { alert(e.message); }
   };
+  $("#sadd").onclick = () => addShop($("#snew").value, parsePrice($("#sprice").value));
+  $("#snew").addEventListener("keydown", (e) => e.key === "Enter" && $("#sadd").click());
+  el.querySelectorAll("[data-q]").forEach((b) => b.onclick = () => addShop(b.dataset.q, null));
+}
+async function addOwn() {
+  const v = $("#own").value.trim(); if (!v) return;
+  const url = (v.match(/https?:\/\/[^\s<]+/) || [])[0];
+  $("#own").value = "";
+  if (url) {
+    $("#wishState").textContent = "Link wordt gelezen…";
+    let p = {}; try { p = await call("linkPreview", { url }); } catch {}
+    const title = v.replace(url, "").trim() || p.title || hostOf(url);
+    return addWish({ title: title.slice(0, 160), url, imageUrl: p.imageUrl || null, priceCents: p.priceCents ?? null });
+  }
+  addWish({ title: v.slice(0, 160) });
+}
+function wireWish(token, budget, d) {
+  W.token = token; W.budget = budget; W.mine = d.myItems || []; W.their = d.receiver; W.shop = d.shopItems || [];
+  renderMine(); renderTheir(); renderShop();
+  wireSearch(budget);
+  if ($("#owngo")) { $("#owngo").onclick = addOwn; $("#own").addEventListener("keydown", (e) => e.key === "Enter" && addOwn()); }
 }
 
 // Envelope reveal: the name only appears after an explicit tap, so nobody reads along by accident.

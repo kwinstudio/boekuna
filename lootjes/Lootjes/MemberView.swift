@@ -52,18 +52,15 @@ struct MemberView: View {
         .task { await load() }
         .refreshable { await load() }
         .toast($toast)
-        .sheet(isPresented: $showWishlist) {
+        .sheet(isPresented: $showWishlist, onDismiss: { Task { await load() } }) {
             if let data, let token {
-                WishlistEditor(text: data.me.wishlist, budget: data.group.budgetCents, tint: tint) { text in
-                    try await api.setWishlist(token, text)
-                    self.data?.me.wishlist = text
-                    Haptics.success()
-                }
+                MyWishlistView(token: token, budget: data.group.budgetCents, tint: tint,
+                               items: Binding(get: { self.data?.myItems ?? [] }, set: { self.data?.myItems = $0 }))
             }
         }
         .sheet(isPresented: $showPoem) {
             if let data, let r = data.receiver {
-                PoemHelperView(receiverName: r.name, wishlist: r.wishlist, tint: tint)
+                PoemHelperView(receiverName: r.name, wishlist: (r.items ?? []).map(\.title).joined(separator: "\n") + r.wishlist, tint: tint)
             }
         }
         .sheet(item: $chat) { thread in
@@ -197,24 +194,29 @@ struct MemberView: View {
         }
     }
 
+    @ViewBuilder
     private func theirWishlist(_ d: MeResponse, _ r: Receiver) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Verlanglijstje van \(r.name)").font(.headline)
-            if r.wishlist.trimmed.isEmpty {
-                Text("\(r.name) heeft nog niets ingevuld. Stel anoniem een vraag om een hint te krijgen.")
-                    .font(.subheadline).foregroundStyle(.secondary)
-            } else {
-                Text(Linkify.attributed(r.wishlist))
-                    .font(.body)
-                    .textSelection(.enabled)
-                LinkPreviewList(text: r.wishlist)
-                if let u = r.wishlistUpdatedAt, let date = ISO.parse(u) {
-                    Text("Bijgewerkt \(date.formatted(.relative(presentation: .named).locale(Locale(identifier: "nl_NL"))))")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
+        ReceiverWishlist(receiver: r, shopItems: d.shopItems ?? [], tint: tint) { item in
+            Task { await addToShop(item) }
+        }
+        if let token {
+            ShoppingListCard(token: token, budget: d.group.budgetCents, tint: tint,
+                             items: Binding(get: { self.data?.shopItems ?? [] }, set: { self.data?.shopItems = $0 })) {
+                Task { await load() }
             }
         }
-        .card()
+    }
+
+    private func addToShop(_ item: WishItem) async {
+        guard let token else { return }
+        do {
+            let added = try await api.shopAdd(token, title: item.title, priceCents: item.priceCents, wishItemId: item.id)
+            withAnimation { data?.shopItems = (data?.shopItems ?? []) + [added] }
+            Haptics.success()
+            toast = ToastData(message: "Op je boodschappenlijst gezet")
+        } catch {
+            toast = ToastData(message: error.localizedDescription)
+        }
     }
 
     private func myWishlistCard(_ d: MeResponse, nudge: Bool) -> some View {
@@ -226,14 +228,23 @@ struct MemberView: View {
                 HStack {
                     Text("Mijn verlanglijstje").font(.headline)
                     Spacer()
-                    Text(d.me.wishlist.trimmed.isEmpty ? "Invullen" : "Aanpassen")
+                    Text((d.myItems ?? []).isEmpty ? "Invullen" : "Aanpassen")
                         .font(.subheadline.weight(.semibold)).foregroundStyle(tint)
                 }
-                if d.me.wishlist.trimmed.isEmpty {
+                let mine = d.myItems ?? []
+                if mine.isEmpty {
                     Text(nudge ? "Vul het alvast in. Dan weet je Sint meteen wat je leuk vindt." : "Je Sint ziet nog niets. Help hem op weg!")
                         .font(.subheadline).foregroundStyle(.secondary)
                 } else {
-                    Text(d.me.wishlist).font(.subheadline).lineLimit(4).foregroundStyle(.primary)
+                    ForEach(mine.prefix(4)) { item in
+                        HStack(spacing: 10) {
+                            WishThumb(url: item.imageUrl, size: 34)
+                            Text(item.title).font(.subheadline).lineLimit(1).foregroundStyle(.primary)
+                            Spacer()
+                            if let p = item.priceCents { Text(p.euroText).font(.caption).foregroundStyle(.secondary) }
+                        }
+                    }
+                    if mine.count > 4 { Text("en nog \(mine.count - 4)").font(.caption).foregroundStyle(.secondary) }
                 }
             }
             .card()
@@ -364,67 +375,6 @@ private struct ThreadButton: View {
         }
         .buttonStyle(PressableStyle())
         .accessibilityElement(children: .combine)
-    }
-}
-
-// MARK: - Wishlist
-
-struct WishlistEditor: View {
-    @State var text: String
-    let budget: Int?
-    let tint: Color
-    let save: (String) async throws -> Void
-    @Environment(\.dismiss) private var dismiss
-    @State private var busy = false
-    @State private var error: String?
-    @FocusState private var focused: Bool
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                GiftSearchSection(tint: tint, budgetCents: budget) { line in
-                    withAnimation { text = WishLine.append(line, to: text) }
-                }
-                Text(budget.map { "Je lijstje (budget \($0.euroText)). Typ zelf iets of voeg hierboven producten toe." } ?? "Je lijstje. Typ zelf iets of voeg hierboven producten toe.")
-                    .font(.subheadline).foregroundStyle(.secondary)
-                TextEditor(text: $text)
-                    .frame(minHeight: 180)
-                    .focused($focused)
-                    .scrollContentBackground(.hidden)
-                    .padding(10)
-                    .background(Theme.card, in: RoundedRectangle(cornerRadius: 14))
-                    .overlay(alignment: .topLeading) {
-                        if text.isEmpty {
-                            Text("Bijv.\n- Een goed boek (thriller)\n- Warme sokken maat 42\n- Iets lekkers, maar geen drop")
-                                .foregroundStyle(.tertiary).padding(16).allowsHitTesting(false)
-                        }
-                    }
-                Text("\(text.count)/2000").font(.caption).foregroundStyle(text.count > 2000 ? .red : .secondary)
-                LinkPreviewList(text: text)
-                if let error { Text(error).font(.footnote).foregroundStyle(.red) }
-            }
-            .padding(20)
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .background(Theme.paper.ignoresSafeArea())
-            .navigationTitle("Mijn verlanglijstje")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Annuleer") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Bewaar") {
-                        Task {
-                            busy = true
-                            defer { busy = false }
-                            do { try await save(text); dismiss() } catch { self.error = error.localizedDescription }
-                        }
-                    }
-                    .disabled(busy || text.count > 2000)
-                }
-            }
-
-        }
     }
 }
 

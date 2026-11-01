@@ -30,15 +30,16 @@ try {
   await page.click('#go');
   await page.getByText('Je doet mee').waitFor();
   ok(page.url().includes('/m/'), 'join leads to a personal page');
-  await page.fill('#wish', 'Een mooie sjaal\nhttps://example.com/sjaal');
-  await page.click('#saveWish');
-  await page.getByText('Opgeslagen').waitFor();
+  await page.fill('#own', 'Een mooie sjaal https://example.com/sjaal');
+  await page.click('#owngo');
+  await page.locator('#mywish .wi', { hasText: 'Een mooie sjaal' }).waitFor();
+  ok(true, 'own wish with a link is added as an item');
   await page.locator('#qres .idea').first().waitFor();
   ok(await page.locator('#qres .idea').count() >= 6, 'popular gift ideas show without typing');
   await page.fill('#q', 'sokken');
-  await page.locator('#qres .idea', { hasText: 'Warme sokken' }).waitFor();
   await page.locator('#qres .idea', { hasText: 'Warme sokken' }).locator('button').click();
-  ok((await page.inputValue('#wish')).includes('- Warme sokken'), 'tapping + puts the idea on the wishlist');
+  await page.locator('#mywish .wi', { hasText: 'Warme sokken' }).waitFor();
+  ok(true, 'tapping + puts the idea on the wishlist');
   await page.screenshot({ path: `${OUT}/web-waiting.png` });
 
   await call('draw', { adminToken: g.adminToken });
@@ -51,6 +52,14 @@ try {
   await page.waitForTimeout(2200);
   await page.getByText('Jij koopt een cadeau voor').waitFor({ timeout: 8000 });
   ok(true, 'tapping reveal shows the lootje');
+  // Private shopping list.
+  await page.locator('#shop [data-q="Inpakpapier"]').click();
+  await page.locator('#shop .si', { hasText: 'Inpakpapier' }).waitFor();
+  await page.locator('#shop .si', { hasText: 'Inpakpapier' }).locator('input[type=checkbox]').check();
+  await page.waitForTimeout(800);
+  const meShop = await call('me', { token: page.url().split('/m/')[1] });
+  ok(meShop.shopItems?.length === 1 && meShop.shopItems[0].bought, 'shopping list item saved and ticked');
+  ok(meShop.giftReady === true, 'all bought -> gift counts as ready');
   await page.fill('#in_myLootje', 'Welke kleur vind je mooi?');
   await page.click('[data-thread="myLootje"]');
   await page.locator('#msgs_myLootje .bubble.me').waitFor();

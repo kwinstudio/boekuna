@@ -57,9 +57,23 @@ try {
 
   // Wishlist reaches the giver; anonymous chat both ways.
   const giverOfAnna = pairs.find(([, r]) => r === 'Anna')[0];
-  await call('setWishlist', { token: tok.Anna, wishlist: 'Een boek https://example.com' });
+  await call('setWishlist', { token: tok.Anna, wishlist: '- Een boek (€ 12,50)\n  https://example.com' });
   const g1 = await call('me', { token: tok[giverOfAnna] });
-  ok(g1.receiver.wishlist.includes('Een boek'), 'giver sees the wishlist');
+  ok(g1.receiver.items?.length === 1 && g1.receiver.items[0].title === 'Een boek' && g1.receiver.items[0].priceCents === 1250, 'old text wishlist becomes items for the giver');
+  const added = await call('wishAdd', { token: tok.Anna, title: 'Warme sokken', note: 'maat 39', priceCents: 900 });
+  ok(added.item.title === 'Warme sokken', 'wish item added');
+  const g1b = await call('me', { token: tok[giverOfAnna] });
+  ok(g1b.receiver.items.length === 2, 'giver sees new wish item');
+  const strangerAdd = await call('shopAdd', { token: tok[giverOfAnna], title: 'Sokken', wishItemId: added.item.id });
+  ok(strangerAdd.item.wishItemId === added.item.id, 'giver puts a wish on the shopping list');
+  const annaView = await call('me', { token: tok.Anna });
+  ok(!JSON.stringify(annaView).includes(strangerAdd.item.id), 'receiver never sees the giver\'s shopping list');
+  const otherToken = Object.entries(tok).find(([n]) => n !== giverOfAnna && n !== 'Anna')[1];
+  const hijack = await call('shopUpdate', { token: otherToken, id: strangerAdd.item.id, bought: true }, true);
+  ok(hijack.status === 404, 'nobody else can change your shopping list');
+  await call('shopUpdate', { token: tok[giverOfAnna], id: strangerAdd.item.id, bought: true });
+  const st1 = await call('adminStatus', { adminToken: admin });
+  ok(st1.members.find((m) => m.name === giverOfAnna).giftReady === true, 'all bought -> gift ready for the organizer');
   await call('sendMessage', { token: tok[giverOfAnna], thread: 'myLootje', body: 'Welke kleur?' });
   const a1 = await call('me', { token: tok.Anna });
   const q = a1.messages.find((m) => m.thread === 'mySint');
@@ -99,7 +113,7 @@ try {
   const next = await call('nextYear', { adminToken: admin, eventDate: '2027-12-05' });
   const annaNext = next.members.find((m) => m.name === 'Anna');
   const annaNextMe = await call('me', { token: annaNext.token });
-  ok(annaNextMe.me.wishlist.includes('Een boek'), 'next year keeps last year\'s wishlist as a start');
+  ok((annaNextMe.myItems || []).some((w) => w.title === 'Warme sokken'), 'next year keeps last year\'s wishlist as a start');
   const nd = await call('draw', { adminToken: next.adminToken });
   ok(nd.repeatedLastYear === false, 'next year avoids last year\'s pairs');
   await call('deleteGroup', { adminToken: next.adminToken });
