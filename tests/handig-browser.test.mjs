@@ -122,7 +122,10 @@ try{
     await page.fill('#expenseForm [name=vendor]','Fictieve Telecom');
     await page.locator('#expenseForm [name=vendor]').dispatchEvent('change');
     assert.equal(await page.locator('#expenseForm input[name=vatRate][value="9"]').isChecked(),true);
-    assert.match(await page.locator('.bk-hint').innerText(),/Zoals vorige keer: .*9% btw/);
+    assert.match(await page.locator('.bk-hint').innerText(),/Gekozen omdat Fictieve Telecom vorige keer .*9% btw was/);
+    // Changing the category says it is remembered for this supplier.
+    const other=await page.evaluate(()=>{const s=document.querySelector('#expenseForm [name=category]');const o=[...s.options].find(x=>x.value&&x.value!==s.value);return o?o.value:''});
+    if(other){await page.selectOption('#expenseForm [name=category]',other);assert.match(await page.locator('.bk-hint').innerText(),/Onthouden voor Fictieve Telecom: volgende keer /)}
     // A sum in the amount becomes its answer.
     await page.fill('#expenseForm [name=gross]','10 + 5,25');
     await page.locator('#expenseForm [name=gross]').dispatchEvent('focusout');

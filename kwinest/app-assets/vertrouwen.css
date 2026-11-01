@@ -1,0 +1,31 @@
+/* BOEKUNA vertrouwen (Kwin 2026-11-01): price promise, cancelling, btw checks, several costs at once. See vertrouwen.js. */
+.vk-promise{margin-top:14px;padding:14px 16px;border-radius:14px;background:var(--app-brand-soft,#ECFAEE);color:var(--text,#17201b)}
+.vk-promise-title{margin:0 0 6px;font-weight:700;font-size:14px}
+.vk-promise ul{margin:0;padding-left:18px;font-size:14px;line-height:1.5}
+.vk-promise li+li{margin-top:2px}
+.vk-cancel-link{margin-top:10px;font-size:14px;color:var(--text-muted,#5b6660);text-decoration:underline}
+.vk-cancel-step{display:flex;align-items:center;gap:10px;margin:0 0 10px;font-weight:600}
+.vk-cancel-step span{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--app-brand-soft,#ECFAEE);font-size:13px;flex:none}
+.vk-dl-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 18px}
+.vk-dl-grid .btn{justify-content:center}
+.vk-cancel-facts{margin:0;padding-left:18px;line-height:1.55;font-size:14px}
+.vk-vat-checks{margin:12px 0}
+.vk-check-list{display:grid;gap:8px}
+.vk-check{display:grid;gap:2px;text-align:left;width:100%;padding:12px 14px;border:1px solid var(--line,#e4e7e2);border-radius:12px;background:var(--surface,#fff);color:inherit;font:inherit;cursor:pointer}
+.vk-check strong{font-size:15px}
+.vk-check span,.vk-ok,.vk-vat-note{font-size:13px;color:var(--text-muted,#5b6660);line-height:1.45}
+.vk-ok{margin:0}
+.vk-vat-note{margin:10px 0 0}
+.vk-bulk-start{display:flex;justify-content:flex-end;margin:4px 2px 8px}
+.vk-bulk-start .link-btn{font-size:14px;font-weight:600}
+.vk-selecting #content [data-bk-expense],.vk-selecting #content .workspace-table tbody tr{cursor:pointer;position:relative}
+.vk-selecting #content [data-bk-expense]{padding-left:40px!important}
+.vk-selecting #content [data-bk-expense].vk-picked{background:var(--app-brand-soft,#ECFAEE)!important;border-radius:12px}
+.vk-selecting #content [data-bk-expense]::before{content:"";position:absolute;z-index:2;left:10px;top:50%;width:20px;height:20px;margin-top:-10px;border-radius:50%;border:2px solid var(--line-strong,#b8c0ba);box-sizing:border-box}
+.vk-selecting #content [data-bk-expense].vk-picked::before{border-color:var(--app-brand,#0f5132);background:var(--app-brand,#0f5132) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/14px no-repeat}
+.vk-selecting #content .workspace-table tbody tr.vk-picked td{background:var(--app-brand-soft,#ECFAEE)}
+.vk-bulk-bar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:60;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;max-width:720px;margin:0 auto;padding:10px 12px;border-radius:16px;background:var(--surface,#fff);box-shadow:0 8px 30px rgba(0,0,0,.18);border:1px solid var(--line,#e4e7e2)}
+.vk-bulk-count{font-weight:600;font-size:14px}
+.vk-bulk-actions{display:flex;gap:6px;flex-wrap:wrap}
+@media (max-width:820px){.vk-bulk-bar{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
+.vk-rates{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
