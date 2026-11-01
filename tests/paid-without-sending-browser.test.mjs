@@ -72,9 +72,11 @@ try{
     assert.deepEqual([cents(t.qRevenue),cents(t.receivables)],[0,0],label+': concepts do not count yet');
   }
 
-  // 1. Open the concept and tap Betaald (no sending, no e-mail address).
+  // 1. Open the concept: its foot says Aanpassen and Versturen (Volledige test 4); Betaald? sits under the actions.
   await page.evaluate(()=>{navigate('invoices');viewInvoice('d1')});await waitIdle();
-  await page.locator('#modalRoot button',{hasText:/^Betaald$/}).click();await waitIdle();
+  assert.equal(await page.locator('#modalRoot .modal-foot button',{hasText:/^Betaald$/}).count(),0,label+': a concept has no Betaald button in its foot');
+  await page.evaluate(()=>{closeModal();invoiceActions('d1')});await waitIdle();
+  await page.locator('#modalRoot .action-row',{hasText:'Betaald?'}).click();await waitIdle();
   assert.match(await page.locator('#modalRoot').innerText(),/krijgt een vast factuurnummer/,label+': the dialog says the concept gets a fixed number');
   await page.locator('#modalRoot button',{hasText:'Opslaan als betaald'}).click();
 

@@ -69,7 +69,7 @@ try{
   await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
 
   const desktopNav=(await page.locator('#sidebar .nav-item').allTextContents()).map(v=>v.trim());
-  for(const core of ['Overzicht','Inkomsten','Kosten','Bank','Btw','Rapportages','Bonnetjes','Relaties','Diensten','Instellingen'])assert.ok(desktopNav.includes(core),'Core desktop navigation missing '+core);
+  for(const core of ['Overzicht','Inkomsten','Kosten','Bank','Btw','Rapportages','Bonnen','Relaties','Diensten','Instellingen'])assert.ok(desktopNav.includes(core),'Core desktop navigation missing '+core);
   for(const disabled of ['Voor jou','Controlecentrum','Cashflow','Grootboek','Boekingen','Uren & ritten'])assert.equal(desktopNav.includes(disabled),false,'Disabled desktop navigation leaked '+disabled);
 
   // Beginner-first empty states and one obvious task per core screen.

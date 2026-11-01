@@ -435,11 +435,11 @@
       var first=index===0;
       var last=index===pageCount-1;
       var header=first
-        ?'<div class="boekuna-a4-top"><div><span class="boekuna-a4-label">'+esc(state.company.tradeName||state.company.name||'Boekuna')+'</span><h1>'+(i.kind==='credit'?'CREDITFACTUUR':'FACTUUR')+'</h1></div><div class="boekuna-a4-meta"><span class="boekuna-a4-label">Factuurnummer</span><strong>'+esc(i.number||'')+'</strong><div>'+dateNL(i.issueDate)+'</div></div></div>'
+        ?'<div class="boekuna-a4-top"><div><span class="boekuna-a4-label">'+esc(state.company.tradeName||state.company.name||'Boekuna')+'</span><h1>'+(i.kind==='credit'?'CREDITFACTUUR':'FACTUUR')+'</h1></div><div class="boekuna-a4-meta"><span class="boekuna-a4-label">Factuurnummer</span><strong>'+esc(typeof invoiceShownNumberLong==='function'?invoiceShownNumberLong(i):(i.number||''))+'</strong><div>'+dateNL(i.issueDate)+'</div></div></div>'
           +'<div class="boekuna-a4-parties"><div><span class="boekuna-a4-label">Van</span><strong>'+esc(state.company.name||'')+'</strong><br>'+esc(state.company.address||'')+'<br>'+esc(state.company.postal||'')+' '+esc(state.company.city||'')+(state.company.kvk?'<br>KVK '+esc(state.company.kvk):'')+(state.company.vat?'<br>Btw-id '+esc(state.company.vat):'')+'</div>'
           +'<div><span class="boekuna-a4-label">Factuur aan</span><strong>'+esc(c.name||'')+'</strong>'+(c.contactPerson?'<br>t.a.v. '+esc(c.contactPerson):'')+'<br>'+esc(c.address||'')+'<br>'+esc(c.postal||'')+' '+esc(c.city||'')+(c.kvk?'<br>KVK '+esc(c.kvk):'')+(c.vat?'<br>Btw-id '+esc(c.vat):'')+'</div></div>'
           +'<div class="boekuna-a4-detailbar"><div><span class="boekuna-a4-label">Factuurdatum</span><strong>'+dateNL(i.issueDate)+'</strong></div><div><span class="boekuna-a4-label">Leverdatum</span><strong>'+dateNL(i.supplyDate||i.issueDate)+'</strong></div><div><span class="boekuna-a4-label">Vervaldatum</span><strong>'+dateNL(i.dueDate)+'</strong></div><div><span class="boekuna-a4-label">Referentie</span><strong>'+esc(i.reference||'—')+'</strong></div></div>'
-        :'<div class="boekuna-a4-continuation"><strong>'+esc(i.kind==='credit'?'Creditfactuur ':'Factuur ')+esc(i.number||'')+'</strong><span>Pagina '+(index+1)+' van '+pageCount+'</span></div>';
+        :'<div class="boekuna-a4-continuation"><strong>'+esc(i.kind==='credit'?'Creditfactuur ':'Factuur ')+esc(typeof invoiceShownNumber==='function'?invoiceShownNumber(i):(i.number||''))+'</strong><span>Pagina '+(index+1)+' van '+pageCount+'</span></div>';
       var totals='';
       if(last){
         var discount=invoiceDiscountAmount(i);
@@ -452,7 +452,7 @@
           +'</div>'
           +(legend.length?'<div class="boekuna-a4-note"><strong>'+legend.map(esc).join('<br>')+'</strong></div>':'')
           +(i.notes?'<div class="boekuna-a4-note"><strong>Notitie</strong><br>'+esc(i.notes).replace(/\n/g,'<br>')+'</div>':'')
-          +'<div class="boekuna-a4-payment"><strong>Betaling</strong><br>IBAN: '+esc(state.company.iban||'—')+' t.n.v. '+esc(state.company.name||'')+'<br>Betalingskenmerk: '+esc(i.paymentReference||i.number||'')+'</div>';
+          +'<div class="boekuna-a4-payment"><strong>Betaling</strong><br>IBAN: '+esc(state.company.iban||'—')+' t.n.v. '+esc(state.company.name||'')+'<br>Betalingskenmerk: '+esc(typeof isManagedDraftNumber==='function'&&isManagedDraftNumber(i.paymentReference||i.number)?'volgt bij versturen':(i.paymentReference||i.number||''))+'</div>';
       }
       return '<div class="boekuna-a4-shell"><section '+(index===0?'id="invoicePaper" ':'')+'class="invoice-paper boekuna-a4-page" data-a4-page="'+(index+1)+'" aria-label="Factuurpagina '+(index+1)+' van '+pageCount+'">'
         +header+a4InvoiceTable(lines,sign)+totals
@@ -538,7 +538,7 @@
     viewInvoice=function(id){
       var i=(state.invoices||[]).find(function(x){return String(x.id)===String(id)});
       if(!i)return;
-      modal('Factuur '+esc(i.number||''),
+      modal(typeof isManagedDraftNumber==='function'&&isManagedDraftNumber(i.number)?(i.kind==='credit'?'Conceptcreditfactuur':'Conceptfactuur'):'Factuur '+esc(i.number||''),
         (typeof invoiceViewStatusHtml==='function'?invoiceViewStatusHtml(i):'')+(typeof invoiceCopyStripHtml==='function'?invoiceCopyStripHtml(i):'')+(typeof invoiceBankCandidateHtml==='function'?invoiceBankCandidateHtml(i):'')+(typeof invoicePaymentsHtml==='function'?invoicePaymentsHtml(i):'')+'<div class="invoice-preview boekuna-a4-preview">'+renderInvoiceA4Pages(i)+'</div>'+(typeof invoiceTimelineHtml==='function'?invoiceTimelineHtml(i):''),
         typeof invoiceViewFoot==='function'?invoiceViewFoot(i):'<button class="btn" aria-label="Factuuracties" aria-haspopup="dialog" onclick="invoiceActions(\''+esc(String(i.id))+'\')">'+icon('i-more')+'</button><button class="btn primary" onclick="closeModal();openSendInvoice(\''+esc(String(i.id))+'\')">Versturen via e-mail</button>',
         true);

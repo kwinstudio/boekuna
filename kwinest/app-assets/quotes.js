@@ -27,7 +27,7 @@
     var title=document.getElementById('modalTitle');if(title)title.textContent=editingQuote?'Offerte bewerken':'Nieuwe offerte';
     var status=form.elements.status;if(status){var f=status.closest('.field');if(f)f.hidden=true}
     var days=form.elements.paymentDays;if(days){var p=days.closest('.field');if(p)p.hidden=true}
-    var due=form.elements.dueDate;if(due){var lab=due.closest('.field')&&due.closest('.field').querySelector('label');if(lab)lab.textContent='Geldig tot *';if(!editingQuote)due.value=addDateOnlyDays(today(),VALID_DAYS)}
+    var due=form.elements.dueDate;if(due){var lab=due.closest('.field')&&due.closest('.field').querySelector('label');if(lab)lab.textContent='Geldig tot *';if(due.closest('.field'))due.closest('.field').hidden=false;if(!editingQuote)due.value=addDateOnlyDays(today(),VALID_DAYS)}
     var issue=form.elements.issueDate;if(issue){var il=issue.closest('.field')&&issue.closest('.field').querySelector('label');if(il)il.textContent='Offertedatum *'}
     var head=form.querySelector('.mobile-invoice-step[data-step="3"] h2');if(head)head.textContent='Offerte klaar';
     var who=form.querySelector('.mobile-invoice-step[data-step="1"] h2');if(who)who.textContent='Voor wie is de offerte?';

@@ -247,7 +247,7 @@ try{
     assert.match(accepts,/application\/pdf/);
     assert.match(accepts,/image\/heic/);
     await page.evaluate(()=>navigate('documents'));
-    await page.locator('#pageTitle').filter({hasText:'Bonnetjes'}).waitFor();
+    await page.locator('#pageTitle').filter({hasText:'Bonnen'}).waitFor();
     const chooserEvent=page.waitForEvent('filechooser');
     await page.getByRole('button',{name:'Bon scannen',exact:true}).click(); // phone words (Kwin 2026-10-10): the same upload picker
     const chooser=await chooserEvent;

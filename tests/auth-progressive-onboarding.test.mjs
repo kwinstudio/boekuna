@@ -200,10 +200,11 @@ try{
   await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
   await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
   const emptyDashboard=await page.locator('#content').innerText();
-  assert.match(emptyDashboard,/Begin met Boekuna/i,'Empty onboarding must retain a clear starting point');
-  assert.match(emptyDashboard,/Bedrijfsgegevens invullen/i,'The first onboarding action must be explicit');
-  assert.match(emptyDashboard,/eerst een bon uploaden/i,'Document upload must remain available before profile completion');
-  assert.equal(await page.locator('.dashboard-onboarding .btn.primary').count(),1,'Empty onboarding must expose one obvious primary action');
+  // Volledige test 6/24 (Kwin 2026-11-01): desktop shows the same numbered start list as the phone.
+  assert.match(emptyDashboard,/Zo begin je/i,'Empty onboarding must retain a clear starting point');
+  assert.equal(await page.getByRole('button',{name:'Bedrijfsgegevens invullen',exact:true}).count(),1,'The first onboarding action must be explicit');
+  assert.match(emptyDashboard,/Eerste factuur of bon/i,'Document upload must remain available before profile completion');
+  assert.equal(await page.locator('.dashboard-start .btn.primary:visible').count(),1,'Empty onboarding must expose one obvious primary action');
   assert.equal(await page.evaluate(()=>requirementsFor('document-upload').length),0,'Document upload must not require company profile');
 
   // Contact create requires name only.
@@ -233,7 +234,7 @@ try{
   await page.evaluate(()=>reviewInvoice());
   await page.getByRole('heading',{name:'Je factuur is bijna klaar'}).waitFor();
   const gateText=await page.locator('.modal-body').innerText();
-  assert.match(gateText,/Bedrijfsnaam/);assert.match(gateText,/Bedrijfsadres/);assert.match(gateText,/KVK/);assert.match(gateText,/Btw-id/);
+  assert.match(gateText,/Bedrijfsnaam/);assert.match(gateText,/Bedrijfsadres/);assert.match(gateText,/KVK/);assert.match(gateText,/Btw-nummer/);
   await page.getByRole('button',{name:'Bedrijfsgegevens invullen'}).click();
   await page.locator('#pageTitle').filter({hasText:'Bedrijfsgegevens'}).waitFor();
   assert.equal(await page.evaluate(()=>state.invoices.length),1,'Progressive gate must not duplicate invoice');

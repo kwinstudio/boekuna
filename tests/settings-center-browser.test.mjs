@@ -55,11 +55,11 @@ try{
     const {context,page}=await openApp(1440,960);
     await toSettings(page);
     const rows=await page.locator('.settings-center-nav .settings-nav-item strong').allTextContents();
-    assert.deepEqual(rows,['Mijn bedrijf','Facturen','E-mail & delen','Meldingen','App & weergave','Beveiliging & privacy','Data & export','Abonnement & gebruik','Hulp & feedback','Account','Gevaarzone']);
+    assert.deepEqual(rows,['Mijn bedrijf','Facturen','E-mail & delen','Meldingen','App & weergave','Beveiliging & privacy','Data & export','Abonnement & gebruik','Hulp & feedback','E-mail & uitloggen','Gevaarzone']);
     for(const hidden of ['Kosten & bonnen','Documenten & scanner','Mobiele app','Bank & betalingen'])assert.equal(rows.includes(hidden),false,hidden+' has no real settings yet');
     assert.equal(await page.locator('#settings-panel-business').isVisible(),true,'Desktop opens Mijn bedrijf next to the index');
     assert.equal(await page.locator('.settings-center-nav').isVisible(),true);
-    assert.match(await page.locator('#settingsSetupStatus').innerText(),/Bedrijfse-mail.*IBAN/s,'Setup status lists only what an invoice still needs');
+    assert.match(await page.locator('#settingsSetupStatus').innerText(),/^Nog aanvullen\nIBAN\n/,'Setup status lists only what an invoice still needs (the login e-mail fills the company e-mail)');
     await page.screenshot({path:shotDir+'/01-home-desktop.png'});
 
     // Company form saves only its own fields and the setup status disappears once complete.

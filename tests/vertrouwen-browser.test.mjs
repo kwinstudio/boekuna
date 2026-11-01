@@ -117,7 +117,7 @@ try{
       assert.match(text,/Dubbele bon\?/);
       assert.match(text,/Fictieve Pomp/);
       assert.match(text,/Factuur 2026-0002 zonder btw/);
-      assert.match(text,/Boekuna verstuurt je aangifte niet zelf/);
+      assert.doesNotMatch(text,/Boekuna verstuurt je aangifte niet zelf/,'Said once, on the Btw page itself');
       await page.screenshot({path:shotDir+'/btw-'+tag+'.png',fullPage:false});
       await context.close();
     }

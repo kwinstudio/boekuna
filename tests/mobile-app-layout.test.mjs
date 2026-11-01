@@ -148,7 +148,7 @@ try{
 
   await page.locator('#mobileMenu').click();
   await page.locator('.nav-item[data-page="documents"]').click();
-  await page.locator('#pageTitle').filter({hasText:'Bonnetjes'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Bonnen'}).waitFor();
   const scanChooserEvent=page.waitForEvent('filechooser');
   await page.getByRole('button',{name:'Bon scannen',exact:true}).click();
   const scanChooser=await scanChooserEvent;
@@ -161,7 +161,7 @@ try{
   await page.locator('[data-mobile-page="expenses"]').click();
   await page.locator('#pageTitle').filter({hasText:'Kosten'}).waitFor();
   await page.locator('[data-mobile-page="documents"]').click();
-  await page.locator('#pageTitle').filter({hasText:'Bonnetjes'}).waitFor();
+  await page.locator('#pageTitle').filter({hasText:'Bonnen'}).waitFor();
 
   await page.locator('[data-mobile-page="dashboard"]').click();
   await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
