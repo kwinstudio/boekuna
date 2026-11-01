@@ -203,3 +203,17 @@ test('stel rekent samen af', () => {
   const d = listTransfers(entries, members, { households: [['b', 'c']], directDebts: true });
   assert.deepEqual(d.transfers, [{ from: 'b', to: 'a', amount: 6000 }]);
 });
+
+import { parseReceipt, toLines } from '../src/lib/receipt';
+test('bon lezen', () => {
+  const r = parseReceipt(['ALBERT HEIJN', 'Pizza margherita 12,50', 'Cola 2 x 2,25 4,50', 'Korting -1,00', 'SUBTOTAAL 16,00', 'TOTAAL 16,00', 'PIN 16,00', 'BTW 9% 1,32']);
+  assert.deepEqual(r.items, [{ name: 'Pizza margherita', cents: 1250 }, { name: 'Cola 2 x 2,25', cents: 450 }, { name: 'Korting', cents: -100 }]);
+  assert.equal(r.total, 1600);
+  const lines = toLines([
+    { text: '3,00', x: 0.8, y: 0.2, w: 0.1, h: 0.02 },
+    { text: 'Koffie', x: 0.1, y: 0.201, w: 0.2, h: 0.02 },
+    { text: 'Taart', x: 0.1, y: 0.25, w: 0.2, h: 0.02 },
+    { text: '4,50', x: 0.8, y: 0.249, w: 0.1, h: 0.02 },
+  ]);
+  assert.deepEqual(lines, ['Koffie 3,00', 'Taart 4,50']);
+});

@@ -14,6 +14,8 @@ import { nowIso, todayIso, uuid } from '../../../lib/ids';
 import { CURRENCIES, calcInput, centsToInput, evalAmount, isExpression, parseMoney } from '../../../lib/money';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { seedOf } from '../../../lib/split';
+import { parseReceipt, toLines } from '../../../lib/receipt';
+import { ocrAvailable, recognizeText } from '../../../../modules/quitte-ocr';
 import { duplicateEntry, fetchRate, moveEntry, pickPhoto, uploadPhoto, usePhotoUrls } from '../../../lib/extras';
 import { splitEqual, splitShares, sumParts } from '../../../lib/split';
 import { enqueue, getState, updateLocal, useList } from '../../../lib/store';
@@ -38,7 +40,7 @@ export default function EntryScreen() {
   const th = useTheme();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const params = useLocalSearchParams<{ id: string; entryId?: string; kind?: Kind; payer?: string; round?: string }>();
+  const params = useLocalSearchParams<{ id: string; entryId?: string; kind?: Kind; payer?: string; round?: string; scan?: string }>();
   const { local, view } = useList(params.id);
   const existing = view?.entries.find((e) => e.id === params.entryId);
   const me = local?.me ?? null;
@@ -63,6 +65,9 @@ export default function EntryScreen() {
   const [comment, setComment] = useState('');
   const [viewer, setViewer] = useState<string | null>(null);
   const [openedAt] = useState(existing?.updatedAt ?? null);
+  useEffect(() => {
+    if (params.scan === '1') setTimeout(() => setSheet('items'), 350);
+  }, []);
   const [title, setTitle] = useState(existing?.title ?? (isRound ? t('roundTitle') : ''));
   const [category, setCategory] = useState<string | null>(existing?.category ?? (isRound ? 'drinks' : null));
   const [catManual, setCatManual] = useState(!!existing?.category || isRound);
@@ -1083,21 +1088,48 @@ function ItemsSheet({
   const all = members.map((m) => m.id);
   const [items, setItems] = useState<Item[]>([{ id: uuid(), name: '', amount: '', who: all }]);
   const [extra, setExtra] = useState('');
+  const [scanning, setScanning] = useState(false);
+  const scan = async (source: 'camera' | 'library') => {
+    try {
+      const uri = await pickPhoto(source);
+      if (!uri) return;
+      setScanning(true);
+      const { items: found, total } = parseReceipt(toLines(await recognizeText(uri)));
+      if (!found.length) return showToast(t('scanNothing'));
+      setItems(found.map((f) => ({ id: uuid(), name: f.name, amount: centsToInput(Math.abs(f.cents)).replace(/^/, f.cents < 0 ? '-' : ''), who: all })));
+      const sum = found.reduce((x, f) => x + f.cents, 0);
+      showToast(total && total !== sum ? t('scanCheck', { total: money(total, currency) }) : t('scanDone', { n: found.length }));
+    } catch {
+      showToast(t('scanFailed'));
+    } finally {
+      setScanning(false);
+    }
+  };
+  const chooseScan = () =>
+    Platform.OS === 'ios'
+      ? ActionSheetIOS.showActionSheetWithOptions({ options: [t('takePhoto'), t('fromLibrary'), t('cancel')], cancelButtonIndex: 2 }, (i) => {
+          if (i === 0) scan('camera');
+          if (i === 1) scan('library');
+        })
+      : scan('library');
   const calc = useMemo(() => {
     const per = new Map<string, number>();
     let sum = 0;
     items.forEach((it, i) => {
-      const a = parseMoney(it.amount) ?? 0;
-      if (a <= 0 || !it.who.length) return;
+      const neg = it.amount.trim().startsWith('-');
+      const a = (parseMoney(it.amount.replace('-', '')) ?? 0) * (neg ? -1 : 1);
+      if (a === 0 || !it.who.length) return;
       sum += a;
-      for (const p of splitEqual(a, all.filter((id) => it.who.includes(id)), seed + i)) per.set(p.m, (per.get(p.m) ?? 0) + p.a);
+      for (const p of splitEqual(Math.abs(a), all.filter((id) => it.who.includes(id)), seed + i)) per.set(p.m, (per.get(p.m) ?? 0) + Math.sign(a) * p.a);
     });
     const ex = parseMoney(extra) ?? 0;
     if (ex > 0 && sum > 0) {
       for (const p of splitShares(ex, Object.fromEntries(per), all, seed)) per.set(p.m, (per.get(p.m) ?? 0) + p.a);
     }
     const parts = all.map((m) => ({ m, a: per.get(m) ?? 0 })).filter((p) => p.a > 0);
-    return { total: sum + (sum > 0 ? ex : 0), parts };
+    // Kortingen kunnen iemand onder nul brengen; dan klopt de som niet en houden we de knop uit.
+    const ok = parts.reduce((x, p) => x + p.a, 0) === sum + (sum > 0 ? ex : 0);
+    return { total: ok ? sum + (sum > 0 ? ex : 0) : 0, parts };
   }, [items, extra, all.join(), seed]);
   const field = { height: 44, borderRadius: 10, borderWidth: 1, borderColor: th.border, backgroundColor: th.field, paddingHorizontal: 12, fontSize: 16, color: th.text } as const;
   const upd = (id: string, patch: Partial<Item>) => setItems((s) => s.map((x) => (x.id === id ? { ...x, ...patch } : x)));
@@ -1105,6 +1137,9 @@ function ItemsSheet({
   return (
     <SheetModal visible={visible} title={t('itemsTitle')} subtitle={money(calc.total, currency)} onClose={onClose}>
       <Text style={{ fontSize: 14, color: th.sub, marginBottom: 12 }}>{t('itemsHint')}</Text>
+      {ocrAvailable ? (
+        <Button kind="secondary" icon="scan-outline" label={scanning ? t('scanBusy') : t('scanReceipt')} loading={scanning} disabled={scanning} onPress={chooseScan} style={{ marginBottom: 12 }} />
+      ) : null}
       {items.map((it, idx) => (
         <Card key={it.id} style={{ padding: 12, marginBottom: 10, gap: 10 }}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -1119,7 +1154,7 @@ function ItemsSheet({
             <TextInput
               accessibilityLabel={t('pdfAmount')}
               value={it.amount}
-              onChangeText={(v) => upd(it.id, { amount: v.replace(/[^\d.,]/g, '') })}
+              onChangeText={(v) => upd(it.id, { amount: v.replace(/[^\d.,-]/g, '') })}
               keyboardType="decimal-pad"
               placeholder="0,00"
               placeholderTextColor={th.sub}

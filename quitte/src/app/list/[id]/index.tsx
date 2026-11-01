@@ -208,6 +208,7 @@ export default function ListScreen() {
 
   const addOther = () => {
     Alert.alert(t('addWhat'), undefined, [
+      { text: t('scanReceipt'), onPress: () => router.push({ pathname: '/list/[id]/entry', params: { id: local.id, scan: '1' } }) },
       { text: t('kindRound'), onPress: () => router.push({ pathname: '/list/[id]/entry', params: { id: local.id, round: '1', payer: rounds?.next ?? me ?? undefined } }) },
       { text: t('kindIncome'), onPress: () => router.push({ pathname: '/list/[id]/entry', params: { id: local.id, kind: 'income' } }) },
       { text: t('kindTransfer'), onPress: () => router.push({ pathname: '/list/[id]/entry', params: { id: local.id, kind: 'transfer' } }) },

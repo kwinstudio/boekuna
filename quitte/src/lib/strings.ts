@@ -474,6 +474,12 @@ export const nl = {
   itemAdd: "Item toevoegen",
   itemExtra: "Fooi of service",
   itemsApply: "Verdeling gebruiken",
+  scanReceipt: "Scan de bon",
+  scanBusy: "Bon lezen…",
+  scanNothing: "Geen bedragen gevonden. Probeer een scherpere foto of vul ze zelf in.",
+  scanFailed: "De bon kon niet gelezen worden",
+  scanDone: "{n} items gevonden. Tik aan wie wat had.",
+  scanCheck: "Controleer de items: de bon zegt {total} totaal",
 };
 
 export const en: typeof nl = {
@@ -938,4 +944,10 @@ export const en: typeof nl = {
   itemAdd: "Add item",
   itemExtra: "Tip or service",
   itemsApply: "Use this split",
+  scanReceipt: "Scan the receipt",
+  scanBusy: "Reading receipt…",
+  scanNothing: "No amounts found. Try a sharper photo or enter them yourself.",
+  scanFailed: "Couldn't read the receipt",
+  scanDone: "{n} items found. Tap who had what.",
+  scanCheck: "Check the items: the receipt says {total} total",
 };
