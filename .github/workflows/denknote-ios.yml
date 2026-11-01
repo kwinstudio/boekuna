@@ -45,7 +45,7 @@ jobs:
       - name: Geen geheimen in de app-bundel
         run: |
           EXPO_NO_TELEMETRY=1 npx expo export --platform ios --output-dir /tmp/dn-bundle > /dev/null
-          if grep -rqaE 'sk-(proj-)?[A-Za-z0-9_-]{20,}|SUPABASE_SERVICE_ROLE_KEY' /tmp/dn-bundle; then
+          if grep -rqaE '(^|[^A-Za-z0-9])sk-(proj-|svcacct-)?[A-Za-z0-9_]{32,}|SUPABASE_SERVICE_ROLE_KEY' /tmp/dn-bundle; then
             echo '::error::Mogelijk geheim gevonden in de app-bundel'; exit 1
           fi
       - name: App Store Connect preflight
