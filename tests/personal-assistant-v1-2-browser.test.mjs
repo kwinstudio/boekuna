@@ -135,7 +135,7 @@ try{
  const docAction=page.locator('#assistantAnswer').getByRole('button',{name:'Controleer documenten',exact:true});
  assert.equal(await docAction.count(),1);
  await docAction.click();
- await page.locator('#pageTitle').filter({hasText:'Bonnetjes'}).waitFor();
+ await page.locator('#pageTitle').filter({hasText:'Bonnen'}).waitFor();
  assert.equal(await page.locator('[data-list-page="documents"]').count(),1,'Assistant document action must use the existing Bonnetjes/Documents route');
  assert.equal(await page.evaluate(()=>listPageState('documents').filters.status),'needs_review','Assistant document action must reuse the existing review-needed filter');
  await page.evaluate(()=>navigate('dashboard'));

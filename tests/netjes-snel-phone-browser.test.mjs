@@ -70,7 +70,7 @@ try{
     const {context,page}=await openApp();
     // Kosten: the band says what the number is instead of "Kosten" twice.
     await page.evaluate(()=>navigate('expenses'));await page.waitForTimeout(200);
-    assert.equal(await text(page.locator('#content .kpi-hero .product-kpi-label')),'Uitgegeven excl. btw');
+    assert.equal(await text(page.locator('#content .kpi-hero .product-kpi-label')),'Uitgegeven');
     // Filter chips that run off the screen fade out.
     assert.notEqual(await page.evaluate(()=>{const c=getComputedStyle(document.querySelector('#content .list-chip-row'));return c.maskImage||c.webkitMaskImage}),'none');
     // Overview: the hours pill has a clock, keeps its text and sits centred like Widgets and Thema.

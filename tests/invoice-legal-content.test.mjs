@@ -90,7 +90,7 @@ const PARTY_TOKENS=['Voorbeeld Studio B.V.','Fictiefstraat 1','KVK 00000000','Bt
   const i=invoice({taxTreatment:'reverse',lines:[{desc:'Montage',qty:1,unit:800,vat:0}]});
   for(const t of [html(i),await pdfText(i)])mustContainAll(t,['Btw verlegd','Btw-id NL999999999B99','Btw-id NL000000000B00'],'reverse');
   const r=app.invoiceFinalChecks({...i,customer:{...CUSTOMER,vat:''}},'inv-x');
-  assert.ok(r.errors.some(e=>e.label==='Btw-id klant'));
+  assert.ok(r.errors.some(e=>e.label==='Btw-nummer klant'));
 }
 // 7. ICP: legend and both VAT ids, no VAT.
 {

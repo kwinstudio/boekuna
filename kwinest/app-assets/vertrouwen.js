@@ -177,7 +177,7 @@
     var checks=vatChecks();
     var head='<section class="card vk-vat-checks" data-vk="vat-checks"><div class="section-head"><h2>'+(checks.length?'Om na te kijken':'Alles ziet er goed uit')+'</h2>'+(checks.length?'<span class="badge neutral">'+checks.length+'</span>':'')+'</div>';
     var list=checks.length?'<div class="vk-check-list">'+checks.map(function(c){return '<button type="button" class="vk-check" onclick="'+c.act+'"><strong>'+c.title+'</strong><span>'+c.detail+'</span></button>'}).join('')+'</div>':'<p class="vk-ok">Geen dubbele bonnen, geen facturen zonder btw en alle btw is ingevuld.</p>';
-    return head+list+'<p class="vk-vat-note">Boekuna verstuurt je aangifte niet zelf. Vul deze bedragen in bij Mijn Belastingdienst en zet daarna hieronder het vinkje bij "Aangifte gedaan", zodat je zeker weet dat het gebeurd is.</p></section>';
+    return head+list+'<p class="vk-vat-note">Vul deze bedragen in bij Mijn Belastingdienst en zet daarna hieronder het vinkje bij "Aangifte gedaan", zodat je zeker weet dat het gebeurd is.</p></section>';
   }
 
   var returnCard=fn('renderVatReturnCard');

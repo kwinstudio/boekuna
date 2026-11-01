@@ -15,7 +15,7 @@ fs.mkdirSync('tests/artifacts',{recursive:true});
 assert.match(original,/data-mobile-page="documents" aria-label="Bonnen"/,'Bonnen sits in the bottom bar');
 assert.doesNotMatch(original,/data-mobile-page="vat"/,'Btw left the bottom bar (still in the menu)');
 assert.match(original,/<button class="nav-item" data-page="vat">/,'Btw stays reachable from the menu');
-assert.match(original,/<button class="nav-item" data-page="trips">[^<]*<svg class="icon"><use href="#i-car"\/><\/svg>Ritten<\/button>/,'Ritten sits in the menu');
+assert.match(original,/<button class="nav-item" data-page="trips">[^<]*<svg class="icon"><use href="#i-car"\/><\/svg>Ritten & uren<\/button>/,'Ritten sits in the menu');
 assert.match(original,/api\.pdok\.nl\/bzk\/locatieserver/,'Postcodes are looked up at PDOK Locatieserver (free, no key)');
 assert.match(original,/router\.project-osrm\.org\/route\/v1\/driving/,'Road distance comes from OSRM');
 
@@ -79,7 +79,7 @@ try{
   const phone=await open({width:390,height:844});
   assert.deepEqual((await phone.locator('#mobileBottomNav .mobile-bottom-nav-item').allTextContents()).map(s=>s.trim()),['Overzicht','Inkomsten','Kosten','Bonnen']);
   await phone.locator('[data-mobile-page="documents"]').click();
-  await phone.locator('#pageTitle').filter({hasText:'Bonnetjes'}).waitFor();
+  await phone.locator('#pageTitle').filter({hasText:'Bonnen'}).waitFor();
   assert.equal(await phone.locator('[data-mobile-page="documents"]').getAttribute('aria-current'),'page','Bonnen highlights in the bar');
   await phone.locator('#mobileMenu').click();
   assert.ok(await phone.locator('.nav-item[data-page="vat"]').isVisible(),'Btw is in the menu');

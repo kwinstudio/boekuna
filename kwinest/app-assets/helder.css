@@ -1,0 +1,64 @@
+/* Volledige test (Kwin 2026-11-01). Numbers refer to the choice list Kwin picked from. */
+
+/* 5 + 15: fields the computer and an invoice no longer ask for. */
+#modalRoot :is(.invoice-status-field,.invoice-due-field,.contact-type-field)[hidden]{display:none!important}
+
+/* 6 + 24: the start list on the computer, the same steps as on the phone. */
+@media(min-width:821px){
+  #mainApp #content .dashboard-start{max-width:720px;margin:18px 0 0;padding:22px 24px 10px;border:1px solid var(--app-border,#E4E8EB);border-radius:18px;background:var(--app-surface,#fff)}
+  #mainApp #content .dashboard-start h2{margin:0 0 4px;font-size:20px}
+  #mainApp #content .dashboard-start>p{margin:0 0 8px;color:var(--app-muted,#667179);font-size:14px}
+  #mainApp #content .dashboard-start-steps{margin:0;padding:0;list-style:none}
+  #mainApp #content .dashboard-start-step{border-top:1px solid var(--app-border,#ECEEF0)}
+  #mainApp #content :is(.dashboard-start-step:not(:has(.dashboard-start-row)),.dashboard-start-row){display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:14px;width:100%;min-height:60px;padding:10px 0}
+  #mainApp #content .dashboard-start-row{border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;border-radius:12px}
+  #mainApp #content .dashboard-start-row:hover strong{text-decoration:underline}
+  #mainApp #content .dashboard-start-num{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--app-surface-muted,#F2F3F5);font-weight:700}
+  #mainApp #content .dashboard-start-num.is-done{background:#E5F5E8;color:#2F7D3B}
+  html[data-theme="dark"] #mainApp #content .dashboard-start-num.is-done{background:#1E3324;color:#7FDB8B}
+  #mainApp #content .dashboard-start-text strong{display:block;font-size:15px}
+  #mainApp #content .dashboard-start-text span{display:block;font-size:13px;color:var(--app-muted,#667179)}
+  #mainApp #content .dashboard-start-go{width:8px;height:8px;margin-right:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);opacity:.5}
+}
+#mainApp #content .dashboard-start-hide{display:block;margin:4px 0 10px auto;font-size:13px}
+
+/* 2: hours on Ritten & uren. */
+#mainApp #content .trip-hours{margin-top:16px;padding:16px 18px}
+#mainApp #content .trip-hours-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+#mainApp #content .trip-hours-head h2{margin:0;font-size:18px}
+#mainApp #content .trip-hours-empty{margin:4px 0 2px;color:var(--app-muted,#667179);font-size:14px}
+#mainApp #content .trip-hours-list{margin:0;padding:0;list-style:none}
+#mainApp #content .trip-hours-row{display:flex;align-items:center;gap:10px;border-top:1px solid var(--app-border,#ECEEF0);padding:8px 0}
+#mainApp #content .trip-hours-open{flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:0}
+#mainApp #content .trip-hours-text{min-width:0}
+#mainApp #content .trip-hours-text strong{display:block;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mainApp #content .trip-hours-text span{display:block;font-size:13px;color:var(--app-muted,#667179)}
+#mainApp #content .trip-hours-num{font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+#mainApp #content .trip-hours-bill{flex:none;min-height:36px}
+#mainApp #content .trip-hours-billed{flex:none}
+
+/* 7: an upload that did not reach Boekuna keeps its photo, with Opnieuw and Weghalen. */
+.document-processing-card[data-state="failed"] .document-processing-card-icon{color:#B4541A;font-weight:800}
+.document-processing-card-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+
+/* 12: one line with what is still missing, inside the form. */
+#mainApp #content .profile-missing{margin:0 0 12px;padding:10px 12px;border-radius:12px;background:#FFF6E5;color:#6B4A00;font-size:14px}
+html[data-theme="dark"] #mainApp #content .profile-missing{background:#3A2E14;color:#F2D58A}
+
+/* 13: Kosten toevoegen points to the scan when you have the bon. */
+#modalRoot .expense-scan-instead{display:flex;align-items:center;gap:12px;width:100%;margin:0 0 14px;padding:12px 14px;border:1px dashed var(--app-border,#D5DBDF);border-radius:14px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+#modalRoot .expense-scan-instead .icon{flex:none;width:22px;height:22px;color:var(--r1d-accent,#2F7D3B)}
+#modalRoot .expense-scan-instead strong{display:block;font-size:15px}
+#modalRoot .expense-scan-instead span span{display:block;font-size:13px;color:var(--app-muted,#667179)}
+
+/* 20: Bekijk PDF under the summary, never under the sticky buttons. */
+#modalRoot .mobile-invoice-step .mobile-invoice-pdf{margin:10px 0 4px}
+
+/* 9: one search bar. A page with its own search box hides the one on top (the overview keeps it). */
+html.boekuna-helder body #mainApp#mainApp:has(#content .list-toolbar) .topbar .top-actions>#globalSearchButton#globalSearchButton{display:none!important}
+
+/* 18: filters only when there is something to filter: none under 10 rows, then at most two chips plus Meer. */
+html.boekuna-helder #mainApp .list-toolbar[data-few] :is(.list-toolbar-quick,[data-list-open-filters],[data-list-open-sort],.list-filter-chips){display:none!important}
+html.boekuna-helder #mainApp .list-chip-row label.list-chip-select:not(.is-on):nth-of-type(n+3){display:none!important}
+/* 2: hours live on Ritten & uren now; the old separate Uren & ritten nav item would be a duplicate. */
+#mainApp .nav-item[data-page="hours"]{display:none!important}

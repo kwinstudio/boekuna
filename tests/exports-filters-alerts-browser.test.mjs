@@ -122,7 +122,7 @@ try{
     assert.equal(Math.round(from.height),Math.round(to.height),'Van and Tot same height');
     await page.getByRole('button',{name:'Toepassen'}).click();
     assert.deepEqual(await page.evaluate(()=>getListRows('expenses').map(e=>e.id).sort()),['e1','e2']);
-    assert.match(await page.locator('.product-kpis').innerText(),/170,00/,'Totals follow the custom period');
+    assert.match(await page.locator('.product-kpis').innerText(),/205,70[\s\S]*35,70 btw terug/,'Totals follow the custom period (paid incl. btw, btw back below)');
     assert.match(await page.locator('.list-filter-chip').innerText(),/1 jan – 31 mrt 2026/);
     assert.match(await page.locator('#expensePeriod option:checked').innerText(),/1 jan – 31 mrt 2026/,'The dropdown names the custom period');
     await page.locator('[data-list-open-filters]').click();

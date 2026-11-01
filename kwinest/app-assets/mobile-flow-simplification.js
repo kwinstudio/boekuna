@@ -165,7 +165,7 @@
   function startMobileCustomerFromInvoice(form){
     var draft=collectInvoiceDraft();
     invoiceResume={draft:structuredClone(draft),before:new Set((state.contacts||[]).map(function(c){return c.id}))};
-    newContact();
+    newContact('',{forInvoice:true});
   }
   // Style C (screen 6): the customer's avatar (or own-site logo) in front of each choice.
   function withAvatar(target,contact){
@@ -350,7 +350,8 @@
       var advancedLabel=advanced.querySelector('summary');if(advancedLabel)rememberText(advancedLabel,'Korting, referentie of notitie');
       move(step,advanced);
     }else if(dateSection)move(step,dateSection);
-    step.append(button('Bekijk PDF',function(){saveMobileInvoiceConcept(form,true)},'btn mobile-invoice-pdf mobile-flow-action'));
+    // Volledige test 20: Bekijk PDF sits right under the summary, so the sticky buttons below never cover it.
+    summary.after(button('Bekijk PDF',function(){saveMobileInvoiceConcept(form,true)},'btn mobile-invoice-pdf mobile-flow-action'));
     var nav=node('div','mobile-invoice-nav mobile-invoice-final-actions');
     nav.append(button('Vorige',function(){setInvoiceStep(form,2)},'btn mobile-flow-action'));
     nav.append(button('Bewaar als concept',function(){saveMobileInvoiceConcept(form,false)},'btn mobile-flow-action'));

@@ -122,7 +122,9 @@ try{
   assert.match(totals,/6,30/,'Invoice VAT must be €6.30');
   assert.match(totals,/36,30/,'Invoice gross total must be €36.30');
 
-  assert.equal(await page.getByRole('button',{name:'Opslaan',exact:true}).count(),1,'Invoice editor must use one plain save action');
+  // Volledige test 5: the desktop editor saves as a concept or sends, like the phone.
+  assert.equal(await page.getByRole('button',{name:'Bewaar als concept',exact:true}).count(),1,'Invoice editor must offer one concept save');
+  assert.equal(await page.getByRole('button',{name:'Versturen',exact:true}).count(),1,'Invoice editor must offer one send action');
   assert.equal(await page.getByRole('button',{name:'Controleer factuur',exact:true}).count(),0,'Separate review CTA must be removed because checks are live');
 
   await page.evaluate(()=>{const f=document.getElementById('invoiceForm');f.elements.paymentReference.value='';updateInvoiceCheck()});

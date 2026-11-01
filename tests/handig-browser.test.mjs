@@ -213,7 +213,7 @@ try{
     assert.equal(await page.evaluate(()=>new FormData(document.getElementById('invoiceForm')).get('issueDate')),iso(y));
     await issue.fill('morgenochtend');
     assert.match(await issue.evaluate(el=>el.validationMessage),/datum/);
-    await issue.fill('3 okt 2026');await page.locator('#invoiceForm [name=dueDate]').focus();
+    await issue.fill('3 okt 2026');await page.locator('#invoiceForm [name=paymentDays]').focus();
     assert.equal(await raw(page,'#invoiceForm [name=issueDate]'),'03-10-2026','Tidied when you leave the field');
     assert.equal(await page.locator('#invoiceForm .bk-date-native').count()>0,true,'The calendar is one tap away');
     // 19: pasting a whole address block fills the other fields of a new customer.

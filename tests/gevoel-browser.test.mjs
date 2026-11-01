@@ -64,7 +64,7 @@ try{
     await page.locator('.dashboard-start').waitFor();
     assert.equal(await page.locator('.dashboard-start-step.is-given').count(),1);
     assert.match(await page.locator('.dashboard-start-step.is-given').innerText(),/Account gemaakt/);
-    assert.match(await page.locator('.dashboard-start-count').innerText(),/2 van 4 klaar/);
+    assert.match(await page.locator('.dashboard-start-count').innerText(),/^Nog 2 stappen$/);
     assert.equal(await page.locator('.dashboard-start-step.is-done').count(),1,'Step 1 (company details) is still the only is-done step');
     await context.close();
   }

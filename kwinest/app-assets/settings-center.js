@@ -75,7 +75,7 @@
     var basis='<div class="form-grid">'
       +field('company.name','Bedrijfsnaam',c.name,{autocomplete:'organization',full:true})
       +field('company.kvk','KVK-nummer',c.kvk,{inputmode:'numeric'})
-      +field('company.vat','Btw-id',c.vat,{placeholder:'NL123456789B01'})
+      +field('company.vat','Btw-nummer',c.vat,{placeholder:'NL123456789B01'})
       +field('company.address','Straat en huisnummer',c.address,{autocomplete:'street-address',full:true})
       +field('company.postal','Postcode',c.postal,{autocomplete:'postal-code'})
       +field('company.city','Plaats',c.city,{autocomplete:'address-level2'})
@@ -347,7 +347,7 @@
       {group:'Account',key:'data',title:'Data & export',desc:'Exporteren, back-up en herstel',status:'',render:dataPanel},
       {group:'Account',key:'billing',title:'Abonnement & gebruik',desc:'Je plan en documentchecks',status:billingStatus(),render:billingPanel},
       {group:'Account',key:'help',title:'Hulp & feedback',desc:'Feedback geven, je meldingen en hulp',status:'',render:helpPanel},
-      {group:'Account',key:'account',title:'Account',desc:'E-mailadres en uitloggen',status:'',render:accountPanel},
+      {group:'Account',key:'account',title:'E-mail & uitloggen',desc:'Je inlog-e-mail en uitloggen',status:'',render:accountPanel},
       {group:'',key:'danger',title:'Gevaarzone',desc:'Administratie wissen of account verwijderen',status:'',danger:true,render:dangerPanel}
     ];
   }
@@ -388,8 +388,8 @@
     if(!window.matchMedia('(max-width:820px)').matches)return '';
     var tile=function(key,label){return '<button type="button" class="settings-quick-tile" data-settings-open="'+key+'">'+icon(key)+'<strong>'+esc(label)+'</strong></button>'};
     return '<div class="settings-quick"><label class="settings-search"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input type="search" placeholder="Zoek een instelling" aria-label="Zoek een instelling" oninput="boekunaSettingsSearch(this.value)"></label>'
-      +'<p class="settings-quick-label">Vaak gebruikt</p><div class="settings-quick-tiles">'+tile('business','Mijn bedrijf')+tile('invoices','Factuur-look')+tile('billing','Abonnement')+tile('app','Weergave')+'</div>'
-      +'<p class="settings-quick-label settings-all-label">Alle instellingen</p><p class="settings-search-empty" hidden>Niets gevonden. Probeer een ander woord.</p></div>';
+      // Volledige test 11 (Kwin 2026-11-01): no "Vaak gebruikt" tiles; they repeated rows of the list right under them.
+      +'<p class="settings-search-empty" hidden>Niets gevonden. Probeer een ander woord.</p></div>';
   }
   window.boekunaSettingsSearch=function(q){
     var el=root();if(!el)return;q=String(q||'').trim().toLowerCase();
