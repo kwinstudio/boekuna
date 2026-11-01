@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "DenkNote",
+    "slug": "denknote",
+    "scheme": "denknote",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#F7F4EE",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "nl.zichtwerf.denknote",
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "CFBundleDevelopmentRegion": "nl",
+        "CFBundleLocalizations": ["nl"]
+      }
+    },
+    "android": {
+      "package": "nl.zichtwerf.denknote"
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 96,
+          "backgroundColor": "#F7F4EE",
+          "dark": {
+            "image": "./assets/splash-icon-dark.png",
+            "backgroundColor": "#151412"
+          }
+        }
+      ],
+      "expo-font",
+      "expo-status-bar",
+      "expo-system-ui"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

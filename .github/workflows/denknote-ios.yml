@@ -1,0 +1,109 @@
+name: DenkNote iOS
+# Bouwt de DenkNote-app (Expo) op een cloud-Mac.
+# Standaard: tests, typecheck en een simulator-build (geen signing, geen upload).
+# Alleen met "[denknote-testflight]" in het commitbericht (of handmatig met upload=true)
+# wordt er ondertekend en naar TestFlight geüpload voor interne testers. Nooit naar App Review.
+on:
+  push:
+    branches: [claude/denknote]
+    paths: ['denknote/**', '.github/workflows/denknote-ios.yml']
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: 'Ondertekenen en uploaden naar TestFlight (intern)'
+        required: false
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: denknote-ios-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    if: github.repository == 'kwinstudio/boekuna'
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      UPLOAD: ${{ (inputs.upload || contains(github.event.head_commit.message, '[denknote-testflight]')) && '1' || '' }}
+    defaults:
+      run:
+        working-directory: denknote
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: denknote/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Tests en typecheck
+        run: |
+          npm test
+          npx tsc --noEmit
+      - name: Geen geheimen in de app-bundel
+        run: |
+          EXPO_NO_TELEMETRY=1 npx expo export --platform ios --output-dir /tmp/dn-bundle > /dev/null
+          if grep -rqaE 'sk-(proj-)?[A-Za-z0-9_-]{20,}|SUPABASE_SERVICE_ROLE_KEY' /tmp/dn-bundle; then
+            echo '::error::Mogelijk geheim gevonden in de app-bundel'; exit 1
+          fi
+      - name: App Store Connect preflight
+        id: asc
+        if: env.UPLOAD == '1'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          ASC_KEY_OUT: ${{ runner.temp }}/DenkNoteAuthKey.p8
+          ASC_ALLOW_REGISTER: '1'
+        run: node scripts/asc.mjs preflight
+      - name: Native iOS-project genereren
+        env:
+          CI: 1
+          EXPO_NO_TELEMETRY: 1
+          BUILD: ${{ steps.asc.outputs.next_build || '1' }}
+        run: |
+          xcodebuild -version
+          node -e "const fs=require('fs');const a=require('./app.json');a.expo.ios.buildNumber=process.env.BUILD||'1';fs.writeFileSync('app.json',JSON.stringify(a,null,2))"
+          pod --version || sudo gem install cocoapods
+          npx expo prebuild --platform ios --clean
+          test -d ios/DenkNote.xcworkspace
+      - name: Simulator-build (controle zonder signing)
+        if: env.UPLOAD != '1' || steps.asc.outputs.app_exists != 'true'
+        run: |
+          set -o pipefail
+          xcodebuild -workspace ios/DenkNote.xcworkspace -scheme DenkNote -configuration Release \
+            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build-sim.log | tail -25
+      - name: Archive, sign en upload naar TestFlight
+        if: env.UPLOAD == '1' && steps.asc.outputs.app_exists == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          xcodebuild -workspace ios/DenkNote.xcworkspace -scheme DenkNote -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath build/DenkNote.xcarchive \
+            DEVELOPMENT_TEAM=${{ steps.asc.outputs.team_id }} CODE_SIGNING_ALLOWED=NO \
+            archive 2>&1 | tee build-archive.log | tail -40
+          test -d build/DenkNote.xcarchive/Products/Applications/DenkNote.app
+          V=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' build/DenkNote.xcarchive/Products/Applications/DenkNote.app/Info.plist)
+          [ "$V" = '${{ steps.asc.outputs.next_build }}' ] || { echo '::error::Buildnummer wijkt af'; exit 1; }
+          cp ExportOptions-TestFlight.plist "$RUNNER_TEMP/ExportOptions.plist"
+          /usr/libexec/PlistBuddy -c 'Add :teamID string ${{ steps.asc.outputs.team_id }}' "$RUNNER_TEMP/ExportOptions.plist"
+          xcodebuild -exportArchive -archivePath build/DenkNote.xcarchive -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath build/upload -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/DenkNoteAuthKey.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" 2>&1 | tee build-export.log | tail -40
+          echo "::notice title=Upload::Build ${{ steps.asc.outputs.next_build }} geüpload naar App Store Connect."
+      - name: TestFlight intern beschikbaar maken
+        if: env.UPLOAD == '1' && steps.asc.outputs.app_exists == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          TARGET_BUILD: ${{ steps.asc.outputs.next_build }}
+          WHAT_TO_TEST: 'Test: registreren en inloggen, notities maken en offline bewerken, stille en meedenkende modus, Gereed en Denk mee, sparren in de chat, vervolgstap opslaan als actie, verbanden aan/uit in Instellingen.'
+        run: node scripts/asc.mjs testflight
+      - name: Signeersleutel verwijderen
+        if: always()
+        run: rm -f "$RUNNER_TEMP/DenkNoteAuthKey.p8"
