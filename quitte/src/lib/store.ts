@@ -24,6 +24,8 @@ export type Profile = {
   pushAskedAt?: number;
   /** Stille uren 22:00–08:00 (standaard aan). */
   quietHours?: boolean;
+  /** Herinnering als je een week iets schuldig bent (standaard aan zodra meldingen mogen). */
+  payNudge?: boolean;
 };
 
 type State = {

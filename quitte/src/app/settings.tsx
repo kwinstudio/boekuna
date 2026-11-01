@@ -2,6 +2,7 @@ import Constants from 'expo-constants';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { setPush, setQuietHours } from '../lib/push';
+import * as Clipboard from 'expo-clipboard';
 import { showToast } from '../components/Toast';
 import { Button } from '../components/ui';
 import { enableBackup, restoreBackup, setMonthlyDigest } from '../lib/extras';
@@ -113,6 +114,26 @@ export default function Settings() {
               ) : null}
             </Card>
           ) : null}
+          {Platform.OS === 'ios' ? (
+            <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, minHeight: 60, marginBottom: 10 }}>
+              <View style={{ flex: 1, paddingVertical: 10 }}>
+                <Text style={{ fontSize: 16, color: th.text }}>{t('nudgeToggle')}</Text>
+                <Text style={{ fontSize: 13, color: th.sub }}>{t('nudgeToggleHint')}</Text>
+              </View>
+              <Switch
+                accessibilityLabel={t('nudgeToggle')}
+                value={profile.payNudge === true || (profile.payNudge === undefined && (!!profile.pushOn || !!profile.monthlyDigest))}
+                onValueChange={async (v) => {
+                  if (v) {
+                    const N = await import('expo-notifications');
+                    const perm = await N.requestPermissionsAsync().catch(() => null);
+                    if (!perm?.granted) return Alert.alert(t('notifDenied'));
+                  }
+                  setProfile({ payNudge: v });
+                }}
+              />
+            </Card>
+          ) : null}
           <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, minHeight: 60 }}>
             <View style={{ flex: 1, paddingVertical: 10 }}>
               <Text style={{ fontSize: 16, color: th.text }}>{t('monthlyToggle')}</Text>
@@ -127,6 +148,23 @@ export default function Settings() {
               }}
             />
           </Card>
+
+          {Platform.OS === 'ios' ? (
+            <>
+              <SectionLabel>{t('siriTitle')}</SectionLabel>
+              <Card style={{ padding: 16, gap: 10 }}>
+                <Text style={{ fontSize: 15, lineHeight: 21, color: th.sub }}>{t('siriBody')}</Text>
+                <Button
+                  label={t('siriCopy')}
+                  kind="secondary"
+                  onPress={async () => {
+                    await Clipboard.setStringAsync('quitte://add?bedrag=');
+                    showToast(t('linkCopied'));
+                  }}
+                />
+              </Card>
+            </>
+          ) : null}
 
           {Platform.OS === 'ios' ? (
             <>

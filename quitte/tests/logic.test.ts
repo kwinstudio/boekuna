@@ -207,7 +207,7 @@ test('stel rekent samen af', () => {
 import { parseReceipt, toLines } from '../src/lib/receipt';
 test('bon lezen', () => {
   const r = parseReceipt(['ALBERT HEIJN', 'Pizza margherita 12,50', 'Cola 2 x 2,25 4,50', 'Korting -1,00', 'SUBTOTAAL 16,00', 'TOTAAL 16,00', 'PIN 16,00', 'BTW 9% 1,32']);
-  assert.deepEqual(r.items, [{ name: 'Pizza margherita', cents: 1250 }, { name: 'Cola 2 x 2,25', cents: 450 }, { name: 'Korting', cents: -100 }]);
+  assert.deepEqual(r.items, [{ name: 'Pizza margherita', cents: 1250 }, { name: 'Cola (2×)', cents: 450 }, { name: 'Korting', cents: -100 }]);
   assert.equal(r.total, 1600);
   const lines = toLines([
     { text: '3,00', x: 0.8, y: 0.2, w: 0.1, h: 0.02 },
@@ -216,6 +216,33 @@ test('bon lezen', () => {
     { text: '4,50', x: 0.8, y: 0.249, w: 0.1, h: 0.02 },
   ]);
   assert.deepEqual(lines, ['Koffie 3,00', 'Taart 4,50']);
+});
+
+test('bon lezen: echte supermarktregels', () => {
+  const r = parseReceipt([
+    'Albert Heijn 1234',
+    'OMSCHRIJVING PRIJS BEDRAG',
+    '2 BANANEN 1,99 3,98',
+    'AH KAAS JONG BELEGEN',
+    '0,512 kg x 9,99 EUR/kg 5,11',
+    'STATIEGELD 0,25',
+    'BONUS AH KAAS -1,00',
+    '3 x CHIPS PAPRIKA 4,47',
+    'TOTAAL 12,81',
+    'BETAALD MET PIN 12,81',
+    'BTW 9% 11,75 1,06',
+    'Hartelijk dank 4,00',
+  ]);
+  assert.deepEqual(r.items, [
+    { name: 'BANANEN (2×)', cents: 398 },
+    { name: 'AH KAAS JONG BELEGEN', cents: 511 },
+    { name: 'STATIEGELD', cents: 25 },
+    { name: 'BONUS AH KAAS', cents: -100 },
+    { name: 'CHIPS PAPRIKA (3×)', cents: 447 },
+  ]);
+  assert.equal(r.total, 1281);
+  // Zonder totaalregel: som van de items.
+  assert.equal(parseReceipt(['Koffie 3,00', 'Taart 4,50']).total, 750);
 });
 
 import { importCsv, toCents } from '../src/lib/importer';

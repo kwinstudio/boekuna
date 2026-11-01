@@ -117,6 +117,8 @@ export type LocalList = {
   demo?: boolean;
   /** Geen pushmeldingen voor deze lijst op dit toestel. */
   muted?: boolean;
+  /** Sinds wanneer ik in deze lijst iets schuldig ben (voor de terugbetaal-herinnering). */
+  owedSince?: number | null;
 };
 
 export type SplitKey = { id: string; name: string; weights: Record<string, number> };

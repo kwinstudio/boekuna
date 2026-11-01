@@ -37,11 +37,17 @@ function nextDate(iso: string, r: Repeat) {
   return isoDay(dt);
 }
 
+/** Terug, of naar de lijst als het scherm via een snelkoppeling direct is geopend. */
+function goBack() {
+  if (router.canGoBack()) router.back();
+  else router.replace('/');
+}
+
 export default function EntryScreen() {
   const th = useTheme();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const params = useLocalSearchParams<{ id: string; entryId?: string; kind?: Kind; payer?: string; round?: string; scan?: string }>();
+  const params = useLocalSearchParams<{ id: string; entryId?: string; kind?: Kind; payer?: string; round?: string; scan?: string; amount?: string; title?: string }>();
   const { local, view } = useList(params.id);
   const existing = view?.entries.find((e) => e.id === params.entryId);
   const me = local?.me ?? null;
@@ -54,7 +60,8 @@ export default function EntryScreen() {
   const [kind] = useState<Kind>(existing?.kind ?? params.kind ?? 'expense');
   const isRound = !existing && params.round === '1';
   const lastRound = isRound ? view?.entries.find((e) => e.kind === 'expense' && e.category === 'drinks' && e.title === t('roundTitle')) : undefined;
-  const [amountStr, setAmountStr] = useState(existing ? centsToInput(existing.origAmount ?? existing.amount) : lastRound ? centsToInput(lastRound.amount) : '');
+  const preset = !existing && params.amount ? parseMoney(String(params.amount)) : null;
+  const [amountStr, setAmountStr] = useState(existing ? centsToInput(existing.origAmount ?? existing.amount) : preset && preset > 0 && preset < 10_000_000 ? centsToInput(preset) : lastRound ? centsToInput(lastRound.amount) : '');
   const [fx, setFx] = useState<string | null>(existing?.origCurrency ?? null);
   const [rate, setRate] = useState<number | null>(existing?.rate ?? null);
   const [rateStr, setRateStr] = useState(existing?.rate ? String(existing.rate).replace('.', ',') : '');
@@ -69,7 +76,7 @@ export default function EntryScreen() {
   useEffect(() => {
     if (params.scan === '1') setTimeout(() => setSheet('items'), 350);
   }, []);
-  const [title, setTitle] = useState(existing?.title ?? (isRound ? t('roundTitle') : ''));
+  const [title, setTitle] = useState(existing?.title ?? (isRound ? t('roundTitle') : params.title ? String(params.title).slice(0, 80) : ''));
   const [category, setCategory] = useState<string | null>(existing?.category ?? (isRound ? 'drinks' : null));
   const [catManual, setCatManual] = useState(!!existing?.category || isRound);
   const [date, setDate] = useState(existing?.date ?? todayIso());
@@ -106,7 +113,7 @@ export default function EntryScreen() {
   const isNew = !existing && !params.entryId;
   const [draftReady, setDraftReady] = useState(!isNew);
   useEffect(() => {
-    if (!isNew || params.payer || params.kind || params.round) {
+    if (!isNew || params.payer || params.kind || params.round || params.amount || params.title) {
       setDraftReady(true);
       return;
     }
@@ -183,7 +190,7 @@ export default function EntryScreen() {
     // Iemand anders paste deze uitgave aan terwijl jij aan het bewerken was: niet stil overschrijven.
     if (existing && openedAt && existing.updatedAt !== openedAt && existing.updatedBy && existing.updatedBy !== me) {
       return Alert.alert(t('conflictTitle', { name: nameOf(view!, existing.updatedBy) }), t('conflictBody'), [
-        { text: t('conflictTheirs'), style: 'cancel', onPress: () => router.back() },
+        { text: t('conflictTheirs'), style: 'cancel', onPress: () => goBack() },
         { text: t('conflictMine'), onPress: doSave },
       ]);
     }
@@ -234,7 +241,7 @@ export default function EntryScreen() {
     if (!existing && !local.demo) countOwnEntry();
     syncList(local.id);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    router.back();
+    goBack();
     showToast(`✓  ${existing ? t('saved') : t('added')}: ${label} · ${money(amount, cur)}`, undefined, undefined, 2500);
   };
 
@@ -297,7 +304,7 @@ export default function EntryScreen() {
           text: l.base.list.name,
           onPress: () => {
             if (moveEntry(local.id, l.id, existing)) {
-              router.back();
+              goBack();
               showToast(t('movedTo', { name: l.base.list.name }));
             }
           },
@@ -307,7 +314,7 @@ export default function EntryScreen() {
     };
     const doDup = () => {
       duplicateEntry(local.id, existing, me);
-      router.back();
+      goBack();
       showToast(t('duplicated'));
     };
     const opts = [t('duplicate'), t('moveToList'), t('delete'), t('cancel')];
@@ -342,7 +349,7 @@ export default function EntryScreen() {
             summary: t('actDeleted', { title: label, amount: money(existing.amount, cur) }),
           });
           syncList(local.id);
-          router.back();
+          goBack();
           showToast(t('deleted'), t('undo'), () => {
             enqueue(local.id, { op: 'entry', data: { ...existing, deleted: false, updatedAt: nowIso() }, summary: t('actRestored', { title: label }) });
             syncList(local.id);
@@ -388,7 +395,7 @@ export default function EntryScreen() {
         backLabel={t('cancel')}
         onBack={() => {
           clearDraft();
-          router.back();
+          goBack();
         }}
         title={heading}
         right={existing ? <IconBtn icon="ellipsis-horizontal-circle-outline" label={t('more')} onPress={moreMenu} color={th.accent} /> : null}

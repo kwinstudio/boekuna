@@ -553,6 +553,16 @@ export const nl = {
   pushOfferNo: "Niet nu",
   pushOn: "Meldingen staan aan",
   muteList: "Meldingen voor deze lijst",
+  nudgeToggle: "Herinner mij aan terugbetalen",
+  nudgeToggleHint: "Na een week, één keer, om 10:00",
+  nudgeBody: "Je moet {name} nog {amount} terugbetalen. Tik om het af te rekenen.",
+  qaAdd: "Uitgave toevoegen",
+  qaScan: "Bon scannen",
+  qaNew: "Nieuwe lijst",
+  siriTitle: "Siri en Opdrachten",
+  siriBody: "Maak in de app Opdrachten een opdracht met ‘Open URL’ en plak deze link. Zet er een bedrag achter (bijv. 12,50) of laat Siri het vragen. Tip: houd het Quitte-icoon ingedrukt voor snelle acties.",
+  siriCopy: "Link kopiëren",
+  linkCopied: "Link gekopieerd",
 };
 
 export const en: typeof nl = {
@@ -1096,4 +1106,14 @@ export const en: typeof nl = {
   pushOfferNo: "Not now",
   pushOn: "Notifications are on",
   muteList: "Notifications for this list",
+  nudgeToggle: "Remind me to pay back",
+  nudgeToggleHint: "After a week, once, at 10 am",
+  nudgeBody: "You still owe {name} {amount}. Tap to settle up.",
+  qaAdd: "Add expense",
+  qaScan: "Scan receipt",
+  qaNew: "New list",
+  siriTitle: "Siri and Shortcuts",
+  siriBody: "In the Shortcuts app, create a shortcut with ‘Open URL’ and paste this link. Add an amount (e.g. 12.50) or let Siri ask for it. Tip: press and hold the Quitte icon for quick actions.",
+  siriCopy: "Copy link",
+  linkCopied: "Link copied",
 };

@@ -81,7 +81,8 @@
       ],
       "expo-apple-authentication",
       "expo-sharing",
-      "expo-image"
+      "expo-image",
+      "expo-quick-actions"
     ],
     "experiments": {
       "typedRoutes": true
