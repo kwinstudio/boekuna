@@ -52,6 +52,11 @@ struct HomeView: View {
                     router.sheet = nil
                     router.path = [.member(saved.id)]
                 }
+            case .openAdmin(let token):
+                OpenAdminLinkView(token: token) { saved in
+                    router.sheet = nil
+                    router.path = [.organizer(saved.id)]
+                }
             case .openMember(let token):
                 OpenMemberLinkView(token: token) { saved in
                     router.sheet = nil
@@ -154,7 +159,7 @@ private struct GroupRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(group.name).font(.body.weight(.medium))
                 HStack(spacing: 6) {
-                    Text(group.isOrganizer ? "Organisator" : "Deelnemer")
+                    Text(group.isOrganizer ? "Organisator" : (group.memberId != nil ? "Lootje van \(group.myName ?? "")" : "Deelnemer"))
                     if let date = group.date, let c = DayFormat.countdown(to: date) {
                         Text("·")
                         Text("\(group.occasion.eventWord.capitalizedFirst) \(c)")

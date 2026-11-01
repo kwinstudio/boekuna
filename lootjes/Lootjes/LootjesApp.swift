@@ -31,12 +31,14 @@ enum SheetRoute: Identifiable, Equatable {
     case quickDraw
     case join(code: String?)
     case openMember(token: String)
+    case openAdmin(token: String)
     var id: String {
         switch self {
         case .create: "create"
         case .quickDraw: "quick"
         case .join(let c): "join-\(c ?? "")"
         case .openMember(let t): "m-\(t)"
+        case .openAdmin(let t): "b-\(t)"
         }
     }
 }
@@ -56,6 +58,7 @@ final class Router: ObservableObject {
         switch target {
         case .join(let code): sheet = .join(code: code)
         case .member(let token): sheet = .openMember(token: token)
+        case .admin(let token): sheet = .openAdmin(token: token)
         }
     }
 }

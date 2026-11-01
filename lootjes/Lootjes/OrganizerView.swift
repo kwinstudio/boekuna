@@ -88,6 +88,11 @@ struct OrganizerView: View {
                     Button { confirmRedraw = true } label: { Label("Opnieuw trekken", systemImage: "arrow.triangle.2.circlepath") }
                     Button { Task { await nextYear() } } label: { Label("Volgend jaar weer", systemImage: "calendar.badge.plus") }
                 }
+                Button {
+                    if let t = saved?.adminToken, let s = status {
+                        Share.present(text: "Beheerlink voor \(s.group.name) in de Lootjes-app. Wie deze link heeft, kan de groep beheren, maar niet zien wie wie heeft: \(AppConfig.adminURL(token: t).absoluteString)")
+                    }
+                } label: { Label("Beheer op ander toestel", systemImage: "iphone.and.arrow.forward") }
                 Divider()
                 Button(role: .destructive) { confirmDelete = true } label: { Label("Groep verwijderen", systemImage: "trash") }
             } label: {
@@ -278,7 +283,11 @@ struct OrganizerView: View {
                 .font(.subheadline).foregroundStyle(.secondary)
                 .padding(.bottom, 8)
             ForEach(s.members) { m in
-                MemberStatusRow(member: m, tint: tint, token: saved?.memberTokens[m.id]) { token in
+                MemberStatusRow(member: m, tint: tint, token: saved?.memberTokens[m.id], manage: { token in
+                    let g = store.saveMember(group: s.group, token: token, memberId: m.id, name: m.name)
+                    store.markJoinedHere(g.id)
+                    toast = ToastData(message: "Het lootje van \(m.name) staat nu op deze telefoon")
+                }) { token in
                     let url = AppConfig.memberURL(token: token)
                     Share.present(text: Share.personalMessage(name: m.name, group: s.group.name, occasion: s.group.occasion, url: url)) { done in
                         if done { Task { try? await api.markLinkSent(saved?.adminToken ?? "", memberId: m.id); await load() } }
@@ -420,6 +429,7 @@ private struct MemberStatusRow: View {
     let member: AdminMember
     let tint: Color
     let token: String?
+    let manage: (String) -> Void
     let send: (String) -> Void
     let renew: () -> Void
 
@@ -440,6 +450,7 @@ private struct MemberStatusRow: View {
             } else if let token {
                 Menu {
                     Button { send(token) } label: { Label("Stuur link", systemImage: "paperplane") }
+                    Button { manage(token) } label: { Label("Ik beheer dit lootje (bijv. kind)", systemImage: "person.crop.circle.badge.checkmark") }
                     Button(role: .destructive, action: renew) { Label("Nieuwe link maken", systemImage: "arrow.clockwise") }
                 } label: {
                     Text(member.linkSentAt == nil ? "Stuur" : "Nogmaals")
@@ -452,8 +463,15 @@ private struct MemberStatusRow: View {
                     Haptics.tap()
                     send(token)
                 }
-            } else if member.joinedSelf {
-                Text("Eigen link").font(.caption).foregroundStyle(.secondary)
+            } else {
+                Menu {
+                    Button(action: renew) { Label("Nieuwe link maken", systemImage: "link") }
+                } label: {
+                    Text(member.joinedSelf ? "Eigen link" : "Link maken")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(member.joinedSelf ? Color.secondary : tint)
+                        .frame(minHeight: 40)
+                }
             }
         }
         .padding(.vertical, 8)
@@ -494,6 +512,9 @@ private struct ProgressChecklist: View {
             Row(done: n >= 3, title: n >= 3 ? "\(n) deelnemers" : "Minstens 3 deelnemers (\(n) nu)")
             Row(done: drawn, title: "Lootjes getrokken")
             Row(done: drawn && opened == n, title: drawn ? "\(opened) van \(n) hebben hun lootje bekeken" : "Iedereen bekijkt zijn lootje")
+            if drawn, let c = status.check {
+                Row(done: c.ok, title: c.ok ? "Gecontroleerd: iedereen geeft en krijgt precies één cadeau" : "Controle mislukt: trek opnieuw")
+            }
             if drawn {
                 Row(done: wish == n, title: "\(wish) van \(n) hebben een verlanglijstje")
                 Row(done: ready == n, title: "\(ready) van \(n) hebben hun cadeau klaar")

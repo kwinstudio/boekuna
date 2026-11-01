@@ -62,6 +62,34 @@ final class Store: ObservableObject {
         return g
     }
 
+    /// Saves a personal link. One phone can hold several people of the same group
+    /// (a parent managing their children's lootjes): each gets its own entry.
+    @discardableResult
+    func saveMember(group: GroupInfo, token: String, memberId: String, name: String) -> SavedGroup {
+        let main = groups.first { $0.id == group.id }
+        let id: String
+        if main == nil || main?.myToken == nil || main?.myToken == token {
+            id = group.id
+        } else {
+            id = "\(group.id)|\(memberId)"
+        }
+        var g = self.group(id) ?? SavedGroup(id: id, name: group.name, occasion: group.occasion, eventDate: group.eventDate)
+        g.name = group.name
+        g.occasion = group.occasion
+        g.eventDate = group.eventDate
+        g.myToken = token
+        g.myName = name
+        if id != group.id { g.memberId = memberId }
+        if let i = groups.firstIndex(where: { $0.id == id }) { groups[i] = g } else { groups.append(g) }
+        save()
+        return g
+    }
+
+    /// Other people this phone manages in the same group (e.g. children).
+    func extraPeople(inGroup groupId: String) -> [SavedGroup] {
+        groups.filter { $0.id.hasPrefix("\(groupId)|") }
+    }
+
     func saveCreated(_ c: CreatedGroup) -> SavedGroup {
         let mine = c.members.first(where: \.isOrganizer)
         let g = SavedGroup(

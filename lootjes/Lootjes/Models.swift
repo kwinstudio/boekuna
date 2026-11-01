@@ -10,6 +10,7 @@ enum AppConfig {
 
     static func joinURL(code: String) -> URL { webBase.appending(path: "j/\(code)") }
     static func memberURL(token: String) -> URL { webBase.appending(path: "m/\(token)") }
+    static func adminURL(token: String) -> URL { webBase.appending(path: "b/\(token)") }
 }
 
 enum Occasion: String, Codable, CaseIterable, Identifiable {
@@ -109,11 +110,19 @@ struct AdminMember: Codable, Equatable, Identifiable {
     let giftReady: Bool
 }
 
+struct DrawCheckInfo: Codable, Equatable {
+    let members: Int
+    let givers: Int
+    let receivers: Int
+    let ok: Bool
+}
+
 struct AdminStatus: Codable, Equatable {
     var group: GroupInfo
     var members: [AdminMember]
     var exclusions: [[String]]
     var repeatedLastYear: Bool?
+    var check: DrawCheckInfo?
 }
 
 struct Receiver: Codable, Equatable {
@@ -174,11 +183,15 @@ struct SavedGroup: Codable, Equatable, Identifiable {
     var adminToken: String?
     var myToken: String?
     var myName: String?
+    /// Set for an extra person on this phone (e.g. a child) in a group that already has an entry.
+    var memberId: String?
     /// Organizer only: personal links to hand out.
     var memberTokens: [String: String] = [:]
     var addedAt: Date = .now
 
     var isOrganizer: Bool { adminToken != nil }
+    /// The server group id (entries for extra people use "groupId|memberId").
+    var groupId: String { String(id.split(separator: "|").first ?? Substring(id)) }
     var date: Date? { eventDate.flatMap(DayFormat.parse) }
 }
 
@@ -227,6 +240,7 @@ enum LinkParser {
     enum Target: Equatable {
         case join(code: String)
         case member(token: String)
+        case admin(token: String)
     }
 
     static func parse(_ raw: String) -> Target? {
@@ -254,6 +268,8 @@ enum LinkParser {
             return code.count == 7 ? .join(code: code) : nil
         case "m":
             return value.count >= 20 ? .member(token: value) : nil
+        case "b":
+            return value.count >= 30 ? .admin(token: value) : nil
         default:
             return nil
         }

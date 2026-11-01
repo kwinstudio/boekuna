@@ -117,7 +117,7 @@ struct JoinView: View {
         case .join(let c):
             code = c
             Task { await lookup() }
-        case .member:
+        case .member, .admin:
             if let target = LinkParser.parse(s) {
                 dismiss()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { router.open(target) }
@@ -138,6 +138,8 @@ struct JoinView: View {
         defer { busy = false }
         do {
             let p = try await API().groupByCode(c)
+            // Already in this group on this phone: this is someone else (e.g. a child), start empty.
+            if store.groups.contains(where: { $0.groupId == p.group.id && $0.myToken != nil }) { name = "" }
             withAnimation { preview = p }
             code = c
             focus = .name
@@ -151,11 +153,10 @@ struct JoinView: View {
         busy = true
         defer { busy = false }
         do {
+            let alreadyHere = store.groups.contains(where: { $0.groupId == p.group.id && $0.myToken != nil })
             let r = try await API().join(code: p.group.joinCode, name: name.trimmed)
-            savedMyName = name.trimmed
-            let g = SavedGroup(id: p.group.id, name: p.group.name, occasion: p.group.occasion, eventDate: p.group.eventDate,
-                               adminToken: nil, myToken: r.token, myName: r.member.name)
-            store.upsert(g)
+            if !alreadyHere { savedMyName = name.trimmed }
+            let g = store.saveMember(group: p.group, token: r.token, memberId: r.member.id, name: r.member.name)
             store.markJoinedHere(g.id)
             Reminders.schedule(for: g)
             Haptics.success()
@@ -174,12 +175,24 @@ struct OpenMemberLinkView: View {
     @EnvironmentObject private var store: Store
     @Environment(\.dismiss) private var dismiss
     @State private var error: String?
+    @State private var askManage = false
+    @State private var loading = false
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
                 if let error {
-                    ContentUnavailableView("Link werkt niet", systemImage: "link.badge.plus", description: Text(error))
+                    ContentUnavailableView("Link werkt niet", systemImage: "link", description: Text(error))
+                } else if askManage {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Dit is de link van een andere deelnemer").font(.title3.weight(.semibold))
+                        Text("Beheer je de lootjes voor deze persoon, bijvoorbeeld je kind? Dan zet je het lootje op deze telefoon. Anders: stuur de link door en open hem niet zelf.")
+                            .foregroundStyle(.secondary)
+                        PrimaryButton(title: "Ja, ik beheer dit lootje", isLoading: loading) { Task { await open() } }
+                        SecondaryButton(title: "Nee, sluiten") { dismiss() }
+                    }
+                    .padding(20)
+                    Spacer()
                 } else {
                     ProgressView("Je lootje wordt opgehaald…")
                 }
@@ -189,19 +202,60 @@ struct OpenMemberLinkView: View {
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Sluit") { dismiss() } } }
         }
         .task {
-            do {
-                // The organizer tapped someone else's personal link: don't open it (that would
-                // mark it as "seen") and don't make it theirs.
-                if let g = store.groups.first(where: { $0.isOrganizer && $0.myToken != token && $0.memberTokens.values.contains(token) }) {
-                    error = "Dit is de persoonlijke link van iemand anders in \(g.name). Stuur hem door en open hem niet zelf."
-                    return
+            // The organizer tapped someone else's personal link: ask first. Opening it marks it as
+            // "seen", which is only right when this phone manages that person (e.g. a child).
+            if store.groups.contains(where: { $0.isOrganizer && $0.myToken != token && $0.memberTokens.values.contains(token) })
+                && !store.groups.contains(where: { $0.myToken == token }) {
+                askManage = true
+                return
+            }
+            await open()
+        }
+    }
+
+    private func open() async {
+        loading = true
+        defer { loading = false }
+        do {
+            let me = try await API().me(token)
+            let g = store.saveMember(group: me.group, token: token, memberId: me.me.id, name: me.me.name)
+            if me.me.openedBefore == nil || askManage { store.markJoinedHere(g.id) }
+            Reminders.schedule(for: g)
+            onDone(store.group(g.id) ?? g)
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+}
+
+/// A management link: lets a second phone (or a co-organizer) manage the group.
+struct OpenAdminLinkView: View {
+    let token: String
+    let onDone: (SavedGroup) -> Void
+    @EnvironmentObject private var store: Store
+    @Environment(\.dismiss) private var dismiss
+    @State private var error: String?
+
+    var body: some View {
+        NavigationStack {
+            VStack {
+                if let error {
+                    ContentUnavailableView("Beheerlink werkt niet", systemImage: "link", description: Text(error))
+                } else {
+                    ProgressView("Groep wordt opgehaald…")
                 }
-                let me = try await API().me(token)
-                let g = SavedGroup(id: me.group.id, name: me.group.name, occasion: me.group.occasion,
-                                   eventDate: me.group.eventDate, adminToken: nil, myToken: token, myName: me.me.name)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Theme.paper.ignoresSafeArea())
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Sluit") { dismiss() } } }
+        }
+        .task {
+            do {
+                let s = try await API().adminStatus(token)
+                var g = store.group(s.group.id) ?? SavedGroup(id: s.group.id, name: s.group.name, occasion: s.group.occasion, eventDate: s.group.eventDate)
+                g.adminToken = token
                 store.upsert(g)
-                if me.me.openedBefore == nil { store.markJoinedHere(g.id) }
-                Reminders.schedule(for: g)
+                Haptics.success()
                 onDone(store.group(g.id) ?? g)
             } catch {
                 self.error = error.localizedDescription

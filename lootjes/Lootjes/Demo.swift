@@ -27,7 +27,8 @@ enum Demo {
             member(2, opened: true, wish: false), member(3, opened: false, wish: false, sent: true),
             member(4, opened: true, wish: true, ready: true), member(5, opened: false, wish: false, sent: false),
             member(6, opened: true, wish: true),
-        ], exclusions: [["m1", "m2"]], repeatedLastYear: nil)
+        ], exclusions: [["m1", "m2"]], repeatedLastYear: nil,
+           check: DrawCheckInfo(members: 7, givers: 7, receivers: 7, ok: true))
     }
 
     static var beforeDraw: AdminStatus {

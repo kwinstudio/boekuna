@@ -37,7 +37,8 @@ try {
 
   const drawn = await call('draw', { adminToken: admin });
   ok(!!drawn.group.drawnAt && drawn.members.length === 6, 'draw succeeded for 6 people');
-  ok(!JSON.stringify(drawn).includes('receiver'), 'organizer status contains no pairs');
+  ok(!JSON.stringify(drawn).includes('receiver_id') && !JSON.stringify(drawn).includes('"receiver"'), 'organizer status contains no pairs');
+  ok(drawn.check && drawn.check.ok && drawn.check.receivers === 6, 'integrity check: everyone gives and receives exactly one');
   const again = await call('draw', { adminToken: admin }, true);
   ok(again.status === 409, 'second draw needs explicit redraw');
   const lateJoin = await call('join', { joinCode: created.group.joinCode, name: 'Laat' }, true);
@@ -96,6 +97,9 @@ try {
 
   // Next year: new group, last year's pairs avoided where possible.
   const next = await call('nextYear', { adminToken: admin, eventDate: '2027-12-05' });
+  const annaNext = next.members.find((m) => m.name === 'Anna');
+  const annaNextMe = await call('me', { token: annaNext.token });
+  ok(annaNextMe.me.wishlist.includes('Een boek'), 'next year keeps last year\'s wishlist as a start');
   const nd = await call('draw', { adminToken: next.adminToken });
   ok(nd.repeatedLastYear === false, 'next year avoids last year\'s pairs');
   await call('deleteGroup', { adminToken: next.adminToken });

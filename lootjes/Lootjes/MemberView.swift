@@ -9,9 +9,11 @@ struct MemberView: View {
     var previewRevealed = true
 
     @EnvironmentObject private var store: Store
+    @EnvironmentObject private var router: Router
     private let api = API()
 
     @State private var data: MeResponse?
+    @State private var offline = false
     @State private var loadError: String?
     @State private var revealedNow = false
     @State private var toast: ToastData?
@@ -45,7 +47,7 @@ struct MemberView: View {
             }
         }
         .background(Theme.paper.ignoresSafeArea())
-        .navigationTitle(data?.group.name ?? store.group(groupId)?.name ?? "")
+        .navigationTitle(store.group(groupId)?.memberId != nil ? "Lootje van \(data?.me.name ?? store.group(groupId)?.myName ?? "")" : (data?.group.name ?? store.group(groupId)?.name ?? ""))
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
         .refreshable { await load() }
@@ -86,6 +88,11 @@ struct MemberView: View {
     private func content(_ d: MeResponse) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                if offline {
+                    Label("Geen verbinding. Je ziet de laatst bekende gegevens.", systemImage: "wifi.slash")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
                 if let r = d.receiver {
                     lootje(d, r)
                 } else {
@@ -109,6 +116,17 @@ struct MemberView: View {
             }
             .card()
             myWishlistCard(d, nudge: true)
+            if d.group.joinOpen {
+                Button {
+                    Haptics.tap()
+                    router.sheet = .join(code: d.group.joinCode)
+                } label: {
+                    Label("Ook iemand anders aanmelden, bijvoorbeeld je kind", systemImage: "person.badge.plus")
+                        .font(.subheadline.weight(.medium))
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                }
+                .card()
+            }
         }
     }
 
@@ -243,6 +261,11 @@ struct MemberView: View {
     private func load() async {
         if let preview { data = preview; revealedNow = previewRevealed; return }
         guard let token else { loadError = "Deze link staat niet meer op deze telefoon."; return }
+        let cacheKey = "me.cache.\(groupId)"
+        if data == nil, let raw = UserDefaults.standard.data(forKey: cacheKey),
+           let cached = try? JSONDecoder().decode(MeResponse.self, from: raw) {
+            data = cached
+        }
         do {
             let d = try await api.me(token)
             // Warn only when someone else opened this link before this phone ever did.
@@ -253,9 +276,11 @@ struct MemberView: View {
             }
             data = d
             loadError = nil
+            offline = false
+            if let raw = try? JSONEncoder().encode(d) { UserDefaults.standard.set(raw, forKey: cacheKey) }
             store.update(groupId) { $0.name = d.group.name; $0.eventDate = d.group.eventDate; $0.myName = d.me.name }
         } catch {
-            if data == nil { loadError = error.localizedDescription } else { toast = ToastData(message: error.localizedDescription) }
+            if data == nil { loadError = error.localizedDescription } else { offline = true }
         }
     }
 

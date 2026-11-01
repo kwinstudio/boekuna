@@ -94,6 +94,12 @@ final class LinkParserTests: XCTestCase {
         XCTAssertEqual(LinkParser.parse("lootjes://m/\(token)"), .member(token: token))
     }
 
+    func testAdminLink() {
+        let token = String(repeating: "a", count: 43)
+        XCTAssertEqual(LinkParser.parse("https://example.nl/b/\(token)"), .admin(token: token))
+        XCTAssertNil(LinkParser.parse("https://example.nl/b/short"))
+    }
+
     func testRejectsOtherText() {
         XCTAssertNil(LinkParser.parse("hallo"))
         XCTAssertNil(LinkParser.parse("https://example.nl/x/ABCDEFG"))
@@ -188,5 +194,23 @@ final class StoreTests: XCTestCase {
         XCTAssertEqual(g.adminToken, "admin")
         XCTAssertEqual(g.myToken, "mine")
         XCTAssertEqual(g.memberTokens["m1"], "t1")
+    }
+
+    func testSeveralPeopleOfOneGroupOnOnePhone() {
+        let box = KeychainBox(account: "test-\(UUID().uuidString)", synchronizable: false)
+        defer { box.delete() }
+        let store = Store(keychain: box, defaults: UserDefaults(suiteName: UUID().uuidString)!)
+        let info = GroupInfo(id: "g", joinCode: "ABCDEFG", name: "Fam", occasion: .sinterklaas, eventDate: nil,
+                             budgetCents: nil, note: nil, poems: true, joinOpen: true, drawnAt: nil)
+        let mama = store.saveMember(group: info, token: "t-mama", memberId: "m1", name: "Mama")
+        let kid = store.saveMember(group: info, token: "t-kid", memberId: "m2", name: "Daan")
+        let again = store.saveMember(group: info, token: "t-kid", memberId: "m2", name: "Daan")
+        XCTAssertEqual(mama.id, "g")
+        XCTAssertEqual(kid.id, "g|m2")
+        XCTAssertEqual(again.id, "g|m2")
+        XCTAssertEqual(kid.groupId, "g")
+        XCTAssertEqual(store.groups.count, 2)
+        XCTAssertEqual(store.group("g")?.myToken, "t-mama")
+        XCTAssertEqual(store.extraPeople(inGroup: "g").map(\.myName), ["Daan"])
     }
 }

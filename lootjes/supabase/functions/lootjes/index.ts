@@ -143,7 +143,20 @@ async function adminView(g: Group) {
     ? ((await must(db.from("lt_assignments").select("giver_id,gift_ready").eq("group_id", g.id))) as { giver_id: string; gift_ready: boolean }[])
     : [];
   const ready = new Map(asg.map((a) => [a.giver_id, a.gift_ready]));
+  // Integrity check the organizer can see without seeing any pair:
+  // everyone gives exactly one gift and receives exactly one gift.
+  let check: { members: number; givers: number; receivers: number; ok: boolean } | null = null;
+  if (g.drawn_at) {
+    const recv = (await must(db.from("lt_assignments").select("receiver_id").eq("group_id", g.id))) as { receiver_id: string }[];
+    const memberIds = new Set(ms.map((m) => m.id));
+    const givers = new Set(asg.map((a) => a.giver_id));
+    const receivers = new Set(recv.map((r) => r.receiver_id));
+    const ok = givers.size === ms.length && receivers.size === ms.length && recv.length === ms.length &&
+      [...givers].every((x) => memberIds.has(x)) && [...receivers].every((x) => memberIds.has(x));
+    check = { members: ms.length, givers: givers.size, receivers: receivers.size, ok };
+  }
   return {
+    check,
     group: publicGroup(g),
     members: ms.map((m) => ({
       id: m.id, name: m.name, isOrganizer: m.is_organizer, joinedSelf: m.joined_self,
@@ -320,6 +333,10 @@ async function handle(body: Record<string, unknown>, ip: string) {
       const idMap = new Map<string, string>();
       for (const m of ms) {
         const { member, token } = await newMember(ng.id, m.name, { organizer: m.is_organizer });
+        if (m.wishlist.trim()) {
+          // Carry last year's wishlist over as a starting point (a common complaint elsewhere).
+          await must(db.from("lt_members").update({ wishlist: m.wishlist, wishlist_updated_at: m.wishlist_updated_at }).eq("id", member.id));
+        }
         idMap.set(m.id, member.id);
         created.push({ id: member.id, name: member.name, token, isOrganizer: m.is_organizer });
       }
