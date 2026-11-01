@@ -1,4 +1,10 @@
 {
  "NSContactsUsageDescription": "Fotoswipe zoekt contacten die er dubbel in staan. Pas na jouw bevestiging worden ze samengevoegd. Je contacten blijven op je iPhone.",
- "NSPhotoLibraryUsageDescription": "Fotoswipe toont je foto's zodat je ze kunt bewaren of wegleggen. Alleen na jouw bevestiging worden geselecteerde foto's verwijderd."
+ "NSPhotoLibraryUsageDescription": "Fotoswipe toont je foto's zodat je ze kunt bewaren of wegleggen. Alleen na jouw bevestiging worden geselecteerde foto's verwijderd.",
+ "%lld groepen konden niet worden samengevoegd, bijvoorbeeld omdat ze in een account staan dat je niet kunt wijzigen. Daar is niets aan veranderd.": {
+  "one": "%lld groep kon niet worden samengevoegd, bijvoorbeeld omdat hij in een account staat dat je niet kunt wijzigen. Daar is niets aan veranderd.",
+  "other": "%lld groepen konden niet worden samengevoegd, bijvoorbeeld omdat ze in een account staan dat je niet kunt wijzigen. Daar is niets aan veranderd."
+ },
+ "Niets kiezen": "Niets kiezen",
+ "Alles kiezen": "Alles kiezen"
 }

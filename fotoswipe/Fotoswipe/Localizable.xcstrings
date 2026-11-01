@@ -877,6 +877,107 @@
         }
       }
     },
+    "%lld groepen konden niet worden samengevoegd, bijvoorbeeld omdat ze in een account staan dat je niet kunt wijzigen. Daar is niets aan veranderd.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld group couldn't be merged, for example because it's in an account you can't change. Nothing changed there."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld groups couldn't be merged, for example because they're in an account you can't change. Nothing changed there."
+                }
+              }
+            }
+          }
+        },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld groep kon niet worden samengevoegd, bijvoorbeeld omdat hij in een account staat dat je niet kunt wijzigen. Daar is niets aan veranderd."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld groepen konden niet worden samengevoegd, bijvoorbeeld omdat ze in een account staan dat je niet kunt wijzigen. Daar is niets aan veranderd."
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld grupo no se pudo combinar, por ejemplo porque está en una cuenta que no puedes modificar. Ahí no ha cambiado nada."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld grupos no se pudieron combinar, por ejemplo porque están en una cuenta que no puedes modificar. Ahí no ha cambiado nada."
+                }
+              }
+            }
+          }
+        },
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Gruppe konnte nicht zusammengeführt werden, z. B. weil sie in einem Account liegt, den du nicht ändern kannst. Dort hat sich nichts geändert."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Gruppen konnten nicht zusammengeführt werden, z. B. weil sie in einem Account liegen, den du nicht ändern kannst. Dort hat sich nichts geändert."
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld groupe n'a pas pu être fusionné, par exemple parce qu'il est dans un compte que tu ne peux pas modifier. Rien n'y a changé."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld groupes n'ont pas pu être fusionnés, par exemple parce qu'ils sont dans un compte que tu ne peux pas modifier. Rien n'y a changé."
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld件のグループは結合できませんでした（変更できないアカウントにある場合など）。それらは変更されていません。"
+          }
+        }
+      }
+    },
     "%lld groepen samengevoegd": {
       "extractionState": "manual",
       "localizations": {
@@ -3322,6 +3423,47 @@
         }
       }
     },
+    "Alles kiezen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select all"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alles kiezen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir todos"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle auswählen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tout choisir"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべて選択"
+          }
+        }
+      }
+    },
     "Alles met één duim. Je vindt dit later ook onder het i-knopje.": {
       "extractionState": "manual",
       "localizations": {
@@ -5403,6 +5545,47 @@
         }
       }
     },
+    "De verwijdering is geannuleerd.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The deletion was cancelled."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De verwijdering is geannuleerd."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se canceló la eliminación."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Löschen wurde abgebrochen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La suppression a été annulée."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除はキャンセルされました。"
+          }
+        }
+      }
+    },
     "Deel je resultaat": {
       "extractionState": "manual",
       "localizations": {
@@ -6096,6 +6279,47 @@
           "stringUnit": {
             "state": "translated",
             "value": "英語、オランダ語、スペイン語、ドイツ語、フランス語、日本語に対応。設定で言語を選べます。"
+          }
+        }
+      }
+    },
+    "Er is niets door Fotoswipe verwijderd. Je selectie is bewaard.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe didn't delete anything. Your selection is saved."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Er is niets door Fotoswipe verwijderd. Je selectie is bewaard."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe no ha eliminado nada. Tu selección se ha guardado."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe hat nichts gelöscht. Deine Auswahl bleibt gespeichert."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipe n'a rien supprimé. Ta sélection est conservée."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotoswipeは何も削除していません。選択内容は保存されています。"
           }
         }
       }
@@ -10236,6 +10460,47 @@
         }
       }
     },
+    "Kies de groepen die echt dezelfde persoon zijn. Het bovenste contact blijft en krijgt de gegevens van de andere.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose the groups that really are the same person. The top contact stays and gets the details of the others."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kies de groepen die echt dezelfde persoon zijn. Het bovenste contact blijft en krijgt de gegevens van de andere."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige los grupos que de verdad son la misma persona. El primer contacto se queda y recibe los datos de los demás."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle die Gruppen, die wirklich dieselbe Person sind. Der oberste Kontakt bleibt und bekommt die Daten der anderen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisis les groupes qui sont vraiment la même personne. Le premier contact reste et reçoit les infos des autres."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本当に同じ人のグループを選んでください。一番上の連絡先が残り、ほかの連絡先の情報が追加されます。"
+          }
+        }
+      }
+    },
     "Kies een andere categorie of pas je fototoegang aan.": {
       "extractionState": "manual",
       "localizations": {
@@ -12252,6 +12517,47 @@
         }
       }
     },
+    "Niets kiezen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select none"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niets kiezen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No elegir ninguno"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine auswählen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ne rien choisir"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選択解除"
+          }
+        }
+      }
+    },
     "Niets voor later": {
       "extractionState": "manual",
       "localizations": {
@@ -13890,6 +14196,47 @@
           "stringUnit": {
             "state": "translated",
             "value": "各グループは、すべての番号と住所を含む1件の連絡先になり、ほかは削除されます。Fotoswipeでは元に戻せません。iCloudを使っている場合は、iCloud.comで30日以内なら連絡先を復元できます。"
+          }
+        }
+      }
+    },
+    "Per groep blijft één contact over met alle nummers, adressen en datums. De andere worden verwijderd, ook hun notities. Dit kan Fotoswipe niet terugdraaien. Gebruik je iCloud, dan kun je contacten op iCloud.com tot 30 dagen terugzetten.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each group becomes one contact with all numbers, addresses and dates. The others are deleted, including their notes. Fotoswipe can't undo this. If you use iCloud, you can restore contacts on iCloud.com for up to 30 days."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per groep blijft één contact over met alle nummers, adressen en datums. De andere worden verwijderd, ook hun notities. Dit kan Fotoswipe niet terugdraaien. Gebruik je iCloud, dan kun je contacten op iCloud.com tot 30 dagen terugzetten."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada grupo queda en un solo contacto con todos los números, direcciones y fechas. Los demás se eliminan, también sus notas. Fotoswipe no puede deshacerlo. Si usas iCloud, puedes restaurar contactos en iCloud.com durante 30 días."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro Gruppe bleibt ein Kontakt mit allen Nummern, Adressen und Daten. Die anderen werden gelöscht, auch ihre Notizen. Fotoswipe kann das nicht rückgängig machen. Mit iCloud kannst du Kontakte bis zu 30 Tage lang auf iCloud.com wiederherstellen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaque groupe devient un seul contact avec tous les numéros, adresses et dates. Les autres sont supprimés, notes comprises. Fotoswipe ne peut pas annuler cela. Avec iCloud, tu peux restaurer des contacts sur iCloud.com pendant 30 jours."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "各グループは、すべての番号・住所・日付を含む1件の連絡先になります。ほかの連絡先はメモも含めて削除されます。Fotoswipeでは元に戻せません。iCloudを使っている場合は、iCloud.comで30日以内なら連絡先を復元できます。"
           }
         }
       }

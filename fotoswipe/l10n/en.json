@@ -540,5 +540,15 @@
  "%lld/%lld bekeken": "%lld/%lld reviewed",
  "Je reeks en de foto's van vandaag in eerdere jaren.": "Your streak and today's photos from past years.",
  "Open Fotoswipe om te beginnen": "Open Fotoswipe to get started",
- "Vandaag": "Today"
+ "Vandaag": "Today",
+ "%lld groepen konden niet worden samengevoegd, bijvoorbeeld omdat ze in een account staan dat je niet kunt wijzigen. Daar is niets aan veranderd.": {
+  "one": "%lld group couldn't be merged, for example because it's in an account you can't change. Nothing changed there.",
+  "other": "%lld groups couldn't be merged, for example because they're in an account you can't change. Nothing changed there."
+ },
+ "Niets kiezen": "Select none",
+ "Alles kiezen": "Select all",
+ "Per groep blijft één contact over met alle nummers, adressen en datums. De andere worden verwijderd, ook hun notities. Dit kan Fotoswipe niet terugdraaien. Gebruik je iCloud, dan kun je contacten op iCloud.com tot 30 dagen terugzetten.": "Each group becomes one contact with all numbers, addresses and dates. The others are deleted, including their notes. Fotoswipe can't undo this. If you use iCloud, you can restore contacts on iCloud.com for up to 30 days.",
+ "Kies de groepen die echt dezelfde persoon zijn. Het bovenste contact blijft en krijgt de gegevens van de andere.": "Choose the groups that really are the same person. The top contact stays and gets the details of the others.",
+ "Er is niets door Fotoswipe verwijderd. Je selectie is bewaard.": "Fotoswipe didn't delete anything. Your selection is saved.",
+ "De verwijdering is geannuleerd.": "The deletion was cancelled."
 }

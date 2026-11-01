@@ -537,5 +537,15 @@
  "%lld/%lld bekeken": "%lld/%lld angesehen",
  "Je reeks en de foto's van vandaag in eerdere jaren.": "Deine Serie und die Fotos von heute aus früheren Jahren.",
  "Open Fotoswipe om te beginnen": "Öffne Fotoswipe, um loszulegen",
- "Vandaag": "Heute"
+ "Vandaag": "Heute",
+ "%lld groepen konden niet worden samengevoegd, bijvoorbeeld omdat ze in een account staan dat je niet kunt wijzigen. Daar is niets aan veranderd.": {
+  "one": "%lld Gruppe konnte nicht zusammengeführt werden, z. B. weil sie in einem Account liegt, den du nicht ändern kannst. Dort hat sich nichts geändert.",
+  "other": "%lld Gruppen konnten nicht zusammengeführt werden, z. B. weil sie in einem Account liegen, den du nicht ändern kannst. Dort hat sich nichts geändert."
+ },
+ "Niets kiezen": "Keine auswählen",
+ "Alles kiezen": "Alle auswählen",
+ "Per groep blijft één contact over met alle nummers, adressen en datums. De andere worden verwijderd, ook hun notities. Dit kan Fotoswipe niet terugdraaien. Gebruik je iCloud, dan kun je contacten op iCloud.com tot 30 dagen terugzetten.": "Pro Gruppe bleibt ein Kontakt mit allen Nummern, Adressen und Daten. Die anderen werden gelöscht, auch ihre Notizen. Fotoswipe kann das nicht rückgängig machen. Mit iCloud kannst du Kontakte bis zu 30 Tage lang auf iCloud.com wiederherstellen.",
+ "Kies de groepen die echt dezelfde persoon zijn. Het bovenste contact blijft en krijgt de gegevens van de andere.": "Wähle die Gruppen, die wirklich dieselbe Person sind. Der oberste Kontakt bleibt und bekommt die Daten der anderen.",
+ "Er is niets door Fotoswipe verwijderd. Je selectie is bewaard.": "Fotoswipe hat nichts gelöscht. Deine Auswahl bleibt gespeichert.",
+ "De verwijdering is geannuleerd.": "Das Löschen wurde abgebrochen."
 }
