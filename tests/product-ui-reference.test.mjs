@@ -325,7 +325,7 @@ try{
       const fieldMetrics=await page.evaluate(()=>{
         const date=document.querySelector('#invoiceForm input[name="issueDate"]');
         const number=document.querySelector('#invoiceForm input[name="paymentDays"]');
-        const select=document.querySelector('#invoiceForm select[name="status"]');
+        const select=document.querySelector('#invoiceForm select[name="customerId"]'); // Volledige test 5: the status select left the desktop form;
         const metric=el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el);return {height:Math.round(r.height),radius:s.borderRadius,paddingTop:s.paddingTop,paddingBottom:s.paddingBottom}};
         return {date:metric(date),number:metric(number),select:metric(select)};
       });
@@ -358,7 +358,7 @@ try{
 
       const coreKpis={
         invoices:['Gefactureerd','Nog te ontvangen'],
-        expenses:['Kosten','Waaraan'],
+        expenses:['Uitgegeven','Waaraan'],
         documents:['Te verwerken','Controle nodig','Verwerkt deze maand','Totaal documenten'],
         vat:['Te betalen btw','Ontvangen btw','Btw die je kunt terugvragen','Controle nodig'],
         reports:['Omzet','Kosten','Winst','Winstmarge'],
