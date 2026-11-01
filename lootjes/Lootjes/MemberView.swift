@@ -207,6 +207,7 @@ struct MemberView: View {
                 Text(Linkify.attributed(r.wishlist))
                     .font(.body)
                     .textSelection(.enabled)
+                LinkPreviewList(text: r.wishlist)
                 if let u = r.wishlistUpdatedAt, let date = ISO.parse(u) {
                     Text("Bijgewerkt \(date.formatted(.relative(presentation: .named).locale(Locale(identifier: "nl_NL"))))")
                         .font(.caption).foregroundStyle(.secondary)
@@ -380,10 +381,15 @@ struct WishlistEditor: View {
 
     var body: some View {
         NavigationStack {
+            ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text(budget.map { "Tip: zet er ideeën rond \($0.euroText) op. Links naar webshops werken ook." } ?? "Tip: zet er een paar ideeën op. Links naar webshops werken ook.")
+                GiftSearchSection(tint: tint) { line in
+                    withAnimation { text = WishLine.append(line, to: text) }
+                }
+                Text(budget.map { "Je lijstje (budget \($0.euroText)). Typ zelf iets of voeg hierboven producten toe." } ?? "Je lijstje. Typ zelf iets of voeg hierboven producten toe.")
                     .font(.subheadline).foregroundStyle(.secondary)
                 TextEditor(text: $text)
+                    .frame(minHeight: 180)
                     .focused($focused)
                     .scrollContentBackground(.hidden)
                     .padding(10)
@@ -395,9 +401,12 @@ struct WishlistEditor: View {
                         }
                     }
                 Text("\(text.count)/2000").font(.caption).foregroundStyle(text.count > 2000 ? .red : .secondary)
+                LinkPreviewList(text: text)
                 if let error { Text(error).font(.footnote).foregroundStyle(.red) }
             }
             .padding(20)
+            }
+            .scrollDismissesKeyboard(.interactively)
             .background(Theme.paper.ignoresSafeArea())
             .navigationTitle("Mijn verlanglijstje")
             .navigationBarTitleDisplayMode(.inline)
@@ -414,7 +423,7 @@ struct WishlistEditor: View {
                     .disabled(busy || text.count > 2000)
                 }
             }
-            .onAppear { focused = true }
+
         }
     }
 }

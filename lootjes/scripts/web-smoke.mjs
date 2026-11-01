@@ -33,6 +33,10 @@ try {
   await page.fill('#wish', 'Een mooie sjaal\nhttps://example.com/sjaal');
   await page.click('#saveWish');
   await page.getByText('Opgeslagen').waitFor();
+  await page.fill('#q', 'puzzel');
+  await page.click('#qgo');
+  await page.locator('#qres .prod, #qres a.btn').first().waitFor();
+  ok(true, 'gift search shows products or shop links');
   await page.screenshot({ path: `${OUT}/web-waiting.png` });
 
   await call('draw', { adminToken: g.adminToken });

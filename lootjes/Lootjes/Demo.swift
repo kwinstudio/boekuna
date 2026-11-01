@@ -107,6 +107,8 @@ struct DemoRoot: View {
                     .padding(20)
                 }
                 .background(Theme.paper.ignoresSafeArea())
+            case "wishlist":
+                WishlistEditor(text: "- Een goed boek (thriller)\n- Warme sokken maat 43\n  https://www.apple.com/nl/airpods/", budget: 2500, tint: Theme.red) { _ in }
             case "poem":
                 PoemHelperView(receiverName: "Oma Riet", wishlist: "Een mooie plant", tint: Theme.red)
             case "pass":

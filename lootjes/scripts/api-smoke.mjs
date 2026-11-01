@@ -104,6 +104,19 @@ try {
   ok(nd.repeatedLastYear === false, 'next year avoids last year\'s pairs');
   await call('deleteGroup', { adminToken: next.adminToken });
 
+  const st0 = await call('searchStatus');
+  ok(typeof st0.available === 'boolean', `product search status (${st0.available ? 'on' : 'off, falls back to shop links'})`);
+  if (st0.available) {
+    const sr = await call('searchProducts', { query: 'puzzel' });
+    ok(sr.results.length > 0 && sr.results[0].title && sr.results[0].url, 'product search returns products');
+  } else {
+    const sr = await call('searchProducts', { query: 'puzzel' }, true);
+    ok(sr.status === 503 && sr.error.code === 'search_unavailable', 'search without key answers search_unavailable');
+  }
+  const pv = await call('linkPreview', { url: 'https://example.com/' });
+  ok(pv.site === 'example.com', 'link preview works for a public page');
+  const ssrf = await call('linkPreview', { url: 'http://127.0.0.1:54321/' }, true);
+  ok(ssrf.status === 400, 'link preview refuses local addresses');
   const bad = await call('adminStatus', { adminToken: 'x'.repeat(40) }, true);
   ok(bad.status === 404, 'wrong admin token is refused');
 } finally {

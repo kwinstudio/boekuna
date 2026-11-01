@@ -123,6 +123,16 @@ struct API {
         let _: OK = try await call("sendMessage", ["token": token, "thread": thread.rawValue, "body": body])
     }
 
+    struct SearchStatus: Codable { let available: Bool; let partnerLinks: Bool }
+
+    func searchStatus() async throws -> SearchStatus {
+        try await call("searchStatus")
+    }
+
+    func searchProducts(_ query: String) async throws -> ProductSearchResponse {
+        try await call("searchProducts", ["query": query, "country": Locale.current.region?.identifier == "BE" ? "BE" : "NL"])
+    }
+
     func leave(_ token: String) async throws {
         let _: OK = try await call("leave", ["token": token])
     }

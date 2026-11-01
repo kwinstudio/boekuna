@@ -202,6 +202,52 @@ async function runDraw(g: Group) {
   return { repeatedLastYear: result.ok.repeatedLastYear };
 }
 
+
+// ---------- Product search (bol.com Marketing Catalog API) ----------
+// Needs BOL_CLIENT_ID + BOL_CLIENT_SECRET (free bol.com affiliate account > Open API).
+// Optional BOL_SITE_ID turns product links into partner links (commission), clearly disclosed in the app.
+let bolToken: { value: string; until: number } | null = null;
+async function bolAccessToken(): Promise<string | null> {
+  const id = Deno.env.get("BOL_CLIENT_ID"), secret = Deno.env.get("BOL_CLIENT_SECRET");
+  if (!id || !secret) return null;
+  if (bolToken && Date.now() < bolToken.until) return bolToken.value;
+  const r = await fetch("https://login.bol.com/token?grant_type=client_credentials", {
+    method: "POST",
+    headers: { Authorization: `Basic ${btoa(`${id}:${secret}`)}`, Accept: "application/json" },
+  });
+  if (!r.ok) { console.error("bol token", r.status, await r.text()); return null; }
+  const j = await r.json();
+  bolToken = { value: j.access_token, until: Date.now() + Math.max(30, (j.expires_in ?? 299) - 30) * 1000 };
+  return bolToken.value;
+}
+function partnerLink(url: string): string {
+  const site = Deno.env.get("BOL_SITE_ID");
+  if (!site) return url;
+  return `https://partner.bol.com/click/click?p=2&t=url&s=${encodeURIComponent(site)}&f=TXL&url=${encodeURIComponent(url)}&name=lootjes`;
+}
+
+// ---------- Link preview for the web page (the iOS app reads previews on the device) ----------
+function isPublicHttpUrl(raw: string): URL | null {
+  let u: URL;
+  try { u = new URL(raw); } catch { return null; }
+  if (u.protocol !== "https:" && u.protocol !== "http:") return null;
+  const h = u.hostname.toLowerCase();
+  // Block local/private targets (SSRF): IP literals, localhost, internal names.
+  if (!h.includes(".") || h === "localhost" || h.endsWith(".local") || h.endsWith(".internal")) return null;
+  if (/^[\d.]+$/.test(h) || h.includes(":") || h.startsWith("[")) return null;
+  if (u.port && u.port !== "80" && u.port !== "443") return null;
+  return u;
+}
+function metaContent(html: string, keys: string[]): string | null {
+  for (const k of keys) {
+    const re = new RegExp(`<meta[^>]+(?:property|name)=["']${k}["'][^>]*>`, "i");
+    const tag = html.match(re)?.[0];
+    const c = tag?.match(/content=["']([^"']*)["']/i)?.[1];
+    if (c) return c.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+  }
+  return null;
+}
+
 async function handle(body: Record<string, unknown>, ip: string) {
   const action = String(body.action ?? "");
   switch (action) {
@@ -442,6 +488,59 @@ async function handle(body: Record<string, unknown>, ip: string) {
       if (group.drawn_at) throw bad("drawn", "Er is al getrokken. Vraag de organisator om je eruit te halen.", 409);
       await must(db.from("lt_members").delete().eq("id", me.id));
       return { ok: true };
+    }
+
+    case "searchProducts": {
+      await rateLimit(`search:${ip}`, 120, 600);
+      const q = str(body.query, 80, "Zoekterm", 2);
+      const token = await bolAccessToken();
+      if (!token) throw bad("search_unavailable", "Zoeken in de app is nog niet ingesteld.", 503);
+      const url = new URL("https://api.bol.com/marketing/catalog/v1/products/search");
+      url.searchParams.set("search-term", q);
+      url.searchParams.set("country-code", body.country === "BE" ? "BE" : "NL");
+      url.searchParams.set("page-size", "20");
+      url.searchParams.set("include-image", "true");
+      url.searchParams.set("include-offer", "true");
+      const r = await fetch(url, { headers: { Authorization: `Bearer ${token}`, "Accept-Language": "nl", Accept: "application/json" } });
+      if (!r.ok) { console.error("bol search", r.status, await r.text()); throw bad("search_failed", "Zoeken lukt nu even niet. Probeer het zo opnieuw.", 502); }
+      const j = await r.json();
+      const results = (j.results ?? []).filter((p: { url?: string; title?: string }) => p.url && p.title).map((p: {
+        ean?: string; title: string; url: string; image?: { url?: string }; offer?: { price?: number };
+      }) => ({
+        ean: p.ean ?? null, title: p.title, url: partnerLink(p.url),
+        imageUrl: p.image?.url ?? null, price: typeof p.offer?.price === "number" ? Math.round(p.offer.price * 100) : null,
+      }));
+      return { results, partnerLinks: !!Deno.env.get("BOL_SITE_ID"), shop: "bol.com" };
+    }
+
+    case "searchStatus":
+      return { available: !!(Deno.env.get("BOL_CLIENT_ID") && Deno.env.get("BOL_CLIENT_SECRET")), partnerLinks: !!Deno.env.get("BOL_SITE_ID") };
+
+    case "linkPreview": {
+      await rateLimit(`preview:${ip}`, 200, 600);
+      const u = isPublicHttpUrl(String(body.url ?? ""));
+      if (!u) throw bad("invalid", "Ongeldige link.");
+      try {
+        const ctl = new AbortController();
+        const timer = setTimeout(() => ctl.abort(), 5000);
+        const r = await fetch(u, { signal: ctl.signal, redirect: "follow", headers: { "User-Agent": "Mozilla/5.0 (compatible; LootjesPreview/1.0)", Accept: "text/html" } });
+        clearTimeout(timer);
+        if (!isPublicHttpUrl(r.url)) return { title: null, imageUrl: null, site: u.hostname };
+        const reader = r.body?.getReader();
+        let html = "";
+        if (reader) {
+          const dec = new TextDecoder();
+          while (html.length < 200_000) { const { done, value } = await reader.read(); if (done) break; html += dec.decode(value, { stream: true }); }
+          reader.cancel().catch(() => {});
+        }
+        const title = metaContent(html, ["og:title", "twitter:title"]) ?? html.match(/<title[^>]*>([^<]{1,200})<\/title>/i)?.[1]?.trim() ?? null;
+        let image = metaContent(html, ["og:image", "twitter:image"]);
+        if (image) { try { image = new URL(image, r.url).toString(); } catch { image = null; } }
+        if (image && !image.startsWith("https://")) image = null;
+        return { title: title?.slice(0, 160) ?? null, imageUrl: image, site: new URL(r.url).hostname.replace(/^www\./, "") };
+      } catch {
+        return { title: null, imageUrl: null, site: u.hostname.replace(/^www\./, "") };
+      }
     }
 
     default:
