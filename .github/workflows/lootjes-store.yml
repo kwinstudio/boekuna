@@ -1,0 +1,44 @@
+name: Lootjes App Store listing
+# Builds App Store screenshots from the latest simulator screenshots and updates the store texts,
+# categories, age rating and screenshots in App Store Connect. Never submits for App Review.
+on:
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: "Upload to App Store Connect (otherwise only build the screenshots)"
+        type: boolean
+        default: true
+permissions:
+  contents: write
+jobs:
+  store:
+    if: github.repository == 'kwinstudio/boekuna'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Latest simulator screenshots
+        run: git fetch -q --depth 1 origin claude/lootjes-shots && mkdir -p /tmp/shots && git --work-tree=/tmp/shots checkout FETCH_HEAD -- . && ls /tmp/shots | wc -l
+      - name: Compose store screenshots
+        run: |
+          cd lootjes/store
+          npm init -y >/dev/null && npm i playwright@1 >/dev/null && npx playwright install --with-deps chromium >/dev/null
+          node compose.mjs /tmp/shots /tmp/store
+          find /tmp/store -name '*.png' | sort
+      - name: Publish composed screenshots to a branch
+        run: |
+          cd /tmp/store && git init -q && git checkout -q -b claude/lootjes-store
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com add . && git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -q -m "Store screenshots ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" claude/lootjes-store
+      - name: Update App Store Connect
+        if: inputs.upload
+        working-directory: lootjes
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          STORE_DIR: /tmp/store
+        run: node scripts/asc.mjs store

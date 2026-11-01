@@ -1,12 +1,32 @@
 {
-  "name": "Lootjes – Sint & Kerst",
-  "subtitle": "Trekken zonder gedoe of account",
-  "primaryCategory": "LIFESTYLE",
-  "secondaryCategory": "UTILITIES",
-  "keywords": "lootjes,trekken,sinterklaas,kerst,secret santa,surprise,gedicht,verlanglijst,pakjesavond,cadeau",
-  "promotionalText": "Lootjes trekken voor Sinterklaas en Kerst. Iedereen krijgt zijn lootje op zijn eigen telefoon, ook zonder app. Gratis en zonder reclame.",
-  "description": "Lootjes trekken zonder papiertjes, zonder gedoe en zonder dat iemand stiekem kan meekijken.\n\nMaak in een minuut een groep, deel de link in de groepsapp en trek de lootjes. Iedereen krijgt zijn eigen lootje op zijn eigen telefoon. Wie de app niet heeft, opent gewoon de link.\n\nNIEMAND ZIET WIE WIE HEEFT\nDe trekking gebeurt op de server. Ook de organisator kan niet zien wie wie heeft getrokken.\n\nALLES WAT JE NODIG HEBT\n• Partners of huisgenoten trekken elkaar niet\n• Vorig jaar wordt automatisch vermeden\n• Verlanglijstjes, ook met links naar webshops\n• Stel je lootje anoniem een vraag, je Sint blijft geheim\n• Gedichthulp met rijmwoorden voor Sinterklaas\n• Budget en datum, met een herinnering een week en een dag van tevoren\n• Zie wie zijn lootje al heeft bekeken en wie zijn cadeau klaar heeft\n• Iemand haakt af? Haal hem eruit en trek opnieuw\n• Iedereen in dezelfde kamer? Geef de telefoon door, ook zonder internet\n\nGRATIS, ZONDER RECLAME, ZONDER ACCOUNT\nGeen inlog, geen e-mailadres, geen tracking. Je groepen staan veilig in je iCloud-sleutelhanger.",
-  "supportUrl": "https://lootjes-zichtwerf.vercel.app",
+  "categories": { "primary": "LIFESTYLE", "secondary": "UTILITIES" },
+  "copyright": "2026 Zichtwerf Studio",
+  "supportUrl": "https://lootjes-zichtwerf.vercel.app/support",
   "privacyUrl": "https://lootjes-zichtwerf.vercel.app/privacy",
-  "copyright": "2026 Zichtwerf Studio"
+  "marketingUrl": "https://lootjes-zichtwerf.vercel.app",
+  "locales": {
+    "nl-NL": {
+      "subtitle": "Sinterklaas & Kerst trekken",
+      "keywords": "lootjes,trekken,sinterklaas,kerst,surprise,secret santa,verlanglijst,cadeau,gedicht,pakjesavond",
+      "promotionalText": "Trek lootjes op afstand: deel één link en iedereen ziet zijn eigen lootje. Met verlanglijstjes uit 30 winkels, een eigen boodschappenlijst en gedichthulp.",
+      "description": "Lootjes trekken voor Sinterklaas of Kerst, zonder papiertjes en zonder gedoe. Niemand ziet wie wie heeft, ook de organisator niet.\n\nZO WERKT HET\n• Maak een groep en zet de datum en het budget erin.\n• Deel één link in de familie-app. Iedereen meldt zich zelf aan.\n• Trek de lootjes. Iedereen ziet op zijn eigen telefoon wie hij heeft.\n\nSAMEN AAN TAFEL?\nGeef één telefoon door. Iedereen kijkt om de beurt, de rest ziet niets.\n\nVERLANGLIJSTJES DIE WERKEN\n• Kies uit 100 cadeau-ideeën, typ zelf iets of plak een link.\n• Shop in 30 winkels, zoals bol, Coolblue, IKEA en HEMA. Tik op \"Zet op mijn lijstje\" en naam, foto en prijs gaan vanzelf mee.\n• Zet je liefste wens bovenaan.\n\nKOPEN ZONDER DUBBELE CADEAUS\n• Tik bij het lijstje van je lootje op \"Ik koop dit\".\n• Je eigen boodschappenlijst houdt het budget bij en vinkt af wat je al hebt. Alleen jij ziet hem.\n\nHANDIG VOOR DE ORGANISATOR\n• Zie wie zijn lootje heeft bekeken en wie zijn cadeau klaar heeft, zonder de koppels te zien.\n• Sluit stelletjes uit, zodat partners elkaar niet trekken.\n• Volgend jaar opnieuw, met andere koppels dan dit jaar.\n• Iemand valt af? Haal hem weg en trek opnieuw.\n\nEN VERDER\n• Stel anoniem een vraag aan je lootje of je Sint.\n• Hulp bij het rijmen van je Sinterklaasgedicht.\n• Herinneringen voor het trekken en voor pakjesavond.\n• Deelnemers hebben de app niet nodig: de link werkt ook in de browser.\n\nGratis, zonder reclame en zonder account. Je gegevens staan in de EU.",
+      "whatsNew": "Eerste versie."
+    },
+    "en-US": {
+      "subtitle": "Secret Santa name draw",
+      "keywords": "secret santa,sinterklaas,name draw,christmas,gift exchange,wishlist,lootjes,kerst",
+      "promotionalText": "Draw names remotely: share one link and everyone sees their own match. With wishlists from 30 shops, a private shopping list and a poem helper. App is in Dutch.",
+      "description": "Draw names for Sinterklaas or Christmas without paper slips. Nobody can see who drew whom, not even the organizer.\n\nNote: the app is in Dutch and made for the Netherlands and Belgium.\n\nHOW IT WORKS\n• Create a group with the date and budget.\n• Share one link in the family chat. Everyone joins by themselves.\n• Draw. Everyone sees their match on their own phone.\n\nAT THE TABLE TOGETHER?\nPass one phone around. Everyone looks in turn, the others see nothing.\n\nWISHLISTS THAT WORK\n• Choose from 100 gift ideas, type your own or paste a link.\n• Shop in 30 stores such as bol, Coolblue, IKEA and HEMA. Tap \"Add to my list\" and the name, photo and price come along.\n\nNO DOUBLE GIFTS\n• Tap \"I'll buy this\" on your match's wishlist.\n• Your private shopping list tracks the budget. Only you can see it.\n\nFOR THE ORGANIZER\n• See who has opened their name and who has their gift ready, without seeing the pairs.\n• Exclude couples. Next year, avoid last year's pairs automatically.\n\nAlso: anonymous questions to your match or your Secret Santa, a poem rhyming helper and reminders.\n\nFree, no ads, no account. Your data stays in the EU.",
+      "whatsNew": "First version."
+    }
+  },
+  "screenshots": [
+    { "src": "create-light.png",       "ipad": "ipad-create.png",       "nl": ["Lootjes trekken in één minuut", "Groep maken, link delen, klaar."], "en": ["Draw names in one minute", "Create a group, share a link, done."] },
+    { "src": "scratch-light.png",      "ipad": "ipad-scratch.png", "nl": ["Niemand ziet wie wie heeft", "Ook de organisator niet."], "en": ["Nobody sees who drew whom", "Not even the organizer."] },
+    { "src": "wishlist-light.png",     "ipad": "ipad-wishlist.png",     "nl": ["Een verlanglijstje dat werkt", "100 ideeën, je eigen wensen en links."], "en": ["Wishlists that work", "100 ideas, your own wishes and links."] },
+    { "src": "shops-light.png",        "ipad": "ipad-shops.png",        "nl": ["Shop in 30 winkels", "Eén tik en het staat op je lijstje."], "en": ["Shop in 30 stores", "One tap and it's on your list."] },
+    { "src": "member-light.png",       "ipad": "ipad-member.png",       "nl": ["Nooit meer dubbele cadeaus", "Ik koop dit, met je eigen boodschappenlijst."], "en": ["No more double gifts", "Claim a wish, keep your own shopping list."] },
+    { "src": "organizer-light.png",    "ipad": "ipad-organizer.png",    "nl": ["Overzicht voor de organisator", "Wie heeft gekeken, wie is klaar."], "en": ["Overview for the organizer", "Who has looked, who is ready."] },
+    { "src": "poem-light.png",         "ipad": "ipad-poem.png",         "nl": ["Hulp bij je gedicht", "Rijmen voor Sinterklaas."], "en": ["Help with your poem", "Rhymes for Sinterklaas."] }
+  ]
 }

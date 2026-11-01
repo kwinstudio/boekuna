@@ -5,6 +5,8 @@ on:
     branches: [claude/lootjes]
     paths: ['lootjes/scripts/*-smoke.mjs', 'lootjes/supabase/**', 'lootjes/web/**', '.github/workflows/lootjes-api.yml']
   workflow_dispatch:
+  schedule:
+    - cron: '17 6 * * *'   # daily health check (GitHub only runs schedules from the default branch)
 permissions:
   contents: write
 jobs:

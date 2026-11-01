@@ -89,6 +89,10 @@ jobs:
           grep -E "error:" build-archive.log | sort -u | head -20 | while IFS= read -r line; do echo "::error title=Archive::${line}"; done || true
           [ -z "${ARCHIVE_FAILED:-}" ] || exit 1
           test -d build/Lootjes.xcarchive/Products/Applications/Lootjes.app
+          # The archive is unsigned; give it its entitlements so the export signs them in (Universal Links).
+          codesign -f -s - --entitlements Lootjes/Lootjes.entitlements build/Lootjes.xcarchive/Products/Applications/Lootjes.app
+          codesign -d --entitlements - build/Lootjes.xcarchive/Products/Applications/Lootjes.app 2>/dev/null | grep -q "applinks:lootjes.zichtwerfstudio.nl" \
+            && echo "::notice title=Entitlements::Associated domains attached to the archive." || echo "::warning title=Entitlements::Associated domains missing."
           cp ExportOptions-TestFlight.plist "$RUNNER_TEMP/ExportOptions.plist"
           /usr/libexec/PlistBuddy -c 'Add :teamID string ${{ steps.asc.outputs.team_id }}' "$RUNNER_TEMP/ExportOptions.plist"
           xcodebuild -exportArchive -archivePath build/Lootjes.xcarchive -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
@@ -102,7 +106,7 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           TARGET_BUILD: ${{ steps.asc.outputs.next_build }}
-          WHAT_TO_TEST: "Eerste versie van Lootjes. Test: een groep maken, mensen uitnodigen via de link, lootjes trekken, je lootje openkrassen, verlanglijstje, anonieme vragen, gedichthulp en 'Iedereen is hier' (telefoon doorgeven)."
+          WHAT_TO_TEST: "Test: groep maken, uitnodigen via de link (opent nu direct de app), lootjes trekken, verlanglijstje met winkels, 'Ik koop dit' en je boodschappenlijst, eigen budget, anonieme vragen en gedichthulp."
         run: node scripts/asc.mjs testflight
       - name: Remove signing key
         if: always()

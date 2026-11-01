@@ -5,6 +5,10 @@ struct LootjesApp: App {
     @StateObject private var store = Store()
     @StateObject private var router = Router()
 
+    init() {
+        if Demo.screen == nil { Diagnostics.shared.start() }
+    }
+
     var body: some Scene {
         WindowGroup {
             if let screen = Demo.screen {

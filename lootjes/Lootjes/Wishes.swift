@@ -306,7 +306,6 @@ struct Shop: Identifiable, Hashable {
             Shop(name: "HEMA", url: "https://www.hema.nl/", color: 0xE30613),
             Shop(name: "Wehkamp", url: "https://www.wehkamp.nl/", color: 0xFF4F00),
             Shop(name: "de Bijenkorf", url: "https://www.debijenkorf.nl/", color: 0x000000),
-            Shop(name: "Google Shopping", url: "https://www.google.com/search?tbm=shop&q=cadeau", color: 0x4285F4),
         ]),
         Category(name: "Speelgoed", icon: "teddybear", shops: [
             Shop(name: "Intertoys", url: "https://www.intertoys.nl/", color: 0xE2001A),
@@ -348,6 +347,16 @@ struct Shop: Identifiable, Hashable {
     ]
 
     static var all: [Shop] { categories.flatMap(\.shops) }
+
+    /// The in-app browser only shows these shops (so it is not an open web browser; keeps the 4+ age rating).
+    /// Other sites open in Safari.
+    static func isAllowed(_ url: URL) -> Bool {
+        guard url.scheme == "https" || url.scheme == "http", let h = url.host()?.lowercased() else { return false }
+        return all.contains { shop in
+            let base = shop.host.lowercased().split(separator: ".").suffix(2).joined(separator: ".")
+            return h == base || h.hasSuffix("." + base)
+        }
+    }
 
     /// "coolblue.nl", "www.x.nl/abc" or a full link -> an https URL. Plain words -> nil.
     static func websiteURL(from input: String) -> URL? {
@@ -471,6 +480,7 @@ struct ShopBrowserView: View {
     private func open(_ s: Shop) {
         Haptics.tap()
         if Shop.all.contains(s) { RecentShops.add(s); recent = RecentShops.load() }
+        if let u = URL(string: s.url), !Shop.isAllowed(u) { UIApplication.shared.open(u); return }
         shop = s
         web.load(s.url)
     }
@@ -480,7 +490,8 @@ struct ShopBrowserView: View {
             Group {
                 if shop == nil {
                     ShopPicker(tint: tint, query: $query, recent: recent) { s in open(s) } openURL: { u, name in
-                        open(Shop(name: name, url: u.absoluteString, color: 0x8E8E93))
+                        if Shop.isAllowed(u) { open(Shop(name: name, url: u.absoluteString, color: 0x8E8E93)) }
+                        else { UIApplication.shared.open(u) }
                     }
                 } else {
                     WebView(state: web)
@@ -572,13 +583,13 @@ private struct ShopPicker: View {
                 if !q.isEmpty {
                     VStack(alignment: .leading, spacing: 10) {
                         if let u = Shop.websiteURL(from: q) {
-                            wideButton(icon: "globe", title: "Open \(u.host() ?? q)", subtitle: "Elke webshop werkt") {
+                            wideButton(icon: "safari", title: "Open \(u.host() ?? q)", subtitle: Shop.isAllowed(u) ? "In de app" : "In Safari. Kopieer daar de link en plak hem in je lijstje.") {
                                 openURL(u, u.host()?.replacingOccurrences(of: "www.", with: "") ?? q)
                             }
                         }
                         grid(filtered)
                         if let g = Shop.googleShopping(q) {
-                            wideButton(icon: "magnifyingglass", title: "Zoek \"\(q)\" in alle winkels", subtitle: "Via Google Shopping") {
+                            wideButton(icon: "magnifyingglass", title: "Zoek \"\(q)\" in alle winkels", subtitle: "Google Shopping in Safari") {
                                 openURL(g, "Google Shopping")
                             }
                         }
@@ -586,7 +597,7 @@ private struct ShopPicker: View {
                 } else {
                     if !recent.isEmpty { section("Laatst gebruikt", icon: "clock", recent) }
                     ForEach(Shop.categories) { c in section(c.name, icon: c.icon, c.shops) }
-                    Label("Staat je winkel er niet bij? Typ bovenin het webadres, bijvoorbeeld lucardi.nl. Elke webshop werkt.", systemImage: "globe")
+                    Label("Staat je winkel er niet bij? Typ bovenin het webadres, bijvoorbeeld lucardi.nl. Die opent in Safari: kopieer daar de link van het product en tik in je lijstje op Plak.", systemImage: "globe")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
             }
@@ -670,6 +681,21 @@ final class WebState: NSObject, ObservableObject, WKNavigationDelegate {
     }
 
     func load(_ s: String) { if let u = URL(string: s) { view.load(URLRequest(url: u)) } }
+
+    /// Pages of other sites (not one of the listed shops) open in Safari instead of in the app.
+    func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
+        guard let url = action.request.url else { return .cancel }
+        if url.scheme == "about" || url.scheme == "blob" || url.scheme == "data" { return .allow }
+        let mainFrame = action.targetFrame?.isMainFrame ?? true
+        if !mainFrame || Shop.isAllowed(url) {
+            if action.targetFrame == nil, Shop.isAllowed(url) { webView.load(URLRequest(url: url)); return .cancel } // target=_blank
+            return .allow
+        }
+        if url.scheme == "https" || url.scheme == "http" || url.scheme == "mailto" || url.scheme == "tel" {
+            await UIApplication.shared.open(url)
+        }
+        return .cancel
+    }
     func back() { view.goBack() }
 
     func readProduct() async -> WishDraft? {

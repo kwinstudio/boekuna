@@ -542,7 +542,7 @@ function home() {
     <p class="muted center">Voor Sinterklaas en Kerst. Iedereen krijgt zijn lootje op zijn eigen telefoon. Niemand ziet wie wie heeft, ook de organisator niet. Gratis en zonder reclame.</p>
     ${mine.length ? `<div class="card"><h2>Mijn lootjes</h2>${mine.map(([t, v]) => `<p><a href="/m/${esc(t)}">${esc(v.name)}</a></p>`).join("")}</div>` : ""}
     <div class="card"><h2>Heb je een code?</h2><div class="row"><input id="code" maxlength="12" placeholder="Bijv. K7M2QX9" autocapitalize="characters"><button class="btn send" id="go" aria-label="Zoek">→</button></div></div>
-    <p class="muted center"><a href="/privacy">Privacy</a></p>`);
+    <p class="muted center"><a href="/support">Hulp</a> · <a href="/privacy">Privacy</a></p>`);
   const go = () => { const c = $("#code").value.toUpperCase().replace(/[^A-Z0-9]/g, ""); if (c.length === 7) location.href = "/j/" + c; };
   $("#go").onclick = go; $("#code").addEventListener("keydown", (e) => e.key === "Enter" && go());
   bar("");
@@ -559,12 +559,32 @@ function adminPage(token) {
 function privacy() {
   render(`<h1>Privacy</h1>
     <p>Lootjes is gemaakt door Zichtwerf Studio. We bewaren zo weinig mogelijk.</p>
-    <div class="card"><h2>Wat we bewaren</h2><p>Per groep: de groepsnaam, datum, budget en het bericht van de organisator. Per deelnemer: de naam die je invult, je verlanglijstje, wie je hebt getrokken, of je je cadeau klaar hebt, de anonieme berichten, en wanneer je link geopend is.</p></div>
-    <div class="card"><h2>Wat we niet doen</h2><p>Geen account, geen e-mailadres of telefoonnummer nodig. Geen reclame, geen tracking, geen analysecookies. We verkopen niets door. Ook de organisator kan niet zien wie wie heeft getrokken.</p></div>
+    <div class="card"><h2>Wat we bewaren</h2><p>Per groep: de groepsnaam, datum, budget en het bericht van de organisator. Per deelnemer: de naam die je invult, je verlanglijstje (wensen met eventueel een link, foto en prijs), wie je hebt getrokken, je eigen boodschappenlijstje, of je cadeau klaar is, de anonieme berichten, en wanneer je link geopend is.</p></div>
+    <div class="card"><h2>Wie ziet wat</h2><p>Je Sint ziet je verlanglijstje. Je boodschappenlijstje ziet alleen jij, ook niet degene voor wie je koopt. Niemand ziet wie wie heeft getrokken, ook de organisator niet.</p></div>
+    <div class="card"><h2>Wat we niet doen</h2><p>Geen account, geen e-mailadres of telefoonnummer nodig. Geen reclame, geen tracking, geen analysecookies. We verkopen niets door.</p></div>
+    <div class="card"><h2>Winkels</h2><p>Als je in de app in een webshop kijkt, bezoek je die winkel zoals in je browser; dan gelden de regels van die winkel. De app bewaart geen cookies van winkels na het sluiten. Om de logo's van winkels te tonen, vraagt de app het icoontje op bij Google; daarbij gaat alleen het adres van de winkel mee.</p></div>
+    <div class="card"><h2>Crashmeldingen</h2><p>Als de app vastloopt of crasht, stuurt je iPhone ons een anonieme technische melding van Apple (welk stukje code, welke iOS-versie). Daarin staat geen naam, groep of verlanglijstje. We bewaren deze meldingen maximaal 90 dagen.</p></div>
     <div class="card"><h2>Links</h2><p>Iedere deelnemer heeft een geheime persoonlijke link. Wie die link heeft, kan die pagina zien; stuur hem dus niet door. De organisator kan een nieuwe link maken; de oude werkt dan niet meer. We bewaren alleen een versleutelde vingerafdruk van de link, niet de link zelf.</p></div>
-    <div class="card"><h2>Verwijderen</h2><p>De organisator kan de groep op elk moment verwijderen; alles van die groep is dan direct weg. Deelnemers kunnen zichzelf voor de trekking uit de groep halen. Vragen? Mail <a href="mailto:k.phetmanee@gmail.com">k.phetmanee@gmail.com</a>.</p></div>
+    <div class="card"><h2>Verwijderen</h2><p>De organisator kan de groep op elk moment verwijderen; alles van die groep is dan direct weg. Deelnemers kunnen zichzelf voor de trekking uit de groep halen en hun wensen zelf wissen. Vragen of een verzoek om gegevens te verwijderen? Mail <a href="mailto:k.phetmanee@gmail.com">k.phetmanee@gmail.com</a>.</p></div>
     <div class="card"><h2>Waar</h2><p>De gegevens staan bij Supabase in de EU (Frankfurt). Herinneringen in de app worden alleen op je eigen telefoon ingepland.</p></div>
-    <p class="muted">Laatst bijgewerkt: 31 oktober 2026.</p>`);
+    <p class="muted">Laatst bijgewerkt: 1 november 2026.</p>`);
+  bar("");
+}
+
+function support() {
+  const qa = [
+    ["Hoe werkt het?", "De organisator maakt een groep en deelt de link. Iedereen meldt zich aan of krijgt een eigen link. Na de trekking ziet iedereen op zijn eigen telefoon wie hij heeft getrokken."],
+    ["Kan de organisator zien wie wie heeft?", "Nee. De trekking gebeurt op de server en niemand kan de koppels zien, ook de organisator niet."],
+    ["Iemand is zijn link kwijt", "De organisator opent de groep, tikt op de naam en maakt een nieuwe link. De oude link werkt dan niet meer."],
+    ["Iemand doet toch niet mee", "Haal die persoon weg bij de groep en trek opnieuw. Iedereen krijgt dan een nieuw lootje."],
+    ["Heb ik de app nodig?", "Nee. Deelnemers kunnen alles via de link in de browser doen. De app is handig voor de organisator en voor herinneringen."],
+    ["Kost het geld?", "Nee. Lootjes is gratis en zonder reclame."],
+    ["Mijn gegevens laten verwijderen", "De organisator kan de hele groep verwijderen. Wil je iets anders laten verwijderen, mail ons dan."],
+  ];
+  render(`<h1>Hulp en contact</h1>
+    <p class="muted">Kom je er niet uit? Mail <a href="mailto:k.phetmanee@gmail.com?subject=Lootjes">k.phetmanee@gmail.com</a>. We reageren meestal binnen een dag.</p>
+    ${qa.map(([q, a]) => `<div class="card"><h2>${q}</h2><p>${a}</p></div>`).join("")}
+    <p class="muted center"><a href="/privacy">Privacy</a> · <a href="/">Lootjes</a></p>`);
   bar("");
 }
 
@@ -573,6 +593,7 @@ if (parts[0] === "j" && parts[1]) joinPage(parts[1].toUpperCase());
 else if (parts[0] === "m" && parts[1]) memberPage(parts[1]);
 else if (parts[0] === "b" && parts[1]) adminPage(parts[1]);
 else if (parts[0] === "privacy") privacy();
+else if (parts[0] === "support") support();
 else home();
 </script>
 </body>

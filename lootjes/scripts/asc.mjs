@@ -72,6 +72,14 @@ if (mode === 'preflight') {
   const teamId = bundle.attributes.seedId;
   out('team_id', teamId);
 
+  // Universal Links (invite links open the app) need the Associated Domains capability on the App ID.
+  const caps = await api(`/v1/bundleIds/${bundle.id}/bundleIdCapabilities?limit=50`);
+  if (!(caps.data || []).some((c) => c.attributes.capabilityType === 'ASSOCIATED_DOMAINS')) {
+    await api('/v1/bundleIdCapabilities', { method: 'POST', body: { data: { type: 'bundleIdCapabilities', attributes: { capabilityType: 'ASSOCIATED_DOMAINS' }, relationships: { bundleId: { data: { type: 'bundleIds', id: bundle.id } } } } } })
+      .then(() => note('Enabled Associated Domains on the App ID.'))
+      .catch((e) => warn(`Associated Domains: ${e.message}`));
+  }
+
   const app = await findApp(BUNDLE_ID);
   if (!app) {
     out('app_exists', 'false');
@@ -150,4 +158,94 @@ if (mode === 'testflight') {
   const state = detail?.data?.attributes?.internalBuildState;
   note(`Build ${build.attributes.version} internal TestFlight state: ${state}; testers in group: ${existing.size}.`);
   if (state !== 'IN_BETA_TESTING') warn(`Internal state is ${state}, expected IN_BETA_TESTING.`);
+}
+
+// ---------- store: App Store listing (texts, categories, age rating, screenshots). Never submits. ----------
+if (mode === 'store') {
+  const listing = JSON.parse(fs.readFileSync(new URL('../store/listing.json', import.meta.url)));
+  const shotsDir = process.env.STORE_DIR || '';
+  const app = await findApp(BUNDLE_ID);
+  if (!app) fail('App record missing.');
+  const appMeta = (await api(`/v1/apps/${app.id}?fields[apps]=primaryLocale,name`)).data.attributes;
+  note(`App "${appMeta.name}", primary language ${appMeta.primaryLocale}.`);
+
+  // App info (subtitle, privacy URL, categories, age rating) - the editable one.
+  const infos = (await api(`/v1/apps/${app.id}/appInfos`)).data || [];
+  const info = infos.find((i) => ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED', 'WAITING_FOR_REVIEW'].includes(i.attributes.appStoreState || i.attributes.state)) || infos[0];
+  await api(`/v1/appInfos/${info.id}`, { method: 'PATCH', body: { data: { type: 'appInfos', id: info.id, relationships: {
+    primaryCategory: { data: { type: 'appCategories', id: listing.categories.primary } },
+    secondaryCategory: { data: { type: 'appCategories', id: listing.categories.secondary } },
+  } } } }).then(() => note('Categories set.')).catch((e) => warn(`Categories: ${e.message}`));
+
+  const infoLocs = (await api(`/v1/appInfos/${info.id}/appInfoLocalizations?limit=50`)).data || [];
+  for (const [locale, t] of Object.entries(listing.locales)) {
+    const attrs = { subtitle: t.subtitle, privacyPolicyUrl: listing.privacyUrl };
+    const ex = infoLocs.find((l) => l.attributes.locale === locale);
+    const p = ex
+      ? api(`/v1/appInfoLocalizations/${ex.id}`, { method: 'PATCH', body: { data: { type: 'appInfoLocalizations', id: ex.id, attributes: attrs } } })
+      : api('/v1/appInfoLocalizations', { method: 'POST', body: { data: { type: 'appInfoLocalizations', attributes: { locale, name: appMeta.name, ...attrs }, relationships: { appInfo: { data: { type: 'appInfos', id: info.id } } } } } });
+    await p.then(() => note(`App info ${locale} set.`)).catch((e) => warn(`App info ${locale}: ${e.message}`));
+  }
+
+  // Age rating: no objectionable content. The in-app shop browser only opens the listed shops,
+  // so there is no unrestricted web access.
+  try {
+    const ar = (await api(`/v1/appInfos/${info.id}/ageRatingDeclaration`)).data;
+    const none = ['alcoholTobaccoOrDrugUseOrReferences', 'contests', 'gamblingSimulated', 'horrorOrFearThemes', 'matureOrSuggestiveThemes',
+      'medicalOrTreatmentInformation', 'profanityOrCrudeHumor', 'sexualContentGraphicAndNudity', 'sexualContentOrNudity',
+      'violenceCartoonOrFantasy', 'violenceRealistic', 'violenceRealisticProlongedGraphicOrSadistic'];
+    const attrs = Object.fromEntries(none.map((k) => [k, 'NONE']));
+    Object.assign(attrs, { gambling: false, unrestrictedWebAccess: false, lootBox: false });
+    await api(`/v1/ageRatingDeclarations/${ar.id}`, { method: 'PATCH', body: { data: { type: 'ageRatingDeclarations', id: ar.id, attributes: attrs } } });
+    note('Age rating answers set (no objectionable content).');
+  } catch (e) { warn(`Age rating: ${e.message}. Fill it in by hand in App Store Connect.`); }
+
+  // Version 1.0 texts.
+  const versions = (await api(`/v1/apps/${app.id}/appStoreVersions?filter[platform]=IOS&limit=10`)).data || [];
+  let version = versions.find((v) => ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED', 'METADATA_REJECTED'].includes(v.attributes.appStoreState || v.attributes.appVersionState));
+  if (!version) {
+    version = (await api('/v1/appStoreVersions', { method: 'POST', body: { data: { type: 'appStoreVersions', attributes: { platform: 'IOS', versionString: '1.0' }, relationships: { app: { data: { type: 'apps', id: app.id } } } } } })).data;
+    note('Created version 1.0.');
+  }
+  await api(`/v1/appStoreVersions/${version.id}`, { method: 'PATCH', body: { data: { type: 'appStoreVersions', id: version.id, attributes: { copyright: listing.copyright } } } })
+    .catch((e) => warn(`Copyright: ${e.message}`));
+  const vLocs = (await api(`/v1/appStoreVersions/${version.id}/appStoreVersionLocalizations?limit=50`)).data || [];
+  const isFirst = versions.length <= 1;
+  for (const [locale, t] of Object.entries(listing.locales)) {
+    const attrs = { description: t.description, keywords: t.keywords, promotionalText: t.promotionalText, supportUrl: listing.supportUrl, marketingUrl: listing.marketingUrl };
+    if (!isFirst) attrs.whatsNew = t.whatsNew;
+    let loc = vLocs.find((l) => l.attributes.locale === locale);
+    try {
+      if (loc) await api(`/v1/appStoreVersionLocalizations/${loc.id}`, { method: 'PATCH', body: { data: { type: 'appStoreVersionLocalizations', id: loc.id, attributes: attrs } } });
+      else loc = (await api('/v1/appStoreVersionLocalizations', { method: 'POST', body: { data: { type: 'appStoreVersionLocalizations', attributes: { locale, ...attrs }, relationships: { appStoreVersion: { data: { type: 'appStoreVersions', id: version.id } } } } } })).data;
+      note(`Store text ${locale} set.`);
+    } catch (e) { warn(`Store text ${locale}: ${e.message}`); continue; }
+
+    // Screenshots: replace the set for iPhone 6.9" and iPad 13".
+    if (!shotsDir) continue;
+    for (const [kind, displayType] of [['iphone', 'APP_IPHONE_67'], ['ipad', 'APP_IPAD_PRO_3GEN_129']]) {
+      const files = fs.existsSync(`${shotsDir}/${locale}`) ? fs.readdirSync(`${shotsDir}/${locale}`).filter((f) => f.startsWith(`${kind}-`)).sort() : [];
+      if (!files.length) { warn(`No ${kind} screenshots for ${locale}.`); continue; }
+      try {
+        const sets = (await api(`/v1/appStoreVersionLocalizations/${loc.id}/appScreenshotSets?limit=50`)).data || [];
+        let set = sets.find((s) => s.attributes.screenshotDisplayType === displayType);
+        if (!set) set = (await api('/v1/appScreenshotSets', { method: 'POST', body: { data: { type: 'appScreenshotSets', attributes: { screenshotDisplayType: displayType }, relationships: { appStoreVersionLocalization: { data: { type: 'appStoreVersionLocalizations', id: loc.id } } } } } })).data;
+        const old = (await api(`/v1/appScreenshotSets/${set.id}/appScreenshots?limit=50`)).data || [];
+        for (const o of old) await api(`/v1/appScreenshots/${o.id}`, { method: 'DELETE' });
+        for (const f of files) {
+          const buf = fs.readFileSync(`${shotsDir}/${locale}/${f}`);
+          const res = (await api('/v1/appScreenshots', { method: 'POST', body: { data: { type: 'appScreenshots', attributes: { fileName: f, fileSize: buf.length }, relationships: { appScreenshotSet: { data: { type: 'appScreenshotSets', id: set.id } } } } } })).data;
+          for (const op of res.attributes.uploadOperations) {
+            const headers = Object.fromEntries((op.requestHeaders || []).map((h) => [h.name, h.value]));
+            const r = await fetch(op.url, { method: op.method, headers, body: buf.subarray(op.offset, op.offset + op.length) });
+            if (!r.ok) throw new Error(`upload part ${r.status}`);
+          }
+          const md5 = crypto.createHash('md5').update(buf).digest('hex');
+          await api(`/v1/appScreenshots/${res.id}`, { method: 'PATCH', body: { data: { type: 'appScreenshots', id: res.id, attributes: { uploaded: true, sourceFileChecksum: md5 } } } });
+        }
+        note(`${files.length} ${kind} screenshots uploaded for ${locale}.`);
+      } catch (e) { warn(`Screenshots ${kind} ${locale}: ${e.message}`); }
+    }
+  }
+  note('Store listing updated. Nothing was submitted for review.');
 }

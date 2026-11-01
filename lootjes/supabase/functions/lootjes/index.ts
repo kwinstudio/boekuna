@@ -589,6 +589,23 @@ async function handle(body: Record<string, unknown>, ip: string) {
       }
     }
 
+    case "diag": {
+      // Anonymous crash/hang report from Apple MetricKit. No member or group data is accepted.
+      await rateLimit(`diag:${ip}`, 30, 86400);
+      const kind = ["crash", "hang", "cpu", "disk", "launch"].includes(String(body.kind)) ? String(body.kind) : "other";
+      const payload = body.payload && typeof body.payload === "object" ? body.payload : {};
+      if (JSON.stringify(payload).length > 60000) throw bad("invalid", "Te groot.");
+      await must(db.from("lt_diag").insert({
+        app_version: String(body.appVersion ?? "?").slice(0, 40),
+        os_version: String(body.osVersion ?? "?").slice(0, 80),
+        kind, summary: typeof body.summary === "string" ? body.summary.slice(0, 500) : null, payload,
+      }));
+      if (Math.random() < 0.05) {
+        await db.from("lt_diag").delete().lt("created_at", new Date(Date.now() - 90 * 86400_000).toISOString());
+      }
+      return { ok: true };
+    }
+
     default:
       throw bad("unknown_action", "Onbekende actie.");
   }

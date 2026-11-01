@@ -5,12 +5,21 @@ enum Theme {
     static let red = Color("BrandRed")
     static let gold = Color("BrandGold")
     static let green = Color("BrandGreen")
+    /// Readable orange for warnings (plain .orange is too light on white).
+    static let warning = Color("Warning")
     static let paper = Color("Paper")
     static let card = Color("Card")
     static let ink = Color.primary
 
     /// One calm accent everywhere: a service app, not a theme park.
     static func accent(for occasion: Occasion) -> Color { red }
+}
+
+extension View {
+    /// Keeps text and buttons at a comfortable width on iPad; no effect on iPhone.
+    func readableWidth(_ width: CGFloat = 640) -> some View {
+        frame(maxWidth: width).frame(maxWidth: .infinity)
+    }
 }
 
 enum Haptics {
@@ -97,9 +106,17 @@ struct SecondaryButton: View {
 
 struct PressableStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+        Pressed(configuration: configuration)
+    }
+    private struct Pressed: View {
+        let configuration: Configuration
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        var body: some View {
+            configuration.label
+                .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
+                .opacity(configuration.isPressed && reduceMotion ? 0.7 : 1)
+                .animation(reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+        }
     }
 }
 
@@ -119,6 +136,7 @@ extension View {
     func bottomBar<Bar: View>(@ViewBuilder _ bar: () -> Bar) -> some View {
         safeAreaInset(edge: .bottom) {
             VStack(spacing: 10) { bar() }
+                .readableWidth()
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
                 .padding(.bottom, 8)

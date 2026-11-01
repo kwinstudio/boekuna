@@ -16,9 +16,22 @@
     {
       "source": "/b/:token",
       "destination": "/"
+    },
+    {
+      "source": "/support",
+      "destination": "/"
     }
   ],
   "headers": [
+    {
+      "source": "/.well-known/apple-app-site-association",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
     {
       "source": "/(.*)",
       "headers": [

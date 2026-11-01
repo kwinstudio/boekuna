@@ -72,6 +72,13 @@ try {
   await page.goto(`${WEB}/privacy`);
   await page.getByText('Wat we niet doen').waitFor();
   ok(true, 'privacy page renders');
+  const aasa = await fetch(`${WEB}/.well-known/apple-app-site-association`);
+  const aj = await aasa.json().catch(() => null);
+  ok(aasa.ok && /json/.test(aasa.headers.get('content-type') || '') && aj?.applinks?.details?.[0]?.appIDs?.[0] === '4PUWX9ZXQL.nl.zichtwerfstudio.lootjes',
+    'app-site-association file is served as JSON (invite links open the app)');
+  const custom = await fetch('https://lootjes.zichtwerfstudio.nl/.well-known/apple-app-site-association').catch(() => null);
+  if (custom?.ok) ok(true, 'custom domain lootjes.zichtwerfstudio.nl is live');
+  else console.log('::warning title=Domain::lootjes.zichtwerfstudio.nl is not live yet (DNS record missing).');
   ok(errors.length === 0, `no JavaScript errors (${errors.join('; ')})`);
 } catch (e) {
   failures++; console.log(`::error title=Web smoke::${e.message.split('\n')[0]}`);

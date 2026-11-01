@@ -131,6 +131,10 @@ try {
   ok(pv.site === 'example.com', 'link preview works for a public page');
   const ssrf = await call('linkPreview', { url: 'http://127.0.0.1:54321/' }, true);
   ok(ssrf.status === 400, 'link preview refuses local addresses');
+  const diag = await call('diag', { kind: 'other', summary: 'ci-smoke', appVersion: 'ci', osVersion: 'ci', payload: { test: true } });
+  ok(diag.ok === true, 'crash report endpoint accepts a small report');
+  const big = await call('diag', { kind: 'crash', payload: { x: 'y'.repeat(70000) } }, true);
+  ok(big.status === 400, 'crash report endpoint refuses oversized reports');
   const bad = await call('adminStatus', { adminToken: 'x'.repeat(40) }, true);
   ok(bad.status === 404, 'wrong admin token is refused');
 } finally {

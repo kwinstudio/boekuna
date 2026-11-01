@@ -35,3 +35,26 @@ xcrun simctl terminate "$SIM" nl.zichtwerfstudio.lootjes >/dev/null 2>&1 || true
 xcrun simctl launch "$SIM" nl.zichtwerfstudio.lootjes >/dev/null
 sleep 4
 xcrun simctl io "$SIM" screenshot build/screens/first-launch.png >/dev/null
+# iPad (App Store needs 13" iPad screenshots because the app runs on iPad).
+IPAD="$(xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin); c=[v for k,vs in d["devices"].items() if "iOS" in k for v in vs if v["name"].startswith("iPad Pro") and "13" in v["name"]] or [v for k,vs in d["devices"].items() if "iOS" in k for v in vs if v["name"].startswith("iPad Pro")]; print(c[-1]["udid"] if c else "")')"
+if [[ -n "$IPAD" ]]; then
+  xcrun simctl shutdown "$SIM" >/dev/null 2>&1 || true
+  xcrun simctl boot "$IPAD" >/dev/null 2>&1 || true
+  xcrun simctl bootstatus "$IPAD" -b
+  xcrun simctl status_bar "$IPAD" override --time 9:41 --batteryState charged --batteryLevel 100 || true
+  xcrun simctl install "$IPAD" "$APP"
+  xcrun simctl ui "$IPAD" appearance light
+  for screen in ${IPAD_SCREENS:-home create scratch organizer member wishlist shops poem}; do
+    xcrun simctl terminate "$IPAD" nl.zichtwerfstudio.lootjes >/dev/null 2>&1 || true
+    xcrun simctl launch "$IPAD" nl.zichtwerfstudio.lootjes -demoScreen "$screen" >/dev/null
+    sleep 4
+    xcrun simctl io "$IPAD" screenshot "build/screens/ipad-$screen.png" >/dev/null
+    echo "captured iPad $screen"
+  done
+  xcrun simctl terminate "$IPAD" nl.zichtwerfstudio.lootjes >/dev/null 2>&1 || true
+  xcrun simctl launch "$IPAD" nl.zichtwerfstudio.lootjes -demoScreen opening >/dev/null
+  sleep 4
+  xcrun simctl io "$IPAD" screenshot build/screens/ipad-opening-done.png >/dev/null
+else
+  echo "No iPad simulator found; skipping iPad screenshots."
+fi

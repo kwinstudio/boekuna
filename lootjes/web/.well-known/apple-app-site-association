@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["4PUWX9ZXQL.nl.zichtwerfstudio.lootjes"],
+        "components": [
+          { "/": "/j/*", "comment": "Join a group" },
+          { "/": "/m/*", "comment": "Personal lootje page" },
+          { "/": "/b/*", "comment": "Organizer page" }
+        ]
+      }
+    ]
+  }
+}
