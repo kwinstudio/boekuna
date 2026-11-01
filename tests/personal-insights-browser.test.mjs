@@ -88,6 +88,7 @@ async function axe(label){
 async function nav(route){await page.evaluate(r=>navigate(r),route);await page.waitForTimeout(50)}
 
 try{
+ await page.clock.setFixedTime(new Date('2026-10-20T10:00:00'));
  await page.goto(base,{waitUntil:'networkidle'});
  await page.getByRole('heading',{name:'Overzicht'}).waitFor();
  // On a phone the "te doen" pill (with Voor jou inside) is off the overview for now (Kwin 2026-10-23); the flag brings it back.

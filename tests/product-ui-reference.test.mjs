@@ -204,6 +204,8 @@ try{
       const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'});
       await page.clock.setFixedTime(new Date(TEST_NOW));
       const pageErrors=[];page.on('pageerror',e=>pageErrors.push(String(e)));
+      // The fixture is dated October 2026 and the pages open on this month: pin the clock so the test does not age.
+      await page.clock.setFixedTime(new Date('2026-10-20T10:00:00'));
       await page.goto(base+'/app',{waitUntil:'networkidle'});
       await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
       await page.evaluate(async()=>document.fonts.ready);

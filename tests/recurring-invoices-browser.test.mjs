@@ -71,7 +71,8 @@ try{
     await page.evaluate(()=>{closeModal();navigate('invoices')});
     await page.locator('.recurring-strip').getByText('Terugkerend · 1 factuur').waitFor();
     // Really visible: not hidden behind the filters on a phone.
-    await page.locator('.recurring-strip').scrollIntoViewIfNeeded();await page.waitForTimeout(300);
+    // Centred, so a toast at the bottom of the screen ("Volgende op …") cannot sit on top of it.
+    await page.locator('.recurring-strip').evaluate(el=>el.scrollIntoView({block:'center'}));await page.waitForTimeout(300);
     const hit=await page.evaluate(()=>{const el=document.querySelector('.recurring-strip');const r=el.getBoundingClientRect();const top=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return !!top&&el.contains(top)});
     assert.ok(hit,label+': Terugkerend row can be tapped');
 

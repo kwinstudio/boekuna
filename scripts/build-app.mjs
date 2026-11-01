@@ -416,6 +416,10 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/desktop.js?v=20
 // several costs at once and calm to-dos. After the app's own scripts, since it wraps a few of their functions.
 {const headEnd=appHtml.indexOf('</head>');appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/vertrouwen.css?v=20261101a">\n'+appHtml.slice(headEnd);}
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/vertrouwen.js?v=20261101a"></script>\n');
+// Psychologische trucjes (Kwin 2026-11-01): the scan shows its steps with a bar, how long things take, the quarter bar, a fresh
+// start and a fixed bonnenmoment, what a bon is worth, a calm end after sending. Last, so it wraps the app as the others left it.
+{const headEnd=appHtml.indexOf('</head>');appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/gevoel.css?v=20261101a">\n'+appHtml.slice(headEnd);}
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/gevoel.js?v=20261101a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});
@@ -445,7 +449,7 @@ for(const asset of ['boekuna-app-favicon.svg','document-review-v2.js','document-
   if(!fs.existsSync(sourceFile))throw new Error('Missing app-only review asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
 }
-for(const asset of ['press.css','press.js','handig.css','handig.js','vegen.js','desktop.css','desktop.js','vertrouwen.css','vertrouwen.js'])fs.copyFileSync(path.join(root,'kwinest','app-assets',asset),path.join(appAssetsTarget,asset));
+for(const asset of ['press.css','press.js','handig.css','handig.js','vegen.js','desktop.css','desktop.js','vertrouwen.css','vertrouwen.js','gevoel.css','gevoel.js'])fs.copyFileSync(path.join(root,'kwinest','app-assets',asset),path.join(appAssetsTarget,asset));
 
 // Assistant integration is app-only. Keep shared public mobile assets byte-identical
 // to the marketing source and patch only the generated product artifact.

@@ -48,6 +48,8 @@ const artifactRoot='tests/artifacts/financial-presentation';fs.mkdirSync(artifac
 const viewports=[[320,568],[360,800],[375,812],[390,844],[393,852],[430,932],[768,1024],[1024,768],[1280,800],[1366,768],[1440,900],[1920,1080]],routes=['dashboard','insights','invoices','expenses','bank','documents','control','vat','reports','cashflow','ledger','hours','settings'];
 const checks=[];
 try{
+ // The fixture is dated October 2026 and lists open on this month: pin the clock so the test does not age.
+ await page.clock.setFixedTime(new Date('2026-10-20T10:00:00'));
  await page.goto('http://127.0.0.1:'+server.address().port+'/baseline');
  await page.locator('.dashboard-chart-card').waitFor();
  const baseFinancial=await page.evaluate(financialSnapshot);
