@@ -8617,7 +8617,7 @@ function fitReportPreviewFrame(){
  const viewport=document.getElementById('reportPreviewViewport'),canvas=document.getElementById('reportPreviewCanvas'),frame=document.getElementById('reportPreviewFrame');if(!viewport||!canvas||!frame)return;
  const available=Math.max(240,viewport.clientWidth-28),fit=Math.min(1,available/REPORT_A4_PREVIEW_WIDTH),scale=a4PreviewZoom==='actual'?1:fit,zoom=document.getElementById('a4PreviewZoom');
  if(zoom){zoom.hidden=fit>=1;zoom.textContent=a4PreviewZoom==='actual'?'Hele pagina':'Inzoomen';zoom.setAttribute('aria-pressed',String(a4PreviewZoom==='actual'))}
- frame.style.width=REPORT_A4_PREVIEW_WIDTH+'px';frame.style.height=REPORT_A4_PREVIEW_HEIGHT+'px';frame.style.transform='scale('+scale+')';
+ frame.style.width=REPORT_A4_PREVIEW_WIDTH+'px';frame.style.height=REPORT_A4_PREVIEW_HEIGHT+'px';frame.style.transformOrigin='0 0';frame.style.transform='scale('+scale+')';
  canvas.style.width=Math.round(REPORT_A4_PREVIEW_WIDTH*scale)+'px';canvas.style.height=Math.round(REPORT_A4_PREVIEW_HEIGHT*scale)+'px'
 }
 window.addEventListener('resize',()=>{if(document.getElementById('reportPreviewFrame'))fitReportPreviewFrame()});
