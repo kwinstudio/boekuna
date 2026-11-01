@@ -264,6 +264,7 @@ final class WishTests: XCTestCase {
         let json = #"{"title":"Iets","image":"http://insecure.example.com/x.jpg","price":null,"url":"https://shop.nl/x"}"#
         XCTAssertNil(ProductPageScript.draft(from: json)?.imageUrl)
     }
+}
 
 final class ShopTests: XCTestCase {
     func testWebsiteURL() {
